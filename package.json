@@ -3,15 +3,23 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --webpack",
+    "clean": "node scripts/clean.js",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
   },
   "dependencies": {
+    "@vercel/kv": "^3.0.0",
+    "framer-motion": "^11.18.2",
+    "lucide-react": "^0.460.0",
     "next": "16.1.6",
+    "openai": "^6.22.0",
+    "pdf-lib": "^1.17.1",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "resend": "^6.9.2",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

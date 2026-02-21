@@ -1,0 +1,2 @@
+# If using OneDrive, exclude this project from syncing to avoid file locks
+# or move the project to C:\dev\tradetools-ai
