@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useParams } from "next/navigation";
 
 class ErrorBoundary extends React.Component<
   { children: React.ReactNode },
@@ -32,19 +33,44 @@ class ErrorBoundary extends React.Component<
   }
 }
 
+function coerceToken(val: unknown): string {
+  if (!val) return "";
+  if (Array.isArray(val)) return String(val[0] ?? "");
+  return String(val);
+}
+
 export default function ApproveClient({ token }: { token: string }) {
+  const params = useParams();
+  const tokenFromUrl = coerceToken((params as any)?.token);
+  const effectiveToken = tokenFromUrl || token || "";
+
   return (
     <ErrorBoundary>
       <div style={{ padding: 24, fontFamily: "system-ui", color: "#111" }}>
         <h1 style={{ margin: 0 }}>Approve route alive ✅</h1>
+
         <div style={{ marginTop: 12 }}>
-          <strong>Token:</strong>{" "}
+          <strong>Token (from URL):</strong>{" "}
+          <span style={{ wordBreak: "break-all" }}>
+            {tokenFromUrl || "(empty)"}
+          </span>
+        </div>
+
+        <div style={{ marginTop: 8 }}>
+          <strong>Token (prop):</strong>{" "}
           <span style={{ wordBreak: "break-all" }}>{token || "(empty)"}</span>
         </div>
 
+        <div style={{ marginTop: 8 }}>
+          <strong>Effective token:</strong>{" "}
+          <span style={{ wordBreak: "break-all" }}>
+            {effectiveToken || "(empty)"}
+          </span>
+        </div>
+
         <div style={{ marginTop: 16, opacity: 0.7 }}>
-          If token is NOT empty, routing is correct. Next step will re-enable the
-          real approval logic safely.
+          If "Token (from URL)" is NOT empty, routing is correct. Next step will
+          re-enable the real approval logic safely.
         </div>
       </div>
     </ErrorBoundary>
