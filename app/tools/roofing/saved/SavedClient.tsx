@@ -62,8 +62,34 @@ const getDisplayStage = (status: string) => {
   return status?.toUpperCase?.() ?? "—";
 };
 
+const STATUS_OPTIONS: Array<{ value: string; label: string }> = [
+  { value: "estimate", label: "Estimate" },
+  { value: "sent", label: "Sent" },
+  { value: "pending", label: "Pending" },
+  { value: "sent_pending", label: "Pending" },
+  { value: "approved", label: "Approved" },
+  { value: "scheduled", label: "Scheduled" },
+  { value: "paid", label: "Paid" },
+];
+
+const normalizeStatus = (s?: string) => {
+  const v = (s || "estimate").toLowerCase();
+  if (v === "sent_pending") return "sent";
+  return v;
+};
+
+const statusToStage = (s?: string) => {
+  const v = normalizeStatus(s);
+  if (v === "estimate") return "estimate";
+  if (v === "sent" || v === "pending") return "pending";
+  if (v === "approved") return "approved";
+  if (v === "scheduled") return "scheduled";
+  if (v === "paid") return "paid";
+  return "estimate";
+};
+
 const canRecordPayment = (status: string) => status === "scheduled" || status === "paid";
-const isPendingApproval = (status: string) => status === "sent_pending" || status === "pending" || status === "sent";
+const isPendingApproval = (status: string) => status === "sent" || status === "pending" || status === "sent_pending";
 
 const getStage = (e: any) => {
   if (e?.status) return e.status;
@@ -691,14 +717,14 @@ function SavedEstimateCard({
 
             <select
               className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-semibold text-white/80 outline-none hover:bg-white/[0.06]"
-              value={getStage(estimate) === "sent" ? "sent_pending" : getStage(estimate)}
+              value={normalizeStatus(getStage(estimate))}
               onChange={(ev) => onStatusChange(estimate.id, ev.target.value)}
             >
-              <option value="estimate">Estimate</option>
-              <option value="sent_pending">Pending</option>
-              <option value="approved">Approved</option>
-              <option value="scheduled">Scheduled</option>
-              <option value="paid">Paid</option>
+              {STATUS_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
             </select>
           </div>
         </div>
