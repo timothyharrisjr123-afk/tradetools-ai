@@ -72,16 +72,10 @@ const STATUS_OPTIONS: Array<{ value: string; label: string }> = [
   { value: "paid", label: "Paid" },
 ];
 
-const normalizeStatus = (s?: string) => {
-  const v = (s || "estimate").toLowerCase();
-  if (v === "sent_pending") return "sent";
-  return v;
-};
-
 const statusToStage = (s?: string) => {
-  const v = normalizeStatus(s);
+  const v = (normalizeStatus(s) ?? "").toLowerCase();
   if (v === "estimate") return "estimate";
-  if (v === "sent" || v === "pending") return "pending";
+  if (v === "sent" || v === "pending" || v === "sent_pending") return "pending";
   if (v === "approved") return "approved";
   if (v === "scheduled") return "scheduled";
   if (v === "paid") return "paid";
