@@ -15,71 +15,35 @@ export default function ApproveClient() {
   const params = useParams();
   const token = coerceToken((params as any)?.token);
 
-  const [status, setStatus] = useState<
-    "checking" | "approved" | "invalid"
-  >("checking");
+  const [debug, setDebug] = useState<any>(null);
 
   useEffect(() => {
-    if (!token) {
-      setStatus("invalid");
-      return;
-    }
-
     const raw = localStorage.getItem(STORAGE_KEY_SAVED_ESTIMATES);
-    if (!raw) {
-      setStatus("invalid");
-      return;
+
+    let parsed = null;
+    if (raw) {
+      try {
+        parsed = JSON.parse(raw);
+      } catch (e) {
+        parsed = "PARSE ERROR";
+      }
     }
 
-    const list = JSON.parse(raw);
-
-    const matchIndex = list.findIndex(
-      (e: any) => e.approvalToken === token
-    );
-
-    if (matchIndex === -1) {
-      setStatus("invalid");
-      return;
-    }
-
-    // Mark as approved
-    list[matchIndex] = {
-      ...list[matchIndex],
-      status: "approved",
-      approvedAt: new Date().toISOString(),
-    };
-
-    localStorage.setItem(
-      STORAGE_KEY_SAVED_ESTIMATES,
-      JSON.stringify(list)
-    );
-
-    setStatus("approved");
+    setDebug({
+      tokenFromUrl: token,
+      storageKey: STORAGE_KEY_SAVED_ESTIMATES,
+      rawExists: !!raw,
+      parsed,
+    });
   }, [token]);
 
-  if (status === "checking") {
-    return (
-      <div style={{ padding: 40 }}>
-        Checking approval…
-      </div>
-    );
-  }
-
-  if (status === "invalid") {
-    return (
-      <div style={{ padding: 40 }}>
-        ❌ This approval link is invalid or expired.
-      </div>
-    );
-  }
-
   return (
-    <div style={{ padding: 40 }}>
-      ✅ Estimate Approved
+    <div style={{ padding: 40, fontFamily: "system-ui" }}>
+      <h2>Approval Debug</h2>
 
-      <div style={{ marginTop: 16 }}>
-        Thank you. Your contractor will contact you shortly to schedule.
-      </div>
+      <pre style={{ whiteSpace: "pre-wrap" }}>
+        {JSON.stringify(debug, null, 2)}
+      </pre>
     </div>
   );
 }
