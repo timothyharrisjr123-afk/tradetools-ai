@@ -106,7 +106,7 @@ function buildBody(meta: z.infer<typeof MetaSchema>, approvalUrl?: string | null
     lines.push("Approve your estimate:");
     lines.push(approvalUrl);
     lines.push("");
-    lines.push("Once you approve, we'll contact you to schedule your start date.");
+    lines.push("Once approved, we'll reach out to schedule your start date.");
     lines.push("");
   }
   lines.push("This estimate is valid for 30 days from the date issued.");

@@ -31,7 +31,7 @@ export default function ApproveClient(props: Props) {
     setError(null);
     setIsApproving(true);
     try {
-      const res = await fetch("/api/approve", {
+      const res = await fetch("/api/approve/confirm", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token }),
@@ -76,7 +76,7 @@ export default function ApproveClient(props: Props) {
 
             {alreadyApproved ? (
               <div className="mt-4 text-sm text-emerald-300">
-                Approved on {new Date(approvedAt!).toLocaleString()}
+                Approved ✅ We&apos;ll reach out to schedule your start date.
               </div>
             ) : (
               <button
