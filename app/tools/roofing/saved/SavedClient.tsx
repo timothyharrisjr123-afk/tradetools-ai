@@ -642,13 +642,22 @@ function SavedEstimateCard({
   isFlashing?: boolean;
 }) {
   const status = normalizePipelineStatus(getStage(estimate));
+  const hasApproval = Boolean(estimate?.approvalToken);
+  const statusStr = (estimate?.status ?? "").toLowerCase();
+  const isSentLike =
+    statusStr === "sent" ||
+    statusStr === "pending" ||
+    statusStr === "pending approval" ||
+    statusStr === "pending_approval" ||
+    statusStr === "sent_pending";
+  const showApprovalActions = hasApproval && isSentLike;
   const awaitingApproval = isAwaitingApproval(estimate, status);
   const addr = estimate.address || estimate.jobAddress || estimate.jobAddress1;
   const addrExtra = [estimate.city ?? estimate.jobCity, estimate.state ?? estimate.jobState, estimate.zip ?? estimate.jobZip].filter(Boolean).join(", ");
   return (
     <div
       className={`group relative rounded-3xl border border-white/12 bg-gradient-to-b from-slate-900/70 to-slate-950/40 p-6 transition-all duration-300
-  ${awaitingApproval || status === "sent" || status === "sent_pending"
+  ${showApprovalActions || status === "sent" || status === "sent_pending"
     ? "border-emerald-300/25 shadow-[0_0_0_1px_rgba(16,185,129,0.10)]"
     : "hover:border-white/20"}
   ${isFlashing ? "ring-2 ring-emerald-400/60" : ""}`}
@@ -691,7 +700,7 @@ function SavedEstimateCard({
           <div className="flex shrink-0 flex-col items-end gap-2 text-right">
             {/* Status line (primary) */}
             <div className="text-emerald-300 text-sm font-semibold">
-              {awaitingApproval || isPendingApproval(getStage(estimate))
+              {showApprovalActions || isPendingApproval(getStage(estimate))
                 ? "Pending approval"
                 : status === "approved" && estimate.needsScheduling
                 ? "Approved — ready to schedule"
@@ -719,7 +728,7 @@ function SavedEstimateCard({
             {estimate.approvedAt && status === "approved" && (
               <div className="mt-0.5 text-xs text-white/35">Approved {formatDatePretty(estimate.approvedAt)}</div>
             )}
-            {estimate.createdAt && !awaitingApproval && !isPendingApproval(getStage(estimate)) && (
+            {estimate.createdAt && !showApprovalActions && !isPendingApproval(getStage(estimate)) && (
               <div className="mt-0.5 text-xs text-white/35">Saved {formatDatePretty(estimate.createdAt)}</div>
             )}
 
@@ -776,7 +785,7 @@ function SavedEstimateCard({
 
             {SHOW_INTERNAL_ACTIONS && (
               <>
-                {awaitingApproval && (
+                {showApprovalActions && (
                   <>
                     {getApprovalLink(estimate) ? (
                       <button

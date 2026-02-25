@@ -2415,7 +2415,8 @@ Thanks,`;
       }
 
       const approvalUrl = data?.approvalUrl ?? null;
-      const approvalToken = data?.approvalToken ?? null;
+      const approvalToken =
+        data?.approvalToken ?? data?.token ?? data?.approval?.token ?? null;
       const sentAt = new Date().toISOString();
       const sentTo = (to || "").trim() || undefined;
       if (approvalToken) {
