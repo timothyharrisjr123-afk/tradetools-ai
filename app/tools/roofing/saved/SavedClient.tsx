@@ -82,6 +82,8 @@ const statusToStage = (s?: string) => {
   return "estimate";
 };
 
+const SHOW_INTERNAL_ACTIONS = true;
+
 const canRecordPayment = (status: string) => status === "scheduled" || status === "paid";
 const isPendingApproval = (status: string) => status === "sent" || status === "pending" || status === "sent_pending";
 
@@ -760,72 +762,76 @@ function SavedEstimateCard({
               Load
             </button>
 
-            {(getStage(estimate) === "sent_pending" || getStage(estimate) === "sent") && (
+            {SHOW_INTERNAL_ACTIONS && (
               <>
-                {getApprovalLink(estimate) ? (
+                {(getStage(estimate) === "sent_pending" || getStage(estimate) === "sent") && (
+                  <>
+                    {getApprovalLink(estimate) ? (
+                      <button
+                        type="button"
+                        className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-sm text-white hover:bg-white/[0.10]"
+                        onClick={async () => {
+                          const link = getApprovalLink(estimate);
+                          if (link) await copyToClipboard(absLink(link));
+                        }}
+                      >
+                        Copy Approval Link
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      className="rounded-full border border-emerald-400/20 bg-emerald-500/15 px-4 py-2 text-sm text-emerald-200 hover:bg-emerald-500/20"
+                      onClick={() => onMarkApproved?.(estimate)}
+                    >
+                      Mark Approved
+                    </button>
+                  </>
+                )}
+
+                {canRecordPayment(getStage(estimate)) && (
                   <button
                     type="button"
-                    className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-sm text-white hover:bg-white/[0.10]"
-                    onClick={async () => {
-                      const link = getApprovalLink(estimate);
-                      if (link) await copyToClipboard(absLink(link));
-                    }}
+                    className="rounded-full border border-emerald-400/20 bg-emerald-500/15 px-4 py-2 text-sm text-emerald-200 hover:bg-emerald-500/20"
+                    onClick={() => onRecordPayment?.(estimate)}
                   >
-                    Copy Approval Link
+                    Record Payment
                   </button>
-                ) : null}
+                )}
+
+                {(() => {
+                  const st = getStage(estimate);
+                  const canScheduleJob = st === "approved" || st === "scheduled" || st === "paid";
+                  if (!canScheduleJob) return null;
+
+                  const label = st === "scheduled" ? "Reschedule Job" : "Schedule Job";
+
+                  return (
+                    <button
+                      type="button"
+                      className="rounded-full border border-emerald-400/20 bg-emerald-500/15 px-4 py-2 text-sm text-emerald-200 hover:bg-emerald-500/20"
+                      onClick={() => onSchedule?.(estimate)}
+                      title={st === "scheduled" ? "Update the scheduled date" : "Pick a date to schedule the job"}
+                    >
+                      {label}
+                    </button>
+                  );
+                })()}
+
+                {getStage(estimate) === "paid" && (
+                  <div className="rounded-full px-4 py-2 text-sm font-semibold border border-emerald-400/20 bg-emerald-500/10 text-emerald-200 flex items-center">
+                    Paid ✅
+                  </div>
+                )}
+
                 <button
                   type="button"
-                  className="rounded-full border border-emerald-400/20 bg-emerald-500/15 px-4 py-2 text-sm text-emerald-200 hover:bg-emerald-500/20"
-                  onClick={() => onMarkApproved?.(estimate)}
+                  className="rounded-full border border-red-500/25 bg-red-500/10 px-4 py-2 text-sm text-red-200 hover:bg-red-500/15"
+                  onClick={() => onDelete(estimate.id)}
                 >
-                  Mark Approved
+                  Delete
                 </button>
               </>
             )}
-
-            {canRecordPayment(getStage(estimate)) && (
-              <button
-                type="button"
-                className="rounded-full border border-emerald-400/20 bg-emerald-500/15 px-4 py-2 text-sm text-emerald-200 hover:bg-emerald-500/20"
-                onClick={() => onRecordPayment?.(estimate)}
-              >
-                Record Payment
-              </button>
-            )}
-
-            {(() => {
-              const st = getStage(estimate);
-              const canScheduleJob = st === "approved" || st === "scheduled" || st === "paid";
-              if (!canScheduleJob) return null;
-
-              const label = st === "scheduled" ? "Reschedule Job" : "Schedule Job";
-
-              return (
-                <button
-                  type="button"
-                  className="rounded-full border border-emerald-400/20 bg-emerald-500/15 px-4 py-2 text-sm text-emerald-200 hover:bg-emerald-500/20"
-                  onClick={() => onSchedule?.(estimate)}
-                  title={st === "scheduled" ? "Update the scheduled date" : "Pick a date to schedule the job"}
-                >
-                  {label}
-                </button>
-              );
-            })()}
-
-            {getStage(estimate) === "paid" && (
-              <div className="rounded-full px-4 py-2 text-sm font-semibold border border-emerald-400/20 bg-emerald-500/10 text-emerald-200 flex items-center">
-                Paid ✅
-              </div>
-            )}
-
-            <button
-              type="button"
-              className="rounded-full border border-red-500/25 bg-red-500/10 px-4 py-2 text-sm text-red-200 hover:bg-red-500/15"
-              onClick={() => onDelete(estimate.id)}
-            >
-              Delete
-            </button>
           </div>
         </div>
       </div>
