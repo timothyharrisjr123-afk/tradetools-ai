@@ -1,76 +1,98 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 
-export default function ApproveClient({ token }: { token: string }) {
-  const [state, setState] = useState<
-    "loading" | "invalid" | "ready" | "approved"
-  >("loading");
+type Props = {
+  token: string;
+  exists: boolean;
+  approvedAt?: string | null;
+  customerName?: string | null;
+  addressLine?: string | null;
+  total?: number | null;
+  tierLabel?: string | null;
+};
 
-  useEffect(() => {
-    async function check() {
-      const res = await fetch(`/api/approve/${token}`, {
-        cache: "no-store",
+export default function ApproveClient(props: Props) {
+  const { token, exists } = props;
+
+  const [isApproving, setIsApproving] = useState(false);
+  const [approvedAt, setApprovedAt] = useState<string | null>(props.approvedAt ?? null);
+  const [error, setError] = useState<string | null>(null);
+
+  const alreadyApproved = !!approvedAt;
+
+  const title = useMemo(() => {
+    if (!exists) return "Roofing Estimate Approval";
+    if (alreadyApproved) return "Approved ✅";
+    return "Approve Your Roofing Estimate";
+  }, [exists, alreadyApproved]);
+
+  async function handleApprove() {
+    setError(null);
+    setIsApproving(true);
+    try {
+      const res = await fetch("/api/approve", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token }),
       });
 
-      if (!res.ok) {
-        setState("invalid");
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok || !data?.ok) {
+        setError(data?.error || "Approval failed");
         return;
       }
 
-      setState("ready");
+      setApprovedAt(data.approvedAt || new Date().toISOString());
+    } catch (e: any) {
+      setError(e?.message || "Approval failed");
+    } finally {
+      setIsApproving(false);
     }
-
-    check();
-  }, [token]);
-
-  async function approve() {
-    const res = await fetch(`/api/approve/${token}`, {
-      method: "POST",
-    });
-
-    if (!res.ok) {
-      setState("invalid");
-      return;
-    }
-
-    setState("approved");
   }
 
   return (
-    <div className="min-h-screen bg-[#070B14] text-white flex items-center justify-center">
-      <div className="w-full max-w-xl rounded-3xl border border-white/10 bg-white/[0.04] p-8">
-        <h2 className="text-xl font-semibold">Roofing Estimate Approval</h2>
+    <div className="min-h-screen bg-[#070B14] text-white flex items-center justify-center p-6">
+      <div className="w-full max-w-xl rounded-3xl border border-white/10 bg-white/[0.04] shadow-xl p-6">
+        <div className="text-xl font-semibold">{title}</div>
 
-        <div className="mt-6">
-          {state === "loading" && <div>Loading...</div>}
-
-          {state === "invalid" && (
-            <div className="text-red-400">
-              This approval link is invalid or expired.
+        {!exists ? (
+          <div className="mt-3 text-sm text-red-300">
+            This approval link is invalid or expired.
+          </div>
+        ) : (
+          <>
+            <div className="mt-3 text-sm text-white/80">
+              {props.customerName ? <div><span className="text-white/60">Customer:</span> {props.customerName}</div> : null}
+              {props.addressLine ? <div className="mt-1"><span className="text-white/60">Address:</span> {props.addressLine}</div> : null}
+              {props.tierLabel ? <div className="mt-1"><span className="text-white/60">Package:</span> {props.tierLabel}</div> : null}
+              {typeof props.total === "number" ? (
+                <div className="mt-1"><span className="text-white/60">Total:</span> ${props.total.toLocaleString()}</div>
+              ) : null}
             </div>
-          )}
 
-          {state === "ready" && (
-            <>
-              <div className="text-white/80">
-                This link is valid. Click below to approve.
+            <div className="mt-4 h-px w-full bg-white/10" />
+
+            {alreadyApproved ? (
+              <div className="mt-4 text-sm text-emerald-300">
+                Approved on {new Date(approvedAt!).toLocaleString()}
               </div>
+            ) : (
               <button
-                onClick={approve}
-                className="mt-4 w-full rounded-2xl bg-emerald-500 py-3 font-semibold text-black"
+                onClick={handleApprove}
+                disabled={isApproving}
+                className="mt-4 inline-flex items-center justify-center rounded-2xl bg-emerald-500 px-5 py-3 text-sm font-semibold text-black hover:bg-emerald-400 disabled:opacity-60"
               >
-                Approve Estimate
+                {isApproving ? "Approving..." : "Approve Estimate"}
               </button>
-            </>
-          )}
+            )}
 
-          {state === "approved" && (
-            <div className="text-emerald-400 font-semibold">
-              Approved ✅ We will contact you shortly.
-            </div>
-          )}
-        </div>
+            {error ? (
+              <div className="mt-3 text-sm text-red-300">{error}</div>
+            ) : null}
+          </>
+        )}
       </div>
     </div>
   );

@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { z } from "zod";
-import { kv } from "@vercel/kv";
-import { KV_ENABLED, setApproval } from "@/app/lib/kv";
+import { putApprovalRecord } from "@/app/lib/kv";
 
 const EmailSchema = z.string().email();
 
@@ -174,49 +173,19 @@ export async function POST(req: Request) {
       meta.jobAddress1,
       [meta.jobCity, meta.jobState, meta.jobZip].filter(Boolean).join(", "),
     ].filter(Boolean);
-    const jobAddress = jobAddressParts.join(", ") || undefined;
     const jobAddressLine = jobAddressParts.join(", ") || undefined;
 
-    if (savedEstimateId && contractorEmail && KV_ENABLED) {
-      const createdAt = new Date().toISOString();
-      const publicSnapshot = {
-        token: approvalToken,
-        status: "sent_pending" as const,
-        createdAt,
-        savedEstimateId,
-        contractorEmail,
-        customerName: meta.customerName,
-        customerEmail: toEmail,
-        jobAddress,
-        company: {
-          name: (meta as any).companyName?.trim?.(),
-          phone: (meta as any).companyPhone?.trim?.(),
-          email: contractorEmail,
-        },
-        customer: { name: (meta.customerName || "").trim() || undefined, email: toEmail },
-        job: { addressLine: jobAddressLine },
-        tierLabel: meta.selectedTier,
-        totalFormatted: formatPrice(meta.suggestedPrice),
-        packageDescription: (meta.packageDescription || "").trim() || undefined,
-        scheduleCta: (meta.scheduleCta || "").trim() || undefined,
-      };
-      await setApproval(publicSnapshot);
-    } else if (savedEstimateId && contractorEmail && typeof console !== "undefined" && console.warn) {
-      console.warn(
-        "[estimate/send] KV not configured. Approval link included but /approve page will not find record until KV is set."
-      );
-    }
-
     try {
-      await kv.set(
-        `approval:${approvalToken}`,
-        {
-          estimateId: savedEstimateId ?? approvalToken,
-          createdAt: Date.now(),
-          sentTo: toEmail,
-        },
-        { ex: 60 * 60 * 24 * 30 }
-      );
+      await putApprovalRecord({
+        token: approvalToken,
+        estimateId: savedEstimateId ?? undefined,
+        createdAt: new Date().toISOString(),
+        customerName: meta.customerName ?? null,
+        customerEmail: toEmail ?? null,
+        addressLine: jobAddressLine || null,
+        total: typeof meta.suggestedPrice === "number" ? meta.suggestedPrice : null,
+        tierLabel: meta.selectedTier ?? null,
+      });
     } catch (e) {
       if (typeof console !== "undefined" && console.warn) {
         console.warn("[estimate/send] KV approval write failed", e);
@@ -224,7 +193,7 @@ export async function POST(req: Request) {
     }
 
     if (typeof console !== "undefined" && console.log) {
-      console.log("[estimate/send]", { kvEnabled: KV_ENABLED, approvalToken, approvalUrl });
+      console.log("[estimate/send]", { approvalToken, approvalUrl });
     }
 
     const approveBlockHtml = `

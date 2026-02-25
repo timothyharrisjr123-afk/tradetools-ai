@@ -1,55 +1,41 @@
-/** True only when KV env vars are set. When false, approval is disabled and kv is never called. */
-export const KV_ENABLED =
-  typeof process !== "undefined" &&
-  !!(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
+import { kv } from "@vercel/kv";
 
 export type ApprovalRecord = {
   token: string;
-  status: "sent_pending" | "approved";
-  createdAt: string;
-  approvedAt?: string;
-
-  savedEstimateId: string;
-  contractorEmail: string;
-  customerName?: string;
-  customerEmail?: string;
-  jobAddress?: string;
-
-  /** Public snapshot for /approve/[token] page (no pricing breakdown) */
-  company?: { name?: string; phone?: string; email?: string; logoDataUrl?: string };
-  customer?: { name?: string; email?: string };
-  job?: { addressLine?: string };
-  tierLabel?: string;
-  totalFormatted?: string;
-  packageDescription?: string;
-  scheduleCta?: string;
+  estimateId?: string;
+  createdAt: string; // ISO
+  approvedAt?: string; // ISO
+  customerName?: string | null;
+  customerEmail?: string | null;
+  addressLine?: string | null;
+  total?: number | null;
+  tierLabel?: string | null;
 };
 
-export const approvalKey = (token: string) => `approval:${token}`;
+const TTL_SECONDS = 60 * 60 * 24 * 30; // 30 days
 
-export async function getApproval(
-  token: string
-): Promise<ApprovalRecord | null> {
-  if (!KV_ENABLED) return null;
-  const { kv } = await import("@vercel/kv");
+export function approvalKey(token: string) {
+  return `approval:${token}`;
+}
+
+export async function putApprovalRecord(record: ApprovalRecord) {
+  await kv.set(approvalKey(record.token), record, { ex: TTL_SECONDS });
+}
+
+export async function getApprovalRecord(token: string): Promise<ApprovalRecord | null> {
   const rec = await kv.get<ApprovalRecord>(approvalKey(token));
   return rec ?? null;
 }
 
-export async function setApproval(rec: ApprovalRecord): Promise<void> {
-  if (!KV_ENABLED) return;
-  const { kv } = await import("@vercel/kv");
-  await kv.set(approvalKey(rec.token), rec);
-}
+export async function markApproved(token: string): Promise<ApprovalRecord | null> {
+  const rec = await getApprovalRecord(token);
+  if (!rec) return null;
+  if (rec.approvedAt) return rec;
 
-export async function patchApproval(
-  token: string,
-  patch: Partial<ApprovalRecord>
-): Promise<ApprovalRecord | null> {
-  if (!KV_ENABLED) return null;
-  const existing = await getApproval(token);
-  if (!existing) return null;
-  const updated: ApprovalRecord = { ...existing, ...patch };
-  await setApproval(updated);
+  const updated: ApprovalRecord = {
+    ...rec,
+    approvedAt: new Date().toISOString(),
+  };
+  await putApprovalRecord(updated);
   return updated;
 }

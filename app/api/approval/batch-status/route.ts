@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getApproval } from "@/app/lib/kv";
+import { getApprovalRecord } from "@/app/lib/kv";
 
 export async function POST(req: Request) {
   try {
@@ -10,10 +10,10 @@ export async function POST(req: Request) {
     for (const token of tokens) {
       const t = typeof token === "string" ? token.trim() : "";
       if (!t) continue;
-      const rec = await getApproval(t);
+      const rec = await getApprovalRecord(t);
       if (rec) {
         statuses[t] = {
-          status: rec.status === "approved" ? "approved" : "sent_pending",
+          status: rec.approvedAt ? "approved" : "sent_pending",
           ...(rec.approvedAt && { approvedAt: rec.approvedAt }),
         };
       }

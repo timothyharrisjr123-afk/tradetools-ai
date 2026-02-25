@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getApproval } from "@/app/lib/kv";
+import { getApprovalRecord } from "@/app/lib/kv";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -10,28 +10,27 @@ export async function GET(req: Request) {
       { status: 400 }
     );
 
-  const rec = await getApproval(token);
+  const rec = await getApprovalRecord(token);
   if (!rec)
     return NextResponse.json(
       { success: false, error: "Not found" },
       { status: 404 }
     );
 
+  const status = rec.approvedAt ? "approved" : "sent_pending";
   return NextResponse.json({
     success: true,
     record: {
       token: rec.token,
-      status: rec.status,
+      status,
       createdAt: rec.createdAt,
       approvedAt: rec.approvedAt ?? null,
-      savedEstimateId: rec.savedEstimateId,
-      company: rec.company,
-      customer: rec.customer,
-      job: rec.job,
+      savedEstimateId: rec.estimateId ?? null,
+      customerName: rec.customerName,
+      customerEmail: rec.customerEmail,
+      job: rec.addressLine ? { addressLine: rec.addressLine } : undefined,
       tierLabel: rec.tierLabel,
-      totalFormatted: rec.totalFormatted,
-      packageDescription: rec.packageDescription,
-      scheduleCta: rec.scheduleCta,
+      totalFormatted: rec.total != null ? `$${rec.total.toLocaleString()}` : undefined,
     },
   });
 }
