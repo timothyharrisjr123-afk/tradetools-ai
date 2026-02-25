@@ -26,6 +26,7 @@ const BodySchema = z.object({
   pdfFilename: z.string().min(1).default("estimate.pdf"),
   savedEstimateId: z.string().uuid().optional(),
   contractorEmail: z.string().email().optional(),
+  approvalToken: z.string().uuid().optional(),
 });
 
 function normalizeEmail(toRaw: string) {
@@ -106,7 +107,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const { to, meta, pdfBase64, pdfFilename, savedEstimateId, contractorEmail } =
+    const { to, meta, pdfBase64, pdfFilename, savedEstimateId, contractorEmail, approvalToken: clientToken } =
       parsed.data;
 
     const toEmail = normalizeEmail(to);
@@ -159,7 +160,7 @@ export async function POST(req: Request) {
 
     let approvalToken: string | null = null;
     if (savedEstimateId && contractorEmail) {
-      approvalToken = crypto.randomUUID();
+      approvalToken = clientToken ?? crypto.randomUUID();
       if (KV_ENABLED) {
         const createdAt = new Date().toISOString();
         const publicSnapshot = {

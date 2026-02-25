@@ -63,6 +63,19 @@ function formatDatePretty(iso?: string) {
   });
 }
 
+function normalizeStatusValue(input: unknown): string {
+  const s = String(input ?? "").toLowerCase().trim();
+  if (s === "pending_approval" || s === "pending approval") return "pending";
+  if (s === "sent_pending") return "pending";
+  if (s === "sent") return "sent";
+  if (s === "estimate") return "estimate";
+  if (s === "pending") return "pending";
+  if (s === "approved") return "approved";
+  if (s === "scheduled") return "scheduled";
+  if (s === "paid") return "paid";
+  return "estimate";
+}
+
 const getDisplayStage = (status: string) => {
   if (status === "sent_pending" || status === "pending" || status === "sent") return "Pending approval";
   if (status === "approved") return "Approved";
@@ -76,7 +89,6 @@ const STATUS_OPTIONS: Array<{ value: string; label: string }> = [
   { value: "estimate", label: "Estimate" },
   { value: "sent", label: "Sent" },
   { value: "pending", label: "Pending" },
-  { value: "sent_pending", label: "Pending" },
   { value: "approved", label: "Approved" },
   { value: "scheduled", label: "Scheduled" },
   { value: "paid", label: "Paid" },
@@ -734,8 +746,11 @@ function SavedEstimateCard({
 
             <select
               className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-semibold text-white/80 outline-none hover:bg-white/[0.06]"
-              value={normalizePipelineStatus(getStage(estimate))}
-              onChange={(ev) => onStatusChange(estimate.id, ev.target.value)}
+              value={normalizeStatusValue(getStage(estimate))}
+              onChange={(ev) => {
+                const raw = ev.target.value;
+                onStatusChange(estimate.id, raw === "pending" ? "sent_pending" : raw);
+              }}
             >
               {STATUS_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -1204,8 +1219,9 @@ export default function SavedClient() {
     .filter((e) => {
       if (statusFilter === "all") return true;
       const s = e.status || "estimate";
-      if (statusFilter === "sent_pending") return s === "sent_pending" || s === "sent";
-      return s === statusFilter;
+      const norm = normalizeStatusValue(s);
+      if (statusFilter === "sent_pending") return norm === "pending" || s === "sent";
+      return norm === normalizeStatusValue(statusFilter);
     });
 
   // ===============================

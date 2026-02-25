@@ -41,6 +41,16 @@ import { getFavorite, setFavorite, setLocked, appendFeedback, getTierFeedbackBia
 import RoofingTabs from "@/app/tools/roofing/RoofingTabs";
 import { loadCompanyVoiceProfile, saveCompanyVoiceProfile, type VoiceTone } from "@/app/lib/companyVoiceProfile";
 
+function safeUUID() {
+  try {
+    return typeof crypto !== "undefined" && crypto?.randomUUID?.()
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  } catch {
+    return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  }
+}
+
 const STORAGE_KEY_ESTIMATES = "roofing_estimates";
 const STORAGE_KEY_LAST_LOADED = "roofing_last_loaded";
 const STORAGE_KEY_DEBRIS = "roofing_debris_settings";
@@ -2362,6 +2372,14 @@ Thanks,`;
     const savedEstimateId = ensureSavedBeforeSend();
     const savedSnapshot = getSavedEstimateById(savedEstimateId);
 
+    const ensuredApprovalToken = savedSnapshot?.approvalToken ?? undefined;
+    const approvalTokenToUse = ensuredApprovalToken || safeUUID();
+
+    if (savedEstimateId) {
+      patchSavedEstimate(savedEstimateId, { approvalToken: approvalTokenToUse });
+      console.log("[ENSURE TOKEN] patched saved estimate", { id: savedEstimateId, approvalToken: approvalTokenToUse });
+    }
+
     try {
       setSendState("sending");
       setIsSending(true);
@@ -2409,47 +2427,33 @@ Thanks,`;
         pdfFilename: `Roofing-Estimate-${selectedTierLabel}.pdf`,
         savedEstimateId: savedEstimateId ?? undefined,
         contractorEmail: (companyProfile?.email || "").trim() || undefined,
+        approvalToken: approvalTokenToUse,
       });
 
       if (!data?.success) {
         throw new Error("Send failed");
       }
 
-      const approvalUrl = data?.approvalUrl ?? null;
-      const approvalToken =
-        data?.approvalToken ?? data?.token ?? data?.approval?.token ??
-        data?.data?.approvalToken ??
-        data?.result?.approvalToken ??
-        null;
       const sentAt = new Date().toISOString();
       const sentTo = (to || "").trim() || undefined;
+      const approvalUrl = data?.approvalUrl ?? null;
 
-      try {
-        const token = approvalToken ?? undefined;
-        if (savedEstimateId && token) {
-          patchSavedEstimate(savedEstimateId, {
-            status: "sent",
-            approvalToken: token,
-            sentAt,
-            sentToEmail: sentTo,
-          });
-          console.log("[PATCH SAVED ESTIMATE AFTER SEND]", {
-            id: savedEstimateId,
-            approvalToken: token,
-            sentToEmail: sentTo,
-          });
-        } else {
-          console.log("[PATCH SAVED ESTIMATE AFTER SEND] skipped", {
-            currentEstimateId: savedEstimateId,
-            hasApprovalToken: !!approvalToken,
-          });
-        }
-      } catch (e) {
-        console.log("[PATCH SAVED ESTIMATE AFTER SEND] error", e);
+      if (savedEstimateId) {
+        patchSavedEstimate(savedEstimateId, {
+          status: "sent",
+          approvalToken: approvalTokenToUse,
+          sentAt,
+          sentToEmail: sentTo,
+        });
+        console.log("[SEND SUCCESS PATCH]", {
+          id: savedEstimateId,
+          approvalToken: approvalTokenToUse,
+          sentToEmail: sentTo,
+        });
       }
 
-      if (approvalToken) {
-        attachApprovalTokenAndMarkPending(savedEstimateId, approvalToken);
+      if (approvalTokenToUse) {
+        attachApprovalTokenAndMarkPending(savedEstimateId, approvalTokenToUse);
       }
       markSavedEstimateStatus(savedEstimateId, "sent_pending" as any);
       updateSavedEstimate(savedEstimateId, {
@@ -2458,7 +2462,7 @@ Thanks,`;
         sentToEmail: sentTo,
         sentTo,
         approvalUrl: approvalUrl || undefined,
-        approvalToken: approvalToken || undefined,
+        approvalToken: approvalTokenToUse,
       } as any);
       setSendSuccess(true);
       setSendState("sent");
