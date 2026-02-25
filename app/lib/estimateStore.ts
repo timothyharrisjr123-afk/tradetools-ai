@@ -23,7 +23,9 @@ export interface RoofingEstimate {
   laborPerSquare?: string;
   margin?: string;
   status?: "estimate" | "sent" | "sent_pending" | "approved" | "scheduled" | "paid";
+  sentTo?: string;
   approvalToken?: string;
+  approvalUrl?: string;
   approvedAt?: string;
   needsScheduling?: boolean;
   scheduledAt?: string;

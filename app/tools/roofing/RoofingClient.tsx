@@ -2258,7 +2258,7 @@ Thanks,`;
     return lines.join("\n");
   }
 
-  function markSavedEstimateStatus(id: string, status: "approved" | "scheduled" | "paid" | "estimate" | "sent") {
+  function markSavedEstimateStatus(id: string, status: "approved" | "scheduled" | "paid" | "estimate" | "sent" | "sent_pending") {
     try {
       if (typeof window === "undefined") return;
       const raw = localStorage.getItem("roofing_saved_estimates");
@@ -2414,14 +2414,22 @@ Thanks,`;
         throw new Error("Send failed");
       }
 
-      const approvalToken = data?.approvalToken;
+      const approvalUrl = data?.approvalUrl ?? null;
+      const approvalToken = data?.approvalToken ?? null;
       const sentAt = new Date().toISOString();
+      const sentTo = (to || "").trim() || undefined;
       if (approvalToken) {
         attachApprovalTokenAndMarkPending(savedEstimateId, approvalToken);
-        updateSavedEstimate(savedEstimateId, { sentAt, sentToEmail: (to || "").trim() || undefined });
-      } else {
-        markSavedEstimateSent(savedEstimateId, { sentAt, sentToEmail: to || undefined });
       }
+      markSavedEstimateStatus(savedEstimateId, "sent_pending" as any);
+      updateSavedEstimate(savedEstimateId, {
+        status: "sent_pending",
+        sentAt,
+        sentToEmail: sentTo,
+        sentTo,
+        approvalUrl: approvalUrl || undefined,
+        approvalToken: approvalToken || undefined,
+      } as any);
       setSendSuccess(true);
       setSendState("sent");
       setToast("Sent ✅");
@@ -3001,6 +3009,7 @@ Thanks,`;
     setTimeout(() => setSavedFlash(false), 2500);
     setTimeout(() => setToast(null), 2500);
     setIsSaving(false);
+    router.push("/tools/roofing/saved");
   }, [
     isLocked,
     canSave,

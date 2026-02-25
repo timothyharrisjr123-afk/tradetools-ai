@@ -54,8 +54,7 @@ function formatDatePretty(iso?: string) {
 }
 
 const getDisplayStage = (status: string) => {
-  if (status === "sent_pending" || status === "pending") return "Pending";
-  if (status === "sent") return "Sent";
+  if (status === "sent_pending" || status === "pending" || status === "sent") return "Pending approval";
   if (status === "approved") return "Approved";
   if (status === "scheduled") return "Scheduled";
   if (status === "paid") return "Paid";
@@ -64,17 +63,34 @@ const getDisplayStage = (status: string) => {
 };
 
 const canRecordPayment = (status: string) => status === "scheduled" || status === "paid";
-const isPendingApproval = (status: string) => status === "sent_pending" || status === "pending";
+const isPendingApproval = (status: string) => status === "sent_pending" || status === "pending" || status === "sent";
+
+const getStage = (e: any) => {
+  if (e?.status) return e.status;
+  if ((e as any)?.isPaid) return "paid";
+  if ((e as any)?.isScheduled) return "scheduled";
+  if ((e as any)?.isApproved) return "approved";
+  if (e?.sentAt || e?.sentTo || e?.sentToEmail) return "sent_pending";
+  return "estimate";
+};
+
+const getApprovalLink = (e: any): string | null => {
+  if (e?.approvalUrl) return e.approvalUrl;
+  if (e?.approvalToken) return `/approve/${e.approvalToken}`;
+  const token = e?.approval_token || (e?.approval as any)?.token;
+  if (token) return `/approve/${token}`;
+  return null;
+};
+
+const absLink = (link: string) => {
+  if (!link) return "";
+  if (link.startsWith("http")) return link;
+  return `${typeof window !== "undefined" ? window.location.origin : ""}${link}`;
+};
 
 const buildApprovalUrl = (e: any) => {
-  if (e?.approvalUrl) return e.approvalUrl;
-  const token = e?.approvalToken || e?.approval_token || e?.approval?.token;
-  if (!token) return "";
-  try {
-    return `${typeof window !== "undefined" ? window.location.origin : ""}/approve/${token}`;
-  } catch {
-    return `/approve/${token}`;
-  }
+  const link = getApprovalLink(e);
+  return link ? absLink(link) : "";
 };
 
 const copyToClipboard = async (text: string) => {
@@ -113,8 +129,7 @@ type SavedStatusUI =
 function statusLabel(status: SavedStatusUI) {
   const s = String(status || "").toLowerCase();
 
-  if (s === "sent_pending" || s === "pending" || s === "pending_approval") return "Pending approval";
-  if (s === "sent") return "Sent";
+  if (s === "sent_pending" || s === "pending" || s === "pending_approval" || s === "sent") return "Pending approval";
   if (s === "estimate" || s === "draft") return "Estimate";
   if (s === "approved") return "Approved";
   if (s === "scheduled") return "Scheduled";
@@ -599,7 +614,7 @@ function SavedEstimateCard({
   return (
     <div
       className={`group relative rounded-3xl border border-white/12 bg-gradient-to-b from-slate-900/70 to-slate-950/40 p-6 transition-all duration-300
-  ${(estimate.status ?? "estimate") === "sent" || (estimate.status ?? "estimate") === "sent_pending"
+  ${getStage(estimate) === "sent" || getStage(estimate) === "sent_pending"
     ? "border-emerald-300/25 shadow-[0_0_0_1px_rgba(16,185,129,0.10)]"
     : "hover:border-white/20"}
   ${isFlashing ? "ring-2 ring-emerald-400/60" : ""}`}
@@ -614,7 +629,7 @@ function SavedEstimateCard({
 
               <span className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-inset bg-white/5 text-white/80 ring-white/10">
                 <span className="h-1.5 w-1.5 rounded-full bg-white/40" />
-                {statusLabel(estimate.status ?? "estimate")}
+                {statusLabel(getStage(estimate))}
               </span>
             </div>
 
@@ -642,11 +657,11 @@ function SavedEstimateCard({
           <div className="flex shrink-0 flex-col items-end gap-2 text-right">
             {/* Status line (primary) */}
             <div className="text-emerald-300 text-sm font-semibold">
-              {isPendingApproval(estimate.status)
+              {isPendingApproval(getStage(estimate))
                 ? "Pending approval"
-                : estimate.status === "approved" && estimate.needsScheduling
+                : getStage(estimate) === "approved" && estimate.needsScheduling
                 ? "Approved — ready to schedule"
-                : getDisplayStage(estimate.status)}
+                : getDisplayStage(getStage(estimate))}
             </div>
 
             {/* Subtext (muted) */}
@@ -667,16 +682,16 @@ function SavedEstimateCard({
               </div>
             )}
 
-            {estimate.approvedAt && estimate.status === "approved" && (
+            {estimate.approvedAt && getStage(estimate) === "approved" && (
               <div className="mt-0.5 text-xs text-white/35">Approved {formatDatePretty(estimate.approvedAt)}</div>
             )}
-            {estimate.createdAt && !isPendingApproval(estimate.status) && (
+            {estimate.createdAt && !isPendingApproval(getStage(estimate)) && (
               <div className="mt-0.5 text-xs text-white/35">Saved {formatDatePretty(estimate.createdAt)}</div>
             )}
 
             <select
               className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-semibold text-white/80 outline-none hover:bg-white/[0.06]"
-              value={estimate.status ?? "estimate"}
+              value={getStage(estimate) === "sent" ? "sent_pending" : getStage(estimate)}
               onChange={(ev) => onStatusChange(estimate.id, ev.target.value)}
             >
               <option value="estimate">Estimate</option>
@@ -688,7 +703,7 @@ function SavedEstimateCard({
           </div>
         </div>
 
-        <PipelineBar status={(estimate.status ?? "estimate").toString()} />
+        <PipelineBar status={getStage(estimate)} />
 
         <div className="mt-6 flex items-center justify-between border-t border-white/5 pt-6">
           {/* LEFT: Total */}
@@ -725,20 +740,20 @@ function SavedEstimateCard({
               Load
             </button>
 
-            {isPendingApproval(estimate.status) && (
+            {(getStage(estimate) === "sent_pending" || getStage(estimate) === "sent") && (
               <>
-                <button
-                  type="button"
-                  className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-white hover:bg-white/[0.06]"
-                  onClick={async () => {
-                    const url = buildApprovalUrl(estimate);
-                    const ok = await copyToClipboard(url);
-                    if (!ok) alert("Could not copy approval link (missing token/url).");
-                    else alert("Approval link copied.");
-                  }}
-                >
-                  Copy Approval Link
-                </button>
+                {getApprovalLink(estimate) ? (
+                  <button
+                    type="button"
+                    className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-sm text-white hover:bg-white/[0.10]"
+                    onClick={async () => {
+                      const link = getApprovalLink(estimate);
+                      if (link) await copyToClipboard(absLink(link));
+                    }}
+                  >
+                    Copy Approval Link
+                  </button>
+                ) : null}
                 <button
                   type="button"
                   className="rounded-full border border-emerald-400/20 bg-emerald-500/15 px-4 py-2 text-sm text-emerald-200 hover:bg-emerald-500/20"
@@ -749,7 +764,7 @@ function SavedEstimateCard({
               </>
             )}
 
-            {canRecordPayment(estimate.status) && (
+            {canRecordPayment(getStage(estimate)) && (
               <button
                 type="button"
                 className="rounded-full border border-emerald-400/20 bg-emerald-500/15 px-4 py-2 text-sm text-emerald-200 hover:bg-emerald-500/20"
@@ -760,7 +775,7 @@ function SavedEstimateCard({
             )}
 
             {(() => {
-              const st = estimate.status as string;
+              const st = getStage(estimate);
               const canScheduleJob = st === "approved" || st === "scheduled" || st === "paid";
               if (!canScheduleJob) return null;
 
@@ -778,7 +793,7 @@ function SavedEstimateCard({
               );
             })()}
 
-            {normalizeStatus(estimate.status) === "paid" && (
+            {getStage(estimate) === "paid" && (
               <div className="rounded-full px-4 py-2 text-sm font-semibold border border-emerald-400/20 bg-emerald-500/10 text-emerald-200 flex items-center">
                 Paid ✅
               </div>
