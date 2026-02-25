@@ -1,10 +1,11 @@
 import ApproveClient from "./ApproveClient";
 
-type ApprovePageProps = {
-  params: Promise<{ token: string }>;
-};
+export default function ApprovePage({
+  params,
+}: {
+  params: { token: string };
+}) {
+  const token = params?.token || "";
 
-export default async function Page({ params }: ApprovePageProps) {
-  const { token } = await params;
   return <ApproveClient token={token} />;
 }
