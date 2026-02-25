@@ -165,7 +165,8 @@ export async function POST(req: Request) {
 
     const origin = getStableOrigin(req);
 
-    const approvalToken = clientToken ?? safeUUID();
+    const approvalToken =
+      (clientToken && String(clientToken).trim()) || safeUUID();
     const approvalUrl = `${origin}/approve/${approvalToken}`;
 
     const jobAddressParts = [

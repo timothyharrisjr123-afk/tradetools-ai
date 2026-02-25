@@ -2445,9 +2445,17 @@ Thanks,`;
         throw new Error("Send failed");
       }
 
+      const serverToken =
+        (data?.approvalToken && String(data.approvalToken)) || approvalTokenToUse;
+
       console.log("[AFTER FETCH SUCCESS]", {
         currentEstimateId: savedEstimateId,
-        approvalTokenUsed: approvalTokenToUse ?? null,
+        approvalTokenUsed: serverToken ?? null,
+      });
+      console.log("[TOKEN SYNC]", {
+        approvalTokenToUse,
+        serverToken,
+        approvalUrl: data?.approvalUrl,
       });
 
       const sentAt = new Date().toISOString();
@@ -2457,19 +2465,19 @@ Thanks,`;
       if (savedEstimateId) {
         patchSavedEstimate(savedEstimateId, {
           status: "sent",
-          approvalToken: approvalTokenToUse,
+          approvalToken: serverToken,
           sentAt,
           sentToEmail: sentTo,
         });
         console.log("[SEND SUCCESS PATCH]", {
           id: savedEstimateId,
-          approvalToken: approvalTokenToUse,
+          approvalToken: serverToken,
           sentToEmail: sentTo,
         });
       }
 
-      if (approvalTokenToUse) {
-        attachApprovalTokenAndMarkPending(savedEstimateId, approvalTokenToUse);
+      if (serverToken) {
+        attachApprovalTokenAndMarkPending(savedEstimateId, serverToken);
       }
       markSavedEstimateStatus(savedEstimateId, "sent_pending" as any);
       updateSavedEstimate(savedEstimateId, {
@@ -2478,7 +2486,7 @@ Thanks,`;
         sentToEmail: sentTo,
         sentTo,
         approvalUrl: approvalUrl || undefined,
-        approvalToken: approvalTokenToUse,
+        approvalToken: serverToken,
       } as any);
       setSendSuccess(true);
       setSendState("sent");
