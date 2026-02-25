@@ -2351,6 +2351,12 @@ Thanks,`;
   }
 
   const handleSendEstimate = async () => {
+    const currentEstimateId = loadSavedId ?? (hasMounted ? getCurrentLoadedSavedId() : null) ?? null;
+    console.log("[SEND CLICKED]", {
+      currentEstimateId,
+      customerEmail,
+    });
+
     if (isSending) return;
     if (isLocked) {
       failSend("This is locked. Duplicate to revise.");
@@ -2420,6 +2426,11 @@ Thanks,`;
         ? await getLockedPdfBytesForSavedEstimate(savedSnapshot)
         : await getLockedPdfBytesForCurrentEstimate();
 
+      console.log("[BEFORE FETCH SEND]", {
+        currentEstimateId: savedEstimateId,
+        approvalTokenState: approvalTokenToUse ?? null,
+      });
+
       const data = await sendEstimateEmailWithPdf({
         to,
         meta,
@@ -2433,6 +2444,11 @@ Thanks,`;
       if (!data?.success) {
         throw new Error("Send failed");
       }
+
+      console.log("[AFTER FETCH SUCCESS]", {
+        currentEstimateId: savedEstimateId,
+        approvalTokenUsed: approvalTokenToUse ?? null,
+      });
 
       const sentAt = new Date().toISOString();
       const sentTo = (to || "").trim() || undefined;
