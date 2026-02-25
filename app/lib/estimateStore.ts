@@ -57,6 +57,69 @@ export interface RoofingEstimate {
 
 const STORAGE_KEY = "roofing_saved_estimates";
 
+export const CANON_SAVED_KEY = "ttai_savedEstimates";
+
+function safeParseList(raw: string | null) {
+  if (!raw) return [];
+  try {
+    const v = JSON.parse(raw);
+    return Array.isArray(v) ? v : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Reads from multiple historical keys, merges into CANON_SAVED_KEY, returns list. */
+export function getSavedEstimatesSafe(): any[] {
+  if (typeof window === "undefined") return [];
+
+  const candidateKeys = [
+    CANON_SAVED_KEY,
+    STORAGE_KEY,
+    "savedEstimates",
+    "ttai_saved_estimates",
+    "ttai_saved_estimate_list",
+    "tradetools_savedEstimates",
+  ];
+
+  const merged: any[] = [];
+  const seen = new Set<string>();
+
+  for (const key of candidateKeys) {
+    const list = safeParseList(localStorage.getItem(key));
+    for (const item of list) {
+      const id = item?.id ? String(item.id) : "";
+      if (!id) continue;
+      if (seen.has(id)) continue;
+      seen.add(id);
+      merged.push(item);
+    }
+  }
+
+  try {
+    localStorage.setItem(CANON_SAVED_KEY, JSON.stringify(merged));
+  } catch {}
+
+  return merged;
+}
+
+export function patchSavedEstimateByToken(token: string, patch: any) {
+  if (typeof window === "undefined") return false;
+
+  const list = getSavedEstimatesSafe();
+  const idx = list.findIndex((e: any) => String(e?.approvalToken || "") === String(token || ""));
+  if (idx < 0) return false;
+
+  const updated = [...list];
+  updated[idx] = { ...updated[idx], ...patch };
+
+  try {
+    localStorage.setItem(CANON_SAVED_KEY, JSON.stringify(updated));
+  } catch {}
+
+  return true;
+}
+
 function safeUUID() {
   try {
     // @ts-ignore
@@ -169,7 +232,7 @@ export function saveEstimate(
         ((snapshot as any).removal != null ? (snapshot as any).removal : undefined),
     };
     const nextWithDrivers = next.map((e) => (e.id === overwriteId ? snapshotWithDrivers : e));
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(nextWithDrivers));
+    localStorage.setItem(CANON_SAVED_KEY, JSON.stringify(nextWithDrivers));
     return overwriteId;
   }
 
@@ -201,7 +264,7 @@ export function saveEstimate(
       ((withTimestamps as any).removal != null ? (withTimestamps as any).removal : undefined),
   };
   localStorage.setItem(
-    STORAGE_KEY,
+    CANON_SAVED_KEY,
     JSON.stringify([snapshotWithDrivers, ...existing])
   );
   return id;
@@ -209,17 +272,15 @@ export function saveEstimate(
 
 export function getEstimates(): RoofingEstimate[] {
   if (typeof window === "undefined") return [];
-  const raw = localStorage.getItem(STORAGE_KEY);
-  const list = raw ? JSON.parse(raw) : [];
+  const list = getSavedEstimatesSafe();
   const { migrated, changed } = migrateSavedEstimatesIfNeeded(list);
   if (changed) {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
+      localStorage.setItem(CANON_SAVED_KEY, JSON.stringify(migrated));
       console.log("[MIGRATE SAVED ESTIMATES] repaired records");
     } catch {}
   }
-  const finalList = migrated;
-  return finalList;
+  return migrated;
 }
 
 export function getContractTotal(e: RoofingEstimate): number {
@@ -238,7 +299,7 @@ export function getSavedEstimateById(id: string): RoofingEstimate | null {
 export function deleteEstimate(id: string) {
   if (typeof window === "undefined") return;
   const filtered = getEstimates().filter((e) => e.id !== id);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+  localStorage.setItem(CANON_SAVED_KEY, JSON.stringify(filtered));
 }
 
 /** @deprecated Use getEstimates */
@@ -286,20 +347,20 @@ export function updateSavedEstimate(id: string, patch: Partial<any>) {
     if (patch.status === "scheduled") merged.needsScheduling = false;
     return merged;
   });
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  localStorage.setItem(CANON_SAVED_KEY, JSON.stringify(next));
 }
 
 export function patchSavedEstimate(id: string, patch: Partial<RoofingEstimate>) {
   if (typeof window === "undefined") return;
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(CANON_SAVED_KEY);
     const arr: RoofingEstimate[] = raw ? JSON.parse(raw) : [];
     const nowIso = new Date().toISOString();
     const next = arr.map((e) => {
       if (e.id !== id) return e;
       return { ...e, ...patch, lastSavedAt: nowIso };
     });
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    localStorage.setItem(CANON_SAVED_KEY, JSON.stringify(next));
   } catch (err) {
     console.error("[patchSavedEstimate] failed", err);
   }
@@ -319,7 +380,7 @@ export function markSavedEstimateSent(
     if (meta?.sentToEmail != null) updated.sentToEmail = meta.sentToEmail;
     return updated;
   });
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  localStorage.setItem(CANON_SAVED_KEY, JSON.stringify(next));
 }
 
 export function setSavedEstimateApprovalToken(id: string, token: string) {
@@ -329,7 +390,7 @@ export function setSavedEstimateApprovalToken(id: string, token: string) {
   const next = list.map((e: any) =>
     e.id === id ? { ...e, approvalToken: token, lastSavedAt: nowIso } : e
   );
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  localStorage.setItem(CANON_SAVED_KEY, JSON.stringify(next));
 }
 
 /** After send: attach approval token and set status to sent_pending (Pending Approval). */
@@ -349,7 +410,7 @@ export function attachApprovalTokenAndMarkPending(id: string, token: string) {
         }
       : e
   );
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  localStorage.setItem(CANON_SAVED_KEY, JSON.stringify(next));
   return next;
 }
 
@@ -379,7 +440,7 @@ export function markSavedEstimateApprovedByToken(
     }
     return e;
   });
-  if (changed) localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  if (changed) localStorage.setItem(CANON_SAVED_KEY, JSON.stringify(next));
   return { next, changed };
 }
 
@@ -401,7 +462,7 @@ export function markSavedEstimateApproved(
         }
       : e
   );
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  localStorage.setItem(CANON_SAVED_KEY, JSON.stringify(next));
 }
 
 export function markSavedEstimateScheduled(
@@ -427,7 +488,7 @@ export function markSavedEstimateScheduled(
         }
       : e
   );
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  localStorage.setItem(CANON_SAVED_KEY, JSON.stringify(next));
 }
 
 export function markSavedEstimateStatus(
@@ -452,7 +513,7 @@ export function markSavedEstimateStatus(
     if (meta?.paidAt != null) updated.paidAt = meta.paidAt;
     return updated;
   });
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  localStorage.setItem(CANON_SAVED_KEY, JSON.stringify(next));
 }
 
 export function markSavedEstimatePaid(
@@ -479,7 +540,7 @@ export function markSavedEstimatePaid(
       lastSavedAt: nowIso,
     };
   });
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  localStorage.setItem(CANON_SAVED_KEY, JSON.stringify(next));
 }
 
 export type PaymentEntry = {
@@ -531,7 +592,7 @@ export function addPaymentToEstimate(
       lastSavedAt: nowIso,
     };
   });
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  localStorage.setItem(CANON_SAVED_KEY, JSON.stringify(next));
   return true;
 }
 
@@ -569,6 +630,6 @@ export function duplicateSavedEstimate(id: string): string {
   const maxRev = sameLineage.reduce((m, e) => Math.max(m, e.revisionNumber ?? 0), 0);
   copy.revisionNumber = maxRev + 1;
   const next = [copy, ...list];
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  localStorage.setItem(CANON_SAVED_KEY, JSON.stringify(next));
   return copy.id;
 }

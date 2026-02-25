@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getSavedEstimatesSafe, patchSavedEstimateByToken } from "@/app/lib/estimateStore";
 
 type Snapshot = {
   status: "sent_pending" | "approved";
@@ -34,9 +35,7 @@ export default function ApproveClient({ token }: { token: string }) {
         const res = await fetch(`/api/approval/status?token=${encodeURIComponent(t)}`);
         const json = await res.json();
         if (!mounted) return;
-        if (!res.ok || !json?.success) {
-          setStatus(res.status === 404 ? "notfound" : "error");
-        } else {
+        if (res.ok && json?.success) {
           const rec = json.record;
           const st = rec.status === "approved" ? "approved" : "sent_pending";
           setStatus(st);
@@ -51,7 +50,47 @@ export default function ApproveClient({ token }: { token: string }) {
             packageDescription: rec.packageDescription,
             scheduleCta: rec.scheduleCta,
           });
+          return;
         }
+
+        const list = getSavedEstimatesSafe();
+        const match = list.find((e: any) => String(e?.approvalToken || "") === String(t || ""));
+
+        if (typeof console !== "undefined" && console.log) {
+          console.log("[APPROVE DEBUG]", {
+            token: t,
+            savedCount: list.length,
+            firstTokens: list.slice(0, 5).map((x: any) => x?.approvalToken).filter(Boolean),
+            found: !!match,
+          });
+        }
+
+        if (!match) {
+          setStatus(res.status === 404 ? "notfound" : "error");
+          return;
+        }
+
+        const st = match.status === "approved" ? "approved" : "sent_pending";
+        const totalFormatted =
+          match.totalContractPrice != null || match.suggestedPrice != null
+            ? `$${Number(match.totalContractPrice ?? match.suggestedPrice ?? 0).toLocaleString()}`
+            : undefined;
+        setStatus(st);
+        setSnapshot({
+          status: st,
+          approvedAt: match.approvedAt ?? null,
+          company: { name: (match as any).companyName, email: (match as any).contractorEmail },
+          customer: { name: match.customerName, email: match.customerEmail },
+          job: {
+            addressLine: [match.jobAddress1, match.jobCity, match.jobState, match.jobZip]
+              .filter(Boolean)
+              .join(", "),
+          },
+          tierLabel: match.selectedTier,
+          totalFormatted,
+          packageDescription: (match as any).packageDescription,
+          scheduleCta: (match as any).scheduleCta,
+        });
       } catch {
         if (mounted) setStatus("error");
       } finally {
@@ -65,6 +104,7 @@ export default function ApproveClient({ token }: { token: string }) {
 
   async function confirm() {
     setSubmitting(true);
+    const approvedAt = new Date().toISOString();
     try {
       const res = await fetch("/api/approval/confirm", {
         method: "POST",
@@ -72,16 +112,24 @@ export default function ApproveClient({ token }: { token: string }) {
         body: JSON.stringify({ token: t }),
       });
       const json = await res.json();
-      if (res.ok && (json?.success || json?.ok)) {
+      const apiOk = res.ok && (json?.success || json?.ok);
+      const localPatched = patchSavedEstimateByToken(t, { status: "approved", approvedAt });
+      if (apiOk || localPatched) {
         setStatus("approved");
         setSnapshot((s) =>
-          s ? { ...s, status: "approved", approvedAt: json?.approvedAt ?? json?.record?.approvedAt ?? new Date().toISOString() } : s
+          s ? { ...s, status: "approved", approvedAt: json?.approvedAt ?? json?.record?.approvedAt ?? approvedAt } : s
         );
       } else {
         setStatus("error");
       }
     } catch {
-      setStatus("error");
+      const localPatched = patchSavedEstimateByToken(t, { status: "approved", approvedAt });
+      if (localPatched) {
+        setStatus("approved");
+        setSnapshot((s) => (s ? { ...s, status: "approved", approvedAt } : s));
+      } else {
+        setStatus("error");
+      }
     } finally {
       setSubmitting(false);
     }
