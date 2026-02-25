@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { z } from "zod";
+import { kv } from "@vercel/kv";
 import { KV_ENABLED, setApproval } from "@/app/lib/kv";
 
 const EmailSchema = z.string().email();
@@ -204,6 +205,22 @@ export async function POST(req: Request) {
       console.warn(
         "[estimate/send] KV not configured. Approval link included but /approve page will not find record until KV is set."
       );
+    }
+
+    try {
+      await kv.set(
+        `approval:${approvalToken}`,
+        {
+          estimateId: savedEstimateId ?? approvalToken,
+          createdAt: Date.now(),
+          sentTo: toEmail,
+        },
+        { ex: 60 * 60 * 24 * 30 }
+      );
+    } catch (e) {
+      if (typeof console !== "undefined" && console.warn) {
+        console.warn("[estimate/send] KV approval write failed", e);
+      }
     }
 
     if (typeof console !== "undefined" && console.log) {
