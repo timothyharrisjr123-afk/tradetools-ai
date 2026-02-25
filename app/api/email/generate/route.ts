@@ -1,10 +1,6 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
 const SYSTEM_INSTRUCTION = `You are writing a short email to a homeowner with a roofing estimate.
 Tone: contractor, short, confident. Plain text only (no markdown).
 Do NOT change any numbers or totals — copy them exactly from the proposal.
@@ -36,6 +32,8 @@ export async function POST(request: Request) {
         { status: 503 }
       );
     }
+
+    const openai = new OpenAI({ apiKey });
 
     const userContent = `Generate an email subject and body.
 
