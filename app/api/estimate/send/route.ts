@@ -37,16 +37,19 @@ function safeUUID() {
   }
 }
 
-function getOrigin(req: Request) {
-  const h = req.headers;
+function getStableOrigin(req: Request) {
   const envUrl =
     process.env.NEXT_PUBLIC_APP_URL ||
     process.env.APP_URL ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "");
+    "";
+
   if (envUrl) return envUrl.replace(/\/$/, "");
+
+  const h = req.headers;
   const proto = h.get("x-forwarded-proto") || "https";
   const host = h.get("x-forwarded-host") || h.get("host") || "";
   if (host) return `${proto}://${host}`.replace(/\/$/, "");
+
   return "http://localhost:3000";
 }
 
@@ -160,7 +163,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const origin = getOrigin(req);
+    const origin = getStableOrigin(req);
 
     const approvalToken = clientToken ?? safeUUID();
     const approvalUrl = `${origin}/approve/${approvalToken}`;

@@ -18,6 +18,17 @@ import {
   type RoofingEstimate,
 } from "@/app/lib/estimateStore";
 
+function getClientBaseUrl() {
+  const envBase =
+    (process.env.NEXT_PUBLIC_APP_URL || "").toString().trim();
+
+  if (envBase) return envBase.replace(/\/$/, "");
+
+  if (typeof window !== "undefined") return window.location.origin;
+
+  return "";
+}
+
 function toNumberSafe(v: any) {
   const n =
     typeof v === "number"
@@ -129,7 +140,8 @@ const getApprovalLink = (e: any): string | null => {
 const absLink = (link: string) => {
   if (!link) return "";
   if (link.startsWith("http")) return link;
-  return `${typeof window !== "undefined" ? window.location.origin : ""}${link}`;
+  const base = getClientBaseUrl();
+  return base ? `${base}${link}` : (typeof window !== "undefined" ? window.location.origin : "") + link;
 };
 
 const buildApprovalUrl = (e: any) => {
