@@ -1,7 +1,56 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getSavedEstimatesSafe, patchSavedEstimateByToken } from "@/app/lib/estimateStore";
+import { patchSavedEstimateByToken } from "@/app/lib/estimateStore";
+
+type Found = {
+  key: string;
+  index: number;
+  estimate: any;
+  list: any[];
+};
+
+function safeJsonParse(raw: string | null) {
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+/** Scan every localStorage key for an array containing an item with approvalToken === token. */
+function findEstimateByToken(token: string): Found | null {
+  if (typeof window === "undefined") return null;
+  const t = String(token || "").trim();
+  if (!t) return null;
+
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (!key) continue;
+
+    const parsed = safeJsonParse(localStorage.getItem(key));
+    if (!Array.isArray(parsed)) continue;
+
+    const idx = parsed.findIndex(
+      (e: any) => String(e?.approvalToken || "").trim() === t
+    );
+
+    if (idx >= 0) {
+      return { key, index: idx, estimate: parsed[idx], list: parsed };
+    }
+  }
+
+  return null;
+}
+
+function patchFound(found: Found, patch: any) {
+  const updated = [...found.list];
+  updated[found.index] = { ...updated[found.index], ...patch };
+  try {
+    localStorage.setItem(found.key, JSON.stringify(updated));
+  } catch {}
+}
 
 type Snapshot = {
   status: "sent_pending" | "approved";
@@ -21,6 +70,7 @@ export default function ApproveClient({ token }: { token: string }) {
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<"sent_pending" | "approved" | "notfound" | "error">("sent_pending");
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
+  const [found, setFound] = useState<Found | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -53,23 +103,25 @@ export default function ApproveClient({ token }: { token: string }) {
           return;
         }
 
-        const list = getSavedEstimatesSafe();
-        const match = list.find((e: any) => String(e?.approvalToken || "") === String(t || ""));
+        const f = findEstimateByToken(t);
 
         if (typeof console !== "undefined" && console.log) {
-          console.log("[APPROVE DEBUG]", {
+          console.log("[APPROVE SCAN]", {
             token: t,
-            savedCount: list.length,
-            firstTokens: list.slice(0, 5).map((x: any) => x?.approvalToken).filter(Boolean),
-            found: !!match,
+            found: !!f,
+            foundKey: f?.key ?? null,
+            foundId: f?.estimate?.id ?? null,
+            foundStatus: f?.estimate?.status ?? null,
           });
         }
 
-        if (!match) {
+        if (!f) {
           setStatus(res.status === 404 ? "notfound" : "error");
           return;
         }
 
+        setFound(f);
+        const match = f.estimate;
         const st = match.status === "approved" ? "approved" : "sent_pending";
         const totalFormatted =
           match.totalContractPrice != null || match.suggestedPrice != null
@@ -105,15 +157,24 @@ export default function ApproveClient({ token }: { token: string }) {
   async function confirm() {
     setSubmitting(true);
     const approvedAt = new Date().toISOString();
+    const patch = { status: "approved" as const, approvedAt };
     try {
       const res = await fetch("/api/approval/confirm", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token: t }),
       });
-      const json = await res.json();
+      const json = await res.json().catch(() => null);
       const apiOk = res.ok && (json?.success || json?.ok);
-      const localPatched = patchSavedEstimateByToken(t, { status: "approved", approvedAt });
+
+      let localPatched = false;
+      if (found) {
+        patchFound(found, patch);
+        localPatched = true;
+      } else {
+        localPatched = patchSavedEstimateByToken(t, patch);
+      }
+
       if (apiOk || localPatched) {
         setStatus("approved");
         setSnapshot((s) =>
@@ -123,12 +184,18 @@ export default function ApproveClient({ token }: { token: string }) {
         setStatus("error");
       }
     } catch {
-      const localPatched = patchSavedEstimateByToken(t, { status: "approved", approvedAt });
-      if (localPatched) {
+      if (found) {
+        patchFound(found, patch);
         setStatus("approved");
         setSnapshot((s) => (s ? { ...s, status: "approved", approvedAt } : s));
       } else {
-        setStatus("error");
+        const localPatched = patchSavedEstimateByToken(t, patch);
+        if (localPatched) {
+          setStatus("approved");
+          setSnapshot((s) => (s ? { ...s, status: "approved", approvedAt } : s));
+        } else {
+          setStatus("error");
+        }
       }
     } finally {
       setSubmitting(false);
