@@ -853,6 +853,10 @@ function SavedEstimateCard({
 }
 
 export default function SavedClient() {
+  const buildSha = (process.env.NEXT_PUBLIC_BUILD_SHA || "local").toString().slice(0, 7);
+  useEffect(() => {
+    console.log("[BUILD]", buildSha);
+  }, [buildSha]);
   const [hydrated, setHydrated] = useState(false);
   const [estimates, setEstimates] = useState<RoofingEstimate[]>([]);
   const [query, setQuery] = useState("");
@@ -1327,6 +1331,11 @@ export default function SavedClient() {
         <h1 className="text-center text-xl font-semibold text-white">
           Saved Estimates
         </h1>
+
+        {/* Build stamp (debug) */}
+        <div className="mt-2 text-center text-xs text-white/40">
+          Build: <span className="font-mono">{buildSha}</span>
+        </div>
 
         {!hydrated && (
           <div className="text-center text-sm text-white/60 py-8">
