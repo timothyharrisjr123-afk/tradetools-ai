@@ -216,6 +216,22 @@ export function updateSavedEstimate(id: string, patch: Partial<any>) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
 }
 
+export function patchSavedEstimate(id: string, patch: Partial<RoofingEstimate>) {
+  if (typeof window === "undefined") return;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const arr: RoofingEstimate[] = raw ? JSON.parse(raw) : [];
+    const nowIso = new Date().toISOString();
+    const next = arr.map((e) => {
+      if (e.id !== id) return e;
+      return { ...e, ...patch, lastSavedAt: nowIso };
+    });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  } catch (err) {
+    console.error("[patchSavedEstimate] failed", err);
+  }
+}
+
 export function markSavedEstimateSent(
   id: string,
   meta?: { sentAt?: string; sentToEmail?: string }

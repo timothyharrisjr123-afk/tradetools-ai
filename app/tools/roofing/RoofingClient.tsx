@@ -28,6 +28,7 @@ import {
   getCurrentLoadedSavedId,
   setCurrentLoadedSavedId,
   updateSavedEstimate,
+  patchSavedEstimate,
   markSavedEstimateSent,
   markSavedEstimateApproved,
   setSavedEstimateApprovalToken,
@@ -2416,9 +2417,37 @@ Thanks,`;
 
       const approvalUrl = data?.approvalUrl ?? null;
       const approvalToken =
-        data?.approvalToken ?? data?.token ?? data?.approval?.token ?? null;
+        data?.approvalToken ?? data?.token ?? data?.approval?.token ??
+        data?.data?.approvalToken ??
+        data?.result?.approvalToken ??
+        null;
       const sentAt = new Date().toISOString();
       const sentTo = (to || "").trim() || undefined;
+
+      try {
+        const token = approvalToken ?? undefined;
+        if (savedEstimateId && token) {
+          patchSavedEstimate(savedEstimateId, {
+            status: "sent",
+            approvalToken: token,
+            sentAt,
+            sentToEmail: sentTo,
+          });
+          console.log("[PATCH SAVED ESTIMATE AFTER SEND]", {
+            id: savedEstimateId,
+            approvalToken: token,
+            sentToEmail: sentTo,
+          });
+        } else {
+          console.log("[PATCH SAVED ESTIMATE AFTER SEND] skipped", {
+            currentEstimateId: savedEstimateId,
+            hasApprovalToken: !!approvalToken,
+          });
+        }
+      } catch (e) {
+        console.log("[PATCH SAVED ESTIMATE AFTER SEND] error", e);
+      }
+
       if (approvalToken) {
         attachApprovalTokenAndMarkPending(savedEstimateId, approvalToken);
       }
