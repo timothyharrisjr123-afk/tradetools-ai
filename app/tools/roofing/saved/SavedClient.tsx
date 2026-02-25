@@ -34,14 +34,24 @@ function isoFromDateInput(d: string) {
   }
 }
 
-const normalizeStatus = (s: any) =>
-  (s ?? "estimate") as
-    | "estimate"
-    | "sent"
-    | "sent_pending"
-    | "approved"
-    | "scheduled"
-    | "paid";
+type PipelineStatus = "estimate" | "sent" | "sent_pending" | "approved" | "scheduled" | "paid";
+
+const normalizePipelineStatus = (s?: string): PipelineStatus => {
+  const v = (s || "estimate").toLowerCase();
+  if (v === "sent_pending") return "sent_pending";
+  if (v === "pending") return "sent_pending";
+  if (v === "sent") return "sent";
+  if (v === "approved") return "approved";
+  if (v === "scheduled") return "scheduled";
+  if (v === "paid") return "paid";
+  return "estimate";
+};
+
+const isApprovedOrLater = (st: PipelineStatus) =>
+  st === "approved" || st === "scheduled" || st === "paid";
+
+const isAwaitingApproval = (estimate: any, st: PipelineStatus) =>
+  !!estimate?.approvalToken && !isApprovedOrLater(st);
 
 function formatDatePretty(iso?: string) {
   if (!iso) return null;
@@ -73,9 +83,9 @@ const STATUS_OPTIONS: Array<{ value: string; label: string }> = [
 ];
 
 const statusToStage = (s?: string) => {
-  const v = (normalizeStatus(s) ?? "").toLowerCase();
+  const v = normalizePipelineStatus(s);
   if (v === "estimate") return "estimate";
-  if (v === "sent" || v === "pending" || v === "sent_pending") return "pending";
+  if (v === "sent" || v === "sent_pending") return "pending";
   if (v === "approved") return "approved";
   if (v === "scheduled") return "scheduled";
   if (v === "paid") return "paid";
@@ -631,12 +641,14 @@ function SavedEstimateCard({
   onView?: (e: any) => void;
   isFlashing?: boolean;
 }) {
+  const status = normalizePipelineStatus(getStage(estimate));
+  const awaitingApproval = isAwaitingApproval(estimate, status);
   const addr = estimate.address || estimate.jobAddress || estimate.jobAddress1;
   const addrExtra = [estimate.city ?? estimate.jobCity, estimate.state ?? estimate.jobState, estimate.zip ?? estimate.jobZip].filter(Boolean).join(", ");
   return (
     <div
       className={`group relative rounded-3xl border border-white/12 bg-gradient-to-b from-slate-900/70 to-slate-950/40 p-6 transition-all duration-300
-  ${getStage(estimate) === "sent" || getStage(estimate) === "sent_pending"
+  ${awaitingApproval || status === "sent" || status === "sent_pending"
     ? "border-emerald-300/25 shadow-[0_0_0_1px_rgba(16,185,129,0.10)]"
     : "hover:border-white/20"}
   ${isFlashing ? "ring-2 ring-emerald-400/60" : ""}`}
@@ -679,9 +691,9 @@ function SavedEstimateCard({
           <div className="flex shrink-0 flex-col items-end gap-2 text-right">
             {/* Status line (primary) */}
             <div className="text-emerald-300 text-sm font-semibold">
-              {isPendingApproval(getStage(estimate))
+              {awaitingApproval || isPendingApproval(getStage(estimate))
                 ? "Pending approval"
-                : getStage(estimate) === "approved" && estimate.needsScheduling
+                : status === "approved" && estimate.needsScheduling
                 ? "Approved — ready to schedule"
                 : getDisplayStage(getStage(estimate))}
             </div>
@@ -704,16 +716,16 @@ function SavedEstimateCard({
               </div>
             )}
 
-            {estimate.approvedAt && getStage(estimate) === "approved" && (
+            {estimate.approvedAt && status === "approved" && (
               <div className="mt-0.5 text-xs text-white/35">Approved {formatDatePretty(estimate.approvedAt)}</div>
             )}
-            {estimate.createdAt && !isPendingApproval(getStage(estimate)) && (
+            {estimate.createdAt && !awaitingApproval && !isPendingApproval(getStage(estimate)) && (
               <div className="mt-0.5 text-xs text-white/35">Saved {formatDatePretty(estimate.createdAt)}</div>
             )}
 
             <select
               className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-semibold text-white/80 outline-none hover:bg-white/[0.06]"
-              value={normalizeStatus(getStage(estimate))}
+              value={normalizePipelineStatus(getStage(estimate))}
               onChange={(ev) => onStatusChange(estimate.id, ev.target.value)}
             >
               {STATUS_OPTIONS.map((opt) => (
@@ -764,7 +776,7 @@ function SavedEstimateCard({
 
             {SHOW_INTERNAL_ACTIONS && (
               <>
-                {(getStage(estimate) === "sent_pending" || getStage(estimate) === "sent") && (
+                {awaitingApproval && (
                   <>
                     {getApprovalLink(estimate) ? (
                       <button
@@ -788,7 +800,7 @@ function SavedEstimateCard({
                   </>
                 )}
 
-                {canRecordPayment(getStage(estimate)) && (
+                {canRecordPayment(status) && (
                   <button
                     type="button"
                     className="rounded-full border border-emerald-400/20 bg-emerald-500/15 px-4 py-2 text-sm text-emerald-200 hover:bg-emerald-500/20"
@@ -798,26 +810,18 @@ function SavedEstimateCard({
                   </button>
                 )}
 
-                {(() => {
-                  const st = getStage(estimate);
-                  const canScheduleJob = st === "approved" || st === "scheduled" || st === "paid";
-                  if (!canScheduleJob) return null;
+                {(status === "approved" || status === "scheduled" || status === "paid") && (
+                  <button
+                    type="button"
+                    className="rounded-full border border-emerald-400/20 bg-emerald-500/15 px-4 py-2 text-sm text-emerald-200 hover:bg-emerald-500/20"
+                    onClick={() => onSchedule?.(estimate)}
+                    title={status === "scheduled" ? "Update the scheduled date" : "Pick a date to schedule the job"}
+                  >
+                    {status === "scheduled" ? "Reschedule Job" : "Schedule Job"}
+                  </button>
+                )}
 
-                  const label = st === "scheduled" ? "Reschedule Job" : "Schedule Job";
-
-                  return (
-                    <button
-                      type="button"
-                      className="rounded-full border border-emerald-400/20 bg-emerald-500/15 px-4 py-2 text-sm text-emerald-200 hover:bg-emerald-500/20"
-                      onClick={() => onSchedule?.(estimate)}
-                      title={st === "scheduled" ? "Update the scheduled date" : "Pick a date to schedule the job"}
-                    >
-                      {label}
-                    </button>
-                  );
-                })()}
-
-                {getStage(estimate) === "paid" && (
+                {status === "paid" && (
                   <div className="rounded-full px-4 py-2 text-sm font-semibold border border-emerald-400/20 bg-emerald-500/10 text-emerald-200 flex items-center">
                     Paid ✅
                   </div>
