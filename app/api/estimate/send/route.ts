@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { headers } from "next/headers";
 import { Resend } from "resend";
 import { z } from "zod";
 import { KV_ENABLED, setApproval } from "@/app/lib/kv";
@@ -28,6 +27,28 @@ const BodySchema = z.object({
   contractorEmail: z.string().email().optional(),
   approvalToken: z.string().uuid().optional(),
 });
+
+function safeUUID() {
+  try {
+    // @ts-ignore
+    return crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  } catch {
+    return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  }
+}
+
+function getOrigin(req: Request) {
+  const h = req.headers;
+  const envUrl =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.APP_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "");
+  if (envUrl) return envUrl.replace(/\/$/, "");
+  const proto = h.get("x-forwarded-proto") || "https";
+  const host = h.get("x-forwarded-host") || h.get("host") || "";
+  if (host) return `${proto}://${host}`.replace(/\/$/, "");
+  return "http://localhost:3000";
+}
 
 function normalizeEmail(toRaw: string) {
   const trimmed = (toRaw || "").trim();
@@ -139,17 +160,10 @@ export async function POST(req: Request) {
       );
     }
 
-    const baseUrl =
-      process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ||
-      (await (async () => {
-        const h = await headers();
-        const proto = h.get("x-forwarded-proto") || "http";
-        const host =
-          h.get("x-forwarded-host") ||
-          h.get("host") ||
-          "localhost:3000";
-        return `${proto}://${host}`;
-      })());
+    const origin = getOrigin(req);
+
+    const approvalToken = clientToken ?? safeUUID();
+    const approvalUrl = `${origin}/approve/${approvalToken}`;
 
     const jobAddressParts = [
       meta.jobAddress1,
@@ -158,52 +172,62 @@ export async function POST(req: Request) {
     const jobAddress = jobAddressParts.join(", ") || undefined;
     const jobAddressLine = jobAddressParts.join(", ") || undefined;
 
-    let approvalToken: string | null = null;
-    if (savedEstimateId && contractorEmail) {
-      approvalToken = clientToken ?? crypto.randomUUID();
-      if (KV_ENABLED) {
-        const createdAt = new Date().toISOString();
-        const publicSnapshot = {
-          token: approvalToken,
-          status: "sent_pending" as const,
-          createdAt,
-          savedEstimateId,
-          contractorEmail,
-          customerName: meta.customerName,
-          customerEmail: toEmail,
-          jobAddress,
-          company: {
-            name: (meta as any).companyName?.trim?.(),
-            phone: (meta as any).companyPhone?.trim?.(),
-            email: contractorEmail,
-          },
-          customer: { name: (meta.customerName || "").trim() || undefined, email: toEmail },
-          job: { addressLine: jobAddressLine },
-          tierLabel: meta.selectedTier,
-          totalFormatted: formatPrice(meta.suggestedPrice),
-          packageDescription: (meta.packageDescription || "").trim() || undefined,
-          scheduleCta: (meta.scheduleCta || "").trim() || undefined,
-        };
-        await setApproval(publicSnapshot);
-      } else if (typeof console !== "undefined" && console.warn) {
-        console.warn(
-          "[estimate/send] KV not configured. Approval link included but /approve page will not find record until KV is set."
-        );
-      }
+    if (savedEstimateId && contractorEmail && KV_ENABLED) {
+      const createdAt = new Date().toISOString();
+      const publicSnapshot = {
+        token: approvalToken,
+        status: "sent_pending" as const,
+        createdAt,
+        savedEstimateId,
+        contractorEmail,
+        customerName: meta.customerName,
+        customerEmail: toEmail,
+        jobAddress,
+        company: {
+          name: (meta as any).companyName?.trim?.(),
+          phone: (meta as any).companyPhone?.trim?.(),
+          email: contractorEmail,
+        },
+        customer: { name: (meta.customerName || "").trim() || undefined, email: toEmail },
+        job: { addressLine: jobAddressLine },
+        tierLabel: meta.selectedTier,
+        totalFormatted: formatPrice(meta.suggestedPrice),
+        packageDescription: (meta.packageDescription || "").trim() || undefined,
+        scheduleCta: (meta.scheduleCta || "").trim() || undefined,
+      };
+      await setApproval(publicSnapshot);
+    } else if (savedEstimateId && contractorEmail && typeof console !== "undefined" && console.warn) {
+      console.warn(
+        "[estimate/send] KV not configured. Approval link included but /approve page will not find record until KV is set."
+      );
     }
 
-    const approvalUrl = approvalToken ? `${baseUrl}/approve/${approvalToken}` : null;
     if (typeof console !== "undefined" && console.log) {
-      console.log("[estimate/send]", { kvEnabled: KV_ENABLED, approvalToken: approvalToken ?? null, approvalUrl });
+      console.log("[estimate/send]", { kvEnabled: KV_ENABLED, approvalToken, approvalUrl });
     }
+
+    const approveBlockHtml = `
+    <div style="margin: 22px 0 10px 0; padding: 14px 16px; border: 1px solid rgba(255,255,255,0.10); border-radius: 14px; background: rgba(255,255,255,0.04);">
+      <div style="font-size: 14px; font-weight: 600; margin-bottom: 10px;">Approval</div>
+      <a href="${approvalUrl}"
+         style="display:inline-block; padding: 10px 14px; border-radius: 12px; text-decoration:none; font-weight:700;
+                background:#10b981; color:#071a13;">
+        Approve Estimate
+      </a>
+      <div style="font-size:12px; opacity:0.75; margin-top:10px;">
+        Or copy/paste this link: <span style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;">${approvalUrl}</span>
+      </div>
+    </div>
+  `;
+    const approveBlockText = `\n\nAPPROVAL LINK:\n${approvalUrl}\n`;
 
     const from =
       process.env.RESEND_FROM || "Onboarding <onboarding@resend.dev>";
     const subject = buildSubject(meta);
-    const bodyText = buildBody(meta, approvalUrl);
-    const bodyHtml = approvalUrl
-      ? `${buildBody(meta, null).split("\n").join("<br />")}<br /><br /><p style="margin-top:1.5em;"><strong>Review &amp; Approve Your Estimate</strong></p><p style="margin-top:0.5em;"><a href="${approvalUrl}" style="display:inline-block;background:#22c55e;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;">Approve Estimate</a></p><p style="margin-top:0.75em;font-size:0.9em;color:#555;">Once you approve, we'll contact you to schedule your start date.</p>`
-      : `${bodyText.split("\n").join("<br />")}<br /><br /><p style="margin-top:1.5em;font-size:0.9em;color:#666;">To approve, please contact us to confirm scheduling.</p>`;
+    const baseText = buildBody(meta, approvalUrl);
+    const baseHtml = baseText.split("\n").join("<br />");
+    const bodyText = `${baseText}${approveBlockText}`;
+    const bodyHtml = `${baseHtml}${approveBlockHtml}`;
 
     const result = await resend.emails.send({
       from,
