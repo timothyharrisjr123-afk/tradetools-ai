@@ -5,7 +5,7 @@ export const KV_ENABLED =
 
 export type ApprovalRecord = {
   token: string;
-  status: "sent" | "approved";
+  status: "sent_pending" | "approved";
   createdAt: string;
   approvedAt?: string;
 
@@ -14,6 +14,15 @@ export type ApprovalRecord = {
   customerName?: string;
   customerEmail?: string;
   jobAddress?: string;
+
+  /** Public snapshot for /approve/[token] page (no pricing breakdown) */
+  company?: { name?: string; phone?: string; email?: string; logoDataUrl?: string };
+  customer?: { name?: string; email?: string };
+  job?: { addressLine?: string };
+  tierLabel?: string;
+  totalFormatted?: string;
+  packageDescription?: string;
+  scheduleCta?: string;
 };
 
 export const approvalKey = (token: string) => `approval:${token}`;

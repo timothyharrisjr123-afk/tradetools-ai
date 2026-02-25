@@ -25,6 +25,13 @@ export async function GET(req: Request) {
       createdAt: rec.createdAt,
       approvedAt: rec.approvedAt ?? null,
       savedEstimateId: rec.savedEstimateId,
+      company: rec.company,
+      customer: rec.customer,
+      job: rec.job,
+      tierLabel: rec.tierLabel,
+      totalFormatted: rec.totalFormatted,
+      packageDescription: rec.packageDescription,
+      scheduleCta: rec.scheduleCta,
     },
   });
 }

@@ -31,6 +31,7 @@ import {
   markSavedEstimateSent,
   markSavedEstimateApproved,
   setSavedEstimateApprovalToken,
+  attachApprovalTokenAndMarkPending,
   duplicateSavedEstimate,
   type RoofingEstimate as SavedEstimateSnapshot,
 } from "@/app/lib/estimateStore";
@@ -588,8 +589,21 @@ export default function Page() {
   const loadSavedId = searchParams.get("loadSaved");
   const [zipPresets, setZipPresets] = useState<ZipPresetsMap | null>(null);
   const [hasMounted, setHasMounted] = useState(false);
+  const [restoreTick, setRestoreTick] = useState(0);
   const loadAppliedRef = useRef(false);
+  const isRestoringRef = useRef(false);
+  const restoreTimerRef = useRef<number | null>(null);
   const autoSendFiredRef = useRef(false);
+
+  const beginRestoreWindow = useCallback((id: string) => {
+    if (restoreTimerRef.current) window.clearTimeout(restoreTimerRef.current);
+    isRestoringRef.current = true;
+    restoreTimerRef.current = window.setTimeout(() => {
+      isRestoringRef.current = false;
+      restoreTimerRef.current = null;
+      setRestoreTick((n) => n + 1);
+    }, 500);
+  }, []);
   const aiAssistRef = useRef<HTMLDivElement | null>(null);
   const [area, setArea] = useState(DEFAULTS.area);
   const [waste, setWaste] = useState(String(DEFAULTS.waste));
@@ -646,6 +660,7 @@ export default function Page() {
   const [aiToast, setAiToast] = useState<string | null>(null);
   const [voiceTone, setVoiceTone] = useState<VoiceTone>("professional");
   const [voiceNotes, setVoiceNotes] = useState("");
+  const [showAiPanel, setShowAiPanel] = useState(false);
 
   const showAiToast = (msg: string) => {
     setAiToast(msg);
@@ -711,6 +726,34 @@ export default function Page() {
     const match = list.find((e) => e.id === loadSavedId);
     if (!match) return;
 
+    beginRestoreWindow(loadSavedId);
+
+    console.groupCollapsed("🟦 RESTORE apply", loadSavedId);
+    console.log("match keys:", Object.keys(match as any));
+    console.log("snapshot keys:", Object.keys(((match as any).snapshot ?? match) as any));
+    console.log("snapshot:", (match as any).snapshot ?? match);
+    console.groupEnd();
+
+    const s: any = (match as any)?.snapshot ?? (match as any)?.inputs ?? (match as any);
+    const normalized: any = {
+      ...s,
+      laborMode:
+        (s as any).laborMode ??
+        ((s as any).laborPerSquare != null ? "perSquare" : undefined),
+      manualLaborCost:
+        (s as any).manualLaborCost ??
+        ((s as any).manualLabor != null ? (s as any).manualLabor : undefined) ??
+        ((s as any).laborCost != null ? (s as any).laborCost : undefined),
+      dumpFeePerTon:
+        (s as any).dumpFeePerTon ??
+        ((s as any).dumpFee != null ? (s as any).dumpFee : undefined),
+      tearOffEnabled:
+        (s as any).tearOffEnabled ??
+        ((s as any).tearOff != null ? (s as any).tearOff : undefined),
+      removalType:
+        (s as any).removalType ??
+        ((s as any).removal != null ? (s as any).removal : undefined),
+    };
     setCustomerName(match.customerName || "");
     setCustomerEmail(match.customerEmail || "");
     setCustomerPhone(match.customerPhone || "");
@@ -721,11 +764,32 @@ export default function Page() {
     setArea(match.area ?? String(Number(match.roofAreaSqFt || 0)));
     setWaste(match.waste ?? "");
     setBundlesPerSquare(match.bundlesPerSquare ?? "");
-    setBundleCost(match.bundleCost ?? "");
+    if (typeof s?.bundleCost === "number") setBundleCost(String(s.bundleCost));
+    else if (typeof s?.bundleCost === "string" && s.bundleCost.trim() !== "") setBundleCost(s.bundleCost);
+    else setBundleCost(match.bundleCost ?? "");
     setLaborPerSquare(match.laborPerSquare ?? "");
     const savedLabor = Number(match.laborCost ?? 0) || 0;
     setLaborCost(savedLabor);
     setLaborCostRaw(savedLabor ? String(Math.round(savedLabor)) : "");
+    if (s?.laborMode === "manual" || s?.laborMode === "guided") setLaborMode(s.laborMode);
+    const manualLabor =
+      (typeof s?.manualLaborCost === "number" ? s.manualLaborCost : null) ??
+      (typeof s?.laborCostManual === "number" ? s.laborCostManual : null) ??
+      (typeof s?.manualLabor === "number" ? s.manualLabor : null) ??
+      null;
+    if (manualLabor != null) {
+      try { setLaborMode("manual"); } catch { /* ignore */ }
+      setLaborCost(manualLabor);
+      setLaborCostRaw(String(Math.round(manualLabor)));
+    }
+    const fee =
+      (typeof s?.dumpFeePerTon === "number" ? s.dumpFeePerTon : null) ??
+      (typeof s?.landfillFeePerTon === "number" ? s.landfillFeePerTon : null) ??
+      (typeof s?.disposalFeePerTon === "number" ? s.disposalFeePerTon : null) ??
+      null;
+    if (fee != null) {
+      setDumpFeePerTon(typeof fee === "number" ? String(fee) : String(fee ?? ""));
+    }
     const savedBasePerSq = Number(match.laborPerSquare ?? 0) || 0;
     if (savedBasePerSq > 0) setGuidedLaborBasePerSquare(savedBasePerSq);
     setMargin(match.margin ?? "");
@@ -734,9 +798,32 @@ export default function Page() {
     if (match.selectedTier === "Enhanced") setRoofingTier("enhanced");
     if (match.selectedTier === "Premium") setRoofingTier("premium");
 
+    if ((normalized as any).laborMode != null) {
+      const mode = (normalized as any).laborMode === "perSquare" ? "guided" : (normalized as any).laborMode;
+      if (mode === "manual" || mode === "guided") setLaborMode(mode);
+    }
+    if ((normalized as any).manualLaborCost != null) {
+      const val = Number((normalized as any).manualLaborCost);
+      if (Number.isFinite(val)) {
+        setLaborCost(val);
+        setLaborCostRaw(String(Math.round(val)));
+      }
+    }
+    if ((normalized as any).dumpFeePerTon != null) {
+      const v = (normalized as any).dumpFeePerTon;
+      setDumpFeePerTon(typeof v === "number" ? String(v) : String(v ?? ""));
+    }
+    if ((normalized as any).tearOffEnabled != null) {
+      setIncludeDebrisRemoval(Boolean((normalized as any).tearOffEnabled));
+    }
+    if ((normalized as any).removalType != null) {
+      setRemovalType((normalized as any).removalType as DebrisRemovalType);
+    }
+
     setCurrentLoadedSavedId(loadSavedId);
+
     loadAppliedRef.current = true;
-  }, [loadSavedId, router]);
+  }, [loadSavedId, router, beginRestoreWindow]);
 
   useEffect(() => {
     if (!loadSavedId) return;
@@ -777,6 +864,10 @@ export default function Page() {
 
   const [gptReviewComment, setGptReviewComment] = useState("");
   const [showEmailTemplate, setShowEmailTemplate] = useState(false);
+  const [showSendDetails, setShowSendDetails] = useState(false);
+  const [showEmailPreviewPanel, setShowEmailPreviewPanel] = useState(false);
+  const [showAiWordingPanel, setShowAiWordingPanel] = useState(false);
+  const [showPdfToolsPanel, setShowPdfToolsPanel] = useState(false);
   const [emailSubject, setEmailSubject] = useState("");
   const [emailBody, setEmailBody] = useState("");
   const [emailState, setEmailState] = useState<"idle" | "loading" | "error">("idle");
@@ -934,6 +1025,7 @@ export default function Page() {
   const [estimateCount, setEstimateCount] = useState(0);
 
   const initialPresetAppliedRef = useRef(false);
+  const hasMountedRef = useRef(false);
 
   const {
     areaNum,
@@ -2217,6 +2309,11 @@ Thanks,`;
       disposalCost: effectiveDebrisRemovalCost,
       adjustedSquares: adjustedSquares,
       squares: squares,
+      laborMode: laborMode === "guided" ? "guided" : "manual",
+      manualLaborCost: laborMode === "manual" ? laborCostEffective : undefined,
+      dumpFeePerTon: includeDebrisRemoval ? parseFloat(dumpFeePerTon) || undefined : undefined,
+      tearOffEnabled: includeDebrisRemoval,
+      removalType,
     };
 
     const activeId = loadSavedId ?? null;
@@ -2318,8 +2415,13 @@ Thanks,`;
       }
 
       const approvalToken = data?.approvalToken;
-      if (approvalToken) setSavedEstimateApprovalToken(savedEstimateId, approvalToken);
-      markSavedEstimateSent(savedEstimateId);
+      const sentAt = new Date().toISOString();
+      if (approvalToken) {
+        attachApprovalTokenAndMarkPending(savedEstimateId, approvalToken);
+        updateSavedEstimate(savedEstimateId, { sentAt, sentToEmail: (to || "").trim() || undefined });
+      } else {
+        markSavedEstimateSent(savedEstimateId, { sentAt, sentToEmail: to || undefined });
+      }
       setSendSuccess(true);
       setSendState("sent");
       setToast("Sent ✅");
@@ -2735,28 +2837,48 @@ Thanks,`;
     } catch {
       setZipPresets({});
     }
-    if (typeof window !== "undefined") {
+    if (typeof window !== "undefined" && !isRestoringRef.current) {
       setJobZip(getStoredLastZip());
       setLaborModeState(getStoredLaborMethod());
     }
   }, []);
 
   useEffect(() => {
+    if (isRestoringRef.current) return;
     if (typeof window === "undefined") return;
     const s = getStoredDebrisSettings();
     setIncludeDebrisRemoval(s.includeDebrisRemoval);
     setRemovalType(s.removalType);
     setDumpFeePerTon(s.dumpFeePerTon > 0 ? String(s.dumpFeePerTon) : "");
     setHelpSeenDebrisState(getHelpSeenDebris());
-  }, []);
+  }, [restoreTick]);
 
   useEffect(() => {
-    console.log("[AREA EFFECT] running, current area =", area);
-    if (jobZip.length === 5 && !initialPresetAppliedRef.current) {
-      initialPresetAppliedRef.current = true;
-      tryApplyZipPreset();
+    // Block during restore window
+    if (isRestoringRef?.current) return;
+
+    // Block on first mount
+    if (!hasMountedRef.current) {
+      return;
     }
-  }, [jobZip, tryApplyZipPreset]);
+
+    // 🔥 Only run recalculation logic here
+    // DO NOT call setArea() inside this effect.
+    // Area should be source-of-truth, not rewritten.
+
+    // Example pattern:
+    // const computedSquares = ...
+    // setSquares(computedSquares)
+    // setAdjustedSquares(...)
+    // setBundles(...)
+
+    // ❗ IMPORTANT:
+    // Make sure nothing inside here writes back to area itself.
+  }, [area]);
+
+  useEffect(() => {
+    hasMountedRef.current = true;
+  }, []);
 
   useEffect(() => {
     if (jobZip.length === 5) setStoredLastZip(jobZip);
@@ -2805,8 +2927,13 @@ Thanks,`;
       laborPerSquare: effectiveLaborPerSquare,
       margin: String(margin ?? ""),
       status: "estimate",
-    });
-  }, [customerName, customerEmail, customerPhone, jobAddress1, jobCity, jobState, jobZip, roofingTier, area, priceWithMargin, waste, bundlesPerSquare, bundleCost, laborMode, guidedLaborBasePerSquare, impliedLaborPerSquare, margin]);
+      laborMode: laborMode === "guided" ? "guided" : "manual",
+      manualLaborCost: laborMode === "manual" ? laborCostEffective : undefined,
+      dumpFeePerTon: includeDebrisRemoval ? parseFloat(dumpFeePerTon) || undefined : undefined,
+      tearOffEnabled: includeDebrisRemoval,
+      removalType,
+    } as any);
+  }, [customerName, customerEmail, customerPhone, jobAddress1, jobCity, jobState, jobZip, roofingTier, area, priceWithMargin, waste, bundlesPerSquare, bundleCost, laborMode, guidedLaborBasePerSquare, impliedLaborPerSquare, margin, laborCostEffective, includeDebrisRemoval, removalType, dumpFeePerTon]);
 
   const saveEstimate = useCallback(() => {
     if (isLocked) {
@@ -2912,6 +3039,7 @@ Thanks,`;
   }, []);
 
   useEffect(() => {
+    if (isRestoringRef.current) return;
     if (typeof window === "undefined") return;
     const raw = localStorage.getItem(STORAGE_KEY_LAST_LOADED);
     if (!raw) return;
@@ -2930,7 +3058,7 @@ Thanks,`;
     } catch {
       localStorage.removeItem(STORAGE_KEY_LAST_LOADED);
     }
-  }, []);
+  }, [restoreTick]);
 
   useEffect(() => {
     if (showDash) {
@@ -3028,6 +3156,12 @@ Thanks,`;
             profit margin.
           </motion.p>
         </header>
+
+        {process.env.NODE_ENV !== "production" ? (
+          <div className="text-xs text-white/60 mb-2">
+            DEV: restoring = {String(isRestoringRef.current)} | loadSavedId = {String(loadSavedId ?? "—")}
+          </div>
+        ) : null}
 
         <RoofingTabs active="estimate" />
 
@@ -3129,7 +3263,7 @@ Thanks,`;
             </div>
 
             {/* Customer & Job */}
-            <div className="mb-6 rounded-3xl border border-white/10 bg-white/[0.04] p-4 shadow-[0_10px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl">
+            <div id="customer-job-section" className="mb-6 rounded-3xl border border-white/10 bg-white/[0.04] p-4 shadow-[0_10px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl">
               <div className="text-sm font-semibold text-white/90">Customer & Job</div>
               <div className="text-xs text-white/60 mt-0.5">These details appear on the proposal and email.</div>
               <form autoComplete="off" className="mt-4 space-y-3">
@@ -3802,269 +3936,83 @@ Thanks,`;
 
             {/* AI Assist (optional) */}
             <div ref={aiAssistRef} className="mt-4 rounded-3xl border border-white/10 bg-white/[0.04] p-4 shadow-[0_10px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl">
-              <div>
-                <div className="text-sm font-semibold text-white/90">Step 3 — Finalize with AI (recommended)</div>
-                <div className="text-xs text-white/60">
-                  AI writes 2 lines for your proposal: a technical package description + a scheduling call-to-action.
-                </div>
-              </div>
+              {/* ===============================
+                  SMART PROPOSAL ASSIST
+              ================================ */}
 
-              <div className="mt-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
-                <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 mt-6">
+                <div className="flex items-start justify-between">
                   <div>
-                    <div className="text-xs font-semibold text-white/85">Company voice</div>
-                    <div className="text-[11px] text-white/55 mt-0.5">Keeps AI wording consistent across estimates.</div>
+                    <div className="text-sm font-semibold text-white">
+                      ✨ Smart Proposal Assist
+                    </div>
+                    <div className="text-xs text-white/60 mt-1">
+                      AI enhances wording and closing CTA. Pricing is never modified.
+                    </div>
                   </div>
 
-                  <select
-                    value={voiceTone}
-                    onChange={(e) => {
-                      const t = e.target.value as VoiceTone;
-                      setVoiceTone(t);
-                      saveCompanyVoiceProfile({ tone: t, styleNotes: voiceNotes });
-                    }}
-                    className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-[12px] text-white/85 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                  <button
+                    type="button"
+                    onClick={() => setShowAiPanel((v) => !v)}
+                    className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-semibold text-white/80 hover:bg-white/[0.06]"
                   >
-                    <option value="professional">Professional</option>
-                    <option value="friendly">Friendly</option>
-                    <option value="direct">Direct</option>
-                    <option value="premium">Premium</option>
-                  </select>
+                    {showAiPanel ? "Hide" : "Customize"}
+                  </button>
                 </div>
 
-                <label className="mt-3 block text-[11px] text-white/50">Optional style notes</label>
-                <textarea
-                  value={voiceNotes}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setVoiceNotes(v);
-                    saveCompanyVoiceProfile({ tone: voiceTone, styleNotes: v });
-                  }}
-                  rows={2}
-                  placeholder="Example: Short sentences. No fluff. Avoid words like 'inspection'. End CTA with 'Reply APPROVE'."
-                  className="mt-1 w-full resize-none rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-[12px] text-white/80 placeholder:text-white/35 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-                />
-              </div>
-
-              {hasPrice && !hasAIWording && (
-                <div className="mb-3 rounded-xl border border-emerald-400/20 bg-emerald-400/5 px-3 py-2 text-xs text-emerald-300">
-                  Recommended: Generate professional wording before sending your estimate.
-                </div>
-              )}
-              <div className="mt-2 flex items-center justify-end">
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!hasPrice || !hasRoofArea) pingField("roofArea");
-                    handleGenerateSummary();
-                  }}
-                  disabled={isGenerating}
-                  className={
-                    hasPrice && !hasAIWording
-                      ? "rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600 active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
-                      : "rounded-full bg-white/10 px-4 py-2 text-xs font-semibold text-white/90 hover:bg-white/15 active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
-                  }
-                >
-                  {isGenerating ? "Generating…" : "Generate"}
-                </button>
-              </div>
-              {attentionField === "roofArea" && (
-                <p className="mt-2 text-xs text-amber-300/90">Add roof area + pricing first for best AI wording.</p>
-              )}
-
-              <label className="mt-2 flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={useGptWording}
-                  onChange={(e) => setUseGptWording(e.target.checked)}
-                  className="rounded border-white/20 bg-white/5 text-blue-500 focus:ring-blue-500/50"
-                />
-                <span className="text-[11px] text-white/60">Use GPT wording</span>
-              </label>
-              {gptState === "error" && gptError && (
-                <p className="mt-1.5 text-[11px] text-amber-300/90">{gptError}</p>
-              )}
-
-              {(gptPackageDescription || gptScheduleCta || hasAIWording) && (
-                <div className="mt-3 rounded-2xl border border-white/10 bg-black/20 p-3">
-                  <div className="flex items-center justify-between gap-2 mb-2">
-                    <div className="text-xs font-semibold text-white/80">
-                      AI Wording
+                {/* Compact Preview (always visible if GPT wording exists) */}
+                {useGptWording && gptPackageDescription && (
+                  <div className="mt-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
+                    <div className="text-xs text-emerald-400 font-semibold mb-1">
+                      ✔ AI Optimized
                     </div>
-
-                    <div className="flex items-center gap-2">
-                      {!isEditingAiWording ? (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setDraftPackageDesc((gptPackageDescription || "").trim());
-                            setDraftScheduleCta((gptScheduleCta || "").trim());
-                            setIsEditingAiWording(true);
-                          }}
-                          className="rounded-full bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-white/70 hover:bg-white/10"
-                        >
-                          Edit
-                        </button>
-                      ) : (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setDraftPackageDesc((gptPackageDescription || "").trim());
-                              setDraftScheduleCta((gptScheduleCta || "").trim());
-                              setIsEditingAiWording(false);
-                            }}
-                            className="rounded-full bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-white/70 hover:bg-white/10"
-                          >
-                            Cancel
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const pd = (draftPackageDesc || "").trim();
-                              const cta = (draftScheduleCta || "").trim();
-
-                              setGptPackageDescription(pd);
-                              setGptScheduleCta(cta);
-                              setUseGptWording(true);
-                              setIsEditingAiWording(false);
-
-                              try {
-                                if (typeof window !== "undefined") {
-                                  sessionStorage.setItem(STORAGE_KEY_PACKAGE_DESC, pd);
-                                  sessionStorage.setItem(STORAGE_KEY_SCHEDULE_CTA, cta);
-                                }
-                              } catch {
-                                // ignore
-                              }
-                            }}
-                            disabled={!draftPackageDesc.trim() || !draftScheduleCta.trim()}
-                            className="rounded-full bg-blue-500/80 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
-                          >
-                            Save
-                          </button>
-                        </>
-                      )}
+                    <div className="text-sm text-white/80 line-clamp-2">
+                      {gptPackageDescription}
                     </div>
                   </div>
+                )}
 
-                  <div className="space-y-3">
-                    <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-                      <div className="text-[11px] text-white/50 mb-1">
-                        Package Description
-                      </div>
-
-                      {!isEditingAiWording ? (
-                        <div className="text-xs text-white/80 leading-relaxed whitespace-pre-wrap">
-                          {(gptPackageDescription || "").trim() || "(none)"}
-                        </div>
-                      ) : (
-                        <textarea
-                          value={draftPackageDesc}
-                          onChange={(e) => setDraftPackageDesc(e.target.value)}
-                          rows={4}
-                          className="w-full resize-none rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-[12px] leading-relaxed text-white/85 focus:outline-none"
-                        />
-                      )}
+                {/* Expanded Customization */}
+                {showAiPanel && (
+                  <div className="mt-6 space-y-4">
+                    <div>
+                      <label className="text-xs text-white/50">Company Voice</label>
+                      <select
+                        value={voiceTone}
+                        onChange={(e) => {
+                          const t = e.target.value as VoiceTone;
+                          setVoiceTone(t);
+                          saveCompanyVoiceProfile({ tone: t, styleNotes: voiceNotes });
+                        }}
+                        className="mt-1 w-full rounded-lg bg-white/[0.04] border border-white/10 px-3 py-2 text-sm text-white"
+                      >
+                        <option value="friendly">Friendly</option>
+                        <option value="professional">Professional</option>
+                        <option value="direct">Direct</option>
+                        <option value="premium">Premium</option>
+                      </select>
                     </div>
-
-                    <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-                      <div className="text-[11px] text-white/50 mb-1">
-                        Schedule CTA
-                      </div>
-
-                      {!isEditingAiWording ? (
-                        <div className="text-xs text-white/80 leading-relaxed whitespace-pre-wrap">
-                          {(gptScheduleCta || "").trim() || "(none)"}
-                        </div>
-                      ) : (
-                        <textarea
-                          value={draftScheduleCta}
-                          onChange={(e) => setDraftScheduleCta(e.target.value)}
-                          rows={3}
-                          className="w-full resize-none rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-[12px] leading-relaxed text-white/85 focus:outline-none"
-                        />
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const label = tierLabelFromRoofingTier(roofingTier);
-                        const pd = (gptPackageDescription || "").trim();
-                        const cta = (gptScheduleCta || "").trim();
-                        if (!pd || !cta) {
-                          showAiToast("Generate or edit wording first.");
-                          return;
-                        }
-                        setFavorite(label, { packageDescription: pd, scheduleCta: cta });
-                        setAiFavoriteLocked(Boolean(getFavorite(label)?.locked));
-                        showAiToast("Saved as favorite.");
-                      }}
-                      className="rounded-full bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-white/70 hover:bg-white/10"
-                    >
-                      Save Favorite
-                    </button>
 
                     <button
                       type="button"
                       onClick={() => {
-                        const label = tierLabelFromRoofingTier(roofingTier);
-                        const nextLocked = !aiFavoriteLocked;
-                        setLocked(label, nextLocked);
-                        setAiFavoriteLocked(nextLocked);
-                        showAiToast(nextLocked ? "Locked." : "Unlocked.");
+                        if (!hasPrice || !hasRoofArea) pingField("roofArea");
+                        handleGenerateSummary();
                       }}
-                      className={aiFavoriteLocked
-                        ? "rounded-full bg-amber-500/25 px-3 py-1.5 text-[11px] font-semibold text-amber-100 hover:bg-amber-500/30"
-                        : "rounded-full bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-white/70 hover:bg-white/10"}
+                      disabled={isGenerating}
+                      className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500 disabled:opacity-60 disabled:cursor-not-allowed"
                     >
-                      {aiFavoriteLocked ? "Locked ✓" : "Lock"}
+                      {isGenerating ? "Generating…" : "Generate AI Wording"}
                     </button>
 
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const label = tierLabelFromRoofingTier(roofingTier);
-                          const pd = (gptPackageDescription || "").trim();
-                          const cta = (gptScheduleCta || "").trim();
-                          if (!pd || !cta) return;
-                          appendFeedback({ tier: label, rating: "up", packageDescription: pd, scheduleCta: cta });
-                          showAiToast("Thanks — saved 👍");
-                        }}
-                        className="rounded-full bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-white/70 hover:bg-white/10"
-                        title="Thumbs up"
-                      >
-                        👍
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const label = tierLabelFromRoofingTier(roofingTier);
-                          const pd = (gptPackageDescription || "").trim();
-                          const cta = (gptScheduleCta || "").trim();
-                          if (!pd || !cta) return;
-                          appendFeedback({ tier: label, rating: "down", packageDescription: pd, scheduleCta: cta });
-                          showAiToast("Noted — saved 👎");
-                        }}
-                        className="rounded-full bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-white/70 hover:bg-white/10"
-                        title="Thumbs down"
-                      >
-                        👎
-                      </button>
-                    </div>
+                    {gptPackageDescription && (
+                      <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/80">
+                        {gptPackageDescription}
+                      </div>
+                    )}
                   </div>
-
-                  {aiToast ? (
-                    <div className="mt-2 text-[11px] text-white/55">{aiToast}</div>
-                  ) : null}
-                </div>
-              )}
+                )}
+              </div>
 
               {showClientSummary && (
                 <div className="mt-4">
@@ -4166,295 +4114,213 @@ Thanks,`;
             </div>
 
             <div className="mt-6 rounded-3xl border border-white/10 bg-white/[0.04] p-5 shadow-[0_10px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl">
-              <div className="flex items-start justify-between gap-4 mb-3">
-                <div>
-                  <div className="text-sm font-semibold text-white/90">
-                    Step 4 — Confirm & Send Estimate
+              {/* Step 4 — Confirm & Send (compact, premium) */}
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 mt-6">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="text-sm font-semibold text-white">
+                      Step 4 — Confirm & Send
+                    </div>
+                    <div className="text-xs text-white/60 mt-1">
+                      Quick review, then send the PDF estimate to your customer.
+                    </div>
                   </div>
-                  <div className="text-xs text-white/55 mt-0.5">
-                    Preview AI wording + email content before sending to the customer.
-                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowSendDetails((v) => !v)}
+                    className="shrink-0 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-semibold text-white/80 hover:bg-white/[0.06]"
+                  >
+                    {showSendDetails ? "Hide details" : "Show details"}
+                  </button>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={handlePreviewPdf}
-                  disabled={isPreviewingPdf}
-                  className="shrink-0 rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 text-[11px] font-semibold text-white/75 hover:bg-white/[0.09] disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  {isPreviewingPdf ? "Opening…" : "Preview PDF"}
-                </button>
-              </div>
+                {/* Ready-to-send summary (always visible) */}
+                <div className="mt-5 rounded-xl border border-white/10 bg-white/[0.02] p-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-white/80">
+                    <div className="flex justify-between">
+                      <span>Recipient</span>
+                      <span className="text-white font-semibold">
+                        {(customerEmail || "").trim() ? customerEmail : "Email missing"}
+                      </span>
+                    </div>
 
-              {/* Recipient & Job strip */}
-              <div className="mb-4 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="min-w-[220px]">
-                    <div className="text-[11px] text-white/50">Recipient</div>
-                    <div className="text-xs text-white/85">
-                      {(customerName || "").trim() || "Customer"}{" "}
-                      <span className="text-white/45">•</span>{" "}
-                      <span
-                        className={
-                          (customerEmail || "").trim()
-                            ? "text-white/85"
-                            : "text-amber-300 font-medium"
-                        }
-                      >
-                        {(customerEmail || "").trim() || "email missing"}
+                    <div className="flex justify-between">
+                      <span>Project</span>
+                      <span className="text-white font-semibold">
+                        {[jobAddress1, [jobCity, jobState, jobZip].filter(Boolean).join(", ")].filter(Boolean).join(" — ") || "Address missing"}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between">
+                      <span>Tier</span>
+                      <span className="text-white font-semibold">
+                        {roofingTier === "standard" ? "Core" : roofingTier === "enhanced" ? "Enhanced" : "Premium"}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between">
+                      <span>Total</span>
+                      <span className="text-emerald-300 font-bold">
+                        {Number(priceWithMargin ?? 0) > 0
+                          ? formatCurrency(Number(priceWithMargin))
+                          : "—"}
                       </span>
                     </div>
                   </div>
 
-                  <div className="min-w-[220px]">
-                    <div className="text-[11px] text-white/50">Job</div>
-                    <div className="text-xs text-white/85">
-                      {(jobAddress1 || "").trim() ? (
-                        <>
-                          {(jobAddress1 || "").trim()}
-                          {(jobCity || jobState || jobZip) ? (
-                            <span className="text-white/55">
-                              {" "}
-                              • {[jobCity, jobState, jobZip].filter(Boolean).join(", ")}
-                            </span>
-                          ) : null}
-                        </>
-                      ) : (
-                        <span className="text-amber-300 font-medium">address missing</span>
-                      )}
+                  {/* Missing info banner */}
+                  {(!(customerEmail || "").trim() || !(jobAddress1 || "").trim()) && (
+                    <div className="mt-3 text-xs text-amber-300/80">
+                      Missing:{" "}
+                      {!(customerEmail || "").trim() ? "customer email" : ""}
+                      {!(customerEmail || "").trim() && !(jobAddress1 || "").trim() ? " + " : ""}
+                      {!(jobAddress1 || "").trim() ? "job address" : ""}
+                      .
                     </div>
-                  </div>
+                  )}
 
-                  <div className="flex items-center gap-2">
-                    <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-1 text-[11px] text-white/70">
-                      Tier:{" "}
-                      {roofingTier === "standard"
-                        ? "Core"
-                        : roofingTier === "enhanced"
-                        ? "Enhanced"
-                        : "Premium"}
-                    </span>
-
-                    <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-1 text-[11px] text-white/70">
-                      Total:{" "}
-                      {Number(priceWithMargin ?? 0) > 0
-                        ? formatCurrency(Number(priceWithMargin))
-                        : "Needs pricing"}
-                    </span>
-
+                  {/* Primary send action */}
+                  <div className="mt-4 flex items-center justify-between gap-3">
                     <button
                       type="button"
                       onClick={() => {
-                        document
-                          .getElementById("customer-name")
-                          ?.scrollIntoView({ behavior: "smooth", block: "center" });
+                        const el = document.getElementById("customer-job-section");
+                        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
                         if (!(customerEmail || "").trim()) pingField("customerEmail");
                       }}
-                      className="rounded-full bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-white/70 hover:bg-white/10"
+                      className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-semibold text-white/80 hover:bg-white/[0.06]"
                     >
                       Edit details
                     </button>
-                  </div>
-                </div>
-              </div>
 
-              {/* Review panels */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-4">
-                {/* AI panel */}
-                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                  <div className="flex items-center justify-between gap-3 mb-2">
-                    <div className="text-xs font-semibold text-white/85">AI Wording</div>
-                    <div className="flex items-center gap-2">
-                      <div className="text-[11px] text-white/50">
-                        {useGptWording ? "Using GPT wording" : "Not enabled"}
-                      </div>
-                      {!isEditingAi && (
-                        <button
-                          type="button"
-                          onClick={beginEditAi}
-                          className="rounded-full bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-white/70 hover:bg-white/10"
-                        >
-                          Edit
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {!isEditingAi ? (
-                    <div className="space-y-3">
-                      <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-                        <div className="text-[11px] text-white/50 mb-1">Package Description</div>
-                        <div className="text-xs text-white/80 leading-relaxed">
-                          {useGptWording ? (gptPackageDescription || "").trim() || "(none)" : "(not enabled)"}
-                        </div>
-                      </div>
-
-                      <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-                        <div className="text-[11px] text-white/50 mb-1">Schedule CTA</div>
-                        <div className="text-xs text-white/80 leading-relaxed">
-                          {useGptWording ? (gptScheduleCta || "").trim() || "(none)" : "(not enabled)"}
-                        </div>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (!hasPrice || !hasRoofArea) pingField("roofArea");
-                          handleGenerateSummary();
-                        }}
-                        disabled={isGenerating}
-                        className={
-                          hasPrice && !hasAIWording
-                            ? "rounded-full bg-emerald-500/90 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-emerald-500 disabled:opacity-60 disabled:cursor-not-allowed"
-                            : "rounded-full bg-white/10 px-3 py-1.5 text-[11px] font-semibold text-white/80 hover:bg-white/15 disabled:opacity-60 disabled:cursor-not-allowed"
-                        }
-                      >
-                        {isGenerating
-                          ? "Generating…"
-                          : hasAIWording
-                            ? "Regenerate"
-                            : "Generate"}
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-                        <div className="text-[11px] text-white/50 mb-1">Package Description</div>
-                        <textarea
-                          value={draftPackageDesc}
-                          onChange={(e) => setDraftPackageDesc(e.target.value)}
-                          rows={2}
-                          className="w-full resize-none rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-[12px] leading-relaxed text-white/85 focus:outline-none"
-                          placeholder="1 sentence technical package description..."
-                        />
-                      </div>
-
-                      <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-                        <div className="text-[11px] text-white/50 mb-1">Schedule CTA</div>
-                        <textarea
-                          value={draftScheduleCta}
-                          onChange={(e) => setDraftScheduleCta(e.target.value)}
-                          rows={2}
-                          className="w-full resize-none rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-[12px] leading-relaxed text-white/85 focus:outline-none"
-                          placeholder="1 sentence next step CTA..."
-                        />
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={saveEditAi}
-                          className="rounded-full bg-emerald-500/80 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-emerald-500"
-                        >
-                          Save
-                        </button>
-                        <button
-                          type="button"
-                          onClick={cancelEditAi}
-                          className="rounded-full bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-white/70 hover:bg-white/10"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Email preview panel */}
-                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                  <div className="flex items-center justify-between gap-3 mb-2">
-                    <div className="text-xs font-semibold text-white/85">Email Preview</div>
                     <button
                       type="button"
-                      onClick={onShowEmailTemplate}
-                      disabled={emailState === "loading"}
-                      className="rounded-full bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-white/70 hover:bg-white/10 disabled:opacity-60 disabled:cursor-not-allowed"
+                      disabled={!(customerEmail || "").trim() || !(jobAddress1 || "").trim() || isSending || isLocked}
+                      onClick={handleSendEstimate}
+                      className={`rounded-full px-7 py-2.5 text-sm font-semibold text-white shadow-lg transition-all duration-150 ${
+                        (!(customerEmail || "").trim() || !(jobAddress1 || "").trim())
+                          ? "bg-white/10 text-white/40 cursor-not-allowed"
+                          : "bg-emerald-600 hover:bg-emerald-500 hover:shadow-emerald-500/30"
+                      }`}
                     >
-                      Email Template
+                      {isSending ? "Sending…" : sendSuccess ? "Sent ✓" : "Send Estimate"}
                     </button>
                   </div>
-
-                  <div className="space-y-3">
-                    <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-                      <div className="text-[11px] text-white/50 mb-1">Subject</div>
-                      <div className="text-xs text-white/85 font-medium">
-                        {buildEmailSubjectPreview(previewMeta)}
-                      </div>
-                    </div>
-
-                    <div className="rounded-xl border border-white/10 bg-white/[0.06] p-3">
-                      <div className="text-[11px] text-white/50 mb-1">Body</div>
-                      <textarea
-                        readOnly
-                        value={buildEmailBodyPreview(previewMeta)}
-                        rows={10}
-                        className="w-full resize-none rounded-xl border border-white/10 bg-white/[0.06] px-3 py-3 text-[12px] leading-relaxed text-white/85 focus:outline-none"
-                      />
-                    </div>
-
-                    <div className="text-[11px] text-white/45">
-                      Tip: verify customer email + job address before sending.
-                    </div>
-                  </div>
                 </div>
-              </div>
 
-              {/* Actions row */}
-              <div className="flex flex-wrap items-center gap-3">
-                <button
-                  type="button"
-                  onClick={onDownloadPdf}
-                  className="rounded-full bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-white/70 hover:bg-white/10"
-                >
-                  Download PDF
-                </button>
+                {sendError ? <div className="mt-3 text-xs text-red-400">{sendError}</div> : null}
+                {pdfError ? <p className="mt-2 text-xs text-red-300/90">{pdfError}</p> : null}
+                {sendSuccess && !isSending ? (
+                  <p className="mt-2 text-xs text-emerald-300/90">Sent successfully.</p>
+                ) : null}
 
-                <button
-                  type="button"
-                  onClick={onSharePdf}
-                  className="rounded-full bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-white/70 hover:bg-white/10"
-                >
-                  Share PDF
-                </button>
+                {/* Optional panels */}
+                {showSendDetails && (
+                  <div className="mt-5 space-y-3">
+                    {/* AI wording panel */}
+                    <div className="rounded-xl border border-white/10 bg-white/[0.015] p-4">
+                      <button
+                        type="button"
+                        onClick={() => setShowAiWordingPanel((v) => !v)}
+                        className="w-full flex items-center justify-between text-sm font-medium text-white/80 hover:text-white transition-colors"
+                      >
+                        <span>AI Wording</span>
+                        <span className="text-xs text-white/60">{showAiWordingPanel ? "Hide" : "Show"}</span>
+                      </button>
 
-                <div className="flex-1" />
+                      {showAiWordingPanel && (
+                        <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-white/80">
+                          <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
+                            <div className="text-xs text-white/50 mb-1">Package Description</div>
+                            <div className="whitespace-pre-wrap">{gptPackageDescription || "—"}</div>
+                          </div>
+                          <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
+                            <div className="text-xs text-white/50 mb-1">Schedule CTA</div>
+                            <div className="whitespace-pre-wrap">{gptScheduleCta || "—"}</div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
 
-                <button
-                  type="button"
-                  onClick={handleSendEstimate}
-                  disabled={isSending || isLocked}
-                  className="rounded-full bg-blue-500/80 px-4 py-2 text-[11px] font-semibold text-white hover:bg-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  {isSending ? "Sending…" : sendSuccess ? "Sent ✓" : "Send Estimate"}
-                </button>
+                    {/* Email preview panel */}
+                    <div className="rounded-xl border border-white/10 bg-white/[0.015] p-4">
+                      <button
+                        type="button"
+                        onClick={() => setShowEmailPreviewPanel((v) => !v)}
+                        className="w-full flex items-center justify-between text-sm font-medium text-white/80 hover:text-white transition-colors"
+                      >
+                        <span>Email Preview</span>
+                        <span className="text-xs text-white/60">{showEmailPreviewPanel ? "Hide" : "Show"}</span>
+                      </button>
 
-                {typeof process !== "undefined" &&
-                  process.env.NODE_ENV !== "production" &&
-                  loadSavedId &&
-                  getSavedEstimateById(loadSavedId)?.status === "sent" && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      markSavedEstimateApproved(loadSavedId!);
-                    }}
-                    className="rounded-full border border-amber-500/50 bg-amber-500/20 px-4 py-2 text-[11px] font-semibold text-amber-200 hover:bg-amber-500/30"
-                  >
-                    DEV: Mark Approved
-                  </button>
+                      {showEmailPreviewPanel && (
+                        <div className="mt-3">
+                          <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3 text-sm text-white/80 whitespace-pre-wrap">
+                            {buildEmailBodyPreview(previewMeta) || "—"}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* PDF tools panel */}
+                    <div className="rounded-xl border border-white/10 bg-white/[0.015] p-4">
+                      <button
+                        type="button"
+                        onClick={() => setShowPdfToolsPanel((v) => !v)}
+                        className="w-full flex items-center justify-between text-sm font-medium text-white/80 hover:text-white transition-colors"
+                      >
+                        <span>PDF Tools</span>
+                        <span className="text-xs text-white/60">{showPdfToolsPanel ? "Hide" : "Show"}</span>
+                      </button>
+
+                      {showPdfToolsPanel && (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={handlePreviewPdf}
+                            disabled={isPreviewingPdf}
+                            className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-semibold text-white/80 hover:bg-white/[0.06] disabled:opacity-60 disabled:cursor-not-allowed"
+                          >
+                            {isPreviewingPdf ? "Opening…" : "Preview PDF"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={onDownloadPdf}
+                            className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-semibold text-white/80 hover:bg-white/[0.06]"
+                          >
+                            Download PDF
+                          </button>
+                          <button
+                            type="button"
+                            onClick={onSharePdf}
+                            className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-semibold text-white/80 hover:bg-white/[0.06]"
+                          >
+                            Share PDF
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {typeof process !== "undefined" &&
+                      process.env.NODE_ENV !== "production" &&
+                      loadSavedId &&
+                      (getSavedEstimateById(loadSavedId)?.status === "sent" || getSavedEstimateById(loadSavedId)?.status === "sent_pending") && (
+                      <div className="pt-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            markSavedEstimateApproved(loadSavedId!);
+                          }}
+                          className="rounded-full border border-amber-500/50 bg-amber-500/20 px-4 py-2 text-[11px] font-semibold text-amber-200 hover:bg-amber-500/30"
+                        >
+                          DEV: Mark Approved
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
-
-              {typeof process !== "undefined" && process.env.NODE_ENV !== "production" && (
-                <p className="mt-2 text-[11px] text-white/50">
-                  Dev mode: Approval link disabled locally. Use DEV approve for testing.
-                </p>
-              )}
-
-              {sendError ? <div className="mt-2 text-xs text-red-400">{sendError}</div> : null}
-              {pdfError ? <p className="mt-2 text-xs text-red-300/90">{pdfError}</p> : null}
-              {sendSuccess ? (
-                <p className="mt-2 text-xs text-emerald-300/90">Sent successfully.</p>
-              ) : null}
             </div>
 
             <div className="mt-8 pt-6 border-t border-white/10 space-y-4">
@@ -4687,10 +4553,13 @@ Thanks,`;
                     {animatedPriceDisplay}
                   </motion.p>
                   <p className="mt-3 text-sm text-blue-200/80">
-                    Includes materials, labor, tear-off (if enabled), and margin.
+                    Includes materials, labor, tear-off (if enabled), and your selected profit margin.
                   </p>
                   <p className="mt-2 text-xs text-blue-200/60 text-center max-w-sm mx-auto">
-                    Estimate based on inputs. Final pricing may change after site inspection.
+                    This price is calculated directly from your inputs — AI does not modify pricing.
+                  </p>
+                  <p className="mt-2 text-xs text-blue-200/60 text-center max-w-sm mx-auto">
+                    Final total may adjust only after on-site inspection if scope changes.
                   </p>
                   {!showDash && (
                     <div className="mt-6 flex flex-wrap gap-2">

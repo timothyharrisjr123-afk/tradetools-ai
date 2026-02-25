@@ -3,6 +3,7 @@ export interface RoofingEstimate {
   createdAt: string;
   lastSavedAt?: string;
   sentAt?: string;
+  sentToEmail?: string;
   customerName: string;
   customerEmail?: string;
   customerPhone?: string;
@@ -21,9 +22,10 @@ export interface RoofingEstimate {
   bundleCost?: string;
   laborPerSquare?: string;
   margin?: string;
-  status?: "estimate" | "sent" | "approved" | "scheduled" | "paid";
+  status?: "estimate" | "sent" | "sent_pending" | "approved" | "scheduled" | "paid";
   approvalToken?: string;
   approvedAt?: string;
+  needsScheduling?: boolean;
   scheduledAt?: string;
   scheduledStartDate?: string;
   scheduledArrivalWindow?: string;
@@ -79,7 +81,29 @@ export function saveEstimate(
           }
         : e
     );
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    const snapshot = next.find((e: RoofingEstimate) => e.id === overwriteId) ?? data;
+    const snapshotWithDrivers = {
+      ...snapshot,
+      laborMode:
+        (snapshot as any).laborMode ??
+        ((snapshot as any).laborPerSquare != null ? "perSquare" : undefined),
+      manualLaborCost:
+        (snapshot as any).manualLaborCost ??
+        ((snapshot as any).manualLabor != null ? (snapshot as any).manualLabor : undefined) ??
+        ((snapshot as any).laborCost != null ? (snapshot as any).laborCost : undefined),
+      dumpFeePerTon:
+        (snapshot as any).dumpFeePerTon ??
+        ((snapshot as any).dumpFee != null ? (snapshot as any).dumpFee : undefined),
+      tearOffEnabled:
+        (snapshot as any).tearOffEnabled ??
+        ((snapshot as any).tearOff != null ? (snapshot as any).tearOff : undefined) ??
+        ((snapshot as any).includeDebrisRemoval != null ? (snapshot as any).includeDebrisRemoval : undefined),
+      removalType:
+        (snapshot as any).removalType ??
+        ((snapshot as any).removal != null ? (snapshot as any).removal : undefined),
+    };
+    const nextWithDrivers = next.map((e) => (e.id === overwriteId ? snapshotWithDrivers : e));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(nextWithDrivers));
     return overwriteId;
   }
 
@@ -90,9 +114,29 @@ export function saveEstimate(
     createdAt: data.createdAt || nowIso,
     lastSavedAt: nowIso,
   };
+  const snapshotWithDrivers = {
+    ...withTimestamps,
+    laborMode:
+      (withTimestamps as any).laborMode ??
+      ((withTimestamps as any).laborPerSquare != null ? "perSquare" : undefined),
+    manualLaborCost:
+      (withTimestamps as any).manualLaborCost ??
+      ((withTimestamps as any).manualLabor != null ? (withTimestamps as any).manualLabor : undefined) ??
+      ((withTimestamps as any).laborCost != null ? (withTimestamps as any).laborCost : undefined),
+    dumpFeePerTon:
+      (withTimestamps as any).dumpFeePerTon ??
+      ((withTimestamps as any).dumpFee != null ? (withTimestamps as any).dumpFee : undefined),
+    tearOffEnabled:
+      (withTimestamps as any).tearOffEnabled ??
+      ((withTimestamps as any).tearOff != null ? (withTimestamps as any).tearOff : undefined) ??
+      ((withTimestamps as any).includeDebrisRemoval != null ? (withTimestamps as any).includeDebrisRemoval : undefined),
+    removalType:
+      (withTimestamps as any).removalType ??
+      ((withTimestamps as any).removal != null ? (withTimestamps as any).removal : undefined),
+  };
   localStorage.setItem(
     STORAGE_KEY,
-    JSON.stringify([withTimestamps, ...existing])
+    JSON.stringify([snapshotWithDrivers, ...existing])
   );
   return id;
 }
@@ -161,21 +205,29 @@ export function updateSavedEstimate(id: string, patch: Partial<any>) {
   if (typeof window === "undefined") return;
   const nowIso = new Date().toISOString();
   const list = getSavedEstimates();
-  const next = list.map((e: any) =>
-    e.id === id ? { ...e, ...patch, lastSavedAt: nowIso } : e
-  );
+  const next = list.map((e: any) => {
+    if (e.id !== id) return e;
+    const merged = { ...e, ...patch, lastSavedAt: nowIso };
+    if (patch.status === "scheduled") merged.needsScheduling = false;
+    return merged;
+  });
   localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
 }
 
-export function markSavedEstimateSent(id: string) {
+export function markSavedEstimateSent(
+  id: string,
+  meta?: { sentAt?: string; sentToEmail?: string }
+) {
   if (typeof window === "undefined") return;
   const nowIso = new Date().toISOString();
   const list = getSavedEstimates();
-  const next = list.map((e: any) =>
-    e.id === id
-      ? { ...e, status: "sent" as const, sentAt: nowIso, lastSavedAt: nowIso }
-      : e
-  );
+  const next = list.map((e: any) => {
+    if (e.id !== id) return e;
+    const updated: any = { ...e, status: "sent" as const, lastSavedAt: nowIso, needsScheduling: false };
+    updated.sentAt = meta?.sentAt ?? nowIso;
+    if (meta?.sentToEmail != null) updated.sentToEmail = meta.sentToEmail;
+    return updated;
+  });
   localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
 }
 
@@ -187,6 +239,57 @@ export function setSavedEstimateApprovalToken(id: string, token: string) {
     e.id === id ? { ...e, approvalToken: token, lastSavedAt: nowIso } : e
   );
   localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+}
+
+/** After send: attach approval token and set status to sent_pending (Pending Approval). */
+export function attachApprovalTokenAndMarkPending(id: string, token: string) {
+  if (typeof window === "undefined") return [];
+  const list = getSavedEstimates();
+  const nowIso = new Date().toISOString();
+  const next = list.map((e: any) =>
+    e.id === id
+      ? {
+          ...e,
+          approvalToken: token,
+          status: "sent_pending" as const,
+          sentAt: e.sentAt ?? nowIso,
+          needsScheduling: false,
+          lastSavedAt: nowIso,
+        }
+      : e
+  );
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  return next;
+}
+
+/** When customer approves via /approve/[token]: find by token and mark approved locally. */
+export function markSavedEstimateApprovedByToken(
+  token: string,
+  approvedAtISO?: string
+): { next: RoofingEstimate[]; changed: boolean } {
+  if (typeof window === "undefined") return { next: [], changed: false };
+  const list = getSavedEstimates();
+  let changed = false;
+  const nowIso = approvedAtISO || new Date().toISOString();
+  const next = list.map((e: any) => {
+    if (
+      e.approvalToken &&
+      e.approvalToken === token &&
+      (e.status === "sent_pending" || e.status === "sent")
+    ) {
+      changed = true;
+      return {
+        ...e,
+        status: "approved" as const,
+        approvedAt: nowIso,
+        needsScheduling: true,
+        lastSavedAt: new Date().toISOString(),
+      };
+    }
+    return e;
+  });
+  if (changed) localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  return { next, changed };
 }
 
 export function markSavedEstimateApproved(
@@ -202,6 +305,7 @@ export function markSavedEstimateApproved(
           ...e,
           status: "approved" as const,
           approvedAt: nowIso,
+          needsScheduling: true,
           lastSavedAt: new Date().toISOString(),
         }
       : e
@@ -227,10 +331,36 @@ export function markSavedEstimateScheduled(
           scheduledStartDate: startDate,
           scheduledArrivalWindow: arrivalWindow ?? "",
           scheduleNotes: notes ?? "",
+          needsScheduling: false,
           lastSavedAt: nowIso,
         }
       : e
   );
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+}
+
+export function markSavedEstimateStatus(
+  id: string,
+  status: NonNullable<RoofingEstimate["status"]>,
+  meta?: {
+    sentAt?: string;
+    sentToEmail?: string;
+    scheduledAt?: string;
+    paidAt?: string;
+  }
+) {
+  if (typeof window === "undefined") return;
+  const nowIso = new Date().toISOString();
+  const list = getSavedEstimates();
+  const next = list.map((e: any) => {
+    if (e.id !== id) return e;
+    const updated: any = { ...e, status, lastSavedAt: nowIso };
+    if (meta?.sentAt != null) updated.sentAt = meta.sentAt;
+    if (meta?.sentToEmail != null) updated.sentToEmail = meta.sentToEmail;
+    if (meta?.scheduledAt != null) updated.scheduledAt = meta.scheduledAt;
+    if (meta?.paidAt != null) updated.paidAt = meta.paidAt;
+    return updated;
+  });
   localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
 }
 

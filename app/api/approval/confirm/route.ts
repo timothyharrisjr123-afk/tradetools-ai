@@ -63,6 +63,8 @@ export async function POST(req: Request) {
 
   return NextResponse.json({
     success: true,
+    ok: true,
+    approvedAt: updated.approvedAt ?? null,
     record: {
       status: updated.status,
       approvedAt: updated.approvedAt ?? null,
