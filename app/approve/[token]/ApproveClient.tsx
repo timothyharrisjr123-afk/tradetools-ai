@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { patchSavedEstimateByToken } from "@/app/lib/estimateStore";
+import React, { useEffect, useMemo, useState } from "react";
 
 type Found = {
   key: string;
@@ -19,7 +18,32 @@ function safeJsonParse(raw: string | null) {
   }
 }
 
-/** Scan every localStorage key for an array containing an item with approvalToken === token. */
+// Pull token from different possible shapes
+function extractToken(obj: any): string {
+  if (!obj) return "";
+
+  const direct = obj.approvalToken;
+  if (typeof direct === "string") return direct.trim();
+
+  const meta = obj.meta?.approvalToken;
+  if (typeof meta === "string") return meta.trim();
+
+  const approval = obj.approval?.token;
+  if (typeof approval === "string") return approval.trim();
+
+  const nested = obj.sent?.approvalToken;
+  if (typeof nested === "string") return nested.trim();
+
+  // If an approvalUrl exists, extract last path segment
+  const url = obj.approvalUrl || obj.meta?.approvalUrl || obj.sent?.approvalUrl;
+  if (typeof url === "string") {
+    const m = url.trim().match(/\/approve\/([^/?#]+)/i);
+    if (m?.[1]) return String(m[1]).trim();
+  }
+
+  return "";
+}
+
 function findEstimateByToken(token: string): Found | null {
   if (typeof window === "undefined") return null;
   const t = String(token || "").trim();
@@ -32,13 +56,8 @@ function findEstimateByToken(token: string): Found | null {
     const parsed = safeJsonParse(localStorage.getItem(key));
     if (!Array.isArray(parsed)) continue;
 
-    const idx = parsed.findIndex(
-      (e: any) => String(e?.approvalToken || "").trim() === t
-    );
-
-    if (idx >= 0) {
-      return { key, index: idx, estimate: parsed[idx], list: parsed };
-    }
+    const idx = parsed.findIndex((e: any) => extractToken(e) === t);
+    if (idx >= 0) return { key, index: idx, estimate: parsed[idx], list: parsed };
   }
 
   return null;
@@ -52,227 +71,171 @@ function patchFound(found: Found, patch: any) {
   } catch {}
 }
 
-type Snapshot = {
-  status: "sent_pending" | "approved";
-  approvedAt?: string | null;
-  company?: { name?: string; phone?: string; email?: string; logoDataUrl?: string };
-  customer?: { name?: string; email?: string };
-  job?: { addressLine?: string };
-  tierLabel?: string;
-  totalFormatted?: string;
-  packageDescription?: string;
-  scheduleCta?: string;
+type DebugInfo = {
+  urlToken: string;
+  storageKeyCount: number;
+  keys: string[];
+  arraysScanned: number;
+  itemsScanned: number;
+  tokensFoundSample: string[];
+  matchFound: boolean;
+  matchKey?: string | null;
+  matchStatus?: string | null;
 };
 
-export default function ApproveClient({ token }: { token: string }) {
-  const t = (token ?? "").trim();
+function buildDebug(token: string): DebugInfo {
+  const urlToken = String(token || "").trim();
 
-  const [loading, setLoading] = useState(true);
-  const [status, setStatus] = useState<"sent_pending" | "approved" | "notfound" | "error">("sent_pending");
-  const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
-  const [found, setFound] = useState<Found | null>(null);
-  const [submitting, setSubmitting] = useState(false);
+  const keys: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k) keys.push(k);
+  }
 
-  useEffect(() => {
-    if (!t) {
-      setLoading(false);
-      setStatus("notfound");
-      return;
-    }
-    let mounted = true;
-    (async () => {
-      try {
-        const res = await fetch(`/api/approval/status?token=${encodeURIComponent(t)}`);
-        const json = await res.json();
-        if (!mounted) return;
-        if (res.ok && json?.success) {
-          const rec = json.record;
-          const st = rec.status === "approved" ? "approved" : "sent_pending";
-          setStatus(st);
-          setSnapshot({
-            status: st,
-            approvedAt: rec.approvedAt ?? null,
-            company: rec.company,
-            customer: rec.customer,
-            job: rec.job,
-            tierLabel: rec.tierLabel,
-            totalFormatted: rec.totalFormatted,
-            packageDescription: rec.packageDescription,
-            scheduleCta: rec.scheduleCta,
-          });
-          return;
-        }
+  let arraysScanned = 0;
+  let itemsScanned = 0;
+  const tokensFound: string[] = [];
 
-        const f = findEstimateByToken(t);
+  for (const k of keys) {
+    const parsed = safeJsonParse(localStorage.getItem(k));
+    if (!Array.isArray(parsed)) continue;
 
-        if (typeof console !== "undefined" && console.log) {
-          console.log("[APPROVE SCAN]", {
-            token: t,
-            found: !!f,
-            foundKey: f?.key ?? null,
-            foundId: f?.estimate?.id ?? null,
-            foundStatus: f?.estimate?.status ?? null,
-          });
-        }
-
-        if (!f) {
-          setStatus(res.status === 404 ? "notfound" : "error");
-          return;
-        }
-
-        setFound(f);
-        const match = f.estimate;
-        const st = match.status === "approved" ? "approved" : "sent_pending";
-        const totalFormatted =
-          match.totalContractPrice != null || match.suggestedPrice != null
-            ? `$${Number(match.totalContractPrice ?? match.suggestedPrice ?? 0).toLocaleString()}`
-            : undefined;
-        setStatus(st);
-        setSnapshot({
-          status: st,
-          approvedAt: match.approvedAt ?? null,
-          company: { name: (match as any).companyName, email: (match as any).contractorEmail },
-          customer: { name: match.customerName, email: match.customerEmail },
-          job: {
-            addressLine: [match.jobAddress1, match.jobCity, match.jobState, match.jobZip]
-              .filter(Boolean)
-              .join(", "),
-          },
-          tierLabel: match.selectedTier,
-          totalFormatted,
-          packageDescription: (match as any).packageDescription,
-          scheduleCta: (match as any).scheduleCta,
-        });
-      } catch {
-        if (mounted) setStatus("error");
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, [t]);
-
-  async function confirm() {
-    setSubmitting(true);
-    const approvedAt = new Date().toISOString();
-    const patch = { status: "approved" as const, approvedAt };
-    try {
-      const res = await fetch("/api/approval/confirm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: t }),
-      });
-      const json = await res.json().catch(() => null);
-      const apiOk = res.ok && (json?.success || json?.ok);
-
-      let localPatched = false;
-      if (found) {
-        patchFound(found, patch);
-        localPatched = true;
-      } else {
-        localPatched = patchSavedEstimateByToken(t, patch);
-      }
-
-      if (apiOk || localPatched) {
-        setStatus("approved");
-        setSnapshot((s) =>
-          s ? { ...s, status: "approved", approvedAt: json?.approvedAt ?? json?.record?.approvedAt ?? approvedAt } : s
-        );
-      } else {
-        setStatus("error");
-      }
-    } catch {
-      if (found) {
-        patchFound(found, patch);
-        setStatus("approved");
-        setSnapshot((s) => (s ? { ...s, status: "approved", approvedAt } : s));
-      } else {
-        const localPatched = patchSavedEstimateByToken(t, patch);
-        if (localPatched) {
-          setStatus("approved");
-          setSnapshot((s) => (s ? { ...s, status: "approved", approvedAt } : s));
-        } else {
-          setStatus("error");
-        }
-      }
-    } finally {
-      setSubmitting(false);
+    arraysScanned++;
+    for (const item of parsed) {
+      itemsScanned++;
+      const tok = extractToken(item);
+      if (tok) tokensFound.push(tok);
     }
   }
 
-  const companyName = snapshot?.company?.name?.trim() || "Your Contractor";
-  const companyPhone = snapshot?.company?.phone?.trim();
-  const totalFormatted = snapshot?.totalFormatted;
-  const packageDescription = snapshot?.packageDescription?.trim();
-  const scheduleCta = snapshot?.scheduleCta?.trim();
-  const jobAddress = snapshot?.job?.addressLine?.trim();
+  // sample first 12 unique tokens for display
+  const unique = Array.from(new Set(tokensFound)).slice(0, 12);
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-950 text-white p-6">
-      <div className="w-full max-w-lg rounded-3xl border border-white/10 bg-white/[0.04] p-8 shadow-xl">
-        {loading ? (
-          <div className="text-white/70">Loading…</div>
-        ) : status === "notfound" ? (
-          <div className="text-white/70">This approval link is invalid or expired.</div>
-        ) : status === "error" ? (
-          <div className="text-red-300">Something went wrong. Please contact your contractor.</div>
-        ) : status === "approved" ? (
-          <div>
-            <div className="text-xl font-semibold text-white">{companyName}</div>
-            <div className="mt-6 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-5">
-              <div className="font-semibold text-emerald-200">Thank you — your estimate has been approved.</div>
-              <div className="mt-2 text-sm text-white/80">
-                We&apos;ll contact you shortly to schedule.
+  const found = findEstimateByToken(urlToken);
+
+  return {
+    urlToken,
+    storageKeyCount: keys.length,
+    keys,
+    arraysScanned,
+    itemsScanned,
+    tokensFoundSample: unique,
+    matchFound: !!found,
+    matchKey: found?.key ?? null,
+    matchStatus: found?.estimate?.status ?? null,
+  };
+}
+
+export default function ApproveClient({ token }: { token: string }) {
+  const [found, setFound] = useState<Found | null>(null);
+  const [approved, setApproved] = useState(false);
+  const [showDebug, setShowDebug] = useState(false);
+  const [debug, setDebug] = useState<DebugInfo | null>(null);
+
+  useEffect(() => {
+    const f = findEstimateByToken(token);
+    setFound(f);
+    setApproved(false);
+    setDebug(buildDebug(token));
+  }, [token]);
+
+  const canApprove = useMemo(() => !!found, [found]);
+
+  function onApprove() {
+    if (!found) return;
+    patchFound(found, { status: "approved", approvedAt: new Date().toISOString() });
+    setApproved(true);
+    // refresh debug snapshot so we can confirm patch hit the right storage key
+    setDebug(buildDebug(token));
+  }
+
+  // --- INVALID UI (still shown if not found) ---
+  if (!canApprove) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center px-6">
+        <div className="w-full max-w-xl rounded-3xl border border-white/10 bg-white/[0.04] p-6 text-white/80">
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-4">
+            This approval link is invalid or expired.
+          </div>
+
+          <div className="mt-4 flex items-center justify-between">
+            <div className="text-sm text-white/60">If this is wrong, use Debug to diagnose.</div>
+            <button
+              onClick={() => setShowDebug((v) => !v)}
+              className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white/80 hover:bg-white/[0.06]"
+            >
+              {showDebug ? "Hide Debug" : "Show Debug"}
+            </button>
+          </div>
+
+          {showDebug && debug && (
+            <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 p-4 text-[12px] text-white/70">
+              <div className="font-semibold text-white/85 mb-2">Approve Debug</div>
+
+              <div><span className="text-white/50">URL token:</span> <span className="break-all">{debug.urlToken}</span></div>
+              <div className="mt-1"><span className="text-white/50">localStorage keys:</span> {debug.storageKeyCount}</div>
+              <div className="mt-1"><span className="text-white/50">arrays scanned:</span> {debug.arraysScanned}</div>
+              <div className="mt-1"><span className="text-white/50">items scanned:</span> {debug.itemsScanned}</div>
+              <div className="mt-2"><span className="text-white/50">tokens found (sample):</span></div>
+              <div className="mt-1 break-all">
+                {debug.tokensFoundSample.length ? debug.tokensFoundSample.join(", ") : "(none found in any arrays)"}
               </div>
+              <div className="mt-2"><span className="text-white/50">matchFound:</span> {String(debug.matchFound)}</div>
+              <div className="mt-1"><span className="text-white/50">matchKey:</span> {String(debug.matchKey)}</div>
+
+              <div className="mt-3 text-white/50">Keys list:</div>
+              <div className="mt-1 break-all">{debug.keys.join(", ") || "(none)"}</div>
             </div>
-            {companyPhone ? (
-              <p className="mt-4 text-xs text-white/50">Questions? Call {companyPhone}</p>
-            ) : null}
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // --- VALID UI ---
+  return (
+    <div className="min-h-[60vh] flex items-center justify-center px-6">
+      <div className="w-full max-w-md rounded-3xl border border-white/10 bg-white/[0.04] p-6 text-white">
+        <div className="text-lg font-semibold">Approve Estimate</div>
+
+        <div className="mt-2 text-sm text-white/70">
+          {found?.estimate?.customerName ? `Customer: ${found.estimate.customerName}` : "Customer loaded."}
+        </div>
+
+        <div className="mt-1 text-sm text-white/60">
+          Status: <span className="text-white/80">{String(found?.estimate?.status || "")}</span>
+        </div>
+
+        {approved ? (
+          <div className="mt-4 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-emerald-200">
+            Approved ✅
           </div>
         ) : (
-          <div>
-            <div className="text-xl font-semibold text-white">{companyName}</div>
-            <div className="mt-1 text-xs text-white/50">Your Roofing Estimate</div>
+          <button
+            onClick={onApprove}
+            className="mt-5 w-full rounded-2xl bg-emerald-500 px-4 py-3 font-semibold text-black hover:bg-emerald-400 active:bg-emerald-600"
+          >
+            Approve Now
+          </button>
+        )}
 
-            {totalFormatted ? (
-              <div className="mt-6 text-2xl font-bold text-emerald-300">{totalFormatted}</div>
-            ) : null}
-            {jobAddress ? (
-              <div className="mt-2 text-sm text-white/70">{jobAddress}</div>
-            ) : null}
-            {snapshot?.tierLabel ? (
-              <div className="mt-1 text-xs text-white/50">{snapshot.tierLabel} package</div>
-            ) : null}
+        <div className="mt-5 flex items-center justify-between">
+          <div className="text-[12px] text-white/40">Found in: {found?.key}</div>
+          <button
+            onClick={() => setShowDebug((v) => !v)}
+            className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white/80 hover:bg-white/[0.06]"
+          >
+            {showDebug ? "Hide Debug" : "Show Debug"}
+          </button>
+        </div>
 
-            {packageDescription ? (
-              <div className="mt-6">
-                <div className="text-xs font-semibold text-white/50 uppercase tracking-wide">Scope</div>
-                <p className="mt-1 text-sm text-white/80 whitespace-pre-wrap">{packageDescription}</p>
-              </div>
-            ) : null}
-            {scheduleCta ? (
-              <div className="mt-4 text-sm text-white/70">{scheduleCta}</div>
-            ) : null}
-
-            <div className="mt-8">
-              <button
-                type="button"
-                onClick={confirm}
-                disabled={submitting}
-                className="w-full rounded-2xl bg-emerald-600 py-3.5 font-semibold text-white hover:bg-emerald-500 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
-              >
-                {submitting ? "Confirming…" : "Approve Estimate"}
-              </button>
-              <p className="mt-3 text-xs text-white/50 text-center">
-                This confirms you approve the estimate. Payment is handled separately with your contractor.
-              </p>
-            </div>
-
-            {companyPhone ? (
-              <p className="mt-6 text-xs text-white/50 text-center">Questions? Call {companyPhone}</p>
-            ) : null}
+        {showDebug && debug && (
+          <div className="mt-3 rounded-2xl border border-white/10 bg-black/20 p-4 text-[12px] text-white/70">
+            <div className="font-semibold text-white/85 mb-2">Approve Debug</div>
+            <div><span className="text-white/50">URL token:</span> <span className="break-all">{debug.urlToken}</span></div>
+            <div className="mt-1"><span className="text-white/50">matchKey:</span> {String(debug.matchKey)}</div>
+            <div className="mt-1"><span className="text-white/50">matchStatus:</span> {String(debug.matchStatus)}</div>
+            <div className="mt-2"><span className="text-white/50">tokens sample:</span> {debug.tokensFoundSample.join(", ")}</div>
           </div>
         )}
       </div>
