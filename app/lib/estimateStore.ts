@@ -57,6 +57,70 @@ export interface RoofingEstimate {
 
 const STORAGE_KEY = "roofing_saved_estimates";
 
+function safeUUID() {
+  try {
+    // @ts-ignore
+    return crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  } catch {
+    return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  }
+}
+
+function normalizeStatusValue(input: any) {
+  const s = String(input || "").toLowerCase().trim();
+  if (s === "pending_approval" || s === "pending approval") return "pending";
+  if (s === "sent") return "sent";
+  if (s === "estimate") return "estimate";
+  if (s === "pending") return "pending";
+  if (s === "approved") return "approved";
+  if (s === "scheduled") return "scheduled";
+  if (s === "paid") return "paid";
+  return "estimate";
+}
+
+function looksSentish(e: any) {
+  const st = normalizeStatusValue(e?.status);
+  return (
+    !!e?.sentAt ||
+    !!e?.sentToEmail ||
+    st === "sent" ||
+    st === "pending" ||
+    st === "approved" ||
+    st === "scheduled" ||
+    st === "paid"
+  );
+}
+
+function migrateSavedEstimatesIfNeeded(list: any[]) {
+  let changed = false;
+  const migrated = (list || []).map((e) => {
+    if (!e || typeof e !== "object") return e;
+    const next = { ...e };
+
+    const norm = normalizeStatusValue(next.status);
+    if (next.status !== norm) {
+      next.status = norm;
+      changed = true;
+    }
+
+    // If it was sent (has sentAt/email) but status stayed estimate, bump it.
+    if (next.status === "estimate" && (next.sentAt || next.sentToEmail)) {
+      next.status = "sent";
+      changed = true;
+    }
+
+    // If it looks sent-ish but has no token, generate one.
+    if (looksSentish(next) && !next.approvalToken) {
+      next.approvalToken = safeUUID();
+      changed = true;
+    }
+
+    return next;
+  });
+
+  return { migrated, changed };
+}
+
 export type SaveEstimateOpts = { overwriteId?: string };
 
 export function saveEstimate(
@@ -146,7 +210,16 @@ export function saveEstimate(
 export function getEstimates(): RoofingEstimate[] {
   if (typeof window === "undefined") return [];
   const raw = localStorage.getItem(STORAGE_KEY);
-  return raw ? JSON.parse(raw) : [];
+  const list = raw ? JSON.parse(raw) : [];
+  const { migrated, changed } = migrateSavedEstimatesIfNeeded(list);
+  if (changed) {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
+      console.log("[MIGRATE SAVED ESTIMATES] repaired records");
+    } catch {}
+  }
+  const finalList = migrated;
+  return finalList;
 }
 
 export function getContractTotal(e: RoofingEstimate): number {
