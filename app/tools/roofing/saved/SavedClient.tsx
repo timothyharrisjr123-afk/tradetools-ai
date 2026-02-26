@@ -76,6 +76,16 @@ function formatDatePretty(iso?: string) {
   });
 }
 
+function formatShortDate(dateString?: string | null) {
+  if (!dateString) return null;
+  const d = new Date(dateString);
+  return d.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
 function normalizeStatusValue(input: unknown): string {
   const s = String(input ?? "").toLowerCase().trim();
   if (s === "pending_approval" || s === "pending approval") return "pending";
@@ -305,7 +315,7 @@ function Stepper({ status }: { status: string }) {
   );
 }
 
-function PipelineBar({ status }: { status: string }) {
+function PipelineBar({ status, isViewed }: { status: string; isViewed?: boolean }) {
   const steps = ["estimate", "sent_pending", "approved", "scheduled", "paid"] as const;
   const labels: Record<(typeof steps)[number], string> = {
     estimate: "Estimate",
@@ -346,13 +356,17 @@ function PipelineBar({ status }: { status: string }) {
       <div className="mt-2 flex items-center justify-between">
         {steps.map((s, i) => {
           const done = i <= activeIndex;
+          const isPendingStep = s === "sent_pending";
+          const dotClass =
+            done
+              ? isPendingStep && isViewed
+                ? "bg-teal-400 shadow-[0_0_6px_rgba(45,212,191,0.6)]"
+                : "bg-emerald-400"
+              : "bg-white/15";
           return (
             <span
               key={s}
-              className={[
-                "h-3 w-3 rounded-full",
-                done ? "bg-emerald-400" : "bg-white/15",
-              ].join(" ")}
+              className={["h-3 w-3 rounded-full", dotClass].join(" ")}
             />
           );
         })}
@@ -768,6 +782,12 @@ function SavedEstimateCard({
                       : getDisplayStage(effectiveStatus)}
             </div>
 
+            {(status === "sent" || status === "sent_pending") && viewedAt && (
+              <div className="text-xs text-white/50 mt-0.5">
+                Viewed {formatShortDate(estimate.viewedAt ?? viewedAt)}
+              </div>
+            )}
+
             {/* Subtext (muted) */}
             {(estimate?.sentAt || estimate?.sent_at || estimate?.sentDate || estimate?.sentTo || estimate?.recipientEmail || estimate?.customerEmail || estimate?.sentToEmail) && (
               <div className="mt-0.5 text-xs text-white/50">
@@ -810,7 +830,7 @@ function SavedEstimateCard({
           </div>
         </div>
 
-        <PipelineBar status={getStage(estimate)} />
+        <PipelineBar status={getStage(estimate)} isViewed={isSent && !!viewedAt} />
 
         <div className="mt-6 flex items-center justify-between border-t border-white/5 pt-6">
           {/* LEFT: Total */}
