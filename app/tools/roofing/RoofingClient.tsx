@@ -4206,18 +4206,16 @@ Thanks,`;
                 {/* Ready-to-send summary (always visible) */}
                 <div className="mt-5 rounded-xl border border-white/10 bg-white/[0.02] p-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-white/80">
-                    <div className="flex justify-between">
-                      <span>Recipient</span>
-                      <span className="text-white font-semibold">
-                        {(customerEmail || "").trim() ? customerEmail : "Email missing"}
-                      </span>
-                    </div>
-
-                    <div className="flex justify-between">
-                      <span>Project</span>
-                      <span className="text-white font-semibold">
-                        {[jobAddress1, [jobCity, jobState, jobZip].filter(Boolean).join(", ")].filter(Boolean).join(" — ") || "Address missing"}
-                      </span>
+                    <div className="text-sm text-white/80">
+                      <div className="text-white/60 text-xs mb-1">Recipient</div>
+                      {/* Email on its own line (truncate safely) */}
+                      <div className="font-medium text-white/90 truncate">
+                        {(customerEmail || "").trim() || "—"}
+                      </div>
+                      {/* Address on its own line (wrap or truncate) */}
+                      <div className="text-white/70 text-xs mt-0.5 break-words">
+                        {[jobAddress1, [jobCity, jobState, jobZip].filter(Boolean).join(", ")].filter(Boolean).join(" — ") || "—"}
+                      </div>
                     </div>
 
                     <div className="flex justify-between">
