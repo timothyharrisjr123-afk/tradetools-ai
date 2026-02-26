@@ -45,13 +45,14 @@ function isoFromDateInput(d: string) {
   }
 }
 
-type PipelineStatus = "estimate" | "sent" | "sent_pending" | "approved" | "scheduled" | "paid";
+type PipelineStatus = "estimate" | "sent" | "sent_pending" | "viewed" | "approved" | "scheduled" | "paid";
 
 const normalizePipelineStatus = (s?: string): PipelineStatus => {
   const v = (s || "estimate").toLowerCase();
   if (v === "sent_pending") return "sent_pending";
   if (v === "pending") return "sent_pending";
   if (v === "sent") return "sent";
+  if (v === "viewed") return "viewed";
   if (v === "approved") return "approved";
   if (v === "scheduled") return "scheduled";
   if (v === "paid") return "paid";
@@ -79,6 +80,7 @@ function normalizeStatusValue(input: unknown): string {
   if (s === "pending_approval" || s === "pending approval") return "pending";
   if (s === "sent_pending") return "pending";
   if (s === "sent") return "sent";
+  if (s === "viewed") return "viewed";
   if (s === "estimate") return "estimate";
   if (s === "pending") return "pending";
   if (s === "approved") return "approved";
@@ -89,6 +91,7 @@ function normalizeStatusValue(input: unknown): string {
 
 const getDisplayStage = (status: string) => {
   if (status === "sent_pending" || status === "pending" || status === "sent") return "Pending approval";
+  if (status === "viewed") return "Viewed";
   if (status === "approved") return "Approved";
   if (status === "scheduled") return "Scheduled";
   if (status === "paid") return "Paid";
@@ -177,6 +180,7 @@ type SavedStatusUI =
   | "sent"
   | "sent_pending"
   | "pending"
+  | "viewed"
   | "approved"
   | "scheduled"
   | "paid"
@@ -187,6 +191,7 @@ function statusLabel(status: SavedStatusUI) {
 
   if (s === "sent_pending" || s === "pending" || s === "pending_approval" || s === "sent") return "Pending approval";
   if (s === "estimate" || s === "draft") return "Estimate";
+  if (s === "viewed") return "Viewed";
   if (s === "approved") return "Approved";
   if (s === "scheduled") return "Scheduled";
   if (s === "paid") return "Paid";
@@ -206,6 +211,13 @@ function StatusPill({ status }: { status: string }) {
       <span className={`${base} bg-emerald-500/10 text-emerald-300 ring-emerald-500/20`}>
         <span className={`${dot} bg-emerald-400`} />
         Pending Approval
+      </span>
+    );
+  }
+  if (status === "viewed") {
+    return (
+      <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] font-medium text-white/70">
+        Viewed
       </span>
     );
   }
@@ -644,6 +656,7 @@ function RevenueSummary({
 
 function SavedEstimateCard({
   estimate,
+  batchStatuses,
   onLoad,
   onDelete,
   onStatusChange,
@@ -655,6 +668,7 @@ function SavedEstimateCard({
   isFlashing,
 }: {
   estimate: any;
+  batchStatuses?: Record<string, { status: string; viewedAt?: string | null; approvedAt?: string | null }>;
   onLoad: (e: any) => void;
   onDelete: (id: string) => void;
   onStatusChange: (id: string, status: any) => void;
@@ -666,6 +680,15 @@ function SavedEstimateCard({
   isFlashing?: boolean;
 }) {
   const status = normalizePipelineStatus(getStage(estimate));
+  const remote = estimate?.approvalToken && batchStatuses ? batchStatuses[estimate.approvalToken] : null;
+  const effectiveStatus =
+    remote?.status === "approved"
+      ? "approved"
+      : remote?.status === "viewed" || remote?.viewedAt
+        ? "viewed"
+        : status === "sent" || status === "sent_pending"
+          ? "sent"
+          : status;
   const hasApproval = Boolean(estimate?.approvalToken);
   const statusStr = (estimate?.status ?? "").toLowerCase();
   const isSentLike =
@@ -694,10 +717,7 @@ function SavedEstimateCard({
                 {(estimate.tierLabel ?? estimate.selectedTier ?? "Core").toString()}
               </span>
 
-              <span className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-inset bg-white/5 text-white/80 ring-white/10">
-                <span className="h-1.5 w-1.5 rounded-full bg-white/40" />
-                {statusLabel(getStage(estimate))}
-              </span>
+              <StatusPill status={effectiveStatus} />
             </div>
 
             <div className="mt-4 text-xl font-bold text-white tracking-tight">
@@ -724,11 +744,11 @@ function SavedEstimateCard({
           <div className="flex shrink-0 flex-col items-end gap-2 text-right">
             {/* Status line (primary) */}
             <div className="text-emerald-300 text-sm font-semibold">
-              {showApprovalActions || isPendingApproval(getStage(estimate))
-                ? "Pending approval"
-                : status === "approved" && estimate.needsScheduling
+              {effectiveStatus === "approved" && estimate.needsScheduling
                 ? "Approved — ready to schedule"
-                : getDisplayStage(getStage(estimate))}
+                : showApprovalActions || isPendingApproval(getStage(estimate))
+                  ? "Pending approval"
+                  : getDisplayStage(effectiveStatus)}
             </div>
 
             {/* Subtext (muted) */}
@@ -915,6 +935,7 @@ export default function SavedClient() {
   const [scheduleDate, setScheduleDate] = useState("");
   const [paymentDate, setPaymentDate] = useState("");
   const [paidAmountInput, setPaidAmountInput] = useState("");
+  const [batchStatuses, setBatchStatuses] = useState<Record<string, { status: string; viewedAt?: string | null; approvedAt?: string | null }>>({});
   const router = useRouter();
   const isSyncingRef = useRef(false);
 
@@ -1149,10 +1170,8 @@ export default function SavedClient() {
   const runApprovalSync = useCallback(() => {
     if (!hydrated || isSyncingRef.current) return;
     const list = getSavedEstimates();
-    const pendingWithToken = list.filter(
-      (e) => (e.status === "sent_pending" || e.status === "sent") && e.approvalToken
-    );
-    const tokens = pendingWithToken.map((e) => e.approvalToken!);
+    const withToken = list.filter((e) => e.approvalToken);
+    const tokens = withToken.map((e) => e.approvalToken!);
     if (tokens.length === 0) return;
     isSyncingRef.current = true;
     (async () => {
@@ -1165,6 +1184,7 @@ export default function SavedClient() {
         const json = await res.json();
         if (!res.ok) return;
         const statuses = json?.statuses ?? {};
+        setBatchStatuses(statuses);
         let approvedCount = 0;
         for (const token of tokens) {
           const st = statuses[token];
@@ -1575,6 +1595,7 @@ export default function SavedClient() {
             <SavedEstimateCard
               key={e.id}
               estimate={e}
+              batchStatuses={batchStatuses}
               onLoad={(est) => handleAction(est, "load")}
               onDelete={(id) => {
                 const est = filtered.find((x) => x.id === id);

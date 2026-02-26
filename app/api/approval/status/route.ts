@@ -18,6 +18,7 @@ export async function GET(req: Request) {
     );
 
   const status = rec.approvedAt ? "approved" : "sent_pending";
+  const recordWithViewed = rec as { viewedAt?: string };
   return NextResponse.json({
     success: true,
     record: {
@@ -25,6 +26,7 @@ export async function GET(req: Request) {
       status,
       createdAt: rec.createdAt,
       approvedAt: rec.approvedAt ?? null,
+      viewedAt: recordWithViewed.viewedAt ?? null,
       savedEstimateId: rec.estimateId ?? null,
       customerName: rec.customerName,
       customerEmail: rec.customerEmail,

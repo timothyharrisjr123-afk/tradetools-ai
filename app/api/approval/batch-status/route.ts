@@ -5,16 +5,18 @@ export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
     const tokens = Array.isArray(body?.tokens) ? body.tokens : [];
-    const statuses: Record<string, { status: "sent_pending" | "approved"; approvedAt?: string }> = {};
+    const statuses: Record<string, { status: string; viewedAt: string | null; approvedAt: string | null }> = {};
 
     for (const token of tokens) {
       const t = typeof token === "string" ? token.trim() : "";
       if (!t) continue;
       const rec = await getApprovalRecord(t);
       if (rec) {
+        const recAny = rec as { status?: string; viewedAt?: string };
         statuses[t] = {
-          status: rec.approvedAt ? "approved" : "sent_pending",
-          ...(rec.approvedAt && { approvedAt: rec.approvedAt }),
+          status: recAny.status ?? (rec.approvedAt ? "approved" : "sent_pending"),
+          viewedAt: recAny.viewedAt ?? null,
+          approvedAt: rec.approvedAt ?? null,
         };
       }
     }
