@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { getApprovalRecord, markApproved, approvalKey } from "@/app/lib/kv";
 import { Resend } from "resend";
 
+const isEmail = (s: unknown): boolean =>
+  typeof s === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim());
+
 function safeEmail(v: unknown): string {
   return typeof v === "string" ? v.trim() : "";
 }
@@ -48,18 +51,17 @@ export async function POST(req: Request) {
     }
 
     const customerEmail = safeEmail(updated.customerEmail);
-    const notifyEmail = safeEmail(updated.notifyEmail);
+    const contractorNotifyEmailRaw = updated?.notifyEmail;
+    const contractorNotifyEmail = isEmail(contractorNotifyEmailRaw)
+      ? String(contractorNotifyEmailRaw).trim()
+      : "";
 
-    if (!notifyEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(notifyEmail)) {
-      return NextResponse.json(
-        {
-          success: false,
-          ok: false,
-          error: "Missing contractor notification email (Company Profile email).",
-          debug: { token, key, customerEmail, notifyEmail: notifyEmail || "(empty)" },
-        },
-        { status: 400 }
-      );
+    console.log("[APPROVAL] token =", token);
+    console.log("[APPROVAL] record.notifyEmail =", contractorNotifyEmailRaw);
+    console.log("[APPROVAL] chosen contractor email =", contractorNotifyEmail || "(none)");
+
+    if (!contractorNotifyEmail) {
+      console.log("[APPROVAL] Skipping contractor notification: missing/invalid notifyEmail");
     }
 
     const customerName = updated.customerName || "Customer";
@@ -68,9 +70,9 @@ export async function POST(req: Request) {
     const total = fmtMoney(updated.total);
     const approvedAt = updated.approvedAt || new Date().toISOString();
 
-    const toContractor = notifyEmail;
+    const toContractor = contractorNotifyEmail;
     const toCustomer =
-      customerEmail && customerEmail.toLowerCase() !== notifyEmail.toLowerCase() ? customerEmail : "";
+      customerEmail && customerEmail.toLowerCase() !== toContractor.toLowerCase() ? customerEmail : "";
 
     const resendKey = process.env.RESEND_API_KEY?.trim();
     const resendFrom = process.env.RESEND_FROM || "Onboarding <onboarding@resend.dev>";
@@ -81,8 +83,9 @@ export async function POST(req: Request) {
     if (resendKey) {
       const resend = new Resend(resendKey);
 
-      const contractorSubject = `Estimate Approved — ${customerName}${addressLine ? ` (${addressLine})` : ""}`;
-      const contractorHtml = `
+      if (toContractor) {
+        const contractorSubject = `Estimate Approved — ${customerName}${addressLine ? ` (${addressLine})` : ""}`;
+        const contractorHtml = `
       <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; line-height:1.5">
         <h2 style="margin:0 0 8px">Estimate Approved ✅</h2>
         <p style="margin:0 0 12px">A customer approved an estimate. Please reach out to schedule the job.</p>
@@ -97,16 +100,17 @@ export async function POST(req: Request) {
       </div>
     `;
 
-      try {
-        contractorSend = await resend.emails.send({
-          from: resendFrom,
-          to: toContractor,
-          subject: contractorSubject,
-          html: contractorHtml,
-        });
-      } catch (e) {
-        console.error("[APPROVAL NOTIFY] contractor send failed", e);
-        contractorSend = { error: e instanceof Error ? e.message : String(e) };
+        try {
+          contractorSend = await resend.emails.send({
+            from: resendFrom,
+            to: toContractor,
+            subject: contractorSubject,
+            html: contractorHtml,
+          });
+        } catch (e) {
+          console.error("[APPROVAL NOTIFY] contractor send failed", e);
+          contractorSend = { error: e instanceof Error ? e.message : String(e) };
+        }
       }
 
       if (toCustomer) {
@@ -149,9 +153,10 @@ export async function POST(req: Request) {
         token,
         key,
         customerEmail,
-        notifyEmail,
+        notifyEmail: contractorNotifyEmailRaw,
+        chosenContractorEmail: toContractor || "(none)",
         sentTo: {
-          contractor: toContractor,
+          contractor: toContractor || "(skipped)",
           customer: toCustomer || "(deduped or missing)",
         },
         resend: {
