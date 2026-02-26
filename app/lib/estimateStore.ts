@@ -23,6 +23,8 @@ export interface RoofingEstimate {
   laborPerSquare?: string;
   margin?: string;
   status?: "estimate" | "sent" | "sent_pending" | "approved" | "scheduled" | "paid";
+  /** Set when customer opens approval page or email (synced from KV). */
+  viewedAt?: string | null;
   sentTo?: string;
   approvalToken?: string;
   approvalUrl?: string;
@@ -160,6 +162,8 @@ function migrateSavedEstimatesIfNeeded(list: any[]) {
     if (!e || typeof e !== "object") return e;
     const next = { ...e };
 
+    next.viewedAt = next.viewedAt ?? null;
+
     const norm = normalizeStatusValue(next.status);
     if (next.status !== norm) {
       next.status = norm;
@@ -242,6 +246,7 @@ export function saveEstimate(
     id,
     createdAt: data.createdAt || nowIso,
     lastSavedAt: nowIso,
+    viewedAt: (data as any).viewedAt ?? null,
   };
   const snapshotWithDrivers = {
     ...withTimestamps,
@@ -375,7 +380,7 @@ export function markSavedEstimateSent(
   const list = getSavedEstimates();
   const next = list.map((e: any) => {
     if (e.id !== id) return e;
-    const updated: any = { ...e, status: "sent" as const, lastSavedAt: nowIso, needsScheduling: false };
+    const updated: any = { ...e, status: "sent" as const, lastSavedAt: nowIso, needsScheduling: false, viewedAt: null };
     updated.sentAt = meta?.sentAt ?? nowIso;
     if (meta?.sentToEmail != null) updated.sentToEmail = meta.sentToEmail;
     return updated;
@@ -407,11 +412,32 @@ export function attachApprovalTokenAndMarkPending(id: string, token: string) {
           sentAt: e.sentAt ?? nowIso,
           needsScheduling: false,
           lastSavedAt: nowIso,
+          viewedAt: null,
         }
       : e
   );
   localStorage.setItem(CANON_SAVED_KEY, JSON.stringify(next));
   return next;
+}
+
+/** Mark a saved estimate as viewed (by approval token). Set viewedAt only if currently null. */
+export function markEstimateViewedByToken(
+  token: string,
+  viewedAtISO?: string | null
+): boolean {
+  if (typeof window === "undefined") return false;
+  const list = getSavedEstimates();
+  let changed = false;
+  const value = viewedAtISO ?? new Date().toISOString();
+  const next = list.map((e: any) => {
+    if (String(e?.approvalToken || "") !== String(token || "")) return e;
+    const current = e.viewedAt ?? null;
+    if (current != null) return e;
+    changed = true;
+    return { ...e, viewedAt: value, lastSavedAt: new Date().toISOString() };
+  });
+  if (changed) localStorage.setItem(CANON_SAVED_KEY, JSON.stringify(next));
+  return changed;
 }
 
 /** When customer approves via /approve/[token]: find by token and mark approved locally. */

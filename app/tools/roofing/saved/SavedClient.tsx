@@ -12,6 +12,7 @@ import {
   updateSavedEstimate,
   markSavedEstimateApproved,
   markSavedEstimateApprovedByToken,
+  markEstimateViewedByToken,
   markSavedEstimateScheduled,
   markSavedEstimateStatus,
   addPaymentToEstimate,
@@ -216,8 +217,15 @@ function StatusPill({ status }: { status: string }) {
   }
   if (status === "viewed") {
     return (
-      <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] font-medium text-white/70">
+      <span className="inline-flex items-center rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-300/90">
         Viewed
+      </span>
+    );
+  }
+  if (status === "not_viewed") {
+    return (
+      <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] font-medium text-white/50">
+        Not viewed
       </span>
     );
   }
@@ -681,6 +689,9 @@ function SavedEstimateCard({
 }) {
   const status = normalizePipelineStatus(getStage(estimate));
   const remote = estimate?.approvalToken && batchStatuses ? batchStatuses[estimate.approvalToken] : null;
+  const viewedAt = (estimate?.viewedAt ?? remote?.viewedAt ?? null) as string | null;
+  const isSent = status === "sent" || status === "sent_pending";
+  const isApproved = status === "approved" || status === "scheduled" || status === "paid";
   const effectiveStatus =
     remote?.status === "approved"
       ? "approved"
@@ -689,6 +700,8 @@ function SavedEstimateCard({
         : status === "sent" || status === "sent_pending"
           ? "sent"
           : status;
+  const displayStatus =
+    isApproved ? effectiveStatus : isSent && viewedAt ? "viewed" : isSent && !viewedAt ? "not_viewed" : effectiveStatus;
   const hasApproval = Boolean(estimate?.approvalToken);
   const statusStr = (estimate?.status ?? "").toLowerCase();
   const isSentLike =
@@ -717,7 +730,7 @@ function SavedEstimateCard({
                 {(estimate.tierLabel ?? estimate.selectedTier ?? "Core").toString()}
               </span>
 
-              <StatusPill status={effectiveStatus} />
+              <StatusPill status={displayStatus} />
             </div>
 
             <div className="mt-4 text-xl font-bold text-white tracking-tight">
@@ -744,11 +757,15 @@ function SavedEstimateCard({
           <div className="flex shrink-0 flex-col items-end gap-2 text-right">
             {/* Status line (primary) */}
             <div className="text-emerald-300 text-sm font-semibold">
-              {effectiveStatus === "approved" && estimate.needsScheduling
-                ? "Approved — ready to schedule"
-                : showApprovalActions || isPendingApproval(getStage(estimate))
-                  ? "Pending approval"
-                  : getDisplayStage(effectiveStatus)}
+              {isSent && !viewedAt
+                ? "Sent — not viewed yet"
+                : isSent && viewedAt
+                  ? "Viewed — pending approval"
+                  : effectiveStatus === "approved" && estimate.needsScheduling
+                    ? "Approved — ready to schedule"
+                    : showApprovalActions || isPendingApproval(getStage(estimate))
+                      ? "Pending approval"
+                      : getDisplayStage(effectiveStatus)}
             </div>
 
             {/* Subtext (muted) */}
@@ -1192,6 +1209,7 @@ export default function SavedClient() {
             const { changed } = markSavedEstimateApprovedByToken(token, st.approvedAt);
             if (changed) approvedCount++;
           }
+          if (st?.viewedAt) markEstimateViewedByToken(token, st.viewedAt);
         }
         setEstimates(getNormalizedEstimates());
         if (approvedCount > 0) {

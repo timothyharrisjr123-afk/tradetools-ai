@@ -2488,6 +2488,7 @@ Thanks,`;
         sentTo,
         approvalUrl: approvalUrl || undefined,
         approvalToken: serverToken,
+        viewedAt: null,
       } as any);
       setSendSuccess(true);
       setSendState("sent");

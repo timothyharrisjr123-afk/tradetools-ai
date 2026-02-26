@@ -41,3 +41,13 @@ export async function markApproved(token: string): Promise<ApprovalRecord | null
   await putApprovalRecord(updated);
   return updated;
 }
+
+/** When approval page is opened: set viewedAt on KV record if not already set. */
+export async function ensureViewedAt(token: string): Promise<void> {
+  const key = approvalKey(token);
+  const rec = await kv.get<ApprovalRecord & { viewedAt?: string; status?: string }>(key);
+  if (!rec || (rec as { viewedAt?: string }).viewedAt) return;
+  const viewedAt = new Date().toISOString();
+  const status = rec.status === "sent" ? "viewed" : rec.status ?? "viewed";
+  await kv.set(key, { ...rec, viewedAt, status }, { ex: TTL_SECONDS });
+}
