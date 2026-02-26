@@ -2,8 +2,18 @@ import { NextResponse } from "next/server";
 import { getApprovalRecord, markApproved, approvalKey } from "@/app/lib/kv";
 import { Resend } from "resend";
 
+type EmailAttempt = {
+  kind: "customer" | "contractor";
+  to: string;
+  subject: string;
+  ok: boolean;
+  error?: string;
+};
+
 const isEmail = (s: unknown): boolean =>
   typeof s === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim());
+
+const safeTrim = (s: unknown): string => (typeof s === "string" ? s.trim() : "");
 
 function safeEmail(v: unknown): string {
   return typeof v === "string" ? v.trim() : "";
@@ -50,119 +60,103 @@ export async function POST(req: Request) {
       );
     }
 
-    const customerEmail = safeEmail(updated.customerEmail);
-    const contractorNotifyEmailRaw = updated?.notifyEmail;
-    const contractorNotifyEmail = isEmail(contractorNotifyEmailRaw)
-      ? String(contractorNotifyEmailRaw).trim()
-      : "";
+    const emailAttempts: EmailAttempt[] = [];
 
-    console.log("[APPROVAL] token =", token);
-    console.log("[APPROVAL] record.notifyEmail =", contractorNotifyEmailRaw);
-    console.log("[APPROVAL] chosen contractor email =", contractorNotifyEmail || "(none)");
+    const customerEmailRaw = isEmail(updated?.customerEmail) ? safeTrim(updated?.customerEmail) : "";
+    const contractorEmailRaw = isEmail(updated?.notifyEmail) ? safeTrim(updated?.notifyEmail) : "";
 
-    if (!contractorNotifyEmail) {
-      console.log("[APPROVAL] Skipping contractor notification: missing/invalid notifyEmail");
+    const toContractor = contractorEmailRaw;
+    const toCustomer =
+      customerEmailRaw &&
+      (!toContractor || customerEmailRaw.toLowerCase() !== toContractor.toLowerCase())
+        ? customerEmailRaw
+        : "";
+
+    console.log("[APPROVAL] token:", token);
+    console.log("[APPROVAL] customerEmail (record):", updated?.customerEmail, "=>", customerEmailRaw || "(invalid)");
+    console.log("[APPROVAL] notifyEmail   (record):", updated?.notifyEmail, "=>", contractorEmailRaw || "(invalid)");
+
+    const resendKey = process.env.RESEND_API_KEY?.trim();
+    const resendFrom = process.env.RESEND_FROM || "Onboarding <onboarding@resend.dev>";
+    const resend = resendKey ? new Resend(resendKey) : null;
+
+    async function sendEmailAttempt(
+      kind: "customer" | "contractor",
+      to: string,
+      subject: string,
+      html: string
+    ) {
+      if (!to) {
+        emailAttempts.push({ kind, to: "(missing)", subject, ok: false, error: "missing/invalid recipient" });
+        console.log(`[APPROVAL] ${kind} email skipped: missing recipient`);
+        return;
+      }
+      if (!resend || !resendFrom) {
+        emailAttempts.push({ kind, to, subject, ok: false, error: "RESEND_API_KEY or RESEND_FROM missing" });
+        console.log(`[APPROVAL] ${kind} email skipped: Resend not configured`);
+        return;
+      }
+      try {
+        const result = await resend.emails.send({
+          from: resendFrom,
+          to,
+          subject,
+          html,
+        });
+        emailAttempts.push({ kind, to, subject, ok: true });
+        console.log(`[APPROVAL] ${kind} email sent OK =>`, to, "id:", (result as any)?.data?.id || "(no id)");
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e);
+        emailAttempts.push({ kind, to, subject, ok: false, error: msg });
+        console.log(`[APPROVAL] ${kind} email FAILED =>`, to, msg);
+      }
     }
 
     const customerName = updated.customerName || "Customer";
     const addressLine = updated.addressLine || "";
     const tierLabel = updated.tierLabel || "";
     const total = fmtMoney(updated.total);
+
+    const customerSubject = "Your roofing estimate was approved ✅";
+    const customerHtml = `
+  <div style="font-family: Arial, sans-serif; line-height:1.5;">
+    <h2>Approved ✅</h2>
+    <p>Thanks — we received your approval.</p>
+    <p><b>Next:</b> We'll reach out shortly to schedule your start date.</p>
+  </div>
+`;
+
+    const contractorSubject = "Estimate approved — ready to schedule ✅";
+    const contractorHtml = `
+  <div style="font-family: Arial, sans-serif; line-height:1.5;">
+    <h2>Estimate Approved ✅</h2>
+    <p><b>Customer:</b> ${customerName}</p>
+    <p><b>Address:</b> ${addressLine}</p>
+    <p><b>Package:</b> ${tierLabel}</p>
+    <p><b>Total:</b> ${total || "$0.00"}</p>
+    <hr/>
+    <p><b>Next:</b> Please reach out to schedule.</p>
+  </div>
+`;
+
+    await sendEmailAttempt("customer", toCustomer, customerSubject, customerHtml);
+    await sendEmailAttempt("contractor", toContractor, contractorSubject, contractorHtml);
+
     const approvedAt = updated.approvedAt || new Date().toISOString();
-
-    const toContractor = contractorNotifyEmail;
-    const toCustomer =
-      customerEmail && customerEmail.toLowerCase() !== toContractor.toLowerCase() ? customerEmail : "";
-
-    const resendKey = process.env.RESEND_API_KEY?.trim();
-    const resendFrom = process.env.RESEND_FROM || "Onboarding <onboarding@resend.dev>";
-
-    let contractorSend: unknown = null;
-    let customerSend: unknown = null;
-
-    if (resendKey) {
-      const resend = new Resend(resendKey);
-
-      if (toContractor) {
-        const contractorSubject = `Estimate Approved — ${customerName}${addressLine ? ` (${addressLine})` : ""}`;
-        const contractorHtml = `
-      <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; line-height:1.5">
-        <h2 style="margin:0 0 8px">Estimate Approved ✅</h2>
-        <p style="margin:0 0 12px">A customer approved an estimate. Please reach out to schedule the job.</p>
-        <div style="padding:12px; border:1px solid #e5e7eb; border-radius:12px">
-          <div><b>Customer:</b> ${customerName}</div>
-          <div><b>Customer Email:</b> ${updated.customerEmail ?? ""}</div>
-          ${addressLine ? `<div><b>Address:</b> ${addressLine}</div>` : ""}
-          ${tierLabel ? `<div><b>Package:</b> ${tierLabel}</div>` : ""}
-          ${total ? `<div><b>Total:</b> ${total}</div>` : ""}
-          <div><b>Approved At:</b> ${new Date(approvedAt).toLocaleString()}</div>
-        </div>
-      </div>
-    `;
-
-        try {
-          contractorSend = await resend.emails.send({
-            from: resendFrom,
-            to: toContractor,
-            subject: contractorSubject,
-            html: contractorHtml,
-          });
-        } catch (e) {
-          console.error("[APPROVAL NOTIFY] contractor send failed", e);
-          contractorSend = { error: e instanceof Error ? e.message : String(e) };
-        }
-      }
-
-      if (toCustomer) {
-        const customerSubject = `You're approved ✅ — Next step: scheduling`;
-        const customerHtml = `
-        <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; line-height:1.5">
-          <h2 style="margin:0 0 8px">Approved ✅</h2>
-          <p style="margin:0 0 12px">
-            Thanks, ${customerName}. We've received your approval.
-            <b>Someone from our team will reach out shortly to schedule your start date.</b>
-          </p>
-          <div style="padding:12px; border:1px solid #e5e7eb; border-radius:12px">
-            ${addressLine ? `<div><b>Address:</b> ${addressLine}</div>` : ""}
-            ${tierLabel ? `<div><b>Package:</b> ${tierLabel}</div>` : ""}
-            ${total ? `<div><b>Total:</b> ${total}</div>` : ""}
-          </div>
-        </div>
-      `;
-
-        try {
-          customerSend = await resend.emails.send({
-            from: resendFrom,
-            to: toCustomer,
-            subject: customerSubject,
-            html: customerHtml,
-          });
-        } catch (e) {
-          console.error("[APPROVAL NOTIFY] customer send failed", e);
-          customerSend = { error: e instanceof Error ? e.message : String(e) };
-        }
-      }
-    }
 
     return NextResponse.json({
       success: true,
       ok: true,
+      approved: true,
       approvedAt,
       estimateId: updated.estimateId ?? null,
+      emailAttempts,
       debug: {
         token,
         key,
-        customerEmail,
-        notifyEmail: contractorNotifyEmailRaw,
-        chosenContractorEmail: toContractor || "(none)",
-        sentTo: {
-          contractor: toContractor || "(skipped)",
-          customer: toCustomer || "(deduped or missing)",
-        },
-        resend: {
-          contractor: contractorSend,
-          customer: customerSend,
-        },
+        customerEmail: customerEmailRaw,
+        notifyEmail: contractorEmailRaw,
+        sentTo: { contractor: toContractor || "(skipped)", customer: toCustomer || "(deduped or missing)" },
       },
     });
   } catch (err: unknown) {
