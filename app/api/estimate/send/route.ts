@@ -29,6 +29,10 @@ const BodySchema = z.object({
   notifyEmail: z.string().optional(),
 });
 
+function isValidEmailLoose(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((email || "").trim());
+}
+
 function safeUUID() {
   try {
     // @ts-ignore
@@ -176,7 +180,8 @@ export async function POST(req: Request) {
     ].filter(Boolean);
     const jobAddressLine = jobAddressParts.join(", ") || undefined;
 
-    const notifyEmail = (notifyEmailBody && String(notifyEmailBody).trim()) || null;
+    const notifyEmailRaw = (notifyEmailBody && String(notifyEmailBody).trim()) || "";
+    const notifyEmail = isValidEmailLoose(notifyEmailRaw) ? notifyEmailRaw : null;
     try {
       await putApprovalRecord({
         token: approvalToken,

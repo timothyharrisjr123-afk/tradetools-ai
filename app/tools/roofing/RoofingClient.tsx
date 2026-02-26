@@ -20,7 +20,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
-import { loadCompanyProfile, type CompanyProfile } from "@/app/lib/companyProfile";
+import { loadCompanyProfile, getCompanyProfileEmailSafe, type CompanyProfile } from "@/app/lib/companyProfile";
 import {
   saveEstimate as saveToEstimateStore,
   getSavedEstimates,
@@ -2439,7 +2439,7 @@ Thanks,`;
         savedEstimateId: savedEstimateId ?? undefined,
         contractorEmail: (companyProfile?.email || "").trim() || undefined,
         approvalToken: approvalTokenToUse,
-        notifyEmail: (companyProfile?.email || "").trim() || undefined,
+        notifyEmail: (getCompanyProfileEmailSafe() || (companyProfile?.email || "").trim()) || undefined,
       });
 
       if (!data?.success) {

@@ -1,5 +1,30 @@
 const STORAGE_KEY = "serviceTools_companyProfile";
 
+/** Try multiple localStorage keys to get company email (for notifyEmail on send). */
+export function getCompanyProfileEmailSafe(): string {
+  if (typeof window === "undefined") return "";
+  const keysToTry = [
+    STORAGE_KEY,
+    "ttai_companyProfile",
+    "ttai_company_profile",
+    "companyProfile",
+    "ttai_settings_companyProfile",
+  ];
+
+  for (const k of keysToTry) {
+    try {
+      const raw = window.localStorage.getItem(k);
+      if (!raw) continue;
+      const obj = JSON.parse(raw) as Record<string, unknown>;
+      const email = (obj?.email ?? obj?.companyEmail ?? "").toString().trim();
+      if (email && email.includes("@")) return email;
+    } catch {
+      // ignore parse errors
+    }
+  }
+  return "";
+}
+
 export type CompanyProfile = {
   companyName: string;
   phone: string;

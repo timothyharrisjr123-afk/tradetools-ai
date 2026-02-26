@@ -9,6 +9,10 @@ function extractEmail(maybeNameAndEmail?: string | null) {
   return maybeNameAndEmail.includes("@") ? maybeNameAndEmail.trim() : "";
 }
 
+function isValidEmailLoose(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((email || "").trim());
+}
+
 function money(n?: number | null) {
   if (typeof n !== "number" || !isFinite(n)) return "—";
   return n.toLocaleString(undefined, { style: "currency", currency: "USD" });
@@ -37,10 +41,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, error: "Failed to update" }, { status: 500 });
     }
 
-    const notifyTo =
+    const notifyToRaw =
       (updated?.notifyEmail || "").trim() ||
       extractEmail(process.env.RESEND_FROM || "") ||
       "";
+    const notifyTo = isValidEmailLoose(notifyToRaw) ? notifyToRaw : "";
 
     console.log("[APPROVAL NOTIFY] notifyTo =", notifyTo ? notifyTo : "(empty)");
     console.log("[APPROVAL NOTIFY] token =", token);
