@@ -801,8 +801,9 @@ function SavedEstimateCard({
                     <span className="text-white/40">
                       ({timeAgo(estimate.viewedAt ?? viewedAt)})
                     </span>
-                    {" · "}
-                    Sent {formatShortDate(estimate.sentAt ?? estimate.sent_at ?? estimate.sentDate ?? estimate.createdAt)}
+                    <span className="text-white/40">
+                      {" · Sent "}{formatShortDate(estimate.sentAt ?? estimate.sent_at ?? estimate.sentDate ?? estimate.createdAt)}
+                    </span>
                   </>
                 ) : (
                   <>
