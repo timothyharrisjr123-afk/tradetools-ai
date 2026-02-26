@@ -86,6 +86,17 @@ function formatShortDate(dateString?: string | null) {
   });
 }
 
+function timeAgo(dateString?: string | null) {
+  if (!dateString) return null;
+  const diff = Date.now() - new Date(dateString).getTime();
+  const minutes = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+  if (minutes < 60) return `${minutes}m ago`;
+  if (hours < 24) return `${hours}h ago`;
+  return `${days}d ago`;
+}
+
 function normalizeStatusValue(input: unknown): string {
   const s = String(input ?? "").toLowerCase().trim();
   if (s === "pending_approval" || s === "pending approval") return "pending";
@@ -782,27 +793,22 @@ function SavedEstimateCard({
                       : getDisplayStage(effectiveStatus)}
             </div>
 
-            {(status === "sent" || status === "sent_pending") && viewedAt && (
-              <div className="text-xs text-white/50 mt-0.5">
-                Viewed {formatShortDate(estimate.viewedAt ?? viewedAt)}
-              </div>
-            )}
-
-            {/* Subtext (muted) */}
-            {(estimate?.sentAt || estimate?.sent_at || estimate?.sentDate || estimate?.sentTo || estimate?.recipientEmail || estimate?.customerEmail || estimate?.sentToEmail) && (
-              <div className="mt-0.5 text-xs text-white/50">
-                {(() => {
-                  const sentAt =
-                    estimate?.sentAt || estimate?.sent_at || estimate?.sentDate
-                      ? new Date(estimate?.sentAt || estimate?.sent_at || estimate?.sentDate).toLocaleDateString()
-                      : "";
-                  const to =
-                    estimate?.sentTo || estimate?.recipientEmail || estimate?.customerEmail || estimate?.sentToEmail || "";
-                  const parts = [];
-                  if (sentAt) parts.push(`Sent ${sentAt}`);
-                  if (to) parts.push(`to ${to}`);
-                  return parts.join(" • ");
-                })()}
+            {(status === "sent" || status === "sent_pending") && (
+              <div className="text-xs text-white/50 mt-1">
+                {viewedAt ? (
+                  <>
+                    Viewed {formatShortDate(estimate.viewedAt ?? viewedAt)}{" "}
+                    <span className="text-white/40">
+                      ({timeAgo(estimate.viewedAt ?? viewedAt)})
+                    </span>
+                    {" · "}
+                    Sent {formatShortDate(estimate.sentAt ?? estimate.sent_at ?? estimate.sentDate ?? estimate.createdAt)}
+                  </>
+                ) : (
+                  <>
+                    Sent {formatShortDate(estimate.sentAt ?? estimate.sent_at ?? estimate.sentDate ?? estimate.createdAt)}
+                  </>
+                )}
               </div>
             )}
 
