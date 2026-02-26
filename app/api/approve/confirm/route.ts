@@ -39,7 +39,6 @@ export async function POST(req: Request) {
 
     const notifyTo =
       (updated?.notifyEmail || "").trim() ||
-      (process.env.APPROVAL_NOTIFY_EMAIL || "").trim() ||
       extractEmail(process.env.RESEND_FROM || "") ||
       "";
 
@@ -78,7 +77,7 @@ export async function POST(req: Request) {
       }
     } else {
       console.warn(
-        "[APPROVAL NOTIFY] skipped (notifyTo empty) — set Company Profile notifications email or APPROVAL_NOTIFY_EMAIL."
+        "[APPROVAL NOTIFY] skipped — missing notifyEmail on record. Set Company Profile Email and re-send estimate."
       );
     }
 

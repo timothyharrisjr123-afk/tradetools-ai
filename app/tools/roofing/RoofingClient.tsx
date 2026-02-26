@@ -2439,7 +2439,7 @@ Thanks,`;
         savedEstimateId: savedEstimateId ?? undefined,
         contractorEmail: (companyProfile?.email || "").trim() || undefined,
         approvalToken: approvalTokenToUse,
-        notifyEmail: (companyProfile?.notificationsEmail || companyProfile?.email || "").trim() || undefined,
+        notifyEmail: (companyProfile?.email || "").trim() || undefined,
       });
 
       if (!data?.success) {
