@@ -6,6 +6,7 @@ export type CompanyProfile = {
   email: string;
   license: string;
   logoDataUrl: string;
+  notificationsEmail?: string;
 };
 
 const DEFAULTS: CompanyProfile = {
@@ -14,6 +15,7 @@ const DEFAULTS: CompanyProfile = {
   email: "",
   license: "",
   logoDataUrl: "",
+  notificationsEmail: "",
 };
 
 export function loadCompanyProfile(): CompanyProfile {
@@ -28,6 +30,7 @@ export function loadCompanyProfile(): CompanyProfile {
       email: typeof parsed.email === "string" ? parsed.email : DEFAULTS.email,
       license: typeof parsed.license === "string" ? parsed.license : DEFAULTS.license,
       logoDataUrl: typeof parsed.logoDataUrl === "string" ? parsed.logoDataUrl : DEFAULTS.logoDataUrl,
+      notificationsEmail: typeof parsed.notificationsEmail === "string" ? parsed.notificationsEmail : (DEFAULTS.notificationsEmail ?? ""),
     };
   } catch {
     return { ...DEFAULTS };
@@ -45,6 +48,7 @@ export function saveCompanyProfile(p: CompanyProfile): void {
         email: p.email ?? "",
         license: p.license ?? "",
         logoDataUrl: p.logoDataUrl ?? "",
+        notificationsEmail: p.notificationsEmail ?? "",
       })
     );
   } catch {

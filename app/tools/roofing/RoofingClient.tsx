@@ -910,7 +910,7 @@ export default function RoofingClient() {
   }, [roofingTier]);
 
   const [companyProfile, setCompanyProfile] = useState<CompanyProfile>(() =>
-    typeof window !== "undefined" ? loadCompanyProfile() : { companyName: "", phone: "", email: "", license: "", logoDataUrl: "" }
+    typeof window !== "undefined" ? loadCompanyProfile() : { companyName: "", phone: "", email: "", license: "", logoDataUrl: "", notificationsEmail: "" }
   );
   const validDays = 30;
 
@@ -2439,6 +2439,7 @@ Thanks,`;
         savedEstimateId: savedEstimateId ?? undefined,
         contractorEmail: (companyProfile?.email || "").trim() || undefined,
         approvalToken: approvalTokenToUse,
+        notifyEmail: (companyProfile?.notificationsEmail || companyProfile?.email || "").trim() || undefined,
       });
 
       if (!data?.success) {

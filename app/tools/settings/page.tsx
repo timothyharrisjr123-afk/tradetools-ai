@@ -19,6 +19,7 @@ export default function SettingsPage() {
     email: "",
     license: "",
     logoDataUrl: "",
+    notificationsEmail: "",
   });
   const [saved, setSaved] = useState(false);
 
@@ -115,6 +116,19 @@ export default function SettingsPage() {
                 placeholder="License number"
                 className={inputClass}
               />
+            </div>
+            <div className="space-y-1.5">
+              <label className="block text-xs text-white/70 mb-1">Approval notifications email</label>
+              <input
+                type="email"
+                placeholder="Where approval notifications should be sent"
+                value={profile.notificationsEmail ?? ""}
+                onChange={(e) => setProfile((p) => ({ ...p, notificationsEmail: e.target.value }))}
+                className={inputClass}
+              />
+              <p className="mt-1 text-xs text-white/50">
+                When a customer approves, we&apos;ll notify you at this email.
+              </p>
             </div>
             <div className="space-y-1.5">
               <label className="block text-sm font-medium text-slate-300">Logo</label>

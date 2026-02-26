@@ -2,6 +2,13 @@ import { NextResponse } from "next/server";
 import { getApprovalRecord, markApproved } from "@/app/lib/kv";
 import { Resend } from "resend";
 
+function extractEmail(maybeNameAndEmail?: string | null) {
+  if (!maybeNameAndEmail) return "";
+  const m = maybeNameAndEmail.match(/<([^>]+)>/);
+  if (m?.[1]) return m[1].trim();
+  return maybeNameAndEmail.includes("@") ? maybeNameAndEmail.trim() : "";
+}
+
 function money(n?: number | null) {
   if (typeof n !== "number" || !isFinite(n)) return "—";
   return n.toLocaleString(undefined, { style: "currency", currency: "USD" });
@@ -30,38 +37,49 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, error: "Failed to update" }, { status: 500 });
     }
 
-    const notifyTo = process.env.APPROVAL_NOTIFY_EMAIL?.trim();
-    const resendKey = process.env.RESEND_API_KEY?.trim();
-    const resendFrom = process.env.RESEND_FROM?.trim();
+    const notifyTo =
+      (updated?.notifyEmail || "").trim() ||
+      (process.env.APPROVAL_NOTIFY_EMAIL || "").trim() ||
+      extractEmail(process.env.RESEND_FROM || "") ||
+      "";
 
-    if (notifyTo && resendKey && resendFrom) {
-      try {
-        const resend = new Resend(resendKey);
-        const subject = `✅ Estimate Approved — ${updated.customerName ?? "Customer"} (${updated.tierLabel ?? "Package"})`;
-        const text = [
-          `Estimate Approved ✅`,
-          ``,
-          `Customer: ${updated.customerName ?? "—"}`,
-          `Email: ${updated.customerEmail ?? "—"}`,
-          `Address: ${updated.addressLine ?? "—"}`,
-          `Package: ${updated.tierLabel ?? "—"}`,
-          `Total: ${money(updated.total)}`,
-          `Approved At: ${new Date(updated.approvedAt!).toLocaleString()}`,
-          ``,
-          `Next step: Reach out to schedule the start date.`,
-        ].join("\n");
+    console.log("[APPROVAL NOTIFY] notifyTo =", notifyTo ? notifyTo : "(empty)");
+    console.log("[APPROVAL NOTIFY] token =", token);
 
-        await resend.emails.send({
-          from: resendFrom,
-          to: notifyTo,
-          subject,
-          text,
-        });
-      } catch (e) {
-        if (typeof console !== "undefined" && console.warn) {
-          console.warn("[approve/confirm] Contractor notification email failed", e);
+    if (notifyTo) {
+      const resendKey = process.env.RESEND_API_KEY?.trim();
+      const resendFrom = process.env.RESEND_FROM?.trim();
+      if (resendKey && resendFrom) {
+        try {
+          const resend = new Resend(resendKey);
+          const subject = `✅ Estimate Approved — ${updated.customerName ?? "Customer"} (${updated.tierLabel ?? "Package"})`;
+          const text =
+            `An estimate was approved.\n\n` +
+            `Customer: ${updated.customerName ?? ""}\n` +
+            `Email: ${updated.customerEmail ?? ""}\n` +
+            `Address: ${updated.addressLine ?? ""}\n` +
+            `Package: ${updated.tierLabel ?? ""}\n` +
+            `Total: ${money(updated.total)}\n\n` +
+            `Next step: reach out to schedule the start date.\n`;
+
+          await resend.emails.send({
+            from: resendFrom,
+            to: notifyTo,
+            subject,
+            text,
+          });
+
+          console.log("[APPROVAL NOTIFY] sent ✅");
+        } catch (e) {
+          console.error("[APPROVAL NOTIFY] failed ❌", e);
         }
+      } else {
+        console.warn("[APPROVAL NOTIFY] skipped (RESEND_API_KEY or RESEND_FROM missing)");
       }
+    } else {
+      console.warn(
+        "[APPROVAL NOTIFY] skipped (notifyTo empty) — set Company Profile notifications email or APPROVAL_NOTIFY_EMAIL."
+      );
     }
 
     return NextResponse.json({

@@ -26,6 +26,7 @@ const BodySchema = z.object({
   savedEstimateId: z.string().uuid().optional(),
   contractorEmail: z.string().email().optional(),
   approvalToken: z.string().uuid().optional(),
+  notifyEmail: z.string().optional(),
 });
 
 function safeUUID() {
@@ -131,7 +132,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const { to, meta, pdfBase64, pdfFilename, savedEstimateId, contractorEmail, approvalToken: clientToken } =
+    const { to, meta, pdfBase64, pdfFilename, savedEstimateId, contractorEmail, approvalToken: clientToken, notifyEmail: notifyEmailBody } =
       parsed.data;
 
     const toEmail = normalizeEmail(to);
@@ -175,6 +176,7 @@ export async function POST(req: Request) {
     ].filter(Boolean);
     const jobAddressLine = jobAddressParts.join(", ") || undefined;
 
+    const notifyEmail = (notifyEmailBody && String(notifyEmailBody).trim()) || null;
     try {
       await putApprovalRecord({
         token: approvalToken,
@@ -185,6 +187,7 @@ export async function POST(req: Request) {
         addressLine: jobAddressLine || null,
         total: typeof meta.suggestedPrice === "number" ? meta.suggestedPrice : null,
         tierLabel: meta.selectedTier ?? null,
+        notifyEmail: notifyEmail ?? null,
       });
     } catch (e) {
       if (typeof console !== "undefined" && console.warn) {

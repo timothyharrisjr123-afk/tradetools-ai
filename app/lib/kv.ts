@@ -10,6 +10,8 @@ export type ApprovalRecord = {
   addressLine?: string | null;
   total?: number | null;
   tierLabel?: string | null;
+  /** Contractor email to notify when customer approves (from Company Profile). */
+  notifyEmail?: string | null;
 };
 
 const TTL_SECONDS = 60 * 60 * 24 * 30; // 30 days

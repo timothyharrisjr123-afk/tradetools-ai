@@ -48,6 +48,7 @@ export async function sendEstimateEmailWithPdf(args: {
   savedEstimateId?: string;
   contractorEmail?: string;
   approvalToken?: string;
+  notifyEmail?: string;
 }) {
   const pdfBase64 = uint8ToBase64(args.pdfBytes);
   const pdfFilename = args.pdfFilename || "estimate.pdf";
@@ -64,6 +65,7 @@ export async function sendEstimateEmailWithPdf(args: {
       ...(args.savedEstimateId != null && { savedEstimateId: args.savedEstimateId }),
       ...(args.contractorEmail != null && { contractorEmail: args.contractorEmail }),
       ...(args.approvalToken != null && { approvalToken: args.approvalToken }),
+      ...(args.notifyEmail != null && args.notifyEmail.trim() && { notifyEmail: args.notifyEmail.trim() }),
     }),
   });
 
