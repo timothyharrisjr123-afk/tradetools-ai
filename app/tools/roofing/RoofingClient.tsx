@@ -14,7 +14,6 @@ import {
   HardHat,
   TrendingUp,
   Sparkles,
-  History,
   Info,
   MapPin,
   ChevronDown,
@@ -4417,24 +4416,14 @@ Thanks,`;
               >
                 Reset
               </motion.button>
-              <Link
-                href="/tools/roofing/saved"
-                className="text-xs text-white/60 underline hover:text-white/80"
-              >
-                View Saved Estimates
-              </Link>
-              <Link
-                href="/tools/roofing/history"
-                className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-5 py-2.5 text-sm font-medium text-slate-300 shadow-sm hover:bg-white/10 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 transition-all duration-200 ease-out"
-              >
-                <History className="h-4 w-4" />
-                View History
-                {estimateCount > 0 && (
-                  <span className="min-w-[1.25rem] rounded-full bg-blue-500/40 px-1.5 py-0.5 text-xs font-semibold text-white tabular-nums">
-                    {estimateCount}
-                  </span>
-                )}
-              </Link>
+              <div className="mt-3 flex items-center gap-3">
+                <a
+                  href="/tools/roofing/saved"
+                  className="text-xs font-semibold text-white/60 hover:text-white"
+                >
+                  View Saved Estimates
+                </a>
+              </div>
               {zipClearedToast && (
                 <motion.span
                   initial={{ opacity: 0 }}
