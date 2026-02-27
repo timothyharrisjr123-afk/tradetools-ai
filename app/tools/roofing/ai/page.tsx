@@ -13,15 +13,25 @@ export default function AILibraryPage() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+
     const raw = localStorage.getItem(STORAGE_KEY_VOICE_PROFILE);
-    if (!raw) return;
+    if (!raw) {
+      setVoiceDirty(false);
+      setVoiceSavedAt(null);
+      return;
+    }
+
     try {
       const parsed = JSON.parse(raw);
       if (parsed?.tone) setVoiceTone(parsed.tone);
-      if (parsed?.styleNotes) setVoiceStyleNotes(parsed.styleNotes);
-      setVoiceSavedAt(Date.now());
+      if (typeof parsed?.styleNotes === "string") setVoiceStyleNotes(parsed.styleNotes);
+
       setVoiceDirty(false);
-    } catch {}
+      setVoiceSavedAt(Date.now());
+    } catch {
+      setVoiceDirty(false);
+      setVoiceSavedAt(null);
+    }
   }, []);
 
   function saveVoiceProfile() {
@@ -88,23 +98,29 @@ export default function AILibraryPage() {
                 />
               </div>
 
-              <div className="flex items-center justify-between">
+              <div className="mt-3 flex items-center justify-between">
                 <div className="text-xs">
                   {voiceDirty ? (
-                    <span className="text-amber-300">Unsaved changes</span>
+                    <span className="rounded-full border border-amber-400/20 bg-amber-400/10 px-2 py-1 text-amber-200">
+                      Unsaved changes
+                    </span>
                   ) : voiceSavedAt ? (
-                    <span className="text-emerald-300">
+                    <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2 py-1 text-emerald-200">
                       Saved · {new Date(voiceSavedAt).toLocaleTimeString()}
                     </span>
                   ) : (
-                    <span className="text-white/40">Not saved yet</span>
+                    <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-1 text-white/60">
+                      Not saved yet
+                    </span>
                   )}
                 </div>
 
                 <button
                   type="button"
                   onClick={saveVoiceProfile}
-                  className="rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 active:bg-blue-800"
+                  className="rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 active:bg-blue-800 disabled:opacity-60"
+                  disabled={!voiceDirty && !!voiceSavedAt}
+                  title={!voiceDirty && !!voiceSavedAt ? "Already saved" : "Save voice profile"}
                 >
                   Save Voice Profile
                 </button>
