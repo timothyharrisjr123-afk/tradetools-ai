@@ -2,21 +2,40 @@
 
 import { useEffect, useState } from "react";
 import RoofingTabs from "@/app/tools/roofing/RoofingTabs";
-import {
-  loadCompanyVoiceProfile,
-  saveCompanyVoiceProfile,
-  type VoiceTone,
-} from "@/app/lib/companyVoiceProfile";
+
+const STORAGE_KEY_VOICE_PROFILE = "ttai_companyVoiceProfile";
 
 export default function AILibraryPage() {
-  const [tone, setTone] = useState<VoiceTone>("professional");
-  const [notes, setNotes] = useState("");
+  const [voiceTone, setVoiceTone] = useState("Professional");
+  const [voiceStyleNotes, setVoiceStyleNotes] = useState("");
+  const [voiceDirty, setVoiceDirty] = useState(false);
+  const [voiceSavedAt, setVoiceSavedAt] = useState<number | null>(null);
 
   useEffect(() => {
-    const v = loadCompanyVoiceProfile();
-    setTone(v.tone);
-    setNotes(v.styleNotes || "");
+    if (typeof window === "undefined") return;
+    const raw = localStorage.getItem(STORAGE_KEY_VOICE_PROFILE);
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed?.tone) setVoiceTone(parsed.tone);
+      if (parsed?.styleNotes) setVoiceStyleNotes(parsed.styleNotes);
+      setVoiceSavedAt(Date.now());
+      setVoiceDirty(false);
+    } catch {}
   }, []);
+
+  function saveVoiceProfile() {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(
+      STORAGE_KEY_VOICE_PROFILE,
+      JSON.stringify({
+        tone: voiceTone,
+        styleNotes: voiceStyleNotes,
+      })
+    );
+    setVoiceSavedAt(Date.now());
+    setVoiceDirty(false);
+  }
 
   return (
     <div className="min-h-screen bg-[#0b1220] px-6 py-10 text-white">
@@ -37,36 +56,60 @@ export default function AILibraryPage() {
               This guides tone for AI wording (still no pricing).
             </div>
 
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <label className="text-[11px] text-white/50">Tone</label>
-              <select
-                value={tone}
-                onChange={(e) => {
-                  const t = e.target.value as VoiceTone;
-                  setTone(t);
-                  saveCompanyVoiceProfile({ tone: t, styleNotes: notes });
-                }}
-                className="rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-[12px] text-white/85 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-              >
-                <option value="professional">Professional</option>
-                <option value="friendly">Friendly</option>
-                <option value="direct">Direct</option>
-                <option value="premium">Premium</option>
-              </select>
-            </div>
+            <div className="mt-4 space-y-4">
+              <div>
+                <div className="text-xs font-semibold text-white/70">Tone</div>
+                <select
+                  value={voiceTone}
+                  onChange={(e) => {
+                    setVoiceTone(e.target.value);
+                    setVoiceDirty(true);
+                  }}
+                  className="mt-2 w-full rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white outline-none"
+                >
+                  <option>Professional</option>
+                  <option>Friendly</option>
+                  <option>Confident</option>
+                  <option>Direct</option>
+                  <option>Premium</option>
+                </select>
+              </div>
 
-            <label className="mt-3 block text-[11px] text-white/50">Style notes (optional)</label>
-            <textarea
-              value={notes}
-              onChange={(e) => {
-                const v = e.target.value;
-                setNotes(v);
-                saveCompanyVoiceProfile({ tone, styleNotes: v });
-              }}
-              rows={3}
-              placeholder="Example: End CTA with 'Reply APPROVE'. Avoid 'inspection'. Keep it short."
-              className="mt-1 w-full resize-none rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-[12px] text-white/80 placeholder:text-white/35 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-            />
+              <div>
+                <div className="text-xs font-semibold text-white/70">Style notes (optional)</div>
+                <textarea
+                  value={voiceStyleNotes}
+                  onChange={(e) => {
+                    setVoiceStyleNotes(e.target.value);
+                    setVoiceDirty(true);
+                  }}
+                  placeholder="Example: End CTA with 'Reply APPROVE'. Avoid 'inspection'. Keep it short."
+                  className="mt-2 w-full min-h-[110px] resize-none rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white/90 outline-none"
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="text-xs">
+                  {voiceDirty ? (
+                    <span className="text-amber-300">Unsaved changes</span>
+                  ) : voiceSavedAt ? (
+                    <span className="text-emerald-300">
+                      Saved · {new Date(voiceSavedAt).toLocaleTimeString()}
+                    </span>
+                  ) : (
+                    <span className="text-white/40">Not saved yet</span>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={saveVoiceProfile}
+                  className="rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 active:bg-blue-800"
+                >
+                  Save Voice Profile
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Favorites placeholder */}
