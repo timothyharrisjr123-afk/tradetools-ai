@@ -10,6 +10,7 @@ export default function AILibraryPage() {
   const [voiceStyleNotes, setVoiceStyleNotes] = useState("");
   const [voiceDirty, setVoiceDirty] = useState(false);
   const [voiceSavedAt, setVoiceSavedAt] = useState<number | null>(null);
+  const [voiceSaving, setVoiceSaving] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -36,6 +37,9 @@ export default function AILibraryPage() {
 
   function saveVoiceProfile() {
     if (typeof window === "undefined") return;
+
+    setVoiceSaving(true);
+
     localStorage.setItem(
       STORAGE_KEY_VOICE_PROFILE,
       JSON.stringify({
@@ -43,8 +47,12 @@ export default function AILibraryPage() {
         styleNotes: voiceStyleNotes,
       })
     );
-    setVoiceSavedAt(Date.now());
-    setVoiceDirty(false);
+
+    setTimeout(() => {
+      setVoiceSavedAt(Date.now());
+      setVoiceDirty(false);
+      setVoiceSaving(false);
+    }, 600); // short visual feedback delay
   }
 
   return (
@@ -118,11 +126,19 @@ export default function AILibraryPage() {
                 <button
                   type="button"
                   onClick={saveVoiceProfile}
-                  className="rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 active:bg-blue-800 disabled:opacity-60"
-                  disabled={!voiceDirty && !!voiceSavedAt}
-                  title={!voiceDirty && !!voiceSavedAt ? "Already saved" : "Save voice profile"}
+                  disabled={voiceSaving || (!voiceDirty && !!voiceSavedAt)}
+                  className={`
+                    rounded-2xl px-4 py-2 text-sm font-semibold text-white
+                    transition-all duration-150
+                    ${voiceSaving ? "bg-emerald-600 scale-95" : "bg-blue-600 hover:bg-blue-700 active:scale-95 active:bg-blue-800"}
+                    disabled:opacity-60 disabled:cursor-not-allowed
+                  `}
                 >
-                  Save Voice Profile
+                  {voiceSaving
+                    ? "Saving..."
+                    : !voiceDirty && !!voiceSavedAt
+                      ? "Saved ✓"
+                      : "Save Voice Profile"}
                 </button>
               </div>
             </div>
