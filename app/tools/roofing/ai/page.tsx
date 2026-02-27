@@ -146,18 +146,25 @@ export default function AILibraryPage() {
 
           {/* Favorites placeholder */}
           <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-            <div className="text-xs font-semibold text-white/85">Saved AI Favorites</div>
-            <div className="text-[11px] text-white/55 mt-0.5">
-              Coming next: save your best Package + CTA per tier and lock them.
-            </div>
+            <div className="space-y-4">
+              <div>
+                <div className="text-sm font-semibold text-white">
+                  Saved AI Favorites
+                </div>
+                <div className="mt-1 text-xs text-white/60">
+                  Your locked wording per tier will appear here.
+                </div>
+              </div>
 
-            <div className="mt-3 rounded-xl border border-white/10 bg-white/[0.03] p-3">
-              <div className="text-[11px] text-white/50 mb-1">What this will do</div>
-              <ul className="text-[12px] text-white/70 space-y-1">
-                <li>• Save favorite wording per tier (Core/Enhanced/Premium)</li>
-                <li>• Lock favorites so they never change</li>
-                <li>• Quick apply to an estimate in 1 click</li>
-              </ul>
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-center">
+                <div className="text-sm font-semibold text-white/70">
+                  No saved favorites yet
+                </div>
+                <div className="mt-2 text-xs text-white/50">
+                  When you save preferred package descriptions or CTAs per tier,
+                  they’ll appear here for one-click reuse.
+                </div>
+              </div>
             </div>
           </div>
         </div>
