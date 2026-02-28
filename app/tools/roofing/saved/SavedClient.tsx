@@ -1028,16 +1028,6 @@ function SavedEstimateCard({
                   </>
                 )}
 
-                {canRecordPayment(status) && (
-                  <button
-                    type="button"
-                    className="rounded-full border border-emerald-400/20 bg-emerald-500/15 px-4 py-2 text-sm text-emerald-200 hover:bg-emerald-500/20"
-                    onClick={() => onRecordPayment?.(estimate)}
-                  >
-                    Record Payment
-                  </button>
-                )}
-
                 {(status === "approved" || status === "deposit_paid" || status === "scheduled" || status === "paid") && (
                   <button
                     type="button"
