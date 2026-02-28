@@ -10,7 +10,7 @@ function requireEnv2(name: string) {
 }
 
 const stripeWebhook = new Stripe(requireEnv2("STRIPE_SECRET_KEY"), {
-  apiVersion: "2025-01-27.acacia" as any,
+  apiVersion: "2025-02-24.acacia",
 });
 
 export async function POST(req: Request) {
