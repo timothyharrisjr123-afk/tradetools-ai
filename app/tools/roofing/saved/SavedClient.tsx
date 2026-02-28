@@ -30,6 +30,15 @@ function getClientBaseUrl() {
   return "";
 }
 
+async function fetchPaymentState(estimateId: string) {
+  const res = await fetch(`/api/payments/status?estimateId=${encodeURIComponent(estimateId)}`, {
+    cache: "no-store",
+  });
+  if (!res.ok) return null;
+  const data = await res.json().catch(() => null);
+  return data?.payment ?? null;
+}
+
 function toNumberSafe(v: any) {
   const n =
     typeof v === "number"
@@ -1270,6 +1279,30 @@ export default function SavedClient() {
     const interval = setInterval(runApprovalSync, 30_000);
     return () => clearInterval(interval);
   }, [hydrated, runApprovalSync]);
+
+  useEffect(() => {
+    if (!hydrated || !estimates?.length) return;
+    let cancelled = false;
+
+    async function syncPaidStatuses() {
+      const candidates = estimates.filter((e) => e?.status !== "paid");
+      for (const est of candidates) {
+        const id = String(est?.id ?? "").trim();
+        if (!id) continue;
+        const payment = await fetchPaymentState(id);
+        if (cancelled) return;
+        if (payment?.status === "paid") {
+          markSavedEstimateStatus(id, "paid");
+        }
+      }
+      if (!cancelled) setEstimates(getNormalizedEstimates());
+    }
+
+    syncPaidStatuses();
+    return () => {
+      cancelled = true;
+    };
+  }, [hydrated, estimates]);
 
   const bySearch = (e: RoofingEstimate) => {
     const q = query.trim().toLowerCase();
