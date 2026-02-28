@@ -23,19 +23,36 @@ export async function POST(req: NextRequest) {
 
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;
+
       const estimateId = String(session.metadata?.estimateId || "").trim();
-      const paymentType = (session.metadata?.paymentType === "full" || session.metadata?.kind === "full") ? "full" : "deposit";
+
+      const paymentType =
+        session.metadata?.paymentType === "full" ||
+        session.metadata?.kind === "full"
+          ? "full"
+          : "deposit";
 
       if (estimateId) {
         const nowIso = new Date().toISOString();
+        const amountCents = (session.amount_total as number) ?? 0;
+
         const patch: Record<string, unknown> = {
           lastCheckoutSessionId: session.id ?? null,
           lastPaymentIntentId: (session.payment_intent as string) ?? null,
-          lastAmountTotalCents: (session.amount_total as number) ?? null,
+          lastAmountTotalCents: amountCents,
           lastCurrency: (session.currency as string) ?? null,
         };
-        if (paymentType === "full") (patch as any).fullPaidAt = nowIso;
-        else (patch as any).depositPaidAt = nowIso;
+
+        if (paymentType === "full") {
+          patch.fullPaidAt = nowIso;
+          patch.fullAmountCents = amountCents;
+          patch.status = "paid";
+        } else {
+          patch.depositPaidAt = nowIso;
+          patch.depositAmountCents = amountCents;
+          patch.status = "deposit_paid";
+        }
+
         await upsertPaymentState(estimateId, patch as any);
       }
     }
