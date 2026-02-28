@@ -918,23 +918,36 @@ function SavedEstimateCard({
               Load
             </button>
 
-            <>
-              <button
-                type="button"
-                onClick={() => startCheckout(estimate.id, "deposit")}
-                className="rounded-full bg-white/10 px-4 py-2 text-sm text-white hover:bg-white/15 active:bg-white/20"
-              >
-                Collect Deposit
-              </button>
+            {/* ===== PAYMENT ACTIONS ===== */}
+            {estimate.status !== "paid" && (
+              <div className="flex flex-wrap gap-2 mt-3">
+                {estimate.status !== "deposit_paid" && (
+                  <button
+                    type="button"
+                    onClick={() => startCheckout(estimate.id, "deposit")}
+                    className="rounded-xl bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 text-sm font-medium text-white transition"
+                  >
+                    Collect Deposit
+                  </button>
+                )}
 
-              <button
-                type="button"
-                onClick={() => startCheckout(estimate.id, "full")}
-                className="rounded-full bg-emerald-500/20 px-4 py-2 text-sm text-emerald-200 hover:bg-emerald-500/25 active:bg-emerald-500/30"
-              >
-                Collect Full
-              </button>
-            </>
+                <button
+                  type="button"
+                  onClick={() => startCheckout(estimate.id, "full")}
+                  className="rounded-xl bg-indigo-600 hover:bg-indigo-500 px-3 py-1.5 text-sm font-medium text-white transition"
+                >
+                  Collect Full
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => onRecordPayment?.(estimate)}
+                  className="rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 px-3 py-1.5 text-sm font-medium text-white transition"
+                >
+                  Record Payment
+                </button>
+              </div>
+            )}
 
             {SHOW_INTERNAL_ACTIONS && (
               <>
