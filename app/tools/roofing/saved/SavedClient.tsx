@@ -39,12 +39,21 @@ async function fetchPaymentState(estimateId: string) {
   return data?.payment ?? null;
 }
 
-async function startCheckout(estimateId: string, paymentType: "deposit" | "full") {
+async function startCheckout(
+  estimateId: string,
+  paymentType: "deposit" | "full",
+  estimate: { totalContractPrice?: number; suggestedPrice?: number }
+) {
+  const total = estimate.totalContractPrice ?? estimate.suggestedPrice ?? 0;
   try {
     const res = await fetch("/api/payments/create-checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ estimateId, paymentType }),
+      body: JSON.stringify({
+        estimateId,
+        paymentType,
+        estimateTotalCents: Math.round(total * 100),
+      }),
     });
     const json = await res.json();
     if (!json?.ok || !json?.url) {
@@ -924,7 +933,7 @@ function SavedEstimateCard({
                 {estimate.status !== "deposit_paid" && (
                   <button
                     type="button"
-                    onClick={() => startCheckout(estimate.id, "deposit")}
+                    onClick={() => startCheckout(estimate.id, "deposit", estimate)}
                     className="rounded-xl bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 text-sm font-medium text-white transition"
                   >
                     Collect Deposit
@@ -933,7 +942,7 @@ function SavedEstimateCard({
 
                 <button
                   type="button"
-                  onClick={() => startCheckout(estimate.id, "full")}
+                  onClick={() => startCheckout(estimate.id, "full", estimate)}
                   className="rounded-xl bg-indigo-600 hover:bg-indigo-500 px-3 py-1.5 text-sm font-medium text-white transition"
                 >
                   Collect Full
