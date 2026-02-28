@@ -1,5 +1,5 @@
 import Stripe from "stripe";
-import { setPaidState } from "@/app/lib/stripePayments";
+import { upsertPaymentState } from "@/app/lib/stripePayments";
 
 export const runtime = "nodejs";
 
@@ -15,7 +15,6 @@ const stripeWebhook = new Stripe(requireEnv2("STRIPE_SECRET_KEY"), {
 
 export async function POST(req: Request) {
   const webhookSecret = requireEnv2("STRIPE_WEBHOOK_SECRET");
-
   const sig = req.headers.get("stripe-signature");
   if (!sig) return new Response("Missing stripe-signature", { status: 400 });
 
@@ -32,16 +31,22 @@ export async function POST(req: Request) {
     const session = event.data.object as Stripe.Checkout.Session;
 
     const estimateId = String(session?.metadata?.estimateId ?? "").trim();
+    const kind = String(session?.metadata?.kind ?? "deposit").toLowerCase();
+
     if (estimateId) {
-      await setPaidState({
-        estimateId,
-        status: "paid",
-        paidAt: new Date().toISOString(),
-        checkoutSessionId: session.id ?? null,
-        paymentIntentId: (session.payment_intent as string) ?? null,
-        amountTotalCents: (session.amount_total as number) ?? null,
-        currency: (session.currency as string) ?? null,
-      });
+      const nowIso = new Date().toISOString();
+
+      const patch: Record<string, unknown> = {
+        lastCheckoutSessionId: session.id ?? null,
+        lastPaymentIntentId: (session.payment_intent as string) ?? null,
+        lastAmountTotalCents: (session.amount_total as number) ?? null,
+        lastCurrency: (session.currency as string) ?? null,
+      };
+
+      if (kind === "full") (patch as any).fullPaidAt = nowIso;
+      else (patch as any).depositPaidAt = nowIso;
+
+      await upsertPaymentState(estimateId, patch as any);
     }
   }
 

@@ -14,19 +14,20 @@ const stripe = new Stripe(requireEnv("STRIPE_SECRET_KEY"), {
 
 export async function POST(req: Request) {
   const appUrl = requireEnv("NEXT_PUBLIC_APP_URL");
-
   const body = await req.json().catch(() => ({}));
 
   const estimateId = String(body?.estimateId ?? "").trim();
   const customerEmail = String(body?.customerEmail ?? "").trim();
   const amountCents = Number(body?.amountCents);
   const currency = String(body?.currency ?? "usd").toLowerCase();
+  const kind = String(body?.kind ?? "deposit").toLowerCase() as "deposit" | "full";
 
-  if (!estimateId) {
-    return Response.json({ ok: false, error: "Missing estimateId" }, { status: 400 });
-  }
+  if (!estimateId) return Response.json({ ok: false, error: "Missing estimateId" }, { status: 400 });
   if (!Number.isFinite(amountCents) || amountCents <= 0) {
     return Response.json({ ok: false, error: "Missing/invalid amountCents" }, { status: 400 });
+  }
+  if (kind !== "deposit" && kind !== "full") {
+    return Response.json({ ok: false, error: "Invalid kind" }, { status: 400 });
   }
 
   const successUrl =
@@ -34,6 +35,7 @@ export async function POST(req: Request) {
   const cancelUrl =
     String(body?.cancelUrl ?? `${appUrl}/tools/roofing/saved?pay_cancel=1&id=${encodeURIComponent(estimateId)}`);
 
+  const label = kind === "full" ? "Full Payment" : "Deposit";
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
     customer_email: customerEmail || undefined,
@@ -44,8 +46,8 @@ export async function POST(req: Request) {
           currency,
           unit_amount: Math.round(amountCents),
           product_data: {
-            name: "Roofing Deposit",
-            description: `Deposit for estimate ${estimateId}`,
+            name: `Roofing ${label}`,
+            description: `${label} for estimate ${estimateId}`,
           },
         },
       },
@@ -54,13 +56,9 @@ export async function POST(req: Request) {
     cancel_url: cancelUrl,
     metadata: {
       estimateId,
-      kind: "deposit",
+      kind,
     },
   });
 
-  return Response.json({
-    ok: true,
-    checkoutUrl: session.url,
-    sessionId: session.id,
-  });
+  return Response.json({ ok: true, checkoutUrl: session.url, sessionId: session.id });
 }

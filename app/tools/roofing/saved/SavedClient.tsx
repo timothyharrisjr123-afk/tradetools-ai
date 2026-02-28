@@ -55,7 +55,7 @@ function isoFromDateInput(d: string) {
   }
 }
 
-type PipelineStatus = "estimate" | "sent" | "sent_pending" | "viewed" | "approved" | "scheduled" | "paid";
+type PipelineStatus = "estimate" | "sent" | "sent_pending" | "viewed" | "approved" | "deposit_paid" | "scheduled" | "paid";
 
 const normalizePipelineStatus = (s?: string): PipelineStatus => {
   const v = (s || "estimate").toLowerCase();
@@ -64,13 +64,14 @@ const normalizePipelineStatus = (s?: string): PipelineStatus => {
   if (v === "sent") return "sent";
   if (v === "viewed") return "viewed";
   if (v === "approved") return "approved";
+  if (v === "deposit_paid") return "deposit_paid";
   if (v === "scheduled") return "scheduled";
   if (v === "paid") return "paid";
   return "estimate";
 };
 
 const isApprovedOrLater = (st: PipelineStatus) =>
-  st === "approved" || st === "scheduled" || st === "paid";
+  st === "approved" || st === "deposit_paid" || st === "scheduled" || st === "paid";
 
 const isAwaitingApproval = (estimate: any, st: PipelineStatus) =>
   !!estimate?.approvalToken && !isApprovedOrLater(st);
@@ -112,6 +113,7 @@ function normalizeStatusValue(input: unknown): string {
   if (s === "sent_pending") return "pending";
   if (s === "sent") return "sent";
   if (s === "viewed") return "viewed";
+  if (s === "deposit_paid") return "deposit_paid";
   if (s === "estimate") return "estimate";
   if (s === "pending") return "pending";
   if (s === "approved") return "approved";
@@ -124,6 +126,7 @@ const getDisplayStage = (status: string) => {
   if (status === "sent_pending" || status === "pending" || status === "sent") return "Pending approval";
   if (status === "viewed") return "Viewed";
   if (status === "approved") return "Approved";
+  if (status === "deposit_paid") return "Deposit paid";
   if (status === "scheduled") return "Scheduled";
   if (status === "paid") return "Paid";
   if (status === "estimate") return "Estimate";
@@ -135,6 +138,7 @@ const STATUS_OPTIONS: Array<{ value: string; label: string }> = [
   { value: "sent", label: "Sent" },
   { value: "pending", label: "Pending" },
   { value: "approved", label: "Approved" },
+  { value: "deposit_paid", label: "Deposit paid" },
   { value: "scheduled", label: "Scheduled" },
   { value: "paid", label: "Paid" },
 ];
@@ -144,6 +148,7 @@ const statusToStage = (s?: string) => {
   if (v === "estimate") return "estimate";
   if (v === "sent" || v === "sent_pending") return "pending";
   if (v === "approved") return "approved";
+  if (v === "deposit_paid") return "deposit_paid";
   if (v === "scheduled") return "scheduled";
   if (v === "paid") return "paid";
   return "estimate";
@@ -151,7 +156,7 @@ const statusToStage = (s?: string) => {
 
 const SHOW_INTERNAL_ACTIONS = true;
 
-const canRecordPayment = (status: string) => status === "scheduled" || status === "paid";
+const canRecordPayment = (status: string) => status === "scheduled" || status === "paid" || status === "deposit_paid";
 const isPendingApproval = (status: string) => status === "sent" || status === "pending" || status === "sent_pending";
 
 const getStage = (e: any) => {
@@ -213,6 +218,7 @@ type SavedStatusUI =
   | "pending"
   | "viewed"
   | "approved"
+  | "deposit_paid"
   | "scheduled"
   | "paid"
   | string;
@@ -224,6 +230,7 @@ function statusLabel(status: SavedStatusUI) {
   if (s === "estimate" || s === "draft") return "Estimate";
   if (s === "viewed") return "Viewed";
   if (s === "approved") return "Approved";
+  if (s === "deposit_paid") return "Deposit paid";
   if (s === "scheduled") return "Scheduled";
   if (s === "paid") return "Paid";
 
@@ -267,6 +274,14 @@ function StatusPill({ status }: { status: string }) {
       </span>
     );
   }
+  if (status === "deposit_paid") {
+    return (
+      <span className={`${base} bg-violet-500/10 text-violet-300 ring-violet-500/20`}>
+        <span className={`${dot} bg-violet-400`} />
+        Deposit paid
+      </span>
+    );
+  }
   if (status === "scheduled") {
     return (
       <span className={`${base} bg-violet-500/10 text-violet-300 ring-violet-500/20`}>
@@ -292,11 +307,12 @@ function StatusPill({ status }: { status: string }) {
 }
 
 function Stepper({ status }: { status: string }) {
-  const steps = ["estimate", "sent_pending", "approved", "scheduled", "paid"] as const;
+  const steps = ["estimate", "sent_pending", "approved", "deposit_paid", "scheduled", "paid"] as const;
   const labels: Record<(typeof steps)[number], string> = {
     estimate: "Estimate",
     sent_pending: "Pending",
     approved: "Approved",
+    deposit_paid: "Deposit",
     scheduled: "Scheduled",
     paid: "Paid",
   };
@@ -336,11 +352,12 @@ function Stepper({ status }: { status: string }) {
 }
 
 function PipelineBar({ status, isViewed }: { status: string; isViewed?: boolean }) {
-  const steps = ["estimate", "sent_pending", "approved", "scheduled", "paid"] as const;
+  const steps = ["estimate", "sent_pending", "approved", "deposit_paid", "scheduled", "paid"] as const;
   const labels: Record<(typeof steps)[number], string> = {
     estimate: "Estimate",
     sent_pending: "Pending",
     approved: "Approved",
+    deposit_paid: "Deposit",
     scheduled: "Scheduled",
     paid: "Paid",
   };
@@ -725,7 +742,7 @@ function SavedEstimateCard({
   const remote = estimate?.approvalToken && batchStatuses ? batchStatuses[estimate.approvalToken] : null;
   const viewedAt = (estimate?.viewedAt ?? remote?.viewedAt ?? null) as string | null;
   const isSent = status === "sent" || status === "sent_pending";
-  const isApproved = status === "approved" || status === "scheduled" || status === "paid";
+  const isApproved = status === "approved" || status === "deposit_paid" || status === "scheduled" || status === "paid";
   const effectiveStatus =
     remote?.status === "approved"
       ? "approved"
@@ -919,7 +936,7 @@ function SavedEstimateCard({
                   </button>
                 )}
 
-                {(status === "approved" || status === "scheduled" || status === "paid") && (
+                {(status === "approved" || status === "deposit_paid" || status === "scheduled" || status === "paid") && (
                   <button
                     type="button"
                     className="rounded-full border border-emerald-400/20 bg-emerald-500/15 px-4 py-2 text-sm text-emerald-200 hover:bg-emerald-500/20"
@@ -960,7 +977,7 @@ export default function SavedClient() {
   const [hydrated, setHydrated] = useState(false);
   const [estimates, setEstimates] = useState<RoofingEstimate[]>([]);
   const [query, setQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "estimate" | "sent_pending" | "approved" | "scheduled" | "paid">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "estimate" | "sent_pending" | "approved" | "deposit_paid" | "scheduled" | "paid">("all");
   const [flashId, setFlashId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [schedulingForId, setSchedulingForId] = useState<string | null>(null);
@@ -1284,21 +1301,25 @@ export default function SavedClient() {
     if (!hydrated || !estimates?.length) return;
     let cancelled = false;
 
-    async function syncPaidStatuses() {
+    async function syncPaymentStatuses() {
       const candidates = estimates.filter((e) => e?.status !== "paid");
       for (const est of candidates) {
         const id = String(est?.id ?? "").trim();
         if (!id) continue;
         const payment = await fetchPaymentState(id);
         if (cancelled) return;
-        if (payment?.status === "paid") {
+        if (payment?.status === "paid" && est.status !== "paid") {
           markSavedEstimateStatus(id, "paid");
+        } else if (payment?.status === "deposit_paid" && est.status !== "deposit_paid") {
+          if (est.status === "approved" || est.status === "scheduled") {
+            markSavedEstimateStatus(id, "deposit_paid");
+          }
         }
       }
       if (!cancelled) setEstimates(getNormalizedEstimates());
     }
 
-    syncPaidStatuses();
+    syncPaymentStatuses();
     return () => {
       cancelled = true;
     };
@@ -1340,19 +1361,20 @@ export default function SavedClient() {
   // A later status implies all prior stages were reached.
   // ===============================
   const savedEstimates = searchFiltered;
-  const countByStatus = (status: "estimate" | "sent" | "sent_pending" | "approved" | "scheduled" | "paid") =>
+  const countByStatus = (status: "estimate" | "sent" | "sent_pending" | "approved" | "deposit_paid" | "scheduled" | "paid") =>
     savedEstimates.filter((e) => (e?.status ?? "estimate") === status).length;
 
   const totalJobs = savedEstimates.length;
   const totalEstimateOnly = countByStatus("estimate");
   const totalSentOnly = countByStatus("sent") + countByStatus("sent_pending");
   const totalApprovedOnly = countByStatus("approved");
+  const totalDepositPaidOnly = countByStatus("deposit_paid");
   const totalScheduledOnly = countByStatus("scheduled");
   const totalPaidOnly = countByStatus("paid");
 
   // "Reached" counts (includes jobs currently in this stage OR beyond)
-  const reachedSent = totalSentOnly + totalApprovedOnly + totalScheduledOnly + totalPaidOnly;
-  const reachedApproved = totalApprovedOnly + totalScheduledOnly + totalPaidOnly;
+  const reachedSent = totalSentOnly + totalApprovedOnly + totalDepositPaidOnly + totalScheduledOnly + totalPaidOnly;
+  const reachedApproved = totalApprovedOnly + totalDepositPaidOnly + totalScheduledOnly + totalPaidOnly;
   const reachedScheduled = totalScheduledOnly + totalPaidOnly;
   const reachedPaid = totalPaidOnly;
 
@@ -1488,6 +1510,7 @@ export default function SavedClient() {
               ["estimate", "Estimate"],
               ["sent_pending", "Pending"],
               ["approved", "Approved"],
+              ["deposit_paid", "Deposit paid"],
               ["scheduled", "Scheduled"],
               ["paid", "Paid"],
             ].map(([key, label]) => (
@@ -1680,7 +1703,7 @@ export default function SavedClient() {
                 if (est) handleAction(est, "delete");
               }}
               onStatusChange={(id, status) => {
-                const statusTyped = status as "estimate" | "sent" | "sent_pending" | "approved" | "scheduled" | "paid";
+                const statusTyped = status as "estimate" | "sent" | "sent_pending" | "approved" | "deposit_paid" | "scheduled" | "paid";
                 if (statusTyped === "scheduled") {
                   const est = filtered.find((x) => x.id === id);
                   if (est && !est.scheduledStartDate) {

@@ -22,7 +22,7 @@ export interface RoofingEstimate {
   bundleCost?: string;
   laborPerSquare?: string;
   margin?: string;
-  status?: "estimate" | "sent" | "sent_pending" | "approved" | "scheduled" | "paid";
+  status?: "estimate" | "sent" | "sent_pending" | "approved" | "deposit_paid" | "scheduled" | "paid";
   /** Set when customer opens approval page or email (synced from KV). */
   viewedAt?: string | null;
   sentTo?: string;
@@ -138,6 +138,7 @@ function normalizeStatusValue(input: any) {
   if (s === "estimate") return "estimate";
   if (s === "pending") return "pending";
   if (s === "approved") return "approved";
+  if (s === "deposit_paid") return "deposit_paid";
   if (s === "scheduled") return "scheduled";
   if (s === "paid") return "paid";
   return "estimate";
@@ -151,6 +152,7 @@ function looksSentish(e: any) {
     st === "sent" ||
     st === "pending" ||
     st === "approved" ||
+    st === "deposit_paid" ||
     st === "scheduled" ||
     st === "paid"
   );
