@@ -1082,6 +1082,29 @@ export default function SavedClient() {
     return () => clearTimeout(t);
   }, [searchParams, router]);
 
+  useEffect(() => {
+    const paid = searchParams.get("paid");
+    const id = searchParams.get("id");
+    if (paid !== "1" || !id) return;
+
+    (async () => {
+      try {
+        const res = await fetch(`/api/payments/status?estimateId=${encodeURIComponent(id)}`);
+        const json = await res.json();
+        if (!json?.ok || !json?.payment?.status) return;
+
+        const paymentStatus = json.payment.status as "deposit_paid" | "paid";
+        if (paymentStatus === "paid" || paymentStatus === "deposit_paid") {
+          markSavedEstimateStatus(id, paymentStatus);
+          setEstimates(getNormalizedEstimates());
+        }
+        window.history.replaceState({}, "", "/tools/roofing/saved");
+      } catch {
+        // ignore
+      }
+    })();
+  }, [searchParams]);
+
   function handleSendFromSaved(savedId: string) {
     sessionStorage.setItem("ttai_autoSendEstimateId", savedId);
     router.push("/tools/roofing");
