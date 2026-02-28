@@ -42,9 +42,11 @@ async function fetchPaymentState(estimateId: string) {
 async function startCheckout(
   estimateId: string,
   paymentType: "deposit" | "full",
-  estimate: { totalContractPrice?: number; suggestedPrice?: number }
+  estimate: { totalContractPrice?: number; suggestedPrice?: number },
+  setCheckoutLoading: (fn: (m: Record<string, "deposit" | "full" | null>) => Record<string, "deposit" | "full" | null>) => void
 ) {
   const total = estimate.totalContractPrice ?? estimate.suggestedPrice ?? 0;
+  setCheckoutLoading((m) => ({ ...m, [estimateId]: paymentType }));
   try {
     const res = await fetch("/api/payments/create-checkout", {
       method: "POST",
@@ -63,6 +65,8 @@ async function startCheckout(
     window.location.href = json.url;
   } catch {
     alert("Checkout failed. Please try again.");
+  } finally {
+    setCheckoutLoading((m) => ({ ...m, [estimateId]: null }));
   }
 }
 
@@ -743,6 +747,9 @@ function RevenueSummary({
 function SavedEstimateCard({
   estimate,
   batchStatuses,
+  paymentState,
+  checkoutLoading,
+  onStartCheckout,
   onLoad,
   onDelete,
   onStatusChange,
@@ -755,6 +762,9 @@ function SavedEstimateCard({
 }: {
   estimate: any;
   batchStatuses?: Record<string, { status: string; viewedAt?: string | null; approvedAt?: string | null }>;
+  paymentState?: { depositAmountCents?: number; fullAmountCents?: number } | null;
+  checkoutLoading?: Record<string, "deposit" | "full" | null>;
+  onStartCheckout?: (estimateId: string, paymentType: "deposit" | "full", estimate: any) => void;
   onLoad: (e: any) => void;
   onDelete: (id: string) => void;
   onStatusChange: (id: string, status: any) => void;
@@ -893,28 +903,60 @@ function SavedEstimateCard({
         <PipelineBar status={getStage(estimate)} isViewed={isSent && !!viewedAt} />
 
         <div className="mt-6 flex items-center justify-between border-t border-white/5 pt-6">
-          {/* LEFT: Total */}
-          <div className="flex items-baseline gap-3">
-            <span className="text-[10px] tracking-[0.25em] text-white/40">
-              TOTAL
-            </span>
-            <span className="text-4xl font-semibold tracking-tight text-white">
-              {(() => {
-                const n =
-                  typeof estimate.totalContractPrice === "number"
-                    ? estimate.totalContractPrice
-                    : typeof estimate.suggestedPrice === "number"
-                    ? estimate.suggestedPrice
-                    : undefined;
+          {/* LEFT: Total + payment summary */}
+          <div className="flex flex-col gap-0">
+            <div className="flex items-baseline gap-3">
+              <span className="text-[10px] tracking-[0.25em] text-white/40">
+                TOTAL
+              </span>
+              <span className="text-4xl font-semibold tracking-tight text-white">
+                {(() => {
+                  const n =
+                    typeof estimate.totalContractPrice === "number"
+                      ? estimate.totalContractPrice
+                      : typeof estimate.suggestedPrice === "number"
+                      ? estimate.suggestedPrice
+                      : undefined;
 
-                return n == null
-                  ? "—"
-                  : `$${n.toLocaleString(undefined, {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}`;
-              })()}
-            </span>
+                  return n == null
+                    ? "—"
+                    : `$${n.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}`;
+                })()}
+              </span>
+            </div>
+            {(() => {
+              const total = (estimate.totalContractPrice ?? estimate.suggestedPrice ?? 0) as number;
+              const totalCents = Math.round((total || 0) * 100);
+              const depositPaidCents = paymentState?.depositAmountCents || 0;
+              const fullPaidCents = paymentState?.fullAmountCents || 0;
+              const collectedCents = depositPaidCents + fullPaidCents;
+              const remainingCents = Math.max(totalCents - collectedCents, 0);
+              const money = (cents: number) =>
+                (cents / 100).toLocaleString(undefined, { style: "currency", currency: "USD" });
+              return collectedCents > 0 ? (
+                <div className="mt-2 text-sm text-white/80 space-y-1">
+                  {depositPaidCents > 0 && (
+                    <div className="flex items-center justify-between">
+                      <span>Deposit paid</span>
+                      <span className="font-medium">{money(depositPaidCents)}</span>
+                    </div>
+                  )}
+                  {fullPaidCents > 0 && (
+                    <div className="flex items-center justify-between">
+                      <span>Additional paid</span>
+                      <span className="font-medium">{money(fullPaidCents)}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <span>Remaining</span>
+                    <span className="font-semibold">{money(remainingCents)}</span>
+                  </div>
+                </div>
+              ) : null;
+            })()}
           </div>
 
           {/* RIGHT: Actions */}
@@ -933,19 +975,21 @@ function SavedEstimateCard({
                 {estimate.status !== "deposit_paid" && (
                   <button
                     type="button"
-                    onClick={() => startCheckout(estimate.id, "deposit", estimate)}
-                    className="rounded-xl bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 text-sm font-medium text-white transition"
+                    disabled={checkoutLoading?.[estimate.id] === "deposit"}
+                    onClick={() => onStartCheckout?.(estimate.id, "deposit", estimate)}
+                    className="rounded-xl bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 text-sm font-medium text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Collect Deposit
+                    {checkoutLoading?.[estimate.id] === "deposit" ? "Opening…" : "Collect Deposit"}
                   </button>
                 )}
 
                 <button
                   type="button"
-                  onClick={() => startCheckout(estimate.id, "full", estimate)}
-                  className="rounded-xl bg-indigo-600 hover:bg-indigo-500 px-3 py-1.5 text-sm font-medium text-white transition"
+                  disabled={checkoutLoading?.[estimate.id] === "full"}
+                  onClick={() => onStartCheckout?.(estimate.id, "full", estimate)}
+                  className="rounded-xl bg-indigo-600 hover:bg-indigo-500 px-3 py-1.5 text-sm font-medium text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Collect Full
+                  {checkoutLoading?.[estimate.id] === "full" ? "Opening…" : "Collect Full"}
                 </button>
 
                 <button
@@ -1064,6 +1108,8 @@ export default function SavedClient() {
   const [paymentDate, setPaymentDate] = useState("");
   const [paidAmountInput, setPaidAmountInput] = useState("");
   const [batchStatuses, setBatchStatuses] = useState<Record<string, { status: string; viewedAt?: string | null; approvedAt?: string | null }>>({});
+  const [checkoutLoading, setCheckoutLoading] = useState<Record<string, "deposit" | "full" | null>>({});
+  const [paymentStates, setPaymentStates] = useState<Record<string, { depositAmountCents?: number; fullAmountCents?: number } | null>>({});
   const router = useRouter();
   const isSyncingRef = useRef(false);
 
@@ -1384,11 +1430,15 @@ export default function SavedClient() {
 
     async function syncPaymentStatuses() {
       const candidates = estimates.filter((e) => e?.status !== "paid");
-      for (const est of candidates) {
+      for (const est of estimates) {
         const id = String(est?.id ?? "").trim();
         if (!id) continue;
         const payment = await fetchPaymentState(id);
         if (cancelled) return;
+        if (payment) {
+          setPaymentStates((prev) => ({ ...prev, [id]: { depositAmountCents: payment.depositAmountCents ?? undefined, fullAmountCents: payment.fullAmountCents ?? undefined } }));
+        }
+        if (!candidates.includes(est)) continue;
         if (payment?.status === "paid" && est.status !== "paid") {
           markSavedEstimateStatus(id, "paid");
         } else if (payment?.status === "deposit_paid" && est.status !== "deposit_paid") {
@@ -1778,6 +1828,9 @@ export default function SavedClient() {
               key={e.id}
               estimate={e}
               batchStatuses={batchStatuses}
+              paymentState={paymentStates[e.id] ?? null}
+              checkoutLoading={checkoutLoading}
+              onStartCheckout={(id, type, est) => startCheckout(id, type, est, setCheckoutLoading)}
               onLoad={(est) => handleAction(est, "load")}
               onDelete={(id) => {
                 const est = filtered.find((x) => x.id === id);
