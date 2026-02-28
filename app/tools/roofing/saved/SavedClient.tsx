@@ -42,10 +42,13 @@ async function fetchPaymentState(estimateId: string) {
 async function startCheckout(
   estimateId: string,
   paymentType: "deposit" | "full",
-  estimate: { totalContractPrice?: number; suggestedPrice?: number },
+  estimateOrOpts: { totalContractPrice?: number; suggestedPrice?: number; estimateTotalCents?: number; customDepositCents?: number },
   setCheckoutLoading: (fn: (m: Record<string, "deposit" | "full" | null>) => Record<string, "deposit" | "full" | null>) => void
 ) {
-  const total = estimate.totalContractPrice ?? estimate.suggestedPrice ?? 0;
+  const estimateTotalCents =
+    typeof estimateOrOpts.estimateTotalCents === "number"
+      ? estimateOrOpts.estimateTotalCents
+      : Math.round(((estimateOrOpts.totalContractPrice ?? estimateOrOpts.suggestedPrice ?? 0) as number) * 100);
   setCheckoutLoading((m) => ({ ...m, [estimateId]: paymentType }));
   try {
     const res = await fetch("/api/payments/create-checkout", {
@@ -54,7 +57,8 @@ async function startCheckout(
       body: JSON.stringify({
         estimateId,
         paymentType,
-        estimateTotalCents: Math.round(total * 100),
+        estimateTotalCents,
+        ...(estimateOrOpts?.customDepositCents ? { customDepositCents: estimateOrOpts.customDepositCents } : {}),
       }),
     });
     const json = await res.json();
@@ -750,6 +754,7 @@ function SavedEstimateCard({
   paymentState,
   checkoutLoading,
   onStartCheckout,
+  onOpenDepositModal,
   onLoad,
   onDelete,
   onStatusChange,
@@ -765,6 +770,7 @@ function SavedEstimateCard({
   paymentState?: { depositAmountCents?: number; fullAmountCents?: number } | null;
   checkoutLoading?: Record<string, "deposit" | "full" | null>;
   onStartCheckout?: (estimateId: string, paymentType: "deposit" | "full", estimate: any) => void;
+  onOpenDepositModal?: (estimate: any) => void;
   onLoad: (e: any) => void;
   onDelete: (id: string) => void;
   onStatusChange: (id: string, status: any) => void;
@@ -976,7 +982,9 @@ function SavedEstimateCard({
                   <button
                     type="button"
                     disabled={checkoutLoading?.[estimate.id] === "deposit"}
-                    onClick={() => onStartCheckout?.(estimate.id, "deposit", estimate)}
+                    onClick={() => {
+                      onOpenDepositModal?.(estimate);
+                    }}
                     className="rounded-xl bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 text-sm font-medium text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {checkoutLoading?.[estimate.id] === "deposit" ? "Opening…" : "Collect Deposit"}
@@ -1100,6 +1108,21 @@ export default function SavedClient() {
   const [batchStatuses, setBatchStatuses] = useState<Record<string, { status: string; viewedAt?: string | null; approvedAt?: string | null }>>({});
   const [checkoutLoading, setCheckoutLoading] = useState<Record<string, "deposit" | "full" | null>>({});
   const [paymentStates, setPaymentStates] = useState<Record<string, { depositAmountCents?: number; fullAmountCents?: number } | null>>({});
+  const [depositModal, setDepositModal] = useState<{
+    open: boolean;
+    estimateId: string | null;
+    estimateTotal: number;
+    customValue: string;
+    mode: "percent" | "dollars";
+    percent: number;
+  }>({
+    open: false,
+    estimateId: null,
+    estimateTotal: 0,
+    customValue: "",
+    mode: "percent",
+    percent: 10,
+  });
   const router = useRouter();
   const isSyncingRef = useRef(false);
 
@@ -1821,6 +1844,16 @@ export default function SavedClient() {
               paymentState={paymentStates[e.id] ?? null}
               checkoutLoading={checkoutLoading}
               onStartCheckout={(id, type, est) => startCheckout(id, type, est, setCheckoutLoading)}
+              onOpenDepositModal={(est) =>
+                setDepositModal({
+                  open: true,
+                  estimateId: est.id,
+                  estimateTotal: Number(est.totalContractPrice ?? est.suggestedPrice ?? 0),
+                  customValue: "",
+                  mode: "percent",
+                  percent: 10,
+                })
+              }
               onLoad={(est) => handleAction(est, "load")}
               onDelete={(id) => {
                 const est = filtered.find((x) => x.id === id);
@@ -1953,6 +1986,108 @@ export default function SavedClient() {
           </div>
         );
       })()}
+
+      {/* Deposit picker modal */}
+      {depositModal.open && depositModal.estimateId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-md rounded-3xl border border-white/10 bg-[#0b1220] p-5 shadow-xl">
+            <div className="flex items-center justify-between">
+              <div className="text-base font-semibold text-white">Choose deposit amount</div>
+              <button
+                onClick={() => setDepositModal((s) => ({ ...s, open: false }))}
+                className="rounded-xl px-2 py-1 text-white/70 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="mt-2 text-sm text-white/70">
+              Total: {Number(depositModal.estimateTotal).toLocaleString(undefined, { style: "currency", currency: "USD" })}
+            </div>
+
+            <div className="mt-4 flex gap-2">
+              <button
+                onClick={() => setDepositModal((s) => ({ ...s, mode: "percent" }))}
+                className={`rounded-xl px-3 py-2 text-sm font-medium transition ${
+                  depositModal.mode === "percent" ? "bg-white/15 text-white" : "bg-white/5 text-white/80 hover:bg-white/10"
+                }`}
+              >
+                Percent
+              </button>
+              <button
+                onClick={() => setDepositModal((s) => ({ ...s, mode: "dollars" }))}
+                className={`rounded-xl px-3 py-2 text-sm font-medium transition ${
+                  depositModal.mode === "dollars" ? "bg-white/15 text-white" : "bg-white/5 text-white/80 hover:bg-white/10"
+                }`}
+              >
+                Custom $
+              </button>
+            </div>
+
+            {depositModal.mode === "percent" ? (
+              <div className="mt-4">
+                <div className="flex gap-2">
+                  {[10, 15, 20, 25].map((p) => (
+                    <button
+                      key={p}
+                      onClick={() => setDepositModal((s) => ({ ...s, percent: p }))}
+                      className={`rounded-xl px-3 py-2 text-sm font-medium transition ${
+                        depositModal.percent === p ? "bg-emerald-600 text-white" : "bg-white/5 text-white/80 hover:bg-white/10"
+                      }`}
+                    >
+                      {p}%
+                    </button>
+                  ))}
+                </div>
+                <div className="mt-3 text-sm text-white/70">
+                  Deposit: {(depositModal.estimateTotal * (depositModal.percent / 100)).toLocaleString(undefined, { style: "currency", currency: "USD" })}
+                </div>
+              </div>
+            ) : (
+              <div className="mt-4">
+                <label className="text-sm text-white/70">Deposit amount</label>
+                <input
+                  value={depositModal.customValue}
+                  onChange={(e) => setDepositModal((s) => ({ ...s, customValue: e.target.value }))}
+                  placeholder="Example: 500"
+                  className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:border-white/20"
+                />
+                <div className="mt-2 text-xs text-white/50">Enter dollars (numbers only). Example: 500</div>
+              </div>
+            )}
+
+            <div className="mt-5 flex gap-2">
+              <button
+                onClick={() => setDepositModal((s) => ({ ...s, open: false }))}
+                className="flex-1 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-white/90 hover:bg-white/10"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  const total = Number(depositModal.estimateTotal || 0);
+                  const depositDollars =
+                    depositModal.mode === "percent"
+                      ? total * (depositModal.percent / 100)
+                      : Number(depositModal.customValue || 0);
+
+                  const customDepositCents = Math.round(depositDollars * 100);
+
+                  await startCheckout(depositModal.estimateId!, "deposit", {
+                    estimateTotalCents: Math.round(total * 100),
+                    customDepositCents,
+                  }, setCheckoutLoading);
+
+                  setDepositModal((s) => ({ ...s, open: false }));
+                }}
+                className="flex-1 rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-500"
+              >
+                Continue to payment
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Schedule modal (simple) */}
       {isScheduleOpen ? (
