@@ -754,7 +754,6 @@ function SavedEstimateCard({
   onRecordPayment?: (e: any) => void;
   onMarkApproved?: (e: any) => void;
   onView?: (e: any) => void;
-  onStartCheckout?: (estimateId: string, paymentType: "deposit" | "full") => void;
   isFlashing?: boolean;
 }) {
   const status = normalizePipelineStatus(getStage(estimate));
@@ -919,24 +918,23 @@ function SavedEstimateCard({
               Load
             </button>
 
-            {onStartCheckout && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => onStartCheckout(estimate.id, "deposit")}
-                  className="rounded-full bg-white/10 px-4 py-2 text-sm text-white hover:bg-white/15 active:bg-white/20"
-                >
-                  Collect Deposit
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onStartCheckout(estimate.id, "full")}
-                  className="rounded-full bg-emerald-500/20 px-4 py-2 text-sm text-emerald-200 hover:bg-emerald-500/25 active:bg-emerald-500/30"
-                >
-                  Collect Full
-                </button>
-              </>
-            )}
+            <>
+              <button
+                type="button"
+                onClick={() => startCheckout(estimate.id, "deposit")}
+                className="rounded-full bg-white/10 px-4 py-2 text-sm text-white hover:bg-white/15 active:bg-white/20"
+              >
+                Collect Deposit
+              </button>
+
+              <button
+                type="button"
+                onClick={() => startCheckout(estimate.id, "full")}
+                className="rounded-full bg-emerald-500/20 px-4 py-2 text-sm text-emerald-200 hover:bg-emerald-500/25 active:bg-emerald-500/30"
+              >
+                Collect Full
+              </button>
+            </>
 
             {SHOW_INTERNAL_ACTIONS && (
               <>
@@ -1758,7 +1756,6 @@ export default function SavedClient() {
               key={e.id}
               estimate={e}
               batchStatuses={batchStatuses}
-              onStartCheckout={startCheckout}
               onLoad={(est) => handleAction(est, "load")}
               onDelete={(id) => {
                 const est = filtered.find((x) => x.id === id);
