@@ -16,6 +16,10 @@ export type PaymentState = {
   lastAmountTotalCents?: number | null;
   lastCurrency?: string | null;
 
+  // accumulated amounts from completed payments
+  depositAmountCents?: number | null;
+  fullAmountCents?: number | null;
+
   // derived status
   status: "none" | "deposit_paid" | "paid";
 };

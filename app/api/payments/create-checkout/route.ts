@@ -1,5 +1,6 @@
 import Stripe from "stripe";
 import { NextRequest, NextResponse } from "next/server";
+import { getPaymentState } from "@/app/lib/stripePayments";
 
 export const runtime = "nodejs";
 
@@ -44,13 +45,27 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const depositPercent = 0.2; // default suggested deposit
+    const paymentState = await getPaymentState(estimateId);
+
+    const depositPaid = paymentState?.depositAmountCents || 0;
+    const fullPaid = paymentState?.fullAmountCents || 0;
+    const alreadyCollected = depositPaid + fullPaid;
+
     let amountCents = 0;
 
     if (paymentType === "deposit") {
-      amountCents = Math.round(estimateTotalCents * depositPercent);
+      const depositPercent = 0.2;
+      const depositTarget = Math.round(estimateTotalCents * depositPercent);
+      amountCents = Math.max(depositTarget - depositPaid, 0);
     } else {
-      amountCents = estimateTotalCents;
+      amountCents = Math.max(estimateTotalCents - alreadyCollected, 0);
+    }
+
+    if (amountCents <= 0) {
+      return NextResponse.json(
+        { ok: false, error: "Nothing left to charge" },
+        { status: 400 }
+      );
     }
 
     const session = await stripe.checkout.sessions.create({
