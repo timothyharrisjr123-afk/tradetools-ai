@@ -808,6 +808,8 @@ function SavedEstimateCard({
   const awaitingApproval = isAwaitingApproval(estimate, status);
   const addr = estimate.address || estimate.jobAddress || estimate.jobAddress1;
   const addrExtra = [estimate.city ?? estimate.jobCity, estimate.state ?? estimate.jobState, estimate.zip ?? estimate.jobZip].filter(Boolean).join(", ");
+  const actionBtn =
+    "inline-flex items-center justify-center rounded-xl px-3 py-1.5 text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed";
   return (
     <div
       className={`group relative rounded-3xl border border-white/12 bg-gradient-to-b from-slate-900/70 to-slate-950/40 p-6 transition-all duration-300
@@ -969,7 +971,7 @@ function SavedEstimateCard({
           <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
             <button
               type="button"
-              className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-white hover:bg-white/[0.06]"
+              className={`${actionBtn} rounded-full border border-white/10 bg-white/[0.04] text-white hover:bg-white/[0.06]`}
               onClick={() => onLoad(estimate)}
             >
               Load
@@ -977,7 +979,7 @@ function SavedEstimateCard({
 
             {/* ===== PAYMENT ACTIONS ===== */}
             {estimate.status !== "paid" && (
-              <div className="flex flex-wrap gap-2 mt-3">
+              <div className="flex flex-wrap items-center gap-2">
                 {estimate.status !== "deposit_paid" && (
                   <button
                     type="button"
@@ -985,7 +987,7 @@ function SavedEstimateCard({
                     onClick={() => {
                       onOpenDepositModal?.(estimate);
                     }}
-                    className="rounded-xl bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 text-sm font-medium text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    className={`${actionBtn} rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white`}
                   >
                     {checkoutLoading?.[estimate.id] === "deposit" ? "Opening…" : "Collect Deposit"}
                   </button>
@@ -995,7 +997,7 @@ function SavedEstimateCard({
                   type="button"
                   disabled={checkoutLoading?.[estimate.id] === "full"}
                   onClick={() => onStartCheckout?.(estimate.id, "full", estimate)}
-                  className="rounded-xl bg-indigo-600 hover:bg-indigo-500 px-3 py-1.5 text-sm font-medium text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  className={`${actionBtn} rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white`}
                 >
                   {checkoutLoading?.[estimate.id] === "full" ? "Opening…" : "Collect Full"}
                 </button>
@@ -1003,7 +1005,7 @@ function SavedEstimateCard({
                 <button
                   type="button"
                   onClick={() => onRecordPayment?.(estimate)}
-                  className="rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 px-3 py-1.5 text-sm font-medium text-white transition"
+                  className={`${actionBtn} rounded-xl border border-white/20 bg-white/5 text-white hover:bg-white/10`}
                 >
                   Record Payment
                 </button>
@@ -1017,7 +1019,7 @@ function SavedEstimateCard({
                     {getApprovalLink(estimate) ? (
                       <button
                         type="button"
-                        className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-sm text-white hover:bg-white/[0.10]"
+                        className={`${actionBtn} rounded-full border border-white/10 bg-white/[0.06] text-white hover:bg-white/[0.10]`}
                         onClick={async () => {
                           const link = getApprovalLink(estimate);
                           if (link) await copyToClipboard(absLink(link));
@@ -1028,7 +1030,7 @@ function SavedEstimateCard({
                     ) : null}
                     <button
                       type="button"
-                      className="rounded-full border border-emerald-400/20 bg-emerald-500/15 px-4 py-2 text-sm text-emerald-200 hover:bg-emerald-500/20"
+                      className={`${actionBtn} rounded-full border border-emerald-400/20 bg-emerald-500/15 text-emerald-200 hover:bg-emerald-500/20`}
                       onClick={() => onMarkApproved?.(estimate)}
                     >
                       Mark Approved
@@ -1039,7 +1041,7 @@ function SavedEstimateCard({
                 {(status === "approved" || status === "deposit_paid" || status === "scheduled" || status === "paid") && (
                   <button
                     type="button"
-                    className="rounded-full border border-emerald-400/20 bg-emerald-500/15 px-4 py-2 text-sm text-emerald-200 hover:bg-emerald-500/20"
+                    className={`${actionBtn} rounded-full border border-emerald-400/20 bg-emerald-500/15 text-emerald-200 hover:bg-emerald-500/20`}
                     onClick={() => onSchedule?.(estimate)}
                     title={status === "scheduled" ? "Update the scheduled date" : "Pick a date to schedule the job"}
                   >
@@ -1048,14 +1050,14 @@ function SavedEstimateCard({
                 )}
 
                 {status === "paid" && (
-                  <div className="rounded-full px-4 py-2 text-sm font-semibold border border-emerald-400/20 bg-emerald-500/10 text-emerald-200 flex items-center">
+                  <div className={`${actionBtn} rounded-full border border-emerald-400/20 bg-emerald-500/10 text-emerald-200 font-semibold`}>
                     Paid ✅
                   </div>
                 )}
 
                 <button
                   type="button"
-                  className="rounded-full border border-red-500/25 bg-red-500/10 px-4 py-2 text-sm text-red-200 hover:bg-red-500/15"
+                  className={`${actionBtn} rounded-full border border-red-500/25 bg-red-500/10 text-red-200 hover:bg-red-500/15`}
                   onClick={() => onDelete(estimate.id)}
                 >
                   Delete
