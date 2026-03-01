@@ -25,7 +25,7 @@ export type PaymentState = {
   offlineLastPaidAt?: string | null;
   offlineLastMethod?: string | null;
   offlineLastNotes?: string | null;
-  offlineTransactions?: Array<{ id: string; amountCents: number; method: string; notes: string; recordedAt: string }> | null;
+  offlineTransactions?: Array<{ id: string; amountCents: number; method: string; notes: string; stage?: "deposit" | "additional"; recordedAt: string }> | null;
 
   // derived status (can be set by record-offline when remaining === 0)
   status: "none" | "deposit_paid" | "paid";

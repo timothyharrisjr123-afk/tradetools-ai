@@ -768,7 +768,7 @@ function SavedEstimateCard({
 }: {
   estimate: any;
   batchStatuses?: Record<string, { status: string; viewedAt?: string | null; approvedAt?: string | null }>;
-  paymentState?: { depositAmountCents?: number; fullAmountCents?: number; offlinePaidCents?: number } | null;
+  paymentState?: { depositAmountCents?: number; fullAmountCents?: number; offlinePaidCents?: number; offlineTransactions?: Array<{ stage?: string; amountCents?: number }> } | null;
   checkoutLoading?: Record<string, "deposit" | "full" | null>;
   onStartCheckout?: (estimateId: string, paymentType: "deposit" | "full", estimate: any) => void;
   onOpenDepositModal?: (estimate: any) => void;
@@ -943,6 +943,13 @@ function SavedEstimateCard({
               const depositPaidCents = paymentState?.depositAmountCents || 0;
               const fullPaidCents = paymentState?.fullAmountCents || 0;
               const offlinePaidCents = (paymentState as { offlinePaidCents?: number } | undefined)?.offlinePaidCents || 0;
+              const offlineTx = ((paymentState as { offlineTransactions?: Array<{ stage?: string; amountCents?: number }> } | undefined)?.offlineTransactions || []) as { stage?: string; amountCents?: number }[];
+              const offlineDepositCents = Array.isArray(offlineTx)
+                ? offlineTx.filter((t) => t?.stage === "deposit").reduce((sum, t) => sum + (t?.amountCents || 0), 0)
+                : 0;
+              const offlineAdditionalCents = Array.isArray(offlineTx)
+                ? offlineTx.filter((t) => t?.stage !== "deposit").reduce((sum, t) => sum + (t?.amountCents || 0), 0)
+                : 0;
               const collectedCents = depositPaidCents + fullPaidCents + offlinePaidCents;
               const remainingCents = Math.max(totalCents - collectedCents, 0);
               const money = (cents: number) =>
@@ -961,10 +968,16 @@ function SavedEstimateCard({
                       <span className="font-medium">{money(fullPaidCents)}</span>
                     </div>
                   )}
-                  {offlinePaidCents > 0 && (
+                  {offlineDepositCents > 0 && (
                     <div className="flex items-center justify-between">
-                      <span>Offline paid</span>
-                      <span className="font-medium">{money(offlinePaidCents)}</span>
+                      <span>Offline deposit</span>
+                      <span className="font-medium">{money(offlineDepositCents)}</span>
+                    </div>
+                  )}
+                  {offlineAdditionalCents > 0 && (
+                    <div className="flex items-center justify-between">
+                      <span>Offline additional</span>
+                      <span className="font-medium">{money(offlineAdditionalCents)}</span>
                     </div>
                   )}
                   <div className="flex items-center justify-between">
@@ -1118,7 +1131,7 @@ export default function SavedClient() {
   const [paidAmountInput, setPaidAmountInput] = useState("");
   const [batchStatuses, setBatchStatuses] = useState<Record<string, { status: string; viewedAt?: string | null; approvedAt?: string | null }>>({});
   const [checkoutLoading, setCheckoutLoading] = useState<Record<string, "deposit" | "full" | null>>({});
-  const [paymentStates, setPaymentStates] = useState<Record<string, { depositAmountCents?: number; fullAmountCents?: number; offlinePaidCents?: number } | null>>({});
+  const [paymentStates, setPaymentStates] = useState<Record<string, { depositAmountCents?: number; fullAmountCents?: number; offlinePaidCents?: number; offlineTransactions?: Array<{ stage?: string; amountCents?: number }> } | null>>({});
   const [offlineModal, setOfflineModal] = useState<{
     open: boolean;
     estimateId: string | null;
@@ -1127,6 +1140,7 @@ export default function SavedClient() {
     amount: string;
     method: string;
     notes: string;
+    stage: "deposit" | "additional";
   }>({
     open: false,
     estimateId: null,
@@ -1135,6 +1149,7 @@ export default function SavedClient() {
     amount: "",
     method: "cash",
     notes: "",
+    stage: "deposit",
   });
   const [depositModal, setDepositModal] = useState<{
     open: boolean;
@@ -1483,6 +1498,7 @@ export default function SavedClient() {
               depositAmountCents: payment.depositAmountCents ?? undefined,
               fullAmountCents: payment.fullAmountCents ?? undefined,
               offlinePaidCents: (payment as { offlinePaidCents?: number }).offlinePaidCents ?? undefined,
+              offlineTransactions: (payment as { offlineTransactions?: Array<{ stage?: string; amountCents?: number }> }).offlineTransactions ?? undefined,
             },
           }));
         }
@@ -1906,6 +1922,7 @@ export default function SavedClient() {
                   amount: remainingDollars ? String(remainingDollars.toFixed(2)) : "",
                   method: "cash",
                   notes: "",
+                  stage: "deposit",
                 });
               }}
               onLoad={(est) => handleAction(est, "load")}
@@ -2172,6 +2189,28 @@ export default function SavedClient() {
             </div>
 
             <div className="mt-4">
+              <label className="text-sm text-white/70">This payment is for</label>
+              <div className="mt-2 flex gap-2">
+                <button
+                  onClick={() => setOfflineModal((s) => ({ ...s, stage: "deposit" }))}
+                  className={`rounded-xl px-3 py-2 text-sm font-medium transition ${
+                    offlineModal.stage === "deposit" ? "bg-emerald-600 text-white" : "bg-white/5 text-white/80 hover:bg-white/10"
+                  }`}
+                >
+                  Deposit
+                </button>
+                <button
+                  onClick={() => setOfflineModal((s) => ({ ...s, stage: "additional" }))}
+                  className={`rounded-xl px-3 py-2 text-sm font-medium transition ${
+                    offlineModal.stage === "additional" ? "bg-emerald-600 text-white" : "bg-white/5 text-white/80 hover:bg-white/10"
+                  }`}
+                >
+                  Additional / Final
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-4">
               <label className="text-sm text-white/70">Method</label>
               <select
                 value={offlineModal.method}
@@ -2222,6 +2261,7 @@ export default function SavedClient() {
                       method: offlineModal.method,
                       notes: offlineModal.notes,
                       estimateTotalCents,
+                      stage: offlineModal.stage,
                     }),
                   });
 
@@ -2243,11 +2283,14 @@ export default function SavedClient() {
                         depositAmountCents: payment.depositAmountCents ?? undefined,
                         fullAmountCents: payment.fullAmountCents ?? undefined,
                         offlinePaidCents: (payment as { offlinePaidCents?: number }).offlinePaidCents ?? undefined,
+                        offlineTransactions: (payment as { offlineTransactions?: Array<{ stage?: string; amountCents?: number }> }).offlineTransactions ?? undefined,
                       },
                     }));
                   }
                   if (json?.status === "paid") {
                     markSavedEstimateStatus(id, "paid");
+                  } else if (json?.status === "deposit_paid") {
+                    markSavedEstimateStatus(id, "deposit_paid");
                   }
                   setEstimates(getNormalizedEstimates());
                   setOfflineModal((s) => ({ ...s, open: false }));

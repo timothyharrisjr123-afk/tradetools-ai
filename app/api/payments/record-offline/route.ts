@@ -12,6 +12,7 @@ export async function POST(req: NextRequest) {
     const method = String(body?.method || "other").trim();
     const notes = String(body?.notes || "").trim();
     const estimateTotalCents = Number(body?.estimateTotalCents || 0);
+    const stage = (body?.stage === "deposit" ? "deposit" : "additional") as "deposit" | "additional";
 
     if (!estimateId) {
       return NextResponse.json({ ok: false, error: "Missing estimateId" }, { status: 400 });
@@ -44,6 +45,7 @@ export async function POST(req: NextRequest) {
       amountCents: appliedCents,
       method,
       notes,
+      stage,
       recordedAt: nowIso,
     });
 
@@ -58,7 +60,12 @@ export async function POST(req: NextRequest) {
       offlineLastNotes: notes,
       offlineTransactions: nextTx,
       // Keep status consistent with remaining balance:
-      status: remainingAfter === 0 ? "paid" : ((state as any)?.status || "approved"),
+      status:
+        remainingAfter === 0
+          ? "paid"
+          : stage === "deposit"
+            ? "deposit_paid"
+            : ((state as any)?.status || "approved"),
     };
 
     await upsertPaymentState(estimateId, patch as any);
