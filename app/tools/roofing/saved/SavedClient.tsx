@@ -2233,6 +2233,8 @@ export default function SavedClient() {
                   }
 
                   const id = offlineModal.estimateId;
+                  if (!id) return;
+
                   const payment = await fetchPaymentState(id);
                   if (payment) {
                     setPaymentStates((prev) => ({
