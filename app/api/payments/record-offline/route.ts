@@ -1,0 +1,75 @@
+import { NextRequest, NextResponse } from "next/server";
+import { getPaymentState, upsertPaymentState } from "@/app/lib/stripePayments";
+
+export const runtime = "nodejs";
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json().catch(() => ({}));
+
+    const estimateId = String(body?.estimateId || "").trim();
+    const amountCents = Number(body?.amountCents || 0);
+    const method = String(body?.method || "other").trim();
+    const notes = String(body?.notes || "").trim();
+    const estimateTotalCents = Number(body?.estimateTotalCents || 0);
+
+    if (!estimateId) {
+      return NextResponse.json({ ok: false, error: "Missing estimateId" }, { status: 400 });
+    }
+    if (!amountCents || amountCents <= 0) {
+      return NextResponse.json({ ok: false, error: "Missing amount" }, { status: 400 });
+    }
+    if (!estimateTotalCents || estimateTotalCents <= 0) {
+      return NextResponse.json({ ok: false, error: "Missing estimate total" }, { status: 400 });
+    }
+
+    const nowIso = new Date().toISOString();
+    const state = await getPaymentState(estimateId);
+
+    const depositPaid = (state as any)?.depositAmountCents || 0;
+    const fullPaid = (state as any)?.fullAmountCents || 0;
+    const offlinePaid = (state as any)?.offlinePaidCents || 0;
+
+    const alreadyCollected = depositPaid + fullPaid + offlinePaid;
+    const remainingBefore = Math.max(estimateTotalCents - alreadyCollected, 0);
+
+    // Clamp offline amount so we don't record more than remaining (prevents accidental over-marking)
+    const appliedCents = Math.min(amountCents, remainingBefore);
+
+    const prevTx = (state as any)?.offlineTransactions || [];
+    const nextTx = Array.isArray(prevTx) ? prevTx : [];
+
+    nextTx.push({
+      id: `off_${Date.now()}`,
+      amountCents: appliedCents,
+      method,
+      notes,
+      recordedAt: nowIso,
+    });
+
+    const newOfflinePaid = offlinePaid + appliedCents;
+    const newCollected = depositPaid + fullPaid + newOfflinePaid;
+    const remainingAfter = Math.max(estimateTotalCents - newCollected, 0);
+
+    const patch: Record<string, unknown> = {
+      offlinePaidCents: newOfflinePaid,
+      offlineLastPaidAt: nowIso,
+      offlineLastMethod: method,
+      offlineLastNotes: notes,
+      offlineTransactions: nextTx,
+      // Keep status consistent with remaining balance:
+      status: remainingAfter === 0 ? "paid" : ((state as any)?.status || "approved"),
+    };
+
+    await upsertPaymentState(estimateId, patch as any);
+
+    return NextResponse.json({
+      ok: true,
+      appliedCents,
+      remainingAfter,
+      status: patch.status,
+    });
+  } catch (err: any) {
+    return NextResponse.json({ ok: false, error: err?.message || "record-offline failed" }, { status: 500 });
+  }
+}

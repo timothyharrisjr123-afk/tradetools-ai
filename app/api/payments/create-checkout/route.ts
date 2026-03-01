@@ -49,7 +49,8 @@ export async function POST(req: NextRequest) {
 
     const depositPaid = paymentState?.depositAmountCents || 0;
     const fullPaid = paymentState?.fullAmountCents || 0;
-    const alreadyCollected = depositPaid + fullPaid;
+    const offlinePaid = (paymentState as { offlinePaidCents?: number })?.offlinePaidCents || 0;
+    const alreadyCollected = depositPaid + fullPaid + offlinePaid;
     const remaining = Math.max(estimateTotalCents - alreadyCollected, 0);
 
     const customDepositCents = Number(body?.customDepositCents || 0);

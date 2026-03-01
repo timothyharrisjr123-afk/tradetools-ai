@@ -755,6 +755,7 @@ function SavedEstimateCard({
   checkoutLoading,
   onStartCheckout,
   onOpenDepositModal,
+  onOpenOfflineModal,
   onLoad,
   onDelete,
   onStatusChange,
@@ -767,10 +768,11 @@ function SavedEstimateCard({
 }: {
   estimate: any;
   batchStatuses?: Record<string, { status: string; viewedAt?: string | null; approvedAt?: string | null }>;
-  paymentState?: { depositAmountCents?: number; fullAmountCents?: number } | null;
+  paymentState?: { depositAmountCents?: number; fullAmountCents?: number; offlinePaidCents?: number } | null;
   checkoutLoading?: Record<string, "deposit" | "full" | null>;
   onStartCheckout?: (estimateId: string, paymentType: "deposit" | "full", estimate: any) => void;
   onOpenDepositModal?: (estimate: any) => void;
+  onOpenOfflineModal?: (estimate: any) => void;
   onLoad: (e: any) => void;
   onDelete: (id: string) => void;
   onStatusChange: (id: string, status: any) => void;
@@ -940,7 +942,8 @@ function SavedEstimateCard({
               const totalCents = Math.round((total || 0) * 100);
               const depositPaidCents = paymentState?.depositAmountCents || 0;
               const fullPaidCents = paymentState?.fullAmountCents || 0;
-              const collectedCents = depositPaidCents + fullPaidCents;
+              const offlinePaidCents = (paymentState as { offlinePaidCents?: number } | undefined)?.offlinePaidCents || 0;
+              const collectedCents = depositPaidCents + fullPaidCents + offlinePaidCents;
               const remainingCents = Math.max(totalCents - collectedCents, 0);
               const money = (cents: number) =>
                 (cents / 100).toLocaleString(undefined, { style: "currency", currency: "USD" });
@@ -956,6 +959,12 @@ function SavedEstimateCard({
                     <div className="flex items-center justify-between">
                       <span>Additional paid</span>
                       <span className="font-medium">{money(fullPaidCents)}</span>
+                    </div>
+                  )}
+                  {offlinePaidCents > 0 && (
+                    <div className="flex items-center justify-between">
+                      <span>Offline paid</span>
+                      <span className="font-medium">{money(offlinePaidCents)}</span>
                     </div>
                   )}
                   <div className="flex items-center justify-between">
@@ -1004,10 +1013,10 @@ function SavedEstimateCard({
 
                 <button
                   type="button"
-                  onClick={() => onRecordPayment?.(estimate)}
+                  onClick={() => onOpenOfflineModal?.(estimate)}
                   className={`${actionBtn} rounded-xl border border-white/20 bg-white/5 text-white hover:bg-white/10`}
                 >
-                  Record Payment
+                  Record Offline Payment
                 </button>
               </div>
             )}
@@ -1109,7 +1118,24 @@ export default function SavedClient() {
   const [paidAmountInput, setPaidAmountInput] = useState("");
   const [batchStatuses, setBatchStatuses] = useState<Record<string, { status: string; viewedAt?: string | null; approvedAt?: string | null }>>({});
   const [checkoutLoading, setCheckoutLoading] = useState<Record<string, "deposit" | "full" | null>>({});
-  const [paymentStates, setPaymentStates] = useState<Record<string, { depositAmountCents?: number; fullAmountCents?: number } | null>>({});
+  const [paymentStates, setPaymentStates] = useState<Record<string, { depositAmountCents?: number; fullAmountCents?: number; offlinePaidCents?: number } | null>>({});
+  const [offlineModal, setOfflineModal] = useState<{
+    open: boolean;
+    estimateId: string | null;
+    estimateTotal: number;
+    remaining: number;
+    amount: string;
+    method: string;
+    notes: string;
+  }>({
+    open: false,
+    estimateId: null,
+    estimateTotal: 0,
+    remaining: 0,
+    amount: "",
+    method: "cash",
+    notes: "",
+  });
   const [depositModal, setDepositModal] = useState<{
     open: boolean;
     estimateId: string | null;
@@ -1451,7 +1477,14 @@ export default function SavedClient() {
         const payment = await fetchPaymentState(id);
         if (cancelled) return;
         if (payment) {
-          setPaymentStates((prev) => ({ ...prev, [id]: { depositAmountCents: payment.depositAmountCents ?? undefined, fullAmountCents: payment.fullAmountCents ?? undefined } }));
+          setPaymentStates((prev) => ({
+            ...prev,
+            [id]: {
+              depositAmountCents: payment.depositAmountCents ?? undefined,
+              fullAmountCents: payment.fullAmountCents ?? undefined,
+              offlinePaidCents: (payment as { offlinePaidCents?: number }).offlinePaidCents ?? undefined,
+            },
+          }));
         }
         if (!candidates.includes(est)) continue;
         if (payment?.status === "paid" && est.status !== "paid") {
@@ -1856,6 +1889,25 @@ export default function SavedClient() {
                   percent: 10,
                 })
               }
+              onOpenOfflineModal={(est) => {
+                const total = Number(est.totalContractPrice ?? est.suggestedPrice ?? 0);
+                const totalCents = Math.round(total * 100);
+                const ps = paymentStates[est.id];
+                const depositPaidCents = ps?.depositAmountCents || 0;
+                const fullPaidCents = ps?.fullAmountCents || 0;
+                const offlinePaidCents = ps?.offlinePaidCents || 0;
+                const remainingCents = Math.max(totalCents - (depositPaidCents + fullPaidCents + offlinePaidCents), 0);
+                const remainingDollars = remainingCents / 100;
+                setOfflineModal({
+                  open: true,
+                  estimateId: est.id,
+                  estimateTotal: total,
+                  remaining: remainingDollars,
+                  amount: remainingDollars ? String(remainingDollars.toFixed(2)) : "",
+                  method: "cash",
+                  notes: "",
+                });
+              }}
               onLoad={(est) => handleAction(est, "load")}
               onDelete={(id) => {
                 const est = filtered.find((x) => x.id === id);
@@ -2085,6 +2137,122 @@ export default function SavedClient() {
                 className="flex-1 rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-500"
               >
                 Continue to payment
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Offline payment modal */}
+      {offlineModal.open && offlineModal.estimateId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-md rounded-3xl border border-white/10 bg-[#0b1220] p-5 shadow-xl">
+            <div className="flex items-center justify-between">
+              <div className="text-base font-semibold text-white">Record offline payment</div>
+              <button
+                onClick={() => setOfflineModal((s) => ({ ...s, open: false }))}
+                className="rounded-xl px-2 py-1 text-white/70 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="mt-2 text-sm text-white/70">
+              Remaining: {Number(offlineModal.remaining || 0).toLocaleString(undefined, { style: "currency", currency: "USD" })}
+            </div>
+
+            <div className="mt-4">
+              <label className="text-sm text-white/70">Amount</label>
+              <input
+                value={offlineModal.amount}
+                onChange={(e) => setOfflineModal((s) => ({ ...s, amount: e.target.value }))}
+                className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:border-white/20"
+                placeholder="Example: 500.00"
+              />
+            </div>
+
+            <div className="mt-4">
+              <label className="text-sm text-white/70">Method</label>
+              <select
+                value={offlineModal.method}
+                onChange={(e) => setOfflineModal((s) => ({ ...s, method: e.target.value }))}
+                className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:border-white/20"
+              >
+                <option value="cash">Cash</option>
+                <option value="check">Check</option>
+                <option value="zelle">Zelle</option>
+                <option value="venmo">Venmo</option>
+                <option value="bank_transfer">Bank transfer</option>
+                <option value="insurance">Insurance</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+
+            <div className="mt-4">
+              <label className="text-sm text-white/70">Notes (optional)</label>
+              <input
+                value={offlineModal.notes}
+                onChange={(e) => setOfflineModal((s) => ({ ...s, notes: e.target.value }))}
+                className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:border-white/20"
+                placeholder="Example: Check #1042 / Insurance claim / etc."
+              />
+            </div>
+
+            <div className="mt-5 flex gap-2">
+              <button
+                onClick={() => setOfflineModal((s) => ({ ...s, open: false }))}
+                className="flex-1 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-white/90 hover:bg-white/10"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={async () => {
+                  const dollars = Number(offlineModal.amount || 0);
+                  const amountCents = Math.round(dollars * 100);
+
+                  const estimateTotalCents = Math.round((offlineModal.estimateTotal || 0) * 100);
+
+                  const res = await fetch("/api/payments/record-offline", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      estimateId: offlineModal.estimateId,
+                      amountCents,
+                      method: offlineModal.method,
+                      notes: offlineModal.notes,
+                      estimateTotalCents,
+                    }),
+                  });
+
+                  const json = await res.json().catch(() => null);
+
+                  if (!res.ok || !json?.ok) {
+                    alert(json?.error || "Failed to record offline payment");
+                    return;
+                  }
+
+                  const id = offlineModal.estimateId;
+                  const payment = await fetchPaymentState(id);
+                  if (payment) {
+                    setPaymentStates((prev) => ({
+                      ...prev,
+                      [id]: {
+                        depositAmountCents: payment.depositAmountCents ?? undefined,
+                        fullAmountCents: payment.fullAmountCents ?? undefined,
+                        offlinePaidCents: (payment as { offlinePaidCents?: number }).offlinePaidCents ?? undefined,
+                      },
+                    }));
+                  }
+                  if (json?.status === "paid") {
+                    markSavedEstimateStatus(id, "paid");
+                  }
+                  setEstimates(getNormalizedEstimates());
+                  setOfflineModal((s) => ({ ...s, open: false }));
+                }}
+                className="flex-1 rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-500"
+              >
+                Save payment
               </button>
             </div>
           </div>

@@ -20,7 +20,14 @@ export type PaymentState = {
   depositAmountCents?: number | null;
   fullAmountCents?: number | null;
 
-  // derived status
+  // offline payments
+  offlinePaidCents?: number | null;
+  offlineLastPaidAt?: string | null;
+  offlineLastMethod?: string | null;
+  offlineLastNotes?: string | null;
+  offlineTransactions?: Array<{ id: string; amountCents: number; method: string; notes: string; recordedAt: string }> | null;
+
+  // derived status (can be set by record-offline when remaining === 0)
   status: "none" | "deposit_paid" | "paid";
 };
 
@@ -52,8 +59,16 @@ export async function upsertPaymentState(estimateId: string, patch: Partial<Paym
     estimateId,
   };
 
-  // derive status
-  next.status = next.fullPaidAt ? "paid" : next.depositPaidAt ? "deposit_paid" : "none";
+  // derive status (preserve if patch set it, e.g. from record-offline)
+  const patchStatus = (patch as { status?: PaymentState["status"] }).status;
+  next.status =
+    patchStatus !== undefined && patchStatus !== null
+      ? patchStatus
+      : next.fullPaidAt
+        ? "paid"
+        : next.depositPaidAt
+          ? "deposit_paid"
+          : "none";
 
   await kv.set(keyFor(estimateId), next);
   return next;
