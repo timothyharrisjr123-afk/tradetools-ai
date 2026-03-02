@@ -1092,7 +1092,9 @@ function SavedEstimateCard({
             <div className="relative" ref={openMoreFor === estimate.id ? moreMenuRef : undefined}>
               <button
                 type="button"
-                onClick={() => setOpenMoreFor?.((cur) => (cur === estimate.id ? null : estimate.id))}
+                onClick={() => {
+                  setOpenMoreFor(openMoreFor === estimate.id ? null : estimate.id);
+                }}
                 className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-medium text-white/85 hover:bg-white/10"
                 aria-haspopup="menu"
                 aria-expanded={openMoreFor === estimate.id}
