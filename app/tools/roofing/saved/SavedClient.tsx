@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import RoofingTabs from "@/app/tools/roofing/RoofingTabs";
@@ -88,6 +88,24 @@ function isoFromDateInput(d: string) {
   } catch {
     return new Date().toISOString();
   }
+}
+
+type TxItem = {
+  label: string;
+  amountCents: number;
+  whenIso?: string | null;
+  meta?: string;
+};
+
+function formatDateTime(iso?: string | null) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleString();
+}
+
+function formatCents(cents: number) {
+  return (cents / 100).toLocaleString(undefined, { style: "currency", currency: "USD" });
 }
 
 type PipelineStatus = "estimate" | "sent" | "sent_pending" | "viewed" | "approved" | "deposit_paid" | "scheduled" | "paid";
@@ -756,6 +774,10 @@ function SavedEstimateCard({
   onStartCheckout,
   onOpenDepositModal,
   onOpenOfflineModal,
+  onOpenTransactions,
+  openMoreFor,
+  setOpenMoreFor,
+  moreMenuRef,
   onLoad,
   onDelete,
   onStatusChange,
@@ -773,6 +795,10 @@ function SavedEstimateCard({
   onStartCheckout?: (estimateId: string, paymentType: "deposit" | "full", estimate: any) => void;
   onOpenDepositModal?: (estimate: any) => void;
   onOpenOfflineModal?: (estimate: any) => void;
+  onOpenTransactions?: (estimate: any) => void;
+  openMoreFor?: string | null;
+  setOpenMoreFor?: (v: string | null) => void;
+  moreMenuRef?: React.MutableRefObject<HTMLDivElement | null>;
   onLoad: (e: any) => void;
   onDelete: (id: string) => void;
   onStatusChange: (id: string, status: any) => void;
@@ -991,14 +1017,6 @@ function SavedEstimateCard({
 
           {/* RIGHT: Actions */}
           <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
-            <button
-              type="button"
-              className={`${actionBtn} rounded-full border border-white/10 bg-white/[0.04] text-white hover:bg-white/[0.06]`}
-              onClick={() => onLoad(estimate)}
-            >
-              Load
-            </button>
-
             {/* ===== PAYMENT ACTIONS ===== */}
             {estimate.status !== "paid" && (
               <div className="flex flex-wrap items-center gap-2">
@@ -1022,14 +1040,6 @@ function SavedEstimateCard({
                   className={`${actionBtn} rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white`}
                 >
                   {checkoutLoading?.[estimate.id] === "full" ? "Opening…" : "Collect Full"}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => onOpenOfflineModal?.(estimate)}
-                  className={`${actionBtn} rounded-xl border border-white/20 bg-white/5 text-white hover:bg-white/10`}
-                >
-                  Record Offline Payment
                 </button>
               </div>
             )}
@@ -1076,16 +1086,73 @@ function SavedEstimateCard({
                     Paid ✅
                   </div>
                 )}
-
-                <button
-                  type="button"
-                  className={`${actionBtn} rounded-full border border-red-500/25 bg-red-500/10 text-red-200 hover:bg-red-500/15`}
-                  onClick={() => onDelete(estimate.id)}
-                >
-                  Delete
-                </button>
               </>
             )}
+
+            <div className="relative" ref={openMoreFor === estimate.id ? moreMenuRef : undefined}>
+              <button
+                type="button"
+                onClick={() => setOpenMoreFor?.((cur) => (cur === estimate.id ? null : estimate.id))}
+                className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-medium text-white/85 hover:bg-white/10"
+                aria-haspopup="menu"
+                aria-expanded={openMoreFor === estimate.id}
+              >
+                More <span className="ml-1 text-white/60">▾</span>
+              </button>
+
+              {openMoreFor === estimate.id && (
+                <div
+                  className="absolute right-0 mt-2 w-56 overflow-hidden rounded-2xl border border-white/10 bg-[#0b1220] shadow-xl"
+                  role="menu"
+                >
+                  <button
+                    className="block w-full px-4 py-3 text-left text-sm text-white/85 hover:bg-white/5"
+                    role="menuitem"
+                    onClick={() => {
+                      setOpenMoreFor?.(null);
+                      onOpenTransactions?.(estimate);
+                    }}
+                  >
+                    View transactions
+                  </button>
+
+                  <button
+                    className="block w-full px-4 py-3 text-left text-sm text-white/85 hover:bg-white/5"
+                    role="menuitem"
+                    onClick={() => {
+                      setOpenMoreFor?.(null);
+                      onOpenOfflineModal?.(estimate);
+                    }}
+                  >
+                    Record offline payment
+                  </button>
+
+                  <button
+                    className="block w-full px-4 py-3 text-left text-sm text-white/85 hover:bg-white/5"
+                    role="menuitem"
+                    onClick={() => {
+                      setOpenMoreFor?.(null);
+                      onLoad?.(estimate);
+                    }}
+                  >
+                    Load estimate
+                  </button>
+
+                  <div className="h-px w-full bg-white/10" />
+
+                  <button
+                    className="block w-full px-4 py-3 text-left text-sm text-red-300 hover:bg-red-500/10"
+                    role="menuitem"
+                    onClick={() => {
+                      setOpenMoreFor?.(null);
+                      onDelete?.(estimate.id);
+                    }}
+                  >
+                    Delete
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -1166,8 +1233,39 @@ export default function SavedClient() {
     mode: "percent",
     percent: 10,
   });
+  const [openMoreFor, setOpenMoreFor] = useState<string | null>(null);
+  const moreMenuRef = useRef<HTMLDivElement | null>(null);
+  const [txModal, setTxModal] = useState<{
+    open: boolean;
+    estimateId: string | null;
+    title?: string;
+    loading: boolean;
+    items: TxItem[];
+    totalCents: number;
+    remainingCents: number;
+  }>({
+    open: false,
+    estimateId: null,
+    title: "",
+    loading: false,
+    items: [],
+    totalCents: 0,
+    remainingCents: 0,
+  });
   const router = useRouter();
   const isSyncingRef = useRef(false);
+
+  useEffect(() => {
+    function onDown(e: MouseEvent) {
+      if (!openMoreFor) return;
+      const el = moreMenuRef.current;
+      if (!el) return;
+      if (el.contains(e.target as Node)) return;
+      setOpenMoreFor(null);
+    }
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [openMoreFor]);
 
   const ARRIVAL_WINDOW_OPTIONS = [
     { value: "", label: "No window" },
@@ -1335,6 +1433,82 @@ export default function SavedClient() {
     setCurrentLoadedSavedId(estimate.id);
     router.push(`/tools/roofing?loadSaved=${encodeURIComponent(estimate.id)}`);
   };
+
+  async function openTransactions(estimate: any) {
+    const id: string = String(estimate?.id || "").trim();
+    if (!id) return;
+
+    const totalDollars = Number(estimate?.totalContractPrice ?? estimate?.suggestedPrice ?? 0);
+    const totalCents = Math.round(totalDollars * 100);
+
+    setTxModal({
+      open: true,
+      estimateId: id,
+      title: estimate?.customerName || estimate?.name || "Transactions",
+      loading: true,
+      items: [],
+      totalCents,
+      remainingCents: 0,
+    });
+
+    const ps: any = await fetchPaymentState(id);
+
+    const depositCents = Number(ps?.depositAmountCents || 0);
+    const fullCents = Number(ps?.fullAmountCents || 0);
+    const offlineCents = Number(ps?.offlinePaidCents || 0);
+
+    const collected = depositCents + fullCents + offlineCents;
+    const remainingCents = Math.max(totalCents - collected, 0);
+
+    const tx: TxItem[] = [];
+
+    if (depositCents > 0) {
+      tx.push({
+        label: "Stripe deposit",
+        amountCents: depositCents,
+        whenIso: ps?.depositPaidAt,
+        meta: ps?.lastCheckoutSessionId ? `Session ${String(ps.lastCheckoutSessionId).slice(-8)}` : "",
+      });
+    }
+
+    if (fullCents > 0) {
+      tx.push({
+        label: "Stripe payment",
+        amountCents: fullCents,
+        whenIso: ps?.fullPaidAt,
+        meta: ps?.lastPaymentIntentId ? `PI ${String(ps.lastPaymentIntentId).slice(-8)}` : "",
+      });
+    }
+
+    const offlineTx = Array.isArray(ps?.offlineTransactions) ? ps.offlineTransactions : [];
+    for (const t of offlineTx) {
+      const amt = Number(t?.amountCents || 0);
+      if (!amt) continue;
+      const stage = t?.stage === "deposit" ? "Offline deposit" : "Offline payment";
+      const method = t?.method ? String(t.method).replaceAll("_", " ") : "offline";
+      const notes = t?.notes ? String(t.notes) : "";
+      const meta = [method, notes].filter(Boolean).join(" • ");
+      tx.push({
+        label: stage,
+        amountCents: amt,
+        whenIso: t?.recordedAt,
+        meta,
+      });
+    }
+
+    tx.sort((a, b) => {
+      const ta = a.whenIso ? new Date(a.whenIso).getTime() : 0;
+      const tb = b.whenIso ? new Date(b.whenIso).getTime() : 0;
+      return ta - tb;
+    });
+
+    setTxModal((s) => ({
+      ...s,
+      loading: false,
+      items: tx,
+      remainingCents,
+    }));
+  }
 
   type ActionKey =
     | "load"
@@ -1925,6 +2099,10 @@ export default function SavedClient() {
                   stage: "deposit",
                 });
               }}
+              onOpenTransactions={openTransactions}
+              openMoreFor={openMoreFor}
+              setOpenMoreFor={setOpenMoreFor}
+              moreMenuRef={moreMenuRef}
               onLoad={(est) => handleAction(est, "load")}
               onDelete={(id) => {
                 const est = filtered.find((x) => x.id === id);
@@ -2298,6 +2476,78 @@ export default function SavedClient() {
                 className="flex-1 rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-500"
               >
                 Save payment
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Transactions modal */}
+      {txModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-lg rounded-3xl border border-white/10 bg-[#0b1220] p-5 shadow-xl">
+            <div className="flex items-center justify-between">
+              <div className="text-base font-semibold text-white">
+                Transactions{txModal.title ? ` — ${txModal.title}` : ""}
+              </div>
+              <button
+                onClick={() => setTxModal((s) => ({ ...s, open: false }))}
+                className="rounded-xl px-2 py-1 text-white/70 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="mt-2 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/80">
+              <div className="flex items-center justify-between">
+                <span>Total</span>
+                <span className="font-semibold">{formatCents(txModal.totalCents)}</span>
+              </div>
+              <div className="mt-1 flex items-center justify-between">
+                <span>Remaining</span>
+                <span className="font-semibold">{formatCents(txModal.remainingCents)}</span>
+              </div>
+            </div>
+
+            <div className="mt-4">
+              {txModal.loading ? (
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/70">
+                  Loading…
+                </div>
+              ) : txModal.items.length === 0 ? (
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/70">
+                  No transactions recorded yet.
+                </div>
+              ) : (
+                <div className="max-h-[50vh] overflow-auto rounded-2xl border border-white/10">
+                  {txModal.items.map((t, idx) => (
+                    <div
+                      key={idx}
+                      className={`px-4 py-3 ${idx ? "border-t border-white/10" : ""} bg-[#0b1220]`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="text-sm font-semibold text-white/90">{t.label}</div>
+                          <div className="mt-0.5 text-xs text-white/60">
+                            {formatDateTime(t.whenIso)}{t.meta ? ` • ${t.meta}` : ""}
+                          </div>
+                        </div>
+                        <div className="shrink-0 text-sm font-semibold text-white">
+                          {formatCents(t.amountCents)}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="mt-5 flex justify-end">
+              <button
+                onClick={() => setTxModal((s) => ({ ...s, open: false }))}
+                className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-medium text-white/85 hover:bg-white/10"
+              >
+                Close
               </button>
             </div>
           </div>
