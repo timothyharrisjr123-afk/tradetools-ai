@@ -1099,56 +1099,47 @@ function SavedEstimateCard({
                 aria-haspopup="menu"
                 aria-expanded={openMoreFor === estimate.id}
               >
-                More <span className="ml-1 text-white/60">▾</span>
+                More ▾
               </button>
 
               {openMoreFor === estimate.id && (
-                <div
-                  className="absolute right-0 mt-2 w-56 overflow-hidden rounded-2xl border border-white/10 bg-[#0b1220] shadow-xl"
-                  role="menu"
-                >
+                <div className="absolute right-0 mt-2 w-56 rounded-2xl border border-white/10 bg-[#0f172a] shadow-2xl z-50 overflow-hidden backdrop-blur-xl">
                   <button
-                    className="block w-full px-4 py-3 text-left text-sm text-white/85 hover:bg-white/5"
-                    role="menuitem"
                     onClick={() => {
                       setOpenMoreFor(null);
                       onOpenTransactions?.(estimate);
                     }}
+                    className="block w-full text-left px-4 py-3 text-sm text-white/90 hover:bg-white/10"
                   >
                     View transactions
                   </button>
 
                   <button
-                    className="block w-full px-4 py-3 text-left text-sm text-white/85 hover:bg-white/5"
-                    role="menuitem"
                     onClick={() => {
                       setOpenMoreFor(null);
                       onOpenOfflineModal?.(estimate);
                     }}
+                    className="block w-full text-left px-4 py-3 text-sm text-white/90 hover:bg-white/10"
                   >
                     Record offline payment
                   </button>
 
                   <button
-                    className="block w-full px-4 py-3 text-left text-sm text-white/85 hover:bg-white/5"
-                    role="menuitem"
                     onClick={() => {
                       setOpenMoreFor(null);
                       onLoad?.(estimate);
                     }}
+                    className="block w-full text-left px-4 py-3 text-sm text-white/90 hover:bg-white/10"
                   >
                     Load estimate
                   </button>
 
-                  <div className="h-px w-full bg-white/10" />
-
                   <button
-                    className="block w-full px-4 py-3 text-left text-sm text-red-300 hover:bg-red-500/10"
-                    role="menuitem"
                     onClick={() => {
                       setOpenMoreFor(null);
                       onDelete?.(estimate.id);
                     }}
+                    className="block w-full text-left px-4 py-3 text-sm text-red-400 hover:bg-red-500/10"
                   >
                     Delete
                   </button>
