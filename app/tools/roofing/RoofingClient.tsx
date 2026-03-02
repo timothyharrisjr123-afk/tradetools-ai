@@ -3225,21 +3225,6 @@ Thanks,`;
           </motion.p>
         </header>
 
-        <div className="mt-3 flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-2">
-          <div className="min-w-0">
-            <div className="text-xs font-semibold text-white/90">Company info</div>
-            <div className="truncate text-[11px] text-white/60">
-              Managed in Settings (logo, phone, email, license)
-            </div>
-          </div>
-          <Link
-            href="/tools/settings"
-            className="shrink-0 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/80 hover:bg-white/10"
-          >
-            Edit
-          </Link>
-        </div>
-
         {process.env.NODE_ENV !== "production" ? (
           <div className="text-xs text-white/60 mb-2">
             DEV: restoring = {String(isRestoringRef.current)} | loadSavedId = {String(loadSavedId ?? "—")}
