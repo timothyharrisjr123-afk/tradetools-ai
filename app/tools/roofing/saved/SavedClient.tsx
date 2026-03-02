@@ -2477,7 +2477,12 @@ export default function SavedClient() {
 
       {/* Transactions modal */}
       {txModal.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setTxModal((s) => ({ ...s, open: false }));
+          }}
+        >
           <div className="w-full max-w-lg rounded-3xl border border-white/10 bg-[#0b1220] p-5 shadow-xl">
             <div className="flex items-center justify-between">
               <div className="text-base font-semibold text-white">
@@ -2495,6 +2500,12 @@ export default function SavedClient() {
               <div className="flex items-center justify-between">
                 <span>Total</span>
                 <span className="font-semibold">{formatCents(txModal.totalCents)}</span>
+              </div>
+              <div className="mt-1 flex items-center justify-between">
+                <span>Collected</span>
+                <span className="font-semibold">
+                  {formatCents(Math.max(txModal.totalCents - txModal.remainingCents, 0))}
+                </span>
               </div>
               <div className="mt-1 flex items-center justify-between">
                 <span>Remaining</span>
@@ -2520,7 +2531,18 @@ export default function SavedClient() {
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <div className="text-sm font-semibold text-white/90">{t.label}</div>
+                          <div className="flex items-center gap-2">
+                            <div className="text-sm font-semibold text-white/90">{t.label}</div>
+                            {t.label.toLowerCase().includes("stripe") ? (
+                              <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-semibold text-white/70">
+                                Stripe
+                              </span>
+                            ) : t.label.toLowerCase().includes("offline") ? (
+                              <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-semibold text-white/70">
+                                Offline
+                              </span>
+                            ) : null}
+                          </div>
                           <div className="mt-0.5 text-xs text-white/60">
                             {formatDateTime(t.whenIso)}{t.meta ? ` • ${t.meta}` : ""}
                           </div>
