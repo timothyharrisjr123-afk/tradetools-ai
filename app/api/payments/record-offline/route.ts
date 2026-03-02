@@ -37,29 +37,23 @@ export async function POST(req: NextRequest) {
     // Clamp offline amount so we don't record more than remaining (prevents accidental over-marking)
     const appliedCents = Math.min(amountCents, remainingBefore);
 
-    const prevTx = (state as any)?.offlineTransactions || [];
-    const nextTx = Array.isArray(prevTx) ? prevTx : [];
+    const newCollected = depositPaid + fullPaid + offlinePaid + appliedCents;
+    const remainingAfter = Math.max(estimateTotalCents - newCollected, 0);
 
-    nextTx.push({
+    const tx = {
       id: `off_${Date.now()}`,
       amountCents: appliedCents,
       method,
       notes,
       stage,
       recordedAt: nowIso,
-    });
-
-    const newOfflinePaid = offlinePaid + appliedCents;
-    const newCollected = depositPaid + fullPaid + newOfflinePaid;
-    const remainingAfter = Math.max(estimateTotalCents - newCollected, 0);
+    };
 
     const patch: Record<string, unknown> = {
-      offlinePaidCents: newOfflinePaid,
       offlineLastPaidAt: nowIso,
       offlineLastMethod: method,
       offlineLastNotes: notes,
-      offlineTransactions: nextTx,
-      // Keep status consistent with remaining balance:
+      offlineTransactions: [tx],
       status:
         remainingAfter === 0
           ? "paid"

@@ -53,10 +53,23 @@ export async function upsertPaymentState(estimateId: string, patch: Partial<Paym
       lastCurrency: null,
     } satisfies PaymentState);
 
+  const existing = current as PaymentState & { offlineTransactions?: unknown[] };
+  const existingTx = Array.isArray(existing?.offlineTransactions) ? existing.offlineTransactions : [];
+  const patchTx = Array.isArray((patch as { offlineTransactions?: unknown[] })?.offlineTransactions)
+    ? (patch as { offlineTransactions: unknown[] }).offlineTransactions
+    : [];
+  const mergedOfflineTransactions = [...existingTx, ...patchTx];
+  const offlinePaidCents = mergedOfflineTransactions.reduce((sum: number, t: unknown) => {
+    const amt = Number((t as { amountCents?: number })?.amountCents || 0);
+    return sum + (Number.isFinite(amt) ? amt : 0);
+  }, 0);
+
   const next: PaymentState = {
     ...current,
     ...patch,
     estimateId,
+    offlineTransactions: mergedOfflineTransactions as PaymentState["offlineTransactions"],
+    offlinePaidCents,
   };
 
   // derive status (preserve if patch set it, e.g. from record-offline)
