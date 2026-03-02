@@ -796,8 +796,8 @@ function SavedEstimateCard({
   onOpenDepositModal?: (estimate: any) => void;
   onOpenOfflineModal?: (estimate: any) => void;
   onOpenTransactions?: (estimate: any) => void;
-  openMoreFor?: string | null;
-  setOpenMoreFor?: (v: string | null) => void;
+  openMoreFor: string | null;
+  setOpenMoreFor: (v: string | null) => void;
   moreMenuRef?: React.MutableRefObject<HTMLDivElement | null>;
   onLoad: (e: any) => void;
   onDelete: (id: string) => void;
@@ -1111,7 +1111,7 @@ function SavedEstimateCard({
                     className="block w-full px-4 py-3 text-left text-sm text-white/85 hover:bg-white/5"
                     role="menuitem"
                     onClick={() => {
-                      setOpenMoreFor?.(null);
+                      setOpenMoreFor(null);
                       onOpenTransactions?.(estimate);
                     }}
                   >
@@ -1122,7 +1122,7 @@ function SavedEstimateCard({
                     className="block w-full px-4 py-3 text-left text-sm text-white/85 hover:bg-white/5"
                     role="menuitem"
                     onClick={() => {
-                      setOpenMoreFor?.(null);
+                      setOpenMoreFor(null);
                       onOpenOfflineModal?.(estimate);
                     }}
                   >
@@ -1133,7 +1133,7 @@ function SavedEstimateCard({
                     className="block w-full px-4 py-3 text-left text-sm text-white/85 hover:bg-white/5"
                     role="menuitem"
                     onClick={() => {
-                      setOpenMoreFor?.(null);
+                      setOpenMoreFor(null);
                       onLoad?.(estimate);
                     }}
                   >
@@ -1146,7 +1146,7 @@ function SavedEstimateCard({
                     className="block w-full px-4 py-3 text-left text-sm text-red-300 hover:bg-red-500/10"
                     role="menuitem"
                     onClick={() => {
-                      setOpenMoreFor?.(null);
+                      setOpenMoreFor(null);
                       onDelete?.(estimate.id);
                     }}
                   >
