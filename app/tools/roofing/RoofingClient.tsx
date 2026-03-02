@@ -3520,20 +3520,18 @@ Thanks,`;
               Job details
             </h2>
 
-            <div className="mb-3 rounded-3xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur-xl">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-sm font-semibold text-white/85">Company Profile</div>
-                  <div className="text-xs text-white/55">Logo, phone, email, license</div>
+            <Link
+              href="/tools/settings"
+              className="flex items-center justify-between rounded-3xl border border-white/10 bg-white/[0.04] px-4 py-3 hover:bg-white/[0.06] active:bg-white/[0.08]"
+            >
+              <div>
+                <div className="text-sm font-semibold text-white">Company info</div>
+                <div className="text-xs text-white/70">
+                  Managed in Settings (logo, phone, email, license)
                 </div>
-                <Link
-                  href="/tools/settings"
-                  className="rounded-full bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-white/70 hover:bg-white/10"
-                >
-                  Edit
-                </Link>
               </div>
-            </div>
+              <div className="text-white/60 text-lg leading-none">›</div>
+            </Link>
 
             <div className="space-y-6">
               <div className={attentionField === "roofArea" ? "rounded-2xl ring-2 ring-amber-400/30" : ""}>
