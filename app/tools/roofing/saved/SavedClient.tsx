@@ -32,35 +32,21 @@ function formatLocalDateHeader(dateKey: string) {
 }
 function getScheduledDateKeyFromEstimate(est: any): string | null {
 
-  if (est?.scheduledStartDate) {
-    const dt = new Date(est.scheduledStartDate)
-    if (!Number.isNaN(dt.getTime())) {
-      const y = dt.getFullYear()
-      const m = String(dt.getMonth() + 1).padStart(2,"0")
-      const d = String(dt.getDate()).padStart(2,"0")
-      return `${y}-${m}-${d}`
-    }
+  if (!est?.scheduledStartDate) {
+    return "No Date"
   }
 
-  const fallback = [
-    est?.schedule?.date,
-    est?.scheduleInfo?.date,
-    est?.scheduled?.date,
-    est?.scheduledAt
-  ]
+  const dt = new Date(est.scheduledStartDate)
 
-  for (const c of fallback) {
-    if (!c) continue
-    const dt = new Date(c)
-    if (!Number.isNaN(dt.getTime())) {
-      const y = dt.getFullYear()
-      const m = String(dt.getMonth() + 1).padStart(2,"0")
-      const d = String(dt.getDate()).padStart(2,"0")
-      return `${y}-${m}-${d}`
-    }
+  if (Number.isNaN(dt.getTime())) {
+    return "No Date"
   }
 
-  return null
+  const y = dt.getFullYear()
+  const m = String(dt.getMonth() + 1).padStart(2,"0")
+  const d = String(dt.getDate()).padStart(2,"0")
+
+  return `${y}-${m}-${d}`
 }
 
 function getClientBaseUrl() {
