@@ -2249,6 +2249,7 @@ export default function SavedClient() {
         )}
 
         <div className="space-y-4">
+          {/* Scheduled UX v2 enabled */}
           {hydrated && statusFilter === "scheduled" && (() => {
             const scheduledItems = filtered;
             const todayKey = toLocalDateKey(new Date());
