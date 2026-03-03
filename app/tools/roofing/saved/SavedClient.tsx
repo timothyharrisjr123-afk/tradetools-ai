@@ -90,6 +90,22 @@ function isoFromDateInput(d: string) {
   }
 }
 
+function formatCentsToCurrency(cents: number | undefined | null): string {
+  const c = Number(cents);
+  if (!Number.isFinite(c) || c < 0) return "$0.00";
+  const dollars = (Math.round(c) / 100).toFixed(2);
+  const [whole, dec] = dollars.split(".");
+  const withCommas = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return `$${withCommas}.${dec}`;
+}
+
+function toEstimateTotalCents(estimate: { totalContractPrice?: number; suggestedPrice?: number } | null | undefined): number {
+  const v = Number(estimate?.totalContractPrice ?? estimate?.suggestedPrice ?? 0);
+  if (!Number.isFinite(v)) return 0;
+  if (v >= 1000 && Number.isInteger(v)) return Math.round(v);
+  return Math.round(v * 100);
+}
+
 type TxItem = {
   label: string;
   amountCents: number;
@@ -947,25 +963,13 @@ function SavedEstimateCard({
               </span>
               <span className="text-4xl font-semibold tracking-tight text-white">
                 {(() => {
-                  const n =
-                    typeof estimate.totalContractPrice === "number"
-                      ? estimate.totalContractPrice
-                      : typeof estimate.suggestedPrice === "number"
-                      ? estimate.suggestedPrice
-                      : undefined;
-
-                  return n == null
-                    ? "—"
-                    : `$${n.toLocaleString(undefined, {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}`;
+                  const totalCents = toEstimateTotalCents(estimate);
+                  return totalCents <= 0 ? "—" : formatCentsToCurrency(totalCents);
                 })()}
               </span>
             </div>
             {(() => {
-              const total = (estimate.totalContractPrice ?? estimate.suggestedPrice ?? 0) as number;
-              const totalCents = Math.round((total || 0) * 100);
+              const totalCents = toEstimateTotalCents(estimate);
               const depositPaidCents = paymentState?.depositAmountCents || 0;
               const fullPaidCents = paymentState?.fullAmountCents || 0;
               const offlinePaidCents = (paymentState as { offlinePaidCents?: number } | undefined)?.offlinePaidCents || 0;
@@ -978,37 +982,35 @@ function SavedEstimateCard({
                 : 0;
               const collectedCents = depositPaidCents + fullPaidCents + offlinePaidCents;
               const remainingCents = Math.max(totalCents - collectedCents, 0);
-              const money = (cents: number) =>
-                (cents / 100).toLocaleString(undefined, { style: "currency", currency: "USD" });
               return collectedCents > 0 ? (
                 <div className="mt-2 text-sm text-white/80 space-y-1">
                   {depositPaidCents > 0 && (
                     <div className="flex items-center justify-between">
                       <span>Deposit paid</span>
-                      <span className="font-medium">{money(depositPaidCents)}</span>
+                      <span className="font-medium">{formatCentsToCurrency(depositPaidCents)}</span>
                     </div>
                   )}
                   {fullPaidCents > 0 && (
                     <div className="flex items-center justify-between">
                       <span>Additional paid</span>
-                      <span className="font-medium">{money(fullPaidCents)}</span>
+                      <span className="font-medium">{formatCentsToCurrency(fullPaidCents)}</span>
                     </div>
                   )}
                   {offlineDepositCents > 0 && (
                     <div className="flex items-center justify-between">
                       <span>Offline deposit</span>
-                      <span className="font-medium">{money(offlineDepositCents)}</span>
+                      <span className="font-medium">{formatCentsToCurrency(offlineDepositCents)}</span>
                     </div>
                   )}
                   {offlineAdditionalCents > 0 && (
                     <div className="flex items-center justify-between">
                       <span>Offline additional</span>
-                      <span className="font-medium">{money(offlineAdditionalCents)}</span>
+                      <span className="font-medium">{formatCentsToCurrency(offlineAdditionalCents)}</span>
                     </div>
                   )}
                   <div className="flex items-center justify-between">
                     <span>Remaining</span>
-                    <span className="font-semibold">{money(remainingCents)}</span>
+                    <span className="font-semibold">{formatCentsToCurrency(remainingCents)}</span>
                   </div>
                 </div>
               ) : null;
@@ -1431,8 +1433,7 @@ export default function SavedClient() {
     const id: string = String(estimate?.id || "").trim();
     if (!id) return;
 
-    const totalDollars = Number(estimate?.totalContractPrice ?? estimate?.suggestedPrice ?? 0);
-    const totalCents = Math.round(totalDollars * 100);
+    const totalCents = toEstimateTotalCents(estimate);
 
     setTxModal({
       open: true,
@@ -2244,7 +2245,7 @@ export default function SavedClient() {
             </div>
 
             <div className="mt-2 text-sm text-white/70">
-              Total: {Number(depositModal.estimateTotal).toLocaleString(undefined, { style: "currency", currency: "USD" })}
+              Total: {formatCentsToCurrency(toEstimateTotalCents({ totalContractPrice: depositModal.estimateTotal, suggestedPrice: depositModal.estimateTotal }))}
             </div>
 
             <div className="mt-4 flex gap-2">
@@ -2282,7 +2283,7 @@ export default function SavedClient() {
                   ))}
                 </div>
                 <div className="mt-3 text-sm text-white/70">
-                  Deposit: {(depositModal.estimateTotal * (depositModal.percent / 100)).toLocaleString(undefined, { style: "currency", currency: "USD" })}
+                  Deposit: {formatCentsToCurrency(Math.round(toEstimateTotalCents({ totalContractPrice: depositModal.estimateTotal, suggestedPrice: depositModal.estimateTotal }) * (depositModal.percent / 100)))}
                 </div>
               </div>
             ) : (
@@ -2307,16 +2308,14 @@ export default function SavedClient() {
               </button>
               <button
                 onClick={async () => {
-                  const total = Number(depositModal.estimateTotal || 0);
-                  const depositDollars =
+                  const estimateTotalCents = toEstimateTotalCents({ totalContractPrice: depositModal.estimateTotal, suggestedPrice: depositModal.estimateTotal });
+                  const customDepositCents =
                     depositModal.mode === "percent"
-                      ? total * (depositModal.percent / 100)
-                      : Number(depositModal.customValue || 0);
-
-                  const customDepositCents = Math.round(depositDollars * 100);
+                      ? Math.round(estimateTotalCents * (depositModal.percent / 100))
+                      : Math.round(Number(depositModal.customValue || 0) * 100);
 
                   await startCheckout(depositModal.estimateId!, "deposit", {
-                    estimateTotalCents: Math.round(total * 100),
+                    estimateTotalCents,
                     customDepositCents,
                   }, setCheckoutLoading);
 
@@ -2499,17 +2498,17 @@ export default function SavedClient() {
             <div className="mt-2 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/80">
               <div className="flex items-center justify-between">
                 <span>Total</span>
-                <span className="font-semibold">{formatCents(txModal.totalCents)}</span>
+                <span className="font-semibold">{formatCentsToCurrency(txModal.totalCents)}</span>
               </div>
               <div className="mt-1 flex items-center justify-between">
                 <span>Collected</span>
                 <span className="font-semibold">
-                  {formatCents(Math.max(txModal.totalCents - txModal.remainingCents, 0))}
+                  {formatCentsToCurrency(Math.max(txModal.totalCents - txModal.remainingCents, 0))}
                 </span>
               </div>
               <div className="mt-1 flex items-center justify-between">
                 <span>Remaining</span>
-                <span className="font-semibold">{formatCents(txModal.remainingCents)}</span>
+                <span className="font-semibold">{formatCentsToCurrency(txModal.remainingCents)}</span>
               </div>
             </div>
 
@@ -2548,7 +2547,7 @@ export default function SavedClient() {
                           </div>
                         </div>
                         <div className="shrink-0 text-sm font-semibold text-white">
-                          {formatCents(t.amountCents)}
+                          {formatCentsToCurrency(t.amountCents)}
                         </div>
                       </div>
                     </div>
