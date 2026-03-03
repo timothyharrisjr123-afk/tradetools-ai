@@ -43,23 +43,45 @@ async function startCheckout(
   estimateId: string,
   paymentType: "deposit" | "full",
   estimateOrOpts: { totalContractPrice?: number; suggestedPrice?: number; estimateTotalCents?: number; customDepositCents?: number },
-  setCheckoutLoading: (fn: (m: Record<string, "deposit" | "full" | null>) => Record<string, "deposit" | "full" | null>) => void
+  setCheckoutLoading: (fn: (m: Record<string, "deposit" | "full" | null>) => Record<string, "deposit" | "full" | null>) => void,
+  remainingCentsForFull?: number
 ) {
   const estimateTotalCents =
     typeof estimateOrOpts.estimateTotalCents === "number"
       ? estimateOrOpts.estimateTotalCents
-      : Math.round(((estimateOrOpts.totalContractPrice ?? estimateOrOpts.suggestedPrice ?? 0) as number) * 100);
+      : toEstimateTotalCents(estimateOrOpts);
+
+  const customDepositCents =
+    paymentType === "deposit" && typeof estimateOrOpts.customDepositCents === "number"
+      ? Math.floor(estimateOrOpts.customDepositCents)
+      : undefined;
+
+  if (paymentType === "full") {
+    const amountCents =
+      typeof remainingCentsForFull === "number" && Number.isFinite(remainingCentsForFull) && remainingCentsForFull > 0
+        ? Math.floor(remainingCentsForFull)
+        : 0;
+    if (amountCents <= 0) return;
+  } else if (paymentType === "deposit" && customDepositCents != null && (!Number.isFinite(customDepositCents) || customDepositCents <= 0)) {
+    return;
+  }
+
   setCheckoutLoading((m) => ({ ...m, [estimateId]: paymentType }));
   try {
+    const body: Record<string, unknown> = {
+      estimateId,
+      paymentType,
+      estimateTotalCents,
+    };
+    if (paymentType === "deposit" && customDepositCents != null) body.customDepositCents = customDepositCents;
+    if (paymentType === "full" && typeof remainingCentsForFull === "number" && remainingCentsForFull > 0) {
+      body.amountCents = Math.floor(remainingCentsForFull);
+    }
+
     const res = await fetch("/api/payments/create-checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        estimateId,
-        paymentType,
-        estimateTotalCents,
-        ...(estimateOrOpts?.customDepositCents ? { customDepositCents: estimateOrOpts.customDepositCents } : {}),
-      }),
+      body: JSON.stringify(body),
     });
     const json = await res.json();
     if (!json?.ok || !json?.url) {
@@ -808,7 +830,7 @@ function SavedEstimateCard({
   batchStatuses?: Record<string, { status: string; viewedAt?: string | null; approvedAt?: string | null }>;
   paymentState?: { depositAmountCents?: number; fullAmountCents?: number; offlinePaidCents?: number; offlineTransactions?: Array<{ stage?: string; amountCents?: number }> } | null;
   checkoutLoading?: Record<string, "deposit" | "full" | null>;
-  onStartCheckout?: (estimateId: string, paymentType: "deposit" | "full", estimate: any) => void;
+  onStartCheckout?: (estimateId: string, paymentType: "deposit" | "full", estimate: any, remainingCentsForFull?: number) => void;
   onOpenDepositModal?: (estimate: any) => void;
   onOpenOfflineModal?: (estimate: any) => void;
   onOpenTransactions?: (estimate: any) => void;
@@ -1020,9 +1042,30 @@ function SavedEstimateCard({
           {/* RIGHT: Actions */}
           <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
             {/* ===== PAYMENT ACTIONS ===== */}
-            {estimate.status !== "paid" && (
+            {(() => {
+              const totalCents = toEstimateTotalCents(estimate);
+              const depositPaidCents = paymentState?.depositAmountCents || 0;
+              const fullPaidCents = paymentState?.fullAmountCents || 0;
+              const offlinePaidCents = (paymentState as { offlinePaidCents?: number } | undefined)?.offlinePaidCents || 0;
+              const offlineTx = ((paymentState as { offlineTransactions?: Array<{ stage?: string; amountCents?: number }> } | undefined)?.offlineTransactions || []) as { stage?: string; amountCents?: number }[];
+              const offlineDepositCents = Array.isArray(offlineTx)
+                ? offlineTx.filter((t) => t?.stage === "deposit").reduce((sum, t) => sum + (t?.amountCents || 0), 0)
+                : 0;
+              const collectedCents = depositPaidCents + fullPaidCents + offlinePaidCents;
+              const remainingCents = Math.max(totalCents - collectedCents, 0);
+              const depositAlreadyPaid =
+                depositPaidCents > 0 ||
+                offlineDepositCents > 0 ||
+                estimate.status === "deposit_paid" ||
+                estimate.status === "paid";
+              const showDeposit = !depositAlreadyPaid && remainingCents > 0;
+              const showFull = remainingCents > 0;
+
+              if (remainingCents <= 0) return null;
+
+              return (
               <div className="flex flex-wrap items-center gap-2">
-                {estimate.status !== "deposit_paid" && (
+                {showDeposit && (
                   <button
                     type="button"
                     disabled={checkoutLoading?.[estimate.id] === "deposit"}
@@ -1035,16 +1078,21 @@ function SavedEstimateCard({
                   </button>
                 )}
 
-                <button
-                  type="button"
-                  disabled={checkoutLoading?.[estimate.id] === "full"}
-                  onClick={() => onStartCheckout?.(estimate.id, "full", estimate)}
-                  className={`${actionBtn} rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white`}
-                >
-                  {checkoutLoading?.[estimate.id] === "full" ? "Opening…" : "Collect Full"}
-                </button>
+                {showFull && (
+                  <button
+                    type="button"
+                    disabled={checkoutLoading?.[estimate.id] === "full"}
+                    onClick={() => {
+                      onStartCheckout?.(estimate.id, "full", estimate, remainingCents);
+                    }}
+                    className={`${actionBtn} rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white`}
+                  >
+                    {checkoutLoading?.[estimate.id] === "full" ? "Opening…" : "Collect Full"}
+                  </button>
+                )}
               </div>
-            )}
+              );
+            })()}
 
             {SHOW_INTERNAL_ACTIONS && (
               <>
@@ -2062,7 +2110,7 @@ export default function SavedClient() {
               batchStatuses={batchStatuses}
               paymentState={paymentStates[e.id] ?? null}
               checkoutLoading={checkoutLoading}
-              onStartCheckout={(id, type, est) => startCheckout(id, type, est, setCheckoutLoading)}
+              onStartCheckout={(id, type, est, remainingCentsForFull) => startCheckout(id, type, est, setCheckoutLoading, remainingCentsForFull)}
               onOpenDepositModal={(est) =>
                 setDepositModal({
                   open: true,
@@ -2231,7 +2279,16 @@ export default function SavedClient() {
       })()}
 
       {/* Deposit picker modal */}
-      {depositModal.open && depositModal.estimateId && (
+      {depositModal.open && depositModal.estimateId && (() => {
+        const ps = paymentStates[depositModal.estimateId] ?? null;
+        const stripeCollected = (ps?.depositAmountCents ?? 0) + (ps?.fullAmountCents ?? 0);
+        const offlineCollected = (ps as { offlinePaidCents?: number })?.offlinePaidCents ?? 0;
+        const hasAnyPayment =
+          stripeCollected > 0 ||
+          offlineCollected > 0 ||
+          (Array.isArray((ps as { offlineTransactions?: unknown[] })?.offlineTransactions) ? (ps as { offlineTransactions: unknown[] }).offlineTransactions.length : 0) > 0;
+
+        return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="w-full max-w-md rounded-3xl border border-white/10 bg-[#0b1220] p-5 shadow-xl">
             <div className="flex items-center justify-between">
@@ -2248,20 +2305,28 @@ export default function SavedClient() {
               Total: {formatCentsToCurrency(toEstimateTotalCents({ totalContractPrice: depositModal.estimateTotal, suggestedPrice: depositModal.estimateTotal }))}
             </div>
 
+            {hasAnyPayment ? (
+              <div className="mt-4 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+                Deposit amount is locked after the first payment. To change totals, update the estimate (change order) then collect remaining.
+              </div>
+            ) : null}
+
             <div className="mt-4 flex gap-2">
               <button
-                onClick={() => setDepositModal((s) => ({ ...s, mode: "percent" }))}
+                onClick={() => !hasAnyPayment && setDepositModal((s) => ({ ...s, mode: "percent" }))}
+                disabled={hasAnyPayment}
                 className={`rounded-xl px-3 py-2 text-sm font-medium transition ${
                   depositModal.mode === "percent" ? "bg-white/15 text-white" : "bg-white/5 text-white/80 hover:bg-white/10"
-                }`}
+                } ${hasAnyPayment ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 Percent
               </button>
               <button
-                onClick={() => setDepositModal((s) => ({ ...s, mode: "dollars" }))}
+                onClick={() => !hasAnyPayment && setDepositModal((s) => ({ ...s, mode: "dollars" }))}
+                disabled={hasAnyPayment}
                 className={`rounded-xl px-3 py-2 text-sm font-medium transition ${
                   depositModal.mode === "dollars" ? "bg-white/15 text-white" : "bg-white/5 text-white/80 hover:bg-white/10"
-                }`}
+                } ${hasAnyPayment ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 Custom $
               </button>
@@ -2273,10 +2338,11 @@ export default function SavedClient() {
                   {[10, 15, 20, 25].map((p) => (
                     <button
                       key={p}
-                      onClick={() => setDepositModal((s) => ({ ...s, percent: p }))}
+                      onClick={() => !hasAnyPayment && setDepositModal((s) => ({ ...s, percent: p }))}
+                      disabled={hasAnyPayment}
                       className={`rounded-xl px-3 py-2 text-sm font-medium transition ${
                         depositModal.percent === p ? "bg-emerald-600 text-white" : "bg-white/5 text-white/80 hover:bg-white/10"
-                      }`}
+                      } ${hasAnyPayment ? "opacity-50 cursor-not-allowed" : ""}`}
                     >
                       {p}%
                     </button>
@@ -2291,9 +2357,10 @@ export default function SavedClient() {
                 <label className="text-sm text-white/70">Deposit amount</label>
                 <input
                   value={depositModal.customValue}
-                  onChange={(e) => setDepositModal((s) => ({ ...s, customValue: e.target.value }))}
+                  onChange={(e) => !hasAnyPayment && setDepositModal((s) => ({ ...s, customValue: e.target.value }))}
+                  disabled={hasAnyPayment}
                   placeholder="Example: 500"
-                  className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:border-white/20"
+                  className={`mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:border-white/20 ${hasAnyPayment ? "opacity-50 cursor-not-allowed" : ""}`}
                 />
                 <div className="mt-2 text-xs text-white/50">Enter dollars (numbers only). Example: 500</div>
               </div>
@@ -2307,7 +2374,9 @@ export default function SavedClient() {
                 Cancel
               </button>
               <button
+                disabled={hasAnyPayment}
                 onClick={async () => {
+                  if (hasAnyPayment) return;
                   const estimateTotalCents = toEstimateTotalCents({ totalContractPrice: depositModal.estimateTotal, suggestedPrice: depositModal.estimateTotal });
                   const customDepositCents =
                     depositModal.mode === "percent"
@@ -2321,14 +2390,15 @@ export default function SavedClient() {
 
                   setDepositModal((s) => ({ ...s, open: false }));
                 }}
-                className="flex-1 rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-500"
+                className={`flex-1 rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-500 ${hasAnyPayment ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 Continue to payment
               </button>
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* Offline payment modal */}
       {offlineModal.open && offlineModal.estimateId && (

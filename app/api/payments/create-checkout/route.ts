@@ -51,27 +51,50 @@ export async function POST(req: NextRequest) {
     const fullPaid = paymentState?.fullAmountCents || 0;
     const offlinePaid = (paymentState as { offlinePaidCents?: number })?.offlinePaidCents || 0;
     const alreadyCollected = depositPaid + fullPaid + offlinePaid;
-    const remaining = Math.max(estimateTotalCents - alreadyCollected, 0);
+    const remainingCents = Math.max(0, estimateTotalCents - alreadyCollected);
 
-    const customDepositCents = Number(body?.customDepositCents || 0);
+    const customDepositCentsRaw = Number(body?.customDepositCents ?? 0);
+    const clientAmountCentsRaw = Number(body?.amountCents ?? 0);
 
-    let amountCents = 0;
+    let amountCents: number;
 
-    if (paymentType === "deposit") {
-      if (customDepositCents > 0) {
-        amountCents = Math.min(Math.max(100, customDepositCents), remaining);
+    if (paymentType === "full") {
+      amountCents = remainingCents;
+      const clientAmount = Number.isFinite(clientAmountCentsRaw) ? Math.floor(clientAmountCentsRaw) : 0;
+      if (clientAmount > 0 && clientAmount !== remainingCents) {
+        return NextResponse.json(
+          { ok: false, error: "Full payment must equal remaining balance" },
+          { status: 400 }
+        );
+      }
+    } else {
+      if (customDepositCentsRaw > 0) {
+        const requested = Math.floor(customDepositCentsRaw);
+        if (!Number.isFinite(requested) || requested <= 0) {
+          return NextResponse.json(
+            { ok: false, error: "Invalid deposit amount" },
+            { status: 400 }
+          );
+        }
+        amountCents = Math.min(Math.max(100, requested), remainingCents);
       } else {
         const depositPercent = 0.2;
         const depositTarget = Math.round(estimateTotalCents * depositPercent);
         amountCents = Math.max(depositTarget - depositPaid, 0);
       }
-    } else {
-      amountCents = remaining;
     }
 
-    if (amountCents <= 0) {
+    amountCents = Math.floor(amountCents);
+    if (!Number.isFinite(amountCents) || amountCents <= 0) {
       return NextResponse.json(
         { ok: false, error: "Nothing left to charge" },
+        { status: 400 }
+      );
+    }
+
+    if (amountCents > remainingCents) {
+      return NextResponse.json(
+        { ok: false, error: "Amount exceeds remaining balance" },
         { status: 400 }
       );
     }
