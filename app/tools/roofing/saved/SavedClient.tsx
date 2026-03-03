@@ -2277,11 +2277,16 @@ export default function SavedClient() {
                   const items = byDate.get(dateKey)!;
                   const isToday = dateKey === todayKey;
                   return (
-                    <div key={dateKey} className="space-y-3">
+                    <div
+                      key={dateKey}
+                      className="space-y-4 rounded-2xl border border-white/10 bg-white/[0.02] p-4"
+                    >
                       <div
                         className={
-                          "rounded-2xl border border-white/10 px-4 py-3 " +
-                          (isToday ? "bg-emerald-500/10 border-emerald-400/20" : "bg-white/[0.04]")
+                          "mb-3 flex items-center justify-between rounded-xl px-3 py-2 text-sm font-semibold " +
+                          (isToday
+                            ? "bg-emerald-500/15 text-emerald-200 border border-emerald-400/30"
+                            : "bg-white/[0.06] text-white/90 border border-white/10")
                         }
                       >
                         <div className="flex flex-wrap items-center justify-between gap-2">
