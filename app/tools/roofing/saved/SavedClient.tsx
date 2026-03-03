@@ -128,6 +128,66 @@ function toEstimateTotalCents(estimate: { totalContractPrice?: number; suggested
   return Math.round(v * 100);
 }
 
+type PaymentStateLite = {
+  depositAmountCents?: number | null;
+  fullAmountCents?: number | null;
+  offlineTransactions?: Array<{ amountCents?: number }>;
+};
+
+function sumOfflineCents(ps?: PaymentStateLite | null): number {
+  const tx = ps?.offlineTransactions ?? [];
+  return tx.reduce((acc, t) => acc + (Number(t?.amountCents) || 0), 0);
+}
+
+function collectedCentsFromPaymentState(ps?: PaymentStateLite | null): number {
+  const deposit = Number(ps?.depositAmountCents) || 0;
+  const full = Number(ps?.fullAmountCents) || 0;
+  const offline = sumOfflineCents(ps);
+  return deposit + full + offline;
+}
+
+function derivePaymentBadge(
+  totalCents: number,
+  ps?: PaymentStateLite | null
+): { pill: "paid" | "deposit_paid" | null } {
+  const total = Math.max(0, Number(totalCents) || 0);
+  const deposit = Number(ps?.depositAmountCents) || 0;
+  const full = Number(ps?.fullAmountCents) || 0;
+  const collected = Math.min(total, collectedCentsFromPaymentState(ps));
+
+  if (full > 0 || collected >= total) return { pill: "paid" };
+  if (deposit > 0) return { pill: "deposit_paid" };
+  return { pill: null };
+}
+
+function parseScheduledSortKey(est: any): number {
+  const dateStr = est?.scheduledStartDate ?? est?.scheduledDateISO ?? est?.scheduledDate ?? est?.scheduleDate;
+  if (!dateStr) return Number.POSITIVE_INFINITY;
+  const d = new Date(dateStr + "T00:00:00");
+  const base = d.getTime();
+  const tw = String(est?.scheduledArrivalWindow ?? est?.scheduledTimeWindow ?? "").trim();
+  const hasTime = tw.length > 0;
+  return hasTime ? base : base + 12 * 60 * 60 * 1000;
+}
+
+function isPastScheduled(est: any): boolean {
+  const dateStr = est?.scheduledStartDate ?? est?.scheduledDateISO ?? est?.scheduledDate ?? est?.scheduleDate;
+  if (!dateStr) return false;
+  const d = new Date(dateStr + "T00:00:00");
+  const today = new Date();
+  const t0 = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+  return d.getTime() < t0;
+}
+
+function formatScheduledDisplay(dateStr?: string | null, timeWindow?: string | null): string {
+  if (!dateStr) return "";
+  const d = new Date(dateStr + "T00:00:00");
+  if (Number.isNaN(d.getTime())) return "";
+  const formatted = d.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" });
+  const tw = (timeWindow ?? "").trim();
+  return tw ? `Scheduled: ${formatted} • ${tw}` : `Scheduled: ${formatted} • Time TBD`;
+}
+
 type TxItem = {
   label: string;
   amountCents: number;
@@ -862,6 +922,9 @@ function SavedEstimateCard({
           : status;
   const displayStatus =
     isApproved ? effectiveStatus : isSent && viewedAt ? "viewed" : isSent && !viewedAt ? "not_viewed" : effectiveStatus;
+  const totalCents = toEstimateTotalCents(estimate);
+  const badge = derivePaymentBadge(totalCents, paymentState ?? undefined);
+  const pillStatus = (badge.pill ?? displayStatus) as string;
   const hasApproval = Boolean(estimate?.approvalToken);
   const statusStr = (estimate?.status ?? "").toLowerCase();
   const isSentLike =
@@ -892,7 +955,7 @@ function SavedEstimateCard({
                 {(estimate.tierLabel ?? estimate.selectedTier ?? "Core").toString()}
               </span>
 
-              <StatusPill status={displayStatus} />
+              <StatusPill status={pillStatus} />
             </div>
 
             <div className="mt-4 text-xl font-bold text-white tracking-tight">
@@ -914,6 +977,14 @@ function SavedEstimateCard({
                 {estimate.area ?? estimate.roofAreaSqFt ?? "—"}
               </span>
             </div>
+
+            {(status === "scheduled" || status === "paid") && (estimate?.scheduledStartDate || estimate?.scheduledArrivalWindow) && (
+              <div className="mt-2 text-sm text-white/60">
+                {estimate.scheduledStartDate
+                  ? formatScheduledDisplay(estimate.scheduledStartDate, estimate.scheduledArrivalWindow)
+                  : "Schedule: TBD"}
+              </div>
+            )}
           </div>
 
           <div className="flex shrink-0 flex-col items-end gap-2 text-right">
@@ -1212,6 +1283,7 @@ export default function SavedClient() {
   const [estimates, setEstimates] = useState<RoofingEstimate[]>([]);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "estimate" | "sent_pending" | "approved" | "deposit_paid" | "scheduled" | "paid">("all");
+  const [scheduledView, setScheduledView] = useState<"upcoming" | "past" | "all">("upcoming");
   const [flashId, setFlashId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [schedulingForId, setSchedulingForId] = useState<string | null>(null);
@@ -1394,11 +1466,21 @@ export default function SavedClient() {
         const json = await res.json();
         if (!json?.ok || !json?.payment?.status) return;
 
-        const paymentStatus = json.payment.status as "deposit_paid" | "paid";
+        const payment = json.payment;
+        const paymentStatus = payment.status as "deposit_paid" | "paid";
         if (paymentStatus === "paid" || paymentStatus === "deposit_paid") {
           markSavedEstimateStatus(id, paymentStatus);
           setEstimates(getNormalizedEstimates());
         }
+        setPaymentStates((prev) => ({
+          ...prev,
+          [id]: {
+            depositAmountCents: payment.depositAmountCents ?? undefined,
+            fullAmountCents: payment.fullAmountCents ?? undefined,
+            offlinePaidCents: (payment as { offlinePaidCents?: number }).offlinePaidCents ?? undefined,
+            offlineTransactions: (payment as { offlineTransactions?: Array<{ stage?: string; amountCents?: number }> }).offlineTransactions ?? undefined,
+          },
+        }));
         window.history.replaceState({}, "", "/tools/roofing/saved");
       } catch {
         // ignore
@@ -1544,6 +1626,15 @@ export default function SavedClient() {
       return ta - tb;
     });
 
+    setPaymentStates((prev) => ({
+      ...prev,
+      [id]: {
+        depositAmountCents: ps?.depositAmountCents ?? undefined,
+        fullAmountCents: ps?.fullAmountCents ?? undefined,
+        offlinePaidCents: (ps as { offlinePaidCents?: number })?.offlinePaidCents ?? undefined,
+        offlineTransactions: (ps as { offlineTransactions?: Array<{ stage?: string; amountCents?: number }> })?.offlineTransactions ?? undefined,
+      },
+    }));
     setTxModal((s) => ({
       ...s,
       loading: false,
@@ -1757,7 +1848,7 @@ export default function SavedClient() {
 
   const searchFiltered = useMemo(() => estimates.filter(bySearch), [estimates, query]);
 
-  const filtered = searchFiltered
+  let filtered = searchFiltered
     .filter((e) => {
       if (statusFilter === "all") return true;
       const s = e.status || "estimate";
@@ -1765,6 +1856,16 @@ export default function SavedClient() {
       if (statusFilter === "sent_pending") return norm === "pending" || s === "sent";
       return norm === normalizeStatusValue(statusFilter);
     });
+
+  if (statusFilter === "scheduled") {
+    filtered = filtered
+      .filter((est) => {
+        if (scheduledView === "all") return true;
+        const past = isPastScheduled(est);
+        return scheduledView === "past" ? past : !past;
+      })
+      .sort((a, b) => parseScheduledSortKey(a) - parseScheduledSortKey(b));
+  }
 
   // ===============================
   // STAGE CONVERSION (STAGE REACHED)
@@ -1939,6 +2040,25 @@ export default function SavedClient() {
               </button>
             ))}
           </div>
+
+          {statusFilter === "scheduled" && (
+            <div className="flex flex-wrap gap-2 text-xs mt-2">
+              {(["upcoming", "past", "all"] as const).map((key) => (
+                <button
+                  key={key}
+                  onClick={() => setScheduledView(key)}
+                  className={
+                    "rounded-full border px-3 py-1.5 text-xs font-semibold transition " +
+                    (scheduledView === key
+                      ? "border-white/20 bg-white/[0.10] text-white"
+                      : "border-white/10 bg-white/[0.05] text-white/70 hover:bg-white/[0.08] hover:text-white/90")
+                  }
+                >
+                  {key === "upcoming" ? "Upcoming" : key === "past" ? "Past" : "All"}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {hydrated && (
