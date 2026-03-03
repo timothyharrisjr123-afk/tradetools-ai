@@ -128,6 +128,15 @@ function toEstimateTotalCents(estimate: { totalContractPrice?: number; suggested
   return Math.round(v * 100);
 }
 
+function sumCollectedCents(ps: any): number {
+  const stripe = (Number(ps?.depositAmountCents) || 0) + (Number(ps?.fullAmountCents) || 0);
+  const offline = Array.isArray(ps?.offlineTransactions)
+    ? ps.offlineTransactions.reduce((acc: number, t: any) => acc + (Number(t?.amountCents) || 0), 0)
+    : (Number(ps?.offlineCollectedCents) ?? Number(ps?.offlinePaidCents) ?? 0) || 0;
+  const total = Number(stripe) + Number(offline);
+  return Number.isFinite(total) ? Math.max(0, Math.floor(total)) : 0;
+}
+
 type PaymentStateLite = {
   depositAmountCents?: number | null;
   fullAmountCents?: number | null;
@@ -923,8 +932,12 @@ function SavedEstimateCard({
   const displayStatus =
     isApproved ? effectiveStatus : isSent && viewedAt ? "viewed" : isSent && !viewedAt ? "not_viewed" : effectiveStatus;
   const totalCents = toEstimateTotalCents(estimate);
-  const badge = derivePaymentBadge(totalCents, paymentState ?? undefined);
-  const pillStatus = (badge.pill ?? displayStatus) as string;
+  const ps = paymentState ?? null;
+  const collectedCents = sumCollectedCents(ps);
+  const remainingCents = Math.max(0, totalCents - collectedCents);
+  const isPaid = totalCents > 0 && collectedCents >= totalCents;
+  const isDepositPaid = collectedCents > 0 && !isPaid;
+  const pillStatus = (isPaid ? "paid" : isDepositPaid ? "deposit_paid" : displayStatus) as string;
   const hasApproval = Boolean(estimate?.approvalToken);
   const statusStr = (estimate?.status ?? "").toLowerCase();
   const isSentLike =
@@ -1062,10 +1075,8 @@ function SavedEstimateCard({
               </span>
             </div>
             {(() => {
-              const totalCents = toEstimateTotalCents(estimate);
               const depositPaidCents = paymentState?.depositAmountCents || 0;
               const fullPaidCents = paymentState?.fullAmountCents || 0;
-              const offlinePaidCents = (paymentState as { offlinePaidCents?: number } | undefined)?.offlinePaidCents || 0;
               const offlineTx = ((paymentState as { offlineTransactions?: Array<{ stage?: string; amountCents?: number }> } | undefined)?.offlineTransactions || []) as { stage?: string; amountCents?: number }[];
               const offlineDepositCents = Array.isArray(offlineTx)
                 ? offlineTx.filter((t) => t?.stage === "deposit").reduce((sum, t) => sum + (t?.amountCents || 0), 0)
@@ -1073,9 +1084,7 @@ function SavedEstimateCard({
               const offlineAdditionalCents = Array.isArray(offlineTx)
                 ? offlineTx.filter((t) => t?.stage !== "deposit").reduce((sum, t) => sum + (t?.amountCents || 0), 0)
                 : 0;
-              const collectedCents = depositPaidCents + fullPaidCents + offlinePaidCents;
-              const remainingCents = Math.max(totalCents - collectedCents, 0);
-              return collectedCents > 0 ? (
+              return collectedCents > 0 || remainingCents > 0 ? (
                 <div className="mt-2 text-sm text-white/80 space-y-1">
                   {depositPaidCents > 0 && (
                     <div className="flex items-center justify-between">
@@ -1113,30 +1122,9 @@ function SavedEstimateCard({
           {/* RIGHT: Actions */}
           <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
             {/* ===== PAYMENT ACTIONS ===== */}
-            {(() => {
-              const totalCents = toEstimateTotalCents(estimate);
-              const depositPaidCents = paymentState?.depositAmountCents || 0;
-              const fullPaidCents = paymentState?.fullAmountCents || 0;
-              const offlinePaidCents = (paymentState as { offlinePaidCents?: number } | undefined)?.offlinePaidCents || 0;
-              const offlineTx = ((paymentState as { offlineTransactions?: Array<{ stage?: string; amountCents?: number }> } | undefined)?.offlineTransactions || []) as { stage?: string; amountCents?: number }[];
-              const offlineDepositCents = Array.isArray(offlineTx)
-                ? offlineTx.filter((t) => t?.stage === "deposit").reduce((sum, t) => sum + (t?.amountCents || 0), 0)
-                : 0;
-              const collectedCents = depositPaidCents + fullPaidCents + offlinePaidCents;
-              const remainingCents = Math.max(totalCents - collectedCents, 0);
-              const depositAlreadyPaid =
-                depositPaidCents > 0 ||
-                offlineDepositCents > 0 ||
-                estimate.status === "deposit_paid" ||
-                estimate.status === "paid";
-              const showDeposit = !depositAlreadyPaid && remainingCents > 0;
-              const showFull = remainingCents > 0;
-
-              if (remainingCents <= 0) return null;
-
-              return (
+            {!isPaid && totalCents > 0 && (
               <div className="flex flex-wrap items-center gap-2">
-                {showDeposit && (
+                {collectedCents === 0 && (
                   <button
                     type="button"
                     disabled={checkoutLoading?.[estimate.id] === "deposit"}
@@ -1149,21 +1137,18 @@ function SavedEstimateCard({
                   </button>
                 )}
 
-                {showFull && (
-                  <button
-                    type="button"
-                    disabled={checkoutLoading?.[estimate.id] === "full"}
-                    onClick={() => {
-                      onStartCheckout?.(estimate.id, "full", estimate, remainingCents);
-                    }}
-                    className={`${actionBtn} rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white`}
-                  >
-                    {checkoutLoading?.[estimate.id] === "full" ? "Opening…" : "Collect Full"}
-                  </button>
-                )}
+                <button
+                  type="button"
+                  disabled={checkoutLoading?.[estimate.id] === "full"}
+                  onClick={() => {
+                    onStartCheckout?.(estimate.id, "full", estimate, remainingCents);
+                  }}
+                  className={`${actionBtn} rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white`}
+                >
+                  {checkoutLoading?.[estimate.id] === "full" ? "Opening…" : "Collect Full"}
+                </button>
               </div>
-              );
-            })()}
+            )}
 
             {SHOW_INTERNAL_ACTIONS && (
               <>
