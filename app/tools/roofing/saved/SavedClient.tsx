@@ -19,6 +19,36 @@ import {
   type RoofingEstimate,
 } from "@/app/lib/estimateStore";
 
+function pad2(n: number) {
+  return String(n).padStart(2, "0");
+}
+function toLocalDateKey(d: Date) {
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+function formatLocalDateHeader(dateKey: string) {
+  const [y, m, d] = dateKey.split("-").map((v) => Number(v));
+  const dt = new Date(y, (m || 1) - 1, d || 1);
+  return dt.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+}
+function getScheduledDateKeyFromEstimate(est: any): string | null {
+  if (est?.scheduledStartDate) {
+    const dt = new Date(est.scheduledStartDate + "T00:00:00");
+    if (!Number.isNaN(dt.getTime())) return toLocalDateKey(dt);
+  }
+  const s = est?.schedule ?? est?.scheduleInfo ?? est?.scheduled ?? est?.scheduledInfo ?? est?.scheduledAt ?? est?.scheduleAt ?? null;
+  const candidates: any[] = [];
+  if (typeof s === "string" || typeof s === "number") candidates.push(s);
+  if (s && typeof s === "object") {
+    candidates.push(s.date, s.scheduledDate, s.day, s.start, s.startISO, s.startAt, s.windowStart, s.when, s.at, s.timestamp);
+  }
+  for (const c of candidates) {
+    if (!c) continue;
+    const dt = new Date(c);
+    if (!Number.isNaN(dt.getTime())) return toLocalDateKey(dt);
+  }
+  return null;
+}
+
 function getClientBaseUrl() {
   const envBase =
     (process.env.NEXT_PUBLIC_APP_URL || "").toString().trim();
@@ -894,6 +924,7 @@ function SavedEstimateCard({
   onMarkApproved,
   onView,
   isFlashing,
+  showRescheduleButton,
 }: {
   estimate: any;
   batchStatuses?: Record<string, { status: string; viewedAt?: string | null; approvedAt?: string | null }>;
@@ -915,6 +946,7 @@ function SavedEstimateCard({
   onMarkApproved?: (e: any) => void;
   onView?: (e: any) => void;
   isFlashing?: boolean;
+  showRescheduleButton?: boolean;
 }) {
   const status = normalizePipelineStatus(getStage(estimate));
   const remote = estimate?.approvalToken && batchStatuses ? batchStatuses[estimate.approvalToken] : null;
@@ -1001,6 +1033,15 @@ function SavedEstimateCard({
           </div>
 
           <div className="flex shrink-0 flex-col items-end gap-2 text-right">
+            {showRescheduleButton && status === "scheduled" && (
+              <button
+                type="button"
+                onClick={() => onSchedule?.(estimate)}
+                className="rounded-xl border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white/90 hover:bg-white/10"
+              >
+                Reschedule
+              </button>
+            )}
             {/* Status line (primary) */}
             <div className="text-emerald-300 text-sm font-semibold">
               {isSent && !viewedAt
@@ -2208,7 +2249,134 @@ export default function SavedClient() {
         )}
 
         <div className="space-y-4">
-          {hydrated && filtered.map((e) => (
+          {hydrated && statusFilter === "scheduled" && (() => {
+            const scheduledItems = filtered;
+            const todayKey = toLocalDateKey(new Date());
+            const byDate = new Map<string, typeof scheduledItems>();
+            for (const est of scheduledItems) {
+              const key = getScheduledDateKeyFromEstimate(est) ?? "No Date";
+              if (!byDate.has(key)) byDate.set(key, []);
+              byDate.get(key)!.push(est);
+            }
+            const sortedKeys = Array.from(byDate.keys()).sort((a, b) => {
+              if (a === "No Date") return 1;
+              if (b === "No Date") return -1;
+              if (a === todayKey) return -1;
+              if (b === todayKey) return 1;
+              return a.localeCompare(b);
+            });
+            return (
+              <div className="space-y-6">
+                {sortedKeys.map((dateKey) => {
+                  const items = byDate.get(dateKey)!;
+                  const isToday = dateKey === todayKey;
+                  return (
+                    <div key={dateKey} className="space-y-3">
+                      <div
+                        className={
+                          "rounded-2xl border border-white/10 px-4 py-3 " +
+                          (isToday ? "bg-emerald-500/10 border-emerald-400/20" : "bg-white/[0.04]")
+                        }
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span className="text-sm font-semibold text-white">
+                            {dateKey === "No Date" ? "No Date" : formatLocalDateHeader(dateKey)}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            {isToday && (
+                              <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[11px] font-semibold text-emerald-300">
+                                Today
+                              </span>
+                            )}
+                            <span className="text-xs text-white/50 tabular-nums">{items.length} job{items.length !== 1 ? "s" : ""}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="space-y-4">
+                        {items.map((e) => (
+                          <SavedEstimateCard
+                            key={e.id}
+                            estimate={e}
+                            batchStatuses={batchStatuses}
+                            paymentState={paymentStates[e.id] ?? null}
+                            checkoutLoading={checkoutLoading}
+                            showRescheduleButton
+                            onStartCheckout={(id, type, est, remainingCentsForFull) => startCheckout(id, type, est, setCheckoutLoading, remainingCentsForFull)}
+                            onOpenDepositModal={(est) =>
+                              setDepositModal({
+                                open: true,
+                                estimateId: est.id,
+                                estimateTotal: Number(est.totalContractPrice ?? est.suggestedPrice ?? 0),
+                                customValue: "",
+                                mode: "percent",
+                                percent: 10,
+                              })
+                            }
+                            onOpenOfflineModal={(est) => {
+                              const total = Number(est.totalContractPrice ?? est.suggestedPrice ?? 0);
+                              const totalCents = Math.round(total * 100);
+                              const ps = paymentStates[est.id];
+                              const depositPaidCents = ps?.depositAmountCents || 0;
+                              const fullPaidCents = ps?.fullAmountCents || 0;
+                              const offlinePaidCents = ps?.offlinePaidCents || 0;
+                              const remainingCents = Math.max(totalCents - (depositPaidCents + fullPaidCents + offlinePaidCents), 0);
+                              const remainingDollars = remainingCents / 100;
+                              setOfflineModal({
+                                open: true,
+                                estimateId: est.id,
+                                estimateTotal: total,
+                                remaining: remainingDollars,
+                                amount: remainingDollars ? String(remainingDollars.toFixed(2)) : "",
+                                method: "cash",
+                                notes: "",
+                                stage: "deposit",
+                              });
+                            }}
+                            onOpenTransactions={openTransactions}
+                            openMoreFor={openMoreFor}
+                            setOpenMoreFor={setOpenMoreFor}
+                            moreMenuRef={moreMenuRef}
+                            onLoad={(est) => handleAction(est, "load")}
+                            onDelete={(id) => {
+                              const est = filtered.find((x) => x.id === id);
+                              if (est) handleAction(est, "delete");
+                            }}
+                            onStatusChange={(id, status) => {
+                              const statusTyped = status as "estimate" | "sent" | "sent_pending" | "approved" | "deposit_paid" | "scheduled" | "paid";
+                              if (statusTyped === "scheduled") {
+                                const est = filtered.find((x) => x.id === id);
+                                if (est && !est.scheduledStartDate) {
+                                  setToast("Pick a start date to schedule.");
+                                  setTimeout(() => setToast(null), 2500);
+                                  setSchedulingForId(id);
+                                  setScheduleStartDate((est?.scheduledStartDate || "").trim() || new Date().toISOString().slice(0, 10));
+                                  setScheduleArrivalWindow((est?.scheduledArrivalWindow || "").trim());
+                                  setScheduleNotes((est?.scheduleNotes || "").trim());
+                                  return;
+                                }
+                              }
+                              updateSavedEstimate(id, { status: statusTyped });
+                              setEstimates(getNormalizedEstimates());
+                              const label = statusTyped.charAt(0).toUpperCase() + statusTyped.slice(1);
+                              setToast(statusTyped === "approved" ? "Approved ✅" : statusTyped === "scheduled" ? "Scheduled ✅" : `Status updated → ${label}`);
+                              setTimeout(() => setToast(null), 2500);
+                            }}
+                            onSend={(est) => handleAction(est, "send")}
+                            onSchedule={(est) => handleAction(est, "schedule")}
+                            onRecordPayment={(est) => handleAction(est, "pay")}
+                            onMarkApproved={(est) => handleAction(est, "approve")}
+                            onView={(est) => handleAction(est, "load")}
+                            isFlashing={e.id === flashId}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
+          {hydrated && statusFilter !== "scheduled" && filtered.map((e) => (
             <SavedEstimateCard
               key={e.id}
               estimate={e}
