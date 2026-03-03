@@ -31,21 +31,26 @@ function formatLocalDateHeader(dateKey: string) {
   return dt.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
 }
 function getScheduledDateKeyFromEstimate(est: any): string | null {
-  if (est?.scheduledStartDate) {
-    const dt = new Date(est.scheduledStartDate + "T00:00:00");
-    if (!Number.isNaN(dt.getTime())) return toLocalDateKey(dt);
-  }
-  const s = est?.schedule ?? est?.scheduleInfo ?? est?.scheduled ?? est?.scheduledInfo ?? est?.scheduledAt ?? est?.scheduleAt ?? null;
-  const candidates: any[] = [];
-  if (typeof s === "string" || typeof s === "number") candidates.push(s);
-  if (s && typeof s === "object") {
-    candidates.push(s.date, s.scheduledDate, s.day, s.start, s.startISO, s.startAt, s.windowStart, s.when, s.at, s.timestamp);
-  }
+  const candidates = [
+    est?.scheduledStartDate,
+    est?.schedule?.date,
+    est?.scheduleInfo?.date,
+    est?.scheduled?.date,
+    est?.scheduledAt,
+    est?.scheduleAt
+  ];
+
   for (const c of candidates) {
     if (!c) continue;
     const dt = new Date(c);
-    if (!Number.isNaN(dt.getTime())) return toLocalDateKey(dt);
+    if (!Number.isNaN(dt.getTime())) {
+      const y = dt.getFullYear();
+      const m = String(dt.getMonth() + 1).padStart(2, "0");
+      const d = String(dt.getDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    }
   }
+
   return null;
 }
 
