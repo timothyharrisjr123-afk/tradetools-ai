@@ -31,27 +31,36 @@ function formatLocalDateHeader(dateKey: string) {
   return dt.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
 }
 function getScheduledDateKeyFromEstimate(est: any): string | null {
-  const candidates = [
-    est?.scheduledStartDate,
-    est?.schedule?.date,
-    est?.scheduleInfo?.date,
-    est?.scheduled?.date,
-    est?.scheduledAt,
-    est?.scheduleAt
-  ];
 
-  for (const c of candidates) {
-    if (!c) continue;
-    const dt = new Date(c);
+  if (est?.scheduledStartDate) {
+    const dt = new Date(est.scheduledStartDate)
     if (!Number.isNaN(dt.getTime())) {
-      const y = dt.getFullYear();
-      const m = String(dt.getMonth() + 1).padStart(2, "0");
-      const d = String(dt.getDate()).padStart(2, "0");
-      return `${y}-${m}-${d}`;
+      const y = dt.getFullYear()
+      const m = String(dt.getMonth() + 1).padStart(2,"0")
+      const d = String(dt.getDate()).padStart(2,"0")
+      return `${y}-${m}-${d}`
     }
   }
 
-  return null;
+  const fallback = [
+    est?.schedule?.date,
+    est?.scheduleInfo?.date,
+    est?.scheduled?.date,
+    est?.scheduledAt
+  ]
+
+  for (const c of fallback) {
+    if (!c) continue
+    const dt = new Date(c)
+    if (!Number.isNaN(dt.getTime())) {
+      const y = dt.getFullYear()
+      const m = String(dt.getMonth() + 1).padStart(2,"0")
+      const d = String(dt.getDate()).padStart(2,"0")
+      return `${y}-${m}-${d}`
+    }
+  }
+
+  return null
 }
 
 function getClientBaseUrl() {
