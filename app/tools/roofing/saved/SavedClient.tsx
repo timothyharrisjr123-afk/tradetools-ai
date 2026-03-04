@@ -1032,6 +1032,57 @@ function RevenueSummary({
   );
 }
 
+function asNum(v: any): number | null {
+  const n = typeof v === "number" ? v : typeof v === "string" ? Number(v) : NaN;
+  return Number.isFinite(n) ? n : null;
+}
+
+function fmtMoney(n: number): string {
+  try {
+    return n.toLocaleString(undefined, { style: "currency", currency: "USD" });
+  } catch {
+    return `$${n.toFixed(2)}`;
+  }
+}
+
+function calcProfitInfo(est: any): {
+  sold: number | null;
+  cost: number | null;
+  profit: number | null;
+  marginPct: number | null;
+  tone: "good" | "warn" | "bad" | "na";
+} {
+  const sold =
+    asNum(est?.totalContractPrice) ??
+    asNum(est?.suggestedPrice) ??
+    null;
+
+  const materials = asNum(est?.materialsCost) ?? 0;
+  const labor = asNum(est?.laborCost) ?? 0;
+  const disposal = asNum(est?.disposalCost) ?? 0;
+
+  const hasAnyCost = (asNum(est?.materialsCost) != null) || (asNum(est?.laborCost) != null) || (asNum(est?.disposalCost) != null);
+  const cost = hasAnyCost ? materials + labor + disposal : null;
+
+  if (sold == null || sold <= 0 || cost == null) {
+    return { sold, cost, profit: null, marginPct: null, tone: "na" };
+  }
+
+  const profit = sold - cost;
+  const marginPct = (profit / sold) * 100;
+
+  let tone: "good" | "warn" | "bad" = "good";
+  if (marginPct < 20) tone = "bad";
+  else if (marginPct < 35) tone = "warn";
+
+  return { sold, cost, profit, marginPct, tone };
+}
+
+function pctLabel(n: number): string {
+  if (!Number.isFinite(n)) return "—";
+  return `${Math.round(n)}%`;
+}
+
 function SavedEstimateCard({
   estimate,
   batchStatuses,
@@ -1077,6 +1128,8 @@ function SavedEstimateCard({
   isFlashing?: boolean;
   showRescheduleButton?: boolean;
 }) {
+  const est = estimate;
+  const profitInfo = calcProfitInfo(est);
   const status = normalizePipelineStatus(getStage(estimate));
   const remote = estimate?.approvalToken && batchStatuses ? batchStatuses[estimate.approvalToken] : null;
   const viewedAt = (estimate?.viewedAt ?? remote?.viewedAt ?? null) as string | null;
@@ -1299,6 +1352,48 @@ function SavedEstimateCard({
                   </div>
                 </div>
               ) : null;
+            })()}
+            {(() => {
+              const p = profitInfo;
+              if (p.profit == null || p.marginPct == null) return null;
+
+              const toneClass =
+                p.tone === "good"
+                  ? "text-emerald-300"
+                  : p.tone === "warn"
+                  ? "text-amber-300"
+                  : "text-rose-300";
+
+              return (
+                <div className="mt-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs uppercase tracking-wide text-white/60">Profit</span>
+                    <span className={`text-sm font-semibold ${toneClass}`}>
+                      {fmtMoney(p.profit)}
+                    </span>
+                  </div>
+
+                  <div className="mt-1 flex items-center justify-between">
+                    <span className="text-xs uppercase tracking-wide text-white/60">Margin</span>
+                    <span className={`text-sm font-semibold ${toneClass}`}>
+                      {pctLabel(p.marginPct)}
+                    </span>
+                  </div>
+
+                  <div className="mt-2 h-px w-full bg-white/10" />
+
+                  <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-white/60">
+                    <div className="flex items-center justify-between">
+                      <span>Sold</span>
+                      <span className="text-white/80">{fmtMoney(p.sold!)}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Cost</span>
+                      <span className="text-white/80">{fmtMoney(p.cost!)}</span>
+                    </div>
+                  </div>
+                </div>
+              );
             })()}
           </div>
 
