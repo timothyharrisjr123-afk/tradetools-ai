@@ -1039,7 +1039,7 @@ function RevenueSummary({
         <div className="flex flex-wrap items-stretch gap-3">
           <div className="w-[220px] rounded-2xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-2">
             <div className="text-[10px] uppercase tracking-[0.22em] text-emerald-200/70">
-              Pipeline
+              Total Pipeline
             </div>
             <div className="mt-0.5 text-lg font-semibold text-emerald-200 tabular-nums">
               {fmt(pipelineTotal)}
@@ -1062,11 +1062,11 @@ function RevenueSummary({
               <span className="tabular-nums text-white/80">{fmt(collected)}</span>{" "}
               collected
               <span className="ml-2 text-white/50">
-                · {fmt(openPipeline)} open
+                · {fmt(openPipeline)} Remaining Pipeline
               </span>
             </div>
             <div className="mt-1 text-xs text-white/50">
-              {paidJobs} paid / {totalJobs} total jobs
+              {paidJobs} completed / {totalJobs} total jobs
             </div>
             <div className="flex items-center justify-between mt-1 text-[12px] text-white/60">
               <span>Average Job Value</span>
@@ -1112,6 +1112,14 @@ function RevenueSummary({
         <Row label="Scheduled" value={scheduled} />
         <div className="h-px bg-white/10" />
         <Row label="Completed" value={paid} tone="good" />
+        <div className="mt-4 border-t border-white/10 pt-4">
+          <div className="text-xs text-white/60">
+            Avg Job Value
+          </div>
+          <div className="text-sm font-semibold text-white">
+            {fmt(averageJobValue)}
+          </div>
+        </div>
       </div>
     </div>
   );
