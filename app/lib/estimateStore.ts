@@ -55,6 +55,8 @@ export interface RoofingEstimate {
   disposalCost?: number;
   adjustedSquares?: number;
   squares?: number;
+  lastFollowUpAt?: string;
+  followUpCount?: number;
 }
 
 const STORAGE_KEY = "roofing_saved_estimates";

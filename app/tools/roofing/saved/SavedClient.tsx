@@ -1139,6 +1139,53 @@ function pctLabel(n: number): string {
   return `${Math.round(n)}%`;
 }
 
+function daysBetween(a: Date, b: Date): number {
+  const ms = Math.abs(b.getTime() - a.getTime());
+  return Math.floor(ms / (24 * 60 * 60 * 1000));
+}
+
+function isDueSince(baseIso: string | undefined | null, hours: number): boolean {
+  if (!baseIso || !baseIso.trim()) return false;
+  const base = new Date(baseIso);
+  if (!Number.isFinite(base.getTime())) return false;
+  const now = new Date();
+  const elapsedHours = (now.getTime() - base.getTime()) / (60 * 60 * 1000);
+  return elapsedHours >= hours;
+}
+
+function getFollowUpInfo(
+  est: any,
+  paymentState?: { depositAmountCents?: number; fullAmountCents?: number; offlinePaidCents?: number } | null
+): { due: boolean; reason: string; kind: "confirm" | "questions" | "deposit" | "none" } {
+  const viewedAt = est?.viewedAt ?? null;
+  const sentAt = est?.sentAt ?? null;
+  const approvedAt = est?.approvedAt ?? null;
+  const lastSavedAt = est?.lastSavedAt ?? null;
+  const status = (est?.status ?? "estimate") as string;
+
+  if (est?.lastFollowUpAt && !isDueSince(est.lastFollowUpAt, 24)) {
+    return { due: false, reason: "", kind: "none" };
+  }
+
+  const isSent = !!sentAt || status === "sent" || status === "sent_pending";
+  const isApproved = status === "approved";
+  const depositPaid = (paymentState?.depositAmountCents ?? 0) + ((paymentState as any)?.offlinePaidCents ?? 0);
+
+  if (isSent && !viewedAt && isDueSince(sentAt, 24)) {
+    return { due: true, reason: "Confirm they received it", kind: "confirm" };
+  }
+
+  if (viewedAt && status !== "approved" && status !== "deposit_paid" && status !== "scheduled" && status !== "paid" && isDueSince(viewedAt, 48)) {
+    return { due: true, reason: "Answer questions / ask for approval", kind: "questions" };
+  }
+
+  if (isApproved && depositPaid === 0 && isDueSince(approvedAt ?? lastSavedAt ?? sentAt ?? "", 48)) {
+    return { due: true, reason: "Collect deposit to lock schedule", kind: "deposit" };
+  }
+
+  return { due: false, reason: "", kind: "none" };
+}
+
 function SavedEstimateCard({
   estimate,
   batchStatuses,
@@ -1161,6 +1208,8 @@ function SavedEstimateCard({
   onView,
   isFlashing,
   showRescheduleButton,
+  followUpInfo,
+  onSendFollowUp,
 }: {
   estimate: any;
   batchStatuses?: Record<string, { status: string; viewedAt?: string | null; approvedAt?: string | null }>;
@@ -1183,6 +1232,8 @@ function SavedEstimateCard({
   onView?: (e: any) => void;
   isFlashing?: boolean;
   showRescheduleButton?: boolean;
+  followUpInfo?: { due: boolean; reason: string; kind: string };
+  onSendFollowUp?: (est: any, kind: "confirm" | "questions" | "deposit") => void;
 }) {
   const est = estimate;
   const profitInfo = calcProfitInfo(est);
@@ -1252,6 +1303,25 @@ function SavedEstimateCard({
               </span>
 
               <StatusPill status={pillStatus} />
+
+              {viewedAt ? (
+                <span className="inline-flex items-center rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-semibold text-emerald-200 ring-1 ring-inset ring-emerald-400/20">
+                  Viewed
+                </span>
+              ) : isSent ? (
+                <span className="inline-flex items-center rounded-full bg-amber-500/15 px-2.5 py-1 text-[11px] font-semibold text-amber-200 ring-1 ring-inset ring-amber-400/20">
+                  Not viewed
+                </span>
+              ) : null}
+
+              {followUpInfo?.due && (
+                <span
+                  className="inline-flex items-center rounded-full bg-rose-500/15 px-2.5 py-1 text-[11px] font-semibold text-rose-200 ring-1 ring-inset ring-rose-400/20"
+                  title={followUpInfo.reason}
+                >
+                  Follow-up due
+                </span>
+              )}
             </div>
 
             <div className="mt-4 text-xl font-bold text-white tracking-tight">
@@ -1573,6 +1643,18 @@ function SavedEstimateCard({
                   >
                     Load estimate
                   </button>
+
+                  {followUpInfo?.kind && followUpInfo.kind !== "none" && onSendFollowUp && (
+                    <button
+                      onClick={() => {
+                        setOpenMoreFor(null);
+                        onSendFollowUp?.(estimate, followUpInfo!.kind as "confirm" | "questions" | "deposit");
+                      }}
+                      className="block w-full text-left px-4 py-3 text-sm text-emerald-300 hover:bg-white/10"
+                    >
+                      Send follow-up
+                    </button>
+                  )}
 
                   <button
                     onClick={() => {
@@ -2067,6 +2149,51 @@ export default function SavedClient() {
     });
   }
 
+  async function sendFollowUpEmail(est: any, kind: "confirm" | "questions" | "deposit") {
+    const toEmail = (est?.customerEmail || est?.sentToEmail || "").trim();
+    if (!toEmail) {
+      setToast("Missing customer email");
+      setTimeout(() => setToast(null), 2500);
+      return;
+    }
+    const approveUrl = buildApprovalUrl(est) || "";
+    const subjects: Record<"confirm" | "questions" | "deposit", string> = {
+      confirm: "Quick check — did you receive your roofing estimate?",
+      questions: "Any questions about your roofing estimate?",
+      deposit: "Ready to lock your schedule date?",
+    };
+    const subject = subjects[kind];
+    const message =
+      kind === "confirm"
+        ? "Hi — just checking that you received the roofing estimate we sent. If you have any questions or are ready to move forward, reply to this email or use the link below."
+        : kind === "questions"
+          ? "Hi — we wanted to follow up on the estimate you viewed. Do you have any questions? If you're ready to approve, you can use the link below."
+          : "Hi — your estimate is approved. When you're ready to lock in your schedule date, we'll need a deposit. Use the link below to view details and pay.";
+    try {
+      const res = await fetch("/api/email/followup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ to: toEmail, subject, message, approveUrl }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json?.success) {
+        setToast(json?.error || "Failed to send follow-up");
+        setTimeout(() => setToast(null), 3000);
+        return;
+      }
+      updateSavedEstimate(est.id, {
+        lastFollowUpAt: new Date().toISOString(),
+        followUpCount: (est.followUpCount ?? 0) + 1,
+      });
+      setEstimates(getNormalizedEstimates());
+      setToast("Follow-up sent ✅");
+      setTimeout(() => setToast(null), 2500);
+    } catch (err) {
+      setToast("Failed to send follow-up");
+      setTimeout(() => setToast(null), 3000);
+    }
+  }
+
   useEffect(() => {
     setHydrated(true);
   }, []);
@@ -2507,6 +2634,8 @@ export default function SavedClient() {
                 paymentState={paymentStates[e.id] ?? null}
                 checkoutLoading={checkoutLoading}
                 showRescheduleButton
+                followUpInfo={getFollowUpInfo(e, paymentStates[e.id] ?? null)}
+                onSendFollowUp={(est, kind) => sendFollowUpEmail(est, kind)}
                 onStartCheckout={(id, type, est, remainingCentsForFull) => startCheckout(id, type, est, setCheckoutLoading, remainingCentsForFull)}
                 onOpenDepositModal={(est) =>
                   setDepositModal({
@@ -2628,6 +2757,8 @@ export default function SavedClient() {
               batchStatuses={batchStatuses}
               paymentState={paymentStates[e.id] ?? null}
               checkoutLoading={checkoutLoading}
+              followUpInfo={getFollowUpInfo(e, paymentStates[e.id] ?? null)}
+              onSendFollowUp={(est, kind) => sendFollowUpEmail(est, kind)}
               onStartCheckout={(id, type, est, remainingCentsForFull) => startCheckout(id, type, est, setCheckoutLoading, remainingCentsForFull)}
               onOpenDepositModal={(est) =>
                 setDepositModal({
