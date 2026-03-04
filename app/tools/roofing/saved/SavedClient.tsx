@@ -1655,6 +1655,16 @@ function SavedEstimateCard({
               </div>
             )}
 
+            {isFullyPaid && status !== "paid" && (
+              <button
+                type="button"
+                onClick={() => onStatusChange?.(estimate.id, "paid")}
+                className={`${actionBtn} rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white`}
+              >
+                Mark Completed
+              </button>
+            )}
+
             <div className="relative" ref={openMoreFor === estimate.id ? moreMenuRef : undefined}>
               <button
                 type="button"
@@ -2904,54 +2914,76 @@ export default function SavedClient() {
               className="w-full max-w-md rounded-2xl border border-white/10 bg-zinc-900 p-4 shadow-xl"
               onClick={(ev) => ev.stopPropagation()}
             >
-              <div className="text-sm font-semibold text-white">{e.customerName || "Schedule job"}</div>
+              <div className="text-sm font-semibold text-white">{e.customerName || "Schedule Job"}</div>
               <div className="mt-3 space-y-2">
-                <label className="block text-[11px] text-white/60">Start date</label>
+                <label className="block text-xs font-medium text-white/70">Start date</label>
                 <input
                   type="date"
                   value={scheduleStartDate}
                   onChange={(ev) => setScheduleStartDate(ev.target.value)}
-                  className="w-full rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-xs text-white"
+                  className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white/90 outline-none focus:border-white/20"
                 />
-                <label className="block text-[11px] text-white/60">Arrival window (optional)</label>
-                <select
-                  value={scheduleArrivalWindow}
-                  onChange={(ev) => setScheduleArrivalWindow(ev.target.value)}
-                  className="w-full rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-xs text-white"
-                >
-                  {ARRIVAL_WINDOW_OPTIONS.map((opt) => (
-                    <option key={opt.value || "none"} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-                <label className="block text-[11px] text-white/60">Notes (optional)</label>
-                <textarea
-                  value={scheduleNotes}
-                  onChange={(ev) => setScheduleNotes(ev.target.value)}
-                  rows={2}
-                  placeholder="Crew, access, etc."
-                  className="w-full resize-none rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-xs text-white placeholder:text-white/40"
-                />
+                <div className="mt-3 space-y-2">
+                  <label className="block text-xs font-medium text-white/70">
+                    Arrival window (optional)
+                  </label>
+                  <select
+                    value={scheduleArrivalWindow}
+                    onChange={(ev) => setScheduleArrivalWindow(ev.target.value)}
+                    className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white/90 outline-none focus:border-white/20"
+                  >
+                    <option value="">— Select —</option>
+                    <option value="AM">AM (8–12)</option>
+                    <option value="PM">PM (12–5)</option>
+                    <option value="Anytime">Anytime</option>
+                    <option value="First">First stop</option>
+                    <option value="Last">Last stop</option>
+                  </select>
+
+                  <label className="mt-2 block text-xs font-medium text-white/70">
+                    Notes (optional)
+                  </label>
+                  <textarea
+                    value={scheduleNotes}
+                    onChange={(ev) => setScheduleNotes(ev.target.value)}
+                    placeholder="Gate code, HOA rules, material delivery notes, crew instructions..."
+                    rows={3}
+                    className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white/90 outline-none placeholder:text-white/35 focus:border-white/20"
+                  />
+                </div>
               </div>
               <div className="mt-4 flex gap-2">
                 <button
                   onClick={() => {
+                    if (!scheduleStartDate || !String(scheduleStartDate).trim()) {
+                      setToast("Pick a start date to schedule.");
+                      setTimeout(() => setToast(null), 2500);
+                      return;
+                    }
                     const iso = normalizeScheduleDateISO(scheduleStartDate.trim());
-                    if (!iso) return;
+                    if (!iso) {
+                      setToast("Pick a start date to schedule.");
+                      setTimeout(() => setToast(null), 2500);
+                      return;
+                    }
                     setSchedulingId(e.id);
-                    const notes = scheduleNotes.trim() || undefined;
-                    const arrivalWindow = scheduleArrivalWindow.trim() || undefined;
+                    const nowIso = new Date().toISOString();
+                    const arrivalWindow = String(scheduleArrivalWindow || "").trim();
+                    const notes = String(scheduleNotes || "").trim();
                     setTimeout(() => {
-                      markSavedEstimateScheduled(e.id, iso, notes, arrivalWindow);
+                      markSavedEstimateScheduled(e.id, iso, notes || undefined, arrivalWindow || undefined);
                       updateSavedEstimate(e.id, {
-                        scheduledStartDate: iso,
-                        scheduleInfo: { ...((e as any).scheduleInfo ?? {}), date: iso, time: arrivalWindow ?? "Time TBD" },
-                        schedule: { ...((e as any).schedule ?? {}), date: iso },
                         ...(e.status !== "paid" ? { status: "scheduled" as const } : {}),
+                        scheduledStartDate: iso,
+                        scheduledArrivalWindow: arrivalWindow,
+                        scheduleNotes: notes,
+                        scheduledAt: nowIso,
+                        scheduleInfo: { ...((e as any).scheduleInfo ?? {}), date: iso, time: arrivalWindow || "Time TBD" },
+                        schedule: { ...((e as any).schedule ?? {}), date: iso },
                       });
-                      if (e.status === "paid") markSavedEstimateStatus(e.id, "paid");
                       setEstimates(getNormalizedEstimates());
+                      setToast("Scheduled ✅");
+                      setTimeout(() => setToast(null), 2500);
                       setSchedulingForId(null);
                       setScheduleStartDate("");
                       setScheduleArrivalWindow("");
@@ -2959,10 +2991,6 @@ export default function SavedClient() {
                       setStatusFilter("scheduled");
                       setQuery("");
                       setFlashId(e.id);
-                      const [y, m, d] = iso.split("-");
-                      const formattedDate = m && d && y ? `${m}/${d}/${y}` : iso;
-                      setToast(arrivalWindow ? `Scheduled ✅ ${formattedDate} · ${arrivalWindow}` : `Scheduled ✅ ${formattedDate}`);
-                      setTimeout(() => setToast(null), 2500);
                       setTimeout(() => setFlashId(null), 1200);
                       setSchedulingId(null);
                     }, 400);
@@ -2970,7 +2998,7 @@ export default function SavedClient() {
                   disabled={!scheduleStartDate.trim() || schedulingId === e.id}
                   className="rounded-xl px-4 py-2 text-xs font-semibold bg-emerald-500 hover:bg-emerald-400 text-black disabled:opacity-50"
                 >
-                  {schedulingId === e.id ? "Scheduling…" : "Confirm Schedule"}
+                  {schedulingId === e.id ? "Scheduling…" : "Save Schedule"}
                 </button>
                 <button
                   onClick={() => {
