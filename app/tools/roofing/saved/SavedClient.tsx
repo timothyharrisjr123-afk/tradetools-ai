@@ -629,7 +629,7 @@ function Stepper({ status }: { status: string }) {
   const steps = ["estimate", "sent_pending", "approved", "deposit_paid", "scheduled", "paid"] as const;
   const labels: Record<(typeof steps)[number], string> = {
     estimate: "Estimate",
-    sent_pending: "Pending",
+    sent_pending: "Sent",
     approved: "Approved",
     deposit_paid: "Deposit",
     scheduled: "Scheduled",
@@ -674,7 +674,7 @@ function PipelineBar({ status, isViewed }: { status: string; isViewed?: boolean 
   const steps = ["estimate", "sent_pending", "approved", "deposit_paid", "scheduled", "paid"] as const;
   const labels: Record<(typeof steps)[number], string> = {
     estimate: "Estimate",
-    sent_pending: "Pending",
+    sent_pending: "Sent",
     approved: "Approved",
     deposit_paid: "Deposit",
     scheduled: "Scheduled",
@@ -2533,7 +2533,7 @@ export default function SavedClient() {
             {[
               ["all", "All"],
               ["estimate", "Estimate"],
-              ["sent_pending", "Pending"],
+              ["sent_pending", "Sent"],
               ["approved", "Approved"],
               ["deposit_paid", "Deposit paid"],
               ["scheduled", "Scheduled"],
