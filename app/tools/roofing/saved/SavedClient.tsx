@@ -1003,10 +1003,10 @@ function RevenueSummary({
         type="button"
         onClick={() => setWindow(id)}
         className={[
-          "inline-flex items-center justify-center h-9 rounded-full px-3 py-1.5 text-xs font-semibold transition border whitespace-nowrap leading-none",
+          "inline-flex items-center justify-center rounded-full border px-3 py-1.5 text-xs font-semibold transition whitespace-nowrap leading-none min-w-[92px]",
           active
             ? "bg-white/[0.10] border-white/20 text-white"
-            : "bg-white/[0.04] border-white/10 text-white/70 hover:bg-white/[0.07] hover:text-white/90 hover:border-white/20",
+            : "bg-white/[0.03] border-white/10 text-white/80 hover:bg-white/[0.06] hover:border-white/20",
         ].join(" ")}
       >
         {label}
@@ -1034,7 +1034,7 @@ function RevenueSummary({
               : "Last 30 days totals"}
           </div>
 
-          <div className="mt-3 flex items-center gap-2">
+          <div className="mt-3 flex flex-wrap gap-2">
             <ToggleBtn id="all" label="All Time" />
             <ToggleBtn id="month" label="This Month" />
             <ToggleBtn id="30d" label="Last 30 Days" />
@@ -1063,37 +1063,39 @@ function RevenueSummary({
               />
             </div>
 
-            <div className="mt-4 space-y-2 rounded-2xl border border-white/10 bg-white/[0.04] p-3">
-              <div className="flex items-center justify-between gap-3">
-                <div className="text-[10px] uppercase tracking-wide text-white/60">Collected</div>
-                <div className="text-sm font-semibold text-emerald-200 tabular-nums whitespace-nowrap">
+            <div className="mt-3 space-y-2 rounded-xl border border-white/10 bg-black/10 p-3">
+              <div className="flex items-center justify-between text-[11px] text-white/55">
+                <span className="uppercase tracking-wider">Collected</span>
+                <span
+                  className="max-w-[160px] truncate tabular-nums whitespace-nowrap text-emerald-200"
+                  title={fmt(collected)}
+                >
                   {fmt(collected)}
-                </div>
+                </span>
               </div>
 
-              <div className="h-px w-full bg-white/10" />
-
-              <div className="flex items-center justify-between gap-3">
-                <div className="text-[10px] uppercase tracking-wide text-white/60">Remaining</div>
-                <div className="text-sm font-semibold text-orange-200 tabular-nums whitespace-nowrap">
+              <div className="flex items-center justify-between text-[11px] text-white/55">
+                <span className="uppercase tracking-wider">Remaining</span>
+                <span
+                  className="max-w-[160px] truncate tabular-nums whitespace-nowrap text-amber-200"
+                  title={fmt(openPipeline)}
+                >
                   {fmt(openPipeline)}
-                </div>
+                </span>
               </div>
 
-              <div className="h-px w-full bg-white/10" />
-
-              <div className="flex items-center justify-between gap-3">
-                <div className="text-[10px] uppercase tracking-wide text-white/60">Jobs</div>
-                <div className="text-sm font-semibold text-white tabular-nums whitespace-nowrap">
+              <div className="flex items-center justify-between text-[11px] text-white/55">
+                <span className="uppercase tracking-wider">Jobs</span>
+                <span className="tabular-nums whitespace-nowrap text-white/85">
                   {paidJobs} / {totalJobs}
-                </div>
+                </span>
               </div>
             </div>
-            <div className="mt-2 flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2">
-              <div className="text-[10px] uppercase tracking-wide text-white/55">Average Job Value</div>
-              <div className="text-sm font-semibold text-white/90 tabular-nums whitespace-nowrap">
-                {fmtMoney(averageJobValue)}
-              </div>
+            <div className="mt-3 flex items-center justify-between rounded-xl border border-white/10 bg-black/10 px-3 py-2 text-[11px] text-white/55">
+              <span className="uppercase tracking-wider">Average Job Value</span>
+              <span className="tabular-nums whitespace-nowrap text-white/90" title={fmt(averageJobValue)}>
+                {fmt(averageJobValue)}
+              </span>
             </div>
           </div>
 
