@@ -664,7 +664,7 @@ function Stepper({ status }: { status: string }) {
               <span
                 className={[
                   "h-1.5 w-1.5 rounded-full",
-                  done ? "bg-emerald-400" : "bg-white/20",
+                  done ? "bg-emerald-400" : "bg-white/10",
                 ].join(" ")}
               />
               {labels[s]}
@@ -727,7 +727,7 @@ function PipelineBar({ status, isViewed }: { status: string; isViewed?: boolean 
               ? isPendingStep && isViewed
                 ? "bg-teal-400 shadow-[0_0_6px_rgba(45,212,191,0.6)]"
                 : "bg-emerald-400"
-              : "bg-white/15";
+              : "bg-white/10";
           return (
             <span
               key={s}
@@ -1581,35 +1581,6 @@ function SavedEstimateCard({
 
           {/* RIGHT: Actions */}
           <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
-            {/* ===== PAYMENT ACTIONS ===== */}
-            {!isFullyPaid && totalCents > 0 && (
-              <div className="flex flex-wrap items-center gap-2">
-                {collectedCents === 0 && (
-                  <button
-                    type="button"
-                    disabled={checkoutLoading?.[estimate.id] === "deposit"}
-                    onClick={() => {
-                      onOpenDepositModal?.(estimate);
-                    }}
-                    className={`${actionBtn} rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white`}
-                  >
-                    {checkoutLoading?.[estimate.id] === "deposit" ? "Opening…" : "Collect Deposit"}
-                  </button>
-                )}
-
-                <button
-                  type="button"
-                  disabled={checkoutLoading?.[estimate.id] === "full"}
-                  onClick={() => {
-                    onStartCheckout?.(estimate.id, "full", estimate, remainingCents);
-                  }}
-                  className={`${actionBtn} rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white`}
-                >
-                  {checkoutLoading?.[estimate.id] === "full" ? "Opening…" : isFinalPayment ? "Collect Final" : "Collect Full"}
-                </button>
-              </div>
-            )}
-
             {SHOW_INTERNAL_ACTIONS && (
               <>
                 {showApprovalActions && (
@@ -1653,6 +1624,35 @@ function SavedEstimateCard({
                   </div>
                 )}
               </>
+            )}
+
+            {/* ===== PAYMENT ACTIONS ===== */}
+            {!isFullyPaid && totalCents > 0 && (
+              <div className="flex flex-wrap items-center gap-2">
+                {collectedCents === 0 && (
+                  <button
+                    type="button"
+                    disabled={checkoutLoading?.[estimate.id] === "deposit"}
+                    onClick={() => {
+                      onOpenDepositModal?.(estimate);
+                    }}
+                    className={`${actionBtn} rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white`}
+                  >
+                    {checkoutLoading?.[estimate.id] === "deposit" ? "Opening…" : "Collect Deposit"}
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  disabled={checkoutLoading?.[estimate.id] === "full"}
+                  onClick={() => {
+                    onStartCheckout?.(estimate.id, "full", estimate, remainingCents);
+                  }}
+                  className={`${actionBtn} rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white`}
+                >
+                  {checkoutLoading?.[estimate.id] === "full" ? "Opening…" : isFinalPayment ? "Collect Final" : "Collect Full"}
+                </button>
+              </div>
             )}
 
             <div className="relative" ref={openMoreFor === estimate.id ? moreMenuRef : undefined}>
