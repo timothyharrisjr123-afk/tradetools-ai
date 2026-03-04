@@ -738,7 +738,14 @@ function RevenueSummary({
   onMetrics,
 }: {
   estimates: any[];
-  onMetrics?: (m: { pipelineTotal: number; collected: number; closeRate: number }) => void;
+  onMetrics?: (m: {
+    pipelineTotal: number;
+    collected: number;
+    closeRate: number;
+    costTotal: number;
+    profitTotal: number;
+    avgMargin: number; // decimal (0..1)
+  }) => void;
 }) {
   const [window, setWindow] = useState<TimeWindow>("all");
 
@@ -790,6 +797,14 @@ function RevenueSummary({
     return Number.isFinite(v) && v > 0 ? v : 0;
   };
 
+  const costOf = (e: any) => {
+    const m = typeof e.materialsCost === "number" ? e.materialsCost : 0;
+    const l = typeof e.laborCost === "number" ? e.laborCost : 0;
+    const d = typeof e.disposalCost === "number" ? e.disposalCost : 0;
+    const sum = m + l + d;
+    return Number.isFinite(sum) && sum > 0 ? sum : 0;
+  };
+
   const sum = (status: string) =>
     scoped
       .filter((e) => (e.status ?? "estimate") === status)
@@ -807,6 +822,10 @@ function RevenueSummary({
 
   // Open pipeline = how much is still out there
   const openPipeline = Math.max(0, pipelineTotal - collected);
+
+  const costTotal = scoped.reduce((acc, e) => acc + costOf(e), 0);
+  const profitTotal = pipelineTotal - costTotal;
+  const avgMargin = pipelineTotal > 0 ? profitTotal / pipelineTotal : 0;
 
   // % collected
   const pct =
@@ -828,8 +847,8 @@ function RevenueSummary({
   const closeRateLabel = `${Math.round(closeRate * 100)}%`;
 
   useEffect(() => {
-    onMetrics?.({ pipelineTotal, collected, closeRate });
-  }, [onMetrics, pipelineTotal, collected, closeRate]);
+    onMetrics?.({ pipelineTotal, collected, closeRate, costTotal, profitTotal, avgMargin });
+  }, [onMetrics, pipelineTotal, collected, closeRate, costTotal, profitTotal, avgMargin]);
 
   const averageJobValue =
     totalJobs > 0 ? pipelineTotal / totalJobs : 0;
@@ -1566,6 +1585,9 @@ export default function SavedClient() {
     pipelineTotal: number;
     collected: number;
     closeRate: number;
+    costTotal: number;
+    profitTotal: number;
+    avgMargin: number;
   } | null>(null);
   const [showRevenueDetails, setShowRevenueDetails] = useState(false);
   const [paymentContractTotal, setPaymentContractTotal] = useState("");
@@ -2444,6 +2466,41 @@ export default function SavedClient() {
                 <div className="text-xs text-white/50">Opportunity (+10%)</div>
                 <div className="text-lg font-semibold text-emerald-400 mt-1">
                   {formatMoney(opportunityScenarios?.find((s) => s.increase === 10)?.additionalRevenue ?? 0)}
+                </div>
+              </div>
+            </div>
+
+            {/* Profit Intelligence */}
+            <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+              <div className="text-sm font-semibold text-white mb-3">Profit Intelligence</div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-white/60">Revenue</span>
+                  <span className="text-white/90 tabular-nums">{formatMoney(revenueMetrics?.pipelineTotal ?? 0)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-white/60">Cost</span>
+                  <span className="text-white/90 tabular-nums">{formatMoney(revenueMetrics?.costTotal ?? 0)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-white/60">Profit</span>
+                  <span
+                    className={`tabular-nums font-semibold ${
+                      (revenueMetrics?.profitTotal ?? 0) >= 0 ? "text-emerald-400" : "text-rose-400"
+                    }`}
+                  >
+                    {formatMoney(revenueMetrics?.profitTotal ?? 0)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-white/60">Avg Margin</span>
+                  <span
+                    className={`tabular-nums font-semibold ${
+                      (revenueMetrics?.avgMargin ?? 0) >= 0 ? "text-emerald-400" : "text-rose-400"
+                    }`}
+                  >
+                    {Math.round((revenueMetrics?.avgMargin ?? 0) * 100)}%
+                  </span>
                 </div>
               </div>
             </div>
