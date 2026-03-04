@@ -986,12 +986,19 @@ function SavedEstimateCard({
   const displayStatus =
     isApproved ? effectiveStatus : isSent && viewedAt ? "viewed" : isSent && !viewedAt ? "not_viewed" : effectiveStatus;
   const totalCents = toEstimateTotalCents(estimate);
-  const ps = paymentState ?? null;
-  const collectedCents = sumCollectedCents(ps);
-  const remainingCents = Math.max(0, totalCents - collectedCents);
-  const isPaid = totalCents > 0 && collectedCents >= totalCents;
-  const isDepositPaid = collectedCents > 0 && !isPaid;
-  const pillStatus = (isPaid ? "paid" : isDepositPaid ? "deposit_paid" : displayStatus) as string;
+  const depositPaid = paymentState?.depositAmountCents || 0;
+  const fullPaid = paymentState?.fullAmountCents || 0;
+  const offlinePaid =
+    (paymentState as { offlineAmountCents?: number })?.offlineAmountCents ??
+    (paymentState as { offlinePaidCents?: number })?.offlinePaidCents ??
+    sumOfflineCents(paymentState ?? undefined) ??
+    0;
+  const totalCollected = depositPaid + fullPaid + offlinePaid;
+  const isDepositPaid = depositPaid > 0;
+  const isFullyPaid = totalCents > 0 && totalCollected >= totalCents;
+  const remainingCents = Math.max(0, totalCents - totalCollected);
+  const collectedCents = totalCollected;
+  const pillStatus = (isFullyPaid ? "paid" : isDepositPaid ? "deposit_paid" : displayStatus) as string;
   const hasApproval = Boolean(estimate?.approvalToken);
   const statusStr = (estimate?.status ?? "").toLowerCase();
   const isSentLike =
@@ -1185,7 +1192,7 @@ function SavedEstimateCard({
           {/* RIGHT: Actions */}
           <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
             {/* ===== PAYMENT ACTIONS ===== */}
-            {!isPaid && totalCents > 0 && (
+            {!isFullyPaid && totalCents > 0 && (
               <div className="flex flex-wrap items-center gap-2">
                 {collectedCents === 0 && (
                   <button
@@ -1250,7 +1257,7 @@ function SavedEstimateCard({
                   </button>
                 )}
 
-                {status === "paid" && (
+                {isFullyPaid && (
                   <div className={`${actionBtn} rounded-full border border-emerald-400/20 bg-emerald-500/10 text-emerald-200 font-semibold`}>
                     Paid ✅
                   </div>
