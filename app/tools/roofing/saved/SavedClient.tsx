@@ -1501,6 +1501,19 @@ export default function SavedClient() {
   });
   const router = useRouter();
   const isSyncingRef = useRef(false);
+  const lastStatusFetchRef = useRef<Record<string, number>>({});
+
+  const shouldFetchPaymentStatus = (estimateId: string) => {
+    const now = Date.now();
+    const last = lastStatusFetchRef.current[estimateId] ?? 0;
+    if (now - last < 60_000) return false;
+    lastStatusFetchRef.current[estimateId] = now;
+    return true;
+  };
+
+  const allowPaymentStatusFetch = (estimateId: string) => {
+    lastStatusFetchRef.current[estimateId] = 0;
+  };
 
   useEffect(() => {
     function onDown(e: MouseEvent) {
@@ -1594,6 +1607,7 @@ export default function SavedClient() {
 
     (async () => {
       try {
+        allowPaymentStatusFetch(id);
         const res = await fetch(`/api/payments/status?estimateId=${encodeURIComponent(id)}`);
         const json = await res.json();
         if (!json?.ok || !json?.payment?.status) return;
@@ -1613,6 +1627,7 @@ export default function SavedClient() {
             offlineTransactions: (payment as { offlineTransactions?: Array<{ stage?: string; amountCents?: number }> }).offlineTransactions ?? undefined,
           },
         }));
+        lastStatusFetchRef.current[id] = Date.now();
         window.history.replaceState({}, "", "/tools/roofing/saved");
       } catch {
         // ignore
@@ -1718,6 +1733,7 @@ export default function SavedClient() {
       remainingCents: 0,
     });
 
+    allowPaymentStatusFetch(id);
     const ps: any = await fetchPaymentState(id);
 
     const depositCents = Number(ps?.depositAmountCents || 0);
@@ -1778,6 +1794,7 @@ export default function SavedClient() {
         offlineTransactions: (ps as { offlineTransactions?: Array<{ stage?: string; amountCents?: number }> })?.offlineTransactions ?? undefined,
       },
     }));
+    lastStatusFetchRef.current[id] = Date.now();
     setTxModal((s) => ({
       ...s,
       loading: false,
@@ -1925,12 +1942,6 @@ export default function SavedClient() {
   }, [hydrated, runApprovalSync]);
 
   useEffect(() => {
-    if (!hydrated) return;
-    const interval = setInterval(runApprovalSync, 30_000);
-    return () => clearInterval(interval);
-  }, [hydrated, runApprovalSync]);
-
-  useEffect(() => {
     if (!hydrated || !estimates?.length) return;
     let cancelled = false;
 
@@ -1939,6 +1950,7 @@ export default function SavedClient() {
       for (const est of estimates) {
         const id = String(est?.id ?? "").trim();
         if (!id) continue;
+        if (!shouldFetchPaymentStatus(id)) continue;
         const payment = await fetchPaymentState(id);
         if (cancelled) return;
         if (payment) {
@@ -1980,6 +1992,7 @@ export default function SavedClient() {
       await Promise.all(
         missing.map(async (id) => {
           try {
+            if (!shouldFetchPaymentStatus(id)) return;
             const ps = await fetchPaymentState(id);
             if (!cancelled && ps) {
               setPaymentStates((prev) => ({
@@ -2978,6 +2991,7 @@ export default function SavedClient() {
                   const id = offlineModal.estimateId;
                   if (!id) return;
 
+                  allowPaymentStatusFetch(id);
                   const payment = await fetchPaymentState(id);
                   if (payment) {
                     setPaymentStates((prev) => ({
@@ -2995,6 +3009,7 @@ export default function SavedClient() {
                   } else if (json?.status === "deposit_paid") {
                     markSavedEstimateStatus(id, "deposit_paid");
                   }
+                  lastStatusFetchRef.current[id] = Date.now();
                   setEstimates(getNormalizedEstimates());
                   setOfflineModal((s) => ({ ...s, open: false }));
                 }}
