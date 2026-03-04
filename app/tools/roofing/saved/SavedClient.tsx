@@ -998,7 +998,13 @@ function SavedEstimateCard({
   const isFullyPaid = totalCents > 0 && totalCollected >= totalCents;
   const remainingCents = Math.max(0, totalCents - totalCollected);
   const collectedCents = totalCollected;
-  const pillStatus = (isFullyPaid ? "paid" : isDepositPaid ? "deposit_paid" : displayStatus) as string;
+
+  const hasPaymentState = !!paymentState;
+  const fallbackDepositPaid = estimate?.status === "deposit_paid";
+  const fallbackPaid = estimate?.status === "paid";
+  const showPaid = hasPaymentState ? isFullyPaid : fallbackPaid;
+  const showDepositPaid = hasPaymentState ? isDepositPaid : fallbackDepositPaid;
+  const pillStatus = (showPaid ? "paid" : showDepositPaid ? "deposit_paid" : displayStatus) as string;
   const hasApproval = Boolean(estimate?.approvalToken);
   const statusStr = (estimate?.status ?? "").toLowerCase();
   const isSentLike =
@@ -1881,6 +1887,41 @@ export default function SavedClient() {
       cancelled = true;
     };
   }, [hydrated, estimates]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function preload() {
+      const ids = (estimates || []).map((e) => e?.id).filter(Boolean) as string[];
+      const missing = ids.filter((id) => !paymentStates?.[id]);
+
+      await Promise.all(
+        missing.map(async (id) => {
+          try {
+            const ps = await fetchPaymentState(id);
+            if (!cancelled && ps) {
+              setPaymentStates((prev) => ({
+                ...(prev || {}),
+                [id]: {
+                  depositAmountCents: ps.depositAmountCents ?? undefined,
+                  fullAmountCents: ps.fullAmountCents ?? undefined,
+                  offlinePaidCents: (ps as { offlinePaidCents?: number }).offlinePaidCents ?? undefined,
+                  offlineTransactions: (ps as { offlineTransactions?: Array<{ stage?: string; amountCents?: number }> }).offlineTransactions ?? undefined,
+                },
+              }));
+            }
+          } catch {
+            // ignore - badge fallback will cover it
+          }
+        })
+      );
+    }
+
+    preload();
+    return () => {
+      cancelled = true;
+    };
+  }, [estimates]);
 
   const bySearch = (e: RoofingEstimate) => {
     const q = query.trim().toLowerCase();
