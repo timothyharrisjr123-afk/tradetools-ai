@@ -31,6 +31,26 @@ function formatLocalDateHeader(dateKey: string) {
   return dt.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
 }
 
+const ARRIVAL_WINDOWS = [
+  { value: "7-10", label: "7–10 AM" },
+  { value: "8-12", label: "8–12 AM" },
+  { value: "10-2", label: "10 AM–2 PM" },
+  { value: "12-5", label: "12–5 PM" },
+  { value: "2-6", label: "2–6 PM" },
+  { value: "Anytime", label: "Anytime" },
+] as const;
+
+const ARRIVAL_CUSTOM = "__custom__";
+
+function isStandardArrivalValue(v: string) {
+  return ARRIVAL_WINDOWS.some((x) => x.value === v);
+}
+
+function arrivalLabelFromValue(v: string) {
+  const found = ARRIVAL_WINDOWS.find((x) => x.value === v);
+  return found?.label ?? v;
+}
+
 function normalizeDateKey(input: any): string | null {
   if (!input) return null;
   const s = String(input).trim();
@@ -1757,6 +1777,7 @@ export default function SavedClient() {
   const [schedulingId, setSchedulingId] = useState<string | null>(null);
   const [scheduleStartDate, setScheduleStartDate] = useState("");
   const [scheduleArrivalWindow, setScheduleArrivalWindow] = useState("");
+  const [scheduleCustomArrivalWindow, setScheduleCustomArrivalWindow] = useState("");
   const [scheduleNotes, setScheduleNotes] = useState("");
   const [payingForId, setPayingForId] = useState<string | null>(null);
   const [payingId, setPayingId] = useState<string | null>(null);
@@ -2152,7 +2173,19 @@ export default function SavedClient() {
         (est?.scheduledStartDate || "").trim() ||
         new Date().toISOString().slice(0, 10);
       setScheduleStartDate(defaultDate);
-      setScheduleArrivalWindow((est?.scheduledArrivalWindow || "").trim());
+      const existingArrival = String(est?.scheduledArrivalWindow || "").trim();
+      if (existingArrival) {
+        if (isStandardArrivalValue(existingArrival) || existingArrival === "Anytime") {
+          setScheduleArrivalWindow(existingArrival);
+          setScheduleCustomArrivalWindow("");
+        } else {
+          setScheduleArrivalWindow(ARRIVAL_CUSTOM);
+          setScheduleCustomArrivalWindow(existingArrival);
+        }
+      } else {
+        setScheduleArrivalWindow("");
+        setScheduleCustomArrivalWindow("");
+      }
       setScheduleNotes((est?.scheduleNotes || "").trim());
       return;
     }
@@ -2721,7 +2754,19 @@ export default function SavedClient() {
                       setTimeout(() => setToast(null), 2500);
                       setSchedulingForId(id);
                       setScheduleStartDate((est?.scheduledStartDate || "").trim() || new Date().toISOString().slice(0, 10));
-                      setScheduleArrivalWindow((est?.scheduledArrivalWindow || "").trim());
+                      const existingArrival = String(est?.scheduledArrivalWindow || "").trim();
+                      if (existingArrival) {
+                        if (isStandardArrivalValue(existingArrival) || existingArrival === "Anytime") {
+                          setScheduleArrivalWindow(existingArrival);
+                          setScheduleCustomArrivalWindow("");
+                        } else {
+                          setScheduleArrivalWindow(ARRIVAL_CUSTOM);
+                          setScheduleCustomArrivalWindow(existingArrival);
+                        }
+                      } else {
+                        setScheduleArrivalWindow("");
+                        setScheduleCustomArrivalWindow("");
+                      }
                       setScheduleNotes((est?.scheduleNotes || "").trim());
                       return;
                     }
@@ -2844,7 +2889,19 @@ export default function SavedClient() {
                     setTimeout(() => setToast(null), 2500);
                     setSchedulingForId(id);
                     setScheduleStartDate((est?.scheduledStartDate || "").trim() || new Date().toISOString().slice(0, 10));
-                    setScheduleArrivalWindow((est?.scheduledArrivalWindow || "").trim());
+                    const existingArrival = String(est?.scheduledArrivalWindow || "").trim();
+                    if (existingArrival) {
+                      if (isStandardArrivalValue(existingArrival) || existingArrival === "Anytime") {
+                        setScheduleArrivalWindow(existingArrival);
+                        setScheduleCustomArrivalWindow("");
+                      } else {
+                        setScheduleArrivalWindow(ARRIVAL_CUSTOM);
+                        setScheduleCustomArrivalWindow(existingArrival);
+                      }
+                    } else {
+                      setScheduleArrivalWindow("");
+                      setScheduleCustomArrivalWindow("");
+                    }
                     setScheduleNotes((est?.scheduleNotes || "").trim());
                     return;
                   }
@@ -2877,6 +2934,7 @@ export default function SavedClient() {
               setSchedulingForId(null);
               setScheduleStartDate("");
               setScheduleArrivalWindow("");
+              setScheduleCustomArrivalWindow("");
               setScheduleNotes("");
             }}
           >
@@ -2899,17 +2957,44 @@ export default function SavedClient() {
                   </label>
                   <select
                     value={scheduleArrivalWindow}
-                    onChange={(ev) => setScheduleArrivalWindow(ev.target.value)}
+                    onChange={(ev) => {
+                      const next = ev.target.value;
+                      if (next === ARRIVAL_CUSTOM) {
+                        setScheduleArrivalWindow(ARRIVAL_CUSTOM);
+                        if (!scheduleCustomArrivalWindow.trim()) {
+                          setScheduleCustomArrivalWindow("");
+                        }
+                        return;
+                      }
+                      setScheduleArrivalWindow(next);
+                    }}
                     className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white/90 outline-none focus:border-white/20"
                   >
                     <option value="">— Select —</option>
-                    <option value="Early AM">Early AM (7–10)</option>
-                    <option value="AM">AM (8–12)</option>
-                    <option value="Midday">Midday (10–2)</option>
-                    <option value="PM">PM (12–5)</option>
-                    <option value="Late PM">Late PM (2–6)</option>
-                    <option value="Anytime">Anytime</option>
+                    {ARRIVAL_WINDOWS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                    <option value={ARRIVAL_CUSTOM}>Custom time…</option>
                   </select>
+
+                  {scheduleArrivalWindow === ARRIVAL_CUSTOM ? (
+                    <div className="mt-2">
+                      <label className="block text-xs font-medium text-white/60">
+                        Custom time (shows internally)
+                      </label>
+                      <input
+                        value={scheduleCustomArrivalWindow}
+                        onChange={(ev) => setScheduleCustomArrivalWindow(ev.target.value)}
+                        placeholder='e.g., "9:30–11:00" or "After 3 PM"'
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white/90 outline-none placeholder:text-white/35 focus:border-white/20"
+                      />
+                      <div className="mt-1 text-[11px] text-white/45">
+                        Tip: Keep it customer-friendly (avoid "last stop" language).
+                      </div>
+                    </div>
+                  ) : null}
 
                   <label className="mt-2 block text-xs font-medium text-white/70">
                     Notes (optional)
@@ -2939,7 +3024,11 @@ export default function SavedClient() {
                     }
                     setSchedulingId(e.id);
                     const nowIso = new Date().toISOString();
-                    const arrivalWindow = String(scheduleArrivalWindow || "").trim();
+                    const arrivalWindowRaw = String(scheduleArrivalWindow || "").trim();
+                    const arrivalWindow =
+                      arrivalWindowRaw === ARRIVAL_CUSTOM
+                        ? String(scheduleCustomArrivalWindow || "").trim()
+                        : arrivalWindowRaw;
                     const notes = String(scheduleNotes || "").trim();
                     setTimeout(() => {
                       markSavedEstimateScheduled(e.id, iso, notes || undefined, arrivalWindow || undefined);
@@ -2958,6 +3047,7 @@ export default function SavedClient() {
                       setSchedulingForId(null);
                       setScheduleStartDate("");
                       setScheduleArrivalWindow("");
+                      setScheduleCustomArrivalWindow("");
                       setScheduleNotes("");
                       setStatusFilter("scheduled");
                       setQuery("");
@@ -2976,6 +3066,7 @@ export default function SavedClient() {
                     setSchedulingForId(null);
                     setScheduleStartDate("");
                     setScheduleArrivalWindow("");
+                    setScheduleCustomArrivalWindow("");
                     setScheduleNotes("");
                   }}
                   disabled={schedulingId === e.id}
