@@ -981,9 +981,10 @@ function RevenueSummary({
   };
 
   const getMarginColor = (margin: number) => {
-    if (margin < 0.15) return "text-red-400";
-    if (margin < 0.2) return "text-yellow-400";
-    return "text-green-400";
+    const pct = margin * 100;
+    if (pct >= 20) return "text-green-400";
+    if (pct >= 10) return "text-yellow-400";
+    return "text-red-400";
   };
 
   return (
@@ -1127,9 +1128,9 @@ function calcProfitInfo(est: any): {
   const marginPct = (profit / sold) * 100;
 
   let tone: "good" | "warn" | "bad" = "good";
-  if (marginPct < 15) tone = "bad";      // risky job
-  else if (marginPct < 20) tone = "warn";   // acceptable but tight
-  // 20%+ = good (healthy margin)
+  if (marginPct >= 20) tone = "good";
+  else if (marginPct >= 10) tone = "warn";
+  else tone = "bad";
 
   return { sold, cost, profit, marginPct, tone };
 }
@@ -1137,6 +1138,13 @@ function calcProfitInfo(est: any): {
 function pctLabel(n: number): string {
   if (!Number.isFinite(n)) return "—";
   return `${Math.round(n)}%`;
+}
+
+function marginToneClass(marginPct: number): string {
+  if (!Number.isFinite(marginPct)) return "text-white/70";
+  if (marginPct >= 20) return "text-emerald-300";
+  if (marginPct >= 10) return "text-amber-300";
+  return "text-rose-300";
 }
 
 function daysBetween(a: Date, b: Date): number {
@@ -1186,32 +1194,30 @@ function getFollowUpInfo(
   return { due: false, reason: "", kind: "none" };
 }
 
-function getFollowUpReason(
-  est: any,
-  paymentState?: { depositAmountCents?: number; offlinePaidCents?: number } | null
-): string | null {
+function getFollowUpReason(est: any, paymentState: any): string | null {
+  const status = String(est?.status ?? "estimate");
   const viewed = !!est?.viewedAt;
-  const approved = est?.status === "approved";
 
   const depositPaid =
     (paymentState?.depositAmountCents ?? 0) > 0 ||
-    ((paymentState as any)?.offlinePaidCents ?? 0) > 0 ||
-    est?.status === "deposit_paid";
+    (paymentState?.offlinePaidCents ?? 0) > 0 ||
+    status === "deposit_paid" ||
+    status === "paid";
 
-  if (depositPaid) {
-    return null;
+  if (depositPaid) return null;
+
+  if (status !== "sent" && status !== "sent_pending" && status !== "approved") return null;
+
+  if ((status === "sent" || status === "sent_pending") && !viewed) {
+    return "Confirm they received it";
   }
 
-  if (!viewed && (est?.status === "sent" || est?.status === "sent_pending")) {
-    return "Confirm they received the estimate";
+  if (viewed && status !== "approved") {
+    return "Answer questions";
   }
 
-  if (viewed && !approved) {
-    return "Answer questions / close job";
-  }
-
-  if (approved && !depositPaid) {
-    return "Collect deposit to lock schedule";
+  if (status === "approved" && !depositPaid) {
+    return "Collect deposit";
   }
 
   return null;
@@ -1356,8 +1362,8 @@ function SavedEstimateCard({
               )}
 
               {followUpReason && (
-                <span className="inline-flex items-center rounded-full bg-amber-500/15 px-2.5 py-1 text-[11px] font-semibold text-amber-300 ring-1 ring-inset ring-amber-400/20">
-                  Follow-up recommended
+                <span className="inline-flex items-center rounded-full bg-amber-500/10 px-2.5 py-1 text-[11px] font-semibold text-amber-200 ring-1 ring-inset ring-amber-400/15">
+                  Follow-up suggested
                 </span>
               )}
             </div>
@@ -1527,12 +1533,8 @@ function SavedEstimateCard({
               const p = profitInfo;
               if (p.profit == null || p.marginPct == null) return null;
 
-              const toneClass =
-                p.tone === "good"
-                  ? "text-emerald-300"
-                  : p.tone === "warn"
-                  ? "text-amber-300"
-                  : "text-rose-300";
+              const marginPct = Math.round(p.marginPct);
+              const toneClass = marginToneClass(marginPct);
 
               return (
                 <div className="mt-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3">
