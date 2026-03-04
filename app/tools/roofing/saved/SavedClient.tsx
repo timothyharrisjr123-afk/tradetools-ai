@@ -1034,7 +1034,7 @@ function RevenueSummary({
               : "Last 30 days totals"}
           </div>
 
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="mt-3 flex gap-2 items-center">
             <ToggleBtn id="all" label="All Time" />
             <ToggleBtn id="month" label="This Month" />
             <ToggleBtn id="30d" label="Last 30 Days" />
