@@ -2293,6 +2293,7 @@ export default function SavedClient() {
                 {sortedKeys.map((dateKey) => {
                   const items = byDate.get(dateKey)!;
                   const isToday = dateKey === todayKey;
+                  const headerLabel = dateKey === "No Date" ? "No Date" : formatDateKeyLocal(dateKey);
                   return (
                     <div
                       key={dateKey}
@@ -2308,7 +2309,7 @@ export default function SavedClient() {
                       >
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <span className="text-sm font-semibold text-white">
-                            {dateKey === "No Date" ? "No Date" : formatDateKeyLocal(dateKey)}
+                            {headerLabel}
                           </span>
                           <div className="flex items-center gap-2">
                             {isToday && (
