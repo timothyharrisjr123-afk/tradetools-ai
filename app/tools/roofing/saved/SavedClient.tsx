@@ -65,7 +65,7 @@ function getScheduledDateKeyFromEstimate(est: any): string | null {
   ];
 
   for (const c of candidates) {
-    const key = normalizeDateKey(c);
+    const key = normalizeScheduleDateISO(c) ?? normalizeDateKey(c);
     if (key) return key;
   }
   return null;
@@ -162,6 +162,28 @@ function isoFromDateInput(d: string) {
   } catch {
     return new Date().toISOString();
   }
+}
+
+function normalizeScheduleDateISO(input: string | null | undefined): string | null {
+  const raw = (input ?? "").trim();
+  if (!raw) return null;
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+
+  const m = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (m) {
+    const mm = m[1].padStart(2, "0");
+    const dd = m[2].padStart(2, "0");
+    const yyyy = m[3];
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  const d = new Date(raw);
+  if (!Number.isFinite(d.getTime())) return null;
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
 }
 
 function formatCentsToCurrency(cents: number | undefined | null): string {
@@ -1580,8 +1602,18 @@ export default function SavedClient() {
 
   const confirmSchedule = () => {
     if (!activeId) return;
+    const raw = scheduleDate || new Date().toISOString().slice(0, 10);
+    const iso = normalizeScheduleDateISO(raw);
+    if (!iso) return;
     try {
-      markSavedEstimateScheduled(activeId, scheduleDate || new Date().toISOString().slice(0, 10));
+      markSavedEstimateScheduled(activeId, iso);
+      const est = getSavedEstimates().find((x: any) => x.id === activeId) as any;
+      updateSavedEstimate(activeId, {
+        scheduledStartDate: iso,
+        scheduleInfo: { ...(est?.scheduleInfo ?? {}), date: iso, time: "Time TBD" },
+        schedule: { ...(est?.schedule ?? {}), date: iso },
+      });
+      if (est?.status === "paid") markSavedEstimateStatus(activeId, "paid");
       refreshSaved();
       setToast("Scheduled ✅");
       setTimeout(() => setToast(null), 2500);
@@ -1947,6 +1979,7 @@ export default function SavedClient() {
   let filtered = searchFiltered
     .filter((e) => {
       if (statusFilter === "all") return true;
+      if (statusFilter === "scheduled") return !!getScheduledDateKeyFromEstimate(e);
       const s = e.status || "estimate";
       const norm = normalizeStatusValue(s);
       if (statusFilter === "sent_pending") return norm === "pending" || s === "sent";
@@ -2582,13 +2615,19 @@ export default function SavedClient() {
               <div className="mt-4 flex gap-2">
                 <button
                   onClick={() => {
-                    if (!scheduleStartDate.trim()) return;
+                    const iso = normalizeScheduleDateISO(scheduleStartDate.trim());
+                    if (!iso) return;
                     setSchedulingId(e.id);
-                    const startDate = scheduleStartDate.trim();
                     const notes = scheduleNotes.trim() || undefined;
                     const arrivalWindow = scheduleArrivalWindow.trim() || undefined;
                     setTimeout(() => {
-                      markSavedEstimateScheduled(e.id, startDate, notes, arrivalWindow);
+                      markSavedEstimateScheduled(e.id, iso, notes, arrivalWindow);
+                      updateSavedEstimate(e.id, {
+                        scheduledStartDate: iso,
+                        scheduleInfo: { ...((e as any).scheduleInfo ?? {}), date: iso, time: arrivalWindow ?? "Time TBD" },
+                        schedule: { ...((e as any).schedule ?? {}), date: iso },
+                      });
+                      if (e.status === "paid") markSavedEstimateStatus(e.id, "paid");
                       setEstimates(getNormalizedEstimates());
                       setSchedulingForId(null);
                       setScheduleStartDate("");
@@ -2597,8 +2636,8 @@ export default function SavedClient() {
                       setStatusFilter("scheduled");
                       setQuery("");
                       setFlashId(e.id);
-                      const [y, m, d] = startDate.split("-");
-                      const formattedDate = m && d && y ? `${m}/${d}/${y}` : startDate;
+                      const [y, m, d] = iso.split("-");
+                      const formattedDate = m && d && y ? `${m}/${d}/${y}` : iso;
                       setToast(arrivalWindow ? `Scheduled ✅ ${formattedDate} · ${arrivalWindow}` : `Scheduled ✅ ${formattedDate}`);
                       setTimeout(() => setToast(null), 2500);
                       setTimeout(() => setFlashId(null), 1200);
