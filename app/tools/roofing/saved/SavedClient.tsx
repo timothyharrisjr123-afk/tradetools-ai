@@ -441,6 +441,13 @@ function normalizeStatusValue(input: unknown): string {
   return "estimate";
 }
 
+/** Normalize status for UI: treat sent_pending as sent, empty as estimate. */
+function normalizeStatus(status: string | undefined): string {
+  if (!status) return "estimate";
+  if (status === "sent_pending") return "sent";
+  return status;
+}
+
 const getDisplayStage = (status: string) => {
   if (status === "sent_pending" || status === "pending" || status === "sent") return "Pending approval";
   if (status === "viewed") return "Viewed";
@@ -455,7 +462,6 @@ const getDisplayStage = (status: string) => {
 const STATUS_OPTIONS: Array<{ value: string; label: string }> = [
   { value: "estimate", label: "Estimate" },
   { value: "sent", label: "Sent" },
-  { value: "pending", label: "Pending" },
   { value: "approved", label: "Approved" },
   { value: "deposit_paid", label: "Deposit paid" },
   { value: "scheduled", label: "Scheduled" },
@@ -1455,7 +1461,7 @@ function SavedEstimateCard({
 
             <select
               className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-semibold text-white/80 outline-none hover:bg-white/[0.06]"
-              value={normalizeStatusValue(getStage(estimate))}
+              value={normalizeStatus(getStage(estimate))}
               onChange={(ev) => {
                 const raw = ev.target.value;
                 onStatusChange(estimate.id, raw === "pending" ? "sent_pending" : raw);
