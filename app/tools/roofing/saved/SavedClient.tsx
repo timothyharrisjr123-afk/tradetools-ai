@@ -1042,7 +1042,7 @@ function RevenueSummary({
         </div>
 
         <div className="flex flex-wrap items-stretch gap-3">
-          <div className="w-[220px] rounded-2xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-2">
+          <div className="w-full max-w-[320px] rounded-2xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-2">
             <div className="text-[10px] uppercase tracking-[0.22em] text-emerald-200/70">
               Total Pipeline
             </div>
@@ -1063,35 +1063,35 @@ function RevenueSummary({
               />
             </div>
 
-            <div className="mt-4 grid grid-cols-3 gap-3 w-full">
-              <div className="rounded-2xl border border-white/10 bg-white/[0.05] px-3 py-3 text-center min-w-0">
-                <div className="text-[10px] uppercase tracking-wide text-white/60">
-                  Collected
-                </div>
-                <div className="mt-1 text-sm font-semibold text-emerald-200 tabular-nums leading-tight break-words">
+            <div className="mt-4 space-y-2 rounded-2xl border border-white/10 bg-white/[0.04] p-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-[10px] uppercase tracking-wide text-white/60">Collected</div>
+                <div className="text-sm font-semibold text-emerald-200 tabular-nums whitespace-nowrap">
                   {fmt(collected)}
                 </div>
               </div>
-              <div className="rounded-2xl border border-white/10 bg-white/[0.05] px-3 py-3 text-center min-w-0">
-                <div className="text-[10px] uppercase tracking-wide text-white/60">
-                  Remaining
-                </div>
-                <div className="mt-1 text-sm font-semibold text-orange-200 tabular-nums leading-tight break-words">
+
+              <div className="h-px w-full bg-white/10" />
+
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-[10px] uppercase tracking-wide text-white/60">Remaining</div>
+                <div className="text-sm font-semibold text-orange-200 tabular-nums whitespace-nowrap">
                   {fmt(openPipeline)}
                 </div>
               </div>
-              <div className="rounded-2xl border border-white/10 bg-white/[0.05] px-3 py-3 text-center min-w-0">
-                <div className="text-[10px] uppercase tracking-wide text-white/60">
-                  Jobs
-                </div>
-                <div className="mt-1 text-sm font-semibold text-white tabular-nums leading-tight">
+
+              <div className="h-px w-full bg-white/10" />
+
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-[10px] uppercase tracking-wide text-white/60">Jobs</div>
+                <div className="text-sm font-semibold text-white tabular-nums whitespace-nowrap">
                   {paidJobs} / {totalJobs}
                 </div>
               </div>
             </div>
-            <div className="mt-2 flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2">
+            <div className="mt-2 flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2">
               <div className="text-[10px] uppercase tracking-wide text-white/55">Average Job Value</div>
-              <div className="text-sm font-semibold text-white/90">
+              <div className="text-sm font-semibold text-white/90 tabular-nums whitespace-nowrap">
                 {fmtMoney(averageJobValue)}
               </div>
             </div>
