@@ -958,10 +958,11 @@ function RevenueSummary({
     pp > 0 ? `+${pp}pp` : pp < 0 ? `${pp}pp` : `0pp`;
 
   const fmt = (n: number) =>
-    `$${n.toLocaleString(undefined, {
-      minimumFractionDigits: 2,
+    n.toLocaleString(undefined, {
+      style: "currency",
+      currency: "USD",
       maximumFractionDigits: 2,
-    })}`;
+    });
 
   const fmt0 = (n: number) =>
     n.toLocaleString(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 });
@@ -1062,28 +1063,28 @@ function RevenueSummary({
               />
             </div>
 
-            <div className="mt-3 grid grid-cols-3 gap-2 min-w-0">
-              <div className="min-w-0 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2">
-                <div className="text-[10px] uppercase tracking-wide text-white/60 truncate">
+            <div className="mt-4 grid grid-cols-3 gap-3 w-full">
+              <div className="rounded-2xl border border-white/10 bg-white/[0.05] px-3 py-3 text-center min-w-0">
+                <div className="text-[10px] uppercase tracking-wide text-white/60">
                   Collected
                 </div>
                 <div className="mt-1 text-sm font-semibold text-emerald-200 tabular-nums leading-tight break-words">
                   {fmt(collected)}
                 </div>
               </div>
-              <div className="min-w-0 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2">
-                <div className="text-[10px] uppercase tracking-wide text-white/60 truncate">
+              <div className="rounded-2xl border border-white/10 bg-white/[0.05] px-3 py-3 text-center min-w-0">
+                <div className="text-[10px] uppercase tracking-wide text-white/60">
                   Remaining
                 </div>
-                <div className="mt-1 text-sm font-semibold text-white/90 tabular-nums leading-tight break-words">
+                <div className="mt-1 text-sm font-semibold text-orange-200 tabular-nums leading-tight break-words">
                   {fmt(openPipeline)}
                 </div>
               </div>
-              <div className="min-w-0 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2">
-                <div className="text-[10px] uppercase tracking-wide text-white/60 truncate">
+              <div className="rounded-2xl border border-white/10 bg-white/[0.05] px-3 py-3 text-center min-w-0">
+                <div className="text-[10px] uppercase tracking-wide text-white/60">
                   Jobs
                 </div>
-                <div className="mt-1 text-sm font-semibold text-white/90 tabular-nums leading-tight break-words">
+                <div className="mt-1 text-sm font-semibold text-white tabular-nums leading-tight">
                   {paidJobs} / {totalJobs}
                 </div>
               </div>
