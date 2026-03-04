@@ -1072,8 +1072,9 @@ function calcProfitInfo(est: any): {
   const marginPct = (profit / sold) * 100;
 
   let tone: "good" | "warn" | "bad" = "good";
-  if (marginPct < 15) tone = "bad";
-  else if (marginPct < 30) tone = "warn";
+  if (marginPct < 15) tone = "bad";      // risky job
+  else if (marginPct < 20) tone = "warn";   // acceptable but tight
+  // 20%+ = good (healthy margin)
 
   return { sold, cost, profit, marginPct, tone };
 }
