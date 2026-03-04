@@ -1774,10 +1774,8 @@ export default function SavedClient() {
     avgMargin: number;
   } | null>(null);
   const [paymentContractTotal, setPaymentContractTotal] = useState("");
-  const [isScheduleOpen, setIsScheduleOpen] = useState(false);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [scheduleDate, setScheduleDate] = useState("");
   const [paymentDate, setPaymentDate] = useState("");
   const [paidAmountInput, setPaidAmountInput] = useState("");
   const [batchStatuses, setBatchStatuses] = useState<Record<string, { status: string; viewedAt?: string | null; approvedAt?: string | null }>>({});
@@ -1979,16 +1977,6 @@ export default function SavedClient() {
 
   const refreshSaved = () => setEstimates(getNormalizedEstimates());
 
-  const openSchedule = (id: string) => {
-    setActiveId(id);
-    const today = new Date();
-    const yyyy = today.getFullYear();
-    const mm = String(today.getMonth() + 1).padStart(2, "0");
-    const dd = String(today.getDate()).padStart(2, "0");
-    setScheduleDate(`${yyyy}-${mm}-${dd}`);
-    setIsScheduleOpen(true);
-  };
-
   const openPayment = (id: string, total?: number) => {
     setActiveId(id);
     const today = new Date();
@@ -1999,31 +1987,6 @@ export default function SavedClient() {
     const t = toNumberSafe(total);
     setPaidAmountInput(t > 0 ? String(t.toFixed(2)) : "");
     setIsPaymentOpen(true);
-  };
-
-  const confirmSchedule = () => {
-    if (!activeId) return;
-    const raw = scheduleDate || new Date().toISOString().slice(0, 10);
-    const iso = normalizeScheduleDateISO(raw);
-    if (!iso) return;
-    try {
-      markSavedEstimateScheduled(activeId, iso);
-      const est = getSavedEstimates().find((x: any) => x.id === activeId) as any;
-      updateSavedEstimate(activeId, {
-        scheduledStartDate: iso,
-        scheduleInfo: { ...(est?.scheduleInfo ?? {}), date: iso, time: "Time TBD" },
-        schedule: { ...(est?.schedule ?? {}), date: iso },
-        ...(est?.status !== "paid" ? { status: "scheduled" as const } : {}),
-      });
-      if (est?.status === "paid") markSavedEstimateStatus(activeId, "paid");
-      refreshSaved();
-      setToast("Scheduled ✅");
-      setTimeout(() => setToast(null), 2500);
-    } catch (e) {
-      console.error("[SAVED] schedule failed", e);
-    }
-    setIsScheduleOpen(false);
-    setActiveId(null);
   };
 
   const confirmPayment = () => {
@@ -2183,7 +2146,14 @@ export default function SavedClient() {
     }
 
     if (action === "schedule") {
-      openSchedule(id);
+      // Open the GLOBAL scheduling modal
+      setSchedulingForId(id);
+      const defaultDate =
+        (est?.scheduledStartDate || "").trim() ||
+        new Date().toISOString().slice(0, 10);
+      setScheduleStartDate(defaultDate);
+      setScheduleArrivalWindow((est?.scheduledArrivalWindow || "").trim());
+      setScheduleNotes((est?.scheduleNotes || "").trim());
       return;
     }
 
@@ -3387,61 +3357,6 @@ export default function SavedClient() {
           </div>
         </div>
       )}
-
-      {/* Schedule modal (simple) */}
-      {isScheduleOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-          <div className="w-full max-w-md rounded-3xl border border-white/10 bg-[#0b1220] p-5 shadow-2xl">
-            <div className="flex items-center justify-between">
-              <div className="text-sm font-semibold text-white">
-                Schedule Job
-              </div>
-              <button
-                className="rounded-lg px-2 py-1 text-white/60 hover:bg-white/10"
-                onClick={() => {
-                  setIsScheduleOpen(false);
-                  setActiveId(null);
-                }}
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="mt-4">
-              <label className="text-xs text-white/60">Scheduled date</label>
-              <input
-                type="date"
-                value={scheduleDate}
-                onChange={(e) => setScheduleDate(e.target.value)}
-                className="mt-2 w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white outline-none focus:border-emerald-400/40"
-              />
-              <div className="mt-2 text-xs text-white/50">
-                This will move the job to{" "}
-                <span className="text-white/70">Scheduled</span> and update
-                revenue totals.
-              </div>
-            </div>
-
-            <div className="mt-5 flex gap-2">
-              <button
-                onClick={() => {
-                  setIsScheduleOpen(false);
-                  setActiveId(null);
-                }}
-                className="flex-1 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-2 text-sm text-white/80 hover:bg-white/[0.06]"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmSchedule}
-                className="flex-1 rounded-2xl bg-emerald-500/15 px-4 py-2 text-sm font-semibold text-emerald-200 ring-1 ring-emerald-400/25 hover:bg-emerald-500/20"
-              >
-                Save Schedule
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
 
       {/* Payment modal */}
       {isPaymentOpen ? (
