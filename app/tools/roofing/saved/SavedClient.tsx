@@ -2518,6 +2518,23 @@ export default function SavedClient() {
   const weakestStage = stageSteps.reduce((min, s) => (s.pct < min.pct ? s : min), stageSteps[0]);
 
   // ===============================
+  // Pipeline Insight (contractor-first)
+  // "Waiting to Schedule" = Approved + Deposit Paid jobs that are not scheduled/completed.
+  const waitingToSchedule = (filtered || []).filter((e: any) => {
+    const s = String(e?.status || "").toLowerCase();
+    const isWaiting = s === "approved" || s === "deposit_paid";
+    return isWaiting;
+  });
+  const waitingToScheduleCount = waitingToSchedule.length;
+  const waitingToScheduleRevenue = waitingToSchedule.reduce((sum: number, e: any) => {
+    const total = Number(e?.totalContractPrice ?? e?.suggestedPrice ?? 0);
+    return sum + (Number.isFinite(total) ? total : 0);
+  }, 0);
+  const waitingToScheduleRevenueSafe = Number.isFinite(waitingToScheduleRevenue)
+    ? waitingToScheduleRevenue
+    : 0;
+
+  // ===============================
   // REVENUE FORECAST (based on close rate)
   // Uses same time-filtered metrics as Revenue Summary via onMetrics callback.
   // ===============================
@@ -2673,17 +2690,66 @@ export default function SavedClient() {
           />
         )}
 
-        {/* Bottleneck (single insight) */}
+        {/* Pipeline Insight (contractor-first) */}
         {hydrated && (
-          <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 mt-6">
-            <h3 className="text-lg font-semibold text-white">Bottleneck</h3>
-            <div className="mt-3 rounded-2xl border border-white/10 bg-white/[0.02] p-4">
-              <div className="text-xs text-white/50">Weakest Stage</div>
-              <div className="text-lg font-semibold text-white mt-1">
-                {weakestStage.label}
+          <div className="mt-10 w-full max-w-3xl rounded-3xl border border-white/10 bg-white/[0.03] p-6 shadow-xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="text-lg font-semibold text-white">Pipeline Insight</div>
+                <div className="mt-1 text-sm text-white/55">
+                  One thing to focus on right now.
+                </div>
               </div>
-              <div className="text-xs text-white/60 mt-1">
-                {weakestStage.pct}% conversion
+
+              <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-white/70">
+                Contractor view
+              </div>
+            </div>
+
+            <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-3">
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                <div className="text-xs uppercase tracking-wide text-white/50">Weakest stage</div>
+                <div className="mt-2 text-base font-semibold text-white">
+                  {weakestStage.label}
+                </div>
+                <div className="mt-1 text-sm text-white/60">
+                  {weakestStage.pct}% conversion
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-amber-400/20 bg-amber-500/10 p-4">
+                <div className="text-xs uppercase tracking-wide text-amber-200/80">
+                  Waiting to schedule
+                </div>
+                <div className="mt-2 text-2xl font-semibold text-amber-100">
+                  {waitingToScheduleCount}
+                </div>
+                <div className="mt-1 text-sm text-amber-200/70">
+                  Approved / Deposit paid jobs
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-emerald-400/15 bg-emerald-500/10 p-4">
+                <div className="text-xs uppercase tracking-wide text-emerald-200/80">
+                  Revenue waiting
+                </div>
+                <div className="mt-2 text-2xl font-semibold text-emerald-100">
+                  ${waitingToScheduleRevenueSafe.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </div>
+                <div className="mt-1 text-sm text-emerald-200/70">
+                  If you schedule these jobs
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-5 flex flex-col gap-2 rounded-2xl border border-white/10 bg-white/[0.03] p-4 md:flex-row md:items-center md:justify-between">
+              <div className="text-sm text-white/70">
+                <span className="font-semibold text-white">Next action:</span>{" "}
+                Schedule your approved jobs to protect your close rate.
+              </div>
+
+              <div className="text-xs text-white/55">
+                Tip: click the <span className="text-white/75">Approved</span> filter and schedule the next few.
               </div>
             </div>
           </div>
