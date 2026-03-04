@@ -2796,17 +2796,25 @@ export default function SavedClient() {
 
               <button
                 onClick={async () => {
-                  const dollars = Number(offlineModal.amount || 0);
-                  const amountCents = Math.round(dollars * 100);
-
                   const estimateTotalCents = Math.round((offlineModal.estimateTotal || 0) * 100);
+                  const ps = paymentStates[offlineModal.estimateId ?? ""];
+                  const totalCollected =
+                    (ps?.depositAmountCents ?? 0) +
+                    (ps?.fullAmountCents ?? 0) +
+                    ((ps as { offlinePaidCents?: number })?.offlinePaidCents ?? sumOfflineCents(ps ?? undefined) ?? 0);
+                  const remainingCents = Math.max(estimateTotalCents - totalCollected, 0);
+
+                  let enteredCents = Math.round(Number(offlineModal.amount || 0) * 100);
+                  if (enteredCents > remainingCents) {
+                    enteredCents = remainingCents;
+                  }
 
                   const res = await fetch("/api/payments/record-offline", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                       estimateId: offlineModal.estimateId,
-                      amountCents,
+                      amountCents: enteredCents,
                       method: offlineModal.method,
                       notes: offlineModal.notes,
                       estimateTotalCents,
