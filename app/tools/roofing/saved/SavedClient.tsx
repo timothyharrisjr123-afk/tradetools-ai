@@ -1062,23 +1062,29 @@ function RevenueSummary({
               />
             </div>
 
-            <div className="mt-3 grid grid-cols-3 gap-2">
-              <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2">
-                <div className="text-[10px] uppercase tracking-wide text-white/55">Collected</div>
-                <div className="mt-0.5 text-sm font-semibold text-emerald-200">
+            <div className="mt-4 grid grid-cols-3 gap-3">
+              <div className="flex flex-col items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] py-3">
+                <div className="text-[10px] uppercase tracking-wide text-white/50">
+                  Collected
+                </div>
+                <div className="mt-1 text-sm font-semibold text-emerald-200">
                   {fmtMoney(collected)}
                 </div>
               </div>
-              <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2">
-                <div className="text-[10px] uppercase tracking-wide text-white/55">Remaining</div>
-                <div className="mt-0.5 text-sm font-semibold text-white/90">
+              <div className="flex flex-col items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] py-3">
+                <div className="text-[10px] uppercase tracking-wide text-white/50">
+                  Remaining
+                </div>
+                <div className="mt-1 text-sm font-semibold text-white/90">
                   {fmtMoney(openPipeline)}
                 </div>
               </div>
-              <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2">
-                <div className="text-[10px] uppercase tracking-wide text-white/55">Jobs</div>
-                <div className="mt-0.5 text-sm font-semibold text-white/90">
-                  {paidJobs} <span className="text-white/45 font-medium">/</span> {totalJobs}
+              <div className="flex flex-col items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] py-3">
+                <div className="text-[10px] uppercase tracking-wide text-white/50">
+                  Jobs
+                </div>
+                <div className="mt-1 text-sm font-semibold text-white/90">
+                  {paidJobs} / {totalJobs}
                 </div>
               </div>
             </div>
