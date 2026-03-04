@@ -2706,14 +2706,14 @@ export default function SavedClient() {
               </div>
             </div>
 
-            <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-3">
+            <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
               <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
                 <div className="text-xs uppercase tracking-wide text-white/50">Weakest stage</div>
                 <div className="mt-2 text-base font-semibold text-white">
                   {weakestStage.label}
                 </div>
-                <div className="mt-1 text-sm text-white/60">
-                  {weakestStage.pct}% conversion
+                <div className="mt-1 text-sm text-amber-300">
+                  ⚠ {weakestStage.pct}% conversion
                 </div>
               </div>
 
