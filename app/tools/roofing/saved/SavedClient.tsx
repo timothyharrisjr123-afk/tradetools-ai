@@ -1192,9 +1192,15 @@ function getFollowUpReason(
 ): string | null {
   const viewed = !!est?.viewedAt;
   const approved = est?.status === "approved";
+
   const depositPaid =
     (paymentState?.depositAmountCents ?? 0) > 0 ||
-    ((paymentState as any)?.offlinePaidCents ?? 0) > 0;
+    ((paymentState as any)?.offlinePaidCents ?? 0) > 0 ||
+    est?.status === "deposit_paid";
+
+  if (depositPaid) {
+    return null;
+  }
 
   if (!viewed && (est?.status === "sent" || est?.status === "sent_pending")) {
     return "Confirm they received the estimate";
