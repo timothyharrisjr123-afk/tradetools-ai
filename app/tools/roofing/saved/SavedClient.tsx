@@ -1612,6 +1612,7 @@ export default function SavedClient() {
         scheduledStartDate: iso,
         scheduleInfo: { ...(est?.scheduleInfo ?? {}), date: iso, time: "Time TBD" },
         schedule: { ...(est?.schedule ?? {}), date: iso },
+        ...(est?.status !== "paid" ? { status: "scheduled" as const } : {}),
       });
       if (est?.status === "paid") markSavedEstimateStatus(activeId, "paid");
       refreshSaved();
@@ -2626,6 +2627,7 @@ export default function SavedClient() {
                         scheduledStartDate: iso,
                         scheduleInfo: { ...((e as any).scheduleInfo ?? {}), date: iso, time: arrivalWindow ?? "Time TBD" },
                         schedule: { ...((e as any).schedule ?? {}), date: iso },
+                        ...(e.status !== "paid" ? { status: "scheduled" as const } : {}),
                       });
                       if (e.status === "paid") markSavedEstimateStatus(e.id, "paid");
                       setEstimates(getNormalizedEstimates());
