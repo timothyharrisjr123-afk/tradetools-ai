@@ -92,31 +92,67 @@ function formatHeaderDate(d: Date): string {
   return d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
 }
 
-type ScheduleBucket = "today" | "tomorrow" | "this_week" | "future" | "past";
+type ScheduleBucket = "today" | "tomorrow" | "this_week" | "next_week" | "future" | "past";
+
+function addDays(d: Date, days: number): Date {
+  const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  x.setDate(x.getDate() + days);
+  return startOfDay(x);
+}
+
+// Week starts on Sunday (0) in local time
+function startOfWeekSunday(d: Date): Date {
+  const day = d.getDay(); // 0=Sun..6=Sat
+  return addDays(startOfDay(d), -day);
+}
+
+function endOfWeekSunday(d: Date): Date {
+  return addDays(startOfWeekSunday(d), 6);
+}
 
 function getScheduleBucket(d: Date, now: Date): ScheduleBucket {
   const dayStart = startOfDay(d);
   const nowStart = startOfDay(now);
-  const dayMs = dayStart.getTime();
-  const nowMs = nowStart.getTime();
+
   const oneDay = 24 * 60 * 60 * 1000;
-  const diffDays = Math.round((dayMs - nowMs) / oneDay);
+  const diffDays = Math.round((dayStart.getTime() - nowStart.getTime()) / oneDay);
 
   if (diffDays < 0) return "past";
   if (diffDays === 0) return "today";
   if (diffDays === 1) return "tomorrow";
-  if (diffDays >= 2 && diffDays <= 7) return "this_week";
+
+  const thisWeekStart = startOfWeekSunday(nowStart);
+  const thisWeekEnd = endOfWeekSunday(nowStart);
+
+  // "This Week" = remainder of current calendar week (excluding today/tomorrow already handled)
+  if (dayStart.getTime() <= thisWeekEnd.getTime()) return "this_week";
+
+  const nextWeekStart = addDays(thisWeekStart, 7);
+  const nextWeekEnd = addDays(nextWeekStart, 6);
+
+  if (dayStart.getTime() >= nextWeekStart.getTime() && dayStart.getTime() <= nextWeekEnd.getTime()) {
+    return "next_week";
+  }
+
   return "future";
 }
 
 function bucketLabel(bucket: ScheduleBucket): string {
   switch (bucket) {
-    case "today": return "Today";
-    case "tomorrow": return "Tomorrow";
-    case "this_week": return "This Week";
-    case "future": return "Future";
-    case "past": return "Past";
-    default: return String(bucket);
+    case "today":
+      return "Today";
+    case "tomorrow":
+      return "Tomorrow";
+    case "this_week":
+      return "This Week";
+    case "next_week":
+      return "Next Week";
+    case "future":
+      return "Future";
+    case "past":
+      return "Past";
+    default:
+      return String(bucket);
   }
 }
 
@@ -2432,6 +2468,7 @@ export default function SavedClient() {
               today: [],
               tomorrow: [],
               this_week: [],
+              next_week: [],
               future: [],
               past: [],
             };
@@ -2440,7 +2477,7 @@ export default function SavedClient() {
               byBucket[bucket].push(x);
             }
 
-            const bucketOrder: ScheduleBucket[] = ["today", "tomorrow", "this_week", "future", "past"];
+            const bucketOrder: ScheduleBucket[] = ["today", "tomorrow", "this_week", "next_week", "future", "past"];
 
             const renderScheduledCard = (e: any) => (
               <SavedEstimateCard
