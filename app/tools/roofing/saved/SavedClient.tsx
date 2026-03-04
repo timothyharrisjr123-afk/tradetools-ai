@@ -30,23 +30,45 @@ function formatLocalDateHeader(dateKey: string) {
   const dt = new Date(y, (m || 1) - 1, d || 1);
   return dt.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
 }
+
+function normalizeDateKey(input: any): string | null {
+  if (!input) return null;
+  const s = String(input).trim();
+
+  // already YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+
+  // ISO datetime -> take YYYY-MM-DD
+  const m = s.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (m) return m[1];
+
+  return null;
+}
+
+function dateFromDateKeyLocal(dateKey: string): Date {
+  const [y, m, d] = dateKey.split("-").map((n) => parseInt(n, 10));
+  return new Date(y, (m || 1) - 1, d || 1); // LOCAL date (prevents timezone shift)
+}
+
+function formatDateKeyLocal(dateKey: string): string {
+  const dt = dateFromDateKeyLocal(dateKey);
+  return dt.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+}
+
 function getScheduledDateKeyFromEstimate(est: any): string | null {
+  const candidates = [
+    est?.scheduledStartDate,
+    est?.schedule?.date,
+    est?.scheduleInfo?.date,
+    est?.scheduled?.date,
+    est?.scheduleDate,
+  ];
 
-  if (!est?.scheduledStartDate) {
-    return "No Date"
+  for (const c of candidates) {
+    const key = normalizeDateKey(c);
+    if (key) return key;
   }
-
-  const dt = new Date(est.scheduledStartDate)
-
-  if (Number.isNaN(dt.getTime())) {
-    return "No Date"
-  }
-
-  const y = dt.getFullYear()
-  const m = String(dt.getMonth() + 1).padStart(2,"0")
-  const d = String(dt.getDate()).padStart(2,"0")
-
-  return `${y}-${m}-${d}`
+  return null;
 }
 
 function getClientBaseUrl() {
@@ -2286,7 +2308,7 @@ export default function SavedClient() {
                       >
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <span className="text-sm font-semibold text-white">
-                            {dateKey === "No Date" ? "No Date" : formatLocalDateHeader(dateKey)}
+                            {dateKey === "No Date" ? "No Date" : formatDateKeyLocal(dateKey)}
                           </span>
                           <div className="flex items-center gap-2">
                             {isToday && (
