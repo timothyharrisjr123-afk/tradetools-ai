@@ -13,12 +13,17 @@ export default function RoofingTabs({ active }: { active: RoofingTabKey }) {
   return (
     <div className="mb-4">
       <div className="flex flex-wrap items-center gap-2 rounded-3xl border border-white/10 bg-white/[0.04] p-2 shadow-[0_10px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl">
-        <Link
+        <a
           href="/tools/roofing"
           className={`${base} ${active === "estimate" ? on : off}`}
+          onClick={(e) => {
+            if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+            e.preventDefault();
+            window.location.assign("/tools/roofing");
+          }}
         >
           Estimate
-        </Link>
+        </a>
 
         <Link
           href="/tools/roofing/saved"

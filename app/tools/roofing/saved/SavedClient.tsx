@@ -1760,12 +1760,12 @@ export default function SavedClient() {
           },
         }));
         lastStatusFetchRef.current[id] = Date.now();
-        window.history.replaceState({}, "", "/tools/roofing/saved");
+        router.replace("/tools/roofing/saved");
       } catch {
         // ignore
       }
     })();
-  }, [searchParams]);
+  }, [searchParams, router]);
 
   function handleSendFromSaved(savedId: string) {
     sessionStorage.setItem("ttai_autoSendEstimateId", savedId);
@@ -2304,12 +2304,17 @@ export default function SavedClient() {
       <div className="mx-auto max-w-xl space-y-6">
         <RoofingTabs active="saved" />
         <div className="text-center">
-          <Link
+          <a
             href="/tools/roofing"
             className="text-xs text-white/60 hover:text-white/80"
+            onClick={(e) => {
+              if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+              e.preventDefault();
+              window.location.assign("/tools/roofing");
+            }}
           >
             ← Back to Calculator
-          </Link>
+          </a>
         </div>
 
         <h1 className="text-center text-xl font-semibold text-white">
