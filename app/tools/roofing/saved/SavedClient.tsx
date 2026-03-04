@@ -449,12 +449,13 @@ function normalizeStatus(status: string | undefined): string {
 }
 
 const getDisplayStage = (status: string) => {
-  if (status === "sent_pending" || status === "pending" || status === "sent") return "Pending approval";
+  if (status === "sent_pending") return "Sent (not viewed yet)";
+  if (status === "sent") return "Pending approval";
   if (status === "viewed") return "Viewed";
   if (status === "approved") return "Approved";
   if (status === "deposit_paid") return "Deposit paid";
   if (status === "scheduled") return "Scheduled";
-  if (status === "paid") return "Paid";
+  if (status === "paid") return "Completed";
   if (status === "estimate") return "Estimate";
   return status?.toUpperCase?.() ?? "—";
 };
@@ -462,10 +463,11 @@ const getDisplayStage = (status: string) => {
 const STATUS_OPTIONS: Array<{ value: string; label: string }> = [
   { value: "estimate", label: "Estimate" },
   { value: "sent", label: "Sent" },
+  { value: "sent_pending", label: "Sent (not viewed yet)" },
   { value: "approved", label: "Approved" },
   { value: "deposit_paid", label: "Deposit paid" },
   { value: "scheduled", label: "Scheduled" },
-  { value: "paid", label: "Paid" },
+  { value: "paid", label: "Completed" },
 ];
 
 const statusToStage = (s?: string) => {
@@ -551,13 +553,14 @@ type SavedStatusUI =
 function statusLabel(status: SavedStatusUI) {
   const s = String(status || "").toLowerCase();
 
-  if (s === "sent_pending" || s === "pending" || s === "pending_approval" || s === "sent") return "Pending approval";
+  if (s === "sent_pending") return "Sent (not viewed yet)";
+  if (s === "sent" || s === "pending_approval") return "Pending approval";
   if (s === "estimate" || s === "draft") return "Estimate";
   if (s === "viewed") return "Viewed";
   if (s === "approved") return "Approved";
   if (s === "deposit_paid") return "Deposit paid";
   if (s === "scheduled") return "Scheduled";
-  if (s === "paid") return "Paid";
+  if (s === "paid") return "Completed";
 
   return s
     .replace(/[_-]+/g, " ")
@@ -619,7 +622,7 @@ function StatusPill({ status }: { status: string }) {
     return (
       <span className={`${base} bg-amber-500/10 text-amber-300 ring-amber-500/20`}>
         <span className={`${dot} bg-amber-400`} />
-        Paid
+        Completed
       </span>
     );
   }
@@ -639,7 +642,7 @@ function Stepper({ status }: { status: string }) {
     approved: "Approved",
     deposit_paid: "Deposit",
     scheduled: "Scheduled",
-    paid: "Paid",
+    paid: "Completed",
   };
   const stepStatus = status === "sent" ? "sent_pending" : status;
 
@@ -684,7 +687,7 @@ function PipelineBar({ status, isViewed }: { status: string; isViewed?: boolean 
     approved: "Approved",
     deposit_paid: "Deposit",
     scheduled: "Scheduled",
-    paid: "Paid",
+    paid: "Completed",
   };
   const stepStatus = status === "sent" ? "sent_pending" : status;
 
@@ -1330,6 +1333,8 @@ function SavedEstimateCard({
   const actionBtn =
     "inline-flex items-center justify-center rounded-xl px-3 py-1.5 text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed";
   const followUpReason = getFollowUpReason(estimate, paymentState);
+  const isViewed = Boolean(viewedAt);
+  const pillStatusForPill = (pillStatus === "not_viewed" || pillStatus === "viewed") ? "sent" : pillStatus;
   return (
     <div
       className={`group relative rounded-3xl border border-white/12 bg-gradient-to-b from-slate-900/70 to-slate-950/40 p-6 transition-all duration-300
@@ -1346,9 +1351,9 @@ function SavedEstimateCard({
                 {(estimate.tierLabel ?? estimate.selectedTier ?? "Core").toString()}
               </span>
 
-              <StatusPill status={pillStatus} />
+              <StatusPill status={pillStatusForPill} />
 
-              {viewedAt ? (
+              {isViewed ? (
                 <span className="inline-flex items-center rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-semibold text-emerald-200 ring-1 ring-inset ring-emerald-400/20">
                   Viewed
                 </span>
@@ -1461,7 +1466,7 @@ function SavedEstimateCard({
 
             <select
               className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-semibold text-white/80 outline-none hover:bg-white/[0.06]"
-              value={normalizeStatus(getStage(estimate))}
+              value={getStage(estimate) || "estimate"}
               onChange={(ev) => {
                 const raw = ev.target.value;
                 onStatusChange(estimate.id, raw === "pending" ? "sent_pending" : raw);
@@ -1859,7 +1864,7 @@ export default function SavedClient() {
     { value: "4–6pm", label: "4–6pm" },
   ];
   const STAGES = ["estimate", "sent_pending", "approved", "scheduled", "paid"] as const;
-  const STAGE_LABELS: Record<string, string> = { estimate: "Estimate", sent: "Pending", sent_pending: "Pending", approved: "Approved", scheduled: "Scheduled", paid: "Paid" };
+  const STAGE_LABELS: Record<string, string> = { estimate: "Estimate", sent: "Pending", sent_pending: "Sent (not viewed yet)", approved: "Approved", scheduled: "Scheduled", paid: "Completed" };
   const STAGE_DOT_CLASS: Record<string, string> = {
     estimate: "bg-white/50",
     sent: "bg-emerald-400",
@@ -2589,7 +2594,7 @@ export default function SavedClient() {
               ["approved", "Approved"],
               ["deposit_paid", "Deposit paid"],
               ["scheduled", "Scheduled"],
-              ["paid", "Paid"],
+              ["paid", "Completed"],
             ].map(([key, label]) => (
               <button
                 key={key}
