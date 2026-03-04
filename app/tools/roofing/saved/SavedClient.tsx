@@ -963,6 +963,10 @@ function RevenueSummary({
       maximumFractionDigits: 2,
     })}`;
 
+  const fmt0 = (n: number) =>
+    n.toLocaleString(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+  const fmtMoney = (n: number) => fmt0(Math.round(Number(n || 0)));
+
   const Row = ({
     label,
     value,
@@ -980,7 +984,7 @@ function RevenueSummary({
           tone === "good" ? "text-emerald-200" : "text-white",
         ].join(" ")}
       >
-        {fmt(value)}
+        {fmtMoney(value)}
       </div>
     </div>
   );
@@ -1058,21 +1062,31 @@ function RevenueSummary({
               />
             </div>
 
-            <div className="mt-2 text-xs text-white/60">
-              <span className="tabular-nums text-white/80">{fmt(collected)}</span>{" "}
-              collected
-              <span className="ml-2 text-white/50">
-                · {fmt(openPipeline)} Remaining Pipeline
-              </span>
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2">
+                <div className="text-[10px] uppercase tracking-wide text-white/55">Collected</div>
+                <div className="mt-0.5 text-sm font-semibold text-emerald-200">
+                  {fmtMoney(collected)}
+                </div>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2">
+                <div className="text-[10px] uppercase tracking-wide text-white/55">Remaining</div>
+                <div className="mt-0.5 text-sm font-semibold text-white/90">
+                  {fmtMoney(openPipeline)}
+                </div>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2">
+                <div className="text-[10px] uppercase tracking-wide text-white/55">Jobs</div>
+                <div className="mt-0.5 text-sm font-semibold text-white/90">
+                  {paidJobs} <span className="text-white/45 font-medium">/</span> {totalJobs}
+                </div>
+              </div>
             </div>
-            <div className="mt-1 text-xs text-white/50">
-              {paidJobs} completed / {totalJobs} total jobs
-            </div>
-            <div className="flex items-center justify-between mt-1 text-[12px] text-white/60">
-              <span>Average Job Value</span>
-              <span className="font-medium text-white/80">
-                ${averageJobValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-              </span>
+            <div className="mt-2 flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2">
+              <div className="text-[10px] uppercase tracking-wide text-white/55">Average Job Value</div>
+              <div className="text-sm font-semibold text-white/90">
+                {fmtMoney(averageJobValue)}
+              </div>
             </div>
           </div>
 
@@ -1112,14 +1126,6 @@ function RevenueSummary({
         <Row label="Scheduled" value={scheduled} />
         <div className="h-px bg-white/10" />
         <Row label="Completed" value={paid} tone="good" />
-        <div className="mt-4 border-t border-white/10 pt-4">
-          <div className="text-xs text-white/60">
-            Avg Job Value
-          </div>
-          <div className="text-sm font-semibold text-white">
-            {fmt(averageJobValue)}
-          </div>
-        </div>
       </div>
     </div>
   );
