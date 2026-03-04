@@ -978,7 +978,7 @@ function RevenueSummary({
         type="button"
         onClick={() => setWindow(id)}
         className={[
-          "h-9 rounded-full px-3 text-xs font-semibold transition border",
+          "inline-flex items-center justify-center h-9 rounded-full px-3 py-1.5 text-xs font-semibold transition border whitespace-nowrap leading-none",
           active
             ? "bg-white/[0.10] border-white/20 text-white"
             : "bg-white/[0.04] border-white/10 text-white/70 hover:bg-white/[0.07] hover:text-white/90 hover:border-white/20",
@@ -1311,6 +1311,10 @@ function SavedEstimateCard({
   const isFullyPaid = totalCents > 0 && totalCollected >= totalCents;
   const remainingCents = Math.max(0, totalCents - totalCollected);
   const collectedCents = totalCollected;
+  const paidSoFarCents = (depositPaid || 0) + (fullPaid || 0) + (offlinePaid || 0);
+  const hasAnyPayment = paidSoFarCents > 0;
+  const hasRemaining = remainingCents > 0;
+  const isFinalPayment = hasAnyPayment && hasRemaining;
 
   const hasPaymentState = !!paymentState;
   const fallbackDepositPaid = estimate?.status === "deposit_paid";
@@ -1534,7 +1538,7 @@ function SavedEstimateCard({
                     </div>
                   )}
                   <div className="flex items-center justify-between">
-                    <span>Remaining</span>
+                    <span>{isFinalPayment ? "Final payment" : "Remaining"}</span>
                     <span className="font-semibold">{formatCentsToCurrency(remainingCents)}</span>
                   </div>
                 </div>
@@ -1606,7 +1610,7 @@ function SavedEstimateCard({
                   }}
                   className={`${actionBtn} rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white`}
                 >
-                  {checkoutLoading?.[estimate.id] === "full" ? "Opening…" : "Collect Full"}
+                  {checkoutLoading?.[estimate.id] === "full" ? "Opening…" : isFinalPayment ? "Collect Final" : "Collect Full"}
                 </button>
               </div>
             )}
