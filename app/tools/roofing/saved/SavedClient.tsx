@@ -2303,6 +2303,12 @@ export default function SavedClient() {
   const formatMoney = (n: number) =>
     n.toLocaleString(undefined, { style: "currency", currency: "USD" });
 
+  function getMarginColor(margin: number) {
+    if (margin < 0.15) return "text-red-400";
+    if (margin < 0.2) return "text-yellow-400";
+    return "text-green-400";
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-6 py-10 text-white">
       {toast !== null && (
@@ -2475,7 +2481,7 @@ export default function SavedClient() {
               <div className="text-sm font-semibold text-white mb-3">Profit Intelligence</div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-white/60">Revenue</span>
+                  <span className="text-white/60">Sold</span>
                   <span className="text-white/90 tabular-nums">{formatMoney(revenueMetrics?.pipelineTotal ?? 0)}</span>
                 </div>
                 <div className="flex justify-between">
@@ -2494,11 +2500,7 @@ export default function SavedClient() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-white/60">Avg Margin</span>
-                  <span
-                    className={`tabular-nums font-semibold ${
-                      (revenueMetrics?.avgMargin ?? 0) >= 0 ? "text-emerald-400" : "text-rose-400"
-                    }`}
-                  >
+                  <span className={`tabular-nums font-semibold ${getMarginColor(revenueMetrics?.avgMargin ?? 0)}`}>
                     {Math.round((revenueMetrics?.avgMargin ?? 0) * 100)}%
                   </span>
                 </div>
