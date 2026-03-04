@@ -1186,6 +1186,31 @@ function getFollowUpInfo(
   return { due: false, reason: "", kind: "none" };
 }
 
+function getFollowUpReason(
+  est: any,
+  paymentState?: { depositAmountCents?: number; offlinePaidCents?: number } | null
+): string | null {
+  const viewed = !!est?.viewedAt;
+  const approved = est?.status === "approved";
+  const depositPaid =
+    (paymentState?.depositAmountCents ?? 0) > 0 ||
+    ((paymentState as any)?.offlinePaidCents ?? 0) > 0;
+
+  if (!viewed && (est?.status === "sent" || est?.status === "sent_pending")) {
+    return "Confirm they received the estimate";
+  }
+
+  if (viewed && !approved) {
+    return "Answer questions / close job";
+  }
+
+  if (approved && !depositPaid) {
+    return "Collect deposit to lock schedule";
+  }
+
+  return null;
+}
+
 function SavedEstimateCard({
   estimate,
   batchStatuses,
@@ -1286,6 +1311,7 @@ function SavedEstimateCard({
   const addrExtra = [estimate.city ?? estimate.jobCity, estimate.state ?? estimate.jobState, estimate.zip ?? estimate.jobZip].filter(Boolean).join(", ");
   const actionBtn =
     "inline-flex items-center justify-center rounded-xl px-3 py-1.5 text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed";
+  const followUpReason = getFollowUpReason(estimate, paymentState);
   return (
     <div
       className={`group relative rounded-3xl border border-white/12 bg-gradient-to-b from-slate-900/70 to-slate-950/40 p-6 transition-all duration-300
@@ -1322,7 +1348,19 @@ function SavedEstimateCard({
                   Follow-up due
                 </span>
               )}
+
+              {followUpReason && (
+                <span className="inline-flex items-center rounded-full bg-amber-500/15 px-2.5 py-1 text-[11px] font-semibold text-amber-300 ring-1 ring-inset ring-amber-400/20">
+                  Follow-up recommended
+                </span>
+              )}
             </div>
+
+            {followUpReason && (
+              <div className="mt-1.5 text-xs text-white/40">
+                {followUpReason}
+              </div>
+            )}
 
             <div className="mt-4 text-xl font-bold text-white tracking-tight">
               {estimate.customerName || "Unnamed Customer"}
