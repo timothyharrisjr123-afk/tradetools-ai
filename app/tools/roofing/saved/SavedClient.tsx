@@ -1438,7 +1438,7 @@ function SavedEstimateCard({
                     ? "Approved — ready to schedule"
                     : showApprovalActions || isPendingApproval(getStage(estimate))
                       ? "Pending approval"
-                      : getDisplayStage(effectiveStatus)}
+                      : getDisplayStage(getStage(estimate))}
             </div>
 
             {(status === "sent" || status === "sent_pending") && (
@@ -1527,7 +1527,7 @@ function SavedEstimateCard({
                   )}
                   {offlineDepositCents > 0 && (
                     <div className="flex items-center justify-between">
-                      <span>Offline deposit</span>
+                      <span>Offline payment</span>
                       <span className="font-medium">{formatCentsToCurrency(offlineDepositCents)}</span>
                     </div>
                   )}
@@ -1569,15 +1569,10 @@ function SavedEstimateCard({
 
                   <div className="mt-2 h-px w-full bg-white/10" />
 
-                  <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-white/60">
-                    <div className="flex items-center justify-between">
-                      <span>Sold</span>
-                      <span className="text-white/80">{fmtMoney(p.sold!)}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span>Cost</span>
-                      <span className="text-white/80">{fmtMoney(p.cost!)}</span>
-                    </div>
+                  <div className="mt-2 text-xs text-white/60">
+                    <span>Sold {fmtMoney(p.sold!)}</span>
+                    <span className="text-white/40 mx-1.5">•</span>
+                    <span>Cost {fmtMoney(p.cost!)}</span>
                   </div>
                 </div>
               );
@@ -2099,7 +2094,7 @@ export default function SavedClient() {
     for (const t of offlineTx) {
       const amt = Number(t?.amountCents || 0);
       if (!amt) continue;
-      const stage = t?.stage === "deposit" ? "Offline deposit" : "Offline payment";
+      const stage = "Offline payment";
       const method = t?.method ? String(t.method).replaceAll("_", " ") : "offline";
       const notes = t?.notes ? String(t.notes) : "";
       const meta = [method, notes].filter(Boolean).join(" • ");
@@ -2779,7 +2774,7 @@ export default function SavedClient() {
                   }
                   const dateKeysInBucket = Array.from(byDateInBucket.keys()).sort((a, b) => a.localeCompare(b));
                   return (
-                    <div key={bucket} className="space-y-4 rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+                    <div key={bucket} className="space-y-4 rounded-2xl border border-white/10 bg-white/[0.02] pt-3 px-4 pb-4">
                       <div
                         className={
                           "mb-3 flex items-center justify-between rounded-xl px-3 py-2 text-sm font-semibold " +
