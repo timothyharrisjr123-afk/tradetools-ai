@@ -291,6 +291,124 @@ function normalizeScheduleDateISO(input: string | null | undefined): string | nu
   return `${yyyy}-${mm}-${dd}`;
 }
 
+type FunnelStage =
+  | "estimate"
+  | "sent"
+  | "viewed"
+  | "approved"
+  | "deposit"
+  | "scheduled"
+  | "completed";
+
+const FUNNEL_LABELS: Record<FunnelStage, string> = {
+  estimate: "Estimate",
+  sent: "Sent",
+  viewed: "Viewed",
+  approved: "Approved",
+  deposit: "Deposit",
+  scheduled: "Scheduled",
+  completed: "Completed",
+};
+
+const FUNNEL_EDGES: Array<[FunnelStage, FunnelStage]> = [
+  ["estimate", "sent"],
+  ["sent", "viewed"],
+  ["viewed", "approved"],
+  ["approved", "deposit"],
+  ["deposit", "scheduled"],
+  ["scheduled", "completed"],
+];
+
+function getBaseStageFromStatus(statusRaw: any): FunnelStage {
+  const s = String(statusRaw || "estimate");
+  if (s === "sent_pending") return "sent";
+  if (s === "deposit_paid") return "deposit";
+  if (s === "paid") return "completed";
+  if (s === "completed") return "completed";
+  if (s === "scheduled") return "scheduled";
+  if (s === "approved") return "approved";
+  if (s === "sent") return "sent";
+  return "estimate";
+}
+
+function stageIndex(stage: FunnelStage): number {
+  switch (stage) {
+    case "estimate":
+      return 0;
+    case "sent":
+      return 1;
+    case "viewed":
+      return 2;
+    case "approved":
+      return 3;
+    case "deposit":
+      return 4;
+    case "scheduled":
+      return 5;
+    case "completed":
+      return 6;
+    default:
+      return 0;
+  }
+}
+
+function hasViewedSignal(est: any, batchStatuses: any): boolean {
+  const bs = batchStatuses?.[est?.id] ?? batchStatuses?.[est?.approvalToken];
+  return Boolean(
+    est?.viewedAt ||
+      est?.lastViewedAt ||
+      est?.viewed ||
+      bs?.viewedAt ||
+      bs?.lastViewedAt ||
+      bs?.viewed ||
+      bs?.status === "viewed"
+  );
+}
+
+function computeFunnelStats(estimates: any[], batchStatuses: any) {
+  const reached: Record<FunnelStage, number> = {
+    estimate: 0,
+    sent: 0,
+    viewed: 0,
+    approved: 0,
+    deposit: 0,
+    scheduled: 0,
+    completed: 0,
+  };
+
+  for (const e of estimates || []) {
+    const base = getBaseStageFromStatus(e?.status);
+    const idx = stageIndex(base);
+
+    reached.estimate += 1;
+    if (idx >= stageIndex("sent")) reached.sent += 1;
+
+    const viewed =
+      hasViewedSignal(e, batchStatuses) || idx >= stageIndex("approved");
+    if (viewed) reached.viewed += 1;
+
+    if (idx >= stageIndex("approved")) reached.approved += 1;
+    if (idx >= stageIndex("deposit")) reached.deposit += 1;
+    if (idx >= stageIndex("scheduled")) reached.scheduled += 1;
+    if (idx >= stageIndex("completed")) reached.completed += 1;
+  }
+
+  const conversions = FUNNEL_EDGES.map(([from, to]) => {
+    const denom = reached[from] || 0;
+    const numer = reached[to] || 0;
+    const pct = denom > 0 ? Math.round((numer / denom) * 100) : 0;
+    return { from, to, denom, numer, pct };
+  });
+
+  const MIN_DENOM = 3;
+  const eligible = conversions.filter((c) => c.denom >= MIN_DENOM);
+  const weakest = (eligible.length ? eligible : conversions).reduce((min, c) =>
+    c.pct < min.pct ? c : min
+  );
+
+  return { reached, conversions, weakest };
+}
+
 function formatCentsToCurrency(cents: number | undefined | null): string {
   const c = Number(cents);
   if (!Number.isFinite(c) || c < 0) return "$0.00";
@@ -2468,56 +2586,6 @@ export default function SavedClient() {
   }
 
   // ===============================
-  // STAGE CONVERSION (STAGE REACHED)
-  // Order: estimate -> sent -> approved -> scheduled -> paid
-  // A later status implies all prior stages were reached.
-  // ===============================
-  const savedEstimates = searchFiltered;
-  const countByStatus = (status: "estimate" | "sent" | "sent_pending" | "approved" | "deposit_paid" | "scheduled" | "paid") =>
-    savedEstimates.filter((e) => (e?.status ?? "estimate") === status).length;
-
-  const totalJobs = savedEstimates.length;
-  const totalEstimateOnly = countByStatus("estimate");
-  const totalSentOnly = countByStatus("sent") + countByStatus("sent_pending");
-  const totalApprovedOnly = countByStatus("approved");
-  const totalDepositPaidOnly = countByStatus("deposit_paid");
-  const totalScheduledOnly = countByStatus("scheduled");
-  const totalPaidOnly = countByStatus("paid");
-
-  // "Reached" counts (includes jobs currently in this stage OR beyond)
-  const reachedSent = totalSentOnly + totalApprovedOnly + totalDepositPaidOnly + totalScheduledOnly + totalPaidOnly;
-  const reachedApproved = totalApprovedOnly + totalDepositPaidOnly + totalScheduledOnly + totalPaidOnly;
-  const reachedScheduled = totalScheduledOnly + totalPaidOnly;
-  const reachedPaid = totalPaidOnly;
-
-  const pct = (num: number, den: number) => {
-    if (!den) return 0;
-    return Math.round((num / den) * 100);
-  };
-
-  // Conversions between stages (reached-based)
-  const estimateToSentPct = pct(reachedSent, totalJobs);
-  const sentToApprovedPct = pct(reachedApproved, reachedSent);
-  const approvedToScheduledPct = pct(reachedScheduled, reachedApproved);
-  const scheduledToPaidPct = pct(reachedPaid, reachedScheduled);
-
-  // Overall close rate (paid of total)
-  const overallCloseRatePct = pct(reachedPaid, totalJobs);
-
-  // ===============================
-  // WEAKEST STAGE AUTO-DETECTION
-  // ===============================
-  const stageSteps = [
-    { key: "estimate_to_sent", label: "Estimate → Sent", pct: estimateToSentPct },
-    { key: "sent_to_approved", label: "Sent → Approved", pct: sentToApprovedPct },
-    { key: "approved_to_scheduled", label: "Approved → Scheduled", pct: approvedToScheduledPct },
-    { key: "scheduled_to_paid", label: "Scheduled → Paid", pct: scheduledToPaidPct },
-  ];
-
-  // pick the lowest conversion (weakest)
-  const weakestStage = stageSteps.reduce((min, s) => (s.pct < min.pct ? s : min), stageSteps[0]);
-
-  // ===============================
   // Pipeline Insight (contractor-first)
   // "Waiting to Schedule" = Approved + Deposit Paid jobs that are not scheduled/completed.
   const waitingToSchedule = (filtered || []).filter((e: any) => {
@@ -2533,6 +2601,64 @@ export default function SavedClient() {
   const waitingToScheduleRevenueSafe = Number.isFinite(waitingToScheduleRevenue)
     ? waitingToScheduleRevenue
     : 0;
+
+  const funnel = computeFunnelStats(filtered, batchStatuses);
+  const weakest = funnel.weakest;
+
+  const weakestLabel = `${FUNNEL_LABELS[weakest.from]} → ${FUNNEL_LABELS[weakest.to]}`;
+  const weakestPct = weakest.pct;
+
+  // Show numerator/denominator so the % has meaning (ex: 2/6)
+  const weakestNumer = weakest.numer ?? 0;
+  const weakestDenom = weakest.denom ?? 0;
+
+  // Overall close rate for revenue forecast (derived from funnel)
+  const overallCloseRatePct =
+    funnel.reached.estimate > 0
+      ? Math.round((funnel.reached.completed / funnel.reached.estimate) * 100)
+      : 0;
+
+  // Dynamic next action + tip based on the weakest funnel edge
+  const insightCopy = (() => {
+    const edge = `${weakest.from}_${weakest.to}`;
+    switch (edge) {
+      case "estimate_sent":
+        return {
+          action: "Send your best estimates today to keep the pipeline moving.",
+          tip: `Tip: click the "Estimate" filter and use Send on the top few.`,
+        };
+      case "sent_viewed":
+        return {
+          action: "Follow up on sent estimates that haven't been viewed yet.",
+          tip: `Tip: click the "Sent" filter and prioritize "Not viewed" jobs.`,
+        };
+      case "viewed_approved":
+        return {
+          action: "Close the viewed jobs while they're warm.",
+          tip: `Tip: look for "Viewed" jobs and call/text to get a decision.`,
+        };
+      case "approved_deposit":
+        return {
+          action: "Collect deposits on approved jobs to lock them in.",
+          tip: `Tip: click the "Approved" filter and use Collect Deposit.`,
+        };
+      case "deposit_scheduled":
+        return {
+          action: "Schedule jobs that already have a deposit collected.",
+          tip: `Tip: click the "Deposit paid" filter and schedule the next few.`,
+        };
+      case "scheduled_completed":
+        return {
+          action: "Collect final payments and mark jobs completed.",
+          tip: `Tip: click the "Scheduled" filter and use Collect Final / mark complete.`,
+        };
+      default:
+        return {
+          action: "Move the next jobs forward to protect your close rate.",
+          tip: `Tip: use the filters above to find the next bottleneck stage.`,
+        };
+    }
+  })();
 
   // ===============================
   // REVENUE FORECAST (based on close rate)
@@ -2710,10 +2836,13 @@ export default function SavedClient() {
               <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
                 <div className="text-xs uppercase tracking-wide text-white/50">Weakest stage</div>
                 <div className="mt-2 text-base font-semibold text-white">
-                  {weakestStage.label}
+                  {weakestLabel}
                 </div>
                 <div className="mt-1 text-sm text-amber-300">
-                  ⚠ {weakestStage.pct}% conversion
+                  ⚠ {weakestPct}% conversion{" "}
+                  <span className="text-white/45">
+                    ({weakestNumer}/{weakestDenom})
+                  </span>
                 </div>
               </div>
 
@@ -2745,11 +2874,11 @@ export default function SavedClient() {
             <div className="mt-5 flex flex-col gap-2 rounded-2xl border border-white/10 bg-white/[0.03] p-4 md:flex-row md:items-center md:justify-between">
               <div className="text-sm text-white/70">
                 <span className="font-semibold text-white">Next action:</span>{" "}
-                Schedule your approved jobs to protect your close rate.
+                {insightCopy.action}
               </div>
 
               <div className="text-xs text-white/55">
-                Tip: click the <span className="text-white/75">Approved</span> filter and schedule the next few.
+                {insightCopy.tip}
               </div>
             </div>
           </div>
