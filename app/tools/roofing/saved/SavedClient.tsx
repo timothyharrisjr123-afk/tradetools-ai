@@ -2903,11 +2903,12 @@ export default function SavedClient() {
                     className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white/90 outline-none focus:border-white/20"
                   >
                     <option value="">— Select —</option>
+                    <option value="Early AM">Early AM (7–10)</option>
                     <option value="AM">AM (8–12)</option>
+                    <option value="Midday">Midday (10–2)</option>
                     <option value="PM">PM (12–5)</option>
+                    <option value="Late PM">Late PM (2–6)</option>
                     <option value="Anytime">Anytime</option>
-                    <option value="First">First stop</option>
-                    <option value="Last">Last stop</option>
                   </select>
 
                   <label className="mt-2 block text-xs font-medium text-white/70">
