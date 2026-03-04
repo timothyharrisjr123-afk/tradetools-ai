@@ -2839,10 +2839,10 @@ export default function SavedClient() {
                   {weakestLabel}
                 </div>
                 <div className="mt-1 text-sm text-amber-300">
-                  ⚠ {weakestPct}% conversion{" "}
-                  <span className="text-white/45">
-                    ({weakestNumer}/{weakestDenom})
-                  </span>
+                  ⚠ {weakestPct}% conversion
+                </div>
+                <div className="text-xs text-white/45">
+                  {weakestNumer} of {weakestDenom} jobs
                 </div>
               </div>
 
