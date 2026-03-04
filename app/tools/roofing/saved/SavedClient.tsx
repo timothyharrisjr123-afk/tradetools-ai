@@ -449,7 +449,7 @@ function normalizeStatus(status: string | undefined): string {
 }
 
 const getDisplayStage = (status: string) => {
-  if (status === "sent_pending") return "Sent (not viewed yet)";
+  if (status === "sent_pending") return "Sent — not viewed yet";
   if (status === "sent") return "Pending approval";
   if (status === "viewed") return "Viewed";
   if (status === "approved") return "Approved";
@@ -463,7 +463,7 @@ const getDisplayStage = (status: string) => {
 const STATUS_OPTIONS: Array<{ value: string; label: string }> = [
   { value: "estimate", label: "Estimate" },
   { value: "sent", label: "Sent" },
-  { value: "sent_pending", label: "Sent (not viewed yet)" },
+  { value: "sent_pending", label: "Sent — not viewed yet" },
   { value: "approved", label: "Approved" },
   { value: "deposit_paid", label: "Deposit paid" },
   { value: "scheduled", label: "Scheduled" },
@@ -553,7 +553,7 @@ type SavedStatusUI =
 function statusLabel(status: SavedStatusUI) {
   const s = String(status || "").toLowerCase();
 
-  if (s === "sent_pending") return "Sent (not viewed yet)";
+  if (s === "sent_pending") return "Sent — not viewed yet";
   if (s === "sent" || s === "pending_approval") return "Pending approval";
   if (s === "estimate" || s === "draft") return "Estimate";
   if (s === "viewed") return "Viewed";
@@ -1091,7 +1091,7 @@ function RevenueSummary({
         <div className="h-px bg-white/10" />
         <Row label="Scheduled" value={scheduled} />
         <div className="h-px bg-white/10" />
-        <Row label="Paid" value={paid} tone="good" />
+        <Row label="Completed" value={paid} tone="good" />
       </div>
     </div>
   );
@@ -1864,7 +1864,7 @@ export default function SavedClient() {
     { value: "4–6pm", label: "4–6pm" },
   ];
   const STAGES = ["estimate", "sent_pending", "approved", "scheduled", "paid"] as const;
-  const STAGE_LABELS: Record<string, string> = { estimate: "Estimate", sent: "Pending", sent_pending: "Sent (not viewed yet)", approved: "Approved", scheduled: "Scheduled", paid: "Completed" };
+  const STAGE_LABELS: Record<string, string> = { estimate: "Estimate", sent: "Pending", sent_pending: "Sent — not viewed yet", approved: "Approved", scheduled: "Scheduled", paid: "Completed" };
   const STAGE_DOT_CLASS: Record<string, string> = {
     estimate: "bg-white/50",
     sent: "bg-emerald-400",
