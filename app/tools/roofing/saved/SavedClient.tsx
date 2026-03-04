@@ -980,11 +980,17 @@ function RevenueSummary({
     );
   };
 
+  const getMarginColor = (margin: number) => {
+    if (margin < 0.15) return "text-red-400";
+    if (margin < 0.2) return "text-yellow-400";
+    return "text-green-400";
+  };
+
   return (
     <div className="mb-8 rounded-3xl border border-white/10 bg-white/[0.04] p-5">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <div className="text-sm font-semibold text-white">Revenue Summary</div>
+          <div className="text-sm font-semibold text-white">Business Snapshot</div>
           <div className="mt-1 text-xs text-white/45">
             {window === "all"
               ? "All-time totals from your saved pipeline"
@@ -1000,42 +1006,72 @@ function RevenueSummary({
           </div>
         </div>
 
-        <div className="w-[220px] rounded-2xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-2">
-          <div className="text-[10px] uppercase tracking-[0.22em] text-emerald-200/70">
-            Pipeline
-          </div>
-          <div className="mt-0.5 text-lg font-semibold text-emerald-200 tabular-nums">
-            {fmt(pipelineTotal)}
+        <div className="flex flex-wrap items-stretch gap-3">
+          <div className="w-[220px] rounded-2xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-2">
+            <div className="text-[10px] uppercase tracking-[0.22em] text-emerald-200/70">
+              Pipeline
+            </div>
+            <div className="mt-0.5 text-lg font-semibold text-emerald-200 tabular-nums">
+              {fmt(pipelineTotal)}
+            </div>
+
+            {/* Progress bar (min visual width for 1–5%, true 0 stays empty) */}
+            <div className="mt-2 h-2 w-full rounded-full bg-black/20 border border-white/10 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-emerald-400/70"
+                style={{
+                  width:
+                    pipelineTotal > 0
+                      ? `${pct === 0 ? 0 : Math.max(6, pct * 100)}%`
+                      : "0%",
+                }}
+              />
+            </div>
+
+            <div className="mt-2 text-xs text-white/60">
+              <span className="tabular-nums text-white/80">{fmt(collected)}</span>{" "}
+              collected
+              <span className="ml-2 text-white/50">
+                · {fmt(openPipeline)} open
+              </span>
+            </div>
+            <div className="mt-1 text-xs text-white/50">
+              {paidJobs} paid / {totalJobs} total jobs
+            </div>
+            <div className="flex items-center justify-between mt-1 text-[12px] text-white/60">
+              <span>Average Job Value</span>
+              <span className="font-medium text-white/80">
+                ${averageJobValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              </span>
+            </div>
           </div>
 
-          {/* Progress bar (min visual width for 1–5%, true 0 stays empty) */}
-          <div className="mt-2 h-2 w-full rounded-full bg-black/20 border border-white/10 overflow-hidden">
-            <div
-              className="h-full rounded-full bg-emerald-400/70"
-              style={{
-                width:
-                  pipelineTotal > 0
-                    ? `${pct === 0 ? 0 : Math.max(6, pct * 100)}%`
-                    : "0%",
-              }}
-            />
-          </div>
-
-          <div className="mt-2 text-xs text-white/60">
-            <span className="tabular-nums text-white/80">{fmt(collected)}</span>{" "}
-            collected
-            <span className="ml-2 text-white/50">
-              · {fmt(openPipeline)} open
-            </span>
-          </div>
-          <div className="mt-1 text-xs text-white/50">
-            {paidJobs} paid / {totalJobs} total jobs
-          </div>
-          <div className="flex items-center justify-between mt-1 text-[12px] text-white/60">
-            <span>Average Job Value</span>
-            <span className="font-medium text-white/80">
-              ${averageJobValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-            </span>
+          <div className="w-[220px] rounded-2xl border border-white/20 bg-white/[0.06] px-4 py-2">
+            <div className="text-[10px] uppercase tracking-[0.22em] text-white/60">
+              Profit
+            </div>
+            <div className="mt-2 text-xs text-white/70 space-y-1">
+              <div className="flex justify-between">
+                <span>Sold</span>
+                <span className="tabular-nums text-white/90">{fmt(pipelineTotal)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Cost</span>
+                <span className="tabular-nums text-white/90">{fmt(costTotal)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Profit</span>
+                <span className={`tabular-nums font-semibold ${profitTotal >= 0 ? "text-green-400" : "text-red-400"}`}>
+                  {fmt(profitTotal)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span>Margin</span>
+                <span className={`tabular-nums font-semibold ${getMarginColor(avgMargin)}`}>
+                  {Math.round(avgMargin * 100)}%
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -1589,7 +1625,6 @@ export default function SavedClient() {
     profitTotal: number;
     avgMargin: number;
   } | null>(null);
-  const [showRevenueDetails, setShowRevenueDetails] = useState(false);
   const [paymentContractTotal, setPaymentContractTotal] = useState("");
   const [isScheduleOpen, setIsScheduleOpen] = useState(false);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
@@ -2303,12 +2338,6 @@ export default function SavedClient() {
   const formatMoney = (n: number) =>
     n.toLocaleString(undefined, { style: "currency", currency: "USD" });
 
-  function getMarginColor(margin: number) {
-    if (margin < 0.15) return "text-red-400";
-    if (margin < 0.2) return "text-yellow-400";
-    return "text-green-400";
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-6 py-10 text-white">
       {toast !== null && (
@@ -2425,188 +2454,19 @@ export default function SavedClient() {
           />
         )}
 
-        {/* ===============================
-            REVENUE INTELLIGENCE (CONSOLIDATED)
-        ================================ */}
+        {/* Bottleneck (single insight) */}
         {hydrated && (
           <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 mt-6">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h3 className="text-lg font-semibold text-white">
-                  Revenue Intelligence
-                </h3>
-                <div className="text-xs text-white/50 mt-1">
-                  Insights based on your pipeline performance for this time range.
-                </div>
+            <h3 className="text-lg font-semibold text-white">Bottleneck</h3>
+            <div className="mt-3 rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+              <div className="text-xs text-white/50">Weakest Stage</div>
+              <div className="text-lg font-semibold text-white mt-1">
+                {weakestStage.label}
               </div>
-
-              <button
-                type="button"
-                onClick={() => setShowRevenueDetails((v) => !v)}
-                className="shrink-0 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-semibold text-white/80 hover:bg-white/[0.06] active:bg-white/[0.08]"
-              >
-                {showRevenueDetails ? "Hide details" : "Show details"}
-              </button>
-            </div>
-
-            {/* Compact summary row (always visible) */}
-            <div className="mt-5 grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
-                <div className="text-xs text-white/50">Close Rate</div>
-                <div className="text-lg font-semibold text-white mt-1">
-                  {overallCloseRatePct ?? closeRatePercent ?? 0}%
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
-                <div className="text-xs text-white/50">Weakest Stage</div>
-                <div className="text-lg font-semibold text-white mt-1">
-                  {weakestStage.label}
-                </div>
-                <div className="text-xs text-white/60 mt-1">
-                  {weakestStage.pct}% conversion
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
-                <div className="text-xs text-white/50">Opportunity (+10%)</div>
-                <div className="text-lg font-semibold text-emerald-400 mt-1">
-                  {formatMoney(opportunityScenarios?.find((s) => s.increase === 10)?.additionalRevenue ?? 0)}
-                </div>
+              <div className="text-xs text-white/60 mt-1">
+                {weakestStage.pct}% conversion
               </div>
             </div>
-
-            {/* Profit Intelligence */}
-            <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.02] p-4">
-              <div className="text-sm font-semibold text-white mb-3">Profit Intelligence</div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-white/60">Sold</span>
-                  <span className="text-white/90 tabular-nums">{formatMoney(revenueMetrics?.pipelineTotal ?? 0)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-white/60">Cost</span>
-                  <span className="text-white/90 tabular-nums">{formatMoney(revenueMetrics?.costTotal ?? 0)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-white/60">Profit</span>
-                  <span
-                    className={`tabular-nums font-semibold ${
-                      (revenueMetrics?.profitTotal ?? 0) >= 0 ? "text-emerald-400" : "text-rose-400"
-                    }`}
-                  >
-                    {formatMoney(revenueMetrics?.profitTotal ?? 0)}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-white/60">Avg Margin</span>
-                  <span className={`tabular-nums font-semibold ${getMarginColor(revenueMetrics?.avgMargin ?? 0)}`}>
-                    {Math.round((revenueMetrics?.avgMargin ?? 0) * 100)}%
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Expanded details */}
-            {showRevenueDetails && (
-              <div className="mt-6 space-y-6">
-                {/* Stage Conversion Breakdown (original content) */}
-                <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-white">
-                      Stage Conversion Breakdown
-                    </h3>
-                    <div className="text-xs text-white/50">
-                      {totalJobs} total jobs
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-white/80">
-                    <div className="flex justify-between">
-                      <span>Estimate → Sent</span>
-                      <span className="font-semibold text-white">{estimateToSentPct}%</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Sent → Approved</span>
-                      <span className="font-semibold text-white">{sentToApprovedPct}%</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Approved → Scheduled</span>
-                      <span className="font-semibold text-white">{approvedToScheduledPct}%</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Scheduled → Paid</span>
-                      <span className="font-semibold text-white">{scheduledToPaidPct}%</span>
-                    </div>
-                    <div className="flex justify-between border-t border-white/10 pt-3 mt-3 col-span-full">
-                      <span className="text-white font-medium">Overall Close Rate</span>
-                      <span className="font-bold text-emerald-400">{overallCloseRatePct}%</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Forecasted Revenue (original content) */}
-                <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-white">
-                      Forecasted Revenue
-                    </h3>
-                    <div className="text-xs text-white/50">
-                      Based on {Math.round(closeRateDecimal * 100)}% close rate
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-white/80">
-                    <div className="flex justify-between">
-                      <span>Open Pipeline</span>
-                      <span className="font-semibold text-white">{formatMoney(openPipelineDollars)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Expected Future Revenue</span>
-                      <span className="font-semibold text-white">{formatMoney(expectedFutureRevenue)}</span>
-                    </div>
-                    <div className="flex justify-between border-t border-white/10 pt-3 mt-3 col-span-full">
-                      <span className="text-white font-medium">Expected Total Collected</span>
-                      <span className="font-bold text-emerald-400">{formatMoney(expectedTotalCollected)}</span>
-                    </div>
-                  </div>
-
-                  <div className="text-xs text-white/50 mt-3">
-                    Forecast uses your current close rate against open pipeline for this time range.
-                  </div>
-                </div>
-
-                {/* Revenue Opportunity (original content) */}
-                <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-white">
-                      Revenue Opportunity
-                    </h3>
-                    <div className="text-xs text-white/50">
-                      Based on improving close rate
-                    </div>
-                  </div>
-
-                  <div className="space-y-3 text-sm text-white/80">
-                    {opportunityScenarios.map((scenario) => (
-                      <div
-                        key={scenario.increase}
-                        className="flex justify-between border-b border-white/5 pb-2"
-                      >
-                        <span>+{scenario.increase}% Close Rate</span>
-                        <span className="font-semibold text-emerald-400">
-                          {formatMoney(scenario.additionalRevenue)}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="text-xs text-white/50 mt-3">
-                    Increasing close rate directly increases revenue from your existing pipeline.
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         )}
 
