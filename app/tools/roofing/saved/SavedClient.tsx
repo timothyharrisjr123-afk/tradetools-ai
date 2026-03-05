@@ -1503,14 +1503,13 @@ function SavedEstimateCard({
   const pillStatusForPill = (pillStatus === "not_viewed" || pillStatus === "viewed") ? "sent" : pillStatus;
   return (
     <div
-      className={`group relative isolate pointer-events-auto before:pointer-events-none after:pointer-events-none rounded-3xl border border-white/12 bg-gradient-to-b from-slate-900/70 to-slate-950/40 p-6 transition-all duration-300
+      className={`group relative rounded-3xl border border-white/12 bg-gradient-to-b from-slate-900/70 to-slate-950/40 p-6 transition-all duration-300
   ${showApprovalActions || status === "sent" || status === "sent_pending"
     ? "border-emerald-300/25 shadow-[0_0_0_1px_rgba(16,185,129,0.10)]"
     : "hover:border-white/20"}
   ${isFlashing ? "ring-2 ring-emerald-400/60" : ""}`}
     >
-      <div className="pointer-events-none absolute inset-0 rounded-3xl" />
-      <div className="relative z-10">
+      <div className="relative">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
