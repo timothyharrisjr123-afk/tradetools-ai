@@ -602,6 +602,7 @@ const STATUS_OPTIONS: Array<{ value: string; label: string }> = [
   { value: "estimate", label: "Estimate" },
   { value: "sent", label: "Sent" },
   { value: "sent_pending", label: "Sent — not viewed yet" },
+  { value: "followups", label: "Follow-ups" },
   { value: "approved", label: "Approved" },
   { value: "deposit_paid", label: "Deposit paid" },
   { value: "scheduled", label: "Scheduled" },
@@ -1912,7 +1913,7 @@ export default function SavedClient() {
   const [hydrated, setHydrated] = useState(false);
   const [estimates, setEstimates] = useState<RoofingEstimate[]>([]);
   const [query, setQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "estimate" | "sent_pending" | "approved" | "deposit_paid" | "scheduled" | "paid">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "estimate" | "sent_pending" | "approved" | "deposit_paid" | "scheduled" | "paid" | "followups">("all");
   const [scheduledView, setScheduledView] = useState<"upcoming" | "past" | "all">("upcoming");
   const [flashId, setFlashId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -2589,6 +2590,7 @@ export default function SavedClient() {
   let filtered = searchFiltered
     .filter((e) => {
       if (statusFilter === "all") return true;
+      if (statusFilter === "followups") return true;
       if (statusFilter === "scheduled") return !!getScheduledDateKeyFromEstimate(e);
       const s = e.status || "estimate";
       const norm = normalizeStatusValue(s);
@@ -2810,6 +2812,7 @@ export default function SavedClient() {
           <div className="flex flex-wrap gap-2 text-xs">
             {[
               ["all", "All"],
+              ["followups", "Follow-ups"],
               ["estimate", "Estimate"],
               ["sent_pending", "Sent"],
               ["approved", "Approved"],
@@ -2819,7 +2822,10 @@ export default function SavedClient() {
             ].map(([key, label]) => (
               <button
                 key={key}
-                onClick={() => setStatusFilter(key as any)}
+                onClick={() => {
+                  setStatusFilter(key as any);
+                  setQuery("");
+                }}
                 className={
                   "rounded-full border px-3 py-1.5 text-xs font-semibold transition " +
                   (statusFilter === key
@@ -2945,6 +2951,158 @@ export default function SavedClient() {
         )}
 
         <div className="space-y-4">
+          {hydrated && statusFilter === "followups" && (() => {
+            const list = filtered;
+            const notOpened = list.filter((e: any) => {
+              const s = String(e?.status ?? "estimate");
+              const isSent = s === "sent" || s === "sent_pending";
+              return isSent && !hasViewedSignal(e, batchStatuses);
+            });
+
+            const openedNoApproval = list.filter((e: any) => {
+              const s = String(e?.status ?? "estimate");
+              const isBlockingStage =
+                s === "approved" || s === "deposit_paid" || s === "scheduled" || s === "paid" || s === "completed";
+              return hasViewedSignal(e, batchStatuses) && !isBlockingStage;
+            });
+
+            const approvedNotScheduled = list.filter((e: any) => {
+              const s = String(e?.status ?? "estimate");
+              return s === "approved" || s === "deposit_paid";
+            });
+
+            const Lane = ({ title, items, tone }: { title: string; items: any[]; tone?: "amber" | "emerald" | "white" }) => (
+              <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-sm font-semibold text-white">{title}</div>
+                  <div className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-xs text-white/70">
+                    {items.length}
+                  </div>
+                </div>
+
+                <div className="mt-4 space-y-3">
+                  {items.length ? (
+                    items.map((e: any) => (
+                      <SavedEstimateCard
+                        key={e.id}
+                        estimate={e}
+                        batchStatuses={batchStatuses}
+                        paymentState={paymentStates[e.id] ?? null}
+                        checkoutLoading={checkoutLoading}
+                        followUpInfo={getFollowUpInfo(e, paymentStates[e.id] ?? null)}
+                        onSendFollowUp={(est, kind) => sendFollowUpEmail(est, kind)}
+                        onStartCheckout={(id, type, est, remainingCentsForFull) =>
+                          startCheckout(id, type, est, setCheckoutLoading, remainingCentsForFull)
+                        }
+                        onOpenDepositModal={(est) =>
+                          setDepositModal({
+                            open: true,
+                            estimateId: est.id,
+                            estimateTotal: Number(est.totalContractPrice ?? est.suggestedPrice ?? 0),
+                            customValue: "",
+                            mode: "percent",
+                            percent: 10,
+                          })
+                        }
+                        onOpenOfflineModal={(est) => {
+                          const total = Number(est.totalContractPrice ?? est.suggestedPrice ?? 0);
+                          const totalCents = Math.round(total * 100);
+                          const ps = paymentStates[est.id];
+                          const depositPaidCents = ps?.depositAmountCents || 0;
+                          const fullPaidCents = ps?.fullAmountCents || 0;
+                          const offlinePaidCents = ps?.offlinePaidCents || 0;
+                          const remainingCents = Math.max(totalCents - (depositPaidCents + fullPaidCents + offlinePaidCents), 0);
+                          const remainingDollars = remainingCents / 100;
+                          setOfflineModal({
+                            open: true,
+                            estimateId: est.id,
+                            estimateTotal: total,
+                            remaining: remainingDollars,
+                            amount: remainingDollars ? String(remainingDollars.toFixed(2)) : "",
+                            method: "cash",
+                            notes: "",
+                            stage: "deposit",
+                          });
+                        }}
+                        onOpenTransactions={openTransactions}
+                        openMoreFor={openMoreFor}
+                        setOpenMoreFor={setOpenMoreFor}
+                        moreMenuRef={moreMenuRef}
+                        onLoad={(est) => handleAction(est, "load")}
+                        onDelete={(id) => {
+                          const est = filtered.find((x) => x.id === id);
+                          if (est) handleAction(est, "delete");
+                        }}
+                        onStatusChange={(id, status) => {
+                          if (status === "followups") {
+                            setStatusFilter("followups");
+                            setQuery("");
+                            return;
+                          }
+                          const statusTyped = status as
+                            | "estimate"
+                            | "sent"
+                            | "sent_pending"
+                            | "approved"
+                            | "deposit_paid"
+                            | "scheduled"
+                            | "paid"
+                            | "completed";
+                          if (statusTyped === "scheduled") {
+                            const est = filtered.find((x) => x.id === id);
+                            if (est && !est.scheduledStartDate) {
+                              setToast("Pick a start date to schedule.");
+                              setTimeout(() => setToast(null), 2500);
+                              setSchedulingForId(id);
+                              setScheduleStartDate((est?.scheduledStartDate || "").trim() || new Date().toISOString().slice(0, 10));
+                              const existingArrival = String(est?.scheduledArrivalWindow ?? "").trim();
+                              if (existingArrival) {
+                                if (isStandardArrivalValue(existingArrival) || existingArrival === "Anytime") {
+                                  setScheduleArrivalWindow(existingArrival);
+                                  setScheduleCustomArrivalWindow("");
+                                } else {
+                                  setScheduleArrivalWindow(ARRIVAL_CUSTOM);
+                                  setScheduleCustomArrivalWindow(existingArrival);
+                                }
+                              } else {
+                                setScheduleArrivalWindow("");
+                                setScheduleCustomArrivalWindow("");
+                              }
+                              setScheduleNotes((est?.scheduleNotes || "").trim());
+                              return;
+                            }
+                          }
+                          updateSavedEstimate(id, { status: statusTyped as any });
+                          setEstimates(getNormalizedEstimates());
+                          const label = String(statusTyped).charAt(0).toUpperCase() + String(statusTyped).slice(1);
+                          setToast(`Status updated → ${label}`);
+                          setTimeout(() => setToast(null), 2500);
+                        }}
+                        onSend={(est) => handleAction(est, "send")}
+                        onSchedule={(est) => handleAction(est, "schedule")}
+                        onRecordPayment={(est) => handleAction(est, "pay")}
+                        onMarkApproved={(est) => handleAction(est, "approve")}
+                        onView={(est) => handleAction(est, "load")}
+                        isFlashing={e.id === flashId}
+                      />
+                    ))
+                  ) : (
+                    <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 text-sm text-white/55">
+                      No jobs in this lane.
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+
+            return (
+              <div className="space-y-5">
+                <Lane title="Not opened" items={notOpened} />
+                <Lane title="Opened — no approval" items={openedNoApproval} />
+                <Lane title="Approved / Deposit — not scheduled" items={approvedNotScheduled} />
+              </div>
+            );
+          })()}
           {/* Scheduled UX v2 enabled */}
           {hydrated && statusFilter === "scheduled" && (() => {
             const now = new Date();
@@ -3024,6 +3182,11 @@ export default function SavedClient() {
                   if (est) handleAction(est, "delete");
                 }}
                 onStatusChange={(id, status) => {
+                  if (status === "followups") {
+                    setStatusFilter("followups");
+                    setQuery("");
+                    return;
+                  }
                   const statusTyped = status as "estimate" | "sent" | "sent_pending" | "approved" | "deposit_paid" | "scheduled" | "paid";
                   if (statusTyped === "scheduled") {
                     const est = filtered.find((x) => x.id === id);
@@ -3109,7 +3272,7 @@ export default function SavedClient() {
               </div>
             );
           })()}
-          {hydrated && statusFilter !== "scheduled" && filtered.map((e) => (
+          {hydrated && statusFilter !== "scheduled" && statusFilter !== "followups" && filtered.map((e) => (
             <SavedEstimateCard
               key={e.id}
               estimate={e}
@@ -3159,6 +3322,11 @@ export default function SavedClient() {
                 if (est) handleAction(est, "delete");
               }}
               onStatusChange={(id, status) => {
+                if (status === "followups") {
+                  setStatusFilter("followups");
+                  setQuery("");
+                  return;
+                }
                 const statusTyped = status as "estimate" | "sent" | "sent_pending" | "approved" | "deposit_paid" | "scheduled" | "paid";
                 if (statusTyped === "scheduled") {
                   const est = filtered.find((x) => x.id === id);
