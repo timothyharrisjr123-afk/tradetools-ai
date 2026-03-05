@@ -2973,9 +2973,7 @@ export default function SavedClient() {
             });
 
             const Lane = ({ title, items, tone }: { title: string; items: any[]; tone?: "amber" | "emerald" | "white" }) => (
-              <div className="relative isolate pointer-events-auto rounded-3xl border border-white/10 bg-white/[0.03] p-5">
-                <div className="pointer-events-none absolute inset-0 rounded-3xl" />
-                <div className="relative z-10">
+              <div className="relative rounded-3xl border border-white/10 bg-white/[0.03] p-5">
                 <div className="flex items-center justify-between gap-3">
                   <div className="text-sm font-semibold text-white">{title}</div>
                   <div className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-xs text-white/70">
@@ -3097,12 +3095,11 @@ export default function SavedClient() {
                     </div>
                   )}
                 </div>
-                </div>
               </div>
             );
 
             return (
-              <div className="relative isolate pointer-events-auto z-10 space-y-5">
+              <div className="relative z-10 space-y-5">
                 <Lane title="Not opened" items={notOpened} />
                 <Lane title="Opened — no approval" items={openedNoApproval} />
                 <Lane title="Approved / Deposit — not scheduled" items={approvedNotScheduled} />
