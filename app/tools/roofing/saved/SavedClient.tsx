@@ -2972,7 +2972,7 @@ export default function SavedClient() {
             });
 
             const Lane = ({ title, items, tone }: { title: string; items: any[]; tone?: "amber" | "emerald" | "white" }) => (
-              <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5">
+              <div className="relative rounded-3xl border border-white/10 bg-white/[0.03] p-5">
                 <div className="flex items-center justify-between gap-3">
                   <div className="text-sm font-semibold text-white">{title}</div>
                   <div className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-xs text-white/70">
@@ -2980,10 +2980,11 @@ export default function SavedClient() {
                   </div>
                 </div>
 
-                <div className="mt-4 space-y-3">
+                <div className="relative z-10 mt-4 space-y-3">
                   {items.length ? (
                     items.map((e: any) => (
-                      <SavedEstimateCard
+                      <div key={e.id} className="relative z-10">
+                        <SavedEstimateCard
                         key={e.id}
                         estimate={e}
                         batchStatuses={batchStatuses}
@@ -3085,6 +3086,7 @@ export default function SavedClient() {
                         onView={(est) => handleAction(est, "load")}
                         isFlashing={e.id === flashId}
                       />
+                      </div>
                     ))
                   ) : (
                     <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 text-sm text-white/55">
@@ -3096,7 +3098,7 @@ export default function SavedClient() {
             );
 
             return (
-              <div className="space-y-5">
+              <div className="relative z-10 space-y-5">
                 <Lane title="Not opened" items={notOpened} />
                 <Lane title="Opened — no approval" items={openedNoApproval} />
                 <Lane title="Approved / Deposit — not scheduled" items={approvedNotScheduled} />
