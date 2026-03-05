@@ -2951,7 +2951,7 @@ export default function SavedClient() {
           </div>
         )}
 
-        <div className="space-y-4 relative isolate pointer-events-auto z-10">
+        <div className="space-y-4">
           {hydrated && statusFilter === "followups" && (() => {
             const list = filtered;
             const notOpened = list.filter((e: any) => {
