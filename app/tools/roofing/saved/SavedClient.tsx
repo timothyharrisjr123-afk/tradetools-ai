@@ -523,7 +523,7 @@ const normalizePipelineStatus = (s?: string): PipelineStatus => {
   if (v === "approved") return "approved";
   if (v === "deposit_paid") return "deposit_paid";
   if (v === "scheduled") return "scheduled";
-  if (v === "paid") return "paid";
+  if (v === "paid" || v === "completed") return "paid";
   return "estimate";
 };
 
@@ -575,7 +575,7 @@ function normalizeStatusValue(input: unknown): string {
   if (s === "pending") return "pending";
   if (s === "approved") return "approved";
   if (s === "scheduled") return "scheduled";
-  if (s === "paid") return "paid";
+  if (s === "paid" || s === "completed") return "paid";
   return "estimate";
 }
 
@@ -593,7 +593,7 @@ const getDisplayStage = (status: string) => {
   if (status === "approved") return "Approved";
   if (status === "deposit_paid") return "Deposit paid";
   if (status === "scheduled") return "Scheduled";
-  if (status === "paid") return "Completed";
+  if (status === "paid" || status === "completed") return "Completed";
   if (status === "estimate") return "Estimate";
   return status?.toUpperCase?.() ?? "—";
 };
@@ -698,7 +698,7 @@ function statusLabel(status: SavedStatusUI) {
   if (s === "approved") return "Approved";
   if (s === "deposit_paid") return "Deposit paid";
   if (s === "scheduled") return "Scheduled";
-  if (s === "paid") return "Completed";
+  if (s === "paid" || s === "completed") return "Completed";
 
   return s
     .replace(/[_-]+/g, " ")
@@ -756,7 +756,7 @@ function StatusPill({ status }: { status: string }) {
       </span>
     );
   }
-  if (status === "paid") {
+  if (status === "paid" || status === "completed") {
     return (
       <span className={`${base} bg-amber-500/10 text-amber-300 ring-amber-500/20`}>
         <span className={`${dot} bg-amber-400`} />
@@ -1353,7 +1353,7 @@ function getFollowUpInfo(
     return { due: true, reason: "Confirm they received it", kind: "confirm" };
   }
 
-  if (viewedAt && status !== "approved" && status !== "deposit_paid" && status !== "scheduled" && status !== "paid" && isDueSince(viewedAt, 48)) {
+  if (viewedAt && status !== "approved" && status !== "deposit_paid" && status !== "scheduled" && status !== "paid" && status !== "completed" && isDueSince(viewedAt, 48)) {
     return { due: true, reason: "Answer questions / ask for approval", kind: "questions" };
   }
 
@@ -1479,7 +1479,7 @@ function SavedEstimateCard({
 
   const hasPaymentState = !!paymentState;
   const fallbackDepositPaid = estimate?.status === "deposit_paid";
-  const fallbackPaid = estimate?.status === "paid";
+  const fallbackPaid = estimate?.status === "paid" || estimate?.status === "completed";
   const showPaid = hasPaymentState ? isFullyPaid : fallbackPaid;
   const showDepositPaid = hasPaymentState ? isDepositPaid : fallbackDepositPaid;
   const pillStatus = (showPaid ? "paid" : showDepositPaid ? "deposit_paid" : displayStatus) as string;
@@ -1682,7 +1682,7 @@ function SavedEstimateCard({
                   )}
                   {fullPaidCents > 0 && (
                     <div className="flex items-center justify-between">
-                      <span>Additional paid</span>
+                      <span>Final paid</span>
                       <span className="font-medium">{formatCentsToCurrency(fullPaidCents)}</span>
                     </div>
                   )}
@@ -1698,10 +1698,12 @@ function SavedEstimateCard({
                       <span className="font-medium">{formatCentsToCurrency(offlineAdditionalCents)}</span>
                     </div>
                   )}
-                  <div className="flex items-center justify-between">
-                    <span>{isFinalPayment ? "Final payment" : "Remaining"}</span>
-                    <span className="font-semibold">{formatCentsToCurrency(remainingCents)}</span>
-                  </div>
+                  {!isFullyPaid && remainingCents > 0 && (
+                    <div className="flex items-center justify-between">
+                      <span>Final payment</span>
+                      <span className="font-semibold">{formatCentsToCurrency(remainingCents)}</span>
+                    </div>
+                  )}
                 </div>
               ) : null;
             })()}
@@ -2491,12 +2493,28 @@ export default function SavedClient() {
           }));
         }
         if (!candidates.includes(est)) continue;
-        if (payment?.status === "paid" && est.status !== "paid") {
+        const rawStatus = String(est?.status ?? "");
+        if (payment?.status === "paid" && rawStatus !== "paid" && rawStatus !== "completed") {
           markSavedEstimateStatus(id, "paid");
-        } else if (payment?.status === "deposit_paid" && est.status !== "deposit_paid") {
+        } else if (payment?.status === "deposit_paid" && rawStatus !== "deposit_paid") {
           if (est.status === "approved" || est.status === "scheduled") {
             markSavedEstimateStatus(id, "deposit_paid");
           }
+        }
+        const totalCents = toEstimateTotalCents(est);
+        const collected =
+          (payment?.depositAmountCents ?? 0) +
+          (payment?.fullAmountCents ?? 0) +
+          (Array.isArray((payment as any)?.offlineTransactions)
+            ? (payment as any).offlineTransactions.reduce((s: number, t: any) => s + (Number(t?.amountCents) || 0), 0)
+            : 0);
+        if (
+          totalCents > 0 &&
+          collected >= totalCents &&
+          rawStatus !== "paid" &&
+          rawStatus !== "completed"
+        ) {
+          markSavedEstimateStatus(id, "paid");
         }
       }
       if (!cancelled) setEstimates(getNormalizedEstimates());
