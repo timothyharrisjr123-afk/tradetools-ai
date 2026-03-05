@@ -2871,14 +2871,27 @@ export default function SavedClient() {
               </div>
             </div>
 
-            <div className="mt-5 flex flex-col gap-2 rounded-2xl border border-white/10 bg-white/[0.03] p-4 md:flex-row md:items-center md:justify-between">
+            <div className="mt-5 flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4 md:flex-row md:items-center md:justify-between">
               <div className="text-sm text-white/70">
                 <span className="font-semibold text-white">Next action:</span>{" "}
                 {insightCopy.action}
               </div>
 
-              <div className="text-xs text-white/55">
-                {insightCopy.tip}
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => {
+                    setStatusFilter("deposit_paid");
+                    const el = document.querySelector(".space-y-4");
+                    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+                  }}
+                  className="rounded-lg border border-amber-400/30 bg-amber-500/10 px-3 py-1.5 text-xs font-medium text-amber-200 hover:bg-amber-500/20 transition"
+                >
+                  View Deposit Jobs
+                </button>
+
+                <div className="text-xs text-white/55">
+                  {insightCopy.tip}
+                </div>
               </div>
             </div>
           </div>
