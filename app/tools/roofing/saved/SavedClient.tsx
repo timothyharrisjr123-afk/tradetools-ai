@@ -2506,7 +2506,10 @@ export default function SavedClient() {
           (payment?.depositAmountCents ?? 0) +
           (payment?.fullAmountCents ?? 0) +
           (Array.isArray((payment as any)?.offlineTransactions)
-            ? (payment as any).offlineTransactions.reduce((s: number, t: any) => s + (Number(t?.amountCents) || 0), 0)
+            ? (payment as any).offlineTransactions.reduce(
+                (s: number, t: any) => s + (Number(t?.amountCents) || 0),
+                0
+              )
             : 0);
         if (
           totalCents > 0 &&
