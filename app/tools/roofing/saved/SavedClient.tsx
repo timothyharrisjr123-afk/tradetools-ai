@@ -2605,6 +2605,28 @@ export default function SavedClient() {
   const funnel = computeFunnelStats(filtered, batchStatuses);
   const weakest = funnel.weakest;
 
+  const actionFilterMap: Record<string, "all" | "estimate" | "sent_pending" | "approved" | "deposit_paid" | "scheduled" | "paid"> = {
+    estimate_sent: "estimate",
+    sent_viewed: "sent_pending",
+    viewed_approved: "sent_pending",
+    approved_deposit: "approved",
+    deposit_scheduled: "deposit_paid",
+    scheduled_completed: "scheduled",
+  };
+
+  const actionLabelMap: Record<string, string> = {
+    estimate_sent: "View Estimates",
+    sent_viewed: "View Sent Jobs",
+    viewed_approved: "View Viewed Jobs",
+    approved_deposit: "View Approved Jobs",
+    deposit_scheduled: "View Deposit Jobs",
+    scheduled_completed: "View Scheduled Jobs",
+  };
+
+  const weakestEdge = `${weakest.from}_${weakest.to}`;
+  const actionFilter = actionFilterMap[weakestEdge] ?? ("all" as const);
+  const actionLabel = actionLabelMap[weakestEdge] ?? "View Jobs";
+
   const weakestLabel = `${FUNNEL_LABELS[weakest.from]} → ${FUNNEL_LABELS[weakest.to]}`;
   const weakestPct = weakest.pct;
 
@@ -2884,13 +2906,13 @@ export default function SavedClient() {
               <div className="flex items-center gap-4">
                 <button
                   onClick={() => {
-                    setStatusFilter("deposit_paid");
+                    setStatusFilter(actionFilter);
                     const el = document.querySelector(".space-y-4");
                     if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
                   }}
                   className="rounded-lg border border-amber-400/30 bg-amber-500/10 px-3 py-1.5 text-xs font-medium text-amber-200 hover:bg-amber-500/20 transition"
                 >
-                  View Deposit Jobs
+                  {actionLabel}
                 </button>
 
                 <div className="text-xs text-white/55">
