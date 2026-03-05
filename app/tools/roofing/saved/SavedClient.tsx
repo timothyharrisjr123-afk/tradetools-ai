@@ -1509,11 +1509,8 @@ function SavedEstimateCard({
     : "hover:border-white/20"}
   ${isFlashing ? "ring-2 ring-emerald-400/60" : ""}`}
     >
-      {/* Decorative overlay MUST never eat clicks and MUST always be under content */}
-      <div className="pointer-events-none absolute inset-0 z-0 rounded-3xl" />
-
-      {/* Content MUST always sit above overlays */}
-      <div className="relative z-[60]">
+      <div className="pointer-events-none absolute inset-0 rounded-3xl" />
+      <div className="relative z-10">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
