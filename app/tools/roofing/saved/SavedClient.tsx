@@ -2841,7 +2841,7 @@ export default function SavedClient() {
                 <div className="mt-1 text-sm text-amber-300">
                   ⚠ {weakestPct}% conversion
                 </div>
-                <div className="text-xs text-white/45">
+                <div className="mt-1 text-xs text-white/40">
                   {weakestNumer} of {weakestDenom} jobs
                 </div>
               </div>
