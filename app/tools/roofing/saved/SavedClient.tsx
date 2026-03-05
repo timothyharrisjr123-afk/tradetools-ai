@@ -2973,7 +2973,7 @@ export default function SavedClient() {
             });
 
             const Lane = ({ title, items, tone }: { title: string; items: any[]; tone?: "amber" | "emerald" | "white" }) => (
-              <div className="relative isolate pointer-events-auto rounded-3xl border border-white/10 bg-white/[0.03] p-5">
+              <div className="relative rounded-3xl border border-white/10 bg-white/[0.03] p-5 pointer-events-none">
                 <div className="pointer-events-none absolute inset-0 rounded-3xl" />
                 <div className="relative z-10">
                 <div className="flex items-center justify-between gap-3">
@@ -2983,10 +2983,10 @@ export default function SavedClient() {
                   </div>
                 </div>
 
-                <div className="relative z-10 mt-4 space-y-3">
+                <div className="relative z-10 mt-4 space-y-3 pointer-events-auto">
                   {items.length ? (
                     items.map((e: any) => (
-                      <div key={e.id} className="relative z-10">
+                      <div key={e.id} className="relative z-10 pointer-events-auto">
                         <SavedEstimateCard
                         key={e.id}
                         estimate={e}
