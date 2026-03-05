@@ -2838,12 +2838,16 @@ export default function SavedClient() {
                 <div className="mt-2 text-base font-semibold text-white">
                   {weakestLabel}
                 </div>
-                <div className="mt-1 text-sm text-amber-300">
-                  ⚠ {weakestPct}% conversion
-                </div>
-                <div className="mt-1 text-xs text-white/40">
-                  {weakestNumer} of {weakestDenom} jobs
-                </div>
+                {weakestDenom > 0 && (
+                  <>
+                    <div className="mt-1 text-sm text-amber-300">
+                      ⚠ {weakestPct}% conversion
+                    </div>
+                    <div className="mt-1 text-xs text-white/40">
+                      {weakestNumer} of {weakestDenom} jobs
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="rounded-2xl border border-amber-400/20 bg-amber-500/10 p-4">
@@ -2877,7 +2881,7 @@ export default function SavedClient() {
                 {insightCopy.action}
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-4">
                 <button
                   onClick={() => {
                     setStatusFilter("deposit_paid");
