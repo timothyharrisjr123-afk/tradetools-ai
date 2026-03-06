@@ -1837,6 +1837,7 @@ function SavedEstimateCard({
           : status;
   const displayStatus =
     isApproved ? effectiveStatus : isSent && viewedAt ? "viewed" : isSent && !viewedAt ? "not_viewed" : effectiveStatus;
+  const isScheduledCard = !!showRescheduleButton || status === "scheduled";
   const totalCents = toEstimateTotalCents(estimate);
   const depositPaid = paymentState?.depositAmountCents || 0;
   const fullPaid = paymentState?.fullAmountCents || 0;
@@ -1856,10 +1857,15 @@ function SavedEstimateCard({
   const isFinalPayment = hasAnyPayment && hasRemaining;
 
   const hasPaymentState = !!paymentState;
-  const fallbackDepositPaid = estimate?.status === "deposit_paid";
-  const fallbackPaid = estimate?.status === "paid" || estimate?.status === "completed";
+  const fallbackDepositPaid =
+    estimate?.status === "deposit_paid" ||
+    estimate?.status === "scheduled" ||
+    estimate?.status === "paid" ||
+    estimate?.status === "completed";
+  const fallbackPaid =
+    estimate?.status === "paid" || estimate?.status === "completed";
   const showPaid = hasPaymentState ? isFullyPaid : fallbackPaid;
-  const showDepositPaid = hasPaymentState ? isDepositPaid : fallbackDepositPaid;
+  const showDepositPaid = hasPaymentState ? (isDepositPaid || isScheduledCard) : fallbackDepositPaid;
   const pillStatus = (showPaid ? "paid" : showDepositPaid ? "deposit_paid" : displayStatus) as string;
   const stageAgeText = buildStageAgeText({
     status,
@@ -2053,7 +2059,7 @@ function SavedEstimateCard({
           </div>
         </div>
 
-        <PipelineBar status={getStage(estimate)} isViewed={isSent && !!viewedAt} />
+        <PipelineBar status={isScheduledCard ? "scheduled" : getStage(estimate)} isViewed={isSent && !!viewedAt} />
 
         <div className="mt-6 flex items-center justify-between border-t border-white/5 pt-6">
           {/* LEFT: Total + payment summary */}
@@ -2199,7 +2205,7 @@ function SavedEstimateCard({
             {/* ===== PAYMENT ACTIONS ===== */}
             {!isFullyPaid && totalCents > 0 && (
               <div className="flex flex-wrap items-center gap-2">
-                {collectedCents === 0 && (
+                {!showDepositPaid && collectedCents === 0 && !isFullyPaid && (
                   <button
                     type="button"
                     disabled={checkoutLoading?.[estimate.id] === "deposit"}
@@ -2220,7 +2226,11 @@ function SavedEstimateCard({
                   }}
                   className={`${actionBtn} rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white`}
                 >
-                  {checkoutLoading?.[estimate.id] === "full" ? "Opening…" : isFinalPayment ? "Collect Final" : "Collect Full"}
+                  {checkoutLoading?.[estimate.id] === "full"
+                  ? "Opening…"
+                  : (isFinalPayment || showDepositPaid || isScheduledCard)
+                    ? "Collect Final"
+                    : "Collect Full"}
                 </button>
               </div>
             )}
