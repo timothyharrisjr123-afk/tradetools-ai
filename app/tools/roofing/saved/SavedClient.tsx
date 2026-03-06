@@ -3512,7 +3512,7 @@ export default function SavedClient() {
               tomorrow: "TOMORROW",
               this_week: "THIS WEEK",
               next_week: "NEXT WEEK",
-              future: "LATER",
+              future: "FUTURE",
               past: "PAST JOBS",
             };
 
@@ -3643,21 +3643,9 @@ export default function SavedClient() {
                       </div>
                       {dateKeysInBucket.map((dateKey) => {
                         const dateItems = byDateInBucket.get(dateKey)!;
-                        const dateObj = dateItems[0].date;
-                        const count = dateItems.length;
                         return (
                           <div key={dateKey} className="space-y-4">
-                            <div className="mb-3">
-                              <div className="text-sm font-semibold text-white">
-                                {formatHeaderDate(dateObj)}
-                              </div>
-                              <div className="mt-1 text-xs text-white/45">
-                                {count} job{count > 1 ? "s" : ""}
-                              </div>
-                            </div>
-                            <div className="space-y-4">
-                              {dateItems.map((x) => renderScheduledCard(x))}
-                            </div>
+                            {dateItems.map((x) => renderScheduledCard(x))}
                           </div>
                         );
                       })}
