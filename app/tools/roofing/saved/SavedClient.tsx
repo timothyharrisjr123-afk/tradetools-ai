@@ -1197,11 +1197,11 @@ function PipelineBar({ status, isViewed }: { status: string; isViewed?: boolean 
   return (
     <div className="mt-4">
       {/* labels row */}
-      <div className="mb-2 flex items-center justify-between text-[10px] font-semibold tracking-wide">
+      <div className="mb-2 flex items-center justify-between text-xs font-medium tracking-wide">
         {steps.map((s, i) => {
           const done = i <= activeIndex;
           return (
-            <span key={s} className={done ? "text-white/70" : "text-white/30"}>
+            <span key={s} className={done ? "text-white/70" : "text-white/50"}>
               {labels[s]}
             </span>
           );
@@ -2006,7 +2006,14 @@ function SavedEstimateCard({
 
             {stageAgeText && (
               <div className="text-xs text-white/50 mt-1">
-                {stageAgeText}
+                {stageAgeText.startsWith("Deposit paid ") ? (
+                  <>
+                    Deposit paid
+                    <div>{stageAgeText.slice("Deposit paid ".length)}</div>
+                  </>
+                ) : (
+                  stageAgeText
+                )}
               </div>
             )}
 
@@ -2170,7 +2177,7 @@ function SavedEstimateCard({
                     onClick={() => onSchedule?.(estimate)}
                     title={status === "scheduled" ? "Update the scheduled date" : "Pick a date to schedule the job"}
                   >
-                    {status === "scheduled" ? (scheduleActionLabel ?? "Reschedule Job") : "Schedule Job"}
+                    {estimate.scheduledStartDate ? "Reschedule" : "Schedule Job"}
                   </button>
                 )}
 
