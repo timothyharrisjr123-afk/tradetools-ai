@@ -238,6 +238,53 @@ function buildStageAgeText(args: {
   return null;
 }
 
+function firstValidIsoDate(...values: Array<string | null | undefined>) {
+  for (const value of values) {
+    if (!value) continue;
+    const ts = new Date(value).getTime();
+    if (!Number.isNaN(ts)) return value;
+  }
+  return null;
+}
+
+function getEffectiveSentAt(est: any) {
+  return firstValidIsoDate(
+    est?.sentAt,
+    est?.sent_at,
+    est?.sentDate,
+    est?.createdAt,
+    est?.created_at
+  );
+}
+
+function getEffectiveViewedAt(est: any, batchStatuses?: any) {
+  const remote =
+    est?.approvalToken && batchStatuses
+      ? batchStatuses?.[est.approvalToken] ?? null
+      : null;
+
+  const sentAt = getEffectiveSentAt(est);
+
+  const rawViewedAt = firstValidIsoDate(
+    est?.viewedAt,
+    est?.lastViewedAt,
+    remote?.viewedAt,
+    remote?.lastViewedAt
+  );
+
+  if (!rawViewedAt) return null;
+  if (!sentAt) return rawViewedAt;
+
+  const viewedTs = new Date(rawViewedAt).getTime();
+  const sentTs = new Date(sentAt).getTime();
+
+  if (!Number.isNaN(viewedTs) && !Number.isNaN(sentTs) && viewedTs < sentTs) {
+    return null;
+  }
+
+  return rawViewedAt;
+}
+
 type ScheduleBucket = "today" | "tomorrow" | "this_week" | "next_week" | "future" | "past";
 
 function addDays(d: Date, days: number): Date {
@@ -1489,10 +1536,11 @@ function isDueSince(baseIso: string | undefined | null, hours: number): boolean 
 
 function getFollowUpInfo(
   est: any,
-  paymentState?: { depositAmountCents?: number; fullAmountCents?: number; offlinePaidCents?: number } | null
+  paymentState?: { depositAmountCents?: number; fullAmountCents?: number; offlinePaidCents?: number } | null,
+  batchStatuses?: any
 ): { due: boolean; reason: string; kind: "confirm" | "questions" | "deposit" | "none" } {
-  const viewedAt = est?.viewedAt ?? null;
-  const sentAt = est?.sentAt ?? null;
+  const viewedAt = getEffectiveViewedAt(est, batchStatuses);
+  const sentAt = getEffectiveSentAt(est);
   const approvedAt = est?.approvedAt ?? null;
   const lastSavedAt = est?.lastSavedAt ?? null;
   const status = (est?.status ?? "estimate") as string;
@@ -1505,7 +1553,7 @@ function getFollowUpInfo(
   const isApproved = status === "approved";
   const depositPaid = (paymentState?.depositAmountCents ?? 0) + ((paymentState as any)?.offlinePaidCents ?? 0);
 
-  if (isSent && !viewedAt && isDueSince(sentAt, 24)) {
+  if (isSent && !viewedAt && isDueSince(sentAt, 36)) {
     return { due: true, reason: "Confirm they received it", kind: "confirm" };
   }
 
@@ -1606,13 +1654,13 @@ function SavedEstimateCard({
 }) {
   const status = normalizePipelineStatus(getStage(estimate));
   const remote = estimate?.approvalToken && batchStatuses ? batchStatuses[estimate.approvalToken] : null;
-  const viewedAt = (estimate?.viewedAt ?? remote?.viewedAt ?? null) as string | null;
+  const viewedAt = getEffectiveViewedAt(estimate, batchStatuses) as string | null;
   const isSent = status === "sent" || status === "sent_pending";
   const isApproved = status === "approved" || status === "deposit_paid" || status === "scheduled" || status === "paid";
   const effectiveStatus =
     remote?.status === "approved"
       ? "approved"
-      : remote?.status === "viewed" || remote?.viewedAt
+      : viewedAt
         ? "viewed"
         : status === "sent" || status === "sent_pending"
           ? "sent"
@@ -1665,7 +1713,7 @@ function SavedEstimateCard({
   const addrExtra = [estimate.city ?? estimate.jobCity, estimate.state ?? estimate.jobState, estimate.zip ?? estimate.jobZip].filter(Boolean).join(", ");
   const actionBtn =
     "inline-flex items-center justify-center rounded-xl px-3 py-1.5 text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed";
-  const followUpReason = getFollowUpReason(estimate, paymentState);
+  const followUpReason = followUpInfo?.due ? followUpInfo.reason : null;
   const profitInfo = calcProfitInfo(estimate);
   const visibleFollowUpInfo = followUpHidden ? undefined : followUpInfo;
   const visibleFollowUpReason = followUpHidden ? null : followUpReason;
@@ -3226,7 +3274,7 @@ export default function SavedClient() {
                 paymentState={paymentStates[e.id] ?? null}
                 checkoutLoading={checkoutLoading}
                 showRescheduleButton
-                followUpInfo={getFollowUpInfo(e, paymentStates[e.id] ?? null)}
+                followUpInfo={getFollowUpInfo(e, paymentStates[e.id] ?? null, batchStatuses)}
                 onSendFollowUp={(est, kind) => sendFollowUpEmail(est, kind)}
                 followUpHidden={isFollowUpHidden(e.id)}
                 onFollowUpSnooze={(estimateId) =>
@@ -3375,7 +3423,7 @@ export default function SavedClient() {
               batchStatuses={batchStatuses}
               paymentState={paymentStates[e.id] ?? null}
               checkoutLoading={checkoutLoading}
-              followUpInfo={getFollowUpInfo(e, paymentStates[e.id] ?? null)}
+              followUpInfo={getFollowUpInfo(e, paymentStates[e.id] ?? null, batchStatuses)}
               onSendFollowUp={(est, kind) => sendFollowUpEmail(est, kind)}
               followUpHidden={isFollowUpHidden(e.id)}
               onFollowUpSnooze={(estimateId) =>
