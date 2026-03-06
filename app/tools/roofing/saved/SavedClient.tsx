@@ -112,6 +112,109 @@ function formatHeaderDate(d: Date): string {
   return d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
 }
 
+function smartTimeAgoLabel(date?: string | null) {
+  if (!date) return null;
+
+  const then = new Date(date).getTime();
+  if (Number.isNaN(then)) return null;
+
+  const now = Date.now();
+  const diffMs = Math.max(0, now - then);
+
+  const hour = 1000 * 60 * 60;
+  const day = hour * 24;
+
+  if (diffMs < hour) return "today";
+
+  const diffDays = Math.floor(diffMs / day);
+
+  if (diffDays <= 0) return "today";
+  if (diffDays === 1) return "1 day ago";
+  if (diffDays < 7) return `${diffDays} days ago`;
+
+  const diffWeeks = Math.floor(diffDays / 7);
+  if (diffWeeks === 1) return "1 week ago";
+  if (diffWeeks < 5) return `${diffWeeks} weeks ago`;
+
+  const diffMonths = Math.floor(diffDays / 30);
+  if (diffMonths === 1) return "1 month ago";
+  return `${diffMonths} months ago`;
+}
+
+function buildStageAgeText(args: {
+  status: string;
+  isSent: boolean;
+  viewedAt?: string | null;
+  estimate: any;
+  showDepositPaid: boolean;
+  showPaid: boolean;
+}) {
+  const { status, isSent, viewedAt, estimate, showDepositPaid, showPaid } = args;
+
+  const sentAt =
+    estimate?.sentAt ??
+    estimate?.sent_at ??
+    estimate?.sentDate ??
+    estimate?.createdAt ??
+    null;
+
+  const approvedAt =
+    estimate?.approvedAt ??
+    estimate?.approved_at ??
+    null;
+
+  const depositPaidAt =
+    estimate?.depositPaidAt ??
+    estimate?.deposit_paid_at ??
+    estimate?.paymentReceivedAt ??
+    estimate?.paidAt ??
+    null;
+
+  const scheduledAt =
+    estimate?.scheduledAt ??
+    estimate?.scheduled_at ??
+    estimate?.scheduledStartDate ??
+    null;
+
+  const completedAt =
+    estimate?.completedAt ??
+    estimate?.completed_at ??
+    estimate?.paidAt ??
+    null;
+
+  if (showPaid) {
+    const age = smartTimeAgoLabel(completedAt);
+    return age ? `Paid ${age}` : null;
+  }
+
+  if (status === "scheduled") {
+    const age = smartTimeAgoLabel(scheduledAt);
+    return age ? `Scheduled ${age}` : null;
+  }
+
+  if (showDepositPaid || status === "deposit_paid") {
+    const age = smartTimeAgoLabel(depositPaidAt);
+    return age ? `Deposit paid ${age}` : null;
+  }
+
+  if (status === "approved") {
+    const age = smartTimeAgoLabel(approvedAt);
+    return age ? `Approved ${age}` : null;
+  }
+
+  if (isSent && viewedAt) {
+    const age = smartTimeAgoLabel(viewedAt);
+    return age ? `Viewed ${age}` : null;
+  }
+
+  if (isSent) {
+    const age = smartTimeAgoLabel(sentAt);
+    return age ? `Sent ${age}` : null;
+  }
+
+  return null;
+}
+
 type ScheduleBucket = "today" | "tomorrow" | "this_week" | "next_week" | "future" | "past";
 
 function addDays(d: Date, days: number): Date {
@@ -1517,6 +1620,14 @@ function SavedEstimateCard({
   const showPaid = hasPaymentState ? isFullyPaid : fallbackPaid;
   const showDepositPaid = hasPaymentState ? isDepositPaid : fallbackDepositPaid;
   const pillStatus = (showPaid ? "paid" : showDepositPaid ? "deposit_paid" : displayStatus) as string;
+  const stageAgeText = buildStageAgeText({
+    status,
+    isSent,
+    viewedAt,
+    estimate,
+    showDepositPaid,
+    showPaid,
+  });
   const hasApproval = Boolean(estimate?.approvalToken);
   const statusStr = (estimate?.status ?? "").toLowerCase();
   const isSentLike =
@@ -1651,23 +1762,9 @@ function SavedEstimateCard({
                       : getDisplayStage(getStage(estimate))}
             </div>
 
-            {(status === "sent" || status === "sent_pending") && (
-              <div className="text-xs text-white/50 mt-1">
-                {viewedAt ? (
-                  <>
-                    Viewed {formatShortDate(estimate.viewedAt ?? viewedAt)}{" "}
-                    <span className="text-white/40">
-                      ({timeAgo(estimate.viewedAt ?? viewedAt)})
-                    </span>
-                    <span className="text-white/40">
-                      {" · Sent "}{formatShortDate(estimate.sentAt ?? estimate.sent_at ?? estimate.sentDate ?? estimate.createdAt)}
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    Sent {formatShortDate(estimate.sentAt ?? estimate.sent_at ?? estimate.sentDate ?? estimate.createdAt)}
-                  </>
-                )}
+            {stageAgeText && (
+              <div className="mt-1 text-xs text-white/50">
+                {stageAgeText}
               </div>
             )}
 
