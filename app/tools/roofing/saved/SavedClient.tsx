@@ -1783,6 +1783,7 @@ function SavedEstimateCard({
   checkoutLoading,
   onStartCheckout,
   onOpenDepositModal,
+  onOpenRemainingModal,
   onOpenOfflineModal,
   onOpenTransactions,
   openMoreFor,
@@ -1812,6 +1813,7 @@ function SavedEstimateCard({
   checkoutLoading?: Record<string, "deposit" | "full" | null>;
   onStartCheckout?: (estimateId: string, paymentType: "deposit" | "full", estimate: any, remainingCentsForFull?: number) => void;
   onOpenDepositModal?: (estimate: any) => void;
+  onOpenRemainingModal?: (estimate: any, remainingCents: number) => void;
   onOpenOfflineModal?: (estimate: any) => void;
   onOpenTransactions?: (estimate: any) => void;
   openMoreFor: string | null;
@@ -2204,7 +2206,10 @@ function SavedEstimateCard({
                     onClick={() => onSchedule?.(estimate)}
                     title={status === "scheduled" || status === "in_progress" ? "Update the scheduled date" : "Pick a date to schedule the job"}
                   >
-                    {estimate.scheduledStartDate ? "Reschedule" : "Schedule Job"}
+                    {(() => {
+                      const norm = normalizeStatusValue(estimate.status || "estimate");
+                      return (norm === "scheduled" || norm === "in_progress") ? "Reschedule" : "Schedule Job";
+                    })()}
                   </button>
                 )}
 
@@ -2253,12 +2258,16 @@ function SavedEstimateCard({
                 )}
 
                 <button
-                  type="button"
-                  disabled={checkoutLoading?.[estimate.id] === "full"}
-                  onClick={() => {
-                    onStartCheckout?.(estimate.id, "full", estimate, remainingCents);
-                  }}
-                  className={`${actionBtn} rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white`}
+                    type="button"
+                    disabled={checkoutLoading?.[estimate.id] === "full"}
+                    onClick={() => {
+                      if (isFinalPayment || showDepositPaid || isScheduledCard) {
+                        onOpenRemainingModal?.(estimate, remainingCents);
+                      } else {
+                        onStartCheckout?.(estimate.id, "full", estimate, remainingCents);
+                      }
+                    }}
+                    className={`${actionBtn} rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white`}
                 >
                   {checkoutLoading?.[estimate.id] === "full"
                   ? "Opening…"
@@ -2467,6 +2476,21 @@ export default function SavedClient() {
     customValue: "",
     mode: "percent",
     percent: 10,
+  });
+  const [remainingModal, setRemainingModal] = useState<{
+    open: boolean;
+    estimateId: string | null;
+    estimateTotalCents: number;
+    remainingCents: number;
+    mode: "full" | "custom";
+    customValue: string;
+  }>({
+    open: false,
+    estimateId: null,
+    estimateTotalCents: 0,
+    remainingCents: 0,
+    mode: "full",
+    customValue: "",
   });
   const [openMoreFor, setOpenMoreFor] = useState<string | null>(null);
   const moreMenuRef = useRef<HTMLDivElement | null>(null);
@@ -3615,6 +3639,16 @@ export default function SavedClient() {
                     percent: 10,
                   })
                 }
+                onOpenRemainingModal={(est, remainingCents) =>
+                  setRemainingModal({
+                    open: true,
+                    estimateId: est.id,
+                    estimateTotalCents: toEstimateTotalCents(est),
+                    remainingCents,
+                    mode: "full",
+                    customValue: "",
+                  })
+                }
                 onOpenOfflineModal={(est) => {
                   const total = Number(est.totalContractPrice ?? est.suggestedPrice ?? 0);
                   const totalCents = Math.round(total * 100);
@@ -3757,6 +3791,16 @@ export default function SavedClient() {
                   customValue: "",
                   mode: "percent",
                   percent: 10,
+                })
+              }
+              onOpenRemainingModal={(est, remainingCents) =>
+                setRemainingModal({
+                  open: true,
+                  estimateId: est.id,
+                  estimateTotalCents: toEstimateTotalCents(est),
+                  remainingCents,
+                  mode: "full",
+                  customValue: "",
                 })
               }
               onOpenOfflineModal={(est) => {
@@ -4109,6 +4153,95 @@ export default function SavedClient() {
         </div>
         );
       })()}
+
+      {/* Remaining balance modal (Collect Final: full or custom amount) */}
+      {remainingModal.open && remainingModal.estimateId && remainingModal.remainingCents > 0 && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-md rounded-3xl border border-white/10 bg-[#0b1220] p-5 shadow-xl">
+            <div className="flex items-center justify-between">
+              <div className="text-base font-semibold text-white">Collect remaining balance</div>
+              <button
+                onClick={() => setRemainingModal((s) => ({ ...s, open: false }))}
+                className="rounded-xl px-2 py-1 text-white/70 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="mt-2 text-sm text-white/70">
+              Remaining: {formatCentsToCurrency(remainingModal.remainingCents)}
+            </div>
+
+            <div className="mt-4 flex gap-2">
+              <button
+                onClick={() => setRemainingModal((s) => ({ ...s, mode: "full" }))}
+                className={`rounded-xl px-3 py-2 text-sm font-medium transition ${
+                  remainingModal.mode === "full" ? "bg-white/15 text-white" : "bg-white/5 text-white/80 hover:bg-white/10"
+                }`}
+              >
+                Remaining balance
+              </button>
+              <button
+                onClick={() => setRemainingModal((s) => ({ ...s, mode: "custom" }))}
+                className={`rounded-xl px-3 py-2 text-sm font-medium transition ${
+                  remainingModal.mode === "custom" ? "bg-white/15 text-white" : "bg-white/5 text-white/80 hover:bg-white/10"
+                }`}
+              >
+                Custom amount
+              </button>
+            </div>
+
+            {remainingModal.mode === "custom" ? (
+              <div className="mt-4">
+                <label className="text-sm text-white/70">Amount</label>
+                <input
+                  value={remainingModal.customValue}
+                  onChange={(e) => setRemainingModal((s) => ({ ...s, customValue: e.target.value }))}
+                  placeholder="Example: 500"
+                  className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:border-white/20"
+                />
+                <div className="mt-2 text-xs text-white/50">Enter dollars. Max: {formatCentsToCurrency(remainingModal.remainingCents)}</div>
+              </div>
+            ) : (
+              <div className="mt-3 text-sm text-white/70">
+                Collect full remaining: {formatCentsToCurrency(remainingModal.remainingCents)}
+              </div>
+            )}
+
+            <div className="mt-5 flex gap-2">
+              <button
+                onClick={() => setRemainingModal((s) => ({ ...s, open: false }))}
+                className="flex-1 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-white/90 hover:bg-white/10"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  const amountCents =
+                    remainingModal.mode === "full"
+                      ? remainingModal.remainingCents
+                      : Math.min(
+                          Math.round(Number(remainingModal.customValue || 0) * 100),
+                          remainingModal.remainingCents
+                        );
+                  if (amountCents <= 0) return;
+                  await startCheckout(
+                    remainingModal.estimateId!,
+                    "full",
+                    { estimateTotalCents: remainingModal.estimateTotalCents },
+                    setCheckoutLoading,
+                    amountCents
+                  );
+                  setRemainingModal((s) => ({ ...s, open: false }));
+                }}
+                className="flex-1 rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white hover:bg-indigo-500"
+              >
+                Proceed to checkout
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Offline payment modal */}
       {offlineModal.open && offlineModal.estimateId && (
