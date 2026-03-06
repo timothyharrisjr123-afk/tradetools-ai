@@ -873,7 +873,7 @@ function formatCents(cents: number) {
   return (cents / 100).toLocaleString(undefined, { style: "currency", currency: "USD" });
 }
 
-type PipelineStatus = "estimate" | "sent" | "sent_pending" | "viewed" | "approved" | "deposit_paid" | "scheduled" | "paid";
+type PipelineStatus = "estimate" | "sent" | "sent_pending" | "viewed" | "approved" | "deposit_paid" | "scheduled" | "in_progress" | "paid";
 
 const normalizePipelineStatus = (s?: string): PipelineStatus => {
   const v = (s || "estimate").toLowerCase();
@@ -884,12 +884,13 @@ const normalizePipelineStatus = (s?: string): PipelineStatus => {
   if (v === "approved") return "approved";
   if (v === "deposit_paid") return "deposit_paid";
   if (v === "scheduled") return "scheduled";
+  if (v === "in_progress") return "in_progress";
   if (v === "paid" || v === "completed") return "paid";
   return "estimate";
 };
 
 const isApprovedOrLater = (st: PipelineStatus) =>
-  st === "approved" || st === "deposit_paid" || st === "scheduled" || st === "paid";
+  st === "approved" || st === "deposit_paid" || st === "scheduled" || st === "in_progress" || st === "paid";
 
 const isAwaitingApproval = (estimate: any, st: PipelineStatus) =>
   !!estimate?.approvalToken && !isApprovedOrLater(st);
@@ -936,6 +937,7 @@ function normalizeStatusValue(input: unknown): string {
   if (s === "pending") return "pending";
   if (s === "approved") return "approved";
   if (s === "scheduled") return "scheduled";
+  if (s === "in_progress") return "in_progress";
   if (s === "paid" || s === "completed") return "paid";
   return "estimate";
 }
@@ -954,6 +956,7 @@ const getDisplayStage = (status: string) => {
   if (status === "approved") return "Approved";
   if (status === "deposit_paid") return "Deposit paid";
   if (status === "scheduled") return "Scheduled";
+  if (status === "in_progress") return "Crew On Site";
   if (status === "paid" || status === "completed") return "Completed";
   if (status === "estimate") return "Estimate";
   return status?.toUpperCase?.() ?? "—";
@@ -966,6 +969,7 @@ const STATUS_OPTIONS: Array<{ value: string; label: string }> = [
   { value: "approved", label: "Approved" },
   { value: "deposit_paid", label: "Deposit paid" },
   { value: "scheduled", label: "Scheduled" },
+  { value: "in_progress", label: "On Site" },
   { value: "paid", label: "Completed" },
 ];
 
@@ -976,6 +980,7 @@ const statusToStage = (s?: string) => {
   if (v === "approved") return "approved";
   if (v === "deposit_paid") return "deposit_paid";
   if (v === "scheduled") return "scheduled";
+  if (v === "in_progress") return "in_progress";
   if (v === "paid") return "paid";
   return "estimate";
 };
@@ -1046,6 +1051,7 @@ type SavedStatusUI =
   | "approved"
   | "deposit_paid"
   | "scheduled"
+  | "in_progress"
   | "paid"
   | string;
 
@@ -1059,6 +1065,7 @@ function statusLabel(status: SavedStatusUI) {
   if (s === "approved") return "Approved";
   if (s === "deposit_paid") return "Deposit paid";
   if (s === "scheduled") return "Scheduled";
+  if (s === "in_progress") return "Crew On Site";
   if (s === "paid" || s === "completed") return "Completed";
 
   return s
@@ -1114,6 +1121,14 @@ function StatusPill({ status }: { status: string }) {
       <span className={`${base} bg-violet-500/10 text-violet-300 ring-violet-500/20`}>
         <span className={`${dot} bg-violet-400`} />
         Scheduled
+      </span>
+    );
+  }
+  if (status === "in_progress") {
+    return (
+      <span className={`${base} bg-violet-500/10 text-violet-300 ring-violet-500/20`}>
+        <span className={`${dot} bg-violet-400`} />
+        Crew On Site
       </span>
     );
   }
@@ -1179,13 +1194,14 @@ function Stepper({ status }: { status: string }) {
 }
 
 function PipelineBar({ status, isViewed }: { status: string; isViewed?: boolean }) {
-  const steps = ["estimate", "sent_pending", "approved", "deposit_paid", "scheduled", "paid"] as const;
+  const steps = ["estimate", "sent_pending", "approved", "deposit_paid", "scheduled", "in_progress", "paid"] as const;
   const labels: Record<(typeof steps)[number], string> = {
     estimate: "Estimate",
     sent_pending: "Sent",
     approved: "Approved",
     deposit_paid: "Deposit",
     scheduled: "Scheduled",
+    in_progress: "On Site",
     paid: "Completed",
   };
   const stepStatus = status === "sent" ? "sent_pending" : status;
@@ -1818,7 +1834,7 @@ function SavedEstimateCard({
   const remote = estimate?.approvalToken && batchStatuses ? batchStatuses[estimate.approvalToken] : null;
   const viewedAt = getEffectiveViewedAt(estimate, batchStatuses) as string | null;
   const isSent = status === "sent" || status === "sent_pending";
-  const isApproved = status === "approved" || status === "deposit_paid" || status === "scheduled" || status === "paid";
+  const isApproved = status === "approved" || status === "deposit_paid" || status === "scheduled" || status === "in_progress" || status === "paid";
   const effectiveStatus =
     remote?.status === "approved"
       ? "approved"
@@ -1829,7 +1845,7 @@ function SavedEstimateCard({
           : status;
   const displayStatus =
     isApproved ? effectiveStatus : isSent && viewedAt ? "viewed" : isSent && !viewedAt ? "not_viewed" : effectiveStatus;
-  const isScheduledCard = !!showRescheduleButton || status === "scheduled";
+  const isScheduledCard = !!showRescheduleButton || status === "scheduled" || status === "in_progress";
   const totalCents = toEstimateTotalCents(estimate);
   const depositPaid = paymentState?.depositAmountCents || 0;
   const fullPaid = paymentState?.fullAmountCents || 0;
@@ -2170,14 +2186,34 @@ function SavedEstimateCard({
                   </>
                 )}
 
-                {(status === "approved" || status === "deposit_paid" || status === "scheduled" || status === "paid") && (
+                {(status === "approved" || status === "deposit_paid" || status === "scheduled" || status === "in_progress" || status === "paid") && (
                   <button
                     type="button"
                     className={`${actionBtn} rounded-full border border-emerald-400/20 bg-emerald-500/15 text-emerald-200 hover:bg-emerald-500/20`}
                     onClick={() => onSchedule?.(estimate)}
-                    title={status === "scheduled" ? "Update the scheduled date" : "Pick a date to schedule the job"}
+                    title={status === "scheduled" || status === "in_progress" ? "Update the scheduled date" : "Pick a date to schedule the job"}
                   >
                     {estimate.scheduledStartDate ? "Reschedule" : "Schedule Job"}
+                  </button>
+                )}
+
+                {status === "scheduled" && (
+                  <button
+                    type="button"
+                    className={`${actionBtn} rounded-full border border-emerald-400/20 bg-emerald-500/15 text-emerald-200 hover:bg-emerald-500/20`}
+                    onClick={() => onStatusChange?.(estimate.id, "in_progress")}
+                  >
+                    Start Job
+                  </button>
+                )}
+
+                {status === "in_progress" && (
+                  <button
+                    type="button"
+                    onClick={() => onStatusChange?.(estimate.id, "paid")}
+                    className={`${actionBtn} rounded-full border border-emerald-400/20 bg-emerald-500/15 text-emerald-200 hover:bg-emerald-500/20`}
+                  >
+                    Mark Completed
                   </button>
                 )}
 
@@ -2354,7 +2390,7 @@ export default function SavedClient() {
   const [hydrated, setHydrated] = useState(false);
   const [estimates, setEstimates] = useState<RoofingEstimate[]>([]);
   const [query, setQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "estimate" | "sent_pending" | "approved" | "deposit_paid" | "scheduled" | "paid">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "estimate" | "sent_pending" | "approved" | "deposit_paid" | "scheduled" | "in_progress" | "paid">("all");
   const [scheduledView, setScheduledView] = useState<"upcoming" | "past" | "all">("upcoming");
   const [flashId, setFlashId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -3358,6 +3394,7 @@ export default function SavedClient() {
               ["approved", "Approved"],
               ["deposit_paid", "Deposit paid"],
               ["scheduled", "Scheduled"],
+              ["in_progress", "On Site"],
               ["paid", "Completed"],
             ].map(([key, label]) => (
               <button
@@ -3587,7 +3624,7 @@ export default function SavedClient() {
                   if (est) handleAction(est, "delete");
                 }}
                 onStatusChange={(id, status) => {
-                  const statusTyped = status as "estimate" | "sent" | "sent_pending" | "approved" | "deposit_paid" | "scheduled" | "paid";
+                  const statusTyped = status as "estimate" | "sent" | "sent_pending" | "approved" | "deposit_paid" | "scheduled" | "in_progress" | "paid";
                   if (statusTyped === "scheduled") {
                     const est = filtered.find((x) => x.id === id);
                     if (est && !est.scheduledStartDate) {
@@ -3615,7 +3652,7 @@ export default function SavedClient() {
                   updateSavedEstimate(id, { status: statusTyped });
                   setEstimates(getNormalizedEstimates());
                   const label = statusTyped.charAt(0).toUpperCase() + statusTyped.slice(1);
-                  setToast(statusTyped === "approved" ? "Approved ✅" : statusTyped === "scheduled" ? "Scheduled ✅" : `Status updated → ${label}`);
+                  setToast(statusTyped === "approved" ? "Approved ✅" : statusTyped === "scheduled" ? "Scheduled ✅" : statusTyped === "in_progress" ? "Crew on site ✅" : `Status updated → ${label}`);
                   setTimeout(() => setToast(null), 2500);
                 }}
                 onSend={(est) => handleAction(est, "send")}
@@ -3731,7 +3768,7 @@ export default function SavedClient() {
                 if (est) handleAction(est, "delete");
               }}
               onStatusChange={(id, status) => {
-                const statusTyped = status as "estimate" | "sent" | "sent_pending" | "approved" | "deposit_paid" | "scheduled" | "paid";
+                const statusTyped = status as "estimate" | "sent" | "sent_pending" | "approved" | "deposit_paid" | "scheduled" | "in_progress" | "paid";
                 if (statusTyped === "scheduled") {
                   const est = filtered.find((x) => x.id === id);
                   if (est && !est.scheduledStartDate) {
@@ -3759,7 +3796,7 @@ export default function SavedClient() {
                 updateSavedEstimate(id, { status: statusTyped });
                 setEstimates(getNormalizedEstimates());
                 const label = statusTyped.charAt(0).toUpperCase() + statusTyped.slice(1);
-                setToast(statusTyped === "approved" ? "Approved ✅" : statusTyped === "scheduled" ? "Scheduled ✅" : `Status updated → ${label}`);
+                setToast(statusTyped === "approved" ? "Approved ✅" : statusTyped === "scheduled" ? "Scheduled ✅" : statusTyped === "in_progress" ? "Crew on site ✅" : `Status updated → ${label}`);
                 setTimeout(() => setToast(null), 2500);
               }}
               onSend={(est) => handleAction(est, "send")}
