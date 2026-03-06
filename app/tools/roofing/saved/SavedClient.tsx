@@ -2980,22 +2980,18 @@ export default function SavedClient() {
   const weakest = funnel.weakest;
 
   const pipelineInsight = getPipelineInsight(searchFiltered || []);
-  const insightActionFilterMap: Record<string, "all" | "estimate" | "sent_pending" | "approved" | "deposit_paid" | "scheduled" | "paid"> = {
-    deposit: "deposit_paid",
-    approved: "approved",
-    viewed: "sent_pending",
-    sent: "sent_pending",
-    none: "all",
-  };
-  const insightActionLabelMap: Record<string, string> = {
-    deposit: "View Deposit Jobs",
-    approved: "View Approved Jobs",
-    viewed: "View Viewed Jobs",
-    sent: "View Sent Jobs",
-    none: "View Jobs",
-  };
-  const actionFilter = insightActionFilterMap[pipelineInsight.action] ?? ("all" as const);
-  const actionLabel = insightActionLabelMap[pipelineInsight.action] ?? "View Jobs";
+  const activeTab = statusFilter;
+
+  const insightMessage =
+    activeTab === "approved"
+      ? "Collect deposit for approved jobs."
+      : activeTab === "deposit_paid"
+        ? pipelineInsight.action === "deposit"
+          ? pipelineInsight.message
+          : "Schedule deposit-paid jobs."
+        : activeTab === "sent_pending"
+          ? "Follow up on sent estimates."
+          : pipelineInsight.message;
 
   const weakestLabel = `${FUNNEL_LABELS[weakest.from]} → ${FUNNEL_LABELS[weakest.to]}`;
   const weakestPct = weakest.pct;
@@ -3009,18 +3005,6 @@ export default function SavedClient() {
     funnel.reached.estimate > 0
       ? Math.round((funnel.reached.completed / funnel.reached.estimate) * 100)
       : 0;
-
-  const insightTipMap: Record<string, string> = {
-    deposit: `Tip: click the "Deposit paid" filter and schedule the next few.`,
-    approved: `Tip: click the "Approved" filter and use Collect Deposit.`,
-    viewed: `Tip: look for "Viewed" jobs and call/text to get a decision.`,
-    sent: `Tip: click the "Sent" filter and prioritize "Not viewed" jobs.`,
-    none: `Tip: use the filters above to find the next bottleneck stage.`,
-  };
-  const insightCopy = {
-    action: pipelineInsight.message,
-    tip: insightTipMap[pipelineInsight.action] ?? insightTipMap.none,
-  };
 
   // ===============================
   // REVENUE FORECAST (based on close rate)
@@ -3237,27 +3221,10 @@ export default function SavedClient() {
               </div>
             </div>
 
-            <div className="mt-5 flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4 md:flex-row md:items-center md:justify-between">
-              <div className="text-sm text-white/70">
+            <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+              <div className="text-sm text-slate-300">
                 <span className="font-semibold text-white">Next action:</span>{" "}
-                {insightCopy.action}
-              </div>
-
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={() => {
-                    setStatusFilter(actionFilter);
-                    const el = document.querySelector(".space-y-4");
-                    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-                  }}
-                  className="rounded-lg border border-amber-400/30 bg-amber-500/10 px-3 py-1.5 text-xs font-medium text-amber-200 hover:bg-amber-500/20 transition"
-                >
-                  {actionLabel}
-                </button>
-
-                <div className="text-xs text-white/55">
-                  {insightCopy.tip}
-                </div>
+                {insightMessage}
               </div>
             </div>
           </div>
