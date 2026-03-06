@@ -151,11 +151,16 @@ function buildStageAgeText(args: {
 }) {
   const { status, isSent, viewedAt, estimate, showDepositPaid, showPaid } = args;
 
+  const createdAt =
+    estimate?.createdAt ??
+    estimate?.created_at ??
+    null;
+
   const sentAt =
     estimate?.sentAt ??
     estimate?.sent_at ??
     estimate?.sentDate ??
-    estimate?.createdAt ??
+    createdAt ??
     null;
 
   const approvedAt =
@@ -167,7 +172,9 @@ function buildStageAgeText(args: {
     estimate?.depositPaidAt ??
     estimate?.deposit_paid_at ??
     estimate?.paymentReceivedAt ??
+    estimate?.payment_received_at ??
     estimate?.paidAt ??
+    estimate?.paid_at ??
     null;
 
   const scheduledAt =
@@ -180,35 +187,51 @@ function buildStageAgeText(args: {
     estimate?.completedAt ??
     estimate?.completed_at ??
     estimate?.paidAt ??
+    estimate?.paid_at ??
     null;
 
+  function firstValidDate(...values: Array<string | null | undefined>) {
+    for (const value of values) {
+      if (!value) continue;
+      const ts = new Date(value).getTime();
+      if (!Number.isNaN(ts)) return value;
+    }
+    return null;
+  }
+
   if (showPaid) {
-    const age = smartTimeAgoLabel(completedAt);
+    const best = firstValidDate(completedAt, depositPaidAt, scheduledAt, approvedAt, sentAt, createdAt);
+    const age = smartTimeAgoLabel(best);
     return age ? `Paid ${age}` : null;
   }
 
   if (status === "scheduled") {
-    const age = smartTimeAgoLabel(scheduledAt);
+    const best = firstValidDate(scheduledAt, depositPaidAt, approvedAt, sentAt, createdAt);
+    const age = smartTimeAgoLabel(best);
     return age ? `Scheduled ${age}` : null;
   }
 
   if (showDepositPaid || status === "deposit_paid") {
-    const age = smartTimeAgoLabel(depositPaidAt);
+    const best = firstValidDate(depositPaidAt, approvedAt, sentAt, createdAt);
+    const age = smartTimeAgoLabel(best);
     return age ? `Deposit paid ${age}` : null;
   }
 
   if (status === "approved") {
-    const age = smartTimeAgoLabel(approvedAt);
+    const best = firstValidDate(approvedAt, viewedAt, sentAt, createdAt);
+    const age = smartTimeAgoLabel(best);
     return age ? `Approved ${age}` : null;
   }
 
   if (isSent && viewedAt) {
-    const age = smartTimeAgoLabel(viewedAt);
+    const best = firstValidDate(viewedAt, sentAt, createdAt);
+    const age = smartTimeAgoLabel(best);
     return age ? `Viewed ${age}` : null;
   }
 
   if (isSent) {
-    const age = smartTimeAgoLabel(sentAt);
+    const best = firstValidDate(sentAt, createdAt);
+    const age = smartTimeAgoLabel(best);
     return age ? `Sent ${age}` : null;
   }
 
