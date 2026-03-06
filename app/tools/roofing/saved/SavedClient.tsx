@@ -1204,7 +1204,12 @@ function PipelineBar({ status, isViewed }: { status: string; isViewed?: boolean 
     in_progress: "On Site",
     paid: "Completed",
   };
-  const stepStatus = status === "sent" ? "sent_pending" : status;
+  const stepStatus =
+    status === "sent"
+      ? "sent_pending"
+      : status === "in_progress"
+        ? "in_progress"
+        : status;
 
   const idx = steps.indexOf((stepStatus || "estimate") as any);
   const activeIndex = idx === -1 ? 0 : idx;
@@ -2007,7 +2012,7 @@ function SavedEstimateCard({
           </div>
 
           <div className="flex shrink-0 flex-col items-end gap-2 text-right">
-            {/* Status line (primary) */}
+            {/* Status line (primary) — job stage takes priority over payment stage */}
             <div className="text-emerald-300 text-sm font-semibold">
               {isSent && !viewedAt
                 ? "Sent — not viewed yet"
@@ -2017,7 +2022,13 @@ function SavedEstimateCard({
                     ? "Approved — ready to schedule"
                     : showApprovalActions || isPendingApproval(getStage(estimate))
                       ? "Pending approval"
-                      : getDisplayStage(getStage(estimate))}
+                      : (() => {
+                          const jobStage = getStage(estimate);
+                          const headerStage = ["scheduled", "in_progress", "paid", "completed"].includes(String(estimate?.status))
+                            ? estimate.status
+                            : jobStage;
+                          return getDisplayStage(headerStage);
+                        })()}
             </div>
 
             {stageAgeText && (
@@ -2062,7 +2073,7 @@ function SavedEstimateCard({
           </div>
         </div>
 
-        <PipelineBar status={isScheduledCard ? "scheduled" : getStage(estimate)} isViewed={isSent && !!viewedAt} />
+        <PipelineBar status={getStage(estimate)} isViewed={isSent && !!viewedAt} />
 
         <div className="mt-6 flex items-center justify-between border-t border-white/5 pt-6">
           {/* LEFT: Total + payment summary */}
