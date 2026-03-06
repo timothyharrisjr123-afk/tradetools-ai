@@ -1779,6 +1779,7 @@ function SavedEstimateCard({
   onFollowUpSnooze,
   onFollowUpClear,
   scheduledForLabel,
+  scheduleActionLabel,
 }: {
   estimate: any;
   batchStatuses?: Record<string, { status: string; viewedAt?: string | null; approvedAt?: string | null }>;
@@ -1807,6 +1808,7 @@ function SavedEstimateCard({
   onFollowUpSnooze?: (estimateId: string) => void;
   onFollowUpClear?: (estimateId: string) => void;
   scheduledForLabel?: string | null;
+  scheduleActionLabel?: string;
 }) {
   const status = normalizePipelineStatus(getStage(estimate));
   const remote = estimate?.approvalToken && batchStatuses ? batchStatuses[estimate.approvalToken] : null;
@@ -2152,7 +2154,7 @@ function SavedEstimateCard({
                     onClick={() => onSchedule?.(estimate)}
                     title={status === "scheduled" ? "Update the scheduled date" : "Pick a date to schedule the job"}
                   >
-                    {status === "scheduled" ? "Reschedule Job" : "Schedule Job"}
+                    {status === "scheduled" ? (scheduleActionLabel ?? "Reschedule Job") : "Schedule Job"}
                   </button>
                 )}
 
@@ -3077,7 +3079,7 @@ export default function SavedClient() {
     ? waitingToScheduleRevenue
     : 0;
 
-  const upcomingScheduledJobs = (estimates || []).filter((e: any) => {
+  const upcomingScheduledJobs = (estimates || []).filter((e) => {
     if (e.status !== "scheduled") return false;
     const d =
       e?.scheduledStartDate ||
@@ -3087,6 +3089,18 @@ export default function SavedClient() {
     if (!d) return false;
     const jobDate = new Date(d);
     return jobDate.getTime() >= Date.now();
+  });
+  const weekFromNow = Date.now() + 7 * 24 * 60 * 60 * 1000;
+  const jobsThisWeek = (estimates || []).filter((e) => {
+    if (e.status !== "scheduled") return false;
+    const d =
+      e?.scheduledStartDate ||
+      e?.schedule?.date ||
+      e?.scheduled?.date ||
+      e?.scheduledAt;
+    if (!d) return false;
+    const t = new Date(d).getTime();
+    return t >= Date.now() && t <= weekFromNow;
   });
   const overdueScheduledJobs = (estimates || []).filter((e: any) => {
     if (e.status !== "scheduled") return false;
@@ -3372,22 +3386,36 @@ export default function SavedClient() {
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                <div className="text-xs uppercase tracking-wide text-white/50">Weakest stage</div>
-                <div className="mt-2 text-base font-semibold text-white">
-                  {weakestLabel}
+              {statusFilter === "scheduled" ? (
+                <div className="rounded-2xl border border-cyan-400/20 bg-cyan-500/10 p-4">
+                  <div className="text-xs uppercase tracking-wide text-cyan-200/80">
+                    JOBS THIS WEEK
+                  </div>
+                  <div className="mt-2 text-2xl font-semibold text-cyan-100">
+                    {jobsThisWeek.length}
+                  </div>
+                  <div className="mt-1 text-sm text-cyan-200/70">
+                    Scheduled this week
+                  </div>
                 </div>
-                {weakestDenom > 0 && (
-                  <>
-                    <div className="mt-1 text-sm text-amber-300">
-                      ⚠ {weakestPct}% conversion
-                    </div>
-                    <div className="mt-1 text-xs text-white/40">
-                      {weakestNumer} of {weakestDenom} jobs
-                    </div>
-                  </>
-                )}
-              </div>
+              ) : (
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                  <div className="text-xs uppercase tracking-wide text-white/50">Weakest stage</div>
+                  <div className="mt-2 text-base font-semibold text-white">
+                    {weakestLabel}
+                  </div>
+                  {weakestDenom > 0 && (
+                    <>
+                      <div className="mt-1 text-sm text-amber-300">
+                        ⚠ {weakestPct}% conversion
+                      </div>
+                      <div className="mt-1 text-xs text-white/40">
+                        {weakestNumer} of {weakestDenom} jobs
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
@@ -3437,6 +3465,7 @@ export default function SavedClient() {
                 checkoutLoading={checkoutLoading}
                 showRescheduleButton
                 scheduledForLabel={formatHeaderDate(x.date)}
+                scheduleActionLabel="Reschedule"
                 followUpInfo={getFollowUpInfo(x.est, paymentStates[x.est.id] ?? null, batchStatuses)}
                 onSendFollowUp={(est, kind) => sendFollowUpEmail(est, kind)}
                 followUpHidden={isFollowUpHidden(x.est.id)}
