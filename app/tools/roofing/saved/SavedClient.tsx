@@ -3553,9 +3553,96 @@ export default function SavedClient() {
           )}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6">
-          {/* LEFT: jobs list */}
-          <div className="space-y-4 min-w-0">
+        {hydrated && (
+          <RevenueSummary
+            estimates={searchFiltered}
+            onMetrics={setRevenueMetrics}
+          />
+        )}
+
+        {/* Pipeline Insight (contractor-first) */}
+        {hydrated && (
+          <div className="mt-10 w-full max-w-3xl rounded-3xl border border-white/10 bg-white/[0.03] p-6 shadow-xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="text-lg font-semibold text-white">Pipeline Insight</div>
+                <div className="mt-1 text-sm text-white/55">
+                  One thing to focus on right now.
+                </div>
+              </div>
+
+              <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-white/70">
+                Contractor view
+              </div>
+            </div>
+
+            <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="rounded-2xl border border-emerald-400/15 bg-emerald-500/10 p-4">
+                <div className="text-xs uppercase tracking-wide text-emerald-200/80">
+                  {statusFilter === "scheduled" ? "SCHEDULED REVENUE" : "Revenue waiting"}
+                </div>
+                <div className="mt-2 text-2xl font-semibold text-emerald-100">
+                  ${(statusFilter === "scheduled" ? scheduledRevenueSafe : waitingToScheduleRevenueSafe).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </div>
+                <div className="mt-1 text-sm text-emerald-200/70">
+                  {statusFilter === "scheduled" ? "Revenue from scheduled jobs in this view" : "If you schedule these jobs"}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-amber-400/20 bg-amber-500/10 p-4">
+                <div className="text-xs uppercase tracking-wide text-amber-200/80">
+                  {statusFilter === "scheduled" ? "Upcoming Jobs" : "Waiting to schedule"}
+                </div>
+                <div className="mt-2 text-2xl font-semibold text-amber-100">
+                  {statusFilter === "scheduled" ? upcomingScheduledJobs.length : waitingToScheduleCount}
+                </div>
+                <div className="mt-1 text-sm text-amber-200/70">
+                  {statusFilter === "scheduled" ? "Jobs on your upcoming schedule" : "Deposit-paid jobs not yet scheduled"}
+                </div>
+              </div>
+
+              {statusFilter === "scheduled" ? (
+                <div className="rounded-2xl border border-cyan-400/20 bg-cyan-500/10 p-4">
+                  <div className="text-xs uppercase tracking-wide text-cyan-200/80">
+                    JOBS THIS WEEK
+                  </div>
+                  <div className="mt-2 text-2xl font-semibold text-cyan-100">
+                    {jobsThisWeek.length}
+                  </div>
+                  <div className="mt-1 text-sm text-cyan-200/70">
+                    Jobs scheduled in the next 7 days
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                  <div className="text-xs uppercase tracking-wide text-white/50">Weakest stage</div>
+                  <div className="mt-2 text-base font-semibold text-white">
+                    {weakestLabel}
+                  </div>
+                  {weakestDenom > 0 && (
+                    <>
+                      <div className="mt-1 text-sm text-amber-300">
+                        ⚠ {weakestPct}% conversion
+                      </div>
+                      <div className="mt-1 text-xs text-white/40">
+                        {weakestNumer} of {weakestDenom} jobs
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+              <div className="text-sm text-slate-300">
+                <span className="font-semibold text-white">Next action:</span>{" "}
+                {nextActionText}
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="space-y-4">
           {/* Scheduled UX v2 enabled */}
           {hydrated && statusFilter === "scheduled" && (() => {
             const now = new Date();
@@ -3861,92 +3948,6 @@ export default function SavedClient() {
               isFlashing={e.id === flashId}
             />
           ))}
-          </div>
-
-          {/* RIGHT: analytics sidebar */}
-          <div className="space-y-6 lg:sticky lg:top-6">
-            {hydrated && (
-              <RevenueSummary
-                estimates={searchFiltered}
-                onMetrics={setRevenueMetrics}
-              />
-            )}
-            {hydrated && (
-              <div className="w-full rounded-3xl border border-white/10 bg-white/[0.03] p-6 shadow-xl">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <div className="text-lg font-semibold text-white">Pipeline Insight</div>
-                    <div className="mt-1 text-sm text-white/55">
-                      One thing to focus on right now.
-                    </div>
-                  </div>
-                  <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-white/70">
-                    Contractor view
-                  </div>
-                </div>
-                <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                  <div className="rounded-2xl border border-emerald-400/15 bg-emerald-500/10 p-4">
-                    <div className="text-xs uppercase tracking-wide text-emerald-200/80">
-                      {statusFilter === "scheduled" ? "SCHEDULED REVENUE" : "Revenue waiting"}
-                    </div>
-                    <div className="mt-2 text-2xl font-semibold text-emerald-100">
-                      ${(statusFilter === "scheduled" ? scheduledRevenueSafe : waitingToScheduleRevenueSafe).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </div>
-                    <div className="mt-1 text-sm text-emerald-200/70">
-                      {statusFilter === "scheduled" ? "Revenue from scheduled jobs in this view" : "If you schedule these jobs"}
-                    </div>
-                  </div>
-                  <div className="rounded-2xl border border-amber-400/20 bg-amber-500/10 p-4">
-                    <div className="text-xs uppercase tracking-wide text-amber-200/80">
-                      {statusFilter === "scheduled" ? "Upcoming Jobs" : "Waiting to schedule"}
-                    </div>
-                    <div className="mt-2 text-2xl font-semibold text-amber-100">
-                      {statusFilter === "scheduled" ? upcomingScheduledJobs.length : waitingToScheduleCount}
-                    </div>
-                    <div className="mt-1 text-sm text-amber-200/70">
-                      {statusFilter === "scheduled" ? "Jobs on your upcoming schedule" : "Deposit-paid jobs not yet scheduled"}
-                    </div>
-                  </div>
-                  {statusFilter === "scheduled" ? (
-                    <div className="rounded-2xl border border-cyan-400/20 bg-cyan-500/10 p-4">
-                      <div className="text-xs uppercase tracking-wide text-cyan-200/80">
-                        JOBS THIS WEEK
-                      </div>
-                      <div className="mt-2 text-2xl font-semibold text-cyan-100">
-                        {jobsThisWeek.length}
-                      </div>
-                      <div className="mt-1 text-sm text-cyan-200/70">
-                        Jobs scheduled in the next 7 days
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                      <div className="text-xs uppercase tracking-wide text-white/50">Weakest stage</div>
-                      <div className="mt-2 text-base font-semibold text-white">
-                        {weakestLabel}
-                      </div>
-                      {weakestDenom > 0 && (
-                        <>
-                          <div className="mt-1 text-sm text-amber-300">
-                            ⚠ {weakestPct}% conversion
-                          </div>
-                          <div className="mt-1 text-xs text-white/40">
-                            {weakestNumer} of {weakestDenom} jobs
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  )}
-                </div>
-                <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                  <div className="text-sm text-slate-300">
-                    <span className="font-semibold text-white">Next action:</span>{" "}
-                    {nextActionText}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
         </div>
       </div>
 
