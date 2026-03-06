@@ -124,7 +124,8 @@ const FOLLOWUP_PREFS_KEY = "ttai_followup_prefs_v1";
 
 type FollowUpPrefs = {
   snoozeUntil?: string | null;
-  clearedUntil?: string | null;
+  clearedUntil?: string | null; // legacy support
+  cleared?: boolean; // permanent handled
 };
 
 function safeParseFollowUpJson<T>(raw: string | null, fallback: T): T {
@@ -2074,7 +2075,18 @@ export default function SavedClient() {
       localStorage.getItem(FOLLOWUP_PREFS_KEY),
       {}
     );
+    for (const k of Object.keys(stored)) {
+      const p = stored[k];
+      if (!p) continue;
+      if (!p.cleared && isFutureIso(p.clearedUntil)) {
+        p.cleared = true;
+        p.clearedUntil = null;
+      }
+    }
     setFollowUpPrefs(stored);
+    try {
+      localStorage.setItem(FOLLOWUP_PREFS_KEY, JSON.stringify(stored));
+    } catch {}
   }, []);
   function updateFollowUpPref(id: string, patch: Partial<FollowUpPrefs>) {
     setFollowUpPrefs((prev) => {
@@ -2094,6 +2106,7 @@ export default function SavedClient() {
   function isFollowUpHidden(id: string) {
     const pref = followUpPrefs[id];
     if (!pref) return false;
+    if (pref.cleared) return true;
     return isFutureIso(pref.snoozeUntil) || isFutureIso(pref.clearedUntil);
   }
   const [txModal, setTxModal] = useState<{
@@ -3107,7 +3120,8 @@ export default function SavedClient() {
                 }
                 onFollowUpClear={(estimateId) =>
                   updateFollowUpPref(estimateId, {
-                    clearedUntil: addDaysToIso(30),
+                    cleared: true,
+                    clearedUntil: null,
                     snoozeUntil: null,
                   })
                 }
@@ -3255,7 +3269,8 @@ export default function SavedClient() {
               }
               onFollowUpClear={(estimateId) =>
                 updateFollowUpPref(estimateId, {
-                  clearedUntil: addDaysToIso(30),
+                  cleared: true,
+                  clearedUntil: null,
                   snoozeUntil: null,
                 })
               }
