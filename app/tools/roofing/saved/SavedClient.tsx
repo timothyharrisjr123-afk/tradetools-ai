@@ -429,40 +429,32 @@ function addDaysToIso(days: number) {
   return d.toISOString();
 }
 
-// Week starts on Sunday (0) in local time
-function startOfWeekSunday(d: Date): Date {
-  const day = d.getDay(); // 0=Sun..6=Sat
-  return addDays(startOfDay(d), -day);
-}
-
-function endOfWeekSunday(d: Date): Date {
-  return addDays(startOfWeekSunday(d), 6);
+// Calendar week: Monday = start, Sunday = end (local time)
+function startOfWeekMonday(d: Date): Date {
+  const day = d.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+  const daysFromMonday = (day + 6) % 7;
+  return addDays(startOfDay(d), -daysFromMonday);
 }
 
 function getScheduleBucket(d: Date, now: Date): ScheduleBucket {
-  const dayStart = startOfDay(d);
+  const scheduledStart = startOfDay(d);
   const nowStart = startOfDay(now);
+  const tomorrowStart = addDays(nowStart, 1);
+  const currentWeekMonday = startOfWeekMonday(now);
+  const nextWeekMonday = addDays(currentWeekMonday, 7);
+  const weekAfterNextMonday = addDays(currentWeekMonday, 14);
 
-  const oneDay = 24 * 60 * 60 * 1000;
-  const diffDays = Math.round((dayStart.getTime() - nowStart.getTime()) / oneDay);
+  const t = scheduledStart.getTime();
+  const todayT = nowStart.getTime();
+  const tomorrowT = tomorrowStart.getTime();
+  const nextWeekT = nextWeekMonday.getTime();
+  const weekAfterNextT = weekAfterNextMonday.getTime();
 
-  if (diffDays < 0) return "past";
-  if (diffDays === 0) return "today";
-  if (diffDays === 1) return "tomorrow";
-
-  const thisWeekStart = startOfWeekSunday(nowStart);
-  const thisWeekEnd = endOfWeekSunday(nowStart);
-
-  // "This Week" = remainder of current calendar week (excluding today/tomorrow already handled)
-  if (dayStart.getTime() <= thisWeekEnd.getTime()) return "this_week";
-
-  const nextWeekStart = addDays(thisWeekStart, 7);
-  const nextWeekEnd = addDays(nextWeekStart, 6);
-
-  if (dayStart.getTime() >= nextWeekStart.getTime() && dayStart.getTime() <= nextWeekEnd.getTime()) {
-    return "next_week";
-  }
-
+  if (t < todayT) return "past";
+  if (t === todayT) return "today";
+  if (t === tomorrowT) return "tomorrow";
+  if (t > tomorrowT && t < nextWeekT) return "this_week";
+  if (t >= nextWeekT && t < weekAfterNextT) return "next_week";
   return "future";
 }
 
@@ -477,7 +469,7 @@ function bucketLabel(bucket: ScheduleBucket): string {
     case "next_week":
       return "Next Week";
     case "future":
-      return "Later";
+      return "Future";
     case "past":
       return "Past Jobs";
     default:
@@ -3643,9 +3635,21 @@ export default function SavedClient() {
                       </div>
                       {dateKeysInBucket.map((dateKey) => {
                         const dateItems = byDateInBucket.get(dateKey)!;
+                        const dateObj = dateItems[0].date;
+                        const count = dateItems.length;
                         return (
                           <div key={dateKey} className="space-y-4">
-                            {dateItems.map((x) => renderScheduledCard(x))}
+                            <div className="mb-3">
+                              <div className="text-sm font-semibold text-white">
+                                {formatHeaderDate(dateObj)}
+                              </div>
+                              <div className="mt-1 text-xs text-white/45">
+                                {count} job{count > 1 ? "s" : ""}
+                              </div>
+                            </div>
+                            <div className="space-y-4">
+                              {dateItems.map((x) => renderScheduledCard(x))}
+                            </div>
                           </div>
                         );
                       })}
