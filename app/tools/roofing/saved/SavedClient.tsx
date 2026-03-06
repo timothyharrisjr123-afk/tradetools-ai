@@ -612,6 +612,62 @@ function computeFunnelStats(estimates: any[], batchStatuses: any) {
   return { reached, conversions, weakest };
 }
 
+function getPipelineInsight(estimates: any[]) {
+  const approved = estimates.filter((e) => e.status === "approved");
+  const sent = estimates.filter((e) => e.status === "sent" || e.status === "sent_pending");
+  const viewed = estimates.filter((e) => e.viewedAt && e.status !== "approved");
+  const deposit = estimates.filter((e) => e.status === "deposit_paid");
+  const scheduled = estimates.filter((e) => e.status === "scheduled");
+
+  const depositWaiting = deposit.filter((e) => !e.scheduledDate);
+  const approvedWaiting = approved.filter((e) => !e.depositPaid);
+  const viewedWaiting = viewed.filter((e) => !e.approvedAt);
+  const sentWaiting = sent.filter((e) => !e.viewedAt);
+
+  const revenueWaiting = depositWaiting.reduce((sum, e) => {
+    return sum + (e.totalContractPrice || 0);
+  }, 0);
+
+  if (depositWaiting.length > 0) {
+    return {
+      title: "Schedule jobs",
+      message: `${depositWaiting.length} job${depositWaiting.length > 1 ? "s" : ""} already have a deposit.`,
+      revenue: revenueWaiting,
+      action: "deposit",
+    };
+  }
+
+  if (approvedWaiting.length > 0) {
+    return {
+      title: "Collect deposit",
+      message: `${approvedWaiting.length} approved job${approvedWaiting.length > 1 ? "s" : ""} waiting.`,
+      action: "approved",
+    };
+  }
+
+  if (viewedWaiting.length > 0) {
+    return {
+      title: "Follow up",
+      message: `${viewedWaiting.length} customer${viewedWaiting.length > 1 ? "s" : ""} reviewing estimate.`,
+      action: "viewed",
+    };
+  }
+
+  if (sentWaiting.length > 0) {
+    return {
+      title: "Confirm estimate received",
+      message: `${sentWaiting.length} estimate${sentWaiting.length > 1 ? "s" : ""} not viewed.`,
+      action: "sent",
+    };
+  }
+
+  return {
+    title: "Pipeline healthy",
+    message: "No urgent actions needed.",
+    action: "none",
+  };
+}
+
 function formatCentsToCurrency(cents: number | undefined | null): string {
   const c = Number(cents);
   if (!Number.isFinite(c) || c < 0) return "$0.00";
@@ -2919,27 +2975,23 @@ export default function SavedClient() {
   const funnel = computeFunnelStats(filtered, batchStatuses);
   const weakest = funnel.weakest;
 
-  const actionFilterMap: Record<string, "all" | "estimate" | "sent_pending" | "approved" | "deposit_paid" | "scheduled" | "paid"> = {
-    estimate_sent: "estimate",
-    sent_viewed: "sent_pending",
-    viewed_approved: "sent_pending",
-    approved_deposit: "approved",
-    deposit_scheduled: "deposit_paid",
-    scheduled_completed: "scheduled",
+  const pipelineInsight = getPipelineInsight(searchFiltered || []);
+  const insightActionFilterMap: Record<string, "all" | "estimate" | "sent_pending" | "approved" | "deposit_paid" | "scheduled" | "paid"> = {
+    deposit: "deposit_paid",
+    approved: "approved",
+    viewed: "sent_pending",
+    sent: "sent_pending",
+    none: "all",
   };
-
-  const actionLabelMap: Record<string, string> = {
-    estimate_sent: "View Estimates",
-    sent_viewed: "View Sent Jobs",
-    viewed_approved: "View Viewed Jobs",
-    approved_deposit: "View Approved Jobs",
-    deposit_scheduled: "View Deposit Jobs",
-    scheduled_completed: "View Scheduled Jobs",
+  const insightActionLabelMap: Record<string, string> = {
+    deposit: "View Deposit Jobs",
+    approved: "View Approved Jobs",
+    viewed: "View Viewed Jobs",
+    sent: "View Sent Jobs",
+    none: "View Jobs",
   };
-
-  const weakestEdge = `${weakest.from}_${weakest.to}`;
-  const actionFilter = actionFilterMap[weakestEdge] ?? ("all" as const);
-  const actionLabel = actionLabelMap[weakestEdge] ?? "View Jobs";
+  const actionFilter = insightActionFilterMap[pipelineInsight.action] ?? ("all" as const);
+  const actionLabel = insightActionLabelMap[pipelineInsight.action] ?? "View Jobs";
 
   const weakestLabel = `${FUNNEL_LABELS[weakest.from]} → ${FUNNEL_LABELS[weakest.to]}`;
   const weakestPct = weakest.pct;
@@ -2954,47 +3006,17 @@ export default function SavedClient() {
       ? Math.round((funnel.reached.completed / funnel.reached.estimate) * 100)
       : 0;
 
-  // Dynamic next action + tip based on the weakest funnel edge
-  const insightCopy = (() => {
-    const edge = `${weakest.from}_${weakest.to}`;
-    switch (edge) {
-      case "estimate_sent":
-        return {
-          action: "Send your best estimates today to keep the pipeline moving.",
-          tip: `Tip: click the "Estimate" filter and use Send on the top few.`,
-        };
-      case "sent_viewed":
-        return {
-          action: "Follow up on sent estimates that haven't been viewed yet.",
-          tip: `Tip: click the "Sent" filter and prioritize "Not viewed" jobs.`,
-        };
-      case "viewed_approved":
-        return {
-          action: "Close the viewed jobs while they're warm.",
-          tip: `Tip: look for "Viewed" jobs and call/text to get a decision.`,
-        };
-      case "approved_deposit":
-        return {
-          action: "Collect deposits on approved jobs to lock them in.",
-          tip: `Tip: click the "Approved" filter and use Collect Deposit.`,
-        };
-      case "deposit_scheduled":
-        return {
-          action: "Schedule jobs that already have a deposit collected.",
-          tip: `Tip: click the "Deposit paid" filter and schedule the next few.`,
-        };
-      case "scheduled_completed":
-        return {
-          action: "Collect final payments and mark jobs completed.",
-          tip: `Tip: click the "Scheduled" filter and use Collect Final / mark complete.`,
-        };
-      default:
-        return {
-          action: "Move the next jobs forward to protect your close rate.",
-          tip: `Tip: use the filters above to find the next bottleneck stage.`,
-        };
-    }
-  })();
+  const insightTipMap: Record<string, string> = {
+    deposit: `Tip: click the "Deposit paid" filter and schedule the next few.`,
+    approved: `Tip: click the "Approved" filter and use Collect Deposit.`,
+    viewed: `Tip: look for "Viewed" jobs and call/text to get a decision.`,
+    sent: `Tip: click the "Sent" filter and prioritize "Not viewed" jobs.`,
+    none: `Tip: use the filters above to find the next bottleneck stage.`,
+  };
+  const insightCopy = {
+    action: pipelineInsight.message,
+    tip: insightTipMap[pipelineInsight.action] ?? insightTipMap.none,
+  };
 
   // ===============================
   // REVENUE FORECAST (based on close rate)
