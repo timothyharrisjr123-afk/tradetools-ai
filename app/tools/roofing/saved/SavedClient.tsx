@@ -3638,7 +3638,7 @@ export default function SavedClient() {
                         return (
                           <div key={dateKey} className="space-y-4">
                             <div className="mb-3">
-                              <div className="text-sm font-semibold text-white">
+                              <div className="text-sm font-medium text-white/80">
                                 {formatHeaderDate(dateObj)}
                               </div>
                             </div>
