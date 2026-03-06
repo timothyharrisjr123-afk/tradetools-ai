@@ -3507,6 +3507,14 @@ export default function SavedClient() {
             }
 
             const bucketOrder: ScheduleBucket[] = ["today", "tomorrow", "this_week", "next_week", "future", "past"];
+            const SCHEDULE_LANE_LABELS: Record<string, string> = {
+              today: "TODAY",
+              tomorrow: "TOMORROW",
+              this_week: "THIS WEEK",
+              next_week: "NEXT WEEK",
+              future: "LATER",
+              past: "PAST JOBS",
+            };
 
             const renderScheduledCard = (x: { est: any; key: string; date: Date }) => (
               <SavedEstimateCard
@@ -3620,7 +3628,6 @@ export default function SavedClient() {
                 {bucketOrder.map((bucket) => {
                   const items = byBucket[bucket];
                   if (!items.length) return null;
-                  const bucketTitle = bucketLabel(bucket);
                   const byDateInBucket = new Map<string, { est: any; key: string; date: Date }[]>();
                   for (const x of items) {
                     if (!byDateInBucket.has(x.key)) byDateInBucket.set(x.key, []);
@@ -3629,17 +3636,13 @@ export default function SavedClient() {
                   const dateKeysInBucket = Array.from(byDateInBucket.keys()).sort((a, b) => a.localeCompare(b));
                   return (
                     <div key={bucket} className="space-y-4 rounded-2xl border border-white/10 bg-white/[0.02] pt-3 px-4 pb-4">
-                      <div
-                        className={
-                          "mb-3 flex items-center justify-between rounded-xl px-3 py-2 text-sm font-semibold " +
-                          (bucket === "today"
-                            ? "bg-emerald-500/15 text-emerald-200 border border-emerald-400/30"
-                            : "bg-white/[0.06] text-white/90 border border-white/10")
-                        }
-                      >
-                        <span className="text-white">
-                          {bucketTitle} · {items.length} job{items.length !== 1 ? "s" : ""}
-                        </span>
+                      <div className="mb-4">
+                        <div className="text-xs font-semibold tracking-wider text-white/70">
+                          {SCHEDULE_LANE_LABELS[bucket]}
+                        </div>
+                        <div className="mt-1 text-xs text-white/40">
+                          {items.length} job{items.length > 1 ? "s" : ""}
+                        </div>
                       </div>
                       {dateKeysInBucket.map((dateKey) => {
                         const dateItems = byDateInBucket.get(dateKey)!;
