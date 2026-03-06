@@ -2016,7 +2016,7 @@ function SavedEstimateCard({
 
             {showRescheduleButton ? (
               <div className="mt-2 flex items-center justify-end">
-                <span className="inline-flex items-center rounded-full border border-cyan-400/20 bg-cyan-500/10 px-3 py-1 text-xs font-semibold text-cyan-200">
+                <span className="inline-flex items-center rounded-full border border-cyan-400/10 bg-cyan-500/10 px-3 py-1 text-xs font-semibold text-cyan-200/80">
                   Scheduled job
                 </span>
               </div>
@@ -3637,7 +3637,7 @@ export default function SavedClient() {
                         const dateObj = dateItems[0].date;
                         return (
                           <div key={dateKey} className="space-y-4">
-                            <div className="mb-3">
+                            <div className="mt-4 mb-3">
                               <div className="text-sm font-medium text-white/80">
                                 {formatHeaderDate(dateObj)}
                               </div>
