@@ -1763,7 +1763,7 @@ function SavedEstimateCard({
             </div>
 
             {stageAgeText && (
-              <div className="mt-1 text-xs text-white/50">
+              <div className="text-xs text-white/50 mt-1">
                 {stageAgeText}
               </div>
             )}
