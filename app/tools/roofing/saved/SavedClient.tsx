@@ -108,6 +108,18 @@ function startOfDay(d: Date): Date {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate());
 }
 
+function startOfLocalDay(d: Date) {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+
+function endOfLocalDay(d: Date) {
+  const x = new Date(d);
+  x.setHours(23, 59, 59, 999);
+  return x;
+}
+
 function formatHeaderDate(d: Date): string {
   return d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
 }
@@ -3079,46 +3091,49 @@ export default function SavedClient() {
     ? waitingToScheduleRevenue
     : 0;
 
-  const upcomingScheduledJobs = (estimates || []).filter((e) => {
-    if (e.status !== "scheduled") return false;
-    const d =
-      e?.scheduledStartDate ||
-      (e as any)?.schedule?.date ||
-      (e as any)?.scheduled?.date ||
-      e?.scheduledAt;
-    if (!d) return false;
-    const jobDate = new Date(d);
-    return jobDate.getTime() >= Date.now();
-  });
-  const weekFromNow = Date.now() + 7 * 24 * 60 * 60 * 1000;
-  const jobsThisWeek = (estimates || []).filter((e) => {
-    if (e.status !== "scheduled") return false;
-    const d =
-      e?.scheduledStartDate ||
-      (e as any)?.schedule?.date ||
-      (e as any)?.scheduled?.date ||
-      e?.scheduledAt;
-    if (!d) return false;
-    const t = new Date(d).getTime();
-    return t >= Date.now() && t <= weekFromNow;
-  });
-  const overdueScheduledJobs = (estimates || []).filter((e: any) => {
-    if (e.status !== "scheduled") return false;
-    const d =
-      e?.scheduledStartDate ||
-      (e as any)?.schedule?.date ||
-      (e as any)?.scheduled?.date ||
-      e?.scheduledAt;
-    if (!d) return false;
-    const jobDate = new Date(d);
-    return jobDate.getTime() < Date.now();
-  });
+  const scheduledBoardItems =
+    statusFilter === "scheduled"
+      ? (filtered || [])
+          .map((est) => {
+            const key = getScheduledDateKeyFromEstimate(est);
+            if (!key) return null;
+            const date = parseISODateOnly(key);
+            if (!date) return null;
+            return { est, key, date };
+          })
+          .filter((x): x is { est: any; key: string; date: Date } => x != null)
+      : [];
 
-  const scheduledRevenueTotal = upcomingScheduledJobs.reduce((sum: number, e: any) => {
-    const total = Number(e?.totalContractPrice ?? e?.suggestedPrice ?? 0);
-    return sum + (Number.isFinite(total) ? total : 0);
-  }, 0);
-  const scheduledRevenueSafe = Number.isFinite(scheduledRevenueTotal) ? scheduledRevenueTotal : 0;
+  const todayLocal = startOfLocalDay(new Date());
+  const endOfTodayLocal = endOfLocalDay(new Date());
+  const weekEndLocal = endOfLocalDay(new Date());
+  weekEndLocal.setDate(weekEndLocal.getDate() + 7);
+
+  const upcomingScheduledJobs =
+    statusFilter === "scheduled"
+      ? scheduledBoardItems.filter((x) => startOfLocalDay(x.date).getTime() >= todayLocal.getTime())
+      : [];
+
+  const jobsThisWeek =
+    statusFilter === "scheduled"
+      ? scheduledBoardItems.filter((x) => {
+          const t = startOfLocalDay(x.date).getTime();
+          return t >= todayLocal.getTime() && t <= weekEndLocal.getTime();
+        })
+      : [];
+
+  const overdueScheduledJobs =
+    statusFilter === "scheduled"
+      ? scheduledBoardItems.filter((x) => endOfLocalDay(x.date).getTime() < todayLocal.getTime())
+      : [];
+
+  const scheduledRevenueSafe =
+    statusFilter === "scheduled"
+      ? scheduledBoardItems.reduce((sum: number, x) => {
+          const total = Number(x.est?.totalContractPrice ?? x.est?.suggestedPrice ?? 0);
+          return sum + (Number.isFinite(total) ? total : 0);
+        }, 0)
+      : 0;
 
   const funnel = computeFunnelStats(filtered, batchStatuses);
   const weakest = funnel.weakest;
@@ -3158,7 +3173,7 @@ export default function SavedClient() {
     if (overdueScheduledJobs.length === 0) {
       nextActionText = "All scheduled jobs are upcoming.";
     } else if (overdueScheduledJobs.length === 1) {
-      nextActionText = `Check yesterday's scheduled job for ${getEstimateDisplayName(overdueScheduledJobs[0])}.`;
+      nextActionText = `Check yesterday's scheduled job for ${getEstimateDisplayName(overdueScheduledJobs[0].est)}.`;
     } else {
       nextActionText = `Review ${overdueScheduledJobs.length} past scheduled jobs.`;
     }
