@@ -78,9 +78,9 @@ function formatDateKeyLocal(dateKey: string): string {
 function getScheduledDateKeyFromEstimate(est: any): string | null {
   const candidates = [
     est?.scheduledStartDate,
-    est?.schedule?.date,
+    (est as any)?.schedule?.date,
     est?.scheduleInfo?.date,
-    est?.scheduled?.date,
+    (est as any)?.scheduled?.date,
     est?.scheduleDate,
   ];
 
@@ -3083,8 +3083,8 @@ export default function SavedClient() {
     if (e.status !== "scheduled") return false;
     const d =
       e?.scheduledStartDate ||
-      e?.schedule?.date ||
-      e?.scheduled?.date ||
+      (e as any)?.schedule?.date ||
+      (e as any)?.scheduled?.date ||
       e?.scheduledAt;
     if (!d) return false;
     const jobDate = new Date(d);
@@ -3095,8 +3095,8 @@ export default function SavedClient() {
     if (e.status !== "scheduled") return false;
     const d =
       e?.scheduledStartDate ||
-      e?.schedule?.date ||
-      e?.scheduled?.date ||
+      (e as any)?.schedule?.date ||
+      (e as any)?.scheduled?.date ||
       e?.scheduledAt;
     if (!d) return false;
     const t = new Date(d).getTime();
@@ -3106,8 +3106,8 @@ export default function SavedClient() {
     if (e.status !== "scheduled") return false;
     const d =
       e?.scheduledStartDate ||
-      e?.schedule?.date ||
-      e?.scheduled?.date ||
+      (e as any)?.schedule?.date ||
+      (e as any)?.scheduled?.date ||
       e?.scheduledAt;
     if (!d) return false;
     const jobDate = new Date(d);
