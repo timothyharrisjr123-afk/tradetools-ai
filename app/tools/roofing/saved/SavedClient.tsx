@@ -285,6 +285,100 @@ function getEffectiveViewedAt(est: any, batchStatuses?: any) {
   return rawViewedAt;
 }
 
+function hoursSince(iso?: string | null) {
+  if (!iso) return null;
+  const ts = new Date(iso).getTime();
+  if (Number.isNaN(ts)) return null;
+  return (Date.now() - ts) / (1000 * 60 * 60);
+}
+
+function getEstimateDisplayName(est: any) {
+  return (
+    est?.customerName ||
+    est?.name ||
+    est?.customer ||
+    "this customer"
+  );
+}
+
+function getSentDueJobs(estimates: any[], batchStatuses: any) {
+  return (estimates || []).filter((e) => {
+    const status = String(e?.status ?? "");
+    const sentish =
+      status === "sent" ||
+      status === "sent_pending" ||
+      status === "pending" ||
+      status === "pending_approval" ||
+      status === "pending approval";
+
+    if (!sentish) return false;
+
+    const viewedAt = getEffectiveViewedAt(e, batchStatuses);
+    const sentAt = getEffectiveSentAt(e);
+    const approvedLike = ["approved", "deposit_paid", "scheduled", "paid", "completed"].includes(
+      String(e?.status ?? "")
+    );
+
+    if (!viewedAt && !approvedLike) {
+      const hrs = hoursSince(sentAt);
+      return hrs != null && hrs >= 36;
+    }
+
+    if (viewedAt && !approvedLike) {
+      const hrs = hoursSince(viewedAt);
+      return hrs != null && hrs >= 48;
+    }
+
+    return false;
+  });
+}
+
+function getApprovedDueJobs(estimates: any[], paymentStates: Record<string, any>) {
+  return (estimates || []).filter((e) => {
+    const status = String(e?.status ?? "");
+    if (status !== "approved") return false;
+
+    const ps = paymentStates?.[e.id] ?? null;
+    const depositPaid =
+      (ps?.depositAmountCents ?? 0) > 0 ||
+      (ps?.offlinePaidCents ?? 0) > 0;
+
+    if (depositPaid) return false;
+
+    const approvedAt =
+      e?.approvedAt ??
+      e?.approved_at ??
+      e?.lastSavedAt ??
+      e?.sentAt ??
+      e?.createdAt ??
+      null;
+
+    const hrs = hoursSince(approvedAt);
+    return hrs != null && hrs >= 48;
+  });
+}
+
+function getDepositReadyJobs(estimates: any[], paymentStates: Record<string, any>) {
+  return (estimates || []).filter((e) => {
+    const status = String(e?.status ?? "");
+    const ps = paymentStates?.[e.id] ?? null;
+
+    const depositPaid =
+      status === "deposit_paid" ||
+      (ps?.depositAmountCents ?? 0) > 0 ||
+      (ps?.offlinePaidCents ?? 0) > 0;
+
+    const scheduled =
+      status === "scheduled" ||
+      !!e?.scheduledStartDate ||
+      !!e?.scheduledAt ||
+      !!e?.scheduled_at ||
+      !!getScheduledDateKeyFromEstimate(e);
+
+    return depositPaid && !scheduled;
+  });
+}
+
 type ScheduleBucket = "today" | "tomorrow" | "this_week" | "next_week" | "future" | "past";
 
 function addDays(d: Date, days: number): Date {
@@ -2980,18 +3074,55 @@ export default function SavedClient() {
   const weakest = funnel.weakest;
 
   const pipelineInsight = getPipelineInsight(searchFiltered || []);
-  const activeTab = statusFilter;
+  const currentList = statusFilter === "all" ? (searchFiltered || []) : (filtered || []);
+  const sentDueJobs = getSentDueJobs(currentList, batchStatuses);
+  const approvedDueJobs = getApprovedDueJobs(currentList, paymentStates ?? {});
+  const depositReadyJobs = getDepositReadyJobs(currentList, paymentStates ?? {});
 
-  const insightMessage =
-    activeTab === "approved"
-      ? "Collect deposit for approved jobs."
-      : activeTab === "deposit_paid"
-        ? pipelineInsight.action === "deposit"
-          ? pipelineInsight.message
-          : "Schedule deposit-paid jobs."
-        : activeTab === "sent_pending"
-          ? "Follow up on sent estimates."
-          : pipelineInsight.message;
+  let nextActionText = "No action needed right now.";
+  if (statusFilter === "sent_pending") {
+    if (sentDueJobs.length === 1) {
+      const one = sentDueJobs[0];
+      const viewedAt = getEffectiveViewedAt(one, batchStatuses);
+      nextActionText = viewedAt
+        ? `Follow up with ${getEstimateDisplayName(one)} — estimate viewed but still awaiting approval.`
+        : `Follow up with ${getEstimateDisplayName(one)} — estimate has not been viewed yet.`;
+    } else if (sentDueJobs.length > 1) {
+      nextActionText = `Follow up on ${sentDueJobs.length} sent estimate${sentDueJobs.length === 1 ? "" : "s"} that are due.`;
+    }
+  } else if (statusFilter === "approved") {
+    if (approvedDueJobs.length === 1) {
+      nextActionText = `Collect deposit for ${getEstimateDisplayName(approvedDueJobs[0])}.`;
+    } else if (approvedDueJobs.length > 1) {
+      nextActionText = `Collect deposit for ${approvedDueJobs.length} approved job${approvedDueJobs.length === 1 ? "" : "s"}.`;
+    }
+  } else if (statusFilter === "deposit_paid") {
+    if (depositReadyJobs.length === 1) {
+      nextActionText = `Schedule ${getEstimateDisplayName(depositReadyJobs[0])}.`;
+    } else if (depositReadyJobs.length > 1) {
+      nextActionText = `Schedule ${depositReadyJobs.length} deposit-paid job${depositReadyJobs.length === 1 ? "" : "s"}.`;
+    }
+  } else if (statusFilter === "estimate") {
+    nextActionText = "No action needed right now.";
+  } else if (statusFilter === "all") {
+    if (depositReadyJobs.length === 1) {
+      nextActionText = `Schedule ${getEstimateDisplayName(depositReadyJobs[0])}.`;
+    } else if (depositReadyJobs.length > 1) {
+      nextActionText = `Schedule ${depositReadyJobs.length} deposit-paid job${depositReadyJobs.length === 1 ? "" : "s"}.`;
+    } else if (approvedDueJobs.length === 1) {
+      nextActionText = `Collect deposit for ${getEstimateDisplayName(approvedDueJobs[0])}.`;
+    } else if (approvedDueJobs.length > 1) {
+      nextActionText = `Collect deposit for ${approvedDueJobs.length} approved job${approvedDueJobs.length === 1 ? "" : "s"}.`;
+    } else if (sentDueJobs.length === 1) {
+      const one = sentDueJobs[0];
+      const viewedAt = getEffectiveViewedAt(one, batchStatuses);
+      nextActionText = viewedAt
+        ? `Follow up with ${getEstimateDisplayName(one)} — estimate viewed but still awaiting approval.`
+        : `Follow up with ${getEstimateDisplayName(one)} — estimate has not been viewed yet.`;
+    } else if (sentDueJobs.length > 1) {
+      nextActionText = `Follow up on ${sentDueJobs.length} sent estimate${sentDueJobs.length === 1 ? "" : "s"} that are due.`;
+    }
+  }
 
   const weakestLabel = `${FUNNEL_LABELS[weakest.from]} → ${FUNNEL_LABELS[weakest.to]}`;
   const weakestPct = weakest.pct;
@@ -3199,7 +3330,7 @@ export default function SavedClient() {
                   {waitingToScheduleCount}
                 </div>
                 <div className="mt-1 text-sm text-amber-200/70">
-                  Deposit-paid jobs waiting to be scheduled
+                  Deposit-paid jobs not yet scheduled
                 </div>
               </div>
 
@@ -3224,7 +3355,7 @@ export default function SavedClient() {
             <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
               <div className="text-sm text-slate-300">
                 <span className="font-semibold text-white">Next action:</span>{" "}
-                {insightMessage}
+                {nextActionText}
               </div>
             </div>
           </div>
