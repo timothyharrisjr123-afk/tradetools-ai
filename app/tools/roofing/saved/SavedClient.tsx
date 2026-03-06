@@ -3184,21 +3184,27 @@ export default function SavedClient() {
       } else {
         nextActionText = `Review ${overdueScheduledJobs.length} past scheduled jobs.`;
       }
-    } else if (jobsThisWeek.length > 0) {
-      const count = jobsThisWeek.length;
-      if (count === 1) {
-        nextActionText = "You have 1 job scheduled this week.";
-      } else {
-        nextActionText = `You have ${count} jobs scheduled this week.`;
-      }
-    } else if (upcomingScheduledJobs.length > 0) {
-      const nextJob = upcomingScheduledJobs
-        .slice()
-        .sort((a, b) => a.date.getTime() - b.date.getTime())[0];
-      const dateLabel = formatHeaderDate(nextJob.date);
-      nextActionText = `Your next scheduled job is ${dateLabel}.`;
     } else {
-      nextActionText = "No scheduled jobs yet.";
+      const now = new Date();
+      const todayCount = scheduledBoardItems.filter((x) => getScheduleBucket(x.date, now) === "today").length;
+      const tomorrowCount = scheduledBoardItems.filter((x) => getScheduleBucket(x.date, now) === "tomorrow").length;
+      const thisWeekCount = scheduledBoardItems.filter((x) => getScheduleBucket(x.date, now) === "this_week").length;
+      const nextWeekCount = scheduledBoardItems.filter((x) => getScheduleBucket(x.date, now) === "next_week").length;
+      const futureCount = scheduledBoardItems.filter((x) => getScheduleBucket(x.date, now) === "future").length;
+
+      if (todayCount >= 1) {
+        nextActionText = todayCount === 1 ? "1 job scheduled today." : `${todayCount} jobs scheduled today.`;
+      } else if (tomorrowCount >= 1) {
+        nextActionText = tomorrowCount === 1 ? "1 job scheduled tomorrow." : `${tomorrowCount} jobs scheduled tomorrow.`;
+      } else if (thisWeekCount >= 1) {
+        nextActionText = thisWeekCount === 1 ? "1 job scheduled this week." : `${thisWeekCount} jobs scheduled this week.`;
+      } else if (nextWeekCount >= 1) {
+        nextActionText = nextWeekCount === 1 ? "1 upcoming job next week." : `${nextWeekCount} upcoming jobs next week.`;
+      } else if (futureCount >= 1) {
+        nextActionText = futureCount === 1 ? "1 future scheduled job." : `${futureCount} future scheduled jobs.`;
+      } else {
+        nextActionText = "No scheduled jobs yet.";
+      }
     }
   } else if (statusFilter === "all") {
     if (depositReadyJobs.length === 1) {
@@ -3637,7 +3643,7 @@ export default function SavedClient() {
                         const dateObj = dateItems[0].date;
                         return (
                           <div key={dateKey} className="space-y-4">
-                            <div className="mt-4 mb-3">
+                            <div className="mt-6 mb-3">
                               <div className="text-sm font-medium text-white/80">
                                 {formatHeaderDate(dateObj)}
                               </div>
