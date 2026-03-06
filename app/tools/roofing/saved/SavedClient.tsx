@@ -3624,7 +3624,7 @@ export default function SavedClient() {
             );
 
             return (
-              <div className="space-y-6">
+              <div className="space-y-8">
                 {bucketOrder.map((bucket) => {
                   const items = byBucket[bucket];
                   if (!items.length) return null;
@@ -3636,12 +3636,9 @@ export default function SavedClient() {
                   const dateKeysInBucket = Array.from(byDateInBucket.keys()).sort((a, b) => a.localeCompare(b));
                   return (
                     <div key={bucket} className="space-y-4 rounded-2xl border border-white/10 bg-white/[0.02] pt-3 px-4 pb-4">
-                      <div className="mb-4">
-                        <div className="text-xs font-semibold tracking-wider text-white/70">
-                          {SCHEDULE_LANE_LABELS[bucket]}
-                        </div>
-                        <div className="mt-1 text-xs text-white/40">
-                          {items.length} job{items.length > 1 ? "s" : ""}
+                      <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
+                        <div className="text-sm font-semibold text-white">
+                          {`${SCHEDULE_LANE_LABELS[bucket]} • ${items.length} job${items.length > 1 ? "s" : ""}`}
                         </div>
                       </div>
                       {dateKeysInBucket.map((dateKey) => {
@@ -3655,7 +3652,7 @@ export default function SavedClient() {
                                 {formatHeaderDate(dateObj)}
                               </div>
                               <div className="mt-1 text-xs text-white/45">
-                                {count} scheduled job{count > 1 ? "s" : ""}
+                                {count} job{count > 1 ? "s" : ""}
                               </div>
                             </div>
                             <div className="space-y-4">
