@@ -2171,7 +2171,7 @@ function SavedEstimateCard({
                   </>
                 )}
 
-                {(status === "approved" || status === "deposit_paid" || status === "scheduled" || status === "paid") && !showRescheduleButton && (
+                {(status === "approved" || status === "deposit_paid" || status === "scheduled" || status === "paid") && (
                   <button
                     type="button"
                     className={`${actionBtn} rounded-full border border-emerald-400/20 bg-emerald-500/15 text-emerald-200 hover:bg-emerald-500/20`}
@@ -2193,15 +2193,6 @@ function SavedEstimateCard({
             {/* ===== PAYMENT ACTIONS ===== */}
             {!isFullyPaid && totalCents > 0 && (
               <div className="flex flex-wrap items-center gap-2">
-                {showRescheduleButton && (
-                  <button
-                    type="button"
-                    onClick={() => onSchedule?.(estimate)}
-                    className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm font-medium text-white/90 hover:bg-white/10"
-                  >
-                    {scheduleActionLabel ?? "Reschedule"}
-                  </button>
-                )}
                 {!showDepositPaid && collectedCents === 0 && !isFullyPaid && (
                   <button
                     type="button"
