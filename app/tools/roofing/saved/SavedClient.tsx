@@ -42,6 +42,10 @@ const ARRIVAL_WINDOWS = [
 
 const ARRIVAL_CUSTOM = "__custom__";
 
+const ROOFING_SAVED_RETURN_STATUS_FILTER = "roofing_saved_return_status_filter";
+const ROOFING_SAVED_RETURN_SCHEDULED_VIEW = "roofing_saved_return_scheduled_view";
+const ROOFING_SAVED_RETURN_QUERY = "roofing_saved_return_query";
+
 function isStandardArrivalValue(v: string) {
   return ARRIVAL_WINDOWS.some((x) => x.value === v);
 }
@@ -502,7 +506,8 @@ async function startCheckout(
   paymentType: "deposit" | "full" | "balance",
   estimateOrOpts: { totalContractPrice?: number; suggestedPrice?: number; estimateTotalCents?: number; customDepositCents?: number },
   setCheckoutLoading: (fn: (m: Record<string, "deposit" | "full" | "balance" | null>) => Record<string, "deposit" | "full" | "balance" | null>) => void,
-  remainingCentsForFull?: number
+  remainingCentsForFull?: number,
+  returnContext?: { statusFilter?: string; scheduledView?: string; query?: string }
 ) {
   const estimateTotalCents =
     typeof estimateOrOpts.estimateTotalCents === "number"
@@ -554,6 +559,11 @@ async function startCheckout(
     if (!json?.ok || !json?.url) {
       alert(json?.error || "Could not start checkout");
       return;
+    }
+    if (typeof window !== "undefined" && returnContext) {
+      if (returnContext.statusFilter != null) sessionStorage.setItem(ROOFING_SAVED_RETURN_STATUS_FILTER, returnContext.statusFilter);
+      if (returnContext.scheduledView != null) sessionStorage.setItem(ROOFING_SAVED_RETURN_SCHEDULED_VIEW, returnContext.scheduledView);
+      if (returnContext.query != null) sessionStorage.setItem(ROOFING_SAVED_RETURN_QUERY, returnContext.query);
     }
     window.location.href = json.url;
   } catch {
@@ -2564,6 +2574,7 @@ export default function SavedClient() {
   const router = useRouter();
   const isSyncingRef = useRef(false);
   const lastStatusFetchRef = useRef<Record<string, number>>({});
+  const hasRestoredReturnContextRef = useRef(false);
 
   const shouldFetchPaymentStatus = (estimateId: string) => {
     const now = Date.now();
@@ -2986,6 +2997,29 @@ export default function SavedClient() {
   useEffect(() => {
     if (!hydrated) return;
     setEstimates(getNormalizedEstimates());
+  }, [hydrated]);
+
+  useEffect(() => {
+    if (!hydrated || hasRestoredReturnContextRef.current) return;
+    hasRestoredReturnContextRef.current = true;
+    if (typeof window === "undefined") return;
+    const validStatusFilter = new Set(["all", "estimate", "sent_pending", "approved", "deposit_paid", "scheduled", "in_progress", "paid"]);
+    const validScheduledView = new Set(["upcoming", "past", "all"]);
+    const savedStatus = sessionStorage.getItem(ROOFING_SAVED_RETURN_STATUS_FILTER);
+    const savedScheduled = sessionStorage.getItem(ROOFING_SAVED_RETURN_SCHEDULED_VIEW);
+    const savedQuery = sessionStorage.getItem(ROOFING_SAVED_RETURN_QUERY);
+    if (savedStatus != null && validStatusFilter.has(savedStatus)) {
+      setStatusFilter(savedStatus as typeof statusFilter);
+    }
+    if (savedScheduled != null && validScheduledView.has(savedScheduled)) {
+      setScheduledView(savedScheduled as typeof scheduledView);
+    }
+    if (savedQuery != null) {
+      setQuery(savedQuery);
+    }
+    sessionStorage.removeItem(ROOFING_SAVED_RETURN_STATUS_FILTER);
+    sessionStorage.removeItem(ROOFING_SAVED_RETURN_SCHEDULED_VIEW);
+    sessionStorage.removeItem(ROOFING_SAVED_RETURN_QUERY);
   }, [hydrated]);
 
   const runApprovalSync = useCallback(() => {
@@ -3641,7 +3675,7 @@ export default function SavedClient() {
                     snoozeUntil: null,
                   })
                 }
-                onStartCheckout={(id, type, est, remainingCentsForFull) => startCheckout(id, type, est, setCheckoutLoading, remainingCentsForFull)}
+                onStartCheckout={(id, type, est, remainingCentsForFull) => startCheckout(id, type, est, setCheckoutLoading, remainingCentsForFull, { statusFilter, scheduledView, query })}
                 onOpenDepositModal={(est) =>
                   setDepositModal({
                     open: true,
@@ -3795,7 +3829,7 @@ export default function SavedClient() {
                   snoozeUntil: null,
                 })
               }
-              onStartCheckout={(id, type, est, remainingCentsForFull) => startCheckout(id, type, est, setCheckoutLoading, remainingCentsForFull)}
+              onStartCheckout={(id, type, est, remainingCentsForFull) => startCheckout(id, type, est, setCheckoutLoading, remainingCentsForFull, { statusFilter, scheduledView, query })}
               onOpenDepositModal={(est) =>
                 setDepositModal({
                   open: true,
@@ -4153,7 +4187,7 @@ export default function SavedClient() {
                   await startCheckout(depositModal.estimateId!, "deposit", {
                     estimateTotalCents,
                     customDepositCents,
-                  }, setCheckoutLoading);
+                  }, setCheckoutLoading, undefined, { statusFilter, scheduledView, query });
 
                   setDepositModal((s) => ({ ...s, open: false }));
                 }}
@@ -4243,7 +4277,8 @@ export default function SavedClient() {
                     "balance",
                     { estimateTotalCents: remainingModal.estimateTotalCents },
                     setCheckoutLoading,
-                    amountCents
+                    amountCents,
+                    { statusFilter, scheduledView, query }
                   );
                   setRemainingModal((s) => ({ ...s, open: false }));
                 }}
