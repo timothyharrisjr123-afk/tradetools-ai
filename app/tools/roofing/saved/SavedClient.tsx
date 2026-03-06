@@ -477,9 +477,9 @@ function bucketLabel(bucket: ScheduleBucket): string {
     case "next_week":
       return "Next Week";
     case "future":
-      return "Future";
+      return "Later";
     case "past":
-      return "Past";
+      return "Past Jobs";
     default:
       return String(bucket);
   }
@@ -3188,25 +3188,25 @@ export default function SavedClient() {
   } else if (statusFilter === "scheduled") {
     if (overdueScheduledJobs.length > 0) {
       if (overdueScheduledJobs.length === 1) {
-        nextActionText = `Review yesterday's scheduled job for ${getEstimateDisplayName(overdueScheduledJobs[0].est)}.`;
+        nextActionText = `Review past scheduled job for ${getEstimateDisplayName(overdueScheduledJobs[0].est)}.`;
       } else {
         nextActionText = `Review ${overdueScheduledJobs.length} past scheduled jobs.`;
       }
     } else if (jobsThisWeek.length > 0) {
       const count = jobsThisWeek.length;
       if (count === 1) {
-        nextActionText = "1 job scheduled this week.";
+        nextActionText = "You have 1 job scheduled this week.";
       } else {
-        nextActionText = `${count} jobs scheduled this week.`;
+        nextActionText = `You have ${count} jobs scheduled this week.`;
       }
     } else if (upcomingScheduledJobs.length > 0) {
       const nextJob = upcomingScheduledJobs
         .slice()
         .sort((a, b) => a.date.getTime() - b.date.getTime())[0];
       const dateLabel = formatHeaderDate(nextJob.date);
-      nextActionText = `Next job scheduled ${dateLabel}.`;
+      nextActionText = `Your next scheduled job is ${dateLabel}.`;
     } else {
-      nextActionText = "No scheduled jobs.";
+      nextActionText = "No scheduled jobs yet.";
     }
   } else if (statusFilter === "all") {
     if (depositReadyJobs.length === 1) {
@@ -3422,7 +3422,7 @@ export default function SavedClient() {
                   ${(statusFilter === "scheduled" ? scheduledRevenueSafe : waitingToScheduleRevenueSafe).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
                 <div className="mt-1 text-sm text-emerald-200/70">
-                  {statusFilter === "scheduled" ? "Revenue tied to upcoming scheduled jobs" : "If you schedule these jobs"}
+                  {statusFilter === "scheduled" ? "Revenue from scheduled jobs in this view" : "If you schedule these jobs"}
                 </div>
               </div>
 
@@ -3434,7 +3434,7 @@ export default function SavedClient() {
                   {statusFilter === "scheduled" ? upcomingScheduledJobs.length : waitingToScheduleCount}
                 </div>
                 <div className="mt-1 text-sm text-amber-200/70">
-                  {statusFilter === "scheduled" ? "Scheduled jobs coming up" : "Deposit-paid jobs not yet scheduled"}
+                  {statusFilter === "scheduled" ? "Jobs on your upcoming schedule" : "Deposit-paid jobs not yet scheduled"}
                 </div>
               </div>
 
@@ -3447,7 +3447,7 @@ export default function SavedClient() {
                     {jobsThisWeek.length}
                   </div>
                   <div className="mt-1 text-sm text-cyan-200/70">
-                    Scheduled this week
+                    Jobs scheduled in the next 7 days
                   </div>
                 </div>
               ) : (
@@ -3646,12 +3646,12 @@ export default function SavedClient() {
                         const dateObj = dateItems[0].date;
                         const count = dateItems.length;
                         return (
-                          <div key={dateKey} className="space-y-3">
-                            <div>
-                              <div className="text-sm text-white font-medium">
+                          <div key={dateKey} className="space-y-4">
+                            <div className="mb-3">
+                              <div className="text-sm font-semibold text-white">
                                 {formatHeaderDate(dateObj)}
                               </div>
-                              <div className="text-xs text-white/50">
+                              <div className="mt-1 text-xs text-white/45">
                                 {count} scheduled job{count > 1 ? "s" : ""}
                               </div>
                             </div>
