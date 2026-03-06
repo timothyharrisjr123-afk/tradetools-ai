@@ -120,6 +120,35 @@ function addDays(d: Date, days: number): Date {
   return startOfDay(x);
 }
 
+const FOLLOWUP_PREFS_KEY = "ttai_followup_prefs_v1";
+
+type FollowUpPrefs = {
+  snoozeUntil?: string | null;
+  clearedUntil?: string | null;
+};
+
+function safeParseFollowUpJson<T>(raw: string | null, fallback: T): T {
+  try {
+    if (!raw) return fallback;
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
+  }
+}
+
+function isFutureIso(iso?: string | null) {
+  if (!iso) return false;
+  const ts = Date.parse(iso);
+  if (Number.isNaN(ts)) return false;
+  return ts > Date.now();
+}
+
+function addDaysToIso(days: number) {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return d.toISOString();
+}
+
 // Week starts on Sunday (0) in local time
 function startOfWeekSunday(d: Date): Date {
   const day = d.getDay(); // 0=Sun..6=Sat
@@ -1417,6 +1446,9 @@ function SavedEstimateCard({
   showRescheduleButton,
   followUpInfo,
   onSendFollowUp,
+  followUpHidden,
+  onFollowUpSnooze,
+  onFollowUpClear,
 }: {
   estimate: any;
   batchStatuses?: Record<string, { status: string; viewedAt?: string | null; approvedAt?: string | null }>;
@@ -1441,9 +1473,10 @@ function SavedEstimateCard({
   showRescheduleButton?: boolean;
   followUpInfo?: { due: boolean; reason: string; kind: string };
   onSendFollowUp?: (est: any, kind: "confirm" | "questions" | "deposit") => void;
+  followUpHidden?: boolean;
+  onFollowUpSnooze?: (estimateId: string) => void;
+  onFollowUpClear?: (estimateId: string) => void;
 }) {
-  const est = estimate;
-  const profitInfo = calcProfitInfo(est);
   const status = normalizePipelineStatus(getStage(estimate));
   const remote = estimate?.approvalToken && batchStatuses ? batchStatuses[estimate.approvalToken] : null;
   const viewedAt = (estimate?.viewedAt ?? remote?.viewedAt ?? null) as string | null;
@@ -1498,6 +1531,21 @@ function SavedEstimateCard({
   const actionBtn =
     "inline-flex items-center justify-center rounded-xl px-3 py-1.5 text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed";
   const followUpReason = getFollowUpReason(estimate, paymentState);
+  const profitInfo = calcProfitInfo(estimate);
+  const visibleFollowUpInfo = followUpHidden ? undefined : followUpInfo;
+  const visibleFollowUpReason = followUpHidden ? null : followUpReason;
+  const [followUpMenuOpen, setFollowUpMenuOpen] = useState(false);
+  const followUpMenuRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    function handleDocMouseDown(ev: MouseEvent) {
+      if (!followUpMenuOpen) return;
+      const target = ev.target as Node | null;
+      if (followUpMenuRef.current && target && followUpMenuRef.current.contains(target)) return;
+      setFollowUpMenuOpen(false);
+    }
+    document.addEventListener("mousedown", handleDocMouseDown);
+    return () => document.removeEventListener("mousedown", handleDocMouseDown);
+  }, [followUpMenuOpen]);
   const isViewed = Boolean(viewedAt);
   const pillStatusForPill = (pillStatus === "not_viewed" || pillStatus === "viewed") ? "sent" : pillStatus;
   return (
@@ -1528,25 +1576,25 @@ function SavedEstimateCard({
                 </span>
               ) : null}
 
-              {followUpInfo?.due && (
+              {visibleFollowUpInfo?.due && (
                 <span
                   className="inline-flex items-center rounded-full bg-rose-500/15 px-2.5 py-1 text-[11px] font-semibold text-rose-200 ring-1 ring-inset ring-rose-400/20"
-                  title={followUpInfo.reason}
+                  title={visibleFollowUpInfo.reason}
                 >
                   Follow-up due
                 </span>
               )}
 
-              {followUpReason && (
+              {visibleFollowUpReason && (
                 <span className="inline-flex items-center rounded-full bg-amber-500/10 px-2.5 py-1 text-[11px] font-semibold text-amber-200 ring-1 ring-inset ring-amber-400/15">
                   Follow-up suggested
                 </span>
               )}
             </div>
 
-            {followUpReason && (
+            {visibleFollowUpReason && (
               <div className="mt-1.5 text-xs text-white/40">
-                {followUpReason}
+                {visibleFollowUpReason}
               </div>
             )}
 
@@ -1828,6 +1876,44 @@ function SavedEstimateCard({
               </button>
             )}
 
+            {(visibleFollowUpInfo?.due || visibleFollowUpReason) && (
+              <div className="relative" ref={followUpMenuRef}>
+                <button
+                  type="button"
+                  onClick={() => setFollowUpMenuOpen((v) => !v)}
+                  className="rounded-xl border border-amber-400/20 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-100 hover:bg-amber-500/15"
+                >
+                  Follow Up ▾
+                </button>
+
+                {followUpMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-56 overflow-hidden rounded-2xl border border-white/10 bg-[#0f172a] shadow-2xl z-50">
+                    <button
+                      type="button"
+                      className="w-full px-4 py-3 text-left text-sm text-white/85 hover:bg-white/5"
+                      onClick={() => {
+                        setFollowUpMenuOpen(false);
+                        onFollowUpSnooze?.(estimate.id);
+                      }}
+                    >
+                      Snooze 3 days
+                    </button>
+
+                    <button
+                      type="button"
+                      className="w-full px-4 py-3 text-left text-sm text-white/85 hover:bg-white/5"
+                      onClick={() => {
+                        setFollowUpMenuOpen(false);
+                        onFollowUpClear?.(estimate.id);
+                      }}
+                    >
+                      Clear reminder
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="relative" ref={openMoreFor === estimate.id ? moreMenuRef : undefined}>
               <button
                 type="button"
@@ -1873,11 +1959,11 @@ function SavedEstimateCard({
                     Load estimate
                   </button>
 
-                  {followUpInfo?.kind && followUpInfo.kind !== "none" && onSendFollowUp && (
+                  {visibleFollowUpInfo?.kind && visibleFollowUpInfo.kind !== "none" && onSendFollowUp && (
                     <button
                       onClick={() => {
                         setOpenMoreFor(null);
-                        onSendFollowUp?.(estimate, followUpInfo!.kind as "confirm" | "questions" | "deposit");
+                        onSendFollowUp?.(estimate, visibleFollowUpInfo!.kind as "confirm" | "questions" | "deposit");
                       }}
                       className="block w-full text-left px-4 py-3 text-sm text-emerald-300 hover:bg-white/10"
                     >
@@ -1981,6 +2067,35 @@ export default function SavedClient() {
   });
   const [openMoreFor, setOpenMoreFor] = useState<string | null>(null);
   const moreMenuRef = useRef<HTMLDivElement | null>(null);
+  const [followUpPrefs, setFollowUpPrefs] = useState<Record<string, FollowUpPrefs>>({});
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const stored = safeParseFollowUpJson<Record<string, FollowUpPrefs>>(
+      localStorage.getItem(FOLLOWUP_PREFS_KEY),
+      {}
+    );
+    setFollowUpPrefs(stored);
+  }, []);
+  function updateFollowUpPref(id: string, patch: Partial<FollowUpPrefs>) {
+    setFollowUpPrefs((prev) => {
+      const next = {
+        ...prev,
+        [id]: {
+          ...(prev[id] ?? {}),
+          ...patch,
+        },
+      };
+      try {
+        localStorage.setItem(FOLLOWUP_PREFS_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  }
+  function isFollowUpHidden(id: string) {
+    const pref = followUpPrefs[id];
+    if (!pref) return false;
+    return isFutureIso(pref.snoozeUntil) || isFutureIso(pref.clearedUntil);
+  }
   const [txModal, setTxModal] = useState<{
     open: boolean;
     estimateId: string | null;
@@ -2983,6 +3098,19 @@ export default function SavedClient() {
                 showRescheduleButton
                 followUpInfo={getFollowUpInfo(e, paymentStates[e.id] ?? null)}
                 onSendFollowUp={(est, kind) => sendFollowUpEmail(est, kind)}
+                followUpHidden={isFollowUpHidden(e.id)}
+                onFollowUpSnooze={(estimateId) =>
+                  updateFollowUpPref(estimateId, {
+                    snoozeUntil: addDaysToIso(3),
+                    clearedUntil: null,
+                  })
+                }
+                onFollowUpClear={(estimateId) =>
+                  updateFollowUpPref(estimateId, {
+                    clearedUntil: addDaysToIso(30),
+                    snoozeUntil: null,
+                  })
+                }
                 onStartCheckout={(id, type, est, remainingCentsForFull) => startCheckout(id, type, est, setCheckoutLoading, remainingCentsForFull)}
                 onOpenDepositModal={(est) =>
                   setDepositModal({
@@ -3118,6 +3246,19 @@ export default function SavedClient() {
               checkoutLoading={checkoutLoading}
               followUpInfo={getFollowUpInfo(e, paymentStates[e.id] ?? null)}
               onSendFollowUp={(est, kind) => sendFollowUpEmail(est, kind)}
+              followUpHidden={isFollowUpHidden(e.id)}
+              onFollowUpSnooze={(estimateId) =>
+                updateFollowUpPref(estimateId, {
+                  snoozeUntil: addDaysToIso(3),
+                  clearedUntil: null,
+                })
+              }
+              onFollowUpClear={(estimateId) =>
+                updateFollowUpPref(estimateId, {
+                  clearedUntil: addDaysToIso(30),
+                  snoozeUntil: null,
+                })
+              }
               onStartCheckout={(id, type, est, remainingCentsForFull) => startCheckout(id, type, est, setCheckoutLoading, remainingCentsForFull)}
               onOpenDepositModal={(est) =>
                 setDepositModal({
