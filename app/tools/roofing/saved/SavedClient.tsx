@@ -2120,7 +2120,7 @@ function SavedEstimateCard({
                   )}
                   {fullPaidCents > 0 && (
                     <div className="flex items-center justify-between">
-                      <span>Final paid</span>
+                      <span>{isFullyPaid ? "Final payment" : "Additional payment"}</span>
                       <span className="font-medium">{formatCentsToCurrency(fullPaidCents)}</span>
                     </div>
                   )}
