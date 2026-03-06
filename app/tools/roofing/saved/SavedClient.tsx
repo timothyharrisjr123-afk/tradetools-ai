@@ -3450,9 +3450,38 @@ export default function SavedClient() {
           </a>
         </div>
 
-        <h1 className="text-center text-xl font-semibold text-white">
-          Saved Estimates
-        </h1>
+        {(() => {
+          const pageTitle: Record<typeof statusFilter, string> = {
+            all: "Saved Estimates",
+            estimate: "Estimates",
+            sent_pending: "Sent Estimates",
+            approved: "Approved Jobs",
+            deposit_paid: "Deposit Paid",
+            scheduled: "Scheduled Jobs",
+            in_progress: "Crew On Site",
+            paid: "Completed Jobs",
+          };
+          const pageSubtitle: Record<typeof statusFilter, string> = {
+            all: "All saved estimates in your pipeline",
+            estimate: "Draft estimates not yet sent",
+            sent_pending: "Sent, awaiting view or response",
+            approved: "Approved, ready to schedule",
+            deposit_paid: "Deposit received, ready to schedule",
+            scheduled: "Jobs currently scheduled in your pipeline",
+            in_progress: "Jobs actively being worked today",
+            paid: "Finished and paid work",
+          };
+          return (
+            <>
+              <h1 className="text-center text-xl font-semibold text-white">
+                {pageTitle[statusFilter]}
+              </h1>
+              <p className="mt-1 text-center text-sm text-white/60">
+                {pageSubtitle[statusFilter]}
+              </p>
+            </>
+          );
+        })()}
 
         {/* Build stamp (debug) */}
         <div className="mt-2 text-center text-xs text-white/40">
@@ -3493,10 +3522,10 @@ export default function SavedClient() {
                 key={key}
                 onClick={() => setStatusFilter(key as any)}
                 className={
-                  "rounded-full border px-3 py-1.5 text-xs font-semibold transition " +
+                  "rounded-full border px-3 py-1.5 text-xs font-semibold transition-all duration-150 " +
                   (statusFilter === key
-                    ? "border-white/20 bg-white/[0.10] text-white"
-                    : "border-white/10 bg-white/[0.05] text-white/70 hover:bg-white/[0.08] hover:text-white/90")
+                    ? "bg-emerald-500/20 border-emerald-400/40 text-emerald-300"
+                    : "bg-white/[0.05] border-white/10 text-white/70 hover:bg-white/[0.08] hover:text-white/90")
                 }
               >
                 {label}
@@ -3511,10 +3540,10 @@ export default function SavedClient() {
                   key={key}
                   onClick={() => setScheduledView(key)}
                   className={
-                    "rounded-full border px-3 py-1.5 text-xs font-semibold transition " +
+                    "rounded-full border px-3 py-1.5 text-xs font-semibold transition-all duration-150 " +
                     (scheduledView === key
-                      ? "border-white/20 bg-white/[0.10] text-white"
-                      : "border-white/10 bg-white/[0.05] text-white/70 hover:bg-white/[0.08] hover:text-white/90")
+                      ? "bg-emerald-500/20 border-emerald-400/40 text-emerald-300"
+                      : "bg-white/[0.05] border-white/10 text-white/70 hover:bg-white/[0.08] hover:text-white/90")
                   }
                 >
                   {key === "upcoming" ? "Upcoming" : key === "past" ? "Past" : "All"}
