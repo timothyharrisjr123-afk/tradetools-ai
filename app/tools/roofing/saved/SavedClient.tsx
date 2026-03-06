@@ -2643,9 +2643,15 @@ export default function SavedClient() {
 
         const payment = json.payment;
         const paymentStatus = payment.status as "deposit_paid" | "paid";
-        if (paymentStatus === "paid" || paymentStatus === "deposit_paid") {
-          markSavedEstimateStatus(id, paymentStatus);
+        const current = getSavedEstimateById(id);
+        if (paymentStatus === "paid") {
+          markSavedEstimateStatus(id, "paid");
           setEstimates(getNormalizedEstimates());
+        } else if (paymentStatus === "deposit_paid") {
+          if (!current || (current.status !== "scheduled" && current.status !== "in_progress" && current.status !== "paid")) {
+            markSavedEstimateStatus(id, "deposit_paid");
+            setEstimates(getNormalizedEstimates());
+          }
         }
         setPaymentStates((prev) => ({
           ...prev,
@@ -3027,7 +3033,7 @@ export default function SavedClient() {
         if (payment?.status === "paid" && rawStatus !== "paid" && rawStatus !== "completed") {
           markSavedEstimateStatus(id, "paid");
         } else if (payment?.status === "deposit_paid" && rawStatus !== "deposit_paid") {
-          if (est.status === "approved" || est.status === "scheduled") {
+          if (est.status === "approved") {
             markSavedEstimateStatus(id, "deposit_paid");
           }
         }
@@ -3119,7 +3125,11 @@ export default function SavedClient() {
   let filtered = searchFiltered
     .filter((e) => {
       if (statusFilter === "all") return true;
-      if (statusFilter === "scheduled") return !!getScheduledDateKeyFromEstimate(e);
+      if (statusFilter === "scheduled") {
+        const hasSchedule = !!getScheduledDateKeyFromEstimate(e);
+        const norm = normalizeStatusValue(e.status || "estimate");
+        return hasSchedule && (norm === "scheduled" || norm === "in_progress");
+      }
       const s = e.status || "estimate";
       const norm = normalizeStatusValue(s);
       if (statusFilter === "sent_pending") return norm === "pending" || s === "sent";
@@ -4239,7 +4249,10 @@ export default function SavedClient() {
                   if (json?.status === "paid") {
                     markSavedEstimateStatus(id, "paid");
                   } else if (json?.status === "deposit_paid") {
-                    markSavedEstimateStatus(id, "deposit_paid");
+                    const est = estimates.find((e) => e.id === id);
+                    if (est && est.status !== "scheduled" && est.status !== "in_progress" && est.status !== "paid") {
+                      markSavedEstimateStatus(id, "deposit_paid");
+                    }
                   }
                   lastStatusFetchRef.current[id] = Date.now();
                   setEstimates(getNormalizedEstimates());
