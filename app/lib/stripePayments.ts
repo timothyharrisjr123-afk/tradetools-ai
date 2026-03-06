@@ -1,6 +1,6 @@
 import { kv } from "@vercel/kv";
 
-export type PaymentKind = "deposit" | "full";
+export type PaymentKind = "deposit" | "full" | "balance";
 export type PaymentState = {
   estimateId: string;
 
@@ -16,7 +16,7 @@ export type PaymentState = {
   lastAmountTotalCents?: number | null;
   lastCurrency?: string | null;
 
-  // accumulated amounts from completed payments
+  // accumulated amounts: depositAmountCents = deposit; fullAmountCents = all non-deposit card (full + balance), summed in cents
   depositAmountCents?: number | null;
   fullAmountCents?: number | null;
 

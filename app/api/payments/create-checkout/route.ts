@@ -27,7 +27,8 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json().catch(() => ({}));
     const estimateId = String(body?.estimateId || "").trim();
-    const paymentType = (body?.paymentType === "full" ? "full" : "deposit") as "deposit" | "full";
+    const paymentTypeRaw = body?.paymentType;
+    const paymentType = (paymentTypeRaw === "full" ? "full" : paymentTypeRaw === "balance" ? "balance" : "deposit") as "deposit" | "full" | "balance";
 
     if (!estimateId) {
       return NextResponse.json(
@@ -67,6 +68,15 @@ export async function POST(req: NextRequest) {
           { status: 400 }
         );
       }
+    } else if (paymentType === "balance") {
+      const clientAmount = Number.isFinite(clientAmountCentsRaw) ? Math.floor(clientAmountCentsRaw) : 0;
+      if (clientAmount <= 0) {
+        return NextResponse.json(
+          { ok: false, error: "Balance amount must be greater than zero" },
+          { status: 400 }
+        );
+      }
+      amountCents = Math.min(clientAmount, remainingCents);
     } else {
       if (customDepositCentsRaw > 0) {
         const requested = Math.floor(customDepositCentsRaw);
@@ -108,11 +118,13 @@ export async function POST(req: NextRequest) {
             currency: "usd",
             unit_amount: amountCents,
             product_data: {
-              name: paymentType === "full" ? "Roofing Payment" : "Roofing Deposit",
+              name: paymentType === "deposit" ? "Roofing Deposit" : "Roofing Payment",
               description:
-                paymentType === "full"
-                  ? `Full payment for estimate ${estimateId}`
-                  : `Deposit for estimate ${estimateId}`,
+                paymentType === "deposit"
+                  ? `Deposit for estimate ${estimateId}`
+                  : paymentType === "balance"
+                    ? `Remaining balance for estimate ${estimateId}`
+                    : `Full payment for estimate ${estimateId}`,
             },
           },
           quantity: 1,
@@ -121,6 +133,7 @@ export async function POST(req: NextRequest) {
       metadata: {
         estimateId,
         paymentType,
+        estimateTotalCents: String(estimateTotalCents),
       },
       success_url: `${baseUrl}/tools/roofing/saved?paid=1&id=${encodeURIComponent(estimateId)}&kind=${paymentType}`,
       cancel_url: `${baseUrl}/tools/roofing/saved?paid=0&id=${encodeURIComponent(estimateId)}&kind=${paymentType}`,

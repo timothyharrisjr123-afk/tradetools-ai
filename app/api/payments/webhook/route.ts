@@ -27,10 +27,11 @@ export async function POST(req: NextRequest) {
       const estimateId = String(session.metadata?.estimateId || "").trim();
 
       const paymentType =
-        session.metadata?.paymentType === "full" ||
-        session.metadata?.kind === "full"
+        session.metadata?.paymentType === "full" || session.metadata?.kind === "full"
           ? "full"
-          : "deposit";
+          : session.metadata?.paymentType === "balance" || session.metadata?.kind === "balance"
+            ? "balance"
+            : "deposit";
 
       if (estimateId) {
         const nowIso = new Date().toISOString();
@@ -43,14 +44,33 @@ export async function POST(req: NextRequest) {
           lastCurrency: (session.currency as string) ?? null,
         };
 
-        if (paymentType === "full") {
-          patch.fullPaidAt = nowIso;
-          patch.fullAmountCents = amountCents;
-          patch.status = "paid";
-        } else {
+        if (paymentType === "deposit") {
           patch.depositPaidAt = nowIso;
           patch.depositAmountCents = amountCents;
           patch.status = "deposit_paid";
+        } else if (paymentType === "balance") {
+          const { getPaymentState } = await import("@/app/lib/stripePayments");
+          const current = await getPaymentState(estimateId);
+          const prevFull = Number(current?.fullAmountCents ?? 0) || 0;
+          const newFullAmountCents = prevFull + amountCents;
+          patch.fullAmountCents = newFullAmountCents;
+
+          const estimateTotalCents = Number(session.metadata?.estimateTotalCents ?? 0) || 0;
+          const depositAmountCents = Number(current?.depositAmountCents ?? 0) || 0;
+          const offlinePaidCents = Number((current as { offlinePaidCents?: number })?.offlinePaidCents ?? 0) || 0;
+          const totalCollected = depositAmountCents + newFullAmountCents + offlinePaidCents;
+
+          if (estimateTotalCents > 0 && totalCollected >= estimateTotalCents) {
+            patch.fullPaidAt = nowIso;
+            patch.status = "paid";
+          } else {
+            // Partial balance: do not set fullPaidAt; preserve existing status so work-stage (scheduled/in_progress) is not downgraded
+            patch.status = (current as { status?: string })?.status ?? "deposit_paid";
+          }
+        } else {
+          patch.fullPaidAt = nowIso;
+          patch.fullAmountCents = amountCents;
+          patch.status = "paid";
         }
 
         await upsertPaymentState(estimateId, patch as any);

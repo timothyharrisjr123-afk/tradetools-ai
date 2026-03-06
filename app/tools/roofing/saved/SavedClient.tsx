@@ -499,9 +499,9 @@ async function fetchPaymentState(estimateId: string) {
 
 async function startCheckout(
   estimateId: string,
-  paymentType: "deposit" | "full",
+  paymentType: "deposit" | "full" | "balance",
   estimateOrOpts: { totalContractPrice?: number; suggestedPrice?: number; estimateTotalCents?: number; customDepositCents?: number },
-  setCheckoutLoading: (fn: (m: Record<string, "deposit" | "full" | null>) => Record<string, "deposit" | "full" | null>) => void,
+  setCheckoutLoading: (fn: (m: Record<string, "deposit" | "full" | "balance" | null>) => Record<string, "deposit" | "full" | "balance" | null>) => void,
   remainingCentsForFull?: number
 ) {
   const estimateTotalCents =
@@ -520,6 +520,12 @@ async function startCheckout(
         ? Math.floor(remainingCentsForFull)
         : 0;
     if (amountCents <= 0) return;
+  } else if (paymentType === "balance") {
+    const amountCents =
+      typeof remainingCentsForFull === "number" && Number.isFinite(remainingCentsForFull) && remainingCentsForFull > 0
+        ? Math.floor(remainingCentsForFull)
+        : 0;
+    if (amountCents <= 0) return;
   } else if (paymentType === "deposit" && customDepositCents != null && (!Number.isFinite(customDepositCents) || customDepositCents <= 0)) {
     return;
   }
@@ -533,6 +539,9 @@ async function startCheckout(
     };
     if (paymentType === "deposit" && customDepositCents != null) body.customDepositCents = customDepositCents;
     if (paymentType === "full" && typeof remainingCentsForFull === "number" && remainingCentsForFull > 0) {
+      body.amountCents = Math.floor(remainingCentsForFull);
+    }
+    if (paymentType === "balance" && typeof remainingCentsForFull === "number" && remainingCentsForFull > 0) {
       body.amountCents = Math.floor(remainingCentsForFull);
     }
 
@@ -1810,7 +1819,7 @@ function SavedEstimateCard({
   estimate: any;
   batchStatuses?: Record<string, { status: string; viewedAt?: string | null; approvedAt?: string | null }>;
   paymentState?: { depositAmountCents?: number; fullAmountCents?: number; offlinePaidCents?: number; offlineTransactions?: Array<{ stage?: string; amountCents?: number }> } | null;
-  checkoutLoading?: Record<string, "deposit" | "full" | null>;
+  checkoutLoading?: Record<string, "deposit" | "full" | "balance" | null>;
   onStartCheckout?: (estimateId: string, paymentType: "deposit" | "full", estimate: any, remainingCentsForFull?: number) => void;
   onOpenDepositModal?: (estimate: any) => void;
   onOpenRemainingModal?: (estimate: any, remainingCents: number) => void;
@@ -2259,7 +2268,7 @@ function SavedEstimateCard({
 
                 <button
                     type="button"
-                    disabled={checkoutLoading?.[estimate.id] === "full"}
+                    disabled={checkoutLoading?.[estimate.id] === "full" || checkoutLoading?.[estimate.id] === "balance"}
                     onClick={() => {
                       if (isFinalPayment || showDepositPaid || isScheduledCard) {
                         onOpenRemainingModal?.(estimate, remainingCents);
@@ -2269,7 +2278,7 @@ function SavedEstimateCard({
                     }}
                     className={`${actionBtn} rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white`}
                 >
-                  {checkoutLoading?.[estimate.id] === "full"
+                  {checkoutLoading?.[estimate.id] === "full" || checkoutLoading?.[estimate.id] === "balance"
                   ? "Opening…"
                   : (isFinalPayment || showDepositPaid || isScheduledCard)
                     ? "Collect Final"
@@ -2441,7 +2450,7 @@ export default function SavedClient() {
   const [paymentDate, setPaymentDate] = useState("");
   const [paidAmountInput, setPaidAmountInput] = useState("");
   const [batchStatuses, setBatchStatuses] = useState<Record<string, { status: string; viewedAt?: string | null; approvedAt?: string | null }>>({});
-  const [checkoutLoading, setCheckoutLoading] = useState<Record<string, "deposit" | "full" | null>>({});
+  const [checkoutLoading, setCheckoutLoading] = useState<Record<string, "deposit" | "full" | "balance" | null>>({});
   const [paymentStates, setPaymentStates] = useState<Record<string, { depositAmountCents?: number; fullAmountCents?: number; offlinePaidCents?: number; offlineTransactions?: Array<{ stage?: string; amountCents?: number }> } | null>>({});
   const [offlineModal, setOfflineModal] = useState<{
     open: boolean;
@@ -4227,7 +4236,7 @@ export default function SavedClient() {
                   if (amountCents <= 0) return;
                   await startCheckout(
                     remainingModal.estimateId!,
-                    "full",
+                    "balance",
                     { estimateTotalCents: remainingModal.estimateTotalCents },
                     setCheckoutLoading,
                     amountCents
