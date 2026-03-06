@@ -3498,7 +3498,7 @@ export default function SavedClient() {
               byBucket[bucket].push(x);
             }
 
-            const bucketOrder: ScheduleBucket[] = ["today", "tomorrow", "this_week", "next_week", "future", "past"];
+            const bucketOrder: ScheduleBucket[] = ["today", "tomorrow", "this_week", "next_week", "future"];
             const SCHEDULE_LANE_LABELS: Record<string, string> = {
               today: "TODAY",
               tomorrow: "TOMORROW",
@@ -3516,7 +3516,6 @@ export default function SavedClient() {
                 paymentState={paymentStates[x.est.id] ?? null}
                 checkoutLoading={checkoutLoading}
                 showRescheduleButton
-                scheduledForLabel={formatHeaderDate(x.date)}
                 scheduleActionLabel="Reschedule"
                 followUpInfo={getFollowUpInfo(x.est, paymentStates[x.est.id] ?? null, batchStatuses)}
                 onSendFollowUp={(est, kind) => sendFollowUpEmail(est, kind)}
@@ -3636,15 +3635,11 @@ export default function SavedClient() {
                       {dateKeysInBucket.map((dateKey) => {
                         const dateItems = byDateInBucket.get(dateKey)!;
                         const dateObj = dateItems[0].date;
-                        const count = dateItems.length;
                         return (
                           <div key={dateKey} className="space-y-4">
                             <div className="mb-3">
                               <div className="text-sm font-semibold text-white">
                                 {formatHeaderDate(dateObj)}
-                              </div>
-                              <div className="mt-1 text-xs text-white/45">
-                                {count} job{count > 1 ? "s" : ""}
                               </div>
                             </div>
                             <div className="space-y-4">
