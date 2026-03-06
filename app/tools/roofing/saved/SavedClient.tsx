@@ -2025,7 +2025,7 @@ function SavedEstimateCard({
             {showRescheduleButton ? (
               <div className="mt-2 flex items-center justify-end">
                 <span className="inline-flex items-center rounded-full border border-cyan-400/20 bg-cyan-500/10 px-3 py-1 text-xs font-semibold text-cyan-200">
-                  Scheduled
+                  Scheduled job
                 </span>
               </div>
             ) : (
