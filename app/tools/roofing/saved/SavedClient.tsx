@@ -629,41 +629,45 @@ function getPipelineInsight(estimates: any[]) {
   }, 0);
 
   if (depositWaiting.length > 0) {
+    const count = depositWaiting.length;
     return {
       title: "Schedule jobs",
-      message: `${depositWaiting.length} job${depositWaiting.length > 1 ? "s" : ""} already have a deposit.`,
+      message: `Schedule ${count} deposit-paid job${count === 1 ? "" : "s"}.`,
       revenue: revenueWaiting,
       action: "deposit",
     };
   }
 
   if (approvedWaiting.length > 0) {
+    const count = approvedWaiting.length;
     return {
       title: "Collect deposit",
-      message: `${approvedWaiting.length} approved job${approvedWaiting.length > 1 ? "s" : ""} waiting.`,
+      message: `${count} approved job${count === 1 ? "" : "s"} waiting for deposit.`,
       action: "approved",
     };
   }
 
   if (viewedWaiting.length > 0) {
+    const count = viewedWaiting.length;
     return {
       title: "Follow up",
-      message: `${viewedWaiting.length} customer${viewedWaiting.length > 1 ? "s" : ""} reviewing estimate.`,
+      message: `${count} viewed estimate${count === 1 ? "" : "s"} waiting on approval.`,
       action: "viewed",
     };
   }
 
   if (sentWaiting.length > 0) {
+    const count = sentWaiting.length;
     return {
       title: "Confirm estimate received",
-      message: `${sentWaiting.length} estimate${sentWaiting.length > 1 ? "s" : ""} not viewed.`,
+      message: `${count} sent estimate${count === 1 ? "" : "s"} not viewed yet.`,
       action: "sent",
     };
   }
 
   return {
     title: "Pipeline healthy",
-    message: "No urgent actions needed.",
+    message: "No urgent actions right now.",
     action: "none",
   };
 }
@@ -3191,6 +3195,30 @@ export default function SavedClient() {
             </div>
 
             <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="rounded-2xl border border-emerald-400/15 bg-emerald-500/10 p-4">
+                <div className="text-xs uppercase tracking-wide text-emerald-200/80">
+                  Revenue waiting
+                </div>
+                <div className="mt-2 text-2xl font-semibold text-emerald-100">
+                  ${waitingToScheduleRevenueSafe.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </div>
+                <div className="mt-1 text-sm text-emerald-200/70">
+                  If you schedule these jobs
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-amber-400/20 bg-amber-500/10 p-4">
+                <div className="text-xs uppercase tracking-wide text-amber-200/80">
+                  Waiting to schedule
+                </div>
+                <div className="mt-2 text-2xl font-semibold text-amber-100">
+                  {waitingToScheduleCount}
+                </div>
+                <div className="mt-1 text-sm text-amber-200/70">
+                  Deposit-paid jobs waiting to be scheduled
+                </div>
+              </div>
+
               <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
                 <div className="text-xs uppercase tracking-wide text-white/50">Weakest stage</div>
                 <div className="mt-2 text-base font-semibold text-white">
@@ -3206,30 +3234,6 @@ export default function SavedClient() {
                     </div>
                   </>
                 )}
-              </div>
-
-              <div className="rounded-2xl border border-amber-400/20 bg-amber-500/10 p-4">
-                <div className="text-xs uppercase tracking-wide text-amber-200/80">
-                  Waiting to schedule
-                </div>
-                <div className="mt-2 text-2xl font-semibold text-amber-100">
-                  {waitingToScheduleCount}
-                </div>
-                <div className="mt-1 text-sm text-amber-200/70">
-                  Approved / Deposit paid jobs
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-emerald-400/15 bg-emerald-500/10 p-4">
-                <div className="text-xs uppercase tracking-wide text-emerald-200/80">
-                  Revenue waiting
-                </div>
-                <div className="mt-2 text-2xl font-semibold text-emerald-100">
-                  ${waitingToScheduleRevenueSafe.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </div>
-                <div className="mt-1 text-sm text-emerald-200/70">
-                  If you schedule these jobs
-                </div>
               </div>
             </div>
 
