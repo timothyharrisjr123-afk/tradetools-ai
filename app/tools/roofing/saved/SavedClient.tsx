@@ -2696,7 +2696,11 @@ export default function SavedClient() {
           },
         }));
         lastStatusFetchRef.current[id] = Date.now();
-        router.replace("/tools/roofing/saved");
+        const url = new URL(window.location.href);
+        url.searchParams.delete("paid");
+        url.searchParams.delete("id");
+        url.searchParams.delete("kind");
+        router.replace(url.pathname + url.search);
       } catch {
         // ignore
       }
