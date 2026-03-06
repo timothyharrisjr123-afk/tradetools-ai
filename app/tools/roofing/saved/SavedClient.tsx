@@ -1928,9 +1928,6 @@ function SavedEstimateCard({
                 <div className="text-sm font-semibold text-cyan-300">
                   {scheduledForLabel}
                 </div>
-                <div className="mt-1 text-xs uppercase tracking-[0.18em] text-white/35">
-                  Scheduled job
-                </div>
               </div>
             )}
             <div className="flex flex-wrap items-center gap-2">
@@ -2002,15 +1999,6 @@ function SavedEstimateCard({
           </div>
 
           <div className="flex shrink-0 flex-col items-end gap-2 text-right">
-            {showRescheduleButton && status === "scheduled" && (
-              <button
-                type="button"
-                onClick={() => onSchedule?.(estimate)}
-                className="rounded-xl border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white/90 hover:bg-white/10"
-              >
-                {scheduleActionLabel ?? "Reschedule"}
-              </button>
-            )}
             {/* Status line (primary) */}
             <div className="text-emerald-300 text-sm font-semibold">
               {isSent && !viewedAt
@@ -2037,7 +2025,7 @@ function SavedEstimateCard({
             {showRescheduleButton ? (
               <div className="mt-2 flex items-center justify-end">
                 <span className="inline-flex items-center rounded-full border border-cyan-400/20 bg-cyan-500/10 px-3 py-1.5 text-xs font-semibold text-cyan-200">
-                  Scheduled job
+                  Scheduled
                 </span>
               </div>
             ) : (
@@ -2205,6 +2193,15 @@ function SavedEstimateCard({
             {/* ===== PAYMENT ACTIONS ===== */}
             {!isFullyPaid && totalCents > 0 && (
               <div className="flex flex-wrap items-center gap-2">
+                {showRescheduleButton && (
+                  <button
+                    type="button"
+                    onClick={() => onSchedule?.(estimate)}
+                    className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm font-medium text-white/90 hover:bg-white/10"
+                  >
+                    {scheduleActionLabel ?? "Reschedule"}
+                  </button>
+                )}
                 {!showDepositPaid && collectedCents === 0 && !isFullyPaid && (
                   <button
                     type="button"
