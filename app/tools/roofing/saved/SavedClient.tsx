@@ -1771,9 +1771,6 @@ function SavedEstimateCard({
             {estimate.approvedAt && status === "approved" && (
               <div className="mt-0.5 text-xs text-white/35">Approved {formatDatePretty(estimate.approvedAt)}</div>
             )}
-            {estimate.createdAt && !showApprovalActions && !isPendingApproval(getStage(estimate)) && (
-              <div className="mt-0.5 text-xs text-white/35">Saved {formatDatePretty(estimate.createdAt)}</div>
-            )}
 
             <select
               className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-semibold text-white/80 outline-none hover:bg-white/[0.06]"
