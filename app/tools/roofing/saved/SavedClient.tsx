@@ -3170,12 +3170,27 @@ export default function SavedClient() {
   } else if (statusFilter === "estimate") {
     nextActionText = "No action needed right now.";
   } else if (statusFilter === "scheduled") {
-    if (overdueScheduledJobs.length === 0) {
-      nextActionText = "All scheduled jobs are upcoming.";
-    } else if (overdueScheduledJobs.length === 1) {
-      nextActionText = `Check yesterday's scheduled job for ${getEstimateDisplayName(overdueScheduledJobs[0].est)}.`;
+    if (overdueScheduledJobs.length > 0) {
+      if (overdueScheduledJobs.length === 1) {
+        nextActionText = `Review yesterday's scheduled job for ${getEstimateDisplayName(overdueScheduledJobs[0].est)}.`;
+      } else {
+        nextActionText = `Review ${overdueScheduledJobs.length} past scheduled jobs.`;
+      }
+    } else if (jobsThisWeek.length > 0) {
+      const count = jobsThisWeek.length;
+      if (count === 1) {
+        nextActionText = "1 job scheduled this week.";
+      } else {
+        nextActionText = `${count} jobs scheduled this week.`;
+      }
+    } else if (upcomingScheduledJobs.length > 0) {
+      const nextJob = upcomingScheduledJobs
+        .slice()
+        .sort((a, b) => a.date.getTime() - b.date.getTime())[0];
+      const dateLabel = formatHeaderDate(nextJob.date);
+      nextActionText = `Next job scheduled ${dateLabel}.`;
     } else {
-      nextActionText = `Review ${overdueScheduledJobs.length} past scheduled jobs.`;
+      nextActionText = "No scheduled jobs.";
     }
   } else if (statusFilter === "all") {
     if (depositReadyJobs.length === 1) {
