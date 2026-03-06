@@ -1594,7 +1594,7 @@ function RevenueSummary({
               </div>
 
               <div className="flex items-center justify-between text-[11px] text-white/55">
-                <span className="uppercase tracking-wider">Remaining</span>
+                <span className="uppercase tracking-wider">Remaining balance</span>
                 <span
                   className="max-w-[160px] truncate tabular-nums whitespace-nowrap text-amber-200"
                   title={fmt(openPipeline)}
@@ -2148,7 +2148,7 @@ function SavedEstimateCard({
                   )}
                   {!isFullyPaid && remainingCents > 0 && (
                     <div className="flex items-center justify-between">
-                      <span>Final payment</span>
+                      <span>Remaining balance</span>
                       <span className="font-semibold">{formatCentsToCurrency(remainingCents)}</span>
                     </div>
                   )}
@@ -4481,7 +4481,7 @@ export default function SavedClient() {
                 </span>
               </div>
               <div className="mt-1 flex items-center justify-between">
-                <span>Remaining</span>
+                <span>Remaining balance</span>
                 <span className="font-semibold">{formatCentsToCurrency(txModal.remainingCents)}</span>
               </div>
             </div>
