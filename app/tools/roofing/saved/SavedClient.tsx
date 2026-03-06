@@ -1778,6 +1778,7 @@ function SavedEstimateCard({
   followUpHidden,
   onFollowUpSnooze,
   onFollowUpClear,
+  scheduledForLabel,
 }: {
   estimate: any;
   batchStatuses?: Record<string, { status: string; viewedAt?: string | null; approvedAt?: string | null }>;
@@ -1805,6 +1806,7 @@ function SavedEstimateCard({
   followUpHidden?: boolean;
   onFollowUpSnooze?: (estimateId: string) => void;
   onFollowUpClear?: (estimateId: string) => void;
+  scheduledForLabel?: string | null;
 }) {
   const status = normalizePipelineStatus(getStage(estimate));
   const remote = estimate?.approvalToken && batchStatuses ? batchStatuses[estimate.approvalToken] : null;
@@ -1894,6 +1896,11 @@ function SavedEstimateCard({
   ${isFlashing ? "ring-2 ring-emerald-400/60" : ""}`}
     >
       <div className="relative">
+        {scheduledForLabel && (
+          <div className="text-xs text-cyan-400 mb-1">
+            Scheduled for {scheduledForLabel}
+          </div>
+        )}
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
@@ -3070,6 +3077,29 @@ export default function SavedClient() {
     ? waitingToScheduleRevenue
     : 0;
 
+  const upcomingScheduledJobs = (estimates || []).filter((e: any) => {
+    if (e.status !== "scheduled") return false;
+    const d =
+      e?.scheduledStartDate ||
+      e?.schedule?.date ||
+      e?.scheduled?.date ||
+      e?.scheduledAt;
+    if (!d) return false;
+    const jobDate = new Date(d);
+    return jobDate.getTime() >= Date.now();
+  });
+  const overdueScheduledJobs = (estimates || []).filter((e: any) => {
+    if (e.status !== "scheduled") return false;
+    const d =
+      e?.scheduledStartDate ||
+      e?.schedule?.date ||
+      e?.scheduled?.date ||
+      e?.scheduledAt;
+    if (!d) return false;
+    const jobDate = new Date(d);
+    return jobDate.getTime() < Date.now();
+  });
+
   const funnel = computeFunnelStats(filtered, batchStatuses);
   const weakest = funnel.weakest;
 
@@ -3104,6 +3134,14 @@ export default function SavedClient() {
     }
   } else if (statusFilter === "estimate") {
     nextActionText = "No action needed right now.";
+  } else if (statusFilter === "scheduled") {
+    if (overdueScheduledJobs.length === 0) {
+      nextActionText = "All scheduled jobs are upcoming.";
+    } else if (overdueScheduledJobs.length === 1) {
+      nextActionText = `Check yesterday's scheduled job for ${getEstimateDisplayName(overdueScheduledJobs[0])}.`;
+    } else {
+      nextActionText = `Review ${overdueScheduledJobs.length} past scheduled jobs.`;
+    }
   } else if (statusFilter === "all") {
     if (depositReadyJobs.length === 1) {
       nextActionText = `Schedule ${getEstimateDisplayName(depositReadyJobs[0])}.`;
@@ -3324,13 +3362,13 @@ export default function SavedClient() {
 
               <div className="rounded-2xl border border-amber-400/20 bg-amber-500/10 p-4">
                 <div className="text-xs uppercase tracking-wide text-amber-200/80">
-                  Waiting to schedule
+                  {statusFilter === "scheduled" ? "Upcoming Jobs" : "Waiting to schedule"}
                 </div>
                 <div className="mt-2 text-2xl font-semibold text-amber-100">
-                  {waitingToScheduleCount}
+                  {statusFilter === "scheduled" ? upcomingScheduledJobs.length : waitingToScheduleCount}
                 </div>
                 <div className="mt-1 text-sm text-amber-200/70">
-                  Deposit-paid jobs not yet scheduled
+                  {statusFilter === "scheduled" ? "Scheduled jobs coming up" : "Deposit-paid jobs not yet scheduled"}
                 </div>
               </div>
 
@@ -3390,17 +3428,18 @@ export default function SavedClient() {
 
             const bucketOrder: ScheduleBucket[] = ["today", "tomorrow", "this_week", "next_week", "future", "past"];
 
-            const renderScheduledCard = (e: any) => (
+            const renderScheduledCard = (x: { est: any; key: string; date: Date }) => (
               <SavedEstimateCard
-                key={e.id}
-                estimate={e}
+                key={x.est.id}
+                estimate={x.est}
                 batchStatuses={batchStatuses}
-                paymentState={paymentStates[e.id] ?? null}
+                paymentState={paymentStates[x.est.id] ?? null}
                 checkoutLoading={checkoutLoading}
                 showRescheduleButton
-                followUpInfo={getFollowUpInfo(e, paymentStates[e.id] ?? null, batchStatuses)}
+                scheduledForLabel={formatHeaderDate(x.date)}
+                followUpInfo={getFollowUpInfo(x.est, paymentStates[x.est.id] ?? null, batchStatuses)}
                 onSendFollowUp={(est, kind) => sendFollowUpEmail(est, kind)}
-                followUpHidden={isFollowUpHidden(e.id)}
+                followUpHidden={isFollowUpHidden(x.est.id)}
                 onFollowUpSnooze={(estimateId) =>
                   updateFollowUpPref(estimateId, {
                     snoozeUntil: addDaysToIso(3),
@@ -3491,7 +3530,7 @@ export default function SavedClient() {
                 onRecordPayment={(est) => handleAction(est, "pay")}
                 onMarkApproved={(est) => handleAction(est, "approve")}
                 onView={(est) => handleAction(est, "load")}
-                isFlashing={e.id === flashId}
+                isFlashing={x.est.id === flashId}
               />
             );
 
@@ -3524,12 +3563,19 @@ export default function SavedClient() {
                       {dateKeysInBucket.map((dateKey) => {
                         const dateItems = byDateInBucket.get(dateKey)!;
                         const dateObj = dateItems[0].date;
-                        const subLabel = `${formatHeaderDate(dateObj)} · ${dateItems.length} job${dateItems.length !== 1 ? "s" : ""}`;
+                        const count = dateItems.length;
                         return (
                           <div key={dateKey} className="space-y-3">
-                            <div className="text-xs text-white/50 font-medium">{subLabel}</div>
+                            <div>
+                              <div className="text-sm text-white font-medium">
+                                {formatHeaderDate(dateObj)}
+                              </div>
+                              <div className="text-xs text-white/50">
+                                {count} scheduled job{count > 1 ? "s" : ""}
+                              </div>
+                            </div>
                             <div className="space-y-4">
-                              {dateItems.map((x) => renderScheduledCard(x.est))}
+                              {dateItems.map((x) => renderScheduledCard(x))}
                             </div>
                           </div>
                         );
