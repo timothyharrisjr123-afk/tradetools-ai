@@ -2124,13 +2124,13 @@ function SavedEstimateCard({
                 <div className="mt-2 text-sm text-white/80 space-y-1">
                   {depositPaidCents > 0 && (
                     <div className="flex items-center justify-between">
-                      <span>Deposit paid</span>
+                      <span>Card payment</span>
                       <span className="font-medium">{formatCentsToCurrency(depositPaidCents)}</span>
                     </div>
                   )}
                   {fullPaidCents > 0 && (
                     <div className="flex items-center justify-between">
-                      <span>{isFullyPaid ? "Final payment" : "Additional payment"}</span>
+                      <span>Card payment</span>
                       <span className="font-medium">{formatCentsToCurrency(fullPaidCents)}</span>
                     </div>
                   )}
@@ -2142,7 +2142,7 @@ function SavedEstimateCard({
                   )}
                   {offlineAdditionalCents > 0 && (
                     <div className="flex items-center justify-between">
-                      <span>Offline additional</span>
+                      <span>Offline payment</span>
                       <span className="font-medium">{formatCentsToCurrency(offlineAdditionalCents)}</span>
                     </div>
                   )}
