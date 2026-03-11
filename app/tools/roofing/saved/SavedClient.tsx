@@ -3473,10 +3473,10 @@ export default function SavedClient() {
           };
           return (
             <>
-              <h1 className="text-center text-xl font-semibold text-white">
+              <h1 className="text-center text-2xl font-semibold tracking-tight text-white">
                 {pageTitle[statusFilter]}
               </h1>
-              <p className="mt-1 text-center text-sm text-white/60">
+              <p className="mt-1.5 text-center text-sm text-white/55">
                 {pageSubtitle[statusFilter]}
               </p>
             </>
