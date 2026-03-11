@@ -1992,14 +1992,14 @@ function SavedEstimateCard({
                 </span>
               ) : null}
 
-              {visibleFollowUpInfo?.due && (
-                <span
-                  className="inline-flex items-center rounded-full bg-rose-500/15 px-2.5 py-1 text-[11px] font-semibold text-rose-200 ring-1 ring-inset ring-rose-400/20"
-                  title={visibleFollowUpInfo.reason}
-                >
-                  Follow-up due
-                </span>
-              )}
+{visibleFollowUpInfo?.due && (
+  <span
+    className="inline-flex items-center rounded-full bg-rose-500/15 px-2.5 py-1 text-[11px] font-semibold text-rose-200 ring-1 ring-inset ring-rose-400/20"
+    title={visibleFollowUpInfo.reason}
+  >
+    {visibleFollowUpInfo.reason}
+  </span>
+)}
 
               {visibleFollowUpReason && (
                 <span className="inline-flex items-center rounded-full bg-amber-500/10 px-2.5 py-1 text-[11px] font-semibold text-amber-200 ring-1 ring-inset ring-amber-400/15">
