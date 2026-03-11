@@ -2437,6 +2437,10 @@ export default function SavedClient() {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "estimate" | "sent_pending" | "approved" | "deposit_paid" | "scheduled" | "in_progress" | "paid">("all");
   const [scheduledView, setScheduledView] = useState<"upcoming" | "past" | "all">("upcoming");
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({
+    completed: true,
+  });
+
   const [flashId, setFlashId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [schedulingForId, setSchedulingForId] = useState<string | null>(null);
@@ -3906,18 +3910,31 @@ export default function SavedClient() {
             );
           })()}
           {hydrated && statusFilter !== "scheduled" && statusFilter === "all" && (
-            <div className="space-y-8">
+            <div className="space-y-10">
               {statusDrivenGroups.map((group) => (
                 <div
                   key={group.key}
                   className="space-y-4 rounded-2xl border border-white/10 bg-white/[0.02] px-4 pt-3 pb-4"
                 >
-                  <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
-                    <div className="text-sm font-semibold text-white">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setCollapsedGroups((prev) => ({
+                        ...prev,
+                        [group.key]: !prev[group.key],
+                      }))
+                    }
+                    className="flex w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-left"
+                  >
+                    <div className="text-[13px] font-semibold tracking-wide text-white/90">
                       {group.label} • {group.items.length} job{group.items.length > 1 ? "s" : ""}
                     </div>
-                  </div>
+                    <div className="text-xs text-white/50">
+                      {collapsedGroups[group.key] ? "Show" : "Hide"}
+                    </div>
+                  </button>
 
+                  {!collapsedGroups[group.key] && (
                   <div className="space-y-6">
                     {group.items.map((e) => (
                       <SavedEstimateCard
@@ -4039,6 +4056,7 @@ export default function SavedClient() {
                       />
                     ))}
                   </div>
+                  )}
                 </div>
               ))}
             </div>
