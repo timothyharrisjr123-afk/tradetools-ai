@@ -3436,73 +3436,66 @@ export default function SavedClient() {
       )}
       <div className="mx-auto max-w-3xl space-y-6">
         <RoofingTabs active="saved" />
-        <div className="text-left">
-          <a
-            href="/tools/roofing"
-            className="text-center text-[11px] text-white/50 hover:text-white/70"
-            onClick={(e) => {
-              if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
-              e.preventDefault();
-              window.location.assign("/tools/roofing");
-            }}
-          >
-            ← Back to Calculator
-          </a>
-        </div>
+        <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5 shadow-[0_10px_40px_rgba(0,0,0,0.22)] backdrop-blur-xl">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div className="min-w-0">
+              <a
+                href="/tools/roofing"
+                className="inline-flex items-center text-[11px] text-white/50 hover:text-white/70"
+                onClick={(e) => {
+                  if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+                  e.preventDefault();
+                  window.location.assign("/tools/roofing");
+                }}
+              >
+                ← Back to Calculator
+              </a>
 
-        {(() => {
-          const pageTitle: Record<typeof statusFilter, string> = {
-            all: "Saved Estimates",
-            estimate: "Estimates",
-            sent_pending: "Sent Estimates",
-            approved: "Approved Jobs",
-            deposit_paid: "Deposit Paid",
-            scheduled: "Scheduled Jobs",
-            in_progress: "Crew On Site",
-            paid: "Completed Jobs",
-          };
-          const pageSubtitle: Record<typeof statusFilter, string> = {
-            all: "All saved estimates in your pipeline",
-            estimate: "Draft estimates not yet sent",
-            sent_pending: "Sent, awaiting view or response",
-            approved: "Approved, ready to schedule",
-            deposit_paid: "Deposit received, ready to schedule",
-            scheduled: "Jobs currently scheduled in your pipeline",
-            in_progress: "Jobs actively being worked today",
-            paid: "Finished and paid work",
-          };
-          return (
-            <>
-              <h1 className="text-2xl font-semibold tracking-tight text-white">
-                {pageTitle[statusFilter]}
-              </h1>
-              <p className="mt-1.5 text-sm text-white/55">
-                {pageSubtitle[statusFilter]}
-              </p>
-            </>
-          );
-        })()}
+              {(() => {
+                const pageTitle: Record<typeof statusFilter, string> = {
+                  all: "Saved Estimates",
+                  estimate: "Estimates",
+                  sent_pending: "Sent Estimates",
+                  approved: "Approved Jobs",
+                  deposit_paid: "Deposit Paid",
+                  scheduled: "Scheduled Jobs",
+                  in_progress: "Crew On Site",
+                  paid: "Completed Jobs",
+                };
+                const pageSubtitle: Record<typeof statusFilter, string> = {
+                  all: "All saved estimates in your pipeline",
+                  estimate: "Draft estimates not yet sent",
+                  sent_pending: "Sent, awaiting view or response",
+                  approved: "Approved, ready to schedule",
+                  deposit_paid: "Deposit received, ready to schedule",
+                  scheduled: "Jobs currently scheduled in your pipeline",
+                  in_progress: "Jobs actively being worked today",
+                  paid: "Finished and paid work",
+                };
+                return (
+                  <>
+                    <h1 className="mt-3 text-2xl font-semibold tracking-tight text-white sm:text-[32px]">
+                      {pageTitle[statusFilter]}
+                    </h1>
+                    <p className="mt-2 text-sm text-white/55">
+                      {pageSubtitle[statusFilter]}
+                    </p>
+                  </>
+                );
+              })()}
+            </div>
 
-        {!hydrated && (
-          <div className="text-center text-sm text-white/60 py-8">
-            Loading saved estimates…
+            <div className="w-full lg:max-w-md">
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search saved estimates..."
+                className="w-full rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white/90 placeholder:text-white/40 outline-none focus:border-white/20 focus:bg-white/[0.08]"
+              />
+            </div>
           </div>
-        )}
-        {hydrated && estimates.length === 0 && (
-          <div className="text-center text-sm text-white/60">
-            No saved estimates yet.
-          </div>
-        )}
 
-        <div className="space-y-3">
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search saved estimates..."
-            className="w-full max-w-2xl rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white/90 placeholder:text-white/40 outline-none focus:border-white/20 focus:bg-white/[0.08]"
-          />
-
-          <div className="flex flex-wrap gap-2 text-xs">
+          <div className="mt-4 flex flex-wrap gap-2 text-xs">
             {[
               ["all", "All"],
               ["estimate", "Estimate"],
@@ -3529,7 +3522,7 @@ export default function SavedClient() {
           </div>
 
           {statusFilter === "scheduled" && (
-            <div className="flex flex-wrap gap-2 text-xs mt-2">
+            <div className="mt-3 flex flex-wrap gap-2 text-xs">
               {(["upcoming", "past", "all"] as const).map((key) => (
                 <button
                   key={key}
@@ -3547,6 +3540,17 @@ export default function SavedClient() {
             </div>
           )}
         </div>
+
+        {!hydrated && (
+          <div className="text-center text-sm text-white/60 py-8">
+            Loading saved estimates…
+          </div>
+        )}
+        {hydrated && estimates.length === 0 && (
+          <div className="text-center text-sm text-white/60">
+            No saved estimates yet.
+          </div>
+        )}
 
         {hydrated && (
           <RevenueSummary
