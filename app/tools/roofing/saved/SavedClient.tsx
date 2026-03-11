@@ -2169,7 +2169,7 @@ function SavedEstimateCard({
               const toneClass = marginToneClass(marginPct);
 
               return (
-                <div className="mt-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+                <div className="mt-3 rounded-xl border border-white/10 bg-white/5 px-4 py-4">
                   <div className="flex items-center justify-between">
                     <span className="text-xs uppercase tracking-wide text-white/60">Profit</span>
                     <span className={`text-sm font-semibold ${toneClass}`}>
@@ -3647,7 +3647,7 @@ export default function SavedClient() {
           </div>
         )}
 
-        <div className="space-y-4">
+        <div className="space-y-6">
           {/* Scheduled UX v2 enabled */}
           {hydrated && statusFilter === "scheduled" && (() => {
             const now = new Date();
