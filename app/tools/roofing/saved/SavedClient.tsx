@@ -2001,18 +2001,7 @@ function SavedEstimateCard({
   </span>
 )}
 
-              {visibleFollowUpReason && (
-                <span className="inline-flex items-center rounded-full bg-amber-500/10 px-2.5 py-1 text-[11px] font-semibold text-amber-200 ring-1 ring-inset ring-amber-400/15">
-                  Follow-up suggested
-                </span>
-              )}
             </div>
-
-            {visibleFollowUpReason && (
-              <div className="mt-1.5 text-xs text-white/40">
-                {visibleFollowUpReason}
-              </div>
-            )}
 
             <div className="mt-4 text-xl font-bold text-white tracking-tight">
               {estimate.customerName || "Unnamed Customer"}
