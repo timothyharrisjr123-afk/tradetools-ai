@@ -3434,7 +3434,7 @@ export default function SavedClient() {
           {flashBanner}
         </div>
       )}
-      <div className="mx-auto max-w-xl space-y-6">
+      <div className="mx-auto max-w-3xl space-y-6">
         <RoofingTabs active="saved" />
         <div className="text-center">
           <a
