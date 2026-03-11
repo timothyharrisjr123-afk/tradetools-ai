@@ -1767,7 +1767,7 @@ function getFollowUpInfo(
   }
 
   if (viewedAt && status !== "approved" && status !== "deposit_paid" && isDueSince(viewedAt, 48)) {
-    return { due: true, reason: "Answer questions / ask for approval", kind: "questions" };
+    return { due: true, reason: "Follow-up needed", kind: "questions" };
   }
 
   if (isApproved && depositPaid === 0 && isDueSince(approvedAt ?? lastSavedAt ?? sentAt ?? "", 48)) {
