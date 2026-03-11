@@ -2314,7 +2314,13 @@ function SavedEstimateCard({
                   onClick={() => setFollowUpMenuOpen((v) => !v)}
                   className="rounded-xl border border-amber-400/20 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-100 hover:bg-amber-500/15"
                 >
-                  Follow Up ▾
+                  {visibleFollowUpInfo?.kind === "confirm"
+                    ? "Confirm receipt ▾"
+                    : visibleFollowUpInfo?.kind === "questions"
+                      ? "Check in ▾"
+                      : visibleFollowUpInfo?.kind === "deposit"
+                        ? "Move forward ▾"
+                        : "Follow Up ▾"}
                 </button>
 
                 {followUpMenuOpen && (
