@@ -1541,8 +1541,8 @@ function RevenueSummary({
   };
 
   return (
-    <div className="mb-8 rounded-3xl border border-white/10 bg-white/[0.04] p-5">
-      <div className="flex items-start justify-between gap-4">
+    <div className="mb-8 rounded-3xl border border-white/10 bg-white/[0.04] p-5 shadow-[0_10px_40px_rgba(0,0,0,0.22)]">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <div className="text-sm font-semibold text-white">Business Snapshot</div>
           <div className="mt-1 text-xs text-white/45">
@@ -1552,108 +1552,114 @@ function RevenueSummary({
               ? "This month's totals"
               : "Last 30 days totals"}
           </div>
+        </div>
 
-          <div className="mt-3 flex gap-2 items-center">
-            <ToggleBtn id="all" label="All Time" />
-            <ToggleBtn id="month" label="This Month" />
-            <ToggleBtn id="30d" label="Last 30 Days" />
+        <div className="flex flex-wrap items-center gap-2">
+          <ToggleBtn id="all" label="All Time" />
+          <ToggleBtn id="month" label="This Month" />
+          <ToggleBtn id="30d" label="Last 30 Days" />
+        </div>
+      </div>
+
+      <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-4">
+          <div className="text-[10px] uppercase tracking-[0.22em] text-emerald-200/70">
+            Total Pipeline
+          </div>
+          <div className="mt-2 text-2xl font-semibold text-emerald-200 tabular-nums">
+            {fmt(pipelineTotal)}
+          </div>
+          <div className="mt-3 h-2 w-full overflow-hidden rounded-full border border-white/10 bg-black/20">
+            <div
+              className="h-full rounded-full bg-emerald-400/70"
+              style={{
+                width:
+                  pipelineTotal > 0
+                    ? `${pct === 0 ? 0 : Math.max(6, pct * 100)}%`
+                    : "0%",
+              }}
+            />
           </div>
         </div>
 
-        <div className="flex flex-wrap items-stretch gap-3">
-          <div className="w-full max-w-[320px] rounded-2xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-2">
-            <div className="text-[10px] uppercase tracking-[0.22em] text-emerald-200/70">
-              Total Pipeline
-            </div>
-            <div className="mt-0.5 text-lg font-semibold text-emerald-200 tabular-nums">
-              {fmt(pipelineTotal)}
-            </div>
-
-            {/* Progress bar (min visual width for 1–5%, true 0 stays empty) */}
-            <div className="mt-2 h-2 w-full rounded-full bg-black/20 border border-white/10 overflow-hidden">
-              <div
-                className="h-full rounded-full bg-emerald-400/70"
-                style={{
-                  width:
-                    pipelineTotal > 0
-                      ? `${pct === 0 ? 0 : Math.max(6, pct * 100)}%`
-                      : "0%",
-                }}
-              />
-            </div>
-
-            <div className="mt-3 space-y-2 rounded-xl border border-white/10 bg-black/10 p-3">
-              <div className="flex items-center justify-between text-[11px] text-white/55">
-                <span className="uppercase tracking-wider">Collected</span>
-                <span
-                  className="max-w-[160px] truncate tabular-nums whitespace-nowrap text-emerald-200"
-                  title={fmt(collected)}
-                >
-                  {fmt(collected)}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between text-[11px] text-white/55">
-                <span className="uppercase tracking-wider">Remaining balance</span>
-                <span
-                  className="max-w-[160px] truncate tabular-nums whitespace-nowrap text-amber-200"
-                  title={fmt(openPipeline)}
-                >
-                  {fmt(openPipeline)}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between text-[11px] text-white/55">
-                <span className="uppercase tracking-wider">Jobs</span>
-                <span className="tabular-nums whitespace-nowrap text-white/85">
-                  {paidJobs} / {totalJobs}
-                </span>
-              </div>
-            </div>
-            <div className="mt-3 flex items-center justify-between rounded-xl border border-white/10 bg-black/10 px-3 py-2 text-[11px] text-white/55">
-              <span className="uppercase tracking-wider">Average Job Value</span>
-              <span className="tabular-nums whitespace-nowrap text-white/90" title={fmt(averageJobValue)}>
-                {fmt(averageJobValue)}
-              </span>
-            </div>
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+          <div className="text-[10px] uppercase tracking-[0.22em] text-white/50">
+            Collected
           </div>
+          <div
+            className="mt-2 text-2xl font-semibold tabular-nums text-emerald-200"
+            title={fmt(collected)}
+          >
+            {fmt(collected)}
+          </div>
+          <div className="mt-1 text-xs text-white/45">Paid work collected in this window</div>
+        </div>
 
-          <div className="w-[220px] rounded-2xl border border-white/20 bg-white/[0.06] px-4 py-2">
-            <div className="text-[10px] uppercase tracking-[0.22em] text-white/60">
-              Profit
-            </div>
-            <div className="mt-2 text-xs text-white/70 space-y-1">
-              <div className="flex justify-between">
-                <span>Sold</span>
-                <span className="tabular-nums text-white/90">{fmt(pipelineTotal)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Cost</span>
-                <span className="tabular-nums text-white/90">{fmt(costTotal)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Profit</span>
-                <span className={`tabular-nums font-semibold ${profitTotal >= 0 ? "text-green-400" : "text-red-400"}`}>
-                  {fmt(profitTotal)}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span>Margin</span>
-                <span className={`tabular-nums font-semibold ${getMarginColor(avgMargin)}`}>
-                  {Math.round(avgMargin * 100)}%
-                </span>
-              </div>
-            </div>
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+          <div className="text-[10px] uppercase tracking-[0.22em] text-white/50">
+            Remaining Balance
+          </div>
+          <div
+            className="mt-2 text-2xl font-semibold tabular-nums text-amber-200"
+            title={fmt(openPipeline)}
+          >
+            {fmt(openPipeline)}
+          </div>
+          <div className="mt-1 text-xs text-white/45">Open pipeline still to collect</div>
+        </div>
+
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+          <div className="text-[10px] uppercase tracking-[0.22em] text-white/50">
+            Average Job Value
+          </div>
+          <div
+            className="mt-2 text-2xl font-semibold tabular-nums text-white/90"
+            title={fmt(averageJobValue)}
+          >
+            {fmt(averageJobValue)}
+          </div>
+          <div className="mt-1 text-xs text-white/45">
+            {paidJobs} / {totalJobs} jobs completed
           </div>
         </div>
       </div>
 
-      <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] px-4">
-        <Row label="Approved" value={approved} />
-        <div className="h-px bg-white/10" />
-        <Row label="Scheduled" value={scheduled} />
-        <div className="h-px bg-white/10" />
-        <Row label="Completed" value={paid} tone="good" />
+      <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_260px]">
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4">
+          <Row label="Approved" value={approved} />
+          <div className="h-px bg-white/10" />
+          <Row label="Scheduled" value={scheduled} />
+          <div className="h-px bg-white/10" />
+          <Row label="Completed" value={paid} tone="good" />
+        </div>
+
+        <div className="rounded-2xl border border-white/10 bg-white/[0.05] p-4">
+          <div className="text-[10px] uppercase tracking-[0.22em] text-white/60">
+            Profit
+          </div>
+          <div className="mt-3 space-y-2 text-sm text-white/70">
+            <div className="flex items-center justify-between">
+              <span>Sold</span>
+              <span className="tabular-nums text-white/90">{fmt(pipelineTotal)}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Cost</span>
+              <span className="tabular-nums text-white/90">{fmt(costTotal)}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Profit</span>
+              <span className={`tabular-nums font-semibold ${profitTotal >= 0 ? "text-green-400" : "text-red-400"}`}>
+                {fmt(profitTotal)}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Margin</span>
+              <span className={`tabular-nums font-semibold ${getMarginColor(avgMargin)}`}>
+                {Math.round(avgMargin * 100)}%
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
