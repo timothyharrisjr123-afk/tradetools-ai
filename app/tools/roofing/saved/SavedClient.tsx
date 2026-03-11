@@ -3439,7 +3439,7 @@ export default function SavedClient() {
         <div className="text-center">
           <a
             href="/tools/roofing"
-            className="text-xs text-white/60 hover:text-white/80"
+            className="text-center text-[11px] text-white/50 hover:text-white/70"
             onClick={(e) => {
               if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
               e.preventDefault();
