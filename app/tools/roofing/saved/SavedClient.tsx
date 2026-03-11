@@ -1541,7 +1541,7 @@ function RevenueSummary({
   };
 
   return (
-    <div className="mb-8 rounded-3xl border border-white/10 bg-white/[0.04] p-5 shadow-[0_10px_40px_rgba(0,0,0,0.22)]">
+    <div className="mb-8 rounded-3xl border border-white/10 bg-white/[0.04] p-5 shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <div className="text-sm font-semibold text-white">Business Snapshot</div>
@@ -3442,7 +3442,7 @@ export default function SavedClient() {
       )}
       <div className="mx-auto max-w-3xl space-y-6">
         <RoofingTabs active="saved" />
-        <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5 shadow-[0_10px_40px_rgba(0,0,0,0.22)] backdrop-blur-xl">
+        <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5 shadow-[0_10px_30px_rgba(0,0,0,0.35)] backdrop-blur-xl">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="min-w-0">
               <a
@@ -3567,7 +3567,7 @@ export default function SavedClient() {
 
         {/* Pipeline Insight (contractor-first) */}
         {hydrated && (
-          <div className="mt-10 w-full max-w-3xl rounded-3xl border border-white/10 bg-white/[0.03] p-6 shadow-xl">
+          <div className="mt-10 w-full max-w-3xl rounded-3xl border border-white/10 bg-white/[0.03] p-6 shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="text-lg font-semibold text-white">Pipeline Insight</div>
