@@ -3658,13 +3658,15 @@ export default function SavedClient() {
             <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
               <div className="rounded-2xl border border-emerald-400/15 bg-emerald-500/10 p-4">
                 <div className="text-xs uppercase tracking-wide text-emerald-200/80">
-                  {statusFilter === "scheduled" ? "SCHEDULED REVENUE" : "Revenue waiting"}
+                  {statusFilter === "scheduled" ? "SCHEDULED REVENUE" : "Revenue secured"}
                 </div>
                 <div className="mt-2 text-2xl font-semibold text-emerald-100">
                   ${(statusFilter === "scheduled" ? scheduledRevenueSafe : waitingToScheduleRevenueSafe).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
                 <div className="mt-1 text-sm text-emerald-200/70">
-                  {statusFilter === "scheduled" ? "Revenue from scheduled jobs in this view" : "If you schedule these jobs"}
+                  {statusFilter === "scheduled"
+                    ? "Revenue from scheduled jobs in this view"
+                    : "Deposit collected — ready to schedule"}
                 </div>
               </div>
 
