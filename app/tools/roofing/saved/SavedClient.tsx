@@ -2969,17 +2969,17 @@ export default function SavedClient() {
     }
     const approveUrl = buildApprovalUrl(est) || "";
     const subjects: Record<"confirm" | "questions" | "deposit", string> = {
-      confirm: "Quick check — did you receive your roofing estimate?",
+      confirm: "Did you receive your roofing estimate?",
       questions: "Any questions about your roofing estimate?",
-      deposit: "Ready to lock your schedule date?",
+      deposit: "Ready to lock in your roofing project?",
     };
     const subject = subjects[kind];
     const message =
       kind === "confirm"
-        ? "Hi — just checking that you received the roofing estimate we sent. If you have any questions or are ready to move forward, reply to this email or use the link below."
+        ? "Hi — just checking in to make sure you received the roofing estimate we sent. If you have any questions or would like to move forward, you can reply to this email or use the link below to review the estimate."
         : kind === "questions"
-          ? "Hi — we wanted to follow up on the estimate you viewed. Do you have any questions? If you're ready to approve, you can use the link below."
-          : "Hi — your estimate is approved. When you're ready to lock in your schedule date, we'll need a deposit. Use the link below to view details and pay.";
+          ? "Hi — we saw that you reviewed your roofing estimate and wanted to follow up to see if you had any questions. If everything looks good, you can approve the estimate using the link below."
+          : "Hi — your roofing estimate has been approved. The next step is securing your schedule date with a deposit. You can review the estimate and submit the deposit using the link below.";
     try {
       const res = await fetch("/api/email/followup", {
         method: "POST",
