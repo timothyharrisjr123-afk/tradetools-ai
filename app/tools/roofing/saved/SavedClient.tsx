@@ -3293,6 +3293,71 @@ export default function SavedClient() {
   const approvedDueJobs = getApprovedDueJobs(currentList, paymentStates ?? {});
   const depositReadyJobs = getDepositReadyJobs(currentList, paymentStates ?? {});
 
+  const statusDrivenGroups = useMemo(() => {
+    if (statusFilter !== "all") return [];
+
+    const items = (searchFiltered || []).slice();
+
+    const groups = [
+      {
+        key: "needs_scheduling",
+        label: "Needs Scheduling",
+        items: items.filter((e) => {
+          const norm = normalizeStatusValue(e.status || "estimate");
+          return norm === "approved" || norm === "deposit_paid";
+        }),
+      },
+      {
+        key: "awaiting_approval",
+        label: "Awaiting Approval",
+        items: items.filter((e) => {
+          const raw = String(e.status || "").toLowerCase();
+          const norm = normalizeStatusValue(e.status || "estimate");
+          return (
+            norm === "pending" ||
+            raw === "sent" ||
+            raw === "viewed" ||
+            norm === "sent"
+          );
+        }),
+      },
+      {
+        key: "estimates",
+        label: "Estimates",
+        items: items.filter((e) => {
+          const norm = normalizeStatusValue(e.status || "estimate");
+          return norm === "estimate";
+        }),
+      },
+      {
+        key: "scheduled",
+        label: "Scheduled",
+        items: items.filter((e) => {
+          const norm = normalizeStatusValue(e.status || "estimate");
+          return norm === "scheduled";
+        }),
+      },
+      {
+        key: "on_site",
+        label: "On Site",
+        items: items.filter((e) => {
+          const norm = normalizeStatusValue(e.status || "estimate");
+          return norm === "in_progress";
+        }),
+      },
+      {
+        key: "completed",
+        label: "Completed",
+        items: items.filter((e) => {
+          const norm = normalizeStatusValue(e.status || "estimate");
+          return norm === "paid";
+        }),
+      },
+    ];
+
+    return groups.filter((group) => group.items.length > 0);
+  }, [searchFiltered, statusFilter]);
+
   let nextActionText = "No action needed right now.";
   if (statusFilter === "sent_pending") {
     if (sentDueJobs.length === 1) {
@@ -3840,7 +3905,146 @@ export default function SavedClient() {
               </div>
             );
           })()}
-          {hydrated && statusFilter !== "scheduled" && filtered.map((e) => (
+          {hydrated && statusFilter !== "scheduled" && statusFilter === "all" && (
+            <div className="space-y-8">
+              {statusDrivenGroups.map((group) => (
+                <div
+                  key={group.key}
+                  className="space-y-4 rounded-2xl border border-white/10 bg-white/[0.02] px-4 pt-3 pb-4"
+                >
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
+                    <div className="text-sm font-semibold text-white">
+                      {group.label} • {group.items.length} job{group.items.length > 1 ? "s" : ""}
+                    </div>
+                  </div>
+
+                  <div className="space-y-6">
+                    {group.items.map((e) => (
+                      <SavedEstimateCard
+                        key={e.id}
+                        estimate={e}
+                        batchStatuses={batchStatuses}
+                        paymentState={paymentStates[e.id] ?? null}
+                        checkoutLoading={checkoutLoading}
+                        followUpInfo={getFollowUpInfo(e, paymentStates[e.id] ?? null, batchStatuses)}
+                        onSendFollowUp={(est, kind) => sendFollowUpEmail(est, kind)}
+                        followUpHidden={isFollowUpHidden(e.id)}
+                        onFollowUpSnooze={(estimateId) =>
+                          updateFollowUpPref(estimateId, {
+                            snoozeUntil: addDaysToIso(3),
+                            clearedUntil: null,
+                          })
+                        }
+                        onFollowUpClear={(estimateId) =>
+                          updateFollowUpPref(estimateId, {
+                            cleared: true,
+                            clearedUntil: null,
+                            snoozeUntil: null,
+                          })
+                        }
+                        onStartCheckout={(id, type, est, remainingCentsForFull) =>
+                          startCheckout(id, type, est, setCheckoutLoading, remainingCentsForFull, {
+                            statusFilter,
+                            scheduledView,
+                            query,
+                          })
+                        }
+                        onOpenDepositModal={(est) =>
+                          setDepositModal({
+                            open: true,
+                            estimateId: est.id,
+                            estimateTotal: Number(est.totalContractPrice ?? est.suggestedPrice ?? 0),
+                            customValue: "",
+                            mode: "percent",
+                            percent: 10,
+                          })
+                        }
+                        onOpenRemainingModal={(est, remainingCents) =>
+                          setRemainingModal({
+                            open: true,
+                            estimateId: est.id,
+                            estimateTotalCents: toEstimateTotalCents(est),
+                            remainingCents,
+                            mode: "full",
+                            customValue: "",
+                          })
+                        }
+                        onOpenOfflineModal={(est) => {
+                          const total = Number(est.totalContractPrice ?? est.suggestedPrice ?? 0);
+                          const totalCents = Math.round(total * 100);
+                          const ps = paymentStates[est.id];
+                          const depositPaidCents = ps?.depositAmountCents || 0;
+                          const fullPaidCents = ps?.fullAmountCents || 0;
+                          const offlinePaidCents = ps?.offlinePaidCents || 0;
+                          const remainingCents = Math.max(totalCents - (depositPaidCents + fullPaidCents + offlinePaidCents), 0);
+                          const remainingDollars = remainingCents / 100;
+                          setOfflineModal({
+                            open: true,
+                            estimateId: est.id,
+                            estimateTotal: total,
+                            remaining: remainingDollars,
+                            amount: remainingDollars ? String(remainingDollars.toFixed(2)) : "",
+                            method: "cash",
+                            notes: "",
+                            stage: "deposit",
+                          });
+                        }}
+                        onOpenTransactions={openTransactions}
+                        openMoreFor={openMoreFor}
+                        setOpenMoreFor={setOpenMoreFor}
+                        moreMenuRef={moreMenuRef}
+                        onLoad={(est) => handleAction(est, "load")}
+                        onDelete={(id) => {
+                          const est = group.items.find((x) => x.id === id);
+                          if (est) handleAction(est, "delete");
+                        }}
+                        onStatusChange={(id, status) => {
+                          const statusTyped = status as "estimate" | "sent" | "sent_pending" | "approved" | "deposit_paid" | "scheduled" | "in_progress" | "paid";
+                          if (statusTyped === "scheduled") {
+                            const est = searchFiltered.find((x) => x.id === id);
+                            if (est && !est.scheduledStartDate) {
+                              setToast("Pick a start date to schedule.");
+                              setTimeout(() => setToast(null), 2500);
+                              setSchedulingForId(id);
+                              setScheduleStartDate((est?.scheduledStartDate || "").trim() || new Date().toISOString().slice(0, 10));
+                              const existingArrival = String(est?.scheduledArrivalWindow || "").trim();
+                              if (existingArrival) {
+                                if (isStandardArrivalValue(existingArrival) || existingArrival === "Anytime") {
+                                  setScheduleArrivalWindow(existingArrival);
+                                  setScheduleCustomArrivalWindow("");
+                                } else {
+                                  setScheduleArrivalWindow(ARRIVAL_CUSTOM);
+                                  setScheduleCustomArrivalWindow(existingArrival);
+                                }
+                              } else {
+                                setScheduleArrivalWindow("");
+                                setScheduleCustomArrivalWindow("");
+                              }
+                              setScheduleNotes((est?.scheduleNotes || "").trim());
+                              return;
+                            }
+                          }
+                          updateSavedEstimate(id, { status: statusTyped });
+                          setEstimates(getNormalizedEstimates());
+                          const label = statusTyped.charAt(0).toUpperCase() + statusTyped.slice(1);
+                          setToast(statusTyped === "approved" ? "Approved ✅" : statusTyped === "scheduled" ? "Scheduled ✅" : statusTyped === "in_progress" ? "Crew on site ✅" : `Status updated → ${label}`);
+                          setTimeout(() => setToast(null), 2500);
+                        }}
+                        onSend={(est) => handleAction(est, "send")}
+                        onSchedule={(est) => handleAction(est, "schedule")}
+                        onRecordPayment={(est) => handleAction(est, "pay")}
+                        onMarkApproved={(est) => handleAction(est, "approve")}
+                        onView={(est) => handleAction(est, "load")}
+                        isFlashing={e.id === flashId}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {hydrated && statusFilter !== "scheduled" && statusFilter !== "all" && filtered.map((e) => (
             <SavedEstimateCard
               key={e.id}
               estimate={e}
