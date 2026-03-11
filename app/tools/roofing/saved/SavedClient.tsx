@@ -3483,11 +3483,6 @@ export default function SavedClient() {
           );
         })()}
 
-        {/* Build stamp (debug) */}
-        <div className="mt-2 text-center text-xs text-white/40">
-          Build: <span className="font-mono">{buildSha}</span>
-        </div>
-
         {!hydrated && (
           <div className="text-center text-sm text-white/60 py-8">
             Loading saved estimates…
