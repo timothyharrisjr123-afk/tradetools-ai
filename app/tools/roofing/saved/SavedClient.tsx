@@ -3436,7 +3436,7 @@ export default function SavedClient() {
       )}
       <div className="mx-auto max-w-3xl space-y-6">
         <RoofingTabs active="saved" />
-        <div className="text-center">
+        <div className="text-left">
           <a
             href="/tools/roofing"
             className="text-center text-[11px] text-white/50 hover:text-white/70"
@@ -3473,10 +3473,10 @@ export default function SavedClient() {
           };
           return (
             <>
-              <h1 className="text-center text-2xl font-semibold tracking-tight text-white">
+              <h1 className="text-2xl font-semibold tracking-tight text-white">
                 {pageTitle[statusFilter]}
               </h1>
-              <p className="mt-1.5 text-center text-sm text-white/55">
+              <p className="mt-1.5 text-sm text-white/55">
                 {pageSubtitle[statusFilter]}
               </p>
             </>
