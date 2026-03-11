@@ -3310,7 +3310,7 @@ export default function SavedClient() {
     const groups = [
       {
         key: "needs_scheduling",
-        label: "Needs Scheduling",
+        label: "Ready to Schedule",
         items: items.filter((e) => {
           const norm = normalizeStatusValue(e.status || "estimate");
           return norm === "approved" || norm === "deposit_paid";
