@@ -1747,9 +1747,14 @@ function getFollowUpInfo(
   const sentAt = getEffectiveSentAt(est);
   const approvedAt = est?.approvedAt ?? null;
   const lastSavedAt = est?.lastSavedAt ?? null;
-  const status = (est?.status ?? "estimate") as string;
+  const rawStatus = (est?.status ?? "estimate") as string;
+  const status = normalizePipelineStatus(rawStatus);
 
   if (est?.lastFollowUpAt && !isDueSince(est.lastFollowUpAt, 24)) {
+    return { due: false, reason: "", kind: "none" };
+  }
+
+  if (status === "scheduled" || status === "in_progress" || status === "paid") {
     return { due: false, reason: "", kind: "none" };
   }
 
@@ -1761,7 +1766,7 @@ function getFollowUpInfo(
     return { due: true, reason: "Confirm they received it", kind: "confirm" };
   }
 
-  if (viewedAt && status !== "approved" && status !== "deposit_paid" && status !== "scheduled" && status !== "paid" && status !== "completed" && isDueSince(viewedAt, 48)) {
+  if (viewedAt && status !== "approved" && status !== "deposit_paid" && isDueSince(viewedAt, 48)) {
     return { due: true, reason: "Answer questions / ask for approval", kind: "questions" };
   }
 
@@ -2325,6 +2330,18 @@ function SavedEstimateCard({
 
                 {followUpMenuOpen && (
                   <div className="absolute right-0 mt-2 w-56 overflow-hidden rounded-2xl border border-white/10 bg-[#0f172a] shadow-2xl z-50">
+                    {visibleFollowUpInfo?.kind && visibleFollowUpInfo.kind !== "none" && onSendFollowUp && (
+                      <button
+                        type="button"
+                        className="w-full px-4 py-3 text-left text-sm text-emerald-300 hover:bg-white/5"
+                        onClick={() => {
+                          setFollowUpMenuOpen(false);
+                          onSendFollowUp?.(estimate, visibleFollowUpInfo.kind as "confirm" | "questions" | "deposit");
+                        }}
+                      >
+                        Send follow-up
+                      </button>
+                    )}
                     <button
                       type="button"
                       className="w-full px-4 py-3 text-left text-sm text-white/85 hover:bg-white/5"
@@ -2395,18 +2412,6 @@ function SavedEstimateCard({
                   >
                     Load estimate
                   </button>
-
-                  {visibleFollowUpInfo?.kind && visibleFollowUpInfo.kind !== "none" && onSendFollowUp && (
-                    <button
-                      onClick={() => {
-                        setOpenMoreFor(null);
-                        onSendFollowUp?.(estimate, visibleFollowUpInfo!.kind as "confirm" | "questions" | "deposit");
-                      }}
-                      className="block w-full text-left px-4 py-3 text-sm text-emerald-300 hover:bg-white/10"
-                    >
-                      Send follow-up
-                    </button>
-                  )}
 
                   <button
                     onClick={() => {
