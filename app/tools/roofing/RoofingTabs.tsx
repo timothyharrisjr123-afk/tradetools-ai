@@ -11,7 +11,7 @@ export default function RoofingTabs({ active }: { active: RoofingTabKey }) {
     "bg-white/[0.03] border-white/10 text-white/60 hover:text-white/80 hover:bg-white/[0.06]";
 
   return (
-    <div className="mb-4">
+    <div>
       <div className="flex flex-wrap items-center gap-2 rounded-3xl border border-white/10 bg-white/[0.04] p-2 shadow-[0_10px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl">
         <a
           href="/tools/roofing"
