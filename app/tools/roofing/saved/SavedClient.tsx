@@ -3499,7 +3499,7 @@ export default function SavedClient() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search saved estimates..."
-            className="w-full rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white/90 placeholder:text-white/40 outline-none focus:border-white/20 focus:bg-white/[0.08]"
+            className="w-full max-w-2xl rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white/90 placeholder:text-white/40 outline-none focus:border-white/20 focus:bg-white/[0.08]"
           />
 
           <div className="flex flex-wrap gap-2 text-xs">
