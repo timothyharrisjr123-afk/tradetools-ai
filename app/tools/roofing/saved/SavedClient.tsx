@@ -2314,13 +2314,7 @@ function SavedEstimateCard({
                   onClick={() => setFollowUpMenuOpen((v) => !v)}
                   className="rounded-xl border border-amber-400/20 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-100 hover:bg-amber-500/15"
                 >
-                  {visibleFollowUpInfo?.kind === "confirm"
-                    ? "Confirm receipt ▾"
-                    : visibleFollowUpInfo?.kind === "questions"
-                      ? "Check in ▾"
-                      : visibleFollowUpInfo?.kind === "deposit"
-                        ? "Move forward ▾"
-                        : "Follow Up ▾"}
+                  Follow Up ▾
                 </button>
 
                 {followUpMenuOpen && (
@@ -2334,7 +2328,13 @@ function SavedEstimateCard({
                           onSendFollowUp?.(estimate, visibleFollowUpInfo.kind as "confirm" | "questions" | "deposit");
                         }}
                       >
-                        Send follow-up
+                        {visibleFollowUpInfo?.kind === "confirm"
+                          ? "Send follow-up — confirm they received the estimate"
+                          : visibleFollowUpInfo?.kind === "questions"
+                            ? "Send follow-up — check if they have questions"
+                            : visibleFollowUpInfo?.kind === "deposit"
+                              ? "Send follow-up — see if customer is ready to move forward"
+                              : "Send follow-up"}
                       </button>
                     )}
                     <button
