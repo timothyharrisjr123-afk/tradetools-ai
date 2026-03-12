@@ -40,6 +40,7 @@ import { sendEstimateEmailWithPdf } from "@/app/lib/sendEstimateClient";
 import { getFavorite, setFavorite, setLocked, appendFeedback, getTierFeedbackBias, type TierLabel } from "@/app/lib/aiWordingPrefs";
 import RoofingTabs from "@/app/tools/roofing/RoofingTabs";
 import { loadCompanyVoiceProfile, saveCompanyVoiceProfile, type VoiceTone } from "@/app/lib/companyVoiceProfile";
+import { SignOutButton } from "@/app/components/auth/SignOutButton";
 
 function safeUUID() {
   try {
@@ -3178,19 +3179,22 @@ Thanks,`;
       )}
 
       <div className="relative mx-auto max-w-6xl">
-        <motion.div
-          initial={{ opacity: 0, x: -8 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          <Link
-            href="/tools"
-            className="inline-flex items-center gap-2 text-sm font-medium text-slate-400 hover:text-white mb-12 transition-colors"
+        <div className="flex items-center justify-between mb-12">
+          <motion.div
+            initial={{ opacity: 0, x: -8 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.3 }}
           >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Tools
-          </Link>
-        </motion.div>
+            <Link
+              href="/tools"
+              className="inline-flex items-center gap-2 text-sm font-medium text-slate-400 hover:text-white transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Tools
+            </Link>
+          </motion.div>
+          <SignOutButton />
+        </div>
 
         <header className="mb-14 sm:mb-16">
           <motion.h1

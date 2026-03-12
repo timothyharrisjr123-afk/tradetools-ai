@@ -1,18 +1,30 @@
+import { SignOutButton } from "@/app/components/auth/SignOutButton";
+import { createClient } from "@/app/lib/supabase/server";
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import SavedClient from "./SavedClient";
 
 export const dynamic = "force-dynamic";
 
-export default function SavedPage() {
+export default async function SavedPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
   return (
-    <Suspense
-      fallback={
-        <div className="p-6 text-white/70">
-          Loading saved estimates…
-        </div>
-      }
-    >
-      <SavedClient />
-    </Suspense>
+    <>
+      <div className="flex justify-end p-4">
+        <SignOutButton />
+      </div>
+      <Suspense
+        fallback={
+          <div className="p-6 text-white/70">
+            Loading saved estimates…
+          </div>
+        }
+      >
+        <SavedClient />
+      </Suspense>
+    </>
   );
 }
