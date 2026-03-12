@@ -1,0 +1,91 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { createClient } from "@/app/lib/supabase/client";
+
+export default function SignUpPage() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [message, setMessage] = useState<{ type: "error" | "success"; text: string } | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  async function handleSignUp(e: React.FormEvent) {
+    e.preventDefault();
+    setMessage(null);
+    setLoading(true);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.signUp({ email, password });
+      if (error) {
+        setMessage({ type: "error", text: error.message });
+        return;
+      }
+      setMessage({ type: "success", text: "Account created. Check your email to confirm, or sign in." });
+    } catch (err) {
+      setMessage({ type: "error", text: err instanceof Error ? err.message : "Something went wrong." });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <main className="min-h-screen bg-[#131c2a] px-4 py-12">
+      <div className="mx-auto flex max-w-md flex-col justify-center">
+        <div className="rounded-2xl border border-white/15 bg-slate-800/95 p-6 shadow-xl">
+          <h1 className="text-xl font-semibold text-white">Create account</h1>
+          <p className="mt-1 text-sm text-slate-300">TradeTools AI</p>
+          <form onSubmit={handleSignUp} className="mt-6 space-y-4">
+            <div>
+              <label htmlFor="signup-email" className="block text-sm font-medium text-slate-200">
+                Email
+              </label>
+              <input
+                id="signup-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoComplete="email"
+                className="mt-1 w-full rounded-xl border border-white/15 bg-slate-700/80 px-3 py-2 text-white placeholder-slate-400 focus:border-amber-500/50 focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+                placeholder="you@example.com"
+              />
+            </div>
+            <div>
+              <label htmlFor="signup-password" className="block text-sm font-medium text-slate-200">
+                Password
+              </label>
+              <input
+                id="signup-password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                autoComplete="new-password"
+                className="mt-1 w-full rounded-xl border border-white/15 bg-slate-700/80 px-3 py-2 text-white placeholder-slate-400 focus:border-amber-500/50 focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+              />
+            </div>
+          {message && (
+            <p className={message.type === "error" ? "text-sm text-red-400" : "text-sm text-emerald-400"}>
+              {message.text}
+            </p>
+          )}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-black hover:bg-amber-400 disabled:opacity-50"
+          >
+            {loading ? "Creating account…" : "Create account"}
+          </button>
+        </form>
+          <p className="mt-4 text-center text-sm text-slate-400">
+            Already have an account?{" "}
+            <Link href="/login" className="font-medium text-amber-400 hover:text-amber-300">
+              Sign in
+            </Link>
+          </p>
+        </div>
+      </div>
+    </main>
+  );
+}
