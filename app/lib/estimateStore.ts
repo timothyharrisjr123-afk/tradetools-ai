@@ -1,3 +1,5 @@
+import { getSupabaseClient } from "@/app/lib/supabaseClient";
+
 export interface RoofingEstimate {
   id: string;
   createdAt: string;
@@ -59,6 +61,189 @@ export interface RoofingEstimate {
   followUpCount?: number;
 }
 
+/** Supabase estimates row (optional snapshot for full app state). */
+type SupabaseEstimateRow = {
+  id: string;
+  company_id?: string | null;
+  customer_id?: string | null;
+  job_name?: string | null;
+  roof_area_sqft?: number | null;
+  roof_pitch?: number | null;
+  materials_cost?: number | null;
+  labor_cost?: number | null;
+  tearoff_cost?: number | null;
+  margin_percent?: number | null;
+  job_cost?: number | null;
+  suggested_price?: number | null;
+  status?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  snapshot?: RoofingEstimate | null;
+};
+
+function parseMargin(m: string | number | undefined): number {
+  if (m == null) return 0;
+  if (typeof m === "number" && Number.isFinite(m)) return m;
+  const n = parseFloat(String(m).trim());
+  return Number.isFinite(n) ? n : 0;
+}
+
+function rowToEstimate(row: SupabaseEstimateRow): RoofingEstimate {
+  const snap = row.snapshot;
+  if (snap && typeof snap === "object" && snap.id && snap.createdAt) {
+    return {
+      ...snap,
+      id: snap.id,
+      createdAt: snap.createdAt || (row.created_at ?? new Date().toISOString()),
+    } as RoofingEstimate;
+  }
+  const createdAt = row.created_at ?? new Date().toISOString();
+  const updatedAt = row.updated_at ?? createdAt;
+  return {
+    id: row.id,
+    createdAt,
+    lastSavedAt: updatedAt,
+    customerName: "",
+    address: "",
+    zip: "",
+    roofAreaSqFt: Number(row.roof_area_sqft) || 0,
+    selectedTier: "Core",
+    suggestedPrice: Number(row.suggested_price) || 0,
+    materialsCost: row.materials_cost ?? undefined,
+    laborCost: row.labor_cost ?? undefined,
+    disposalCost: row.tearoff_cost ?? undefined,
+    margin: row.margin_percent != null ? String(row.margin_percent) : undefined,
+    status: (row.status as RoofingEstimate["status"]) || "estimate",
+    totalContractPrice: row.job_cost ?? undefined,
+  };
+}
+
+function estimateToRow(e: RoofingEstimate, nowIso: string): Record<string, unknown> {
+  const jobCost = e.totalContractPrice ?? e.suggestedPrice ?? 0;
+  return {
+    id: e.id,
+    company_id: null,
+    customer_id: null,
+    job_name: (e.jobAddress1 || e.address || `${e.selectedTier} estimate`).slice(0, 500) || null,
+    roof_area_sqft: e.roofAreaSqFt ?? 0,
+    roof_pitch: null,
+    materials_cost: e.materialsCost ?? 0,
+    labor_cost: e.laborCost ?? 0,
+    tearoff_cost: e.disposalCost ?? 0,
+    margin_percent: parseMargin(e.margin),
+    job_cost: jobCost,
+    suggested_price: e.suggestedPrice ?? 0,
+    status: e.status ?? "estimate",
+    created_at: e.createdAt || nowIso,
+    updated_at: e.lastSavedAt || nowIso,
+    snapshot: e,
+  };
+}
+
+let supabaseFetchStarted = false;
+
+async function fetchEstimatesFromSupabase(): Promise<RoofingEstimate[] | null> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return null;
+  try {
+    const { data, error } = await supabase
+      .from("estimates")
+      .select("id, company_id, customer_id, job_name, roof_area_sqft, roof_pitch, materials_cost, labor_cost, tearoff_cost, margin_percent, job_cost, suggested_price, status, created_at, updated_at, snapshot");
+    if (error) {
+      if (error.message?.includes("snapshot") || error.code === "42703") {
+        console.warn("[estimateStore] Supabase: snapshot column may be missing. Run: alter table estimates add column if not exists snapshot jsonb;");
+      } else {
+        console.warn("[estimateStore] Supabase fetch failed:", error.message);
+      }
+      return null;
+    }
+    const rows = (data ?? []) as SupabaseEstimateRow[];
+    return rows.map(rowToEstimate);
+  } catch (err) {
+    console.warn("[estimateStore] Supabase fetch error:", err);
+    return null;
+  }
+}
+
+async function upsertEstimateToSupabase(e: RoofingEstimate): Promise<boolean> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return false;
+  const nowIso = new Date().toISOString();
+  const row = estimateToRow(e, nowIso);
+  try {
+    const { error } = await supabase.from("estimates").upsert(row, { onConflict: "id" });
+    if (error) {
+      if (error.message?.includes("snapshot") || error.code === "42703") {
+        console.warn("[estimateStore] Supabase: snapshot column may be missing. Run: alter table estimates add column if not exists snapshot jsonb;");
+      } else {
+        console.warn("[estimateStore] Supabase upsert failed:", error.message);
+      }
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.warn("[estimateStore] Supabase upsert error:", err);
+    return false;
+  }
+}
+
+async function deleteEstimateFromSupabase(id: string): Promise<boolean> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return false;
+  try {
+    const { error } = await supabase.from("estimates").delete().eq("id", id);
+    if (error) {
+      console.warn("[estimateStore] Supabase delete failed:", error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.warn("[estimateStore] Supabase delete error:", err);
+    return false;
+  }
+}
+
+function mergeSupabaseIntoLocalStorage(supabaseList: RoofingEstimate[]) {
+  if (typeof window === "undefined") return;
+  try {
+    const local = safeParseList(localStorage.getItem(CANON_SAVED_KEY));
+    const byId = new Map<string, any>();
+    for (const item of local) {
+      const id = item?.id ? String(item.id) : "";
+      if (id) byId.set(id, item);
+    }
+    for (const e of supabaseList) {
+      if (e?.id) byId.set(e.id, e);
+    }
+    const merged = Array.from(byId.values());
+    localStorage.setItem(CANON_SAVED_KEY, JSON.stringify(merged));
+  } catch {}
+}
+
+function persistThenSupabase(id: string | null, list: RoofingEstimate[]) {
+  try {
+    localStorage.setItem(CANON_SAVED_KEY, JSON.stringify(list));
+  } catch {}
+  if (id) {
+    const e = list.find((x) => x.id === id);
+    if (e) upsertEstimateToSupabase(e).catch(() => {});
+  }
+}
+
+function persistAllThenSupabase(list: RoofingEstimate[]) {
+  try {
+    localStorage.setItem(CANON_SAVED_KEY, JSON.stringify(list));
+  } catch {}
+  Promise.all(list.map((e) => upsertEstimateToSupabase(e))).catch(() => {});
+}
+
+function persistListThenSupabaseDelete(id: string, list: RoofingEstimate[]) {
+  try {
+    localStorage.setItem(CANON_SAVED_KEY, JSON.stringify(list));
+  } catch {}
+  deleteEstimateFromSupabase(id).catch(() => {});
+}
+
 const STORAGE_KEY = "roofing_saved_estimates";
 
 export const CANON_SAVED_KEY = "ttai_savedEstimates";
@@ -117,9 +302,9 @@ export function patchSavedEstimateByToken(token: string, patch: any) {
   const updated = [...list];
   updated[idx] = { ...updated[idx], ...patch };
 
-  try {
-    localStorage.setItem(CANON_SAVED_KEY, JSON.stringify(updated));
-  } catch {}
+  const id = updated[idx]?.id;
+  if (id) persistThenSupabase(id, updated);
+  else try { localStorage.setItem(CANON_SAVED_KEY, JSON.stringify(updated)); } catch {}
 
   return true;
 }
@@ -242,7 +427,7 @@ export function saveEstimate(
         ((snapshot as any).removal != null ? (snapshot as any).removal : undefined),
     };
     const nextWithDrivers = next.map((e) => (e.id === overwriteId ? snapshotWithDrivers : e));
-    localStorage.setItem(CANON_SAVED_KEY, JSON.stringify(nextWithDrivers));
+    persistThenSupabase(overwriteId, nextWithDrivers);
     return overwriteId;
   }
 
@@ -274,10 +459,8 @@ export function saveEstimate(
       (withTimestamps as any).removalType ??
       ((withTimestamps as any).removal != null ? (withTimestamps as any).removal : undefined),
   };
-  localStorage.setItem(
-    CANON_SAVED_KEY,
-    JSON.stringify([snapshotWithDrivers, ...existing])
-  );
+  const nextList = [snapshotWithDrivers, ...existing];
+  persistThenSupabase(id, nextList);
   return id;
 }
 
@@ -290,6 +473,14 @@ export function getEstimates(): RoofingEstimate[] {
       localStorage.setItem(CANON_SAVED_KEY, JSON.stringify(migrated));
       console.log("[MIGRATE SAVED ESTIMATES] repaired records");
     } catch {}
+  }
+  if (!supabaseFetchStarted && getSupabaseClient()) {
+    supabaseFetchStarted = true;
+    fetchEstimatesFromSupabase().then((fromDb) => {
+      if (fromDb && fromDb.length >= 0) {
+        mergeSupabaseIntoLocalStorage(fromDb);
+      }
+    });
   }
   return migrated;
 }
@@ -310,7 +501,7 @@ export function getSavedEstimateById(id: string): RoofingEstimate | null {
 export function deleteEstimate(id: string) {
   if (typeof window === "undefined") return;
   const filtered = getEstimates().filter((e) => e.id !== id);
-  localStorage.setItem(CANON_SAVED_KEY, JSON.stringify(filtered));
+  persistListThenSupabaseDelete(id, filtered);
 }
 
 /** @deprecated Use getEstimates */
@@ -358,7 +549,7 @@ export function updateSavedEstimate(id: string, patch: Partial<any>) {
     if (patch.status === "scheduled") merged.needsScheduling = false;
     return merged;
   });
-  localStorage.setItem(CANON_SAVED_KEY, JSON.stringify(next));
+  persistThenSupabase(id, next);
 }
 
 export function patchSavedEstimate(id: string, patch: Partial<RoofingEstimate>) {
@@ -371,7 +562,7 @@ export function patchSavedEstimate(id: string, patch: Partial<RoofingEstimate>) 
       if (e.id !== id) return e;
       return { ...e, ...patch, lastSavedAt: nowIso };
     });
-    localStorage.setItem(CANON_SAVED_KEY, JSON.stringify(next));
+    persistThenSupabase(id, next);
   } catch (err) {
     console.error("[patchSavedEstimate] failed", err);
   }
@@ -391,7 +582,7 @@ export function markSavedEstimateSent(
     if (meta?.sentToEmail != null) updated.sentToEmail = meta.sentToEmail;
     return updated;
   });
-  localStorage.setItem(CANON_SAVED_KEY, JSON.stringify(next));
+  persistThenSupabase(id, next);
 }
 
 export function setSavedEstimateApprovalToken(id: string, token: string) {
@@ -401,7 +592,7 @@ export function setSavedEstimateApprovalToken(id: string, token: string) {
   const next = list.map((e: any) =>
     e.id === id ? { ...e, approvalToken: token, lastSavedAt: nowIso } : e
   );
-  localStorage.setItem(CANON_SAVED_KEY, JSON.stringify(next));
+  persistThenSupabase(id, next);
 }
 
 /** After send: attach approval token and set status to sent_pending (Pending Approval). */
@@ -422,7 +613,7 @@ export function attachApprovalTokenAndMarkPending(id: string, token: string) {
         }
       : e
   );
-  localStorage.setItem(CANON_SAVED_KEY, JSON.stringify(next));
+  persistThenSupabase(id, next);
   return next;
 }
 
@@ -442,7 +633,11 @@ export function markEstimateViewedByToken(
     changed = true;
     return { ...e, viewedAt: value, lastSavedAt: new Date().toISOString() };
   });
-  if (changed) localStorage.setItem(CANON_SAVED_KEY, JSON.stringify(next));
+  if (changed) {
+    const updated = next.find((e: any) => String(e?.approvalToken || "") === String(token || ""));
+    if (updated?.id) persistThenSupabase(updated.id, next);
+    else try { localStorage.setItem(CANON_SAVED_KEY, JSON.stringify(next)); } catch {}
+  }
   return changed;
 }
 
@@ -472,7 +667,11 @@ export function markSavedEstimateApprovedByToken(
     }
     return e;
   });
-  if (changed) localStorage.setItem(CANON_SAVED_KEY, JSON.stringify(next));
+  if (changed) {
+    const updated = next.find((e: any) => e.approvalToken === token);
+    if (updated?.id) persistThenSupabase(updated.id, next);
+    else try { localStorage.setItem(CANON_SAVED_KEY, JSON.stringify(next)); } catch {}
+  }
   return { next, changed };
 }
 
@@ -494,7 +693,7 @@ export function markSavedEstimateApproved(
         }
       : e
   );
-  localStorage.setItem(CANON_SAVED_KEY, JSON.stringify(next));
+  persistThenSupabase(id, next);
 }
 
 export function markSavedEstimateScheduled(
@@ -520,7 +719,7 @@ export function markSavedEstimateScheduled(
         }
       : e
   );
-  localStorage.setItem(CANON_SAVED_KEY, JSON.stringify(next));
+  persistThenSupabase(id, next);
 }
 
 export function markSavedEstimateStatus(
@@ -545,7 +744,7 @@ export function markSavedEstimateStatus(
     if (meta?.paidAt != null) updated.paidAt = meta.paidAt;
     return updated;
   });
-  localStorage.setItem(CANON_SAVED_KEY, JSON.stringify(next));
+  persistThenSupabase(id, next);
 }
 
 export function markSavedEstimatePaid(
@@ -572,7 +771,7 @@ export function markSavedEstimatePaid(
       lastSavedAt: nowIso,
     };
   });
-  localStorage.setItem(CANON_SAVED_KEY, JSON.stringify(next));
+  persistThenSupabase(id, next);
 }
 
 export type PaymentEntry = {
@@ -624,7 +823,7 @@ export function addPaymentToEstimate(
       lastSavedAt: nowIso,
     };
   });
-  localStorage.setItem(CANON_SAVED_KEY, JSON.stringify(next));
+  persistThenSupabase(id, next);
   return true;
 }
 
@@ -662,6 +861,6 @@ export function duplicateSavedEstimate(id: string): string {
   const maxRev = sameLineage.reduce((m, e) => Math.max(m, e.revisionNumber ?? 0), 0);
   copy.revisionNumber = maxRev + 1;
   const next = [copy, ...list];
-  localStorage.setItem(CANON_SAVED_KEY, JSON.stringify(next));
+  persistThenSupabase(copy.id, next);
   return copy.id;
 }
