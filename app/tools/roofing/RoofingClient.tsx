@@ -30,6 +30,7 @@ import {
   patchSavedEstimate,
   markSavedEstimateSent,
   markSavedEstimateApproved,
+  markSavedEstimateStatus,
   setSavedEstimateApprovalToken,
   attachApprovalTokenAndMarkPending,
   duplicateSavedEstimate,
@@ -2266,20 +2267,6 @@ Thanks,`;
     const companyName = (meta.companyName || "").trim();
     lines.push(companyName || "");
     return lines.join("\n");
-  }
-
-  function markSavedEstimateStatus(id: string, status: "approved" | "scheduled" | "paid" | "estimate" | "sent" | "sent_pending") {
-    try {
-      if (typeof window === "undefined") return;
-      const raw = localStorage.getItem("roofing_saved_estimates");
-      const list: { id?: string; status?: string }[] = raw ? JSON.parse(raw) : [];
-      const next = list.map((e: { id?: string; status?: string }) =>
-        e.id === id ? { ...e, status } : e
-      );
-      localStorage.setItem("roofing_saved_estimates", JSON.stringify(next));
-    } catch {
-      // ignore
-    }
   }
 
   const currentLoadedSavedId = loadSavedId ?? (hasMounted ? getCurrentLoadedSavedId() : null) ?? null;
