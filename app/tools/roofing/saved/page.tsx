@@ -1,4 +1,5 @@
 import { SignOutButton } from "@/app/components/auth/SignOutButton";
+import { ensureUserIdentity } from "@/app/lib/ensureUserIdentity";
 import { createClient } from "@/app/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
@@ -10,6 +11,7 @@ export default async function SavedPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+  await ensureUserIdentity(supabase, user);
 
   return (
     <>
