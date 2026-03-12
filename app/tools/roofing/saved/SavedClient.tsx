@@ -2328,15 +2328,14 @@ function SavedEstimateCard({
                           onSendFollowUp?.(estimate, visibleFollowUpInfo.kind as "confirm" | "questions" | "deposit");
                         }}
                       >
-                        {visibleFollowUpInfo?.kind === "confirm"
-                          ? "Send follow-up — confirm they received the estimate"
-                          : visibleFollowUpInfo?.kind === "questions"
-                            ? "Send follow-up — check if they have questions"
-                            : visibleFollowUpInfo?.kind === "deposit"
-                              ? "Send follow-up — see if customer is ready to move forward"
-                              : "Send follow-up"}
+                        {visibleFollowUpInfo.kind === "confirm"
+                          ? "📧 Confirm receipt"
+                          : visibleFollowUpInfo.kind === "questions"
+                          ? "📧 Check in"
+                          : "📧 Move forward"}
                       </button>
                     )}
+                    <div className="h-px w-full bg-white/10" />
                     <button
                       type="button"
                       className="w-full px-4 py-3 text-left text-sm text-white/85 hover:bg-white/5"
