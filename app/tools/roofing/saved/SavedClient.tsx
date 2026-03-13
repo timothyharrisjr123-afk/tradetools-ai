@@ -16,6 +16,7 @@ import {
   markSavedEstimateScheduled,
   markSavedEstimateStatus,
   addPaymentToEstimate,
+  setEstimateStoreCompanyScope,
   type RoofingEstimate,
 } from "@/app/lib/estimateStore";
 
@@ -1882,6 +1883,10 @@ function SavedEstimateCard({
           : status;
   const displayStatus =
     isApproved ? effectiveStatus : isSent && viewedAt ? "viewed" : isSent && !viewedAt ? "not_viewed" : effectiveStatus;
+  const resolvedStatus =
+    status === "approved" || status === "deposit_paid" || status === "scheduled" || status === "in_progress" || status === "paid"
+      ? status
+      : effectiveStatus;
   const isScheduledCard = !!showRescheduleButton || status === "scheduled" || status === "in_progress";
   const totalCents = toEstimateTotalCents(estimate);
   const depositPaid = paymentState?.depositAmountCents || 0;
@@ -1904,14 +1909,30 @@ function SavedEstimateCard({
   const hasPaymentState = !!paymentState;
   const fallbackDepositPaid =
     estimate?.status === "deposit_paid" ||
-    estimate?.status === "scheduled" ||
     estimate?.status === "paid" ||
     estimate?.status === "completed";
   const fallbackPaid =
     estimate?.status === "paid" || estimate?.status === "completed";
   const showPaid = hasPaymentState ? isFullyPaid : fallbackPaid;
-  const showDepositPaid = hasPaymentState ? (isDepositPaid || isScheduledCard) : fallbackDepositPaid;
+  const showDepositPaid = hasPaymentState ? isDepositPaid : fallbackDepositPaid;
   const pillStatus = (showPaid ? "paid" : showDepositPaid ? "deposit_paid" : displayStatus) as string;
+
+  const isPreApproval =
+    resolvedStatus === "sent" || resolvedStatus === "viewed";
+  const isPostApproval =
+    resolvedStatus === "approved" ||
+    resolvedStatus === "deposit_paid" ||
+    resolvedStatus === "scheduled" ||
+    resolvedStatus === "in_progress" ||
+    resolvedStatus === "paid";
+  const pillStatusForPill =
+    isPostApproval
+      ? resolvedStatus
+      : (displayStatus === "not_viewed" || displayStatus === "viewed")
+        ? "sent"
+        : displayStatus;
+  const showViewedBadge = isPreApproval && !!viewedAt;
+  const showNotViewedBadge = isPreApproval && !viewedAt;
   const stageAgeText = buildStageAgeText({
     status,
     isSent,
@@ -1950,8 +1971,6 @@ function SavedEstimateCard({
     document.addEventListener("mousedown", handleDocMouseDown);
     return () => document.removeEventListener("mousedown", handleDocMouseDown);
   }, [followUpMenuOpen]);
-  const isViewed = Boolean(viewedAt);
-  const pillStatusForPill = (pillStatus === "not_viewed" || pillStatus === "viewed") ? "sent" : pillStatus;
   return (
     <div
       className={`group relative rounded-3xl border border-white/12 bg-gradient-to-b from-slate-900/70 to-slate-950/40 p-6 transition-all duration-300
@@ -1982,11 +2001,12 @@ function SavedEstimateCard({
 
               <StatusPill status={pillStatusForPill} />
 
-              {isViewed ? (
+              {showViewedBadge ? (
                 <span className="inline-flex items-center rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-semibold text-emerald-200 ring-1 ring-inset ring-emerald-400/20">
                   Viewed
                 </span>
-              ) : isSent ? (
+              ) : null}
+              {showNotViewedBadge ? (
                 <span className="inline-flex items-center rounded-full bg-amber-500/15 px-2.5 py-1 text-[11px] font-semibold text-amber-200 ring-1 ring-inset ring-amber-400/20">
                   Not viewed
                 </span>
@@ -2035,21 +2055,13 @@ function SavedEstimateCard({
           <div className="flex shrink-0 flex-col items-end gap-2 text-right">
             {/* Status line (primary) — job stage takes priority over payment stage */}
             <div className="text-emerald-300 text-sm font-semibold">
-              {isSent && !viewedAt
+              {resolvedStatus === "sent"
                 ? "Sent — not viewed yet"
-                : isSent && viewedAt
+                : resolvedStatus === "viewed"
                   ? "Viewed — pending approval"
-                  : effectiveStatus === "approved" && estimate.needsScheduling
+                  : resolvedStatus === "approved" && estimate.needsScheduling
                     ? "Approved — ready to schedule"
-                    : showApprovalActions || isPendingApproval(getStage(estimate))
-                      ? "Pending approval"
-                      : (() => {
-                          const jobStage = getStage(estimate);
-                          const headerStage = ["scheduled", "in_progress", "paid", "completed"].includes(String(estimate?.status))
-                            ? estimate.status
-                            : jobStage;
-                          return getDisplayStage(headerStage);
-                        })()}
+                    : getDisplayStage(resolvedStatus)}
             </div>
 
             {stageAgeText && (
@@ -2426,7 +2438,8 @@ function SavedEstimateCard({
   );
 }
 
-export default function SavedClient() {
+export default function SavedClient({ companyId }: { companyId?: string }) {
+  setEstimateStoreCompanyScope(companyId ?? null);
   const buildSha = (process.env.NEXT_PUBLIC_BUILD_SHA || "local").toString().slice(0, 7);
   useEffect(() => {
     console.log("[BUILD]", buildSha);
@@ -2749,8 +2762,12 @@ export default function SavedClient() {
   const confirmPayment = () => {
     if (!activeId) return;
     const paidAmount = toNumberSafe(paidAmountInput);
+    const est = getSavedEstimateById(activeId) ?? estimates.find((x) => x.id === activeId);
+    const contractTotal = est ? (Number(est.totalContractPrice ?? est.suggestedPrice ?? 0)) : 0;
+    const isFullyPaid = contractTotal > 0 && paidAmount >= contractTotal;
+    const newStatus = isFullyPaid ? "paid" : "deposit_paid";
     try {
-      markSavedEstimateStatus(activeId, "paid", {
+      markSavedEstimateStatus(activeId, newStatus as "paid" | "deposit_paid", {
         paidAt: paymentDate
           ? new Date(paymentDate).toISOString()
           : new Date().toISOString(),
@@ -2760,7 +2777,7 @@ export default function SavedClient() {
         paidDate: paymentDate || new Date().toISOString().slice(0, 10),
       });
       refreshSaved();
-      setToast("Payment recorded ✅");
+      setToast(isFullyPaid ? "Payment recorded ✅" : "Deposit recorded ✅");
       setTimeout(() => setToast(null), 2500);
     } catch (e) {
       console.error("[SAVED] record payment failed", e);
@@ -3078,11 +3095,34 @@ export default function SavedClient() {
 
   useEffect(() => {
     if (!hydrated) return;
-    const onVisibility = () => {
-      if (typeof document !== "undefined" && document.visibilityState === "visible") runApprovalSync();
+
+    const run = () => {
+      runApprovalSync();
     };
+
+    const onVisibility = () => {
+      if (typeof document !== "undefined" && document.visibilityState === "visible") {
+        run();
+      }
+    };
+
+    const onFocus = () => {
+      run();
+    };
+
+    const onPageShow = () => {
+      run();
+    };
+
     document.addEventListener("visibilitychange", onVisibility);
-    return () => document.removeEventListener("visibilitychange", onVisibility);
+    window.addEventListener("focus", onFocus);
+    window.addEventListener("pageshow", onPageShow);
+
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("focus", onFocus);
+      window.removeEventListener("pageshow", onPageShow);
+    };
   }, [hydrated, runApprovalSync]);
 
   useEffect(() => {
@@ -4020,6 +4060,13 @@ export default function SavedClient() {
                           const statusTyped = status as "estimate" | "sent" | "sent_pending" | "approved" | "deposit_paid" | "scheduled" | "in_progress" | "paid";
                           if (statusTyped === "scheduled") {
                             const est = searchFiltered.find((x) => x.id === id);
+                            if (est?.status === "approved") {
+                              updateSavedEstimate(id, { status: "deposit_paid" });
+                              setEstimates(getNormalizedEstimates());
+                              setToast("Set to Deposit paid. Record deposit, then set to Scheduled.");
+                              setTimeout(() => setToast(null), 3500);
+                              return;
+                            }
                             if (est && !est.scheduledStartDate) {
                               setToast("Pick a start date to schedule.");
                               setTimeout(() => setToast(null), 2500);
@@ -4140,6 +4187,13 @@ export default function SavedClient() {
                 const statusTyped = status as "estimate" | "sent" | "sent_pending" | "approved" | "deposit_paid" | "scheduled" | "in_progress" | "paid";
                 if (statusTyped === "scheduled") {
                   const est = filtered.find((x) => x.id === id);
+                  if (est?.status === "approved") {
+                    updateSavedEstimate(id, { status: "deposit_paid" });
+                    setEstimates(getNormalizedEstimates());
+                    setToast("Set to Deposit paid. Record deposit, then set to Scheduled.");
+                    setTimeout(() => setToast(null), 3500);
+                    return;
+                  }
                   if (est && !est.scheduledStartDate) {
                     setToast("Pick a start date to schedule.");
                     setTimeout(() => setToast(null), 2500);
@@ -4287,28 +4341,39 @@ export default function SavedClient() {
                         : arrivalWindowRaw;
                     const notes = String(scheduleNotes || "").trim();
                     setTimeout(() => {
-                      markSavedEstimateScheduled(e.id, iso, notes || undefined, arrivalWindow || undefined);
-                      updateSavedEstimate(e.id, {
-                        ...(e.status !== "paid" ? { status: "scheduled" as const } : {}),
+                      const isPostDeposit = e.status === "deposit_paid" || e.status === "paid" || e.status === "scheduled" || e.status === "in_progress";
+                      const scheduleFields = {
                         scheduledStartDate: iso,
                         scheduledArrivalWindow: arrivalWindow,
                         scheduleNotes: notes,
                         scheduledAt: nowIso,
                         scheduleInfo: { ...((e as any).scheduleInfo ?? {}), date: iso, time: arrivalWindow || "Time TBD" },
                         schedule: { ...((e as any).schedule ?? {}), date: iso },
-                      });
-                      setEstimates(getNormalizedEstimates());
-                      setToast("Scheduled ✅");
-                      setTimeout(() => setToast(null), 2500);
+                      };
+                      if (isPostDeposit) {
+                        markSavedEstimateScheduled(e.id, iso, notes || undefined, arrivalWindow || undefined);
+                        updateSavedEstimate(e.id, {
+                          ...(e.status !== "paid" ? { status: "scheduled" as const } : {}),
+                          ...scheduleFields,
+                        });
+                        setEstimates(getNormalizedEstimates());
+                        setToast("Scheduled ✅");
+                        setTimeout(() => setToast(null), 2500);
+                        setStatusFilter("scheduled");
+                        setQuery("");
+                        setFlashId(e.id);
+                        setTimeout(() => setFlashId(null), 1200);
+                      } else {
+                        updateSavedEstimate(e.id, scheduleFields);
+                        setEstimates(getNormalizedEstimates());
+                        setToast("Schedule date saved. Record deposit, then schedule the job.");
+                        setTimeout(() => setToast(null), 3500);
+                      }
                       setSchedulingForId(null);
                       setScheduleStartDate("");
                       setScheduleArrivalWindow("");
                       setScheduleCustomArrivalWindow("");
                       setScheduleNotes("");
-                      setStatusFilter("scheduled");
-                      setQuery("");
-                      setFlashId(e.id);
-                      setTimeout(() => setFlashId(null), 1200);
                       setSchedulingId(null);
                     }, 400);
                   }}

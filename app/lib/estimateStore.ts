@@ -118,11 +118,11 @@ function rowToEstimate(row: SupabaseEstimateRow): RoofingEstimate {
   };
 }
 
-function estimateToRow(e: RoofingEstimate, nowIso: string): Record<string, unknown> {
+function estimateToRow(e: RoofingEstimate, nowIso: string, companyId: string): Record<string, unknown> {
   const jobCost = e.totalContractPrice ?? e.suggestedPrice ?? 0;
   return {
     id: e.id,
-    company_id: null,
+    company_id: companyId,
     customer_id: null,
     job_name: (e.jobAddress1 || e.address || `${e.selectedTier} estimate`).slice(0, 500) || null,
     roof_area_sqft: e.roofAreaSqFt ?? 0,
@@ -143,12 +143,15 @@ function estimateToRow(e: RoofingEstimate, nowIso: string): Record<string, unkno
 let supabaseFetchStarted = false;
 
 async function fetchEstimatesFromSupabase(): Promise<RoofingEstimate[] | null> {
+  const companyId = getEstimateStoreCompanyScope();
+  if (!companyId) return null;
   const supabase = getSupabaseClient();
   if (!supabase) return null;
   try {
     const { data, error } = await supabase
       .from("estimates")
-      .select("id, company_id, customer_id, job_name, roof_area_sqft, roof_pitch, materials_cost, labor_cost, tearoff_cost, margin_percent, job_cost, suggested_price, status, created_at, updated_at, snapshot");
+      .select("id, company_id, customer_id, job_name, roof_area_sqft, roof_pitch, materials_cost, labor_cost, tearoff_cost, margin_percent, job_cost, suggested_price, status, created_at, updated_at, snapshot")
+      .eq("company_id", companyId);
     if (error) {
       if (error.message?.includes("snapshot") || error.code === "42703") {
         console.warn("[estimateStore] Supabase: snapshot column may be missing. Run: alter table estimates add column if not exists snapshot jsonb;");
@@ -166,10 +169,12 @@ async function fetchEstimatesFromSupabase(): Promise<RoofingEstimate[] | null> {
 }
 
 async function upsertEstimateToSupabase(e: RoofingEstimate): Promise<boolean> {
+  const companyId = getEstimateStoreCompanyScope();
+  if (!companyId) return false;
   const supabase = getSupabaseClient();
   if (!supabase) return false;
   const nowIso = new Date().toISOString();
-  const row = estimateToRow(e, nowIso);
+  const row = estimateToRow(e, nowIso, companyId);
   try {
     const { error } = await supabase.from("estimates").upsert(row, { onConflict: "id" });
     if (error) {
@@ -188,10 +193,12 @@ async function upsertEstimateToSupabase(e: RoofingEstimate): Promise<boolean> {
 }
 
 async function deleteEstimateFromSupabase(id: string): Promise<boolean> {
+  const companyId = getEstimateStoreCompanyScope();
+  if (!companyId) return false;
   const supabase = getSupabaseClient();
   if (!supabase) return false;
   try {
-    const { error } = await supabase.from("estimates").delete().eq("id", id);
+    const { error } = await supabase.from("estimates").delete().eq("id", id).eq("company_id", companyId);
     if (error) {
       console.warn("[estimateStore] Supabase delete failed:", error.message);
       return false;
@@ -206,7 +213,8 @@ async function deleteEstimateFromSupabase(id: string): Promise<boolean> {
 function mergeSupabaseIntoLocalStorage(supabaseList: RoofingEstimate[]) {
   if (typeof window === "undefined") return;
   try {
-    const local = safeParseList(localStorage.getItem(CANON_SAVED_KEY));
+    const key = getScopedSavedKey();
+    const local = safeParseList(localStorage.getItem(key));
     const byId = new Map<string, any>();
     for (const item of local) {
       const id = item?.id ? String(item.id) : "";
@@ -216,13 +224,13 @@ function mergeSupabaseIntoLocalStorage(supabaseList: RoofingEstimate[]) {
       if (e?.id) byId.set(e.id, e);
     }
     const merged = Array.from(byId.values());
-    localStorage.setItem(CANON_SAVED_KEY, JSON.stringify(merged));
+    localStorage.setItem(key, JSON.stringify(merged));
   } catch {}
 }
 
 function persistThenSupabase(id: string | null, list: RoofingEstimate[]) {
   try {
-    localStorage.setItem(CANON_SAVED_KEY, JSON.stringify(list));
+    localStorage.setItem(getScopedSavedKey(), JSON.stringify(list));
   } catch {}
   if (id) {
     const e = list.find((x) => x.id === id);
@@ -232,14 +240,14 @@ function persistThenSupabase(id: string | null, list: RoofingEstimate[]) {
 
 function persistAllThenSupabase(list: RoofingEstimate[]) {
   try {
-    localStorage.setItem(CANON_SAVED_KEY, JSON.stringify(list));
+    localStorage.setItem(getScopedSavedKey(), JSON.stringify(list));
   } catch {}
   Promise.all(list.map((e) => upsertEstimateToSupabase(e))).catch(() => {});
 }
 
 function persistListThenSupabaseDelete(id: string, list: RoofingEstimate[]) {
   try {
-    localStorage.setItem(CANON_SAVED_KEY, JSON.stringify(list));
+    localStorage.setItem(getScopedSavedKey(), JSON.stringify(list));
   } catch {}
   deleteEstimateFromSupabase(id).catch(() => {});
 }
@@ -247,6 +255,26 @@ function persistListThenSupabaseDelete(id: string, list: RoofingEstimate[]) {
 const STORAGE_KEY = "roofing_saved_estimates";
 
 export const CANON_SAVED_KEY = "ttai_savedEstimates";
+
+let currentEstimateStoreCompanyId: string | null = null;
+
+export function setEstimateStoreCompanyScope(companyId: string | null) {
+  currentEstimateStoreCompanyId = companyId ? String(companyId) : null;
+}
+
+function getEstimateStoreCompanyScope(): string | null {
+  return currentEstimateStoreCompanyId;
+}
+
+function getScopedSavedKey(): string {
+  const companyId = getEstimateStoreCompanyScope();
+  return companyId ? `${CANON_SAVED_KEY}:${companyId}` : CANON_SAVED_KEY;
+}
+
+function getLegacyMigrationKey(): string {
+  const companyId = getEstimateStoreCompanyScope();
+  return companyId ? `${CANON_SAVED_KEY}:legacy-migrated:${companyId}` : `${CANON_SAVED_KEY}:legacy-migrated`;
+}
 
 function safeParseList(raw: string | null) {
   if (!raw) return [];
@@ -258,23 +286,35 @@ function safeParseList(raw: string | null) {
   }
 }
 
-/** Reads from multiple historical keys, merges into CANON_SAVED_KEY, returns list. */
+/** Reads from scoped key; one-time migrates from legacy keys into scoped key, then returns scoped list only. */
 export function getSavedEstimatesSafe(): any[] {
   if (typeof window === "undefined") return [];
 
-  const candidateKeys = [
-    CANON_SAVED_KEY,
+  const scopedKey = getScopedSavedKey();
+  const scopedRaw = localStorage.getItem(scopedKey);
+  const scopedList = safeParseList(scopedRaw);
+
+  if (scopedList.length > 0) {
+    return scopedList;
+  }
+
+  const migrationKey = getLegacyMigrationKey();
+  if (localStorage.getItem(migrationKey) != null) {
+    return [];
+  }
+
+  const legacyKeys = [
     STORAGE_KEY,
     "savedEstimates",
     "ttai_saved_estimates",
     "ttai_saved_estimate_list",
     "tradetools_savedEstimates",
+    CANON_SAVED_KEY,
   ];
-
   const merged: any[] = [];
   const seen = new Set<string>();
 
-  for (const key of candidateKeys) {
+  for (const key of legacyKeys) {
     const list = safeParseList(localStorage.getItem(key));
     for (const item of list) {
       const id = item?.id ? String(item.id) : "";
@@ -286,7 +326,8 @@ export function getSavedEstimatesSafe(): any[] {
   }
 
   try {
-    localStorage.setItem(CANON_SAVED_KEY, JSON.stringify(merged));
+    localStorage.setItem(scopedKey, JSON.stringify(merged));
+    localStorage.setItem(migrationKey, "1");
   } catch {}
 
   return merged;
@@ -304,7 +345,7 @@ export function patchSavedEstimateByToken(token: string, patch: any) {
 
   const id = updated[idx]?.id;
   if (id) persistThenSupabase(id, updated);
-  else try { localStorage.setItem(CANON_SAVED_KEY, JSON.stringify(updated)); } catch {}
+  else try { localStorage.setItem(getScopedSavedKey(), JSON.stringify(updated)); } catch {}
 
   return true;
 }
@@ -470,7 +511,7 @@ export function getEstimates(): RoofingEstimate[] {
   const { migrated, changed } = migrateSavedEstimatesIfNeeded(list);
   if (changed) {
     try {
-      localStorage.setItem(CANON_SAVED_KEY, JSON.stringify(migrated));
+      localStorage.setItem(getScopedSavedKey(), JSON.stringify(migrated));
       console.log("[MIGRATE SAVED ESTIMATES] repaired records");
     } catch {}
   }
@@ -555,7 +596,7 @@ export function updateSavedEstimate(id: string, patch: Partial<any>) {
 export function patchSavedEstimate(id: string, patch: Partial<RoofingEstimate>) {
   if (typeof window === "undefined") return;
   try {
-    const raw = localStorage.getItem(CANON_SAVED_KEY);
+    const raw = localStorage.getItem(getScopedSavedKey());
     const arr: RoofingEstimate[] = raw ? JSON.parse(raw) : [];
     const nowIso = new Date().toISOString();
     const next = arr.map((e) => {
@@ -636,7 +677,7 @@ export function markEstimateViewedByToken(
   if (changed) {
     const updated = next.find((e: any) => String(e?.approvalToken || "") === String(token || ""));
     if (updated?.id) persistThenSupabase(updated.id, next);
-    else try { localStorage.setItem(CANON_SAVED_KEY, JSON.stringify(next)); } catch {}
+    else try { localStorage.setItem(getScopedSavedKey(), JSON.stringify(next)); } catch {}
   }
   return changed;
 }
@@ -670,7 +711,7 @@ export function markSavedEstimateApprovedByToken(
   if (changed) {
     const updated = next.find((e: any) => e.approvalToken === token);
     if (updated?.id) persistThenSupabase(updated.id, next);
-    else try { localStorage.setItem(CANON_SAVED_KEY, JSON.stringify(next)); } catch {}
+    else try { localStorage.setItem(getScopedSavedKey(), JSON.stringify(next)); } catch {}
   }
   return { next, changed };
 }
@@ -810,12 +851,18 @@ export function addPaymentToEstimate(
     const amountPaid = history.reduce((sum: number, p: PaymentEntry) => sum + (p.amount || 0), 0);
     const totalContract = e.totalContractPrice ?? e.suggestedPrice ?? 0;
     const isFullyPaid = totalContract > 0 && amountPaid >= totalContract;
+    const isDepositOrPartial = entry.type === "deposit" || (amountPaid > 0 && !isFullyPaid);
+    const nextStatus = isFullyPaid
+      ? ("paid" as const)
+      : isDepositOrPartial
+        ? ("deposit_paid" as const)
+        : e.status;
     return {
       ...e,
       paymentHistory: history,
       amountPaid,
       totalContractPrice: e.totalContractPrice ?? e.suggestedPrice,
-      status: isFullyPaid ? ("paid" as const) : (e.status || "scheduled"),
+      status: nextStatus,
       paidAt: isFullyPaid ? nowIso : e.paidAt,
       paidDate: isFullyPaid ? entry.date : e.paidDate,
       paidAmount: isFullyPaid ? amountPaid : e.paidAmount,

@@ -225,15 +225,7 @@ export async function POST(req: Request) {
     const baseText = buildBody(meta, approvalUrl);
     const baseHtml = baseText.split("\n").join("<br />");
     const bodyText = `${baseText}${approveBlockText}`;
-    let bodyHtml = `${baseHtml}${approveBlockHtml}`;
-
-    const appUrl =
-      process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ||
-      "https://www.fielddive.com";
-
-    const trackingPixel = `<img src="${appUrl}/api/track/open?token=${approvalToken}" width="1" height="1" style="display:none;" alt="" />`;
-
-    bodyHtml = `${bodyHtml}${trackingPixel}`;
+    const bodyHtml = `${baseHtml}${approveBlockHtml}`;
 
     const result = await resend.emails.send({
       from,

@@ -13,8 +13,12 @@ export async function POST(req: Request) {
       const rec = await getApprovalRecord(t);
       if (rec) {
         const recAny = rec as { status?: string; viewedAt?: string };
+        const resolvedStatus =
+          rec.approvedAt
+            ? "approved"
+            : (recAny.status ?? "sent_pending");
         statuses[t] = {
-          status: recAny.status ?? (rec.approvedAt ? "approved" : "sent_pending"),
+          status: resolvedStatus,
           viewedAt: recAny.viewedAt ?? null,
           approvedAt: rec.approvedAt ?? null,
         };

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   type CompanyProfile,
-  loadCompanyProfile,
+  loadCompanyProfileFromSupabase,
   saveCompanyProfile,
 } from "@/app/lib/companyProfile";
 import { ArrowLeft } from "lucide-react";
@@ -24,11 +24,11 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    setProfile(loadCompanyProfile());
+    loadCompanyProfileFromSupabase().then(setProfile);
   }, []);
 
-  const handleSave = () => {
-    saveCompanyProfile(profile);
+  const handleSave = async () => {
+    await saveCompanyProfile(profile);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };

@@ -69,3 +69,23 @@ export async function ensureUserIdentity(
     }
   }
 }
+
+/**
+ * Returns the current user's company_id from company_memberships, or null.
+ */
+export async function getUserCompanyId(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("company_memberships")
+    .select("company_id")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[getUserCompanyId]", error.message, { userId });
+    return null;
+  }
+  return data?.company_id ?? null;
+}

@@ -10,16 +10,18 @@ function requireEnv2(name: string) {
   return v;
 }
 
-const stripe2 = new Stripe(requireEnv2("STRIPE_SECRET_KEY"));
-const webhookSecret = requireEnv2("STRIPE_WEBHOOK_SECRET");
-
 export async function POST(req: NextRequest) {
   try {
+    const stripe2 = new Stripe(process.env.STRIPE_SECRET_KEY!);
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+    console.log("[payments webhook] received");
+
     const sig = req.headers.get("stripe-signature");
     if (!sig) return NextResponse.json({ ok: false, error: "Missing signature" }, { status: 400 });
 
     const rawBody = await req.text();
     const event = stripe2.webhooks.constructEvent(rawBody, sig, webhookSecret);
+    console.log("[payments webhook] event", event.type);
 
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;
@@ -79,6 +81,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true });
   } catch (err: any) {
+    console.error("[payments webhook] error", err);
     return NextResponse.json(
       { ok: false, error: err?.message || "webhook failed" },
       { status: 400 }

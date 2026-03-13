@@ -10,8 +10,6 @@ function requireEnv(name: string) {
   return v;
 }
 
-const stripe = new Stripe(requireEnv("STRIPE_SECRET_KEY"));
-
 function getBaseUrl(req: NextRequest) {
   const proto = req.headers.get("x-forwarded-proto") || "https";
   const host =
@@ -23,6 +21,19 @@ function getBaseUrl(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const runtimeStripeKey = process.env.STRIPE_SECRET_KEY || "";
+    if (!runtimeStripeKey || runtimeStripeKey.includes("...") || runtimeStripeKey.length < 50) {
+      throw new Error("Invalid STRIPE_SECRET_KEY configuration");
+    }
+    console.log(
+      "[create-checkout runtime key]",
+      `length=${runtimeStripeKey.length}`,
+      `first16=${runtimeStripeKey.slice(0, 16)}`,
+      `last12=${runtimeStripeKey.slice(-12)}`
+    );
+    const stripe = new Stripe(runtimeStripeKey, {
+      apiVersion: "2025-02-24.acacia",
+    });
     const baseUrl = getBaseUrl(req);
 
     const body = await req.json().catch(() => ({}));
@@ -141,6 +152,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, url: session.url, id: session.id });
   } catch (err: any) {
+    console.error("[create-checkout]", err);
     return NextResponse.json(
       { ok: false, error: err?.message || "create-checkout failed" },
       { status: 500 }

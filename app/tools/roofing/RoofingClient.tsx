@@ -34,6 +34,7 @@ import {
   setSavedEstimateApprovalToken,
   attachApprovalTokenAndMarkPending,
   duplicateSavedEstimate,
+  setEstimateStoreCompanyScope,
   type RoofingEstimate as SavedEstimateSnapshot,
 } from "@/app/lib/estimateStore";
 import { sendEstimateEmailWithPdf } from "@/app/lib/sendEstimateClient";
@@ -595,7 +596,8 @@ type FormSnapshot = {
   dumpFeePerTon: string;
 };
 
-export default function RoofingClient() {
+export default function RoofingClient({ companyId }: { companyId?: string }) {
+  setEstimateStoreCompanyScope(companyId ?? null);
   const searchParams = useSearchParams();
   const router = useRouter();
   const loadSavedId = searchParams.get("loadSaved");
