@@ -438,11 +438,12 @@ function formatCurrency(n: number): string {
 }
 
 function fmtMoney(n: number): string {
-  if (!Number.isFinite(n)) return "$0";
-  return n.toLocaleString(undefined, {
+  if (!Number.isFinite(n)) return "$0.00";
+  return n.toLocaleString("en-US", {
     style: "currency",
     currency: "USD",
-    maximumFractionDigits: 0,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   });
 }
 
@@ -2283,7 +2284,10 @@ Thanks,`;
   const isApprovedLocked = currentSaved?.status === "approved";
   const isScheduledLocked = currentSaved?.status === "scheduled";
 
+  const hasValidEstimateSnapshot = Number(area || 0) > 0 && Number(priceWithMargin || 0) > 0;
+
   function ensureSavedBeforeSend(): string {
+    if (!hasValidEstimateSnapshot) throw new Error("Estimate cannot be saved yet because area or price is missing.");
     const snapshot = {
       status: "estimate" as const,
       customerName: String(customerName ?? ""),
@@ -2959,6 +2963,7 @@ Thanks,`;
   const presetForCurrentZip = hasMounted && zipPresets ? getZipPresetFromState(jobZip, zipPresets) : null;
 
   const saveToSavedEstimates = useCallback(() => {
+    if (!hasValidEstimateSnapshot) return;
     const addressLine = [jobAddress1, [jobCity, jobState, jobZip].filter(Boolean).join(", ")].filter(Boolean).join(", ");
     const selectedTier = roofingTier === "standard" ? "Core" : roofingTier === "enhanced" ? "Enhanced" : "Premium";
     const effectiveLaborPerSquare = laborMode === "guided" ? String(guidedLaborBasePerSquare) : String(Math.round(impliedLaborPerSquare * 100) / 100);
@@ -2990,7 +2995,7 @@ Thanks,`;
       tearOffEnabled: includeDebrisRemoval,
       removalType,
     } as any);
-  }, [customerName, customerEmail, customerPhone, jobAddress1, jobCity, jobState, jobZip, roofingTier, area, priceWithMargin, waste, bundlesPerSquare, bundleCost, laborMode, guidedLaborBasePerSquare, impliedLaborPerSquare, margin, laborCostEffective, includeDebrisRemoval, removalType, dumpFeePerTon]);
+  }, [hasValidEstimateSnapshot, customerName, customerEmail, customerPhone, jobAddress1, jobCity, jobState, jobZip, roofingTier, area, priceWithMargin, waste, bundlesPerSquare, bundleCost, laborMode, guidedLaborBasePerSquare, impliedLaborPerSquare, margin, laborCostEffective, includeDebrisRemoval, removalType, dumpFeePerTon]);
 
   const saveEstimate = useCallback(() => {
     if (isLocked) {

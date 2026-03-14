@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
+import { createAdminClient } from "@/app/lib/supabase/admin";
 import { upsertPaymentState } from "@/app/lib/stripePayments";
 
 export const runtime = "nodejs";
@@ -12,8 +13,9 @@ function requireEnv2(name: string) {
 
 export async function POST(req: NextRequest) {
   try {
-    const stripe2 = new Stripe(process.env.STRIPE_SECRET_KEY!);
-    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+    const stripeSecretKey = requireEnv2("STRIPE_SECRET_KEY");
+    const stripe2 = new Stripe(stripeSecretKey);
+    const webhookSecret = requireEnv2("STRIPE_WEBHOOK_SECRET");
     console.log("[payments webhook] received");
 
     const sig = req.headers.get("stripe-signature");
@@ -47,8 +49,11 @@ export async function POST(req: NextRequest) {
         };
 
         if (paymentType === "deposit") {
+          const { getPaymentState } = await import("@/app/lib/stripePayments");
+          const current = await getPaymentState(estimateId);
+          const prevDeposit = Number(current?.depositAmountCents ?? 0) || 0;
           patch.depositPaidAt = nowIso;
-          patch.depositAmountCents = amountCents;
+          patch.depositAmountCents = prevDeposit + amountCents;
           patch.status = "deposit_paid";
         } else if (paymentType === "balance") {
           const { getPaymentState } = await import("@/app/lib/stripePayments");
@@ -73,6 +78,34 @@ export async function POST(req: NextRequest) {
           patch.fullPaidAt = nowIso;
           patch.fullAmountCents = amountCents;
           patch.status = "paid";
+        }
+
+        try {
+          const supabase = createAdminClient();
+          const { data: estimateRow, error: estimateError } = await supabase
+            .from("estimates")
+            .select("company_id")
+            .eq("id", estimateId)
+            .single();
+          if (estimateError) {
+            console.warn("[payments webhook] estimate lookup failed", { estimateId, paymentType, error: estimateError });
+          } else if (!estimateRow) {
+            console.warn("[payments webhook] estimate not found for payment insert", { estimateId, paymentType });
+          } else if (!estimateRow.company_id) {
+            console.warn("[payments webhook] estimate missing company_id for payment insert", { estimateId, paymentType });
+          } else {
+            const { error: insertError } = await supabase.from("payments").insert({
+              company_id: estimateRow.company_id,
+              estimate_id: estimateId,
+              payment_type: paymentType,
+              amount: amountCents / 100,
+              status: "completed",
+            });
+            if (insertError) console.warn("[payments webhook] payments table insert failed", insertError);
+            else console.log("[payments webhook] payments table insert ok", { estimateId, paymentType, companyId: estimateRow.company_id, amountCents });
+          }
+        } catch (e) {
+          console.warn("[payments webhook] payments table write error", e);
         }
 
         await upsertPaymentState(estimateId, patch as any);

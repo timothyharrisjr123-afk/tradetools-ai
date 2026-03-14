@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/app/lib/supabase/server";
 import { getPaymentState, upsertPaymentState } from "@/app/lib/stripePayments";
 
 export const runtime = "nodejs";
@@ -63,6 +64,27 @@ export async function POST(req: NextRequest) {
     };
 
     await upsertPaymentState(estimateId, patch as any);
+
+    try {
+      const supabase = await createClient();
+      const { data: estimateRow, error: estimateError } = await supabase
+        .from("estimates")
+        .select("company_id")
+        .eq("id", estimateId)
+        .single();
+      if (!estimateError && estimateRow?.company_id) {
+        const { error: insertError } = await supabase.from("payments").insert({
+          company_id: estimateRow.company_id,
+          estimate_id: estimateId,
+          payment_type: stage === "deposit" ? "deposit" : "offline",
+          amount: appliedCents / 100,
+          status: "completed",
+        });
+        if (insertError) console.warn("[record-offline] payments table insert failed", insertError);
+      }
+    } catch (e) {
+      console.warn("[record-offline] payments table write error", e);
+    }
 
     return NextResponse.json({
       ok: true,

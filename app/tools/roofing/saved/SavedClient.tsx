@@ -2700,35 +2700,51 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
     const id = searchParams.get("id");
     if (paid !== "1" || !id) return;
 
+    const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
     (async () => {
       try {
         allowPaymentStatusFetch(id);
-        const res = await fetch(`/api/payments/status?estimateId=${encodeURIComponent(id)}`);
-        const json = await res.json();
-        if (!json?.ok || !json?.payment?.status) return;
-
-        const payment = json.payment;
-        const paymentStatus = payment.status as "deposit_paid" | "paid";
-        const current = getSavedEstimateById(id);
-        if (paymentStatus === "paid") {
-          markSavedEstimateStatus(id, "paid");
-          setEstimates(getNormalizedEstimates());
-        } else if (paymentStatus === "deposit_paid") {
-          if (!current || (current.status !== "scheduled" && current.status !== "in_progress" && current.status !== "paid")) {
-            markSavedEstimateStatus(id, "deposit_paid");
-            setEstimates(getNormalizedEstimates());
+        let payment: { status?: string; depositAmountCents?: number; fullAmountCents?: number; [k: string]: unknown } | null = null;
+        for (let attempt = 0; attempt < 6; attempt++) {
+          const res = await fetch(`/api/payments/status?estimateId=${encodeURIComponent(id)}`, {
+            cache: "no-store",
+          });
+          const json = await res.json();
+          if (json?.ok && json?.payment?.status) {
+            const status = json.payment.status;
+            if (status === "deposit_paid" || status === "paid") {
+              payment = json.payment;
+              break;
+            }
           }
+          if (attempt < 5) await wait(1500);
         }
-        setPaymentStates((prev) => ({
-          ...prev,
-          [id]: {
-            depositAmountCents: payment.depositAmountCents ?? undefined,
-            fullAmountCents: payment.fullAmountCents ?? undefined,
-            offlinePaidCents: (payment as { offlinePaidCents?: number }).offlinePaidCents ?? undefined,
-            offlineTransactions: (payment as { offlineTransactions?: Array<{ stage?: string; amountCents?: number }> }).offlineTransactions ?? undefined,
-          },
-        }));
-        lastStatusFetchRef.current[id] = Date.now();
+
+        if (payment) {
+          const paymentStatus = payment.status as "deposit_paid" | "paid";
+          const current = getSavedEstimateById(id);
+          if (paymentStatus === "paid") {
+            markSavedEstimateStatus(id, "paid");
+            setEstimates(getNormalizedEstimates());
+          } else if (paymentStatus === "deposit_paid") {
+            if (!current || (current.status !== "scheduled" && current.status !== "in_progress" && current.status !== "paid")) {
+              markSavedEstimateStatus(id, "deposit_paid");
+              setEstimates(getNormalizedEstimates());
+            }
+          }
+          setPaymentStates((prev) => ({
+            ...prev,
+            [id]: {
+              depositAmountCents: payment.depositAmountCents ?? undefined,
+              fullAmountCents: payment.fullAmountCents ?? undefined,
+              offlinePaidCents: (payment as { offlinePaidCents?: number }).offlinePaidCents ?? undefined,
+              offlineTransactions: (payment as { offlineTransactions?: Array<{ stage?: string; amountCents?: number }> }).offlineTransactions ?? undefined,
+            },
+          }));
+          lastStatusFetchRef.current[id] = Date.now();
+        }
+
         const url = new URL(window.location.href);
         url.searchParams.delete("paid");
         url.searchParams.delete("id");
@@ -2967,6 +2983,9 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
       if (e.amountPaid == null && (e.paymentHistory?.length ?? 0) > 0) {
         (out as any).amountPaid = paid;
       }
+      if ((out.totalContractPrice ?? 0) <= 0 && (out.suggestedPrice ?? 0) > 0) {
+        (out as any).totalContractPrice = out.suggestedPrice;
+      }
       return out;
     });
   }
@@ -3022,7 +3041,45 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
 
   useEffect(() => {
     if (!hydrated) return;
-    setEstimates(getNormalizedEstimates());
+    const next = getNormalizedEstimates();
+    const broken = next.find(
+      (e) =>
+        (e.customerName || "").trim() === "baby Ray123" ||
+        (e.customerName || "").trim() === "baby Ray" ||
+        /baby\s*Ray/i.test((e.customerName || "").trim())
+    );
+    if (broken) {
+      console.log("[DEBUG] broken estimate by name", {
+        id: broken.id,
+        customerName: broken.customerName,
+        totalContractPrice: broken.totalContractPrice,
+        suggestedPrice: broken.suggestedPrice,
+        amountPaid: broken.amountPaid,
+        paymentHistory: broken.paymentHistory,
+        materialsCost: broken.materialsCost,
+        laborCost: broken.laborCost,
+        disposalCost: broken.disposalCost,
+        status: broken.status,
+        raw: broken,
+      });
+    }
+    const working = next.find((e) => (e.customerName || "").trim() === "Mark84");
+    if (working) {
+      console.log("[DEBUG] working estimate by name", {
+        id: working.id,
+        customerName: working.customerName,
+        totalContractPrice: working.totalContractPrice,
+        suggestedPrice: working.suggestedPrice,
+        amountPaid: working.amountPaid,
+        paymentHistory: working.paymentHistory,
+        materialsCost: working.materialsCost,
+        laborCost: working.laborCost,
+        disposalCost: working.disposalCost,
+        status: working.status,
+        raw: working,
+      });
+    }
+    setEstimates(next);
   }, [hydrated]);
 
   useEffect(() => {
@@ -3130,8 +3187,10 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
     let cancelled = false;
 
     async function syncPaymentStatuses() {
+      let didMutate = false;
       const candidates = estimates.filter((e) => e?.status !== "paid");
       for (const est of estimates) {
+        if (est?.supabaseBacked !== true) continue;
         const id = String(est?.id ?? "").trim();
         if (!id) continue;
         if (!shouldFetchPaymentStatus(id)) continue;
@@ -3152,9 +3211,11 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
         const rawStatus = String(est?.status ?? "");
         if (payment?.status === "paid" && rawStatus !== "paid" && rawStatus !== "completed") {
           markSavedEstimateStatus(id, "paid");
+          didMutate = true;
         } else if (payment?.status === "deposit_paid" && rawStatus !== "deposit_paid") {
-          if (est.status === "approved") {
+          if (rawStatus !== "scheduled" && rawStatus !== "in_progress" && rawStatus !== "paid") {
             markSavedEstimateStatus(id, "deposit_paid");
+            didMutate = true;
           }
         }
         const totalCents = toEstimateTotalCents(est);
@@ -3174,9 +3235,12 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
           rawStatus !== "completed"
         ) {
           markSavedEstimateStatus(id, "paid");
+          didMutate = true;
         }
       }
-      if (!cancelled) setEstimates(getNormalizedEstimates());
+      if (!cancelled && didMutate) {
+        setEstimates(getNormalizedEstimates());
+      }
     }
 
     syncPaymentStatuses();
@@ -3189,7 +3253,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
     let cancelled = false;
 
     async function preload() {
-      const ids = (estimates || []).map((e) => e?.id).filter(Boolean) as string[];
+      const ids = (estimates || []).filter((e) => e?.supabaseBacked === true).map((e) => e?.id).filter(Boolean) as string[];
       const missing = ids.filter((id) => !paymentStates?.[id]);
 
       await Promise.all(

@@ -119,7 +119,7 @@ export async function loadCompanyProfileFromSupabase(): Promise<CompanyProfile> 
 
     const { data: row, error } = await supabase
       .from("companies")
-      .select("name, owner_email, phone, license, logo_url")
+      .select("name, owner_email, phone, license, logo_url, notifications_email")
       .eq("id", companyId)
       .maybeSingle();
 
@@ -135,7 +135,8 @@ export async function loadCompanyProfileFromSupabase(): Promise<CompanyProfile> 
       phone: (row.phone ?? "").toString().trim() || cached.phone,
       license: (row.license ?? "").toString().trim() || cached.license,
       logoDataUrl: typeof row.logo_url === "string" ? row.logo_url : cached.logoDataUrl,
-      notificationsEmail: cached.notificationsEmail ?? "",
+      notificationsEmail:
+      (row.notifications_email ?? "").toString().trim() || cached.notificationsEmail,
     });
     writeCompanyProfileCache(merged);
     return merged;
@@ -173,6 +174,7 @@ export async function saveCompanyProfileToSupabase(p: CompanyProfile): Promise<b
         phone: normalized.phone,
         license: normalized.license,
         logo_url: normalized.logoDataUrl,
+        notifications_email: normalized.notificationsEmail ?? "",
       })
       .eq("id", companyId);
 

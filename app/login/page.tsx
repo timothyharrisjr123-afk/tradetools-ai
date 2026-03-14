@@ -2,9 +2,12 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/app/lib/supabase/client";
 
 export default function LoginPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState<{ type: "error" | "success"; text: string } | null>(null);
@@ -21,7 +24,15 @@ export default function LoginPage() {
         setMessage({ type: "error", text: error.message });
         return;
       }
-      setMessage({ type: "success", text: "Signed in." });
+      const redirectTo = searchParams.get("redirectTo");
+      const safePath =
+        typeof redirectTo === "string" &&
+        redirectTo.startsWith("/") &&
+        !redirectTo.startsWith("//") &&
+        !redirectTo.includes(":")
+          ? redirectTo
+          : "/";
+      router.push(safePath);
     } catch (err) {
       setMessage({ type: "error", text: err instanceof Error ? err.message : "Something went wrong." });
     } finally {

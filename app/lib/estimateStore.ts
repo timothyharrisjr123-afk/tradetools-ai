@@ -1,4 +1,5 @@
 import { getSupabaseClient } from "@/app/lib/supabaseClient";
+import { findOrCreateCustomer } from "@/app/lib/customerStore";
 
 export interface RoofingEstimate {
   id: string;
@@ -59,6 +60,7 @@ export interface RoofingEstimate {
   squares?: number;
   lastFollowUpAt?: string;
   followUpCount?: number;
+  supabaseBacked?: boolean;
 }
 
 /** Supabase estimates row (optional snapshot for full app state). */
@@ -95,6 +97,7 @@ function rowToEstimate(row: SupabaseEstimateRow): RoofingEstimate {
       ...snap,
       id: snap.id,
       createdAt: snap.createdAt || (row.created_at ?? new Date().toISOString()),
+      supabaseBacked: true,
     } as RoofingEstimate;
   }
   const createdAt = row.created_at ?? new Date().toISOString();
@@ -115,15 +118,16 @@ function rowToEstimate(row: SupabaseEstimateRow): RoofingEstimate {
     margin: row.margin_percent != null ? String(row.margin_percent) : undefined,
     status: (row.status as RoofingEstimate["status"]) || "estimate",
     totalContractPrice: row.job_cost ?? undefined,
+    supabaseBacked: true,
   };
 }
 
-function estimateToRow(e: RoofingEstimate, nowIso: string, companyId: string): Record<string, unknown> {
+function estimateToRow(e: RoofingEstimate, nowIso: string, companyId: string, customerId?: string | null): Record<string, unknown> {
   const jobCost = e.totalContractPrice ?? e.suggestedPrice ?? 0;
   return {
     id: e.id,
     company_id: companyId,
-    customer_id: null,
+    customer_id: customerId ?? null,
     job_name: (e.jobAddress1 || e.address || `${e.selectedTier} estimate`).slice(0, 500) || null,
     roof_area_sqft: e.roofAreaSqFt ?? 0,
     roof_pitch: null,
@@ -173,8 +177,16 @@ async function upsertEstimateToSupabase(e: RoofingEstimate): Promise<boolean> {
   if (!companyId) return false;
   const supabase = getSupabaseClient();
   if (!supabase) return false;
+  const customerId = await findOrCreateCustomer({
+    supabase,
+    companyId,
+    name: e.customerName ?? "",
+    email: e.customerEmail ?? "",
+    phone: e.customerPhone,
+    address: e.address,
+  });
   const nowIso = new Date().toISOString();
-  const row = estimateToRow(e, nowIso, companyId);
+  const row = estimateToRow(e, nowIso, companyId, customerId);
   try {
     const { error } = await supabase.from("estimates").upsert(row, { onConflict: "id" });
     if (error) {

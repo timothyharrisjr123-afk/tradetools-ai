@@ -10,10 +10,10 @@ export const dynamic = "force-dynamic";
 export default async function SavedPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect("/login?redirectTo=/tools/roofing/saved");
   await ensureUserIdentity(supabase, user);
   const companyId = await getUserCompanyId(supabase, user.id);
-  if (!companyId) redirect("/login");
+  if (!companyId) redirect("/login?redirectTo=/tools/roofing/saved");
 
   return (
     <>
