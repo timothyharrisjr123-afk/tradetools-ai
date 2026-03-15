@@ -1,6 +1,8 @@
 import Stripe from "stripe";
 import { NextRequest, NextResponse } from "next/server";
-import { getPaymentState } from "@/app/lib/stripePayments";
+import { createClient } from "@/app/lib/supabase/server";
+import { getUserCompanyId } from "@/app/lib/ensureUserIdentity";
+import { getDerivedPaymentStateFromSupabase } from "@/app/lib/paymentsTable";
 
 export const runtime = "nodejs";
 
@@ -57,11 +59,27 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const paymentState = await getPaymentState(estimateId);
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+    }
+
+    const companyId = await getUserCompanyId(supabase, user.id);
+    if (!companyId) {
+      return NextResponse.json({ ok: false, error: "Forbidden" }, { status: 403 });
+    }
+
+    const paymentState = await getDerivedPaymentStateFromSupabase({
+      supabase,
+      companyId,
+      estimateId,
+      estimateTotalCents,
+    });
 
     const depositPaid = paymentState?.depositAmountCents || 0;
     const fullPaid = paymentState?.fullAmountCents || 0;
-    const offlinePaid = (paymentState as { offlinePaidCents?: number })?.offlinePaidCents || 0;
+    const offlinePaid = paymentState?.offlinePaidCents || 0;
     const alreadyCollected = depositPaid + fullPaid + offlinePaid;
     const remainingCents = Math.max(0, estimateTotalCents - alreadyCollected);
 
