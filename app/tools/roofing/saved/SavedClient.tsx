@@ -1097,7 +1097,6 @@ function StatusPill({ status }: { status: string }) {
   const base =
     "inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-inset";
   const dot = "h-1.5 w-1.5 rounded-full";
-
   if (status === "sent" || status === "sent_pending") {
     return (
       <span className={`${base} bg-emerald-500/10 text-emerald-300 ring-emerald-500/20`}>
@@ -1149,6 +1148,14 @@ function StatusPill({ status }: { status: string }) {
       <span className={`${base} bg-violet-500/10 text-violet-300 ring-violet-500/20`}>
         <span className={`${dot} bg-violet-400`} />
         Crew On Site
+      </span>
+    );
+  }
+  if (status === "completed_due") {
+    return (
+      <span className={`${base} bg-amber-500/15 text-amber-200 ring-amber-400/30`}>
+        <span className={`${dot} bg-amber-300`} />
+        Final Payment Due
       </span>
     );
   }
@@ -1915,7 +1922,16 @@ function SavedEstimateCard({
     estimate?.status === "paid" || estimate?.status === "completed";
   const showPaid = hasPaymentState ? isFullyPaid : fallbackPaid;
   const showDepositPaid = hasPaymentState ? isDepositPaid : fallbackDepositPaid;
-  const pillStatus = (showPaid ? "paid" : showDepositPaid ? "deposit_paid" : displayStatus) as string;
+  const isCompletedWithBalance = resolvedStatus === "paid" && hasRemaining;
+  const pillStatus = (
+    showPaid
+      ? "paid"
+      : isCompletedWithBalance
+        ? "completed_due"
+        : showDepositPaid
+          ? "deposit_paid"
+          : displayStatus
+  ) as string;
 
   const isPreApproval =
     resolvedStatus === "sent" || resolvedStatus === "viewed";
@@ -1927,7 +1943,7 @@ function SavedEstimateCard({
     resolvedStatus === "paid";
   const pillStatusForPill =
     isPostApproval
-      ? resolvedStatus
+      ? (isCompletedWithBalance ? "completed_due" : resolvedStatus)
       : (displayStatus === "not_viewed" || displayStatus === "viewed")
         ? "sent"
         : displayStatus;
@@ -1976,7 +1992,9 @@ function SavedEstimateCard({
       className={`group relative rounded-3xl border border-white/12 bg-gradient-to-b from-slate-900/70 to-slate-950/40 p-6 transition-all duration-300
   ${showApprovalActions || status === "sent" || status === "sent_pending"
     ? "border-emerald-300/25 shadow-[0_0_0_1px_rgba(16,185,129,0.10)]"
-    : "hover:border-white/20"}
+    : isCompletedWithBalance
+      ? "border-amber-300/25 shadow-[0_0_0_1px_rgba(251,191,36,0.10)]"
+      : "hover:border-white/20"}
   ${isFlashing ? "ring-2 ring-emerald-400/60" : ""}`}
     >
       <div className="relative">
@@ -2054,14 +2072,16 @@ function SavedEstimateCard({
 
           <div className="flex shrink-0 flex-col items-end gap-2 text-right">
             {/* Status line (primary) — job stage takes priority over payment stage */}
-            <div className="text-emerald-300 text-sm font-semibold">
+            <div className={`${isCompletedWithBalance ? "text-amber-300" : "text-emerald-300"} text-sm font-semibold`}>
               {resolvedStatus === "sent"
                 ? "Sent — not viewed yet"
                 : resolvedStatus === "viewed"
                   ? "Viewed — pending approval"
                   : resolvedStatus === "approved" && estimate.needsScheduling
                     ? "Approved — ready to schedule"
-                    : getDisplayStage(resolvedStatus)}
+                    : isCompletedWithBalance
+                      ? "Completed — final payment due"
+                      : getDisplayStage(resolvedStatus)}
             </div>
 
             {stageAgeText && (
@@ -2159,8 +2179,14 @@ function SavedEstimateCard({
                     </div>
                   )}
                   {!isFullyPaid && remainingCents > 0 && (
-                    <div className="flex items-center justify-between">
-                      <span>Remaining balance</span>
+                    <div
+                      className={`flex items-center justify-between rounded-lg px-2 py-1 ${
+                        isCompletedWithBalance
+                          ? "bg-amber-500/10 text-amber-100 ring-1 ring-inset ring-amber-400/20"
+                          : ""
+                      }`}
+                    >
+                      <span>{isCompletedWithBalance ? "Final payment due" : "Remaining balance"}</span>
                       <span className="font-semibold">{formatCentsToCurrency(remainingCents)}</span>
                     </div>
                   )}
@@ -3960,9 +3986,35 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                     }
                   }
                   updateSavedEstimate(id, { status: statusTyped });
-                  setEstimates(getNormalizedEstimates());
+                  const refreshed = getNormalizedEstimates();
+                  setEstimates(refreshed);
+                  const updatedEstimate = refreshed.find((x) => x.id === id);
+                  const updatedTotalCents = updatedEstimate ? toEstimateTotalCents(updatedEstimate) : 0;
+                  const updatedPaymentState = updatedEstimate ? paymentStates[updatedEstimate.id] ?? undefined : undefined;
+                  const updatedDepositCents = updatedPaymentState?.depositAmountCents || 0;
+                  const updatedFullCents = updatedPaymentState?.fullAmountCents || 0;
+                  const updatedOfflineCents =
+                    (updatedPaymentState as { offlineAmountCents?: number })?.offlineAmountCents ??
+                    (updatedPaymentState as { offlinePaidCents?: number })?.offlinePaidCents ??
+                    sumOfflineCents(updatedPaymentState ?? undefined) ??
+                    0;
+                  const updatedCollectedCents = updatedDepositCents + updatedFullCents + updatedOfflineCents;
+                  const updatedRemainingCents = Math.max(0, updatedTotalCents - updatedCollectedCents);
                   const label = statusTyped.charAt(0).toUpperCase() + statusTyped.slice(1);
-                  setToast(statusTyped === "approved" ? "Approved ✅" : statusTyped === "scheduled" ? "Scheduled ✅" : statusTyped === "in_progress" ? "Crew on site ✅" : `Status updated → ${label}`);
+
+                  setToast(
+                    statusTyped === "approved"
+                      ? "Approved ✅"
+                      : statusTyped === "scheduled"
+                        ? "Scheduled ✅"
+                        : statusTyped === "in_progress"
+                          ? "Crew on site ✅"
+                          : statusTyped === "paid" && updatedRemainingCents > 0
+                            ? "Job marked completed. Final payment still due."
+                            : statusTyped === "paid"
+                              ? "Completed & paid ✅"
+                              : `Status updated → ${label}`
+                  );
                   setTimeout(() => setToast(null), 2500);
                 }}
                 onSend={(est) => handleAction(est, "send")}
@@ -4154,9 +4206,35 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                             }
                           }
                           updateSavedEstimate(id, { status: statusTyped });
-                          setEstimates(getNormalizedEstimates());
+                          const refreshed = getNormalizedEstimates();
+                          setEstimates(refreshed);
+                          const updatedEstimate = refreshed.find((x) => x.id === id);
+                          const updatedTotalCents = updatedEstimate ? toEstimateTotalCents(updatedEstimate) : 0;
+                          const updatedPaymentState = updatedEstimate ? paymentStates[updatedEstimate.id] ?? undefined : undefined;
+                          const updatedDepositCents = updatedPaymentState?.depositAmountCents || 0;
+                          const updatedFullCents = updatedPaymentState?.fullAmountCents || 0;
+                          const updatedOfflineCents =
+                            (updatedPaymentState as { offlineAmountCents?: number })?.offlineAmountCents ??
+                            (updatedPaymentState as { offlinePaidCents?: number })?.offlinePaidCents ??
+                            sumOfflineCents(updatedPaymentState ?? undefined) ??
+                            0;
+                          const updatedCollectedCents = updatedDepositCents + updatedFullCents + updatedOfflineCents;
+                          const updatedRemainingCents = Math.max(0, updatedTotalCents - updatedCollectedCents);
                           const label = statusTyped.charAt(0).toUpperCase() + statusTyped.slice(1);
-                          setToast(statusTyped === "approved" ? "Approved ✅" : statusTyped === "scheduled" ? "Scheduled ✅" : statusTyped === "in_progress" ? "Crew on site ✅" : `Status updated → ${label}`);
+
+                          setToast(
+                            statusTyped === "approved"
+                              ? "Approved ✅"
+                              : statusTyped === "scheduled"
+                                ? "Scheduled ✅"
+                                : statusTyped === "in_progress"
+                                  ? "Crew on site ✅"
+                                  : statusTyped === "paid" && updatedRemainingCents > 0
+                                    ? "Job marked completed. Final payment still due."
+                                    : statusTyped === "paid"
+                                      ? "Completed & paid ✅"
+                                      : `Status updated → ${label}`
+                          );
                           setTimeout(() => setToast(null), 2500);
                         }}
                         onSend={(est) => handleAction(est, "send")}
@@ -4281,9 +4359,35 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                   }
                 }
                 updateSavedEstimate(id, { status: statusTyped });
-                setEstimates(getNormalizedEstimates());
+                const refreshed = getNormalizedEstimates();
+                setEstimates(refreshed);
+                const updatedEstimate = refreshed.find((x) => x.id === id);
+                const updatedTotalCents = updatedEstimate ? toEstimateTotalCents(updatedEstimate) : 0;
+                const updatedPaymentState = updatedEstimate ? paymentStates[updatedEstimate.id] ?? undefined : undefined;
+                const updatedDepositCents = updatedPaymentState?.depositAmountCents || 0;
+                const updatedFullCents = updatedPaymentState?.fullAmountCents || 0;
+                const updatedOfflineCents =
+                  (updatedPaymentState as { offlineAmountCents?: number })?.offlineAmountCents ??
+                  (updatedPaymentState as { offlinePaidCents?: number })?.offlinePaidCents ??
+                  sumOfflineCents(updatedPaymentState ?? undefined) ??
+                  0;
+                const updatedCollectedCents = updatedDepositCents + updatedFullCents + updatedOfflineCents;
+                const updatedRemainingCents = Math.max(0, updatedTotalCents - updatedCollectedCents);
                 const label = statusTyped.charAt(0).toUpperCase() + statusTyped.slice(1);
-                setToast(statusTyped === "approved" ? "Approved ✅" : statusTyped === "scheduled" ? "Scheduled ✅" : statusTyped === "in_progress" ? "Crew on site ✅" : `Status updated → ${label}`);
+
+                setToast(
+                  statusTyped === "approved"
+                    ? "Approved ✅"
+                    : statusTyped === "scheduled"
+                      ? "Scheduled ✅"
+                      : statusTyped === "in_progress"
+                        ? "Crew on site ✅"
+                        : statusTyped === "paid" && updatedRemainingCents > 0
+                          ? "Job marked completed. Final payment still due."
+                          : statusTyped === "paid"
+                            ? "Completed & paid ✅"
+                            : `Status updated → ${label}`
+                );
                 setTimeout(() => setToast(null), 2500);
               }}
               onSend={(est) => handleAction(est, "send")}

@@ -4,15 +4,16 @@ export type RoofingTabKey = "estimate" | "saved" | "ai" | "settings";
 
 export default function RoofingTabs({ active }: { active: RoofingTabKey }) {
   const base =
-    "rounded-full px-3 py-1.5 text-[11px] font-semibold border transition-colors";
+    "inline-flex items-center justify-center px-2 py-2 text-[13px] font-semibold tracking-wide transition-all duration-200";
   const on =
-    "bg-white/[0.08] border-white/15 text-white/90 hover:bg-white/[0.10]";
+    "text-white opacity-100 relative after:absolute after:left-0 after:-bottom-[2px] after:h-[2px] after:w-full after:rounded-full after:bg-cyan-400 after:shadow-[0_0_8px_rgba(34,211,238,0.7)]";
   const off =
-    "bg-white/[0.03] border-white/10 text-white/60 hover:text-white/80 hover:bg-white/[0.06]";
+    "text-white/60 hover:text-white hover:opacity-100 opacity-80";
 
   return (
-    <div>
-      <div className="flex flex-wrap items-center gap-2 rounded-3xl border border-white/10 bg-white/[0.04] p-2 shadow-[0_10px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl">
+    <div className="w-full">
+      <div className="relative flex w-full items-center justify-start gap-6 border-b border-white/10 pb-2">
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
         <a
           href="/tools/roofing"
           className={`${base} ${active === "estimate" ? on : off}`}
@@ -38,15 +39,14 @@ export default function RoofingTabs({ active }: { active: RoofingTabKey }) {
         >
           AI Library
         </Link>
-
-        <div className="flex-1" />
-
-        <Link
-          href="/tools/settings"
-          className={`${base} ${active === "settings" ? on : off}`}
-        >
-          Settings
-        </Link>
+        <div className="ml-auto flex items-center pl-8 opacity-90">
+          <Link
+            href="/tools/settings"
+            className={`${base} ${active === "settings" ? on : off}`}
+          >
+            Settings
+          </Link>
+        </div>
       </div>
     </div>
   );

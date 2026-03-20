@@ -3186,97 +3186,117 @@ Thanks,`;
       )}
 
       <div className="relative mx-auto max-w-6xl">
-        <div className="flex items-center justify-between mb-12">
-          <motion.div
-            initial={{ opacity: 0, x: -8 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <Link
-              href="/tools"
-              className="inline-flex items-center gap-2 text-sm font-medium text-slate-400 hover:text-white transition-colors"
+        <div className="mb-9 sm:mb-11">
+          <div className="mb-7 flex items-center justify-between gap-4">
+            <motion.div
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.3 }}
             >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Tools
-            </Link>
-          </motion.div>
-          <SignOutButton />
-        </div>
-
-        <header className="mb-14 sm:mb-16">
-          <motion.h1
-            className="text-4xl md:text-5xl font-extrabold tracking-tight text-white/95 leading-[1.1]"
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.05 }}
-          >
-            Roofing Calculator
-          </motion.h1>
-          <motion.p
-            className="mt-6 text-base md:text-lg text-slate-300 max-w-xl leading-[1.6]"
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.1 }}
-          >
-            Estimate materials, labor, and a suggested price with waste and
-            profit margin.
-          </motion.p>
-        </header>
-
-        {process.env.NODE_ENV !== "production" ? (
-          <div className="text-xs text-white/60 mb-2">
-            DEV: restoring = {String(isRestoringRef.current)} | loadSavedId = {String(loadSavedId ?? "—")}
+              <Link
+                href="/tools"
+                className="inline-flex items-center gap-2 text-sm font-medium text-slate-400 hover:text-white transition-colors"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back to Tools
+              </Link>
+            </motion.div>
+            <SignOutButton />
           </div>
-        ) : null}
 
-        <RoofingTabs active="estimate" />
+          <header className="mb-6">
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.05 }}
+              className="relative pb-7 sm:pb-8"
+            >
+              <div className="pointer-events-none absolute inset-x-0 top-0 h-32" aria-hidden>
+                <div className="absolute left-0 top-1 h-24 w-24 rounded-full bg-cyan-400/10 blur-2xl" />
+                <div className="absolute right-24 top-0 h-28 w-28 rounded-full bg-blue-500/10 blur-3xl" />
+              </div>
 
-        {hasMounted && isLocked && (
-          <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4">
-            <span className="font-medium text-amber-200">
-              {isScheduledLocked
-                ? `Scheduled — locked${currentSaved?.scheduledStartDate ? ` (start ${currentSaved.scheduledStartDate})` : ""}`
-                : "Approved — locked"}
-            </span>
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  const idToDup = currentLoadedSavedId ?? loadSavedId;
-                  if (!idToDup) return;
-                  setIsDuplicating(true);
-                  const newId = duplicateSavedEstimate(idToDup);
-                  if (!newId) {
-                    setIsDuplicating(false);
-                    return;
-                  }
-                  setCurrentLoadedSavedId(newId);
-                  loadAppliedRef.current = false;
-                  setToast("Revision created ✅");
-                  setTimeout(() => setToast(null), 2500);
-                  router.push(`/tools/roofing?loadSaved=${encodeURIComponent(newId)}`);
-                  setIsDuplicating(false);
-                }}
-                disabled={isDuplicating}
-                className="shrink-0 rounded-full bg-amber-500 px-4 py-2 text-sm font-semibold text-black hover:bg-amber-400 disabled:opacity-70 disabled:cursor-not-allowed"
-              >
-                {isDuplicating ? "Duplicating…" : "Duplicate to Revise"}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setCurrentLoadedSavedId(null);
-                  router.push("/tools/roofing");
-                }}
-                className="shrink-0 rounded-full bg-white/10 hover:bg-white/20 px-4 py-2 text-sm font-semibold text-amber-100 border border-amber-400/30"
-              >
-                New Estimate
-              </button>
+              <div className="relative max-w-4xl">
+                <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/[0.08] px-3 py-1.5 text-[11px] font-semibold tracking-[0.18em] text-cyan-200/90">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-md bg-gradient-to-br from-cyan-400/30 to-blue-500/20 text-[10px] font-bold text-cyan-100">
+                    FD
+                  </span>
+                  <span className="uppercase">FieldDive</span>
+                </div>
+
+                <div className="mt-4">
+                  <h1 className="text-[2.9rem] font-extrabold tracking-[-0.02em] leading-[0.98] md:text-5xl lg:text-[3.4rem] text-white">
+                    Roofing Calculator
+                  </h1>
+                  <p className="mt-4 max-w-2xl text-[15px] leading-7 text-slate-300/95 md:text-[17px]">
+                    Estimate materials, labor, and a suggested price with waste and profit margin.
+                  </p>
+                </div>
+
+                <div className="mt-6 h-px w-full bg-gradient-to-r from-white/15 via-white/10 to-transparent" />
+              </div>
+            </motion.div>
+          </header>
+
+          {process.env.NODE_ENV !== "production" ? (
+            <div className="mb-2 mt-3 text-xs text-white/60">
+              DEV: restoring = {String(isRestoringRef.current)} | loadSavedId = {String(loadSavedId ?? "—")}
+            </div>
+          ) : null}
+
+          <div className="mt-5">
+            <div className="mt-4 w-full">
+              <RoofingTabs active="estimate" />
             </div>
           </div>
-        )}
 
-        <div>
+          {hasMounted && isLocked && (
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4">
+              <span className="font-medium text-amber-200">
+                {isScheduledLocked
+                  ? `Scheduled — locked${currentSaved?.scheduledStartDate ? ` (start ${currentSaved.scheduledStartDate})` : ""}`
+                  : "Approved — locked"}
+              </span>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const idToDup = currentLoadedSavedId ?? loadSavedId;
+                    if (!idToDup) return;
+                    setIsDuplicating(true);
+                    const newId = duplicateSavedEstimate(idToDup);
+                    if (!newId) {
+                      setIsDuplicating(false);
+                      return;
+                    }
+                    setCurrentLoadedSavedId(newId);
+                    loadAppliedRef.current = false;
+                    setToast("Revision created ✅");
+                    setTimeout(() => setToast(null), 2500);
+                    router.push(`/tools/roofing?loadSaved=${encodeURIComponent(newId)}`);
+                    setIsDuplicating(false);
+                  }}
+                  disabled={isDuplicating}
+                  className="shrink-0 rounded-full bg-amber-500 px-4 py-2 text-sm font-semibold text-black hover:bg-amber-400 disabled:opacity-70 disabled:cursor-not-allowed"
+                >
+                  {isDuplicating ? "Duplicating…" : "Duplicate to Revise"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCurrentLoadedSavedId(null);
+                    router.push("/tools/roofing");
+                  }}
+                  className="shrink-0 rounded-full border border-amber-400/30 bg-white/10 px-4 py-2 text-sm font-semibold text-amber-100 hover:bg-white/20"
+                >
+                  New Estimate
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="mt-10 sm:mt-12">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16">
           {/* Inputs card */}
           <motion.section
@@ -4164,16 +4184,22 @@ Thanks,`;
               )}
             </div>
 
-            <div className="mt-6 rounded-3xl border border-white/10 bg-white/[0.04] p-5 shadow-[0_10px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl">
-              {/* Step 4 — Confirm & Send (compact, premium) */}
-              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 mt-6">
+            <div className="mt-8 rounded-3xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 to-transparent p-6 shadow-[0_15px_60px_rgba(16,185,129,0.15)] backdrop-blur-xl">
+              {/* Step 4 — Confirm & Send (elevated CTA) */}
+              <div className="rounded-2xl border border-emerald-400/20 bg-black/20 p-6">
+
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <div className="text-sm font-semibold text-white">
-                      Step 4 — Confirm & Send
+                    <div className="flex items-center gap-2">
+                      <span className="rounded-full bg-emerald-500/20 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-300">
+                        Final Step
+                      </span>
+                      <div className="text-base font-semibold text-white">
+                        Send Estimate
+                      </div>
                     </div>
                     <div className="text-xs text-white/60 mt-1">
-                      Quick review, then send the PDF estimate to your customer.
+                      Review details and send your proposal to the customer.
                     </div>
                   </div>
 
@@ -4186,16 +4212,14 @@ Thanks,`;
                   </button>
                 </div>
 
-                {/* Ready-to-send summary (always visible) */}
-                <div className="mt-5 rounded-xl border border-white/10 bg-white/[0.02] p-4">
+                <div className="mt-6 rounded-xl border border-white/10 bg-white/[0.03] p-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-white/80">
-                    <div className="text-sm text-white/80">
-                      <div className="text-white/60 text-xs mb-1">Recipient</div>
-                      {/* Email on its own line (truncate safely) */}
-                      <div className="font-medium text-white/90 truncate">
+
+                    <div>
+                      <div className="text-white/50 text-xs mb-1">Recipient</div>
+                      <div className="font-medium text-white truncate">
                         {(customerEmail || "").trim() || "—"}
                       </div>
-                      {/* Address on its own line (wrap or truncate) */}
                       <div className="text-white/70 text-xs mt-0.5 break-words">
                         {[jobAddress1, [jobCity, jobState, jobZip].filter(Boolean).join(", ")].filter(Boolean).join(" — ") || "—"}
                       </div>
@@ -4210,27 +4234,26 @@ Thanks,`;
 
                     <div className="flex justify-between">
                       <span>Total</span>
-                      <span className="text-emerald-300 font-bold">
+                      <span className="text-emerald-300 font-bold text-lg">
                         {Number(priceWithMargin ?? 0) > 0
                           ? formatCurrency(Number(priceWithMargin))
                           : "—"}
                       </span>
                     </div>
+
                   </div>
 
-                  {/* Missing info banner */}
                   {(!(customerEmail || "").trim() || !(jobAddress1 || "").trim()) && (
-                    <div className="mt-3 text-xs text-amber-300/80">
+                    <div className="mt-4 rounded-lg border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs text-amber-300">
                       Missing:{" "}
                       {!(customerEmail || "").trim() ? "customer email" : ""}
                       {!(customerEmail || "").trim() && !(jobAddress1 || "").trim() ? " + " : ""}
                       {!(jobAddress1 || "").trim() ? "job address" : ""}
-                      .
                     </div>
                   )}
 
-                  {/* Primary send action */}
-                  <div className="mt-4 flex items-center justify-between gap-3">
+                  <div className="mt-5 flex items-center justify-between gap-3">
+
                     <button
                       type="button"
                       onClick={() => {
@@ -4247,14 +4270,15 @@ Thanks,`;
                       type="button"
                       disabled={!(customerEmail || "").trim() || !(jobAddress1 || "").trim() || isSending || isLocked}
                       onClick={handleSendEstimate}
-                      className={`rounded-full px-7 py-2.5 text-sm font-semibold text-white shadow-lg transition-all duration-150 ${
+                      className={`rounded-full px-8 py-3 text-base font-semibold text-white shadow-xl transition-all duration-150 ${
                         (!(customerEmail || "").trim() || !(jobAddress1 || "").trim())
                           ? "bg-white/10 text-white/40 cursor-not-allowed"
-                          : "bg-emerald-600 hover:bg-emerald-500 hover:shadow-emerald-500/30"
+                          : "bg-gradient-to-r from-emerald-500 to-emerald-600 hover:scale-[1.02] hover:shadow-emerald-500/40"
                       }`}
                     >
                       {isSending ? "Sending…" : sendSuccess ? "Sent ✓" : "Send Estimate"}
                     </button>
+
                   </div>
                 </div>
 
@@ -4264,7 +4288,6 @@ Thanks,`;
                   <p className="mt-2 text-xs text-emerald-300/90">Sent successfully.</p>
                 ) : null}
 
-                {/* Optional panels */}
                 {showSendDetails && (
                   <div className="mt-5 space-y-3">
                     {/* AI wording panel */}
@@ -4277,7 +4300,6 @@ Thanks,`;
                         <span>AI Wording</span>
                         <span className="text-xs text-white/60">{showAiWordingPanel ? "Hide" : "Show"}</span>
                       </button>
-
                       {showAiWordingPanel && (
                         <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-white/80">
                           <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
@@ -4302,7 +4324,6 @@ Thanks,`;
                         <span>Email Preview</span>
                         <span className="text-xs text-white/60">{showEmailPreviewPanel ? "Hide" : "Show"}</span>
                       </button>
-
                       {showEmailPreviewPanel && (
                         <div className="mt-3">
                           <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3 text-sm text-white/80 whitespace-pre-wrap">
@@ -4322,7 +4343,6 @@ Thanks,`;
                         <span>PDF Tools</span>
                         <span className="text-xs text-white/60">{showPdfToolsPanel ? "Hide" : "Show"}</span>
                       </button>
-
                       {showPdfToolsPanel && (
                         <div className="mt-3 flex flex-wrap gap-2">
                           <button
@@ -4369,6 +4389,7 @@ Thanks,`;
                     )}
                   </div>
                 )}
+
               </div>
             </div>
 
