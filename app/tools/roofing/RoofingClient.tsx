@@ -2178,13 +2178,13 @@ Thanks,`;
     });
     y -= lineH + 14 + 5;
     const scheduleCtaText = dataOverride
-      ? "To approve and schedule your installation, simply reply APPROVE to this email."
-      : (useGptWording && gptScheduleCta?.trim()) ? gptScheduleCta.trim() : "To approve and schedule your installation, simply reply APPROVE to this email.";
+      ? "To approve and schedule your installation, click the approval button in your email."
+      : (useGptWording && gptScheduleCta?.trim()) ? gptScheduleCta.trim() : "To approve and schedule your installation, click the approval button in your email.";
     for (const ln of wrap(scheduleCtaText, font, 10, contentW)) {
       page.drawText(ln, { x: margin, y, size: 10, font, color: rgb(0.25, 0.27, 0.32) });
       y -= lineH;
     }
-    const closeLine2 = "Questions? Reply to this email or call us directly.";
+    const closeLine2 = "Questions? Reply to this email or call us.";
     for (const ln of wrap(closeLine2, font, 10, contentW)) {
       page.drawText(ln, { x: margin, y, size: 10, font, color: rgb(0.25, 0.27, 0.32) });
       y -= lineH;

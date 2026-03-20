@@ -81,46 +81,52 @@ function buildSubject(meta: z.infer<typeof MetaSchema>) {
 
 function buildBody(meta: z.infer<typeof MetaSchema>, approvalUrl?: string | null) {
   const customerName = (meta.customerName || "").trim() || "there";
-  const lines: string[] = [];
-
-  lines.push(`Hi ${customerName},`);
-  lines.push("");
-  lines.push(`Attached is your ${meta.selectedTier} roofing estimate.`);
-  lines.push("");
-  lines.push("Project Address:");
+  const companyName = (meta.companyName || "").trim() || "Your Company";
   const addrLine1 = (meta.jobAddress1 || "").trim();
   const city = (meta.jobCity || "").trim();
   const state = (meta.jobState || "").trim();
   const zip = (meta.jobZip || "").trim();
   const cityStateZip = [city, state, zip].filter(Boolean).join(", ");
-  lines.push(addrLine1 || "(not provided)");
-  lines.push(cityStateZip || "");
+  const total = formatPrice(meta.suggestedPrice);
+  const packageDescription = (meta.packageDescription || "").trim() || "(see attached PDF)";
+  const scheduleCta = (meta.scheduleCta || "").trim();
+  const isApprovalStyleCta = /reply\s*['"]?\s*approve\s*['"]?|approve.*below|click.*approve|use the button/i.test(scheduleCta);
+
+  const lines: string[] = [];
+  lines.push(`Hi ${customerName},`);
   lines.push("");
-  lines.push("Total Investment:");
-  lines.push(formatPrice(meta.suggestedPrice));
+  lines.push("Your roofing estimate is ready.");
+  lines.push("");
+  lines.push(`Package: ${meta.selectedTier}`);
+  lines.push(`Total Investment: ${total}`);
+  lines.push("");
+  lines.push("Project Address:");
+  lines.push(addrLine1 || "(not provided)");
+  if (cityStateZip) lines.push(cityStateZip);
   lines.push("");
   lines.push("Scope Summary:");
-  lines.push((meta.packageDescription || "").trim() || "(see attached PDF)");
+  lines.push(packageDescription);
   lines.push("");
-  const scheduleCta = (meta.scheduleCta || "").trim();
-  if (scheduleCta && !/Reply\s+APPROVE|To approve,\s*please contact us/i.test(scheduleCta)) {
+
+  if (scheduleCta && !isApprovalStyleCta) {
     lines.push(scheduleCta);
     lines.push("");
   }
+
   if (approvalUrl) {
     lines.push("Approve your estimate:");
     lines.push(approvalUrl);
     lines.push("");
-    lines.push("Once approved, we'll reach out to schedule your start date.");
+    lines.push("Use the approval button to confirm and we'll reach out to schedule your start date.");
     lines.push("");
   }
+
   lines.push("This estimate is valid for 30 days from the date issued.");
   lines.push("");
-  lines.push("If you have any questions, feel free to reply directly to this email.");
+  lines.push("Questions? Reply directly to this email and we'll help right away.");
   lines.push("");
   lines.push("Thank you,");
-  const companyName = (meta.companyName || "").trim();
-  lines.push(companyName || "");
+  lines.push(companyName);
 
   return lines.join("\n");
 }
@@ -204,28 +210,117 @@ export async function POST(req: Request) {
       console.log("[estimate/send]", { approvalToken, approvalUrl });
     }
 
-    const approveBlockHtml = `
-    <div style="margin: 22px 0 10px 0; padding: 14px 16px; border: 1px solid rgba(255,255,255,0.10); border-radius: 14px; background: rgba(255,255,255,0.04);">
-      <div style="font-size: 14px; font-weight: 600; margin-bottom: 10px;">Approval</div>
-      <a href="${approvalUrl}"
-         style="display:inline-block; padding: 10px 14px; border-radius: 12px; text-decoration:none; font-weight:700;
-                background:#10b981; color:#071a13;">
-        Approve Estimate
-      </a>
-      <div style="font-size:12px; opacity:0.75; margin-top:10px;">
-        Or copy/paste this link: <span style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;">${approvalUrl}</span>
-      </div>
-    </div>
-  `;
     const approveBlockText = `\n\nAPPROVAL LINK:\n${approvalUrl}\n`;
 
     const from =
       process.env.RESEND_FROM || "Onboarding <onboarding@resend.dev>";
     const subject = buildSubject(meta);
     const baseText = buildBody(meta, approvalUrl);
-    const baseHtml = baseText.split("\n").join("<br />");
+
+    const customerName = (meta.customerName || "").trim() || "there";
+    const companyName = (meta.companyName || "").trim() || "Your Company";
+    const tierLabel = (meta.selectedTier || "").trim();
+    const addrLine1 = (meta.jobAddress1 || "").trim();
+    const city = (meta.jobCity || "").trim();
+    const state = (meta.jobState || "").trim();
+    const zip = (meta.jobZip || "").trim();
+    const cityStateZip = [city, state, zip].filter(Boolean).join(", ");
+    const totalFormatted = formatPrice(meta.suggestedPrice);
+    const packageDescription = (meta.packageDescription || "").trim() || "(see attached PDF)";
+    const scheduleCta = (meta.scheduleCta || "").trim();
+    const isApprovalStyleCta = /reply\s*['"]?\s*approve\s*['"]?|approve.*below|click.*approve|use the button/i.test(scheduleCta);
+
     const bodyText = `${baseText}${approveBlockText}`;
-    const bodyHtml = `${baseHtml}${approveBlockHtml}`;
+
+    const bodyHtml = `
+      <div style="margin:0; padding:24px; background:#f8fafc; font-family:Arial, Helvetica, sans-serif; color:#0f172a;">
+        <div style="max-width:640px; margin:0 auto; background:#ffffff; border:1px solid #e5e7eb; border-radius:16px; overflow:hidden;">
+          
+          <div style="padding:20px 24px; border-bottom:1px solid #e5e7eb; background:#ffffff;">
+            <div style="font-size:12px; letter-spacing:0.14em; text-transform:uppercase; color:#0891b2; font-weight:700;">
+              Roofing Estimate
+            </div>
+            <div style="margin-top:8px; font-size:24px; line-height:1.2; font-weight:700; color:#111827;">
+              ${companyName}
+            </div>
+          </div>
+
+          <div style="padding:24px;">
+            <p style="margin:0 0 14px 0; font-size:14px; line-height:1.7; color:#111827;">
+              Hi ${customerName},
+            </p>
+
+            <p style="margin:0 0 18px 0; font-size:14px; line-height:1.7; color:#374151;">
+              Your roofing estimate is ready. Review the details below and approve when you're ready to move forward.
+            </p>
+
+            <div style="margin:0 0 18px 0; padding:16px; border-radius:14px; background:#f8fafc; border:1px solid #e5e7eb;">
+              <div style="font-size:12px; color:#6b7280; margin-bottom:6px;">Package</div>
+              <div style="font-size:15px; font-weight:600; color:#111827; margin-bottom:14px;">${tierLabel}</div>
+
+              <div style="font-size:12px; color:#6b7280; margin-bottom:6px;">Project Address</div>
+              <div style="font-size:14px; line-height:1.6; color:#111827; margin-bottom:14px;">
+                ${addrLine1 || "(not provided)"}${cityStateZip ? `<br />${cityStateZip}` : ""}
+              </div>
+
+              <div style="font-size:12px; color:#6b7280; margin-bottom:6px;">Total Investment</div>
+              <div style="font-size:30px; font-weight:800; line-height:1.1; color:#059669;">
+                ${totalFormatted}
+              </div>
+            </div>
+
+            <div style="margin:0 0 18px 0;">
+              <div style="font-size:12px; color:#6b7280; margin-bottom:8px;">Scope Summary</div>
+              <div style="font-size:14px; line-height:1.7; color:#374151;">
+                ${packageDescription}
+              </div>
+            </div>
+
+            ${scheduleCta && !isApprovalStyleCta
+              ? `
+            <div style="margin:0 0 18px 0; font-size:14px; line-height:1.7; color:#374151;">
+              ${scheduleCta}
+            </div>`
+              : ""}
+
+            <div style="margin:22px 0 18px 0; text-align:center;">
+              <div style="margin:0 0 10px 0; font-size:14px; line-height:1.6; color:#374151;">
+                Use the button below to approve your estimate.
+              </div>
+              <a
+                href="${approvalUrl}"
+                style="display:inline-block; padding:14px 22px; border-radius:10px; text-decoration:none; font-weight:700; font-size:14px; background:#10b981; color:#052e16;"
+              >
+                Approve Estimate
+              </a>
+            </div>
+
+            <div style="margin:0 0 18px 0; padding:14px 16px; border-radius:12px; background:#ecfdf5; border:1px solid #a7f3d0;">
+              <div style="font-size:13px; font-weight:600; color:#065f46; margin-bottom:6px;">
+                What happens next
+              </div>
+              <div style="font-size:13px; line-height:1.7; color:#065f46;">
+                Once approved, we'll reach out to schedule your start date.
+              </div>
+            </div>
+
+            <div style="font-size:11px; line-height:1.6; color:#9ca3af; margin-top:16px;">
+              Backup link if the button does not open:<br />
+              <span style="word-break:break-all; color:#6b7280; font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;">
+                ${approvalUrl}
+              </span>
+            </div>
+          </div>
+
+          <div style="padding:16px 24px; border-top:1px solid #e5e7eb; background:#fafafa;">
+            <div style="font-size:12px; line-height:1.7; color:#6b7280;">
+              This estimate is valid for 30 days from the date issued.<br />
+              Questions? Reply directly to this email and we'll help right away.
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
 
     const result = await resend.emails.send({
       from,
