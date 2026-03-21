@@ -2901,12 +2901,36 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
     for (const t of offlineTx) {
       const amt = Number(t?.amountCents || 0);
       if (!amt) continue;
-      const stage = "Offline payment";
-      const method = t?.method ? String(t.method).replaceAll("_", " ") : "offline";
+
+      const rawMethod = String(t?.method || "").trim().toLowerCase();
+      const methodLabel =
+        rawMethod === "cash_app"
+          ? "Cash App"
+          : rawMethod === "cash"
+            ? "Cash"
+            : rawMethod === "check"
+              ? "Check"
+              : rawMethod === "zelle"
+                ? "Zelle"
+                : rawMethod === "venmo"
+                  ? "Venmo"
+                  : rawMethod === "bank_transfer"
+                    ? "Bank transfer"
+                    : rawMethod === "insurance"
+                      ? "Insurance"
+                      : rawMethod === "other"
+                        ? "Offline"
+                        : rawMethod
+                          ? rawMethod.replace(/\b\w/g, (c) => c.toUpperCase())
+                          : "Offline";
+
+      const label = `${methodLabel} (${t?.stage === "deposit" ? "deposit" : "payment"})`;
+
       const notes = t?.notes ? String(t.notes) : "";
-      const meta = [method, notes].filter(Boolean).join(" • ");
+      const meta = notes || "";
+
       tx.push({
-        label: stage,
+        label,
         amountCents: amt,
         whenIso: t?.recordedAt,
         meta,
