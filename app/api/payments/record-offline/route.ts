@@ -65,9 +65,12 @@ export async function POST(req: NextRequest) {
     const { error: insertError } = await supabase.from("payments").insert({
       company_id: companyId,
       estimate_id: estimateId,
-      payment_type: stage === "deposit" ? "deposit" : "offline",
+      payment_type: "offline",
       amount: appliedCents / 100,
       status: "completed",
+      method: method || "other",
+      notes: notes || null,
+      stage: stage,
     });
     if (insertError) {
       console.warn("[record-offline] payments table insert failed", insertError);

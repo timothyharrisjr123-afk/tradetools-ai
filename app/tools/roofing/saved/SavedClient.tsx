@@ -2145,13 +2145,7 @@ function SavedEstimateCard({
             {(() => {
               const depositPaidCents = paymentState?.depositAmountCents || 0;
               const fullPaidCents = paymentState?.fullAmountCents || 0;
-              const offlineTx = ((paymentState as { offlineTransactions?: Array<{ stage?: string; amountCents?: number }> } | undefined)?.offlineTransactions || []) as { stage?: string; amountCents?: number }[];
-              const offlineDepositCents = Array.isArray(offlineTx)
-                ? offlineTx.filter((t) => t?.stage === "deposit").reduce((sum, t) => sum + (t?.amountCents || 0), 0)
-                : 0;
-              const offlineAdditionalCents = Array.isArray(offlineTx)
-                ? offlineTx.filter((t) => t?.stage !== "deposit").reduce((sum, t) => sum + (t?.amountCents || 0), 0)
-                : 0;
+              const offlineTx = ((paymentState as { offlineTransactions?: Array<{ stage?: string; amountCents?: number; method?: string; notes?: string }> } | undefined)?.offlineTransactions || []) as { stage?: string; amountCents?: number; method?: string; notes?: string }[];
               return collectedCents > 0 || remainingCents > 0 ? (
                 <div className="mt-2 text-sm text-white/80 space-y-1">
                   {depositPaidCents > 0 && (
@@ -2166,18 +2160,42 @@ function SavedEstimateCard({
                       <span className="font-medium">{formatCentsToCurrency(fullPaidCents)}</span>
                     </div>
                   )}
-                  {offlineDepositCents > 0 && (
-                    <div className="flex items-center justify-between">
-                      <span>Offline payment</span>
-                      <span className="font-medium">{formatCentsToCurrency(offlineDepositCents)}</span>
-                    </div>
-                  )}
-                  {offlineAdditionalCents > 0 && (
-                    <div className="flex items-center justify-between">
-                      <span>Offline payment</span>
-                      <span className="font-medium">{formatCentsToCurrency(offlineAdditionalCents)}</span>
-                    </div>
-                  )}
+                  {Array.isArray(offlineTx) &&
+                    offlineTx.map((t, idx) => {
+                      const amt = t?.amountCents || 0;
+                      if (!amt) return null;
+
+                      const rawMethod = String(t?.method || "").trim().toLowerCase();
+                      const methodLabel =
+                        rawMethod === "cash_app"
+                          ? "Cash App"
+                          : rawMethod === "cash"
+                            ? "Cash"
+                            : rawMethod === "check"
+                              ? "Check"
+                              : rawMethod === "zelle"
+                                ? "Zelle"
+                                : rawMethod === "venmo"
+                                  ? "Venmo"
+                                  : rawMethod === "bank_transfer"
+                                    ? "Bank transfer"
+                                    : rawMethod === "insurance"
+                                      ? "Insurance"
+                                      : rawMethod === "other"
+                                        ? "Offline"
+                                        : rawMethod
+                                          ? rawMethod.replace(/\b\w/g, (c) => c.toUpperCase())
+                                          : "Offline";
+
+                      const label = `${methodLabel} (${t?.stage === "deposit" ? "deposit" : "payment"})`;
+
+                      return (
+                        <div key={`${t?.stage || "offline"}-${idx}`} className="flex items-center justify-between">
+                          <span>{label}</span>
+                          <span className="font-medium">{formatCentsToCurrency(amt)}</span>
+                        </div>
+                      );
+                    })}
                   {!isFullyPaid && remainingCents > 0 && (
                     <div
                       className={`flex items-center justify-between rounded-lg px-2 py-1 ${
@@ -4842,6 +4860,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                 <option value="check">Check</option>
                 <option value="zelle">Zelle</option>
                 <option value="venmo">Venmo</option>
+                <option value="cash_app">Cash App</option>
                 <option value="bank_transfer">Bank transfer</option>
                 <option value="insurance">Insurance</option>
                 <option value="other">Other</option>

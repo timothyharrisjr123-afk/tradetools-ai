@@ -39,7 +39,7 @@ export async function getDerivedPaymentStateFromSupabase({
   try {
     const { data: rows, error } = await supabase
       .from("payments")
-      .select("id, estimate_id, payment_type, amount, status, created_at")
+      .select("id, estimate_id, payment_type, amount, status, created_at, method, notes, stage")
       .eq("company_id", companyId)
       .eq("estimate_id", estimateId);
 
@@ -64,9 +64,9 @@ export async function getDerivedPaymentStateFromSupabase({
         offlineTransactions.push({
           id: String(row?.id ?? ""),
           amountCents,
-          method: "offline",
-          notes: "",
-          stage: "additional",
+          method: String(row?.method ?? "offline"),
+          notes: String(row?.notes ?? ""),
+          stage: row?.stage === "deposit" ? "deposit" : "additional",
           recordedAt: String(row?.created_at ?? ""),
         });
       }
