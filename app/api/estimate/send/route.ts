@@ -76,7 +76,7 @@ function formatPrice(n: number) {
 
 function buildSubject(meta: z.infer<typeof MetaSchema>) {
   const name = (meta.customerName || "").trim() || "Customer";
-  return `Roofing Estimate – ${name} – ${meta.selectedTier}`;
+  return `Your Roofing Proposal Is Ready – ${name} – ${meta.selectedTier}`;
 }
 
 function buildBody(meta: z.infer<typeof MetaSchema>, approvalUrl?: string | null) {
@@ -95,7 +95,7 @@ function buildBody(meta: z.infer<typeof MetaSchema>, approvalUrl?: string | null
   const lines: string[] = [];
   lines.push(`Hi ${customerName},`);
   lines.push("");
-  lines.push("Your roofing estimate is ready.");
+  lines.push("Your roofing project proposal is ready for review.");
   lines.push("");
   lines.push(`Package: ${meta.selectedTier}`);
   lines.push(`Total Investment: ${total}`);
@@ -117,13 +117,13 @@ function buildBody(meta: z.infer<typeof MetaSchema>, approvalUrl?: string | null
     lines.push("Approve your estimate:");
     lines.push(approvalUrl);
     lines.push("");
-    lines.push("Use the approval button to confirm and we'll reach out to schedule your start date.");
+    lines.push("Use the approval link to confirm and we'll contact you to schedule next steps for your project.");
     lines.push("");
   }
 
-  lines.push("This estimate is valid for 30 days from the date issued.");
+  lines.push("This proposal is valid for 30 days from the date issued.");
   lines.push("");
-  lines.push("Questions? Reply directly to this email and we'll help right away.");
+  lines.push("Questions? Reply directly to this email and our team will help right away.");
   lines.push("");
   lines.push("Thank you,");
   lines.push(companyName);
@@ -238,7 +238,7 @@ export async function POST(req: Request) {
           
           <div style="padding:20px 24px; border-bottom:1px solid #e5e7eb; background:#ffffff;">
             <div style="font-size:12px; letter-spacing:0.14em; text-transform:uppercase; color:#0891b2; font-weight:700;">
-              Roofing Estimate
+              Roofing Proposal
             </div>
             <div style="margin-top:8px; font-size:24px; line-height:1.2; font-weight:700; color:#111827;">
               ${companyName}
@@ -251,7 +251,7 @@ export async function POST(req: Request) {
             </p>
 
             <p style="margin:0 0 18px 0; font-size:14px; line-height:1.7; color:#374151;">
-              Your roofing estimate is ready. Review the details below and approve when you're ready to move forward.
+              Your roofing project proposal is ready. Review the details below and approve when you're ready to move forward with scheduling.
             </p>
 
             <div style="margin:0 0 18px 0; padding:16px; border-radius:14px; background:#f8fafc; border:1px solid #e5e7eb;">
@@ -285,13 +285,13 @@ export async function POST(req: Request) {
 
             <div style="margin:22px 0 18px 0; text-align:center;">
               <div style="margin:0 0 10px 0; font-size:14px; line-height:1.6; color:#374151;">
-                Use the button below to approve your estimate.
+                Review the proposal details below, then approve to move forward with scheduling.
               </div>
               <a
                 href="${approvalUrl}"
                 style="display:inline-block; padding:14px 22px; border-radius:10px; text-decoration:none; font-weight:700; font-size:14px; background:#10b981; color:#052e16;"
               >
-                Approve Estimate
+                Review & Approve Proposal
               </a>
             </div>
 
@@ -300,12 +300,12 @@ export async function POST(req: Request) {
                 What happens next
               </div>
               <div style="font-size:13px; line-height:1.7; color:#065f46;">
-                Once approved, we'll reach out to schedule your start date.
+                Once approved, we'll contact you to confirm scheduling and next steps for your project.
               </div>
             </div>
 
             <div style="font-size:11px; line-height:1.6; color:#9ca3af; margin-top:16px;">
-              Backup link if the button does not open:<br />
+              Direct approval link:<br />
               <span style="word-break:break-all; color:#6b7280; font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;">
                 ${approvalUrl}
               </span>
@@ -314,8 +314,8 @@ export async function POST(req: Request) {
 
           <div style="padding:16px 24px; border-top:1px solid #e5e7eb; background:#fafafa;">
             <div style="font-size:12px; line-height:1.7; color:#6b7280;">
-              This estimate is valid for 30 days from the date issued.<br />
-              Questions? Reply directly to this email and we'll help right away.
+              This proposal is valid for 30 days from the date issued.<br />
+              Questions? Reply directly to this email and our team will help right away.
             </div>
           </div>
         </div>

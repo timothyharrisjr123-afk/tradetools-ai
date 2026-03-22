@@ -1967,17 +1967,22 @@ Thanks,`;
       headerOff += smallH + 4;
     }
     const headerHeight = logoW > 0 ? Math.max(logoMaxH, headerOff) : headerOff;
-    y -= headerHeight + 12;
+
+    // more breathing room under header
+    y -= headerHeight + 18;
+
     page.drawLine({
       start: { x: margin, y },
       end: { x: pageW - margin, y },
       thickness: 0.75,
       color: rgb(0.78, 0.79, 0.82),
     });
-    y -= 16;
+
+    // more spacing before title
+    y -= 22;
 
     // ----- Title + Meta -----
-    page.drawText("ROOFING ESTIMATE", {
+    page.drawText("ROOFING PROPOSAL", {
       x: margin,
       y,
       size: 20,
@@ -2087,8 +2092,8 @@ Thanks,`;
       ? "Designed to provide durable, long-lasting protection for your home."
       : (useGptWording && gptPackageDescription?.trim()) ? gptPackageDescription.trim() : "Designed to provide durable, long-lasting protection for your home.";
     const packageDescriptionLines = wrap(packageDescriptionText, font, 10, contentW - 28);
-    const lineItemCount = disposal > 0 ? 3 : 2;
-    const pricingH = 18 + 14 + packageDescriptionLines.length * lineH + 10 + lineItemCount * lineH + 20;
+    const lineItemCount = disposal > 0 ? 4 : 3;
+    const pricingH = 18 + 12 + packageDescriptionLines.length * lineH + 12 + lineItemCount * lineH + 22;
     const pricingBoxBottom = y - pricingH;
     page.drawRectangle({
       x: margin,
@@ -2124,14 +2129,46 @@ Thanks,`;
     y -= 4;
     drawAmountRow("Materials", materials, margin + 12, margin + contentW - 12, y);
     y -= lineH;
+
     drawAmountRow("Labor", labor, margin + 12, margin + contentW - 12, y);
     y -= lineH;
+
     if (disposal > 0) {
       drawAmountRow("Tear-Off & Disposal", disposal, margin + 12, margin + contentW - 12, y);
       y -= lineH;
     }
 
-    y = pricingBoxBottom - 12;
+    y -= 4;
+
+    page.drawLine({
+      start: { x: margin + 12, y },
+      end: { x: margin + contentW - 12, y },
+      thickness: 0.6,
+      color: rgb(0.80, 0.81, 0.84),
+    });
+
+    y -= 14;
+
+    page.drawText("Total Investment", {
+      x: margin + 12,
+      y,
+      size: 11,
+      font: fontBold,
+      color: rgb(0.14, 0.16, 0.2),
+    });
+
+    const totalValueText = fmtMoney(price);
+    const totalValueWidth = fontBold.widthOfTextAtSize(totalValueText, 15);
+
+    page.drawText(totalValueText, {
+      x: margin + contentW - 12 - totalValueWidth,
+      y: y - 1,
+      size: 15,
+      font: fontBold,
+      color: rgb(0.08, 0.1, 0.14),
+    });
+
+    y = pricingBoxBottom - 10;
 
     // ----- Scope -----
     page.drawText("Scope", {
@@ -2193,25 +2230,20 @@ Thanks,`;
     }
     y -= 14;
 
-    // ----- Bottom close (only TOTAL on page) -----
+    // ----- Bottom close -----
     page.drawLine({
       start: { x: margin, y },
       end: { x: pageW - margin, y },
-      thickness: 1,
-      color: rgb(0.62, 0.64, 0.68),
+      thickness: 0.75,
+      color: rgb(0.72, 0.74, 0.78),
     });
-    y -= 28;
-    page.drawText(`TOTAL: ${fmtMoney(price)}`, {
-      x: margin,
-      y,
-      size: 26,
-      font: fontBold,
-      color: rgb(0.06, 0.08, 0.12),
-    });
-    y -= lineH + 16;
+
+    y -= 22;
+
     const scheduleCtaText = dataOverride
       ? "To approve and schedule your installation, click the approval button in your email."
       : (useGptWording && gptScheduleCta?.trim()) ? gptScheduleCta.trim() : "To approve and schedule your installation, click the approval button in your email.";
+
     for (const ln of wrap(scheduleCtaText, font, 10, contentW)) {
       page.drawText(ln, {
         x: margin,
@@ -2222,7 +2254,11 @@ Thanks,`;
       });
       y -= lineH;
     }
+
+    y -= 4;
+
     const closeLine2 = "Questions? Reply to this email or call us.";
+
     for (const ln of wrap(closeLine2, font, 10, contentW)) {
       page.drawText(ln, {
         x: margin,

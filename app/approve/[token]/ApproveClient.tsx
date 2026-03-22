@@ -20,9 +20,9 @@ export default function ApproveClient(props: Props) {
   const alreadyApproved = !!approvedAt;
 
   const title = useMemo(() => {
-    if (!exists) return "Roofing Estimate Approval";
-    if (alreadyApproved) return "Estimate Approved";
-    return "Review & Approve Your Estimate";
+    if (!exists) return "Roofing Proposal Approval";
+    if (alreadyApproved) return "You're All Set";
+    return "Your Roofing Proposal Is Ready";
   }, [exists, alreadyApproved]);
 
   async function handleApprove() {
@@ -54,7 +54,7 @@ export default function ApproveClient(props: Props) {
         {/* HEADER */}
         <div className="px-6 py-5 border-b border-gray-200">
           <div className="text-[11px] font-semibold uppercase tracking-wide text-emerald-600">
-            Roofing Estimate
+            Roofing Proposal
           </div>
           <div className="mt-1 text-xl font-semibold">
             {title}
@@ -62,8 +62,8 @@ export default function ApproveClient(props: Props) {
           <div className="mt-2 text-sm text-gray-600">
             {exists
               ? alreadyApproved
-                ? "Your approval has been received."
-                : "Review your estimate and approve to move forward."
+                ? "We've received your approval and will contact you shortly to confirm scheduling."
+                : "Review your proposal below and approve to move forward with scheduling."
               : "This approval link is invalid or expired."}
           </div>
         </div>
@@ -107,7 +107,12 @@ export default function ApproveClient(props: Props) {
                   </div>
                   <div className="mt-1 text-2xl font-bold text-emerald-700">
                     {typeof props.total === "number"
-                      ? `$${props.total.toLocaleString()}`
+                      ? new Intl.NumberFormat("en-US", {
+                          style: "currency",
+                          currency: "USD",
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        }).format(props.total)
                       : "—"}
                   </div>
                 </div>
@@ -117,28 +122,33 @@ export default function ApproveClient(props: Props) {
               {/* APPROVED STATE */}
               {alreadyApproved ? (
                 <div className="mt-6 text-sm text-emerald-700">
-                  ✅ Approved — We'll contact you shortly to schedule your project.
+                  ✅ We've received your approval and will contact you shortly to confirm scheduling and next steps.
                 </div>
               ) : (
                 <>
                   {/* WHAT HAPPENS NEXT */}
                   <div className="mt-6 border border-gray-200 rounded-xl p-4">
                     <div className="text-sm font-semibold">
-                      What happens next
+                      What happens after you approve
                     </div>
-                    <div className="mt-1 text-sm text-gray-600">
-                      Once approved, we'll contact you to schedule your start date.
+                    <div className="mt-2 space-y-1 text-sm text-gray-600">
+                      <div>• We'll reach out to confirm scheduling</div>
+                      <div>• We'll go over timing and any final details</div>
+                      <div>• We'll get your project moving forward</div>
                     </div>
                   </div>
 
                   {/* CTA */}
                   <div className="mt-7">
+                    <div className="mb-3 text-center text-xs text-gray-500">
+                      No payment required to approve
+                    </div>
                     <button
                       onClick={handleApprove}
                       disabled={isApproving}
                       className="w-full rounded-xl bg-emerald-600 py-3 text-sm font-semibold text-white hover:bg-emerald-500 disabled:opacity-60"
                     >
-                      {isApproving ? "Approving..." : "Approve & Move Forward"}
+                      {isApproving ? "Approving..." : "Approve Proposal"}
                     </button>
                   </div>
                 </>

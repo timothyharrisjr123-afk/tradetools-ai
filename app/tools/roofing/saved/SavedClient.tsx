@@ -880,6 +880,8 @@ type TxItem = {
   amountCents: number;
   whenIso?: string | null;
   meta?: string;
+  source?: "stripe" | "offline";
+  kind?: "summary" | "recorded";
 };
 
 function formatDateTime(iso?: string | null) {
@@ -887,6 +889,36 @@ function formatDateTime(iso?: string | null) {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
   return d.toLocaleString();
+}
+
+function formatPaymentMethodLabel(method?: string | null): string {
+  const rawMethod = String(method || "").trim().toLowerCase();
+  if (rawMethod === "cash_app") return "Cash App";
+  if (rawMethod === "cash") return "Cash";
+  if (rawMethod === "check") return "Check";
+  if (rawMethod === "zelle") return "Zelle";
+  if (rawMethod === "venmo") return "Venmo";
+  if (rawMethod === "bank_transfer") return "Bank transfer";
+  if (rawMethod === "insurance") return "Insurance";
+  if (rawMethod === "other") return "Offline";
+  if (rawMethod) return rawMethod.replace(/\b\w/g, (c) => c.toUpperCase());
+  return "Offline";
+}
+
+function formatStageLabel(stage?: string | null): "deposit" | "payment" {
+  return stage === "deposit" ? "deposit" : "payment";
+}
+
+function formatOfflinePaymentLabel(method?: string | null, stage?: string | null): string {
+  return `${formatPaymentMethodLabel(method)} (${formatStageLabel(stage)})`;
+}
+
+function formatStripePaymentLabel(kind: "deposit" | "payment"): string {
+  return kind === "deposit" ? "Stripe deposit" : "Stripe payment";
+}
+
+function formatStripeSummaryMeta(kind: "deposit" | "payment"): string {
+  return kind === "deposit" ? "Stripe total collected" : "Stripe total collected";
 }
 
 function formatCents(cents: number) {
@@ -2130,7 +2162,7 @@ function SavedEstimateCard({
 
         <div className="mt-6 flex items-center justify-between border-t border-white/5 pt-6">
           {/* LEFT: Total + payment summary */}
-          <div className="flex flex-col gap-0">
+          <div className="flex max-w-[360px] flex-col gap-0">
             <div className="flex items-baseline gap-3">
               <span className="text-[10px] tracking-[0.25em] text-white/40">
                 TOTAL
@@ -2147,17 +2179,17 @@ function SavedEstimateCard({
               const fullPaidCents = paymentState?.fullAmountCents || 0;
               const offlineTx = ((paymentState as { offlineTransactions?: Array<{ stage?: string; amountCents?: number; method?: string; notes?: string }> } | undefined)?.offlineTransactions || []) as { stage?: string; amountCents?: number; method?: string; notes?: string }[];
               return collectedCents > 0 || remainingCents > 0 ? (
-                <div className="mt-2 text-sm text-white/80 space-y-1">
+                <div className="mt-3 space-y-1.5 text-sm text-white/78">
                   {depositPaidCents > 0 && (
-                    <div className="flex items-center justify-between">
-                      <span>Card payment</span>
-                      <span className="font-medium">{formatCentsToCurrency(depositPaidCents)}</span>
+                    <div className="flex items-start justify-between gap-4">
+                      <span className="min-w-0 text-white/68">{formatStripePaymentLabel("deposit")}</span>
+                      <span className="shrink-0 font-semibold tabular-nums text-white">{formatCentsToCurrency(depositPaidCents)}</span>
                     </div>
                   )}
                   {fullPaidCents > 0 && (
-                    <div className="flex items-center justify-between">
-                      <span>Card payment</span>
-                      <span className="font-medium">{formatCentsToCurrency(fullPaidCents)}</span>
+                    <div className="flex items-start justify-between gap-4">
+                      <span className="min-w-0 text-white/68">{formatStripePaymentLabel("payment")}</span>
+                      <span className="shrink-0 font-semibold tabular-nums text-white">{formatCentsToCurrency(fullPaidCents)}</span>
                     </div>
                   )}
                   {Array.isArray(offlineTx) &&
@@ -2165,47 +2197,27 @@ function SavedEstimateCard({
                       const amt = t?.amountCents || 0;
                       if (!amt) return null;
 
-                      const rawMethod = String(t?.method || "").trim().toLowerCase();
-                      const methodLabel =
-                        rawMethod === "cash_app"
-                          ? "Cash App"
-                          : rawMethod === "cash"
-                            ? "Cash"
-                            : rawMethod === "check"
-                              ? "Check"
-                              : rawMethod === "zelle"
-                                ? "Zelle"
-                                : rawMethod === "venmo"
-                                  ? "Venmo"
-                                  : rawMethod === "bank_transfer"
-                                    ? "Bank transfer"
-                                    : rawMethod === "insurance"
-                                      ? "Insurance"
-                                      : rawMethod === "other"
-                                        ? "Offline"
-                                        : rawMethod
-                                          ? rawMethod.replace(/\b\w/g, (c) => c.toUpperCase())
-                                          : "Offline";
-
-                      const label = `${methodLabel} (${t?.stage === "deposit" ? "deposit" : "payment"})`;
+                      const label = formatOfflinePaymentLabel(t?.method, t?.stage);
 
                       return (
-                        <div key={`${t?.stage || "offline"}-${idx}`} className="flex items-center justify-between">
-                          <span>{label}</span>
-                          <span className="font-medium">{formatCentsToCurrency(amt)}</span>
+                        <div key={`${t?.stage || "offline"}-${idx}`} className="flex items-start justify-between gap-4">
+                          <span className="min-w-0 text-white/68">{label}</span>
+                          <span className="shrink-0 font-semibold tabular-nums text-white">{formatCentsToCurrency(amt)}</span>
                         </div>
                       );
                     })}
                   {!isFullyPaid && remainingCents > 0 && (
                     <div
-                      className={`flex items-center justify-between rounded-lg px-2 py-1 ${
+                      className={`mt-2 flex items-center justify-between rounded-xl px-3 py-2 ${
                         isCompletedWithBalance
                           ? "bg-amber-500/10 text-amber-100 ring-1 ring-inset ring-amber-400/20"
-                          : ""
+                          : "bg-white/[0.04] ring-1 ring-inset ring-white/8"
                       }`}
                     >
-                      <span>{isCompletedWithBalance ? "Final payment due" : "Remaining balance"}</span>
-                      <span className="font-semibold">{formatCentsToCurrency(remainingCents)}</span>
+                      <span className={`${isCompletedWithBalance ? "text-amber-100" : "text-white/78"}`}>
+                        {isCompletedWithBalance ? "Final payment due" : "Remaining balance"}
+                      </span>
+                      <span className="font-semibold tabular-nums text-white">{formatCentsToCurrency(remainingCents)}</span>
                     </div>
                   )}
                 </div>
@@ -2219,7 +2231,7 @@ function SavedEstimateCard({
               const toneClass = marginToneClass(marginPct);
 
               return (
-                <div className="mt-3 rounded-xl border border-white/10 bg-white/5 px-4 py-4">
+                <div className="mt-4 rounded-xl border border-white/10 bg-white/5 px-4 py-4">
                   <div className="flex items-center justify-between">
                     <span className="text-xs uppercase tracking-wide text-white/60">Profit</span>
                     <span className={`text-sm font-semibold ${toneClass}`}>
@@ -2881,19 +2893,23 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
 
     if (depositCents > 0) {
       tx.push({
-        label: "Stripe deposit",
+        label: formatStripePaymentLabel("deposit"),
         amountCents: depositCents,
-        whenIso: ps?.depositPaidAt,
-        meta: ps?.lastCheckoutSessionId ? `Session ${String(ps.lastCheckoutSessionId).slice(-8)}` : "",
+        whenIso: null,
+        meta: formatStripeSummaryMeta("deposit"),
+        source: "stripe",
+        kind: "summary",
       });
     }
 
     if (fullCents > 0) {
       tx.push({
-        label: "Stripe payment",
+        label: formatStripePaymentLabel("payment"),
         amountCents: fullCents,
-        whenIso: ps?.fullPaidAt,
-        meta: ps?.lastPaymentIntentId ? `PI ${String(ps.lastPaymentIntentId).slice(-8)}` : "",
+        whenIso: null,
+        meta: formatStripeSummaryMeta("payment"),
+        source: "stripe",
+        kind: "summary",
       });
     }
 
@@ -2902,29 +2918,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
       const amt = Number(t?.amountCents || 0);
       if (!amt) continue;
 
-      const rawMethod = String(t?.method || "").trim().toLowerCase();
-      const methodLabel =
-        rawMethod === "cash_app"
-          ? "Cash App"
-          : rawMethod === "cash"
-            ? "Cash"
-            : rawMethod === "check"
-              ? "Check"
-              : rawMethod === "zelle"
-                ? "Zelle"
-                : rawMethod === "venmo"
-                  ? "Venmo"
-                  : rawMethod === "bank_transfer"
-                    ? "Bank transfer"
-                    : rawMethod === "insurance"
-                      ? "Insurance"
-                      : rawMethod === "other"
-                        ? "Offline"
-                        : rawMethod
-                          ? rawMethod.replace(/\b\w/g, (c) => c.toUpperCase())
-                          : "Offline";
-
-      const label = `${methodLabel} (${t?.stage === "deposit" ? "deposit" : "payment"})`;
+      const label = formatOfflinePaymentLabel(t?.method, t?.stage);
 
       const notes = t?.notes ? String(t.notes) : "";
       const meta = notes || "";
@@ -2934,6 +2928,8 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
         amountCents: amt,
         whenIso: t?.recordedAt,
         meta,
+        source: "offline",
+        kind: "recorded",
       });
     }
 
@@ -5039,18 +5035,25 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
                             <div className="text-sm font-semibold text-white/90">{t.label}</div>
-                            {t.label.toLowerCase().includes("stripe") ? (
+                            {t.source === "stripe" ? (
                               <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-semibold text-white/70">
                                 Stripe
                               </span>
-                            ) : t.label.toLowerCase().includes("offline") ? (
+                            ) : t.source === "offline" ? (
                               <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-semibold text-white/70">
                                 Offline
                               </span>
                             ) : null}
+                            {t.kind === "summary" ? (
+                              <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-semibold text-white/70">
+                                Summary
+                              </span>
+                            ) : null}
                           </div>
                           <div className="mt-0.5 text-xs text-white/60">
-                            {formatDateTime(t.whenIso)}{t.meta ? ` • ${t.meta}` : ""}
+                            {t.kind === "summary"
+                              ? (t.meta || "Summary")
+                              : [formatDateTime(t.whenIso), t.meta].filter(Boolean).join(" • ")}
                           </div>
                         </div>
                         <div className="shrink-0 text-sm font-semibold text-white">

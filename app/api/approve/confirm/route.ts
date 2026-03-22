@@ -22,7 +22,12 @@ function safeEmail(v: unknown): string {
 function fmtMoney(n: unknown): string {
   const num = typeof n === "number" ? n : Number(n);
   if (!Number.isFinite(num)) return "";
-  return num.toLocaleString(undefined, { style: "currency", currency: "USD" });
+  return num.toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 }
 
 export async function POST(req: Request) {
