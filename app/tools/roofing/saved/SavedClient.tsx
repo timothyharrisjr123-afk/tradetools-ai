@@ -1078,6 +1078,42 @@ const getStage = (e: any) => {
   return "estimate";
 };
 
+function hasRecordedPaymentForEstimate(
+  estimateId: string,
+  paymentStates: Record<string, PaymentStateLite | null | undefined>
+): boolean {
+  return collectedCentsFromPaymentState(paymentStates[estimateId] ?? undefined) > 0;
+}
+
+function hasSchedulingOverrideForEstimate(estimate: any): boolean {
+  return normalizePaymentNote(estimate?.paymentNote) != null;
+}
+
+function isAlreadyScheduledPipelineStatus(est: any): boolean {
+  const s = normalizePipelineStatus(getStage(est));
+  return s === "scheduled" || s === "in_progress" || s === "paid";
+}
+
+function hasSavedScheduleDateOnEstimate(est: any): boolean {
+  return !!getScheduledDateKeyFromEstimate(est);
+}
+
+function canFinalizeScheduledForEstimate(
+  est: any,
+  paymentStates: Record<string, PaymentStateLite | null | undefined>,
+  opts?: { pendingScheduleDateIso?: string | null }
+): boolean {
+  if (!est) return false;
+  if (isAlreadyScheduledPipelineStatus(est)) return true;
+  const hasDate =
+    (opts?.pendingScheduleDateIso != null && String(opts.pendingScheduleDateIso).trim() !== "") ||
+    hasSavedScheduleDateOnEstimate(est);
+  if (!hasDate) return false;
+  if (hasRecordedPaymentForEstimate(est.id, paymentStates)) return true;
+  if (hasSchedulingOverrideForEstimate(est)) return true;
+  return false;
+}
+
 const getApprovalLink = (e: any): string | null => {
   if (e?.approvalUrl) return e.approvalUrl;
   if (e?.approvalToken) return `/approve/${e.approvalToken}`;
@@ -1279,7 +1315,17 @@ function Stepper({ status }: { status: string }) {
   );
 }
 
-function PipelineBar({ status, isViewed }: { status: string; isViewed?: boolean }) {
+function PipelineBar({
+  status,
+  isViewed,
+  hasRealPayment,
+  hasSchedulingOverride,
+}: {
+  status: string;
+  isViewed?: boolean;
+  hasRealPayment?: boolean;
+  hasSchedulingOverride?: boolean;
+}) {
   const steps = ["estimate", "sent_pending", "approved", "deposit_paid", "scheduled", "in_progress", "paid"] as const;
   const labels: Record<(typeof steps)[number], string> = {
     estimate: "Estimate",
@@ -1301,6 +1347,16 @@ function PipelineBar({ status, isViewed }: { status: string; isViewed?: boolean 
   const activeIndex = idx === -1 ? 0 : idx;
   const pct = (activeIndex / (steps.length - 1)) * 100;
 
+  const depositIndex = steps.indexOf("deposit_paid");
+  const scheduledIndex = steps.indexOf("scheduled");
+
+  const isPastDeposit = activeIndex >= scheduledIndex;
+
+  const depositWasBypassed =
+    isPastDeposit &&
+    !hasRealPayment &&
+    hasSchedulingOverride;
+
   return (
     <div className="mt-4">
       {/* labels row */}
@@ -1308,7 +1364,21 @@ function PipelineBar({ status, isViewed }: { status: string; isViewed?: boolean 
         {steps.map((s, i) => {
           const done = i <= activeIndex;
           return (
-            <span key={s} className={done ? "text-white/70" : "text-white/50"}>
+            <span
+              key={s}
+              className={
+                s === "deposit_paid" && depositWasBypassed
+                  ? "text-white/40"
+                  : done
+                    ? "text-white/70"
+                    : "text-white/50"
+              }
+              title={
+                s === "deposit_paid" && depositWasBypassed
+                  ? "Deposit not recorded (override used)"
+                  : undefined
+              }
+            >
               {labels[s]}
             </span>
           );
@@ -1328,12 +1398,18 @@ function PipelineBar({ status, isViewed }: { status: string; isViewed?: boolean 
         {steps.map((s, i) => {
           const done = i <= activeIndex;
           const isPendingStep = s === "sent_pending";
-          const dotClass =
-            done
-              ? isPendingStep && isViewed
-                ? "bg-teal-400 shadow-[0_0_6px_rgba(45,212,191,0.6)]"
-                : "bg-emerald-400"
-              : "bg-white/10";
+          let dotClass;
+
+          if (s === "deposit_paid" && depositWasBypassed) {
+            dotClass = "bg-white/10 opacity-60"; // dimmed
+          } else {
+            dotClass =
+              done
+                ? isPendingStep && isViewed
+                  ? "bg-teal-400 shadow-[0_0_6px_rgba(45,212,191,0.6)]"
+                  : "bg-emerald-400"
+                : "bg-white/10";
+          }
           return (
             <span
               key={s}
@@ -2346,7 +2422,12 @@ function SavedEstimateCard({
           </div>
         </div>
 
-        <PipelineBar status={getStage(estimate)} isViewed={isSent && !!viewedAt} />
+        <PipelineBar
+          status={getStage(estimate)}
+          isViewed={isSent && !!viewedAt}
+          hasRealPayment={hasRealPayment}
+          hasSchedulingOverride={!!paymentNote}
+        />
 
         <div className="mt-6 flex items-center justify-between border-t border-white/5 pt-6">
           {/* LEFT: Total + payment summary */}
@@ -3242,7 +3323,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
     >;
     setEstimates: (v: RoofingEstimate[]) => void;
   }) {
-    const { id, nextStatus, estimate: est, variant, paymentStates, setEstimates } = args;
+    const { id, nextStatus, estimate: est, paymentStates, setEstimates } = args;
     const statusTyped = nextStatus as
       | "estimate"
       | "sent"
@@ -3254,78 +3335,47 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
       | "paid";
 
     if (statusTyped === "scheduled") {
-      if (variant === "scheduledBoard") {
-        if (est && !est.scheduledStartDate) {
-          setToast("Pick a start date to schedule.");
-          setTimeout(() => setToast(null), 2500);
-          setSchedulingForId(id);
-          setScheduleStartDate((est?.scheduledStartDate || "").trim() || new Date().toISOString().slice(0, 10));
-          const existingArrival = String(est?.scheduledArrivalWindow || "").trim();
-          if (existingArrival) {
-            if (isStandardArrivalValue(existingArrival) || existingArrival === "Anytime") {
-              setScheduleArrivalWindow(existingArrival);
-              setScheduleCustomArrivalWindow("");
-            } else {
-              setScheduleArrivalWindow(ARRIVAL_CUSTOM);
-              setScheduleCustomArrivalWindow(existingArrival);
-            }
-          } else {
-            setScheduleArrivalWindow("");
+      if (!est || !hasSavedScheduleDateOnEstimate(est)) {
+        setToast("Pick a start date to schedule.");
+        setTimeout(() => setToast(null), 2500);
+        setSchedulingForId(id);
+        setScheduleStartDate((est?.scheduledStartDate || "").trim() || new Date().toISOString().slice(0, 10));
+        const existingArrival = String(est?.scheduledArrivalWindow || "").trim();
+        if (existingArrival) {
+          if (isStandardArrivalValue(existingArrival) || existingArrival === "Anytime") {
+            setScheduleArrivalWindow(existingArrival);
             setScheduleCustomArrivalWindow("");
-          }
-          setScheduleNotes((est?.scheduleNotes || "").trim());
-          return;
-        }
-      } else {
-        const ps = paymentStates[id];
-        const depositAmountCents = ps?.depositAmountCents || 0;
-        const fullAmountCents = ps?.fullAmountCents || 0;
-        const offlineCents =
-          (ps as { offlineAmountCents?: number })?.offlineAmountCents ??
-          (ps as { offlinePaidCents?: number })?.offlinePaidCents ??
-          sumOfflineCents(ps ?? undefined) ??
-          0;
-        const collectedCents = depositAmountCents + fullAmountCents + offlineCents;
-        const hasRealPayment = collectedCents > 0;
-
-        if (est && !est.scheduledStartDate) {
-          setToast("Pick a start date to schedule.");
-          setTimeout(() => setToast(null), 2500);
-          setSchedulingForId(id);
-          setScheduleStartDate((est?.scheduledStartDate || "").trim() || new Date().toISOString().slice(0, 10));
-          const existingArrival = String(est?.scheduledArrivalWindow || "").trim();
-          if (existingArrival) {
-            if (isStandardArrivalValue(existingArrival) || existingArrival === "Anytime") {
-              setScheduleArrivalWindow(existingArrival);
-              setScheduleCustomArrivalWindow("");
-            } else {
-              setScheduleArrivalWindow(ARRIVAL_CUSTOM);
-              setScheduleCustomArrivalWindow(existingArrival);
-            }
           } else {
-            setScheduleArrivalWindow("");
-            setScheduleCustomArrivalWindow("");
+            setScheduleArrivalWindow(ARRIVAL_CUSTOM);
+            setScheduleCustomArrivalWindow(existingArrival);
           }
-          setScheduleNotes((est?.scheduleNotes || "").trim());
-          return;
+        } else {
+          setScheduleArrivalWindow("");
+          setScheduleCustomArrivalWindow("");
         }
-        if (est?.scheduledStartDate && !hasRealPayment) {
-          setToast("Schedule date is saved. Record payment before moving the job to Scheduled.");
-          setTimeout(() => setToast(null), 2500);
-          return;
-        }
-        if (est?.scheduledStartDate && hasRealPayment) {
-          markSavedEstimateScheduled(
-            id,
-            est.scheduledStartDate,
-            est.scheduleNotes || undefined,
-            est.scheduledArrivalWindow || undefined
-          );
-          setEstimates(getNormalizedEstimates());
-          setToast("Scheduled ✅");
-          setTimeout(() => setToast(null), 2500);
-          return;
-        }
+        setScheduleNotes((est?.scheduleNotes || "").trim());
+        return;
+      }
+      if (!canFinalizeScheduledForEstimate(est, paymentStates)) {
+        setToast(
+          "Schedule date is saved. Record payment or add a payment note before moving the job to Scheduled."
+        );
+        setTimeout(() => setToast(null), 2500);
+        return;
+      }
+      const scheduleDateKey =
+        getScheduledDateKeyFromEstimate(est) || String(est?.scheduledStartDate || "").trim() || null;
+      if (scheduleDateKey) {
+        markSavedEstimateScheduled(
+          id,
+          scheduleDateKey,
+          est.scheduleNotes || undefined,
+          est.scheduledArrivalWindow || undefined
+        );
+        setEstimates(getNormalizedEstimates());
+        setToast("Scheduled ✅");
+        setTimeout(() => setToast(null), 2500);
+        return;
       }
     }
 
@@ -4709,7 +4759,6 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                         : arrivalWindowRaw;
                     const notes = String(scheduleNotes || "").trim();
                     setTimeout(() => {
-                      const isPostDeposit = e.status === "deposit_paid" || e.status === "paid" || e.status === "scheduled" || e.status === "in_progress";
                       const scheduleFields = {
                         scheduledStartDate: iso,
                         scheduledArrivalWindow: arrivalWindow,
@@ -4718,7 +4767,10 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                         scheduleInfo: { ...((e as any).scheduleInfo ?? {}), date: iso, time: arrivalWindow || "Time TBD" },
                         schedule: { ...((e as any).schedule ?? {}), date: iso },
                       };
-                      if (isPostDeposit) {
+                      const canFinalize = canFinalizeScheduledForEstimate(e, paymentStates, {
+                        pendingScheduleDateIso: iso,
+                      });
+                      if (canFinalize) {
                         markSavedEstimateScheduled(e.id, iso, notes || undefined, arrivalWindow || undefined);
                         updateSavedEstimate(e.id, {
                           ...(e.status !== "paid" ? { status: "scheduled" as const } : {}),
@@ -4734,7 +4786,9 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                       } else {
                         updateSavedEstimate(e.id, scheduleFields);
                         setEstimates(getNormalizedEstimates());
-                        setToast("Schedule date saved. Record deposit, then schedule the job.");
+                        setToast(
+                          "Schedule date is saved. Record payment or add a payment note before moving the job to Scheduled."
+                        );
                         setTimeout(() => setToast(null), 3500);
                       }
                       setSchedulingForId(null);
