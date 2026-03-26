@@ -1025,6 +1025,33 @@ const STATUS_OPTIONS: Array<{ value: string; label: string }> = [
   { value: "paid", label: "Completed" },
 ];
 
+type SavedPaymentNote = "check_pending" | "insurance_pending" | "financing_approved" | "waived_deposit";
+
+const PAYMENT_NOTE_VALUES = new Set<string>([
+  "check_pending",
+  "insurance_pending",
+  "financing_approved",
+  "waived_deposit",
+]);
+
+const PAYMENT_NOTE_OPTIONS: Array<{ value: SavedPaymentNote; label: string }> = [
+  { value: "check_pending", label: "Check pending" },
+  { value: "insurance_pending", label: "Insurance pending" },
+  { value: "financing_approved", label: "Financing approved" },
+  { value: "waived_deposit", label: "Waived deposit" },
+];
+
+function formatPaymentNoteLabel(note: SavedPaymentNote): string {
+  const row = PAYMENT_NOTE_OPTIONS.find((o) => o.value === note);
+  return row?.label ?? note;
+}
+
+function normalizePaymentNote(raw: unknown): SavedPaymentNote | null {
+  if (raw == null || raw === "") return null;
+  const s = String(raw);
+  return PAYMENT_NOTE_VALUES.has(s) ? (s as SavedPaymentNote) : null;
+}
+
 const statusToStage = (s?: string) => {
   const v = normalizePipelineStatus(s);
   if (v === "estimate") return "estimate";
@@ -1862,6 +1889,7 @@ function SavedEstimateCard({
   onLoad,
   onDelete,
   onStatusChange,
+  onPaymentNoteChange,
   onSend,
   onSchedule,
   onRecordPayment,
@@ -1892,6 +1920,7 @@ function SavedEstimateCard({
   onLoad: (e: any) => void;
   onDelete: (id: string) => void;
   onStatusChange: (id: string, status: any) => void;
+  onPaymentNoteChange?: (estimateId: string, paymentNote: SavedPaymentNote | null) => void;
   onSend?: (e: any) => void;
   onSchedule?: (e: any) => void;
   onRecordPayment?: (e: any) => void;
@@ -1940,6 +1969,7 @@ function SavedEstimateCard({
   const isFullyPaid = totalCents > 0 && totalCollected >= totalCents;
   const remainingCents = Math.max(0, totalCents - totalCollected);
   const collectedCents = totalCollected;
+  const hasRealPayment = collectedCents > 0;
   const paidSoFarCents = (depositPaid || 0) + (fullPaid || 0) + (offlinePaid || 0);
   const hasAnyPayment = paidSoFarCents > 0;
   const hasRemaining = remainingCents > 0;
@@ -2007,8 +2037,12 @@ function SavedEstimateCard({
   const profitInfo = calcProfitInfo(estimate);
   const visibleFollowUpInfo = followUpHidden ? undefined : followUpInfo;
   const visibleFollowUpReason = followUpHidden ? null : followUpReason;
+  const paymentNote = normalizePaymentNote(estimate?.paymentNote);
   const [followUpMenuOpen, setFollowUpMenuOpen] = useState(false);
   const followUpMenuRef = useRef<HTMLDivElement | null>(null);
+  const [statusMenuOpen, setStatusMenuOpen] = useState(false);
+  const [depositReasonStep, setDepositReasonStep] = useState<"idle" | "pick_reason">("idle");
+  const statusMenuRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
     function handleDocMouseDown(ev: MouseEvent) {
       if (!followUpMenuOpen) return;
@@ -2019,6 +2053,19 @@ function SavedEstimateCard({
     document.addEventListener("mousedown", handleDocMouseDown);
     return () => document.removeEventListener("mousedown", handleDocMouseDown);
   }, [followUpMenuOpen]);
+  useEffect(() => {
+    function handleDocMouseDown(ev: MouseEvent) {
+      if (!statusMenuOpen) return;
+      const target = ev.target as Node | null;
+      if (statusMenuRef.current && target && statusMenuRef.current.contains(target)) return;
+      setStatusMenuOpen(false);
+    }
+    document.addEventListener("mousedown", handleDocMouseDown);
+    return () => document.removeEventListener("mousedown", handleDocMouseDown);
+  }, [statusMenuOpen]);
+  useEffect(() => {
+    if (!statusMenuOpen) setDepositReasonStep("idle");
+  }, [statusMenuOpen]);
   return (
     <div
       className={`group relative rounded-3xl border border-white/12 bg-gradient-to-b from-slate-900/70 to-slate-950/40 p-6 transition-all duration-300
@@ -2070,6 +2117,14 @@ function SavedEstimateCard({
     {visibleFollowUpInfo.reason}
   </span>
 )}
+              {paymentNote ? (
+                <span
+                  className="inline-flex items-center rounded-full bg-sky-500/12 px-2.5 py-1 text-[11px] font-semibold text-sky-100 ring-1 ring-inset ring-sky-400/25"
+                  title={formatPaymentNoteLabel(paymentNote)}
+                >
+                  {formatPaymentNoteLabel(paymentNote)}
+                </span>
+              ) : null}
 
             </div>
 
@@ -2140,20 +2195,153 @@ function SavedEstimateCard({
                 </span>
               </div>
             ) : (
-              <select
-                className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-semibold text-white/80 outline-none hover:bg-white/[0.06]"
-                value={getStage(estimate) || "estimate"}
-                onChange={(ev) => {
-                  const raw = ev.target.value;
-                  onStatusChange(estimate.id, raw === "pending" ? "sent_pending" : raw);
-                }}
-              >
-                {STATUS_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
+              <div className="relative mt-2" ref={statusMenuRef}>
+                <button
+                  type="button"
+                  onClick={() => setStatusMenuOpen((v) => !v)}
+                  className="inline-flex max-w-full items-center gap-2 rounded-full border border-white/12 bg-white/[0.06] px-3 py-1.5 text-xs font-semibold text-white/85 ring-1 ring-inset ring-white/8 transition hover:border-white/18 hover:bg-white/[0.09]"
+                  aria-haspopup="menu"
+                  aria-expanded={statusMenuOpen}
+                >
+                  <span className="max-w-[200px] truncate text-left">
+                    {getDisplayStage(getStage(estimate) || "estimate")}
+                  </span>
+                  <span className="shrink-0 text-[10px] text-white/45" aria-hidden>
+                    ▾
+                  </span>
+                </button>
+                {statusMenuOpen ? (
+                  <div className="absolute right-0 top-full z-50 mt-2 w-64 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-white/10 bg-[#0f172a] py-1 shadow-2xl backdrop-blur-xl">
+                    {depositReasonStep === "pick_reason" && onPaymentNoteChange ? (
+                      <>
+                        <div className="border-b border-white/10 px-3 py-2.5">
+                          <button
+                            type="button"
+                            onClick={() => setDepositReasonStep("idle")}
+                            className="text-[11px] font-semibold text-white/55 transition hover:text-white/90"
+                          >
+                            ← Back
+                          </button>
+                          <div className="mt-2.5 px-0.5">
+                            <div className="text-[10px] font-semibold uppercase tracking-wider text-amber-200/95">
+                              Reason required to move to Deposit
+                            </div>
+                            <p className="mt-1.5 text-[11px] leading-snug text-white/50">
+                              No recorded Stripe or offline payment yet. Select one reason to continue.
+                            </p>
+                          </div>
+                        </div>
+                        {PAYMENT_NOTE_OPTIONS.map((opt) => {
+                          const isNoteCurrent = paymentNote === opt.value;
+                          return (
+                            <button
+                              key={`deposit-reason-${opt.value}`}
+                              type="button"
+                              onClick={() => {
+                                onPaymentNoteChange(estimate.id, opt.value);
+                                onStatusChange(estimate.id, "deposit_paid");
+                                setDepositReasonStep("idle");
+                                setStatusMenuOpen(false);
+                              }}
+                              className={[
+                                "flex w-full items-center justify-between gap-2 px-4 py-2.5 text-left text-xs font-medium transition",
+                                isNoteCurrent
+                                  ? "bg-sky-500/12 text-sky-100 ring-1 ring-inset ring-sky-400/25"
+                                  : "text-white/80 hover:bg-white/[0.06]",
+                              ].join(" ")}
+                            >
+                              <span className="min-w-0 truncate">{opt.label}</span>
+                              {isNoteCurrent ? <span className="shrink-0 text-sky-300/90">✓</span> : null}
+                            </button>
+                          );
+                        })}
+                      </>
+                    ) : (
+                      <>
+                        {STATUS_OPTIONS.filter((opt) => opt.value !== "paid").map((opt) => {
+                          const raw = opt.value;
+                          const currentStage = getStage(estimate) || "estimate";
+                          const isCurrent = currentStage === raw;
+                          const nextStatus = raw === "pending" ? "sent_pending" : raw;
+                          return (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              onClick={() => {
+                                if (
+                                  nextStatus === "deposit_paid" &&
+                                  !hasRealPayment &&
+                                  onPaymentNoteChange
+                                ) {
+                                  setDepositReasonStep("pick_reason");
+                                  return;
+                                }
+                                onStatusChange(estimate.id, nextStatus);
+                                setDepositReasonStep("idle");
+                                setStatusMenuOpen(false);
+                              }}
+                              className={[
+                                "flex w-full items-center justify-between gap-2 px-4 py-2.5 text-left text-xs font-medium transition",
+                                isCurrent
+                                  ? "bg-emerald-500/12 text-emerald-200 ring-1 ring-inset ring-emerald-500/20"
+                                  : "text-white/80 hover:bg-white/[0.06]",
+                              ].join(" ")}
+                            >
+                              <span className="min-w-0 truncate">{opt.label}</span>
+                              {isCurrent ? <span className="shrink-0 text-emerald-400/90">✓</span> : null}
+                            </button>
+                          );
+                        })}
+                        {onPaymentNoteChange ? (
+                          <>
+                            <div className="my-1 border-t border-white/10" role="separator" />
+                            <div className="px-4 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-white/40">
+                              Payment Note
+                            </div>
+                            {PAYMENT_NOTE_OPTIONS.map((opt) => {
+                              const isNoteCurrent = paymentNote === opt.value;
+                              return (
+                                <button
+                                  key={opt.value}
+                                  type="button"
+                                  onClick={() => {
+                                    onPaymentNoteChange(estimate.id, opt.value);
+                                    setStatusMenuOpen(false);
+                                  }}
+                                  className={[
+                                    "flex w-full items-center justify-between gap-2 px-4 py-2 text-left text-xs font-medium transition",
+                                    isNoteCurrent
+                                      ? "bg-sky-500/12 text-sky-100 ring-1 ring-inset ring-sky-400/25"
+                                      : "text-white/80 hover:bg-white/[0.06]",
+                                  ].join(" ")}
+                                >
+                                  <span className="min-w-0 truncate">{opt.label}</span>
+                                  {isNoteCurrent ? <span className="shrink-0 text-sky-300/90">✓</span> : null}
+                                </button>
+                              );
+                            })}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onPaymentNoteChange(estimate.id, null);
+                                setStatusMenuOpen(false);
+                              }}
+                              className={[
+                                "flex w-full items-center justify-between gap-2 px-4 py-2 text-left text-xs font-medium transition",
+                                !paymentNote
+                                  ? "text-white/40 hover:bg-white/[0.04] hover:text-white/55"
+                                  : "text-white/65 hover:bg-white/[0.06] hover:text-white/85",
+                              ].join(" ")}
+                            >
+                              <span className="min-w-0 truncate">Clear payment note</span>
+                            </button>
+                          </>
+                        ) : null}
+                      </>
+                    )}
+                  </div>
+                ) : null}
+              </div>
             )}
           </div>
         </div>
@@ -2310,16 +2498,6 @@ function SavedEstimateCard({
                   </button>
                 )}
 
-                {status === "in_progress" && (
-                  <button
-                    type="button"
-                    onClick={() => onStatusChange?.(estimate.id, "paid")}
-                    className={`${actionBtn} rounded-full border border-emerald-400/20 bg-emerald-500/15 text-emerald-200 hover:bg-emerald-500/20`}
-                  >
-                    Mark Completed
-                  </button>
-                )}
-
                 {isFullyPaid && (
                   <div className={`${actionBtn} rounded-full border border-emerald-400/20 bg-emerald-500/10 text-emerald-200 font-semibold`}>
                     Paid ✅
@@ -2363,16 +2541,6 @@ function SavedEstimateCard({
                     : "Collect Full"}
                 </button>
               </div>
-            )}
-
-            {isFullyPaid && status !== "paid" && (
-              <button
-                type="button"
-                onClick={() => onStatusChange?.(estimate.id, "paid")}
-                className={`${actionBtn} rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white`}
-              >
-                Mark Completed
-              </button>
             )}
 
             {(visibleFollowUpInfo?.due || visibleFollowUpReason) && (
@@ -3052,6 +3220,146 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
       }
       return out;
     });
+  }
+
+  type SavedStatusTransitionVariant = "scheduledBoard" | "paymentGate";
+
+  function applyStatusTransition(args: {
+    id: string;
+    nextStatus: string;
+    estimate: any | undefined;
+    variant: SavedStatusTransitionVariant;
+    paymentStates: Record<
+      string,
+      | {
+          depositAmountCents?: number;
+          fullAmountCents?: number;
+          offlinePaidCents?: number;
+          offlineTransactions?: Array<{ stage?: string; amountCents?: number }>;
+        }
+      | null
+      | undefined
+    >;
+    setEstimates: (v: RoofingEstimate[]) => void;
+  }) {
+    const { id, nextStatus, estimate: est, variant, paymentStates, setEstimates } = args;
+    const statusTyped = nextStatus as
+      | "estimate"
+      | "sent"
+      | "sent_pending"
+      | "approved"
+      | "deposit_paid"
+      | "scheduled"
+      | "in_progress"
+      | "paid";
+
+    if (statusTyped === "scheduled") {
+      if (variant === "scheduledBoard") {
+        if (est && !est.scheduledStartDate) {
+          setToast("Pick a start date to schedule.");
+          setTimeout(() => setToast(null), 2500);
+          setSchedulingForId(id);
+          setScheduleStartDate((est?.scheduledStartDate || "").trim() || new Date().toISOString().slice(0, 10));
+          const existingArrival = String(est?.scheduledArrivalWindow || "").trim();
+          if (existingArrival) {
+            if (isStandardArrivalValue(existingArrival) || existingArrival === "Anytime") {
+              setScheduleArrivalWindow(existingArrival);
+              setScheduleCustomArrivalWindow("");
+            } else {
+              setScheduleArrivalWindow(ARRIVAL_CUSTOM);
+              setScheduleCustomArrivalWindow(existingArrival);
+            }
+          } else {
+            setScheduleArrivalWindow("");
+            setScheduleCustomArrivalWindow("");
+          }
+          setScheduleNotes((est?.scheduleNotes || "").trim());
+          return;
+        }
+      } else {
+        const ps = paymentStates[id];
+        const depositAmountCents = ps?.depositAmountCents || 0;
+        const fullAmountCents = ps?.fullAmountCents || 0;
+        const offlineCents =
+          (ps as { offlineAmountCents?: number })?.offlineAmountCents ??
+          (ps as { offlinePaidCents?: number })?.offlinePaidCents ??
+          sumOfflineCents(ps ?? undefined) ??
+          0;
+        const collectedCents = depositAmountCents + fullAmountCents + offlineCents;
+        const hasRealPayment = collectedCents > 0;
+
+        if (est && !est.scheduledStartDate) {
+          setToast("Pick a start date to schedule.");
+          setTimeout(() => setToast(null), 2500);
+          setSchedulingForId(id);
+          setScheduleStartDate((est?.scheduledStartDate || "").trim() || new Date().toISOString().slice(0, 10));
+          const existingArrival = String(est?.scheduledArrivalWindow || "").trim();
+          if (existingArrival) {
+            if (isStandardArrivalValue(existingArrival) || existingArrival === "Anytime") {
+              setScheduleArrivalWindow(existingArrival);
+              setScheduleCustomArrivalWindow("");
+            } else {
+              setScheduleArrivalWindow(ARRIVAL_CUSTOM);
+              setScheduleCustomArrivalWindow(existingArrival);
+            }
+          } else {
+            setScheduleArrivalWindow("");
+            setScheduleCustomArrivalWindow("");
+          }
+          setScheduleNotes((est?.scheduleNotes || "").trim());
+          return;
+        }
+        if (est?.scheduledStartDate && !hasRealPayment) {
+          setToast("Schedule date is saved. Record payment before moving the job to Scheduled.");
+          setTimeout(() => setToast(null), 2500);
+          return;
+        }
+        if (est?.scheduledStartDate && hasRealPayment) {
+          markSavedEstimateScheduled(
+            id,
+            est.scheduledStartDate,
+            est.scheduleNotes || undefined,
+            est.scheduledArrivalWindow || undefined
+          );
+          setEstimates(getNormalizedEstimates());
+          setToast("Scheduled ✅");
+          setTimeout(() => setToast(null), 2500);
+          return;
+        }
+      }
+    }
+
+    updateSavedEstimate(id, { status: statusTyped });
+    const refreshed = getNormalizedEstimates();
+    setEstimates(refreshed);
+    const updatedEstimate = refreshed.find((x) => x.id === id);
+    const updatedTotalCents = updatedEstimate ? toEstimateTotalCents(updatedEstimate) : 0;
+    const updatedPaymentState = updatedEstimate ? paymentStates[updatedEstimate.id] ?? undefined : undefined;
+    const updatedDepositCents = updatedPaymentState?.depositAmountCents || 0;
+    const updatedFullCents = updatedPaymentState?.fullAmountCents || 0;
+    const updatedOfflineCents =
+      (updatedPaymentState as { offlineAmountCents?: number })?.offlineAmountCents ??
+      (updatedPaymentState as { offlinePaidCents?: number })?.offlinePaidCents ??
+      sumOfflineCents(updatedPaymentState ?? undefined) ??
+      0;
+    const updatedCollectedCents = updatedDepositCents + updatedFullCents + updatedOfflineCents;
+    const updatedRemainingCents = Math.max(0, updatedTotalCents - updatedCollectedCents);
+    const label = statusTyped.charAt(0).toUpperCase() + statusTyped.slice(1);
+
+    setToast(
+      statusTyped === "approved"
+        ? "Approved ✅"
+        : statusTyped === "scheduled"
+          ? "Scheduled ✅"
+          : statusTyped === "in_progress"
+            ? "Crew on site ✅"
+            : statusTyped === "paid" && updatedRemainingCents > 0
+              ? "Job marked completed. Final payment still due."
+              : statusTyped === "paid"
+                ? "Completed & paid ✅"
+                : `Status updated → ${label}`
+    );
+    setTimeout(() => setToast(null), 2500);
   }
 
   async function sendFollowUpEmail(est: any, kind: "confirm" | "questions" | "deposit") {
@@ -3997,63 +4305,19 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                   const est = filtered.find((x) => x.id === id);
                   if (est) handleAction(est, "delete");
                 }}
+                onPaymentNoteChange={(id, note) => {
+                  updateSavedEstimate(id, { paymentNote: note });
+                  setEstimates(getNormalizedEstimates());
+                }}
                 onStatusChange={(id, status) => {
-                  const statusTyped = status as "estimate" | "sent" | "sent_pending" | "approved" | "deposit_paid" | "scheduled" | "in_progress" | "paid";
-                  if (statusTyped === "scheduled") {
-                    const est = filtered.find((x) => x.id === id);
-                    if (est && !est.scheduledStartDate) {
-                      setToast("Pick a start date to schedule.");
-                      setTimeout(() => setToast(null), 2500);
-                      setSchedulingForId(id);
-                      setScheduleStartDate((est?.scheduledStartDate || "").trim() || new Date().toISOString().slice(0, 10));
-                      const existingArrival = String(est?.scheduledArrivalWindow || "").trim();
-                      if (existingArrival) {
-                        if (isStandardArrivalValue(existingArrival) || existingArrival === "Anytime") {
-                          setScheduleArrivalWindow(existingArrival);
-                          setScheduleCustomArrivalWindow("");
-                        } else {
-                          setScheduleArrivalWindow(ARRIVAL_CUSTOM);
-                          setScheduleCustomArrivalWindow(existingArrival);
-                        }
-                      } else {
-                        setScheduleArrivalWindow("");
-                        setScheduleCustomArrivalWindow("");
-                      }
-                      setScheduleNotes((est?.scheduleNotes || "").trim());
-                      return;
-                    }
-                  }
-                  updateSavedEstimate(id, { status: statusTyped });
-                  const refreshed = getNormalizedEstimates();
-                  setEstimates(refreshed);
-                  const updatedEstimate = refreshed.find((x) => x.id === id);
-                  const updatedTotalCents = updatedEstimate ? toEstimateTotalCents(updatedEstimate) : 0;
-                  const updatedPaymentState = updatedEstimate ? paymentStates[updatedEstimate.id] ?? undefined : undefined;
-                  const updatedDepositCents = updatedPaymentState?.depositAmountCents || 0;
-                  const updatedFullCents = updatedPaymentState?.fullAmountCents || 0;
-                  const updatedOfflineCents =
-                    (updatedPaymentState as { offlineAmountCents?: number })?.offlineAmountCents ??
-                    (updatedPaymentState as { offlinePaidCents?: number })?.offlinePaidCents ??
-                    sumOfflineCents(updatedPaymentState ?? undefined) ??
-                    0;
-                  const updatedCollectedCents = updatedDepositCents + updatedFullCents + updatedOfflineCents;
-                  const updatedRemainingCents = Math.max(0, updatedTotalCents - updatedCollectedCents);
-                  const label = statusTyped.charAt(0).toUpperCase() + statusTyped.slice(1);
-
-                  setToast(
-                    statusTyped === "approved"
-                      ? "Approved ✅"
-                      : statusTyped === "scheduled"
-                        ? "Scheduled ✅"
-                        : statusTyped === "in_progress"
-                          ? "Crew on site ✅"
-                          : statusTyped === "paid" && updatedRemainingCents > 0
-                            ? "Job marked completed. Final payment still due."
-                            : statusTyped === "paid"
-                              ? "Completed & paid ✅"
-                              : `Status updated → ${label}`
-                  );
-                  setTimeout(() => setToast(null), 2500);
+                  applyStatusTransition({
+                    id,
+                    nextStatus: status,
+                    estimate: filtered.find((x) => x.id === id),
+                    variant: "scheduledBoard",
+                    paymentStates,
+                    setEstimates,
+                  });
                 }}
                 onSend={(est) => handleAction(est, "send")}
                 onSchedule={(est) => handleAction(est, "schedule")}
@@ -4210,70 +4474,19 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                           const est = group.items.find((x) => x.id === id);
                           if (est) handleAction(est, "delete");
                         }}
+                        onPaymentNoteChange={(id, note) => {
+                          updateSavedEstimate(id, { paymentNote: note });
+                          setEstimates(getNormalizedEstimates());
+                        }}
                         onStatusChange={(id, status) => {
-                          const statusTyped = status as "estimate" | "sent" | "sent_pending" | "approved" | "deposit_paid" | "scheduled" | "in_progress" | "paid";
-                          if (statusTyped === "scheduled") {
-                            const est = searchFiltered.find((x) => x.id === id);
-                            if (est?.status === "approved") {
-                              updateSavedEstimate(id, { status: "deposit_paid" });
-                              setEstimates(getNormalizedEstimates());
-                              setToast("Set to Deposit paid. Record deposit, then set to Scheduled.");
-                              setTimeout(() => setToast(null), 3500);
-                              return;
-                            }
-                            if (est && !est.scheduledStartDate) {
-                              setToast("Pick a start date to schedule.");
-                              setTimeout(() => setToast(null), 2500);
-                              setSchedulingForId(id);
-                              setScheduleStartDate((est?.scheduledStartDate || "").trim() || new Date().toISOString().slice(0, 10));
-                              const existingArrival = String(est?.scheduledArrivalWindow || "").trim();
-                              if (existingArrival) {
-                                if (isStandardArrivalValue(existingArrival) || existingArrival === "Anytime") {
-                                  setScheduleArrivalWindow(existingArrival);
-                                  setScheduleCustomArrivalWindow("");
-                                } else {
-                                  setScheduleArrivalWindow(ARRIVAL_CUSTOM);
-                                  setScheduleCustomArrivalWindow(existingArrival);
-                                }
-                              } else {
-                                setScheduleArrivalWindow("");
-                                setScheduleCustomArrivalWindow("");
-                              }
-                              setScheduleNotes((est?.scheduleNotes || "").trim());
-                              return;
-                            }
-                          }
-                          updateSavedEstimate(id, { status: statusTyped });
-                          const refreshed = getNormalizedEstimates();
-                          setEstimates(refreshed);
-                          const updatedEstimate = refreshed.find((x) => x.id === id);
-                          const updatedTotalCents = updatedEstimate ? toEstimateTotalCents(updatedEstimate) : 0;
-                          const updatedPaymentState = updatedEstimate ? paymentStates[updatedEstimate.id] ?? undefined : undefined;
-                          const updatedDepositCents = updatedPaymentState?.depositAmountCents || 0;
-                          const updatedFullCents = updatedPaymentState?.fullAmountCents || 0;
-                          const updatedOfflineCents =
-                            (updatedPaymentState as { offlineAmountCents?: number })?.offlineAmountCents ??
-                            (updatedPaymentState as { offlinePaidCents?: number })?.offlinePaidCents ??
-                            sumOfflineCents(updatedPaymentState ?? undefined) ??
-                            0;
-                          const updatedCollectedCents = updatedDepositCents + updatedFullCents + updatedOfflineCents;
-                          const updatedRemainingCents = Math.max(0, updatedTotalCents - updatedCollectedCents);
-                          const label = statusTyped.charAt(0).toUpperCase() + statusTyped.slice(1);
-
-                          setToast(
-                            statusTyped === "approved"
-                              ? "Approved ✅"
-                              : statusTyped === "scheduled"
-                                ? "Scheduled ✅"
-                                : statusTyped === "in_progress"
-                                  ? "Crew on site ✅"
-                                  : statusTyped === "paid" && updatedRemainingCents > 0
-                                    ? "Job marked completed. Final payment still due."
-                                    : statusTyped === "paid"
-                                      ? "Completed & paid ✅"
-                                      : `Status updated → ${label}`
-                          );
-                          setTimeout(() => setToast(null), 2500);
+                          applyStatusTransition({
+                            id,
+                            nextStatus: status,
+                            estimate: searchFiltered.find((x) => x.id === id),
+                            variant: "paymentGate",
+                            paymentStates,
+                            setEstimates,
+                          });
                         }}
                         onSend={(est) => handleAction(est, "send")}
                         onSchedule={(est) => handleAction(est, "schedule")}
@@ -4363,70 +4576,19 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                 const est = filtered.find((x) => x.id === id);
                 if (est) handleAction(est, "delete");
               }}
+              onPaymentNoteChange={(id, note) => {
+                updateSavedEstimate(id, { paymentNote: note });
+                setEstimates(getNormalizedEstimates());
+              }}
               onStatusChange={(id, status) => {
-                const statusTyped = status as "estimate" | "sent" | "sent_pending" | "approved" | "deposit_paid" | "scheduled" | "in_progress" | "paid";
-                if (statusTyped === "scheduled") {
-                  const est = filtered.find((x) => x.id === id);
-                  if (est?.status === "approved") {
-                    updateSavedEstimate(id, { status: "deposit_paid" });
-                    setEstimates(getNormalizedEstimates());
-                    setToast("Set to Deposit paid. Record deposit, then set to Scheduled.");
-                    setTimeout(() => setToast(null), 3500);
-                    return;
-                  }
-                  if (est && !est.scheduledStartDate) {
-                    setToast("Pick a start date to schedule.");
-                    setTimeout(() => setToast(null), 2500);
-                    setSchedulingForId(id);
-                    setScheduleStartDate((est?.scheduledStartDate || "").trim() || new Date().toISOString().slice(0, 10));
-                    const existingArrival = String(est?.scheduledArrivalWindow || "").trim();
-                    if (existingArrival) {
-                      if (isStandardArrivalValue(existingArrival) || existingArrival === "Anytime") {
-                        setScheduleArrivalWindow(existingArrival);
-                        setScheduleCustomArrivalWindow("");
-                      } else {
-                        setScheduleArrivalWindow(ARRIVAL_CUSTOM);
-                        setScheduleCustomArrivalWindow(existingArrival);
-                      }
-                    } else {
-                      setScheduleArrivalWindow("");
-                      setScheduleCustomArrivalWindow("");
-                    }
-                    setScheduleNotes((est?.scheduleNotes || "").trim());
-                    return;
-                  }
-                }
-                updateSavedEstimate(id, { status: statusTyped });
-                const refreshed = getNormalizedEstimates();
-                setEstimates(refreshed);
-                const updatedEstimate = refreshed.find((x) => x.id === id);
-                const updatedTotalCents = updatedEstimate ? toEstimateTotalCents(updatedEstimate) : 0;
-                const updatedPaymentState = updatedEstimate ? paymentStates[updatedEstimate.id] ?? undefined : undefined;
-                const updatedDepositCents = updatedPaymentState?.depositAmountCents || 0;
-                const updatedFullCents = updatedPaymentState?.fullAmountCents || 0;
-                const updatedOfflineCents =
-                  (updatedPaymentState as { offlineAmountCents?: number })?.offlineAmountCents ??
-                  (updatedPaymentState as { offlinePaidCents?: number })?.offlinePaidCents ??
-                  sumOfflineCents(updatedPaymentState ?? undefined) ??
-                  0;
-                const updatedCollectedCents = updatedDepositCents + updatedFullCents + updatedOfflineCents;
-                const updatedRemainingCents = Math.max(0, updatedTotalCents - updatedCollectedCents);
-                const label = statusTyped.charAt(0).toUpperCase() + statusTyped.slice(1);
-
-                setToast(
-                  statusTyped === "approved"
-                    ? "Approved ✅"
-                    : statusTyped === "scheduled"
-                      ? "Scheduled ✅"
-                      : statusTyped === "in_progress"
-                        ? "Crew on site ✅"
-                        : statusTyped === "paid" && updatedRemainingCents > 0
-                          ? "Job marked completed. Final payment still due."
-                          : statusTyped === "paid"
-                            ? "Completed & paid ✅"
-                            : `Status updated → ${label}`
-                );
-                setTimeout(() => setToast(null), 2500);
+                applyStatusTransition({
+                  id,
+                  nextStatus: status,
+                  estimate: filtered.find((x) => x.id === id),
+                  variant: "paymentGate",
+                  paymentStates,
+                  setEstimates,
+                });
               }}
               onSend={(est) => handleAction(est, "send")}
               onSchedule={(est) => handleAction(est, "schedule")}

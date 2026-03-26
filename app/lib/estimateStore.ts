@@ -26,6 +26,8 @@ export interface RoofingEstimate {
   laborPerSquare?: string;
   margin?: string;
   status?: "estimate" | "sent" | "sent_pending" | "approved" | "deposit_paid" | "scheduled" | "in_progress" | "paid";
+  /** Non-payment business context only; not a payment record. */
+  paymentNote?: "check_pending" | "insurance_pending" | "financing_approved" | "waived_deposit" | null;
   /** Set when customer opens approval page or email (synced from KV). */
   viewedAt?: string | null;
   sentTo?: string;
