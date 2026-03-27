@@ -2302,10 +2302,17 @@ Thanks,`;
   function formatPricePreview(n: number) {
     return `$${Math.round((n + Number.EPSILON) * 100) / 100}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   }
+
+  /** Plain-text email preview only — mirrors app/api/estimate/send/route.ts buildSubject (not sent from here). */
   function buildEmailSubjectPreview(meta: { customerName?: string; selectedTier: "Core" | "Enhanced" | "Premium" }) {
     const name = (meta.customerName || "").trim() || "Customer";
-    return `Roofing Estimate – ${name} – ${meta.selectedTier}`;
+    return `Your Roofing Proposal Is Ready – ${name} – ${meta.selectedTier}`;
   }
+
+  /**
+   * Plain-text email preview — mirrors route.ts buildBody + trailing APPROVAL LINK block on the text part.
+   * Uses a placeholder when no stored approvalUrl exists yet (matches post-send copy without faking a URL).
+   */
   function buildEmailBodyPreview(meta: {
     customerName?: string;
     selectedTier: "Core" | "Enhanced" | "Premium";
@@ -2317,40 +2324,60 @@ Thanks,`;
     packageDescription?: string;
     scheduleCta?: string;
     companyName?: string;
+    approvalUrl?: string | null;
   }) {
+    const APPROVAL_LINK_PLACEHOLDER = "[Approval link will be generated when sent]";
     const customerName = (meta.customerName || "").trim() || "there";
-    const lines: string[] = [];
-    lines.push(`Hi ${customerName},`);
-    lines.push("");
-    lines.push(`Attached is your ${meta.selectedTier} roofing estimate.`);
-    lines.push("");
-    lines.push("Project Address:");
+    const companyName = (meta.companyName || "").trim() || "Your Company";
     const addrLine1 = (meta.jobAddress1 || "").trim();
     const city = (meta.jobCity || "").trim();
     const state = (meta.jobState || "").trim();
     const zip = (meta.jobZip || "").trim();
     const cityStateZip = [city, state, zip].filter(Boolean).join(", ");
-    lines.push(addrLine1 || "(not provided)");
-    lines.push(cityStateZip || "");
+    const total = formatPricePreview(meta.suggestedPrice);
+    const packageDescription = (meta.packageDescription || "").trim() || "(see attached PDF)";
+    const scheduleCta = (meta.scheduleCta || "").trim();
+    const isApprovalStyleCta =
+      /reply\s*['"]?\s*approve\s*['"]?|approve.*below|click.*approve|use the button/i.test(scheduleCta);
+
+    const lines: string[] = [];
+    lines.push(`Hi ${customerName},`);
     lines.push("");
-    lines.push("Total Investment:");
-    lines.push(formatPricePreview(meta.suggestedPrice));
+    lines.push("Your roofing project proposal is ready for review.");
+    lines.push("");
+    lines.push(`Package: ${meta.selectedTier}`);
+    lines.push(`Total Investment: ${total}`);
+    lines.push("");
+    lines.push("Project Address:");
+    lines.push(addrLine1 || "(not provided)");
+    if (cityStateZip) lines.push(cityStateZip);
     lines.push("");
     lines.push("Scope Summary:");
-    lines.push((meta.packageDescription || "").trim() || "(see attached PDF)");
+    lines.push(packageDescription);
     lines.push("");
-    if ((meta.scheduleCta || "").trim()) {
-      lines.push((meta.scheduleCta || "").trim());
+
+    if (scheduleCta && !isApprovalStyleCta) {
+      lines.push(scheduleCta);
       lines.push("");
     }
-    lines.push("This estimate is valid for 30 days from the date issued.");
+
+    const linkForText = (meta.approvalUrl && String(meta.approvalUrl).trim()) || APPROVAL_LINK_PLACEHOLDER;
+    lines.push("Approve your estimate:");
+    lines.push(linkForText);
     lines.push("");
-    lines.push("If you have any questions, feel free to reply directly to this email.");
+    lines.push("Use the approval link to confirm and we'll contact you to schedule next steps for your project.");
+    lines.push("");
+
+    lines.push("This proposal is valid for 30 days from the date issued.");
+    lines.push("");
+    lines.push("Questions? Reply directly to this email and our team will help right away.");
     lines.push("");
     lines.push("Thank you,");
-    const companyName = (meta.companyName || "").trim();
-    lines.push(companyName || "");
-    return lines.join("\n");
+    lines.push(companyName);
+
+    const baseText = lines.join("\n");
+    const approveBlockText = `\n\nAPPROVAL LINK:\n${linkForText}\n`;
+    return `${baseText}${approveBlockText}`;
   }
 
   const currentLoadedSavedId = loadSavedId ?? (hasMounted ? getCurrentLoadedSavedId() : null) ?? null;
@@ -2584,7 +2611,7 @@ Thanks,`;
   const previewSnapshot = loadSavedId ? getSavedEstimateById(loadSavedId) : null;
   const previewMeta = previewSnapshot
     ? {
-        customerName: (previewSnapshot.customerName || "").trim() || "there",
+        customerName: (previewSnapshot.customerName || "").trim(),
         selectedTier: previewSnapshot.selectedTier as "Core" | "Enhanced" | "Premium",
         jobAddress1: (previewSnapshot.jobAddress1 || "").trim() || undefined,
         jobCity: (previewSnapshot.jobCity || "").trim() || undefined,
@@ -2594,9 +2621,10 @@ Thanks,`;
         packageDescription: (gptPackageDescription || "").trim(),
         scheduleCta: (gptScheduleCta || "").trim(),
         companyName: (companyProfile?.companyName || "").trim() || undefined,
+        approvalUrl: (previewSnapshot.approvalUrl || "").trim() || undefined,
       }
     : {
-        customerName: (customerName || "").trim() || "there",
+        customerName: (customerName || "").trim(),
         selectedTier: selectedTierLabel as "Core" | "Enhanced" | "Premium",
         jobAddress1: (jobAddress1 || "").trim() || undefined,
         jobCity: (jobCity || "").trim() || undefined,
@@ -2606,6 +2634,7 @@ Thanks,`;
         packageDescription: (gptPackageDescription || "").trim(),
         scheduleCta: (gptScheduleCta || "").trim(),
         companyName: (companyProfile?.companyName || "").trim() || undefined,
+        approvalUrl: undefined,
       };
 
   const handlePreviewPdf = async () => {
@@ -4405,9 +4434,18 @@ Thanks,`;
                         <span className="text-xs text-white/60">{showEmailPreviewPanel ? "Hide" : "Show"}</span>
                       </button>
                       {showEmailPreviewPanel && (
-                        <div className="mt-3">
-                          <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3 text-sm text-white/80 whitespace-pre-wrap">
-                            {buildEmailBodyPreview(previewMeta) || "—"}
+                        <div className="mt-3 space-y-3">
+                          <div>
+                            <div className="text-[11px] text-white/50 mb-1">Subject</div>
+                            <div className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white/90">
+                              {buildEmailSubjectPreview(previewMeta)}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-[11px] text-white/50 mb-1">Body (plain text, as sent)</div>
+                            <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3 text-sm text-white/80 whitespace-pre-wrap">
+                              {buildEmailBodyPreview(previewMeta) || "—"}
+                            </div>
                           </div>
                         </div>
                       )}
