@@ -2105,8 +2105,18 @@ function SavedEstimateCard({
     statusStr === "sent_pending";
   const showApprovalActions = hasApproval && isSentLike;
   const awaitingApproval = isAwaitingApproval(estimate, status);
-  const addr = estimate.address || estimate.jobAddress || estimate.jobAddress1;
-  const addrExtra = [estimate.city ?? estimate.jobCity, estimate.state ?? estimate.jobState, estimate.zip ?? estimate.jobZip].filter(Boolean).join(", ");
+  const savedCardAddressDisplay = (() => {
+    const fromAddress = (estimate.address || "").trim();
+    if (fromAddress) return fromAddress;
+    const base = (estimate.jobAddress || estimate.jobAddress1 || "").trim();
+    const locality = [estimate.city ?? estimate.jobCity, estimate.state ?? estimate.jobState, estimate.zip ?? estimate.jobZip]
+      .filter(Boolean)
+      .join(", ");
+    if (base && locality) return `${base}, ${locality}`;
+    if (base) return base;
+    if (locality) return locality;
+    return "";
+  })();
   const actionBtn =
     "inline-flex items-center justify-center rounded-xl px-3 py-1.5 text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed";
   const followUpReason = followUpInfo?.due ? followUpInfo.reason : null;
@@ -2238,8 +2248,7 @@ function SavedEstimateCard({
             </div>
 
             <div className="mt-1 text-sm text-white/45 leading-relaxed">
-              {addr || "No address"}
-              {addrExtra ? `, ${addrExtra}` : ""}
+              {savedCardAddressDisplay || "No address"}
             </div>
 
             <div className="mt-2 text-sm text-white/60">

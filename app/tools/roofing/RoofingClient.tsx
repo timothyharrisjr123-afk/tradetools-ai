@@ -3347,12 +3347,6 @@ Thanks,`;
             </motion.div>
           </header>
 
-          {process.env.NODE_ENV !== "production" ? (
-            <div className="mb-2 mt-3 text-xs text-white/60">
-              DEV: restoring = {String(isRestoringRef.current)} | loadSavedId = {String(loadSavedId ?? "—")}
-            </div>
-          ) : null}
-
           <div className="mt-5">
             <div className="mt-4 w-full">
               <RoofingTabs active="estimate" />
@@ -3540,6 +3534,16 @@ Thanks,`;
                       type="text"
                       value={jobCity}
                       onChange={(e) => setJobCity(e.target.value)}
+                      onBlur={(e) => {
+                        const cleaned = e.target.value
+                          .replace(/[^a-zA-Z\s.'-]/g, "")
+                          .replace(/\s+/g, " ")
+                          .trim();
+
+                        if (cleaned !== jobCity) {
+                          setJobCity(cleaned);
+                        }
+                      }}
                       placeholder="City"
                       autoComplete="off"
                       autoCorrect="off"
