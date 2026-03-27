@@ -2356,7 +2356,7 @@ function SavedEstimateCard({
                       </>
                     ) : (
                       <>
-                        {STATUS_OPTIONS.filter((opt) => opt.value !== "paid").map((opt) => {
+                        {STATUS_OPTIONS.map((opt) => {
                           const raw = opt.value;
                           const currentStage = getStage(estimate) || "estimate";
                           const isCurrent = currentStage === raw;
