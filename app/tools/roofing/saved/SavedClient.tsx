@@ -2114,6 +2114,23 @@ function SavedEstimateCard({
   const visibleFollowUpInfo = followUpHidden ? undefined : followUpInfo;
   const visibleFollowUpReason = followUpHidden ? null : followUpReason;
   const paymentNote = normalizePaymentNote(estimate?.paymentNote);
+
+  const showDepositRecordedPill =
+    hasRealPayment &&
+    showDepositPaid &&
+    !isFullyPaid;
+
+  const showOverrideDepositHelper =
+    (resolvedStatus === "scheduled" ||
+      resolvedStatus === "in_progress" ||
+      resolvedStatus === "paid") &&
+    !hasRealPayment &&
+    !!paymentNote;
+
+  const overrideDepositHelperText = showOverrideDepositHelper
+    ? `Deposit pending — ${formatPaymentNoteLabel(paymentNote)}`
+    : null;
+
   const [followUpMenuOpen, setFollowUpMenuOpen] = useState(false);
   const followUpMenuRef = useRef<HTMLDivElement | null>(null);
   const [statusMenuOpen, setStatusMenuOpen] = useState(false);
@@ -2193,12 +2210,20 @@ function SavedEstimateCard({
     {visibleFollowUpInfo.reason}
   </span>
 )}
-              {paymentNote ? (
+              {paymentNote && !hasRealPayment ? (
                 <span
                   className="inline-flex items-center rounded-full bg-sky-500/12 px-2.5 py-1 text-[11px] font-semibold text-sky-100 ring-1 ring-inset ring-sky-400/25"
                   title={formatPaymentNoteLabel(paymentNote)}
                 >
                   {formatPaymentNoteLabel(paymentNote)}
+                </span>
+              ) : null}
+              {showDepositRecordedPill ? (
+                <span
+                  className="inline-flex items-center rounded-full bg-emerald-500/12 px-2.5 py-1 text-[11px] font-semibold text-emerald-200 ring-1 ring-inset ring-emerald-400/25"
+                  title="Deposit recorded"
+                >
+                  Deposit recorded
                 </span>
               ) : null}
 
@@ -2247,7 +2272,11 @@ function SavedEstimateCard({
                       : getDisplayStage(resolvedStatus)}
             </div>
 
-            {stageAgeText && (
+            {showOverrideDepositHelper ? (
+              <div className="mt-1 text-xs text-amber-200/80">
+                {overrideDepositHelperText}
+              </div>
+            ) : stageAgeText ? (
               <div className="text-xs text-white/50 mt-1">
                 {stageAgeText.startsWith("Deposit paid ") ? (
                   <>
@@ -2258,20 +2287,13 @@ function SavedEstimateCard({
                   stageAgeText
                 )}
               </div>
-            )}
+            ) : null}
 
             {estimate.approvedAt && status === "approved" && (
               <div className="mt-0.5 text-xs text-white/35">Approved {formatDatePretty(estimate.approvedAt)}</div>
             )}
 
-            {showRescheduleButton ? (
-              <div className="mt-2 flex items-center justify-end">
-                <span className="inline-flex items-center rounded-full border border-cyan-400/10 bg-cyan-500/10 px-3 py-1 text-xs font-semibold text-cyan-200/80">
-                  Scheduled job
-                </span>
-              </div>
-            ) : (
-              <div className="relative mt-2" ref={statusMenuRef}>
+            <div className="relative mt-2" ref={statusMenuRef}>
                 <button
                   type="button"
                   onClick={() => setStatusMenuOpen((v) => !v)}
@@ -2418,7 +2440,6 @@ function SavedEstimateCard({
                   </div>
                 ) : null}
               </div>
-            )}
           </div>
         </div>
 
