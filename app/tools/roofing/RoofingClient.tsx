@@ -3410,50 +3410,14 @@ Thanks,`;
             className="rounded-3xl border border-white/[0.14] bg-white/[0.08] backdrop-blur-2xl p-8 sm:p-10 shadow-[0_8px_32px_-6px_rgba(0,0,0,0.35),0_0_0_1px_rgba(255,255,255,0.07)] transition-all duration-300 ease-out lg:hover:-translate-y-2 lg:hover:shadow-[0_24px_56px_-12px_rgba(0,0,0,0.4),0_0_0_1px_rgba(255,255,255,0.09)]"
             aria-labelledby="inputs-heading"
           >
-            {/* Next steps */}
-            <div className="mb-6 rounded-3xl border border-white/10 bg-white/[0.04] p-4">
-              <div className="text-sm font-semibold text-white/90 mb-3">Next steps</div>
-              <div className="space-y-1.5 text-[11px] text-white/70">
-                <div className="flex items-center justify-between gap-2">
-                  <span>Job details</span>
-                  <span className={`rounded-full px-2 py-0.5 text-[10px] ${hasRoofArea && hasAddressBasics ? "bg-emerald-500/20 text-emerald-300" : "bg-white/10 text-white/60"}`}>
-                    {hasRoofArea && hasAddressBasics ? "Done" : "Needed"}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between gap-2">
-                  <span>Pricing</span>
-                  <span className={`rounded-full px-2 py-0.5 text-[10px] ${hasPrice ? "bg-emerald-500/20 text-emerald-300" : "bg-white/10 text-white/60"}`}>
-                    {hasPrice ? "Done" : "Needed"}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between gap-2">
-                  <span>AI Assist (Optional)</span>
-                  <span className={`rounded-full px-2 py-0.5 text-[10px] ${hasAIWording ? "bg-emerald-500/20 text-emerald-300" : "bg-white/10 text-white/60"}`}>
-                    {hasAIWording ? "Done" : "Optional"}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between gap-2">
-                  <span>Send</span>
-                  <span className={`rounded-full px-2 py-0.5 text-[10px] ${sendSuccess ? "bg-emerald-500/20 text-emerald-300" : "bg-white/10 text-white/60"}`}>
-                    {sendSuccess ? "Done" : "Needed"}
-                  </span>
-                </div>
-              </div>
-              <p className="mt-3 text-[11px] text-white/50">
-                {!hasRoofArea ? "Start with roof area + ZIP." : !hasPrice ? "Finish pricing to unlock the suggested price." : "Optional: generate AI wording, then send."}
-              </p>
-              <button
-                type="button"
-                onClick={() => aiAssistRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
-                className="mt-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold text-white/70 hover:bg-white/10"
-              >
-                Go to AI Assist
-              </button>
-            </div>
+            <div className="mb-6" />
 
             {/* Customer & Job */}
-            <div id="customer-job-section" className="mb-6 rounded-3xl border border-white/10 bg-white/[0.04] p-4 shadow-[0_10px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl">
-              <div className="text-sm font-semibold text-white/90">Customer & Job</div>
+            <div
+              id="customer-job-section"
+              className="mb-6 rounded-3xl border border-white/10 bg-white/[0.04] p-4 shadow-[0_10px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl"
+            >
+              <div className="text-sm font-semibold text-white/90">Step 1 — Customer & Job</div>
               <div className="text-xs text-white/60 mt-0.5">These details appear on the proposal and email.</div>
               <form autoComplete="off" className="mt-4 space-y-3">
                 <div className="space-y-1.5">
@@ -3472,7 +3436,7 @@ Thanks,`;
                     className="w-full rounded-2xl border border-white/15 bg-white/[0.07] px-4 py-3 text-white/95 placeholder:text-white/35 focus:outline-none focus:ring-2 focus:ring-blue-500/35 focus:border-white/25 text-sm"
                   />
                 </div>
-                <div className={"space-y-1.5" + (attentionField === "customerEmail" ? " rounded-2xl ring-2 ring-amber-400/30" : "")}>
+                <div className={"space-y-1.5" + (attentionField === "customerEmail" ? " rounded-2xl ring-2 ring-cyan-400/25 bg-cyan-400/[0.04] shadow-[0_0_0_1px_rgba(34,211,238,0.10),0_0_24px_rgba(34,211,238,0.08)]" : "")}>
                   <label htmlFor="customer-email" className="block text-sm font-medium text-slate-300">Customer Email</label>
                   <input
                     id="customer-email"
@@ -3517,6 +3481,10 @@ Thanks,`;
                     type="text"
                     value={jobAddress1}
                     onChange={(e) => setJobAddress1(e.target.value)}
+                    onBlur={(e) => {
+                      const cleaned = e.target.value.replace(/\s+/g, " ").trim();
+                      if (cleaned !== jobAddress1) setJobAddress1(cleaned);
+                    }}
                     placeholder="Street address"
                     autoComplete="new-password"
                     autoCorrect="off"
@@ -3547,7 +3515,7 @@ Thanks,`;
                       placeholder="City"
                       autoComplete="off"
                       autoCorrect="off"
-                      autoCapitalize="off"
+                      autoCapitalize="words"
                       spellCheck={false}
                       className="w-full rounded-2xl border border-white/15 bg-white/[0.07] px-4 py-3 text-white/95 placeholder:text-white/35 focus:outline-none focus:ring-2 focus:ring-blue-500/35 focus:border-white/25 text-sm"
                     />
@@ -3560,15 +3528,22 @@ Thanks,`;
                       type="text"
                       value={jobState}
                       onChange={(e) => setJobState(e.target.value)}
+                      onBlur={(e) => {
+                        const cleaned = e.target.value
+                          .replace(/[^a-zA-Z]/g, "")
+                          .toUpperCase()
+                          .trim();
+                        if (cleaned !== jobState) setJobState(cleaned);
+                      }}
                       placeholder="State"
                       autoComplete="off"
                       autoCorrect="off"
-                      autoCapitalize="off"
+                      autoCapitalize="characters"
                       spellCheck={false}
                       className="w-full rounded-2xl border border-white/15 bg-white/[0.07] px-4 py-3 text-white/95 placeholder:text-white/35 focus:outline-none focus:ring-2 focus:ring-blue-500/35 focus:border-white/25 text-sm"
                     />
                   </div>
-                  <div className="space-y-1.5">
+                  <div className="space-y-1.5 rounded-2xl transition-all duration-200">
                     <label htmlFor="customer-job-zip" className="flex items-center gap-1.5 text-sm font-medium text-slate-300">
                       Job ZIP
                       <TooltipIcon id="tip-job-zip" text="Drives preset pricing and appears on proposal and PDF." />
@@ -3644,15 +3619,22 @@ Thanks,`;
               </form>
             </div>
 
-            <h2
-              id="inputs-heading"
-              className="text-[11px] font-medium uppercase tracking-[0.2em] text-slate-400 mb-10"
-            >
-              Job details
-            </h2>
-
+            <div className="mb-6 border-t border-white/7 pt-6">
+              <h2
+                id="inputs-heading"
+                className="text-xs font-semibold tracking-wide text-white/80"
+              >
+                Step 2 — Job Details
+              </h2>
+            </div>
             <div className="space-y-6">
-              <div className={attentionField === "roofArea" ? "rounded-2xl ring-2 ring-amber-400/30" : ""}>
+              <div
+                className={
+                  attentionField === "roofArea"
+                    ? "rounded-2xl border border-white/12 bg-white/[0.045] p-2 transition-all duration-200"
+                    : "rounded-2xl p-2 transition-all duration-200"
+                }
+              >
                 <InputField
                   id="area"
                   label="Roof area"
@@ -4119,7 +4101,7 @@ Thanks,`;
             </div>
 
             {/* AI Assist (optional) */}
-            <div ref={aiAssistRef} className="mt-4 rounded-3xl border border-white/10 bg-white/[0.04] p-4 shadow-[0_10px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl">
+            <div ref={aiAssistRef} className="mt-10 pt-6 border-t border-white/10 rounded-3xl border border-white/10 bg-white/[0.04] p-4 shadow-[0_10px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl">
               {/* ===============================
                   SMART PROPOSAL ASSIST
               ================================ */}
@@ -4284,15 +4266,6 @@ Thanks,`;
                     rows={12}
                     className="mt-1 w-full resize-none rounded-2xl border border-white/10 bg-black/20 p-4 text-xs leading-relaxed text-white/80 focus:outline-none"
                   />
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
-                    <button
-                      type="button"
-                      disabled
-                      className="rounded-full bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-white/40 cursor-not-allowed"
-                    >
-                      Attach PDF (coming soon)
-                    </button>
-                  </div>
                 </div>
               )}
             </div>
