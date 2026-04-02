@@ -3939,8 +3939,15 @@ Thanks,`;
                 )}
               </div>
 
-              {/* Tear-Off & Disposal — inline */}
-              <div className="mt-8 pt-6 border-t border-white/10 space-y-4">
+              <div className="mt-12 pt-8 border-t border-white/10">
+                <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-5">
+                <div className="mb-6">
+                  <h2 className="text-sm font-semibold tracking-wide text-white/90">
+                    Step 3 — Job Setup
+                  </h2>
+                </div>
+                {/* Tear-Off & Disposal — inline */}
+                <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-[11px] font-medium uppercase tracking-[0.2em] text-slate-400 flex items-center">
@@ -4061,8 +4068,7 @@ Thanks,`;
                     </div>
                   </>
                 )}
-              </div>
-            </div>
+                </div>
 
             <div className="mt-6">
               <div className="flex items-center justify-between mb-1">
@@ -4098,6 +4104,9 @@ Thanks,`;
               <p className="mt-1 text-xs text-white/55">
                 This label appears on the proposal and PDF.
               </p>
+            </div>
+            </div>
+            </div>
             </div>
 
             {/* AI Assist (optional) */}

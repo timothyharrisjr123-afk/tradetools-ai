@@ -1,0 +1,150 @@
+                            <option value="threePlus">3+ Story</option>
+                          </select>
+                          <div className="mt-1 text-xs text-white/60">
+                            Adds: <span className="text-white">+{pctMultiplier(getStoriesMultiplier(guidedStories, { twoStoryAdjPct, threePlusAdjPct, steepAdjPct }))}%</span>
+                          </div>
+                          <div className="mt-2">
+                            <label className="text-xs text-white/70">2-Story Adj (%)</label>
+                            <input
+                              value={String(twoStoryAdjPct)}
+                              onChange={(e) => {
+                                const next = e.target.value;
+                                if (!/^[0-9]*$/.test(next)) return;
+                                const n = next === "" ? 0 : Number(next);
+                                setTwoStoryAdjPct(clampInt(n, ADJ_PCT_MIN, ADJ_PCT_MAX));
+                              }}
+                              inputMode="numeric"
+                              className="mt-1 w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-white outline-none"
+                            />
+                            <label className="mt-2 block text-xs text-white/70">3+ Story Adj (%)</label>
+                            <input
+                              value={String(threePlusAdjPct)}
+                              onChange={(e) => {
+                                const next = e.target.value;
+                                if (!/^[0-9]*$/.test(next)) return;
+                                const n = next === "" ? 0 : Number(next);
+                                setThreePlusAdjPct(clampInt(n, ADJ_PCT_MIN, ADJ_PCT_MAX));
+                              }}
+                              inputMode="numeric"
+                              className="mt-1 w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-white outline-none"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="text-xs text-white/70">Walkability</label>
+                          <select
+                            value={guidedWalkable}
+                            onChange={(e) => setGuidedWalkable(e.target.value as GuidedWalkable)}
+                            className="mt-1 w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-white outline-none"
+                          >
+                            <option value="walkable">Walkable</option>
+                            <option value="steep">Steep</option>
+                          </select>
+                          <div className="mt-1 text-xs text-white/60">
+                            Adds: <span className="text-white">+{pctMultiplier(getWalkableMultiplier(guidedWalkable, { twoStoryAdjPct, threePlusAdjPct, steepAdjPct }))}%</span>
+                          </div>
+                          <div className="mt-2">
+                            <label className="text-xs text-white/70">Steep Adj (%)</label>
+                            <input
+                              value={String(steepAdjPct)}
+                              onChange={(e) => {
+                                const next = e.target.value;
+                                if (!/^[0-9]*$/.test(next)) return;
+                                const n = next === "" ? 0 : Number(next);
+                                setSteepAdjPct(clampInt(n, ADJ_PCT_MIN, ADJ_PCT_MAX));
+                              }}
+                              inputMode="numeric"
+                              className="mt-1 w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-white outline-none"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="text-xs text-white/70">Explainable adjustments</div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-white/70">
+                            Total factor: <span className="text-white">x{guidedTotalMultiplier.toFixed(2)}</span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={resetGuidedDefaults}
+                            className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-white/80 hover:bg-white/[0.06]"
+                          >
+                            Reset Guided Defaults
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="mt-2 space-y-1">
+                        {guidedBreakdown.map((b) => (
+                          <div key={b.label} className="flex items-center justify-between text-xs">
+                            <div className="text-white/80">{b.label}</div>
+                            <div className="text-white">
+                              {b.pct === 0 ? "+0%" : `+${b.pct}%`}{" "}
+                              <span className="text-white/70">({fmtMoney(b.delta)})</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="mt-3 space-y-1 text-xs">
+                        <div className="flex items-center justify-between">
+                          <div className="text-white/70">Base Labor</div>
+                          <div className="text-white">{fmtMoney(guidedBaseLabor)}</div>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="text-white/70">Adjustments Total</div>
+                          <div className="text-white">{fmtMoney(guidedBreakdown.reduce((acc, b) => acc + (b.delta || 0), 0))}</div>
+                        </div>
+                        <div className="flex items-center justify-between border-t border-white/10 pt-2 text-sm">
+                          <div className="text-white/80">Guided Labor Total</div>
+                          <div className="text-white font-semibold">{fmtMoney(guidedLaborTotal)}</div>
+                        </div>
+                      </div>
+
+                      <div className="mt-2 text-[11px] text-white/50">
+                        Internal only (not shown to homeowner). Contractors can override anytime.
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {adjustedSquares > 0 && laborCostEffective === 0 && (
+                  <p className="mt-2 text-sm text-amber-300/90">⚠ Labor is currently $0. Most jobs include labor cost.</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <InputField
+                  id="margin"
+                  label="Profit margin"
+                  helper="Target margin on the job"
+                  value={margin}
+                  onChange={setMargin}
+                  unitChip="%"
+                  max={99}
+                  step="0.5"
+                  icon={<TrendingUp className="h-4 w-4" />}
+                />
+                {marginInvalid && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3"
+                  >
+                    <p className="text-xs text-amber-200/90">
+                      Margin must be under 100%. Suggested price cannot be
+                      calculated.
+                    </p>
+                  </motion.div>
+                )}
+              </div>
+
+              {/* Tear-Off & Disposal — inline */}
+              <div className="mt-8 pt-6 border-t border-white/10 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>

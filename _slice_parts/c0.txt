@@ -1,0 +1,150 @@
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="space-y-1.5">
+                    <label htmlFor="job-city" className="block text-sm font-medium text-slate-300">City</label>
+                    <input
+                      id="job-city"
+                      name="job_city_field"
+                      type="text"
+                      value={jobCity}
+                      onChange={(e) => setJobCity(e.target.value)}
+                      onBlur={(e) => {
+                        const cleaned = e.target.value
+                          .replace(/[^a-zA-Z\s.'-]/g, "")
+                          .replace(/\s+/g, " ")
+                          .trim();
+
+                        if (cleaned !== jobCity) {
+                          setJobCity(cleaned);
+                        }
+                      }}
+                      placeholder="City"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="words"
+                      spellCheck={false}
+                      className="w-full rounded-2xl border border-white/15 bg-white/[0.07] px-4 py-3 text-white/95 placeholder:text-white/35 focus:outline-none focus:ring-2 focus:ring-blue-500/35 focus:border-white/25 text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label htmlFor="job-state" className="block text-sm font-medium text-slate-300">State</label>
+                    <input
+                      id="job-state"
+                      name="job_state_field"
+                      type="text"
+                      value={jobState}
+                      onChange={(e) => setJobState(e.target.value)}
+                      onBlur={(e) => {
+                        const cleaned = e.target.value
+                          .replace(/[^a-zA-Z]/g, "")
+                          .toUpperCase()
+                          .trim();
+                        if (cleaned !== jobState) setJobState(cleaned);
+                      }}
+                      placeholder="State"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="characters"
+                      spellCheck={false}
+                      className="w-full rounded-2xl border border-white/15 bg-white/[0.07] px-4 py-3 text-white/95 placeholder:text-white/35 focus:outline-none focus:ring-2 focus:ring-blue-500/35 focus:border-white/25 text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1.5 rounded-2xl transition-all duration-200">
+                    <label htmlFor="customer-job-zip" className="flex items-center gap-1.5 text-sm font-medium text-slate-300">
+                      Job ZIP
+                      <TooltipIcon id="tip-job-zip" text="Drives preset pricing and appears on proposal and PDF." />
+                    </label>
+                    <input
+                      id="customer-job-zip"
+                      name="job_zip_field"
+                      type="text"
+                      inputMode="numeric"
+                      value={jobZip}
+                      onChange={(e) => setJobZip(sanitizeZipInput(e.target.value))}
+                      onBlur={() => {
+                        const sanitized = sanitizeZipInput(jobZip);
+                        if (sanitized !== jobZip) setJobZip(sanitized);
+                        if (sanitized.length === 5) tryApplyZipPreset(sanitized);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          const sanitized = sanitizeZipInput(jobZip);
+                          if (sanitized !== jobZip) setJobZip(sanitized);
+                          if (sanitized.length === 5) tryApplyZipPreset(sanitized);
+                        }
+                      }}
+                      placeholder="e.g. 73102"
+                      autoComplete="postal-code"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck={false}
+                      className="w-full rounded-2xl border border-white/15 bg-white/[0.07] px-4 py-3 text-white/95 placeholder:text-white/35 focus:outline-none focus:ring-2 focus:ring-blue-500/35 focus:border-white/25 text-sm"
+                    />
+                    {autofillFromZip && (
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-xs text-emerald-400/90">Auto-filled from ZIP defaults</span>
+                        {preAutofillSnapshot != null && (
+                          <button
+                            type="button"
+                            onClick={undoAutofill}
+                            className="text-xs font-medium text-blue-300 hover:text-blue-200 underline underline-offset-1"
+                          >
+                            Undo autofill
+                          </button>
+                        )}
+                      </div>
+                    )}
+                    {zipNoPresetMessage && jobZip.length === 5 && (
+                      <p className="text-xs text-slate-500">No defaults saved for this ZIP yet.</p>
+                    )}
+                    {jobZip.length === 5 && presetForCurrentZip != null && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setZipPresets((prev) => {
+                            if (!prev) return prev;
+                            const next = { ...prev };
+                            delete next[jobZip];
+                            if (typeof window !== "undefined") localStorage.setItem(STORAGE_KEY_ZIP_PRESETS, JSON.stringify(next));
+                            return next;
+                          });
+                          setZipClearedToast(true);
+                          setTimeout(() => setZipClearedToast(false), 2500);
+                          setAutofillFromZip(false);
+                          setPreAutofillSnapshot(null);
+                          setZipNoPresetMessage(true);
+                        }}
+                        className="text-xs font-medium text-slate-400 hover:text-slate-300 underline underline-offset-1"
+                      >
+                        Clear ZIP defaults
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </form>
+            </div>
+
+            <div className="mb-6 border-t border-white/7 pt-6">
+              <h2
+                id="inputs-heading"
+                className="text-xs font-semibold tracking-wide text-white/80"
+              >
+                Step 2 — Job Details
+              </h2>
+            </div>
+            <div className="space-y-6">
+              <div
+                className={
+                  attentionField === "roofArea"
+                    ? "rounded-2xl border border-white/12 bg-white/[0.045] p-2 transition-all duration-200"
+                    : "rounded-2xl p-2 transition-all duration-200"
+                }
+              >
+                <InputField
+                  id="area"
+                  label="Roof area"
+                  helper="Total footprint in square feet"
+                  value={area ?? ""}
+                  onChange={(v) => setArea(v.trim() === "" ? "" : String(Number(v) || 0))}
+                  unitChip="sq ft"
+                  icon={<Ruler className="h-4 w-4" />}
