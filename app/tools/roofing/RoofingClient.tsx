@@ -3619,15 +3619,17 @@ Thanks,`;
               </form>
             </div>
 
-            <div className="mb-6 border-t border-white/7 pt-6">
-              <h2
-                id="inputs-heading"
-                className="text-xs font-semibold tracking-wide text-white/80"
-              >
-                Step 2 — Job Details
-              </h2>
-            </div>
-            <div className="space-y-6">
+            <div className="mt-12 pt-8 border-t border-white/10">
+              <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-5">
+                <div className="mb-6">
+                  <h2
+                    id="inputs-heading"
+                    className="text-sm font-semibold tracking-wide text-white/90"
+                  >
+                    Step 2 — Materials
+                  </h2>
+                </div>
+                <div className="space-y-6">
               <div
                 className={
                   attentionField === "roofArea"
@@ -3711,6 +3713,17 @@ Thanks,`;
                   </div>
                 </motion.div>
               </div>
+                </div>
+              </div>
+            </div>
+
+              <div className="mt-12 pt-8 border-t border-white/10">
+                <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-5">
+                  <div className="mb-6">
+                    <h2 className="text-sm font-semibold tracking-wide text-white/90">
+                      Step 3 — Pricing
+                    </h2>
+                  </div>
               <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
@@ -3913,37 +3926,39 @@ Thanks,`;
                 )}
               </div>
 
-              <div className="space-y-2">
-                <InputField
-                  id="margin"
-                  label="Profit margin"
-                  helper="Target margin on the job"
-                  value={margin}
-                  onChange={setMargin}
-                  unitChip="%"
-                  max={99}
-                  step="0.5"
-                  icon={<TrendingUp className="h-4 w-4" />}
-                />
-                {marginInvalid && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3"
-                  >
-                    <p className="text-xs text-amber-200/90">
-                      Margin must be under 100%. Suggested price cannot be
-                      calculated.
-                    </p>
-                  </motion.div>
-                )}
+                  <div className="space-y-2">
+                    <InputField
+                      id="margin"
+                      label="Profit margin"
+                      helper="Target margin on the job"
+                      value={margin}
+                      onChange={setMargin}
+                      unitChip="%"
+                      max={99}
+                      step="0.5"
+                      icon={<TrendingUp className="h-4 w-4" />}
+                    />
+                    {marginInvalid && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3"
+                      >
+                        <p className="text-xs text-amber-200/90">
+                          Margin must be under 100%. Suggested price cannot be
+                          calculated.
+                        </p>
+                      </motion.div>
+                    )}
+                  </div>
+                </div>
               </div>
 
               <div className="mt-12 pt-8 border-t border-white/10">
                 <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-5">
                 <div className="mb-6">
                   <h2 className="text-sm font-semibold tracking-wide text-white/90">
-                    Step 3 — Job Setup
+                    Step 4 — Job Setup
                   </h2>
                 </div>
                 {/* Tear-Off & Disposal — inline */}
@@ -4104,7 +4119,6 @@ Thanks,`;
               <p className="mt-1 text-xs text-white/55">
                 This label appears on the proposal and PDF.
               </p>
-            </div>
             </div>
             </div>
             </div>
