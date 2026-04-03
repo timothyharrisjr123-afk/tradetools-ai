@@ -3955,171 +3955,245 @@ Thanks,`;
               </div>
 
               <div className="mt-12 pt-8 border-t border-white/10">
-                <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-5">
-                <div className="mb-6">
-                  <h2 className="text-sm font-semibold tracking-wide text-white/90">
-                    Step 4 — Job Setup
-                  </h2>
-                </div>
-                {/* Tear-Off & Disposal — inline */}
-                <div className="space-y-4">
-                <div className="flex items-center justify-between">
+                <div className="rounded-3xl border border-white/[0.12] bg-white/[0.03] p-5 shadow-[0_8px_32px_-14px_rgba(0,0,0,0.28)]">
+                <div className="space-y-7">
                   <div>
-                    <h3 className="text-[11px] font-medium uppercase tracking-[0.2em] text-slate-400 flex items-center">
-                      Tear-Off & Disposal (Old Roof Removal)
-                      <TooltipIcon id="tip-debris-section" text="Cost to remove old shingles and dump fees." />
-                    </h3>
-                    <p className="text-gray-400 text-sm mt-1">Includes removal and landfill disposal of existing roofing material.</p>
-                    <p className="text-xs text-slate-500 mt-1">We estimate tons from roof size and removal type. Use Advanced override if you already have a disposal quote.</p>
+                    <h2 className="text-[17px] font-semibold tracking-tight text-white">
+                      Step 4 — Finalize Job Setup
+                    </h2>
+                    <p className="mt-2 text-sm leading-relaxed text-white/64">
+                      Confirm job details before sending your proposal
+                    </p>
                   </div>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={includeDebrisRemoval}
-                    onClick={() => {
-                      setIncludeDebrisRemoval((v) => !v);
-                      markHelpSeenDebris();
-                    }}
-                    className="relative h-6 w-11 shrink-0 rounded-full border border-white/20 bg-white/10 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50 data-[state=checked]:bg-blue-500/40"
-                    style={{ backgroundColor: includeDebrisRemoval ? "rgba(59, 130, 246, 0.4)" : undefined }}
-                  >
-                    <span
-                      className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform"
-                      style={{ transform: includeDebrisRemoval ? "translateX(1.25rem)" : "translateX(0)" }}
-                    />
-                  </button>
-                </div>
-                {includeDebrisRemoval && (
-                  <>
-                    {!helpSeenDebris && (
-                      <div className="rounded-xl border border-blue-500/20 bg-blue-500/10 px-4 py-3 flex items-start justify-between gap-2">
-                        <p className="text-xs text-blue-200/90">Tip: If unsure, use Standard.</p>
+
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 space-y-4">
+                    <div className="flex items-center justify-between gap-2.5 rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                      <div className="min-w-0 flex-1 pr-1">
+                        <div className="text-sm font-semibold text-white">Old Roof Removal</div>
+                        <p className="mt-0.5 text-[11px] leading-snug text-white/48">
+                          Disposal for this proposal
+                        </p>
+                      </div>
+                      <div
+                        className="inline-flex shrink-0 items-center gap-1 rounded-[10px] border border-white/14 bg-white/[0.07] px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
+                        role="group"
+                        aria-label="Old roof removal"
+                      >
+                        <span className="text-[11px] font-semibold tabular-nums text-white/70">
+                          {includeDebrisRemoval ? "On" : "Off"}
+                        </span>
                         <button
                           type="button"
-                          onClick={markHelpSeenDebris}
-                          className="shrink-0 text-xs font-medium text-blue-300 hover:text-blue-200"
+                          role="switch"
+                          aria-checked={includeDebrisRemoval}
+                          onClick={() => {
+                            setIncludeDebrisRemoval((v) => !v);
+                            markHelpSeenDebris();
+                          }}
+                          className="relative h-7 w-[3.25rem] shrink-0 rounded-full border border-white/28 bg-white/[0.09] shadow-[inset_0_1px_2px_rgba(0,0,0,0.28)] transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-slate-950"
+                          style={{ backgroundColor: includeDebrisRemoval ? "rgba(94, 234, 212, 0.38)" : undefined }}
                         >
-                          Dismiss
+                          <span
+                            className="absolute top-0.5 left-0.5 h-6 w-6 rounded-full bg-white shadow-md ring-1 ring-black/10 transition-transform"
+                            style={{ transform: includeDebrisRemoval ? "translateX(1.5rem)" : "translateX(0)" }}
+                          />
                         </button>
                       </div>
-                    )}
-                    <div className="space-y-4" onFocus={markHelpSeenDebris}>
-                      <div className="space-y-2">
-                        <label className="flex items-center text-sm font-medium text-slate-300">
-                          Roof Type Being Removed
-                          <TooltipIcon id="tip-removal-type" text="Choose Standard if unsure." />
-                        </label>
-                        <p className="text-xs text-slate-500">Architectural shingles weigh more than standard 3-tab.</p>
-                        <select
-                          value={removalType}
-                          onChange={(e) => setRemovalType(e.target.value as DebrisRemovalType)}
-                          className="w-full rounded-2xl border border-white/10 bg-white/[0.11] px-4 py-3 text-white/95 focus:outline-none focus:ring-2 focus:ring-blue-500/35 focus:border-blue-400/30 text-sm"
-                        >
-                          <option value="standard" className="bg-slate-800 text-white">Standard (most roofs)</option>
-                          <option value="architectural" className="bg-slate-800 text-white">Architectural (heavier shingles)</option>
-                        </select>
-                      </div>
-                      <div className="space-y-2">
-                        <label className="flex items-center text-sm font-medium text-slate-300">
-                          Landfill Rate ($ per ton)
-                          <TooltipIcon id="tip-dump-fee" text="Found on your local landfill/transfer station rate sheet." />
-                        </label>
-                        <div className="flex rounded-2xl border border-white/10 bg-white/[0.11] focus-within:ring-2 focus-within:ring-blue-500/35">
-                          <span className="flex items-center pl-4 text-slate-500 text-sm">$</span>
-                          <input
-                            type="number"
-                            inputMode="decimal"
-                            min={0}
-                            value={dumpFeePerTon}
-                            onChange={(e) => setDumpFeePerTon(e.target.value)}
-                            placeholder="0"
-                            className="min-w-0 flex-1 border-0 bg-transparent py-3 pr-4 pl-2 text-white/95 placeholder:text-white/35 focus:outline-none [appearance:textfield]"
-                          />
-                        </div>
-                        {adjustedSquares > 0 && (
-                          <p className="text-xs text-slate-500/70 mt-2">
-                            Estimated tons: {debrisTons.toFixed(2)} (based on {adjustedSquares.toFixed(2)} squares × {weightPerSquare} lbs/sq ÷ 2000)
-                          </p>
-                        )}
-                      </div>
                     </div>
-                    <div className="mt-4">
-                      <button
-                        type="button"
-                        onClick={() => setShowDisposalAdvanced((prev) => !prev)}
-                        className="flex w-full items-center justify-between gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-left text-sm font-medium text-slate-400 transition-colors hover:bg-white/[0.06] hover:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-                      >
-                        <span>Advanced (optional)</span>
-                        <ChevronDown
-                          className={`h-4 w-4 shrink-0 transition-transform duration-200 ${showDisposalAdvanced ? "rotate-180" : ""}`}
-                        />
-                      </button>
-                      <motion.div
-                        initial={false}
-                        animate={{ height: showDisposalAdvanced ? "auto" : 0, opacity: showDisposalAdvanced ? 1 : 0 }}
-                        transition={{ duration: 0.25, ease: "easeInOut" }}
-                        className="overflow-hidden"
-                      >
-                        <div className="mt-3 space-y-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
-                          <label htmlFor="disposal-override" className="block text-sm font-medium text-slate-300">
-                            Override disposal total ($)
+
+                    {includeDebrisRemoval && (
+                      <div className="space-y-4">
+                        <div>
+                          <label className="mb-2 block text-xs font-medium uppercase tracking-[0.16em] text-white/45">
+                            Roof Type
                           </label>
-                          <p className="text-xs text-slate-500">Use your own disposal quote instead of the calculated cost.</p>
-                          <div className="flex rounded-2xl border border-white/10 bg-white/[0.08] focus-within:ring-2 focus-within:ring-blue-500/35">
-                            <span className="flex items-center pl-4 text-slate-500 text-sm">$</span>
+                          <div className="grid grid-cols-2 gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setRemovalType("standard")}
+                              className={`rounded-2xl border px-4 py-3 text-sm font-medium transition ${
+                                removalType === "standard"
+                                  ? "border-cyan-300/50 bg-cyan-400/10 text-white shadow-[0_0_0_1px_rgba(103,232,249,0.15)]"
+                                  : "border-white/10 bg-white/[0.03] text-white/70 hover:bg-white/[0.05]"
+                              }`}
+                            >
+                              Standard
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setRemovalType("architectural")}
+                              className={`rounded-2xl border px-4 py-3 text-sm font-medium transition ${
+                                removalType === "architectural"
+                                  ? "border-cyan-300/50 bg-cyan-400/10 text-white shadow-[0_0_0_1px_rgba(103,232,249,0.15)]"
+                                  : "border-white/10 bg-white/[0.03] text-white/70 hover:bg-white/[0.05]"
+                              }`}
+                            >
+                              Architectural
+                            </button>
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="mb-2 block text-xs font-medium uppercase tracking-[0.16em] text-white/45">
+                            Disposal Rate
+                          </label>
+                          <div className="flex items-center rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3 focus-within:ring-2 focus-within:ring-blue-500/30">
+                            <span className="mr-2 text-sm text-white/40">$</span>
                             <input
-                              id="disposal-override"
                               type="number"
                               inputMode="decimal"
                               min={0}
-                              value={disposalOverride}
-                              onChange={(e) => setDisposalOverride(e.target.value)}
-                              placeholder="Leave empty for calculated"
-                              className="min-w-0 flex-1 border-0 bg-transparent py-2.5 pr-4 pl-2 text-white/95 placeholder:text-white/35 focus:outline-none [appearance:textfield]"
+                              value={dumpFeePerTon}
+                              onChange={(e) => setDumpFeePerTon(e.target.value)}
+                              placeholder="0"
+                              className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-white/30 [appearance:textfield]"
                             />
+                            <span className="ml-2 text-xs text-white/40">/ ton</span>
                           </div>
                         </div>
-                      </motion.div>
+
+                        <div>
+                          <button
+                            type="button"
+                            onClick={() => setShowDisposalAdvanced((prev) => !prev)}
+                            className="flex w-full items-center justify-between gap-2 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-left text-sm font-medium text-white/70 transition hover:bg-white/[0.05]"
+                          >
+                            <span>Advanced</span>
+                            <ChevronDown
+                              className={`h-4 w-4 shrink-0 transition-transform duration-200 ${showDisposalAdvanced ? "rotate-180" : ""}`}
+                            />
+                          </button>
+
+                          <motion.div
+                            initial={false}
+                            animate={{ height: showDisposalAdvanced ? "auto" : 0, opacity: showDisposalAdvanced ? 1 : 0 }}
+                            transition={{ duration: 0.25, ease: "easeInOut" }}
+                            className="overflow-hidden"
+                          >
+                            <div className="mt-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                              <label htmlFor="disposal-override" className="mb-2 block text-xs font-medium uppercase tracking-[0.16em] text-white/45">
+                                Override Disposal Total
+                              </label>
+                              <div className="flex items-center rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3 focus-within:ring-2 focus-within:ring-blue-500/30">
+                                <span className="mr-2 text-sm text-white/40">$</span>
+                                <input
+                                  id="disposal-override"
+                                  type="number"
+                                  inputMode="decimal"
+                                  min={0}
+                                  value={disposalOverride}
+                                  onChange={(e) => setDisposalOverride(e.target.value)}
+                                  placeholder="Leave empty for calculated"
+                                  className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-white/30 [appearance:textfield]"
+                                />
+                              </div>
+                            </div>
+                          </motion.div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="-mt-1.5 space-y-3">
+                    <label className="block text-[15px] font-semibold tracking-tight text-white">
+                      Select Roofing System
+                    </label>
+
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                      <button
+                        type="button"
+                        onClick={() => setRoofingTier("standard")}
+                        className={`rounded-2xl border p-4 text-left transition ${
+                          roofingTier === "standard"
+                            ? "border-cyan-100/75 bg-gradient-to-b from-cyan-400/32 via-cyan-950/28 to-slate-950/55 shadow-[0_0_0_2px_rgba(34,211,238,0.62),0_0_32px_-2px_rgba(34,211,238,0.42),0_14px_44px_-12px_rgba(34,211,238,0.45)] ring-2 ring-cyan-300/50"
+                            : "border-white/[0.06] bg-white/[0.018] opacity-[0.84] hover:opacity-100 hover:border-white/11 hover:bg-white/[0.04]"
+                        }`}
+                      >
+                        <div className="mb-3 flex h-[50px] flex-col items-center justify-end">
+                          <div className="h-0 w-0 border-l-[34px] border-r-[34px] border-b-[18px] border-l-transparent border-r-transparent border-b-slate-400/45" />
+                          <div className="-mt-px h-5 w-[68px] rounded-b-md bg-gradient-to-b from-slate-400/12 to-white/[0.04] ring-1 ring-slate-400/15" />
+                        </div>
+                        <div className="text-[15px] font-semibold tracking-tight text-white">Core</div>
+                        <div className="mt-0.5 text-[11px] text-white/50">Reliable protection</div>
+                        <div className="mt-2.5 space-y-0.5 text-[10px] leading-snug text-white/38">
+                          <div>Architectural shingles</div>
+                          <div>Felt underlayment</div>
+                        </div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setRoofingTier("enhanced")}
+                        className={`rounded-2xl border p-4 text-left transition ${
+                          roofingTier === "enhanced"
+                            ? "border-cyan-100/75 bg-gradient-to-b from-cyan-400/32 via-cyan-950/28 to-slate-950/55 shadow-[0_0_0_2px_rgba(34,211,238,0.62),0_0_32px_-2px_rgba(34,211,238,0.42),0_14px_44px_-12px_rgba(34,211,238,0.45)] ring-2 ring-cyan-300/50"
+                            : "border-white/[0.06] bg-white/[0.018] opacity-[0.84] hover:opacity-100 hover:border-white/11 hover:bg-white/[0.04]"
+                        }`}
+                      >
+                        <div className="mb-3 flex h-[50px] flex-col items-center justify-end">
+                          <div className="h-0 w-0 border-l-[34px] border-r-[34px] border-b-[18px] border-l-transparent border-r-transparent border-b-sky-400/75" />
+                          <div className="-mt-px h-5 w-[68px] rounded-b-md bg-gradient-to-b from-sky-400/28 to-cyan-500/10 ring-1 ring-sky-400/35" />
+                        </div>
+                        <div className="text-[15px] font-semibold tracking-tight text-white">Enhanced</div>
+                        <div className="mt-0.5 text-[11px] text-white/50">Upgraded coverage</div>
+                        <div className="mt-2.5 space-y-0.5 text-[10px] leading-snug text-white/38">
+                          <div>Synthetic underlayment</div>
+                          <div>Ridge ventilation</div>
+                        </div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setRoofingTier("premium")}
+                        className={`rounded-2xl border p-4 text-left transition ${
+                          roofingTier === "premium"
+                            ? "border-cyan-100/75 bg-gradient-to-b from-cyan-400/32 via-cyan-950/28 to-slate-950/55 shadow-[0_0_0_2px_rgba(34,211,238,0.62),0_0_32px_-2px_rgba(34,211,238,0.42),0_14px_44px_-12px_rgba(34,211,238,0.45)] ring-2 ring-cyan-300/50"
+                            : "border-white/[0.06] bg-white/[0.018] opacity-[0.84] hover:opacity-100 hover:border-white/11 hover:bg-white/[0.04]"
+                        }`}
+                      >
+                        <div className="mb-3 flex h-[50px] flex-col items-center justify-end">
+                          <div className="h-0 w-0 border-l-[34px] border-r-[34px] border-b-[18px] border-l-transparent border-r-transparent border-b-amber-300/70" />
+                          <div className="-mt-px h-5 w-[68px] rounded-b-md bg-gradient-to-b from-amber-300/22 to-amber-900/15 ring-1 ring-amber-300/35" />
+                        </div>
+                        <div className="text-[15px] font-semibold tracking-tight text-white">Premium</div>
+                        <div className="mt-0.5 text-[11px] text-white/50">Best presentation</div>
+                        <div className="mt-2.5 space-y-0.5 text-[10px] leading-snug text-white/38">
+                          <div>Premium components</div>
+                          <div>Top-tier detailing</div>
+                        </div>
+                      </button>
                     </div>
-                  </>
-                )}
+                  </div>
+
+                  <div className="rounded-2xl border border-white/[0.1] bg-gradient-to-br from-white/[0.08] via-white/[0.03] to-transparent p-4 ring-1 ring-white/[0.06]">
+                    <div className="mb-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-white/40">At a glance</div>
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                      <div className="rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                        <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-white/38">Roof area</div>
+                        <div className="mt-1 text-base font-semibold tabular-nums tracking-tight text-white">
+                          {area || "—"}
+                          <span className="ml-1 text-[11px] font-medium text-white/58">sq ft</span>
+                        </div>
+                      </div>
+                      <div className="rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                        <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-white/38">Removal</div>
+                        <div className="mt-1 text-[15px] font-semibold leading-snug text-white/95">
+                          {includeDebrisRemoval ? "Included" : "Not included"}
+                        </div>
+                      </div>
+                      <div className="rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                        <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-white/38">System</div>
+                        <div className="mt-1 text-[15px] font-semibold leading-snug text-white/95">
+                          {roofingTier === "standard" ? "Core" : roofingTier === "enhanced" ? "Enhanced" : "Premium"}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white/65">
+                    You&apos;re ready to review and send your proposal.
+                  </div>
                 </div>
-
-            <div className="mt-6">
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-sm font-medium text-white/80">Roofing System</label>
-                <span className="text-xs px-2 py-0.5 rounded-full border border-white/10 bg-white/[0.06] text-white/70">
-                  Selected: {roofingTier === "standard" ? "Core" : roofingTier === "enhanced" ? "Enhanced" : "Premium"}
-                </span>
-              </div>
-
-              <div className="relative rounded-2xl border border-white/15 bg-white/[0.07] overflow-hidden focus-within:border-white/25">
-                <div
-                  className={
-                    "absolute left-0 top-0 h-full w-1 " +
-                    (roofingTier === "standard"
-                      ? "bg-white/25"
-                      : roofingTier === "enhanced"
-                      ? "bg-white/35"
-                      : "bg-white/45")
-                  }
-                />
-                <select
-                  value={roofingTier}
-                  onChange={(e) => setRoofingTier(e.target.value as RoofingTier)}
-                  className="w-full appearance-none bg-transparent px-3 py-3 pl-4 pr-10 text-sm text-white/90 outline-none"
-                >
-                  <option value="standard">Core Roofing System</option>
-                  <option value="enhanced">Enhanced Roofing System</option>
-                  <option value="premium">Premium Roofing System</option>
-                </select>
-                <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-white/60">▾</div>
-              </div>
-
-              <p className="mt-1 text-xs text-white/55">
-                This label appears on the proposal and PDF.
-              </p>
-            </div>
             </div>
             </div>
 
