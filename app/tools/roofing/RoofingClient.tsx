@@ -8,7 +8,6 @@ import { getAIReview } from "./aiReview";
 import {
   ArrowLeft,
   Ruler,
-  Percent,
   Package,
   DollarSign,
   HardHat,
@@ -17,6 +16,7 @@ import {
   Info,
   MapPin,
   ChevronDown,
+  Layers,
 } from "lucide-react";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { loadCompanyProfile, getCompanyProfileEmailSafe, type CompanyProfile } from "@/app/lib/companyProfile";
@@ -423,6 +423,14 @@ const EXAMPLE = {
   laborPerSquare: "180",
   margin: "20",
 };
+
+const ROOFING_WASTE_PRESETS = [
+  { label: "Standard", pct: 10, helper: "Simple roof" },
+  { label: "Complex", pct: 15, helper: "Multiple angles" },
+  { label: "High Waste", pct: 20, helper: "Cuts / steep" },
+] as const;
+
+const ROOFING_MARGIN_PRESETS = [15, 20, 25] as const;
 
 function clampNonNegative(value: number): number {
   return value < 0 ? 0 : value;
@@ -3620,141 +3628,454 @@ Thanks,`;
             </div>
 
             <div className="mt-12 pt-8 border-t border-white/10">
-              <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-5">
-                <div className="mb-6">
-                  <h2
-                    id="inputs-heading"
-                    className="text-sm font-semibold tracking-wide text-white/90"
+              <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-4 sm:p-5">
+                <div className="mb-4 flex gap-2.5">
+                  <span
+                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/14 bg-white/[0.06] text-[10px] font-bold tabular-nums text-white"
+                    aria-hidden
                   >
-                    Step 2 — Materials
-                  </h2>
-                </div>
-                <div className="space-y-6">
-              <div
-                className={
-                  attentionField === "roofArea"
-                    ? "rounded-2xl border border-white/12 bg-white/[0.045] p-2 transition-all duration-200"
-                    : "rounded-2xl p-2 transition-all duration-200"
-                }
-              >
-                <InputField
-                  id="area"
-                  label="Roof area"
-                  helper="Total footprint in square feet"
-                  value={area ?? ""}
-                  onChange={(v) => setArea(v.trim() === "" ? "" : String(Number(v) || 0))}
-                  unitChip="sq ft"
-                  icon={<Ruler className="h-4 w-4" />}
-                  placeholder="e.g. 2400"
-                />
-              </div>
-              {squares > 0 && (
-                <p className="text-gray-400 text-sm mt-1">= {squares.toFixed(2)} squares</p>
-              )}
-              <InputField
-                id="waste"
-                label="Extra Materials (%)"
-                helper="Extra shingles added to account for cuts and layout (default 10%)."
-                value={waste}
-                onChange={setWaste}
-                unitChip="%"
-                step="0.5"
-                icon={<Percent className="h-4 w-4" />}
-                labelTooltip="Extra for cuts and waste. 8–12% is typical."
-                labelTooltipId="tip-waste"
-              />
-              <InputField
-                id="bundleCost"
-                label="Bundle cost"
-                helper="Your supplier price per bundle."
-                value={bundleCost}
-                onChange={setBundleCost}
-                unitChip="$"
-                step="0.01"
-                placeholder="0.00"
-                icon={<DollarSign className="h-4 w-4" />}
-                labelTooltip="What you pay per bundle from your supplier."
-                labelTooltipId="tip-bundle-cost"
-              />
-              <div className="mt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowAdvancedMaterials((prev) => !prev)}
-                  className="flex w-full items-center justify-between gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-left text-sm font-medium text-slate-400 transition-colors hover:bg-white/[0.06] hover:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-                >
-                  <span>Advanced Materials (Optional)</span>
-                  <ChevronDown
-                    className={`h-4 w-4 shrink-0 transition-transform duration-200 ${showAdvancedMaterials ? "rotate-180" : ""}`}
-                  />
-                </button>
-                {!showAdvancedMaterials && (
-                  <p className="mt-1.5 text-xs text-slate-500">Bundles per square (default 3). Most jobs won&apos;t need changes.</p>
-                )}
-                <motion.div
-                  initial={false}
-                  animate={{ height: showAdvancedMaterials ? "auto" : 0, opacity: showAdvancedMaterials ? 1 : 0 }}
-                  transition={{ duration: 0.25, ease: "easeInOut" }}
-                  className="overflow-hidden"
-                >
-                  <div className="mt-3 space-y-2">
-                    <p className="text-xs text-slate-500">Most jobs won&apos;t need changes.</p>
-                    <InputField
-                      id="bundles"
-                      label="Bundles per square"
-                      helper="Most shingles: 3 bundles = 1 square (100 sq ft)."
-                      value={bundlesPerSquare}
-                      onChange={setBundlesPerSquare}
-                      unitChip="per sq"
-                      step="0.5"
-                      icon={<Package className="h-4 w-4" />}
-                      labelTooltip="One square = 100 sq ft. Change only if using different shingle type."
-                      labelTooltipId="tip-bundles-per-sq"
-                    />
+                    2
+                  </span>
+                  <div className="min-w-0 pt-0.5">
+                    <h2
+                      id="inputs-heading"
+                      className="text-sm font-semibold tracking-wide text-white"
+                    >
+                      Materials setup
+                    </h2>
+                    <p className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-white/32">
+                      Step 2
+                    </p>
                   </div>
-                </motion.div>
-              </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div
+                    className={
+                      attentionField === "roofArea"
+                        ? "rounded-lg border border-white/[0.08] bg-white/[0.02] p-1 transition-all duration-200"
+                        : ""
+                    }
+                  >
+                    <div className="flex min-w-0 flex-1 flex-col gap-0.5 sm:flex-row sm:items-end sm:gap-2.5">
+                      <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/28 sm:pb-1.5">
+                        Roof size
+                      </span>
+                      <div className="min-w-0 flex-1 sm:max-w-md">
+                        <label htmlFor="area" className="sr-only">
+                          Square feet
+                        </label>
+                        <div className="flex items-center gap-2 rounded-lg border border-white/[0.06] bg-white/[0.04] px-3 py-2 transition-colors focus-within:border-white/14 focus-within:ring-1 focus-within:ring-white/10">
+                          <Ruler className="h-4 w-4 shrink-0 text-white/70" aria-hidden />
+                          <input
+                            id="area"
+                            type="number"
+                            inputMode="decimal"
+                            min={0}
+                            step={1}
+                            value={area ?? ""}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              setArea(v.trim() === "" ? "" : String(Number(v) || 0));
+                            }}
+                            placeholder="e.g. 2400"
+                            className="min-w-0 flex-1 border-0 bg-transparent py-0 pr-1 text-[13px] text-white/95 placeholder:text-white/35 focus:outline-none focus:ring-0 [appearance:textfield]"
+                          />
+                          <span className="shrink-0 rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-medium text-white/65">
+                            sq ft
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    {squares > 0 && (
+                      <p className="mt-0 text-[10px] tabular-nums text-white/40">
+                        ≈ {squares.toFixed(1)} squares
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <p className="mb-1 text-[11px] text-white/38">Affects material waste.</p>
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                      {ROOFING_WASTE_PRESETS.map((opt) => {
+                        const selected =
+                          waste.trim() !== "" &&
+                          Number.isFinite(parseFloat(waste)) &&
+                          Math.abs(parseFloat(waste) - opt.pct) < 0.0001;
+                        const idleTone =
+                          opt.pct === 10
+                            ? "border-sky-400/10 bg-sky-500/[0.03]"
+                            : opt.pct === 15
+                              ? "border-violet-400/10 bg-violet-500/[0.03]"
+                              : "border-amber-400/10 bg-amber-500/[0.03]";
+                        const selectedTone =
+                          opt.pct === 10
+                            ? "border-cyan-200/60 bg-cyan-400/[0.15] shadow-[0_0_0_2px_rgba(103,232,249,0.28),0_0_32px_-6px_rgba(34,211,238,0.38)]"
+                            : opt.pct === 15
+                              ? "border-violet-200/55 bg-violet-500/[0.14] shadow-[0_0_0_2px_rgba(167,139,250,0.26),0_0_30px_-6px_rgba(139,92,246,0.32)]"
+                              : "border-amber-200/50 bg-amber-500/[0.12] shadow-[0_0_0_2px_rgba(251,191,36,0.24),0_0_30px_-6px_rgba(245,158,11,0.26)]";
+                        return (
+                          <button
+                            key={opt.pct}
+                            type="button"
+                            onClick={() => setWaste(String(opt.pct))}
+                            className={`rounded-2xl border px-5 py-6 text-left transition sm:min-h-[6.75rem] ${
+                              selected
+                                ? `${selectedTone} text-white`
+                                : `${idleTone} text-white/45 hover:border-white/14 hover:bg-white/[0.045] hover:text-white/65`
+                            }`}
+                          >
+                            <div className="text-sm font-semibold text-white">{opt.label}</div>
+                            <div className="mt-1 text-2xl font-bold tabular-nums tracking-tight text-white">
+                              {opt.pct}%
+                            </div>
+                            <div
+                              className={`mt-1 truncate text-[11px] leading-tight ${selected ? "text-white/58" : "text-white/28"}`}
+                            >
+                              {opt.helper}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {squares > 0 && (
+                      <div className="mt-2 space-y-1">
+                        <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
+                          <div className="relative h-2 w-full">
+                            <div className="absolute inset-0 bg-white/60" style={{ width: "100%" }} />
+                            <div
+                              className="absolute inset-y-0 left-0 bg-white/20"
+                              style={{ width: `${Math.min(100, Math.max(0, wasteNum))}%` }}
+                            />
+                          </div>
+                        </div>
+                        <div className="flex justify-between text-[10px] text-white/50">
+                          <span>Base</span>
+                          <span>Waste</span>
+                        </div>
+                        <div className="text-[11px] text-white/60">
+                          Adjusted: {adjustedSquares.toFixed(1)} squares
+                        </div>
+                      </div>
+                    )}
+                    <p className="mt-0.5 text-sm font-medium text-white/70">Most contractors use Standard</p>
+                    {(() => {
+                      const wn = parseFloat(waste);
+                      const isPreset =
+                        waste.trim() !== "" &&
+                        Number.isFinite(wn) &&
+                        ROOFING_WASTE_PRESETS.some((p) => Math.abs(wn - p.pct) < 0.0001);
+                      if (isPreset || !waste.trim() || !Number.isFinite(wn)) return null;
+                      return (
+                        <div className="mt-0.5 inline-flex rounded-full border border-white/[0.08] bg-white/[0.03] px-2 py-0.5 text-[10px] text-white/48">
+                          Custom {waste}%
+                        </div>
+                      );
+                    })()}
+                  </div>
+
+                  <div className="-mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                    <Layers className="h-4 w-4 shrink-0 text-white/70" aria-hidden />
+                    <label
+                      htmlFor="bundleCost"
+                      className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.14em] text-white/80"
+                    >
+                      Bundle cost
+                    </label>
+                    <div className="flex min-w-[9rem] flex-1 items-center gap-2 rounded-lg border border-white/[0.06] bg-white/[0.04] px-3 py-2 transition-colors focus-within:border-white/14 focus-within:ring-1 focus-within:ring-white/10 sm:max-w-[11rem]">
+                      <DollarSign className="h-4 w-4 shrink-0 text-white/70" aria-hidden />
+                      <input
+                        id="bundleCost"
+                        type="number"
+                        inputMode="decimal"
+                        min={0}
+                        step="0.01"
+                        value={bundleCost}
+                        onChange={(e) => setBundleCost(e.target.value)}
+                        placeholder="0.00"
+                        title="What you pay per bundle from your supplier."
+                        className="min-w-0 flex-1 border-0 bg-transparent py-0 text-[13px] text-white outline-none placeholder:text-white/25 [appearance:textfield]"
+                      />
+                    </div>
+                  </div>
+                  <p className="mt-0 text-[9px] text-white/26">Typical $30–45 per bundle</p>
+                  {bundles > 0 && adjustedSquares > 0 && (
+                    <div className="space-y-1">
+                      <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-white/[0.08]">
+                        <div
+                          className="h-full shrink-0 rounded-l-full bg-sky-500/50"
+                          style={{
+                            width: `${Math.min(100, Math.max(0, (squares / adjustedSquares) * 100))}%`,
+                          }}
+                        />
+                        <div
+                          className="h-full shrink-0 rounded-r-full bg-white/[0.12]"
+                          style={{
+                            width: `${Math.min(100, Math.max(0, ((adjustedSquares - squares) / adjustedSquares) * 100))}%`,
+                          }}
+                        />
+                      </div>
+                      <div className="flex justify-between text-[10px] text-white/38">
+                        <span>Material usage</span>
+                        <span className="tabular-nums text-white/62">{bundles} bundles</span>
+                      </div>
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => setShowAdvancedMaterials((prev) => !prev)}
+                    className="flex w-full items-center justify-between gap-2 rounded-xl border border-white/[0.08] bg-white/[0.025] px-3 py-2 text-left text-[11px] font-medium text-white/48 transition hover:bg-white/[0.04]"
+                  >
+                      <span>Advanced (bundles per square)</span>
+                      <ChevronDown
+                        className={`h-4 w-4 shrink-0 text-white/35 transition-transform duration-200 ${showAdvancedMaterials ? "rotate-180" : ""}`}
+                      />
+                    </button>
+                    <motion.div
+                      initial={false}
+                      animate={{ height: showAdvancedMaterials ? "auto" : 0, opacity: showAdvancedMaterials ? 1 : 0 }}
+                      transition={{ duration: 0.25, ease: "easeInOut" }}
+                      className="overflow-hidden"
+                    >
+                      <div className="mt-2">
+                        <InputField
+                          id="bundles"
+                          label="Bundles per square"
+                          helper="3 per square for most shingles."
+                          value={bundlesPerSquare}
+                          onChange={setBundlesPerSquare}
+                          unitChip="per sq"
+                          step="0.5"
+                          icon={<Package className="h-4 w-4" />}
+                          labelTooltip="One square = 100 sq ft. Change only if using different shingle type."
+                          labelTooltipId="tip-bundles-per-sq"
+                        />
+                      </div>
+                    </motion.div>
                 </div>
               </div>
             </div>
 
               <div className="mt-12 pt-8 border-t border-white/10">
-                <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-5">
-                  <div className="mb-6">
-                    <h2 className="text-sm font-semibold tracking-wide text-white/90">
-                      Step 3 — Pricing
-                    </h2>
-                  </div>
-              <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <div className="text-sm font-semibold text-white">Labor</div>
-                    <div className="text-xs text-white/70">
-                      {laborMode === "manual"
-                        ? "Enter your real labor cost (app will not guess it)."
-                        : "Guided labor is optional and fully explainable."}
+                <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-5 sm:p-6">
+                  <div className="mb-4 flex gap-2.5">
+                    <span
+                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/14 bg-white/[0.06] text-[10px] font-bold tabular-nums text-white"
+                      aria-hidden
+                    >
+                      3
+                    </span>
+                    <div className="min-w-0 pt-0.5">
+                      <h2 className="text-sm font-semibold tracking-wide text-white">Pricing setup</h2>
+                      <p className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-white/32">
+                        Step 3
+                      </p>
+                      <p className="mt-1.5 text-xs leading-snug text-white/55">
+                        Set your profit and labor — preview your earnings.
+                      </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={switchToManual}
-                      className={`rounded-full px-3 py-1 text-xs ${laborMode === "manual" ? "bg-white/15 text-white" : "bg-white/5 text-white/70"}`}
-                    >
-                      Manual
-                    </button>
-                    <button
-                      type="button"
-                      onClick={switchToGuided}
-                      className={`rounded-full px-3 py-1 text-xs ${laborMode === "guided" ? "bg-white/15 text-white" : "bg-white/5 text-white/70"}`}
-                    >
-                      Guided
-                    </button>
-                  </div>
-                </div>
+
+                  <div className="space-y-5">
+                    {priceWithMargin > 0 && subtotal > 0 && !showDash && !marginInvalid && (
+                      <div className="rounded-2xl border border-white/16 bg-white/[0.065] p-4 sm:p-5 ring-1 ring-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                        <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/58">
+                          You make
+                        </div>
+                        <div className="mt-1.5 text-3xl font-extrabold tabular-nums tracking-tight text-white">
+                          {formatCurrency(priceWithMargin - subtotal)}
+                        </div>
+                        <p className="mt-2 text-[11px] text-white/45">
+                          Based on materials, labor, and selected margin
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="space-y-2.5 border-t border-white/10 pt-5">
+                      <div className="text-sm font-medium text-white">Profit target</div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {ROOFING_MARGIN_PRESETS.map((pct) => {
+                          const selected =
+                            margin.trim() !== "" &&
+                            Number.isFinite(parseFloat(margin)) &&
+                            Math.abs(parseFloat(margin) - pct) < 0.0001;
+                          return (
+                            <button
+                              key={pct}
+                              type="button"
+                              onClick={() => setMargin(String(pct))}
+                              className={`rounded-full border px-4 py-2.5 text-sm font-semibold transition ${
+                                selected
+                                  ? "border-emerald-300/55 bg-emerald-500/[0.22] text-white shadow-[0_0_0_2px_rgba(52,211,153,0.35),0_0_26px_-4px_rgba(16,185,129,0.32)]"
+                                  : "border-white/[0.08] bg-white/[0.025] text-white/65 hover:border-white/14 hover:bg-white/[0.04]"
+                              }`}
+                            >
+                              {pct}%
+                            </button>
+                          );
+                        })}
+                        <button
+                          type="button"
+                          className={`rounded-full border px-4 py-2.5 text-sm font-semibold transition ${
+                            margin.trim() !== "" &&
+                            Number.isFinite(parseFloat(margin)) &&
+                            !ROOFING_MARGIN_PRESETS.some(
+                              (p) => Math.abs(parseFloat(margin) - p) < 0.0001
+                            )
+                              ? "border-emerald-300/55 bg-emerald-500/[0.22] text-white shadow-[0_0_0_2px_rgba(52,211,153,0.35),0_0_26px_-4px_rgba(16,185,129,0.32)]"
+                              : "border-white/[0.08] bg-white/[0.025] text-white/65 hover:border-white/14 hover:bg-white/[0.04]"
+                          }`}
+                        >
+                          Custom
+                        </button>
+                      </div>
+                      <p className="text-sm text-white/70">Most contractors aim for 20–30%</p>
+                      <div className="mt-3 space-y-1">
+                        <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
+                          <div
+                            className="h-full bg-emerald-400/70"
+                            style={{
+                              width: `${marginInvalid || !Number.isFinite(marginNum) ? 0 : Math.min(100, Math.max(0, marginNum))}%`,
+                            }}
+                          />
+                        </div>
+                        <div className="flex justify-between text-[10px] text-white/50">
+                          <span>Low</span>
+                          <span>High</span>
+                        </div>
+                        <div className="text-[11px] text-white/60">
+                          Profit target:{" "}
+                          {Number.isFinite(marginNum) ? Math.round(marginNum) : 0}%
+                        </div>
+                      </div>
+                      <div className="mt-2 [&_div.space-y-2]:space-y-1 [&_label]:text-[11px] [&_label]:font-medium [&_label]:text-white/50 [&_p]:hidden [&_div.rounded-2xl.border]:!rounded-xl [&_div.rounded-2xl.border]:!border-white/[0.06] [&_div.rounded-2xl.border]:!bg-white/[0.035] [&_div.rounded-2xl.border]:!px-3 [&_div.rounded-2xl.border]:!py-2 [&_div.rounded-2xl.border]:!ring-1 [&_div.rounded-2xl.border]:!ring-white/[0.05] [&_div.rounded-2xl.border]:!shadow-none [&_div.rounded-2xl.border]:hover:!bg-white/[0.04] [&_div.rounded-2xl.border]:focus-within:!border-white/12 [&_div.rounded-2xl.border]:focus-within:!ring-white/12 [&_div.rounded-2xl.border]:focus-within:!shadow-none [&_input]:!py-1.5 [&_input]:!text-[13px]">
+                        <InputField
+                          id="margin"
+                          label="Fine tune (optional)"
+                          helper=""
+                          value={margin}
+                          onChange={setMargin}
+                          unitChip="%"
+                          max={99}
+                          step="0.5"
+                          icon={<TrendingUp className="h-4 w-4 text-white/50" />}
+                        />
+                      </div>
+                      {marginInvalid && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2.5"
+                        >
+                          <p className="text-xs text-amber-200/90">
+                            Margin must be under 100%. Suggested price cannot be calculated.
+                          </p>
+                        </motion.div>
+                      )}
+                    </div>
+
+                    {priceWithMargin > 0 &&
+                      subtotal > 0 &&
+                      !showDash &&
+                      !marginInvalid &&
+                      (() => {
+                        const profitAmt = priceWithMargin - subtotal;
+                        const pm = priceWithMargin;
+                        const wM = pm > 0 ? (materialsCost / pm) * 100 : 0;
+                        const wL = pm > 0 ? (laborCostEffective / pm) * 100 : 0;
+                        const wP = pm > 0 ? (profitAmt / pm) * 100 : 0;
+                        const wRest = Math.max(0, 100 - wM - wL - wP);
+                        return (
+                          <div className="space-y-2.5 border-t border-white/10 pt-5">
+                            <div className="flex items-center gap-2">
+                              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-white/40" aria-hidden />
+                              <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/48">
+                                Price mix
+                              </span>
+                            </div>
+                            <div className="flex h-2 w-full overflow-hidden rounded-full bg-white/[0.08]">
+                              {wM > 0.05 && (
+                                <div
+                                  className="h-full shrink-0 bg-sky-500/50"
+                                  style={{ width: `${wM}%` }}
+                                />
+                              )}
+                              {wL > 0.05 && (
+                                <div
+                                  className="h-full shrink-0 bg-indigo-500/45"
+                                  style={{ width: `${wL}%` }}
+                                />
+                              )}
+                              {wP > 0.05 && (
+                                <div
+                                  className="h-full shrink-0 bg-emerald-500/40"
+                                  style={{ width: `${wP}%` }}
+                                />
+                              )}
+                              {wRest > 0.05 && (
+                                <div
+                                  className="h-full shrink-0 bg-white/[0.12]"
+                                  style={{ width: `${wRest}%` }}
+                                />
+                              )}
+                            </div>
+                            <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-white/45">
+                              <span className="inline-flex items-center gap-1">
+                                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-sky-500/60" />
+                                Materials
+                              </span>
+                              <span className="inline-flex items-center gap-1">
+                                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-500/55" />
+                                Labor
+                              </span>
+                              <span className="inline-flex items-center gap-1">
+                                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500/50" />
+                                Profit
+                              </span>
+                            </div>
+                            <p className="text-[11px] font-medium text-white/50">
+                              {marginNum >= 25
+                                ? "Strong margin"
+                                : marginNum >= 15
+                                  ? "Healthy margin"
+                                  : "Low margin"}
+                            </p>
+                          </div>
+                        );
+                      })()}
+
+                    <div className="space-y-2.5 border-t border-white/10 pt-5">
+                      <div className="text-sm font-medium text-white">Labor setup</div>
+                      <p className="text-sm text-white/70">Adjust if needed — included in total.</p>
+                      <div className="flex flex-wrap items-center gap-1 rounded-full border border-white/[0.06] bg-white/[0.02] p-0.5 w-fit">
+                        <button
+                          type="button"
+                          onClick={switchToManual}
+                          className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition ${
+                            laborMode === "manual"
+                              ? "bg-blue-500/[0.2] text-white ring-1 ring-blue-400/35"
+                              : "text-white/45 hover:text-white/68"
+                          }`}
+                        >
+                          Manual
+                        </button>
+                        <button
+                          type="button"
+                          onClick={switchToGuided}
+                          className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition ${
+                            laborMode === "guided"
+                              ? "bg-blue-500/[0.2] text-white ring-1 ring-blue-400/35"
+                              : "text-white/45 hover:text-white/68"
+                          }`}
+                        >
+                          Guided
+                        </button>
+                      </div>
 
                 {laborMode === "manual" ? (
-                  <div className="mt-3">
-                    <label className="text-xs text-white/70">Labor Cost</label>
+                  <div className="mt-1.5">
+                    <label className="text-xs text-white/55">Labor Cost</label>
                     <input
                       value={laborCostRaw}
                       onChange={(e) => {
@@ -3769,17 +4090,17 @@ Thanks,`;
                       }}
                       inputMode="numeric"
                       placeholder="e.g., 3500"
-                      className="mt-1 w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-white outline-none"
+                      className="mt-1 w-full rounded-lg border border-white/[0.07] bg-black/15 px-2.5 py-1.5 text-sm text-white outline-none"
                     />
-                    <div className="mt-2 text-xs text-white/60">
-                      Used in total: <span className="text-white">{fmtMoney(laborCostEffective)}</span>
+                    <div className="mt-1.5 text-[11px] text-white/50">
+                      In total: <span className="text-white/85">{fmtMoney(laborCostEffective)}</span>
                     </div>
                   </div>
                 ) : (
-                  <div className="mt-3 space-y-3">
-                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                  <div className="mt-1.5 space-y-2">
+                    <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
                       <div>
-                        <label className="text-xs text-white/70">Base $ / Square (editable)</label>
+                        <label className="text-xs text-white/60">Base $ / Square (editable)</label>
                         <input
                           value={String(guidedLaborBasePerSquare)}
                           onChange={(e) => {
@@ -3789,20 +4110,20 @@ Thanks,`;
                             setGuidedLaborBasePerSquare(clampInt(n, BASE_PER_SQ_MIN, BASE_PER_SQ_MAX));
                           }}
                           inputMode="numeric"
-                          className="mt-1 w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-white outline-none"
+                          className="mt-1 w-full rounded-lg border border-white/[0.07] bg-black/15 px-2.5 py-1.5 text-sm text-white outline-none"
                         />
                         <div className="mt-1 text-xs text-white/60">
                           Base labor (before factors): <span className="text-white">{fmtMoney(guidedBaseLabor)}</span>
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-2 gap-2.5">
                         <div>
-                          <label className="text-xs text-white/70">Stories</label>
+                          <label className="text-xs text-white/60">Stories</label>
                           <select
                             value={guidedStories}
                             onChange={(e) => setGuidedStories(e.target.value as GuidedStories)}
-                            className="mt-1 w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-white outline-none"
+                            className="mt-1 w-full rounded-lg border border-white/[0.07] bg-black/15 px-2.5 py-1.5 text-sm text-white outline-none"
                           >
                             <option value="one">1 Story</option>
                             <option value="two">2 Story</option>
@@ -3812,7 +4133,7 @@ Thanks,`;
                             Adds: <span className="text-white">+{pctMultiplier(getStoriesMultiplier(guidedStories, { twoStoryAdjPct, threePlusAdjPct, steepAdjPct }))}%</span>
                           </div>
                           <div className="mt-2">
-                            <label className="text-xs text-white/70">2-Story Adj (%)</label>
+                            <label className="text-xs text-white/60">2-Story Adj (%)</label>
                             <input
                               value={String(twoStoryAdjPct)}
                               onChange={(e) => {
@@ -3822,9 +4143,9 @@ Thanks,`;
                                 setTwoStoryAdjPct(clampInt(n, ADJ_PCT_MIN, ADJ_PCT_MAX));
                               }}
                               inputMode="numeric"
-                              className="mt-1 w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-white outline-none"
+                              className="mt-1 w-full rounded-lg border border-white/[0.07] bg-black/15 px-2.5 py-1.5 text-sm text-white outline-none"
                             />
-                            <label className="mt-2 block text-xs text-white/70">3+ Story Adj (%)</label>
+                            <label className="mt-2 block text-xs text-white/60">3+ Story Adj (%)</label>
                             <input
                               value={String(threePlusAdjPct)}
                               onChange={(e) => {
@@ -3834,17 +4155,17 @@ Thanks,`;
                                 setThreePlusAdjPct(clampInt(n, ADJ_PCT_MIN, ADJ_PCT_MAX));
                               }}
                               inputMode="numeric"
-                              className="mt-1 w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-white outline-none"
+                              className="mt-1 w-full rounded-lg border border-white/[0.07] bg-black/15 px-2.5 py-1.5 text-sm text-white outline-none"
                             />
                           </div>
                         </div>
 
                         <div>
-                          <label className="text-xs text-white/70">Walkability</label>
+                          <label className="text-xs text-white/60">Walkability</label>
                           <select
                             value={guidedWalkable}
                             onChange={(e) => setGuidedWalkable(e.target.value as GuidedWalkable)}
-                            className="mt-1 w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-white outline-none"
+                            className="mt-1 w-full rounded-lg border border-white/[0.07] bg-black/15 px-2.5 py-1.5 text-sm text-white outline-none"
                           >
                             <option value="walkable">Walkable</option>
                             <option value="steep">Steep</option>
@@ -3853,7 +4174,7 @@ Thanks,`;
                             Adds: <span className="text-white">+{pctMultiplier(getWalkableMultiplier(guidedWalkable, { twoStoryAdjPct, threePlusAdjPct, steepAdjPct }))}%</span>
                           </div>
                           <div className="mt-2">
-                            <label className="text-xs text-white/70">Steep Adj (%)</label>
+                            <label className="text-xs text-white/60">Steep Adj (%)</label>
                             <input
                               value={String(steepAdjPct)}
                               onChange={(e) => {
@@ -3863,60 +4184,58 @@ Thanks,`;
                                 setSteepAdjPct(clampInt(n, ADJ_PCT_MIN, ADJ_PCT_MAX));
                               }}
                               inputMode="numeric"
-                              className="mt-1 w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-white outline-none"
+                              className="mt-1 w-full rounded-lg border border-white/[0.07] bg-black/15 px-2.5 py-1.5 text-sm text-white outline-none"
                             />
                           </div>
                         </div>
                       </div>
                     </div>
 
-                    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+                    <div className="mt-1 space-y-2.5 border-t border-white/[0.08] pt-3">
                       <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="text-xs text-white/70">Explainable adjustments</div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-white/70">
-                            Total factor: <span className="text-white">x{guidedTotalMultiplier.toFixed(2)}</span>
+                        <div className="text-xs font-medium text-white/72">Adjustments</div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-xs text-white/55">
+                            Factor <span className="font-semibold tabular-nums text-white/88">×{guidedTotalMultiplier.toFixed(2)}</span>
                           </span>
                           <button
                             type="button"
                             onClick={resetGuidedDefaults}
-                            className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-white/80 hover:bg-white/[0.06]"
+                            className="rounded-full border border-white/[0.1] bg-white/[0.04] px-3 py-1 text-xs font-medium text-white/78 hover:bg-white/[0.06]"
                           >
-                            Reset Guided Defaults
+                            Reset defaults
                           </button>
                         </div>
                       </div>
 
-                      <div className="mt-2 space-y-1">
+                      <div className="space-y-1">
                         {guidedBreakdown.map((b) => (
                           <div key={b.label} className="flex items-center justify-between text-xs">
-                            <div className="text-white/80">{b.label}</div>
+                            <div className="text-white/78">{b.label}</div>
                             <div className="text-white">
                               {b.pct === 0 ? "+0%" : `+${b.pct}%`}{" "}
-                              <span className="text-white/70">({fmtMoney(b.delta)})</span>
+                              <span className="text-white/65">({fmtMoney(b.delta)})</span>
                             </div>
                           </div>
                         ))}
                       </div>
 
-                      <div className="mt-3 space-y-1 text-xs">
+                      <div className="space-y-1 border-t border-white/[0.07] pt-3 text-xs">
                         <div className="flex items-center justify-between">
-                          <div className="text-white/70">Base Labor</div>
-                          <div className="text-white">{fmtMoney(guidedBaseLabor)}</div>
+                          <div className="text-white/62">Base labor</div>
+                          <div className="tabular-nums text-white/88">{fmtMoney(guidedBaseLabor)}</div>
                         </div>
                         <div className="flex items-center justify-between">
-                          <div className="text-white/70">Adjustments Total</div>
-                          <div className="text-white">{fmtMoney(guidedBreakdown.reduce((acc, b) => acc + (b.delta || 0), 0))}</div>
+                          <div className="text-white/62">Adjustments</div>
+                          <div className="tabular-nums text-white/88">{fmtMoney(guidedBreakdown.reduce((acc, b) => acc + (b.delta || 0), 0))}</div>
                         </div>
-                        <div className="flex items-center justify-between border-t border-white/10 pt-2 text-sm">
-                          <div className="text-white/80">Guided Labor Total</div>
-                          <div className="text-white font-semibold">{fmtMoney(guidedLaborTotal)}</div>
+                        <div className="flex items-center justify-between border-t border-white/10 pt-2 text-sm font-medium">
+                          <div className="text-white/82">Guided total</div>
+                          <div className="tabular-nums text-white">{fmtMoney(guidedLaborTotal)}</div>
                         </div>
                       </div>
 
-                      <div className="mt-2 text-[11px] text-white/50">
-                        Internal only (not shown to homeowner). Contractors can override anytime.
-                      </div>
+                      <p className="text-[10px] text-white/38">Internal — not shown on proposals.</p>
                     </div>
                   </div>
                 )}
@@ -3924,32 +4243,7 @@ Thanks,`;
                 {adjustedSquares > 0 && laborCostEffective === 0 && (
                   <p className="mt-2 text-sm text-amber-300/90">⚠ Labor is currently $0. Most jobs include labor cost.</p>
                 )}
-              </div>
-
-                  <div className="space-y-2">
-                    <InputField
-                      id="margin"
-                      label="Profit margin"
-                      helper="Target margin on the job"
-                      value={margin}
-                      onChange={setMargin}
-                      unitChip="%"
-                      max={99}
-                      step="0.5"
-                      icon={<TrendingUp className="h-4 w-4" />}
-                    />
-                    {marginInvalid && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3"
-                      >
-                        <p className="text-xs text-amber-200/90">
-                          Margin must be under 100%. Suggested price cannot be
-                          calculated.
-                        </p>
-                      </motion.div>
-                    )}
+                  </div>
                   </div>
                 </div>
               </div>
@@ -4367,130 +4661,175 @@ Thanks,`;
               )}
             </div>
 
-            <div className="mt-8 rounded-3xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 to-transparent p-6 shadow-[0_15px_60px_rgba(16,185,129,0.15)] backdrop-blur-xl">
-              {/* Step 4 — Confirm & Send (elevated CTA) */}
-              <div className="rounded-2xl border border-emerald-400/20 bg-black/20 p-6">
+            <div className="mt-8 rounded-[2rem] border border-white/[0.06] bg-[linear-gradient(180deg,rgba(54,66,88,0.88)_0%,rgba(42,52,72,0.92)_32%,rgba(30,38,54,0.96)_68%,rgba(20,26,38,0.98)_100%)] p-5 shadow-[0_22px_56px_-20px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.035),0_0_52px_-24px_rgba(59,130,246,0.07),inset_0_1px_0_rgba(255,255,255,0.07)] backdrop-blur-xl sm:p-6">
+              <div className="p-0">
 
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <div className="flex items-center gap-2">
-                      <span className="rounded-full bg-emerald-500/20 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-300">
-                        Final Step
-                      </span>
-                      <div className="text-base font-semibold text-white">
-                        Send Estimate
-                      </div>
-                    </div>
-                    <div className="text-xs text-white/60 mt-1">
-                      Review details and send your proposal to the customer.
-                    </div>
+                    <h3 className="text-xl font-semibold tracking-tight text-white">Review &amp; Send</h3>
+                    <p className="mt-1 text-sm leading-relaxed text-white/44">Everything looks good — send your estimate</p>
                   </div>
 
                   <button
                     type="button"
                     onClick={() => setShowSendDetails((v) => !v)}
-                    className="shrink-0 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-semibold text-white/80 hover:bg-white/[0.06]"
+                    className="shrink-0 rounded-md px-2 py-1 text-[10px] font-medium tracking-wide text-white/34 transition hover:bg-white/[0.05] hover:text-white/50"
                   >
-                    {showSendDetails ? "Hide details" : "Show details"}
+                    {showSendDetails ? "Hide options" : "More options"}
                   </button>
                 </div>
 
-                <div className="mt-6 rounded-xl border border-white/10 bg-white/[0.03] p-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-white/80">
+                <div className="mt-5 rounded-[1.45rem] border border-white/[0.07] bg-white/[0.03] p-4.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/38">
+                    Proposal ready
+                  </div>
 
-                    <div>
-                      <div className="text-white/50 text-xs mb-1">Recipient</div>
-                      <div className="font-medium text-white truncate">
-                        {(customerEmail || "").trim() || "—"}
+                  <div className="mt-3 rounded-[1.15rem] border border-white/[0.06] bg-white/[0.025] px-4 py-3.5">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="text-[14px] font-semibold text-white/90">
+                          Roofing estimate PDF
+                        </div>
+                        <div className="mt-0.5 text-[11px] text-white/50">
+                          1 page • {roofingTier === "standard" ? "Core" : roofingTier === "enhanced" ? "Enhanced" : "Premium"} package • Ready to send
+                        </div>
                       </div>
-                      <div className="text-white/70 text-xs mt-0.5 break-words">
-                        {[jobAddress1, [jobCity, jobState, jobZip].filter(Boolean).join(", ")].filter(Boolean).join(" — ") || "—"}
+
+                      <button
+                        type="button"
+                        onClick={handlePreviewPdf}
+                        disabled={isPreviewingPdf}
+                        className="shrink-0 rounded-[0.9rem] border border-white/[0.06] bg-white/[0.05] px-4 py-2 text-[12px] font-semibold text-white/86 transition hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {isPreviewingPdf ? "Opening…" : "Open Preview"}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="mt-4.5 space-y-3.5">
+                    <div className="flex items-center gap-3.5">
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-500/18 text-[13px] font-bold text-emerald-300">
+                        ✓
+                      </div>
+                      <div className="text-[14px] font-medium text-white/88">Proposal prepared</div>
+                    </div>
+
+                    <div className="flex items-center gap-3.5">
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-500/18 text-[13px] font-bold text-emerald-300">
+                        ✓
+                      </div>
+                      <div className="text-[14px] font-medium text-white/88">Email delivery selected</div>
+                    </div>
+
+                    <div className="flex items-center gap-3.5">
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-500/18 text-[13px] font-bold text-emerald-300">
+                        ✓
+                      </div>
+                      <div className="text-[14px] font-medium text-white/88">PDF attached</div>
+                    </div>
+
+                    <div className="flex items-center gap-3.5">
+                      <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[13px] font-bold ${
+                        (customerEmail || "").trim() && (jobAddress1 || "").trim()
+                          ? "bg-emerald-500/18 text-emerald-300"
+                          : "bg-amber-500/18 text-amber-200"
+                      }`}>
+                        {(customerEmail || "").trim() && (jobAddress1 || "").trim() ? "✓" : "!"}
+                      </div>
+                      <div className="text-[14px] font-medium text-white/88">
+                        {(customerEmail || "").trim() && (jobAddress1 || "").trim()
+                          ? "Customer details complete"
+                          : "Customer details still needed"}
                       </div>
                     </div>
-
-                    <div className="flex justify-between">
-                      <span>Tier</span>
-                      <span className="text-white font-semibold">
-                        {roofingTier === "standard" ? "Core" : roofingTier === "enhanced" ? "Enhanced" : "Premium"}
-                      </span>
-                    </div>
-
-                    <div className="flex justify-between">
-                      <span>Total</span>
-                      <span className="text-emerald-300 font-bold text-lg">
-                        {Number(priceWithMargin ?? 0) > 0
-                          ? formatCurrency(Number(priceWithMargin))
-                          : "—"}
-                      </span>
-                    </div>
-
                   </div>
 
                   {(!(customerEmail || "").trim() || !(jobAddress1 || "").trim()) && (
-                    <div className="mt-4 rounded-lg border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs text-amber-300">
+                    <div className="mt-4 rounded-[1rem] border border-amber-300/8 bg-amber-400/[0.03] px-3 py-2.5 text-[11px] leading-relaxed text-amber-100/62">
                       Missing:{" "}
                       {!(customerEmail || "").trim() ? "customer email" : ""}
                       {!(customerEmail || "").trim() && !(jobAddress1 || "").trim() ? " + " : ""}
                       {!(jobAddress1 || "").trim() ? "job address" : ""}
                     </div>
                   )}
+                </div>
 
-                  <div className="mt-5 flex items-center justify-between gap-3">
+                <div className="mt-5">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/38">Delivery Method</div>
+                  <div className="mt-2 grid grid-cols-2 gap-3">
+                    <div
+                      className="flex items-center justify-between rounded-[1rem] border border-sky-200/12 bg-[linear-gradient(180deg,rgba(110,165,240,0.12)_0%,rgba(88,138,215,0.1)_100%)] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
+                      role="status"
+                      aria-label="Selected delivery method: email"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-[13px] text-white/85" aria-hidden>✉</span>
+                        <span className="text-[13px] font-semibold text-white">Email</span>
+                      </div>
+                      <span className="text-[13px] text-white/75" aria-hidden>✓</span>
+                    </div>
 
                     <button
                       type="button"
-                      onClick={() => {
-                        const el = document.getElementById("customer-job-section");
-                        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-                        if (!(customerEmail || "").trim()) pingField("customerEmail");
-                      }}
-                      className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-semibold text-white/80 hover:bg-white/[0.06]"
+                      onClick={onDownloadPdf}
+                      className="flex items-center justify-center gap-2 rounded-[1rem] border border-white/[0.05] bg-white/[0.08] px-4 py-3 text-[13px] font-semibold text-white/76 transition hover:bg-white/[0.11] hover:text-white/92"
                     >
-                      Edit details
+                      <span className="text-[13px] text-white/55" aria-hidden>⤓</span>
+                      Download PDF
                     </button>
-
-                    <button
-                      type="button"
-                      disabled={!(customerEmail || "").trim() || !(jobAddress1 || "").trim() || isSending || isLocked}
-                      onClick={handleSendEstimate}
-                      className={`rounded-full px-8 py-3 text-base font-semibold text-white shadow-xl transition-all duration-150 ${
-                        (!(customerEmail || "").trim() || !(jobAddress1 || "").trim())
-                          ? "bg-white/10 text-white/40 cursor-not-allowed"
-                          : "bg-gradient-to-r from-emerald-500 to-emerald-600 hover:scale-[1.02] hover:shadow-emerald-500/40"
-                      }`}
-                    >
-                      {isSending ? "Sending…" : sendSuccess ? "Sent ✓" : "Send Estimate"}
-                    </button>
-
                   </div>
+                </div>
+
+                <div className="mt-4.5 flex flex-col gap-2.5">
+                  <button
+                    type="button"
+                    disabled={!(customerEmail || "").trim() || !(jobAddress1 || "").trim() || isSending || isLocked}
+                    onClick={handleSendEstimate}
+                    className={`w-full rounded-[1.1rem] border px-5 py-4 text-[1.08rem] font-extrabold leading-tight tracking-tight transition-all duration-150 ${
+                      (!(customerEmail || "").trim() || !(jobAddress1 || "").trim())
+                        ? "cursor-not-allowed border-white/[0.05] bg-white/[0.09] text-white/46 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+                        : "border-sky-300/28 text-white shadow-[0_22px_44px_-14px_rgba(37,99,235,0.52),0_0_34px_-18px_rgba(96,165,250,0.28)] hover:brightness-[1.05] active:scale-[0.992]"
+                    }`}
+                    style={
+                      (customerEmail || "").trim() && (jobAddress1 || "").trim()
+                        ? {
+                            background: "linear-gradient(180deg,#8ec5ff 0%,#5ba3ff 12%,#3b82f6 42%,#2563eb 78%,#1d4ed8 100%)",
+                            boxShadow:
+                              "0 22px 44px -14px rgba(37,99,235,0.68), 0 0 36px -18px rgba(147,197,253,0.3), inset 0 1px 0 rgba(255,255,255,0.24)",
+                          }
+                        : undefined
+                    }
+                  >
+                    {isSending ? "Sending…" : sendSuccess ? "Sent ✓" : "Send Estimate →"}
+                  </button>
                 </div>
 
                 {sendError ? <div className="mt-3 text-xs text-red-400">{sendError}</div> : null}
                 {pdfError ? <p className="mt-2 text-xs text-red-300/90">{pdfError}</p> : null}
                 {sendSuccess && !isSending ? (
-                  <p className="mt-2 text-xs text-emerald-300/90">Sent successfully.</p>
+                  <p className="mt-2 text-xs text-blue-300/90">Sent successfully.</p>
                 ) : null}
 
                 {showSendDetails && (
-                  <div className="mt-5 space-y-3">
+                  <div className="mt-5 space-y-2 pt-5 opacity-[0.9]">
                     {/* AI wording panel */}
-                    <div className="rounded-xl border border-white/10 bg-white/[0.015] p-4">
+                    <div className="rounded-lg p-3">
                       <button
                         type="button"
                         onClick={() => setShowAiWordingPanel((v) => !v)}
-                        className="w-full flex items-center justify-between text-sm font-medium text-white/80 hover:text-white transition-colors"
+                        className="flex w-full items-center justify-between text-left text-[13px] font-medium text-white/55 hover:text-white/80"
                       >
                         <span>AI Wording</span>
-                        <span className="text-xs text-white/60">{showAiWordingPanel ? "Hide" : "Show"}</span>
+                        <span className="text-[11px] text-white/40">{showAiWordingPanel ? "Hide" : "Show"}</span>
                       </button>
                       {showAiWordingPanel && (
-                        <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-white/80">
-                          <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
-                            <div className="text-xs text-white/50 mb-1">Package Description</div>
+                        <div className="mt-3 grid grid-cols-1 gap-2 text-[13px] text-white/70 md:grid-cols-2">
+                          <div className="rounded-md p-2.5">
+                            <div className="mb-1 text-[10px] text-white/40">Package Description</div>
                             <div className="whitespace-pre-wrap">{gptPackageDescription || "—"}</div>
                           </div>
-                          <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
-                            <div className="text-xs text-white/50 mb-1">Schedule CTA</div>
+                          <div className="rounded-md p-2.5">
+                            <div className="mb-1 text-[10px] text-white/40">Schedule CTA</div>
                             <div className="whitespace-pre-wrap">{gptScheduleCta || "—"}</div>
                           </div>
                         </div>
@@ -4498,26 +4837,26 @@ Thanks,`;
                     </div>
 
                     {/* Email preview panel */}
-                    <div className="rounded-xl border border-white/10 bg-white/[0.015] p-4">
+                    <div className="rounded-lg p-3">
                       <button
                         type="button"
                         onClick={() => setShowEmailPreviewPanel((v) => !v)}
-                        className="w-full flex items-center justify-between text-sm font-medium text-white/80 hover:text-white transition-colors"
+                        className="flex w-full items-center justify-between text-left text-[13px] font-medium text-white/55 hover:text-white/80"
                       >
                         <span>Email Preview</span>
-                        <span className="text-xs text-white/60">{showEmailPreviewPanel ? "Hide" : "Show"}</span>
+                        <span className="text-[11px] text-white/40">{showEmailPreviewPanel ? "Hide" : "Show"}</span>
                       </button>
                       {showEmailPreviewPanel && (
-                        <div className="mt-3 space-y-3">
+                        <div className="mt-3 space-y-2">
                           <div>
-                            <div className="text-[11px] text-white/50 mb-1">Subject</div>
-                            <div className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white/90">
+                            <div className="mb-1 text-[10px] text-white/40">Subject</div>
+                            <div className="rounded-md px-2.5 py-2 text-[13px] text-white/85">
                               {buildEmailSubjectPreview(previewMeta)}
                             </div>
                           </div>
                           <div>
-                            <div className="text-[11px] text-white/50 mb-1">Body (plain text, as sent)</div>
-                            <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3 text-sm text-white/80 whitespace-pre-wrap">
+                            <div className="mb-1 text-[10px] text-white/40">Body (plain text, as sent)</div>
+                            <div className="rounded-md p-2.5 text-[13px] text-white/70 whitespace-pre-wrap">
                               {buildEmailBodyPreview(previewMeta) || "—"}
                             </div>
                           </div>
@@ -4526,14 +4865,14 @@ Thanks,`;
                     </div>
 
                     {/* PDF tools panel */}
-                    <div className="rounded-xl border border-white/10 bg-white/[0.015] p-4">
+                    <div className="rounded-lg p-3">
                       <button
                         type="button"
                         onClick={() => setShowPdfToolsPanel((v) => !v)}
-                        className="w-full flex items-center justify-between text-sm font-medium text-white/80 hover:text-white transition-colors"
+                        className="flex w-full items-center justify-between text-left text-[13px] font-medium text-white/55 hover:text-white/80"
                       >
                         <span>PDF Tools</span>
-                        <span className="text-xs text-white/60">{showPdfToolsPanel ? "Hide" : "Show"}</span>
+                        <span className="text-[11px] text-white/40">{showPdfToolsPanel ? "Hide" : "Show"}</span>
                       </button>
                       {showPdfToolsPanel && (
                         <div className="mt-3 flex flex-wrap gap-2">
@@ -4541,21 +4880,21 @@ Thanks,`;
                             type="button"
                             onClick={handlePreviewPdf}
                             disabled={isPreviewingPdf}
-                            className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-semibold text-white/80 hover:bg-white/[0.06] disabled:opacity-60 disabled:cursor-not-allowed"
+                            className="rounded-full bg-white/[0.06] px-3.5 py-1.5 text-[11px] font-medium text-white/55 hover:bg-white/[0.1] disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             {isPreviewingPdf ? "Opening…" : "Preview PDF"}
                           </button>
                           <button
                             type="button"
                             onClick={onDownloadPdf}
-                            className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-semibold text-white/80 hover:bg-white/[0.06]"
+                            className="rounded-full bg-white/[0.06] px-3.5 py-1.5 text-[11px] font-medium text-white/55 hover:bg-white/[0.1]"
                           >
                             Download PDF
                           </button>
                           <button
                             type="button"
                             onClick={onSharePdf}
-                            className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-semibold text-white/80 hover:bg-white/[0.06]"
+                            className="rounded-full bg-white/[0.06] px-3.5 py-1.5 text-[11px] font-medium text-white/55 hover:bg-white/[0.1]"
                           >
                             Share PDF
                           </button>
@@ -4567,13 +4906,13 @@ Thanks,`;
                       process.env.NODE_ENV !== "production" &&
                       loadSavedId &&
                       (getSavedEstimateById(loadSavedId)?.status === "sent" || getSavedEstimateById(loadSavedId)?.status === "sent_pending") && (
-                      <div className="pt-2">
+                      <div className="pt-1">
                         <button
                           type="button"
                           onClick={() => {
                             markSavedEstimateApproved(loadSavedId!);
                           }}
-                          className="rounded-full border border-amber-500/50 bg-amber-500/20 px-4 py-2 text-[11px] font-semibold text-amber-200 hover:bg-amber-500/30"
+                          className="rounded-full bg-amber-500/12 px-3 py-1.5 text-[10px] font-medium text-amber-200/80 hover:bg-amber-500/20"
                         >
                           DEV: Mark Approved
                         </button>
