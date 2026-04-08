@@ -1757,6 +1757,9 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
     removalType,
   ]);
 
+  const handleRegenerateDescription = handleGenerateSummary;
+  const handleCustomizeDescription = () => setShowAiPanel(true);
+
   const onCopyClientSummary = useCallback(async () => {
     try {
       await navigator.clipboard.writeText(previewText);
@@ -3426,10 +3429,10 @@ Thanks,`;
               className="mb-6 rounded-3xl border border-white/10 bg-white/[0.04] p-4 shadow-[0_10px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl"
             >
               <div className="text-sm font-semibold text-white/90">Step 1 — Customer & Job</div>
-              <div className="text-xs text-white/60 mt-0.5">These details appear on the proposal and email.</div>
+              <div className="text-xs text-white/60 mt-0.5">Used to deliver and personalize your proposal</div>
               <form autoComplete="off" className="mt-4 space-y-3">
                 <div className="space-y-1.5">
-                  <label htmlFor="customer-name" className="block text-sm font-medium text-slate-300">Customer Name</label>
+                  <label htmlFor="customer-name" className="block text-sm font-medium text-white/80">Customer Name *</label>
                   <input
                     id="customer-name"
                     name="customer_name_field"
@@ -3445,7 +3448,7 @@ Thanks,`;
                   />
                 </div>
                 <div className={"space-y-1.5" + (attentionField === "customerEmail" ? " rounded-2xl ring-2 ring-cyan-400/25 bg-cyan-400/[0.04] shadow-[0_0_0_1px_rgba(34,211,238,0.10),0_0_24px_rgba(34,211,238,0.08)]" : "")}>
-                  <label htmlFor="customer-email" className="block text-sm font-medium text-slate-300">Customer Email</label>
+                  <label htmlFor="customer-email" className="block text-sm font-medium text-white/80">Customer Email *</label>
                   <input
                     id="customer-email"
                     name="customer_email_field"
@@ -3465,7 +3468,7 @@ Thanks,`;
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label htmlFor="customer-phone" className="block text-sm font-medium text-slate-300">Customer Phone (optional)</label>
+                  <label htmlFor="customer-phone" className="block text-sm font-medium text-white/80">Customer Phone (optional)</label>
                   <input
                     id="customer-phone"
                     name="customer_phone_field"
@@ -3482,7 +3485,7 @@ Thanks,`;
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label htmlFor="job-address" className="block text-sm font-medium text-slate-300">Job Address</label>
+                  <label htmlFor="job-address" className="block text-sm font-medium text-white/80">Job Address</label>
                   <input
                     id="job-address"
                     name="job_address1_field"
@@ -3503,7 +3506,7 @@ Thanks,`;
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="space-y-1.5">
-                    <label htmlFor="job-city" className="block text-sm font-medium text-slate-300">City</label>
+                    <label htmlFor="job-city" className="block text-sm font-medium text-white/80">City</label>
                     <input
                       id="job-city"
                       name="job_city_field"
@@ -3529,7 +3532,7 @@ Thanks,`;
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label htmlFor="job-state" className="block text-sm font-medium text-slate-300">State</label>
+                    <label htmlFor="job-state" className="block text-sm font-medium text-white/80">State</label>
                     <input
                       id="job-state"
                       name="job_state_field"
@@ -3552,7 +3555,7 @@ Thanks,`;
                     />
                   </div>
                   <div className="space-y-1.5 rounded-2xl transition-all duration-200">
-                    <label htmlFor="customer-job-zip" className="flex items-center gap-1.5 text-sm font-medium text-slate-300">
+                    <label htmlFor="customer-job-zip" className="flex items-center gap-1.5 text-sm font-medium text-white/80">
                       Job ZIP
                       <TooltipIcon id="tip-job-zip" text="Drives preset pricing and appears on proposal and PDF." />
                     </label>
@@ -3625,6 +3628,9 @@ Thanks,`;
                   </div>
                 </div>
               </form>
+              <p className="mt-4 text-xs text-white/40">
+                Next: Materials & roof details
+              </p>
             </div>
 
             <div className="mt-12 pt-8 border-t border-white/10">
@@ -3859,7 +3865,7 @@ Thanks,`;
 
               <div className="mt-12 pt-8 border-t border-white/10">
                 <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-5 sm:p-6">
-                  <div className="mb-4 flex gap-2.5">
+                  <div className="mb-5 flex gap-2.5">
                     <span
                       className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/14 bg-white/[0.06] text-[10px] font-bold tabular-nums text-white"
                       aria-hidden
@@ -3867,101 +3873,156 @@ Thanks,`;
                       3
                     </span>
                     <div className="min-w-0 pt-0.5">
-                      <h2 className="text-sm font-semibold tracking-wide text-white">Pricing setup</h2>
+                      <h2 className="text-sm font-semibold tracking-wide text-white">Deal control panel</h2>
                       <p className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-white/32">
                         Step 3
                       </p>
                       <p className="mt-1.5 text-xs leading-snug text-white/55">
-                        Set your profit and labor — preview your earnings.
+                        Set your pricing strategy and preview the deal before sending.
                       </p>
                     </div>
                   </div>
 
                   <div className="space-y-5">
-                    {priceWithMargin > 0 && subtotal > 0 && !showDash && !marginInvalid && (
-                      <div className="rounded-2xl border border-white/16 bg-white/[0.065] p-4 sm:p-5 ring-1 ring-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-                        <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/58">
-                          You make
-                        </div>
-                        <div className="mt-1.5 text-3xl font-extrabold tabular-nums tracking-tight text-white">
-                          {formatCurrency(priceWithMargin - subtotal)}
-                        </div>
-                        <p className="mt-2 text-[11px] text-white/45">
-                          Based on materials, labor, and selected margin
-                        </p>
+                    <div className="rounded-2xl border border-white/16 bg-white/[0.065] p-5 sm:p-6 ring-1 ring-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/52">
+                        Your price
                       </div>
-                    )}
+                      <div className="mt-2 text-3xl sm:text-4xl font-extrabold tabular-nums tracking-tight text-white">
+                        {showDash || marginInvalid ? "—" : formatCurrency(priceWithMargin)}
+                      </div>
+
+                      <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        <div className="rounded-xl border border-white/[0.08] bg-black/10 px-3 py-3">
+                          <div className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/42">
+                            Profit
+                          </div>
+                          <div className="mt-1 text-lg font-semibold tabular-nums text-emerald-300">
+                            {showDash || marginInvalid || priceWithMargin <= 0 || subtotal <= 0
+                              ? "—"
+                              : formatCurrency(priceWithMargin - subtotal)}
+                          </div>
+                        </div>
+
+                        <div className="rounded-xl border border-white/[0.08] bg-black/10 px-3 py-3">
+                          <div className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/42">
+                            Margin
+                          </div>
+                          <div className="mt-1 text-lg font-semibold tabular-nums text-white">
+                            {marginInvalid || !Number.isFinite(marginNum) ? "—" : `${Math.round(marginNum)}%`}
+                          </div>
+                        </div>
+                      </div>
+
+                      <p className="mt-3 text-[11px] text-white/42">
+                        Price updates from your job costs and selected strategy.
+                      </p>
+                    </div>
 
                     <div className="space-y-2.5 border-t border-white/10 pt-5">
-                      <div className="text-sm font-medium text-white">Profit target</div>
-                      <div className="flex flex-wrap gap-1.5">
-                        {ROOFING_MARGIN_PRESETS.map((pct) => {
+                      <div className="text-sm font-medium text-white">Pricing strategy</div>
+                      <p className="text-sm text-white/60">
+                        Choose the position you want to take on this job.
+                      </p>
+
+                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                        {[
+                          {
+                            label: "Competitive",
+                            value: 15,
+                            helper: "Lower margin / sharper price",
+                          },
+                          {
+                            label: "Balanced",
+                            value: 20,
+                            helper: "Default for most jobs",
+                          },
+                          {
+                            label: "Premium",
+                            value: 25,
+                            helper: "Stronger margin / higher price",
+                          },
+                        ].map((option) => {
                           const selected =
                             margin.trim() !== "" &&
                             Number.isFinite(parseFloat(margin)) &&
-                            Math.abs(parseFloat(margin) - pct) < 0.0001;
+                            Math.abs(parseFloat(margin) - option.value) < 0.0001;
+
                           return (
                             <button
-                              key={pct}
+                              key={option.value}
                               type="button"
-                              onClick={() => setMargin(String(pct))}
-                              className={`rounded-full border px-4 py-2.5 text-sm font-semibold transition ${
+                              onClick={() => setMargin(String(option.value))}
+                              className={`rounded-2xl border px-4 py-4 text-left transition ${
                                 selected
-                                  ? "border-emerald-300/55 bg-emerald-500/[0.22] text-white shadow-[0_0_0_2px_rgba(52,211,153,0.35),0_0_26px_-4px_rgba(16,185,129,0.32)]"
-                                  : "border-white/[0.08] bg-white/[0.025] text-white/65 hover:border-white/14 hover:bg-white/[0.04]"
+                                  ? "border-emerald-300/55 bg-emerald-500/[0.18] text-white shadow-[0_0_0_1px_rgba(52,211,153,0.28),0_0_24px_-8px_rgba(16,185,129,0.35)]"
+                                  : "border-white/[0.08] bg-white/[0.025] text-white/72 hover:border-white/14 hover:bg-white/[0.045]"
                               }`}
                             >
-                              {pct}%
+                              <div className="text-sm font-semibold">{option.label}</div>
+                              <div className="mt-1 text-xs text-white/50">{option.helper}</div>
+                              <div className="mt-3 text-lg font-bold tabular-nums text-white">
+                                {option.value}%
+                              </div>
                             </button>
                           );
                         })}
-                        <button
-                          type="button"
-                          className={`rounded-full border px-4 py-2.5 text-sm font-semibold transition ${
-                            margin.trim() !== "" &&
-                            Number.isFinite(parseFloat(margin)) &&
-                            !ROOFING_MARGIN_PRESETS.some(
-                              (p) => Math.abs(parseFloat(margin) - p) < 0.0001
-                            )
-                              ? "border-emerald-300/55 bg-emerald-500/[0.22] text-white shadow-[0_0_0_2px_rgba(52,211,153,0.35),0_0_26px_-4px_rgba(16,185,129,0.32)]"
-                              : "border-white/[0.08] bg-white/[0.025] text-white/65 hover:border-white/14 hover:bg-white/[0.04]"
-                          }`}
-                        >
-                          Custom
-                        </button>
                       </div>
-                      <p className="text-sm text-white/70">Most contractors aim for 20–30%</p>
-                      <div className="mt-3 space-y-1">
-                        <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
-                          <div
-                            className="h-full bg-emerald-400/70"
-                            style={{
-                              width: `${marginInvalid || !Number.isFinite(marginNum) ? 0 : Math.min(100, Math.max(0, marginNum))}%`,
-                            }}
+                    </div>
+
+                    <div className="space-y-3 border-t border-white/10 pt-5">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <div className="text-sm font-medium text-white">Manual adjustments</div>
+                          <p className="mt-1 text-sm text-white/60">
+                            Optional overrides if you want to fine tune the deal.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-3">
+                          <label className="text-[11px] font-medium uppercase tracking-[0.12em] text-white/42">
+                            Custom margin
+                          </label>
+                          <input
+                            value={margin}
+                            onChange={(e) => setMargin(e.target.value)}
+                            inputMode="decimal"
+                            placeholder="e.g. 22"
+                            className="mt-2 w-full rounded-xl border border-white/[0.07] bg-black/15 px-3 py-2.5 text-sm text-white outline-none"
                           />
+                          <p className="mt-2 text-[11px] text-white/42">
+                            Overrides the strategy buttons if you enter your own value.
+                          </p>
                         </div>
-                        <div className="flex justify-between text-[10px] text-white/50">
-                          <span>Low</span>
-                          <span>High</span>
-                        </div>
-                        <div className="text-[11px] text-white/60">
-                          Profit target:{" "}
-                          {Number.isFinite(marginNum) ? Math.round(marginNum) : 0}%
+
+                        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-3">
+                          <label className="text-[11px] font-medium uppercase tracking-[0.12em] text-white/42">
+                            Labor cost
+                          </label>
+                          <input
+                            value={laborCostRaw}
+                            onChange={(e) => {
+                              const next = e.target.value;
+                              if (/^[0-9]*$/.test(next)) setLaborCostRaw(next);
+                            }}
+                            onBlur={() => {
+                              const n = laborCostRaw.trim() === "" ? 0 : Number(laborCostRaw);
+                              const safe = Number.isFinite(n) ? Math.round(n) : 0;
+                              setLaborCostRaw(safe ? String(safe) : "");
+                              setLaborCost(safe);
+                            }}
+                            inputMode="numeric"
+                            placeholder="e.g., 3500"
+                            className="mt-2 w-full rounded-xl border border-white/[0.07] bg-black/15 px-3 py-2.5 text-sm text-white outline-none"
+                          />
+                          <div className="mt-2 text-[11px] text-white/50">
+                            In total: <span className="text-white/85">{fmtMoney(laborCostEffective)}</span>
+                          </div>
                         </div>
                       </div>
-                      <div className="mt-2 [&_div.space-y-2]:space-y-1 [&_label]:text-[11px] [&_label]:font-medium [&_label]:text-white/50 [&_p]:hidden [&_div.rounded-2xl.border]:!rounded-xl [&_div.rounded-2xl.border]:!border-white/[0.06] [&_div.rounded-2xl.border]:!bg-white/[0.035] [&_div.rounded-2xl.border]:!px-3 [&_div.rounded-2xl.border]:!py-2 [&_div.rounded-2xl.border]:!ring-1 [&_div.rounded-2xl.border]:!ring-white/[0.05] [&_div.rounded-2xl.border]:!shadow-none [&_div.rounded-2xl.border]:hover:!bg-white/[0.04] [&_div.rounded-2xl.border]:focus-within:!border-white/12 [&_div.rounded-2xl.border]:focus-within:!ring-white/12 [&_div.rounded-2xl.border]:focus-within:!shadow-none [&_input]:!py-1.5 [&_input]:!text-[13px]">
-                        <InputField
-                          id="margin"
-                          label="Fine tune (optional)"
-                          helper=""
-                          value={margin}
-                          onChange={setMargin}
-                          unitChip="%"
-                          max={99}
-                          step="0.5"
-                          icon={<TrendingUp className="h-4 w-4 text-white/50" />}
-                        />
-                      </div>
+
                       {marginInvalid && (
                         <motion.div
                           initial={{ opacity: 0, height: 0 }}
@@ -3973,954 +4034,320 @@ Thanks,`;
                           </p>
                         </motion.div>
                       )}
+
+                      {adjustedSquares > 0 && laborCostEffective === 0 && (
+                        <p className="text-sm text-amber-300/90">
+                          ⚠ Labor is currently $0. Most jobs include labor cost.
+                        </p>
+                      )}
                     </div>
-
-                    {priceWithMargin > 0 &&
-                      subtotal > 0 &&
-                      !showDash &&
-                      !marginInvalid &&
-                      (() => {
-                        const profitAmt = priceWithMargin - subtotal;
-                        const pm = priceWithMargin;
-                        const wM = pm > 0 ? (materialsCost / pm) * 100 : 0;
-                        const wL = pm > 0 ? (laborCostEffective / pm) * 100 : 0;
-                        const wP = pm > 0 ? (profitAmt / pm) * 100 : 0;
-                        const wRest = Math.max(0, 100 - wM - wL - wP);
-                        return (
-                          <div className="space-y-2.5 border-t border-white/10 pt-5">
-                            <div className="flex items-center gap-2">
-                              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-white/40" aria-hidden />
-                              <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/48">
-                                Price mix
-                              </span>
-                            </div>
-                            <div className="flex h-2 w-full overflow-hidden rounded-full bg-white/[0.08]">
-                              {wM > 0.05 && (
-                                <div
-                                  className="h-full shrink-0 bg-sky-500/50"
-                                  style={{ width: `${wM}%` }}
-                                />
-                              )}
-                              {wL > 0.05 && (
-                                <div
-                                  className="h-full shrink-0 bg-indigo-500/45"
-                                  style={{ width: `${wL}%` }}
-                                />
-                              )}
-                              {wP > 0.05 && (
-                                <div
-                                  className="h-full shrink-0 bg-emerald-500/40"
-                                  style={{ width: `${wP}%` }}
-                                />
-                              )}
-                              {wRest > 0.05 && (
-                                <div
-                                  className="h-full shrink-0 bg-white/[0.12]"
-                                  style={{ width: `${wRest}%` }}
-                                />
-                              )}
-                            </div>
-                            <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-white/45">
-                              <span className="inline-flex items-center gap-1">
-                                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-sky-500/60" />
-                                Materials
-                              </span>
-                              <span className="inline-flex items-center gap-1">
-                                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-500/55" />
-                                Labor
-                              </span>
-                              <span className="inline-flex items-center gap-1">
-                                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500/50" />
-                                Profit
-                              </span>
-                            </div>
-                            <p className="text-[11px] font-medium text-white/50">
-                              {marginNum >= 25
-                                ? "Strong margin"
-                                : marginNum >= 15
-                                  ? "Healthy margin"
-                                  : "Low margin"}
-                            </p>
-                          </div>
-                        );
-                      })()}
-
-                    <div className="space-y-2.5 border-t border-white/10 pt-5">
-                      <div className="text-sm font-medium text-white">Labor setup</div>
-                      <p className="text-sm text-white/70">Adjust if needed — included in total.</p>
-                      <div className="flex flex-wrap items-center gap-1 rounded-full border border-white/[0.06] bg-white/[0.02] p-0.5 w-fit">
-                        <button
-                          type="button"
-                          onClick={switchToManual}
-                          className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition ${
-                            laborMode === "manual"
-                              ? "bg-blue-500/[0.2] text-white ring-1 ring-blue-400/35"
-                              : "text-white/45 hover:text-white/68"
-                          }`}
-                        >
-                          Manual
-                        </button>
-                        <button
-                          type="button"
-                          onClick={switchToGuided}
-                          className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition ${
-                            laborMode === "guided"
-                              ? "bg-blue-500/[0.2] text-white ring-1 ring-blue-400/35"
-                              : "text-white/45 hover:text-white/68"
-                          }`}
-                        >
-                          Guided
-                        </button>
-                      </div>
-
-                {laborMode === "manual" ? (
-                  <div className="mt-1.5">
-                    <label className="text-xs text-white/55">Labor Cost</label>
-                    <input
-                      value={laborCostRaw}
-                      onChange={(e) => {
-                        const next = e.target.value;
-                        if (/^[0-9]*$/.test(next)) setLaborCostRaw(next);
-                      }}
-                      onBlur={() => {
-                        const n = laborCostRaw.trim() === "" ? 0 : Number(laborCostRaw);
-                        const safe = Number.isFinite(n) ? Math.round(n) : 0;
-                        setLaborCostRaw(safe ? String(safe) : "");
-                        setLaborCost(safe);
-                      }}
-                      inputMode="numeric"
-                      placeholder="e.g., 3500"
-                      className="mt-1 w-full rounded-lg border border-white/[0.07] bg-black/15 px-2.5 py-1.5 text-sm text-white outline-none"
-                    />
-                    <div className="mt-1.5 text-[11px] text-white/50">
-                      In total: <span className="text-white/85">{fmtMoney(laborCostEffective)}</span>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="mt-1.5 space-y-2">
-                    <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-                      <div>
-                        <label className="text-xs text-white/60">Base $ / Square (editable)</label>
-                        <input
-                          value={String(guidedLaborBasePerSquare)}
-                          onChange={(e) => {
-                            const next = e.target.value;
-                            if (!/^[0-9]*$/.test(next)) return;
-                            const n = next === "" ? 0 : Number(next);
-                            setGuidedLaborBasePerSquare(clampInt(n, BASE_PER_SQ_MIN, BASE_PER_SQ_MAX));
-                          }}
-                          inputMode="numeric"
-                          className="mt-1 w-full rounded-lg border border-white/[0.07] bg-black/15 px-2.5 py-1.5 text-sm text-white outline-none"
-                        />
-                        <div className="mt-1 text-xs text-white/60">
-                          Base labor (before factors): <span className="text-white">{fmtMoney(guidedBaseLabor)}</span>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2.5">
-                        <div>
-                          <label className="text-xs text-white/60">Stories</label>
-                          <select
-                            value={guidedStories}
-                            onChange={(e) => setGuidedStories(e.target.value as GuidedStories)}
-                            className="mt-1 w-full rounded-lg border border-white/[0.07] bg-black/15 px-2.5 py-1.5 text-sm text-white outline-none"
-                          >
-                            <option value="one">1 Story</option>
-                            <option value="two">2 Story</option>
-                            <option value="threePlus">3+ Story</option>
-                          </select>
-                          <div className="mt-1 text-xs text-white/60">
-                            Adds: <span className="text-white">+{pctMultiplier(getStoriesMultiplier(guidedStories, { twoStoryAdjPct, threePlusAdjPct, steepAdjPct }))}%</span>
-                          </div>
-                          <div className="mt-2">
-                            <label className="text-xs text-white/60">2-Story Adj (%)</label>
-                            <input
-                              value={String(twoStoryAdjPct)}
-                              onChange={(e) => {
-                                const next = e.target.value;
-                                if (!/^[0-9]*$/.test(next)) return;
-                                const n = next === "" ? 0 : Number(next);
-                                setTwoStoryAdjPct(clampInt(n, ADJ_PCT_MIN, ADJ_PCT_MAX));
-                              }}
-                              inputMode="numeric"
-                              className="mt-1 w-full rounded-lg border border-white/[0.07] bg-black/15 px-2.5 py-1.5 text-sm text-white outline-none"
-                            />
-                            <label className="mt-2 block text-xs text-white/60">3+ Story Adj (%)</label>
-                            <input
-                              value={String(threePlusAdjPct)}
-                              onChange={(e) => {
-                                const next = e.target.value;
-                                if (!/^[0-9]*$/.test(next)) return;
-                                const n = next === "" ? 0 : Number(next);
-                                setThreePlusAdjPct(clampInt(n, ADJ_PCT_MIN, ADJ_PCT_MAX));
-                              }}
-                              inputMode="numeric"
-                              className="mt-1 w-full rounded-lg border border-white/[0.07] bg-black/15 px-2.5 py-1.5 text-sm text-white outline-none"
-                            />
-                          </div>
-                        </div>
-
-                        <div>
-                          <label className="text-xs text-white/60">Walkability</label>
-                          <select
-                            value={guidedWalkable}
-                            onChange={(e) => setGuidedWalkable(e.target.value as GuidedWalkable)}
-                            className="mt-1 w-full rounded-lg border border-white/[0.07] bg-black/15 px-2.5 py-1.5 text-sm text-white outline-none"
-                          >
-                            <option value="walkable">Walkable</option>
-                            <option value="steep">Steep</option>
-                          </select>
-                          <div className="mt-1 text-xs text-white/60">
-                            Adds: <span className="text-white">+{pctMultiplier(getWalkableMultiplier(guidedWalkable, { twoStoryAdjPct, threePlusAdjPct, steepAdjPct }))}%</span>
-                          </div>
-                          <div className="mt-2">
-                            <label className="text-xs text-white/60">Steep Adj (%)</label>
-                            <input
-                              value={String(steepAdjPct)}
-                              onChange={(e) => {
-                                const next = e.target.value;
-                                if (!/^[0-9]*$/.test(next)) return;
-                                const n = next === "" ? 0 : Number(next);
-                                setSteepAdjPct(clampInt(n, ADJ_PCT_MIN, ADJ_PCT_MAX));
-                              }}
-                              inputMode="numeric"
-                              className="mt-1 w-full rounded-lg border border-white/[0.07] bg-black/15 px-2.5 py-1.5 text-sm text-white outline-none"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="mt-1 space-y-2.5 border-t border-white/[0.08] pt-3">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="text-xs font-medium text-white/72">Adjustments</div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-xs text-white/55">
-                            Factor <span className="font-semibold tabular-nums text-white/88">×{guidedTotalMultiplier.toFixed(2)}</span>
-                          </span>
-                          <button
-                            type="button"
-                            onClick={resetGuidedDefaults}
-                            className="rounded-full border border-white/[0.1] bg-white/[0.04] px-3 py-1 text-xs font-medium text-white/78 hover:bg-white/[0.06]"
-                          >
-                            Reset defaults
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="space-y-1">
-                        {guidedBreakdown.map((b) => (
-                          <div key={b.label} className="flex items-center justify-between text-xs">
-                            <div className="text-white/78">{b.label}</div>
-                            <div className="text-white">
-                              {b.pct === 0 ? "+0%" : `+${b.pct}%`}{" "}
-                              <span className="text-white/65">({fmtMoney(b.delta)})</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-
-                      <div className="space-y-1 border-t border-white/[0.07] pt-3 text-xs">
-                        <div className="flex items-center justify-between">
-                          <div className="text-white/62">Base labor</div>
-                          <div className="tabular-nums text-white/88">{fmtMoney(guidedBaseLabor)}</div>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <div className="text-white/62">Adjustments</div>
-                          <div className="tabular-nums text-white/88">{fmtMoney(guidedBreakdown.reduce((acc, b) => acc + (b.delta || 0), 0))}</div>
-                        </div>
-                        <div className="flex items-center justify-between border-t border-white/10 pt-2 text-sm font-medium">
-                          <div className="text-white/82">Guided total</div>
-                          <div className="tabular-nums text-white">{fmtMoney(guidedLaborTotal)}</div>
-                        </div>
-                      </div>
-
-                      <p className="text-[10px] text-white/38">Internal — not shown on proposals.</p>
-                    </div>
-                  </div>
-                )}
-
-                {adjustedSquares > 0 && laborCostEffective === 0 && (
-                  <p className="mt-2 text-sm text-amber-300/90">⚠ Labor is currently $0. Most jobs include labor cost.</p>
-                )}
-                  </div>
                   </div>
                 </div>
               </div>
 
               <div className="mt-12 pt-8 border-t border-white/10">
-                <div className="rounded-3xl border border-white/[0.12] bg-white/[0.03] p-5 shadow-[0_8px_32px_-14px_rgba(0,0,0,0.28)]">
-                <div className="space-y-7">
+                <div className="rounded-3xl border border-white/[0.12] bg-white/[0.03] p-5 sm:p-6">
+
+                  {/* Header */}
                   <div>
-                    <h2 className="text-[17px] font-semibold tracking-tight text-white">
-                      Step 4 — Finalize Job Setup
+                    <h2 className="text-[16px] font-semibold tracking-tight text-white">
+                      Finalize &amp; Confirm
                     </h2>
-                    <p className="mt-2 text-sm leading-relaxed text-white/64">
-                      Confirm job details before sending your proposal
+                    <p className="mt-1 text-sm text-white/60">
+                      Review your setup before sending the proposal
                     </p>
                   </div>
 
-                  <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 space-y-4">
-                    <div className="flex items-center justify-between gap-2.5 rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
-                      <div className="min-w-0 flex-1 pr-1">
-                        <div className="text-sm font-semibold text-white">Old Roof Removal</div>
-                        <p className="mt-0.5 text-[11px] leading-snug text-white/48">
-                          Disposal for this proposal
-                        </p>
+                  <div className="mt-6 space-y-6">
+
+                    {/* JOB SUMMARY */}
+                    <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4">
+                      <div className="text-[11px] uppercase tracking-[0.14em] text-white/40">
+                        Job overview
                       </div>
-                      <div
-                        className="inline-flex shrink-0 items-center gap-1 rounded-[10px] border border-white/14 bg-white/[0.07] px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
-                        role="group"
-                        aria-label="Old roof removal"
-                      >
-                        <span className="text-[11px] font-semibold tabular-nums text-white/70">
-                          {includeDebrisRemoval ? "On" : "Off"}
-                        </span>
+
+                      <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
+
+                        <div>
+                          <div className="text-white/50 text-xs">Roof type</div>
+                          <div className="text-white font-medium">
+                            {removalType === "architectural" ? "Architectural" : "Standard"}
+                          </div>
+                        </div>
+
+                        <div>
+                          <div className="text-white/50 text-xs">Tear-off</div>
+                          <div className="text-white font-medium">
+                            {includeDebrisRemoval ? "Included" : "Not included"}
+                          </div>
+                        </div>
+
+                        <div>
+                          <div className="text-white/50 text-xs">System</div>
+                          <div className="text-white font-medium">
+                            {roofingTier === "standard" ? "Core" : roofingTier === "enhanced" ? "Enhanced" : "Premium"}
+                          </div>
+                        </div>
+
+                      </div>
+
+                      <div className="mt-4 text-xs text-emerald-300/90 font-medium">
+                        ✔ Ready for proposal
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
+                      <div className="flex items-center justify-between gap-4">
+                        <div>
+                          <div className="text-[11px] uppercase tracking-[0.14em] text-white/40">
+                            Tear-off settings
+                          </div>
+                          <p className="mt-1 text-sm text-white/60">
+                            Include removal and disposal in this proposal
+                          </p>
+                        </div>
+
                         <button
                           type="button"
                           role="switch"
                           aria-checked={includeDebrisRemoval}
-                          onClick={() => {
-                            setIncludeDebrisRemoval((v) => !v);
-                            markHelpSeenDebris();
-                          }}
-                          className="relative h-7 w-[3.25rem] shrink-0 rounded-full border border-white/28 bg-white/[0.09] shadow-[inset_0_1px_2px_rgba(0,0,0,0.28)] transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-slate-950"
-                          style={{ backgroundColor: includeDebrisRemoval ? "rgba(94, 234, 212, 0.38)" : undefined }}
+                          onClick={() => setIncludeDebrisRemoval((v) => !v)}
+                          className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border transition ${
+                            includeDebrisRemoval
+                              ? "border-emerald-400/40 bg-emerald-500/20"
+                              : "border-white/[0.10] bg-white/[0.06]"
+                          }`}
                         >
                           <span
-                            className="absolute top-0.5 left-0.5 h-6 w-6 rounded-full bg-white shadow-md ring-1 ring-black/10 transition-transform"
-                            style={{ transform: includeDebrisRemoval ? "translateX(1.5rem)" : "translateX(0)" }}
+                            className={`inline-block h-5 w-5 rounded-full bg-white shadow transition ${
+                              includeDebrisRemoval ? "translate-x-6" : "translate-x-1"
+                            }`}
                           />
                         </button>
                       </div>
-                    </div>
 
-                    {includeDebrisRemoval && (
-                      <div className="space-y-4">
+                      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
                         <div>
-                          <label className="mb-2 block text-xs font-medium uppercase tracking-[0.16em] text-white/45">
-                            Roof Type
+                          <label className="text-[11px] font-medium uppercase tracking-[0.12em] text-white/42">
+                            Removal type
                           </label>
-                          <div className="grid grid-cols-2 gap-2">
-                            <button
-                              type="button"
-                              onClick={() => setRemovalType("standard")}
-                              className={`rounded-2xl border px-4 py-3 text-sm font-medium transition ${
-                                removalType === "standard"
-                                  ? "border-cyan-300/50 bg-cyan-400/10 text-white shadow-[0_0_0_1px_rgba(103,232,249,0.15)]"
-                                  : "border-white/10 bg-white/[0.03] text-white/70 hover:bg-white/[0.05]"
-                              }`}
-                            >
-                              Standard
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setRemovalType("architectural")}
-                              className={`rounded-2xl border px-4 py-3 text-sm font-medium transition ${
-                                removalType === "architectural"
-                                  ? "border-cyan-300/50 bg-cyan-400/10 text-white shadow-[0_0_0_1px_rgba(103,232,249,0.15)]"
-                                  : "border-white/10 bg-white/[0.03] text-white/70 hover:bg-white/[0.05]"
-                              }`}
-                            >
-                              Architectural
-                            </button>
-                          </div>
+                          <select
+                            value={removalType}
+                            onChange={(e) => setRemovalType(e.target.value as "standard" | "architectural")}
+                            disabled={!includeDebrisRemoval}
+                            className="mt-2 w-full rounded-xl border border-white/[0.07] bg-black/15 px-3 py-2.5 text-sm text-white outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            <option value="standard">Standard</option>
+                            <option value="architectural">Architectural</option>
+                          </select>
                         </div>
 
                         <div>
-                          <label className="mb-2 block text-xs font-medium uppercase tracking-[0.16em] text-white/45">
-                            Disposal Rate
+                          <label className="text-[11px] font-medium uppercase tracking-[0.12em] text-white/42">
+                            Disposal rate ($ / ton)
                           </label>
-                          <div className="flex items-center rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3 focus-within:ring-2 focus-within:ring-blue-500/30">
-                            <span className="mr-2 text-sm text-white/40">$</span>
-                            <input
-                              type="number"
-                              inputMode="decimal"
-                              min={0}
-                              value={dumpFeePerTon}
-                              onChange={(e) => setDumpFeePerTon(e.target.value)}
-                              placeholder="0"
-                              className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-white/30 [appearance:textfield]"
-                            />
-                            <span className="ml-2 text-xs text-white/40">/ ton</span>
-                          </div>
-                        </div>
-
-                        <div>
-                          <button
-                            type="button"
-                            onClick={() => setShowDisposalAdvanced((prev) => !prev)}
-                            className="flex w-full items-center justify-between gap-2 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-left text-sm font-medium text-white/70 transition hover:bg-white/[0.05]"
-                          >
-                            <span>Advanced</span>
-                            <ChevronDown
-                              className={`h-4 w-4 shrink-0 transition-transform duration-200 ${showDisposalAdvanced ? "rotate-180" : ""}`}
-                            />
-                          </button>
-
-                          <motion.div
-                            initial={false}
-                            animate={{ height: showDisposalAdvanced ? "auto" : 0, opacity: showDisposalAdvanced ? 1 : 0 }}
-                            transition={{ duration: 0.25, ease: "easeInOut" }}
-                            className="overflow-hidden"
-                          >
-                            <div className="mt-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                              <label htmlFor="disposal-override" className="mb-2 block text-xs font-medium uppercase tracking-[0.16em] text-white/45">
-                                Override Disposal Total
-                              </label>
-                              <div className="flex items-center rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3 focus-within:ring-2 focus-within:ring-blue-500/30">
-                                <span className="mr-2 text-sm text-white/40">$</span>
-                                <input
-                                  id="disposal-override"
-                                  type="number"
-                                  inputMode="decimal"
-                                  min={0}
-                                  value={disposalOverride}
-                                  onChange={(e) => setDisposalOverride(e.target.value)}
-                                  placeholder="Leave empty for calculated"
-                                  className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-white/30 [appearance:textfield]"
-                                />
-                              </div>
-                            </div>
-                          </motion.div>
+                          <input
+                            value={dumpFeePerTon}
+                            onChange={(e) => setDumpFeePerTon(e.target.value)}
+                            inputMode="decimal"
+                            placeholder="e.g. 80"
+                            disabled={!includeDebrisRemoval}
+                            className="mt-2 w-full rounded-xl border border-white/[0.07] bg-black/15 px-3 py-2.5 text-sm text-white outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                          />
                         </div>
                       </div>
-                    )}
-                  </div>
 
-                  <div className="-mt-1.5 space-y-3">
-                    <label className="block text-[15px] font-semibold tracking-tight text-white">
-                      Select Roofing System
-                    </label>
-
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                      <button
-                        type="button"
-                        onClick={() => setRoofingTier("standard")}
-                        className={`rounded-2xl border p-4 text-left transition ${
-                          roofingTier === "standard"
-                            ? "border-cyan-100/75 bg-gradient-to-b from-cyan-400/32 via-cyan-950/28 to-slate-950/55 shadow-[0_0_0_2px_rgba(34,211,238,0.62),0_0_32px_-2px_rgba(34,211,238,0.42),0_14px_44px_-12px_rgba(34,211,238,0.45)] ring-2 ring-cyan-300/50"
-                            : "border-white/[0.06] bg-white/[0.018] opacity-[0.84] hover:opacity-100 hover:border-white/11 hover:bg-white/[0.04]"
-                        }`}
-                      >
-                        <div className="mb-3 flex h-[50px] flex-col items-center justify-end">
-                          <div className="h-0 w-0 border-l-[34px] border-r-[34px] border-b-[18px] border-l-transparent border-r-transparent border-b-slate-400/45" />
-                          <div className="-mt-px h-5 w-[68px] rounded-b-md bg-gradient-to-b from-slate-400/12 to-white/[0.04] ring-1 ring-slate-400/15" />
-                        </div>
-                        <div className="text-[15px] font-semibold tracking-tight text-white">Core</div>
-                        <div className="mt-0.5 text-[11px] text-white/50">Reliable protection</div>
-                        <div className="mt-2.5 space-y-0.5 text-[10px] leading-snug text-white/38">
-                          <div>Architectural shingles</div>
-                          <div>Felt underlayment</div>
-                        </div>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setRoofingTier("enhanced")}
-                        className={`rounded-2xl border p-4 text-left transition ${
-                          roofingTier === "enhanced"
-                            ? "border-cyan-100/75 bg-gradient-to-b from-cyan-400/32 via-cyan-950/28 to-slate-950/55 shadow-[0_0_0_2px_rgba(34,211,238,0.62),0_0_32px_-2px_rgba(34,211,238,0.42),0_14px_44px_-12px_rgba(34,211,238,0.45)] ring-2 ring-cyan-300/50"
-                            : "border-white/[0.06] bg-white/[0.018] opacity-[0.84] hover:opacity-100 hover:border-white/11 hover:bg-white/[0.04]"
-                        }`}
-                      >
-                        <div className="mb-3 flex h-[50px] flex-col items-center justify-end">
-                          <div className="h-0 w-0 border-l-[34px] border-r-[34px] border-b-[18px] border-l-transparent border-r-transparent border-b-sky-400/75" />
-                          <div className="-mt-px h-5 w-[68px] rounded-b-md bg-gradient-to-b from-sky-400/28 to-cyan-500/10 ring-1 ring-sky-400/35" />
-                        </div>
-                        <div className="text-[15px] font-semibold tracking-tight text-white">Enhanced</div>
-                        <div className="mt-0.5 text-[11px] text-white/50">Upgraded coverage</div>
-                        <div className="mt-2.5 space-y-0.5 text-[10px] leading-snug text-white/38">
-                          <div>Synthetic underlayment</div>
-                          <div>Ridge ventilation</div>
-                        </div>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setRoofingTier("premium")}
-                        className={`rounded-2xl border p-4 text-left transition ${
-                          roofingTier === "premium"
-                            ? "border-cyan-100/75 bg-gradient-to-b from-cyan-400/32 via-cyan-950/28 to-slate-950/55 shadow-[0_0_0_2px_rgba(34,211,238,0.62),0_0_32px_-2px_rgba(34,211,238,0.42),0_14px_44px_-12px_rgba(34,211,238,0.45)] ring-2 ring-cyan-300/50"
-                            : "border-white/[0.06] bg-white/[0.018] opacity-[0.84] hover:opacity-100 hover:border-white/11 hover:bg-white/[0.04]"
-                        }`}
-                      >
-                        <div className="mb-3 flex h-[50px] flex-col items-center justify-end">
-                          <div className="h-0 w-0 border-l-[34px] border-r-[34px] border-b-[18px] border-l-transparent border-r-transparent border-b-amber-300/70" />
-                          <div className="-mt-px h-5 w-[68px] rounded-b-md bg-gradient-to-b from-amber-300/22 to-amber-900/15 ring-1 ring-amber-300/35" />
-                        </div>
-                        <div className="text-[15px] font-semibold tracking-tight text-white">Premium</div>
-                        <div className="mt-0.5 text-[11px] text-white/50">Best presentation</div>
-                        <div className="mt-2.5 space-y-0.5 text-[10px] leading-snug text-white/38">
-                          <div>Premium components</div>
-                          <div>Top-tier detailing</div>
-                        </div>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="rounded-2xl border border-white/[0.1] bg-gradient-to-br from-white/[0.08] via-white/[0.03] to-transparent p-4 ring-1 ring-white/[0.06]">
-                    <div className="mb-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-white/40">At a glance</div>
-                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                      <div className="rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-                        <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-white/38">Roof area</div>
-                        <div className="mt-1 text-base font-semibold tabular-nums tracking-tight text-white">
-                          {area || "—"}
-                          <span className="ml-1 text-[11px] font-medium text-white/58">sq ft</span>
-                        </div>
-                      </div>
-                      <div className="rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-                        <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-white/38">Removal</div>
-                        <div className="mt-1 text-[15px] font-semibold leading-snug text-white/95">
-                          {includeDebrisRemoval ? "Included" : "Not included"}
-                        </div>
-                      </div>
-                      <div className="rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-                        <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-white/38">System</div>
-                        <div className="mt-1 text-[15px] font-semibold leading-snug text-white/95">
-                          {roofingTier === "standard" ? "Core" : roofingTier === "enhanced" ? "Enhanced" : "Premium"}
-                        </div>
+                      <div className="mt-3 text-xs text-white/45">
+                        {includeDebrisRemoval
+                          ? "Included in estimate total"
+                          : "Excluded from estimate total"}
                       </div>
                     </div>
-                  </div>
 
-                  <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white/65">
-                    You&apos;re ready to review and send your proposal.
-                  </div>
-                </div>
-            </div>
-            </div>
-
-            {/* AI Assist (optional) */}
-            <div ref={aiAssistRef} className="mt-10 pt-6 border-t border-white/10 rounded-3xl border border-white/10 bg-white/[0.04] p-4 shadow-[0_10px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl">
-              {/* ===============================
-                  SMART PROPOSAL ASSIST
-              ================================ */}
-
-              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 mt-6">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <div className="text-sm font-semibold text-white">
-                      ✨ Smart Proposal Assist
-                    </div>
-                    <div className="text-xs text-white/60 mt-1">
-                      AI enhances wording and closing CTA. Pricing is never modified.
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => setShowAiPanel((v) => !v)}
-                    className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-semibold text-white/80 hover:bg-white/[0.06]"
-                  >
-                    {showAiPanel ? "Hide" : "Customize"}
-                  </button>
-                </div>
-
-                {/* Compact Preview (always visible if GPT wording exists) */}
-                {useGptWording && gptPackageDescription && (
-                  <div className="mt-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
-                    <div className="text-xs text-emerald-400 font-semibold mb-1">
-                      ✔ AI Optimized
-                    </div>
-                    <div className="text-sm text-white/80 line-clamp-2">
-                      {gptPackageDescription}
-                    </div>
-                  </div>
-                )}
-
-                {/* Expanded Customization */}
-                {showAiPanel && (
-                  <div className="mt-6 space-y-4">
+                    {/* PACKAGE SELECTION */}
                     <div>
-                      <label className="text-xs text-white/50">Company Voice</label>
-                      <select
-                        value={voiceTone}
-                        onChange={(e) => {
-                          const t = e.target.value as VoiceTone;
-                          setVoiceTone(t);
-                          saveCompanyVoiceProfile({ tone: t, styleNotes: voiceNotes });
-                        }}
-                        className="mt-1 w-full rounded-lg bg-white/[0.04] border border-white/10 px-3 py-2 text-sm text-white"
-                      >
-                        <option value="friendly">Friendly</option>
-                        <option value="professional">Professional</option>
-                        <option value="direct">Direct</option>
-                        <option value="premium">Premium</option>
-                      </select>
+                      <div className="text-sm font-medium text-white mb-3">
+                        Select roofing system
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                        {(["standard","enhanced","premium"] as const).map((option) => {
+                          const selected = roofingTier === option;
+
+                          const label =
+                            option === "standard"
+                              ? "Core"
+                              : option === "enhanced"
+                              ? "Enhanced"
+                              : "Premium";
+
+                          const helper =
+                            option === "standard"
+                              ? "Reliable protection"
+                              : option === "enhanced"
+                              ? "Upgraded coverage"
+                              : "Best presentation";
+
+                          return (
+                            <button
+                              key={option}
+                              type="button"
+                              onClick={() => setRoofingTier(option)}
+                              className={`rounded-2xl border px-4 py-4 text-left transition ${
+                                selected
+                                  ? "border-emerald-300/50 bg-emerald-500/[0.18] text-white shadow-[0_0_24px_-8px_rgba(16,185,129,0.35)]"
+                                  : "border-white/[0.08] bg-white/[0.025] text-white/70 hover:bg-white/[0.045]"
+                              }`}
+                            >
+                              <div className="text-sm font-semibold">{label}</div>
+                              <div className="mt-1 text-xs text-white/50">{helper}</div>
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (!hasPrice || !hasRoofArea) pingField("roofArea");
-                        handleGenerateSummary();
-                      }}
-                      disabled={isGenerating}
-                      className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500 disabled:opacity-60 disabled:cursor-not-allowed"
-                    >
-                      {isGenerating ? "Generating…" : "Generate AI Wording"}
-                    </button>
-
-                    {gptPackageDescription && (
-                      <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/80">
-                        {gptPackageDescription}
+                    {/* PROPOSAL STATUS */}
+                    <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4">
+                      <div className="text-[11px] uppercase tracking-[0.14em] text-white/40">
+                        Proposal status
                       </div>
-                    )}
+
+                      <div className="mt-3 space-y-2 text-sm">
+
+                        <div className="flex items-center gap-2 text-emerald-300">
+                          ✔ <span className="text-white">Scope ready</span>
+                        </div>
+
+                        <div className="flex items-center gap-2 text-emerald-300">
+                          ✔ <span className="text-white">Pricing ready</span>
+                        </div>
+
+                        <div className="flex items-center gap-2 text-emerald-300">
+                          ✔ <span className="text-white">Package selected</span>
+                        </div>
+
+                      </div>
+                    </div>
+
                   </div>
-                )}
+                </div>
               </div>
 
-              {showClientSummary && (
-                <div className="mt-4">
-                  <div className="flex items-center justify-between gap-2 mb-2">
-                    <div className="text-xs text-white/60">Proposal Preview</div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setShowClientSummary(false)}
-                        className="rounded-full bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-white/70 hover:bg-white/10"
-                      >
-                        Hide
-                      </button>
-                      <button
-                        type="button"
-                        onClick={onCopyClientSummary}
-                        disabled={!previewText.trim()}
-                        className="rounded-full bg-blue-500/20 px-3 py-1.5 text-[11px] font-semibold text-blue-100 hover:bg-blue-500/25 disabled:opacity-40"
-                      >
-                        {copyState === "copied" ? "Copied" : copyState === "error" ? "Copy failed" : "Copy"}
-                      </button>
-                    </div>
-                  </div>
-                  <div className="w-full rounded-2xl border border-white/10 bg-white/[0.04] p-3">
-                    <div className="mb-2 text-xs text-white/60">
-                      Source: {useGptWording && (gptPackageDescription || gptScheduleCta) ? "GPT" : "Deterministic"}
-                    </div>
+            <div className="mt-12 pt-8 border-t border-white/10">
+              <div className="rounded-3xl border border-white/[0.12] bg-white/[0.03] p-5 sm:p-6">
 
-                    <textarea
-                      value={previewText}
-                      readOnly
-                      className="w-full h-64 rounded-xl bg-black/20 text-white text-sm p-4 resize-none"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {showEmailTemplate && (
-                <div className="mt-4">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="text-xs text-white/60">Email Template</div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setShowEmailTemplate(false)}
-                        className="rounded-full bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-white/70 hover:bg-white/10"
-                      >
-                        Hide
-                      </button>
-                      <button
-                        type="button"
-                        onClick={onCopyEmailSubject}
-                        disabled={!emailSubject || emailState === "loading"}
-                        className="rounded-full bg-blue-500/20 px-3 py-1.5 text-[11px] font-semibold text-blue-100 hover:bg-blue-500/25 disabled:opacity-40"
-                      >
-                        {copyEmailSubjectState === "copied" ? "Copied" : copyEmailSubjectState === "error" ? "Copy failed" : "Copy Subject"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={onCopyEmailBody}
-                        disabled={!emailBody || emailState === "loading"}
-                        className="rounded-full bg-blue-500/20 px-3 py-1.5 text-[11px] font-semibold text-blue-100 hover:bg-blue-500/25 disabled:opacity-40"
-                      >
-                        {copyEmailBodyState === "copied" ? "Copied" : copyEmailBodyState === "error" ? "Copy failed" : "Copy Body"}
-                      </button>
-                    </div>
-                  </div>
-                  {emailState === "loading" && (
-                    <p className="mt-2 text-xs text-white/60">Generating email…</p>
-                  )}
-                  {emailState === "error" && (
-                    <p className="mt-2 text-xs text-amber-300/90">Could not generate email wording. Using standard template.</p>
-                  )}
-                  <label className="mt-2 block text-[11px] text-white/50">Subject</label>
-                  <textarea
-                    readOnly
-                    value={emailSubject}
-                    rows={2}
-                    className="mt-1 w-full resize-none rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-white/80 focus:outline-none"
-                  />
-                  <label className="mt-2 block text-[11px] text-white/50">Body</label>
-                  <textarea
-                    readOnly
-                    value={emailBody}
-                    rows={12}
-                    className="mt-1 w-full resize-none rounded-2xl border border-white/10 bg-black/20 p-4 text-xs leading-relaxed text-white/80 focus:outline-none"
-                  />
-                </div>
-              )}
-            </div>
-
-            <div className="mt-8 rounded-[2rem] border border-white/[0.06] bg-[linear-gradient(180deg,rgba(54,66,88,0.88)_0%,rgba(42,52,72,0.92)_32%,rgba(30,38,54,0.96)_68%,rgba(20,26,38,0.98)_100%)] p-5 shadow-[0_22px_56px_-20px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.035),0_0_52px_-24px_rgba(59,130,246,0.07),inset_0_1px_0_rgba(255,255,255,0.07)] backdrop-blur-xl sm:p-6">
-              <div className="p-0">
-
-                <div className="flex items-start justify-between gap-4">
+                {/* Header */}
+                <div className="flex items-start justify-between gap-3">
                   <div>
-                    <h3 className="text-xl font-semibold tracking-tight text-white">Review &amp; Send</h3>
-                    <p className="mt-1 text-sm leading-relaxed text-white/44">Everything looks good — send your estimate</p>
+                    <h2 className="text-[16px] font-semibold text-white">
+                      Ready to send
+                    </h2>
+                    <p className="mt-1 text-sm text-white/60">
+                      Review your proposal and deliver it to the customer
+                    </p>
                   </div>
-
-                  <button
-                    type="button"
-                    onClick={() => setShowSendDetails((v) => !v)}
-                    className="shrink-0 rounded-md px-2 py-1 text-[10px] font-medium tracking-wide text-white/34 transition hover:bg-white/[0.05] hover:text-white/50"
-                  >
-                    {showSendDetails ? "Hide options" : "More options"}
-                  </button>
                 </div>
 
-                <div className="mt-5 rounded-[1.45rem] border border-white/[0.07] bg-white/[0.03] p-4.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
-                  <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/38">
-                    Proposal ready
-                  </div>
+                <div className="mt-6 space-y-6">
 
-                  <div className="mt-3 rounded-[1.15rem] border border-white/[0.06] bg-white/[0.025] px-4 py-3.5">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="text-[14px] font-semibold text-white/90">
-                          Roofing estimate PDF
-                        </div>
-                        <div className="mt-0.5 text-[11px] text-white/50">
-                          1 page • {roofingTier === "standard" ? "Core" : roofingTier === "enhanced" ? "Enhanced" : "Premium"} package • Ready to send
-                        </div>
+                  {/* PROPOSAL PREVIEW */}
+                  <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4 flex items-center justify-between">
+                    <div>
+                      <div className="text-sm font-semibold text-white">
+                        Roofing proposal
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={handlePreviewPdf}
-                        disabled={isPreviewingPdf}
-                        className="shrink-0 rounded-[0.9rem] border border-white/[0.06] bg-white/[0.05] px-4 py-2 text-[12px] font-semibold text-white/86 transition hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        {isPreviewingPdf ? "Opening…" : "Open Preview"}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="mt-4.5 space-y-3.5">
-                    <div className="flex items-center gap-3.5">
-                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-500/18 text-[13px] font-bold text-emerald-300">
-                        ✓
+                      <div className="text-xs text-white/50 mt-1">
+                        1 page • AI enhanced • Ready to send
                       </div>
-                      <div className="text-[14px] font-medium text-white/88">Proposal prepared</div>
-                    </div>
 
-                    <div className="flex items-center gap-3.5">
-                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-500/18 text-[13px] font-bold text-emerald-300">
-                        ✓
-                      </div>
-                      <div className="text-[14px] font-medium text-white/88">Email delivery selected</div>
-                    </div>
+                      <div className="mt-2 flex items-center gap-3 text-[11px] text-white/50">
+                        <span className="text-emerald-300">AI description ready</span>
 
-                    <div className="flex items-center gap-3.5">
-                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-500/18 text-[13px] font-bold text-emerald-300">
-                        ✓
-                      </div>
-                      <div className="text-[14px] font-medium text-white/88">PDF attached</div>
-                    </div>
+                        <button
+                          type="button"
+                          onClick={handleRegenerateDescription}
+                          className="hover:text-white transition"
+                        >
+                          Regenerate
+                        </button>
 
-                    <div className="flex items-center gap-3.5">
-                      <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[13px] font-bold ${
-                        (customerEmail || "").trim() && (jobAddress1 || "").trim()
-                          ? "bg-emerald-500/18 text-emerald-300"
-                          : "bg-amber-500/18 text-amber-200"
-                      }`}>
-                        {(customerEmail || "").trim() && (jobAddress1 || "").trim() ? "✓" : "!"}
+                        <button
+                          type="button"
+                          onClick={handleCustomizeDescription}
+                          className="hover:text-white transition"
+                        >
+                          Customize
+                        </button>
                       </div>
-                      <div className="text-[14px] font-medium text-white/88">
-                        {(customerEmail || "").trim() && (jobAddress1 || "").trim()
-                          ? "Customer details complete"
-                          : "Customer details still needed"}
-                      </div>
-                    </div>
-                  </div>
-
-                  {(!(customerEmail || "").trim() || !(jobAddress1 || "").trim()) && (
-                    <div className="mt-4 rounded-[1rem] border border-amber-300/8 bg-amber-400/[0.03] px-3 py-2.5 text-[11px] leading-relaxed text-amber-100/62">
-                      Missing:{" "}
-                      {!(customerEmail || "").trim() ? "customer email" : ""}
-                      {!(customerEmail || "").trim() && !(jobAddress1 || "").trim() ? " + " : ""}
-                      {!(jobAddress1 || "").trim() ? "job address" : ""}
-                    </div>
-                  )}
-                </div>
-
-                <div className="mt-5">
-                  <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/38">Delivery Method</div>
-                  <div className="mt-2 grid grid-cols-2 gap-3">
-                    <div
-                      className="flex items-center justify-between rounded-[1rem] border border-sky-200/12 bg-[linear-gradient(180deg,rgba(110,165,240,0.12)_0%,rgba(88,138,215,0.1)_100%)] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
-                      role="status"
-                      aria-label="Selected delivery method: email"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="text-[13px] text-white/85" aria-hidden>✉</span>
-                        <span className="text-[13px] font-semibold text-white">Email</span>
-                      </div>
-                      <span className="text-[13px] text-white/75" aria-hidden>✓</span>
                     </div>
 
                     <button
                       type="button"
-                      onClick={onDownloadPdf}
-                      className="flex items-center justify-center gap-2 rounded-[1rem] border border-white/[0.05] bg-white/[0.08] px-4 py-3 text-[13px] font-semibold text-white/76 transition hover:bg-white/[0.11] hover:text-white/92"
+                      onClick={handlePreviewPdf}
+                      disabled={isPreviewingPdf}
+                      className="rounded-full border border-white/[0.12] px-4 py-2 text-sm text-white hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      <span className="text-[13px] text-white/55" aria-hidden>⤓</span>
-                      Download PDF
+                      {isPreviewingPdf ? "Opening…" : "Open preview"}
                     </button>
                   </div>
-                </div>
 
-                <div className="mt-4.5 flex flex-col gap-2.5">
+                  {/* CONFIRMATION */}
+                  <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4 space-y-2">
+                    <div className="text-sm font-medium text-white">
+                      Everything is ready
+                    </div>
+
+                    <div className="space-y-1 text-sm text-white/70">
+                      <div>✔ Proposal built</div>
+                      <div>✔ Email delivery ready</div>
+                      <div>✔ PDF attached</div>
+                    </div>
+                  </div>
+
+                  {/* DELIVERY */}
+                  <div>
+                    <div className="text-sm font-medium text-white mb-2">
+                      Delivery method
+                    </div>
+
+                    <div className="flex gap-2">
+                      <div
+                        className="flex-1 rounded-xl px-4 py-3 text-sm font-semibold transition bg-blue-500/20 border border-blue-400/40 text-white"
+                        role="status"
+                        aria-label="Selected delivery method: email"
+                      >
+                        Email
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={onDownloadPdf}
+                        className="flex-1 rounded-xl px-4 py-3 text-sm font-semibold transition border border-white/[0.08] text-white/70 hover:bg-white/[0.03]"
+                      >
+                        Download PDF
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* SEND BUTTON */}
                   <button
                     type="button"
-                    disabled={!(customerEmail || "").trim() || !(jobAddress1 || "").trim() || isSending || isLocked}
                     onClick={handleSendEstimate}
-                    className={`w-full rounded-[1.1rem] border px-5 py-4 text-[1.08rem] font-extrabold leading-tight tracking-tight transition-all duration-150 ${
-                      (!(customerEmail || "").trim() || !(jobAddress1 || "").trim())
-                        ? "cursor-not-allowed border-white/[0.05] bg-white/[0.09] text-white/46 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
-                        : "border-sky-300/28 text-white shadow-[0_22px_44px_-14px_rgba(37,99,235,0.52),0_0_34px_-18px_rgba(96,165,250,0.28)] hover:brightness-[1.05] active:scale-[0.992]"
-                    }`}
-                    style={
-                      (customerEmail || "").trim() && (jobAddress1 || "").trim()
-                        ? {
-                            background: "linear-gradient(180deg,#8ec5ff 0%,#5ba3ff 12%,#3b82f6 42%,#2563eb 78%,#1d4ed8 100%)",
-                            boxShadow:
-                              "0 22px 44px -14px rgba(37,99,235,0.68), 0 0 36px -18px rgba(147,197,253,0.3), inset 0 1px 0 rgba(255,255,255,0.24)",
-                          }
-                        : undefined
-                    }
+                    disabled={!(customerEmail || "").trim() || !(jobAddress1 || "").trim() || isSending || isLocked}
+                    className="w-full rounded-2xl bg-blue-600 py-4 text-base font-semibold text-white shadow-[0_10px_30px_-10px_rgba(59,130,246,0.6)] hover:bg-blue-500 transition disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    {isSending ? "Sending…" : sendSuccess ? "Sent ✓" : "Send Estimate →"}
+                    {isSending ? "Sending…" : sendSuccess ? "Sent ✓" : "Send proposal →"}
                   </button>
+
+                  {sendError ? <div className="text-xs text-red-400">{sendError}</div> : null}
+                  {pdfError ? <p className="text-xs text-red-300/90">{pdfError}</p> : null}
+                  {sendSuccess && !isSending ? (
+                    <p className="text-xs text-blue-300/90">Sent successfully.</p>
+                  ) : null}
+
                 </div>
-
-                {sendError ? <div className="mt-3 text-xs text-red-400">{sendError}</div> : null}
-                {pdfError ? <p className="mt-2 text-xs text-red-300/90">{pdfError}</p> : null}
-                {sendSuccess && !isSending ? (
-                  <p className="mt-2 text-xs text-blue-300/90">Sent successfully.</p>
-                ) : null}
-
-                {showSendDetails && (
-                  <div className="mt-5 space-y-2 pt-5 opacity-[0.9]">
-                    {/* AI wording panel */}
-                    <div className="rounded-lg p-3">
-                      <button
-                        type="button"
-                        onClick={() => setShowAiWordingPanel((v) => !v)}
-                        className="flex w-full items-center justify-between text-left text-[13px] font-medium text-white/55 hover:text-white/80"
-                      >
-                        <span>AI Wording</span>
-                        <span className="text-[11px] text-white/40">{showAiWordingPanel ? "Hide" : "Show"}</span>
-                      </button>
-                      {showAiWordingPanel && (
-                        <div className="mt-3 grid grid-cols-1 gap-2 text-[13px] text-white/70 md:grid-cols-2">
-                          <div className="rounded-md p-2.5">
-                            <div className="mb-1 text-[10px] text-white/40">Package Description</div>
-                            <div className="whitespace-pre-wrap">{gptPackageDescription || "—"}</div>
-                          </div>
-                          <div className="rounded-md p-2.5">
-                            <div className="mb-1 text-[10px] text-white/40">Schedule CTA</div>
-                            <div className="whitespace-pre-wrap">{gptScheduleCta || "—"}</div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Email preview panel */}
-                    <div className="rounded-lg p-3">
-                      <button
-                        type="button"
-                        onClick={() => setShowEmailPreviewPanel((v) => !v)}
-                        className="flex w-full items-center justify-between text-left text-[13px] font-medium text-white/55 hover:text-white/80"
-                      >
-                        <span>Email Preview</span>
-                        <span className="text-[11px] text-white/40">{showEmailPreviewPanel ? "Hide" : "Show"}</span>
-                      </button>
-                      {showEmailPreviewPanel && (
-                        <div className="mt-3 space-y-2">
-                          <div>
-                            <div className="mb-1 text-[10px] text-white/40">Subject</div>
-                            <div className="rounded-md px-2.5 py-2 text-[13px] text-white/85">
-                              {buildEmailSubjectPreview(previewMeta)}
-                            </div>
-                          </div>
-                          <div>
-                            <div className="mb-1 text-[10px] text-white/40">Body (plain text, as sent)</div>
-                            <div className="rounded-md p-2.5 text-[13px] text-white/70 whitespace-pre-wrap">
-                              {buildEmailBodyPreview(previewMeta) || "—"}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* PDF tools panel */}
-                    <div className="rounded-lg p-3">
-                      <button
-                        type="button"
-                        onClick={() => setShowPdfToolsPanel((v) => !v)}
-                        className="flex w-full items-center justify-between text-left text-[13px] font-medium text-white/55 hover:text-white/80"
-                      >
-                        <span>PDF Tools</span>
-                        <span className="text-[11px] text-white/40">{showPdfToolsPanel ? "Hide" : "Show"}</span>
-                      </button>
-                      {showPdfToolsPanel && (
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          <button
-                            type="button"
-                            onClick={handlePreviewPdf}
-                            disabled={isPreviewingPdf}
-                            className="rounded-full bg-white/[0.06] px-3.5 py-1.5 text-[11px] font-medium text-white/55 hover:bg-white/[0.1] disabled:cursor-not-allowed disabled:opacity-50"
-                          >
-                            {isPreviewingPdf ? "Opening…" : "Preview PDF"}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={onDownloadPdf}
-                            className="rounded-full bg-white/[0.06] px-3.5 py-1.5 text-[11px] font-medium text-white/55 hover:bg-white/[0.1]"
-                          >
-                            Download PDF
-                          </button>
-                          <button
-                            type="button"
-                            onClick={onSharePdf}
-                            className="rounded-full bg-white/[0.06] px-3.5 py-1.5 text-[11px] font-medium text-white/55 hover:bg-white/[0.1]"
-                          >
-                            Share PDF
-                          </button>
-                        </div>
-                      )}
-                    </div>
-
-                    {typeof process !== "undefined" &&
-                      process.env.NODE_ENV !== "production" &&
-                      loadSavedId &&
-                      (getSavedEstimateById(loadSavedId)?.status === "sent" || getSavedEstimateById(loadSavedId)?.status === "sent_pending") && (
-                      <div className="pt-1">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            markSavedEstimateApproved(loadSavedId!);
-                          }}
-                          className="rounded-full bg-amber-500/12 px-3 py-1.5 text-[10px] font-medium text-amber-200/80 hover:bg-amber-500/20"
-                        >
-                          DEV: Mark Approved
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
-
               </div>
             </div>
 
@@ -5040,7 +4467,7 @@ Thanks,`;
             </div>
           </motion.section>
 
-          {/* Sticky summary card — premium result panel */}
+          {/* Sticky summary card — corrected right panel with visual breakdown */}
           <div className="lg:sticky lg:top-10 lg:self-start">
             <motion.section
               variants={cardVariants}
@@ -5052,128 +4479,221 @@ Thanks,`;
             >
               <h2
                 id="summary-heading"
-                className="text-[11px] font-medium uppercase tracking-[0.2em] text-slate-400 mb-6"
+                className="text-[11px] font-medium uppercase tracking-[0.2em] text-slate-400"
               >
                 Estimate summary
               </h2>
-              <div className="mb-6 flex flex-wrap items-center gap-2">
-                {includeDebrisRemoval && dumpFeeNum > 0 ? (
-                  <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1 rounded-full bg-emerald-500/20 px-2.5 py-1 text-xs font-medium text-emerald-400/95 ring-1 ring-emerald-400/20">
-                    Tear-off included — Landfill ${Math.round(dumpFeeNum)}/ton
-                  </span>
-                ) : !includeDebrisRemoval ? (
-                  <>
-                    <span className="inline-flex items-center rounded-full bg-slate-500/20 px-2.5 py-1 text-xs font-medium text-slate-400 ring-1 ring-slate-400/20">
-                      Tear-off & disposal not configured
+
+              {/* COST BREAKDOWN — main section */}
+              <div className="mt-6 rounded-2xl border border-white/[0.08] bg-white/[0.03] p-5 sm:p-6">
+                <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-white/40">
+                  Cost breakdown
+                </div>
+
+                <div className="mt-4 space-y-0">
+                  <div className="flex items-center justify-between py-3 border-b border-white/[0.06]">
+                    <span className="text-sm text-white/55">Materials</span>
+                    <span className="text-sm font-medium tabular-nums text-white/90">
+                      {showDash ? "—" : formatCurrency(materialsCost)}
                     </span>
-                    <Link
-                      href="/tools/roofing"
-                      className="inline-flex items-center rounded-full border border-blue-500/40 bg-blue-500/15 px-2.5 py-1 text-xs font-medium text-blue-300 hover:bg-blue-500/25 transition-colors"
-                    >
-                      Configure in calculator above
-                    </Link>
-                  </>
-                ) : null}
-              </div>
-              {!includeDebrisRemoval && (
-                <div className="mb-6 rounded-xl border border-white/10 bg-white/[0.06] px-4 py-3">
-                  <p className="text-xs text-slate-400">
-                    Turn on &quot;Include debris removal&quot; in the calculator for tear-off and dump costs. Treated as $0 when off.
-                  </p>
-                </div>
-              )}
-              {/* Result panel — premium breakdown, not a table */}
-              <div className="flex-1 rounded-2xl border border-white/[0.08] bg-white/[0.04] p-5 sm:p-6 space-y-1">
-                <div className="flex justify-between items-center py-3 px-1">
-                  <span className="text-sm text-slate-400">Squares</span>
-                  <span className="text-sm font-medium tabular-nums text-slate-200">{squares.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between items-center py-3 px-1 border-t border-white/[0.06]">
-                  <span className="text-sm text-slate-400">Adjusted squares</span>
-                  <span className="text-sm font-medium tabular-nums text-slate-200">{adjustedSquares.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between items-center py-3 px-1 border-t border-white/[0.06]">
-                  <span className="text-sm text-slate-400">Bundles</span>
-                  <span className="text-sm font-medium tabular-nums text-slate-200">{bundles}</span>
-                </div>
-                <div className="flex justify-between items-center py-3 px-1 border-t border-white/[0.06]">
-                  <span className="text-sm text-slate-400">Materials</span>
-                  <span className="text-sm font-medium tabular-nums text-slate-200">{showDash ? "—" : formatCurrency(materialsCost)}</span>
-                </div>
-                <div className={`flex justify-between items-center py-3 px-1 border-t border-white/[0.06] rounded-lg transition-colors duration-500 ${laborFlash ? "bg-blue-500/10" : ""}`}>
-                  <span className="text-sm text-slate-400">Labor</span>
-                  <span className="text-sm font-medium tabular-nums text-slate-200">{showDash ? "—" : formatCurrency(laborCostEffective)}</span>
-                </div>
-                <div className="flex justify-between items-center py-3 px-1 border-t border-white/[0.06]">
-                  <span className="text-sm text-slate-400">Tear-Off Tons</span>
-                  <span className="text-sm font-medium tabular-nums text-slate-200">{debrisTons.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between items-center py-3 px-1 border-t border-white/[0.06]">
-                  <span className="text-sm text-slate-400">Tear-Off & Disposal</span>
-                  <span className="text-sm font-medium tabular-nums text-slate-200">{debrisEnabled ? formatCurrency(effectiveDebrisRemovalCost) : "—"}</span>
-                </div>
-                <div className="flex justify-between items-center py-4 px-1 border-t border-white/15 mt-1">
-                  <span className="text-sm font-semibold text-slate-300">Job Cost (before profit)</span>
-                  <span className="text-sm font-semibold tabular-nums text-slate-200">{showDash ? "—" : formatCurrency(subtotal)}</span>
+                  </div>
+
+                  <div className={`flex items-center justify-between py-3 border-b border-white/[0.06] rounded-lg transition-colors duration-500 ${laborFlash ? "bg-blue-500/10" : ""}`}>
+                    <span className="text-sm text-white/55">Labor</span>
+                    <span className="text-sm font-medium tabular-nums text-white/90">
+                      {showDash ? "—" : formatCurrency(laborCostEffective)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between py-3 border-b border-white/[0.06]">
+                    <span className="text-sm text-white/55">Tear-Off & Disposal</span>
+                    <div className="flex items-center gap-2">
+                      {debrisEnabled ? (
+                        <>
+                          <span className="text-sm font-medium tabular-nums text-white/90">
+                            {formatCurrency(effectiveDebrisRemovalCost)}
+                          </span>
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-400/20">
+                            Included
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-sm text-white/40">
+                          Not included
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between py-3">
+                    <span className="text-sm font-semibold text-white/75">Job cost (before profit)</span>
+                    <span className="text-sm font-semibold tabular-nums text-white">
+                      {showDash ? "—" : formatCurrency(subtotal)}
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              {/* Suggested Price hero — dominant, glow + gradient */}
-              <div className="mt-8">
-                <div
-                  className="rounded-2xl p-8 sm:p-10 text-white ring-1 ring-blue-300/20"
-                  style={{
-                    background: "linear-gradient(165deg, #3b82f6 0%, #2563eb 18%, #1d4ed8 38%, #1e40af 58%, #1e3a8a 78%, #172554 95%, #0f172a 100%)",
-                    boxShadow: "inset 0 1px 0 0 rgba(255,255,255,0.12), 0 0 0 1px rgba(255,255,255,0.06), 0 20px 60px -15px rgba(37, 99, 235, 0.5), 0 0 80px -20px rgba(59, 130, 246, 0.35)",
-                  }}
-                >
-                  <div className="flex items-center gap-2 mb-4">
-                    <Sparkles className="h-4 w-4 text-blue-200/90" />
-                    <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-blue-200/90">
-                      Suggested price
-                    </p>
+              {/* VISUAL ESTIMATE BREAKDOWN */}
+              <div className="mt-6 rounded-2xl border border-white/[0.08] bg-white/[0.03] p-5 sm:p-6">
+                <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-white/40">
+                  Visual estimate breakdown
+                </div>
+
+                {showDash || subtotal <= 0 ? (
+                  <div className="mt-4 rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-5 text-sm text-white/45">
+                    Add pricing inputs to see the estimate mix.
                   </div>
-                  <motion.p
-                    className="text-5xl md:text-6xl lg:text-7xl font-extrabold tabular-nums tracking-tight text-white drop-shadow-[0_0_24px_rgba(255,255,255,0.15)]"
-                    aria-live="polite"
-                    key={suggestedPriceDisplay}
-                    initial={showDash ? false : { opacity: 0.88, scale: 0.996 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.22, ease: [0.25, 0.46, 0.45, 0.94] }}
-                  >
-                    {animatedPriceDisplay}
-                  </motion.p>
-                  <p className="mt-3 text-sm text-blue-200/80">
-                    Includes materials, labor, tear-off (if enabled), and your selected profit margin.
-                  </p>
-                  <p className="mt-2 text-xs text-blue-200/60 text-center max-w-sm mx-auto">
-                    This price is calculated directly from your inputs — AI does not modify pricing.
-                  </p>
-                  <p className="mt-2 text-xs text-blue-200/60 text-center max-w-sm mx-auto">
-                    Final total may adjust only after on-site inspection if scope changes.
-                  </p>
-                  {!showDash && (
-                    <div className="mt-6 flex flex-wrap gap-2">
-                      <span className="rounded-full bg-white/[0.1] px-3 py-1.5 text-[11px] font-medium tracking-wide text-blue-100/90">
-                        Materials {formatCurrency(materialsCost)}
-                      </span>
-                      <span className="rounded-full bg-white/[0.1] px-3 py-1.5 text-[11px] font-medium tracking-wide text-blue-100/90">
-                        Labor {formatCurrency(laborCostEffective)}
-                      </span>
-                      {debrisEnabled && (
-                        <span className="rounded-full bg-white/[0.1] px-3 py-1.5 text-[11px] font-medium tracking-wide text-blue-100/90">
-                          Tear-Off & Disposal {formatCurrency(effectiveDebrisRemovalCost)}
-                        </span>
-                      )}
-                      <span className="rounded-full bg-white/[0.1] px-3 py-1.5 text-[11px] font-medium tracking-wide text-blue-100/90">
-                        Job Cost (before profit) {formatCurrency(subtotal)}
-                      </span>
+                ) : (
+                  <>
+                    {(() => {
+                      const materialsPct = subtotal > 0 ? Math.max(0, (materialsCost / subtotal) * 100) : 0;
+                      const laborPct = subtotal > 0 ? Math.max(0, (laborCostEffective / subtotal) * 100) : 0;
+                      const tearOffPct =
+                        subtotal > 0 && debrisEnabled ? Math.max(0, (effectiveDebrisRemovalCost / subtotal) * 100) : 0;
+                      const remainingPct = Math.max(0, 100 - materialsPct - laborPct - tearOffPct);
+
+                      return (
+                        <>
+                          <div className="mt-4 overflow-hidden rounded-full border border-white/[0.06] bg-white/[0.04]">
+                            <div className="flex h-4 w-full">
+                              {materialsPct > 0.05 && (
+                                <div
+                                  className="h-full bg-sky-400/80"
+                                  style={{ width: `${materialsPct}%` }}
+                                />
+                              )}
+                              {laborPct > 0.05 && (
+                                <div
+                                  className="h-full bg-indigo-400/80"
+                                  style={{ width: `${laborPct}%` }}
+                                />
+                              )}
+                              {debrisEnabled && tearOffPct > 0.05 && (
+                                <div
+                                  className="h-full bg-cyan-300/80"
+                                  style={{ width: `${tearOffPct}%` }}
+                                />
+                              )}
+                              {remainingPct > 0.05 && (
+                                <div
+                                  className="h-full bg-white/[0.08]"
+                                  style={{ width: `${remainingPct}%` }}
+                                />
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="mt-4 space-y-2">
+                            <div className="flex items-center justify-between text-sm">
+                              <div className="inline-flex items-center gap-2 text-white/65">
+                                <span className="h-2.5 w-2.5 rounded-full bg-sky-400/80" />
+                                Materials
+                              </div>
+                              <div className="tabular-nums text-white/85">
+                                {formatCurrency(materialsCost)}
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between text-sm">
+                              <div className="inline-flex items-center gap-2 text-white/65">
+                                <span className="h-2.5 w-2.5 rounded-full bg-indigo-400/80" />
+                                Labor
+                              </div>
+                              <div className="tabular-nums text-white/85">
+                                {formatCurrency(laborCostEffective)}
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between text-sm">
+                              <div className="inline-flex items-center gap-2 text-white/65">
+                                <span className="h-2.5 w-2.5 rounded-full bg-cyan-300/80" />
+                                Tear-Off & Disposal
+                              </div>
+                              <div className="tabular-nums text-white/85">
+                                {debrisEnabled ? formatCurrency(effectiveDebrisRemovalCost) : "—"}
+                              </div>
+                            </div>
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </>
+                )}
+              </div>
+
+              {/* JOB METRICS — secondary */}
+              <div className="mt-6 rounded-2xl border border-white/[0.08] bg-white/[0.02] p-5">
+                <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-white/40">
+                  Quick job metrics
+                </div>
+                <p className="mt-1 text-xs text-white/45">
+                  Used for materials, tear-off, and pricing totals
+                </p>
+
+                <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-sm text-white/50">Roof squares</span>
+                    <span className="text-sm font-medium tabular-nums text-white/85">
+                      {squares.toFixed(2)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-sm text-white/50">Squares w/ waste</span>
+                    <span className="text-sm font-medium tabular-nums text-white/85">
+                      {adjustedSquares.toFixed(2)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-sm text-white/50">Total bundles</span>
+                    <span className="text-sm font-medium tabular-nums text-white/85">
+                      {bundles}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-sm text-white/50">Disposal tons</span>
+                    <span className="text-sm font-medium tabular-nums text-white/85">
+                      {debrisTons.toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* SUGGESTED PRICE — moved back to bottom */}
+              <div className="mt-6 rounded-2xl border border-blue-400/20 bg-blue-500/[0.08] px-5 py-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-blue-200/70">
+                      Suggested price
+                    </div>
+                    <div className="mt-1 text-2xl sm:text-3xl font-bold tabular-nums text-white">
+                      {animatedPriceDisplay}
+                    </div>
+                  </div>
+
+                  {!showDash && !marginInvalid && (
+                    <div className="rounded-full border border-blue-300/20 bg-white/[0.06] px-3 py-1 text-[11px] font-medium text-blue-100/85">
+                      {Number.isFinite(marginNum) ? `${Math.round(marginNum)}% margin` : ""}
                     </div>
                   )}
                 </div>
               </div>
-            </motion.section>
 
+              {/* CONFIDENCE NOTE */}
+              <div className="mt-6 rounded-2xl border border-white/[0.08] bg-white/[0.025] px-4 py-4">
+                <div className="text-sm font-medium text-white">
+                  Pricing confidence
+                </div>
+
+                <div className="mt-2 space-y-1.5 text-xs leading-relaxed text-white/55">
+                  <p>Calculated directly from your inputs — AI does not change pricing.</p>
+                  <p>Final total should only change if on-site scope changes.</p>
+                </div>
+              </div>
+            </motion.section>
           </div>
         </div>
         </div>
