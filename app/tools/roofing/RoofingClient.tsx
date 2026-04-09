@@ -3982,174 +3982,105 @@ Thanks,`;
                     </div>
                   </div>
 
-                  <div className="space-y-5">
-                    <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4 sm:p-5">
+                  <div>
+                    {/* Pricing mode */}
+                    <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-5">
                       <div className="text-sm font-medium text-white">Pricing mode</div>
-                      <p className="mt-1 text-sm text-white/60">
-                        Choose whether you want to add markup automatically or price the job directly.
+                      <p className="mt-1 text-xs text-white/50">
+                        Choose how you want to price this job.
                       </p>
 
-                      <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      <div className="mt-4 grid grid-cols-2 gap-3">
                         <button
                           type="button"
                           onClick={() => setPricingMode("markup")}
-                          className={`rounded-2xl border px-4 py-4 text-left transition ${
+                          className={`rounded-xl border px-4 py-3 text-left transition ${
                             pricingMode === "markup"
-                              ? "border-emerald-300/55 bg-emerald-500/[0.18] text-white shadow-[0_0_0_1px_rgba(52,211,153,0.28),0_0_24px_-8px_rgba(16,185,129,0.35)]"
-                              : "border-white/[0.08] bg-white/[0.025] text-white/72 hover:border-white/14 hover:bg-white/[0.045]"
+                              ? "border-emerald-400/40 bg-emerald-500/[0.08] text-white"
+                              : "border-white/[0.08] bg-white/[0.02] text-white/70 hover:bg-white/[0.04]"
                           }`}
                         >
-                          <div className="text-sm font-semibold">Markup pricing</div>
+                          <div className="text-sm font-medium">Markup pricing</div>
                           <div className="mt-1 text-xs text-white/50">
-                            Enter real costs and let the app apply your markup.
+                            Apply margin automatically.
                           </div>
                         </button>
 
                         <button
                           type="button"
                           onClick={() => setPricingMode("direct")}
-                          className={`rounded-2xl border px-4 py-4 text-left transition ${
+                          className={`rounded-xl border px-4 py-3 text-left transition ${
                             pricingMode === "direct"
-                              ? "border-sky-300/45 bg-sky-500/[0.16] text-white shadow-[0_0_0_1px_rgba(56,189,248,0.22),0_0_24px_-8px_rgba(14,165,233,0.28)]"
-                              : "border-white/[0.08] bg-white/[0.025] text-white/72 hover:border-white/14 hover:bg-white/[0.045]"
+                              ? "border-emerald-400/40 bg-emerald-500/[0.08] text-white"
+                              : "border-white/[0.08] bg-white/[0.02] text-white/70 hover:bg-white/[0.04]"
                           }`}
                         >
-                          <div className="text-sm font-semibold">Direct pricing</div>
+                          <div className="text-sm font-medium">Direct pricing</div>
                           <div className="mt-1 text-xs text-white/50">
-                            Your entered costs become the final estimate with no added markup.
+                            Set your total directly.
                           </div>
                         </button>
                       </div>
                     </div>
 
-                    <div className="rounded-2xl border border-white/16 bg-white/[0.065] p-5 sm:p-6 ring-1 ring-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-                      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/52">
-                        Your price
-                      </div>
-                      <div className="mt-2 text-3xl sm:text-4xl font-extrabold tabular-nums tracking-tight text-white">
-                        {finalPriceDisplay}
-                      </div>
-
-                      <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                        <div className="rounded-xl border border-white/[0.08] bg-black/10 px-3 py-3">
-                          <div className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/42">
-                            Profit
-                          </div>
-                          <div className="mt-1 text-lg font-semibold tabular-nums text-emerald-300">
-                            {pricingMode === "direct" || finalShowDash || subtotal <= 0 || finalPrice <= 0
-                              ? "—"
-                              : formatCurrency(finalPrice - subtotal)}
-                          </div>
-                        </div>
-
-                        <div className="rounded-xl border border-white/[0.08] bg-black/10 px-3 py-3">
-                          <div className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/42">
-                            Margin
-                          </div>
-                          <div className="mt-1 text-lg font-semibold tabular-nums text-white">
-                            {pricingMode === "direct"
-                              ? "Direct"
-                              : marginInvalid || !Number.isFinite(finalMarginNum)
-                              ? "—"
-                              : `${Math.round(finalMarginNum)}%`}
-                          </div>
-                        </div>
-                      </div>
-
-                      <p className="mt-3 text-[11px] text-white/42">
-                        {pricingMode === "direct"
-                          ? "Final price matches your entered job costs."
-                          : "Price updates from your job costs and selected markup."}
+                    {/* Pricing strategy */}
+                    <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-5 mt-5">
+                      <div className="text-sm font-medium text-white">Pricing strategy</div>
+                      <p className="mt-1 text-xs text-white/50">
+                        Adjust your position on this job.
                       </p>
+
+                      <div className="mt-4 grid grid-cols-3 gap-3">
+                        {[
+                          { label: "Competitive", value: 15 },
+                          { label: "Balanced", value: 20 },
+                          { label: "Premium", value: 25 },
+                        ].map((option) => (
+                          <button
+                            key={option.value}
+                            type="button"
+                            onClick={() => setMargin(String(option.value))}
+                            className={`rounded-xl border px-3 py-3 text-center transition ${
+                              finalMarginNum === option.value
+                                ? "border-emerald-400/40 bg-emerald-500/[0.08] text-white"
+                                : "border-white/[0.08] bg-white/[0.02] text-white/70 hover:bg-white/[0.04]"
+                            }`}
+                          >
+                            <div className="text-xs">{option.label}</div>
+                            <div className="mt-1 text-sm font-semibold">
+                              {option.value}%
+                            </div>
+                          </button>
+                        ))}
+                      </div>
                     </div>
 
-                    {pricingMode === "markup" && (
-                      <div className="space-y-2.5 border-t border-white/10 pt-5">
-                        <div className="text-sm font-medium text-white">Pricing strategy</div>
-                        <p className="text-sm text-white/60">
-                          Choose the position you want to take on this job.
-                        </p>
+                    {/* Manual adjustments */}
+                    <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-5 mt-5">
+                      <div className="text-sm font-medium text-white">Manual adjustments</div>
+                      <p className="mt-1 text-xs text-white/50">
+                        Fine tune your numbers if needed.
+                      </p>
 
-                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                          {[
-                            {
-                              label: "Competitive",
-                              value: 15,
-                              helper: "Lower margin / sharper price",
-                            },
-                            {
-                              label: "Balanced",
-                              value: 20,
-                              helper: "Default for most jobs",
-                            },
-                            {
-                              label: "Premium",
-                              value: 25,
-                              helper: "Stronger margin / higher price",
-                            },
-                          ].map((option) => {
-                            const selected =
-                              margin.trim() !== "" &&
-                              Number.isFinite(parseFloat(margin)) &&
-                              Math.abs(parseFloat(margin) - option.value) < 0.0001;
-
-                            return (
-                              <button
-                                key={option.value}
-                                type="button"
-                                onClick={() => setMargin(String(option.value))}
-                                className={`rounded-2xl border px-4 py-4 text-left transition ${
-                                  selected
-                                    ? "border-emerald-300/55 bg-emerald-500/[0.18] text-white shadow-[0_0_0_1px_rgba(52,211,153,0.28),0_0_24px_-8px_rgba(16,185,129,0.35)]"
-                                    : "border-white/[0.08] bg-white/[0.025] text-white/72 hover:border-white/14 hover:bg-white/[0.045]"
-                                }`}
-                              >
-                                <div className="text-sm font-semibold">{option.label}</div>
-                                <div className="mt-1 text-xs text-white/50">{option.helper}</div>
-                                <div className="mt-3 text-lg font-bold tabular-nums text-white">
-                                  {option.value}%
-                                </div>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="space-y-3 border-t border-white/10 pt-5">
-                      <div className="flex items-center justify-between gap-3">
+                      <div className="mt-4 grid grid-cols-2 gap-3">
                         <div>
-                          <div className="text-sm font-medium text-white">Manual adjustments</div>
-                          <p className="mt-1 text-sm text-white/60">
-                            Optional overrides if you want to fine tune the deal.
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                        {pricingMode === "markup" && (
-                          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-3">
-                            <label className="text-[11px] font-medium uppercase tracking-[0.12em] text-white/42">
-                              Custom margin
-                            </label>
-                            <input
-                              value={margin}
-                              onChange={(e) => setMargin(e.target.value)}
-                              inputMode="decimal"
-                              placeholder="e.g. 22"
-                              className="mt-2 w-full rounded-xl border border-white/[0.07] bg-black/15 px-3 py-2.5 text-sm text-white outline-none"
-                            />
-                            <p className="mt-2 text-[11px] text-white/42">
-                              Overrides the strategy buttons if you enter your own value.
-                            </p>
+                          <div className="text-[11px] text-white/40 mb-1">
+                            Custom margin
                           </div>
-                        )}
-
-                        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-3">
-                          <label className="text-[11px] font-medium uppercase tracking-[0.12em] text-white/42">
-                            Labor cost
-                          </label>
                           <input
+                            type="number"
+                            value={finalMarginNum}
+                            onChange={(e) => setMargin(e.target.value)}
+                            className="w-full rounded-lg border border-white/[0.08] bg-white/[0.02] px-3 py-2 text-sm text-white"
+                          />
+                        </div>
+
+                        <div>
+                          <div className="text-[11px] text-white/40 mb-1">
+                            Labor override
+                          </div>
+                          <input
+                            type="number"
                             value={laborCostRaw}
                             onChange={(e) => {
                               const next = e.target.value;
@@ -4161,33 +4092,10 @@ Thanks,`;
                               setLaborCostRaw(safe ? String(safe) : "");
                               setLaborCost(safe);
                             }}
-                            inputMode="numeric"
-                            placeholder="e.g., 3500"
-                            className="mt-2 w-full rounded-xl border border-white/[0.07] bg-black/15 px-3 py-2.5 text-sm text-white outline-none"
+                            className="w-full rounded-lg border border-white/[0.08] bg-white/[0.02] px-3 py-2 text-sm text-white"
                           />
-                          <div className="mt-2 text-[11px] text-white/50">
-                            In total: <span className="text-white/85">{fmtMoney(laborCostEffective)}</span>
-                          </div>
                         </div>
                       </div>
-
-                      {pricingMode === "markup" && marginInvalid && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: "auto" }}
-                          className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2.5"
-                        >
-                          <p className="text-xs text-amber-200/90">
-                            Margin must be under 100%. Suggested price cannot be calculated.
-                          </p>
-                        </motion.div>
-                      )}
-
-                      {adjustedSquares > 0 && laborCostEffective === 0 && (
-                        <p className="text-sm text-amber-300/90">
-                          ⚠ Labor is currently $0. Most jobs include labor cost.
-                        </p>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -4652,109 +4560,109 @@ Thanks,`;
                   </div>
                 ) : (
                   <>
-                    {/* DONUT */}
-                    <div className="mt-6 flex items-center justify-center">
-                      {(() => {
-                        const total = Number(finalPrice) || 0;
-                        const cost = Number(subtotal) || 0;
-                        const profit = Math.max(0, total - cost);
+                    {(() => {
+                      const total = Number(finalPrice) || 0;
+                      const cost = Number(subtotal) || 0;
+                      const profit = Math.max(0, total - cost);
 
-                        const costPct = total > 0 ? cost / total : 0;
-                        const profitPct = total > 0 ? profit / total : 0;
+                      const costPct = total > 0 ? cost / total : 0;
+                      const profitPct = total > 0 ? profit / total : 0;
 
-                        const radius = 42;
-                        const circumference = 2 * Math.PI * radius;
+                      const radius = 42;
+                      const circumference = 2 * Math.PI * radius;
 
-                        const costStroke = circumference * costPct;
-                        const profitStroke = circumference * profitPct;
+                      const costStroke = circumference * costPct;
+                      const profitStroke = circumference * profitPct;
 
-                        return (
-                          <div className="relative h-40 w-40">
-                            <svg className="h-full w-full -rotate-90" viewBox="0 0 100 100">
+                      return (
+                        <>
+                          <div className="mt-6 flex items-center justify-center">
+                            <div className="relative h-40 w-40">
+                              <svg className="h-full w-full -rotate-90" viewBox="0 0 100 100">
+                                <circle
+                                  cx="50"
+                                  cy="50"
+                                  r={radius}
+                                  stroke="rgba(148,163,184,0.18)"
+                                  strokeWidth="8"
+                                  fill="transparent"
+                                />
+                                <circle
+                                  cx="50"
+                                  cy="50"
+                                  r={radius}
+                                  stroke="rgba(148,163,184,0.50)"
+                                  strokeWidth="8"
+                                  fill="transparent"
+                                  strokeDasharray={`${costStroke} ${circumference}`}
+                                  strokeLinecap="round"
+                                />
+                                <circle
+                                  cx="50"
+                                  cy="50"
+                                  r={radius}
+                                  stroke="rgba(16,185,129,0.98)"
+                                  strokeWidth="8"
+                                  fill="transparent"
+                                  strokeDasharray={`${profitStroke} ${circumference}`}
+                                  strokeDashoffset={-costStroke}
+                                  strokeLinecap="round"
+                                />
+                              </svg>
 
-                              {/* base */}
-                              <circle
-                                cx="50"
-                                cy="50"
-                                r={radius}
-                                stroke="rgba(148,163,184,0.18)"
-                                strokeWidth="8"
-                                fill="transparent"
-                              />
-
-                              {/* cost */}
-                              <circle
-                                cx="50"
-                                cy="50"
-                                r={radius}
-                                stroke="rgba(148,163,184,0.55)"
-                                strokeWidth="8"
-                                fill="transparent"
-                                strokeDasharray={`${costStroke} ${circumference}`}
-                                strokeLinecap="round"
-                              />
-
-                              {/* profit */}
-                              <circle
-                                cx="50"
-                                cy="50"
-                                r={radius}
-                                stroke="rgba(16,185,129,0.95)"
-                                strokeWidth="8"
-                                fill="transparent"
-                                strokeDasharray={`${profitStroke} ${circumference}`}
-                                strokeDashoffset={-costStroke}
-                                strokeLinecap="round"
-                              />
-                            </svg>
-
-                            {/* CENTER */}
-                            <div className="absolute inset-0 flex flex-col items-center justify-center">
-                              <div className="text-[10px] uppercase tracking-[0.12em] text-white/40">
-                                Total
-                              </div>
-                              <div className="mt-1 text-lg font-semibold text-white tabular-nums">
-                                {formatCurrency(total)}
+                              <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                                <div className="text-[10px] uppercase tracking-[0.12em] text-white/40">
+                                  Profit
+                                </div>
+                                <div className="mt-1 text-xl font-semibold text-emerald-300 tabular-nums">
+                                  {formatCurrency(profit)}
+                                </div>
+                                <div className="mt-1 text-[11px] text-white/45">
+                                  on {formatCurrency(total)} total
+                                </div>
                               </div>
                             </div>
                           </div>
-                        );
-                      })()}
-                    </div>
 
-                    {/* NUMBERS */}
-                    <div className="mt-6 grid grid-cols-3 gap-3 text-center">
+                          <div className="mt-4 text-center">
+                            <div className="text-[11px] text-white/45">
+                              Profit is distributed across your materials, labor, and disposal.
+                            </div>
+                          </div>
 
-                      <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] px-3 py-3">
-                        <div className="text-[10px] uppercase tracking-[0.12em] text-white/40">
-                          Cost
-                        </div>
-                        <div className="mt-1 text-sm font-semibold text-white/85 tabular-nums">
-                          {formatCurrency(subtotal)}
-                        </div>
-                      </div>
+                          <div className="mt-6 grid grid-cols-3 gap-3 text-center">
+                            <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] px-3 py-3">
+                              <div className="text-[10px] uppercase tracking-[0.12em] text-white/40">
+                                Job cost
+                              </div>
+                              <div className="mt-1 text-sm font-semibold text-white/85 tabular-nums">
+                                {formatCurrency(cost)}
+                              </div>
+                            </div>
 
-                      <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] px-3 py-3">
-                        <div className="text-[10px] uppercase tracking-[0.12em] text-white/40">
-                          Profit
-                        </div>
-                        <div className="mt-1 text-sm font-semibold text-emerald-300 tabular-nums">
-                          {formatCurrency(Math.max(0, finalPrice - subtotal))}
-                        </div>
-                      </div>
+                            <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.08] px-3 py-3">
+                              <div className="text-[10px] uppercase tracking-[0.12em] text-emerald-200/70">
+                                Profit
+                              </div>
+                              <div className="mt-1 text-sm font-semibold text-emerald-300 tabular-nums">
+                                {formatCurrency(profit)}
+                              </div>
+                            </div>
 
-                      <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] px-3 py-3">
-                        <div className="text-[10px] uppercase tracking-[0.12em] text-white/40">
-                          Margin
-                        </div>
-                        <div className="mt-1 text-sm font-semibold text-white tabular-nums">
-                          {pricingMode === "direct"
-                            ? "—"
-                            : `${Math.round(finalMarginNum)}%`}
-                        </div>
-                      </div>
-
-                    </div>
+                            <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] px-3 py-3">
+                              <div className="text-[10px] uppercase tracking-[0.12em] text-white/40">
+                                Margin
+                              </div>
+                              <div className="mt-1 text-sm font-semibold text-white tabular-nums">
+                                {pricingMode === "direct"
+                                  ? "—"
+                                  : `${Math.round(finalMarginNum)}%`}
+                              </div>
+                            </div>
+                          </div>
+                        </>
+                      );
+                    })()}
                   </>
                 )}
               </div>
