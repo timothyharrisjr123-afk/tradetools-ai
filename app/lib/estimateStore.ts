@@ -25,6 +25,7 @@ export interface RoofingEstimate {
   bundleCost?: string;
   laborPerSquare?: string;
   margin?: string;
+  pricingMode?: "markup" | "direct";
   status?: "estimate" | "sent" | "sent_pending" | "approved" | "deposit_paid" | "scheduled" | "in_progress" | "paid";
   /** Non-payment business context only; not a payment record. */
   paymentNote?: "check_pending" | "insurance_pending" | "financing_approved" | "waived_deposit" | null;
@@ -120,12 +121,13 @@ function rowToEstimate(row: SupabaseEstimateRow): RoofingEstimate {
     margin: row.margin_percent != null ? String(row.margin_percent) : undefined,
     status: (row.status as RoofingEstimate["status"]) || "estimate",
     totalContractPrice: row.job_cost ?? undefined,
+    pricingMode: (row.snapshot as RoofingEstimate | null | undefined)?.pricingMode === "direct" ? "direct" : "markup",
     supabaseBacked: true,
   };
 }
 
 function estimateToRow(e: RoofingEstimate, nowIso: string, companyId: string, customerId?: string | null): Record<string, unknown> {
-  const jobCost = e.totalContractPrice ?? e.suggestedPrice ?? 0;
+  const contractTotal = e.totalContractPrice ?? e.suggestedPrice ?? 0;
   return {
     id: e.id,
     company_id: companyId,
@@ -137,7 +139,7 @@ function estimateToRow(e: RoofingEstimate, nowIso: string, companyId: string, cu
     labor_cost: e.laborCost ?? 0,
     tearoff_cost: e.disposalCost ?? 0,
     margin_percent: parseMargin(e.margin),
-    job_cost: jobCost,
+    job_cost: contractTotal,
     suggested_price: e.suggestedPrice ?? 0,
     status: e.status ?? "estimate",
     created_at: e.createdAt || nowIso,

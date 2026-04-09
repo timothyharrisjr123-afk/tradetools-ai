@@ -17,6 +17,7 @@ type RoofingEstimate = {
   bundleCost: string;
   laborPerSquare: string;
   margin: string;
+  pricingMode?: "markup" | "direct";
   squares: number;
   adjustedSquares: number;
   bundles: number;

@@ -385,6 +385,7 @@ export type RoofingEstimate = {
   bundleCost: string;
   laborPerSquare: string;
   margin: string;
+  pricingMode?: "markup" | "direct";
   squares: number;
   adjustedSquares: number;
   bundles: number;
@@ -587,6 +588,8 @@ const cardVariants = {
   }),
 };
 
+type PricingMode = "markup" | "direct";
+
 /** Snapshot of form state for Undo autofill */
 type FormSnapshot = {
   area: string;
@@ -599,6 +602,7 @@ type FormSnapshot = {
   guidedLaborBasePerSquare: number;
   guidedStories: GuidedStories;
   guidedWalkable: GuidedWalkable;
+  pricingMode: PricingMode;
   margin: string;
   includeDebrisRemoval: boolean;
   removalType: DebrisRemovalType;
@@ -653,6 +657,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
   const [manualLaborBackup, setManualLaborBackup] = useState<number>(0);
   const [laborPerSquare, setLaborPerSquare] = useState(DEFAULTS.laborPerSquare);
   const [totalLabor, setTotalLabor] = useState("");
+  const [pricingMode, setPricingMode] = useState<PricingMode>("markup");
   const [margin, setMargin] = useState(String(DEFAULTS.margin));
   const [saveAsZipDefaults, setSaveAsZipDefaults] = useState(false);
   const [autofillFromZip, setAutofillFromZip] = useState(false);
@@ -816,6 +821,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
     const savedBasePerSq = Number(match.laborPerSquare ?? 0) || 0;
     if (savedBasePerSq > 0) setGuidedLaborBasePerSquare(savedBasePerSq);
     setMargin(match.margin ?? "");
+    setPricingMode(((match as any).pricingMode === "direct" ? "direct" : "markup"));
 
     if (match.selectedTier === "Core") setRoofingTier("standard");
     if (match.selectedTier === "Enhanced") setRoofingTier("enhanced");
@@ -861,6 +867,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
     const targetBundleCost = match.bundleCost ?? "";
     const targetLaborPerSquare = match.laborPerSquare ?? "";
     const targetMargin = match.margin ?? "";
+    const targetPricingMode = (match as any).pricingMode === "direct" ? "direct" : "markup";
 
     const areaOk = String(area ?? "") === targetArea;
     const wasteOk = String(waste ?? "") === targetWaste;
@@ -868,14 +875,16 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
     const bundleCostOk = String(bundleCost ?? "") === targetBundleCost;
     const laborPerSquareOk = String(laborPerSquare ?? "") === targetLaborPerSquare;
     const marginOk = String(margin ?? "") === targetMargin;
+    const pricingModeOk = pricingMode === targetPricingMode;
 
-    if (!areaOk || !wasteOk || !bundlesPerSquareOk || !bundleCostOk || !laborPerSquareOk || !marginOk) {
+    if (!areaOk || !wasteOk || !bundlesPerSquareOk || !bundleCostOk || !laborPerSquareOk || !marginOk || !pricingModeOk) {
       if (!areaOk) setArea(targetArea);
       if (!wasteOk) setWaste(targetWaste);
       if (!bundlesPerSquareOk) setBundlesPerSquare(targetBundlesPerSquare);
       if (!bundleCostOk) setBundleCost(targetBundleCost);
       if (!laborPerSquareOk) setLaborPerSquare(targetLaborPerSquare);
       if (!marginOk) setMargin(targetMargin);
+      if (!pricingModeOk) setPricingMode(targetPricingMode);
       return;
     }
 
@@ -883,7 +892,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
     if (typeof window !== "undefined") {
       window.history.replaceState({}, "", "/tools/roofing");
     }
-  }, [loadSavedId, area, waste, bundlesPerSquare, bundleCost, laborPerSquare, margin]);
+  }, [loadSavedId, area, waste, bundlesPerSquare, bundleCost, laborPerSquare, margin, pricingMode]);
 
   const [gptReviewComment, setGptReviewComment] = useState("");
   const [showEmailTemplate, setShowEmailTemplate] = useState(false);
@@ -961,11 +970,12 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
     guidedLaborBasePerSquare,
     guidedStories,
     guidedWalkable,
+    pricingMode,
     margin,
     includeDebrisRemoval,
     removalType,
     dumpFeePerTon,
-  }), [area, waste, bundlesPerSquare, bundleCost, laborMode, laborCostRaw, laborCost, guidedLaborBasePerSquare, guidedStories, guidedWalkable, margin, includeDebrisRemoval, removalType, dumpFeePerTon]);
+  }), [area, waste, bundlesPerSquare, bundleCost, laborMode, laborCostRaw, laborCost, guidedLaborBasePerSquare, guidedStories, guidedWalkable, pricingMode, margin, includeDebrisRemoval, removalType, dumpFeePerTon]);
 
   const applyPreset = useCallback((p: ZipPreset) => {
     const i = p.inputs;
@@ -980,6 +990,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
     const manualVal = i.totalLabor ?? 0;
     setLaborCost(manualVal);
     setLaborCostRaw(manualVal > 0 ? String(Math.round(manualVal)) : "");
+    setPricingMode("markup");
     setMargin(String(i.marginPct));
     setIncludeDebrisRemoval(d.enabled);
     setRemovalType(d.tearOffType);
@@ -999,6 +1010,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
     setGuidedLaborBasePerSquare(s.guidedLaborBasePerSquare);
     setGuidedStories(s.guidedStories);
     setGuidedWalkable(s.guidedWalkable);
+    setPricingMode(s.pricingMode ?? "markup");
     setMargin(s.margin);
     setIncludeDebrisRemoval(s.includeDebrisRemoval);
     setRemovalType(s.removalType);
@@ -1021,6 +1033,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
     setGuidedWalkable("walkable");
     setLaborPerSquare(DEFAULTS.laborPerSquare);
     setTotalLabor("");
+    setPricingMode("markup");
     setMargin(String(DEFAULTS.margin));
     setDisposalOverride("");
     setShowDisposalAdvanced(false);
@@ -1037,6 +1050,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
     setGuidedWalkable("walkable");
     setLaborCostRaw("");
     setLaborCost(0);
+    setPricingMode("markup");
     setMargin(EXAMPLE.margin);
   }, []);
 
@@ -1207,6 +1221,11 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
     disposalOverride,
   ]);
 
+  const finalPrice = pricingMode === "direct" ? subtotal : priceWithMargin;
+  const finalMarginNum = pricingMode === "direct" ? 0 : marginNum;
+  const finalShowDash = pricingMode === "direct" ? !hasMonetaryInputs : showDash;
+  const finalPriceDisplay = finalShowDash ? "—" : formatCurrency(finalPrice);
+
   useEffect(() => {
     if (laborMode !== "guided") return;
     setLaborCost(guidedLaborTotal);
@@ -1287,7 +1306,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
       materialsCost,
       tearOffEnabled: includeDebrisRemoval,
       tearOffAndDisposalCost: effectiveDebrisRemovalCost,
-      suggestedPrice: priceWithMargin,
+      suggestedPrice: finalPrice,
       marginPct: marginNum,
     });
   }, [
@@ -1296,7 +1315,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
     materialsCost,
     includeDebrisRemoval,
     effectiveDebrisRemovalCost,
-    priceWithMargin,
+    finalPrice,
     marginNum,
   ]);
 
@@ -1306,7 +1325,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
   // - Max 2 messages
   // - Only meaningful checks (no "scolding")
   const estimateReviewItems = useMemo(() => {
-    const total = Number(priceWithMargin ?? 0);
+    const total = Number(finalPrice ?? 0);
     const materials = Number(materialsCost ?? 0);
     const labor = Number(laborCostEffective ?? 0);
     const disposal = Number(effectiveDebrisRemovalCost ?? 0);
@@ -1352,7 +1371,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
 
     return items.slice(0, 2);
   }, [
-    priceWithMargin,
+    finalPrice,
     materialsCost,
     laborCostEffective,
     effectiveDebrisRemovalCost,
@@ -1377,7 +1396,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
       tearOffCost: effectiveDebrisRemovalCost,
       marginPct: marginNum,
       jobCostBeforeProfit: subtotal,
-      suggestedPrice: priceWithMargin,
+      suggestedPrice: finalPrice,
     };
     return getAIReview(snapshot);
   }, [
@@ -1393,7 +1412,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
     effectiveDebrisRemovalCost,
     marginNum,
     subtotal,
-    priceWithMargin,
+    finalPrice,
   ]);
 
   // Only call from click handlers (no render) to avoid hydration
@@ -1428,12 +1447,44 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
 
   function getProposalDataFromSnapshot(snapshot: SavedEstimateSnapshot) {
     const meta = makeProposalMeta();
-    const materials = Number(snapshot.materialsCost ?? 0) || 0;
-    const labor = Number(snapshot.laborCost ?? 0) || 0;
-    const disposal = Number(snapshot.disposalCost ?? 0) || 0;
+
+    const rawMaterials = Number(snapshot.materialsCost ?? 0) || 0;
+    const rawLabor = Number(snapshot.laborCost ?? 0) || 0;
+    const rawDisposal = Number(snapshot.disposalCost ?? 0) || 0;
     const price = Number(snapshot.suggestedPrice) || 0;
-    const jobCost = materials + labor + disposal || price;
-    const tier = snapshot.selectedTier === "Core" ? "standard" : snapshot.selectedTier === "Enhanced" ? "enhanced" : "premium";
+    const jobCost = rawMaterials + rawLabor + rawDisposal || price;
+
+    let materials = rawMaterials;
+    let labor = rawLabor;
+    let disposal = rawDisposal;
+
+    if (price > 0 && jobCost > 0) {
+      const multiplier = price / jobCost;
+
+      materials = Math.round(rawMaterials * multiplier * 100) / 100;
+      labor = Math.round(rawLabor * multiplier * 100) / 100;
+      disposal = Math.round(rawDisposal * multiplier * 100) / 100;
+
+      const displaySum = materials + labor + disposal;
+      const remainder = Math.round((price - displaySum) * 100) / 100;
+
+      if (Math.abs(remainder) > 0) {
+        if (disposal > 0) {
+          disposal = Math.round((disposal + remainder) * 100) / 100;
+        } else if (labor > 0) {
+          labor = Math.round((labor + remainder) * 100) / 100;
+        } else {
+          materials = Math.round((materials + remainder) * 100) / 100;
+        }
+      }
+    }
+
+    const tier =
+      snapshot.selectedTier === "Core"
+        ? "standard"
+        : snapshot.selectedTier === "Enhanced"
+        ? "enhanced"
+        : "premium";
     return {
       customer: {
         name: (snapshot.customerName ?? "").trim(),
@@ -1773,13 +1824,51 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
 
   // Proposal numbers for export/email (component-scoped helper)
   function getProposalNumbers() {
-    const price = Number(priceWithMargin) || 0;
-    const materials = Number(materialsCost) || 0;
-    const labor = Number(laborCostEffective) || 0;
-    const disposal = Number(effectiveDebrisRemovalCost) || 0;
+    const price = Number(finalPrice) || 0;
+
+    const rawMaterials = Number(materialsCost) || 0;
+    const rawLabor = Number(laborCostEffective) || 0;
+    const rawDisposal = Number(effectiveDebrisRemovalCost) || 0;
+
     const jobCostRaw = Number(subtotal) || 0;
-    const jobCost = jobCostRaw || materials + labor + disposal;
-    return { price, materials, labor, disposal, jobCost };
+    const jobCost = jobCostRaw || rawMaterials + rawLabor + rawDisposal;
+
+    if (price <= 0 || jobCost <= 0) {
+      return {
+        price,
+        materials: rawMaterials,
+        labor: rawLabor,
+        disposal: rawDisposal,
+        jobCost,
+      };
+    }
+
+    const multiplier = price / jobCost;
+
+    let materials = Math.round(rawMaterials * multiplier * 100) / 100;
+    let labor = Math.round(rawLabor * multiplier * 100) / 100;
+    let disposal = Math.round(rawDisposal * multiplier * 100) / 100;
+
+    const displaySum = materials + labor + disposal;
+    const remainder = Math.round((price - displaySum) * 100) / 100;
+
+    if (Math.abs(remainder) > 0) {
+      if (disposal > 0) {
+        disposal = Math.round((disposal + remainder) * 100) / 100;
+      } else if (labor > 0) {
+        labor = Math.round((labor + remainder) * 100) / 100;
+      } else {
+        materials = Math.round((materials + remainder) * 100) / 100;
+      }
+    }
+
+    return {
+      price,
+      materials,
+      labor,
+      disposal,
+      jobCost,
+    };
   }
 
   const buildEmailTemplate = useCallback(
@@ -2301,7 +2390,7 @@ Thanks,`;
 
   const hasRoofArea = Number(area || 0) > 0;
   const hasAddressBasics = Boolean((jobZip || "").trim());
-  const hasPrice = Number(priceWithMargin || 0) > 0;
+  const hasPrice = Number(finalPrice || 0) > 0;
   const hasCustomerEmail = Boolean((customerEmail || "").includes("@"));
   const hasAIWording = Boolean((gptPackageDescription || "").trim() && (gptScheduleCta || "").trim());
 
@@ -2402,7 +2491,7 @@ Thanks,`;
   const isApprovedLocked = currentSaved?.status === "approved";
   const isScheduledLocked = currentSaved?.status === "scheduled";
 
-  const hasValidEstimateSnapshot = Number(area || 0) > 0 && Number(priceWithMargin || 0) > 0;
+  const hasValidEstimateSnapshot = Number(area || 0) > 0 && Number(finalPrice || 0) > 0;
 
   function ensureSavedBeforeSend(): string {
     if (!hasValidEstimateSnapshot) throw new Error("Estimate cannot be saved yet because area or price is missing.");
@@ -2419,13 +2508,15 @@ Thanks,`;
       zip: String(jobZip ?? ""),
       roofAreaSqFt: Number(area || 0),
       selectedTier: (roofingTier === "standard" ? "Core" : roofingTier === "enhanced" ? "Enhanced" : "Premium") as "Core" | "Enhanced" | "Premium",
-      suggestedPrice: Number(priceWithMargin ?? 0),
+      suggestedPrice: Number(finalPrice ?? 0),
+      totalContractPrice: Number(finalPrice ?? 0),
       area: String(area ?? ""),
       waste: String(waste ?? ""),
       bundlesPerSquare: String(bundlesPerSquare ?? ""),
       bundleCost: String(bundleCost ?? ""),
       laborPerSquare: laborMode === "guided" ? String(guidedLaborBasePerSquare) : String(Math.round(impliedLaborPerSquare * 100) / 100),
       margin: String(margin ?? ""),
+      pricingMode,
       materialsCost: materialsCost,
       laborCost: laborCostEffective,
       disposalCost: effectiveDebrisRemovalCost,
@@ -2527,7 +2618,7 @@ Thanks,`;
             state: (jobState || "").trim() || undefined,
             zip: (jobZip || "").trim() || undefined,
             tier: selectedTierLabel as "Core" | "Enhanced" | "Premium",
-            totalPrice: Number(priceWithMargin) || 0,
+            totalPrice: Number(finalPrice) || 0,
             packageDescription: (gptPackageDescription || "").trim(),
             scheduleCta: (gptScheduleCta || "").trim(),
             companyName: (companyProfile?.companyName || "").trim() || undefined,
@@ -2641,7 +2732,7 @@ Thanks,`;
         jobCity: (jobCity || "").trim() || undefined,
         jobState: (jobState || "").trim() || undefined,
         jobZip: (jobZip || "").trim() || undefined,
-        suggestedPrice: Number(priceWithMargin) || 0,
+        suggestedPrice: Number(finalPrice) || 0,
         packageDescription: (gptPackageDescription || "").trim(),
         scheduleCta: (gptScheduleCta || "").trim(),
         companyName: (companyProfile?.companyName || "").trim() || undefined,
@@ -2702,6 +2793,7 @@ Thanks,`;
         setBundleCost(match.bundleCost ?? "");
         setLaborPerSquare(match.laborPerSquare ?? "");
         setMargin(match.margin ?? "");
+        setPricingMode(((match as any).pricingMode === "direct" ? "direct" : "markup"));
         if (match.selectedTier === "Core") setRoofingTier("standard");
         if (match.selectedTier === "Enhanced") setRoofingTier("enhanced");
         if (match.selectedTier === "Premium") setRoofingTier("premium");
@@ -2750,7 +2842,7 @@ Thanks,`;
 
   const onDownloadPdf = async () => {
     setPdfError("");
-    const total = Number(priceWithMargin) || 0;
+    const total = Number(finalPrice) || 0;
     if (total <= 0) {
       setPdfError("Enter estimate values before exporting.");
       return;
@@ -2769,7 +2861,7 @@ Thanks,`;
 
   const onSharePdf = async () => {
     setPdfError("");
-    const total = Number(priceWithMargin) || 0;
+    const total = Number(finalPrice) || 0;
     if (total <= 0) {
       setPdfError("Enter estimate values before exporting.");
       return;
@@ -3101,13 +3193,15 @@ Thanks,`;
       jobZip: String(jobZip ?? ""),
       roofAreaSqFt: Number(area || 0),
       selectedTier,
-      suggestedPrice: Number(priceWithMargin ?? 0),
+      suggestedPrice: Number(finalPrice ?? 0),
+      totalContractPrice: Number(finalPrice ?? 0),
       area: String(area ?? ""),
       waste: String(waste ?? ""),
       bundlesPerSquare: String(bundlesPerSquare ?? ""),
       bundleCost: String(bundleCost ?? ""),
       laborPerSquare: effectiveLaborPerSquare,
       margin: String(margin ?? ""),
+      pricingMode,
       status: "estimate",
       laborMode: laborMode === "guided" ? "guided" : "manual",
       manualLaborCost: laborMode === "manual" ? laborCostEffective : undefined,
@@ -3115,7 +3209,7 @@ Thanks,`;
       tearOffEnabled: includeDebrisRemoval,
       removalType,
     } as any);
-  }, [hasValidEstimateSnapshot, customerName, customerEmail, customerPhone, jobAddress1, jobCity, jobState, jobZip, roofingTier, area, priceWithMargin, waste, bundlesPerSquare, bundleCost, laborMode, guidedLaborBasePerSquare, impliedLaborPerSquare, margin, laborCostEffective, includeDebrisRemoval, removalType, dumpFeePerTon]);
+  }, [hasValidEstimateSnapshot, customerName, customerEmail, customerPhone, jobAddress1, jobCity, jobState, jobZip, roofingTier, area, finalPrice, waste, bundlesPerSquare, bundleCost, laborMode, guidedLaborBasePerSquare, impliedLaborPerSquare, margin, pricingMode, laborCostEffective, includeDebrisRemoval, removalType, dumpFeePerTon]);
 
   const saveEstimate = useCallback(() => {
     if (isLocked) {
@@ -3136,13 +3230,14 @@ Thanks,`;
       bundleCost,
       laborPerSquare: laborMode === "guided" ? String(guidedLaborBasePerSquare) : String(Math.round(impliedLaborPerSquare * 100) / 100),
       margin,
+      pricingMode,
       squares,
       adjustedSquares: adjustedSquares,
       bundles,
       materialsCost,
       laborCost: laborCostEffective,
       subtotal,
-      suggestedPrice: priceWithMargin,
+      suggestedPrice: finalPrice,
     };
     const list = getStoredEstimates();
     list.unshift(estimate);
@@ -3192,13 +3287,14 @@ Thanks,`;
     bundlesPerSquare,
     bundleCost,
     margin,
+    pricingMode,
     squares,
     adjustedSquares,
     bundles,
     materialsCost,
     laborCostEffective,
     subtotal,
-    priceWithMargin,
+    finalPrice,
     saveAsZipDefaults,
     jobZip,
     wasteNum,
@@ -3238,19 +3334,20 @@ Thanks,`;
       setLaborCost(loadedLabor);
       setLaborCostRaw(loadedLabor ? String(Math.round(loadedLabor)) : "");
       setMargin(String(loaded.margin ?? 20));
+      setPricingMode(loaded.pricingMode === "direct" ? "direct" : "markup");
     } catch {
       localStorage.removeItem(STORAGE_KEY_LAST_LOADED);
     }
   }, [restoreTick]);
 
   useEffect(() => {
-    if (showDash) {
+    if (finalShowDash) {
       spring.set(0);
       setDisplayPrice(0);
     } else {
-      spring.set(priceWithMargin);
+      spring.set(finalPrice);
     }
-  }, [priceWithMargin, showDash, spring]);
+  }, [finalPrice, finalShowDash, spring]);
 
   useEffect(() => {
     if (!sendSuccess) return;
@@ -3262,9 +3359,11 @@ Thanks,`;
     setDisplayPrice(latest);
   });
 
-  const animatedPriceDisplay = showDash
+  const animatedPriceDisplay = finalShowDash
     ? "—"
     : formatCurrency(Math.round(displayPrice * 100) / 100);
+
+  const { price: suggestedPrice, materials, labor, disposal } = getProposalNumbers();
 
   return (
     <main
@@ -3884,12 +3983,51 @@ Thanks,`;
                   </div>
 
                   <div className="space-y-5">
+                    <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4 sm:p-5">
+                      <div className="text-sm font-medium text-white">Pricing mode</div>
+                      <p className="mt-1 text-sm text-white/60">
+                        Choose whether you want to add markup automatically or price the job directly.
+                      </p>
+
+                      <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        <button
+                          type="button"
+                          onClick={() => setPricingMode("markup")}
+                          className={`rounded-2xl border px-4 py-4 text-left transition ${
+                            pricingMode === "markup"
+                              ? "border-emerald-300/55 bg-emerald-500/[0.18] text-white shadow-[0_0_0_1px_rgba(52,211,153,0.28),0_0_24px_-8px_rgba(16,185,129,0.35)]"
+                              : "border-white/[0.08] bg-white/[0.025] text-white/72 hover:border-white/14 hover:bg-white/[0.045]"
+                          }`}
+                        >
+                          <div className="text-sm font-semibold">Markup pricing</div>
+                          <div className="mt-1 text-xs text-white/50">
+                            Enter real costs and let the app apply your markup.
+                          </div>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setPricingMode("direct")}
+                          className={`rounded-2xl border px-4 py-4 text-left transition ${
+                            pricingMode === "direct"
+                              ? "border-sky-300/45 bg-sky-500/[0.16] text-white shadow-[0_0_0_1px_rgba(56,189,248,0.22),0_0_24px_-8px_rgba(14,165,233,0.28)]"
+                              : "border-white/[0.08] bg-white/[0.025] text-white/72 hover:border-white/14 hover:bg-white/[0.045]"
+                          }`}
+                        >
+                          <div className="text-sm font-semibold">Direct pricing</div>
+                          <div className="mt-1 text-xs text-white/50">
+                            Your entered costs become the final estimate with no added markup.
+                          </div>
+                        </button>
+                      </div>
+                    </div>
+
                     <div className="rounded-2xl border border-white/16 bg-white/[0.065] p-5 sm:p-6 ring-1 ring-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
                       <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/52">
                         Your price
                       </div>
                       <div className="mt-2 text-3xl sm:text-4xl font-extrabold tabular-nums tracking-tight text-white">
-                        {showDash || marginInvalid ? "—" : formatCurrency(priceWithMargin)}
+                        {finalPriceDisplay}
                       </div>
 
                       <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -3898,9 +4036,9 @@ Thanks,`;
                             Profit
                           </div>
                           <div className="mt-1 text-lg font-semibold tabular-nums text-emerald-300">
-                            {showDash || marginInvalid || priceWithMargin <= 0 || subtotal <= 0
+                            {pricingMode === "direct" || finalShowDash || subtotal <= 0 || finalPrice <= 0
                               ? "—"
-                              : formatCurrency(priceWithMargin - subtotal)}
+                              : formatCurrency(finalPrice - subtotal)}
                           </div>
                         </div>
 
@@ -3909,66 +4047,74 @@ Thanks,`;
                             Margin
                           </div>
                           <div className="mt-1 text-lg font-semibold tabular-nums text-white">
-                            {marginInvalid || !Number.isFinite(marginNum) ? "—" : `${Math.round(marginNum)}%`}
+                            {pricingMode === "direct"
+                              ? "Direct"
+                              : marginInvalid || !Number.isFinite(finalMarginNum)
+                              ? "—"
+                              : `${Math.round(finalMarginNum)}%`}
                           </div>
                         </div>
                       </div>
 
                       <p className="mt-3 text-[11px] text-white/42">
-                        Price updates from your job costs and selected strategy.
+                        {pricingMode === "direct"
+                          ? "Final price matches your entered job costs."
+                          : "Price updates from your job costs and selected markup."}
                       </p>
                     </div>
 
-                    <div className="space-y-2.5 border-t border-white/10 pt-5">
-                      <div className="text-sm font-medium text-white">Pricing strategy</div>
-                      <p className="text-sm text-white/60">
-                        Choose the position you want to take on this job.
-                      </p>
+                    {pricingMode === "markup" && (
+                      <div className="space-y-2.5 border-t border-white/10 pt-5">
+                        <div className="text-sm font-medium text-white">Pricing strategy</div>
+                        <p className="text-sm text-white/60">
+                          Choose the position you want to take on this job.
+                        </p>
 
-                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                        {[
-                          {
-                            label: "Competitive",
-                            value: 15,
-                            helper: "Lower margin / sharper price",
-                          },
-                          {
-                            label: "Balanced",
-                            value: 20,
-                            helper: "Default for most jobs",
-                          },
-                          {
-                            label: "Premium",
-                            value: 25,
-                            helper: "Stronger margin / higher price",
-                          },
-                        ].map((option) => {
-                          const selected =
-                            margin.trim() !== "" &&
-                            Number.isFinite(parseFloat(margin)) &&
-                            Math.abs(parseFloat(margin) - option.value) < 0.0001;
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                          {[
+                            {
+                              label: "Competitive",
+                              value: 15,
+                              helper: "Lower margin / sharper price",
+                            },
+                            {
+                              label: "Balanced",
+                              value: 20,
+                              helper: "Default for most jobs",
+                            },
+                            {
+                              label: "Premium",
+                              value: 25,
+                              helper: "Stronger margin / higher price",
+                            },
+                          ].map((option) => {
+                            const selected =
+                              margin.trim() !== "" &&
+                              Number.isFinite(parseFloat(margin)) &&
+                              Math.abs(parseFloat(margin) - option.value) < 0.0001;
 
-                          return (
-                            <button
-                              key={option.value}
-                              type="button"
-                              onClick={() => setMargin(String(option.value))}
-                              className={`rounded-2xl border px-4 py-4 text-left transition ${
-                                selected
-                                  ? "border-emerald-300/55 bg-emerald-500/[0.18] text-white shadow-[0_0_0_1px_rgba(52,211,153,0.28),0_0_24px_-8px_rgba(16,185,129,0.35)]"
-                                  : "border-white/[0.08] bg-white/[0.025] text-white/72 hover:border-white/14 hover:bg-white/[0.045]"
-                              }`}
-                            >
-                              <div className="text-sm font-semibold">{option.label}</div>
-                              <div className="mt-1 text-xs text-white/50">{option.helper}</div>
-                              <div className="mt-3 text-lg font-bold tabular-nums text-white">
-                                {option.value}%
-                              </div>
-                            </button>
-                          );
-                        })}
+                            return (
+                              <button
+                                key={option.value}
+                                type="button"
+                                onClick={() => setMargin(String(option.value))}
+                                className={`rounded-2xl border px-4 py-4 text-left transition ${
+                                  selected
+                                    ? "border-emerald-300/55 bg-emerald-500/[0.18] text-white shadow-[0_0_0_1px_rgba(52,211,153,0.28),0_0_24px_-8px_rgba(16,185,129,0.35)]"
+                                    : "border-white/[0.08] bg-white/[0.025] text-white/72 hover:border-white/14 hover:bg-white/[0.045]"
+                                }`}
+                              >
+                                <div className="text-sm font-semibold">{option.label}</div>
+                                <div className="mt-1 text-xs text-white/50">{option.helper}</div>
+                                <div className="mt-3 text-lg font-bold tabular-nums text-white">
+                                  {option.value}%
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
+                    )}
 
                     <div className="space-y-3 border-t border-white/10 pt-5">
                       <div className="flex items-center justify-between gap-3">
@@ -3981,21 +4127,23 @@ Thanks,`;
                       </div>
 
                       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-3">
-                          <label className="text-[11px] font-medium uppercase tracking-[0.12em] text-white/42">
-                            Custom margin
-                          </label>
-                          <input
-                            value={margin}
-                            onChange={(e) => setMargin(e.target.value)}
-                            inputMode="decimal"
-                            placeholder="e.g. 22"
-                            className="mt-2 w-full rounded-xl border border-white/[0.07] bg-black/15 px-3 py-2.5 text-sm text-white outline-none"
-                          />
-                          <p className="mt-2 text-[11px] text-white/42">
-                            Overrides the strategy buttons if you enter your own value.
-                          </p>
-                        </div>
+                        {pricingMode === "markup" && (
+                          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-3">
+                            <label className="text-[11px] font-medium uppercase tracking-[0.12em] text-white/42">
+                              Custom margin
+                            </label>
+                            <input
+                              value={margin}
+                              onChange={(e) => setMargin(e.target.value)}
+                              inputMode="decimal"
+                              placeholder="e.g. 22"
+                              className="mt-2 w-full rounded-xl border border-white/[0.07] bg-black/15 px-3 py-2.5 text-sm text-white outline-none"
+                            />
+                            <p className="mt-2 text-[11px] text-white/42">
+                              Overrides the strategy buttons if you enter your own value.
+                            </p>
+                          </div>
+                        )}
 
                         <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-3">
                           <label className="text-[11px] font-medium uppercase tracking-[0.12em] text-white/42">
@@ -4023,7 +4171,7 @@ Thanks,`;
                         </div>
                       </div>
 
-                      {marginInvalid && (
+                      {pricingMode === "markup" && marginInvalid && (
                         <motion.div
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: "auto" }}
@@ -4467,233 +4615,200 @@ Thanks,`;
             </div>
           </motion.section>
 
-          {/* Sticky summary card — corrected right panel with visual breakdown */}
-          <div className="lg:sticky lg:top-10 lg:self-start">
-            <motion.section
-              variants={cardVariants}
-              initial="hidden"
-              animate="visible"
-              custom={1}
-              className="rounded-3xl border border-white/[0.14] bg-white/[0.09] backdrop-blur-2xl p-8 sm:p-10 shadow-[0_8px_32px_-6px_rgba(0,0,0,0.35),0_0_0_1px_rgba(255,255,255,0.07)] flex flex-col transition-all duration-300 ease-out lg:hover:-translate-y-2 lg:hover:shadow-[0_24px_56px_-12px_rgba(0,0,0,0.4),0_0_0_1px_rgba(255,255,255,0.09)]"
-              aria-labelledby="summary-heading"
-            >
-              <h2
-                id="summary-heading"
-                className="text-[11px] font-medium uppercase tracking-[0.2em] text-slate-400"
-              >
-                Estimate summary
-              </h2>
+          {/* Sticky contractor outcome panel */}
+          <div className="w-full xl:max-w-[420px]">
+            <div className="sticky top-6 space-y-6">
 
-              {/* COST BREAKDOWN — main section */}
-              <div className="mt-6 rounded-2xl border border-white/[0.08] bg-white/[0.03] p-5 sm:p-6">
-                <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-white/40">
-                  Cost breakdown
+              {/* HEADER */}
+              <div className="rounded-[28px] border border-white/[0.08] bg-white/[0.04] p-6 sm:p-7">
+                <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-white/40">
+                  Estimate outcome
                 </div>
+                <p className="mt-2 text-sm text-white/60">
+                  See how your inputs shape the final price
+                </p>
 
-                <div className="mt-4 space-y-0">
-                  <div className="flex items-center justify-between py-3 border-b border-white/[0.06]">
-                    <span className="text-sm text-white/55">Materials</span>
-                    <span className="text-sm font-medium tabular-nums text-white/90">
-                      {showDash ? "—" : formatCurrency(materialsCost)}
-                    </span>
+                {/* HERO PRICE */}
+                <div className="mt-6">
+                  <div className="text-[11px] uppercase tracking-[0.14em] text-white/40">
+                    Customer price
                   </div>
-
-                  <div className={`flex items-center justify-between py-3 border-b border-white/[0.06] rounded-lg transition-colors duration-500 ${laborFlash ? "bg-blue-500/10" : ""}`}>
-                    <span className="text-sm text-white/55">Labor</span>
-                    <span className="text-sm font-medium tabular-nums text-white/90">
-                      {showDash ? "—" : formatCurrency(laborCostEffective)}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between py-3 border-b border-white/[0.06]">
-                    <span className="text-sm text-white/55">Tear-Off & Disposal</span>
-                    <div className="flex items-center gap-2">
-                      {debrisEnabled ? (
-                        <>
-                          <span className="text-sm font-medium tabular-nums text-white/90">
-                            {formatCurrency(effectiveDebrisRemovalCost)}
-                          </span>
-                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-400/20">
-                            Included
-                          </span>
-                        </>
-                      ) : (
-                        <span className="text-sm text-white/40">
-                          Not included
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between py-3">
-                    <span className="text-sm font-semibold text-white/75">Job cost (before profit)</span>
-                    <span className="text-sm font-semibold tabular-nums text-white">
-                      {showDash ? "—" : formatCurrency(subtotal)}
-                    </span>
+                  <div className="mt-2 text-3xl font-semibold tracking-tight text-white tabular-nums">
+                    {animatedPriceDisplay}
                   </div>
                 </div>
               </div>
 
-              {/* VISUAL ESTIMATE BREAKDOWN */}
-              <div className="mt-6 rounded-2xl border border-white/[0.08] bg-white/[0.03] p-5 sm:p-6">
+              {/* PROFIT VISUAL (DONUT) */}
+              <div className="rounded-[28px] border border-white/[0.08] bg-white/[0.035] p-6 sm:p-7">
+
                 <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-white/40">
-                  Visual estimate breakdown
+                  Profit breakdown
                 </div>
 
-                {showDash || subtotal <= 0 ? (
-                  <div className="mt-4 rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-5 text-sm text-white/45">
-                    Add pricing inputs to see the estimate mix.
+                {finalShowDash || !Number(finalPrice) ? (
+                  <div className="mt-5 rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-5 text-sm text-white/45">
+                    Enter materials and labor to see your pricing come together.
                   </div>
                 ) : (
                   <>
-                    {(() => {
-                      const materialsPct = subtotal > 0 ? Math.max(0, (materialsCost / subtotal) * 100) : 0;
-                      const laborPct = subtotal > 0 ? Math.max(0, (laborCostEffective / subtotal) * 100) : 0;
-                      const tearOffPct =
-                        subtotal > 0 && debrisEnabled ? Math.max(0, (effectiveDebrisRemovalCost / subtotal) * 100) : 0;
-                      const remainingPct = Math.max(0, 100 - materialsPct - laborPct - tearOffPct);
+                    {/* DONUT */}
+                    <div className="mt-6 flex items-center justify-center">
+                      {(() => {
+                        const total = Number(finalPrice) || 0;
+                        const cost = Number(subtotal) || 0;
+                        const profit = Math.max(0, total - cost);
 
-                      return (
-                        <>
-                          <div className="mt-4 overflow-hidden rounded-full border border-white/[0.06] bg-white/[0.04]">
-                            <div className="flex h-4 w-full">
-                              {materialsPct > 0.05 && (
-                                <div
-                                  className="h-full bg-sky-400/80"
-                                  style={{ width: `${materialsPct}%` }}
-                                />
-                              )}
-                              {laborPct > 0.05 && (
-                                <div
-                                  className="h-full bg-indigo-400/80"
-                                  style={{ width: `${laborPct}%` }}
-                                />
-                              )}
-                              {debrisEnabled && tearOffPct > 0.05 && (
-                                <div
-                                  className="h-full bg-cyan-300/80"
-                                  style={{ width: `${tearOffPct}%` }}
-                                />
-                              )}
-                              {remainingPct > 0.05 && (
-                                <div
-                                  className="h-full bg-white/[0.08]"
-                                  style={{ width: `${remainingPct}%` }}
-                                />
-                              )}
-                            </div>
-                          </div>
+                        const costPct = total > 0 ? cost / total : 0;
+                        const profitPct = total > 0 ? profit / total : 0;
 
-                          <div className="mt-4 space-y-2">
-                            <div className="flex items-center justify-between text-sm">
-                              <div className="inline-flex items-center gap-2 text-white/65">
-                                <span className="h-2.5 w-2.5 rounded-full bg-sky-400/80" />
-                                Materials
-                              </div>
-                              <div className="tabular-nums text-white/85">
-                                {formatCurrency(materialsCost)}
-                              </div>
-                            </div>
+                        const radius = 42;
+                        const circumference = 2 * Math.PI * radius;
 
-                            <div className="flex items-center justify-between text-sm">
-                              <div className="inline-flex items-center gap-2 text-white/65">
-                                <span className="h-2.5 w-2.5 rounded-full bg-indigo-400/80" />
-                                Labor
-                              </div>
-                              <div className="tabular-nums text-white/85">
-                                {formatCurrency(laborCostEffective)}
-                              </div>
-                            </div>
+                        const costStroke = circumference * costPct;
+                        const profitStroke = circumference * profitPct;
 
-                            <div className="flex items-center justify-between text-sm">
-                              <div className="inline-flex items-center gap-2 text-white/65">
-                                <span className="h-2.5 w-2.5 rounded-full bg-cyan-300/80" />
-                                Tear-Off & Disposal
+                        return (
+                          <div className="relative h-40 w-40">
+                            <svg className="h-full w-full -rotate-90" viewBox="0 0 100 100">
+
+                              {/* base */}
+                              <circle
+                                cx="50"
+                                cy="50"
+                                r={radius}
+                                stroke="rgba(148,163,184,0.18)"
+                                strokeWidth="8"
+                                fill="transparent"
+                              />
+
+                              {/* cost */}
+                              <circle
+                                cx="50"
+                                cy="50"
+                                r={radius}
+                                stroke="rgba(148,163,184,0.55)"
+                                strokeWidth="8"
+                                fill="transparent"
+                                strokeDasharray={`${costStroke} ${circumference}`}
+                                strokeLinecap="round"
+                              />
+
+                              {/* profit */}
+                              <circle
+                                cx="50"
+                                cy="50"
+                                r={radius}
+                                stroke="rgba(16,185,129,0.95)"
+                                strokeWidth="8"
+                                fill="transparent"
+                                strokeDasharray={`${profitStroke} ${circumference}`}
+                                strokeDashoffset={-costStroke}
+                                strokeLinecap="round"
+                              />
+                            </svg>
+
+                            {/* CENTER */}
+                            <div className="absolute inset-0 flex flex-col items-center justify-center">
+                              <div className="text-[10px] uppercase tracking-[0.12em] text-white/40">
+                                Total
                               </div>
-                              <div className="tabular-nums text-white/85">
-                                {debrisEnabled ? formatCurrency(effectiveDebrisRemovalCost) : "—"}
+                              <div className="mt-1 text-lg font-semibold text-white tabular-nums">
+                                {formatCurrency(total)}
                               </div>
                             </div>
                           </div>
-                        </>
-                      );
-                    })()}
+                        );
+                      })()}
+                    </div>
+
+                    {/* NUMBERS */}
+                    <div className="mt-6 grid grid-cols-3 gap-3 text-center">
+
+                      <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] px-3 py-3">
+                        <div className="text-[10px] uppercase tracking-[0.12em] text-white/40">
+                          Cost
+                        </div>
+                        <div className="mt-1 text-sm font-semibold text-white/85 tabular-nums">
+                          {formatCurrency(subtotal)}
+                        </div>
+                      </div>
+
+                      <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] px-3 py-3">
+                        <div className="text-[10px] uppercase tracking-[0.12em] text-white/40">
+                          Profit
+                        </div>
+                        <div className="mt-1 text-sm font-semibold text-emerald-300 tabular-nums">
+                          {formatCurrency(Math.max(0, finalPrice - subtotal))}
+                        </div>
+                      </div>
+
+                      <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] px-3 py-3">
+                        <div className="text-[10px] uppercase tracking-[0.12em] text-white/40">
+                          Margin
+                        </div>
+                        <div className="mt-1 text-sm font-semibold text-white tabular-nums">
+                          {pricingMode === "direct"
+                            ? "—"
+                            : `${Math.round(finalMarginNum)}%`}
+                        </div>
+                      </div>
+
+                    </div>
                   </>
                 )}
               </div>
 
-              {/* JOB METRICS — secondary */}
-              <div className="mt-6 rounded-2xl border border-white/[0.08] bg-white/[0.02] p-5">
+              {/* COST BREAKDOWN */}
+              <div className="rounded-[28px] border border-white/[0.08] bg-white/[0.03] p-6 sm:p-7">
                 <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-white/40">
-                  Quick job metrics
+                  Cost breakdown
                 </div>
-                <p className="mt-1 text-xs text-white/45">
-                  Used for materials, tear-off, and pricing totals
-                </p>
 
-                <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-sm text-white/50">Roof squares</span>
-                    <span className="text-sm font-medium tabular-nums text-white/85">
-                      {squares.toFixed(2)}
-                    </span>
-                  </div>
+                <div className="mt-4 space-y-3">
 
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-sm text-white/50">Squares w/ waste</span>
-                    <span className="text-sm font-medium tabular-nums text-white/85">
-                      {adjustedSquares.toFixed(2)}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-sm text-white/50">Total bundles</span>
-                    <span className="text-sm font-medium tabular-nums text-white/85">
-                      {bundles}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-sm text-white/50">Disposal tons</span>
-                    <span className="text-sm font-medium tabular-nums text-white/85">
-                      {debrisTons.toFixed(2)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* SUGGESTED PRICE — moved back to bottom */}
-              <div className="mt-6 rounded-2xl border border-blue-400/20 bg-blue-500/[0.08] px-5 py-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-blue-200/70">
-                      Suggested price
-                    </div>
-                    <div className="mt-1 text-2xl sm:text-3xl font-bold tabular-nums text-white">
-                      {animatedPriceDisplay}
+                  <div className="flex items-center justify-between rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
+                    <div className="text-sm text-white/70">Materials</div>
+                    <div className="text-sm font-medium text-white tabular-nums">
+                      {formatCurrency(materialsCost)}
                     </div>
                   </div>
 
-                  {!showDash && !marginInvalid && (
-                    <div className="rounded-full border border-blue-300/20 bg-white/[0.06] px-3 py-1 text-[11px] font-medium text-blue-100/85">
-                      {Number.isFinite(marginNum) ? `${Math.round(marginNum)}% margin` : ""}
+                  <div className="flex items-center justify-between rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
+                    <div className="text-sm text-white/70">Labor</div>
+                    <div className="text-sm font-medium text-white tabular-nums">
+                      {formatCurrency(laborCostEffective)}
                     </div>
-                  )}
+                  </div>
+
+                  <div className="flex items-center justify-between rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
+                    <div className="text-sm text-white/70">Disposal</div>
+                    <div className="text-sm font-medium text-white tabular-nums">
+                      {formatCurrency(effectiveDebrisRemovalCost)}
+                    </div>
+                  </div>
+
                 </div>
               </div>
 
-              {/* CONFIDENCE NOTE */}
-              <div className="mt-6 rounded-2xl border border-white/[0.08] bg-white/[0.025] px-4 py-4">
-                <div className="text-sm font-medium text-white">
-                  Pricing confidence
+              {/* PRICING POSITION */}
+              <div className="rounded-[28px] border border-white/[0.08] bg-white/[0.03] p-6 sm:p-7">
+                <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-white/40">
+                  Pricing position
                 </div>
 
-                <div className="mt-2 space-y-1.5 text-xs leading-relaxed text-white/55">
-                  <p>Calculated directly from your inputs — AI does not change pricing.</p>
-                  <p>Final total should only change if on-site scope changes.</p>
+                <div className="mt-3 text-sm text-white/75">
+                  {pricingMode === "direct"
+                    ? "Direct pricing — based on your entered totals"
+                    : finalMarginNum < 15
+                      ? "Aggressive pricing"
+                      : finalMarginNum < 25
+                        ? "Balanced pricing"
+                        : "High-margin positioning"}
                 </div>
               </div>
-            </motion.section>
+
+            </div>
           </div>
         </div>
         </div>
