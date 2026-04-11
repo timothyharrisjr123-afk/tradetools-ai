@@ -1,0 +1,1348 @@
+      <div className="relative mx-auto max-w-[1180px]">
+        <div className="mb-9 sm:mb-11">
+          <div className="mb-7 flex items-center justify-between gap-4">
+            <motion.div
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Link
+                href="/tools"
+                className="inline-flex items-center gap-2 text-sm font-medium text-slate-400 hover:text-white transition-colors"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back to Tools
+              </Link>
+            </motion.div>
+            <SignOutButton />
+          </div>
+
+          <header className="mb-6">
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.05 }}
+              className="relative pb-7 sm:pb-8"
+            >
+              <div className="pointer-events-none absolute inset-x-0 top-0 h-32" aria-hidden>
+                <div className="absolute left-0 top-1 h-24 w-24 rounded-full bg-cyan-400/10 blur-2xl" />
+                <div className="absolute right-24 top-0 h-28 w-28 rounded-full bg-blue-500/10 blur-3xl" />
+              </div>
+
+              <div className="relative max-w-4xl">
+                <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/[0.08] px-3 py-1.5 text-[11px] font-semibold tracking-[0.18em] text-cyan-200/90">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-md bg-gradient-to-br from-cyan-400/30 to-blue-500/20 text-[10px] font-bold text-cyan-100">
+                    FD
+                  </span>
+                  <span className="uppercase">FieldDive</span>
+                </div>
+
+                <div className="mt-4">
+                  <h1 className="text-[2.9rem] font-extrabold tracking-[-0.02em] leading-[0.98] md:text-5xl lg:text-[3.4rem] text-white">
+                    Roofing Calculator
+                  </h1>
+                  <p className="mt-4 max-w-2xl text-[15px] leading-7 text-slate-300/95 md:text-[17px]">
+                    Estimate materials, labor, and a suggested price with waste and profit margin.
+                  </p>
+                </div>
+
+                <div className="mt-6 h-px w-full bg-gradient-to-r from-white/15 via-white/10 to-transparent" />
+              </div>
+            </motion.div>
+          </header>
+
+          <div className="mt-4">
+            <div className="mt-4 w-full">
+              <RoofingTabs active="estimate" />
+            </div>
+          </div>
+
+          {hasMounted && isLocked && (
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4">
+              <span className="font-medium text-amber-200">
+                {isScheduledLocked
+                  ? `Scheduled — locked${currentSaved?.scheduledStartDate ? ` (start ${currentSaved.scheduledStartDate})` : ""}`
+                  : "Approved — locked"}
+              </span>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const idToDup = currentLoadedSavedId ?? loadSavedId;
+                    if (!idToDup) return;
+                    setIsDuplicating(true);
+                    const newId = duplicateSavedEstimate(idToDup);
+                    if (!newId) {
+                      setIsDuplicating(false);
+                      return;
+                    }
+                    setCurrentLoadedSavedId(newId);
+                    loadAppliedRef.current = false;
+                    setToast("Revision created ✅");
+                    setTimeout(() => setToast(null), 2500);
+                    router.push(`/tools/roofing?loadSaved=${encodeURIComponent(newId)}`);
+                    setIsDuplicating(false);
+                  }}
+                  disabled={isDuplicating}
+                  className="shrink-0 rounded-full bg-amber-500 px-4 py-2 text-sm font-semibold text-black hover:bg-amber-400 disabled:opacity-70 disabled:cursor-not-allowed"
+                >
+                  {isDuplicating ? "Duplicating…" : "Duplicate to Revise"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCurrentLoadedSavedId(null);
+                    router.push("/tools/roofing");
+                  }}
+                  className="shrink-0 rounded-full border border-amber-400/30 bg-white/10 px-4 py-2 text-sm font-semibold text-amber-100 hover:bg-white/20"
+                >
+                  New Estimate
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="mt-5 sm:mt-7">
+          <div className="overflow-visible rounded-[26px] border border-white/[0.08] bg-gradient-to-br from-white/[0.042] via-white/[0.02] to-white/[0.012] shadow-[0_32px_110px_-58px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.055)] sm:rounded-[28px] p-4 sm:p-5 lg:p-5 lg:pl-5 lg:pr-4 xl:pl-6 xl:pr-5">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,520px)_400px] lg:items-start lg:gap-5 xl:grid-cols-[minmax(0,540px)_400px] xl:gap-6">
+          {/* Inputs card */}
+          <motion.section
+            variants={cardVariants}
+            initial="hidden"
+            animate="visible"
+            custom={0}
+            className="w-full min-w-0 max-w-[540px] space-y-3 sm:space-y-4 lg:max-w-[520px] xl:max-w-[540px]"
+            aria-labelledby="inputs-heading"
+          >
+
+            {/* Customer & Job */}
+            <div
+              id="customer-job-section"
+              className="rounded-[22px] border border-white/[0.07] bg-white/[0.035] p-4 sm:p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.045)]"
+            >
+              <div className="mb-4 flex gap-2.5">
+                <span
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/18 bg-white/[0.08] text-[10px] font-bold tabular-nums text-white"
+                  aria-hidden
+                >
+                  1
+                </span>
+                <div className="min-w-0 pt-0.5">
+                  <h2 className="text-sm font-semibold tracking-wide text-white">Customer &amp; Job</h2>
+                  <p className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-white/38">Step 1</p>
+                  <p className="mt-1.5 text-xs leading-snug text-white/58">Used to deliver and personalize your proposal</p>
+                </div>
+              </div>
+              <form autoComplete="off" className="mt-4 space-y-3">
+                <div className="space-y-1.5">
+                  <label htmlFor="customer-name" className="block text-sm font-medium text-white/80">Customer Name *</label>
+                  <input
+                    id="customer-name"
+                    name="customer_name_field"
+                    type="text"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    placeholder="Full name"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck={false}
+                    className="w-full rounded-2xl border border-white/15 bg-white/[0.07] px-4 py-3 text-white/95 placeholder:text-white/35 focus:outline-none focus:ring-2 focus:ring-blue-500/35 focus:border-white/25 text-sm"
+                  />
+                </div>
+                <div className={"space-y-1.5" + (attentionField === "customerEmail" ? " rounded-2xl ring-2 ring-cyan-400/25 bg-cyan-400/[0.04] shadow-[0_0_0_1px_rgba(34,211,238,0.10),0_0_24px_rgba(34,211,238,0.08)]" : "")}>
+                  <label htmlFor="customer-email" className="block text-sm font-medium text-white/80">Customer Email *</label>
+                  <input
+                    id="customer-email"
+                    name="customer_email_field"
+                    type="email"
+                    inputMode="email"
+                    value={customerEmail}
+                    onChange={(e) => {
+                      setCustomerEmail(e.target.value);
+                      setSendError("");
+                    }}
+                    placeholder="email@example.com"
+                    autoComplete="new-password"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck={false}
+                    className="w-full rounded-2xl border border-white/15 bg-white/[0.07] px-4 py-3 text-white/95 placeholder:text-white/35 focus:outline-none focus:ring-2 focus:ring-blue-500/35 focus:border-white/25 text-sm"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label htmlFor="customer-phone" className="block text-sm font-medium text-white/80">Customer Phone (optional)</label>
+                  <input
+                    id="customer-phone"
+                    name="customer_phone_field"
+                    type="tel"
+                    inputMode="tel"
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
+                    placeholder="(555) 123-4567"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck={false}
+                    className="w-full rounded-2xl border border-white/15 bg-white/[0.07] px-4 py-3 text-white/95 placeholder:text-white/35 focus:outline-none focus:ring-2 focus:ring-blue-500/35 focus:border-white/25 text-sm"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label htmlFor="job-address" className="block text-sm font-medium text-white/80">Job Address</label>
+                  <input
+                    id="job-address"
+                    name="job_address1_field"
+                    type="text"
+                    value={jobAddress1}
+                    onChange={(e) => setJobAddress1(e.target.value)}
+                    onBlur={(e) => {
+                      const cleaned = e.target.value.replace(/\s+/g, " ").trim();
+                      if (cleaned !== jobAddress1) setJobAddress1(cleaned);
+                    }}
+                    placeholder="Street address"
+                    autoComplete="new-password"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck={false}
+                    className="w-full rounded-2xl border border-white/15 bg-white/[0.07] px-4 py-3 text-white/95 placeholder:text-white/35 focus:outline-none focus:ring-2 focus:ring-blue-500/35 focus:border-white/25 text-sm"
+                  />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="space-y-1.5">
+                    <label htmlFor="job-city" className="block text-sm font-medium text-white/80">City</label>
+                    <input
+                      id="job-city"
+                      name="job_city_field"
+                      type="text"
+                      value={jobCity}
+                      onChange={(e) => setJobCity(e.target.value)}
+                      onBlur={(e) => {
+                        const cleaned = e.target.value
+                          .replace(/[^a-zA-Z\s.'-]/g, "")
+                          .replace(/\s+/g, " ")
+                          .trim();
+
+                        if (cleaned !== jobCity) {
+                          setJobCity(cleaned);
+                        }
+                      }}
+                      placeholder="City"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="words"
+                      spellCheck={false}
+                      className="w-full rounded-2xl border border-white/15 bg-white/[0.07] px-4 py-3 text-white/95 placeholder:text-white/35 focus:outline-none focus:ring-2 focus:ring-blue-500/35 focus:border-white/25 text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label htmlFor="job-state" className="block text-sm font-medium text-white/80">State</label>
+                    <input
+                      id="job-state"
+                      name="job_state_field"
+                      type="text"
+                      value={jobState}
+                      onChange={(e) => setJobState(e.target.value)}
+                      onBlur={(e) => {
+                        const cleaned = e.target.value
+                          .replace(/[^a-zA-Z]/g, "")
+                          .toUpperCase()
+                          .trim();
+                        if (cleaned !== jobState) setJobState(cleaned);
+                      }}
+                      placeholder="State"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="characters"
+                      spellCheck={false}
+                      className="w-full rounded-2xl border border-white/15 bg-white/[0.07] px-4 py-3 text-white/95 placeholder:text-white/35 focus:outline-none focus:ring-2 focus:ring-blue-500/35 focus:border-white/25 text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1.5 rounded-2xl transition-all duration-200">
+                    <label htmlFor="customer-job-zip" className="flex items-center gap-1.5 text-sm font-medium text-white/80">
+                      Job ZIP
+                      <TooltipIcon id="tip-job-zip" text="Drives preset pricing and appears on proposal and PDF." />
+                    </label>
+                    <input
+                      id="customer-job-zip"
+                      name="job_zip_field"
+                      type="text"
+                      inputMode="numeric"
+                      value={jobZip}
+                      onChange={(e) => setJobZip(sanitizeZipInput(e.target.value))}
+                      onBlur={() => {
+                        const sanitized = sanitizeZipInput(jobZip);
+                        if (sanitized !== jobZip) setJobZip(sanitized);
+                        if (sanitized.length === 5) tryApplyZipPreset(sanitized);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          const sanitized = sanitizeZipInput(jobZip);
+                          if (sanitized !== jobZip) setJobZip(sanitized);
+                          if (sanitized.length === 5) tryApplyZipPreset(sanitized);
+                        }
+                      }}
+                      placeholder="e.g. 73102"
+                      autoComplete="postal-code"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck={false}
+                      className="w-full rounded-2xl border border-white/15 bg-white/[0.07] px-4 py-3 text-white/95 placeholder:text-white/35 focus:outline-none focus:ring-2 focus:ring-blue-500/35 focus:border-white/25 text-sm"
+                    />
+                    {autofillFromZip && (
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-xs text-emerald-400/90">Auto-filled from ZIP defaults</span>
+                        {preAutofillSnapshot != null && (
+                          <button
+                            type="button"
+                            onClick={undoAutofill}
+                            className="text-xs font-medium text-blue-300 hover:text-blue-200 underline underline-offset-1"
+                          >
+                            Undo autofill
+                          </button>
+                        )}
+                      </div>
+                    )}
+                    {zipNoPresetMessage && jobZip.length === 5 && (
+                      <p className="text-xs text-slate-500">No defaults saved for this ZIP yet.</p>
+                    )}
+                    {jobZip.length === 5 && presetForCurrentZip != null && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setZipPresets((prev) => {
+                            if (!prev) return prev;
+                            const next = { ...prev };
+                            delete next[jobZip];
+                            if (typeof window !== "undefined") localStorage.setItem(STORAGE_KEY_ZIP_PRESETS, JSON.stringify(next));
+                            return next;
+                          });
+                          setZipClearedToast(true);
+                          setTimeout(() => setZipClearedToast(false), 2500);
+                          setAutofillFromZip(false);
+                          setPreAutofillSnapshot(null);
+                          setZipNoPresetMessage(true);
+                        }}
+                        className="text-xs font-medium text-slate-400 hover:text-slate-300 underline underline-offset-1"
+                      >
+                        Clear ZIP defaults
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </form>
+              <p className="mt-4 text-xs text-white/40">
+                Next: Materials & roof details
+              </p>
+            </div>
+
+            <div className="my-2 h-px bg-gradient-to-r from-transparent via-white/[0.07] to-transparent sm:my-3" aria-hidden />
+            <div className="rounded-[22px] border border-white/[0.05] bg-white/[0.012] p-4 sm:p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
+                <div className="mb-4 flex gap-2.5">
+                  <span
+                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/14 bg-white/[0.05] text-[10px] font-bold tabular-nums text-white"
+                    aria-hidden
+                  >
+                    2
+                  </span>
+                  <div className="min-w-0 pt-0.5">
+                    <h2
+                      id="inputs-heading"
+                      className="text-sm font-semibold tracking-wide text-white"
+                    >
+                      Materials setup
+                    </h2>
+                    <p className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-white/38">
+                      Step 2
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div
+                    className={
+                      attentionField === "roofArea"
+                        ? "rounded-lg border border-white/[0.08] bg-white/[0.02] p-1 transition-all duration-200"
+                        : ""
+                    }
+                  >
+                    <div className="flex min-w-0 flex-1 flex-col gap-0.5 sm:flex-row sm:items-end sm:gap-2.5">
+                      <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/28 sm:pb-1.5">
+                        Roof size
+                      </span>
+                      <div className="min-w-0 flex-1 sm:max-w-md">
+                        <label htmlFor="area" className="sr-only">
+                          Square feet
+                        </label>
+                        <div className="flex items-center gap-2 rounded-lg border border-white/[0.06] bg-white/[0.04] px-3 py-2 transition-colors focus-within:border-white/14 focus-within:ring-1 focus-within:ring-white/10">
+                          <Ruler className="h-4 w-4 shrink-0 text-white/70" aria-hidden />
+                          <input
+                            id="area"
+                            type="number"
+                            inputMode="decimal"
+                            min={0}
+                            step={1}
+                            value={area ?? ""}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              setArea(v.trim() === "" ? "" : String(Number(v) || 0));
+                            }}
+                            placeholder="e.g. 2400"
+                            className="min-w-0 flex-1 border-0 bg-transparent py-0 pr-1 text-[13px] text-white/95 placeholder:text-white/35 focus:outline-none focus:ring-0 [appearance:textfield]"
+                          />
+                          <span className="shrink-0 rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-medium text-white/65">
+                            sq ft
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    {squares > 0 && (
+                      <p className="mt-0 text-[10px] tabular-nums text-white/40">
+                        ≈ {squares.toFixed(1)} squares
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <p className="mb-1 text-[11px] text-white/38">Affects material waste.</p>
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                      {ROOFING_WASTE_PRESETS.map((opt) => {
+                        const selected =
+                          waste.trim() !== "" &&
+                          Number.isFinite(parseFloat(waste)) &&
+                          Math.abs(parseFloat(waste) - opt.pct) < 0.0001;
+                        const idleTone =
+                          opt.pct === 10
+                            ? "border-sky-400/10 bg-sky-500/[0.03]"
+                            : opt.pct === 15
+                              ? "border-violet-400/10 bg-violet-500/[0.03]"
+                              : "border-amber-400/10 bg-amber-500/[0.03]";
+                        const selectedTone =
+                          opt.pct === 10
+                            ? "border-cyan-200/60 bg-cyan-400/[0.15] shadow-[0_0_0_2px_rgba(103,232,249,0.28),0_0_32px_-6px_rgba(34,211,238,0.38)]"
+                            : opt.pct === 15
+                              ? "border-violet-200/55 bg-violet-500/[0.14] shadow-[0_0_0_2px_rgba(167,139,250,0.26),0_0_30px_-6px_rgba(139,92,246,0.32)]"
+                              : "border-amber-200/50 bg-amber-500/[0.12] shadow-[0_0_0_2px_rgba(251,191,36,0.24),0_0_30px_-6px_rgba(245,158,11,0.26)]";
+                        return (
+                          <button
+                            key={opt.pct}
+                            type="button"
+                            onClick={() => setWaste(String(opt.pct))}
+                            className={`rounded-2xl border px-5 py-6 text-left transition sm:min-h-[6.75rem] ${
+                              selected
+                                ? `${selectedTone} text-white`
+                                : `${idleTone} text-white/45 hover:border-white/14 hover:bg-white/[0.045] hover:text-white/65`
+                            }`}
+                          >
+                            <div className="text-sm font-semibold text-white">{opt.label}</div>
+                            <div className="mt-1 text-2xl font-bold tabular-nums tracking-tight text-white">
+                              {opt.pct}%
+                            </div>
+                            <div
+                              className={`mt-1 truncate text-[11px] leading-tight ${selected ? "text-white/58" : "text-white/28"}`}
+                            >
+                              {opt.helper}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {squares > 0 && (
+                      <div className="mt-2 space-y-1">
+                        <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
+                          <div className="relative h-2 w-full">
+                            <div className="absolute inset-0 bg-white/60" style={{ width: "100%" }} />
+                            <div
+                              className="absolute inset-y-0 left-0 bg-white/20"
+                              style={{ width: `${Math.min(100, Math.max(0, wasteNum))}%` }}
+                            />
+                          </div>
+                        </div>
+                        <div className="flex justify-between text-[10px] text-white/50">
+                          <span>Base</span>
+                          <span>Waste</span>
+                        </div>
+                        <div className="text-[11px] text-white/60">
+                          Adjusted: {adjustedSquares.toFixed(1)} squares
+                        </div>
+                      </div>
+                    )}
+                    <p className="mt-0.5 text-sm font-medium text-white/70">Most contractors use Standard</p>
+                    {(() => {
+                      const wn = parseFloat(waste);
+                      const isPreset =
+                        waste.trim() !== "" &&
+                        Number.isFinite(wn) &&
+                        ROOFING_WASTE_PRESETS.some((p) => Math.abs(wn - p.pct) < 0.0001);
+                      if (isPreset || !waste.trim() || !Number.isFinite(wn)) return null;
+                      return (
+                        <div className="mt-0.5 inline-flex rounded-full border border-white/[0.08] bg-white/[0.03] px-2 py-0.5 text-[10px] text-white/48">
+                          Custom {waste}%
+                        </div>
+                      );
+                    })()}
+                  </div>
+
+                  <div className="-mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                    <Layers className="h-4 w-4 shrink-0 text-white/70" aria-hidden />
+                    <label
+                      htmlFor="bundleCost"
+                      className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.14em] text-white/80"
+                    >
+                      Bundle cost
+                    </label>
+                    <div className="flex min-w-[9rem] flex-1 items-center gap-2 rounded-lg border border-white/[0.06] bg-white/[0.04] px-3 py-2 transition-colors focus-within:border-white/14 focus-within:ring-1 focus-within:ring-white/10 sm:max-w-[11rem]">
+                      <DollarSign className="h-4 w-4 shrink-0 text-white/70" aria-hidden />
+                      <input
+                        id="bundleCost"
+                        type="number"
+                        inputMode="decimal"
+                        min={0}
+                        step="0.01"
+                        value={bundleCost}
+                        onChange={(e) => setBundleCost(e.target.value)}
+                        placeholder="0.00"
+                        title="What you pay per bundle from your supplier."
+                        className="min-w-0 flex-1 border-0 bg-transparent py-0 text-[13px] text-white outline-none placeholder:text-white/25 [appearance:textfield]"
+                      />
+                    </div>
+                  </div>
+                  <p className="mt-0 text-[9px] text-white/26">Typical $30–45 per bundle</p>
+                  {bundles > 0 && adjustedSquares > 0 && (
+                    <div className="space-y-1">
+                      <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-white/[0.08]">
+                        <div
+                          className="h-full shrink-0 rounded-l-full bg-sky-500/50"
+                          style={{
+                            width: `${Math.min(100, Math.max(0, (squares / adjustedSquares) * 100))}%`,
+                          }}
+                        />
+                        <div
+                          className="h-full shrink-0 rounded-r-full bg-white/[0.12]"
+                          style={{
+                            width: `${Math.min(100, Math.max(0, ((adjustedSquares - squares) / adjustedSquares) * 100))}%`,
+                          }}
+                        />
+                      </div>
+                      <div className="flex justify-between text-[10px] text-white/38">
+                        <span>Material usage</span>
+                        <span className="tabular-nums text-white/62">{bundles} bundles</span>
+                      </div>
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => setShowAdvancedMaterials((prev) => !prev)}
+                    className="flex w-full items-center justify-between gap-2 rounded-xl border border-white/[0.08] bg-white/[0.025] px-3 py-2 text-left text-[11px] font-medium text-white/48 transition hover:bg-white/[0.04]"
+                  >
+                      <span>Advanced (bundles per square)</span>
+                      <ChevronDown
+                        className={`h-4 w-4 shrink-0 text-white/35 transition-transform duration-200 ${showAdvancedMaterials ? "rotate-180" : ""}`}
+                      />
+                    </button>
+                    <motion.div
+                      initial={false}
+                      animate={{ height: showAdvancedMaterials ? "auto" : 0, opacity: showAdvancedMaterials ? 1 : 0 }}
+                      transition={{ duration: 0.25, ease: "easeInOut" }}
+                      className="overflow-hidden"
+                    >
+                      <div className="mt-2">
+                        <InputField
+                          id="bundles"
+                          label="Bundles per square"
+                          helper="3 per square for most shingles."
+                          value={bundlesPerSquare}
+                          onChange={setBundlesPerSquare}
+                          unitChip="per sq"
+                          step="0.5"
+                          icon={<Package className="h-4 w-4" />}
+                          labelTooltip="One square = 100 sq ft. Change only if using different shingle type."
+                          labelTooltipId="tip-bundles-per-sq"
+                        />
+                      </div>
+                    </motion.div>
+                </div>
+              </div>
+
+              <div className="my-2.5 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent sm:my-3.5" aria-hidden />
+              <div className="rounded-[24px] border border-cyan-400/14 bg-gradient-to-b from-white/[0.058] to-white/[0.03] p-5 sm:p-6 shadow-[0_16px_46px_-28px_rgba(34,211,238,0.16),inset_0_1px_0_rgba(255,255,255,0.062)] ring-1 ring-cyan-400/12">
+                  <div className="mb-5 flex gap-2.5">
+                    <span
+                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-cyan-400/25 bg-cyan-400/[0.08] text-[10px] font-bold tabular-nums text-white"
+                      aria-hidden
+                    >
+                      3
+                    </span>
+                    <div className="min-w-0 pt-0.5">
+                      <h2 className="text-sm font-semibold tracking-wide text-white">Deal control panel</h2>
+                      <p className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-white/38">
+                        Step 3
+                      </p>
+                      <p className="mt-1.5 text-xs leading-snug text-white/62">
+                        Set your pricing strategy and preview the deal before sending.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div>
+                    {/* Pricing mode */}
+                    <div className="space-y-4">
+                      <div className="text-sm font-medium text-white">Pricing mode</div>
+                      <p className="mt-1 text-xs text-white/50">
+                        Choose how you want to price this job.
+                      </p>
+
+                      <div className="mt-4 grid grid-cols-2 gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                        <button
+                          type="button"
+                          onClick={() => setPricingMode("markup")}
+                          className={`rounded-xl border px-4 py-3 text-left transition ${
+                            pricingMode === "markup"
+                              ? "border-emerald-400/40 bg-emerald-500/[0.08] text-white"
+                              : "border-white/[0.08] bg-transparent text-white/70 hover:bg-white/[0.04]"
+                          }`}
+                        >
+                          <div className="text-sm font-medium">Markup pricing</div>
+                          <div className="mt-1 text-xs text-white/50">
+                            Apply margin automatically.
+                          </div>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setPricingMode("direct")}
+                          className={`rounded-xl border px-4 py-3 text-left transition ${
+                            pricingMode === "direct"
+                              ? "border-emerald-400/40 bg-emerald-500/[0.08] text-white"
+                              : "border-white/[0.08] bg-transparent text-white/70 hover:bg-white/[0.04]"
+                          }`}
+                        >
+                          <div className="text-sm font-medium">Direct pricing</div>
+                          <div className="mt-1 text-xs text-white/50">
+                            Set your total directly.
+                          </div>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="pt-4 border-t border-white/[0.06]" />
+
+                    {/* Pricing strategy */}
+                    <div className="mt-6 space-y-4">
+                      <div className="text-sm font-medium text-white">Pricing strategy</div>
+                      <p className="mt-1 text-xs text-white/50">
+                        Adjust your position on this job.
+                      </p>
+
+                      <div className="mt-4 grid grid-cols-3 gap-3">
+                        {[
+                          { label: "Competitive", value: 15 },
+                          { label: "Balanced", value: 20 },
+                          { label: "Premium", value: 25 },
+                        ].map((option) => (
+                          <button
+                            key={option.value}
+                            type="button"
+                            onClick={() => setMargin(String(option.value))}
+                            className={`rounded-xl border px-3 py-3 text-center transition ${
+                              finalMarginNum === option.value
+                                ? "border-emerald-400/40 bg-emerald-500/[0.08] text-white"
+                                : "border-white/[0.08] bg-transparent text-white/70 hover:bg-white/[0.04]"
+                            }`}
+                          >
+                            <div className="text-xs">{option.label}</div>
+                            <div className="mt-1 text-sm font-semibold">
+                              {option.value}%
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="pt-4 border-t border-white/[0.06]" />
+
+                    {/* Manual adjustments */}
+                    <div className="mt-6 space-y-4">
+                      <div className="text-sm font-medium text-white">Manual adjustments</div>
+                      <p className="mt-1 text-xs text-white/50">
+                        Fine tune your numbers if needed.
+                      </p>
+
+                      <div className="mt-4 grid grid-cols-2 gap-3">
+                        <div>
+                          <div className="text-[11px] text-white/40 mb-1">
+                            Custom margin
+                          </div>
+                          <input
+                            type="number"
+                            value={finalMarginNum}
+                            onChange={(e) => setMargin(e.target.value)}
+                            className="w-full rounded-lg border border-white/[0.08] bg-white/[0.02] px-3 py-2 text-sm text-white"
+                          />
+                        </div>
+
+                        <div>
+                          <div className="text-[11px] text-white/40 mb-1">
+                            Labor override
+                          </div>
+                          <input
+                            type="number"
+                            value={laborCostRaw}
+                            onChange={(e) => {
+                              const next = e.target.value;
+                              if (/^[0-9]*$/.test(next)) setLaborCostRaw(next);
+                            }}
+                            onBlur={() => {
+                              const n = laborCostRaw.trim() === "" ? 0 : Number(laborCostRaw);
+                              const safe = Number.isFinite(n) ? Math.round(n) : 0;
+                              setLaborCostRaw(safe ? String(safe) : "");
+                              setLaborCost(safe);
+                            }}
+                            className="w-full rounded-lg border border-white/[0.08] bg-white/[0.02] px-3 py-2 text-sm text-white"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+              <div className="my-3 h-px bg-gradient-to-r from-transparent via-white/[0.12] to-transparent sm:my-4" aria-hidden />
+              <div className="rounded-[26px] border border-white/[0.11] bg-white/[0.048] p-5 sm:p-6 shadow-[0_20px_50px_-30px_rgba(0,0,0,0.48),inset_0_1px_0_rgba(255,255,255,0.065)] ring-1 ring-white/[0.07]">
+
+                  {/* Header */}
+                  <div className="mb-1 flex gap-2.5">
+                    <span
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/20 bg-white/[0.08] text-[11px] font-bold tabular-nums text-white"
+                      aria-hidden
+                    >
+                      4
+                    </span>
+                    <div className="min-w-0 pt-0.5">
+                      <h2 className="text-[15px] font-semibold tracking-tight text-white sm:text-[16px]">
+                        Finalize &amp; Confirm
+                      </h2>
+                      <p className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-white/38">Review</p>
+                      <p className="mt-1.5 text-sm text-white/68">
+                        Review your setup before sending the proposal
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 space-y-6">
+
+                    {/* JOB SUMMARY */}
+                    <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4">
+                      <div className="text-[11px] uppercase tracking-[0.14em] text-white/40">
+                        Job overview
+                      </div>
+
+                      <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
+
+                        <div>
+                          <div className="text-white/50 text-xs">Roof type</div>
+                          <div className="text-white font-medium">
+                            {removalType === "architectural" ? "Architectural" : "Standard"}
+                          </div>
+                        </div>
+
+                        <div>
+                          <div className="text-white/50 text-xs">Tear-off</div>
+                          <div className="text-white font-medium">
+                            {includeDebrisRemoval ? "Included" : "Not included"}
+                          </div>
+                        </div>
+
+                        <div>
+                          <div className="text-white/50 text-xs">System</div>
+                          <div className="text-white font-medium">
+                            {roofingTier === "standard" ? "Core" : roofingTier === "enhanced" ? "Enhanced" : "Premium"}
+                          </div>
+                        </div>
+
+                      </div>
+
+                      <div className="mt-4 text-xs text-emerald-300/90 font-medium">
+                        ✔ Ready for proposal
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
+                      <div className="flex items-center justify-between gap-4">
+                        <div>
+                          <div className="text-[11px] uppercase tracking-[0.14em] text-white/40">
+                            Tear-off settings
+                          </div>
+                          <p className="mt-1 text-sm text-white/60">
+                            Include removal and disposal in this proposal
+                          </p>
+                        </div>
+
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={includeDebrisRemoval}
+                          onClick={() => setIncludeDebrisRemoval((v) => !v)}
+                          className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border transition ${
+                            includeDebrisRemoval
+                              ? "border-emerald-400/40 bg-emerald-500/20"
+                              : "border-white/[0.10] bg-white/[0.06]"
+                          }`}
+                        >
+                          <span
+                            className={`inline-block h-5 w-5 rounded-full bg-white shadow transition ${
+                              includeDebrisRemoval ? "translate-x-6" : "translate-x-1"
+                            }`}
+                          />
+                        </button>
+                      </div>
+
+                      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <div>
+                          <label className="text-[11px] font-medium uppercase tracking-[0.12em] text-white/42">
+                            Removal type
+                          </label>
+                          <select
+                            value={removalType}
+                            onChange={(e) => setRemovalType(e.target.value as "standard" | "architectural")}
+                            disabled={!includeDebrisRemoval}
+                            className="mt-2 w-full rounded-xl border border-white/[0.07] bg-black/15 px-3 py-2.5 text-sm text-white outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            <option value="standard">Standard</option>
+                            <option value="architectural">Architectural</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="text-[11px] font-medium uppercase tracking-[0.12em] text-white/42">
+                            Disposal rate ($ / ton)
+                          </label>
+                          <input
+                            value={dumpFeePerTon}
+                            onChange={(e) => setDumpFeePerTon(e.target.value)}
+                            inputMode="decimal"
+                            placeholder="e.g. 80"
+                            disabled={!includeDebrisRemoval}
+                            className="mt-2 w-full rounded-xl border border-white/[0.07] bg-black/15 px-3 py-2.5 text-sm text-white outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="mt-3 text-xs text-white/45">
+                        {includeDebrisRemoval
+                          ? "Included in estimate total"
+                          : "Excluded from estimate total"}
+                      </div>
+                    </div>
+
+                    {/* PACKAGE SELECTION */}
+                    <div>
+                      <div className="text-sm font-medium text-white mb-3">
+                        Select roofing system
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                        {(["standard","enhanced","premium"] as const).map((option) => {
+                          const selected = roofingTier === option;
+
+                          const label =
+                            option === "standard"
+                              ? "Core"
+                              : option === "enhanced"
+                              ? "Enhanced"
+                              : "Premium";
+
+                          const helper =
+                            option === "standard"
+                              ? "Reliable protection"
+                              : option === "enhanced"
+                              ? "Upgraded coverage"
+                              : "Best presentation";
+
+                          return (
+                            <button
+                              key={option}
+                              type="button"
+                              onClick={() => setRoofingTier(option)}
+                              className={`rounded-2xl border px-4 py-4 text-left transition ${
+                                selected
+                                  ? "border-emerald-300/50 bg-emerald-500/[0.18] text-white shadow-[0_0_24px_-8px_rgba(16,185,129,0.35)]"
+                                  : "border-white/[0.08] bg-white/[0.025] text-white/70 hover:bg-white/[0.045]"
+                              }`}
+                            >
+                              <div className="text-sm font-semibold">{label}</div>
+                              <div className="mt-1 text-xs text-white/50">{helper}</div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* PROPOSAL STATUS */}
+                    <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4">
+                      <div className="text-[11px] uppercase tracking-[0.14em] text-white/40">
+                        Proposal status
+                      </div>
+
+                      <div className="mt-3 space-y-2 text-sm">
+
+                        <div className="flex items-center gap-2 text-emerald-300">
+                          ✔ <span className="text-white">Scope ready</span>
+                        </div>
+
+                        <div className="flex items-center gap-2 text-emerald-300">
+                          ✔ <span className="text-white">Pricing ready</span>
+                        </div>
+
+                        <div className="flex items-center gap-2 text-emerald-300">
+                          ✔ <span className="text-white">Package selected</span>
+                        </div>
+
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+
+            <div className="my-3 h-px bg-gradient-to-r from-transparent via-blue-400/22 to-transparent sm:my-4" aria-hidden />
+            <div className="rounded-[28px] border border-blue-400/22 bg-gradient-to-b from-blue-500/[0.1] to-white/[0.055] p-5 sm:p-6 shadow-[0_24px_60px_-32px_rgba(59,130,246,0.28),inset_0_1px_0_rgba(255,255,255,0.07)] ring-1 ring-blue-400/18">
+
+                {/* Header */}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex gap-2.5">
+                    <span
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-blue-400/35 bg-blue-500/[0.15] text-[11px] font-bold tabular-nums text-white"
+                      aria-hidden
+                    >
+                      5
+                    </span>
+                    <div className="min-w-0 pt-0.5">
+                      <h2 className="text-[15px] font-semibold text-white sm:text-[16px]">
+                        Ready to send
+                      </h2>
+                      <p className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-blue-200/50">Send</p>
+                      <p className="mt-1.5 text-sm text-white/72">
+                        Review your proposal and deliver it to the customer
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-6 space-y-6">
+
+                  {/* PROPOSAL PREVIEW */}
+                  <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4 flex items-center justify-between">
+                    <div>
+                      <div className="text-sm font-semibold text-white">
+                        Roofing proposal
+                      </div>
+
+                      <div className="text-xs text-white/50 mt-1">
+                        1 page • AI enhanced • Ready to send
+                      </div>
+
+                      <div className="mt-2 flex items-center gap-3 text-[11px] text-white/50">
+                        <span className="text-emerald-300">AI description ready</span>
+
+                        <button
+                          type="button"
+                          onClick={handleRegenerateDescription}
+                          className="hover:text-white transition"
+                        >
+                          Regenerate
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleCustomizeDescription}
+                          className="hover:text-white transition"
+                        >
+                          Customize
+                        </button>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handlePreviewPdf}
+                      disabled={isPreviewingPdf}
+                      className="rounded-full border border-white/[0.12] px-4 py-2 text-sm text-white hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {isPreviewingPdf ? "Opening…" : "Open preview"}
+                    </button>
+                  </div>
+
+                  {/* CONFIRMATION */}
+                  <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4 space-y-2">
+                    <div className="text-sm font-medium text-white">
+                      Everything is ready
+                    </div>
+
+                    <div className="space-y-1 text-sm text-white/70">
+                      <div>✔ Proposal built</div>
+                      <div>✔ Email delivery ready</div>
+                      <div>✔ PDF attached</div>
+                    </div>
+                  </div>
+
+                  {/* DELIVERY */}
+                  <div>
+                    <div className="text-sm font-medium text-white mb-2">
+                      Delivery method
+                    </div>
+
+                    <div className="flex gap-2">
+                      <div
+                        className="flex-1 rounded-xl px-4 py-3 text-sm font-semibold transition bg-blue-500/20 border border-blue-400/40 text-white"
+                        role="status"
+                        aria-label="Selected delivery method: email"
+                      >
+                        Email
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={onDownloadPdf}
+                        className="flex-1 rounded-xl px-4 py-3 text-sm font-semibold transition border border-white/[0.08] text-white/70 hover:bg-white/[0.03]"
+                      >
+                        Download PDF
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* SEND BUTTON */}
+                  <button
+                    type="button"
+                    onClick={handleSendEstimate}
+                    disabled={!(customerEmail || "").trim() || !(jobAddress1 || "").trim() || isSending || isLocked}
+                    className="w-full rounded-2xl bg-blue-600 py-4 text-base font-semibold text-white shadow-[0_10px_30px_-10px_rgba(59,130,246,0.6)] hover:bg-blue-500 transition disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isSending ? "Sending…" : sendSuccess ? "Sent ✓" : "Send proposal →"}
+                  </button>
+
+                  {sendError ? <div className="text-xs text-red-400">{sendError}</div> : null}
+                  {pdfError ? <p className="text-xs text-red-300/90">{pdfError}</p> : null}
+                  {sendSuccess && !isSending ? (
+                    <p className="text-xs text-blue-300/90">Sent successfully.</p>
+                  ) : null}
+
+                </div>
+              </div>
+
+            <div className="mt-5 space-y-4 pt-4 sm:mt-6 sm:pt-5">
+              <div className="h-px w-full bg-gradient-to-r from-transparent via-white/[0.09] to-transparent" aria-hidden />
+              <div className="flex flex-wrap items-center gap-3">
+                <motion.button
+                  type="button"
+                  onClick={saveEstimate}
+                  disabled={!canSave || isSaving || isLocked}
+                  className={`rounded-full border px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:shadow-sm transition-all duration-200 ease-out disabled:pointer-events-none disabled:cursor-not-allowed disabled:hover:translate-y-0 ${savedFlash ? "border-emerald-500 bg-emerald-500/90 hover:bg-emerald-500 hover:border-emerald-400" : "border-blue-500 bg-blue-500/90 hover:bg-blue-500 hover:border-blue-400"} ${isSaving ? "opacity-70" : "disabled:opacity-50"}`}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  {isSaving ? "Saving..." : savedFlash ? "Saved ✓" : "Save Estimate"}
+                </motion.button>
+              <motion.button
+                type="button"
+                onClick={loadExample}
+                className="rounded-full border border-blue-500/50 bg-blue-500/20 px-5 py-2.5 text-sm font-semibold text-blue-200 shadow-sm hover:bg-blue-500/30 hover:border-blue-500/70 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:shadow-sm transition-all duration-200 ease-out"
+                whileTap={{ scale: 0.98 }}
+              >
+                Example values
+              </motion.button>
+                <motion.button
+                  type="button"
+                  onClick={reset}
+                  className="rounded-full border border-white/15 bg-white/5 px-5 py-2.5 text-sm font-medium text-slate-300 shadow-sm hover:bg-white/10 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:shadow-sm transition-all duration-200 ease-out"
+                whileTap={{ scale: 0.98 }}
+              >
+                Reset
+              </motion.button>
+              <div className="mt-3 flex items-center gap-3">
+                <a
+                  href="/tools/roofing/saved"
+                  className="text-xs font-semibold text-white/60 hover:text-white"
+                >
+                  View Saved Estimates
+                </a>
+              </div>
+              {zipClearedToast && (
+                <motion.span
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="text-sm font-medium text-slate-400"
+                  role="status"
+                >
+                  Cleared defaults for {jobZip}
+                </motion.span>
+              )}
+            </div>
+            <div className="flex flex-wrap items-start gap-3 pt-2">
+              <label className="inline-flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={saveAsZipDefaults}
+                  onChange={(e) => setSaveAsZipDefaults(e.target.checked)}
+                  className="rounded border-white/20 bg-white/10 text-blue-500 focus:ring-blue-500/50"
+                />
+                <span className="text-sm font-medium text-slate-300">Save as ZIP defaults</span>
+              </label>
+              <p className="text-xs text-slate-500">Updates future autofill for this ZIP</p>
+            </div>
+
+            {/* Send estimate banner */}
+            {(isSending || sendSuccess || sendEstimateError) && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={`mb-4 rounded-2xl border px-4 py-3 flex items-center gap-3 ${
+                  sendEstimateError
+                    ? "border-red-400/30 bg-red-500/15 text-red-200"
+                    : sendSuccess
+                      ? "border-emerald-400/30 bg-emerald-500/15 text-emerald-200"
+                      : "border-blue-400/30 bg-blue-500/15 text-blue-200"
+                }`}
+              >
+                {isSending && (
+                  <>
+                    <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden />
+                    <span className="text-sm font-medium">Sending estimate...</span>
+                  </>
+                )}
+                {sendSuccess && !isSending && (
+                  <span className="text-sm font-medium">Estimate Sent ✅</span>
+                )}
+                {sendEstimateError && !isSending && (
+                  <span className="text-sm font-medium">{sendEstimateError}</span>
+                )}
+              </motion.div>
+            )}
+
+            {/* Estimate Review (unified, non-blocking) — hidden when empty */}
+            {estimateReviewItems.length > 0 && (
+              <div className="mt-4 rounded-2xl bg-white/[0.03] p-4 sm:p-5">
+                <div className="text-sm font-semibold text-white/90">Estimate Review</div>
+                <div className="mt-0.5 text-[11px] text-white/50">
+                  Quiet checks to catch common mistakes — never blocks sending.
+                </div>
+                <div className="mt-3 flex flex-col gap-1.5">
+                  {estimateReviewItems.map((it, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <span
+                        className={
+                          it.tone === "headsUp"
+                            ? "rounded-full bg-yellow-500/15 px-2 py-0.5 text-[11px] font-semibold text-yellow-100"
+                            : "rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-semibold text-white/70"
+                        }
+                      >
+                        {it.tone === "headsUp" ? "Heads-up" : "FYI"}
+                      </span>
+                      <span className="text-[12px] text-white/75">{it.text}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            </div>
+          </motion.section>
+
+          {/* Sticky contractor outcome panel */}
+          <div className="w-full min-w-0 lg:justify-self-end lg:w-[390px] xl:w-[400px]">
+            <div className="sticky top-6 space-y-4">
+
+              {/* HEADER */}
+              <div className="rounded-[28px] border border-white/[0.11] bg-white/[0.056] p-6 sm:p-7 shadow-[0_22px_50px_-28px_rgba(0,0,0,0.52),inset_0_1px_0_rgba(255,255,255,0.056)] ring-1 ring-white/[0.05]">
+                <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-white/40">
+                  Estimate outcome
+                </div>
+                <p className="mt-2 text-sm text-white/60">
+                  See how your inputs shape the final price
+                </p>
+
+                {/* HERO PRICE */}
+                <div className="mt-6">
+                  <div className="text-[11px] uppercase tracking-[0.14em] text-white/40">
+                    Customer price
+                  </div>
+                  <div className="mt-2 text-3xl font-semibold tracking-tight text-white tabular-nums">
+                    {animatedPriceDisplay}
+                  </div>
+                </div>
+              </div>
+
+              {/* PROFIT VISUAL (DONUT) */}
+              <div className="rounded-[28px] border border-white/[0.11] bg-white/[0.051] p-6 sm:p-7 shadow-[0_20px_48px_-28px_rgba(0,0,0,0.52),inset_0_1px_0_rgba(255,255,255,0.053)] ring-1 ring-white/[0.045]">
+
+                <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-white/40">
+                  Profit breakdown
+                </div>
+
+                {finalShowDash || !Number(finalPrice) ? (
+                  <div className="mt-5 rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-5 text-sm text-white/45">
+                    Enter materials and labor to see your pricing come together.
+                  </div>
+                ) : (
+                  <>
+                    {(() => {
+                      const total = Number(finalPrice) || 0;
+                      const cost = Number(subtotal) || 0;
+                      const profit = Math.max(0, total - cost);
+
+                      const costPct = total > 0 ? cost / total : 0;
+                      const profitPct = total > 0 ? profit / total : 0;
+
+                      const radius = 42;
+                      const circumference = 2 * Math.PI * radius;
+
+                      const costStroke = circumference * costPct;
+                      const profitStroke = circumference * profitPct;
+
+                      return (
+                        <>
+                          <div className="mt-6 flex items-center justify-center">
+                            <div className="relative h-40 w-40">
+                              <svg className="h-full w-full -rotate-90" viewBox="0 0 100 100">
+                                <circle
+                                  cx="50"
+                                  cy="50"
+                                  r={radius}
+                                  stroke="rgba(148,163,184,0.18)"
+                                  strokeWidth="8"
+                                  fill="transparent"
+                                />
+                                <circle
+                                  cx="50"
+                                  cy="50"
+                                  r={radius}
+                                  stroke="rgba(148,163,184,0.50)"
+                                  strokeWidth="8"
+                                  fill="transparent"
+                                  strokeDasharray={`${costStroke} ${circumference}`}
+                                  strokeLinecap="round"
+                                />
+                                <circle
+                                  cx="50"
+                                  cy="50"
+                                  r={radius}
+                                  stroke="rgba(16,185,129,0.98)"
+                                  strokeWidth="8"
+                                  fill="transparent"
+                                  strokeDasharray={`${profitStroke} ${circumference}`}
+                                  strokeDashoffset={-costStroke}
+                                  strokeLinecap="round"
+                                />
+                              </svg>
+
+                              <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                                <div className="text-[10px] uppercase tracking-[0.12em] text-white/40">
+                                  Profit
+                                </div>
+                                <div className="mt-1 text-xl font-semibold text-emerald-300 tabular-nums">
+                                  {formatCurrency(profit)}
+                                </div>
+                                <div className="mt-1 text-[11px] text-white/45">
+                                  on {formatCurrency(total)} total
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="mt-4 text-center">
+                            <div className="text-[11px] text-white/45">
+                              Profit is distributed across your materials, labor, and disposal.
+                            </div>
+                          </div>
+
+                          <div className="mt-6 grid grid-cols-3 gap-3 text-center">
+                            <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] px-3 py-3">
+                              <div className="text-[10px] uppercase tracking-[0.12em] text-white/40">
+                                Job cost
+                              </div>
+                              <div className="mt-1 text-sm font-semibold text-white/85 tabular-nums">
+                                {formatCurrency(cost)}
+                              </div>
+                            </div>
+
+                            <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.08] px-3 py-3">
+                              <div className="text-[10px] uppercase tracking-[0.12em] text-emerald-200/70">
+                                Profit
+                              </div>
+                              <div className="mt-1 text-sm font-semibold text-emerald-300 tabular-nums">
+                                {formatCurrency(profit)}
+                              </div>
+                            </div>
+
+                            <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] px-3 py-3">
+                              <div className="text-[10px] uppercase tracking-[0.12em] text-white/40">
+                                Margin
+                              </div>
+                              <div className="mt-1 text-sm font-semibold text-white tabular-nums">
+                                {pricingMode === "direct"
+                                  ? "—"
+                                  : `${Math.round(finalMarginNum)}%`}
+                              </div>
+                            </div>
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </>
+                )}
+              </div>
+
+              {/* COST BREAKDOWN */}
+              <div className="rounded-[28px] border border-white/[0.1] bg-white/[0.047] p-6 sm:p-7 shadow-[0_18px_42px_-26px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.047)] ring-1 ring-white/[0.04]">
+                <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-white/40">
+                  Cost breakdown
+                </div>
+
+                <div className="mt-4 space-y-3">
+
+                  <div className="flex items-center justify-between rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
+                    <div className="text-sm text-white/70">Materials</div>
+                    <div className="text-sm font-medium text-white tabular-nums">
+                      {formatCurrency(materialsCost)}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
+                    <div className="text-sm text-white/70">Labor</div>
+                    <div className="text-sm font-medium text-white tabular-nums">
+                      {formatCurrency(laborCostEffective)}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
+                    <div className="text-sm text-white/70">Disposal</div>
+                    <div className="text-sm font-medium text-white tabular-nums">
+                      {formatCurrency(effectiveDebrisRemovalCost)}
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+              {/* PRICING POSITION */}
+              <div className="rounded-[28px] border border-white/[0.1] bg-white/[0.047] p-6 sm:p-7 shadow-[0_18px_42px_-26px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.047)] ring-1 ring-white/[0.04]">
+                <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-white/40">
+                  Pricing position
+                </div>
+
+                <div className="mt-3 text-sm text-white/75">
+                  {pricingMode === "direct"
+                    ? "Direct pricing — based on your entered totals"
+                    : finalMarginNum < 15
+                      ? "Aggressive pricing"
+                      : finalMarginNum < 25
+                        ? "Balanced pricing"
+                        : "High-margin positioning"}
+                </div>
+              </div>
+
+            </div>
+          </div>
+            </div>
+          </div>
+        </div>
+      </div>

@@ -40,6 +40,7 @@ import {
 import { sendEstimateEmailWithPdf } from "@/app/lib/sendEstimateClient";
 import { getFavorite, setFavorite, setLocked, appendFeedback, getTierFeedbackBias, type TierLabel } from "@/app/lib/aiWordingPrefs";
 import RoofingTabs from "@/app/tools/roofing/RoofingTabs";
+import RoofingClientV2 from "../roofing-v2/RoofingClientV2";
 import { loadCompanyVoiceProfile, saveCompanyVoiceProfile, type VoiceTone } from "@/app/lib/companyVoiceProfile";
 import { SignOutButton } from "@/app/components/auth/SignOutButton";
 
@@ -617,6 +618,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
   const [zipPresets, setZipPresets] = useState<ZipPresetsMap | null>(null);
   const [hasMounted, setHasMounted] = useState(false);
   const [restoreTick, setRestoreTick] = useState(0);
+  const [showV2Preview, setShowV2Preview] = useState(false);
   const loadAppliedRef = useRef(false);
   const isRestoringRef = useRef(false);
   const restoreTimerRef = useRef<number | null>(null);
@@ -1870,6 +1872,119 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
       jobCost,
     };
   }
+
+  const v2ViewModel = useMemo(() => {
+    const price = Number(finalPrice) || 0;
+    const jobCost = Number(subtotal) || 0;
+    const profit = Math.max(0, price - jobCost);
+    const margin =
+      pricingMode === "direct" || price <= 0
+        ? null
+        : profit / price;
+
+    const proposal = getProposalNumbers();
+
+    const scopeRoofSize = hasArea
+      ? `${adjustedSquares.toFixed(1)} squares · ${fmtNum(areaNum)} sq ft`
+      : "";
+    // TODO: replace with richer V1 display label when scope labeling is formalized (pitch UI vs guided walkability)
+    const scopePitchDisplay =
+      laborMode === "guided"
+        ? guidedWalkable === "walkable"
+          ? "Walkable"
+          : "Steep"
+        : pitch === "walkable"
+          ? "Walkable"
+          : pitch === "moderate"
+            ? "Moderate"
+            : "Steep";
+    // TODO: disposal/removal proxy from includeDebrisRemoval — not a formal tear-off scope label yet
+    const scopeTearOff = includeDebrisRemoval ? "Included" : "Not included";
+    // TODO: NOT a real material-system / product label — bundles/sq is the only explicit V1 material-density input today; replace when material labeling is formalized
+    const bundlesPerSqDisplay = (() => {
+      const raw = bundlesPerSquare.trim();
+      const n = parseFloat(raw);
+      const val = Number.isFinite(n) && n > 0 ? n : DEFAULTS.bundlesPerSquare;
+      return `${val} bundles/sq`;
+    })();
+    const scopeMaterial = bundlesPerSqDisplay;
+
+    return {
+      // CUSTOMER
+      customer: {
+        name: customerName,
+        email: customerEmail,
+        phone: customerPhone,
+      },
+
+      job: {
+        address1: jobAddress1,
+        city: jobCity,
+        state: jobState,
+        zip: jobZip,
+      },
+
+      scope: {
+        areaSqFtRaw: area,
+        roofSize: scopeRoofSize,
+        pitch: scopePitchDisplay,
+        tearOff: scopeTearOff,
+        material: scopeMaterial,
+      },
+
+      // CONTROL STATE
+      control: {
+        pricingMode,
+        tier: roofingTier,
+        laborMode,
+      },
+
+      // CONTRACTOR ECONOMICS
+      contractor: {
+        finalPrice: price,
+        jobCost,
+        profit,
+        margin,
+      },
+
+      // CUSTOMER-FACING (PDF ALIGNED)
+      proposal: {
+        price: proposal.price,
+        materials: proposal.materials,
+        labor: proposal.labor,
+        disposal: proposal.disposal,
+      },
+    };
+  }, [
+    finalPrice,
+    subtotal,
+    materialsCost,
+    laborCostEffective,
+    effectiveDebrisRemovalCost,
+    pricingMode,
+    marginNum,
+    roofingTier,
+    laborMode,
+    hasArea,
+    adjustedSquares,
+    area,
+    areaNum,
+    pitch,
+    guidedWalkable,
+    includeDebrisRemoval,
+    bundlesPerSquare,
+    customerName,
+    customerEmail,
+    customerPhone,
+    jobAddress1,
+    jobCity,
+    jobState,
+    jobZip,
+  ]);
+
+  useEffect(() => {
+    console.log("V2 VIEW MODEL", v2ViewModel);
+  }, [v2ViewModel]);
 
   const buildEmailTemplate = useCallback(
     (proposalSummary: string) => {
@@ -3405,6 +3520,37 @@ Thanks,`;
       )}
 
       <div className="relative mx-auto max-w-6xl">
+        <div className="mb-6 rounded-xl border border-dashed border-white/15 bg-white/[0.03] px-4 py-3 sm:px-5">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-wider text-amber-200/80">V2 Preview</div>
+              <p className="mt-0.5 text-[11px] text-white/45">Toggle the new estimator surface using live V1 data.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowV2Preview((v) => !v)}
+              className="shrink-0 rounded-lg border border-white/15 bg-white/[0.06] px-3 py-1.5 text-xs font-medium text-white/80 hover:bg-white/[0.1]"
+            >
+              {showV2Preview ? "Close V2 Preview" : "Open V2 Preview"}
+            </button>
+          </div>
+        </div>
+
+        {showV2Preview ? (
+          <RoofingClientV2
+            companyId={companyId ?? ""}
+            mode="embedded"
+            viewModel={v2ViewModel}
+            onPricingModeChange={setPricingMode}
+            onProposalTierChange={setRoofingTier}
+            onTearOffChange={setIncludeDebrisRemoval}
+            onMaterialDensityChange={setBundlesPerSquare}
+            onGuidedWalkabilityChange={setGuidedWalkable}
+            onPitchChange={setPitch}
+            onAreaChange={setArea}
+          />
+        ) : (
+          <>
         <div className="mb-9 sm:mb-11">
           <div className="mb-7 flex items-center justify-between gap-4">
             <motion.div
@@ -4720,6 +4866,8 @@ Thanks,`;
           </div>
         </div>
         </div>
+          </>
+        )}
       </div>
     </main>
   );
