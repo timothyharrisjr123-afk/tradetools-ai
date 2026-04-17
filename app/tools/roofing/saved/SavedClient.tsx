@@ -799,10 +799,11 @@ function formatCentsToCurrency(cents: number | undefined | null): string {
   return `$${withCommas}.${dec}`;
 }
 
-function toEstimateTotalCents(estimate: { totalContractPrice?: number; suggestedPrice?: number } | null | undefined): number {
+function toEstimateTotalCents(
+  estimate: { totalContractPrice?: number; suggestedPrice?: number } | null | undefined
+): number {
   const v = Number(estimate?.totalContractPrice ?? estimate?.suggestedPrice ?? 0);
-  if (!Number.isFinite(v)) return 0;
-  if (v >= 1000 && Number.isInteger(v)) return Math.round(v);
+  if (!Number.isFinite(v) || v <= 0) return 0;
   return Math.round(v * 100);
 }
 

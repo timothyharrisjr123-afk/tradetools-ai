@@ -49,6 +49,42 @@ export type RoofingClientV2Props = {
   onGuidedWalkabilityChange?: (value: "walkable" | "steep") => void;
   onPitchChange?: (value: "walkable" | "moderate" | "steep") => void;
   onAreaChange?: (value: string) => void;
+  customerName?: string;
+  customerEmail?: string;
+  customerPhone?: string;
+  jobAddress1?: string;
+  jobCity?: string;
+  jobState?: string;
+  jobZip?: string;
+  onCustomerNameChange?: (value: string) => void;
+  onCustomerEmailChange?: (value: string) => void;
+  onCustomerPhoneChange?: (value: string) => void;
+  onJobAddress1Change?: (value: string) => void;
+  onJobAddress1Blur?: (value: string) => void;
+  onJobCityChange?: (value: string) => void;
+  onJobCityBlur?: (value: string) => void;
+  onJobStateChange?: (value: string) => void;
+  onJobStateBlur?: (value: string) => void;
+  onJobZipChange?: (value: string) => void;
+  onJobZipBlur?: () => void;
+  onJobZipEnter?: () => void;
+  onPreviewProposal?: () => void;
+  onSaveEstimate?: () => void;
+  canSaveEstimate?: boolean;
+  isSavingEstimate?: boolean;
+  onSendEstimate?: () => void;
+  canSendEstimate?: boolean;
+  isSendingEstimate?: boolean;
+  wasteValue?: string;
+  onWasteChange?: (value: string) => void;
+  bundleCostValue?: string;
+  onBundleCostChange?: (value: string) => void;
+  dumpFeePerTonValue?: string;
+  onDumpFeePerTonChange?: (value: string) => void;
+  laborModeValue?: string;
+  manualLaborTotalValue?: string;
+  onManualLaborTotalChange?: (value: string) => void;
+  onManualLaborTotalBlur?: () => void;
 };
 
 const presets = {
@@ -94,12 +130,6 @@ function tierToProposalTier(t: "standard" | "enhanced" | "premium"): "core" | "e
   return t === "standard" ? "core" : t === "enhanced" ? "enhanced" : "premium";
 }
 
-function laborModeLabel(mode: string): string {
-  if (mode === "guided") return "Per-square (guided)";
-  if (mode === "manual") return "Manual labor total";
-  return mode || "—";
-}
-
 export default function RoofingClientV2({
   companyId = "",
   mode = "standalone",
@@ -111,10 +141,47 @@ export default function RoofingClientV2({
   onGuidedWalkabilityChange,
   onPitchChange,
   onAreaChange,
+  customerName,
+  customerEmail,
+  customerPhone,
+  jobAddress1,
+  jobCity,
+  jobState,
+  jobZip,
+  onCustomerNameChange,
+  onCustomerEmailChange,
+  onCustomerPhoneChange,
+  onJobAddress1Change,
+  onJobAddress1Blur,
+  onJobCityChange,
+  onJobCityBlur,
+  onJobStateChange,
+  onJobStateBlur,
+  onJobZipChange,
+  onJobZipBlur,
+  onJobZipEnter,
+  onPreviewProposal,
+  onSaveEstimate,
+  canSaveEstimate,
+  isSavingEstimate,
+  onSendEstimate,
+  canSendEstimate,
+  isSendingEstimate,
+  wasteValue,
+  onWasteChange,
+  bundleCostValue,
+  onBundleCostChange,
+  dumpFeePerTonValue,
+  onDumpFeePerTonChange,
+  laborModeValue: _laborModeValue,
+  manualLaborTotalValue,
+  onManualLaborTotalChange,
+  onManualLaborTotalBlur,
 }: RoofingClientV2Props) {
   const isEmbedded = mode === "embedded";
   const hasLive = viewModel != null;
   const isLive = hasLive;
+  const intakeEditable = isLive;
   const controlPermissions = {
     pricingMode: isLive && typeof onPricingModeChange === "function",
     proposalTier: isLive && typeof onProposalTierChange === "function",
@@ -124,7 +191,7 @@ export default function RoofingClientV2({
       (typeof onGuidedWalkabilityChange === "function" || typeof onPitchChange === "function"),
     scopeTearOff: isLive && typeof onTearOffChange === "function",
     scopeMaterial: isLive && typeof onMaterialDensityChange === "function",
-    intake: false,
+    intake: intakeEditable,
   };
   const anyScopeControlLive =
     controlPermissions.scopeRoofSize ||
@@ -136,7 +203,7 @@ export default function RoofingClientV2({
   const [pricingMode, setPricingMode] = useState<"markup" | "direct">("markup");
   const [proposalTier, setProposalTier] = useState<"core" | "enhanced" | "premium">("enhanced");
   const [scopePreset, setScopePreset] = useState<"standard" | "larger" | "complex">("standard");
-  const [intakeReady, setIntakeReady] = useState(true);
+  const [activeScopeEditor, setActiveScopeEditor] = useState<null | "roofSize">(null);
 
   function money(v: number) {
     return "$" + v.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
@@ -147,6 +214,9 @@ export default function RoofingClientV2({
   }
 
   const data = presets[scopePreset];
+
+  const mockDealLaborAmount =
+    scopePreset === "standard" ? 3150 : scopePreset === "larger" ? 4020 : 3780;
 
   const mockFinalPrice =
     pricingMode === "markup"
@@ -213,17 +283,25 @@ export default function RoofingClientV2({
     ? coalesceScopeField(scopeLive.material, scopeDisp.material)
     : scopeDisp.material;
 
-  const getLiveAreaSqFt = () => {
-    const raw = viewModel?.scope.areaSqFtRaw?.trim() ?? "";
-    const parsed = parseFloat(raw);
-    return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+  const roofSizeCanAdjust = controlPermissions.scopeRoofSize;
+
+  /** Numeric sq ft for Roof Size stepping from raw area state only. */
+  const getCurrentRoofAreaSqFtForStepper = (): number => {
+    const rawStr = (viewModel?.scope.areaSqFtRaw ?? "").trim().replace(/,/g, "");
+    const n = Number.parseFloat(rawStr);
+    return Number.isFinite(n) && n >= 0 ? Math.round(n) : 0;
   };
 
-  const getNextAreaValue = (direction: "down" | "up") => {
-    const current = getLiveAreaSqFt();
-    const delta = 100;
-    const next = direction === "up" ? current + delta : Math.max(0, current - delta);
-    return String(Math.round(next));
+  const handleRoofSizeIncrease = () => {
+    if (!roofSizeCanAdjust) return;
+    const next = getCurrentRoofAreaSqFtForStepper() + 100;
+    onAreaChange?.(String(next));
+  };
+
+  const handleRoofSizeDecrease = () => {
+    if (!roofSizeCanAdjust) return;
+    const next = Math.max(0, getCurrentRoofAreaSqFtForStepper() - 100);
+    onAreaChange?.(String(next));
   };
 
   const materialDensityPresets = [
@@ -232,12 +310,21 @@ export default function RoofingClientV2({
     { value: "4", label: "4 bundles/sq" },
   ] as const;
   const getNextMaterialDensityValue = (currentDisplay: string) => {
-    const normalized = currentDisplay.toLowerCase();
-    const currentIndex = materialDensityPresets.findIndex((p) =>
-      normalized.startsWith(p.value)
-    );
+    const normalized = currentDisplay.toLowerCase().trim();
+    const parsed = Number.parseFloat(normalized);
+    const currentIndex = materialDensityPresets.findIndex((p) => {
+      const presetNum = Number.parseFloat(p.value);
+      return Number.isFinite(parsed) && Number.isFinite(presetNum) && parsed === presetNum;
+    });
     if (currentIndex === -1) return materialDensityPresets[0].value;
     return materialDensityPresets[(currentIndex + 1) % materialDensityPresets.length].value;
+  };
+  const getMaterialCoverageLabel = (currentDisplay: string) => {
+    const parsed = Number.parseFloat(currentDisplay.trim().toLowerCase());
+    if (!Number.isFinite(parsed)) return "Standard roof";
+    if (parsed >= 4) return "High waste roof";
+    if (parsed >= 3.5) return "Complex roof";
+    return "Standard roof";
   };
   const pitchDisplayCycle = ["Walkable", "Moderate", "Steep"] as const;
   const getNextPitchDisplayValue = (currentDisplay: string) => {
@@ -248,8 +335,6 @@ export default function RoofingClientV2({
     if (currentIndex === -1) return pitchDisplayCycle[0];
     return pitchDisplayCycle[(currentIndex + 1) % pitchDisplayCycle.length];
   };
-  const mapPitchDisplayToGuidedWalkable = (display: string): "walkable" | "steep" =>
-    display.toLowerCase() === "walkable" ? "walkable" : "steep";
   const mapPitchDisplayToPitchKey = (
     display: string
   ): "walkable" | "moderate" | "steep" => {
@@ -258,7 +343,8 @@ export default function RoofingClientV2({
     if (normalized === "moderate") return "moderate";
     return "steep";
   };
-  const tearOffIsIncluded = effectiveScopeTearOff.toLowerCase().includes("included");
+  const tearOffIsIncluded =
+    effectiveScopeTearOff.toLowerCase().trim() === "included";
   const outcomeScopeSummary = `${effectiveScopeRoofSize} · ${effectiveScopePitch} · ${effectiveScopeMaterial}`;
 
   const outcomeCustomerName = hasLive
@@ -311,6 +397,37 @@ export default function RoofingClientV2({
         { label: "Project type", value: "Full roof replacement" },
       ];
 
+  const intakeReady =
+    intakeEditable
+      ? Boolean((customerName ?? "").trim()) &&
+        Boolean((customerEmail ?? "").trim()) &&
+        Boolean((jobZip ?? "").trim())
+      : hasLive
+        ? Boolean((viewModel!.customer.name ?? "").trim()) &&
+          Boolean((viewModel!.customer.email ?? "").trim()) &&
+          Boolean((viewModel!.job.zip ?? "").trim())
+        : true;
+
+  const canUseSaveEstimate =
+    typeof onSaveEstimate === "function" && canSaveEstimate === true && !isSavingEstimate;
+
+  const canUseSendEstimate =
+    typeof onSendEstimate === "function" && canSendEstimate === true && !isSendingEstimate;
+
+  const canEditBundleCost = typeof onBundleCostChange === "function";
+
+  const canEditDumpFee = typeof onDumpFeePerTonChange === "function";
+
+  const laborModeIsManual = true;
+
+  const canEditManualLaborTotal = typeof onManualLaborTotalChange === "function";
+
+  const intakeFieldInputClass =
+    "w-full rounded-xl border border-white/[0.10] bg-black/20 px-3 py-2.5 text-sm text-white/95 placeholder:text-white/28 focus:border-cyan-400/35 focus:outline-none focus:ring-1 focus:ring-cyan-500/25";
+
+  const pricingFieldInputClass =
+    "w-full rounded-lg border border-white/[0.10] bg-black/20 px-2.5 py-2 text-sm text-white/95 placeholder:text-white/28 focus:border-cyan-400/35 focus:outline-none focus:ring-1 focus:ring-cyan-500/25";
+
   const mainStyle = isEmbedded
     ? { backgroundColor: "#101820" as const }
     : {
@@ -350,13 +467,13 @@ export default function RoofingClientV2({
           <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0 flex-1">
               <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-cyan-200/70">
-                Roofing V2 Preview
+                Roofing V2 Workflow
               </p>
               <h1 className="mt-2 text-2xl font-bold tracking-tight text-white sm:text-3xl">
                 Build the deal
               </h1>
               <p className="mt-2 max-w-xl text-sm leading-relaxed text-white/55">
-                A cleaner, contractor-first estimator surface designed before logic wiring.
+                A contractor-first workflow surface connected to the live estimator engine.
               </p>
               {/* Segmented preview rail */}
               <div
@@ -364,7 +481,7 @@ export default function RoofingClientV2({
                 role="list"
                 aria-label="Build flow preview"
               >
-                {["Job context", "Scope", "Price posture", "Proposal flow"].map((label) => (
+                {["Intake", "Scope", "Outcome", "Delivery"].map((label) => (
                   <span
                     key={label}
                     role="listitem"
@@ -394,55 +511,178 @@ export default function RoofingClientV2({
               <div className="min-w-0">
                 <h2 className="text-base font-semibold tracking-tight text-white">Job intake</h2>
                 <p className="mt-1 max-w-md text-xs leading-relaxed text-white/45">
-                  Start the deal with customer and property details before pricing.
+                  Start with the customer and property information needed before pricing.
                 </p>
               </div>
               <div className="flex shrink-0 flex-col items-end gap-1 text-right">
-                <button
-                  type="button"
-                  disabled={!controlPermissions.intake}
-                  onClick={() => setIntakeReady((v) => !v)}
+                <div
+                  role="status"
                   className={
-                    "rounded-full border border-emerald-400/28 bg-emerald-500/[0.12] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-100/95" +
-                    (!controlPermissions.intake ? " cursor-not-allowed opacity-45" : "")
+                    "rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide " +
+                    (intakeReady
+                      ? "border-emerald-400/28 bg-emerald-500/[0.12] text-emerald-100/95"
+                      : "border-amber-400/30 bg-amber-500/[0.12] text-amber-100/90")
                   }
                 >
                   {intakeReady ? "Ready to price" : "Missing details"}
-                </button>
+                </div>
                 <span className="text-[10px] leading-snug text-white/45">
                   {intakeReady ? "All required details present" : "Complete intake to unlock full pricing"}
                 </span>
               </div>
             </div>
             <div className="mt-4 grid grid-cols-1 gap-5 sm:gap-6 lg:grid-cols-2 lg:gap-8">
-              <div className="min-w-0">
-                <h3 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/38">Customer details</h3>
-                <div className="mt-2.5 flex flex-col gap-2">
-                  {customerFields.map((field) => (
-                    <div
-                      key={field.label}
-                      className="rounded-xl border border-white/[0.09] bg-white/[0.04] px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
-                    >
-                      <div className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/40">{field.label}</div>
-                      <div className="mt-1 truncate text-sm font-semibold tracking-tight text-white">{field.value}</div>
+              {intakeEditable ? (
+                <>
+                  <div className="min-w-0">
+                    <h3 className="text-[9px] font-medium uppercase tracking-[0.18em] text-white/28">Customer</h3>
+                    <div className="mt-2.5 flex flex-col gap-2.5">
+                      <div className="space-y-1">
+                        <label htmlFor="v2-intake-customer-name" className="block text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
+                          Name
+                        </label>
+                        <input
+                          id="v2-intake-customer-name"
+                          type="text"
+                          autoComplete="off"
+                          value={customerName ?? ""}
+                          onChange={(e) => onCustomerNameChange?.(e.target.value)}
+                          className={intakeFieldInputClass}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label htmlFor="v2-intake-customer-email" className="block text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
+                          Email
+                        </label>
+                        <input
+                          id="v2-intake-customer-email"
+                          type="email"
+                          inputMode="email"
+                          autoComplete="off"
+                          value={customerEmail ?? ""}
+                          onChange={(e) => onCustomerEmailChange?.(e.target.value)}
+                          className={intakeFieldInputClass}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label htmlFor="v2-intake-customer-phone" className="block text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
+                          Phone
+                        </label>
+                        <input
+                          id="v2-intake-customer-phone"
+                          type="tel"
+                          inputMode="tel"
+                          autoComplete="off"
+                          value={customerPhone ?? ""}
+                          onChange={(e) => onCustomerPhoneChange?.(e.target.value)}
+                          className={intakeFieldInputClass}
+                        />
+                      </div>
                     </div>
-                  ))}
-                </div>
-              </div>
-              <div className="min-w-0">
-                <h3 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/38">Job details</h3>
-                <div className="mt-2.5 flex flex-col gap-2">
-                  {jobFields.map((field) => (
-                    <div
-                      key={field.label}
-                      className="rounded-xl border border-white/[0.09] bg-white/[0.04] px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
-                    >
-                      <div className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/40">{field.label}</div>
-                      <div className="mt-1 truncate text-sm font-semibold tracking-tight text-white">{field.value}</div>
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="text-[9px] font-medium uppercase tracking-[0.18em] text-white/28">Property</h3>
+                    <div className="mt-2.5 flex flex-col gap-2.5">
+                      <div className="space-y-1">
+                        <label htmlFor="v2-intake-job-address" className="block text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
+                          Address
+                        </label>
+                        <input
+                          id="v2-intake-job-address"
+                          type="text"
+                          autoComplete="off"
+                          value={jobAddress1 ?? ""}
+                          onChange={(e) => onJobAddress1Change?.(e.target.value)}
+                          onBlur={(e) => onJobAddress1Blur?.(e.target.value)}
+                          className={intakeFieldInputClass}
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+                        <div className="space-y-1">
+                          <label htmlFor="v2-intake-job-city" className="block text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
+                            City
+                          </label>
+                          <input
+                            id="v2-intake-job-city"
+                            type="text"
+                            autoComplete="off"
+                            value={jobCity ?? ""}
+                            onChange={(e) => onJobCityChange?.(e.target.value)}
+                            onBlur={(e) => onJobCityBlur?.(e.target.value)}
+                            className={intakeFieldInputClass}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label htmlFor="v2-intake-job-state" className="block text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
+                            State
+                          </label>
+                          <input
+                            id="v2-intake-job-state"
+                            type="text"
+                            autoComplete="off"
+                            value={jobState ?? ""}
+                            onChange={(e) => onJobStateChange?.(e.target.value)}
+                            onBlur={(e) => onJobStateBlur?.(e.target.value)}
+                            className={intakeFieldInputClass}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label htmlFor="v2-intake-job-zip" className="block text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
+                            ZIP
+                          </label>
+                          <input
+                            id="v2-intake-job-zip"
+                            type="text"
+                            inputMode="numeric"
+                            autoComplete="postal-code"
+                            value={jobZip ?? ""}
+                            onChange={(e) => onJobZipChange?.(e.target.value)}
+                            onBlur={() => onJobZipBlur?.()}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                onJobZipEnter?.();
+                              }
+                            }}
+                            className={intakeFieldInputClass}
+                          />
+                        </div>
+                      </div>
                     </div>
-                  ))}
-                </div>
-              </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="min-w-0">
+                    <h3 className="text-[9px] font-medium uppercase tracking-[0.18em] text-white/28">Customer details</h3>
+                    <div className="mt-2.5 flex flex-col gap-2">
+                      {customerFields.map((field) => (
+                        <div
+                          key={field.label}
+                          className="rounded-xl border border-white/[0.09] bg-white/[0.04] px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
+                        >
+                          <div className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/40">{field.label}</div>
+                          <div className="mt-1 truncate text-sm font-semibold tracking-tight text-white">{field.value}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="text-[9px] font-medium uppercase tracking-[0.18em] text-white/28">Job details</h3>
+                    <div className="mt-2.5 flex flex-col gap-2">
+                      {jobFields.map((field) => (
+                        <div
+                          key={field.label}
+                          className="rounded-xl border border-white/[0.09] bg-white/[0.04] px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
+                        >
+                          <div className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/40">{field.label}</div>
+                          <div className="mt-1 truncate text-sm font-semibold tracking-tight text-white">{field.value}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
             <p className="mt-3 text-[10px] leading-snug text-white/38">
               {intakeReady
@@ -521,9 +761,9 @@ export default function RoofingClientV2({
                 </div>
                 <div className="flex items-start justify-between gap-3 px-3.5 py-2.5">
                   <div className="min-w-0">
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/38">Labor mode</div>
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/38">Manual labor total</div>
                     <div className="mt-0.5 text-[15px] font-semibold leading-snug tracking-tight text-white">
-                      {hasLive ? laborModeLabel(viewModel!.control.laborMode) : "Per-square install"}
+                      {hasLive ? money(viewModel!.proposal.labor) : money(mockDealLaborAmount)}
                     </div>
                   </div>
                   <span className="shrink-0 rounded-full border border-white/[0.08] bg-white/[0.04] px-2.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.16em] text-white/42">
@@ -606,13 +846,7 @@ export default function RoofingClientV2({
               </div>
             </div>
             <p className="mt-2 text-[10px] leading-snug text-white/42">
-              {controlPermissions.pricingMode && controlPermissions.proposalTier
-                ? "Pricing mode and proposal tier are live here — other controls still update from the calculator below"
-                : controlPermissions.pricingMode
-                  ? "Pricing mode is live here — other controls still update from the calculator below"
-                  : isLive
-                    ? "Controlled by live estimate — edit below to change values"
-                    : "Preview-only controls — pricing is driven by the calculator below"}
+              Pricing mode and proposal controls are live here in the embedded workflow.
             </p>
             <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-white/[0.07] bg-white/[0.04] px-3 py-2 text-xs">
               <span className="font-medium text-white/50">Current posture</span>
@@ -633,9 +867,7 @@ export default function RoofingClientV2({
               <h2 className="text-lg font-semibold tracking-tight text-white">Scope builder</h2>
               <p className="mt-1 text-xs text-white/48">Decisions first, inputs second.</p>
               <p className="mt-1 text-[10px] text-white/38">
-                {!anyScopeControlLive
-                  ? "Scope is currently driven by the estimator below."
-                  : "Some scope controls are live here — others still follow the estimator below."}
+                Core scope decisions are live here in the embedded workflow.
               </p>
             </div>
             <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 sm:gap-4">
@@ -650,7 +882,7 @@ export default function RoofingClientV2({
                   },
                   {
                     id: "pitch" as const,
-                    title: "Pitch & difficulty",
+                    title: "Roof difficulty",
                     value: effectiveScopePitch,
                     helper: "Affects labor posture",
                     isTileLive: controlPermissions.scopePitch,
@@ -664,7 +896,7 @@ export default function RoofingClientV2({
                   },
                   {
                     id: "material" as const,
-                    title: "Material system",
+                    title: "Material coverage",
                     value: effectiveScopeMaterial,
                     helper: "Primary install package",
                     isTileLive: controlPermissions.scopeMaterial,
@@ -691,16 +923,101 @@ export default function RoofingClientV2({
                             : false
                           : isLive;
                 const tileInteractive = !disabled;
+
+                if (tile.id === "roofSize" && tile.isTileLive) {
+                  const roofLiveOuterClass =
+                    "group flex flex-col rounded-2xl border border-white/[0.10] bg-white/[0.04] p-5 text-left transition duration-200" +
+                    (disabled
+                      ? " cursor-not-allowed opacity-60"
+                      : " hover:-translate-y-0.5 hover:border-white/[0.20] hover:bg-white/[0.09] hover:shadow-[0_16px_40px_-14px_rgba(0,0,0,0.45)] active:scale-[0.97]");
+                  return (
+                    <div key={tile.id} className={roofLiveOuterClass}>
+                      <button
+                        type="button"
+                        disabled={disabled}
+                        aria-expanded={activeScopeEditor === "roofSize"}
+                        onClick={() =>
+                          setActiveScopeEditor((prev) => (prev === "roofSize" ? null : "roofSize"))
+                        }
+                        className={
+                          "flex w-full flex-col rounded-lg text-left outline-none transition focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" +
+                          (disabled ? " cursor-not-allowed" : "")
+                        }
+                      >
+                        <span
+                          className={
+                            "text-[9px] font-semibold uppercase tracking-[0.18em] text-white/35" +
+                            (tileInteractive ? " group-hover:text-white/45" : "")
+                          }
+                        >
+                          Decision
+                        </span>
+                        <span
+                          className={
+                            "mt-1.5 text-[11px] font-medium uppercase tracking-[0.1em] text-white/45" +
+                            (tileInteractive ? " group-hover:text-white/55" : "")
+                          }
+                        >
+                          {tile.title}
+                        </span>
+                        <span className="mt-2.5 text-xl font-bold tracking-tight text-white sm:text-[1.3rem]">
+                          {tile.value}
+                        </span>
+                        <span className="mt-1 text-[11px] tabular-nums text-white/45">
+                          {getCurrentRoofAreaSqFtForStepper().toLocaleString()} sq ft
+                        </span>
+                      </button>
+                      {activeScopeEditor === "roofSize" && roofSizeCanAdjust ? (
+                        <div className="mt-3 rounded-xl border border-white/[0.10] bg-white/[0.05] px-2 py-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <button
+                              type="button"
+                              aria-label="Decrease roof size by 100 sq ft"
+                              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/[0.12] bg-white/[0.06] text-sm font-semibold text-white/80 transition hover:border-white/[0.18] hover:bg-white/[0.10] active:scale-95"
+                              onClick={handleRoofSizeDecrease}
+                            >
+                              −
+                            </button>
+                            <span className="min-w-0 flex-1 text-center text-[13px] font-semibold tabular-nums tracking-tight text-white/90">
+                              {getCurrentRoofAreaSqFtForStepper().toLocaleString()} sq ft
+                            </span>
+                            <button
+                              type="button"
+                              aria-label="Increase roof size by 100 sq ft"
+                              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/[0.12] bg-white/[0.06] text-sm font-semibold text-white/80 transition hover:border-white/[0.18] hover:bg-white/[0.10] active:scale-95"
+                              onClick={handleRoofSizeIncrease}
+                            >
+                              +
+                            </button>
+                          </div>
+                          <p className="mt-1.5 text-center text-[9px] font-medium uppercase tracking-[0.14em] text-white/38">
+                            Fine adjust
+                          </p>
+                        </div>
+                      ) : null}
+                      <div className="mt-4 flex items-center justify-between gap-3 border-t border-white/[0.07] pt-3">
+                        <span className="text-left text-[11px] leading-snug text-white/42">{tile.helper}</span>
+                        <span
+                          className={
+                            "shrink-0 rounded-full border border-white/[0.10] bg-white/[0.06] px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/55" +
+                            (tileInteractive
+                              ? " group-hover:border-white/[0.14] group-hover:bg-white/[0.10] group-hover:text-white/70"
+                              : "")
+                          }
+                        >
+                          {activeScopeEditor === "roofSize" ? "Tap to close" : "Fine adjust"}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                }
+
                 return (
                   <button
                     key={tile.id}
                     type="button"
                     disabled={disabled}
                     onClick={() => {
-                      if (tile.id === "roofSize" && controlPermissions.scopeRoofSize) {
-                        onAreaChange?.(getNextAreaValue("up"));
-                        return;
-                      }
                       if (tile.id === "material" && controlPermissions.scopeMaterial) {
                         onMaterialDensityChange?.(getNextMaterialDensityValue(effectiveScopeMaterial));
                         return;
@@ -710,17 +1027,7 @@ export default function RoofingClientV2({
                         return;
                       }
                       if (tile.id === "pitch" && controlPermissions.scopePitch) {
-                        let nextDisplay = getNextPitchDisplayValue(effectiveScopePitch);
-
-                        if (hasLive && viewModel?.control.laborMode === "guided" && nextDisplay === "Moderate") {
-                          nextDisplay = "Steep";
-                        }
-
-                        if (hasLive && viewModel?.control.laborMode === "guided") {
-                          onGuidedWalkabilityChange?.(mapPitchDisplayToGuidedWalkable(nextDisplay));
-                          return;
-                        }
-
+                        const nextDisplay = getNextPitchDisplayValue(effectiveScopePitch);
                         onPitchChange?.(mapPitchDisplayToPitchKey(nextDisplay));
                         return;
                       }
@@ -760,40 +1067,95 @@ export default function RoofingClientV2({
                     >
                       {tile.title}
                     </span>
-                    <span className="mt-2.5 text-xl font-bold tracking-tight text-white sm:text-[1.3rem]">
-                      {tile.value}
-                    </span>
+                    {tile.id === "material" ? (
+                      <>
+                        <span className="mt-2.5 text-xl font-bold tracking-tight text-white sm:text-[1.3rem]">
+                          {getMaterialCoverageLabel(effectiveScopeMaterial)}
+                        </span>
+                        <span className="mt-1 text-[11px] font-medium tabular-nums tracking-tight text-white/45 sm:text-xs">
+                          {effectiveScopeMaterial}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="mt-2.5 text-xl font-bold tracking-tight text-white sm:text-[1.3rem]">
+                        {tile.value}
+                      </span>
+                    )}
                     <div className="mt-4 flex items-center justify-between gap-3 border-t border-white/[0.07] pt-3">
                       <span className="text-left text-[11px] leading-snug text-white/42">{tile.helper}</span>
-                      {tile.id === "roofSize" && tile.isTileLive ? (
-                        <span
-                          className={
-                            "shrink-0 rounded-full border border-white/[0.10] bg-white/[0.06] px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/55" +
-                            (tileInteractive
-                              ? " group-hover:border-white/[0.14] group-hover:bg-white/[0.10] group-hover:text-white/70"
-                              : "")
-                          }
-                        >
-                          +100 sq ft
-                        </span>
-                      ) : (
-                        <span
-                          data-scope-adjust
-                          className={
-                            "shrink-0 rounded-full border border-white/[0.10] bg-white/[0.06] px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/55" +
-                            (tileInteractive
-                              ? " group-hover:border-white/[0.14] group-hover:bg-white/[0.10] group-hover:text-white/70"
-                              : "")
-                          }
-                        >
-                          Adjust
-                        </span>
-                      )}
+                      <span
+                        data-scope-adjust
+                        className={
+                          "shrink-0 rounded-full border border-white/[0.10] bg-white/[0.06] px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/55" +
+                          (tileInteractive
+                            ? " group-hover:border-white/[0.14] group-hover:bg-white/[0.10] group-hover:text-white/70"
+                            : "")
+                        }
+                      >
+                        Adjust
+                      </span>
                     </div>
                   </button>
                 );
               })}
             </div>
+            <p className="mt-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/38">
+              Pricing
+            </p>
+            <div className="mt-5 grid grid-cols-1 gap-3.5 sm:grid-cols-2 sm:gap-4">
+              <div className="rounded-2xl border border-white/[0.10] bg-white/[0.04] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+                <label htmlFor="v2-pricing-bundle" className="block text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
+                  Bundle cost
+                </label>
+                <div className="mt-1.5 flex items-center gap-2">
+                  <span className="shrink-0 text-sm font-medium text-white/50">$</span>
+                  <input
+                    id="v2-pricing-bundle"
+                    type="number"
+                    inputMode="decimal"
+                    disabled={!canEditBundleCost}
+                    value={bundleCostValue ?? ""}
+                    onChange={(e) => onBundleCostChange?.(e.target.value)}
+                    className={
+                      "min-w-0 flex-1 " + pricingFieldInputClass + " disabled:cursor-not-allowed disabled:opacity-45"
+                    }
+                  />
+                </div>
+              </div>
+              <div className="rounded-2xl border border-white/[0.10] bg-white/[0.04] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+                <label htmlFor="v2-pricing-labor-cost" className="block text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
+                  Labor cost
+                </label>
+                <input
+                  id="v2-pricing-labor-cost"
+                  type="text"
+                  inputMode="numeric"
+                  disabled={!canEditManualLaborTotal || !laborModeIsManual}
+                  value={manualLaborTotalValue ?? ""}
+                  onChange={(e) => onManualLaborTotalChange?.(e.target.value)}
+                  onBlur={() => onManualLaborTotalBlur?.()}
+                  className={"mt-1.5 " + pricingFieldInputClass + " disabled:cursor-not-allowed disabled:opacity-45"}
+                />
+                <p className="mt-1 text-[9px] leading-snug text-white/38">Manual labor input used for the V2 workflow.</p>
+              </div>
+            </div>
+            {tearOffIsIncluded ? (
+              <div className="mt-3.5 rounded-2xl border border-white/[0.10] bg-white/[0.04] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+                <label htmlFor="v2-pricing-dump" className="block text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
+                  Disposal rate
+                </label>
+                <input
+                  id="v2-pricing-dump"
+                  type="text"
+                  inputMode="decimal"
+                  disabled={!canEditDumpFee}
+                  value={dumpFeePerTonValue ?? ""}
+                  onChange={(e) => onDumpFeePerTonChange?.(e.target.value)}
+                  className={"mt-1.5 " + pricingFieldInputClass + " disabled:cursor-not-allowed disabled:opacity-45"}
+                />
+                <p className="mt-1 text-[9px] leading-snug text-white/38">Used only when tear-off is included.</p>
+              </div>
+            ) : null}
             <p className="mt-5 text-[10px] leading-snug text-white/42">
               These decisions shape labor difficulty, material cost, and how the final price is perceived.
             </p>
@@ -836,13 +1198,6 @@ export default function RoofingClientV2({
                     </span>
                     <span className="rounded-full border border-white/[0.12] bg-white/[0.05] px-2 py-0.5 text-[8px] font-semibold uppercase tracking-[0.16em] text-white/50">
                       {effectivePricingMode === "markup" ? "Markup" : "Direct"}
-                    </span>
-                    <span className="rounded-full border border-white/[0.12] bg-white/[0.05] px-2 py-0.5 text-[8px] font-semibold uppercase tracking-[0.16em] text-white/50">
-                      {effectiveProposalTier === "core"
-                        ? "Core"
-                        : effectiveProposalTier === "enhanced"
-                          ? "Enhanced"
-                          : "Premium"}
                     </span>
                   </div>
                   <span className="text-[2.4rem] font-bold tabular-nums tracking-tight text-white transition-all duration-200 ease-out sm:text-[2.6rem]">
@@ -968,8 +1323,11 @@ export default function RoofingClientV2({
                   </span>
                 </div>
                 <div className={"mt-2 " + proposalOutputClass}>
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-cyan-100/55">Homeowner proposal</span>
-                  <span className="text-right text-xs font-semibold leading-snug text-white">{proposalTierLabel}</span>
+                  <div className="min-w-0 flex-1">
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-cyan-100/55">Homeowner proposal</span>
+                    <p className="mt-0.5 text-[9px] leading-snug text-white/40">Proposal tier sets how this reads to homeowners.</p>
+                  </div>
+                  <span className="shrink-0 text-right text-xs font-semibold leading-snug text-white">{proposalTierLabel}</span>
                 </div>
                 <p className="mt-0.5 text-center text-[10px] leading-snug text-white/42">{proposalTierSupport}</p>
                 <p className="mt-0.5 text-center text-[10px] leading-snug text-white/38">
@@ -983,7 +1341,7 @@ export default function RoofingClientV2({
                       : "Ready for a premium proposal presentation with elevated perceived value."}
                 </p>
                 <p className="mt-1 text-center text-[10px] text-white/40">
-                  Scope and material choices support this pricing position.
+                  Scope and material choices support this proposal presentation.
                 </p>
                 <p className="mt-1 text-center text-[10px] leading-snug text-white/42">
                   {hasLive
@@ -993,13 +1351,7 @@ export default function RoofingClientV2({
               </div>
             </div>
             <p className="mt-2.5 text-center text-[11px] text-white/40">
-              {controlPermissions.pricingMode && controlPermissions.proposalTier
-                ? "Pricing mode and proposal tier are live here — other controls still update from the calculator below"
-                : controlPermissions.pricingMode
-                  ? "Pricing mode is live here — other controls still update from the calculator below"
-                  : isLive
-                    ? "Controlled by live estimate — edit below to change values"
-                    : "Preview-only controls — pricing is driven by the calculator below"}
+              Live preview of pricing posture and homeowner-facing proposal output.
             </p>
           </section>
 
@@ -1061,6 +1413,9 @@ export default function RoofingClientV2({
             <div className="mt-3 flex flex-col gap-1.5">
               <button
                 type="button"
+                onClick={() => {
+                  if (onPreviewProposal) onPreviewProposal();
+                }}
                 className="group w-full rounded-2xl border border-cyan-400/32 bg-gradient-to-b from-cyan-500/[0.14] to-cyan-600/[0.08] px-4 py-2.5 text-left shadow-[0_6px_22px_-8px_rgba(34,211,238,0.28)] transition duration-200 hover:-translate-y-0.5 hover:border-cyan-400/42 hover:from-cyan-500/[0.18] hover:shadow-[0_10px_28px_-8px_rgba(34,211,238,0.32)]"
               >
                 <span className="block text-sm font-semibold tracking-tight text-white">Preview proposal flow</span>
@@ -1071,24 +1426,33 @@ export default function RoofingClientV2({
               </button>
               <button
                 type="button"
-                className="group w-full rounded-2xl border border-white/[0.10] bg-white/[0.05] px-4 py-2.5 text-left transition duration-200 hover:-translate-y-0.5 hover:border-white/[0.16] hover:bg-white/[0.09] hover:shadow-[0_12px_28px_-10px_rgba(0,0,0,0.35)]"
+                disabled={!canUseSaveEstimate}
+                onClick={() => {
+                  if (canUseSaveEstimate) onSaveEstimate?.();
+                }}
+                className="group w-full rounded-2xl border border-white/[0.10] bg-white/[0.05] px-4 py-2.5 text-left transition duration-200 hover:-translate-y-0.5 hover:border-white/[0.16] hover:bg-white/[0.09] hover:shadow-[0_12px_28px_-10px_rgba(0,0,0,0.35)] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-45"
               >
                 <span className="block text-sm font-semibold text-white/92">
-                  {intakeReady ? "Review intake + scope" : "Complete intake + scope"}
+                  {isSavingEstimate ? "Saving..." : "Save estimate"}
                 </span>
                 <span className="mt-0.5 block text-xs leading-snug text-white/44 group-hover:text-white/52">
-                  {intakeReady
-                    ? "Make sure deal details and presentation feel ready to send."
-                    : "Complete missing details before trusting the send-ready experience."}
+                  Create a real estimate snapshot using the current intake, scope, and pricing.
                 </span>
+                <span className="mt-1 block text-[11px] text-white/42">Best next step after preview.</span>
               </button>
               <button
                 type="button"
-                className="group w-full rounded-2xl border border-white/[0.10] bg-white/[0.05] px-4 py-2.5 text-left transition duration-200 hover:-translate-y-0.5 hover:border-white/[0.16] hover:bg-white/[0.09] hover:shadow-[0_12px_28px_-10px_rgba(0,0,0,0.35)]"
+                disabled={!canUseSendEstimate}
+                onClick={() => {
+                  if (canUseSendEstimate) onSendEstimate?.();
+                }}
+                className="group w-full rounded-2xl border border-white/[0.10] bg-white/[0.05] px-4 py-2.5 text-left transition duration-200 hover:-translate-y-0.5 hover:border-white/[0.16] hover:bg-white/[0.09] hover:shadow-[0_12px_28px_-10px_rgba(0,0,0,0.35)] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-45"
               >
-                <span className="block text-sm font-semibold text-white/92">Confirm estimator alignment</span>
+                <span className="block text-sm font-semibold text-white/92">
+                  {isSendingEstimate ? "Sending..." : "Send estimate"}
+                </span>
                 <span className="mt-0.5 block text-xs leading-snug text-white/44 group-hover:text-white/52">
-                  Verify this surface still matches the live estimator before rollout.
+                  Send the real proposal using the existing V1 delivery flow.
                 </span>
               </button>
             </div>
@@ -1098,27 +1462,15 @@ export default function RoofingClientV2({
         {/* BOTTOM FOOTER STRIP */}
         <footer className="mt-6 flex flex-col gap-2.5 rounded-2xl border border-white/[0.08] bg-white/[0.03] px-5 py-3.5 text-xs text-white/45 sm:mt-8 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <span className="max-w-prose leading-relaxed">
-            V2 shell only — no pricing, save, send, or payment logic is wired yet.
+            Preview, save, and send are live here. Payment actions are not wired yet.
           </span>
           <span className="shrink-0 rounded-full border border-white/[0.10] bg-white/[0.05] px-3 py-1.5 text-[11px] font-medium text-white/55 sm:text-right">
-            Parallel safe preview
+            Live workflow harness
           </span>
         </footer>
       </div>
     </Root>
   );
-
-  if (isEmbedded) {
-    return (
-      <div className="mb-8 overflow-hidden rounded-2xl border border-cyan-500/20 bg-[#0a1018] shadow-[0_16px_48px_-12px_rgba(0,0,0,0.5)] ring-1 ring-white/[0.06]">
-        <div className="border-b border-white/10 px-3 py-2 sm:px-4">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-cyan-200/70">Embedded V2 preview</p>
-          <p className="text-[11px] text-white/40">Non-destructive — V1 calculator remains below.</p>
-        </div>
-        <div className="max-h-[min(78vh,960px)] overflow-y-auto overscroll-contain">{shell}</div>
-      </div>
-    );
-  }
 
   return shell;
 }

@@ -619,6 +619,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
   const [hasMounted, setHasMounted] = useState(false);
   const [restoreTick, setRestoreTick] = useState(0);
   const [showV2Preview, setShowV2Preview] = useState(false);
+  const hasSeededV2PreviewDefaultsRef = useRef(false);
   const loadAppliedRef = useRef(false);
   const isRestoringRef = useRef(false);
   const restoreTimerRef = useRef<number | null>(null);
@@ -1135,10 +1136,14 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
     const { breakdown: guidedBreakdown, totalMultiplier: guidedTotalMultiplier, totalLabor: guidedLaborTotal } =
       buildGuidedLaborBreakdown(guidedBaseLabor, guidedStories, guidedWalkable, { twoStoryAdjPct, threePlusAdjPct, steepAdjPct });
 
+    const manualPitchMultiplier = PITCH_MULTIPLIER[pitch] ?? 1;
+
     const laborCostEffective =
       laborMode === "guided"
         ? (canCompute ? guidedLaborTotal : 0)
-        : (laborMode === "manual" ? laborCost : 0);
+        : (laborMode === "manual"
+            ? Math.round((Number(laborCost) || 0) * manualPitchMultiplier)
+            : 0);
 
     const impliedLaborPerSquare =
       adjustedSquares > 0 ? laborCostEffective / adjustedSquares : 0;
@@ -1208,6 +1213,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
     laborMode,
     laborCostRaw,
     laborCost,
+    pitch,
     guidedLaborBasePerSquare,
     guidedStories,
     guidedWalkable,
@@ -1266,6 +1272,18 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!showV2Preview) {
+      hasSeededV2PreviewDefaultsRef.current = false;
+      return;
+    }
+    if (hasSeededV2PreviewDefaultsRef.current) return;
+    if (laborMode !== "manual") {
+      setLaborMode("manual");
+    }
+    hasSeededV2PreviewDefaultsRef.current = true;
+  }, [showV2Preview, laborMode]);
 
   useEffect(() => {
     try {
@@ -1884,8 +1902,9 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
 
     const proposal = getProposalNumbers();
 
+    const rawSquares = hasArea ? areaNum / 100 : 0;
     const scopeRoofSize = hasArea
-      ? `${adjustedSquares.toFixed(1)} squares · ${fmtNum(areaNum)} sq ft`
+      ? `${rawSquares.toFixed(1)} squares · ${fmtNum(areaNum)} sq ft`
       : "";
     // TODO: replace with richer V1 display label when scope labeling is formalized (pitch UI vs guided walkability)
     const scopePitchDisplay =
@@ -1966,7 +1985,6 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
     roofingTier,
     laborMode,
     hasArea,
-    adjustedSquares,
     area,
     areaNum,
     pitch,
@@ -3541,6 +3559,51 @@ Thanks,`;
             companyId={companyId ?? ""}
             mode="embedded"
             viewModel={v2ViewModel}
+            customerName={customerName}
+            customerEmail={customerEmail}
+            customerPhone={customerPhone}
+            jobAddress1={jobAddress1}
+            jobCity={jobCity}
+            jobState={jobState}
+            jobZip={jobZip}
+            onCustomerNameChange={setCustomerName}
+            onCustomerEmailChange={(value) => {
+              setCustomerEmail(value);
+              setSendError("");
+            }}
+            onCustomerPhoneChange={setCustomerPhone}
+            onJobAddress1Change={setJobAddress1}
+            onJobAddress1Blur={(value) => {
+              const cleaned = value.replace(/\s+/g, " ").trim();
+              if (cleaned !== jobAddress1) setJobAddress1(cleaned);
+            }}
+            onJobCityChange={setJobCity}
+            onJobCityBlur={(value) => {
+              const cleaned = value
+                .replace(/[^a-zA-Z\s.'-]/g, "")
+                .replace(/\s+/g, " ")
+                .trim();
+              if (cleaned !== jobCity) setJobCity(cleaned);
+            }}
+            onJobStateChange={setJobState}
+            onJobStateBlur={(value) => {
+              const cleaned = value
+                .replace(/[^a-zA-Z]/g, "")
+                .toUpperCase()
+                .trim();
+              if (cleaned !== jobState) setJobState(cleaned);
+            }}
+            onJobZipChange={(value) => setJobZip(sanitizeZipInput(value))}
+            onJobZipBlur={() => {
+              const sanitized = sanitizeZipInput(jobZip);
+              if (sanitized !== jobZip) setJobZip(sanitized);
+              if (sanitized.length === 5) tryApplyZipPreset(sanitized);
+            }}
+            onJobZipEnter={() => {
+              const sanitized = sanitizeZipInput(jobZip);
+              if (sanitized !== jobZip) setJobZip(sanitized);
+              if (sanitized.length === 5) tryApplyZipPreset(sanitized);
+            }}
             onPricingModeChange={setPricingMode}
             onProposalTierChange={setRoofingTier}
             onTearOffChange={setIncludeDebrisRemoval}
@@ -3548,6 +3611,32 @@ Thanks,`;
             onGuidedWalkabilityChange={setGuidedWalkable}
             onPitchChange={setPitch}
             onAreaChange={setArea}
+            onPreviewProposal={handlePreviewPdf}
+            onSaveEstimate={saveEstimate}
+            canSaveEstimate={canSave}
+            isSavingEstimate={isSaving}
+            onSendEstimate={handleSendEstimate}
+            canSendEstimate={Boolean(
+              (customerEmail || "").trim() && (jobAddress1 || "").trim() && !isLocked
+            )}
+            isSendingEstimate={isSending}
+            wasteValue={waste}
+            onWasteChange={setWaste}
+            bundleCostValue={bundleCost}
+            onBundleCostChange={setBundleCost}
+            dumpFeePerTonValue={dumpFeePerTon}
+            onDumpFeePerTonChange={setDumpFeePerTon}
+            laborModeValue="manual"
+            manualLaborTotalValue={laborCostRaw}
+            onManualLaborTotalChange={(value) => {
+              if (/^[0-9]*$/.test(value)) setLaborCostRaw(value);
+            }}
+            onManualLaborTotalBlur={() => {
+              const n = laborCostRaw.trim() === "" ? 0 : Number(laborCostRaw);
+              const safe = Number.isFinite(n) ? Math.round(n) : 0;
+              setLaborCostRaw(safe ? String(safe) : "");
+              setLaborCost(safe);
+            }}
           />
         ) : (
           <>
