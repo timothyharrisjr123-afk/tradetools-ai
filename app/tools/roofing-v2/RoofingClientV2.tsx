@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Ruler, Mountain, Trash2, Layers } from "lucide-react";
 
 export type RoofingClientV2Props = {
   companyId?: string;
@@ -44,6 +45,8 @@ export type RoofingClientV2Props = {
   };
   onPricingModeChange?: (mode: "markup" | "direct") => void;
   onProposalTierChange?: (tier: "standard" | "enhanced" | "premium") => void;
+  marginValue?: number;
+  onMarginChange?: (pct: number) => void;
   onTearOffChange?: (enabled: boolean) => void;
   onMaterialDensityChange?: (value: string) => void;
   onGuidedWalkabilityChange?: (value: "walkable" | "steep") => void;
@@ -136,6 +139,8 @@ export default function RoofingClientV2({
   viewModel,
   onPricingModeChange,
   onProposalTierChange,
+  marginValue,
+  onMarginChange,
   onTearOffChange,
   onMaterialDensityChange,
   onGuidedWalkabilityChange,
@@ -243,6 +248,50 @@ export default function RoofingClientV2({
   const effectivePricingMode = hasLive ? viewModel!.control.pricingMode : pricingMode;
   const effectiveProposalTier = hasLive ? tierToProposalTier(viewModel!.control.tier) : proposalTier;
 
+  const MARGIN_MIN = 10;
+  const MARGIN_MAX = 60;
+  const MARGIN_STEP = 1;
+
+  const targetMarginPct =
+    typeof marginValue === "number" ? Math.min(MARGIN_MAX, Math.max(MARGIN_MIN, marginValue)) : 28;
+
+  const canEditMargin = effectivePricingMode === "markup" && typeof onMarginChange === "function";
+
+  const liveMarginPct = displayMarginRatio != null ? displayMarginRatio * 100 : null;
+
+  const shownMarginPct = effectivePricingMode === "markup" ? targetMarginPct : liveMarginPct;
+
+  const marginColorClass =
+    shownMarginPct != null && shownMarginPct >= 30
+      ? "text-emerald-300/90"
+      : shownMarginPct != null && shownMarginPct < 20
+        ? "text-red-300/90"
+        : "text-white";
+
+  const MARGIN_TICKS = [15, 25, 35, 45];
+  const marginFillPct = ((targetMarginPct - MARGIN_MIN) / (MARGIN_MAX - MARGIN_MIN)) * 100;
+
+  const [costExpanded, setCostExpanded] = useState(false);
+  const [priceDelta, setPriceDelta] = useState<number | null>(null);
+  const prevPriceRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const prev = prevPriceRef.current;
+    prevPriceRef.current = displayFinalPrice;
+    if (prev == null || prev === displayFinalPrice) return;
+    const delta = displayFinalPrice - prev;
+    if (delta === 0) return;
+    setPriceDelta(delta);
+    const t = setTimeout(() => setPriceDelta(null), 1600);
+    return () => clearTimeout(t);
+  }, [displayFinalPrice]);
+
+  const targetVsActualGap =
+    effectivePricingMode === "markup" && liveMarginPct != null
+      ? Math.abs(targetMarginPct - liveMarginPct)
+      : null;
+  const marginsDiverge = targetVsActualGap != null && targetVsActualGap >= 0.5;
+
   const proposalTierLabel =
     effectiveProposalTier === "core"
       ? "Standard homeowner proposal"
@@ -347,6 +396,126 @@ export default function RoofingClientV2({
     effectiveScopeTearOff.toLowerCase().trim() === "included";
   const outcomeScopeSummary = `${effectiveScopeRoofSize} · ${effectiveScopePitch} · ${effectiveScopeMaterial}`;
 
+  const squaresNum = (() => {
+    const m = String(effectiveScopeRoofSize).match(/[\d.]+/);
+    const n = m ? Number.parseFloat(m[0]) : NaN;
+    return Number.isFinite(n) && n > 0 ? n : 0;
+  })();
+  const pricePerSquare =
+    squaresNum > 0 && displayFinalPrice > 0
+      ? Math.round(displayFinalPrice / squaresNum)
+      : null;
+
+  const laborCostNum = (() => {
+    const raw = String(manualLaborTotalValue ?? "").replace(/,/g, "").trim();
+    const n = Number(raw);
+    return Number.isFinite(n) && n > 0 ? n : 0;
+  })();
+  const remainderCostNum = Math.max(0, displayJobCost - laborCostNum);
+  const canShowCostBreakdown = laborCostNum > 0 && displayJobCost > 0;
+
+  const dumpFeeNum = (() => {
+    const raw = String(dumpFeePerTonValue ?? "").replace(/,/g, "").trim();
+    const n = Number(raw);
+    return Number.isFinite(n) && n > 0 ? n : 0;
+  })();
+
+  const scrollToId = (id: string, focusInput = false) => {
+    if (typeof document === "undefined") return;
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (focusInput) {
+      setTimeout(() => {
+        try {
+          (el as HTMLInputElement).focus({ preventScroll: true });
+        } catch {
+          /* noop */
+        }
+      }, 280);
+    }
+  };
+
+  const intakeMissingFields: string[] = [];
+  const _auditName = (intakeEditable ? customerName : viewModel?.customer.name) ?? "";
+  const _auditEmail = (intakeEditable ? customerEmail : viewModel?.customer.email) ?? "";
+  const _auditZip = (intakeEditable ? jobZip : viewModel?.job.zip) ?? "";
+  if (!_auditName.trim()) intakeMissingFields.push("name");
+  if (!_auditEmail.trim()) intakeMissingFields.push("email");
+  if (!_auditZip.trim()) intakeMissingFields.push("ZIP");
+
+  type AuditRow = {
+    key: string;
+    status: "ok" | "warn" | "info";
+    label: string;
+    onClick?: () => void;
+  };
+
+  const auditRows: AuditRow[] = [];
+
+  auditRows.push(
+    intakeMissingFields.length === 0
+      ? { key: "intake", status: "ok", label: "Customer info complete" }
+      : {
+          key: "intake",
+          status: "warn",
+          label: `Customer info missing — ${intakeMissingFields.join(", ")}`,
+          onClick: () => scrollToId("v2-step-01"),
+        }
+  );
+
+  auditRows.push(
+    laborCostNum > 0
+      ? { key: "labor", status: "ok", label: "Labor cost recorded" }
+      : {
+          key: "labor",
+          status: "warn",
+          label: "Labor cost missing — affects margin",
+          onClick: () => scrollToId("v2-pricing-labor-cost", true),
+        }
+  );
+
+  if (tearOffIsIncluded) {
+    auditRows.push(
+      dumpFeeNum > 0
+        ? { key: "disposal", status: "ok", label: "Tear-off + disposal rate set" }
+        : {
+            key: "disposal",
+            status: "warn",
+            label: "Disposal rate missing — required for tear-off",
+            onClick: () => scrollToId("v2-pricing-dump", true),
+          }
+    );
+  } else {
+    auditRows.push({ key: "disposal", status: "info", label: "Tear-off not included" });
+  }
+
+  auditRows.push({
+    key: "pitch",
+    status: "info",
+    label: `Pitch posture · ${effectiveScopePitch}`,
+  });
+
+  if (effectivePricingMode === "markup") {
+    auditRows.push(
+      marginsDiverge
+        ? {
+            key: "margin",
+            status: "warn",
+            label: `Target ${pct(targetMarginPct)} vs actual ${liveMarginPct != null ? pct(liveMarginPct) : "—"}`,
+          }
+        : { key: "margin", status: "ok", label: "Target margin matches actual" }
+    );
+  } else {
+    auditRows.push({
+      key: "margin",
+      status: "info",
+      label: `Direct pricing · margin ${liveMarginPct != null ? pct(liveMarginPct) : "—"}`,
+    });
+  }
+
+  const auditWarnCount = auditRows.filter((r) => r.status === "warn").length;
+
   const outcomeCustomerName = hasLive
     ? viewModel!.customer.name.trim() || "New Customer"
     : "New Customer";
@@ -363,13 +532,13 @@ export default function RoofingClientV2({
 
   const outcomeCardClass =
     effectivePricingMode === "direct"
-      ? "mt-3.5 rounded-[20px] border border-white/[0.20] bg-gradient-to-b from-black/50 via-black/40 to-black/35 p-1 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.68),0_0_40px_-12px_rgba(34,211,238,0.12),0_0_0_1px_rgba(255,255,255,0.10),0_10px_40px_rgba(0,255,200,0.07)]"
-      : "mt-3.5 rounded-[20px] border border-white/[0.14] bg-gradient-to-b from-black/50 via-black/40 to-black/35 p-1 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.65),0_0_40px_-12px_rgba(34,211,238,0.12),0_0_0_1px_rgba(0,255,200,0.08),0_10px_40px_rgba(0,255,200,0.06)]";
+      ? "mt-3.5 rounded-[22px] border border-white/[0.16] bg-[radial-gradient(ellipse_100%_80%_at_50%_0%,rgba(34,211,238,0.08),transparent_55%),linear-gradient(180deg,rgba(12,18,28,0.95)_0%,rgba(8,12,20,0.98)_100%)] p-1 shadow-[0_24px_60px_-14px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.06)]"
+      : "mt-3.5 rounded-[22px] border border-cyan-400/20 bg-[radial-gradient(ellipse_100%_80%_at_50%_0%,rgba(34,211,238,0.12),transparent_55%),linear-gradient(180deg,rgba(12,18,28,0.95)_0%,rgba(8,12,20,0.98)_100%)] p-1 shadow-[0_24px_60px_-14px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)]";
 
   const outcomeHeaderBandClass =
     effectivePricingMode === "direct"
-      ? "rounded-[14px] border border-white/[0.14] bg-gradient-to-r from-white/[0.11] via-white/[0.065] to-white/[0.05] px-3.5 py-2 sm:px-4"
-      : "rounded-[14px] border border-white/[0.10] bg-gradient-to-r from-white/[0.08] via-white/[0.05] to-cyan-500/[0.06] px-3.5 py-2 sm:px-4";
+      ? "rounded-[14px] border border-white/[0.12] bg-gradient-to-r from-white/[0.12] via-white/[0.06] to-white/[0.04] px-3.5 py-2 sm:px-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
+      : "rounded-[14px] border border-white/[0.10] bg-gradient-to-r from-white/[0.09] via-white/[0.05] to-cyan-500/[0.08] px-3.5 py-2 sm:px-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]";
 
   const customerFields = hasLive
     ? [
@@ -423,20 +592,20 @@ export default function RoofingClientV2({
   const canEditManualLaborTotal = typeof onManualLaborTotalChange === "function";
 
   const intakeFieldInputClass =
-    "w-full rounded-xl border border-white/[0.10] bg-black/20 px-3 py-2.5 text-sm text-white/95 placeholder:text-white/28 focus:border-cyan-400/35 focus:outline-none focus:ring-1 focus:ring-cyan-500/25";
+    "w-full rounded-xl border border-white/[0.12] bg-black/25 px-3 py-2.5 text-sm text-white/95 placeholder:text-white/28 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] focus:border-cyan-400/40 focus:outline-none focus:ring-1 focus:ring-cyan-500/30";
 
   const pricingFieldInputClass =
-    "w-full rounded-lg border border-white/[0.10] bg-black/20 px-2.5 py-2 text-sm text-white/95 placeholder:text-white/28 focus:border-cyan-400/35 focus:outline-none focus:ring-1 focus:ring-cyan-500/25";
+    "w-full rounded-lg border border-white/[0.12] bg-black/25 px-2.5 py-2 text-sm text-white/95 placeholder:text-white/28 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] focus:border-cyan-400/40 focus:outline-none focus:ring-1 focus:ring-cyan-500/30";
 
   const mainStyle = isEmbedded
     ? { backgroundColor: "#101820" as const }
     : {
         backgroundImage: `
-          linear-gradient(180deg, #1a2332 0%, #141c28 40%, #101820 100%),
-          radial-gradient(ellipse 80% 50% at 70% 0%, rgba(59, 130, 246, 0.08), transparent 55%),
-          radial-gradient(ellipse 60% 40% at 10% 80%, rgba(34, 211, 238, 0.06), transparent 50%)
+          linear-gradient(180deg, #1b2636 0%, #131c28 38%, #0d151e 100%),
+          radial-gradient(ellipse 90% 55% at 75% -5%, rgba(59, 130, 246, 0.10), transparent 58%),
+          radial-gradient(ellipse 70% 45% at 12% 85%, rgba(34, 211, 238, 0.075), transparent 55%)
         `,
-        backgroundColor: "#101820",
+        backgroundColor: "#0d151e",
       };
 
   const innerMaxWClass = isEmbedded
@@ -463,249 +632,352 @@ export default function RoofingClientV2({
 
       <div className={innerMaxWClass}>
         {/* TOP HEADER STRIP */}
-        <header className="mb-4 rounded-[28px] border border-white/[0.10] bg-white/[0.04] px-6 py-5 shadow-[0_20px_50px_-24px_rgba(0,0,0,0.45)] backdrop-blur-sm sm:px-8 sm:py-5 sm:mb-6">
+        <header className="mb-6 border-b border-white/[0.06] px-6 pb-6 sm:px-8 sm:mb-8">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0 flex-1">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-cyan-200/70">
-                Roofing V2 Workflow
-              </p>
-              <h1 className="mt-2 text-2xl font-bold tracking-tight text-white sm:text-3xl">
+              <div className="flex items-center gap-2">
+                <span
+                  aria-hidden
+                  className="h-1.5 w-1.5 rounded-full bg-cyan-300 shadow-[0_0_12px_2px_rgba(34,211,238,0.7)]"
+                />
+                <p className="text-[10.5px] font-semibold uppercase tracking-[0.24em] text-cyan-200/85">
+                  Roofing V2 Workflow
+                </p>
+              </div>
+              <h1 className="mt-2 text-[1.85rem] font-bold tracking-[-0.02em] text-white sm:text-[2.15rem]">
                 Build the deal
               </h1>
-              <p className="mt-2 max-w-xl text-sm leading-relaxed text-white/55">
-                A contractor-first workflow surface connected to the live estimator engine.
+              <p className="mt-2 max-w-xl text-[12.5px] leading-relaxed text-white/60">
+                Intake to outcome to delivery — pricing updates live as you go.
               </p>
-              {/* Segmented preview rail */}
-              <div
-                className="mt-3.5 flex flex-wrap gap-1.5 border-t border-white/[0.07] pt-3.5"
-                role="list"
-                aria-label="Build flow preview"
-              >
-                {["Intake", "Scope", "Outcome", "Delivery"].map((label) => (
-                  <span
-                    key={label}
-                    role="listitem"
-                    className="inline-flex items-center rounded-lg border border-white/[0.07] bg-white/[0.04] px-2 py-1 text-[10px] font-medium uppercase tracking-[0.12em] text-white/48"
+              <ol className="mt-4 flex flex-wrap items-center gap-1.5" aria-label="Build flow progress">
+                {(
+                  [
+                    { n: "01", label: "Intake", done: intakeReady, active: !intakeReady },
+                    { n: "02", label: "Strategy", done: intakeReady, active: false },
+                    { n: "03", label: "Scope & Costs", done: intakeReady, active: false },
+                    { n: "04", label: "Outcome", done: intakeReady, active: intakeReady && !canUseSendEstimate },
+                    { n: "05", label: "Readiness", done: canUseSendEstimate, active: false },
+                    { n: "06", label: "Deliver", done: false, active: canUseSendEstimate },
+                  ] as const
+                ).map((step) => (
+                  <li
+                    key={step.n}
+                    className={
+                      "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] " +
+                      (step.active
+                        ? "border-cyan-400/40 bg-gradient-to-b from-cyan-500/[0.22] to-cyan-600/[0.08] text-cyan-50 shadow-[0_0_14px_-3px_rgba(34,211,238,0.5),inset_0_1px_0_rgba(255,255,255,0.10)]"
+                        : step.done
+                          ? "border-emerald-400/25 bg-emerald-500/[0.10] text-emerald-100/90"
+                          : "border-white/[0.08] bg-white/[0.03] text-white/45")
+                    }
                   >
-                    {label}
-                  </span>
+                    <span
+                      aria-hidden
+                      className={
+                        "tabular-nums text-[9.5px] " +
+                        (step.active ? "text-cyan-100" : step.done ? "text-emerald-200/80" : "text-white/35")
+                      }
+                    >
+                      {step.n}
+                    </span>
+                    {step.label}
+                  </li>
                 ))}
-              </div>
+              </ol>
             </div>
             <div className="flex flex-shrink-0 flex-wrap items-center gap-2 sm:flex-col sm:items-end sm:gap-2">
-              <span className="rounded-full border border-amber-400/25 bg-amber-500/[0.12] px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-amber-100/90">
-                {hasLive ? "Live V1 data" : "Preview Only"}
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-gradient-to-b from-amber-500/[0.18] to-amber-600/[0.08] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-100 shadow-[0_0_12px_-2px_rgba(251,191,36,0.35),inset_0_1px_0_rgba(255,255,255,0.08)]">
+                <span aria-hidden className="h-1 w-1 rounded-full bg-amber-200 shadow-[0_0_6px_rgba(251,191,36,0.8)]" />
+                {hasLive ? "Live pricing" : "Preview mode"}
               </span>
-              <span className="rounded-full border border-white/[0.10] bg-white/[0.05] px-3 py-1.5 text-xs font-medium text-white/70">
-                Company • {companyPreview}
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-gradient-to-b from-white/[0.06] to-white/[0.02] px-3 py-1.5 text-[11.5px] font-medium text-white/75 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                <span aria-hidden className="h-1 w-1 rounded-full bg-cyan-300/70 shadow-[0_0_5px_rgba(34,211,238,0.55)]" />
+                Workspace active
               </span>
             </div>
           </div>
         </header>
 
         {/* MAIN LAYOUT — paired rows: intake/deal, scope/live, readiness/next */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-8">
+        <div className="grid grid-cols-1 gap-y-8 lg:grid-cols-12 lg:gap-x-8 lg:gap-y-10">
           {/* Section A — Job intake */}
-          <section className="rounded-[26px] border border-white/[0.08] bg-white/[0.03] p-5 sm:p-6 lg:col-span-7">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="min-w-0">
-                <h2 className="text-base font-semibold tracking-tight text-white">Job intake</h2>
-                <p className="mt-1 max-w-md text-xs leading-relaxed text-white/45">
-                  Start with the customer and property information needed before pricing.
-                </p>
-              </div>
-              <div className="flex shrink-0 flex-col items-end gap-1 text-right">
-                <div
-                  role="status"
-                  className={
-                    "rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide " +
-                    (intakeReady
-                      ? "border-emerald-400/28 bg-emerald-500/[0.12] text-emerald-100/95"
-                      : "border-amber-400/30 bg-amber-500/[0.12] text-amber-100/90")
-                  }
-                >
-                  {intakeReady ? "Ready to price" : "Missing details"}
+          <section id="v2-step-01" className="relative lg:col-span-7">
+            <div className="relative overflow-hidden rounded-[22px] border border-white/[0.07] bg-[radial-gradient(ellipse_100%_60%_at_50%_-10%,rgba(34,211,238,0.07),transparent_60%),linear-gradient(180deg,rgba(16,24,34,0.60)_0%,rgba(10,16,24,0.70)_100%)] p-5 shadow-[0_20px_50px_-24px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.04)] sm:p-6">
+              <span
+                aria-hidden
+                className="pointer-events-none absolute -top-20 right-[-10%] h-48 w-48 rounded-full bg-cyan-400/[0.07] blur-[90px]"
+              />
+              <span
+                aria-hidden
+                className="pointer-events-none absolute left-0 top-8 bottom-8 w-px bg-gradient-to-b from-cyan-400/45 via-cyan-400/14 to-transparent"
+              />
+              <div className="relative flex flex-wrap items-start justify-between gap-3 pl-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span aria-hidden className="h-1 w-1 rounded-full bg-cyan-300 shadow-[0_0_6px_rgba(34,211,238,0.8)]" />
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-cyan-200/85">
+                      Step 01 — Intake
+                    </p>
+                  </div>
+                  <h2 className="mt-1 text-[1.2rem] font-semibold tracking-tight text-white">Job intake</h2>
+                  <p className="mt-1 max-w-md text-[11.5px] leading-relaxed text-white/55">
+                    Customer and property information that anchors pricing confidence.
+                  </p>
                 </div>
-                <span className="text-[10px] leading-snug text-white/45">
-                  {intakeReady ? "All required details present" : "Complete intake to unlock full pricing"}
+                <div className="flex shrink-0 flex-col items-end gap-1 text-right">
+                  <div
+                    role="status"
+                    className={
+                      intakeReady
+                        ? "inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-gradient-to-b from-emerald-500/[0.18] to-emerald-600/[0.08] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-50 shadow-[0_0_14px_-2px_rgba(16,185,129,0.4),inset_0_1px_0_rgba(255,255,255,0.10)]"
+                        : "inline-flex items-center gap-1.5 rounded-full border border-amber-400/25 bg-amber-500/[0.10] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-100/95 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
+                    }
+                  >
+                    <span
+                      aria-hidden
+                      className={
+                        "h-1 w-1 rounded-full " +
+                        (intakeReady
+                          ? "bg-emerald-300 shadow-[0_0_6px_rgba(16,185,129,0.7)]"
+                          : "bg-amber-300 shadow-[0_0_6px_rgba(251,191,36,0.7)]")
+                      }
+                    />
+                    {intakeReady ? "Ready to price" : "Missing details"}
+                  </div>
+                  <span className="text-[10px] leading-snug text-white/45">
+                    {intakeReady ? "All required details present" : "Complete intake to unlock full pricing"}
+                  </span>
+                </div>
+              </div>
+              <div className="relative mt-5 grid grid-cols-1 gap-5 pl-3 sm:gap-6 lg:grid-cols-[1fr_auto_1fr] lg:gap-7">
+                {intakeEditable ? (
+                  <>
+                    <div className="min-w-0">
+                      <h3 className="text-[9px] font-semibold uppercase tracking-[0.2em] text-cyan-200/70">Customer</h3>
+                      <div className="mt-3 flex flex-col gap-2.5">
+                        <div className="space-y-1">
+                          <label htmlFor="v2-intake-customer-name" className="block text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45">
+                            Name
+                          </label>
+                          <input
+                            id="v2-intake-customer-name"
+                            type="text"
+                            autoComplete="off"
+                            value={customerName ?? ""}
+                            onChange={(e) => onCustomerNameChange?.(e.target.value)}
+                            className={intakeFieldInputClass}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label htmlFor="v2-intake-customer-email" className="block text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45">
+                            Email
+                          </label>
+                          <input
+                            id="v2-intake-customer-email"
+                            type="email"
+                            inputMode="email"
+                            autoComplete="off"
+                            value={customerEmail ?? ""}
+                            onChange={(e) => onCustomerEmailChange?.(e.target.value)}
+                            className={intakeFieldInputClass}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label htmlFor="v2-intake-customer-phone" className="block text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45">
+                            Phone
+                          </label>
+                          <input
+                            id="v2-intake-customer-phone"
+                            type="tel"
+                            inputMode="tel"
+                            autoComplete="off"
+                            value={customerPhone ?? ""}
+                            onChange={(e) => onCustomerPhoneChange?.(e.target.value)}
+                            className={intakeFieldInputClass}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <div aria-hidden className="hidden lg:block lg:w-px lg:bg-gradient-to-b lg:from-transparent lg:via-white/[0.08] lg:to-transparent" />
+                    <div className="min-w-0">
+                      <h3 className="text-[9px] font-semibold uppercase tracking-[0.2em] text-cyan-200/70">Property</h3>
+                      <div className="mt-3 flex flex-col gap-2.5">
+                        <div className="space-y-1">
+                          <label htmlFor="v2-intake-job-address" className="block text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45">
+                            Address
+                          </label>
+                          <input
+                            id="v2-intake-job-address"
+                            type="text"
+                            autoComplete="off"
+                            value={jobAddress1 ?? ""}
+                            onChange={(e) => onJobAddress1Change?.(e.target.value)}
+                            onBlur={(e) => onJobAddress1Blur?.(e.target.value)}
+                            className={intakeFieldInputClass}
+                          />
+                        </div>
+                        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+                          <div className="space-y-1">
+                            <label htmlFor="v2-intake-job-city" className="block text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45">
+                              City
+                            </label>
+                            <input
+                              id="v2-intake-job-city"
+                              type="text"
+                              autoComplete="off"
+                              value={jobCity ?? ""}
+                              onChange={(e) => onJobCityChange?.(e.target.value)}
+                              onBlur={(e) => onJobCityBlur?.(e.target.value)}
+                              className={intakeFieldInputClass}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label htmlFor="v2-intake-job-state" className="block text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45">
+                              State
+                            </label>
+                            <input
+                              id="v2-intake-job-state"
+                              type="text"
+                              autoComplete="off"
+                              value={jobState ?? ""}
+                              onChange={(e) => onJobStateChange?.(e.target.value)}
+                              onBlur={(e) => onJobStateBlur?.(e.target.value)}
+                              className={intakeFieldInputClass}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label htmlFor="v2-intake-job-zip" className="block text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45">
+                              ZIP
+                            </label>
+                            <input
+                              id="v2-intake-job-zip"
+                              type="text"
+                              inputMode="numeric"
+                              autoComplete="postal-code"
+                              value={jobZip ?? ""}
+                              onChange={(e) => onJobZipChange?.(e.target.value)}
+                              onBlur={() => onJobZipBlur?.()}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  onJobZipEnter?.();
+                                }
+                              }}
+                              className={intakeFieldInputClass}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="min-w-0">
+                      <h3 className="text-[9px] font-semibold uppercase tracking-[0.2em] text-cyan-200/70">Customer details</h3>
+                      <div className="mt-3 flex flex-col gap-2">
+                        {customerFields.map((field) => (
+                          <div
+                            key={field.label}
+                            className="rounded-xl border border-white/[0.08] bg-gradient-to-b from-white/[0.045] to-white/[0.02] px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+                          >
+                            <div className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/45">{field.label}</div>
+                            <div className="mt-1 truncate text-sm font-semibold tracking-tight text-white">{field.value}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div aria-hidden className="hidden lg:block lg:w-px lg:bg-gradient-to-b lg:from-transparent lg:via-white/[0.08] lg:to-transparent" />
+                    <div className="min-w-0">
+                      <h3 className="text-[9px] font-semibold uppercase tracking-[0.2em] text-cyan-200/70">Job details</h3>
+                      <div className="mt-3 flex flex-col gap-2">
+                        {jobFields.map((field) => (
+                          <div
+                            key={field.label}
+                            className="rounded-xl border border-white/[0.08] bg-gradient-to-b from-white/[0.045] to-white/[0.02] px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+                          >
+                            <div className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/45">{field.label}</div>
+                            <div className="mt-1 truncate text-sm font-semibold tracking-tight text-white">{field.value}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+              <div className="relative mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-white/[0.06] pt-3 pl-3">
+                <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/55">
+                  <span
+                    aria-hidden
+                    className={
+                      "h-1 w-1 rounded-full " +
+                      (intakeReady ? "bg-emerald-400/80 shadow-[0_0_5px_rgba(16,185,129,0.6)]" : "bg-amber-400/80 shadow-[0_0_5px_rgba(251,191,36,0.6)]")
+                    }
+                  />
+                  Intake signal
+                </span>
+                <span className="text-[10.5px] leading-snug text-white/45">
+                  {intakeReady
+                    ? "All core intake fields are present for pricing."
+                    : "If key fields are missing, pricing confidence will be limited."}
                 </span>
               </div>
             </div>
-            <div className="mt-4 grid grid-cols-1 gap-5 sm:gap-6 lg:grid-cols-2 lg:gap-8">
-              {intakeEditable ? (
-                <>
-                  <div className="min-w-0">
-                    <h3 className="text-[9px] font-medium uppercase tracking-[0.18em] text-white/28">Customer</h3>
-                    <div className="mt-2.5 flex flex-col gap-2.5">
-                      <div className="space-y-1">
-                        <label htmlFor="v2-intake-customer-name" className="block text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
-                          Name
-                        </label>
-                        <input
-                          id="v2-intake-customer-name"
-                          type="text"
-                          autoComplete="off"
-                          value={customerName ?? ""}
-                          onChange={(e) => onCustomerNameChange?.(e.target.value)}
-                          className={intakeFieldInputClass}
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <label htmlFor="v2-intake-customer-email" className="block text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
-                          Email
-                        </label>
-                        <input
-                          id="v2-intake-customer-email"
-                          type="email"
-                          inputMode="email"
-                          autoComplete="off"
-                          value={customerEmail ?? ""}
-                          onChange={(e) => onCustomerEmailChange?.(e.target.value)}
-                          className={intakeFieldInputClass}
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <label htmlFor="v2-intake-customer-phone" className="block text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
-                          Phone
-                        </label>
-                        <input
-                          id="v2-intake-customer-phone"
-                          type="tel"
-                          inputMode="tel"
-                          autoComplete="off"
-                          value={customerPhone ?? ""}
-                          onChange={(e) => onCustomerPhoneChange?.(e.target.value)}
-                          className={intakeFieldInputClass}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="min-w-0">
-                    <h3 className="text-[9px] font-medium uppercase tracking-[0.18em] text-white/28">Property</h3>
-                    <div className="mt-2.5 flex flex-col gap-2.5">
-                      <div className="space-y-1">
-                        <label htmlFor="v2-intake-job-address" className="block text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
-                          Address
-                        </label>
-                        <input
-                          id="v2-intake-job-address"
-                          type="text"
-                          autoComplete="off"
-                          value={jobAddress1 ?? ""}
-                          onChange={(e) => onJobAddress1Change?.(e.target.value)}
-                          onBlur={(e) => onJobAddress1Blur?.(e.target.value)}
-                          className={intakeFieldInputClass}
-                        />
-                      </div>
-                      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
-                        <div className="space-y-1">
-                          <label htmlFor="v2-intake-job-city" className="block text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
-                            City
-                          </label>
-                          <input
-                            id="v2-intake-job-city"
-                            type="text"
-                            autoComplete="off"
-                            value={jobCity ?? ""}
-                            onChange={(e) => onJobCityChange?.(e.target.value)}
-                            onBlur={(e) => onJobCityBlur?.(e.target.value)}
-                            className={intakeFieldInputClass}
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <label htmlFor="v2-intake-job-state" className="block text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
-                            State
-                          </label>
-                          <input
-                            id="v2-intake-job-state"
-                            type="text"
-                            autoComplete="off"
-                            value={jobState ?? ""}
-                            onChange={(e) => onJobStateChange?.(e.target.value)}
-                            onBlur={(e) => onJobStateBlur?.(e.target.value)}
-                            className={intakeFieldInputClass}
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <label htmlFor="v2-intake-job-zip" className="block text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
-                            ZIP
-                          </label>
-                          <input
-                            id="v2-intake-job-zip"
-                            type="text"
-                            inputMode="numeric"
-                            autoComplete="postal-code"
-                            value={jobZip ?? ""}
-                            onChange={(e) => onJobZipChange?.(e.target.value)}
-                            onBlur={() => onJobZipBlur?.()}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                e.preventDefault();
-                                onJobZipEnter?.();
-                              }
-                            }}
-                            className={intakeFieldInputClass}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="min-w-0">
-                    <h3 className="text-[9px] font-medium uppercase tracking-[0.18em] text-white/28">Customer details</h3>
-                    <div className="mt-2.5 flex flex-col gap-2">
-                      {customerFields.map((field) => (
-                        <div
-                          key={field.label}
-                          className="rounded-xl border border-white/[0.09] bg-white/[0.04] px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
-                        >
-                          <div className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/40">{field.label}</div>
-                          <div className="mt-1 truncate text-sm font-semibold tracking-tight text-white">{field.value}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="min-w-0">
-                    <h3 className="text-[9px] font-medium uppercase tracking-[0.18em] text-white/28">Job details</h3>
-                    <div className="mt-2.5 flex flex-col gap-2">
-                      {jobFields.map((field) => (
-                        <div
-                          key={field.label}
-                          className="rounded-xl border border-white/[0.09] bg-white/[0.04] px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
-                        >
-                          <div className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/40">{field.label}</div>
-                          <div className="mt-1 truncate text-sm font-semibold tracking-tight text-white">{field.value}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-            <p className="mt-3 text-[10px] leading-snug text-white/38">
-              {intakeReady
-                ? "All core intake fields are present for pricing."
-                : "If key fields are missing, pricing confidence will be limited."}
-            </p>
           </section>
 
           {/* Section D — Deal Control */}
-          <section className="rounded-[26px] border border-white/[0.09] bg-white/[0.035] p-4 sm:p-5 lg:col-span-5">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/38">
-              Control surface
-            </p>
-            <h2 className="mt-1 text-base font-semibold tracking-tight text-white">Deal control</h2>
-            <p className="mt-1 text-xs leading-relaxed text-white/48">
-              The future home for pricing mode, margin posture, and final proposal control.
-            </p>
-            <div className="mt-3.5 rounded-[18px] border border-white/[0.10] bg-gradient-to-b from-white/[0.08] to-white/[0.04] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-              <div className="flex flex-col divide-y divide-white/[0.07] rounded-[14px] border border-white/[0.06] bg-black/20">
-                <div className="flex items-start justify-between gap-3 px-3.5 py-2.5 first:rounded-t-[12px]">
+          <section className="relative lg:col-span-5">
+            <div className="relative overflow-hidden rounded-[22px] border border-white/[0.07] bg-[radial-gradient(ellipse_100%_60%_at_50%_-10%,rgba(34,211,238,0.07),transparent_60%),linear-gradient(180deg,rgba(16,24,34,0.60)_0%,rgba(10,16,24,0.70)_100%)] p-5 shadow-[0_20px_50px_-24px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.04)] sm:p-6">
+              <span
+                aria-hidden
+                className="pointer-events-none absolute -top-20 right-[-10%] h-48 w-48 rounded-full bg-cyan-400/[0.07] blur-[90px]"
+              />
+              <div className="relative flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span aria-hidden className="h-1 w-1 rounded-full bg-cyan-300 shadow-[0_0_6px_rgba(34,211,238,0.8)]" />
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-cyan-200/85">
+                      Step 02 — Strategy
+                    </p>
+                  </div>
+                  <h2 className="mt-1 text-[1.2rem] font-semibold tracking-tight text-white">Deal control</h2>
+                </div>
+                <div className="flex shrink-0 flex-col items-end gap-1 text-right">
+                  <div
+                    role="status"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-cyan-400/30 bg-gradient-to-b from-cyan-500/[0.16] to-cyan-600/[0.06] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-50 shadow-[0_0_14px_-3px_rgba(34,211,238,0.45),inset_0_1px_0_rgba(255,255,255,0.10)]"
+                  >
+                    <span aria-hidden className="h-1 w-1 rounded-full bg-cyan-300 shadow-[0_0_6px_rgba(34,211,238,0.8)]" />
+                    {effectivePricingMode === "markup" ? "Markup" : "Direct"}
+                    {shownMarginPct != null ? (
+                      <>
+                        <span aria-hidden className="opacity-50">
+                          ·
+                        </span>
+                        <span className="tabular-nums">{Math.round(shownMarginPct)}%</span>
+                      </>
+                    ) : null}
+                    <span aria-hidden className="opacity-50">
+                      ·
+                    </span>
+                    {effectiveProposalTier === "core"
+                      ? "Core"
+                      : effectiveProposalTier === "enhanced"
+                        ? "Enhanced"
+                        : "Premium"}
+                  </div>
+                  <span className="text-[10px] leading-snug text-white/45">Current pricing &amp; proposal stance</span>
+                </div>
+              </div>
+              <div className="relative mt-4 flex flex-col gap-4">
+                {/* GROUP 1 — PRICING (Contractor) */}
+                <div>
                   <div className="min-w-0">
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/38">Pricing mode</div>
-                    <div className="flex gap-2 mt-1">
+                    <div className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/55">
+                      <span aria-hidden className="h-1 w-1 rounded-full bg-cyan-300/65 shadow-[0_0_5px_rgba(34,211,238,0.5)]" />
+                      Pricing mode
+                    </div>
+                    <div className="mt-1.5 flex gap-2">
                       <button
                         type="button"
                         disabled={isLive ? !controlPermissions.pricingMode : false}
@@ -719,10 +991,9 @@ export default function RoofingClientV2({
                         }}
                         className={
                           (effectivePricingMode === "markup"
-                            ? "rounded-full border border-cyan-400/35 bg-cyan-500/[0.18] px-2.5 py-0.5 text-[10px] font-semibold text-cyan-50"
-                            : "rounded-full border border-white/[0.10] bg-white/[0.05] px-2.5 py-0.5 text-[10px] font-semibold text-white/55") +
-                          (!controlPermissions.pricingMode && isLive ? " cursor-not-allowed opacity-45" : "") +
-                          (!isLive || controlPermissions.pricingMode ? " active:scale-[0.97]" : "")
+                            ? "rounded-full border border-cyan-400/40 bg-gradient-to-b from-cyan-500/[0.22] to-cyan-600/[0.10] px-3 py-1 text-[10.5px] font-semibold tracking-tight text-cyan-50 shadow-[0_0_14px_-2px_rgba(34,211,238,0.5),inset_0_1px_0_rgba(255,255,255,0.1)] transition active:scale-[0.97]"
+                            : "rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-1 text-[10.5px] font-semibold tracking-tight text-white/55 transition hover:border-white/[0.14] hover:bg-white/[0.06] hover:text-white/80 active:scale-[0.97]") +
+                          (!controlPermissions.pricingMode && isLive ? " cursor-not-allowed opacity-45" : "")
                         }
                       >
                         Markup
@@ -740,137 +1011,224 @@ export default function RoofingClientV2({
                         }}
                         className={
                           (effectivePricingMode === "direct"
-                            ? "rounded-full border border-cyan-400/35 bg-cyan-500/[0.18] px-2.5 py-0.5 text-[10px] font-semibold text-cyan-50"
-                            : "rounded-full border border-white/[0.10] bg-white/[0.05] px-2.5 py-0.5 text-[10px] font-semibold text-white/55") +
-                          (!controlPermissions.pricingMode && isLive ? " cursor-not-allowed opacity-45" : "") +
-                          (!isLive || controlPermissions.pricingMode ? " active:scale-[0.97]" : "")
+                            ? "rounded-full border border-cyan-400/40 bg-gradient-to-b from-cyan-500/[0.22] to-cyan-600/[0.10] px-3 py-1 text-[10.5px] font-semibold tracking-tight text-cyan-50 shadow-[0_0_14px_-2px_rgba(34,211,238,0.5),inset_0_1px_0_rgba(255,255,255,0.1)] transition active:scale-[0.97]"
+                            : "rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-1 text-[10.5px] font-semibold tracking-tight text-white/55 transition hover:border-white/[0.14] hover:bg-white/[0.06] hover:text-white/80 active:scale-[0.97]") +
+                          (!controlPermissions.pricingMode && isLive ? " cursor-not-allowed opacity-45" : "")
                         }
                       >
                         Direct
                       </button>
                     </div>
-                    <p className="mt-1 max-w-[14rem] text-[9px] leading-snug text-white/40">
-                      {effectivePricingMode === "markup"
-                        ? "Final price adjusts based on target margin"
-                        : "Final price follows direct homeowner quote"}
+                  </div>
+
+                  {/* Slider */}
+                  <div
+                    className={
+                      "mt-3 transition-all duration-200 " +
+                      (effectivePricingMode === "markup"
+                        ? "opacity-100 saturate-100"
+                        : "opacity-30 saturate-50")
+                    }
+                  >
+                    <div className="flex items-baseline justify-between">
+                      <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/55">
+                        <span aria-hidden className="h-1 w-1 rounded-full bg-cyan-300/65 shadow-[0_0_5px_rgba(34,211,238,0.5)]" />
+                        Target margin
+                      </span>
+                      <span className={`tabular-nums text-[1.4rem] font-semibold leading-none ${marginColorClass}`}>
+                        {`${Math.round(targetMarginPct)}%`}
+                      </span>
+                    </div>
+
+                    <div
+                      className="group relative mt-1.5 h-6"
+                      style={{ ["--mfill" as string]: `${marginFillPct}%` }}
+                    >
+                      <div className="pointer-events-none absolute left-0 right-0 top-1/2 h-[4px] -translate-y-1/2 rounded-full bg-white/[0.06] shadow-[inset_0_1px_0_rgba(0,0,0,0.35)]" />
+
+                      <div
+                        className="pointer-events-none absolute left-0 top-1/2 h-[5px] -translate-y-1/2 rounded-full bg-gradient-to-r from-cyan-400/95 via-cyan-300 to-cyan-200 shadow-[0_0_12px_-1px_rgba(34,211,238,0.7)]"
+                        style={{ width: `var(--mfill)` }}
+                      />
+
+                      <div
+                        className="pointer-events-none absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border border-cyan-100/70 bg-gradient-to-b from-cyan-200 to-cyan-500 shadow-[0_0_0_3px_rgba(34,211,238,0),0_0_14px_-1px_rgba(34,211,238,0.85),inset_0_1px_0_rgba(255,255,255,0.55)] transition-all duration-150 group-hover:scale-110 group-hover:shadow-[0_0_0_4px_rgba(34,211,238,0.18),0_0_18px_-1px_rgba(34,211,238,0.95),inset_0_1px_0_rgba(255,255,255,0.6)] group-active:scale-95"
+                        style={{ left: `var(--mfill)` }}
+                      />
+
+                      <input
+                        type="range"
+                        min={MARGIN_MIN}
+                        max={MARGIN_MAX}
+                        step={MARGIN_STEP}
+                        value={targetMarginPct}
+                        onChange={(e) => canEditMargin && onMarginChange?.(Number(e.target.value))}
+                        disabled={!canEditMargin}
+                        aria-label="Target margin percentage"
+                        className={
+                          "absolute inset-0 z-10 h-full w-full appearance-none bg-transparent opacity-0 " +
+                          (canEditMargin ? "cursor-pointer" : "pointer-events-none cursor-not-allowed")
+                        }
+                      />
+                    </div>
+
+                    {/* Tick labels */}
+                    <div className="relative mt-1.5 h-2.5">
+                      {MARGIN_TICKS.map((t) => {
+                        const left = ((t - MARGIN_MIN) / (MARGIN_MAX - MARGIN_MIN)) * 100;
+                        return (
+                          <span
+                            key={t}
+                            aria-hidden
+                            className={
+                              "absolute -translate-x-1/2 text-[9.5px] font-medium tabular-nums tracking-[0.06em] " +
+                              (t <= targetMarginPct ? "text-cyan-200/70" : "text-white/35")
+                            }
+                            style={{ left: `${left}%` }}
+                          >
+                            {t}
+                          </span>
+                        );
+                      })}
+                    </div>
+
+                    {effectivePricingMode === "direct" && (
+                      <p className="mt-2 text-[10.5px] leading-snug text-white/50">
+                        Margin is not used in direct pricing.
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* DIVIDER */}
+                <div aria-hidden className="h-px w-full bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
+
+                {/* GROUP 2 — PRESENTATION (Homeowner) */}
+                <div>
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/55">
+                        <span aria-hidden className="h-1 w-1 rounded-full bg-cyan-300/65 shadow-[0_0_5px_rgba(34,211,238,0.5)]" />
+                        Proposal tier
+                      </div>
+                      <div className="mt-1.5 flex gap-2">
+                        <button
+                          type="button"
+                          disabled={isLive ? !controlPermissions.proposalTier : false}
+                          onClick={() => {
+                            if (controlPermissions.proposalTier) {
+                              onProposalTierChange?.("standard");
+                              return;
+                            }
+                            if (isLive) return;
+                            setProposalTier("core");
+                          }}
+                          className={
+                            (effectiveProposalTier === "core"
+                              ? "rounded-full border border-cyan-400/40 bg-gradient-to-b from-cyan-500/[0.22] to-cyan-600/[0.10] px-3 py-1 text-[10.5px] font-semibold tracking-tight text-cyan-50 shadow-[0_0_14px_-2px_rgba(34,211,238,0.5),inset_0_1px_0_rgba(255,255,255,0.1)] transition active:scale-[0.97]"
+                              : "rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-1 text-[10.5px] font-semibold tracking-tight text-white/55 transition hover:border-white/[0.14] hover:bg-white/[0.06] hover:text-white/80 active:scale-[0.97]") +
+                            (!controlPermissions.proposalTier && isLive ? " cursor-not-allowed opacity-45" : "")
+                          }
+                        >
+                          Core
+                        </button>
+                        <button
+                          type="button"
+                          disabled={isLive ? !controlPermissions.proposalTier : false}
+                          onClick={() => {
+                            if (controlPermissions.proposalTier) {
+                              onProposalTierChange?.("enhanced");
+                              return;
+                            }
+                            if (isLive) return;
+                            setProposalTier("enhanced");
+                          }}
+                          className={
+                            (effectiveProposalTier === "enhanced"
+                              ? "rounded-full border border-cyan-400/40 bg-gradient-to-b from-cyan-500/[0.22] to-cyan-600/[0.10] px-3 py-1 text-[10.5px] font-semibold tracking-tight text-cyan-50 shadow-[0_0_14px_-2px_rgba(34,211,238,0.5),inset_0_1px_0_rgba(255,255,255,0.1)] transition active:scale-[0.97]"
+                              : "rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-1 text-[10.5px] font-semibold tracking-tight text-white/55 transition hover:border-white/[0.14] hover:bg-white/[0.06] hover:text-white/80 active:scale-[0.97]") +
+                            (!controlPermissions.proposalTier && isLive ? " cursor-not-allowed opacity-45" : "")
+                          }
+                        >
+                          Enhanced
+                        </button>
+                        <button
+                          type="button"
+                          disabled={isLive ? !controlPermissions.proposalTier : false}
+                          onClick={() => {
+                            if (controlPermissions.proposalTier) {
+                              onProposalTierChange?.("premium");
+                              return;
+                            }
+                            if (isLive) return;
+                            setProposalTier("premium");
+                          }}
+                          className={
+                            (effectiveProposalTier === "premium"
+                              ? "rounded-full border border-cyan-400/40 bg-gradient-to-b from-cyan-500/[0.22] to-cyan-600/[0.10] px-3 py-1 text-[10.5px] font-semibold tracking-tight text-cyan-50 shadow-[0_0_14px_-2px_rgba(34,211,238,0.5),inset_0_1px_0_rgba(255,255,255,0.1)] transition active:scale-[0.97]"
+                              : "rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-1 text-[10.5px] font-semibold tracking-tight text-white/55 transition hover:border-white/[0.14] hover:bg-white/[0.06] hover:text-white/80 active:scale-[0.97]") +
+                            (!controlPermissions.proposalTier && isLive ? " cursor-not-allowed opacity-45" : "")
+                          }
+                        >
+                          Premium
+                        </button>
+                      </div>
+                    </div>
+                    <p className="max-w-[14rem] text-[10.5px] leading-snug text-white/50 sm:text-right">
+                      {proposalTierSupport}.
                     </p>
                   </div>
-                  <span className="shrink-0 rounded-full border border-white/[0.08] bg-white/[0.04] px-2.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.16em] text-white/42">
-                    Tuned
-                  </span>
-                </div>
-                <div className="flex items-start justify-between gap-3 px-3.5 py-2.5">
-                  <div className="min-w-0">
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/38">Manual labor total</div>
-                    <div className="mt-0.5 text-[15px] font-semibold leading-snug tracking-tight text-white">
-                      {hasLive ? money(viewModel!.proposal.labor) : money(mockDealLaborAmount)}
-                    </div>
-                  </div>
-                  <span className="shrink-0 rounded-full border border-white/[0.08] bg-white/[0.04] px-2.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.16em] text-white/42">
-                    Tuned
-                  </span>
-                </div>
-                <div className="flex items-start justify-between gap-3 px-3.5 py-2.5 last:rounded-b-[12px]">
-                  <div className="min-w-0">
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/38">Proposal tier</div>
-                    <div className="flex gap-2 mt-1">
-                      <button
-                        type="button"
-                        disabled={isLive ? !controlPermissions.proposalTier : false}
-                        onClick={() => {
-                          if (controlPermissions.proposalTier) {
-                            onProposalTierChange?.("standard");
-                            return;
-                          }
-                          if (isLive) return;
-                          setProposalTier("core");
-                        }}
-                        className={
-                          (effectiveProposalTier === "core"
-                            ? "rounded-full border border-cyan-400/35 bg-cyan-500/[0.18] px-2.5 py-0.5 text-[10px] font-semibold text-cyan-50"
-                            : "rounded-full border border-white/[0.10] bg-white/[0.05] px-2.5 py-0.5 text-[10px] font-semibold text-white/55") +
-                          (!controlPermissions.proposalTier && isLive ? " cursor-not-allowed opacity-45" : "") +
-                          (!isLive || controlPermissions.proposalTier ? " active:scale-[0.97]" : "")
-                        }
-                      >
-                        Core
-                      </button>
-                      <button
-                        type="button"
-                        disabled={isLive ? !controlPermissions.proposalTier : false}
-                        onClick={() => {
-                          if (controlPermissions.proposalTier) {
-                            onProposalTierChange?.("enhanced");
-                            return;
-                          }
-                          if (isLive) return;
-                          setProposalTier("enhanced");
-                        }}
-                        className={
-                          (effectiveProposalTier === "enhanced"
-                            ? "rounded-full border border-cyan-400/35 bg-cyan-500/[0.18] px-2.5 py-0.5 text-[10px] font-semibold text-cyan-50"
-                            : "rounded-full border border-white/[0.10] bg-white/[0.05] px-2.5 py-0.5 text-[10px] font-semibold text-white/55") +
-                          (!controlPermissions.proposalTier && isLive ? " cursor-not-allowed opacity-45" : "") +
-                          (!isLive || controlPermissions.proposalTier ? " active:scale-[0.97]" : "")
-                        }
-                      >
-                        Enhanced
-                      </button>
-                      <button
-                        type="button"
-                        disabled={isLive ? !controlPermissions.proposalTier : false}
-                        onClick={() => {
-                          if (controlPermissions.proposalTier) {
-                            onProposalTierChange?.("premium");
-                            return;
-                          }
-                          if (isLive) return;
-                          setProposalTier("premium");
-                        }}
-                        className={
-                          (effectiveProposalTier === "premium"
-                            ? "rounded-full border border-cyan-400/35 bg-cyan-500/[0.18] px-2.5 py-0.5 text-[10px] font-semibold text-cyan-50"
-                            : "rounded-full border border-white/[0.10] bg-white/[0.05] px-2.5 py-0.5 text-[10px] font-semibold text-white/55") +
-                          (!controlPermissions.proposalTier && isLive ? " cursor-not-allowed opacity-45" : "") +
-                          (!isLive || controlPermissions.proposalTier ? " active:scale-[0.97]" : "")
-                        }
-                      >
-                        Premium
-                      </button>
-                    </div>
-                  </div>
-                  <span className="shrink-0 rounded-full border border-white/[0.08] bg-white/[0.04] px-2.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.16em] text-white/42">
-                    Tuned
-                  </span>
                 </div>
               </div>
+              <div className="relative mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-white/[0.06] pt-3">
+                <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/55">
+                  <span aria-hidden className="h-1 w-1 rounded-full bg-cyan-300/75 shadow-[0_0_5px_rgba(34,211,238,0.6)]" />
+                  Strategy signal
+                </span>
+                <span className="text-[10.5px] leading-snug text-white/45">
+                  Tune pricing and tier — Outcome updates live.
+                </span>
+              </div>
             </div>
-            <p className="mt-2 text-[10px] leading-snug text-white/42">
-              Pricing mode and proposal controls are live here in the embedded workflow.
-            </p>
-            <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-white/[0.07] bg-white/[0.04] px-3 py-2 text-xs">
-              <span className="font-medium text-white/50">Current posture</span>
-              <span className="text-right font-semibold text-white/80">
-                {effectivePricingMode === "markup" ? "Markup-driven / homeowner-friendly" : "Direct price / homeowner-friendly"}
-              </span>
-            </div>
-            <p className="mt-2 text-[10px] text-white/35">
-              {effectivePricingMode === "markup"
-                ? "Adjusting margin will shift final price and profit"
-                : "Direct mode locks price — profit adjusts from cost"}
-            </p>
           </section>
 
-          {/* Section B — Scope Builder */}
-          <section className="rounded-[28px] border border-white/[0.09] bg-gradient-to-b from-white/[0.05] to-white/[0.02] p-6 shadow-[0_24px_60px_-28px_rgba(0,0,0,0.4)] sm:p-7 lg:col-span-7">
-            <div className="mb-6">
-              <h2 className="text-lg font-semibold tracking-tight text-white">Scope builder</h2>
-              <p className="mt-1 text-xs text-white/48">Decisions first, inputs second.</p>
-              <p className="mt-1 text-[10px] text-white/38">
-                Core scope decisions are live here in the embedded workflow.
-              </p>
-            </div>
-            <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 sm:gap-4">
+          {/* Section B — Scope & Costs (unified configurator) */}
+          <section id="v2-step-03" className="relative lg:col-span-7">
+            <div className="relative overflow-hidden rounded-[22px] border border-white/[0.07] bg-[radial-gradient(ellipse_100%_60%_at_50%_-10%,rgba(34,211,238,0.07),transparent_60%),linear-gradient(180deg,rgba(16,24,34,0.60)_0%,rgba(10,16,24,0.70)_100%)] p-5 shadow-[0_22px_55px_-24px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.04)] sm:p-6">
+              <span
+                aria-hidden
+                className="pointer-events-none absolute -top-24 right-[-12%] h-56 w-56 rounded-full bg-cyan-400/[0.07] blur-[100px]"
+              />
+              {/* Panel header */}
+              <div className="relative flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span aria-hidden className="h-1 w-1 rounded-full bg-cyan-300 shadow-[0_0_6px_rgba(34,211,238,0.8)]" />
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-cyan-200/85">
+                      Step 03 — Scope &amp; Costs
+                    </p>
+                  </div>
+                  <h2 className="mt-1 text-[1.45rem] font-semibold tracking-tight text-white">Configure the job</h2>
+                  <p className="mt-1 text-[11.5px] leading-relaxed text-white/55">
+                    Four decisions and three inputs become the outcome.
+                  </p>
+                </div>
+              </div>
+              {/* Stage A — Decisions */}
+              <div className="relative mt-5">
+                <div className="mb-2 flex items-center gap-2">
+                  <span
+                    aria-hidden
+                    className="flex h-5 w-5 items-center justify-center rounded-full border border-cyan-400/30 bg-cyan-500/[0.10] text-[9px] font-bold tabular-nums text-cyan-100/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
+                  >
+                    A
+                  </span>
+                  <p className="text-[9.5px] font-semibold uppercase tracking-[0.2em] text-white/55">
+                    Decisions
+                  </p>
+                  <span aria-hidden className="h-px flex-1 bg-gradient-to-r from-white/[0.10] to-transparent" />
+                </div>
+                <div className="divide-y divide-white/[0.06] border-t border-white/[0.06]">
               {(
                 [
                   {
@@ -879,6 +1237,7 @@ export default function RoofingClientV2({
                     value: effectiveScopeRoofSize,
                     helper: "Measured footprint",
                     isTileLive: controlPermissions.scopeRoofSize,
+                    Icon: Ruler,
                   },
                   {
                     id: "pitch" as const,
@@ -886,6 +1245,7 @@ export default function RoofingClientV2({
                     value: effectiveScopePitch,
                     helper: "Affects labor posture",
                     isTileLive: controlPermissions.scopePitch,
+                    Icon: Mountain,
                   },
                   {
                     id: "tearOff" as const,
@@ -893,6 +1253,7 @@ export default function RoofingClientV2({
                     value: effectiveScopeTearOff,
                     helper: "Removal and disposal ready",
                     isTileLive: controlPermissions.scopeTearOff,
+                    Icon: Trash2,
                   },
                   {
                     id: "material" as const,
@@ -900,6 +1261,7 @@ export default function RoofingClientV2({
                     value: effectiveScopeMaterial,
                     helper: "Primary install package",
                     isTileLive: controlPermissions.scopeMaterial,
+                    Icon: Layers,
                   },
                 ] as const
               ).map((tile) => {
@@ -923,95 +1285,90 @@ export default function RoofingClientV2({
                             : false
                           : isLive;
                 const tileInteractive = !disabled;
-
+                const rowNumber =
+                  tile.id === "roofSize" ? "01" : tile.id === "pitch" ? "02" : tile.id === "tearOff" ? "03" : "04";
                 if (tile.id === "roofSize" && tile.isTileLive) {
-                  const roofLiveOuterClass =
-                    "group flex flex-col rounded-2xl border border-white/[0.10] bg-white/[0.04] p-5 text-left transition duration-200" +
-                    (disabled
-                      ? " cursor-not-allowed opacity-60"
-                      : " hover:-translate-y-0.5 hover:border-white/[0.20] hover:bg-white/[0.09] hover:shadow-[0_16px_40px_-14px_rgba(0,0,0,0.45)] active:scale-[0.97]");
+                  const isOpen = activeScopeEditor === "roofSize";
                   return (
-                    <div key={tile.id} className={roofLiveOuterClass}>
+                    <div
+                      key={tile.id}
+                      className={
+                        "group w-full py-4 text-left transition-all duration-200 ease-out hover:bg-gradient-to-r hover:from-white/[0.025] hover:via-white/[0.015] hover:to-transparent hover:pl-1 active:scale-[0.997]" +
+                        (disabled ? " cursor-not-allowed opacity-55" : "")
+                      }
+                    >
                       <button
                         type="button"
                         disabled={disabled}
-                        aria-expanded={activeScopeEditor === "roofSize"}
+                        aria-expanded={isOpen}
                         onClick={() =>
                           setActiveScopeEditor((prev) => (prev === "roofSize" ? null : "roofSize"))
                         }
                         className={
-                          "flex w-full flex-col rounded-lg text-left outline-none transition focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" +
-                          (disabled ? " cursor-not-allowed" : "")
+                          "flex w-full items-baseline gap-4 rounded-lg text-left outline-none transition focus-visible:ring-2 focus-visible:ring-cyan-400/30 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" +
+                          (disabled ? " cursor-not-allowed opacity-55" : "")
                         }
                       >
-                        <span
-                          className={
-                            "text-[9px] font-semibold uppercase tracking-[0.18em] text-white/35" +
-                            (tileInteractive ? " group-hover:text-white/45" : "")
-                          }
-                        >
-                          Decision
+                        <span className="w-6 shrink-0 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/25 tabular-nums transition group-hover:text-cyan-300/70">
+                          {rowNumber}
                         </span>
-                        <span
-                          className={
-                            "mt-1.5 text-[11px] font-medium uppercase tracking-[0.1em] text-white/45" +
-                            (tileInteractive ? " group-hover:text-white/55" : "")
-                          }
-                        >
+                        <tile.Icon
+                          aria-hidden
+                          strokeWidth={1.6}
+                          className="h-3.5 w-3.5 shrink-0 text-white/35 transition group-hover:text-cyan-300/80"
+                        />
+                        <span className="w-32 shrink-0 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/63 transition group-hover:text-white/78 sm:w-40">
                           {tile.title}
                         </span>
-                        <span className="mt-2.5 text-xl font-bold tracking-tight text-white sm:text-[1.3rem]">
+                        <span className="min-w-0 flex-1 truncate text-[1.48rem] font-semibold tracking-tight text-white [text-shadow:0_1px_0_rgba(0,0,0,0.25)] sm:text-[1.62rem]">
                           {tile.value}
+                          <span className="ml-2 text-[11px] font-medium tabular-nums tracking-tight text-white/45 transition group-hover:text-white/60">
+                            {getCurrentRoofAreaSqFtForStepper().toLocaleString()} sq ft
+                          </span>
                         </span>
-                        <span className="mt-1 text-[11px] tabular-nums text-white/45">
-                          {getCurrentRoofAreaSqFtForStepper().toLocaleString()} sq ft
-                        </span>
-                      </button>
-                      {activeScopeEditor === "roofSize" && roofSizeCanAdjust ? (
-                        <div className="mt-3 rounded-xl border border-white/[0.10] bg-white/[0.05] px-2 py-2">
-                          <div className="flex items-center justify-between gap-2">
-                            <button
-                              type="button"
-                              aria-label="Decrease roof size by 100 sq ft"
-                              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/[0.12] bg-white/[0.06] text-sm font-semibold text-white/80 transition hover:border-white/[0.18] hover:bg-white/[0.10] active:scale-95"
-                              onClick={handleRoofSizeDecrease}
-                            >
-                              −
-                            </button>
-                            <span className="min-w-0 flex-1 text-center text-[13px] font-semibold tabular-nums tracking-tight text-white/90">
-                              {getCurrentRoofAreaSqFtForStepper().toLocaleString()} sq ft
-                            </span>
-                            <button
-                              type="button"
-                              aria-label="Increase roof size by 100 sq ft"
-                              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/[0.12] bg-white/[0.06] text-sm font-semibold text-white/80 transition hover:border-white/[0.18] hover:bg-white/[0.10] active:scale-95"
-                              onClick={handleRoofSizeIncrease}
-                            >
-                              +
-                            </button>
-                          </div>
-                          <p className="mt-1.5 text-center text-[9px] font-medium uppercase tracking-[0.14em] text-white/38">
-                            Fine adjust
-                          </p>
-                        </div>
-                      ) : null}
-                      <div className="mt-4 flex items-center justify-between gap-3 border-t border-white/[0.07] pt-3">
-                        <span className="text-left text-[11px] leading-snug text-white/42">{tile.helper}</span>
                         <span
                           className={
-                            "shrink-0 rounded-full border border-white/[0.10] bg-white/[0.06] px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/55" +
+                            "shrink-0 text-[11px] font-semibold uppercase tracking-[0.16em] transition " +
                             (tileInteractive
-                              ? " group-hover:border-white/[0.14] group-hover:bg-white/[0.10] group-hover:text-white/70"
-                              : "")
+                              ? "text-white/45 group-hover:text-cyan-200 group-hover:[text-shadow:0_0_12px_rgba(34,211,238,0.45)]"
+                              : "text-white/30")
                           }
                         >
-                          {activeScopeEditor === "roofSize" ? "Tap to close" : "Fine adjust"}
+                          {isOpen ? "Close" : "Adjust"}
+                          <span aria-hidden className="ml-1 inline-block transition group-hover:translate-x-0.5">
+                            {isOpen ? "↓" : "→"}
+                          </span>
                         </span>
-                      </div>
+                      </button>
+                      {isOpen && roofSizeCanAdjust ? (
+                        <div className="mt-3 ml-10 flex items-center gap-3 sm:ml-[184px]">
+                          <button
+                            type="button"
+                            aria-label="Decrease roof size by 100 sq ft"
+                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/[0.10] bg-gradient-to-b from-white/[0.06] to-white/[0.02] text-base font-semibold text-white/85 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_1px_2px_rgba(0,0,0,0.3)] transition hover:border-cyan-400/40 hover:from-cyan-500/[0.10] hover:to-white/[0.03] hover:text-white active:scale-95"
+                            onClick={handleRoofSizeDecrease}
+                          >
+                            −
+                          </button>
+                          <span className="min-w-[8rem] text-center text-[14px] font-semibold tabular-nums tracking-tight text-white">
+                            {getCurrentRoofAreaSqFtForStepper().toLocaleString()} sq ft
+                          </span>
+                          <button
+                            type="button"
+                            aria-label="Increase roof size by 100 sq ft"
+                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/[0.10] bg-gradient-to-b from-white/[0.06] to-white/[0.02] text-base font-semibold text-white/85 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_1px_2px_rgba(0,0,0,0.3)] transition hover:border-cyan-400/40 hover:from-cyan-500/[0.10] hover:to-white/[0.03] hover:text-white active:scale-95"
+                            onClick={handleRoofSizeIncrease}
+                          >
+                            +
+                          </button>
+                          <span className="text-[10px] uppercase tracking-[0.16em] text-white/40">
+                            Fine adjust · 100 sq ft steps
+                          </span>
+                        </div>
+                      ) : null}
                     </div>
                   );
                 }
-
                 return (
                   <button
                     key={tile.id}
@@ -1031,9 +1388,7 @@ export default function RoofingClientV2({
                         onPitchChange?.(mapPitchDisplayToPitchKey(nextDisplay));
                         return;
                       }
-
                       if (isLive) return;
-
                       setScopePreset((prev) =>
                         prev === "standard"
                           ? "larger"
@@ -1043,429 +1398,591 @@ export default function RoofingClientV2({
                       );
                     }}
                     className={
-                      "group flex flex-col rounded-2xl border border-white/[0.10] bg-white/[0.04] p-5 text-left transition duration-200" +
-                      (tile.isTileLive
-                        ? " hover:-translate-y-0.5 hover:border-white/[0.20] hover:bg-white/[0.09] hover:shadow-[0_16px_40px_-14px_rgba(0,0,0,0.45)] active:scale-[0.97]"
-                        : isTileLocked
-                          ? " cursor-not-allowed opacity-60"
-                          : " hover:-translate-y-0.5 hover:border-white/[0.20] hover:bg-white/[0.09] hover:shadow-[0_16px_40px_-14px_rgba(0,0,0,0.45)]")
+                      "group flex w-full items-baseline gap-4 py-4 text-left transition-all duration-200 ease-out hover:bg-gradient-to-r hover:from-white/[0.025] hover:via-white/[0.015] hover:to-transparent hover:pl-1 active:scale-[0.997]" +
+                      (isTileLocked ? " cursor-not-allowed opacity-55" : "")
                     }
                   >
-                    <span
-                      className={
-                        "text-[9px] font-semibold uppercase tracking-[0.18em] text-white/35" +
-                        (tileInteractive ? " group-hover:text-white/45" : "")
-                      }
-                    >
-                      Decision
+                    <span className="w-6 shrink-0 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/25 tabular-nums transition group-hover:text-cyan-300/70">
+                      {rowNumber}
                     </span>
-                    <span
-                      className={
-                        "mt-1.5 text-[11px] font-medium uppercase tracking-[0.1em] text-white/45" +
-                        (tileInteractive ? " group-hover:text-white/55" : "")
-                      }
-                    >
+                    <tile.Icon
+                      aria-hidden
+                      strokeWidth={1.6}
+                      className="h-3.5 w-3.5 shrink-0 text-white/35 transition group-hover:text-cyan-300/80"
+                    />
+                    <span className="w-32 shrink-0 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/63 transition group-hover:text-white/78 sm:w-40">
                       {tile.title}
                     </span>
-                    {tile.id === "material" ? (
-                      <>
-                        <span className="mt-2.5 text-xl font-bold tracking-tight text-white sm:text-[1.3rem]">
-                          {getMaterialCoverageLabel(effectiveScopeMaterial)}
-                        </span>
-                        <span className="mt-1 text-[11px] font-medium tabular-nums tracking-tight text-white/45 sm:text-xs">
+                    <span className="min-w-0 flex-1 truncate text-[1.48rem] font-semibold tracking-tight text-white [text-shadow:0_1px_0_rgba(0,0,0,0.25)] sm:text-[1.62rem]">
+                      {tile.id === "material" ? getMaterialCoverageLabel(effectiveScopeMaterial) : tile.value}
+                      {tile.id === "material" ? (
+                        <span className="ml-2 text-[11px] font-medium tabular-nums tracking-tight text-white/45 transition group-hover:text-white/60">
                           {effectiveScopeMaterial}
                         </span>
-                      </>
-                    ) : (
-                      <span className="mt-2.5 text-xl font-bold tracking-tight text-white sm:text-[1.3rem]">
-                        {tile.value}
-                      </span>
-                    )}
-                    <div className="mt-4 flex items-center justify-between gap-3 border-t border-white/[0.07] pt-3">
-                      <span className="text-left text-[11px] leading-snug text-white/42">{tile.helper}</span>
-                      <span
-                        data-scope-adjust
-                        className={
-                          "shrink-0 rounded-full border border-white/[0.10] bg-white/[0.06] px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/55" +
-                          (tileInteractive
-                            ? " group-hover:border-white/[0.14] group-hover:bg-white/[0.10] group-hover:text-white/70"
-                            : "")
-                        }
-                      >
-                        Adjust
-                      </span>
-                    </div>
+                      ) : null}
+                    </span>
+                    <span
+                      data-scope-adjust
+                      className={
+                        "shrink-0 text-[11px] font-semibold uppercase tracking-[0.16em] transition " +
+                        (tileInteractive
+                          ? "text-white/45 group-hover:text-cyan-200 group-hover:[text-shadow:0_0_12px_rgba(34,211,238,0.45)]"
+                          : "text-white/30")
+                      }
+                    >
+                      Change
+                      <span aria-hidden className="ml-1 inline-block transition group-hover:translate-x-0.5">→</span>
+                    </span>
                   </button>
                 );
               })}
-            </div>
-            <p className="mt-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/38">
-              Pricing
-            </p>
-            <div className="mt-5 grid grid-cols-1 gap-3.5 sm:grid-cols-2 sm:gap-4">
-              <div className="rounded-2xl border border-white/[0.10] bg-white/[0.04] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
-                <label htmlFor="v2-pricing-bundle" className="block text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
-                  Bundle cost
-                </label>
-                <div className="mt-1.5 flex items-center gap-2">
-                  <span className="shrink-0 text-sm font-medium text-white/50">$</span>
-                  <input
-                    id="v2-pricing-bundle"
-                    type="number"
-                    inputMode="decimal"
-                    disabled={!canEditBundleCost}
-                    value={bundleCostValue ?? ""}
-                    onChange={(e) => onBundleCostChange?.(e.target.value)}
-                    className={
-                      "min-w-0 flex-1 " + pricingFieldInputClass + " disabled:cursor-not-allowed disabled:opacity-45"
-                    }
-                  />
                 </div>
               </div>
-              <div className="rounded-2xl border border-white/[0.10] bg-white/[0.04] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
-                <label htmlFor="v2-pricing-labor-cost" className="block text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
-                  Labor cost
-                </label>
-                <input
-                  id="v2-pricing-labor-cost"
-                  type="text"
-                  inputMode="numeric"
-                  disabled={!canEditManualLaborTotal || !laborModeIsManual}
-                  value={manualLaborTotalValue ?? ""}
-                  onChange={(e) => onManualLaborTotalChange?.(e.target.value)}
-                  onBlur={() => onManualLaborTotalBlur?.()}
-                  className={"mt-1.5 " + pricingFieldInputClass + " disabled:cursor-not-allowed disabled:opacity-45"}
-                />
-                <p className="mt-1 text-[9px] leading-snug text-white/38">Manual labor input used for the V2 workflow.</p>
+              {/* Stage B — Inputs */}
+              <div className="relative mt-8">
+                <div className="mb-3 flex items-center gap-2">
+                  <span
+                    aria-hidden
+                    className="flex h-5 w-5 items-center justify-center rounded-full border border-emerald-400/30 bg-emerald-500/[0.10] text-[9px] font-bold tabular-nums text-emerald-100/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
+                  >
+                    B
+                  </span>
+                  <p className="text-[9.5px] font-semibold uppercase tracking-[0.2em] text-white/55">
+                    Inputs
+                  </p>
+                  <span aria-hidden className="h-px flex-1 bg-gradient-to-r from-white/[0.10] to-transparent" />
+                  <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.04] px-2.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.16em] text-white/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+                    <span aria-hidden className="h-1 w-1 rounded-full bg-emerald-400/80 shadow-[0_0_5px_rgba(16,185,129,0.6)]" />
+                    Live
+                  </span>
+                </div>
+                <div className={"grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-" + (tearOffIsIncluded ? "3" : "2")}>
+                  <label className="group flex flex-col">
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/50 transition group-focus-within:text-cyan-200/90">
+                      Bundle cost
+                    </span>
+                    <span className="mt-1.5 flex items-baseline gap-1.5 border-b border-white/[0.12] pb-2 transition-all duration-200 focus-within:border-cyan-400/65 focus-within:shadow-[0_1px_0_rgba(34,211,238,0.40)]">
+                      <span className="text-base font-medium text-white/60">$</span>
+                      <input
+                        id="v2-pricing-bundle"
+                        type="number"
+                        inputMode="decimal"
+                        disabled={!canEditBundleCost}
+                        value={bundleCostValue ?? ""}
+                        onChange={(e) => onBundleCostChange?.(e.target.value)}
+                        className="min-w-0 flex-1 bg-transparent text-[1.2rem] font-semibold tabular-nums tracking-tight text-white placeholder:text-white/25 focus:outline-none disabled:cursor-not-allowed disabled:opacity-45"
+                      />
+                    </span>
+                  </label>
+                  <label className="group flex flex-col">
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/50 transition group-focus-within:text-cyan-200/90">
+                      Labor cost
+                    </span>
+                    <span className="mt-1.5 flex items-baseline gap-1.5 border-b border-white/[0.12] pb-2 transition-all duration-200 focus-within:border-cyan-400/65 focus-within:shadow-[0_1px_0_rgba(34,211,238,0.40)]">
+                      <span className="text-base font-medium text-white/60">$</span>
+                      <input
+                        id="v2-pricing-labor-cost"
+                        type="text"
+                        inputMode="numeric"
+                        disabled={!canEditManualLaborTotal || !laborModeIsManual}
+                        value={manualLaborTotalValue ?? ""}
+                        onChange={(e) => onManualLaborTotalChange?.(e.target.value)}
+                        onBlur={() => onManualLaborTotalBlur?.()}
+                        className="min-w-0 flex-1 bg-transparent text-[1.2rem] font-semibold tabular-nums tracking-tight text-white placeholder:text-white/25 focus:outline-none disabled:cursor-not-allowed disabled:opacity-45"
+                      />
+                    </span>
+                    <span className="mt-1.5 text-[10px] leading-snug text-white/48">
+                      Real labor total for this job.
+                    </span>
+                  </label>
+                  {tearOffIsIncluded ? (
+                    <label className="group flex flex-col">
+                      <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/50 transition group-focus-within:text-cyan-200/90">
+                        Disposal rate
+                      </span>
+                      <span className="mt-1.5 flex items-baseline gap-1.5 border-b border-white/[0.12] pb-2 transition-all duration-200 focus-within:border-cyan-400/65 focus-within:shadow-[0_1px_0_rgba(34,211,238,0.40)]">
+                        <span className="text-base font-medium text-white/60">$</span>
+                        <input
+                          id="v2-pricing-dump"
+                          type="text"
+                          inputMode="decimal"
+                          disabled={!canEditDumpFee}
+                          value={dumpFeePerTonValue ?? ""}
+                          onChange={(e) => onDumpFeePerTonChange?.(e.target.value)}
+                          className="min-w-0 flex-1 bg-transparent text-[1.2rem] font-semibold tabular-nums tracking-tight text-white placeholder:text-white/25 focus:outline-none disabled:cursor-not-allowed disabled:opacity-45"
+                        />
+                        <span className="text-[10px] uppercase tracking-[0.14em] text-white/40">/ ton</span>
+                      </span>
+                      <span className="mt-1.5 text-[10px] leading-snug text-white/48">
+                        Used when tear-off is included.
+                      </span>
+                    </label>
+                  ) : null}
+                </div>
+              </div>
+              {/* Closing hand-off strip */}
+              <div className="relative mt-6 flex flex-wrap items-center justify-between gap-2 border-t border-white/[0.06] pt-3">
+                <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/55">
+                  <span aria-hidden className="h-1 w-1 rounded-full bg-cyan-300 shadow-[0_0_6px_rgba(34,211,238,0.8)]" />
+                  Scope &amp; costs locked
+                </span>
+                <span className="text-[10.5px] leading-snug text-white/45">
+                  Outcome is recomputing live from these values.
+                </span>
               </div>
             </div>
-            {tearOffIsIncluded ? (
-              <div className="mt-3.5 rounded-2xl border border-white/[0.10] bg-white/[0.04] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
-                <label htmlFor="v2-pricing-dump" className="block text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
-                  Disposal rate
-                </label>
-                <input
-                  id="v2-pricing-dump"
-                  type="text"
-                  inputMode="decimal"
-                  disabled={!canEditDumpFee}
-                  value={dumpFeePerTonValue ?? ""}
-                  onChange={(e) => onDumpFeePerTonChange?.(e.target.value)}
-                  className={"mt-1.5 " + pricingFieldInputClass + " disabled:cursor-not-allowed disabled:opacity-45"}
-                />
-                <p className="mt-1 text-[9px] leading-snug text-white/38">Used only when tear-off is included.</p>
-              </div>
-            ) : null}
-            <p className="mt-5 text-[10px] leading-snug text-white/42">
-              These decisions shape labor difficulty, material cost, and how the final price is perceived.
-            </p>
           </section>
 
-          {/* Section E — Live Outcome */}
-          <section className="rounded-[28px] border border-cyan-400/30 bg-gradient-to-b from-cyan-500/[0.14] via-cyan-500/[0.06] to-black/30 p-4 shadow-[0_24px_60px_-20px_rgba(34,211,238,0.18),0_0_0_1px_rgba(34,211,238,0.08)_inset] ring-1 ring-cyan-400/18 sm:p-4 lg:col-span-5">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-cyan-200/75">
-              Projected outcome
-            </p>
-            <h2 className="mt-1 text-2xl font-bold tracking-tight text-white">Live outcome</h2>
-            <p className="mt-1 max-w-md text-xs leading-snug text-white/55">
-              {effectivePricingMode === "markup"
-                ? "Deterministic pricing preview — economics and presentation in one glance."
-                : "Direct price posture preview — homeowner presentation and contractor economics aligned."}
-            </p>
-            <div className={outcomeCardClass}>
-              <div className={outcomeHeaderBandClass}>
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/55">
-                    Presentation target
-                  </span>
-                  <span className="rounded-full border border-cyan-400/35 bg-cyan-500/[0.18] px-2.5 py-0.5 text-[11px] font-semibold tracking-wide text-cyan-50 shadow-[0_0_16px_-4px_rgba(34,211,238,0.3)]">
-                    Homeowner-ready
-                  </span>
-                </div>
+          {/* Section E — Live Outcome (unified product surface) */}
+          <section className="relative overflow-hidden rounded-[28px] border border-cyan-400/25 bg-[radial-gradient(ellipse_120%_80%_at_50%_-10%,rgba(34,211,238,0.22),transparent_60%),linear-gradient(180deg,rgba(15,24,36,0.92)_0%,rgba(9,15,24,0.96)_100%)] p-7 shadow-[0_40px_90px_-30px_rgba(34,211,238,0.35),0_2px_0_rgba(255,255,255,0.05)_inset,0_0_0_1px_rgba(34,211,238,0.08)_inset] sm:p-8 lg:col-span-5 lg:sticky lg:top-6 lg:self-start">
+            <span
+              aria-hidden
+              className="pointer-events-none absolute -top-28 -right-24 h-72 w-72 rounded-full bg-cyan-400/[0.18] blur-[110px]"
+            />
+            <span
+              aria-hidden
+              className="pointer-events-none absolute -bottom-32 -left-20 h-64 w-64 rounded-full bg-teal-500/[0.10] blur-[120px]"
+            />
+            <div className="relative flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-cyan-300 shadow-[0_0_14px_3px_rgba(34,211,238,0.7)]" aria-hidden />
+                <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-cyan-200/90">
+                  Step 04 — Outcome
+                </p>
               </div>
-              <div className="px-3.5 pb-2 pt-2 sm:px-4 sm:pb-2.5 sm:pt-2.5">
-                <div className="mb-3 rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2">
-                  <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
-                    Project
-                  </div>
-                  <div className="mt-1 text-sm font-semibold text-white">{outcomeCustomerName}</div>
-                  <div className="text-[11px] text-white/50">{outcomeJobLine}</div>
-                </div>
-                <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between sm:gap-3">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-xs font-semibold uppercase tracking-[0.1em] text-white/50">
-                      Final price
-                    </span>
-                    <span className="rounded-full border border-white/[0.12] bg-white/[0.05] px-2 py-0.5 text-[8px] font-semibold uppercase tracking-[0.16em] text-white/50">
-                      {effectivePricingMode === "markup" ? "Markup" : "Direct"}
-                    </span>
-                  </div>
-                  <span className="text-[2.4rem] font-bold tabular-nums tracking-tight text-white transition-all duration-200 ease-out sm:text-[2.6rem]">
-                    {money(displayFinalPrice)}
-                  </span>
-                </div>
-                <p className="mt-1 text-[10px] text-white/42 text-center">{outcomeScopeSummary}</p>
-                <p className="mt-1 text-left text-[10px] tabular-nums leading-snug text-white/45 sm:text-center">
-                  {money(displayFinalPrice)} = {money(displayJobCost)} cost + {money(displayProfit)} profit
-                </p>
-                <p className="mt-1 text-[10px] text-white/40">
-                  {effectivePricingMode === "markup"
-                    ? "Driven by margin target and cost structure"
-                    : "Driven by direct homeowner price"}
-                </p>
-                <p className="mt-1 text-[10px] text-white/42">
-                  Based on roof complexity, material choice, and installation conditions.
-                </p>
-                <p className="mt-1 text-[10px] text-white/42">
-                  {effectiveProposalTier === "core"
-                    ? "Lean presentation designed for speed and clarity."
-                    : effectiveProposalTier === "enhanced"
-                      ? "Balanced presentation designed to build homeowner confidence."
-                      : "Premium presentation designed to strengthen perceived value."}
-                </p>
-                <div className="mt-2 grid grid-cols-2 gap-1.5 sm:gap-2">
-                  {[
-                    { label: "Your cost", value: money(displayJobCost) },
-                    { label: "Your profit", value: money(displayProfit) },
-                    {
-                      label: "Margin",
-                      value:
-                        displayMarginRatio != null
-                          ? pct(displayMarginRatio * 100)
-                          : hasLive
-                            ? "—"
-                            : pct(mockMarginPct),
-                      hint: "Healthy range for residential roofing",
-                    },
-                    {
-                      label: "Pricing mode",
-                      value: effectivePricingMode === "markup" ? "Markup" : "Direct",
-                      hint:
-                        effectivePricingMode === "markup" ? "Driven by margin target" : "Direct homeowner price posture",
-                    },
-                  ].map((m) => (
-                    <div
-                      key={m.label}
-                      className={
-                        m.label === "Your profit" && profitQuality === "strong"
-                          ? "rounded-lg border border-emerald-400/30 bg-emerald-500/[0.06] px-2 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] sm:px-2.5 sm:py-2"
-                          : m.label === "Your profit" && profitQuality === "low"
-                            ? "rounded-lg border border-red-400/30 bg-red-500/[0.06] px-2 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] sm:px-2.5 sm:py-2"
-                            : m.label === "Pricing mode" && effectivePricingMode === "direct"
-                              ? "rounded-lg border border-white/[0.14] bg-white/[0.07] px-2 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:px-2.5 sm:py-2"
-                              : "rounded-lg border border-white/[0.08] bg-white/[0.05] px-2 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] sm:px-2.5 sm:py-2"
-                      }
-                    >
-                      <div
-                        className={
-                          "text-[9px] font-semibold uppercase tracking-[0.1em] " +
-                          (m.label === "Pricing mode" && effectivePricingMode === "direct"
-                            ? "text-white/48"
-                            : "text-white/38")
-                        }
-                      >
-                        {m.label}
-                      </div>
-                      <div
-                        className={
-                          "mt-0.5 truncate text-sm font-bold tabular-nums tracking-tight " +
-                          (m.label === "Pricing mode" && effectivePricingMode === "direct"
-                            ? "text-white/95"
-                            : "text-white")
-                        }
-                      >
-                        {m.value}
-                      </div>
-                      {"hint" in m && m.hint ? (
-                        <p className="mt-0.5 text-[9px] leading-snug text-white/38">{m.hint}</p>
-                      ) : null}
-                    </div>
-                  ))}
-                </div>
-                {(profitQuality === "low" || profitQuality === "healthy" || profitQuality === "strong") && (
-                  <div
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-cyan-400/35 bg-gradient-to-b from-cyan-500/[0.22] to-cyan-600/[0.10] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-50 shadow-[0_0_20px_-4px_rgba(34,211,238,0.55),inset_0_1px_0_rgba(255,255,255,0.12)]">
+                Homeowner-ready
+              </span>
+            </div>
+            <div className="relative mt-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/55">
+                {outcomeCustomerName}
+              </p>
+              <p className="mt-0.5 text-[11.5px] text-white/60">{outcomeJobLine}</p>
+            </div>
+            {/* HERO PRICE */}
+            <div className="relative mt-6 flex items-end justify-between gap-4">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/55">
+                Final price
+                <span className="ml-2 rounded-full border border-white/[0.12] bg-white/[0.05] px-1.5 py-0.5 text-[9px] font-semibold tracking-[0.18em] text-white/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                  {effectivePricingMode === "markup" ? "Markup" : "Direct"}
+                </span>
+              </span>
+              <div className="relative flex flex-col items-end">
+                {priceDelta != null && (
+                  <span
+                    aria-hidden
                     className={
-                      profitQuality === "strong"
-                        ? "mt-3 rounded-md border border-emerald-400/30 bg-emerald-500/[0.06] px-3 py-2"
-                        : profitQuality === "low"
-                          ? "mt-3 rounded-md border border-red-400/30 bg-red-500/[0.06] px-3 py-2"
-                          : "mt-3 rounded-md border border-white/10 bg-white/[0.03] px-3 py-2"
+                      "pointer-events-none absolute -top-4 right-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums leading-none shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition-opacity duration-500 " +
+                      (priceDelta > 0
+                        ? "border border-emerald-400/30 bg-emerald-500/[0.14] text-emerald-200"
+                        : "border border-red-400/25 bg-red-500/[0.10] text-red-200")
                     }
                   >
-                    {profitQuality === "low" && (
-                      <div className="text-[10px] text-red-400">Low margin — consider increasing price</div>
-                    )}
-                    {profitQuality === "healthy" && (
-                      <div className="text-[10px] text-amber-300">Healthy margin — competitive pricing</div>
-                    )}
-                    {profitQuality === "strong" && (
-                      <div className="text-[10px] font-semibold text-emerald-300">
-                        Strong margin — high profitability
-                      </div>
-                    )}
-                    {profitQuality === "low" && (
-                      <p className="mt-1 text-[10px] text-red-300/70">
-                        Increase margin or reduce cost before sending
-                      </p>
-                    )}
-                    {profitQuality === "strong" && (
-                      <p className="mt-1 text-[10px] font-semibold text-emerald-300/70">
-                        Strong deal — safe to present to homeowner
-                      </p>
-                    )}
-                  </div>
-                )}
-                <div className="my-1.5 border-t border-white/[0.08]" aria-hidden />
-                <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-[9px] font-semibold uppercase tracking-[0.14em] text-white/38">Ready to present</span>
-                  <span className="shrink-0 rounded-full border border-white/[0.10] bg-white/[0.04] px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white/45">
-                    Send-confidence preview
+                    {priceDelta > 0 ? "+" : "−"}
+                    {money(Math.abs(priceDelta))}
                   </span>
-                </div>
-                <div className={"mt-2 " + proposalOutputClass}>
-                  <div className="min-w-0 flex-1">
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-cyan-100/55">Homeowner proposal</span>
-                    <p className="mt-0.5 text-[9px] leading-snug text-white/40">Proposal tier sets how this reads to homeowners.</p>
-                  </div>
-                  <span className="shrink-0 text-right text-xs font-semibold leading-snug text-white">{proposalTierLabel}</span>
-                </div>
-                <p className="mt-0.5 text-center text-[10px] leading-snug text-white/42">{proposalTierSupport}</p>
-                <p className="mt-0.5 text-center text-[10px] leading-snug text-white/38">
-                  Built to match the homeowner-facing proposal experience.
-                </p>
-                <p className="mt-1 text-center text-[10px] text-white/40">
-                  {effectiveProposalTier === "core"
-                    ? "Ready for a clean, straightforward proposal presentation."
-                    : effectiveProposalTier === "enhanced"
-                      ? "Ready for a balanced proposal presentation with stronger confidence."
-                      : "Ready for a premium proposal presentation with elevated perceived value."}
-                </p>
-                <p className="mt-1 text-center text-[10px] text-white/40">
-                  Scope and material choices support this proposal presentation.
-                </p>
-                <p className="mt-1 text-center text-[10px] leading-snug text-white/42">
-                  {hasLive
-                    ? `PDF-aligned total ${money(viewModel!.proposal.price)} · M ${money(viewModel!.proposal.materials)} · L ${money(viewModel!.proposal.labor)} · D ${money(viewModel!.proposal.disposal)}`
-                    : "Customer-facing presentation paired with contractor-facing economics."}
-                </p>
+                )}
+                <span
+                  className={
+                    "bg-gradient-to-b from-white to-white/82 bg-clip-text text-[3.55rem] font-bold leading-none tabular-nums tracking-[-0.02em] text-transparent transition-all duration-300 ease-out sm:text-[4rem] " +
+                    (priceDelta != null
+                      ? "scale-[1.012] drop-shadow-[0_2px_18px_rgba(34,211,238,0.55)]"
+                      : "drop-shadow-[0_2px_12px_rgba(34,211,238,0.28)]")
+                  }
+                >
+                  {money(displayFinalPrice)}
+                </span>
               </div>
             </div>
-            <p className="mt-2.5 text-center text-[11px] text-white/40">
-              Live preview of pricing posture and homeowner-facing proposal output.
+            <p className="relative mt-2 text-right text-[11px] font-medium tabular-nums leading-snug text-white/55">
+              {money(displayJobCost)} cost + {money(displayProfit)} profit
             </p>
-          </section>
-
-          {/* Production readiness — merged momentum + notes */}
-          <section className="rounded-[26px] border border-white/[0.08] bg-white/[0.03] p-5 sm:p-6 lg:col-span-7">
-            <h2 className="text-base font-semibold tracking-tight text-white">Production readiness</h2>
-            <p className="mt-1 text-xs leading-relaxed text-white/45">
-              Progress and site considerations in one compact planning surface.
+            {pricePerSquare != null && (
+              <p className="relative mt-0.5 text-right text-[10.5px] font-medium tabular-nums leading-snug text-white/40">
+                {money(pricePerSquare)} / square
+              </p>
+            )}
+            <p className="relative mt-1 text-right text-[10.5px] leading-snug text-white/40">
+              {outcomeScopeSummary}
             </p>
-            <div className="mt-5 grid grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-8">
-              <div className="min-w-0 lg:border-r lg:border-white/[0.06] lg:pr-8">
-                <h3 className="text-xs font-semibold uppercase tracking-[0.12em] text-white/42">Builder momentum</h3>
-                <div className="mt-3 flex flex-col gap-1.5">
-                  <div className="flex items-center justify-between gap-2 rounded-xl border border-white/[0.07] bg-white/[0.03] px-3 py-2">
-                    <span className="text-sm text-white/80">Scope is defined</span>
-                    <span className="shrink-0 rounded-full border border-emerald-400/30 bg-emerald-500/[0.14] px-2 py-0.5 text-[10px] font-semibold text-emerald-200/95">
-                      Ready
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between gap-2 rounded-xl border border-white/[0.07] bg-white/[0.03] px-3 py-2">
-                    <span className="text-sm text-white/80">Pricing stance selected</span>
-                    <span className="shrink-0 rounded-full border border-amber-400/28 bg-amber-500/[0.12] px-2 py-0.5 text-[10px] font-semibold text-amber-100/90">
-                      Waiting
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between gap-2 rounded-xl border border-white/[0.07] bg-white/[0.03] px-3 py-2">
-                    <span className="text-sm text-white/80">Proposal positioning</span>
-                    <span className="shrink-0 rounded-full border border-white/[0.10] bg-white/[0.06] px-2 py-0.5 text-[10px] font-semibold text-white/55">
-                      Pending
-                    </span>
-                  </div>
+            {/* METRIC STRIP — typographic, not boxes */}
+            <div className="relative mt-6 grid grid-cols-3 divide-x divide-white/[0.08] border-y border-white/[0.08] py-4">
+              <button
+                type="button"
+                onClick={() => setCostExpanded((v) => !v)}
+                aria-expanded={costExpanded}
+                className="group rounded-sm px-4 text-left outline-none first:pl-0 focus-visible:ring-1 focus-visible:ring-cyan-400/40"
+              >
+                <div className="flex items-center gap-1 text-[9.5px] font-semibold uppercase tracking-[0.16em] text-white/45 transition group-hover:text-white/70">
+                  Your cost
+                  <span
+                    aria-hidden
+                    className={
+                      "ml-0.5 inline-block text-[8px] leading-none transition-transform " +
+                      (costExpanded
+                        ? "rotate-180 text-cyan-300/70"
+                        : "text-white/35 group-hover:text-cyan-300/70")
+                    }
+                  >
+                    ▾
+                  </span>
+                </div>
+                <div className="mt-1 text-[1.05rem] font-bold tabular-nums tracking-tight text-white">
+                  {money(displayJobCost)}
+                </div>
+              </button>
+              <div className="px-4">
+                <div
+                  className={
+                    "text-[9.5px] font-semibold uppercase tracking-[0.16em] " +
+                    (profitQuality === "strong" ? "text-emerald-300/85" : profitQuality === "low" ? "text-red-300/85" : "text-white/45")
+                  }
+                >
+                  Your profit
+                </div>
+                <div
+                  className={
+                    "mt-1 text-[1.05rem] font-bold tabular-nums tracking-tight " +
+                    (profitQuality === "strong"
+                      ? "text-emerald-200 [text-shadow:0_0_14px_rgba(16,185,129,0.3)]"
+                      : profitQuality === "low"
+                        ? "text-red-200"
+                        : "text-white")
+                  }
+                >
+                  {money(displayProfit)}
                 </div>
               </div>
-              <div className="min-w-0">
-                <h3 className="text-xs font-semibold uppercase tracking-[0.12em] text-white/42">Production notes</h3>
-                <div className="mt-3 grid grid-cols-2 gap-2">
-                  {["Access / dump trailer", "Landscaping protection", "Flashing review", "Ventilation check"].map(
-                    (item) => (
-                      <div
-                        key={item}
-                        className="flex min-h-0 items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.04] px-2.5 py-2"
-                      >
-                        <span
-                          className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400/75 ring-2 ring-emerald-400/20"
-                          aria-hidden
-                        />
-                        <span className="text-xs font-medium leading-snug text-white/85">{item}</span>
-                      </div>
-                    ),
+              <div className="px-4 last:pr-0">
+                <div className="flex items-center gap-1 text-[9.5px] font-semibold uppercase tracking-[0.16em] text-white/45">
+                  Margin
+                  {marginsDiverge && (
+                    <span
+                      aria-hidden
+                      title="Target and actual differ"
+                      className="h-1 w-1 rounded-full bg-white/30 shadow-[0_0_4px_rgba(255,255,255,0.25)]"
+                    />
                   )}
                 </div>
+                {effectivePricingMode === "markup" ? (
+                  <div className="mt-1 flex items-baseline gap-2">
+                    <div className="flex flex-col leading-none">
+                      <span className="text-[8.5px] font-semibold uppercase tracking-[0.14em] text-white/35">Target</span>
+                      <span className="mt-0.5 text-[0.95rem] font-bold tabular-nums tracking-tight text-white/85">
+                        {pct(targetMarginPct)}
+                      </span>
+                    </div>
+                    <span aria-hidden className="h-5 w-px bg-white/[0.10]" />
+                    <div className="flex flex-col leading-none">
+                      <span className="text-[8.5px] font-semibold uppercase tracking-[0.14em] text-white/35">Actual</span>
+                      <span className="mt-0.5 text-[0.95rem] font-bold tabular-nums tracking-tight text-white">
+                        {liveMarginPct != null ? pct(liveMarginPct) : hasLive ? "—" : pct(mockMarginPct)}
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-1 text-[1.05rem] font-bold tabular-nums tracking-tight text-white">
+                    {displayMarginRatio != null ? pct(displayMarginRatio * 100) : hasLive ? "—" : pct(mockMarginPct)}
+                  </div>
+                )}
               </div>
+            </div>
+            {costExpanded && (
+              <div className="relative mt-3 rounded-lg border border-white/[0.07] bg-white/[0.02] px-3 py-2 text-[11px] tabular-nums leading-snug">
+                {canShowCostBreakdown ? (
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                    <span className="text-white/55">Labor</span>
+                    <span className="text-right font-medium text-white/85">{money(laborCostNum)}</span>
+                    <span className="text-white/55">Materials &amp; other</span>
+                    <span className="text-right font-medium text-white/85">{money(remainderCostNum)}</span>
+                    <span className="border-t border-white/[0.06] pt-1 text-white/45">Total cost</span>
+                    <span className="border-t border-white/[0.06] pt-1 text-right font-semibold text-white">
+                      {money(displayJobCost)}
+                    </span>
+                  </div>
+                ) : (
+                  <span className="text-[10.5px] text-white/45">
+                    Enter labor cost in Step 03 to see a detailed breakdown.
+                  </span>
+                )}
+              </div>
+            )}
+            {(profitQuality === "low" || profitQuality === "healthy" || profitQuality === "strong") && (
+              <div
+                className={
+                  "relative mt-4 flex items-center gap-2 text-[11.5px] font-medium leading-snug " +
+                  (profitQuality === "strong"
+                    ? "text-emerald-300"
+                    : profitQuality === "low"
+                      ? "text-red-300"
+                      : "text-amber-200")
+                }
+              >
+                <span
+                  className="h-1.5 w-1.5 rounded-full shadow-[0_0_8px_currentColor]"
+                  style={{ backgroundColor: "currentColor" }}
+                  aria-hidden
+                />
+                {profitQuality === "low"
+                  ? "Low margin — consider increasing price"
+                  : profitQuality === "healthy"
+                    ? "Healthy margin — competitive pricing"
+                    : "Strong margin — high profitability"}
+              </div>
+            )}
+            {/* PROPOSAL ROW — inline, not another card */}
+            <div className="relative mt-6 border-t border-white/[0.08] pt-4">
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-100/75">
+                  Homeowner proposal
+                </span>
+                <span className="shrink-0 text-[14px] font-semibold tracking-tight text-white">{proposalTierLabel}</span>
+              </div>
+              <p className="mt-1.5 text-[10.5px] leading-relaxed text-white/45">
+                {hasLive
+                  ? `PDF-aligned · ${money(viewModel!.proposal.price)}  ·  M ${money(viewModel!.proposal.materials)}  ·  L ${money(viewModel!.proposal.labor)}  ·  D ${money(viewModel!.proposal.disposal)}`
+                  : "Customer-facing presentation paired with contractor-facing economics."}
+              </p>
+            </div>
+          </section>
+
+          {/* Step 05 — Pre-send audit */}
+          <section id="v2-step-05" className="relative lg:col-span-7">
+            <div className="relative overflow-hidden rounded-[18px] border border-white/[0.04] bg-white/[0.018] px-5 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] sm:px-6">
+              <div className="flex items-center gap-3 border-b border-white/[0.05] pb-3">
+                <div className="flex items-center gap-2">
+                  <span aria-hidden className="h-1 w-1 rounded-full bg-cyan-300 shadow-[0_0_6px_rgba(34,211,238,0.8)]" />
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-cyan-200/85">
+                    Step 05 — Pre-send audit
+                  </p>
+                </div>
+                <span aria-hidden className="h-3.5 w-px bg-white/[0.10]" />
+                <span className="text-[10.5px] text-white/45">
+                  {auditWarnCount === 0
+                    ? "All checks passed"
+                    : `${auditWarnCount} item${auditWarnCount === 1 ? "" : "s"} need attention`}
+                </span>
+              </div>
+              <ul className="mt-3 grid gap-1 sm:grid-cols-2 sm:gap-x-6 sm:gap-y-1">
+                {auditRows.map((row) => {
+                  const isClickable = typeof row.onClick === "function";
+                  const baseClasses =
+                    "group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[11.5px] leading-snug transition";
+                  const interactiveClasses = isClickable
+                    ? " cursor-pointer hover:bg-white/[0.035] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-cyan-400/30"
+                    : "";
+                  const labelClasses =
+                    "min-w-0 truncate " +
+                    (row.status === "warn"
+                      ? "text-amber-100/85"
+                      : row.status === "ok"
+                        ? "text-white/65"
+                        : "text-white/45");
+                  const dotClasses =
+                    "inline-flex h-3 w-3 shrink-0 items-center justify-center rounded-full text-[8px] font-bold leading-none " +
+                    (row.status === "ok"
+                      ? "bg-emerald-500/[0.18] text-emerald-200"
+                      : row.status === "warn"
+                        ? "bg-amber-500/[0.20] text-amber-200"
+                        : "bg-white/[0.08] text-white/55");
+                  const dotGlyph = row.status === "ok" ? "✓" : row.status === "warn" ? "!" : "·";
+
+                  return (
+                    <li key={row.key} className="min-w-0">
+                      {isClickable ? (
+                        <button
+                          type="button"
+                          onClick={row.onClick}
+                          className={baseClasses + interactiveClasses}
+                        >
+                          <span aria-hidden className={dotClasses}>
+                            {dotGlyph}
+                          </span>
+                          <span className={labelClasses}>{row.label}</span>
+                          <span
+                            aria-hidden
+                            className="ml-auto shrink-0 text-[10px] text-white/25 transition group-hover:text-cyan-200/70"
+                          >
+                            →
+                          </span>
+                        </button>
+                      ) : (
+                        <div className={baseClasses}>
+                          <span aria-hidden className={dotClasses}>
+                            {dotGlyph}
+                          </span>
+                          <span className={labelClasses}>{row.label}</span>
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
             </div>
           </section>
 
           {/* Section F — Next Actions */}
-          <section className="rounded-[26px] border border-white/[0.08] bg-white/[0.03] p-4 sm:p-5 lg:col-span-5 lg:self-start">
-            <h2 className="text-base font-semibold tracking-tight text-white">Next actions</h2>
-            <div className="mt-3 flex flex-col gap-1.5">
-              <button
-                type="button"
-                onClick={() => {
-                  if (onPreviewProposal) onPreviewProposal();
-                }}
-                className="group w-full rounded-2xl border border-cyan-400/32 bg-gradient-to-b from-cyan-500/[0.14] to-cyan-600/[0.08] px-4 py-2.5 text-left shadow-[0_6px_22px_-8px_rgba(34,211,238,0.28)] transition duration-200 hover:-translate-y-0.5 hover:border-cyan-400/42 hover:from-cyan-500/[0.18] hover:shadow-[0_10px_28px_-8px_rgba(34,211,238,0.32)]"
-              >
-                <span className="block text-sm font-semibold tracking-tight text-white">Preview proposal flow</span>
-                <span className="mt-0.5 block text-xs leading-snug text-white/58 group-hover:text-white/65">
-                  Review exactly what the homeowner will see before delivery.
+          <section className="relative lg:col-span-5">
+            {/* Premium action rail */}
+            <div className="relative overflow-hidden rounded-[24px] border border-white/[0.08] bg-[radial-gradient(ellipse_100%_65%_at_50%_-10%,rgba(34,211,238,0.10),transparent_65%),linear-gradient(180deg,rgba(16,24,34,0.86)_0%,rgba(10,16,24,0.93)_100%)] p-5 shadow-[0_30px_70px_-30px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.04)] sm:p-6">
+              {/* Ambient accent echoing Outcome's vignette */}
+              <span
+                aria-hidden
+                className="pointer-events-none absolute -top-24 right-[-20%] h-56 w-56 rounded-full bg-cyan-400/[0.10] blur-[90px]"
+              />
+              {/* Vertical cyan rail track */}
+              <span
+                aria-hidden
+                className="pointer-events-none absolute left-0 top-10 bottom-10 w-px bg-gradient-to-b from-cyan-400/55 via-cyan-400/14 to-transparent"
+              />
+              {/* Header row */}
+              <div className="relative flex flex-wrap items-start justify-between gap-3 pl-3">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-cyan-200/85">
+                    Step 06 — Delivery
+                  </p>
+                  <h2 className="mt-1 text-[1.2rem] font-semibold tracking-tight text-white">
+                    Deliver the proposal
+                  </h2>
+                  <p className="mt-1 text-[11.5px] leading-relaxed text-white/55">
+                    Outcome is aligned — move from review to proposal delivery.
+                  </p>
+                </div>
+                <div className="flex shrink-0 flex-col items-end gap-1 text-right">
+                  <div
+                    role="status"
+                    className={
+                      (canUseSendEstimate
+                        ? "inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-gradient-to-b from-emerald-500/[0.18] to-emerald-600/[0.08] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-50 shadow-[0_0_14px_-2px_rgba(16,185,129,0.4),inset_0_1px_0_rgba(255,255,255,0.10)] "
+                        : canUseSaveEstimate || typeof onPreviewProposal === "function"
+                          ? "inline-flex items-center gap-1.5 rounded-full border border-amber-400/25 bg-amber-500/[0.10] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-100/95 "
+                          : "inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/55 ")
+                    }
+                  >
+                    {canUseSendEstimate ? "Ready to send" : canUseSaveEstimate || typeof onPreviewProposal === "function" ? "Ready for review" : "Needs completion"}
+                  </div>
+                  <span className="text-[10px] leading-snug text-white/45">
+                    {canUseSendEstimate
+                      ? "Proposal can be delivered using the current workflow"
+                      : canUseSaveEstimate || typeof onPreviewProposal === "function"
+                        ? "Preview and save are available before delivery"
+                        : "Complete the estimate to unlock delivery actions"}
+                  </span>
+                </div>
+              </div>
+              {/* Action lane */}
+              <div className="relative mt-5 space-y-3">
+                {/* 01 — Send (hero) */}
+                <div className="flex items-center gap-3">
+                  <span
+                    aria-hidden
+                    className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-emerald-400/45 bg-gradient-to-b from-emerald-500/[0.22] to-emerald-600/[0.10] text-[10px] font-bold tabular-nums text-emerald-50 shadow-[0_0_12px_-2px_rgba(16,185,129,0.55),inset_0_1px_0_rgba(255,255,255,0.14)]"
+                  >
+                    01
+                  </span>
+                  <button
+                    type="button"
+                    disabled={!canUseSendEstimate}
+                    onClick={() => {
+                      if (canUseSendEstimate) onSendEstimate?.();
+                    }}
+                    className="group relative flex-1 overflow-hidden rounded-2xl border border-emerald-400/40 bg-gradient-to-b from-emerald-500/[0.25] via-emerald-500/[0.15] to-emerald-600/[0.10] px-5 py-4 text-left shadow-[0_14px_36px_-10px_rgba(16,185,129,0.45),inset_0_1px_0_rgba(255,255,255,0.12)] transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-emerald-400/55 hover:from-emerald-500/[0.32] hover:shadow-[0_20px_44px_-10px_rgba(16,185,129,0.55),inset_0_1px_0_rgba(255,255,255,0.14)] active:translate-y-0 active:scale-[0.995] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
+                  >
+                    <span
+                      aria-hidden
+                      className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-200/45 to-transparent"
+                    />
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="block text-[15px] font-semibold tracking-tight text-white drop-shadow-[0_1px_0_rgba(0,0,0,0.3)]">
+                        {isSendingEstimate ? "Sending..." : "Send estimate"}
+                      </span>
+                      <span
+                        aria-hidden
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-emerald-300/40 bg-emerald-400/15 text-sm font-semibold text-white/95 shadow-[inset_0_1px_0_rgba(255,255,255,0.15)] transition-transform duration-200 group-hover:translate-x-0.5 group-hover:bg-emerald-400/25"
+                      >
+                        →
+                      </span>
+                    </div>
+                    <span className="mt-1 block text-[11.5px] leading-snug text-white/65 group-hover:text-white/80">
+                      Deliver the real proposal using the existing V1 delivery flow.
+                    </span>
+                  </button>
+                </div>
+                {/* 02 + 03 — secondary tier paired */}
+                <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                  <div className="flex items-center gap-3">
+                    <span
+                      aria-hidden
+                      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-cyan-400/30 bg-cyan-500/[0.10] text-[10px] font-bold tabular-nums text-cyan-100/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+                    >
+                      02
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (onPreviewProposal) onPreviewProposal();
+                      }}
+                      className="group relative flex-1 rounded-2xl border border-white/[0.07] bg-gradient-to-b from-cyan-500/[0.09] to-cyan-600/[0.03] px-4 py-3 text-left shadow-[0_6px_20px_-8px_rgba(34,211,238,0.28),inset_0_1px_0_rgba(255,255,255,0.04)] transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-cyan-400/28 hover:from-cyan-500/[0.13] hover:shadow-[0_10px_26px_-8px_rgba(34,211,238,0.38),inset_0_1px_0_rgba(255,255,255,0.06)] active:translate-y-0"
+                    >
+                      <span className="block text-[13px] font-semibold tracking-tight text-white/85 group-hover:text-white">
+                        Preview proposal
+                      </span>
+                      <span className="mt-0.5 block text-[11px] leading-snug text-white/50 group-hover:text-white/65">
+                        Review the homeowner view.
+                      </span>
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span
+                      aria-hidden
+                      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-white/[0.10] bg-white/[0.04] text-[10px] font-bold tabular-nums text-white/55 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
+                    >
+                      03
+                    </span>
+                    <button
+                      type="button"
+                      disabled={!canUseSaveEstimate}
+                      onClick={() => {
+                        if (canUseSaveEstimate) onSaveEstimate?.();
+                      }}
+                      className="group relative flex-1 rounded-2xl border border-white/[0.06] bg-gradient-to-b from-white/[0.045] to-white/[0.02] px-4 py-3 text-left shadow-[0_4px_14px_-8px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.04)] transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-white/[0.10] hover:from-white/[0.065] hover:to-white/[0.03] hover:shadow-[0_8px_20px_-10px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.06)] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      <span className="block text-[13px] font-semibold tracking-tight text-white/75 group-hover:text-white/92">
+                        {isSavingEstimate ? "Saving..." : "Save estimate"}
+                      </span>
+                      <span className="mt-0.5 block text-[11px] leading-snug text-white/48 group-hover:text-white/62">
+                        Snapshot current inputs.
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              {/* Closing trust strip inside the rail */}
+              <div className="relative mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-white/[0.06] pt-3 pl-3">
+                <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/55">
+                  <span
+                    aria-hidden
+                    className="h-1 w-1 rounded-full bg-emerald-400/75 shadow-[0_0_6px_rgba(16,185,129,0.55)]"
+                  />
+                  Secure delivery
                 </span>
-                <span className="mt-1 block text-[11px] text-white/42">Best next step before delivery.</span>
-              </button>
-              <button
-                type="button"
-                disabled={!canUseSaveEstimate}
-                onClick={() => {
-                  if (canUseSaveEstimate) onSaveEstimate?.();
-                }}
-                className="group w-full rounded-2xl border border-white/[0.10] bg-white/[0.05] px-4 py-2.5 text-left transition duration-200 hover:-translate-y-0.5 hover:border-white/[0.16] hover:bg-white/[0.09] hover:shadow-[0_12px_28px_-10px_rgba(0,0,0,0.35)] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-45"
-              >
-                <span className="block text-sm font-semibold text-white/92">
-                  {isSavingEstimate ? "Saving..." : "Save estimate"}
+                <span className="text-[10.5px] leading-snug text-white/40">
+                  Sent through your workflow · logged to company history
                 </span>
-                <span className="mt-0.5 block text-xs leading-snug text-white/44 group-hover:text-white/52">
-                  Create a real estimate snapshot using the current intake, scope, and pricing.
-                </span>
-                <span className="mt-1 block text-[11px] text-white/42">Best next step after preview.</span>
-              </button>
-              <button
-                type="button"
-                disabled={!canUseSendEstimate}
-                onClick={() => {
-                  if (canUseSendEstimate) onSendEstimate?.();
-                }}
-                className="group w-full rounded-2xl border border-white/[0.10] bg-white/[0.05] px-4 py-2.5 text-left transition duration-200 hover:-translate-y-0.5 hover:border-white/[0.16] hover:bg-white/[0.09] hover:shadow-[0_12px_28px_-10px_rgba(0,0,0,0.35)] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-45"
-              >
-                <span className="block text-sm font-semibold text-white/92">
-                  {isSendingEstimate ? "Sending..." : "Send estimate"}
-                </span>
-                <span className="mt-0.5 block text-xs leading-snug text-white/44 group-hover:text-white/52">
-                  Send the real proposal using the existing V1 delivery flow.
-                </span>
-              </button>
+              </div>
             </div>
           </section>
         </div>
 
         {/* BOTTOM FOOTER STRIP */}
-        <footer className="mt-6 flex flex-col gap-2.5 rounded-2xl border border-white/[0.08] bg-white/[0.03] px-5 py-3.5 text-xs text-white/45 sm:mt-8 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <span className="max-w-prose leading-relaxed">
-            Preview, save, and send are live here. Payment actions are not wired yet.
+        <footer className="mt-4 flex flex-col gap-2.5 rounded-2xl border border-white/[0.06] bg-gradient-to-b from-white/[0.04] to-white/[0.01] px-5 py-4 text-xs text-white/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:mt-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <span className="inline-flex items-center gap-1.5 leading-relaxed">
+            <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-emerald-400/80 shadow-[0_0_6px_rgba(16,185,129,0.55)]" />
+            Auto-saved draft · Live workflow surface
           </span>
-          <span className="shrink-0 rounded-full border border-white/[0.10] bg-white/[0.05] px-3 py-1.5 text-[11px] font-medium text-white/55 sm:text-right">
-            Live workflow harness
+          <span className="shrink-0 rounded-full border border-white/[0.10] bg-white/[0.04] px-3 py-1.5 text-[11px] font-medium text-white/65 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:text-right">
+            Ready to send proposal
           </span>
         </footer>
       </div>

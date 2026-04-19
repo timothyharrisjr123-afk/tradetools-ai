@@ -3606,6 +3606,8 @@ Thanks,`;
             }}
             onPricingModeChange={setPricingMode}
             onProposalTierChange={setRoofingTier}
+            marginValue={Number(margin) || 0}
+            onMarginChange={(pct) => setMargin(String(pct))}
             onTearOffChange={setIncludeDebrisRemoval}
             onMaterialDensityChange={setBundlesPerSquare}
             onGuidedWalkabilityChange={setGuidedWalkable}
