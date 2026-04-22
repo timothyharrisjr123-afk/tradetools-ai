@@ -5,6 +5,8 @@ import { Ruler, Mountain, Trash2, Layers } from "lucide-react";
 
 export type RoofingClientV2Props = {
   companyId?: string;
+  companyName?: string;
+  companyReplyEmail?: string;
   mode?: "standalone" | "embedded";
   viewModel?: {
     customer: {
@@ -135,6 +137,8 @@ function tierToProposalTier(t: "standard" | "enhanced" | "premium"): "core" | "e
 
 export default function RoofingClientV2({
   companyId = "",
+  companyName = "",
+  companyReplyEmail = "",
   mode = "standalone",
   viewModel,
   onPricingModeChange,
@@ -515,6 +519,67 @@ export default function RoofingClientV2({
   }
 
   const auditWarnCount = auditRows.filter((r) => r.status === "warn").length;
+
+  // Quote Card — display-only derivations, no logic changes
+  const [quoteMinted, setQuoteMinted] = useState<{ num: string; dateLabel: string } | null>(null);
+  const [quoteCopied, setQuoteCopied] = useState(false);
+  useEffect(() => {
+    const now = new Date();
+    const y = now.getFullYear();
+    const mo = String(now.getMonth() + 1).padStart(2, "0");
+    const d = String(now.getDate()).padStart(2, "0");
+    const seed = `${companyId}|${customerEmail ?? ""}|${customerName ?? ""}`;
+    let h = 0;
+    for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+    const last4 = String(h % 10000).padStart(4, "0");
+    const dateLabel = now.toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+    setQuoteMinted({ num: `R-${y}${mo}${d}-${last4}`, dateLabel });
+  }, [companyId, customerEmail, customerName]);
+
+  const quoteProposalNumber = quoteMinted?.num ?? "R-————-————";
+  const quoteProposalDateLabel = quoteMinted?.dateLabel ?? "";
+
+  const handleCopyQuoteNumber = () => {
+    if (!quoteMinted) return;
+    try {
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        navigator.clipboard.writeText(quoteMinted.num);
+        setQuoteCopied(true);
+        setTimeout(() => setQuoteCopied(false), 1500);
+      }
+    } catch {
+      /* noop */
+    }
+  };
+
+  const quoteGetInitials = (raw: string, fallback: string): string => {
+    const s = (raw || "").trim();
+    if (!s) return fallback;
+    const parts = s.split(/\s+/).filter(Boolean);
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  };
+
+  const quoteCustomerName = ((customerName ?? viewModel?.customer.name) ?? "").trim();
+  const quoteCustomerEmail = ((customerEmail ?? viewModel?.customer.email) ?? "").trim();
+  const quoteCustomerDisplayName = quoteCustomerName || "Homeowner";
+  const quoteCustomerDisplayEmail = quoteCustomerEmail || "Email not set";
+  const quoteCustomerInitials = quoteGetInitials(quoteCustomerName, "—");
+
+  const quoteCompanyName = (companyName ?? "").trim();
+  const quoteCompanyEmail = (companyReplyEmail ?? "").trim();
+  const quoteCompanyDisplayName = quoteCompanyName || "Your company";
+  const quoteCompanyDisplayEmail = quoteCompanyEmail || "Sent via your workflow";
+  const quoteCompanyInitials = quoteGetInitials(
+    quoteCompanyName,
+    (companyId || "CO").slice(0, 2).toUpperCase()
+  );
+
+  const quoteFirstWarnRow = auditRows.find((r) => r.status === "warn");
 
   const outcomeCustomerName = hasLive
     ? viewModel!.customer.name.trim() || "New Customer"
@@ -1747,83 +1812,121 @@ export default function RoofingClientV2({
             </div>
           </section>
 
-          {/* Step 05 — Pre-send audit */}
-          <section id="v2-step-05" className="relative lg:col-span-7">
-            <div className="relative overflow-hidden rounded-[18px] border border-white/[0.04] bg-white/[0.018] px-5 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] sm:px-6">
-              <div className="flex items-center gap-3 border-b border-white/[0.05] pb-3">
-                <div className="flex items-center gap-2">
-                  <span aria-hidden className="h-1 w-1 rounded-full bg-cyan-300 shadow-[0_0_6px_rgba(34,211,238,0.8)]" />
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-cyan-200/85">
-                    Step 05 — Pre-send audit
+          {/* Step 05 — Quote Card */}
+          <section id="v2-step-05" className="relative lg:col-span-5">
+            <div className="relative overflow-hidden rounded-[22px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(16,24,34,0.86)_0%,rgba(10,16,24,0.93)_100%)] p-5 shadow-[0_30px_70px_-30px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.04)] sm:p-6">
+              {/* HEADER ROW */}
+              <div className="flex items-start justify-between gap-3">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-cyan-200/80">
+                  Quote Card
+                </p>
+                <div className="flex flex-col items-end">
+                  <button
+                    type="button"
+                    onClick={handleCopyQuoteNumber}
+                    aria-label="Copy proposal number"
+                    className="group -mr-1 inline-flex items-center gap-1.5 rounded-md px-1.5 py-0.5 font-mono text-[12.5px] tabular-nums text-white/85 hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-cyan-400/40"
+                  >
+                    <span>{quoteProposalNumber}</span>
+                    <span
+                      aria-hidden
+                      className="text-[10px] text-white/30 group-hover:text-cyan-200/70"
+                    >
+                      {quoteCopied ? "✓" : "⧉"}
+                    </span>
+                  </button>
+                  <span className="mt-0.5 text-[10.5px] text-white/45">
+                    {quoteProposalDateLabel}
+                  </span>
+                </div>
+              </div>
+
+              {/* TO BLOCK */}
+              <div className="mt-5 flex items-center gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.04] text-[11px] font-semibold tracking-[0.06em] text-white/80">
+                  {quoteCustomerInitials}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40">
+                    To
+                  </p>
+                  <p className="mt-0.5 truncate text-[13.5px] font-medium text-white/90">
+                    {quoteCustomerDisplayName}
+                  </p>
+                  <p className="truncate text-[11px] text-white/50">
+                    {quoteCustomerDisplayEmail}
                   </p>
                 </div>
-                <span aria-hidden className="h-3.5 w-px bg-white/[0.10]" />
-                <span className="text-[10.5px] text-white/45">
-                  {auditWarnCount === 0
-                    ? "All checks passed"
-                    : `${auditWarnCount} item${auditWarnCount === 1 ? "" : "s"} need attention`}
+              </div>
+
+              {/* DIVIDER */}
+              <div aria-hidden className="mt-4 h-px bg-white/[0.08]" />
+
+              {/* FROM BLOCK */}
+              <div className="mt-4 flex items-center gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-cyan-400/20 bg-cyan-500/[0.08] text-[11px] font-semibold tracking-[0.06em] text-cyan-100/90">
+                  {quoteCompanyInitials}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40">
+                    From
+                  </p>
+                  <p className="mt-0.5 truncate text-[13.5px] font-medium text-white/90">
+                    {quoteCompanyDisplayName}
+                  </p>
+                  <p className="truncate text-[11px] text-white/50">
+                    {quoteCompanyDisplayEmail}
+                  </p>
+                </div>
+              </div>
+
+              {/* FOOTER ROW */}
+              <div className="mt-5 flex items-center justify-between gap-3">
+                <span className="inline-flex items-center rounded-full border border-cyan-400/20 bg-cyan-500/[0.08] px-3 py-1 text-[10.5px] font-semibold tracking-[0.1em] text-cyan-50/90">
+                  {proposalTierLabel}
+                </span>
+                <span className="text-[10.5px] font-medium uppercase tracking-[0.18em] text-white/55">
+                  Valid 30 days
                 </span>
               </div>
-              <ul className="mt-3 grid gap-1 sm:grid-cols-2 sm:gap-x-6 sm:gap-y-1">
-                {auditRows.map((row) => {
-                  const isClickable = typeof row.onClick === "function";
-                  const baseClasses =
-                    "group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[11.5px] leading-snug transition";
-                  const interactiveClasses = isClickable
-                    ? " cursor-pointer hover:bg-white/[0.035] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-cyan-400/30"
-                    : "";
-                  const labelClasses =
-                    "min-w-0 truncate " +
-                    (row.status === "warn"
-                      ? "text-amber-100/85"
-                      : row.status === "ok"
-                        ? "text-white/65"
-                        : "text-white/45");
-                  const dotClasses =
-                    "inline-flex h-3 w-3 shrink-0 items-center justify-center rounded-full text-[8px] font-bold leading-none " +
-                    (row.status === "ok"
-                      ? "bg-emerald-500/[0.18] text-emerald-200"
-                      : row.status === "warn"
-                        ? "bg-amber-500/[0.20] text-amber-200"
-                        : "bg-white/[0.08] text-white/55");
-                  const dotGlyph = row.status === "ok" ? "✓" : row.status === "warn" ? "!" : "·";
 
-                  return (
-                    <li key={row.key} className="min-w-0">
-                      {isClickable ? (
-                        <button
-                          type="button"
-                          onClick={row.onClick}
-                          className={baseClasses + interactiveClasses}
-                        >
-                          <span aria-hidden className={dotClasses}>
-                            {dotGlyph}
-                          </span>
-                          <span className={labelClasses}>{row.label}</span>
-                          <span
-                            aria-hidden
-                            className="ml-auto shrink-0 text-[10px] text-white/25 transition group-hover:text-cyan-200/70"
-                          >
-                            →
-                          </span>
-                        </button>
-                      ) : (
-                        <div className={baseClasses}>
-                          <span aria-hidden className={dotClasses}>
-                            {dotGlyph}
-                          </span>
-                          <span className={labelClasses}>{row.label}</span>
-                        </div>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
+              {/* BOTTOM LINE */}
+              <p className="mt-4 text-[10.5px] leading-snug text-white/40">
+                Signed returns will appear in your inbox.
+              </p>
+
+              {/* Optional warning — only when auditWarnCount > 0 */}
+              {auditWarnCount > 0 && quoteFirstWarnRow ? (
+                typeof quoteFirstWarnRow.onClick === "function" ? (
+                  <button
+                    type="button"
+                    onClick={quoteFirstWarnRow.onClick}
+                    className="group mt-3 inline-flex items-center gap-1.5 text-[10.5px] text-amber-200/75 hover:text-amber-100 focus-visible:outline-none focus-visible:underline"
+                  >
+                    <span aria-hidden className="text-[10px] text-amber-300/70">
+                      •
+                    </span>
+                    <span className="underline-offset-4 group-hover:underline">
+                      Missing info before send
+                    </span>
+                    <span aria-hidden className="text-[10px] text-amber-200/50">
+                      →
+                    </span>
+                  </button>
+                ) : (
+                  <p className="mt-3 inline-flex items-center gap-1.5 text-[10.5px] text-amber-200/75">
+                    <span aria-hidden className="text-[10px] text-amber-300/70">
+                      •
+                    </span>
+                    <span>Missing info before send</span>
+                  </p>
+                )
+              ) : null}
             </div>
           </section>
 
           {/* Section F — Next Actions */}
-          <section className="relative lg:col-span-5">
+          <section className="relative lg:col-span-7">
             {/* Premium action rail */}
             <div className="relative overflow-hidden rounded-[24px] border border-white/[0.08] bg-[radial-gradient(ellipse_100%_65%_at_50%_-10%,rgba(34,211,238,0.10),transparent_65%),linear-gradient(180deg,rgba(16,24,34,0.86)_0%,rgba(10,16,24,0.93)_100%)] p-5 shadow-[0_30px_70px_-30px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.04)] sm:p-6">
               {/* Ambient accent echoing Outcome's vignette */}
