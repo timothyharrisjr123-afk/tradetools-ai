@@ -9330,8 +9330,10 @@ export default function RoofingClientV2({
             </div>
           </section>
 
+          <div className="col-span-12 flex flex-col gap-y-8 lg:grid lg:grid-cols-12 lg:gap-x-8 lg:gap-y-10 lg:items-start">
+            <div className="contents lg:col-span-7 lg:flex lg:flex-col lg:items-stretch lg:gap-y-10">
           {/* Section B — Scope & Costs (unified configurator) */}
-          <section id="v2-step-03" className="relative lg:col-span-7">
+          <section id="v2-step-03" className="relative order-1 lg:order-none">
             <div className="relative overflow-hidden rounded-[22px] border border-white/[0.07] bg-[radial-gradient(ellipse_100%_60%_at_50%_-10%,rgba(34,211,238,0.07),transparent_60%),linear-gradient(180deg,rgba(16,24,34,0.60)_0%,rgba(10,16,24,0.70)_100%)] p-5 shadow-[0_22px_55px_-24px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.04)] sm:p-6">
               <span
                 aria-hidden
@@ -9671,235 +9673,10 @@ export default function RoofingClientV2({
             </div>
           </section>
 
-          {/* Section E — Live Outcome (unified product surface) */}
-          <section className="relative overflow-hidden rounded-[28px] border border-cyan-400/25 bg-[radial-gradient(ellipse_120%_80%_at_50%_-10%,rgba(34,211,238,0.22),transparent_60%),linear-gradient(180deg,rgba(15,24,36,0.92)_0%,rgba(9,15,24,0.96)_100%)] p-7 shadow-[0_40px_90px_-30px_rgba(34,211,238,0.35),0_2px_0_rgba(255,255,255,0.05)_inset,0_0_0_1px_rgba(34,211,238,0.08)_inset] sm:p-8 lg:col-span-5 lg:sticky lg:top-6 lg:self-start">
-            <span
-              aria-hidden
-              className="pointer-events-none absolute -top-28 -right-24 h-72 w-72 rounded-full bg-cyan-400/[0.18] blur-[110px]"
-            />
-            <span
-              aria-hidden
-              className="pointer-events-none absolute -bottom-32 -left-20 h-64 w-64 rounded-full bg-teal-500/[0.10] blur-[120px]"
-            />
-            <div className="relative flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-cyan-300 shadow-[0_0_14px_3px_rgba(34,211,238,0.7)]" aria-hidden />
-                <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-cyan-200/90">
-                  Step 04 — Outcome
-                </p>
-              </div>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-cyan-400/35 bg-gradient-to-b from-cyan-500/[0.22] to-cyan-600/[0.10] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-50 shadow-[0_0_20px_-4px_rgba(34,211,238,0.55),inset_0_1px_0_rgba(255,255,255,0.12)]">
-                Homeowner-ready
-              </span>
-            </div>
-            <div className="relative mt-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/55">
-                {outcomeCustomerName}
-              </p>
-              <p className="mt-0.5 text-[11.5px] text-white/60">{outcomeJobLine}</p>
-            </div>
-            {/* HERO PRICE */}
-            <div className="relative mt-6 flex items-end justify-between gap-4">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/55">
-                Final price
-                <span className="ml-2 rounded-full border border-white/[0.12] bg-white/[0.05] px-1.5 py-0.5 text-[9px] font-semibold tracking-[0.18em] text-white/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
-                  {effectivePricingMode === "markup" ? "Markup" : "Direct"}
-                </span>
-              </span>
-              <div className="relative flex flex-col items-end">
-                {priceDelta != null && (
-                  <span
-                    aria-hidden
-                    className={
-                      "pointer-events-none absolute -top-4 right-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums leading-none shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition-opacity duration-500 " +
-                      (priceDelta > 0
-                        ? "border border-emerald-400/30 bg-emerald-500/[0.14] text-emerald-200"
-                        : "border border-red-400/25 bg-red-500/[0.10] text-red-200")
-                    }
-                  >
-                    {priceDelta > 0 ? "+" : "−"}
-                    {money(Math.abs(priceDelta))}
-                  </span>
-                )}
-                <span
-                  className={
-                    "bg-gradient-to-b from-white to-white/82 bg-clip-text text-[3.55rem] font-bold leading-none tabular-nums tracking-[-0.02em] text-transparent transition-all duration-300 ease-out sm:text-[4rem] " +
-                    (priceDelta != null
-                      ? "scale-[1.012] drop-shadow-[0_2px_18px_rgba(34,211,238,0.55)]"
-                      : "drop-shadow-[0_2px_12px_rgba(34,211,238,0.28)]")
-                  }
-                >
-                  {money(displayFinalPrice)}
-                </span>
-              </div>
-            </div>
-            <p className="relative mt-2 text-right text-[11px] font-medium tabular-nums leading-snug text-white/55">
-              {money(displayJobCost)} cost + {money(displayProfit)} profit
-            </p>
-            {pricePerSquare != null && (
-              <p className="relative mt-0.5 text-right text-[10.5px] font-medium tabular-nums leading-snug text-white/40">
-                {money(pricePerSquare)} / square
-              </p>
-            )}
-            <p className="relative mt-1 text-right text-[10.5px] leading-snug text-white/40">
-              {outcomeScopeSummary}
-            </p>
-            {/* METRIC STRIP — typographic, not boxes */}
-            <div className="relative mt-6 grid grid-cols-3 divide-x divide-white/[0.08] border-y border-white/[0.08] py-4">
-              <button
-                type="button"
-                onClick={() => setCostExpanded((v) => !v)}
-                aria-expanded={costExpanded}
-                className="group rounded-sm px-4 text-left outline-none first:pl-0 focus-visible:ring-1 focus-visible:ring-cyan-400/40"
-              >
-                <div className="flex items-center gap-1 text-[9.5px] font-semibold uppercase tracking-[0.16em] text-white/45 transition group-hover:text-white/70">
-                  Your cost
-                  <span
-                    aria-hidden
-                    className={
-                      "ml-0.5 inline-block text-[8px] leading-none transition-transform " +
-                      (costExpanded
-                        ? "rotate-180 text-cyan-300/70"
-                        : "text-white/35 group-hover:text-cyan-300/70")
-                    }
-                  >
-                    ▾
-                  </span>
-                </div>
-                <div className="mt-1 text-[1.05rem] font-bold tabular-nums tracking-tight text-white">
-                  {money(displayJobCost)}
-                </div>
-              </button>
-              <div className="px-4">
-                <div
-                  className={
-                    "text-[9.5px] font-semibold uppercase tracking-[0.16em] " +
-                    (profitQuality === "premium"
-                      ? "text-cyan-200/85"
-                      : profitQuality === "strong"
-                        ? "text-emerald-300/85"
-                        : profitQuality === "tight"
-                          ? "text-red-300/85"
-                          : "text-white/45")
-                  }
-                >
-                  Your profit
-                </div>
-                <div
-                  className={
-                    "mt-1 text-[1.05rem] font-bold tabular-nums tracking-tight " +
-                    (profitQuality === "premium"
-                      ? "text-cyan-100 [text-shadow:0_0_14px_rgba(34,211,238,0.3)]"
-                      : profitQuality === "strong"
-                        ? "text-emerald-200 [text-shadow:0_0_14px_rgba(16,185,129,0.3)]"
-                        : profitQuality === "tight"
-                          ? "text-red-200"
-                          : "text-white")
-                  }
-                >
-                  {money(displayProfit)}
-                </div>
-              </div>
-              <div className="px-4 last:pr-0">
-                <div className="flex items-center gap-1 text-[9.5px] font-semibold uppercase tracking-[0.16em] text-white/45">
-                  Margin
-                  {marginsDiverge && (
-                    <span
-                      aria-hidden
-                      title="Target and actual differ"
-                      className="h-1 w-1 rounded-full bg-white/30 shadow-[0_0_4px_rgba(255,255,255,0.25)]"
-                    />
-                  )}
-                </div>
-                {effectivePricingMode === "markup" ? (
-                  <div className="mt-1 flex items-baseline gap-2">
-                    <div className="flex flex-col leading-none">
-                      <span className="text-[8.5px] font-semibold uppercase tracking-[0.14em] text-white/35">Target</span>
-                      <span className="mt-0.5 text-[0.95rem] font-bold tabular-nums tracking-tight text-white/85">
-                        {pct(targetMarginPct)}
-                      </span>
-                    </div>
-                    <span aria-hidden className="h-5 w-px bg-white/[0.10]" />
-                    <div className="flex flex-col leading-none">
-                      <span className="text-[8.5px] font-semibold uppercase tracking-[0.14em] text-white/35">Actual</span>
-                      <span className="mt-0.5 text-[0.95rem] font-bold tabular-nums tracking-tight text-white">
-                        {liveMarginPct != null ? pct(liveMarginPct) : hasLive ? "—" : pct(mockMarginPct)}
-                      </span>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="mt-1 text-[1.05rem] font-bold tabular-nums tracking-tight text-white">
-                    {displayMarginRatio != null ? pct(displayMarginRatio * 100) : hasLive ? "—" : pct(mockMarginPct)}
-                  </div>
-                )}
-              </div>
-            </div>
-            {costExpanded && (
-              <div className="relative mt-3 rounded-lg border border-white/[0.07] bg-white/[0.02] px-3 py-2 text-[11px] tabular-nums leading-snug">
-                {canShowCostBreakdown ? (
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                    <span className="text-white/55">Labor</span>
-                    <span className="text-right font-medium text-white/85">{money(laborCostNum)}</span>
-                    <span className="text-white/55">Materials &amp; other</span>
-                    <span className="text-right font-medium text-white/85">{money(remainderCostNum)}</span>
-                    <span className="border-t border-white/[0.06] pt-1 text-white/45">Total cost</span>
-                    <span className="border-t border-white/[0.06] pt-1 text-right font-semibold text-white">
-                      {money(displayJobCost)}
-                    </span>
-                  </div>
-                ) : (
-                  <span className="text-[10.5px] text-white/45">
-                    Enter labor cost in Step 03 to see a detailed breakdown.
-                  </span>
-                )}
-              </div>
-            )}
-            {profitQuality !== "unknown" && (
-              <div
-                className={
-                  "relative mt-4 flex items-center gap-2 text-[11.5px] font-medium leading-snug " +
-                  (profitQuality === "premium"
-                    ? "text-cyan-300"
-                    : profitQuality === "strong"
-                      ? "text-emerald-300"
-                      : profitQuality === "tight"
-                        ? "text-red-300"
-                        : "text-amber-200")
-                }
-              >
-                <span
-                  className="h-1.5 w-1.5 rounded-full shadow-[0_0_8px_currentColor]"
-                  style={{ backgroundColor: "currentColor" }}
-                  aria-hidden
-                />
-                {profitQuality === "tight"
-                  ? "Tight margin for this scope"
-                  : profitQuality === "balanced"
-                    ? "Balanced margin for this job"
-                    : profitQuality === "strong"
-                      ? "Strong margin position"
-                      : "Premium pricing posture"}
-              </div>
-            )}
-            {/* PROPOSAL ROW — inline, not another card */}
-            <div className="relative mt-6 border-t border-white/[0.08] pt-4">
-              <div className="flex items-baseline justify-between gap-3">
-                <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-100/75">
-                  Homeowner proposal
-                </span>
-                <span className="shrink-0 text-[14px] font-semibold tracking-tight text-white">{proposalTierLabel}</span>
-              </div>
-              <p className="mt-1.5 text-[10.5px] leading-relaxed text-white/45">
-                {hasLive
-                  ? `PDF-aligned · ${money(viewModel!.proposal.price)}  ·  M ${money(viewModel!.proposal.materials)}  ·  L ${money(viewModel!.proposal.labor)}  ·  D ${money(viewModel!.proposal.disposal)}`
-                  : "Customer-facing presentation paired with contractor-facing economics."}
-              </p>
-            </div>
-          </section>
 
           {/* Step 05 — Offer Strategy */}
-          <section id="v2-step-05" className="relative lg:col-span-7 lg:self-start">
-            <div className="relative overflow-hidden rounded-[22px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(16,24,34,0.86)_0%,rgba(10,16,24,0.93)_100%)] p-5 shadow-[0_26px_64px_-28px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.04)] sm:p-6">
+          <section id="v2-step-05" className="relative order-3 lg:order-none">
+            <div className="relative overflow-hidden rounded-[22px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(16,24,34,0.86)_0%,rgba(10,16,24,0.93)_100%)] p-5 shadow-[0_26px_64px_-28px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.04)] sm:p-6 lg:min-h-[20rem] lg:p-7">
               <span
                 aria-hidden
                 className="pointer-events-none absolute -top-20 right-[-15%] h-44 w-44 rounded-full bg-cyan-400/[0.08] blur-[80px]"
@@ -10234,10 +10011,238 @@ export default function RoofingClientV2({
             </div>
           </section>
 
+            </div>
+            <div className="contents lg:col-span-5 lg:flex lg:flex-col lg:items-stretch lg:gap-y-14">
+          {/* Section E — Live Outcome (unified product surface) */}
+          <section className="relative order-2 lg:order-none overflow-hidden rounded-[28px] border border-cyan-400/25 bg-[radial-gradient(ellipse_120%_80%_at_50%_-10%,rgba(34,211,238,0.22),transparent_60%),linear-gradient(180deg,rgba(15,24,36,0.92)_0%,rgba(9,15,24,0.96)_100%)] p-7 shadow-[0_40px_90px_-30px_rgba(34,211,238,0.35),0_2px_0_rgba(255,255,255,0.05)_inset,0_0_0_1px_rgba(34,211,238,0.08)_inset] sm:p-8 lg:sticky lg:top-6">
+            <span
+              aria-hidden
+              className="pointer-events-none absolute -top-28 -right-24 h-72 w-72 rounded-full bg-cyan-400/[0.18] blur-[110px]"
+            />
+            <span
+              aria-hidden
+              className="pointer-events-none absolute -bottom-32 -left-20 h-64 w-64 rounded-full bg-teal-500/[0.10] blur-[120px]"
+            />
+            <div className="relative flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-cyan-300 shadow-[0_0_14px_3px_rgba(34,211,238,0.7)]" aria-hidden />
+                <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-cyan-200/90">
+                  Step 04 — Outcome
+                </p>
+              </div>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-cyan-400/35 bg-gradient-to-b from-cyan-500/[0.22] to-cyan-600/[0.10] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-50 shadow-[0_0_20px_-4px_rgba(34,211,238,0.55),inset_0_1px_0_rgba(255,255,255,0.12)]">
+                Homeowner-ready
+              </span>
+            </div>
+            <div className="relative mt-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/55">
+                {outcomeCustomerName}
+              </p>
+              <p className="mt-0.5 text-[11.5px] text-white/60">{outcomeJobLine}</p>
+            </div>
+            {/* HERO PRICE */}
+            <div className="relative mt-6 flex items-end justify-between gap-4">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/55">
+                Final price
+                <span className="ml-2 rounded-full border border-white/[0.12] bg-white/[0.05] px-1.5 py-0.5 text-[9px] font-semibold tracking-[0.18em] text-white/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                  {effectivePricingMode === "markup" ? "Markup" : "Direct"}
+                </span>
+              </span>
+              <div className="relative flex flex-col items-end">
+                {priceDelta != null && (
+                  <span
+                    aria-hidden
+                    className={
+                      "pointer-events-none absolute -top-4 right-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums leading-none shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition-opacity duration-500 " +
+                      (priceDelta > 0
+                        ? "border border-emerald-400/30 bg-emerald-500/[0.14] text-emerald-200"
+                        : "border border-red-400/25 bg-red-500/[0.10] text-red-200")
+                    }
+                  >
+                    {priceDelta > 0 ? "+" : "−"}
+                    {money(Math.abs(priceDelta))}
+                  </span>
+                )}
+                <span
+                  className={
+                    "bg-gradient-to-b from-white to-white/82 bg-clip-text text-[3.55rem] font-bold leading-none tabular-nums tracking-[-0.02em] text-transparent transition-all duration-300 ease-out sm:text-[4rem] " +
+                    (priceDelta != null
+                      ? "scale-[1.012] drop-shadow-[0_2px_18px_rgba(34,211,238,0.55)]"
+                      : "drop-shadow-[0_2px_12px_rgba(34,211,238,0.28)]")
+                  }
+                >
+                  {money(displayFinalPrice)}
+                </span>
+              </div>
+            </div>
+            <p className="relative mt-2 text-right text-[11px] font-medium tabular-nums leading-snug text-white/55">
+              {money(displayJobCost)} cost + {money(displayProfit)} profit
+            </p>
+            {pricePerSquare != null && (
+              <p className="relative mt-0.5 text-right text-[10.5px] font-medium tabular-nums leading-snug text-white/40">
+                {money(pricePerSquare)} / square
+              </p>
+            )}
+            <p className="relative mt-1 text-right text-[10.5px] leading-snug text-white/40">
+              {outcomeScopeSummary}
+            </p>
+            {/* METRIC STRIP — typographic, not boxes */}
+            <div className="relative mt-6 grid grid-cols-3 divide-x divide-white/[0.08] border-y border-white/[0.08] py-4">
+              <button
+                type="button"
+                onClick={() => setCostExpanded((v) => !v)}
+                aria-expanded={costExpanded}
+                className="group rounded-sm px-4 text-left outline-none first:pl-0 focus-visible:ring-1 focus-visible:ring-cyan-400/40"
+              >
+                <div className="flex items-center gap-1 text-[9.5px] font-semibold uppercase tracking-[0.16em] text-white/45 transition group-hover:text-white/70">
+                  Your cost
+                  <span
+                    aria-hidden
+                    className={
+                      "ml-0.5 inline-block text-[8px] leading-none transition-transform " +
+                      (costExpanded
+                        ? "rotate-180 text-cyan-300/70"
+                        : "text-white/35 group-hover:text-cyan-300/70")
+                    }
+                  >
+                    ▾
+                  </span>
+                </div>
+                <div className="mt-1 text-[1.05rem] font-bold tabular-nums tracking-tight text-white">
+                  {money(displayJobCost)}
+                </div>
+              </button>
+              <div className="px-4">
+                <div
+                  className={
+                    "text-[9.5px] font-semibold uppercase tracking-[0.16em] " +
+                    (profitQuality === "premium"
+                      ? "text-cyan-200/85"
+                      : profitQuality === "strong"
+                        ? "text-emerald-300/85"
+                        : profitQuality === "tight"
+                          ? "text-red-300/85"
+                          : "text-white/45")
+                  }
+                >
+                  Your profit
+                </div>
+                <div
+                  className={
+                    "mt-1 text-[1.05rem] font-bold tabular-nums tracking-tight " +
+                    (profitQuality === "premium"
+                      ? "text-cyan-100 [text-shadow:0_0_14px_rgba(34,211,238,0.3)]"
+                      : profitQuality === "strong"
+                        ? "text-emerald-200 [text-shadow:0_0_14px_rgba(16,185,129,0.3)]"
+                        : profitQuality === "tight"
+                          ? "text-red-200"
+                          : "text-white")
+                  }
+                >
+                  {money(displayProfit)}
+                </div>
+              </div>
+              <div className="px-4 last:pr-0">
+                <div className="flex items-center gap-1 text-[9.5px] font-semibold uppercase tracking-[0.16em] text-white/45">
+                  Margin
+                  {marginsDiverge && (
+                    <span
+                      aria-hidden
+                      title="Target and actual differ"
+                      className="h-1 w-1 rounded-full bg-white/30 shadow-[0_0_4px_rgba(255,255,255,0.25)]"
+                    />
+                  )}
+                </div>
+                {effectivePricingMode === "markup" ? (
+                  <div className="mt-1 flex items-baseline gap-2">
+                    <div className="flex flex-col leading-none">
+                      <span className="text-[8.5px] font-semibold uppercase tracking-[0.14em] text-white/35">Target</span>
+                      <span className="mt-0.5 text-[0.95rem] font-bold tabular-nums tracking-tight text-white/85">
+                        {pct(targetMarginPct)}
+                      </span>
+                    </div>
+                    <span aria-hidden className="h-5 w-px bg-white/[0.10]" />
+                    <div className="flex flex-col leading-none">
+                      <span className="text-[8.5px] font-semibold uppercase tracking-[0.14em] text-white/35">Actual</span>
+                      <span className="mt-0.5 text-[0.95rem] font-bold tabular-nums tracking-tight text-white">
+                        {liveMarginPct != null ? pct(liveMarginPct) : hasLive ? "—" : pct(mockMarginPct)}
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-1 text-[1.05rem] font-bold tabular-nums tracking-tight text-white">
+                    {displayMarginRatio != null ? pct(displayMarginRatio * 100) : hasLive ? "—" : pct(mockMarginPct)}
+                  </div>
+                )}
+              </div>
+            </div>
+            {costExpanded && (
+              <div className="relative mt-3 rounded-lg border border-white/[0.07] bg-white/[0.02] px-3 py-2 text-[11px] tabular-nums leading-snug">
+                {canShowCostBreakdown ? (
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                    <span className="text-white/55">Labor</span>
+                    <span className="text-right font-medium text-white/85">{money(laborCostNum)}</span>
+                    <span className="text-white/55">Materials &amp; other</span>
+                    <span className="text-right font-medium text-white/85">{money(remainderCostNum)}</span>
+                    <span className="border-t border-white/[0.06] pt-1 text-white/45">Total cost</span>
+                    <span className="border-t border-white/[0.06] pt-1 text-right font-semibold text-white">
+                      {money(displayJobCost)}
+                    </span>
+                  </div>
+                ) : (
+                  <span className="text-[10.5px] text-white/45">
+                    Enter labor cost in Step 03 to see a detailed breakdown.
+                  </span>
+                )}
+              </div>
+            )}
+            {profitQuality !== "unknown" && (
+              <div
+                className={
+                  "relative mt-4 flex items-center gap-2 text-[11.5px] font-medium leading-snug " +
+                  (profitQuality === "premium"
+                    ? "text-cyan-300"
+                    : profitQuality === "strong"
+                      ? "text-emerald-300"
+                      : profitQuality === "tight"
+                        ? "text-red-300"
+                        : "text-amber-200")
+                }
+              >
+                <span
+                  className="h-1.5 w-1.5 rounded-full shadow-[0_0_8px_currentColor]"
+                  style={{ backgroundColor: "currentColor" }}
+                  aria-hidden
+                />
+                {profitQuality === "tight"
+                  ? "Tight margin for this scope"
+                  : profitQuality === "balanced"
+                    ? "Balanced margin for this job"
+                    : profitQuality === "strong"
+                      ? "Strong margin position"
+                      : "Premium pricing posture"}
+              </div>
+            )}
+            {/* PROPOSAL ROW — inline, not another card */}
+            <div className="relative mt-6 border-t border-white/[0.08] pt-4">
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-100/75">
+                  Homeowner proposal
+                </span>
+                <span className="shrink-0 text-[14px] font-semibold tracking-tight text-white">{proposalTierLabel}</span>
+              </div>
+              <p className="mt-1.5 text-[10.5px] leading-relaxed text-white/45">
+                {hasLive
+                  ? `PDF-aligned · ${money(viewModel!.proposal.price)}  ·  M ${money(viewModel!.proposal.materials)}  ·  L ${money(viewModel!.proposal.labor)}  ·  D ${money(viewModel!.proposal.disposal)}`
+                  : "Customer-facing presentation paired with contractor-facing economics."}
+              </p>
+            </div>
+          </section>
+
           {/* Section F — Next Actions */}
           <section
             id="v2-step-06"
-            className="relative overflow-hidden rounded-[28px] border border-cyan-400/25 bg-[radial-gradient(ellipse_120%_80%_at_50%_-10%,rgba(34,211,238,0.16),transparent_60%),linear-gradient(180deg,rgba(15,24,36,0.92)_0%,rgba(9,15,24,0.96)_100%)] p-7 shadow-[0_34px_82px_-30px_rgba(34,211,238,0.28),0_2px_0_rgba(255,255,255,0.05)_inset,0_0_0_1px_rgba(34,211,238,0.06)_inset] sm:p-8 lg:col-span-5 lg:self-start"
+            className="relative order-4 lg:order-none overflow-hidden rounded-[28px] border border-cyan-400/25 bg-[radial-gradient(ellipse_120%_80%_at_50%_-10%,rgba(34,211,238,0.16),transparent_60%),linear-gradient(180deg,rgba(15,24,36,0.92)_0%,rgba(9,15,24,0.96)_100%)] p-7 shadow-[0_34px_82px_-30px_rgba(34,211,238,0.28),0_2px_0_rgba(255,255,255,0.05)_inset,0_0_0_1px_rgba(34,211,238,0.06)_inset] sm:p-8"
           >
             {/* Ambient accent echoing Outcome's vignette */}
             <span
@@ -10388,6 +10393,8 @@ export default function RoofingClientV2({
               </span>
             </div>
           </section>
+            </div>
+          </div>
         </div>
 
         {/* BOTTOM FOOTER STRIP */}
