@@ -3542,7 +3542,7 @@ Thanks,`;
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="text-xs font-semibold uppercase tracking-wider text-amber-200/80">V2 Preview</div>
-              <p className="mt-0.5 text-[11px] text-white/45">Toggle the new estimator surface using live V1 data.</p>
+              <p className="mt-0.5 text-[11px] text-white/45">Preview the next job workspace surface using live job data.</p>
             </div>
             <button
               type="button"
@@ -3682,10 +3682,10 @@ Thanks,`;
 
                 <div className="mt-4">
                   <h1 className="text-[2.9rem] font-extrabold tracking-[-0.02em] leading-[0.98] md:text-5xl lg:text-[3.4rem] text-white">
-                    Roofing Calculator
+                    New Roofing Job
                   </h1>
                   <p className="mt-4 max-w-2xl text-[15px] leading-7 text-slate-300/95 md:text-[17px]">
-                    Estimate materials, labor, and a suggested price with waste and profit margin.
+                    Capture the customer, prepare the scope, price the job, and move it toward proposal, approval, and payment.
                   </p>
                 </div>
 
@@ -3739,7 +3739,7 @@ Thanks,`;
                   }}
                   className="shrink-0 rounded-full border border-amber-400/30 bg-white/10 px-4 py-2 text-sm font-semibold text-amber-100 hover:bg-white/20"
                 >
-                  New Estimate
+                  New Job
                 </button>
               </div>
             </div>
@@ -3764,8 +3764,8 @@ Thanks,`;
               id="customer-job-section"
               className="mb-6 rounded-3xl border border-white/10 bg-white/[0.04] p-4 shadow-[0_10px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl"
             >
-              <div className="text-sm font-semibold text-white/90">Step 1 — Customer & Job</div>
-              <div className="text-xs text-white/60 mt-0.5">Used to deliver and personalize your proposal</div>
+              <div className="text-sm font-semibold text-white/90">Step 1 — Job Intake</div>
+              <div className="text-xs text-white/60 mt-0.5">Capture the customer, property, and job details that power the proposal workflow.</div>
               <form autoComplete="off" className="mt-4 space-y-3">
                 <div className="space-y-1.5">
                   <label htmlFor="customer-name" className="block text-sm font-medium text-white/80">Customer Name *</label>
@@ -3965,7 +3965,7 @@ Thanks,`;
                 </div>
               </form>
               <p className="mt-4 text-xs text-white/40">
-                Next: Materials & roof details
+                Next: Scope, materials, and pricing
               </p>
             </div>
 
@@ -4676,7 +4676,7 @@ Thanks,`;
                   href="/tools/roofing/saved"
                   className="text-xs font-semibold text-white/60 hover:text-white"
                 >
-                  View Saved Estimates
+                  Open Command Center
                 </a>
               </div>
               {zipClearedToast && (
