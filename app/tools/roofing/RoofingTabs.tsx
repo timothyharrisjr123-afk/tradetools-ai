@@ -23,14 +23,14 @@ export default function RoofingTabs({ active }: { active: RoofingTabKey }) {
             window.location.assign("/tools/roofing");
           }}
         >
-          Estimate
+          New Job
         </a>
 
         <Link
           href="/tools/roofing/saved"
           className={`${base} ${active === "saved" ? on : off}`}
         >
-          Saved
+          Command Center
         </Link>
 
         <Link
