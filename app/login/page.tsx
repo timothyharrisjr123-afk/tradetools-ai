@@ -2,11 +2,10 @@
 
 import { useState, Suspense } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { createClient } from "@/app/lib/supabase/client";
 
 function LoginPageInner() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -32,7 +31,7 @@ function LoginPageInner() {
         !redirectTo.includes(":")
           ? redirectTo
           : "/";
-      router.push(safePath);
+      window.location.assign(safePath);
     } catch (err) {
       setMessage({ type: "error", text: err instanceof Error ? err.message : "Something went wrong." });
     } finally {
