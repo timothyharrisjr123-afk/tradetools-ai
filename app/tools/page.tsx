@@ -5,12 +5,12 @@ import Link from "next/link";
 const tools = [
   {
     href: "/tools/roofing",
-    title: "Roofing Calculator",
+    title: "FieldDive Roofing",
     description:
-      "Estimate squares, materials, labor, and a suggested price with waste and profit margin.",
-    cta: "Open calculator",
-    secondaryHref: "/tools/roofing/history",
-    secondaryLabel: "Roofing History",
+      "Start a roofing job, prepare the scope, manage proposals, and track the work from one operating flow.",
+    cta: "Start new job",
+    secondaryHref: "/tools/roofing/saved",
+    secondaryLabel: "Open Command Center",
   },
 ];
 
