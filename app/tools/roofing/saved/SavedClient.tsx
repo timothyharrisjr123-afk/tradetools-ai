@@ -4065,7 +4065,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
           {flashBanner}
         </div>
       )}
-      <div className="mx-auto max-w-3xl space-y-6">
+      <div className="mx-auto max-w-7xl space-y-8 lg:space-y-10">
         <RoofingTabs active="saved" />
         <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5 shadow-[0_10px_30px_rgba(0,0,0,0.35)] backdrop-blur-xl">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -4079,29 +4079,29 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                   window.location.assign("/tools/roofing");
                 }}
               >
-                ← Back to Calculator
+                ← New roofing job
               </a>
 
               {(() => {
                 const pageTitle: Record<typeof statusFilter, string> = {
-                  all: "Saved Estimates",
-                  estimate: "Estimates",
-                  sent_pending: "Sent Estimates",
+                  all: "Command Center",
+                  estimate: "Draft Estimates",
+                  sent_pending: "Sent Proposals",
                   approved: "Approved Jobs",
-                  deposit_paid: "Deposit Paid",
+                  deposit_paid: "Ready to Schedule",
                   scheduled: "Scheduled Jobs",
                   in_progress: "Crew On Site",
-                  paid: "Completed Jobs",
+                  paid: "Completed / Closed Jobs",
                 };
                 const pageSubtitle: Record<typeof statusFilter, string> = {
-                  all: "All saved estimates in your pipeline",
+                  all: "Track jobs, follow-ups, payments, and scheduling from one operating view.",
                   estimate: "Draft estimates not yet sent",
                   sent_pending: "Sent, awaiting view or response",
                   approved: "Approved, ready to schedule",
                   deposit_paid: "Deposit received, ready to schedule",
                   scheduled: "Jobs currently scheduled in your pipeline",
                   in_progress: "Jobs actively being worked today",
-                  paid: "Finished and paid work",
+                  paid: "Finished and closed work",
                 };
                 return (
                   <>
@@ -4120,7 +4120,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search saved estimates..."
+                placeholder="Search jobs, customers, addresses..."
                 className="w-full rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white/90 placeholder:text-white/40 outline-none focus:border-white/20 focus:bg-white/[0.08]"
               />
             </div>
@@ -4128,13 +4128,13 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
 
           <div className="mt-4 flex flex-wrap gap-2 text-xs">
             {[
-              ["all", "All"],
-              ["estimate", "Estimate"],
-              ["sent_pending", "Sent"],
+              ["all", "Overview"],
+              ["estimate", "Draft"],
+              ["sent_pending", "Sent proposals"],
               ["approved", "Approved"],
-              ["deposit_paid", "Deposit paid"],
+              ["deposit_paid", "Ready to schedule"],
               ["scheduled", "Scheduled"],
-              ["in_progress", "On Site"],
+              ["in_progress", "On site"],
               ["paid", "Completed"],
             ].map(([key, label]) => (
               <button
@@ -4172,6 +4172,66 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
           )}
         </div>
 
+        {hydrated && (
+          <section
+            aria-label="Command center status"
+            className="rounded-3xl border border-cyan-500/15 bg-gradient-to-br from-slate-900/90 via-slate-900/70 to-[#0c1220]/90 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.45)] ring-1 ring-inset ring-white/[0.06]"
+          >
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+              <div className="min-w-0 flex-1">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-cyan-300/85">
+                  FIELD DIVE COMMAND
+                </div>
+                <h2 className="mt-3 text-xl font-semibold tracking-tight text-white sm:text-2xl">
+                  Today&apos;s operating view
+                </h2>
+                <p className="mt-2 text-sm leading-relaxed text-white/60">
+                  {nextActionText}
+                </p>
+                {statusFilter === "scheduled" && (
+                  <p className="mt-2 text-xs text-white/45">
+                    {scheduledView === "upcoming"
+                      ? `${upcomingScheduledJobs.length} upcoming · ${jobsThisWeek.length} in the next 7 days`
+                      : scheduledView === "past"
+                        ? "Showing past dates in this lane"
+                        : "All dates in this lane"}
+                  </p>
+                )}
+              </div>
+              <div className="grid w-full shrink-0 grid-cols-2 gap-3 sm:max-w-xl sm:grid-cols-4 lg:w-auto lg:gap-4">
+                <div className="rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3">
+                  <div className="text-[10px] font-semibold uppercase tracking-wide text-white/45">In view</div>
+                  <div className="mt-1 text-2xl font-semibold tabular-nums text-white">
+                    {statusFilter === "all" ? searchFiltered.length : filtered.length}
+                  </div>
+                  <div className="mt-1 text-[11px] text-white/50">Matching this lane</div>
+                </div>
+                <div className="rounded-2xl border border-rose-400/15 bg-rose-500/[0.08] px-4 py-3">
+                  <div className="text-[10px] font-semibold uppercase tracking-wide text-rose-200/70">Follow-ups</div>
+                  <div className="mt-1 text-2xl font-semibold tabular-nums text-rose-50">
+                    {sentDueJobs.length}
+                  </div>
+                  <div className="mt-1 text-[11px] text-rose-200/60">Due now</div>
+                </div>
+                <div className="rounded-2xl border border-sky-400/15 bg-sky-500/[0.08] px-4 py-3">
+                  <div className="text-[10px] font-semibold uppercase tracking-wide text-sky-200/75">Deposits</div>
+                  <div className="mt-1 text-2xl font-semibold tabular-nums text-sky-50">
+                    {approvedDueJobs.length}
+                  </div>
+                  <div className="mt-1 text-[11px] text-sky-200/60">To collect</div>
+                </div>
+                <div className="rounded-2xl border border-emerald-400/15 bg-emerald-500/[0.08] px-4 py-3">
+                  <div className="text-[10px] font-semibold uppercase tracking-wide text-emerald-200/75">Schedule</div>
+                  <div className="mt-1 text-2xl font-semibold tabular-nums text-emerald-50">
+                    {depositReadyJobs.length}
+                  </div>
+                  <div className="mt-1 text-[11px] text-emerald-200/60">Deposit paid · needs date</div>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
         {!hydrated && (
           <div className="text-center text-sm text-white/60 py-8">
             Loading saved estimates…
@@ -4190,26 +4250,26 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
           />
         )}
 
-        {/* Pipeline Insight (contractor-first) */}
+        {/* Command Focus — same derived metrics as former Pipeline Insight */}
         {hydrated && (
-          <div className="mt-10 w-full max-w-3xl rounded-3xl border border-white/10 bg-white/[0.03] p-6 shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
+          <div className="mt-2 w-full rounded-3xl border border-white/10 bg-white/[0.03] p-6 shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <div className="text-lg font-semibold text-white">Pipeline Insight</div>
+                <div className="text-lg font-semibold text-white">Command Focus</div>
                 <div className="mt-1 text-sm text-white/55">
-                  One thing to focus on right now.
+                  FieldDive is reading the pipeline and surfacing the next move.
                 </div>
               </div>
 
               <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-white/70">
-                Contractor view
+                Manual mode
               </div>
             </div>
 
-            <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
               <div className="rounded-2xl border border-emerald-400/15 bg-emerald-500/10 p-4">
                 <div className="text-xs uppercase tracking-wide text-emerald-200/80">
-                  {statusFilter === "scheduled" ? "SCHEDULED REVENUE" : "Revenue secured"}
+                  {statusFilter === "scheduled" ? "SCHEDULED REVENUE" : "Secured revenue"}
                 </div>
                 <div className="mt-2 text-2xl font-semibold text-emerald-100">
                   ${(statusFilter === "scheduled" ? scheduledRevenueSafe : waitingToScheduleRevenueSafe).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -4223,13 +4283,13 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
 
               <div className="rounded-2xl border border-amber-400/20 bg-amber-500/10 p-4">
                 <div className="text-xs uppercase tracking-wide text-amber-200/80">
-                  {statusFilter === "scheduled" ? "Upcoming Jobs" : "Waiting to schedule"}
+                  {statusFilter === "scheduled" ? "UPCOMING JOBS" : "READY TO SCHEDULE"}
                 </div>
                 <div className="mt-2 text-2xl font-semibold text-amber-100">
                   {statusFilter === "scheduled" ? upcomingScheduledJobs.length : waitingToScheduleCount}
                 </div>
                 <div className="mt-1 text-sm text-amber-200/70">
-                  {statusFilter === "scheduled" ? "Jobs on your upcoming schedule" : "Deposit-paid jobs not yet scheduled"}
+                  {statusFilter === "scheduled" ? "Jobs on your upcoming schedule" : "Approved or deposit-paid, not locked to a date yet"}
                 </div>
               </div>
 
@@ -4265,7 +4325,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
               )}
             </div>
 
-            <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
               <div className="text-sm text-slate-300">
                 <span className="font-semibold text-white">Next action:</span>{" "}
                 {nextActionText}
@@ -4274,7 +4334,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
           </div>
         )}
 
-        <div className="space-y-6">
+        <div className="mt-8 space-y-8 lg:mt-10 lg:space-y-10">
           {/* Scheduled UX v2 enabled */}
           {hydrated && statusFilter === "scheduled" && (() => {
             const now = new Date();
