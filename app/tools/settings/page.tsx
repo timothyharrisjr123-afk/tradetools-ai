@@ -61,17 +61,17 @@ export default function SettingsPage() {
           className="inline-flex items-center gap-2 text-sm text-white/70 hover:text-white/90 mb-6"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Tools
+          Back to Command Center
         </Link>
 
-        <h1 className="text-xl font-semibold text-white/95 mb-2">Company Profile</h1>
+        <h1 className="text-xl font-semibold text-white/95 mb-2">Business Profile</h1>
         <p className="text-sm text-white/60 mb-6">
-          These details appear on proposals, emails, and PDFs.
+          These details power proposals, emails, PDFs, customer notifications, and future automation.
         </p>
 
         <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-4 sm:p-6 shadow-[0_10px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl">
-          <h2 className="text-sm font-semibold text-white/90 mb-1">Business Details</h2>
-          <p className="text-xs text-white/60 mb-4">Shown on estimates and documents.</p>
+          <h2 className="text-sm font-semibold text-white/90 mb-1">Company Identity</h2>
+          <p className="text-xs text-white/60 mb-4">Used across job workspaces, proposals, customer emails, and documents.</p>
 
           <div className="space-y-3">
             <div className="space-y-1.5">
@@ -127,7 +127,7 @@ export default function SettingsPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <label className="block text-xs text-white/70 mb-1">Estimate approval notification email</label>
+              <label className="block text-xs text-white/70 mb-1">Approval notification email</label>
               <input
                 type="email"
                 placeholder="Where approval notifications should be sent"
@@ -169,10 +169,10 @@ export default function SettingsPage() {
               disabled={saving}
               className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white/90 hover:bg-white/15 active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {saving ? "Saving..." : "Save Changes"}
+              {saving ? "Saving..." : "Save Profile"}
             </button>
             {saved && (
-              <span className="text-sm text-emerald-400/90">Company profile saved.</span>
+              <span className="text-sm text-emerald-400/90">Business profile saved.</span>
             )}
           </div>
         </div>
