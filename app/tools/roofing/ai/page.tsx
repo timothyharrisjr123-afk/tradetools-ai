@@ -63,7 +63,7 @@ export default function AILibraryPage() {
       <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5 shadow-[0_10px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl">
         <div className="text-sm font-semibold text-white/90">AI Library</div>
         <div className="text-xs text-white/55 mt-0.5">
-          Manage your company voice and saved AI wording so estimates stay consistent.
+          Manage company voice, proposal wording, and reusable AI preferences for the FieldDive workflow.
         </div>
 
         <div className="mt-5 grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -71,7 +71,7 @@ export default function AILibraryPage() {
           <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
             <div className="text-xs font-semibold text-white/85">Company Voice Profile</div>
             <div className="text-[11px] text-white/55 mt-0.5">
-              This guides tone for AI wording (still no pricing).
+              This guides AI-written proposal, follow-up, and customer-facing language. Pricing remains controlled by the job workspace.
             </div>
 
             <div className="mt-4 space-y-4">
@@ -152,7 +152,7 @@ export default function AILibraryPage() {
                   Saved AI Favorites
                 </div>
                 <div className="mt-1 text-xs text-white/60">
-                  Your locked wording per tier will appear here.
+                  Reusable proposal wording, CTAs, and follow-up language will appear here.
                 </div>
               </div>
 
@@ -161,8 +161,7 @@ export default function AILibraryPage() {
                   No saved favorites yet
                 </div>
                 <div className="mt-2 text-xs text-white/50">
-                  When you save preferred package descriptions or CTAs per tier,
-                  they’ll appear here for one-click reuse.
+                  When you save preferred proposal language, CTAs, or follow-up snippets, they’ll appear here for one-click reuse.
                 </div>
               </div>
             </div>
