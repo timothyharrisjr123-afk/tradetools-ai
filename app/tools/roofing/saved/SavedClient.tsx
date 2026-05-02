@@ -4334,6 +4334,190 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
           </div>
         )}
 
+        {hydrated && (
+          <section
+            aria-label="Action queue"
+            className="rounded-3xl border border-white/10 bg-white/[0.025] p-5 shadow-[0_10px_30px_rgba(0,0,0,0.28)] ring-1 ring-inset ring-white/[0.04] backdrop-blur-xl sm:p-6"
+          >
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h2 className="text-lg font-semibold tracking-tight text-white">Action Queue</h2>
+                <p className="mt-1 text-sm text-white/50">
+                  The jobs FieldDive thinks need attention next.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+              {/* Lane 1: Follow-ups due */}
+              <div className="flex min-h-0 flex-col rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/45">
+                    Follow-ups due
+                  </span>
+                  <span className="text-lg font-semibold tabular-nums text-white/90">{sentDueJobs.length}</span>
+                </div>
+                <p className="mt-2 text-[11px] leading-snug text-white/42">
+                  Sent proposals that need a check-in.
+                </p>
+                <div className="mt-3 space-y-0 border-t border-white/[0.06] pt-3">
+                  {sentDueJobs.length === 0 ? (
+                    <p className="text-xs text-white/38">Nothing urgent here.</p>
+                  ) : (
+                    sentDueJobs.slice(0, 3).map((est) => {
+                      const viewed = !!getEffectiveViewedAt(est, batchStatuses);
+                      return (
+                        <div
+                          key={est.id}
+                          className="flex items-center gap-2 border-b border-white/[0.05] py-2.5 last:border-b-0 last:pb-0 first:pt-0"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="truncate text-sm font-medium text-white/88">
+                              {getEstimateDisplayName(est)}
+                            </div>
+                            <div className="mt-0.5 text-[11px] text-white/42">
+                              {viewed ? "Viewed" : "Not viewed yet"}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleAction(est as RoofingEstimate, "load")}
+                            className="shrink-0 rounded-lg border border-white/12 bg-white/[0.06] px-2.5 py-1 text-[11px] font-semibold text-white/85 transition hover:border-white/18 hover:bg-white/[0.10]"
+                          >
+                            Open
+                          </button>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+
+              {/* Lane 2: Deposits to collect */}
+              <div className="flex min-h-0 flex-col rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/45">
+                    Deposits to collect
+                  </span>
+                  <span className="text-lg font-semibold tabular-nums text-white/90">{approvedDueJobs.length}</span>
+                </div>
+                <p className="mt-2 text-[11px] leading-snug text-white/42">Approved jobs waiting on deposit.</p>
+                <div className="mt-3 space-y-0 border-t border-white/[0.06] pt-3">
+                  {approvedDueJobs.length === 0 ? (
+                    <p className="text-xs text-white/38">Nothing urgent here.</p>
+                  ) : (
+                    approvedDueJobs.slice(0, 3).map((est) => (
+                      <div
+                        key={est.id}
+                        className="flex items-center gap-2 border-b border-white/[0.05] py-2.5 last:border-b-0 last:pb-0 first:pt-0"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-sm font-medium text-white/88">
+                            {getEstimateDisplayName(est)}
+                          </div>
+                          <div className="mt-0.5 text-[11px] text-white/42">Approved · deposit needed</div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleAction(est as RoofingEstimate, "load")}
+                          className="shrink-0 rounded-lg border border-white/12 bg-white/[0.06] px-2.5 py-1 text-[11px] font-semibold text-white/85 transition hover:border-white/18 hover:bg-white/[0.10]"
+                        >
+                          Open
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Lane 3: Ready to schedule */}
+              <div className="flex min-h-0 flex-col rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/45">
+                    Ready to schedule
+                  </span>
+                  <span className="text-lg font-semibold tabular-nums text-white/90">{depositReadyJobs.length}</span>
+                </div>
+                <p className="mt-2 text-[11px] leading-snug text-white/42">
+                  Deposit-paid jobs that still need a date.
+                </p>
+                <div className="mt-3 space-y-0 border-t border-white/[0.06] pt-3">
+                  {depositReadyJobs.length === 0 ? (
+                    <p className="text-xs text-white/38">Nothing urgent here.</p>
+                  ) : (
+                    depositReadyJobs.slice(0, 3).map((est) => (
+                      <div
+                        key={est.id}
+                        className="flex items-center gap-2 border-b border-white/[0.05] py-2.5 last:border-b-0 last:pb-0 first:pt-0"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-sm font-medium text-white/88">
+                            {getEstimateDisplayName(est)}
+                          </div>
+                          <div className="mt-0.5 text-[11px] text-white/42">Ready for schedule</div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleAction(est as RoofingEstimate, "load")}
+                          className="shrink-0 rounded-lg border border-white/12 bg-white/[0.06] px-2.5 py-1 text-[11px] font-semibold text-white/85 transition hover:border-white/18 hover:bg-white/[0.10]"
+                        >
+                          Open
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Lane 4: This week */}
+              <div className="flex min-h-0 flex-col rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/45">
+                    This week
+                  </span>
+                  <span className="text-lg font-semibold tabular-nums text-white/90">{jobsThisWeek.length}</span>
+                </div>
+                <p className="mt-2 text-[11px] leading-snug text-white/42">
+                  {statusFilter === "scheduled"
+                    ? "Jobs scheduled in the next 7 days."
+                    : "Switch to Scheduled to see this week's jobs."}
+                </p>
+                <div className="mt-3 space-y-0 border-t border-white/[0.06] pt-3">
+                  {statusFilter !== "scheduled" || jobsThisWeek.length === 0 ? (
+                    <p className="text-xs text-white/38">Nothing urgent here.</p>
+                  ) : (
+                    jobsThisWeek.slice(0, 3).map(({ est, key }) => {
+                      const dateKey =
+                        normalizeDateKey(est?.scheduledStartDate) ?? key;
+                      const dateLabel = formatDateKeyLocal(dateKey);
+                      return (
+                        <div
+                          key={est.id}
+                          className="flex items-center gap-2 border-b border-white/[0.05] py-2.5 last:border-b-0 last:pb-0 first:pt-0"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="truncate text-sm font-medium text-white/88">
+                              {getEstimateDisplayName(est)}
+                            </div>
+                            <div className="mt-0.5 truncate text-[11px] text-white/42">{dateLabel}</div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleAction(est as RoofingEstimate, "load")}
+                            className="shrink-0 rounded-lg border border-white/12 bg-white/[0.06] px-2.5 py-1 text-[11px] font-semibold text-white/85 transition hover:border-white/18 hover:bg-white/[0.10]"
+                          >
+                            Open
+                          </button>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
         <div className="mt-8 space-y-8 lg:mt-10 lg:space-y-10">
           {/* Scheduled UX v2 enabled */}
           {hydrated && statusFilter === "scheduled" && (() => {
