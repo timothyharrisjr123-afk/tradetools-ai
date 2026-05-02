@@ -3766,7 +3766,39 @@ Thanks,`;
             >
               <div className="text-sm font-semibold text-white/90">Step 1 — Job Intake</div>
               <div className="text-xs text-white/60 mt-0.5">Capture the customer, property, and job details that power the proposal workflow.</div>
+
+              <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2.5 sm:px-4 sm:py-3">
+                <div className="text-[10px] font-semibold tracking-wide text-white/50">Capture source</div>
+                <div className="mt-2 flex flex-wrap items-center gap-1.5 sm:gap-2">
+                  <span className="inline-flex items-center rounded-full border border-emerald-400/25 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-200/95 ring-1 ring-inset ring-emerald-400/15">
+                    Manual entry
+                  </span>
+                  <span
+                    className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[11px] font-medium text-white/38"
+                    aria-hidden
+                  >
+                    Photos soon
+                  </span>
+                  <span
+                    className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[11px] font-medium text-white/38"
+                    aria-hidden
+                  >
+                    Voice soon
+                  </span>
+                  <span
+                    className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[11px] font-medium text-white/38"
+                    aria-hidden
+                  >
+                    Message soon
+                  </span>
+                </div>
+              </div>
+
               <form autoComplete="off" className="mt-4 space-y-3">
+                <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-3 sm:p-4">
+                  <div className="text-xs font-semibold tracking-wide text-white/85">Customer</div>
+                  <p className="mt-1 text-[11px] leading-snug text-white/45">Who the proposal and follow-ups are for.</p>
+                  <div className="mt-3 space-y-3">
                 <div className="space-y-1.5">
                   <label htmlFor="customer-name" className="block text-sm font-medium text-white/80">Customer Name *</label>
                   <input
@@ -3820,6 +3852,13 @@ Thanks,`;
                     className="w-full rounded-2xl border border-white/15 bg-white/[0.07] px-4 py-3 text-white/95 placeholder:text-white/35 focus:outline-none focus:ring-2 focus:ring-blue-500/35 focus:border-white/25 text-sm"
                   />
                 </div>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-3 sm:p-4">
+                  <div className="text-xs font-semibold tracking-wide text-white/85">Property</div>
+                  <p className="mt-1 text-[11px] leading-snug text-white/45">Where the job is happening and which ZIP defaults should apply.</p>
+                  <div className="mt-3 space-y-3">
                 <div className="space-y-1.5">
                   <label htmlFor="job-address" className="block text-sm font-medium text-white/80">Job Address</label>
                   <input
@@ -3961,6 +4000,8 @@ Thanks,`;
                         Clear ZIP defaults
                       </button>
                     )}
+                  </div>
+                </div>
                   </div>
                 </div>
               </form>
