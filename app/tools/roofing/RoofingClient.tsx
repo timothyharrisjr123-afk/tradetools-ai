@@ -3564,7 +3564,7 @@ Thanks,`;
         </motion.div>
       )}
 
-      <div className="relative mx-auto max-w-[1480px]">
+      <div className="relative mx-auto w-full max-w-[1600px] 2xl:max-w-[1680px] px-2 sm:px-3 xl:px-4">
         <button
           type="button"
           onClick={() => setShowV2Preview((v) => !v)}
@@ -3793,21 +3793,23 @@ Thanks,`;
           </div>
 
           <div className="relative flex items-center gap-5">
-            <div className="flex shrink-0 items-center gap-3">
-              <div className="relative flex h-12 w-12 shrink-0 items-center justify-center" aria-hidden>
-                <span className="absolute inset-0 rounded-full bg-cyan-400/[0.22] blur-lg animate-pulse" />
-                <span className="absolute -inset-0.5 rounded-full border border-cyan-300/35" />
-                <span className="absolute inset-1 rounded-full bg-gradient-to-br from-cyan-300/55 via-blue-500/30 to-slate-950/70 shadow-[inset_0_0_22px_rgba(165,243,252,0.45),0_0_26px_rgba(34,211,238,0.55)]" />
-                <span className="absolute inset-2 rounded-full bg-[radial-gradient(circle_at_30%_25%,rgba(186,230,253,0.95),rgba(34,211,238,0.30)_55%,transparent_78%)]" />
-                <span className="relative text-[10px] font-bold uppercase tracking-wider text-cyan-50">AI</span>
+            <div className="flex shrink-0 items-center gap-3.5">
+              <div className="relative flex h-14 w-14 shrink-0 items-center justify-center" aria-hidden>
+                <span className="absolute -inset-1.5 rounded-full bg-cyan-400/[0.18] blur-xl animate-pulse" />
+                <span className="absolute -inset-1 rounded-full border border-cyan-300/25" />
+                <span className="absolute -inset-0.5 rounded-full border border-cyan-300/40" />
+                <span className="absolute inset-0.5 rounded-full bg-gradient-to-br from-cyan-300/60 via-blue-500/35 to-slate-950/75 shadow-[inset_0_0_26px_rgba(165,243,252,0.5),0_0_30px_rgba(34,211,238,0.6)]" />
+                <span className="absolute inset-1.5 rounded-full bg-[radial-gradient(circle_at_30%_25%,rgba(186,230,253,0.95),rgba(34,211,238,0.30)_55%,transparent_78%)]" />
+                <span className="absolute inset-3 rounded-full bg-cyan-50/15 blur-[2px]" />
+                <span className="relative text-[11px] font-bold uppercase tracking-wider text-cyan-50 drop-shadow-[0_0_6px_rgba(165,243,252,0.85)]">AI</span>
               </div>
               <div className="min-w-0">
-                <div className="text-[12px] font-semibold text-white sm:text-[14px]">FieldDive is preparing this job</div>
-                <div className="text-[10px] leading-snug text-white/50">AI is assembling the job packet and proposal path. You verify what matters.</div>
+                <div className="text-[13px] font-semibold leading-tight text-white sm:text-[15px]">FieldDive is preparing this job</div>
+                <div className="mt-0.5 text-[10.5px] leading-snug text-white/50">AI is assembling the job packet and proposal path. You verify what matters.</div>
               </div>
             </div>
 
-            <span className="hidden h-10 w-px bg-white/[0.08] lg:block" aria-hidden />
+            <span className="hidden h-10 w-px bg-gradient-to-b from-transparent via-white/15 to-transparent lg:block" aria-hidden />
 
             <div className="min-w-0 flex-1">
               <ol
@@ -3822,50 +3824,50 @@ Thanks,`;
                   const prevReady = idx > 0 && aiConductorStripItems[idx - 1].ready;
                   const isInProgress = !item.ready && idx > 0 && aiConductorStripItems[idx - 1].ready;
                   const nodeStateClass = item.ready
-                    ? "border-emerald-300/70 bg-emerald-500/25 text-emerald-50 shadow-[0_0_18px_rgba(16,185,129,0.55),inset_0_0_8px_rgba(167,243,208,0.25)]"
+                    ? "border-emerald-300/75 bg-gradient-to-br from-emerald-400/40 to-emerald-600/25 text-emerald-50 shadow-[0_0_22px_rgba(16,185,129,0.65),inset_0_0_10px_rgba(167,243,208,0.30)]"
                     : isInProgress
-                      ? "border-cyan-300/70 bg-cyan-500/25 text-cyan-50 shadow-[0_0_18px_rgba(34,211,238,0.65),inset_0_0_8px_rgba(165,243,252,0.30)]"
-                      : "border-white/18 bg-white/[0.04] text-white/55";
+                      ? "border-cyan-300/75 bg-gradient-to-br from-cyan-400/40 to-cyan-600/25 text-cyan-50 shadow-[0_0_22px_rgba(34,211,238,0.75),inset_0_0_10px_rgba(165,243,252,0.35)]"
+                      : "border-white/20 bg-white/[0.04] text-white/60";
                   const labelTone = item.ready
-                    ? "text-white/95"
+                    ? "text-white"
                     : isInProgress
                       ? "text-cyan-50"
-                      : "text-white/60";
+                      : "text-white/65";
                   const statusTone = item.ready
-                    ? "text-emerald-200/85"
+                    ? "text-emerald-200/90"
                     : isInProgress
-                      ? "text-cyan-200/85"
+                      ? "text-cyan-200/90"
                       : item.notReadyStatus === "Needs input"
-                        ? "text-amber-200/75"
-                        : "text-white/40";
+                        ? "text-amber-200/80"
+                        : "text-white/45";
                   return (
                     <li key={item.label} className="relative flex flex-col items-center" role="listitem">
                       {!isFirst && (
                         <span
-                          className={`pointer-events-none absolute right-1/2 top-[14px] h-[2px] w-full ${
-                            prevReady ? "bg-gradient-to-r from-emerald-400/55 to-emerald-300/35" : "bg-white/10"
+                          className={`pointer-events-none absolute right-1/2 top-[15px] h-[2px] w-full ${
+                            prevReady ? "bg-gradient-to-r from-emerald-400/65 to-emerald-300/45 shadow-[0_0_6px_rgba(16,185,129,0.45)]" : "bg-white/10"
                           }`}
                           aria-hidden
                         />
                       )}
                       {!isLast && (
                         <span
-                          className={`pointer-events-none absolute left-1/2 top-[14px] h-[2px] w-full ${
-                            item.ready ? "bg-gradient-to-r from-emerald-300/35 to-emerald-400/55" : "bg-white/10"
+                          className={`pointer-events-none absolute left-1/2 top-[15px] h-[2px] w-full ${
+                            item.ready ? "bg-gradient-to-r from-emerald-300/45 to-emerald-400/65 shadow-[0_0_6px_rgba(16,185,129,0.45)]" : "bg-white/10"
                           }`}
                           aria-hidden
                         />
                       )}
                       <span
-                        className={`relative z-10 flex h-7 w-7 items-center justify-center rounded-full border-2 text-[11px] font-bold tabular-nums ${nodeStateClass}`}
+                        className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 text-[12px] font-bold tabular-nums ${nodeStateClass}`}
                         aria-hidden
                       >
                         {item.ready ? "✓" : idx + 1}
                       </span>
-                      <span className={`mt-1.5 text-center text-[10px] font-semibold leading-tight ${labelTone}`}>
+                      <span className={`mt-1.5 text-center text-[10.5px] font-semibold leading-tight ${labelTone}`}>
                         {item.label}
                       </span>
-                      <span className={`text-center text-[9px] font-medium leading-tight ${statusTone}`}>
+                      <span className={`text-center text-[9.5px] font-medium leading-tight ${statusTone}`}>
                         {status}
                       </span>
                     </li>
@@ -3877,7 +3879,7 @@ Thanks,`;
         </div>
 
         <div className="mt-3 sm:mt-4">
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_400px] 2xl:grid-cols-[minmax(0,1fr)_440px] xl:gap-5 2xl:gap-6">
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_420px] 2xl:grid-cols-[minmax(0,1fr)_460px] xl:gap-5 2xl:gap-6">
           {/* Workflow canvas */}
           <div className="space-y-3 xl:space-y-4">
 
@@ -3977,71 +3979,94 @@ Thanks,`;
                   </div>
                 </div>
                 <div
-                  className="relative overflow-hidden rounded-xl border border-blue-400/25 bg-slate-950/55 shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_18px_60px_-40px_rgba(34,211,238,0.4)] xl:col-span-7"
+                  className="relative overflow-hidden rounded-xl border border-blue-400/25 bg-slate-950/55 shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_18px_60px_-40px_rgba(34,211,238,0.45)] xl:col-span-7"
                   style={{
                     backgroundImage:
-                      "radial-gradient(ellipse at 70% 30%, rgba(34,211,238,0.22), transparent 55%), radial-gradient(ellipse at 30% 90%, rgba(59,130,246,0.22), transparent 60%), linear-gradient(180deg, #0a1424 0%, #0d1b30 50%, #07111e 100%)",
+                      "radial-gradient(ellipse at 70% 12%, rgba(125,211,252,0.32), transparent 55%), radial-gradient(ellipse at 25% 95%, rgba(15,23,42,0.65), transparent 65%), linear-gradient(180deg, #1a3253 0%, #112844 30%, #0a1a2e 65%, #060f1c 100%)",
                   }}
                 >
-                  <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/45 to-transparent" aria-hidden />
+                  <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/55 to-transparent" aria-hidden />
+
+                  <div className="pointer-events-none absolute inset-x-0 top-0 h-[42%] opacity-90" aria-hidden style={{
+                    backgroundImage:
+                      "radial-gradient(ellipse at 80% 30%, rgba(186,230,253,0.18), transparent 55%), radial-gradient(ellipse at 30% 60%, rgba(125,211,252,0.10), transparent 70%)",
+                  }} />
 
                   <svg
-                    className="pointer-events-none absolute inset-x-0 bottom-0 h-[58%] w-full opacity-[0.55]"
+                    className="pointer-events-none absolute inset-x-0 bottom-0 h-[68%] w-full"
                     viewBox="0 0 400 220"
                     preserveAspectRatio="none"
                     aria-hidden
                   >
                     <defs>
-                      <linearGradient id="roofPreviewSky" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="rgba(34,211,238,0.28)" />
-                        <stop offset="100%" stopColor="rgba(15,23,42,0)" />
-                      </linearGradient>
                       <linearGradient id="roofPreviewRoof" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="rgba(125,211,252,0.85)" />
-                        <stop offset="100%" stopColor="rgba(56,189,248,0.55)" />
+                        <stop offset="0%" stopColor="rgba(71,85,105,0.95)" />
+                        <stop offset="55%" stopColor="rgba(51,65,85,0.95)" />
+                        <stop offset="100%" stopColor="rgba(30,41,59,0.95)" />
                       </linearGradient>
                       <linearGradient id="roofPreviewWall" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="rgba(148,163,184,0.42)" />
-                        <stop offset="100%" stopColor="rgba(30,41,59,0.55)" />
+                        <stop offset="0%" stopColor="rgba(217,200,164,0.85)" />
+                        <stop offset="100%" stopColor="rgba(146,131,103,0.85)" />
+                      </linearGradient>
+                      <linearGradient id="roofPreviewWindow" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="rgba(217,232,255,0.75)" />
+                        <stop offset="100%" stopColor="rgba(125,170,220,0.55)" />
+                      </linearGradient>
+                      <linearGradient id="roofPreviewLawn" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="rgba(34,77,55,0.70)" />
+                        <stop offset="100%" stopColor="rgba(15,42,28,0.85)" />
+                      </linearGradient>
+                      <linearGradient id="roofPreviewDrive" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="rgba(82,82,91,0.75)" />
+                        <stop offset="100%" stopColor="rgba(39,39,42,0.85)" />
                       </linearGradient>
                     </defs>
-                    <rect x="0" y="0" width="400" height="220" fill="url(#roofPreviewSky)" />
-                    <path
-                      d="M40 175 L40 110 L160 60 L280 110 L280 175 Z"
-                      fill="url(#roofPreviewWall)"
-                      stroke="rgba(165,243,252,0.45)"
-                      strokeWidth="1"
-                    />
-                    <path
-                      d="M30 115 L160 50 L290 115 L275 122 L160 65 L45 122 Z"
-                      fill="url(#roofPreviewRoof)"
-                      stroke="rgba(186,230,253,0.7)"
-                      strokeWidth="1"
-                    />
-                    <path
-                      d="M280 175 L280 130 L370 90 L370 175 Z"
-                      fill="url(#roofPreviewWall)"
-                      stroke="rgba(165,243,252,0.4)"
-                      strokeWidth="1"
-                    />
-                    <path
-                      d="M275 132 L280 130 L370 90 L375 95 Z"
-                      fill="url(#roofPreviewRoof)"
-                      stroke="rgba(186,230,253,0.65)"
-                      strokeWidth="1"
-                    />
-                    <rect x="120" y="130" width="32" height="45" fill="rgba(15,23,42,0.85)" stroke="rgba(165,243,252,0.45)" strokeWidth="1" rx="2" />
-                    <rect x="170" y="125" width="22" height="22" fill="rgba(34,211,238,0.18)" stroke="rgba(165,243,252,0.45)" strokeWidth="1" rx="2" />
-                    <rect x="200" y="125" width="22" height="22" fill="rgba(34,211,238,0.18)" stroke="rgba(165,243,252,0.45)" strokeWidth="1" rx="2" />
-                    <rect x="60" y="125" width="22" height="22" fill="rgba(34,211,238,0.18)" stroke="rgba(165,243,252,0.45)" strokeWidth="1" rx="2" />
-                    <line x1="0" y1="175" x2="400" y2="175" stroke="rgba(165,243,252,0.30)" strokeWidth="1" />
+
+                    <rect x="0" y="155" width="400" height="65" fill="url(#roofPreviewLawn)" />
+                    <polygon points="140,205 260,205 320,220 80,220" fill="url(#roofPreviewDrive)" />
+
+                    <path d="M50 175 L50 110 L155 55 L260 110 L260 175 Z" fill="url(#roofPreviewWall)" stroke="rgba(15,23,42,0.55)" strokeWidth="0.5" />
+                    <line x1="155" y1="55" x2="155" y2="175" stroke="rgba(15,23,42,0.30)" strokeWidth="0.5" />
+
+                    <path d="M40 116 L155 50 L270 116 L260 122 L155 60 L50 122 Z" fill="url(#roofPreviewRoof)" stroke="rgba(15,23,42,0.65)" strokeWidth="0.5" />
+                    <line x1="155" y1="50" x2="155" y2="60" stroke="rgba(255,255,255,0.10)" strokeWidth="0.5" />
+                    <g opacity="0.20">
+                      {Array.from({ length: 16 }).map((_, i) => (
+                        <line key={`rl-${i}`} x1={50 + i * 6.5} y1="118" x2={155} y2="60" stroke="rgba(15,23,42,0.6)" strokeWidth="0.3" />
+                      ))}
+                      {Array.from({ length: 16 }).map((_, i) => (
+                        <line key={`rr-${i}`} x1={155 + i * 6.5} y1="60" x2={260 + i * 0.05} y2="118" stroke="rgba(15,23,42,0.6)" strokeWidth="0.3" />
+                      ))}
+                    </g>
+
+                    <path d="M260 175 L260 130 L335 95 L335 175 Z" fill="url(#roofPreviewWall)" stroke="rgba(15,23,42,0.55)" strokeWidth="0.5" />
+                    <path d="M255 134 L260 130 L335 95 L340 100 L262 138 Z" fill="url(#roofPreviewRoof)" stroke="rgba(15,23,42,0.65)" strokeWidth="0.5" />
+
+                    <rect x="155" y="130" width="28" height="45" fill="rgba(20,18,12,0.85)" stroke="rgba(15,23,42,0.45)" strokeWidth="0.5" rx="1" />
+                    <rect x="158" y="135" width="22" height="35" fill="rgba(40,32,18,0.85)" />
+                    <line x1="169" y1="135" x2="169" y2="170" stroke="rgba(15,23,42,0.5)" strokeWidth="0.4" />
+
+                    <rect x="68" y="125" width="20" height="24" fill="url(#roofPreviewWindow)" stroke="rgba(15,23,42,0.55)" strokeWidth="0.5" rx="1" />
+                    <line x1="78" y1="125" x2="78" y2="149" stroke="rgba(15,23,42,0.45)" strokeWidth="0.4" />
+                    <line x1="68" y1="137" x2="88" y2="137" stroke="rgba(15,23,42,0.45)" strokeWidth="0.4" />
+
+                    <rect x="100" y="125" width="20" height="24" fill="url(#roofPreviewWindow)" stroke="rgba(15,23,42,0.55)" strokeWidth="0.5" rx="1" />
+                    <line x1="110" y1="125" x2="110" y2="149" stroke="rgba(15,23,42,0.45)" strokeWidth="0.4" />
+                    <line x1="100" y1="137" x2="120" y2="137" stroke="rgba(15,23,42,0.45)" strokeWidth="0.4" />
+
+                    <rect x="200" y="128" width="18" height="22" fill="url(#roofPreviewWindow)" stroke="rgba(15,23,42,0.55)" strokeWidth="0.5" rx="1" />
+                    <rect x="225" y="128" width="18" height="22" fill="url(#roofPreviewWindow)" stroke="rgba(15,23,42,0.55)" strokeWidth="0.5" rx="1" />
+
+                    <rect x="280" y="140" width="14" height="18" fill="url(#roofPreviewWindow)" stroke="rgba(15,23,42,0.5)" strokeWidth="0.4" rx="1" />
+                    <rect x="305" y="140" width="14" height="18" fill="url(#roofPreviewWindow)" stroke="rgba(15,23,42,0.5)" strokeWidth="0.4" rx="1" />
+
+                    <ellipse cx="362" cy="160" rx="22" ry="16" fill="rgba(20,55,35,0.75)" />
+                    <ellipse cx="368" cy="150" rx="14" ry="11" fill="rgba(34,77,55,0.85)" />
+
+                    <ellipse cx="22" cy="158" rx="20" ry="14" fill="rgba(20,55,35,0.75)" />
                   </svg>
 
-                  <div className="pointer-events-none absolute inset-0 opacity-[0.10]" aria-hidden style={{
-                    backgroundImage:
-                      "linear-gradient(rgba(165,243,252,0.18) 1px, transparent 1px), linear-gradient(90deg, rgba(165,243,252,0.18) 1px, transparent 1px)",
-                    backgroundSize: "44px 44px",
-                  }} />
+                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-slate-950/35" aria-hidden />
 
                   <div className="relative flex h-full min-h-[13.5rem] flex-col justify-between p-4 sm:p-5">
                     <div className="flex items-start justify-between gap-3">
@@ -4054,18 +4079,18 @@ Thanks,`;
                           {[jobCity, jobState, jobZip].filter(Boolean).join(", ") || "Location pending"}
                         </div>
                       </div>
-                      <span className="shrink-0 rounded-full border border-white/[0.10] bg-slate-950/65 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white/55">
-                        Coming soon
+                      <span className="shrink-0 rounded-full border border-white/[0.10] bg-slate-950/70 backdrop-blur-sm px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white/60">
+                        Preview
                       </span>
                     </div>
                     <div className="flex items-end justify-between gap-2">
-                      <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-white/55">
-                        <span className="rounded-md border border-white/[0.12] bg-slate-950/60 px-2 py-0.5">Satellite</span>
-                        <span className="rounded-md border border-white/[0.12] bg-slate-950/60 px-2 py-0.5">Street view</span>
-                        <span className="rounded-md border border-white/[0.12] bg-slate-950/60 px-2 py-0.5">Photos</span>
+                      <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-white/65">
+                        <span className="rounded-md border border-white/[0.14] bg-slate-950/70 backdrop-blur-sm px-2 py-0.5">Satellite</span>
+                        <span className="rounded-md border border-white/[0.14] bg-slate-950/70 backdrop-blur-sm px-2 py-0.5">Street view</span>
                       </div>
-                      <span className="rounded-full border border-cyan-400/25 bg-cyan-500/[0.12] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-cyan-100/85 shadow-[0_0_14px_rgba(34,211,238,0.28)]">
-                        Preview
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.14] bg-slate-950/70 backdrop-blur-sm px-2.5 py-1 text-[10px] font-semibold text-white/85 shadow-[0_0_14px_rgba(0,0,0,0.4)]">
+                        <span aria-hidden>📷</span>
+                        Photos coming soon
                       </span>
                     </div>
                   </div>
@@ -4321,99 +4346,99 @@ Thanks,`;
                 </span>
               </div>
               <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
-                <div className="flex flex-col rounded-xl border border-emerald-400/20 bg-emerald-500/[0.08] p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                <div className="flex flex-col rounded-xl border border-emerald-400/22 bg-emerald-500/[0.09] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
                   <div className="flex items-center justify-between gap-2">
-                    <div className="text-[9px] font-semibold uppercase tracking-[0.12em] text-emerald-200/75">Roof size</div>
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.10em] text-emerald-200/85">Roof size</div>
                     <span
-                      className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wide ${
+                      className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide ${
                         hasRoofArea
-                          ? "border-emerald-400/28 bg-emerald-500/14 text-emerald-100/90"
-                          : "border-amber-400/24 bg-amber-500/10 text-amber-100/85"
+                          ? "border-emerald-400/30 bg-emerald-500/15 text-emerald-100/95"
+                          : "border-amber-400/25 bg-amber-500/12 text-amber-100/90"
                       }`}
                     >
-                      {hasRoofArea ? "Ready" : "Need"}
+                      {hasRoofArea ? "Ready" : "Needs"}
                     </span>
                   </div>
-                  <div className="mt-1 text-[15px] font-semibold tabular-nums leading-tight text-white">
+                  <div className="mt-1.5 text-[17px] font-bold tabular-nums leading-tight text-white">
                     {hasRoofArea ? `${squares.toFixed(1)} SQ` : "—"}
                   </div>
-                  <p className="text-[10px] leading-tight text-white/50">
+                  <p className="text-[10.5px] leading-tight text-white/55">
                     {hasRoofArea ? `${Number(area || 0).toLocaleString()} sq ft` : "Enter roof size"}
                   </p>
                 </div>
-                <div className="flex flex-col rounded-xl border border-blue-400/16 bg-blue-500/[0.07] p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                <div className="flex flex-col rounded-xl border border-blue-400/18 bg-blue-500/[0.08] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
                   <div className="flex items-center justify-between gap-2">
-                    <div className="text-[9px] font-semibold uppercase tracking-[0.12em] text-blue-200/75">Difficulty</div>
-                    <span className="shrink-0 rounded-full border border-white/12 bg-white/[0.05] px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wide text-white/65">
-                      Wait
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.10em] text-blue-200/85">Difficulty</div>
+                    <span className="shrink-0 rounded-full border border-white/14 bg-white/[0.05] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white/70">
+                      Waiting
                     </span>
                   </div>
-                  <div className="mt-1 text-[13px] font-semibold leading-tight text-white">Contractor input</div>
-                  <p className="text-[10px] leading-tight text-white/50">Pitch · stories · access</p>
+                  <div className="mt-1.5 text-[14px] font-semibold leading-tight text-white">Contractor input</div>
+                  <p className="text-[10.5px] leading-tight text-white/55">Pitch · stories · access</p>
                 </div>
-                <div className="flex flex-col rounded-xl border border-cyan-400/16 bg-cyan-500/[0.07] p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                <div className="flex flex-col rounded-xl border border-cyan-400/18 bg-cyan-500/[0.08] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
                   <div className="flex items-center justify-between gap-2">
-                    <div className="text-[9px] font-semibold uppercase tracking-[0.12em] text-cyan-200/75">Waste</div>
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.10em] text-cyan-200/85">Waste</div>
                     <span
-                      className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wide ${
+                      className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide ${
                         hasRoofArea
-                          ? "border-cyan-400/22 bg-cyan-500/12 text-cyan-100/90"
-                          : "border-amber-400/24 bg-amber-500/10 text-amber-100/85"
+                          ? "border-cyan-400/24 bg-cyan-500/14 text-cyan-100/95"
+                          : "border-amber-400/25 bg-amber-500/12 text-amber-100/90"
                       }`}
                     >
-                      {hasRoofArea ? "Set" : "Need"}
+                      {hasRoofArea ? "Set" : "Needs"}
                     </span>
                   </div>
-                  <div className="mt-1 text-[15px] font-semibold tabular-nums leading-tight text-white">
+                  <div className="mt-1.5 text-[17px] font-bold tabular-nums leading-tight text-white">
                     {hasRoofArea ? `${Number(waste || 0)}%` : "—"}
                   </div>
-                  <p className="text-[10px] leading-tight text-white/50">
+                  <p className="text-[10.5px] leading-tight text-white/55">
                     {hasRoofArea ? `${adjustedSquares.toFixed(1)} adj SQ` : "Apply after roof size"}
                   </p>
                 </div>
-                <div className="flex flex-col rounded-xl border border-amber-400/16 bg-amber-500/[0.075] p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                <div className="flex flex-col rounded-xl border border-amber-400/18 bg-amber-500/[0.08] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
                   <div className="flex items-center justify-between gap-2">
-                    <div className="text-[9px] font-semibold uppercase tracking-[0.12em] text-amber-200/75">Tear-off</div>
-                    <span className="shrink-0 rounded-full border border-white/16 bg-white/[0.07] px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wide text-white/72">
-                      Pick
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.10em] text-amber-200/85">Tear-off</div>
+                    <span className="shrink-0 rounded-full border border-white/16 bg-white/[0.07] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white/75">
+                      {includeDebrisRemoval ? "On" : "Off"}
                     </span>
                   </div>
-                  <div className="mt-1 text-[13px] font-semibold leading-tight text-white">
+                  <div className="mt-1.5 text-[14px] font-semibold leading-tight text-white">
                     {includeDebrisRemoval ? "Included" : "Not included"}
                   </div>
-                  <p className="text-[10px] leading-tight text-white/50">
+                  <p className="text-[10.5px] leading-tight text-white/55">
                     {includeDebrisRemoval
                       ? `${removalType === "architectural" ? "Architectural" : "Standard"}`
                       : "Toggle in scope"}
                   </p>
                 </div>
-                <div className="flex flex-col rounded-xl border border-violet-400/16 bg-violet-500/[0.075] p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                <div className="flex flex-col rounded-xl border border-violet-400/18 bg-violet-500/[0.08] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
                   <div className="flex items-center justify-between gap-2">
-                    <div className="text-[9px] font-semibold uppercase tracking-[0.12em] text-violet-200/75">System</div>
-                    <span className="shrink-0 rounded-full border border-violet-400/22 bg-violet-500/12 px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wide text-violet-100/85">
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.10em] text-violet-200/85">System</div>
+                    <span className="shrink-0 rounded-full border border-violet-400/24 bg-violet-500/14 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-violet-100/90">
                       Set
                     </span>
                   </div>
-                  <div className="mt-1 text-[13px] font-semibold leading-tight text-white">{selectedTierLabel}</div>
-                  <p className="text-[10px] leading-tight text-white/50">Customer-facing tier</p>
+                  <div className="mt-1.5 text-[14px] font-semibold leading-tight text-white">{selectedTierLabel}</div>
+                  <p className="text-[10.5px] leading-tight text-white/55">Customer-facing tier</p>
                 </div>
-                <div className="flex flex-col rounded-xl border border-emerald-400/16 bg-slate-950/30 p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                <div className="flex flex-col rounded-xl border border-emerald-400/18 bg-slate-950/35 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
                   <div className="flex items-center justify-between gap-2">
-                    <div className="text-[9px] font-semibold uppercase tracking-[0.12em] text-emerald-200/75">Proposal</div>
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.10em] text-emerald-200/85">Proposal</div>
                     <span
-                      className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wide ${
+                      className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide ${
                         hasCustomerEmail && hasRoofArea && hasPrice && hasAIWording
-                          ? "border-emerald-400/28 bg-emerald-500/14 text-emerald-100/90"
-                          : "border-violet-400/20 bg-violet-500/10 text-violet-100/85"
+                          ? "border-emerald-400/30 bg-emerald-500/15 text-emerald-100/95"
+                          : "border-violet-400/22 bg-violet-500/12 text-violet-100/90"
                       }`}
                     >
-                      {hasCustomerEmail && hasRoofArea && hasPrice && hasAIWording ? "Ready" : "Wait"}
+                      {hasCustomerEmail && hasRoofArea && hasPrice && hasAIWording ? "Ready" : "Waiting"}
                     </span>
                   </div>
-                  <div className="mt-1 text-[13px] font-semibold leading-tight text-white">
+                  <div className="mt-1.5 text-[14px] font-semibold leading-tight text-white">
                     {hasCustomerEmail && hasRoofArea && hasPrice && hasAIWording ? "Ready to send" : "Needs info"}
                   </div>
-                  <p className="text-[10px] leading-tight text-white/50">
+                  <p className="text-[10.5px] leading-tight text-white/55">
                     {hasCustomerEmail && hasRoofArea && hasPrice && hasAIWording
                       ? "Email · scope · price · wording"
                       : "Complete remaining steps"}
@@ -4754,7 +4779,7 @@ Thanks,`;
             </div>
 
               <div className="grid grid-cols-1 gap-3 xl:grid-cols-2 xl:items-start">
-                <div className="rounded-2xl border border-emerald-400/15 bg-slate-950/40 p-4 shadow-[0_28px_90px_-60px_rgba(16,185,129,0.40),inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-xl sm:p-5">
+                <div id="deal-control" className="rounded-2xl border border-emerald-400/15 bg-slate-950/40 p-3 shadow-[0_28px_90px_-60px_rgba(16,185,129,0.40),inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-xl sm:p-3.5">
                   <div className="flex flex-wrap items-center gap-3">
                     <span
                       className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-emerald-300/30 bg-emerald-500/15 text-[12px] font-bold tabular-nums text-emerald-100 shadow-[0_0_22px_rgba(16,185,129,0.18)]"
@@ -4763,67 +4788,52 @@ Thanks,`;
                       4
                     </span>
                     <h2 className="text-base font-semibold tracking-tight text-white sm:text-[17px]">Deal Control</h2>
-                    <span className="text-[12px] text-white/50">Pricing &amp; tier</span>
-                    <div className="ml-auto flex items-center gap-1.5">
-                      <span className="rounded-md border border-emerald-400/22 bg-emerald-500/[0.08] px-2 py-0.5 text-[10px] font-semibold text-emerald-100/85">
-                        Pricing mode
+                    <span className="text-[12px] text-white/50">Pricing command</span>
+                    <div className="ml-auto flex items-center gap-2 text-[11px] tabular-nums text-white/65">
+                      <span className="rounded-md border border-emerald-400/22 bg-emerald-500/[0.08] px-2 py-0.5 font-semibold text-emerald-100/90">
+                        {pricingMode === "direct" ? "Direct" : "Markup"}
                       </span>
-                      <span className="rounded-md border border-violet-400/22 bg-violet-500/[0.08] px-2 py-0.5 text-[10px] font-semibold text-violet-100/85">
-                        Proposal tier
-                      </span>
+                      {pricingMode !== "direct" && (
+                        <span className="rounded-md border border-white/[0.08] bg-white/[0.04] px-2 py-0.5 font-semibold text-white/80">
+                          {Math.round(finalMarginNum)}%
+                        </span>
+                      )}
                     </div>
                   </div>
-                  <div className="mt-3 h-px w-full bg-gradient-to-r from-white/[0.10] via-white/[0.05] to-transparent" />
+                  <div className="mt-2.5 h-px w-full bg-gradient-to-r from-white/[0.10] via-white/[0.05] to-transparent" />
 
-                  <div>
-                    {/* Pricing mode */}
-                    <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-5">
-                      <div className="text-sm font-medium text-white">Pricing mode</div>
-                      <p className="mt-1 text-xs text-white/50">
-                        Choose how you want to price this job.
-                      </p>
-
-                      <div className="mt-4 grid grid-cols-2 gap-3">
+                  <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-12">
+                    <div className="lg:col-span-5">
+                      <div className="text-[10px] font-semibold uppercase tracking-[0.10em] text-white/50">Pricing mode</div>
+                      <div className="mt-1.5 inline-flex w-full rounded-lg border border-white/[0.08] bg-white/[0.03] p-0.5">
                         <button
                           type="button"
                           onClick={() => setPricingMode("markup")}
-                          className={`rounded-xl border px-4 py-3 text-left transition ${
+                          className={`flex-1 rounded-md px-2.5 py-1.5 text-[12px] font-semibold transition ${
                             pricingMode === "markup"
-                              ? "border-emerald-400/40 bg-emerald-500/[0.08] text-white"
-                              : "border-white/[0.08] bg-white/[0.02] text-white/70 hover:bg-white/[0.04]"
+                              ? "bg-emerald-500/[0.18] text-white shadow-[inset_0_0_0_1px_rgba(110,231,183,0.35)]"
+                              : "text-white/60 hover:text-white/85"
                           }`}
                         >
-                          <div className="text-sm font-medium">Markup pricing</div>
-                          <div className="mt-1 text-xs text-white/50">
-                            Apply margin automatically.
-                          </div>
+                          Markup
                         </button>
-
                         <button
                           type="button"
                           onClick={() => setPricingMode("direct")}
-                          className={`rounded-xl border px-4 py-3 text-left transition ${
+                          className={`flex-1 rounded-md px-2.5 py-1.5 text-[12px] font-semibold transition ${
                             pricingMode === "direct"
-                              ? "border-emerald-400/40 bg-emerald-500/[0.08] text-white"
-                              : "border-white/[0.08] bg-white/[0.02] text-white/70 hover:bg-white/[0.04]"
+                              ? "bg-emerald-500/[0.18] text-white shadow-[inset_0_0_0_1px_rgba(110,231,183,0.35)]"
+                              : "text-white/60 hover:text-white/85"
                           }`}
                         >
-                          <div className="text-sm font-medium">Direct pricing</div>
-                          <div className="mt-1 text-xs text-white/50">
-                            Set your total directly.
-                          </div>
+                          Direct
                         </button>
                       </div>
                     </div>
 
-                    {/* Pricing strategy */}
-                    <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-5 mt-5">
-                      <div className="text-sm font-medium text-white">Pricing strategy</div>
-                      <p className="mt-1 text-xs text-white/50">
-                        Adjust your position on this job.
-                      </p>
-
-                      <div className="mt-4 grid grid-cols-3 gap-3">
+                    <div className="lg:col-span-7">
+                      <div className="text-[10px] font-semibold uppercase tracking-[0.10em] text-white/50">Pricing strategy</div>
+                      <div className="mt-1.5 grid grid-cols-3 gap-1.5">
                         {[
                           { label: "Competitive", value: 15 },
                           { label: "Balanced", value: 20 },
@@ -4833,45 +4843,40 @@ Thanks,`;
                             key={option.value}
                             type="button"
                             onClick={() => setMargin(String(option.value))}
-                            className={`rounded-xl border px-3 py-3 text-center transition ${
-                              finalMarginNum === option.value
-                                ? "border-emerald-400/40 bg-emerald-500/[0.08] text-white"
-                                : "border-white/[0.08] bg-white/[0.02] text-white/70 hover:bg-white/[0.04]"
+                            disabled={pricingMode === "direct"}
+                            className={`rounded-lg border px-2 py-1.5 text-center transition disabled:opacity-50 disabled:cursor-not-allowed ${
+                              pricingMode !== "direct" && finalMarginNum === option.value
+                                ? "border-emerald-400/40 bg-emerald-500/[0.10] text-white"
+                                : "border-white/[0.08] bg-white/[0.025] text-white/70 hover:bg-white/[0.045]"
                             }`}
                           >
-                            <div className="text-xs">{option.label}</div>
-                            <div className="mt-1 text-sm font-semibold">
-                              {option.value}%
-                            </div>
+                            <div className="text-[11px] font-medium">{option.label}</div>
+                            <div className="text-[13px] font-bold tabular-nums">{option.value}%</div>
                           </button>
                         ))}
                       </div>
                     </div>
 
-                    {/* Manual adjustments */}
-                    <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-5 mt-5">
-                      <div className="text-sm font-medium text-white">Manual adjustments</div>
-                      <p className="mt-1 text-xs text-white/50">
-                        Fine tune your numbers if needed.
-                      </p>
-
-                      <div className="mt-4 grid grid-cols-2 gap-3">
-                        <div>
-                          <div className="text-[11px] text-white/40 mb-1">
-                            Custom margin
-                          </div>
+                    <div className="lg:col-span-12">
+                      <div className="flex items-center justify-between">
+                        <div className="text-[10px] font-semibold uppercase tracking-[0.10em] text-white/50">Manual adjustments</div>
+                        <span className="text-[10px] text-white/40">Fine tune if needed</span>
+                      </div>
+                      <div className="mt-1.5 grid grid-cols-2 gap-2">
+                        <label className="flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.025] px-2 py-1.5">
+                          <span className="shrink-0 text-[11px] font-medium text-white/55">Margin</span>
                           <input
                             type="number"
                             value={finalMarginNum}
                             onChange={(e) => setMargin(e.target.value)}
-                            className="w-full rounded-lg border border-white/[0.08] bg-white/[0.02] px-3 py-2 text-sm text-white"
+                            disabled={pricingMode === "direct"}
+                            className="min-w-0 flex-1 border-0 bg-transparent py-0 text-right text-[13px] font-semibold tabular-nums text-white focus:outline-none focus:ring-0 disabled:opacity-50 [appearance:textfield]"
                           />
-                        </div>
+                          <span className="shrink-0 text-[11px] text-white/45">%</span>
+                        </label>
 
-                        <div>
-                          <div className="text-[11px] text-white/40 mb-1">
-                            Labor override
-                          </div>
+                        <label className="flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.025] px-2 py-1.5">
+                          <span className="shrink-0 text-[11px] font-medium text-white/55">Labor</span>
                           <input
                             type="number"
                             value={laborCostRaw}
@@ -4885,9 +4890,11 @@ Thanks,`;
                               setLaborCostRaw(safe ? String(safe) : "");
                               setLaborCost(safe);
                             }}
-                            className="w-full rounded-lg border border-white/[0.08] bg-white/[0.02] px-3 py-2 text-sm text-white"
+                            placeholder="0"
+                            className="min-w-0 flex-1 border-0 bg-transparent py-0 text-right text-[13px] font-semibold tabular-nums text-white placeholder:text-white/35 focus:outline-none focus:ring-0 [appearance:textfield]"
                           />
-                        </div>
+                          <span className="shrink-0 text-[11px] text-white/45">$</span>
+                        </label>
                       </div>
                     </div>
                   </div>
@@ -5194,7 +5201,9 @@ Thanks,`;
 
           {/* Sticky contractor outcome panel */}
           <div className="w-full min-w-0">
-            <div className="sticky top-4 space-y-3">
+            <div className="sticky top-4">
+              <div className="pointer-events-none absolute -inset-1 rounded-3xl bg-gradient-to-b from-cyan-400/[0.06] via-transparent to-blue-500/[0.04] blur-2xl" aria-hidden />
+              <div className="relative space-y-3 rounded-2xl border border-white/[0.06] bg-slate-950/30 p-2 shadow-[0_30px_120px_-60px_rgba(34,211,238,0.30),inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-sm">
 
               {/* HEADER + LIVE OUTCOME (4 METRICS) */}
               <div className="relative overflow-hidden rounded-2xl border border-cyan-400/25 bg-gradient-to-br from-slate-950/75 via-blue-500/[0.08] to-slate-950/45 p-3.5 shadow-[0_30px_100px_-58px_rgba(34,211,238,0.65),inset_0_1px_0_rgba(255,255,255,0.07)] sm:p-4">
@@ -5484,6 +5493,7 @@ Thanks,`;
                 })()}
               </div>
 
+              </div>
             </div>
           </div>
         </div>
