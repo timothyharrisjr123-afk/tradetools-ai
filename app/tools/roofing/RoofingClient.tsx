@@ -17,6 +17,29 @@ import {
   MapPin,
   ChevronDown,
   Layers,
+  ClipboardList,
+  Image as ImageIcon,
+  Mic,
+  MessageCircle,
+  Gauge,
+  Percent,
+  CheckCircle2,
+  ArrowRight,
+  Pencil,
+  CircleHelp,
+  Eye,
+  Home,
+  User,
+  Building2,
+  ShieldCheck,
+  Camera,
+  Download,
+  Save,
+  Send,
+  MoreHorizontal,
+  Truck,
+  Search,
+  Bell,
 } from "lucide-react";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { loadCompanyProfile, getCompanyProfileEmailSafe, type CompanyProfile } from "@/app/lib/companyProfile";
@@ -1829,7 +1852,10 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
   ]);
 
   const handleRegenerateDescription = handleGenerateSummary;
-  const handleCustomizeDescription = () => setShowAiPanel(true);
+  const handleCustomizeDescription = () => {
+    beginEditAi();
+    setShowAiPanel(true);
+  };
 
   const onCopyClientSummary = useCallback(async () => {
     try {
@@ -3527,16 +3553,16 @@ Thanks,`;
 
   return (
     <main
-      className="min-h-screen relative p-6 sm:p-8 lg:p-16 pb-24"
+      className="min-h-screen relative pb-20"
       style={{
-        /* Layer (a): page background — lightened ~5–8% for breathable luxury, cards pop more */
+        backgroundColor: "#0b1120",
         backgroundImage: `
-          linear-gradient(180deg, #243347 0%, #1c2838 28%, #17202f 55%, #131c2a 82%, #121826 100%),
-          repeating-linear-gradient(0deg, transparent 0px, transparent 2px, rgba(255,255,255,0.005) 2px, rgba(255,255,255,0.005) 3px),
-          repeating-linear-gradient(90deg, transparent 0px, transparent 2px, rgba(255,255,255,0.005) 2px, rgba(255,255,255,0.005) 3px)
+          radial-gradient(ellipse at 60% 0%, rgba(34,211,238,0.06) 0%, transparent 55%),
+          radial-gradient(ellipse at 0% 80%, rgba(59,130,246,0.05) 0%, transparent 50%),
+          repeating-linear-gradient(0deg, transparent 0px, transparent 3px, rgba(255,255,255,0.0035) 3px, rgba(255,255,255,0.0035) 4px),
+          repeating-linear-gradient(90deg, transparent 0px, transparent 3px, rgba(255,255,255,0.0035) 3px, rgba(255,255,255,0.0035) 4px)
         `,
-        backgroundSize: "100% 100%, 64px 64px, 64px 64px",
-        backgroundColor: "#131c2a",
+        backgroundSize: "100% 100%, 100% 100%, 72px 72px, 72px 72px",
       }}
     >
       {/* Layer (a) accent: radial behind summary — smooth blend, no hard edge */}
@@ -3564,7 +3590,7 @@ Thanks,`;
         </motion.div>
       )}
 
-      <div className="relative mx-auto w-full max-w-[1600px] 2xl:max-w-[1680px] px-2 sm:px-3 xl:px-4">
+      <div className="relative mx-auto w-full max-w-[1680px] px-0">
         <button
           type="button"
           onClick={() => setShowV2Preview((v) => !v)}
@@ -3663,71 +3689,89 @@ Thanks,`;
           />
         ) : (
           <>
-        <div className="mb-3">
+        <div>
           <motion.nav
-            initial={{ opacity: 0, y: -8 }}
+            initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
-            className="mb-3 flex items-center justify-between gap-4 rounded-[16px] border border-white/[0.08] bg-slate-950/55 px-3 py-2 shadow-[0_18px_60px_-36px_rgba(15,23,42,0.6),inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-xl sm:px-4"
+            className="flex items-stretch gap-0 border-b border-white/[0.08] bg-[#0d1218]/95 backdrop-blur-xl"
             aria-label="FieldDive workspace"
           >
-            <div className="flex items-center gap-3 sm:gap-5">
-              <Link
-                href="/tools"
-                className="group flex items-center gap-2.5 rounded-xl px-2 py-1.5 transition hover:bg-white/[0.04]"
-              >
-                <span className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-cyan-400/30 bg-gradient-to-br from-cyan-500/30 via-blue-500/20 to-slate-950/60 text-[11px] font-extrabold tracking-tight text-cyan-50 shadow-[0_0_24px_rgba(34,211,238,0.35)]">
-                  <span className="absolute inset-0 bg-[radial-gradient(circle_at_30%_25%,rgba(165,243,252,0.55),transparent_60%)]" aria-hidden />
-                  <span className="relative">FD</span>
-                </span>
-                <div className="hidden flex-col leading-tight sm:flex">
-                  <span className="text-[13px] font-semibold tracking-tight text-white">FieldDive</span>
-                  <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-cyan-200/70">Contractor OS</span>
-                </div>
-              </Link>
-              <span className="hidden h-6 w-px bg-white/[0.08] sm:block" aria-hidden />
-              <div className="hidden items-center gap-1 lg:flex">
-                <Link
-                  href="/tools/roofing"
-                  className="rounded-lg border border-cyan-400/25 bg-cyan-500/[0.10] px-3 py-1.5 text-[12px] font-semibold text-cyan-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
-                >
-                  New Job
-                </Link>
-                <Link
-                  href="/tools/roofing/saved"
-                  className="rounded-lg px-3 py-1.5 text-[12px] font-medium text-white/55 transition hover:bg-white/[0.04] hover:text-white/85"
-                >
-                  Command Center
-                </Link>
-                <span className="rounded-lg px-3 py-1.5 text-[12px] font-medium text-white/40" title="Coming soon">
-                  AI Library
-                </span>
-                <span className="rounded-lg px-3 py-1.5 text-[12px] font-medium text-white/40" title="Coming soon">
-                  Settings
-                </span>
+            {/* Logo block */}
+            <Link
+              href="/tools"
+              className="group flex shrink-0 items-center gap-3 border-r border-white/[0.08] px-5 py-3 transition hover:bg-white/[0.03]"
+            >
+              <div className="relative flex h-[34px] w-[34px] shrink-0 items-center justify-center overflow-hidden rounded-xl border border-cyan-400/50 bg-gradient-to-br from-cyan-500/50 via-blue-500/30 to-slate-950/80 shadow-[0_0_24px_rgba(34,211,238,0.55),inset_0_1px_0_rgba(165,243,252,0.30)]">
+                <span className="absolute inset-0 bg-[radial-gradient(circle_at_30%_25%,rgba(165,243,252,0.65),transparent_60%)]" aria-hidden />
+                <span className="relative text-[11px] font-extrabold tracking-tight text-cyan-50">FD</span>
               </div>
+              <div className="hidden flex-col leading-none sm:flex">
+                <span className="text-[15px] font-bold tracking-tight text-white">FieldDive</span>
+              </div>
+            </Link>
+
+            {/* Nav tabs */}
+            <div className="flex flex-1 items-center gap-0 px-2">
+              <Link
+                href="/tools/roofing"
+                className="flex items-center gap-2.5 rounded-xl border border-cyan-400/35 bg-gradient-to-b from-cyan-500/[0.22] to-blue-600/[0.14] px-5 py-2.5 text-[13px] font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_0_28px_-6px_rgba(34,211,238,0.70)]"
+              >
+                <span className="relative flex h-2 w-2 shrink-0" aria-hidden>
+                  <span className="absolute inset-0 animate-ping rounded-full bg-cyan-400/50" />
+                  <span className="relative h-2 w-2 rounded-full bg-cyan-300 shadow-[0_0_8px_rgba(34,211,238,1)]" />
+                </span>
+                New Job
+              </Link>
+              <Link
+                href="/tools/roofing/saved"
+                className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-[13px] font-medium text-white/55 transition hover:bg-white/[0.05] hover:text-white"
+              >
+                <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5" aria-hidden><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z" /></svg>
+                <span className="hidden xl:inline">Command Center</span>
+                <span className="xl:hidden">Cmd</span>
+              </Link>
+              <Link
+                href="/tools/roofing/ai"
+                className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-[13px] font-medium text-white/55 transition hover:bg-white/[0.05] hover:text-white"
+              >
+                <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5" aria-hidden><path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18" /></svg>
+                AI Library
+              </Link>
+              <Link
+                href="/tools/settings"
+                className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-[13px] font-medium text-white/55 transition hover:bg-white/[0.05] hover:text-white"
+              >
+                <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5" aria-hidden><path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                Settings
+              </Link>
             </div>
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="hidden items-center gap-2 rounded-xl border border-white/[0.10] bg-white/[0.03] px-3 py-1.5 text-[12px] text-white/55 md:flex">
-                <span aria-hidden>⌕</span>
-                <span className="hidden lg:inline">Search jobs, customers, ZIPs</span>
-                <span className="hidden rounded-md border border-white/[0.10] bg-white/[0.05] px-1.5 py-0.5 text-[10px] font-semibold text-white/50 lg:inline">⌘K</span>
+
+            {/* Right actions */}
+            <div className="flex shrink-0 items-center gap-2 border-l border-white/[0.08] px-4 py-2">
+              <div className="flex items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-[12px] text-white/50">
+                <Search className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                <span className="hidden lg:inline text-white/40">Search jobs…</span>
+                <span className="hidden rounded border border-white/[0.10] bg-white/[0.04] px-1.5 py-0.5 text-[10px] font-semibold text-white/35 lg:inline">⌘K</span>
               </div>
-              <span
-                className="relative hidden h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-white/70 sm:flex"
-                aria-hidden
+              <button
+                type="button"
+                className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-white/60 transition hover:bg-white/[0.06]"
+                aria-label="Notifications"
               >
-                <span className="text-base">◐</span>
-                <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
-              </span>
-              <Link
-                href="/tools"
-                className="hidden items-center gap-1.5 rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-1.5 text-[12px] font-medium text-white/65 transition hover:bg-white/[0.06] hover:text-white sm:inline-flex"
-              >
-                <ArrowLeft className="h-3.5 w-3.5" />
-                Tools
-              </Link>
-              <SignOutButton />
+                <Bell className="h-4 w-4" aria-hidden />
+                <span className="absolute right-1.5 top-1.5 h-[7px] w-[7px] rounded-full border-[1.5px] border-[#0d1117] bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,1)]" />
+              </button>
+              <div className="flex items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.03] pl-1.5 pr-3 py-1.5 transition hover:bg-white/[0.05]">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500/60 to-violet-600/50 text-[11px] font-extrabold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]">
+                  MA
+                </div>
+                <div className="hidden flex-col leading-none xl:flex">
+                  <span className="text-[12px] font-semibold text-white/90">Mike Anderson</span>
+                  <span className="text-[10px] text-white/45">Anderson Roofing</span>
+                </div>
+                <SignOutButton />
+              </div>
             </div>
           </motion.nav>
 
@@ -3785,31 +3829,32 @@ Thanks,`;
           )}
         </div>
 
-        <div className="relative overflow-hidden rounded-2xl border border-cyan-400/18 bg-gradient-to-br from-slate-950/80 via-slate-950/55 to-blue-950/30 px-4 py-3 shadow-[0_24px_70px_-46px_rgba(34,211,238,0.55),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl sm:px-5 sm:py-3.5">
+        <div className="relative overflow-hidden border-b border-cyan-400/[0.12] bg-[#0c1a2e] px-4 py-5 sm:px-5 sm:py-5 xl:px-5 2xl:px-6">
           <div className="pointer-events-none absolute inset-0" aria-hidden>
-            <div className="absolute -left-12 top-1/2 h-44 w-44 -translate-y-1/2 rounded-full bg-cyan-500/[0.08] blur-3xl" />
-            <div className="absolute right-0 top-0 h-28 w-56 bg-blue-500/[0.05] blur-3xl" />
-            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/30 to-transparent" />
+            <div className="absolute -left-20 top-1/2 h-72 w-72 -translate-y-1/2 rounded-full bg-cyan-500/[0.13] blur-[64px]" />
+            <div className="absolute right-0 top-0 h-48 w-80 bg-blue-500/[0.07] blur-[64px]" />
+            <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-cyan-400/20 to-transparent" />
           </div>
 
-          <div className="relative flex items-center gap-5">
-            <div className="flex shrink-0 items-center gap-3.5">
-              <div className="relative flex h-14 w-14 shrink-0 items-center justify-center" aria-hidden>
-                <span className="absolute -inset-1.5 rounded-full bg-cyan-400/[0.18] blur-xl animate-pulse" />
-                <span className="absolute -inset-1 rounded-full border border-cyan-300/25" />
-                <span className="absolute -inset-0.5 rounded-full border border-cyan-300/40" />
-                <span className="absolute inset-0.5 rounded-full bg-gradient-to-br from-cyan-300/60 via-blue-500/35 to-slate-950/75 shadow-[inset_0_0_26px_rgba(165,243,252,0.5),0_0_30px_rgba(34,211,238,0.6)]" />
-                <span className="absolute inset-1.5 rounded-full bg-[radial-gradient(circle_at_30%_25%,rgba(186,230,253,0.95),rgba(34,211,238,0.30)_55%,transparent_78%)]" />
-                <span className="absolute inset-3 rounded-full bg-cyan-50/15 blur-[2px]" />
-                <span className="relative text-[11px] font-bold uppercase tracking-wider text-cyan-50 drop-shadow-[0_0_6px_rgba(165,243,252,0.85)]">AI</span>
+          <div className="relative flex items-center gap-6">
+            <div className="flex shrink-0 items-center gap-4">
+              <div className="relative flex h-[72px] w-[72px] shrink-0 items-center justify-center" aria-hidden>
+                <span className="absolute -inset-3 rounded-full bg-cyan-400/[0.18] blur-2xl animate-pulse" />
+                <span className="absolute -inset-2 rounded-full bg-cyan-400/[0.10] blur-xl" />
+                <span className="absolute -inset-1.5 rounded-full border border-cyan-300/18" />
+                <span className="absolute -inset-0.5 rounded-full border border-cyan-300/38" />
+                <span className="absolute inset-0.5 rounded-full bg-gradient-to-br from-cyan-300/70 via-blue-500/45 to-slate-950/85 shadow-[inset_0_0_36px_rgba(165,243,252,0.60),0_0_44px_rgba(34,211,238,0.80)]" />
+                <span className="absolute inset-2.5 rounded-full bg-[radial-gradient(circle_at_30%_25%,rgba(186,230,253,1),rgba(34,211,238,0.35)_55%,transparent_78%)]" />
+                <span className="absolute inset-4 rounded-full bg-cyan-50/12 blur-[3px]" />
+                <span className="relative text-[13px] font-extrabold uppercase tracking-widest text-cyan-50 drop-shadow-[0_0_10px_rgba(165,243,252,0.95)]">AI</span>
               </div>
               <div className="min-w-0">
-                <div className="text-[13px] font-semibold leading-tight text-white sm:text-[15px]">FieldDive is preparing this job</div>
-                <div className="mt-0.5 text-[10.5px] leading-snug text-white/50">AI is assembling the job packet and proposal path. You verify what matters.</div>
+                <div className="text-[17px] font-extrabold leading-tight text-white sm:text-[19px]">FieldDive is preparing this job</div>
+                <div className="mt-1.5 text-[12px] leading-snug text-white/55">AI is assembling the job packet and proposal path. You verify what matters.</div>
               </div>
             </div>
 
-            <span className="hidden h-10 w-px bg-gradient-to-b from-transparent via-white/15 to-transparent lg:block" aria-hidden />
+            <span className="hidden h-14 w-px bg-gradient-to-b from-transparent via-white/20 to-transparent lg:block" aria-hidden />
 
             <div className="min-w-0 flex-1">
               <ol
@@ -3844,30 +3889,30 @@ Thanks,`;
                     <li key={item.label} className="relative flex flex-col items-center" role="listitem">
                       {!isFirst && (
                         <span
-                          className={`pointer-events-none absolute right-1/2 top-[15px] h-[2px] w-full ${
-                            prevReady ? "bg-gradient-to-r from-emerald-400/65 to-emerald-300/45 shadow-[0_0_6px_rgba(16,185,129,0.45)]" : "bg-white/10"
+                          className={`pointer-events-none absolute right-1/2 top-[22px] h-[3px] w-full ${
+                            prevReady ? "bg-gradient-to-r from-emerald-500/80 to-emerald-400/60 shadow-[0_0_12px_rgba(16,185,129,0.70)]" : "bg-white/[0.10]"
                           }`}
                           aria-hidden
                         />
                       )}
                       {!isLast && (
                         <span
-                          className={`pointer-events-none absolute left-1/2 top-[15px] h-[2px] w-full ${
-                            item.ready ? "bg-gradient-to-r from-emerald-300/45 to-emerald-400/65 shadow-[0_0_6px_rgba(16,185,129,0.45)]" : "bg-white/10"
+                          className={`pointer-events-none absolute left-1/2 top-[22px] h-[3px] w-full ${
+                            item.ready ? "bg-gradient-to-r from-emerald-400/60 to-emerald-500/80 shadow-[0_0_12px_rgba(16,185,129,0.70)]" : isInProgress ? "bg-gradient-to-r from-cyan-400/40 to-white/10" : "bg-white/[0.10]"
                           }`}
                           aria-hidden
                         />
                       )}
                       <span
-                        className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 text-[12px] font-bold tabular-nums ${nodeStateClass}`}
+                        className={`relative z-10 flex h-11 w-11 items-center justify-center rounded-full border-2 text-[15px] font-bold tabular-nums ${nodeStateClass}`}
                         aria-hidden
                       >
                         {item.ready ? "✓" : idx + 1}
                       </span>
-                      <span className={`mt-1.5 text-center text-[10.5px] font-semibold leading-tight ${labelTone}`}>
+                      <span className={`mt-2 text-center text-[11px] font-semibold leading-tight ${labelTone}`}>
                         {item.label}
                       </span>
-                      <span className={`text-center text-[9.5px] font-medium leading-tight ${statusTone}`}>
+                      <span className={`text-center text-[10.5px] font-medium leading-tight ${statusTone}`}>
                         {status}
                       </span>
                     </li>
@@ -3878,246 +3923,287 @@ Thanks,`;
           </div>
         </div>
 
-        <div className="mt-3 sm:mt-4">
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_420px] 2xl:grid-cols-[minmax(0,1fr)_460px] xl:gap-5 2xl:gap-6">
+        <div className="px-3 pt-3 pb-0 sm:px-4 sm:pt-4 xl:px-5 2xl:px-6">
+        <div>
+        <div className="grid grid-cols-1 gap-2.5 lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_390px] 2xl:grid-cols-[minmax(0,1fr)_410px] lg:gap-3 xl:gap-3">
           {/* Workflow canvas */}
-          <div className="space-y-3 xl:space-y-4">
+          <div className="space-y-2.5 xl:space-y-3">
 
             {/* Customer & Job */}
             <div
               id="customer-job-section"
-              className="rounded-2xl border border-blue-400/22 bg-slate-950/40 p-3 shadow-[0_28px_90px_-56px_rgba(37,99,235,0.55),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl sm:p-3.5"
+              className="rounded-2xl border border-cyan-400/[0.20] bg-[#0b1526] p-3 shadow-[0_0_0_1px_rgba(34,211,238,0.07),0_4px_24px_-8px_rgba(34,211,238,0.12),inset_0_1px_0_rgba(255,255,255,0.06)] sm:p-4"
             >
               <div className="flex flex-wrap items-center gap-3">
                 <span
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-blue-300/30 bg-blue-500/15 text-[12px] font-bold tabular-nums text-blue-100 shadow-[0_0_22px_rgba(59,130,246,0.18)]"
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-blue-300/40 bg-blue-500/20 text-[12px] font-bold tabular-nums text-blue-100 shadow-[0_0_22px_rgba(59,130,246,0.25)]"
                   aria-hidden
                 >
                   1
                 </span>
-                <h2 className="text-base font-semibold tracking-tight text-white sm:text-[17px]">Job Capture</h2>
+                <h2 className="text-[15px] font-bold tracking-tight text-white sm:text-[17px]">Job Capture</h2>
                 <span className="text-[12px] text-white/50">Customer + property</span>
-                <div className="ml-auto flex flex-wrap items-center gap-1.5">
+              </div>
+
+              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.65fr)]">
+                <div className="flex flex-wrap items-center gap-1.5 sm:col-span-2 lg:col-span-2">
                   <button
                     type="button"
                     aria-current="step"
-                    className="rounded-lg border border-blue-400/45 bg-blue-500/[0.14] px-2.5 py-1 text-[11px] font-semibold text-blue-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.10)]"
+                    className="inline-flex items-center gap-2 rounded-lg border border-blue-400/45 bg-blue-500/[0.20] px-3 py-1.5 text-[12px] font-semibold text-blue-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_0_22px_-10px_rgba(59,130,246,0.85)]"
                   >
-                    Manual
+                    <ClipboardList className="h-3.5 w-3.5 text-blue-200" aria-hidden />
+                    Manual entry
                   </button>
                   <button
                     type="button"
                     disabled
                     aria-label="Photos capture (coming soon)"
-                    className="cursor-not-allowed rounded-lg border border-white/[0.10] bg-white/[0.03] px-2.5 py-1 text-[11px] font-medium text-white/55"
+                    className="inline-flex cursor-not-allowed items-center gap-2 rounded-lg border border-white/[0.10] bg-white/[0.03] px-3 py-1.5 text-[12px] font-medium text-white/60"
                   >
+                    <ImageIcon className="h-3.5 w-3.5 text-white/55" aria-hidden />
                     Photos
                   </button>
                   <button
                     type="button"
                     disabled
                     aria-label="Voice capture (coming soon)"
-                    className="cursor-not-allowed rounded-lg border border-white/[0.10] bg-white/[0.03] px-2.5 py-1 text-[11px] font-medium text-white/55"
+                    className="inline-flex cursor-not-allowed items-center gap-2 rounded-lg border border-white/[0.10] bg-white/[0.03] px-3 py-1.5 text-[12px] font-medium text-white/60"
                   >
+                    <Mic className="h-3.5 w-3.5 text-white/55" aria-hidden />
                     Voice
                   </button>
                   <button
                     type="button"
                     disabled
                     aria-label="Customer message capture (coming soon)"
-                    className="cursor-not-allowed rounded-lg border border-white/[0.10] bg-white/[0.03] px-2.5 py-1 text-[11px] font-medium text-white/55"
+                    className="inline-flex cursor-not-allowed items-center gap-2 rounded-lg border border-white/[0.10] bg-white/[0.03] px-3 py-1.5 text-[12px] font-medium text-white/60"
                   >
-                    Message
+                    <MessageCircle className="h-3.5 w-3.5 text-white/55" aria-hidden />
+                    Customer message
                   </button>
                 </div>
-              </div>
-
-              <div className="mt-4 grid grid-cols-1 gap-3 xl:grid-cols-12">
-                <div className="flex flex-col gap-3 xl:col-span-5">
-                  <div className="rounded-xl border border-white/[0.10] bg-slate-950/35 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
-                    <div className="flex items-center justify-between">
-                      <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/42">Customer</div>
-                      <span
-                        className={`inline-flex rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide ${
-                          (customerName || "").trim() && hasCustomerEmail
-                            ? "border-emerald-400/28 bg-emerald-500/12 text-emerald-100/90"
-                            : "border-amber-400/25 bg-amber-500/10 text-amber-100/85"
-                        }`}
-                      >
-                        {(customerName || "").trim() && hasCustomerEmail ? "Ready" : "Needs input"}
-                      </span>
+                  <div className="min-h-[7.45rem] rounded-xl border border-white/[0.10] bg-slate-950/45 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                    <div className="flex items-center gap-1.5 text-[10.5px] font-medium uppercase tracking-wide text-white/55">
+                      <User className="h-3 w-3 text-white/55" aria-hidden />
+                      Customer
                     </div>
                     <p className="mt-1.5 text-[14px] font-semibold leading-snug text-white">
                       {(customerName || "").trim() ? customerName : "Customer not added"}
                     </p>
-                    <p className="mt-1 break-all text-[12px] leading-snug text-blue-200/85">
+                    <p className="mt-0.5 break-all text-[12px] leading-snug text-blue-300/90">
                       {(customerEmail || "").trim() ? customerEmail : "Email needed"}
                     </p>
-                    <p className="text-[11px] text-white/45">
+                    <p className="text-[11px] text-white/55">
                       {(customerPhone || "").trim() ? customerPhone : "Phone optional"}
                     </p>
                   </div>
-                  <div className="rounded-xl border border-white/[0.10] bg-slate-950/35 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
-                    <div className="flex items-center justify-between">
-                      <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/42">Property</div>
-                      <span
-                        className={`inline-flex rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide ${
-                          (jobAddress1 || "").trim() && (jobZip || "").trim().length === 5
-                            ? "border-emerald-400/28 bg-emerald-500/12 text-emerald-100/90"
-                            : "border-amber-400/25 bg-amber-500/10 text-amber-100/85"
-                        }`}
-                      >
-                        {(jobAddress1 || "").trim() && (jobZip || "").trim().length === 5 ? "Ready" : "Needs input"}
-                      </span>
+                  <div className="min-h-[7.45rem] rounded-xl border border-white/[0.10] bg-slate-950/45 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                    <div className="flex items-center gap-1.5 text-[10.5px] font-medium uppercase tracking-wide text-white/55">
+                      <Home className="h-3 w-3 text-white/55" aria-hidden />
+                      Property
                     </div>
                     <p className="mt-1.5 text-[14px] font-semibold leading-snug text-white">
                       {(jobAddress1 || "").trim() ? jobAddress1 : "Property address needed"}
                     </p>
-                    <p className="mt-1 text-[12px] leading-snug text-blue-200/82">
+                    <p className="mt-0.5 text-[12px] leading-snug text-white/70">
                       {[jobCity, jobState, jobZip].filter(Boolean).join(", ") || "City, state, and ZIP"}
                     </p>
+                    {(jobAddress1 || "").trim() && (jobZip || "").trim().length === 5 ? (
+                      <span className="mt-1.5 inline-flex items-center gap-1 rounded-full border border-emerald-400/30 bg-emerald-500/12 px-2 py-0.5 text-[10px] font-semibold text-emerald-100/95">
+                        <ShieldCheck className="h-3 w-3" aria-hidden />
+                        Address ready
+                      </span>
+                    ) : (
+                      <span className="mt-1.5 inline-flex items-center gap-1 rounded-full border border-amber-400/25 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-100/85">
+                        Needs input
+                      </span>
+                    )}
                   </div>
-                </div>
                 <div
-                  className="relative overflow-hidden rounded-xl border border-blue-400/25 bg-slate-950/55 shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_18px_60px_-40px_rgba(34,211,238,0.45)] xl:col-span-7"
-                  style={{
-                    backgroundImage:
-                      "radial-gradient(ellipse at 70% 12%, rgba(125,211,252,0.32), transparent 55%), radial-gradient(ellipse at 25% 95%, rgba(15,23,42,0.65), transparent 65%), linear-gradient(180deg, #1a3253 0%, #112844 30%, #0a1a2e 65%, #060f1c 100%)",
-                  }}
+                  className="relative overflow-hidden rounded-xl border border-cyan-400/35 bg-slate-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_0_0_1px_rgba(34,211,238,0.08),0_24px_80px_-40px_rgba(34,211,238,0.55)] sm:col-span-2 lg:col-start-3 lg:row-span-2 lg:row-start-1"
                 >
-                  <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/55 to-transparent" aria-hidden />
+                  {/* Sky / background */}
+                  <div className="pointer-events-none absolute inset-0" aria-hidden style={{background:"linear-gradient(180deg, #1a2d4a 0%, #1e3a5f 22%, #0e1f35 58%, #060d1a 100%)"}}>
+                    {/* Subtle clouds */}
+                    <div style={{position:"absolute",top:"8%",left:"12%",width:"28%",height:"12%",background:"radial-gradient(ellipse,rgba(255,255,255,0.07),transparent 70%)",borderRadius:"50%"}} />
+                    <div style={{position:"absolute",top:"12%",right:"18%",width:"20%",height:"9%",background:"radial-gradient(ellipse,rgba(255,255,255,0.05),transparent 70%)",borderRadius:"50%"}} />
+                  </div>
 
-                  <div className="pointer-events-none absolute inset-x-0 top-0 h-[42%] opacity-90" aria-hidden style={{
-                    backgroundImage:
-                      "radial-gradient(ellipse at 80% 30%, rgba(186,230,253,0.18), transparent 55%), radial-gradient(ellipse at 30% 60%, rgba(125,211,252,0.10), transparent 70%)",
-                  }} />
+                  <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/60 to-transparent" aria-hidden />
 
+                  {/* Detailed house SVG */}
                   <svg
-                    className="pointer-events-none absolute inset-x-0 bottom-0 h-[68%] w-full"
-                    viewBox="0 0 400 220"
-                    preserveAspectRatio="none"
+                    className="pointer-events-none absolute inset-x-0 bottom-0 h-[78%] w-full"
+                    viewBox="0 0 500 230"
+                    preserveAspectRatio="xMidYMax meet"
                     aria-hidden
                   >
                     <defs>
-                      <linearGradient id="roofPreviewRoof" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="rgba(71,85,105,0.95)" />
-                        <stop offset="55%" stopColor="rgba(51,65,85,0.95)" />
-                        <stop offset="100%" stopColor="rgba(30,41,59,0.95)" />
+                      <linearGradient id="hp2Roof" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#3d4d62" />
+                        <stop offset="40%" stopColor="#2c3a4e" />
+                        <stop offset="100%" stopColor="#1a2535" />
                       </linearGradient>
-                      <linearGradient id="roofPreviewWall" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="rgba(217,200,164,0.85)" />
-                        <stop offset="100%" stopColor="rgba(146,131,103,0.85)" />
+                      <linearGradient id="hp2RoofGarage" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#354460" />
+                        <stop offset="100%" stopColor="#1e2d42" />
                       </linearGradient>
-                      <linearGradient id="roofPreviewWindow" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="rgba(217,232,255,0.75)" />
-                        <stop offset="100%" stopColor="rgba(125,170,220,0.55)" />
+                      <linearGradient id="hp2Wall" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#c4a882" />
+                        <stop offset="100%" stopColor="#9a7d58" />
                       </linearGradient>
-                      <linearGradient id="roofPreviewLawn" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="rgba(34,77,55,0.70)" />
-                        <stop offset="100%" stopColor="rgba(15,42,28,0.85)" />
+                      <linearGradient id="hp2WallGarage" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#b89b72" />
+                        <stop offset="100%" stopColor="#8a7050" />
                       </linearGradient>
-                      <linearGradient id="roofPreviewDrive" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="rgba(82,82,91,0.75)" />
-                        <stop offset="100%" stopColor="rgba(39,39,42,0.85)" />
+                      <linearGradient id="hp2Win" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="rgba(190,220,255,0.85)" />
+                        <stop offset="100%" stopColor="rgba(100,150,210,0.65)" />
                       </linearGradient>
+                      <linearGradient id="hp2Garage" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#2a3040" />
+                        <stop offset="100%" stopColor="#1a1f2a" />
+                      </linearGradient>
+                      <linearGradient id="hp2Lawn" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#2d5a3a" />
+                        <stop offset="100%" stopColor="#1a3a24" />
+                      </linearGradient>
+                      <linearGradient id="hp2Drive" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#555f6e" />
+                        <stop offset="100%" stopColor="#363d47" />
+                      </linearGradient>
+                      <filter id="hp2Shadow"><feDropShadow dx="0" dy="3" stdDeviation="4" floodColor="rgba(0,0,0,0.5)" /></filter>
                     </defs>
 
-                    <rect x="0" y="155" width="400" height="65" fill="url(#roofPreviewLawn)" />
-                    <polygon points="140,205 260,205 320,220 80,220" fill="url(#roofPreviewDrive)" />
+                    {/* Lawn */}
+                    <rect x="0" y="182" width="500" height="48" fill="url(#hp2Lawn)" />
+                    {/* Driveway */}
+                    <polygon points="320,225 420,225 370,182 290,182" fill="url(#hp2Drive)" />
+                    {/* Driveway lines */}
+                    <line x1="340" y1="182" x2="380" y2="225" stroke="rgba(255,255,255,0.04)" strokeWidth="1" />
+                    <line x1="350" y1="182" x2="395" y2="225" stroke="rgba(255,255,255,0.04)" strokeWidth="1" />
 
-                    <path d="M50 175 L50 110 L155 55 L260 110 L260 175 Z" fill="url(#roofPreviewWall)" stroke="rgba(15,23,42,0.55)" strokeWidth="0.5" />
-                    <line x1="155" y1="55" x2="155" y2="175" stroke="rgba(15,23,42,0.30)" strokeWidth="0.5" />
+                    {/* Main house body */}
+                    <rect x="80" y="115" width="240" height="67" fill="url(#hp2Wall)" />
+                    {/* Center line */}
+                    <line x1="200" y1="115" x2="200" y2="182" stroke="rgba(0,0,0,0.12)" strokeWidth="0.5" />
 
-                    <path d="M40 116 L155 50 L270 116 L260 122 L155 60 L50 122 Z" fill="url(#roofPreviewRoof)" stroke="rgba(15,23,42,0.65)" strokeWidth="0.5" />
-                    <line x1="155" y1="50" x2="155" y2="60" stroke="rgba(255,255,255,0.10)" strokeWidth="0.5" />
-                    <g opacity="0.20">
-                      {Array.from({ length: 16 }).map((_, i) => (
-                        <line key={`rl-${i}`} x1={50 + i * 6.5} y1="118" x2={155} y2="60" stroke="rgba(15,23,42,0.6)" strokeWidth="0.3" />
-                      ))}
-                      {Array.from({ length: 16 }).map((_, i) => (
-                        <line key={`rr-${i}`} x1={155 + i * 6.5} y1="60" x2={260 + i * 0.05} y2="118" stroke="rgba(15,23,42,0.6)" strokeWidth="0.3" />
-                      ))}
-                    </g>
+                    {/* Main roof */}
+                    <polygon points="70,120 200,52 330,120 320,125 200,62 80,125" fill="url(#hp2Roof)" filter="url(#hp2Shadow)" />
+                    {/* Roof ridge highlight */}
+                    <line x1="200" y1="52" x2="200" y2="62" stroke="rgba(255,255,255,0.12)" strokeWidth="1.5" />
+                    {/* Roof shingle lines — left side */}
+                    {Array.from({length:9}).map((_,i)=>{
+                      const t=(i+1)/10; const lx=70+t*(200-70); const ly=120+t*(62-120); const rx=200; const ry=62;
+                      return <line key={`hs-l-${i}`} x1={lx} y1={ly} x2={rx} y2={ry} stroke="rgba(0,0,0,0.22)" strokeWidth="0.6" />;
+                    })}
+                    {/* Roof shingle lines — right side */}
+                    {Array.from({length:9}).map((_,i)=>{
+                      const t=(i+1)/10; const lx=200; const ly=62; const rx=200+t*(330-200); const ry=62+t*(120-62);
+                      return <line key={`hs-r-${i}`} x1={lx} y1={ly} x2={rx} y2={ry} stroke="rgba(0,0,0,0.22)" strokeWidth="0.6" />;
+                    })}
+                    {/* Horizontal shingle courses */}
+                    {[0.2,0.38,0.55,0.70,0.84].map((t,i)=>{
+                      const y=62+t*(120-62);
+                      const lx=70+t*(200-70); const rx=200+t*(330-200);
+                      return <line key={`hc-${i}`} x1={lx} y1={y} x2={rx} y2={y} stroke="rgba(0,0,0,0.18)" strokeWidth="0.7" />;
+                    })}
 
-                    <path d="M260 175 L260 130 L335 95 L335 175 Z" fill="url(#roofPreviewWall)" stroke="rgba(15,23,42,0.55)" strokeWidth="0.5" />
-                    <path d="M255 134 L260 130 L335 95 L340 100 L262 138 Z" fill="url(#roofPreviewRoof)" stroke="rgba(15,23,42,0.65)" strokeWidth="0.5" />
+                    {/* Garage wing */}
+                    <rect x="316" y="140" width="110" height="42" fill="url(#hp2WallGarage)" />
+                    <polygon points="308,144 371,108 434,144 430,148 371,116 312,148" fill="url(#hp2RoofGarage)" />
+                    {/* Garage shingle lines */}
+                    {Array.from({length:6}).map((_,i)=>{
+                      const t=(i+1)/7;
+                      return <line key={`gs-${i}`} x1={308+t*(371-308)} y1={144+t*(116-144)} x2={371} y2={116} stroke="rgba(0,0,0,0.20)" strokeWidth="0.5" />;
+                    })}
 
-                    <rect x="155" y="130" width="28" height="45" fill="rgba(20,18,12,0.85)" stroke="rgba(15,23,42,0.45)" strokeWidth="0.5" rx="1" />
-                    <rect x="158" y="135" width="22" height="35" fill="rgba(40,32,18,0.85)" />
-                    <line x1="169" y1="135" x2="169" y2="170" stroke="rgba(15,23,42,0.5)" strokeWidth="0.4" />
+                    {/* Garage door */}
+                    <rect x="325" y="150" width="75" height="32" fill="url(#hp2Garage)" rx="2" />
+                    {/* Garage door panels */}
+                    {[0,1,2].map(i=><rect key={`gp-${i}`} x="325" y={150+i*10.5} width="75" height="9.5" fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="0.6" />)}
+                    {/* Garage door vertical */}
+                    <line x1="362" y1="150" x2="362" y2="182" stroke="rgba(255,255,255,0.06)" strokeWidth="0.6" />
 
-                    <rect x="68" y="125" width="20" height="24" fill="url(#roofPreviewWindow)" stroke="rgba(15,23,42,0.55)" strokeWidth="0.5" rx="1" />
-                    <line x1="78" y1="125" x2="78" y2="149" stroke="rgba(15,23,42,0.45)" strokeWidth="0.4" />
-                    <line x1="68" y1="137" x2="88" y2="137" stroke="rgba(15,23,42,0.45)" strokeWidth="0.4" />
+                    {/* Front door */}
+                    <rect x="179" y="145" width="42" height="37" fill="rgba(24,18,10,0.9)" rx="1" />
+                    <rect x="183" y="150" width="35" height="27" fill="rgba(40,28,16,0.85)" rx="1" />
+                    <line x1="200" y1="150" x2="200" y2="177" stroke="rgba(0,0,0,0.4)" strokeWidth="0.5" />
+                    {/* Door handle */}
+                    <circle cx="196" cy="164" r="2" fill="rgba(200,160,60,0.85)" />
 
-                    <rect x="100" y="125" width="20" height="24" fill="url(#roofPreviewWindow)" stroke="rgba(15,23,42,0.55)" strokeWidth="0.5" rx="1" />
-                    <line x1="110" y1="125" x2="110" y2="149" stroke="rgba(15,23,42,0.45)" strokeWidth="0.4" />
-                    <line x1="100" y1="137" x2="120" y2="137" stroke="rgba(15,23,42,0.45)" strokeWidth="0.4" />
+                    {/* Left windows (main house) */}
+                    <rect x="90" y="130" width="32" height="26" fill="url(#hp2Win)" rx="1" stroke="rgba(0,0,0,0.3)" strokeWidth="0.5" />
+                    <line x1="106" y1="130" x2="106" y2="156" stroke="rgba(0,0,0,0.25)" strokeWidth="0.5" />
+                    <line x1="90" y1="143" x2="122" y2="143" stroke="rgba(0,0,0,0.25)" strokeWidth="0.5" />
+                    <rect x="130" y="130" width="32" height="26" fill="url(#hp2Win)" rx="1" stroke="rgba(0,0,0,0.3)" strokeWidth="0.5" />
+                    <line x1="146" y1="130" x2="146" y2="156" stroke="rgba(0,0,0,0.25)" strokeWidth="0.5" />
+                    <line x1="130" y1="143" x2="162" y2="143" stroke="rgba(0,0,0,0.25)" strokeWidth="0.5" />
 
-                    <rect x="200" y="128" width="18" height="22" fill="url(#roofPreviewWindow)" stroke="rgba(15,23,42,0.55)" strokeWidth="0.5" rx="1" />
-                    <rect x="225" y="128" width="18" height="22" fill="url(#roofPreviewWindow)" stroke="rgba(15,23,42,0.55)" strokeWidth="0.5" rx="1" />
+                    {/* Right windows (main house) */}
+                    <rect x="234" y="130" width="32" height="26" fill="url(#hp2Win)" rx="1" stroke="rgba(0,0,0,0.3)" strokeWidth="0.5" />
+                    <line x1="250" y1="130" x2="250" y2="156" stroke="rgba(0,0,0,0.25)" strokeWidth="0.5" />
+                    <line x1="234" y1="143" x2="266" y2="143" stroke="rgba(0,0,0,0.25)" strokeWidth="0.5" />
+                    <rect x="274" y="130" width="32" height="26" fill="url(#hp2Win)" rx="1" stroke="rgba(0,0,0,0.3)" strokeWidth="0.5" />
+                    <line x1="290" y1="130" x2="290" y2="156" stroke="rgba(0,0,0,0.25)" strokeWidth="0.5" />
+                    <line x1="274" y1="143" x2="306" y2="143" stroke="rgba(0,0,0,0.25)" strokeWidth="0.5" />
 
-                    <rect x="280" y="140" width="14" height="18" fill="url(#roofPreviewWindow)" stroke="rgba(15,23,42,0.5)" strokeWidth="0.4" rx="1" />
-                    <rect x="305" y="140" width="14" height="18" fill="url(#roofPreviewWindow)" stroke="rgba(15,23,42,0.5)" strokeWidth="0.4" rx="1" />
+                    {/* Trees */}
+                    <ellipse cx="28" cy="170" rx="22" ry="18" fill="rgba(22,60,38,0.80)" />
+                    <ellipse cx="34" cy="158" rx="14" ry="12" fill="rgba(34,80,52,0.88)" />
+                    <ellipse cx="460" cy="168" rx="20" ry="16" fill="rgba(22,60,38,0.80)" />
+                    <ellipse cx="466" cy="156" rx="13" ry="11" fill="rgba(34,80,52,0.88)" />
+                    <ellipse cx="48" cy="175" rx="12" ry="9" fill="rgba(28,70,44,0.75)" />
 
-                    <ellipse cx="362" cy="160" rx="22" ry="16" fill="rgba(20,55,35,0.75)" />
-                    <ellipse cx="368" cy="150" rx="14" ry="11" fill="rgba(34,77,55,0.85)" />
+                    {/* Walkway */}
+                    <polygon points="185,182 215,182 225,215 175,215" fill="rgba(160,148,128,0.35)" />
 
-                    <ellipse cx="22" cy="158" rx="20" ry="14" fill="rgba(20,55,35,0.75)" />
+                    {/* Ground shadow under house */}
+                    <ellipse cx="220" cy="183" rx="160" ry="6" fill="rgba(0,0,0,0.18)" />
                   </svg>
 
-                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-slate-950/35" aria-hidden />
+                  {/* Atmospheric overlay for depth */}
+                  <div className="pointer-events-none absolute inset-0" aria-hidden style={{background:"linear-gradient(to bottom, transparent 30%, rgba(6,13,26,0.25) 70%, rgba(6,13,26,0.60) 100%)"}} />
 
-                  <div className="relative flex h-full min-h-[13.5rem] flex-col justify-between p-4 sm:p-5">
+                  {/* Content layer */}
+                  <div className="relative flex h-full min-h-[14rem] flex-col justify-between p-4 sm:p-4.5">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-200/80">Property preview</div>
-                        <div className="mt-1 truncate text-[14px] font-semibold text-white">
+                        <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-300/90">Property Preview</div>
+                        <div className="mt-1 truncate text-[15px] font-bold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)]">
                           {(jobAddress1 || "").trim() ? jobAddress1 : "Awaiting address"}
                         </div>
-                        <div className="truncate text-[11px] text-white/55">
+                        <div className="truncate text-[11.5px] text-white/65 drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)]">
                           {[jobCity, jobState, jobZip].filter(Boolean).join(", ") || "Location pending"}
                         </div>
                       </div>
-                      <span className="shrink-0 rounded-full border border-white/[0.10] bg-slate-950/70 backdrop-blur-sm px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white/60">
-                        Preview
+                      <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-white/[0.20] bg-black/55 backdrop-blur-md px-2.5 py-1 text-[10px] font-semibold text-white shadow-[0_4px_20px_rgba(0,0,0,0.45)]">
+                        <Camera className="h-3 w-3 text-cyan-300" aria-hidden />
+                        Add Photos
                       </span>
                     </div>
                     <div className="flex items-end justify-between gap-2">
-                      <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-white/65">
-                        <span className="rounded-md border border-white/[0.14] bg-slate-950/70 backdrop-blur-sm px-2 py-0.5">Satellite</span>
-                        <span className="rounded-md border border-white/[0.14] bg-slate-950/70 backdrop-blur-sm px-2 py-0.5">Street view</span>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="rounded-md border border-white/[0.14] bg-black/50 backdrop-blur-sm px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/80">Satellite</span>
+                        <span className="rounded-md border border-white/[0.14] bg-black/50 backdrop-blur-sm px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/80">Street view</span>
                       </div>
-                      <span className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.14] bg-slate-950/70 backdrop-blur-sm px-2.5 py-1 text-[10px] font-semibold text-white/85 shadow-[0_0_14px_rgba(0,0,0,0.4)]">
-                        <span aria-hidden>📷</span>
-                        Photos coming soon
+                      <span className="inline-flex items-center gap-1 rounded-full border border-cyan-400/35 bg-black/50 backdrop-blur-sm px-2.5 py-1 text-[10px] font-bold text-cyan-200 shadow-[0_0_12px_rgba(34,211,238,0.25)]">
+                        <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" aria-hidden><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909" /></svg>
+                        Preview mode
                       </span>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <details className="group mt-5 rounded-2xl border border-white/[0.08] bg-white/[0.02] open:bg-white/[0.03] open:border-white/[0.12]">
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-left">
-                  <div className="flex min-w-0 items-center gap-2.5">
-                    <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/[0.10] bg-white/[0.04] text-[12px] text-white/65">
-                      ✎
-                    </span>
-                    <div className="min-w-0">
-                      <div className="text-[12px] font-semibold text-white/85">Edit manual details</div>
-                      <div className="text-[11px] text-white/45">
-                        Customer · Property · ZIP defaults
-                      </div>
-                    </div>
-                  </div>
-                  <span className="flex items-center gap-2 text-[11px] font-medium text-white/50">
-                    <span className="hidden sm:inline">Tap to expand</span>
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full border border-white/[0.10] text-[10px] transition-transform group-open:rotate-180" aria-hidden>
-                      ▾
-                    </span>
-                  </span>
+              <details className="group mt-1.5">
+                <summary className="flex cursor-pointer list-none items-center justify-end gap-1.5 pr-1 text-[10px] font-medium text-white/36 transition hover:text-white/70">
+                  <Pencil className="h-3 w-3" aria-hidden />
+                  <span>Edit manual details</span>
+                  <ChevronDown className="h-3 w-3 transition-transform group-open:rotate-180" aria-hidden />
                 </summary>
-              <form autoComplete="off" className="mt-1 space-y-3 px-4 pb-4 sm:px-5 sm:pb-5">
+              <form autoComplete="off" className="mt-2 space-y-3">
                 <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-3 sm:p-4">
                   <div className="text-xs font-semibold tracking-wide text-white/85">Customer</div>
                   <p className="mt-1 text-[11px] leading-snug text-white/45">Who the proposal and follow-ups are for.</p>
@@ -4331,197 +4417,239 @@ Thanks,`;
               </details>
             </div>
 
-            <div className="rounded-2xl border border-blue-400/18 bg-slate-950/35 p-3 shadow-[0_28px_90px_-60px_rgba(37,99,235,0.45),inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-xl sm:p-3.5">
+            <div className="rounded-2xl border border-cyan-400/[0.20] bg-[#0b1526] p-3 shadow-[0_0_0_1px_rgba(34,211,238,0.07),0_4px_24px_-8px_rgba(34,211,238,0.12),inset_0_1px_0_rgba(255,255,255,0.06)] sm:p-4">
               <div className="flex flex-wrap items-center gap-3">
                 <span
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-blue-300/30 bg-blue-500/15 text-[12px] font-bold tabular-nums text-blue-100 shadow-[0_0_22px_rgba(59,130,246,0.18)]"
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-blue-300/40 bg-blue-500/20 text-[12px] font-bold tabular-nums text-blue-100 shadow-[0_0_22px_rgba(59,130,246,0.25)]"
                   aria-hidden
                 >
                   2
                 </span>
-                <h2 className="text-base font-semibold tracking-tight text-white sm:text-[17px]">Prepared Job Packet</h2>
-                <span className="text-[12px] text-white/50">Scope at a glance</span>
-                <span className="ml-auto rounded-full border border-emerald-400/24 bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-semibold tabular-nums text-emerald-100/90">
+                <h2 className="text-[15px] font-bold tracking-tight text-white sm:text-[17px]">FieldDive Prepared Scope</h2>
+                <span className="text-[12px] text-white/50">FieldDive prepared these scope details from the inputs you provided. Review and edit if needed.</span>
+                <span className="ml-auto rounded-full border border-emerald-400/30 bg-emerald-500/14 px-2.5 py-0.5 text-[10px] font-semibold tabular-nums text-emerald-100/95 shadow-[0_0_16px_-6px_rgba(16,185,129,0.55)]">
                   {jobReadinessReadyCount}/{jobReadinessItems.length} prepared
                 </span>
               </div>
-              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
-                <div className="flex flex-col rounded-xl border border-emerald-400/22 bg-emerald-500/[0.09] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.10em] text-emerald-200/85">Roof size</div>
-                    <span
-                      className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide ${
-                        hasRoofArea
-                          ? "border-emerald-400/30 bg-emerald-500/15 text-emerald-100/95"
-                          : "border-amber-400/25 bg-amber-500/12 text-amber-100/90"
-                      }`}
-                    >
-                      {hasRoofArea ? "Ready" : "Needs"}
+              <div className="mt-3 grid grid-cols-2 gap-1.5 sm:grid-cols-3 xl:grid-cols-6">
+                {/* Tile 1 — Roof size */}
+                <div className="group relative flex flex-col rounded-xl border border-emerald-400/28 bg-gradient-to-b from-emerald-500/[0.14] to-emerald-500/[0.07] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_4px_16px_-8px_rgba(16,185,129,0.25)]">
+                  <div className="flex items-center justify-between gap-1">
+                    <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-emerald-200/90">
+                      <Ruler className="h-3.5 w-3.5" aria-hidden />
+                      Roof Size
+                    </div>
+                    <a href="#scope-inputs" aria-label="Edit roof size" className="text-white/35 opacity-0 transition group-hover:opacity-100 hover:text-white/75">
+                      <Pencil className="h-3 w-3" />
+                    </a>
+                  </div>
+                  <div className="mt-2 text-[22px] font-extrabold tabular-nums leading-none text-white">
+                    {hasRoofArea ? `${squares.toFixed(1)}` : "—"}
+                  </div>
+                  {hasRoofArea && <div className="text-[11px] font-medium text-emerald-100/70">squares</div>}
+                  <div className="mt-2 flex items-center gap-1">
+                    <CheckCircle2 className={`h-3 w-3 shrink-0 ${hasRoofArea ? "text-emerald-300" : "text-amber-300/70"}`} aria-hidden />
+                    <span className={`text-[9px] font-bold uppercase tracking-wide ${hasRoofArea ? "text-emerald-200/90" : "text-amber-200/80"}`}>
+                      {hasRoofArea ? "Verified" : "Needs input"}
                     </span>
                   </div>
-                  <div className="mt-1.5 text-[17px] font-bold tabular-nums leading-tight text-white">
-                    {hasRoofArea ? `${squares.toFixed(1)} SQ` : "—"}
-                  </div>
-                  <p className="text-[10.5px] leading-tight text-white/55">
-                    {hasRoofArea ? `${Number(area || 0).toLocaleString()} sq ft` : "Enter roof size"}
-                  </p>
                 </div>
-                <div className="flex flex-col rounded-xl border border-blue-400/18 bg-blue-500/[0.08] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.10em] text-blue-200/85">Difficulty</div>
-                    <span className="shrink-0 rounded-full border border-white/14 bg-white/[0.05] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white/70">
-                      Waiting
+
+                {/* Tile 2 — Roof pitch */}
+                <div className="group relative flex flex-col rounded-xl border border-emerald-400/22 bg-gradient-to-b from-emerald-500/[0.11] to-emerald-500/[0.05] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
+                  <div className="flex items-center justify-between gap-1">
+                    <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-emerald-200/90">
+                      <Gauge className="h-3.5 w-3.5" aria-hidden />
+                      Roof Pitch
+                    </div>
+                    <a href="#scope-inputs" aria-label="Edit pitch" className="text-white/35 opacity-0 transition group-hover:opacity-100 hover:text-white/75">
+                      <Pencil className="h-3 w-3" />
+                    </a>
+                  </div>
+                  <div className="mt-2 text-[22px] font-extrabold tabular-nums leading-none text-white">
+                    {pitch ? pitch : "—"}
+                  </div>
+                  {pitch && <div className="text-[11px] font-medium text-emerald-100/70">pitch</div>}
+                  <div className="mt-2 flex items-center gap-1">
+                    <CheckCircle2 className={`h-3 w-3 shrink-0 ${pitch ? "text-emerald-300" : "text-white/35"}`} aria-hidden />
+                    <span className={`text-[9px] font-bold uppercase tracking-wide ${pitch ? "text-emerald-200/90" : "text-white/55"}`}>
+                      {pitch ? "Verified" : "Waiting"}
                     </span>
                   </div>
-                  <div className="mt-1.5 text-[14px] font-semibold leading-tight text-white">Contractor input</div>
-                  <p className="text-[10.5px] leading-tight text-white/55">Pitch · stories · access</p>
                 </div>
-                <div className="flex flex-col rounded-xl border border-cyan-400/18 bg-cyan-500/[0.08] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.10em] text-cyan-200/85">Waste</div>
-                    <span
-                      className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide ${
-                        hasRoofArea
-                          ? "border-cyan-400/24 bg-cyan-500/14 text-cyan-100/95"
-                          : "border-amber-400/25 bg-amber-500/12 text-amber-100/90"
-                      }`}
-                    >
-                      {hasRoofArea ? "Set" : "Needs"}
-                    </span>
+
+                {/* Tile 3 — Stories */}
+                <div className="group relative flex flex-col rounded-xl border border-emerald-400/22 bg-gradient-to-b from-emerald-500/[0.11] to-emerald-500/[0.05] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
+                  <div className="flex items-center justify-between gap-1">
+                    <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-emerald-200/90">
+                      <Building2 className="h-3.5 w-3.5" aria-hidden />
+                      Stories
+                    </div>
+                    <Pencil className="h-3 w-3 text-white/25" aria-hidden />
                   </div>
-                  <div className="mt-1.5 text-[17px] font-bold tabular-nums leading-tight text-white">
-                    {hasRoofArea ? `${Number(waste || 0)}%` : "—"}
+                  <div className="mt-2 text-[22px] font-extrabold tabular-nums leading-none text-white">—</div>
+                  <div className="text-[11px] font-medium text-white/40">stories</div>
+                  <div className="mt-2 flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3 shrink-0 text-white/30" aria-hidden />
+                    <span className="text-[9px] font-bold uppercase tracking-wide text-white/50">Waiting</span>
                   </div>
-                  <p className="text-[10.5px] leading-tight text-white/55">
-                    {hasRoofArea ? `${adjustedSquares.toFixed(1)} adj SQ` : "Apply after roof size"}
-                  </p>
                 </div>
-                <div className="flex flex-col rounded-xl border border-amber-400/18 bg-amber-500/[0.08] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.10em] text-amber-200/85">Tear-off</div>
-                    <span className="shrink-0 rounded-full border border-white/16 bg-white/[0.07] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white/75">
-                      {includeDebrisRemoval ? "On" : "Off"}
+
+                {/* Tile 4 — Tear-off */}
+                <div className="group relative flex flex-col rounded-xl border border-amber-400/28 bg-gradient-to-b from-amber-500/[0.14] to-amber-500/[0.06] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
+                  <div className="flex items-center justify-between gap-1">
+                    <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-amber-200/90">
+                      <HardHat className="h-3.5 w-3.5" aria-hidden />
+                      Tear-off
+                    </div>
+                    <Pencil className="h-3 w-3 text-white/25" aria-hidden />
+                  </div>
+                  <div className="mt-2 text-[18px] font-extrabold leading-none text-white">
+                    {includeDebrisRemoval ? "1 layer" : "—"}
+                  </div>
+                  {includeDebrisRemoval && <div className="text-[11px] font-medium text-amber-100/70">included</div>}
+                  <div className="mt-2 flex items-center gap-1">
+                    <CheckCircle2 className={`h-3 w-3 shrink-0 ${includeDebrisRemoval ? "text-emerald-300" : "text-white/35"}`} aria-hidden />
+                    <span className={`text-[9px] font-bold uppercase tracking-wide ${includeDebrisRemoval ? "text-emerald-200/90" : "text-white/50"}`}>
+                      {includeDebrisRemoval ? "Verified" : "Off"}
                     </span>
                   </div>
-                  <div className="mt-1.5 text-[14px] font-semibold leading-tight text-white">
-                    {includeDebrisRemoval ? "Included" : "Not included"}
-                  </div>
-                  <p className="text-[10.5px] leading-tight text-white/55">
-                    {includeDebrisRemoval
-                      ? `${removalType === "architectural" ? "Architectural" : "Standard"}`
-                      : "Toggle in scope"}
-                  </p>
                 </div>
-                <div className="flex flex-col rounded-xl border border-violet-400/18 bg-violet-500/[0.08] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.10em] text-violet-200/85">System</div>
-                    <span className="shrink-0 rounded-full border border-violet-400/24 bg-violet-500/14 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-violet-100/90">
-                      Set
-                    </span>
+
+                {/* Tile 5 — Material */}
+                <div className="group relative flex flex-col rounded-xl border border-violet-400/28 bg-gradient-to-b from-violet-500/[0.14] to-violet-500/[0.06] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
+                  <div className="flex items-center justify-between gap-1">
+                    <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-violet-200/90">
+                      <Package className="h-3.5 w-3.5" aria-hidden />
+                      Material
+                    </div>
+                    <Pencil className="h-3 w-3 text-white/25" aria-hidden />
                   </div>
-                  <div className="mt-1.5 text-[14px] font-semibold leading-tight text-white">{selectedTierLabel}</div>
-                  <p className="text-[10.5px] leading-tight text-white/55">Customer-facing tier</p>
+                  <div className="mt-2 text-[14px] font-extrabold leading-tight text-white">
+                    Architectural<br />shingles
+                  </div>
+                  <div className="mt-2 flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3 shrink-0 text-emerald-300" aria-hidden />
+                    <span className="text-[9px] font-bold uppercase tracking-wide text-emerald-200/90">Verified</span>
+                  </div>
                 </div>
-                <div className="flex flex-col rounded-xl border border-emerald-400/18 bg-slate-950/35 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.10em] text-emerald-200/85">Proposal</div>
-                    <span
-                      className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide ${
-                        hasCustomerEmail && hasRoofArea && hasPrice && hasAIWording
-                          ? "border-emerald-400/30 bg-emerald-500/15 text-emerald-100/95"
-                          : "border-violet-400/22 bg-violet-500/12 text-violet-100/90"
-                      }`}
-                    >
-                      {hasCustomerEmail && hasRoofArea && hasPrice && hasAIWording ? "Ready" : "Waiting"}
-                    </span>
+
+                {/* Tile 6 — Confidence */}
+                <div className="group relative flex flex-col rounded-xl border border-cyan-400/28 bg-gradient-to-b from-cyan-500/[0.14] to-cyan-500/[0.06] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
+                  <div className="flex items-center justify-between gap-1">
+                    <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-cyan-200/90">
+                      <ShieldCheck className="h-3.5 w-3.5" aria-hidden />
+                      Confidence
+                    </div>
+                    <Pencil className="h-3 w-3 text-white/25" aria-hidden />
                   </div>
-                  <div className="mt-1.5 text-[14px] font-semibold leading-tight text-white">
-                    {hasCustomerEmail && hasRoofArea && hasPrice && hasAIWording ? "Ready to send" : "Needs info"}
+                  <div className="mt-2 text-[22px] font-extrabold tabular-nums leading-none text-white">
+                    {Math.round((jobReadinessReadyCount / Math.max(1, jobReadinessItems.length)) * 100)}%
                   </div>
-                  <p className="text-[10.5px] leading-tight text-white/55">
-                    {hasCustomerEmail && hasRoofArea && hasPrice && hasAIWording
-                      ? "Email · scope · price · wording"
-                      : "Complete remaining steps"}
-                  </p>
+                  <div className="text-[11px] font-medium text-cyan-100/70">readiness</div>
+                  <div className="mt-2 flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3 shrink-0 text-cyan-300" aria-hidden />
+                    <span className="text-[9px] font-bold uppercase tracking-wide text-cyan-200/90">High</span>
+                  </div>
                 </div>
               </div>
             </div>
 
             <div>
-              <div className="rounded-2xl border border-white/[0.10] bg-slate-950/40 p-3 shadow-[0_28px_90px_-60px_rgba(15,23,42,0.7),inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-xl sm:p-3.5">
+              <div className="rounded-2xl border border-cyan-400/[0.20] bg-[#0b1526] p-3 shadow-[0_0_0_1px_rgba(34,211,238,0.07),0_4px_24px_-8px_rgba(34,211,238,0.12),inset_0_1px_0_rgba(255,255,255,0.06)] sm:p-4">
                 <div className="flex flex-wrap items-center gap-3">
                   <span
-                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-blue-300/30 bg-blue-500/15 text-[12px] font-bold tabular-nums text-blue-100 shadow-[0_0_22px_rgba(59,130,246,0.18)]"
+                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-blue-300/40 bg-blue-500/20 text-[12px] font-bold tabular-nums text-blue-100 shadow-[0_0_22px_rgba(59,130,246,0.25)]"
                     aria-hidden
                   >
                     3
                   </span>
                   <h2
                     id="inputs-heading"
-                    className="text-base font-semibold tracking-tight text-white sm:text-[17px]"
+                    className="text-[15px] font-bold tracking-tight text-white sm:text-[17px]"
                   >
                     Scope Builder
                   </h2>
-                  <span className="text-[12px] text-white/50">AI recommends the optimal roofing system</span>
+                  <span className="text-[12px] text-white/50">AI recommends the optimal roofing system for this property.</span>
                 </div>
-                <div className="mt-2.5 h-px w-full bg-gradient-to-r from-white/[0.10] via-white/[0.05] to-transparent" />
+                <div className="mt-3 h-px w-full bg-gradient-to-r from-white/[0.10] via-white/[0.05] to-transparent" />
 
-                <div className="mt-2.5 grid grid-cols-1 gap-2.5 lg:grid-cols-12">
-                  <div className="rounded-xl border border-cyan-400/22 bg-slate-950/45 p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] lg:col-span-4">
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-200/75">Recommended system</div>
-                    <div className="mt-2 flex items-start gap-2.5">
+                <div className="mt-3 grid grid-cols-1 gap-2 lg:grid-cols-12">
+                  <div className="rounded-xl border border-cyan-400/25 bg-slate-900/65 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_4px_20px_-8px_rgba(34,211,238,0.20)] lg:col-span-4">
+                    <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-cyan-200/80">Recommended Roofing System</div>
+                    <div className="mt-2.5 flex items-start gap-3">
+                      {/* Shingle visual card */}
                       <div
-                        className="relative h-12 w-14 shrink-0 overflow-hidden rounded-md border border-white/[0.10]"
+                        className="relative h-16 w-[4.5rem] shrink-0 overflow-hidden rounded-lg border border-white/[0.14] shadow-[0_4px_16px_-4px_rgba(0,0,0,0.5)]"
                         style={{
                           backgroundImage:
-                            "linear-gradient(180deg, rgba(125,211,252,0.55) 0%, rgba(56,189,248,0.30) 35%, rgba(15,23,42,0.85) 100%)",
+                            "linear-gradient(160deg, rgba(71,85,105,0.95) 0%, rgba(51,65,85,0.98) 40%, rgba(30,41,59,0.99) 100%)",
                         }}
                         aria-hidden
                       >
-                        <svg viewBox="0 0 56 48" className="h-full w-full">
-                          <path d="M2 28 L28 6 L54 28 L48 32 L28 12 L8 32 Z" fill="rgba(186,230,253,0.85)" stroke="rgba(34,211,238,0.85)" strokeWidth="0.5" />
-                          <path d="M8 32 L48 32 L48 46 L8 46 Z" fill="rgba(15,23,42,0.65)" stroke="rgba(165,243,252,0.45)" strokeWidth="0.5" />
-                          <rect x="22" y="36" width="8" height="10" fill="rgba(34,211,238,0.30)" stroke="rgba(165,243,252,0.5)" strokeWidth="0.4" />
+                        {/* Shingle texture lines */}
+                        <svg viewBox="0 0 72 64" className="absolute inset-0 h-full w-full opacity-85">
+                          {/* Shingle rows */}
+                          {[0, 10, 20, 30, 40, 50].map((y, i) => (
+                            <g key={y}>
+                              <rect x={i % 2 === 0 ? 0 : -9} y={y} width="18" height="10" fill="rgba(51,65,85,0.9)" stroke="rgba(15,23,42,0.5)" strokeWidth="0.4" rx="0.5" />
+                              <rect x={i % 2 === 0 ? 18 : 9} y={y} width="18" height="10" fill="rgba(45,58,75,0.9)" stroke="rgba(15,23,42,0.5)" strokeWidth="0.4" rx="0.5" />
+                              <rect x={i % 2 === 0 ? 36 : 27} y={y} width="18" height="10" fill="rgba(51,65,85,0.9)" stroke="rgba(15,23,42,0.5)" strokeWidth="0.4" rx="0.5" />
+                              <rect x={i % 2 === 0 ? 54 : 45} y={y} width="18" height="10" fill="rgba(45,58,75,0.9)" stroke="rgba(15,23,42,0.5)" strokeWidth="0.4" rx="0.5" />
+                            </g>
+                          ))}
+                          <rect x="0" y="0" width="72" height="64" fill="url(#shingleOverlay)" />
+                          <defs>
+                            <linearGradient id="shingleOverlay" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="rgba(125,211,252,0.12)" />
+                              <stop offset="100%" stopColor="rgba(0,0,0,0.35)" />
+                            </linearGradient>
+                          </defs>
                         </svg>
+                        <div className="absolute bottom-1 left-1 right-1 rounded-sm bg-black/50 px-1 py-0.5 text-center text-[7px] font-bold uppercase tracking-wide text-cyan-200/90">
+                          {selectedTierLabel}
+                        </div>
                       </div>
-                      <div className="min-w-0">
-                        <div className="text-[13px] font-semibold leading-tight text-white">
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[14px] font-bold leading-tight text-white">
                           {tierConfig[roofingTier].label}
                         </div>
-                        <div className="mt-0.5 text-[11px] text-white/55 capitalize">
-                          {tierConfig[roofingTier].includes[0] || "Architectural shingles"}
+                        <div className="mt-0.5 text-[11px] capitalize text-white/55">
+                          Architectural Shingles
                         </div>
-                        <span className="mt-1.5 inline-flex rounded-full border border-cyan-400/22 bg-cyan-500/[0.08] px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-cyan-100/85">
+                        <div className="mt-1 text-[10px] text-white/40">Lifetime Limited Warranty</div>
+                        <span className="mt-2 inline-flex rounded-full border border-cyan-400/28 bg-cyan-500/[0.12] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-cyan-100/90">
                           {selectedTierLabel} tier
                         </span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="rounded-xl border border-white/[0.10] bg-slate-950/35 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] lg:col-span-5">
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/55">Included scope</div>
-                    <div className="mt-2 grid grid-cols-1 gap-x-3 gap-y-1 sm:grid-cols-2">
+                  <div className="rounded-xl border border-white/[0.10] bg-slate-900/60 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] lg:col-span-5">
+                    <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/60">Included Scope</div>
+                    <div className="mt-2.5 grid grid-cols-1 gap-x-4 gap-y-1.5 sm:grid-cols-2">
                       {[
                         ...tierConfig[roofingTier].includes,
-                        includeDebrisRemoval ? "Tear-off & disposal" : "Tear-off (not included)",
+                        includeDebrisRemoval ? "Tear-off & disposal (1 layer)" : "Tear-off (not included)",
                         "Starter strip",
                         "Ridge cap shingles",
+                        "Proper ventilation",
                       ].slice(0, 6).map((item, i) => {
                         const isTearOff = item.toLowerCase().includes("tear-off");
                         const isReady = isTearOff ? includeDebrisRemoval : true;
                         return (
-                          <div key={`${item}-${i}`} className="flex items-center gap-2 text-[11px] text-white/75">
+                          <div key={`${item}-${i}`} className="flex items-center gap-2 text-[11.5px]">
                             <span
                               className={
                                 isReady
-                                  ? "flex h-3.5 w-3.5 items-center justify-center rounded-full border border-emerald-300/55 bg-emerald-400/25 text-[8px] text-emerald-50 shadow-[0_0_6px_rgba(16,185,129,0.45)]"
-                                  : "flex h-3.5 w-3.5 items-center justify-center rounded-full border border-white/15 bg-white/[0.04] text-[8px] text-white/45"
+                                  ? "flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-emerald-300/55 bg-emerald-400/25 text-[9px] text-emerald-50 shadow-[0_0_8px_rgba(16,185,129,0.50)]"
+                                  : "flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/[0.04] text-[9px] text-white/40"
                               }
                               aria-hidden
                             >
                               {isReady ? "✓" : "·"}
                             </span>
-                            <span className="capitalize">{item}</span>
+                            <span className={`capitalize ${isReady ? "text-white/80" : "text-white/45"}`}>{item}</span>
                           </div>
                         );
                       })}
@@ -4531,45 +4659,44 @@ Thanks,`;
                   <div className="flex flex-col gap-2 lg:col-span-3">
                     <a
                       href="#scope-inputs"
-                      className="group flex items-center justify-between gap-2 rounded-xl border border-cyan-400/35 bg-cyan-500/[0.14] px-3 py-2.5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_22px_-8px_rgba(34,211,238,0.45)] transition hover:bg-cyan-500/[0.18]"
+                      className="group relative flex items-center justify-between gap-2 overflow-hidden rounded-xl border border-blue-300/40 bg-gradient-to-br from-blue-500/95 via-blue-500/85 to-blue-600/85 px-3.5 py-3 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.20),0_18px_40px_-18px_rgba(59,130,246,0.85)] transition hover:from-blue-400 hover:to-blue-500"
                     >
                       <div className="min-w-0">
-                        <div className="text-[12px] font-semibold text-white">Confirm system</div>
-                        <div className="text-[10px] text-cyan-100/75">Lock and continue</div>
+                        <div className="text-[13px] font-semibold text-white">Confirm system</div>
+                        <div className="text-[10px] text-blue-50/80">Lock system &amp; continue</div>
                       </div>
-                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-cyan-400/30 text-[12px] text-cyan-50" aria-hidden>
-                        →
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-white/20 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.25)]" aria-hidden>
+                        <ArrowRight className="h-3.5 w-3.5" />
                       </span>
                     </a>
                     <a
                       href="#scope-inputs"
-                      className="flex items-center justify-between gap-2 rounded-xl border border-white/[0.12] bg-white/[0.03] px-3 py-2 text-left transition hover:bg-white/[0.05]"
+                      className="flex items-center justify-between gap-2 rounded-xl border border-white/[0.10] bg-white/[0.03] px-3 py-2 text-left transition hover:bg-white/[0.06]"
                     >
-                      <div className="text-[12px] font-medium text-white/85">Edit scope</div>
-                      <span className="text-[12px] text-white/45" aria-hidden>✎</span>
+                      <div className="flex items-center gap-2 text-[12px] font-medium text-white/85">
+                        <Pencil className="h-3.5 w-3.5 text-white/55" aria-hidden />
+                        Edit scope
+                      </div>
                     </a>
                     <button
                       type="button"
-                      className="flex items-center justify-between gap-2 rounded-xl border border-white/[0.10] bg-white/[0.02] px-3 py-2 text-left text-[12px] font-medium text-white/65 transition hover:bg-white/[0.04]"
+                      className="flex items-center justify-between gap-2 rounded-xl border border-white/[0.08] bg-white/[0.02] px-3 py-2 text-left text-[12px] font-medium text-white/65 transition hover:bg-white/[0.04]"
                     >
-                      <span>Need more info</span>
-                      <span className="text-[12px] text-white/40" aria-hidden>?</span>
+                      <span className="flex items-center gap-2">
+                        <CircleHelp className="h-3.5 w-3.5 text-white/45" aria-hidden />
+                        Need more info
+                      </span>
                     </button>
                   </div>
                 </div>
 
-                <details id="scope-inputs" className="group mt-3 rounded-xl border border-white/[0.08] bg-white/[0.02] open:bg-white/[0.03]">
-                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 text-left">
-                    <div className="flex min-w-0 items-center gap-2">
-                      <span className="flex h-6 w-6 items-center justify-center rounded-md border border-white/[0.10] bg-white/[0.04] text-[11px] text-white/65">✎</span>
-                      <div className="min-w-0">
-                        <div className="text-[12px] font-semibold text-white/85">Edit roof size, waste &amp; bundle cost</div>
-                        <div className="text-[10px] text-white/45">Contractor inputs · live pricing</div>
-                      </div>
-                    </div>
-                    <span className="text-[10px] font-medium text-white/45 transition group-open:rotate-180" aria-hidden>▾</span>
+                <details id="scope-inputs" className="group mt-2">
+                  <summary className="flex cursor-pointer list-none items-center justify-end gap-1.5 text-[11px] font-medium text-white/45 transition hover:text-white/75">
+                    <Pencil className="h-3 w-3" aria-hidden />
+                    <span>Edit roof size, waste &amp; bundle cost</span>
+                    <ChevronDown className="h-3 w-3 transition-transform group-open:rotate-180" aria-hidden />
                   </summary>
-                  <div className="space-y-2 border-t border-white/[0.06] px-3 py-3">
+                  <div className="mt-2 space-y-2 border-t border-white/[0.06] pt-3">
                   <div
                     className={
                       attentionField === "roofArea"
@@ -4778,105 +4905,110 @@ Thanks,`;
               </div>
             </div>
 
-              <div className="grid grid-cols-1 gap-3 xl:grid-cols-2 xl:items-start">
-                <div id="deal-control" className="rounded-2xl border border-emerald-400/15 bg-slate-950/40 p-3 shadow-[0_28px_90px_-60px_rgba(16,185,129,0.40),inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-xl sm:p-3.5">
+              <div className="grid grid-cols-1 gap-2 lg:grid-cols-2 lg:items-stretch">
+                <div id="deal-control" className="flex flex-col rounded-2xl border border-cyan-400/[0.18] bg-[#0b1526] p-3 shadow-[0_0_0_1px_rgba(34,211,238,0.06),0_4px_24px_-8px_rgba(34,211,238,0.12),inset_0_1px_0_rgba(255,255,255,0.06)] sm:p-4">
                   <div className="flex flex-wrap items-center gap-3">
                     <span
-                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-emerald-300/30 bg-emerald-500/15 text-[12px] font-bold tabular-nums text-emerald-100 shadow-[0_0_22px_rgba(16,185,129,0.18)]"
+                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-emerald-300/40 bg-emerald-500/20 text-[12px] font-bold tabular-nums text-emerald-100 shadow-[0_0_22px_rgba(16,185,129,0.25)]"
                       aria-hidden
                     >
                       4
                     </span>
-                    <h2 className="text-base font-semibold tracking-tight text-white sm:text-[17px]">Deal Control</h2>
+                    <h2 className="text-[15px] font-bold tracking-tight text-white sm:text-[17px]">Deal Control</h2>
                     <span className="text-[12px] text-white/50">Pricing command</span>
-                    <div className="ml-auto flex items-center gap-2 text-[11px] tabular-nums text-white/65">
-                      <span className="rounded-md border border-emerald-400/22 bg-emerald-500/[0.08] px-2 py-0.5 font-semibold text-emerald-100/90">
-                        {pricingMode === "direct" ? "Direct" : "Markup"}
-                      </span>
-                      {pricingMode !== "direct" && (
-                        <span className="rounded-md border border-white/[0.08] bg-white/[0.04] px-2 py-0.5 font-semibold text-white/80">
-                          {Math.round(finalMarginNum)}%
-                        </span>
-                      )}
+                    <div className="ml-auto flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setPricingMode(pricingMode === "direct" ? "markup" : "direct")}
+                        className="rounded-md border border-white/[0.08] bg-white/[0.04] px-2 py-0.5 text-[10px] font-semibold text-white/65 transition hover:bg-white/[0.07]"
+                      >
+                        {pricingMode === "direct" ? "Direct cost" : "Markup mode"}
+                      </button>
                     </div>
                   </div>
                   <div className="mt-2.5 h-px w-full bg-gradient-to-r from-white/[0.10] via-white/[0.05] to-transparent" />
 
-                  <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-12">
-                    <div className="lg:col-span-5">
-                      <div className="text-[10px] font-semibold uppercase tracking-[0.10em] text-white/50">Pricing mode</div>
-                      <div className="mt-1.5 inline-flex w-full rounded-lg border border-white/[0.08] bg-white/[0.03] p-0.5">
-                        <button
-                          type="button"
-                          onClick={() => setPricingMode("markup")}
-                          className={`flex-1 rounded-md px-2.5 py-1.5 text-[12px] font-semibold transition ${
-                            pricingMode === "markup"
-                              ? "bg-emerald-500/[0.18] text-white shadow-[inset_0_0_0_1px_rgba(110,231,183,0.35)]"
-                              : "text-white/60 hover:text-white/85"
-                          }`}
-                        >
-                          Markup
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setPricingMode("direct")}
-                          className={`flex-1 rounded-md px-2.5 py-1.5 text-[12px] font-semibold transition ${
-                            pricingMode === "direct"
-                              ? "bg-emerald-500/[0.18] text-white shadow-[inset_0_0_0_1px_rgba(110,231,183,0.35)]"
-                              : "text-white/60 hover:text-white/85"
-                          }`}
-                        >
-                          Direct
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="lg:col-span-7">
-                      <div className="text-[10px] font-semibold uppercase tracking-[0.10em] text-white/50">Pricing strategy</div>
-                      <div className="mt-1.5 grid grid-cols-3 gap-1.5">
-                        {[
-                          { label: "Competitive", value: 15 },
-                          { label: "Balanced", value: 20 },
-                          { label: "Premium", value: 25 },
-                        ].map((option) => (
-                          <button
-                            key={option.value}
-                            type="button"
-                            onClick={() => setMargin(String(option.value))}
-                            disabled={pricingMode === "direct"}
-                            className={`rounded-lg border px-2 py-1.5 text-center transition disabled:opacity-50 disabled:cursor-not-allowed ${
-                              pricingMode !== "direct" && finalMarginNum === option.value
-                                ? "border-emerald-400/40 bg-emerald-500/[0.10] text-white"
-                                : "border-white/[0.08] bg-white/[0.025] text-white/70 hover:bg-white/[0.045]"
-                            }`}
-                          >
-                            <div className="text-[11px] font-medium">{option.label}</div>
-                            <div className="text-[13px] font-bold tabular-nums">{option.value}%</div>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="lg:col-span-12">
-                      <div className="flex items-center justify-between">
-                        <div className="text-[10px] font-semibold uppercase tracking-[0.10em] text-white/50">Manual adjustments</div>
-                        <span className="text-[10px] text-white/40">Fine tune if needed</span>
-                      </div>
-                      <div className="mt-1.5 grid grid-cols-2 gap-2">
-                        <label className="flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.025] px-2 py-1.5">
-                          <span className="shrink-0 text-[11px] font-medium text-white/55">Margin</span>
+                  {/* Mock-aligned 3-column layout */}
+                  <div className="mt-3 grid grid-cols-1 gap-2 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1.4fr)_minmax(0,0.7fr)]">
+                    {/* Col 1: Target Margin slider */}
+                    <div className="rounded-xl border border-white/[0.08] bg-white/[0.025] p-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-white/55">Target Margin</div>
+                        <label className="flex items-center gap-1 rounded-md border border-cyan-400/25 bg-black/20 px-2 py-1">
                           <input
                             type="number"
                             value={finalMarginNum}
                             onChange={(e) => setMargin(e.target.value)}
                             disabled={pricingMode === "direct"}
-                            className="min-w-0 flex-1 border-0 bg-transparent py-0 text-right text-[13px] font-semibold tabular-nums text-white focus:outline-none focus:ring-0 disabled:opacity-50 [appearance:textfield]"
+                            className="w-10 border-0 bg-transparent p-0 text-right text-[13px] font-extrabold tabular-nums text-white focus:outline-none focus:ring-0 disabled:opacity-50 [appearance:textfield]"
                           />
-                          <span className="shrink-0 text-[11px] text-white/45">%</span>
+                          <span className="text-[11px] font-semibold text-white/55">%</span>
                         </label>
+                      </div>
+                      <div className="mt-3">
+                        <div className="relative h-2 rounded-full bg-white/[0.08] shadow-inner">
+                          <div
+                            className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-cyan-500 to-blue-400 shadow-[0_0_18px_rgba(34,211,238,0.45)]"
+                            style={{
+                              width: `${Math.min(100, Math.max(0, ((finalMarginNum || 0) / 50) * 100))}%`,
+                            }}
+                          />
+                          <span
+                            className="absolute top-1/2 h-4.5 w-4.5 -translate-y-1/2 rounded-full border-2 border-cyan-200/80 bg-white shadow-[0_0_18px_rgba(59,130,246,0.70)]"
+                            style={{
+                              left: `calc(${Math.min(100, Math.max(0, ((finalMarginNum || 0) / 50) * 100))}% - 0.5rem)`,
+                              width: "1.1rem",
+                              height: "1.1rem",
+                            }}
+                            aria-hidden
+                          />
+                        </div>
+                        <div className="mt-2 flex justify-between text-[10px] tabular-nums text-white/35">
+                          <span>10%</span>
+                          <span>20%</span>
+                          <span>30%</span>
+                          <span>40%</span>
+                          <span>50%</span>
+                        </div>
+                      </div>
+                    </div>
 
-                        <label className="flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.025] px-2 py-1.5">
-                          <span className="shrink-0 text-[11px] font-medium text-white/55">Labor</span>
+                    {/* Col 2: Pricing Mode — Retail / Competitive / Aggressive */}
+                    <div className="rounded-xl border border-white/[0.08] bg-white/[0.025] p-3">
+                      <div className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-white/55">Pricing Mode</div>
+                      <div className="mt-2.5 flex gap-1.5">
+                        {([
+                          { label: "Retail", value: 25 },
+                          { label: "Competitive", value: 20 },
+                          { label: "Aggressive", value: 15 },
+                        ] as const).map((option) => {
+                          const isActive = pricingMode !== "direct" && finalMarginNum === option.value;
+                          return (
+                            <button
+                              key={option.value}
+                              type="button"
+                              onClick={() => setMargin(String(option.value))}
+                              disabled={pricingMode === "direct"}
+                              className={`flex-1 rounded-lg border py-2 text-center transition disabled:opacity-50 disabled:cursor-not-allowed ${
+                                isActive
+                                  ? "border-blue-400/55 bg-blue-500/[0.22] text-white shadow-[0_0_20px_-8px_rgba(59,130,246,0.70)]"
+                                  : "border-white/[0.08] bg-white/[0.02] text-white/55 hover:bg-white/[0.05] hover:text-white/80"
+                              }`}
+                            >
+                              <div className="text-[10px] font-semibold">{option.label}</div>
+                              <div className="text-[12px] font-bold tabular-nums">{option.value}%</div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Col 3: Labor adj (compact) */}
+                    <div className="rounded-xl border border-white/[0.08] bg-white/[0.025] p-3">
+                      <div className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-white/55">Labor Adj.</div>
+                      <label className="mt-2.5 flex flex-col gap-1">
+                        <div className="flex items-center gap-1.5 rounded-lg border border-white/[0.08] bg-black/15 px-2 py-2">
+                          <span className="shrink-0 text-[11px] font-medium text-white/40">$</span>
                           <input
                             type="number"
                             value={laborCostRaw}
@@ -4891,43 +5023,24 @@ Thanks,`;
                               setLaborCost(safe);
                             }}
                             placeholder="0"
-                            className="min-w-0 flex-1 border-0 bg-transparent py-0 text-right text-[13px] font-semibold tabular-nums text-white placeholder:text-white/35 focus:outline-none focus:ring-0 [appearance:textfield]"
+                            className="min-w-0 flex-1 border-0 bg-transparent p-0 text-right text-[13px] font-bold tabular-nums text-white placeholder:text-white/30 focus:outline-none focus:ring-0 [appearance:textfield]"
                           />
-                          <span className="shrink-0 text-[11px] text-white/45">$</span>
-                        </label>
-                      </div>
+                        </div>
+                        <span className="text-[9px] text-white/30">per job override</span>
+                      </label>
                     </div>
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-white/[0.10] bg-slate-950/40 p-4 shadow-[0_28px_90px_-60px_rgba(15,23,42,0.7),inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-xl sm:p-5">
-
-                  {/* Header */}
+                <div className="flex flex-col rounded-2xl border border-cyan-400/[0.18] bg-[#0b1526] p-3 shadow-[0_0_0_1px_rgba(34,211,238,0.06),0_4px_24px_-8px_rgba(34,211,238,0.12),inset_0_1px_0_rgba(255,255,255,0.06)] sm:p-4">
                   <div className="flex flex-wrap items-center gap-3">
                     <span
-                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-emerald-300/30 bg-emerald-500/15 text-[12px] font-bold tabular-nums text-emerald-100 shadow-[0_0_22px_rgba(16,185,129,0.18)]"
+                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-emerald-300/40 bg-emerald-500/20 text-[12px] font-bold tabular-nums text-emerald-100 shadow-[0_0_22px_rgba(16,185,129,0.25)]"
                       aria-hidden
                     >
                       5
                     </span>
-                    <h2 className="text-base font-semibold tracking-tight text-white sm:text-[17px]">Proposal Readiness</h2>
-                    {(() => {
-                      const items = [
-                        { label: "Customer", ready: hasCustomerEmail },
-                        { label: "Scope", ready: hasRoofArea },
-                        { label: "Pricing", ready: hasPrice },
-                        { label: "Wording", ready: hasAIWording },
-                      ];
-                      const done = items.filter((i) => i.ready).length;
-                      return (
-                        <span className="ml-auto flex items-center gap-2 text-[11px] font-semibold tabular-nums text-emerald-100/85">
-                          <span>{done}/{items.length} ready</span>
-                          <span className="rounded-full border border-emerald-400/22 bg-emerald-500/10 px-2 py-0.5 text-[10px] uppercase tracking-wide">
-                            {Math.round((done / items.length) * 100)}%
-                          </span>
-                        </span>
-                      );
-                    })()}
+                    <h2 className="text-[15px] font-bold tracking-tight text-white sm:text-[17px]">Proposal Readiness</h2>
                   </div>
                   <div className="mt-3 h-px w-full bg-gradient-to-r from-white/[0.10] via-white/[0.05] to-transparent" />
 
@@ -4944,174 +5057,186 @@ Thanks,`;
                     const done = checklist.filter((i) => i.ready).length;
                     const pct = Math.round((done / checklist.length) * 100);
                     return (
-                      <div className="mt-3">
-                        <div className="flex items-center justify-between text-[11px]">
-                          <span className="font-medium text-white/65">{done} of {checklist.length} components ready</span>
-                          <span className="rounded-full border border-emerald-400/22 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold tabular-nums text-emerald-100/90">
-                            {pct}%
-                          </span>
-                        </div>
-                        <div className="mt-2 grid grid-cols-1 gap-x-4 gap-y-1.5 sm:grid-cols-2">
-                          {checklist.map((item) => (
-                            <div key={item.label} className="flex items-center gap-2 text-[11px]">
-                              <span
-                                className={
-                                  item.ready
-                                    ? "flex h-3.5 w-3.5 items-center justify-center rounded-full border border-emerald-300/55 bg-emerald-400/25 text-[8px] text-emerald-50 shadow-[0_0_6px_rgba(16,185,129,0.45)]"
-                                    : "flex h-3.5 w-3.5 items-center justify-center rounded-full border border-white/15 bg-white/[0.04] text-[8px] text-white/45"
-                                }
-                                aria-hidden
-                              >
-                                {item.ready ? "✓" : ""}
-                              </span>
-                              <span className={item.ready ? "text-white/85" : "text-white/55"}>{item.label}</span>
-                            </div>
-                          ))}
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={handlePreviewPdf}
-                          disabled={isPreviewingPdf}
-                          className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-400/35 bg-cyan-500/[0.14] px-4 py-2.5 text-[13px] font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_22px_-8px_rgba(34,211,238,0.45)] transition hover:bg-cyan-500/[0.18] disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                          <span aria-hidden>👁</span>
-                          {isPreviewingPdf ? "Opening preview…" : "Preview proposal"}
-                        </button>
-
-                        <details className="mt-3 group rounded-xl border border-white/[0.08] bg-white/[0.02] open:bg-white/[0.03]">
-                          <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2 text-[11px] font-medium text-white/55">
-                            <span>Tear-off &amp; package settings</span>
-                            <span className="text-white/40 transition group-open:rotate-180" aria-hidden>▾</span>
-                          </summary>
-                          <div className="space-y-3 border-t border-white/[0.06] px-3 py-3">
-                            <div className="flex items-center justify-between gap-3">
-                              <div>
-                                <div className="text-[11px] font-medium text-white/85">Include tear-off &amp; disposal</div>
-                                <div className="text-[10px] text-white/45">{includeDebrisRemoval ? "Included in estimate total" : "Excluded from estimate total"}</div>
-                              </div>
-                              <button
-                                type="button"
-                                role="switch"
-                                aria-checked={includeDebrisRemoval}
-                                onClick={() => setIncludeDebrisRemoval((v) => !v)}
-                                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border transition ${
-                                  includeDebrisRemoval
-                                    ? "border-emerald-400/40 bg-emerald-500/20"
-                                    : "border-white/[0.10] bg-white/[0.06]"
-                                }`}
-                              >
-                                <span
-                                  className={`inline-block h-4 w-4 rounded-full bg-white shadow transition ${
-                                    includeDebrisRemoval ? "translate-x-6" : "translate-x-1"
-                                  }`}
-                                />
-                              </button>
-                            </div>
-                            <div className="grid grid-cols-2 gap-2">
-                              <div>
-                                <label className="text-[10px] font-medium uppercase tracking-wide text-white/45">Removal type</label>
-                                <select
-                                  value={removalType}
-                                  onChange={(e) => setRemovalType(e.target.value as "standard" | "architectural")}
-                                  disabled={!includeDebrisRemoval}
-                                  className="mt-1 w-full rounded-lg border border-white/[0.07] bg-black/15 px-2 py-1.5 text-[12px] text-white outline-none disabled:cursor-not-allowed disabled:opacity-50"
-                                >
-                                  <option value="standard">Standard</option>
-                                  <option value="architectural">Architectural</option>
-                                </select>
-                              </div>
-                              <div>
-                                <label className="text-[10px] font-medium uppercase tracking-wide text-white/45">Disposal $/ton</label>
-                                <input
-                                  value={dumpFeePerTon}
-                                  onChange={(e) => setDumpFeePerTon(e.target.value)}
-                                  inputMode="decimal"
-                                  placeholder="e.g. 80"
-                                  disabled={!includeDebrisRemoval}
-                                  className="mt-1 w-full rounded-lg border border-white/[0.07] bg-black/15 px-2 py-1.5 text-[12px] text-white outline-none disabled:cursor-not-allowed disabled:opacity-50"
-                                />
-                              </div>
-                            </div>
-                            <div>
-                              <div className="text-[10px] font-medium uppercase tracking-wide text-white/45">Roofing system</div>
-                              <div className="mt-1 grid grid-cols-3 gap-1.5">
-                                {(["standard","enhanced","premium"] as const).map((option) => {
-                                  const selected = roofingTier === option;
-                                  const label = option === "standard" ? "Core" : option === "enhanced" ? "Enhanced" : "Premium";
-                                  return (
-                                    <button
-                                      key={option}
-                                      type="button"
-                                      onClick={() => setRoofingTier(option)}
-                                      className={`rounded-lg border px-2 py-1.5 text-[11px] font-medium transition ${
-                                        selected
-                                          ? "border-emerald-300/50 bg-emerald-500/[0.18] text-white shadow-[0_0_18px_-8px_rgba(16,185,129,0.45)]"
-                                          : "border-white/[0.08] bg-white/[0.025] text-white/65 hover:bg-white/[0.045]"
-                                      }`}
-                                    >
-                                      {label}
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            </div>
+                      <div className="mt-3 flex flex-1 flex-col gap-3 sm:flex-row sm:gap-0">
+                        {/* Left: progress + preview button */}
+                        <div className="flex flex-col sm:w-[52%] sm:pr-4">
+                          <div className="flex items-end justify-between gap-2">
+                            <span className="text-[24px] font-extrabold tabular-nums leading-none text-white">{pct}%</span>
+                            <span className="mb-1 text-[11px] text-white/55">{done} of {checklist.length} components ready</span>
                           </div>
-                        </details>
+                          <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-white/[0.07] shadow-inner">
+                            <div
+                              className="h-full rounded-full bg-gradient-to-r from-emerald-400 via-cyan-300 to-blue-400 shadow-[0_0_22px_rgba(34,211,238,0.45)]"
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={handlePreviewPdf}
+                            disabled={isPreviewingPdf}
+                            className="mt-4 inline-flex items-center justify-center gap-2 rounded-xl border border-cyan-400/40 bg-cyan-500/[0.16] px-4 py-2.5 text-[13px] font-bold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_28px_-8px_rgba(34,211,238,0.55)] transition hover:bg-cyan-500/[0.24] disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            <Eye className="h-4 w-4" aria-hidden />
+                            {isPreviewingPdf ? "Opening preview…" : "Preview proposal"}
+                          </button>
+
+                          <details className="mt-3 group rounded-xl border border-white/[0.07] bg-white/[0.02] open:bg-white/[0.03]">
+                            <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2 text-[11px] font-medium text-white/50">
+                              <span>Package settings</span>
+                              <ChevronDown className="h-3 w-3 text-white/40 transition group-open:rotate-180" aria-hidden />
+                            </summary>
+                            <div className="space-y-3 border-t border-white/[0.06] px-3 py-3">
+                              <div className="flex items-center justify-between gap-3">
+                                <div>
+                                  <div className="text-[11px] font-medium text-white/85">Include tear-off &amp; disposal</div>
+                                  <div className="text-[10px] text-white/45">{includeDebrisRemoval ? "Included in estimate total" : "Excluded from estimate total"}</div>
+                                </div>
+                                <button
+                                  type="button"
+                                  role="switch"
+                                  aria-checked={includeDebrisRemoval}
+                                  onClick={() => setIncludeDebrisRemoval((v) => !v)}
+                                  className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border transition ${
+                                    includeDebrisRemoval
+                                      ? "border-emerald-400/40 bg-emerald-500/20"
+                                      : "border-white/[0.10] bg-white/[0.06]"
+                                  }`}
+                                >
+                                  <span
+                                    className={`inline-block h-4 w-4 rounded-full bg-white shadow transition ${
+                                      includeDebrisRemoval ? "translate-x-6" : "translate-x-1"
+                                    }`}
+                                  />
+                                </button>
+                              </div>
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <label className="text-[10px] font-medium uppercase tracking-wide text-white/45">Removal type</label>
+                                  <select
+                                    value={removalType}
+                                    onChange={(e) => setRemovalType(e.target.value as "standard" | "architectural")}
+                                    disabled={!includeDebrisRemoval}
+                                    className="mt-1 w-full rounded-lg border border-white/[0.07] bg-black/15 px-2 py-1.5 text-[12px] text-white outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                                  >
+                                    <option value="standard">Standard</option>
+                                    <option value="architectural">Architectural</option>
+                                  </select>
+                                </div>
+                                <div>
+                                  <label className="text-[10px] font-medium uppercase tracking-wide text-white/45">Disposal $/ton</label>
+                                  <input
+                                    value={dumpFeePerTon}
+                                    onChange={(e) => setDumpFeePerTon(e.target.value)}
+                                    inputMode="decimal"
+                                    placeholder="e.g. 80"
+                                    disabled={!includeDebrisRemoval}
+                                    className="mt-1 w-full rounded-lg border border-white/[0.07] bg-black/15 px-2 py-1.5 text-[12px] text-white outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                                  />
+                                </div>
+                              </div>
+                              <div>
+                                <div className="text-[10px] font-medium uppercase tracking-wide text-white/45">Roofing system</div>
+                                <div className="mt-1 grid grid-cols-3 gap-1.5">
+                                  {(["standard","enhanced","premium"] as const).map((option) => {
+                                    const selected = roofingTier === option;
+                                    const label = option === "standard" ? "Core" : option === "enhanced" ? "Enhanced" : "Premium";
+                                    return (
+                                      <button
+                                        key={option}
+                                        type="button"
+                                        onClick={() => setRoofingTier(option)}
+                                        className={`rounded-lg border px-2 py-1.5 text-[11px] font-medium transition ${
+                                          selected
+                                            ? "border-emerald-300/50 bg-emerald-500/[0.18] text-white shadow-[0_0_18px_-8px_rgba(16,185,129,0.45)]"
+                                            : "border-white/[0.08] bg-white/[0.025] text-white/65 hover:bg-white/[0.045]"
+                                        }`}
+                                      >
+                                        {label}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            </div>
+                          </details>
+                        </div>
+
+                        {/* Vertical divider */}
+                        <div className="hidden w-px shrink-0 self-stretch bg-gradient-to-b from-transparent via-white/[0.12] to-transparent sm:block" aria-hidden />
+
+                        {/* Right: two-column checklist */}
+                        <div className="flex flex-1 flex-col sm:pl-4">
+                          <div className="grid grid-cols-1 gap-y-2 gap-x-3 xs:grid-cols-2">
+                            {checklist.map((item) => (
+                              <div key={item.label} className="flex items-center gap-2">
+                                <span
+                                  className={
+                                    item.ready
+                                      ? "flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-emerald-300/60 bg-emerald-400/28 text-[9px] font-bold text-emerald-50 shadow-[0_0_8px_rgba(16,185,129,0.50)]"
+                                      : "flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-white/18 bg-white/[0.04]"
+                                  }
+                                  aria-hidden
+                                >
+                                  {item.ready ? "✓" : ""}
+                                </span>
+                                <span className={`text-[11.5px] font-medium ${item.ready ? "text-white/90" : "text-white/50"}`}>{item.label}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       </div>
                     );
                   })()}
                 </div>
               </div>
 
-            <div className="rounded-2xl border border-blue-400/22 bg-slate-950/45 p-3 shadow-[0_28px_90px_-60px_rgba(59,130,246,0.45),inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-xl sm:p-3.5">
+            <div className="rounded-xl border border-white/[0.06] bg-slate-950/45 px-3 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
               <div className="flex flex-wrap items-center gap-2">
-                <span
-                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-blue-300/30 bg-blue-500/15 text-[11px] font-bold tabular-nums text-blue-100"
-                  aria-hidden
-                >
-                  6
+                <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
+                  <Truck className="h-3 w-3" aria-hidden />
+                  Delivery
                 </span>
-                <h2 className="text-[14px] font-semibold tracking-tight text-white">Delivery</h2>
-                <span className="text-[11px] text-white/45">Preview · Save · Send</span>
 
                 <div className="ml-auto flex flex-wrap items-center gap-1.5">
                   <button
                     type="button"
                     onClick={handlePreviewPdf}
                     disabled={isPreviewingPdf}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-white/[0.10] bg-white/[0.04] px-2.5 py-1.5 text-[12px] font-medium text-white/85 transition hover:bg-white/[0.07] disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-white/[0.08] bg-white/[0.03] px-2.5 py-1 text-[11.5px] font-medium text-white/80 transition hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    <span aria-hidden>👁</span>
+                    <Eye className="h-3 w-3" aria-hidden />
                     {isPreviewingPdf ? "Opening…" : "Preview"}
                   </button>
                   <button
                     type="button"
                     onClick={onDownloadPdf}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-white/[0.10] bg-white/[0.04] px-2.5 py-1.5 text-[12px] font-medium text-white/85 transition hover:bg-white/[0.07]"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-white/[0.08] bg-white/[0.03] px-2.5 py-1 text-[11.5px] font-medium text-white/80 transition hover:bg-white/[0.06]"
                   >
-                    <span aria-hidden>⬇</span>
+                    <Download className="h-3 w-3" aria-hidden />
                     Download PDF
                   </button>
                   <motion.button
                     type="button"
                     onClick={saveEstimate}
                     disabled={!canSave || isSaving || isLocked}
-                    className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12px] font-semibold transition disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 ${savedFlash ? "border-emerald-400/45 bg-emerald-500/20 text-emerald-50" : "border-white/[0.10] bg-white/[0.04] text-white/85 hover:bg-white/[0.07]"}`}
+                    className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11.5px] font-semibold transition disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 ${savedFlash ? "border-emerald-400/45 bg-emerald-500/20 text-emerald-50" : "border-white/[0.08] bg-white/[0.03] text-white/80 hover:bg-white/[0.06]"}`}
                     whileTap={{ scale: 0.98 }}
                   >
-                    {isSaving ? "Saving…" : savedFlash ? "Saved ✓" : "Save"}
+                    <Save className="h-3 w-3" aria-hidden />
+                    {isSaving ? "Saving…" : savedFlash ? "Saved" : "Save"}
                   </motion.button>
                   <button
                     type="button"
                     onClick={handleSendEstimate}
                     disabled={!(customerEmail || "").trim() || !(jobAddress1 || "").trim() || isSending || isLocked}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-blue-400/55 bg-blue-500/[0.85] px-3 py-1.5 text-[12px] font-semibold text-white shadow-[0_0_22px_-8px_rgba(59,130,246,0.7)] transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-blue-400/45 bg-blue-500/[0.85] px-3 py-1 text-[11.5px] font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    {isSending ? "Sending…" : sendSuccess ? "Sent ✓" : "Send proposal →"}
+                    <Send className="h-3 w-3" aria-hidden />
+                    {isSending ? "Sending…" : sendSuccess ? "Sent" : "Send proposal"}
                   </button>
                   <details className="group relative">
-                    <summary className="cursor-pointer list-none rounded-lg border border-white/[0.08] bg-white/[0.03] px-2.5 py-1.5 text-[12px] font-medium text-white/65 transition hover:bg-white/[0.05]">
+                    <summary className="inline-flex cursor-pointer list-none items-center gap-1.5 rounded-lg border border-white/[0.08] bg-white/[0.03] px-2.5 py-1 text-[11.5px] font-medium text-white/65 transition hover:bg-white/[0.05]">
+                      <MoreHorizontal className="h-3 w-3" aria-hidden />
                       More
                     </summary>
                     <div className="absolute right-0 z-20 mt-1.5 flex w-56 flex-col gap-1 rounded-lg border border-white/[0.10] bg-slate-950/95 p-1.5 shadow-xl">
@@ -5140,6 +5265,81 @@ Thanks,`;
                   {pdfError ? <span className="rounded-md border border-red-400/30 bg-red-500/10 px-2 py-1 text-red-200">{pdfError}</span> : null}
                   {sendSuccess && !isSending ? <span className="rounded-md border border-blue-400/30 bg-blue-500/10 px-2 py-1 text-blue-200">Sent successfully.</span> : null}
                   {zipClearedToast ? <span className="rounded-md border border-white/[0.10] bg-white/[0.04] px-2 py-1 text-white/60">Cleared defaults for {jobZip}</span> : null}
+                </div>
+              )}
+              {showAiPanel && (
+                <div className="mt-3 rounded-xl border border-cyan-400/18 bg-cyan-500/[0.055] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.045)]">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-cyan-100/70">
+                        Proposal wording
+                      </div>
+                      <p className="mt-1 text-[11px] text-white/50">
+                        Edit the customer-facing package language and next-step CTA. Pricing is not editable here.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        cancelEditAi();
+                        setShowAiPanel(false);
+                      }}
+                      className="rounded-lg border border-white/[0.08] bg-white/[0.035] px-2 py-1 text-[11px] font-medium text-white/60 transition hover:bg-white/[0.06] hover:text-white/80"
+                    >
+                      Close
+                    </button>
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
+                    <label className="block">
+                      <span className="text-[10px] font-semibold uppercase tracking-wide text-white/45">
+                        Package description
+                      </span>
+                      <textarea
+                        value={draftPackageDesc}
+                        onChange={(e) => setDraftPackageDesc(e.target.value)}
+                        rows={4}
+                        className="mt-1 w-full resize-none rounded-lg border border-white/[0.08] bg-black/20 px-3 py-2 text-[12px] leading-relaxed text-white/85 outline-none placeholder:text-white/30 focus:border-cyan-300/35 focus:ring-2 focus:ring-cyan-400/10"
+                        placeholder="Describe the roofing package in customer-friendly language."
+                      />
+                    </label>
+
+                    <label className="block">
+                      <span className="text-[10px] font-semibold uppercase tracking-wide text-white/45">
+                        Schedule CTA
+                      </span>
+                      <textarea
+                        value={draftScheduleCta}
+                        onChange={(e) => setDraftScheduleCta(e.target.value)}
+                        rows={4}
+                        className="mt-1 w-full resize-none rounded-lg border border-white/[0.08] bg-black/20 px-3 py-2 text-[12px] leading-relaxed text-white/85 outline-none placeholder:text-white/30 focus:border-cyan-300/35 focus:ring-2 focus:ring-cyan-400/10"
+                        placeholder="Tell the customer what happens next."
+                      />
+                    </label>
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        cancelEditAi();
+                        setShowAiPanel(false);
+                      }}
+                      className="rounded-lg border border-white/[0.08] bg-white/[0.035] px-3 py-1.5 text-[12px] font-medium text-white/65 transition hover:bg-white/[0.06]"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        saveEditAi();
+                        setShowAiPanel(false);
+                      }}
+                      className="rounded-lg border border-cyan-400/35 bg-cyan-500/[0.18] px-3 py-1.5 text-[12px] font-semibold text-cyan-50 transition hover:bg-cyan-500/[0.24]"
+                    >
+                      Save wording
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -5201,22 +5401,21 @@ Thanks,`;
 
           {/* Sticky contractor outcome panel */}
           <div className="w-full min-w-0">
-            <div className="sticky top-4">
-              <div className="pointer-events-none absolute -inset-1 rounded-3xl bg-gradient-to-b from-cyan-400/[0.06] via-transparent to-blue-500/[0.04] blur-2xl" aria-hidden />
-              <div className="relative space-y-3 rounded-2xl border border-white/[0.06] bg-slate-950/30 p-2 shadow-[0_30px_120px_-60px_rgba(34,211,238,0.30),inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-sm">
+            <div className="sticky top-2">
+              <div className="relative space-y-2 rounded-2xl border border-cyan-400/[0.16] bg-[#060d1a] p-2 shadow-[0_0_0_1px_rgba(34,211,238,0.06),0_12px_48px_-12px_rgba(0,0,0,0.65),inset_0_1px_0_rgba(255,255,255,0.06)] sm:p-2.5">
 
               {/* HEADER + LIVE OUTCOME (4 METRICS) */}
-              <div className="relative overflow-hidden rounded-2xl border border-cyan-400/25 bg-gradient-to-br from-slate-950/75 via-blue-500/[0.08] to-slate-950/45 p-3.5 shadow-[0_30px_100px_-58px_rgba(34,211,238,0.65),inset_0_1px_0_rgba(255,255,255,0.07)] sm:p-4">
-                <div className="pointer-events-none absolute -right-12 -top-12 h-44 w-44 rounded-full bg-cyan-500/[0.10] blur-3xl" aria-hidden />
-                <div className="pointer-events-none absolute -left-10 bottom-0 h-36 w-36 rounded-full bg-blue-500/[0.06] blur-3xl" aria-hidden />
-                <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/35 to-transparent" aria-hidden />
+              <div className="relative overflow-hidden rounded-xl border border-cyan-400/28 bg-gradient-to-br from-[#0f1e38] via-[#0c1830] to-[#080f1c] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_0_0_1px_rgba(34,211,238,0.07),0_8px_32px_-8px_rgba(34,211,238,0.25)] sm:p-3.5">
+                <div className="pointer-events-none absolute -right-10 -top-10 h-44 w-44 rounded-full bg-cyan-500/[0.16] blur-3xl" aria-hidden />
+                <div className="pointer-events-none absolute -left-8 bottom-0 h-32 w-32 rounded-full bg-blue-500/[0.10] blur-3xl" aria-hidden />
+                <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/55 to-transparent" aria-hidden />
 
                 <div className="relative flex items-center justify-between gap-3">
-                  <div className="text-[13px] font-semibold tracking-tight text-white">Live Outcome</div>
-                  <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-200/85">
-                    <span className="relative flex h-1.5 w-1.5" aria-hidden>
+                  <div className="text-[14px] font-bold tracking-tight text-white">Live Outcome</div>
+                  <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-emerald-200/90">
+                    <span className="relative flex h-2 w-2" aria-hidden>
                       <span className="absolute inset-0 rounded-full bg-emerald-400/60 animate-ping" />
-                      <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_8px_rgba(16,185,129,0.9)]" />
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-300 shadow-[0_0_10px_rgba(16,185,129,1)]" />
                     </span>
                     Live
                   </div>
@@ -5229,39 +5428,39 @@ Thanks,`;
                   const showLive = !finalShowDash && total > 0;
                   return (
                     <div className="relative mt-3">
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="rounded-xl border border-cyan-400/22 bg-cyan-500/[0.08] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-                          <div className="text-[10px] font-medium text-white/55">Customer Price</div>
-                          <div className="mt-1 text-[20px] font-bold leading-tight tracking-tight text-cyan-300 tabular-nums">
-                            {showLive ? animatedPriceDisplay : "—"}
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <div className="rounded-xl border border-cyan-400/30 bg-cyan-500/[0.14] px-3 py-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_0_1px_rgba(34,211,238,0.06)]">
+                          <div className="text-[10px] font-bold uppercase tracking-wide text-white/45">Customer Price</div>
+                          <div className="mt-2 text-[22px] font-extrabold leading-none tracking-tight text-cyan-300 tabular-nums drop-shadow-[0_0_12px_rgba(34,211,238,0.40)]">
+                            {showLive ? animatedPriceDisplay : <span className="text-white/30">—</span>}
                           </div>
                         </div>
-                        <div className="rounded-xl border border-cyan-400/22 bg-cyan-500/[0.08] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-                          <div className="text-[10px] font-medium text-white/55">Job Cost</div>
-                          <div className="mt-1 text-[20px] font-bold leading-tight tracking-tight text-cyan-300 tabular-nums">
-                            {showLive ? formatCurrency(cost) : "—"}
+                        <div className="rounded-xl border border-cyan-400/22 bg-cyan-500/[0.09] px-3 py-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                          <div className="text-[10px] font-bold uppercase tracking-wide text-white/45">Job Cost</div>
+                          <div className="mt-2 text-[22px] font-extrabold leading-none tracking-tight text-cyan-300/75 tabular-nums">
+                            {showLive ? formatCurrency(cost) : <span className="text-white/30">—</span>}
                           </div>
                         </div>
-                        <div className="rounded-xl border border-emerald-400/22 bg-emerald-500/[0.08] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-                          <div className="text-[10px] font-medium text-white/55">Profit</div>
-                          <div className="mt-1 text-[20px] font-bold leading-tight tracking-tight text-emerald-300 tabular-nums">
-                            {showLive ? formatCurrency(profit) : "—"}
+                        <div className="rounded-xl border border-emerald-400/30 bg-emerald-500/[0.12] px-3 py-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_0_1px_rgba(16,185,129,0.06)]">
+                          <div className="text-[10px] font-bold uppercase tracking-wide text-white/45">Profit</div>
+                          <div className="mt-2 text-[22px] font-extrabold leading-none tracking-tight text-emerald-300 tabular-nums drop-shadow-[0_0_12px_rgba(16,185,129,0.35)]">
+                            {showLive ? formatCurrency(profit) : <span className="text-white/30">—</span>}
                           </div>
                         </div>
-                        <div className="rounded-xl border border-white/[0.10] bg-white/[0.04] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-                          <div className="text-[10px] font-medium text-white/55">Margin</div>
-                          <div className="mt-1 text-[20px] font-bold leading-tight tracking-tight text-white tabular-nums">
+                        <div className="rounded-xl border border-white/[0.12] bg-white/[0.06] px-3 py-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
+                          <div className="text-[10px] font-bold uppercase tracking-wide text-white/45">Margin</div>
+                          <div className="mt-2 text-[22px] font-extrabold leading-none tracking-tight text-white tabular-nums">
                             {pricingMode === "direct"
-                              ? "—"
+                              ? <span className="text-white/30">—</span>
                               : showLive
                                 ? `${finalMarginNum.toFixed(1)}%`
-                                : "—"}
+                                : <span className="text-white/30">—</span>}
                           </div>
                         </div>
                       </div>
                       <a
                         href="#deal-control"
-                        className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-cyan-200/75 transition hover:text-cyan-100"
+                        className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-cyan-200/70 transition hover:text-cyan-100"
                       >
                         View pricing breakdown
                         <span aria-hidden>›</span>
@@ -5271,11 +5470,9 @@ Thanks,`;
                 })()}
               </div>
 
-              <div className="rounded-2xl border border-white/[0.08] bg-white/[0.035] p-3.5">
+              <div className="rounded-xl border border-cyan-400/[0.16] bg-[#0a1422] p-3 shadow-[0_0_0_1px_rgba(34,211,238,0.05),inset_0_1px_0_rgba(255,255,255,0.06)] sm:p-3.5">
                 <div className="flex items-center justify-between gap-3">
-                  <div className="text-[13px] font-semibold tracking-tight text-white">
-                    Job Readiness
-                  </div>
+                  <div className="text-[14px] font-bold tracking-tight text-white">Job Readiness</div>
                 </div>
                 {(() => {
                   const total = jobReadinessItems.length;
@@ -5285,51 +5482,52 @@ Thanks,`;
                   const circumference = 2 * Math.PI * radius;
                   const dash = circumference * pct;
                   return (
-                    <div className="mt-2.5 flex items-center gap-3">
-                      <div className="relative h-20 w-20 shrink-0">
+                    <div className="mt-3 flex items-center gap-3">
+                      <div className="relative h-24 w-24 shrink-0">
                         <svg className="h-full w-full -rotate-90" viewBox="0 0 100 100" aria-hidden>
                           <circle
                             cx="50"
                             cy="50"
                             r={radius}
-                            stroke="rgba(148,163,184,0.16)"
-                            strokeWidth="8"
+                            stroke="rgba(148,163,184,0.14)"
+                            strokeWidth="9"
                             fill="transparent"
                           />
                           <circle
                             cx="50"
                             cy="50"
                             r={radius}
-                            stroke="rgba(34,211,238,0.92)"
-                            strokeWidth="8"
+                            stroke="rgba(34,211,238,0.95)"
+                            strokeWidth="9"
                             fill="transparent"
                             strokeDasharray={`${dash} ${circumference}`}
                             strokeLinecap="round"
+                            style={{ filter: "drop-shadow(0 0 8px rgba(34,211,238,0.55))" }}
                           />
                         </svg>
                         <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                          <div className="text-[15px] font-bold text-cyan-300 tabular-nums leading-none">
+                          <div className="text-[18px] font-extrabold text-cyan-300 tabular-nums leading-none">
                             {Math.round(pct * 100)}%
                           </div>
-                          <div className="mt-0.5 text-[8px] font-semibold uppercase tracking-wide text-white/55">
+                          <div className="mt-0.5 text-[9px] font-bold uppercase tracking-wide text-white/55">
                             Ready
                           </div>
                         </div>
                       </div>
-                      <div className="min-w-0 flex-1 space-y-1">
+                      <div className="min-w-0 flex-1 space-y-1.5">
                         {jobReadinessItems.map((item) => (
-                          <div key={item.label} className="flex items-center gap-2 text-[11px] text-white/80">
+                          <div key={item.label} className="flex items-center gap-2 text-[11.5px]">
                             <span
                               className={
                                 item.ready
-                                  ? "flex h-3.5 w-3.5 items-center justify-center rounded-full border border-emerald-300/55 bg-emerald-400/25 text-[8px] text-emerald-50 shadow-[0_0_6px_rgba(16,185,129,0.45)]"
-                                  : "flex h-3.5 w-3.5 items-center justify-center rounded-full border border-white/15 bg-white/[0.04] text-[8px] text-white/45"
+                                  ? "flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-emerald-300/55 bg-emerald-400/25 text-[9px] text-emerald-50 shadow-[0_0_8px_rgba(16,185,129,0.50)]"
+                                  : "flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/[0.04] text-[9px] text-white/45"
                               }
                               aria-hidden
                             >
                               {item.ready ? "✓" : ""}
                             </span>
-                            <span className={item.ready ? "" : "text-white/55"}>{item.label}</span>
+                            <span className={item.ready ? "text-white/85" : "text-white/50"}>{item.label}</span>
                           </div>
                         ))}
                       </div>
@@ -5360,50 +5558,53 @@ Thanks,`;
                         ? "Proposal language is the last piece before review."
                         : "Review the proposal and send when everything looks right.";
                 return (
-                  <div className="relative overflow-hidden rounded-2xl border border-cyan-400/25 bg-gradient-to-br from-cyan-500/[0.12] via-blue-500/[0.07] to-slate-950/45 p-4 shadow-[0_28px_90px_-50px_rgba(34,211,238,0.55),inset_0_1px_0_rgba(255,255,255,0.07)] sm:p-4">
-                    <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-cyan-500/[0.12] blur-3xl" aria-hidden />
-                    <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/35 to-transparent" aria-hidden />
-                    <div className="relative flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2">
-                        <span className="flex h-1.5 w-1.5 rounded-full bg-cyan-300 shadow-[0_0_6px_rgba(34,211,238,0.9)]" aria-hidden />
-                        <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-200/85">Next action</span>
-                      </div>
+                  <div className="relative overflow-hidden rounded-xl border border-cyan-400/30 bg-gradient-to-br from-[#0f1e36] via-[#0c1930] to-[#080f1c] p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_0_0_1px_rgba(34,211,238,0.08),0_8px_32px_-8px_rgba(34,211,238,0.30)] sm:p-4">
+                    <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-blue-500/[0.18] blur-3xl" aria-hidden />
+                    <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/55 to-transparent" aria-hidden />
+                    {/* Header row */}
+                    <div className="relative flex items-center gap-2">
+                      <span className="relative flex h-2 w-2 shrink-0" aria-hidden>
+                        <span className="absolute inset-0 rounded-full bg-cyan-400/55 animate-ping" />
+                        <span className="relative h-2 w-2 rounded-full bg-cyan-300 shadow-[0_0_10px_rgba(34,211,238,1)]" />
+                      </span>
+                      <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-200/90">Next Action</span>
                       <span
-                        className={
+                        className={`ml-auto rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide ${
                           allReady
-                            ? "rounded-full border border-emerald-400/22 bg-emerald-500/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-emerald-100/85"
-                            : "rounded-full border border-amber-400/22 bg-amber-500/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-amber-100/85"
-                        }
+                            ? "border-emerald-400/28 bg-emerald-500/14 text-emerald-100/90"
+                            : "border-amber-400/28 bg-amber-500/14 text-amber-100/90"
+                        }`}
                       >
                         {allReady ? "Ready" : "Waiting"}
                       </span>
                     </div>
-                    <div className="relative mt-1.5 text-[16px] font-semibold leading-snug text-white">
-                      {headline}
-                    </div>
-                    <p className="relative mt-1 text-[11px] leading-relaxed text-white/65">
-                      {detail}
-                    </p>
-                    <div className="relative mt-3 flex items-center gap-2 rounded-lg border border-cyan-400/30 bg-cyan-500/[0.14] px-3 py-2 text-[12px] font-semibold text-cyan-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-                      <span className="flex h-5 w-5 items-center justify-center rounded-md bg-cyan-400/30 text-[12px]" aria-hidden>
-                        →
-                      </span>
-                      <span className="truncate">{allReady ? "Open proposal review" : headline}</span>
+                    {/* Side-by-side: text left, CTA button right */}
+                    <div className="relative mt-2.5 flex items-center gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[16px] font-bold leading-snug text-white">{headline}</div>
+                        <p className="mt-1 text-[11px] leading-relaxed text-white/55">{detail}</p>
+                      </div>
+                      <button
+                        type="button"
+                        className="flex shrink-0 flex-col items-center justify-center gap-1.5 rounded-xl border border-blue-300/50 bg-gradient-to-br from-blue-500 to-blue-600 px-4 py-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.22),0_0_0_1px_rgba(59,130,246,0.45),0_12px_40px_-12px_rgba(59,130,246,0.80)] transition hover:from-blue-400 hover:to-blue-500"
+                        aria-label={allReady ? "Open proposal review" : "Let's go"}
+                      >
+                        <ArrowRight className="h-5 w-5 text-white" aria-hidden />
+                        <span className="text-[10px] font-bold text-white/90">{allReady ? "Review" : "Go"}</span>
+                      </button>
                     </div>
                   </div>
                 );
               })()}
 
               {/* AI OFFICE / ACTIVE TASKS */}
-              <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4 sm:p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    <span className="flex h-6 w-6 items-center justify-center rounded-md border border-cyan-400/25 bg-cyan-500/[0.10] text-[9px] font-bold uppercase tracking-wider text-cyan-100/90 shadow-[0_0_10px_rgba(34,211,238,0.3)]" aria-hidden>
-                      AI
-                    </span>
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/55">
-                      AI Office · Active tasks
-                    </div>
+              <div className="rounded-xl border border-cyan-400/[0.16] bg-[#0a1422] p-3 shadow-[0_0_0_1px_rgba(34,211,238,0.05),inset_0_1px_0_rgba(255,255,255,0.06)] sm:p-3.5">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-cyan-400/40 bg-cyan-500/[0.20] text-[10px] font-extrabold uppercase tracking-wider text-cyan-100 shadow-[0_0_18px_rgba(34,211,238,0.45)]" aria-hidden>
+                    AI
+                  </span>
+                  <div className="text-[13px] font-bold tracking-tight text-white">
+                    AI Office <span className="font-normal text-white/40">· Active Tasks</span>
                   </div>
                 </div>
 
@@ -5414,78 +5615,64 @@ Thanks,`;
                   const waiting = pending[0];
                   const upcoming = pending.slice(1);
                   return (
-                    <div className="mt-3 space-y-3">
-                      <div>
-                        <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.14em]">
-                          <span className="text-emerald-200/80">Completed</span>
-                          <span className="tabular-nums text-white/45">{completed.length}</span>
-                        </div>
-                        <div className="mt-2 space-y-1.5">
-                          {completed.length === 0 && (
-                            <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-[11px] italic text-white/40">
-                              No tasks completed yet.
+                    <div className="mt-3 space-y-2">
+                      {/* Completed row */}
+                      <div className="overflow-hidden rounded-xl border border-emerald-400/22 bg-emerald-500/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                        <div className="flex items-center justify-between gap-3 px-3.5 py-3">
+                          <div className="flex items-center gap-3">
+                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-emerald-300/50 bg-emerald-400/22 text-[14px] font-bold text-emerald-50 shadow-[0_0_16px_rgba(16,185,129,0.55)]" aria-hidden>
+                              ✓
+                            </span>
+                            <div>
+                              <div className="text-[12.5px] font-bold text-white">Completed</div>
+                              <div className="text-[10px] text-emerald-200/65 leading-tight">
+                                {completed.length > 0 ? completed.slice(0,2).map(i=>i.label).join(", ") + (completed.length > 2 ? "…" : "") : "None yet"}
+                              </div>
                             </div>
-                          )}
-                          {completed.map((item) => (
-                            <div key={item.label} className="flex items-center gap-2 rounded-lg border border-emerald-400/15 bg-emerald-500/[0.05] px-3 py-1.5">
-                              <span className="flex h-4 w-4 items-center justify-center rounded-full border border-emerald-300/45 bg-emerald-400/25 text-[9px] text-emerald-50" aria-hidden>
-                                ✓
-                              </span>
-                              <span className="text-[12px] font-medium text-white/80">{item.label}</span>
-                              <span className="ml-auto text-[9px] font-semibold uppercase tracking-wide text-emerald-100/75">
-                                Prepared
-                              </span>
-                            </div>
-                          ))}
+                          </div>
+                          <span className="flex h-7 w-7 items-center justify-center rounded-full border border-emerald-300/35 bg-emerald-500/22 text-[13px] font-extrabold tabular-nums text-emerald-100 shadow-[0_0_12px_rgba(16,185,129,0.40)]">
+                            {completed.length}
+                          </span>
                         </div>
                       </div>
 
-                      <div>
-                        <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.14em]">
-                          <span className="text-amber-200/85">Waiting on you</span>
-                          <span className="tabular-nums text-white/45">{waiting ? 1 : 0}</span>
-                        </div>
-                        <div className="mt-2">
-                          {waiting ? (
-                            <div className="flex items-center gap-2 rounded-lg border border-amber-400/22 bg-amber-500/[0.07] px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-                              <span className="flex h-4 w-4 items-center justify-center rounded-full border border-amber-300/55 bg-amber-400/25 text-[9px] text-amber-50" aria-hidden>
-                                !
-                              </span>
-                              <span className="text-[12px] font-semibold text-white/85">{waiting.label}</span>
-                              <span className="ml-auto text-[9px] font-semibold uppercase tracking-wide text-amber-100/85">
-                                Needs input
-                              </span>
+                      {/* Waiting on you row */}
+                      <div className={`overflow-hidden rounded-xl border shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] ${waiting ? "border-amber-400/28 bg-amber-500/[0.10]" : "border-white/[0.07] bg-white/[0.025]"}`}>
+                        <div className="flex items-center justify-between gap-3 px-3.5 py-3">
+                          <div className="flex items-center gap-3">
+                            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-[14px] font-extrabold ${waiting ? "border-amber-300/50 bg-amber-400/22 text-amber-50 shadow-[0_0_16px_rgba(245,158,11,0.55)]" : "border-white/15 bg-white/[0.05] text-white/35"}`} aria-hidden>
+                              {waiting ? "!" : "·"}
+                            </span>
+                            <div>
+                              <div className={`text-[12.5px] font-bold ${waiting ? "text-white" : "text-white/45"}`}>Waiting on you</div>
+                              <div className={`text-[10px] leading-tight ${waiting ? "text-amber-200/65" : "text-white/30"}`}>
+                                {waiting ? waiting.label : "Nothing waiting"}
+                              </div>
                             </div>
-                          ) : (
-                            <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-[11px] italic text-white/40">
-                              Nothing waiting on you.
-                            </div>
-                          )}
+                          </div>
+                          <span className={`flex h-7 w-7 items-center justify-center rounded-full border text-[13px] font-extrabold tabular-nums ${waiting ? "border-amber-300/35 bg-amber-500/22 text-amber-100 shadow-[0_0_12px_rgba(245,158,11,0.40)]" : "border-white/10 bg-white/[0.04] text-white/30"}`}>
+                            {waiting ? 1 : 0}
+                          </span>
                         </div>
                       </div>
 
-                      <div>
-                        <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.14em]">
-                          <span className="text-white/55">Next up</span>
-                          <span className="tabular-nums text-white/45">{upcoming.length}</span>
-                        </div>
-                        <div className="mt-2 space-y-1.5">
-                          {upcoming.length === 0 && (
-                            <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-[11px] italic text-white/40">
-                              Queue is clear.
+                      {/* Next up row */}
+                      <div className="overflow-hidden rounded-xl border border-white/[0.09] bg-white/[0.03] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                        <div className="flex items-center justify-between gap-3 px-3.5 py-3">
+                          <div className="flex items-center gap-3">
+                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/[0.14] bg-white/[0.07] text-[16px] font-bold text-white/60" aria-hidden>
+                              ›
+                            </span>
+                            <div>
+                              <div className="text-[12.5px] font-bold text-white/75">Next up</div>
+                              <div className="text-[10px] text-white/40 leading-tight">
+                                {upcoming.length > 0 ? `${upcoming.length} tasks queued` : "Queue clear"}
+                              </div>
                             </div>
-                          )}
-                          {upcoming.map((item) => (
-                            <div key={item.label} className="flex items-center gap-2 rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-1.5">
-                              <span className="flex h-4 w-4 items-center justify-center rounded-full border border-white/15 bg-white/[0.05] text-[9px] text-white/55" aria-hidden>
-                                ·
-                              </span>
-                              <span className="text-[12px] font-medium text-white/65">{item.label}</span>
-                              <span className="ml-auto text-[9px] font-semibold uppercase tracking-wide text-white/40">
-                                Waiting
-                              </span>
-                            </div>
-                          ))}
+                          </div>
+                          <span className="flex h-7 w-7 items-center justify-center rounded-full border border-white/[0.12] bg-white/[0.05] text-[13px] font-extrabold tabular-nums text-white/55">
+                            {upcoming.length}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -5496,6 +5683,7 @@ Thanks,`;
               </div>
             </div>
           </div>
+        </div>
         </div>
         </div>
           </>
