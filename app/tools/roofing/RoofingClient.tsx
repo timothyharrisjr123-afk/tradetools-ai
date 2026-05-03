@@ -3689,12 +3689,13 @@ Thanks,`;
           />
         ) : (
           <>
-        <div>
+        <div className="px-4 pt-7 pb-6 sm:px-6 sm:pt-8 lg:px-8">
+        <div className="mx-auto max-w-[1800px] overflow-hidden rounded-2xl border border-cyan-400/[0.14] bg-[#07111f]/96 shadow-[0_0_0_1px_rgba(255,255,255,0.035),0_28px_90px_-62px_rgba(34,211,238,0.55)]">
           <motion.nav
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
-            className="flex min-h-[72px] items-stretch gap-0 border-b border-cyan-400/[0.12] bg-[#07111f]/96 shadow-[0_1px_0_rgba(255,255,255,0.045),0_20px_80px_-62px_rgba(37,99,235,0.75)] backdrop-blur-xl"
+            className="flex min-h-[72px] items-stretch gap-0 border-b border-cyan-400/[0.12] bg-[#07111f]/96 shadow-[0_1px_0_rgba(255,255,255,0.045)] backdrop-blur-xl"
             aria-label="FieldDive workspace"
           >
             {/* Logo block */}
@@ -3833,7 +3834,6 @@ Thanks,`;
               </div>
             </div>
           )}
-        </div>
 
         <div className="px-3 pt-3 sm:px-4 sm:pt-4 xl:px-5 2xl:px-6">
         <div className="relative overflow-hidden rounded-2xl border border-cyan-400/[0.22] bg-[#0b1526] px-5 py-4 shadow-[0_0_0_1px_rgba(34,211,238,0.06),0_18px_60px_-34px_rgba(34,211,238,0.45),inset_0_1px_0_rgba(255,255,255,0.07)] sm:px-6 sm:py-5 xl:px-7">
@@ -5697,6 +5697,8 @@ Thanks,`;
               </div>
             </div>
           </div>
+        </div>
+        </div>
         </div>
         </div>
         </div>
