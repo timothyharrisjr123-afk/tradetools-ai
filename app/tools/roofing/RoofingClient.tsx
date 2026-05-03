@@ -3694,53 +3694,56 @@ Thanks,`;
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
-            className="flex items-stretch gap-0 border-b border-white/[0.08] bg-[#0d1218]/95 backdrop-blur-xl"
+            className="flex min-h-[72px] items-stretch gap-0 border-b border-cyan-400/[0.12] bg-[#07111f]/96 shadow-[0_1px_0_rgba(255,255,255,0.045),0_20px_80px_-62px_rgba(37,99,235,0.75)] backdrop-blur-xl"
             aria-label="FieldDive workspace"
           >
             {/* Logo block */}
             <Link
               href="/tools"
-              className="group flex shrink-0 items-center gap-3 border-r border-white/[0.08] px-5 py-3 transition hover:bg-white/[0.03]"
+              className="group flex shrink-0 items-center gap-3.5 border-r border-cyan-400/[0.13] px-7 py-3 transition hover:bg-white/[0.035]"
             >
-              <div className="relative flex h-[34px] w-[34px] shrink-0 items-center justify-center overflow-hidden rounded-xl border border-cyan-400/50 bg-gradient-to-br from-cyan-500/50 via-blue-500/30 to-slate-950/80 shadow-[0_0_24px_rgba(34,211,238,0.55),inset_0_1px_0_rgba(165,243,252,0.30)]">
-                <span className="absolute inset-0 bg-[radial-gradient(circle_at_30%_25%,rgba(165,243,252,0.65),transparent_60%)]" aria-hidden />
-                <span className="relative text-[11px] font-extrabold tracking-tight text-cyan-50">FD</span>
+              <div className="relative flex h-10 w-10 shrink-0 items-center justify-center" aria-hidden>
+                <span className="absolute left-0 top-0 h-3.5 w-7 rounded-[7px] bg-gradient-to-r from-sky-400 to-blue-500 shadow-[0_0_18px_rgba(56,189,248,0.70)]" />
+                <span className="absolute left-0 top-[13px] h-3.5 w-5.5 rounded-[7px] bg-gradient-to-r from-sky-500 to-blue-600 shadow-[0_0_14px_rgba(37,99,235,0.55)]" />
+                <span className="absolute left-0 top-[26px] h-3.5 w-3.5 rounded-[7px] bg-gradient-to-r from-sky-500 to-blue-600 shadow-[0_0_12px_rgba(37,99,235,0.45)]" />
+                <span className="absolute left-[18px] top-[13px] h-3.5 w-3.5 rounded-[7px] bg-gradient-to-r from-sky-400 to-cyan-400 shadow-[0_0_14px_rgba(34,211,238,0.55)]" />
               </div>
               <div className="hidden flex-col leading-none sm:flex">
-                <span className="text-[15px] font-bold tracking-tight text-white">FieldDive</span>
+                <span className="text-[25px] font-extrabold tracking-[-0.045em] text-white">FieldDive</span>
               </div>
             </Link>
 
             {/* Nav tabs */}
-            <div className="flex flex-1 items-center gap-0 px-2">
+            <div className="flex flex-1 items-center gap-0 px-4">
               <Link
                 href="/tools/roofing"
-                className="flex items-center gap-2.5 rounded-xl border border-cyan-400/35 bg-gradient-to-b from-cyan-500/[0.22] to-blue-600/[0.14] px-5 py-2.5 text-[13px] font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_0_28px_-6px_rgba(34,211,238,0.70)]"
+                className="relative flex min-h-[58px] items-center gap-3 rounded-t-xl border border-blue-300/45 border-b-blue-400/70 bg-gradient-to-b from-slate-800/82 via-blue-950/42 to-blue-700/28 px-7 text-[15px] font-bold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_18px_42px_-20px_rgba(59,130,246,0.95)]"
               >
-                <span className="relative flex h-2 w-2 shrink-0" aria-hidden>
-                  <span className="absolute inset-0 animate-ping rounded-full bg-cyan-400/50" />
-                  <span className="relative h-2 w-2 rounded-full bg-cyan-300 shadow-[0_0_8px_rgba(34,211,238,1)]" />
-                </span>
+                <span className="pointer-events-none absolute inset-x-0 bottom-[-1px] h-[3px] rounded-full bg-gradient-to-r from-transparent via-blue-400 to-transparent shadow-[0_0_16px_rgba(59,130,246,1)]" aria-hidden />
+                <ClipboardList className="h-5.5 w-5.5 shrink-0 text-blue-100 drop-shadow-[0_0_10px_rgba(147,197,253,0.65)]" aria-hidden />
                 New Job
               </Link>
+              <span className="mx-3 hidden h-8 w-px bg-white/[0.10] lg:block" aria-hidden />
               <Link
                 href="/tools/roofing/saved"
-                className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-[13px] font-medium text-white/55 transition hover:bg-white/[0.05] hover:text-white"
+                className="flex min-h-[58px] items-center gap-3 rounded-xl px-5 text-[15px] font-semibold text-white/62 transition hover:bg-white/[0.045] hover:text-white"
               >
-                <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5" aria-hidden><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z" /></svg>
+                <ShieldCheck className="h-5.5 w-5.5 shrink-0 text-white/62" aria-hidden />
                 <span className="hidden xl:inline">Command Center</span>
                 <span className="xl:hidden">Cmd</span>
               </Link>
+              <span className="mx-3 hidden h-8 w-px bg-white/[0.10] xl:block" aria-hidden />
               <Link
                 href="/tools/roofing/ai"
-                className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-[13px] font-medium text-white/55 transition hover:bg-white/[0.05] hover:text-white"
+                className="flex min-h-[58px] items-center gap-3 rounded-xl px-5 text-[15px] font-semibold text-white/62 transition hover:bg-white/[0.045] hover:text-white"
               >
-                <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5" aria-hidden><path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18" /></svg>
+                <Package className="h-5.5 w-5.5 shrink-0 text-white/62" aria-hidden />
                 AI Library
               </Link>
+              <span className="mx-3 hidden h-8 w-px bg-white/[0.10] xl:block" aria-hidden />
               <Link
                 href="/tools/settings"
-                className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-[13px] font-medium text-white/55 transition hover:bg-white/[0.05] hover:text-white"
+                className="flex min-h-[58px] items-center gap-3 rounded-xl px-5 text-[15px] font-semibold text-white/62 transition hover:bg-white/[0.045] hover:text-white"
               >
                 <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5" aria-hidden><path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                 Settings
@@ -3748,29 +3751,32 @@ Thanks,`;
             </div>
 
             {/* Right actions */}
-            <div className="flex shrink-0 items-center gap-2 border-l border-white/[0.08] px-4 py-2">
-              <div className="flex items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-[12px] text-white/50">
-                <Search className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            <div className="flex shrink-0 items-center gap-3 border-l border-cyan-400/[0.12] px-5 py-2">
+              <div className="flex min-w-[230px] items-center gap-2 rounded-xl border border-white/[0.10] bg-white/[0.035] px-3.5 py-2.5 text-[12px] text-white/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                <Search className="h-4 w-4 shrink-0" aria-hidden />
                 <span className="hidden lg:inline text-white/40">Search jobs…</span>
                 <span className="hidden rounded border border-white/[0.10] bg-white/[0.04] px-1.5 py-0.5 text-[10px] font-semibold text-white/35 lg:inline">⌘K</span>
               </div>
               <button
                 type="button"
-                className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-white/60 transition hover:bg-white/[0.06]"
+                className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/[0.10] bg-white/[0.035] text-white/70 transition hover:bg-white/[0.06] hover:text-white"
                 aria-label="Notifications"
               >
-                <Bell className="h-4 w-4" aria-hidden />
+                <Bell className="h-5 w-5" aria-hidden />
                 <span className="absolute right-1.5 top-1.5 h-[7px] w-[7px] rounded-full border-[1.5px] border-[#0d1117] bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,1)]" />
               </button>
-              <div className="flex items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.03] pl-1.5 pr-3 py-1.5 transition hover:bg-white/[0.05]">
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500/60 to-violet-600/50 text-[11px] font-extrabold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]">
+              <div className="flex items-center gap-2.5 rounded-xl border border-white/[0.10] bg-white/[0.035] py-1.5 pl-1.5 pr-2.5 transition hover:bg-white/[0.055]">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-200/80 via-orange-300/50 to-slate-800 text-[11px] font-extrabold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.22),0_0_20px_-10px_rgba(251,191,36,0.90)]">
                   MA
                 </div>
                 <div className="hidden flex-col leading-none xl:flex">
-                  <span className="text-[12px] font-semibold text-white/90">Mike Anderson</span>
-                  <span className="text-[10px] text-white/45">Anderson Roofing</span>
+                  <span className="text-[13px] font-bold text-white/92">Mike Anderson</span>
+                  <span className="mt-0.5 text-[10.5px] text-white/48">Anderson Roofing</span>
                 </div>
-                <SignOutButton />
+                <ChevronDown className="hidden h-4 w-4 text-white/45 xl:block" aria-hidden />
+                <div className="ml-1 hidden opacity-55 transition hover:opacity-100 2xl:block">
+                  <SignOutButton />
+                </div>
               </div>
             </div>
           </motion.nav>
@@ -3829,32 +3835,33 @@ Thanks,`;
           )}
         </div>
 
-        <div className="relative overflow-hidden border-b border-cyan-400/[0.12] bg-[#0c1a2e] px-4 py-5 sm:px-5 sm:py-5 xl:px-5 2xl:px-6">
+        <div className="px-3 pt-3 sm:px-4 sm:pt-4 xl:px-5 2xl:px-6">
+        <div className="relative overflow-hidden rounded-2xl border border-cyan-400/[0.22] bg-[#0b1526] px-5 py-4 shadow-[0_0_0_1px_rgba(34,211,238,0.06),0_18px_60px_-34px_rgba(34,211,238,0.45),inset_0_1px_0_rgba(255,255,255,0.07)] sm:px-6 sm:py-5 xl:px-7">
           <div className="pointer-events-none absolute inset-0" aria-hidden>
-            <div className="absolute -left-20 top-1/2 h-72 w-72 -translate-y-1/2 rounded-full bg-cyan-500/[0.13] blur-[64px]" />
-            <div className="absolute right-0 top-0 h-48 w-80 bg-blue-500/[0.07] blur-[64px]" />
-            <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-cyan-400/20 to-transparent" />
+            <div className="absolute -left-24 top-1/2 h-80 w-80 -translate-y-1/2 rounded-full bg-cyan-500/[0.16] blur-[72px]" />
+            <div className="absolute right-0 top-0 h-52 w-[34rem] bg-blue-500/[0.09] blur-[72px]" />
+            <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-cyan-300/25 to-transparent" />
           </div>
 
-          <div className="relative flex items-center gap-6">
-            <div className="flex shrink-0 items-center gap-4">
-              <div className="relative flex h-[72px] w-[72px] shrink-0 items-center justify-center" aria-hidden>
-                <span className="absolute -inset-3 rounded-full bg-cyan-400/[0.18] blur-2xl animate-pulse" />
+          <div className="relative flex items-center gap-7">
+            <div className="flex shrink-0 items-center gap-5">
+              <div className="relative flex h-[86px] w-[86px] shrink-0 items-center justify-center" aria-hidden>
+                <span className="absolute -inset-4 rounded-full bg-cyan-400/[0.20] blur-2xl animate-pulse" />
                 <span className="absolute -inset-2 rounded-full bg-cyan-400/[0.10] blur-xl" />
-                <span className="absolute -inset-1.5 rounded-full border border-cyan-300/18" />
-                <span className="absolute -inset-0.5 rounded-full border border-cyan-300/38" />
+                <span className="absolute -inset-2 rounded-full border border-cyan-300/18" />
+                <span className="absolute -inset-0.5 rounded-full border border-cyan-300/42" />
                 <span className="absolute inset-0.5 rounded-full bg-gradient-to-br from-cyan-300/70 via-blue-500/45 to-slate-950/85 shadow-[inset_0_0_36px_rgba(165,243,252,0.60),0_0_44px_rgba(34,211,238,0.80)]" />
-                <span className="absolute inset-2.5 rounded-full bg-[radial-gradient(circle_at_30%_25%,rgba(186,230,253,1),rgba(34,211,238,0.35)_55%,transparent_78%)]" />
-                <span className="absolute inset-4 rounded-full bg-cyan-50/12 blur-[3px]" />
-                <span className="relative text-[13px] font-extrabold uppercase tracking-widest text-cyan-50 drop-shadow-[0_0_10px_rgba(165,243,252,0.95)]">AI</span>
+                <span className="absolute inset-3 rounded-full bg-[radial-gradient(circle_at_30%_25%,rgba(186,230,253,1),rgba(34,211,238,0.35)_55%,transparent_78%)]" />
+                <span className="absolute inset-5 rounded-full bg-cyan-50/13 blur-[3px]" />
+                <span className="relative text-[14px] font-extrabold uppercase tracking-widest text-cyan-50 drop-shadow-[0_0_12px_rgba(165,243,252,0.98)]">AI</span>
               </div>
               <div className="min-w-0">
-                <div className="text-[17px] font-extrabold leading-tight text-white sm:text-[19px]">FieldDive is preparing this job</div>
-                <div className="mt-1.5 text-[12px] leading-snug text-white/55">AI is assembling the job packet and proposal path. You verify what matters.</div>
+                <div className="text-[22px] font-extrabold leading-tight tracking-[-0.025em] text-white sm:text-[25px]">FieldDive is preparing this job</div>
+                <div className="mt-2 max-w-[35rem] text-[13px] leading-snug text-white/60">AI is assembling the job packet and proposal path. You verify what matters.</div>
               </div>
             </div>
 
-            <span className="hidden h-14 w-px bg-gradient-to-b from-transparent via-white/20 to-transparent lg:block" aria-hidden />
+            <span className="hidden h-16 w-px bg-gradient-to-b from-transparent via-white/20 to-transparent lg:block" aria-hidden />
 
             <div className="min-w-0 flex-1">
               <ol
@@ -3863,6 +3870,8 @@ Thanks,`;
                 aria-label="Job preparation timeline"
               >
                 {aiConductorStripItems.map((item, idx) => {
+                  const timelineLabels = ["Address checked", "Photos analyzed", "Scope estimated", "Proposal draft", "Waiting on contractor"];
+                  const timelineSubLabels = ["", "", "", "", "Roofing system"];
                   const status = item.ready ? "Complete" : item.notReadyStatus === "Needs input" ? "Needs input" : "Waiting";
                   const isFirst = idx === 0;
                   const isLast = idx === aiConductorStripItems.length - 1;
@@ -3890,7 +3899,7 @@ Thanks,`;
                       {!isFirst && (
                         <span
                           className={`pointer-events-none absolute right-1/2 top-[22px] h-[3px] w-full ${
-                            prevReady ? "bg-gradient-to-r from-emerald-500/80 to-emerald-400/60 shadow-[0_0_12px_rgba(16,185,129,0.70)]" : "bg-white/[0.10]"
+                            prevReady ? "bg-gradient-to-r from-emerald-500/82 to-emerald-400/66 shadow-[0_0_13px_rgba(16,185,129,0.75)]" : "bg-white/[0.12]"
                           }`}
                           aria-hidden
                         />
@@ -3898,7 +3907,7 @@ Thanks,`;
                       {!isLast && (
                         <span
                           className={`pointer-events-none absolute left-1/2 top-[22px] h-[3px] w-full ${
-                            item.ready ? "bg-gradient-to-r from-emerald-400/60 to-emerald-500/80 shadow-[0_0_12px_rgba(16,185,129,0.70)]" : isInProgress ? "bg-gradient-to-r from-cyan-400/40 to-white/10" : "bg-white/[0.10]"
+                            item.ready ? "bg-gradient-to-r from-emerald-400/66 to-emerald-500/82 shadow-[0_0_13px_rgba(16,185,129,0.75)]" : isInProgress ? "bg-gradient-to-r from-cyan-400/58 to-white/12 shadow-[0_0_12px_rgba(34,211,238,0.55)]" : "bg-white/[0.12]"
                           }`}
                           aria-hidden
                         />
@@ -3909,12 +3918,17 @@ Thanks,`;
                       >
                         {item.ready ? "✓" : idx + 1}
                       </span>
-                      <span className={`mt-2 text-center text-[11px] font-semibold leading-tight ${labelTone}`}>
-                        {item.label}
+                      <span className={`mt-2 text-center text-[12px] font-bold leading-tight ${labelTone}`}>
+                        {timelineLabels[idx] ?? item.label}
                       </span>
                       <span className={`text-center text-[10.5px] font-medium leading-tight ${statusTone}`}>
                         {status}
                       </span>
+                      {timelineSubLabels[idx] ? (
+                        <span className="text-center text-[10px] font-medium leading-tight text-white/45">
+                          {timelineSubLabels[idx]}
+                        </span>
+                      ) : null}
                     </li>
                   );
                 })}
@@ -3922,8 +3936,8 @@ Thanks,`;
             </div>
           </div>
         </div>
-
-        <div className="px-3 pt-3 pb-0 sm:px-4 sm:pt-4 xl:px-5 2xl:px-6">
+        </div>
+        <div className="px-3 pt-3 pb-0 sm:px-4 sm:pt-3 xl:px-5 2xl:px-6">
         <div>
         <div className="grid grid-cols-1 gap-2.5 lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_390px] 2xl:grid-cols-[minmax(0,1fr)_410px] lg:gap-3 xl:gap-3">
           {/* Workflow canvas */}
@@ -5402,7 +5416,7 @@ Thanks,`;
           {/* Sticky contractor outcome panel */}
           <div className="w-full min-w-0">
             <div className="sticky top-2">
-              <div className="relative space-y-2 rounded-2xl border border-cyan-400/[0.16] bg-[#060d1a] p-2 shadow-[0_0_0_1px_rgba(34,211,238,0.06),0_12px_48px_-12px_rgba(0,0,0,0.65),inset_0_1px_0_rgba(255,255,255,0.06)] sm:p-2.5">
+              <div className="relative space-y-2">
 
               {/* HEADER + LIVE OUTCOME (4 METRICS) */}
               <div className="relative overflow-hidden rounded-xl border border-cyan-400/28 bg-gradient-to-br from-[#0f1e38] via-[#0c1830] to-[#080f1c] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_0_0_1px_rgba(34,211,238,0.07),0_8px_32px_-8px_rgba(34,211,238,0.25)] sm:p-3.5">
