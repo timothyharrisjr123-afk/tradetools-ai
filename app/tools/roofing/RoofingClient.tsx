@@ -3537,7 +3537,7 @@ Thanks,`;
         </motion.div>
       )}
 
-      <div className="relative mx-auto max-w-6xl">
+      <div className="relative mx-auto max-w-[1480px]">
         <div className="mb-6 rounded-xl border border-dashed border-white/15 bg-white/[0.03] px-4 py-3 sm:px-5">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -3747,14 +3747,14 @@ Thanks,`;
         </div>
 
         <div className="mt-10 sm:mt-12">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16">
+        <div className="grid grid-cols-1 gap-8 xl:grid-cols-[minmax(0,1fr)_440px] 2xl:grid-cols-[minmax(0,1fr)_480px] xl:gap-8 2xl:gap-10">
           {/* Inputs card */}
           <motion.section
             variants={cardVariants}
             initial="hidden"
             animate="visible"
             custom={0}
-            className="rounded-3xl border border-white/[0.14] bg-white/[0.08] backdrop-blur-2xl p-8 sm:p-10 shadow-[0_8px_32px_-6px_rgba(0,0,0,0.35),0_0_0_1px_rgba(255,255,255,0.07)] transition-all duration-300 ease-out lg:hover:-translate-y-2 lg:hover:shadow-[0_24px_56px_-12px_rgba(0,0,0,0.4),0_0_0_1px_rgba(255,255,255,0.09)]"
+            className="rounded-[32px] border border-white/[0.12] bg-white/[0.065] backdrop-blur-2xl p-5 shadow-[0_18px_70px_-38px_rgba(0,0,0,0.55),0_0_0_1px_rgba(255,255,255,0.055)] transition-all duration-300 ease-out sm:p-6 lg:p-7"
             aria-labelledby="inputs-heading"
           >
             <div className="mb-6" />
@@ -4008,6 +4008,135 @@ Thanks,`;
               <p className="mt-4 text-xs text-white/40">
                 Next: Scope, materials, and pricing
               </p>
+            </div>
+
+            <div className="mt-8 rounded-3xl border border-white/10 bg-white/[0.035] p-4 sm:p-5 shadow-[0_10px_36px_rgba(0,0,0,0.28)] backdrop-blur-xl">
+              <div className="text-sm font-semibold text-white/90">Prepared Job Packet</div>
+              <p className="mt-1 max-w-3xl text-xs leading-relaxed text-white/55">
+                FieldDive is assembling the job from the current inputs. Confirm the details before pricing and proposal.
+              </p>
+
+              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-3 sm:p-3.5">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/38">Roof size</div>
+                  <div className="mt-1.5 text-sm font-semibold tabular-nums text-white/95">
+                    {hasRoofArea
+                      ? `${squares.toFixed(1)} SQ · ${Number(area || 0).toLocaleString()} sq ft`
+                      : "Waiting on roof size"}
+                  </div>
+                  <div className="mt-2">
+                    <span
+                      className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                        hasRoofArea
+                          ? "border-white/14 bg-white/[0.06] text-white/75"
+                          : "border-amber-400/20 bg-amber-500/[0.08] text-amber-100/90"
+                      }`}
+                    >
+                      {hasRoofArea ? "Ready" : "Needs input"}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-[11px] leading-snug text-white/45">
+                    {hasRoofArea ? "Prepared from current roof area." : "Enter roof size to unlock pricing."}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-3 sm:p-3.5">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/38">Waste coverage</div>
+                  <div className="mt-1.5 text-sm font-semibold tabular-nums text-white/95">
+                    {hasRoofArea
+                      ? `${Number(waste || 0)}% waste · ${adjustedSquares.toFixed(1)} adjusted SQ`
+                      : "Waiting on roof size"}
+                  </div>
+                  <div className="mt-2">
+                    <span
+                      className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                        hasRoofArea
+                          ? "border-sky-400/20 bg-sky-500/[0.07] text-sky-100/85"
+                          : "border-amber-400/20 bg-amber-500/[0.08] text-amber-100/90"
+                      }`}
+                    >
+                      {hasRoofArea ? "Prepared" : "Needs input"}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-[11px] leading-snug text-white/45">
+                    {hasRoofArea ? "Used to calculate material coverage." : "Waste applies after roof size is entered."}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-3 sm:p-3.5">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/38">Tear-off</div>
+                  <div className="mt-1.5 text-sm font-semibold text-white/95">
+                    {includeDebrisRemoval ? `Included · ${removalType}` : "Not included"}
+                  </div>
+                  <div className="mt-2">
+                    <span className="inline-flex rounded-full border border-white/12 bg-white/[0.05] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/70">
+                      Contractor input
+                    </span>
+                  </div>
+                  <p className="mt-2 text-[11px] leading-snug text-white/45">
+                    {includeDebrisRemoval ? "Disposal is included in job cost." : "Turn on tear-off if removal is part of the job."}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-3 sm:p-3.5">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/38">Disposal</div>
+                  <div className="mt-1.5 text-sm font-semibold tabular-nums text-white/95">
+                    {includeDebrisRemoval
+                      ? `$${effectiveDebrisRemovalCost.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+                      : "—"}
+                  </div>
+                  <div className="mt-2">
+                    <span
+                      className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                        includeDebrisRemoval
+                          ? "border-sky-400/20 bg-sky-500/[0.07] text-sky-100/85"
+                          : "border-white/10 bg-white/[0.04] text-white/45"
+                      }`}
+                    >
+                      {includeDebrisRemoval ? "Prepared" : "Not active"}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-[11px] leading-snug text-white/45">
+                    {includeDebrisRemoval ? "Prepared from tear-off settings." : "No disposal cost applied."}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-3 sm:p-3.5">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/38">Roofing system</div>
+                  <div className="mt-1.5 text-sm font-semibold text-white/95">{selectedTierLabel}</div>
+                  <div className="mt-2">
+                    <span className="inline-flex rounded-full border border-white/12 bg-white/[0.05] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/70">
+                      Contractor selected
+                    </span>
+                  </div>
+                  <p className="mt-2 text-[11px] leading-snug text-white/45">
+                    Controls proposal presentation and package language.
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-3 sm:p-3.5">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/38">Proposal readiness</div>
+                  <div className="mt-1.5 text-sm font-semibold text-white/95">
+                    {hasCustomerEmail && hasRoofArea && hasPrice ? "Ready to prepare" : "Needs info"}
+                  </div>
+                  <div className="mt-2">
+                    <span
+                      className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                        hasCustomerEmail && hasRoofArea && hasPrice
+                          ? "border-white/14 bg-white/[0.06] text-white/75"
+                          : "border-violet-400/18 bg-violet-500/[0.08] text-violet-100/88"
+                      }`}
+                    >
+                      {hasCustomerEmail && hasRoofArea && hasPrice ? "Ready" : "Waiting"}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-[11px] leading-snug text-white/45">
+                    {hasCustomerEmail && hasRoofArea && hasPrice
+                      ? "Customer, scope, and price are available."
+                      : "Add email, roof size, and price inputs to finish readiness."}
+                  </p>
+                </div>
+              </div>
             </div>
 
             <div className="mt-12 pt-8 border-t border-white/10">
@@ -4802,8 +4931,8 @@ Thanks,`;
           </motion.section>
 
           {/* Sticky contractor outcome panel */}
-          <div className="w-full xl:max-w-[420px]">
-            <div className="sticky top-6 space-y-6">
+          <div className="w-full min-w-0">
+            <div className="sticky top-6 space-y-4 xl:space-y-5">
 
               {/* HEADER */}
               <div className="rounded-[28px] border border-white/[0.08] bg-white/[0.04] p-6 sm:p-7">
