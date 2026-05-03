@@ -3498,6 +3498,24 @@ Thanks,`;
 
   const { price: suggestedPrice, materials, labor, disposal } = getProposalNumbers();
 
+  const aiConductorStripItems: { label: string; ready: boolean; notReadyStatus: "Needs input" | "Waiting" }[] = [
+    {
+      label: "Customer info",
+      ready: Boolean((customerName || "").trim() || hasCustomerEmail),
+      notReadyStatus: "Needs input",
+    },
+    {
+      label: "Property",
+      ready: Boolean((jobAddress1 || "").trim() || (jobZip || "").trim()),
+      notReadyStatus: "Needs input",
+    },
+    { label: "Scope", ready: hasRoofArea, notReadyStatus: "Waiting" },
+    { label: "Pricing", ready: hasPrice, notReadyStatus: "Waiting" },
+    { label: "Proposal draft", ready: hasAIWording, notReadyStatus: "Waiting" },
+  ];
+  const aiConductorReadyCount = aiConductorStripItems.filter((x) => x.ready).length;
+  const aiConductorTotalCount = aiConductorStripItems.length;
+
   return (
     <main
       className="min-h-screen relative p-6 sm:p-8 lg:p-16 pb-24"
@@ -3744,6 +3762,53 @@ Thanks,`;
               </div>
             </div>
           )}
+        </div>
+
+        <div className="mt-6 rounded-2xl border border-white/[0.09] bg-white/[0.035] px-4 py-3.5 shadow-[0_12px_40px_-28px_rgba(0,0,0,0.45)] backdrop-blur-md sm:px-5 sm:py-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between lg:gap-6">
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex rounded-full border border-cyan-400/22 bg-cyan-500/[0.09] px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-cyan-100/90">
+                  AI Conductor
+                </span>
+              </div>
+              <h2 className="mt-2 text-sm font-semibold text-white/90 sm:text-[15px]">FieldDive is preparing this job</h2>
+              <p className="mt-1 max-w-3xl text-xs leading-relaxed text-white/52">
+                As you add details, FieldDive organizes the job packet and shows what is ready for contractor review.
+              </p>
+            </div>
+            <p className="shrink-0 text-[11px] font-medium tabular-nums text-white/55 lg:pt-7 lg:text-right">
+              {aiConductorReadyCount} of {aiConductorTotalCount} items ready · {aiConductorTotalCount - aiConductorReadyCount}{" "}
+              waiting
+            </p>
+          </div>
+          <div
+            className="mt-3 flex flex-wrap gap-2"
+            role="list"
+            aria-label="Job preparation checklist"
+          >
+            {aiConductorStripItems.map((item) => {
+              const status = item.ready ? "Ready" : item.notReadyStatus;
+              const readyTone =
+                "rounded-xl border border-cyan-400/22 bg-cyan-500/[0.08] px-2.5 py-1.5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]";
+              const needsTone =
+                "rounded-xl border border-amber-400/18 bg-amber-500/[0.07] px-2.5 py-1.5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]";
+              const waitTone =
+                "rounded-xl border border-white/[0.07] bg-white/[0.03] px-2.5 py-1.5 text-left";
+              const toneClass = item.ready ? readyTone : item.notReadyStatus === "Needs input" ? needsTone : waitTone;
+              const statusClass = item.ready
+                ? "text-[10px] font-semibold uppercase tracking-wide text-cyan-100/88"
+                : item.notReadyStatus === "Needs input"
+                  ? "text-[10px] font-semibold uppercase tracking-wide text-amber-100/75"
+                  : "text-[10px] font-semibold uppercase tracking-wide text-white/42";
+              return (
+                <div key={item.label} className={toneClass} role="listitem">
+                  <div className="text-[11px] font-semibold text-white/82">{item.label}</div>
+                  <div className={`mt-0.5 ${statusClass}`}>{status}</div>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         <div className="mt-10 sm:mt-12">
