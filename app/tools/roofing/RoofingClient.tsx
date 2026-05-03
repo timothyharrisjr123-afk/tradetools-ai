@@ -3516,6 +3516,15 @@ Thanks,`;
   const aiConductorReadyCount = aiConductorStripItems.filter((x) => x.ready).length;
   const aiConductorTotalCount = aiConductorStripItems.length;
 
+  const jobReadinessItems = [
+    { label: "Customer info", ready: Boolean((customerName || "").trim() || hasCustomerEmail) },
+    { label: "Property", ready: Boolean((jobAddress1 || "").trim() || (jobZip || "").trim()) },
+    { label: "Scope", ready: hasRoofArea },
+    { label: "Pricing", ready: hasPrice },
+    { label: "Proposal draft", ready: hasAIWording },
+  ];
+  const jobReadinessReadyCount = jobReadinessItems.filter((x) => x.ready).length;
+
   return (
     <main
       className="min-h-screen relative p-6 sm:p-8 lg:p-16 pb-24"
@@ -3764,7 +3773,7 @@ Thanks,`;
           )}
         </div>
 
-        <div className="mt-6 rounded-2xl border border-white/[0.09] bg-white/[0.035] px-4 py-3.5 shadow-[0_12px_40px_-28px_rgba(0,0,0,0.45)] backdrop-blur-md sm:px-5 sm:py-4">
+        <div className="mt-6 rounded-[28px] border border-cyan-400/15 bg-gradient-to-br from-cyan-500/[0.075] via-white/[0.035] to-blue-500/[0.045] px-4 py-4 shadow-[0_18px_60px_-36px_rgba(34,211,238,0.45),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-md sm:px-5">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between lg:gap-6">
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
@@ -4081,7 +4090,7 @@ Thanks,`;
                 FieldDive is assembling the job from the current inputs. Confirm the details before pricing and proposal.
               </p>
 
-              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-3 sm:p-3.5">
                   <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/38">Roof size</div>
                   <div className="mt-1.5 text-sm font-semibold tabular-nums text-white/95">
@@ -5002,10 +5011,10 @@ Thanks,`;
               {/* HEADER */}
               <div className="rounded-[28px] border border-white/[0.08] bg-white/[0.04] p-6 sm:p-7">
                 <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-white/40">
-                  Estimate outcome
+                  Live Outcome
                 </div>
                 <p className="mt-2 text-sm text-white/60">
-                  See how your inputs shape the final price
+                  Pricing updates as the job packet comes together.
                 </p>
 
                 {/* HERO PRICE */}
@@ -5023,7 +5032,7 @@ Thanks,`;
               <div className="rounded-[28px] border border-white/[0.08] bg-white/[0.035] p-6 sm:p-7">
 
                 <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-white/40">
-                  Profit breakdown
+                  Profit Snapshot
                 </div>
 
                 {finalShowDash || !Number(finalPrice) ? (
@@ -5139,6 +5148,38 @@ Thanks,`;
                 )}
               </div>
 
+              <div className="rounded-[28px] border border-white/[0.08] bg-white/[0.035] p-5 sm:p-6">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-white/40">
+                      Job readiness
+                    </div>
+                    <div className="mt-1 text-sm text-white/60">
+                      {jobReadinessReadyCount} of {jobReadinessItems.length} items ready
+                    </div>
+                  </div>
+                  <div className="rounded-full border border-cyan-400/20 bg-cyan-500/[0.08] px-3 py-1 text-xs font-semibold text-cyan-100/85">
+                    {Math.round((jobReadinessReadyCount / jobReadinessItems.length) * 100)}%
+                  </div>
+                </div>
+                <div className="mt-4 space-y-2">
+                  {jobReadinessItems.map((item) => (
+                    <div key={item.label} className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.06] bg-white/[0.025] px-3 py-2">
+                      <span className="text-xs font-medium text-white/70">{item.label}</span>
+                      <span
+                        className={
+                          item.ready
+                            ? "text-[10px] font-semibold uppercase tracking-wide text-cyan-100/80"
+                            : "text-[10px] font-semibold uppercase tracking-wide text-white/38"
+                        }
+                      >
+                        {item.ready ? "Ready" : "Waiting"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               {/* COST BREAKDOWN */}
               <div className="rounded-[28px] border border-white/[0.08] bg-white/[0.03] p-6 sm:p-7">
                 <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-white/40">
@@ -5171,21 +5212,34 @@ Thanks,`;
                 </div>
               </div>
 
-              {/* PRICING POSITION */}
+              {/* NEXT ACTION */}
               <div className="rounded-[28px] border border-white/[0.08] bg-white/[0.03] p-6 sm:p-7">
                 <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-white/40">
-                  Pricing position
+                  Next action
                 </div>
 
-                <div className="mt-3 text-sm text-white/75">
-                  {pricingMode === "direct"
-                    ? "Direct pricing — based on your entered totals"
-                    : finalMarginNum < 15
-                      ? "Aggressive pricing"
-                      : finalMarginNum < 25
-                        ? "Balanced pricing"
-                        : "High-margin positioning"}
+                <div className="mt-3 text-sm font-semibold text-white/85">
+                  {!hasCustomerEmail
+                    ? "Add customer email"
+                    : !hasRoofArea
+                      ? "Enter roof size"
+                      : !hasPrice
+                        ? "Complete pricing inputs"
+                        : !hasAIWording
+                          ? "Prepare proposal wording"
+                          : "Ready for proposal review"}
                 </div>
+                <p className="mt-2 text-xs leading-relaxed text-white/52">
+                  {!hasCustomerEmail
+                    ? "FieldDive needs an email before the proposal can be sent."
+                    : !hasRoofArea
+                      ? "Roof size unlocks material coverage and pricing readiness."
+                      : !hasPrice
+                        ? "Add materials and labor so FieldDive can complete the live outcome."
+                        : !hasAIWording
+                          ? "Proposal language is the last piece before review."
+                          : "Review the proposal and send when everything looks right."}
+                </p>
               </div>
 
             </div>
