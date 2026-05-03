@@ -3565,21 +3565,15 @@ Thanks,`;
       )}
 
       <div className="relative mx-auto max-w-[1480px]">
-        <div className="mb-6 rounded-xl border border-dashed border-white/15 bg-white/[0.03] px-4 py-3 sm:px-5">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <div className="text-xs font-semibold uppercase tracking-wider text-amber-200/80">V2 Preview</div>
-              <p className="mt-0.5 text-[11px] text-white/45">Preview the next job workspace surface using live job data.</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowV2Preview((v) => !v)}
-              className="shrink-0 rounded-lg border border-white/15 bg-white/[0.06] px-3 py-1.5 text-xs font-medium text-white/80 hover:bg-white/[0.1]"
-            >
-              {showV2Preview ? "Close V2 Preview" : "Open V2 Preview"}
-            </button>
-          </div>
-        </div>
+        <button
+          type="button"
+          onClick={() => setShowV2Preview((v) => !v)}
+          className="sr-only"
+          aria-hidden
+          tabIndex={-1}
+        >
+          {showV2Preview ? "Close V2 Preview" : "Open V2 Preview"}
+        </button>
 
         {showV2Preview ? (
           <RoofingClientV2
@@ -3669,62 +3663,80 @@ Thanks,`;
           />
         ) : (
           <>
-        <div className="mb-9 sm:mb-11">
-          <div className="mb-7 flex items-center justify-between gap-4">
-            <motion.div
-              initial={{ opacity: 0, x: -8 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.3 }}
-            >
+        <div className="mb-3">
+          <motion.nav
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="mb-3 flex items-center justify-between gap-4 rounded-[16px] border border-white/[0.08] bg-slate-950/55 px-3 py-2 shadow-[0_18px_60px_-36px_rgba(15,23,42,0.6),inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-xl sm:px-4"
+            aria-label="FieldDive workspace"
+          >
+            <div className="flex items-center gap-3 sm:gap-5">
               <Link
                 href="/tools"
-                className="inline-flex items-center gap-2 text-sm font-medium text-slate-400 hover:text-white transition-colors"
+                className="group flex items-center gap-2.5 rounded-xl px-2 py-1.5 transition hover:bg-white/[0.04]"
               >
-                <ArrowLeft className="h-4 w-4" />
-                Back to Tools
+                <span className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-cyan-400/30 bg-gradient-to-br from-cyan-500/30 via-blue-500/20 to-slate-950/60 text-[11px] font-extrabold tracking-tight text-cyan-50 shadow-[0_0_24px_rgba(34,211,238,0.35)]">
+                  <span className="absolute inset-0 bg-[radial-gradient(circle_at_30%_25%,rgba(165,243,252,0.55),transparent_60%)]" aria-hidden />
+                  <span className="relative">FD</span>
+                </span>
+                <div className="hidden flex-col leading-tight sm:flex">
+                  <span className="text-[13px] font-semibold tracking-tight text-white">FieldDive</span>
+                  <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-cyan-200/70">Contractor OS</span>
+                </div>
               </Link>
-            </motion.div>
-            <SignOutButton />
-          </div>
-
-          <header className="mb-6">
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.05 }}
-              className="relative pb-7 sm:pb-8"
-            >
-              <div className="pointer-events-none absolute inset-x-0 top-0 h-32" aria-hidden>
-                <div className="absolute left-0 top-1 h-24 w-24 rounded-full bg-cyan-400/10 blur-2xl" />
-                <div className="absolute right-24 top-0 h-28 w-28 rounded-full bg-blue-500/10 blur-3xl" />
+              <span className="hidden h-6 w-px bg-white/[0.08] sm:block" aria-hidden />
+              <div className="hidden items-center gap-1 lg:flex">
+                <Link
+                  href="/tools/roofing"
+                  className="rounded-lg border border-cyan-400/25 bg-cyan-500/[0.10] px-3 py-1.5 text-[12px] font-semibold text-cyan-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
+                >
+                  New Job
+                </Link>
+                <Link
+                  href="/tools/roofing/saved"
+                  className="rounded-lg px-3 py-1.5 text-[12px] font-medium text-white/55 transition hover:bg-white/[0.04] hover:text-white/85"
+                >
+                  Command Center
+                </Link>
+                <span className="rounded-lg px-3 py-1.5 text-[12px] font-medium text-white/40" title="Coming soon">
+                  AI Library
+                </span>
+                <span className="rounded-lg px-3 py-1.5 text-[12px] font-medium text-white/40" title="Coming soon">
+                  Settings
+                </span>
               </div>
-
-              <div className="relative max-w-4xl">
-                <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/[0.08] px-3 py-1.5 text-[11px] font-semibold tracking-[0.18em] text-cyan-200/90">
-                  <span className="flex h-5 w-5 items-center justify-center rounded-md bg-gradient-to-br from-cyan-400/30 to-blue-500/20 text-[10px] font-bold text-cyan-100">
-                    FD
-                  </span>
-                  <span className="uppercase">FieldDive</span>
-                </div>
-
-                <div className="mt-4">
-                  <h1 className="text-[2.9rem] font-extrabold tracking-[-0.02em] leading-[0.98] md:text-5xl lg:text-[3.4rem] text-white">
-                    New Roofing Job
-                  </h1>
-                  <p className="mt-4 max-w-2xl text-[15px] leading-7 text-slate-300/95 md:text-[17px]">
-                    Capture the customer, prepare the scope, price the job, and move it toward proposal, approval, and payment.
-                  </p>
-                </div>
-
-                <div className="mt-6 h-px w-full bg-gradient-to-r from-white/15 via-white/10 to-transparent" />
+            </div>
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="hidden items-center gap-2 rounded-xl border border-white/[0.10] bg-white/[0.03] px-3 py-1.5 text-[12px] text-white/55 md:flex">
+                <span aria-hidden>⌕</span>
+                <span className="hidden lg:inline">Search jobs, customers, ZIPs</span>
+                <span className="hidden rounded-md border border-white/[0.10] bg-white/[0.05] px-1.5 py-0.5 text-[10px] font-semibold text-white/50 lg:inline">⌘K</span>
               </div>
-            </motion.div>
+              <span
+                className="relative hidden h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-white/70 sm:flex"
+                aria-hidden
+              >
+                <span className="text-base">◐</span>
+                <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
+              </span>
+              <Link
+                href="/tools"
+                className="hidden items-center gap-1.5 rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-1.5 text-[12px] font-medium text-white/65 transition hover:bg-white/[0.06] hover:text-white sm:inline-flex"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" />
+                Tools
+              </Link>
+              <SignOutButton />
+            </div>
+          </motion.nav>
+
+          <header className="sr-only">
+            <h1>New Roofing Job</h1>
           </header>
 
-          <div className="mt-5">
-            <div className="mt-4 w-full">
-              <RoofingTabs active="estimate" />
-            </div>
+          <div className="sr-only">
+            <RoofingTabs active="estimate" />
           </div>
 
           {hasMounted && isLocked && (
@@ -3773,102 +3785,314 @@ Thanks,`;
           )}
         </div>
 
-        <div className="mt-6 rounded-[28px] border border-cyan-400/15 bg-gradient-to-br from-cyan-500/[0.075] via-white/[0.035] to-blue-500/[0.045] px-4 py-4 shadow-[0_18px_60px_-36px_rgba(34,211,238,0.45),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-md sm:px-5">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between lg:gap-6">
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex rounded-full border border-cyan-400/22 bg-cyan-500/[0.09] px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-cyan-100/90">
-                  AI Conductor
-                </span>
-              </div>
-              <h2 className="mt-2 text-sm font-semibold text-white/90 sm:text-[15px]">FieldDive is preparing this job</h2>
-              <p className="mt-1 max-w-3xl text-xs leading-relaxed text-white/52">
-                As you add details, FieldDive organizes the job packet and shows what is ready for contractor review.
-              </p>
-            </div>
-            <p className="shrink-0 text-[11px] font-medium tabular-nums text-white/55 lg:pt-7 lg:text-right">
-              {aiConductorReadyCount} of {aiConductorTotalCount} items ready · {aiConductorTotalCount - aiConductorReadyCount}{" "}
-              waiting
-            </p>
+        <div className="relative overflow-hidden rounded-2xl border border-cyan-400/18 bg-gradient-to-br from-slate-950/80 via-slate-950/55 to-blue-950/30 px-4 py-3 shadow-[0_24px_70px_-46px_rgba(34,211,238,0.55),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl sm:px-5 sm:py-3.5">
+          <div className="pointer-events-none absolute inset-0" aria-hidden>
+            <div className="absolute -left-12 top-1/2 h-44 w-44 -translate-y-1/2 rounded-full bg-cyan-500/[0.08] blur-3xl" />
+            <div className="absolute right-0 top-0 h-28 w-56 bg-blue-500/[0.05] blur-3xl" />
+            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/30 to-transparent" />
           </div>
-          <div
-            className="mt-3 flex flex-wrap gap-2"
-            role="list"
-            aria-label="Job preparation checklist"
-          >
-            {aiConductorStripItems.map((item) => {
-              const status = item.ready ? "Ready" : item.notReadyStatus;
-              const readyTone =
-                "rounded-xl border border-cyan-400/22 bg-cyan-500/[0.08] px-2.5 py-1.5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]";
-              const needsTone =
-                "rounded-xl border border-amber-400/18 bg-amber-500/[0.07] px-2.5 py-1.5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]";
-              const waitTone =
-                "rounded-xl border border-white/[0.07] bg-white/[0.03] px-2.5 py-1.5 text-left";
-              const toneClass = item.ready ? readyTone : item.notReadyStatus === "Needs input" ? needsTone : waitTone;
-              const statusClass = item.ready
-                ? "text-[10px] font-semibold uppercase tracking-wide text-cyan-100/88"
-                : item.notReadyStatus === "Needs input"
-                  ? "text-[10px] font-semibold uppercase tracking-wide text-amber-100/75"
-                  : "text-[10px] font-semibold uppercase tracking-wide text-white/42";
-              return (
-                <div key={item.label} className={toneClass} role="listitem">
-                  <div className="text-[11px] font-semibold text-white/82">{item.label}</div>
-                  <div className={`mt-0.5 ${statusClass}`}>{status}</div>
-                </div>
-              );
-            })}
+
+          <div className="relative flex items-center gap-5">
+            <div className="flex shrink-0 items-center gap-3">
+              <div className="relative flex h-12 w-12 shrink-0 items-center justify-center" aria-hidden>
+                <span className="absolute inset-0 rounded-full bg-cyan-400/[0.22] blur-lg animate-pulse" />
+                <span className="absolute -inset-0.5 rounded-full border border-cyan-300/35" />
+                <span className="absolute inset-1 rounded-full bg-gradient-to-br from-cyan-300/55 via-blue-500/30 to-slate-950/70 shadow-[inset_0_0_22px_rgba(165,243,252,0.45),0_0_26px_rgba(34,211,238,0.55)]" />
+                <span className="absolute inset-2 rounded-full bg-[radial-gradient(circle_at_30%_25%,rgba(186,230,253,0.95),rgba(34,211,238,0.30)_55%,transparent_78%)]" />
+                <span className="relative text-[10px] font-bold uppercase tracking-wider text-cyan-50">AI</span>
+              </div>
+              <div className="min-w-0">
+                <div className="text-[12px] font-semibold text-white sm:text-[14px]">FieldDive is preparing this job</div>
+                <div className="text-[10px] leading-snug text-white/50">AI is assembling the job packet and proposal path. You verify what matters.</div>
+              </div>
+            </div>
+
+            <span className="hidden h-10 w-px bg-white/[0.08] lg:block" aria-hidden />
+
+            <div className="min-w-0 flex-1">
+              <ol
+                className="relative grid grid-cols-5 gap-0"
+                role="list"
+                aria-label="Job preparation timeline"
+              >
+                {aiConductorStripItems.map((item, idx) => {
+                  const status = item.ready ? "Complete" : item.notReadyStatus === "Needs input" ? "Needs input" : "Waiting";
+                  const isFirst = idx === 0;
+                  const isLast = idx === aiConductorStripItems.length - 1;
+                  const prevReady = idx > 0 && aiConductorStripItems[idx - 1].ready;
+                  const isInProgress = !item.ready && idx > 0 && aiConductorStripItems[idx - 1].ready;
+                  const nodeStateClass = item.ready
+                    ? "border-emerald-300/70 bg-emerald-500/25 text-emerald-50 shadow-[0_0_18px_rgba(16,185,129,0.55),inset_0_0_8px_rgba(167,243,208,0.25)]"
+                    : isInProgress
+                      ? "border-cyan-300/70 bg-cyan-500/25 text-cyan-50 shadow-[0_0_18px_rgba(34,211,238,0.65),inset_0_0_8px_rgba(165,243,252,0.30)]"
+                      : "border-white/18 bg-white/[0.04] text-white/55";
+                  const labelTone = item.ready
+                    ? "text-white/95"
+                    : isInProgress
+                      ? "text-cyan-50"
+                      : "text-white/60";
+                  const statusTone = item.ready
+                    ? "text-emerald-200/85"
+                    : isInProgress
+                      ? "text-cyan-200/85"
+                      : item.notReadyStatus === "Needs input"
+                        ? "text-amber-200/75"
+                        : "text-white/40";
+                  return (
+                    <li key={item.label} className="relative flex flex-col items-center" role="listitem">
+                      {!isFirst && (
+                        <span
+                          className={`pointer-events-none absolute right-1/2 top-[14px] h-[2px] w-full ${
+                            prevReady ? "bg-gradient-to-r from-emerald-400/55 to-emerald-300/35" : "bg-white/10"
+                          }`}
+                          aria-hidden
+                        />
+                      )}
+                      {!isLast && (
+                        <span
+                          className={`pointer-events-none absolute left-1/2 top-[14px] h-[2px] w-full ${
+                            item.ready ? "bg-gradient-to-r from-emerald-300/35 to-emerald-400/55" : "bg-white/10"
+                          }`}
+                          aria-hidden
+                        />
+                      )}
+                      <span
+                        className={`relative z-10 flex h-7 w-7 items-center justify-center rounded-full border-2 text-[11px] font-bold tabular-nums ${nodeStateClass}`}
+                        aria-hidden
+                      >
+                        {item.ready ? "✓" : idx + 1}
+                      </span>
+                      <span className={`mt-1.5 text-center text-[10px] font-semibold leading-tight ${labelTone}`}>
+                        {item.label}
+                      </span>
+                      <span className={`text-center text-[9px] font-medium leading-tight ${statusTone}`}>
+                        {status}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ol>
+            </div>
           </div>
         </div>
 
-        <div className="mt-10 sm:mt-12">
-        <div className="grid grid-cols-1 gap-8 xl:grid-cols-[minmax(0,1fr)_440px] 2xl:grid-cols-[minmax(0,1fr)_480px] xl:gap-8 2xl:gap-10">
-          {/* Inputs card */}
-          <motion.section
-            variants={cardVariants}
-            initial="hidden"
-            animate="visible"
-            custom={0}
-            className="rounded-[32px] border border-white/[0.12] bg-white/[0.065] backdrop-blur-2xl p-5 shadow-[0_18px_70px_-38px_rgba(0,0,0,0.55),0_0_0_1px_rgba(255,255,255,0.055)] transition-all duration-300 ease-out sm:p-6 lg:p-7"
-            aria-labelledby="inputs-heading"
-          >
-            <div className="mb-6" />
+        <div className="mt-3 sm:mt-4">
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_400px] 2xl:grid-cols-[minmax(0,1fr)_440px] xl:gap-5 2xl:gap-6">
+          {/* Workflow canvas */}
+          <div className="space-y-3 xl:space-y-4">
 
             {/* Customer & Job */}
             <div
               id="customer-job-section"
-              className="mb-6 rounded-3xl border border-white/10 bg-white/[0.04] p-4 shadow-[0_10px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl"
+              className="rounded-2xl border border-blue-400/22 bg-slate-950/40 p-3 shadow-[0_28px_90px_-56px_rgba(37,99,235,0.55),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl sm:p-3.5"
             >
-              <div className="text-sm font-semibold text-white/90">Step 1 — Job Intake</div>
-              <div className="text-xs text-white/60 mt-0.5">Capture the customer, property, and job details that power the proposal workflow.</div>
-
-              <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2.5 sm:px-4 sm:py-3">
-                <div className="text-[10px] font-semibold tracking-wide text-white/50">Capture source</div>
-                <div className="mt-2 flex flex-wrap items-center gap-1.5 sm:gap-2">
-                  <span className="inline-flex items-center rounded-full border border-emerald-400/25 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-200/95 ring-1 ring-inset ring-emerald-400/15">
-                    Manual entry
-                  </span>
-                  <span
-                    className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[11px] font-medium text-white/38"
-                    aria-hidden
+              <div className="flex flex-wrap items-center gap-3">
+                <span
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-blue-300/30 bg-blue-500/15 text-[12px] font-bold tabular-nums text-blue-100 shadow-[0_0_22px_rgba(59,130,246,0.18)]"
+                  aria-hidden
+                >
+                  1
+                </span>
+                <h2 className="text-base font-semibold tracking-tight text-white sm:text-[17px]">Job Capture</h2>
+                <span className="text-[12px] text-white/50">Customer + property</span>
+                <div className="ml-auto flex flex-wrap items-center gap-1.5">
+                  <button
+                    type="button"
+                    aria-current="step"
+                    className="rounded-lg border border-blue-400/45 bg-blue-500/[0.14] px-2.5 py-1 text-[11px] font-semibold text-blue-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.10)]"
                   >
-                    Photos soon
-                  </span>
-                  <span
-                    className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[11px] font-medium text-white/38"
-                    aria-hidden
+                    Manual
+                  </button>
+                  <button
+                    type="button"
+                    disabled
+                    aria-label="Photos capture (coming soon)"
+                    className="cursor-not-allowed rounded-lg border border-white/[0.10] bg-white/[0.03] px-2.5 py-1 text-[11px] font-medium text-white/55"
                   >
-                    Voice soon
-                  </span>
-                  <span
-                    className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[11px] font-medium text-white/38"
-                    aria-hidden
+                    Photos
+                  </button>
+                  <button
+                    type="button"
+                    disabled
+                    aria-label="Voice capture (coming soon)"
+                    className="cursor-not-allowed rounded-lg border border-white/[0.10] bg-white/[0.03] px-2.5 py-1 text-[11px] font-medium text-white/55"
                   >
-                    Message soon
-                  </span>
+                    Voice
+                  </button>
+                  <button
+                    type="button"
+                    disabled
+                    aria-label="Customer message capture (coming soon)"
+                    className="cursor-not-allowed rounded-lg border border-white/[0.10] bg-white/[0.03] px-2.5 py-1 text-[11px] font-medium text-white/55"
+                  >
+                    Message
+                  </button>
                 </div>
               </div>
 
-              <form autoComplete="off" className="mt-4 space-y-3">
+              <div className="mt-4 grid grid-cols-1 gap-3 xl:grid-cols-12">
+                <div className="flex flex-col gap-3 xl:col-span-5">
+                  <div className="rounded-xl border border-white/[0.10] bg-slate-950/35 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                    <div className="flex items-center justify-between">
+                      <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/42">Customer</div>
+                      <span
+                        className={`inline-flex rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide ${
+                          (customerName || "").trim() && hasCustomerEmail
+                            ? "border-emerald-400/28 bg-emerald-500/12 text-emerald-100/90"
+                            : "border-amber-400/25 bg-amber-500/10 text-amber-100/85"
+                        }`}
+                      >
+                        {(customerName || "").trim() && hasCustomerEmail ? "Ready" : "Needs input"}
+                      </span>
+                    </div>
+                    <p className="mt-1.5 text-[14px] font-semibold leading-snug text-white">
+                      {(customerName || "").trim() ? customerName : "Customer not added"}
+                    </p>
+                    <p className="mt-1 break-all text-[12px] leading-snug text-blue-200/85">
+                      {(customerEmail || "").trim() ? customerEmail : "Email needed"}
+                    </p>
+                    <p className="text-[11px] text-white/45">
+                      {(customerPhone || "").trim() ? customerPhone : "Phone optional"}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-white/[0.10] bg-slate-950/35 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                    <div className="flex items-center justify-between">
+                      <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/42">Property</div>
+                      <span
+                        className={`inline-flex rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide ${
+                          (jobAddress1 || "").trim() && (jobZip || "").trim().length === 5
+                            ? "border-emerald-400/28 bg-emerald-500/12 text-emerald-100/90"
+                            : "border-amber-400/25 bg-amber-500/10 text-amber-100/85"
+                        }`}
+                      >
+                        {(jobAddress1 || "").trim() && (jobZip || "").trim().length === 5 ? "Ready" : "Needs input"}
+                      </span>
+                    </div>
+                    <p className="mt-1.5 text-[14px] font-semibold leading-snug text-white">
+                      {(jobAddress1 || "").trim() ? jobAddress1 : "Property address needed"}
+                    </p>
+                    <p className="mt-1 text-[12px] leading-snug text-blue-200/82">
+                      {[jobCity, jobState, jobZip].filter(Boolean).join(", ") || "City, state, and ZIP"}
+                    </p>
+                  </div>
+                </div>
+                <div
+                  className="relative overflow-hidden rounded-xl border border-blue-400/25 bg-slate-950/55 shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_18px_60px_-40px_rgba(34,211,238,0.4)] xl:col-span-7"
+                  style={{
+                    backgroundImage:
+                      "radial-gradient(ellipse at 70% 30%, rgba(34,211,238,0.22), transparent 55%), radial-gradient(ellipse at 30% 90%, rgba(59,130,246,0.22), transparent 60%), linear-gradient(180deg, #0a1424 0%, #0d1b30 50%, #07111e 100%)",
+                  }}
+                >
+                  <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/45 to-transparent" aria-hidden />
+
+                  <svg
+                    className="pointer-events-none absolute inset-x-0 bottom-0 h-[58%] w-full opacity-[0.55]"
+                    viewBox="0 0 400 220"
+                    preserveAspectRatio="none"
+                    aria-hidden
+                  >
+                    <defs>
+                      <linearGradient id="roofPreviewSky" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="rgba(34,211,238,0.28)" />
+                        <stop offset="100%" stopColor="rgba(15,23,42,0)" />
+                      </linearGradient>
+                      <linearGradient id="roofPreviewRoof" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="rgba(125,211,252,0.85)" />
+                        <stop offset="100%" stopColor="rgba(56,189,248,0.55)" />
+                      </linearGradient>
+                      <linearGradient id="roofPreviewWall" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="rgba(148,163,184,0.42)" />
+                        <stop offset="100%" stopColor="rgba(30,41,59,0.55)" />
+                      </linearGradient>
+                    </defs>
+                    <rect x="0" y="0" width="400" height="220" fill="url(#roofPreviewSky)" />
+                    <path
+                      d="M40 175 L40 110 L160 60 L280 110 L280 175 Z"
+                      fill="url(#roofPreviewWall)"
+                      stroke="rgba(165,243,252,0.45)"
+                      strokeWidth="1"
+                    />
+                    <path
+                      d="M30 115 L160 50 L290 115 L275 122 L160 65 L45 122 Z"
+                      fill="url(#roofPreviewRoof)"
+                      stroke="rgba(186,230,253,0.7)"
+                      strokeWidth="1"
+                    />
+                    <path
+                      d="M280 175 L280 130 L370 90 L370 175 Z"
+                      fill="url(#roofPreviewWall)"
+                      stroke="rgba(165,243,252,0.4)"
+                      strokeWidth="1"
+                    />
+                    <path
+                      d="M275 132 L280 130 L370 90 L375 95 Z"
+                      fill="url(#roofPreviewRoof)"
+                      stroke="rgba(186,230,253,0.65)"
+                      strokeWidth="1"
+                    />
+                    <rect x="120" y="130" width="32" height="45" fill="rgba(15,23,42,0.85)" stroke="rgba(165,243,252,0.45)" strokeWidth="1" rx="2" />
+                    <rect x="170" y="125" width="22" height="22" fill="rgba(34,211,238,0.18)" stroke="rgba(165,243,252,0.45)" strokeWidth="1" rx="2" />
+                    <rect x="200" y="125" width="22" height="22" fill="rgba(34,211,238,0.18)" stroke="rgba(165,243,252,0.45)" strokeWidth="1" rx="2" />
+                    <rect x="60" y="125" width="22" height="22" fill="rgba(34,211,238,0.18)" stroke="rgba(165,243,252,0.45)" strokeWidth="1" rx="2" />
+                    <line x1="0" y1="175" x2="400" y2="175" stroke="rgba(165,243,252,0.30)" strokeWidth="1" />
+                  </svg>
+
+                  <div className="pointer-events-none absolute inset-0 opacity-[0.10]" aria-hidden style={{
+                    backgroundImage:
+                      "linear-gradient(rgba(165,243,252,0.18) 1px, transparent 1px), linear-gradient(90deg, rgba(165,243,252,0.18) 1px, transparent 1px)",
+                    backgroundSize: "44px 44px",
+                  }} />
+
+                  <div className="relative flex h-full min-h-[13.5rem] flex-col justify-between p-4 sm:p-5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-200/80">Property preview</div>
+                        <div className="mt-1 truncate text-[14px] font-semibold text-white">
+                          {(jobAddress1 || "").trim() ? jobAddress1 : "Awaiting address"}
+                        </div>
+                        <div className="truncate text-[11px] text-white/55">
+                          {[jobCity, jobState, jobZip].filter(Boolean).join(", ") || "Location pending"}
+                        </div>
+                      </div>
+                      <span className="shrink-0 rounded-full border border-white/[0.10] bg-slate-950/65 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white/55">
+                        Coming soon
+                      </span>
+                    </div>
+                    <div className="flex items-end justify-between gap-2">
+                      <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-white/55">
+                        <span className="rounded-md border border-white/[0.12] bg-slate-950/60 px-2 py-0.5">Satellite</span>
+                        <span className="rounded-md border border-white/[0.12] bg-slate-950/60 px-2 py-0.5">Street view</span>
+                        <span className="rounded-md border border-white/[0.12] bg-slate-950/60 px-2 py-0.5">Photos</span>
+                      </div>
+                      <span className="rounded-full border border-cyan-400/25 bg-cyan-500/[0.12] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-cyan-100/85 shadow-[0_0_14px_rgba(34,211,238,0.28)]">
+                        Preview
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <details className="group mt-5 rounded-2xl border border-white/[0.08] bg-white/[0.02] open:bg-white/[0.03] open:border-white/[0.12]">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-left">
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/[0.10] bg-white/[0.04] text-[12px] text-white/65">
+                      ✎
+                    </span>
+                    <div className="min-w-0">
+                      <div className="text-[12px] font-semibold text-white/85">Edit manual details</div>
+                      <div className="text-[11px] text-white/45">
+                        Customer · Property · ZIP defaults
+                      </div>
+                    </div>
+                  </div>
+                  <span className="flex items-center gap-2 text-[11px] font-medium text-white/50">
+                    <span className="hidden sm:inline">Tap to expand</span>
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full border border-white/[0.10] text-[10px] transition-transform group-open:rotate-180" aria-hidden>
+                      ▾
+                    </span>
+                  </span>
+                </summary>
+              <form autoComplete="off" className="mt-1 space-y-3 px-4 pb-4 sm:px-5 sm:pb-5">
                 <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-3 sm:p-4">
                   <div className="text-xs font-semibold tracking-wide text-white/85">Customer</div>
                   <p className="mt-1 text-[11px] leading-snug text-white/45">Who the proposal and follow-ups are for.</p>
@@ -4079,163 +4303,248 @@ Thanks,`;
                   </div>
                 </div>
               </form>
-              <p className="mt-4 text-xs text-white/40">
-                Next: Scope, materials, and pricing
-              </p>
+              </details>
             </div>
 
-            <div className="mt-8 rounded-3xl border border-white/10 bg-white/[0.035] p-4 sm:p-5 shadow-[0_10px_36px_rgba(0,0,0,0.28)] backdrop-blur-xl">
-              <div className="text-sm font-semibold text-white/90">Prepared Job Packet</div>
-              <p className="mt-1 max-w-3xl text-xs leading-relaxed text-white/55">
-                FieldDive is assembling the job from the current inputs. Confirm the details before pricing and proposal.
-              </p>
-
-              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-3 sm:p-3.5">
-                  <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/38">Roof size</div>
-                  <div className="mt-1.5 text-sm font-semibold tabular-nums text-white/95">
-                    {hasRoofArea
-                      ? `${squares.toFixed(1)} SQ · ${Number(area || 0).toLocaleString()} sq ft`
-                      : "Waiting on roof size"}
-                  </div>
-                  <div className="mt-2">
+            <div className="rounded-2xl border border-blue-400/18 bg-slate-950/35 p-3 shadow-[0_28px_90px_-60px_rgba(37,99,235,0.45),inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-xl sm:p-3.5">
+              <div className="flex flex-wrap items-center gap-3">
+                <span
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-blue-300/30 bg-blue-500/15 text-[12px] font-bold tabular-nums text-blue-100 shadow-[0_0_22px_rgba(59,130,246,0.18)]"
+                  aria-hidden
+                >
+                  2
+                </span>
+                <h2 className="text-base font-semibold tracking-tight text-white sm:text-[17px]">Prepared Job Packet</h2>
+                <span className="text-[12px] text-white/50">Scope at a glance</span>
+                <span className="ml-auto rounded-full border border-emerald-400/24 bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-semibold tabular-nums text-emerald-100/90">
+                  {jobReadinessReadyCount}/{jobReadinessItems.length} prepared
+                </span>
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
+                <div className="flex flex-col rounded-xl border border-emerald-400/20 bg-emerald-500/[0.08] p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="text-[9px] font-semibold uppercase tracking-[0.12em] text-emerald-200/75">Roof size</div>
                     <span
-                      className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                      className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wide ${
                         hasRoofArea
-                          ? "border-white/14 bg-white/[0.06] text-white/75"
-                          : "border-amber-400/20 bg-amber-500/[0.08] text-amber-100/90"
+                          ? "border-emerald-400/28 bg-emerald-500/14 text-emerald-100/90"
+                          : "border-amber-400/24 bg-amber-500/10 text-amber-100/85"
                       }`}
                     >
-                      {hasRoofArea ? "Ready" : "Needs input"}
+                      {hasRoofArea ? "Ready" : "Need"}
                     </span>
                   </div>
-                  <p className="mt-2 text-[11px] leading-snug text-white/45">
-                    {hasRoofArea ? "Prepared from current roof area." : "Enter roof size to unlock pricing."}
+                  <div className="mt-1 text-[15px] font-semibold tabular-nums leading-tight text-white">
+                    {hasRoofArea ? `${squares.toFixed(1)} SQ` : "—"}
+                  </div>
+                  <p className="text-[10px] leading-tight text-white/50">
+                    {hasRoofArea ? `${Number(area || 0).toLocaleString()} sq ft` : "Enter roof size"}
                   </p>
                 </div>
-
-                <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-3 sm:p-3.5">
-                  <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/38">Waste coverage</div>
-                  <div className="mt-1.5 text-sm font-semibold tabular-nums text-white/95">
-                    {hasRoofArea
-                      ? `${Number(waste || 0)}% waste · ${adjustedSquares.toFixed(1)} adjusted SQ`
-                      : "Waiting on roof size"}
+                <div className="flex flex-col rounded-xl border border-blue-400/16 bg-blue-500/[0.07] p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="text-[9px] font-semibold uppercase tracking-[0.12em] text-blue-200/75">Difficulty</div>
+                    <span className="shrink-0 rounded-full border border-white/12 bg-white/[0.05] px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wide text-white/65">
+                      Wait
+                    </span>
                   </div>
-                  <div className="mt-2">
+                  <div className="mt-1 text-[13px] font-semibold leading-tight text-white">Contractor input</div>
+                  <p className="text-[10px] leading-tight text-white/50">Pitch · stories · access</p>
+                </div>
+                <div className="flex flex-col rounded-xl border border-cyan-400/16 bg-cyan-500/[0.07] p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="text-[9px] font-semibold uppercase tracking-[0.12em] text-cyan-200/75">Waste</div>
                     <span
-                      className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                      className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wide ${
                         hasRoofArea
-                          ? "border-sky-400/20 bg-sky-500/[0.07] text-sky-100/85"
-                          : "border-amber-400/20 bg-amber-500/[0.08] text-amber-100/90"
+                          ? "border-cyan-400/22 bg-cyan-500/12 text-cyan-100/90"
+                          : "border-amber-400/24 bg-amber-500/10 text-amber-100/85"
                       }`}
                     >
-                      {hasRoofArea ? "Prepared" : "Needs input"}
+                      {hasRoofArea ? "Set" : "Need"}
                     </span>
                   </div>
-                  <p className="mt-2 text-[11px] leading-snug text-white/45">
-                    {hasRoofArea ? "Used to calculate material coverage." : "Waste applies after roof size is entered."}
+                  <div className="mt-1 text-[15px] font-semibold tabular-nums leading-tight text-white">
+                    {hasRoofArea ? `${Number(waste || 0)}%` : "—"}
+                  </div>
+                  <p className="text-[10px] leading-tight text-white/50">
+                    {hasRoofArea ? `${adjustedSquares.toFixed(1)} adj SQ` : "Apply after roof size"}
                   </p>
                 </div>
-
-                <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-3 sm:p-3.5">
-                  <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/38">Tear-off</div>
-                  <div className="mt-1.5 text-sm font-semibold text-white/95">
-                    {includeDebrisRemoval ? `Included · ${removalType}` : "Not included"}
-                  </div>
-                  <div className="mt-2">
-                    <span className="inline-flex rounded-full border border-white/12 bg-white/[0.05] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/70">
-                      Contractor input
+                <div className="flex flex-col rounded-xl border border-amber-400/16 bg-amber-500/[0.075] p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="text-[9px] font-semibold uppercase tracking-[0.12em] text-amber-200/75">Tear-off</div>
+                    <span className="shrink-0 rounded-full border border-white/16 bg-white/[0.07] px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wide text-white/72">
+                      Pick
                     </span>
                   </div>
-                  <p className="mt-2 text-[11px] leading-snug text-white/45">
-                    {includeDebrisRemoval ? "Disposal is included in job cost." : "Turn on tear-off if removal is part of the job."}
-                  </p>
-                </div>
-
-                <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-3 sm:p-3.5">
-                  <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/38">Disposal</div>
-                  <div className="mt-1.5 text-sm font-semibold tabular-nums text-white/95">
+                  <div className="mt-1 text-[13px] font-semibold leading-tight text-white">
+                    {includeDebrisRemoval ? "Included" : "Not included"}
+                  </div>
+                  <p className="text-[10px] leading-tight text-white/50">
                     {includeDebrisRemoval
-                      ? `$${effectiveDebrisRemovalCost.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
-                      : "—"}
-                  </div>
-                  <div className="mt-2">
-                    <span
-                      className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-                        includeDebrisRemoval
-                          ? "border-sky-400/20 bg-sky-500/[0.07] text-sky-100/85"
-                          : "border-white/10 bg-white/[0.04] text-white/45"
-                      }`}
-                    >
-                      {includeDebrisRemoval ? "Prepared" : "Not active"}
-                    </span>
-                  </div>
-                  <p className="mt-2 text-[11px] leading-snug text-white/45">
-                    {includeDebrisRemoval ? "Prepared from tear-off settings." : "No disposal cost applied."}
+                      ? `${removalType === "architectural" ? "Architectural" : "Standard"}`
+                      : "Toggle in scope"}
                   </p>
                 </div>
-
-                <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-3 sm:p-3.5">
-                  <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/38">Roofing system</div>
-                  <div className="mt-1.5 text-sm font-semibold text-white/95">{selectedTierLabel}</div>
-                  <div className="mt-2">
-                    <span className="inline-flex rounded-full border border-white/12 bg-white/[0.05] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/70">
-                      Contractor selected
+                <div className="flex flex-col rounded-xl border border-violet-400/16 bg-violet-500/[0.075] p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="text-[9px] font-semibold uppercase tracking-[0.12em] text-violet-200/75">System</div>
+                    <span className="shrink-0 rounded-full border border-violet-400/22 bg-violet-500/12 px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wide text-violet-100/85">
+                      Set
                     </span>
                   </div>
-                  <p className="mt-2 text-[11px] leading-snug text-white/45">
-                    Controls proposal presentation and package language.
-                  </p>
+                  <div className="mt-1 text-[13px] font-semibold leading-tight text-white">{selectedTierLabel}</div>
+                  <p className="text-[10px] leading-tight text-white/50">Customer-facing tier</p>
                 </div>
-
-                <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-3 sm:p-3.5">
-                  <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/38">Proposal readiness</div>
-                  <div className="mt-1.5 text-sm font-semibold text-white/95">
-                    {hasCustomerEmail && hasRoofArea && hasPrice ? "Ready to prepare" : "Needs info"}
-                  </div>
-                  <div className="mt-2">
+                <div className="flex flex-col rounded-xl border border-emerald-400/16 bg-slate-950/30 p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="text-[9px] font-semibold uppercase tracking-[0.12em] text-emerald-200/75">Proposal</div>
                     <span
-                      className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-                        hasCustomerEmail && hasRoofArea && hasPrice
-                          ? "border-white/14 bg-white/[0.06] text-white/75"
-                          : "border-violet-400/18 bg-violet-500/[0.08] text-violet-100/88"
+                      className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wide ${
+                        hasCustomerEmail && hasRoofArea && hasPrice && hasAIWording
+                          ? "border-emerald-400/28 bg-emerald-500/14 text-emerald-100/90"
+                          : "border-violet-400/20 bg-violet-500/10 text-violet-100/85"
                       }`}
                     >
-                      {hasCustomerEmail && hasRoofArea && hasPrice ? "Ready" : "Waiting"}
+                      {hasCustomerEmail && hasRoofArea && hasPrice && hasAIWording ? "Ready" : "Wait"}
                     </span>
                   </div>
-                  <p className="mt-2 text-[11px] leading-snug text-white/45">
-                    {hasCustomerEmail && hasRoofArea && hasPrice
-                      ? "Customer, scope, and price are available."
-                      : "Add email, roof size, and price inputs to finish readiness."}
+                  <div className="mt-1 text-[13px] font-semibold leading-tight text-white">
+                    {hasCustomerEmail && hasRoofArea && hasPrice && hasAIWording ? "Ready to send" : "Needs info"}
+                  </div>
+                  <p className="text-[10px] leading-tight text-white/50">
+                    {hasCustomerEmail && hasRoofArea && hasPrice && hasAIWording
+                      ? "Email · scope · price · wording"
+                      : "Complete remaining steps"}
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="mt-12 pt-8 border-t border-white/10">
-              <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-4 sm:p-5">
-                <div className="mb-4 flex gap-2.5">
+            <div>
+              <div className="rounded-2xl border border-white/[0.10] bg-slate-950/40 p-3 shadow-[0_28px_90px_-60px_rgba(15,23,42,0.7),inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-xl sm:p-3.5">
+                <div className="flex flex-wrap items-center gap-3">
                   <span
-                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/14 bg-white/[0.06] text-[10px] font-bold tabular-nums text-white"
+                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-blue-300/30 bg-blue-500/15 text-[12px] font-bold tabular-nums text-blue-100 shadow-[0_0_22px_rgba(59,130,246,0.18)]"
                     aria-hidden
                   >
-                    2
+                    3
                   </span>
-                  <div className="min-w-0 pt-0.5">
-                    <h2
-                      id="inputs-heading"
-                      className="text-sm font-semibold tracking-wide text-white"
+                  <h2
+                    id="inputs-heading"
+                    className="text-base font-semibold tracking-tight text-white sm:text-[17px]"
+                  >
+                    Scope Builder
+                  </h2>
+                  <span className="text-[12px] text-white/50">AI recommends the optimal roofing system</span>
+                </div>
+                <div className="mt-2.5 h-px w-full bg-gradient-to-r from-white/[0.10] via-white/[0.05] to-transparent" />
+
+                <div className="mt-2.5 grid grid-cols-1 gap-2.5 lg:grid-cols-12">
+                  <div className="rounded-xl border border-cyan-400/22 bg-slate-950/45 p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] lg:col-span-4">
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-200/75">Recommended system</div>
+                    <div className="mt-2 flex items-start gap-2.5">
+                      <div
+                        className="relative h-12 w-14 shrink-0 overflow-hidden rounded-md border border-white/[0.10]"
+                        style={{
+                          backgroundImage:
+                            "linear-gradient(180deg, rgba(125,211,252,0.55) 0%, rgba(56,189,248,0.30) 35%, rgba(15,23,42,0.85) 100%)",
+                        }}
+                        aria-hidden
+                      >
+                        <svg viewBox="0 0 56 48" className="h-full w-full">
+                          <path d="M2 28 L28 6 L54 28 L48 32 L28 12 L8 32 Z" fill="rgba(186,230,253,0.85)" stroke="rgba(34,211,238,0.85)" strokeWidth="0.5" />
+                          <path d="M8 32 L48 32 L48 46 L8 46 Z" fill="rgba(15,23,42,0.65)" stroke="rgba(165,243,252,0.45)" strokeWidth="0.5" />
+                          <rect x="22" y="36" width="8" height="10" fill="rgba(34,211,238,0.30)" stroke="rgba(165,243,252,0.5)" strokeWidth="0.4" />
+                        </svg>
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-[13px] font-semibold leading-tight text-white">
+                          {tierConfig[roofingTier].label}
+                        </div>
+                        <div className="mt-0.5 text-[11px] text-white/55 capitalize">
+                          {tierConfig[roofingTier].includes[0] || "Architectural shingles"}
+                        </div>
+                        <span className="mt-1.5 inline-flex rounded-full border border-cyan-400/22 bg-cyan-500/[0.08] px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-cyan-100/85">
+                          {selectedTierLabel} tier
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-white/[0.10] bg-slate-950/35 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] lg:col-span-5">
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/55">Included scope</div>
+                    <div className="mt-2 grid grid-cols-1 gap-x-3 gap-y-1 sm:grid-cols-2">
+                      {[
+                        ...tierConfig[roofingTier].includes,
+                        includeDebrisRemoval ? "Tear-off & disposal" : "Tear-off (not included)",
+                        "Starter strip",
+                        "Ridge cap shingles",
+                      ].slice(0, 6).map((item, i) => {
+                        const isTearOff = item.toLowerCase().includes("tear-off");
+                        const isReady = isTearOff ? includeDebrisRemoval : true;
+                        return (
+                          <div key={`${item}-${i}`} className="flex items-center gap-2 text-[11px] text-white/75">
+                            <span
+                              className={
+                                isReady
+                                  ? "flex h-3.5 w-3.5 items-center justify-center rounded-full border border-emerald-300/55 bg-emerald-400/25 text-[8px] text-emerald-50 shadow-[0_0_6px_rgba(16,185,129,0.45)]"
+                                  : "flex h-3.5 w-3.5 items-center justify-center rounded-full border border-white/15 bg-white/[0.04] text-[8px] text-white/45"
+                              }
+                              aria-hidden
+                            >
+                              {isReady ? "✓" : "·"}
+                            </span>
+                            <span className="capitalize">{item}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-2 lg:col-span-3">
+                    <a
+                      href="#scope-inputs"
+                      className="group flex items-center justify-between gap-2 rounded-xl border border-cyan-400/35 bg-cyan-500/[0.14] px-3 py-2.5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_22px_-8px_rgba(34,211,238,0.45)] transition hover:bg-cyan-500/[0.18]"
                     >
-                      Materials setup
-                    </h2>
-                    <p className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-white/32">
-                      Step 2
-                    </p>
+                      <div className="min-w-0">
+                        <div className="text-[12px] font-semibold text-white">Confirm system</div>
+                        <div className="text-[10px] text-cyan-100/75">Lock and continue</div>
+                      </div>
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-cyan-400/30 text-[12px] text-cyan-50" aria-hidden>
+                        →
+                      </span>
+                    </a>
+                    <a
+                      href="#scope-inputs"
+                      className="flex items-center justify-between gap-2 rounded-xl border border-white/[0.12] bg-white/[0.03] px-3 py-2 text-left transition hover:bg-white/[0.05]"
+                    >
+                      <div className="text-[12px] font-medium text-white/85">Edit scope</div>
+                      <span className="text-[12px] text-white/45" aria-hidden>✎</span>
+                    </a>
+                    <button
+                      type="button"
+                      className="flex items-center justify-between gap-2 rounded-xl border border-white/[0.10] bg-white/[0.02] px-3 py-2 text-left text-[12px] font-medium text-white/65 transition hover:bg-white/[0.04]"
+                    >
+                      <span>Need more info</span>
+                      <span className="text-[12px] text-white/40" aria-hidden>?</span>
+                    </button>
                   </div>
                 </div>
 
-                <div className="space-y-2">
+                <details id="scope-inputs" className="group mt-3 rounded-xl border border-white/[0.08] bg-white/[0.02] open:bg-white/[0.03]">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 text-left">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-md border border-white/[0.10] bg-white/[0.04] text-[11px] text-white/65">✎</span>
+                      <div className="min-w-0">
+                        <div className="text-[12px] font-semibold text-white/85">Edit roof size, waste &amp; bundle cost</div>
+                        <div className="text-[10px] text-white/45">Contractor inputs · live pricing</div>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-medium text-white/45 transition group-open:rotate-180" aria-hidden>▾</span>
+                  </summary>
+                  <div className="space-y-2 border-t border-white/[0.06] px-3 py-3">
                   <div
                     className={
                       attentionField === "roofArea"
@@ -4440,28 +4749,31 @@ Thanks,`;
                       </div>
                     </motion.div>
                 </div>
+                </details>
               </div>
             </div>
 
-              <div className="mt-12 pt-8 border-t border-white/10">
-                <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-5 sm:p-6">
-                  <div className="mb-5 flex gap-2.5">
+              <div className="grid grid-cols-1 gap-3 xl:grid-cols-2 xl:items-start">
+                <div className="rounded-2xl border border-emerald-400/15 bg-slate-950/40 p-4 shadow-[0_28px_90px_-60px_rgba(16,185,129,0.40),inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-xl sm:p-5">
+                  <div className="flex flex-wrap items-center gap-3">
                     <span
-                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/14 bg-white/[0.06] text-[10px] font-bold tabular-nums text-white"
+                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-emerald-300/30 bg-emerald-500/15 text-[12px] font-bold tabular-nums text-emerald-100 shadow-[0_0_22px_rgba(16,185,129,0.18)]"
                       aria-hidden
                     >
-                      3
+                      4
                     </span>
-                    <div className="min-w-0 pt-0.5">
-                      <h2 className="text-sm font-semibold tracking-wide text-white">Deal control panel</h2>
-                      <p className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-white/32">
-                        Step 3
-                      </p>
-                      <p className="mt-1.5 text-xs leading-snug text-white/55">
-                        Set your pricing strategy and preview the deal before sending.
-                      </p>
+                    <h2 className="text-base font-semibold tracking-tight text-white sm:text-[17px]">Deal Control</h2>
+                    <span className="text-[12px] text-white/50">Pricing &amp; tier</span>
+                    <div className="ml-auto flex items-center gap-1.5">
+                      <span className="rounded-md border border-emerald-400/22 bg-emerald-500/[0.08] px-2 py-0.5 text-[10px] font-semibold text-emerald-100/85">
+                        Pricing mode
+                      </span>
+                      <span className="rounded-md border border-violet-400/22 bg-violet-500/[0.08] px-2 py-0.5 text-[10px] font-semibold text-violet-100/85">
+                        Proposal tier
+                      </span>
                     </div>
                   </div>
+                  <div className="mt-3 h-px w-full bg-gradient-to-r from-white/[0.10] via-white/[0.05] to-transparent" />
 
                   <div>
                     {/* Pricing mode */}
@@ -4580,372 +4892,249 @@ Thanks,`;
                     </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="mt-12 pt-8 border-t border-white/10">
-                <div className="rounded-3xl border border-white/[0.12] bg-white/[0.03] p-5 sm:p-6">
+                <div className="rounded-2xl border border-white/[0.10] bg-slate-950/40 p-4 shadow-[0_28px_90px_-60px_rgba(15,23,42,0.7),inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-xl sm:p-5">
 
                   {/* Header */}
-                  <div>
-                    <h2 className="text-[16px] font-semibold tracking-tight text-white">
-                      Finalize &amp; Confirm
-                    </h2>
-                    <p className="mt-1 text-sm text-white/60">
-                      Review your setup before sending the proposal
-                    </p>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span
+                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-emerald-300/30 bg-emerald-500/15 text-[12px] font-bold tabular-nums text-emerald-100 shadow-[0_0_22px_rgba(16,185,129,0.18)]"
+                      aria-hidden
+                    >
+                      5
+                    </span>
+                    <h2 className="text-base font-semibold tracking-tight text-white sm:text-[17px]">Proposal Readiness</h2>
+                    {(() => {
+                      const items = [
+                        { label: "Customer", ready: hasCustomerEmail },
+                        { label: "Scope", ready: hasRoofArea },
+                        { label: "Pricing", ready: hasPrice },
+                        { label: "Wording", ready: hasAIWording },
+                      ];
+                      const done = items.filter((i) => i.ready).length;
+                      return (
+                        <span className="ml-auto flex items-center gap-2 text-[11px] font-semibold tabular-nums text-emerald-100/85">
+                          <span>{done}/{items.length} ready</span>
+                          <span className="rounded-full border border-emerald-400/22 bg-emerald-500/10 px-2 py-0.5 text-[10px] uppercase tracking-wide">
+                            {Math.round((done / items.length) * 100)}%
+                          </span>
+                        </span>
+                      );
+                    })()}
                   </div>
+                  <div className="mt-3 h-px w-full bg-gradient-to-r from-white/[0.10] via-white/[0.05] to-transparent" />
 
-                  <div className="mt-6 space-y-6">
-
-                    {/* JOB SUMMARY */}
-                    <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4">
-                      <div className="text-[11px] uppercase tracking-[0.14em] text-white/40">
-                        Job overview
-                      </div>
-
-                      <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
-
-                        <div>
-                          <div className="text-white/50 text-xs">Roof type</div>
-                          <div className="text-white font-medium">
-                            {removalType === "architectural" ? "Architectural" : "Standard"}
-                          </div>
+                  {(() => {
+                    const checklist = [
+                      { label: "Customer & Property", ready: hasCustomerEmail },
+                      { label: "Scope & System", ready: hasRoofArea },
+                      { label: "Measurements", ready: hasRoofArea },
+                      { label: "Photos & Notes", ready: hasAIWording },
+                      { label: "Pricing Summary", ready: hasPrice },
+                      { label: "Payment Options", ready: false },
+                      { label: "Proposal Draft", ready: false },
+                    ];
+                    const done = checklist.filter((i) => i.ready).length;
+                    const pct = Math.round((done / checklist.length) * 100);
+                    return (
+                      <div className="mt-3">
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="font-medium text-white/65">{done} of {checklist.length} components ready</span>
+                          <span className="rounded-full border border-emerald-400/22 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold tabular-nums text-emerald-100/90">
+                            {pct}%
+                          </span>
                         </div>
-
-                        <div>
-                          <div className="text-white/50 text-xs">Tear-off</div>
-                          <div className="text-white font-medium">
-                            {includeDebrisRemoval ? "Included" : "Not included"}
-                          </div>
-                        </div>
-
-                        <div>
-                          <div className="text-white/50 text-xs">System</div>
-                          <div className="text-white font-medium">
-                            {roofingTier === "standard" ? "Core" : roofingTier === "enhanced" ? "Enhanced" : "Premium"}
-                          </div>
-                        </div>
-
-                      </div>
-
-                      <div className="mt-4 text-xs text-emerald-300/90 font-medium">
-                        ✔ Ready for proposal
-                      </div>
-                    </div>
-
-                    <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
-                      <div className="flex items-center justify-between gap-4">
-                        <div>
-                          <div className="text-[11px] uppercase tracking-[0.14em] text-white/40">
-                            Tear-off settings
-                          </div>
-                          <p className="mt-1 text-sm text-white/60">
-                            Include removal and disposal in this proposal
-                          </p>
+                        <div className="mt-2 grid grid-cols-1 gap-x-4 gap-y-1.5 sm:grid-cols-2">
+                          {checklist.map((item) => (
+                            <div key={item.label} className="flex items-center gap-2 text-[11px]">
+                              <span
+                                className={
+                                  item.ready
+                                    ? "flex h-3.5 w-3.5 items-center justify-center rounded-full border border-emerald-300/55 bg-emerald-400/25 text-[8px] text-emerald-50 shadow-[0_0_6px_rgba(16,185,129,0.45)]"
+                                    : "flex h-3.5 w-3.5 items-center justify-center rounded-full border border-white/15 bg-white/[0.04] text-[8px] text-white/45"
+                                }
+                                aria-hidden
+                              >
+                                {item.ready ? "✓" : ""}
+                              </span>
+                              <span className={item.ready ? "text-white/85" : "text-white/55"}>{item.label}</span>
+                            </div>
+                          ))}
                         </div>
 
                         <button
                           type="button"
-                          role="switch"
-                          aria-checked={includeDebrisRemoval}
-                          onClick={() => setIncludeDebrisRemoval((v) => !v)}
-                          className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border transition ${
-                            includeDebrisRemoval
-                              ? "border-emerald-400/40 bg-emerald-500/20"
-                              : "border-white/[0.10] bg-white/[0.06]"
-                          }`}
+                          onClick={handlePreviewPdf}
+                          disabled={isPreviewingPdf}
+                          className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-400/35 bg-cyan-500/[0.14] px-4 py-2.5 text-[13px] font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_22px_-8px_rgba(34,211,238,0.45)] transition hover:bg-cyan-500/[0.18] disabled:cursor-not-allowed disabled:opacity-60"
                         >
-                          <span
-                            className={`inline-block h-5 w-5 rounded-full bg-white shadow transition ${
-                              includeDebrisRemoval ? "translate-x-6" : "translate-x-1"
-                            }`}
-                          />
+                          <span aria-hidden>👁</span>
+                          {isPreviewingPdf ? "Opening preview…" : "Preview proposal"}
                         </button>
+
+                        <details className="mt-3 group rounded-xl border border-white/[0.08] bg-white/[0.02] open:bg-white/[0.03]">
+                          <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2 text-[11px] font-medium text-white/55">
+                            <span>Tear-off &amp; package settings</span>
+                            <span className="text-white/40 transition group-open:rotate-180" aria-hidden>▾</span>
+                          </summary>
+                          <div className="space-y-3 border-t border-white/[0.06] px-3 py-3">
+                            <div className="flex items-center justify-between gap-3">
+                              <div>
+                                <div className="text-[11px] font-medium text-white/85">Include tear-off &amp; disposal</div>
+                                <div className="text-[10px] text-white/45">{includeDebrisRemoval ? "Included in estimate total" : "Excluded from estimate total"}</div>
+                              </div>
+                              <button
+                                type="button"
+                                role="switch"
+                                aria-checked={includeDebrisRemoval}
+                                onClick={() => setIncludeDebrisRemoval((v) => !v)}
+                                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border transition ${
+                                  includeDebrisRemoval
+                                    ? "border-emerald-400/40 bg-emerald-500/20"
+                                    : "border-white/[0.10] bg-white/[0.06]"
+                                }`}
+                              >
+                                <span
+                                  className={`inline-block h-4 w-4 rounded-full bg-white shadow transition ${
+                                    includeDebrisRemoval ? "translate-x-6" : "translate-x-1"
+                                  }`}
+                                />
+                              </button>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <label className="text-[10px] font-medium uppercase tracking-wide text-white/45">Removal type</label>
+                                <select
+                                  value={removalType}
+                                  onChange={(e) => setRemovalType(e.target.value as "standard" | "architectural")}
+                                  disabled={!includeDebrisRemoval}
+                                  className="mt-1 w-full rounded-lg border border-white/[0.07] bg-black/15 px-2 py-1.5 text-[12px] text-white outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                  <option value="standard">Standard</option>
+                                  <option value="architectural">Architectural</option>
+                                </select>
+                              </div>
+                              <div>
+                                <label className="text-[10px] font-medium uppercase tracking-wide text-white/45">Disposal $/ton</label>
+                                <input
+                                  value={dumpFeePerTon}
+                                  onChange={(e) => setDumpFeePerTon(e.target.value)}
+                                  inputMode="decimal"
+                                  placeholder="e.g. 80"
+                                  disabled={!includeDebrisRemoval}
+                                  className="mt-1 w-full rounded-lg border border-white/[0.07] bg-black/15 px-2 py-1.5 text-[12px] text-white outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                                />
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-[10px] font-medium uppercase tracking-wide text-white/45">Roofing system</div>
+                              <div className="mt-1 grid grid-cols-3 gap-1.5">
+                                {(["standard","enhanced","premium"] as const).map((option) => {
+                                  const selected = roofingTier === option;
+                                  const label = option === "standard" ? "Core" : option === "enhanced" ? "Enhanced" : "Premium";
+                                  return (
+                                    <button
+                                      key={option}
+                                      type="button"
+                                      onClick={() => setRoofingTier(option)}
+                                      className={`rounded-lg border px-2 py-1.5 text-[11px] font-medium transition ${
+                                        selected
+                                          ? "border-emerald-300/50 bg-emerald-500/[0.18] text-white shadow-[0_0_18px_-8px_rgba(16,185,129,0.45)]"
+                                          : "border-white/[0.08] bg-white/[0.025] text-white/65 hover:bg-white/[0.045]"
+                                      }`}
+                                    >
+                                      {label}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          </div>
+                        </details>
                       </div>
-
-                      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                        <div>
-                          <label className="text-[11px] font-medium uppercase tracking-[0.12em] text-white/42">
-                            Removal type
-                          </label>
-                          <select
-                            value={removalType}
-                            onChange={(e) => setRemovalType(e.target.value as "standard" | "architectural")}
-                            disabled={!includeDebrisRemoval}
-                            className="mt-2 w-full rounded-xl border border-white/[0.07] bg-black/15 px-3 py-2.5 text-sm text-white outline-none disabled:cursor-not-allowed disabled:opacity-50"
-                          >
-                            <option value="standard">Standard</option>
-                            <option value="architectural">Architectural</option>
-                          </select>
-                        </div>
-
-                        <div>
-                          <label className="text-[11px] font-medium uppercase tracking-[0.12em] text-white/42">
-                            Disposal rate ($ / ton)
-                          </label>
-                          <input
-                            value={dumpFeePerTon}
-                            onChange={(e) => setDumpFeePerTon(e.target.value)}
-                            inputMode="decimal"
-                            placeholder="e.g. 80"
-                            disabled={!includeDebrisRemoval}
-                            className="mt-2 w-full rounded-xl border border-white/[0.07] bg-black/15 px-3 py-2.5 text-sm text-white outline-none disabled:cursor-not-allowed disabled:opacity-50"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="mt-3 text-xs text-white/45">
-                        {includeDebrisRemoval
-                          ? "Included in estimate total"
-                          : "Excluded from estimate total"}
-                      </div>
-                    </div>
-
-                    {/* PACKAGE SELECTION */}
-                    <div>
-                      <div className="text-sm font-medium text-white mb-3">
-                        Select roofing system
-                      </div>
-
-                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                        {(["standard","enhanced","premium"] as const).map((option) => {
-                          const selected = roofingTier === option;
-
-                          const label =
-                            option === "standard"
-                              ? "Core"
-                              : option === "enhanced"
-                              ? "Enhanced"
-                              : "Premium";
-
-                          const helper =
-                            option === "standard"
-                              ? "Reliable protection"
-                              : option === "enhanced"
-                              ? "Upgraded coverage"
-                              : "Best presentation";
-
-                          return (
-                            <button
-                              key={option}
-                              type="button"
-                              onClick={() => setRoofingTier(option)}
-                              className={`rounded-2xl border px-4 py-4 text-left transition ${
-                                selected
-                                  ? "border-emerald-300/50 bg-emerald-500/[0.18] text-white shadow-[0_0_24px_-8px_rgba(16,185,129,0.35)]"
-                                  : "border-white/[0.08] bg-white/[0.025] text-white/70 hover:bg-white/[0.045]"
-                              }`}
-                            >
-                              <div className="text-sm font-semibold">{label}</div>
-                              <div className="mt-1 text-xs text-white/50">{helper}</div>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    {/* PROPOSAL STATUS */}
-                    <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4">
-                      <div className="text-[11px] uppercase tracking-[0.14em] text-white/40">
-                        Proposal status
-                      </div>
-
-                      <div className="mt-3 space-y-2 text-sm">
-
-                        <div className="flex items-center gap-2 text-emerald-300">
-                          ✔ <span className="text-white">Scope ready</span>
-                        </div>
-
-                        <div className="flex items-center gap-2 text-emerald-300">
-                          ✔ <span className="text-white">Pricing ready</span>
-                        </div>
-
-                        <div className="flex items-center gap-2 text-emerald-300">
-                          ✔ <span className="text-white">Package selected</span>
-                        </div>
-
-                      </div>
-                    </div>
-
-                  </div>
+                    );
+                  })()}
                 </div>
               </div>
 
-            <div className="mt-12 pt-8 border-t border-white/10">
-              <div className="rounded-3xl border border-white/[0.12] bg-white/[0.03] p-5 sm:p-6">
+            <div className="rounded-2xl border border-blue-400/22 bg-slate-950/45 p-3 shadow-[0_28px_90px_-60px_rgba(59,130,246,0.45),inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-xl sm:p-3.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <span
+                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-blue-300/30 bg-blue-500/15 text-[11px] font-bold tabular-nums text-blue-100"
+                  aria-hidden
+                >
+                  6
+                </span>
+                <h2 className="text-[14px] font-semibold tracking-tight text-white">Delivery</h2>
+                <span className="text-[11px] text-white/45">Preview · Save · Send</span>
 
-                {/* Header */}
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h2 className="text-[16px] font-semibold text-white">
-                      Ready to send
-                    </h2>
-                    <p className="mt-1 text-sm text-white/60">
-                      Review your proposal and deliver it to the customer
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-6 space-y-6">
-
-                  {/* PROPOSAL PREVIEW */}
-                  <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4 flex items-center justify-between">
-                    <div>
-                      <div className="text-sm font-semibold text-white">
-                        Roofing proposal
-                      </div>
-
-                      <div className="text-xs text-white/50 mt-1">
-                        1 page • AI enhanced • Ready to send
-                      </div>
-
-                      <div className="mt-2 flex items-center gap-3 text-[11px] text-white/50">
-                        <span className="text-emerald-300">AI description ready</span>
-
-                        <button
-                          type="button"
-                          onClick={handleRegenerateDescription}
-                          className="hover:text-white transition"
-                        >
-                          Regenerate
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={handleCustomizeDescription}
-                          className="hover:text-white transition"
-                        >
-                          Customize
-                        </button>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={handlePreviewPdf}
-                      disabled={isPreviewingPdf}
-                      className="rounded-full border border-white/[0.12] px-4 py-2 text-sm text-white hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {isPreviewingPdf ? "Opening…" : "Open preview"}
-                    </button>
-                  </div>
-
-                  {/* CONFIRMATION */}
-                  <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4 space-y-2">
-                    <div className="text-sm font-medium text-white">
-                      Everything is ready
-                    </div>
-
-                    <div className="space-y-1 text-sm text-white/70">
-                      <div>✔ Proposal built</div>
-                      <div>✔ Email delivery ready</div>
-                      <div>✔ PDF attached</div>
-                    </div>
-                  </div>
-
-                  {/* DELIVERY */}
-                  <div>
-                    <div className="text-sm font-medium text-white mb-2">
-                      Delivery method
-                    </div>
-
-                    <div className="flex gap-2">
-                      <div
-                        className="flex-1 rounded-xl px-4 py-3 text-sm font-semibold transition bg-blue-500/20 border border-blue-400/40 text-white"
-                        role="status"
-                        aria-label="Selected delivery method: email"
-                      >
-                        Email
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={onDownloadPdf}
-                        className="flex-1 rounded-xl px-4 py-3 text-sm font-semibold transition border border-white/[0.08] text-white/70 hover:bg-white/[0.03]"
-                      >
-                        Download PDF
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* SEND BUTTON */}
+                <div className="ml-auto flex flex-wrap items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={handlePreviewPdf}
+                    disabled={isPreviewingPdf}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-white/[0.10] bg-white/[0.04] px-2.5 py-1.5 text-[12px] font-medium text-white/85 transition hover:bg-white/[0.07] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <span aria-hidden>👁</span>
+                    {isPreviewingPdf ? "Opening…" : "Preview"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onDownloadPdf}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-white/[0.10] bg-white/[0.04] px-2.5 py-1.5 text-[12px] font-medium text-white/85 transition hover:bg-white/[0.07]"
+                  >
+                    <span aria-hidden>⬇</span>
+                    Download PDF
+                  </button>
+                  <motion.button
+                    type="button"
+                    onClick={saveEstimate}
+                    disabled={!canSave || isSaving || isLocked}
+                    className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12px] font-semibold transition disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 ${savedFlash ? "border-emerald-400/45 bg-emerald-500/20 text-emerald-50" : "border-white/[0.10] bg-white/[0.04] text-white/85 hover:bg-white/[0.07]"}`}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    {isSaving ? "Saving…" : savedFlash ? "Saved ✓" : "Save"}
+                  </motion.button>
                   <button
                     type="button"
                     onClick={handleSendEstimate}
                     disabled={!(customerEmail || "").trim() || !(jobAddress1 || "").trim() || isSending || isLocked}
-                    className="w-full rounded-2xl bg-blue-600 py-4 text-base font-semibold text-white shadow-[0_10px_30px_-10px_rgba(59,130,246,0.6)] hover:bg-blue-500 transition disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-blue-400/55 bg-blue-500/[0.85] px-3 py-1.5 text-[12px] font-semibold text-white shadow-[0_0_22px_-8px_rgba(59,130,246,0.7)] transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {isSending ? "Sending…" : sendSuccess ? "Sent ✓" : "Send proposal →"}
                   </button>
-
-                  {sendError ? <div className="text-xs text-red-400">{sendError}</div> : null}
-                  {pdfError ? <p className="text-xs text-red-300/90">{pdfError}</p> : null}
-                  {sendSuccess && !isSending ? (
-                    <p className="text-xs text-blue-300/90">Sent successfully.</p>
-                  ) : null}
-
+                  <details className="group relative">
+                    <summary className="cursor-pointer list-none rounded-lg border border-white/[0.08] bg-white/[0.03] px-2.5 py-1.5 text-[12px] font-medium text-white/65 transition hover:bg-white/[0.05]">
+                      More
+                    </summary>
+                    <div className="absolute right-0 z-20 mt-1.5 flex w-56 flex-col gap-1 rounded-lg border border-white/[0.10] bg-slate-950/95 p-1.5 shadow-xl">
+                      <button type="button" onClick={handleRegenerateDescription} className="rounded-md px-2 py-1.5 text-left text-[12px] text-white/80 hover:bg-white/[0.05]">Regenerate description</button>
+                      <button type="button" onClick={handleCustomizeDescription} className="rounded-md px-2 py-1.5 text-left text-[12px] text-white/80 hover:bg-white/[0.05]">Customize description</button>
+                      <button type="button" onClick={loadExample} className="rounded-md px-2 py-1.5 text-left text-[12px] text-white/80 hover:bg-white/[0.05]">Load example values</button>
+                      <button type="button" onClick={reset} className="rounded-md px-2 py-1.5 text-left text-[12px] text-white/80 hover:bg-white/[0.05]">Reset</button>
+                      <a href="/tools/roofing/saved" className="rounded-md px-2 py-1.5 text-left text-[12px] text-white/80 hover:bg-white/[0.05]">Open Command Center</a>
+                      <label className="mt-1 flex items-center gap-2 rounded-md px-2 py-1.5 text-[11px] text-white/70">
+                        <input
+                          type="checkbox"
+                          checked={saveAsZipDefaults}
+                          onChange={(e) => setSaveAsZipDefaults(e.target.checked)}
+                          className="rounded border-white/20 bg-white/10 text-blue-500 focus:ring-blue-500/50"
+                        />
+                        Save as ZIP defaults
+                      </label>
+                    </div>
+                  </details>
                 </div>
               </div>
-            </div>
 
-            <div className="mt-8 pt-6 border-t border-white/10 space-y-4">
-              <div className="flex flex-wrap items-center gap-3">
-                <motion.button
-                  type="button"
-                  onClick={saveEstimate}
-                  disabled={!canSave || isSaving || isLocked}
-                  className={`rounded-full border px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:shadow-sm transition-all duration-200 ease-out disabled:pointer-events-none disabled:cursor-not-allowed disabled:hover:translate-y-0 ${savedFlash ? "border-emerald-500 bg-emerald-500/90 hover:bg-emerald-500 hover:border-emerald-400" : "border-blue-500 bg-blue-500/90 hover:bg-blue-500 hover:border-blue-400"} ${isSaving ? "opacity-70" : "disabled:opacity-50"}`}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  {isSaving ? "Saving..." : savedFlash ? "Saved ✓" : "Save Estimate"}
-                </motion.button>
-              <motion.button
-                type="button"
-                onClick={loadExample}
-                className="rounded-full border border-blue-500/50 bg-blue-500/20 px-5 py-2.5 text-sm font-semibold text-blue-200 shadow-sm hover:bg-blue-500/30 hover:border-blue-500/70 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:shadow-sm transition-all duration-200 ease-out"
-                whileTap={{ scale: 0.98 }}
-              >
-                Example values
-              </motion.button>
-                <motion.button
-                  type="button"
-                  onClick={reset}
-                  className="rounded-full border border-white/15 bg-white/5 px-5 py-2.5 text-sm font-medium text-slate-300 shadow-sm hover:bg-white/10 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:shadow-sm transition-all duration-200 ease-out"
-                whileTap={{ scale: 0.98 }}
-              >
-                Reset
-              </motion.button>
-              <div className="mt-3 flex items-center gap-3">
-                <a
-                  href="/tools/roofing/saved"
-                  className="text-xs font-semibold text-white/60 hover:text-white"
-                >
-                  Open Command Center
-                </a>
-              </div>
-              {zipClearedToast && (
-                <motion.span
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="text-sm font-medium text-slate-400"
-                  role="status"
-                >
-                  Cleared defaults for {jobZip}
-                </motion.span>
+              {(sendError || pdfError || (sendSuccess && !isSending) || zipClearedToast) && (
+                <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+                  {sendError ? <span className="rounded-md border border-red-400/30 bg-red-500/10 px-2 py-1 text-red-200">{sendError}</span> : null}
+                  {pdfError ? <span className="rounded-md border border-red-400/30 bg-red-500/10 px-2 py-1 text-red-200">{pdfError}</span> : null}
+                  {sendSuccess && !isSending ? <span className="rounded-md border border-blue-400/30 bg-blue-500/10 px-2 py-1 text-blue-200">Sent successfully.</span> : null}
+                  {zipClearedToast ? <span className="rounded-md border border-white/[0.10] bg-white/[0.04] px-2 py-1 text-white/60">Cleared defaults for {jobZip}</span> : null}
+                </div>
               )}
-            </div>
-            <div className="flex flex-wrap items-start gap-3 pt-2">
-              <label className="inline-flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={saveAsZipDefaults}
-                  onChange={(e) => setSaveAsZipDefaults(e.target.checked)}
-                  className="rounded border-white/20 bg-white/10 text-blue-500 focus:ring-blue-500/50"
-                />
-                <span className="text-sm font-medium text-slate-300">Save as ZIP defaults</span>
-              </label>
-              <p className="text-xs text-slate-500">Updates future autofill for this ZIP</p>
             </div>
 
             {/* Send estimate banner */}
@@ -5001,245 +5190,298 @@ Thanks,`;
                 </div>
               </div>
             )}
-            </div>
-          </motion.section>
+          </div>
 
           {/* Sticky contractor outcome panel */}
           <div className="w-full min-w-0">
-            <div className="sticky top-6 space-y-4 xl:space-y-5">
+            <div className="sticky top-4 space-y-3">
 
-              {/* HEADER */}
-              <div className="rounded-[28px] border border-white/[0.08] bg-white/[0.04] p-6 sm:p-7">
-                <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-white/40">
-                  Live Outcome
-                </div>
-                <p className="mt-2 text-sm text-white/60">
-                  Pricing updates as the job packet comes together.
-                </p>
+              {/* HEADER + LIVE OUTCOME (4 METRICS) */}
+              <div className="relative overflow-hidden rounded-2xl border border-cyan-400/25 bg-gradient-to-br from-slate-950/75 via-blue-500/[0.08] to-slate-950/45 p-3.5 shadow-[0_30px_100px_-58px_rgba(34,211,238,0.65),inset_0_1px_0_rgba(255,255,255,0.07)] sm:p-4">
+                <div className="pointer-events-none absolute -right-12 -top-12 h-44 w-44 rounded-full bg-cyan-500/[0.10] blur-3xl" aria-hidden />
+                <div className="pointer-events-none absolute -left-10 bottom-0 h-36 w-36 rounded-full bg-blue-500/[0.06] blur-3xl" aria-hidden />
+                <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/35 to-transparent" aria-hidden />
 
-                {/* HERO PRICE */}
-                <div className="mt-6">
-                  <div className="text-[11px] uppercase tracking-[0.14em] text-white/40">
-                    Customer price
-                  </div>
-                  <div className="mt-2 text-3xl font-semibold tracking-tight text-white tabular-nums">
-                    {animatedPriceDisplay}
+                <div className="relative flex items-center justify-between gap-3">
+                  <div className="text-[13px] font-semibold tracking-tight text-white">Live Outcome</div>
+                  <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-200/85">
+                    <span className="relative flex h-1.5 w-1.5" aria-hidden>
+                      <span className="absolute inset-0 rounded-full bg-emerald-400/60 animate-ping" />
+                      <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_8px_rgba(16,185,129,0.9)]" />
+                    </span>
+                    Live
                   </div>
                 </div>
-              </div>
 
-              {/* PROFIT VISUAL (DONUT) */}
-              <div className="rounded-[28px] border border-white/[0.08] bg-white/[0.035] p-6 sm:p-7">
-
-                <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-white/40">
-                  Profit Snapshot
-                </div>
-
-                {finalShowDash || !Number(finalPrice) ? (
-                  <div className="mt-5 rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-5 text-sm text-white/45">
-                    Enter materials and labor to see your pricing come together.
-                  </div>
-                ) : (
-                  <>
-                    {(() => {
-                      const total = Number(finalPrice) || 0;
-                      const cost = Number(subtotal) || 0;
-                      const profit = Math.max(0, total - cost);
-
-                      const costPct = total > 0 ? cost / total : 0;
-                      const profitPct = total > 0 ? profit / total : 0;
-
-                      const radius = 42;
-                      const circumference = 2 * Math.PI * radius;
-
-                      const costStroke = circumference * costPct;
-                      const profitStroke = circumference * profitPct;
-
-                      return (
-                        <>
-                          <div className="mt-6 flex items-center justify-center">
-                            <div className="relative h-40 w-40">
-                              <svg className="h-full w-full -rotate-90" viewBox="0 0 100 100">
-                                <circle
-                                  cx="50"
-                                  cy="50"
-                                  r={radius}
-                                  stroke="rgba(148,163,184,0.18)"
-                                  strokeWidth="8"
-                                  fill="transparent"
-                                />
-                                <circle
-                                  cx="50"
-                                  cy="50"
-                                  r={radius}
-                                  stroke="rgba(148,163,184,0.50)"
-                                  strokeWidth="8"
-                                  fill="transparent"
-                                  strokeDasharray={`${costStroke} ${circumference}`}
-                                  strokeLinecap="round"
-                                />
-                                <circle
-                                  cx="50"
-                                  cy="50"
-                                  r={radius}
-                                  stroke="rgba(16,185,129,0.98)"
-                                  strokeWidth="8"
-                                  fill="transparent"
-                                  strokeDasharray={`${profitStroke} ${circumference}`}
-                                  strokeDashoffset={-costStroke}
-                                  strokeLinecap="round"
-                                />
-                              </svg>
-
-                              <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                                <div className="text-[10px] uppercase tracking-[0.12em] text-white/40">
-                                  Profit
-                                </div>
-                                <div className="mt-1 text-xl font-semibold text-emerald-300 tabular-nums">
-                                  {formatCurrency(profit)}
-                                </div>
-                                <div className="mt-1 text-[11px] text-white/45">
-                                  on {formatCurrency(total)} total
-                                </div>
-                              </div>
-                            </div>
+                {(() => {
+                  const total = Number(finalPrice) || 0;
+                  const cost = Number(subtotal) || 0;
+                  const profit = Math.max(0, total - cost);
+                  const showLive = !finalShowDash && total > 0;
+                  return (
+                    <div className="relative mt-3">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="rounded-xl border border-cyan-400/22 bg-cyan-500/[0.08] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                          <div className="text-[10px] font-medium text-white/55">Customer Price</div>
+                          <div className="mt-1 text-[20px] font-bold leading-tight tracking-tight text-cyan-300 tabular-nums">
+                            {showLive ? animatedPriceDisplay : "—"}
                           </div>
-
-                          <div className="mt-4 text-center">
-                            <div className="text-[11px] text-white/45">
-                              Profit is distributed across your materials, labor, and disposal.
-                            </div>
+                        </div>
+                        <div className="rounded-xl border border-cyan-400/22 bg-cyan-500/[0.08] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                          <div className="text-[10px] font-medium text-white/55">Job Cost</div>
+                          <div className="mt-1 text-[20px] font-bold leading-tight tracking-tight text-cyan-300 tabular-nums">
+                            {showLive ? formatCurrency(cost) : "—"}
                           </div>
-
-                          <div className="mt-6 grid grid-cols-3 gap-3 text-center">
-                            <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] px-3 py-3">
-                              <div className="text-[10px] uppercase tracking-[0.12em] text-white/40">
-                                Job cost
-                              </div>
-                              <div className="mt-1 text-sm font-semibold text-white/85 tabular-nums">
-                                {formatCurrency(cost)}
-                              </div>
-                            </div>
-
-                            <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.08] px-3 py-3">
-                              <div className="text-[10px] uppercase tracking-[0.12em] text-emerald-200/70">
-                                Profit
-                              </div>
-                              <div className="mt-1 text-sm font-semibold text-emerald-300 tabular-nums">
-                                {formatCurrency(profit)}
-                              </div>
-                            </div>
-
-                            <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] px-3 py-3">
-                              <div className="text-[10px] uppercase tracking-[0.12em] text-white/40">
-                                Margin
-                              </div>
-                              <div className="mt-1 text-sm font-semibold text-white tabular-nums">
-                                {pricingMode === "direct"
-                                  ? "—"
-                                  : `${Math.round(finalMarginNum)}%`}
-                              </div>
-                            </div>
+                        </div>
+                        <div className="rounded-xl border border-emerald-400/22 bg-emerald-500/[0.08] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                          <div className="text-[10px] font-medium text-white/55">Profit</div>
+                          <div className="mt-1 text-[20px] font-bold leading-tight tracking-tight text-emerald-300 tabular-nums">
+                            {showLive ? formatCurrency(profit) : "—"}
                           </div>
-                        </>
-                      );
-                    })()}
-                  </>
-                )}
-              </div>
-
-              <div className="rounded-[28px] border border-white/[0.08] bg-white/[0.035] p-5 sm:p-6">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-white/40">
-                      Job readiness
-                    </div>
-                    <div className="mt-1 text-sm text-white/60">
-                      {jobReadinessReadyCount} of {jobReadinessItems.length} items ready
-                    </div>
-                  </div>
-                  <div className="rounded-full border border-cyan-400/20 bg-cyan-500/[0.08] px-3 py-1 text-xs font-semibold text-cyan-100/85">
-                    {Math.round((jobReadinessReadyCount / jobReadinessItems.length) * 100)}%
-                  </div>
-                </div>
-                <div className="mt-4 space-y-2">
-                  {jobReadinessItems.map((item) => (
-                    <div key={item.label} className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.06] bg-white/[0.025] px-3 py-2">
-                      <span className="text-xs font-medium text-white/70">{item.label}</span>
-                      <span
-                        className={
-                          item.ready
-                            ? "text-[10px] font-semibold uppercase tracking-wide text-cyan-100/80"
-                            : "text-[10px] font-semibold uppercase tracking-wide text-white/38"
-                        }
+                        </div>
+                        <div className="rounded-xl border border-white/[0.10] bg-white/[0.04] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                          <div className="text-[10px] font-medium text-white/55">Margin</div>
+                          <div className="mt-1 text-[20px] font-bold leading-tight tracking-tight text-white tabular-nums">
+                            {pricingMode === "direct"
+                              ? "—"
+                              : showLive
+                                ? `${finalMarginNum.toFixed(1)}%`
+                                : "—"}
+                          </div>
+                        </div>
+                      </div>
+                      <a
+                        href="#deal-control"
+                        className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-cyan-200/75 transition hover:text-cyan-100"
                       >
-                        {item.ready ? "Ready" : "Waiting"}
-                      </span>
+                        View pricing breakdown
+                        <span aria-hidden>›</span>
+                      </a>
                     </div>
-                  ))}
-                </div>
+                  );
+                })()}
               </div>
 
-              {/* COST BREAKDOWN */}
-              <div className="rounded-[28px] border border-white/[0.08] bg-white/[0.03] p-6 sm:p-7">
-                <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-white/40">
-                  Cost breakdown
+              <div className="rounded-2xl border border-white/[0.08] bg-white/[0.035] p-3.5">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-[13px] font-semibold tracking-tight text-white">
+                    Job Readiness
+                  </div>
                 </div>
-
-                <div className="mt-4 space-y-3">
-
-                  <div className="flex items-center justify-between rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
-                    <div className="text-sm text-white/70">Materials</div>
-                    <div className="text-sm font-medium text-white tabular-nums">
-                      {formatCurrency(materialsCost)}
+                {(() => {
+                  const total = jobReadinessItems.length;
+                  const done = jobReadinessReadyCount;
+                  const pct = total > 0 ? done / total : 0;
+                  const radius = 36;
+                  const circumference = 2 * Math.PI * radius;
+                  const dash = circumference * pct;
+                  return (
+                    <div className="mt-2.5 flex items-center gap-3">
+                      <div className="relative h-20 w-20 shrink-0">
+                        <svg className="h-full w-full -rotate-90" viewBox="0 0 100 100" aria-hidden>
+                          <circle
+                            cx="50"
+                            cy="50"
+                            r={radius}
+                            stroke="rgba(148,163,184,0.16)"
+                            strokeWidth="8"
+                            fill="transparent"
+                          />
+                          <circle
+                            cx="50"
+                            cy="50"
+                            r={radius}
+                            stroke="rgba(34,211,238,0.92)"
+                            strokeWidth="8"
+                            fill="transparent"
+                            strokeDasharray={`${dash} ${circumference}`}
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                          <div className="text-[15px] font-bold text-cyan-300 tabular-nums leading-none">
+                            {Math.round(pct * 100)}%
+                          </div>
+                          <div className="mt-0.5 text-[8px] font-semibold uppercase tracking-wide text-white/55">
+                            Ready
+                          </div>
+                        </div>
+                      </div>
+                      <div className="min-w-0 flex-1 space-y-1">
+                        {jobReadinessItems.map((item) => (
+                          <div key={item.label} className="flex items-center gap-2 text-[11px] text-white/80">
+                            <span
+                              className={
+                                item.ready
+                                  ? "flex h-3.5 w-3.5 items-center justify-center rounded-full border border-emerald-300/55 bg-emerald-400/25 text-[8px] text-emerald-50 shadow-[0_0_6px_rgba(16,185,129,0.45)]"
+                                  : "flex h-3.5 w-3.5 items-center justify-center rounded-full border border-white/15 bg-white/[0.04] text-[8px] text-white/45"
+                              }
+                              aria-hidden
+                            >
+                              {item.ready ? "✓" : ""}
+                            </span>
+                            <span className={item.ready ? "" : "text-white/55"}>{item.label}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-
-                  <div className="flex items-center justify-between rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
-                    <div className="text-sm text-white/70">Labor</div>
-                    <div className="text-sm font-medium text-white tabular-nums">
-                      {formatCurrency(laborCostEffective)}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
-                    <div className="text-sm text-white/70">Disposal</div>
-                    <div className="text-sm font-medium text-white tabular-nums">
-                      {formatCurrency(effectiveDebrisRemovalCost)}
-                    </div>
-                  </div>
-
-                </div>
+                  );
+                })()}
               </div>
 
               {/* NEXT ACTION */}
-              <div className="rounded-[28px] border border-white/[0.08] bg-white/[0.03] p-6 sm:p-7">
-                <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-white/40">
-                  Next action
+              {(() => {
+                const allReady = hasCustomerEmail && hasRoofArea && hasPrice && hasAIWording;
+                const headline = !hasCustomerEmail
+                  ? "Add customer email"
+                  : !hasRoofArea
+                    ? "Enter roof size"
+                    : !hasPrice
+                      ? "Complete pricing inputs"
+                      : !hasAIWording
+                        ? "Prepare proposal wording"
+                        : "Ready for proposal review";
+                const detail = !hasCustomerEmail
+                  ? "FieldDive needs an email before the proposal can be sent."
+                  : !hasRoofArea
+                    ? "Roof size unlocks material coverage and pricing readiness."
+                    : !hasPrice
+                      ? "Add materials and labor so FieldDive can complete the live outcome."
+                      : !hasAIWording
+                        ? "Proposal language is the last piece before review."
+                        : "Review the proposal and send when everything looks right.";
+                return (
+                  <div className="relative overflow-hidden rounded-2xl border border-cyan-400/25 bg-gradient-to-br from-cyan-500/[0.12] via-blue-500/[0.07] to-slate-950/45 p-4 shadow-[0_28px_90px_-50px_rgba(34,211,238,0.55),inset_0_1px_0_rgba(255,255,255,0.07)] sm:p-4">
+                    <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-cyan-500/[0.12] blur-3xl" aria-hidden />
+                    <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/35 to-transparent" aria-hidden />
+                    <div className="relative flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <span className="flex h-1.5 w-1.5 rounded-full bg-cyan-300 shadow-[0_0_6px_rgba(34,211,238,0.9)]" aria-hidden />
+                        <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-200/85">Next action</span>
+                      </div>
+                      <span
+                        className={
+                          allReady
+                            ? "rounded-full border border-emerald-400/22 bg-emerald-500/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-emerald-100/85"
+                            : "rounded-full border border-amber-400/22 bg-amber-500/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-amber-100/85"
+                        }
+                      >
+                        {allReady ? "Ready" : "Waiting"}
+                      </span>
+                    </div>
+                    <div className="relative mt-1.5 text-[16px] font-semibold leading-snug text-white">
+                      {headline}
+                    </div>
+                    <p className="relative mt-1 text-[11px] leading-relaxed text-white/65">
+                      {detail}
+                    </p>
+                    <div className="relative mt-3 flex items-center gap-2 rounded-lg border border-cyan-400/30 bg-cyan-500/[0.14] px-3 py-2 text-[12px] font-semibold text-cyan-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                      <span className="flex h-5 w-5 items-center justify-center rounded-md bg-cyan-400/30 text-[12px]" aria-hidden>
+                        →
+                      </span>
+                      <span className="truncate">{allReady ? "Open proposal review" : headline}</span>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* AI OFFICE / ACTIVE TASKS */}
+              <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4 sm:p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-md border border-cyan-400/25 bg-cyan-500/[0.10] text-[9px] font-bold uppercase tracking-wider text-cyan-100/90 shadow-[0_0_10px_rgba(34,211,238,0.3)]" aria-hidden>
+                      AI
+                    </span>
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/55">
+                      AI Office · Active tasks
+                    </div>
+                  </div>
                 </div>
 
-                <div className="mt-3 text-sm font-semibold text-white/85">
-                  {!hasCustomerEmail
-                    ? "Add customer email"
-                    : !hasRoofArea
-                      ? "Enter roof size"
-                      : !hasPrice
-                        ? "Complete pricing inputs"
-                        : !hasAIWording
-                          ? "Prepare proposal wording"
-                          : "Ready for proposal review"}
-                </div>
-                <p className="mt-2 text-xs leading-relaxed text-white/52">
-                  {!hasCustomerEmail
-                    ? "FieldDive needs an email before the proposal can be sent."
-                    : !hasRoofArea
-                      ? "Roof size unlocks material coverage and pricing readiness."
-                      : !hasPrice
-                        ? "Add materials and labor so FieldDive can complete the live outcome."
-                        : !hasAIWording
-                          ? "Proposal language is the last piece before review."
-                          : "Review the proposal and send when everything looks right."}
-                </p>
+                {(() => {
+                  const items = jobReadinessItems;
+                  const completed = items.filter((x) => x.ready);
+                  const pending = items.filter((x) => !x.ready);
+                  const waiting = pending[0];
+                  const upcoming = pending.slice(1);
+                  return (
+                    <div className="mt-3 space-y-3">
+                      <div>
+                        <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.14em]">
+                          <span className="text-emerald-200/80">Completed</span>
+                          <span className="tabular-nums text-white/45">{completed.length}</span>
+                        </div>
+                        <div className="mt-2 space-y-1.5">
+                          {completed.length === 0 && (
+                            <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-[11px] italic text-white/40">
+                              No tasks completed yet.
+                            </div>
+                          )}
+                          {completed.map((item) => (
+                            <div key={item.label} className="flex items-center gap-2 rounded-lg border border-emerald-400/15 bg-emerald-500/[0.05] px-3 py-1.5">
+                              <span className="flex h-4 w-4 items-center justify-center rounded-full border border-emerald-300/45 bg-emerald-400/25 text-[9px] text-emerald-50" aria-hidden>
+                                ✓
+                              </span>
+                              <span className="text-[12px] font-medium text-white/80">{item.label}</span>
+                              <span className="ml-auto text-[9px] font-semibold uppercase tracking-wide text-emerald-100/75">
+                                Prepared
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.14em]">
+                          <span className="text-amber-200/85">Waiting on you</span>
+                          <span className="tabular-nums text-white/45">{waiting ? 1 : 0}</span>
+                        </div>
+                        <div className="mt-2">
+                          {waiting ? (
+                            <div className="flex items-center gap-2 rounded-lg border border-amber-400/22 bg-amber-500/[0.07] px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+                              <span className="flex h-4 w-4 items-center justify-center rounded-full border border-amber-300/55 bg-amber-400/25 text-[9px] text-amber-50" aria-hidden>
+                                !
+                              </span>
+                              <span className="text-[12px] font-semibold text-white/85">{waiting.label}</span>
+                              <span className="ml-auto text-[9px] font-semibold uppercase tracking-wide text-amber-100/85">
+                                Needs input
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-[11px] italic text-white/40">
+                              Nothing waiting on you.
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.14em]">
+                          <span className="text-white/55">Next up</span>
+                          <span className="tabular-nums text-white/45">{upcoming.length}</span>
+                        </div>
+                        <div className="mt-2 space-y-1.5">
+                          {upcoming.length === 0 && (
+                            <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-[11px] italic text-white/40">
+                              Queue is clear.
+                            </div>
+                          )}
+                          {upcoming.map((item) => (
+                            <div key={item.label} className="flex items-center gap-2 rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-1.5">
+                              <span className="flex h-4 w-4 items-center justify-center rounded-full border border-white/15 bg-white/[0.05] text-[9px] text-white/55" aria-hidden>
+                                ·
+                              </span>
+                              <span className="text-[12px] font-medium text-white/65">{item.label}</span>
+                              <span className="ml-auto text-[9px] font-semibold uppercase tracking-wide text-white/40">
+                                Waiting
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
 
             </div>
