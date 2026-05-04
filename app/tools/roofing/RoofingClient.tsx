@@ -10,7 +10,8 @@ import {
   Ruler,
   Package,
   DollarSign,
-  HardHat,
+  Trash2,
+  Triangle,
   TrendingUp,
   Sparkles,
   Info,
@@ -21,7 +22,6 @@ import {
   Image as ImageIcon,
   Mic,
   MessageCircle,
-  Gauge,
   Percent,
   CheckCircle2,
   ArrowRight,
@@ -30,7 +30,6 @@ import {
   Eye,
   Home,
   User,
-  Building2,
   ShieldCheck,
   Camera,
   Download,
@@ -4442,23 +4441,21 @@ Thanks,`;
                   2
                 </span>
                 <h2 className="text-[15px] font-bold tracking-tight text-white sm:text-[17px]">FieldDive Prepared Scope</h2>
-                <span className="text-[12px] text-white/50">FieldDive prepared these scope details from the inputs you provided. Review and edit if needed.</span>
+                <span className="text-[12px] text-white/50">Scope at a glance</span>
                 <span className="ml-auto rounded-full border border-emerald-400/30 bg-emerald-500/14 px-2.5 py-0.5 text-[10px] font-semibold tabular-nums text-emerald-100/95 shadow-[0_0_16px_-6px_rgba(16,185,129,0.55)]">
                   {jobReadinessReadyCount}/{jobReadinessItems.length} prepared
                 </span>
               </div>
               <div className="mt-3 grid grid-cols-2 gap-1.5 sm:grid-cols-3 xl:grid-cols-6">
                 {/* Tile 1 — Roof size */}
-                <div className="group relative flex flex-col rounded-xl border border-emerald-400/28 bg-gradient-to-b from-emerald-500/[0.14] to-emerald-500/[0.07] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_4px_16px_-8px_rgba(16,185,129,0.25)]">
-                  <div className="flex items-center justify-between gap-1">
-                    <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-emerald-200/90">
-                      <Ruler className="h-3.5 w-3.5" aria-hidden />
-                      Roof Size
-                    </div>
+                <div className="group relative flex flex-col rounded-xl border border-emerald-400/28 bg-gradient-to-b from-emerald-500/[0.14] to-emerald-500/[0.07] p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_4px_16px_-8px_rgba(16,185,129,0.25)]">
+                  <div className="flex items-start justify-between gap-2">
+                    <Ruler className="h-[22px] w-[22px] shrink-0 text-emerald-300 drop-shadow-[0_0_10px_rgba(52,211,153,0.35)]" aria-hidden />
                     <a href="#scope-inputs" aria-label="Edit roof size" className="text-white/35 opacity-0 transition group-hover:opacity-100 hover:text-white/75">
                       <Pencil className="h-3 w-3" />
                     </a>
                   </div>
+                  <div className="mt-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-emerald-200/90">Roof Size</div>
                   <div className="mt-2 text-[22px] font-extrabold tabular-nums leading-none text-white">
                     {hasRoofArea ? `${squares.toFixed(1)}` : "—"}
                   </div>
@@ -4466,22 +4463,20 @@ Thanks,`;
                   <div className="mt-2 flex items-center gap-1">
                     <CheckCircle2 className={`h-3 w-3 shrink-0 ${hasRoofArea ? "text-emerald-300" : "text-amber-300/70"}`} aria-hidden />
                     <span className={`text-[9px] font-bold uppercase tracking-wide ${hasRoofArea ? "text-emerald-200/90" : "text-amber-200/80"}`}>
-                      {hasRoofArea ? "Verified" : "Needs input"}
+                      {hasRoofArea ? "Prepared" : "Needs input"}
                     </span>
                   </div>
                 </div>
 
                 {/* Tile 2 — Roof pitch */}
-                <div className="group relative flex flex-col rounded-xl border border-emerald-400/22 bg-gradient-to-b from-emerald-500/[0.11] to-emerald-500/[0.05] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
-                  <div className="flex items-center justify-between gap-1">
-                    <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-emerald-200/90">
-                      <Gauge className="h-3.5 w-3.5" aria-hidden />
-                      Roof Pitch
-                    </div>
+                <div className="group relative flex flex-col rounded-xl border border-emerald-400/22 bg-gradient-to-b from-emerald-500/[0.11] to-emerald-500/[0.05] p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
+                  <div className="flex items-start justify-between gap-2">
+                    <Triangle className="h-[22px] w-[22px] shrink-0 text-emerald-300 drop-shadow-[0_0_10px_rgba(52,211,153,0.32)]" aria-hidden />
                     <a href="#scope-inputs" aria-label="Edit pitch" className="text-white/35 opacity-0 transition group-hover:opacity-100 hover:text-white/75">
                       <Pencil className="h-3 w-3" />
                     </a>
                   </div>
+                  <div className="mt-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-emerald-200/90">Roof Pitch</div>
                   <div className="mt-2 text-[22px] font-extrabold tabular-nums leading-none text-white">
                     {pitch ? pitch : "—"}
                   </div>
@@ -4489,20 +4484,18 @@ Thanks,`;
                   <div className="mt-2 flex items-center gap-1">
                     <CheckCircle2 className={`h-3 w-3 shrink-0 ${pitch ? "text-emerald-300" : "text-white/35"}`} aria-hidden />
                     <span className={`text-[9px] font-bold uppercase tracking-wide ${pitch ? "text-emerald-200/90" : "text-white/55"}`}>
-                      {pitch ? "Verified" : "Waiting"}
+                      {pitch ? "Prepared" : "Waiting"}
                     </span>
                   </div>
                 </div>
 
                 {/* Tile 3 — Stories */}
-                <div className="group relative flex flex-col rounded-xl border border-emerald-400/22 bg-gradient-to-b from-emerald-500/[0.11] to-emerald-500/[0.05] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
-                  <div className="flex items-center justify-between gap-1">
-                    <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-emerald-200/90">
-                      <Building2 className="h-3.5 w-3.5" aria-hidden />
-                      Stories
-                    </div>
+                <div className="group relative flex flex-col rounded-xl border border-emerald-400/22 bg-gradient-to-b from-emerald-500/[0.11] to-emerald-500/[0.05] p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
+                  <div className="flex items-start justify-between gap-2">
+                    <Home className="h-[22px] w-[22px] shrink-0 text-emerald-300 drop-shadow-[0_0_10px_rgba(52,211,153,0.32)]" aria-hidden />
                     <Pencil className="h-3 w-3 text-white/25" aria-hidden />
                   </div>
+                  <div className="mt-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-emerald-200/90">Stories</div>
                   <div className="mt-2 text-[22px] font-extrabold tabular-nums leading-none text-white">—</div>
                   <div className="text-[11px] font-medium text-white/40">stories</div>
                   <div className="mt-2 flex items-center gap-1">
@@ -4512,14 +4505,12 @@ Thanks,`;
                 </div>
 
                 {/* Tile 4 — Tear-off */}
-                <div className="group relative flex flex-col rounded-xl border border-amber-400/28 bg-gradient-to-b from-amber-500/[0.14] to-amber-500/[0.06] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
-                  <div className="flex items-center justify-between gap-1">
-                    <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-amber-200/90">
-                      <HardHat className="h-3.5 w-3.5" aria-hidden />
-                      Tear-off
-                    </div>
+                <div className="group relative flex flex-col rounded-xl border border-amber-400/28 bg-gradient-to-b from-amber-500/[0.14] to-amber-500/[0.06] p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
+                  <div className="flex items-start justify-between gap-2">
+                    <Trash2 className="h-[22px] w-[22px] shrink-0 text-amber-300 drop-shadow-[0_0_10px_rgba(251,191,36,0.32)]" aria-hidden />
                     <Pencil className="h-3 w-3 text-white/25" aria-hidden />
                   </div>
+                  <div className="mt-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-amber-200/90">Tear-off</div>
                   <div className="mt-2 text-[18px] font-extrabold leading-none text-white">
                     {includeDebrisRemoval ? "1 layer" : "—"}
                   </div>
@@ -4527,45 +4518,41 @@ Thanks,`;
                   <div className="mt-2 flex items-center gap-1">
                     <CheckCircle2 className={`h-3 w-3 shrink-0 ${includeDebrisRemoval ? "text-emerald-300" : "text-white/35"}`} aria-hidden />
                     <span className={`text-[9px] font-bold uppercase tracking-wide ${includeDebrisRemoval ? "text-emerald-200/90" : "text-white/50"}`}>
-                      {includeDebrisRemoval ? "Verified" : "Off"}
+                      {includeDebrisRemoval ? "Prepared" : "Off"}
                     </span>
                   </div>
                 </div>
 
                 {/* Tile 5 — Material */}
-                <div className="group relative flex flex-col rounded-xl border border-violet-400/28 bg-gradient-to-b from-violet-500/[0.14] to-violet-500/[0.06] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
-                  <div className="flex items-center justify-between gap-1">
-                    <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-violet-200/90">
-                      <Package className="h-3.5 w-3.5" aria-hidden />
-                      Material
-                    </div>
+                <div className="group relative flex flex-col rounded-xl border border-violet-400/28 bg-gradient-to-b from-violet-500/[0.14] to-violet-500/[0.06] p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
+                  <div className="flex items-start justify-between gap-2">
+                    <Layers className="h-[22px] w-[22px] shrink-0 text-violet-300 drop-shadow-[0_0_10px_rgba(167,139,250,0.32)]" aria-hidden />
                     <Pencil className="h-3 w-3 text-white/25" aria-hidden />
                   </div>
+                  <div className="mt-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-violet-200/90">Material</div>
                   <div className="mt-2 text-[14px] font-extrabold leading-tight text-white">
                     Architectural<br />shingles
                   </div>
                   <div className="mt-2 flex items-center gap-1">
                     <CheckCircle2 className="h-3 w-3 shrink-0 text-emerald-300" aria-hidden />
-                    <span className="text-[9px] font-bold uppercase tracking-wide text-emerald-200/90">Verified</span>
+                    <span className="text-[9px] font-bold uppercase tracking-wide text-emerald-200/90">Prepared</span>
                   </div>
                 </div>
 
                 {/* Tile 6 — Confidence */}
-                <div className="group relative flex flex-col rounded-xl border border-cyan-400/28 bg-gradient-to-b from-cyan-500/[0.14] to-cyan-500/[0.06] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
-                  <div className="flex items-center justify-between gap-1">
-                    <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-cyan-200/90">
-                      <ShieldCheck className="h-3.5 w-3.5" aria-hidden />
-                      Confidence
-                    </div>
+                <div className="group relative flex flex-col rounded-xl border border-cyan-400/28 bg-gradient-to-b from-cyan-500/[0.14] to-cyan-500/[0.06] p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
+                  <div className="flex items-start justify-between gap-2">
+                    <ShieldCheck className="h-[22px] w-[22px] shrink-0 text-cyan-300 drop-shadow-[0_0_10px_rgba(34,211,238,0.32)]" aria-hidden />
                     <Pencil className="h-3 w-3 text-white/25" aria-hidden />
                   </div>
+                  <div className="mt-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-cyan-200/90">Confidence</div>
                   <div className="mt-2 text-[22px] font-extrabold tabular-nums leading-none text-white">
                     {Math.round((jobReadinessReadyCount / Math.max(1, jobReadinessItems.length)) * 100)}%
                   </div>
                   <div className="text-[11px] font-medium text-cyan-100/70">readiness</div>
                   <div className="mt-2 flex items-center gap-1">
                     <CheckCircle2 className="h-3 w-3 shrink-0 text-cyan-300" aria-hidden />
-                    <span className="text-[9px] font-bold uppercase tracking-wide text-cyan-200/90">High</span>
+                    <span className="text-[9px] font-bold uppercase tracking-wide text-cyan-200/90">Readiness</span>
                   </div>
                 </div>
               </div>
