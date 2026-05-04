@@ -4573,64 +4573,90 @@ Thanks,`;
                   >
                     Scope Builder
                   </h2>
-                  <span className="text-[12px] text-white/50">AI recommends the optimal roofing system for this property.</span>
+                  <span className="text-[12px] text-white/50">Confirm the roofing system and included scope.</span>
                 </div>
                 <div className="mt-3 h-px w-full bg-gradient-to-r from-white/[0.10] via-white/[0.05] to-transparent" />
 
                 <div className="mt-3 grid grid-cols-1 gap-2 lg:grid-cols-12">
-                  <div className="rounded-xl border border-cyan-400/25 bg-slate-900/65 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_4px_20px_-8px_rgba(34,211,238,0.20)] lg:col-span-4">
-                    <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-cyan-200/80">Recommended Roofing System</div>
-                    <div className="mt-2.5 flex items-start gap-3">
-                      {/* Shingle visual card */}
+                  <div className="rounded-[18px] border border-cyan-400/30 bg-gradient-to-br from-slate-950/80 via-slate-900/70 to-cyan-950/20 p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_12px_38px_-22px_rgba(34,211,238,0.45)] lg:col-span-4">
+                    <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-200/85">Recommended Roofing System</div>
+                    <div className="mt-3 flex items-center gap-4">
+                      {/* Roofing system visual */}
                       <div
-                        className="relative h-16 w-[4.5rem] shrink-0 overflow-hidden rounded-lg border border-white/[0.14] shadow-[0_4px_16px_-4px_rgba(0,0,0,0.5)]"
-                        style={{
-                          backgroundImage:
-                            "linear-gradient(160deg, rgba(71,85,105,0.95) 0%, rgba(51,65,85,0.98) 40%, rgba(30,41,59,0.99) 100%)",
-                        }}
+                        className="relative h-[5.35rem] w-[6.35rem] shrink-0 overflow-hidden rounded-2xl border border-white/[0.14] bg-slate-950 shadow-[0_14px_34px_-15px_rgba(34,211,238,0.34),inset_0_1px_0_rgba(255,255,255,0.10)]"
                         aria-hidden
                       >
-                        {/* Shingle texture lines */}
-                        <svg viewBox="0 0 72 64" className="absolute inset-0 h-full w-full opacity-85">
-                          {/* Shingle rows */}
-                          {[0, 10, 20, 30, 40, 50].map((y, i) => (
-                            <g key={y}>
-                              <rect x={i % 2 === 0 ? 0 : -9} y={y} width="18" height="10" fill="rgba(51,65,85,0.9)" stroke="rgba(15,23,42,0.5)" strokeWidth="0.4" rx="0.5" />
-                              <rect x={i % 2 === 0 ? 18 : 9} y={y} width="18" height="10" fill="rgba(45,58,75,0.9)" stroke="rgba(15,23,42,0.5)" strokeWidth="0.4" rx="0.5" />
-                              <rect x={i % 2 === 0 ? 36 : 27} y={y} width="18" height="10" fill="rgba(51,65,85,0.9)" stroke="rgba(15,23,42,0.5)" strokeWidth="0.4" rx="0.5" />
-                              <rect x={i % 2 === 0 ? 54 : 45} y={y} width="18" height="10" fill="rgba(45,58,75,0.9)" stroke="rgba(15,23,42,0.5)" strokeWidth="0.4" rx="0.5" />
+                        <div className="absolute inset-0 bg-[linear-gradient(155deg,rgba(71,85,105,1)_0%,rgba(42,56,76,1)_42%,rgba(15,23,42,1)_100%)]" />
+                        <svg viewBox="0 0 112 86" className="absolute inset-0 h-full w-full">
+                          <defs>
+                            <linearGradient id="scopeShingleEdge" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="rgba(226,232,240,0.20)" />
+                              <stop offset="45%" stopColor="rgba(148,163,184,0.08)" />
+                              <stop offset="100%" stopColor="rgba(2,6,23,0.20)" />
+                            </linearGradient>
+                            <filter id="scopeShingleShadow" x="-20%" y="-20%" width="140%" height="140%">
+                              <feDropShadow dx="0" dy="1" stdDeviation="0.6" floodColor="#020617" floodOpacity="0.55" />
+                            </filter>
+                          </defs>
+                          {[0, 11, 22, 33, 44, 55, 66].map((y, row) => (
+                            <g key={`system-shingle-${y}`} filter="url(#scopeShingleShadow)">
+                              {[-18, 0, 18, 36, 54, 72, 90, 108].map((x, col) => {
+                                const offsetX = x + (row % 2 === 0 ? 0 : 9);
+                                const fill =
+                                  col % 3 === 0
+                                    ? "rgba(63,78,100,0.98)"
+                                    : col % 3 === 1
+                                      ? "rgba(48,62,83,0.98)"
+                                      : "rgba(38,51,71,0.98)";
+                                return (
+                                  <g key={`${y}-${x}`}>
+                                    <rect
+                                      x={offsetX}
+                                      y={y}
+                                      width="25"
+                                      height="12"
+                                      rx="1.2"
+                                      fill={fill}
+                                      stroke="rgba(2,6,23,0.58)"
+                                      strokeWidth="0.65"
+                                    />
+                                    <path
+                                      d={`M${offsetX + 2} ${y + 2.2}h21`}
+                                      stroke="rgba(226,232,240,0.12)"
+                                      strokeWidth="0.55"
+                                      strokeLinecap="round"
+                                    />
+                                  </g>
+                                );
+                              })}
                             </g>
                           ))}
-                          <rect x="0" y="0" width="72" height="64" fill="url(#shingleOverlay)" />
-                          <defs>
-                            <linearGradient id="shingleOverlay" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor="rgba(125,211,252,0.12)" />
-                              <stop offset="100%" stopColor="rgba(0,0,0,0.35)" />
-                            </linearGradient>
-                          </defs>
+                          <rect x="0" y="0" width="112" height="86" fill="url(#scopeShingleEdge)" />
                         </svg>
-                        <div className="absolute bottom-1 left-1 right-1 rounded-sm bg-black/50 px-1 py-0.5 text-center text-[7px] font-bold uppercase tracking-wide text-cyan-200/90">
+                        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_26%_16%,rgba(125,211,252,0.16),transparent_30%),linear-gradient(to_bottom,rgba(255,255,255,0.03),transparent_36%,rgba(2,6,23,0.52))]" />
+                        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+                        <div className="absolute bottom-1.5 left-1.5 right-1.5 rounded-lg border border-cyan-300/24 bg-black/68 px-1 py-0.5 text-center text-[7px] font-bold uppercase tracking-wide text-cyan-200/95 shadow-[0_0_14px_rgba(34,211,238,0.20)]">
                           {selectedTierLabel}
                         </div>
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="text-[14px] font-bold leading-tight text-white">
+                        <div className="text-[15px] font-bold leading-tight text-white">
                           {tierConfig[roofingTier].label}
                         </div>
                         <div className="mt-0.5 text-[11px] capitalize text-white/55">
                           Architectural Shingles
                         </div>
-                        <div className="mt-1 text-[10px] text-white/40">Lifetime Limited Warranty</div>
-                        <span className="mt-2 inline-flex rounded-full border border-cyan-400/28 bg-cyan-500/[0.12] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-cyan-100/90">
+                        <div className="mt-1 text-[10.5px] text-white/42">Lifetime limited warranty</div>
+                        <span className="mt-2 inline-flex rounded-full border border-cyan-400/30 bg-cyan-500/[0.14] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-cyan-100/95">
                           {selectedTierLabel} tier
                         </span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="rounded-xl border border-white/[0.10] bg-slate-900/60 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] lg:col-span-5">
-                    <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/60">Included Scope</div>
-                    <div className="mt-2.5 grid grid-cols-1 gap-x-4 gap-y-1.5 sm:grid-cols-2">
+                  <div className="rounded-[18px] border border-white/[0.11] bg-slate-950/50 p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.055)] lg:col-span-5">
+                    <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/62">Included Scope</div>
+                    <div className="mt-3 grid grid-cols-1 gap-x-5 gap-y-2 sm:grid-cols-2">
                       {[
                         ...tierConfig[roofingTier].includes,
                         includeDebrisRemoval ? "Tear-off & disposal (1 layer)" : "Tear-off (not included)",
@@ -4645,14 +4671,14 @@ Thanks,`;
                             <span
                               className={
                                 isReady
-                                  ? "flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-emerald-300/55 bg-emerald-400/25 text-[9px] text-emerald-50 shadow-[0_0_8px_rgba(16,185,129,0.50)]"
+                                  ? "flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full border border-emerald-300/45 bg-emerald-400/18 text-[9px] text-emerald-50 shadow-[0_0_8px_rgba(16,185,129,0.34)]"
                                   : "flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/[0.04] text-[9px] text-white/40"
                               }
                               aria-hidden
                             >
                               {isReady ? "✓" : "·"}
                             </span>
-                            <span className={`capitalize ${isReady ? "text-white/80" : "text-white/45"}`}>{item}</span>
+                            <span className={`capitalize leading-snug ${isReady ? "text-white/82" : "text-white/45"}`}>{item}</span>
                           </div>
                         );
                       })}
@@ -4662,19 +4688,21 @@ Thanks,`;
                   <div className="flex flex-col gap-2 lg:col-span-3">
                     <a
                       href="#scope-inputs"
-                      className="group relative flex items-center justify-between gap-2 overflow-hidden rounded-xl border border-blue-300/40 bg-gradient-to-br from-blue-500/95 via-blue-500/85 to-blue-600/85 px-3.5 py-3 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.20),0_18px_40px_-18px_rgba(59,130,246,0.85)] transition hover:from-blue-400 hover:to-blue-500"
+                      className="group relative flex min-h-[3.75rem] items-center justify-between gap-3 overflow-hidden rounded-xl border border-blue-300/40 bg-gradient-to-br from-blue-500/88 via-blue-600/82 to-blue-700/78 px-3.5 py-3 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_15px_34px_-23px_rgba(59,130,246,0.78)] transition hover:from-blue-400/90 hover:to-blue-600/86"
                     >
-                      <div className="min-w-0">
-                        <div className="text-[13px] font-semibold text-white">Confirm system</div>
-                        <div className="text-[10px] text-blue-50/80">Lock system &amp; continue</div>
-                      </div>
-                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-white/20 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.25)]" aria-hidden>
-                        <ArrowRight className="h-3.5 w-3.5" />
+                      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/42 to-transparent" aria-hidden />
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-white/22 bg-white/13 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.22)]" aria-hidden>
+                        <CheckCircle2 className="h-4 w-4" />
                       </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[13px] font-bold leading-tight text-white">Confirm system</div>
+                        <div className="mt-0.5 text-[10px] leading-tight text-blue-50/78">Lock system &amp; continue</div>
+                      </div>
+                      <ArrowRight className="h-3.5 w-3.5 shrink-0 text-white/58 transition group-hover:translate-x-0.5 group-hover:text-white/78" aria-hidden />
                     </a>
                     <a
                       href="#scope-inputs"
-                      className="flex items-center justify-between gap-2 rounded-xl border border-white/[0.10] bg-white/[0.03] px-3 py-2 text-left transition hover:bg-white/[0.06]"
+                      className="flex items-center justify-between gap-2 rounded-xl border border-white/[0.10] bg-white/[0.035] px-3 py-2.5 text-left transition hover:bg-white/[0.06]"
                     >
                       <div className="flex items-center gap-2 text-[12px] font-medium text-white/85">
                         <Pencil className="h-3.5 w-3.5 text-white/55" aria-hidden />
@@ -4683,7 +4711,7 @@ Thanks,`;
                     </a>
                     <button
                       type="button"
-                      className="flex items-center justify-between gap-2 rounded-xl border border-white/[0.08] bg-white/[0.02] px-3 py-2 text-left text-[12px] font-medium text-white/65 transition hover:bg-white/[0.04]"
+                      className="flex items-center justify-between gap-2 rounded-xl border border-white/[0.08] bg-white/[0.02] px-3 py-2.5 text-left text-[12px] font-medium text-white/65 transition hover:bg-white/[0.04]"
                     >
                       <span className="flex items-center gap-2">
                         <CircleHelp className="h-3.5 w-3.5 text-white/45" aria-hidden />
@@ -4694,7 +4722,7 @@ Thanks,`;
                 </div>
 
                 <details id="scope-inputs" className="group mt-2">
-                  <summary className="flex cursor-pointer list-none items-center justify-end gap-1.5 text-[11px] font-medium text-white/45 transition hover:text-white/75">
+                  <summary className="flex cursor-pointer list-none items-center justify-end gap-1.5 text-[10px] font-medium text-white/32 transition hover:text-white/65">
                     <Pencil className="h-3 w-3" aria-hidden />
                     <span>Edit roof size, waste &amp; bundle cost</span>
                     <ChevronDown className="h-3 w-3 transition-transform group-open:rotate-180" aria-hidden />
