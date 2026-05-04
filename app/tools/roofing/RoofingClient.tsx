@@ -4921,48 +4921,51 @@ Thanks,`;
             </div>
 
               <div className="grid grid-cols-1 gap-2.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-stretch">
-                {/* Deal Control — compact three-zone strip */}
-                <div id="deal-control" className="flex flex-col rounded-xl border border-cyan-400/[0.20] bg-[#0b1526] px-4 py-3 shadow-[0_0_0_1px_rgba(34,211,238,0.06),0_4px_20px_-10px_rgba(34,211,238,0.14),inset_0_1px_0_rgba(255,255,255,0.05)]">
-                  <div className="flex flex-wrap items-center gap-2">
+                {/* Deal Control — mock-aligned three columns */}
+                <div
+                  id="deal-control"
+                  className="flex flex-col rounded-xl border border-cyan-400/[0.20] bg-[#0b1526] px-4 py-3 shadow-[0_0_0_1px_rgba(34,211,238,0.06),0_4px_24px_-12px_rgba(34,211,238,0.18),inset_0_1px_0_rgba(255,255,255,0.05)] sm:px-4 sm:py-3.5"
+                >
+                  <div className="flex flex-wrap items-center gap-2.5">
                     <span
                       className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-emerald-300/40 bg-emerald-500/20 text-[11px] font-bold tabular-nums text-emerald-100 shadow-[0_0_18px_rgba(16,185,129,0.22)]"
                       aria-hidden
                     >
                       4
                     </span>
-                    <h2 className="text-[14px] font-bold tracking-tight text-white sm:text-[15px]">Deal Control</h2>
-                    <span className="hidden text-[11px] text-white/45 sm:inline">Pricing command</span>
+                    <h2 className="text-[15px] font-bold tracking-tight text-white">Deal Control</h2>
+                    <span className="hidden text-[11px] text-white/48 sm:inline">Pricing command</span>
                     <div className="ml-auto shrink-0">
                       <button
                         type="button"
                         onClick={() => setPricingMode(pricingMode === "direct" ? "markup" : "direct")}
-                        className="rounded-full border border-white/[0.10] bg-white/[0.04] px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-white/65 transition hover:bg-white/[0.08]"
+                        className="rounded-md border border-white/[0.10] bg-white/[0.04] px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-white/65 transition hover:bg-white/[0.08]"
                       >
                         {pricingMode === "direct" ? "Direct cost" : "Markup mode"}
                       </button>
                     </div>
                   </div>
 
-                  <div className="mt-2 grid grid-cols-1 items-center gap-3 lg:grid-cols-[minmax(0,1.18fr)_minmax(0,1.4fr)_minmax(0,0.92fr)] lg:gap-0">
-                    {/* Col 1: Target Margin */}
-                    <div className="min-w-0 lg:border-r lg:border-white/[0.08] lg:pr-4">
+                  <div className="mt-3 grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1.72fr)_minmax(0,0.68fr)] lg:gap-0">
+                    {/* Column 1 — Target Margin */}
+                    <div className="min-w-0 lg:border-r lg:border-white/[0.09] lg:pr-4">
                       <div className="flex items-center justify-between gap-2 whitespace-nowrap">
-                        <span className="shrink-0 text-[11px] font-semibold text-white/55">Target Margin</span>
+                        <span className="shrink-0 text-[11px] font-semibold text-white/62">Target Margin</span>
                         <span className="flex shrink-0 items-baseline gap-0.5">
                           <input
                             type="number"
                             value={finalMarginNum}
                             onChange={(e) => setMargin(e.target.value)}
                             disabled={pricingMode === "direct"}
-                            className="w-8 border-0 bg-transparent p-0 text-right text-[13px] font-bold tabular-nums text-emerald-400 focus:outline-none focus:ring-0 disabled:opacity-50 [appearance:textfield]"
+                            className="w-10 border-0 bg-transparent p-0 text-right text-[16px] font-extrabold tabular-nums text-emerald-400 focus:outline-none focus:ring-0 disabled:opacity-50 [appearance:textfield]"
                           />
-                          <span className="text-[12px] font-semibold text-emerald-400/90">%</span>
+                          <span className="text-[13px] font-bold text-emerald-400/90">%</span>
                         </span>
                       </div>
-                      <div className="mt-2">
-                        <div className="relative h-2 rounded-full bg-white/[0.07] shadow-inner">
+                      <div className="mt-3">
+                        <div className="relative h-2.5 rounded-full bg-white/[0.08] shadow-inner">
                           <div
-                            className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-cyan-500 to-blue-400 shadow-[0_0_14px_rgba(34,211,238,0.40)]"
+                            className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-cyan-500 to-blue-400 shadow-[0_0_16px_rgba(34,211,238,0.35)]"
                             style={{
                               width: `${Math.min(100, Math.max(0, ((finalMarginNum || 0) / 50) * 100))}%`,
                             }}
@@ -4970,14 +4973,14 @@ Thanks,`;
                           <span
                             className="absolute top-1/2 -translate-y-1/2 rounded-full border-2 border-cyan-200/80 bg-white shadow-[0_0_14px_rgba(59,130,246,0.65)]"
                             style={{
-                              left: `calc(${Math.min(100, Math.max(0, ((finalMarginNum || 0) / 50) * 100))}% - 0.45rem)`,
-                              width: "0.9rem",
-                              height: "0.9rem",
+                              left: `calc(${Math.min(100, Math.max(0, ((finalMarginNum || 0) / 50) * 100))}% - 0.5rem)`,
+                              width: "1rem",
+                              height: "1rem",
                             }}
                             aria-hidden
                           />
                         </div>
-                        <div className="mt-1 flex justify-between text-[9px] tabular-nums text-white/30">
+                        <div className="mt-1.5 flex justify-between text-[9.5px] font-medium tabular-nums text-white/36">
                           <span>10%</span>
                           <span>20%</span>
                           <span>30%</span>
@@ -4987,14 +4990,14 @@ Thanks,`;
                       </div>
                     </div>
 
-                    {/* Col 2: Pricing Mode */}
-                    <div className="min-w-0 lg:border-r lg:border-white/[0.08] lg:px-4">
-                      <div className="text-[11px] font-semibold text-white/55">Pricing Mode</div>
-                      <div className="mt-1.5 inline-flex w-full rounded-md border border-white/[0.10] bg-black/20 p-0.5 shadow-inner">
+                    {/* Column 2 — Pricing Mode */}
+                    <div className="min-w-0 lg:border-r lg:border-white/[0.09] lg:px-3.5">
+                      <div className="text-[11px] font-semibold text-white/62">Pricing Mode</div>
+                      <div className="mt-2 grid w-full grid-cols-[1.05fr_1.28fr_0.86fr] gap-1.5">
                         {([
-                          { label: "Retail", value: 25 },
-                          { label: "Competitive", value: 20 },
                           { label: "Aggressive", value: 15 },
+                          { label: "Competitive", value: 20 },
+                          { label: "Retail", value: 25 },
                         ] as const).map((option) => {
                           const isActive = pricingMode !== "direct" && finalMarginNum === option.value;
                           return (
@@ -5003,25 +5006,25 @@ Thanks,`;
                               type="button"
                               onClick={() => setMargin(String(option.value))}
                               disabled={pricingMode === "direct"}
-                              className={`min-w-0 flex-1 rounded-[5px] px-1 py-1 text-center transition disabled:opacity-50 disabled:cursor-not-allowed ${
+                              className={`min-h-[2.8rem] min-w-0 w-full rounded-md border px-2 py-1.5 text-center transition disabled:cursor-not-allowed disabled:opacity-50 ${
                                 isActive
-                                  ? "border border-blue-400/55 bg-blue-500/[0.28] text-white shadow-[0_0_14px_-6px_rgba(59,130,246,0.75)]"
-                                  : "border border-transparent text-white/55 hover:bg-white/[0.04] hover:text-white/80"
+                                  ? "border-blue-400/60 bg-blue-500/[0.22] text-white shadow-[0_0_18px_-8px_rgba(59,130,246,0.55)]"
+                                  : "border-white/[0.10] bg-white/[0.03] text-white/58 hover:border-white/[0.14] hover:bg-white/[0.05] hover:text-white/85"
                               }`}
                             >
-                              <span className="block text-[9px] font-semibold leading-tight">{option.label}</span>
-                              <span className="block text-[10px] font-bold tabular-nums leading-tight">{option.value}%</span>
+                              <span className="block text-[10px] font-semibold leading-tight">{option.label}</span>
+                              <span className="mt-0.5 block text-[12px] font-bold tabular-nums leading-tight">{option.value}%</span>
                             </button>
                           );
                         })}
                       </div>
                     </div>
 
-                    {/* Col 3: Labor Adj. */}
-                    <div className="min-w-0 lg:pl-4">
-                      <div className="text-[11px] font-semibold text-white/55">Labor Adj.</div>
-                      <div className="mt-1.5 flex items-center gap-1 rounded-md border border-white/[0.10] bg-black/25 px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
-                        <span className="shrink-0 text-[11px] font-medium text-white/40">$</span>
+                    {/* Column 3 — Labor Adj. */}
+                    <div className="min-w-0 lg:pl-3">
+                      <div className="text-[11px] font-semibold text-white/62">Labor Adj.</div>
+                      <div className="mt-2 flex min-h-[2.8rem] items-center rounded-md border border-white/[0.10] bg-black/20 px-2 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+                        <span className="shrink-0 text-[12px] font-semibold text-white/42">$</span>
                         <input
                           type="number"
                           value={laborCostRaw}
@@ -5036,10 +5039,10 @@ Thanks,`;
                             setLaborCost(safe);
                           }}
                           placeholder="0"
-                          className="min-w-0 flex-1 border-0 bg-transparent p-0 text-left text-[13px] font-semibold tabular-nums text-white/90 placeholder:text-white/30 focus:outline-none focus:ring-0 [appearance:textfield]"
+                          className="min-w-0 flex-1 border-0 bg-transparent p-0 text-right text-[14px] font-bold tabular-nums text-white/90 placeholder:text-white/30 focus:outline-none focus:ring-0 [appearance:textfield]"
                         />
                       </div>
-                      <span className="mt-1 block text-[8px] uppercase tracking-[0.12em] text-white/32">per job override</span>
+                      <span className="mt-1.5 block text-[8.5px] uppercase tracking-[0.12em] text-white/34">per job override</span>
                     </div>
                   </div>
                 </div>
@@ -5167,12 +5170,12 @@ Thanks,`;
                         >
                           {item.ready ? "✓" : ""}
                         </span>
-                        <span className={`min-w-0 truncate text-[10.5px] font-medium leading-snug sm:text-[11px] ${item.ready ? "text-white/88" : "text-white/52"}`}>{item.label}</span>
+                        <span className={`min-w-0 text-[11px] font-medium leading-snug sm:text-[11.5px] ${item.ready ? "text-white/88" : "text-white/55"}`}>{item.label}</span>
                       </div>
                     );
                     return (
                       <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-0">
-                        <div className="flex min-w-0 flex-col sm:w-[48%] sm:max-w-[50%] sm:pr-4">
+                        <div className="flex min-w-0 flex-col sm:w-[43%] sm:max-w-[44%] sm:pr-3">
                           <div className="flex items-center gap-2.5">
                             <div className="h-2 min-h-[8px] flex-1 overflow-hidden rounded-full bg-white/[0.07] shadow-inner">
                               <div
@@ -5196,12 +5199,12 @@ Thanks,`;
 
                         <div className="hidden w-px shrink-0 self-stretch bg-gradient-to-b from-transparent via-white/[0.10] to-transparent sm:block" aria-hidden />
 
-                        <div className="flex min-w-0 flex-1 flex-col justify-center sm:pl-4">
-                          <div className="grid grid-cols-2 gap-x-3 gap-y-1">
-                            <div className="flex min-w-0 flex-col gap-1">
+                        <div className="flex min-w-0 flex-1 flex-col justify-center sm:pl-3">
+                          <div className="grid grid-cols-2 gap-x-5 gap-y-1.5">
+                            <div className="flex min-w-0 flex-col gap-1.5">
                               {leftItems.map(renderItem)}
                             </div>
-                            <div className="flex min-w-0 flex-col gap-1">
+                            <div className="flex min-w-0 flex-col gap-1.5">
                               {rightItems.map(renderItem)}
                             </div>
                           </div>
