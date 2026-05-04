@@ -5511,9 +5511,10 @@ Thanks,`;
                 })()}
               </div>
 
-              <div className="rounded-xl border border-cyan-400/[0.16] bg-[#0a1422] p-3 shadow-[0_0_0_1px_rgba(34,211,238,0.05),inset_0_1px_0_rgba(255,255,255,0.06)] sm:p-3.5">
+              <div className="rounded-xl border border-cyan-400/[0.18] bg-gradient-to-br from-[#0d1929] via-[#0a1422] to-[#07101d] p-3 shadow-[0_0_0_1px_rgba(34,211,238,0.055),inset_0_1px_0_rgba(255,255,255,0.065)] sm:p-3.5">
                 <div className="flex items-center justify-between gap-3">
                   <div className="text-[14px] font-bold tracking-tight text-white">Job Readiness</div>
+                  <span className="text-[9px] font-bold uppercase tracking-[0.14em] text-white/35">Live</span>
                 </div>
                 {(() => {
                   const total = jobReadinessItems.length;
@@ -5523,15 +5524,16 @@ Thanks,`;
                   const circumference = 2 * Math.PI * radius;
                   const dash = circumference * pct;
                   return (
-                    <div className="mt-3 flex items-center gap-3">
-                      <div className="relative h-24 w-24 shrink-0">
+                    <div className="mt-3 grid grid-cols-[6.25rem_auto_minmax(0,1fr)] items-center gap-3.5">
+                      <div className="relative h-[6.25rem] w-[6.25rem] shrink-0">
+                        <div className="absolute inset-2 rounded-full bg-cyan-400/[0.06] blur-xl" aria-hidden />
                         <svg className="h-full w-full -rotate-90" viewBox="0 0 100 100" aria-hidden>
                           <circle
                             cx="50"
                             cy="50"
                             r={radius}
-                            stroke="rgba(148,163,184,0.14)"
-                            strokeWidth="9"
+                            stroke="rgba(148,163,184,0.13)"
+                            strokeWidth="10"
                             fill="transparent"
                           />
                           <circle
@@ -5539,7 +5541,7 @@ Thanks,`;
                             cy="50"
                             r={radius}
                             stroke="rgba(34,211,238,0.95)"
-                            strokeWidth="9"
+                            strokeWidth="10"
                             fill="transparent"
                             strokeDasharray={`${dash} ${circumference}`}
                             strokeLinecap="round"
@@ -5547,28 +5549,29 @@ Thanks,`;
                           />
                         </svg>
                         <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                          <div className="text-[18px] font-extrabold text-cyan-300 tabular-nums leading-none">
+                          <div className="text-[19px] font-extrabold text-cyan-300 tabular-nums leading-none">
                             {Math.round(pct * 100)}%
                           </div>
-                          <div className="mt-0.5 text-[9px] font-bold uppercase tracking-wide text-white/55">
+                          <div className="mt-0.5 text-[9px] font-bold uppercase tracking-wide text-white/58">
                             Ready
                           </div>
                         </div>
                       </div>
-                      <div className="min-w-0 flex-1 space-y-1.5">
+                      <div className="h-[5.25rem] w-px shrink-0 bg-gradient-to-b from-transparent via-white/[0.12] to-transparent" aria-hidden />
+                      <div className="min-w-0 space-y-1.5">
                         {jobReadinessItems.map((item) => (
-                          <div key={item.label} className="flex items-center gap-2 text-[11.5px]">
+                          <div key={item.label} className="flex items-center gap-2 rounded-lg px-1 py-0.5 text-[11.5px]">
                             <span
                               className={
                                 item.ready
-                                  ? "flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-emerald-300/55 bg-emerald-400/25 text-[9px] text-emerald-50 shadow-[0_0_8px_rgba(16,185,129,0.50)]"
-                                  : "flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/[0.04] text-[9px] text-white/45"
+                                  ? "flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full border border-emerald-300/55 bg-emerald-400/24 text-[9px] text-emerald-50 shadow-[0_0_8px_rgba(16,185,129,0.42)]"
+                                  : "flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full border border-white/16 bg-white/[0.04] text-[9px] text-white/45"
                               }
                               aria-hidden
                             >
                               {item.ready ? "✓" : ""}
                             </span>
-                            <span className={item.ready ? "text-white/85" : "text-white/50"}>{item.label}</span>
+                            <span className={`min-w-0 truncate ${item.ready ? "text-white/88" : "text-white/52"}`}>{item.label}</span>
                           </div>
                         ))}
                       </div>
