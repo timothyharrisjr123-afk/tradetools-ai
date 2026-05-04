@@ -5627,11 +5627,13 @@ Thanks,`;
                       </div>
                       <button
                         type="button"
-                        className="flex shrink-0 flex-col items-center justify-center gap-1.5 rounded-xl border border-blue-300/50 bg-gradient-to-br from-blue-500 to-blue-600 px-4 py-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.22),0_0_0_1px_rgba(59,130,246,0.45),0_12px_40px_-12px_rgba(59,130,246,0.80)] transition hover:from-blue-400 hover:to-blue-500"
+                        className="group flex min-h-[3.1rem] min-w-[7.6rem] shrink-0 items-center justify-between gap-3 rounded-xl border border-blue-300/48 bg-gradient-to-br from-blue-500/95 via-blue-600/90 to-blue-700/86 px-3.5 py-2.5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.22),0_0_0_1px_rgba(59,130,246,0.34),0_14px_36px_-18px_rgba(59,130,246,0.82)] transition hover:from-blue-400 hover:to-blue-600"
                         aria-label={allReady ? "Open proposal review" : "Let's go"}
                       >
-                        <ArrowRight className="h-5 w-5 text-white" aria-hidden />
-                        <span className="text-[10px] font-bold text-white/90">{allReady ? "Review" : "Go"}</span>
+                        <span className="text-[12px] font-bold text-white">{allReady ? "Review" : "Let's go"}</span>
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white/15 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.22)]">
+                          <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" aria-hidden />
+                        </span>
                       </button>
                     </div>
                   </div>
