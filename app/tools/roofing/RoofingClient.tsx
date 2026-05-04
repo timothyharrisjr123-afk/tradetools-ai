@@ -3960,7 +3960,7 @@ Thanks,`;
                 <span className="text-[12px] text-white/50">Customer + property</span>
               </div>
 
-              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.65fr)]">
+              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,0.86fr)_minmax(0,0.86fr)_minmax(0,2.15fr)]">
                 <div className="flex flex-wrap items-center gap-1.5 sm:col-span-2 lg:col-span-2">
                   <button
                     type="button"
@@ -3998,7 +3998,7 @@ Thanks,`;
                     Customer message
                   </button>
                 </div>
-                  <div className="min-h-[7.45rem] rounded-xl border border-white/[0.10] bg-slate-950/45 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                  <div className="min-h-[7.05rem] rounded-xl border border-white/[0.10] bg-slate-950/45 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
                     <div className="flex items-center gap-1.5 text-[10.5px] font-medium uppercase tracking-wide text-white/55">
                       <User className="h-3 w-3 text-white/55" aria-hidden />
                       Customer
@@ -4013,7 +4013,7 @@ Thanks,`;
                       {(customerPhone || "").trim() ? customerPhone : "Phone optional"}
                     </p>
                   </div>
-                  <div className="min-h-[7.45rem] rounded-xl border border-white/[0.10] bg-slate-950/45 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                  <div className="min-h-[7.05rem] rounded-xl border border-white/[0.10] bg-slate-950/45 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
                     <div className="flex items-center gap-1.5 text-[10.5px] font-medium uppercase tracking-wide text-white/55">
                       <Home className="h-3 w-3 text-white/55" aria-hidden />
                       Property
@@ -4036,7 +4036,7 @@ Thanks,`;
                     )}
                   </div>
                 <div
-                  className="relative overflow-hidden rounded-xl border border-cyan-400/35 bg-slate-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_0_0_1px_rgba(34,211,238,0.08),0_24px_80px_-40px_rgba(34,211,238,0.55)] sm:col-span-2 lg:col-start-3 lg:row-span-2 lg:row-start-1"
+                  className="relative overflow-hidden rounded-[18px] border border-cyan-400/40 bg-slate-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_0_0_1px_rgba(34,211,238,0.10),0_28px_96px_-42px_rgba(34,211,238,0.72)] sm:col-span-2 lg:col-start-3 lg:row-span-2 lg:row-start-1"
                 >
                   {/* Sky / background */}
                   <div className="pointer-events-none absolute inset-0" aria-hidden style={{background:"linear-gradient(180deg, #1a2d4a 0%, #1e3a5f 22%, #0e1f35 58%, #060d1a 100%)"}}>
@@ -4049,7 +4049,7 @@ Thanks,`;
 
                   {/* Detailed house SVG */}
                   <svg
-                    className="pointer-events-none absolute inset-x-0 bottom-0 h-[78%] w-full"
+                    className="pointer-events-none absolute inset-x-0 bottom-0 h-[86%] w-full scale-[1.06]"
                     viewBox="0 0 500 230"
                     preserveAspectRatio="xMidYMax meet"
                     aria-hidden
@@ -4179,10 +4179,11 @@ Thanks,`;
                   </svg>
 
                   {/* Atmospheric overlay for depth */}
-                  <div className="pointer-events-none absolute inset-0" aria-hidden style={{background:"linear-gradient(to bottom, transparent 30%, rgba(6,13,26,0.25) 70%, rgba(6,13,26,0.60) 100%)"}} />
+                  <div className="pointer-events-none absolute inset-0" aria-hidden style={{background:"linear-gradient(to bottom, rgba(2,6,23,0.06) 0%, transparent 28%, rgba(6,13,26,0.18) 64%, rgba(6,13,26,0.68) 100%)"}} />
+                  <div className="pointer-events-none absolute inset-0 rounded-[18px] ring-1 ring-inset ring-white/[0.06]" aria-hidden />
 
                   {/* Content layer */}
-                  <div className="relative flex h-full min-h-[14rem] flex-col justify-between p-4 sm:p-4.5">
+                  <div className="relative flex h-full min-h-[15.75rem] flex-col justify-between p-4 sm:p-5">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-300/90">Property Preview</div>
@@ -4193,7 +4194,7 @@ Thanks,`;
                           {[jobCity, jobState, jobZip].filter(Boolean).join(", ") || "Location pending"}
                         </div>
                       </div>
-                      <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-white/[0.20] bg-black/55 backdrop-blur-md px-2.5 py-1 text-[10px] font-semibold text-white shadow-[0_4px_20px_rgba(0,0,0,0.45)]">
+                      <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-cyan-300/30 bg-black/60 backdrop-blur-md px-2.5 py-1 text-[10px] font-semibold text-white shadow-[0_4px_20px_rgba(0,0,0,0.45)]">
                         <Camera className="h-3 w-3 text-cyan-300" aria-hidden />
                         Add Photos
                       </span>
