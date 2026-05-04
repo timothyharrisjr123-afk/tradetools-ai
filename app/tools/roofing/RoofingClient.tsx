@@ -3689,19 +3689,19 @@ Thanks,`;
           />
         ) : (
           <>
-        <div className="px-4 pt-7 pb-6 sm:px-6 sm:pt-8 lg:px-8">
+        <div className="px-4 pt-6 pb-6 sm:px-6 sm:pt-7 lg:px-8">
         <div className="mx-auto max-w-[1800px] overflow-hidden rounded-2xl border border-cyan-400/[0.14] bg-[#07111f]/96 shadow-[0_0_0_1px_rgba(255,255,255,0.035),0_28px_90px_-62px_rgba(34,211,238,0.55)]">
           <motion.nav
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
-            className="flex min-h-[72px] items-stretch gap-0 border-b border-cyan-400/[0.12] bg-[#07111f]/96 shadow-[0_1px_0_rgba(255,255,255,0.045)] backdrop-blur-xl"
+            className="flex min-h-[66px] items-stretch gap-0 border-b border-cyan-400/[0.12] bg-[#07111f]/96 shadow-[0_1px_0_rgba(255,255,255,0.045)] backdrop-blur-xl"
             aria-label="FieldDive workspace"
           >
             {/* Logo block */}
             <Link
               href="/tools"
-              className="group flex shrink-0 items-center gap-3.5 border-r border-cyan-400/[0.13] px-7 py-3 transition hover:bg-white/[0.035]"
+              className="group flex shrink-0 items-center gap-3.5 border-r border-cyan-400/[0.13] px-6 py-3 transition hover:bg-white/[0.035]"
             >
               <div className="relative flex h-10 w-10 shrink-0 items-center justify-center" aria-hidden>
                 <span className="absolute left-0 top-0 h-3.5 w-7 rounded-[7px] bg-gradient-to-r from-sky-400 to-blue-500 shadow-[0_0_18px_rgba(56,189,248,0.70)]" />
@@ -3710,7 +3710,7 @@ Thanks,`;
                 <span className="absolute left-[18px] top-[13px] h-3.5 w-3.5 rounded-[7px] bg-gradient-to-r from-sky-400 to-cyan-400 shadow-[0_0_14px_rgba(34,211,238,0.55)]" />
               </div>
               <div className="hidden flex-col leading-none sm:flex">
-                <span className="text-[25px] font-extrabold tracking-[-0.045em] text-white">FieldDive</span>
+                <span className="text-[23px] font-extrabold tracking-[-0.045em] text-white">FieldDive</span>
               </div>
             </Link>
 
@@ -3718,7 +3718,7 @@ Thanks,`;
             <div className="flex flex-1 items-center gap-0 px-4">
               <Link
                 href="/tools/roofing"
-                className="relative flex min-h-[58px] items-center gap-3 rounded-t-xl border border-blue-300/45 border-b-blue-400/70 bg-gradient-to-b from-slate-800/82 via-blue-950/42 to-blue-700/28 px-7 text-[15px] font-bold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_18px_42px_-20px_rgba(59,130,246,0.95)]"
+                className="relative flex min-h-[52px] items-center gap-3 rounded-t-xl border border-blue-300/45 border-b-blue-400/70 bg-gradient-to-b from-slate-800/82 via-blue-950/42 to-blue-700/28 px-6 text-[14px] font-bold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_18px_42px_-20px_rgba(59,130,246,0.95)]"
               >
                 <span className="pointer-events-none absolute inset-x-0 bottom-[-1px] h-[3px] rounded-full bg-gradient-to-r from-transparent via-blue-400 to-transparent shadow-[0_0_16px_rgba(59,130,246,1)]" aria-hidden />
                 <ClipboardList className="h-5.5 w-5.5 shrink-0 text-blue-100 drop-shadow-[0_0_10px_rgba(147,197,253,0.65)]" aria-hidden />
@@ -3727,7 +3727,7 @@ Thanks,`;
               <span className="mx-3 hidden h-8 w-px bg-white/[0.10] lg:block" aria-hidden />
               <Link
                 href="/tools/roofing/saved"
-                className="flex min-h-[58px] items-center gap-3 rounded-xl px-5 text-[15px] font-semibold text-white/62 transition hover:bg-white/[0.045] hover:text-white"
+                className="flex min-h-[52px] items-center gap-3 rounded-xl px-5 text-[14px] font-semibold text-white/62 transition hover:bg-white/[0.045] hover:text-white"
               >
                 <ShieldCheck className="h-5.5 w-5.5 shrink-0 text-white/62" aria-hidden />
                 <span className="hidden xl:inline">Command Center</span>
@@ -3736,7 +3736,7 @@ Thanks,`;
               <span className="mx-3 hidden h-8 w-px bg-white/[0.10] xl:block" aria-hidden />
               <Link
                 href="/tools/roofing/ai"
-                className="flex min-h-[58px] items-center gap-3 rounded-xl px-5 text-[15px] font-semibold text-white/62 transition hover:bg-white/[0.045] hover:text-white"
+                className="flex min-h-[52px] items-center gap-3 rounded-xl px-5 text-[14px] font-semibold text-white/62 transition hover:bg-white/[0.045] hover:text-white"
               >
                 <Package className="h-5.5 w-5.5 shrink-0 text-white/62" aria-hidden />
                 AI Library
@@ -3744,7 +3744,7 @@ Thanks,`;
               <span className="mx-3 hidden h-8 w-px bg-white/[0.10] xl:block" aria-hidden />
               <Link
                 href="/tools/settings"
-                className="flex min-h-[58px] items-center gap-3 rounded-xl px-5 text-[15px] font-semibold text-white/62 transition hover:bg-white/[0.045] hover:text-white"
+                className="flex min-h-[52px] items-center gap-3 rounded-xl px-5 text-[14px] font-semibold text-white/62 transition hover:bg-white/[0.045] hover:text-white"
               >
                 <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5" aria-hidden><path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                 Settings
@@ -3836,7 +3836,7 @@ Thanks,`;
           )}
 
         <div className="px-3 pt-3 sm:px-4 sm:pt-4 xl:px-5 2xl:px-6">
-        <div className="relative overflow-hidden rounded-2xl border border-cyan-400/[0.22] bg-[#0b1526] px-5 py-4 shadow-[0_0_0_1px_rgba(34,211,238,0.06),0_18px_60px_-34px_rgba(34,211,238,0.45),inset_0_1px_0_rgba(255,255,255,0.07)] sm:px-6 sm:py-5 xl:px-7">
+        <div className="relative overflow-hidden rounded-2xl border border-cyan-400/[0.22] bg-[#0b1526] px-5 py-3.5 shadow-[0_0_0_1px_rgba(34,211,238,0.06),0_18px_60px_-34px_rgba(34,211,238,0.45),inset_0_1px_0_rgba(255,255,255,0.07)] sm:px-6 sm:py-4 xl:px-7">
           <div className="pointer-events-none absolute inset-0" aria-hidden>
             <div className="absolute -left-24 top-1/2 h-80 w-80 -translate-y-1/2 rounded-full bg-cyan-500/[0.16] blur-[72px]" />
             <div className="absolute right-0 top-0 h-52 w-[34rem] bg-blue-500/[0.09] blur-[72px]" />
@@ -3845,7 +3845,7 @@ Thanks,`;
 
           <div className="relative flex items-center gap-7">
             <div className="flex shrink-0 items-center gap-5">
-              <div className="relative flex h-[86px] w-[86px] shrink-0 items-center justify-center" aria-hidden>
+              <div className="relative flex h-[76px] w-[76px] shrink-0 items-center justify-center" aria-hidden>
                 <span className="absolute -inset-4 rounded-full bg-cyan-400/[0.20] blur-2xl animate-pulse" />
                 <span className="absolute -inset-2 rounded-full bg-cyan-400/[0.10] blur-xl" />
                 <span className="absolute -inset-2 rounded-full border border-cyan-300/18" />
@@ -3853,15 +3853,15 @@ Thanks,`;
                 <span className="absolute inset-0.5 rounded-full bg-gradient-to-br from-cyan-300/70 via-blue-500/45 to-slate-950/85 shadow-[inset_0_0_36px_rgba(165,243,252,0.60),0_0_44px_rgba(34,211,238,0.80)]" />
                 <span className="absolute inset-3 rounded-full bg-[radial-gradient(circle_at_30%_25%,rgba(186,230,253,1),rgba(34,211,238,0.35)_55%,transparent_78%)]" />
                 <span className="absolute inset-5 rounded-full bg-cyan-50/13 blur-[3px]" />
-                <span className="relative text-[14px] font-extrabold uppercase tracking-widest text-cyan-50 drop-shadow-[0_0_12px_rgba(165,243,252,0.98)]">AI</span>
+                <span className="relative text-[13px] font-extrabold uppercase tracking-widest text-cyan-50 drop-shadow-[0_0_12px_rgba(165,243,252,0.98)]">AI</span>
               </div>
               <div className="min-w-0">
-                <div className="text-[22px] font-extrabold leading-tight tracking-[-0.025em] text-white sm:text-[25px]">FieldDive is preparing this job</div>
-                <div className="mt-2 max-w-[35rem] text-[13px] leading-snug text-white/60">AI is assembling the job packet and proposal path. You verify what matters.</div>
+                <div className="text-[21px] font-extrabold leading-tight tracking-[-0.025em] text-white sm:text-[24px]">FieldDive is preparing this job</div>
+                <div className="mt-1.5 max-w-[35rem] text-[12.5px] leading-snug text-white/60">AI is assembling the job packet and proposal path. You verify what matters.</div>
               </div>
             </div>
 
-            <span className="hidden h-16 w-px bg-gradient-to-b from-transparent via-white/20 to-transparent lg:block" aria-hidden />
+            <span className="hidden h-14 w-px bg-gradient-to-b from-transparent via-white/20 to-transparent lg:block" aria-hidden />
 
             <div className="min-w-0 flex-1">
               <ol
@@ -3898,7 +3898,7 @@ Thanks,`;
                     <li key={item.label} className="relative flex flex-col items-center" role="listitem">
                       {!isFirst && (
                         <span
-                          className={`pointer-events-none absolute right-1/2 top-[22px] h-[3px] w-full ${
+                          className={`pointer-events-none absolute right-1/2 top-[19px] h-[2px] w-full ${
                             prevReady ? "bg-gradient-to-r from-emerald-500/82 to-emerald-400/66 shadow-[0_0_13px_rgba(16,185,129,0.75)]" : "bg-white/[0.12]"
                           }`}
                           aria-hidden
@@ -3906,26 +3906,26 @@ Thanks,`;
                       )}
                       {!isLast && (
                         <span
-                          className={`pointer-events-none absolute left-1/2 top-[22px] h-[3px] w-full ${
+                          className={`pointer-events-none absolute left-1/2 top-[19px] h-[2px] w-full ${
                             item.ready ? "bg-gradient-to-r from-emerald-400/66 to-emerald-500/82 shadow-[0_0_13px_rgba(16,185,129,0.75)]" : isInProgress ? "bg-gradient-to-r from-cyan-400/58 to-white/12 shadow-[0_0_12px_rgba(34,211,238,0.55)]" : "bg-white/[0.12]"
                           }`}
                           aria-hidden
                         />
                       )}
                       <span
-                        className={`relative z-10 flex h-11 w-11 items-center justify-center rounded-full border-2 text-[15px] font-bold tabular-nums ${nodeStateClass}`}
+                        className={`relative z-10 flex h-9.5 w-9.5 items-center justify-center rounded-full border-2 text-[13px] font-bold tabular-nums ${nodeStateClass}`}
                         aria-hidden
                       >
                         {item.ready ? "✓" : idx + 1}
                       </span>
-                      <span className={`mt-2 text-center text-[12px] font-bold leading-tight ${labelTone}`}>
+                      <span className={`mt-2 text-center text-[11px] font-bold leading-tight ${labelTone}`}>
                         {timelineLabels[idx] ?? item.label}
                       </span>
-                      <span className={`text-center text-[10.5px] font-medium leading-tight ${statusTone}`}>
+                      <span className={`text-center text-[10px] font-medium leading-tight ${statusTone}`}>
                         {status}
                       </span>
                       {timelineSubLabels[idx] ? (
-                        <span className="text-center text-[10px] font-medium leading-tight text-white/45">
+                        <span className="text-center text-[9.5px] font-medium leading-tight text-white/45">
                           {timelineSubLabels[idx]}
                         </span>
                       ) : null}
