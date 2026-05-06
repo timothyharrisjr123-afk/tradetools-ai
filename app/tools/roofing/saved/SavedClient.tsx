@@ -3,7 +3,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import RoofingTabs from "@/app/tools/roofing/RoofingTabs";
+import { ShieldCheck, ClipboardList, Package, Search, Bell, ChevronDown } from "lucide-react";
+import { SignOutButton } from "@/app/components/auth/SignOutButton";
 import {
   getSavedEstimates,
   getSavedEstimateById,
@@ -4046,7 +4047,26 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
     n.toLocaleString(undefined, { style: "currency", currency: "USD" });
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-6 py-10 text-white">
+    <main
+      className="min-h-screen relative pb-20 text-white"
+      style={{
+        backgroundColor: "#0b1120",
+        backgroundImage: `
+          radial-gradient(ellipse at 60% 0%, rgba(34,211,238,0.06) 0%, transparent 55%),
+          radial-gradient(ellipse at 0% 80%, rgba(59,130,246,0.05) 0%, transparent 50%),
+          repeating-linear-gradient(0deg, transparent 0px, transparent 3px, rgba(255,255,255,0.0035) 3px, rgba(255,255,255,0.0035) 4px),
+          repeating-linear-gradient(90deg, transparent 0px, transparent 3px, rgba(255,255,255,0.0035) 3px, rgba(255,255,255,0.0035) 4px)
+        `,
+        backgroundSize: "100% 100%, 100% 100%, 72px 72px, 72px 72px",
+      }}
+    >
+      {/* Fixed ambient blur layers */}
+      <div className="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden>
+        <div className="absolute top-[40%] right-0 w-[90%] max-w-2xl h-[75%] bg-blue-600/[0.035] blur-[140px] rounded-full -translate-y-1/2" />
+        <div className="absolute top-0 left-0 w-full h-96 bg-slate-600/12 blur-[100px]" />
+      </div>
+
+      {/* Toast */}
       {toast !== null && (
         <div
           role="status"
@@ -4060,31 +4080,128 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
       {flashBanner && (
         <div
           role="status"
-          className="mx-auto max-w-xl mb-4 rounded-2xl border border-emerald-400/30 bg-emerald-500/15 px-4 py-3 text-center text-sm font-medium text-emerald-200"
+          className="fixed top-16 left-1/2 z-40 -translate-x-1/2 max-w-xl rounded-2xl border border-emerald-400/30 bg-emerald-500/15 px-4 py-3 text-center text-sm font-medium text-emerald-200 shadow-lg backdrop-blur-md"
         >
           {flashBanner}
         </div>
       )}
-      <div className="mx-auto max-w-7xl space-y-8 lg:space-y-10">
-        <RoofingTabs active="saved" />
-        <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5 shadow-[0_10px_30px_rgba(0,0,0,0.35)] backdrop-blur-xl">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div className="min-w-0">
+
+      {/* ── FieldDive OS App Frame ── */}
+      <div className="px-4 pt-6 pb-10 sm:px-6 sm:pt-7 lg:px-8">
+        <div className="mx-auto max-w-[1800px] overflow-hidden rounded-2xl border border-cyan-400/[0.14] bg-[#07111f]/96 shadow-[0_0_0_1px_rgba(255,255,255,0.035),0_28px_90px_-62px_rgba(34,211,238,0.55)]">
+
+          {/* ── App Shell Nav — Command Center active ── */}
+          <nav
+            className="flex min-h-[66px] items-stretch gap-0 border-b border-cyan-400/[0.12] bg-[#07111f]/96 shadow-[0_1px_0_rgba(255,255,255,0.045)] backdrop-blur-xl"
+            aria-label="FieldDive workspace"
+          >
+            {/* Logo */}
+            <Link
+              href="/tools"
+              className="group flex shrink-0 items-center gap-3.5 border-r border-cyan-400/[0.13] px-6 py-3 transition hover:bg-white/[0.035]"
+            >
+              <div className="relative flex h-10 w-10 shrink-0 items-center justify-center" aria-hidden>
+                <span className="absolute left-0 top-0 h-3.5 w-7 rounded-[7px] bg-gradient-to-r from-sky-400 to-blue-500 shadow-[0_0_18px_rgba(56,189,248,0.70)]" />
+                <span className="absolute left-0 top-[13px] h-3.5 w-5.5 rounded-[7px] bg-gradient-to-r from-sky-500 to-blue-600 shadow-[0_0_14px_rgba(37,99,235,0.55)]" />
+                <span className="absolute left-0 top-[26px] h-3.5 w-3.5 rounded-[7px] bg-gradient-to-r from-sky-500 to-blue-600 shadow-[0_0_12px_rgba(37,99,235,0.45)]" />
+                <span className="absolute left-[18px] top-[13px] h-3.5 w-3.5 rounded-[7px] bg-gradient-to-r from-sky-400 to-cyan-400 shadow-[0_0_14px_rgba(34,211,238,0.55)]" />
+              </div>
+              <div className="hidden flex-col leading-none sm:flex">
+                <span className="text-[23px] font-extrabold tracking-[-0.045em] text-white">FieldDive</span>
+              </div>
+            </Link>
+
+            {/* Nav tabs */}
+            <div className="flex flex-1 items-center gap-0 px-4">
+              {/* New Job — inactive */}
               <a
                 href="/tools/roofing"
-                className="inline-flex items-center text-[11px] text-white/50 hover:text-white/70"
                 onClick={(e) => {
                   if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
                   e.preventDefault();
                   window.location.assign("/tools/roofing");
                 }}
+                className="flex min-h-[52px] items-center gap-3 rounded-xl px-5 text-[14px] font-semibold text-white/62 transition hover:bg-white/[0.045] hover:text-white"
               >
-                ← New roofing job
+                <ClipboardList className="h-5 w-5 shrink-0 text-white/62" aria-hidden />
+                <span className="hidden lg:inline">New Job</span>
               </a>
+              <span className="mx-3 hidden h-8 w-px bg-white/[0.10] lg:block" aria-hidden />
+              {/* Command Center — ACTIVE */}
+              <div className="relative flex min-h-[52px] cursor-default items-center gap-3 rounded-t-xl border border-cyan-300/45 border-b-transparent bg-gradient-to-b from-slate-800/82 via-cyan-950/42 to-cyan-700/28 px-6 text-[14px] font-bold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_18px_42px_-20px_rgba(6,182,212,0.95)]">
+                <span className="pointer-events-none absolute inset-x-0 bottom-[-1px] h-[3px] rounded-full bg-gradient-to-r from-transparent via-cyan-400 to-transparent shadow-[0_0_16px_rgba(6,182,212,1)]" aria-hidden />
+                <ShieldCheck className="h-5 w-5 shrink-0 text-cyan-100 drop-shadow-[0_0_10px_rgba(165,243,252,0.65)]" aria-hidden />
+                <span className="hidden xl:inline">Command Center</span>
+                <span className="xl:hidden">Cmd</span>
+              </div>
+              <span className="mx-3 hidden h-8 w-px bg-white/[0.10] xl:block" aria-hidden />
+              {/* AI Library — inactive */}
+              <Link
+                href="/tools/roofing/ai"
+                className="flex min-h-[52px] items-center gap-3 rounded-xl px-5 text-[14px] font-semibold text-white/62 transition hover:bg-white/[0.045] hover:text-white"
+              >
+                <Package className="h-5 w-5 shrink-0 text-white/62" aria-hidden />
+                <span className="hidden xl:inline">AI Library</span>
+              </Link>
+              <span className="mx-3 hidden h-8 w-px bg-white/[0.10] xl:block" aria-hidden />
+              {/* Settings — inactive */}
+              <Link
+                href="/tools/settings"
+                className="flex min-h-[52px] items-center gap-3 rounded-xl px-5 text-[14px] font-semibold text-white/62 transition hover:bg-white/[0.045] hover:text-white"
+              >
+                <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5" aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <span className="hidden xl:inline">Settings</span>
+              </Link>
+            </div>
 
+            {/* Right actions */}
+            <div className="flex shrink-0 items-center gap-3 border-l border-cyan-400/[0.12] px-5 py-2">
+              <div className="flex min-w-[200px] items-center gap-2 rounded-xl border border-white/[0.10] bg-white/[0.035] px-3.5 py-2.5 text-[12px] text-white/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                <Search className="h-4 w-4 shrink-0" aria-hidden />
+                <span className="hidden lg:inline text-white/40">Search jobs…</span>
+                <span className="hidden rounded border border-white/[0.10] bg-white/[0.04] px-1.5 py-0.5 text-[10px] font-semibold text-white/35 lg:inline">⌘K</span>
+              </div>
+              <button
+                type="button"
+                className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/[0.10] bg-white/[0.035] text-white/70 transition hover:bg-white/[0.06] hover:text-white"
+                aria-label="Notifications"
+              >
+                <Bell className="h-5 w-5" aria-hidden />
+                <span className="absolute right-1.5 top-1.5 h-[7px] w-[7px] rounded-full border-[1.5px] border-[#0d1117] bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,1)]" />
+              </button>
+              <div className="flex items-center gap-2.5 rounded-xl border border-white/[0.10] bg-white/[0.035] py-1.5 pl-1.5 pr-2.5 transition hover:bg-white/[0.055]">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-200/80 via-orange-300/50 to-slate-800 text-[11px] font-extrabold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.22),0_0_20px_-10px_rgba(251,191,36,0.90)]">
+                  MA
+                </div>
+                <div className="hidden flex-col leading-none xl:flex">
+                  <span className="text-[13px] font-bold text-white/92">Mike Anderson</span>
+                  <span className="mt-0.5 text-[10.5px] text-white/48">Anderson Roofing</span>
+                </div>
+                <ChevronDown className="hidden h-4 w-4 text-white/45 xl:block" aria-hidden />
+                <div className="ml-1 hidden opacity-55 transition hover:opacity-100 2xl:block">
+                  <SignOutButton />
+                </div>
+              </div>
+            </div>
+          </nav>
+
+          {/* ── Content area ── */}
+          <div className="space-y-8 p-4 sm:p-6 lg:p-8 lg:space-y-10">
+        {/* ── Command Center Hero ── */}
+        <div className="relative overflow-hidden rounded-3xl border border-cyan-500/20 bg-gradient-to-br from-[#060d1a] via-[#0a1628] to-[#081220] shadow-[0_24px_60px_rgba(0,0,0,0.55)] ring-1 ring-inset ring-white/[0.05]">
+          {/* Background grid texture */}
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_rgba(6,182,212,0.08)_0%,_transparent_60%)]" />
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_rgba(99,102,241,0.06)_0%,_transparent_55%)]" />
+
+          <div className="relative px-5 pt-5 pb-4">
+            {/* Title block */}
+            <div className="mt-4">
               {(() => {
                 const pageTitle: Record<typeof statusFilter, string> = {
-                  all: "Command Center",
+                  all: "FieldDive Command Center",
                   estimate: "Draft Estimates",
                   sent_pending: "Sent Proposals",
                   approved: "Approved Jobs",
@@ -4094,21 +4211,24 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                   paid: "Completed / Closed Jobs",
                 };
                 const pageSubtitle: Record<typeof statusFilter, string> = {
-                  all: "Track jobs, follow-ups, payments, and scheduling from one operating view.",
-                  estimate: "Draft estimates not yet sent",
-                  sent_pending: "Sent, awaiting view or response",
-                  approved: "Approved, ready to schedule",
-                  deposit_paid: "Deposit received, ready to schedule",
-                  scheduled: "Jobs currently scheduled in your pipeline",
-                  in_progress: "Jobs actively being worked today",
-                  paid: "Finished and closed work",
+                  all: "FieldDive prepared the work. Review what needs confirmation and move jobs forward.",
+                  estimate: "Draft estimates not yet sent — review and send when ready.",
+                  sent_pending: "Sent proposals awaiting customer response — FieldDive has flagged follow-up needs.",
+                  approved: "Approved jobs ready for next steps — deposit path prepared.",
+                  deposit_paid: "Deposit received — FieldDive is holding for your schedule confirmation.",
+                  scheduled: "Jobs locked to dates — review your production schedule.",
+                  in_progress: "Crew on site today — monitor and confirm completion.",
+                  paid: "Finished and closed work — reviewed by FieldDive.",
                 };
                 return (
                   <>
-                    <h1 className="mt-3 text-2xl font-semibold tracking-tight text-white sm:text-[32px]">
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.3em] text-cyan-400/70">
+                      {statusFilter === "all" ? "AI Operating Hub" : "Pipeline Lane"}
+                    </div>
+                    <h1 className="mt-2 text-2xl font-bold tracking-tight text-white sm:text-[30px]">
                       {pageTitle[statusFilter]}
                     </h1>
-                    <p className="mt-2 text-sm text-white/55">
+                    <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-white/55">
                       {pageSubtitle[statusFilter]}
                     </p>
                   </>
@@ -4116,120 +4236,156 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
               })()}
             </div>
 
-            <div className="w-full lg:max-w-md">
+            {/* Prepared action stat chips — only on overview */}
+            {hydrated && statusFilter === "all" && (
+              <div className="mt-5 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+                <div className="flex flex-col gap-1 rounded-2xl border border-rose-400/15 bg-rose-500/[0.07] px-3.5 py-3">
+                  <div className="text-[10px] font-semibold uppercase tracking-wide text-rose-300/70">Prepared follow-ups</div>
+                  <div className="text-2xl font-bold tabular-nums text-rose-100">{sentDueJobs.length}</div>
+                  <div className="text-[11px] text-rose-300/55">Needs contractor review</div>
+                </div>
+                <div className="flex flex-col gap-1 rounded-2xl border border-sky-400/15 bg-sky-500/[0.07] px-3.5 py-3">
+                  <div className="text-[10px] font-semibold uppercase tracking-wide text-sky-300/70">Deposit path ready</div>
+                  <div className="text-2xl font-bold tabular-nums text-sky-100">{approvedDueJobs.length}</div>
+                  <div className="text-[11px] text-sky-300/55">Needs contractor approval</div>
+                </div>
+                <div className="flex flex-col gap-1 rounded-2xl border border-emerald-400/15 bg-emerald-500/[0.07] px-3.5 py-3">
+                  <div className="text-[10px] font-semibold uppercase tracking-wide text-emerald-300/70">Schedule ready</div>
+                  <div className="text-2xl font-bold tabular-nums text-emerald-100">{depositReadyJobs.length}</div>
+                  <div className="text-[11px] text-emerald-300/55">Ready for confirmation</div>
+                </div>
+                <div className="flex flex-col gap-1 rounded-2xl border border-amber-400/15 bg-amber-500/[0.07] px-3.5 py-3">
+                  <div className="text-[10px] font-semibold uppercase tracking-wide text-amber-300/70">Production this week</div>
+                  <div className="text-2xl font-bold tabular-nums text-amber-100">{jobsThisWeek.length}</div>
+                  <div className="text-[11px] text-amber-300/55">Jobs in 7-day window</div>
+                </div>
+              </div>
+            )}
+
+            {/* Prepared next action */}
+            {hydrated && statusFilter === "all" && nextActionText && (
+              <div className="mt-4 flex items-start gap-3 rounded-2xl border border-cyan-400/10 bg-cyan-500/[0.05] px-4 py-3">
+                <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-cyan-400/15 text-[10px] text-cyan-300">▶</div>
+                <div className="min-w-0">
+                  <div className="text-[10px] font-semibold uppercase tracking-wider text-cyan-400/70">Prepared next action</div>
+                  <div className="mt-0.5 text-sm text-white/75">{nextActionText}</div>
+                </div>
+              </div>
+            )}
+
+            {/* Scheduled view sub-text */}
+            {statusFilter === "scheduled" && (
+              <div className="mt-3 text-xs text-white/45">
+                {scheduledView === "upcoming"
+                  ? `${upcomingScheduledJobs.length} upcoming · ${jobsThisWeek.length} in the next 7 days`
+                  : scheduledView === "past"
+                    ? "Showing past dates in this lane"
+                    : "All dates in this lane"}
+              </div>
+            )}
+
+            {/* Search */}
+            <div className="mt-4">
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search jobs, customers, addresses..."
-                className="w-full rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white/90 placeholder:text-white/40 outline-none focus:border-white/20 focus:bg-white/[0.08]"
+                placeholder="Search jobs, customers, addresses…"
+                className="w-full rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-2.5 text-sm text-white/90 placeholder:text-white/35 outline-none focus:border-cyan-400/25 focus:bg-white/[0.07] transition"
               />
             </div>
-          </div>
 
-          <div className="mt-4 flex flex-wrap gap-2 text-xs">
-            {[
-              ["all", "Overview"],
-              ["estimate", "Draft"],
-              ["sent_pending", "Sent proposals"],
-              ["approved", "Approved"],
-              ["deposit_paid", "Ready to schedule"],
-              ["scheduled", "Scheduled"],
-              ["in_progress", "On site"],
-              ["paid", "Completed"],
-            ].map(([key, label]) => (
-              <button
-                key={key}
-                onClick={() => setStatusFilter(key as any)}
-                className={
-                  "rounded-full border px-3 py-1.5 text-xs font-semibold transition-all duration-150 " +
-                  (statusFilter === key
-                    ? "bg-emerald-500/20 border-emerald-400/40 text-emerald-300"
-                    : "bg-white/[0.05] border-white/10 text-white/70 hover:bg-white/[0.08] hover:text-white/90")
-                }
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-
-          {statusFilter === "scheduled" && (
-            <div className="mt-3 flex flex-wrap gap-2 text-xs">
-              {(["upcoming", "past", "all"] as const).map((key) => (
-                <button
-                  key={key}
-                  onClick={() => setScheduledView(key)}
-                  className={
-                    "rounded-full border px-3 py-1.5 text-xs font-semibold transition-all duration-150 " +
-                    (scheduledView === key
-                      ? "bg-emerald-500/20 border-emerald-400/40 text-emerald-300"
-                      : "bg-white/[0.05] border-white/10 text-white/70 hover:bg-white/[0.08] hover:text-white/90")
-                  }
-                >
-                  {key === "upcoming" ? "Upcoming" : key === "past" ? "Past" : "All"}
-                </button>
-              ))}
+            {/* Pipeline stage chips */}
+            <div className="mt-4">
+              <div className="mb-2 text-[9px] font-semibold uppercase tracking-[0.25em] text-white/30">Pipeline stages</div>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  ["all", "Overview"],
+                  ["estimate", "Draft"],
+                  ["sent_pending", "Sent proposals"],
+                  ["approved", "Approved"],
+                  ["deposit_paid", "Ready to schedule"],
+                  ["scheduled", "Scheduled"],
+                  ["in_progress", "On site"],
+                  ["paid", "Completed"],
+                ].map(([key, label]) => (
+                  <button
+                    key={key}
+                    onClick={() => setStatusFilter(key as any)}
+                    className={
+                      "rounded-full border px-3 py-1.5 text-xs font-semibold transition-all duration-150 " +
+                      (statusFilter === key
+                        ? "bg-cyan-500/15 border-cyan-400/35 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.12)]"
+                        : "bg-white/[0.04] border-white/10 text-white/60 hover:bg-white/[0.07] hover:text-white/85 hover:border-white/18")
+                    }
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
             </div>
-          )}
+
+            {/* Scheduled sub-filter */}
+            {statusFilter === "scheduled" && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                <div className="mr-1 text-[9px] font-semibold uppercase tracking-[0.22em] text-white/30 self-center">View</div>
+                {(["upcoming", "past", "all"] as const).map((key) => (
+                  <button
+                    key={key}
+                    onClick={() => setScheduledView(key)}
+                    className={
+                      "rounded-full border px-3 py-1.5 text-xs font-semibold transition-all duration-150 " +
+                      (scheduledView === key
+                        ? "bg-cyan-500/15 border-cyan-400/35 text-cyan-300"
+                        : "bg-white/[0.04] border-white/10 text-white/60 hover:bg-white/[0.07] hover:text-white/85")
+                    }
+                  >
+                    {key === "upcoming" ? "Upcoming" : key === "past" ? "Past" : "All"}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
-        {hydrated && (
-          <section
-            aria-label="Command center status"
-            className="rounded-3xl border border-cyan-500/15 bg-gradient-to-br from-slate-900/90 via-slate-900/70 to-[#0c1220]/90 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.45)] ring-1 ring-inset ring-white/[0.06]"
-          >
-            <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-              <div className="min-w-0 flex-1">
-                <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-cyan-300/85">
-                  FIELD DIVE COMMAND
-                </div>
-                <h2 className="mt-3 text-xl font-semibold tracking-tight text-white sm:text-2xl">
-                  Today&apos;s operating view
-                </h2>
-                <p className="mt-2 text-sm leading-relaxed text-white/60">
-                  {nextActionText}
-                </p>
-                {statusFilter === "scheduled" && (
-                  <p className="mt-2 text-xs text-white/45">
-                    {scheduledView === "upcoming"
-                      ? `${upcomingScheduledJobs.length} upcoming · ${jobsThisWeek.length} in the next 7 days`
-                      : scheduledView === "past"
-                        ? "Showing past dates in this lane"
-                        : "All dates in this lane"}
-                  </p>
-                )}
-              </div>
-              <div className="grid w-full shrink-0 grid-cols-2 gap-3 sm:max-w-xl sm:grid-cols-4 lg:w-auto lg:gap-4">
-                <div className="rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3">
-                  <div className="text-[10px] font-semibold uppercase tracking-wide text-white/45">In view</div>
-                  <div className="mt-1 text-2xl font-semibold tabular-nums text-white">
-                    {statusFilter === "all" ? searchFiltered.length : filtered.length}
-                  </div>
-                  <div className="mt-1 text-[11px] text-white/50">Matching this lane</div>
-                </div>
-                <div className="rounded-2xl border border-rose-400/15 bg-rose-500/[0.08] px-4 py-3">
-                  <div className="text-[10px] font-semibold uppercase tracking-wide text-rose-200/70">Follow-ups</div>
-                  <div className="mt-1 text-2xl font-semibold tabular-nums text-rose-50">
-                    {sentDueJobs.length}
-                  </div>
-                  <div className="mt-1 text-[11px] text-rose-200/60">Due now</div>
-                </div>
-                <div className="rounded-2xl border border-sky-400/15 bg-sky-500/[0.08] px-4 py-3">
-                  <div className="text-[10px] font-semibold uppercase tracking-wide text-sky-200/75">Deposits</div>
-                  <div className="mt-1 text-2xl font-semibold tabular-nums text-sky-50">
-                    {approvedDueJobs.length}
-                  </div>
-                  <div className="mt-1 text-[11px] text-sky-200/60">To collect</div>
-                </div>
-                <div className="rounded-2xl border border-emerald-400/15 bg-emerald-500/[0.08] px-4 py-3">
-                  <div className="text-[10px] font-semibold uppercase tracking-wide text-emerald-200/75">Schedule</div>
-                  <div className="mt-1 text-2xl font-semibold tabular-nums text-emerald-50">
-                    {depositReadyJobs.length}
-                  </div>
-                  <div className="mt-1 text-[11px] text-emerald-200/60">Deposit paid · needs date</div>
-                </div>
-              </div>
+        {/* Pipeline Lane Overview bar — shown for filtered lanes (not "all", since all has stats in hero) */}
+        {hydrated && statusFilter !== "all" && (
+          <div className="flex items-center gap-4 rounded-2xl border border-white/[0.07] bg-white/[0.03] px-5 py-3.5">
+            <div className="min-w-0 flex-1">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/35">Jobs in this lane</div>
+              <div className="mt-0.5 text-lg font-bold tabular-nums text-white">{filtered.length}</div>
             </div>
-          </section>
+            {statusFilter === "scheduled" && (
+              <>
+                <div className="h-8 w-px bg-white/[0.08]" />
+                <div className="min-w-0">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-300/60">Secured revenue</div>
+                  <div className="mt-0.5 text-sm font-semibold text-emerald-100">
+                    ${scheduledRevenueSafe.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </div>
+                </div>
+                <div className="h-8 w-px bg-white/[0.08]" />
+                <div className="min-w-0">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-300/60">This week</div>
+                  <div className="mt-0.5 text-sm font-semibold text-amber-100">{jobsThisWeek.length} jobs</div>
+                </div>
+              </>
+            )}
+            {statusFilter === "deposit_paid" && (
+              <>
+                <div className="h-8 w-px bg-white/[0.08]" />
+                <div className="min-w-0">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-300/60">Secured revenue</div>
+                  <div className="mt-0.5 text-sm font-semibold text-emerald-100">
+                    ${waitingToScheduleRevenueSafe.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </div>
+                </div>
+              </>
+            )}
+            <div className="h-8 w-px bg-white/[0.08]" />
+            <div className="shrink-0 rounded-full border border-cyan-400/20 bg-cyan-500/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-cyan-300/75">
+              FieldDive reviewed
+            </div>
+          </div>
         )}
 
         {!hydrated && (
@@ -4250,123 +4406,162 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
           />
         )}
 
-        {/* Command Focus — same derived metrics as former Pipeline Insight */}
+        {/* AI Job Conductor — same derived metrics, FieldDive-native framing */}
         {hydrated && (
-          <div className="mt-2 w-full rounded-3xl border border-white/10 bg-white/[0.03] p-6 shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <div className="text-lg font-semibold text-white">Command Focus</div>
-                <div className="mt-1 text-sm text-white/55">
-                  FieldDive is reading the pipeline and surfacing the next move.
+          <div className="relative overflow-hidden rounded-3xl border border-indigo-500/15 bg-gradient-to-br from-[#08101e] via-[#0b1525] to-[#070e1a] p-6 shadow-[0_16px_40px_rgba(0,0,0,0.45)] ring-1 ring-inset ring-white/[0.04]">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(99,102,241,0.07)_0%,_transparent_55%)]" />
+            <div className="relative">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-indigo-300/70">AI Job Conductor</div>
+                  <div className="mt-2 text-lg font-semibold text-white">Command Reviewer</div>
+                  <div className="mt-1 text-sm text-white/50">
+                    FieldDive has reviewed every job in your pipeline. These signals are prepared — waiting on your confirmation.
+                  </div>
+                </div>
+                <div className="shrink-0 rounded-full border border-indigo-400/20 bg-indigo-500/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-indigo-300/75">
+                  Prepared by FieldDive
                 </div>
               </div>
 
-              <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-white/70">
-                Manual mode
+              <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                <div className="rounded-2xl border border-emerald-400/15 bg-emerald-500/[0.08] p-4">
+                  <div className="text-[10px] font-semibold uppercase tracking-wide text-emerald-200/75">
+                    {statusFilter === "scheduled" ? "Scheduled revenue" : "Secured revenue"}
+                  </div>
+                  <div className="mt-2 text-2xl font-bold text-emerald-100">
+                    ${(statusFilter === "scheduled" ? scheduledRevenueSafe : waitingToScheduleRevenueSafe).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </div>
+                  <div className="mt-1 text-xs text-emerald-200/60">
+                    {statusFilter === "scheduled"
+                      ? "Revenue from scheduled jobs in this view"
+                      : "Deposit collected — ready for schedule confirmation"}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-amber-400/15 bg-amber-500/[0.08] p-4">
+                  <div className="text-[10px] font-semibold uppercase tracking-wide text-amber-200/75">
+                    {statusFilter === "scheduled" ? "Upcoming jobs" : "Needs contractor approval"}
+                  </div>
+                  <div className="mt-2 text-2xl font-bold text-amber-100">
+                    {statusFilter === "scheduled" ? upcomingScheduledJobs.length : waitingToScheduleCount}
+                  </div>
+                  <div className="mt-1 text-xs text-amber-200/60">
+                    {statusFilter === "scheduled" ? "Jobs on your upcoming schedule" : "Approved or deposit-paid, not locked to a date yet"}
+                  </div>
+                </div>
+
+                {statusFilter === "scheduled" ? (
+                  <div className="rounded-2xl border border-cyan-400/15 bg-cyan-500/[0.08] p-4">
+                    <div className="text-[10px] font-semibold uppercase tracking-wide text-cyan-200/75">Production this week</div>
+                    <div className="mt-2 text-2xl font-bold text-cyan-100">{jobsThisWeek.length}</div>
+                    <div className="mt-1 text-xs text-cyan-200/60">Jobs scheduled in the next 7 days</div>
+                  </div>
+                ) : (
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                    <div className="text-[10px] font-semibold uppercase tracking-wide text-white/45">Pipeline bottleneck</div>
+                    <div className="mt-2 text-base font-semibold text-white">{weakestLabel}</div>
+                    {weakestDenom > 0 && (
+                      <>
+                        <div className="mt-1 text-sm text-amber-300">⚠ {weakestPct}% conversion</div>
+                        <div className="mt-1 text-xs text-white/40">{weakestNumer} of {weakestDenom} jobs</div>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
-            </div>
 
-            <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              <div className="rounded-2xl border border-emerald-400/15 bg-emerald-500/10 p-4">
-                <div className="text-xs uppercase tracking-wide text-emerald-200/80">
-                  {statusFilter === "scheduled" ? "SCHEDULED REVENUE" : "Secured revenue"}
+              <div className="mt-5 flex items-start gap-3 rounded-2xl border border-indigo-400/10 bg-indigo-500/[0.05] px-4 py-3">
+                <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-indigo-400/15 text-[10px] text-indigo-300">▶</div>
+                <div className="min-w-0 text-sm text-white/70">
+                  <span className="font-semibold text-white">Prepared next action: </span>
+                  {nextActionText}
                 </div>
-                <div className="mt-2 text-2xl font-semibold text-emerald-100">
-                  ${(statusFilter === "scheduled" ? scheduledRevenueSafe : waitingToScheduleRevenueSafe).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </div>
-                <div className="mt-1 text-sm text-emerald-200/70">
-                  {statusFilter === "scheduled"
-                    ? "Revenue from scheduled jobs in this view"
-                    : "Deposit collected — ready to schedule"}
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-amber-400/20 bg-amber-500/10 p-4">
-                <div className="text-xs uppercase tracking-wide text-amber-200/80">
-                  {statusFilter === "scheduled" ? "UPCOMING JOBS" : "READY TO SCHEDULE"}
-                </div>
-                <div className="mt-2 text-2xl font-semibold text-amber-100">
-                  {statusFilter === "scheduled" ? upcomingScheduledJobs.length : waitingToScheduleCount}
-                </div>
-                <div className="mt-1 text-sm text-amber-200/70">
-                  {statusFilter === "scheduled" ? "Jobs on your upcoming schedule" : "Approved or deposit-paid, not locked to a date yet"}
-                </div>
-              </div>
-
-              {statusFilter === "scheduled" ? (
-                <div className="rounded-2xl border border-cyan-400/20 bg-cyan-500/10 p-4">
-                  <div className="text-xs uppercase tracking-wide text-cyan-200/80">
-                    JOBS THIS WEEK
-                  </div>
-                  <div className="mt-2 text-2xl font-semibold text-cyan-100">
-                    {jobsThisWeek.length}
-                  </div>
-                  <div className="mt-1 text-sm text-cyan-200/70">
-                    Jobs scheduled in the next 7 days
-                  </div>
-                </div>
-              ) : (
-                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                  <div className="text-xs uppercase tracking-wide text-white/50">Weakest stage</div>
-                  <div className="mt-2 text-base font-semibold text-white">
-                    {weakestLabel}
-                  </div>
-                  {weakestDenom > 0 && (
-                    <>
-                      <div className="mt-1 text-sm text-amber-300">
-                        ⚠ {weakestPct}% conversion
-                      </div>
-                      <div className="mt-1 text-xs text-white/40">
-                        {weakestNumer} of {weakestDenom} jobs
-                      </div>
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
-
-            <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-              <div className="text-sm text-slate-300">
-                <span className="font-semibold text-white">Next action:</span>{" "}
-                {nextActionText}
               </div>
             </div>
           </div>
         )}
 
+        {/* ── Ready for Confirmation / Prepared Work Queue ── */}
         {hydrated && (
           <section
-            aria-label="Action queue"
-            className="rounded-3xl border border-white/10 bg-white/[0.025] p-5 shadow-[0_10px_30px_rgba(0,0,0,0.28)] ring-1 ring-inset ring-white/[0.04] backdrop-blur-xl sm:p-6"
+            aria-label="Prepared work queue"
+            className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-gradient-to-br from-[#08101c] to-[#060d18] p-5 shadow-[0_16px_40px_rgba(0,0,0,0.4)] ring-1 ring-inset ring-white/[0.04] sm:p-6"
           >
-            <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <h2 className="text-lg font-semibold tracking-tight text-white">Action Queue</h2>
-                <p className="mt-1 text-sm text-white/50">
-                  The jobs FieldDive thinks need attention next.
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-              {/* Lane 1: Follow-ups due */}
-              <div className="flex min-h-0 flex-col rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                <div className="flex items-baseline justify-between gap-2">
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/45">
-                    Follow-ups due
-                  </span>
-                  <span className="text-lg font-semibold tabular-nums text-white/90">{sentDueJobs.length}</span>
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_rgba(6,182,212,0.04)_0%,_transparent_60%)]" />
+            <div className="relative">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-cyan-400/60">Ready for Confirmation</div>
+                  <h2 className="mt-1.5 text-lg font-semibold tracking-tight text-white">Prepared Work Queue</h2>
+                  <p className="mt-0.5 text-sm text-white/45">
+                    FieldDive has reviewed your pipeline and prepared these jobs for confirmation.
+                  </p>
                 </div>
-                <p className="mt-2 text-[11px] leading-snug text-white/42">
-                  Sent proposals that need a check-in.
-                </p>
-                <div className="mt-3 space-y-0 border-t border-white/[0.06] pt-3">
-                  {sentDueJobs.length === 0 ? (
-                    <p className="text-xs text-white/38">Nothing urgent here.</p>
-                  ) : (
-                    sentDueJobs.slice(0, 3).map((est) => {
-                      const viewed = !!getEffectiveViewedAt(est, batchStatuses);
-                      return (
+                <div className="shrink-0 rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-white/40">
+                  AI Work Queue
+                </div>
+              </div>
+
+              <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                {/* Lane 1: Follow-ups prepared */}
+                <div className="flex min-h-0 flex-col rounded-2xl border border-rose-400/12 bg-rose-500/[0.04] p-4">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-rose-300/65">
+                      Follow-ups prepared
+                    </span>
+                    <span className="text-lg font-bold tabular-nums text-rose-100">{sentDueJobs.length}</span>
+                  </div>
+                  <p className="mt-2 text-[11px] leading-snug text-white/40">
+                    FieldDive identified these proposals for follow-up.
+                  </p>
+                  <div className="mt-3 space-y-0 border-t border-white/[0.06] pt-3">
+                    {sentDueJobs.length === 0 ? (
+                      <p className="text-xs text-white/32">FieldDive found nothing pending in this lane.</p>
+                    ) : (
+                      sentDueJobs.slice(0, 3).map((est) => {
+                        const viewed = !!getEffectiveViewedAt(est, batchStatuses);
+                        return (
+                          <div
+                            key={est.id}
+                            className="flex items-center gap-2 border-b border-white/[0.05] py-2.5 last:border-b-0 last:pb-0 first:pt-0"
+                          >
+                            <div className="min-w-0 flex-1">
+                              <div className="truncate text-sm font-medium text-white/88">
+                                {getEstimateDisplayName(est)}
+                              </div>
+                              <div className="mt-0.5 text-[11px] text-white/42">
+                                {viewed ? "Viewed by customer" : "Not yet opened"}
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleAction(est as RoofingEstimate, "load")}
+                              className="shrink-0 rounded-lg border border-rose-400/20 bg-rose-500/[0.08] px-2.5 py-1 text-[11px] font-semibold text-rose-200 transition hover:bg-rose-500/[0.14]"
+                            >
+                              Review
+                            </button>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+
+                {/* Lane 2: Deposit path ready */}
+                <div className="flex min-h-0 flex-col rounded-2xl border border-sky-400/12 bg-sky-500/[0.04] p-4">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-sky-300/65">
+                      Deposit path ready
+                    </span>
+                    <span className="text-lg font-bold tabular-nums text-sky-100">{approvedDueJobs.length}</span>
+                  </div>
+                  <p className="mt-2 text-[11px] leading-snug text-white/40">FieldDive prepared a deposit path for these approvals.</p>
+                  <div className="mt-3 space-y-0 border-t border-white/[0.06] pt-3">
+                    {approvedDueJobs.length === 0 ? (
+                      <p className="text-xs text-white/32">FieldDive found nothing pending in this lane.</p>
+                    ) : (
+                      approvedDueJobs.slice(0, 3).map((est) => (
                         <div
                           key={est.id}
                           className="flex items-center gap-2 border-b border-white/[0.05] py-2.5 last:border-b-0 last:pb-0 first:pt-0"
@@ -4375,122 +4570,37 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                             <div className="truncate text-sm font-medium text-white/88">
                               {getEstimateDisplayName(est)}
                             </div>
-                            <div className="mt-0.5 text-[11px] text-white/42">
-                              {viewed ? "Viewed" : "Not viewed yet"}
-                            </div>
+                            <div className="mt-0.5 text-[11px] text-white/42">Approved · needs contractor approval</div>
                           </div>
                           <button
                             type="button"
                             onClick={() => handleAction(est as RoofingEstimate, "load")}
-                            className="shrink-0 rounded-lg border border-white/12 bg-white/[0.06] px-2.5 py-1 text-[11px] font-semibold text-white/85 transition hover:border-white/18 hover:bg-white/[0.10]"
+                            className="shrink-0 rounded-lg border border-sky-400/20 bg-sky-500/[0.08] px-2.5 py-1 text-[11px] font-semibold text-sky-200 transition hover:bg-sky-500/[0.14]"
                           >
-                            Open
+                            Review
                           </button>
                         </div>
-                      );
-                    })
-                  )}
+                      ))
+                    )}
+                  </div>
                 </div>
-              </div>
 
-              {/* Lane 2: Deposits to collect */}
-              <div className="flex min-h-0 flex-col rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                <div className="flex items-baseline justify-between gap-2">
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/45">
-                    Deposits to collect
-                  </span>
-                  <span className="text-lg font-semibold tabular-nums text-white/90">{approvedDueJobs.length}</span>
-                </div>
-                <p className="mt-2 text-[11px] leading-snug text-white/42">Approved jobs waiting on deposit.</p>
-                <div className="mt-3 space-y-0 border-t border-white/[0.06] pt-3">
-                  {approvedDueJobs.length === 0 ? (
-                    <p className="text-xs text-white/38">Nothing urgent here.</p>
-                  ) : (
-                    approvedDueJobs.slice(0, 3).map((est) => (
-                      <div
-                        key={est.id}
-                        className="flex items-center gap-2 border-b border-white/[0.05] py-2.5 last:border-b-0 last:pb-0 first:pt-0"
-                      >
-                        <div className="min-w-0 flex-1">
-                          <div className="truncate text-sm font-medium text-white/88">
-                            {getEstimateDisplayName(est)}
-                          </div>
-                          <div className="mt-0.5 text-[11px] text-white/42">Approved · deposit needed</div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => handleAction(est as RoofingEstimate, "load")}
-                          className="shrink-0 rounded-lg border border-white/12 bg-white/[0.06] px-2.5 py-1 text-[11px] font-semibold text-white/85 transition hover:border-white/18 hover:bg-white/[0.10]"
-                        >
-                          Open
-                        </button>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              {/* Lane 3: Ready to schedule */}
-              <div className="flex min-h-0 flex-col rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                <div className="flex items-baseline justify-between gap-2">
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/45">
-                    Ready to schedule
-                  </span>
-                  <span className="text-lg font-semibold tabular-nums text-white/90">{depositReadyJobs.length}</span>
-                </div>
-                <p className="mt-2 text-[11px] leading-snug text-white/42">
-                  Deposit-paid jobs that still need a date.
-                </p>
-                <div className="mt-3 space-y-0 border-t border-white/[0.06] pt-3">
-                  {depositReadyJobs.length === 0 ? (
-                    <p className="text-xs text-white/38">Nothing urgent here.</p>
-                  ) : (
-                    depositReadyJobs.slice(0, 3).map((est) => (
-                      <div
-                        key={est.id}
-                        className="flex items-center gap-2 border-b border-white/[0.05] py-2.5 last:border-b-0 last:pb-0 first:pt-0"
-                      >
-                        <div className="min-w-0 flex-1">
-                          <div className="truncate text-sm font-medium text-white/88">
-                            {getEstimateDisplayName(est)}
-                          </div>
-                          <div className="mt-0.5 text-[11px] text-white/42">Ready for schedule</div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => handleAction(est as RoofingEstimate, "load")}
-                          className="shrink-0 rounded-lg border border-white/12 bg-white/[0.06] px-2.5 py-1 text-[11px] font-semibold text-white/85 transition hover:border-white/18 hover:bg-white/[0.10]"
-                        >
-                          Open
-                        </button>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              {/* Lane 4: This week */}
-              <div className="flex min-h-0 flex-col rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                <div className="flex items-baseline justify-between gap-2">
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/45">
-                    This week
-                  </span>
-                  <span className="text-lg font-semibold tabular-nums text-white/90">{jobsThisWeek.length}</span>
-                </div>
-                <p className="mt-2 text-[11px] leading-snug text-white/42">
-                  {statusFilter === "scheduled"
-                    ? "Jobs scheduled in the next 7 days."
-                    : "Switch to Scheduled to see this week's jobs."}
-                </p>
-                <div className="mt-3 space-y-0 border-t border-white/[0.06] pt-3">
-                  {statusFilter !== "scheduled" || jobsThisWeek.length === 0 ? (
-                    <p className="text-xs text-white/38">Nothing urgent here.</p>
-                  ) : (
-                    jobsThisWeek.slice(0, 3).map(({ est, key }) => {
-                      const dateKey =
-                        normalizeDateKey(est?.scheduledStartDate) ?? key;
-                      const dateLabel = formatDateKeyLocal(dateKey);
-                      return (
+                {/* Lane 3: Schedule confirmation ready */}
+                <div className="flex min-h-0 flex-col rounded-2xl border border-emerald-400/12 bg-emerald-500/[0.04] p-4">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-300/65">
+                      Schedule confirmation ready
+                    </span>
+                    <span className="text-lg font-bold tabular-nums text-emerald-100">{depositReadyJobs.length}</span>
+                  </div>
+                  <p className="mt-2 text-[11px] leading-snug text-white/40">
+                    Deposit received — FieldDive is holding for your schedule confirmation.
+                  </p>
+                  <div className="mt-3 space-y-0 border-t border-white/[0.06] pt-3">
+                    {depositReadyJobs.length === 0 ? (
+                      <p className="text-xs text-white/32">FieldDive found nothing pending in this lane.</p>
+                    ) : (
+                      depositReadyJobs.slice(0, 3).map((est) => (
                         <div
                           key={est.id}
                           className="flex items-center gap-2 border-b border-white/[0.05] py-2.5 last:border-b-0 last:pb-0 first:pt-0"
@@ -4499,19 +4609,65 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                             <div className="truncate text-sm font-medium text-white/88">
                               {getEstimateDisplayName(est)}
                             </div>
-                            <div className="mt-0.5 truncate text-[11px] text-white/42">{dateLabel}</div>
+                            <div className="mt-0.5 text-[11px] text-white/42">Needs contractor approval</div>
                           </div>
                           <button
                             type="button"
                             onClick={() => handleAction(est as RoofingEstimate, "load")}
-                            className="shrink-0 rounded-lg border border-white/12 bg-white/[0.06] px-2.5 py-1 text-[11px] font-semibold text-white/85 transition hover:border-white/18 hover:bg-white/[0.10]"
+                            className="shrink-0 rounded-lg border border-emerald-400/20 bg-emerald-500/[0.08] px-2.5 py-1 text-[11px] font-semibold text-emerald-200 transition hover:bg-emerald-500/[0.14]"
                           >
-                            Open
+                            Confirm
                           </button>
                         </div>
-                      );
-                    })
-                  )}
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                {/* Lane 4: Production check */}
+                <div className="flex min-h-0 flex-col rounded-2xl border border-amber-400/12 bg-amber-500/[0.04] p-4">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-300/65">
+                      Production check
+                    </span>
+                    <span className="text-lg font-bold tabular-nums text-amber-100">{jobsThisWeek.length}</span>
+                  </div>
+                  <p className="mt-2 text-[11px] leading-snug text-white/40">
+                    {statusFilter === "scheduled"
+                      ? "FieldDive identified jobs in your 7-day production window."
+                      : "Switch to Scheduled lane for this week's production view."}
+                  </p>
+                  <div className="mt-3 space-y-0 border-t border-white/[0.06] pt-3">
+                    {statusFilter !== "scheduled" || jobsThisWeek.length === 0 ? (
+                      <p className="text-xs text-white/32">FieldDive found nothing pending in this lane.</p>
+                    ) : (
+                      jobsThisWeek.slice(0, 3).map(({ est, key }) => {
+                        const dateKey =
+                          normalizeDateKey(est?.scheduledStartDate) ?? key;
+                        const dateLabel = formatDateKeyLocal(dateKey);
+                        return (
+                          <div
+                            key={est.id}
+                            className="flex items-center gap-2 border-b border-white/[0.05] py-2.5 last:border-b-0 last:pb-0 first:pt-0"
+                          >
+                            <div className="min-w-0 flex-1">
+                              <div className="truncate text-sm font-medium text-white/88">
+                                {getEstimateDisplayName(est)}
+                              </div>
+                              <div className="mt-0.5 truncate text-[11px] text-white/42">{dateLabel}</div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleAction(est as RoofingEstimate, "load")}
+                              className="shrink-0 rounded-lg border border-amber-400/20 bg-amber-500/[0.08] px-2.5 py-1 text-[11px] font-semibold text-amber-200 transition hover:bg-amber-500/[0.14]"
+                            >
+                              Open
+                            </button>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -4695,6 +4851,17 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
           })()}
           {hydrated && statusFilter !== "scheduled" && statusFilter === "all" && (
             <div className="space-y-10">
+              {/* Active Pipeline header */}
+              <div className="flex items-center gap-4">
+                <div className="min-w-0">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-white/30">Active Pipeline</div>
+                  <div className="mt-0.5 text-sm font-semibold text-white/70">Jobs in your pipeline, grouped by stage</div>
+                </div>
+                <div className="h-px flex-1 bg-white/[0.06]" />
+                <div className="shrink-0 rounded-full border border-white/[0.08] bg-white/[0.03] px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white/35">
+                  {searchFiltered.length} job{searchFiltered.length !== 1 ? "s" : ""}
+                </div>
+              </div>
               {statusDrivenGroups.map((group) => (
                 <div
                   key={group.key}
@@ -4828,6 +4995,15 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
             </div>
           )}
 
+          {hydrated && statusFilter !== "scheduled" && statusFilter !== "all" && (
+            <div className="flex items-center gap-4 pb-1">
+              <div className="min-w-0">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-white/30">Jobs in this lane</div>
+                <div className="mt-0.5 text-sm font-semibold text-white/70">{filtered.length} job{filtered.length !== 1 ? "s" : ""} · FieldDive reviewed</div>
+              </div>
+              <div className="h-px flex-1 bg-white/[0.06]" />
+            </div>
+          )}
           {hydrated && statusFilter !== "scheduled" && statusFilter !== "all" && filtered.map((e) => (
             <SavedEstimateCard
               key={e.id}
@@ -4924,7 +5100,9 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
             />
           ))}
         </div>
-      </div>
+        </div>{/* /content area */}
+        </div>{/* /max-[1800px] */}
+      </div>{/* /px-4 frame */}
 
       {/* Global scheduling modal */}
       {schedulingForId && (() => {
@@ -5637,6 +5815,6 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
           </div>
         </div>
       ) : null}
-    </div>
+    </main>
   );
 }

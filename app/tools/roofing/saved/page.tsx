@@ -1,4 +1,3 @@
-import { SignOutButton } from "@/app/components/auth/SignOutButton";
 import { ensureUserIdentity, getUserCompanyId } from "@/app/lib/ensureUserIdentity";
 import { createClient } from "@/app/lib/supabase/server";
 import { redirect } from "next/navigation";
@@ -16,19 +15,14 @@ export default async function SavedPage() {
   if (!companyId) redirect("/login?redirectTo=/tools/roofing/saved");
 
   return (
-    <>
-      <div className="flex justify-end p-4">
-        <SignOutButton />
-      </div>
-      <Suspense
-        fallback={
-          <div className="p-6 text-white/70">
-            Loading saved estimates…
-          </div>
-        }
-      >
-        <SavedClient companyId={companyId} />
-      </Suspense>
-    </>
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center text-white/60 text-sm" style={{ backgroundColor: "#0b1120" }}>
+          Loading Command Center…
+        </div>
+      }
+    >
+      <SavedClient companyId={companyId} />
+    </Suspense>
   );
 }
