@@ -4524,15 +4524,13 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
           return (
             <section
               aria-label="Command deck"
-              className="relative overflow-hidden rounded-3xl border border-cyan-400/12 bg-[radial-gradient(ellipse_at_top,_rgba(8,18,34,1)_0%,_rgba(7,17,31,1)_55%,_rgba(5,12,24,1)_100%)] shadow-[0_28px_70px_rgba(0,0,0,0.55)] ring-1 ring-inset ring-white/[0.05]"
+              className="relative overflow-hidden rounded-[26px] border border-cyan-400/10 bg-[radial-gradient(ellipse_120%_90%_at_50%_-8%,rgba(18,40,72,0.52)_0%,rgba(7,16,30,0.96)_48%,rgba(4,9,18,1)_100%)] shadow-[0_28px_72px_-28px_rgba(0,0,0,0.48)] ring-1 ring-cyan-400/[0.07]"
             >
-              {/* ambient lighting */}
-              <div className="pointer-events-none absolute -left-24 top-1/3 h-[420px] w-[420px] rounded-full bg-cyan-500/[0.06] blur-[110px]" aria-hidden />
-              <div className="pointer-events-none absolute -right-32 bottom-0 h-[420px] w-[420px] rounded-full bg-indigo-500/[0.07] blur-[110px]" aria-hidden />
-              <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-300/30 to-transparent" aria-hidden />
+              <div className="pointer-events-none absolute -left-24 top-1/3 h-[420px] w-[420px] rounded-full bg-cyan-500/[0.05] blur-[110px]" aria-hidden />
+              <div className="pointer-events-none absolute -right-32 bottom-0 h-[420px] w-[420px] rounded-full bg-indigo-500/[0.06] blur-[110px]" aria-hidden />
+              <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-300/25 to-transparent" aria-hidden />
 
-              {/* Composed deck header bar */}
-              <div className="relative flex flex-col gap-3 border-b border-white/[0.05] px-5 pb-4 pt-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+              <div className="relative flex flex-col gap-3 border-b border-white/[0.04] px-5 pb-4 pt-5 sm:flex-row sm:items-center sm:justify-between sm:px-7 sm:pb-5 sm:pt-6">
                 <div className="flex items-center gap-3">
                   <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-cyan-300/25 bg-gradient-to-br from-cyan-400/15 to-indigo-500/10 text-cyan-200 shadow-[0_0_24px_rgba(34,211,238,0.18)]">
                     <Sparkles className="h-4 w-4" aria-hidden />
@@ -4554,69 +4552,95 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                 </div>
               </div>
 
-              <div className="relative grid grid-cols-1 gap-5 p-5 sm:p-6 lg:grid-cols-12 lg:gap-6">
-                {/* ── Prepared Work Queue (lanes) ── */}
+              <div className="relative grid grid-cols-1 gap-6 p-4 sm:p-5 lg:grid-cols-12 lg:gap-7 lg:p-6">
+                {/* ── Prepared Work Queue (mock-accurate horizontal lanes) ── */}
                 <div className="lg:col-span-8">
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="space-y-2.5">
                     {lanes.map((lane) => {
                       const Icon = lane.icon;
+                      const hasRows = lane.rows.length > 0;
+
                       return (
                         <article
                           key={lane.key}
-                          className={`group relative flex min-h-0 flex-col overflow-hidden rounded-2xl border border-white/[0.07] bg-white/[0.02] shadow-[0_10px_28px_rgba(0,0,0,0.30),inset_0_1px_0_rgba(255,255,255,0.04)] ring-1 ring-inset ${lane.ring} transition`}
+                          className={`group relative overflow-hidden rounded-2xl border border-white/[0.075] bg-gradient-to-r from-white/[0.04] via-white/[0.022] to-white/[0.012] shadow-[0_14px_34px_rgba(0,0,0,0.30),inset_0_1px_0_rgba(255,255,255,0.045)] ring-1 ring-inset ${lane.ring} transition hover:border-white/[0.12]`}
                         >
-                          {/* left accent bar */}
-                          <div className={`pointer-events-none absolute inset-y-0 left-0 w-[3px] bg-gradient-to-b ${lane.accent}`} aria-hidden />
-                          <div className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-white/[0.02] blur-2xl" aria-hidden />
+                          <div className={`pointer-events-none absolute inset-y-0 left-0 w-[4px] bg-gradient-to-b ${lane.accent}`} aria-hidden />
+                          <div className="pointer-events-none absolute -left-20 top-1/2 h-44 w-44 -translate-y-1/2 rounded-full bg-white/[0.025] blur-3xl" aria-hidden />
 
-                          {/* lane header */}
-                          <div className="flex items-start justify-between gap-3 px-4 pt-4">
-                            <div className="flex items-center gap-2.5">
-                              <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${lane.chipBorder} ${lane.chipBg}`}>
-                                <Icon className={`h-4 w-4 ${lane.tagText}`} aria-hidden />
+                          <div className="relative grid grid-cols-1 gap-3 px-4 py-3.5 md:grid-cols-[285px_minmax(0,1fr)_20px] md:items-center lg:grid-cols-[300px_minmax(0,1fr)_20px]">
+                            {/* Lane identity */}
+                            <div className="flex min-w-0 items-center gap-3">
+                              <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border ${lane.chipBorder} ${lane.chipBg} shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]`}>
+                                <Icon className={`h-5 w-5 ${lane.tagText}`} aria-hidden />
                               </div>
-                              <div className="min-w-0">
-                                <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/45">{lane.label}</div>
-                                <div className="mt-0.5 text-[11px] leading-snug text-white/40">{lane.hint}</div>
-                              </div>
-                            </div>
-                            <div className={`shrink-0 rounded-lg border ${lane.chipBorder} ${lane.chipBg} px-2 py-0.5 text-base font-bold tabular-nums ${lane.chipText}`}>
-                              {lane.count}
-                            </div>
-                          </div>
 
-                          {/* lane body */}
-                          <div className="mt-3 flex-1 px-4 pb-4">
-                            <div className="rounded-xl border border-white/[0.04] bg-black/20 p-1.5">
-                              {lane.rows.length === 0 ? (
-                                <div className="flex items-center gap-2 px-2 py-3 text-[11px] text-white/35">
-                                  <span className="h-1.5 w-1.5 rounded-full bg-white/20" aria-hidden />
-                                  {lane.empty}
+                              <div className="min-w-0 flex-1">
+                                <div className="flex min-w-0 items-center justify-between gap-3">
+                                  <div className="truncate text-[12px] font-bold uppercase tracking-[0.16em] text-white/70">
+                                    {lane.label}
+                                  </div>
+                                  <div className={`shrink-0 rounded-lg border ${lane.chipBorder} ${lane.chipBg} px-2.5 py-1 text-base font-bold leading-none tabular-nums ${lane.chipText}`}>
+                                    {lane.count}
+                                  </div>
                                 </div>
-                              ) : (
-                                <ul className="divide-y divide-white/[0.04]">
+                                <div className="mt-1 max-w-[245px] text-[11px] leading-snug text-white/42">
+                                  {lane.hint}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Vertical job list with name / status / action columns */}
+                            <div className="min-w-0 md:border-l md:border-white/[0.06] md:pl-4">
+                              {hasRows ? (
+                                <ul className="space-y-1">
                                   {lane.rows.map(({ est, sub }) => (
                                     <li
                                       key={est.id}
-                                      className="flex items-center gap-2 px-2 py-2.5"
+                                      className="grid grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)_auto] items-center gap-3 rounded-lg px-2 py-1.5 transition hover:bg-white/[0.035]"
                                     >
-                                      <div className="min-w-0 flex-1">
-                                        <div className="truncate text-sm font-medium text-white/90">
+                                      <div className="flex min-w-0 items-center gap-2.5">
+                                        <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${lane.chipBg} ring-1 ring-inset ${lane.chipBorder}`} aria-hidden />
+                                        <div className="truncate text-sm font-semibold text-white/90">
                                           {getEstimateDisplayName(est)}
                                         </div>
-                                        <div className="mt-0.5 truncate text-[11px] text-white/40">{sub}</div>
                                       </div>
+
+                                      <div className="truncate text-[11px] text-white/48">
+                                        {sub}
+                                      </div>
+
                                       <button
                                         type="button"
                                         onClick={() => handleAction(est as RoofingEstimate, "load")}
-                                        className={`shrink-0 rounded-lg border ${lane.chipBorder} ${lane.chipBg} px-2.5 py-1 text-[11px] font-semibold ${lane.chipText} transition ${lane.hover}`}
+                                        className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg border ${lane.chipBorder} ${lane.chipBg} px-2.5 py-1 text-[11px] font-semibold ${lane.chipText} shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition ${lane.hover}`}
                                       >
                                         {lane.ctaLabel}
                                       </button>
                                     </li>
                                   ))}
                                 </ul>
+                              ) : (
+                                <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+                                  <div className="min-w-0">
+                                    <div className="text-sm font-semibold text-white/82">
+                                      {lane.key === "production" ? "No jobs in the 7-day production window." : "All clear in this lane."}
+                                    </div>
+                                    <div className="mt-0.5 text-[11px] leading-snug text-white/46">
+                                      {lane.key === "production" ? "Great job keeping the schedule clean." : lane.empty}
+                                    </div>
+                                  </div>
+
+                                  <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg border ${lane.chipBorder} ${lane.chipBg} px-3 py-1.5 text-[11px] font-semibold ${lane.chipText}`}>
+                                    {lane.key === "production" ? "View calendar" : "Clear"}
+                                    <ArrowRight className="h-3 w-3 opacity-70" aria-hidden />
+                                  </span>
+                                </div>
                               )}
+                            </div>
+
+                            <div className="hidden justify-end text-white/30 transition group-hover:text-white/55 md:flex">
+                              <ArrowRight className="h-4 w-4" aria-hidden />
                             </div>
                           </div>
                         </article>
@@ -4627,7 +4651,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
 
                 {/* ── AI Job Conductor (assistant rail) ── */}
                 <aside className="lg:col-span-4">
-                  <div className="relative flex h-full flex-col overflow-hidden rounded-2xl border border-indigo-400/15 bg-gradient-to-b from-[#0a1228] via-[#0a1325] to-[#070c1a] shadow-[0_18px_44px_rgba(0,0,0,0.45)] ring-1 ring-inset ring-white/[0.04]">
+                  <div className="relative flex h-full flex-col overflow-hidden rounded-2xl border border-indigo-400/12 bg-gradient-to-b from-[#0a1228] via-[#0a1325] to-[#070c1a] shadow-[0_16px_40px_rgba(0,0,0,0.38)] ring-1 ring-inset ring-white/[0.035]">
                     <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(99,102,241,0.12)_0%,_transparent_55%)]" aria-hidden />
                     <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-indigo-300/30 to-transparent" aria-hidden />
 
