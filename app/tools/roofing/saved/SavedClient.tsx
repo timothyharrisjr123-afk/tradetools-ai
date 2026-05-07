@@ -4088,8 +4088,9 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
       )}
 
       {/* ── FieldDive OS App Frame ── */}
-      <div className="px-4 pt-6 pb-10 sm:px-6 sm:pt-7 lg:px-8">
-        <div className="mx-auto max-w-[1800px] overflow-hidden rounded-2xl border border-cyan-400/[0.14] bg-[#07111f]/96 shadow-[0_0_0_1px_rgba(255,255,255,0.035),0_28px_90px_-62px_rgba(34,211,238,0.55)]">
+      <div className="relative mx-auto w-full max-w-[1680px] px-0">
+        <div className="px-4 pt-6 pb-10 sm:px-6 sm:pt-7 lg:px-8">
+          <div className="mx-auto max-w-[1800px] overflow-hidden rounded-2xl border border-cyan-400/[0.14] bg-[#07111f]/96 shadow-[0_0_0_1px_rgba(255,255,255,0.035),0_28px_90px_-62px_rgba(34,211,238,0.55)]">
 
           {/* ── App Shell Nav — Command Center active ── */}
           <nav
@@ -5282,6 +5283,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
         </div>{/* /content area */}
         </div>{/* /max-[1800px] */}
       </div>{/* /px-4 frame */}
+      </div>
 
       {/* Global scheduling modal */}
       {schedulingForId && (() => {
