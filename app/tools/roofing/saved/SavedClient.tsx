@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ShieldCheck, ClipboardList, Package, Search, Bell, ChevronDown } from "lucide-react";
+import { ShieldCheck, ClipboardList, Package, Search, Bell, ChevronDown, Sparkles, PhoneCall, CreditCard, CalendarCheck2, Factory, ArrowRight } from "lucide-react";
 import { SignOutButton } from "@/app/components/auth/SignOutButton";
 import {
   getSavedEstimates,
@@ -2813,6 +2813,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
     profitTotal: number;
     avgMargin: number;
   } | null>(null);
+  const [businessSnapshotOpen, setBusinessSnapshotOpen] = useState(false);
   const [paymentContractTotal, setPaymentContractTotal] = useState("");
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -4191,10 +4192,11 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
           {/* ── Content area ── */}
           <div className="space-y-8 p-4 sm:p-6 lg:p-8 lg:space-y-10">
         {/* ── Command Center Hero ── */}
-        <div className="relative overflow-hidden rounded-3xl border border-cyan-500/20 bg-gradient-to-br from-[#060d1a] via-[#0a1628] to-[#081220] shadow-[0_24px_60px_rgba(0,0,0,0.55)] ring-1 ring-inset ring-white/[0.05]">
+        <div className="relative overflow-hidden rounded-3xl border border-cyan-400/20 bg-gradient-to-br from-[#050b16] via-[#091628] to-[#071225] shadow-[0_24px_70px_rgba(0,0,0,0.62)] ring-1 ring-inset ring-white/[0.05]">
           {/* Background grid texture */}
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_rgba(6,182,212,0.08)_0%,_transparent_60%)]" />
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_rgba(99,102,241,0.06)_0%,_transparent_55%)]" />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-cyan-300/20 to-transparent" aria-hidden />
 
           <div className="relative px-5 pt-5 pb-4">
             {/* Title block */}
@@ -4222,7 +4224,10 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                 };
                 return (
                   <>
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.3em] text-cyan-400/70">
+                    <div className="inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.3em] text-cyan-400/70">
+                      <span className="flex h-5 w-5 items-center justify-center rounded-full border border-cyan-400/20 bg-cyan-500/10 text-cyan-200">
+                        <Sparkles className="h-3.5 w-3.5" aria-hidden />
+                      </span>
                       {statusFilter === "all" ? "AI Operating Hub" : "Pipeline Lane"}
                     </div>
                     <h1 className="mt-2 text-2xl font-bold tracking-tight text-white sm:text-[30px]">
@@ -4236,40 +4241,62 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
               })()}
             </div>
 
-            {/* Prepared action stat chips — only on overview */}
+            {/* Prepared pulse rail — one connected surface, not 4 boxes */}
             {hydrated && statusFilter === "all" && (
-              <div className="mt-5 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-                <div className="flex flex-col gap-1 rounded-2xl border border-rose-400/15 bg-rose-500/[0.07] px-3.5 py-3">
-                  <div className="text-[10px] font-semibold uppercase tracking-wide text-rose-300/70">Prepared follow-ups</div>
-                  <div className="text-2xl font-bold tabular-nums text-rose-100">{sentDueJobs.length}</div>
-                  <div className="text-[11px] text-rose-300/55">Needs contractor review</div>
-                </div>
-                <div className="flex flex-col gap-1 rounded-2xl border border-sky-400/15 bg-sky-500/[0.07] px-3.5 py-3">
-                  <div className="text-[10px] font-semibold uppercase tracking-wide text-sky-300/70">Deposit path ready</div>
-                  <div className="text-2xl font-bold tabular-nums text-sky-100">{approvedDueJobs.length}</div>
-                  <div className="text-[11px] text-sky-300/55">Needs contractor approval</div>
-                </div>
-                <div className="flex flex-col gap-1 rounded-2xl border border-emerald-400/15 bg-emerald-500/[0.07] px-3.5 py-3">
-                  <div className="text-[10px] font-semibold uppercase tracking-wide text-emerald-300/70">Schedule ready</div>
-                  <div className="text-2xl font-bold tabular-nums text-emerald-100">{depositReadyJobs.length}</div>
-                  <div className="text-[11px] text-emerald-300/55">Ready for confirmation</div>
-                </div>
-                <div className="flex flex-col gap-1 rounded-2xl border border-amber-400/15 bg-amber-500/[0.07] px-3.5 py-3">
-                  <div className="text-[10px] font-semibold uppercase tracking-wide text-amber-300/70">Production this week</div>
-                  <div className="text-2xl font-bold tabular-nums text-amber-100">{jobsThisWeek.length}</div>
-                  <div className="text-[11px] text-amber-300/55">Jobs in 7-day window</div>
+              <div className="mt-5 overflow-hidden rounded-2xl border border-white/[0.08] bg-gradient-to-r from-white/[0.04] via-white/[0.02] to-white/[0.04] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                <div className="grid grid-cols-2 divide-y divide-white/[0.06] sm:grid-cols-4 sm:divide-x sm:divide-y-0">
+                  {[
+                    { tone: "rose", icon: PhoneCall, label: "Follow-ups", value: sentDueJobs.length, sub: "Needs review" },
+                    { tone: "sky", icon: CreditCard, label: "Deposits", value: approvedDueJobs.length, sub: "Needs approval" },
+                    { tone: "emerald", icon: CalendarCheck2, label: "Schedule", value: depositReadyJobs.length, sub: "Ready to confirm" },
+                    { tone: "amber", icon: Factory, label: "Production", value: jobsThisWeek.length, sub: "This week" },
+                  ].map(({ tone, icon: Icon, label, value, sub }) => {
+                    const toneMap: Record<string, { dot: string; text: string; bg: string }> = {
+                      rose: { dot: "bg-rose-400 shadow-[0_0_10px_rgba(251,113,133,0.7)]", text: "text-rose-100", bg: "from-rose-500/[0.10]" },
+                      sky: { dot: "bg-sky-400 shadow-[0_0_10px_rgba(56,189,248,0.7)]", text: "text-sky-100", bg: "from-sky-500/[0.10]" },
+                      emerald: { dot: "bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.7)]", text: "text-emerald-100", bg: "from-emerald-500/[0.10]" },
+                      amber: { dot: "bg-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.7)]", text: "text-amber-100", bg: "from-amber-500/[0.10]" },
+                    };
+                    const t = toneMap[tone];
+                    return (
+                      <div
+                        key={label}
+                        className={`relative overflow-hidden bg-gradient-to-b ${t.bg} via-transparent to-transparent px-4 py-3.5`}
+                      >
+                        <div className="pointer-events-none absolute right-3 top-3 opacity-50">
+                          <Icon className="h-4 w-4 text-white/55" aria-hidden />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`h-1.5 w-1.5 rounded-full ${t.dot}`} aria-hidden />
+                          <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/50">{label}</span>
+                        </div>
+                        <div className={`mt-1.5 text-[26px] font-bold tabular-nums leading-none ${t.text}`}>{value}</div>
+                        <div className="mt-1 text-[11px] text-white/40">{sub}</div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
 
             {/* Prepared next action */}
             {hydrated && statusFilter === "all" && nextActionText && (
-              <div className="mt-4 flex items-start gap-3 rounded-2xl border border-cyan-400/10 bg-cyan-500/[0.05] px-4 py-3">
-                <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-cyan-400/15 text-[10px] text-cyan-300">▶</div>
-                <div className="min-w-0">
-                  <div className="text-[10px] font-semibold uppercase tracking-wider text-cyan-400/70">Prepared next action</div>
-                  <div className="mt-0.5 text-sm text-white/75">{nextActionText}</div>
+              <div className="mt-4 overflow-hidden rounded-2xl border border-cyan-400/15 bg-gradient-to-br from-cyan-500/[0.10] via-white/[0.03] to-indigo-500/[0.06] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                <div className="flex items-start gap-3 px-4 py-3">
+                  <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-cyan-300/25 bg-cyan-400/10 text-cyan-200 shadow-[0_0_18px_rgba(34,211,238,0.20)]">
+                    <ArrowRight className="h-4 w-4" aria-hidden />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="text-[10px] font-semibold uppercase tracking-wider text-cyan-300/80">Prepared next action</div>
+                      <div className="rounded-full border border-white/[0.10] bg-white/[0.04] px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white/45">
+                        Contractor confirmation
+                      </div>
+                    </div>
+                    <div className="mt-1 text-sm leading-relaxed text-white/80">{nextActionText}</div>
+                  </div>
                 </div>
+                <div className="h-px w-full bg-gradient-to-r from-transparent via-cyan-300/20 to-transparent" aria-hidden />
               </div>
             )}
 
@@ -4290,7 +4317,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search jobs, customers, addresses…"
-                className="w-full rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-2.5 text-sm text-white/90 placeholder:text-white/35 outline-none focus:border-cyan-400/25 focus:bg-white/[0.07] transition"
+                className="w-full rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-2.5 text-sm text-white/90 placeholder:text-white/35 outline-none focus:border-cyan-400/25 focus:bg-white/[0.07] transition shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
               />
             </div>
 
@@ -4399,278 +4426,385 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
           </div>
         )}
 
-        {hydrated && (
-          <RevenueSummary
-            estimates={searchFiltered}
-            onMetrics={setRevenueMetrics}
-          />
-        )}
+        {/* ── Command Deck — single composed surface (Queue + Assistant) ── */}
+        {hydrated && (() => {
+          const lanes = [
+            {
+              key: "follow",
+              label: "Follow-ups prepared",
+              hint: "Sent proposals waiting on contractor follow-up.",
+              count: sentDueJobs.length,
+              icon: PhoneCall,
+              accent: "from-rose-400/70 to-rose-500/0",
+              chipBorder: "border-rose-400/25",
+              chipBg: "bg-rose-500/[0.10]",
+              chipText: "text-rose-100",
+              tagText: "text-rose-200/85",
+              ring: "ring-rose-400/15",
+              hover: "hover:border-rose-300/35 hover:bg-rose-500/[0.16]",
+              ctaLabel: "Review",
+              empty: "FieldDive found nothing pending in this lane.",
+              rows: sentDueJobs.slice(0, 3).map((est) => ({
+                est,
+                sub: !!getEffectiveViewedAt(est, batchStatuses) ? "Viewed by customer" : "Not yet opened",
+              })),
+            },
+            {
+              key: "deposit",
+              label: "Deposit path ready",
+              hint: "Approved jobs with a deposit path prepared.",
+              count: approvedDueJobs.length,
+              icon: CreditCard,
+              accent: "from-sky-400/70 to-sky-500/0",
+              chipBorder: "border-sky-400/25",
+              chipBg: "bg-sky-500/[0.10]",
+              chipText: "text-sky-100",
+              tagText: "text-sky-200/85",
+              ring: "ring-sky-400/15",
+              hover: "hover:border-sky-300/35 hover:bg-sky-500/[0.16]",
+              ctaLabel: "Review",
+              empty: "FieldDive found nothing pending in this lane.",
+              rows: approvedDueJobs.slice(0, 3).map((est) => ({
+                est,
+                sub: "Approved · needs contractor approval",
+              })),
+            },
+            {
+              key: "schedule",
+              label: "Schedule confirmation ready",
+              hint: "Deposit received — holding for your schedule confirmation.",
+              count: depositReadyJobs.length,
+              icon: CalendarCheck2,
+              accent: "from-emerald-400/70 to-emerald-500/0",
+              chipBorder: "border-emerald-400/25",
+              chipBg: "bg-emerald-500/[0.10]",
+              chipText: "text-emerald-100",
+              tagText: "text-emerald-200/85",
+              ring: "ring-emerald-400/15",
+              hover: "hover:border-emerald-300/35 hover:bg-emerald-500/[0.16]",
+              ctaLabel: "Confirm",
+              empty: "FieldDive found nothing pending in this lane.",
+              rows: depositReadyJobs.slice(0, 3).map((est) => ({
+                est,
+                sub: "Needs contractor approval",
+              })),
+            },
+            {
+              key: "production",
+              label: "Production check",
+              hint:
+                statusFilter === "scheduled"
+                  ? "Jobs in your 7-day production window."
+                  : "Switch to Scheduled lane for this week's production view.",
+              count: jobsThisWeek.length,
+              icon: Factory,
+              accent: "from-amber-400/70 to-amber-500/0",
+              chipBorder: "border-amber-400/25",
+              chipBg: "bg-amber-500/[0.10]",
+              chipText: "text-amber-100",
+              tagText: "text-amber-200/85",
+              ring: "ring-amber-400/15",
+              hover: "hover:border-amber-300/35 hover:bg-amber-500/[0.16]",
+              ctaLabel: "Open",
+              empty:
+                statusFilter !== "scheduled"
+                  ? "Switch to Scheduled lane to view production checks for this week."
+                  : "FieldDive found nothing pending in this lane.",
+              rows:
+                statusFilter !== "scheduled"
+                  ? []
+                  : jobsThisWeek.slice(0, 3).map(({ est, key }) => {
+                      const dateKey = normalizeDateKey(est?.scheduledStartDate) ?? key;
+                      return { est, sub: formatDateKeyLocal(dateKey) };
+                    }),
+            },
+          ];
 
-        {/* AI Job Conductor — same derived metrics, FieldDive-native framing */}
-        {hydrated && (
-          <div className="relative overflow-hidden rounded-3xl border border-indigo-500/15 bg-gradient-to-br from-[#08101e] via-[#0b1525] to-[#070e1a] p-6 shadow-[0_16px_40px_rgba(0,0,0,0.45)] ring-1 ring-inset ring-white/[0.04]">
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(99,102,241,0.07)_0%,_transparent_55%)]" />
-            <div className="relative">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-indigo-300/70">AI Job Conductor</div>
-                  <div className="mt-2 text-lg font-semibold text-white">Command Reviewer</div>
-                  <div className="mt-1 text-sm text-white/50">
-                    FieldDive has reviewed every job in your pipeline. These signals are prepared — waiting on your confirmation.
+          return (
+            <section
+              aria-label="Command deck"
+              className="relative overflow-hidden rounded-3xl border border-cyan-400/12 bg-[radial-gradient(ellipse_at_top,_rgba(8,18,34,1)_0%,_rgba(7,17,31,1)_55%,_rgba(5,12,24,1)_100%)] shadow-[0_28px_70px_rgba(0,0,0,0.55)] ring-1 ring-inset ring-white/[0.05]"
+            >
+              {/* ambient lighting */}
+              <div className="pointer-events-none absolute -left-24 top-1/3 h-[420px] w-[420px] rounded-full bg-cyan-500/[0.06] blur-[110px]" aria-hidden />
+              <div className="pointer-events-none absolute -right-32 bottom-0 h-[420px] w-[420px] rounded-full bg-indigo-500/[0.07] blur-[110px]" aria-hidden />
+              <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-300/30 to-transparent" aria-hidden />
+
+              {/* Composed deck header bar */}
+              <div className="relative flex flex-col gap-3 border-b border-white/[0.05] px-5 pb-4 pt-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+                <div className="flex items-center gap-3">
+                  <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-cyan-300/25 bg-gradient-to-br from-cyan-400/15 to-indigo-500/10 text-cyan-200 shadow-[0_0_24px_rgba(34,211,238,0.18)]">
+                    <Sparkles className="h-4 w-4" aria-hidden />
+                    <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)]" aria-hidden />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-cyan-400/70">Command Deck</div>
+                    <div className="mt-0.5 text-[15px] font-semibold text-white">Prepared by FieldDive · ready for confirmation</div>
                   </div>
                 </div>
-                <div className="shrink-0 rounded-full border border-indigo-400/20 bg-indigo-500/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-indigo-300/75">
-                  Prepared by FieldDive
+                <div className="flex items-center gap-2">
+                  <span className="hidden rounded-full border border-emerald-400/25 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-emerald-200/85 sm:inline-flex">
+                    <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)]" aria-hidden />
+                    Live
+                  </span>
+                  <span className="rounded-full border border-white/[0.08] bg-white/[0.03] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-white/45">
+                    AI Work Queue
+                  </span>
                 </div>
               </div>
 
-              <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                <div className="rounded-2xl border border-emerald-400/15 bg-emerald-500/[0.08] p-4">
-                  <div className="text-[10px] font-semibold uppercase tracking-wide text-emerald-200/75">
-                    {statusFilter === "scheduled" ? "Scheduled revenue" : "Secured revenue"}
-                  </div>
-                  <div className="mt-2 text-2xl font-bold text-emerald-100">
-                    ${(statusFilter === "scheduled" ? scheduledRevenueSafe : waitingToScheduleRevenueSafe).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </div>
-                  <div className="mt-1 text-xs text-emerald-200/60">
-                    {statusFilter === "scheduled"
-                      ? "Revenue from scheduled jobs in this view"
-                      : "Deposit collected — ready for schedule confirmation"}
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-amber-400/15 bg-amber-500/[0.08] p-4">
-                  <div className="text-[10px] font-semibold uppercase tracking-wide text-amber-200/75">
-                    {statusFilter === "scheduled" ? "Upcoming jobs" : "Needs contractor approval"}
-                  </div>
-                  <div className="mt-2 text-2xl font-bold text-amber-100">
-                    {statusFilter === "scheduled" ? upcomingScheduledJobs.length : waitingToScheduleCount}
-                  </div>
-                  <div className="mt-1 text-xs text-amber-200/60">
-                    {statusFilter === "scheduled" ? "Jobs on your upcoming schedule" : "Approved or deposit-paid, not locked to a date yet"}
-                  </div>
-                </div>
-
-                {statusFilter === "scheduled" ? (
-                  <div className="rounded-2xl border border-cyan-400/15 bg-cyan-500/[0.08] p-4">
-                    <div className="text-[10px] font-semibold uppercase tracking-wide text-cyan-200/75">Production this week</div>
-                    <div className="mt-2 text-2xl font-bold text-cyan-100">{jobsThisWeek.length}</div>
-                    <div className="mt-1 text-xs text-cyan-200/60">Jobs scheduled in the next 7 days</div>
-                  </div>
-                ) : (
-                  <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                    <div className="text-[10px] font-semibold uppercase tracking-wide text-white/45">Pipeline bottleneck</div>
-                    <div className="mt-2 text-base font-semibold text-white">{weakestLabel}</div>
-                    {weakestDenom > 0 && (
-                      <>
-                        <div className="mt-1 text-sm text-amber-300">⚠ {weakestPct}% conversion</div>
-                        <div className="mt-1 text-xs text-white/40">{weakestNumer} of {weakestDenom} jobs</div>
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              <div className="mt-5 flex items-start gap-3 rounded-2xl border border-indigo-400/10 bg-indigo-500/[0.05] px-4 py-3">
-                <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-indigo-400/15 text-[10px] text-indigo-300">▶</div>
-                <div className="min-w-0 text-sm text-white/70">
-                  <span className="font-semibold text-white">Prepared next action: </span>
-                  {nextActionText}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ── Ready for Confirmation / Prepared Work Queue ── */}
-        {hydrated && (
-          <section
-            aria-label="Prepared work queue"
-            className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-gradient-to-br from-[#08101c] to-[#060d18] p-5 shadow-[0_16px_40px_rgba(0,0,0,0.4)] ring-1 ring-inset ring-white/[0.04] sm:p-6"
-          >
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_rgba(6,182,212,0.04)_0%,_transparent_60%)]" />
-            <div className="relative">
-              <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                  <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-cyan-400/60">Ready for Confirmation</div>
-                  <h2 className="mt-1.5 text-lg font-semibold tracking-tight text-white">Prepared Work Queue</h2>
-                  <p className="mt-0.5 text-sm text-white/45">
-                    FieldDive has reviewed your pipeline and prepared these jobs for confirmation.
-                  </p>
-                </div>
-                <div className="shrink-0 rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-white/40">
-                  AI Work Queue
-                </div>
-              </div>
-
-              <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-                {/* Lane 1: Follow-ups prepared */}
-                <div className="flex min-h-0 flex-col rounded-2xl border border-rose-400/12 bg-rose-500/[0.04] p-4">
-                  <div className="flex items-baseline justify-between gap-2">
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-rose-300/65">
-                      Follow-ups prepared
-                    </span>
-                    <span className="text-lg font-bold tabular-nums text-rose-100">{sentDueJobs.length}</span>
-                  </div>
-                  <p className="mt-2 text-[11px] leading-snug text-white/40">
-                    FieldDive identified these proposals for follow-up.
-                  </p>
-                  <div className="mt-3 space-y-0 border-t border-white/[0.06] pt-3">
-                    {sentDueJobs.length === 0 ? (
-                      <p className="text-xs text-white/32">FieldDive found nothing pending in this lane.</p>
-                    ) : (
-                      sentDueJobs.slice(0, 3).map((est) => {
-                        const viewed = !!getEffectiveViewedAt(est, batchStatuses);
-                        return (
-                          <div
-                            key={est.id}
-                            className="flex items-center gap-2 border-b border-white/[0.05] py-2.5 last:border-b-0 last:pb-0 first:pt-0"
-                          >
-                            <div className="min-w-0 flex-1">
-                              <div className="truncate text-sm font-medium text-white/88">
-                                {getEstimateDisplayName(est)}
-                              </div>
-                              <div className="mt-0.5 text-[11px] text-white/42">
-                                {viewed ? "Viewed by customer" : "Not yet opened"}
-                              </div>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => handleAction(est as RoofingEstimate, "load")}
-                              className="shrink-0 rounded-lg border border-rose-400/20 bg-rose-500/[0.08] px-2.5 py-1 text-[11px] font-semibold text-rose-200 transition hover:bg-rose-500/[0.14]"
-                            >
-                              Review
-                            </button>
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-                </div>
-
-                {/* Lane 2: Deposit path ready */}
-                <div className="flex min-h-0 flex-col rounded-2xl border border-sky-400/12 bg-sky-500/[0.04] p-4">
-                  <div className="flex items-baseline justify-between gap-2">
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-sky-300/65">
-                      Deposit path ready
-                    </span>
-                    <span className="text-lg font-bold tabular-nums text-sky-100">{approvedDueJobs.length}</span>
-                  </div>
-                  <p className="mt-2 text-[11px] leading-snug text-white/40">FieldDive prepared a deposit path for these approvals.</p>
-                  <div className="mt-3 space-y-0 border-t border-white/[0.06] pt-3">
-                    {approvedDueJobs.length === 0 ? (
-                      <p className="text-xs text-white/32">FieldDive found nothing pending in this lane.</p>
-                    ) : (
-                      approvedDueJobs.slice(0, 3).map((est) => (
-                        <div
-                          key={est.id}
-                          className="flex items-center gap-2 border-b border-white/[0.05] py-2.5 last:border-b-0 last:pb-0 first:pt-0"
+              <div className="relative grid grid-cols-1 gap-5 p-5 sm:p-6 lg:grid-cols-12 lg:gap-6">
+                {/* ── Prepared Work Queue (lanes) ── */}
+                <div className="lg:col-span-8">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    {lanes.map((lane) => {
+                      const Icon = lane.icon;
+                      return (
+                        <article
+                          key={lane.key}
+                          className={`group relative flex min-h-0 flex-col overflow-hidden rounded-2xl border border-white/[0.07] bg-white/[0.02] shadow-[0_10px_28px_rgba(0,0,0,0.30),inset_0_1px_0_rgba(255,255,255,0.04)] ring-1 ring-inset ${lane.ring} transition`}
                         >
-                          <div className="min-w-0 flex-1">
-                            <div className="truncate text-sm font-medium text-white/88">
-                              {getEstimateDisplayName(est)}
-                            </div>
-                            <div className="mt-0.5 text-[11px] text-white/42">Approved · needs contractor approval</div>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => handleAction(est as RoofingEstimate, "load")}
-                            className="shrink-0 rounded-lg border border-sky-400/20 bg-sky-500/[0.08] px-2.5 py-1 text-[11px] font-semibold text-sky-200 transition hover:bg-sky-500/[0.14]"
-                          >
-                            Review
-                          </button>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
+                          {/* left accent bar */}
+                          <div className={`pointer-events-none absolute inset-y-0 left-0 w-[3px] bg-gradient-to-b ${lane.accent}`} aria-hidden />
+                          <div className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-white/[0.02] blur-2xl" aria-hidden />
 
-                {/* Lane 3: Schedule confirmation ready */}
-                <div className="flex min-h-0 flex-col rounded-2xl border border-emerald-400/12 bg-emerald-500/[0.04] p-4">
-                  <div className="flex items-baseline justify-between gap-2">
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-300/65">
-                      Schedule confirmation ready
-                    </span>
-                    <span className="text-lg font-bold tabular-nums text-emerald-100">{depositReadyJobs.length}</span>
-                  </div>
-                  <p className="mt-2 text-[11px] leading-snug text-white/40">
-                    Deposit received — FieldDive is holding for your schedule confirmation.
-                  </p>
-                  <div className="mt-3 space-y-0 border-t border-white/[0.06] pt-3">
-                    {depositReadyJobs.length === 0 ? (
-                      <p className="text-xs text-white/32">FieldDive found nothing pending in this lane.</p>
-                    ) : (
-                      depositReadyJobs.slice(0, 3).map((est) => (
-                        <div
-                          key={est.id}
-                          className="flex items-center gap-2 border-b border-white/[0.05] py-2.5 last:border-b-0 last:pb-0 first:pt-0"
-                        >
-                          <div className="min-w-0 flex-1">
-                            <div className="truncate text-sm font-medium text-white/88">
-                              {getEstimateDisplayName(est)}
-                            </div>
-                            <div className="mt-0.5 text-[11px] text-white/42">Needs contractor approval</div>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => handleAction(est as RoofingEstimate, "load")}
-                            className="shrink-0 rounded-lg border border-emerald-400/20 bg-emerald-500/[0.08] px-2.5 py-1 text-[11px] font-semibold text-emerald-200 transition hover:bg-emerald-500/[0.14]"
-                          >
-                            Confirm
-                          </button>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-
-                {/* Lane 4: Production check */}
-                <div className="flex min-h-0 flex-col rounded-2xl border border-amber-400/12 bg-amber-500/[0.04] p-4">
-                  <div className="flex items-baseline justify-between gap-2">
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-300/65">
-                      Production check
-                    </span>
-                    <span className="text-lg font-bold tabular-nums text-amber-100">{jobsThisWeek.length}</span>
-                  </div>
-                  <p className="mt-2 text-[11px] leading-snug text-white/40">
-                    {statusFilter === "scheduled"
-                      ? "FieldDive identified jobs in your 7-day production window."
-                      : "Switch to Scheduled lane for this week's production view."}
-                  </p>
-                  <div className="mt-3 space-y-0 border-t border-white/[0.06] pt-3">
-                    {statusFilter !== "scheduled" || jobsThisWeek.length === 0 ? (
-                      <p className="text-xs text-white/32">FieldDive found nothing pending in this lane.</p>
-                    ) : (
-                      jobsThisWeek.slice(0, 3).map(({ est, key }) => {
-                        const dateKey =
-                          normalizeDateKey(est?.scheduledStartDate) ?? key;
-                        const dateLabel = formatDateKeyLocal(dateKey);
-                        return (
-                          <div
-                            key={est.id}
-                            className="flex items-center gap-2 border-b border-white/[0.05] py-2.5 last:border-b-0 last:pb-0 first:pt-0"
-                          >
-                            <div className="min-w-0 flex-1">
-                              <div className="truncate text-sm font-medium text-white/88">
-                                {getEstimateDisplayName(est)}
+                          {/* lane header */}
+                          <div className="flex items-start justify-between gap-3 px-4 pt-4">
+                            <div className="flex items-center gap-2.5">
+                              <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${lane.chipBorder} ${lane.chipBg}`}>
+                                <Icon className={`h-4 w-4 ${lane.tagText}`} aria-hidden />
                               </div>
-                              <div className="mt-0.5 truncate text-[11px] text-white/42">{dateLabel}</div>
+                              <div className="min-w-0">
+                                <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/45">{lane.label}</div>
+                                <div className="mt-0.5 text-[11px] leading-snug text-white/40">{lane.hint}</div>
+                              </div>
                             </div>
-                            <button
-                              type="button"
-                              onClick={() => handleAction(est as RoofingEstimate, "load")}
-                              className="shrink-0 rounded-lg border border-amber-400/20 bg-amber-500/[0.08] px-2.5 py-1 text-[11px] font-semibold text-amber-200 transition hover:bg-amber-500/[0.14]"
-                            >
-                              Open
-                            </button>
+                            <div className={`shrink-0 rounded-lg border ${lane.chipBorder} ${lane.chipBg} px-2 py-0.5 text-base font-bold tabular-nums ${lane.chipText}`}>
+                              {lane.count}
+                            </div>
                           </div>
-                        );
-                      })
-                    )}
+
+                          {/* lane body */}
+                          <div className="mt-3 flex-1 px-4 pb-4">
+                            <div className="rounded-xl border border-white/[0.04] bg-black/20 p-1.5">
+                              {lane.rows.length === 0 ? (
+                                <div className="flex items-center gap-2 px-2 py-3 text-[11px] text-white/35">
+                                  <span className="h-1.5 w-1.5 rounded-full bg-white/20" aria-hidden />
+                                  {lane.empty}
+                                </div>
+                              ) : (
+                                <ul className="divide-y divide-white/[0.04]">
+                                  {lane.rows.map(({ est, sub }) => (
+                                    <li
+                                      key={est.id}
+                                      className="flex items-center gap-2 px-2 py-2.5"
+                                    >
+                                      <div className="min-w-0 flex-1">
+                                        <div className="truncate text-sm font-medium text-white/90">
+                                          {getEstimateDisplayName(est)}
+                                        </div>
+                                        <div className="mt-0.5 truncate text-[11px] text-white/40">{sub}</div>
+                                      </div>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleAction(est as RoofingEstimate, "load")}
+                                        className={`shrink-0 rounded-lg border ${lane.chipBorder} ${lane.chipBg} px-2.5 py-1 text-[11px] font-semibold ${lane.chipText} transition ${lane.hover}`}
+                                      >
+                                        {lane.ctaLabel}
+                                      </button>
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                            </div>
+                          </div>
+                        </article>
+                      );
+                    })}
                   </div>
+                </div>
+
+                {/* ── AI Job Conductor (assistant rail) ── */}
+                <aside className="lg:col-span-4">
+                  <div className="relative flex h-full flex-col overflow-hidden rounded-2xl border border-indigo-400/15 bg-gradient-to-b from-[#0a1228] via-[#0a1325] to-[#070c1a] shadow-[0_18px_44px_rgba(0,0,0,0.45)] ring-1 ring-inset ring-white/[0.04]">
+                    <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(99,102,241,0.12)_0%,_transparent_55%)]" aria-hidden />
+                    <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-indigo-300/30 to-transparent" aria-hidden />
+
+                    {/* assistant header — feels like AI is thinking */}
+                    <div className="relative flex items-start gap-3 px-5 pt-5">
+                      <div className="relative flex h-11 w-11 shrink-0 items-center justify-center" aria-hidden>
+                        <span className="absolute inset-0 rounded-full bg-indigo-400/20 blur-md" />
+                        <span className="absolute inset-0.5 rounded-full border border-indigo-300/30" />
+                        <span className="absolute inset-1 rounded-full bg-gradient-to-br from-indigo-300/60 via-indigo-500/40 to-slate-950/80 shadow-[inset_0_0_20px_rgba(165,180,252,0.40)]" />
+                        <span className="relative text-[10px] font-extrabold uppercase tracking-widest text-indigo-50">AI</span>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-indigo-300/75">
+                          <span className="inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)]" aria-hidden />
+                          Command Reviewer
+                        </div>
+                        <div className="mt-1 text-[15px] font-semibold text-white">Reviewing your pipeline now</div>
+                        <div className="mt-0.5 text-[12px] leading-snug text-white/50">
+                          Tracking revenue movement, contractor approvals, and bottlenecks behind the queue.
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* AI insights — reasoning style, not metric stack */}
+                    <div className="relative mt-4 flex-1 px-5">
+                      <div className="text-[9px] font-semibold uppercase tracking-[0.22em] text-white/30">AI insights</div>
+                      <div className="mt-2 space-y-2">
+                        {/* Revenue check */}
+                        <div className="flex items-start gap-3 rounded-xl border border-emerald-400/15 bg-gradient-to-r from-emerald-500/[0.10] to-transparent p-3">
+                          <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-emerald-400/25 bg-emerald-500/15 text-emerald-200">
+                            <span className="text-[10px]">✓</span>
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="text-[11px] font-semibold uppercase tracking-wider text-emerald-200/80">
+                              {statusFilter === "scheduled" ? "Scheduled revenue" : "Secured revenue"}
+                            </div>
+                            <div className="mt-0.5 text-base font-bold text-emerald-50">
+                              ${(statusFilter === "scheduled" ? scheduledRevenueSafe : waitingToScheduleRevenueSafe).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </div>
+                            <div className="mt-0.5 text-[11px] leading-snug text-emerald-200/55">
+                              {statusFilter === "scheduled"
+                                ? "Tracking from scheduled jobs in this view."
+                                : "Deposit collected — ready for schedule confirmation."}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Approvals check */}
+                        <div className="flex items-start gap-3 rounded-xl border border-amber-400/15 bg-gradient-to-r from-amber-500/[0.10] to-transparent p-3">
+                          <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-amber-400/25 bg-amber-500/15 text-amber-200">
+                            <span className="text-[10px]">!</span>
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="text-[11px] font-semibold uppercase tracking-wider text-amber-200/80">
+                              {statusFilter === "scheduled" ? "Upcoming jobs" : "Needs contractor approval"}
+                            </div>
+                            <div className="mt-0.5 text-base font-bold text-amber-50">
+                              {statusFilter === "scheduled" ? upcomingScheduledJobs.length : waitingToScheduleCount}
+                            </div>
+                            <div className="mt-0.5 text-[11px] leading-snug text-amber-200/55">
+                              {statusFilter === "scheduled"
+                                ? "On your upcoming schedule."
+                                : "Approved or deposit-paid — not locked to a date yet."}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Bottleneck / production check */}
+                        {statusFilter === "scheduled" ? (
+                          <div className="flex items-start gap-3 rounded-xl border border-cyan-400/15 bg-gradient-to-r from-cyan-500/[0.10] to-transparent p-3">
+                            <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-cyan-400/25 bg-cyan-500/15 text-cyan-200">
+                              <span className="text-[10px]">▣</span>
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="text-[11px] font-semibold uppercase tracking-wider text-cyan-200/80">Production this week</div>
+                              <div className="mt-0.5 text-base font-bold text-cyan-50">{jobsThisWeek.length}</div>
+                              <div className="mt-0.5 text-[11px] leading-snug text-cyan-200/55">
+                                Scheduled in the next 7 days.
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-start gap-3 rounded-xl border border-white/[0.08] bg-white/[0.03] p-3">
+                            <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-white/15 bg-white/[0.04] text-white/65">
+                              <span className="text-[10px]">⚠</span>
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="text-[11px] font-semibold uppercase tracking-wider text-white/55">Pipeline bottleneck</div>
+                              <div className="mt-0.5 text-sm font-semibold text-white">{weakestLabel}</div>
+                              {weakestDenom > 0 && (
+                                <>
+                                  <div className="mt-0.5 text-[12px] text-amber-200/85">{weakestPct}% conversion</div>
+                                  <div className="text-[11px] text-white/40">{weakestNumer} of {weakestDenom} jobs</div>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Recommended next action — premium CTA strip */}
+                    <div className="relative mt-4 border-t border-white/[0.06] px-5 py-4">
+                      <div className="overflow-hidden rounded-xl border border-cyan-300/20 bg-gradient-to-r from-cyan-500/[0.12] via-indigo-500/[0.08] to-transparent">
+                        <div className="flex items-start gap-3 px-3.5 py-3">
+                          <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-cyan-300/30 bg-cyan-400/15 text-cyan-100 shadow-[0_0_14px_rgba(34,211,238,0.30)]">
+                            <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-300/80">Recommended next action</div>
+                            <div className="mt-0.5 text-[13px] leading-snug text-white/85">{nextActionText}</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </aside>
+              </div>
+            </section>
+          );
+        })()}
+
+        {/* ── Business Snapshot — slim financial pulse strip ── */}
+        {hydrated && (
+          <section className="relative overflow-hidden rounded-2xl border border-white/[0.07] bg-gradient-to-r from-[#070e1a] via-[#0a1426] to-[#070e1a] shadow-[0_12px_30px_rgba(0,0,0,0.32)] ring-1 ring-inset ring-white/[0.04]">
+            <div className="pointer-events-none absolute inset-y-0 left-0 w-[3px] bg-gradient-to-b from-emerald-400/60 via-cyan-400/30 to-transparent" aria-hidden />
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-300/15 to-transparent" aria-hidden />
+            <button
+              type="button"
+              onClick={() => setBusinessSnapshotOpen((v) => !v)}
+              className="relative flex w-full flex-col gap-3 px-5 py-3.5 text-left transition hover:bg-white/[0.02] sm:flex-row sm:items-center sm:gap-5 sm:px-6"
+              aria-expanded={businessSnapshotOpen}
+            >
+              <div className="flex items-center gap-3 sm:min-w-[180px]">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-emerald-400/25 bg-emerald-500/10 text-emerald-200">
+                  <span className="text-[11px] font-bold">$</span>
+                </div>
+                <div className="min-w-0">
+                  <div className="text-[9px] font-semibold uppercase tracking-[0.22em] text-emerald-300/65">Business Snapshot</div>
+                  <div className="mt-0.5 text-[12px] font-semibold text-white/75">Financial pulse</div>
                 </div>
               </div>
-            </div>
+
+              {/* inline pulse metrics */}
+              <div className="flex flex-1 flex-wrap items-center gap-x-5 gap-y-2 text-[11px] sm:gap-x-6">
+                {[
+                  { label: "Pipeline", value: revenueMetrics ? formatMoney(revenueMetrics.pipelineTotal ?? 0) : "—", tone: "text-white/85" },
+                  { label: "Collected", value: revenueMetrics ? formatMoney(revenueMetrics.collected ?? 0) : "—", tone: "text-emerald-200" },
+                  { label: "Balance", value: revenueMetrics ? formatMoney(Math.max(0, (revenueMetrics.pipelineTotal ?? 0) - (revenueMetrics.collected ?? 0))) : "—", tone: "text-amber-200" },
+                  { label: "Profit", value: revenueMetrics ? formatMoney(revenueMetrics.profitTotal ?? 0) : "—", tone: "text-cyan-200" },
+                ].map((m, i) => (
+                  <div key={m.label} className="flex items-center gap-2">
+                    {i > 0 && <span className="hidden h-3 w-px bg-white/[0.08] sm:inline-block" aria-hidden />}
+                    <span className="text-[9px] font-semibold uppercase tracking-[0.18em] text-white/35">{m.label}</span>
+                    <span className={`text-sm font-bold tabular-nums ${m.tone}`}>{m.value}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex shrink-0 items-center gap-2">
+                <span className="rounded-full border border-white/[0.10] bg-white/[0.04] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-white/55">
+                  {businessSnapshotOpen ? "Collapse" : "Expand"}
+                </span>
+                <ChevronDown
+                  className={`h-4 w-4 text-white/45 transition-transform ${businessSnapshotOpen ? "rotate-180" : ""}`}
+                  aria-hidden
+                />
+              </div>
+            </button>
+
+            {businessSnapshotOpen && (
+              <div className="border-t border-white/[0.06] px-4 pb-5 pt-5 sm:px-6">
+                <RevenueSummary
+                  estimates={searchFiltered}
+                  onMetrics={setRevenueMetrics}
+                />
+              </div>
+            )}
           </section>
         )}
 
@@ -4851,15 +4985,60 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
           })()}
           {hydrated && statusFilter !== "scheduled" && statusFilter === "all" && (
             <div className="space-y-10">
-              {/* Active Pipeline header */}
-              <div className="flex items-center gap-4">
-                <div className="min-w-0">
-                  <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-white/30">Active Pipeline</div>
-                  <div className="mt-0.5 text-sm font-semibold text-white/70">Jobs in your pipeline, grouped by stage</div>
+              {/* Pipeline Movement — header + stage flow */}
+              <div className="space-y-4">
+                <div className="flex items-end justify-between gap-4">
+                  <div className="min-w-0">
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-cyan-400/65">Pipeline Movement</div>
+                    <div className="mt-1 text-base font-semibold text-white">How jobs are moving through your process</div>
+                    <div className="mt-0.5 text-[12px] text-white/45">Click any stage to focus the lane.</div>
+                  </div>
+                  <div className="shrink-0 rounded-full border border-white/[0.08] bg-white/[0.03] px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white/40">
+                    {searchFiltered.length} job{searchFiltered.length !== 1 ? "s" : ""}
+                  </div>
                 </div>
-                <div className="h-px flex-1 bg-white/[0.06]" />
-                <div className="shrink-0 rounded-full border border-white/[0.08] bg-white/[0.03] px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white/35">
-                  {searchFiltered.length} job{searchFiltered.length !== 1 ? "s" : ""}
+
+                {/* Stage flow rail */}
+                <div className="relative overflow-hidden rounded-2xl border border-white/[0.07] bg-gradient-to-r from-[#070e1a] via-[#0a1426] to-[#070e1a] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+                  <div className="pointer-events-none absolute inset-x-0 top-1/2 h-px bg-gradient-to-r from-transparent via-cyan-300/15 to-transparent" aria-hidden />
+                  <div className="relative flex items-stretch gap-1 overflow-x-auto px-3 py-3 sm:gap-1.5 sm:px-4 sm:py-3.5">
+                    {(() => {
+                      const stageMeta: Record<string, { label: string; tone: string }> = {
+                        estimate: { label: "Draft", tone: "from-white/[0.08]" },
+                        sent_pending: { label: "Sent", tone: "from-rose-500/[0.18]" },
+                        approved: { label: "Approved", tone: "from-sky-500/[0.18]" },
+                        deposit_paid: { label: "Ready", tone: "from-emerald-500/[0.18]" },
+                        scheduled: { label: "Scheduled", tone: "from-cyan-500/[0.18]" },
+                        in_progress: { label: "On site", tone: "from-amber-500/[0.18]" },
+                        paid: { label: "Completed", tone: "from-emerald-400/[0.22]" },
+                      };
+                      const orderedKeys = ["estimate","sent_pending","approved","deposit_paid","scheduled","in_progress","paid"];
+                      return orderedKeys.map((sk, i) => {
+                        const grp = statusDrivenGroups.find((g: any) => g.key === sk);
+                        const meta = stageMeta[sk];
+                        const count = grp?.items?.length ?? 0;
+                        const isLast = i === orderedKeys.length - 1;
+                        return (
+                          <div key={sk} className="flex flex-1 items-center gap-1.5 sm:gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setStatusFilter(sk as any)}
+                              className={`group relative flex min-w-[80px] flex-1 flex-col items-start gap-0.5 overflow-hidden rounded-xl border border-white/[0.08] bg-gradient-to-b ${meta.tone} via-transparent to-transparent px-2.5 py-2 text-left transition hover:border-cyan-300/35 hover:bg-white/[0.04] sm:px-3 sm:py-2.5`}
+                            >
+                              <div className="flex w-full items-center justify-between gap-2">
+                                <span className="truncate text-[10px] font-semibold uppercase tracking-[0.14em] text-white/55 group-hover:text-white/80">{meta.label}</span>
+                                <span className={`shrink-0 text-[15px] font-bold tabular-nums ${count > 0 ? "text-white" : "text-white/30"}`}>{count}</span>
+                              </div>
+                              <span className={`mt-1 h-0.5 w-full rounded-full ${count > 0 ? "bg-gradient-to-r from-cyan-400/60 to-cyan-400/0" : "bg-white/[0.05]"}`} aria-hidden />
+                            </button>
+                            {!isLast && (
+                              <span className="hidden text-white/20 sm:inline-block" aria-hidden>→</span>
+                            )}
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
                 </div>
               </div>
               {statusDrivenGroups.map((group) => (
