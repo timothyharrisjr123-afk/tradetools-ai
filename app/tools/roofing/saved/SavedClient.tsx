@@ -5008,196 +5008,276 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
               </div>
             );
           })()}
-          {hydrated && statusFilter !== "scheduled" && statusFilter === "all" && (
-            <div className="space-y-10">
-              {/* Pipeline Movement — header + stage flow */}
-              <div className="space-y-4">
-                <div className="flex items-end justify-between gap-4">
+          {hydrated && statusFilter !== "scheduled" && statusFilter === "all" && (() => {
+            const getJobsForStage = (stageKey: string) => {
+              return searchFiltered.filter((e) => {
+                const raw = String(e.status || "").toLowerCase();
+                const norm = normalizeStatusValue(e.status || "estimate");
+
+                if (stageKey === "estimate") return norm === "estimate";
+                if (stageKey === "sent_pending") {
+                  return raw === "sent" || raw === "viewed" || norm === "sent" || norm === "pending";
+                }
+                if (stageKey === "approved") return norm === "approved";
+                if (stageKey === "deposit_paid") return norm === "deposit_paid";
+                if (stageKey === "scheduled") return norm === "scheduled";
+                if (stageKey === "in_progress") return norm === "in_progress";
+                if (stageKey === "paid") return norm === "paid";
+
+                return false;
+              });
+            };
+
+            const pipelineStages = [
+              {
+                key: "estimate",
+                label: "Draft",
+                count: getJobsForStage("estimate").length,
+                tone: "from-white/[0.08]",
+                border: "border-white/[0.09]",
+                text: "text-white/70",
+                filter: "estimate",
+              },
+              {
+                key: "sent_pending",
+                label: "Sent",
+                count: getJobsForStage("sent_pending").length,
+                tone: "from-rose-500/[0.18]",
+                border: "border-rose-300/18",
+                text: "text-rose-100/80",
+                filter: "sent_pending",
+              },
+              {
+                key: "approved",
+                label: "Approved",
+                count: getJobsForStage("approved").length,
+                tone: "from-sky-500/[0.18]",
+                border: "border-sky-300/18",
+                text: "text-sky-100/80",
+                filter: "approved",
+              },
+              {
+                key: "deposit_paid",
+                label: "Ready",
+                count: getJobsForStage("deposit_paid").length,
+                tone: "from-emerald-500/[0.20]",
+                border: "border-emerald-300/28",
+                text: "text-emerald-100",
+                filter: "deposit_paid",
+              },
+              {
+                key: "scheduled",
+                label: "Scheduled",
+                count: getJobsForStage("scheduled").length,
+                tone: "from-cyan-500/[0.18]",
+                border: "border-cyan-300/18",
+                text: "text-cyan-100/80",
+                filter: "scheduled",
+              },
+              {
+                key: "in_progress",
+                label: "On Site",
+                count: getJobsForStage("in_progress").length,
+                tone: "from-amber-500/[0.18]",
+                border: "border-amber-300/18",
+                text: "text-amber-100/80",
+                filter: "in_progress",
+              },
+              {
+                key: "paid",
+                label: "Completed",
+                count: getJobsForStage("paid").length,
+                tone: "from-emerald-400/[0.18]",
+                border: "border-emerald-300/18",
+                text: "text-emerald-100/80",
+                filter: "paid",
+              },
+            ];
+
+            const getJobSubtitle = (job: RoofingEstimate) => {
+              return (
+                (job as any).roofingSystem ||
+                (job as any).packageName ||
+                (job as any).tierLabel ||
+                (job as any).propertyAddress ||
+                (job as any).address ||
+                "Roofing job"
+              );
+            };
+
+            return (
+              <section className="relative overflow-hidden rounded-3xl border border-cyan-400/12 bg-gradient-to-br from-[#081427] via-[#07111f] to-[#050b16] px-5 py-5 shadow-[0_18px_48px_rgba(0,0,0,0.42)] ring-1 ring-inset ring-white/[0.04]">
+                <div className="pointer-events-none absolute -left-24 top-20 h-64 w-64 rounded-full bg-cyan-500/[0.06] blur-3xl" aria-hidden />
+                <div className="pointer-events-none absolute -right-24 bottom-0 h-64 w-64 rounded-full bg-emerald-500/[0.05] blur-3xl" aria-hidden />
+
+                <div className="relative flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                   <div className="min-w-0">
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-cyan-400/65">Pipeline Movement</div>
-                    <div className="mt-1 text-base font-semibold text-white">How jobs are moving through your process</div>
-                    <div className="mt-0.5 text-[12px] text-white/45">Click any stage to focus the lane.</div>
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-cyan-400/75">Pipeline Movement</div>
+                    <div className="mt-1 text-lg font-semibold text-white">How jobs move through your process</div>
+                    <div className="mt-0.5 text-[12px] text-white/50">
+                      See every stage at a glance, then open the lane when you need the full job list.
+                    </div>
                   </div>
-                  <div className="shrink-0 rounded-full border border-white/[0.08] bg-white/[0.03] px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white/40">
-                    {searchFiltered.length} job{searchFiltered.length !== 1 ? "s" : ""}
+
+                  <div className="flex shrink-0 items-center gap-2">
+                    <div className="rounded-full border border-white/[0.08] bg-white/[0.035] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-white/45">
+                      {searchFiltered.length} job{searchFiltered.length !== 1 ? "s" : ""}
+                    </div>
+                    <button
+                      type="button"
+                      className="rounded-full bg-white/[0.035] px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-white/42 transition hover:bg-white/[0.055] hover:text-white/65"
+                    >
+                      Group by stage
+                    </button>
                   </div>
                 </div>
 
-                {/* Stage flow rail */}
-                <div className="relative overflow-hidden rounded-2xl border border-white/[0.07] bg-gradient-to-r from-[#070e1a] via-[#0a1426] to-[#070e1a] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+                <div className="relative mt-4 overflow-hidden rounded-2xl bg-white/[0.022] shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
                   <div className="pointer-events-none absolute inset-x-0 top-1/2 h-px bg-gradient-to-r from-transparent via-cyan-300/15 to-transparent" aria-hidden />
-                  <div className="relative flex items-stretch gap-1 overflow-x-auto px-3 py-3 sm:gap-1.5 sm:px-4 sm:py-3.5">
-                    {(() => {
-                      const stageMeta: Record<string, { label: string; tone: string }> = {
-                        estimate: { label: "Draft", tone: "from-white/[0.08]" },
-                        sent_pending: { label: "Sent", tone: "from-rose-500/[0.18]" },
-                        approved: { label: "Approved", tone: "from-sky-500/[0.18]" },
-                        deposit_paid: { label: "Ready", tone: "from-emerald-500/[0.18]" },
-                        scheduled: { label: "Scheduled", tone: "from-cyan-500/[0.18]" },
-                        in_progress: { label: "On site", tone: "from-amber-500/[0.18]" },
-                        paid: { label: "Completed", tone: "from-emerald-400/[0.22]" },
-                      };
-                      const orderedKeys = ["estimate","sent_pending","approved","deposit_paid","scheduled","in_progress","paid"];
-                      return orderedKeys.map((sk, i) => {
-                        const grp = statusDrivenGroups.find((g: any) => g.key === sk);
-                        const meta = stageMeta[sk];
-                        const count = grp?.items?.length ?? 0;
-                        const isLast = i === orderedKeys.length - 1;
-                        return (
-                          <div key={sk} className="flex flex-1 items-center gap-1.5 sm:gap-2">
-                            <button
-                              type="button"
-                              onClick={() => setStatusFilter(sk as any)}
-                              className={`group relative flex min-w-[80px] flex-1 flex-col items-start gap-0.5 overflow-hidden rounded-xl border border-white/[0.08] bg-gradient-to-b ${meta.tone} via-transparent to-transparent px-2.5 py-2 text-left transition hover:border-cyan-300/35 hover:bg-white/[0.04] sm:px-3 sm:py-2.5`}
-                            >
-                              <div className="flex w-full items-center justify-between gap-2">
-                                <span className="truncate text-[10px] font-semibold uppercase tracking-[0.14em] text-white/55 group-hover:text-white/80">{meta.label}</span>
-                                <span className={`shrink-0 text-[15px] font-bold tabular-nums ${count > 0 ? "text-white" : "text-white/30"}`}>{count}</span>
-                              </div>
-                              <span className={`mt-1 h-0.5 w-full rounded-full ${count > 0 ? "bg-gradient-to-r from-cyan-400/60 to-cyan-400/0" : "bg-white/[0.05]"}`} aria-hidden />
-                            </button>
-                            {!isLast && (
-                              <span className="hidden text-white/20 sm:inline-block" aria-hidden>→</span>
-                            )}
-                          </div>
-                        );
-                      });
-                    })()}
-                  </div>
-                </div>
-              </div>
-              {statusDrivenGroups.map((group) => (
-                <div
-                  key={group.key}
-                  className="space-y-4 rounded-2xl border border-white/10 bg-white/[0.02] px-4 pt-3 pb-4"
-                >
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setCollapsedGroups((prev) => ({
-                        ...prev,
-                        [group.key]: !prev[group.key],
-                      }))
-                    }
-                    className="flex w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-left"
-                  >
-                    <div className="text-[13px] font-semibold tracking-wide text-white/90">
-                      {group.label} • {group.items.length} job{group.items.length > 1 ? "s" : ""}
-                    </div>
-                    <div className="text-xs text-white/50">
-                      {collapsedGroups[group.key] ? "Show" : "Hide"}
-                    </div>
-                  </button>
+                  <div className="relative flex items-center gap-1.5 overflow-x-auto px-3 py-3 sm:px-4 sm:py-3">
+                    {pipelineStages.map((stage, i) => {
+                      const isReadyStage = stage.key === "deposit_paid";
+                      const isLast = i === pipelineStages.length - 1;
 
-                  {!collapsedGroups[group.key] && (
-                  <div className="space-y-6">
-                    {group.items.map((e) => (
-                      <SavedEstimateCard
-                        key={e.id}
-                        estimate={e}
-                        batchStatuses={batchStatuses}
-                        paymentState={paymentStates[e.id] ?? null}
-                        checkoutLoading={checkoutLoading}
-                        followUpInfo={getFollowUpInfo(e, paymentStates[e.id] ?? null, batchStatuses)}
-                        onSendFollowUp={(est, kind) => sendFollowUpEmail(est, kind)}
-                        followUpHidden={isFollowUpHidden(e.id)}
-                        onFollowUpSnooze={(estimateId) =>
-                          updateFollowUpPref(estimateId, {
-                            snoozeUntil: addDaysToIso(3),
-                            clearedUntil: null,
-                          })
-                        }
-                        onFollowUpClear={(estimateId) =>
-                          updateFollowUpPref(estimateId, {
-                            cleared: true,
-                            clearedUntil: null,
-                            snoozeUntil: null,
-                          })
-                        }
-                        onStartCheckout={(id, type, est, remainingCentsForFull) =>
-                          startCheckout(id, type, est, setCheckoutLoading, remainingCentsForFull, {
-                            statusFilter,
-                            scheduledView,
-                            query,
-                          })
-                        }
-                        onOpenDepositModal={(est) =>
-                          setDepositModal({
-                            open: true,
-                            estimateId: est.id,
-                            estimateTotal: Number(est.totalContractPrice ?? est.suggestedPrice ?? 0),
-                            customValue: "",
-                            mode: "percent",
-                            percent: 10,
-                          })
-                        }
-                        onOpenRemainingModal={(est, remainingCents) =>
-                          setRemainingModal({
-                            open: true,
-                            estimateId: est.id,
-                            estimateTotalCents: toEstimateTotalCents(est),
-                            remainingCents,
-                            mode: "full",
-                            customValue: "",
-                          })
-                        }
-                        onOpenOfflineModal={(est) => {
-                          const total = Number(est.totalContractPrice ?? est.suggestedPrice ?? 0);
-                          const totalCents = Math.round(total * 100);
-                          const ps = paymentStates[est.id];
-                          const depositPaidCents = ps?.depositAmountCents || 0;
-                          const fullPaidCents = ps?.fullAmountCents || 0;
-                          const offlinePaidCents = ps?.offlinePaidCents || 0;
-                          const remainingCents = Math.max(totalCents - (depositPaidCents + fullPaidCents + offlinePaidCents), 0);
-                          const remainingDollars = remainingCents / 100;
-                          setOfflineModal({
-                            open: true,
-                            estimateId: est.id,
-                            estimateTotal: total,
-                            remaining: remainingDollars,
-                            amount: remainingDollars ? String(remainingDollars.toFixed(2)) : "",
-                            method: "cash",
-                            notes: "",
-                            stage: "deposit",
-                          });
-                        }}
-                        onOpenTransactions={openTransactions}
-                        openMoreFor={openMoreFor}
-                        setOpenMoreFor={setOpenMoreFor}
-                        moreMenuRef={moreMenuRef}
-                        onLoad={(est) => handleAction(est, "load")}
-                        onDelete={(id) => {
-                          const est = group.items.find((x) => x.id === id);
-                          if (est) handleAction(est, "delete");
-                        }}
-                        onPaymentNoteChange={(id, note) => {
-                          updateSavedEstimate(id, { paymentNote: note });
-                          setEstimates(getNormalizedEstimates());
-                        }}
-                        onStatusChange={(id, status) => {
-                          applyStatusTransition({
-                            id,
-                            nextStatus: status,
-                            estimate: searchFiltered.find((x) => x.id === id),
-                            variant: "paymentGate",
-                            paymentStates,
-                            setEstimates,
-                          });
-                        }}
-                        onSend={(est) => handleAction(est, "send")}
-                        onSchedule={(est) => handleAction(est, "schedule")}
-                        onRecordPayment={(est) => handleAction(est, "pay")}
-                        onMarkApproved={(est) => handleAction(est, "approve")}
-                        onView={(est) => handleAction(est, "load")}
-                        isFlashing={e.id === flashId}
-                      />
-                    ))}
+                      return (
+                        <div key={stage.key} className="flex min-w-[126px] flex-1 items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => setStatusFilter(stage.filter as any)}
+                            className={`group relative flex min-w-[120px] flex-1 flex-col items-start gap-1 overflow-hidden rounded-xl px-3 py-2.5 text-left transition sm:px-3.5 ${
+                              isReadyStage
+                                ? "bg-emerald-500/[0.14] shadow-[0_0_22px_rgba(16,185,129,0.16)]"
+                                : `bg-gradient-to-b ${stage.tone} via-white/[0.010] to-transparent hover:bg-white/[0.035]`
+                            }`}
+                          >
+                            <div className="flex w-full items-center justify-between gap-2">
+                              <span className={`truncate text-[10px] font-semibold uppercase tracking-[0.16em] ${isReadyStage ? "text-emerald-100" : "text-white/68 group-hover:text-white/88"}`}>
+                                {stage.label}
+                              </span>
+                              <span className={`shrink-0 rounded-full bg-white/[0.055] px-2 py-0.5 text-[12px] font-bold tabular-nums ${stage.count > 0 ? "text-white" : "text-white/35"}`}>
+                                {stage.count}
+                              </span>
+                            </div>
+                            <span className={`mt-1.5 h-1 w-full rounded-full ${
+                              isReadyStage
+                                ? "bg-gradient-to-r from-emerald-300 via-emerald-400/70 to-transparent"
+                                : stage.count > 0
+                                  ? "bg-gradient-to-r from-cyan-400/75 via-cyan-300/35 to-transparent"
+                                  : "bg-white/[0.055]"
+                            }`} aria-hidden />
+                          </button>
+
+                          {!isLast && (
+                            <span className="hidden text-cyan-200/18 sm:inline-block" aria-hidden>→</span>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
-                  )}
                 </div>
-              ))}
-            </div>
-          )}
+
+                <div className="mt-4 grid grid-cols-1 gap-px overflow-hidden rounded-2xl border border-white/[0.045] bg-white/[0.035] md:grid-cols-2 xl:grid-cols-7">
+                  {pipelineStages.map((stage) => {
+                    const stageJobs = getJobsForStage(stage.key);
+                    const previewJobs = stageJobs.slice(0, 2);
+                    const isReadyStage = stage.key === "deposit_paid";
+                    const isEmpty = stageJobs.length === 0;
+
+                    return (
+                      <article
+                        key={stage.key}
+                        className={`relative flex min-h-[230px] flex-col overflow-hidden px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)] ${
+                          isReadyStage
+                            ? "bg-emerald-500/[0.105]"
+                            : "bg-[#081221]/92"
+                        }`}
+                      >
+                        <div className={`pointer-events-none absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r ${
+                          isReadyStage ? "from-emerald-300/85 via-emerald-300/35 to-transparent" : "from-cyan-300/30 to-transparent"
+                        }`} aria-hidden />
+
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <div className={`text-[10px] font-bold uppercase tracking-[0.18em] ${isReadyStage ? "text-emerald-200/90" : stage.text}`}>
+                              {stage.label}
+                            </div>
+                            <div className="mt-1 text-[11px] text-white/38">
+                              {stage.count} job{stage.count !== 1 ? "s" : ""}
+                            </div>
+                          </div>
+
+                          <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[12px] font-bold tabular-nums ${
+                            isReadyStage
+                              ? "border-emerald-300/25 bg-emerald-400/15 text-emerald-100"
+                              : "border-white/[0.08] bg-white/[0.045] text-white/72"
+                          }`}>
+                            {stage.count}
+                          </span>
+                        </div>
+
+                        <div className="mt-3 flex-1 space-y-2">
+                          {isEmpty ? (
+                            <div className="rounded-xl bg-white/[0.028] px-3 py-3">
+                              <div className="text-[12px] font-semibold text-white/45">No jobs here</div>
+                              <div className="mt-0.5 text-[11px] leading-snug text-white/30">Nothing currently sitting in this stage.</div>
+                            </div>
+                          ) : (
+                            previewJobs.map((job) => {
+                              const jobTotal = Number(job.totalContractPrice ?? job.suggestedPrice ?? 0);
+                              const jobSubtitle = getJobSubtitle(job as RoofingEstimate);
+
+                              return (
+                                <button
+                                  key={job.id}
+                                  type="button"
+                                  onClick={() => handleAction(job as RoofingEstimate, "load")}
+                                  className="block w-full rounded-xl bg-white/[0.032] px-3 py-2.5 text-left transition hover:bg-white/[0.055]"
+                                >
+                                  <div className="truncate text-[13px] font-semibold text-white/88">
+                                    {getEstimateDisplayName(job)}
+                                  </div>
+                                  <div className="mt-0.5 truncate text-[11px] text-white/42">
+                                    {jobSubtitle}
+                                  </div>
+                                  {jobTotal > 0 && (
+                                    <div className="mt-1 text-[11px] font-semibold text-white/62">
+                                      ${jobTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                    </div>
+                                  )}
+                                </button>
+                              );
+                            })
+                          )}
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => setStatusFilter(stage.filter as any)}
+                          className={`mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-[12px] font-semibold transition ${
+                            isReadyStage
+                              ? "bg-emerald-500/16 text-emerald-100 hover:bg-emerald-500/22"
+                              : "bg-white/[0.035] text-white/60 hover:bg-white/[0.055] hover:text-white/82"
+                          }`}
+                        >
+                          View all {stage.count}
+                          <ArrowRight className="h-3.5 w-3.5 opacity-70" aria-hidden />
+                        </button>
+                      </article>
+                    );
+                  })}
+                </div>
+
+                <div className="mt-4 flex flex-col gap-2 border-t border-cyan-300/12 px-1 pt-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0 text-[12px] text-cyan-100/58">
+                    FieldDive continuously monitors your pipeline and prepares recommendations so you can focus on what matters most.
+                  </div>
+                  <div className="shrink-0 text-[11px] font-semibold uppercase tracking-wider text-cyan-200/58">
+                    AI monitored
+                  </div>
+                </div>
+              </section>
+            );
+          })()}
 
           {hydrated && statusFilter !== "scheduled" && statusFilter !== "all" && (
             <div className="flex items-center gap-4 pb-1">
