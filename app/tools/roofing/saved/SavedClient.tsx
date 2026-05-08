@@ -4568,7 +4568,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                           <div className={`pointer-events-none absolute inset-y-0 left-0 w-[4px] bg-gradient-to-b ${lane.accent}`} aria-hidden />
                           <div className="pointer-events-none absolute -left-20 top-1/2 h-44 w-44 -translate-y-1/2 rounded-full bg-white/[0.025] blur-3xl" aria-hidden />
 
-                          <div className="relative grid grid-cols-1 gap-3 px-4 py-3.5 md:grid-cols-[285px_minmax(0,1fr)_20px] md:items-center lg:grid-cols-[300px_minmax(0,1fr)_20px]">
+                          <div className="relative grid grid-cols-1 gap-3 px-4 py-3.5 md:grid-cols-[300px_minmax(0,1fr)_28px] md:items-center lg:grid-cols-[315px_minmax(0,1fr)_28px]">
                             {/* Lane identity */}
                             <div className="flex min-w-0 items-center gap-3">
                               <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border ${lane.chipBorder} ${lane.chipBg} shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]`}>
@@ -4577,7 +4577,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
 
                               <div className="min-w-0 flex-1">
                                 <div className="flex min-w-0 items-center justify-between gap-3">
-                                  <div className="truncate text-[12px] font-bold uppercase tracking-[0.16em] text-white/70">
+                                  <div className="truncate text-[12px] font-bold uppercase tracking-[0.095em] text-white/72">
                                     {lane.label}
                                   </div>
                                   <div className={`shrink-0 rounded-lg border ${lane.chipBorder} ${lane.chipBg} px-2.5 py-1 text-base font-bold leading-none tabular-nums ${lane.chipText}`}>
@@ -4591,29 +4591,29 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                             </div>
 
                             {/* Vertical job list with name / status / action columns */}
-                            <div className="min-w-0 md:border-l md:border-white/[0.06] md:pl-4">
+                            <div className="min-w-0 md:border-l md:border-white/[0.055] md:pl-3.5 md:pr-3">
                               {hasRows ? (
-                                <ul className="space-y-1">
+                                <ul className="space-y-0.5">
                                   {lane.rows.map(({ est, sub }) => (
                                     <li
                                       key={est.id}
-                                      className="grid grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)_auto] items-center gap-3 rounded-lg px-2 py-1.5 transition hover:bg-white/[0.035]"
+                                      className="grid grid-cols-[minmax(0,0.82fr)_minmax(175px,1.12fr)_76px] items-center gap-3 rounded-lg px-2.5 py-1.5 transition hover:bg-white/[0.032]"
                                     >
                                       <div className="flex min-w-0 items-center gap-2.5">
-                                        <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${lane.chipBg} ring-1 ring-inset ${lane.chipBorder}`} aria-hidden />
-                                        <div className="truncate text-sm font-semibold text-white/90">
+                                        <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${lane.chipBg} shadow-[0_0_8px_rgba(255,255,255,0.10)] ring-1 ring-inset ${lane.chipBorder}`} aria-hidden />
+                                        <div className="truncate text-[12.5px] font-semibold text-white/92">
                                           {getEstimateDisplayName(est)}
                                         </div>
                                       </div>
 
-                                      <div className="truncate text-[11px] text-white/48">
+                                      <div className="truncate text-[11px] text-white/50">
                                         {sub}
                                       </div>
 
                                       <button
                                         type="button"
                                         onClick={() => handleAction(est as RoofingEstimate, "load")}
-                                        className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg border ${lane.chipBorder} ${lane.chipBg} px-2.5 py-1 text-[11px] font-semibold ${lane.chipText} shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition ${lane.hover}`}
+                                        className={`inline-flex w-[68px] shrink-0 items-center justify-center gap-1 rounded-lg border ${lane.chipBorder} ${lane.chipBg} px-2 py-1 text-[11px] font-semibold ${lane.chipText} shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition ${lane.hover}`}
                                       >
                                         {lane.ctaLabel}
                                       </button>
@@ -4639,7 +4639,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                               )}
                             </div>
 
-                            <div className="hidden justify-end text-white/30 transition group-hover:text-white/55 md:flex">
+                            <div className="hidden h-full items-center justify-center text-white/18 transition group-hover:text-white/45 md:flex">
                               <ArrowRight className="h-4 w-4" aria-hidden />
                             </div>
                           </div>
