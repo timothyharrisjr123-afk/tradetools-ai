@@ -2642,6 +2642,38 @@ Thanks,`;
   const currentLoadedSavedId = loadSavedId ?? (hasMounted ? getCurrentLoadedSavedId() : null) ?? null;
   const savedEstimates = hasMounted ? getSavedEstimates() : [];
   const currentSaved = savedEstimates.find((e) => e.id === currentLoadedSavedId);
+  const isLoadedWorkspace = hasMounted && !!currentSaved;
+  const workspaceStatusLabelMap: Record<string, string> = {
+    estimate: "Draft estimate",
+    sent: "Sent proposal",
+    sent_pending: "Sent proposal",
+    approved: "Approved",
+    deposit_paid: "Deposit ready",
+    scheduled: "Scheduled",
+    in_progress: "On site",
+    paid: "Completed",
+  };
+  const workspaceStatusLabel = currentSaved?.status
+    ? workspaceStatusLabelMap[String(currentSaved.status)] ?? String(currentSaved.status)
+    : "Draft";
+  const workspaceDisplayName =
+    (currentSaved?.customerName || customerName || "").trim() ||
+    (currentSaved?.jobAddress1 || jobAddress1 || "").trim() ||
+    "Loaded job";
+  const workspaceAddressLine =
+    [
+      (currentSaved?.jobAddress1 || jobAddress1 || "").trim(),
+      (currentSaved?.jobCity || jobCity || "").trim(),
+      (currentSaved?.jobState || jobState || "").trim(),
+      String(currentSaved?.jobZip ?? currentSaved?.zip ?? jobZip ?? "").trim(),
+    ]
+      .filter(Boolean)
+      .join(", ") || "Property details pending";
+  const workspaceUpdatedLine = currentSaved?.lastSavedAt
+    ? `Updated ${new Date(currentSaved.lastSavedAt).toLocaleDateString()}`
+    : currentSaved?.createdAt
+      ? `Created ${new Date(currentSaved.createdAt).toLocaleDateString()}`
+      : "Workspace active";
   const isLocked =
     hasMounted &&
     (currentSaved?.status === "approved" ||
@@ -3846,18 +3878,50 @@ Thanks,`;
           <div className="relative flex items-center gap-6">
             <div className="flex shrink-0 items-center gap-5">
               <div className="relative flex h-[68px] w-[68px] shrink-0 items-center justify-center" aria-hidden>
-                <span className="absolute -inset-4 rounded-full bg-cyan-400/[0.20] blur-2xl animate-pulse" />
-                <span className="absolute -inset-2 rounded-full bg-cyan-400/[0.10] blur-xl" />
-                <span className="absolute -inset-2 rounded-full border border-cyan-300/18" />
-                <span className="absolute -inset-0.5 rounded-full border border-cyan-300/42" />
-                <span className="absolute inset-0.5 rounded-full bg-gradient-to-br from-cyan-300/70 via-blue-500/45 to-slate-950/85 shadow-[inset_0_0_36px_rgba(165,243,252,0.60),0_0_44px_rgba(34,211,238,0.80)]" />
-                <span className="absolute inset-3 rounded-full bg-[radial-gradient(circle_at_30%_25%,rgba(186,230,253,1),rgba(34,211,238,0.35)_55%,transparent_78%)]" />
+                <span className={`absolute -inset-4 rounded-full blur-2xl animate-pulse ${isLoadedWorkspace ? "bg-emerald-400/[0.18]" : "bg-cyan-400/[0.20]"}`} />
+                <span className={`absolute -inset-2 rounded-full blur-xl ${isLoadedWorkspace ? "bg-emerald-400/[0.09]" : "bg-cyan-400/[0.10]"}`} />
+                <span className={`absolute -inset-2 rounded-full border ${isLoadedWorkspace ? "border-emerald-300/18" : "border-cyan-300/18"}`} />
+                <span className={`absolute -inset-0.5 rounded-full border ${isLoadedWorkspace ? "border-emerald-300/42" : "border-cyan-300/42"}`} />
+                <span className={`absolute inset-0.5 rounded-full shadow-[inset_0_0_36px_rgba(165,243,252,0.46),0_0_44px_rgba(34,211,238,0.62)] ${isLoadedWorkspace ? "bg-gradient-to-br from-emerald-300/70 via-cyan-500/40 to-slate-950/85" : "bg-gradient-to-br from-cyan-300/70 via-blue-500/45 to-slate-950/85"}`} />
+                <span className="absolute inset-3 rounded-full bg-[radial-gradient(circle_at_30%_25%,rgba(236,253,245,0.95),rgba(34,211,238,0.30)_55%,transparent_78%)]" />
                 <span className="absolute inset-5 rounded-full bg-cyan-50/13 blur-[3px]" />
-                <span className="relative text-[13px] font-extrabold uppercase tracking-widest text-cyan-50 drop-shadow-[0_0_12px_rgba(165,243,252,0.98)]">AI</span>
+                <span className="relative text-[11px] font-extrabold uppercase tracking-widest text-cyan-50 drop-shadow-[0_0_12px_rgba(165,243,252,0.98)]">
+                  {isLoadedWorkspace ? "JOB" : "AI"}
+                </span>
               </div>
               <div className="min-w-0">
-                <div className="text-[20px] font-extrabold leading-tight tracking-[-0.025em] text-white sm:text-[23px]">FieldDive is preparing this job</div>
-                <div className="mt-1 max-w-[35rem] text-[12.5px] leading-snug text-white/58">AI is assembling the job packet and proposal path. You verify what matters.</div>
+                {isLoadedWorkspace ? (
+                  <>
+                    <div className="mb-1.5 flex flex-wrap items-center gap-2">
+                      <span className="inline-flex items-center rounded-full border border-emerald-300/24 bg-emerald-500/[0.13] px-2.5 py-0.5 text-[9px] font-extrabold uppercase tracking-[0.18em] text-emerald-100/90">
+                        Job Workspace
+                      </span>
+                      <span className="inline-flex items-center rounded-full border border-cyan-300/18 bg-cyan-500/[0.09] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.16em] text-cyan-100/75">
+                        Loaded from Command Center
+                      </span>
+                      <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.16em] ${
+                        isLocked
+                          ? "border-amber-300/24 bg-amber-500/[0.12] text-amber-100/88"
+                          : "border-white/[0.10] bg-white/[0.045] text-white/62"
+                      }`}>
+                        {workspaceStatusLabel}
+                      </span>
+                    </div>
+                    <div className="text-[20px] font-extrabold leading-tight tracking-[-0.025em] text-white sm:text-[24px]">
+                      {workspaceDisplayName}
+                    </div>
+                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] leading-snug text-white/58">
+                      <span className="max-w-[34rem] truncate">{workspaceAddressLine}</span>
+                      <span className="hidden h-1 w-1 rounded-full bg-white/25 sm:inline-block" aria-hidden />
+                      <span className="text-white/42">{workspaceUpdatedLine}</span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="text-[20px] font-extrabold leading-tight tracking-[-0.025em] text-white sm:text-[23px]">FieldDive is preparing this job</div>
+                    <div className="mt-1 max-w-[35rem] text-[12.5px] leading-snug text-white/58">AI is assembling the job packet and proposal path. You verify what matters.</div>
+                  </>
+                )}
               </div>
             </div>
 
@@ -3870,8 +3934,12 @@ Thanks,`;
                 aria-label="Job preparation timeline"
               >
                 {aiConductorStripItems.map((item, idx) => {
-                  const timelineLabels = ["Address checked", "Photos analyzed", "Scope estimated", "Proposal draft", "Waiting on contractor"];
-                  const timelineSubLabels = ["", "", "", "", "Roofing system"];
+                  const timelineLabels = isLoadedWorkspace
+                    ? ["Job loaded", "Customer path", "Scope restored", "Proposal state", "Next action"]
+                    : ["Address checked", "Photos analyzed", "Scope estimated", "Proposal draft", "Waiting on contractor"];
+                  const timelineSubLabels = isLoadedWorkspace
+                    ? ["Command Center", "Contact", "Scope", "Proposal", "Contractor"]
+                    : ["", "", "", "", "Roofing system"];
                   const status = item.ready ? "Complete" : item.notReadyStatus === "Needs input" ? "Needs input" : "Waiting";
                   const isFirst = idx === 0;
                   const isLast = idx === aiConductorStripItems.length - 1;
