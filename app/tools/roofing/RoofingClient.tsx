@@ -3835,17 +3835,17 @@ Thanks,`;
             </div>
           )}
 
-        <div className="px-3 pt-3 sm:px-4 sm:pt-4 xl:px-5 2xl:px-6">
-        <div className="relative overflow-hidden rounded-2xl border border-cyan-400/[0.22] bg-[#0b1526] px-5 py-3.5 shadow-[0_0_0_1px_rgba(34,211,238,0.06),0_18px_60px_-34px_rgba(34,211,238,0.45),inset_0_1px_0_rgba(255,255,255,0.07)] sm:px-6 sm:py-4 xl:px-7">
+        <div className="px-3 pt-3 sm:px-4 sm:pt-3 xl:px-5 2xl:px-6">
+        <div className="relative overflow-hidden rounded-2xl border border-cyan-400/[0.20] bg-[#0b1526] px-5 py-3 shadow-[0_0_0_1px_rgba(34,211,238,0.06),0_16px_48px_-34px_rgba(34,211,238,0.40),inset_0_1px_0_rgba(255,255,255,0.065)] sm:px-6 sm:py-3.5 xl:px-7">
           <div className="pointer-events-none absolute inset-0" aria-hidden>
             <div className="absolute -left-24 top-1/2 h-80 w-80 -translate-y-1/2 rounded-full bg-cyan-500/[0.16] blur-[72px]" />
             <div className="absolute right-0 top-0 h-52 w-[34rem] bg-blue-500/[0.09] blur-[72px]" />
             <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-cyan-300/25 to-transparent" />
           </div>
 
-          <div className="relative flex items-center gap-7">
+          <div className="relative flex items-center gap-6">
             <div className="flex shrink-0 items-center gap-5">
-              <div className="relative flex h-[76px] w-[76px] shrink-0 items-center justify-center" aria-hidden>
+              <div className="relative flex h-[68px] w-[68px] shrink-0 items-center justify-center" aria-hidden>
                 <span className="absolute -inset-4 rounded-full bg-cyan-400/[0.20] blur-2xl animate-pulse" />
                 <span className="absolute -inset-2 rounded-full bg-cyan-400/[0.10] blur-xl" />
                 <span className="absolute -inset-2 rounded-full border border-cyan-300/18" />
@@ -3856,8 +3856,8 @@ Thanks,`;
                 <span className="relative text-[13px] font-extrabold uppercase tracking-widest text-cyan-50 drop-shadow-[0_0_12px_rgba(165,243,252,0.98)]">AI</span>
               </div>
               <div className="min-w-0">
-                <div className="text-[21px] font-extrabold leading-tight tracking-[-0.025em] text-white sm:text-[24px]">FieldDive is preparing this job</div>
-                <div className="mt-1.5 max-w-[35rem] text-[12.5px] leading-snug text-white/60">AI is assembling the job packet and proposal path. You verify what matters.</div>
+                <div className="text-[20px] font-extrabold leading-tight tracking-[-0.025em] text-white sm:text-[23px]">FieldDive is preparing this job</div>
+                <div className="mt-1 max-w-[35rem] text-[12.5px] leading-snug text-white/58">AI is assembling the job packet and proposal path. You verify what matters.</div>
               </div>
             </div>
 
@@ -3937,11 +3937,11 @@ Thanks,`;
           </div>
         </div>
         </div>
-        <div className="px-3 pt-3 pb-0 sm:px-4 sm:pt-3 xl:px-5 2xl:px-6">
+        <div className="px-3 pt-2.5 pb-0 sm:px-4 sm:pt-2.5 xl:px-5 2xl:px-6">
         <div>
-        <div className="grid grid-cols-1 gap-2.5 lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_390px] 2xl:grid-cols-[minmax(0,1fr)_410px] lg:gap-3 xl:gap-3">
+        <div className="grid grid-cols-1 gap-2.5 lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_390px] 2xl:grid-cols-[minmax(0,1fr)_410px] lg:gap-2.5 xl:gap-3">
           {/* Workflow canvas */}
-          <div className="space-y-2.5 xl:space-y-3">
+          <div className="space-y-2.5 xl:space-y-2.5">
 
             {/* Customer & Job */}
             <div
