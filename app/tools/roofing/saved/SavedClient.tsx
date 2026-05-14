@@ -4191,190 +4191,214 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
           </nav>
 
           {/* ── Content area ── */}
-          <div className="space-y-8 p-4 sm:p-6 lg:p-8 lg:space-y-10">
+          <div className="space-y-4 p-4 sm:p-6 lg:p-8 lg:space-y-5">
         {/* ── Command Center Hero ── */}
-        <div className="relative overflow-hidden rounded-3xl border border-cyan-400/20 bg-gradient-to-br from-[#050b16] via-[#091628] to-[#071225] shadow-[0_24px_70px_rgba(0,0,0,0.62)] ring-1 ring-inset ring-white/[0.05]">
-          {/* Background grid texture */}
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_rgba(6,182,212,0.08)_0%,_transparent_60%)]" />
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_rgba(99,102,241,0.06)_0%,_transparent_55%)]" />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-cyan-300/20 to-transparent" aria-hidden />
-
-          <div className="relative px-5 pt-5 pb-4">
-            {/* Title block */}
-            <div className="mt-4">
-              {(() => {
-                const pageTitle: Record<typeof statusFilter, string> = {
-                  all: "FieldDive Command Center",
-                  estimate: "Draft Estimates",
-                  sent_pending: "Sent Proposals",
-                  approved: "Approved Jobs",
-                  deposit_paid: "Ready to Schedule",
-                  scheduled: "Scheduled Jobs",
-                  in_progress: "Crew On Site",
-                  paid: "Completed / Closed Jobs",
-                };
-                const pageSubtitle: Record<typeof statusFilter, string> = {
-                  all: "FieldDive prepared the work. Review what needs confirmation and move jobs forward.",
-                  estimate: "Draft estimates not yet sent — review and send when ready.",
-                  sent_pending: "Sent proposals awaiting customer response — FieldDive has flagged follow-up needs.",
-                  approved: "Approved jobs ready for next steps — deposit path prepared.",
-                  deposit_paid: "Deposit received — FieldDive is holding for your schedule confirmation.",
-                  scheduled: "Jobs locked to dates — review your production schedule.",
-                  in_progress: "Crew on site today — monitor and confirm completion.",
-                  paid: "Finished and closed work — reviewed by FieldDive.",
-                };
-                return (
-                  <>
-                    <div className="inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.3em] text-cyan-400/70">
-                      <span className="flex h-5 w-5 items-center justify-center rounded-full border border-cyan-400/20 bg-cyan-500/10 text-cyan-200">
-                        <Sparkles className="h-3.5 w-3.5" aria-hidden />
-                      </span>
-                      {statusFilter === "all" ? "AI Operating Hub" : "Pipeline Lane"}
-                    </div>
-                    <h1 className="mt-2 text-2xl font-bold tracking-tight text-white sm:text-[30px]">
-                      {pageTitle[statusFilter]}
-                    </h1>
-                    <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-white/55">
-                      {pageSubtitle[statusFilter]}
-                    </p>
-                  </>
-                );
-              })()}
-            </div>
-
-            {/* Prepared pulse rail — one connected surface, not 4 boxes */}
-            {hydrated && statusFilter === "all" && (
-              <div className="mt-5 overflow-hidden rounded-2xl border border-white/[0.08] bg-gradient-to-r from-white/[0.04] via-white/[0.02] to-white/[0.04] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
-                <div className="grid grid-cols-2 divide-y divide-white/[0.06] sm:grid-cols-4 sm:divide-x sm:divide-y-0">
-                  {[
-                    { tone: "rose", icon: PhoneCall, label: "Follow-ups", value: sentDueJobs.length, sub: "Needs review" },
-                    { tone: "sky", icon: CreditCard, label: "Deposits", value: approvedDueJobs.length, sub: "Needs approval" },
-                    { tone: "emerald", icon: CalendarCheck2, label: "Schedule", value: depositReadyJobs.length, sub: "Ready to confirm" },
-                    { tone: "amber", icon: Factory, label: "Production", value: jobsThisWeek.length, sub: "This week" },
-                  ].map(({ tone, icon: Icon, label, value, sub }) => {
-                    const toneMap: Record<string, { dot: string; text: string; bg: string }> = {
-                      rose: { dot: "bg-rose-400 shadow-[0_0_10px_rgba(251,113,133,0.7)]", text: "text-rose-100", bg: "from-rose-500/[0.10]" },
-                      sky: { dot: "bg-sky-400 shadow-[0_0_10px_rgba(56,189,248,0.7)]", text: "text-sky-100", bg: "from-sky-500/[0.10]" },
-                      emerald: { dot: "bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.7)]", text: "text-emerald-100", bg: "from-emerald-500/[0.10]" },
-                      amber: { dot: "bg-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.7)]", text: "text-amber-100", bg: "from-amber-500/[0.10]" },
-                    };
-                    const t = toneMap[tone];
-                    return (
-                      <div
-                        key={label}
-                        className={`relative overflow-hidden bg-gradient-to-b ${t.bg} via-transparent to-transparent px-4 py-3.5`}
-                      >
-                        <div className="pointer-events-none absolute right-3 top-3 opacity-50">
-                          <Icon className="h-4 w-4 text-white/55" aria-hidden />
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className={`h-1.5 w-1.5 rounded-full ${t.dot}`} aria-hidden />
-                          <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/50">{label}</span>
-                        </div>
-                        <div className={`mt-1.5 text-[26px] font-bold tabular-nums leading-none ${t.text}`}>{value}</div>
-                        <div className="mt-1 text-[11px] text-white/40">{sub}</div>
+        <div className="relative overflow-hidden rounded-[22px] border border-cyan-400/[0.10] bg-gradient-to-br from-[#061120]/82 via-[#071426]/72 to-[#06101d]/70 shadow-[0_16px_46px_rgba(0,0,0,0.34)] ring-1 ring-inset ring-white/[0.025]">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_4%_8%,rgba(6,182,212,0.13),transparent_30%),radial-gradient(circle_at_86%_0%,rgba(59,130,246,0.10),transparent_34%)]" />
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-300/22 to-transparent" aria-hidden />
+          <div className="relative px-4 py-3.5 sm:px-5 lg:px-5 lg:py-3.5">
+            {(() => {
+              const pageTitle: Record<typeof statusFilter, string> = {
+                all: "FieldDive Command Center",
+                estimate: "Draft Estimates",
+                sent_pending: "Sent Proposals",
+                approved: "Approved Jobs",
+                deposit_paid: "Ready to Schedule",
+                scheduled: "Scheduled Jobs",
+                in_progress: "Crew On Site",
+                paid: "Completed / Closed Jobs",
+              };
+              const pageSubtitle: Record<typeof statusFilter, string> = {
+                all: "AI prepared the work. Review what matters and move jobs forward.",
+                estimate: "Draft estimates not yet sent — review and send when ready.",
+                sent_pending: "Sent proposals awaiting customer response — FieldDive has flagged follow-up needs.",
+                approved: "Approved jobs ready for next steps — deposit path prepared.",
+                deposit_paid: "Deposit received — FieldDive is holding for your schedule confirmation.",
+                scheduled: "Jobs locked to dates — review your production schedule.",
+                in_progress: "Crew on site today — monitor and confirm completion.",
+                paid: "Finished and closed work — reviewed by FieldDive.",
+              };
+              const pulseCards = [
+                { tone: "rose", icon: PhoneCall, label: "Follow-ups", value: sentDueJobs.length, sub: "Needs review" },
+                { tone: "sky", icon: CreditCard, label: "Deposits", value: approvedDueJobs.length, sub: "Needs approval" },
+                { tone: "emerald", icon: CalendarCheck2, label: "Schedule ready", value: depositReadyJobs.length, sub: "Ready to confirm" },
+                { tone: "amber", icon: Factory, label: "Production this week", value: jobsThisWeek.length, sub: "This week" },
+              ];
+              const toneMap: Record<string, { dot: string; text: string; bg: string; border: string; iconBg: string; iconText: string }> = {
+                rose: {
+                  dot: "bg-rose-400 shadow-[0_0_10px_rgba(251,113,133,0.72)]",
+                  text: "text-rose-50",
+                  bg: "from-rose-500/[0.14]",
+                  border: "border-rose-300/18",
+                  iconBg: "bg-rose-500/13",
+                  iconText: "text-rose-200/82",
+                },
+                sky: {
+                  dot: "bg-sky-400 shadow-[0_0_10px_rgba(56,189,248,0.72)]",
+                  text: "text-sky-50",
+                  bg: "from-sky-500/[0.14]",
+                  border: "border-sky-300/18",
+                  iconBg: "bg-sky-500/13",
+                  iconText: "text-sky-200/82",
+                },
+                emerald: {
+                  dot: "bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.72)]",
+                  text: "text-emerald-50",
+                  bg: "from-emerald-500/[0.14]",
+                  border: "border-emerald-300/18",
+                  iconBg: "bg-emerald-500/13",
+                  iconText: "text-emerald-200/82",
+                },
+                amber: {
+                  dot: "bg-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.72)]",
+                  text: "text-amber-50",
+                  bg: "from-amber-500/[0.14]",
+                  border: "border-amber-300/18",
+                  iconBg: "bg-amber-500/13",
+                  iconText: "text-amber-200/82",
+                },
+              };
+              return (
+                <>
+                  <div className="grid gap-4 lg:grid-cols-[minmax(0,500px)_minmax(0,1fr)] lg:items-center">
+                    <div className="min-w-0">
+                      <div className="inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.26em] text-cyan-300/78">
+                        <Sparkles className="h-3.5 w-3.5 text-cyan-300" aria-hidden />
+                        {statusFilter === "all" ? "AI Operating Hub" : "Pipeline Lane"}
                       </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
+                      <h1 className="mt-2 text-[26px] font-semibold tracking-[-0.035em] text-white sm:text-[32px]">
+                        {pageTitle[statusFilter]}
+                      </h1>
+                      <p className="mt-1 max-w-xl text-sm leading-snug text-white/55">
+                        {pageSubtitle[statusFilter]}
+                      </p>
+                    </div>
 
-            {/* Prepared next action */}
-            {hydrated && statusFilter === "all" && nextActionText && (
-              <div className="mt-4 overflow-hidden rounded-2xl border border-cyan-400/15 bg-gradient-to-br from-cyan-500/[0.10] via-white/[0.03] to-indigo-500/[0.06] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-                <div className="flex items-start gap-3 px-4 py-3">
-                  <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-cyan-300/25 bg-cyan-400/10 text-cyan-200 shadow-[0_0_18px_rgba(34,211,238,0.20)]">
-                    <ArrowRight className="h-4 w-4" aria-hidden />
+                    {hydrated && statusFilter === "all" && (
+                      <div className="grid grid-cols-2 gap-2.5 xl:grid-cols-4">
+                        {pulseCards.map(({ tone, icon: Icon, label, value, sub }) => {
+                          const t = toneMap[tone];
+                          return (
+                            <div
+                              key={label}
+                              className={`relative min-h-[78px] overflow-hidden rounded-2xl border ${t.border} bg-gradient-to-br ${t.bg} via-white/[0.018] to-white/[0.012] px-4 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]`}
+                            >
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <span className={`h-1.5 w-1.5 rounded-full ${t.dot}`} aria-hidden />
+                                    <span className="truncate text-[10px] font-semibold uppercase tracking-[0.20em] text-white/52">{label}</span>
+                                  </div>
+                                  <div className={`mt-1 text-[23px] font-semibold tabular-nums leading-none ${t.text}`}>{value}</div>
+                                  <div className="mt-1 text-[11px] leading-none text-white/44">{sub}</div>
+                                </div>
+                                <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${t.iconBg}`}>
+                                  <Icon className={`h-4 w-4 ${t.iconText}`} aria-hidden />
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="text-[10px] font-semibold uppercase tracking-wider text-cyan-300/80">Prepared next action</div>
-                      <div className="rounded-full border border-white/[0.10] bg-white/[0.04] px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white/45">
-                        Contractor confirmation
+
+                  {hydrated && statusFilter === "all" && nextActionText && (
+                    <div className="mt-3 overflow-hidden rounded-2xl border border-cyan-300/[0.14] bg-gradient-to-r from-cyan-500/[0.12] via-sky-500/[0.045] to-blue-600/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                      <div className="flex flex-col gap-3 px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-cyan-300/22 bg-cyan-400/10 text-cyan-200 shadow-[0_0_18px_rgba(34,211,238,0.16)]">
+                            <ArrowRight className="h-4 w-4" aria-hidden />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-cyan-300/78">Prepared next action</div>
+                            <div className="mt-0.5 text-[15px] font-semibold leading-snug text-white/88">{nextActionText}</div>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setStatusFilter("deposit_paid")}
+                          className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-white/[0.10] bg-slate-950/25 px-3.5 py-2 text-xs font-semibold text-white/82 transition hover:border-cyan-300/24 hover:bg-white/[0.06] hover:text-white"
+                        >
+                          Open schedule
+                          <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+                        </button>
                       </div>
                     </div>
-                    <div className="mt-1 text-sm leading-relaxed text-white/80">{nextActionText}</div>
+                  )}
+
+                  {statusFilter === "scheduled" && (
+                    <div className="mt-3 text-xs text-white/45">
+                      {scheduledView === "upcoming"
+                        ? `${upcomingScheduledJobs.length} upcoming · ${jobsThisWeek.length} in the next 7 days`
+                        : scheduledView === "past"
+                          ? "Showing past dates in this lane"
+                          : "All dates in this lane"}
+                    </div>
+                  )}
+
+                  <div className="mt-3 flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between">
+                    <input
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      placeholder="Search jobs, customers, addresses…"
+                      className="h-9 w-full rounded-xl border border-white/[0.07] bg-slate-950/[0.22] px-3.5 text-sm text-white/86 placeholder:text-white/34 outline-none transition focus:border-cyan-400/28 focus:bg-white/[0.05] lg:max-w-[420px]"
+                    />
+
+                    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 lg:justify-end">
+                      <span className="mr-1 text-[11px] font-medium text-white/42">Quick filters:</span>
+                      {[
+                        ["all", "Overview"],
+                        ["estimate", "Draft"],
+                        ["sent_pending", "Sent"],
+                        ["approved", "Approved"],
+                        ["deposit_paid", "Ready to schedule"],
+                        ["scheduled", "Scheduled"],
+                        ["in_progress", "On site"],
+                        ["paid", "Completed"],
+                      ].map(([key, label]) => (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => setStatusFilter(key as any)}
+                          className={
+                            "rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-all duration-150 " +
+                            (statusFilter === key
+                              ? "border-cyan-300/24 bg-cyan-500/16 text-cyan-200 shadow-[0_0_14px_rgba(6,182,212,0.14)]"
+                              : "border-white/[0.06] bg-white/[0.035] text-white/58 hover:border-white/[0.10] hover:bg-white/[0.06] hover:text-white/84")
+                          }
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
-                <div className="h-px w-full bg-gradient-to-r from-transparent via-cyan-300/20 to-transparent" aria-hidden />
-              </div>
-            )}
 
-            {/* Scheduled view sub-text */}
-            {statusFilter === "scheduled" && (
-              <div className="mt-3 text-xs text-white/45">
-                {scheduledView === "upcoming"
-                  ? `${upcomingScheduledJobs.length} upcoming · ${jobsThisWeek.length} in the next 7 days`
-                  : scheduledView === "past"
-                    ? "Showing past dates in this lane"
-                    : "All dates in this lane"}
-              </div>
-            )}
-
-            {/* Search */}
-            <div className="mt-4">
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search jobs, customers, addresses…"
-                className="w-full rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-2.5 text-sm text-white/90 placeholder:text-white/35 outline-none focus:border-cyan-400/25 focus:bg-white/[0.07] transition shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
-              />
-            </div>
-
-            {/* Pipeline stage chips */}
-            <div className="mt-4">
-              <div className="mb-2 text-[9px] font-semibold uppercase tracking-[0.25em] text-white/30">Pipeline stages</div>
-              <div className="flex flex-wrap gap-2">
-                {[
-                  ["all", "Overview"],
-                  ["estimate", "Draft"],
-                  ["sent_pending", "Sent proposals"],
-                  ["approved", "Approved"],
-                  ["deposit_paid", "Ready to schedule"],
-                  ["scheduled", "Scheduled"],
-                  ["in_progress", "On site"],
-                  ["paid", "Completed"],
-                ].map(([key, label]) => (
-                  <button
-                    key={key}
-                    onClick={() => setStatusFilter(key as any)}
-                    className={
-                      "rounded-full border px-3 py-1.5 text-xs font-semibold transition-all duration-150 " +
-                      (statusFilter === key
-                        ? "bg-cyan-500/15 border-cyan-400/35 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.12)]"
-                        : "bg-white/[0.04] border-white/10 text-white/60 hover:bg-white/[0.07] hover:text-white/85 hover:border-white/18")
-                    }
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Scheduled sub-filter */}
-            {statusFilter === "scheduled" && (
-              <div className="mt-3 flex flex-wrap gap-2">
-                <div className="mr-1 text-[9px] font-semibold uppercase tracking-[0.22em] text-white/30 self-center">View</div>
-                {(["upcoming", "past", "all"] as const).map((key) => (
-                  <button
-                    key={key}
-                    onClick={() => setScheduledView(key)}
-                    className={
-                      "rounded-full border px-3 py-1.5 text-xs font-semibold transition-all duration-150 " +
-                      (scheduledView === key
-                        ? "bg-cyan-500/15 border-cyan-400/35 text-cyan-300"
-                        : "bg-white/[0.04] border-white/10 text-white/60 hover:bg-white/[0.07] hover:text-white/85")
-                    }
-                  >
-                    {key === "upcoming" ? "Upcoming" : key === "past" ? "Past" : "All"}
-                  </button>
-                ))}
-              </div>
-            )}
+                  {statusFilter === "scheduled" && (
+                    <div className="mt-2 flex flex-wrap gap-2 border-t border-white/[0.06] pt-2">
+                      <div className="mr-1 self-center text-[9px] font-semibold uppercase tracking-[0.22em] text-white/30">View</div>
+                      {(["upcoming", "past", "all"] as const).map((key) => (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => setScheduledView(key)}
+                          className={
+                            "rounded-full px-2.5 py-1 text-xs font-semibold transition-all duration-150 " +
+                            (scheduledView === key
+                              ? "bg-cyan-500/16 text-cyan-300"
+                              : "bg-white/[0.04] text-white/58 hover:bg-white/[0.065] hover:text-white/84")
+                          }
+                        >
+                          {key === "upcoming" ? "Upcoming" : key === "past" ? "Past" : "All"}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </div>
         </div>
-
         {/* Pipeline Lane Overview bar — shown for filtered lanes (not "all", since all has stats in hero) */}
         {hydrated && statusFilter !== "all" && (
           <div className="flex items-center gap-4 rounded-2xl border border-white/[0.07] bg-white/[0.03] px-5 py-3.5">
@@ -4833,7 +4857,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
           </section>
         )}
 
-        <div className="mt-8 space-y-8 lg:mt-10 lg:space-y-10">
+        <div className="space-y-5 lg:space-y-6">
           {/* Scheduled UX v2 enabled */}
           {hydrated && statusFilter === "scheduled" && (() => {
             const now = new Date();
@@ -5106,7 +5130,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
             };
 
             return (
-              <section className="relative overflow-hidden rounded-3xl border border-cyan-400/12 bg-gradient-to-br from-[#081427] via-[#07111f] to-[#050b16] px-5 py-5 shadow-[0_18px_48px_rgba(0,0,0,0.42)] ring-1 ring-inset ring-white/[0.04]">
+              <section className="relative overflow-hidden rounded-3xl border border-cyan-400/12 bg-gradient-to-br from-[#081427] via-[#07111f] to-[#050b16] px-5 py-5 shadow-[0_18px_48px_rgba(0,0,0,0.42)] ring-1 ring-inset ring-white/[0.04] lg:px-6 lg:py-6">
                 <div className="pointer-events-none absolute -left-24 top-20 h-64 w-64 rounded-full bg-cyan-500/[0.06] blur-3xl" aria-hidden />
                 <div className="pointer-events-none absolute -right-24 bottom-0 h-64 w-64 rounded-full bg-emerald-500/[0.05] blur-3xl" aria-hidden />
 
@@ -5132,9 +5156,9 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                   </div>
                 </div>
 
-                <div className="relative mt-4 overflow-hidden rounded-2xl bg-white/[0.022] shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
-                  <div className="pointer-events-none absolute inset-x-0 top-1/2 h-px bg-gradient-to-r from-transparent via-cyan-300/15 to-transparent" aria-hidden />
-                  <div className="relative flex items-center gap-1.5 overflow-x-auto px-3 py-3 sm:px-4 sm:py-3">
+                <div className="relative mt-4 overflow-hidden rounded-2xl bg-transparent">
+                  <div className="pointer-events-none absolute inset-x-8 top-1/2 h-px bg-gradient-to-r from-transparent via-cyan-300/10 to-transparent" aria-hidden />
+                  <div className="relative flex items-center gap-2 overflow-x-auto px-2 py-3 sm:px-3 sm:py-3">
                     {pipelineStages.map((stage, i) => {
                       const isReadyStage = stage.key === "deposit_paid";
                       const isLast = i === pipelineStages.length - 1;
@@ -5146,8 +5170,8 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                             onClick={() => setStatusFilter(stage.filter as any)}
                             className={`group relative flex min-w-[120px] flex-1 flex-col items-start gap-1 overflow-hidden rounded-xl px-3 py-2.5 text-left transition sm:px-3.5 ${
                               isReadyStage
-                                ? "bg-emerald-500/[0.14] shadow-[0_0_22px_rgba(16,185,129,0.16)]"
-                                : `bg-gradient-to-b ${stage.tone} via-white/[0.010] to-transparent hover:bg-white/[0.035]`
+                                ? "bg-emerald-500/[0.16] shadow-[0_0_22px_rgba(16,185,129,0.16)]"
+                                : `bg-gradient-to-b ${stage.tone} via-white/[0.008] to-transparent hover:bg-white/[0.032]`
                             }`}
                           >
                             <div className="flex w-full items-center justify-between gap-2">
@@ -5176,7 +5200,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                   </div>
                 </div>
 
-                <div className="mt-4 grid grid-cols-1 gap-px overflow-hidden rounded-2xl border border-white/[0.045] bg-white/[0.035] md:grid-cols-2 xl:grid-cols-7">
+                <div className="mt-5 grid grid-cols-1 gap-px overflow-hidden rounded-2xl border border-white/[0.045] bg-white/[0.03] shadow-[inset_0_1px_0_rgba(255,255,255,0.035)] md:grid-cols-2 xl:grid-cols-7">
                   {pipelineStages.map((stage) => {
                     const stageJobs = getJobsForStage(stage.key);
                     const previewJobs = stageJobs.slice(0, 2);
@@ -5198,18 +5222,18 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
 
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0">
-                            <div className={`text-[10px] font-bold uppercase tracking-[0.18em] ${isReadyStage ? "text-emerald-200/90" : stage.text}`}>
+                            <div className={`text-[10px] font-bold uppercase tracking-[0.20em] ${isReadyStage ? "text-emerald-200/95" : stage.text}`}>
                               {stage.label}
                             </div>
-                            <div className="mt-1 text-[11px] text-white/38">
+                            <div className="mt-1 text-[11px] text-white/42">
                               {stage.count} job{stage.count !== 1 ? "s" : ""}
                             </div>
                           </div>
 
-                          <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[12px] font-bold tabular-nums ${
+                          <span className={`shrink-0 rounded-full px-2 py-0.5 text-[12px] font-bold tabular-nums ${
                             isReadyStage
-                              ? "border-emerald-300/25 bg-emerald-400/15 text-emerald-100"
-                              : "border-white/[0.08] bg-white/[0.045] text-white/72"
+                              ? "bg-emerald-400/18 text-emerald-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+                              : "bg-white/[0.055] text-white/72 shadow-[inset_0_1px_0_rgba(255,255,255,0.055)]"
                           }`}>
                             {stage.count}
                           </span>
@@ -5218,8 +5242,8 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                         <div className="mt-3 flex-1 space-y-2">
                           {isEmpty ? (
                             <div className="rounded-xl bg-white/[0.028] px-3 py-3">
-                              <div className="text-[12px] font-semibold text-white/45">No jobs here</div>
-                              <div className="mt-0.5 text-[11px] leading-snug text-white/30">Nothing currently sitting in this stage.</div>
+                              <div className="text-[12px] font-semibold text-white/50">No jobs here</div>
+                              <div className="mt-0.5 text-[11px] leading-snug text-white/34">Nothing currently sitting in this stage.</div>
                             </div>
                           ) : (
                             previewJobs.map((job) => {
@@ -5231,16 +5255,16 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                                   key={job.id}
                                   type="button"
                                   onClick={() => handleAction(job as RoofingEstimate, "load")}
-                                  className="block w-full rounded-xl bg-white/[0.032] px-3 py-2.5 text-left transition hover:bg-white/[0.055]"
+                                  className="block w-full rounded-xl bg-white/[0.035] px-3 py-2.5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.025)] transition hover:bg-white/[0.06]"
                                 >
-                                  <div className="truncate text-[13px] font-semibold text-white/88">
+                                  <div className="truncate text-[13px] font-bold text-white/90">
                                     {getEstimateDisplayName(job)}
                                   </div>
                                   <div className="mt-0.5 truncate text-[11px] text-white/42">
                                     {jobSubtitle}
                                   </div>
                                   {jobTotal > 0 && (
-                                    <div className="mt-1 text-[11px] font-semibold text-white/62">
+                                    <div className="mt-1.5 text-[11px] font-bold text-white/68">
                                       ${jobTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                                     </div>
                                   )}
@@ -5253,10 +5277,10 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                         <button
                           type="button"
                           onClick={() => setStatusFilter(stage.filter as any)}
-                          className={`mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-[12px] font-semibold transition ${
+                          className={`mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-[12px] font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.035)] transition ${
                             isReadyStage
-                              ? "bg-emerald-500/16 text-emerald-100 hover:bg-emerald-500/22"
-                              : "bg-white/[0.035] text-white/60 hover:bg-white/[0.055] hover:text-white/82"
+                              ? "bg-emerald-500/18 text-emerald-100 hover:bg-emerald-500/24"
+                              : "bg-white/[0.04] text-white/62 hover:bg-white/[0.06] hover:text-white/84"
                           }`}
                         >
                           View all {stage.count}
@@ -5267,7 +5291,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                   })}
                 </div>
 
-                <div className="mt-4 flex flex-col gap-2 border-t border-cyan-300/12 px-1 pt-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="mt-4 flex flex-col gap-2 border-t border-cyan-300/10 px-1 pt-3.5 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0 text-[12px] text-cyan-100/58">
                     FieldDive continuously monitors your pipeline and prepares recommendations so you can focus on what matters most.
                   </div>
