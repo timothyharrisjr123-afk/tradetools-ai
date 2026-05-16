@@ -17,6 +17,8 @@ import {
   Info,
   MapPin,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Layers,
   ClipboardList,
   Image as ImageIcon,
@@ -984,6 +986,38 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
   const [pitch, setPitch] = useState<PitchKey>("walkable");
   const [stories, setStories] = useState<StoriesKey>("1");
   const [complexity, setComplexity] = useState<ComplexityKey>("simple");
+
+  // UI-only prototype state for Scope/System interaction.
+  // Do not use these values for pricing, PDF, save/load, proposal truth, or estimate calculations.
+  const scopeVisualPitchOptions = ["walkable", "moderate", "steep"] as const;
+  const scopeVisualStoriesOptions = ["1 story", "2 stories", "3+ stories"] as const;
+  const scopeVisualTierOptions: Array<{ key: RoofingTier; label: string; short: string }> = [
+    { key: "standard", label: "Core Roofing System", short: "Core" },
+    { key: "enhanced", label: "Enhanced Roofing System", short: "Enhanced" },
+    { key: "premium", label: "Premium Roofing System", short: "Premium" },
+  ];
+
+  const [scopeVisualPitchIndex, setScopeVisualPitchIndex] = useState(0);
+  const [scopeVisualStoriesIndex, setScopeVisualStoriesIndex] = useState(0);
+  const [scopeVisualTearOffIncluded, setScopeVisualTearOffIncluded] = useState(true);
+  const [scopeVisualTierIndex, setScopeVisualTierIndex] = useState(1);
+
+  const scopeVisualPitch = scopeVisualPitchOptions[scopeVisualPitchIndex];
+  const scopeVisualStories = scopeVisualStoriesOptions[scopeVisualStoriesIndex];
+  const scopeVisualTier = scopeVisualTierOptions[scopeVisualTierIndex];
+  const scopeVisualTierConfig = tierConfig[scopeVisualTier.key];
+
+  const cycleScopeVisualPitch = () => {
+    setScopeVisualPitchIndex((prev) => (prev + 1) % scopeVisualPitchOptions.length);
+  };
+
+  const cycleScopeVisualStories = () => {
+    setScopeVisualStoriesIndex((prev) => (prev + 1) % scopeVisualStoriesOptions.length);
+  };
+
+  const moveScopeVisualTier = (direction: -1 | 1) => {
+    setScopeVisualTierIndex((prev) => Math.min(scopeVisualTierOptions.length - 1, Math.max(0, prev + direction)));
+  };
 
   const captureSnapshot = useCallback((): FormSnapshot => ({
     area,
@@ -4500,59 +4534,72 @@ Thanks,`;
                 </div>
 
                 {/* Tile 2 — Roof pitch */}
-                <div className="group relative flex flex-col rounded-xl border border-emerald-400/22 bg-gradient-to-b from-emerald-500/[0.11] to-emerald-500/[0.05] p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
+                <motion.button
+                  type="button"
+                  onClick={cycleScopeVisualPitch}
+                  className="group relative flex w-full flex-col rounded-xl border border-emerald-400/22 bg-gradient-to-b from-emerald-500/[0.11] to-emerald-500/[0.05] p-3.5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.07)] transition hover:border-emerald-300/35 hover:from-emerald-500/[0.16] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/40"
+                >
                   <div className="flex items-start justify-between gap-2">
                     <Triangle className="h-[22px] w-[22px] shrink-0 text-emerald-300 drop-shadow-[0_0_10px_rgba(52,211,153,0.32)]" aria-hidden />
-                    <a href="#scope-inputs" aria-label="Edit pitch" className="text-white/35 opacity-0 transition group-hover:opacity-100 hover:text-white/75">
-                      <Pencil className="h-3 w-3" />
-                    </a>
+                    <Sparkles className="h-3 w-3 text-cyan-200/45" aria-hidden />
                   </div>
                   <div className="mt-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-emerald-200/90">Roof Pitch</div>
-                  <div className="mt-2 text-[22px] font-extrabold tabular-nums leading-none text-white">
-                    {pitch ? pitch : "—"}
-                  </div>
-                  {pitch && <div className="text-[11px] font-medium text-emerald-100/70">pitch</div>}
+                  <div className="mt-2 text-[22px] font-extrabold capitalize leading-none text-white">{scopeVisualPitch}</div>
+                  <div className="text-[11px] font-medium text-emerald-100/70">pitch</div>
                   <div className="mt-2 flex items-center gap-1">
-                    <CheckCircle2 className={`h-3 w-3 shrink-0 ${pitch ? "text-emerald-300" : "text-white/35"}`} aria-hidden />
-                    <span className={`text-[9px] font-bold uppercase tracking-wide ${pitch ? "text-emerald-200/90" : "text-white/55"}`}>
-                      {pitch ? "Prepared" : "Waiting"}
-                    </span>
+                    <CheckCircle2 className="h-3 w-3 shrink-0 text-cyan-300/80" aria-hidden />
+                    <span className="text-[9px] font-bold uppercase tracking-wide text-cyan-200/85">Quick adjust</span>
                   </div>
-                </div>
+                </motion.button>
 
                 {/* Tile 3 — Stories */}
-                <div className="group relative flex flex-col rounded-xl border border-emerald-400/22 bg-gradient-to-b from-emerald-500/[0.11] to-emerald-500/[0.05] p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
+                <motion.button
+                  type="button"
+                  onClick={cycleScopeVisualStories}
+                  className="group relative flex w-full flex-col rounded-xl border border-emerald-400/22 bg-gradient-to-b from-emerald-500/[0.11] to-emerald-500/[0.05] p-3.5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.07)] transition hover:border-emerald-300/35 hover:from-emerald-500/[0.16] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/40"
+                >
                   <div className="flex items-start justify-between gap-2">
                     <Home className="h-[22px] w-[22px] shrink-0 text-emerald-300 drop-shadow-[0_0_10px_rgba(52,211,153,0.32)]" aria-hidden />
-                    <Pencil className="h-3 w-3 text-white/25" aria-hidden />
+                    <Sparkles className="h-3 w-3 text-cyan-200/45" aria-hidden />
                   </div>
                   <div className="mt-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-emerald-200/90">Stories</div>
-                  <div className="mt-2 text-[22px] font-extrabold tabular-nums leading-none text-white">—</div>
-                  <div className="text-[11px] font-medium text-white/40">stories</div>
+                  <div className="mt-2 text-[18px] font-extrabold leading-tight text-white">{scopeVisualStories}</div>
+                  <div className="text-[11px] font-medium text-emerald-100/70">visual</div>
                   <div className="mt-2 flex items-center gap-1">
-                    <CheckCircle2 className="h-3 w-3 shrink-0 text-white/30" aria-hidden />
-                    <span className="text-[9px] font-bold uppercase tracking-wide text-white/50">Waiting</span>
+                    <CheckCircle2 className="h-3 w-3 shrink-0 text-cyan-300/80" aria-hidden />
+                    <span className="text-[9px] font-bold uppercase tracking-wide text-cyan-200/85">Quick adjust</span>
                   </div>
-                </div>
+                </motion.button>
 
                 {/* Tile 4 — Tear-off */}
-                <div className="group relative flex flex-col rounded-xl border border-amber-400/28 bg-gradient-to-b from-amber-500/[0.14] to-amber-500/[0.06] p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
+                <motion.button
+                  type="button"
+                  onClick={() => setScopeVisualTearOffIncluded((prev) => !prev)}
+                  className="group relative flex w-full flex-col rounded-xl border border-amber-400/28 bg-gradient-to-b from-amber-500/[0.14] to-amber-500/[0.06] p-3.5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.07)] transition hover:border-amber-300/40 hover:from-amber-500/[0.18] focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300/35"
+                >
                   <div className="flex items-start justify-between gap-2">
                     <Trash2 className="h-[22px] w-[22px] shrink-0 text-amber-300 drop-shadow-[0_0_10px_rgba(251,191,36,0.32)]" aria-hidden />
-                    <Pencil className="h-3 w-3 text-white/25" aria-hidden />
+                    <Sparkles className="h-3 w-3 text-cyan-200/45" aria-hidden />
                   </div>
                   <div className="mt-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-amber-200/90">Tear-off</div>
                   <div className="mt-2 text-[18px] font-extrabold leading-none text-white">
-                    {includeDebrisRemoval ? "1 layer" : "—"}
+                    {scopeVisualTearOffIncluded ? "1 layer" : "Not included"}
                   </div>
-                  {includeDebrisRemoval && <div className="text-[11px] font-medium text-amber-100/70">included</div>}
+                  <div className="text-[11px] font-medium text-amber-100/70">
+                    {scopeVisualTearOffIncluded ? "included" : "visual"}
+                  </div>
                   <div className="mt-2 flex items-center gap-1">
-                    <CheckCircle2 className={`h-3 w-3 shrink-0 ${includeDebrisRemoval ? "text-emerald-300" : "text-white/35"}`} aria-hidden />
-                    <span className={`text-[9px] font-bold uppercase tracking-wide ${includeDebrisRemoval ? "text-emerald-200/90" : "text-white/50"}`}>
-                      {includeDebrisRemoval ? "Prepared" : "Off"}
+                    <CheckCircle2
+                      className={`h-3 w-3 shrink-0 ${scopeVisualTearOffIncluded ? "text-emerald-300" : "text-white/35"}`}
+                      aria-hidden
+                    />
+                    <span
+                      className={`text-[9px] font-bold uppercase tracking-wide ${scopeVisualTearOffIncluded ? "text-emerald-200/90" : "text-white/50"}`}
+                    >
+                      {scopeVisualTearOffIncluded ? "Quick adjust" : "Visual"}
                     </span>
                   </div>
-                </div>
+                </motion.button>
 
                 {/* Tile 5 — Material */}
                 <div className="group relative flex flex-col rounded-xl border border-violet-400/28 bg-gradient-to-b from-violet-500/[0.14] to-violet-500/[0.06] p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
@@ -4574,7 +4621,7 @@ Thanks,`;
                 <div className="group relative flex flex-col rounded-xl border border-cyan-400/28 bg-gradient-to-b from-cyan-500/[0.14] to-cyan-500/[0.06] p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
                   <div className="flex items-start justify-between gap-2">
                     <ShieldCheck className="h-[22px] w-[22px] shrink-0 text-cyan-300 drop-shadow-[0_0_10px_rgba(34,211,238,0.32)]" aria-hidden />
-                    <Pencil className="h-3 w-3 text-white/25" aria-hidden />
+                    <Eye className="h-3 w-3 text-white/25" aria-hidden />
                   </div>
                   <div className="mt-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-cyan-200/90">Confidence</div>
                   <div className="mt-2 text-[22px] font-extrabold tabular-nums leading-none text-white">
@@ -4611,6 +4658,48 @@ Thanks,`;
                 <div className="mt-3 grid grid-cols-1 gap-2 lg:grid-cols-12">
                   <div className="rounded-[18px] border border-cyan-400/30 bg-gradient-to-br from-slate-950/80 via-slate-900/70 to-cyan-950/20 p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_12px_38px_-22px_rgba(34,211,238,0.45)] lg:col-span-4">
                     <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-200/85">Recommended Roofing System</div>
+                    <div className="mt-2.5 flex items-center gap-2 rounded-full bg-[radial-gradient(circle_at_50%_50%,rgba(34,211,238,0.09),transparent_62%)] px-1 py-1">
+                      <button
+                        type="button"
+                        onClick={() => moveScopeVisualTier(-1)}
+                        disabled={scopeVisualTierIndex === 0}
+                        aria-label="Previous tier"
+                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-cyan-100/68 transition hover:bg-cyan-300/[0.08] hover:text-cyan-50 hover:shadow-[0_0_20px_-8px_rgba(34,211,238,0.95)] disabled:cursor-not-allowed disabled:text-white/20 disabled:hover:bg-transparent disabled:hover:shadow-none"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </button>
+
+                      <div className="relative grid min-w-0 flex-1 grid-cols-3 gap-1 rounded-full px-1">
+                        <div className="pointer-events-none absolute inset-x-2 top-1/2 h-px -translate-y-1/2 bg-gradient-to-r from-transparent via-cyan-300/18 to-transparent" aria-hidden />
+                        {scopeVisualTierOptions.map((opt, i) => {
+                          const selected = scopeVisualTierIndex === i;
+                          return (
+                            <button
+                              key={opt.key}
+                              type="button"
+                              onClick={() => setScopeVisualTierIndex(i)}
+                              className={
+                                selected
+                                  ? "relative rounded-full px-2 py-1.5 text-center text-[10px] font-bold uppercase tracking-wide text-cyan-50 shadow-[0_0_26px_-8px_rgba(34,211,238,1)] before:absolute before:inset-x-2 before:bottom-0 before:h-px before:rounded-full before:bg-cyan-200/70 after:absolute after:inset-0 after:-z-10 after:rounded-full after:bg-cyan-400/[0.16]"
+                                  : "relative rounded-full px-2 py-1.5 text-center text-[10px] font-semibold uppercase tracking-wide text-white/52 transition hover:text-white/74 hover:shadow-[0_0_14px_-10px_rgba(255,255,255,0.6)]"
+                              }
+                            >
+                              {opt.short}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => moveScopeVisualTier(1)}
+                        disabled={scopeVisualTierIndex === scopeVisualTierOptions.length - 1}
+                        aria-label="Next tier"
+                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-cyan-100/68 transition hover:bg-cyan-300/[0.08] hover:text-cyan-50 hover:shadow-[0_0_20px_-8px_rgba(34,211,238,0.95)] disabled:cursor-not-allowed disabled:text-white/20 disabled:hover:bg-transparent disabled:hover:shadow-none"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </button>
+                    </div>
                     <div className="mt-3 flex items-center gap-4">
                       {/* Roofing system visual */}
                       <div
@@ -4667,19 +4756,19 @@ Thanks,`;
                         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_26%_16%,rgba(125,211,252,0.16),transparent_30%),linear-gradient(to_bottom,rgba(255,255,255,0.03),transparent_36%,rgba(2,6,23,0.52))]" />
                         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
                         <div className="absolute bottom-1.5 left-1.5 right-1.5 rounded-lg border border-cyan-300/24 bg-black/68 px-1 py-0.5 text-center text-[7px] font-bold uppercase tracking-wide text-cyan-200/95 shadow-[0_0_14px_rgba(34,211,238,0.20)]">
-                          {selectedTierLabel}
+                          {scopeVisualTier.short}
                         </div>
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="text-[15px] font-bold leading-tight text-white">
-                          {tierConfig[roofingTier].label}
+                          {scopeVisualTier.label}
                         </div>
                         <div className="mt-0.5 text-[11px] capitalize text-white/55">
                           Architectural Shingles
                         </div>
                         <div className="mt-1 text-[10.5px] text-white/42">Lifetime limited warranty</div>
                         <span className="mt-2 inline-flex rounded-full border border-cyan-400/30 bg-cyan-500/[0.14] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-cyan-100/95">
-                          {selectedTierLabel} tier
+                          {scopeVisualTier.short} tier
                         </span>
                       </div>
                     </div>
@@ -4689,14 +4778,14 @@ Thanks,`;
                     <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/62">Included Scope</div>
                     <div className="mt-3 grid grid-cols-1 gap-x-5 gap-y-2 sm:grid-cols-2">
                       {[
-                        ...tierConfig[roofingTier].includes,
-                        includeDebrisRemoval ? "Tear-off & disposal (1 layer)" : "Tear-off (not included)",
+                        ...scopeVisualTierConfig.includes,
+                        scopeVisualTearOffIncluded ? "Tear-off & disposal (1 layer)" : "Tear-off (not included)",
                         "Starter strip",
                         "Ridge cap shingles",
                         "Proper ventilation",
                       ].slice(0, 6).map((item, i) => {
                         const isTearOff = item.toLowerCase().includes("tear-off");
-                        const isReady = isTearOff ? includeDebrisRemoval : true;
+                        const isReady = isTearOff ? scopeVisualTearOffIncluded : true;
                         return (
                           <div key={`${item}-${i}`} className="flex items-center gap-2 text-[11.5px]">
                             <span
