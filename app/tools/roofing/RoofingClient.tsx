@@ -4014,7 +4014,7 @@ Thanks,`;
             {/* Customer & Job */}
             <div
               id="customer-job-section"
-              className="rounded-2xl border border-cyan-400/[0.20] bg-[#0b1526] p-3 shadow-[0_0_0_1px_rgba(34,211,238,0.07),0_4px_24px_-8px_rgba(34,211,238,0.12),inset_0_1px_0_rgba(255,255,255,0.06)] sm:p-4"
+              className="rounded-2xl border border-cyan-400/[0.22] bg-[radial-gradient(circle_at_18%_0%,rgba(34,211,238,0.075),transparent_34%),#0b1526] p-3 shadow-[0_0_0_1px_rgba(34,211,238,0.08),0_18px_54px_-36px_rgba(34,211,238,0.35),inset_0_1px_0_rgba(255,255,255,0.065)] sm:p-4"
             >
               <div className="flex flex-wrap items-center gap-3">
                 <span
@@ -4024,15 +4024,15 @@ Thanks,`;
                   1
                 </span>
                 <h2 className="text-[15px] font-bold tracking-tight text-white sm:text-[17px]">Job Capture</h2>
-                <span className="text-[12px] text-white/50">Customer + property</span>
+                <span className="text-[12px] text-white/52">Capture the job packet fast.</span>
               </div>
 
-              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,0.86fr)_minmax(0,0.86fr)_minmax(0,2.15fr)]">
-                <div className="flex flex-wrap items-center gap-1.5 sm:col-span-2 lg:col-span-2">
+              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.88fr)]">
+                <div className="flex flex-wrap items-center gap-2.5 sm:col-span-2 lg:col-span-2">
                   <button
                     type="button"
                     aria-current="step"
-                    className="inline-flex items-center gap-2 rounded-lg border border-blue-400/45 bg-blue-500/[0.20] px-3 py-1.5 text-[12px] font-semibold text-blue-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_0_22px_-10px_rgba(59,130,246,0.85)]"
+                    className="inline-flex items-center gap-2 rounded-xl border border-blue-300/55 bg-gradient-to-b from-blue-400/[0.24] to-blue-600/[0.15] px-3 py-1.5 text-[12px] font-semibold text-blue-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.16),0_0_24px_-10px_rgba(59,130,246,0.95)]"
                   >
                     <ClipboardList className="h-3.5 w-3.5 text-blue-200" aria-hidden />
                     Manual entry
@@ -4041,7 +4041,7 @@ Thanks,`;
                     type="button"
                     disabled
                     aria-label="Photos capture (coming soon)"
-                    className="inline-flex cursor-not-allowed items-center gap-2 rounded-lg border border-white/[0.10] bg-white/[0.03] px-3 py-1.5 text-[12px] font-medium text-white/60"
+                    className="inline-flex cursor-not-allowed items-center gap-2 rounded-xl border border-white/[0.10] bg-white/[0.035] px-3 py-1.5 text-[12px] font-medium text-white/58 shadow-[inset_0_1px_0_rgba(255,255,255,0.045)]"
                   >
                     <ImageIcon className="h-3.5 w-3.5 text-white/55" aria-hidden />
                     Photos
@@ -4050,7 +4050,7 @@ Thanks,`;
                     type="button"
                     disabled
                     aria-label="Voice capture (coming soon)"
-                    className="inline-flex cursor-not-allowed items-center gap-2 rounded-lg border border-white/[0.10] bg-white/[0.03] px-3 py-1.5 text-[12px] font-medium text-white/60"
+                    className="inline-flex cursor-not-allowed items-center gap-2 rounded-xl border border-white/[0.10] bg-white/[0.035] px-3 py-1.5 text-[12px] font-medium text-white/58 shadow-[inset_0_1px_0_rgba(255,255,255,0.045)]"
                   >
                     <Mic className="h-3.5 w-3.5 text-white/55" aria-hidden />
                     Voice
@@ -4059,48 +4059,230 @@ Thanks,`;
                     type="button"
                     disabled
                     aria-label="Customer message capture (coming soon)"
-                    className="inline-flex cursor-not-allowed items-center gap-2 rounded-lg border border-white/[0.10] bg-white/[0.03] px-3 py-1.5 text-[12px] font-medium text-white/60"
+                    className="inline-flex cursor-not-allowed items-center gap-2 rounded-xl border border-white/[0.10] bg-white/[0.035] px-3 py-1.5 text-[12px] font-medium text-white/58 shadow-[inset_0_1px_0_rgba(255,255,255,0.045)]"
                   >
                     <MessageCircle className="h-3.5 w-3.5 text-white/55" aria-hidden />
                     Customer message
                   </button>
                 </div>
-                  <div className="min-h-[7.05rem] rounded-xl border border-white/[0.10] bg-slate-950/45 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
-                    <div className="flex items-center gap-1.5 text-[10.5px] font-medium uppercase tracking-wide text-white/55">
-                      <User className="h-3 w-3 text-white/55" aria-hidden />
-                      Customer
+                  <div className="relative min-h-[7.35rem] overflow-hidden rounded-xl border border-cyan-200/[0.15] bg-[radial-gradient(circle_at_18%_0%,rgba(34,211,238,0.085),transparent_34%),linear-gradient(135deg,rgba(255,255,255,0.058),rgba(255,255,255,0.018)_44%,rgba(2,6,23,0.30))] p-3.5 shadow-[0_14px_36px_-32px_rgba(34,211,238,0.48),inset_0_1px_0_rgba(255,255,255,0.08)] before:pointer-events-none before:absolute before:inset-x-3 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-cyan-300/35 before:to-transparent">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-cyan-100/62">
+                        <User className="h-3 w-3 text-cyan-200/62" aria-hidden />
+                        Customer
+                      </div>
+                      {(customerName || customerEmail || customerPhone).trim() ? (
+                        <span className="rounded-full border border-emerald-300/24 bg-emerald-400/[0.085] px-1.5 py-[1px] text-[9px] font-semibold uppercase tracking-[0.11em] text-emerald-100/78 shadow-[0_0_16px_-10px_rgba(52,211,153,0.7)]">
+                          Active
+                        </span>
+                      ) : (
+                        <span className="rounded-full border border-amber-300/22 bg-amber-400/[0.075] px-1.5 py-[1px] text-[9px] font-semibold uppercase tracking-[0.11em] text-amber-100/72 shadow-[0_0_16px_-10px_rgba(251,191,36,0.7)]">
+                          Needed
+                        </span>
+                      )}
                     </div>
-                    <p className="mt-1.5 text-[14px] font-semibold leading-snug text-white">
-                      {(customerName || "").trim() ? customerName : "Customer not added"}
-                    </p>
-                    <p className="mt-0.5 break-all text-[12px] leading-snug text-blue-300/90">
-                      {(customerEmail || "").trim() ? customerEmail : "Email needed"}
-                    </p>
-                    <p className="text-[11px] text-white/55">
-                      {(customerPhone || "").trim() ? customerPhone : "Phone optional"}
-                    </p>
+
+                    <p className="mt-1 text-[10.5px] leading-snug text-white/44">Who receives the proposal and follow-ups.</p>
+
+                    <div className="mt-2 grid gap-2">
+                      <input
+                        id="customer-name"
+                        name="customer_name_field"
+                        type="text"
+                        value={customerName}
+                        onChange={(e) => setCustomerName(e.target.value)}
+                        placeholder="Customer name"
+                        autoComplete="off"
+                        autoCorrect="off"
+                        autoCapitalize="off"
+                        spellCheck={false}
+                        className="h-8.5 w-full rounded-lg border border-white/[0.145] bg-slate-950/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.045),0_8px_18px_-18px_rgba(0,0,0,0.85)] px-2.5 text-[12.5px] font-medium text-white/96 placeholder:text-white/42 outline-none transition focus:border-cyan-300/55 focus:bg-white/[0.075] focus:shadow-[0_0_0_3px_rgba(34,211,238,0.075),inset_0_1px_0_rgba(255,255,255,0.05)]"
+                      />
+                      <input
+                        id="customer-email"
+                        name="customer_email_field"
+                        type="email"
+                        inputMode="email"
+                        value={customerEmail}
+                        onChange={(e) => {
+                          setCustomerEmail(e.target.value);
+                          setSendError("");
+                        }}
+                        placeholder="Email address"
+                        autoComplete="new-password"
+                        autoCorrect="off"
+                        autoCapitalize="off"
+                        spellCheck={false}
+                        className={"h-8.5 w-full rounded-lg border bg-slate-950/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.045),0_8px_18px_-18px_rgba(0,0,0,0.85)] px-2.5 text-[12.5px] font-medium text-white/96 placeholder:text-white/42 outline-none transition focus:border-cyan-300/55 focus:bg-white/[0.075] focus:shadow-[0_0_0_3px_rgba(34,211,238,0.075),inset_0_1px_0_rgba(255,255,255,0.05)] " + (attentionField === "customerEmail" ? "border-cyan-300/45 ring-2 ring-cyan-400/15" : "border-white/[0.10]")}
+                      />
+                      <input
+                        id="customer-phone"
+                        name="customer_phone_field"
+                        type="tel"
+                        inputMode="tel"
+                        value={customerPhone}
+                        onChange={(e) => setCustomerPhone(e.target.value)}
+                        placeholder="Phone optional"
+                        autoComplete="off"
+                        autoCorrect="off"
+                        autoCapitalize="off"
+                        spellCheck={false}
+                        className="h-8.5 w-full rounded-lg border border-white/[0.145] bg-slate-950/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.045),0_8px_18px_-18px_rgba(0,0,0,0.85)] px-2.5 text-[12.5px] font-medium text-white/96 placeholder:text-white/42 outline-none transition focus:border-cyan-300/55 focus:bg-white/[0.075] focus:shadow-[0_0_0_3px_rgba(34,211,238,0.075),inset_0_1px_0_rgba(255,255,255,0.05)]"
+                      />
+                    </div>
                   </div>
-                  <div className="min-h-[7.05rem] rounded-xl border border-white/[0.10] bg-slate-950/45 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
-                    <div className="flex items-center gap-1.5 text-[10.5px] font-medium uppercase tracking-wide text-white/55">
-                      <Home className="h-3 w-3 text-white/55" aria-hidden />
-                      Property
+                  <div className="relative min-h-[7.35rem] overflow-hidden rounded-xl border border-cyan-200/[0.15] bg-[radial-gradient(circle_at_18%_0%,rgba(34,211,238,0.085),transparent_34%),linear-gradient(135deg,rgba(255,255,255,0.058),rgba(255,255,255,0.018)_44%,rgba(2,6,23,0.30))] p-3.5 shadow-[0_14px_36px_-32px_rgba(34,211,238,0.48),inset_0_1px_0_rgba(255,255,255,0.08)] before:pointer-events-none before:absolute before:inset-x-3 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-cyan-300/35 before:to-transparent">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-cyan-100/62">
+                        <Home className="h-3 w-3 text-cyan-200/62" aria-hidden />
+                        Property
+                      </div>
+                      {(jobAddress1 || "").trim() && (jobZip || "").trim().length === 5 ? (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300/24 bg-emerald-400/[0.085] px-1.5 py-[1px] text-[9px] font-semibold uppercase tracking-[0.11em] text-emerald-100/78 shadow-[0_0_16px_-10px_rgba(52,211,153,0.7)]">
+                          <ShieldCheck className="h-2.5 w-2.5" aria-hidden />
+                          Ready
+                        </span>
+                      ) : (
+                        <span className="rounded-full border border-amber-300/22 bg-amber-400/[0.075] px-1.5 py-[1px] text-[9px] font-semibold uppercase tracking-[0.11em] text-amber-100/72 shadow-[0_0_16px_-10px_rgba(251,191,36,0.7)]">
+                          Needed
+                        </span>
+                      )}
                     </div>
-                    <p className="mt-1.5 text-[14px] font-semibold leading-snug text-white">
-                      {(jobAddress1 || "").trim() ? jobAddress1 : "Property address needed"}
-                    </p>
-                    <p className="mt-0.5 text-[12px] leading-snug text-white/70">
-                      {[jobCity, jobState, jobZip].filter(Boolean).join(", ") || "City, state, and ZIP"}
-                    </p>
-                    {(jobAddress1 || "").trim() && (jobZip || "").trim().length === 5 ? (
-                      <span className="mt-1.5 inline-flex items-center gap-1 rounded-full border border-emerald-400/30 bg-emerald-500/12 px-2 py-0.5 text-[10px] font-semibold text-emerald-100/95">
-                        <ShieldCheck className="h-3 w-3" aria-hidden />
-                        Address ready
-                      </span>
-                    ) : (
-                      <span className="mt-1.5 inline-flex items-center gap-1 rounded-full border border-amber-400/25 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-100/85">
-                        Needs input
-                      </span>
-                    )}
+
+                    <p className="mt-1 text-[10.5px] leading-snug text-white/44">Where the job is happening.</p>
+
+                    <div className="mt-2 grid gap-2">
+                      <input
+                        id="job-address"
+                        name="job_address1_field"
+                        type="text"
+                        value={jobAddress1}
+                        onChange={(e) => setJobAddress1(e.target.value)}
+                        onBlur={(e) => {
+                          const cleaned = e.target.value.replace(/\s+/g, " ").trim();
+                          if (cleaned !== jobAddress1) setJobAddress1(cleaned);
+                        }}
+                        placeholder="Street address"
+                        autoComplete="new-password"
+                        autoCorrect="off"
+                        autoCapitalize="off"
+                        spellCheck={false}
+                        className="h-8.5 w-full rounded-lg border border-white/[0.145] bg-slate-950/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.045),0_8px_18px_-18px_rgba(0,0,0,0.85)] px-2.5 text-[12.5px] font-medium text-white/96 placeholder:text-white/42 outline-none transition focus:border-cyan-300/55 focus:bg-white/[0.075] focus:shadow-[0_0_0_3px_rgba(34,211,238,0.075),inset_0_1px_0_rgba(255,255,255,0.05)]"
+                      />
+                      <div className="grid grid-cols-[minmax(0,1fr)_5rem_5.75rem] gap-2">
+                        <input
+                          id="job-city"
+                          name="job_city_field"
+                          type="text"
+                          value={jobCity}
+                          onChange={(e) => setJobCity(e.target.value)}
+                          onBlur={(e) => {
+                            const cleaned = e.target.value
+                              .replace(/[^a-zA-Z\s.'-]/g, "")
+                              .replace(/\s+/g, " ")
+                              .trim();
+                            if (cleaned !== jobCity) {
+                              setJobCity(cleaned);
+                            }
+                          }}
+                          placeholder="City"
+                          autoComplete="off"
+                          autoCorrect="off"
+                          autoCapitalize="words"
+                          spellCheck={false}
+                          className="h-8.5 w-full rounded-lg border border-white/[0.145] bg-slate-950/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.045),0_8px_18px_-18px_rgba(0,0,0,0.85)] px-2.5 text-[12.5px] font-medium text-white/96 placeholder:text-white/42 outline-none transition focus:border-cyan-300/55 focus:bg-white/[0.075] focus:shadow-[0_0_0_3px_rgba(34,211,238,0.075),inset_0_1px_0_rgba(255,255,255,0.05)]"
+                        />
+                        <input
+                          id="job-state"
+                          name="job_state_field"
+                          type="text"
+                          value={jobState}
+                          onChange={(e) => setJobState(e.target.value)}
+                          onBlur={(e) => {
+                            const cleaned = e.target.value
+                              .replace(/[^a-zA-Z]/g, "")
+                              .toUpperCase()
+                              .trim();
+                            if (cleaned !== jobState) setJobState(cleaned);
+                          }}
+                          placeholder="State"
+                          autoComplete="off"
+                          autoCorrect="off"
+                          autoCapitalize="characters"
+                          spellCheck={false}
+                          className="h-8.5 w-full rounded-lg border border-white/[0.145] bg-slate-950/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.045),0_8px_18px_-18px_rgba(0,0,0,0.85)] px-2.5 text-[12.5px] font-medium uppercase text-white/96 placeholder:text-white/42 outline-none transition focus:border-cyan-300/55 focus:bg-white/[0.075] focus:shadow-[0_0_0_3px_rgba(34,211,238,0.075),inset_0_1px_0_rgba(255,255,255,0.05)]"
+                        />
+                        <input
+                          id="customer-job-zip"
+                          name="job_zip_field"
+                          type="text"
+                          inputMode="numeric"
+                          value={jobZip}
+                          onChange={(e) => setJobZip(sanitizeZipInput(e.target.value))}
+                          onBlur={() => {
+                            const sanitized = sanitizeZipInput(jobZip);
+                            if (sanitized !== jobZip) setJobZip(sanitized);
+                            if (sanitized.length === 5) tryApplyZipPreset(sanitized);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              const sanitized = sanitizeZipInput(jobZip);
+                              if (sanitized !== jobZip) setJobZip(sanitized);
+                              if (sanitized.length === 5) tryApplyZipPreset(sanitized);
+                            }
+                          }}
+                          placeholder="ZIP"
+                          autoComplete="postal-code"
+                          autoCorrect="off"
+                          autoCapitalize="off"
+                          spellCheck={false}
+                          className="h-8.5 w-full rounded-lg border border-white/[0.145] bg-slate-950/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.045),0_8px_18px_-18px_rgba(0,0,0,0.85)] px-2.5 text-[12.5px] font-medium text-white/96 placeholder:text-white/42 outline-none transition focus:border-cyan-300/55 focus:bg-white/[0.075] focus:shadow-[0_0_0_3px_rgba(34,211,238,0.075),inset_0_1px_0_rgba(255,255,255,0.05)]"
+                        />
+                      </div>
+
+                      <div className="min-h-[1rem]">
+                        {autofillFromZip && (
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-[10.5px] text-emerald-300/85">Auto-filled from ZIP defaults</span>
+                            {preAutofillSnapshot != null && (
+                              <button
+                                type="button"
+                                onClick={undoAutofill}
+                                className="text-[10.5px] font-medium text-blue-300 hover:text-blue-200 underline underline-offset-1"
+                              >
+                                Undo
+                              </button>
+                            )}
+                          </div>
+                        )}
+                        {zipNoPresetMessage && jobZip.length === 5 && (
+                          <p className="text-[10.5px] text-slate-500">No ZIP defaults saved.</p>
+                        )}
+                        {jobZip.length === 5 && presetForCurrentZip != null && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setZipPresets((prev) => {
+                                if (!prev) return prev;
+                                const next = { ...prev };
+                                delete next[jobZip];
+                                if (typeof window !== "undefined") localStorage.setItem(STORAGE_KEY_ZIP_PRESETS, JSON.stringify(next));
+                                return next;
+                              });
+                              setZipClearedToast(true);
+                              setTimeout(() => setZipClearedToast(false), 2500);
+                              setAutofillFromZip(false);
+                              setPreAutofillSnapshot(null);
+                              setZipNoPresetMessage(true);
+                            }}
+                            className="text-[10.5px] font-medium text-slate-400 hover:text-slate-300 underline underline-offset-1"
+                          >
+                            Clear ZIP defaults
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 <div
                   className="relative overflow-hidden rounded-[18px] border border-cyan-400/40 bg-slate-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_0_0_1px_rgba(34,211,238,0.10),0_28px_96px_-42px_rgba(34,211,238,0.72)] sm:col-span-2 lg:col-start-3 lg:row-span-2 lg:row-start-1"
@@ -4279,225 +4461,6 @@ Thanks,`;
                   </div>
                 </div>
               </div>
-
-              <details className="group mt-1.5">
-                <summary className="flex cursor-pointer list-none items-center justify-end gap-1.5 pr-1 text-[10px] font-medium text-white/36 transition hover:text-white/70">
-                  <Pencil className="h-3 w-3" aria-hidden />
-                  <span>Edit manual details</span>
-                  <ChevronDown className="h-3 w-3 transition-transform group-open:rotate-180" aria-hidden />
-                </summary>
-              <form autoComplete="off" className="mt-2 space-y-3">
-                <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-3 sm:p-4">
-                  <div className="text-xs font-semibold tracking-wide text-white/85">Customer</div>
-                  <p className="mt-1 text-[11px] leading-snug text-white/45">Who the proposal and follow-ups are for.</p>
-                  <div className="mt-3 space-y-3">
-                <div className="space-y-1.5">
-                  <label htmlFor="customer-name" className="block text-sm font-medium text-white/80">Customer Name *</label>
-                  <input
-                    id="customer-name"
-                    name="customer_name_field"
-                    type="text"
-                    value={customerName}
-                    onChange={(e) => setCustomerName(e.target.value)}
-                    placeholder="Full name"
-                    autoComplete="off"
-                    autoCorrect="off"
-                    autoCapitalize="off"
-                    spellCheck={false}
-                    className="w-full rounded-2xl border border-white/15 bg-white/[0.07] px-4 py-3 text-white/95 placeholder:text-white/35 focus:outline-none focus:ring-2 focus:ring-blue-500/35 focus:border-white/25 text-sm"
-                  />
-                </div>
-                <div className={"space-y-1.5" + (attentionField === "customerEmail" ? " rounded-2xl ring-2 ring-cyan-400/25 bg-cyan-400/[0.04] shadow-[0_0_0_1px_rgba(34,211,238,0.10),0_0_24px_rgba(34,211,238,0.08)]" : "")}>
-                  <label htmlFor="customer-email" className="block text-sm font-medium text-white/80">Customer Email *</label>
-                  <input
-                    id="customer-email"
-                    name="customer_email_field"
-                    type="email"
-                    inputMode="email"
-                    value={customerEmail}
-                    onChange={(e) => {
-                      setCustomerEmail(e.target.value);
-                      setSendError("");
-                    }}
-                    placeholder="email@example.com"
-                    autoComplete="new-password"
-                    autoCorrect="off"
-                    autoCapitalize="off"
-                    spellCheck={false}
-                    className="w-full rounded-2xl border border-white/15 bg-white/[0.07] px-4 py-3 text-white/95 placeholder:text-white/35 focus:outline-none focus:ring-2 focus:ring-blue-500/35 focus:border-white/25 text-sm"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label htmlFor="customer-phone" className="block text-sm font-medium text-white/80">Customer Phone (optional)</label>
-                  <input
-                    id="customer-phone"
-                    name="customer_phone_field"
-                    type="tel"
-                    inputMode="tel"
-                    value={customerPhone}
-                    onChange={(e) => setCustomerPhone(e.target.value)}
-                    placeholder="(555) 123-4567"
-                    autoComplete="off"
-                    autoCorrect="off"
-                    autoCapitalize="off"
-                    spellCheck={false}
-                    className="w-full rounded-2xl border border-white/15 bg-white/[0.07] px-4 py-3 text-white/95 placeholder:text-white/35 focus:outline-none focus:ring-2 focus:ring-blue-500/35 focus:border-white/25 text-sm"
-                  />
-                </div>
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-3 sm:p-4">
-                  <div className="text-xs font-semibold tracking-wide text-white/85">Property</div>
-                  <p className="mt-1 text-[11px] leading-snug text-white/45">Where the job is happening and which ZIP defaults should apply.</p>
-                  <div className="mt-3 space-y-3">
-                <div className="space-y-1.5">
-                  <label htmlFor="job-address" className="block text-sm font-medium text-white/80">Job Address</label>
-                  <input
-                    id="job-address"
-                    name="job_address1_field"
-                    type="text"
-                    value={jobAddress1}
-                    onChange={(e) => setJobAddress1(e.target.value)}
-                    onBlur={(e) => {
-                      const cleaned = e.target.value.replace(/\s+/g, " ").trim();
-                      if (cleaned !== jobAddress1) setJobAddress1(cleaned);
-                    }}
-                    placeholder="Street address"
-                    autoComplete="new-password"
-                    autoCorrect="off"
-                    autoCapitalize="off"
-                    spellCheck={false}
-                    className="w-full rounded-2xl border border-white/15 bg-white/[0.07] px-4 py-3 text-white/95 placeholder:text-white/35 focus:outline-none focus:ring-2 focus:ring-blue-500/35 focus:border-white/25 text-sm"
-                  />
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="space-y-1.5">
-                    <label htmlFor="job-city" className="block text-sm font-medium text-white/80">City</label>
-                    <input
-                      id="job-city"
-                      name="job_city_field"
-                      type="text"
-                      value={jobCity}
-                      onChange={(e) => setJobCity(e.target.value)}
-                      onBlur={(e) => {
-                        const cleaned = e.target.value
-                          .replace(/[^a-zA-Z\s.'-]/g, "")
-                          .replace(/\s+/g, " ")
-                          .trim();
-
-                        if (cleaned !== jobCity) {
-                          setJobCity(cleaned);
-                        }
-                      }}
-                      placeholder="City"
-                      autoComplete="off"
-                      autoCorrect="off"
-                      autoCapitalize="words"
-                      spellCheck={false}
-                      className="w-full rounded-2xl border border-white/15 bg-white/[0.07] px-4 py-3 text-white/95 placeholder:text-white/35 focus:outline-none focus:ring-2 focus:ring-blue-500/35 focus:border-white/25 text-sm"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label htmlFor="job-state" className="block text-sm font-medium text-white/80">State</label>
-                    <input
-                      id="job-state"
-                      name="job_state_field"
-                      type="text"
-                      value={jobState}
-                      onChange={(e) => setJobState(e.target.value)}
-                      onBlur={(e) => {
-                        const cleaned = e.target.value
-                          .replace(/[^a-zA-Z]/g, "")
-                          .toUpperCase()
-                          .trim();
-                        if (cleaned !== jobState) setJobState(cleaned);
-                      }}
-                      placeholder="State"
-                      autoComplete="off"
-                      autoCorrect="off"
-                      autoCapitalize="characters"
-                      spellCheck={false}
-                      className="w-full rounded-2xl border border-white/15 bg-white/[0.07] px-4 py-3 text-white/95 placeholder:text-white/35 focus:outline-none focus:ring-2 focus:ring-blue-500/35 focus:border-white/25 text-sm"
-                    />
-                  </div>
-                  <div className="space-y-1.5 rounded-2xl transition-all duration-200">
-                    <label htmlFor="customer-job-zip" className="flex items-center gap-1.5 text-sm font-medium text-white/80">
-                      Job ZIP
-                      <TooltipIcon id="tip-job-zip" text="Drives preset pricing and appears on proposal and PDF." />
-                    </label>
-                    <input
-                      id="customer-job-zip"
-                      name="job_zip_field"
-                      type="text"
-                      inputMode="numeric"
-                      value={jobZip}
-                      onChange={(e) => setJobZip(sanitizeZipInput(e.target.value))}
-                      onBlur={() => {
-                        const sanitized = sanitizeZipInput(jobZip);
-                        if (sanitized !== jobZip) setJobZip(sanitized);
-                        if (sanitized.length === 5) tryApplyZipPreset(sanitized);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          const sanitized = sanitizeZipInput(jobZip);
-                          if (sanitized !== jobZip) setJobZip(sanitized);
-                          if (sanitized.length === 5) tryApplyZipPreset(sanitized);
-                        }
-                      }}
-                      placeholder="e.g. 73102"
-                      autoComplete="postal-code"
-                      autoCorrect="off"
-                      autoCapitalize="off"
-                      spellCheck={false}
-                      className="w-full rounded-2xl border border-white/15 bg-white/[0.07] px-4 py-3 text-white/95 placeholder:text-white/35 focus:outline-none focus:ring-2 focus:ring-blue-500/35 focus:border-white/25 text-sm"
-                    />
-                    {autofillFromZip && (
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-xs text-emerald-400/90">Auto-filled from ZIP defaults</span>
-                        {preAutofillSnapshot != null && (
-                          <button
-                            type="button"
-                            onClick={undoAutofill}
-                            className="text-xs font-medium text-blue-300 hover:text-blue-200 underline underline-offset-1"
-                          >
-                            Undo autofill
-                          </button>
-                        )}
-                      </div>
-                    )}
-                    {zipNoPresetMessage && jobZip.length === 5 && (
-                      <p className="text-xs text-slate-500">No defaults saved for this ZIP yet.</p>
-                    )}
-                    {jobZip.length === 5 && presetForCurrentZip != null && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setZipPresets((prev) => {
-                            if (!prev) return prev;
-                            const next = { ...prev };
-                            delete next[jobZip];
-                            if (typeof window !== "undefined") localStorage.setItem(STORAGE_KEY_ZIP_PRESETS, JSON.stringify(next));
-                            return next;
-                          });
-                          setZipClearedToast(true);
-                          setTimeout(() => setZipClearedToast(false), 2500);
-                          setAutofillFromZip(false);
-                          setPreAutofillSnapshot(null);
-                          setZipNoPresetMessage(true);
-                        }}
-                        className="text-xs font-medium text-slate-400 hover:text-slate-300 underline underline-offset-1"
-                      >
-                        Clear ZIP defaults
-                      </button>
-                    )}
-                  </div>
-                </div>
-                  </div>
-                </div>
-              </form>
-              </details>
             </div>
 
             <div className="rounded-2xl border border-cyan-400/[0.20] bg-[#0b1526] p-3 shadow-[0_0_0_1px_rgba(34,211,238,0.07),0_4px_24px_-8px_rgba(34,211,238,0.12),inset_0_1px_0_rgba(255,255,255,0.06)] sm:p-4">
