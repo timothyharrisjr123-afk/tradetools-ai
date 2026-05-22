@@ -3,7 +3,27 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ShieldCheck, ClipboardList, Package, Search, Bell, ChevronDown, Sparkles, PhoneCall, CreditCard, CalendarCheck2, Factory, ArrowRight } from "lucide-react";
+import {
+  Bell,
+  ChevronDown,
+  Sparkles,
+  PhoneCall,
+  CreditCard,
+  CalendarCheck2,
+  Factory,
+  ArrowRight,
+  Menu,
+  LayoutDashboard,
+  Briefcase,
+  Calendar,
+  FileText,
+  Receipt,
+  Users,
+  BookOpen,
+  Bot,
+  BarChart3,
+  Settings,
+} from "lucide-react";
 import { SignOutButton } from "@/app/components/auth/SignOutButton";
 import {
   getSavedEstimates,
@@ -4047,159 +4067,575 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
   const formatMoney = (n: number) =>
     n.toLocaleString(undefined, { style: "currency", currency: "USD" });
 
-  return (
-    <main
-      className="min-h-screen relative pb-20 text-white"
-      style={{
-        backgroundColor: "#0b1120",
-        backgroundImage: `
-          radial-gradient(ellipse at 60% 0%, rgba(34,211,238,0.06) 0%, transparent 55%),
-          radial-gradient(ellipse at 0% 80%, rgba(59,130,246,0.05) 0%, transparent 50%),
-          repeating-linear-gradient(0deg, transparent 0px, transparent 3px, rgba(255,255,255,0.0035) 3px, rgba(255,255,255,0.0035) 4px),
-          repeating-linear-gradient(90deg, transparent 0px, transparent 3px, rgba(255,255,255,0.0035) 3px, rgba(255,255,255,0.0035) 4px)
-        `,
-        backgroundSize: "100% 100%, 100% 100%, 72px 72px, 72px 72px",
-      }}
-    >
-      {/* Fixed ambient blur layers */}
-      <div className="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden>
-        <div className="absolute top-[40%] right-0 w-[90%] max-w-2xl h-[75%] bg-blue-600/[0.035] blur-[140px] rounded-full -translate-y-1/2" />
-        <div className="absolute top-0 left-0 w-full h-96 bg-slate-600/12 blur-[100px]" />
-      </div>
+  const getJobsForStageOverview = (stageKey: string) => {
+    return (searchFiltered || []).filter((e) => {
+      const raw = String(e.status || "").toLowerCase();
+      const norm = normalizeStatusValue(e.status || "estimate");
+      if (stageKey === "leads") {
+        return raw === "sent" || raw === "viewed" || norm === "sent" || norm === "pending";
+      }
+      if (stageKey === "estimate") return norm === "estimate";
+      if (stageKey === "approved") return norm === "approved";
+      if (stageKey === "scheduled") return norm === "scheduled";
+      if (stageKey === "in_progress") return norm === "in_progress";
+      if (stageKey === "paid") return norm === "paid";
+      if (stageKey === "active") return norm === "in_progress" || norm === "paid";
+      return false;
+    });
+  };
 
-      {/* Toast */}
+  const dashboardTodayStart = startOfLocalDay(new Date()).getTime();
+  const dashboardWeekEnd = endOfLocalDay(new Date());
+  dashboardWeekEnd.setDate(dashboardWeekEnd.getDate() + 7);
+  const dashboardWeekEndMs = dashboardWeekEnd.getTime();
+
+  const dashboardScheduledDates = (searchFiltered || [])
+    .map((est) => {
+      const norm = normalizeStatusValue(est.status || "estimate");
+      if (norm !== "scheduled") return null;
+      const key = getScheduledDateKeyFromEstimate(est);
+      if (!key) return null;
+      const date = parseISODateOnly(key);
+      if (!date) return null;
+      return startOfLocalDay(date).getTime();
+    })
+    .filter((t): t is number => t != null);
+
+  const dashboardOnSiteCount = getJobsForStageOverview("in_progress").length;
+  const dashboardScheduledTodayCount = dashboardScheduledDates.filter(
+    (t) => t === dashboardTodayStart
+  ).length;
+  const dashboardTodayCount = dashboardScheduledTodayCount + dashboardOnSiteCount;
+
+  const dashboardScheduledByDay = new Map<number, number>();
+  for (const dayMs of dashboardScheduledDates) {
+    dashboardScheduledByDay.set(dayMs, (dashboardScheduledByDay.get(dayMs) ?? 0) + 1);
+  }
+
+  const snapshotNow = new Date();
+  const snapshotDow = snapshotNow.getDay();
+  const snapshotMonday = startOfLocalDay(new Date(snapshotNow));
+  const snapshotMondayOffset = snapshotDow === 0 ? -6 : 1 - snapshotDow;
+  snapshotMonday.setDate(snapshotMonday.getDate() + snapshotMondayOffset);
+
+  const snapshotWeekdays = (["Mon", "Tue", "Wed", "Thu", "Fri"] as const).map((label, i) => {
+    const d = new Date(snapshotMonday);
+    d.setDate(d.getDate() + i);
+    const dayMs = startOfLocalDay(d).getTime();
+    return {
+      label,
+      count: dashboardScheduledByDay.get(dayMs) ?? 0,
+      isToday: dayMs === dashboardTodayStart,
+    };
+  });
+
+  const dashboardUpcomingScheduled = (searchFiltered || [])
+    .map((est) => {
+      const norm = normalizeStatusValue(est.status || "estimate");
+      if (norm !== "scheduled") return null;
+      const key = getScheduledDateKeyFromEstimate(est);
+      if (!key) return null;
+      const date = parseISODateOnly(key);
+      if (!date) return null;
+      const dayMs = startOfLocalDay(date).getTime();
+      if (dayMs < dashboardTodayStart) return null;
+      return { est, dayMs };
+    })
+    .filter((x): x is { est: RoofingEstimate; dayMs: number } => x != null)
+    .sort((a, b) => a.dayMs - b.dayMs);
+
+  const snapshotNextJob = dashboardUpcomingScheduled[0] ?? null;
+  const snapshotNextUpText = snapshotNextJob
+    ? getEstimateDisplayName(snapshotNextJob.est)
+    : depositReadyJobs[0]
+      ? `${getEstimateDisplayName(depositReadyJobs[0])} · ready to schedule`
+      : "No upcoming dates locked yet";
+
+  const dashboardPrepNeededCount = depositReadyJobs.length + approvedDueJobs.length;
+  const snapshotHasScheduleData =
+    dashboardScheduledDates.length > 0 || dashboardOnSiteCount > 0;
+
+  const dashboardWaitingCount = getJobsForStageOverview("leads").length;
+  const dashboardReadyCount =
+    depositReadyJobs.length + getJobsForStageOverview("approved").length;
+  const dashboardNeedsReviewCount = sentDueJobs.length + approvedDueJobs.length;
+
+  const getRecentMovementLabel = (est: RoofingEstimate) => {
+    const norm = normalizeStatusValue(est.status || "estimate");
+    const raw = String(est.status || "").toLowerCase();
+    if (norm === "paid") return "Job completed";
+    if (norm === "in_progress") return "Crew on site";
+    if (norm === "scheduled") return "Job scheduled";
+    if (norm === "deposit_paid") return "Deposit received · ready to schedule";
+    if (norm === "approved") return "Customer approved";
+    if (raw === "sent" || raw === "viewed" || norm === "sent" || norm === "pending") {
+      const viewedAt = getEffectiveViewedAt(est, batchStatuses);
+      return viewedAt ? "Proposal viewed · awaiting approval" : "Proposal sent";
+    }
+    return "Draft saved";
+  };
+
+  const recentMovementItems = [...(searchFiltered || [])]
+    .sort((a, b) => {
+      const da = new Date(
+        a.lastSavedAt ?? a.approvedAt ?? a.sentAt ?? a.createdAt ?? 0
+      ).getTime();
+      const db = new Date(
+        b.lastSavedAt ?? b.approvedAt ?? b.sentAt ?? b.createdAt ?? 0
+      ).getTime();
+      return db - da;
+    })
+    .slice(0, 6);
+
+  const sidebarNavItems: { label: string; href: string; icon: React.ComponentType<{ className?: string }>; active?: boolean }[] = [
+    { label: "Dashboard", href: "/tools/roofing/saved", icon: LayoutDashboard, active: true },
+    { label: "Jobs Pipeline", href: "/tools/roofing/saved", icon: Briefcase },
+    { label: "Calendar", href: "#", icon: Calendar },
+    { label: "Estimates", href: "/tools/roofing", icon: FileText },
+    { label: "Invoices", href: "#", icon: Receipt },
+    { label: "Customers", href: "#", icon: Users },
+    { label: "Price Book", href: "#", icon: BookOpen },
+    { label: "AI Conductor", href: "/tools/roofing/ai", icon: Bot },
+    { label: "Reports", href: "#", icon: BarChart3 },
+    { label: "Settings", href: "/tools/settings", icon: Settings },
+  ];
+
+  const dashboardDeckLanes = [
+    { key: "estimate", label: "New / Draft", filter: "estimate" as const, tint: "bg-sky-50 border-sky-100", text: "text-sky-700", countColor: "text-sky-600" },
+    { key: "leads", label: "Sent / Waiting", filter: "sent_pending" as const, tint: "bg-rose-50 border-rose-100", text: "text-rose-700", countColor: "text-rose-600" },
+    { key: "approved", label: "Approved", filter: "approved" as const, tint: "bg-violet-50 border-violet-100", text: "text-violet-700", countColor: "text-violet-600" },
+    { key: "scheduled", label: "Scheduled", filter: "scheduled" as const, tint: "bg-cyan-50 border-cyan-100", text: "text-cyan-700", countColor: "text-cyan-600" },
+    { key: "active", label: "On Site & Done", filter: "in_progress" as const, tint: "bg-emerald-50 border-emerald-100", text: "text-emerald-700", countColor: "text-emerald-600", altFilter: "paid" as const },
+  ];
+
+  const attentionCards = [
+    {
+      label: "Today's Work",
+      value: dashboardTodayCount,
+      hint: "Scheduled or on-site work",
+      filter: "scheduled" as const,
+      tone: "border-cyan-100 bg-cyan-50/40",
+    },
+    {
+      label: "Waiting on Customer",
+      value: dashboardWaitingCount,
+      hint: "Sent proposals awaiting response",
+      filter: "sent_pending" as const,
+      tone: "border-rose-100 bg-rose-50/40",
+    },
+    {
+      label: "Ready to Move",
+      value: dashboardReadyCount,
+      hint: "Approved or deposit-paid jobs",
+      filter: "deposit_paid" as const,
+      tone: "border-emerald-100 bg-emerald-50/40",
+    },
+    {
+      label: "Needs Review",
+      value: dashboardNeedsReviewCount,
+      hint: "Follow-ups, blocked steps, or missing confirmations",
+      filter: "sent_pending" as const,
+      tone: "border-amber-100 bg-amber-50/40",
+    },
+  ];
+
+  const FieldDiveLogoMark = () => (
+    <div className="relative flex h-9 w-9 shrink-0 items-center justify-center" aria-hidden>
+      <span className="absolute left-0 top-0 h-3 w-6 rounded-[6px] bg-gradient-to-r from-sky-400 to-blue-500" />
+      <span className="absolute left-0 top-[11px] h-3 w-4 rounded-[6px] bg-gradient-to-r from-sky-500 to-blue-600" />
+      <span className="absolute left-0 top-[22px] h-3 w-3 rounded-[6px] bg-gradient-to-r from-sky-500 to-blue-600" />
+      <span className="absolute left-[15px] top-[11px] h-3 w-3 rounded-[6px] bg-gradient-to-r from-sky-400 to-cyan-400" />
+    </div>
+  );
+
+  return (
+    <main className="min-h-screen bg-slate-50 text-slate-900">
       {toast !== null && (
         <div
           role="status"
           aria-live="polite"
-          className="fixed top-4 right-4 z-50 flex items-center gap-3 rounded-2xl border border-white/15 bg-slate-800/90 px-4 py-3 shadow-xl shadow-black/20 backdrop-blur-md"
+          className="fixed top-4 right-4 z-50 flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-lg"
         >
-          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400" aria-hidden>✓</span>
-          <span className="text-sm font-medium text-slate-100">{toast}</span>
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600" aria-hidden>✓</span>
+          <span className="text-sm font-medium text-slate-800">{toast}</span>
         </div>
       )}
       {flashBanner && (
         <div
           role="status"
-          className="fixed top-16 left-1/2 z-40 -translate-x-1/2 max-w-xl rounded-2xl border border-emerald-400/30 bg-emerald-500/15 px-4 py-3 text-center text-sm font-medium text-emerald-200 shadow-lg backdrop-blur-md"
+          className="fixed top-16 left-1/2 z-40 -translate-x-1/2 max-w-xl rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-center text-sm font-medium text-emerald-800 shadow-md"
         >
           {flashBanner}
         </div>
       )}
 
-      {/* ── FieldDive OS App Frame ── */}
-      <div className="relative mx-auto w-full max-w-[1680px] px-0">
-        <div className="px-4 pt-6 pb-10 sm:px-6 sm:pt-7 lg:px-8">
-          <div className="mx-auto max-w-[1800px] overflow-hidden rounded-2xl border border-cyan-400/[0.14] bg-[#07111f]/96 shadow-[0_0_0_1px_rgba(255,255,255,0.035),0_28px_90px_-62px_rgba(34,211,238,0.55)]">
-
-          {/* ── App Shell Nav — Command Center active ── */}
-          <nav
-            className="flex min-h-[66px] items-stretch gap-0 border-b border-cyan-400/[0.12] bg-[#07111f]/96 shadow-[0_1px_0_rgba(255,255,255,0.045)] backdrop-blur-xl"
-            aria-label="FieldDive workspace"
-          >
-            {/* Logo */}
-            <Link
-              href="/tools"
-              className="group flex shrink-0 items-center gap-3.5 border-r border-cyan-400/[0.13] px-6 py-3 transition hover:bg-white/[0.035]"
-            >
-              <div className="relative flex h-10 w-10 shrink-0 items-center justify-center" aria-hidden>
-                <span className="absolute left-0 top-0 h-3.5 w-7 rounded-[7px] bg-gradient-to-r from-sky-400 to-blue-500 shadow-[0_0_18px_rgba(56,189,248,0.70)]" />
-                <span className="absolute left-0 top-[13px] h-3.5 w-5.5 rounded-[7px] bg-gradient-to-r from-sky-500 to-blue-600 shadow-[0_0_14px_rgba(37,99,235,0.55)]" />
-                <span className="absolute left-0 top-[26px] h-3.5 w-3.5 rounded-[7px] bg-gradient-to-r from-sky-500 to-blue-600 shadow-[0_0_12px_rgba(37,99,235,0.45)]" />
-                <span className="absolute left-[18px] top-[13px] h-3.5 w-3.5 rounded-[7px] bg-gradient-to-r from-sky-400 to-cyan-400 shadow-[0_0_14px_rgba(34,211,238,0.55)]" />
+      <div className="flex min-h-screen">
+        <aside
+          className="hidden w-[220px] shrink-0 flex-col border-r border-slate-200 bg-white lg:flex"
+          aria-label="FieldDive dashboard"
+        >
+          <Link href="/tools" className="flex items-center gap-2.5 border-b border-slate-100 px-4 py-4">
+            <FieldDiveLogoMark />
+            <span className="text-lg font-bold tracking-tight text-slate-900">FieldDive</span>
+          </Link>
+          <nav className="flex-1 space-y-0.5 px-2 py-3">
+            {sidebarNavItems.map(({ label, href, icon: Icon, active }) => {
+              const cls = active
+                ? "flex items-center gap-2.5 rounded-lg bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700 ring-1 ring-inset ring-blue-100"
+                : "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900";
+              const inner = (
+                <>
+                  <Icon className={`h-4 w-4 shrink-0 ${active ? "text-blue-600" : "text-slate-400"}`} aria-hidden />
+                  {label}
+                </>
+              );
+              return href === "#" ? (
+                <a key={label} href="#" className={cls} onClick={(e) => e.preventDefault()}>
+                  {inner}
+                </a>
+              ) : (
+                <Link key={label} href={href} className={cls}>
+                  {inner}
+                </Link>
+              );
+            })}
+          </nav>
+          <div className="mt-auto border-t border-slate-100 p-3">
+            <div className="flex items-center gap-2.5 rounded-lg border border-slate-100 bg-slate-50 px-2.5 py-2">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-200 to-orange-300 text-[10px] font-bold text-white">
+                MA
               </div>
-              <div className="hidden flex-col leading-none sm:flex">
-                <span className="text-[23px] font-extrabold tracking-[-0.045em] text-white">FieldDive</span>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-xs font-semibold text-slate-800">Mike Anderson</div>
+                <div className="truncate text-[10px] text-slate-500">Anderson Roofing</div>
               </div>
-            </Link>
-
-            {/* Nav tabs */}
-            <div className="flex flex-1 items-center gap-0 px-4">
-              {/* New Job — inactive */}
-              <a
-                href="/tools/roofing"
-                onClick={(e) => {
-                  if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
-                  e.preventDefault();
-                  window.location.assign("/tools/roofing");
-                }}
-                className="flex min-h-[52px] items-center gap-3 rounded-xl px-5 text-[14px] font-semibold text-white/62 transition hover:bg-white/[0.045] hover:text-white"
-              >
-                <ClipboardList className="h-5 w-5 shrink-0 text-white/62" aria-hidden />
-                <span className="hidden lg:inline">New Job</span>
-              </a>
-              <span className="mx-3 hidden h-8 w-px bg-white/[0.10] lg:block" aria-hidden />
-              {/* Command Center — ACTIVE */}
-              <div className="relative flex min-h-[52px] cursor-default items-center gap-3 rounded-t-xl border border-cyan-300/45 border-b-transparent bg-gradient-to-b from-slate-800/82 via-cyan-950/42 to-cyan-700/28 px-6 text-[14px] font-bold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_18px_42px_-20px_rgba(6,182,212,0.95)]">
-                <span className="pointer-events-none absolute inset-x-0 bottom-[-1px] h-[3px] rounded-full bg-gradient-to-r from-transparent via-cyan-400 to-transparent shadow-[0_0_16px_rgba(6,182,212,1)]" aria-hidden />
-                <ShieldCheck className="h-5 w-5 shrink-0 text-cyan-100 drop-shadow-[0_0_10px_rgba(165,243,252,0.65)]" aria-hidden />
-                <span className="hidden xl:inline">Command Center</span>
-                <span className="xl:hidden">Cmd</span>
-              </div>
-              <span className="mx-3 hidden h-8 w-px bg-white/[0.10] xl:block" aria-hidden />
-              {/* AI Library — inactive */}
-              <Link
-                href="/tools/roofing/ai"
-                className="flex min-h-[52px] items-center gap-3 rounded-xl px-5 text-[14px] font-semibold text-white/62 transition hover:bg-white/[0.045] hover:text-white"
-              >
-                <Package className="h-5 w-5 shrink-0 text-white/62" aria-hidden />
-                <span className="hidden xl:inline">AI Library</span>
-              </Link>
-              <span className="mx-3 hidden h-8 w-px bg-white/[0.10] xl:block" aria-hidden />
-              {/* Settings — inactive */}
-              <Link
-                href="/tools/settings"
-                className="flex min-h-[52px] items-center gap-3 rounded-xl px-5 text-[14px] font-semibold text-white/62 transition hover:bg-white/[0.045] hover:text-white"
-              >
-                <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5" aria-hidden>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                <span className="hidden xl:inline">Settings</span>
-              </Link>
             </div>
+          </div>
+        </aside>
 
-            {/* Right actions */}
-            <div className="flex shrink-0 items-center gap-3 border-l border-cyan-400/[0.12] px-5 py-2">
-              <div className="flex min-w-[200px] items-center gap-2 rounded-xl border border-white/[0.10] bg-white/[0.035] px-3.5 py-2.5 text-[12px] text-white/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
-                <Search className="h-4 w-4 shrink-0" aria-hidden />
-                <span className="hidden lg:inline text-white/40">Search jobs…</span>
-                <span className="hidden rounded border border-white/[0.10] bg-white/[0.04] px-1.5 py-0.5 text-[10px] font-semibold text-white/35 lg:inline">⌘K</span>
-              </div>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <header className="flex h-14 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 sm:px-6">
+            <button
+              type="button"
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition hover:bg-slate-50 lg:hidden"
+              aria-label="Menu"
+            >
+              <Menu className="h-5 w-5" aria-hidden />
+            </button>
+            <div className="hidden flex-1 lg:block" />
+            <div className="flex items-center gap-2 sm:gap-3">
               <button
                 type="button"
-                className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/[0.10] bg-white/[0.035] text-white/70 transition hover:bg-white/[0.06] hover:text-white"
+                className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition hover:bg-slate-50"
                 aria-label="Notifications"
               >
-                <Bell className="h-5 w-5" aria-hidden />
-                <span className="absolute right-1.5 top-1.5 h-[7px] w-[7px] rounded-full border-[1.5px] border-[#0d1117] bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,1)]" />
+                <Bell className="h-4 w-4" aria-hidden />
+                <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-blue-500" />
               </button>
-              <div className="flex items-center gap-2.5 rounded-xl border border-white/[0.10] bg-white/[0.035] py-1.5 pl-1.5 pr-2.5 transition hover:bg-white/[0.055]">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-200/80 via-orange-300/50 to-slate-800 text-[11px] font-extrabold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.22),0_0_20px_-10px_rgba(251,191,36,0.90)]">
+              <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white py-1 pl-1 pr-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-amber-200 to-orange-300 text-[10px] font-bold text-white">
                   MA
                 </div>
-                <div className="hidden flex-col leading-none xl:flex">
-                  <span className="text-[13px] font-bold text-white/92">Mike Anderson</span>
-                  <span className="mt-0.5 text-[10.5px] text-white/48">Anderson Roofing</span>
-                </div>
-                <ChevronDown className="hidden h-4 w-4 text-white/45 xl:block" aria-hidden />
-                <div className="ml-1 hidden opacity-55 transition hover:opacity-100 2xl:block">
+                <span className="hidden text-xs font-semibold text-slate-700 sm:inline">Mike Anderson</span>
+                <div className="hidden sm:block">
                   <SignOutButton />
                 </div>
               </div>
             </div>
-          </nav>
+          </header>
 
-          {/* ── Content area ── */}
-          <div className="space-y-4 p-4 sm:p-6 lg:p-8 lg:space-y-5">
-        {/* ── Command Center Hero ── */}
-        <div className="relative overflow-hidden rounded-[22px] border border-cyan-400/[0.10] bg-gradient-to-br from-[#061120]/82 via-[#071426]/72 to-[#06101d]/70 shadow-[0_16px_46px_rgba(0,0,0,0.34)] ring-1 ring-inset ring-white/[0.025]">
+          <div className={`flex-1 overflow-auto p-4 sm:p-6 ${statusFilter !== "all" ? "bg-slate-100" : ""}`}>
+            {statusFilter === "all" && (
+              <div className="sr-only" aria-hidden>
+                <RevenueSummary estimates={searchFiltered} onMetrics={setRevenueMetrics} />
+              </div>
+            )}
+
+            {statusFilter === "all" && !hydrated && (
+              <div className="py-12 text-center text-sm text-slate-500">Loading saved estimates…</div>
+            )}
+            {statusFilter === "all" && hydrated && estimates.length === 0 && (
+              <div className="py-12 text-center text-sm text-slate-500">No saved estimates yet.</div>
+            )}
+            {statusFilter === "all" && hydrated && estimates.length > 0 && (
+              <div className="mx-auto max-w-[1600px] space-y-5">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                  <div>
+                    <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Dashboard</h1>
+                    <p className="mt-0.5 text-sm text-slate-500">Today&apos;s attention, job movement, and prepared next steps.</p>
+                  </div>
+                  <input
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Search jobs, customers, addresses…"
+                    className="h-9 w-full max-w-md rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-800 placeholder:text-slate-400 outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
+                  />
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    ["all", "Overview"],
+                    ["estimate", "Draft"],
+                    ["sent_pending", "Sent"],
+                    ["approved", "Approved"],
+                    ["deposit_paid", "Ready to schedule"],
+                    ["scheduled", "Scheduled"],
+                    ["in_progress", "On site"],
+                    ["paid", "Completed"],
+                  ].map(([key, label]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setStatusFilter(key as typeof statusFilter)}
+                      className={
+                        "rounded-full border px-3 py-1 text-xs font-semibold transition " +
+                        (statusFilter === key
+                          ? "border-blue-200 bg-blue-50 text-blue-700"
+                          : "border-slate-200 bg-white text-slate-600 hover:border-slate-300")
+                      }
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+
+                <section>
+                  <h2 className="text-sm font-semibold text-slate-900">Today&apos;s Attention</h2>
+                  <p className="mt-0.5 text-xs text-slate-500">What needs attention, what is waiting, and what can move forward.</p>
+                  <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
+                    {attentionCards.map((card) => (
+                      <button
+                        key={card.label}
+                        type="button"
+                        onClick={() => setStatusFilter(card.filter)}
+                        className={`rounded-xl border p-4 text-left shadow-sm transition hover:shadow-md ${card.tone}`}
+                      >
+                        <div className="text-xs font-medium text-slate-600">{card.label}</div>
+                        <div className="mt-1 text-2xl font-semibold tabular-nums text-slate-900">{card.value}</div>
+                        <div className="mt-1 text-xs text-slate-500">{card.hint}</div>
+                      </button>
+                    ))}
+                  </div>
+                </section>
+
+                <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+                  <section className="xl:col-span-2 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <div className="mb-4 flex items-center justify-between">
+                      <div>
+                        <h2 className="text-base font-semibold text-slate-900">Job Movement</h2>
+                        <p className="text-xs text-slate-500">How work is moving through your pipeline</p>
+                      </div>
+                      <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                        {searchFiltered.length} jobs
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+                      {dashboardDeckLanes.map((lane) => {
+                        const stageJobs = getJobsForStageOverview(lane.key);
+                        const previewJobs = stageJobs.slice(0, 2);
+                        const onSiteCount = getJobsForStageOverview("in_progress").length;
+                        const doneCount = getJobsForStageOverview("paid").length;
+                        return (
+                          <article
+                            key={lane.key}
+                            className={`flex min-h-[168px] flex-col rounded-lg border p-2.5 ${lane.tint}`}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className={`text-[10px] font-bold uppercase tracking-wide leading-tight ${lane.text}`}>{lane.label}</div>
+                              <span className={`text-lg font-bold tabular-nums ${lane.countColor}`}>{stageJobs.length}</span>
+                            </div>
+                            {lane.key === "active" && (
+                              <p className="mt-0.5 text-[10px] text-slate-500">
+                                {onSiteCount} on site · {doneCount} done
+                              </p>
+                            )}
+                            <div className="mt-2 flex-1 space-y-1">
+                              {previewJobs.length === 0 ? (
+                                <p className="text-xs text-slate-500">Nothing here</p>
+                              ) : (
+                                previewJobs.map((job) => (
+                                  <button
+                                    key={job.id}
+                                    type="button"
+                                    onClick={() => handleAction(job as RoofingEstimate, "load")}
+                                    className="block w-full rounded-md border border-white/60 bg-white/90 px-2 py-1 text-left text-xs transition hover:bg-white"
+                                  >
+                                    <div className="truncate font-semibold text-slate-800">{getEstimateDisplayName(job)}</div>
+                                  </button>
+                                ))
+                              )}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setStatusFilter(lane.filter)}
+                              className="mt-2 inline-flex w-full items-center justify-center gap-1 rounded-md border border-slate-200/80 bg-white/90 py-1 text-[11px] font-semibold text-slate-700 transition hover:bg-white"
+                            >
+                              View all
+                              <ArrowRight className="h-3 w-3 opacity-60" aria-hidden />
+                            </button>
+                          </article>
+                        );
+                      })}
+                    </div>
+                  </section>
+
+                  <aside className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-50 text-cyan-700">
+                        <Calendar className="h-4 w-4" aria-hidden />
+                      </div>
+                      <div>
+                        <h2 className="text-base font-semibold text-slate-900">Today&apos;s Snapshot</h2>
+                        <p className="text-xs text-slate-500">Today and the week ahead</p>
+                      </div>
+                    </div>
+
+                    {snapshotHasScheduleData ? (
+                      <>
+                        <div className="mt-4 grid grid-cols-5 gap-1.5">
+                          {snapshotWeekdays.map((day) => (
+                            <div
+                              key={day.label}
+                              className={`rounded-lg border px-1 py-2 text-center ${
+                                day.isToday
+                                  ? "border-cyan-200 bg-cyan-50/70"
+                                  : "border-slate-100 bg-slate-50/60"
+                              }`}
+                            >
+                              <div
+                                className={`text-[10px] font-semibold uppercase ${
+                                  day.isToday ? "text-cyan-700" : "text-slate-500"
+                                }`}
+                              >
+                                {day.label}
+                              </div>
+                              <div
+                                className={`mt-0.5 text-sm font-bold tabular-nums ${
+                                  day.count > 0 ? "text-slate-800" : "text-slate-300"
+                                }`}
+                              >
+                                {day.count}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        <ul className="mt-4 space-y-2.5 text-sm text-slate-700">
+                          <li className="flex gap-2">
+                            <span className="shrink-0 font-medium text-slate-500">Today:</span>
+                            <span>
+                              {dashboardTodayCount} scheduled or on-site
+                              {dashboardOnSiteCount > 0 && dashboardScheduledTodayCount > 0
+                                ? ` (${dashboardScheduledTodayCount} scheduled, ${dashboardOnSiteCount} on site)`
+                                : ""}
+                            </span>
+                          </li>
+                          <li className="flex gap-2">
+                            <span className="shrink-0 font-medium text-slate-500">Next up:</span>
+                            <span className="min-w-0 truncate">{snapshotNextUpText}</span>
+                          </li>
+                          <li className="flex gap-2">
+                            <span className="shrink-0 font-medium text-slate-500">Prep needed:</span>
+                            <span>
+                              {dashboardPrepNeededCount} job{dashboardPrepNeededCount !== 1 ? "s" : ""}{" "}
+                              ready to schedule or needing confirmation
+                            </span>
+                          </li>
+                        </ul>
+                        <button
+                          type="button"
+                          onClick={() => setStatusFilter("scheduled")}
+                          className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-white"
+                        >
+                          View schedule lane
+                          <ArrowRight className="h-3.5 w-3.5 opacity-70" aria-hidden />
+                        </button>
+                      </>
+                    ) : (
+                      <p className="mt-4 text-sm leading-snug text-slate-600">
+                        No jobs scheduled yet. Ready-to-move jobs will appear here once scheduled.
+                      </p>
+                    )}
+                  </aside>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                  <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm lg:col-span-2">
+                    <h2 className="text-base font-semibold text-slate-900">Recent Movement</h2>
+                    <p className="mt-0.5 text-xs text-slate-500">Latest job status changes and saves</p>
+                    <ul className="mt-3 divide-y divide-slate-100">
+                      {recentMovementItems.length === 0 ? (
+                        <li className="py-4 text-sm text-slate-500">No recent movement yet.</li>
+                      ) : (
+                        recentMovementItems.map((job) => {
+                          const when =
+                            job.lastSavedAt ?? job.approvedAt ?? job.sentAt ?? job.createdAt;
+                          const whenLabel = when
+                            ? new Date(when).toLocaleDateString(undefined, { month: "short", day: "numeric" })
+                            : "—";
+                          return (
+                            <li key={job.id} className="flex items-center justify-between gap-3 py-2.5">
+                              <div className="min-w-0">
+                                <div className="truncate text-sm font-medium text-slate-800">{getEstimateDisplayName(job)}</div>
+                                <div className="text-xs text-slate-500">{getRecentMovementLabel(job)}</div>
+                              </div>
+                              <span className="shrink-0 text-xs text-slate-400">{whenLabel}</span>
+                            </li>
+                          );
+                        })
+                      )}
+                    </ul>
+                  </section>
+
+                  <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <h2 className="text-base font-semibold text-slate-900">Quick Actions</h2>
+                    <p className="mt-0.5 text-xs text-slate-500">Jump into common workflows</p>
+                    <div className="mt-3 grid grid-cols-1 gap-2">
+                      {[
+                        { label: "New Job", href: "/tools/roofing", desc: "Start intake" },
+                        { label: "Open Estimates", href: "/tools/roofing", desc: "Drafts & proposals" },
+                        { label: "Customers", href: "/admin/customers", desc: "Customer records" },
+                        { label: "Price Book", href: "/admin/price-book", desc: "Service items" },
+                      ].map((item) => (
+                        <Link
+                          key={item.label}
+                          href={item.href}
+                          className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50/80 px-3 py-2.5 text-sm font-semibold text-slate-800 transition hover:border-slate-200 hover:bg-white"
+                        >
+                          <span>{item.label}</span>
+                          <span className="text-[10px] font-medium text-slate-500">{item.desc}</span>
+                        </Link>
+                      ))}
+                    </div>
+                  </section>
+                </div>
+              </div>
+            )}
+
+            {statusFilter !== "all" && (
+              <div className="mx-auto max-w-[1800px] space-y-4">
+                <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+                  <button
+                    type="button"
+                    onClick={() => setStatusFilter("all")}
+                    className="text-sm font-semibold text-blue-600 hover:text-blue-700"
+                  >
+                    ← Dashboard
+                  </button>
+                  <span className="h-4 w-px bg-slate-200" aria-hidden />
+                  <input
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Search jobs…"
+                    className="h-8 min-w-[200px] flex-1 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none focus:border-blue-300"
+                  />
+                </div>
+        <div className="relative overflow-hidden rounded-[22px] border border-slate-300/40 bg-gradient-to-br from-[#061120]/82 via-[#071426]/72 to-[#06101d]/70 shadow-lg ring-1 ring-inset ring-white/[0.025] text-white">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_4%_8%,rgba(6,182,212,0.13),transparent_30%),radial-gradient(circle_at_86%_0%,rgba(59,130,246,0.10),transparent_34%)]" />
           <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-300/22 to-transparent" aria-hidden />
           <div className="relative px-4 py-3.5 sm:px-5 lg:px-5 lg:py-3.5">
             {(() => {
-              const pageTitle: Record<typeof statusFilter, string> = {
-                all: "FieldDive Command Center",
+              type LaneFilter = Exclude<typeof statusFilter, "all">;
+              const pageTitle: Record<LaneFilter, string> = {
                 estimate: "Draft Estimates",
                 sent_pending: "Sent Proposals",
                 approved: "Approved Jobs",
@@ -4208,8 +4644,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                 in_progress: "Crew On Site",
                 paid: "Completed / Closed Jobs",
               };
-              const pageSubtitle: Record<typeof statusFilter, string> = {
-                all: "AI prepared the work. Review what matters and move jobs forward.",
+              const pageSubtitle: Record<LaneFilter, string> = {
                 estimate: "Draft estimates not yet sent — review and send when ready.",
                 sent_pending: "Sent proposals awaiting customer response — FieldDive has flagged follow-up needs.",
                 approved: "Approved jobs ready for next steps — deposit path prepared.",
@@ -4218,114 +4653,20 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                 in_progress: "Crew on site today — monitor and confirm completion.",
                 paid: "Finished and closed work — reviewed by FieldDive.",
               };
-              const pulseCards = [
-                { tone: "rose", icon: PhoneCall, label: "Follow-ups", value: sentDueJobs.length, sub: "Needs review" },
-                { tone: "sky", icon: CreditCard, label: "Deposits", value: approvedDueJobs.length, sub: "Needs approval" },
-                { tone: "emerald", icon: CalendarCheck2, label: "Schedule ready", value: depositReadyJobs.length, sub: "Ready to confirm" },
-                { tone: "amber", icon: Factory, label: "Production this week", value: jobsThisWeek.length, sub: "This week" },
-              ];
-              const toneMap: Record<string, { dot: string; text: string; bg: string; border: string; iconBg: string; iconText: string }> = {
-                rose: {
-                  dot: "bg-rose-400 shadow-[0_0_10px_rgba(251,113,133,0.72)]",
-                  text: "text-rose-50",
-                  bg: "from-rose-500/[0.14]",
-                  border: "border-rose-300/18",
-                  iconBg: "bg-rose-500/13",
-                  iconText: "text-rose-200/82",
-                },
-                sky: {
-                  dot: "bg-sky-400 shadow-[0_0_10px_rgba(56,189,248,0.72)]",
-                  text: "text-sky-50",
-                  bg: "from-sky-500/[0.14]",
-                  border: "border-sky-300/18",
-                  iconBg: "bg-sky-500/13",
-                  iconText: "text-sky-200/82",
-                },
-                emerald: {
-                  dot: "bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.72)]",
-                  text: "text-emerald-50",
-                  bg: "from-emerald-500/[0.14]",
-                  border: "border-emerald-300/18",
-                  iconBg: "bg-emerald-500/13",
-                  iconText: "text-emerald-200/82",
-                },
-                amber: {
-                  dot: "bg-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.72)]",
-                  text: "text-amber-50",
-                  bg: "from-amber-500/[0.14]",
-                  border: "border-amber-300/18",
-                  iconBg: "bg-amber-500/13",
-                  iconText: "text-amber-200/82",
-                },
-              };
               return (
                 <>
-                  <div className="grid gap-4 lg:grid-cols-[minmax(0,500px)_minmax(0,1fr)] lg:items-center">
-                    <div className="min-w-0">
-                      <div className="inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.26em] text-cyan-300/78">
-                        <Sparkles className="h-3.5 w-3.5 text-cyan-300" aria-hidden />
-                        {statusFilter === "all" ? "AI Operating Hub" : "Pipeline Lane"}
-                      </div>
-                      <h1 className="mt-2 text-[26px] font-semibold tracking-[-0.035em] text-white sm:text-[32px]">
-                        {pageTitle[statusFilter]}
-                      </h1>
-                      <p className="mt-1 max-w-xl text-sm leading-snug text-white/55">
-                        {pageSubtitle[statusFilter]}
-                      </p>
+                  <div className="min-w-0">
+                    <div className="inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.26em] text-cyan-300/78">
+                      <Sparkles className="h-3.5 w-3.5 text-cyan-300" aria-hidden />
+                      Pipeline Lane
                     </div>
-
-                    {hydrated && statusFilter === "all" && (
-                      <div className="grid grid-cols-2 gap-2.5 xl:grid-cols-4">
-                        {pulseCards.map(({ tone, icon: Icon, label, value, sub }) => {
-                          const t = toneMap[tone];
-                          return (
-                            <div
-                              key={label}
-                              className={`relative min-h-[78px] overflow-hidden rounded-2xl border ${t.border} bg-gradient-to-br ${t.bg} via-white/[0.018] to-white/[0.012] px-4 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]`}
-                            >
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="min-w-0">
-                                  <div className="flex items-center gap-2">
-                                    <span className={`h-1.5 w-1.5 rounded-full ${t.dot}`} aria-hidden />
-                                    <span className="truncate text-[10px] font-semibold uppercase tracking-[0.20em] text-white/52">{label}</span>
-                                  </div>
-                                  <div className={`mt-1 text-[23px] font-semibold tabular-nums leading-none ${t.text}`}>{value}</div>
-                                  <div className="mt-1 text-[11px] leading-none text-white/44">{sub}</div>
-                                </div>
-                                <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${t.iconBg}`}>
-                                  <Icon className={`h-4 w-4 ${t.iconText}`} aria-hidden />
-                                </span>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
+                    <h1 className="mt-2 text-[26px] font-semibold tracking-[-0.035em] text-white sm:text-[32px]">
+                      {pageTitle[statusFilter]}
+                    </h1>
+                    <p className="mt-1 max-w-xl text-sm leading-snug text-white/55">
+                      {pageSubtitle[statusFilter]}
+                    </p>
                   </div>
-
-                  {hydrated && statusFilter === "all" && nextActionText && (
-                    <div className="mt-3 overflow-hidden rounded-2xl border border-cyan-300/[0.14] bg-gradient-to-r from-cyan-500/[0.12] via-sky-500/[0.045] to-blue-600/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
-                      <div className="flex flex-col gap-3 px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="flex min-w-0 items-center gap-3">
-                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-cyan-300/22 bg-cyan-400/10 text-cyan-200 shadow-[0_0_18px_rgba(34,211,238,0.16)]">
-                            <ArrowRight className="h-4 w-4" aria-hidden />
-                          </div>
-                          <div className="min-w-0">
-                            <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-cyan-300/78">Prepared next action</div>
-                            <div className="mt-0.5 text-[15px] font-semibold leading-snug text-white/88">{nextActionText}</div>
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setStatusFilter("deposit_paid")}
-                          className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-white/[0.10] bg-slate-950/25 px-3.5 py-2 text-xs font-semibold text-white/82 transition hover:border-cyan-300/24 hover:bg-white/[0.06] hover:text-white"
-                        >
-                          Open schedule
-                          <ArrowRight className="h-3.5 w-3.5" aria-hidden />
-                        </button>
-                      </div>
-                    </div>
-                  )}
 
                   {statusFilter === "scheduled" && (
                     <div className="mt-3 text-xs text-white/45">
@@ -4399,8 +4740,8 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
             })()}
           </div>
         </div>
-        {/* Pipeline Lane Overview bar — shown for filtered lanes (not "all", since all has stats in hero) */}
-        {hydrated && statusFilter !== "all" && (
+        {/* Pipeline Lane Overview bar — filtered lanes */}
+        {hydrated && (
           <div className="flex items-center gap-4 rounded-2xl border border-white/[0.07] bg-white/[0.03] px-5 py-3.5">
             <div className="min-w-0 flex-1">
               <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/35">Jobs in this lane</div>
@@ -4441,17 +4782,13 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
         )}
 
         {!hydrated && (
-          <div className="text-center text-sm text-white/60 py-8">
-            Loading saved estimates…
-          </div>
+          <div className="py-8 text-center text-sm text-white/60">Loading saved estimates…</div>
         )}
         {hydrated && estimates.length === 0 && (
-          <div className="text-center text-sm text-white/60">
-            No saved estimates yet.
-          </div>
+          <div className="text-center text-sm text-white/60">No saved estimates yet.</div>
         )}
 
-        {/* ── Command Deck — single composed surface (Queue + Assistant) ── */}
+        {/* ── Command Deck — single composed surface (Queue + Assistant) — filtered lanes only ── */}
         {hydrated && (() => {
           const lanes = [
             {
@@ -4798,7 +5135,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
           );
         })()}
 
-        {/* ── Business Snapshot — slim financial pulse strip ── */}
+        {/* ── Business Snapshot — slim financial pulse strip — filtered lanes only ── */}
         {hydrated && (
           <section className="relative overflow-hidden rounded-2xl border border-white/[0.07] bg-gradient-to-r from-[#070e1a] via-[#0a1426] to-[#070e1a] shadow-[0_12px_30px_rgba(0,0,0,0.32)] ring-1 ring-inset ring-white/[0.04]">
             <div className="pointer-events-none absolute inset-y-0 left-0 w-[3px] bg-gradient-to-b from-emerald-400/60 via-cyan-400/30 to-transparent" aria-hidden />
@@ -5032,7 +5369,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
               </div>
             );
           })()}
-          {hydrated && statusFilter !== "scheduled" && statusFilter === "all" && (() => {
+          {false && hydrated && statusFilter !== "scheduled" && statusFilter === "all" && (() => {
             const getJobsForStage = (stageKey: string) => {
               return searchFiltered.filter((e) => {
                 const raw = String(e.status || "").toLowerCase();
@@ -5303,7 +5640,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
             );
           })()}
 
-          {hydrated && statusFilter !== "scheduled" && statusFilter !== "all" && (
+          {hydrated && statusFilter !== "scheduled" && (
             <div className="flex items-center gap-4 pb-1">
               <div className="min-w-0">
                 <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-white/30">Jobs in this lane</div>
@@ -5312,7 +5649,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
               <div className="h-px flex-1 bg-white/[0.06]" />
             </div>
           )}
-          {hydrated && statusFilter !== "scheduled" && statusFilter !== "all" && filtered.map((e) => (
+          {hydrated && statusFilter !== "scheduled" && filtered.map((e) => (
             <SavedEstimateCard
               key={e.id}
               estimate={e}
@@ -5408,9 +5745,10 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
             />
           ))}
         </div>
-        </div>{/* /content area */}
-        </div>{/* /max-[1800px] */}
-      </div>{/* /px-4 frame */}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Global scheduling modal */}
