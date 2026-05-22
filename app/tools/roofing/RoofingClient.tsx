@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation"
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { motion, useSpring, useMotionValueEvent } from "framer-motion";
@@ -39,8 +38,6 @@ import {
   Send,
   MoreHorizontal,
   Truck,
-  Search,
-  Bell,
   Settings,
 } from "lucide-react";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
@@ -66,8 +63,8 @@ import { sendEstimateEmailWithPdf } from "@/app/lib/sendEstimateClient";
 import { getFavorite, setFavorite, setLocked, appendFeedback, getTierFeedbackBias, type TierLabel } from "@/app/lib/aiWordingPrefs";
 import RoofingTabs from "@/app/tools/roofing/RoofingTabs";
 import RoofingClientV2 from "../roofing-v2/RoofingClientV2";
+import FieldDiveAppShell from "@/app/tools/roofing/FieldDiveAppShell";
 import { loadCompanyVoiceProfile, saveCompanyVoiceProfile, type VoiceTone } from "@/app/lib/companyVoiceProfile";
-import { SignOutButton } from "@/app/components/auth/SignOutButton";
 
 function safeUUID() {
   try {
@@ -3618,28 +3615,7 @@ Thanks,`;
   const jobReadinessReadyCount = jobReadinessItems.filter((x) => x.ready).length;
 
   return (
-    <main
-      className="min-h-screen relative pb-20"
-      style={{
-        backgroundColor: "#0b1120",
-        backgroundImage: `
-          radial-gradient(ellipse at 60% 0%, rgba(34,211,238,0.06) 0%, transparent 55%),
-          radial-gradient(ellipse at 0% 80%, rgba(59,130,246,0.05) 0%, transparent 50%),
-          repeating-linear-gradient(0deg, transparent 0px, transparent 3px, rgba(255,255,255,0.0035) 3px, rgba(255,255,255,0.0035) 4px),
-          repeating-linear-gradient(90deg, transparent 0px, transparent 3px, rgba(255,255,255,0.0035) 3px, rgba(255,255,255,0.0035) 4px)
-        `,
-        backgroundSize: "100% 100%, 100% 100%, 72px 72px, 72px 72px",
-      }}
-    >
-      {/* Layer (a) accent: radial behind summary — smooth blend, no hard edge */}
-      <div
-        className="pointer-events-none fixed inset-0 overflow-hidden"
-        aria-hidden
-      >
-        <div className="absolute top-[40%] right-0 w-[90%] max-w-2xl h-[75%] bg-blue-600/[0.035] blur-[140px] rounded-full -translate-y-1/2" />
-        <div className="absolute top-0 left-0 w-full h-96 bg-slate-600/12 blur-[100px]" />
-      </div>
-
+    <>
       {toast !== null && (
         <motion.div
           role="status"
@@ -3647,16 +3623,16 @@ Thanks,`;
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, ease: "easeOut" }}
-          className="fixed top-4 right-4 z-50 flex items-center gap-3 rounded-2xl border border-white/15 bg-slate-800/90 px-4 py-3 shadow-xl shadow-black/20 backdrop-blur-md"
+          className="fixed top-4 right-4 z-50 flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-lg"
         >
-          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400" aria-hidden>
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600" aria-hidden>
             ✓
           </span>
-          <span className="text-sm font-medium text-slate-100">{toast}</span>
+          <span className="text-sm font-medium text-slate-800">{toast}</span>
         </motion.div>
       )}
 
-      <div className="relative mx-auto w-full max-w-[1680px] px-0">
+      <FieldDiveAppShell activeNav="newJob">
         <button
           type="button"
           onClick={() => setShowV2Preview((v) => !v)}
@@ -3755,99 +3731,6 @@ Thanks,`;
           />
         ) : (
           <>
-        <div className="px-4 pt-6 pb-6 sm:px-6 sm:pt-7 lg:px-8">
-        <div className="mx-auto max-w-[1800px] overflow-hidden rounded-2xl border border-cyan-400/[0.14] bg-[#07111f]/96 shadow-[0_0_0_1px_rgba(255,255,255,0.035),0_28px_90px_-62px_rgba(34,211,238,0.55)]">
-          <motion.nav
-            initial={{ opacity: 0, y: -4 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-            className="flex min-h-[66px] items-stretch gap-0 border-b border-cyan-400/[0.12] bg-[#07111f]/96 shadow-[0_1px_0_rgba(255,255,255,0.045)] backdrop-blur-xl"
-            aria-label="FieldDive workspace"
-          >
-            {/* Logo block */}
-            <Link
-              href="/tools"
-              className="group flex shrink-0 items-center gap-3.5 border-r border-cyan-400/[0.13] px-6 py-3 transition hover:bg-white/[0.035]"
-            >
-              <div className="relative flex h-10 w-10 shrink-0 items-center justify-center" aria-hidden>
-                <span className="absolute left-0 top-0 h-3.5 w-7 rounded-[7px] bg-gradient-to-r from-sky-400 to-blue-500 shadow-[0_0_18px_rgba(56,189,248,0.70)]" />
-                <span className="absolute left-0 top-[13px] h-3.5 w-5.5 rounded-[7px] bg-gradient-to-r from-sky-500 to-blue-600 shadow-[0_0_14px_rgba(37,99,235,0.55)]" />
-                <span className="absolute left-0 top-[26px] h-3.5 w-3.5 rounded-[7px] bg-gradient-to-r from-sky-500 to-blue-600 shadow-[0_0_12px_rgba(37,99,235,0.45)]" />
-                <span className="absolute left-[18px] top-[13px] h-3.5 w-3.5 rounded-[7px] bg-gradient-to-r from-sky-400 to-cyan-400 shadow-[0_0_14px_rgba(34,211,238,0.55)]" />
-              </div>
-              <div className="hidden flex-col leading-none sm:flex">
-                <span className="text-[23px] font-extrabold tracking-[-0.045em] text-white">FieldDive</span>
-              </div>
-            </Link>
-
-            {/* Nav tabs */}
-            <div className="flex flex-1 items-center gap-0 px-4">
-              <Link
-                href="/tools/roofing"
-                className="relative flex min-h-[52px] items-center gap-3 rounded-t-xl border border-blue-300/45 border-b-blue-400/70 bg-gradient-to-b from-slate-800/82 via-blue-950/42 to-blue-700/28 px-6 text-[14px] font-bold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_18px_42px_-20px_rgba(59,130,246,0.95)]"
-              >
-                <span className="pointer-events-none absolute inset-x-0 bottom-[-1px] h-[3px] rounded-full bg-gradient-to-r from-transparent via-blue-400 to-transparent shadow-[0_0_16px_rgba(59,130,246,1)]" aria-hidden />
-                <ClipboardList className="h-5.5 w-5.5 shrink-0 text-blue-100 drop-shadow-[0_0_10px_rgba(147,197,253,0.65)]" aria-hidden />
-                New Job
-              </Link>
-              <span className="mx-3 hidden h-8 w-px bg-white/[0.10] lg:block" aria-hidden />
-              <Link
-                href="/tools/roofing/saved"
-                className="flex min-h-[52px] items-center gap-3 rounded-xl px-5 text-[14px] font-semibold text-white/62 transition hover:bg-white/[0.045] hover:text-white"
-              >
-                <ShieldCheck className="h-5.5 w-5.5 shrink-0 text-white/62" aria-hidden />
-                <span className="hidden xl:inline">Command Center</span>
-                <span className="xl:hidden">Cmd</span>
-              </Link>
-              <span className="mx-3 hidden h-8 w-px bg-white/[0.10] xl:block" aria-hidden />
-              <Link
-                href="/tools/roofing/ai"
-                className="flex min-h-[52px] items-center gap-3 rounded-xl px-5 text-[14px] font-semibold text-white/62 transition hover:bg-white/[0.045] hover:text-white"
-              >
-                <Package className="h-5.5 w-5.5 shrink-0 text-white/62" aria-hidden />
-                AI Library
-              </Link>
-              <span className="mx-3 hidden h-8 w-px bg-white/[0.10] xl:block" aria-hidden />
-              <Link
-                href="/tools/settings"
-                className="flex min-h-[52px] items-center gap-3 rounded-xl px-5 text-[14px] font-semibold text-white/62 transition hover:bg-white/[0.045] hover:text-white"
-              >
-                <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5" aria-hidden><path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                Settings
-              </Link>
-            </div>
-
-            {/* Right actions */}
-            <div className="flex shrink-0 items-center gap-3 border-l border-cyan-400/[0.12] px-5 py-2">
-              <div className="flex min-w-[230px] items-center gap-2 rounded-xl border border-white/[0.10] bg-white/[0.035] px-3.5 py-2.5 text-[12px] text-white/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
-                <Search className="h-4 w-4 shrink-0" aria-hidden />
-                <span className="hidden lg:inline text-white/40">Search jobs…</span>
-                <span className="hidden rounded border border-white/[0.10] bg-white/[0.04] px-1.5 py-0.5 text-[10px] font-semibold text-white/35 lg:inline">⌘K</span>
-              </div>
-              <button
-                type="button"
-                className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/[0.10] bg-white/[0.035] text-white/70 transition hover:bg-white/[0.06] hover:text-white"
-                aria-label="Notifications"
-              >
-                <Bell className="h-5 w-5" aria-hidden />
-                <span className="absolute right-1.5 top-1.5 h-[7px] w-[7px] rounded-full border-[1.5px] border-[#0d1117] bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,1)]" />
-              </button>
-              <div className="flex items-center gap-2.5 rounded-xl border border-white/[0.10] bg-white/[0.035] py-1.5 pl-1.5 pr-2.5 transition hover:bg-white/[0.055]">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-200/80 via-orange-300/50 to-slate-800 text-[11px] font-extrabold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.22),0_0_20px_-10px_rgba(251,191,36,0.90)]">
-                  MA
-                </div>
-                <div className="hidden flex-col leading-none xl:flex">
-                  <span className="text-[13px] font-bold text-white/92">Mike Anderson</span>
-                  <span className="mt-0.5 text-[10.5px] text-white/48">Anderson Roofing</span>
-                </div>
-                <ChevronDown className="hidden h-4 w-4 text-white/45 xl:block" aria-hidden />
-                <div className="ml-1 hidden opacity-55 transition hover:opacity-100 2xl:block">
-                  <SignOutButton />
-                </div>
-              </div>
-            </div>
-          </motion.nav>
-
           <header className="sr-only">
             <h1>New Roofing Job</h1>
           </header>
@@ -5852,11 +5735,9 @@ Thanks,`;
         </div>
         </div>
         </div>
-        </div>
-        </div>
           </>
         )}
-      </div>
-    </main>
+      </FieldDiveAppShell>
+    </>
   );
 }
