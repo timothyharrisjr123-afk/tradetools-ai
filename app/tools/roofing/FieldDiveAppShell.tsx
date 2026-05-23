@@ -1,10 +1,11 @@
 "use client";
 
-import type { ComponentType, ReactNode } from "react";
+import { useState, type ComponentType, type ReactNode } from "react";
 import Link from "next/link";
 import {
   Bell,
   Menu,
+  ChevronDown,
   LayoutDashboard,
   ClipboardList,
   Briefcase,
@@ -23,16 +24,43 @@ export type FieldDiveActiveNav = "dashboard" | "newJob";
 
 type NavIcon = ComponentType<{ className?: string }>;
 
+type NavSubItemVariant = "active" | "available" | "soon";
+
+type NavSubItem = {
+  id: string;
+  label: string;
+  href?: string;
+  variant: NavSubItemVariant;
+};
+
 type NavItem = {
   key: FieldDiveActiveNav | null;
   label: string;
   href: string;
   icon: NavIcon;
+  subItems?: NavSubItem[];
+  subItemsAriaLabel?: string;
+  /** Sub-item id that receives active styling when this module is current */
+  activeSubId?: string;
 };
+
+const NEW_JOB_SUB_ITEMS: NavSubItem[] = [
+  { id: "packet", label: "Job Packet", href: "/tools/roofing", variant: "active" },
+  { id: "manual", label: "Manual Estimate", href: "/tools/roofing", variant: "available" },
+  { id: "instant", label: "Instant Estimate", variant: "soon" },
+];
 
 const NAV_ITEMS: NavItem[] = [
   { key: "dashboard", label: "Dashboard", href: "/tools/roofing/saved", icon: LayoutDashboard },
-  { key: "newJob", label: "New Job", href: "/tools/roofing", icon: ClipboardList },
+  {
+    key: "newJob",
+    label: "New Job",
+    href: "/tools/roofing",
+    icon: ClipboardList,
+    subItems: NEW_JOB_SUB_ITEMS,
+    subItemsAriaLabel: "New job entry paths",
+    activeSubId: "packet",
+  },
   { key: null, label: "Jobs Pipeline", href: "/tools/roofing/saved", icon: Briefcase },
   { key: null, label: "Calendar", href: "#", icon: Calendar },
   { key: null, label: "Estimates", href: "/tools/roofing", icon: FileText },
@@ -43,6 +71,10 @@ const NAV_ITEMS: NavItem[] = [
   { key: null, label: "Reports", href: "#", icon: BarChart3 },
   { key: null, label: "Settings", href: "/tools/settings", icon: Settings },
 ];
+
+function navGroupKey(item: NavItem): string {
+  return item.key ?? item.label;
+}
 
 function FieldDiveLogoMark() {
   return (
@@ -55,12 +87,105 @@ function FieldDiveLogoMark() {
   );
 }
 
+function resolveSubItemVariant(sub: NavSubItem, activeSubId?: string): NavSubItemVariant {
+  if (sub.variant === "soon") return "soon";
+  if (activeSubId && sub.id === activeSubId) return "active";
+  return "available";
+}
+
+const SUB_ITEM_FOCUS =
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-200/90 focus-visible:ring-offset-1";
+
+function subItemClassName(variant: NavSubItemVariant): string {
+  switch (variant) {
+    case "active":
+      return `flex w-full items-center rounded-md px-2.5 py-2 text-[13px] font-semibold text-blue-700 bg-blue-50 ring-1 ring-inset ring-blue-200/80 transition-colors ${SUB_ITEM_FOCUS}`;
+    case "available":
+      return `flex w-full items-center rounded-md px-2.5 py-2 text-[13px] font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 ${SUB_ITEM_FOCUS}`;
+    case "soon":
+      return "flex w-full cursor-not-allowed items-center justify-between gap-2 rounded-md px-2.5 py-2 text-[13px] font-medium text-slate-400";
+  }
+}
+
+function parentNavClassName(moduleActive: boolean, isExpanded: boolean): string {
+  const base =
+    "flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-200/80 focus-visible:ring-offset-1";
+
+  if (moduleActive) {
+    // Open module group — readable but not the selected leaf row
+    return `${base} font-medium text-slate-700 hover:bg-slate-100/80`;
+  }
+  if (isExpanded) {
+    return `${base} font-medium text-slate-700 bg-slate-50/70 hover:bg-slate-100/80`;
+  }
+  return `${base} font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900`;
+}
+
+function NavSubLinks({
+  items,
+  ariaLabel,
+  activeSubId,
+}: {
+  items: NavSubItem[];
+  ariaLabel?: string;
+  activeSubId?: string;
+}) {
+  return (
+    <div
+      className="ml-2 mt-2 mb-2 space-y-1 border-l border-slate-200/90 pl-3"
+      role="group"
+      aria-label={ariaLabel}
+    >
+      {items.map((sub) => {
+        const displayVariant = resolveSubItemVariant(sub, activeSubId);
+
+        if (displayVariant === "soon") {
+          return (
+            <div
+              key={sub.id}
+              className={subItemClassName("soon")}
+              aria-disabled="true"
+              title="Instant Estimate — coming soon"
+            >
+              <span>{sub.label}</span>
+              <span className="shrink-0 rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium leading-none text-slate-400">
+                Soon
+              </span>
+            </div>
+          );
+        }
+
+        if (sub.href) {
+          return (
+            <Link
+              key={sub.id}
+              href={sub.href}
+              className={subItemClassName(displayVariant)}
+              aria-current={displayVariant === "active" ? "page" : undefined}
+            >
+              {sub.label}
+            </Link>
+          );
+        }
+
+        return (
+          <span key={sub.id} className={subItemClassName(displayVariant)}>
+            {sub.label}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
 type FieldDiveAppShellProps = {
   activeNav: FieldDiveActiveNav;
   children: ReactNode;
 };
 
 export default function FieldDiveAppShell({ activeNav, children }: FieldDiveAppShellProps) {
+  const [groupExpandedOverrides, setGroupExpandedOverrides] = useState<Record<string, boolean>>({});
+
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
       <div className="flex min-h-screen">
@@ -73,25 +198,79 @@ export default function FieldDiveAppShell({ activeNav, children }: FieldDiveAppS
             <span className="text-lg font-bold tracking-tight text-slate-900">FieldDive</span>
           </Link>
           <nav className="flex-1 space-y-0.5 px-2 py-3">
-            {NAV_ITEMS.map(({ key, label, href, icon: Icon }) => {
-              const active = key !== null && key === activeNav;
-              const cls = active
+            {NAV_ITEMS.map((item) => {
+              const { key, label, href, icon: Icon, subItems, subItemsAriaLabel, activeSubId } = item;
+              const groupKey = navGroupKey(item);
+              const moduleActive = key !== null && key === activeNav;
+              const hasSubItems = Boolean(subItems?.length);
+              const defaultExpanded = moduleActive;
+              const isExpanded = groupExpandedOverrides[groupKey] ?? defaultExpanded;
+              const showSubItems = hasSubItems && isExpanded;
+
+              if (hasSubItems) {
+                return (
+                  <div key={label} className="py-0.5">
+                    <button
+                      type="button"
+                      className={parentNavClassName(moduleActive, isExpanded)}
+                      aria-expanded={isExpanded}
+                      aria-controls={`nav-group-${groupKey}`}
+                      onClick={() => {
+                        setGroupExpandedOverrides((prev) => ({
+                          ...prev,
+                          [groupKey]: !(prev[groupKey] ?? defaultExpanded),
+                        }));
+                      }}
+                    >
+                      <Icon
+                        className={`h-4 w-4 shrink-0 ${
+                          moduleActive ? "text-blue-600" : isExpanded ? "text-slate-500" : "text-slate-400"
+                        }`}
+                        aria-hidden
+                      />
+                      <span className="min-w-0 flex-1 text-left">{label}</span>
+                      <ChevronDown
+                        className={`h-3.5 w-3.5 shrink-0 transition-transform duration-200 ${
+                          moduleActive ? "text-blue-500/70" : "text-slate-400"
+                        } ${isExpanded ? "rotate-180" : ""}`}
+                        aria-hidden
+                      />
+                    </button>
+                    {showSubItems ? (
+                      <div id={`nav-group-${groupKey}`}>
+                        <NavSubLinks
+                          items={subItems!}
+                          ariaLabel={subItemsAriaLabel}
+                          activeSubId={moduleActive ? activeSubId : undefined}
+                        />
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              }
+
+              const cls = moduleActive
                 ? "flex items-center gap-2.5 rounded-lg bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700 ring-1 ring-inset ring-blue-100"
                 : "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900";
               const inner = (
                 <>
-                  <Icon className={`h-4 w-4 shrink-0 ${active ? "text-blue-600" : "text-slate-400"}`} aria-hidden />
+                  <Icon className={`h-4 w-4 shrink-0 ${moduleActive ? "text-blue-600" : "text-slate-400"}`} aria-hidden />
                   {label}
                 </>
               );
-              return href === "#" ? (
-                <a key={label} href="#" className={cls} onClick={(e) => e.preventDefault()}>
-                  {inner}
-                </a>
-              ) : (
-                <Link key={label} href={href} className={cls}>
-                  {inner}
-                </Link>
+
+              return (
+                <div key={label}>
+                  {href === "#" ? (
+                    <a href="#" className={cls} onClick={(e) => e.preventDefault()}>
+                      {inner}
+                    </a>
+                  ) : (
+                    <Link href={href} className={cls}>
+                      {inner}
+                    </Link>
+                  )}
+                </div>
               );
             })}
           </nav>

@@ -4,7 +4,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  Bell,
   ChevronDown,
   Sparkles,
   PhoneCall,
@@ -12,19 +11,9 @@ import {
   CalendarCheck2,
   Factory,
   ArrowRight,
-  Menu,
-  LayoutDashboard,
-  Briefcase,
   Calendar,
-  FileText,
-  Receipt,
-  Users,
-  BookOpen,
-  Bot,
-  BarChart3,
-  Settings,
 } from "lucide-react";
-import { SignOutButton } from "@/app/components/auth/SignOutButton";
+import FieldDiveAppShell from "../FieldDiveAppShell";
 import {
   getSavedEstimates,
   getSavedEstimateById,
@@ -4187,19 +4176,6 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
     })
     .slice(0, 6);
 
-  const sidebarNavItems: { label: string; href: string; icon: React.ComponentType<{ className?: string }>; active?: boolean }[] = [
-    { label: "Dashboard", href: "/tools/roofing/saved", icon: LayoutDashboard, active: true },
-    { label: "Jobs Pipeline", href: "/tools/roofing/saved", icon: Briefcase },
-    { label: "Calendar", href: "#", icon: Calendar },
-    { label: "Estimates", href: "/tools/roofing", icon: FileText },
-    { label: "Invoices", href: "#", icon: Receipt },
-    { label: "Customers", href: "#", icon: Users },
-    { label: "Price Book", href: "#", icon: BookOpen },
-    { label: "AI Conductor", href: "/tools/roofing/ai", icon: Bot },
-    { label: "Reports", href: "#", icon: BarChart3 },
-    { label: "Settings", href: "/tools/settings", icon: Settings },
-  ];
-
   const dashboardDeckLanes = [
     { key: "estimate", label: "New / Draft", filter: "estimate" as const, tint: "bg-sky-50 border-sky-100", text: "text-sky-700", countColor: "text-sky-600" },
     { key: "leads", label: "Sent / Waiting", filter: "sent_pending" as const, tint: "bg-rose-50 border-rose-100", text: "text-rose-700", countColor: "text-rose-600" },
@@ -4239,17 +4215,8 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
     },
   ];
 
-  const FieldDiveLogoMark = () => (
-    <div className="relative flex h-9 w-9 shrink-0 items-center justify-center" aria-hidden>
-      <span className="absolute left-0 top-0 h-3 w-6 rounded-[6px] bg-gradient-to-r from-sky-400 to-blue-500" />
-      <span className="absolute left-0 top-[11px] h-3 w-4 rounded-[6px] bg-gradient-to-r from-sky-500 to-blue-600" />
-      <span className="absolute left-0 top-[22px] h-3 w-3 rounded-[6px] bg-gradient-to-r from-sky-500 to-blue-600" />
-      <span className="absolute left-[15px] top-[11px] h-3 w-3 rounded-[6px] bg-gradient-to-r from-sky-400 to-cyan-400" />
-    </div>
-  );
-
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-900">
+    <>
       {toast !== null && (
         <div
           role="status"
@@ -4269,82 +4236,8 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
         </div>
       )}
 
-      <div className="flex min-h-screen">
-        <aside
-          className="hidden w-[220px] shrink-0 flex-col border-r border-slate-200 bg-white lg:flex"
-          aria-label="FieldDive dashboard"
-        >
-          <Link href="/tools" className="flex items-center gap-2.5 border-b border-slate-100 px-4 py-4">
-            <FieldDiveLogoMark />
-            <span className="text-lg font-bold tracking-tight text-slate-900">FieldDive</span>
-          </Link>
-          <nav className="flex-1 space-y-0.5 px-2 py-3">
-            {sidebarNavItems.map(({ label, href, icon: Icon, active }) => {
-              const cls = active
-                ? "flex items-center gap-2.5 rounded-lg bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700 ring-1 ring-inset ring-blue-100"
-                : "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900";
-              const inner = (
-                <>
-                  <Icon className={`h-4 w-4 shrink-0 ${active ? "text-blue-600" : "text-slate-400"}`} aria-hidden />
-                  {label}
-                </>
-              );
-              return href === "#" ? (
-                <a key={label} href="#" className={cls} onClick={(e) => e.preventDefault()}>
-                  {inner}
-                </a>
-              ) : (
-                <Link key={label} href={href} className={cls}>
-                  {inner}
-                </Link>
-              );
-            })}
-          </nav>
-          <div className="mt-auto border-t border-slate-100 p-3">
-            <div className="flex items-center gap-2.5 rounded-lg border border-slate-100 bg-slate-50 px-2.5 py-2">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-200 to-orange-300 text-[10px] font-bold text-white">
-                MA
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-xs font-semibold text-slate-800">Mike Anderson</div>
-                <div className="truncate text-[10px] text-slate-500">Anderson Roofing</div>
-              </div>
-            </div>
-          </div>
-        </aside>
-
-        <div className="flex min-w-0 flex-1 flex-col">
-          <header className="flex h-14 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 sm:px-6">
-            <button
-              type="button"
-              className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition hover:bg-slate-50 lg:hidden"
-              aria-label="Menu"
-            >
-              <Menu className="h-5 w-5" aria-hidden />
-            </button>
-            <div className="hidden flex-1 lg:block" />
-            <div className="flex items-center gap-2 sm:gap-3">
-              <button
-                type="button"
-                className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition hover:bg-slate-50"
-                aria-label="Notifications"
-              >
-                <Bell className="h-4 w-4" aria-hidden />
-                <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-blue-500" />
-              </button>
-              <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white py-1 pl-1 pr-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-amber-200 to-orange-300 text-[10px] font-bold text-white">
-                  MA
-                </div>
-                <span className="hidden text-xs font-semibold text-slate-700 sm:inline">Mike Anderson</span>
-                <div className="hidden sm:block">
-                  <SignOutButton />
-                </div>
-              </div>
-            </div>
-          </header>
-
-          <div className={`flex-1 overflow-auto p-4 sm:p-6 ${statusFilter !== "all" ? "bg-slate-100" : ""}`}>
+      <FieldDiveAppShell activeNav="dashboard">
+          <div className={statusFilter !== "all" ? "bg-slate-100" : ""}>
             {statusFilter === "all" && (
               <div className="sr-only" aria-hidden>
                 <RevenueSummary estimates={searchFiltered} onMetrics={setRevenueMetrics} />
@@ -5748,8 +5641,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
               </div>
             )}
           </div>
-        </div>
-      </div>
+      </FieldDiveAppShell>
 
       {/* Global scheduling modal */}
       {schedulingForId && (() => {
@@ -6462,6 +6354,6 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
           </div>
         </div>
       ) : null}
-    </main>
+    </>
   );
 }
