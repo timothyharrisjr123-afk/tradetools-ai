@@ -21,6 +21,7 @@ import {
 import { SignOutButton } from "@/app/components/auth/SignOutButton";
 
 export type FieldDiveActiveNav = "dashboard" | "newJob";
+export type FieldDiveActiveSubNav = "packet" | "manual" | "instant";
 
 type NavIcon = ComponentType<{ className?: string }>;
 
@@ -45,8 +46,8 @@ type NavItem = {
 };
 
 const NEW_JOB_SUB_ITEMS: NavSubItem[] = [
-  { id: "packet", label: "Job Packet", href: "/tools/roofing", variant: "active" },
-  { id: "manual", label: "Manual Estimate", href: "/tools/roofing", variant: "available" },
+  { id: "packet", label: "Job Packet", href: "/tools/roofing?entry=packet", variant: "active" },
+  { id: "manual", label: "Manual Estimate", href: "/tools/roofing?entry=manual", variant: "available" },
   { id: "instant", label: "Instant Estimate", variant: "soon" },
 ];
 
@@ -180,10 +181,11 @@ function NavSubLinks({
 
 type FieldDiveAppShellProps = {
   activeNav: FieldDiveActiveNav;
+  activeSubId?: FieldDiveActiveSubNav;
   children: ReactNode;
 };
 
-export default function FieldDiveAppShell({ activeNav, children }: FieldDiveAppShellProps) {
+export default function FieldDiveAppShell({ activeNav, activeSubId, children }: FieldDiveAppShellProps) {
   const [groupExpandedOverrides, setGroupExpandedOverrides] = useState<Record<string, boolean>>({});
 
   return (
@@ -199,7 +201,7 @@ export default function FieldDiveAppShell({ activeNav, children }: FieldDiveAppS
           </Link>
           <nav className="flex-1 space-y-0.5 px-2 py-3">
             {NAV_ITEMS.map((item) => {
-              const { key, label, href, icon: Icon, subItems, subItemsAriaLabel, activeSubId } = item;
+              const { key, label, href, icon: Icon, subItems, subItemsAriaLabel, activeSubId: defaultActiveSubId } = item;
               const groupKey = navGroupKey(item);
               const moduleActive = key !== null && key === activeNav;
               const hasSubItems = Boolean(subItems?.length);
@@ -241,7 +243,7 @@ export default function FieldDiveAppShell({ activeNav, children }: FieldDiveAppS
                         <NavSubLinks
                           items={subItems!}
                           ariaLabel={subItemsAriaLabel}
-                          activeSubId={moduleActive ? activeSubId : undefined}
+                          activeSubId={moduleActive ? (activeSubId ?? defaultActiveSubId) : undefined}
                         />
                       </div>
                     ) : null}

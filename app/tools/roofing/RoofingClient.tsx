@@ -637,6 +637,14 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const loadSavedId = searchParams.get("loadSaved");
+  const entryRaw = searchParams.get("entry");
+  const entryMode: "packet" | "manual" | "instant" = loadSavedId
+    ? "manual"
+    : entryRaw === "manual"
+      ? "manual"
+      : entryRaw === "instant"
+        ? "instant"
+        : "packet";
   const [zipPresets, setZipPresets] = useState<ZipPresetsMap | null>(null);
   const [hasMounted, setHasMounted] = useState(false);
   const [restoreTick, setRestoreTick] = useState(0);
@@ -3614,6 +3622,406 @@ Thanks,`;
   ];
   const jobReadinessReadyCount = jobReadinessItems.filter((x) => x.ready).length;
 
+
+  function renderJobPacketWorkbench() {
+    return (
+      <div
+        id="customer-job-section"
+        className="rounded-2xl border border-slate-200 bg-white p-3 shadow-[0_1px_0_rgba(15,23,42,0.04),0_12px_40px_-24px_rgba(15,23,42,0.18)] sm:p-4"
+      >
+                    {/* Header */}
+                    <div className="flex flex-wrap items-center gap-3 border-b border-slate-100 pb-3">
+                      <span
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-[12px] font-bold tabular-nums text-slate-700 shadow-inner"
+                        aria-hidden
+                      >
+                        1
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <h2 className="text-[15px] font-bold tracking-tight text-slate-900 sm:text-[17px]">Job Packet</h2>
+                        <p className="mt-0.5 text-[12px] leading-snug text-slate-600">
+                          Capture customer and property basics before estimating so scope and pricing stay consistent.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Capture method */}
+                    <div className="mt-4 flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        aria-current="step"
+                        className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[12px] font-semibold text-emerald-900 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]"
+                      >
+                        <ClipboardList className="h-3.5 w-3.5 text-emerald-700" aria-hidden />
+                        Manual entry
+                      </button>
+                      <button
+                        type="button"
+                        disabled
+                        aria-label="Photos capture (coming soon)"
+                        className="inline-flex cursor-not-allowed items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-[12px] font-medium text-slate-400 shadow-inner"
+                      >
+                        <ImageIcon className="h-3.5 w-3.5 text-slate-400" aria-hidden />
+                        Photos <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Soon</span>
+                      </button>
+                      <button
+                        type="button"
+                        disabled
+                        aria-label="Voice capture (coming soon)"
+                        className="inline-flex cursor-not-allowed items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-[12px] font-medium text-slate-400 shadow-inner"
+                      >
+                        <Mic className="h-3.5 w-3.5 text-slate-400" aria-hidden />
+                        Voice <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Soon</span>
+                      </button>
+                      <button
+                        type="button"
+                        disabled
+                        aria-label="Customer message capture (coming soon)"
+                        className="inline-flex cursor-not-allowed items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-[12px] font-medium text-slate-400 shadow-inner"
+                      >
+                        <MessageCircle className="h-3.5 w-3.5 text-slate-400" aria-hidden />
+                        Customer message <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Soon</span>
+                      </button>
+                    </div>
+
+                    {/* Main grid: form column + readiness rail */}
+                    <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(230px,280px)] lg:gap-5">
+                      <div className="space-y-4">
+                        {/* Customer */}
+                        <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                              <User className="h-3.5 w-3.5 text-slate-500" aria-hidden />
+                              Customer
+                            </div>
+                            {(customerName || customerEmail || customerPhone).trim() ? (
+                              <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-[1px] text-[9px] font-semibold uppercase tracking-[0.11em] text-emerald-800">
+                                Active
+                              </span>
+                            ) : (
+                              <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-[1px] text-[9px] font-semibold uppercase tracking-[0.11em] text-amber-800">
+                                Needed
+                              </span>
+                            )}
+                          </div>
+                          <p className="mt-1 text-[10.5px] leading-snug text-slate-500">Who receives the proposal and follow-ups.</p>
+                          <div className="mt-2 grid gap-2">
+                            <input
+                              id="customer-name"
+                              name="customer_name_field"
+                              type="text"
+                              value={customerName}
+                              onChange={(e) => setCustomerName(e.target.value)}
+                              placeholder="Customer name"
+                              autoComplete="off"
+                              autoCorrect="off"
+                              autoCapitalize="off"
+                              spellCheck={false}
+                              className="h-8.5 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12.5px] font-medium text-slate-900 placeholder:text-slate-400 outline-none shadow-sm transition focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
+                            />
+                            <input
+                              id="customer-email"
+                              name="customer_email_field"
+                              type="email"
+                              inputMode="email"
+                              value={customerEmail}
+                              onChange={(e) => {
+                                setCustomerEmail(e.target.value);
+                                setSendError("");
+                              }}
+                              placeholder="Email address"
+                              autoComplete="new-password"
+                              autoCorrect="off"
+                              autoCapitalize="off"
+                              spellCheck={false}
+                              className={
+                                "h-8.5 w-full rounded-lg border bg-white px-2.5 text-[12.5px] font-medium text-slate-900 placeholder:text-slate-400 outline-none shadow-sm transition focus:border-sky-400 focus:ring-2 focus:ring-sky-200 " +
+                                (attentionField === "customerEmail" ? "border-sky-400 ring-2 ring-sky-200" : "border-slate-200")
+                              }
+                            />
+                            <input
+                              id="customer-phone"
+                              name="customer_phone_field"
+                              type="tel"
+                              inputMode="tel"
+                              value={customerPhone}
+                              onChange={(e) => setCustomerPhone(e.target.value)}
+                              placeholder="Phone optional"
+                              autoComplete="off"
+                              autoCorrect="off"
+                              autoCapitalize="off"
+                              spellCheck={false}
+                              className="h-8.5 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12.5px] font-medium text-slate-900 placeholder:text-slate-400 outline-none shadow-sm transition focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Property */}
+                        <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                              <Home className="h-3.5 w-3.5 text-slate-500" aria-hidden />
+                              Property
+                            </div>
+                            {(jobAddress1 || "").trim() && (jobZip || "").trim().length === 5 ? (
+                              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-[1px] text-[9px] font-semibold uppercase tracking-[0.11em] text-emerald-800">
+                                <ShieldCheck className="h-2.5 w-2.5" aria-hidden />
+                                Ready
+                              </span>
+                            ) : (
+                              <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-[1px] text-[9px] font-semibold uppercase tracking-[0.11em] text-amber-800">
+                                Needed
+                              </span>
+                            )}
+                          </div>
+                          <p className="mt-1 text-[10.5px] leading-snug text-slate-500">Where the job is happening.</p>
+                          <div className="mt-2 grid gap-2">
+                            <input
+                              id="job-address"
+                              name="job_address1_field"
+                              type="text"
+                              value={jobAddress1}
+                              onChange={(e) => setJobAddress1(e.target.value)}
+                              onBlur={(e) => {
+                                const cleaned = e.target.value.replace(/\s+/g, " ").trim();
+                                if (cleaned !== jobAddress1) setJobAddress1(cleaned);
+                              }}
+                              placeholder="Street address"
+                              autoComplete="new-password"
+                              autoCorrect="off"
+                              autoCapitalize="off"
+                              spellCheck={false}
+                              className="h-8.5 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12.5px] font-medium text-slate-900 placeholder:text-slate-400 outline-none shadow-sm transition focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
+                            />
+                            <div className="grid grid-cols-[minmax(0,1fr)_5rem_5.75rem] gap-2">
+                              <input
+                                id="job-city"
+                                name="job_city_field"
+                                type="text"
+                                value={jobCity}
+                                onChange={(e) => setJobCity(e.target.value)}
+                                onBlur={(e) => {
+                                  const cleaned = e.target.value
+                                    .replace(/[^a-zA-Z\s.'-]/g, "")
+                                    .replace(/\s+/g, " ")
+                                    .trim();
+                                  if (cleaned !== jobCity) {
+                                    setJobCity(cleaned);
+                                  }
+                                }}
+                                placeholder="City"
+                                autoComplete="off"
+                                autoCorrect="off"
+                                autoCapitalize="words"
+                                spellCheck={false}
+                                className="h-8.5 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12.5px] font-medium text-slate-900 placeholder:text-slate-400 outline-none shadow-sm transition focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
+                              />
+                              <input
+                                id="job-state"
+                                name="job_state_field"
+                                type="text"
+                                value={jobState}
+                                onChange={(e) => setJobState(e.target.value)}
+                                onBlur={(e) => {
+                                  const cleaned = e.target.value
+                                    .replace(/[^a-zA-Z]/g, "")
+                                    .toUpperCase()
+                                    .trim();
+                                  if (cleaned !== jobState) setJobState(cleaned);
+                                }}
+                                placeholder="State"
+                                autoComplete="off"
+                                autoCorrect="off"
+                                autoCapitalize="characters"
+                                spellCheck={false}
+                                className="h-8.5 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12.5px] font-medium uppercase text-slate-900 placeholder:text-slate-400 outline-none shadow-sm transition focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
+                              />
+                              <input
+                                id="customer-job-zip"
+                                name="job_zip_field"
+                                type="text"
+                                inputMode="numeric"
+                                value={jobZip}
+                                onChange={(e) => setJobZip(sanitizeZipInput(e.target.value))}
+                                onBlur={() => {
+                                  const sanitized = sanitizeZipInput(jobZip);
+                                  if (sanitized !== jobZip) setJobZip(sanitized);
+                                  if (sanitized.length === 5) tryApplyZipPreset(sanitized);
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    const sanitized = sanitizeZipInput(jobZip);
+                                    if (sanitized !== jobZip) setJobZip(sanitized);
+                                    if (sanitized.length === 5) tryApplyZipPreset(sanitized);
+                                  }
+                                }}
+                                placeholder="ZIP"
+                                autoComplete="postal-code"
+                                autoCorrect="off"
+                                autoCapitalize="off"
+                                spellCheck={false}
+                                className="h-8.5 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12.5px] font-medium text-slate-900 placeholder:text-slate-400 outline-none shadow-sm transition focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
+                              />
+                            </div>
+                            <div className="min-h-[1rem]">
+                              {autofillFromZip && (
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="text-[10.5px] font-medium text-emerald-700">Auto-filled from ZIP defaults</span>
+                                  {preAutofillSnapshot != null && (
+                                    <button
+                                      type="button"
+                                      onClick={undoAutofill}
+                                      className="text-[10.5px] font-medium text-sky-700 underline underline-offset-2 hover:text-sky-800"
+                                    >
+                                      Undo
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                              {zipNoPresetMessage && jobZip.length === 5 && (
+                                <p className="text-[10.5px] text-slate-500">No ZIP defaults saved.</p>
+                              )}
+                              {jobZip.length === 5 && presetForCurrentZip != null && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setZipPresets((prev) => {
+                                      if (!prev) return prev;
+                                      const next = { ...prev };
+                                      delete next[jobZip];
+                                      if (typeof window !== "undefined")
+                                        localStorage.setItem(STORAGE_KEY_ZIP_PRESETS, JSON.stringify(next));
+                                      return next;
+                                    });
+                                    setZipClearedToast(true);
+                                    setTimeout(() => setZipClearedToast(false), 2500);
+                                    setAutofillFromZip(false);
+                                    setPreAutofillSnapshot(null);
+                                    setZipNoPresetMessage(true);
+                                  }}
+                                  className="text-[10.5px] font-medium text-slate-500 underline underline-offset-2 hover:text-slate-700"
+                                >
+                                  Clear ZIP defaults
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Job request / notes — placeholder */}
+                        <div className="rounded-xl border border-dashed border-slate-300 bg-white p-3.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-slate-500">Job request & notes</span>
+                            <span className="rounded-full bg-slate-100 px-2 py-[1px] text-[9px] font-semibold uppercase tracking-wide text-slate-400">
+                              Soon
+                            </span>
+                          </div>
+                          <textarea
+                            disabled
+                            readOnly
+                            rows={4}
+                            value=""
+                            placeholder="Paste the homeowner request, HOA notes, and access instructions here."
+                            aria-disabled="true"
+                            className="mt-2 w-full resize-none rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-2 text-[12px] leading-relaxed text-slate-400 placeholder:text-slate-400"
+                          />
+                        </div>
+
+                        {/* Photos / evidence stub */}
+                        <div className="rounded-xl border border-dashed border-slate-300 bg-gradient-to-br from-white to-slate-50 px-4 py-6 text-center">
+                          <div className="mx-auto inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 shadow-inner">
+                            <Camera className="h-5 w-5" aria-hidden />
+                          </div>
+                          <p className="mt-3 text-[12px] font-semibold text-slate-700">Photos & evidence</p>
+                          <p className="mx-auto mt-1 max-w-sm text-[11px] leading-snug text-slate-500">
+                            Attach site photos and damage docs to strengthen the estimate packet. Coming next.
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Readiness rail */}
+                      <aside className="h-fit rounded-xl border border-slate-200 bg-white p-3.5 shadow-sm lg:sticky lg:top-4">
+                        <div className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-slate-500">Packet readiness</div>
+                        <p className="mt-1 text-[11px] leading-snug text-slate-500">Everything here carries through to estimating.</p>
+                        <ul className="mt-3 space-y-2.5 border-t border-slate-100 pt-3">
+                          {[
+                            {
+                              id: "contact",
+                              label: "Customer contact",
+                              hint: "Name, email, or phone",
+                              ready: Boolean((customerName || customerEmail || customerPhone).trim()),
+                            },
+                            {
+                              id: "street",
+                              label: "Street address",
+                              hint: "Service location line 1",
+                              ready: !!(jobAddress1 || "").trim(),
+                            },
+                            {
+                              id: "zip",
+                              label: "ZIP code",
+                              hint: "Five digits for presets",
+                              ready: (jobZip || "").trim().length === 5,
+                            },
+                            {
+                              id: "citystate",
+                              label: "City & state",
+                              hint: "Refines routing & tax context",
+                              ready: !!(jobCity || "").trim() && !!(jobState || "").trim(),
+                            },
+                          ].map((row) => (
+                            <li key={row.id} className="flex gap-2.5">
+                              <span
+                                className={
+                                  "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] font-bold " +
+                                  (row.ready
+                                    ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+                                    : "border-slate-200 bg-slate-50 text-slate-400")
+                                }
+                                aria-hidden
+                              >
+                                {row.ready ? "✓" : ""}
+                              </span>
+                              <div className="min-w-0">
+                                <div className="text-[12px] font-semibold text-slate-800">{row.label}</div>
+                                <div className="text-[10.5px] text-slate-500">{row.hint}</div>
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      </aside>
+                    </div>
+
+                    {/* Footer actions */}
+                    <div className="mt-5 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-900 bg-slate-900 px-4 py-2 text-[13px] font-semibold text-white shadow-sm transition hover:bg-slate-800"
+                        >
+                          Save Packet
+                        </button>
+                        <a
+                          href="/tools/roofing?entry=manual#scope-inputs"
+                          className="inline-flex items-center justify-center rounded-xl border border-sky-200 bg-sky-50 px-4 py-2 text-[13px] font-semibold text-sky-900 shadow-sm transition hover:border-sky-300 hover:bg-sky-100"
+                        >
+                          Continue to Estimate
+                        </a>
+                      </div>
+                      <button
+                        type="button"
+                        disabled
+                        aria-label="Instant Estimate (coming soon)"
+                        className="inline-flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-[13px] font-semibold text-slate-400 shadow-inner sm:w-auto"
+                      >
+                        Instant Estimate <span className="text-[10px] font-bold uppercase tracking-wide">Soon</span>
+                      </button>
+                    </div>
+      </div>
+    );
+  }
+
   return (
     <>
       {toast !== null && (
@@ -3632,7 +4040,7 @@ Thanks,`;
         </motion.div>
       )}
 
-      <FieldDiveAppShell activeNav="newJob">
+      <FieldDiveAppShell activeNav="newJob" activeSubId={entryMode}>
         <button
           type="button"
           onClick={() => setShowV2Preview((v) => !v)}
@@ -3784,6 +4192,19 @@ Thanks,`;
             </div>
           )}
 
+        {entryMode !== "manual" ? (
+          <>
+            {entryMode === "instant" ? (
+              <div className="mb-4 rounded-lg border border-blue-100 bg-blue-50/80 px-4 py-3 text-sm text-slate-700">
+                <span className="font-medium text-slate-900">Instant Estimate — coming soon.</span>
+                {" "}
+                Requires photos and a property address. Use Manual Estimate when you&apos;re ready to price.
+              </div>
+            ) : null}
+            {renderJobPacketWorkbench()}
+          </>
+        ) : (
+        <>
         <div className="px-3 pt-3 sm:px-4 sm:pt-3 xl:px-5 2xl:px-6">
         <div className="relative overflow-hidden rounded-2xl border border-cyan-400/[0.20] bg-[#0b1526] px-5 py-3 shadow-[0_0_0_1px_rgba(34,211,238,0.06),0_16px_48px_-34px_rgba(34,211,238,0.40),inset_0_1px_0_rgba(255,255,255,0.065)] sm:px-6 sm:py-3.5 xl:px-7">
           <div className="pointer-events-none absolute inset-0" aria-hidden>
@@ -3928,457 +4349,7 @@ Thanks,`;
           {/* Workflow canvas */}
           <div className="space-y-2.5 xl:space-y-2.5">
 
-            {/* Customer & Job */}
-            <div
-              id="customer-job-section"
-              className="rounded-2xl border border-cyan-400/[0.22] bg-[radial-gradient(circle_at_18%_0%,rgba(34,211,238,0.075),transparent_34%),#0b1526] p-3 shadow-[0_0_0_1px_rgba(34,211,238,0.08),0_18px_54px_-36px_rgba(34,211,238,0.35),inset_0_1px_0_rgba(255,255,255,0.065)] sm:p-4"
-            >
-              <div className="flex flex-wrap items-center gap-3">
-                <span
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-blue-300/40 bg-blue-500/20 text-[12px] font-bold tabular-nums text-blue-100 shadow-[0_0_22px_rgba(59,130,246,0.25)]"
-                  aria-hidden
-                >
-                  1
-                </span>
-                <h2 className="text-[15px] font-bold tracking-tight text-white sm:text-[17px]">Job Capture</h2>
-                <span className="text-[12px] text-white/52">Capture the job packet fast.</span>
-              </div>
-
-              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.88fr)]">
-                <div className="flex flex-wrap items-center gap-2.5 sm:col-span-2 lg:col-span-2">
-                  <button
-                    type="button"
-                    aria-current="step"
-                    className="inline-flex items-center gap-2 rounded-xl border border-blue-300/55 bg-gradient-to-b from-blue-400/[0.24] to-blue-600/[0.15] px-3 py-1.5 text-[12px] font-semibold text-blue-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.16),0_0_24px_-10px_rgba(59,130,246,0.95)]"
-                  >
-                    <ClipboardList className="h-3.5 w-3.5 text-blue-200" aria-hidden />
-                    Manual entry
-                  </button>
-                  <button
-                    type="button"
-                    disabled
-                    aria-label="Photos capture (coming soon)"
-                    className="inline-flex cursor-not-allowed items-center gap-2 rounded-xl border border-white/[0.10] bg-white/[0.035] px-3 py-1.5 text-[12px] font-medium text-white/58 shadow-[inset_0_1px_0_rgba(255,255,255,0.045)]"
-                  >
-                    <ImageIcon className="h-3.5 w-3.5 text-white/55" aria-hidden />
-                    Photos
-                  </button>
-                  <button
-                    type="button"
-                    disabled
-                    aria-label="Voice capture (coming soon)"
-                    className="inline-flex cursor-not-allowed items-center gap-2 rounded-xl border border-white/[0.10] bg-white/[0.035] px-3 py-1.5 text-[12px] font-medium text-white/58 shadow-[inset_0_1px_0_rgba(255,255,255,0.045)]"
-                  >
-                    <Mic className="h-3.5 w-3.5 text-white/55" aria-hidden />
-                    Voice
-                  </button>
-                  <button
-                    type="button"
-                    disabled
-                    aria-label="Customer message capture (coming soon)"
-                    className="inline-flex cursor-not-allowed items-center gap-2 rounded-xl border border-white/[0.10] bg-white/[0.035] px-3 py-1.5 text-[12px] font-medium text-white/58 shadow-[inset_0_1px_0_rgba(255,255,255,0.045)]"
-                  >
-                    <MessageCircle className="h-3.5 w-3.5 text-white/55" aria-hidden />
-                    Customer message
-                  </button>
-                </div>
-                  <div className="relative min-h-[7.35rem] overflow-hidden rounded-xl border border-cyan-200/[0.15] bg-[radial-gradient(circle_at_18%_0%,rgba(34,211,238,0.085),transparent_34%),linear-gradient(135deg,rgba(255,255,255,0.058),rgba(255,255,255,0.018)_44%,rgba(2,6,23,0.30))] p-3.5 shadow-[0_14px_36px_-32px_rgba(34,211,238,0.48),inset_0_1px_0_rgba(255,255,255,0.08)] before:pointer-events-none before:absolute before:inset-x-3 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-cyan-300/35 before:to-transparent">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-cyan-100/62">
-                        <User className="h-3 w-3 text-cyan-200/62" aria-hidden />
-                        Customer
-                      </div>
-                      {(customerName || customerEmail || customerPhone).trim() ? (
-                        <span className="rounded-full border border-emerald-300/24 bg-emerald-400/[0.085] px-1.5 py-[1px] text-[9px] font-semibold uppercase tracking-[0.11em] text-emerald-100/78 shadow-[0_0_16px_-10px_rgba(52,211,153,0.7)]">
-                          Active
-                        </span>
-                      ) : (
-                        <span className="rounded-full border border-amber-300/22 bg-amber-400/[0.075] px-1.5 py-[1px] text-[9px] font-semibold uppercase tracking-[0.11em] text-amber-100/72 shadow-[0_0_16px_-10px_rgba(251,191,36,0.7)]">
-                          Needed
-                        </span>
-                      )}
-                    </div>
-
-                    <p className="mt-1 text-[10.5px] leading-snug text-white/44">Who receives the proposal and follow-ups.</p>
-
-                    <div className="mt-2 grid gap-2">
-                      <input
-                        id="customer-name"
-                        name="customer_name_field"
-                        type="text"
-                        value={customerName}
-                        onChange={(e) => setCustomerName(e.target.value)}
-                        placeholder="Customer name"
-                        autoComplete="off"
-                        autoCorrect="off"
-                        autoCapitalize="off"
-                        spellCheck={false}
-                        className="h-8.5 w-full rounded-lg border border-white/[0.145] bg-slate-950/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.045),0_8px_18px_-18px_rgba(0,0,0,0.85)] px-2.5 text-[12.5px] font-medium text-white/96 placeholder:text-white/42 outline-none transition focus:border-cyan-300/55 focus:bg-white/[0.075] focus:shadow-[0_0_0_3px_rgba(34,211,238,0.075),inset_0_1px_0_rgba(255,255,255,0.05)]"
-                      />
-                      <input
-                        id="customer-email"
-                        name="customer_email_field"
-                        type="email"
-                        inputMode="email"
-                        value={customerEmail}
-                        onChange={(e) => {
-                          setCustomerEmail(e.target.value);
-                          setSendError("");
-                        }}
-                        placeholder="Email address"
-                        autoComplete="new-password"
-                        autoCorrect="off"
-                        autoCapitalize="off"
-                        spellCheck={false}
-                        className={"h-8.5 w-full rounded-lg border bg-slate-950/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.045),0_8px_18px_-18px_rgba(0,0,0,0.85)] px-2.5 text-[12.5px] font-medium text-white/96 placeholder:text-white/42 outline-none transition focus:border-cyan-300/55 focus:bg-white/[0.075] focus:shadow-[0_0_0_3px_rgba(34,211,238,0.075),inset_0_1px_0_rgba(255,255,255,0.05)] " + (attentionField === "customerEmail" ? "border-cyan-300/45 ring-2 ring-cyan-400/15" : "border-white/[0.10]")}
-                      />
-                      <input
-                        id="customer-phone"
-                        name="customer_phone_field"
-                        type="tel"
-                        inputMode="tel"
-                        value={customerPhone}
-                        onChange={(e) => setCustomerPhone(e.target.value)}
-                        placeholder="Phone optional"
-                        autoComplete="off"
-                        autoCorrect="off"
-                        autoCapitalize="off"
-                        spellCheck={false}
-                        className="h-8.5 w-full rounded-lg border border-white/[0.145] bg-slate-950/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.045),0_8px_18px_-18px_rgba(0,0,0,0.85)] px-2.5 text-[12.5px] font-medium text-white/96 placeholder:text-white/42 outline-none transition focus:border-cyan-300/55 focus:bg-white/[0.075] focus:shadow-[0_0_0_3px_rgba(34,211,238,0.075),inset_0_1px_0_rgba(255,255,255,0.05)]"
-                      />
-                    </div>
-                  </div>
-                  <div className="relative min-h-[7.35rem] overflow-hidden rounded-xl border border-cyan-200/[0.15] bg-[radial-gradient(circle_at_18%_0%,rgba(34,211,238,0.085),transparent_34%),linear-gradient(135deg,rgba(255,255,255,0.058),rgba(255,255,255,0.018)_44%,rgba(2,6,23,0.30))] p-3.5 shadow-[0_14px_36px_-32px_rgba(34,211,238,0.48),inset_0_1px_0_rgba(255,255,255,0.08)] before:pointer-events-none before:absolute before:inset-x-3 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-cyan-300/35 before:to-transparent">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-cyan-100/62">
-                        <Home className="h-3 w-3 text-cyan-200/62" aria-hidden />
-                        Property
-                      </div>
-                      {(jobAddress1 || "").trim() && (jobZip || "").trim().length === 5 ? (
-                        <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300/24 bg-emerald-400/[0.085] px-1.5 py-[1px] text-[9px] font-semibold uppercase tracking-[0.11em] text-emerald-100/78 shadow-[0_0_16px_-10px_rgba(52,211,153,0.7)]">
-                          <ShieldCheck className="h-2.5 w-2.5" aria-hidden />
-                          Ready
-                        </span>
-                      ) : (
-                        <span className="rounded-full border border-amber-300/22 bg-amber-400/[0.075] px-1.5 py-[1px] text-[9px] font-semibold uppercase tracking-[0.11em] text-amber-100/72 shadow-[0_0_16px_-10px_rgba(251,191,36,0.7)]">
-                          Needed
-                        </span>
-                      )}
-                    </div>
-
-                    <p className="mt-1 text-[10.5px] leading-snug text-white/44">Where the job is happening.</p>
-
-                    <div className="mt-2 grid gap-2">
-                      <input
-                        id="job-address"
-                        name="job_address1_field"
-                        type="text"
-                        value={jobAddress1}
-                        onChange={(e) => setJobAddress1(e.target.value)}
-                        onBlur={(e) => {
-                          const cleaned = e.target.value.replace(/\s+/g, " ").trim();
-                          if (cleaned !== jobAddress1) setJobAddress1(cleaned);
-                        }}
-                        placeholder="Street address"
-                        autoComplete="new-password"
-                        autoCorrect="off"
-                        autoCapitalize="off"
-                        spellCheck={false}
-                        className="h-8.5 w-full rounded-lg border border-white/[0.145] bg-slate-950/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.045),0_8px_18px_-18px_rgba(0,0,0,0.85)] px-2.5 text-[12.5px] font-medium text-white/96 placeholder:text-white/42 outline-none transition focus:border-cyan-300/55 focus:bg-white/[0.075] focus:shadow-[0_0_0_3px_rgba(34,211,238,0.075),inset_0_1px_0_rgba(255,255,255,0.05)]"
-                      />
-                      <div className="grid grid-cols-[minmax(0,1fr)_5rem_5.75rem] gap-2">
-                        <input
-                          id="job-city"
-                          name="job_city_field"
-                          type="text"
-                          value={jobCity}
-                          onChange={(e) => setJobCity(e.target.value)}
-                          onBlur={(e) => {
-                            const cleaned = e.target.value
-                              .replace(/[^a-zA-Z\s.'-]/g, "")
-                              .replace(/\s+/g, " ")
-                              .trim();
-                            if (cleaned !== jobCity) {
-                              setJobCity(cleaned);
-                            }
-                          }}
-                          placeholder="City"
-                          autoComplete="off"
-                          autoCorrect="off"
-                          autoCapitalize="words"
-                          spellCheck={false}
-                          className="h-8.5 w-full rounded-lg border border-white/[0.145] bg-slate-950/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.045),0_8px_18px_-18px_rgba(0,0,0,0.85)] px-2.5 text-[12.5px] font-medium text-white/96 placeholder:text-white/42 outline-none transition focus:border-cyan-300/55 focus:bg-white/[0.075] focus:shadow-[0_0_0_3px_rgba(34,211,238,0.075),inset_0_1px_0_rgba(255,255,255,0.05)]"
-                        />
-                        <input
-                          id="job-state"
-                          name="job_state_field"
-                          type="text"
-                          value={jobState}
-                          onChange={(e) => setJobState(e.target.value)}
-                          onBlur={(e) => {
-                            const cleaned = e.target.value
-                              .replace(/[^a-zA-Z]/g, "")
-                              .toUpperCase()
-                              .trim();
-                            if (cleaned !== jobState) setJobState(cleaned);
-                          }}
-                          placeholder="State"
-                          autoComplete="off"
-                          autoCorrect="off"
-                          autoCapitalize="characters"
-                          spellCheck={false}
-                          className="h-8.5 w-full rounded-lg border border-white/[0.145] bg-slate-950/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.045),0_8px_18px_-18px_rgba(0,0,0,0.85)] px-2.5 text-[12.5px] font-medium uppercase text-white/96 placeholder:text-white/42 outline-none transition focus:border-cyan-300/55 focus:bg-white/[0.075] focus:shadow-[0_0_0_3px_rgba(34,211,238,0.075),inset_0_1px_0_rgba(255,255,255,0.05)]"
-                        />
-                        <input
-                          id="customer-job-zip"
-                          name="job_zip_field"
-                          type="text"
-                          inputMode="numeric"
-                          value={jobZip}
-                          onChange={(e) => setJobZip(sanitizeZipInput(e.target.value))}
-                          onBlur={() => {
-                            const sanitized = sanitizeZipInput(jobZip);
-                            if (sanitized !== jobZip) setJobZip(sanitized);
-                            if (sanitized.length === 5) tryApplyZipPreset(sanitized);
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              e.preventDefault();
-                              const sanitized = sanitizeZipInput(jobZip);
-                              if (sanitized !== jobZip) setJobZip(sanitized);
-                              if (sanitized.length === 5) tryApplyZipPreset(sanitized);
-                            }
-                          }}
-                          placeholder="ZIP"
-                          autoComplete="postal-code"
-                          autoCorrect="off"
-                          autoCapitalize="off"
-                          spellCheck={false}
-                          className="h-8.5 w-full rounded-lg border border-white/[0.145] bg-slate-950/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.045),0_8px_18px_-18px_rgba(0,0,0,0.85)] px-2.5 text-[12.5px] font-medium text-white/96 placeholder:text-white/42 outline-none transition focus:border-cyan-300/55 focus:bg-white/[0.075] focus:shadow-[0_0_0_3px_rgba(34,211,238,0.075),inset_0_1px_0_rgba(255,255,255,0.05)]"
-                        />
-                      </div>
-
-                      <div className="min-h-[1rem]">
-                        {autofillFromZip && (
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-[10.5px] text-emerald-300/85">Auto-filled from ZIP defaults</span>
-                            {preAutofillSnapshot != null && (
-                              <button
-                                type="button"
-                                onClick={undoAutofill}
-                                className="text-[10.5px] font-medium text-blue-300 hover:text-blue-200 underline underline-offset-1"
-                              >
-                                Undo
-                              </button>
-                            )}
-                          </div>
-                        )}
-                        {zipNoPresetMessage && jobZip.length === 5 && (
-                          <p className="text-[10.5px] text-slate-500">No ZIP defaults saved.</p>
-                        )}
-                        {jobZip.length === 5 && presetForCurrentZip != null && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setZipPresets((prev) => {
-                                if (!prev) return prev;
-                                const next = { ...prev };
-                                delete next[jobZip];
-                                if (typeof window !== "undefined") localStorage.setItem(STORAGE_KEY_ZIP_PRESETS, JSON.stringify(next));
-                                return next;
-                              });
-                              setZipClearedToast(true);
-                              setTimeout(() => setZipClearedToast(false), 2500);
-                              setAutofillFromZip(false);
-                              setPreAutofillSnapshot(null);
-                              setZipNoPresetMessage(true);
-                            }}
-                            className="text-[10.5px] font-medium text-slate-400 hover:text-slate-300 underline underline-offset-1"
-                          >
-                            Clear ZIP defaults
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                <div
-                  className="relative overflow-hidden rounded-[18px] border border-cyan-400/40 bg-slate-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_0_0_1px_rgba(34,211,238,0.10),0_28px_96px_-42px_rgba(34,211,238,0.72)] sm:col-span-2 lg:col-start-3 lg:row-span-2 lg:row-start-1"
-                >
-                  {/* Sky / background */}
-                  <div className="pointer-events-none absolute inset-0" aria-hidden style={{background:"linear-gradient(180deg, #1a2d4a 0%, #1e3a5f 22%, #0e1f35 58%, #060d1a 100%)"}}>
-                    {/* Subtle clouds */}
-                    <div style={{position:"absolute",top:"8%",left:"12%",width:"28%",height:"12%",background:"radial-gradient(ellipse,rgba(255,255,255,0.07),transparent 70%)",borderRadius:"50%"}} />
-                    <div style={{position:"absolute",top:"12%",right:"18%",width:"20%",height:"9%",background:"radial-gradient(ellipse,rgba(255,255,255,0.05),transparent 70%)",borderRadius:"50%"}} />
-                  </div>
-
-                  <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/60 to-transparent" aria-hidden />
-
-                  {/* Detailed house SVG */}
-                  <svg
-                    className="pointer-events-none absolute inset-x-0 bottom-0 h-[86%] w-full scale-[1.06]"
-                    viewBox="0 0 500 230"
-                    preserveAspectRatio="xMidYMax meet"
-                    aria-hidden
-                  >
-                    <defs>
-                      <linearGradient id="hp2Roof" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#3d4d62" />
-                        <stop offset="40%" stopColor="#2c3a4e" />
-                        <stop offset="100%" stopColor="#1a2535" />
-                      </linearGradient>
-                      <linearGradient id="hp2RoofGarage" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#354460" />
-                        <stop offset="100%" stopColor="#1e2d42" />
-                      </linearGradient>
-                      <linearGradient id="hp2Wall" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#c4a882" />
-                        <stop offset="100%" stopColor="#9a7d58" />
-                      </linearGradient>
-                      <linearGradient id="hp2WallGarage" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#b89b72" />
-                        <stop offset="100%" stopColor="#8a7050" />
-                      </linearGradient>
-                      <linearGradient id="hp2Win" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="rgba(190,220,255,0.85)" />
-                        <stop offset="100%" stopColor="rgba(100,150,210,0.65)" />
-                      </linearGradient>
-                      <linearGradient id="hp2Garage" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#2a3040" />
-                        <stop offset="100%" stopColor="#1a1f2a" />
-                      </linearGradient>
-                      <linearGradient id="hp2Lawn" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#2d5a3a" />
-                        <stop offset="100%" stopColor="#1a3a24" />
-                      </linearGradient>
-                      <linearGradient id="hp2Drive" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#555f6e" />
-                        <stop offset="100%" stopColor="#363d47" />
-                      </linearGradient>
-                      <filter id="hp2Shadow"><feDropShadow dx="0" dy="3" stdDeviation="4" floodColor="rgba(0,0,0,0.5)" /></filter>
-                    </defs>
-
-                    {/* Lawn */}
-                    <rect x="0" y="182" width="500" height="48" fill="url(#hp2Lawn)" />
-                    {/* Driveway */}
-                    <polygon points="320,225 420,225 370,182 290,182" fill="url(#hp2Drive)" />
-                    {/* Driveway lines */}
-                    <line x1="340" y1="182" x2="380" y2="225" stroke="rgba(255,255,255,0.04)" strokeWidth="1" />
-                    <line x1="350" y1="182" x2="395" y2="225" stroke="rgba(255,255,255,0.04)" strokeWidth="1" />
-
-                    {/* Main house body */}
-                    <rect x="80" y="115" width="240" height="67" fill="url(#hp2Wall)" />
-                    {/* Center line */}
-                    <line x1="200" y1="115" x2="200" y2="182" stroke="rgba(0,0,0,0.12)" strokeWidth="0.5" />
-
-                    {/* Main roof */}
-                    <polygon points="70,120 200,52 330,120 320,125 200,62 80,125" fill="url(#hp2Roof)" filter="url(#hp2Shadow)" />
-                    {/* Roof ridge highlight */}
-                    <line x1="200" y1="52" x2="200" y2="62" stroke="rgba(255,255,255,0.12)" strokeWidth="1.5" />
-                    {/* Roof shingle lines — left side */}
-                    {Array.from({length:9}).map((_,i)=>{
-                      const t=(i+1)/10; const lx=70+t*(200-70); const ly=120+t*(62-120); const rx=200; const ry=62;
-                      return <line key={`hs-l-${i}`} x1={lx} y1={ly} x2={rx} y2={ry} stroke="rgba(0,0,0,0.22)" strokeWidth="0.6" />;
-                    })}
-                    {/* Roof shingle lines — right side */}
-                    {Array.from({length:9}).map((_,i)=>{
-                      const t=(i+1)/10; const lx=200; const ly=62; const rx=200+t*(330-200); const ry=62+t*(120-62);
-                      return <line key={`hs-r-${i}`} x1={lx} y1={ly} x2={rx} y2={ry} stroke="rgba(0,0,0,0.22)" strokeWidth="0.6" />;
-                    })}
-                    {/* Horizontal shingle courses */}
-                    {[0.2,0.38,0.55,0.70,0.84].map((t,i)=>{
-                      const y=62+t*(120-62);
-                      const lx=70+t*(200-70); const rx=200+t*(330-200);
-                      return <line key={`hc-${i}`} x1={lx} y1={y} x2={rx} y2={y} stroke="rgba(0,0,0,0.18)" strokeWidth="0.7" />;
-                    })}
-
-                    {/* Garage wing */}
-                    <rect x="316" y="140" width="110" height="42" fill="url(#hp2WallGarage)" />
-                    <polygon points="308,144 371,108 434,144 430,148 371,116 312,148" fill="url(#hp2RoofGarage)" />
-                    {/* Garage shingle lines */}
-                    {Array.from({length:6}).map((_,i)=>{
-                      const t=(i+1)/7;
-                      return <line key={`gs-${i}`} x1={308+t*(371-308)} y1={144+t*(116-144)} x2={371} y2={116} stroke="rgba(0,0,0,0.20)" strokeWidth="0.5" />;
-                    })}
-
-                    {/* Garage door */}
-                    <rect x="325" y="150" width="75" height="32" fill="url(#hp2Garage)" rx="2" />
-                    {/* Garage door panels */}
-                    {[0,1,2].map(i=><rect key={`gp-${i}`} x="325" y={150+i*10.5} width="75" height="9.5" fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="0.6" />)}
-                    {/* Garage door vertical */}
-                    <line x1="362" y1="150" x2="362" y2="182" stroke="rgba(255,255,255,0.06)" strokeWidth="0.6" />
-
-                    {/* Front door */}
-                    <rect x="179" y="145" width="42" height="37" fill="rgba(24,18,10,0.9)" rx="1" />
-                    <rect x="183" y="150" width="35" height="27" fill="rgba(40,28,16,0.85)" rx="1" />
-                    <line x1="200" y1="150" x2="200" y2="177" stroke="rgba(0,0,0,0.4)" strokeWidth="0.5" />
-                    {/* Door handle */}
-                    <circle cx="196" cy="164" r="2" fill="rgba(200,160,60,0.85)" />
-
-                    {/* Left windows (main house) */}
-                    <rect x="90" y="130" width="32" height="26" fill="url(#hp2Win)" rx="1" stroke="rgba(0,0,0,0.3)" strokeWidth="0.5" />
-                    <line x1="106" y1="130" x2="106" y2="156" stroke="rgba(0,0,0,0.25)" strokeWidth="0.5" />
-                    <line x1="90" y1="143" x2="122" y2="143" stroke="rgba(0,0,0,0.25)" strokeWidth="0.5" />
-                    <rect x="130" y="130" width="32" height="26" fill="url(#hp2Win)" rx="1" stroke="rgba(0,0,0,0.3)" strokeWidth="0.5" />
-                    <line x1="146" y1="130" x2="146" y2="156" stroke="rgba(0,0,0,0.25)" strokeWidth="0.5" />
-                    <line x1="130" y1="143" x2="162" y2="143" stroke="rgba(0,0,0,0.25)" strokeWidth="0.5" />
-
-                    {/* Right windows (main house) */}
-                    <rect x="234" y="130" width="32" height="26" fill="url(#hp2Win)" rx="1" stroke="rgba(0,0,0,0.3)" strokeWidth="0.5" />
-                    <line x1="250" y1="130" x2="250" y2="156" stroke="rgba(0,0,0,0.25)" strokeWidth="0.5" />
-                    <line x1="234" y1="143" x2="266" y2="143" stroke="rgba(0,0,0,0.25)" strokeWidth="0.5" />
-                    <rect x="274" y="130" width="32" height="26" fill="url(#hp2Win)" rx="1" stroke="rgba(0,0,0,0.3)" strokeWidth="0.5" />
-                    <line x1="290" y1="130" x2="290" y2="156" stroke="rgba(0,0,0,0.25)" strokeWidth="0.5" />
-                    <line x1="274" y1="143" x2="306" y2="143" stroke="rgba(0,0,0,0.25)" strokeWidth="0.5" />
-
-                    {/* Trees */}
-                    <ellipse cx="28" cy="170" rx="22" ry="18" fill="rgba(22,60,38,0.80)" />
-                    <ellipse cx="34" cy="158" rx="14" ry="12" fill="rgba(34,80,52,0.88)" />
-                    <ellipse cx="460" cy="168" rx="20" ry="16" fill="rgba(22,60,38,0.80)" />
-                    <ellipse cx="466" cy="156" rx="13" ry="11" fill="rgba(34,80,52,0.88)" />
-                    <ellipse cx="48" cy="175" rx="12" ry="9" fill="rgba(28,70,44,0.75)" />
-
-                    {/* Walkway */}
-                    <polygon points="185,182 215,182 225,215 175,215" fill="rgba(160,148,128,0.35)" />
-
-                    {/* Ground shadow under house */}
-                    <ellipse cx="220" cy="183" rx="160" ry="6" fill="rgba(0,0,0,0.18)" />
-                  </svg>
-
-                  {/* Atmospheric overlay for depth */}
-                  <div className="pointer-events-none absolute inset-0" aria-hidden style={{background:"linear-gradient(to bottom, rgba(2,6,23,0.06) 0%, transparent 28%, rgba(6,13,26,0.18) 64%, rgba(6,13,26,0.68) 100%)"}} />
-                  <div className="pointer-events-none absolute inset-0 rounded-[18px] ring-1 ring-inset ring-white/[0.06]" aria-hidden />
-
-                  {/* Content layer */}
-                  <div className="relative flex h-full min-h-[15.75rem] flex-col justify-between p-4 sm:p-5">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-300/90">Property Preview</div>
-                        <div className="mt-1 truncate text-[15px] font-bold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)]">
-                          {(jobAddress1 || "").trim() ? jobAddress1 : "Awaiting address"}
-                        </div>
-                        <div className="truncate text-[11.5px] text-white/65 drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)]">
-                          {[jobCity, jobState, jobZip].filter(Boolean).join(", ") || "Location pending"}
-                        </div>
-                      </div>
-                      <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-cyan-300/30 bg-black/60 backdrop-blur-md px-2.5 py-1 text-[10px] font-semibold text-white shadow-[0_4px_20px_rgba(0,0,0,0.45)]">
-                        <Camera className="h-3 w-3 text-cyan-300" aria-hidden />
-                        Add Photos
-                      </span>
-                    </div>
-                    <div className="flex items-end justify-between gap-2">
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <span className="rounded-md border border-white/[0.14] bg-black/50 backdrop-blur-sm px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/80">Satellite</span>
-                        <span className="rounded-md border border-white/[0.14] bg-black/50 backdrop-blur-sm px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/80">Street view</span>
-                      </div>
-                      <span className="inline-flex items-center gap-1 rounded-full border border-cyan-400/35 bg-black/50 backdrop-blur-sm px-2.5 py-1 text-[10px] font-bold text-cyan-200 shadow-[0_0_12px_rgba(34,211,238,0.25)]">
-                        <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" aria-hidden><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909" /></svg>
-                        Preview mode
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            {renderJobPacketWorkbench()}
 
             <div className="rounded-2xl border border-cyan-400/[0.20] bg-[#0b1526] p-3 shadow-[0_0_0_1px_rgba(34,211,238,0.07),0_4px_24px_-8px_rgba(34,211,238,0.12),inset_0_1px_0_rgba(255,255,255,0.06)] sm:p-4">
               <div className="flex flex-wrap items-center gap-3">
@@ -5735,6 +5706,8 @@ Thanks,`;
         </div>
         </div>
         </div>
+        </>
+        )}
           </>
         )}
       </FieldDiveAppShell>
