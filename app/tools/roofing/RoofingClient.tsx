@@ -3623,30 +3623,135 @@ Thanks,`;
   const jobReadinessReadyCount = jobReadinessItems.filter((x) => x.ready).length;
 
 
-  function renderJobPacketWorkbench() {
+  function renderJobPacketWorkbench(
+    variant: "standalone" | "embedded" = "embedded",
+    standaloneEntryMode: "packet" | "instant" = "packet"
+  ) {
+    const isStandalone = variant === "standalone";
+    const packetReadinessRows = [
+      {
+        id: "contact",
+        label: "Customer contact",
+        hint: "Name, email, or phone",
+        ready: Boolean((customerName || customerEmail || customerPhone).trim()),
+      },
+      {
+        id: "street",
+        label: "Street address",
+        hint: "Service location line 1",
+        ready: !!(jobAddress1 || "").trim(),
+      },
+      {
+        id: "zip",
+        label: "ZIP code",
+        hint: "Five digits for presets",
+        ready: (jobZip || "").trim().length === 5,
+      },
+      {
+        id: "citystate",
+        label: "City & state",
+        hint: "Refines routing & tax context",
+        ready: !!(jobCity || "").trim() && !!(jobState || "").trim(),
+      },
+    ];
+    const packetReadyCount = packetReadinessRows.filter((row) => row.ready).length;
+    const packetTotalCount = packetReadinessRows.length;
+    const packetProgressPct = Math.round((packetReadyCount / packetTotalCount) * 100);
+    const packetFactsComplete = packetReadyCount === packetTotalCount;
+    const addressLine = [
+      (jobAddress1 || "").trim(),
+      [(jobCity || "").trim(), (jobState || "").trim()].filter(Boolean).join(", "),
+      (jobZip || "").trim(),
+    ]
+      .filter(Boolean)
+      .join(", ");
+    const propertyPreview = addressLine || "Add property address";
+    const beforeEstimateItems = [
+      { id: "contact", label: "Contact", ready: Boolean((customerName || customerEmail || customerPhone).trim()) },
+      { id: "street", label: "Address", ready: !!(jobAddress1 || "").trim() },
+      { id: "zip", label: "ZIP", ready: (jobZip || "").trim().length === 5 },
+      { id: "citystate", label: "City-State", ready: !!(jobCity || "").trim() && !!(jobState || "").trim() },
+    ];
+    const standaloneRaisedPanel =
+      "rounded-2xl bg-white p-4 shadow-sm shadow-slate-200/45 ring-1 ring-slate-200/50 sm:p-5";
+
     return (
       <div
         id="customer-job-section"
-        className="rounded-2xl border border-slate-200 bg-white p-3 shadow-[0_1px_0_rgba(15,23,42,0.04),0_12px_40px_-24px_rgba(15,23,42,0.18)] sm:p-4"
+        className={
+          isStandalone
+            ? "w-full"
+            : "rounded-2xl border border-slate-200 bg-white shadow-[0_1px_0_rgba(15,23,42,0.04),0_12px_40px_-24px_rgba(15,23,42,0.18)]"
+        }
       >
-                    {/* Header */}
-                    <div className="flex flex-wrap items-center gap-3 border-b border-slate-100 pb-3">
-                      <span
-                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-[12px] font-bold tabular-nums text-slate-700 shadow-inner"
-                        aria-hidden
-                      >
-                        1
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <h2 className="text-[15px] font-bold tracking-tight text-slate-900 sm:text-[17px]">Job Packet</h2>
-                        <p className="mt-0.5 text-[12px] leading-snug text-slate-600">
-                          Capture customer and property basics before estimating so scope and pricing stay consistent.
-                        </p>
-                      </div>
-                    </div>
+        {isStandalone ? (
+          <div className="rounded-2xl bg-white px-5 py-4 shadow-sm shadow-slate-200/50 ring-1 ring-slate-200/55 sm:px-6 sm:py-5">
+            <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">New Roofing Job</h1>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <span className="inline-flex items-center rounded-full bg-slate-100/90 px-2.5 py-1 text-[11px] font-medium text-slate-700 shadow-sm ring-1 ring-slate-200/50">
+                Packet draft
+              </span>
+              <span className="inline-flex items-center rounded-full bg-slate-100/90 px-2.5 py-1 text-[11px] font-medium text-slate-600 shadow-sm ring-1 ring-slate-200/50">
+                No pricing yet
+              </span>
+              <span className="inline-flex items-center rounded-full bg-slate-100/90 px-2.5 py-1 text-[11px] font-medium text-slate-600 shadow-sm ring-1 ring-slate-200/50">
+                Estimate path: {standaloneEntryMode === "instant" ? "Instant — coming soon" : "Not selected"}
+              </span>
+            </div>
+            <div className="mt-4 rounded-xl bg-white/80 px-4 py-3.5 shadow-[inset_0_1px_2px_rgba(15,23,42,0.04),0_1px_0_rgba(255,255,255,0.9)] ring-1 ring-slate-200/45">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-600">
+                  Before you estimate
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {beforeEstimateItems.map((item) => (
+                    <span
+                      key={item.id}
+                      className={
+                        "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-medium shadow-sm " +
+                        (item.ready
+                          ? "bg-emerald-50 text-emerald-800 ring-1 ring-emerald-100/80"
+                          : "bg-slate-100/90 text-slate-600 ring-1 ring-slate-200/40")
+                      }
+                    >
+                      <span aria-hidden>{item.ready ? "✓" : "○"}</span>
+                      {item.label}
+                    </span>
+                  ))}
+                </div>
+                <span className="text-[11px] font-medium text-slate-500 sm:ml-auto">
+                  {packetReadyCount} of {packetTotalCount} core details captured
+                </span>
+              </div>
+              {!packetFactsComplete ? (
+                <p className="mt-2 text-[11px] leading-snug text-slate-600">
+                  Complete customer and property details, then continue to Manual Estimate.
+                </p>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
 
-                    {/* Capture method */}
-                    <div className="mt-4 flex flex-wrap items-center gap-2">
+        {!isStandalone ? (
+        <div className="flex flex-wrap items-start gap-3 border-b border-slate-100 px-3 pb-3 pt-3 sm:px-4 sm:pt-4">
+          <span
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-[12px] font-bold tabular-nums text-slate-700 shadow-inner"
+            aria-hidden
+          >
+            1
+          </span>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-[15px] font-bold tracking-tight text-slate-900 sm:text-[17px]">Job Packet</h2>
+            <p className="mt-0.5 text-[12px] leading-snug text-slate-600">
+              Capture customer and property basics before estimating so scope and pricing stay consistent.
+            </p>
+          </div>
+        </div>
+        ) : null}
+
+        {/* Capture method — embedded manual step only */}
+        {!isStandalone ? (
+        <div className="flex flex-wrap items-center gap-2 px-3 pt-3 sm:px-4">
                       <button
                         type="button"
                         aria-current="step"
@@ -3683,12 +3788,19 @@ Thanks,`;
                         Customer message <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Soon</span>
                       </button>
                     </div>
+        ) : null}
 
-                    {/* Main grid: form column + readiness rail */}
-                    <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(230px,280px)] lg:gap-5">
-                      <div className="space-y-4">
-                        {/* Customer */}
-                        <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
+        <div className={isStandalone ? "mt-5" : ""}>
+        <div
+          className={
+            isStandalone
+              ? "grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1.3fr)_minmax(360px,480px)] lg:gap-7 2xl:grid-cols-[minmax(0,1.4fr)_minmax(420px,540px)]"
+              : "mt-3 grid grid-cols-1 gap-5 px-3 pb-3 sm:px-4 sm:pb-4 lg:grid-cols-[minmax(0,1fr)_minmax(210px,250px)] lg:gap-8"
+          }
+        >
+          <div className={isStandalone ? "space-y-5" : "divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-slate-50/30"}>
+            {/* Customer */}
+            <section className={isStandalone ? standaloneRaisedPanel : "bg-white px-3.5 py-3.5 sm:px-4"}>
                           <div className="flex items-center justify-between gap-2">
                             <div className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-slate-500">
                               <User className="h-3.5 w-3.5 text-slate-500" aria-hidden />
@@ -3754,10 +3866,10 @@ Thanks,`;
                               className="h-8.5 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12.5px] font-medium text-slate-900 placeholder:text-slate-400 outline-none shadow-sm transition focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
                             />
                           </div>
-                        </div>
+            </section>
 
-                        {/* Property */}
-                        <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
+            {/* Property */}
+            <section className={isStandalone ? standaloneRaisedPanel : "bg-white px-3.5 py-3.5 sm:px-4"}>
                           <div className="flex items-center justify-between gap-2">
                             <div className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-slate-500">
                               <Home className="h-3.5 w-3.5 text-slate-500" aria-hidden />
@@ -3907,117 +4019,213 @@ Thanks,`;
                               )}
                             </div>
                           </div>
-                        </div>
+            </section>
 
-                        {/* Job request / notes — placeholder */}
-                        <div className="rounded-xl border border-dashed border-slate-300 bg-white p-3.5">
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-slate-500">Job request & notes</span>
-                            <span className="rounded-full bg-slate-100 px-2 py-[1px] text-[9px] font-semibold uppercase tracking-wide text-slate-400">
-                              Soon
-                            </span>
-                          </div>
-                          <textarea
-                            disabled
-                            readOnly
-                            rows={4}
-                            value=""
-                            placeholder="Paste the homeowner request, HOA notes, and access instructions here."
-                            aria-disabled="true"
-                            className="mt-2 w-full resize-none rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-2 text-[12px] leading-relaxed text-slate-400 placeholder:text-slate-400"
-                          />
-                        </div>
+            {/* Job request / notes — placeholder */}
+            <section className={isStandalone ? standaloneRaisedPanel : "bg-white px-3.5 py-3.5 sm:px-4"}>
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                  <MessageCircle className="h-3.5 w-3.5 text-slate-500" aria-hidden />
+                  Job request &amp; notes
+                </div>
+                <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-[1px] text-[9px] font-semibold uppercase tracking-wide text-slate-400">
+                  Coming soon
+                </span>
+              </div>
+              <p className="mt-1 text-[10.5px] leading-snug text-slate-500">
+                Homeowner requests, HOA notes, and access instructions will live here.
+              </p>
+              <textarea
+                disabled
+                readOnly
+                rows={3}
+                value=""
+                placeholder="Notes capture is not wired yet — continue to Manual Estimate if you need to add context now."
+                aria-disabled="true"
+                className="mt-2 w-full resize-none rounded-lg border border-dashed border-slate-200 bg-slate-50/80 px-2.5 py-2 text-[12px] leading-relaxed text-slate-400 placeholder:text-slate-400"
+              />
+            </section>
 
-                        {/* Photos / evidence stub */}
-                        <div className="rounded-xl border border-dashed border-slate-300 bg-gradient-to-br from-white to-slate-50 px-4 py-6 text-center">
-                          <div className="mx-auto inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 shadow-inner">
-                            <Camera className="h-5 w-5" aria-hidden />
-                          </div>
-                          <p className="mt-3 text-[12px] font-semibold text-slate-700">Photos & evidence</p>
-                          <p className="mx-auto mt-1 max-w-sm text-[11px] leading-snug text-slate-500">
-                            Attach site photos and damage docs to strengthen the estimate packet. Coming next.
-                          </p>
-                        </div>
-                      </div>
+            {/* Photos / evidence stub — embedded only; standalone uses right column */}
+            {!isStandalone ? (
+            <section className="bg-white px-3.5 py-4 sm:px-4">
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-400">
+                  <Camera className="h-4.5 w-4.5" aria-hidden />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-slate-500">Photos &amp; evidence</span>
+                    <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-[1px] text-[9px] font-semibold uppercase tracking-wide text-slate-400">
+                      0 attached
+                    </span>
+                    <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-[1px] text-[9px] font-semibold uppercase tracking-wide text-slate-400">
+                      Coming soon
+                    </span>
+                  </div>
+                  <p className="mt-1 text-[11px] leading-snug text-slate-500">
+                    Site photos and damage docs will attach here. Instant Estimate will require photos plus a property address.
+                  </p>
+                </div>
+              </div>
+            </section>
+            ) : null}
+          </div>
 
-                      {/* Readiness rail */}
-                      <aside className="h-fit rounded-xl border border-slate-200 bg-white p-3.5 shadow-sm lg:sticky lg:top-4">
-                        <div className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-slate-500">Packet readiness</div>
-                        <p className="mt-1 text-[11px] leading-snug text-slate-500">Everything here carries through to estimating.</p>
-                        <ul className="mt-3 space-y-2.5 border-t border-slate-100 pt-3">
-                          {[
-                            {
-                              id: "contact",
-                              label: "Customer contact",
-                              hint: "Name, email, or phone",
-                              ready: Boolean((customerName || customerEmail || customerPhone).trim()),
-                            },
-                            {
-                              id: "street",
-                              label: "Street address",
-                              hint: "Service location line 1",
-                              ready: !!(jobAddress1 || "").trim(),
-                            },
-                            {
-                              id: "zip",
-                              label: "ZIP code",
-                              hint: "Five digits for presets",
-                              ready: (jobZip || "").trim().length === 5,
-                            },
-                            {
-                              id: "citystate",
-                              label: "City & state",
-                              hint: "Refines routing & tax context",
-                              ready: !!(jobCity || "").trim() && !!(jobState || "").trim(),
-                            },
-                          ].map((row) => (
-                            <li key={row.id} className="flex gap-2.5">
-                              <span
-                                className={
-                                  "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] font-bold " +
-                                  (row.ready
-                                    ? "border-emerald-300 bg-emerald-50 text-emerald-700"
-                                    : "border-slate-200 bg-slate-50 text-slate-400")
-                                }
-                                aria-hidden
-                              >
-                                {row.ready ? "✓" : ""}
-                              </span>
-                              <div className="min-w-0">
-                                <div className="text-[12px] font-semibold text-slate-800">{row.label}</div>
-                                <div className="text-[10.5px] text-slate-500">{row.hint}</div>
-                              </div>
-                            </li>
-                          ))}
-                        </ul>
-                      </aside>
-                    </div>
+          {/* Status rail — embedded only; standalone uses context column above */}
+          {isStandalone ? (
+          <div className="space-y-5 xl:sticky xl:top-4 xl:self-start">
+            <section className={standaloneRaisedPanel}>
+              <div className="mb-3 flex items-center gap-2 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                <MapPin className="h-3.5 w-3.5 text-slate-500" aria-hidden />
+                Property preview
+              </div>
+              <div className="flex aspect-[16/10] flex-col items-center justify-center rounded-xl bg-slate-50/45 px-4 text-center ring-1 ring-dashed ring-slate-200/55">
+                  {addressLine ? (
+                    <>
+                      <MapPin className="mb-2 h-6 w-6 text-slate-400" aria-hidden />
+                      <p className="text-sm font-medium text-slate-700">{propertyPreview}</p>
+                      <p className="mt-1 text-xs text-slate-500">Map preview when address is confirmed</p>
+                    </>
+                  ) : (
+                    <>
+                      <Home className="mb-2 h-6 w-6 text-slate-300" aria-hidden />
+                      <p className="text-sm font-medium text-slate-500">Add property address</p>
+                      <p className="mt-1 text-xs text-slate-400">Site context appears here</p>
+                    </>
+                  )}
+                </div>
+            </section>
 
-                    {/* Footer actions */}
-                    <div className="mt-5 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-900 bg-slate-900 px-4 py-2 text-[13px] font-semibold text-white shadow-sm transition hover:bg-slate-800"
-                        >
-                          Save Packet
-                        </button>
-                        <a
-                          href="/tools/roofing?entry=manual#scope-inputs"
-                          className="inline-flex items-center justify-center rounded-xl border border-sky-200 bg-sky-50 px-4 py-2 text-[13px] font-semibold text-sky-900 shadow-sm transition hover:border-sky-300 hover:bg-sky-100"
-                        >
-                          Continue to Estimate
-                        </a>
-                      </div>
-                      <button
-                        type="button"
-                        disabled
-                        aria-label="Instant Estimate (coming soon)"
-                        className="inline-flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-[13px] font-semibold text-slate-400 shadow-inner sm:w-auto"
-                      >
-                        Instant Estimate <span className="text-[10px] font-bold uppercase tracking-wide">Soon</span>
-                      </button>
-                    </div>
+            <section className={standaloneRaisedPanel}>
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                  <Camera className="h-3.5 w-3.5 text-slate-500" aria-hidden />
+                  Photos &amp; evidence
+                </div>
+                <span className="rounded-full bg-slate-100/90 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500 shadow-sm ring-1 ring-slate-200/45">
+                  0 photos attached
+                </span>
+              </div>
+              <div className="flex min-h-[190px] flex-col items-center justify-center rounded-xl bg-slate-50/45 px-4 py-7 text-center ring-1 ring-dashed ring-slate-200/55">
+                <Camera className="mb-3 h-10 w-10 text-slate-300" aria-hidden />
+                <p className="text-sm font-medium text-slate-600">No photos attached yet</p>
+                <p className="mt-1 max-w-xs text-xs leading-relaxed text-slate-500">
+                  Ground photos, roof photos, and customer-provided images will attach here.
+                </p>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <span className="rounded-full bg-slate-100/90 px-2.5 py-1 text-[10px] font-medium text-slate-600 shadow-sm ring-1 ring-slate-200/40">Ground photos</span>
+                <span className="rounded-full bg-slate-100/90 px-2.5 py-1 text-[10px] font-medium text-slate-600 shadow-sm ring-1 ring-slate-200/40">Roof photos</span>
+                <span className="rounded-full bg-slate-100/90 px-2.5 py-1 text-[10px] font-medium text-slate-600 shadow-sm ring-1 ring-slate-200/40">Customer-provided</span>
+              </div>
+              <p className="mt-3 text-xs leading-relaxed text-slate-500">
+                Instant Estimate will require photos + property address.
+              </p>
+            </section>
+
+            <section className={standaloneRaisedPanel}>
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                  <ClipboardList className="h-3.5 w-3.5 text-slate-500" aria-hidden />
+                  Site visit
+                </div>
+                <span className="rounded-full bg-slate-100/90 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500 shadow-sm ring-1 ring-slate-200/45">
+                  Not scheduled
+                </span>
+              </div>
+              <p className="mt-2 text-xs text-slate-500">Scheduling will connect here when site visits are wired.</p>
+            </section>
+          </div>
+          ) : (
+          <aside
+            className={
+              isStandalone
+                ? "h-fit pt-1 lg:sticky lg:top-4 lg:border-l lg:border-slate-200/70 lg:pl-6"
+                : "h-fit rounded-lg border border-slate-200/80 bg-slate-50/40 p-3 lg:sticky lg:top-4"
+            }
+          >
+            <div className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-slate-500">Packet status</div>
+            <p className="mt-2 text-[11px] leading-snug text-slate-600">
+              {packetReadyCount} of {packetTotalCount} core details captured
+            </p>
+            <div className="mt-2 h-1 overflow-hidden rounded-full bg-slate-200/70">
+              <div
+                className="h-full rounded-full bg-emerald-500/90 transition-[width] duration-300"
+                style={{ width: `${packetProgressPct}%` }}
+                role="progressbar"
+                aria-valuenow={packetProgressPct}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label="Packet status progress"
+              />
+            </div>
+            <ul className="mt-3 space-y-1.5">
+              {packetReadinessRows.map((row) => (
+                <li key={row.id} className="flex items-start gap-2 text-[11px] leading-snug">
+                  <span
+                    className={
+                      "mt-0.5 shrink-0 " + (row.ready ? "font-semibold text-emerald-700" : "text-slate-400")
+                    }
+                    aria-hidden
+                  >
+                    {row.ready ? "✓" : "○"}
+                  </span>
+                  <span className={row.ready ? "text-slate-700" : "text-slate-500"}>{row.label}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-4 space-y-2 border-t border-slate-200/70 pt-3">
+              <p className="text-[11px] leading-relaxed text-slate-700">
+                {packetFactsComplete
+                  ? "Customer and property are captured. Continue to Manual Estimate to build scope and pricing."
+                  : "Complete customer and property details, then continue to Manual Estimate."}
+              </p>
+              <p className="text-[10.5px] leading-relaxed text-slate-500">
+                Instant Estimate will require photos + property address.
+              </p>
+            </div>
+          </aside>
+          )}
+        </div>
+
+        {/* Footer actions */}
+        <div
+          className={
+            isStandalone
+              ? "mt-5 flex flex-col gap-3 border-t border-slate-200/40 pt-5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between"
+              : "flex flex-col gap-3 border-t border-slate-100 px-3 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:px-4"
+          }
+        >
+          <div className="flex flex-wrap items-center gap-2">
+            <a
+              href="/tools/roofing?entry=manual#scope-inputs"
+              className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-900 bg-slate-900 px-4 py-2 text-[13px] font-semibold text-white shadow-sm transition hover:bg-slate-800"
+            >
+              {isStandalone ? "Continue to Manual Estimate" : "Continue to Estimate"}
+              <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+            </a>
+            <button
+              type="button"
+              disabled
+              aria-label="Draft save coming soon"
+              title="Draft save coming soon"
+              className="inline-flex cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-[13px] font-medium text-slate-400 shadow-inner"
+            >
+              Save Packet
+              <span className="text-[10px] font-bold uppercase tracking-wide">Soon</span>
+            </button>
+          </div>
+          <button
+            type="button"
+            disabled
+            aria-label="Instant Estimate (coming soon)"
+            className="inline-flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-[13px] font-semibold text-slate-400 shadow-inner sm:w-auto"
+          >
+            Instant Estimate <span className="text-[10px] font-bold uppercase tracking-wide">Soon</span>
+          </button>
+        </div>
+        </div>
       </div>
     );
   }
@@ -4193,16 +4401,16 @@ Thanks,`;
           )}
 
         {entryMode !== "manual" ? (
-          <>
+          <div className="w-full min-w-0 max-w-[96rem]">
             {entryMode === "instant" ? (
-              <div className="mb-4 rounded-lg border border-blue-100 bg-blue-50/80 px-4 py-3 text-sm text-slate-700">
+              <div className="mb-4 rounded-lg border border-sky-100/80 bg-sky-50/70 px-4 py-3 text-sm text-slate-700">
                 <span className="font-medium text-slate-900">Instant Estimate — coming soon.</span>
                 {" "}
-                Requires photos and a property address. Use Manual Estimate when you&apos;re ready to price.
+                Requires photos and a property address. Continue to Manual Estimate when you&apos;re ready to price.
               </div>
             ) : null}
-            {renderJobPacketWorkbench()}
-          </>
+            {renderJobPacketWorkbench("standalone", entryMode === "instant" ? "instant" : "packet")}
+          </div>
         ) : (
         <>
         <div className="px-3 pt-3 sm:px-4 sm:pt-3 xl:px-5 2xl:px-6">
