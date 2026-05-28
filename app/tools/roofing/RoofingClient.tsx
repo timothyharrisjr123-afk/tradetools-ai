@@ -645,6 +645,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
       : entryRaw === "instant"
         ? "instant"
         : "packet";
+  const legacyManual = searchParams.get("legacy") === "1";
   const [zipPresets, setZipPresets] = useState<ZipPresetsMap | null>(null);
   const [hasMounted, setHasMounted] = useState(false);
   const [restoreTick, setRestoreTick] = useState(0);
@@ -4230,189 +4231,10 @@ Thanks,`;
     );
   }
 
-  return (
-    <>
-      {toast !== null && (
-        <motion.div
-          role="status"
-          aria-live="polite"
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, ease: "easeOut" }}
-          className="fixed top-4 right-4 z-50 flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-lg"
-        >
-          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600" aria-hidden>
-            ✓
-          </span>
-          <span className="text-sm font-medium text-slate-800">{toast}</span>
-        </motion.div>
-      )}
 
-      <FieldDiveAppShell activeNav="newJob" activeSubId={entryMode}>
-        <button
-          type="button"
-          onClick={() => setShowV2Preview((v) => !v)}
-          className="sr-only"
-          aria-hidden
-          tabIndex={-1}
-        >
-          {showV2Preview ? "Close V2 Preview" : "Open V2 Preview"}
-        </button>
-
-        {showV2Preview ? (
-          <RoofingClientV2
-            companyId={companyId ?? ""}
-            mode="embedded"
-            viewModel={v2ViewModel}
-            customerName={customerName}
-            customerEmail={customerEmail}
-            customerPhone={customerPhone}
-            jobAddress1={jobAddress1}
-            jobCity={jobCity}
-            jobState={jobState}
-            jobZip={jobZip}
-            onCustomerNameChange={setCustomerName}
-            onCustomerEmailChange={(value) => {
-              setCustomerEmail(value);
-              setSendError("");
-            }}
-            onCustomerPhoneChange={setCustomerPhone}
-            onJobAddress1Change={setJobAddress1}
-            onJobAddress1Blur={(value) => {
-              const cleaned = value.replace(/\s+/g, " ").trim();
-              if (cleaned !== jobAddress1) setJobAddress1(cleaned);
-            }}
-            onJobCityChange={setJobCity}
-            onJobCityBlur={(value) => {
-              const cleaned = value
-                .replace(/[^a-zA-Z\s.'-]/g, "")
-                .replace(/\s+/g, " ")
-                .trim();
-              if (cleaned !== jobCity) setJobCity(cleaned);
-            }}
-            onJobStateChange={setJobState}
-            onJobStateBlur={(value) => {
-              const cleaned = value
-                .replace(/[^a-zA-Z]/g, "")
-                .toUpperCase()
-                .trim();
-              if (cleaned !== jobState) setJobState(cleaned);
-            }}
-            onJobZipChange={(value) => setJobZip(sanitizeZipInput(value))}
-            onJobZipBlur={() => {
-              const sanitized = sanitizeZipInput(jobZip);
-              if (sanitized !== jobZip) setJobZip(sanitized);
-              if (sanitized.length === 5) tryApplyZipPreset(sanitized);
-            }}
-            onJobZipEnter={() => {
-              const sanitized = sanitizeZipInput(jobZip);
-              if (sanitized !== jobZip) setJobZip(sanitized);
-              if (sanitized.length === 5) tryApplyZipPreset(sanitized);
-            }}
-            onPricingModeChange={setPricingMode}
-            onProposalTierChange={setRoofingTier}
-            marginValue={Number(margin) || 0}
-            onMarginChange={(pct) => setMargin(String(pct))}
-            onTearOffChange={setIncludeDebrisRemoval}
-            onMaterialDensityChange={setBundlesPerSquare}
-            onGuidedWalkabilityChange={setGuidedWalkable}
-            onPitchChange={setPitch}
-            onAreaChange={setArea}
-            onPreviewProposal={handlePreviewPdf}
-            onSaveEstimate={saveEstimate}
-            canSaveEstimate={canSave}
-            isSavingEstimate={isSaving}
-            onSendEstimate={handleSendEstimate}
-            canSendEstimate={Boolean(
-              (customerEmail || "").trim() && (jobAddress1 || "").trim() && !isLocked
-            )}
-            isSendingEstimate={isSending}
-            wasteValue={waste}
-            onWasteChange={setWaste}
-            bundleCostValue={bundleCost}
-            onBundleCostChange={setBundleCost}
-            dumpFeePerTonValue={dumpFeePerTon}
-            onDumpFeePerTonChange={setDumpFeePerTon}
-            laborModeValue="manual"
-            manualLaborTotalValue={laborCostRaw}
-            onManualLaborTotalChange={(value) => {
-              if (/^[0-9]*$/.test(value)) setLaborCostRaw(value);
-            }}
-            onManualLaborTotalBlur={() => {
-              const n = laborCostRaw.trim() === "" ? 0 : Number(laborCostRaw);
-              const safe = Number.isFinite(n) ? Math.round(n) : 0;
-              setLaborCostRaw(safe ? String(safe) : "");
-              setLaborCost(safe);
-            }}
-          />
-        ) : (
-          <>
-          <header className="sr-only">
-            <h1>New Roofing Job</h1>
-          </header>
-
-          <div className="sr-only">
-            <RoofingTabs active="estimate" />
-          </div>
-
-          {hasMounted && isLocked && (
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4">
-              <span className="font-medium text-amber-200">
-                {isScheduledLocked
-                  ? `Scheduled — locked${currentSaved?.scheduledStartDate ? ` (start ${currentSaved.scheduledStartDate})` : ""}`
-                  : "Approved — locked"}
-              </span>
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    const idToDup = currentLoadedSavedId ?? loadSavedId;
-                    if (!idToDup) return;
-                    setIsDuplicating(true);
-                    const newId = duplicateSavedEstimate(idToDup);
-                    if (!newId) {
-                      setIsDuplicating(false);
-                      return;
-                    }
-                    setCurrentLoadedSavedId(newId);
-                    loadAppliedRef.current = false;
-                    setToast("Revision created ✅");
-                    setTimeout(() => setToast(null), 2500);
-                    router.push(`/tools/roofing?loadSaved=${encodeURIComponent(newId)}`);
-                    setIsDuplicating(false);
-                  }}
-                  disabled={isDuplicating}
-                  className="shrink-0 rounded-full bg-amber-500 px-4 py-2 text-sm font-semibold text-black hover:bg-amber-400 disabled:opacity-70 disabled:cursor-not-allowed"
-                >
-                  {isDuplicating ? "Duplicating…" : "Duplicate to Revise"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCurrentLoadedSavedId(null);
-                    router.push("/tools/roofing");
-                  }}
-                  className="shrink-0 rounded-full border border-amber-400/30 bg-white/10 px-4 py-2 text-sm font-semibold text-amber-100 hover:bg-white/20"
-                >
-                  New Job
-                </button>
-              </div>
-            </div>
-          )}
-
-        {entryMode !== "manual" ? (
-          <div className="w-full min-w-0 max-w-[96rem]">
-            {entryMode === "instant" ? (
-              <div className="mb-4 rounded-lg border border-sky-100/80 bg-sky-50/70 px-4 py-3 text-sm text-slate-700">
-                <span className="font-medium text-slate-900">Instant Estimate — coming soon.</span>
-                {" "}
-                Requires photos and a property address. Continue to Manual Estimate when you&apos;re ready to price.
-              </div>
-            ) : null}
-            {renderJobPacketWorkbench("standalone", entryMode === "instant" ? "instant" : "packet")}
-          </div>
-        ) : (
-        <>
+  function renderLegacyEstimateWorkspace() {
+    return (
+      <>
         <div className="px-3 pt-3 sm:px-4 sm:pt-3 xl:px-5 2xl:px-6">
         <div className="relative overflow-hidden rounded-2xl border border-cyan-400/[0.20] bg-[#0b1526] px-5 py-3 shadow-[0_0_0_1px_rgba(34,211,238,0.06),0_16px_48px_-34px_rgba(34,211,238,0.40),inset_0_1px_0_rgba(255,255,255,0.065)] sm:px-6 sm:py-3.5 xl:px-7">
           <div className="pointer-events-none absolute inset-0" aria-hidden>
@@ -5914,7 +5736,809 @@ Thanks,`;
         </div>
         </div>
         </div>
-        </>
+      </>
+    );
+  }
+
+  function renderEstimateBuilderShell() {
+    const headerTitle =
+      (customerName || "").trim() || "New roofing estimate";
+    const addressParts = [jobAddress1, jobCity, jobState, jobZip]
+      .map((s) => (s || "").trim())
+      .filter(Boolean);
+    const addressLine = addressParts.join(", ");
+    const tierLabel =
+      roofingTier === "standard"
+        ? "Core"
+        : roofingTier === "enhanced"
+          ? "Enhanced"
+          : "Premium";
+    const estimateBuilderProfit = Math.max(
+      0,
+      Number(finalPrice) - Number(subtotal)
+    );
+    const estimateBuilderMarginPct =
+      pricingMode === "direct"
+        ? 0
+        : finalMarginNum;
+    const showDisposalRow =
+      includeDebrisRemoval && Number(effectiveDebrisRemovalCost) > 0;
+
+    return (
+      <div className="min-h-0 bg-slate-50 px-3 py-4 sm:px-5 sm:py-5 xl:px-6">
+        <div className="mx-auto max-w-6xl space-y-4">
+          <header className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                Estimate Builder
+              </p>
+              <h1 className="mt-0.5 truncate text-lg font-bold text-slate-900">
+                {headerTitle}
+              </h1>
+              {addressLine ? (
+                <p className="mt-0.5 flex items-center gap-1 text-sm text-slate-600">
+                  <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                  <span className="truncate">{addressLine}</span>
+                </p>
+              ) : null}
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold text-amber-800">
+                Draft
+              </span>
+              <a
+                href="/tools/roofing?entry=packet"
+                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-medium text-slate-700 transition hover:bg-slate-50"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
+                Job Packet
+              </a>
+            </div>
+          </header>
+
+          <div className="rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-600 shadow-sm">
+            <div className="flex flex-wrap gap-x-4 gap-y-1">
+              {customerEmail ? (
+                <span>
+                  <span className="text-slate-400">Email:</span> {customerEmail}
+                </span>
+              ) : null}
+              {customerPhone ? (
+                <span>
+                  <span className="text-slate-400">Phone:</span> {customerPhone}
+                </span>
+              ) : null}
+              {squares > 0 ? (
+                <span>
+                  <span className="text-slate-400">Roof:</span>{" "}
+                  {squares.toFixed(1)} sq
+                  {adjustedSquares > 0 && adjustedSquares !== squares
+                    ? ` (${adjustedSquares.toFixed(1)} w/ waste)`
+                    : ""}
+                </span>
+              ) : null}
+              <span>
+                <span className="text-slate-400">System:</span> {tierLabel}
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(17rem,20rem)] lg:items-start">
+            <div className="space-y-4">
+              <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                <h2 className="text-sm font-bold text-slate-900">
+                  Scope / Measurement
+                </h2>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  Roof size, waste, system tier, tear-off, and labor inputs.
+                </p>
+
+                <div className="mt-4 space-y-4">
+                  <div>
+                    <label
+                      htmlFor="eb-area"
+                      className="text-xs font-semibold text-slate-700"
+                    >
+                      Roof size (sq ft)
+                    </label>
+                    <div className="mt-1 flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 focus-within:border-slate-300 focus-within:ring-1 focus-within:ring-slate-200">
+                      <Ruler className="h-4 w-4 shrink-0 text-slate-400" aria-hidden />
+                      <input
+                        id="eb-area"
+                        type="number"
+                        inputMode="decimal"
+                        min={0}
+                        step={1}
+                        value={area ?? ""}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setArea(v.trim() === "" ? "" : String(Number(v) || 0));
+                        }}
+                        disabled={isLocked}
+                        placeholder="e.g. 2400"
+                        className="min-w-0 flex-1 border-0 bg-transparent text-sm text-slate-900 outline-none [appearance:textfield] disabled:opacity-60"
+                      />
+                    </div>
+                    {squares > 0 ? (
+                      <p className="mt-1 text-xs text-slate-500 tabular-nums">
+                        ≈ {squares.toFixed(1)} squares
+                        {adjustedSquares > 0
+                          ? ` · ${adjustedSquares.toFixed(1)} adjusted`
+                          : ""}
+                      </p>
+                    ) : null}
+                  </div>
+
+                  <div>
+                    <span className="text-xs font-semibold text-slate-700">
+                      Waste factor
+                    </span>
+                    <div className="mt-2 grid grid-cols-3 gap-2">
+                      {ROOFING_WASTE_PRESETS.map((opt) => {
+                        const selected =
+                          waste.trim() !== "" &&
+                          Number.isFinite(parseFloat(waste)) &&
+                          Math.abs(parseFloat(waste) - opt.pct) < 0.0001;
+                        return (
+                          <button
+                            key={opt.pct}
+                            type="button"
+                            disabled={isLocked}
+                            onClick={() => setWaste(String(opt.pct))}
+                            className={`rounded-lg border px-2 py-2 text-left text-xs transition disabled:opacity-50 ${
+                              selected
+                                ? "border-sky-500 bg-sky-50 text-sky-900"
+                                : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                            }`}
+                          >
+                            <div className="font-semibold">{opt.label}</div>
+                            <div className="text-sm font-bold tabular-nums">
+                              {opt.pct}%
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div>
+                    <span className="text-xs font-semibold text-slate-700">
+                      Roofing system
+                    </span>
+                    <div className="mt-2 grid grid-cols-3 gap-2">
+                      {(["standard", "enhanced", "premium"] as const).map(
+                        (option) => {
+                          const selected = roofingTier === option;
+                          const label =
+                            option === "standard"
+                              ? "Core"
+                              : option === "enhanced"
+                                ? "Enhanced"
+                                : "Premium";
+                          return (
+                            <button
+                              key={option}
+                              type="button"
+                              disabled={isLocked}
+                              onClick={() => setRoofingTier(option)}
+                              className={`rounded-lg border px-2 py-2 text-xs font-semibold transition disabled:opacity-50 ${
+                                selected
+                                  ? "border-emerald-500 bg-emerald-50 text-emerald-900"
+                                  : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                              }`}
+                            >
+                              {label}
+                            </button>
+                          );
+                        }
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
+                    <label
+                      htmlFor="eb-bundleCost"
+                      className="text-xs font-semibold text-slate-700"
+                    >
+                      Bundle cost
+                    </label>
+                    <div className="flex min-w-[8rem] flex-1 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1.5">
+                      <DollarSign className="h-3.5 w-3.5 text-slate-400" aria-hidden />
+                      <input
+                        id="eb-bundleCost"
+                        type="number"
+                        inputMode="decimal"
+                        min={0}
+                        step="0.01"
+                        value={bundleCost}
+                        onChange={(e) => setBundleCost(e.target.value)}
+                        disabled={isLocked}
+                        className="min-w-0 flex-1 border-0 bg-transparent text-sm outline-none disabled:opacity-60 [appearance:textfield]"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg border border-slate-100 p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <div className="text-xs font-semibold text-slate-800">
+                          Tear-off &amp; disposal
+                        </div>
+                        <div className="text-[11px] text-slate-500">
+                          {includeDebrisRemoval
+                            ? "Included in job cost"
+                            : "Not included"}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={includeDebrisRemoval}
+                        disabled={isLocked}
+                        onClick={() => setIncludeDebrisRemoval((v) => !v)}
+                        className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border transition disabled:opacity-50 ${
+                          includeDebrisRemoval
+                            ? "border-emerald-400 bg-emerald-100"
+                            : "border-slate-300 bg-slate-200"
+                        }`}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 rounded-full bg-white shadow transition ${
+                            includeDebrisRemoval
+                              ? "translate-x-6"
+                              : "translate-x-1"
+                          }`}
+                        />
+                      </button>
+                    </div>
+                    {includeDebrisRemoval ? (
+                      <div className="mt-3 grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
+                            Removal type
+                          </label>
+                          <select
+                            value={removalType}
+                            onChange={(e) =>
+                              setRemovalType(
+                                e.target.value as "standard" | "architectural"
+                              )
+                            }
+                            disabled={isLocked}
+                            className="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs disabled:opacity-50"
+                          >
+                            <option value="standard">Standard</option>
+                            <option value="architectural">Architectural</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
+                            Disposal $/ton
+                          </label>
+                          <input
+                            value={dumpFeePerTon}
+                            onChange={(e) => setDumpFeePerTon(e.target.value)}
+                            inputMode="decimal"
+                            disabled={isLocked}
+                            placeholder="e.g. 80"
+                            className="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs disabled:opacity-50"
+                          />
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div className="rounded-lg border border-slate-100 p-3">
+                    <div className="text-xs font-semibold text-slate-800">
+                      Labor
+                    </div>
+                    <div className="mt-2 flex gap-2">
+                      <button
+                        type="button"
+                        disabled={isLocked}
+                        onClick={switchToGuided}
+                        className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition disabled:opacity-50 ${
+                          laborMode === "guided"
+                            ? "border-sky-500 bg-sky-50 text-sky-900"
+                            : "border-slate-200 text-slate-600"
+                        }`}
+                      >
+                        Guided
+                      </button>
+                      <button
+                        type="button"
+                        disabled={isLocked}
+                        onClick={switchToManual}
+                        className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition disabled:opacity-50 ${
+                          laborMode === "manual"
+                            ? "border-sky-500 bg-sky-50 text-sky-900"
+                            : "border-slate-200 text-slate-600"
+                        }`}
+                      >
+                        Manual
+                      </button>
+                    </div>
+                    {laborMode === "guided" ? (
+                      <div className="mt-2">
+                        <label className="text-[10px] font-medium text-slate-500">
+                          Base labor $/square
+                        </label>
+                        <input
+                          type="number"
+                          min={0}
+                          value={guidedLaborBasePerSquare}
+                          onChange={(e) =>
+                            setGuidedLaborBasePerSquare(
+                              clampInt(
+                                Number(e.target.value) || 0,
+                                BASE_PER_SQ_MIN,
+                                BASE_PER_SQ_MAX
+                              )
+                            )
+                          }
+                          disabled={isLocked}
+                          className="mt-1 w-full max-w-[10rem] rounded-lg border border-slate-200 px-2 py-1.5 text-sm disabled:opacity-50"
+                        />
+                      </div>
+                    ) : (
+                      <div className="mt-2">
+                        <label className="text-[10px] font-medium text-slate-500">
+                          Labor total ($)
+                        </label>
+                        <input
+                          type="number"
+                          value={laborCostRaw}
+                          onChange={(e) => {
+                            const next = e.target.value;
+                            if (/^[0-9]*$/.test(next)) setLaborCostRaw(next);
+                          }}
+                          onBlur={() => {
+                            const n =
+                              laborCostRaw.trim() === ""
+                                ? 0
+                                : Number(laborCostRaw);
+                            const safe = Number.isFinite(n) ? Math.round(n) : 0;
+                            setLaborCostRaw(safe ? String(safe) : "");
+                            setLaborCost(safe);
+                          }}
+                          disabled={isLocked}
+                          placeholder="0"
+                          className="mt-1 w-full max-w-[10rem] rounded-lg border border-slate-200 px-2 py-1.5 text-sm disabled:opacity-50"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </section>
+
+              <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                <h2 className="text-sm font-bold text-slate-900">
+                  Estimate Items
+                </h2>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  Derived from your pricing engine (read-only).
+                </p>
+                <ul className="mt-3 divide-y divide-slate-100 rounded-lg border border-slate-100">
+                  <li className="flex items-center justify-between gap-2 px-3 py-2.5 text-sm">
+                    <span className="text-slate-700">Materials</span>
+                    <span className="font-semibold tabular-nums text-slate-900">
+                      {canCompute
+                        ? formatCurrency(materialsCost)
+                        : "—"}
+                    </span>
+                  </li>
+                  <li className="flex items-center justify-between gap-2 px-3 py-2.5 text-sm">
+                    <span className="text-slate-700">Labor</span>
+                    <span className="font-semibold tabular-nums text-slate-900">
+                      {canCompute
+                        ? formatCurrency(laborCostEffective)
+                        : "—"}
+                    </span>
+                  </li>
+                  {showDisposalRow ? (
+                    <li className="flex items-center justify-between gap-2 px-3 py-2.5 text-sm">
+                      <span className="text-slate-700">Disposal / Debris</span>
+                      <span className="font-semibold tabular-nums text-slate-900">
+                        {formatCurrency(effectiveDebrisRemovalCost)}
+                      </span>
+                    </li>
+                  ) : null}
+                </ul>
+              </section>
+
+              {estimateReviewItems.length > 0 ? (
+                <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <h2 className="text-sm font-bold text-slate-900">
+                    Estimate QA
+                  </h2>
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    Quick checks — does not block saving.
+                  </p>
+                  <ul className="mt-3 space-y-2">
+                    {estimateReviewItems.map((it, idx) => (
+                      <li
+                        key={idx}
+                        className="flex items-start gap-2 text-sm text-slate-700"
+                      >
+                        <span
+                          className={`mt-0.5 shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                            it.tone === "headsUp"
+                              ? "bg-amber-100 text-amber-800"
+                              : "bg-slate-100 text-slate-600"
+                          }`}
+                        >
+                          {it.tone === "headsUp" ? "Heads-up" : "FYI"}
+                        </span>
+                        <span>{it.text}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              ) : null}
+            </div>
+
+            <aside className="lg:sticky lg:top-3 lg:self-start">
+              <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                <h2 className="text-sm font-bold text-slate-900">Totals</h2>
+                <dl className="space-y-2 text-sm">
+                  <div className="flex justify-between gap-2">
+                    <dt className="text-slate-500">Customer Price</dt>
+                    <dd className="font-bold tabular-nums text-slate-900">
+                      {finalPriceDisplay}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-2">
+                    <dt className="text-slate-500">Job Cost</dt>
+                    <dd className="font-semibold tabular-nums text-slate-800">
+                      {canCompute ? formatCurrency(subtotal) : "—"}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-2">
+                    <dt className="text-slate-500">Profit</dt>
+                    <dd className="font-semibold tabular-nums text-emerald-700">
+                      {canCompute
+                        ? formatCurrency(estimateBuilderProfit)
+                        : "—"}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-2">
+                    <dt className="text-slate-500">Margin</dt>
+                    <dd className="font-semibold tabular-nums text-slate-800">
+                      {canCompute ? `${estimateBuilderMarginPct}%` : "—"}
+                    </dd>
+                  </div>
+                </dl>
+
+                <div className="border-t border-slate-100 pt-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-semibold text-slate-700">
+                      Pricing
+                    </span>
+                    <button
+                      type="button"
+                      disabled={isLocked}
+                      onClick={() =>
+                        setPricingMode(pricingMode === "direct" ? "markup" : "direct")
+                      }
+                      className="rounded-md border border-slate-200 px-2 py-0.5 text-[10px] font-semibold uppercase text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                    >
+                      {pricingMode === "direct" ? "Direct cost" : "Markup"}
+                    </button>
+                  </div>
+                  {pricingMode !== "direct" ? (
+                    <>
+                      <div className="mt-2 flex items-center gap-1">
+                        <input
+                          type="number"
+                          value={finalMarginNum}
+                          onChange={(e) => setMargin(e.target.value)}
+                          disabled={isLocked}
+                          className="w-14 rounded-lg border border-slate-200 px-2 py-1 text-right text-sm font-bold tabular-nums disabled:opacity-50"
+                        />
+                        <span className="text-sm font-semibold text-slate-600">
+                          %
+                        </span>
+                      </div>
+                      <div className="mt-2 grid grid-cols-3 gap-1.5">
+                        {(
+                          [
+                            { label: "Aggressive", value: 15 },
+                            { label: "Competitive", value: 20 },
+                            { label: "Retail", value: 25 },
+                          ] as const
+                        ).map((option) => {
+                          const isActive = finalMarginNum === option.value;
+                          return (
+                            <button
+                              key={option.value}
+                              type="button"
+                              disabled={isLocked}
+                              onClick={() => setMargin(String(option.value))}
+                              className={`rounded-md border px-1.5 py-1.5 text-center text-[10px] transition disabled:opacity-50 ${
+                                isActive
+                                  ? "border-sky-500 bg-sky-50 text-sky-900"
+                                  : "border-slate-200 text-slate-600 hover:border-slate-300"
+                              }`}
+                            >
+                              <div className="font-semibold">{option.label}</div>
+                              <div className="font-bold tabular-nums">
+                                {option.value}%
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </>
+                  ) : (
+                    <p className="mt-2 text-xs text-slate-500">
+                      Direct cost mode — price equals job cost.
+                    </p>
+                  )}
+                </div>
+
+                <div className="border-t border-slate-100 pt-3">
+                  <p className="text-xs font-semibold text-slate-700">
+                    Pre-flight
+                  </p>
+                  <ul className="mt-2 space-y-1 text-xs">
+                    <li
+                      className={
+                        hasCustomerEmail ? "text-emerald-700" : "text-slate-500"
+                      }
+                    >
+                      {hasCustomerEmail ? "✓" : "○"} Customer email
+                    </li>
+                    <li
+                      className={
+                        hasRoofArea ? "text-emerald-700" : "text-slate-500"
+                      }
+                    >
+                      {hasRoofArea ? "✓" : "○"} Roof size
+                    </li>
+                    <li
+                      className={hasPrice ? "text-emerald-700" : "text-slate-500"}
+                    >
+                      {hasPrice ? "✓" : "○"} Price calculated
+                    </li>
+                  </ul>
+                </div>
+
+                <button
+                  type="button"
+                  disabled
+                  title="Proposal Review — coming next"
+                  className="mt-1 w-full rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white opacity-60"
+                >
+                  Review Proposal →
+                </button>
+
+                <div className="flex flex-col gap-2 border-t border-slate-100 pt-3">
+                  <motion.button
+                    type="button"
+                    onClick={saveEstimate}
+                    disabled={!canSave || isSaving || isLocked}
+                    className={`inline-flex w-full items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                      savedFlash
+                        ? "border-emerald-300 bg-emerald-50 text-emerald-800"
+                        : "border-slate-200 bg-white text-slate-800 hover:bg-slate-50"
+                    }`}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <Save className="h-4 w-4" aria-hidden />
+                    {isSaving ? "Saving…" : savedFlash ? "Saved" : "Save Draft"}
+                  </motion.button>
+                  <button
+                    type="button"
+                    onClick={handlePreviewPdf}
+                    disabled={isPreviewingPdf || isLocked}
+                    className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                  >
+                    <Eye className="h-4 w-4" aria-hidden />
+                    {isPreviewingPdf ? "Opening…" : "Preview draft PDF"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onDownloadPdf}
+                    disabled={isLocked}
+                    className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                  >
+                    <Download className="h-4 w-4" aria-hidden />
+                    Download PDF
+                  </button>
+                </div>
+              </div>
+            </aside>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {toast !== null && (
+        <motion.div
+          role="status"
+          aria-live="polite"
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, ease: "easeOut" }}
+          className="fixed top-4 right-4 z-50 flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-lg"
+        >
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600" aria-hidden>
+            ✓
+          </span>
+          <span className="text-sm font-medium text-slate-800">{toast}</span>
+        </motion.div>
+      )}
+
+      <FieldDiveAppShell activeNav="newJob" activeSubId={entryMode}>
+        <button
+          type="button"
+          onClick={() => setShowV2Preview((v) => !v)}
+          className="sr-only"
+          aria-hidden
+          tabIndex={-1}
+        >
+          {showV2Preview ? "Close V2 Preview" : "Open V2 Preview"}
+        </button>
+
+        {showV2Preview ? (
+          <RoofingClientV2
+            companyId={companyId ?? ""}
+            mode="embedded"
+            viewModel={v2ViewModel}
+            customerName={customerName}
+            customerEmail={customerEmail}
+            customerPhone={customerPhone}
+            jobAddress1={jobAddress1}
+            jobCity={jobCity}
+            jobState={jobState}
+            jobZip={jobZip}
+            onCustomerNameChange={setCustomerName}
+            onCustomerEmailChange={(value) => {
+              setCustomerEmail(value);
+              setSendError("");
+            }}
+            onCustomerPhoneChange={setCustomerPhone}
+            onJobAddress1Change={setJobAddress1}
+            onJobAddress1Blur={(value) => {
+              const cleaned = value.replace(/\s+/g, " ").trim();
+              if (cleaned !== jobAddress1) setJobAddress1(cleaned);
+            }}
+            onJobCityChange={setJobCity}
+            onJobCityBlur={(value) => {
+              const cleaned = value
+                .replace(/[^a-zA-Z\s.'-]/g, "")
+                .replace(/\s+/g, " ")
+                .trim();
+              if (cleaned !== jobCity) setJobCity(cleaned);
+            }}
+            onJobStateChange={setJobState}
+            onJobStateBlur={(value) => {
+              const cleaned = value
+                .replace(/[^a-zA-Z]/g, "")
+                .toUpperCase()
+                .trim();
+              if (cleaned !== jobState) setJobState(cleaned);
+            }}
+            onJobZipChange={(value) => setJobZip(sanitizeZipInput(value))}
+            onJobZipBlur={() => {
+              const sanitized = sanitizeZipInput(jobZip);
+              if (sanitized !== jobZip) setJobZip(sanitized);
+              if (sanitized.length === 5) tryApplyZipPreset(sanitized);
+            }}
+            onJobZipEnter={() => {
+              const sanitized = sanitizeZipInput(jobZip);
+              if (sanitized !== jobZip) setJobZip(sanitized);
+              if (sanitized.length === 5) tryApplyZipPreset(sanitized);
+            }}
+            onPricingModeChange={setPricingMode}
+            onProposalTierChange={setRoofingTier}
+            marginValue={Number(margin) || 0}
+            onMarginChange={(pct) => setMargin(String(pct))}
+            onTearOffChange={setIncludeDebrisRemoval}
+            onMaterialDensityChange={setBundlesPerSquare}
+            onGuidedWalkabilityChange={setGuidedWalkable}
+            onPitchChange={setPitch}
+            onAreaChange={setArea}
+            onPreviewProposal={handlePreviewPdf}
+            onSaveEstimate={saveEstimate}
+            canSaveEstimate={canSave}
+            isSavingEstimate={isSaving}
+            onSendEstimate={handleSendEstimate}
+            canSendEstimate={Boolean(
+              (customerEmail || "").trim() && (jobAddress1 || "").trim() && !isLocked
+            )}
+            isSendingEstimate={isSending}
+            wasteValue={waste}
+            onWasteChange={setWaste}
+            bundleCostValue={bundleCost}
+            onBundleCostChange={setBundleCost}
+            dumpFeePerTonValue={dumpFeePerTon}
+            onDumpFeePerTonChange={setDumpFeePerTon}
+            laborModeValue="manual"
+            manualLaborTotalValue={laborCostRaw}
+            onManualLaborTotalChange={(value) => {
+              if (/^[0-9]*$/.test(value)) setLaborCostRaw(value);
+            }}
+            onManualLaborTotalBlur={() => {
+              const n = laborCostRaw.trim() === "" ? 0 : Number(laborCostRaw);
+              const safe = Number.isFinite(n) ? Math.round(n) : 0;
+              setLaborCostRaw(safe ? String(safe) : "");
+              setLaborCost(safe);
+            }}
+          />
+        ) : (
+          <>
+          <header className="sr-only">
+            <h1>New Roofing Job</h1>
+          </header>
+
+          <div className="sr-only">
+            <RoofingTabs active="estimate" />
+          </div>
+
+          {hasMounted && isLocked && (
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4">
+              <span className="font-medium text-amber-200">
+                {isScheduledLocked
+                  ? `Scheduled — locked${currentSaved?.scheduledStartDate ? ` (start ${currentSaved.scheduledStartDate})` : ""}`
+                  : "Approved — locked"}
+              </span>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const idToDup = currentLoadedSavedId ?? loadSavedId;
+                    if (!idToDup) return;
+                    setIsDuplicating(true);
+                    const newId = duplicateSavedEstimate(idToDup);
+                    if (!newId) {
+                      setIsDuplicating(false);
+                      return;
+                    }
+                    setCurrentLoadedSavedId(newId);
+                    loadAppliedRef.current = false;
+                    setToast("Revision created ✅");
+                    setTimeout(() => setToast(null), 2500);
+                    router.push(`/tools/roofing?loadSaved=${encodeURIComponent(newId)}`);
+                    setIsDuplicating(false);
+                  }}
+                  disabled={isDuplicating}
+                  className="shrink-0 rounded-full bg-amber-500 px-4 py-2 text-sm font-semibold text-black hover:bg-amber-400 disabled:opacity-70 disabled:cursor-not-allowed"
+                >
+                  {isDuplicating ? "Duplicating…" : "Duplicate to Revise"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCurrentLoadedSavedId(null);
+                    router.push("/tools/roofing");
+                  }}
+                  className="shrink-0 rounded-full border border-amber-400/30 bg-white/10 px-4 py-2 text-sm font-semibold text-amber-100 hover:bg-white/20"
+                >
+                  New Job
+                </button>
+              </div>
+            </div>
+          )}
+
+        {entryMode !== "manual" ? (
+          <div className="w-full min-w-0 max-w-[96rem]">
+            {entryMode === "instant" ? (
+              <div className="mb-4 rounded-lg border border-sky-100/80 bg-sky-50/70 px-4 py-3 text-sm text-slate-700">
+                <span className="font-medium text-slate-900">Instant Estimate — coming soon.</span>
+                {" "}
+                Requires photos and a property address. Continue to Manual Estimate when you&apos;re ready to price.
+              </div>
+            ) : null}
+            {renderJobPacketWorkbench("standalone", entryMode === "instant" ? "instant" : "packet")}
+          </div>
+        ) : legacyManual ? (
+          renderLegacyEstimateWorkspace()
+        ) : (
+          renderEstimateBuilderShell()
         )}
           </>
         )}
