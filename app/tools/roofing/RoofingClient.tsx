@@ -5741,12 +5741,6 @@ Thanks,`;
   }
 
   function renderEstimateBuilderShell() {
-    const headerTitle = (customerName || "").trim() || "New Estimate";
-    const addressParts = [jobAddress1, jobCity, jobState, jobZip]
-      .map((s) => (s || "").trim())
-      .filter(Boolean);
-    const addressLine = addressParts.join(", ");
-
     const tierLabel =
       roofingTier === "standard"
         ? "Core"
@@ -5754,14 +5748,17 @@ Thanks,`;
           ? "Enhanced"
           : "Premium";
 
+    const templateLabel = `${tierLabel} Roofing System`;
     const ebProfit = Math.max(0, Number(finalPrice) - Number(subtotal));
     const ebMarginPct = pricingMode === "direct" ? 0 : finalMarginNum;
+    const hasMeasurements = squares > 0;
+    const hasEstimateTotal = canCompute && hasPrice;
 
     const roofSqDisplay =
       squares > 0
         ? adjustedSquares > 0 && adjustedSquares !== squares
-          ? `${squares.toFixed(1)} sq / ${adjustedSquares.toFixed(1)} adj`
-          : `${squares.toFixed(1)} sq`
+          ? `${squares.toFixed(1)} SQ / ${adjustedSquares.toFixed(1)} adj`
+          : `${squares.toFixed(1)} SQ`
         : "Not measured";
 
     const wasteDisplay =
@@ -5769,900 +5766,1054 @@ Thanks,`;
         ? `${parseFloat(waste)}%`
         : "Not set";
 
-    const laborQty =
-      laborMode === "manual"
-        ? "Per job"
-        : adjustedSquares > 0
-          ? `${adjustedSquares.toFixed(1)} sq`
-          : "Pending";
-
     const disposalAmt = includeDebrisRemoval ? Number(effectiveDebrisRemovalCost) || 0 : 0;
 
-    const disposalTonDisplay =
-      includeDebrisRemoval && debrisTons > 0
-        ? `${debrisTons.toFixed(2)} ton`
-        : includeDebrisRemoval
-          ? "Included"
-          : "Off";
+    const bundleCostNum = parseFloat(bundleCost);
+    const bundleCostDisplay =
+      bundleCost.trim() !== "" && Number.isFinite(bundleCostNum)
+        ? formatCurrency(bundleCostNum)
+        : "—";
 
-    const moneyOrDash = (value: number) =>
-      canCompute ? formatCurrency(value) : "—";
+    const moneyOrDash = (value: number) => (canCompute ? formatCurrency(value) : "—");
+    const sectionTotal = (value: number) => (canCompute ? formatCurrency(value) : "—");
 
-    const soonBadge =
-      "inline-flex items-center rounded-full bg-slate-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-slate-500";
+    type RowTone = "derived" | "manual" | "included" | "needs" | "off" | "neutral" | "pricebook";
 
-    const lockedUtility =
-      "inline-flex items-center gap-1.5 rounded-full border border-dashed border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-500 shadow-sm";
+    type EditorRow = {
+      item: string;
+      mapping: string;
+      source: string;
+      tone: RowTone;
+      unitType: string;
+      unitCost: string;
+      qty: string;
+      waste: string;
+      margin: string;
+      total: string;
+    };
 
-    const estimateSection =
-      "overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm ring-1 ring-slate-900/[0.03]";
+    const sourceToneClass = (tone: RowTone) => {
+      if (tone === "pricebook") return "text-sky-600/90";
+      if (tone === "derived") return "text-slate-500";
+      if (tone === "manual") return "text-slate-500";
+      if (tone === "included") return "text-slate-500";
+      if (tone === "needs") return "text-slate-400";
+      if (tone === "off") return "text-slate-400";
+      return "text-slate-500";
+    };
 
-    const estimateSectionHeader =
-      "flex items-center justify-between gap-4 border-b border-slate-200 bg-gradient-to-r from-slate-50 via-white to-white px-5 py-4";
+    const rowMarginDisplay = (priced: boolean) => {
+      if (!priced) return "—";
+      if (pricingMode === "direct") return "0%";
+      return `${ebMarginPct}%`;
+    };
 
-    const tableHeader =
-      "grid grid-cols-[minmax(0,1fr)_8rem_9rem] border-b border-slate-100 bg-slate-50/70 px-5 py-2.5 text-[11px] font-bold uppercase tracking-wider text-slate-500";
+    const rowWasteDisplay = (usesGlobalWaste: boolean) => {
+      if (!usesGlobalWaste) return "—";
+      return wasteDisplay !== "Not set" ? wasteDisplay : "—";
+    };
 
-    const itemRow =
-      "grid grid-cols-[minmax(0,1fr)_8rem_9rem] items-center px-5 py-5";
+    const catalogMarginDisplay =
+      pricingMode === "direct" ? "0%" : `${ebMarginPct}%`;
+    const templateWasteForRows = rowWasteDisplay(hasMeasurements);
+    const profitabilityTypeLabel = pricingMode === "direct" ? "Direct" : "Markup";
 
-    const itemTitle = "text-base font-bold tracking-tight text-slate-950";
-    const itemMeta = "mt-1 text-xs leading-relaxed text-slate-500";
-    const itemQty = "text-right text-sm font-semibold tabular-nums text-slate-600";
-    const itemTotal = "text-right text-lg font-black tabular-nums text-slate-950";
-
+    const rowGridTemplate =
+      "grid grid-cols-[minmax(14rem,1.35fr)_5.25rem_5rem_4rem_4rem_4.25rem_5rem_2rem] items-center gap-2";
+    const sectionCard =
+      "overflow-hidden rounded-md border border-slate-200/80 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]";
+    const rowGrid = `${rowGridTemplate} border-b border-slate-100 px-4 py-3 last:border-b-0`;
+    const colHead = `${rowGridTemplate} border-b border-slate-200/70 bg-slate-50/70 px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500`;
+    const controlCell =
+      "flex h-[34px] w-full items-center justify-end rounded-md border border-slate-200 bg-white px-2.5 text-sm font-medium tabular-nums text-slate-900";
+    const controlCellText =
+      "flex h-[34px] w-full items-center justify-center rounded-md border border-slate-200 bg-white px-2.5 text-sm font-medium text-slate-800";
+    const controlCellMuted =
+      "flex h-[34px] w-full items-center justify-center rounded-md border border-dashed border-slate-200/80 bg-slate-50/60 px-2.5 text-sm font-normal tabular-nums text-slate-400";
     const settingsSummary =
-      "flex cursor-pointer list-none items-center gap-2 border-t border-slate-100 bg-slate-50/70 px-5 py-3 text-xs font-semibold text-slate-600 transition hover:bg-slate-100/70 [&::-webkit-details-marker]:hidden";
-
-    const settingsBody =
-      "border-t border-slate-100 bg-white px-5 py-4";
-
+      "flex cursor-pointer list-none items-center gap-1.5 border-t border-slate-100 px-5 py-2.5 text-sm font-medium text-slate-500 transition hover:bg-slate-50 [&::-webkit-details-marker]:hidden";
+    const settingsBody = "border-t border-slate-100 bg-slate-50/50 px-5 py-4";
     const inputShell =
-      "rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm focus-within:border-sky-400 focus-within:ring-2 focus-within:ring-sky-100";
-
+      "rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 focus-within:border-sky-400 focus-within:ring-2 focus-within:ring-sky-100";
     const inputClass =
       "w-full border-0 bg-transparent text-sm font-medium text-slate-900 outline-none placeholder:text-slate-400 disabled:opacity-50 [appearance:textfield]";
+    const settingsModule =
+      "rounded-md border border-slate-100 bg-slate-50/40 px-3 py-2.5";
+    const settingsModuleLabel =
+      "mb-1 text-[10px] font-medium uppercase tracking-wide text-slate-400";
+    const settingsRow =
+      "flex items-center justify-between gap-2 py-0.5 text-[11px] last:pb-0";
+    const settingsRowLabel = "font-normal text-slate-400";
+    const settingsRowValue = "text-right text-slate-600";
+    const priceModule =
+      "rounded-md border border-slate-200 bg-white px-3.5 py-3 shadow-[0_1px_3px_rgba(15,23,42,0.06)]";
+    const priceModuleLabel =
+      "mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600";
+    const profitabilityModule =
+      "overflow-hidden rounded-md border border-slate-200/80 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]";
+    const profitabilitySummary =
+      "flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2.5 text-xs transition hover:bg-slate-50/80 [&::-webkit-details-marker]:hidden";
+    const profitabilityBody = "border-t border-slate-100 px-3 py-2.5";
+    const drawerAction =
+      "inline-flex w-full items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-800 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50";
+    const drawerActionPrimary =
+      "inline-flex w-full items-center justify-center gap-2 rounded-md border border-slate-800 bg-slate-800 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50";
+    const contextStrip =
+      "mt-3 flex flex-wrap items-center gap-x-7 gap-y-2 rounded-md bg-slate-50 px-3 py-3 text-[13px] text-slate-600";
+    const toolbarAction =
+      "inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50";
+    const toolbarActionPrimary =
+      "inline-flex items-center gap-1.5 rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50";
+
+    const sqQty =
+      hasMeasurements
+        ? `${adjustedSquares > 0 ? adjustedSquares.toFixed(1) : squares.toFixed(1)}`
+        : "—";
+
+    const materialRows: EditorRow[] = [
+      {
+        item: "Architectural shingles",
+        mapping: `${tierLabel} system · Price book`,
+        source: "Price book",
+        tone: "pricebook",
+        unitType: "SQ",
+        unitCost: bundleCostDisplay,
+        qty: sqQty,
+        waste: rowWasteDisplay(true),
+        margin: rowMarginDisplay(canCompute),
+        total: canCompute ? formatCurrency(materialsCost) : "—",
+      },
+      {
+        item: "Synthetic underlayment",
+        mapping: hasMeasurements ? "Template item · Roof deck" : "Template item",
+        source: hasMeasurements ? "Template item" : "Needs measurement",
+        tone: hasMeasurements ? "included" : "needs",
+        unitType: "Roll",
+        unitCost: hasMeasurements ? "Included" : "—",
+        qty: hasMeasurements ? sqQty : "—",
+        waste: templateWasteForRows,
+        margin: hasMeasurements ? catalogMarginDisplay : "—",
+        total: "Included",
+      },
+      {
+        item: "Starter strip",
+        mapping: "Template item · Eave & rake",
+        source: hasMeasurements ? "Template item" : "Needs measurement",
+        tone: hasMeasurements ? "included" : "needs",
+        unitType: "LF",
+        unitCost: hasMeasurements ? "Included" : "—",
+        qty: hasMeasurements ? "Est." : "—",
+        waste: hasMeasurements ? templateWasteForRows : "—",
+        margin: hasMeasurements ? catalogMarginDisplay : "—",
+        total: "Included",
+      },
+      {
+        item: "Ridge cap shingles",
+        mapping: "Template item · Hip & ridge",
+        source: hasMeasurements ? "Template item" : "Needs measurement",
+        tone: hasMeasurements ? "included" : "needs",
+        unitType: "LF",
+        unitCost: hasMeasurements ? "Included" : "—",
+        qty: hasMeasurements ? "Est." : "—",
+        waste: hasMeasurements ? templateWasteForRows : "—",
+        margin: hasMeasurements ? catalogMarginDisplay : "—",
+        total: "Included",
+      },
+      {
+        item: "Ice & water shield",
+        mapping: "Template item · Valleys & eaves",
+        source: hasMeasurements ? "Template item" : "Needs measurement",
+        tone: hasMeasurements ? "included" : "needs",
+        unitType: "Allowance",
+        unitCost: hasMeasurements ? "Included" : "—",
+        qty: hasMeasurements ? "1" : "—",
+        waste: hasMeasurements ? templateWasteForRows : "—",
+        margin: hasMeasurements ? catalogMarginDisplay : "—",
+        total: "Included",
+      },
+      {
+        item: "Drip edge",
+        mapping: "Template item · Edge flashing",
+        source: hasMeasurements ? "Template item" : "Needs measurement",
+        tone: hasMeasurements ? "included" : "needs",
+        unitType: "LF",
+        unitCost: hasMeasurements ? "Included" : "—",
+        qty: hasMeasurements ? "Est." : "—",
+        waste: hasMeasurements ? templateWasteForRows : "—",
+        margin: hasMeasurements ? catalogMarginDisplay : "—",
+        total: "Included",
+      },
+    ];
+
+    const accessoryRows: EditorRow[] = [
+      {
+        item: "Pipe boots / vents",
+        mapping: "Template item · Penetrations",
+        source: hasMeasurements ? "Template item" : "Needs measurement",
+        tone: hasMeasurements ? "included" : "needs",
+        unitType: "Each",
+        unitCost: hasMeasurements ? "Included" : "—",
+        qty: hasMeasurements ? "Est." : "—",
+        waste: hasMeasurements ? templateWasteForRows : "—",
+        margin: hasMeasurements ? catalogMarginDisplay : "—",
+        total: "Included",
+      },
+      {
+        item: "Fasteners / nails",
+        mapping: "Template item · Fasteners",
+        source: hasMeasurements ? "Template item" : "Needs measurement",
+        tone: hasMeasurements ? "included" : "needs",
+        unitType: "Box",
+        unitCost: hasMeasurements ? "Included" : "—",
+        qty: hasMeasurements ? "Est." : "—",
+        waste: hasMeasurements ? templateWasteForRows : "—",
+        margin: hasMeasurements ? catalogMarginDisplay : "—",
+        total: "Included",
+      },
+      {
+        item: "Sealant / caulk allowance",
+        mapping: "Template item · Sealant",
+        source: hasMeasurements ? "Template item" : "Needs measurement",
+        tone: hasMeasurements ? "included" : "needs",
+        unitType: "Allowance",
+        unitCost: hasMeasurements ? "Included" : "—",
+        qty: hasMeasurements ? "1" : "—",
+        waste: hasMeasurements ? templateWasteForRows : "—",
+        margin: hasMeasurements ? catalogMarginDisplay : "—",
+        total: "Included",
+      },
+    ];
+
+    const laborRows: EditorRow[] = [
+      {
+        item: "Roof installation labor",
+        mapping: laborMode === "guided" ? "Guided · Full roof install" : "Manual · Full roof install",
+        source: laborMode === "guided" ? "Derived" : "Manual",
+        tone: laborMode === "guided" ? "derived" : "manual",
+        unitType: laborMode === "guided" ? "SQ" : "Job",
+        unitCost: laborMode === "guided" ? "Derived" : "Manual",
+        qty: laborMode === "guided" && hasMeasurements ? sqQty : "1",
+        waste: "—",
+        margin: rowMarginDisplay(canCompute),
+        total: canCompute ? formatCurrency(laborCostEffective) : "—",
+      },
+      {
+        item: "Tear-off labor / prep",
+        mapping: "Template item · Prep labor",
+        source: includeDebrisRemoval ? "Included" : "Manual",
+        tone: includeDebrisRemoval ? "included" : "off",
+        unitType: "Job",
+        unitCost: includeDebrisRemoval ? "Included" : "Manual",
+        qty: "1",
+        waste: "—",
+        margin: includeDebrisRemoval ? catalogMarginDisplay : "—",
+        total: includeDebrisRemoval ? "Included" : "—",
+      },
+      {
+        item: "Cleanup & site protection",
+        mapping: "Template item · Cleanup",
+        source: "Included",
+        tone: "included",
+        unitType: "Job",
+        unitCost: "Included",
+        qty: "1",
+        waste: "—",
+        margin: catalogMarginDisplay,
+        total: "Included",
+      },
+    ];
+
+    const disposalRows: EditorRow[] = [
+      {
+        item: "Tear-off & disposal",
+        mapping: includeDebrisRemoval ? "Derived · Layer removal" : "Not included",
+        source: includeDebrisRemoval ? "Derived" : "Manual",
+        tone: includeDebrisRemoval ? "derived" : "off",
+        unitType: "Ton",
+        unitCost: includeDebrisRemoval ? "Derived" : "—",
+        qty: includeDebrisRemoval && debrisTons > 0 ? `${debrisTons.toFixed(2)}` : includeDebrisRemoval ? "Est." : "—",
+        waste: "—",
+        margin: rowMarginDisplay(includeDebrisRemoval && canCompute),
+        total: includeDebrisRemoval && canCompute ? formatCurrency(disposalAmt) : "$0",
+      },
+      {
+        item: "Dumpster / dump fees",
+        mapping: "Template item · Disposal fees",
+        source: includeDebrisRemoval ? "Included" : "Manual",
+        tone: includeDebrisRemoval ? "included" : "off",
+        unitType: "Job",
+        unitCost: includeDebrisRemoval ? "Included" : "—",
+        qty: includeDebrisRemoval ? "1" : "—",
+        waste: "—",
+        margin: includeDebrisRemoval ? catalogMarginDisplay : "—",
+        total: includeDebrisRemoval ? "Included" : "$0",
+      },
+      {
+        item: "Debris handling",
+        mapping: "Template item · Haul-off",
+        source: includeDebrisRemoval ? "Included" : "Manual",
+        tone: includeDebrisRemoval ? "included" : "off",
+        unitType: "Job",
+        unitCost: includeDebrisRemoval ? "Included" : "—",
+        qty: includeDebrisRemoval ? "1" : "—",
+        waste: "—",
+        margin: includeDebrisRemoval ? catalogMarginDisplay : "—",
+        total: includeDebrisRemoval ? "Included" : "$0",
+      },
+    ];
+
+    const otherFeesRows: EditorRow[] = [
+      {
+        item: "Permit allowance",
+        mapping: "Template item · Permits",
+        source: "Manual",
+        tone: "off",
+        unitType: "Job",
+        unitCost: "Manual",
+        qty: "—",
+        waste: "—",
+        margin: "0%",
+        total: "$0",
+      },
+      {
+        item: "Other items",
+        mapping: "Template item · Extras",
+        source: "Manual",
+        tone: "off",
+        unitType: "Each",
+        unitCost: "Manual",
+        qty: "—",
+        waste: "—",
+        margin: "0%",
+        total: "$0",
+      },
+    ];
+
+    function renderDotMenu(label: string) {
+      return (
+        <button
+          type="button"
+          disabled
+          aria-label={label}
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+        >
+          <MoreHorizontal className="h-4 w-4" aria-hidden />
+        </button>
+      );
+    }
+
+    function renderUnitPill(unitType: string) {
+      return (
+        <button
+          type="button"
+          disabled
+          className="inline-flex h-[34px] w-full min-w-0 items-center justify-between gap-1 rounded-md border border-slate-200 bg-white px-2.5 text-sm font-medium text-slate-900"
+        >
+          <span className="truncate">{unitType}</span>
+          <ChevronDown className="h-3 w-3 shrink-0 text-slate-400" aria-hidden />
+        </button>
+      );
+    }
+
+    function renderControlValue(value: string, forceMuted = false) {
+      const isEmpty = value === "—";
+      const isLabelValue =
+        value === "Included" || value === "Manual" || value === "Derived" || value === "Est.";
+      const className = isEmpty || forceMuted
+        ? controlCellMuted
+        : isLabelValue
+          ? controlCellText
+          : controlCell;
+      return (
+        <div className={className}>
+          <span className="truncate">{value}</span>
+        </div>
+      );
+    }
+
+    function renderSettingsRow(label: string, value: React.ReactNode) {
+      return (
+        <div className={settingsRow}>
+          <dt className={settingsRowLabel}>{label}</dt>
+          <dd className={`m-0 ${settingsRowValue}`}>{value}</dd>
+        </div>
+      );
+    }
+
+    function renderEditorRow(row: EditorRow) {
+      const totalBold = row.total !== "—" && row.total !== "Included" && row.total !== "$0";
+      const mutedCost = row.unitCost === "—";
+      const mutedQty = row.qty === "—";
+      const mutedWaste = row.waste === "—";
+      const mutedMargin = row.margin === "—";
+      return (
+        <div key={row.item} className={rowGrid}>
+          <div className="min-w-0 pl-5">
+            <div className="flex min-w-0 items-start gap-1.5">
+              <ChevronDown className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-300" aria-hidden />
+              <div className="min-w-0">
+                <p className="truncate text-[15px] font-semibold leading-tight text-slate-900">{row.item}</p>
+                <p className="truncate text-[13px] leading-snug text-slate-500">{row.mapping}</p>
+                <p className={`text-[11px] leading-tight ${sourceToneClass(row.tone)} ${row.tone === "needs" ? "italic" : ""}`}>
+                  {row.source}
+                </p>
+              </div>
+            </div>
+          </div>
+          {renderControlValue(row.unitCost, mutedCost)}
+          <div>{renderUnitPill(row.unitType)}</div>
+          {renderControlValue(row.qty, mutedQty)}
+          {renderControlValue(row.waste, mutedWaste)}
+          {renderControlValue(row.margin, mutedMargin)}
+          <div className={totalBold ? `${controlCell} font-bold` : row.total === "Included" || row.total === "Manual" ? controlCellText : controlCellMuted}>
+            <span className="truncate">{row.total}</span>
+          </div>
+          <div className="flex h-[34px] items-center justify-end">{renderDotMenu(`Actions for ${row.item}`)}</div>
+        </div>
+      );
+    }
+
+    function renderSectionBlock({
+      title,
+      rows,
+      total,
+      settings,
+    }: {
+      title: string;
+      rows: EditorRow[];
+      total: string;
+      settings?: React.ReactNode;
+    }) {
+      return (
+        <section className={sectionCard}>
+          <div className="flex items-center gap-3 border-b border-slate-200/70 bg-slate-50/80 px-4 py-3">
+            <ChevronDown className="h-4 w-4 shrink-0 text-slate-500" aria-hidden />
+            <h2 className="min-w-0 flex-1 text-sm font-semibold tracking-tight text-slate-900">{title}</h2>
+            <div className="flex shrink-0 items-baseline gap-1.5 text-sm tabular-nums">
+              <span className="text-[10px] font-medium uppercase tracking-wide text-slate-400">Total</span>
+              <span className="font-semibold text-slate-900">{total}</span>
+            </div>
+            {renderDotMenu(`${title} section menu`)}
+          </div>
+
+          <div className={colHead}>
+            <span>Item / Mapping</span>
+            <span className="text-right">Unit Cost</span>
+            <span className="text-center">Unit</span>
+            <span className="text-right">Qty</span>
+            <span className="text-right">Waste</span>
+            <span className="text-right">Margin</span>
+            <span className="text-right">Total</span>
+            <span />
+          </div>
+
+          <div>{rows.map(renderEditorRow)}</div>
+
+          <button
+            type="button"
+            disabled
+            className={`${rowGrid} !border-b-0 border-t border-dashed border-slate-200/90 bg-sky-50/30 py-3.5 transition hover:bg-sky-50/60 disabled:cursor-default`}
+          >
+            <div className="flex min-h-[34px] min-w-0 items-center pl-5 text-left">
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-sky-200/90 bg-white px-3 py-1.5 text-sm font-semibold text-sky-800 shadow-sm">
+                + Add item
+              </span>
+            </div>
+            <span aria-hidden />
+            <span aria-hidden />
+            <span aria-hidden />
+            <span aria-hidden />
+            <span aria-hidden />
+            <span aria-hidden />
+            <span aria-hidden />
+          </button>
+
+          {settings}
+        </section>
+      );
+    }
+
+    const measurementSettings = (
+      <details>
+        <summary className={settingsSummary}>
+          <ChevronDown className="h-3.5 w-3.5 text-slate-400" aria-hidden />
+          Measurement settings
+        </summary>
+        <div className={settingsBody}>
+          <div className="grid gap-3 lg:grid-cols-2">
+            <div className="lg:col-span-2">
+              <label htmlFor="eb-area" className="text-xs font-semibold text-slate-600">
+                Roof size (sq ft)
+              </label>
+              <div className={`mt-1 flex items-center gap-2 ${inputShell}`}>
+                <Ruler className="h-4 w-4 shrink-0 text-slate-400" aria-hidden />
+                <input
+                  id="eb-area"
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  step={1}
+                  value={area ?? ""}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setArea(v.trim() === "" ? "" : String(Number(v) || 0));
+                  }}
+                  disabled={isLocked}
+                  placeholder="e.g. 2400"
+                  className={inputClass}
+                />
+              </div>
+            </div>
+
+            <div className="lg:col-span-2">
+              <p className="text-xs font-semibold text-slate-600">Waste factor</p>
+              <div className="mt-2 grid gap-2 sm:grid-cols-3">
+                {ROOFING_WASTE_PRESETS.map((opt) => {
+                  const selected =
+                    waste.trim() !== "" &&
+                    Number.isFinite(parseFloat(waste)) &&
+                    Math.abs(parseFloat(waste) - opt.pct) < 0.0001;
+
+                  return (
+                    <button
+                      key={opt.pct}
+                      type="button"
+                      disabled={isLocked}
+                      onClick={() => setWaste(String(opt.pct))}
+                      className={`rounded-lg border px-3 py-2 text-left text-sm transition disabled:opacity-50 ${
+                        selected
+                          ? "border-sky-500 bg-sky-50 text-sky-950"
+                          : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                      }`}
+                    >
+                      <span className="block font-semibold">{opt.label}</span>
+                      <span className="text-xs text-slate-500">{opt.pct}% waste</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="lg:col-span-2">
+              <p className="text-xs font-semibold text-slate-600">Roofing system</p>
+              <div className="mt-2 grid gap-2 sm:grid-cols-3">
+                {(["standard", "enhanced", "premium"] as const).map((option) => {
+                  const selected = roofingTier === option;
+                  const lbl =
+                    option === "standard" ? "Core" : option === "enhanced" ? "Enhanced" : "Premium";
+
+                  return (
+                    <button
+                      key={option}
+                      type="button"
+                      disabled={isLocked}
+                      onClick={() => setRoofingTier(option)}
+                      className={`rounded-lg border px-3 py-2 text-sm font-semibold transition disabled:opacity-50 ${
+                        selected
+                          ? "border-emerald-500 bg-emerald-50 text-emerald-950"
+                          : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                      }`}
+                    >
+                      {lbl}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="eb-bundleCost" className="text-xs font-semibold text-slate-600">
+                Bundle cost
+              </label>
+              <div className={`mt-1 flex items-center gap-2 ${inputShell}`}>
+                <DollarSign className="h-4 w-4 shrink-0 text-slate-400" aria-hidden />
+                <input
+                  id="eb-bundleCost"
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  step="0.01"
+                  value={bundleCost}
+                  onChange={(e) => setBundleCost(e.target.value)}
+                  disabled={isLocked}
+                  className={inputClass}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="eb-bundlesPerSquare" className="text-xs font-semibold text-slate-600">
+                Bundles / square
+              </label>
+              <div className={`mt-1 flex items-center gap-2 ${inputShell}`}>
+                <Package className="h-4 w-4 shrink-0 text-slate-400" aria-hidden />
+                <input
+                  id="eb-bundlesPerSquare"
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  step="0.5"
+                  value={bundlesPerSquare}
+                  onChange={(e) => setBundlesPerSquare(e.target.value)}
+                  disabled={isLocked}
+                  className={inputClass}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </details>
+    );
+
+    const laborSettings = (
+      <details>
+        <summary className={settingsSummary}>
+          <ChevronDown className="h-3.5 w-3.5 text-slate-400" aria-hidden />
+          Labor settings
+        </summary>
+        <div className={settingsBody}>
+          <div className="space-y-3">
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                disabled={isLocked}
+                onClick={switchToGuided}
+                className={`rounded-lg border px-3 py-1.5 text-sm font-semibold transition disabled:opacity-50 ${
+                  laborMode === "guided"
+                    ? "border-sky-500 bg-sky-50 text-sky-950"
+                    : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                }`}
+              >
+                Guided
+              </button>
+              <button
+                type="button"
+                disabled={isLocked}
+                onClick={switchToManual}
+                className={`rounded-lg border px-3 py-1.5 text-sm font-semibold transition disabled:opacity-50 ${
+                  laborMode === "manual"
+                    ? "border-sky-500 bg-sky-50 text-sky-950"
+                    : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                }`}
+              >
+                Manual
+              </button>
+            </div>
+
+            {laborMode === "guided" ? (
+              <div className="max-w-xs">
+                <label className="text-xs font-semibold text-slate-600">Base labor $/square</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={guidedLaborBasePerSquare}
+                  onChange={(e) =>
+                    setGuidedLaborBasePerSquare(
+                      clampInt(Number(e.target.value) || 0, BASE_PER_SQ_MIN, BASE_PER_SQ_MAX)
+                    )
+                  }
+                  disabled={isLocked}
+                  className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm disabled:opacity-50"
+                />
+              </div>
+            ) : (
+              <div className="max-w-xs">
+                <label className="text-xs font-semibold text-slate-600">Labor total ($)</label>
+                <input
+                  type="number"
+                  value={laborCostRaw}
+                  onChange={(e) => {
+                    const next = e.target.value;
+                    if (/^[0-9]*$/.test(next)) setLaborCostRaw(next);
+                  }}
+                  onBlur={() => {
+                    const n = laborCostRaw.trim() === "" ? 0 : Number(laborCostRaw);
+                    const safe = Number.isFinite(n) ? Math.round(n) : 0;
+                    setLaborCostRaw(safe ? String(safe) : "");
+                    setLaborCost(safe);
+                  }}
+                  disabled={isLocked}
+                  placeholder="0"
+                  className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm disabled:opacity-50"
+                />
+              </div>
+            )}
+          </div>
+        </div>
+      </details>
+    );
+
+    const tearOffSettings = (
+      <details>
+        <summary className={settingsSummary}>
+          <ChevronDown className="h-3.5 w-3.5 text-slate-400" aria-hidden />
+          Tear-off settings
+        </summary>
+        <div className={settingsBody}>
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2.5">
+              <div>
+                <p className="text-sm font-semibold text-slate-900">Include tear-off &amp; disposal</p>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  {includeDebrisRemoval
+                    ? "Adds disposal cost to the job cost."
+                    : "Excluded from this estimate."}
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={includeDebrisRemoval}
+                disabled={isLocked}
+                onClick={() => setIncludeDebrisRemoval((v) => !v)}
+                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition disabled:opacity-50 ${
+                  includeDebrisRemoval ? "bg-sky-500" : "bg-slate-300"
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 rounded-full bg-white shadow transition ${
+                    includeDebrisRemoval ? "translate-x-6" : "translate-x-1"
+                  }`}
+                />
+              </button>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2">
+              <div>
+                <label className="text-xs font-semibold text-slate-600">Removal type</label>
+                <select
+                  value={removalType}
+                  onChange={(e) => setRemovalType(e.target.value as "standard" | "architectural")}
+                  disabled={isLocked || !includeDebrisRemoval}
+                  className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <option value="standard">Standard</option>
+                  <option value="architectural">Architectural</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-slate-600">Disposal $/ton</label>
+                <input
+                  value={dumpFeePerTon}
+                  onChange={(e) => setDumpFeePerTon(e.target.value)}
+                  inputMode="decimal"
+                  disabled={isLocked || !includeDebrisRemoval}
+                  placeholder="e.g. 80"
+                  className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-40"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </details>
+    );
+
+    const marginSliderPct = Math.min(50, Math.max(0, finalMarginNum));
+
+    const metaSubtitle = "Manual estimate";
 
     return (
-      <div className="min-h-0 w-full bg-slate-100/80 px-4 pb-10 pt-4 sm:px-5 lg:px-6">
-        <div className="w-full">
-          <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl shadow-slate-200/50 ring-1 ring-slate-900/[0.04]">
-            {/* Document header */}
-            <header className="border-b border-slate-200 bg-gradient-to-br from-white via-white to-slate-50 px-6 py-5">
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div className="min-w-0">
-                  <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
-                    Estimate
-                  </p>
-                  <h1 className="mt-1 truncate text-2xl font-black tracking-tight text-slate-950">
-                    {headerTitle}
-                  </h1>
-                  <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-slate-600">
-                    {addressLine ? (
-                      <span className="inline-flex min-w-0 items-center gap-1.5">
-                        <MapPin className="h-4 w-4 shrink-0 text-slate-400" aria-hidden />
-                        <span className="truncate">{addressLine}</span>
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1.5 text-slate-400">
-                        <MapPin className="h-4 w-4" aria-hidden />
-                        Address pending
-                      </span>
-                    )}
-                    <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-bold text-amber-800">
-                      Draft
-                    </span>
-                  </div>
+      <div className="min-h-0 w-full pb-8 pt-1 pl-3 pr-4 sm:pl-4 sm:pr-5 lg:pl-5 lg:pr-6">
+        <div className="w-full max-w-[100rem]">
+          <div className="mb-3 border-b border-slate-200 pb-3">
+            <header className="flex flex-wrap items-start justify-between gap-4">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-3">
+                  <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Estimate</h1>
+                  <span className="rounded-md bg-amber-100 px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-amber-900">
+                    Draft
+                  </span>
+                  <span className="text-base font-medium text-slate-700">{templateLabel}</span>
                 </div>
-
+                <p className="mt-1.5 text-sm text-slate-500">{metaSubtitle}</p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                <motion.button
+                  type="button"
+                  onClick={saveEstimate}
+                  disabled={!canSave || isSaving || isLocked}
+                  className={`${savedFlash ? "border border-emerald-300 bg-emerald-50 text-emerald-800" : toolbarActionPrimary}`}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <Save className="h-4 w-4" aria-hidden />
+                  {isSaving ? "Saving…" : savedFlash ? "Saved" : "Save"}
+                </motion.button>
+                <button
+                  type="button"
+                  onClick={handlePreviewPdf}
+                  disabled={isPreviewingPdf || isLocked}
+                  className={toolbarAction}
+                >
+                  <Eye className="h-4 w-4" aria-hidden />
+                  Preview
+                </button>
+                <button
+                  type="button"
+                  onClick={onDownloadPdf}
+                  disabled={isLocked}
+                  className={toolbarAction}
+                >
+                  <Download className="h-4 w-4" aria-hidden />
+                  Download
+                </button>
                 <a
                   href="/tools/roofing?entry=packet"
-                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+                  className="ml-1 text-sm font-medium text-slate-500 underline-offset-2 transition hover:text-slate-800"
                 >
-                  <ArrowLeft className="h-4 w-4" aria-hidden />
-                  Job Packet
+                  ← Back to Job Packet
                 </a>
               </div>
             </header>
 
-            {/* Measurement context */}
-            <div className="border-b border-slate-200 bg-slate-50/80 px-6 py-3.5">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm shadow-sm">
-                    <Ruler className="h-4 w-4 text-slate-400" aria-hidden />
-                    <span className="text-slate-500">Roof</span>
-                    <span className="font-bold tabular-nums text-slate-900">{roofSqDisplay}</span>
+            <div className={contextStrip}>
+              <span>
+                <span className="text-slate-400">Template:</span>{" "}
+                <span className="font-semibold text-slate-900">{templateLabel}</span>
+              </span>
+              <span>
+                <span className="text-slate-400">Measurement source:</span>{" "}
+                <span className="font-medium text-slate-900">Manual</span>
+              </span>
+              <span>
+                <span className="text-slate-400">Roof size:</span>{" "}
+                <span className="font-medium tabular-nums text-slate-900">{roofSqDisplay}</span>
+              </span>
+              <span>
+                <span className="text-slate-400">Waste:</span>{" "}
+                <span className="font-medium tabular-nums text-slate-900">{wasteDisplay}</span>
+              </span>
+              <span>
+                <span className="text-slate-400">Takeoff / report:</span>{" "}
+                <span className="font-medium text-slate-900">Not attached · Manual</span>
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(22.5rem,25rem)] xl:items-start xl:gap-6">
+            <div className="min-w-0 w-full space-y-2">
+              {renderSectionBlock({
+                title: "Materials",
+                rows: materialRows,
+                total: sectionTotal(materialsCost),
+                settings: measurementSettings,
+              })}
+
+              {renderSectionBlock({
+                title: "Roofing Accessories",
+                rows: accessoryRows,
+                total: "—",
+              })}
+
+              {renderSectionBlock({
+                title: "Labor",
+                rows: laborRows,
+                total: sectionTotal(laborCostEffective),
+                settings: laborSettings,
+              })}
+
+              {renderSectionBlock({
+                title: "Disposal / Tear-off",
+                rows: disposalRows,
+                total: includeDebrisRemoval && canCompute ? formatCurrency(disposalAmt) : "$0",
+                settings: tearOffSettings,
+              })}
+
+              {renderSectionBlock({
+                title: "Other / Fees",
+                rows: otherFeesRows,
+                total: "$0",
+              })}
+            </div>
+
+            <aside className="flex min-w-0 w-full flex-col gap-2.5 xl:min-w-[22.5rem] xl:max-w-[25rem] xl:shrink-0">
+              <div className={settingsModule}>
+                <p className={settingsModuleLabel}>Estimate Settings</p>
+                <dl>
+                  {renderSettingsRow("Template", templateLabel)}
+                  {renderSettingsRow("Profitability type", profitabilityTypeLabel)}
+                  {renderSettingsRow("Quantity rounding", "Standard")}
+                  {renderSettingsRow("Line item detail", "Visible")}
+                  {renderSettingsRow("Catalog source", "Template")}
+                </dl>
+              </div>
+
+              <div className={priceModule}>
+                <p className={priceModuleLabel}>Estimate Price</p>
+
+                <div className="flex items-baseline justify-between gap-3 rounded-md border border-slate-100 bg-slate-50/60 px-2.5 py-2">
+                  <span className="text-xs font-medium text-slate-600">Estimate Total</span>
+                  <span
+                    className={`tabular-nums tracking-tight ${
+                      canCompute ? "text-2xl font-bold text-slate-900" : "text-base font-medium text-slate-400"
+                    }`}
+                  >
+                    {finalPriceDisplay}
                   </span>
-                  <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm shadow-sm">
-                    <Percent className="h-4 w-4 text-slate-400" aria-hidden />
-                    <span className="text-slate-500">Waste</span>
-                    <span className="font-bold tabular-nums text-slate-900">{wasteDisplay}</span>
-                  </span>
-                  <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm shadow-sm">
-                    <span className="text-slate-500">Source</span>
-                    <span className="rounded-md bg-slate-900 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white">
-                      Manual
+                </div>
+
+                <dl className="mt-2.5 space-y-0">
+                  <div className="flex items-center justify-between gap-2 border-b border-slate-50 py-1.5 text-sm">
+                    <dt className="text-slate-500">Subtotal</dt>
+                    <dd className="font-semibold tabular-nums text-slate-900">{moneyOrDash(subtotal)}</dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-2 border-b border-slate-50 py-1.5 text-sm">
+                    <dt className="text-slate-500">Job Cost</dt>
+                    <dd className="font-semibold tabular-nums text-slate-900">{moneyOrDash(subtotal)}</dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-2 border-b border-slate-50 py-1.5 text-sm">
+                    <dt className="text-slate-500">Discounts</dt>
+                    <dd className="font-medium tabular-nums text-slate-500">$0</dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-2 border-b border-slate-50 py-1.5 text-sm">
+                    <dt className="text-slate-500">Tax</dt>
+                    <dd className="font-medium tabular-nums text-slate-500">$0</dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-2 border-b border-slate-100 py-2 text-sm">
+                    <dt className="font-medium text-slate-700">Gross Profit</dt>
+                    <dd className="font-semibold tabular-nums text-emerald-700">
+                      {canCompute ? formatCurrency(ebProfit) : "—"}
+                    </dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-2 py-1.5 text-sm">
+                    <dt className="font-medium text-slate-700">Margin</dt>
+                    <dd className="font-semibold tabular-nums text-slate-900">
+                      {canCompute ? `${ebMarginPct}%` : "—"}
+                    </dd>
+                  </div>
+                </dl>
+
+                <div className="mt-3 space-y-2 border-t border-slate-200/80 pt-3">
+                  <motion.button
+                    type="button"
+                    onClick={saveEstimate}
+                    disabled={!canSave || isSaving || isLocked}
+                    className={`${savedFlash ? "border border-emerald-300 bg-emerald-50 text-emerald-800" : drawerActionPrimary}`}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <Save className="h-4 w-4" aria-hidden />
+                    {isSaving ? "Saving…" : savedFlash ? "Saved" : "Save Estimate"}
+                  </motion.button>
+                  <button
+                    type="button"
+                    onClick={handlePreviewPdf}
+                    disabled={isPreviewingPdf || isLocked}
+                    className={drawerAction}
+                  >
+                    <Eye className="h-4 w-4" aria-hidden />
+                    {isPreviewingPdf ? "Opening…" : "Preview Estimate"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onDownloadPdf}
+                    disabled={isLocked}
+                    className={drawerAction}
+                  >
+                    <Download className="h-4 w-4" aria-hidden />
+                    Download Estimate
+                  </button>
+                </div>
+              </div>
+
+              <details className={profitabilityModule}>
+                <summary className={profitabilitySummary}>
+                  <span className="min-w-0 flex-1 truncate text-slate-600">
+                    <span className="font-medium text-slate-700">Profitability</span>
+                    <span className="tabular-nums text-slate-500">
+                      {" "}
+                      · {finalMarginNum}% · {profitabilityTypeLabel}
                     </span>
                   </span>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
-                    Future inputs
-                  </span>
-                  <span className={lockedUtility}>
-                    <ClipboardList className="h-3.5 w-3.5 text-slate-400" aria-hidden />
-                    Add Report
-                    <span className={soonBadge}>Soon</span>
-                  </span>
-                  <span className={lockedUtility}>
-                    <Sparkles className="h-3.5 w-3.5 text-slate-400" aria-hidden />
-                    AI Takeoff
-                    <span className={soonBadge}>Soon</span>
-                  </span>
-                  <span className={lockedUtility}>
-                    <ImageIcon className="h-3.5 w-3.5 text-slate-400" aria-hidden />
-                    Photos
-                    <span className={soonBadge}>Soon</span>
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Option strip */}
-            <div className="border-b border-slate-200 bg-white px-6 py-3">
-              <div className="flex flex-wrap items-center gap-3">
-                <span className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
-                  Proposal options
-                </span>
-
-                <span className="inline-flex items-center rounded-xl bg-slate-950 px-4 py-2 text-xs font-black uppercase tracking-wide text-white shadow-sm">
-                  Core active
-                </span>
-                <span className="inline-flex items-center gap-2 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-2 text-xs font-bold text-slate-400">
-                  Enhanced
-                  <span className={soonBadge}>Soon</span>
-                </span>
-                <span className="inline-flex items-center gap-2 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-2 text-xs font-bold text-slate-400">
-                  Premium
-                  <span className={soonBadge}>Soon</span>
-                </span>
-
-                <span className="ml-auto hidden text-sm font-semibold text-slate-400 md:inline">
-                  Good · Better · Best
-                </span>
-              </div>
-            </div>
-
-            {/* Ledger workspace */}
-            <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_24rem]">
-              <main className="min-w-0 bg-slate-50/60 p-5 xl:border-r xl:border-slate-200">
-                <div className="space-y-5">
-                  {/* Materials */}
-                  <section className={estimateSection}>
-                    <div className={estimateSectionHeader}>
-                      <div className="flex items-center gap-3">
-                        <h2 className="text-lg font-black tracking-tight text-slate-950">
-                          Materials
-                        </h2>
-                        <span className="rounded-full bg-sky-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-sky-700">
-                          Active
-                        </span>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
-                          Subtotal
-                        </p>
-                        <p className="text-xl font-black tabular-nums text-slate-950">
-                          {moneyOrDash(materialsCost)}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className={tableHeader}>
-                      <span>Line item</span>
-                      <span className="text-right">Qty</span>
-                      <span className="text-right">Total</span>
-                    </div>
-
-                    <div className={itemRow}>
-                      <div className="min-w-0">
-                        <p className={itemTitle}>{tierLabel} · Architectural shingles</p>
-                        <p className={itemMeta}>
-                          Roofing system · Derived from current estimate engine
-                          {bundles > 0 ? ` · ${bundles} bundles` : ""}
-                        </p>
-                      </div>
-                      <p className={itemQty}>
-                        {adjustedSquares > 0 ? `${adjustedSquares.toFixed(1)} sq` : "Pending"}
-                      </p>
-                      <p className={itemTotal}>{moneyOrDash(materialsCost)}</p>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2 border-t border-slate-100 bg-white px-5 py-3">
-                      <span className={lockedUtility}>
-                        <ClipboardList className="h-3.5 w-3.5 text-slate-400" aria-hidden />
-                        Price Book
-                        <span className={soonBadge}>Soon</span>
-                      </span>
-                      <span className={lockedUtility}>
-                        <TrendingUp className="h-3.5 w-3.5 text-slate-400" aria-hidden />
-                        Supplier Pricing
-                        <span className={soonBadge}>Soon</span>
-                      </span>
-                    </div>
-
-                    <details className="group">
-                      <summary className={settingsSummary}>
-                        <ChevronDown
-                          className="h-4 w-4 text-slate-400 transition group-open:rotate-180"
-                          aria-hidden
-                        />
-                        <span>Measurement settings</span>
-                        <span className="ml-auto text-[10px] font-bold uppercase tracking-wide text-slate-400">
-                          Configure
-                        </span>
-                      </summary>
-
-                      <div className={settingsBody}>
-                        <div className="grid gap-4 lg:grid-cols-2">
-                          <div className="lg:col-span-2">
-                            <label
-                              htmlFor="eb-area"
-                              className="text-xs font-bold uppercase tracking-wide text-slate-500"
-                            >
-                              Roof size (sq ft)
-                            </label>
-                            <div className={`mt-1.5 flex items-center gap-2 ${inputShell}`}>
-                              <Ruler className="h-4 w-4 shrink-0 text-slate-400" aria-hidden />
-                              <input
-                                id="eb-area"
-                                type="number"
-                                inputMode="decimal"
-                                min={0}
-                                step={1}
-                                value={area ?? ""}
-                                onChange={(e) => {
-                                  const v = e.target.value;
-                                  setArea(v.trim() === "" ? "" : String(Number(v) || 0));
-                                }}
-                                disabled={isLocked}
-                                placeholder="e.g. 2400"
-                                className={inputClass}
-                              />
-                            </div>
-                            {squares > 0 ? (
-                              <p className="mt-1.5 text-xs tabular-nums text-slate-500">
-                                {squares.toFixed(1)} sq
-                                {adjustedSquares > 0
-                                  ? ` · ${adjustedSquares.toFixed(1)} adjusted`
-                                  : ""}
-                              </p>
-                            ) : null}
-                          </div>
-
-                          <div className="lg:col-span-2">
-                            <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                              Waste factor
-                            </p>
-                            <div className="mt-2 grid gap-2 sm:grid-cols-3">
-                              {ROOFING_WASTE_PRESETS.map((opt) => {
-                                const selected =
-                                  waste.trim() !== "" &&
-                                  Number.isFinite(parseFloat(waste)) &&
-                                  Math.abs(parseFloat(waste) - opt.pct) < 0.0001;
-
-                                return (
-                                  <button
-                                    key={opt.pct}
-                                    type="button"
-                                    disabled={isLocked}
-                                    onClick={() => setWaste(String(opt.pct))}
-                                    className={`rounded-xl border px-3 py-2 text-left text-sm transition disabled:opacity-50 ${
-                                      selected
-                                        ? "border-sky-500 bg-sky-50 text-sky-950 shadow-sm"
-                                        : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
-                                    }`}
-                                  >
-                                    <span className="block font-bold">{opt.label}</span>
-                                    <span className="text-xs text-slate-500">{opt.pct}% waste</span>
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </div>
-
-                          <div className="lg:col-span-2">
-                            <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                              Roofing system
-                            </p>
-                            <div className="mt-2 grid gap-2 sm:grid-cols-3">
-                              {(["standard", "enhanced", "premium"] as const).map((option) => {
-                                const selected = roofingTier === option;
-                                const lbl =
-                                  option === "standard"
-                                    ? "Core"
-                                    : option === "enhanced"
-                                      ? "Enhanced"
-                                      : "Premium";
-
-                                return (
-                                  <button
-                                    key={option}
-                                    type="button"
-                                    disabled={isLocked}
-                                    onClick={() => setRoofingTier(option)}
-                                    className={`rounded-xl border px-3 py-2 text-sm font-bold transition disabled:opacity-50 ${
-                                      selected
-                                        ? "border-emerald-500 bg-emerald-50 text-emerald-950 shadow-sm"
-                                        : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
-                                    }`}
-                                  >
-                                    {lbl}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </div>
-
-                          <div>
-                            <label
-                              htmlFor="eb-bundleCost"
-                              className="text-xs font-bold uppercase tracking-wide text-slate-500"
-                            >
-                              Bundle cost
-                            </label>
-                            <div className={`mt-1.5 flex items-center gap-2 ${inputShell}`}>
-                              <DollarSign className="h-4 w-4 shrink-0 text-slate-400" aria-hidden />
-                              <input
-                                id="eb-bundleCost"
-                                type="number"
-                                inputMode="decimal"
-                                min={0}
-                                step="0.01"
-                                value={bundleCost}
-                                onChange={(e) => setBundleCost(e.target.value)}
-                                disabled={isLocked}
-                                className={inputClass}
-                              />
-                            </div>
-                          </div>
-
-                          <div>
-                            <label
-                              htmlFor="eb-bundlesPerSquare"
-                              className="text-xs font-bold uppercase tracking-wide text-slate-500"
-                            >
-                              Bundles / square
-                            </label>
-                            <div className={`mt-1.5 flex items-center gap-2 ${inputShell}`}>
-                              <Package className="h-4 w-4 shrink-0 text-slate-400" aria-hidden />
-                              <input
-                                id="eb-bundlesPerSquare"
-                                type="number"
-                                inputMode="decimal"
-                                min={0}
-                                step="0.5"
-                                value={bundlesPerSquare}
-                                onChange={(e) => setBundlesPerSquare(e.target.value)}
-                                disabled={isLocked}
-                                className={inputClass}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </details>
-                  </section>
-
-                  {/* Labor */}
-                  <section className={estimateSection}>
-                    <div className={estimateSectionHeader}>
-                      <div className="flex items-center gap-3">
-                        <h2 className="text-lg font-black tracking-tight text-slate-950">
-                          Labor
-                        </h2>
-                        <span className="rounded-full bg-violet-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-violet-700">
-                          {laborMode === "guided" ? "Guided" : "Manual"}
-                        </span>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
-                          Subtotal
-                        </p>
-                        <p className="text-xl font-black tabular-nums text-slate-950">
-                          {moneyOrDash(laborCostEffective)}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className={tableHeader}>
-                      <span>Line item</span>
-                      <span className="text-right">Qty</span>
-                      <span className="text-right">Total</span>
-                    </div>
-
-                    <div className={itemRow}>
-                      <div className="min-w-0">
-                        <p className={itemTitle}>Installation</p>
-                        <p className={itemMeta}>
-                          {laborMode === "guided" ? "Guided labor" : "Manual labor"} · Roof installation
-                        </p>
-                      </div>
-                      <p className={itemQty}>{laborQty}</p>
-                      <p className={itemTotal}>{moneyOrDash(laborCostEffective)}</p>
-                    </div>
-
-                    <details className="group">
-                      <summary className={settingsSummary}>
-                        <ChevronDown
-                          className="h-4 w-4 text-slate-400 transition group-open:rotate-180"
-                          aria-hidden
-                        />
-                        <span>Labor settings</span>
-                        <span className="ml-auto text-[10px] font-bold uppercase tracking-wide text-slate-400">
-                          Configure
-                        </span>
-                      </summary>
-
-                      <div className={settingsBody}>
-                        <div className="space-y-4">
-                          <div className="flex flex-wrap gap-2">
-                            <button
-                              type="button"
-                              disabled={isLocked}
-                              onClick={switchToGuided}
-                              className={`rounded-xl border px-4 py-2 text-sm font-bold transition disabled:opacity-50 ${
-                                laborMode === "guided"
-                                  ? "border-sky-500 bg-sky-50 text-sky-950 shadow-sm"
-                                  : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
-                              }`}
-                            >
-                              Guided
-                            </button>
-                            <button
-                              type="button"
-                              disabled={isLocked}
-                              onClick={switchToManual}
-                              className={`rounded-xl border px-4 py-2 text-sm font-bold transition disabled:opacity-50 ${
-                                laborMode === "manual"
-                                  ? "border-sky-500 bg-sky-50 text-sky-950 shadow-sm"
-                                  : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
-                              }`}
-                            >
-                              Manual
-                            </button>
-                          </div>
-
-                          {laborMode === "guided" ? (
-                            <div className="max-w-xs">
-                              <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                                Base labor $/square
-                              </label>
-                              <input
-                                type="number"
-                                min={0}
-                                value={guidedLaborBasePerSquare}
-                                onChange={(e) =>
-                                  setGuidedLaborBasePerSquare(
-                                    clampInt(Number(e.target.value) || 0, BASE_PER_SQ_MIN, BASE_PER_SQ_MAX)
-                                  )
-                                }
-                                disabled={isLocked}
-                                className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium disabled:opacity-50"
-                              />
-                            </div>
-                          ) : (
-                            <div className="max-w-xs">
-                              <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                                Labor total ($)
-                              </label>
-                              <input
-                                type="number"
-                                value={laborCostRaw}
-                                onChange={(e) => {
-                                  const next = e.target.value;
-                                  if (/^[0-9]*$/.test(next)) setLaborCostRaw(next);
-                                }}
-                                onBlur={() => {
-                                  const n = laborCostRaw.trim() === "" ? 0 : Number(laborCostRaw);
-                                  const safe = Number.isFinite(n) ? Math.round(n) : 0;
-                                  setLaborCostRaw(safe ? String(safe) : "");
-                                  setLaborCost(safe);
-                                }}
-                                disabled={isLocked}
-                                placeholder="0"
-                                className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium disabled:opacity-50"
-                              />
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </details>
-                  </section>
-
-                  {/* Disposal / Tear-off */}
-                  <section className={estimateSection}>
-                    <div className={estimateSectionHeader}>
-                      <div className="flex items-center gap-3">
-                        <h2 className="text-lg font-black tracking-tight text-slate-950">
-                          Disposal / Tear-off
-                        </h2>
-                        <span
-                          className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wide ${
-                            includeDebrisRemoval
-                              ? "bg-emerald-50 text-emerald-700"
-                              : "bg-slate-100 text-slate-500"
-                          }`}
-                        >
-                          {includeDebrisRemoval ? "Included" : "Off"}
-                        </span>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
-                          Subtotal
-                        </p>
-                        <p className="text-xl font-black tabular-nums text-slate-950">
-                          {includeDebrisRemoval && canCompute ? formatCurrency(disposalAmt) : "$0"}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className={tableHeader}>
-                      <span>Line item</span>
-                      <span className="text-right">Status</span>
-                      <span className="text-right">Total</span>
-                    </div>
-
-                    <div className={itemRow}>
-                      <div className="min-w-0">
-                        <p className={itemTitle}>Tear-off &amp; disposal</p>
-                        <p className={itemMeta}>
-                          {includeDebrisRemoval
-                            ? "Included in job cost"
-                            : "Not included in current estimate"}
-                        </p>
-                      </div>
-                      <p className={itemQty}>{disposalTonDisplay}</p>
-                      <p className={itemTotal}>
-                        {includeDebrisRemoval && canCompute ? formatCurrency(disposalAmt) : "$0"}
-                      </p>
-                    </div>
-
-                    <details className="group">
-                      <summary className={settingsSummary}>
-                        <ChevronDown
-                          className="h-4 w-4 text-slate-400 transition group-open:rotate-180"
-                          aria-hidden
-                        />
-                        <span>Tear-off settings</span>
-                        <span className="ml-auto text-[10px] font-bold uppercase tracking-wide text-slate-400">
-                          Configure
-                        </span>
-                      </summary>
-
-                      <div className={settingsBody}>
-                        <div className="space-y-4">
-                          <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-                            <div>
-                              <p className="text-sm font-bold text-slate-900">
-                                Include tear-off &amp; disposal
-                              </p>
-                              <p className="mt-0.5 text-xs text-slate-500">
-                                {includeDebrisRemoval
-                                  ? "Adds disposal cost to the job cost."
-                                  : "Excluded from this estimate."}
-                              </p>
-                            </div>
-
-                            <button
-                              type="button"
-                              role="switch"
-                              aria-checked={includeDebrisRemoval}
-                              disabled={isLocked}
-                              onClick={() => setIncludeDebrisRemoval((v) => !v)}
-                              className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border transition disabled:opacity-50 ${
-                                includeDebrisRemoval
-                                  ? "border-emerald-400 bg-emerald-100"
-                                  : "border-slate-300 bg-slate-200"
-                              }`}
-                            >
-                              <span
-                                className={`inline-block h-5 w-5 rounded-full bg-white shadow transition ${
-                                  includeDebrisRemoval ? "translate-x-6" : "translate-x-1"
-                                }`}
-                              />
-                            </button>
-                          </div>
-
-                          <div className="grid gap-3 md:grid-cols-2">
-                            <div>
-                              <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                                Removal type
-                              </label>
-                              <select
-                                value={removalType}
-                                onChange={(e) =>
-                                  setRemovalType(e.target.value as "standard" | "architectural")
-                                }
-                                disabled={isLocked || !includeDebrisRemoval}
-                                className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-40"
-                              >
-                                <option value="standard">Standard</option>
-                                <option value="architectural">Architectural</option>
-                              </select>
-                            </div>
-
-                            <div>
-                              <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                                Disposal $/ton
-                              </label>
-                              <input
-                                value={dumpFeePerTon}
-                                onChange={(e) => setDumpFeePerTon(e.target.value)}
-                                inputMode="decimal"
-                                disabled={isLocked || !includeDebrisRemoval}
-                                placeholder="e.g. 80"
-                                className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-40"
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </details>
-                  </section>
-
-                  {/* Future sections */}
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <div className="rounded-2xl border border-dashed border-slate-200 bg-white/70 px-5 py-4 shadow-sm">
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-2">
-                          <Triangle className="h-4 w-4 text-slate-300" aria-hidden />
-                          <span className="font-bold text-slate-500">Add-ons</span>
-                        </div>
-                        <span className={soonBadge}>Soon</span>
-                      </div>
-                    </div>
-
-                    <div className="rounded-2xl border border-dashed border-slate-200 bg-white/70 px-5 py-4 shadow-sm">
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-2">
-                          <Home className="h-4 w-4 text-slate-300" aria-hidden />
-                          <span className="font-bold text-slate-500">Permits</span>
-                        </div>
-                        <span className={soonBadge}>Soon</span>
-                      </div>
-                    </div>
+                  <ChevronDown className="h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden />
+                </summary>
+                <div className={profitabilityBody}>
+                  <div className="mb-2 flex items-center justify-between gap-2 text-xs">
+                    <span className="text-slate-500">Pricing mode</span>
+                    <button
+                      type="button"
+                      disabled={isLocked}
+                      onClick={() => setPricingMode(pricingMode === "direct" ? "markup" : "direct")}
+                      className="font-medium text-sky-700 underline-offset-2 transition hover:text-sky-800 disabled:opacity-50"
+                    >
+                      {profitabilityTypeLabel}
+                    </button>
                   </div>
-
-                  {/* Estimate QA */}
-                  {estimateReviewItems.length > 0 ? (
-                    <section className="rounded-2xl border border-amber-200/70 bg-amber-50 px-5 py-4 shadow-sm">
-                      <h2 className="text-base font-black tracking-tight text-slate-950">
-                        Estimate QA
-                      </h2>
-                      <p className="mt-1 text-sm text-slate-600">
-                        Pre-flight notes. These do not block saving.
-                      </p>
-
-                      <ul className="mt-4 space-y-2.5">
-                        {estimateReviewItems.map((it, idx) => (
-                          <li key={idx} className="flex items-start gap-3 rounded-xl bg-white/80 px-3 py-2.5 text-sm text-slate-700">
-                            <span
-                              className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wide ${
-                                it.tone === "headsUp"
-                                  ? "bg-amber-100 text-amber-900"
-                                  : "bg-slate-100 text-slate-600"
-                              }`}
-                            >
-                              {it.tone === "headsUp" ? "Heads-up" : "FYI"}
-                            </span>
-                            <span>{it.text}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </section>
-                  ) : null}
-                </div>
-              </main>
-
-              {/* Right drawer */}
-              <aside className="bg-gradient-to-b from-slate-50 to-white p-5 xl:sticky xl:top-4 xl:self-start">
-                <div className="space-y-4">
-                  <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-md shadow-slate-200/50 ring-1 ring-slate-900/[0.03]">
-                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
-                      Estimate Summary
-                    </p>
-
-                    <div className="mt-4 rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-950 to-slate-800 p-5 text-white shadow-lg">
-                      <p className="text-xs font-semibold text-slate-300">Customer Price</p>
-                      <p className="mt-2 text-4xl font-black leading-none tracking-tight tabular-nums">
-                        {finalPriceDisplay}
-                      </p>
-                    </div>
-
-                    <dl className="mt-4 space-y-3">
-                      <div className="flex items-center justify-between gap-4 rounded-xl bg-slate-50 px-3 py-2.5">
-                        <dt className="text-sm font-semibold text-slate-600">Job Cost</dt>
-                        <dd className="text-sm font-black tabular-nums text-slate-950">
-                          {moneyOrDash(subtotal)}
-                        </dd>
-                      </div>
-                      <div className="flex items-center justify-between gap-4 rounded-xl bg-emerald-50 px-3 py-2.5">
-                        <dt className="text-sm font-semibold text-emerald-700">Gross Profit</dt>
-                        <dd className="text-sm font-black tabular-nums text-emerald-800">
-                          {canCompute ? formatCurrency(ebProfit) : "—"}
-                        </dd>
-                      </div>
-                      <div className="flex items-center justify-between gap-4 rounded-xl bg-slate-50 px-3 py-2.5">
-                        <dt className="text-sm font-semibold text-slate-600">Margin</dt>
-                        <dd className="text-sm font-black tabular-nums text-slate-950">
-                          {canCompute ? `${ebMarginPct}%` : "—"}
-                        </dd>
-                      </div>
-                    </dl>
-                  </section>
-
-                  <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm ring-1 ring-slate-900/[0.03]">
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
-                        Profitability
-                      </p>
-                      <button
-                        type="button"
-                        disabled={isLocked}
-                        onClick={() =>
-                          setPricingMode(pricingMode === "direct" ? "markup" : "direct")
-                        }
-                        className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-black uppercase text-slate-600 transition hover:bg-white disabled:opacity-50"
-                      >
-                        {pricingMode === "direct" ? "Direct cost" : "Markup"}
-                      </button>
-                    </div>
-
-                    {pricingMode !== "direct" ? (
-                      <div className="mt-4 space-y-3">
-                        <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
-                          <input
-                            type="number"
-                            value={finalMarginNum}
-                            onChange={(e) => setMargin(e.target.value)}
-                            disabled={isLocked}
-                            className="w-16 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-right text-lg font-black tabular-nums text-slate-950 disabled:opacity-50"
-                          />
-                          <span className="text-sm font-bold text-slate-500">% margin</span>
-                        </div>
-
-                        <div className="grid grid-cols-3 gap-2">
-                          {(
-                            [
-                              { label: "Aggressive", value: 15 },
-                              { label: "Competitive", value: 20 },
-                              { label: "Retail", value: 25 },
-                            ] as const
-                          ).map((option) => {
-                            const isActive = finalMarginNum === option.value;
-
-                            return (
-                              <button
-                                key={option.value}
-                                type="button"
-                                disabled={isLocked}
-                                onClick={() => setMargin(String(option.value))}
-                                className={`rounded-xl border px-2 py-2 text-center text-[10px] transition disabled:opacity-50 ${
-                                  isActive
-                                    ? "border-sky-500 bg-sky-50 text-sky-950 shadow-sm"
-                                    : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
-                                }`}
-                              >
-                                <span className="block font-black leading-tight">{option.label}</span>
-                                <span className="mt-0.5 block font-black tabular-nums">{option.value}%</span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="mt-4 rounded-xl bg-slate-50 px-3 py-2.5 text-sm text-slate-500">
-                        Direct cost mode sets customer price equal to job cost.
-                      </p>
-                    )}
-                  </section>
-
-                  <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm ring-1 ring-slate-900/[0.03]">
-                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
-                      Pre-flight
-                    </p>
-
-                    <ul className="mt-4 space-y-2 text-sm">
-                      <li
-                        className={`flex items-center gap-2 rounded-xl px-3 py-2 ${
-                          hasCustomerEmail ? "bg-emerald-50 text-emerald-800" : "bg-slate-50 text-slate-500"
-                        }`}
-                      >
-                        <span className="font-black">{hasCustomerEmail ? "✓" : "○"}</span>
-                        Customer email
-                      </li>
-                      <li
-                        className={`flex items-center gap-2 rounded-xl px-3 py-2 ${
-                          hasRoofArea ? "bg-emerald-50 text-emerald-800" : "bg-slate-50 text-slate-500"
-                        }`}
-                      >
-                        <span className="font-black">{hasRoofArea ? "✓" : "○"}</span>
-                        Roof size
-                      </li>
-                      <li
-                        className={`flex items-center gap-2 rounded-xl px-3 py-2 ${
-                          hasPrice ? "bg-emerald-50 text-emerald-800" : "bg-slate-50 text-slate-500"
-                        }`}
-                      >
-                        <span className="font-black">{hasPrice ? "✓" : "○"}</span>
-                        Price calculated
-                      </li>
-                      <li className="flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-2 text-slate-400">
-                        <span>○</span>
-                        Measurement source
-                        <span className={soonBadge}>Later</span>
-                      </li>
-                    </ul>
-                  </section>
-
-                  <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm ring-1 ring-slate-900/[0.03]">
+                  {pricingMode !== "direct" ? (
                     <div className="space-y-2">
-                      <button
-                        type="button"
-                        disabled
-                        title="Proposal Review — coming next"
-                        className="w-full cursor-not-allowed rounded-xl bg-slate-950 px-4 py-3 text-sm font-black text-white opacity-50"
-                      >
-                        Preview Proposal →
-                      </button>
-
-                      <motion.button
-                        type="button"
-                        onClick={saveEstimate}
-                        disabled={!canSave || isSaving || isLocked}
-                        className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-black transition disabled:cursor-not-allowed disabled:opacity-50 ${
-                          savedFlash
-                            ? "border border-emerald-300 bg-emerald-50 text-emerald-800"
-                            : "bg-slate-900 text-white shadow-md hover:bg-slate-800"
-                        }`}
-                        whileTap={{ scale: 0.98 }}
-                      >
-                        <Save className="h-4 w-4" aria-hidden />
-                        {isSaving ? "Saving…" : savedFlash ? "Saved" : "Save"}
-                      </motion.button>
-
-                      <button
-                        type="button"
-                        onClick={handlePreviewPdf}
-                        disabled={isPreviewingPdf || isLocked}
-                        className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
-                      >
-                        <Eye className="h-4 w-4" aria-hidden />
-                        {isPreviewingPdf ? "Opening…" : "Preview PDF"}
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={onDownloadPdf}
-                        disabled={isLocked}
-                        className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
-                      >
-                        <Download className="h-4 w-4" aria-hidden />
-                        Download PDF
-                      </button>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs text-slate-600">Target margin</span>
+                        <span className="text-xs font-semibold tabular-nums text-slate-900">{finalMarginNum}%</span>
+                      </div>
+                      <div className="relative flex h-7 items-center">
+                        <div className="h-1.5 w-full rounded-full bg-slate-200">
+                          <div
+                            className="h-1.5 rounded-full bg-sky-500 transition-all"
+                            style={{ width: `${(marginSliderPct / 50) * 100}%` }}
+                          />
+                        </div>
+                        <div
+                          className="pointer-events-none absolute top-1/2 h-3.5 w-3.5 -translate-y-1/2 rounded-full border-2 border-sky-500 bg-white shadow-sm"
+                          style={{ left: `calc(${(marginSliderPct / 50) * 100}% - 7px)` }}
+                        />
+                        <input
+                          type="range"
+                          min={0}
+                          max={50}
+                          step={1}
+                          value={marginSliderPct}
+                          onChange={(e) => setMargin(e.target.value)}
+                          disabled={isLocked}
+                          className="absolute inset-0 h-7 w-full cursor-pointer opacity-0 disabled:cursor-not-allowed"
+                          aria-label="Profit margin"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          value={finalMarginNum}
+                          onChange={(e) => setMargin(e.target.value)}
+                          disabled={isLocked}
+                          className="w-14 rounded-md border border-slate-300 bg-white px-2 py-1 text-right text-sm font-semibold tabular-nums text-slate-900 disabled:opacity-50"
+                        />
+                        <span className="text-xs text-slate-500">% margin</span>
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {(
+                          [
+                            { label: "15%", value: 15 },
+                            { label: "20%", value: 20 },
+                            { label: "25%", value: 25 },
+                          ] as const
+                        ).map((option) => (
+                          <button
+                            key={option.value}
+                            type="button"
+                            disabled={isLocked}
+                            onClick={() => setMargin(String(option.value))}
+                            className={`rounded px-2 py-0.5 text-[10px] font-medium transition disabled:opacity-50 ${
+                              finalMarginNum === option.value
+                                ? "bg-sky-100 text-sky-800"
+                                : "text-slate-500 hover:bg-slate-100"
+                            }`}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </section>
+                  ) : (
+                    <p className="text-xs leading-snug text-slate-500">
+                      Direct pricing sets estimate total equal to job cost.
+                    </p>
+                  )}
                 </div>
-              </aside>
-            </div>
+              </details>
+            </aside>
           </div>
         </div>
       </div>
     );
   }
+
 
 
   return (
