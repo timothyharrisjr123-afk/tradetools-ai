@@ -5755,6 +5755,13 @@ Thanks,`;
       ? `${(parseFloat(area) / 100).toFixed(1)} SQ (${parseFloat(area).toLocaleString()} sq ft)`
       : "Not measured";
     const wasteDisplay = wasteSet ? `${parseFloat(waste)}%` : "Not set";
+    const pitchDisplay =
+      pitch === "walkable" ? "Walkable" : pitch === "moderate" ? "Moderate" : "Steep";
+    const storiesDisplay = stories === "1" ? "1 story" : stories === "2" ? "2 stories" : "3+ stories";
+    const complexityDisplay =
+      complexity === "simple" ? "Simple" : complexity === "moderate" ? "Moderate" : "Complex";
+    const sqFtOnly = hasMeasurement ? `${parseFloat(area).toLocaleString()} sq ft` : "Not measured";
+    const propertyForInstant = hasAddress ? addressLine : "Not entered";
 
     const moduleCard = "overflow-hidden rounded-md border border-slate-200/80 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]";
     const moduleHeader = "flex items-center justify-between border-b border-slate-100 bg-slate-50/60 px-4 py-2.5";
@@ -5772,6 +5779,11 @@ Thanks,`;
     const metaValue = "text-slate-800 font-medium text-right";
     const chipBase = "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold shrink-0";
     const passiveAction = "inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed";
+    const wsLabel = "text-[11px] font-semibold uppercase tracking-wide text-slate-400";
+    const wsBlock = "rounded-md border border-slate-100 bg-slate-50/40 px-3 py-2.5";
+    const metricTile = "rounded-md border border-slate-200/70 bg-white px-2.5 py-2 shadow-[0_1px_0_rgba(15,23,42,0.03)]";
+    const statusPill = "text-xs font-medium text-slate-800";
+    const statusMuted = "text-xs text-slate-400";
 
     const CollapseChevron = () => (
       <svg className={detailsChevron} viewBox="0 0 20 20" fill="currentColor" aria-hidden>
@@ -5784,19 +5796,99 @@ Thanks,`;
       status,
       statusClass,
       summary,
+      count,
     }: {
       title: string;
       status: string;
       statusClass: string;
       summary: string;
+      count?: string;
     }) => (
       <>
         <h2 className={`${moduleTitle} shrink-0`}>{title}</h2>
         <span className={`${chipBase} ${statusClass}`}>{status}</span>
+        {count ? <span className="shrink-0 text-[11px] tabular-nums text-slate-400">{count}</span> : null}
         <span className={summaryLine}>{summary}</span>
         <CollapseChevron />
       </>
     );
+
+    const WorkspaceHeading = ({ children }: { children: string }) => (
+      <p className={wsLabel}>{children}</p>
+    );
+
+    const MetricTile = ({ label, value, muted }: { label: string; value: string | number; muted?: boolean }) => (
+      <div className={metricTile}>
+        <dt className="text-[11px] text-slate-500">{label}</dt>
+        <dd className={`mt-0.5 text-sm font-medium ${muted ? "text-slate-400" : "text-slate-800"}`}>{value}</dd>
+      </div>
+    );
+
+    const WorkflowPath = ({ steps }: { steps: string[] }) => (
+      <ol className="space-y-1.5">
+        {steps.map((step, i) => (
+          <li key={step} className="flex items-start gap-2 text-xs text-slate-600">
+            <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-slate-200 text-[10px] font-bold text-slate-600">
+              {i + 1}
+            </span>
+            <span className="pt-0.5">{step}</span>
+          </li>
+        ))}
+      </ol>
+    );
+
+    const StatusLine = ({ label, value, muted }: { label: string; value: string | number; muted?: boolean }) => (
+      <div className="flex items-center justify-between gap-2 py-0.5 text-xs">
+        <span className="text-slate-500">{label}</span>
+        <span className={muted ? statusMuted : statusPill}>{value}</span>
+      </div>
+    );
+
+    const PlaceholderBox = ({ lines }: { lines: string[] }) => (
+      <div className={`${wsBlock} space-y-1`}>
+        {lines.map((line) => (
+          <p key={line} className="text-xs text-slate-500">
+            {line}
+          </p>
+        ))}
+      </div>
+    );
+
+    const CategoryFolder = ({ name }: { name: string }) => (
+      <div className="flex flex-col gap-1 rounded-md border border-dashed border-slate-200 bg-slate-50/60 px-2.5 py-2">
+        <span className="text-[11px] font-medium text-slate-700">{name}</span>
+        <div className="flex items-center justify-between text-[10px] text-slate-400">
+          <span>count: 0</span>
+          <span>Empty</span>
+        </div>
+      </div>
+    );
+
+    const wsHelper = "mt-1.5 text-[11px] leading-snug text-slate-500";
+
+    const ATTACHMENT_CATEGORIES = [
+      "Inspection photos",
+      "Customer photos",
+      "Damage photos",
+      "Measurement reports",
+      "Insurance docs",
+      "Contracts",
+      "Other files",
+      "Post-production photos",
+    ] as const;
+
+    const REPORT_MEASUREMENT_ROWS: { label: string; value: string; muted?: boolean }[] = [
+      { label: "Roof facets", value: "Not measured", muted: true },
+      { label: "Eaves", value: "—", muted: true },
+      { label: "Valleys", value: "—", muted: true },
+      { label: "Hips", value: "—", muted: true },
+      { label: "Ridges", value: "—", muted: true },
+      { label: "Rakes", value: "—", muted: true },
+      { label: "Wall flashing", value: "—", muted: true },
+      { label: "Step flashing", value: "—", muted: true },
+      { label: "Transitions", value: "—", muted: true },
+      { label: "Parapet wall", value: "—", muted: true },
+    ];
 
     const NAV_TABS = [
       "Overview",
@@ -5918,43 +6010,59 @@ Thanks,`;
                 <summary className={detailsSummary}>
                   <DetailsHeader
                     title="Measurements"
-                    status={hasMeasurement ? "Measured" : "Not measured"}
+                    status={hasMeasurement ? "Manual" : "Not measured"}
                     statusClass={hasMeasurement ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}
                     summary="Roof size, waste, pitch, stories, report status"
                   />
                 </summary>
-                <div className={moduleBody}>
-                  <dl className="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
-                    <div className={metaRow}>
-                      <dt className={metaLabel}>Roof size</dt>
-                      <dd className={`${metaValue} ${!hasMeasurement ? "text-slate-400 font-normal" : ""}`}>{squaresDisplay}</dd>
+                <div className={`${moduleBody} space-y-3`}>
+                  <div className={wsBlock}>
+                    <WorkspaceHeading>Measurement status</WorkspaceHeading>
+                    <dl className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
+                      <MetricTile label="Roof size" value={squaresDisplay} muted={!hasMeasurement} />
+                      <MetricTile label="Waste" value={wasteDisplay} muted={!wasteSet} />
+                      <MetricTile label="Pitch" value={pitchDisplay} />
+                      <MetricTile label="Stories" value={storiesDisplay} />
+                      <MetricTile label="Source" value="Manual" />
+                      <MetricTile label="Report status" value="Not attached" muted />
+                      <MetricTile label="Takeoff status" value="Not verified" muted />
+                    </dl>
+                  </div>
+                  <div>
+                    <WorkspaceHeading>Roof details</WorkspaceHeading>
+                    <dl className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                      <MetricTile label="Roof area / SQ" value={squaresDisplay} muted={!hasMeasurement} />
+                      <MetricTile label="Pitch" value={pitchDisplay} />
+                      <MetricTile label="Stories" value={storiesDisplay} />
+                      <MetricTile label="Complexity" value={complexityDisplay} />
+                      <MetricTile label="Waste factor" value={wasteDisplay} muted={!wasteSet} />
+                      <MetricTile label="SQ ft" value={sqFtOnly} muted={!hasMeasurement} />
+                      <MetricTile label="Source" value="Manual" />
+                      <MetricTile label="Report" value="Not attached" muted />
+                      <MetricTile label="Takeoff" value="Not verified" muted />
+                    </dl>
+                  </div>
+                  <div className={wsBlock}>
+                    <WorkspaceHeading>Report measurements</WorkspaceHeading>
+                    <p className={wsHelper}>
+                      Detailed report values appear here after a report or manual takeoff is added.
+                    </p>
+                    <dl className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+                      {REPORT_MEASUREMENT_ROWS.map(({ label, value, muted }) => (
+                        <MetricTile key={label} label={label} value={value} muted={muted} />
+                      ))}
+                    </dl>
+                  </div>
+                  <div className={wsBlock}>
+                    <WorkspaceHeading>Measurement report</WorkspaceHeading>
+                    <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                      <MetricTile label="Report" value="Not attached" muted />
+                      <MetricTile label="Diagram" value="Not available" muted />
+                      <MetricTile label="Report source" value="Manual" />
+                      <MetricTile label="Last updated" value="Not verified" muted />
                     </div>
-                    <div className={metaRow}>
-                      <dt className={metaLabel}>Waste</dt>
-                      <dd className={`${metaValue} ${!wasteSet ? "text-slate-400 font-normal" : ""}`}>{wasteDisplay}</dd>
-                    </div>
-                    <div className={metaRow}>
-                      <dt className={metaLabel}>Pitch</dt>
-                      <dd className={metaValue + " text-slate-400 font-normal"}>Not selected</dd>
-                    </div>
-                    <div className={metaRow}>
-                      <dt className={metaLabel}>Stories</dt>
-                      <dd className={metaValue + " text-slate-400 font-normal"}>Not selected</dd>
-                    </div>
-                    <div className={metaRow}>
-                      <dt className={metaLabel}>Measurement source</dt>
-                      <dd className={metaValue}>Manual</dd>
-                    </div>
-                    <div className={metaRow}>
-                      <dt className={metaLabel}>Report status</dt>
-                      <dd className={metaValue + " text-slate-400 font-normal"}>Not attached</dd>
-                    </div>
-                    <div className={metaRow + " sm:col-span-2"}>
-                      <dt className={metaLabel}>Takeoff status</dt>
-                      <dd className={metaValue + " text-slate-400 font-normal"}>Not verified</dd>
-                    </div>
-                  </dl>
-                  <div className="mt-2 flex flex-wrap gap-2 border-t border-slate-100 pt-2">
+                  </div>
+                  <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-2">
                     <button type="button" disabled className={passiveAction}>Create report</button>
                     <button type="button" disabled className={passiveAction}>Edit measurement</button>
                     <button type="button" disabled className={passiveAction}>Use measurement</button>
@@ -5969,19 +6077,37 @@ Thanks,`;
                     title="Attachments"
                     status="No attachments yet"
                     statusClass="bg-slate-100 text-slate-500"
-                    summary="Photos, reports, docs, contracts"
+                    summary="Photos, reports, docs, contracts, other files"
+                    count="0 files"
                   />
                 </summary>
-                <div className={moduleBody}>
-                  <div className="mb-2 grid grid-cols-2 gap-1.5 sm:grid-cols-3">
-                    {["Inspection photos", "Customer photos", "Damage photos", "Measurement reports", "Insurance docs", "Contracts", "Other files"].map((cat) => (
-                      <div key={cat} className="flex items-center justify-between gap-1 rounded border border-dashed border-slate-200 bg-slate-50/50 px-2 py-1.5">
-                        <span className="truncate text-[11px] text-slate-600">{cat}</span>
-                        <span className="shrink-0 text-[10px] tabular-nums text-slate-400">0</span>
-                      </div>
-                    ))}
+                <div className={`${moduleBody} space-y-3`}>
+                  <div className={wsBlock}>
+                    <WorkspaceHeading>Attachment status</WorkspaceHeading>
+                    <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-0.5 sm:grid-cols-2">
+                      <StatusLine label="Files" value="0" muted />
+                      <StatusLine label="Folders" value="0" muted />
+                      <StatusLine label="Last uploaded" value="None" muted />
+                      <StatusLine label="Available for proposal" value="No" muted />
+                    </div>
                   </div>
-                  <button type="button" disabled className={passiveAction}>Add attachment</button>
+                  <div>
+                    <WorkspaceHeading>Folder / category tiles</WorkspaceHeading>
+                    <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                      {ATTACHMENT_CATEGORIES.map((cat) => (
+                        <CategoryFolder key={cat} name={cat} />
+                      ))}
+                    </div>
+                  </div>
+                  <p className={wsHelper}>
+                    Attachments added here can later be used when building the proposal.
+                  </p>
+                  <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-2">
+                    <button type="button" disabled className={passiveAction}>Add attachment</button>
+                    <button type="button" disabled className={passiveAction}>Create folder</button>
+                    <button type="button" disabled className={passiveAction}>Sort / filter</button>
+                    <button type="button" disabled className={passiveAction}>Search files</button>
+                  </div>
                 </div>
               </details>
 
@@ -5995,24 +6121,41 @@ Thanks,`;
                     summary="Create from Job Card after measurement/estimate"
                   />
                 </summary>
-                <div className={moduleBody}>
-                  <dl className="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
-                    <div className={metaRowCompact}>
-                      <dt className="text-slate-500">Source</dt>
-                      <dd className="font-medium text-slate-800">Job Card</dd>
+                <div className={`${moduleBody} space-y-3`}>
+                  <div className={wsBlock}>
+                    <WorkspaceHeading>Proposal status</WorkspaceHeading>
+                    <div className="mt-2 grid grid-cols-1 gap-0.5 sm:grid-cols-2">
+                      <StatusLine label="Status" value="No proposal yet" muted />
+                      <StatusLine label="Source" value="Job Card" />
+                      <StatusLine label="Measurement" value="Not selected" muted />
+                      <StatusLine label="Template" value="Not selected" muted />
+                      <StatusLine label="Estimate" value="Not created" muted />
+                      <StatusLine label="Last updated" value="—" muted />
                     </div>
-                    <div className={metaRowCompact}>
-                      <dt className="text-slate-500">Template</dt>
-                      <dd className="text-slate-400">Not selected</dd>
+                  </div>
+                  <div>
+                    <WorkspaceHeading>Create proposal path</WorkspaceHeading>
+                    <div className="mt-2">
+                      <WorkflowPath
+                        steps={[
+                          "Select measurement",
+                          "Choose template",
+                          "Build estimate",
+                          "Review proposal",
+                        ]}
+                      />
                     </div>
-                    <div className={metaRowCompact}>
-                      <dt className="text-slate-500">Measurement</dt>
-                      <dd className="text-slate-400">Not selected</dd>
-                    </div>
-                  </dl>
-                  <div className="mt-2 flex flex-wrap gap-2 border-t border-slate-100 pt-2">
+                  </div>
+                  <div>
+                    <WorkspaceHeading>Proposal list</WorkspaceHeading>
+                    <PlaceholderBox
+                      lines={["No proposals created yet", "Draft proposals will appear here"]}
+                    />
+                  </div>
+                  <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-2">
                     <button type="button" disabled className={passiveAction}>Create proposal from Job Card</button>
                     <button type="button" disabled className={passiveAction}>Choose template</button>
+                    <button type="button" disabled className={passiveAction}>Use measurement</button>
                   </div>
                 </div>
               </details>
@@ -6027,22 +6170,40 @@ Thanks,`;
                     summary="Supplier and material list not selected"
                   />
                 </summary>
-                <div className={moduleBody}>
-                  <dl className="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
-                    <div className={metaRowCompact}>
-                      <dt className="text-slate-500">Supplier</dt>
-                      <dd className="text-slate-400">Not selected</dd>
+                <div className={`${moduleBody} space-y-3`}>
+                  <div className={wsBlock}>
+                    <WorkspaceHeading>Order status</WorkspaceHeading>
+                    <div className="mt-2 grid grid-cols-1 gap-0.5 sm:grid-cols-2">
+                      <StatusLine label="Status" value="Not started" muted />
+                      <StatusLine label="Supplier" value="Not selected" muted />
+                      <StatusLine label="Branch" value="Not selected" muted />
+                      <StatusLine label="Material list" value="Not created" muted />
+                      <StatusLine label="Delivery" value="Not set" muted />
+                      <StatusLine label="Order total" value="—" muted />
                     </div>
-                    <div className={metaRowCompact}>
-                      <dt className="text-slate-500">Branch</dt>
-                      <dd className="text-slate-400">Not selected</dd>
+                  </div>
+                  <div>
+                    <WorkspaceHeading>Material order path</WorkspaceHeading>
+                    <div className="mt-2">
+                      <WorkflowPath
+                        steps={[
+                          "Select proposal/estimate",
+                          "Generate material list",
+                          "Select supplier/branch",
+                          "Prepare order",
+                        ]}
+                      />
                     </div>
-                    <div className={metaRowCompact}>
-                      <dt className="text-slate-500">Material list</dt>
-                      <dd className="text-slate-400">Not created</dd>
-                    </div>
-                  </dl>
-                  <div className="mt-2 border-t border-slate-100 pt-2">
+                  </div>
+                  <div>
+                    <WorkspaceHeading>Material list</WorkspaceHeading>
+                    <dl className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                      {["Shingles", "Underlayment", "Starter", "Ridge cap", "Accessories"].map((label) => (
+                        <MetricTile key={label} label={label} value="—" muted />
+                      ))}
+                    </dl>
+                  </div>
+                  <div className="border-t border-slate-100 pt-2">
                     <button type="button" disabled className={passiveAction}>Create material order</button>
                   </div>
                 </div>
@@ -6058,22 +6219,41 @@ Thanks,`;
                     summary="Crew and schedule not assigned"
                   />
                 </summary>
-                <div className={moduleBody}>
-                  <dl className="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
-                    <div className={metaRowCompact}>
-                      <dt className="text-slate-500">Crew</dt>
-                      <dd className="text-slate-400">Not assigned</dd>
+                <div className={`${moduleBody} space-y-3`}>
+                  <div className={wsBlock}>
+                    <WorkspaceHeading>Work order status</WorkspaceHeading>
+                    <div className="mt-2 grid grid-cols-1 gap-0.5 sm:grid-cols-2">
+                      <StatusLine label="Status" value="Not created" muted />
+                      <StatusLine label="Crew" value="Not assigned" muted />
+                      <StatusLine label="Schedule" value="Not scheduled" muted />
+                      <StatusLine label="Scope" value="Estimate needed" muted />
+                      <StatusLine label="Instructions" value="Not added" muted />
+                      <StatusLine label="Material order" value="None" muted />
                     </div>
-                    <div className={metaRowCompact}>
-                      <dt className="text-slate-500">Schedule</dt>
-                      <dd className="text-slate-400">Not scheduled</dd>
+                  </div>
+                  <div>
+                    <WorkspaceHeading>Work order path</WorkspaceHeading>
+                    <div className="mt-2">
+                      <WorkflowPath
+                        steps={[
+                          "Select proposal/estimate",
+                          "Confirm scope",
+                          "Assign crew",
+                          "Create work order",
+                        ]}
+                      />
                     </div>
-                    <div className={metaRowCompact}>
-                      <dt className="text-slate-500">Scope</dt>
-                      <dd className="text-slate-400">Estimate needed</dd>
+                  </div>
+                  <div>
+                    <WorkspaceHeading>Scope</WorkspaceHeading>
+                    <div className="mt-2 grid grid-cols-1 gap-0.5 sm:grid-cols-2">
+                      <StatusLine label="Tear-off" value="Not confirmed" muted />
+                      <StatusLine label="Install system" value="Not selected" muted />
+                      <StatusLine label="Site notes" value="Not added" muted />
+                      <StatusLine label="Cleanup instructions" value="Not added" muted />
                     </div>
-                  </dl>
-                  <div className="mt-2 border-t border-slate-100 pt-2">
+                  </div>
+                  <div className="border-t border-slate-100 pt-2">
                     <button type="button" disabled className={passiveAction}>Create work order</button>
                   </div>
                 </div>
@@ -6089,22 +6269,35 @@ Thanks,`;
                     summary="Deposit and final invoice not created"
                   />
                 </summary>
-                <div className={moduleBody}>
-                  <dl className="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
-                    <div className={metaRowCompact}>
-                      <dt className="text-slate-500">Deposit invoice</dt>
-                      <dd className="text-slate-400">Not created</dd>
+                <div className={`${moduleBody} space-y-3`}>
+                  <div className={wsBlock}>
+                    <WorkspaceHeading>Invoice status</WorkspaceHeading>
+                    <div className="mt-2 grid grid-cols-1 gap-0.5 sm:grid-cols-2">
+                      <StatusLine label="Deposit invoice" value="Not created" muted />
+                      <StatusLine label="Final invoice" value="Not created" muted />
+                      <StatusLine label="Balance" value="—" muted />
+                      <StatusLine label="Invoice status" value="Not invoiced" muted />
+                      <StatusLine label="Last invoice" value="None" muted />
                     </div>
-                    <div className={metaRowCompact}>
-                      <dt className="text-slate-500">Final invoice</dt>
-                      <dd className="text-slate-400">Not created</dd>
+                  </div>
+                  <div>
+                    <WorkspaceHeading>Invoice path</WorkspaceHeading>
+                    <div className="mt-2">
+                      <WorkflowPath
+                        steps={[
+                          "Estimate/proposal complete",
+                          "Deposit invoice created",
+                          "Final invoice created",
+                          "Balance collected",
+                        ]}
+                      />
                     </div>
-                    <div className={metaRowCompact}>
-                      <dt className="text-slate-500">Balance</dt>
-                      <dd className="text-slate-400">—</dd>
-                    </div>
-                  </dl>
-                  <div className="mt-2 border-t border-slate-100 pt-2">
+                  </div>
+                  <div>
+                    <WorkspaceHeading>Invoice list</WorkspaceHeading>
+                    <PlaceholderBox lines={["No invoices created yet"]} />
+                  </div>
+                  <div className="border-t border-slate-100 pt-2">
                     <button type="button" disabled className={passiveAction}>Create invoice</button>
                   </div>
                 </div>
@@ -6120,16 +6313,38 @@ Thanks,`;
                     summary="Estimate total, projected cost, gross profit"
                   />
                 </summary>
-                <div className={moduleBody}>
-                  <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs sm:grid-cols-3">
-                    {["Estimate total", "Projected cost", "Material cost", "Labor cost", "Gross profit"].map((label) => (
-                      <div key={label} className="rounded border border-slate-100 bg-slate-50/40 px-2 py-1.5">
-                        <dt className="text-slate-500">{label}</dt>
-                        <dd className="mt-0.5 font-medium text-slate-400">—</dd>
-                      </div>
-                    ))}
-                  </dl>
-                  <div className="mt-2 border-t border-slate-100 pt-2">
+                <div className={`${moduleBody} space-y-3`}>
+                  <div>
+                    <WorkspaceHeading>Costing summary</WorkspaceHeading>
+                    <dl className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                      {["Estimate total", "Projected cost", "Material cost", "Labor cost", "Gross profit"].map((label) => (
+                        <MetricTile key={label} label={label} value="—" muted />
+                      ))}
+                      <MetricTile label="Actual cost" value="Not recorded" muted />
+                    </dl>
+                  </div>
+                  <div>
+                    <WorkspaceHeading>Costing path</WorkspaceHeading>
+                    <div className="mt-2">
+                      <WorkflowPath
+                        steps={[
+                          "Estimate created",
+                          "Materials ordered",
+                          "Labor recorded",
+                          "Actual cost compared",
+                        ]}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <WorkspaceHeading>Cost buckets</WorkspaceHeading>
+                    <dl className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                      {["Materials", "Labor", "Disposal", "Other costs"].map((label) => (
+                        <MetricTile key={label} label={label} value="—" muted />
+                      ))}
+                    </dl>
+                  </div>
+                  <div className="border-t border-slate-100 pt-2">
                     <button type="button" disabled className={passiveAction}>View job costing</button>
                   </div>
                 </div>
@@ -6142,27 +6357,62 @@ Thanks,`;
                     title="Tasks / Calendar"
                     status="No events"
                     statusClass="bg-slate-100 text-slate-500"
-                    summary="Inspection, follow-up, calendar event"
+                    summary="Inspection, follow-up, and calendar event"
                   />
                 </summary>
-                <div className={moduleBody}>
-                  <dl className="grid grid-cols-1 gap-x-4 sm:grid-cols-3">
-                    <div className={metaRowCompact}>
-                      <dt className="text-slate-500">Inspection</dt>
-                      <dd className="text-slate-400">Not scheduled</dd>
+                <div className={`${moduleBody} space-y-3`}>
+                  <div className={wsBlock}>
+                    <WorkspaceHeading>Tasks</WorkspaceHeading>
+                    <div className="mt-2 space-y-0.5">
+                      <StatusLine label="Inspection task" value="Not scheduled" muted />
+                      <StatusLine label="Follow-up task" value="Not created" muted />
+                      <StatusLine label="Customer call" value="Not scheduled" muted />
                     </div>
-                    <div className={metaRowCompact}>
-                      <dt className="text-slate-500">Follow-up</dt>
-                      <dd className="text-slate-400">Not created</dd>
+                  </div>
+                  <div className={wsBlock}>
+                    <WorkspaceHeading>Calendar</WorkspaceHeading>
+                    <div className="mt-2 space-y-0.5">
+                      <StatusLine label="Calendar event" value="None" muted />
+                      <StatusLine label="Assigned user" value="Unassigned" muted />
+                      <StatusLine label="Due date" value="Not set" muted />
                     </div>
-                    <div className={metaRowCompact}>
-                      <dt className="text-slate-500">Calendar</dt>
-                      <dd className="text-slate-400">None</dd>
-                    </div>
-                  </dl>
-                  <div className="mt-2 flex flex-wrap gap-2 border-t border-slate-100 pt-2">
+                  </div>
+                  <div>
+                    <WorkspaceHeading>Task list</WorkspaceHeading>
+                    <PlaceholderBox
+                      lines={["No tasks created yet", "No calendar events scheduled"]}
+                    />
+                  </div>
+                  <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-2">
                     <button type="button" disabled className={passiveAction}>Add task</button>
                     <button type="button" disabled className={passiveAction}>Add calendar event</button>
+                  </div>
+                </div>
+              </details>
+
+              {/* INSTANT ESTIMATE — collapsed by default */}
+              <details className={detailsSection}>
+                <summary className={detailsSummary}>
+                  <DetailsHeader
+                    title="Instant Estimate"
+                    status="Not started"
+                    statusClass="bg-slate-100 text-slate-500"
+                    summary="Quick estimate from basic job details"
+                  />
+                </summary>
+                <div className={`${moduleBody} space-y-3`}>
+                  <div className={wsBlock}>
+                    <WorkspaceHeading>Instant estimate status</WorkspaceHeading>
+                    <div className="mt-2 grid grid-cols-1 gap-0.5 sm:grid-cols-2">
+                      <StatusLine label="Status" value="Not started" muted />
+                      <StatusLine label="Address" value={propertyForInstant} muted={!hasAddress} />
+                      <StatusLine label="Measurement source" value="Not selected" muted />
+                      <StatusLine label="Estimate type" value="Preliminary" />
+                      <StatusLine label="Result" value="Not generated" muted />
+                    </div>
+                  </div>
+                  <div className="border-t border-slate-100 pt-2">
+                    <button type="button" disabled className={passiveAction}>Start instant estimate</button>
                   </div>
                 </div>
               </details>
@@ -6230,7 +6480,7 @@ Thanks,`;
                     { label: "Property address", ready: hasAddress },
                     { label: "Measurement status", ready: hasMeasurement },
                     { label: "Photos / attachments", ready: false },
-                    { label: "Estimate started", ready: false },
+                    { label: "Estimate not started", ready: false },
                   ].map(({ label, ready }) => (
                     <div key={label} className="flex items-center justify-between gap-2 py-2 text-sm">
                       <span className="text-slate-700">{label}</span>
