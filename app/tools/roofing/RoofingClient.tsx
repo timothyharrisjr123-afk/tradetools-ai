@@ -638,13 +638,15 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
   const router = useRouter();
   const loadSavedId = searchParams.get("loadSaved");
   const entryRaw = searchParams.get("entry");
-  const entryMode: "packet" | "manual" | "instant" = loadSavedId
+  const entryMode: "packet" | "manual" | "instant" | "job-card" = loadSavedId
     ? "manual"
     : entryRaw === "manual"
       ? "manual"
       : entryRaw === "instant"
         ? "instant"
-        : "packet";
+        : entryRaw === "job-card"
+          ? "job-card"
+          : "packet";
   const legacyManual = searchParams.get("legacy") === "1";
   const [zipPresets, setZipPresets] = useState<ZipPresetsMap | null>(null);
   const [hasMounted, setHasMounted] = useState(false);
@@ -4200,10 +4202,10 @@ Thanks,`;
         >
           <div className="flex flex-wrap items-center gap-2">
             <a
-              href="/tools/roofing?entry=manual#scope-inputs"
+              href="/tools/roofing?entry=job-card"
               className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-900 bg-slate-900 px-4 py-2 text-[13px] font-semibold text-white shadow-sm transition hover:bg-slate-800"
             >
-              {isStandalone ? "Continue to Manual Estimate" : "Continue to Estimate"}
+              Continue to Job Card
               <ArrowRight className="h-3.5 w-3.5" aria-hidden />
             </a>
             <button
@@ -5740,6 +5742,534 @@ Thanks,`;
     );
   }
 
+  function renderJobCardShell() {
+    const displayName = (customerName || "").trim() || "New roofing job";
+    const hasAddress = (jobAddress1 || "").trim().length > 0;
+    const addressLine = hasAddress
+      ? [jobAddress1, jobCity, jobState, jobZip].map((s) => (s || "").trim()).filter(Boolean).join(", ")
+      : "Property details not complete";
+    const hasCustomerInfo = Boolean((customerName || customerEmail || customerPhone).trim());
+    const hasMeasurement = parseFloat(area) > 0;
+    const wasteSet = (waste || "").trim() !== "" && Number.isFinite(parseFloat(waste));
+    const squaresDisplay = hasMeasurement
+      ? `${(parseFloat(area) / 100).toFixed(1)} SQ (${parseFloat(area).toLocaleString()} sq ft)`
+      : "Not measured";
+    const wasteDisplay = wasteSet ? `${parseFloat(waste)}%` : "Not set";
+
+    const moduleCard = "overflow-hidden rounded-md border border-slate-200/80 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]";
+    const moduleHeader = "flex items-center justify-between border-b border-slate-100 bg-slate-50/60 px-4 py-2.5";
+    const moduleTitle = "text-sm font-semibold tracking-tight text-slate-900";
+    const moduleBody = "px-4 py-3";
+    const detailsSection = `${moduleCard} group`;
+    const detailsSummary =
+      "flex cursor-pointer list-none items-center gap-2 border-b border-slate-100 bg-slate-50/60 px-4 py-2.5 transition hover:bg-slate-50/90 [&::-webkit-details-marker]:hidden";
+    const detailsChevron =
+      "ml-1 h-4 w-4 shrink-0 text-slate-400 transition-transform group-open:rotate-180";
+    const summaryLine = "min-w-0 flex-1 truncate text-xs text-slate-500";
+    const metaRow = "flex items-start justify-between gap-3 py-1 text-sm border-b border-slate-50 last:border-0";
+    const metaRowCompact = "flex items-center justify-between gap-2 py-1 text-xs";
+    const metaLabel = "text-slate-500 shrink-0 w-28 sm:w-32";
+    const metaValue = "text-slate-800 font-medium text-right";
+    const chipBase = "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold shrink-0";
+    const passiveAction = "inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed";
+
+    const CollapseChevron = () => (
+      <svg className={detailsChevron} viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+        <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.94a.75.75 0 111.08 1.04l-4.24 4.5a.75.75 0 01-1.08 0l-4.24-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+      </svg>
+    );
+
+    const DetailsHeader = ({
+      title,
+      status,
+      statusClass,
+      summary,
+    }: {
+      title: string;
+      status: string;
+      statusClass: string;
+      summary: string;
+    }) => (
+      <>
+        <h2 className={`${moduleTitle} shrink-0`}>{title}</h2>
+        <span className={`${chipBase} ${statusClass}`}>{status}</span>
+        <span className={summaryLine}>{summary}</span>
+        <CollapseChevron />
+      </>
+    );
+
+    const NAV_TABS = [
+      "Overview",
+      "Tasks",
+      "Calendar",
+      "Measurements",
+      "Proposals",
+      "Material Orders",
+      "Work Orders",
+      "Invoices",
+      "Job Costing",
+      "Attachments",
+      "Instant Estimate",
+    ];
+
+    return (
+      <div className="min-h-0 w-full pb-8 pt-1 pl-3 pr-4 sm:pl-4 sm:pr-5 lg:pl-5 lg:pr-6">
+        <div className="w-full max-w-[100rem]">
+
+          {/* ── PAGE HEADER ─────────────────────────────────────────────── */}
+          <div className="mb-4 border-b border-slate-200 pb-4">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <h1 className="text-xl font-semibold tracking-tight text-slate-900">Job Card</h1>
+                  <span className={`${chipBase} bg-amber-100 text-amber-800`}>Draft</span>
+                  <span className={`${chipBase} bg-slate-100 text-slate-600`}>Intake</span>
+                </div>
+                <p className="mt-1 text-base font-medium text-slate-800">{displayName}</p>
+                <p className="mt-0.5 text-sm text-slate-500">{addressLine}</p>
+                <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-slate-500">
+                  <span><span className="text-slate-400">Stage:</span> Intake</span>
+                  <span><span className="text-slate-400">Status:</span> Draft</span>
+                  <span><span className="text-slate-400">Last updated:</span> Today</span>
+                  <span><span className="text-slate-400">Assigned:</span> Unassigned</span>
+                </div>
+              </div>
+              <div className="flex shrink-0 flex-wrap items-center gap-2">
+                <a
+                  href="/tools/roofing?entry=packet"
+                  className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+                >
+                  ← Back to Job Packet
+                </a>
+                <a
+                  href="/tools/roofing?entry=manual"
+                  className="inline-flex items-center gap-1.5 rounded-md bg-slate-900 px-3.5 py-1.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
+                >
+                  Build Estimate →
+                </a>
+              </div>
+            </div>
+          </div>
+
+          {/* ── SECTION NAV ─────────────────────────────────────────────── */}
+          <div className="mb-5 flex flex-wrap gap-1.5">
+            {NAV_TABS.map((tab) => {
+              const isActive = tab === "Overview";
+              return (
+                <span
+                  key={tab}
+                  className={`inline-flex items-center rounded-md px-3 py-1.5 text-[13px] font-medium transition ${
+                    isActive
+                      ? "bg-slate-900 text-white shadow-sm"
+                      : "border border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 cursor-pointer"
+                  }`}
+                >
+                  {tab}
+                </span>
+              );
+            })}
+          </div>
+
+          {/* ── MAIN GRID ───────────────────────────────────────────────── */}
+          <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(20rem,22.5rem)] xl:items-start xl:gap-6">
+
+            {/* ── LEFT / MAIN COLUMN ───────────────────────────────────── */}
+            <div className="space-y-3">
+
+              {/* OVERVIEW — always visible, compact */}
+              <section className={moduleCard}>
+                <div className={moduleHeader}>
+                  <h2 className={moduleTitle}>Overview</h2>
+                </div>
+                <div className="px-4 py-2.5">
+                  <dl className="grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-2">
+                    <div className={metaRowCompact}>
+                      <dt className="text-slate-500">Customer</dt>
+                      <dd className="truncate text-right font-medium text-slate-800">{(customerName || "").trim() || <span className="font-normal text-slate-400">Not entered</span>}</dd>
+                    </div>
+                    <div className={metaRowCompact}>
+                      <dt className="text-slate-500">Phone</dt>
+                      <dd className="truncate text-right font-medium text-slate-800">{(customerPhone || "").trim() || <span className="font-normal text-slate-400">Not entered</span>}</dd>
+                    </div>
+                    <div className={metaRowCompact}>
+                      <dt className="text-slate-500">Email</dt>
+                      <dd className="truncate text-right font-medium text-slate-800">{(customerEmail || "").trim() || <span className="font-normal text-slate-400">Not entered</span>}</dd>
+                    </div>
+                    <div className={metaRowCompact}>
+                      <dt className="text-slate-500">Property</dt>
+                      <dd className="truncate text-right font-medium text-slate-800">{hasAddress ? addressLine : <span className="font-normal text-slate-400">Not entered</span>}</dd>
+                    </div>
+                    <div className={metaRowCompact}>
+                      <dt className="text-slate-500">Job source</dt>
+                      <dd className="text-right font-medium text-slate-800">Manual intake</dd>
+                    </div>
+                    <div className={metaRowCompact}>
+                      <dt className="text-slate-500">Stage</dt>
+                      <dd className="flex justify-end">
+                        <span className={`${chipBase} bg-slate-100 text-slate-700`}>Intake</span>
+                      </dd>
+                    </div>
+                  </dl>
+                </div>
+              </section>
+
+              {/* MEASUREMENTS — open by default */}
+              <details open className={detailsSection}>
+                <summary className={detailsSummary}>
+                  <DetailsHeader
+                    title="Measurements"
+                    status={hasMeasurement ? "Measured" : "Not measured"}
+                    statusClass={hasMeasurement ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}
+                    summary="Roof size, waste, pitch, stories, report status"
+                  />
+                </summary>
+                <div className={moduleBody}>
+                  <dl className="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
+                    <div className={metaRow}>
+                      <dt className={metaLabel}>Roof size</dt>
+                      <dd className={`${metaValue} ${!hasMeasurement ? "text-slate-400 font-normal" : ""}`}>{squaresDisplay}</dd>
+                    </div>
+                    <div className={metaRow}>
+                      <dt className={metaLabel}>Waste</dt>
+                      <dd className={`${metaValue} ${!wasteSet ? "text-slate-400 font-normal" : ""}`}>{wasteDisplay}</dd>
+                    </div>
+                    <div className={metaRow}>
+                      <dt className={metaLabel}>Pitch</dt>
+                      <dd className={metaValue + " text-slate-400 font-normal"}>Not selected</dd>
+                    </div>
+                    <div className={metaRow}>
+                      <dt className={metaLabel}>Stories</dt>
+                      <dd className={metaValue + " text-slate-400 font-normal"}>Not selected</dd>
+                    </div>
+                    <div className={metaRow}>
+                      <dt className={metaLabel}>Measurement source</dt>
+                      <dd className={metaValue}>Manual</dd>
+                    </div>
+                    <div className={metaRow}>
+                      <dt className={metaLabel}>Report status</dt>
+                      <dd className={metaValue + " text-slate-400 font-normal"}>Not attached</dd>
+                    </div>
+                    <div className={metaRow + " sm:col-span-2"}>
+                      <dt className={metaLabel}>Takeoff status</dt>
+                      <dd className={metaValue + " text-slate-400 font-normal"}>Not verified</dd>
+                    </div>
+                  </dl>
+                  <div className="mt-2 flex flex-wrap gap-2 border-t border-slate-100 pt-2">
+                    <button type="button" disabled className={passiveAction}>Create report</button>
+                    <button type="button" disabled className={passiveAction}>Edit measurement</button>
+                    <button type="button" disabled className={passiveAction}>Use measurement</button>
+                  </div>
+                </div>
+              </details>
+
+              {/* ATTACHMENTS — collapsed by default */}
+              <details className={detailsSection}>
+                <summary className={detailsSummary}>
+                  <DetailsHeader
+                    title="Attachments"
+                    status="No attachments yet"
+                    statusClass="bg-slate-100 text-slate-500"
+                    summary="Photos, reports, docs, contracts"
+                  />
+                </summary>
+                <div className={moduleBody}>
+                  <div className="mb-2 grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+                    {["Inspection photos", "Customer photos", "Damage photos", "Measurement reports", "Insurance docs", "Contracts", "Other files"].map((cat) => (
+                      <div key={cat} className="flex items-center justify-between gap-1 rounded border border-dashed border-slate-200 bg-slate-50/50 px-2 py-1.5">
+                        <span className="truncate text-[11px] text-slate-600">{cat}</span>
+                        <span className="shrink-0 text-[10px] tabular-nums text-slate-400">0</span>
+                      </div>
+                    ))}
+                  </div>
+                  <button type="button" disabled className={passiveAction}>Add attachment</button>
+                </div>
+              </details>
+
+              {/* PROPOSALS */}
+              <details className={detailsSection}>
+                <summary className={detailsSummary}>
+                  <DetailsHeader
+                    title="Proposals"
+                    status="No proposal yet"
+                    statusClass="bg-slate-100 text-slate-500"
+                    summary="Create from Job Card after measurement/estimate"
+                  />
+                </summary>
+                <div className={moduleBody}>
+                  <dl className="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
+                    <div className={metaRowCompact}>
+                      <dt className="text-slate-500">Source</dt>
+                      <dd className="font-medium text-slate-800">Job Card</dd>
+                    </div>
+                    <div className={metaRowCompact}>
+                      <dt className="text-slate-500">Template</dt>
+                      <dd className="text-slate-400">Not selected</dd>
+                    </div>
+                    <div className={metaRowCompact}>
+                      <dt className="text-slate-500">Measurement</dt>
+                      <dd className="text-slate-400">Not selected</dd>
+                    </div>
+                  </dl>
+                  <div className="mt-2 flex flex-wrap gap-2 border-t border-slate-100 pt-2">
+                    <button type="button" disabled className={passiveAction}>Create proposal from Job Card</button>
+                    <button type="button" disabled className={passiveAction}>Choose template</button>
+                  </div>
+                </div>
+              </details>
+
+              {/* MATERIAL ORDERS */}
+              <details className={detailsSection}>
+                <summary className={detailsSummary}>
+                  <DetailsHeader
+                    title="Material Orders"
+                    status="Not started"
+                    statusClass="bg-slate-100 text-slate-500"
+                    summary="Supplier and material list not selected"
+                  />
+                </summary>
+                <div className={moduleBody}>
+                  <dl className="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
+                    <div className={metaRowCompact}>
+                      <dt className="text-slate-500">Supplier</dt>
+                      <dd className="text-slate-400">Not selected</dd>
+                    </div>
+                    <div className={metaRowCompact}>
+                      <dt className="text-slate-500">Branch</dt>
+                      <dd className="text-slate-400">Not selected</dd>
+                    </div>
+                    <div className={metaRowCompact}>
+                      <dt className="text-slate-500">Material list</dt>
+                      <dd className="text-slate-400">Not created</dd>
+                    </div>
+                  </dl>
+                  <div className="mt-2 border-t border-slate-100 pt-2">
+                    <button type="button" disabled className={passiveAction}>Create material order</button>
+                  </div>
+                </div>
+              </details>
+
+              {/* WORK ORDERS */}
+              <details className={detailsSection}>
+                <summary className={detailsSummary}>
+                  <DetailsHeader
+                    title="Work Orders"
+                    status="Not created"
+                    statusClass="bg-slate-100 text-slate-500"
+                    summary="Crew and schedule not assigned"
+                  />
+                </summary>
+                <div className={moduleBody}>
+                  <dl className="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
+                    <div className={metaRowCompact}>
+                      <dt className="text-slate-500">Crew</dt>
+                      <dd className="text-slate-400">Not assigned</dd>
+                    </div>
+                    <div className={metaRowCompact}>
+                      <dt className="text-slate-500">Schedule</dt>
+                      <dd className="text-slate-400">Not scheduled</dd>
+                    </div>
+                    <div className={metaRowCompact}>
+                      <dt className="text-slate-500">Scope</dt>
+                      <dd className="text-slate-400">Estimate needed</dd>
+                    </div>
+                  </dl>
+                  <div className="mt-2 border-t border-slate-100 pt-2">
+                    <button type="button" disabled className={passiveAction}>Create work order</button>
+                  </div>
+                </div>
+              </details>
+
+              {/* INVOICES */}
+              <details className={detailsSection}>
+                <summary className={detailsSummary}>
+                  <DetailsHeader
+                    title="Invoices"
+                    status="Not invoiced"
+                    statusClass="bg-slate-100 text-slate-500"
+                    summary="Deposit and final invoice not created"
+                  />
+                </summary>
+                <div className={moduleBody}>
+                  <dl className="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
+                    <div className={metaRowCompact}>
+                      <dt className="text-slate-500">Deposit invoice</dt>
+                      <dd className="text-slate-400">Not created</dd>
+                    </div>
+                    <div className={metaRowCompact}>
+                      <dt className="text-slate-500">Final invoice</dt>
+                      <dd className="text-slate-400">Not created</dd>
+                    </div>
+                    <div className={metaRowCompact}>
+                      <dt className="text-slate-500">Balance</dt>
+                      <dd className="text-slate-400">—</dd>
+                    </div>
+                  </dl>
+                  <div className="mt-2 border-t border-slate-100 pt-2">
+                    <button type="button" disabled className={passiveAction}>Create invoice</button>
+                  </div>
+                </div>
+              </details>
+
+              {/* JOB COSTING */}
+              <details className={detailsSection}>
+                <summary className={detailsSummary}>
+                  <DetailsHeader
+                    title="Job Costing"
+                    status="Empty"
+                    statusClass="bg-slate-100 text-slate-500"
+                    summary="Estimate total, projected cost, gross profit"
+                  />
+                </summary>
+                <div className={moduleBody}>
+                  <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs sm:grid-cols-3">
+                    {["Estimate total", "Projected cost", "Material cost", "Labor cost", "Gross profit"].map((label) => (
+                      <div key={label} className="rounded border border-slate-100 bg-slate-50/40 px-2 py-1.5">
+                        <dt className="text-slate-500">{label}</dt>
+                        <dd className="mt-0.5 font-medium text-slate-400">—</dd>
+                      </div>
+                    ))}
+                  </dl>
+                  <div className="mt-2 border-t border-slate-100 pt-2">
+                    <button type="button" disabled className={passiveAction}>View job costing</button>
+                  </div>
+                </div>
+              </details>
+
+              {/* TASKS / CALENDAR */}
+              <details className={detailsSection}>
+                <summary className={detailsSummary}>
+                  <DetailsHeader
+                    title="Tasks / Calendar"
+                    status="No events"
+                    statusClass="bg-slate-100 text-slate-500"
+                    summary="Inspection, follow-up, calendar event"
+                  />
+                </summary>
+                <div className={moduleBody}>
+                  <dl className="grid grid-cols-1 gap-x-4 sm:grid-cols-3">
+                    <div className={metaRowCompact}>
+                      <dt className="text-slate-500">Inspection</dt>
+                      <dd className="text-slate-400">Not scheduled</dd>
+                    </div>
+                    <div className={metaRowCompact}>
+                      <dt className="text-slate-500">Follow-up</dt>
+                      <dd className="text-slate-400">Not created</dd>
+                    </div>
+                    <div className={metaRowCompact}>
+                      <dt className="text-slate-500">Calendar</dt>
+                      <dd className="text-slate-400">None</dd>
+                    </div>
+                  </dl>
+                  <div className="mt-2 flex flex-wrap gap-2 border-t border-slate-100 pt-2">
+                    <button type="button" disabled className={passiveAction}>Add task</button>
+                    <button type="button" disabled className={passiveAction}>Add calendar event</button>
+                  </div>
+                </div>
+              </details>
+
+            </div>{/* end main column */}
+
+            {/* ── RIGHT COLUMN ─────────────────────────────────────────── */}
+            <aside className="flex flex-col gap-3 xl:sticky xl:top-4">
+
+              {/* NEXT ACTIONS */}
+              <section className={moduleCard}>
+                <div className={moduleHeader}>
+                  <h2 className={moduleTitle}>Next Actions</h2>
+                </div>
+                <div className="divide-y divide-slate-100">
+                  <div className="flex items-start gap-3 px-4 py-3">
+                    <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${hasCustomerInfo ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
+                      {hasCustomerInfo ? "✓" : "1"}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-slate-800">Complete customer / property details</p>
+                      <p className="text-xs text-slate-500">Name, email, address, ZIP</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 px-4 py-3">
+                    <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${hasMeasurement ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
+                      {hasMeasurement ? "✓" : "2"}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-slate-800">Confirm roof measurements</p>
+                      <p className="text-xs text-slate-500">Roof size, waste factor, pitch</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 px-4 py-3">
+                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[10px] font-bold text-slate-500">3</span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-slate-800">Attach photos or report</p>
+                      <p className="text-xs text-slate-500">Inspection photos, measurement report</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 px-4 py-3">
+                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-900 text-[10px] font-bold text-white">4</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-slate-900">Build estimate</p>
+                      <p className="text-xs text-slate-500">Open the Estimate Builder</p>
+                      <a
+                        href="/tools/roofing?entry=manual"
+                        className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-slate-800"
+                      >
+                        Build Estimate →
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              {/* READINESS */}
+              <section className={moduleCard}>
+                <div className={moduleHeader}>
+                  <h2 className={moduleTitle}>Readiness</h2>
+                </div>
+                <div className="divide-y divide-slate-50 px-4 py-1">
+                  {[
+                    { label: "Customer info", ready: hasCustomerInfo },
+                    { label: "Property address", ready: hasAddress },
+                    { label: "Measurement status", ready: hasMeasurement },
+                    { label: "Photos / attachments", ready: false },
+                    { label: "Estimate started", ready: false },
+                  ].map(({ label, ready }) => (
+                    <div key={label} className="flex items-center justify-between gap-2 py-2 text-sm">
+                      <span className="text-slate-700">{label}</span>
+                      <span className={`${chipBase} ${ready ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
+                        {ready ? "✓ Done" : "Pending"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              {/* ACTIVITY */}
+              <section className={moduleCard}>
+                <div className={moduleHeader}>
+                  <h2 className={moduleTitle}>Activity</h2>
+                </div>
+                <div className="divide-y divide-slate-50 px-4 py-1">
+                  {[
+                    { label: "Job Card created", note: "Intake started" },
+                    { label: "Intake details started", note: "Customer / property" },
+                    { label: "Measurements pending", note: "Not verified" },
+                    { label: "Estimate not started", note: "Build estimate next" },
+                  ].map(({ label, note }) => (
+                    <div key={label} className="py-2.5">
+                      <p className="text-sm font-medium text-slate-800">{label}</p>
+                      <p className="text-xs text-slate-500">{note}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+            </aside>{/* end right column */}
+
+          </div>{/* end main grid */}
+        </div>
+      </div>
+    );
+  }
+
   function renderEstimateBuilderShell() {
     const tierLabel =
       roofingTier === "standard"
@@ -6834,7 +7364,7 @@ Thanks,`;
         </motion.div>
       )}
 
-      <FieldDiveAppShell activeNav="newJob" activeSubId={entryMode}>
+      <FieldDiveAppShell activeNav="newJob" activeSubId={entryMode === "job-card" ? "packet" : entryMode}>
         <button
           type="button"
           onClick={() => setShowV2Preview((v) => !v)}
@@ -6986,7 +7516,11 @@ Thanks,`;
             </div>
           )}
 
-        {entryMode !== "manual" ? (
+        {entryMode === "manual" ? (
+          legacyManual ? renderLegacyEstimateWorkspace() : renderEstimateBuilderShell()
+        ) : entryMode === "job-card" ? (
+          renderJobCardShell()
+        ) : (
           <div className="w-full min-w-0 max-w-[96rem]">
             {entryMode === "instant" ? (
               <div className="mb-4 rounded-lg border border-sky-100/80 bg-sky-50/70 px-4 py-3 text-sm text-slate-700">
@@ -6997,10 +7531,6 @@ Thanks,`;
             ) : null}
             {renderJobPacketWorkbench("standalone", entryMode === "instant" ? "instant" : "packet")}
           </div>
-        ) : legacyManual ? (
-          renderLegacyEstimateWorkspace()
-        ) : (
-          renderEstimateBuilderShell()
         )}
           </>
         )}
