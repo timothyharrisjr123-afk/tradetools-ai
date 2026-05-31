@@ -65,7 +65,12 @@ import type {
   MeasurementStatus,
   MeasurementSourceType,
 } from "@/app/lib/measurementTypes";
-import { createJob, isUuidLike, buildFormattedAddress } from "@/app/lib/jobStore";
+import {
+  createJob,
+  getOrCreateJobForEstimate,
+  isUuidLike,
+  buildFormattedAddress,
+} from "@/app/lib/jobStore";
 import type { JobDraft, JobAddress } from "@/app/lib/jobTypes";
 import { sendEstimateEmailWithPdf } from "@/app/lib/sendEstimateClient";
 import { getFavorite, setFavorite, setLocked, appendFeedback, getTierFeedbackBias, type TierLabel } from "@/app/lib/aiWordingPrefs";
@@ -822,6 +827,9 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
   const [showV2Preview, setShowV2Preview] = useState(false);
   const hasSeededV2PreviewDefaultsRef = useRef(false);
   const loadAppliedRef = useRef(false);
+  const jobLinkAppliedRef = useRef<string | null>(null);
+  const jobLinkInFlightRef = useRef<string | null>(null);
+  const linkedJobIdByEstimateRef = useRef<Record<string, string>>({});
   const isRestoringRef = useRef(false);
   const restoreTimerRef = useRef<number | null>(null);
   const autoSendFiredRef = useRef(false);
@@ -1083,6 +1091,90 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
     loadAppliedRef.current = true;
   }, [loadSavedId, router, beginRestoreWindow]);
 
+  const applyJobToSession = useCallback((jobId: string, estimateId?: string | null) => {
+    if (!isUuidLike(jobId)) return;
+    if (estimateId) {
+      linkedJobIdByEstimateRef.current[estimateId] = jobId;
+    }
+    setCurrentJobId(jobId);
+    if (typeof window === "undefined") return;
+    const targetPath = `/tools/roofing?entry=job-card&job=${encodeURIComponent(jobId)}`;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("entry") === "job-card" && params.get("job") === jobId) return;
+    window.history.replaceState({}, "", targetPath);
+  }, []);
+
+  useEffect(() => {
+    const activeEstimateId = loadSavedId ?? getCurrentLoadedSavedId();
+    if (jobLinkAppliedRef.current && jobLinkAppliedRef.current !== activeEstimateId) {
+      jobLinkAppliedRef.current = null;
+    }
+    if (jobLinkInFlightRef.current && jobLinkInFlightRef.current !== activeEstimateId) {
+      jobLinkInFlightRef.current = null;
+    }
+  }, [loadSavedId]);
+
+  useEffect(() => {
+    const cid = (companyId ?? "").trim();
+    if (!cid || entryMode !== "job-card") return;
+
+    const estimateId = loadSavedId ?? getCurrentLoadedSavedId() ?? null;
+    if (!estimateId) return;
+
+    const cachedJobId = linkedJobIdByEstimateRef.current[estimateId];
+    if (cachedJobId && isUuidLike(cachedJobId)) {
+      applyJobToSession(cachedJobId, estimateId);
+      return;
+    }
+
+    const match =
+      getSavedEstimateById(estimateId) ??
+      getSavedEstimates().find((e) => e.id === estimateId);
+
+    if (match?.jobId && isUuidLike(match.jobId)) {
+      applyJobToSession(match.jobId, estimateId);
+      return;
+    }
+
+    if (jobLinkInFlightRef.current === estimateId) return;
+
+    if (!match) return;
+
+    jobLinkInFlightRef.current = estimateId;
+
+    void (async () => {
+      try {
+        const job = await getOrCreateJobForEstimate({ ...match, id: match.id }, cid);
+        if (job?.id) {
+          jobLinkAppliedRef.current = estimateId;
+          applyJobToSession(job.id, estimateId);
+          if (!match.jobId) {
+            patchSavedEstimate(estimateId, { jobId: job.id });
+          }
+        } else {
+          console.warn("[RoofingClient] job link failed for estimate", estimateId);
+        }
+      } finally {
+        if (jobLinkInFlightRef.current === estimateId) {
+          jobLinkInFlightRef.current = null;
+        }
+      }
+    })();
+  }, [loadSavedId, companyId, entryMode, applyJobToSession]);
+
+  useEffect(() => {
+    if (entryMode !== "job-card") return;
+    if (!currentJobId || !isUuidLike(currentJobId)) return;
+    if (typeof window === "undefined") return;
+
+    const targetPath = `/tools/roofing?entry=job-card&job=${encodeURIComponent(currentJobId)}`;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("entry") === "job-card" && params.get("job") === currentJobId) {
+      return;
+    }
+    window.history.replaceState({}, "", targetPath);
+  }, [entryMode, currentJobId]);
+
   useEffect(() => {
     if (!loadSavedId) return;
 
@@ -1119,9 +1211,23 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
 
     // Only once all values "stick", clean the URL without remounting.
     if (typeof window !== "undefined") {
-      window.history.replaceState({}, "", "/tools/roofing?entry=job-card");
+      const jobQuery =
+        currentJobId && isUuidLike(currentJobId)
+          ? `&job=${encodeURIComponent(currentJobId)}`
+          : "";
+      window.history.replaceState({}, "", `/tools/roofing?entry=job-card${jobQuery}`);
     }
-  }, [loadSavedId, area, waste, bundlesPerSquare, bundleCost, laborPerSquare, margin, pricingMode]);
+  }, [
+    loadSavedId,
+    area,
+    waste,
+    bundlesPerSquare,
+    bundleCost,
+    laborPerSquare,
+    margin,
+    pricingMode,
+    currentJobId,
+  ]);
 
   const [gptReviewComment, setGptReviewComment] = useState("");
   const [showEmailTemplate, setShowEmailTemplate] = useState(false);

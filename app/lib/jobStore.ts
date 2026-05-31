@@ -472,6 +472,39 @@ export async function linkEstimateToJob(
   }
 }
 
+async function fetchJobByLatestEstimateId(
+  estimateId: string,
+  companyId: string
+): Promise<JobRecord | null> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return null;
+  const estId = String(estimateId || "").trim();
+  const cid = String(companyId || "").trim();
+  if (!isUuidLike(estId) || !cid) return null;
+
+  try {
+    const { data, error } = await supabase
+      .from("jobs")
+      .select(JOB_SELECT_COLUMNS)
+      .eq("company_id", cid)
+      .eq("latest_estimate_id", estId)
+      .eq("archived", false)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      console.warn("[jobStore] fetchJobByLatestEstimateId:", error.message);
+      return null;
+    }
+    if (!data) return null;
+    return rowToJobRecord(data as JobRow);
+  } catch {
+    return null;
+  }
+}
+
 async function fetchEstimateJobIdFromDb(estimateId: string): Promise<string | null> {
   const supabase = getSupabaseClient();
   if (!supabase) return null;
@@ -518,6 +551,18 @@ export async function getOrCreateJobForEstimate(
   if (fromDb) {
     const existing = await getJobById(fromDb);
     if (existing) return existing;
+  }
+
+  const fromLatestEstimate = await fetchJobByLatestEstimateId(estId, companyId);
+  if (fromLatestEstimate) {
+    const linked = await linkEstimateToJob(estId, fromLatestEstimate.id);
+    if (!linked) {
+      console.warn("[jobStore] getOrCreateJobForEstimate: reused job but estimate link failed", {
+        estimateId: estId,
+        jobId: fromLatestEstimate.id,
+      });
+    }
+    return fromLatestEstimate;
   }
 
   const draft = estimateSnapshotToJobDraft(estimate, companyId);
