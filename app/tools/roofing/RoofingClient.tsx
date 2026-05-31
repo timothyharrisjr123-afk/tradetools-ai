@@ -92,7 +92,15 @@ import {
   formatProductionReadinessLabel,
   formatRailMeasurementStatusLabel,
   resolveNextMeasurementAction,
+  resolveReportPathNextAction,
   resolveActivityMeasurementLine,
+  formatSourceTypeLabel,
+  formatReportStatusLabel,
+  formatReportLastUpdatedLabel,
+  formatReportAttachedLabel,
+  formatDiagramAvailableLabel,
+  formatNullableId,
+  formatReportPathHelperText,
   hasRoofSize,
 } from "@/app/lib/measurementReadiness";
 import type { JobDraft, JobAddress, JobRecord } from "@/app/lib/jobTypes";
@@ -6676,6 +6684,17 @@ Thanks,`;
       isPersistedManual,
       isPersistedNonManual,
     });
+    const reportPathRecord = lineMeasurementRecord;
+    const reportPathNextAction = resolveReportPathNextAction({
+      workspace,
+      estimateReady: estimateReadiness.ready,
+      persistedRecord: persistedSelectedMeasurement,
+    });
+    const reportPathHelperText = formatReportPathHelperText({
+      workspace,
+      estimateReady: estimateReadiness.ready,
+    });
+    const reportSourceUrl = (reportPathRecord.source_url ?? "").trim();
 
     const reportMeasurementRows: { label: string; value: string; muted?: boolean }[] = [
       {
@@ -7201,47 +7220,150 @@ Thanks,`;
                       ))}
                     </dl>
                   </div>
-                  <div className={wsBlock}>
-                    <WorkspaceHeading>Measurement report</WorkspaceHeading>
-                    <div className="mt-2 grid grid-cols-1 gap-x-4 sm:grid-cols-2">
-                      <StatusLine
-                        label="Report"
-                        value={lineMeasurementRecord.report_attached ? "Attached" : "Not attached"}
-                        muted={!lineMeasurementRecord.report_attached}
-                      />
-                      <StatusLine
-                        label="Diagram"
-                        value={lineMeasurementRecord.diagram_available ? "Available" : "Not available"}
-                        muted={!lineMeasurementRecord.diagram_available}
-                      />
-                      <StatusLine
-                        label="Report source"
-                        value={lineMeasurementRecord.report_source ?? "Manual"}
-                      />
-                      <StatusLine
-                        label="Last updated"
-                        value={lineMeasurementRecord.report_last_updated_at ?? "Not verified"}
-                        muted={!lineMeasurementRecord.report_last_updated_at}
-                      />
-                      <StatusLine
-                        label="Report type"
-                        value={lineMeasurementRecord.report_type ?? "—"}
-                        muted={!lineMeasurementRecord.report_type}
-                      />
-                      <StatusLine
-                        label="Source provider"
-                        value={lineMeasurementRecord.source_provider ?? "—"}
-                        muted={!lineMeasurementRecord.source_provider}
-                      />
-                      <StatusLine
-                        label="Report ID"
-                        value={lineMeasurementRecord.source_report_id ?? "—"}
-                        muted={!lineMeasurementRecord.source_report_id}
-                      />
+                  <div className="space-y-3">
+                    <div>
+                      <WorkspaceHeading>Measurement report path</WorkspaceHeading>
+                      <p className={wsHelper}>{reportPathHelperText}</p>
+                    </div>
+                    <div className={wsBlock}>
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                        Report source
+                      </p>
+                      <div className="mt-2 grid grid-cols-1 gap-x-4 sm:grid-cols-2">
+                        <StatusLine
+                          label="Source type"
+                          value={formatSourceTypeLabel(reportPathRecord.source_type)}
+                          muted={reportPathRecord.source_type === "manual"}
+                        />
+                        <StatusLine
+                          label="Source provider"
+                          value={formatNullableId(reportPathRecord.source_provider)}
+                          muted={!reportPathRecord.source_provider}
+                        />
+                        <StatusLine
+                          label="Report type"
+                          value={formatNullableId(reportPathRecord.report_type)}
+                          muted={!reportPathRecord.report_type}
+                        />
+                        <StatusLine
+                          label="Report source"
+                          value={
+                            (reportPathRecord.report_source ?? "").trim() ||
+                            (reportPathRecord.source_type === "manual" ? "Manual" : "—")
+                          }
+                          muted={!(reportPathRecord.report_source ?? "").trim()}
+                        />
+                      </div>
+                    </div>
+                    <div className={wsBlock}>
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                        Report status
+                      </p>
+                      <div className="mt-2 grid grid-cols-1 gap-x-4 sm:grid-cols-2">
+                        <StatusLine
+                          label="Report status"
+                          value={formatReportStatusLabel(reportPathRecord.report_status)}
+                          muted={!reportPathRecord.report_status}
+                        />
+                        <StatusLine
+                          label="Report attached"
+                          value={formatReportAttachedLabel(reportPathRecord.report_attached)}
+                          muted={!reportPathRecord.report_attached}
+                        />
+                        <StatusLine
+                          label="Diagram"
+                          value={formatDiagramAvailableLabel(reportPathRecord.diagram_available)}
+                          muted={!reportPathRecord.diagram_available}
+                        />
+                        <StatusLine
+                          label="Last updated"
+                          value={formatReportLastUpdatedLabel(reportPathRecord.report_last_updated_at)}
+                          muted={!(reportPathRecord.report_last_updated_at ?? "").trim()}
+                        />
+                      </div>
+                    </div>
+                    <div className={wsBlock}>
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                        IDs &amp; links
+                      </p>
+                      <div className="mt-2 grid grid-cols-1 gap-x-4 sm:grid-cols-2">
+                        <StatusLine
+                          label="Report ID"
+                          value={formatNullableId(reportPathRecord.source_report_id)}
+                          muted={!reportPathRecord.source_report_id}
+                        />
+                        <StatusLine
+                          label="Report file ID"
+                          value={formatNullableId(reportPathRecord.report_file_id)}
+                          muted={!reportPathRecord.report_file_id}
+                        />
+                        <StatusLine
+                          label="Source file ID"
+                          value={formatNullableId(reportPathRecord.source_file_id)}
+                          muted={!reportPathRecord.source_file_id}
+                        />
+                        <div className="flex items-center justify-between gap-2 py-0.5 text-xs sm:col-span-2">
+                          <span className="text-slate-500">Source URL</span>
+                          {reportSourceUrl ? (
+                            <a
+                              href={reportSourceUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="max-w-[60%] truncate text-right font-medium text-sky-700 hover:underline"
+                            >
+                              {reportSourceUrl}
+                            </a>
+                          ) : (
+                            <span className={statusMuted}>—</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="rounded-md border border-dashed border-slate-200 bg-slate-50/50 px-3 py-2.5">
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                        Report path actions
+                      </p>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          disabled
+                          title="Orders provider reports later"
+                          className={passiveAction}
+                        >
+                          Create report
+                        </button>
+                        <button
+                          type="button"
+                          disabled
+                          title="Upload PDF/XML later"
+                          className={passiveAction}
+                        >
+                          Attach report
+                        </button>
+                        <button
+                          type="button"
+                          disabled
+                          title="Pull provider report later"
+                          className={passiveAction}
+                        >
+                          Import provider report
+                        </button>
+                        <button
+                          type="button"
+                          disabled
+                          title="Analyze inspection photos later"
+                          className={passiveAction}
+                        >
+                          Photo / AI draft
+                        </button>
+                      </div>
+                      <p className="mt-2 text-[11px] text-slate-500">
+                        Provider orders, uploads, and photo analysis are not enabled yet. Manual save
+                        remains available below.
+                      </p>
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-2 border-t border-slate-100 pt-2">
-                    <button type="button" disabled className={passiveAction}>Create report</button>
                     <button type="button" disabled className={passiveAction}>Edit measurement</button>
                     <button
                       type="button"
@@ -7649,10 +7771,14 @@ Thanks,`;
                     </div>
                   </div>
                   <div className="flex items-start gap-3 px-4 py-3">
-                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[10px] font-bold text-slate-500">3</span>
+                    <span
+                      className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${reportPathNextAction.done ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}
+                    >
+                      {reportPathNextAction.done ? "✓" : "3"}
+                    </span>
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-slate-800">Attach photos or report</p>
-                      <p className="text-xs text-slate-500">Inspection photos, measurement report</p>
+                      <p className="text-sm font-medium text-slate-800">{reportPathNextAction.title}</p>
+                      <p className="text-xs text-slate-500">{reportPathNextAction.subtitle}</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3 px-4 py-3">

@@ -80,21 +80,79 @@ export function isProviderBackedSource(sourceType: MeasurementSourceType): boole
   return sourceType !== "manual";
 }
 
+const SOURCE_TYPE_LABELS: Record<MeasurementSourceType, string> = {
+  manual: "Manual",
+  report_import: "Report import",
+  provider_report: "Provider report",
+  satellite: "Satellite",
+  aerial: "Aerial",
+  photo_ai: "Photo AI draft",
+  address_ai: "Address AI",
+  contractor_verified: "Contractor verified",
+  external_import: "External import",
+};
+
+export function formatSourceTypeLabel(sourceType: MeasurementSourceType): string {
+  return SOURCE_TYPE_LABELS[sourceType];
+}
+
 export function formatMeasurementSourceLabel(record: MeasurementRecord): string {
   const provider = (record.source_provider ?? "").trim();
   if (provider) return provider;
-  const labels: Record<MeasurementSourceType, string> = {
-    manual: "Manual",
-    report_import: "Report import",
-    provider_report: "Provider report",
-    satellite: "Satellite",
-    aerial: "Aerial",
-    photo_ai: "Photo AI draft",
-    address_ai: "Address AI",
-    contractor_verified: "Contractor verified",
-    external_import: "External import",
+  return SOURCE_TYPE_LABELS[record.source_type];
+}
+
+export function formatNullableId(value: string | null | undefined): string {
+  const trimmed = (value ?? "").trim();
+  return trimmed || "—";
+}
+
+export function formatReportAttachedLabel(attached: boolean): string {
+  return attached ? "Attached" : "Not attached";
+}
+
+export function formatDiagramAvailableLabel(available: boolean): string {
+  return available ? "Available" : "Not available";
+}
+
+export function formatReportStatusLabel(status: string | null | undefined): string {
+  const raw = (status ?? "").trim();
+  if (!raw) return "Not started";
+  const normalized = raw.toLowerCase().replace(/\s+/g, "_");
+  const labels: Record<string, string> = {
+    not_started: "Not started",
+    not_attached: "Not attached",
+    pending: "Pending",
+    processing: "Processing",
+    available: "Available",
+    ready: "Available",
+    complete: "Available",
+    completed: "Available",
+    failed: "Failed",
+    error: "Failed",
+    needs_review: "Needs review",
   };
-  return labels[record.source_type];
+  return labels[normalized] ?? raw;
+}
+
+export function formatReportLastUpdatedLabel(value: string | null | undefined): string {
+  if (!(value ?? "").trim()) return "Not updated yet";
+  const parsed = Date.parse(value!);
+  if (!Number.isFinite(parsed)) return value!.trim();
+  return new Date(parsed).toLocaleString();
+}
+
+export function formatReportPathHelperText(input: {
+  workspace: MeasurementWorkspaceState;
+  estimateReady: boolean;
+}): string {
+  if (input.workspace.isPersistedNonManual) {
+    return "Review provider report data and line measurements before production.";
+  }
+  if (input.workspace.isPersistedManual && input.estimateReady) {
+    return "Manual measurements are estimate-ready; production needs a verified report or provider data.";
+  }
+  return "Order a provider report, attach a PDF, or add a photo/AI draft when those flows are enabled.";
 }
 
 export function deriveEstimateReadiness(record: MeasurementRecord): ReadinessResult {
@@ -365,4 +423,30 @@ export function resolveActivityMeasurementLine(input: {
     };
   }
   return { label: "Measurements pending", note: "Not saved yet" };
+}
+
+export function resolveReportPathNextAction(input: {
+  workspace: MeasurementWorkspaceState;
+  estimateReady: boolean;
+  persistedRecord: MeasurementRecord | null;
+}): { title: string; subtitle: string; done: boolean } {
+  if (input.workspace.isPersistedNonManual && input.persistedRecord) {
+    return {
+      title: "Review report measurements",
+      subtitle: "Verify line measurements and report data",
+      done: input.estimateReady,
+    };
+  }
+  if (input.workspace.isPersistedManual && input.estimateReady) {
+    return {
+      title: "Order or attach report",
+      subtitle: "Provider order or PDF upload coming soon",
+      done: false,
+    };
+  }
+  return {
+    title: "Attach photos or report",
+    subtitle: "Inspection photos or measurement report later",
+    done: false,
+  };
 }
