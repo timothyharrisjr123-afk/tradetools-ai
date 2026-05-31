@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import AdminNavLinks from "@/app/admin/AdminNavLinks";
 import {
   deriveCatalogReadiness,
   formatCatalogReadinessLabel,
@@ -91,7 +91,7 @@ export default function CatalogAdminClient({ companyId }: { companyId: string })
   const starterInstalled = hasAllStarterSeedKeys(items);
 
   async function handleInstallStarter() {
-    if (loading || installing || starterInstalled) return;
+    if (loading || installing) return;
 
     setInstalling(true);
     setError(null);
@@ -117,8 +117,10 @@ export default function CatalogAdminClient({ companyId }: { companyId: string })
         setMessage(
           `Installed ${result.createdCount} starter item${result.createdCount === 1 ? "" : "s"}.`
         );
-      } else if (result.skippedCount > 0) {
-        setMessage("Starter catalog is already installed (all items skipped).");
+      } else if (result.skippedCount > 0 && result.createdCount === 0) {
+        setMessage(
+          `Starter catalog is installed. Recheck: ${result.createdCount} created, ${result.skippedCount} skipped, ${result.failedCount} failed.`
+        );
       }
 
       const rows = await fetchActiveCatalog();
@@ -132,14 +134,15 @@ export default function CatalogAdminClient({ companyId }: { companyId: string })
   }
 
   const busy = loading || installing;
-  const installButtonLabel = starterInstalled
-    ? "Starter catalog installed"
-    : installing
-      ? "Installing…"
+  const installButtonLabel = installing
+    ? "Installing…"
+    : starterInstalled
+      ? "Recheck starter catalog"
       : "Install starter roofing catalog";
 
   return (
     <>
+      <AdminNavLinks current="catalog" />
       <h1 className="mb-4 text-xl font-semibold">Catalog setup</h1>
 
       <p className="mb-4 text-sm text-white/70">
@@ -150,11 +153,9 @@ export default function CatalogAdminClient({ companyId }: { companyId: string })
       </p>
 
       <p className="mb-4 text-xs text-white/50">
-        Separate from legacy{" "}
-        <Link href="/admin/price-book" className="text-cyan-400 hover:text-cyan-300 underline">
-          Price Book (service items)
-        </Link>
-        , which uses a different table and is not wired to the new catalog spine yet.
+        Separate from legacy Price Book (service_items), which uses a different table and is
+        not wired to the new catalog spine yet. Use Legacy Price Book in the nav above for
+        service items.
       </p>
 
       {error && (
@@ -218,15 +219,15 @@ export default function CatalogAdminClient({ companyId }: { companyId: string })
         <button
           type="button"
           onClick={() => void handleInstallStarter()}
-          disabled={busy || starterInstalled}
+          disabled={busy}
           className="rounded bg-cyan-500 px-4 py-2 text-sm font-semibold hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {installButtonLabel}
         </button>
         {starterInstalled && (
           <p className="mt-2 text-xs text-white/50">
-            All {STARTER_DEFINITION_COUNT} starter seed keys are present. Re-run is only
-            needed if items were removed.
+            All {STARTER_DEFINITION_COUNT} starter seed keys are present. Use Recheck to
+            install any missing items without duplicating existing rows.
           </p>
         )}
       </div>

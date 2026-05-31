@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import AdminNavLinks from "@/app/admin/AdminNavLinks";
 import { getSupabaseClient } from "@/app/lib/supabaseClient";
 
 type Service = {
@@ -152,6 +153,7 @@ export default function PriceBookAdminClient({ companyId }: { companyId: string 
 
   return (
     <>
+      <AdminNavLinks current="price-book" />
       <h1 className="text-xl font-semibold mb-4">Price Book</h1>
 
       {error && (

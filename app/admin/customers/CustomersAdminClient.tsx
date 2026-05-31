@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import AdminNavLinks from "@/app/admin/AdminNavLinks";
 import { getSupabaseClient } from "@/app/lib/supabaseClient";
 
 type Customer = {
@@ -159,6 +160,7 @@ export default function CustomersAdminClient({ companyId }: { companyId: string 
 
   return (
     <>
+      <AdminNavLinks />
       <h1 className="text-xl font-semibold mb-4">Customers</h1>
 
       {error && (
