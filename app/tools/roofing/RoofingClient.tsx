@@ -65,6 +65,8 @@ import type {
   MeasurementStatus,
   MeasurementSourceType,
 } from "@/app/lib/measurementTypes";
+import { createJob, isUuidLike, buildFormattedAddress } from "@/app/lib/jobStore";
+import type { JobDraft, JobAddress } from "@/app/lib/jobTypes";
 import { sendEstimateEmailWithPdf } from "@/app/lib/sendEstimateClient";
 import { getFavorite, setFavorite, setLocked, appendFeedback, getTierFeedbackBias, type TierLabel } from "@/app/lib/aiWordingPrefs";
 import RoofingTabs from "@/app/tools/roofing/RoofingTabs";
@@ -823,6 +825,16 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
   const isRestoringRef = useRef(false);
   const restoreTimerRef = useRef<number | null>(null);
   const autoSendFiredRef = useRef(false);
+  const [currentJobId, setCurrentJobId] = useState<string | null>(null);
+  const [isCreatingJob, setIsCreatingJob] = useState(false);
+  const [jobCreationError, setJobCreationError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const jobFromUrl = searchParams.get("job");
+    if (jobFromUrl && isUuidLike(jobFromUrl)) {
+      setCurrentJobId(jobFromUrl);
+    }
+  }, [searchParams]);
 
   const beginRestoreWindow = useCallback((id: string) => {
     if (restoreTimerRef.current) window.clearTimeout(restoreTimerRef.current);
@@ -3818,6 +3830,103 @@ Thanks,`;
   ];
   const jobReadinessReadyCount = jobReadinessItems.filter((x) => x.ready).length;
 
+  const buildJobDraftFromPacketState = useCallback((): JobDraft | null => {
+    const cid = (companyId ?? "").trim();
+    if (!cid) return null;
+
+    const line1 = (jobAddress1 || "").trim() || null;
+    const city = (jobCity || "").trim() || null;
+    const stateVal = (jobState || "").trim() || null;
+    const zip = (jobZip || "").trim() || null;
+    const address: JobAddress = {
+      line1,
+      city,
+      state: stateVal,
+      zip,
+      country: "US",
+      formatted: buildFormattedAddress({ line1, city, state: stateVal, zip, country: "US" }),
+    };
+
+    const name = (customerName || "").trim() || null;
+    const roofAreaSqft = parseFloat(area) || 0;
+    const stage = roofAreaSqft > 0 ? "measurement" : "intake";
+    const jobName = line1 ?? (name ? `${name} — roofing` : null) ?? "Roofing job";
+
+    return {
+      company_id: cid,
+      job_name: jobName,
+      stage,
+      status: "active",
+      source: "intake",
+      priority: "normal",
+      contact: {
+        customer_name: name,
+        customer_email: (customerEmail || "").trim() || null,
+        customer_phone: (customerPhone || "").trim() || null,
+      },
+      address,
+      source_metadata: { source: "job_packet" },
+      archived: false,
+    };
+  }, [
+    companyId,
+    customerName,
+    customerEmail,
+    customerPhone,
+    jobAddress1,
+    jobCity,
+    jobState,
+    jobZip,
+    area,
+  ]);
+
+  const handleContinueToJobCard = useCallback(async () => {
+    setJobCreationError(null);
+    if (isCreatingJob) return;
+
+    const fromUrl = searchParams.get("job");
+    const existingId =
+      (currentJobId && isUuidLike(currentJobId) ? currentJobId : null) ??
+      (fromUrl && isUuidLike(fromUrl) ? fromUrl : null);
+
+    if (existingId) {
+      setCurrentJobId(existingId);
+      router.push(`/tools/roofing?entry=job-card&job=${encodeURIComponent(existingId)}`);
+      return;
+    }
+
+    const cid = (companyId ?? "").trim();
+    if (!cid) {
+      setJobCreationError("Company context is missing. Refresh and try again.");
+      return;
+    }
+
+    const draft = buildJobDraftFromPacketState();
+    if (!draft) {
+      setJobCreationError("Company context is missing. Refresh and try again.");
+      return;
+    }
+
+    setIsCreatingJob(true);
+    try {
+      const record = await createJob(draft);
+      if (!record?.id) {
+        setJobCreationError("Could not create job. Check your connection and try again.");
+        return;
+      }
+      setCurrentJobId(record.id);
+      router.push(`/tools/roofing?entry=job-card&job=${encodeURIComponent(record.id)}`);
+    } finally {
+      setIsCreatingJob(false);
+    }
+  }, [
+    isCreatingJob,
+    currentJobId,
+    searchParams,
+    companyId,
+    buildJobDraftFromPacketState,
+    router,
+  ]);
 
   function renderJobPacketWorkbench(
     variant: "standalone" | "embedded" = "embedded",
@@ -4394,13 +4503,22 @@ Thanks,`;
           }
         >
           <div className="flex flex-wrap items-center gap-2">
-            <a
-              href="/tools/roofing?entry=job-card"
-              className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-900 bg-slate-900 px-4 py-2 text-[13px] font-semibold text-white shadow-sm transition hover:bg-slate-800"
-            >
-              Continue to Job Card
-              <ArrowRight className="h-3.5 w-3.5" aria-hidden />
-            </a>
+            <div className="flex flex-col gap-1.5">
+              <button
+                type="button"
+                onClick={() => void handleContinueToJobCard()}
+                disabled={isCreatingJob}
+                className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-900 bg-slate-900 px-4 py-2 text-[13px] font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isCreatingJob ? "Creating job…" : "Continue to Job Card"}
+                <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+              </button>
+              {jobCreationError ? (
+                <p className="text-[11px] font-medium text-red-600" role="alert">
+                  {jobCreationError}
+                </p>
+              ) : null}
+            </div>
             <button
               type="button"
               disabled
