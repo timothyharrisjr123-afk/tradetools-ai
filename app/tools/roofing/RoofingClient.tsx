@@ -59,6 +59,12 @@ import {
   setEstimateStoreCompanyScope,
   type RoofingEstimate as SavedEstimateSnapshot,
 } from "@/app/lib/estimateStore";
+import type {
+  MeasurementRecord,
+  MeasurementSummary,
+  MeasurementStatus,
+  MeasurementSourceType,
+} from "@/app/lib/measurementTypes";
 import { sendEstimateEmailWithPdf } from "@/app/lib/sendEstimateClient";
 import { getFavorite, setFavorite, setLocked, appendFeedback, getTierFeedbackBias, type TierLabel } from "@/app/lib/aiWordingPrefs";
 import RoofingTabs from "@/app/tools/roofing/RoofingTabs";
@@ -631,6 +637,164 @@ type FormSnapshot = {
   removalType: DebrisRemovalType;
   dumpFeePerTon: string;
 };
+
+/** Local Job Card display bundle — not persisted. */
+type JobCardMeasurementView = {
+  record: MeasurementRecord;
+  summary: MeasurementSummary;
+  missingFields: string[];
+};
+
+type BuildJobCardMeasurementInput = {
+  area: string;
+  waste: string;
+  squares: number;
+  adjustedSquares: number;
+  pitch: PitchKey;
+  stories: StoriesKey;
+  complexity: ComplexityKey;
+  debrisTons: number;
+  includeDebrisRemoval: boolean;
+  removalType: DebrisRemovalType;
+  guidedStories: GuidedStories;
+  guidedWalkable: GuidedWalkable;
+  laborMode: LaborMode;
+  loadSavedId: string | null;
+  currentLoadedSavedId: string | null;
+  companyId?: string;
+};
+
+function formatJobCardStoriesLabel(stories: string | null | undefined): string {
+  if (stories === "1") return "1 story";
+  if (stories === "2") return "2 stories";
+  if (stories === "3") return "3+ stories";
+  return "Not selected";
+}
+
+function formatJobCardComplexityLabel(complexity: string | null | undefined): string {
+  if (complexity === "simple") return "Simple";
+  if (complexity === "moderate") return "Moderate";
+  if (complexity === "complex") return "Complex";
+  return "Not selected";
+}
+
+function formatJobCardLf(value: number | null | undefined): string {
+  return value != null && Number.isFinite(value) ? String(value) : "—";
+}
+
+function formatJobCardCount(value: number | null | undefined): string {
+  return value != null && Number.isFinite(value) ? String(value) : "Not measured";
+}
+
+/**
+ * Local Job Card display adapter only.
+ * Not a persisted MeasurementRecord; does not write to database or pricing.
+ */
+function buildJobCardSelectedMeasurement(input: BuildJobCardMeasurementInput): JobCardMeasurementView {
+  const roofAreaSqft = parseFloat(input.area) || 0;
+  const wastePercent = parseFloat(input.waste);
+  const wasteValid = Number.isFinite(wastePercent);
+  const roofSquares =
+    Number.isFinite(input.squares) && input.squares > 0 ? input.squares : roofAreaSqft > 0 ? roofAreaSqft / 100 : null;
+  const adjustedRoofSquares =
+    Number.isFinite(input.adjustedSquares) && input.adjustedSquares > 0 ? input.adjustedSquares : null;
+  const debrisEstimate =
+    Number.isFinite(input.debrisTons) && input.debrisTons > 0 ? input.debrisTons : null;
+
+  const hasMeasurement = roofAreaSqft > 0 || (roofSquares != null && roofSquares > 0);
+
+  const missingFields: string[] = [];
+  if (!hasMeasurement) missingFields.push("Roof size");
+  missingFields.push("Report measurements");
+  missingFields.push("Measurement report");
+
+  const status: MeasurementStatus = hasMeasurement ? "measured" : "incomplete";
+  const estimateReady = hasMeasurement;
+  const productionReady = false;
+
+  const estimateId = input.loadSavedId ?? input.currentLoadedSavedId ?? null;
+  const recordId = estimateId ?? "job-card-local-draft";
+
+  const pitchLabel =
+    input.pitch === "walkable" ? "Walkable" : input.pitch === "moderate" ? "Moderate" : "Steep";
+
+  const record: MeasurementRecord = {
+    id: recordId,
+    company_id: input.companyId?.trim() || "local",
+    estimate_id: estimateId,
+    job_id: null,
+    created_at: "local-draft",
+    updated_at: "local-draft",
+    status,
+    is_selected: true,
+    source_type: "manual" as MeasurementSourceType,
+    source_provider: null,
+    source_report_id: null,
+    source_file_id: null,
+    is_verified: false,
+    confidence_score: null,
+    confidence_label: null,
+    field_confidence: null,
+    roof_area_sqft: hasMeasurement ? roofAreaSqft : null,
+    roof_squares: roofSquares,
+    adjusted_roof_squares: adjustedRoofSquares,
+    waste_percent: wasteValid ? wastePercent : null,
+    pitch_label: pitchLabel,
+    stories: input.stories,
+    roof_complexity: input.complexity,
+    roof_type: null,
+    structure_count: null,
+    roof_facets_count: null,
+    eaves_lf: null,
+    rakes_lf: null,
+    ridges_lf: null,
+    hips_lf: null,
+    valleys_lf: null,
+    wall_flashing_lf: null,
+    step_flashing_lf: null,
+    transitions_lf: null,
+    parapet_wall_lf: null,
+    drip_edge_lf: null,
+    starter_lf: null,
+    ridge_cap_lf: null,
+    tear_off_required: input.includeDebrisRemoval,
+    debris_tons_estimate: debrisEstimate,
+    report_attached: false,
+    diagram_available: false,
+    report_status: "Not attached",
+    report_source: "Manual",
+    report_last_updated_at: null,
+    report_type: null,
+    quantity_map: null,
+    assumptions: {
+      guidedStories: input.guidedStories,
+      guidedWalkable: input.guidedWalkable,
+      removalType: input.removalType,
+      laborMode: input.laborMode,
+    },
+    missing_fields: missingFields,
+    measurement_readiness_score: null,
+    estimate_ready: estimateReady,
+    production_ready: productionReady,
+  };
+
+  const summary: MeasurementSummary = {
+    id: record.id,
+    status: record.status,
+    source_type: record.source_type,
+    confidence_label: record.confidence_label,
+    is_verified: record.is_verified,
+    roof_squares: record.roof_squares,
+    adjusted_roof_squares: record.adjusted_roof_squares,
+    waste_percent: record.waste_percent,
+    pitch_label: record.pitch_label,
+    stories: record.stories,
+    estimate_ready: record.estimate_ready,
+    production_ready: record.production_ready,
+  };
+
+  return { record, summary, missingFields };
+}
 
 export default function RoofingClient({ companyId }: { companyId?: string }) {
   setEstimateStoreCompanyScope(companyId ?? null);
@@ -5776,19 +5940,84 @@ Thanks,`;
       ? [jobAddress1, jobCity, jobState, jobZip].map((s) => (s || "").trim()).filter(Boolean).join(", ")
       : "Property details not complete";
     const hasCustomerInfo = Boolean((customerName || customerEmail || customerPhone).trim());
-    const hasMeasurement = parseFloat(area) > 0;
-    const wasteSet = (waste || "").trim() !== "" && Number.isFinite(parseFloat(waste));
-    const roofSquaresOnly = hasMeasurement
-      ? `${(parseFloat(area) / 100).toFixed(1)} SQ`
-      : "Not measured";
-    const wasteDisplay = wasteSet ? `${parseFloat(waste)}%` : "Not set";
-    const pitchDisplay =
-      pitch === "walkable" ? "Walkable" : pitch === "moderate" ? "Moderate" : "Steep";
-    const storiesDisplay = stories === "1" ? "1 story" : stories === "2" ? "2 stories" : "3+ stories";
-    const complexityDisplay =
-      complexity === "simple" ? "Simple" : complexity === "moderate" ? "Moderate" : "Complex";
-    const sqFtOnly = hasMeasurement ? `${parseFloat(area).toLocaleString()} sq ft` : "Not measured";
+    const selectedMeasurement = buildJobCardSelectedMeasurement({
+      area,
+      waste,
+      squares,
+      adjustedSquares,
+      pitch,
+      stories,
+      complexity,
+      debrisTons,
+      includeDebrisRemoval,
+      removalType,
+      guidedStories,
+      guidedWalkable,
+      laborMode,
+      loadSavedId,
+      currentLoadedSavedId,
+      companyId,
+    });
+    const mRecord = selectedMeasurement.record;
+    const hasMeasurement =
+      (mRecord.roof_area_sqft ?? 0) > 0 || (mRecord.roof_squares ?? 0) > 0;
+    const wasteSet =
+      mRecord.waste_percent != null && Number.isFinite(mRecord.waste_percent);
     const propertyForInstant = hasAddress ? addressLine : "Not entered";
+
+    const roofAreaSqDisplay =
+      mRecord.roof_squares != null && mRecord.roof_squares > 0
+        ? `${mRecord.roof_squares.toFixed(1)} SQ`
+        : "Not measured";
+    const roofSqFtDisplay =
+      mRecord.roof_area_sqft != null && mRecord.roof_area_sqft > 0
+        ? `${mRecord.roof_area_sqft.toLocaleString()} sq ft`
+        : "Not measured";
+    const wasteFactorDisplay =
+      wasteSet && mRecord.waste_percent != null ? `${mRecord.waste_percent}%` : "Not set";
+    const measurementRecordLabel =
+      mRecord.estimate_ready || hasMeasurement ? "Local draft" : "Not created";
+    const confidenceDisplay = mRecord.confidence_label ?? "Not scored";
+    const verificationDisplay = mRecord.is_verified ? "Verified" : "Not verified";
+    const estimateReadinessDisplay = mRecord.estimate_ready ? "Ready" : "Not ready";
+    const productionReadinessDisplay = mRecord.production_ready ? "Ready" : "Not ready";
+    const missingFieldsDisplay = selectedMeasurement.missingFields.join(", ");
+
+    const reportMeasurementRows: { label: string; value: string; muted?: boolean }[] = [
+      {
+        label: "Roof facets",
+        value: formatJobCardCount(mRecord.roof_facets_count),
+        muted: mRecord.roof_facets_count == null,
+      },
+      { label: "Eaves", value: formatJobCardLf(mRecord.eaves_lf), muted: mRecord.eaves_lf == null },
+      { label: "Valleys", value: formatJobCardLf(mRecord.valleys_lf), muted: mRecord.valleys_lf == null },
+      { label: "Hips", value: formatJobCardLf(mRecord.hips_lf), muted: mRecord.hips_lf == null },
+      { label: "Ridges", value: formatJobCardLf(mRecord.ridges_lf), muted: mRecord.ridges_lf == null },
+      { label: "Rakes", value: formatJobCardLf(mRecord.rakes_lf), muted: mRecord.rakes_lf == null },
+      {
+        label: "Wall flashing",
+        value: formatJobCardLf(mRecord.wall_flashing_lf),
+        muted: mRecord.wall_flashing_lf == null,
+      },
+      {
+        label: "Step flashing",
+        value: formatJobCardLf(mRecord.step_flashing_lf),
+        muted: mRecord.step_flashing_lf == null,
+      },
+      {
+        label: "Transitions",
+        value: formatJobCardLf(mRecord.transitions_lf),
+        muted: mRecord.transitions_lf == null,
+      },
+      {
+        label: "Parapet wall",
+        value: formatJobCardLf(mRecord.parapet_wall_lf),
+        muted: mRecord.parapet_wall_lf == null,
+      },
+      { label: "Drip edge", value: formatJobCardLf(mRecord.drip_edge_lf), muted: mRecord.drip_edge_lf == null },
+      { label: "Starter", value: formatJobCardLf(mRecord.starter_lf), muted: mRecord.starter_lf == null },
+      { label: "Ridge cap", value: formatJobCardLf(mRecord.ridge_cap_lf), muted: mRecord.ridge_cap_lf == null },
+    ];
 
     const moduleCard = "overflow-hidden rounded-md border border-slate-200/80 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]";
     const moduleHeader = "flex items-center justify-between border-b border-slate-100 bg-slate-50/60 px-4 py-2.5";
@@ -5903,22 +6132,6 @@ Thanks,`;
       "Other files",
       "Post-production photos",
     ] as const;
-
-    const REPORT_MEASUREMENT_ROWS: { label: string; value: string; muted?: boolean }[] = [
-      { label: "Roof facets", value: "Not measured", muted: true },
-      { label: "Eaves", value: "—", muted: true },
-      { label: "Valleys", value: "—", muted: true },
-      { label: "Hips", value: "—", muted: true },
-      { label: "Ridges", value: "—", muted: true },
-      { label: "Rakes", value: "—", muted: true },
-      { label: "Wall flashing", value: "—", muted: true },
-      { label: "Step flashing", value: "—", muted: true },
-      { label: "Transitions", value: "—", muted: true },
-      { label: "Parapet wall", value: "—", muted: true },
-      { label: "Drip edge", value: "—", muted: true },
-      { label: "Starter", value: "—", muted: true },
-      { label: "Ridge cap", value: "—", muted: true },
-    ];
 
     const NAV_TABS = [
       "Overview",
@@ -6049,29 +6262,49 @@ Thanks,`;
                   <div className={wsBlock}>
                     <WorkspaceHeading>Measurement status</WorkspaceHeading>
                     <div className="mt-2 grid grid-cols-1 gap-x-4 sm:grid-cols-2">
-                      <StatusLine label="Measurement record" value="Not created" muted />
+                      <StatusLine
+                        label="Measurement record"
+                        value={measurementRecordLabel}
+                        muted={measurementRecordLabel === "Not created"}
+                      />
                       <StatusLine label="Source" value="Manual" />
-                      <StatusLine label="Confidence" value="Not scored" muted />
-                      <StatusLine label="Verification" value="Not verified" muted />
-                      <StatusLine label="Estimate readiness" value="Not ready" muted />
-                      <StatusLine label="Production readiness" value="Not ready" muted />
+                      <StatusLine label="Confidence" value={confidenceDisplay} muted={!mRecord.confidence_label} />
+                      <StatusLine label="Verification" value={verificationDisplay} muted={!mRecord.is_verified} />
+                      <StatusLine
+                        label="Estimate readiness"
+                        value={estimateReadinessDisplay}
+                        muted={!mRecord.estimate_ready}
+                      />
+                      <StatusLine
+                        label="Production readiness"
+                        value={productionReadinessDisplay}
+                        muted={!mRecord.production_ready}
+                      />
                     </div>
                     <p className="mt-2 text-[11px] text-slate-500">
-                      <span className="font-medium text-slate-600">Missing fields:</span> Roof size, report measurements
+                      <span className="font-medium text-slate-600">Missing fields:</span> {missingFieldsDisplay}
                     </p>
                   </div>
                   <div>
                     <WorkspaceHeading>Roof details</WorkspaceHeading>
                     <dl className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-                      <MetricTile label="Roof area / SQ" value={roofSquaresOnly} muted={!hasMeasurement} />
-                      <MetricTile label="SQ ft" value={sqFtOnly} muted={!hasMeasurement} />
-                      <MetricTile label="Waste factor" value={wasteDisplay} muted={!wasteSet} />
-                      <MetricTile label="Pitch" value={pitchDisplay} />
-                      <MetricTile label="Stories" value={storiesDisplay} />
-                      <MetricTile label="Complexity" value={complexityDisplay} />
-                      <MetricTile label="Roof type" value="Not selected" muted />
-                      <MetricTile label="Structures" value="Not measured" muted />
-                      <MetricTile label="Facets" value="Not measured" muted />
+                      <MetricTile label="Roof area / SQ" value={roofAreaSqDisplay} muted={!hasMeasurement} />
+                      <MetricTile label="SQ ft" value={roofSqFtDisplay} muted={!hasMeasurement} />
+                      <MetricTile label="Waste factor" value={wasteFactorDisplay} muted={!wasteSet} />
+                      <MetricTile label="Pitch" value={mRecord.pitch_label ?? "Not selected"} />
+                      <MetricTile label="Stories" value={formatJobCardStoriesLabel(mRecord.stories)} />
+                      <MetricTile label="Complexity" value={formatJobCardComplexityLabel(mRecord.roof_complexity)} />
+                      <MetricTile label="Roof type" value={mRecord.roof_type ?? "Not selected"} muted={!mRecord.roof_type} />
+                      <MetricTile
+                        label="Structures"
+                        value={formatJobCardCount(mRecord.structure_count)}
+                        muted={mRecord.structure_count == null}
+                      />
+                      <MetricTile
+                        label="Facets"
+                        value={formatJobCardCount(mRecord.roof_facets_count)}
+                        muted={mRecord.roof_facets_count == null}
+                      />
                     </dl>
                   </div>
                   <div className={wsBlock}>
@@ -6080,7 +6313,7 @@ Thanks,`;
                       Line measurements from a report or manual takeoff appear here.
                     </p>
                     <dl className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-                      {REPORT_MEASUREMENT_ROWS.map(({ label, value, muted }) => (
+                      {reportMeasurementRows.map(({ label, value, muted }) => (
                         <MetricTile key={label} label={label} value={value} muted={muted} />
                       ))}
                     </dl>
@@ -6088,13 +6321,33 @@ Thanks,`;
                   <div className={wsBlock}>
                     <WorkspaceHeading>Measurement report</WorkspaceHeading>
                     <div className="mt-2 grid grid-cols-1 gap-x-4 sm:grid-cols-2">
-                      <StatusLine label="Report" value="Not attached" muted />
-                      <StatusLine label="Diagram" value="Not available" muted />
-                      <StatusLine label="Report source" value="Manual" />
-                      <StatusLine label="Last updated" value="Not verified" muted />
-                      <StatusLine label="Report type" value="—" muted />
-                      <StatusLine label="Source provider" value="—" muted />
-                      <StatusLine label="Report ID" value="—" muted />
+                      <StatusLine
+                        label="Report"
+                        value={mRecord.report_attached ? "Attached" : "Not attached"}
+                        muted={!mRecord.report_attached}
+                      />
+                      <StatusLine
+                        label="Diagram"
+                        value={mRecord.diagram_available ? "Available" : "Not available"}
+                        muted={!mRecord.diagram_available}
+                      />
+                      <StatusLine label="Report source" value={mRecord.report_source ?? "Manual"} />
+                      <StatusLine
+                        label="Last updated"
+                        value={mRecord.report_last_updated_at ?? "Not verified"}
+                        muted={!mRecord.report_last_updated_at}
+                      />
+                      <StatusLine label="Report type" value={mRecord.report_type ?? "—"} muted={!mRecord.report_type} />
+                      <StatusLine
+                        label="Source provider"
+                        value={mRecord.source_provider ?? "—"}
+                        muted={!mRecord.source_provider}
+                      />
+                      <StatusLine
+                        label="Report ID"
+                        value={mRecord.source_report_id ?? "—"}
+                        muted={!mRecord.source_report_id}
+                      />
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-2">
