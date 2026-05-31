@@ -71,6 +71,8 @@ export interface RoofingEstimate {
   guidedStories?: string;
   guidedWalkable?: string;
   debrisTons?: number;
+  /** Nullable FK to public.jobs — column bridge only; not used for pricing or payments. */
+  jobId?: string | null;
 }
 
 /** Supabase estimates row (optional snapshot for full app state). */
@@ -90,6 +92,7 @@ type SupabaseEstimateRow = {
   status?: string | null;
   created_at?: string | null;
   updated_at?: string | null;
+  job_id?: string | null;
   snapshot?: RoofingEstimate | null;
 };
 
@@ -107,6 +110,7 @@ function rowToEstimate(row: SupabaseEstimateRow): RoofingEstimate {
       ...snap,
       id: snap.id,
       createdAt: snap.createdAt || (row.created_at ?? new Date().toISOString()),
+      jobId: row.job_id ?? snap.jobId ?? null,
       supabaseBacked: true,
     } as RoofingEstimate;
   }
@@ -129,6 +133,7 @@ function rowToEstimate(row: SupabaseEstimateRow): RoofingEstimate {
     status: (row.status as RoofingEstimate["status"]) || "estimate",
     totalContractPrice: row.job_cost ?? undefined,
     pricingMode: (row.snapshot as RoofingEstimate | null | undefined)?.pricingMode === "direct" ? "direct" : "markup",
+    jobId: row.job_id ?? null,
     supabaseBacked: true,
   };
 }
@@ -149,6 +154,7 @@ function estimateToRow(e: RoofingEstimate, nowIso: string, companyId: string, cu
     job_cost: contractTotal,
     suggested_price: e.suggestedPrice ?? 0,
     status: e.status ?? "estimate",
+    job_id: e.jobId ?? null,
     created_at: e.createdAt || nowIso,
     updated_at: e.lastSavedAt || nowIso,
     snapshot: e,
@@ -165,7 +171,7 @@ async function fetchEstimatesFromSupabase(): Promise<RoofingEstimate[] | null> {
   try {
     const { data, error } = await supabase
       .from("estimates")
-      .select("id, company_id, customer_id, job_name, roof_area_sqft, roof_pitch, materials_cost, labor_cost, tearoff_cost, margin_percent, job_cost, suggested_price, status, created_at, updated_at, snapshot")
+      .select("id, company_id, customer_id, job_id, job_name, roof_area_sqft, roof_pitch, materials_cost, labor_cost, tearoff_cost, margin_percent, job_cost, suggested_price, status, created_at, updated_at, snapshot")
       .eq("company_id", companyId);
     if (error) {
       if (error.message?.includes("snapshot") || error.code === "42703") {
