@@ -72,6 +72,7 @@ import {
   isUuidLike,
   buildFormattedAddress,
 } from "@/app/lib/jobStore";
+import { getSelectedMeasurementForJob } from "@/app/lib/measurementStore";
 import type { JobDraft, JobAddress, JobRecord } from "@/app/lib/jobTypes";
 import { sendEstimateEmailWithPdf } from "@/app/lib/sendEstimateClient";
 import { getFavorite, setFavorite, setLocked, appendFeedback, getTierFeedbackBias, type TierLabel } from "@/app/lib/aiWordingPrefs";
@@ -804,6 +805,77 @@ function buildJobCardSelectedMeasurement(input: BuildJobCardMeasurementInput): J
   return { record, summary, missingFields };
 }
 
+function jobCardHasAnyLineMeasurement(record: MeasurementRecord): boolean {
+  const values = [
+    record.roof_facets_count,
+    record.eaves_lf,
+    record.rakes_lf,
+    record.ridges_lf,
+    record.hips_lf,
+    record.valleys_lf,
+    record.wall_flashing_lf,
+    record.step_flashing_lf,
+    record.transitions_lf,
+    record.parapet_wall_lf,
+    record.drip_edge_lf,
+    record.starter_lf,
+    record.ridge_cap_lf,
+  ];
+  return values.some((v) => v != null && Number.isFinite(v));
+}
+
+function deriveJobCardMissingFieldsFromRecord(record: MeasurementRecord): string[] {
+  const missingFields: string[] = [];
+  const hasRoofSize =
+    (record.roof_area_sqft ?? 0) > 0 || (record.roof_squares ?? 0) > 0;
+  if (!hasRoofSize) missingFields.push("Roof size");
+  if (!jobCardHasAnyLineMeasurement(record)) missingFields.push("Report measurements");
+  if (!record.report_attached) missingFields.push("Measurement report");
+  return missingFields;
+}
+
+/** Read-only Job Card view from a persisted measurement_records row. */
+function buildJobCardMeasurementViewFromRecord(record: MeasurementRecord): JobCardMeasurementView {
+  const missingFields =
+    Array.isArray(record.missing_fields) && record.missing_fields.length > 0
+      ? [...record.missing_fields]
+      : deriveJobCardMissingFieldsFromRecord(record);
+
+  const summary: MeasurementSummary = {
+    id: record.id,
+    status: record.status,
+    source_type: record.source_type,
+    confidence_label: record.confidence_label,
+    is_verified: record.is_verified,
+    roof_squares: record.roof_squares,
+    adjusted_roof_squares: record.adjusted_roof_squares,
+    waste_percent: record.waste_percent,
+    pitch_label: record.pitch_label,
+    stories: record.stories,
+    estimate_ready: record.estimate_ready,
+    production_ready: record.production_ready,
+  };
+
+  return { record, summary, missingFields };
+}
+
+function formatJobCardMeasurementSourceLabel(record: MeasurementRecord): string {
+  const provider = (record.source_provider ?? "").trim();
+  if (provider) return provider;
+  const labels: Record<MeasurementSourceType, string> = {
+    manual: "Manual",
+    report_import: "Report import",
+    provider_report: "Provider report",
+    satellite: "Satellite",
+    aerial: "Aerial",
+    photo_ai: "Photo AI",
+    address_ai: "Address AI",
+    contractor_verified: "Contractor verified",
+    external_import: "External import",
+  };
+  return labels[record.source_type];
+}
+
 export default function RoofingClient({ companyId }: { companyId?: string }) {
   setEstimateStoreCompanyScope(companyId ?? null);
   const searchParams = useSearchParams();
@@ -839,6 +911,9 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
   const [currentJobId, setCurrentJobId] = useState<string | null>(null);
   const [isCreatingJob, setIsCreatingJob] = useState(false);
   const [jobCreationError, setJobCreationError] = useState<string | null>(null);
+  const [persistedSelectedMeasurement, setPersistedSelectedMeasurement] =
+    useState<MeasurementRecord | null>(null);
+  const measurementFetchInFlightRef = useRef<string | null>(null);
 
   useEffect(() => {
     const jobFromUrl = searchParams.get("job");
@@ -1355,6 +1430,46 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
       }
     })();
   }, [entryMode, searchParams, companyId, loadSavedId, restoreTick, hydrateJobDisplayFromRecord]);
+
+  useEffect(() => {
+    if (entryMode !== "job-card") {
+      setPersistedSelectedMeasurement(null);
+      measurementFetchInFlightRef.current = null;
+      return;
+    }
+
+    const cid = (companyId ?? "").trim();
+    const jobId = currentJobId;
+    if (!cid || !jobId || !isUuidLike(jobId)) {
+      setPersistedSelectedMeasurement(null);
+      measurementFetchInFlightRef.current = null;
+      return;
+    }
+
+    if (isRestoringRef.current) return;
+    if (loadSavedId && !loadAppliedRef.current) return;
+
+    setPersistedSelectedMeasurement(null);
+
+    const requestedJobId = jobId;
+    measurementFetchInFlightRef.current = requestedJobId;
+
+    void (async () => {
+      try {
+        const record = await getSelectedMeasurementForJob(requestedJobId);
+        if (measurementFetchInFlightRef.current !== requestedJobId) return;
+        setPersistedSelectedMeasurement(record);
+      } catch (err) {
+        console.warn("[RoofingClient] selected measurement fetch error:", err);
+        if (measurementFetchInFlightRef.current !== requestedJobId) return;
+        setPersistedSelectedMeasurement(null);
+      } finally {
+        if (measurementFetchInFlightRef.current === requestedJobId) {
+          measurementFetchInFlightRef.current = null;
+        }
+      }
+    })();
+  }, [entryMode, currentJobId, companyId, loadSavedId, restoreTick]);
 
   const [proposalNumber, setProposalNumber] = useState("");
   const [proposalDate, setProposalDate] = useState("");
@@ -6275,7 +6390,7 @@ Thanks,`;
       ? [jobAddress1, jobCity, jobState, jobZip].map((s) => (s || "").trim()).filter(Boolean).join(", ")
       : "Property details not complete";
     const hasCustomerInfo = Boolean((customerName || customerEmail || customerPhone).trim());
-    const selectedMeasurement = buildJobCardSelectedMeasurement({
+    const localMeasurement = buildJobCardSelectedMeasurement({
       area,
       waste,
       squares,
@@ -6293,6 +6408,10 @@ Thanks,`;
       currentLoadedSavedId,
       companyId,
     });
+    const isUsingPersistedMeasurement = persistedSelectedMeasurement != null;
+    const selectedMeasurement = isUsingPersistedMeasurement
+      ? buildJobCardMeasurementViewFromRecord(persistedSelectedMeasurement)
+      : localMeasurement;
     const mRecord = selectedMeasurement.record;
     const hasMeasurement =
       (mRecord.roof_area_sqft ?? 0) > 0 || (mRecord.roof_squares ?? 0) > 0;
@@ -6310,8 +6429,14 @@ Thanks,`;
         : "Not measured";
     const wasteFactorDisplay =
       wasteSet && mRecord.waste_percent != null ? `${mRecord.waste_percent}%` : "Not set";
-    const measurementRecordLabel =
-      mRecord.estimate_ready || hasMeasurement ? "Local draft" : "Not created";
+    const measurementRecordLabel = isUsingPersistedMeasurement
+      ? "Saved record"
+      : mRecord.estimate_ready || hasMeasurement
+        ? "Local draft"
+        : "Not created";
+    const measurementSourceLabel = isUsingPersistedMeasurement
+      ? formatJobCardMeasurementSourceLabel(mRecord)
+      : "Manual";
     const confidenceDisplay = mRecord.confidence_label ?? "Not scored";
     const verificationDisplay = mRecord.is_verified ? "Verified" : "Not verified";
     const estimateReadinessDisplay = mRecord.estimate_ready ? "Ready" : "Not ready";
@@ -6595,7 +6720,13 @@ Thanks,`;
                 <summary className={detailsSummary}>
                   <DetailsHeader
                     title="Measurements"
-                    status={hasMeasurement ? "Manual" : "Not measured"}
+                    status={
+                      hasMeasurement
+                        ? isUsingPersistedMeasurement
+                          ? formatJobCardMeasurementSourceLabel(mRecord)
+                          : "Manual"
+                        : "Not measured"
+                    }
                     statusClass={hasMeasurement ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}
                     summary="Roof size, waste, pitch, stories, report status"
                   />
@@ -6609,7 +6740,7 @@ Thanks,`;
                         value={measurementRecordLabel}
                         muted={measurementRecordLabel === "Not created"}
                       />
-                      <StatusLine label="Source" value="Manual" />
+                      <StatusLine label="Source" value={measurementSourceLabel} />
                       <StatusLine label="Confidence" value={confidenceDisplay} muted={!mRecord.confidence_label} />
                       <StatusLine label="Verification" value={verificationDisplay} muted={!mRecord.is_verified} />
                       <StatusLine
