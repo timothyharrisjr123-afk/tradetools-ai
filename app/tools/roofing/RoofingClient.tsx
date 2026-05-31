@@ -79,6 +79,22 @@ import {
   selectMeasurementRecord,
   type MeasurementRecordDraft,
 } from "@/app/lib/measurementStore";
+import {
+  deriveEstimateReadiness,
+  deriveProductionReadiness,
+  deriveMeasurementMissingFields,
+  deriveAllMissingFieldsForPersistence,
+  deriveMeasurementStatusForPersistence,
+  deriveMeasurementReadinessScore,
+  measurementRecordsDiffer,
+  resolveMeasurementWorkspaceState,
+  formatEstimateReadinessLabel,
+  formatProductionReadinessLabel,
+  formatRailMeasurementStatusLabel,
+  resolveNextMeasurementAction,
+  resolveActivityMeasurementLine,
+  hasRoofSize,
+} from "@/app/lib/measurementReadiness";
 import type { JobDraft, JobAddress, JobRecord } from "@/app/lib/jobTypes";
 import { sendEstimateEmailWithPdf } from "@/app/lib/sendEstimateClient";
 import { getFavorite, setFavorite, setLocked, appendFeedback, getTierFeedbackBias, type TierLabel } from "@/app/lib/aiWordingPrefs";
@@ -831,13 +847,9 @@ function jobCardHasAnyLineMeasurement(record: MeasurementRecord): boolean {
 }
 
 function deriveJobCardMissingFieldsFromRecord(record: MeasurementRecord): string[] {
-  const missingFields: string[] = [];
-  const hasRoofSize =
-    (record.roof_area_sqft ?? 0) > 0 || (record.roof_squares ?? 0) > 0;
-  if (!hasRoofSize) missingFields.push("Roof size");
-  if (!jobCardHasAnyLineMeasurement(record)) missingFields.push("Report measurements");
-  if (!record.report_attached) missingFields.push("Measurement report");
-  return missingFields;
+  const estimate = deriveMeasurementMissingFields(record, "estimate");
+  const production = deriveMeasurementMissingFields(record, "production");
+  return [...new Set([...estimate, ...production])];
 }
 
 /** Read-only Job Card view from a persisted measurement_records row. */
@@ -865,23 +877,6 @@ function buildJobCardMeasurementViewFromRecord(record: MeasurementRecord): JobCa
   return { record, summary, missingFields };
 }
 
-function formatJobCardMeasurementSourceLabel(record: MeasurementRecord): string {
-  const provider = (record.source_provider ?? "").trim();
-  if (provider) return provider;
-  const labels: Record<MeasurementSourceType, string> = {
-    manual: "Manual",
-    report_import: "Report import",
-    provider_report: "Provider report",
-    satellite: "Satellite",
-    aerial: "Aerial",
-    photo_ai: "Photo AI",
-    address_ai: "Address AI",
-    contractor_verified: "Contractor verified",
-    external_import: "External import",
-  };
-  return labels[record.source_type];
-}
-
 type BuildManualMeasurementDraftInput = {
   companyId: string;
   currentJobId: string;
@@ -894,29 +889,17 @@ function buildManualMeasurementDraftFromJobCardState(
   input: BuildManualMeasurementDraftInput
 ): MeasurementRecordDraft {
   const record = input.localMeasurement.record;
-  const hasRoofSize =
-    (record.roof_area_sqft ?? 0) > 0 || (record.roof_squares ?? 0) > 0;
-  const hasWaste = record.waste_percent != null && Number.isFinite(record.waste_percent);
-  const hasPitch = Boolean((record.pitch_label ?? "").trim());
-  const hasStories = Boolean((record.stories ?? "").trim());
-
-  const missingFields: string[] = [];
-  if (!hasRoofSize) missingFields.push("Roof size");
-  if (!hasWaste) missingFields.push("Waste");
-  if (!hasPitch) missingFields.push("Pitch");
-  if (!hasStories) missingFields.push("Stories");
-  if (!jobCardHasAnyLineMeasurement(record)) missingFields.push("Report measurements");
-  if (!record.report_attached) missingFields.push("Measurement report");
-
-  const estimateReady = hasRoofSize && hasWaste && hasPitch && hasStories;
-  const productionReady = false;
-
-  let status: MeasurementStatus;
-  if (!hasRoofSize) status = "incomplete";
-  else if (!estimateReady) status = "needs_review";
-  else status = "measured";
-
-  const measurementReadinessScore = estimateReady ? 80 : hasRoofSize ? 50 : 0;
+  const estimate = deriveEstimateReadiness(record);
+  const production = deriveProductionReadiness(record);
+  const estimateReady = estimate.ready;
+  const productionReady = production.ready;
+  const missingFields = deriveAllMissingFieldsForPersistence(record);
+  const status = deriveMeasurementStatusForPersistence(record, estimateReady);
+  const measurementReadinessScore = deriveMeasurementReadinessScore(
+    estimateReady,
+    productionReady,
+    hasRoofSize(record)
+  );
 
   return {
     company_id: input.companyId,
@@ -6615,23 +6598,27 @@ Thanks,`;
       companyId,
     });
     const localRecord = localMeasurement.record;
-    const isPersistedManual =
-      persistedSelectedMeasurement?.source_type === "manual";
-    const isPersistedNonManual =
-      persistedSelectedMeasurement != null && !isPersistedManual;
-    const hasLocalRoofSize =
-      parseFloat(area) > 0 || (localRecord.roof_squares ?? 0) > 0;
+    const hasUnsavedChanges =
+      persistedSelectedMeasurement != null &&
+      measurementRecordsDiffer(localRecord, persistedSelectedMeasurement);
+    const workspace = resolveMeasurementWorkspaceState({
+      localRecord,
+      persistedRecord: persistedSelectedMeasurement,
+      hasUnsavedChanges,
+    });
+    const readinessRecord =
+      persistedSelectedMeasurement && !hasUnsavedChanges
+        ? persistedSelectedMeasurement
+        : localRecord;
+    const estimateReadiness = deriveEstimateReadiness(readinessRecord);
+    const productionReadiness = deriveProductionReadiness(readinessRecord);
+    const estimateMissingFields = deriveMeasurementMissingFields(readinessRecord, "estimate");
+    const productionMissingFields = deriveMeasurementMissingFields(readinessRecord, "production");
+    const hasLocalRoofSize = workspace.hasLocalRoofSize;
     const hasMeasurement = hasLocalRoofSize;
     const localWasteSet =
       localRecord.waste_percent != null && Number.isFinite(localRecord.waste_percent);
     const propertyForInstant = hasAddress ? addressLine : "Not entered";
-
-    const localDraftPreview = buildManualMeasurementDraftFromJobCardState({
-      companyId: (companyId ?? "").trim() || "local",
-      currentJobId: currentJobId ?? "",
-      currentLoadedSavedId,
-      localMeasurement,
-    });
 
     const roofAreaSqDisplay =
       localRecord.roof_squares != null && localRecord.roof_squares > 0
@@ -6645,25 +6632,50 @@ Thanks,`;
       localWasteSet && localRecord.waste_percent != null
         ? `${localRecord.waste_percent}%`
         : "Not set";
-    const measurementRecordLabel = isPersistedNonManual
-      ? formatJobCardMeasurementSourceLabel(persistedSelectedMeasurement)
-      : isPersistedManual
-        ? "Saved manual"
-        : hasLocalRoofSize
-          ? "Local draft"
-          : "Not created";
-    const measurementSourceLabel = isPersistedNonManual
-      ? formatJobCardMeasurementSourceLabel(persistedSelectedMeasurement)
-      : "Manual";
-    const statusRecord = isPersistedNonManual ? persistedSelectedMeasurement! : localRecord;
+    const measurementRecordLabel = workspace.recordLabel;
+    const measurementSourceLabel = workspace.sourceLabel;
+    const isPersistedManual = workspace.isPersistedManual;
+    const isPersistedNonManual = workspace.isPersistedNonManual;
+    const statusRecord = isPersistedNonManual
+      ? persistedSelectedMeasurement!
+      : localRecord;
     const confidenceDisplay = statusRecord.confidence_label ?? "Not scored";
-    const verificationDisplay = statusRecord.is_verified ? "Verified" : "Not verified";
-    const estimateReadinessDisplay = localDraftPreview.estimate_ready ? "Ready" : "Not ready";
-    const productionReadinessDisplay = localDraftPreview.production_ready ? "Ready" : "Not ready";
-    const missingFieldsDisplay = (localDraftPreview.missing_fields ?? []).join(", ");
+    const verificationDisplay = statusRecord.is_verified
+      ? "Verified"
+      : statusRecord.status === "needs_review"
+        ? "Needs review"
+        : "Not verified";
+    const estimateReadinessDisplay = formatEstimateReadinessLabel(
+      estimateReadiness.ready,
+      estimateReadiness.blockers
+    );
+    const productionReadinessDisplay = formatProductionReadinessLabel(
+      productionReadiness.ready,
+      productionReadiness.blockers
+    );
+    const estimateMissingDisplay =
+      estimateMissingFields.length > 0 ? estimateMissingFields.join(", ") : "None";
+    const productionMissingDisplay =
+      productionMissingFields.length > 0 ? productionMissingFields.join(", ") : "None";
     const lineMeasurementRecord = isPersistedNonManual
       ? persistedSelectedMeasurement!
       : localRecord;
+    const railMeasurementStatus = formatRailMeasurementStatusLabel(
+      workspace,
+      estimateReadiness.ready,
+      productionReadiness.ready,
+      persistedSelectedMeasurement
+    );
+    const nextMeasurementAction = resolveNextMeasurementAction({
+      workspace,
+      estimateReady: estimateReadiness.ready,
+      persistedRecord: persistedSelectedMeasurement,
+    });
+    const activityMeasurementLine = resolveActivityMeasurementLine({
+      persistedRecord: persistedSelectedMeasurement,
+      isPersistedManual,
+      isPersistedNonManual,
+    });
 
     const reportMeasurementRows: { label: string; value: string; muted?: boolean }[] = [
       {
@@ -6737,13 +6749,7 @@ Thanks,`;
     const jcInput =
       "w-full rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-sm text-slate-800 shadow-sm focus:border-slate-300 focus:outline-none focus:ring-1 focus:ring-slate-200";
     const jcSelect = `${jcInput} pr-8`;
-    const measurementsHeaderStatus = isPersistedNonManual
-      ? formatJobCardMeasurementSourceLabel(persistedSelectedMeasurement)
-      : isPersistedManual
-        ? "Saved manual"
-        : hasLocalRoofSize
-          ? "Local draft"
-          : "Not measured";
+    const measurementsHeaderStatus = workspace.headerStatus;
     const canSaveMeasurement =
       hasLocalRoofSize &&
       !isSavingMeasurement &&
@@ -7013,7 +7019,10 @@ Thanks,`;
                       <StatusLine
                         label="Measurement record"
                         value={measurementRecordLabel}
-                        muted={measurementRecordLabel === "Not created"}
+                        muted={
+                          measurementRecordLabel === "Not started" ||
+                          measurementRecordLabel === "Not created"
+                        }
                       />
                       <StatusLine label="Source" value={measurementSourceLabel} />
                       <StatusLine label="Confidence" value={confidenceDisplay} muted={!statusRecord.confidence_label} />
@@ -7021,18 +7030,24 @@ Thanks,`;
                       <StatusLine
                         label="Estimate readiness"
                         value={estimateReadinessDisplay}
-                        muted={!localDraftPreview.estimate_ready}
+                        muted={!estimateReadiness.ready}
                       />
                       <StatusLine
                         label="Production readiness"
                         value={productionReadinessDisplay}
-                        muted={!localDraftPreview.production_ready}
+                        muted={!productionReadiness.ready}
                       />
                     </div>
-                    <p className="mt-2 text-[11px] text-slate-500">
-                      <span className="font-medium text-slate-600">Missing fields:</span>{" "}
-                      {missingFieldsDisplay || "None"}
-                    </p>
+                    <div className="mt-2 space-y-1 text-[11px] text-slate-500">
+                      <p>
+                        <span className="font-medium text-slate-600">For estimate:</span>{" "}
+                        {estimateMissingDisplay}
+                      </p>
+                      <p>
+                        <span className="font-medium text-slate-600">For production:</span>{" "}
+                        {productionMissingDisplay}
+                      </p>
+                    </div>
                   </div>
                   <div className={wsBlock}>
                     <WorkspaceHeading>Manual measurement entry</WorkspaceHeading>
@@ -7623,12 +7638,14 @@ Thanks,`;
                     </div>
                   </div>
                   <div className="flex items-start gap-3 px-4 py-3">
-                    <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${hasMeasurement ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
-                      {hasMeasurement ? "✓" : "2"}
+                    <span
+                      className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${nextMeasurementAction.done ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}
+                    >
+                      {nextMeasurementAction.done ? "✓" : "2"}
                     </span>
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-slate-800">Confirm roof measurements</p>
-                      <p className="text-xs text-slate-500">Roof size, waste factor, pitch</p>
+                      <p className="text-sm font-medium text-slate-800">{nextMeasurementAction.title}</p>
+                      <p className="text-xs text-slate-500">{nextMeasurementAction.subtitle}</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3 px-4 py-3">
@@ -7665,14 +7682,18 @@ Thanks,`;
                   {[
                     { label: "Customer info", ready: hasCustomerInfo },
                     { label: "Property address", ready: hasAddress },
-                    { label: "Measurement status", ready: hasMeasurement },
+                    {
+                      label: "Measurement status",
+                      ready: railMeasurementStatus.ready,
+                      statusText: railMeasurementStatus.label,
+                    },
                     { label: "Photos / attachments", ready: false },
                     { label: "Estimate not started", ready: false },
-                  ].map(({ label, ready }) => (
+                  ].map(({ label, ready, statusText }) => (
                     <div key={label} className="flex items-center justify-between gap-2 py-2 text-sm">
                       <span className="text-slate-700">{label}</span>
                       <span className={`${chipBase} ${ready ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
-                        {ready ? "✓ Done" : "Pending"}
+                        {ready ? "✓ Done" : statusText ?? "Pending"}
                       </span>
                     </div>
                   ))}
@@ -7688,7 +7709,7 @@ Thanks,`;
                   {[
                     { label: "Job Card created", note: "Intake started" },
                     { label: "Intake details started", note: "Customer / property" },
-                    { label: "Measurements pending", note: "Not verified" },
+                    activityMeasurementLine,
                     { label: "Estimate not started", note: "Build estimate next" },
                   ].map(({ label, note }) => (
                     <div key={label} className="py-2.5">
