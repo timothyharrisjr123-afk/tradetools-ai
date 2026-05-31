@@ -21,7 +21,7 @@ import {
 import { SignOutButton } from "@/app/components/auth/SignOutButton";
 
 export type FieldDiveActiveNav = "dashboard" | "newJob";
-export type FieldDiveActiveSubNav = "packet" | "manual" | "instant";
+export type FieldDiveActiveSubNav = "packet" | "job-card" | "instant";
 
 type NavIcon = ComponentType<{ className?: string }>;
 
@@ -47,7 +47,7 @@ type NavItem = {
 
 const NEW_JOB_SUB_ITEMS: NavSubItem[] = [
   { id: "packet", label: "Job Packet", href: "/tools/roofing?entry=packet", variant: "active" },
-  { id: "manual", label: "Manual Estimate", href: "/tools/roofing?entry=manual", variant: "available" },
+  { id: "job-card", label: "Job Card", href: "/tools/roofing?entry=job-card", variant: "available" },
   { id: "instant", label: "Instant Estimate", variant: "soon" },
 ];
 

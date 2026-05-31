@@ -802,16 +802,18 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
   const router = useRouter();
   const loadSavedId = searchParams.get("loadSaved");
   const entryRaw = searchParams.get("entry");
+  const legacyManual = searchParams.get("legacy") === "1";
   const entryMode: "packet" | "manual" | "instant" | "job-card" = loadSavedId
-    ? "manual"
+    ? "job-card"
     : entryRaw === "manual"
-      ? "manual"
+      ? legacyManual
+        ? "manual"
+        : "job-card"
       : entryRaw === "instant"
         ? "instant"
         : entryRaw === "job-card"
           ? "job-card"
           : "packet";
-  const legacyManual = searchParams.get("legacy") === "1";
   const [zipPresets, setZipPresets] = useState<ZipPresetsMap | null>(null);
   const [hasMounted, setHasMounted] = useState(false);
   const [restoreTick, setRestoreTick] = useState(0);
@@ -1105,7 +1107,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
 
     // Only once all values "stick", clean the URL without remounting.
     if (typeof window !== "undefined") {
-      window.history.replaceState({}, "", "/tools/roofing");
+      window.history.replaceState({}, "", "/tools/roofing?entry=job-card");
     }
   }, [loadSavedId, area, waste, bundlesPerSquare, bundleCost, laborPerSquare, margin, pricingMode]);
 
@@ -3919,7 +3921,7 @@ Thanks,`;
               </div>
               {!packetFactsComplete ? (
                 <p className="mt-2 text-[11px] leading-snug text-slate-600">
-                  Complete customer and property details, then continue to Manual Estimate.
+                  Complete customer and property details, then continue to Job Card.
                 </p>
               ) : null}
             </div>
@@ -4234,7 +4236,7 @@ Thanks,`;
                 readOnly
                 rows={3}
                 value=""
-                placeholder="Notes capture is not wired yet — continue to Manual Estimate if you need to add context now."
+                placeholder="Notes capture is not wired yet — continue to Job Card if you need to add context now."
                 aria-disabled="true"
                 className="mt-2 w-full resize-none rounded-lg border border-dashed border-slate-200 bg-slate-50/80 px-2.5 py-2 text-[12px] leading-relaxed text-slate-400 placeholder:text-slate-400"
               />
@@ -4372,8 +4374,8 @@ Thanks,`;
             <div className="mt-4 space-y-2 border-t border-slate-200/70 pt-3">
               <p className="text-[11px] leading-relaxed text-slate-700">
                 {packetFactsComplete
-                  ? "Customer and property are captured. Continue to Manual Estimate to build scope and pricing."
-                  : "Complete customer and property details, then continue to Manual Estimate."}
+                  ? "Customer and property are captured. Continue to Job Card to confirm measurements and start a proposal."
+                  : "Complete customer and property details, then continue to Job Card."}
               </p>
               <p className="text-[10.5px] leading-relaxed text-slate-500">
                 Instant Estimate will require photos + property address.
@@ -6176,12 +6178,19 @@ Thanks,`;
                 >
                   ← Back to Job Packet
                 </a>
-                <a
-                  href="/tools/roofing?entry=manual"
-                  className="inline-flex items-center gap-1.5 rounded-md bg-slate-900 px-3.5 py-1.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
-                >
-                  Build Estimate →
-                </a>
+                <div className="flex flex-col items-end gap-1">
+                  <button
+                    type="button"
+                    disabled
+                    title="Proposal Builder coming after measurements/templates"
+                    className="inline-flex cursor-not-allowed items-center gap-1.5 rounded-md bg-slate-900 px-3.5 py-1.5 text-sm font-semibold text-white opacity-60 shadow-sm"
+                  >
+                    Create proposal
+                  </button>
+                  <p className="max-w-[14rem] text-right text-[11px] leading-snug text-slate-500">
+                    Proposal Builder coming after measurements/templates
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -6406,7 +6415,7 @@ Thanks,`;
                     title="Proposals"
                     status="No proposal yet"
                     statusClass="bg-slate-100 text-slate-500"
-                    summary="Create from Job Card after measurement/estimate"
+                    summary="Proposal creation starts here from the Job Card"
                   />
                 </summary>
                 <div className={`${moduleBody} space-y-3`}>
@@ -6434,6 +6443,10 @@ Thanks,`;
                       />
                     </div>
                   </div>
+                  <p className="text-xs leading-relaxed text-slate-600">
+                    Proposals will be created from this Job Card after you select a measurement and template.
+                    The Proposal Builder estimate section will open from here — not from Manual Estimate.
+                  </p>
                   <div>
                     <WorkspaceHeading>Proposal list</WorkspaceHeading>
                     <PlaceholderBox
@@ -6744,14 +6757,16 @@ Thanks,`;
                   <div className="flex items-start gap-3 px-4 py-3">
                     <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-900 text-[10px] font-bold text-white">4</span>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-slate-900">Build estimate</p>
-                      <p className="text-xs text-slate-500">Open the Estimate Builder</p>
-                      <a
-                        href="/tools/roofing?entry=manual"
-                        className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-slate-800"
+                      <p className="text-sm font-semibold text-slate-900">Create proposal</p>
+                      <p className="text-xs text-slate-500">Use selected measurement and template</p>
+                      <button
+                        type="button"
+                        disabled
+                        title="Proposal Builder coming after measurements/templates"
+                        className="mt-2 inline-flex cursor-not-allowed items-center gap-1.5 rounded-md bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white opacity-60 shadow-sm"
                       >
-                        Build Estimate →
-                      </a>
+                        Create proposal
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -7902,7 +7917,16 @@ Thanks,`;
         </motion.div>
       )}
 
-      <FieldDiveAppShell activeNav="newJob" activeSubId={entryMode === "job-card" ? "packet" : entryMode}>
+      <FieldDiveAppShell
+        activeNav="newJob"
+        activeSubId={
+          entryMode === "job-card"
+            ? "job-card"
+            : entryMode === "instant"
+              ? "instant"
+              : "packet"
+        }
+      >
         <button
           type="button"
           onClick={() => setShowV2Preview((v) => !v)}
@@ -8054,8 +8078,8 @@ Thanks,`;
             </div>
           )}
 
-        {entryMode === "manual" ? (
-          legacyManual ? renderLegacyEstimateWorkspace() : renderEstimateBuilderShell()
+        {entryMode === "manual" && legacyManual ? (
+          renderLegacyEstimateWorkspace()
         ) : entryMode === "job-card" ? (
           renderJobCardShell()
         ) : (
@@ -8064,7 +8088,7 @@ Thanks,`;
               <div className="mb-4 rounded-lg border border-sky-100/80 bg-sky-50/70 px-4 py-3 text-sm text-slate-700">
                 <span className="font-medium text-slate-900">Instant Estimate — coming soon.</span>
                 {" "}
-                Requires photos and a property address. Continue to Manual Estimate when you&apos;re ready to price.
+                Requires photos and a property address. Continue to Job Card when you&apos;re ready to measure and propose.
               </div>
             ) : null}
             {renderJobPacketWorkbench("standalone", entryMode === "instant" ? "instant" : "packet")}
