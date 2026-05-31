@@ -72,7 +72,13 @@ import {
   isUuidLike,
   buildFormattedAddress,
 } from "@/app/lib/jobStore";
-import { getSelectedMeasurementForJob } from "@/app/lib/measurementStore";
+import {
+  getSelectedMeasurementForJob,
+  createMeasurementRecord,
+  updateMeasurementRecord,
+  selectMeasurementRecord,
+  type MeasurementRecordDraft,
+} from "@/app/lib/measurementStore";
 import type { JobDraft, JobAddress, JobRecord } from "@/app/lib/jobTypes";
 import { sendEstimateEmailWithPdf } from "@/app/lib/sendEstimateClient";
 import { getFavorite, setFavorite, setLocked, appendFeedback, getTierFeedbackBias, type TierLabel } from "@/app/lib/aiWordingPrefs";
@@ -876,6 +882,71 @@ function formatJobCardMeasurementSourceLabel(record: MeasurementRecord): string 
   return labels[record.source_type];
 }
 
+type BuildManualMeasurementDraftInput = {
+  companyId: string;
+  currentJobId: string;
+  currentLoadedSavedId: string | null;
+  localMeasurement: JobCardMeasurementView;
+};
+
+/** Maps Job Card local measurement state to a persistence draft (no pricing/proposal fields). */
+function buildManualMeasurementDraftFromJobCardState(
+  input: BuildManualMeasurementDraftInput
+): MeasurementRecordDraft {
+  const record = input.localMeasurement.record;
+  const hasRoofSize =
+    (record.roof_area_sqft ?? 0) > 0 || (record.roof_squares ?? 0) > 0;
+  const hasWaste = record.waste_percent != null && Number.isFinite(record.waste_percent);
+  const hasPitch = Boolean((record.pitch_label ?? "").trim());
+  const hasStories = Boolean((record.stories ?? "").trim());
+
+  const missingFields: string[] = [];
+  if (!hasRoofSize) missingFields.push("Roof size");
+  if (!hasWaste) missingFields.push("Waste");
+  if (!hasPitch) missingFields.push("Pitch");
+  if (!hasStories) missingFields.push("Stories");
+  if (!jobCardHasAnyLineMeasurement(record)) missingFields.push("Report measurements");
+  if (!record.report_attached) missingFields.push("Measurement report");
+
+  const estimateReady = hasRoofSize && hasWaste && hasPitch && hasStories;
+  const productionReady = false;
+
+  let status: MeasurementStatus;
+  if (!hasRoofSize) status = "incomplete";
+  else if (!estimateReady) status = "needs_review";
+  else status = "measured";
+
+  const measurementReadinessScore = estimateReady ? 80 : hasRoofSize ? 50 : 0;
+
+  return {
+    company_id: input.companyId,
+    job_id: input.currentJobId,
+    estimate_id: isUuidLike(input.currentLoadedSavedId) ? input.currentLoadedSavedId : null,
+    source_type: "manual",
+    status,
+    is_selected: false,
+    is_verified: false,
+    roof_area_sqft: record.roof_area_sqft,
+    roof_squares: record.roof_squares,
+    adjusted_roof_squares: record.adjusted_roof_squares,
+    waste_percent: record.waste_percent,
+    pitch_label: record.pitch_label,
+    stories: record.stories,
+    roof_complexity: record.roof_complexity,
+    tear_off_required: record.tear_off_required,
+    debris_tons_estimate: record.debris_tons_estimate,
+    report_attached: false,
+    diagram_available: false,
+    report_status: record.report_status ?? "Not attached",
+    report_source: record.report_source ?? "Manual",
+    assumptions: record.assumptions ?? null,
+    missing_fields: missingFields,
+    measurement_readiness_score: measurementReadinessScore,
+    estimate_ready: estimateReady,
+    production_ready: productionReady,
+  };
+}
+
 export default function RoofingClient({ companyId }: { companyId?: string }) {
   setEstimateStoreCompanyScope(companyId ?? null);
   const searchParams = useSearchParams();
@@ -914,6 +985,10 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
   const [persistedSelectedMeasurement, setPersistedSelectedMeasurement] =
     useState<MeasurementRecord | null>(null);
   const measurementFetchInFlightRef = useRef<string | null>(null);
+  const [isSavingMeasurement, setIsSavingMeasurement] = useState(false);
+  const [measurementSaveError, setMeasurementSaveError] = useState<string | null>(null);
+  const measurementSaveInFlightRef = useRef<string | null>(null);
+  const measurementFormHydratedRef = useRef<string | null>(null);
 
   useEffect(() => {
     const jobFromUrl = searchParams.get("job");
@@ -1435,6 +1510,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
     if (entryMode !== "job-card") {
       setPersistedSelectedMeasurement(null);
       measurementFetchInFlightRef.current = null;
+      measurementFormHydratedRef.current = null;
       return;
     }
 
@@ -1443,6 +1519,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
     if (!cid || !jobId || !isUuidLike(jobId)) {
       setPersistedSelectedMeasurement(null);
       measurementFetchInFlightRef.current = null;
+      measurementFormHydratedRef.current = null;
       return;
     }
 
@@ -1450,6 +1527,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
     if (loadSavedId && !loadAppliedRef.current) return;
 
     setPersistedSelectedMeasurement(null);
+    measurementFormHydratedRef.current = null;
 
     const requestedJobId = jobId;
     measurementFetchInFlightRef.current = requestedJobId;
@@ -1470,6 +1548,38 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
       }
     })();
   }, [entryMode, currentJobId, companyId, loadSavedId, restoreTick]);
+
+  useEffect(() => {
+    if (entryMode !== "job-card") return;
+    const rec = persistedSelectedMeasurement;
+    if (!rec?.id) return;
+    if (measurementFormHydratedRef.current === rec.id) return;
+    measurementFormHydratedRef.current = rec.id;
+
+    const sqft = rec.roof_area_sqft;
+    if (sqft != null && sqft > 0) {
+      setArea(String(sqft));
+    } else if (rec.roof_squares != null && rec.roof_squares > 0) {
+      setArea(String(Math.round(rec.roof_squares * 100)));
+    }
+    if (rec.waste_percent != null && Number.isFinite(rec.waste_percent)) {
+      setWaste(String(rec.waste_percent));
+    }
+    const pitchLabel = (rec.pitch_label ?? "").toLowerCase();
+    if (pitchLabel === "walkable") setPitch("walkable");
+    else if (pitchLabel === "moderate") setPitch("moderate");
+    else if (pitchLabel === "steep") setPitch("steep");
+    if (rec.stories === "1" || rec.stories === "2" || rec.stories === "3") {
+      setStories(rec.stories as StoriesKey);
+    }
+    if (
+      rec.roof_complexity === "simple" ||
+      rec.roof_complexity === "moderate" ||
+      rec.roof_complexity === "complex"
+    ) {
+      setComplexity(rec.roof_complexity as ComplexityKey);
+    }
+  }, [entryMode, persistedSelectedMeasurement]);
 
   const [proposalNumber, setProposalNumber] = useState("");
   const [proposalDate, setProposalDate] = useState("");
@@ -3246,6 +3356,102 @@ Thanks,`;
       currentSaved?.status === "paid");
   const isApprovedLocked = currentSaved?.status === "approved";
   const isScheduledLocked = currentSaved?.status === "scheduled";
+
+  const handleSaveMeasurement = useCallback(async () => {
+    const cid = (companyId ?? "").trim();
+    const jobId = currentJobId;
+    if (entryMode !== "job-card") return;
+    if (!cid || !jobId || !isUuidLike(jobId)) return;
+    if (
+      persistedSelectedMeasurement &&
+      persistedSelectedMeasurement.source_type !== "manual"
+    ) {
+      return;
+    }
+    if (measurementSaveInFlightRef.current) return;
+
+    const localMeasurement = buildJobCardSelectedMeasurement({
+      area,
+      waste,
+      squares,
+      adjustedSquares,
+      pitch,
+      stories,
+      complexity,
+      debrisTons,
+      includeDebrisRemoval,
+      removalType,
+      guidedStories,
+      guidedWalkable,
+      laborMode,
+      loadSavedId,
+      currentLoadedSavedId,
+      companyId: cid,
+    });
+
+    const draft = buildManualMeasurementDraftFromJobCardState({
+      companyId: cid,
+      currentJobId: jobId,
+      currentLoadedSavedId,
+      localMeasurement,
+    });
+
+    measurementSaveInFlightRef.current = jobId;
+    setIsSavingMeasurement(true);
+    setMeasurementSaveError(null);
+
+    try {
+      let record: MeasurementRecord | null = null;
+
+      if (!persistedSelectedMeasurement) {
+        const created = await createMeasurementRecord(draft);
+        if (!created?.id) {
+          throw new Error("Could not create measurement record");
+        }
+        record = await selectMeasurementRecord(created.id, {
+          jobId,
+          estimateId: isUuidLike(currentLoadedSavedId) ? currentLoadedSavedId : null,
+        });
+      } else {
+        const { is_selected: _isSelected, ...updatePatch } = draft;
+        record = await updateMeasurementRecord(persistedSelectedMeasurement.id, updatePatch);
+      }
+
+      if (!record) {
+        throw new Error("Could not save measurement record");
+      }
+
+      setPersistedSelectedMeasurement(record);
+    } catch (err) {
+      console.warn("[RoofingClient] save measurement error:", err);
+      setMeasurementSaveError(
+        err instanceof Error ? err.message : "Could not save measurement. Try again."
+      );
+    } finally {
+      measurementSaveInFlightRef.current = null;
+      setIsSavingMeasurement(false);
+    }
+  }, [
+    entryMode,
+    companyId,
+    currentJobId,
+    currentLoadedSavedId,
+    persistedSelectedMeasurement,
+    area,
+    waste,
+    squares,
+    adjustedSquares,
+    pitch,
+    stories,
+    complexity,
+    debrisTons,
+    includeDebrisRemoval,
+    removalType,
+    guidedStories,
+    guidedWalkable,
+    laborMode,
+    loadSavedId,
+  ]);
 
   const hasValidEstimateSnapshot = Number(area || 0) > 0 && Number(finalPrice || 0) > 0;
 
@@ -6408,76 +6614,151 @@ Thanks,`;
       currentLoadedSavedId,
       companyId,
     });
-    const isUsingPersistedMeasurement = persistedSelectedMeasurement != null;
-    const selectedMeasurement = isUsingPersistedMeasurement
-      ? buildJobCardMeasurementViewFromRecord(persistedSelectedMeasurement)
-      : localMeasurement;
-    const mRecord = selectedMeasurement.record;
-    const hasMeasurement =
-      (mRecord.roof_area_sqft ?? 0) > 0 || (mRecord.roof_squares ?? 0) > 0;
-    const wasteSet =
-      mRecord.waste_percent != null && Number.isFinite(mRecord.waste_percent);
+    const localRecord = localMeasurement.record;
+    const isPersistedManual =
+      persistedSelectedMeasurement?.source_type === "manual";
+    const isPersistedNonManual =
+      persistedSelectedMeasurement != null && !isPersistedManual;
+    const hasLocalRoofSize =
+      parseFloat(area) > 0 || (localRecord.roof_squares ?? 0) > 0;
+    const hasMeasurement = hasLocalRoofSize;
+    const localWasteSet =
+      localRecord.waste_percent != null && Number.isFinite(localRecord.waste_percent);
     const propertyForInstant = hasAddress ? addressLine : "Not entered";
 
+    const localDraftPreview = buildManualMeasurementDraftFromJobCardState({
+      companyId: (companyId ?? "").trim() || "local",
+      currentJobId: currentJobId ?? "",
+      currentLoadedSavedId,
+      localMeasurement,
+    });
+
     const roofAreaSqDisplay =
-      mRecord.roof_squares != null && mRecord.roof_squares > 0
-        ? `${mRecord.roof_squares.toFixed(1)} SQ`
+      localRecord.roof_squares != null && localRecord.roof_squares > 0
+        ? `${localRecord.roof_squares.toFixed(1)} SQ`
         : "Not measured";
     const roofSqFtDisplay =
-      mRecord.roof_area_sqft != null && mRecord.roof_area_sqft > 0
-        ? `${mRecord.roof_area_sqft.toLocaleString()} sq ft`
+      localRecord.roof_area_sqft != null && localRecord.roof_area_sqft > 0
+        ? `${localRecord.roof_area_sqft.toLocaleString()} sq ft`
         : "Not measured";
     const wasteFactorDisplay =
-      wasteSet && mRecord.waste_percent != null ? `${mRecord.waste_percent}%` : "Not set";
-    const measurementRecordLabel = isUsingPersistedMeasurement
-      ? "Saved record"
-      : mRecord.estimate_ready || hasMeasurement
-        ? "Local draft"
-        : "Not created";
-    const measurementSourceLabel = isUsingPersistedMeasurement
-      ? formatJobCardMeasurementSourceLabel(mRecord)
+      localWasteSet && localRecord.waste_percent != null
+        ? `${localRecord.waste_percent}%`
+        : "Not set";
+    const measurementRecordLabel = isPersistedNonManual
+      ? formatJobCardMeasurementSourceLabel(persistedSelectedMeasurement)
+      : isPersistedManual
+        ? "Saved manual"
+        : hasLocalRoofSize
+          ? "Local draft"
+          : "Not created";
+    const measurementSourceLabel = isPersistedNonManual
+      ? formatJobCardMeasurementSourceLabel(persistedSelectedMeasurement)
       : "Manual";
-    const confidenceDisplay = mRecord.confidence_label ?? "Not scored";
-    const verificationDisplay = mRecord.is_verified ? "Verified" : "Not verified";
-    const estimateReadinessDisplay = mRecord.estimate_ready ? "Ready" : "Not ready";
-    const productionReadinessDisplay = mRecord.production_ready ? "Ready" : "Not ready";
-    const missingFieldsDisplay = selectedMeasurement.missingFields.join(", ");
+    const statusRecord = isPersistedNonManual ? persistedSelectedMeasurement! : localRecord;
+    const confidenceDisplay = statusRecord.confidence_label ?? "Not scored";
+    const verificationDisplay = statusRecord.is_verified ? "Verified" : "Not verified";
+    const estimateReadinessDisplay = localDraftPreview.estimate_ready ? "Ready" : "Not ready";
+    const productionReadinessDisplay = localDraftPreview.production_ready ? "Ready" : "Not ready";
+    const missingFieldsDisplay = (localDraftPreview.missing_fields ?? []).join(", ");
+    const lineMeasurementRecord = isPersistedNonManual
+      ? persistedSelectedMeasurement!
+      : localRecord;
 
     const reportMeasurementRows: { label: string; value: string; muted?: boolean }[] = [
       {
         label: "Roof facets",
-        value: formatJobCardCount(mRecord.roof_facets_count),
-        muted: mRecord.roof_facets_count == null,
+        value: formatJobCardCount(lineMeasurementRecord.roof_facets_count),
+        muted: lineMeasurementRecord.roof_facets_count == null,
       },
-      { label: "Eaves", value: formatJobCardLf(mRecord.eaves_lf), muted: mRecord.eaves_lf == null },
-      { label: "Valleys", value: formatJobCardLf(mRecord.valleys_lf), muted: mRecord.valleys_lf == null },
-      { label: "Hips", value: formatJobCardLf(mRecord.hips_lf), muted: mRecord.hips_lf == null },
-      { label: "Ridges", value: formatJobCardLf(mRecord.ridges_lf), muted: mRecord.ridges_lf == null },
-      { label: "Rakes", value: formatJobCardLf(mRecord.rakes_lf), muted: mRecord.rakes_lf == null },
+      {
+        label: "Eaves",
+        value: formatJobCardLf(lineMeasurementRecord.eaves_lf),
+        muted: lineMeasurementRecord.eaves_lf == null,
+      },
+      {
+        label: "Valleys",
+        value: formatJobCardLf(lineMeasurementRecord.valleys_lf),
+        muted: lineMeasurementRecord.valleys_lf == null,
+      },
+      {
+        label: "Hips",
+        value: formatJobCardLf(lineMeasurementRecord.hips_lf),
+        muted: lineMeasurementRecord.hips_lf == null,
+      },
+      {
+        label: "Ridges",
+        value: formatJobCardLf(lineMeasurementRecord.ridges_lf),
+        muted: lineMeasurementRecord.ridges_lf == null,
+      },
+      {
+        label: "Rakes",
+        value: formatJobCardLf(lineMeasurementRecord.rakes_lf),
+        muted: lineMeasurementRecord.rakes_lf == null,
+      },
       {
         label: "Wall flashing",
-        value: formatJobCardLf(mRecord.wall_flashing_lf),
-        muted: mRecord.wall_flashing_lf == null,
+        value: formatJobCardLf(lineMeasurementRecord.wall_flashing_lf),
+        muted: lineMeasurementRecord.wall_flashing_lf == null,
       },
       {
         label: "Step flashing",
-        value: formatJobCardLf(mRecord.step_flashing_lf),
-        muted: mRecord.step_flashing_lf == null,
+        value: formatJobCardLf(lineMeasurementRecord.step_flashing_lf),
+        muted: lineMeasurementRecord.step_flashing_lf == null,
       },
       {
         label: "Transitions",
-        value: formatJobCardLf(mRecord.transitions_lf),
-        muted: mRecord.transitions_lf == null,
+        value: formatJobCardLf(lineMeasurementRecord.transitions_lf),
+        muted: lineMeasurementRecord.transitions_lf == null,
       },
       {
         label: "Parapet wall",
-        value: formatJobCardLf(mRecord.parapet_wall_lf),
-        muted: mRecord.parapet_wall_lf == null,
+        value: formatJobCardLf(lineMeasurementRecord.parapet_wall_lf),
+        muted: lineMeasurementRecord.parapet_wall_lf == null,
       },
-      { label: "Drip edge", value: formatJobCardLf(mRecord.drip_edge_lf), muted: mRecord.drip_edge_lf == null },
-      { label: "Starter", value: formatJobCardLf(mRecord.starter_lf), muted: mRecord.starter_lf == null },
-      { label: "Ridge cap", value: formatJobCardLf(mRecord.ridge_cap_lf), muted: mRecord.ridge_cap_lf == null },
+      {
+        label: "Drip edge",
+        value: formatJobCardLf(lineMeasurementRecord.drip_edge_lf),
+        muted: lineMeasurementRecord.drip_edge_lf == null,
+      },
+      {
+        label: "Starter",
+        value: formatJobCardLf(lineMeasurementRecord.starter_lf),
+        muted: lineMeasurementRecord.starter_lf == null,
+      },
+      {
+        label: "Ridge cap",
+        value: formatJobCardLf(lineMeasurementRecord.ridge_cap_lf),
+        muted: lineMeasurementRecord.ridge_cap_lf == null,
+      },
     ];
+
+    const jcFieldLabel = "text-[11px] font-medium text-slate-600";
+    const jcInput =
+      "w-full rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-sm text-slate-800 shadow-sm focus:border-slate-300 focus:outline-none focus:ring-1 focus:ring-slate-200";
+    const jcSelect = `${jcInput} pr-8`;
+    const measurementsHeaderStatus = isPersistedNonManual
+      ? formatJobCardMeasurementSourceLabel(persistedSelectedMeasurement)
+      : isPersistedManual
+        ? "Saved manual"
+        : hasLocalRoofSize
+          ? "Local draft"
+          : "Not measured";
+    const canSaveMeasurement =
+      hasLocalRoofSize &&
+      !isSavingMeasurement &&
+      Boolean((companyId ?? "").trim()) &&
+      Boolean(currentJobId && isUuidLike(currentJobId)) &&
+      !isPersistedNonManual;
+    const measurementSaveDisabledReason = !currentJobId || !isUuidLike(currentJobId)
+      ? "Create or open a job first"
+      : !(companyId ?? "").trim()
+        ? "Company context is required"
+        : isPersistedNonManual
+          ? "Selected measurement is from a report and cannot be overwritten yet"
+          : !hasLocalRoofSize
+            ? "Enter roof size before saving measurement."
+            : undefined;
 
     const moduleCard = "overflow-hidden rounded-md border border-slate-200/80 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]";
     const moduleHeader = "flex items-center justify-between border-b border-slate-100 bg-slate-50/60 px-4 py-2.5";
@@ -6720,13 +7001,7 @@ Thanks,`;
                 <summary className={detailsSummary}>
                   <DetailsHeader
                     title="Measurements"
-                    status={
-                      hasMeasurement
-                        ? isUsingPersistedMeasurement
-                          ? formatJobCardMeasurementSourceLabel(mRecord)
-                          : "Manual"
-                        : "Not measured"
-                    }
+                    status={measurementsHeaderStatus}
                     statusClass={hasMeasurement ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}
                     summary="Roof size, waste, pitch, stories, report status"
                   />
@@ -6741,42 +7016,162 @@ Thanks,`;
                         muted={measurementRecordLabel === "Not created"}
                       />
                       <StatusLine label="Source" value={measurementSourceLabel} />
-                      <StatusLine label="Confidence" value={confidenceDisplay} muted={!mRecord.confidence_label} />
-                      <StatusLine label="Verification" value={verificationDisplay} muted={!mRecord.is_verified} />
+                      <StatusLine label="Confidence" value={confidenceDisplay} muted={!statusRecord.confidence_label} />
+                      <StatusLine label="Verification" value={verificationDisplay} muted={!statusRecord.is_verified} />
                       <StatusLine
                         label="Estimate readiness"
                         value={estimateReadinessDisplay}
-                        muted={!mRecord.estimate_ready}
+                        muted={!localDraftPreview.estimate_ready}
                       />
                       <StatusLine
                         label="Production readiness"
                         value={productionReadinessDisplay}
-                        muted={!mRecord.production_ready}
+                        muted={!localDraftPreview.production_ready}
                       />
                     </div>
                     <p className="mt-2 text-[11px] text-slate-500">
-                      <span className="font-medium text-slate-600">Missing fields:</span> {missingFieldsDisplay}
+                      <span className="font-medium text-slate-600">Missing fields:</span>{" "}
+                      {missingFieldsDisplay || "None"}
                     </p>
+                  </div>
+                  <div className={wsBlock}>
+                    <WorkspaceHeading>Manual measurement entry</WorkspaceHeading>
+                    <p className={wsHelper}>
+                      Enter roof size and details here. Saves to this job&apos;s measurement record.
+                    </p>
+                    <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <div className="sm:col-span-2">
+                        <label htmlFor="job-card-area" className={jcFieldLabel}>
+                          Roof area (sq ft)
+                        </label>
+                        <div className="mt-1 flex items-center gap-2">
+                          <input
+                            id="job-card-area"
+                            type="number"
+                            inputMode="decimal"
+                            min={0}
+                            step={1}
+                            value={area ?? ""}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              setArea(v.trim() === "" ? "" : String(Number(v) || 0));
+                            }}
+                            placeholder="e.g. 2400"
+                            className={jcInput}
+                          />
+                          <span className="shrink-0 text-xs text-slate-500">sq ft</span>
+                        </div>
+                        {squares > 0 ? (
+                          <p className="mt-1 text-[11px] tabular-nums text-slate-500">
+                            ≈ {squares.toFixed(1)} squares
+                            {adjustedSquares > 0 && adjustedSquares !== squares
+                              ? ` · ${adjustedSquares.toFixed(1)} adj with waste`
+                              : null}
+                          </p>
+                        ) : null}
+                      </div>
+                      <div>
+                        <label htmlFor="job-card-waste" className={jcFieldLabel}>
+                          Waste %
+                        </label>
+                        <input
+                          id="job-card-waste"
+                          type="number"
+                          inputMode="decimal"
+                          min={0}
+                          max={100}
+                          step={1}
+                          value={waste ?? ""}
+                          onChange={(e) => setWaste(e.target.value)}
+                          className={`${jcInput} mt-1`}
+                        />
+                        <div className="mt-1.5 flex flex-wrap gap-1">
+                          {ROOFING_WASTE_PRESETS.map((opt) => (
+                            <button
+                              key={opt.pct}
+                              type="button"
+                              onClick={() => setWaste(String(opt.pct))}
+                              className="rounded border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-medium text-slate-600 hover:bg-slate-50"
+                            >
+                              {opt.label} {opt.pct}%
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <label htmlFor="job-card-pitch" className={jcFieldLabel}>
+                          Pitch
+                        </label>
+                        <select
+                          id="job-card-pitch"
+                          value={pitch}
+                          onChange={(e) => setPitch(e.target.value as PitchKey)}
+                          className={`${jcSelect} mt-1`}
+                        >
+                          <option value="walkable">Walkable</option>
+                          <option value="moderate">Moderate</option>
+                          <option value="steep">Steep</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label htmlFor="job-card-stories" className={jcFieldLabel}>
+                          Stories
+                        </label>
+                        <select
+                          id="job-card-stories"
+                          value={stories}
+                          onChange={(e) => setStories(e.target.value as StoriesKey)}
+                          className={`${jcSelect} mt-1`}
+                        >
+                          <option value="1">1 story</option>
+                          <option value="2">2 stories</option>
+                          <option value="3">3+ stories</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label htmlFor="job-card-complexity" className={jcFieldLabel}>
+                          Complexity
+                        </label>
+                        <select
+                          id="job-card-complexity"
+                          value={complexity}
+                          onChange={(e) => setComplexity(e.target.value as ComplexityKey)}
+                          className={`${jcSelect} mt-1`}
+                        >
+                          <option value="simple">Simple</option>
+                          <option value="moderate">Moderate</option>
+                          <option value="complex">Complex</option>
+                        </select>
+                      </div>
+                    </div>
                   </div>
                   <div>
                     <WorkspaceHeading>Roof details</WorkspaceHeading>
+                    <p className={wsHelper}>Summary from your entries above (updates as you type).</p>
                     <dl className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
                       <MetricTile label="Roof area / SQ" value={roofAreaSqDisplay} muted={!hasMeasurement} />
                       <MetricTile label="SQ ft" value={roofSqFtDisplay} muted={!hasMeasurement} />
-                      <MetricTile label="Waste factor" value={wasteFactorDisplay} muted={!wasteSet} />
-                      <MetricTile label="Pitch" value={mRecord.pitch_label ?? "Not selected"} />
-                      <MetricTile label="Stories" value={formatJobCardStoriesLabel(mRecord.stories)} />
-                      <MetricTile label="Complexity" value={formatJobCardComplexityLabel(mRecord.roof_complexity)} />
-                      <MetricTile label="Roof type" value={mRecord.roof_type ?? "Not selected"} muted={!mRecord.roof_type} />
+                      <MetricTile label="Waste factor" value={wasteFactorDisplay} muted={!localWasteSet} />
+                      <MetricTile label="Pitch" value={localRecord.pitch_label ?? "Not selected"} />
+                      <MetricTile label="Stories" value={formatJobCardStoriesLabel(localRecord.stories)} />
+                      <MetricTile
+                        label="Complexity"
+                        value={formatJobCardComplexityLabel(localRecord.roof_complexity)}
+                      />
+                      <MetricTile
+                        label="Roof type"
+                        value={localRecord.roof_type ?? "Not selected"}
+                        muted={!localRecord.roof_type}
+                      />
                       <MetricTile
                         label="Structures"
-                        value={formatJobCardCount(mRecord.structure_count)}
-                        muted={mRecord.structure_count == null}
+                        value={formatJobCardCount(localRecord.structure_count)}
+                        muted={localRecord.structure_count == null}
                       />
                       <MetricTile
                         label="Facets"
-                        value={formatJobCardCount(mRecord.roof_facets_count)}
-                        muted={mRecord.roof_facets_count == null}
+                        value={formatJobCardCount(localRecord.roof_facets_count)}
+                        muted={localRecord.roof_facets_count == null}
                       />
                     </dl>
                   </div>
@@ -6796,37 +7191,62 @@ Thanks,`;
                     <div className="mt-2 grid grid-cols-1 gap-x-4 sm:grid-cols-2">
                       <StatusLine
                         label="Report"
-                        value={mRecord.report_attached ? "Attached" : "Not attached"}
-                        muted={!mRecord.report_attached}
+                        value={lineMeasurementRecord.report_attached ? "Attached" : "Not attached"}
+                        muted={!lineMeasurementRecord.report_attached}
                       />
                       <StatusLine
                         label="Diagram"
-                        value={mRecord.diagram_available ? "Available" : "Not available"}
-                        muted={!mRecord.diagram_available}
+                        value={lineMeasurementRecord.diagram_available ? "Available" : "Not available"}
+                        muted={!lineMeasurementRecord.diagram_available}
                       />
-                      <StatusLine label="Report source" value={mRecord.report_source ?? "Manual"} />
+                      <StatusLine
+                        label="Report source"
+                        value={lineMeasurementRecord.report_source ?? "Manual"}
+                      />
                       <StatusLine
                         label="Last updated"
-                        value={mRecord.report_last_updated_at ?? "Not verified"}
-                        muted={!mRecord.report_last_updated_at}
+                        value={lineMeasurementRecord.report_last_updated_at ?? "Not verified"}
+                        muted={!lineMeasurementRecord.report_last_updated_at}
                       />
-                      <StatusLine label="Report type" value={mRecord.report_type ?? "—"} muted={!mRecord.report_type} />
+                      <StatusLine
+                        label="Report type"
+                        value={lineMeasurementRecord.report_type ?? "—"}
+                        muted={!lineMeasurementRecord.report_type}
+                      />
                       <StatusLine
                         label="Source provider"
-                        value={mRecord.source_provider ?? "—"}
-                        muted={!mRecord.source_provider}
+                        value={lineMeasurementRecord.source_provider ?? "—"}
+                        muted={!lineMeasurementRecord.source_provider}
                       />
                       <StatusLine
                         label="Report ID"
-                        value={mRecord.source_report_id ?? "—"}
-                        muted={!mRecord.source_report_id}
+                        value={lineMeasurementRecord.source_report_id ?? "—"}
+                        muted={!lineMeasurementRecord.source_report_id}
                       />
                     </div>
                   </div>
-                  <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-2">
+                  <div className="flex flex-wrap items-center gap-2 border-t border-slate-100 pt-2">
                     <button type="button" disabled className={passiveAction}>Create report</button>
                     <button type="button" disabled className={passiveAction}>Edit measurement</button>
-                    <button type="button" disabled className={passiveAction}>Use measurement</button>
+                    <button
+                      type="button"
+                      disabled={!canSaveMeasurement}
+                      title={measurementSaveDisabledReason}
+                      onClick={() => void handleSaveMeasurement()}
+                      className={passiveAction}
+                    >
+                      {isSavingMeasurement
+                        ? "Saving…"
+                        : isPersistedManual
+                          ? "Update measurement"
+                          : "Save measurement"}
+                    </button>
+                    {!canSaveMeasurement && measurementSaveDisabledReason ? (
+                      <p className="w-full text-[11px] text-slate-500">{measurementSaveDisabledReason}</p>
+                    ) : null}
+                    {measurementSaveError ? (
+                      <p className="w-full text-[11px] text-red-600">{measurementSaveError}</p>
+                    ) : null}
                   </div>
                 </div>
               </details>
