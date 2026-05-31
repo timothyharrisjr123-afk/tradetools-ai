@@ -67,11 +67,12 @@ import type {
 } from "@/app/lib/measurementTypes";
 import {
   createJob,
+  getJobById,
   getOrCreateJobForEstimate,
   isUuidLike,
   buildFormattedAddress,
 } from "@/app/lib/jobStore";
-import type { JobDraft, JobAddress } from "@/app/lib/jobTypes";
+import type { JobDraft, JobAddress, JobRecord } from "@/app/lib/jobTypes";
 import { sendEstimateEmailWithPdf } from "@/app/lib/sendEstimateClient";
 import { getFavorite, setFavorite, setLocked, appendFeedback, getTierFeedbackBias, type TierLabel } from "@/app/lib/aiWordingPrefs";
 import RoofingTabs from "@/app/tools/roofing/RoofingTabs";
@@ -830,6 +831,8 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
   const jobLinkAppliedRef = useRef<string | null>(null);
   const jobLinkInFlightRef = useRef<string | null>(null);
   const linkedJobIdByEstimateRef = useRef<Record<string, string>>({});
+  const jobHydratedRef = useRef<string | null>(null);
+  const jobHydrateInFlightRef = useRef<string | null>(null);
   const isRestoringRef = useRef(false);
   const restoreTimerRef = useRef<number | null>(null);
   const autoSendFiredRef = useRef(false);
@@ -1247,6 +1250,112 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
   const [jobCity, setJobCity] = useState("");
   const [jobState, setJobState] = useState("");
   const [jobZip, setJobZip] = useState("");
+  const hydrateJobDisplayFromRecord = useCallback(
+    (job: JobRecord, options: { fillEmptyOnly: boolean }) => {
+      const { fillEmptyOnly } = options;
+      const contact = job.contact;
+      const address = job.address;
+      setCustomerName((prev) => {
+        const next = (contact?.customer_name ?? "").trim();
+        if (!next) return prev;
+        if (fillEmptyOnly && prev.trim()) return prev;
+        return next;
+      });
+      setCustomerEmail((prev) => {
+        const next = (contact?.customer_email ?? "").trim();
+        if (!next) return prev;
+        if (fillEmptyOnly && prev.trim()) return prev;
+        return next;
+      });
+      setCustomerPhone((prev) => {
+        const next = (contact?.customer_phone ?? "").trim();
+        if (!next) return prev;
+        if (fillEmptyOnly && prev.trim()) return prev;
+        return next;
+      });
+      setJobAddress1((prev) => {
+        const next = (address?.line1 ?? "").trim();
+        if (!next) return prev;
+        if (fillEmptyOnly && prev.trim()) return prev;
+        return next;
+      });
+      setJobCity((prev) => {
+        const next = (address?.city ?? "").trim();
+        if (!next) return prev;
+        if (fillEmptyOnly && prev.trim()) return prev;
+        return next;
+      });
+      setJobState((prev) => {
+        const next = (address?.state ?? "").trim();
+        if (!next) return prev;
+        if (fillEmptyOnly && prev.trim()) return prev;
+        return next;
+      });
+      setJobZip((prev) => {
+        const next = (address?.zip ?? "").trim();
+        if (!next) return prev;
+        if (fillEmptyOnly && prev.trim()) return prev;
+        return next;
+      });
+    },
+    []
+  );
+
+  useEffect(() => {
+    const jobId = searchParams.get("job");
+    if (jobHydratedRef.current && jobHydratedRef.current !== jobId) {
+      jobHydratedRef.current = null;
+    }
+    if (jobHydrateInFlightRef.current && jobHydrateInFlightRef.current !== jobId) {
+      jobHydrateInFlightRef.current = null;
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (entryMode !== "job-card") return;
+
+    const jobId = searchParams.get("job");
+    if (!jobId || !isUuidLike(jobId)) return;
+
+    const cid = (companyId ?? "").trim();
+    if (!cid) return;
+
+    if (isRestoringRef.current) return;
+    if (loadSavedId && !loadAppliedRef.current) return;
+
+    if (jobHydratedRef.current === jobId) return;
+    if (jobHydrateInFlightRef.current === jobId) return;
+
+    const fillEmptyOnly =
+      Boolean(loadSavedId) ||
+      (loadAppliedRef.current && Boolean(getCurrentLoadedSavedId()));
+
+    jobHydrateInFlightRef.current = jobId;
+
+    void (async () => {
+      try {
+        const job = await getJobById(jobId);
+        if (!job) {
+          console.warn("[RoofingClient] job hydrate: job not found", jobId);
+          return;
+        }
+        if (String(job.company_id || "").trim() !== cid) {
+          console.warn("[RoofingClient] job hydrate: company mismatch", { jobId, companyId: cid });
+          return;
+        }
+        hydrateJobDisplayFromRecord(job, { fillEmptyOnly });
+        jobHydratedRef.current = jobId;
+        setCurrentJobId(jobId);
+      } catch (err) {
+        console.warn("[RoofingClient] job hydrate error:", err);
+      } finally {
+        if (jobHydrateInFlightRef.current === jobId) {
+          jobHydrateInFlightRef.current = null;
+        }
+      }
+    })();
+  }, [entryMode, searchParams, companyId, loadSavedId, restoreTick, hydrateJobDisplayFromRecord]);
+
   const [proposalNumber, setProposalNumber] = useState("");
   const [proposalDate, setProposalDate] = useState("");
   const [roofingTier, setRoofingTier] = useState<RoofingTier>("standard");
