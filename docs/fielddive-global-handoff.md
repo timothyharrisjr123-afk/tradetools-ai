@@ -9,7 +9,7 @@
 - `docs/fielddive-estimate-proposal-flow-model.md` — estimate/proposal UX model notes
 - `docs/fielddive-feature-placement-map.md` — feature placement matrix
 
-**Last updated checkpoint:** `a62addb` — Add admin catalog starter install UI (includes `AdminNavLinks`, recheck starter catalog button).
+**Last updated checkpoint:** `6b37370` — Show installed catalog items in admin (Stage 3F7A complete).
 
 ---
 
@@ -18,7 +18,7 @@
 - **Do not guess.** Inspect the repo and running behavior before changing code.
 - **Always inspect current repo state** before code changes:
   - `git status --short`
-  - `git log --oneline -15`
+  - `git log --oneline -12` (or `-15` before larger work)
 - **Ask for generous surrounding code** when a change touches protected or monolithic files.
 - **Use exact current code only** — match naming, patterns, and file boundaries already in the tree.
 - **Make surgical changes** — smallest diff that solves the scoped stage; no drive-by refactors.
@@ -27,6 +27,17 @@
 - **AI must not touch pricing truth** — no “helpful” pricing math in catalog, measurement, or handoff modules.
 - **Do not enable** proposal builder, create-proposal flows, payment capture, or status pipeline changes casually.
 - **Best long-term architecture beats the easiest shortcut** — e.g. company catalog setup in admin, not hidden per-job auto-install.
+
+### No-drift warnings (catalog / proposal spine)
+
+- **Do not** route back to Manual Estimate as the active path.
+- **Do not** use `service_items` as the new catalog truth without an explicit migration plan.
+- **Do not** wire `catalog_items` into pricing too early.
+- **Do not** enable **Create proposal** before templates and Proposal Builder exist.
+- **Do not** add AI pricing.
+- **Do not** auto-install catalog rows from Job Card.
+- **Do not** create PDF / send / approval bridges before proposal records exist.
+- **Do not** touch payment / status / approval while working catalog or template setup (unless the stage explicitly scopes it).
 
 ---
 
@@ -107,7 +118,7 @@ Do **not** skip catalog + templates and jump to Proposal Builder or pricing brid
 
 ---
 
-## 5. COMPLETED CATALOG STAGE 3F (THROUGH 3F6B)
+## 5. COMPLETED CATALOG STAGE 3F (THROUGH 3F7A)
 
 | Commit | Summary |
 |--------|---------|
@@ -119,6 +130,29 @@ Do **not** skip catalog + templates and jump to Proposal Builder or pricing brid
 | `506c52b` | Add default roofing catalog install helper — `defaultRoofingCatalogInstall.ts` |
 | `1202605` | Add admin catalog starter install UI — `/admin/catalog`, `CatalogAdminClient.tsx`, nav links |
 | `a62addb` | Add admin catalog starter install UI — polish: `AdminNavLinks`, **Recheck starter catalog** (idempotent), admin nav on catalog / price-book / customers |
+| `6b37370` | **Stage 3F7A** — Show installed catalog items in admin (read-only table in `CatalogAdminClient.tsx`) |
+
+### Stage 3F7A complete — read-only installed catalog list
+
+- **Changed only:** `app/admin/catalog/CatalogAdminClient.tsx`
+- Added read-only **Installed catalog items** section below starter install block
+- Uses existing **`items`** state from `getActiveCatalogItemsByCompany` (no new query)
+- Displays active rows sorted by `sort_order` / name: name, customer name, type, unit, quantity source, unit price, unit cost, active, `metadata.seed_key`, sort order
+- Null price/cost shows **Unpriced** (not `$0`)
+- **No** inputs, save buttons, or `updateCatalogItem` calls
+- **No** catalog row edits yet; **no** pricing bridge; **no** templates; **no** Proposal Builder
+- Protected systems untouched; `npx tsc --noEmit` — only pre-existing `RoofingClientV2.tsx` errors
+
+### Roadmap position (catalog spine)
+
+**Completed:**
+
+- **3F6B** — Admin catalog starter install UI (`/admin/catalog`, install + recheck)
+- **3F7A** — Read-only installed catalog item list in `/admin/catalog`
+
+**Current / next:**
+
+- **3F7B** — Catalog pricing / edit UI (set unit prices on `catalog_items` in admin; still no estimator pricing bridge)
 
 ### Current catalog state
 
@@ -126,7 +160,7 @@ Do **not** skip catalog + templates and jump to Proposal Builder or pricing brid
 - `catalogStore.ts` — company-scoped CRUD (reads + writes); **no UI** calls `updateCatalogItem` yet.
 - `defaultRoofingCatalog.ts` — 13 starter definitions with `metadata.seed_key`.
 - `installDefaultRoofingCatalog(companyId)` — insert-only, dedupe by `seed_key`; **not** auto-run on page load.
-- **`/admin/catalog`** exists — install + recheck starter catalog, readiness summary, `AdminNavLinks`.
+- **`/admin/catalog`** exists — install + recheck starter catalog, readiness summary, **read-only item table**, `AdminNavLinks`.
 - Starter catalog **installed successfully** in dev (verified): **13** rows, **13** active, **13** unpriced, **13** with seed keys.
 - **Recheck** behavior: `created 0`, `skipped 13`, `failed 0` when already installed.
 - **`service_items`** and legacy **`/admin/price-book`** unchanged (still `PriceBookAdminClient` → `service_items` only).
@@ -157,24 +191,26 @@ Do **not** skip catalog + templates and jump to Proposal Builder or pricing brid
 
 ---
 
-## 7. CURRENT NEXT DECISION AFTER 3F6B
+## 7. CURRENT NEXT AFTER 3F7A
+
+**Recommended next stage:** **3F7B — Catalog pricing / edit UI** in `/admin/catalog` (company can set `unit_price_cents` / `unit_cost_cents` on existing rows). Still **no** wiring into estimator pricing `useMemo`.
 
 **Do not code in a new chat until the next stage is chosen explicitly.**
 
 | Option | Stage | What it is |
 |--------|-------|------------|
-| **A** | 3F6C | Job Card catalog CTA — link to `/admin/catalog`, optional refetch after install; **no** install on Job Card |
-| **B** | 3F6B+ | Stronger `/admin/catalog` — list/edit prices, CRUD on `catalog_items` |
-| **C** | **3G** | **Template type foundation** — `proposalTemplateTypes.ts`, passive default templates, then migration |
-| **D** | 3F7+ | Full catalog admin for `catalog_items` (replace or parallel legacy price book) |
+| **B** | **3F7B** | **Catalog pricing / edit UI** — update prices on installed `catalog_items` via `updateCatalogItem`; read-only list stays |
+| **A** | 3F6C | Job Card catalog CTA — link to `/admin/catalog`, optional refetch; **no** install on Job Card |
+| **C** | 3G | Template type foundation — `proposalTemplateTypes.ts`, passive defaults, then migration |
+| **D** | 3F7+ | Full catalog admin CRUD (beyond price edit) |
 
 ### Guidance (architecture-first)
 
-- **Do not rush Proposal Builder** — needs catalog + templates first.
-- **Do not wire catalog into pricing `useMemo` yet.**
+- **Do not rush Proposal Builder** — needs priced/catalog-visible items + **templates** first.
+- **Do not wire catalog into pricing `useMemo` yet** (3F7B is admin catalog prices only).
 - **Do not migrate `service_items` → `catalog_items`** unless explicitly planned and scoped.
 - **Do not add hidden auto-install** on Job Card load or first visit.
-- **Best likely long-term next move:** **C (3G — template foundation)** after optional small **A (Job Card link/refetch)** if UX needs a bridge from Job Card to admin setup.
+- After **3F7B**, consider **3G (templates)** before Proposal Builder.
 
 Choose deliberately; document the choice in commit message and stage prompt.
 
@@ -186,16 +222,19 @@ Future GPT must have Cursor run **before** implementing:
 
 ```bash
 git status --short
-git log --oneline -15
+git log --oneline -12
 ```
 
-Then read (at minimum):
+Then open and read:
+
+- `docs/fielddive-global-handoff.md` (this file)
+
+Inspect before planning **3F7B** (or chosen stage):
 
 | File | Why |
 |------|-----|
-| `docs/fielddive-global-handoff.md` | This file |
 | `app/admin/catalog/page.tsx` | Admin auth + companyId |
-| `app/admin/catalog/CatalogAdminClient.tsx` | Install/recheck UI |
+| `app/admin/catalog/CatalogAdminClient.tsx` | Install/recheck + **installed items table** |
 | `app/admin/AdminNavLinks.tsx` | Admin cross-links |
 | `app/lib/catalogTypes.ts` | Type contract |
 | `app/lib/catalogStore.ts` | DB I/O |
@@ -235,7 +274,7 @@ Confirm: proposal buttons still disabled; no unintended imports of `installDefau
 | Route | Table / role |
 |-------|----------------|
 | `/tools/roofing?entry=job-card` | Job Card shell, measurements, passive proposals/catalog |
-| `/admin/catalog` | **catalog_items** setup + starter install |
+| `/admin/catalog` | **catalog_items** setup, starter install, read-only item list |
 | `/admin/price-book` | Legacy **service_items** only |
 | `/admin/customers` | Customers CRUD |
 | `/tools/roofing/saved` | Command Center (SavedClient) |
@@ -245,3 +284,4 @@ Confirm: proposal buttons still disabled; no unintended imports of `installDefau
 ## Changelog (handoff doc only)
 
 - **2026-05-31:** Initial global handoff after Stage 3F6B (`a62addb`).
+- **2026-05-31:** Updated after Stage 3F7A (`6b37370`) — read-only installed catalog list in admin; next: 3F7B.
