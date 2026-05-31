@@ -5778,8 +5778,8 @@ Thanks,`;
     const hasCustomerInfo = Boolean((customerName || customerEmail || customerPhone).trim());
     const hasMeasurement = parseFloat(area) > 0;
     const wasteSet = (waste || "").trim() !== "" && Number.isFinite(parseFloat(waste));
-    const squaresDisplay = hasMeasurement
-      ? `${(parseFloat(area) / 100).toFixed(1)} SQ (${parseFloat(area).toLocaleString()} sq ft)`
+    const roofSquaresOnly = hasMeasurement
+      ? `${(parseFloat(area) / 100).toFixed(1)} SQ`
       : "Not measured";
     const wasteDisplay = wasteSet ? `${parseFloat(waste)}%` : "Not set";
     const pitchDisplay =
@@ -5915,6 +5915,9 @@ Thanks,`;
       { label: "Step flashing", value: "—", muted: true },
       { label: "Transitions", value: "—", muted: true },
       { label: "Parapet wall", value: "—", muted: true },
+      { label: "Drip edge", value: "—", muted: true },
+      { label: "Starter", value: "—", muted: true },
+      { label: "Ridge cap", value: "—", muted: true },
     ];
 
     const NAV_TABS = [
@@ -6045,34 +6048,36 @@ Thanks,`;
                 <div className={`${moduleBody} space-y-3`}>
                   <div className={wsBlock}>
                     <WorkspaceHeading>Measurement status</WorkspaceHeading>
-                    <dl className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
-                      <MetricTile label="Roof size" value={squaresDisplay} muted={!hasMeasurement} />
-                      <MetricTile label="Waste" value={wasteDisplay} muted={!wasteSet} />
-                      <MetricTile label="Pitch" value={pitchDisplay} />
-                      <MetricTile label="Stories" value={storiesDisplay} />
-                      <MetricTile label="Source" value="Manual" />
-                      <MetricTile label="Report status" value="Not attached" muted />
-                      <MetricTile label="Takeoff status" value="Not verified" muted />
-                    </dl>
+                    <div className="mt-2 grid grid-cols-1 gap-x-4 sm:grid-cols-2">
+                      <StatusLine label="Measurement record" value="Not created" muted />
+                      <StatusLine label="Source" value="Manual" />
+                      <StatusLine label="Confidence" value="Not scored" muted />
+                      <StatusLine label="Verification" value="Not verified" muted />
+                      <StatusLine label="Estimate readiness" value="Not ready" muted />
+                      <StatusLine label="Production readiness" value="Not ready" muted />
+                    </div>
+                    <p className="mt-2 text-[11px] text-slate-500">
+                      <span className="font-medium text-slate-600">Missing fields:</span> Roof size, report measurements
+                    </p>
                   </div>
                   <div>
                     <WorkspaceHeading>Roof details</WorkspaceHeading>
-                    <dl className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                      <MetricTile label="Roof area / SQ" value={squaresDisplay} muted={!hasMeasurement} />
+                    <dl className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+                      <MetricTile label="Roof area / SQ" value={roofSquaresOnly} muted={!hasMeasurement} />
+                      <MetricTile label="SQ ft" value={sqFtOnly} muted={!hasMeasurement} />
+                      <MetricTile label="Waste factor" value={wasteDisplay} muted={!wasteSet} />
                       <MetricTile label="Pitch" value={pitchDisplay} />
                       <MetricTile label="Stories" value={storiesDisplay} />
                       <MetricTile label="Complexity" value={complexityDisplay} />
-                      <MetricTile label="Waste factor" value={wasteDisplay} muted={!wasteSet} />
-                      <MetricTile label="SQ ft" value={sqFtOnly} muted={!hasMeasurement} />
-                      <MetricTile label="Source" value="Manual" />
-                      <MetricTile label="Report" value="Not attached" muted />
-                      <MetricTile label="Takeoff" value="Not verified" muted />
+                      <MetricTile label="Roof type" value="Not selected" muted />
+                      <MetricTile label="Structures" value="Not measured" muted />
+                      <MetricTile label="Facets" value="Not measured" muted />
                     </dl>
                   </div>
                   <div className={wsBlock}>
                     <WorkspaceHeading>Report measurements</WorkspaceHeading>
                     <p className={wsHelper}>
-                      Detailed report values appear here after a report or manual takeoff is added.
+                      Line measurements from a report or manual takeoff appear here.
                     </p>
                     <dl className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
                       {REPORT_MEASUREMENT_ROWS.map(({ label, value, muted }) => (
@@ -6082,11 +6087,14 @@ Thanks,`;
                   </div>
                   <div className={wsBlock}>
                     <WorkspaceHeading>Measurement report</WorkspaceHeading>
-                    <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                      <MetricTile label="Report" value="Not attached" muted />
-                      <MetricTile label="Diagram" value="Not available" muted />
-                      <MetricTile label="Report source" value="Manual" />
-                      <MetricTile label="Last updated" value="Not verified" muted />
+                    <div className="mt-2 grid grid-cols-1 gap-x-4 sm:grid-cols-2">
+                      <StatusLine label="Report" value="Not attached" muted />
+                      <StatusLine label="Diagram" value="Not available" muted />
+                      <StatusLine label="Report source" value="Manual" />
+                      <StatusLine label="Last updated" value="Not verified" muted />
+                      <StatusLine label="Report type" value="—" muted />
+                      <StatusLine label="Source provider" value="—" muted />
+                      <StatusLine label="Report ID" value="—" muted />
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-2">
