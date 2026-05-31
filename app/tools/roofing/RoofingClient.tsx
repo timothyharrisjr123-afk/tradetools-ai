@@ -103,6 +103,14 @@ import {
   formatReportPathHelperText,
   hasRoofSize,
 } from "@/app/lib/measurementReadiness";
+import {
+  buildMeasurementProposalHandoff,
+  formatProposalReadinessLabel,
+  formatProposalSectionHeaderStatus,
+  formatProposalQuantitiesDisplay,
+  formatProposalMissingDisplay,
+  resolveProposalHandoffNextAction,
+} from "@/app/lib/measurementProposalHandoff";
 import type { JobDraft, JobAddress, JobRecord } from "@/app/lib/jobTypes";
 import { sendEstimateEmailWithPdf } from "@/app/lib/sendEstimateClient";
 import { getFavorite, setFavorite, setLocked, appendFeedback, getTierFeedbackBias, type TierLabel } from "@/app/lib/aiWordingPrefs";
@@ -6695,6 +6703,29 @@ Thanks,`;
       estimateReady: estimateReadiness.ready,
     });
     const reportSourceUrl = (reportPathRecord.source_url ?? "").trim();
+    const proposalHandoff = buildMeasurementProposalHandoff({
+      record: readinessRecord,
+      workspace,
+      hasUnsavedChanges,
+      persistedRecord: persistedSelectedMeasurement,
+    });
+    const proposalHandoffContext = { isPersistedNonManual: workspace.isPersistedNonManual };
+    const proposalReadinessDisplay = formatProposalReadinessLabel(
+      proposalHandoff.proposalReady,
+      proposalHandoff.blockers,
+      proposalHandoffContext
+    );
+    const proposalSectionHeader = formatProposalSectionHeaderStatus(
+      proposalHandoff,
+      proposalHandoffContext
+    );
+    const proposalQuantitiesDisplay = formatProposalQuantitiesDisplay(proposalHandoff.quantities);
+    const proposalMissingDisplay = formatProposalMissingDisplay(proposalHandoff.blockers);
+    const proposalHandoffNextAction = resolveProposalHandoffNextAction({
+      handoff: proposalHandoff,
+      workspace,
+      persistedRecord: persistedSelectedMeasurement,
+    });
 
     const reportMeasurementRows: { label: string; value: string; muted?: boolean }[] = [
       {
@@ -7434,21 +7465,44 @@ Thanks,`;
                 <summary className={detailsSummary}>
                   <DetailsHeader
                     title="Proposals"
-                    status="No proposal yet"
-                    statusClass="bg-slate-100 text-slate-500"
+                    status={proposalSectionHeader.label}
+                    statusClass={
+                      proposalSectionHeader.ready
+                        ? "bg-emerald-50 text-emerald-700"
+                        : "bg-slate-100 text-slate-500"
+                    }
                     summary="Proposal creation starts here from the Job Card"
                   />
                 </summary>
                 <div className={`${moduleBody} space-y-3`}>
                   <div className={wsBlock}>
-                    <WorkspaceHeading>Proposal status</WorkspaceHeading>
+                    <WorkspaceHeading>Proposal handoff</WorkspaceHeading>
                     <div className="mt-2 grid grid-cols-1 gap-0.5 sm:grid-cols-2">
-                      <StatusLine label="Status" value="No proposal yet" muted />
-                      <StatusLine label="Source" value="Job Card" />
-                      <StatusLine label="Measurement" value="Not selected" muted />
+                      <StatusLine
+                        label="Selected measurement"
+                        value={proposalHandoff.selectedLabel}
+                        muted={
+                          proposalHandoff.selectedLabel === "Not saved" ||
+                          proposalHandoff.selectedLabel.startsWith("Local draft")
+                        }
+                      />
+                      <StatusLine
+                        label="Proposal readiness"
+                        value={proposalReadinessDisplay}
+                        muted={!proposalHandoff.proposalReady}
+                      />
+                      <StatusLine
+                        label="Available quantities"
+                        value={proposalQuantitiesDisplay}
+                        muted={proposalQuantitiesDisplay === "—"}
+                      />
+                      <StatusLine
+                        label="Missing for proposal"
+                        value={proposalMissingDisplay}
+                        muted={proposalHandoff.blockers.length === 0}
+                      />
                       <StatusLine label="Template" value="Not selected" muted />
-                      <StatusLine label="Estimate" value="Not created" muted />
-                      <StatusLine label="Last updated" value="—" muted />
+                      <StatusLine label="Proposal document" value="No proposal yet" muted />
                     </div>
                   </div>
                   <div>
@@ -7465,8 +7519,8 @@ Thanks,`;
                     </div>
                   </div>
                   <p className="text-xs leading-relaxed text-slate-600">
-                    Proposals will be created from this Job Card after you select a measurement and template.
-                    The Proposal Builder estimate section will open from here — not from Manual Estimate.
+                    Proposals will use the selected measurement&apos;s quantities and a template when Catalog
+                    and Proposal Builder are enabled. No proposal is created from this screen yet.
                   </p>
                   <div>
                     <WorkspaceHeading>Proposal list</WorkspaceHeading>
@@ -7782,14 +7836,18 @@ Thanks,`;
                     </div>
                   </div>
                   <div className="flex items-start gap-3 px-4 py-3">
-                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-900 text-[10px] font-bold text-white">4</span>
+                    <span
+                      className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${proposalHandoff.proposalReady ? "bg-emerald-100 text-emerald-700" : "bg-slate-900 text-white"}`}
+                    >
+                      {proposalHandoff.proposalReady ? "✓" : "4"}
+                    </span>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-slate-900">Create proposal</p>
-                      <p className="text-xs text-slate-500">Use selected measurement and template</p>
+                      <p className="text-sm font-semibold text-slate-900">{proposalHandoffNextAction.title}</p>
+                      <p className="text-xs text-slate-500">{proposalHandoffNextAction.subtitle}</p>
                       <button
                         type="button"
                         disabled
-                        title="Proposal Builder coming after measurements/templates"
+                        title="Proposal Builder coming after catalog and templates"
                         className="mt-2 inline-flex cursor-not-allowed items-center gap-1.5 rounded-md bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white opacity-60 shadow-sm"
                       >
                         Create proposal
@@ -7812,6 +7870,11 @@ Thanks,`;
                       label: "Measurement status",
                       ready: railMeasurementStatus.ready,
                       statusText: railMeasurementStatus.label,
+                    },
+                    {
+                      label: "Proposal input",
+                      ready: proposalHandoff.proposalReady,
+                      statusText: proposalReadinessDisplay,
                     },
                     { label: "Photos / attachments", ready: false },
                     { label: "Estimate not started", ready: false },
