@@ -4490,7 +4490,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                         { label: "Price Book", href: "/admin/price-book", desc: "Service items" },
                         {
                           label: "Catalog setup",
-                          href: "/admin/catalog",
+                          href: "/tools/roofing/catalog",
                           desc: "Starter catalog_items",
                         },
                       ].map((item) => (

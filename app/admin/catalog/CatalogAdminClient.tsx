@@ -32,6 +32,21 @@ import {
 const STARTER_DEFINITION_COUNT = DEFAULT_ROOFING_CATALOG_DEFINITIONS.length;
 const TABLE_COLUMN_COUNT = 11;
 
+const CARD =
+  "rounded-md border border-slate-200/80 bg-white px-5 py-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]";
+const FIELD_INPUT =
+  "w-full rounded-md border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-100 disabled:cursor-not-allowed disabled:opacity-60";
+const TABLE_TH =
+  "px-3 py-3 pr-3 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500";
+const TABLE_TH_WIDE = `${TABLE_TH} min-w-[9rem] pr-4`;
+const TABLE_TH_COMPACT = `${TABLE_TH} whitespace-nowrap pr-2`;
+const TABLE_TD = "px-3 py-3 pr-3 align-middle text-sm text-slate-700";
+const TABLE_TD_WIDE = `${TABLE_TD} min-w-[9rem] pr-4`;
+const TABLE_TD_NAME =
+  "px-3 py-3 pr-4 align-middle text-sm font-medium text-slate-900 min-w-[11rem] lg:whitespace-nowrap";
+const TABLE_TD_COMPACT = `${TABLE_TD} whitespace-nowrap pr-2`;
+const TABLE_TD_UNIT = `${TABLE_TD} min-w-[6.5rem] whitespace-nowrap`;
+
 const STARTER_SEED_KEYS: readonly string[] = DEFAULT_ROOFING_CATALOG_DEFINITIONS.map(
   (definition) => definition.metadata.seed_key
 );
@@ -135,15 +150,25 @@ function compareCatalogItemsForDisplay(a: CatalogItem, b: CatalogItem): number {
 function PriceTableCell({ cents }: { cents: number | null | undefined }) {
   if (isUnpricedCents(cents)) {
     return (
-      <span className="inline-block rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-200/90">
+      <span className="inline-block whitespace-nowrap rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 ring-1 ring-amber-200">
         Unpriced
       </span>
     );
   }
-  return <span className="tabular-nums text-white/80">{formatCents(cents)}</span>;
+  return (
+    <span className="whitespace-nowrap tabular-nums text-sm font-medium text-slate-800">
+      {formatCents(cents)}
+    </span>
+  );
 }
 
-export default function CatalogAdminClient({ companyId }: { companyId: string }) {
+export default function CatalogAdminClient({
+  companyId,
+  showAdminNav = true,
+}: {
+  companyId: string;
+  showAdminNav?: boolean;
+}) {
   const [items, setItems] = useState<CatalogItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [installing, setInstalling] = useState(false);
@@ -358,137 +383,146 @@ export default function CatalogAdminClient({ companyId }: { companyId: string })
       ? "Recheck starter catalog"
       : "Install starter roofing catalog";
 
+  const statusPillClass =
+    readiness.state === "needs_pricing"
+      ? "inline-flex rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-800 ring-1 ring-amber-200"
+      : readiness.state === "ready_for_templates"
+        ? "inline-flex rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-800 ring-1 ring-emerald-200"
+        : "inline-flex rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-700 ring-1 ring-slate-200";
+
   return (
-    <>
-      <AdminNavLinks current="catalog" />
-      <h1 className="mb-4 text-xl font-semibold">Catalog setup</h1>
-
-      <p className="mb-4 text-sm text-white/70">
-        Install company-wide catalog line items into{" "}
-        <span className="text-white/90">catalog_items</span> for measurement-driven templates
-        later. This is account setup, not per-job. It does not create proposals or pricing
-        totals.
-      </p>
-
-      <p className="mb-4 text-xs text-white/50">
-        Separate from legacy Price Book (service_items), which uses a different table and is
-        not wired to the new catalog spine yet. Use Legacy Price Book in the nav above for
-        service items.
-      </p>
+    <div className="w-full space-y-6 text-slate-900">
+      {showAdminNav ? <AdminNavLinks current="catalog" /> : null}
+      <div className="space-y-3">
+        <h1 className="text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
+          Catalog setup
+        </h1>
+        <p className="text-sm leading-relaxed text-slate-600">
+          Install company-wide catalog line items for measurement-driven templates later. This is
+          account setup, not per-job. It does not create proposals or change estimator pricing.
+        </p>
+        <p className="text-xs leading-relaxed text-slate-500">
+          Separate from legacy Price Book (service_items). Use{" "}
+          <span className="font-medium text-slate-700">Price Book</span> in the sidebar for legacy
+          service items only.
+        </p>
+      </div>
 
       {error && (
-        <div className="mb-4 rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-2 text-sm text-red-300">
+        <div className="rounded-md border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700">
           {error}
         </div>
       )}
       {message && (
-        <div className="mb-4 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-300">
+        <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm text-emerald-800">
           {message}
         </div>
       )}
 
-      <div className="mb-6 rounded-lg bg-white/5 p-4">
-        <h2 className="mb-2 font-medium">Current catalog</h2>
+      <div className={CARD}>
+        <h2 className="mb-4 text-sm font-semibold text-slate-900">Current catalog</h2>
         {loading ? (
-          <p className="text-sm text-white/60">Loading catalog…</p>
+          <p className="text-sm text-slate-500">Loading catalog…</p>
         ) : (
-          <dl className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
-            <div className="flex justify-between gap-4 border-b border-white/5 py-1.5">
-              <dt className="text-white/60">Catalog status</dt>
-              <dd className="font-medium text-white/90">{catalogStatusLabel}</dd>
+          <dl className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+            <div className="flex justify-between gap-6 border-b border-slate-100 py-2.5">
+              <dt className="text-xs text-slate-500">Catalog status</dt>
+              <dd>
+                <span className={statusPillClass}>{catalogStatusLabel}</span>
+              </dd>
             </div>
-            <div className="flex justify-between gap-4 border-b border-white/5 py-1.5">
-              <dt className="text-white/60">Active catalog items</dt>
-              <dd className="font-medium tabular-nums text-white/90">
+            <div className="flex justify-between gap-6 border-b border-slate-100 py-2.5">
+              <dt className="text-xs text-slate-500">Active catalog items</dt>
+              <dd className="text-sm font-semibold tabular-nums text-slate-900">
                 {readiness.activeItemCount}
               </dd>
             </div>
-            <div className="flex justify-between gap-4 border-b border-white/5 py-1.5">
-              <dt className="text-white/60">Measurement-mapped items</dt>
-              <dd className="font-medium tabular-nums text-white/90">
+            <div className="flex justify-between gap-6 border-b border-slate-100 py-2.5">
+              <dt className="text-xs text-slate-500">Measurement-mapped items</dt>
+              <dd className="text-sm font-semibold tabular-nums text-slate-900">
                 {readiness.measurementMappedItemCount}
               </dd>
             </div>
-            <div className="flex justify-between gap-4 border-b border-white/5 py-1.5">
-              <dt className="text-white/60">Priced items</dt>
-              <dd className="font-medium tabular-nums text-white/90">
+            <div className="flex justify-between gap-6 border-b border-slate-100 py-2.5">
+              <dt className="text-xs text-slate-500">Priced items</dt>
+              <dd className="text-sm font-semibold tabular-nums text-slate-900">
                 {readiness.pricedItemCount}
               </dd>
             </div>
-            <div className="flex justify-between gap-4 border-b border-white/5 py-1.5 sm:col-span-2">
-              <dt className="text-white/60">Starter catalog</dt>
-              <dd className="font-medium text-white/90">{starterDisplay}</dd>
+            <div className="flex justify-between gap-6 border-b border-slate-100 py-2.5 sm:col-span-2">
+              <dt className="text-xs text-slate-500">Starter catalog</dt>
+              <dd className="text-sm font-semibold text-slate-900">{starterDisplay}</dd>
             </div>
           </dl>
         )}
-        <p className="mt-3 text-xs text-white/50">
-          Configure unit prices on installed items below. This updates catalog setup only — not
-          the estimator or Proposal Builder.
+        <p className="mt-4 text-xs leading-relaxed text-slate-500">
+          Configure unit prices on installed items below. This updates catalog setup only — not the
+          estimator or Proposal Builder.
         </p>
       </div>
 
-      <div className="mb-6 rounded-lg bg-white/5 p-4">
-        <h2 className="mb-2 font-medium">Starter roofing catalog</h2>
-        <p className="mb-3 text-xs text-white/60">
-          Installs {STARTER_DEFINITION_COUNT} default items (shingles, underlayment, labor,
-          disposal, permit, etc.) with measurement quantity sources. Safe to run again —
-          existing seed keys are skipped.
+      <div className={CARD}>
+        <h2 className="mb-3 text-sm font-semibold text-slate-900">Starter roofing catalog</h2>
+        <p className="mb-4 text-xs leading-relaxed text-slate-500">
+          Installs {STARTER_DEFINITION_COUNT} default items (shingles, underlayment, labor, disposal,
+          permit, etc.) with measurement quantity sources. Safe to run again — existing seed keys
+          are skipped.
         </p>
         <button
           type="button"
           onClick={() => void handleInstallStarter()}
           disabled={busy}
-          className="rounded bg-cyan-500 px-4 py-2 text-sm font-semibold hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {installButtonLabel}
         </button>
         {starterInstalled && (
-          <p className="mt-2 text-xs text-white/50">
-            All {STARTER_DEFINITION_COUNT} starter seed keys are present. Use Recheck to
-            install any missing items without duplicating existing rows.
+          <p className="mt-3 text-xs leading-relaxed text-slate-500">
+            All {STARTER_DEFINITION_COUNT} starter seed keys are present. Use Recheck to install any
+            missing items without duplicating existing rows.
           </p>
         )}
       </div>
 
-      <div className="mb-6 rounded-lg border border-white/10 bg-white/[0.03] p-4">
-        <h2 className="mb-1 font-medium text-white/95">Installed catalog items</h2>
-        <p className="mb-2 text-sm text-white/70">
+      <div className={CARD}>
+        <h2 className="mb-3 text-sm font-semibold text-slate-900">Installed catalog items</h2>
+        <p className="mb-3 text-sm leading-relaxed text-slate-600">
           These rows power future templates and proposals. Configure prices and customer-facing
           labels here before building proposal templates.
         </p>
-        <p className="mb-3 text-xs text-white/50">
+        <p className="mb-3 text-xs leading-relaxed text-slate-500">
           Editing identity fields like unit and quantity source will come later. Templates and
           Proposal Builder are not available yet.
         </p>
-        <p className="mb-4 rounded-md border border-cyan-500/20 bg-cyan-500/5 px-3 py-2 text-xs text-cyan-100/80">
+        <p className="mb-5 rounded-md border border-cyan-200 bg-cyan-50 px-4 py-2.5 text-xs leading-relaxed text-cyan-800">
           Price the items you plan to use in templates. Templates and proposals stay locked until
           catalog setup is ready.
         </p>
         {loading ? (
-          <p className="text-sm text-white/60">Loading catalog items…</p>
+          <p className="text-sm text-slate-500">Loading catalog items…</p>
         ) : sortedItems.length === 0 ? (
-          <p className="text-sm text-white/60">
+          <p className="text-sm text-slate-500">
             No active catalog items found. Install the starter roofing catalog to begin.
           </p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[58rem] text-sm">
+          <div className="mt-1 overflow-x-auto rounded-lg border border-slate-200 bg-slate-50/40 p-2 sm:p-3">
+            <table className="w-full min-w-[76rem] table-auto text-sm">
               <thead>
-                <tr className="border-b border-white/10 text-left text-white/60">
-                  <th className="py-2 pr-2">Name</th>
-                  <th className="py-2 pr-2">Customer name</th>
-                  <th className="py-2 pr-2">Type</th>
-                  <th className="py-2 pr-2">Unit</th>
-                  <th className="py-2 pr-2">Quantity source</th>
-                  <th className="py-2 pr-2">Unit price</th>
-                  <th className="py-2 pr-2">Unit cost</th>
-                  <th className="py-2 pr-2">Active</th>
-                  <th className="py-2 pr-2">Seed key</th>
-                  <th className="py-2 pr-2">Sort</th>
-                  <th className="py-2">Action</th>
+                <tr className="border-b border-slate-200 bg-slate-100/80 text-left">
+                  <th className={TABLE_TH_WIDE}>Name</th>
+                  <th className={TABLE_TH_WIDE}>Customer name</th>
+                  <th className={TABLE_TH}>Type</th>
+                  <th className={TABLE_TH}>Unit</th>
+                  <th className={TABLE_TH_WIDE}>Quantity source</th>
+                  <th className={TABLE_TH_COMPACT}>Unit price</th>
+                  <th className={TABLE_TH_COMPACT}>Unit cost</th>
+                  <th className={TABLE_TH_COMPACT}>Active</th>
+                  <th className={TABLE_TH_WIDE}>Seed key</th>
+                  <th className={TABLE_TH_COMPACT}>Sort</th>
+                  <th className={TABLE_TH_COMPACT}>Action</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="bg-white">
                 {sortedItems.map((item) => {
                   const seedKey = extractSeedKey(item.metadata ?? null);
                   const isEditing = editingItemId === item.id;
@@ -497,110 +531,119 @@ export default function CatalogAdminClient({ companyId }: { companyId: string })
                   return (
                     <Fragment key={item.id}>
                       <tr
-                        className={`border-b border-white/5 ${isEditing ? "bg-white/[0.04]" : ""}`}
+                        className={`border-b border-slate-100 transition-colors hover:bg-slate-50/80 ${isEditing ? "bg-cyan-50/40" : ""}`}
                       >
-                        <td className="py-2 pr-2 font-medium text-white/90">{item.name}</td>
-                        <td className="py-2 pr-2 text-white/80">
-                          {item.customer_name?.trim() || "—"}
-                        </td>
-                        <td className="py-2 pr-2 text-white/80">
-                          {catalogItemTypeLabel(item.item_type)}
-                        </td>
-                        <td className="py-2 pr-2 text-white/80">
-                          {catalogUnitLabel(item.unit)}
-                        </td>
-                        <td className="py-2 pr-2 text-white/80">
+                        <td className={TABLE_TD_NAME}>{item.name}</td>
+                        <td className={TABLE_TD_WIDE}>{item.customer_name?.trim() || "—"}</td>
+                        <td className={TABLE_TD}>{catalogItemTypeLabel(item.item_type)}</td>
+                        <td className={TABLE_TD_UNIT}>{catalogUnitLabel(item.unit)}</td>
+                        <td className={`${TABLE_TD_WIDE} lg:whitespace-nowrap`}>
                           {quantitySourceLabel(item.quantity_source)}
                         </td>
-                        <td className="py-2 pr-2">
+                        <td className={TABLE_TD_COMPACT}>
                           <PriceTableCell cents={item.unit_price_cents} />
                         </td>
-                        <td className="py-2 pr-2">
+                        <td className={TABLE_TD_COMPACT}>
                           <PriceTableCell cents={item.unit_cost_cents} />
                         </td>
-                        <td className="py-2 pr-2 text-white/80">{item.active ? "Yes" : "No"}</td>
-                        <td className="py-2 pr-2 font-mono text-xs text-white/70">
+                        <td className={TABLE_TD_COMPACT}>{item.active ? "Yes" : "No"}</td>
+                        <td
+                          className={`${TABLE_TD_WIDE} font-mono text-xs text-slate-600 lg:whitespace-nowrap`}
+                        >
                           {seedKey ?? "—"}
                         </td>
-                        <td className="py-2 pr-2 tabular-nums text-white/80">
+                        <td className={`${TABLE_TD_COMPACT} tabular-nums`}>
                           {item.sort_order != null ? item.sort_order : "—"}
                         </td>
-                        <td className="py-2">
+                        <td className={TABLE_TD_COMPACT}>
                           <button
                             type="button"
                             onClick={() => handleEditToggle(item)}
                             disabled={isSaving || (savingItemId != null && !isSaving)}
-                            className="rounded border border-white/15 bg-white/5 px-2.5 py-1 text-xs font-medium text-cyan-200 hover:border-cyan-500/40 hover:bg-cyan-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="text-sm font-semibold text-cyan-700 hover:text-cyan-900 disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             {isEditing ? "Close" : "Edit"}
                           </button>
                         </td>
                       </tr>
                       {isEditing && editDraft && editingItem?.id === item.id && (
-                        <tr className="border-b border-white/5">
-                          <td colSpan={TABLE_COLUMN_COUNT} className="px-2 py-3">
-                            <div className="rounded-lg border border-cyan-500/25 bg-gradient-to-b from-white/[0.08] to-white/[0.04] p-4 shadow-sm">
-                              <div className="mb-4 border-b border-white/10 pb-3">
-                                <h3 className="font-medium text-white/95">
+                        <tr className="border-b border-slate-100">
+                          <td colSpan={TABLE_COLUMN_COUNT} className="px-4 py-4">
+                            <div className="rounded-md border border-slate-200 bg-slate-50/70 p-5">
+                              <div className="mb-5 border-b border-slate-200 pb-4">
+                                <h3 className="text-sm font-semibold text-slate-900">
                                   Configure catalog item
                                 </h3>
-                                <p className="mt-1 text-xs text-white/55">
-                                  Set the proposal-facing label and pricing used later by
-                                  templates.
+                                <p className="mt-2 text-xs leading-relaxed text-slate-500">
+                                  Set the proposal-facing label and pricing used later by templates.
                                 </p>
-                                <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                                  <span className="rounded bg-white/10 px-2 py-0.5 text-white/70">
+                                <div className="mt-4 flex flex-wrap gap-2 text-xs">
+                                  <span className="rounded-full bg-slate-100 px-2 py-0.5 font-medium text-slate-700 ring-1 ring-slate-200">
                                     {pricingBasisLabel(item.pricing_basis)}
                                   </span>
-                                  <span className="rounded bg-white/10 px-2 py-0.5 text-white/70">
+                                  <span className="rounded-full bg-slate-100 px-2 py-0.5 font-medium text-slate-700 ring-1 ring-slate-200">
                                     {customerVisibilityLabel(item.customer_visibility)}
                                   </span>
                                 </div>
                               </div>
 
-                              <dl className="mb-4 grid grid-cols-1 gap-2 rounded-md bg-black/20 p-3 text-xs sm:grid-cols-2">
+                              <dl className="mb-5 grid grid-cols-1 gap-4 rounded-md border border-slate-200 bg-white p-4 text-xs sm:grid-cols-2">
                                 <div>
-                                  <dt className="text-white/50">Item</dt>
-                                  <dd className="font-medium text-white/90">{item.name}</dd>
+                                  <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                                    Item
+                                  </dt>
+                                  <dd className="mt-0.5 text-sm font-medium text-slate-900">
+                                    {item.name}
+                                  </dd>
                                 </div>
                                 <div>
-                                  <dt className="text-white/50">Type</dt>
-                                  <dd className="text-white/85">
+                                  <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                                    Type
+                                  </dt>
+                                  <dd className="mt-0.5 text-sm font-medium text-slate-900">
                                     {catalogItemTypeLabel(item.item_type)}
                                   </dd>
                                 </div>
                                 <div>
-                                  <dt className="text-white/50">Unit</dt>
-                                  <dd className="text-white/85">{catalogUnitLabel(item.unit)}</dd>
+                                  <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                                    Unit
+                                  </dt>
+                                  <dd className="mt-0.5 text-sm font-medium text-slate-900">
+                                    {catalogUnitLabel(item.unit)}
+                                  </dd>
                                 </div>
                                 <div>
-                                  <dt className="text-white/50">Quantity source</dt>
-                                  <dd className="text-white/85">
+                                  <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                                    Quantity source
+                                  </dt>
+                                  <dd className="mt-0.5 text-sm font-medium text-slate-900">
                                     {quantitySourceLabel(item.quantity_source)}
                                   </dd>
                                 </div>
                                 <div className="sm:col-span-2">
-                                  <dt className="text-white/50">Seed key</dt>
-                                  <dd className="font-mono text-white/80">
+                                  <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                                    Seed key
+                                  </dt>
+                                  <dd className="mt-0.5 font-mono text-sm text-slate-800">
                                     {seedKey ?? "Custom"}
                                   </dd>
                                 </div>
                               </dl>
 
                               {editError && (
-                                <div className="mb-3 rounded border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+                                <div className="mb-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
                                   {editError}
                                 </div>
                               )}
 
-                              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                 <label className="block text-sm sm:col-span-2">
-                                  <span className="mb-1 block text-white/80">
+                                  <span className="mb-1.5 block text-xs font-medium text-slate-700">
                                     Customer-facing name
                                   </span>
                                   <input
                                     type="text"
-                                    className="w-full rounded bg-white/10 p-2 text-sm"
+                                    className={FIELD_INPUT}
                                     value={editDraft.customer_name}
                                     onChange={(e) =>
                                       handleDraftChange("customer_name", e.target.value)
@@ -609,10 +652,12 @@ export default function CatalogAdminClient({ companyId }: { companyId: string })
                                   />
                                 </label>
                                 <label className="block text-sm sm:col-span-2">
-                                  <span className="mb-1 block text-white/80">Description</span>
+                                  <span className="mb-1.5 block text-xs font-medium text-slate-700">
+                                    Description
+                                  </span>
                                   <textarea
                                     rows={2}
-                                    className="w-full resize-y rounded bg-white/10 p-2 text-sm"
+                                    className={`${FIELD_INPUT} resize-y`}
                                     value={editDraft.description}
                                     onChange={(e) =>
                                       handleDraftChange("description", e.target.value)
@@ -621,49 +666,53 @@ export default function CatalogAdminClient({ companyId }: { companyId: string })
                                   />
                                 </label>
                                 <label className="block text-sm">
-                                  <span className="mb-1 block text-white/80">Unit price</span>
+                                  <span className="mb-1.5 block text-xs font-medium text-slate-700">
+                                    Unit price
+                                  </span>
                                   <input
                                     type="text"
                                     inputMode="decimal"
                                     placeholder="25.00"
-                                    className="w-full rounded bg-white/10 p-2 text-sm tabular-nums"
+                                    className={`${FIELD_INPUT} tabular-nums`}
                                     value={editDraft.unit_price_dollars}
                                     onChange={(e) =>
                                       handleDraftChange("unit_price_dollars", e.target.value)
                                     }
                                     disabled={isSaving}
                                   />
-                                  <span className="mt-1 block text-xs text-white/45">
+                                  <span className="mt-1 block text-xs text-slate-500">
                                     Leave blank for Unpriced
                                   </span>
                                 </label>
                                 <label className="block text-sm">
-                                  <span className="mb-1 block text-white/80">Unit cost</span>
+                                  <span className="mb-1.5 block text-xs font-medium text-slate-700">
+                                    Unit cost
+                                  </span>
                                   <input
                                     type="text"
                                     inputMode="decimal"
                                     placeholder="10.50"
-                                    className="w-full rounded bg-white/10 p-2 text-sm tabular-nums"
+                                    className={`${FIELD_INPUT} tabular-nums`}
                                     value={editDraft.unit_cost_dollars}
                                     onChange={(e) =>
                                       handleDraftChange("unit_cost_dollars", e.target.value)
                                     }
                                     disabled={isSaving}
                                   />
-                                  <span className="mt-1 block text-xs text-white/45">
+                                  <span className="mt-1 block text-xs text-slate-500">
                                     Leave blank for Unpriced
                                   </span>
                                 </label>
                                 {item.item_type === "labor" && (
                                   <label className="block text-sm sm:col-span-2">
-                                    <span className="mb-1 block text-white/80">
+                                    <span className="mb-1.5 block text-xs font-medium text-slate-700">
                                       Labor unit cost
                                     </span>
                                     <input
                                       type="text"
                                       inputMode="decimal"
                                       placeholder="Optional"
-                                      className="w-full max-w-xs rounded bg-white/10 p-2 text-sm tabular-nums"
+                                      className={`${FIELD_INPUT} max-w-xs tabular-nums`}
                                       value={editDraft.labor_unit_cost_dollars}
                                       onChange={(e) =>
                                         handleDraftChange(
@@ -676,9 +725,11 @@ export default function CatalogAdminClient({ companyId }: { companyId: string })
                                   </label>
                                 )}
                                 <label className="block text-sm">
-                                  <span className="mb-1 block text-white/80">Pricing basis</span>
+                                  <span className="mb-1.5 block text-xs font-medium text-slate-700">
+                                    Pricing basis
+                                  </span>
                                   <select
-                                    className="w-full rounded bg-white/10 p-2 text-sm"
+                                    className={FIELD_INPUT}
                                     value={editDraft.pricing_basis}
                                     onChange={(e) =>
                                       handleDraftChange(
@@ -696,11 +747,11 @@ export default function CatalogAdminClient({ companyId }: { companyId: string })
                                   </select>
                                 </label>
                                 <label className="block text-sm">
-                                  <span className="mb-1 block text-white/80">
+                                  <span className="mb-1.5 block text-xs font-medium text-slate-700">
                                     Customer visibility
                                   </span>
                                   <select
-                                    className="w-full rounded bg-white/10 p-2 text-sm"
+                                    className={FIELD_INPUT}
                                     value={editDraft.customer_visibility}
                                     onChange={(e) =>
                                       handleDraftChange(
@@ -718,12 +769,14 @@ export default function CatalogAdminClient({ companyId }: { companyId: string })
                                   </select>
                                 </label>
                                 <label className="block text-sm">
-                                  <span className="mb-1 block text-white/80">Sort order</span>
+                                  <span className="mb-1.5 block text-xs font-medium text-slate-700">
+                                    Sort order
+                                  </span>
                                   <input
                                     type="text"
                                     inputMode="numeric"
                                     placeholder="Optional"
-                                    className="w-full max-w-[8rem] rounded bg-white/10 p-2 text-sm tabular-nums"
+                                    className={`${FIELD_INPUT} max-w-[8rem] tabular-nums`}
                                     value={editDraft.sort_order}
                                     onChange={(e) =>
                                       handleDraftChange("sort_order", e.target.value)
@@ -733,12 +786,12 @@ export default function CatalogAdminClient({ companyId }: { companyId: string })
                                 </label>
                               </div>
 
-                              <div className="mt-4 flex flex-wrap gap-2 border-t border-white/10 pt-4">
+                              <div className="mt-5 flex flex-wrap gap-3 border-t border-slate-200 pt-5">
                                 <button
                                   type="button"
                                   onClick={() => void handleSaveItem(item)}
                                   disabled={isSaving}
-                                  className="rounded bg-cyan-500 px-4 py-2 text-sm font-semibold hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-50"
+                                  className="rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
                                 >
                                   {isSaving ? "Saving…" : "Save item"}
                                 </button>
@@ -746,7 +799,7 @@ export default function CatalogAdminClient({ companyId }: { companyId: string })
                                   type="button"
                                   onClick={closeEditor}
                                   disabled={isSaving}
-                                  className="rounded border border-white/20 bg-white/5 px-4 py-2 text-sm text-white/80 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                                  className="rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
                                 >
                                   Cancel
                                 </button>
@@ -765,21 +818,30 @@ export default function CatalogAdminClient({ companyId }: { companyId: string })
       </div>
 
       {installResult && (
-        <div className="rounded-lg border border-white/10 bg-white/5 p-4 text-sm">
-          <h2 className="mb-2 font-medium">Last install result</h2>
-          <ul className="space-y-1 text-white/80">
+        <div className={`${CARD} text-sm`}>
+          <h2 className="mb-2 text-sm font-semibold text-slate-900">Last install result</h2>
+          <ul className="space-y-1 text-slate-700">
             <li>
-              Created: <span className="tabular-nums font-medium">{installResult.createdCount}</span>
+              Created:{" "}
+              <span className="font-semibold tabular-nums text-slate-900">
+                {installResult.createdCount}
+              </span>
             </li>
             <li>
-              Skipped: <span className="tabular-nums font-medium">{installResult.skippedCount}</span>
+              Skipped:{" "}
+              <span className="font-semibold tabular-nums text-slate-900">
+                {installResult.skippedCount}
+              </span>
             </li>
             <li>
-              Failed: <span className="tabular-nums font-medium">{installResult.failedCount}</span>
+              Failed:{" "}
+              <span className="font-semibold tabular-nums text-slate-900">
+                {installResult.failedCount}
+              </span>
             </li>
           </ul>
           {installResult.errors && installResult.errors.length > 0 && (
-            <ul className="mt-2 list-disc pl-5 text-xs text-red-300">
+            <ul className="mt-2 list-disc pl-5 text-xs text-red-700">
               {installResult.errors.map((err) => (
                 <li key={err}>{err}</li>
               ))}
@@ -787,6 +849,6 @@ export default function CatalogAdminClient({ companyId }: { companyId: string })
           )}
         </div>
       )}
-    </>
+    </div>
   );
 }
