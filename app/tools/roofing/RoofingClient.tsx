@@ -111,6 +111,15 @@ import {
   formatProposalMissingDisplay,
   resolveProposalHandoffNextAction,
 } from "@/app/lib/measurementProposalHandoff";
+import { getActiveCatalogItemsByCompany } from "@/app/lib/catalogStore";
+import type { CatalogItem } from "@/app/lib/catalogTypes";
+import {
+  deriveCatalogReadiness,
+  formatCatalogReadinessLabel,
+  formatCatalogNextStepCopy,
+  formatStarterCatalogAvailability,
+} from "@/app/lib/catalogReadiness";
+import { DEFAULT_ROOFING_CATALOG_DEFINITIONS } from "@/app/lib/defaultRoofingCatalog";
 import type { JobDraft, JobAddress, JobRecord } from "@/app/lib/jobTypes";
 import { sendEstimateEmailWithPdf } from "@/app/lib/sendEstimateClient";
 import { getFavorite, setFavorite, setLocked, appendFeedback, getTierFeedbackBias, type TierLabel } from "@/app/lib/aiWordingPrefs";
@@ -984,6 +993,9 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
   const [persistedSelectedMeasurement, setPersistedSelectedMeasurement] =
     useState<MeasurementRecord | null>(null);
   const measurementFetchInFlightRef = useRef<string | null>(null);
+  const [activeCatalogItems, setActiveCatalogItems] = useState<CatalogItem[]>([]);
+  const [catalogLoadError, setCatalogLoadError] = useState<string | null>(null);
+  const catalogFetchInFlightRef = useRef<string | null>(null);
   const [isSavingMeasurement, setIsSavingMeasurement] = useState(false);
   const [measurementSaveError, setMeasurementSaveError] = useState<string | null>(null);
   const measurementSaveInFlightRef = useRef<string | null>(null);
@@ -1547,6 +1559,46 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
       }
     })();
   }, [entryMode, currentJobId, companyId, loadSavedId, restoreTick]);
+
+  useEffect(() => {
+    if (entryMode !== "job-card") {
+      setActiveCatalogItems([]);
+      setCatalogLoadError(null);
+      catalogFetchInFlightRef.current = null;
+      return;
+    }
+
+    const cid = (companyId ?? "").trim();
+    if (!cid || !isUuidLike(cid)) {
+      setActiveCatalogItems([]);
+      setCatalogLoadError(null);
+      catalogFetchInFlightRef.current = null;
+      return;
+    }
+
+    if (isRestoringRef.current) return;
+    if (loadSavedId && !loadAppliedRef.current) return;
+
+    catalogFetchInFlightRef.current = cid;
+
+    void (async () => {
+      try {
+        const items = await getActiveCatalogItemsByCompany(cid);
+        if (catalogFetchInFlightRef.current !== cid) return;
+        setActiveCatalogItems(items);
+        setCatalogLoadError(null);
+      } catch (err) {
+        console.warn("[RoofingClient] catalog fetch error:", err);
+        if (catalogFetchInFlightRef.current !== cid) return;
+        setActiveCatalogItems([]);
+        setCatalogLoadError("Could not load catalog");
+      } finally {
+        if (catalogFetchInFlightRef.current === cid) {
+          catalogFetchInFlightRef.current = null;
+        }
+      }
+    })();
+  }, [entryMode, companyId, loadSavedId, restoreTick]);
 
   useEffect(() => {
     if (entryMode !== "job-card") return;
@@ -6726,6 +6778,14 @@ Thanks,`;
       workspace,
       persistedRecord: persistedSelectedMeasurement,
     });
+    const catalogReadiness = deriveCatalogReadiness(
+      activeCatalogItems,
+      DEFAULT_ROOFING_CATALOG_DEFINITIONS.length
+    );
+    const catalogReadinessLabel = formatCatalogReadinessLabel(catalogReadiness);
+    const catalogNextStep = formatCatalogNextStepCopy(catalogReadiness);
+    const catalogStarterDisplay = formatStarterCatalogAvailability(catalogReadiness);
+    const catalogStatusDisplay = catalogLoadError ?? catalogReadinessLabel;
 
     const reportMeasurementRows: { label: string; value: string; muted?: boolean }[] = [
       {
@@ -7505,6 +7565,39 @@ Thanks,`;
                       <StatusLine label="Proposal document" value="No proposal yet" muted />
                     </div>
                   </div>
+                  <div className={wsBlock}>
+                    <WorkspaceHeading>Catalog / Price Book</WorkspaceHeading>
+                    <div className="mt-2 grid grid-cols-1 gap-0.5 sm:grid-cols-2">
+                      <StatusLine
+                        label="Catalog status"
+                        value={catalogStatusDisplay}
+                        muted={Boolean(catalogLoadError) || catalogReadiness.state !== "ready_for_templates"}
+                      />
+                      <StatusLine
+                        label="Active catalog items"
+                        value={catalogReadiness.activeItemCount}
+                        muted={catalogReadiness.activeItemCount === 0}
+                      />
+                      <StatusLine
+                        label="Measurement-mapped items"
+                        value={catalogReadiness.measurementMappedItemCount}
+                        muted={catalogReadiness.measurementMappedItemCount === 0}
+                      />
+                      <StatusLine label="Starter catalog" value={catalogStarterDisplay} muted={catalogReadiness.activeItemCount > 0} />
+                      <StatusLine
+                        label="Priced items"
+                        value={catalogReadiness.pricedItemCount}
+                        muted={catalogReadiness.pricedItemCount === 0}
+                      />
+                      <StatusLine label="Next step" value={catalogNextStep} muted={catalogReadiness.state === "ready_for_templates"} />
+                      <StatusLine label="Template" value="Not selected" muted />
+                      <StatusLine
+                        label="Proposal Builder"
+                        value="Disabled until catalog and template are ready"
+                        muted
+                      />
+                    </div>
+                  </div>
                   <div>
                     <WorkspaceHeading>Create proposal path</WorkspaceHeading>
                     <div className="mt-2">
@@ -7875,6 +7968,11 @@ Thanks,`;
                       label: "Proposal input",
                       ready: proposalHandoff.proposalReady,
                       statusText: proposalReadinessDisplay,
+                    },
+                    {
+                      label: "Catalog / Price Book",
+                      ready: catalogReadiness.state === "ready_for_templates",
+                      statusText: catalogReadinessLabel,
                     },
                     { label: "Photos / attachments", ready: false },
                     { label: "Estimate not started", ready: false },
