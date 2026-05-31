@@ -8,6 +8,11 @@ import {
   formatStarterCatalogAvailability,
 } from "@/app/lib/catalogReadiness";
 import type { CatalogItem } from "@/app/lib/catalogTypes";
+import {
+  catalogItemTypeLabel,
+  catalogUnitLabel,
+  quantitySourceLabel,
+} from "@/app/lib/catalogTypes";
 import { getActiveCatalogItemsByCompany } from "@/app/lib/catalogStore";
 import { DEFAULT_ROOFING_CATALOG_DEFINITIONS } from "@/app/lib/defaultRoofingCatalog";
 import {
@@ -38,6 +43,20 @@ function hasAllStarterSeedKeys(items: CatalogItem[]): boolean {
     if (key) existing.add(key);
   }
   return STARTER_SEED_KEYS.every((key) => existing.has(key));
+}
+
+function formatCents(value: number | null | undefined): string {
+  if (value == null || !Number.isFinite(value)) return "Unpriced";
+  return `$${(value / 100).toFixed(2)}`;
+}
+
+function compareCatalogItemsForDisplay(a: CatalogItem, b: CatalogItem): number {
+  const orderA = a.sort_order;
+  const orderB = b.sort_order;
+  if (orderA != null && orderB != null && orderA !== orderB) return orderA - orderB;
+  if (orderA != null && orderB == null) return -1;
+  if (orderA == null && orderB != null) return 1;
+  return a.name.localeCompare(b.name);
 }
 
 export default function CatalogAdminClient({ companyId }: { companyId: string }) {
@@ -89,6 +108,11 @@ export default function CatalogAdminClient({ companyId }: { companyId: string })
   const catalogStatusLabel = formatCatalogReadinessLabel(readiness);
   const starterDisplay = formatStarterCatalogAvailability(readiness);
   const starterInstalled = hasAllStarterSeedKeys(items);
+
+  const sortedItems = useMemo(
+    () => [...items].sort(compareCatalogItemsForDisplay),
+    [items]
+  );
 
   async function handleInstallStarter() {
     if (loading || installing) return;
@@ -229,6 +253,73 @@ export default function CatalogAdminClient({ companyId }: { companyId: string })
             All {STARTER_DEFINITION_COUNT} starter seed keys are present. Use Recheck to
             install any missing items without duplicating existing rows.
           </p>
+        )}
+      </div>
+
+      <div className="mb-6 rounded-lg bg-white/5 p-4">
+        <h2 className="mb-2 font-medium">Installed catalog items</h2>
+        <p className="mb-3 text-xs text-white/60">
+          Review the active company catalog rows installed for proposal setup. Pricing/editing
+          comes next.
+        </p>
+        {loading ? (
+          <p className="text-sm text-white/60">Loading catalog items…</p>
+        ) : sortedItems.length === 0 ? (
+          <p className="text-sm text-white/60">
+            No active catalog items found. Install the starter roofing catalog to begin.
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[56rem] text-sm">
+              <thead>
+                <tr className="border-b border-white/10 text-left">
+                  <th className="py-2 pr-2">Name</th>
+                  <th className="py-2 pr-2">Customer name</th>
+                  <th className="py-2 pr-2">Type</th>
+                  <th className="py-2 pr-2">Unit</th>
+                  <th className="py-2 pr-2">Quantity source</th>
+                  <th className="py-2 pr-2">Unit price</th>
+                  <th className="py-2 pr-2">Unit cost</th>
+                  <th className="py-2 pr-2">Active</th>
+                  <th className="py-2 pr-2">Seed key</th>
+                  <th className="py-2">Sort</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sortedItems.map((item) => {
+                  const seedKey = extractSeedKey(item.metadata ?? null);
+                  return (
+                    <tr key={item.id} className="border-b border-white/5">
+                      <td className="py-2 pr-2 font-medium text-white/90">{item.name}</td>
+                      <td className="py-2 pr-2 text-white/80">
+                        {item.customer_name?.trim() || "—"}
+                      </td>
+                      <td className="py-2 pr-2 text-white/80">
+                        {catalogItemTypeLabel(item.item_type)}
+                      </td>
+                      <td className="py-2 pr-2 text-white/80">{catalogUnitLabel(item.unit)}</td>
+                      <td className="py-2 pr-2 text-white/80">
+                        {quantitySourceLabel(item.quantity_source)}
+                      </td>
+                      <td className="py-2 pr-2 tabular-nums text-white/80">
+                        {formatCents(item.unit_price_cents)}
+                      </td>
+                      <td className="py-2 pr-2 tabular-nums text-white/80">
+                        {formatCents(item.unit_cost_cents)}
+                      </td>
+                      <td className="py-2 pr-2 text-white/80">{item.active ? "Yes" : "No"}</td>
+                      <td className="py-2 pr-2 font-mono text-xs text-white/70">
+                        {seedKey ?? "—"}
+                      </td>
+                      <td className="py-2 tabular-nums text-white/80">
+                        {item.sort_order != null ? item.sort_order : "—"}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
