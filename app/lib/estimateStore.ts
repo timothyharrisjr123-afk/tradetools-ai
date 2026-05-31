@@ -64,6 +64,13 @@ export interface RoofingEstimate {
   lastFollowUpAt?: string;
   followUpCount?: number;
   supabaseBacked?: boolean;
+  /** Measurement context fields — persisted for restore; do not use for pricing math directly. */
+  pitch?: string;
+  stories?: string;
+  complexity?: string;
+  guidedStories?: string;
+  guidedWalkable?: string;
+  debrisTons?: number;
 }
 
 /** Supabase estimates row (optional snapshot for full app state). */

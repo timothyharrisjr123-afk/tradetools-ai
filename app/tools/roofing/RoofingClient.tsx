@@ -884,6 +884,21 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
     if ((normalized as any).removalType != null) {
       setRemovalType((normalized as any).removalType as DebrisRemovalType);
     }
+    if (s?.pitch === "walkable" || s?.pitch === "moderate" || s?.pitch === "steep") {
+      setPitch(s.pitch as PitchKey);
+    }
+    if (s?.stories === "1" || s?.stories === "2" || s?.stories === "3") {
+      setStories(s.stories as StoriesKey);
+    }
+    if (s?.complexity === "simple" || s?.complexity === "moderate" || s?.complexity === "complex") {
+      setComplexity(s.complexity as ComplexityKey);
+    }
+    if (s?.guidedStories === "one" || s?.guidedStories === "two" || s?.guidedStories === "threePlus") {
+      setGuidedStories(s.guidedStories as GuidedStories);
+    }
+    if (s?.guidedWalkable === "walkable" || s?.guidedWalkable === "steep") {
+      setGuidedWalkable(s.guidedWalkable as GuidedWalkable);
+    }
 
     setCurrentLoadedSavedId(loadSavedId);
 
@@ -2760,6 +2775,12 @@ Thanks,`;
       dumpFeePerTon: includeDebrisRemoval ? parseFloat(dumpFeePerTon) || undefined : undefined,
       tearOffEnabled: includeDebrisRemoval,
       removalType,
+      pitch,
+      stories,
+      complexity,
+      guidedStories,
+      guidedWalkable,
+      debrisTons,
     };
 
     const activeId = loadSavedId ?? null;
@@ -3441,8 +3462,14 @@ Thanks,`;
       dumpFeePerTon: includeDebrisRemoval ? parseFloat(dumpFeePerTon) || undefined : undefined,
       tearOffEnabled: includeDebrisRemoval,
       removalType,
+      pitch,
+      stories,
+      complexity,
+      guidedStories,
+      guidedWalkable,
+      debrisTons,
     } as any);
-  }, [hasValidEstimateSnapshot, customerName, customerEmail, customerPhone, jobAddress1, jobCity, jobState, jobZip, roofingTier, area, finalPrice, waste, bundlesPerSquare, bundleCost, laborMode, guidedLaborBasePerSquare, impliedLaborPerSquare, margin, pricingMode, laborCostEffective, includeDebrisRemoval, removalType, dumpFeePerTon]);
+  }, [hasValidEstimateSnapshot, customerName, customerEmail, customerPhone, jobAddress1, jobCity, jobState, jobZip, roofingTier, area, finalPrice, waste, bundlesPerSquare, bundleCost, laborMode, guidedLaborBasePerSquare, impliedLaborPerSquare, margin, pricingMode, laborCostEffective, includeDebrisRemoval, removalType, dumpFeePerTon, pitch, stories, complexity, guidedStories, guidedWalkable, debrisTons]);
 
   const saveEstimate = useCallback(() => {
     if (isLocked) {
