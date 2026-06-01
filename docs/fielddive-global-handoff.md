@@ -9,7 +9,7 @@
 - `docs/fielddive-estimate-proposal-flow-model.md` — estimate/proposal UX model notes
 - `docs/fielddive-feature-placement-map.md` — feature placement matrix
 
-**Last updated checkpoint:** `07b3c1d` — Add default roofing proposal template install helper (3G1–3G5 complete; no template UI wiring yet).
+**Last updated checkpoint:** `22e465d` — Update FieldDive handoff after proposal template foundation (3G1–3G5 complete; **next: 3G6**; no template UI wiring yet).
 
 ---
 
@@ -326,67 +326,13 @@ Catalog stages through **3F7B** and shell alignment (`01e2d9e`) are complete. Se
 
 ---
 
-## 8. CURRENT NEXT — PROPOSALS / TEMPLATES SETUP UI (3G6 PLANNING)
+## 8. CURRENT NEXT (SUMMARY)
 
-**Recommended next stage:** **3G6 — Proposals/Templates setup UI + readiness/install surface** (planning first; **not** Proposal Builder).
+**Recommended next stage:** **3G6 — Proposals/Templates setup UI + readiness/install surface** (Roofr research first; **not** Proposal Builder).
 
-**Do not implement 3G6 without Roofr-based product/visual research first.**
+**Full ordered roadmap, drift list, and per-stage scope:** see **§11 — Forward Roadmap / No-Drift Next Steps**.
 
-Likely 3G6 scope (after research):
-
-- **Proposals → Templates** route/nav in `FieldDiveAppShell` (Roofr-aligned; not hidden admin)
-- Template setup / install surface (call `installDefaultRoofingProposalTemplates`, show result counts / `missingCatalogSeedKeys`)
-- Proposal template **readiness** helper (derive from catalog + template graph — not Proposal Builder)
-- Install / recheck UI (idempotent, insert-only messaging)
-- **Missing catalog setup** guidance when catalog seeds are absent (link to `/tools/roofing/catalog`)
-- **No Proposal Builder** in 3G6
-
-**Do not code in a new chat until repo truth is confirmed and 3G6 is explicitly scoped.**
-
-| Option | Stage | What it is |
-|--------|-------|------------|
-| **Next** | **3G6** | Proposals/Templates nav + template setup UI + readiness + install/recheck — **plan with Roofr research first** |
-| **Later** | 3F6C | Job Card catalog CTA — link to catalog setup; **no** install on Job Card |
-| **Later** | 3G6+ / 3G7 | Job Card template readiness link (display only); inactive catalog warnings |
-| **Later** | **3H** | Proposal Builder — `proposalTypes.ts`, proposal records, snapshots, quantity resolver |
-| **Later** | Pricing bridge | Deterministic `catalog_items` → estimator; **after** Builder path is clear |
-
-### Guidance (architecture-first)
-
-- **Do not start Proposal Builder (3H) yet.**
-- **Do not wire catalog into estimator pricing `useMemo` yet.**
-- **Do not enable Create Proposal on Job Card yet.**
-- **Do not touch** send/PDF/approval/payment/status.
-- **Do not migrate `service_items` → `catalog_items`** unless explicitly planned and scoped.
-- **Do not auto-install** catalog or templates from Job Card load.
-- **Do not overwrite** user-modified template rows — install stays insert-only.
-- **Catalog install before template install** — template items need catalog `metadata.seed_key` resolution.
-
-### Future / Later bucket
-
-- **3G6** — Proposals/Templates route/nav
-- **3G6** — Template setup UI
-- **3G6** — Default template install/recheck UI
-- **3G6** — Proposal template readiness helper
-- **3G6** — Missing catalog setup guidance
-- **3G6** — Inactive catalog item warnings
-- **3H** — Proposal Builder
-- **`proposalTypes.ts`** — job proposal records
-- Proposal records and line-item snapshots
-- Quantity resolver (measurement → template rule → catalog)
-- Deterministic pricing bridge
-- Signed proposal output
-- PDF / send / approval / payment integration (protected paths today)
-- Signatures / co-signers
-- Financing blocks
-- Warranty / legal content management
-- New catalog upgrade SKUs (premium shingle, extended warranty line items)
-- Material orders
-- Work orders
-- Invoices
-- Supplier / material integrations
-- Template versioning / publish workflow
-- Job Card CTA / readiness link to template setup (not editor)
+**Do not code in a new chat until repo truth is confirmed** (`git status`, `git log`, this doc) and the stage is explicitly scoped.
 
 ---
 
@@ -396,14 +342,15 @@ Future GPT must have Cursor run **before** planning or coding:
 
 ```bash
 git status --short
-git log --oneline -12
+git log --oneline -15
 ```
 
 Then open and read:
 
 - `docs/fielddive-global-handoff.md` (this file)
+- **§11 — Forward Roadmap / No-Drift Next Steps** (ordered stages; what is done vs next)
 
-**Verify HEAD** is `07b3c1d` (Add default roofing proposal template install helper) or identify newer commits and reconcile this doc.
+**Verify HEAD** is `22e465d` (Update FieldDive handoff after proposal template foundation) or identify newer commits and reconcile this doc.
 
 **Confirm** working tree is clean.
 
@@ -468,6 +415,296 @@ Confirm: proposal buttons still disabled on Job Card; `installDefaultRoofingCata
 | `/admin/price-book` | Legacy **service_items** only |
 | `/admin/customers` | Customers CRUD |
 | `/tools/roofing/saved` | Command Center (SavedClient) |
+| `/tools/roofing/templates` (planned 3G6) | **proposal_template_*** setup — install/recheck, readiness (not built) |
+
+---
+
+## 11. FORWARD ROADMAP / NO-DRIFT NEXT STEPS
+
+Use this section as the **ordered checklist** for future GPT/Cursor sessions. Knock items off top-to-bottom within each band; do not skip layers. Stages marked **DONE** reflect repo commits through `22e465d` unless a later commit supersedes.
+
+### Current checkpoint
+
+**Latest code checkpoint:** `07b3c1d` — default roofing proposal template install helper.  
+**Latest handoff doc checkpoint:** `22e465d` — handoff updated after 3G1–3G5.
+
+**Completed working state (summary):**
+
+| Area | Status |
+|------|--------|
+| **3E** Measurement Records / Job Card measurement truth | **DONE** |
+| **3F** Catalog foundation + install + FieldDive catalog route | **DONE** through shell alignment (`01e2d9e`) |
+| **3F7A** Read-only installed catalog list | **DONE** (`6b37370`) — in `CatalogAdminClient` |
+| **3F7B** Catalog item pricing/config editor | **DONE** (`81a70e3`) — `updateCatalogItem` for scoped fields |
+| **Canonical catalog route** | **`/tools/roofing/catalog`** (FieldDive shell); `/admin/catalog` → redirect |
+| **Starter catalog** | 13 passive defs; `installDefaultRoofingCatalog` insert-only, seed dedupe |
+| **Typical dev install** | 13 active rows, 13 seeded, often **13 unpriced** until contractor sets prices |
+| **Recheck** | Idempotent: created 0 / skipped 13 on re-run when fully installed |
+| **Legacy price book** | `/admin/price-book` → `service_items` unchanged |
+| **3G1–3G5** Proposal template types, **live** 4-table schema, store, default defs, install helper | **DONE** — **not wired to UI** |
+| **Job Card** | Proposal buttons **disabled**; passive catalog + measurement readiness |
+| **Protected** | Pricing, payments, approval, status, saved estimates, send/PDF **untouched** |
+
+**SQL note:** Catalog/template table verification was done in Supabase during 3F/3G stages; do not re-run schema changes from roadmap work unless a stage explicitly scopes a new migration.
+
+### Core no-drift architecture
+
+FieldDive follows a **Roofr-style** path — not a random estimator rebuild:
+
+```
+Job Card
+  → Measurement Records
+  → Catalog / Price Book
+  → Proposal Templates
+  → Proposal Builder
+  → Proposal Output (customer-facing)
+  → Approval / Payment / Status (protected legacy today)
+  → Material Orders / Work Orders / Invoices / Job Costing (later)
+```
+
+**Do not skip layers.** Do not jump from Measurement to Proposal Builder without Catalog + Templates. Do not wire Catalog into legacy pricing `useMemo` until catalog/template/proposal architecture and Builder preview are ready. Do not use Manual Estimate as the active path. Do not use `service_items` as catalog truth without an explicit migration plan.
+
+### Required first step in any new chat
+
+Before any code:
+
+```bash
+git status --short
+git log --oneline -15
+```
+
+Open `docs/fielddive-global-handoff.md` and **§11** (this section). Confirm HEAD vs doc checkpoint. **No implementation** until repo truth matches.
+
+**Inspect (minimum):**
+
+| File | Why |
+|------|-----|
+| `docs/fielddive-global-handoff.md` | This handoff + roadmap |
+| `app/tools/roofing/catalog/page.tsx` | Canonical catalog route |
+| `app/tools/roofing/catalog/CatalogAppPage.tsx` | FieldDive shell wrapper |
+| `app/admin/catalog/page.tsx` | Redirect to `/tools/roofing/catalog` |
+| `app/admin/catalog/CatalogAdminClient.tsx` | Catalog install/recheck, list, 3F7B editor |
+| `app/tools/roofing/FieldDiveAppShell.tsx` | Sidebar nav (`activeNav`) |
+| `app/admin/AdminNavLinks.tsx` | Admin nav (if touching admin) |
+| `app/admin/price-book/PriceBookAdminClient.tsx` | Legacy `service_items` — do not conflate |
+| `app/admin/customers/CustomersAdminClient.tsx` | Admin context only |
+| `app/lib/catalogTypes.ts` | Catalog contracts |
+| `app/lib/catalogStore.ts` | Catalog DB I/O |
+| `app/lib/defaultRoofingCatalog.ts` | 13 starter defs |
+| `app/lib/defaultRoofingCatalogInstall.ts` | Catalog install helper |
+| `app/lib/catalogReadiness.ts` | Catalog readiness |
+| `app/lib/proposalTemplateTypes.ts` | Template contracts |
+| `app/lib/proposalTemplateStore.ts` | Template DB I/O |
+| `app/lib/defaultRoofingProposalTemplates.ts` | Passive roof replacement template |
+| `app/lib/defaultRoofingProposalTemplateInstall.ts` | Template install helper |
+| `app/lib/measurementProposalHandoff.ts` | Measurement → proposal input (passive) |
+| `app/tools/roofing/RoofingClient.tsx` | Job Card — catalog/proposal readiness **only** (not full file drive-by) |
+
+Confirm: proposal buttons disabled; `installDefaultRoofingCatalog` only from catalog setup route; `installDefaultRoofingProposalTemplates` **not imported** by app yet.
+
+---
+
+### Stage 0 — Commit global handoff doc — **DONE**
+
+- `4b5016e` — Add FieldDive global handoff doc
+- Ongoing updates (e.g. `22e465d`) — keep doc aligned with HEAD after each major stage
+
+**Purpose:** Repo-local no-drift source; do not rely on chat memory alone.
+
+---
+
+### Stage 3F6C — Catalog setup cohesion / Job Card guidance — **NOT DONE**
+
+**Goal:** Job Card guides users to company catalog setup without becoming an admin screen.
+
+**Rules:**
+
+- No hidden auto-install on Job Card load
+- Do not call `installDefaultRoofingCatalog` from Job Card unless explicitly scoped later
+- Proposal buttons stay disabled
+
+**Likely scope:**
+
+- Show real installed state: active items, starter installed, priced count, next step (configure prices / templates)
+- Passive CTA: **Open Catalog setup** → `/tools/roofing/catalog` (not legacy `/admin/catalog` as primary)
+
+**Likely files:** `app/tools/roofing/RoofingClient.tsx`, possibly `app/lib/catalogReadiness.ts`
+
+**Do not touch:** pricing `useMemo`, `saveEstimate`, send/PDF, approval, payment, status, SavedClient, `estimateStore`, `service_items`, `PriceBookAdminClient`
+
+**Suggested commit:** `Refine Job Card catalog setup guidance`
+
+---
+
+### Stage 3F7 — Real Catalog Admin / Edit Surface — **DONE (3F7A + 3F7B)**
+
+Catalog setup lives at **`/tools/roofing/catalog`** inside FieldDive shell (`01e2d9e`). Contractor can install starter catalog, view rows, and edit scoped pricing fields.
+
+| Sub-stage | Status | Commit / notes |
+|-----------|--------|----------------|
+| **3F7A** Read-only installed list | **DONE** | `6b37370` — table in `CatalogAdminClient` |
+| **3F7B** Inline price/config edit | **DONE** | `81a70e3` — `updateCatalogItem`; no pricing bridge |
+| **3F7C** Catalog readiness refinements | **PARTIAL** | `catalogReadiness.ts` + Job Card display; may need polish for “needs pricing” messaging |
+
+**Deferred in 3F7B:** `active` toggle, structural edits (`quantity_source`, `unit`, `item_type`), create/delete, `metadata`/seed_key edits.
+
+**Suggested commit if finishing 3F7C:** `Refine catalog pricing readiness`
+
+---
+
+### Stage 3G — Proposal Template Foundation — **DONE (3G1–3G5)**
+
+**Why after catalog:** Templates package catalog-backed line items; Builder comes after templates.
+
+| Sub-stage | Status | Commit | Deliverable |
+|-----------|--------|--------|-------------|
+| **3G1** Type foundation | **DONE** | `d1a205b` | `proposalTemplateTypes.ts` — template/option/section/item, quantity rules, default-def shapes |
+| **3G2** Tables migration | **DONE** | `c825942` | Four tables: `proposal_templates`, `proposal_template_options`, `proposal_template_sections`, `proposal_template_items`; RLS; live in Supabase |
+| **3G3** Store | **DONE** | `03d9793` | `proposalTemplateStore.ts` — CRUD + graph; not app-wired |
+| **3G4** Default definitions | **DONE** | `201ada1` | `defaultRoofingProposalTemplates.ts` — Roof replacement; Standard/Enhanced/Premium |
+| **3G5** Install helper | **DONE** | `07b3c1d` | `defaultRoofingProposalTemplateInstall.ts` — insert-only, seed dedupe, catalog seed resolution |
+| **3G6** Template setup UI | **NEXT** | — | See below |
+
+**Architecture boundary (hold):**
+
+- **CatalogItem** = reusable line + quantity driver
+- **ProposalTemplate** = company package (options, sections, items)
+- **Proposal** (job instance + snapshots) = **not built** — `proposalTypes.ts` later in 3H
+
+---
+
+### Stage 3G6 — Proposals / Templates setup UI + readiness — **NEXT**
+
+**Do not implement without Roofr-based product/visual research first.**
+
+**Goal:** Company setup surface for templates (Roofr: Proposals → Templates), not Proposal Builder.
+
+**Likely scope:**
+
+- Route in FieldDive shell (e.g. `/tools/roofing/templates`) — **not** hidden `/admin/templates` only
+- `FieldDiveAppShell` nav: Proposals / Templates
+- Install / recheck UI calling `installDefaultRoofingProposalTemplates`
+- Show created/skipped/failed, `missingCatalogSeedKeys`, link to **`/tools/roofing/catalog`** if catalog seeds missing
+- `proposalTemplateReadiness` helper (catalog priced + template graph present — derivation only)
+- Inactive catalog item warnings (optional)
+- **No** Proposal Builder, **no** proposal records, **no** auto-install from Job Card
+
+**Likely files (new):** template page/client under `app/tools/roofing/templates/` (or agreed path), `FieldDiveAppShell.tsx`, readiness module in `app/lib/`
+
+**Do not touch:** protected pricing/send/approval/payment/status; `proposalTemplateStore` behavior unless read helpers truly missing
+
+**Suggested commits:** `Add proposal templates setup route shell`, `Add default template install UI`, `Add proposal template readiness helper`
+
+---
+
+### Stage 3H — Proposal Builder shell — **LATER**
+
+**Do not start until:** catalog installable + priceable (or readiness clear), templates installable/selectable, measurement handoff stable.
+
+**Goal:** Builder route/shell reads job, selected measurement, catalog, template graph, quantities — **no** send/PDF/approval/payment/status replacement.
+
+**Possible route:** `/tools/roofing/proposal-builder?job=<id>` or Job Card panel (research first).
+
+**Likely new:** `proposalTypes.ts`, proposal record tables (migration when scoped), quantity resolver, line snapshots.
+
+**Suggested commits (examples):** `Add Proposal Builder shell`, `Load proposal builder inputs`, `Resolve template line quantities`, `Add proposal builder readiness checks`
+
+---
+
+### Stage 3I — Deterministic catalog pricing bridge — **LATER**
+
+**After** Builder can resolve template lines. Pure helper (e.g. `proposalPricingEngine.ts`). **AI must not touch pricing truth.**
+
+Run parallel to legacy estimator first; do not overwrite `useMemo` until validated.
+
+**Suggested commits:** `Add proposal pricing engine foundation`, `Add proposal line pricing preview`, `Compare builder totals to legacy estimator`
+
+---
+
+### Stage 3J — Proposal records / output — **LATER**
+
+Persist job proposals separately from legacy estimates (`proposals`, `proposal_lines` or equivalent). Snapshot measurement, template, lines, pricing output, status.
+
+**Suggested commits:** `Add proposal records foundation`, `Persist proposal builder draft`, `Add proposal preview surface`
+
+---
+
+### Stage 3K — PDF / send / approval bridge — **LATER (PROTECTED)**
+
+Connect to existing PDF/send/approval only after 3J stable. Do not break Saved Estimate send flow or approval tokens without a bridge plan.
+
+**Suggested commits:** `Add proposal PDF preview from proposal records`, `Add proposal send draft flow`, `Bridge proposal approval token flow`
+
+---
+
+### Stage 3L — Material orders — **LATER**
+
+After signed proposal (Roofr path): material orders from proposal/catalog lines. Tables TBD (`material_orders`, `material_order_lines`).
+
+---
+
+### Stage 3M — Work orders / scheduling / production / job costing — **LATER**
+
+After proposal workflow stable: work orders, crew scheduling, production checklist, invoices, job costing.
+
+---
+
+### Ongoing protected systems
+
+Do not casually touch:
+
+- Pricing `useMemo` / legacy estimator pricing
+- `saveEstimate` / `estimateStore`
+- Send / PDF (`generateProposalPdfBytes`, `/api/proposal/*`, `/api/estimate/send`)
+- Approval / token logic
+- Stripe / offline payment truth
+- Status / pipeline (`SavedClient`, batch updates)
+- Saved estimates restore
+- `service_items` / `PriceBookAdminClient` behavior
+- `RoofingClient` send/PDF handlers
+
+Any change requires a **separate strict-mode plan**.
+
+---
+
+### What counts as drift
+
+Treat as **drift** if a session:
+
+- Routes users to **Manual Estimate** as the main path
+- Uses **`service_items`** as new catalog truth without migration plan
+- Wires **`catalog_items`** into current pricing `useMemo` too early
+- Enables **Create Proposal** before templates + Builder exist
+- Adds **AI pricing**
+- **Auto-installs** catalog or templates on Job Card load
+- Builds PDF/send/approval bridges **before** proposal records exist
+- **Updates/overwrites** seeded catalog or template rows automatically (install must stay insert-only)
+- Hides missing prices with invented placeholder totals
+- Touches payment/status/approval while doing catalog/template setup
+- Makes **Job Card** the catalog/template **editor** instead of linking to setup routes
+- Skips **Roofr research** before 3G6 UI layout
+
+---
+
+### Recommended immediate next choice
+
+**Best next move:** **3G6 planning → 3G6 implementation** — Proposals/Templates setup UI + readiness + install/recheck in FieldDive shell.
+
+**Why (not re-doing 3F7A/3G1):**
+
+- Catalog list + pricing editor already exist at `/tools/roofing/catalog`
+- Template types, live tables, store, definitions, and install helper exist but have **no UI**
+- Template install requires catalog `metadata.seed_key` rows; UI should guide catalog-first, then template install
+- Job Card should stay passive until Builder is deliberately scoped
+
+**Then (typical order):**
+
+1. **3G6** — Templates route + install/recheck + readiness  
+2. **3F6C** — Job Card links to catalog + template setup (guidance only)  
+3. **3F7C** — Polish catalog “needs pricing” readiness if gaps remain  
+4. **3H** — Proposal Builder (after Roofr research)
+
+**Alternative (structural only):** Skipping 3G6 UI to start 3H is **not** recommended — templates are unusable without setup surface.
 
 ---
 
@@ -477,3 +714,4 @@ Confirm: proposal buttons still disabled on Job Card; `installDefaultRoofingCata
 - **2026-05-31:** Updated after Stage 3F7A (`6b37370`) — read-only installed catalog list in admin; next: 3F7B.
 - **2026-05-31:** Updated after catalog shell alignment (`01e2d9e`) — 3F7B complete, canonical `/tools/roofing/catalog`, next: 3G1.
 - **2026-05-31:** Updated after proposal template foundation (`07b3c1d`) — 3G1–3G5 complete (types, live tables, store, default defs, install helper); next: **3G6 planning** (Templates UI + readiness/install surface; Roofr research first).
+- **2026-05-31:** Added **§11 Forward Roadmap / No-Drift Next Steps** — full stage checklist (3E–3M), drift list, recommended next **3G6**; checkpoint `22e465d`. **Not committed** until reviewed.
