@@ -9,7 +9,7 @@
 - `docs/fielddive-estimate-proposal-flow-model.md` — estimate/proposal UX model notes
 - `docs/fielddive-feature-placement-map.md` — feature placement matrix
 
-**Last updated checkpoint:** **3F9A/B (uncommitted)** — Jobs-first IA and shell alignment. **3F8 complete** at `d422ee6`. **Next: 3F9C** Job Card readiness spine, **then 3G6** Templates setup/readiness/install surface.
+**Last updated checkpoint:** **3F9B2 (uncommitted)** — Roofr-class Jobs Board redesign. **3F9A/B** at `0f0181a`. **Next: 3F9C** Job Card execution spine, **then 3G6**.
 
 ---
 
@@ -679,7 +679,7 @@ Catalog + Templates → company setup surfaces
 Proposal Builder    → launched from Job Card later (3H)
 ```
 
-#### 3F9A/B — Jobs-first IA and shell alignment — **DONE (uncommitted)**
+#### 3F9A/B — Jobs-first IA and shell alignment — **DONE** (`0f0181a`)
 
 **Goal:** Nav/copy/surface alignment only — no route or behavior changes.
 
@@ -693,11 +693,30 @@ Proposal Builder    → launched from Job Card later (3H)
 
 **Explicitly not in 3F9A/B:** drag-and-drop board rewrite, saved estimate card actions, payment/status/send, routes, stores, RoofingClient business logic
 
-**Future/Later (full 3F9):** true Jobs board on `jobs` spine, drag-and-drop stage movement, board → Job Card `?job=` handoff
+#### 3F9B2 — Board-first Jobs Board redesign — **DONE (uncommitted)**
+
+**Goal:** Roofr-class operational board — stage columns as primary canvas, scannable job cards, no dashboard sidebar widgets.
+
+**Changes:**
+- Extracted `jobsBoardUtils.ts`, `JobsBoardHeader`, `JobsBoardFilterBar`, `JobsBoardColumn`, `JobsBoardCard`
+- **7 workflow columns:** Draft, Sent/Waiting, Approved, Ready to Schedule, Scheduled, On Site, Completed
+- **Board/List toggle**; quick filter chips (Today, Waiting, Ready, Review) filter board jobs in-place
+- **Full list view** shortcuts open existing `SavedEstimateCard` lane detail (unchanged actions)
+- **Job card v2:** customer, address, value, proposal + measurement signals, stage age (staleness tone), last updated, blocker chips, card click + footer Open job, future action menu slot
+- **Removed from default board:** Today's Snapshot, Recent Movement, Quick Actions rail, Open lane footers, Jobs in motion wrapper, old attention KPI cards
+- Header actions: New Job, Catalog setup, search, Board/List
+
+**Files:** `SavedClient.tsx`, `jobsBoardUtils.ts`, `saved/components/*`
+
+**Explicitly not in 3F9B2:** drag-and-drop, stage mutation, catalog/template chips, jobs-table migration, `loadSaved` behavior change
+
+**Future/Later:** drag-and-drop, direct move, tags, assignee/assignment on cards, assignee filter, board → `?job=` handoff, saved views
+
+**Follow-up (post-3F9B2):** Board/List toggle uses compact `JobsBoardCard` grid; full `SavedEstimateCard` actions remain on lane detail via Full list view shortcuts. Lane detail still carries legacy dashboard chrome — align in a later pass.
 
 #### 3F9C — Job Card readiness spine — **NEXT**
 
-**Goal:** Job Card as clear execution launchpad; template readiness row mirroring catalog; single “next best action” pattern.
+**Goal:** Job Card as clear execution launchpad; template readiness row mirroring catalog; primary open + optional actions (not forced single next action).
 
 **Likely files:** scoped `RoofingClient.tsx` Job Card header, right rail, Proposals section only.
 
