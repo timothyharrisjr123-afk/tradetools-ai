@@ -18,7 +18,7 @@ export default async function SavedPage() {
     <Suspense
       fallback={
         <div className="min-h-screen flex items-center justify-center text-white/60 text-sm" style={{ backgroundColor: "#0b1120" }}>
-          Loading Command Center…
+          Loading Jobs Board…
         </div>
       }
     >

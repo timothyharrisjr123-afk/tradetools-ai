@@ -4236,7 +4236,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
         </div>
       )}
 
-      <FieldDiveAppShell activeNav="dashboard">
+      <FieldDiveAppShell activeNav="jobs">
           <div className={statusFilter !== "all" ? "bg-slate-100" : ""}>
             {statusFilter === "all" && (
               <div className="sr-only" aria-hidden>
@@ -4254,8 +4254,8 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
               <div className="mx-auto max-w-[1600px] space-y-5">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                   <div>
-                    <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Dashboard</h1>
-                    <p className="mt-0.5 text-sm text-slate-500">Today&apos;s attention, job movement, and prepared next steps.</p>
+                    <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Jobs Board</h1>
+                    <p className="mt-0.5 text-sm text-slate-500">Operational command board — today&apos;s attention, job movement, and next steps.</p>
                   </div>
                   <input
                     value={query}
@@ -4517,7 +4517,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                     onClick={() => setStatusFilter("all")}
                     className="text-sm font-semibold text-blue-600 hover:text-blue-700"
                   >
-                    ← Dashboard
+                    ← Jobs Board
                   </button>
                   <span className="h-4 w-px bg-slate-200" aria-hidden />
                   <input

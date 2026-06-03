@@ -6,9 +6,9 @@ import {
   Bell,
   Menu,
   ChevronDown,
-  LayoutDashboard,
   ClipboardList,
   Briefcase,
+  LayoutTemplate,
   Calendar,
   FileText,
   Receipt,
@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { SignOutButton } from "@/app/components/auth/SignOutButton";
 
-export type FieldDiveActiveNav = "dashboard" | "newJob" | "catalog";
+export type FieldDiveActiveNav = "jobs" | "newJob" | "catalog";
 export type FieldDiveActiveSubNav = "packet" | "job-card" | "instant";
 
 type NavIcon = ComponentType<{ className?: string }>;
@@ -40,6 +40,7 @@ type NavItem = {
   label: string;
   href: string;
   icon: NavIcon;
+  variant?: NavSubItemVariant;
   subItems?: NavSubItem[];
   subItemsAriaLabel?: string;
   /** Sub-item id that receives active styling when this module is current */
@@ -53,7 +54,7 @@ const NEW_JOB_SUB_ITEMS: NavSubItem[] = [
 ];
 
 const NAV_ITEMS: NavItem[] = [
-  { key: "dashboard", label: "Dashboard", href: "/tools/roofing/saved", icon: LayoutDashboard },
+  { key: "jobs", label: "Jobs Board", href: "/tools/roofing/saved", icon: Briefcase },
   {
     key: "newJob",
     label: "New Job",
@@ -63,13 +64,13 @@ const NAV_ITEMS: NavItem[] = [
     subItemsAriaLabel: "New job entry paths",
     activeSubId: "packet",
   },
-  { key: null, label: "Jobs Pipeline", href: "/tools/roofing/saved", icon: Briefcase },
   { key: null, label: "Calendar", href: "#", icon: Calendar },
   { key: null, label: "Estimates", href: "/tools/roofing", icon: FileText },
   { key: null, label: "Invoices", href: "#", icon: Receipt },
   { key: null, label: "Customers", href: "/admin/customers", icon: Users },
   { key: null, label: "Price Book (Legacy)", href: "/admin/price-book", icon: BookOpen },
   { key: "catalog", label: "Catalog", href: "/tools/roofing/catalog", icon: Package },
+  { key: null, label: "Templates", href: "#", icon: LayoutTemplate, variant: "soon" },
   { key: null, label: "AI Conductor", href: "/tools/roofing/ai", icon: Bot },
   { key: null, label: "Reports", href: "#", icon: BarChart3 },
   { key: null, label: "Settings", href: "/tools/settings", icon: Settings },
@@ -249,6 +250,25 @@ export default function FieldDiveAppShell({ activeNav, activeSubId, children }: 
                         />
                       </div>
                     ) : null}
+                  </div>
+                );
+              }
+
+              if (item.variant === "soon") {
+                return (
+                  <div
+                    key={label}
+                    className="flex cursor-not-allowed items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-400"
+                    aria-disabled="true"
+                    title={`${label} — coming soon`}
+                  >
+                    <span className="flex min-w-0 items-center gap-2.5">
+                      <Icon className="h-4 w-4 shrink-0 text-slate-300" aria-hidden />
+                      {label}
+                    </span>
+                    <span className="shrink-0 rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium leading-none text-slate-400">
+                      Soon
+                    </span>
                   </div>
                 );
               }

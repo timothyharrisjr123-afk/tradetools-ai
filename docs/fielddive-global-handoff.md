@@ -9,7 +9,7 @@
 - `docs/fielddive-estimate-proposal-flow-model.md` — estimate/proposal UX model notes
 - `docs/fielddive-feature-placement-map.md` — feature placement matrix
 
-**Last updated checkpoint:** `d422ee6` — **3F8 Pass E:** catalog detail panel and Job Card catalog link (**3F8 complete**). **Next: 3F9** Jobs / Execution Surface Alignment, **then 3G6** Templates setup/readiness/install surface.
+**Last updated checkpoint:** **3F9A/B (uncommitted)** — Jobs-first IA and shell alignment. **3F8 complete** at `d422ee6`. **Next: 3F9C** Job Card readiness spine, **then 3G6** Templates setup/readiness/install surface.
 
 ---
 
@@ -331,7 +331,7 @@ Catalog stages through **3F7B** and shell alignment (`01e2d9e`) are complete. Se
 
 ## 8. CURRENT NEXT (SUMMARY)
 
-**Immediate next implementation stage:** **3F9 — Jobs / Execution Surface Alignment** (Roofr visual/architectural research first; read-only audit → scoped implementation only).
+**Immediate next implementation stage:** **3F9C — Job Card readiness spine** (after **3F9A/B** Jobs-first IA). **Then 3G6** Templates setup/readiness/install surface.
 
 **Then:** **3G6 — Templates setup/readiness/install surface** (Roofr Proposals → Templates research; **not** Proposal Builder).
 
@@ -433,7 +433,7 @@ Inspect before planning **3F9** (or chosen stage):
 
 | File | Why |
 |------|-----|
-| `app/tools/roofing/FieldDiveAppShell.tsx` | Sidebar nav, Dashboard vs Jobs/Pipeline placement |
+| `app/tools/roofing/FieldDiveAppShell.tsx` | Sidebar nav — **Jobs Board** primary; Catalog + Templates (Soon) |
 | Dashboard / pipeline route clients | Current command surface vs Jobs board |
 | Job Packet / New Job entry surfaces | Intake-prep role |
 | `app/tools/roofing/RoofingClient.tsx` | Job Card execution launchpad — **scoped regions only** |
@@ -665,7 +665,7 @@ Catalog setup lives at **`/tools/roofing/catalog`** inside FieldDive shell (`01e
 
 ---
 
-### Stage 3F9 — Jobs / Execution Surface Alignment — **NEXT**
+### Stage 3F9 — Jobs / Execution Surface Alignment — **IN PROGRESS**
 
 **Why now:** Roofr visual/architectural research shows Roofr’s **operational center is Jobs / Job Board**, not a separate summary Dashboard. Roofr’s Job Board gives bird’s-eye pipeline visibility with stage columns and job cards. Roofr’s **Job Card** is the execution launchpad for measurements, proposals, material orders, invoices, activity, and communication.
 
@@ -679,30 +679,49 @@ Catalog + Templates → company setup surfaces
 Proposal Builder    → launched from Job Card later (3H)
 ```
 
+#### 3F9A/B — Jobs-first IA and shell alignment — **DONE (uncommitted)**
+
+**Goal:** Nav/copy/surface alignment only — no route or behavior changes.
+
+**Changes:**
+- Sidebar: single **Jobs Board** nav item → `/tools/roofing/saved` (`activeNav="jobs"`); removed duplicate **Dashboard** + **Jobs Pipeline** pair
+- **Templates** nav item added after **Catalog** with **Soon** badge (no route — 3G6)
+- Saved page reframed: **Jobs Board** title; intelligence layer (Today’s Attention, Job Movement) stays on the board
+- Loading copy: “Loading Jobs Board…” (was Command Center)
+
+**Files:** `FieldDiveAppShell.tsx`, `SavedClient.tsx` (copy only), `saved/page.tsx` (loading copy)
+
+**Explicitly not in 3F9A/B:** drag-and-drop board rewrite, saved estimate card actions, payment/status/send, routes, stores, RoofingClient business logic
+
+**Future/Later (full 3F9):** true Jobs board on `jobs` spine, drag-and-drop stage movement, board → Job Card `?job=` handoff
+
+#### 3F9C — Job Card readiness spine — **NEXT**
+
+**Goal:** Job Card as clear execution launchpad; template readiness row mirroring catalog; single “next best action” pattern.
+
+**Likely files:** scoped `RoofingClient.tsx` Job Card header, right rail, Proposals section only.
+
 **Begin read-only**, then implement only what is needed.
 
-**Audit / planning scope:**
+**Audit / planning scope (remaining):**
 
-- Dashboard / current command surface
-- Jobs Pipeline / board role
 - Job Packet / New Job intake-prep role
 - Job Card execution-launchpad role
 - Where Catalog setup and future Templates setup connect (readiness/links — not editors on Job Card)
 - Where Proposal Builder launches later
+- Board card → Job Card handoff when `job_id` known (optional in 3F9C)
 
 **Potential implementation direction:**
 
-- Reposition Jobs/Pipeline as main operational command board
-- Decide whether Dashboard is demoted, renamed, merged, or kept only as command intelligence
 - Ensure Job Packet remains lightweight intake/prep
 - Ensure Job Card clearly shows measurement → catalog → template → proposal readiness
 - Ensure future Templates setup connects correctly before **3G6** implementation
 
 **Explicitly out of 3F9 (unless scoped):** Templates install UI (3G6), Proposal Builder (3H), pricing bridge, material orders, SQL/migrations, protected systems.
 
-**Likely files (inspect first):** `FieldDiveAppShell.tsx`, dashboard/pipeline route clients, Job Packet entry surfaces, scoped `RoofingClient.tsx` Job Card regions.
+**Likely files (inspect first):** scoped `RoofingClient.tsx` Job Card regions; optionally `SavedClient.tsx` link targets only.
 
-**Suggested commits (examples):** `Audit Jobs execution surfaces against Roofr`, `Align Jobs Pipeline as command board`, `Clarify Job Packet vs Job Card roles`
+**Suggested commits (examples):** `3F9A/B Jobs-first IA alignment`, `3F9C Job Card readiness spine`
 
 ---
 
@@ -890,7 +909,7 @@ Treat as **drift** if a session:
 
 ### Recommended immediate next choice
 
-**Best next move:** **3F9 planning → 3F9 implementation** — Jobs / Execution Surface Alignment (Roofr Jobs / Job Board / Job Card research first).
+**Best next move:** **3F9C** — Job Card readiness spine (template setup row, next-best-action pattern). **3G6 after 3F9C.**
 
 **Why now (not 3G6 yet):**
 
