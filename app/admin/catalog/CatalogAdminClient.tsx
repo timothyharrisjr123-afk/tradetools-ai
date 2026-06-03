@@ -3,6 +3,8 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import AdminNavLinks from "@/app/admin/AdminNavLinks";
 import {
+  MIN_MEASUREMENT_MAPPED_FOR_READY,
+  countUnpricedCatalogItems,
   deriveCatalogReadiness,
   formatCatalogReadinessLabel,
   formatStarterCatalogAvailability,
@@ -34,6 +36,9 @@ const TABLE_COLUMN_COUNT = 11;
 
 const CARD =
   "rounded-md border border-slate-200/80 bg-white px-5 py-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]";
+const SETUP_STEP_CARD =
+  "flex h-full flex-col rounded-lg border border-slate-200 bg-white p-4 shadow-sm";
+const SETUP_STEP_ACTIVE_RING = "ring-2 ring-cyan-200/90 border-cyan-200";
 const FIELD_INPUT =
   "w-full rounded-md border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-100 disabled:cursor-not-allowed disabled:opacity-60";
 const TABLE_TH =
@@ -221,6 +226,8 @@ export default function CatalogAdminClient({
   const catalogStatusLabel = formatCatalogReadinessLabel(readiness);
   const starterDisplay = formatStarterCatalogAvailability(readiness);
   const starterInstalled = hasAllStarterSeedKeys(items);
+  const unpricedCount = useMemo(() => countUnpricedCatalogItems(items), [items]);
+  const templateReadinessReady = readiness.state === "ready_for_templates";
 
   const sortedItems = useMemo(
     () => [...items].sort(compareCatalogItemsForDisplay),
@@ -390,23 +397,39 @@ export default function CatalogAdminClient({
         ? "inline-flex rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-800 ring-1 ring-emerald-200"
         : "inline-flex rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-700 ring-1 ring-slate-200";
 
+  const step1Complete = starterInstalled || readiness.activeItemCount > 0;
+  const step2Active =
+    step1Complete &&
+    (readiness.state === "needs_pricing" ||
+      readiness.state === "ready_for_templates" ||
+      unpricedCount > 0);
+  const step1CardClass = `${SETUP_STEP_CARD} ${!step1Complete ? SETUP_STEP_ACTIVE_RING : ""}`;
+  const step2CardClass = `${SETUP_STEP_CARD} ${step2Active && unpricedCount > 0 ? SETUP_STEP_ACTIVE_RING : ""}`;
+
   return (
     <div className="w-full space-y-6 text-slate-900">
       {showAdminNav ? <AdminNavLinks current="catalog" /> : null}
-      <div className="space-y-3">
-        <h1 className="text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
-          Catalog setup
-        </h1>
-        <p className="text-sm leading-relaxed text-slate-600">
-          Install company-wide catalog line items for measurement-driven templates later. This is
-          account setup, not per-job. It does not create proposals or change estimator pricing.
+
+      <header className="space-y-3">
+        <p className="text-xs font-semibold uppercase tracking-wide text-cyan-700">Company setup</p>
+        <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">Catalog</h1>
+        <p className="max-w-3xl text-sm leading-relaxed text-slate-600">
+          Set up reusable materials, labor, fees, and quantity rules that power templates, proposals,
+          and later material orders. This is account-wide catalog setup — not per-job. Changes here
+          do not create proposals and do not change estimator pricing.
         </p>
         <p className="text-xs leading-relaxed text-slate-500">
-          Separate from legacy Price Book (service_items). Use{" "}
-          <span className="font-medium text-slate-700">Price Book</span> in the sidebar for legacy
-          service items only.
+          Separate from legacy{" "}
+          <span className="font-medium text-slate-700">Price Book (Legacy)</span> in the sidebar (
+          <code className="text-[11px]">service_items</code>). Use Catalog for measurement-driven
+          templates and proposals.
         </p>
-      </div>
+        <p className="rounded-md border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-xs leading-relaxed text-slate-600">
+          <span className="font-semibold text-slate-800">Setup path:</span> Catalog setup → configure
+          prices &amp; items → proposal templates (next) → proposals &amp; material orders (later).
+          Instant Estimator and supplier workflows will build on this catalog later.
+        </p>
+      </header>
 
       {error && (
         <div className="rounded-md border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700">
@@ -419,85 +442,206 @@ export default function CatalogAdminClient({
         </div>
       )}
 
-      <div className={CARD}>
-        <h2 className="mb-4 text-sm font-semibold text-slate-900">Current catalog</h2>
-        {loading ? (
-          <p className="text-sm text-slate-500">Loading catalog…</p>
-        ) : (
-          <dl className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
-            <div className="flex justify-between gap-6 border-b border-slate-100 py-2.5">
-              <dt className="text-xs text-slate-500">Catalog status</dt>
-              <dd>
-                <span className={statusPillClass}>{catalogStatusLabel}</span>
-              </dd>
+      <section className={CARD} aria-labelledby="catalog-setup-hub-heading">
+        <h2 id="catalog-setup-hub-heading" className="text-base font-semibold text-slate-900">
+          Catalog setup
+        </h2>
+        <p className="mt-1 text-sm text-slate-600">
+          Work through these steps before proposal templates and Proposal Builder are enabled.
+        </p>
+
+        <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <div className={step1CardClass}>
+            <div className="mb-3 flex items-start justify-between gap-2">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white">
+                1
+              </span>
+              <span
+                className={
+                  starterInstalled
+                    ? "rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-800 ring-1 ring-emerald-200"
+                    : "rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-800 ring-1 ring-amber-200"
+                }
+              >
+                {starterInstalled ? "Installed" : "Not installed"}
+              </span>
             </div>
-            <div className="flex justify-between gap-6 border-b border-slate-100 py-2.5">
-              <dt className="text-xs text-slate-500">Active catalog items</dt>
-              <dd className="text-sm font-semibold tabular-nums text-slate-900">
+            <h3 className="text-sm font-semibold text-slate-900">Starter catalog</h3>
+            <p className="mt-2 flex-1 text-xs leading-relaxed text-slate-600">
+              Install {STARTER_DEFINITION_COUNT} reusable roofing line items with measurement quantity
+              rules. Creates catalog rows only — not proposals and not estimator pricing changes.
+            </p>
+            <p className="mt-2 text-xs text-slate-500">{starterDisplay}</p>
+            <button
+              type="button"
+              onClick={() => void handleInstallStarter()}
+              disabled={busy}
+              className="mt-4 w-full rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+            >
+              {installButtonLabel}
+            </button>
+            {starterInstalled && (
+              <p className="mt-2 text-xs leading-relaxed text-slate-500">
+                All starter seed keys are present. Recheck installs any missing rows without
+                duplicating existing items.
+              </p>
+            )}
+          </div>
+
+          <div className={step2CardClass}>
+            <div className="mb-3 flex items-start justify-between gap-2">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white">
+                2
+              </span>
+              <span
+                className={
+                  unpricedCount === 0 && readiness.activeItemCount > 0
+                    ? "rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-800 ring-1 ring-emerald-200"
+                    : "rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-700 ring-1 ring-slate-200"
+                }
+              >
+                {loading
+                  ? "…"
+                  : `${readiness.pricedItemCount} priced · ${unpricedCount} unpriced`}
+              </span>
+            </div>
+            <h3 className="text-sm font-semibold text-slate-900">Configure pricing</h3>
+            <p className="mt-2 flex-1 text-xs leading-relaxed text-slate-600">
+              Set unit prices and customer-facing labels on the items you plan to use. Proposal
+              templates stay locked until catalog setup meets readiness below.
+            </p>
+            {readiness.activeItemCount === 0 ? (
+              <p className="mt-3 text-xs font-medium text-slate-500">
+                Install the starter catalog first.
+              </p>
+            ) : unpricedCount > 0 ? (
+              <p className="mt-3 text-xs font-medium text-cyan-800">
+                Configure unpriced items in the table below.
+              </p>
+            ) : (
+              <p className="mt-3 text-xs font-medium text-emerald-800">
+                All active items have unit prices set.
+              </p>
+            )}
+          </div>
+
+          <div className={`${SETUP_STEP_CARD} opacity-95`}>
+            <div className="mb-3 flex items-start justify-between gap-2">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-slate-300 bg-white text-xs font-bold text-slate-600">
+                3
+              </span>
+              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600 ring-1 ring-slate-200">
+                After catalog (3G6)
+              </span>
+            </div>
+            <h3 className="text-sm font-semibold text-slate-900">Templates next</h3>
+            <p className="mt-2 flex-1 text-xs leading-relaxed text-slate-600">
+              Proposal templates will use these catalog items after setup is ready. The templates
+              route is not available yet — coming in stage 3G6 after catalog alignment.
+            </p>
+            <p className="mt-3 text-xs text-slate-500">
+              {templateReadinessReady
+                ? "Catalog meets template readiness — templates UI is the next implementation stage."
+                : "Complete steps 1–2 and pricing readiness before templates."}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className={CARD} aria-labelledby="catalog-readiness-heading">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 id="catalog-readiness-heading" className="text-sm font-semibold text-slate-900">
+              Setup readiness
+            </h2>
+            <p className="mt-1 text-xs text-slate-500">
+              Actionable checks before templates and Proposal Builder. Threshold:{" "}
+              {MIN_MEASUREMENT_MAPPED_FOR_READY} measurement-mapped items for template readiness.
+            </p>
+          </div>
+          {!loading && (
+            <span className={statusPillClass}>{catalogStatusLabel}</span>
+          )}
+        </div>
+        {loading ? (
+          <p className="mt-4 text-sm text-slate-500">Loading readiness…</p>
+        ) : (
+          <dl className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="rounded-lg border border-slate-100 bg-slate-50/60 px-4 py-3">
+              <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                Starter installed
+              </dt>
+              <dd className="mt-1 text-sm font-semibold text-slate-900">{starterDisplay}</dd>
+            </div>
+            <div className="rounded-lg border border-slate-100 bg-slate-50/60 px-4 py-3">
+              <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                Active items
+              </dt>
+              <dd className="mt-1 text-sm font-semibold tabular-nums text-slate-900">
                 {readiness.activeItemCount}
               </dd>
             </div>
-            <div className="flex justify-between gap-6 border-b border-slate-100 py-2.5">
-              <dt className="text-xs text-slate-500">Measurement-mapped items</dt>
-              <dd className="text-sm font-semibold tabular-nums text-slate-900">
+            <div className="rounded-lg border border-slate-100 bg-slate-50/60 px-4 py-3">
+              <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                Measurement-mapped
+              </dt>
+              <dd className="mt-1 text-sm font-semibold tabular-nums text-slate-900">
                 {readiness.measurementMappedItemCount}
+                <span className="text-xs font-normal text-slate-500">
+                  {" "}
+                  / {MIN_MEASUREMENT_MAPPED_FOR_READY} needed
+                </span>
               </dd>
             </div>
-            <div className="flex justify-between gap-6 border-b border-slate-100 py-2.5">
-              <dt className="text-xs text-slate-500">Priced items</dt>
-              <dd className="text-sm font-semibold tabular-nums text-slate-900">
+            <div className="rounded-lg border border-slate-100 bg-slate-50/60 px-4 py-3">
+              <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                Priced items
+              </dt>
+              <dd className="mt-1 text-sm font-semibold tabular-nums text-slate-900">
                 {readiness.pricedItemCount}
+                {unpricedCount > 0 && (
+                  <span className="text-xs font-normal text-amber-700">
+                    {" "}
+                    · {unpricedCount} unpriced
+                  </span>
+                )}
               </dd>
             </div>
-            <div className="flex justify-between gap-6 border-b border-slate-100 py-2.5 sm:col-span-2">
-              <dt className="text-xs text-slate-500">Starter catalog</dt>
-              <dd className="text-sm font-semibold text-slate-900">{starterDisplay}</dd>
+            <div className="rounded-lg border border-slate-100 bg-slate-50/60 px-4 py-3 sm:col-span-2 lg:col-span-2">
+              <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                Template readiness
+              </dt>
+              <dd className="mt-1 text-sm font-semibold text-slate-900">
+                {templateReadinessReady ? "Ready for templates (UI in 3G6)" : "Not ready yet"}
+              </dd>
+              <dd className="mt-1 text-xs text-slate-500">
+                Templates and Proposal Builder remain unavailable until later stages.
+              </dd>
             </div>
           </dl>
         )}
-        <p className="mt-4 text-xs leading-relaxed text-slate-500">
-          Configure unit prices on installed items below. This updates catalog setup only — not the
-          estimator or Proposal Builder.
-        </p>
-      </div>
+      </section>
 
-      <div className={CARD}>
-        <h2 className="mb-3 text-sm font-semibold text-slate-900">Starter roofing catalog</h2>
-        <p className="mb-4 text-xs leading-relaxed text-slate-500">
-          Installs {STARTER_DEFINITION_COUNT} default items (shingles, underlayment, labor, disposal,
-          permit, etc.) with measurement quantity sources. Safe to run again — existing seed keys
-          are skipped.
+      <section id="catalog-configure-items" className={CARD}>
+        <h2 className="text-sm font-semibold text-slate-900">Configure catalog items</h2>
+        <p className="mt-2 text-sm leading-relaxed text-slate-600">
+          Company catalog rows for future proposal templates and proposals. Edit customer-facing
+          names, descriptions, and unit prices here — catalog setup only.
         </p>
-        <button
-          type="button"
-          onClick={() => void handleInstallStarter()}
-          disabled={busy}
-          className="rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {installButtonLabel}
-        </button>
-        {starterInstalled && (
-          <p className="mt-3 text-xs leading-relaxed text-slate-500">
-            All {STARTER_DEFINITION_COUNT} starter seed keys are present. Use Recheck to install any
-            missing items without duplicating existing rows.
+        <ul className="mt-3 list-inside list-disc space-y-1 text-xs leading-relaxed text-slate-500">
+          <li>Pricing changes update catalog setup only — no estimator or pricing engine bridge yet.</li>
+          <li>Proposal templates and Proposal Builder are not available on this page yet.</li>
+          <li>
+            Structural fields (unit, quantity source) stay read-only until a later catalog pass.
+          </li>
+        </ul>
+        {unpricedCount > 0 && readiness.activeItemCount > 0 && (
+          <p className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs leading-relaxed text-amber-900">
+            <span className="font-semibold">{unpricedCount} unpriced</span> active item
+            {unpricedCount === 1 ? "" : "s"} — use Edit on each row to set unit prices before
+            templates.
           </p>
         )}
-      </div>
-
-      <div className={CARD}>
-        <h2 className="mb-3 text-sm font-semibold text-slate-900">Installed catalog items</h2>
-        <p className="mb-3 text-sm leading-relaxed text-slate-600">
-          These rows power future templates and proposals. Configure prices and customer-facing
-          labels here before building proposal templates.
-        </p>
-        <p className="mb-3 text-xs leading-relaxed text-slate-500">
-          Editing identity fields like unit and quantity source will come later. Templates and
-          Proposal Builder are not available yet.
-        </p>
-        <p className="mb-5 rounded-md border border-cyan-200 bg-cyan-50 px-4 py-2.5 text-xs leading-relaxed text-cyan-800">
-          Price the items you plan to use in templates. Templates and proposals stay locked until
-          catalog setup is ready.
-        </p>
         {loading ? (
           <p className="text-sm text-slate-500">Loading catalog items…</p>
         ) : sortedItems.length === 0 ? (
@@ -815,7 +959,7 @@ export default function CatalogAdminClient({
             </table>
           </div>
         )}
-      </div>
+      </section>
 
       {installResult && (
         <div className={`${CARD} text-sm`}>

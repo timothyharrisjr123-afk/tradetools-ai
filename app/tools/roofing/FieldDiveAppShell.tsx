@@ -68,7 +68,7 @@ const NAV_ITEMS: NavItem[] = [
   { key: null, label: "Estimates", href: "/tools/roofing", icon: FileText },
   { key: null, label: "Invoices", href: "#", icon: Receipt },
   { key: null, label: "Customers", href: "/admin/customers", icon: Users },
-  { key: null, label: "Price Book", href: "/admin/price-book", icon: BookOpen },
+  { key: null, label: "Price Book (Legacy)", href: "/admin/price-book", icon: BookOpen },
   { key: "catalog", label: "Catalog", href: "/tools/roofing/catalog", icon: Package },
   { key: null, label: "AI Conductor", href: "/tools/roofing/ai", icon: Bot },
   { key: null, label: "Reports", href: "#", icon: BarChart3 },

@@ -1,5 +1,5 @@
 /**
- * Pure catalog / Price Book readiness for Job Card (read-only).
+ * Pure catalog setup readiness for Job Card and Catalog workspace (read-only).
  *
  * Describes whether a company has usable catalog_items for future templates —
  * not proposal-ready (that stays on measurement handoff).
@@ -104,18 +104,25 @@ export function formatCatalogReadinessLabel(summary: CatalogReadinessSummary): s
 export function formatCatalogNextStepCopy(summary: CatalogReadinessSummary): string {
   switch (summary.state) {
     case "not_configured":
-      return "Add catalog items in Price Book";
+      return "Open catalog setup to add items";
     case "starter_available":
-      return "Install starter catalog or configure Price Book";
+      return "Install starter catalog in catalog setup";
     case "partial_mapping":
-      return "Add more measurement-mapped catalog items";
+      return "Add more measurement-mapped catalog items in catalog setup";
     case "needs_pricing":
-      return "Set unit prices on catalog items";
+      return "Set unit prices on catalog items in catalog setup";
     case "ready_for_templates":
-      return "Choose a proposal template when available";
+      return "Catalog ready — proposal templates coming after catalog alignment";
     default:
-      return "Configure Price Book";
+      return "Open catalog setup";
   }
+}
+
+/** Count active items missing unit_price_cents (for setup hub pricing step). */
+export function countUnpricedCatalogItems(items: CatalogItem[]): number {
+  return items.filter(
+    (item) => item.unit_price_cents == null || !Number.isFinite(item.unit_price_cents)
+  ).length;
 }
 
 export function formatCatalogSectionStatus(
