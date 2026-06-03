@@ -16,12 +16,14 @@ import FieldDiveAppShell from "../FieldDiveAppShell";
 import JobsBoardHeader from "./components/JobsBoardHeader";
 import JobsBoardFilterBar from "./components/JobsBoardFilterBar";
 import JobsBoardColumn from "./components/JobsBoardColumn";
-import JobsBoardCard from "./components/JobsBoardCard";
 import {
   applyBoardQuickFilter,
   buildJobsBoardCardModel,
   getJobsForBoardColumn,
-  JOBS_BOARD_COLUMNS,
+  getBoardColumnByKey,
+  JOBS_BOARD_CATEGORY_GROUPS,
+  sumJobsValueCents,
+  type BoardColumnKey,
   type BoardFilterContext,
   type BoardQuickFilter,
 } from "./jobsBoardUtils";
@@ -2805,7 +2807,6 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
   const [estimates, setEstimates] = useState<RoofingEstimate[]>([]);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "estimate" | "sent_pending" | "approved" | "deposit_paid" | "scheduled" | "in_progress" | "paid">("all");
-  const [jobsBoardView, setJobsBoardView] = useState<"board" | "list">("board");
   const [boardQuickFilter, setBoardQuickFilter] = useState<BoardQuickFilter>("all");
   const [scheduledView, setScheduledView] = useState<"upcoming" | "past" | "all">("upcoming");
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({
@@ -3935,13 +3936,17 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
   );
 
   const buildBoardCardModel = useCallback(
-    (job: RoofingEstimate, showStageLabel: boolean) =>
+    (job: RoofingEstimate, columnKey: BoardColumnKey) =>
       buildJobsBoardCardModel(job, batchStatuses, {
-        showStageLabel,
+        columnKey,
         blockerLabels: job.id ? getBoardBlockerLabels(job.id) : [],
       }),
     [batchStatuses, getBoardBlockerLabels]
   );
+
+  const boardFilterZeroMatch =
+    boardFilteredJobs.length === 0 &&
+    (query.trim().length > 0 || boardQuickFilter !== "all" || (searchFiltered?.length ?? 0) < estimates.length);
 
   const statusDrivenGroups = useMemo(() => {
     if (statusFilter !== "all") return [];
@@ -4171,48 +4176,57 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
               <div className="py-12 text-center text-sm text-slate-500">No saved estimates yet.</div>
             )}
             {statusFilter === "all" && hydrated && estimates.length > 0 && (
-              <div className="mx-auto max-w-[100rem] space-y-4">
+              <div className="w-full space-y-4">
                 <JobsBoardHeader
                   query={query}
                   onQueryChange={setQuery}
-                  boardView={jobsBoardView}
-                  onBoardViewChange={setJobsBoardView}
                   jobCount={boardFilteredJobs.length}
+                  totalCount={searchFiltered?.length ?? estimates.length}
                 />
 
                 <JobsBoardFilterBar
                   quickFilter={boardQuickFilter}
                   onQuickFilterChange={setBoardQuickFilter}
-                  onOpenListView={(filter) => setStatusFilter(filter as typeof statusFilter)}
                 />
 
-                {boardFilteredJobs.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 px-4 py-12 text-center text-sm text-slate-500">
-                    No jobs match this filter. Try clearing filters or adjusting your search.
-                  </div>
-                ) : jobsBoardView === "board" ? (
-                  <div className="flex gap-3 overflow-x-auto pb-2">
-                    {JOBS_BOARD_COLUMNS.map((column) => (
-                      <JobsBoardColumn
-                        key={column.key}
-                        column={column}
-                        jobs={getJobsForBoardColumn(boardFilteredJobs, column.key)}
-                        buildCardModel={(job) => buildBoardCardModel(job, false)}
-                        onOpenJob={(job) => handleAction(job, "load")}
-                      />
+                {boardFilterZeroMatch ? (
+                  <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+                    No jobs match your search or filter. Stages remain below.
+                  </p>
+                ) : null}
+
+                <div className="overflow-x-auto pb-4">
+                  <div className="inline-flex min-w-min items-end gap-4">
+                    {JOBS_BOARD_CATEGORY_GROUPS.map((group) => (
+                      <div key={group.id} className="flex shrink-0 flex-col gap-2">
+                        <p className="px-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                          {group.label}
+                        </p>
+                        <div className="flex gap-3">
+                          {group.columnKeys.map((columnKey) => {
+                            const column = getBoardColumnByKey(columnKey);
+                            const columnJobs = getJobsForBoardColumn(boardFilteredJobs, column.key);
+                            const columnTotalCents = sumJobsValueCents(columnJobs);
+                            return (
+                              <JobsBoardColumn
+                                key={column.key}
+                                column={column}
+                                jobs={columnJobs}
+                                buildCardModel={(job) => buildBoardCardModel(job, column.key)}
+                                onOpenJob={(job) => handleAction(job, "load")}
+                                onOpenLane={() => setStatusFilter(column.listFilter)}
+                                filterActive={boardFilterZeroMatch}
+                                columnTotalLabel={
+                                  columnTotalCents > 0 ? formatCentsToCurrency(columnTotalCents) : null
+                                }
+                              />
+                            );
+                          })}
+                        </div>
+                      </div>
                     ))}
                   </div>
-                ) : (
-                  <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-                    {boardFilteredJobs.map((job) => (
-                      <JobsBoardCard
-                        key={job.id}
-                        model={buildBoardCardModel(job, true)}
-                        onOpen={() => handleAction(job, "load")}
-                      />
-                    ))}
-                  </div>
-                )}
+                </div>
               </div>
             )}
 
@@ -4241,22 +4255,22 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
             {(() => {
               type LaneFilter = Exclude<typeof statusFilter, "all">;
               const pageTitle: Record<LaneFilter, string> = {
-                estimate: "Draft Estimates",
-                sent_pending: "Sent Proposals",
-                approved: "Approved Jobs",
+                estimate: "New Leads",
+                sent_pending: "Proposal Sent",
+                approved: "Proposal Signed",
                 deposit_paid: "Ready to Schedule",
-                scheduled: "Scheduled Jobs",
-                in_progress: "Crew On Site",
-                paid: "Completed / Closed Jobs",
+                scheduled: "Scheduled",
+                in_progress: "Production",
+                paid: "Completed",
               };
               const pageSubtitle: Record<LaneFilter, string> = {
-                estimate: "Draft estimates not yet sent — review and send when ready.",
-                sent_pending: "Sent proposals awaiting customer response — FieldDive has flagged follow-up needs.",
-                approved: "Approved jobs ready for next steps — deposit path prepared.",
-                deposit_paid: "Deposit received — FieldDive is holding for your schedule confirmation.",
-                scheduled: "Jobs locked to dates — review your production schedule.",
-                in_progress: "Crew on site today — monitor and confirm completion.",
-                paid: "Finished and closed work — reviewed by FieldDive.",
+                estimate: "Incoming leads — qualify, measure, and prepare proposals.",
+                sent_pending: "Proposals sent — awaiting customer response and follow-up.",
+                approved: "Proposals signed — collect deposit and confirm next steps.",
+                deposit_paid: "Deposit received — confirm install dates and schedule production.",
+                scheduled: "Jobs scheduled — review dates and prep for production.",
+                in_progress: "Jobs in production — monitor crew progress through completion.",
+                paid: "Completed jobs — closed and paid.",
               };
               return (
                 <>

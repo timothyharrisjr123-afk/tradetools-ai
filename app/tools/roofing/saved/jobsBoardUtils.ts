@@ -15,69 +15,37 @@ export type BoardColumnDef = {
   key: BoardColumnKey;
   label: string;
   listFilter: "estimate" | "sent_pending" | "approved" | "deposit_paid" | "scheduled" | "in_progress" | "paid";
-  columnClass: string;
-  labelClass: string;
-  countClass: string;
 };
 
 export const JOBS_BOARD_COLUMNS: BoardColumnDef[] = [
-  {
-    key: "estimate",
-    label: "New / Draft",
-    listFilter: "estimate",
-    columnClass: "bg-slate-50 border-slate-200",
-    labelClass: "text-slate-700",
-    countClass: "text-slate-600",
-  },
-  {
-    key: "leads",
-    label: "Sent / Waiting",
-    listFilter: "sent_pending",
-    columnClass: "bg-rose-50/80 border-rose-100",
-    labelClass: "text-rose-800",
-    countClass: "text-rose-700",
-  },
-  {
-    key: "approved",
-    label: "Approved",
-    listFilter: "approved",
-    columnClass: "bg-violet-50/80 border-violet-100",
-    labelClass: "text-violet-800",
-    countClass: "text-violet-700",
-  },
-  {
-    key: "deposit_paid",
-    label: "Ready to Schedule",
-    listFilter: "deposit_paid",
-    columnClass: "bg-emerald-50/80 border-emerald-100",
-    labelClass: "text-emerald-800",
-    countClass: "text-emerald-700",
-  },
-  {
-    key: "scheduled",
-    label: "Scheduled",
-    listFilter: "scheduled",
-    columnClass: "bg-cyan-50/80 border-cyan-100",
-    labelClass: "text-cyan-800",
-    countClass: "text-cyan-700",
-  },
-  {
-    key: "in_progress",
-    label: "On Site",
-    listFilter: "in_progress",
-    columnClass: "bg-amber-50/80 border-amber-100",
-    labelClass: "text-amber-900",
-    countClass: "text-amber-800",
-  },
-  {
-    key: "paid",
-    label: "Completed",
-    listFilter: "paid",
-    columnClass: "bg-slate-100/90 border-slate-200",
-    labelClass: "text-slate-700",
-    countClass: "text-slate-600",
-  },
+  { key: "estimate", label: "New Lead", listFilter: "estimate" },
+  { key: "leads", label: "Proposal Sent", listFilter: "sent_pending" },
+  { key: "approved", label: "Proposal Signed", listFilter: "approved" },
+  { key: "deposit_paid", label: "Ready to Schedule", listFilter: "deposit_paid" },
+  { key: "scheduled", label: "Scheduled", listFilter: "scheduled" },
+  { key: "in_progress", label: "Production", listFilter: "in_progress" },
+  { key: "paid", label: "Completed", listFilter: "paid" },
 ];
+
+export type BoardCategoryGroup = {
+  id: "incoming" | "qualified" | "won" | "completed";
+  label: string;
+  columnKeys: BoardColumnKey[];
+};
+
+/** Visual-only Roofr category bands — no status logic. */
+export const JOBS_BOARD_CATEGORY_GROUPS: BoardCategoryGroup[] = [
+  { id: "incoming", label: "New Incoming Leads", columnKeys: ["estimate"] },
+  { id: "qualified", label: "Qualified Leads", columnKeys: ["leads", "approved"] },
+  { id: "won", label: "Won Jobs", columnKeys: ["deposit_paid", "scheduled", "in_progress"] },
+  { id: "completed", label: "Completed", columnKeys: ["paid"] },
+];
+
+export function getBoardColumnByKey(key: BoardColumnKey): BoardColumnDef {
+  const column = JOBS_BOARD_COLUMNS.find((c) => c.key === key);
+  if (!column) throw new Error(`Unknown board column: ${key}`);
+  return column;
+}
 
 export type BoardQuickFilterDef = {
   id: BoardQuickFilter;
@@ -217,6 +185,29 @@ function smartTimeAgoLabel(date?: string | null) {
   return `${days}d ago`;
 }
 
+function formatScheduledDateLabel(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+}
+
+export function getBoardCardScheduledDateLabel(
+  estimate: RoofingEstimate,
+  columnKey: BoardColumnKey
+): string | null {
+  if (columnKey !== "scheduled" && columnKey !== "in_progress") return null;
+  const iso = firstValidIsoDate(
+    (estimate as { scheduledStartDate?: string }).scheduledStartDate,
+    (estimate as { scheduledAt?: string }).scheduledAt,
+    (estimate as { scheduled_at?: string }).scheduled_at,
+    (estimate as { scheduleDate?: string }).scheduleDate,
+    (estimate as { startDate?: string }).startDate
+  );
+  if (!iso) return null;
+  const formatted = formatScheduledDateLabel(iso);
+  return formatted ? `Scheduled ${formatted}` : null;
+}
+
 export function getBoardCardAddress(estimate: RoofingEstimate): string {
   const fromAddress = (estimate.address || "").trim();
   if (fromAddress) return fromAddress;
@@ -246,6 +237,10 @@ export function toEstimateTotalCents(
   return Math.round(v * 100);
 }
 
+export function sumJobsValueCents(jobs: RoofingEstimate[]): number {
+  return jobs.reduce((sum, job) => sum + toEstimateTotalCents(job), 0);
+}
+
 export function formatCentsToCurrency(cents: number | undefined | null): string {
   const c = Number(cents);
   if (!Number.isFinite(c) || c < 0) return "$0.00";
@@ -269,7 +264,7 @@ export function getProposalStatusSignal(
   if (norm === "paid" || norm === "in_progress" || norm === "scheduled" || norm === "deposit_paid") {
     return { label: "Proposal approved", tone: "ok" };
   }
-  if (norm === "approved") return { label: "Approved", tone: "ok" };
+  if (norm === "approved") return { label: "Proposal signed", tone: "ok" };
   if (raw === "sent" || raw === "viewed" || norm === "sent" || norm === "pending") {
     const viewedAt = getEffectiveViewedAt(est, batchStatuses);
     if (viewedAt) return { label: "Proposal viewed", tone: "pending" };
@@ -337,7 +332,7 @@ export function buildStageAgeText(args: {
   }
   if (status === "approved") {
     const age = smartTimeAgoLabel(firstValidIsoDate(approvedAt, viewedAt, sentAt, createdAt));
-    return age ? `Approved ${age}` : null;
+    return age ? `Signed ${age}` : null;
   }
   if (isSent && viewedAt) {
     const age = smartTimeAgoLabel(firstValidIsoDate(viewedAt, sentAt, createdAt));
@@ -348,7 +343,58 @@ export function buildStageAgeText(args: {
     return age ? `Sent ${age}` : null;
   }
   const age = smartTimeAgoLabel(createdAt);
-  return age ? `Draft ${age}` : null;
+  return age ? `New lead ${age}` : null;
+}
+
+function pickContextualCardSignals(args: {
+  columnKey: BoardColumnKey;
+  blockers: string[];
+  estimate: RoofingEstimate;
+  batchStatuses?: Record<string, { status: string; viewedAt?: string | null; approvedAt?: string | null }>;
+}): {
+  proposalSignal: StatusSignal | null;
+  measurementSignal: StatusSignal | null;
+  depositSignal: StatusSignal | null;
+} {
+  const { columnKey, blockers, estimate, batchStatuses } = args;
+  const candidates: StatusSignal[] = [];
+
+  if (columnKey === "deposit_paid") {
+    candidates.push({ label: "Deposit received", tone: "ok" });
+  } else if (columnKey === "approved" && !blockers.includes("Deposit needed")) {
+    candidates.push({ label: "Deposit needed", tone: "warn" });
+  }
+
+  if (columnKey === "estimate" || columnKey === "leads" || columnKey === "approved") {
+    const proposal = getProposalStatusSignal(estimate, batchStatuses);
+    if (columnKey === "estimate") {
+      if (proposal.label !== "Proposal approved") candidates.push(proposal);
+    } else {
+      candidates.push(proposal);
+    }
+
+    const measurement = getMeasurementStatusSignal(estimate);
+    if (measurement.label === "Not measured") candidates.push(measurement);
+  }
+
+  const maxSecondary = blockers.length > 0 ? 1 : 2;
+  const picked = candidates.slice(0, maxSecondary);
+
+  let proposalSignal: StatusSignal | null = null;
+  let measurementSignal: StatusSignal | null = null;
+  let depositSignal: StatusSignal | null = null;
+
+  for (const sig of picked) {
+    if (sig.label === "Deposit received" || sig.label === "Deposit needed") {
+      depositSignal = sig;
+    } else if (sig.label === "Measured" || sig.label === "Not measured") {
+      measurementSignal = sig;
+    } else {
+      proposalSignal = sig;
+    }
+  }
+
+  return { proposalSignal, measurementSignal, depositSignal };
 }
 
 export function stageAgeTone(stageAge: string | null): "fresh" | "aging" | "stale" | "neutral" {
@@ -368,21 +414,20 @@ export type JobsBoardCardModel = {
   id: string;
   customerName: string;
   address: string;
+  scheduledDateLabel: string | null;
   valueLabel: string | null;
-  proposalSignal: StatusSignal;
-  measurementSignal: StatusSignal;
+  proposalSignal: StatusSignal | null;
+  measurementSignal: StatusSignal | null;
+  depositSignal: StatusSignal | null;
   stageAge: string | null;
   stageAgeTone: "fresh" | "aging" | "stale" | "neutral";
-  lastUpdated: string | null;
   blockers: string[];
-  showStageLabel: boolean;
-  stageLabel: string;
 };
 
 export function buildJobsBoardCardModel(
   estimate: RoofingEstimate,
   batchStatuses: Record<string, { status: string; viewedAt?: string | null; approvedAt?: string | null }> | undefined,
-  opts: { showStageLabel: boolean; blockerLabels?: string[] }
+  opts: { columnKey: BoardColumnKey; blockerLabels?: string[] }
 ): JobsBoardCardModel {
   const status = normalizeStatusValue(getStage(estimate));
   const raw = String(estimate.status || "").toLowerCase();
@@ -399,31 +444,26 @@ export function buildJobsBoardCardModel(
     showPaid,
   });
   const totalCents = toEstimateTotalCents(estimate);
-  const stageLabels: Record<string, string> = {
-    estimate: "Draft",
-    sent: "Sent",
-    pending: "Sent",
-    viewed: "Viewed",
-    approved: "Approved",
-    deposit_paid: "Ready",
-    scheduled: "Scheduled",
-    in_progress: "On site",
-    paid: "Done",
-  };
+  const blockers = opts.blockerLabels ?? [];
+  const { proposalSignal, measurementSignal, depositSignal } = pickContextualCardSignals({
+    columnKey: opts.columnKey,
+    blockers,
+    estimate,
+    batchStatuses,
+  });
 
   return {
     id: estimate.id,
     customerName: getEstimateDisplayName(estimate),
     address: getBoardCardAddress(estimate),
+    scheduledDateLabel: getBoardCardScheduledDateLabel(estimate, opts.columnKey),
     valueLabel: totalCents > 0 ? formatCentsToCurrency(totalCents) : null,
-    proposalSignal: getProposalStatusSignal(estimate, batchStatuses),
-    measurementSignal: getMeasurementStatusSignal(estimate),
+    proposalSignal,
+    measurementSignal,
+    depositSignal,
     stageAge,
     stageAgeTone: stageAgeTone(stageAge),
-    lastUpdated: getLastUpdatedLabel(estimate),
-    blockers: opts.blockerLabels ?? [],
-    showStageLabel: opts.showStageLabel,
-    stageLabel: stageLabels[status] ?? status,
+    blockers,
   };
 }
 

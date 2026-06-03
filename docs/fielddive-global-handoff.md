@@ -9,7 +9,7 @@
 - `docs/fielddive-estimate-proposal-flow-model.md` — estimate/proposal UX model notes
 - `docs/fielddive-feature-placement-map.md` — feature placement matrix
 
-**Last updated checkpoint:** **3F9B2 (uncommitted)** — Roofr-class Jobs Board redesign. **3F9A/B** at `0f0181a`. **Next: 3F9C** Job Card execution spine, **then 3G6**.
+**Last updated checkpoint:** **3F9B3 (uncommitted)** — Roofr Jobs Board visual baseline + stage/category alignment. **Prior checkpoint:** `8781ecd` (3F9B2). **Next: 3F9C** Job Card execution spine (after Jobs Board commit), **then 3G6**.
 
 ---
 
@@ -693,26 +693,54 @@ Proposal Builder    → launched from Job Card later (3H)
 
 **Explicitly not in 3F9A/B:** drag-and-drop board rewrite, saved estimate card actions, payment/status/send, routes, stores, RoofingClient business logic
 
-#### 3F9B2 — Board-first Jobs Board redesign — **DONE (uncommitted)**
+#### 3F9B2 — Board-first Jobs Board redesign — **DONE (`8781ecd`)**
 
 **Goal:** Roofr-class operational board — stage columns as primary canvas, scannable job cards, no dashboard sidebar widgets.
 
 **Changes:**
 - Extracted `jobsBoardUtils.ts`, `JobsBoardHeader`, `JobsBoardFilterBar`, `JobsBoardColumn`, `JobsBoardCard`
 - **7 workflow columns:** Draft, Sent/Waiting, Approved, Ready to Schedule, Scheduled, On Site, Completed
-- **Board/List toggle**; quick filter chips (Today, Waiting, Ready, Review) filter board jobs in-place
-- **Full list view** shortcuts open existing `SavedEstimateCard` lane detail (unchanged actions)
-- **Job card v2:** customer, address, value, proposal + measurement signals, stage age (staleness tone), last updated, blocker chips, card click + footer Open job, future action menu slot
-- **Removed from default board:** Today's Snapshot, Recent Movement, Quick Actions rail, Open lane footers, Jobs in motion wrapper, old attention KPI cards
-- Header actions: New Job, Catalog setup, search, Board/List
+- Quick filter chips; board default when `statusFilter === "all"`
+- **Removed from default board:** Today's Snapshot, Recent Movement, Quick Actions rail, old attention KPI cards
 
 **Files:** `SavedClient.tsx`, `jobsBoardUtils.ts`, `saved/components/*`
 
-**Explicitly not in 3F9B2:** drag-and-drop, stage mutation, catalog/template chips, jobs-table migration, `loadSaved` behavior change
+#### 3F9B3 — Roofr Jobs Board visual baseline + stage/category alignment — **DONE (uncommitted)**
 
-**Future/Later:** drag-and-drop, direct move, tags, assignee/assignment on cards, assignee filter, board → `?job=` handoff, saved views
+**Goal:** Roofr Job Board look/feel plus workflow-aligned display labels and category grouping. Display-only — no status value or mutation changes.
 
-**Follow-up (post-3F9B2):** Board/List toggle uses compact `JobsBoardCard` grid; full `SavedEstimateCard` actions remain on lane detail via Full list view shortcuts. Lane detail still carries legacy dashboard chrome — align in a later pass.
+**Rejected/reverted before earlier pass:** prior fill-space / forced viewport / compressed-column direction.
+
+**Visual baseline:**
+- Controlled width, horizontal scroll, fixed `w-72` columns
+- Header: title + count, search, New Job only
+- Single quick-filter row; no dashboard widgets, Catalog header, Board/List toggle, full-list pills
+- Neutral lanes, `(count)` + column value total, column header → lane detail
+- Fuller cards, whole-card click, no Open button / fake menu
+
+**Stage/category alignment (display-only):**
+
+| Status key | Board column label | Roofr category band |
+|------------|-------------------|---------------------|
+| `estimate` | New Lead | New Incoming Leads |
+| `sent_pending` | Proposal Sent | Qualified Leads |
+| `approved` | Proposal Signed | Qualified Leads |
+| `deposit_paid` | Ready to Schedule | Won Jobs |
+| `scheduled` | Scheduled | Won Jobs |
+| `in_progress` | Production | Won Jobs |
+| `paid` | Completed | Completed |
+
+- **Category bands:** visual-only grouping above column groups (`JOBS_BOARD_CATEGORY_GROUPS`)
+- **Contextual card signals:** blockers win; proposal chips in early stages; measurement when unmeasured early; deposit chips on Proposal Signed / Ready to Schedule; scheduled date in Scheduled / Production
+- **Lane detail copy** updated to match workflow labels (behavior unchanged)
+
+**Prior checkpoint:** `8781ecd` (3F9B2)
+
+**Files:** `SavedClient.tsx`, `jobsBoardUtils.ts`, `saved/components/*`, `docs/fielddive-global-handoff.md`
+
+**Explicitly not in 3F9B3:** drag/drop, direct movement, new status values, Lost/Unqualified columns, lane drawer, selected preview, tags, assignees, protected paths
+
+**Future/Later:** drag/drop, direct movement, Lost/Unqualified outcome stages (need status spine), lane drawer, selected-job preview, tags, assignees, saved views, board → job uuid spine, catalog/template board chips
 
 #### 3F9C — Job Card readiness spine — **NEXT**
 
