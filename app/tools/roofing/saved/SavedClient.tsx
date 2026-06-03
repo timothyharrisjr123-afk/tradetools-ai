@@ -14,18 +14,26 @@ import {
 } from "lucide-react";
 import FieldDiveAppShell from "../FieldDiveAppShell";
 import JobsBoardHeader from "./components/JobsBoardHeader";
-import JobsBoardFilterBar from "./components/JobsBoardFilterBar";
 import JobsBoardColumn from "./components/JobsBoardColumn";
+import JobsBoardListView from "./components/JobsBoardListView";
 import {
-  applyBoardQuickFilter,
+  applyBoardUpdatedDateFilter,
   buildJobsBoardCardModel,
+  filterJobsByVisibleStages,
   getJobsForBoardColumn,
   getBoardColumnByKey,
+  getDefaultVisibleColumnKeys,
+  isBoardFiltersActive,
   JOBS_BOARD_CATEGORY_GROUPS,
+  loadBoardViewState,
+  saveBoardViewState,
+  sortJobsForBoardColumn,
   sumJobsValueCents,
+  BOARD_DEFAULT_SORT_KEY,
+  BOARD_DEFAULT_VIEW_MODE,
   type BoardColumnKey,
-  type BoardFilterContext,
-  type BoardQuickFilter,
+  type BoardSortKey,
+  type BoardViewMode,
 } from "./jobsBoardUtils";
 import {
   getSavedEstimates,
@@ -2807,7 +2815,12 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
   const [estimates, setEstimates] = useState<RoofingEstimate[]>([]);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "estimate" | "sent_pending" | "approved" | "deposit_paid" | "scheduled" | "in_progress" | "paid">("all");
-  const [boardQuickFilter, setBoardQuickFilter] = useState<BoardQuickFilter>("all");
+  const [boardSortKey, setBoardSortKey] = useState<BoardSortKey>(BOARD_DEFAULT_SORT_KEY);
+  const [visibleColumnKeys, setVisibleColumnKeys] = useState<BoardColumnKey[]>(() =>
+    getDefaultVisibleColumnKeys()
+  );
+  const [updatedOnOrAfter, setUpdatedOnOrAfter] = useState<string | null>(null);
+  const [boardViewMode, setBoardViewMode] = useState<BoardViewMode>(BOARD_DEFAULT_VIEW_MODE);
   const [scheduledView, setScheduledView] = useState<"upcoming" | "past" | "all">("upcoming");
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({
     completed: true,
@@ -3518,6 +3531,23 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
   }, []);
 
   useEffect(() => {
+    const saved = loadBoardViewState();
+    setBoardSortKey(saved.sortKey);
+    setVisibleColumnKeys(saved.visibleColumnKeys);
+    setUpdatedOnOrAfter(saved.updatedOnOrAfter);
+    setBoardViewMode(saved.viewMode);
+  }, []);
+
+  useEffect(() => {
+    saveBoardViewState({
+      sortKey: boardSortKey,
+      visibleColumnKeys,
+      updatedOnOrAfter,
+      viewMode: boardViewMode,
+    });
+  }, [boardSortKey, visibleColumnKeys, updatedOnOrAfter, boardViewMode]);
+
+  useEffect(() => {
     if (!hydrated) return;
     const next = getNormalizedEstimates();
     const broken = next.find(
@@ -3878,75 +3908,38 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
   const approvedDueJobs = getApprovedDueJobs(currentList, paymentStates ?? {});
   const depositReadyJobs = getDepositReadyJobs(currentList, paymentStates ?? {});
 
-  const boardFilterContext = useMemo((): BoardFilterContext => {
-    const todayIds = new Set<string>();
-    const waitingIds = new Set<string>();
-    const readyIds = new Set<string>();
-    const reviewIds = new Set<string>();
-    const todayStart = startOfLocalDay(new Date()).getTime();
-
-    for (const e of searchFiltered || []) {
-      if (!e.id) continue;
-      const norm = normalizeStatusValue(e.status || "estimate");
-      const raw = String(e.status || "").toLowerCase();
-      if (norm === "in_progress") todayIds.add(e.id);
-      if (norm === "scheduled") {
-        const key = getScheduledDateKeyFromEstimate(e);
-        if (key) {
-          const date = parseISODateOnly(key);
-          if (date && startOfLocalDay(date).getTime() === todayStart) todayIds.add(e.id);
-        }
-      }
-      if (raw === "sent" || raw === "viewed" || norm === "sent" || norm === "pending") {
-        waitingIds.add(e.id);
-      }
-      if (norm === "deposit_paid") readyIds.add(e.id);
-    }
-
-    for (const j of sentDueJobs) {
-      if (j.id) reviewIds.add(j.id);
-    }
-    for (const j of approvedDueJobs) {
-      if (j.id) {
-        reviewIds.add(j.id);
-        readyIds.add(j.id);
-      }
-    }
-    for (const j of depositReadyJobs) {
-      if (j.id) readyIds.add(j.id);
-    }
-
-    return { todayIds, waitingIds, readyIds, reviewIds };
-  }, [searchFiltered, sentDueJobs, approvedDueJobs, depositReadyJobs]);
-
   const boardFilteredJobs = useMemo(
-    () => applyBoardQuickFilter(searchFiltered || [], boardQuickFilter, boardFilterContext),
-    [searchFiltered, boardQuickFilter, boardFilterContext]
+    () => applyBoardUpdatedDateFilter(searchFiltered || [], updatedOnOrAfter),
+    [searchFiltered, updatedOnOrAfter]
   );
 
-  const getBoardBlockerLabels = useCallback(
-    (jobId: string) => {
-      const labels: string[] = [];
-      if (sentDueJobs.some((j) => j.id === jobId)) labels.push("Follow-up due");
-      if (approvedDueJobs.some((j) => j.id === jobId)) labels.push("Deposit needed");
-      if (depositReadyJobs.some((j) => j.id === jobId)) labels.push("Schedule needed");
-      return labels;
-    },
-    [sentDueJobs, approvedDueJobs, depositReadyJobs]
-  );
+  const boardFiltersActive = isBoardFiltersActive({
+    sortKey: boardSortKey,
+    visibleColumnKeys,
+    updatedOnOrAfter,
+  });
 
   const buildBoardCardModel = useCallback(
     (job: RoofingEstimate, columnKey: BoardColumnKey) =>
-      buildJobsBoardCardModel(job, batchStatuses, {
-        columnKey,
-        blockerLabels: job.id ? getBoardBlockerLabels(job.id) : [],
-      }),
-    [batchStatuses, getBoardBlockerLabels]
+      buildJobsBoardCardModel(job, batchStatuses, { columnKey }),
+    [batchStatuses]
+  );
+
+  const boardVisibleJobs = useMemo(
+    () => filterJobsByVisibleStages(boardFilteredJobs, visibleColumnKeys),
+    [boardFilteredJobs, visibleColumnKeys]
+  );
+
+  const boardListJobs = useMemo(
+    () => sortJobsForBoardColumn(boardVisibleJobs, boardSortKey, batchStatuses),
+    [boardVisibleJobs, boardSortKey, batchStatuses]
   );
 
   const boardFilterZeroMatch =
     boardFilteredJobs.length === 0 &&
-    (query.trim().length > 0 || boardQuickFilter !== "all" || (searchFiltered?.length ?? 0) < estimates.length);
+    (query.trim().length > 0 ||
+      !!updatedOnOrAfter ||
+      (searchFiltered?.length ?? 0) < estimates.length);
 
   const statusDrivenGroups = useMemo(() => {
     if (statusFilter !== "all") return [];
@@ -4176,57 +4169,79 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
               <div className="py-12 text-center text-sm text-slate-500">No saved estimates yet.</div>
             )}
             {statusFilter === "all" && hydrated && estimates.length > 0 && (
-              <div className="w-full space-y-4">
+              <div className="w-full space-y-3">
                 <JobsBoardHeader
                   query={query}
                   onQueryChange={setQuery}
-                  jobCount={boardFilteredJobs.length}
-                  totalCount={searchFiltered?.length ?? estimates.length}
-                />
-
-                <JobsBoardFilterBar
-                  quickFilter={boardQuickFilter}
-                  onQuickFilterChange={setBoardQuickFilter}
+                  jobCount={boardVisibleJobs.length}
+                  viewMode={boardViewMode}
+                  onViewModeChange={setBoardViewMode}
+                  sortKey={boardSortKey}
+                  onSortKeyChange={setBoardSortKey}
+                  visibleColumnKeys={visibleColumnKeys}
+                  onVisibleColumnKeysChange={setVisibleColumnKeys}
+                  updatedOnOrAfter={updatedOnOrAfter}
+                  onUpdatedOnOrAfterChange={setUpdatedOnOrAfter}
+                  filtersActive={boardFiltersActive}
                 />
 
                 {boardFilterZeroMatch ? (
-                  <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
-                    No jobs match your search or filter. Stages remain below.
+                  <p className="rounded-md border border-slate-200/80 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+                    No jobs match your search or filter.
+                    {boardViewMode === "board" ? " Stages remain below." : null}
                   </p>
                 ) : null}
 
-                <div className="overflow-x-auto pb-4">
-                  <div className="inline-flex min-w-min items-end gap-4">
-                    {JOBS_BOARD_CATEGORY_GROUPS.map((group) => (
-                      <div key={group.id} className="flex shrink-0 flex-col gap-2">
-                        <p className="px-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                          {group.label}
-                        </p>
-                        <div className="flex gap-3">
-                          {group.columnKeys.map((columnKey) => {
-                            const column = getBoardColumnByKey(columnKey);
-                            const columnJobs = getJobsForBoardColumn(boardFilteredJobs, column.key);
-                            const columnTotalCents = sumJobsValueCents(columnJobs);
-                            return (
-                              <JobsBoardColumn
-                                key={column.key}
-                                column={column}
-                                jobs={columnJobs}
-                                buildCardModel={(job) => buildBoardCardModel(job, column.key)}
-                                onOpenJob={(job) => handleAction(job, "load")}
-                                onOpenLane={() => setStatusFilter(column.listFilter)}
-                                filterActive={boardFilterZeroMatch}
-                                columnTotalLabel={
-                                  columnTotalCents > 0 ? formatCentsToCurrency(columnTotalCents) : null
-                                }
-                              />
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))}
+                {boardViewMode === "list" ? (
+                  <JobsBoardListView
+                    jobs={boardListJobs}
+                    batchStatuses={batchStatuses}
+                    onOpenJob={(job) => handleAction(job, "load")}
+                  />
+                ) : (
+                  <div className="overflow-x-auto pb-2 pr-8 pt-0.5 [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-200/50 [&::-webkit-scrollbar-track]:bg-transparent">
+                    <div className="inline-flex min-w-min items-stretch gap-0 pr-4">
+                      {JOBS_BOARD_CATEGORY_GROUPS.map((group) => {
+                        const visibleKeysInGroup = group.columnKeys.filter((k) =>
+                          visibleColumnKeys.includes(k)
+                        );
+                        if (visibleKeysInGroup.length === 0) return null;
+                        return (
+                          <div key={group.id} className="flex shrink-0 flex-col gap-1 pr-1">
+                            <p className="px-3 text-[10px] font-medium uppercase tracking-wider text-slate-400/75">
+                              {group.label}
+                            </p>
+                            <div className="flex">
+                              {visibleKeysInGroup.map((columnKey) => {
+                                const column = getBoardColumnByKey(columnKey);
+                                const columnJobs = sortJobsForBoardColumn(
+                                  getJobsForBoardColumn(boardVisibleJobs, column.key),
+                                  boardSortKey,
+                                  batchStatuses
+                                );
+                                const columnTotalCents = sumJobsValueCents(columnJobs);
+                                return (
+                                  <JobsBoardColumn
+                                    key={column.key}
+                                    column={column}
+                                    jobs={columnJobs}
+                                    buildCardModel={(job) => buildBoardCardModel(job, column.key)}
+                                    onOpenJob={(job) => handleAction(job, "load")}
+                                    onOpenLane={() => setStatusFilter(column.listFilter)}
+                                    filterActive={boardFilterZeroMatch}
+                                    columnTotalLabel={
+                                      columnTotalCents > 0 ? formatCentsToCurrency(columnTotalCents) : null
+                                    }
+                                  />
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             )}
 
@@ -4238,7 +4253,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                     onClick={() => setStatusFilter("all")}
                     className="text-sm font-semibold text-blue-600 hover:text-blue-700"
                   >
-                    ← Jobs Board
+                    ← Job Board
                   </button>
                   <span className="h-4 w-px bg-slate-200" aria-hidden />
                   <input

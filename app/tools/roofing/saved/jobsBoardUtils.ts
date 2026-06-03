@@ -9,7 +9,12 @@ export type BoardColumnKey =
   | "in_progress"
   | "paid";
 
-export type BoardQuickFilter = "all" | "today" | "waiting" | "ready" | "review";
+export type BoardSortKey = "last_updated" | "created_date" | "job_value" | "time_in_stage";
+export type BoardViewMode = "board" | "list";
+
+export const BOARD_DEFAULT_SORT_KEY: BoardSortKey = "last_updated";
+export const BOARD_DEFAULT_VIEW_MODE: BoardViewMode = "board";
+export const JOBS_BOARD_VIEW_STATE_STORAGE_KEY = "fielddive.jobBoard.viewState";
 
 export type BoardColumnDef = {
   key: BoardColumnKey;
@@ -47,26 +52,17 @@ export function getBoardColumnByKey(key: BoardColumnKey): BoardColumnDef {
   return column;
 }
 
-export type BoardQuickFilterDef = {
-  id: BoardQuickFilter;
+export type BoardSortOptionDef = {
+  id: BoardSortKey;
   label: string;
-  hint: string;
 };
 
-export const BOARD_QUICK_FILTERS: BoardQuickFilterDef[] = [
-  { id: "all", label: "All jobs", hint: "Show every job on the board" },
-  { id: "today", label: "Today", hint: "Scheduled today or crew on site" },
-  { id: "waiting", label: "Waiting", hint: "Sent proposals awaiting customer" },
-  { id: "ready", label: "Ready to schedule", hint: "Deposit paid or approved and ready" },
-  { id: "review", label: "Needs review", hint: "Follow-ups or confirmations due" },
+export const BOARD_SORT_OPTIONS: BoardSortOptionDef[] = [
+  { id: "last_updated", label: "Last updated" },
+  { id: "created_date", label: "Created date" },
+  { id: "job_value", label: "Address value" },
+  { id: "time_in_stage", label: "Time in stage" },
 ];
-
-export type BoardFilterContext = {
-  todayIds: Set<string>;
-  waitingIds: Set<string>;
-  readyIds: Set<string>;
-  reviewIds: Set<string>;
-};
 
 export function normalizeStatusValue(input: unknown): string {
   const s = String(input ?? "").toLowerCase().trim();
@@ -96,45 +92,26 @@ export function getStage(e: RoofingEstimate): string {
 }
 
 export function getJobsForBoardColumn(jobs: RoofingEstimate[], columnKey: BoardColumnKey): RoofingEstimate[] {
-  return jobs.filter((e) => {
-    const raw = String(e.status || "").toLowerCase();
-    const norm = normalizeStatusValue(e.status || "estimate");
-    switch (columnKey) {
-      case "estimate":
-        return norm === "estimate";
-      case "leads":
-        return raw === "sent" || raw === "viewed" || norm === "sent" || norm === "pending";
-      case "approved":
-        return norm === "approved";
-      case "deposit_paid":
-        return norm === "deposit_paid";
-      case "scheduled":
-        return norm === "scheduled";
-      case "in_progress":
-        return norm === "in_progress";
-      case "paid":
-        return norm === "paid";
-      default:
-        return false;
-    }
-  });
+  return jobs.filter((e) => getBoardColumnKeyForJob(e) === columnKey);
 }
 
-export function applyBoardQuickFilter(
-  jobs: RoofingEstimate[],
-  filter: BoardQuickFilter,
-  ctx: BoardFilterContext
-): RoofingEstimate[] {
-  if (filter === "all") return jobs;
-  const idSet =
-    filter === "today"
-      ? ctx.todayIds
-      : filter === "waiting"
-        ? ctx.waitingIds
-        : filter === "ready"
-          ? ctx.readyIds
-          : ctx.reviewIds;
-  return jobs.filter((j) => j.id && idSet.has(j.id));
+export function getBoardColumnKeyForJob(job: RoofingEstimate): BoardColumnKey | null {
+  const raw = String(job.status || "").toLowerCase();
+  const norm = normalizeStatusValue(job.status || "estimate");
+  if (norm === "estimate") return "estimate";
+  if (raw === "sent" || raw === "viewed" || norm === "sent" || norm === "pending") return "leads";
+  if (norm === "approved") return "approved";
+  if (norm === "deposit_paid") return "deposit_paid";
+  if (norm === "scheduled") return "scheduled";
+  if (norm === "in_progress") return "in_progress";
+  if (norm === "paid") return "paid";
+  return null;
+}
+
+export function getBoardStageLabelForJob(job: RoofingEstimate): string {
+  const key = getBoardColumnKeyForJob(job);
+  if (!key) return "Unknown";
+  return getBoardColumnByKey(key).label;
 }
 
 function firstValidIsoDate(...values: Array<string | null | undefined>) {
@@ -147,7 +124,13 @@ function firstValidIsoDate(...values: Array<string | null | undefined>) {
 }
 
 export function getEffectiveSentAt(est: RoofingEstimate) {
-  return firstValidIsoDate(est?.sentAt, (est as { sent_at?: string }).sent_at, (est as { sentDate?: string }).sentDate, est?.createdAt, (est as { created_at?: string }).created_at);
+  return firstValidIsoDate(
+    est?.sentAt,
+    (est as { sent_at?: string }).sent_at,
+    (est as { sentDate?: string }).sentDate,
+    est?.createdAt,
+    (est as { created_at?: string }).created_at
+  );
 }
 
 export function getEffectiveViewedAt(
@@ -185,33 +168,14 @@ function smartTimeAgoLabel(date?: string | null) {
   return `${days}d ago`;
 }
 
-function formatScheduledDateLabel(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
-}
-
-export function getBoardCardScheduledDateLabel(
-  estimate: RoofingEstimate,
-  columnKey: BoardColumnKey
-): string | null {
-  if (columnKey !== "scheduled" && columnKey !== "in_progress") return null;
-  const iso = firstValidIsoDate(
-    (estimate as { scheduledStartDate?: string }).scheduledStartDate,
-    (estimate as { scheduledAt?: string }).scheduledAt,
-    (estimate as { scheduled_at?: string }).scheduled_at,
-    (estimate as { scheduleDate?: string }).scheduleDate,
-    (estimate as { startDate?: string }).startDate
-  );
-  if (!iso) return null;
-  const formatted = formatScheduledDateLabel(iso);
-  return formatted ? `Scheduled ${formatted}` : null;
-}
-
 export function getBoardCardAddress(estimate: RoofingEstimate): string {
   const fromAddress = (estimate.address || "").trim();
   if (fromAddress) return fromAddress;
-  const base = ((estimate as { jobAddress?: string }).jobAddress || (estimate as { jobAddress1?: string }).jobAddress1 || "").trim();
+  const base = (
+    (estimate as { jobAddress?: string }).jobAddress ||
+    (estimate as { jobAddress1?: string }).jobAddress1 ||
+    ""
+  ).trim();
   const locality = [
     (estimate as { city?: string }).city ?? (estimate as { jobCity?: string }).jobCity,
     (estimate as { state?: string }).state ?? (estimate as { jobState?: string }).jobState,
@@ -226,7 +190,12 @@ export function getBoardCardAddress(estimate: RoofingEstimate): string {
 }
 
 export function getEstimateDisplayName(est: RoofingEstimate) {
-  return est?.customerName || (est as { name?: string }).name || (est as { customer?: string }).customer || "Unnamed customer";
+  return (
+    est?.customerName ||
+    (est as { name?: string }).name ||
+    (est as { customer?: string }).customer ||
+    "Unnamed customer"
+  );
 }
 
 export function toEstimateTotalCents(
@@ -250,49 +219,74 @@ export function formatCentsToCurrency(cents: number | undefined | null): string 
   return `$${withCommas}.${dec}`;
 }
 
-export type StatusSignal = {
+export type CardStatusBadgeTone =
+  | "report_ok"
+  | "report_missing"
+  | "proposal_signed"
+  | "proposal_sent"
+  | "proposal_draft"
+  | "proposal_none";
+
+export type CardStatusBadge = {
   label: string;
-  tone: "neutral" | "warn" | "ok" | "pending";
+  tone: CardStatusBadgeTone;
 };
 
-export function getProposalStatusSignal(
-  est: RoofingEstimate,
-  batchStatuses?: Record<string, { status: string; viewedAt?: string | null; approvedAt?: string | null }>
-): StatusSignal {
-  const norm = normalizeStatusValue(est.status || "estimate");
-  const raw = String(est.status || "").toLowerCase();
-  if (norm === "paid" || norm === "in_progress" || norm === "scheduled" || norm === "deposit_paid") {
-    return { label: "Proposal approved", tone: "ok" };
-  }
-  if (norm === "approved") return { label: "Proposal signed", tone: "ok" };
-  if (raw === "sent" || raw === "viewed" || norm === "sent" || norm === "pending") {
-    const viewedAt = getEffectiveViewedAt(est, batchStatuses);
-    if (viewedAt) return { label: "Proposal viewed", tone: "pending" };
-    return { label: "Proposal sent", tone: "pending" };
-  }
-  return { label: "No proposal sent", tone: "neutral" };
+function isJobMeasured(est: RoofingEstimate): boolean {
+  const area = Number(est.area ?? (est as { roofAreaSqFt?: number }).roofAreaSqFt ?? 0);
+  return Number.isFinite(area) && area > 0;
 }
 
-export function getMeasurementStatusSignal(est: RoofingEstimate): StatusSignal {
-  const area = Number(est.area ?? (est as { roofAreaSqFt?: number }).roofAreaSqFt ?? 0);
-  if (Number.isFinite(area) && area > 0) return { label: "Measured", tone: "ok" };
-  return { label: "Not measured", tone: "neutral" };
+function getReportStatusBadge(est: RoofingEstimate): CardStatusBadge {
+  if (isJobMeasured(est)) {
+    return { label: "Report Complete", tone: "report_ok" };
+  }
+  return { label: "Report Missing", tone: "report_missing" };
+}
+
+function getProposalStatusBadge(est: RoofingEstimate): CardStatusBadge {
+  const norm = normalizeStatusValue(est.status || "estimate");
+  const raw = String(est.status || "").toLowerCase();
+  const isSent = raw === "sent" || raw === "viewed" || norm === "sent" || norm === "pending";
+
+  if (
+    norm === "approved" ||
+    norm === "deposit_paid" ||
+    norm === "scheduled" ||
+    norm === "in_progress" ||
+    norm === "paid"
+  ) {
+    return { label: "Proposal Signed", tone: "proposal_signed" };
+  }
+  if (isSent) {
+    return { label: "Proposal Sent", tone: "proposal_sent" };
+  }
+  if (norm === "estimate") {
+    return { label: "Proposal Draft", tone: "proposal_draft" };
+  }
+  return { label: "No Proposal", tone: "proposal_none" };
+}
+
+export function getLastUpdatedIso(est: RoofingEstimate): string | null {
+  return firstValidIsoDate(est.lastSavedAt, est.approvedAt, est.sentAt, est.createdAt);
 }
 
 export function getLastUpdatedLabel(est: RoofingEstimate): string | null {
-  const iso = firstValidIsoDate(est.lastSavedAt, est.approvedAt, est.sentAt, est.createdAt);
-  return smartTimeAgoLabel(iso);
+  return smartTimeAgoLabel(getLastUpdatedIso(est));
 }
 
-export function buildStageAgeText(args: {
-  status: string;
-  isSent: boolean;
-  viewedAt?: string | null;
-  estimate: RoofingEstimate;
-  showDepositPaid: boolean;
-  showPaid: boolean;
-}): string | null {
-  const { status, isSent, viewedAt, estimate, showDepositPaid, showPaid } = args;
+export function getCreatedIso(est: RoofingEstimate): string | null {
+  return firstValidIsoDate(est.createdAt, (est as { created_at?: string }).created_at);
+}
+
+export function getStageAnchorIso(
+  estimate: RoofingEstimate,
+  batchStatuses?: Record<string, { status: string; viewedAt?: string | null; approvedAt?: string | null }>
+): string | null {
+  const status = normalizeStatusValue(getStage(estimate));
+  const raw = String(estimate.status || "").toLowerCase();
+  const isSent = raw === "sent" || raw === "viewed" || status === "sent" || status === "pending";
+  const viewedAt = getEffectiveViewedAt(estimate, batchStatuses);
   const createdAt = estimate?.createdAt ?? (estimate as { created_at?: string }).created_at ?? null;
   const sentAt =
     estimate?.sentAt ??
@@ -317,178 +311,285 @@ export function buildStageAgeText(args: {
     (estimate as { paidAt?: string }).paidAt ??
     null;
 
-  if (showPaid) {
-    const best = firstValidIsoDate(completedAt, depositPaidAt, scheduledAt, approvedAt, sentAt, createdAt);
-    const age = smartTimeAgoLabel(best);
-    return age ? `Paid ${age}` : null;
+  if (status === "paid") {
+    return firstValidIsoDate(completedAt, depositPaidAt, scheduledAt, approvedAt, sentAt, createdAt);
   }
-  if (status === "scheduled") {
-    const age = smartTimeAgoLabel(firstValidIsoDate(scheduledAt, depositPaidAt, approvedAt, sentAt, createdAt));
-    return age ? `Scheduled ${age}` : null;
+  if (status === "scheduled" || status === "in_progress") {
+    return firstValidIsoDate(scheduledAt, depositPaidAt, approvedAt, sentAt, createdAt);
   }
-  if (showDepositPaid || status === "deposit_paid") {
-    const age = smartTimeAgoLabel(firstValidIsoDate(depositPaidAt, approvedAt, sentAt, createdAt));
-    return age ? `Deposit ${age}` : null;
+  if (status === "deposit_paid") {
+    return firstValidIsoDate(depositPaidAt, approvedAt, sentAt, createdAt);
   }
   if (status === "approved") {
-    const age = smartTimeAgoLabel(firstValidIsoDate(approvedAt, viewedAt, sentAt, createdAt));
-    return age ? `Signed ${age}` : null;
+    return firstValidIsoDate(approvedAt, viewedAt, sentAt, createdAt);
   }
   if (isSent && viewedAt) {
-    const age = smartTimeAgoLabel(firstValidIsoDate(viewedAt, sentAt, createdAt));
-    return age ? `Viewed ${age}` : null;
+    return firstValidIsoDate(viewedAt, sentAt, createdAt);
   }
   if (isSent) {
-    const age = smartTimeAgoLabel(firstValidIsoDate(sentAt, createdAt));
-    return age ? `Sent ${age}` : null;
+    return firstValidIsoDate(sentAt, createdAt);
   }
-  const age = smartTimeAgoLabel(createdAt);
-  return age ? `New lead ${age}` : null;
+  return firstValidIsoDate(createdAt);
 }
 
-function pickContextualCardSignals(args: {
-  columnKey: BoardColumnKey;
-  blockers: string[];
-  estimate: RoofingEstimate;
-  batchStatuses?: Record<string, { status: string; viewedAt?: string | null; approvedAt?: string | null }>;
-}): {
-  proposalSignal: StatusSignal | null;
-  measurementSignal: StatusSignal | null;
-  depositSignal: StatusSignal | null;
-} {
-  const { columnKey, blockers, estimate, batchStatuses } = args;
-  const candidates: StatusSignal[] = [];
-
-  if (columnKey === "deposit_paid") {
-    candidates.push({ label: "Deposit received", tone: "ok" });
-  } else if (columnKey === "approved" && !blockers.includes("Deposit needed")) {
-    candidates.push({ label: "Deposit needed", tone: "warn" });
-  }
-
-  if (columnKey === "estimate" || columnKey === "leads" || columnKey === "approved") {
-    const proposal = getProposalStatusSignal(estimate, batchStatuses);
-    if (columnKey === "estimate") {
-      if (proposal.label !== "Proposal approved") candidates.push(proposal);
-    } else {
-      candidates.push(proposal);
-    }
-
-    const measurement = getMeasurementStatusSignal(estimate);
-    if (measurement.label === "Not measured") candidates.push(measurement);
-  }
-
-  const maxSecondary = blockers.length > 0 ? 1 : 2;
-  const picked = candidates.slice(0, maxSecondary);
-
-  let proposalSignal: StatusSignal | null = null;
-  let measurementSignal: StatusSignal | null = null;
-  let depositSignal: StatusSignal | null = null;
-
-  for (const sig of picked) {
-    if (sig.label === "Deposit received" || sig.label === "Deposit needed") {
-      depositSignal = sig;
-    } else if (sig.label === "Measured" || sig.label === "Not measured") {
-      measurementSignal = sig;
-    } else {
-      proposalSignal = sig;
-    }
-  }
-
-  return { proposalSignal, measurementSignal, depositSignal };
+function daysInStage(anchorIso: string | null): number | null {
+  if (!anchorIso) return null;
+  const ts = new Date(anchorIso).getTime();
+  if (Number.isNaN(ts)) return null;
+  return Math.floor((Date.now() - ts) / 86400000);
 }
 
-export function stageAgeTone(stageAge: string | null): "fresh" | "aging" | "stale" | "neutral" {
-  if (!stageAge) return "neutral";
-  const match = stageAge.match(/(\d+)d ago/);
-  if (match) {
-    const days = Number(match[1]);
-    if (days >= 14) return "stale";
-    if (days >= 7) return "aging";
-    return "fresh";
+export function buildTimeInStageLabel(anchorIso: string | null): string | null {
+  const days = daysInStage(anchorIso);
+  if (days === null) return null;
+  if (days < 1) return "• New";
+  if (days === 1) return "1 day";
+  if (days < 7) return `${days} days`;
+  return `${days}d in stage`;
+}
+
+export type TimeInStageTone = "fresh" | "normal" | "aged" | "very_aged" | "neutral";
+
+export function timeInStageTone(anchorIso: string | null): TimeInStageTone {
+  const days = daysInStage(anchorIso);
+  if (days === null) return "neutral";
+  if (days >= 90) return "very_aged";
+  if (days >= 30) return "aged";
+  if (days >= 3) return "normal";
+  return "fresh";
+}
+
+export function timeInStageToneClass(tone: TimeInStageTone): string {
+  switch (tone) {
+    case "very_aged":
+      return "text-rose-400/60";
+    case "aged":
+      return "text-amber-700/55";
+    case "normal":
+      return "text-slate-400";
+    case "fresh":
+      return "text-emerald-600/65";
+    default:
+      return "text-slate-400";
   }
-  if (stageAge.includes("h ago") || stageAge.includes("m ago") || stageAge.includes("just now")) return "fresh";
-  return "neutral";
+}
+
+export function buildLastUpdatedDisplay(iso: string | null): string | null {
+  const ago = smartTimeAgoLabel(iso);
+  if (!ago) return null;
+  return `Updated ${ago}`;
+}
+
+export function statusMetaTextClass(tone: CardStatusBadgeTone): string {
+  switch (tone) {
+    case "report_ok":
+      return "text-emerald-700/85";
+    case "report_missing":
+      return "text-slate-500";
+    case "proposal_signed":
+      return "text-emerald-700/85";
+    case "proposal_sent":
+      return "text-slate-600";
+    case "proposal_draft":
+      return "text-slate-500";
+    case "proposal_none":
+      return "text-slate-400";
+    default:
+      return "text-slate-500";
+  }
+}
+
+export function statusBadgeClass(tone: CardStatusBadgeTone): string {
+  switch (tone) {
+    case "report_ok":
+      return "bg-emerald-50/70 text-emerald-700/80";
+    case "report_missing":
+      return "bg-slate-100/60 text-slate-500";
+    case "proposal_signed":
+      return "bg-emerald-50/60 text-emerald-800/75";
+    case "proposal_sent":
+      return "bg-slate-100/80 text-slate-600";
+    case "proposal_draft":
+      return "bg-slate-100/60 text-slate-500";
+    case "proposal_none":
+      return "bg-slate-100/60 text-slate-500";
+    default:
+      return "bg-slate-100/60 text-slate-500";
+  }
 }
 
 export type JobsBoardCardModel = {
   id: string;
   customerName: string;
   address: string;
-  scheduledDateLabel: string | null;
+  /** Structural placeholder — FieldDive has no task system yet. */
+  tasksLabel: string;
+  reportStatus: CardStatusBadge;
+  proposalStatus: CardStatusBadge;
+  /** Always null until real assignee data exists. */
+  assigneeInitials: string | null;
+  lastUpdatedDisplay: string | null;
+  timeInStage: string | null;
+  timeInStageTone: TimeInStageTone;
   valueLabel: string | null;
-  proposalSignal: StatusSignal | null;
-  measurementSignal: StatusSignal | null;
-  depositSignal: StatusSignal | null;
-  stageAge: string | null;
-  stageAgeTone: "fresh" | "aging" | "stale" | "neutral";
-  blockers: string[];
 };
 
 export function buildJobsBoardCardModel(
   estimate: RoofingEstimate,
   batchStatuses: Record<string, { status: string; viewedAt?: string | null; approvedAt?: string | null }> | undefined,
-  opts: { columnKey: BoardColumnKey; blockerLabels?: string[] }
+  opts: { columnKey: BoardColumnKey }
 ): JobsBoardCardModel {
-  const status = normalizeStatusValue(getStage(estimate));
-  const raw = String(estimate.status || "").toLowerCase();
-  const isSent = raw === "sent" || raw === "viewed" || status === "sent" || status === "pending";
-  const viewedAt = getEffectiveViewedAt(estimate, batchStatuses);
-  const showDepositPaid = status === "deposit_paid";
-  const showPaid = status === "paid";
-  const stageAge = buildStageAgeText({
-    status,
-    isSent,
-    viewedAt,
-    estimate,
-    showDepositPaid,
-    showPaid,
-  });
+  void opts;
+  const anchorIso = getStageAnchorIso(estimate, batchStatuses);
   const totalCents = toEstimateTotalCents(estimate);
-  const blockers = opts.blockerLabels ?? [];
-  const { proposalSignal, measurementSignal, depositSignal } = pickContextualCardSignals({
-    columnKey: opts.columnKey,
-    blockers,
-    estimate,
-    batchStatuses,
-  });
+  const lastUpdatedIso = getLastUpdatedIso(estimate);
 
   return {
     id: estimate.id,
     customerName: getEstimateDisplayName(estimate),
     address: getBoardCardAddress(estimate),
-    scheduledDateLabel: getBoardCardScheduledDateLabel(estimate, opts.columnKey),
+    tasksLabel: "0/0",
+    reportStatus: getReportStatusBadge(estimate),
+    proposalStatus: getProposalStatusBadge(estimate),
+    assigneeInitials: null,
+    lastUpdatedDisplay: buildLastUpdatedDisplay(lastUpdatedIso),
+    timeInStage: buildTimeInStageLabel(anchorIso),
+    timeInStageTone: timeInStageTone(anchorIso),
     valueLabel: totalCents > 0 ? formatCentsToCurrency(totalCents) : null,
-    proposalSignal,
-    measurementSignal,
-    depositSignal,
-    stageAge,
-    stageAgeTone: stageAgeTone(stageAge),
-    blockers,
   };
 }
 
-export function signalToneClass(tone: StatusSignal["tone"]): string {
-  switch (tone) {
-    case "ok":
-      return "bg-emerald-50 text-emerald-800 ring-emerald-200/80";
-    case "pending":
-      return "bg-amber-50 text-amber-900 ring-amber-200/80";
-    case "warn":
-      return "bg-rose-50 text-rose-800 ring-rose-200/80";
-    default:
-      return "bg-slate-100 text-slate-600 ring-slate-200/80";
+export function applyBoardUpdatedDateFilter(
+  jobs: RoofingEstimate[],
+  updatedOnOrAfter: string | null
+): RoofingEstimate[] {
+  if (!updatedOnOrAfter) return jobs;
+  const [y, m, d] = updatedOnOrAfter.split("-").map((n) => parseInt(n, 10));
+  if (!y || !m || !d) return jobs;
+  const cutoff = new Date(y, m - 1, d, 0, 0, 0, 0).getTime();
+  return jobs.filter((job) => {
+    const iso = getLastUpdatedIso(job);
+    if (!iso) return false;
+    const ts = new Date(iso).getTime();
+    return !Number.isNaN(ts) && ts >= cutoff;
+  });
+}
+
+export function sortJobsForBoardColumn(
+  jobs: RoofingEstimate[],
+  sortKey: BoardSortKey,
+  batchStatuses?: Record<string, { status: string; viewedAt?: string | null; approvedAt?: string | null }>
+): RoofingEstimate[] {
+  const sorted = [...jobs];
+  const ts = (iso: string | null, fallback = 0) => {
+    if (!iso) return fallback;
+    const t = new Date(iso).getTime();
+    return Number.isNaN(t) ? fallback : t;
+  };
+
+  sorted.sort((a, b) => {
+    switch (sortKey) {
+      case "last_updated": {
+        return ts(getLastUpdatedIso(b)) - ts(getLastUpdatedIso(a));
+      }
+      case "created_date": {
+        return ts(getCreatedIso(b)) - ts(getCreatedIso(a));
+      }
+      case "job_value": {
+        const diff = toEstimateTotalCents(b) - toEstimateTotalCents(a);
+        if (diff !== 0) return diff;
+        return ts(getLastUpdatedIso(b)) - ts(getLastUpdatedIso(a));
+      }
+      case "time_in_stage": {
+        const aTs = ts(getStageAnchorIso(a, batchStatuses), Number.MAX_SAFE_INTEGER);
+        const bTs = ts(getStageAnchorIso(b, batchStatuses), Number.MAX_SAFE_INTEGER);
+        return aTs - bTs;
+      }
+      default:
+        return 0;
+    }
+  });
+
+  return sorted;
+}
+
+export function filterJobsByVisibleStages(
+  jobs: RoofingEstimate[],
+  visibleColumnKeys: BoardColumnKey[]
+): RoofingEstimate[] {
+  return jobs.filter((job) => {
+    const key = getBoardColumnKeyForJob(job);
+    return key !== null && visibleColumnKeys.includes(key);
+  });
+}
+
+export function getAllBoardColumnKeys(): BoardColumnKey[] {
+  return JOBS_BOARD_COLUMNS.map((c) => c.key);
+}
+
+export function getDefaultVisibleColumnKeys(): BoardColumnKey[] {
+  return getAllBoardColumnKeys();
+}
+
+export type BoardViewState = {
+  sortKey: BoardSortKey;
+  visibleColumnKeys: BoardColumnKey[];
+  updatedOnOrAfter: string | null;
+  viewMode: BoardViewMode;
+};
+
+export function loadBoardViewState(): BoardViewState {
+  const fallback: BoardViewState = {
+    sortKey: BOARD_DEFAULT_SORT_KEY,
+    visibleColumnKeys: getDefaultVisibleColumnKeys(),
+    updatedOnOrAfter: null,
+    viewMode: BOARD_DEFAULT_VIEW_MODE,
+  };
+  if (typeof window === "undefined") return fallback;
+  try {
+    const raw = sessionStorage.getItem(JOBS_BOARD_VIEW_STATE_STORAGE_KEY);
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw) as Partial<BoardViewState>;
+    const all = getAllBoardColumnKeys();
+    const validKeys = Array.isArray(parsed.visibleColumnKeys)
+      ? parsed.visibleColumnKeys.filter(
+          (k): k is BoardColumnKey => typeof k === "string" && all.includes(k as BoardColumnKey)
+        )
+      : fallback.visibleColumnKeys;
+    const sortKey = BOARD_SORT_OPTIONS.some((o) => o.id === parsed.sortKey)
+      ? (parsed.sortKey as BoardSortKey)
+      : fallback.sortKey;
+    const updatedOnOrAfter =
+      typeof parsed.updatedOnOrAfter === "string" && parsed.updatedOnOrAfter
+        ? parsed.updatedOnOrAfter
+        : null;
+    const viewMode = parsed.viewMode === "list" ? "list" : "board";
+    return {
+      sortKey,
+      visibleColumnKeys: validKeys.length > 0 ? validKeys : fallback.visibleColumnKeys,
+      updatedOnOrAfter,
+      viewMode,
+    };
+  } catch {
+    return fallback;
   }
 }
 
-export function stageAgeToneClass(tone: JobsBoardCardModel["stageAgeTone"]): string {
-  switch (tone) {
-    case "stale":
-      return "text-rose-600";
-    case "aging":
-      return "text-amber-700";
-    case "fresh":
-      return "text-slate-500";
-    default:
-      return "text-slate-400";
-  }
+export function saveBoardViewState(state: BoardViewState) {
+  if (typeof window === "undefined") return;
+  sessionStorage.setItem(JOBS_BOARD_VIEW_STATE_STORAGE_KEY, JSON.stringify(state));
+}
+
+export function isBoardFiltersActive(args: {
+  sortKey: BoardSortKey;
+  visibleColumnKeys: BoardColumnKey[];
+  updatedOnOrAfter: string | null;
+}): boolean {
+  const defaultVisible = getDefaultVisibleColumnKeys();
+  const allStagesVisible =
+    args.visibleColumnKeys.length === defaultVisible.length &&
+    defaultVisible.every((k) => args.visibleColumnKeys.includes(k));
+  return (
+    args.sortKey !== BOARD_DEFAULT_SORT_KEY || !allStagesVisible || !!args.updatedOnOrAfter
+  );
 }

@@ -9,7 +9,7 @@
 - `docs/fielddive-estimate-proposal-flow-model.md` — estimate/proposal UX model notes
 - `docs/fielddive-feature-placement-map.md` — feature placement matrix
 
-**Last updated checkpoint:** **3F9B3 (uncommitted)** — Roofr Jobs Board visual baseline + stage/category alignment. **Prior checkpoint:** `8781ecd` (3F9B2). **Next: 3F9C** Job Card execution spine (after Jobs Board commit), **then 3G6**.
+**Last updated checkpoint:** **3F9B4-RoofrExact** — Job Board visual, controls, and card anatomy checkpoint (committed). **Prior checkpoint:** `36fa3a9` (3F9B3). **Next:** Jobs Board refinement (follow-on polish / parity gaps) unless explicitly approved to move to **3F9C** Job Card.
 
 ---
 
@@ -331,7 +331,7 @@ Catalog stages through **3F7B** and shell alignment (`01e2d9e`) are complete. Se
 
 ## 8. CURRENT NEXT (SUMMARY)
 
-**Immediate next implementation stage:** **3F9C — Job Card readiness spine** (after **3F9A/B** Jobs-first IA). **Then 3G6** Templates setup/readiness/install surface.
+**Immediate next implementation stage:** **Jobs Board refinement** (3F9B4 follow-on — lane/card/parity gaps only) unless explicitly approved to move to **3F9C — Job Card readiness spine**. **Then 3G6** Templates setup/readiness/install surface.
 
 **Then:** **3G6 — Templates setup/readiness/install surface** (Roofr Proposals → Templates research; **not** Proposal Builder).
 
@@ -502,8 +502,8 @@ Use this section as the **ordered checklist** for future GPT/Cursor sessions. Kn
 
 ### Current checkpoint
 
-**Latest code checkpoint:** `d422ee6` — **3F8 Pass E:** catalog detail panel and Job Card catalog link (**3F8 complete**).  
-**Latest handoff doc checkpoint:** `d422ee6` (code) — **next: 3F9** Jobs / Execution Surface Alignment, **then 3G6** Templates setup/readiness/install surface.
+**Latest code checkpoint:** **3F9B4-RoofrExact** — Job Board visual, controls, and card anatomy checkpoint (see commit after `36fa3a9`).  
+**Latest handoff doc checkpoint:** aligned with **3F9B4-RoofrExact** — **next: Jobs Board refinement** unless explicitly approved to move to **3F9C** Job Card, **then 3G6** Templates setup/readiness/install surface.
 
 **Completed working state (summary):**
 
@@ -705,7 +705,7 @@ Proposal Builder    → launched from Job Card later (3H)
 
 **Files:** `SavedClient.tsx`, `jobsBoardUtils.ts`, `saved/components/*`
 
-#### 3F9B3 — Roofr Jobs Board visual baseline + stage/category alignment — **DONE (uncommitted)**
+#### 3F9B3 — Roofr Jobs Board visual baseline + stage/category alignment — **DONE (`36fa3a9`)**
 
 **Goal:** Roofr Job Board look/feel plus workflow-aligned display labels and category grouping. Display-only — no status value or mutation changes.
 
@@ -742,7 +742,67 @@ Proposal Builder    → launched from Job Card later (3H)
 
 **Future/Later:** drag/drop, direct movement, Lost/Unqualified outcome stages (need status spine), lane drawer, selected-job preview, tags, assignees, saved views, board → job uuid spine, catalog/template board chips
 
-#### 3F9C — Job Card readiness spine — **NEXT**
+#### 3F9B4-RoofrExact — Job Board visual and controls checkpoint — **DONE**
+
+**Goal:** Roofr Job Board visual/control/card anatomy save point — **approved screenshot checkpoint**. This is a **save point, not the final Jobs Board**. Display-only board work; no protected behavior changes.
+
+**Controls & shell:**
+- Roofr-style **Job Board** page title and nav label (`FieldDiveAppShell` → **Job Board**)
+- **Search** with × clear (search-only; does not reset filters)
+- **Board | List** toggle — view mode persisted in `sessionStorage` key `fielddive.jobBoard.viewState`
+- **Filters & sort** panel: Sort · Stages · Updated on or after · Clear filters
+- **Sort:** Last updated (default), Created date, Address value, Time in stage — within columns only
+- **New Job** action present
+- **No** quick-chip row
+- **No** FieldDive attention/smart filter row
+
+**Board canvas:**
+- Roofr category bands (New Incoming Leads, Qualified Leads, Won Jobs, Completed)
+- Horizontal scroll; ~352px lanes; column header → lane detail (unchanged behavior)
+- Column count + column value total on headers
+
+**Cards (Roofr anatomy — real FieldDive data where available):**
+- Customer name + value (top row)
+- Address with map pin
+- Icon/metadata grid: tasks placeholder (`Tasks 0/0`), report status, proposal status, assignee placeholder (`—`)
+- Footer: clock + time in stage (left), last updated (right)
+- Fuller card scale — not compact list rows
+- **No** FieldDive blocker chips on default board cards (Follow-up due, Deposit needed, Schedule needed, Proposal viewed, etc.)
+
+**List View:** read-only table; same search/filters; row click → load job (unchanged `loadSaved` path)
+
+**Explicitly not in this checkpoint:** drag/drop, direct movement, real tasks/subtasks data, real assignees, tags, saved views, Lost/Unqualified columns, lane drawer / selected preview, Copilot / voice, automations, protected pricing/payment/status/send/PDF/saved-estimate mutation paths
+
+**Prior checkpoint:** `36fa3a9` (3F9B3)
+
+**Files:** `SavedClient.tsx`, `jobsBoardUtils.ts`, `JobsBoardHeader.tsx`, `JobsBoardFiltersSort.tsx`, `JobsBoardFilterBar.tsx` (deprecated stub), `JobsBoardColumn.tsx`, `JobsBoardCard.tsx`, `JobsBoardListView.tsx`, `FieldDiveAppShell.tsx`, `docs/fielddive-global-handoff.md`
+
+**Future/Later (Jobs Board spine deferrals — preserved):**
+- drag/drop and direct movement between stages
+- stage blocking tasks
+- tasks/subtasks real data
+- assignees
+- tags
+- saved views
+- Lost/Unqualified statuses
+- archive/history/reporting views
+- board-to-job uuid spine
+- lane drawer / selected preview
+- Copilot / voice commands
+- automations
+- **Board display density / visible card count control:** explore a future filter/view setting that lets users choose how many job cards/customers display in a lane or view so the board does not feel too long. If proven useful, cards/columns could align based on visible column count and selected display density. **Research first; do not implement now.**
+- **3F9C** Job Card execution spine
+- **3G6** Templates setup/readiness/install surface
+- Proposal Builder
+- pricing/payment/status/send/PDF protected paths
+
+#### Jobs Board refinement — **NEXT** (3F9B4 follow-on)
+
+**Goal:** Close remaining Roofr parity gaps on the approved checkpoint — lane polish, card density tuning, List View polish, any screenshot-driven gaps. **Do not reset the board direction.**
+
+**Explicitly defer until approved:** **3F9C — Job Card readiness spine** (template setup row, next-best-action pattern). Do not start 3F9C unless explicitly scoped and approved after Jobs Board refinement.
+
+#### 3F9C — Job Card readiness spine — **DEFERRED** (after Jobs Board refinement unless explicitly approved)
 
 **Goal:** Job Card as clear execution launchpad; template readiness row mirroring catalog; primary open + optional actions (not forced single next action).
 
@@ -940,6 +1000,22 @@ Treat as **drift** if a session:
 - Job Card template readiness link (display only — not editor)
 - Inactive catalog item warnings in template install UI
 
+**Jobs Board (3F9B4 follow-on / Future/Later):**
+
+- drag/drop and direct movement between stages
+- stage blocking tasks
+- tasks/subtasks real data
+- assignees
+- tags
+- saved views
+- Lost/Unqualified statuses
+- archive/history/reporting views
+- board-to-job uuid spine
+- lane drawer / selected preview
+- Copilot / voice commands
+- automations
+- **Board display density / visible card count control:** explore a future filter/view setting that lets users choose how many job cards/customers display in a lane or view so the board does not feel too long. If proven useful, cards/columns could align based on visible column count and selected display density. **Research first; do not implement now.**
+
 **Execution surfaces (3F9 polish / non-blocking if deferred):**
 
 - Dashboard vs Jobs/Pipeline visual polish and IA clarity
@@ -956,22 +1032,24 @@ Treat as **drift** if a session:
 
 ### Recommended immediate next choice
 
-**Best next move:** **3F9C** — Job Card readiness spine (template setup row, next-best-action pattern). **3G6 after 3F9C.**
+**Best next move:** **Jobs Board refinement** (3F9B4 follow-on — screenshot-driven parity gaps only). **3F9C Job Card** only when explicitly approved after Jobs Board refinement. **3G6 after 3F9C.**
 
-**Why now (not 3G6 yet):**
+**Why now (not 3G6 or 3F9C yet):**
 
+- **3F9B4-RoofrExact** is an approved visual checkpoint — finish Jobs Board parity gaps before shifting execution focus.
 - **3F8 is complete** — catalog is a credible company setup workspace.
-- Roofr’s operational center is **Jobs / Job Board**, not a separate Dashboard — FieldDive’s Dashboard / Job Packet / Job Card split needs audit/alignment before Templates attach to the execution flow.
+- Roofr’s operational center is **Jobs / Job Board** — continue refining the board before Job Card spine work.
 - **Start from Roofr’s better pattern and improve it** — do not jump directly into Templates UI on misaligned execution surfaces.
 
 **Typical order from here:**
 
-1. **3F9** — Jobs / Pipeline / Job Packet / Job Card execution surface alignment  
-2. **3G6** — Templates route + install/recheck + readiness (**not** Proposal Builder)  
-3. **3F6C remainder** — Optional Job Card catalog guidance polish if UX review finds gaps  
-4. **3H** — Proposal Builder (launched from Job Card; after Roofr research)
+1. **Jobs Board refinement** — 3F9B4 follow-on parity/polish  
+2. **3F9C** — Job Card readiness spine (when explicitly approved)  
+3. **3G6** — Templates route + install/recheck + readiness (**not** Proposal Builder)  
+4. **3F6C remainder** — Optional Job Card catalog guidance polish if UX review finds gaps  
+5. **3H** — Proposal Builder (launched from Job Card; after Roofr research)
 
-**Do not skip to 3G6** without **3F9** execution surface alignment. **Do not skip to 3H** without 3G6 template setup surface. **Do not treat 3G6 as Proposal Builder.**
+**Do not skip to 3G6** without **3F9C** Job Card alignment. **Do not skip to 3H** without 3G6 template setup surface. **Do not treat 3G6 as Proposal Builder.**
 
 ---
 
@@ -985,3 +1063,4 @@ Treat as **drift** if a session:
 - **2026-05-31:** Roofr alignment audit — **next stage changed to 3F8** (Catalog Product Surface Alignment) **before 3G6**; expanded Future/Later; checkpoint reconciliation to `34a934a` / code through `07b3c1d`.
 - **2026-05-31:** **3F8 complete** — Pass B (`a16bccd`), Pass C-D (`5bcf0fe`), Pass E (`d422ee6`); catalog setup workspace, detail panel, Job Card catalog link; **next: 3G6** Templates setup/readiness/install surface.
 - **2026-05-31:** Roofr execution-surface research — **next stage changed to 3F9** (Jobs / Execution Surface Alignment) **before 3G6**; align Jobs/Pipeline/Job Packet/Job Card with Roofr before Templates UI.
+- **2026-05-31:** **3F9B4-RoofrExact** — Job Board visual, controls, and card anatomy checkpoint committed; approved save point (not final Jobs Board); **next: Jobs Board refinement** unless explicitly approved for **3F9C**; Future/Later includes board display density / visible card count control.

@@ -23,29 +23,30 @@ export default function JobsBoardColumn({
   filterActive = false,
   columnTotalLabel,
 }: JobsBoardColumnProps) {
-  const emptyMessage = filterActive ? "No matches" : "No jobs in this stage";
+  const emptyMessage = filterActive ? "No matches" : "No jobs";
 
   return (
-    <article className="flex w-72 shrink-0 flex-col rounded-lg border border-slate-200 bg-slate-50/60 shadow-sm">
+    <article className="flex h-[calc(100vh-10.5rem)] min-h-[480px] w-[352px] shrink-0 flex-col border-r border-slate-200/45 last:border-r-0">
       <button
         type="button"
         onClick={onOpenLane}
         title={`View ${column.label} jobs`}
-        className="w-full shrink-0 rounded-t-lg border-b border-slate-200/80 bg-white px-3.5 py-3 text-left transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-200"
+        className="w-full shrink-0 border-b border-slate-200/35 bg-[#f2f3f4] px-3.5 py-2.5 text-left transition hover:bg-[#eaecee] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-slate-300/40"
       >
         <div className="flex items-baseline justify-between gap-2">
-          <h2 className="min-w-0 truncate text-sm font-semibold text-slate-800">{column.label}</h2>
-          <span className="shrink-0 text-sm font-semibold tabular-nums text-slate-600">({jobs.length})</span>
+          <h2 className="min-w-0 truncate text-sm font-medium text-slate-800">{column.label}</h2>
+          <span className="shrink-0 text-xs tabular-nums text-slate-500">{jobs.length}</span>
         </div>
         {columnTotalLabel ? (
-          <p className="mt-1 text-xs font-medium tabular-nums text-slate-500">{columnTotalLabel}</p>
+          <p className="mt-0.5 text-xs font-medium tabular-nums text-slate-500">{columnTotalLabel}</p>
         ) : null}
       </button>
-      <div className="flex max-h-[min(70vh,640px)] flex-col overflow-y-auto p-2.5">
+
+      <div className="min-h-0 flex-1 overflow-y-auto bg-[#f2f3f4]/55 px-2.5 py-3 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-200/55 [&::-webkit-scrollbar-track]:bg-transparent">
         {jobs.length === 0 ? (
-          <p className="px-1 py-8 text-center text-xs text-slate-400">{emptyMessage}</p>
+          <p className="px-2 py-10 text-center text-xs text-slate-400">{emptyMessage}</p>
         ) : (
-          <div className="space-y-2.5">
+          <div className="space-y-3">
             {jobs.map((job) => (
               <JobsBoardCard key={job.id} model={buildCardModel(job)} onOpen={() => onOpenJob(job)} />
             ))}

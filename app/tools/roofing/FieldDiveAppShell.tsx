@@ -54,7 +54,7 @@ const NEW_JOB_SUB_ITEMS: NavSubItem[] = [
 ];
 
 const NAV_ITEMS: NavItem[] = [
-  { key: "jobs", label: "Jobs Board", href: "/tools/roofing/saved", icon: Briefcase },
+  { key: "jobs", label: "Job Board", href: "/tools/roofing/saved", icon: Briefcase },
   {
     key: "newJob",
     label: "New Job",

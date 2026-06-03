@@ -1,20 +1,48 @@
 "use client";
 
-import type { JobsBoardCardModel } from "../jobsBoardUtils";
-import { signalToneClass, stageAgeToneClass } from "../jobsBoardUtils";
+import {
+  Clock,
+  FileSignature,
+  FileText,
+  ListChecks,
+  MapPin,
+  UserCircle,
+} from "lucide-react";
+import type { CardStatusBadge, JobsBoardCardModel } from "../jobsBoardUtils";
+import { statusMetaTextClass, timeInStageToneClass } from "../jobsBoardUtils";
 
 type JobsBoardCardProps = {
   model: JobsBoardCardModel;
   onOpen: () => void;
 };
 
-export default function JobsBoardCard({ model, onOpen }: JobsBoardCardProps) {
-  const secondarySignals = [model.depositSignal, model.proposalSignal, model.measurementSignal].filter(
-    Boolean
-  ) as NonNullable<
-    JobsBoardCardModel["depositSignal"] | JobsBoardCardModel["proposalSignal"] | JobsBoardCardModel["measurementSignal"]
-  >[];
+function MetaField({
+  icon: Icon,
+  label,
+  valueClassName = "text-slate-600",
+}: {
+  icon: typeof ListChecks;
+  label: string;
+  valueClassName?: string;
+}) {
+  return (
+    <div className="flex min-w-0 items-center gap-2">
+      <Icon className="h-4 w-4 shrink-0 text-slate-400/90" strokeWidth={1.75} aria-hidden />
+      <span className={`truncate text-xs leading-snug ${valueClassName}`}>{label}</span>
+    </div>
+  );
+}
 
+function StatusMetaField({ icon: Icon, status }: { icon: typeof FileText; status: CardStatusBadge }) {
+  return (
+    <div className="flex min-w-0 items-center gap-2">
+      <Icon className="h-4 w-4 shrink-0 text-slate-400/90" strokeWidth={1.75} aria-hidden />
+      <span className={`truncate text-xs leading-snug ${statusMetaTextClass(status.tone)}`}>{status.label}</span>
+    </div>
+  );
+}
+
+export default function JobsBoardCard({ model, onOpen }: JobsBoardCardProps) {
   return (
     <article
       role="button"
@@ -26,59 +54,59 @@ export default function JobsBoardCard({ model, onOpen }: JobsBoardCardProps) {
           onOpen();
         }
       }}
-      className="group cursor-pointer rounded-lg border border-slate-200 bg-white p-3.5 shadow-sm transition hover:border-slate-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-200"
+      className="flex min-h-[152px] w-full cursor-pointer flex-col rounded-lg border border-slate-200/70 bg-white px-4 py-4 shadow-[0_1px_3px_rgba(15,23,42,0.06)] transition hover:border-slate-300/80 hover:shadow-[0_2px_6px_rgba(15,23,42,0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300/50"
     >
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0 flex-1">
-          <div className="truncate text-sm font-semibold leading-snug text-slate-900 group-hover:text-blue-700">
-            {model.customerName}
-          </div>
-          {model.address ? (
-            <div className="mt-1 truncate text-xs leading-snug text-slate-500">{model.address}</div>
-          ) : null}
-        </div>
+      {/* Top: customer name + value */}
+      <div className="flex items-start justify-between gap-3">
+        <h3 className="min-w-0 flex-1 truncate text-sm font-semibold leading-snug text-slate-900">
+          {model.customerName}
+        </h3>
         {model.valueLabel ? (
-          <span className="shrink-0 text-xs font-semibold tabular-nums text-slate-700">{model.valueLabel}</span>
+          <span className="shrink-0 text-sm font-semibold tabular-nums text-slate-800">{model.valueLabel}</span>
         ) : null}
       </div>
 
-      {model.scheduledDateLabel ? (
-        <div className="mt-2 text-xs text-slate-600">{model.scheduledDateLabel}</div>
-      ) : null}
+      {/* Address with map pin */}
+      <div className="mt-2 flex min-w-0 items-start gap-1.5">
+        <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400/90" strokeWidth={1.75} aria-hidden />
+        {model.address ? (
+          <p className="min-w-0 truncate text-xs leading-snug text-slate-500">{model.address}</p>
+        ) : (
+          <p className="text-xs text-slate-400">—</p>
+        )}
+      </div>
 
-      {model.blockers.length > 0 ? (
-        <div className="mt-2.5 flex flex-wrap gap-1">
-          {model.blockers.map((b) => (
-            <span
-              key={b}
-              className="inline-flex rounded-md bg-rose-50 px-2 py-0.5 text-[11px] font-medium text-rose-800 ring-1 ring-inset ring-rose-200/70"
-            >
-              {b}
+      {/* Icon metadata grid — Roofr anatomy */}
+      <div className="mt-3.5 grid grid-cols-2 gap-x-3 gap-y-2.5 border-t border-slate-100/90 pt-3.5">
+        <MetaField icon={ListChecks} label={`Tasks ${model.tasksLabel}`} valueClassName="text-slate-500" />
+        <StatusMetaField icon={FileText} status={model.reportStatus} />
+        <StatusMetaField icon={FileSignature} status={model.proposalStatus} />
+        <div className="flex min-w-0 items-center gap-2">
+          <UserCircle className="h-4 w-4 shrink-0 text-slate-400/90" strokeWidth={1.75} aria-hidden />
+          {model.assigneeInitials ? (
+            <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-slate-200/80 text-[10px] font-medium text-slate-600">
+              {model.assigneeInitials}
             </span>
-          ))}
+          ) : (
+            <span className="text-xs text-slate-400">—</span>
+          )}
         </div>
-      ) : null}
+      </div>
 
-      {secondarySignals.length > 0 ? (
-        <div className="mt-2.5 flex flex-wrap gap-1.5">
-          {secondarySignals.map((sig) => (
-            <span
-              key={sig.label}
-              className={`inline-flex rounded-md px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset ${signalToneClass(sig.tone)}`}
-            >
-              {sig.label}
-            </span>
-          ))}
-        </div>
-      ) : null}
-
-      {model.stageAge ? (
-        <div className="mt-3 border-t border-slate-100 pt-2.5">
-          <span className={`text-[11px] font-medium ${stageAgeToneClass(model.stageAgeTone)}`}>
-            {model.stageAge}
+      {/* Footer: time in stage + last updated */}
+      <div className="mt-auto flex items-center justify-between gap-3 border-t border-slate-100/90 pt-3">
+        <div className="flex min-w-0 items-center gap-1.5">
+          <Clock className="h-3.5 w-3.5 shrink-0 text-slate-400/80" strokeWidth={1.75} aria-hidden />
+          <span className={`truncate text-[11px] leading-none ${timeInStageToneClass(model.timeInStageTone)}`}>
+            {model.timeInStage ?? "—"}
           </span>
         </div>
-      ) : null}
+        {model.lastUpdatedDisplay ? (
+          <span className="shrink-0 truncate text-[11px] leading-none text-slate-400/80">
+            {model.lastUpdatedDisplay}
+          </span>
+        ) : null}
+      </div>
     </article>
   );
 }
