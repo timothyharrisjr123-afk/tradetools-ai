@@ -7566,7 +7566,7 @@ Thanks,`;
                     </div>
                   </div>
                   <div className={wsBlock}>
-                    <WorkspaceHeading>Catalog / Price Book</WorkspaceHeading>
+                    <WorkspaceHeading>Catalog setup</WorkspaceHeading>
                     <div className="mt-2 grid grid-cols-1 gap-0.5 sm:grid-cols-2">
                       <StatusLine
                         label="Catalog status"
@@ -7596,6 +7596,17 @@ Thanks,`;
                         value="Disabled until catalog and template are ready"
                         muted
                       />
+                    </div>
+                    <div className="mt-3 border-t border-slate-100 pt-3">
+                      <a
+                        href="/tools/roofing/catalog"
+                        className="inline-flex items-center text-sm font-semibold text-cyan-700 hover:text-cyan-900"
+                      >
+                        Open catalog setup
+                      </a>
+                      <p className="mt-1 text-xs text-slate-500">
+                        Company catalog setup — separate from legacy Price Book.
+                      </p>
                     </div>
                   </div>
                   <div>
@@ -7970,7 +7981,7 @@ Thanks,`;
                       statusText: proposalReadinessDisplay,
                     },
                     {
-                      label: "Catalog / Price Book",
+                      label: "Catalog setup",
                       ready: catalogReadiness.state === "ready_for_templates",
                       statusText: catalogReadinessLabel,
                     },
