@@ -9,7 +9,7 @@
 - `docs/fielddive-estimate-proposal-flow-model.md` — estimate/proposal UX model notes
 - `docs/fielddive-feature-placement-map.md` — feature placement matrix
 
-**Last updated checkpoint:** `22e465d` — Update FieldDive handoff after proposal template foundation (3G1–3G5 complete; **next: 3G6**; no template UI wiring yet).
+**Last updated checkpoint:** `34a934a` — Add FieldDive roadmap to handoff (3G1–3G5 code foundation through `07b3c1d`; **next: 3F8** Catalog Product Surface Alignment, **then 3G6** Templates UI; no template route wired yet).
 
 ---
 
@@ -45,6 +45,8 @@
 - **Do not** create proposal records / line snapshots until Proposal Builder is deliberately scoped.
 - **Do not** create PDF / send / approval bridges before proposal records exist.
 - **Do not** touch payment / status / approval while working catalog or template setup (unless the stage explicitly scopes it).
+- **Do not treat table/store existence as product completion** — audit **architecture, functionality, layout, and UI** together before advancing the spine.
+- **Do not build Templates UI (3G6) on top of a weak Catalog product surface** — align catalog with Roofr-style setup workspace first (**3F8**).
 
 ---
 
@@ -328,7 +330,18 @@ Catalog stages through **3F7B** and shell alignment (`01e2d9e`) are complete. Se
 
 ## 8. CURRENT NEXT (SUMMARY)
 
-**Recommended next stage:** **3G6 — Proposals/Templates setup UI + readiness/install surface** (Roofr research first; **not** Proposal Builder).
+**Next implementation stage:** **3F8 — Catalog Product Surface Alignment** (Roofr-informed product/UI pass on `/tools/roofing/catalog`).
+
+**Then:** **3G6 — Proposals/Templates setup UI + readiness/install surface** (Roofr research first; **not** Proposal Builder).
+
+### Roofr alignment audit note (2026-05-31)
+
+Read-only audit against Roofr Academy / masterclass catalog expectations:
+
+- **Catalog backend/data spine is solid enough** for starter templates: `catalog_items`, seed keys, quantity sources, store CRUD, starter install, template `catalog_seed_key` resolution in 3G5.
+- **Catalog product surface is not Roofr-aligned enough yet:** current page is **install + wide table + partial inline row editor**, not a foundational **Manage Catalog / Quick Start** workspace (no add-item UI, CSV/manufacturer import, Jumpstart picker, search/filter/group at scale, tax fields).
+- **Roofr benchmark:** catalog is among the most important setup pieces; feeds proposals, material orders, and standardized operations. Expects guided setup (install → price → templates), not only a technical table.
+- **Decision:** **3F8 before 3G6** — do not mislead the next chat by jumping to Templates UI while catalog still reads as admin-table DNA and readiness copy still blurs **Catalog** vs legacy **Price Book**.
 
 **Full ordered roadmap, drift list, and per-stage scope:** see **§11 — Forward Roadmap / No-Drift Next Steps**.
 
@@ -350,13 +363,13 @@ Then open and read:
 - `docs/fielddive-global-handoff.md` (this file)
 - **§11 — Forward Roadmap / No-Drift Next Steps** (ordered stages; what is done vs next)
 
-**Verify HEAD** is `22e465d` (Update FieldDive handoff after proposal template foundation) or identify newer commits and reconcile this doc.
+**Verify HEAD** is `34a934a` (Add FieldDive roadmap to handoff) or identify newer commits and reconcile this doc.
 
 **Confirm** working tree is clean.
 
-**Confirm** next stage is **3G6 planning** (Proposals/Templates setup UI + readiness/install surface) — **do not code** until repo truth is confirmed and stage is explicitly scoped.
+**Confirm** next stage is **3F8 planning** (Catalog Product Surface Alignment) — **do not code** until repo truth is confirmed and stage is explicitly scoped. **3G6 is deferred** until after 3F8.
 
-Inspect before planning **3G6** (or chosen stage):
+Inspect before planning **3F8** (or chosen stage):
 
 | File | Why |
 |------|-----|
@@ -364,7 +377,7 @@ Inspect before planning **3G6** (or chosen stage):
 | `app/tools/roofing/catalog/CatalogAppPage.tsx` | FieldDive shell wrapper |
 | `app/admin/catalog/page.tsx` | Redirect to `/tools/roofing/catalog` |
 | `app/admin/catalog/CatalogAdminClient.tsx` | Catalog install/recheck + table + **3F7B editor** |
-| `app/tools/roofing/FieldDiveAppShell.tsx` | Sidebar nav + `activeNav` (Catalog today; Templates TBD 3G6) |
+| `app/tools/roofing/FieldDiveAppShell.tsx` | Sidebar nav + `activeNav` (Catalog today; Templates after 3F8 / 3G6) |
 | `app/lib/catalogTypes.ts` | Catalog type contract |
 | `app/lib/catalogStore.ts` | Catalog DB I/O (do not change casually) |
 | `app/lib/defaultRoofingCatalog.ts` | 13 starter catalog definitions |
@@ -415,18 +428,18 @@ Confirm: proposal buttons still disabled on Job Card; `installDefaultRoofingCata
 | `/admin/price-book` | Legacy **service_items** only |
 | `/admin/customers` | Customers CRUD |
 | `/tools/roofing/saved` | Command Center (SavedClient) |
-| `/tools/roofing/templates` (planned 3G6) | **proposal_template_*** setup — install/recheck, readiness (not built) |
+| `/tools/roofing/templates` (planned **after 3F8**, stage 3G6) | **proposal_template_*** setup — install/recheck, readiness (not built) |
 
 ---
 
 ## 11. FORWARD ROADMAP / NO-DRIFT NEXT STEPS
 
-Use this section as the **ordered checklist** for future GPT/Cursor sessions. Knock items off top-to-bottom within each band; do not skip layers. Stages marked **DONE** reflect repo commits through `22e465d` unless a later commit supersedes.
+Use this section as the **ordered checklist** for future GPT/Cursor sessions. Knock items off top-to-bottom within each band; do not skip layers. Product/code stages marked **DONE** reflect commits through `07b3c1d` (3G5); handoff doc through `34a934a` unless a later commit supersedes.
 
 ### Current checkpoint
 
-**Latest code checkpoint:** `07b3c1d` — default roofing proposal template install helper.  
-**Latest handoff doc checkpoint:** `22e465d` — handoff updated after 3G1–3G5.
+**Latest code checkpoint:** `07b3c1d` — default roofing proposal template install helper (3G1–3G5 foundation).  
+**Latest handoff doc checkpoint:** `34a934a` — forward roadmap in handoff (§11); **next 3F8**, then **3G6** (per Roofr alignment audit).
 
 **Completed working state (summary):**
 
@@ -507,7 +520,7 @@ Confirm: proposal buttons disabled; `installDefaultRoofingCatalog` only from cat
 ### Stage 0 — Commit global handoff doc — **DONE**
 
 - `4b5016e` — Add FieldDive global handoff doc
-- Ongoing updates (e.g. `22e465d`) — keep doc aligned with HEAD after each major stage
+- Ongoing updates (e.g. `34a934a`) — keep doc aligned with HEAD after each major stage
 
 **Purpose:** Repo-local no-drift source; do not rely on chat memory alone.
 
@@ -548,7 +561,38 @@ Catalog setup lives at **`/tools/roofing/catalog`** inside FieldDive shell (`01e
 
 **Deferred in 3F7B:** `active` toggle, structural edits (`quantity_source`, `unit`, `item_type`), create/delete, `metadata`/seed_key edits.
 
-**Suggested commit if finishing 3F7C:** `Refine catalog pricing readiness`
+**Suggested commit if finishing 3F7C:** `Refine catalog pricing readiness` (may fold into **3F8**)
+
+---
+
+### Stage 3F8 — Catalog Product Surface Alignment — **NEXT**
+
+**Why now:** 3F7A/3F7B delivered data + starter install + scoped pricing edit, but Roofr alignment audit found the **product surface** is still table-first. Templates UI (3G6) should not sit on a catalog page that does not yet feel like Roofr’s foundational **Manage Catalog / Quick Start** workspace.
+
+**Roofr-informed goal:** Company catalog setup at `/tools/roofing/catalog` that guides: **install → price → templates**, without touching protected systems.
+
+**Likely scope (product/UI only — use existing store where safe):**
+
+- **Catalog setup hub** — readiness hero, clear next actions, explain how catalog feeds **Templates** and later **Proposals** (not Proposal Builder in this stage).
+- **Fix Catalog vs Price Book wording** — `catalogReadiness.ts` next-step copy, page copy, sidebar clarity; **Catalog** = `catalog_items`; **Price Book** = legacy `service_items` only.
+- **Search / filter / group** — by `item_type` (material / labor / fee / …) and **unpriced** state (client-side OK for starter scale).
+- **Add manual item** — `createCatalogItem` if store path is safe (no new migration).
+- **Active / deactivate** — `setCatalogItemActive` in UI if store path is safe (list may need inactive toggle or filter later).
+- **Item detail / edit pattern** — evolve row-expand into clearer detail/edit panel (customer name, description, prices, basis, visibility, sort).
+- **Job Card contextual link (3F6C overlap)** — passive **Open Catalog setup** → `/tools/roofing/catalog`; no install from Job Card.
+- **Explain downstream** — short copy: catalog seed keys → proposal template install (3G6 later).
+
+**Explicitly out of 3F8 scope:**
+
+- Pricing bridge, Proposal Builder, proposal records, send/PDF, approval, payment, status pipeline changes.
+- CSV import, manufacturer/system import, Jumpstart dual-panel, tax fields, supplier integrations (Future/Later).
+- `catalogStore` / `catalogTypes` behavior changes unless a tiny read helper is unavoidable (prefer UI-only).
+
+**Likely files:** `CatalogAdminClient.tsx`, `catalogReadiness.ts`, `FieldDiveAppShell.tsx` (copy/nav only if needed), `RoofingClient.tsx` (Job Card link only), possibly thin catalog page wrapper — **not** `PriceBookAdminClient`, **not** estimator pricing.
+
+**Roofr research:** Review Manage Catalog / Quick Start / item-creation flows before layout commits.
+
+**Suggested commits:** `Align catalog setup workspace with Roofr`, `Add catalog search and type grouping`, `Add catalog item create and active toggle`, `Link Job Card to catalog setup`
 
 ---
 
@@ -563,7 +607,7 @@ Catalog setup lives at **`/tools/roofing/catalog`** inside FieldDive shell (`01e
 | **3G3** Store | **DONE** | `03d9793` | `proposalTemplateStore.ts` — CRUD + graph; not app-wired |
 | **3G4** Default definitions | **DONE** | `201ada1` | `defaultRoofingProposalTemplates.ts` — Roof replacement; Standard/Enhanced/Premium |
 | **3G5** Install helper | **DONE** | `07b3c1d` | `defaultRoofingProposalTemplateInstall.ts` — insert-only, seed dedupe, catalog seed resolution |
-| **3G6** Template setup UI | **NEXT** | — | See below |
+| **3G6** Template setup UI | **DEFERRED (after 3F8)** | — | See below |
 
 **Architecture boundary (hold):**
 
@@ -573,9 +617,9 @@ Catalog setup lives at **`/tools/roofing/catalog`** inside FieldDive shell (`01e
 
 ---
 
-### Stage 3G6 — Proposals / Templates setup UI + readiness — **NEXT**
+### Stage 3G6 — Proposals / Templates setup UI + readiness — **DEFERRED until after 3F8**
 
-**Do not implement without Roofr-based product/visual research first.**
+**Do not start until 3F8 catalog product surface alignment is complete.** Do not implement without Roofr-based product/visual research first (Proposals → Templates).
 
 **Goal:** Company setup surface for templates (Roofr: Proposals → Templates), not Proposal Builder.
 
@@ -599,7 +643,7 @@ Catalog setup lives at **`/tools/roofing/catalog`** inside FieldDive shell (`01e
 
 ### Stage 3H — Proposal Builder shell — **LATER**
 
-**Do not start until:** catalog installable + priceable (or readiness clear), templates installable/selectable, measurement handoff stable.
+**Do not start until:** **3F8** catalog product surface aligned, catalog installable + priceable (readiness clear), **3G6** templates installable/selectable, measurement handoff stable.
 
 **Goal:** Builder route/shell reads job, selected measurement, catalog, template graph, quantities — **no** send/PDF/approval/payment/status replacement.
 
@@ -682,29 +726,66 @@ Treat as **drift** if a session:
 - Hides missing prices with invented placeholder totals
 - Touches payment/status/approval while doing catalog/template setup
 - Makes **Job Card** the catalog/template **editor** instead of linking to setup routes
-- Skips **Roofr research** before 3G6 UI layout
+- Skips **Roofr research** before catalog (3F8) or templates (3G6) UI layout
+- Assumes **catalog table + store** equals Roofr-style **product completion**
+- Starts **3G6 Templates UI** before **3F8 Catalog Product Surface Alignment**
+
+---
+
+### Future / Later bucket (Roofr audit + spine deferrals)
+
+**Catalog (beyond 3F8):**
+
+- CSV import / export
+- Manufacturer / roofing-system import (Atlas, BP, CertainTeed, GA, IKO, Owens Corning, etc.)
+- Roofr **Jumpstart**-style dual-panel system + item picker (preview, remove, save)
+- Waste % and **tax** fields (sales tax, material purchase tax) on catalog rows
+- Supplier integrations: **ABC / QXO / SRS**, live supplier pricing, SKU mapping
+- Material orders / work orders from catalog lines
+- Template / proposal **usage indicators** on catalog rows (“used in N templates”)
+- Bulk edit, duplicate, archive at scale
+- Section headings, drag reorder, endless scroll for large catalogs
+- Structural edits to `quantity_source`, `unit`, `item_type` with template-impact warnings
+
+**Templates & proposals (after 3F8):**
+
+- **3G6** — Templates route/nav, install/recheck UI, template readiness, missing-catalog guidance
+- **3H** — Proposal Builder shell (`proposalTypes.ts`, snapshots, quantity resolver)
+- Deterministic **pricing bridge** (3I) — parallel to legacy estimator first
+- Signed proposal / **PDF / send / approval** bridge (3K — protected paths today)
+- Signatures / co-signers, financing blocks
+- Warranty / legal content management
+- New catalog upgrade SKUs (premium shingle lines, extended warranty fee items)
+- Template versioning / publish workflow
+- Job Card template readiness link (display only — not editor)
+- Inactive catalog item warnings in template install UI
+
+**Operations (later spine):**
+
+- Material orders (3L), work orders, invoices, job costing (3M)
+- Instant Estimator catalog bridge
+- `service_items` → `catalog_items` migration (explicit plan only)
 
 ---
 
 ### Recommended immediate next choice
 
-**Best next move:** **3G6 planning → 3G6 implementation** — Proposals/Templates setup UI + readiness + install/recheck in FieldDive shell.
+**Best next move:** **3F8 planning → 3F8 implementation** — Catalog Product Surface Alignment on `/tools/roofing/catalog` (Roofr research first).
 
-**Why (not re-doing 3F7A/3G1):**
+**Why (not 3G6 yet):**
 
-- Catalog list + pricing editor already exist at `/tools/roofing/catalog`
-- Template types, live tables, store, definitions, and install helper exist but have **no UI**
-- Template install requires catalog `metadata.seed_key` rows; UI should guide catalog-first, then template install
-- Job Card should stay passive until Builder is deliberately scoped
+- Catalog **data/store** supports templates, but **product surface** does not match Roofr’s foundational setup workspace.
+- Building Templates UI beside a plain admin-style table risks permanent UX drift and confuses Catalog vs legacy Price Book.
+- Template install helper (3G5) and passive defs (3G4) are ready **after** contractors can use a credible catalog setup hub.
 
 **Then (typical order):**
 
-1. **3G6** — Templates route + install/recheck + readiness  
-2. **3F6C** — Job Card links to catalog + template setup (guidance only)  
-3. **3F7C** — Polish catalog “needs pricing” readiness if gaps remain  
+1. **3F8** — Catalog product surface alignment (hub, search/group, add item, active toggle, copy, Job Card link)  
+2. **3G6** — Templates route + install/recheck + readiness  
+3. **3F6C** — Further Job Card guidance if not fully covered in 3F8  
 4. **3H** — Proposal Builder (after Roofr research)
 
-**Alternative (structural only):** Skipping 3G6 UI to start 3H is **not** recommended — templates are unusable without setup surface.
+**Do not skip to 3H** without 3G6 template setup surface. **Do not skip 3F8** by assuming 3F7B “finished” catalog.
 
 ---
 
@@ -714,4 +795,5 @@ Treat as **drift** if a session:
 - **2026-05-31:** Updated after Stage 3F7A (`6b37370`) — read-only installed catalog list in admin; next: 3F7B.
 - **2026-05-31:** Updated after catalog shell alignment (`01e2d9e`) — 3F7B complete, canonical `/tools/roofing/catalog`, next: 3G1.
 - **2026-05-31:** Updated after proposal template foundation (`07b3c1d`) — 3G1–3G5 complete (types, live tables, store, default defs, install helper); next: **3G6 planning** (Templates UI + readiness/install surface; Roofr research first).
-- **2026-05-31:** Added **§11 Forward Roadmap / No-Drift Next Steps** — full stage checklist (3E–3M), drift list, recommended next **3G6**; checkpoint `22e465d`. **Not committed** until reviewed.
+- **2026-05-31:** Added **§11 Forward Roadmap / No-Drift Next Steps** — committed as `34a934a` (`Add FieldDive roadmap to handoff`); full stage checklist (3E–3M), drift list.
+- **2026-05-31:** Roofr alignment audit — **next stage changed to 3F8** (Catalog Product Surface Alignment) **before 3G6**; expanded Future/Later; checkpoint reconciliation to `34a934a` / code through `07b3c1d`. *(Doc update pending commit.)*
