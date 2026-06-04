@@ -1377,6 +1377,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
   useEffect(() => {
     const cid = (companyId ?? "").trim();
     if (!cid || entryMode !== "job-card") return;
+    if (!isJobCardBoardContext) return;
 
     const estimateId = loadSavedId ?? getCurrentLoadedSavedId() ?? null;
     if (!estimateId) return;
@@ -1420,7 +1421,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
         }
       }
     })();
-  }, [loadSavedId, companyId, entryMode, applyJobToSession]);
+  }, [loadSavedId, companyId, entryMode, applyJobToSession, isJobCardBoardContext]);
 
   useEffect(() => {
     if (entryMode !== "job-card") return;
@@ -1532,6 +1533,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
     if (entryMode !== "packet" && entryMode !== "instant") return;
     if (jobParam && isUuidLike(jobParam)) return;
     resetPacketIntakeFields();
+    setCurrentLoadedSavedId(null);
   }, [entryMode, jobParam, loadSavedId, isBoardOriginParam, resetPacketIntakeFields]);
 
   const hydrateJobDisplayFromRecord = useCallback(
@@ -1611,8 +1613,9 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
     if (jobHydrateInFlightRef.current === jobId) return;
 
     const fillEmptyOnly =
-      Boolean(loadSavedId) ||
-      (loadAppliedRef.current && Boolean(getCurrentLoadedSavedId()));
+      isJobCardBoardContext &&
+      (Boolean(loadSavedId) ||
+        (loadAppliedRef.current && Boolean(getCurrentLoadedSavedId())));
 
     jobHydrateInFlightRef.current = jobId;
 
@@ -1641,7 +1644,15 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
         }
       }
     })();
-  }, [entryMode, searchParams, companyId, loadSavedId, restoreTick, hydrateJobDisplayFromRecord]);
+  }, [
+    entryMode,
+    searchParams,
+    companyId,
+    loadSavedId,
+    restoreTick,
+    hydrateJobDisplayFromRecord,
+    isJobCardBoardContext,
+  ]);
 
   useEffect(() => {
     if (entryMode !== "job-card") {
@@ -4700,7 +4711,10 @@ Thanks,`;
         setJobCreationError("Could not create job. Check your connection and try again.");
         return;
       }
-      jobHydratedRef.current = null;
+      setCurrentLoadedSavedId(null);
+      setHydratedJobRecord(record);
+      hydrateJobDisplayFromRecord(record, { fillEmptyOnly: false });
+      jobHydratedRef.current = record.id;
       setCurrentJobId(record.id);
       router.push(`/tools/roofing?entry=job-card&job=${encodeURIComponent(record.id)}`);
     } finally {
@@ -4712,6 +4726,7 @@ Thanks,`;
     searchParams,
     companyId,
     buildJobDraftFromPacketState,
+    hydrateJobDisplayFromRecord,
     router,
   ]);
 
@@ -7128,7 +7143,7 @@ Thanks,`;
 
     const wsHelper = "mt-1.5 text-[11px] leading-snug text-slate-500";
 
-    const jobCardDisplay = buildJobCardDisplayModel(currentSaved ?? null, {
+    const jobCardDisplay = buildJobCardDisplayModel(isBoardOrigin ? (currentSaved ?? null) : null, {
       customerName: displayName,
       address: addressLine !== "Property details not complete" ? addressLine : undefined,
       roofAreaSqFt: Number(area || 0),
