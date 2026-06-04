@@ -1,12 +1,12 @@
 "use client";
 
 import FieldDiveAppShell from "@/app/tools/roofing/FieldDiveAppShell";
-import TemplatesSetupPlaceholder from "./TemplatesSetupPlaceholder";
+import TemplatesSetupClient from "./TemplatesSetupClient";
 
-export default function TemplatesAppPage({ companyId: _companyId }: { companyId: string }) {
+export default function TemplatesAppPage({ companyId }: { companyId: string }) {
   return (
     <FieldDiveAppShell activeNav="templates">
-      <TemplatesSetupPlaceholder />
+      <TemplatesSetupClient companyId={companyId} />
     </FieldDiveAppShell>
   );
 }
