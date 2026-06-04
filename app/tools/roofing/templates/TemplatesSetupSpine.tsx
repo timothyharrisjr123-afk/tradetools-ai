@@ -16,17 +16,27 @@ import {
 type TemplatesSetupSpineProps = {
   loading: boolean;
   catalogReady: boolean;
+  installing: boolean;
   readiness: CatalogReadinessSummary;
   starterInstalled: boolean;
   catalogStatusLabel: string;
+  installButtonLabel: string;
+  installDisabled: boolean;
+  installDisabledTitle?: string;
+  onInstallStarter: () => void;
 };
 
 export default function TemplatesSetupSpine({
   loading,
   catalogReady,
+  installing,
   readiness,
   starterInstalled,
   catalogStatusLabel,
+  installButtonLabel,
+  installDisabled,
+  installDisabledTitle,
+  onInstallStarter,
 }: TemplatesSetupSpineProps) {
   const catalogSection = formatCatalogSectionStatus(readiness);
   const passiveOptions = getPassiveStarterOptionLabels();
@@ -36,7 +46,9 @@ export default function TemplatesSetupSpine({
     !catalogReady && !loading ? TEMPLATES_SETUP_STEP_ACTIVE_RING : ""
   }`;
   const step2Class = `${TEMPLATES_SETUP_STEP_CARD} ${
-    catalogReady && !starterInstalled && !loading ? TEMPLATES_SETUP_STEP_ACTIVE_RING : ""
+    catalogReady && !starterInstalled && !loading && !installing
+      ? TEMPLATES_SETUP_STEP_ACTIVE_RING
+      : ""
   }`;
 
   return (
@@ -92,13 +104,13 @@ export default function TemplatesSetupSpine({
                     : "rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600 ring-1 ring-slate-200"
               }
             >
-              {loading ? "…" : starterInstalled ? "Installed" : "Not installed"}
+              {loading || installing ? "…" : starterInstalled ? "Installed" : "Not installed"}
             </span>
           </div>
           <h3 className="text-sm font-semibold text-slate-900">Starter template installed</h3>
           <p className="mt-2 flex-1 text-xs leading-relaxed text-slate-600">
             {starterInstalled
-              ? "Default roof replacement template is in your company library."
+              ? "Default roof replacement template is in your company library. Recheck adds any missing options, sections, or line items."
               : "Install the default roof replacement template (Standard, Enhanced, Premium options) linked to catalog items."}
           </p>
           {!starterInstalled && passiveOptions.length > 0 && (
@@ -106,18 +118,30 @@ export default function TemplatesSetupSpine({
               Available options: {passiveOptions.join(", ")}.
             </p>
           )}
-          <p className="mt-2 text-xs text-slate-500">{loading ? "…" : starterDisplay}</p>
+          <p className="mt-2 text-xs text-slate-500">
+            {loading || installing ? "…" : starterDisplay}
+          </p>
           <button
             type="button"
-            disabled
-            className="mt-4 w-full cursor-not-allowed rounded-md border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-400 sm:w-auto"
-            title="Install and recheck — next implementation pass"
+            disabled={installDisabled}
+            title={installDisabledTitle}
+            onClick={onInstallStarter}
+            className={`mt-4 w-full rounded-md px-4 py-2 text-sm font-semibold shadow-sm sm:w-auto ${
+              installDisabled
+                ? "cursor-not-allowed border border-slate-200 bg-slate-50 text-slate-400"
+                : "bg-slate-900 text-white hover:bg-slate-800"
+            }`}
           >
-            Install starter template
+            {installButtonLabel}
           </button>
-          <p className="mt-2 text-xs text-slate-500">
-            Install and recheck controls come in the next pass. No action wired yet.
-          </p>
+          {!catalogReady && (
+            <p className="mt-2 text-xs text-slate-500">Complete catalog setup first.</p>
+          )}
+          {catalogReady && starterInstalled && (
+            <p className="mt-2 text-xs text-slate-500">
+              Recheck is insert-only and will not duplicate existing template rows.
+            </p>
+          )}
         </div>
 
         <div className={`${TEMPLATES_SETUP_STEP_CARD} opacity-95`}>

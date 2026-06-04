@@ -22,3 +22,9 @@ export function catalogReadinessStatusPillClass(state: CatalogReadinessState): s
   }
   return `${base} bg-slate-100 text-slate-700 ring-slate-200`;
 }
+
+export const TEMPLATES_MESSAGE_BANNER =
+  "rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900";
+
+export const TEMPLATES_ERROR_BANNER =
+  "rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800";

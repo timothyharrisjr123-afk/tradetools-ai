@@ -11,15 +11,26 @@ import { getActiveCatalogItemsByCompany } from "@/app/lib/catalogStore";
 import type { CatalogItem } from "@/app/lib/catalogTypes";
 import { DEFAULT_ROOFING_CATALOG_DEFINITIONS } from "@/app/lib/defaultRoofingCatalog";
 import {
+  installDefaultRoofingProposalTemplates,
+  type InstallDefaultRoofingProposalTemplatesResult,
+} from "@/app/lib/defaultRoofingProposalTemplateInstall";
+import {
   getProposalTemplateGraph,
   getProposalTemplatesByCompany,
   type ProposalTemplateGraph,
 } from "@/app/lib/proposalTemplateStore";
-import { TEMPLATES_CARD, TEMPLATES_METRIC_TILE, catalogReadinessStatusPillClass } from "./templatesConstants";
+import {
+  TEMPLATES_CARD,
+  TEMPLATES_ERROR_BANNER,
+  TEMPLATES_MESSAGE_BANNER,
+  TEMPLATES_METRIC_TILE,
+  catalogReadinessStatusPillClass,
+} from "./templatesConstants";
 import TemplatesCatalogGate from "./TemplatesCatalogGate";
+import TemplatesInstallResult from "./TemplatesInstallResult";
 import TemplatesInstalledSummary from "./TemplatesInstalledSummary";
 import TemplatesSetupSpine from "./TemplatesSetupSpine";
-import { findStarterProposalTemplate } from "./templatesSetupUtils";
+import { deriveInstallFeedback, findStarterProposalTemplate } from "./templatesSetupUtils";
 
 const CATALOG_STARTER_DEFINITION_COUNT = DEFAULT_ROOFING_CATALOG_DEFINITIONS.length;
 
@@ -31,6 +42,12 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
   const [starterGraph, setStarterGraph] = useState<ProposalTemplateGraph | null>(null);
   const [templatesLoading, setTemplatesLoading] = useState(true);
   const [templatesError, setTemplatesError] = useState<string | null>(null);
+
+  const [installing, setInstalling] = useState(false);
+  const [installResult, setInstallResult] =
+    useState<InstallDefaultRoofingProposalTemplatesResult | null>(null);
+  const [installMessage, setInstallMessage] = useState<string | null>(null);
+  const [installError, setInstallError] = useState<string | null>(null);
 
   const loadCatalog = useCallback(async () => {
     setCatalogLoading(true);
@@ -104,6 +121,58 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
   const loading = catalogLoading || templatesLoading;
   const loadError = catalogError ?? templatesError;
 
+  const handleInstallStarter = useCallback(() => {
+    void (async () => {
+      if (catalogLoading || templatesLoading || installing || !catalogReady) return;
+
+      setInstalling(true);
+      setInstallError(null);
+      setInstallMessage(null);
+      setInstallResult(null);
+
+      try {
+        const result = await installDefaultRoofingProposalTemplates(companyId);
+        if (!result) {
+          setInstallError("Install failed: invalid company context.");
+          return;
+        }
+
+        setInstallResult(result);
+        const feedback = deriveInstallFeedback(result);
+        setInstallMessage(feedback.message);
+        setInstallError(feedback.error);
+
+        await Promise.all([loadCatalog(), loadTemplates()]);
+      } catch (err) {
+        console.warn("[TemplatesSetupClient] install error:", err);
+        setInstallError("Install failed unexpectedly.");
+      } finally {
+        setInstalling(false);
+      }
+    })();
+  }, [
+    catalogLoading,
+    templatesLoading,
+    installing,
+    catalogReady,
+    companyId,
+    loadCatalog,
+    loadTemplates,
+  ]);
+
+  const installDisabled =
+    !catalogReady || installing || catalogLoading || templatesLoading;
+  const installDisabledTitle = !catalogReady
+    ? "Complete catalog setup first"
+    : installing
+      ? "Installing…"
+      : undefined;
+  const installButtonLabel = installing
+    ? "Installing…"
+    : starterInstalled
+      ? "Recheck starter template"
+      : "Install starter template";
+
   const statusPillClass = catalogReadinessStatusPillClass(readiness.state);
 
   return (
@@ -117,8 +186,20 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
       </header>
 
       {loadError ? (
-        <p className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">
+        <p className={TEMPLATES_ERROR_BANNER} role="alert">
           {loadError}
+        </p>
+      ) : null}
+
+      {installMessage ? (
+        <p className={TEMPLATES_MESSAGE_BANNER} role="status">
+          {installMessage}
+        </p>
+      ) : null}
+
+      {installError ? (
+        <p className={TEMPLATES_ERROR_BANNER} role="alert">
+          {installError}
         </p>
       ) : null}
 
@@ -178,7 +259,7 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
                 Starter template
               </dt>
               <dd className="mt-1 text-sm font-semibold text-slate-900">
-                {templatesLoading ? "…" : starterInstalled ? "Installed" : "Not installed"}
+                {templatesLoading || installing ? "…" : starterInstalled ? "Installed" : "Not installed"}
               </dd>
             </div>
           </dl>
@@ -196,13 +277,20 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
       <TemplatesSetupSpine
         loading={loading}
         catalogReady={catalogReady}
+        installing={installing}
         readiness={readiness}
         starterInstalled={starterInstalled}
         catalogStatusLabel={catalogStatusLabel}
+        installButtonLabel={installButtonLabel}
+        installDisabled={installDisabled}
+        installDisabledTitle={installDisabledTitle}
+        onInstallStarter={handleInstallStarter}
       />
 
+      {installResult ? <TemplatesInstallResult result={installResult} /> : null}
+
       <TemplatesInstalledSummary
-        loading={templatesLoading}
+        loading={templatesLoading || installing}
         graph={starterGraph}
         catalogReady={catalogReady}
       />
@@ -213,11 +301,11 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
         </h2>
         <ul className="mt-3 list-inside list-disc space-y-1.5 text-sm text-slate-600">
           <li>Live catalog gate and readiness metrics</li>
+          <li>Starter template install and recheck (insert-only, idempotent)</li>
           <li>Read-only summary of installed starter template</li>
         </ul>
         <p className="mt-4 text-sm font-medium text-slate-700">Coming in later passes:</p>
         <ul className="mt-2 list-inside list-disc space-y-1.5 text-sm text-slate-500">
-          <li>Starter template install and recheck (insert-only)</li>
           <li>Template readiness before Proposal Builder</li>
           <li>Proposal Builder or creating proposals from jobs</li>
           <li>Template editing, pricing bridge, PDF, send, or approval workflows</li>

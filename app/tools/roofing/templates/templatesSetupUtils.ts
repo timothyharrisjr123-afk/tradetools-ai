@@ -1,3 +1,4 @@
+import type { InstallDefaultRoofingProposalTemplatesResult } from "@/app/lib/defaultRoofingProposalTemplateInstall";
 import {
   DEFAULT_ROOF_REPLACEMENT_TEMPLATE_SEED_KEY,
   DEFAULT_ROOFING_PROPOSAL_TEMPLATE_DEFINITIONS,
@@ -62,4 +63,93 @@ export function getPassiveStarterOptionLabels(): string[] {
   const def = DEFAULT_ROOFING_PROPOSAL_TEMPLATE_DEFINITIONS[0];
   if (!def?.options?.length) return [];
   return def.options.map((opt) => opt.customer_label ?? opt.name);
+}
+
+export function sumInstallCreatedCounts(result: InstallDefaultRoofingProposalTemplatesResult): number {
+  return (
+    result.createdTemplateCount +
+    result.createdOptionCount +
+    result.createdSectionCount +
+    result.createdItemCount
+  );
+}
+
+export function sumInstallSkippedCounts(result: InstallDefaultRoofingProposalTemplatesResult): number {
+  return (
+    result.skippedTemplateCount +
+    result.skippedOptionCount +
+    result.skippedSectionCount +
+    result.skippedItemCount
+  );
+}
+
+export function deriveInstallFeedback(result: InstallDefaultRoofingProposalTemplatesResult): {
+  message: string | null;
+  error: string | null;
+} {
+  const createdTotal = sumInstallCreatedCounts(result);
+  const skippedTotal = sumInstallSkippedCounts(result);
+
+  if (result.failedCount > 0 && createdTotal === 0 && !result.templateId) {
+    return {
+      message: null,
+      error:
+        result.errors?.length && result.errors.length > 0
+          ? result.errors.join(" ")
+          : "Install failed. No starter template graph was created.",
+    };
+  }
+
+  if (createdTotal > 0) {
+    const parts: string[] = [];
+    if (result.createdTemplateCount > 0) {
+      parts.push(
+        `${result.createdTemplateCount} template${result.createdTemplateCount === 1 ? "" : "s"}`
+      );
+    }
+    if (result.createdOptionCount > 0) {
+      parts.push(
+        `${result.createdOptionCount} option${result.createdOptionCount === 1 ? "" : "s"}`
+      );
+    }
+    if (result.createdSectionCount > 0) {
+      parts.push(
+        `${result.createdSectionCount} section${result.createdSectionCount === 1 ? "" : "s"}`
+      );
+    }
+    if (result.createdItemCount > 0) {
+      parts.push(`${result.createdItemCount} line item${result.createdItemCount === 1 ? "" : "s"}`);
+    }
+    return {
+      message: `Installed ${parts.join(", ")}.`,
+      error:
+        result.failedCount > 0 || result.missingCatalogSeedKeys.length > 0
+          ? "Some rows were skipped or failed. See last install result below."
+          : null,
+    };
+  }
+
+  if (skippedTotal > 0 && result.templateId) {
+    return {
+      message: `Starter template recheck complete. Created ${createdTotal}, skipped ${skippedTotal}, failed ${result.failedCount}.`,
+      error:
+        result.missingCatalogSeedKeys.length > 0
+          ? "Some line items are still missing catalog seed keys. Install or recheck catalog items, then recheck the template."
+          : result.failedCount > 0
+            ? "Some rows failed during recheck. See details below."
+            : null,
+    };
+  }
+
+  if (result.failedCount > 0) {
+    return {
+      message: null,
+      error:
+        result.errors?.length && result.errors.length > 0
+          ? result.errors.join(" ")
+          : "Install completed with failures.",
+    };
+  }
+
+  return { message: "Install finished. No new rows were created.", error: null };
 }
