@@ -9,16 +9,18 @@
 - `docs/fielddive-estimate-proposal-flow-model.md` — estimate/proposal UX model notes
 - `docs/fielddive-feature-placement-map.md` — feature placement matrix
 
-**Last updated checkpoint:** **3H-2 read-only proposal preview** (`00fbf64`, committed). **Prior:** **handoff doc** (`ae97a6b`); **packet session bleed fix** (`c12ea4d`); **pre-3H-2 source-of-truth** (`abd718d`); **3H-1** Proposal Builder shell (`feec663`); **packet handoff fix** (`fd87152`). **Working tree:** clean. **Typecheck:** only **6** pre-existing errors in `app/tools/roofing-v2/RoofingClientV2.tsx` — unchanged. **Protected systems:** pricing, payments, approval, status, saved estimates, send/PDF **untouched** through 3H-2, 3H-1, packet fixes, pre-3H-2 correction, and session-bleed fix.
+**Last updated checkpoint:** **3I-0 proposal pricing type contract** (uncommitted — review before commit). **Prior committed:** **3H-3 read-only proposal quantity preview** (`40e6720`); **handoff doc** (`a522ea8`); **3H-2** (`00fbf64`); **packet session bleed fix** (`c12ea4d`); **pre-3H-2** (`abd718d`); **3H-1** (`feec663`). **Working tree:** 3I-0 types + handoff doc pending review. **Typecheck:** only **6** pre-existing errors in `app/tools/roofing-v2/RoofingClientV2.tsx` — unchanged. **Protected systems:** pricing engine math, payments, approval, status, saved estimates, send/PDF **untouched** through 3I-0 (types only).
 
 **Jobs Board approved save point:** `b27a444` (3F9B4-RoofrExact). **Prior Job Board checkpoint:** `36fa3a9` (3F9B3).
 
-**Next (recommended):** **Docs commit** (this update) → **finish remaining browser smoke** (board-origin Job Card, Activity rail copy if not visually checked) → **3H-3 planning only** (quantity resolver — research/architecture review first). **Do not** start 3H-3 code until explicitly scoped. **Do not** start pricing bridge, persistence/SQL, or PDF/send/approval/payment/status without explicit scope.
+**Next (recommended):** **Review + commit 3I-0** → **3I-1 pricing engine** (requires closing discount/tax ordering open item from decision sheet). **Do not** start proposal persistence/SQL (3J), or PDF/send/approval/payment/status without explicit scope.
 
-### Recent committed sequence (3G6 spine + execution surfaces + 3H-1 + 3H-2 + pre-3H-2 + session bleed fix)
+### Recent committed sequence (3G6 spine + execution surfaces + 3H-1 + 3H-2 + 3H-3 + pre-3H-2 + session bleed fix)
 
 | Commit | Summary |
 |--------|---------|
+| `40e6720` | **3H-3** — Read-only proposal quantity preview: pure `proposalQuantityResolver.ts`; Builder line rows show Qty / Source / Rule / Status; no totals, no qty × price, no persistence |
+| `a522ea8` | docs: update handoff after 3H-2 proposal preview |
 | `00fbf64` | **3H-2** — Read-only Proposal Builder preview: document-style canvas, option pills, section/line preview; `proposalBuilderPreview.ts` + Builder UI components; no persistence/pricing/totals |
 | `ae97a6b` | docs: update handoff after packet session bleed fix |
 | `c12ea4d` | **Packet Job Card session bleed fix** — stale saved-estimate session no longer overrides packet-created Job Card; board-origin gating for estimate→job link and hydration |
@@ -64,7 +66,7 @@
 - **Do not** use `service_items` as the new catalog truth without an explicit migration plan.
 - **Do not** wire `catalog_items` into estimator pricing too early — pricing bridge must be **deterministic** and deliberate.
 - **Templates come after catalog setup** — template install depends on catalog `metadata.seed_key` rows being available.
-- **Proposal Builder shell (3H-1) exists** — read-only, gated; **3H-2** adds read-only line/option preview in Builder route only — **no** quantity resolver, persistence, pricing bridge, or send/PDF yet. Do not enable customer-send or proposal records without explicit scope.
+- **Proposal Builder shell (3H-1) exists** — read-only, gated; **3H-2** adds read-only line/option preview; **3H-3** adds read-only quantity preview on Builder line rows — **no** pricing bridge, persistence, or send/PDF yet. Do not enable customer-send or proposal records without explicit scope.
 - **Do not** add AI pricing.
 - **Do not** auto-install catalog rows from Job Card.
 - **Do not** auto-install proposal templates from Job Card.
@@ -73,7 +75,7 @@
 - **Do not** create PDF / send / approval bridges before proposal records exist.
 - **Do not** touch payment / status / approval while working catalog or template setup (unless the stage explicitly scopes it).
 - **Do not treat table/store existence as product completion** — audit **architecture, functionality, layout, and UI** together before advancing the spine.
-- **3G6 Templates setup surface is complete** (3G6A–E + D2/D3) — **3H-1 Proposal Builder shell** (`feec663`); **3H-2 read-only proposal preview** (`00fbf64`); **pre-3H-2 source-of-truth** (`abd718d`); **packet session bleed fix** (`c12ea4d`); **3H-3+** (quantity resolver, persistence, pricing bridge) remain later; do not enable pricing bridge or customer-send without explicit scope.
+- **3G6 Templates setup surface is complete** (3G6A–E + D2/D3) — **3H-1 Proposal Builder shell** (`feec663`); **3H-2 read-only proposal preview** (`00fbf64`); **3H-3 read-only quantity preview** (`40e6720`); **pre-3H-2 source-of-truth** (`abd718d`); **packet session bleed fix** (`c12ea4d`); **3I+** (pricing bridge, persistence, PDF/send adapters) remain later; do not enable pricing bridge or customer-send without explicit scope.
 - **Do not casually patch pricing** during catalog/template/Job Card link work — see **§11 — Pricing (protected + future redesign)**.
 
 ---
@@ -99,7 +101,7 @@ Job / Job Card
   → Material Orders / Work Orders / Invoices / Job Costing (later)
 ```
 
-**Manual Estimate** is inactive (`?entry=manual&legacy=1` legacy path remains in repo — not canonical). **Proposal templates** have a **live FieldDive route** (`/tools/roofing/templates`) with install/recheck UI. **Proposal Builder (3H-1 shell + 3H-2 preview)** exists at `/tools/roofing/proposals/builder?job=<uuid>` — read-only, gated; shows document-style template preview when gates pass; not a sendable customer proposal yet.
+**Manual Estimate** is inactive (`?entry=manual&legacy=1` legacy path remains in repo — not canonical). **Proposal templates** have a **live FieldDive route** (`/tools/roofing/templates`) with install/recheck UI. **Proposal Builder (3H-1 shell + 3H-2 preview + 3H-3 quantity preview)** exists at `/tools/roofing/proposals/builder?job=<uuid>` — read-only, gated; shows document-style template preview with resolved quantities when gates pass; not a sendable customer proposal yet.
 
 ---
 
@@ -118,7 +120,7 @@ Public Roofr-style training/help indicates:
 Measurement Records (public.measurement_records)
   → Catalog Items (public.catalog_items)
   → Proposal Templates (tables + store + defaults + install helper — **3G6 DONE**)
-  → Proposal Builder (**3H-1 shell DONE** — **3H-2 read-only preview DONE** — quantity resolver / persistence later)
+  → Proposal Builder (**3H-1 shell DONE** — **3H-2 read-only preview DONE** — **3H-3 quantity preview DONE** — persistence / pricing bridge later)
   → Proposal output / PDF / send (protected legacy paths today)
   → Material / order operations (later)
 ```
@@ -219,6 +221,7 @@ Catalog stages through **3F7B** and shell alignment (`01e2d9e`) are complete. Se
 - **3G6E (Proposals tab):** catalog not ready → **Open catalog setup** → `/tools/roofing/catalog`; `ready_for_templates` → **Open proposal templates** → `/tools/roofing/templates` (`JobCardProposalsSetupLinks.tsx`). Overview unchanged (catalog link when not ready only).
 - **+ Proposal (3H-1):** enabled only when composite Builder gates pass (job + measurement + catalog + template); navigates to `/tools/roofing/proposals/builder?job=<uuid>`; **no proposal record created**. Disabled otherwise with gate-specific `title`. Template row: **Not selected**. **No** `installDefaultRoofingProposalTemplates` or template install from Job Card.
 - **Activity rail (pre-3H-2 `abd718d`):** proposal timeline copy uses `resolveJobCardProposalActivityLine` / `proposalBuilderReadiness` — aligned with `+ Proposal` gate state; does not imply Send/PDF/Payment/pricing is live.
+- **Proposal Builder (3H-1 + 3H-2 + 3H-3):** route, gates, read-only context loads, document-style option/section/line preview with quantity preview (`40e6720`); **no** pricing bridge, persistence, or PDF/send integration yet.
 - **No pricing bridge** from `catalog_items` to estimator `useMemo` yet.
 
 **Key files:** `app/lib/catalogTypes.ts`, `app/lib/catalogStore.ts`, `app/lib/defaultRoofingCatalog.ts`, `app/lib/defaultRoofingCatalogInstall.ts`, `app/lib/catalogReadiness.ts`, `app/tools/roofing/catalog/CatalogSetupClient.tsx`, `app/tools/roofing/catalog/*` (workspace components), `app/admin/catalog/catalogAdminConstants.ts`, `app/admin/catalog/catalogAdminUtils.ts`, `app/admin/catalog/components/*` (table, toolbar, detail panel), `app/admin/catalog/CatalogAdminClient.tsx` (thin wrapper), `app/tools/roofing/jobCard/JobCardProposalsSetupLinks.tsx`, `app/tools/roofing/FieldDiveAppShell.tsx`.
@@ -352,10 +355,10 @@ Catalog stages through **3F7B** and shell alignment (`01e2d9e`) are complete. Se
 - **`/tools/roofing/templates`** — live; Templates nav in `FieldDiveAppShell`.
 - `proposalTemplateReadiness.ts` — pure derivation; used on Templates page (and related UI).
 - `installDefaultRoofingProposalTemplates(companyId)` — **click-only from Templates route**; catalog `ready_for_templates` gates install; **not** from Job Card.
-- **+ Proposal** on Job Card — **enabled when Builder gates pass** (`feec663`); launches read-only Builder with **3H-2 preview** when ready; **no** per-job template selection persistence; **no** proposal records.
-- **Proposal Builder (3H-1 + 3H-2)** — route, gates, read-only context loads, document-style option/section/line preview (`00fbf64`); **no** quantity resolver, pricing bridge, persistence, or PDF/send integration yet.
+- **+ Proposal** on Job Card — **enabled when Builder gates pass** (`feec663`); launches read-only Builder with **3H-2 preview + 3H-3 quantity preview** when ready; **no** per-job template selection persistence; **no** proposal records.
+- **Proposal Builder (3H-1 + 3H-2 + 3H-3)** — route, gates, read-only context loads, document-style option/section/line preview with quantity preview (`40e6720`); **no** pricing bridge, persistence, or PDF/send integration yet.
 
-**Key files:** `app/lib/proposalTemplateTypes.ts`, `app/lib/proposalTemplateStore.ts`, `app/lib/defaultRoofingProposalTemplates.ts`, `app/lib/defaultRoofingProposalTemplateInstall.ts`, `app/lib/proposalTemplateReadiness.ts`, `app/lib/proposalBuilderReadiness.ts`, `app/lib/proposalBuilderPreview.ts`, `app/tools/roofing/templates/*`, `app/tools/roofing/proposals/builder/*`, `supabase/migrations/20260531_004_create_proposal_template_tables.sql`.
+**Key files:** `app/lib/proposalTemplateTypes.ts`, `app/lib/proposalTemplateStore.ts`, `app/lib/defaultRoofingProposalTemplates.ts`, `app/lib/defaultRoofingProposalTemplateInstall.ts`, `app/lib/proposalTemplateReadiness.ts`, `app/lib/proposalBuilderReadiness.ts`, `app/lib/proposalBuilderPreview.ts`, `app/lib/proposalQuantityResolver.ts`, `app/tools/roofing/templates/*`, `app/tools/roofing/proposals/builder/*`, `supabase/migrations/20260531_004_create_proposal_template_tables.sql`.
 
 ---
 
@@ -412,8 +415,7 @@ Catalog stages through **3F7B** and shell alignment (`01e2d9e`) are complete. Se
 **Explicitly not in 3H-1:**
 
 - Proposal records / line snapshots
-- Proposal line tables — **3H-2 DONE** (`00fbf64`); see **§6E**
-- Quantity resolver (3H-3)
+- Proposal line tables — **3H-2 DONE** (`00fbf64`); quantity preview — **3H-3 DONE** (`40e6720`); see **§6E**, **§6F**
 - Pricing bridge / customer totals
 - SQL / migrations
 - PDF / send / sign / payment / approval / status changes
@@ -578,7 +580,7 @@ Builder preview **does NOT** read from:
 
 ### Explicitly not in 3H-2
 
-- Quantity resolver (3H-3)
+- ~~Quantity resolver (3H-3)~~ — **DONE** (`40e6720`); see **§6F**
 - Proposal records / line snapshots (3J)
 - Pricing bridge / customer totals (3I)
 - Template selection persistence beyond in-session option tab state
@@ -588,6 +590,163 @@ Builder preview **does NOT** read from:
 **Key files:** `app/lib/proposalBuilderPreview.ts`, `app/tools/roofing/proposals/builder/*` (listed above).
 
 **Protected systems:** untouched.
+
+---
+
+## 6F. PROPOSAL BUILDER READ-ONLY QUANTITY PREVIEW — 3H-3 (`40e6720`)
+
+**Goal:** Pure read-only quantity resolver preview on Builder line rows — answers “what quantity would this line use?” without pricing, persistence, or protected systems.
+
+**Committed:** `40e6720` — 3H3: add read-only proposal quantity preview
+
+**Working tree:** clean at commit. **Typecheck:** only **6** pre-existing errors in `RoofingClientV2.tsx` — unchanged. **Protected systems:** untouched.
+
+### 3H-3 summary
+
+| Area | Detail |
+|------|--------|
+| **Pure resolver** | `app/lib/proposalQuantityResolver.ts` — read-only quantity resolution from measurement + catalog + template rule; no React, Supabase, stores, or pricing |
+| **Modified preview helper** | `app/lib/proposalBuilderPreview.ts` — `ProposalQuantityPreviewContext`; line rows call `resolveProposalLineQuantity` |
+| **Modified Builder UI only** | `ProposalBuilderCanvas.tsx`, `ProposalBuilderClient.tsx`, `ProposalBuilderLinePreviewTable.tsx`, `ProposalBuilderSectionPreview.tsx` |
+| **Not modified** | `RoofingClient.tsx`, `SavedClient.tsx`, `estimateStore`, SQL/migrations, protected systems |
+
+### 3H-3 quantity spine (reads only)
+
+Quantity preview uses **only**:
+
+- Selected measurement record (via `getSelectedMeasurementForJob` in Builder client)
+- `measurementProposalHandoff` (`buildMeasurementProposalHandoff`)
+- `deriveQuantityMapFromRecord` → `MeasurementQuantityMap`
+- Catalog item `quantity_source` / `unit` / `default_quantity`
+- Template item `quantity_rule`
+- Builder line row quantity preview (`buildLinePreviewRow` → `resolveProposalLineQuantity`)
+
+3H-3 **does NOT** use:
+
+- Old estimator area/waste/labor fields
+- Saved estimate snapshot
+- `loadSaved` restore state
+- `estimateStore`
+- Old pricing `useMemo`
+- Payment / status / send / PDF state
+- `localStorage` estimate state
+- Board card model fields
+
+### 3H-3 UI behavior
+
+- **Line rows** show quantity preview inside proposal document rows (3H-2 layout preserved)
+- **Examples (fixture smoke):** Shingles **27.5 SQ**; Starter **142 LF**; Ridge cap **72 LF**
+- **Qty / Source / Rule / Status** shown subtly as metadata under item name
+- **Missing quantities** → `Qty: Not resolved` + subtle amber note (e.g. needs measurement field)
+- **Fixed quantities** → fixed status from template `fixed_quantity` or catalog `default_quantity`
+- **Catalog setup price** remains **reference only** — not multiplied by quantity
+- **No** qty × price, subtotals, totals, tax, margin, markup, or customer contract amount
+- **Standard / Enhanced / Premium** option pills still switch section content
+- **Disabled actions** — Preview / Send / Sign / Payment remain visible but disabled
+
+### Temporary fixture / smoke (removed before commit)
+
+- Brief **development-only** fixture used for visual/programmatic smoke: `?fixture=ready` gated by `process.env.NODE_ENV === "development"`
+- Visible **TEMPORARY dev fixture** banner during review
+- **Standard / Enhanced / Premium** behavior checked; Standard scope line sections had **13 rows**, all resolved in fixture run
+- Fixture included `measurementQuantityMap` via `deriveQuantityMapFromRecord` on mock measurement record
+- **Removed completely before commit** — grep clean except historical handoff doc references to past 3H-2 fixture
+
+### Non-blocking deferred notes (preserve for later)
+
+- **Disposal unit display** — catalog unit may show “each” while source is `debris_tons`; may need “tons” label before pricing/material orders
+- **`roof_squares` map fallback edge case** — review before pricing/material orders (raw vs adjusted conflation risk on non-starter catalog items)
+- **`coverage_rate` / bundle conversion** — not applied in 3H-3
+- **Exact vs rounded quantity setting** — deferred; 3H-3 shows exact values only
+- **Manual quantity overrides** — `manual_later` status only; no override UI
+- **`labor_multiplier` / `custom` quantity sources** — `unsupported_rule`; no fake values
+
+### Hard boundaries preserved (3H-3)
+
+**No:**
+
+- qty × price
+- Line totals / subtotals / totals
+- Tax / margin / markup
+- Customer-facing contract amount
+- Pricing bridge
+- Proposal records / persistence
+- SQL / migrations
+- PDF / send / sign / payment / status integration
+- Material orders / work orders / invoices
+
+**Key files:** `app/lib/proposalQuantityResolver.ts`, `app/lib/proposalBuilderPreview.ts`, `app/tools/roofing/proposals/builder/*` (listed above).
+
+**Protected systems:** untouched.
+
+---
+
+## 6G. PROPOSAL PRICING TYPE CONTRACT — 3I-0 (uncommitted — review before commit)
+
+**Goal:** Pure pricing architecture type contract for the new proposal spine — approved decision sheet locked in chat; types only, no engine math, no UI, no persistence.
+
+**Not committed yet.** Review `app/lib/proposalPricingTypes.ts` + this section before commit.
+
+### 3I-0 approved policy defaults (decision sheet)
+
+| Decision | Locked default |
+|----------|----------------|
+| Waste model | `wasteModel = "adjusted_measurement"` — 3H-3 quantities already include waste; engine must not re-apply `waste_applies` / `coverage_rate` |
+| Profitability | Both `margin` and `markup` supported; **default** `"margin"`. Formulas deferred to 3I-1 |
+| Pricing basis | Cost-plus is RoofrExact default; `unit_price` is explicit override; `fixed_price` / `included` are contract behaviors only |
+| Quantity rounding | Union includes `"exact" \| "whole"` — **only `"exact"` honored** until later approved rounding phase; `"whole"` not implemented in 3I-0 or 3I-1 |
+| Tax | `salesTaxRatePct` + `materialPurchaseTaxRatePct` in `PricingPolicy` / `PricingTaxInput` only — **do not** add tax fields to `CatalogItem` yet |
+| Discount/tax ordering | **Open for 3I-1** — shapes only in 3I-0 |
+| Guardrails | `pass \| warn \| block` typed; rep → block, manager → warn; no enforcement in 3I-0 |
+| Naming | Engine/view: camelCase `...Cents`; future 3J persistence: snake_case `..._cents` |
+| Visibility | `included` → $0 customer price; `internal_only` / `hiddenButInCalc` → in calc, hidden; `grouped` → section/package rollup |
+
+### 3I-0 deliverable
+
+| Area | Detail |
+|------|--------|
+| **Pure types module** | `app/lib/proposalPricingTypes.ts` — policy unions, input/output shapes, guardrail + snapshot intent types, function-type signatures (no bodies), label helpers |
+| **Engine signatures** | `ResolveProposalPricing`, `EvaluateProfitabilityGuardrail` — declared only; **3I-1** implements |
+| **Snapshot intent** | `PRICING_SNAPSHOT_INTENTS` — documents freeze-on-send / lock-on-sign boundary for **3J**; no persistence |
+| **Not modified** | `RoofingClient.tsx`, `SavedClient.tsx`, `estimateStore`, `catalogTypes.ts`, Builder UI, SQL/migrations, protected APIs |
+
+### 3I-0 pricing spine (contract only — no runtime wiring)
+
+Pricing contract **consumes** (later, in 3I-1):
+
+- `ProposalQuantityPreview` / resolved quantity from `proposalQuantityResolver.ts` (3H-3)
+- `CatalogItem` economics: `unit_cost_cents`, `unit_price_cents`, `pricing_basis`, `customer_visibility`
+- `ProposalTemplateItemRole`, option/section structure from templates
+
+3I-0 **does NOT** use or import:
+
+- Old estimator area/waste/labor fields or pricing `useMemo`
+- Saved estimate snapshot / `loadSaved` / `estimateStore`
+- Payment / status / send / PDF state
+- Any pricing math or totals rendering
+
+### Hard boundaries preserved (3I-0)
+
+**No:**
+
+- Pricing engine math or `ResolveProposalPricing` body
+- Guardrail enforcement UI or send blocking
+- qty × price totals in Builder UI
+- Proposal records / SQL / migrations
+- CatalogItem tax field changes
+- `"whole"` quantity rounding behavior
+
+**Deferred to later stages:**
+
+- `raw_plus_waste`, coverage/bundle conversion (quantity-layer migration)
+- Discount vs tax ordering (3I-1 approval required)
+- Manual subtotal override logic
+- Deposit / financing / payment (3K)
+- Snapshot persistence tables (3J)
+
+**Key file:** `app/lib/proposalPricingTypes.ts`
+
+**Protected systems:** untouched (types-only stage).
 
 ---
 
@@ -615,11 +774,11 @@ Builder preview **does NOT** read from:
 
 ## 8. CURRENT NEXT (SUMMARY)
 
-**Latest committed checkpoint:** **3H-2 read-only proposal preview** (`00fbf64`). **3H-1:** `feec663`. **Packet session bleed fix:** `c12ea4d`. **Pre-3H-2:** `abd718d`. **Working tree:** clean.
+**Latest checkpoint:** **3I-0 proposal pricing type contract** (uncommitted — review before commit). **Last committed:** **3H-3** (`40e6720`). **3H-2:** `00fbf64`. **3H-1:** `feec663`. **Packet session bleed fix:** `c12ea4d`. **Pre-3H-2:** `abd718d`.
 
-**3G6 — COMPLETE** (3G6A–E + Templates D2 `227061c` + Catalog D2 `29ca190`). **3F9C Job Card** — COMPLETE (`0015be1`). **3H-1 shell** — COMPLETE (`feec663`). **3H-2 read-only preview** — COMPLETE (`00fbf64`). **Pre-3H-2 correction** — COMPLETE (`abd718d`). **Packet session bleed fix** — COMPLETE (`c12ea4d`). **Jobs Board save point:** `b27a444`.
+**3G6 — COMPLETE** (3G6A–E + Templates D2 `227061c` + Catalog D2 `29ca190`). **3F9C Job Card** — COMPLETE (`0015be1`). **3H-1 shell** — COMPLETE (`feec663`). **3H-2 read-only preview** — COMPLETE (`00fbf64`). **3H-3 read-only quantity preview** — COMPLETE (`40e6720`). **3I-0 type contract** — DONE (uncommitted). **Pre-3H-2 correction** — COMPLETE (`abd718d`). **Packet session bleed fix** — COMPLETE (`c12ea4d`). **Jobs Board save point:** `b27a444`.
 
-**Immediate next:** **Docs commit** (this update) → **finish remaining browser smoke** (board-origin Job Card, Activity rail copy if not checked) → **3H-3 planning only** (quantity resolver — research/architecture review first). **Do not** start 3H-3 code until explicitly scoped. **Do not** start pricing bridge, persistence/SQL, or PDF/send/approval/payment/status without explicit scope (see §11 — Pricing).
+**Immediate next:** **Review + commit 3I-0** → **3I-1 pricing engine** (close discount/tax ordering open item first). **Do not** start proposal persistence/SQL (3J), or PDF/send/approval/payment/status without explicit scope (see §11 — Pricing).
 
 **Optional (non-blocking):** Job Card tab extraction polish, Job Packet legacy gating, handoff-only doc updates.
 
@@ -709,11 +868,11 @@ Then open and read:
 - `docs/fielddive-global-handoff.md` (this file)
 - **§11 — Forward Roadmap / No-Drift Next Steps** (ordered stages; what is done vs next)
 
-**Verify HEAD** is **`00fbf64`** (3H-2 read-only proposal preview) or identify newer commits and reconcile this doc.
+**Verify HEAD** is **`40e6720`** (3H-3 read-only proposal quantity preview) or identify newer commits and reconcile this doc.
 
 **Confirm** working tree is clean (or note doc-only WIP).
 
-**Confirm** next stage is **3H-3 planning** (quantity resolver) — **do not code** until research/architecture review and stage explicitly scoped. **3H-2 complete (`00fbf64`).** **Packet → Job Card flow confirmed post-`c12ea4d`.** **Pre-3H-2 correction is complete (`abd718d`).** **3H-1 is complete (`feec663`).** **Do not start pricing bridge or persistence without explicit scope.**
+**Confirm** next stage is **3I pricing architecture research/planning only** — **do not code** until research/architecture review and stage explicitly scoped. **3H-3 complete (`40e6720`).** **3H-2 complete (`00fbf64`).** **Packet → Job Card flow confirmed post-`c12ea4d`.** **Pre-3H-2 correction is complete (`abd718d`).** **3H-1 is complete (`feec663`).** **Do not start pricing bridge (3I code), persistence (3J), or protected PDF/send/payment/status without explicit scope.**
 
 Inspect before planning **3F9** (or chosen stage):
 
@@ -739,8 +898,9 @@ Inspect before planning **3F9** (or chosen stage):
 | `app/lib/defaultRoofingProposalTemplateInstall.ts` | Idempotent template install |
 | `app/lib/measurementProposalHandoff.ts` | Measurement → proposal input (passive) |
 | `app/lib/proposalBuilderReadiness.ts` | Composite Builder gates (pure/read-only) |
-| `app/lib/proposalBuilderPreview.ts` | Pure read-only line/section preview helpers (3H-2) |
-| `app/tools/roofing/proposals/builder/*` | Proposal Builder shell + read-only preview (3H-1 + 3H-2) |
+| `app/lib/proposalBuilderPreview.ts` | Pure read-only line/section preview helpers (3H-2 + 3H-3 quantity context) |
+| `app/lib/proposalQuantityResolver.ts` | Pure read-only line quantity resolver (3H-3) |
+| `app/tools/roofing/proposals/builder/*` | Proposal Builder shell + read-only preview + quantity preview (3H-1 + 3H-2 + 3H-3) |
 | `app/tools/roofing/RoofingClient.tsx` | Packet handoff (`fd87152`), pre-3H-2 correction (`abd718d`), session bleed fix (`c12ea4d`), Proposals tab + Builder launch (`feec663`) |
 | `app/tools/roofing/jobCard/jobCardIdentityUtils.ts` | Pure Job Card identity display from `JobRecord` (pre-3H-2) |
 | `supabase/migrations/20260531_004_create_proposal_template_tables.sql` | Live template schema |
@@ -776,7 +936,7 @@ Confirm: `+ Proposal` on Job Card launches Builder only when gates pass; `instal
 
 | Route | Table / role |
 |-------|----------------|
-| `/tools/roofing/proposals/builder?job=<uuid>` | **3H-1 + 3H-2** — Proposal Builder (read-only, gated); document-style preview when gates pass; blocked without job/gates; no proposal records |
+| `/tools/roofing/proposals/builder?job=<uuid>` | **3H-1 + 3H-2 + 3H-3** — Proposal Builder (read-only, gated); document-style preview with quantity preview when gates pass; blocked without job/gates; no proposal records |
 | `/tools/roofing?entry=job-card&job=<uuid>` | Job Card for persisted job (packet-origin after Continue, or direct URL) |
 | `/tools/roofing?entry=job-card` | Job Card shell without job — limited (no measurement save without job id) |
 | `/tools/roofing?entry=packet` | Job Packet / New Job intake (canonical capture/prep) |
@@ -796,9 +956,9 @@ Use this section as the **ordered checklist** for future GPT/Cursor sessions. Kn
 
 ### Current checkpoint
 
-**Latest code checkpoint:** **3H-2 read-only proposal preview** (`00fbf64`). **3H-1:** `feec663`. **Packet session bleed fix:** `c12ea4d`. **Pre-3H-2:** `abd718d`.  
+**Latest code checkpoint:** **3H-3 read-only proposal quantity preview** (`40e6720`). **3H-2:** `00fbf64`. **3H-1:** `feec663`. **Packet session bleed fix:** `c12ea4d`. **Pre-3H-2:** `abd718d`.  
 **Jobs Board approved save point:** **3F9B4-RoofrExact** (`b27a444`).  
-**Latest handoff doc checkpoint:** aligning with **`00fbf64`** — **next: finish remaining smoke, then 3H-3 planning** (no 3H-3 code until research/architecture review and explicit scope).
+**Latest handoff doc checkpoint:** aligning with **3I-0 type contract** (uncommitted) — **next: review + commit 3I-0, then 3I-1 engine (explicit scope)**.
 
 **Completed working state (summary):**
 
@@ -817,11 +977,12 @@ Use this section as the **ordered checklist** for future GPT/Cursor sessions. Kn
 | **Packet session bleed fix** | **DONE** (`c12ea4d`) — stale saved estimate no longer overrides packet-created Job Card |
 | **3H-1** Proposal Builder shell + gates + Job Card launch | **DONE** (`feec663`) — read-only |
 | **3H-2** Read-only proposal preview (document canvas, options, sections, lines) | **DONE** (`00fbf64`) — Builder-route-only |
+| **3H-3** Read-only proposal quantity preview (pure resolver, line row Qty/Source/Rule/Status) | **DONE** (`40e6720`) — Builder-route-only |
 | **Canonical catalog route** | **`/tools/roofing/catalog`** — `CatalogSetupClient` |
 | **Canonical templates route** | **`/tools/roofing/templates`** — `TemplatesSetupClient` |
 | **Proposal Builder route** | **`/tools/roofing/proposals/builder?job=<uuid>`** |
 | **Job Card Proposals** | Setup links (3G6E); `+ Proposal` when Builder gates pass (3H-1) |
-| **Protected** | Pricing, payments, approval, status, saved estimates, send/PDF **untouched** through 3H-2, 3H-1, pre-3H-2 correction, and session bleed fix (`c12ea4d`) |
+| **Protected** | Pricing, payments, approval, status, saved estimates, send/PDF **untouched** through 3H-3, 3H-2, 3H-1, pre-3H-2 correction, and session bleed fix (`c12ea4d`) |
 
 **SQL note:** Catalog/template table verification was done in Supabase during 3F/3G stages; do not re-run schema changes from roadmap work unless a stage explicitly scopes a new migration.
 
@@ -833,30 +994,31 @@ Use this section as the **ordered checklist** for future GPT/Cursor sessions. Kn
 | **Job Packet → Job Card** | **Fixed** (`fd87152`, `abd718d`, **`c12ea4d`**) — stale `currentJobId` handoff; Continue gated; create-only from fresh packet; intake reset; **session bleed fix** — packet values → createJob → new UUID → persisted Job Card identity; browser smoke **confirmed** post-`c12ea4d` |
 | **Job Card identity** | **Improved** (`abd718d`, **`c12ea4d`**) — packet/direct `?job=` uses persisted `JobRecord`; board-origin still saved-estimate overlay; **not** full `JobCardViewModel` |
 | **Catalog / Templates** | Aligned workspace surfaces (`CatalogSetupClient`, `TemplatesSetupClient`); click-only install |
-| **Proposal Builder (3H-1 + 3H-2)** | Read-only shell + document-style preview; composite gates; no proposal records; visual review passed via dev fixture (removed before commit) |
+| **Proposal Builder (3H-1 + 3H-2 + 3H-3)** | Read-only shell + document-style preview + quantity preview; composite gates; no proposal records; 3H-3 smoke via dev fixture (removed before `40e6720` commit) |
 | **Legacy routes (still reachable)** | `?entry=manual&legacy=1` (legacy estimate workspace); `entry=manual` without legacy → Job Card quirk; hidden V2 preview (`sr-only` toggle); dead `renderEstimateBuilderShell` in repo |
 
-Treat these as **known architecture risks** — not forgotten — when planning 3H-3+ and Jobs Board spine migration.
+Treat these as **known architecture risks** — not forgotten — when planning 3I+ and Jobs Board spine migration.
 
 ### Must confirm manually (remaining smoke)
 
-**Optional remaining browser checks (not blocking 3H-3 planning):**
+**Optional remaining browser checks (not blocking 3I planning):**
 
 1. **Fresh packet** — **CONFIRMED** post-`c12ea4d`: clean contact/property fields; Continue creates new job UUID; Job Card shows persisted packet details; refresh preserves info.
 2. **Second packet** — **CONFIRMED** post-`c12ea4d`: return to packet starts clean; second packet yields different UUID and correct details; stale saved-estimate data does not bleed into packet-created Job Card.
 3. **Direct Job Card** — **CONFIRMED** post-`c12ea4d`: refresh preserves identity from DB (`JobRecord`).
 4. **Board-origin Job Card** — **NOT YET CONFIRMED** — open from Jobs Board; saved-estimate flow works; **Back to Job Board** works.
 5. **Activity rail** — **NOT YET CONFIRMED** (if not visually checked) — blocked gates show blocker copy; ready gates show **Proposal Builder ready**; copy does **not** imply Send/PDF/Payment/pricing is live.
-6. **Builder route (real gates)** — **NOT YET CONFIRMED** on live gated job — blocked/ready states; **3H-2 visual review PASSED** via temporary dev fixture (removed before `00fbf64` commit).
+6. **Builder route (real gates)** — **NOT YET CONFIRMED** on live gated job — blocked/ready states; **3H-2 visual review PASSED** via temporary dev fixture (removed before `00fbf64` commit); **3H-3 quantity preview PASSED** via brief dev fixture + programmatic smoke (removed before `40e6720` commit)
 
-### Must-fix-before-3H-3 (architecture — code items)
+### Must-fix-before-3I (architecture — code items)
 
 1. ~~**Activity rail copy**~~ — **DONE** (`abd718d`).
 2. ~~**Fresh packet intake reset** (navigate-away/back)~~ — **DONE** (`abd718d`); **same-URL** re-entry + full draft lifecycle — **Future/Later** (see below).
 3. ~~**Job Card `?job=` identity (minimal)**~~ — **DONE** (`abd718d`); full `JobCardViewModel` — **Future/Later**.
 4. ~~**3H-2 line preview**~~ — **DONE** (`00fbf64`) — uses job measurement + template graph; **not** legacy estimator fields; Builder-route-only.
-5. **3H-3 quantity resolver** must remain pure/read-only first — **not** wired to pricing totals or persistence without explicit scope.
-6. **Jobs Board** remains saved-estimate spine — acceptable for 3H-3 if Builder uses `?job=`; migration **Future/Later**.
+5. ~~**3H-3 quantity resolver**~~ — **DONE** (`40e6720`) — pure/read-only; **not** wired to pricing totals or persistence.
+6. ~~**3I-0 pricing type contract**~~ — **DONE** (uncommitted) — `proposalPricingTypes.ts`; **3I-1 engine** next after discount/tax ordering closed; must consume 3H-3 quantities — **not** revive old FieldDive estimator/pricing as product spine.
+7. **Jobs Board** remains saved-estimate spine — acceptable for 3I planning if Builder uses `?job=`; migration **Future/Later**.
 
 ---
 
@@ -1282,33 +1444,37 @@ Committed **`0015be1`** after manual browser checks passed. **Do not move to 3G6
 
 ---
 
-### Stage 3H — Proposal Builder — **3H-1 DONE (`feec663`); 3H-2 DONE (`00fbf64`); 3H-3+ LATER**
+### Stage 3H — Proposal Builder — **3H-1 DONE (`feec663`); 3H-2 DONE (`00fbf64`); 3H-3 DONE (`40e6720`); 3I+ LATER**
 
 **3H-1 complete:** Builder route/shell, composite gates, read-only context loads, Job Card `+ Proposal` launch. See **§6B**.
 
 **3H-2 complete:** Read-only document-style option/section/line preview from template graph + catalog join. See **§6E**.
 
-**Do not start 3H-3 until:** research/architecture review and explicit scope. **3H-2 visual review passed** (dev fixture removed before commit).
+**3H-3 complete:** Pure read-only quantity resolver + Builder line row quantity preview. See **§6F**.
 
-**3H-3 goal (next planned):** Pure quantity resolver (`proposalQuantityResolver.ts`) — read-only display first; **no** pricing totals or persistence without explicit scope.
+**Do not start 3I until:** research/architecture review and explicit scope. **3H-3 must be consumed by 3I** — do not revive old FieldDive estimator/pricing as the product spine.
 
 **Route (live):** `/tools/roofing/proposals/builder?job=<uuid>`
 
 **Likely new (later stages):** `proposalTypes.ts` (view-model only), proposal record tables (migration when scoped), line snapshots.
 
-**Suggested commits (remaining):** `Add proposal quantity resolver (3H-3)`, `Add proposal builder readiness refinements`
+**Suggested commits (remaining):** `Add proposal pricing architecture (3I)`, `Add proposal builder readiness refinements`
 
-**Explicitly not in 3H-1/3H-2:** proposal records, pricing bridge, PDF/send/approval/payment/status, SQL/migrations, resolved quantities, totals.
+**Explicitly not in 3H-1/3H-2/3H-3:** proposal records, pricing bridge, PDF/send/approval/payment/status, SQL/migrations, qty × price, totals.
 
 ---
 
-### Stage 3I — Deterministic catalog pricing bridge — **LATER**
+### Stage 3I — Deterministic catalog pricing bridge — **3I-0 DONE (uncommitted); 3I-1 NEXT**
 
-**After** Builder can resolve template lines. Pure helper (e.g. `proposalPricingEngine.ts`). **AI must not touch pricing truth.**
+**After** 3H-3 quantity preview is stable. **3I must consume 3H-3 resolved quantities** — not legacy estimator fields or saved-estimate snapshots.
+
+**3I-0 (types only — review before commit):** `app/lib/proposalPricingTypes.ts` — approved decision sheet locked; policy/input/output/guardrail/snapshot intent types; function signatures only; no math, no UI, no persistence. `"whole"` rounding in contract only — not implemented until later phase.
+
+**3I-1 (next — requires explicit scope):** Pure pricing engine (e.g. `proposalPricingEngine.ts`) implementing `ResolveProposalPricing` + `EvaluateProfitabilityGuardrail`. Must close discount/tax ordering open item before implementation. **AI must not touch pricing truth** without deterministic engine.
 
 Run parallel to legacy estimator first; do not overwrite `useMemo` until validated.
 
-**Suggested commits:** `Add proposal pricing engine foundation`, `Add proposal line pricing preview`, `Compare builder totals to legacy estimator`
+**Suggested commits:** `Add proposal pricing type contract (3I-0)`, `Add proposal pricing engine foundation (3I-1)`, `Add proposal line pricing preview`, `Compare builder totals to legacy estimator`
 
 ---
 
@@ -1374,8 +1540,8 @@ Treat as **drift** if a session:
 - Touches payment/status/approval while doing catalog/template setup
 - Makes **Job Card** the catalog/template **editor** instead of linking to setup routes
 - Skips **Roofr research** before **3F9** execution-surface alignment or **3G6** templates UI layout
-- Starts **3H-3 quantity resolver** before research/architecture review and explicit scope
-- Starts **pricing bridge or proposal persistence** before 3H-3 and deliberate pricing architecture (3I)
+- Starts **3I pricing bridge code** before research/architecture review and explicit scope
+- Starts **pricing bridge or proposal persistence** before 3H-3 quantities are consumed by deliberate pricing architecture (3I)
 - Assumes **catalog table + store** equals Roofr-style **product completion** (3F8 addressed this — do not regress)
 - Regresses **Catalog D2** or **Templates D2** into readiness-dashboard-first layouts (3G6D2/D3 corrected this)
 - Iterates on FieldDive’s **Dashboard-first** pattern instead of aligning to Roofr’s **Jobs / Job Board** operational center
@@ -1402,8 +1568,8 @@ Treat as **drift** if a session:
 - **3G6** — **DONE** (`b78c9ee`) — Templates route, D2 workspace, Job Card passive link
 - **3H-1** — **DONE** (`feec663`) — Proposal Builder shell + gates; Job Card launch when ready
 - **3H-2** — **DONE** (`00fbf64`) — Read-only document-style line/option preview; Builder-route-only
-- **3H-3** — Pure quantity resolver — **NEXT PLANNED** (after research/architecture review)
-- **3I** — New proposal pricing architecture / deterministic catalog pricing bridge — **LATER** (not until 3H-3 + deliberate pricing design)
+- **3H-3** — **DONE** (`40e6720`) — Pure read-only quantity resolver + line row quantity preview; Builder-route-only
+- **3I** — New proposal pricing architecture / deterministic catalog pricing bridge — **NEXT PLANNED (planning only)** — must consume 3H-3 quantities; not until research/architecture review + explicit scope
 - **3J** — Proposal records / line snapshots — **LATER**
 - **3K** — PDF / send / approval / payment adapters — **LATER** (protected paths today)
 - Signatures / co-signers, financing blocks
@@ -1416,7 +1582,10 @@ Treat as **drift** if a session:
 - **Job Card identity** — full `JobCardViewModel` from `JobRecord` (minimal `?job=` display **done** in `abd718d`; packet session bleed **fixed** in `c12ea4d`)
 - **Hard-gate or retire** `?entry=manual&legacy=1`; remove dead `renderEstimateBuilderShell`
 - ~~**Proposal line preview** (3H-2)~~ — **DONE** (`00fbf64`)
-- **Proposal records / line snapshots** (persistence) — later, after 3H-3
+- ~~**Proposal quantity preview** (3H-3)~~ — **DONE** (`40e6720`)
+- **3H-3 deferred polish (non-blocking):** disposal unit label (“tons” vs “each”); `roof_squares` map fallback edge case — review before pricing/material orders
+- **3H-3 deferred (by design):** `coverage_rate` / bundle conversion; exact vs rounded quantity setting; manual quantity overrides UI; `labor_multiplier` / custom quantity sources; material order quantities
+- **Proposal records / line snapshots** (persistence) — later, after 3I architecture (3J)
 - **PDF / send / approval / payment / status** — later (protected paths today)
 - **Material orders / work orders / invoices / job costing** — later
 - Inactive catalog item warnings in template install UI
@@ -1457,22 +1626,21 @@ Treat as **drift** if a session:
 
 **Best next move:**
 
-1. **Docs commit** (this handoff update) — checkpoint `00fbf64`
-2. **Finish remaining browser smoke** — board-origin Job Card; Activity rail copy (if not visually checked); Builder blocked/ready on live gated job (3H-2 visual **PASSED** via dev fixture)
-3. **3H-3 planning only** — quantity resolver research/architecture review — **no 3H-3 code until explicitly scoped**
+1. **Docs commit** (this handoff update) — checkpoint `40e6720`
+2. **3I pricing architecture research/planning only** — must consume 3H-3 quantities; must not revive old FieldDive estimator/pricing as product spine; **no 3I code until explicitly scoped**
+3. **Optional remaining browser smoke** — board-origin Job Card; Activity rail copy; Builder on live gated job (3H-3 smoke **PASSED** via dev fixture removed before commit)
 
-**Optional (non-blocking):** Job Card tab extraction; Job Packet legacy gating; Jobs Board 3F9B4 follow-on polish; packet draft lifecycle design.
+**Optional (non-blocking):** Job Card tab extraction; Job Packet legacy gating; Jobs Board 3F9B4 follow-on polish; packet draft lifecycle design; 3H-3 deferred polish (disposal unit label, `roof_squares` fallback review).
 
 **Typical order from here:**
 
-1. **Handoff doc commit** (docs only) — checkpoint `00fbf64`
-2. **Remaining manual smoke** — board-origin Job Card, Activity rail, Builder on live gated job
-3. **3H-3 planning** — scope pure quantity resolver (read-only first)
-4. **3H-3 implementation** — only after research/architecture review + explicit approval
-5. **3I** — new proposal pricing architecture / deterministic pricing bridge (deliberate design first)
-6. **3J+** — proposal records/snapshots, PDF/send/approval/payment adapters (protected paths)
+1. **Handoff doc commit** (docs only) — checkpoint `40e6720`
+2. **3I planning** — scope new proposal pricing architecture (research only first)
+3. **3I implementation** — only after research/architecture review + explicit approval; consumes 3H-3 quantities
+4. **3J** — proposal records/snapshots (explicit scope only)
+5. **3K+** — PDF/send/approval/payment adapters (protected paths)
 
-**Do not skip to pricing bridge (3I)** without 3H-3 and deliberate pricing architecture. **Do not start persistence/SQL (3J)** without explicit scope. **Do not touch protected pricing/payment/send/status paths** without explicit planning. **Keep old FieldDive pricing/payment as legacy adapters only** until new architecture is planned.
+**Do not skip to pricing bridge (3I code)** without planning. **Do not start persistence/SQL (3J)** without explicit scope. **Do not touch protected pricing/payment/send/status paths** without explicit planning. **Keep old FieldDive pricing/payment as legacy adapters only** until new architecture is planned.
 
 ---
 
@@ -1487,7 +1655,8 @@ Treat as **drift** if a session:
 - **2026-05-31:** **3F8 complete** — Pass B (`a16bccd`), Pass C-D (`5bcf0fe`), Pass E (`d422ee6`); catalog setup workspace, detail panel, Job Card catalog link; **next: 3G6** Templates setup/readiness/install surface.
 - **2026-05-31:** Roofr execution-surface research — **next stage changed to 3F9** (Jobs / Execution Surface Alignment) **before 3G6**; align Jobs/Pipeline/Job Packet/Job Card with Roofr before Templates UI.
 - **2026-05-31:** **3F9C complete** — Job Card architecture + visual shell committed (`0015be1`); origin context (`from=board`), functional tabs, Activity rail, hook fix; manual checks passed; **next: 3G6** Templates setup (Roofr research first); Jobs Board save point **`b27a444`** preserved.
-- **2026-06-04:** **3H-2 complete** — Read-only proposal preview (`00fbf64`); document canvas, option pills, section/line rows; dev fixture used for visual review then removed; **next: docs commit, then 3H-3 planning**.
+- **2026-06-04:** **3H-3 complete** — Read-only proposal quantity preview (`40e6720`); pure `proposalQuantityResolver.ts`; Builder line rows show Qty/Source/Rule/Status; dev fixture smoke then removed; **next: docs commit, then 3I pricing architecture planning only**.
+- **2026-06-04:** **3H-2 complete** — Read-only proposal preview (`00fbf64`); document canvas, option pills, section/line rows; dev fixture used for visual review then removed; handoff (`a522ea8`).
 - **2026-06-04:** **Packet Job Card session bleed fix** (`c12ea4d`) — stale saved-estimate session no longer overrides packet-created Job Card; browser smoke confirmed; handoff (`ae97a6b`).
 - **2026-06-04:** **Pre-3H-2 source-of-truth fix** (`abd718d`) — Activity rail readiness copy, fresh packet intake reset, Job Card `?job=` identity; handoff (`d4b4f25`).
 - **2026-06-04:** **3H-1 complete** — Proposal Builder shell and gates (`feec663`); packet handoff fix (`fd87152`); handoff (`cf3706f`); built-surface audit.
