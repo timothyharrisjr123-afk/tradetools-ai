@@ -116,6 +116,7 @@ import {
   buildProposalBuilderHref,
   deriveProposalBuilderReadiness,
   formatProposalBuilderDisabledButtonTitle,
+  resolveJobCardProposalActivityLine,
 } from "@/app/lib/proposalBuilderReadiness";
 import { deriveProposalTemplateReadiness } from "@/app/lib/proposalTemplateReadiness";
 import {
@@ -137,6 +138,7 @@ import JobCardTabs, { type JobCardTabId } from "@/app/tools/roofing/jobCard/JobC
 import JobCardSectionPanel from "@/app/tools/roofing/jobCard/JobCardSectionPanel";
 import JobCardActivityPanel, { type JobCardActivityItem } from "@/app/tools/roofing/jobCard/JobCardActivityPanel";
 import JobCardOverviewSummary from "@/app/tools/roofing/jobCard/JobCardOverviewSummary";
+import { resolveJobCardIdentityFromRecord } from "@/app/tools/roofing/jobCard/jobCardIdentityUtils";
 import JobCardProposalsSetupLinks from "@/app/tools/roofing/jobCard/JobCardProposalsSetupLinks";
 import { loadCompanyVoiceProfile, saveCompanyVoiceProfile, type VoiceTone } from "@/app/lib/companyVoiceProfile";
 
@@ -1071,6 +1073,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
   const measurementFormHydratedRef = useRef<string | null>(null);
   const [jobCardTab, setJobCardTab] = useState<JobCardTabId>("overview");
   const [jobCardBoardOrigin, setJobCardBoardOrigin] = useState(false);
+  const [hydratedJobRecord, setHydratedJobRecord] = useState<JobRecord | null>(null);
 
   useEffect(() => {
     if (loadSavedId || isBoardOriginParam) {
@@ -1094,6 +1097,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
     if (entryMode === "packet" || entryMode === "instant") {
       setCurrentJobId(null);
       jobHydratedRef.current = null;
+      setHydratedJobRecord(null);
     }
   }, [jobParam, entryMode]);
 
@@ -1508,6 +1512,28 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
   const [jobCity, setJobCity] = useState("");
   const [jobState, setJobState] = useState("");
   const [jobZip, setJobZip] = useState("");
+
+  const resetPacketIntakeFields = useCallback(() => {
+    setCustomerName("");
+    setCustomerEmail("");
+    setCustomerPhone("");
+    setJobAddress1("");
+    setJobCity("");
+    setJobState("");
+    setJobZip("");
+    setJobCreationError(null);
+    setAutofillFromZip(false);
+    setZipNoPresetMessage(false);
+    setPreAutofillSnapshot(null);
+  }, []);
+
+  useEffect(() => {
+    if (loadSavedId || isBoardOriginParam) return;
+    if (entryMode !== "packet" && entryMode !== "instant") return;
+    if (jobParam && isUuidLike(jobParam)) return;
+    resetPacketIntakeFields();
+  }, [entryMode, jobParam, loadSavedId, isBoardOriginParam, resetPacketIntakeFields]);
+
   const hydrateJobDisplayFromRecord = useCallback(
     (job: JobRecord, options: { fillEmptyOnly: boolean }) => {
       const { fillEmptyOnly } = options;
@@ -1595,12 +1621,15 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
         const job = await getJobById(jobId);
         if (!job) {
           console.warn("[RoofingClient] job hydrate: job not found", jobId);
+          setHydratedJobRecord(null);
           return;
         }
         if (String(job.company_id || "").trim() !== cid) {
           console.warn("[RoofingClient] job hydrate: company mismatch", { jobId, companyId: cid });
+          setHydratedJobRecord(null);
           return;
         }
+        setHydratedJobRecord(job);
         hydrateJobDisplayFromRecord(job, { fillEmptyOnly });
         jobHydratedRef.current = jobId;
         setCurrentJobId(jobId);
@@ -1616,6 +1645,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
 
   useEffect(() => {
     if (entryMode !== "job-card") {
+      setHydratedJobRecord(null);
       setPersistedSelectedMeasurement(null);
       measurementFetchInFlightRef.current = null;
       measurementFormHydratedRef.current = null;
@@ -4274,7 +4304,14 @@ Thanks,`;
       setZipPresets({});
     }
     if (typeof window !== "undefined" && !isRestoringRef.current) {
-      setJobZip(getStoredLastZip());
+      const isFreshPacketEntry =
+        !loadSavedId &&
+        fromParam !== "board" &&
+        (entryParam === "packet" || entryParam === "instant") &&
+        !(jobParam && isUuidLike(jobParam));
+      if (!isFreshPacketEntry) {
+        setJobZip(getStoredLastZip());
+      }
       setLaborModeState(getStoredLaborMethod());
     }
   }, []);
@@ -6784,11 +6821,36 @@ Thanks,`;
   }
 
   function renderJobCardShell() {
-    const displayName = (customerName || "").trim() || "New roofing job";
-    const hasAddress = (jobAddress1 || "").trim().length > 0;
-    const addressLine = hasAddress
-      ? [jobAddress1, jobCity, jobState, jobZip].map((s) => (s || "").trim()).filter(Boolean).join(", ")
-      : "Property details not complete";
+    const isBoardOrigin = isJobCardBoardContext;
+    const identityFromJobRecord =
+      !isBoardOrigin &&
+      hydratedJobRecord != null &&
+      currentJobId != null &&
+      hydratedJobRecord.id === currentJobId;
+
+    let displayName: string;
+    let headerPhone: string;
+    let headerEmail: string;
+    let hasAddress: boolean;
+    let addressLine: string;
+
+    if (identityFromJobRecord) {
+      const identity = resolveJobCardIdentityFromRecord(hydratedJobRecord);
+      displayName = identity.displayName;
+      headerPhone = identity.phone;
+      headerEmail = identity.email;
+      hasAddress = identity.hasAddress;
+      addressLine = identity.addressLine;
+    } else {
+      displayName = (customerName || "").trim() || "New roofing job";
+      headerPhone = customerPhone;
+      headerEmail = customerEmail;
+      hasAddress = (jobAddress1 || "").trim().length > 0;
+      addressLine = hasAddress
+        ? [jobAddress1, jobCity, jobState, jobZip].map((s) => (s || "").trim()).filter(Boolean).join(", ")
+        : "Property details not complete";
+    }
+
     const localMeasurement = buildJobCardSelectedMeasurement({
       area,
       waste,
@@ -7066,29 +7128,24 @@ Thanks,`;
 
     const wsHelper = "mt-1.5 text-[11px] leading-snug text-slate-500";
 
-    const isBoardOrigin = isJobCardBoardContext;
     const jobCardDisplay = buildJobCardDisplayModel(currentSaved ?? null, {
       customerName: displayName,
       address: addressLine !== "Property details not complete" ? addressLine : undefined,
       roofAreaSqFt: Number(area || 0),
     });
     const activityWhen = jobCardDisplay.lastUpdatedDisplay?.replace(/^Updated /, "") ?? "Just now";
+    const proposalActivityLine = resolveJobCardProposalActivityLine(proposalBuilderReadiness, {
+      measurementHandoff: proposalHandoff,
+      catalogReadiness,
+      templateReadiness: proposalTemplateReadiness,
+      proposalNotStartedSubtitle: proposalHandoffNextAction.subtitle,
+    });
     const jobCardActivityItems: JobCardActivityItem[] = [
       isBoardOrigin && currentSaved
         ? { when: activityWhen, label: "Estimate loaded", note: "Opened from Job Board" }
         : { when: "Just now", label: "Job card opened", note: "New job / intake path" },
       { ...activityMeasurementLine, when: activityWhen },
-      proposalHandoff.proposalReady
-        ? {
-            when: activityWhen,
-            label: "Measurement ready for proposal",
-            note: "Proposal Builder not enabled yet",
-          }
-        : {
-            when: activityWhen,
-            label: "Proposal not started",
-            note: proposalHandoffNextAction.subtitle,
-          },
+      { ...proposalActivityLine, when: activityWhen },
     ];
     const passiveActionPrimary =
       "inline-flex cursor-not-allowed items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-500 opacity-70 shadow-sm";
@@ -7111,8 +7168,8 @@ Thanks,`;
             <JobCardHeader
               display={jobCardDisplay}
               isBoardOrigin={isBoardOrigin}
-              phone={customerPhone}
-              email={customerEmail}
+              phone={headerPhone}
+              email={headerEmail}
             />
             <JobCardMetadataStrip display={jobCardDisplay} />
             <JobCardTabs activeTab={jobCardTab} onTabChange={setJobCardTab} />
@@ -7122,8 +7179,8 @@ Thanks,`;
               <JobCardSectionPanel tabId="overview" activeTab={jobCardTab} title="Overview" subtitle="Job summary and status at a glance">
                 <JobCardOverviewSummary
                   display={jobCardDisplay}
-                  phone={customerPhone}
-                  email={customerEmail}
+                  phone={headerPhone}
+                  email={headerEmail}
                   address={addressLine}
                   hasAddress={hasAddress}
                   measurementStatus={measurementsHeaderStatus}

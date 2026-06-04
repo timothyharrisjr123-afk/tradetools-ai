@@ -193,3 +193,49 @@ export function buildProposalBuilderHref(jobId: string): string {
 export function buildJobCardHref(jobId: string): string {
   return `/tools/roofing?entry=job-card&job=${encodeURIComponent(jobId)}`;
 }
+
+export function resolveJobCardProposalActivityLine(
+  readiness: ProposalBuilderReadiness,
+  context?: {
+    measurementHandoff?: MeasurementProposalHandoff | null;
+    catalogReadiness?: CatalogReadinessSummary;
+    templateReadiness?: ProposalTemplateReadiness;
+    proposalNotStartedSubtitle?: string;
+  }
+): { label: string; note: string } {
+  if (readiness.loading) {
+    return {
+      label: "Checking proposal setup",
+      note: "Verifying catalog, templates, and measurement readiness…",
+    };
+  }
+  if (readiness.ready) {
+    return {
+      label: "Proposal Builder ready",
+      note: "Open Proposal Builder to preview this job setup. Send and pricing are later.",
+    };
+  }
+  if (
+    readiness.primaryGate === "measurement_not_ready" &&
+    context?.proposalNotStartedSubtitle
+  ) {
+    return {
+      label: "Proposal not started",
+      note: context.proposalNotStartedSubtitle,
+    };
+  }
+  if (readiness.primaryGate) {
+    return {
+      label: "Proposal setup blocked",
+      note: formatProposalBuilderGateMessage(readiness.primaryGate, {
+        measurementHandoff: context?.measurementHandoff,
+        catalogReadiness: context?.catalogReadiness,
+        templateReadiness: context?.templateReadiness,
+      }),
+    };
+  }
+  return {
+    label: "Proposal setup blocked",
+    note: "Complete setup prerequisites before using Proposal Builder.",
+  };
+}
