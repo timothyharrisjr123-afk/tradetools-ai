@@ -112,7 +112,7 @@ export function formatCatalogNextStepCopy(summary: CatalogReadinessSummary): str
     case "needs_pricing":
       return "Set unit prices on catalog items in catalog setup";
     case "ready_for_templates":
-      return "Catalog ready — proposal templates coming after catalog alignment";
+      return "Open proposal templates to install company templates";
     default:
       return "Open catalog setup";
   }

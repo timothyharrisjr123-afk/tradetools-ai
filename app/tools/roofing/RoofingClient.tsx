@@ -125,6 +125,7 @@ import JobCardTabs, { type JobCardTabId } from "@/app/tools/roofing/jobCard/JobC
 import JobCardSectionPanel from "@/app/tools/roofing/jobCard/JobCardSectionPanel";
 import JobCardActivityPanel, { type JobCardActivityItem } from "@/app/tools/roofing/jobCard/JobCardActivityPanel";
 import JobCardOverviewSummary from "@/app/tools/roofing/jobCard/JobCardOverviewSummary";
+import JobCardProposalsSetupLinks from "@/app/tools/roofing/jobCard/JobCardProposalsSetupLinks";
 import { loadCompanyVoiceProfile, saveCompanyVoiceProfile, type VoiceTone } from "@/app/lib/companyVoiceProfile";
 
 function safeUUID() {
@@ -7376,7 +7377,12 @@ Thanks,`;
                     : "bg-slate-100 text-slate-500",
                 }}
                 headerAction={
-                  <button type="button" disabled className={passiveActionPrimary} title="Proposal Builder not enabled yet">
+                  <button
+                    type="button"
+                    disabled
+                    className={passiveActionPrimary}
+                    title="Proposal Builder is not enabled yet."
+                  >
                     + Proposal
                   </button>
                 }
@@ -7417,17 +7423,7 @@ Thanks,`;
                       />
                       <StatusLine label="Next step" value={catalogNextStep} muted={catalogReadiness.state === "ready_for_templates"} />
                     </div>
-                    <div className="mt-3 border-t border-slate-100 pt-3">
-                      <a
-                        href="/tools/roofing/catalog"
-                        className="inline-flex items-center text-sm font-semibold text-cyan-700 hover:text-cyan-900"
-                      >
-                        Open catalog setup
-                      </a>
-                      <p className="mt-1 text-xs text-slate-500">
-                        Company catalog setup — separate from legacy Price Book.
-                      </p>
-                    </div>
+                    <JobCardProposalsSetupLinks catalogState={catalogReadiness.state} />
                   </div>
                   <div>
                     <WorkspaceHeading>Proposal list</WorkspaceHeading>
