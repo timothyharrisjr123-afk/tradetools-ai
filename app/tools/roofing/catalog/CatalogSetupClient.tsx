@@ -1,0 +1,535 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  countUnpricedCatalogItems,
+  deriveCatalogReadiness,
+  formatStarterCatalogAvailability,
+} from "@/app/lib/catalogReadiness";
+import {
+  createCatalogItem,
+  getActiveCatalogItemsByCompany,
+  getCatalogItemsByCompany,
+  setCatalogItemActive,
+  updateCatalogItem,
+} from "@/app/lib/catalogStore";
+import type { CatalogItem, CatalogItemDraft } from "@/app/lib/catalogTypes";
+import {
+  installDefaultRoofingCatalog,
+  type InstallDefaultRoofingCatalogResult,
+} from "@/app/lib/defaultRoofingCatalogInstall";
+import {
+  CATALOG_TYPE_GROUP_SECTIONS,
+  type CatalogItemTypeFilter,
+} from "@/app/admin/catalog/catalogAdminConstants";
+import {
+  EMPTY_ADD_CATALOG_FORM,
+  STARTER_DEFINITION_COUNT,
+  buildEditDraftFromItem,
+  catalogItemSearchHaystack,
+  compareCatalogItemsForDisplay,
+  hasAllStarterSeedKeys,
+  isCatalogItemUnpriced,
+  parseDollarsToCentsOrNull,
+  parseSortOrderOrNull,
+  type AddCatalogItemForm,
+  type CatalogItemEditDraft,
+} from "@/app/admin/catalog/catalogAdminUtils";
+import CatalogItemsWorkspace from "./CatalogItemsWorkspace";
+import CatalogPageAlerts from "./CatalogPageAlerts";
+import CatalogPageHeader from "./CatalogPageHeader";
+import CatalogRoadmapFootnote from "./CatalogRoadmapFootnote";
+import CatalogSetupChecklist from "./CatalogSetupChecklist";
+import CatalogStarterHeroCard from "./CatalogStarterHeroCard";
+import CatalogWorkspaceLayout from "./CatalogWorkspaceLayout";
+
+export default function CatalogSetupClient({ companyId }: { companyId: string }) {
+  const [items, setItems] = useState<CatalogItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [installing, setInstalling] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [installResult, setInstallResult] = useState<InstallDefaultRoofingCatalogResult | null>(
+    null
+  );
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState<CatalogItemEditDraft | null>(null);
+  const [savingItemId, setSavingItemId] = useState<string | null>(null);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [itemTypeFilter, setItemTypeFilter] = useState<CatalogItemTypeFilter>("all");
+  const [unpricedOnly, setUnpricedOnly] = useState(false);
+  const [showInactive, setShowInactive] = useState(false);
+  const [addModalOpen, setAddModalOpen] = useState(false);
+  const [addForm, setAddForm] = useState<AddCatalogItemForm>(EMPTY_ADD_CATALOG_FORM);
+  const [addError, setAddError] = useState<string | null>(null);
+  const [creatingItem, setCreatingItem] = useState(false);
+  const [togglingActiveId, setTogglingActiveId] = useState<string | null>(null);
+
+  const fetchCatalogRows = useCallback(async () => {
+    if (showInactive) {
+      return getCatalogItemsByCompany(companyId);
+    }
+    return getActiveCatalogItemsByCompany(companyId);
+  }, [companyId, showInactive]);
+
+  const loadCatalog = useCallback(async () => {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const rows = await fetchCatalogRows();
+      setItems(rows);
+    } catch (err) {
+      console.warn("[CatalogSetupClient] catalog fetch error:", err);
+      setLoadError("Could not load catalog items.");
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchCatalogRows]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      await loadCatalog();
+      if (cancelled) return;
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [loadCatalog]);
+
+  const activeItems = useMemo(() => items.filter((item) => item.active), [items]);
+
+  const readiness = useMemo(
+    () => deriveCatalogReadiness(activeItems, STARTER_DEFINITION_COUNT),
+    [activeItems]
+  );
+
+  const starterDisplay = formatStarterCatalogAvailability(readiness);
+  const starterInstalled = hasAllStarterSeedKeys(activeItems);
+  const unpricedCount = useMemo(() => countUnpricedCatalogItems(activeItems), [activeItems]);
+  const templateReadinessReady = readiness.state === "ready_for_templates";
+
+  const sortedItems = useMemo(() => [...items].sort(compareCatalogItemsForDisplay), [items]);
+
+  const normalizedSearch = searchQuery.trim().toLowerCase();
+
+  const filteredItems = useMemo(() => {
+    return sortedItems.filter((item) => {
+      if (itemTypeFilter !== "all" && item.item_type !== itemTypeFilter) {
+        return false;
+      }
+      if (unpricedOnly && !isCatalogItemUnpriced(item)) {
+        return false;
+      }
+      if (normalizedSearch && !catalogItemSearchHaystack(item).includes(normalizedSearch)) {
+        return false;
+      }
+      return true;
+    });
+  }, [sortedItems, itemTypeFilter, unpricedOnly, normalizedSearch]);
+
+  const filteredUnpricedCount = useMemo(
+    () => filteredItems.filter((item) => isCatalogItemUnpriced(item)).length,
+    [filteredItems]
+  );
+
+  const hasListFilters =
+    normalizedSearch.length > 0 || itemTypeFilter !== "all" || unpricedOnly;
+
+  const groupByItemType = itemTypeFilter === "all";
+
+  const groupedFilteredItems = useMemo(() => {
+    if (!groupByItemType) {
+      return [{ key: "flat", label: "", items: filteredItems }];
+    }
+    const sections = CATALOG_TYPE_GROUP_SECTIONS.map((section) => ({
+      key: section.key,
+      label: section.label,
+      items: filteredItems.filter((item) =>
+        (section.types as readonly string[]).includes(item.item_type)
+      ),
+    })).filter((section) => section.items.length > 0);
+
+    const groupedIds = new Set(sections.flatMap((section) => section.items.map((item) => item.id)));
+    const uncategorized = filteredItems.filter((item) => !groupedIds.has(item.id));
+    if (uncategorized.length > 0) {
+      sections.push({
+        key: "uncategorized",
+        label: "Other types",
+        items: [...uncategorized].sort(compareCatalogItemsForDisplay),
+      });
+    }
+    return sections;
+  }, [filteredItems, groupByItemType]);
+
+  const editingItem = useMemo(
+    () => (editingItemId ? items.find((item) => item.id === editingItemId) : null),
+    [editingItemId, items]
+  );
+
+  function clearListFilters() {
+    setSearchQuery("");
+    setItemTypeFilter("all");
+    setUnpricedOnly(false);
+  }
+
+  function startPricingQueue() {
+    setUnpricedOnly(true);
+    setSearchQuery("");
+    setItemTypeFilter("all");
+    document.getElementById("catalog-configure-items")?.scrollIntoView({ behavior: "smooth" });
+  }
+
+  function openAddCatalogModal() {
+    setAddForm(EMPTY_ADD_CATALOG_FORM);
+    setAddError(null);
+    setAddModalOpen(true);
+  }
+
+  function closeAddCatalogModal() {
+    setAddModalOpen(false);
+    setAddError(null);
+    setAddForm(EMPTY_ADD_CATALOG_FORM);
+  }
+
+  function handleAddFormChange<K extends keyof AddCatalogItemForm>(
+    key: K,
+    value: AddCatalogItemForm[K]
+  ) {
+    setAddForm((prev) => ({ ...prev, [key]: value }));
+    setAddError(null);
+  }
+
+  async function handleCreateCatalogItem() {
+    if (creatingItem) return;
+
+    const name = addForm.name.trim();
+    if (!name) {
+      setAddError("Name is required.");
+      return;
+    }
+
+    const unitPrice = parseDollarsToCentsOrNull(addForm.unit_price_dollars, "Unit price");
+    if (unitPrice.error) {
+      setAddError(unitPrice.error);
+      return;
+    }
+
+    const unitCost = parseDollarsToCentsOrNull(addForm.unit_cost_dollars, "Unit cost");
+    if (unitCost.error) {
+      setAddError(unitCost.error);
+      return;
+    }
+
+    const draft: CatalogItemDraft = {
+      company_id: companyId,
+      name,
+      item_type: addForm.item_type,
+      unit: addForm.unit,
+      quantity_source: addForm.quantity_source,
+      customer_name: addForm.customer_name.trim() || null,
+      description: addForm.description.trim() || null,
+      unit_price_cents: unitPrice.cents,
+      unit_cost_cents: unitCost.cents,
+      labor_unit_cost_cents: null,
+      pricing_basis: addForm.pricing_basis,
+      customer_visibility: addForm.customer_visibility,
+      active: true,
+      waste_applies: false,
+      metadata: null,
+    };
+
+    setCreatingItem(true);
+    setAddError(null);
+    setLoadError(null);
+
+    try {
+      const created = await createCatalogItem(draft);
+      if (!created) {
+        setAddError("Could not create catalog item. Try again.");
+        return;
+      }
+
+      setMessage("Catalog item created.");
+      setAddModalOpen(false);
+      setAddForm(EMPTY_ADD_CATALOG_FORM);
+      setAddError(null);
+      await loadCatalog();
+    } catch (err) {
+      console.warn("[CatalogSetupClient] create error:", err);
+      setAddError("Could not create catalog item. Try again.");
+    } finally {
+      setCreatingItem(false);
+    }
+  }
+
+  async function handleToggleActive(item: CatalogItem) {
+    if (togglingActiveId || savingItemId || creatingItem) return;
+
+    setTogglingActiveId(item.id);
+    setLoadError(null);
+
+    try {
+      const updated = await setCatalogItemActive(item.id, !item.active, { companyId });
+      if (!updated) {
+        setLoadError(
+          item.active
+            ? "Could not deactivate catalog item."
+            : "Could not reactivate catalog item."
+        );
+        return;
+      }
+
+      if (item.active && editingItemId === item.id) {
+        closeEditor();
+      }
+
+      setMessage(item.active ? "Catalog item deactivated." : "Catalog item reactivated.");
+      await loadCatalog();
+    } catch (err) {
+      console.warn("[CatalogSetupClient] active toggle error:", err);
+      setLoadError("Could not update catalog item status.");
+    } finally {
+      setTogglingActiveId(null);
+    }
+  }
+
+  function closeEditor() {
+    setEditingItemId(null);
+    setEditDraft(null);
+    setEditError(null);
+  }
+
+  function openEditor(item: CatalogItem) {
+    setEditingItemId(item.id);
+    setEditDraft(buildEditDraftFromItem(item));
+    setEditError(null);
+    setMessage(null);
+    window.requestAnimationFrame(() => {
+      document.getElementById("catalog-item-detail-panel")?.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+      });
+    });
+  }
+
+  function handleEditToggle(item: CatalogItem) {
+    if (savingItemId) return;
+    if (editingItemId === item.id) {
+      closeEditor();
+      return;
+    }
+    openEditor(item);
+  }
+
+  function handleDraftChange<K extends keyof CatalogItemEditDraft>(
+    key: K,
+    value: CatalogItemEditDraft[K]
+  ) {
+    setEditDraft((prev) => (prev ? { ...prev, [key]: value } : prev));
+    setEditError(null);
+  }
+
+  async function handleSaveItem(item: CatalogItem) {
+    if (!editDraft || savingItemId) return;
+
+    const unitPrice = parseDollarsToCentsOrNull(editDraft.unit_price_dollars, "Unit price");
+    if (unitPrice.error) {
+      setEditError(unitPrice.error);
+      return;
+    }
+
+    const unitCost = parseDollarsToCentsOrNull(editDraft.unit_cost_dollars, "Unit cost");
+    if (unitCost.error) {
+      setEditError(unitCost.error);
+      return;
+    }
+
+    let laborCents: number | null | undefined = undefined;
+    if (item.item_type === "labor") {
+      const labor = parseDollarsToCentsOrNull(
+        editDraft.labor_unit_cost_dollars,
+        "Labor unit cost"
+      );
+      if (labor.error) {
+        setEditError(labor.error);
+        return;
+      }
+      laborCents = labor.cents;
+    }
+
+    const sortParsed = parseSortOrderOrNull(editDraft.sort_order);
+    if (sortParsed.error) {
+      setEditError(sortParsed.error);
+      return;
+    }
+
+    const patch: Partial<CatalogItemDraft> = {
+      customer_name: editDraft.customer_name.trim() || null,
+      description: editDraft.description.trim() || null,
+      unit_price_cents: unitPrice.cents,
+      unit_cost_cents: unitCost.cents,
+      pricing_basis: editDraft.pricing_basis,
+      customer_visibility: editDraft.customer_visibility,
+      sort_order: sortParsed.sort_order,
+    };
+
+    if (item.item_type === "labor") {
+      patch.labor_unit_cost_cents = laborCents ?? null;
+    }
+
+    setSavingItemId(item.id);
+    setEditError(null);
+    setLoadError(null);
+
+    try {
+      const updated = await updateCatalogItem(item.id, patch, { companyId });
+      if (!updated) {
+        setEditError("Could not save catalog item. Try again.");
+        return;
+      }
+
+      setMessage("Catalog item saved.");
+      closeEditor();
+      await loadCatalog();
+    } catch (err) {
+      console.warn("[CatalogSetupClient] save error:", err);
+      setEditError("Could not save catalog item. Try again.");
+    } finally {
+      setSavingItemId(null);
+    }
+  }
+
+  async function handleInstallStarter() {
+    if (loading || installing || savingItemId) return;
+
+    setInstalling(true);
+    setLoadError(null);
+    setMessage(null);
+    setInstallResult(null);
+    closeEditor();
+
+    try {
+      const result = await installDefaultRoofingCatalog(companyId);
+      if (!result) {
+        setLoadError("Install failed: invalid company context.");
+        return;
+      }
+
+      setInstallResult(result);
+
+      if (result.failedCount > 0 && result.createdCount === 0) {
+        setLoadError(
+          result.errors?.length
+            ? result.errors.join(" ")
+            : "Install failed for all starter items."
+        );
+      } else if (result.createdCount > 0) {
+        setMessage(
+          `Installed ${result.createdCount} starter item${result.createdCount === 1 ? "" : "s"}.`
+        );
+      } else if (result.skippedCount > 0 && result.createdCount === 0) {
+        setMessage(
+          `Starter catalog is installed. Recheck: ${result.createdCount} created, ${result.skippedCount} skipped, ${result.failedCount} failed.`
+        );
+      }
+
+      const rows = await fetchCatalogRows();
+      setItems(rows);
+    } catch (err) {
+      console.warn("[CatalogSetupClient] install error:", err);
+      setLoadError("Install failed unexpectedly.");
+    } finally {
+      setInstalling(false);
+    }
+  }
+
+  const busy =
+    loading || installing || savingItemId != null || creatingItem || togglingActiveId != null;
+  const installButtonLabel = installing
+    ? "Installing…"
+    : starterInstalled
+      ? "Recheck starter catalog"
+      : "Install starter roofing catalog";
+
+  return (
+    <div className="w-full space-y-6 text-slate-900">
+      <CatalogPageHeader />
+
+      <CatalogPageAlerts loadError={loadError} message={message} />
+
+      <CatalogWorkspaceLayout
+        main={
+          <>
+            <CatalogStarterHeroCard
+              loading={loading}
+              busy={busy}
+              readiness={readiness}
+              starterInstalled={starterInstalled}
+              starterDisplay={starterDisplay}
+              unpricedCount={unpricedCount}
+              installButtonLabel={installButtonLabel}
+              onInstallStarter={() => void handleInstallStarter()}
+              onStartPricingQueue={startPricingQueue}
+              installResult={installResult}
+            />
+            <CatalogItemsWorkspace
+              loading={loading}
+              busy={busy}
+              unpricedCount={unpricedCount}
+              showInactive={showInactive}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              itemTypeFilter={itemTypeFilter}
+              onItemTypeFilterChange={setItemTypeFilter}
+              unpricedOnly={unpricedOnly}
+              onUnpricedOnlyChange={() => setUnpricedOnly((prev) => !prev)}
+              onShowInactiveChange={() => setShowInactive((prev) => !prev)}
+              hasListFilters={hasListFilters}
+              onClearFilters={clearListFilters}
+              groupByItemType={groupByItemType}
+              filteredItemsCount={filteredItems.length}
+              sortedItemsCount={sortedItems.length}
+              filteredUnpricedCount={filteredUnpricedCount}
+              sortedItems={sortedItems}
+              filteredItems={filteredItems}
+              groupedFilteredItems={groupedFilteredItems}
+              editingItem={editingItem}
+              editingItemId={editingItemId}
+              editDraft={editDraft}
+              editError={editError}
+              savingItemId={savingItemId}
+              togglingActiveId={togglingActiveId}
+              onEditToggle={handleEditToggle}
+              onToggleActive={(item) => void handleToggleActive(item)}
+              onDraftChange={handleDraftChange}
+              onSaveItem={() => editingItem && void handleSaveItem(editingItem)}
+              onCloseEditor={closeEditor}
+              onAddItem={openAddCatalogModal}
+              addModalOpen={addModalOpen}
+              addForm={addForm}
+              addError={addError}
+              creatingItem={creatingItem}
+              onAddFormChange={handleAddFormChange}
+              onCloseAddModal={closeAddCatalogModal}
+              onSubmitAdd={() => void handleCreateCatalogItem()}
+            />
+          </>
+        }
+        aside={
+          <CatalogSetupChecklist
+            loading={loading}
+            starterInstalled={starterInstalled}
+            readiness={readiness}
+            unpricedCount={unpricedCount}
+            templateReadinessReady={templateReadinessReady}
+          />
+        }
+      />
+
+      <CatalogRoadmapFootnote />
+    </div>
+  );
+}
