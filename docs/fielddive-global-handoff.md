@@ -9,16 +9,18 @@
 - `docs/fielddive-estimate-proposal-flow-model.md` — estimate/proposal UX model notes
 - `docs/fielddive-feature-placement-map.md` — feature placement matrix
 
-**Last updated checkpoint:** **Pre-3H-2 source-of-truth fix** (`abd718d`, committed). **Prior:** **3H-1** Proposal Builder shell (`feec663`); **packet handoff fix** (`fd87152`); **handoff doc** (`cf3706f`). **Working tree:** clean. **Typecheck:** only **6** pre-existing errors in `app/tools/roofing-v2/RoofingClientV2.tsx` — unchanged. **Protected systems:** pricing, payments, approval, status, saved estimates, send/PDF **untouched** through 3H-1, packet fix, and pre-3H-2 correction.
+**Last updated checkpoint:** **Packet Job Card saved-estimate session bleed fix** (`c12ea4d`, committed). **Prior:** **handoff doc** (`d4b4f25`); **pre-3H-2 source-of-truth** (`abd718d`); **3H-1** Proposal Builder shell (`feec663`); **packet handoff fix** (`fd87152`). **Working tree:** clean. **Typecheck:** only **6** pre-existing errors in `app/tools/roofing-v2/RoofingClientV2.tsx` — unchanged. **Protected systems:** pricing, payments, approval, status, saved estimates, send/PDF **untouched** through 3H-1, packet fixes, pre-3H-2 correction, and session-bleed fix.
 
 **Jobs Board approved save point:** `b27a444` (3F9B4-RoofrExact). **Prior Job Board checkpoint:** `36fa3a9` (3F9B3).
 
-**Next (recommended):** **Docs commit** (this update) → **manual browser smoke** (packet clean intake, dual UUID, Job Card identity, Activity rail vs Builder gates) → **3H-2 planning only** (read-only line preview, Builder-route-only). **Do not** start 3H-2 code until smoke confirmed. **Do not** start pricing bridge, persistence/SQL, or PDF/send/approval/payment/status without explicit scope.
+**Next (recommended):** **Docs commit** (this update) → **finish remaining browser smoke** (board-origin Job Card, Builder blocked/ready route views, Activity rail copy if not visually checked) → **3H-2 planning only** (read-only line preview, Builder-route-only, persisted job/measurement/template/catalog context). **Do not** start 3H-2 code until remaining smoke confirmed or explicitly waived. **Do not** start pricing bridge, persistence/SQL, or PDF/send/approval/payment/status without explicit scope.
 
-### Recent committed sequence (3G6 spine + execution surfaces + 3H-1 + pre-3H-2)
+### Recent committed sequence (3G6 spine + execution surfaces + 3H-1 + pre-3H-2 + session bleed fix)
 
 | Commit | Summary |
 |--------|---------|
+| `c12ea4d` | **Packet Job Card session bleed fix** — stale saved-estimate session no longer overrides packet-created Job Card; board-origin gating for estimate→job link and hydration |
+| `d4b4f25` | docs: update handoff after pre-3H-2 source-of-truth fix |
 | `abd718d` | **Pre-3H-2 source-of-truth** — Activity rail uses Builder readiness; fresh packet intake reset; Job Card `?job=` identity from persisted `JobRecord` |
 | `cf3706f` | docs: update handoff after packet fix and 3H-1 |
 | `feec663` | **3H-1** — Proposal Builder shell and gates: `/tools/roofing/proposals/builder?job=<uuid>`, composite readiness, Job Card `+ Proposal` launch when gates pass |
@@ -69,7 +71,7 @@
 - **Do not** create PDF / send / approval bridges before proposal records exist.
 - **Do not** touch payment / status / approval while working catalog or template setup (unless the stage explicitly scopes it).
 - **Do not treat table/store existence as product completion** — audit **architecture, functionality, layout, and UI** together before advancing the spine.
-- **3G6 Templates setup surface is complete** (3G6A–E + D2/D3) — **3H-1 Proposal Builder shell** (`feec663`); **pre-3H-2 source-of-truth** (`abd718d`); **3H-2+** (line preview, quantity resolver, persistence) remain later; do not enable pricing bridge or customer-send without explicit scope.
+- **3G6 Templates setup surface is complete** (3G6A–E + D2/D3) — **3H-1 Proposal Builder shell** (`feec663`); **pre-3H-2 source-of-truth** (`abd718d`); **packet session bleed fix** (`c12ea4d`); **3H-2+** (line preview, quantity resolver, persistence) remain later; do not enable pricing bridge or customer-send without explicit scope.
 - **Do not casually patch pricing** during catalog/template/Job Card link work — see **§11 — Pricing (protected + future redesign)**.
 
 ---
@@ -459,6 +461,45 @@ Catalog stages through **3F7B** and shell alignment (`01e2d9e`) are complete. Se
 
 ---
 
+## 6D. PACKET JOB CARD SESSION BLEED FIX (`c12ea4d`)
+
+**Goal:** Fix stale saved-estimate session overriding packet-created Job Card display and navigation — **RoofingClient.tsx only**; no protected systems.
+
+**Committed:** `c12ea4d` — Fix packet Job Card saved-estimate session bleed
+
+**Root cause:**
+
+- `sessionStorage` **`getCurrentLoadedSavedId()`** could retain a prior saved estimate (e.g. “Timothy baker55555”) after the user opened a fresh Job Packet.
+- **`buildJobCardDisplayModel(currentSaved ?? null, …)`** preferred that estimate’s customer name/address over packet/`JobRecord` identity on packet-origin Job Card.
+- **Estimate→job link effect** ran on any `entry=job-card` when a loaded estimate id existed — could replace the new packet job UUID with the estimate-linked job.
+- **Hydration `fillEmptyOnly`** was true whenever a stale loaded estimate id existed — could preserve old React contact fields instead of overwriting from the new `JobRecord`.
+
+**Delivered:**
+
+| Area | Detail |
+|------|--------|
+| **Fresh packet session** | `setCurrentLoadedSavedId(null)` on fresh `entry=packet|instant` reset — clears stale saved-estimate session |
+| **After createJob** | Packet Continue clears loaded estimate id; sets `hydratedJobRecord`; hydrates with `fillEmptyOnly: false`; sets `jobHydratedRef` before navigate |
+| **Estimate→job link** | Effect gated with `if (!isJobCardBoardContext) return` — board-origin only |
+| **Hydration merge** | `fillEmptyOnly` only when `isJobCardBoardContext` |
+| **Job Card display** | `buildJobCardDisplayModel(isBoardOrigin ? currentSaved : null, …)` — packet/direct job paths use persisted `JobRecord` identity via `resolveJobCardIdentityFromRecord` / fallbacks, not stale estimate overlay |
+
+**Key files:** `app/tools/roofing/RoofingClient.tsx` only.
+
+**Explicitly not in `c12ea4d`:** 3H-2 line preview, quantity resolver, pricing bridge, proposal persistence, SQL, PDF/send/approval/payment/status, Jobs Board migration, Proposal Builder changes, catalog/template stores.
+
+**Protected systems:** untouched.
+
+**Browser smoke — CONFIRMED (user, post-`c12ea4d`):**
+
+- Entered info in Job Packet → Job Card showed correct packet-created info
+- Refreshing Job Card preserved persisted job info
+- Returning to Job Packet started clean for a new job
+- Stale “Timothy baker55555” saved-estimate data **no longer** appeared on packet-created Job Card
+- Dual packet flow (different UUIDs, correct values per job) — confirmed
+
+---
+
 ## 7. IMPORTANT ARCHITECTURE BOUNDARIES
 
 | Concept | Owns |
@@ -483,11 +524,11 @@ Catalog stages through **3F7B** and shell alignment (`01e2d9e`) are complete. Se
 
 ## 8. CURRENT NEXT (SUMMARY)
 
-**Latest committed checkpoint:** **Pre-3H-2 source-of-truth fix** (`abd718d`). **3H-1:** `feec663`. **Packet handoff fix:** `fd87152`. **Working tree:** clean.
+**Latest committed checkpoint:** **Packet Job Card session bleed fix** (`c12ea4d`). **Pre-3H-2:** `abd718d`. **3H-1:** `feec663`. **Packet handoff fix:** `fd87152`. **Working tree:** clean.
 
-**3G6 — COMPLETE** (3G6A–E + Templates D2 `227061c` + Catalog D2 `29ca190`). **3F9C Job Card** — COMPLETE (`0015be1`). **3H-1 shell** — COMPLETE (`feec663`). **Pre-3H-2 correction** — COMPLETE (`abd718d`). **Jobs Board save point:** `b27a444`.
+**3G6 — COMPLETE** (3G6A–E + Templates D2 `227061c` + Catalog D2 `29ca190`). **3F9C Job Card** — COMPLETE (`0015be1`). **3H-1 shell** — COMPLETE (`feec663`). **Pre-3H-2 correction** — COMPLETE (`abd718d`). **Packet session bleed fix** — COMPLETE (`c12ea4d`). **Jobs Board save point:** `b27a444`.
 
-**Immediate next:** **Manual browser smoke** (see §11 — Must confirm manually before 3H-2) → **3H-2 planning only** (read-only line preview, Builder-route-only, persisted job/measurement/template/catalog). **Do not** start 3H-2 code until smoke confirmed. **Do not** start pricing bridge, persistence/SQL, or PDF/send/approval/payment/status without explicit scope (see §11 — Pricing).
+**Immediate next:** **Docs commit** (this update) → **finish remaining browser smoke** (board-origin Job Card, Builder blocked/ready, Activity rail copy if not checked) → **3H-2 planning only** (read-only line preview, Builder-route-only, persisted job/measurement/template/catalog). **Do not** start 3H-2 code until remaining smoke confirmed or explicitly waived. **Do not** start pricing bridge, persistence/SQL, or PDF/send/approval/payment/status without explicit scope (see §11 — Pricing).
 
 **Optional (non-blocking):** Job Card tab extraction polish, Job Packet legacy gating, handoff-only doc updates.
 
@@ -577,11 +618,11 @@ Then open and read:
 - `docs/fielddive-global-handoff.md` (this file)
 - **§11 — Forward Roadmap / No-Drift Next Steps** (ordered stages; what is done vs next)
 
-**Verify HEAD** is **`abd718d`** (pre-3H-2 correction) or identify newer commits and reconcile this doc.
+**Verify HEAD** is **`c12ea4d`** (packet session bleed fix) or identify newer commits and reconcile this doc.
 
 **Confirm** working tree is clean (or note doc-only WIP).
 
-**Confirm** next stage is **3H-2 planning** (read-only line/option preview, Builder-route-only) — **do not code** until manual smoke confirmed and stage explicitly scoped. **Pre-3H-2 correction is complete (`abd718d`).** **3H-1 is complete (`feec663`).** **Do not start pricing bridge or persistence without explicit scope.**
+**Confirm** next stage is **3H-2 planning** (read-only line/option preview, Builder-route-only) — **do not code** until remaining manual smoke confirmed and stage explicitly scoped. **Packet → Job Card flow confirmed post-`c12ea4d`.** **Pre-3H-2 correction is complete (`abd718d`).** **3H-1 is complete (`feec663`).** **Do not start pricing bridge or persistence without explicit scope.**
 
 Inspect before planning **3F9** (or chosen stage):
 
@@ -608,7 +649,7 @@ Inspect before planning **3F9** (or chosen stage):
 | `app/lib/measurementProposalHandoff.ts` | Measurement → proposal input (passive) |
 | `app/lib/proposalBuilderReadiness.ts` | Composite Builder gates (pure/read-only) |
 | `app/tools/roofing/proposals/builder/*` | Proposal Builder shell route + client |
-| `app/tools/roofing/RoofingClient.tsx` | Packet handoff (`fd87152`), pre-3H-2 correction (`abd718d`), Proposals tab + Builder launch (`feec663`) |
+| `app/tools/roofing/RoofingClient.tsx` | Packet handoff (`fd87152`), pre-3H-2 correction (`abd718d`), session bleed fix (`c12ea4d`), Proposals tab + Builder launch (`feec663`) |
 | `app/tools/roofing/jobCard/jobCardIdentityUtils.ts` | Pure Job Card identity display from `JobRecord` (pre-3H-2) |
 | `supabase/migrations/20260531_004_create_proposal_template_tables.sql` | Live template schema |
 
@@ -663,9 +704,9 @@ Use this section as the **ordered checklist** for future GPT/Cursor sessions. Kn
 
 ### Current checkpoint
 
-**Latest code checkpoint:** **Pre-3H-2 source-of-truth fix** (`abd718d`). **3H-1:** `feec663`. **Packet handoff fix:** `fd87152`.  
+**Latest code checkpoint:** **Packet Job Card session bleed fix** (`c12ea4d`). **Pre-3H-2:** `abd718d`. **3H-1:** `feec663`. **Packet handoff fix:** `fd87152`.  
 **Jobs Board approved save point:** **3F9B4-RoofrExact** (`b27a444`).  
-**Latest handoff doc checkpoint:** aligning with **`abd718d`** — **next: manual smoke, then 3H-2 planning** (no 3H-2 code until smoke confirmed).
+**Latest handoff doc checkpoint:** aligning with **`c12ea4d`** — **next: finish remaining smoke, then 3H-2 planning** (no 3H-2 code until remaining smoke confirmed or waived).
 
 **Completed working state (summary):**
 
@@ -681,12 +722,13 @@ Use this section as the **ordered checklist** for future GPT/Cursor sessions. Kn
 | **3G6A–E** Templates route, install, readiness, Templates D2, Job Card templates link | **DONE** (`b78c9ee`) |
 | **Packet handoff fix** | **DONE** (`fd87152`) |
 | **Pre-3H-2 source-of-truth** | **DONE** (`abd718d`) — Activity rail, packet intake reset, Job Card `?job=` identity |
+| **Packet session bleed fix** | **DONE** (`c12ea4d`) — stale saved estimate no longer overrides packet-created Job Card |
 | **3H-1** Proposal Builder shell + gates + Job Card launch | **DONE** (`feec663`) — read-only |
 | **Canonical catalog route** | **`/tools/roofing/catalog`** — `CatalogSetupClient` |
 | **Canonical templates route** | **`/tools/roofing/templates`** — `TemplatesSetupClient` |
 | **Proposal Builder route** | **`/tools/roofing/proposals/builder?job=<uuid>`** |
 | **Job Card Proposals** | Setup links (3G6E); `+ Proposal` when Builder gates pass (3H-1) |
-| **Protected** | Pricing, payments, approval, status, saved estimates, send/PDF **untouched** through 3H-1 and pre-3H-2 correction |
+| **Protected** | Pricing, payments, approval, status, saved estimates, send/PDF **untouched** through 3H-1, pre-3H-2 correction, and session bleed fix (`c12ea4d`) |
 
 **SQL note:** Catalog/template table verification was done in Supabase during 3F/3G stages; do not re-run schema changes from roadmap work unless a stage explicitly scopes a new migration.
 
@@ -695,8 +737,8 @@ Use this section as the **ordered checklist** for future GPT/Cursor sessions. Kn
 | Flow / surface | Finding |
 |----------------|---------|
 | **Jobs Board → Job Card** | Uses **saved estimates** / `?loadSaved=<id>` path — **not** pure `public.jobs` uuid navigation |
-| **Job Packet → Job Card** | **Fixed** (`fd87152`) — stale `currentJobId` handoff; Continue gated; create-only from fresh packet. **Intake reset** (`abd718d`) — contact/property clear on fresh packet |
-| **Job Card identity** | **Partially improved** (`abd718d`) — `?job=` direct/packet-origin uses persisted `JobRecord` for display; board-origin still saved-estimate overlay; **not** full `JobCardViewModel` |
+| **Job Packet → Job Card** | **Fixed** (`fd87152`, `abd718d`, **`c12ea4d`**) — stale `currentJobId` handoff; Continue gated; create-only from fresh packet; intake reset; **session bleed fix** — packet values → createJob → new UUID → persisted Job Card identity; browser smoke **confirmed** post-`c12ea4d` |
+| **Job Card identity** | **Improved** (`abd718d`, **`c12ea4d`**) — packet/direct `?job=` uses persisted `JobRecord`; board-origin still saved-estimate overlay; **not** full `JobCardViewModel` |
 | **Catalog / Templates** | Aligned workspace surfaces (`CatalogSetupClient`, `TemplatesSetupClient`); click-only install |
 | **Proposal Builder (3H-1)** | Read-only shell, composite gates, no proposal records |
 | **Legacy routes (still reachable)** | `?entry=manual&legacy=1` (legacy estimate workspace); `entry=manual` without legacy → Job Card quirk; hidden V2 preview (`sr-only` toggle); dead `renderEstimateBuilderShell` in repo |
@@ -705,14 +747,14 @@ Treat these as **known architecture risks** — not forgotten — when planning 
 
 ### Must confirm manually before 3H-2
 
-**Do not start 3H-2 code until these browser checks pass:**
+**Do not start 3H-2 code until remaining browser checks pass (or are explicitly waived):**
 
-1. **Fresh packet** — `/tools/roofing?entry=packet` opens with **clean** contact/property fields; Continue disabled until minimum fields; Continue creates **new job UUID**; Job Card shows **persisted** job details.
-2. **Second packet** — navigate away and back to packet; fields clean; second packet yields **different UUID** and correct details.
-3. **Direct Job Card** — `/tools/roofing?entry=job-card&job=<uuid>`; **refresh**; identity still from DB (`JobRecord`).
-4. **Board-origin Job Card** — open from Jobs Board; saved-estimate flow works; **Back to Job Board** works.
-5. **Activity rail** — blocked gates show blocker copy; ready gates show **Proposal Builder ready**; copy does **not** imply Send/PDF/Payment/pricing is live.
-6. **Builder route** — blocked/ready states unchanged; **no** proposal records; **no** pricing totals.
+1. **Fresh packet** — **CONFIRMED** post-`c12ea4d`: clean contact/property fields; Continue creates new job UUID; Job Card shows persisted packet details; refresh preserves info.
+2. **Second packet** — **CONFIRMED** post-`c12ea4d`: return to packet starts clean; second packet yields different UUID and correct details; stale saved-estimate data (e.g. “Timothy baker55555”) does not bleed into packet-created Job Card.
+3. **Direct Job Card** — **CONFIRMED** post-`c12ea4d`: refresh preserves identity from DB (`JobRecord`).
+4. **Board-origin Job Card** — **NOT YET CONFIRMED** — open from Jobs Board; saved-estimate flow works; **Back to Job Board** works.
+5. **Activity rail** — **NOT YET CONFIRMED** (if not visually checked) — blocked gates show blocker copy; ready gates show **Proposal Builder ready**; copy does **not** imply Send/PDF/Payment/pricing is live.
+6. **Builder route** — **NOT YET CONFIRMED** — blocked/ready states unchanged; **no** proposal records; **no** pricing totals.
 
 ### Must-fix-before-3H-2 (architecture — code items)
 
@@ -1114,7 +1156,7 @@ Committed **`0015be1`** after manual browser checks passed. **Do not move to 3G6
 - Revisit inert tabs / stage-gating later
 - **3H:** Proposals tab becomes true Proposal Builder launchpad
 
-**Job Packet audit:** Canonical **`?entry=packet`** / New Job is aligned enough as **capture/prep**. **Packet handoff fix (`fd87152`)** + **intake reset (`abd718d`)** address stale job id and fresh-field hygiene on navigate-away/back. **Known gap:** same-URL Job Packet click may not re-trigger reset — **packet draft lifecycle** (Start new / Discard / Resume) is a future architecture item, not a casual patch.
+**Job Packet audit:** Canonical **`?entry=packet`** / New Job is aligned enough as **capture/prep**. **Packet handoff fix (`fd87152`)** + **intake reset (`abd718d`)** + **session bleed fix (`c12ea4d`)** address stale job id, fresh-field hygiene, and saved-estimate session override on packet-created Job Card — **browser smoke confirmed** post-`c12ea4d`. **Known gap:** same-URL Job Packet click may not re-trigger reset — **packet draft lifecycle** (Start new / Discard / Resume) is a future architecture item, not a casual patch.
 
 **Job Packet — future/later:**
 
@@ -1150,7 +1192,7 @@ Committed **`0015be1`** after manual browser checks passed. **Do not move to 3G6
 
 **3H-1 complete:** Builder route/shell, composite gates, read-only context loads, Job Card `+ Proposal` launch. See **§6B**.
 
-**Do not start 3H-2 until:** manual smoke complete (§11 — Must confirm manually before 3H-2); must-fix architecture items reviewed.
+**Do not start 3H-2 until:** remaining manual smoke complete (§11 — Must confirm manually before 3H-2); must-fix architecture items reviewed. **Packet → Job Card flow confirmed post-`c12ea4d`.**
 
 **3H-2 goal (next planned):** Read-only **line/option preview** from template graph — **no** pricing totals, persistence, or send/PDF.
 
@@ -1278,7 +1320,7 @@ Treat as **drift** if a session:
 - Job Card **3G6E** templates link when catalog ready — **DONE** (`JobCardProposalsSetupLinks.tsx`); per-job template **selection** remains later
 - **Job Packet draft lifecycle** — Start new packet / Discard current draft / Resume draft (includes same-URL re-entry reset; **do not** casual-patch)
 - **Jobs Board migration** from saved-estimate cards to `public.jobs` or explicit bridge
-- **Job Card identity** — full `JobCardViewModel` from `JobRecord` (minimal `?job=` display **done** in `abd718d`)
+- **Job Card identity** — full `JobCardViewModel` from `JobRecord` (minimal `?job=` display **done** in `abd718d`; packet session bleed **fixed** in `c12ea4d`)
 - **Hard-gate or retire** `?entry=manual&legacy=1`; remove dead `renderEstimateBuilderShell`
 - **Proposal line preview** (3H-2)
 - **Proposal records / line snapshots** (persistence) — later, after 3H-2/3H-3
@@ -1322,18 +1364,18 @@ Treat as **drift** if a session:
 
 **Best next move:**
 
-1. **Docs commit** (this handoff update) — checkpoint `abd718d`
-2. **Manual browser smoke** — §11 “Must confirm manually before 3H-2” checklist
-3. **3H-2 planning only** — read-only line/option preview, **Builder-route-only**, persisted job/measurement/template/catalog — **no 3H-2 code until smoke confirmed**
+1. **Docs commit** (this handoff update) — checkpoint `c12ea4d`
+2. **Finish remaining browser smoke** — board-origin Job Card; Builder blocked/ready route views; Activity rail copy (if not visually checked)
+3. **3H-2 planning only** — read-only line/option preview, **Builder-route-only**, persisted job/measurement/template/catalog — **no 3H-2 code until remaining smoke confirmed or waived**
 
 **Optional (non-blocking):** Job Card tab extraction; Job Packet legacy gating; Jobs Board 3F9B4 follow-on polish; packet draft lifecycle design.
 
 **Typical order from here:**
 
-1. **Handoff doc commit** (docs only) — checkpoint `abd718d`
-2. **Manual smoke** — packet, Job Card identity, Activity rail, Builder blocked/ready
+1. **Handoff doc commit** (docs only) — checkpoint `c12ea4d`
+2. **Remaining manual smoke** — board-origin Job Card, Builder blocked/ready, Activity rail
 3. **3H-2 planning** — scope read-only template line preview in Builder route only
-4. **3H-2 implementation** — only after smoke + explicit approval
+4. **3H-2 implementation** — only after remaining smoke + explicit approval
 5. **3H-3** — quantity resolver
 6. **3I+** — deliberate pricing redesign / bridge, proposal records, PDF/send/approval bridge (protected paths)
 
@@ -1352,6 +1394,7 @@ Treat as **drift** if a session:
 - **2026-05-31:** **3F8 complete** — Pass B (`a16bccd`), Pass C-D (`5bcf0fe`), Pass E (`d422ee6`); catalog setup workspace, detail panel, Job Card catalog link; **next: 3G6** Templates setup/readiness/install surface.
 - **2026-05-31:** Roofr execution-surface research — **next stage changed to 3F9** (Jobs / Execution Surface Alignment) **before 3G6**; align Jobs/Pipeline/Job Packet/Job Card with Roofr before Templates UI.
 - **2026-05-31:** **3F9C complete** — Job Card architecture + visual shell committed (`0015be1`); origin context (`from=board`), functional tabs, Activity rail, hook fix; manual checks passed; **next: 3G6** Templates setup (Roofr research first); Jobs Board save point **`b27a444`** preserved.
-- **2026-06-04:** **Pre-3H-2 source-of-truth fix** (`abd718d`) — Activity rail readiness copy, fresh packet intake reset, Job Card `?job=` identity; remaining gaps documented; **next: manual smoke, then 3H-2 planning** (no code until smoke confirmed).
+- **2026-06-04:** **Packet Job Card session bleed fix** (`c12ea4d`) — stale saved-estimate session no longer overrides packet-created Job Card; browser smoke confirmed; **next: finish remaining smoke, then 3H-2 planning**.
+- **2026-06-04:** **Pre-3H-2 source-of-truth fix** (`abd718d`) — Activity rail readiness copy, fresh packet intake reset, Job Card `?job=` identity; handoff (`d4b4f25`).
 - **2026-06-04:** **3H-1 complete** — Proposal Builder shell and gates (`feec663`); packet handoff fix (`fd87152`); handoff (`cf3706f`); built-surface audit.
 - **2026-05-31:** **3G6 complete** — 3G6A–E (`15ad732`–`b78c9ee`), Templates D2 (`227061c`), Catalog D2 (`29ca190`); Job Card + Job Packet audits documented; **next: plan 3H** Proposal Builder (Roofr research; not until scoped); pricing remains protected.
