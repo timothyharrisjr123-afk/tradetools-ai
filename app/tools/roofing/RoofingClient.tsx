@@ -112,6 +112,18 @@ import {
   formatCatalogNextStepCopy,
 } from "@/app/lib/catalogReadiness";
 import { DEFAULT_ROOFING_CATALOG_DEFINITIONS } from "@/app/lib/defaultRoofingCatalog";
+import {
+  buildProposalBuilderHref,
+  deriveProposalBuilderReadiness,
+  formatProposalBuilderDisabledButtonTitle,
+} from "@/app/lib/proposalBuilderReadiness";
+import { deriveProposalTemplateReadiness } from "@/app/lib/proposalTemplateReadiness";
+import {
+  getProposalTemplateGraph,
+  getProposalTemplatesByCompany,
+  type ProposalTemplateGraph,
+} from "@/app/lib/proposalTemplateStore";
+import { findStarterProposalTemplate } from "@/app/tools/roofing/templates/templatesSetupUtils";
 import type { JobDraft, JobAddress, JobRecord } from "@/app/lib/jobTypes";
 import { sendEstimateEmailWithPdf } from "@/app/lib/sendEstimateClient";
 import { getFavorite, setFavorite, setLocked, appendFeedback, getTierFeedbackBias, type TierLabel } from "@/app/lib/aiWordingPrefs";
@@ -1050,6 +1062,9 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
   const [activeCatalogItems, setActiveCatalogItems] = useState<CatalogItem[]>([]);
   const [catalogLoadError, setCatalogLoadError] = useState<string | null>(null);
   const catalogFetchInFlightRef = useRef<string | null>(null);
+  const [starterTemplateGraph, setStarterTemplateGraph] = useState<ProposalTemplateGraph | null>(null);
+  const [templateSetupLoadComplete, setTemplateSetupLoadComplete] = useState(false);
+  const templateSetupFetchInFlightRef = useRef<string | null>(null);
   const [isSavingMeasurement, setIsSavingMeasurement] = useState(false);
   const [measurementSaveError, setMeasurementSaveError] = useState<string | null>(null);
   const measurementSaveInFlightRef = useRef<string | null>(null);
@@ -1677,6 +1692,53 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
       } finally {
         if (catalogFetchInFlightRef.current === cid) {
           catalogFetchInFlightRef.current = null;
+        }
+      }
+    })();
+  }, [entryMode, companyId, loadSavedId, restoreTick]);
+
+  useEffect(() => {
+    if (entryMode !== "job-card") {
+      setStarterTemplateGraph(null);
+      setTemplateSetupLoadComplete(false);
+      templateSetupFetchInFlightRef.current = null;
+      return;
+    }
+
+    const cid = (companyId ?? "").trim();
+    if (!cid || !isUuidLike(cid)) {
+      setStarterTemplateGraph(null);
+      setTemplateSetupLoadComplete(true);
+      templateSetupFetchInFlightRef.current = null;
+      return;
+    }
+
+    if (isRestoringRef.current) return;
+    if (loadSavedId && !loadAppliedRef.current) return;
+
+    templateSetupFetchInFlightRef.current = cid;
+    setTemplateSetupLoadComplete(false);
+
+    void (async () => {
+      try {
+        const templates = await getProposalTemplatesByCompany(cid);
+        if (templateSetupFetchInFlightRef.current !== cid) return;
+        const starter = findStarterProposalTemplate(templates);
+        if (!starter?.id) {
+          setStarterTemplateGraph(null);
+          return;
+        }
+        const graph = await getProposalTemplateGraph(starter.id, { companyId: cid });
+        if (templateSetupFetchInFlightRef.current !== cid) return;
+        setStarterTemplateGraph(graph);
+      } catch (err) {
+        console.warn("[RoofingClient] template setup fetch error:", err);
+        if (templateSetupFetchInFlightRef.current !== cid) return;
+        setStarterTemplateGraph(null);
+      } finally {
+        if (templateSetupFetchInFlightRef.current === cid) {
+          setTemplateSetupLoadComplete(true);
+          templateSetupFetchInFlightRef.current = null;
         }
       }
     })();
@@ -6833,6 +6895,40 @@ Thanks,`;
     const catalogReadinessLabel = formatCatalogReadinessLabel(catalogReadiness);
     const catalogNextStep = formatCatalogNextStepCopy(catalogReadiness);
     const catalogStatusDisplay = catalogLoadError ?? catalogReadinessLabel;
+    const proposalTemplateReadiness = deriveProposalTemplateReadiness({
+      catalogReadiness,
+      activeCatalogItems,
+      starterGraph: starterTemplateGraph,
+      templateCount: starterTemplateGraph ? 1 : 0,
+      activeTemplateCount: starterTemplateGraph?.template.active ? 1 : starterTemplateGraph ? 1 : 0,
+    });
+    const proposalBuilderReadiness = deriveProposalBuilderReadiness({
+      jobIdParam: currentJobId,
+      job:
+        currentJobId && isUuidLike(currentJobId)
+          ? ({ id: currentJobId, company_id: companyId ?? "" } as JobRecord)
+          : null,
+      jobLoadComplete: true,
+      measurementHandoff: proposalHandoff,
+      measurementLoadComplete: true,
+      catalogReadiness,
+      catalogLoadComplete: true,
+      templateReadiness: proposalTemplateReadiness,
+      templateLoadComplete: templateSetupLoadComplete,
+    });
+    const proposalBuilderLaunchEnabled =
+      proposalBuilderReadiness.ready &&
+      Boolean(currentJobId && isUuidLike(currentJobId));
+    const proposalBuilderButtonTitle = formatProposalBuilderDisabledButtonTitle(
+      proposalBuilderReadiness,
+      {
+        measurementHandoff: proposalHandoff,
+        catalogReadiness,
+        templateReadiness: proposalTemplateReadiness,
+      }
+    );
+    const proposalBuilderActionPrimary =
+      "inline-flex items-center gap-1.5 rounded-md border border-cyan-700 bg-cyan-700 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-cyan-800";
 
     const reportMeasurementRows: { label: string; value: string; muted?: boolean }[] = [
       {
@@ -7434,9 +7530,17 @@ Thanks,`;
                 headerAction={
                   <button
                     type="button"
-                    disabled
-                    className={passiveActionPrimary}
-                    title="Proposal Builder is not enabled yet."
+                    disabled={!proposalBuilderLaunchEnabled}
+                    onClick={() => {
+                      if (!proposalBuilderLaunchEnabled || !currentJobId) return;
+                      router.push(buildProposalBuilderHref(currentJobId));
+                    }}
+                    className={
+                      proposalBuilderLaunchEnabled
+                        ? proposalBuilderActionPrimary
+                        : passiveActionPrimary
+                    }
+                    title={proposalBuilderButtonTitle}
                   >
                     + Proposal
                   </button>
