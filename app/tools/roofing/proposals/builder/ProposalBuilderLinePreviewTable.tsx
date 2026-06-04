@@ -40,12 +40,33 @@ export default function ProposalBuilderLinePreviewTable({
                 {row.missingCatalog ? (
                   <p className="mt-1 text-xs text-amber-800">Linked catalog item missing</p>
                 ) : null}
-                <p className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-slate-500">
+                <p className="mt-1 text-xs text-slate-600">
+                  <span className="text-slate-400">Qty: </span>
+                  <span
+                    className={
+                      row.quantityUnresolved
+                        ? "text-slate-500"
+                        : "font-medium tabular-nums text-slate-700"
+                    }
+                  >
+                    {row.quantityDisplayLabel}
+                  </span>
+                </p>
+                <p className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-slate-500">
+                  <LineMetaDetail label="Source" value={row.quantitySourceLabel} />
+                  <LineMetaDetail label="Rule" value={row.quantityRuleLabel} />
                   <LineMetaDetail label="Unit" value={row.unitLabel} />
-                  <LineMetaDetail label="Qty source" value={row.quantitySourceLabel} />
-                  <LineMetaDetail label="Qty rule" value={row.quantityRuleLabel} />
                   <LineMetaDetail label="Role" value={row.roleLabel} />
                 </p>
+                {row.quantityStatusLabel ? (
+                  <p
+                    className={`mt-1 text-xs ${
+                      row.quantityUnresolved ? "text-amber-800/80" : "text-slate-400"
+                    }`}
+                  >
+                    {row.quantityUnresolved ? row.quantityStatusLabel : `Status: ${row.quantityStatusLabel}`}
+                  </p>
+                ) : null}
               </div>
               <div className="shrink-0 text-left sm:text-right">
                 <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">

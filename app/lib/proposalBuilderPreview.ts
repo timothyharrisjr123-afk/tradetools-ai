@@ -2,13 +2,12 @@
  * Pure read-only Proposal Builder line/section preview helpers (3H-2).
  *
  * Joins template graph + catalog items for display only — no Supabase, stores,
- * quantity resolution, pricing totals, or proposal persistence.
+ * pricing totals, or proposal persistence. Quantity preview via proposalQuantityResolver (3H-3).
  */
 
 import {
   catalogItemTypeLabel,
   catalogUnitLabel,
-  quantitySourceLabel,
   type CatalogItem,
 } from "@/app/lib/catalogTypes";
 import type { ProposalTemplateGraph } from "@/app/lib/proposalTemplateStore";
@@ -22,6 +21,14 @@ import {
   templateQuantityModeLabel,
 } from "@/app/lib/proposalTemplateTypes";
 import { sortTemplateOptionsByOrder } from "@/app/tools/roofing/templates/templatesSetupUtils";
+import type { MeasurementProposalHandoff } from "@/app/lib/measurementProposalHandoff";
+import type { MeasurementQuantityMap } from "@/app/lib/measurementTypes";
+import { resolveProposalLineQuantity } from "@/app/lib/proposalQuantityResolver";
+
+export type ProposalQuantityPreviewContext = {
+  measurementHandoff: MeasurementProposalHandoff | null;
+  quantityMap: MeasurementQuantityMap | null;
+};
 
 export type ProposalPreviewLineRow = {
   id: string;
@@ -30,6 +37,9 @@ export type ProposalPreviewLineRow = {
   unitLabel: string;
   quantitySourceLabel: string;
   quantityRuleLabel: string;
+  quantityDisplayLabel: string;
+  quantityStatusLabel: string;
+  quantityUnresolved: boolean;
   catalogSetupPriceLabel: string;
   roleLabel: string;
   missingCatalog: boolean;
@@ -113,19 +123,30 @@ function resolveLineDisplayName(
 
 export function buildLinePreviewRow(
   templateItem: ProposalTemplateItem,
-  catalogById: Map<string, CatalogItem>
+  catalogById: Map<string, CatalogItem>,
+  quantityContext?: ProposalQuantityPreviewContext | null
 ): ProposalPreviewLineRow {
   const catalogId = (templateItem.catalog_item_id ?? "").trim();
   const catalog = catalogId ? catalogById.get(catalogId) : undefined;
   const missingCatalog = Boolean(catalogId) && !catalog;
+
+  const quantityPreview = resolveProposalLineQuantity({
+    measurementHandoff: quantityContext?.measurementHandoff ?? null,
+    quantityMap: quantityContext?.quantityMap ?? null,
+    catalogItem: catalog ?? null,
+    templateItem,
+  });
 
   return {
     id: templateItem.id,
     displayName: missingCatalog ? resolveLineDisplayName(templateItem, null) : resolveLineDisplayName(templateItem, catalog),
     itemTypeLabel: catalog ? catalogItemTypeLabel(catalog.item_type) : "—",
     unitLabel: catalog ? catalogUnitLabel(catalog.unit) : "—",
-    quantitySourceLabel: catalog ? quantitySourceLabel(catalog.quantity_source) : "—",
-    quantityRuleLabel: formatQuantityRuleLabel(templateItem.quantity_rule),
+    quantitySourceLabel: missingCatalog ? "—" : quantityPreview.sourceLabel,
+    quantityRuleLabel: quantityPreview.ruleLabel,
+    quantityDisplayLabel: quantityPreview.quantityDisplayLabel,
+    quantityStatusLabel: quantityPreview.statusLabel,
+    quantityUnresolved: quantityPreview.unresolved,
     catalogSetupPriceLabel: missingCatalog
       ? "Missing catalog item"
       : formatCatalogSetupUnitPrice(catalog?.unit_price_cents),
@@ -137,10 +158,11 @@ export function buildLinePreviewRow(
 export function buildLinePreviewRowsForSection(
   graph: ProposalTemplateGraph,
   sectionId: string,
-  catalogById: Map<string, CatalogItem>
+  catalogById: Map<string, CatalogItem>,
+  quantityContext?: ProposalQuantityPreviewContext | null
 ): ProposalPreviewLineRow[] {
   return getItemsForSection(graph, sectionId).map((item) =>
-    buildLinePreviewRow(item, catalogById)
+    buildLinePreviewRow(item, catalogById, quantityContext)
   );
 }
 

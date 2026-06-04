@@ -1,11 +1,14 @@
 import type { ProposalTemplateGraph } from "@/app/lib/proposalTemplateStore";
 import type { ProposalTemplateSection } from "@/app/lib/proposalTemplateTypes";
 import type { CatalogItem } from "@/app/lib/catalogTypes";
+import type { MeasurementProposalHandoff } from "@/app/lib/measurementProposalHandoff";
+import type { MeasurementQuantityMap } from "@/app/lib/measurementTypes";
 import {
   buildCatalogItemById,
   buildLinePreviewRowsForSection,
   isLineItemsSectionKind,
   truncatePreviewText,
+  type ProposalQuantityPreviewContext,
 } from "@/app/lib/proposalBuilderPreview";
 import ProposalBuilderLinePreviewTable from "./ProposalBuilderLinePreviewTable";
 import { BUILDER_DOCUMENT_SECTION, BUILDER_DOCUMENT_TEXT_BLOCK } from "./proposalBuilderConstants";
@@ -14,21 +17,30 @@ type ProposalBuilderSectionPreviewProps = {
   graph: ProposalTemplateGraph;
   section: ProposalTemplateSection;
   catalogItems: CatalogItem[];
+  measurementHandoff: MeasurementProposalHandoff | null;
+  measurementQuantityMap: MeasurementQuantityMap | null;
 };
 
 export default function ProposalBuilderSectionPreview({
   graph,
   section,
   catalogItems,
+  measurementHandoff,
+  measurementQuantityMap,
 }: ProposalBuilderSectionPreviewProps) {
   const title = (section.customer_title ?? section.name).trim() || section.name;
   const catalogById = buildCatalogItemById(catalogItems);
+
+  const quantityContext: ProposalQuantityPreviewContext = {
+    measurementHandoff,
+    quantityMap: measurementQuantityMap,
+  };
 
   const bodyMarkdown = (section.content?.body_markdown ?? "").trim();
   const showTextBlock = !isLineItemsSectionKind(section.kind) && bodyMarkdown.length > 0;
 
   const lineRows = isLineItemsSectionKind(section.kind)
-    ? buildLinePreviewRowsForSection(graph, section.id, catalogById)
+    ? buildLinePreviewRowsForSection(graph, section.id, catalogById, quantityContext)
     : [];
 
   return (

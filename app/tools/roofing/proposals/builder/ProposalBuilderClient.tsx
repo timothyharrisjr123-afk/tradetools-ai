@@ -10,11 +10,12 @@ import { getJobById, isUuidLike } from "@/app/lib/jobStore";
 import type { JobRecord } from "@/app/lib/jobTypes";
 import {
   buildMeasurementProposalHandoff,
+  deriveQuantityMapFromRecord,
   type MeasurementProposalHandoff,
 } from "@/app/lib/measurementProposalHandoff";
 import { resolveMeasurementWorkspaceState } from "@/app/lib/measurementReadiness";
 import { getSelectedMeasurementForJob } from "@/app/lib/measurementStore";
-import type { MeasurementRecord } from "@/app/lib/measurementTypes";
+import type { MeasurementQuantityMap, MeasurementRecord } from "@/app/lib/measurementTypes";
 import { deriveProposalBuilderReadiness } from "@/app/lib/proposalBuilderReadiness";
 import { deriveProposalTemplateReadiness } from "@/app/lib/proposalTemplateReadiness";
 import {
@@ -44,6 +45,9 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
   const [measurementHandoff, setMeasurementHandoff] = useState<MeasurementProposalHandoff | null>(
     null
   );
+  const [measurementQuantityMap, setMeasurementQuantityMap] = useState<MeasurementQuantityMap | null>(
+    null
+  );
   const [measurementLoadComplete, setMeasurementLoadComplete] = useState(false);
 
   const [catalogItems, setCatalogItems] = useState<CatalogItem[]>([]);
@@ -61,6 +65,7 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
     setMeasurementLoadComplete(false);
     setJob(null);
     setMeasurementHandoff(null);
+    setMeasurementQuantityMap(null);
 
     const jobId = (jobIdParam ?? "").trim();
     if (!jobId || !isUuidLike(jobId)) {
@@ -82,7 +87,9 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
       if (measurement) {
         const handoff = buildMeasurementHandoffFromPersisted(measurement);
         setMeasurementHandoff(handoff);
+        setMeasurementQuantityMap(deriveQuantityMapFromRecord(measurement));
       } else {
+        setMeasurementQuantityMap(null);
         setMeasurementHandoff({
           proposalReady: false,
           blockers: ["Save measurement first"],
@@ -118,6 +125,7 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
       console.warn("[ProposalBuilderClient] job/measurement load error:", err);
       setJob(null);
       setMeasurementHandoff(null);
+      setMeasurementQuantityMap(null);
     } finally {
       setJobLoadComplete(true);
       setMeasurementLoadComplete(true);
@@ -252,6 +260,7 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
               onSelectOption={setSelectedOptionId}
               catalogItems={activeCatalogItems}
               measurementHandoff={measurementHandoff}
+              measurementQuantityMap={measurementQuantityMap}
             />
           }
           summaryRail={

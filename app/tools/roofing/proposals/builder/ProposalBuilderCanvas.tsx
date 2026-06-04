@@ -1,5 +1,6 @@
 import type { MeasurementProposalHandoff } from "@/app/lib/measurementProposalHandoff";
 import { formatProposalQuantitiesDisplay } from "@/app/lib/measurementProposalHandoff";
+import type { MeasurementQuantityMap } from "@/app/lib/measurementTypes";
 import type { ProposalTemplateGraph } from "@/app/lib/proposalTemplateStore";
 import type { CatalogItem } from "@/app/lib/catalogTypes";
 import {
@@ -22,6 +23,7 @@ type ProposalBuilderCanvasProps = {
   onSelectOption: (optionId: string) => void;
   catalogItems: CatalogItem[];
   measurementHandoff: MeasurementProposalHandoff | null;
+  measurementQuantityMap: MeasurementQuantityMap | null;
 };
 
 function buildMeasurementContextLine(handoff: MeasurementProposalHandoff | null): string | null {
@@ -37,6 +39,7 @@ export default function ProposalBuilderCanvas({
   onSelectOption,
   catalogItems,
   measurementHandoff,
+  measurementQuantityMap,
 }: ProposalBuilderCanvasProps) {
   const templateName = starterGraph?.template.name ?? STARTER_TEMPLATE_DISPLAY_NAME;
   const effectiveOptionId =
@@ -104,6 +107,8 @@ export default function ProposalBuilderCanvas({
                 graph={starterGraph}
                 section={section}
                 catalogItems={catalogItems}
+                measurementHandoff={measurementHandoff}
+                measurementQuantityMap={measurementQuantityMap}
               />
             ))
           )}
