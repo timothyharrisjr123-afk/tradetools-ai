@@ -459,6 +459,62 @@ export function buildJobsBoardCardModel(
   };
 }
 
+export type JobCardDisplayModel = {
+  customerName: string;
+  address: string;
+  stageLabel: string;
+  valueLabel: string | null;
+  lastUpdatedDisplay: string | null;
+  timeInStage: string | null;
+  timeInStageTone: TimeInStageTone;
+  reportLabel: string;
+  proposalLabel: string;
+  tasksLabel: string;
+};
+
+export function buildJobCardDisplayModel(
+  estimate: RoofingEstimate | null | undefined,
+  fallback?: {
+    customerName?: string;
+    address?: string;
+    roofAreaSqFt?: number;
+  }
+): JobCardDisplayModel {
+  if (estimate) {
+    const columnKey = getBoardColumnKeyForJob(estimate) ?? "estimate";
+    const board = buildJobsBoardCardModel(estimate, undefined, { columnKey });
+    return {
+      customerName: board.customerName,
+      address: board.address || "—",
+      stageLabel: getBoardStageLabelForJob(estimate),
+      valueLabel: board.valueLabel,
+      lastUpdatedDisplay: board.lastUpdatedDisplay,
+      timeInStage: board.timeInStage,
+      timeInStageTone: board.timeInStageTone,
+      reportLabel: board.reportStatus.label,
+      proposalLabel: board.proposalStatus.label,
+      tasksLabel: `Tasks ${board.tasksLabel}`,
+    };
+  }
+
+  const hasMeasurement = (fallback?.roofAreaSqFt ?? 0) > 0;
+  const customerName = (fallback?.customerName || "").trim() || "New roofing job";
+  const address = (fallback?.address || "").trim() || "—";
+
+  return {
+    customerName,
+    address,
+    stageLabel: "New Lead",
+    valueLabel: null,
+    lastUpdatedDisplay: null,
+    timeInStage: null,
+    timeInStageTone: "neutral",
+    reportLabel: hasMeasurement ? "Report Complete" : "Report Missing",
+    proposalLabel: "Proposal Draft",
+    tasksLabel: "Tasks 0/0",
+  };
+}
+
 export function applyBoardUpdatedDateFilter(
   jobs: RoofingEstimate[],
   updatedOnOrAfter: string | null

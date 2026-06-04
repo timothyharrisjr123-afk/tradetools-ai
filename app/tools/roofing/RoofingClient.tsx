@@ -88,11 +88,6 @@ import {
   deriveMeasurementReadinessScore,
   measurementRecordsDiffer,
   resolveMeasurementWorkspaceState,
-  formatEstimateReadinessLabel,
-  formatProductionReadinessLabel,
-  formatRailMeasurementStatusLabel,
-  resolveNextMeasurementAction,
-  resolveReportPathNextAction,
   resolveActivityMeasurementLine,
   formatSourceTypeLabel,
   formatReportStatusLabel,
@@ -107,8 +102,6 @@ import {
   buildMeasurementProposalHandoff,
   formatProposalReadinessLabel,
   formatProposalSectionHeaderStatus,
-  formatProposalQuantitiesDisplay,
-  formatProposalMissingDisplay,
   resolveProposalHandoffNextAction,
 } from "@/app/lib/measurementProposalHandoff";
 import { getActiveCatalogItemsByCompany } from "@/app/lib/catalogStore";
@@ -117,7 +110,6 @@ import {
   deriveCatalogReadiness,
   formatCatalogReadinessLabel,
   formatCatalogNextStepCopy,
-  formatStarterCatalogAvailability,
 } from "@/app/lib/catalogReadiness";
 import { DEFAULT_ROOFING_CATALOG_DEFINITIONS } from "@/app/lib/defaultRoofingCatalog";
 import type { JobDraft, JobAddress, JobRecord } from "@/app/lib/jobTypes";
@@ -126,6 +118,13 @@ import { getFavorite, setFavorite, setLocked, appendFeedback, getTierFeedbackBia
 import RoofingTabs from "@/app/tools/roofing/RoofingTabs";
 import RoofingClientV2 from "../roofing-v2/RoofingClientV2";
 import FieldDiveAppShell from "@/app/tools/roofing/FieldDiveAppShell";
+import { buildJobCardDisplayModel } from "@/app/tools/roofing/saved/jobsBoardUtils";
+import JobCardHeader from "@/app/tools/roofing/jobCard/JobCardHeader";
+import JobCardMetadataStrip from "@/app/tools/roofing/jobCard/JobCardMetadataStrip";
+import JobCardTabs, { type JobCardTabId } from "@/app/tools/roofing/jobCard/JobCardTabs";
+import JobCardSectionPanel from "@/app/tools/roofing/jobCard/JobCardSectionPanel";
+import JobCardActivityPanel, { type JobCardActivityItem } from "@/app/tools/roofing/jobCard/JobCardActivityPanel";
+import JobCardOverviewSummary from "@/app/tools/roofing/jobCard/JobCardOverviewSummary";
 import { loadCompanyVoiceProfile, saveCompanyVoiceProfile, type VoiceTone } from "@/app/lib/companyVoiceProfile";
 
 function safeUUID() {
@@ -960,17 +959,20 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const loadSavedId = searchParams.get("loadSaved");
-  const entryRaw = searchParams.get("entry");
+  const entryParam = searchParams.get("entry");
+  const fromParam = searchParams.get("from");
+  const isBoardOriginParam = fromParam === "board";
+  const jobParam = searchParams.get("job");
   const legacyManual = searchParams.get("legacy") === "1";
   const entryMode: "packet" | "manual" | "instant" | "job-card" = loadSavedId
     ? "job-card"
-    : entryRaw === "manual"
+    : entryParam === "manual"
       ? legacyManual
         ? "manual"
         : "job-card"
-      : entryRaw === "instant"
+      : entryParam === "instant"
         ? "instant"
-        : entryRaw === "job-card"
+        : entryParam === "job-card"
           ? "job-card"
           : "packet";
   const [zipPresets, setZipPresets] = useState<ZipPresetsMap | null>(null);
@@ -1000,13 +1002,31 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
   const [measurementSaveError, setMeasurementSaveError] = useState<string | null>(null);
   const measurementSaveInFlightRef = useRef<string | null>(null);
   const measurementFormHydratedRef = useRef<string | null>(null);
+  const [jobCardTab, setJobCardTab] = useState<JobCardTabId>("overview");
+  const [jobCardBoardOrigin, setJobCardBoardOrigin] = useState(false);
 
   useEffect(() => {
-    const jobFromUrl = searchParams.get("job");
-    if (jobFromUrl && isUuidLike(jobFromUrl)) {
-      setCurrentJobId(jobFromUrl);
+    if (loadSavedId || isBoardOriginParam) {
+      setJobCardBoardOrigin(true);
+      return;
     }
-  }, [searchParams]);
+    if (entryParam === "packet" || entryParam === "instant") {
+      setJobCardBoardOrigin(false);
+      return;
+    }
+    if (entryParam === "job-card" && !isBoardOriginParam && !loadSavedId) {
+      setJobCardBoardOrigin(false);
+    }
+  }, [loadSavedId, entryParam, isBoardOriginParam]);
+
+  useEffect(() => {
+    if (jobParam && isUuidLike(jobParam)) {
+      setCurrentJobId(jobParam);
+    }
+  }, [jobParam]);
+
+  const isJobCardBoardContext =
+    jobCardBoardOrigin || Boolean(loadSavedId) || isBoardOriginParam;
 
   const beginRestoreWindow = useCallback((id: string) => {
     if (restoreTimerRef.current) window.clearTimeout(restoreTimerRef.current);
@@ -1331,13 +1351,18 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
     if (!currentJobId || !isUuidLike(currentJobId)) return;
     if (typeof window === "undefined") return;
 
-    const targetPath = `/tools/roofing?entry=job-card&job=${encodeURIComponent(currentJobId)}`;
     const params = new URLSearchParams(window.location.search);
-    if (params.get("entry") === "job-card" && params.get("job") === currentJobId) {
+    const fromSuffix = isJobCardBoardContext ? "&from=board" : "";
+    const targetPath = `/tools/roofing?entry=job-card&job=${encodeURIComponent(currentJobId)}${fromSuffix}`;
+    if (
+      params.get("entry") === "job-card" &&
+      params.get("job") === currentJobId &&
+      (params.get("from") === "board") === isJobCardBoardContext
+    ) {
       return;
     }
     window.history.replaceState({}, "", targetPath);
-  }, [entryMode, currentJobId]);
+  }, [entryMode, currentJobId, isJobCardBoardContext]);
 
   useEffect(() => {
     if (!loadSavedId) return;
@@ -1379,7 +1404,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
         currentJobId && isUuidLike(currentJobId)
           ? `&job=${encodeURIComponent(currentJobId)}`
           : "";
-      window.history.replaceState({}, "", `/tools/roofing?entry=job-card${jobQuery}`);
+      window.history.replaceState({}, "", `/tools/roofing?entry=job-card${jobQuery}&from=board`);
     }
   }, [
     loadSavedId,
@@ -6646,7 +6671,6 @@ Thanks,`;
     const addressLine = hasAddress
       ? [jobAddress1, jobCity, jobState, jobZip].map((s) => (s || "").trim()).filter(Boolean).join(", ")
       : "Property details not complete";
-    const hasCustomerInfo = Boolean((customerName || customerEmail || customerPhone).trim());
     const localMeasurement = buildJobCardSelectedMeasurement({
       area,
       waste,
@@ -6680,8 +6704,6 @@ Thanks,`;
         : localRecord;
     const estimateReadiness = deriveEstimateReadiness(readinessRecord);
     const productionReadiness = deriveProductionReadiness(readinessRecord);
-    const estimateMissingFields = deriveMeasurementMissingFields(readinessRecord, "estimate");
-    const productionMissingFields = deriveMeasurementMissingFields(readinessRecord, "production");
     const hasLocalRoofSize = workspace.hasLocalRoofSize;
     const hasMeasurement = hasLocalRoofSize;
     const localWasteSet =
@@ -6713,43 +6735,15 @@ Thanks,`;
       : statusRecord.status === "needs_review"
         ? "Needs review"
         : "Not verified";
-    const estimateReadinessDisplay = formatEstimateReadinessLabel(
-      estimateReadiness.ready,
-      estimateReadiness.blockers
-    );
-    const productionReadinessDisplay = formatProductionReadinessLabel(
-      productionReadiness.ready,
-      productionReadiness.blockers
-    );
-    const estimateMissingDisplay =
-      estimateMissingFields.length > 0 ? estimateMissingFields.join(", ") : "None";
-    const productionMissingDisplay =
-      productionMissingFields.length > 0 ? productionMissingFields.join(", ") : "None";
     const lineMeasurementRecord = isPersistedNonManual
       ? persistedSelectedMeasurement!
       : localRecord;
-    const railMeasurementStatus = formatRailMeasurementStatusLabel(
-      workspace,
-      estimateReadiness.ready,
-      productionReadiness.ready,
-      persistedSelectedMeasurement
-    );
-    const nextMeasurementAction = resolveNextMeasurementAction({
-      workspace,
-      estimateReady: estimateReadiness.ready,
-      persistedRecord: persistedSelectedMeasurement,
-    });
     const activityMeasurementLine = resolveActivityMeasurementLine({
       persistedRecord: persistedSelectedMeasurement,
       isPersistedManual,
       isPersistedNonManual,
     });
     const reportPathRecord = lineMeasurementRecord;
-    const reportPathNextAction = resolveReportPathNextAction({
-      workspace,
-      estimateReady: estimateReadiness.ready,
-      persistedRecord: persistedSelectedMeasurement,
-    });
     const reportPathHelperText = formatReportPathHelperText({
       workspace,
       estimateReady: estimateReadiness.ready,
@@ -6771,8 +6765,6 @@ Thanks,`;
       proposalHandoff,
       proposalHandoffContext
     );
-    const proposalQuantitiesDisplay = formatProposalQuantitiesDisplay(proposalHandoff.quantities);
-    const proposalMissingDisplay = formatProposalMissingDisplay(proposalHandoff.blockers);
     const proposalHandoffNextAction = resolveProposalHandoffNextAction({
       handoff: proposalHandoff,
       workspace,
@@ -6784,7 +6776,6 @@ Thanks,`;
     );
     const catalogReadinessLabel = formatCatalogReadinessLabel(catalogReadiness);
     const catalogNextStep = formatCatalogNextStepCopy(catalogReadiness);
-    const catalogStarterDisplay = formatStarterCatalogAvailability(catalogReadiness);
     const catalogStatusDisplay = catalogLoadError ?? catalogReadinessLabel;
 
     const reportMeasurementRows: { label: string; value: string; muted?: boolean }[] = [
@@ -6876,55 +6867,12 @@ Thanks,`;
             ? "Enter roof size before saving measurement."
             : undefined;
 
-    const moduleCard = "overflow-hidden rounded-md border border-slate-200/80 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]";
-    const moduleHeader = "flex items-center justify-between border-b border-slate-100 bg-slate-50/60 px-4 py-2.5";
-    const moduleTitle = "text-sm font-semibold tracking-tight text-slate-900";
-    const moduleBody = "px-4 py-3";
-    const detailsSection = `${moduleCard} group`;
-    const detailsSummary =
-      "flex cursor-pointer list-none items-center gap-2 border-b border-slate-100 bg-slate-50/60 px-4 py-2.5 transition hover:bg-slate-50/90 [&::-webkit-details-marker]:hidden";
-    const detailsChevron =
-      "ml-1 h-4 w-4 shrink-0 text-slate-400 transition-transform group-open:rotate-180";
-    const summaryLine = "min-w-0 flex-1 truncate text-xs text-slate-500";
-    const metaRow = "flex items-start justify-between gap-3 py-1 text-sm border-b border-slate-50 last:border-0";
-    const metaRowCompact = "flex items-center justify-between gap-2 py-1 text-xs";
-    const metaLabel = "text-slate-500 shrink-0 w-28 sm:w-32";
-    const metaValue = "text-slate-800 font-medium text-right";
-    const chipBase = "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold shrink-0";
     const passiveAction = "inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed";
     const wsLabel = "text-[11px] font-semibold uppercase tracking-wide text-slate-400";
     const wsBlock = "rounded-md border border-slate-100 bg-slate-50/40 px-3 py-2.5";
     const metricTile = "rounded-md border border-slate-200/70 bg-white px-2.5 py-2 shadow-[0_1px_0_rgba(15,23,42,0.03)]";
     const statusPill = "text-xs font-medium text-slate-800";
     const statusMuted = "text-xs text-slate-400";
-
-    const CollapseChevron = () => (
-      <svg className={detailsChevron} viewBox="0 0 20 20" fill="currentColor" aria-hidden>
-        <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.94a.75.75 0 111.08 1.04l-4.24 4.5a.75.75 0 01-1.08 0l-4.24-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
-      </svg>
-    );
-
-    const DetailsHeader = ({
-      title,
-      status,
-      statusClass,
-      summary,
-      count,
-    }: {
-      title: string;
-      status: string;
-      statusClass: string;
-      summary: string;
-      count?: string;
-    }) => (
-      <>
-        <h2 className={`${moduleTitle} shrink-0`}>{title}</h2>
-        <span className={`${chipBase} ${statusClass}`}>{status}</span>
-        {count ? <span className="shrink-0 text-[11px] tabular-nums text-slate-400">{count}</span> : null}
-        <span className={summaryLine}>{summary}</span>
-        <CollapseChevron />
-      </>
-    );
 
     const WorkspaceHeading = ({ children }: { children: string }) => (
       <p className={wsLabel}>{children}</p>
@@ -6935,19 +6883,6 @@ Thanks,`;
         <dt className="text-[11px] text-slate-500">{label}</dt>
         <dd className={`mt-0.5 text-sm font-medium ${muted ? "text-slate-400" : "text-slate-800"}`}>{value}</dd>
       </div>
-    );
-
-    const WorkflowPath = ({ steps }: { steps: string[] }) => (
-      <ol className="space-y-1.5">
-        {steps.map((step, i) => (
-          <li key={step} className="flex items-start gap-2 text-xs text-slate-600">
-            <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-slate-200 text-[10px] font-bold text-slate-600">
-              {i + 1}
-            </span>
-            <span className="pt-0.5">{step}</span>
-          </li>
-        ))}
-      </ol>
     );
 
     const StatusLine = ({ label, value, muted }: { label: string; value: string | number; muted?: boolean }) => (
@@ -6979,6 +6914,33 @@ Thanks,`;
 
     const wsHelper = "mt-1.5 text-[11px] leading-snug text-slate-500";
 
+    const isBoardOrigin = isJobCardBoardContext;
+    const jobCardDisplay = buildJobCardDisplayModel(currentSaved ?? null, {
+      customerName: displayName,
+      address: addressLine !== "Property details not complete" ? addressLine : undefined,
+      roofAreaSqFt: Number(area || 0),
+    });
+    const activityWhen = jobCardDisplay.lastUpdatedDisplay?.replace(/^Updated /, "") ?? "Just now";
+    const jobCardActivityItems: JobCardActivityItem[] = [
+      isBoardOrigin && currentSaved
+        ? { when: activityWhen, label: "Estimate loaded", note: "Opened from Job Board" }
+        : { when: "Just now", label: "Job card opened", note: "New job / intake path" },
+      { ...activityMeasurementLine, when: activityWhen },
+      proposalHandoff.proposalReady
+        ? {
+            when: activityWhen,
+            label: "Measurement ready for proposal",
+            note: "Proposal Builder not enabled yet",
+          }
+        : {
+            when: activityWhen,
+            label: "Proposal not started",
+            note: proposalHandoffNextAction.subtitle,
+          },
+    ];
+    const passiveActionPrimary =
+      "inline-flex cursor-not-allowed items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-500 opacity-70 shadow-sm";
+
     const ATTACHMENT_CATEGORIES = [
       "Inspection photos",
       "Customer photos",
@@ -6990,139 +6952,46 @@ Thanks,`;
       "Post-production photos",
     ] as const;
 
-    const NAV_TABS = [
-      "Overview",
-      "Tasks",
-      "Calendar",
-      "Measurements",
-      "Proposals",
-      "Material Orders",
-      "Work Orders",
-      "Invoices",
-      "Job Costing",
-      "Attachments",
-      "Instant Estimate",
-    ];
-
     return (
       <div className="min-h-0 w-full pb-8 pt-1 pl-3 pr-4 sm:pl-4 sm:pr-5 lg:pl-5 lg:pr-6">
         <div className="w-full max-w-[100rem]">
+          <div className="overflow-hidden rounded-lg border border-slate-200/80 bg-white shadow-[0_1px_3px_rgba(15,23,42,0.06)]">
+            <JobCardHeader
+              display={jobCardDisplay}
+              isBoardOrigin={isBoardOrigin}
+              phone={customerPhone}
+              email={customerEmail}
+            />
+            <JobCardMetadataStrip display={jobCardDisplay} />
+            <JobCardTabs activeTab={jobCardTab} onTabChange={setJobCardTab} />
 
-          {/* ── PAGE HEADER ─────────────────────────────────────────────── */}
-          <div className="mb-4 border-b border-slate-200 pb-4">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2.5">
-                  <h1 className="text-xl font-semibold tracking-tight text-slate-900">Job Card</h1>
-                  <span className={`${chipBase} bg-amber-100 text-amber-800`}>Draft</span>
-                  <span className={`${chipBase} bg-slate-100 text-slate-600`}>Intake</span>
-                </div>
-                <p className="mt-1 text-base font-medium text-slate-800">{displayName}</p>
-                <p className="mt-0.5 text-sm text-slate-500">{addressLine}</p>
-                <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-slate-500">
-                  <span><span className="text-slate-400">Stage:</span> Intake</span>
-                  <span><span className="text-slate-400">Status:</span> Draft</span>
-                  <span><span className="text-slate-400">Last updated:</span> Today</span>
-                  <span><span className="text-slate-400">Assigned:</span> Unassigned</span>
-                </div>
-              </div>
-              <div className="flex shrink-0 flex-wrap items-center gap-2">
-                <a
-                  href="/tools/roofing?entry=packet"
-                  className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
-                >
-                  ← Back to Job Packet
-                </a>
-                <div className="flex flex-col items-end gap-1">
-                  <button
-                    type="button"
-                    disabled
-                    title="Proposal Builder coming after measurements/templates"
-                    className="inline-flex cursor-not-allowed items-center gap-1.5 rounded-md bg-slate-900 px-3.5 py-1.5 text-sm font-semibold text-white opacity-60 shadow-sm"
-                  >
-                    Create proposal
-                  </button>
-                  <p className="max-w-[14rem] text-right text-[11px] leading-snug text-slate-500">
-                    Proposal Builder coming after measurements/templates
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
+            <div className="grid min-h-[min(520px,calc(100vh-14rem))] grid-cols-1 xl:grid-cols-[minmax(0,1fr)_300px]">
+              <main className="min-h-0 overflow-y-auto p-5 sm:p-6 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-200/60">
+              <JobCardSectionPanel tabId="overview" activeTab={jobCardTab} title="Overview" subtitle="Job summary and status at a glance">
+                <JobCardOverviewSummary
+                  display={jobCardDisplay}
+                  phone={customerPhone}
+                  email={customerEmail}
+                  address={addressLine}
+                  hasAddress={hasAddress}
+                  measurementStatus={measurementsHeaderStatus}
+                  catalogStatus={catalogReadinessLabel}
+                  catalogReady={catalogReadiness.state === "ready_for_templates"}
+                  onNavigateTab={setJobCardTab}
+                />
+              </JobCardSectionPanel>
 
-          {/* ── SECTION NAV ─────────────────────────────────────────────── */}
-          <div className="mb-5 flex flex-wrap gap-1.5">
-            {NAV_TABS.map((tab) => {
-              const isActive = tab === "Overview";
-              return (
-                <span
-                  key={tab}
-                  className={`inline-flex items-center rounded-md px-3 py-1.5 text-[13px] font-medium transition ${
-                    isActive
-                      ? "bg-slate-900 text-white shadow-sm"
-                      : "border border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 cursor-pointer"
-                  }`}
-                >
-                  {tab}
-                </span>
-              );
-            })}
-          </div>
-
-          {/* ── MAIN GRID ───────────────────────────────────────────────── */}
-          <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(20rem,22.5rem)] xl:items-start xl:gap-6">
-
-            {/* ── LEFT / MAIN COLUMN ───────────────────────────────────── */}
-            <div className="space-y-3">
-
-              {/* OVERVIEW — always visible, compact */}
-              <section className={moduleCard}>
-                <div className={moduleHeader}>
-                  <h2 className={moduleTitle}>Overview</h2>
-                </div>
-                <div className="px-4 py-2.5">
-                  <dl className="grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-2">
-                    <div className={metaRowCompact}>
-                      <dt className="text-slate-500">Customer</dt>
-                      <dd className="truncate text-right font-medium text-slate-800">{(customerName || "").trim() || <span className="font-normal text-slate-400">Not entered</span>}</dd>
-                    </div>
-                    <div className={metaRowCompact}>
-                      <dt className="text-slate-500">Phone</dt>
-                      <dd className="truncate text-right font-medium text-slate-800">{(customerPhone || "").trim() || <span className="font-normal text-slate-400">Not entered</span>}</dd>
-                    </div>
-                    <div className={metaRowCompact}>
-                      <dt className="text-slate-500">Email</dt>
-                      <dd className="truncate text-right font-medium text-slate-800">{(customerEmail || "").trim() || <span className="font-normal text-slate-400">Not entered</span>}</dd>
-                    </div>
-                    <div className={metaRowCompact}>
-                      <dt className="text-slate-500">Property</dt>
-                      <dd className="truncate text-right font-medium text-slate-800">{hasAddress ? addressLine : <span className="font-normal text-slate-400">Not entered</span>}</dd>
-                    </div>
-                    <div className={metaRowCompact}>
-                      <dt className="text-slate-500">Job source</dt>
-                      <dd className="text-right font-medium text-slate-800">Manual intake</dd>
-                    </div>
-                    <div className={metaRowCompact}>
-                      <dt className="text-slate-500">Stage</dt>
-                      <dd className="flex justify-end">
-                        <span className={`${chipBase} bg-slate-100 text-slate-700`}>Intake</span>
-                      </dd>
-                    </div>
-                  </dl>
-                </div>
-              </section>
-
-              {/* MEASUREMENTS — open by default */}
-              <details open className={detailsSection}>
-                <summary className={detailsSummary}>
-                  <DetailsHeader
-                    title="Measurements"
-                    status={measurementsHeaderStatus}
-                    statusClass={hasMeasurement ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}
-                    summary="Roof size, waste, pitch, stories, report status"
-                  />
-                </summary>
-                <div className={`${moduleBody} space-y-3`}>
+              <JobCardSectionPanel
+                tabId="measurements"
+                activeTab={jobCardTab}
+                title="Measurements"
+                subtitle="Roof size, waste, and manual measurement entry"
+                statusChip={{
+                  label: measurementsHeaderStatus,
+                  className: hasMeasurement ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700",
+                }}
+              >
+                <div className="space-y-4">
                   <div className={wsBlock}>
                     <WorkspaceHeading>Measurement status</WorkspaceHeading>
                     <div className="mt-2 grid grid-cols-1 gap-x-4 sm:grid-cols-2">
@@ -7137,26 +7006,6 @@ Thanks,`;
                       <StatusLine label="Source" value={measurementSourceLabel} />
                       <StatusLine label="Confidence" value={confidenceDisplay} muted={!statusRecord.confidence_label} />
                       <StatusLine label="Verification" value={verificationDisplay} muted={!statusRecord.is_verified} />
-                      <StatusLine
-                        label="Estimate readiness"
-                        value={estimateReadinessDisplay}
-                        muted={!estimateReadiness.ready}
-                      />
-                      <StatusLine
-                        label="Production readiness"
-                        value={productionReadinessDisplay}
-                        muted={!productionReadiness.ready}
-                      />
-                    </div>
-                    <div className="mt-2 space-y-1 text-[11px] text-slate-500">
-                      <p>
-                        <span className="font-medium text-slate-600">For estimate:</span>{" "}
-                        {estimateMissingDisplay}
-                      </p>
-                      <p>
-                        <span className="font-medium text-slate-600">For production:</span>{" "}
-                        {productionMissingDisplay}
-                      </p>
                     </div>
                   </div>
                   <div className={wsBlock}>
@@ -7477,20 +7326,15 @@ Thanks,`;
                     ) : null}
                   </div>
                 </div>
-              </details>
+              </JobCardSectionPanel>
 
-              {/* ATTACHMENTS — collapsed by default */}
-              <details className={detailsSection}>
-                <summary className={detailsSummary}>
-                  <DetailsHeader
-                    title="Attachments"
-                    status="No attachments yet"
-                    statusClass="bg-slate-100 text-slate-500"
-                    summary="Photos, reports, docs, contracts, other files"
-                    count="0 files"
-                  />
-                </summary>
-                <div className={`${moduleBody} space-y-3`}>
+              <JobCardSectionPanel
+                tabId="attachments"
+                activeTab={jobCardTab}
+                title="Attachments"
+                statusChip={{ label: "No attachments yet", className: "bg-slate-100 text-slate-500" }}
+              >
+                <div className="space-y-3">
                   <div className={wsBlock}>
                     <WorkspaceHeading>Attachment status</WorkspaceHeading>
                     <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-0.5 sm:grid-cols-2">
@@ -7518,25 +7362,28 @@ Thanks,`;
                     <button type="button" disabled className={passiveAction}>Search files</button>
                   </div>
                 </div>
-              </details>
+              </JobCardSectionPanel>
 
-              {/* PROPOSALS */}
-              <details className={detailsSection}>
-                <summary className={detailsSummary}>
-                  <DetailsHeader
-                    title="Proposals"
-                    status={proposalSectionHeader.label}
-                    statusClass={
-                      proposalSectionHeader.ready
-                        ? "bg-emerald-50 text-emerald-700"
-                        : "bg-slate-100 text-slate-500"
-                    }
-                    summary="Proposal creation starts here from the Job Card"
-                  />
-                </summary>
-                <div className={`${moduleBody} space-y-3`}>
+              <JobCardSectionPanel
+                tabId="proposals"
+                activeTab={jobCardTab}
+                title="Proposals"
+                subtitle="Proposal documents for this job"
+                statusChip={{
+                  label: proposalSectionHeader.label,
+                  className: proposalSectionHeader.ready
+                    ? "bg-emerald-50 text-emerald-700"
+                    : "bg-slate-100 text-slate-500",
+                }}
+                headerAction={
+                  <button type="button" disabled className={passiveActionPrimary} title="Proposal Builder not enabled yet">
+                    + Proposal
+                  </button>
+                }
+              >
+                <div className="space-y-4">
                   <div className={wsBlock}>
-                    <WorkspaceHeading>Proposal handoff</WorkspaceHeading>
+                    <WorkspaceHeading>Proposal status</WorkspaceHeading>
                     <div className="mt-2 grid grid-cols-1 gap-0.5 sm:grid-cols-2">
                       <StatusLine
                         label="Selected measurement"
@@ -7550,16 +7397,6 @@ Thanks,`;
                         label="Proposal readiness"
                         value={proposalReadinessDisplay}
                         muted={!proposalHandoff.proposalReady}
-                      />
-                      <StatusLine
-                        label="Available quantities"
-                        value={proposalQuantitiesDisplay}
-                        muted={proposalQuantitiesDisplay === "—"}
-                      />
-                      <StatusLine
-                        label="Missing for proposal"
-                        value={proposalMissingDisplay}
-                        muted={proposalHandoff.blockers.length === 0}
                       />
                       <StatusLine label="Template" value="Not selected" muted />
                       <StatusLine label="Proposal document" value="No proposal yet" muted />
@@ -7578,24 +7415,7 @@ Thanks,`;
                         value={catalogReadiness.activeItemCount}
                         muted={catalogReadiness.activeItemCount === 0}
                       />
-                      <StatusLine
-                        label="Measurement-mapped items"
-                        value={catalogReadiness.measurementMappedItemCount}
-                        muted={catalogReadiness.measurementMappedItemCount === 0}
-                      />
-                      <StatusLine label="Starter catalog" value={catalogStarterDisplay} muted={catalogReadiness.activeItemCount > 0} />
-                      <StatusLine
-                        label="Priced items"
-                        value={catalogReadiness.pricedItemCount}
-                        muted={catalogReadiness.pricedItemCount === 0}
-                      />
                       <StatusLine label="Next step" value={catalogNextStep} muted={catalogReadiness.state === "ready_for_templates"} />
-                      <StatusLine label="Template" value="Not selected" muted />
-                      <StatusLine
-                        label="Proposal Builder"
-                        value="Disabled until catalog and template are ready"
-                        muted
-                      />
                     </div>
                     <div className="mt-3 border-t border-slate-100 pt-3">
                       <a
@@ -7610,47 +7430,21 @@ Thanks,`;
                     </div>
                   </div>
                   <div>
-                    <WorkspaceHeading>Create proposal path</WorkspaceHeading>
-                    <div className="mt-2">
-                      <WorkflowPath
-                        steps={[
-                          "Select measurement",
-                          "Choose template",
-                          "Build estimate",
-                          "Review proposal",
-                        ]}
-                      />
-                    </div>
-                  </div>
-                  <p className="text-xs leading-relaxed text-slate-600">
-                    Proposals will use the selected measurement&apos;s quantities and a template when Catalog
-                    and Proposal Builder are enabled. No proposal is created from this screen yet.
-                  </p>
-                  <div>
                     <WorkspaceHeading>Proposal list</WorkspaceHeading>
                     <PlaceholderBox
                       lines={["No proposals created yet", "Draft proposals will appear here"]}
                     />
                   </div>
-                  <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-2">
-                    <button type="button" disabled className={passiveAction}>Create proposal from Job Card</button>
-                    <button type="button" disabled className={passiveAction}>Choose template</button>
-                    <button type="button" disabled className={passiveAction}>Use measurement</button>
-                  </div>
                 </div>
-              </details>
+              </JobCardSectionPanel>
 
-              {/* MATERIAL ORDERS */}
-              <details className={detailsSection}>
-                <summary className={detailsSummary}>
-                  <DetailsHeader
-                    title="Material Orders"
-                    status="Not started"
-                    statusClass="bg-slate-100 text-slate-500"
-                    summary="Supplier and material list not selected"
-                  />
-                </summary>
-                <div className={`${moduleBody} space-y-3`}>
+              <JobCardSectionPanel
+                tabId="material_orders"
+                activeTab={jobCardTab}
+                title="Material Orders"
+                statusChip={{ label: "Not started", className: "bg-slate-100 text-slate-500" }}
+              >
+                <div className="space-y-3">
                   <div className={wsBlock}>
                     <WorkspaceHeading>Order status</WorkspaceHeading>
                     <div className="mt-2 grid grid-cols-1 gap-0.5 sm:grid-cols-2">
@@ -7662,44 +7456,20 @@ Thanks,`;
                       <StatusLine label="Order total" value="—" muted />
                     </div>
                   </div>
-                  <div>
-                    <WorkspaceHeading>Material order path</WorkspaceHeading>
-                    <div className="mt-2">
-                      <WorkflowPath
-                        steps={[
-                          "Select proposal/estimate",
-                          "Generate material list",
-                          "Select supplier/branch",
-                          "Prepare order",
-                        ]}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <WorkspaceHeading>Material list</WorkspaceHeading>
-                    <dl className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
-                      {["Shingles", "Underlayment", "Starter", "Ridge cap", "Accessories"].map((label) => (
-                        <MetricTile key={label} label={label} value="—" muted />
-                      ))}
-                    </dl>
-                  </div>
+                  <p className={wsHelper}>Material orders will be available after a proposal is ready.</p>
                   <div className="border-t border-slate-100 pt-2">
                     <button type="button" disabled className={passiveAction}>Create material order</button>
                   </div>
                 </div>
-              </details>
+              </JobCardSectionPanel>
 
-              {/* WORK ORDERS */}
-              <details className={detailsSection}>
-                <summary className={detailsSummary}>
-                  <DetailsHeader
-                    title="Work Orders"
-                    status="Not created"
-                    statusClass="bg-slate-100 text-slate-500"
-                    summary="Crew and schedule not assigned"
-                  />
-                </summary>
-                <div className={`${moduleBody} space-y-3`}>
+              <JobCardSectionPanel
+                tabId="work_orders"
+                activeTab={jobCardTab}
+                title="Work Orders"
+                statusChip={{ label: "Not created", className: "bg-slate-100 text-slate-500" }}
+              >
+                <div className="space-y-3">
                   <div className={wsBlock}>
                     <WorkspaceHeading>Work order status</WorkspaceHeading>
                     <div className="mt-2 grid grid-cols-1 gap-0.5 sm:grid-cols-2">
@@ -7711,45 +7481,20 @@ Thanks,`;
                       <StatusLine label="Material order" value="None" muted />
                     </div>
                   </div>
-                  <div>
-                    <WorkspaceHeading>Work order path</WorkspaceHeading>
-                    <div className="mt-2">
-                      <WorkflowPath
-                        steps={[
-                          "Select proposal/estimate",
-                          "Confirm scope",
-                          "Assign crew",
-                          "Create work order",
-                        ]}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <WorkspaceHeading>Scope</WorkspaceHeading>
-                    <div className="mt-2 grid grid-cols-1 gap-0.5 sm:grid-cols-2">
-                      <StatusLine label="Tear-off" value="Not confirmed" muted />
-                      <StatusLine label="Install system" value="Not selected" muted />
-                      <StatusLine label="Site notes" value="Not added" muted />
-                      <StatusLine label="Cleanup instructions" value="Not added" muted />
-                    </div>
-                  </div>
+                  <p className={wsHelper}>Work orders will be created from an approved proposal.</p>
                   <div className="border-t border-slate-100 pt-2">
                     <button type="button" disabled className={passiveAction}>Create work order</button>
                   </div>
                 </div>
-              </details>
+              </JobCardSectionPanel>
 
-              {/* INVOICES */}
-              <details className={detailsSection}>
-                <summary className={detailsSummary}>
-                  <DetailsHeader
-                    title="Invoices"
-                    status="Not invoiced"
-                    statusClass="bg-slate-100 text-slate-500"
-                    summary="Deposit and final invoice not created"
-                  />
-                </summary>
-                <div className={`${moduleBody} space-y-3`}>
+              <JobCardSectionPanel
+                tabId="invoices"
+                activeTab={jobCardTab}
+                title="Invoices"
+                statusChip={{ label: "Not invoiced", className: "bg-slate-100 text-slate-500" }}
+              >
+                <div className="space-y-3">
                   <div className={wsBlock}>
                     <WorkspaceHeading>Invoice status</WorkspaceHeading>
                     <div className="mt-2 grid grid-cols-1 gap-0.5 sm:grid-cols-2">
@@ -7760,19 +7505,7 @@ Thanks,`;
                       <StatusLine label="Last invoice" value="None" muted />
                     </div>
                   </div>
-                  <div>
-                    <WorkspaceHeading>Invoice path</WorkspaceHeading>
-                    <div className="mt-2">
-                      <WorkflowPath
-                        steps={[
-                          "Estimate/proposal complete",
-                          "Deposit invoice created",
-                          "Final invoice created",
-                          "Balance collected",
-                        ]}
-                      />
-                    </div>
-                  </div>
+                  <p className={wsHelper}>Invoices will be created after proposal approval.</p>
                   <div>
                     <WorkspaceHeading>Invoice list</WorkspaceHeading>
                     <PlaceholderBox lines={["No invoices created yet"]} />
@@ -7781,19 +7514,15 @@ Thanks,`;
                     <button type="button" disabled className={passiveAction}>Create invoice</button>
                   </div>
                 </div>
-              </details>
+              </JobCardSectionPanel>
 
-              {/* JOB COSTING */}
-              <details className={detailsSection}>
-                <summary className={detailsSummary}>
-                  <DetailsHeader
-                    title="Job Costing"
-                    status="Empty"
-                    statusClass="bg-slate-100 text-slate-500"
-                    summary="Estimate total, projected cost, gross profit"
-                  />
-                </summary>
-                <div className={`${moduleBody} space-y-3`}>
+              <JobCardSectionPanel
+                tabId="job_costing"
+                activeTab={jobCardTab}
+                title="Job Costing"
+                statusChip={{ label: "Empty", className: "bg-slate-100 text-slate-500" }}
+              >
+                <div className="space-y-3">
                   <div>
                     <WorkspaceHeading>Costing summary</WorkspaceHeading>
                     <dl className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -7803,44 +7532,20 @@ Thanks,`;
                       <MetricTile label="Actual cost" value="Not recorded" muted />
                     </dl>
                   </div>
-                  <div>
-                    <WorkspaceHeading>Costing path</WorkspaceHeading>
-                    <div className="mt-2">
-                      <WorkflowPath
-                        steps={[
-                          "Estimate created",
-                          "Materials ordered",
-                          "Labor recorded",
-                          "Actual cost compared",
-                        ]}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <WorkspaceHeading>Cost buckets</WorkspaceHeading>
-                    <dl className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                      {["Materials", "Labor", "Disposal", "Other costs"].map((label) => (
-                        <MetricTile key={label} label={label} value="—" muted />
-                      ))}
-                    </dl>
-                  </div>
+                  <p className={wsHelper}>Job costing will populate once materials and labor are recorded.</p>
                   <div className="border-t border-slate-100 pt-2">
                     <button type="button" disabled className={passiveAction}>View job costing</button>
                   </div>
                 </div>
-              </details>
+              </JobCardSectionPanel>
 
-              {/* TASKS / CALENDAR */}
-              <details className={detailsSection}>
-                <summary className={detailsSummary}>
-                  <DetailsHeader
-                    title="Tasks / Calendar"
-                    status="No events"
-                    statusClass="bg-slate-100 text-slate-500"
-                    summary="Inspection, follow-up, and calendar event"
-                  />
-                </summary>
-                <div className={`${moduleBody} space-y-3`}>
+              <JobCardSectionPanel
+                tabId="tasks"
+                activeTab={jobCardTab}
+                title="Tasks"
+                statusChip={{ label: "No tasks", className: "bg-slate-100 text-slate-500" }}
+              >
+                <div className="space-y-3">
                   <div className={wsBlock}>
                     <WorkspaceHeading>Tasks</WorkspaceHeading>
                     <div className="mt-2 space-y-0.5">
@@ -7849,6 +7554,23 @@ Thanks,`;
                       <StatusLine label="Customer call" value="Not scheduled" muted />
                     </div>
                   </div>
+                  <div>
+                    <WorkspaceHeading>Task list</WorkspaceHeading>
+                    <PlaceholderBox lines={["No tasks created yet"]} />
+                  </div>
+                  <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-2">
+                    <button type="button" disabled className={passiveAction}>Add task</button>
+                  </div>
+                </div>
+              </JobCardSectionPanel>
+
+              <JobCardSectionPanel
+                tabId="calendar"
+                activeTab={jobCardTab}
+                title="Calendar"
+                statusChip={{ label: "No events", className: "bg-slate-100 text-slate-500" }}
+              >
+                <div className="space-y-3">
                   <div className={wsBlock}>
                     <WorkspaceHeading>Calendar</WorkspaceHeading>
                     <div className="mt-2 space-y-0.5">
@@ -7857,30 +7579,20 @@ Thanks,`;
                       <StatusLine label="Due date" value="Not set" muted />
                     </div>
                   </div>
-                  <div>
-                    <WorkspaceHeading>Task list</WorkspaceHeading>
-                    <PlaceholderBox
-                      lines={["No tasks created yet", "No calendar events scheduled"]}
-                    />
-                  </div>
+                  <PlaceholderBox lines={["No calendar events scheduled"]} />
                   <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-2">
-                    <button type="button" disabled className={passiveAction}>Add task</button>
                     <button type="button" disabled className={passiveAction}>Add calendar event</button>
                   </div>
                 </div>
-              </details>
+              </JobCardSectionPanel>
 
-              {/* INSTANT ESTIMATE — collapsed by default */}
-              <details className={detailsSection}>
-                <summary className={detailsSummary}>
-                  <DetailsHeader
-                    title="Instant Estimate"
-                    status="Not started"
-                    statusClass="bg-slate-100 text-slate-500"
-                    summary="Quick estimate from basic job details"
-                  />
-                </summary>
-                <div className={`${moduleBody} space-y-3`}>
+              <JobCardSectionPanel
+                tabId="instant_estimate"
+                activeTab={jobCardTab}
+                title="Instant Estimate"
+                statusChip={{ label: "Not started", className: "bg-slate-100 text-slate-500" }}
+              >
+                <div className="space-y-3">
                   <div className={wsBlock}>
                     <WorkspaceHeading>Instant estimate status</WorkspaceHeading>
                     <div className="mt-2 grid grid-cols-1 gap-0.5 sm:grid-cols-2">
@@ -7895,132 +7607,14 @@ Thanks,`;
                     <button type="button" disabled className={passiveAction}>Start instant estimate</button>
                   </div>
                 </div>
-              </details>
+              </JobCardSectionPanel>
 
-            </div>{/* end main column */}
+              </main>
 
-            {/* ── RIGHT COLUMN ─────────────────────────────────────────── */}
-            <aside className="flex flex-col gap-3 xl:sticky xl:top-4">
+              <JobCardActivityPanel items={jobCardActivityItems} />
 
-              {/* NEXT ACTIONS */}
-              <section className={moduleCard}>
-                <div className={moduleHeader}>
-                  <h2 className={moduleTitle}>Next Actions</h2>
-                </div>
-                <div className="divide-y divide-slate-100">
-                  <div className="flex items-start gap-3 px-4 py-3">
-                    <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${hasCustomerInfo ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
-                      {hasCustomerInfo ? "✓" : "1"}
-                    </span>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-slate-800">Complete customer / property details</p>
-                      <p className="text-xs text-slate-500">Name, email, address, ZIP</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3 px-4 py-3">
-                    <span
-                      className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${nextMeasurementAction.done ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}
-                    >
-                      {nextMeasurementAction.done ? "✓" : "2"}
-                    </span>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-slate-800">{nextMeasurementAction.title}</p>
-                      <p className="text-xs text-slate-500">{nextMeasurementAction.subtitle}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3 px-4 py-3">
-                    <span
-                      className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${reportPathNextAction.done ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}
-                    >
-                      {reportPathNextAction.done ? "✓" : "3"}
-                    </span>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-slate-800">{reportPathNextAction.title}</p>
-                      <p className="text-xs text-slate-500">{reportPathNextAction.subtitle}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3 px-4 py-3">
-                    <span
-                      className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${proposalHandoff.proposalReady ? "bg-emerald-100 text-emerald-700" : "bg-slate-900 text-white"}`}
-                    >
-                      {proposalHandoff.proposalReady ? "✓" : "4"}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-slate-900">{proposalHandoffNextAction.title}</p>
-                      <p className="text-xs text-slate-500">{proposalHandoffNextAction.subtitle}</p>
-                      <button
-                        type="button"
-                        disabled
-                        title="Proposal Builder coming after catalog and templates"
-                        className="mt-2 inline-flex cursor-not-allowed items-center gap-1.5 rounded-md bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white opacity-60 shadow-sm"
-                      >
-                        Create proposal
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </section>
-
-              {/* READINESS */}
-              <section className={moduleCard}>
-                <div className={moduleHeader}>
-                  <h2 className={moduleTitle}>Readiness</h2>
-                </div>
-                <div className="divide-y divide-slate-50 px-4 py-1">
-                  {[
-                    { label: "Customer info", ready: hasCustomerInfo },
-                    { label: "Property address", ready: hasAddress },
-                    {
-                      label: "Measurement status",
-                      ready: railMeasurementStatus.ready,
-                      statusText: railMeasurementStatus.label,
-                    },
-                    {
-                      label: "Proposal input",
-                      ready: proposalHandoff.proposalReady,
-                      statusText: proposalReadinessDisplay,
-                    },
-                    {
-                      label: "Catalog setup",
-                      ready: catalogReadiness.state === "ready_for_templates",
-                      statusText: catalogReadinessLabel,
-                    },
-                    { label: "Photos / attachments", ready: false },
-                    { label: "Estimate not started", ready: false },
-                  ].map(({ label, ready, statusText }) => (
-                    <div key={label} className="flex items-center justify-between gap-2 py-2 text-sm">
-                      <span className="text-slate-700">{label}</span>
-                      <span className={`${chipBase} ${ready ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
-                        {ready ? "✓ Done" : statusText ?? "Pending"}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </section>
-
-              {/* ACTIVITY */}
-              <section className={moduleCard}>
-                <div className={moduleHeader}>
-                  <h2 className={moduleTitle}>Activity</h2>
-                </div>
-                <div className="divide-y divide-slate-50 px-4 py-1">
-                  {[
-                    { label: "Job Card created", note: "Intake started" },
-                    { label: "Intake details started", note: "Customer / property" },
-                    activityMeasurementLine,
-                    { label: "Estimate not started", note: "Build estimate next" },
-                  ].map(({ label, note }) => (
-                    <div key={label} className="py-2.5">
-                      <p className="text-sm font-medium text-slate-800">{label}</p>
-                      <p className="text-xs text-slate-500">{note}</p>
-                    </div>
-                  ))}
-                </div>
-              </section>
-
-            </aside>{/* end right column */}
-
-          </div>{/* end main grid */}
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -9121,7 +8715,7 @@ Thanks,`;
       )}
 
       <FieldDiveAppShell
-        activeNav="newJob"
+        activeNav={entryMode === "job-card" && isJobCardBoardContext ? "jobs" : "newJob"}
         activeSubId={
           entryMode === "job-card"
             ? "job-card"
