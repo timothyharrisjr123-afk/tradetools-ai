@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { SignOutButton } from "@/app/components/auth/SignOutButton";
 
-export type FieldDiveActiveNav = "jobs" | "newJob" | "catalog";
+export type FieldDiveActiveNav = "jobs" | "newJob" | "catalog" | "templates";
 export type FieldDiveActiveSubNav = "packet" | "job-card" | "instant";
 
 type NavIcon = ComponentType<{ className?: string }>;
@@ -70,7 +70,7 @@ const NAV_ITEMS: NavItem[] = [
   { key: null, label: "Customers", href: "/admin/customers", icon: Users },
   { key: null, label: "Price Book (Legacy)", href: "/admin/price-book", icon: BookOpen },
   { key: "catalog", label: "Catalog", href: "/tools/roofing/catalog", icon: Package },
-  { key: null, label: "Templates", href: "#", icon: LayoutTemplate, variant: "soon" },
+  { key: "templates", label: "Templates", href: "/tools/roofing/templates", icon: LayoutTemplate },
   { key: null, label: "AI Conductor", href: "/tools/roofing/ai", icon: Bot },
   { key: null, label: "Reports", href: "#", icon: BarChart3 },
   { key: null, label: "Settings", href: "/tools/settings", icon: Settings },
