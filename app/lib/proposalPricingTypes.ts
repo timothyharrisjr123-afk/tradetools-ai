@@ -26,6 +26,7 @@
  */
 
 import type {
+  CatalogItemType,
   CatalogUnit,
   CustomerVisibility,
   PricingBasis,
@@ -147,6 +148,10 @@ export type PricingLineInput = {
   templateItemId: string;
   catalogItemId: string | null;
   itemRole: ProposalTemplateItemRole;
+  /** Optional — mapper should supply from CatalogItem.item_type for labor cost + material purchase tax. */
+  itemType?: CatalogItemType | null;
+  /** Optional — mapper should supply from ProposalTemplateItem.section_id for section rollups. */
+  sectionId?: string | null;
   unit: CatalogUnit;
   pricingBasis: PricingBasis;
   customerVisibility: CustomerVisibility;
