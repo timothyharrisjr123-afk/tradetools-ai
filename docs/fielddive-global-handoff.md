@@ -9,7 +9,26 @@
 - `docs/fielddive-estimate-proposal-flow-model.md` — estimate/proposal UX model notes
 - `docs/fielddive-feature-placement-map.md` — feature placement matrix
 
-**Last updated checkpoint:** **3F9C** — Roofr Job Card architecture and visual shell (`0015be1`, committed). **Jobs Board approved save point:** `b27a444` (3F9B4-RoofrExact). **Prior Job Board checkpoint:** `36fa3a9` (3F9B3). **Next:** **3G6** Templates setup/readiness/install surface (Roofr baseline first; **not** Proposal Builder) — optional small Job Card polish pass first if screenshot review finds gaps.
+**Last updated checkpoint:** **3G6E** — passive Job Card templates setup link (`b78c9ee`, committed). **Working tree:** clean. **Typecheck:** only **6** pre-existing errors in `app/tools/roofing-v2/RoofingClientV2.tsx` — unchanged. **Protected systems:** pricing, payments, approval, status, saved estimates, send/PDF **untouched** through 3G6A–E and Catalog/Templates D2.
+
+**Jobs Board approved save point:** `b27a444` (3F9B4-RoofrExact). **Prior Job Board checkpoint:** `36fa3a9` (3F9B3).
+
+**Next (recommended):** **Documentation checkpoint** (this update) → then **plan 3H Proposal Builder** separately with Roofr research first. **Do not** start Proposal Builder or pricing bridge until explicitly scoped. **Do not** casually patch pricing during setup/template work.
+
+### Recent committed sequence (3G6 spine + execution surfaces)
+
+| Commit | Summary |
+|--------|---------|
+| `b78c9ee` | **3G6E** — passive Job Card Proposals tab → Templates setup link (`JobCardProposalsSetupLinks.tsx`); stale catalog next-step copy fixed |
+| `29ca190` | **3G6D3** — align catalog workspace surface (Catalog D2) |
+| `227061c` | **3G6D2** — align templates workspace surface (Templates D2) |
+| `1d8e849` | **3G6D** — add proposal template readiness (`proposalTemplateReadiness.ts`) |
+| `bd2ed04` | **3G6C** — wire starter template install and recheck |
+| `3f7b3ff` | **3G6B** — add templates setup catalog gate |
+| `15ad732` | **3G6A** — add proposal templates setup route |
+| `5824a3a` | docs checkpoint after 3F9C Job Card WIP |
+| `0015be1` | **3F9C** — Roofr Job Card architecture and visual shell |
+| `b27a444` | **3F9B4** — RoofrExact Job Board visual and controls checkpoint |
 
 ---
 
@@ -46,7 +65,8 @@
 - **Do not** create PDF / send / approval bridges before proposal records exist.
 - **Do not** touch payment / status / approval while working catalog or template setup (unless the stage explicitly scopes it).
 - **Do not treat table/store existence as product completion** — audit **architecture, functionality, layout, and UI** together before advancing the spine.
-- **Do not build Templates UI (3G6) on top of misaligned execution surfaces** — **3F9C Job Card is complete** (`0015be1`); proceed to **3G6** with Roofr research first.
+- **3G6 Templates setup surface is complete** (3G6A–E + D2/D3) — **3H Proposal Builder** is the next spine layer; do not enable Create/Choose proposal or pricing bridge without explicit scope.
+- **Do not casually patch pricing** during catalog/template/Job Card link work — see **§11 — Pricing (protected + future redesign)**.
 
 ---
 
@@ -71,7 +91,7 @@ Job / Job Card
   → Material Orders / Work Orders / Invoices / Job Costing (later)
 ```
 
-**Manual Estimate** is inactive. **Proposal template foundation** (types, tables, store, passive defaults, install helper) exists in code but is **not wired to UI**. **Proposal Builder** does not exist yet in code.
+**Manual Estimate** is inactive (`?entry=manual&legacy=1` legacy path remains in repo — not canonical). **Proposal templates** have a **live FieldDive route** (`/tools/roofing/templates`) with install/recheck UI. **Proposal Builder** does not exist yet in code.
 
 ---
 
@@ -183,15 +203,16 @@ Catalog stages through **3F7B** and shell alignment (`01e2d9e`) are complete. Se
 - `catalogStore.ts` — company-scoped CRUD; **`updateCatalogItem` used by admin catalog UI** for 3F7B fields only.
 - `defaultRoofingCatalog.ts` — 13 starter definitions with `metadata.seed_key`.
 - `installDefaultRoofingCatalog(companyId)` — insert-only, dedupe by `seed_key`; **not** auto-run on page load.
-- **`/tools/roofing/catalog`** — canonical catalog **setup workspace**: install/recheck, setup hub spine (starter → price → templates next), readiness tiles, setup guide, search/filter/group/unpriced, add item, show inactive, deactivate/reactivate, **focused item detail panel**, componentized `CatalogAdminClient`, light FieldDive shell.
+- **`/tools/roofing/catalog`** — canonical catalog **product workspace** (**3G6D3 / Catalog D2**): starter roofing catalog hero, compact setup checklist, **catalog items table primary**, inline install feedback, muted “Later” footnote; orchestrated by `CatalogSetupClient` + shared table/detail components. **Removed** dashboard-style sections: `CatalogSetupHub`, `CatalogReadinessTiles`, `CatalogSetupGuide`, `CatalogRoadmapCards`, `CatalogQuickActions`.
 - **`/admin/catalog`** — redirect only to `/tools/roofing/catalog`.
 - Starter catalog **installed successfully** in dev (verified): **13** rows typical when seeded.
 - **`service_items`** and legacy **`/admin/price-book`** unchanged (`PriceBookAdminClient` → `service_items` only).
-- Job Card **catalog readiness** reads `getActiveCatalogItemsByCompany` — display only; **Open catalog setup** link → `/tools/roofing/catalog` (3F8 Pass E); **not** a catalog editor on Job Card.
-- **Proposal buttons remain disabled** on Job Card.
+- Job Card **catalog readiness** reads `getActiveCatalogItemsByCompany` — display only; **not** a catalog/template editor on Job Card.
+- **3G6E (Proposals tab):** catalog not ready → **Open catalog setup** → `/tools/roofing/catalog`; `ready_for_templates` → **Open proposal templates** → `/tools/roofing/templates` (`JobCardProposalsSetupLinks.tsx`). Overview unchanged (catalog link when not ready only).
+- **+ Proposal** remains **disabled** (`Proposal Builder is not enabled yet.`). Template row: **Not selected**. **No** `installDefaultRoofingProposalTemplates` or `proposalTemplateStore` from Job Card.
 - **No pricing bridge** from `catalog_items` to estimator `useMemo` yet.
 
-**Key files:** `app/lib/catalogTypes.ts`, `app/lib/catalogStore.ts`, `app/lib/defaultRoofingCatalog.ts`, `app/lib/defaultRoofingCatalogInstall.ts`, `app/lib/catalogReadiness.ts`, `app/admin/catalog/CatalogAdminClient.tsx`, `app/admin/catalog/catalogAdminConstants.ts`, `app/admin/catalog/catalogAdminUtils.ts`, `app/admin/catalog/components/*`, `app/tools/roofing/catalog/*`, `app/tools/roofing/FieldDiveAppShell.tsx`.
+**Key files:** `app/lib/catalogTypes.ts`, `app/lib/catalogStore.ts`, `app/lib/defaultRoofingCatalog.ts`, `app/lib/defaultRoofingCatalogInstall.ts`, `app/lib/catalogReadiness.ts`, `app/tools/roofing/catalog/CatalogSetupClient.tsx`, `app/tools/roofing/catalog/*` (workspace components), `app/admin/catalog/catalogAdminConstants.ts`, `app/admin/catalog/catalogAdminUtils.ts`, `app/admin/catalog/components/*` (table, toolbar, detail panel), `app/admin/catalog/CatalogAdminClient.tsx` (thin wrapper), `app/tools/roofing/jobCard/JobCardProposalsSetupLinks.tsx`, `app/tools/roofing/FieldDiveAppShell.tsx`.
 
 ---
 
@@ -293,17 +314,39 @@ Catalog stages through **3F7B** and shell alignment (`01e2d9e`) are complete. Se
 - Default roofing proposal template definitions (3G4)
 - Default roofing proposal template install helper (3G5)
 
+### Stage 3G6 complete — Templates setup/readiness/install surface (3G6A–E + D2)
+
+| Commit | Summary |
+|--------|---------|
+| `15ad732` | **3G6A** — `/tools/roofing/templates` route + `FieldDiveAppShell` Templates nav |
+| `3f7b3ff` | **3G6B** — catalog gate on templates page (`deriveCatalogReadiness`) |
+| `bd2ed04` | **3G6C** — click-only `installDefaultRoofingProposalTemplates` install/recheck |
+| `1d8e849` | **3G6D** — `proposalTemplateReadiness.ts` (pure/read-only) |
+| `227061c` | **3G6D2** — Templates workspace surface (hero + library + compact checklist; removed stacked readiness dashboards) |
+| `b78c9ee` | **3G6E** — passive Job Card Proposals tab link to templates when catalog ready |
+
+**Templates workspace (3G6D2) — `/tools/roofing/templates`:**
+
+- Header, page alerts, optional catalog prerequisite banner
+- Starter roof replacement **template hero** (install/recheck, inline install feedback)
+- **Template library** (read-only starter graph)
+- Compact **setup checklist** rail (catalog → starter template → Builder later)
+- Builder-later footnote — **not** Proposal Builder
+- Install/recheck is **click-only**; `catalogReady` (`ready_for_templates`) gates install
+- **No** Create proposal, Choose template, proposal records, pricing bridge, send/PDF/approval/payment/status changes
+
+**Key template files:** `app/tools/roofing/templates/TemplatesSetupClient.tsx`, `app/tools/roofing/templates/*`, `app/lib/proposalTemplateReadiness.ts`, `app/lib/proposalTemplateStore.ts` (read from UI), `app/lib/defaultRoofingProposalTemplateInstall.ts`.
+
 ### Current proposal template state
 
-- Four `proposal_template_*` tables live in Supabase with RLS; typically **0 rows** until install helper is invoked from a future UI.
-- `proposalTemplateStore.ts` — company-scoped CRUD; **not imported by app routes yet**.
-- `defaultRoofingProposalTemplates.ts` — passive Roof replacement template (Standard / Enhanced / Premium).
-- `installDefaultRoofingProposalTemplates(companyId)` — insert-only; requires catalog `metadata.seed_key` rows for catalog-backed line items.
-- **No** Proposals/Templates UI route, readiness UI, or Job Card template install yet.
-- **Proposal buttons remain disabled** on Job Card.
+- Four `proposal_template_*` tables live in Supabase with RLS; rows after explicit install from Templates page.
+- **`/tools/roofing/templates`** — live; Templates nav in `FieldDiveAppShell`.
+- `proposalTemplateReadiness.ts` — pure derivation; used on Templates page (and related UI).
+- `installDefaultRoofingProposalTemplates(companyId)` — **click-only from Templates route**; catalog `ready_for_templates` gates install; **not** from Job Card.
+- **Proposal buttons remain disabled** on Job Card; **no** per-job template selection.
 - **No** Proposal Builder, proposal records, pricing bridge, or PDF/send integration.
 
-**Key files:** `app/lib/proposalTemplateTypes.ts`, `app/lib/proposalTemplateStore.ts`, `app/lib/defaultRoofingProposalTemplates.ts`, `app/lib/defaultRoofingProposalTemplateInstall.ts`, `supabase/migrations/20260531_004_create_proposal_template_tables.sql`.
+**Key files:** `app/lib/proposalTemplateTypes.ts`, `app/lib/proposalTemplateStore.ts`, `app/lib/defaultRoofingProposalTemplates.ts`, `app/lib/defaultRoofingProposalTemplateInstall.ts`, `app/lib/proposalTemplateReadiness.ts`, `app/tools/roofing/templates/*`, `supabase/migrations/20260531_004_create_proposal_template_tables.sql`.
 
 ---
 
@@ -324,20 +367,20 @@ Catalog stages through **3F7B** and shell alignment (`01e2d9e`) are complete. Se
 - Catalog readiness vs proposal-ready (measurement handoff)
 - Catalog row definitions vs proposal totals
 - Catalog setup UI (FieldDive route) vs Job Card (readiness/link only, not editor)
-- Template setup (future FieldDive route) vs Job Card (readiness/link only, not template editor)
+- Template setup (`/tools/roofing/templates`) vs Job Card (readiness/links only, not template editor or install)
 - `catalog_seed_key` on template items (install-time resolution) vs live `catalog_item_id` (FK + Builder)
 
 ---
 
 ## 8. CURRENT NEXT (SUMMARY)
 
-**Latest committed checkpoint:** **3F9C** — Roofr Job Card architecture and visual shell (`0015be1`). **Jobs Board approved save point:** `b27a444` (3F9B4-RoofrExact).
+**Latest committed checkpoint:** **3G6E** — passive Job Card templates setup link (`b78c9ee`). **Working tree:** clean.
 
-**Immediate next implementation stage:** **3G6 — Templates setup/readiness/install surface** (Roofr Proposals → Templates research; **not** Proposal Builder). Optional: one small **Job Card polish** pass if screenshot review finds gaps — do not block 3G6 on polish unless user requests.
+**3G6 — COMPLETE** (3G6A–E + Templates D2 `227061c` + Catalog D2 `29ca190`). **3F9C Job Card** — COMPLETE (`0015be1`). **3F8 Catalog** — COMPLETE (`d422ee6` + D2). **Jobs Board save point:** `b27a444`.
 
-**Then:** **3H — Proposal Builder shell** (launched from Job Card; after 3G6 templates installable/selectable).
+**Immediate next:** **Plan 3H — Proposal Builder shell** with Roofr research first — **do not implement** until explicitly scoped in a new chat. **Do not** start pricing bridge until deliberately planned (see §11 — Pricing).
 
-**3F8 — Catalog Product Surface Alignment — COMPLETE** (`d422ee6`). **3F9C — Job Card architecture + visual shell — COMPLETE** (`0015be1`). Execution surfaces (Jobs Board + Job Card) are aligned enough to attach Templates setup to the job flow.
+**Optional (non-blocking):** Job Card tab extraction polish, Job Packet legacy gating, handoff-only doc updates.
 
 ### Roofr execution-surface direction (2026 decision)
 
@@ -353,9 +396,9 @@ FieldDive should **start from Roofr’s better pattern and improve it** — not 
 
 **Why 3F9 before 3G6:** Roofr’s operational center is **Jobs / Job Board**, not a separate summary Dashboard. FieldDive currently has separate **Dashboard**, **Job Packet**, and **Job Card** surfaces that need audit/alignment before Templates connect correctly to the execution flow.
 
-### 3F9 — Jobs / Execution Surface Alignment (next)
+### 3F9 — Jobs / Execution Surface Alignment — **DONE (3F9C `0015be1`; board `b27a444`)**
 
-**Begin read-only**, then implement only what is needed.
+**Historical audit scope** (completed before 3G6):
 
 **Audit / planning scope:**
 
@@ -425,11 +468,11 @@ Then open and read:
 - `docs/fielddive-global-handoff.md` (this file)
 - **§11 — Forward Roadmap / No-Drift Next Steps** (ordered stages; what is done vs next)
 
-**Verify HEAD** is `0015be1` (3F9C) or identify newer commits and reconcile this doc.
+**Verify HEAD** is **`b78c9ee`** (3G6E) or identify newer commits and reconcile this doc.
 
 **Confirm** working tree is clean (or note doc-only WIP).
 
-**Confirm** next stage is **3G6 planning/implementation** (Templates setup/readiness/install surface) — **do not code** until repo truth is confirmed and stage is explicitly scoped. **3F9C is complete.** **Do not start Proposal Builder (3H) before 3G6.**
+**Confirm** next stage is **3H planning** (Proposal Builder) — **do not code** until repo truth is confirmed and stage is explicitly scoped. **3G6 is complete (`b78c9ee`).** **Do not start Proposal Builder without Roofr research and explicit scope.**
 
 Inspect before planning **3F9** (or chosen stage):
 
@@ -491,12 +534,13 @@ Confirm: proposal buttons still disabled on Job Card; `installDefaultRoofingCata
 | `/tools/roofing?entry=job-card` | Job Card shell — functional tabs, identity band, Activity rail; board-origin may include `from=board` after `loadSaved` URL cleanup |
 | `/tools/roofing?entry=packet` | Job Packet / New Job intake |
 | `/tools/roofing?loadSaved=<id>` | Board card → Job Card (board-origin context; URL may clean to `entry=job-card&from=board`) |
-| `/tools/roofing/catalog` | **Canonical** **catalog_items** setup workspace — FieldDive shell, hub, filters, detail panel |
+| `/tools/roofing/catalog` | **Canonical** **catalog_items** product workspace — `CatalogSetupClient`, starter hero, items table, checklist (`29ca190` D2) |
 | `/admin/catalog` | Redirect → `/tools/roofing/catalog` |
 | `/admin/price-book` | Legacy **service_items** only |
 | `/admin/customers` | Customers CRUD |
-| `/tools/roofing/saved` | Command Center (SavedClient) |
-| `/tools/roofing/templates` (planned **3G6 — after 3F9**) | **proposal_template_*** setup — install/recheck, readiness (not built) |
+| `/tools/roofing/saved` | Jobs Board (SavedClient) |
+| `/tools/roofing/templates` | **Live** — template install/recheck, readiness, library (`3G6A–D2`) |
+| `/tools/roofing?entry=packet` | Job Packet / New Job intake (canonical capture/prep) |
 
 ---
 
@@ -506,26 +550,26 @@ Use this section as the **ordered checklist** for future GPT/Cursor sessions. Kn
 
 ### Current checkpoint
 
-**Latest code checkpoint:** **3F9C** — Roofr Job Card architecture and visual shell (`0015be1`).  
+**Latest code checkpoint:** **3G6E** — passive Job Card templates setup link (`b78c9ee`).  
 **Jobs Board approved save point:** **3F9B4-RoofrExact** (`b27a444`).  
-**Latest handoff doc checkpoint:** aligned with **3F9C** (`0015be1`) — **next: 3G6** Templates setup/readiness/install surface (optional Job Card polish first).
+**Latest handoff doc checkpoint:** aligned with **`b78c9ee`** — **next: plan 3H Proposal Builder** (Roofr research first; not until scoped).
 
 **Completed working state (summary):**
 
 | Area | Status |
 |------|--------|
 | **3E** Measurement Records / Job Card measurement truth | **DONE** |
-| **3F** Catalog foundation + install + FieldDive catalog route | **DONE** through shell alignment (`01e2d9e`) |
-| **3F7A** Read-only installed catalog list | **DONE** (`6b37370`) — superseded by 3F8 workspace |
-| **3F7B** Catalog item pricing/config editor | **DONE** (`81a70e3`) — evolved to detail panel in 3F8 Pass E |
-| **3F8** Catalog Product Surface Alignment | **DONE** — Pass B (`a16bccd`), Pass C-D (`5bcf0fe`), Pass E (`d422ee6`) |
+| **3F / 3F8** Catalog foundation + FieldDive catalog route + Pass B–E | **DONE** (`d422ee6`) |
+| **3G6D3** Catalog workspace surface (Catalog D2) | **DONE** (`29ca190`) — product workspace, not readiness dashboards |
 | **3F9A/B** Jobs-first IA and shell alignment | **DONE** (`0f0181a`) |
-| **3F9B2–B4** Jobs Board — board-first, visual baseline, RoofrExact checkpoint | **DONE** — latest board save point `b27a444` |
-| **3F9C** Job Card architecture + visual shell | **DONE** (`0015be1`) — tabs, identity band, Activity rail, origin context |
-| **Canonical catalog route** | **`/tools/roofing/catalog`** (FieldDive shell); `/admin/catalog` → redirect |
-| **Job Card catalog link** | **Open catalog setup** → `/tools/roofing/catalog`; proposal buttons **disabled** |
-| **3G1–3G5** Proposal template types, **live** 4-table schema, store, default defs, install helper | **DONE** — **not wired to UI** |
-| **Protected** | Pricing, payments, approval, status, saved estimates, send/PDF **untouched** in 3F9C |
+| **3F9B2–B4** Jobs Board — RoofrExact checkpoint | **DONE** — save point `b27a444` |
+| **3F9C** Job Card architecture + visual shell | **DONE** (`0015be1`) — execution hub; **no full Job Card D2 required** for 3G6E |
+| **3G1–3G5** Proposal template types, tables, store, defaults, install helper | **DONE** |
+| **3G6A–E** Templates route, install, readiness, Templates D2, Job Card templates link | **DONE** (`b78c9ee`) |
+| **Canonical catalog route** | **`/tools/roofing/catalog`** — `CatalogSetupClient` |
+| **Canonical templates route** | **`/tools/roofing/templates`** — `TemplatesSetupClient` |
+| **Job Card links (3G6E)** | Catalog not ready → catalog setup; `ready_for_templates` → proposal templates; **+ Proposal disabled** |
+| **Protected** | Pricing, payments, approval, status, saved estimates, send/PDF **untouched** through 3G6E |
 
 **SQL note:** Catalog/template table verification was done in Supabase during 3F/3G stages; do not re-run schema changes from roadmap work unless a stage explicitly scopes a new migration.
 
@@ -563,10 +607,12 @@ Open `docs/fielddive-global-handoff.md` and **§11** (this section). Confirm HEA
 |------|-----|
 | `docs/fielddive-global-handoff.md` | This handoff + roadmap |
 | `app/tools/roofing/catalog/page.tsx` | Canonical catalog route |
-| `app/tools/roofing/catalog/CatalogAppPage.tsx` | FieldDive shell wrapper |
+| `app/tools/roofing/catalog/CatalogSetupClient.tsx` | Catalog workspace orchestrator (D2) |
+| `app/tools/roofing/templates/TemplatesSetupClient.tsx` | Templates workspace orchestrator (D2) |
 | `app/admin/catalog/page.tsx` | Redirect to `/tools/roofing/catalog` |
-| `app/admin/catalog/CatalogAdminClient.tsx` | Catalog orchestrator — install/recheck, filters, detail panel |
-| `app/admin/catalog/components/*` | Presentational catalog workspace sections |
+| `app/admin/catalog/CatalogAdminClient.tsx` | Thin wrapper → `CatalogSetupClient` |
+| `app/admin/catalog/components/*` | Table, toolbar, detail panel (shared) |
+| `app/tools/roofing/jobCard/JobCardProposalsSetupLinks.tsx` | Job Card Proposals tab catalog/templates links (3G6E) |
 | `app/tools/roofing/FieldDiveAppShell.tsx` | Sidebar nav (`activeNav`) |
 | `app/admin/AdminNavLinks.tsx` | Admin nav (if touching admin) |
 | `app/admin/price-book/PriceBookAdminClient.tsx` | Legacy `service_items` — do not conflate |
@@ -583,7 +629,7 @@ Open `docs/fielddive-global-handoff.md` and **§11** (this section). Confirm HEA
 | `app/lib/measurementProposalHandoff.ts` | Measurement → proposal input (passive) |
 | `app/tools/roofing/RoofingClient.tsx` | Job Card — catalog/proposal readiness **only** (not full file drive-by) |
 
-Confirm: proposal buttons disabled; `installDefaultRoofingCatalog` only from catalog setup route; `installDefaultRoofingProposalTemplates` **not imported** by app yet.
+Confirm: proposal buttons disabled on Job Card; `installDefaultRoofingCatalog` click-only from catalog route; `installDefaultRoofingProposalTemplates` click-only from templates route; **no** template install from Job Card.
 
 ---
 
@@ -885,7 +931,7 @@ Committed **`0015be1`** after manual browser checks passed. **Do not move to 3G6
 | **3G3** Store | **DONE** | `03d9793` | `proposalTemplateStore.ts` — CRUD + graph; not app-wired |
 | **3G4** Default definitions | **DONE** | `201ada1` | `defaultRoofingProposalTemplates.ts` — Roof replacement; Standard/Enhanced/Premium |
 | **3G5** Install helper | **DONE** | `07b3c1d` | `defaultRoofingProposalTemplateInstall.ts` — insert-only, seed dedupe, catalog seed resolution |
-| **3G6** Template setup UI | **AFTER 3F9** | — | See below |
+| **3G6** Template setup UI | **DONE** | `15ad732`–`b78c9ee` | Route, install, readiness, D2, Job Card link — see §6 |
 
 **Architecture boundary (hold):**
 
@@ -895,35 +941,63 @@ Committed **`0015be1`** after manual browser checks passed. **Do not move to 3G6
 
 ---
 
-### Stage 3G6 — Templates setup/readiness/install surface — **NEXT (after 3F9C)**
+### Stage 3G6 — Templates setup/readiness/install surface — **DONE (`b78c9ee`)**
 
-**Do not start until explicitly scoped in a new chat.** **3F9C Job Card is complete** (`0015be1`). **3F8 catalog setup is complete** (`d422ee6`). **Do not implement without Roofr-based product/visual research first** (Proposals → Templates).
+**Committed through 3G6E.** See **§6** (3G6A–E table) and header **Recent committed sequence**. **This was not Proposal Builder.**
 
-**This is not Proposal Builder.** 3G6 creates the **Templates setup/readiness/install surface** only — company setup for proposal templates, analogous to the catalog setup workspace.
+**Preserved boundaries:** click-only installs; catalog gates template install; no Create/Choose proposal; no Job Card template install/store calls; protected pricing/send/approval/payment/status untouched.
 
-**Goal:** Company setup surface for templates (Roofr: Proposals → Templates), not Proposal Builder.
+**Catalog D2 (`29ca190`):** Recomposed `/tools/roofing/catalog` — starter hero, items workspace primary, compact checklist, inline install feedback; deleted hub/tiles/guide/roadmap-cards/quick-actions as top-level sections; preserved `installDefaultRoofingCatalog`, `deriveCatalogReadiness`, CRUD, pricing queue scroll, add item, detail panel.
 
-**Likely scope:**
+---
 
-- Route in FieldDive shell (e.g. `/tools/roofing/templates`) — **not** hidden `/admin/templates` only
-- `FieldDiveAppShell` nav: Proposals / Templates
-- Install / recheck UI calling `installDefaultRoofingProposalTemplates`
-- Show created/skipped/failed, `missingCatalogSeedKeys`, link to **`/tools/roofing/catalog`** if catalog seeds missing
-- `proposalTemplateReadiness` helper (catalog priced + template graph present — derivation only)
-- Inactive catalog item warnings (optional)
-- **No** Proposal Builder, **no** proposal records, **no** auto-install from Job Card
+### Execution surface audits (read-only, 2026) — Job Card & Job Packet
 
-**Likely files (new):** template page/client under `app/tools/roofing/templates/` (or agreed path), `FieldDiveAppShell.tsx`, readiness module in `app/lib/`
+**Job Card audit (pre-3G6E):** Aligned enough for passive templates link. Correct **execution hub** shape: customer identity header, origin-aware back links, metadata strip, tabs, functional **Measurements** workspace, **Proposals** shell, Activity rail. **No full Job Card D2** required before 3G6E.
 
-**Do not touch:** protected pricing/send/approval/payment/status; `proposalTemplateStore` behavior unless read helpers truly missing
+**Job Card — future/later (non-blocking):**
 
-**Suggested commits:** `Add proposal templates setup route shell`, `Add default template install UI`, `Add proposal template readiness helper`
+- Extract Proposals tab → `JobCardProposalsPanel.tsx` (partially started via `JobCardProposalsSetupLinks.tsx`)
+- Maybe extract Measurements tab
+- Trim duplicate catalog/status lines between Overview and Proposals
+- Revisit inert tabs / stage-gating later
+- **3H:** Proposals tab becomes true Proposal Builder launchpad
+
+**Job Packet audit:** Canonical **`?entry=packet`** / New Job is aligned enough as **capture/prep** (customer/property intake, property preview, photo/site-visit stubs, **Continue to Job Card**). Does **not** block 3G6E.
+
+**Job Packet — future/later:**
+
+- Retire or hard-gate `?entry=manual&legacy=1` (legacy dark estimate workspace)
+- Extract `renderJobPacketWorkbench` into `app/tools/roofing/jobPacket/*`
+- Decide whether embedded packet variant inside legacy remains
+- Tighten copy (Job Card vs “start a proposal” on packet)
+- Simplify right-column placeholders until photos/site visit are real
+- Quarantine/remove unused `renderEstimateBuilderShell` when scoped
+
+---
+
+### Pricing (protected + future redesign)
+
+**Now:** Pricing engine / legacy estimator `useMemo`, payments, approval, status, saved estimates, send/PDF are **protected** — unchanged through 3G6A–E and Catalog/Templates D2.
+
+**Rule:** Do **not** casually patch pricing during catalog setup, template setup, or Job Card link work.
+
+**Later:** Pricing must be **deliberately redesigned** for the new FieldDive architecture (not incremental hacks). A future pricing phase should account for:
+
+- Catalog costs and unit prices
+- Template line definitions and options (good/better/best)
+- Measurement quantities and `quantity_source` resolution
+- Contractor vs customer-facing views
+- Proposal totals and PDF consistency
+- Downstream payment/status effects
+
+**3I — deterministic catalog pricing bridge** remains **after** Proposal Builder can resolve template lines (see below).
 
 ---
 
 ### Stage 3H — Proposal Builder shell — **LATER**
 
-**Do not start until:** **3G6** templates installable/selectable, catalog installable + priceable (readiness clear — **3F8 done**), measurement handoff stable, **3F9C Job Card** execution shell in place (`0015be1`).
+**Do not start until:** **3G6 complete** (`b78c9ee` — templates installable at company level), catalog installable + priceable, measurement handoff stable, **3F9C Job Card** shell in place — all **done**. **Requires explicit scoping + Roofr research** in a new chat.
 
 **Goal:** Builder route/shell reads job, selected measurement, catalog, template graph, quantities — **no** send/PDF/approval/payment/status replacement.
 
@@ -1008,8 +1082,8 @@ Treat as **drift** if a session:
 - Makes **Job Card** the catalog/template **editor** instead of linking to setup routes
 - Skips **Roofr research** before **3F9** execution-surface alignment or **3G6** templates UI layout
 - Assumes **catalog table + store** equals Roofr-style **product completion** (3F8 addressed this — do not regress)
-- Starts **3G6 Templates UI** before **3F9** Jobs / execution surface alignment
-- Starts **3G6 Templates UI** before **Roofr research** on Proposals → Templates
+- Regresses **Catalog D2** or **Templates D2** into readiness-dashboard-first layouts (3G6D2/D3 corrected this)
+- Starts **3H Proposal Builder** before **3G6** company template setup is in place
 - Iterates on FieldDive’s **Dashboard-first** pattern instead of aligning to Roofr’s **Jobs / Job Board** operational center
 
 ---
@@ -1031,15 +1105,16 @@ Treat as **drift** if a session:
 
 **Templates & proposals (after 3F9 / later):**
 
-- **3G6 — after 3F9** — Templates route/nav, install/recheck UI, template readiness, missing-catalog guidance (**not** Proposal Builder)
-- **3H** — Proposal Builder shell (`proposalTypes.ts`, snapshots, quantity resolver) — launched from Job Card
+- **3G6** — **DONE** (`b78c9ee`) — Templates route, D2 workspace, Job Card passive link
+- **3H** — Proposal Builder shell (`proposalTypes.ts`, snapshots, quantity resolver) — launched from Job Card — **NEXT PLANNED**
+- **Future pricing redesign** — deliberate phase; not casual patches during setup work (see §11 Pricing)
 - Deterministic **pricing bridge** (3I) — parallel to legacy estimator first
 - Signed proposal / **PDF / send / approval** bridge (3K — protected paths today)
 - Signatures / co-signers, financing blocks
 - Warranty / legal content management
 - New catalog upgrade SKUs (premium shingle lines, extended warranty fee items)
 - Template versioning / publish workflow
-- Job Card template readiness link (display only — not editor)
+- Job Card **3G6E** templates link when catalog ready — **DONE** (`JobCardProposalsSetupLinks.tsx`); per-job template **selection** remains 3H+
 - Inactive catalog item warnings in template install UI
 
 **Jobs Board (3F9B4 follow-on / Future/Later):**
@@ -1076,25 +1151,20 @@ Treat as **drift** if a session:
 
 ### Recommended immediate next choice
 
-**Best next move:** **3G6 — Templates setup/readiness/install surface** (Roofr Proposals → Templates research first; **not** Proposal Builder).
+**Best next move:** **Plan 3H — Proposal Builder shell** with Roofr research first — **do not implement** until explicitly scoped.
 
-**Optional (non-blocking):** Jobs Board refinement (3F9B4 follow-on) or small Job Card tab polish — only if screenshot review finds gaps.
+**Documentation:** This handoff update aligns doc with **`b78c9ee`** — commit handoff doc when user approves diff.
 
-**Why now (3G6, not 3H or board polish first):**
-
-- **3F9C is committed** (`0015be1`) — Job Card execution shell aligned with Roofr pattern.
-- **3F9B4-RoofrExact** (`b27a444`) remains the approved Jobs Board save point; further board polish is optional.
-- **3F8 is complete** — catalog is a credible company setup workspace.
-- Templates setup is the next spine layer before Proposal Builder.
+**Optional (non-blocking):** Job Card tab extraction, Job Packet legacy gating, Jobs Board 3F9B4 follow-on polish.
 
 **Typical order from here:**
 
-1. **3G6** — Templates route + install/recheck + readiness (**not** Proposal Builder) — **Roofr research first**
-2. **Optional** — Jobs Board refinement or Job Card tab polish if user requests
-3. **3H** — Proposal Builder (launched from Job Card; after 3G6)
-4. **3I+** — Pricing bridge, proposal records, PDF/send/approval bridge (protected paths)
+1. **Handoff doc commit** (docs only) — checkpoint `b78c9ee`
+2. **3H planning** — Proposal Builder (launched from Job Card; Roofr research; not until scoped)
+3. **3I+** — Deliberate pricing redesign / bridge, proposal records, PDF/send/approval bridge (protected paths)
+4. **Future/Later** — Job Packet D2, Job Card polish, board density, supplier/CSV, material orders, etc. (§11 bucket)
 
-**Do not skip to 3H** without 3G6 template setup surface. **Do not treat 3G6 as Proposal Builder.** **Do not touch protected pricing/payment/send/status paths** without explicit planning.
+**Do not skip to pricing bridge** without Builder + deliberate pricing architecture. **Do not treat 3H as “enable + Proposal” only** — full Builder scope. **Do not touch protected pricing/payment/send/status paths** without explicit planning.
 
 ---
 
@@ -1109,3 +1179,4 @@ Treat as **drift** if a session:
 - **2026-05-31:** **3F8 complete** — Pass B (`a16bccd`), Pass C-D (`5bcf0fe`), Pass E (`d422ee6`); catalog setup workspace, detail panel, Job Card catalog link; **next: 3G6** Templates setup/readiness/install surface.
 - **2026-05-31:** Roofr execution-surface research — **next stage changed to 3F9** (Jobs / Execution Surface Alignment) **before 3G6**; align Jobs/Pipeline/Job Packet/Job Card with Roofr before Templates UI.
 - **2026-05-31:** **3F9C complete** — Job Card architecture + visual shell committed (`0015be1`); origin context (`from=board`), functional tabs, Activity rail, hook fix; manual checks passed; **next: 3G6** Templates setup (Roofr research first); Jobs Board save point **`b27a444`** preserved.
+- **2026-05-31:** **3G6 complete** — 3G6A–E (`15ad732`–`b78c9ee`), Templates D2 (`227061c`), Catalog D2 (`29ca190`); Job Card + Job Packet audits documented; **next: plan 3H** Proposal Builder (Roofr research; not until scoped); pricing remains protected.
