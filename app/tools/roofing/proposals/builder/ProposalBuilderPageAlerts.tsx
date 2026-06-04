@@ -21,11 +21,10 @@ export default function ProposalBuilderPageAlerts({
       ) : null}
       {shellReady ? (
         <div className={BUILDER_SHELL_BANNER} role="status">
-          <p className="font-medium">Proposal Builder shell (3H-1)</p>
+          <p className="font-medium">Read-only proposal preview</p>
           <p className="mt-1 text-xs leading-relaxed text-cyan-900/90">
-            This is a read-only setup preview — not a sendable customer proposal. Line items,
-            quantities, pricing totals, PDF, send, sign, and payment controls arrive in later
-            stages.
+            Read-only proposal preview. Pricing, PDF, send, signature, and payment come later.
+            Resolved quantities and proposal totals are not shown in this stage.
           </p>
         </div>
       ) : null}

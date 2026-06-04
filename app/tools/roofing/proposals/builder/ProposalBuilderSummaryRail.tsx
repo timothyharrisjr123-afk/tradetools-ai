@@ -46,12 +46,17 @@ export default function ProposalBuilderSummaryRail({
   return (
     <div className={`${BUILDER_CARD} space-y-4`}>
       <div>
-        <h2 className="text-sm font-semibold text-slate-900">Setup summary</h2>
-        <p className="mt-1 text-xs text-slate-500">Read-only context for this Builder shell.</p>
+        <h2 className="text-sm font-semibold text-slate-900">Job context</h2>
+        <p className="mt-1 text-xs text-slate-500">
+          Measurement and setup readiness for this proposal preview.
+        </p>
       </div>
       <div className="space-y-2">
         <RailStat label="Measurement" value={measurementStatus} />
         <RailStat label="Quantities" value={quantitiesDisplay} />
+        {measurementHandoff?.selectedLabel ? (
+          <RailStat label="Record" value={measurementHandoff.selectedLabel} />
+        ) : null}
         <div className={BUILDER_RAIL_STAT}>
           <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">Catalog</p>
           <div className="mt-1 flex flex-wrap items-center gap-2">

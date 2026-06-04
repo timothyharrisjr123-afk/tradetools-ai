@@ -67,7 +67,7 @@ export default function ProposalBuilderPageHeader({
       </div>
       {shellReady ? (
         <p className="text-xs text-slate-500">
-          Builder shell · setup preview only · no proposal document is created or sent from this page
+          Read-only template preview · no proposal document is created or sent from this page
         </p>
       ) : null}
     </header>

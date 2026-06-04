@@ -22,6 +22,7 @@ import {
   getProposalTemplatesByCompany,
   type ProposalTemplateGraph,
 } from "@/app/lib/proposalTemplateStore";
+import { getDefaultSelectedOptionId } from "@/app/lib/proposalBuilderPreview";
 import { findStarterProposalTemplate } from "@/app/tools/roofing/templates/templatesSetupUtils";
 import ProposalBuilderBlockedState from "./ProposalBuilderBlockedState";
 import ProposalBuilderCanvas from "./ProposalBuilderCanvas";
@@ -53,6 +54,7 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
   const [companyTemplateCount, setCompanyTemplateCount] = useState(0);
   const [templateLoadComplete, setTemplateLoadComplete] = useState(false);
   const [templateError, setTemplateError] = useState<string | null>(null);
+  const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
 
   const loadJobContext = useCallback(async () => {
     setJobLoadComplete(false);
@@ -172,6 +174,14 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
     void loadTemplates();
   }, [loadTemplates]);
 
+  useEffect(() => {
+    if (!starterGraph) {
+      setSelectedOptionId(null);
+      return;
+    }
+    setSelectedOptionId(getDefaultSelectedOptionId(starterGraph));
+  }, [starterGraph?.template.id]);
+
   const activeCatalogItems = useMemo(
     () => catalogItems.filter((item) => item.active),
     [catalogItems]
@@ -235,7 +245,15 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
       {shellReady ? (
         <ProposalBuilderWorkspaceLayout
           sectionNav={<ProposalBuilderSectionNav activeSectionId="overview" />}
-          canvas={<ProposalBuilderCanvas starterGraph={starterGraph} />}
+          canvas={
+            <ProposalBuilderCanvas
+              starterGraph={starterGraph}
+              selectedOptionId={selectedOptionId}
+              onSelectOption={setSelectedOptionId}
+              catalogItems={activeCatalogItems}
+              measurementHandoff={measurementHandoff}
+            />
+          }
           summaryRail={
             <ProposalBuilderSummaryRail
               measurementHandoff={measurementHandoff}

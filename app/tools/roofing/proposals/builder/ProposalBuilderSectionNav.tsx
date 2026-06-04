@@ -16,7 +16,11 @@ export default function ProposalBuilderSectionNav({
             <button
               type="button"
               disabled
-              title={`${section.description} — not interactive in 3H-1`}
+              title={
+                section.id === "quantities"
+                  ? `${section.description} — not interactive in 3H-3`
+                  : `${section.description} — preview in main canvas`
+              }
               className={`${BUILDER_SECTION_NAV_ITEM} ${
                 active
                   ? "bg-slate-900 text-white"

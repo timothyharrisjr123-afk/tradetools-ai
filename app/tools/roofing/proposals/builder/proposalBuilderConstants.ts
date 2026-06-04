@@ -24,11 +24,36 @@ export const BUILDER_RAIL_STAT =
 export const BUILDER_DISABLED_ACTION =
   "inline-flex items-center justify-center rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-400 cursor-not-allowed";
 
+export const BUILDER_OPTION_TAB =
+  "rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50";
+
+export const BUILDER_OPTION_TAB_ACTIVE =
+  "rounded-full border border-slate-900 bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm";
+
+/** Desk/surface behind the proposal page. */
+export const BUILDER_DOCUMENT_SURFACE =
+  "rounded-lg border border-slate-200/60 bg-slate-100/70 p-4 sm:p-6";
+
+/** Primary proposal document page (center canvas product object). */
+export const BUILDER_DOCUMENT_PAGE =
+  "mx-auto min-h-[28rem] max-w-3xl rounded-sm border border-slate-200/90 bg-white px-6 py-8 shadow-[0_2px_12px_rgba(15,23,42,0.08)] sm:px-10 sm:py-10";
+
+/** Vertical document section — headings + body, not dashboard cards. */
+export const BUILDER_DOCUMENT_SECTION = "space-y-4 border-b border-slate-100 pb-8 last:border-b-0 last:pb-0";
+
+export const BUILDER_DOCUMENT_TEXT_BLOCK = "mt-2 max-w-none text-slate-700";
+
+export const BUILDER_PROPOSAL_LINE_ROW = "py-4 first:pt-0";
+
+export const BUILDER_LINE_LIST_FOOTER = "mt-4 text-[11px] leading-snug text-slate-400";
+
+export const BUILDER_CONTEXT_STRIP = "text-xs text-slate-400";
+
 export const BUILDER_SECTIONS: { id: string; label: string; description: string }[] = [
-  { id: "overview", label: "Overview", description: "Builder shell preview" },
-  { id: "options", label: "Options", description: "Standard / Enhanced / Premium — coming in 3H-2" },
-  { id: "sections", label: "Sections", description: "Template sections — coming in 3H-2" },
-  { id: "lines", label: "Line items", description: "Read-only line table — coming in 3H-2" },
+  { id: "overview", label: "Overview", description: "Template preview and measurement summary" },
+  { id: "options", label: "Options", description: "Standard / Enhanced / Premium tabs" },
+  { id: "sections", label: "Sections", description: "Template sections for selected option" },
+  { id: "lines", label: "Line items", description: "Read-only proposal line rows" },
   { id: "quantities", label: "Quantities", description: "Quantity resolver — coming in 3H-3" },
 ];
 
