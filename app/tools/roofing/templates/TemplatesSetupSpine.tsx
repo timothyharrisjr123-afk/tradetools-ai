@@ -4,6 +4,11 @@ import Link from "next/link";
 import type { CatalogReadinessSummary } from "@/app/lib/catalogReadiness";
 import { formatCatalogSectionStatus } from "@/app/lib/catalogReadiness";
 import {
+  formatProposalTemplateNextStepCopy,
+  formatProposalTemplateReadinessLabel,
+} from "@/app/lib/proposalTemplateReadiness";
+import type { ProposalTemplateReadiness } from "@/app/lib/proposalTemplateTypes";
+import {
   TEMPLATES_CARD,
   TEMPLATES_SETUP_STEP_ACTIVE_RING,
   TEMPLATES_SETUP_STEP_CARD,
@@ -24,6 +29,7 @@ type TemplatesSetupSpineProps = {
   installDisabled: boolean;
   installDisabledTitle?: string;
   onInstallStarter: () => void;
+  proposalReadiness: ProposalTemplateReadiness;
 };
 
 export default function TemplatesSetupSpine({
@@ -37,8 +43,12 @@ export default function TemplatesSetupSpine({
   installDisabled,
   installDisabledTitle,
   onInstallStarter,
+  proposalReadiness,
 }: TemplatesSetupSpineProps) {
   const catalogSection = formatCatalogSectionStatus(readiness);
+  const proposalSectionLabel = formatProposalTemplateReadinessLabel(proposalReadiness);
+  const proposalNextStep = formatProposalTemplateNextStepCopy(proposalReadiness);
+  const proposalBuilderReady = proposalReadiness.status === "ready_for_builder";
   const passiveOptions = getPassiveStarterOptionLabels();
   const starterDisplay = formatStarterTemplateAvailability(starterInstalled);
 
@@ -49,6 +59,9 @@ export default function TemplatesSetupSpine({
     catalogReady && !starterInstalled && !loading && !installing
       ? TEMPLATES_SETUP_STEP_ACTIVE_RING
       : ""
+  }`;
+  const step3Class = `${TEMPLATES_SETUP_STEP_CARD} ${
+    proposalBuilderReady && !loading ? TEMPLATES_SETUP_STEP_ACTIVE_RING : "opacity-95"
   }`;
 
   return (
@@ -144,21 +157,34 @@ export default function TemplatesSetupSpine({
           )}
         </div>
 
-        <div className={`${TEMPLATES_SETUP_STEP_CARD} opacity-95`}>
+        <div className={step3Class}>
           <div className="mb-3 flex items-start justify-between gap-2">
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-slate-300 bg-white text-xs font-bold text-slate-600">
+            <span
+              className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                proposalBuilderReady
+                  ? "bg-slate-900 text-white"
+                  : "border border-slate-300 bg-white text-slate-600"
+              }`}
+            >
               3
             </span>
-            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600 ring-1 ring-slate-200">
-              Later
+            <span
+              className={
+                proposalBuilderReady
+                  ? "rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-800 ring-1 ring-emerald-200"
+                  : "rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600 ring-1 ring-slate-200"
+              }
+            >
+              {loading ? "…" : proposalSectionLabel}
             </span>
           </div>
           <h3 className="text-sm font-semibold text-slate-900">Ready for Proposal Builder</h3>
           <p className="mt-2 flex-1 text-xs leading-relaxed text-slate-600">
-            After catalog and starter templates are in place, Proposal Builder will launch from Job
-            Card to create job-specific proposals. Not available on this page.
+            {loading ? "…" : proposalNextStep}
           </p>
-          <p className="mt-3 text-xs font-medium text-slate-500">Proposal Builder — coming later</p>
+          <p className="mt-3 text-xs font-medium text-slate-500">
+            Proposal Builder — not on this page; opens from Job Card in a later stage.
+          </p>
         </div>
       </div>
     </section>

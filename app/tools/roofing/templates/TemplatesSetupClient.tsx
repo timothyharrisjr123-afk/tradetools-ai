@@ -14,6 +14,7 @@ import {
   installDefaultRoofingProposalTemplates,
   type InstallDefaultRoofingProposalTemplatesResult,
 } from "@/app/lib/defaultRoofingProposalTemplateInstall";
+import { deriveProposalTemplateReadiness } from "@/app/lib/proposalTemplateReadiness";
 import {
   getProposalTemplateGraph,
   getProposalTemplatesByCompany,
@@ -29,6 +30,7 @@ import {
 import TemplatesCatalogGate from "./TemplatesCatalogGate";
 import TemplatesInstallResult from "./TemplatesInstallResult";
 import TemplatesInstalledSummary from "./TemplatesInstalledSummary";
+import TemplatesProposalReadiness from "./TemplatesProposalReadiness";
 import TemplatesSetupSpine from "./TemplatesSetupSpine";
 import { deriveInstallFeedback, findStarterProposalTemplate } from "./templatesSetupUtils";
 
@@ -40,6 +42,7 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
   const [catalogError, setCatalogError] = useState<string | null>(null);
 
   const [starterGraph, setStarterGraph] = useState<ProposalTemplateGraph | null>(null);
+  const [companyTemplateCount, setCompanyTemplateCount] = useState(0);
   const [templatesLoading, setTemplatesLoading] = useState(true);
   const [templatesError, setTemplatesError] = useState<string | null>(null);
 
@@ -69,6 +72,7 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
     setTemplatesError(null);
     try {
       const templates = await getProposalTemplatesByCompany(companyId);
+      setCompanyTemplateCount(templates.length);
       const starter = findStarterProposalTemplate(templates);
       if (!starter?.id) {
         setStarterGraph(null);
@@ -80,6 +84,7 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
       console.warn("[TemplatesSetupClient] template fetch error:", err);
       setTemplatesError("Could not load proposal templates.");
       setStarterGraph(null);
+      setCompanyTemplateCount(0);
     } finally {
       setTemplatesLoading(false);
     }
@@ -120,6 +125,19 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
   const starterInstalled = starterGraph != null;
   const loading = catalogLoading || templatesLoading;
   const loadError = catalogError ?? templatesError;
+
+  const proposalReadiness = useMemo(
+    () =>
+      deriveProposalTemplateReadiness({
+        catalogReadiness: readiness,
+        activeCatalogItems: activeItems,
+        starterGraph,
+        templateCount: companyTemplateCount,
+        activeTemplateCount: starterGraph?.template.active ? 1 : starterGraph ? 1 : 0,
+        lastInstallMissingCatalogSeedKeys: installResult?.missingCatalogSeedKeys,
+      }),
+    [readiness, activeItems, starterGraph, companyTemplateCount, installResult?.missingCatalogSeedKeys]
+  );
 
   const handleInstallStarter = useCallback(() => {
     void (async () => {
@@ -210,8 +228,8 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
               Setup readiness
             </h2>
             <p className="mt-1 text-xs text-slate-500">
-              Live catalog checks for template install. Threshold: {MIN_MEASUREMENT_MAPPED_FOR_READY}{" "}
-              measurement-mapped items.
+              Catalog gate for install and company template readiness for Proposal Builder (later).
+              Threshold: {MIN_MEASUREMENT_MAPPED_FOR_READY} measurement-mapped items.
             </p>
           </div>
           {!loading && !catalogError && <span className={statusPillClass}>{catalogStatusLabel}</span>}
@@ -274,6 +292,8 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
         catalogReady={catalogReady}
       />
 
+      <TemplatesProposalReadiness loading={loading} readiness={proposalReadiness} />
+
       <TemplatesSetupSpine
         loading={loading}
         catalogReady={catalogReady}
@@ -285,6 +305,7 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
         installDisabled={installDisabled}
         installDisabledTitle={installDisabledTitle}
         onInstallStarter={handleInstallStarter}
+        proposalReadiness={proposalReadiness}
       />
 
       {installResult ? <TemplatesInstallResult result={installResult} /> : null}
@@ -293,6 +314,7 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
         loading={templatesLoading || installing}
         graph={starterGraph}
         catalogReady={catalogReady}
+        proposalReadiness={proposalReadiness}
       />
 
       <section className={TEMPLATES_CARD} aria-labelledby="templates-scope-heading">
@@ -300,13 +322,12 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
           On this page
         </h2>
         <ul className="mt-3 list-inside list-disc space-y-1.5 text-sm text-slate-600">
-          <li>Live catalog gate and readiness metrics</li>
+          <li>Live catalog gate and proposal template readiness</li>
           <li>Starter template install and recheck (insert-only, idempotent)</li>
           <li>Read-only summary of installed starter template</li>
         </ul>
         <p className="mt-4 text-sm font-medium text-slate-700">Coming in later passes:</p>
         <ul className="mt-2 list-inside list-disc space-y-1.5 text-sm text-slate-500">
-          <li>Template readiness before Proposal Builder</li>
           <li>Proposal Builder or creating proposals from jobs</li>
           <li>Template editing, pricing bridge, PDF, send, or approval workflows</li>
         </ul>

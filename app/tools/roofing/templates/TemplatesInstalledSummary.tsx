@@ -1,6 +1,14 @@
 "use client";
 
-import { proposalTemplateStatusLabel } from "@/app/lib/proposalTemplateTypes";
+import {
+  formatProposalTemplateNextStepCopy,
+  proposalTemplateReadinessStatusPillClass,
+} from "@/app/lib/proposalTemplateReadiness";
+import {
+  proposalTemplateReadinessStatusLabel,
+  proposalTemplateStatusLabel,
+  type ProposalTemplateReadiness,
+} from "@/app/lib/proposalTemplateTypes";
 import type { ProposalTemplateGraph } from "@/app/lib/proposalTemplateStore";
 import { TEMPLATES_CARD, TEMPLATES_METRIC_TILE } from "./templatesConstants";
 import {
@@ -12,13 +20,18 @@ type TemplatesInstalledSummaryProps = {
   loading: boolean;
   graph: ProposalTemplateGraph | null;
   catalogReady: boolean;
+  proposalReadiness: ProposalTemplateReadiness;
 };
 
 export default function TemplatesInstalledSummary({
   loading,
   graph,
   catalogReady,
+  proposalReadiness,
 }: TemplatesInstalledSummaryProps) {
+  const readinessLabel = proposalTemplateReadinessStatusLabel(proposalReadiness.status);
+  const readinessPill = proposalTemplateReadinessStatusPillClass(proposalReadiness.status);
+  const readinessNextStep = formatProposalTemplateNextStepCopy(proposalReadiness);
   if (loading) {
     return (
       <section className={TEMPLATES_CARD} aria-labelledby="templates-installed-heading">
@@ -36,9 +49,9 @@ export default function TemplatesInstalledSummary({
         <h2 id="templates-installed-heading" className="text-base font-semibold text-slate-900">
           Installed templates
         </h2>
-        <p className="mt-2 text-sm text-slate-600">
-          No starter template installed yet. When catalog is ready, use install (next pass) to add the
-          default roof replacement package.
+        <p className="mt-2 text-sm text-slate-600">{readinessNextStep}</p>
+        <p className="mt-2 text-xs text-slate-500">
+          Readiness: <span className={readinessPill}>{readinessLabel}</span>
         </p>
         {!catalogReady && (
           <p className="mt-2 text-xs text-slate-500">Install stays unavailable until catalog is ready.</p>
@@ -58,7 +71,10 @@ export default function TemplatesInstalledSummary({
         Installed templates
       </h2>
       <p className="mt-1 text-sm text-slate-600">
-        Read-only summary of company templates. Editing and install controls come in later passes.
+        Read-only summary of company templates. {readinessNextStep}
+      </p>
+      <p className="mt-2 text-xs text-slate-500">
+        Readiness: <span className={readinessPill}>{readinessLabel}</span>
       </p>
 
       <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50/40 px-4 py-4">
