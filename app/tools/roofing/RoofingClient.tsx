@@ -701,6 +701,57 @@ type JobCardMeasurementView = {
   missingFields: string[];
 };
 
+type PacketFieldSnapshot = {
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  jobAddress1: string;
+  jobCity: string;
+  jobState: string;
+  jobZip: string;
+};
+
+type PacketReadinessRow = {
+  id: string;
+  label: string;
+  hint: string;
+  ready: boolean;
+};
+
+function getPacketReadinessRows(fields: PacketFieldSnapshot): PacketReadinessRow[] {
+  return [
+    {
+      id: "contact",
+      label: "Customer contact",
+      hint: "Name, email, or phone",
+      ready: Boolean((fields.customerName || fields.customerEmail || fields.customerPhone).trim()),
+    },
+    {
+      id: "street",
+      label: "Street address",
+      hint: "Service location line 1",
+      ready: Boolean((fields.jobAddress1 || "").trim()),
+    },
+    {
+      id: "zip",
+      label: "ZIP code",
+      hint: "Five digits for presets",
+      ready: (fields.jobZip || "").trim().length === 5,
+    },
+    {
+      id: "citystate",
+      label: "City & state",
+      hint: "Refines routing & tax context",
+      ready: Boolean((fields.jobCity || "").trim()) && Boolean((fields.jobState || "").trim()),
+    },
+  ];
+}
+
+function getPacketMinimumFieldsComplete(fields: PacketFieldSnapshot): boolean {
+  const rows = getPacketReadinessRows(fields);
+  return rows.every((row) => row.ready);
+}
+
 type BuildJobCardMeasurementInput = {
   area: string;
   waste: string;
@@ -1023,8 +1074,13 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
   useEffect(() => {
     if (jobParam && isUuidLike(jobParam)) {
       setCurrentJobId(jobParam);
+      return;
     }
-  }, [jobParam]);
+    if (entryMode === "packet" || entryMode === "instant") {
+      setCurrentJobId(null);
+      jobHydratedRef.current = null;
+    }
+  }, [jobParam, entryMode]);
 
   const isJobCardBoardContext =
     jobCardBoardOrigin || Boolean(loadSavedId) || isBoardOriginParam;
@@ -4443,6 +4499,23 @@ Thanks,`;
   ];
   const jobReadinessReadyCount = jobReadinessItems.filter((x) => x.ready).length;
 
+  const packetFieldSnapshot = useMemo<PacketFieldSnapshot>(
+    () => ({
+      customerName,
+      customerEmail,
+      customerPhone,
+      jobAddress1,
+      jobCity,
+      jobState,
+      jobZip,
+    }),
+    [customerName, customerEmail, customerPhone, jobAddress1, jobCity, jobState, jobZip]
+  );
+  const packetMinimumComplete = useMemo(
+    () => getPacketMinimumFieldsComplete(packetFieldSnapshot),
+    [packetFieldSnapshot]
+  );
+
   const buildJobDraftFromPacketState = useCallback((): JobDraft | null => {
     const cid = (companyId ?? "").trim();
     if (!cid) return null;
@@ -4497,14 +4570,15 @@ Thanks,`;
     setJobCreationError(null);
     if (isCreatingJob) return;
 
-    const fromUrl = searchParams.get("job");
-    const existingId =
-      (currentJobId && isUuidLike(currentJobId) ? currentJobId : null) ??
-      (fromUrl && isUuidLike(fromUrl) ? fromUrl : null);
+    if (!packetMinimumComplete) {
+      setJobCreationError("Complete customer and property details before continuing to Job Card.");
+      return;
+    }
 
-    if (existingId) {
-      setCurrentJobId(existingId);
-      router.push(`/tools/roofing?entry=job-card&job=${encodeURIComponent(existingId)}`);
+    const fromUrl = searchParams.get("job");
+    if (fromUrl && isUuidLike(fromUrl)) {
+      setCurrentJobId(fromUrl);
+      router.push(`/tools/roofing?entry=job-card&job=${encodeURIComponent(fromUrl)}`);
       return;
     }
 
@@ -4527,6 +4601,7 @@ Thanks,`;
         setJobCreationError("Could not create job. Check your connection and try again.");
         return;
       }
+      jobHydratedRef.current = null;
       setCurrentJobId(record.id);
       router.push(`/tools/roofing?entry=job-card&job=${encodeURIComponent(record.id)}`);
     } finally {
@@ -4534,7 +4609,7 @@ Thanks,`;
     }
   }, [
     isCreatingJob,
-    currentJobId,
+    packetMinimumComplete,
     searchParams,
     companyId,
     buildJobDraftFromPacketState,
@@ -4546,36 +4621,11 @@ Thanks,`;
     standaloneEntryMode: "packet" | "instant" = "packet"
   ) {
     const isStandalone = variant === "standalone";
-    const packetReadinessRows = [
-      {
-        id: "contact",
-        label: "Customer contact",
-        hint: "Name, email, or phone",
-        ready: Boolean((customerName || customerEmail || customerPhone).trim()),
-      },
-      {
-        id: "street",
-        label: "Street address",
-        hint: "Service location line 1",
-        ready: !!(jobAddress1 || "").trim(),
-      },
-      {
-        id: "zip",
-        label: "ZIP code",
-        hint: "Five digits for presets",
-        ready: (jobZip || "").trim().length === 5,
-      },
-      {
-        id: "citystate",
-        label: "City & state",
-        hint: "Refines routing & tax context",
-        ready: !!(jobCity || "").trim() && !!(jobState || "").trim(),
-      },
-    ];
+    const packetReadinessRows = getPacketReadinessRows(packetFieldSnapshot);
     const packetReadyCount = packetReadinessRows.filter((row) => row.ready).length;
     const packetTotalCount = packetReadinessRows.length;
     const packetProgressPct = Math.round((packetReadyCount / packetTotalCount) * 100);
-    const packetFactsComplete = packetReadyCount === packetTotalCount;
+    const packetFactsComplete = packetMinimumComplete;
     const addressLine = [
       (jobAddress1 || "").trim(),
       [(jobCity || "").trim(), (jobState || "").trim()].filter(Boolean).join(", "),
@@ -5120,7 +5170,12 @@ Thanks,`;
               <button
                 type="button"
                 onClick={() => void handleContinueToJobCard()}
-                disabled={isCreatingJob}
+                disabled={isCreatingJob || !packetMinimumComplete}
+                title={
+                  packetMinimumComplete
+                    ? undefined
+                    : "Complete customer and property details before continuing to Job Card."
+                }
                 className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-900 bg-slate-900 px-4 py-2 text-[13px] font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isCreatingJob ? "Creating job…" : "Continue to Job Card"}
