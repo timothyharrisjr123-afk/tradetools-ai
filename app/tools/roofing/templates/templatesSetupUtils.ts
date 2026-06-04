@@ -9,6 +9,13 @@ import type { ProposalTemplateGraph } from "@/app/lib/proposalTemplateStore";
 export const STARTER_TEMPLATE_DEFINITION_COUNT =
   DEFAULT_ROOFING_PROPOSAL_TEMPLATE_DEFINITIONS.length;
 
+export const STARTER_TEMPLATE_DISPLAY_NAME =
+  DEFAULT_ROOFING_PROPOSAL_TEMPLATE_DEFINITIONS[0]?.name ?? "Roof replacement";
+
+export const STARTER_TEMPLATE_DISPLAY_DESCRIPTION =
+  DEFAULT_ROOFING_PROPOSAL_TEMPLATE_DEFINITIONS[0]?.description ??
+  "Starter roof replacement template with Standard, Enhanced, and Premium options.";
+
 export function extractTemplateSeedKey(
   metadata: Record<string, unknown> | null | undefined
 ): string | null {
@@ -32,14 +39,10 @@ export function findStarterProposalTemplate(
   );
 }
 
-export function formatStarterTemplateAvailability(installed: boolean): string {
-  if (installed) {
-    return "Installed";
-  }
-  if (STARTER_TEMPLATE_DEFINITION_COUNT <= 0) {
-    return "Not available";
-  }
-  return `${STARTER_TEMPLATE_DEFINITION_COUNT} starter template available, not installed`;
+export function getPassiveStarterOptionLabels(): string[] {
+  const def = DEFAULT_ROOFING_PROPOSAL_TEMPLATE_DEFINITIONS[0];
+  if (!def?.options?.length) return [];
+  return def.options.map((opt) => opt.customer_label ?? opt.name);
 }
 
 export function countCatalogLinkedTemplateItems(graph: ProposalTemplateGraph): number {
@@ -57,12 +60,6 @@ export function sortTemplateOptionsByOrder<T extends { sort_order?: number | nul
     if (ao !== bo) return ao - bo;
     return 0;
   });
-}
-
-export function getPassiveStarterOptionLabels(): string[] {
-  const def = DEFAULT_ROOFING_PROPOSAL_TEMPLATE_DEFINITIONS[0];
-  if (!def?.options?.length) return [];
-  return def.options.map((opt) => opt.customer_label ?? opt.name);
 }
 
 export function sumInstallCreatedCounts(result: InstallDefaultRoofingProposalTemplatesResult): number {
@@ -124,17 +121,17 @@ export function deriveInstallFeedback(result: InstallDefaultRoofingProposalTempl
       message: `Installed ${parts.join(", ")}.`,
       error:
         result.failedCount > 0 || result.missingCatalogSeedKeys.length > 0
-          ? "Some rows were skipped or failed. See last install result below."
+          ? "Some rows were skipped or failed. See install details below."
           : null,
     };
   }
 
   if (skippedTotal > 0 && result.templateId) {
     return {
-      message: `Starter template recheck complete. Created ${createdTotal}, skipped ${skippedTotal}, failed ${result.failedCount}.`,
+      message: `Recheck complete. Created ${createdTotal}, skipped ${skippedTotal}, failed ${result.failedCount}.`,
       error:
         result.missingCatalogSeedKeys.length > 0
-          ? "Some line items are still missing catalog seed keys. Install or recheck catalog items, then recheck the template."
+          ? "Some line items are still missing catalog seed keys. Fix catalog, then recheck."
           : result.failedCount > 0
             ? "Some rows failed during recheck. See details below."
             : null,
@@ -151,5 +148,5 @@ export function deriveInstallFeedback(result: InstallDefaultRoofingProposalTempl
     };
   }
 
-  return { message: "Install finished. No new rows were created.", error: null };
+  return { message: "No new rows were created.", error: null };
 }
