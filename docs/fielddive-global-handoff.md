@@ -9,11 +9,11 @@
 - `docs/fielddive-estimate-proposal-flow-model.md` — estimate/proposal UX model notes
 - `docs/fielddive-feature-placement-map.md` — feature placement matrix
 
-**Last updated checkpoint:** **3I-3B2B company pricing policy store** (pending review — §6N). **Prior:** **3I-3B2A migration** (`76b87b8` — schema only, not applied); **3I-3B1 resolver** (`c1b52ee` — §6M); **3I-3A spec** (`0f66a7b` — §6L); **3I-2 Builder pricing preview** (`637b85a`). **Working tree:** 3I-3B2B store + tests + docs pending review (no commit). **Typecheck:** only **6** pre-existing errors in `app/tools/roofing-v2/RoofingClientV2.tsx` — unchanged. **Protected systems:** legacy `RoofingClient.tsx` pricing `useMemo`, payments, approval, status, saved estimates, send/PDF **untouched**.
+**Last updated checkpoint:** **3I-3B3a migration manually applied** (docs only — §6N/§6O). **Prior:** **3I-3B2B store** (`b5bbc7f` — §6N); **3I-3B2A migration SQL** (`76b87b8`); **3I-3B1 resolver** (`c1b52ee` — §6M); **3I-3A spec** (`0f66a7b` — §6L); **3I-2 Builder pricing preview** (`637b85a`). **Working tree:** handoff doc update pending review (no commit). **Typecheck:** only **6** pre-existing errors in `app/tools/roofing-v2/RoofingClientV2.tsx` — unchanged. **Protected systems:** legacy `RoofingClient.tsx` pricing `useMemo`, payments, approval, status, saved estimates, send/PDF **untouched**.
 
 **Jobs Board approved save point:** `b27a444` (3F9B4-RoofrExact). **Prior Job Board checkpoint:** `36fa3a9` (3F9B3).
 
-**Next (recommended):** **Review + commit 3I-3B2B** (`companyPricingPolicyStore.ts` + tests + §6N) → **3I-3B3** settings UI + wire Builder to resolved company policy + retire `BUILDER_PREVIEW_PRICING_POLICY`. Migration `20260605_005` remains **unapplied** until the user applies it. **Do not** persist proposals (3J), snapshot pricing, enable Preview/Send/Sign/Payment, or add internal profitability dollars without explicit scope.
+**Next (recommended):** **3I-3B3b** — minimal company pricing policy settings UI only (`/tools/settings`). **No Builder wiring yet** (3I-3B3c). **Do not** persist proposals (3J), snapshot pricing, enable Preview/Send/Sign/Payment, or add internal profitability dollars without explicit scope.
 
 ### Recent committed sequence (3G6 spine + execution surfaces + 3H + 3I pricing foundation + 3I-2 Builder preview)
 
@@ -1436,17 +1436,16 @@ Real company policy will source these (shape mirrors existing `PricingPolicy`):
 
 ## 6N. COMPANY PRICING POLICY PERSISTENCE — 3I-3B2 (migration + store — no UI/Builder)
 
-**Status:** **3I-3B2A migration committed** (`76b87b8`); **3I-3B2B store added.** **No UI, no Builder wiring, no orchestrator change.** Builder still uses `BUILDER_PREVIEW_PRICING_POLICY` until **3I-3B3**.
+**Status:** **3I-3B2A migration committed** (`76b87b8`) and **manually applied** (3I-3B3a — §6O); **3I-3B2B store committed** (`b5bbc7f`). **No UI, no Builder wiring, no orchestrator change.** Builder still uses `BUILDER_PREVIEW_PRICING_POLICY` until **3I-3B3c**.
 
 ### 1. 3I-3B2A — migration (`76b87b8`)
 
-- `supabase/migrations/20260605_005_create_company_pricing_policies.sql` — schema only, **NOT applied** (header: "Schema only. Do not apply until reviewed.").
+- `supabase/migrations/20260605_005_create_company_pricing_policies.sql` — committed schema; **applied manually** in Supabase SQL Editor (see **§6O**).
 - One row per company (`unique(company_id)`), FK → `companies(id) on delete cascade`.
 - Flat typed columns + CHECK constraints (no JSONB for locked fields; `metadata jsonb` is a forward-compat hook only).
 - Margin policies enforced `< 100` (default and minimum); markup may be `<= 100`. `minimum <= default`. Tax `>= 0` / null.
 - **No** discount columns, **no** subtotal-override columns, **no** seed data; `companies` untouched.
 - RLS enabled; four `company_memberships`-scoped policies; reuses shared `public.set_updated_at()` trigger.
-- **Migration remains unapplied** unless the user separately applies it.
 
 ### 2. 3I-3B2B — store (`app/lib/companyPricingPolicyStore.ts`)
 
@@ -1475,14 +1474,73 @@ Real company policy will source these (shape mirrors existing `PricingPolicy`):
 - Placeholder 50% policy must not be persisted, snapshotted, or treated as company configuration.
 - **3J** deferred until real company policy is wired.
 
-### 4. Next slice
+### 4. Next slices (3I-3B3 split)
 
-- **3I-3B3** — settings UI + wire Builder Client to consume `getResolvedCompanyPricingPolicy` / pass resolved `policy`; retire `BUILDER_PREVIEW_PRICING_POLICY` on the configured path; update banner/readiness gates.
+| Slice | Scope |
+|-------|--------|
+| **3I-3B3a** | **DONE** — manual migration apply + verify (§6O); no app code |
+| **3I-3B3b** | **Next** — minimal settings UI only (`/tools/settings`) |
+| **3I-3B3c** | Builder wiring: `getResolvedCompanyPricingPolicy` → orchestrator `policy` |
+| **3I-3B3d** | Banner/copy + readiness status surfaces |
 
 ### 5. Boundaries (3I-3B2B)
 
 - **No** UI, Builder wiring, orchestrator/engine/mapper changes.
-- **No** SQL applied; **no** new migration in this slice.
+- **No** new migration in 3I-3B2B/3I-3B3a (apply only; SQL file unchanged at `76b87b8`).
+- **No** proposal persistence/snapshots, PDF/send/sign/payment/status, old estimator.
+- **No** protected systems touched.
+
+---
+
+## 6O. MANUAL MIGRATION APPLY — 3I-3B3a (environment action — no app code)
+
+**Status:** **3I-3B3a complete.** Environment action only — **no app code changed**, **no commit** for the apply itself, **no seed data inserted**, **`companies` table untouched**.
+
+### 1. What was done
+
+- User **intentionally** ran `supabase/migrations/20260605_005_create_company_pricing_policies.sql` manually in the **Supabase SQL Editor**.
+- Supabase UI target shown as: **TradeTools AI / tradetools-ai / main / production** (user-selected project; applied per user decision).
+- Additive migration only: creates `public.company_pricing_policies`; does not alter `public.companies`.
+
+### 2. Verification (post-apply SQL)
+
+**Table exists:**
+
+```sql
+select to_regclass('public.company_pricing_policies');
+-- Result: public.company_pricing_policies
+```
+
+**RLS policies verified:**
+
+- `company_pricing_policies_delete_company_scope`
+- `company_pricing_policies_insert_company_scope`
+- `company_pricing_policies_select_company_scope`
+- `company_pricing_policies_update_company_scope`
+
+**Constraints verified (key):**
+
+- `company_pricing_policies_company_id_unique`
+- `company_pricing_policies_margin_default_lt_100_check`
+- `company_pricing_policies_margin_minimum_lt_100_check`
+- `company_pricing_policies_quantity_rounding_check` (`exact` only)
+- `company_pricing_policies_waste_model_check` (`adjusted_measurement` only)
+- Plus: profitability type (`margin` \| `markup`), percent range, sales tax, material tax, `minimum <= default` checks
+
+### 3. Unchanged
+
+- No app code changed for 3I-3B3a.
+- Builder still uses `BUILDER_PREVIEW_PRICING_POLICY` until **3I-3B3c**.
+- Store (`b5bbc7f`) can now read/write the table when a company policy row exists.
+
+### 4. Next
+
+- **3I-3B3b** — minimal company pricing policy settings UI only.
+
+### 5. Boundaries (3I-3B3a)
+
+- **No** app code, UI, Builder wiring, orchestrator/engine/mapper changes.
+- **No** SQL/migration file edits.
 - **No** proposal persistence/snapshots, PDF/send/sign/payment/status, old estimator.
 - **No** protected systems touched.
 
