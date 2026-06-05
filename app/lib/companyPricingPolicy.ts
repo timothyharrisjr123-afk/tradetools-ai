@@ -113,6 +113,18 @@ export function validateCompanyPricingPolicy(
     };
   }
 
+  // Margin math diverges at 100% (margin >= 100 is unpriced in the engine), so
+  // margin policies must stay strictly below 100. Markup has no such ceiling.
+  // Resolver, store, DB migration, and engine all align on this rule.
+  if (profitabilityType === "margin") {
+    if (defaultProfitabilityPct >= 100) {
+      return { valid: false, reason: "Margin default profitability must be below 100%." };
+    }
+    if (minimumProfitabilityPct >= 100) {
+      return { valid: false, reason: "Margin minimum profitability must be below 100%." };
+    }
+  }
+
   if (candidate.quantityRounding !== "exact") {
     return {
       valid: false,

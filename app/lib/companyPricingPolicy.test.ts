@@ -140,6 +140,67 @@ describe("companyPricingPolicy", () => {
     assert.notEqual(seed.source, "company");
   });
 
+  test("margin 99.99 is valid (just under ceiling)", () => {
+    const result = resolveCompanyPricingPolicy({
+      storedPolicy: validCompanyPolicy({
+        profitabilityType: "margin",
+        defaultProfitabilityPct: 99.99,
+        minimumProfitabilityPct: 99.99,
+      }),
+    });
+    assert.equal(result.configured, true);
+    assert.equal(result.source, "company");
+    assert.equal(result.policy?.defaultProfitabilityPct, 99.99);
+  });
+
+  test("margin default 100 is invalid / not configured", () => {
+    const result = resolveCompanyPricingPolicy({
+      storedPolicy: validCompanyPolicy({
+        profitabilityType: "margin",
+        defaultProfitabilityPct: 100,
+        minimumProfitabilityPct: 100,
+      }),
+    });
+    assert.equal(result.configured, false);
+    assert.equal(result.source, "missing");
+    assert.equal(result.policy, null);
+  });
+
+  test("margin minimum 100 is invalid / not configured", () => {
+    const result = resolveCompanyPricingPolicy({
+      storedPolicy: validCompanyPolicy({
+        profitabilityType: "margin",
+        defaultProfitabilityPct: 100,
+        minimumProfitabilityPct: 100,
+      }),
+    });
+    assert.equal(result.configured, false);
+    assert.equal(result.policy, null);
+
+    // default below 100 but minimum at 100 is also rejected
+    const v = validateCompanyPricingPolicy(
+      validCompanyPolicy({
+        profitabilityType: "margin",
+        defaultProfitabilityPct: 100,
+        minimumProfitabilityPct: 100,
+      })
+    );
+    assert.equal(v.valid, false);
+  });
+
+  test("markup 100 remains valid / configured", () => {
+    const result = resolveCompanyPricingPolicy({
+      storedPolicy: validCompanyPolicy({
+        profitabilityType: "markup",
+        defaultProfitabilityPct: 100,
+        minimumProfitabilityPct: 20,
+      }),
+    });
+    assert.equal(result.configured, true);
+    assert.equal(result.source, "company");
+    assert.equal(result.policy?.defaultProfitabilityPct, 100);
+  });
+
   test("margin profitability fields pass through", () => {
     const result = resolveCompanyPricingPolicy({
       storedPolicy: validCompanyPolicy({
