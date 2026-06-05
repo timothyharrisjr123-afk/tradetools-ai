@@ -9,17 +9,22 @@
 - `docs/fielddive-estimate-proposal-flow-model.md` — estimate/proposal UX model notes
 - `docs/fielddive-feature-placement-map.md` — feature placement matrix
 
-**Last updated checkpoint:** **3I-1 pricing engine decision closeout** (docs-only — review before commit). **Prior committed:** **3I-0 proposal pricing type contract** (`6f9cbe1`); **3H-3 read-only proposal quantity preview** (`40e6720`); **3H-2** (`00fbf64`); **packet session bleed fix** (`c12ea4d`); **pre-3H-2** (`abd718d`); **3H-1** (`feec663`). **Working tree:** handoff doc pending review. **Typecheck:** only **6** pre-existing errors in `app/tools/roofing-v2/RoofingClientV2.tsx` — unchanged. **Protected systems:** pricing engine math, payments, approval, status, saved estimates, send/PDF **untouched** through 3I-0 (types only); **3I-1 decisions locked in docs only — no engine code yet**.
+**Last updated checkpoint:** **3I-1 pricing foundation complete** (`52b7148` — pricing input mapper). **Prior committed:** **3I-1 engine tests** (`d67910d`); **3I-1 input hardening** (`1ddee44`); **3I-1 pure pricing engine** (`162f9be`); **3I-1 decision closeout** (`ac589d8`); **3I-0 type contract** (`6f9cbe1`); **3H-3** (`40e6720`); **3H-2** (`00fbf64`); **3H-1** (`feec663`). **Working tree:** clean at `52b7148` (handoff doc update pending review). **Typecheck:** only **6** pre-existing errors in `app/tools/roofing-v2/RoofingClientV2.tsx` — unchanged. **Protected systems:** legacy `RoofingClient.tsx` pricing `useMemo`, payments, approval, status, saved estimates, send/PDF **untouched** — new pure proposal pricing engine/mapper are **new-spine lib only**, not wired to Builder UI or legacy paths.
 
 **Jobs Board approved save point:** `b27a444` (3F9B4-RoofrExact). **Prior Job Board checkpoint:** `36fa3a9` (3F9B3).
 
-**Next (recommended):** **Review + commit 3I-1 decision closeout (docs)** → **3I-1A pure pricing engine** (`proposalPricingEngine.ts`). **Do not** start Builder UI totals (3I-2), proposal persistence/SQL (3J), or PDF/send/approval/payment/status without explicit scope.
+**Next (recommended):** **Review + commit this handoff update (docs)** → plan **3I-2 read-only Builder pricing preview** (mapper + engine from Builder route only). **Do not** persist proposals (3J), or enable Preview/Send/Sign/Payment without explicit scope.
 
-### Recent committed sequence (3G6 spine + execution surfaces + 3H-1 + 3H-2 + 3H-3 + pre-3H-2 + session bleed fix)
+### Recent committed sequence (3G6 spine + execution surfaces + 3H + 3I pricing foundation)
 
 | Commit | Summary |
 |--------|---------|
-| `6f9cbe1` | **3I-0** — Proposal pricing type contract: `proposalPricingTypes.ts`; policy/input/output/guardrail/snapshot intent types; function signatures only; no math, no UI |
+| `52b7148` | **3I-1B** — Pure pricing input mapper: `proposalPricingInputMapper.ts` + 16 mapper tests; template graph + catalog + 3H-3 quantity → `ProposalPricingInput`; no UI, no persistence |
+| `d67910d` | **3I-1C** — Proposal pricing engine tests: 22 programmatic cases in `proposalPricingEngine.test.ts` |
+| `1ddee44` | **3I-1A.1** — Harden engine inputs: negative quantity, negative profitability, negative fixed discount |
+| `162f9be` | **3I-1A** — Pure proposal pricing engine: `proposalPricingEngine.ts`; `resolveProposalPricing` + guardrails; consumes `ProposalPricingInput` only |
+| `ac589d8` | docs: close 3I1 pricing engine decisions (§6H) |
+| `6f9cbe1` | **3I-0** — Proposal pricing type contract: `proposalPricingTypes.ts`; policy/input/output/guardrail types; function signatures only |
 | `40e6720` | **3H-3** — Read-only proposal quantity preview: pure `proposalQuantityResolver.ts`; Builder line rows show Qty / Source / Rule / Status; no totals, no qty × price, no persistence |
 | `a522ea8` | docs: update handoff after 3H-2 proposal preview |
 | `00fbf64` | **3H-2** — Read-only Proposal Builder preview: document-style canvas, option pills, section/line preview; `proposalBuilderPreview.ts` + Builder UI components; no persistence/pricing/totals |
@@ -76,7 +81,7 @@
 - **Do not** create PDF / send / approval bridges before proposal records exist.
 - **Do not** touch payment / status / approval while working catalog or template setup (unless the stage explicitly scopes it).
 - **Do not treat table/store existence as product completion** — audit **architecture, functionality, layout, and UI** together before advancing the spine.
-- **3G6 Templates setup surface is complete** (3G6A–E + D2/D3) — **3H-1 Proposal Builder shell** (`feec663`); **3H-2 read-only proposal preview** (`00fbf64`); **3H-3 read-only quantity preview** (`40e6720`); **pre-3H-2 source-of-truth** (`abd718d`); **packet session bleed fix** (`c12ea4d`); **3I+** (pricing bridge, persistence, PDF/send adapters) remain later; do not enable pricing bridge or customer-send without explicit scope.
+- **3G6 Templates setup surface is complete** (3G6A–E + D2/D3) — **3H-1 Proposal Builder shell** (`feec663`); **3H-2 read-only proposal preview** (`00fbf64`); **3H-3 read-only quantity preview** (`40e6720`); **3I-1 pure pricing engine + input mapper** (`162f9be`–`52b7148`) — **lib only, not wired to Builder UI**; **3I-2** (Builder read-only pricing preview), **3J** (persistence), **3K** (PDF/send adapters) remain later; do not enable customer-send or proposal records without explicit scope.
 - **Do not casually patch pricing** during catalog/template/Job Card link work — see **§11 — Pricing (protected + future redesign)**.
 
 ---
@@ -751,11 +756,11 @@ Pricing contract **consumes** (later, in 3I-1):
 
 ---
 
-## 6H. PROPOSAL PRICING ENGINE DECISIONS — 3I-1 (approved — docs-only closeout)
+## 6H. PROPOSAL PRICING ENGINE DECISIONS — 3I-1 (approved — implemented in §6I)
 
-**Goal:** Lock all pricing-policy decisions required before implementing the pure pricing engine. **Approved in chat; documented here.** **No engine code in this checkpoint** — docs-only update pending review/commit.
+**Goal:** Lock all pricing-policy decisions required before implementing the pure pricing engine. **Approved in chat; documented here.** **Implementation complete** — see **§6I** (`162f9be`–`52b7148`).
 
-**Prerequisite:** 3I-0 type contract (`6f9cbe1`, `proposalPricingTypes.ts`). **3I-1 must consume 3H-3 resolved quantities** — not legacy estimator fields or saved-estimate snapshots.
+**Prerequisite:** 3I-0 type contract (`6f9cbe1`, `proposalPricingTypes.ts`). **3I-1 consumes 3H-3 resolved quantities** — not legacy estimator fields or saved-estimate snapshots.
 
 ### 1. Discount / tax ordering
 
@@ -856,16 +861,16 @@ Pricing contract **consumes** (later, in 3I-1):
 
 **3I-1:** no Builder customer-facing rendering change — UI totals deferred to **3I-2**.
 
-### 10. Implementation sequence (approved)
+### 10. Implementation sequence (approved — 3I-1A/B/C complete)
 
-| Phase | Deliverable | In scope |
-|-------|-------------|----------|
-| **3I-1A** | Pure `proposalPricingEngine.ts` — `resolveProposalPricing` + `evaluateProfitabilityGuardrail` | Engine math only; **no UI totals** |
-| **3I-1B** | `proposalPricingInputMapper.ts` — catalog + 3H-3 preview → `ProposalPricingInput` | Mapper only |
-| **3I-1C** | Programmatic fixtures/tests | Smoke/unit cases; no browser required |
-| **3I-2** | Read-only Builder pricing preview totals | Separate scope/commit — **not 3I-1A** |
+| Phase | Deliverable | Status |
+|-------|-------------|--------|
+| **3I-1A** | Pure `proposalPricingEngine.ts` — `resolveProposalPricing` + `evaluateProfitabilityGuardrail` | **DONE** (`162f9be`, hardened `1ddee44`) |
+| **3I-1B** | `proposalPricingInputMapper.ts` — catalog + 3H-3 preview → `ProposalPricingInput` | **DONE** (`52b7148`) |
+| **3I-1C** | Programmatic engine + mapper tests | **DONE** (`d67910d`, mapper tests in `52b7148`) |
+| **3I-2** | Read-only Builder pricing preview totals | **NEXT** — separate scope/commit |
 
-**Suggested commit order after this docs commit:** `3I1: add proposal pricing engine` → `3I1: add proposal pricing input mapper` → `3I1: add proposal pricing engine fixtures` → *(later)* `3I2: add read-only builder pricing preview`.
+**Committed order:** `docs: close 3I1 pricing engine decisions` → `3I1: add proposal pricing engine` → `3I1: harden proposal pricing engine inputs` → `3I1: add proposal pricing engine tests` → `3I1: add proposal pricing input mapper` → *(next)* `docs: update handoff after 3I1 pricing foundation` → *(later)* `3I2: add read-only builder pricing preview`.
 
 ### 3I-1A files allowed
 
@@ -888,20 +893,148 @@ Pricing contract **consumes** (later, in 3I-1):
 - `app/lib/proposalQuantityResolver.ts` (quantity layer frozen at 3H-3)
 - `catalogTypes.ts`, `catalogStore.ts`, `proposalTemplateStore.ts`
 
-### Hard boundaries preserved (3I-1 decision closeout)
+### Hard boundaries preserved (3I-1 decision closeout — still apply to 3I-2+)
 
-**This docs checkpoint does NOT include:**
+**3I-1 lib modules do NOT include:**
 
-- `proposalPricingEngine.ts` implementation
-- Input mapper or fixtures
-- Builder UI totals or customer-facing price display
-- Proposal records / SQL / snapshots (3J)
+- Builder UI totals or customer-facing price display (**3I-2**)
+- Proposal records / SQL / snapshots (**3J**)
 - Legacy estimator `useMemo` replacement
 - Send / PDF / payment / approval / status integration
 
 **Old FieldDive pricing/payment remains adapter-later, not product spine.**
 
-**Protected systems:** untouched (docs-only closeout).
+**Protected systems (legacy):** untouched through 3I-1 — no changes to `RoofingClient.tsx`, `SavedClient.tsx`, `estimateStore`, payments, send/PDF, approval, or status paths.
+
+---
+
+## 6I. PROPOSAL PRICING FOUNDATION — 3I-1 COMPLETE (`162f9be`–`52b7148`)
+
+**Goal:** Pure deterministic pricing engine + input mapper for the new proposal spine. **Lib-only** — consumes 3H-3 quantities via mapper; **no Builder UI wiring**, **no persistence**, **no legacy estimator imports**.
+
+**Working tree:** clean at `52b7148`. **Typecheck:** only **6** pre-existing errors in `RoofingClientV2.tsx` — unchanged. **Protected systems:** legacy pricing/payment/send/PDF/status **untouched**.
+
+### 3I-1 commit sequence
+
+| Commit | Summary |
+|--------|---------|
+| `ac589d8` | docs: close 3I1 pricing engine decisions (§6H) |
+| `162f9be` | **3I-1A** — Pure `proposalPricingEngine.ts`: `resolveProposalPricing`, `evaluateProfitabilityGuardrail`, `priceProposalLine`, `canApplyMaterialPurchaseTax` |
+| `1ddee44` | **3I-1A.1** — Input hardening: negative quantity → blocking; negative `defaultProfitabilityPct` → unpriced; negative fixed discount → treated as 0 |
+| `d67910d` | **3I-1C** — Engine tests: 22/22 pass (`proposalPricingEngine.test.ts`) |
+| `52b7148` | **3I-1B** — Pure `proposalPricingInputMapper.ts` + mapper tests: 16/16 pass |
+
+### Key files
+
+| File | Role |
+|------|------|
+| `app/lib/proposalPricingTypes.ts` | Type contract (3I-0) — policy, input/output, guardrails |
+| `app/lib/proposalPricingEngine.ts` | Pure pricing math — consumes `ProposalPricingInput` only |
+| `app/lib/proposalPricingEngine.test.ts` | Engine programmatic tests (Node `node:test` via `tsx`) |
+| `app/lib/proposalPricingInputMapper.ts` | Template graph + catalog + 3H-3 quantity → `ProposalPricingInput` |
+| `app/lib/proposalPricingInputMapper.test.ts` | Mapper programmatic tests |
+
+### Pricing engine boundaries
+
+**Pure engine only:**
+
+- Consumes **`ProposalPricingInput`** (built by mapper or tests)
+- **No UI totals** — nothing rendered in app routes
+- **No persistence** — no proposal records, SQL, or snapshots
+- **No protected systems** — does not import or call legacy estimator, `estimateStore`, `loadSaved`, `currentSaved`, board card state, payments, send/PDF, approval, or status
+- **No old estimator imports** — no `RoofingClient.tsx` pricing `useMemo`
+- **No SQL/migrations**
+
+**Mapper boundaries (same spirit):**
+
+- Maps template graph + catalog items + `ProposalQuantityPreviewContext` (3H-3) + `PricingPolicy` + `actorRole`
+- **No money calculation** in mapper
+- **No quantity resolving** in mapper — delegates exclusively to `resolveProposalLineQuantity` (3H-3)
+- **Not wired** from Builder UI yet (3I-2 will call mapper + engine)
+
+### Engine rules implemented (§6H → code)
+
+| Rule | Implemented |
+|------|-------------|
+| Discount before tax | Yes — line prices → subtotal → discount → taxable base → sales tax |
+| Option-level discount only | Yes — `PricingPolicy.discount` only; no line-level discounts |
+| Sales tax on post-discount subtotal | Yes — `policy.tax.salesTaxRatePct` on discounted subtotal |
+| Material purchase tax | Internal-only, materials-only (`itemType === "material"`) via `policy.tax.materialPurchaseTaxRatePct` |
+| Margin / markup formulas | Per-line for `cost_plus_margin`; option rollup for guardrails |
+| `pricing_basis` precedence | `cost_plus_margin`, `unit_price`, `fixed_price`, `included` per §6H table |
+| Blocking behavior | `quantityUnresolved`, `unpriced`, or `unsupported` line → `hasBlockingIssues = true` |
+| Customer totals when blocked | `customerSubtotalCents` / `customerTotalCents` = **`null`** — no partial totals |
+| Quantity rounding | **`exact` only** — 3H-3 values used as-is; `"whole"` ignored |
+| Waste model | **`adjusted_measurement` only** — no re-application of waste/coverage/bundle conversion |
+| Guardrails | `pass \| warn \| block` returned only — **not enforced** in UI or send paths |
+
+### Test coverage
+
+| Suite | Result | Command |
+|-------|--------|---------|
+| Engine tests | **22/22 pass** | `npx tsx --test app/lib/proposalPricingEngine.test.ts` |
+| Mapper tests | **16/16 pass** | `npx tsx --test app/lib/proposalPricingInputMapper.test.ts` |
+
+**No `package.json` or lockfile changes** — tests use Node built-in `node:test` + `tsx`.
+
+### Mapper behavior (`proposalPricingInputMapper.ts`)
+
+**Input:** `MapProposalPricingInputParams` — `optionId`, `policy`, `actorRole`, `ProposalTemplateGraph`, catalog items (array or Map), `ProposalQuantityPreviewContext | null`.
+
+**Output:** `ProposalPricingInput` — one option's `lines: PricingLineInput[]` from `line_items` + `upgrade_group` sections only.
+
+**Per-line mapping (`PricingLineInput`):**
+
+| Field | Source |
+|-------|--------|
+| `templateItemId` | `ProposalTemplateItem.id` |
+| `catalogItemId` | Template catalog link or `null` when missing |
+| `sectionId` | `ProposalTemplateItem.section_id` |
+| `itemRole` | `ProposalTemplateItem.item_role` |
+| `itemType` | `CatalogItem.item_type` when catalog exists; **`null` when missing** |
+| `unit` | `CatalogItem.unit` when catalog exists; structural `"fixed"` placeholder when missing |
+| `pricingBasis` | `CatalogItem.pricing_basis` when catalog exists; structural placeholder when missing |
+| `customerVisibility` | Template override, or `inherit_catalog` → catalog row, or `"customer_visible"` when catalog missing |
+| `quantity` / `quantityUnresolved` | From `resolveProposalLineQuantity` (3H-3) — mapper does not recompute |
+| `unitCostCents` / `unitPriceCents` / `laborUnitCostCents` | Catalog cents fields; **`null` when catalog missing** — no fake economics |
+| `tax` | Always **`null`** — catalog tax fields do not exist yet |
+| `hiddenButInCalc` | Only when `templateItem.metadata.hidden_but_in_calc === true` |
+| `upgradeScope` | `{ parentOptionId }` for `upgrade` / `optional_addon` roles on mapped option only |
+
+**Cases covered in mapper tests:** material `cost_plus_margin`, labor (`laborUnitCostCents`), `unit_price` override, `fixed_price`, `included`, `internal_only`, missing catalog (blocking), unresolved quantity, material vs labor `itemType`, tax null, no mapper totals, engine compatibility smoke.
+
+**Missing catalog safety:** `quantity: null`, `quantityUnresolved: true`, all cent fields `null`, `itemType: null`. Structural placeholders (`unit: "fixed"`, `pricingBasis: "cost_plus_margin"`) cannot accidentally price — engine blocks → `customerSubtotalCents = null`.
+
+**Engine compatibility (tests):** Mapped material/labor lines pass into `resolveProposalPricing`; missing catalog blocks option totals.
+
+### Remaining deferred (preserve)
+
+| Item | Stage |
+|------|-------|
+| Builder read-only pricing preview | **3I-2** |
+| Internal profitability rail (rep/manager UI) | Later |
+| Proposal records / snapshots | **3J** |
+| PDF / send / sign / payment adapters | **3K** |
+| Tax fields on `CatalogItem` | Later catalog/pricing pass |
+| Line-level sales tax | Later |
+| `"whole"` quantity rounding | Later |
+| `raw_plus_waste` / `coverage_rate` / bundle conversion | Later quantity-layer migration |
+| Manual subtotal override (`subtotalOverrideCents`) | Later |
+| Guardrail UI enforcement / manager override | Later |
+| Material orders / work orders / invoices | Later |
+
+### Hard boundaries preserved (3I-1 complete)
+
+**No:**
+
+- Builder UI pricing totals or qty × price display
+- Mapper/engine wired from `ProposalBuilderClient.tsx`
+- Proposal records / SQL / migrations
+- Legacy estimator replacement
+- Send / PDF / payment / approval / status changes
+- `localStorage`, Supabase calls, or saved-estimate state in mapper/engine
+
+**Protected systems:** legacy paths **untouched**.
 
 ---
 
@@ -913,7 +1046,7 @@ Pricing contract **consumes** (later, in 3I-1):
 | **CatalogItem** | Reusable company-owned line item + **quantity driver** (`quantity_source`) — `catalog_items` |
 | **ProposalTemplate** | Reusable company-owned package (options, sections, catalog-backed items) — **types, tables, store, defaults, install helper**; **no UI** |
 | **Proposal** | Job-specific instance of template + measurement + snapshots — **not built** |
-| **Pricing engine** | Deterministic math on estimator — **later deliberate bridge**; still on legacy snapshot today |
+| **Pricing engine** | **New-spine lib** (`proposalPricingEngine.ts` + mapper) — **3I-1 DONE**; legacy estimator `useMemo` still on saved-estimate path — **protected, not replaced** |
 | **Payments / approvals / status** | Estimates/proposals KV + APIs — **protected**; do not couple to catalog install |
 
 **Do not conflate:**
@@ -929,11 +1062,11 @@ Pricing contract **consumes** (later, in 3I-1):
 
 ## 8. CURRENT NEXT (SUMMARY)
 
-**Latest checkpoint:** **3I-1 pricing engine decision closeout** (docs-only — review before commit). **Last committed code:** **3I-0** (`6f9cbe1`). **3H-3:** `40e6720`. **3H-2:** `00fbf64`. **3H-1:** `feec663`. **Packet session bleed fix:** `c12ea4d`. **Pre-3H-2:** `abd718d`.
+**Latest checkpoint:** **3I-1 pricing foundation complete** (`52b7148`). **3I-1 engine:** `162f9be` (+ hardening `1ddee44`, tests `d67910d`). **3I-0:** `6f9cbe1`. **3H-3:** `40e6720`. **3H-2:** `00fbf64`. **3H-1:** `feec663`. **Packet session bleed fix:** `c12ea4d`. **Pre-3H-2:** `abd718d`.
 
-**3G6 — COMPLETE** (3G6A–E + Templates D2 `227061c` + Catalog D2 `29ca190`). **3F9C Job Card** — COMPLETE (`0015be1`). **3H-1 shell** — COMPLETE (`feec663`). **3H-2 read-only preview** — COMPLETE (`00fbf64`). **3H-3 read-only quantity preview** — COMPLETE (`40e6720`). **3I-0 type contract** — COMPLETE (`6f9cbe1`). **3I-1 decisions** — locked in **§6H** (docs pending commit). **Pre-3H-2 correction** — COMPLETE (`abd718d`). **Packet session bleed fix** — COMPLETE (`c12ea4d`). **Jobs Board save point:** `b27a444`.
+**3G6 — COMPLETE** (3G6A–E + Templates D2 `227061c` + Catalog D2 `29ca190`). **3F9C Job Card** — COMPLETE (`0015be1`). **3H-1 shell** — COMPLETE (`feec663`). **3H-2 read-only preview** — COMPLETE (`00fbf64`). **3H-3 read-only quantity preview** — COMPLETE (`40e6720`). **3I-0 type contract** — COMPLETE (`6f9cbe1`). **3I-1 pure engine + mapper + tests** — COMPLETE (`162f9be`–`52b7148`). **Pre-3H-2 correction** — COMPLETE (`abd718d`). **Packet session bleed fix** — COMPLETE (`c12ea4d`). **Jobs Board save point:** `b27a444`.
 
-**Immediate next:** **Review + commit 3I-1 decision closeout (docs)** → **3I-1A pure pricing engine**. **Do not** start Builder UI totals (3I-2), proposal persistence/SQL (3J), or PDF/send/approval/payment/status without explicit scope (see §11 — Pricing).
+**Immediate next:** **Review + commit handoff update (docs)** → plan **3I-2 read-only Builder pricing preview** (may call mapper + engine from Builder route only). **3I-2 must not** persist proposals, or enable Preview/Send/Sign/Payment. **Do not** start 3J (SQL/persistence) or 3K (PDF/send adapters) without explicit scope (see §11 — Pricing).
 
 **Optional (non-blocking):** Job Card tab extraction polish, Job Packet legacy gating, handoff-only doc updates.
 
@@ -1111,9 +1244,9 @@ Use this section as the **ordered checklist** for future GPT/Cursor sessions. Kn
 
 ### Current checkpoint
 
-**Latest code checkpoint:** **3I-0 proposal pricing type contract** (`6f9cbe1`). **3H-3:** `40e6720`. **3H-2:** `00fbf64`. **3H-1:** `feec663`. **Packet session bleed fix:** `c12ea4d`. **Pre-3H-2:** `abd718d`.  
+**Latest code checkpoint:** **3I-1 pricing foundation complete** (`52b7148`). **3I-1 engine:** `162f9be` (+ `1ddee44`, `d67910d`). **3I-0:** `6f9cbe1`. **3H-3:** `40e6720`. **3H-2:** `00fbf64`. **3H-1:** `feec663`. **Packet session bleed fix:** `c12ea4d`. **Pre-3H-2:** `abd718d`.  
 **Jobs Board approved save point:** **3F9B4-RoofrExact** (`b27a444`).  
-**Latest handoff doc checkpoint:** **3I-1 pricing engine decision closeout** (§6H — docs pending commit) — **next: review + commit docs, then 3I-1A pure engine**.
+**Latest handoff doc checkpoint:** **3I-1 pricing foundation** (§6I — docs pending commit) — **next: review + commit docs, then plan 3I-2 read-only Builder pricing preview**.
 
 **Completed working state (summary):**
 
@@ -1133,11 +1266,13 @@ Use this section as the **ordered checklist** for future GPT/Cursor sessions. Kn
 | **3H-1** Proposal Builder shell + gates + Job Card launch | **DONE** (`feec663`) — read-only |
 | **3H-2** Read-only proposal preview (document canvas, options, sections, lines) | **DONE** (`00fbf64`) — Builder-route-only |
 | **3H-3** Read-only proposal quantity preview (pure resolver, line row Qty/Source/Rule/Status) | **DONE** (`40e6720`) — Builder-route-only |
+| **3I-0** Proposal pricing type contract | **DONE** (`6f9cbe1`) — `proposalPricingTypes.ts` |
+| **3I-1** Pure pricing engine + input mapper + tests | **DONE** (`162f9be`–`52b7148`) — lib only; **not wired to Builder UI** |
 | **Canonical catalog route** | **`/tools/roofing/catalog`** — `CatalogSetupClient` |
 | **Canonical templates route** | **`/tools/roofing/templates`** — `TemplatesSetupClient` |
 | **Proposal Builder route** | **`/tools/roofing/proposals/builder?job=<uuid>`** |
 | **Job Card Proposals** | Setup links (3G6E); `+ Proposal` when Builder gates pass (3H-1) |
-| **Protected** | Pricing, payments, approval, status, saved estimates, send/PDF **untouched** through 3H-3, 3H-2, 3H-1, pre-3H-2 correction, and session bleed fix (`c12ea4d`) |
+| **Protected** | Legacy pricing, payments, approval, status, saved estimates, send/PDF **untouched** through 3I-1; new pure engine/mapper are new-spine lib only |
 
 **SQL note:** Catalog/template table verification was done in Supabase during 3F/3G stages; do not re-run schema changes from roadmap work unless a stage explicitly scopes a new migration.
 
@@ -1173,9 +1308,11 @@ Treat these as **known architecture risks** — not forgotten — when planning 
 4. ~~**3H-2 line preview**~~ — **DONE** (`00fbf64`) — uses job measurement + template graph; **not** legacy estimator fields; Builder-route-only.
 5. ~~**3H-3 quantity resolver**~~ — **DONE** (`40e6720`) — pure/read-only; **not** wired to pricing totals or persistence.
 6. ~~**3I-0 pricing type contract**~~ — **DONE** (`6f9cbe1`) — `proposalPricingTypes.ts`.
-7. ~~**3I-1 pricing engine decisions**~~ — **DONE** (docs — §6H; pending commit) — discount/tax ordering, guardrails, basis precedence, blocking totals locked.
-8. **3I-1A pure pricing engine** — **NEXT** — `proposalPricingEngine.ts`; must consume 3H-3 quantities — **not** revive old FieldDive estimator/pricing as product spine.
-9. **Jobs Board** remains saved-estimate spine — acceptable for 3I planning if Builder uses `?job=`; migration **Future/Later**.
+7. ~~**3I-1 pricing engine decisions**~~ — **DONE** (§6H `ac589d8`; implemented §6I).
+8. ~~**3I-1A pure pricing engine**~~ — **DONE** (`162f9be`, `1ddee44`, `d67910d`).
+9. ~~**3I-1B pricing input mapper**~~ — **DONE** (`52b7148`).
+10. **3I-2 read-only Builder pricing preview** — **NEXT** — may call mapper + engine from Builder route only; **no persistence**, **no Send/Sign/Payment**; keep customer/internal separation.
+11. **Jobs Board** remains saved-estimate spine — acceptable for 3I-2 if Builder uses `?job=`; migration **Future/Later**.
 
 ---
 
@@ -1609,31 +1746,31 @@ Committed **`0015be1`** after manual browser checks passed. **Do not move to 3G6
 
 **3H-3 complete:** Pure read-only quantity resolver + Builder line row quantity preview. See **§6F**.
 
-**Do not start 3I until:** research/architecture review and explicit scope. **3H-3 must be consumed by 3I** — do not revive old FieldDive estimator/pricing as the product spine.
+**Do not start 3I-2 until:** explicit scope for read-only Builder pricing preview. **3I-2 must consume 3I-1 mapper + engine** — not legacy estimator fields or saved-estimate snapshots.
 
 **Route (live):** `/tools/roofing/proposals/builder?job=<uuid>`
 
-**Likely new (later stages):** `proposalTypes.ts` (view-model only), proposal record tables (migration when scoped), line snapshots.
+**Likely new (later stages):** proposal record tables (migration when scoped — **3J**), line snapshots.
 
-**Suggested commits (remaining):** `Add proposal pricing architecture (3I)`, `Add proposal builder readiness refinements`
+**Suggested commits (remaining):** `docs: update handoff after 3I1 pricing foundation`, `3I2: add read-only builder pricing preview`
 
-**Explicitly not in 3H-1/3H-2/3H-3:** proposal records, pricing bridge, PDF/send/approval/payment/status, SQL/migrations, qty × price, totals.
+**Explicitly not in 3H-1/3H-2/3H-3/3I-1:** Builder UI pricing totals, proposal records, PDF/send/approval/payment/status, SQL/migrations, qty × price in UI.
 
 ---
 
-### Stage 3I — Deterministic catalog pricing bridge — **3I-0 DONE (`6f9cbe1`); 3I-1 decisions locked (§6H); 3I-1A NEXT**
+### Stage 3I — Deterministic catalog pricing bridge — **3I-0 + 3I-1 DONE; 3I-2 NEXT**
 
-**After** 3H-3 quantity preview is stable. **3I must consume 3H-3 resolved quantities** — not legacy estimator fields or saved-estimate snapshots.
+**After** 3H-3 quantity preview is stable. **3I consumes 3H-3 resolved quantities** — not legacy estimator fields or saved-estimate snapshots.
 
-**3I-0 (`6f9cbe1`):** `app/lib/proposalPricingTypes.ts` — policy/input/output/guardrail/snapshot intent types; function signatures only; no math, no UI, no persistence.
+**3I-0 (`6f9cbe1`):** `app/lib/proposalPricingTypes.ts` — policy/input/output/guardrail types; function signatures.
 
-**3I-1 decisions (§6H — approved, docs pending commit):** Discount before tax; option-level sales tax; internal material purchase tax; margin/markup formulas; basis precedence; guardrails typed only; blocking totals = null; engine-first then mapper then fixtures; Builder UI totals in **3I-2**.
+**3I-1 (`162f9be`–`52b7148`) — COMPLETE:** See **§6I**. Pure engine, input hardening, 22 engine tests, input mapper, 16 mapper tests. **No Builder UI wiring.** **No persistence.**
 
-**3I-1A (next — requires explicit scope):** Pure `proposalPricingEngine.ts` implementing `ResolveProposalPricing` + `EvaluateProfitabilityGuardrail`. **No Builder UI in 3I-1A.** **AI must not touch pricing truth** without deterministic engine.
+**3I-2 (next — requires explicit scope):** Read-only Builder pricing preview — call `mapProposalPricingInput` + `resolveProposalPricing` from Builder route only. Display option/customer totals read-only. **Must not** persist proposals. **Must not** enable Preview/Send/Sign/Payment. **Must** keep customer/internal separation. **No SQL/migrations.** **No protected systems.**
 
-Run parallel to legacy estimator first; do not overwrite `useMemo` until validated.
+Run parallel to legacy estimator; do not overwrite `useMemo` until validated and explicitly scoped.
 
-**Suggested commits:** `docs: close 3I1 pricing engine decisions`, `3I1: add proposal pricing engine`, `3I1: add proposal pricing input mapper`, `3I1: add proposal pricing engine fixtures`, *(later)* `3I2: add read-only builder pricing preview`
+**Suggested commits:** `docs: update handoff after 3I1 pricing foundation`, `3I2: add read-only builder pricing preview`
 
 ---
 
