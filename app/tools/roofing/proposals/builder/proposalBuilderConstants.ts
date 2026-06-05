@@ -49,6 +49,36 @@ export const BUILDER_LINE_LIST_FOOTER = "mt-4 text-[11px] leading-snug text-slat
 
 export const BUILDER_CONTEXT_STRIP = "text-xs text-slate-400";
 
+/** Persistent amber preview banner — clearly not a real customer price. */
+export const BUILDER_PRICING_PREVIEW_BANNER =
+  "rounded-md border border-amber-200/80 bg-amber-50/60 px-4 py-3 text-xs leading-snug text-amber-900";
+
+/** Totals block at the foot of the proposal document page. */
+export const BUILDER_DOCUMENT_TOTALS_BLOCK = "border-t border-slate-200/80 pt-6 mt-6 space-y-2";
+
+/** Per-line price column header label. */
+export const BUILDER_LINE_PRICE_COL_HEADER =
+  "text-[10px] font-medium uppercase tracking-wide text-slate-400";
+
+/** Per-line: resolved dollar amount. */
+export const BUILDER_LINE_PRICE_VALUE =
+  "text-sm tabular-nums font-medium text-slate-800";
+
+/** Per-line: status badge (Included / In package / Needs quantity / Not priced). */
+export const BUILDER_LINE_PRICE_STATUS = "text-xs font-medium text-slate-500";
+
+/**
+ * Format a whole-cents integer as a USD dollar string, e.g. "$1,234.56".
+ * Customer-facing only — never pass internal cost/profit cents here.
+ * Lives in the UI layer; the orchestrator lib does not export formatting.
+ */
+export function formatPriceCents(cents: number): string {
+  const dollars = (Math.round(cents) / 100).toFixed(2);
+  const [whole, dec] = dollars.split(".");
+  const withCommas = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return `$${withCommas}.${dec}`;
+}
+
 export const BUILDER_SECTIONS: { id: string; label: string; description: string }[] = [
   { id: "overview", label: "Overview", description: "Template preview and measurement summary" },
   { id: "options", label: "Options", description: "Standard / Enhanced / Premium tabs" },

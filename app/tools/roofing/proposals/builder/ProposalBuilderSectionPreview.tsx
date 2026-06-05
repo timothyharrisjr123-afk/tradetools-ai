@@ -1,8 +1,9 @@
+import type { ProposalBuilderOptionCustomerView } from "@/app/lib/proposalBuilderPricingPreview";
+import type { MeasurementProposalHandoff } from "@/app/lib/measurementProposalHandoff";
+import type { MeasurementQuantityMap } from "@/app/lib/measurementTypes";
 import type { ProposalTemplateGraph } from "@/app/lib/proposalTemplateStore";
 import type { ProposalTemplateSection } from "@/app/lib/proposalTemplateTypes";
 import type { CatalogItem } from "@/app/lib/catalogTypes";
-import type { MeasurementProposalHandoff } from "@/app/lib/measurementProposalHandoff";
-import type { MeasurementQuantityMap } from "@/app/lib/measurementTypes";
 import {
   buildCatalogItemById,
   buildLinePreviewRowsForSection,
@@ -19,6 +20,8 @@ type ProposalBuilderSectionPreviewProps = {
   catalogItems: CatalogItem[];
   measurementHandoff: MeasurementProposalHandoff | null;
   measurementQuantityMap: MeasurementQuantityMap | null;
+  /** Customer pricing view for the currently selected option. */
+  optionCustomerView: ProposalBuilderOptionCustomerView | null;
 };
 
 export default function ProposalBuilderSectionPreview({
@@ -27,6 +30,7 @@ export default function ProposalBuilderSectionPreview({
   catalogItems,
   measurementHandoff,
   measurementQuantityMap,
+  optionCustomerView,
 }: ProposalBuilderSectionPreviewProps) {
   const title = (section.customer_title ?? section.name).trim() || section.name;
   const catalogById = buildCatalogItemById(catalogItems);
@@ -39,9 +43,21 @@ export default function ProposalBuilderSectionPreview({
   const bodyMarkdown = (section.content?.body_markdown ?? "").trim();
   const showTextBlock = !isLineItemsSectionKind(section.kind) && bodyMarkdown.length > 0;
 
-  const lineRows = isLineItemsSectionKind(section.kind)
+  const lineViewByTemplateItemId = optionCustomerView?.lineByTemplateItemId ?? {};
+
+  const allLineRows = isLineItemsSectionKind(section.kind)
     ? buildLinePreviewRowsForSection(graph, section.id, catalogById, quantityContext)
     : [];
+
+  // Filter out lines that the orchestrator marked as omitted (internal_only / hidden).
+  // When optionCustomerView is null (preview not yet computed) all rows are shown.
+  const lineRows =
+    optionCustomerView != null
+      ? allLineRows.filter((row) => {
+          const view = lineViewByTemplateItemId[row.id];
+          return view == null || view.displayStatus !== "omitted";
+        })
+      : allLineRows;
 
   return (
     <section className={BUILDER_DOCUMENT_SECTION}>
@@ -57,7 +73,11 @@ export default function ProposalBuilderSectionPreview({
 
       {isLineItemsSectionKind(section.kind) ? (
         <div className="mt-1">
-          <ProposalBuilderLinePreviewTable rows={lineRows} sectionTitle={title} />
+          <ProposalBuilderLinePreviewTable
+            rows={lineRows}
+            sectionTitle={title}
+            lineViewByTemplateItemId={lineViewByTemplateItemId}
+          />
         </div>
       ) : null}
 

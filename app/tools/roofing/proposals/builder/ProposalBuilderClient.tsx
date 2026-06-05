@@ -24,6 +24,10 @@ import {
   type ProposalTemplateGraph,
 } from "@/app/lib/proposalTemplateStore";
 import { getDefaultSelectedOptionId } from "@/app/lib/proposalBuilderPreview";
+import {
+  buildProposalBuilderPricingPreview,
+  type ProposalBuilderPricingPreview,
+} from "@/app/lib/proposalBuilderPricingPreview";
 import { findStarterProposalTemplate } from "@/app/tools/roofing/templates/templatesSetupUtils";
 import ProposalBuilderBlockedState from "./ProposalBuilderBlockedState";
 import ProposalBuilderCanvas from "./ProposalBuilderCanvas";
@@ -195,6 +199,19 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
     [catalogItems]
   );
 
+  const pricingPreview = useMemo<ProposalBuilderPricingPreview | null>(() => {
+    if (!starterGraph || activeCatalogItems.length === 0) return null;
+    return buildProposalBuilderPricingPreview({
+      graph: starterGraph,
+      catalogItems: activeCatalogItems,
+      quantityContext: {
+        measurementHandoff,
+        quantityMap: measurementQuantityMap,
+      },
+      selectedOptionId,
+    });
+  }, [starterGraph, activeCatalogItems, measurementHandoff, measurementQuantityMap, selectedOptionId]);
+
   const catalogReadiness = useMemo(
     () => deriveCatalogReadiness(activeCatalogItems, CATALOG_STARTER_DEFINITION_COUNT),
     [activeCatalogItems]
@@ -261,6 +278,7 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
               catalogItems={activeCatalogItems}
               measurementHandoff={measurementHandoff}
               measurementQuantityMap={measurementQuantityMap}
+              pricingPreview={pricingPreview}
             />
           }
           summaryRail={

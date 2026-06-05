@@ -3,12 +3,14 @@ import { formatProposalQuantitiesDisplay } from "@/app/lib/measurementProposalHa
 import type { MeasurementQuantityMap } from "@/app/lib/measurementTypes";
 import type { ProposalTemplateGraph } from "@/app/lib/proposalTemplateStore";
 import type { CatalogItem } from "@/app/lib/catalogTypes";
+import type { ProposalBuilderPricingPreview } from "@/app/lib/proposalBuilderPricingPreview";
 import {
   getDefaultSelectedOptionId,
   getSectionsForOption,
 } from "@/app/lib/proposalBuilderPreview";
 import ProposalBuilderOptionTabs from "./ProposalBuilderOptionTabs";
 import ProposalBuilderSectionPreview from "./ProposalBuilderSectionPreview";
+import ProposalBuilderDocumentTotals from "./ProposalBuilderDocumentTotals";
 import {
   BUILDER_CANVAS_PLACEHOLDER,
   BUILDER_CONTEXT_STRIP,
@@ -24,6 +26,7 @@ type ProposalBuilderCanvasProps = {
   catalogItems: CatalogItem[];
   measurementHandoff: MeasurementProposalHandoff | null;
   measurementQuantityMap: MeasurementQuantityMap | null;
+  pricingPreview: ProposalBuilderPricingPreview | null;
 };
 
 function buildMeasurementContextLine(handoff: MeasurementProposalHandoff | null): string | null {
@@ -40,6 +43,7 @@ export default function ProposalBuilderCanvas({
   catalogItems,
   measurementHandoff,
   measurementQuantityMap,
+  pricingPreview,
 }: ProposalBuilderCanvasProps) {
   const templateName = starterGraph?.template.name ?? STARTER_TEMPLATE_DISPLAY_NAME;
   const effectiveOptionId =
@@ -52,6 +56,11 @@ export default function ProposalBuilderCanvas({
       : [];
 
   const measurementContextLine = buildMeasurementContextLine(measurementHandoff);
+
+  const optionCustomerView =
+    effectiveOptionId != null
+      ? (pricingPreview?.byOptionId[effectiveOptionId]?.customer ?? null)
+      : null;
 
   if (!starterGraph) {
     return (
@@ -109,10 +118,13 @@ export default function ProposalBuilderCanvas({
                 catalogItems={catalogItems}
                 measurementHandoff={measurementHandoff}
                 measurementQuantityMap={measurementQuantityMap}
+                optionCustomerView={optionCustomerView}
               />
             ))
           )}
         </div>
+
+        <ProposalBuilderDocumentTotals optionCustomerView={optionCustomerView} />
       </article>
     </div>
   );
