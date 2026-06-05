@@ -9,16 +9,21 @@
 - `docs/fielddive-estimate-proposal-flow-model.md` — estimate/proposal UX model notes
 - `docs/fielddive-feature-placement-map.md` — feature placement matrix
 
-**Last updated checkpoint:** **3I-1 pricing foundation complete** (`52b7148` — pricing input mapper). **Prior committed:** **3I-1 engine tests** (`d67910d`); **3I-1 input hardening** (`1ddee44`); **3I-1 pure pricing engine** (`162f9be`); **3I-1 decision closeout** (`ac589d8`); **3I-0 type contract** (`6f9cbe1`); **3H-3** (`40e6720`); **3H-2** (`00fbf64`); **3H-1** (`feec663`). **Working tree:** clean at `52b7148` (handoff doc update pending review). **Typecheck:** only **6** pre-existing errors in `app/tools/roofing-v2/RoofingClientV2.tsx` — unchanged. **Protected systems:** legacy `RoofingClient.tsx` pricing `useMemo`, payments, approval, status, saved estimates, send/PDF **untouched** — new pure proposal pricing engine/mapper are **new-spine lib only**, not wired to Builder UI or legacy paths.
+**Last updated checkpoint:** **3I-2 read-only Builder pricing preview complete** (`637b85a` — pricing status surfaces). **3I-2 commit chain:** **3I-2A** orchestrator (`5626c47`); **3I-2B** customer document pricing UI (`f5bbd84`); **3I-2C** option-tab + rail status surfaces (`637b85a`). **Prior:** **3I-1 pricing foundation** (`52b7148`); **post-3I-1 audit + guardrails** (`8f12db2`); **3H-3** (`40e6720`); **3H-2** (`00fbf64`); **3H-1** (`feec663`). **Working tree:** clean at `637b85a` (handoff doc update pending review). **Typecheck:** only **6** pre-existing errors in `app/tools/roofing-v2/RoofingClientV2.tsx` — unchanged. **Protected systems:** legacy `RoofingClient.tsx` pricing `useMemo`, payments, approval, status, saved estimates, send/PDF **untouched**.
 
 **Jobs Board approved save point:** `b27a444` (3F9B4-RoofrExact). **Prior Job Board checkpoint:** `36fa3a9` (3F9B3).
 
-**Next (recommended):** **Review + commit this handoff update (docs)** → plan **3I-2 read-only Builder pricing preview** (mapper + engine from Builder route only). **Do not** persist proposals (3J), or enable Preview/Send/Sign/Payment without explicit scope.
+**Next (recommended):** **Review + commit this handoff update (docs)** → **Opus architecture pass** to choose next phase (**3I-3** company pricing policy / internal profitability planning **OR** **3J** proposal snapshot persistence planning). **No code** until next phase is planned and scoped. **Do not** persist proposals (3J), enable Preview/Send/Sign/Payment, or add internal profitability dollars without explicit scope.
 
-### Recent committed sequence (3G6 spine + execution surfaces + 3H + 3I pricing foundation)
+### Recent committed sequence (3G6 spine + execution surfaces + 3H + 3I pricing foundation + 3I-2 Builder preview)
 
 | Commit | Summary |
 |--------|---------|
+| `637b85a` | **3I-2C** — Builder pricing status surfaces: option tabs show **Complete / Incomplete** only; right rail **Pricing** block (status, blocking count, guardrail word); no dollars; no document UI changes |
+| `f5bbd84` | **3I-2B** — Customer document pricing preview UI: line prices/statuses + totals footer + persistent preview banner in document canvas only; `formatPriceCents` in Builder constants (not orchestrator) |
+| `5626c47` | **3I-2A** — Pure Builder pricing preview orchestrator: `proposalBuilderPricingPreview.ts` + 9 tests; 3H-3 → mapper → engine → customer/status DTO |
+| `8f12db2` | docs: post-3I-1 audit + Opus-corrected 3I-2 guardrails (§6J) |
+| `117859a` | docs: update handoff after 3I-1 pricing foundation |
 | `52b7148` | **3I-1B** — Pure pricing input mapper: `proposalPricingInputMapper.ts` + 16 mapper tests; template graph + catalog + 3H-3 quantity → `ProposalPricingInput`; no UI, no persistence |
 | `d67910d` | **3I-1C** — Proposal pricing engine tests: 22 programmatic cases in `proposalPricingEngine.test.ts` |
 | `1ddee44` | **3I-1A.1** — Harden engine inputs: negative quantity, negative profitability, negative fixed discount |
@@ -81,7 +86,7 @@
 - **Do not** create PDF / send / approval bridges before proposal records exist.
 - **Do not** touch payment / status / approval while working catalog or template setup (unless the stage explicitly scopes it).
 - **Do not treat table/store existence as product completion** — audit **architecture, functionality, layout, and UI** together before advancing the spine.
-- **3G6 Templates setup surface is complete** (3G6A–E + D2/D3) — **3H-1 Proposal Builder shell** (`feec663`); **3H-2 read-only proposal preview** (`00fbf64`); **3H-3 read-only quantity preview** (`40e6720`); **3I-1 pure pricing engine + input mapper** (`162f9be`–`52b7148`) — **lib only, not wired to Builder UI**; **3I-2** (Builder read-only pricing preview), **3J** (persistence), **3K** (PDF/send adapters) remain later; do not enable customer-send or proposal records without explicit scope.
+- **3G6 Templates setup surface is complete** (3G6A–E + D2/D3) — **3H-1 Proposal Builder shell** (`feec663`); **3H-2 read-only proposal preview** (`00fbf64`); **3H-3 read-only quantity preview** (`40e6720`); **3I-1 pure pricing engine + input mapper** (`162f9be`–`52b7148`); **3I-2 read-only Builder pricing preview** (`5626c47`–`637b85a`) — **wired from Builder route only** via orchestrator; **3J** (persistence), **3K** (PDF/send adapters), **3I-3** (company policy / internal profitability) remain later; do not enable customer-send or proposal records without explicit scope.
 - **Do not casually patch pricing** during catalog/template/Job Card link work — see **§11 — Pricing (protected + future redesign)**.
 
 ---
@@ -868,7 +873,7 @@ Pricing contract **consumes** (later, in 3I-1):
 | **3I-1A** | Pure `proposalPricingEngine.ts` — `resolveProposalPricing` + `evaluateProfitabilityGuardrail` | **DONE** (`162f9be`, hardened `1ddee44`) |
 | **3I-1B** | `proposalPricingInputMapper.ts` — catalog + 3H-3 preview → `ProposalPricingInput` | **DONE** (`52b7148`) |
 | **3I-1C** | Programmatic engine + mapper tests | **DONE** (`d67910d`, mapper tests in `52b7148`) |
-| **3I-2** | Read-only Builder pricing preview totals | **NEXT** — separate scope/commit |
+| **3I-2** | Read-only Builder pricing preview (orchestrator + document UI + status surfaces) | **DONE** (`5626c47`–`637b85a`) — see **§6K** |
 
 **Committed order:** `docs: close 3I1 pricing engine decisions` → `3I1: add proposal pricing engine` → `3I1: harden proposal pricing engine inputs` → `3I1: add proposal pricing engine tests` → `3I1: add proposal pricing input mapper` → *(next)* `docs: update handoff after 3I1 pricing foundation` → *(later)* `3I2: add read-only builder pricing preview`.
 
@@ -950,7 +955,7 @@ Pricing contract **consumes** (later, in 3I-1):
 - Maps template graph + catalog items + `ProposalQuantityPreviewContext` (3H-3) + `PricingPolicy` + `actorRole`
 - **No money calculation** in mapper
 - **No quantity resolving** in mapper — delegates exclusively to `resolveProposalLineQuantity` (3H-3)
-- **Not wired** from Builder UI yet (3I-2 will call mapper + engine)
+- **Wired** from Builder UI via `proposalBuilderPricingPreview.ts` (3I-2A) — see **§6K**
 
 ### Engine rules implemented (§6H → code)
 
@@ -1011,7 +1016,7 @@ Pricing contract **consumes** (later, in 3I-1):
 
 | Item | Stage |
 |------|-------|
-| Builder read-only pricing preview | **3I-2** (guardrails in §6J; start with **3I-2A** orchestrator) |
+| Builder read-only pricing preview | **DONE** — **§6K** (`5626c47`–`637b85a`) |
 | Internal profitability rail/drawer (cost/profit/margin dollars) | **3I-3 or later** (deferred per §6J) |
 | Proposal records / snapshots | **3J** |
 | PDF / send / sign / payment adapters | **3K** |
@@ -1038,9 +1043,9 @@ Pricing contract **consumes** (later, in 3I-1):
 
 ---
 
-## 6J. POST-3I-1 AUDIT + OPUS-CORRECTED 3I-2 GUARDRAILS (docs-only — before 3I-2A)
+## 6J. POST-3I-1 AUDIT + OPUS-CORRECTED 3I-2 GUARDRAILS (historical — implemented in §6K)
 
-**Status:** Pricing foundation audited after 3I-1 and Opus reviewed the proposed 3I-2 plan. This section records the audit result and the **binding guardrails** for 3I-2 implementation. **No 3I-1 code changes** — engine, mapper, tests are unchanged and correct.
+**Status:** Pricing foundation audited after 3I-1; Opus reviewed the 3I-2 plan; guardrails below were **binding during 3I-2A/B/C implementation** and are **verified implemented** at `637b85a` — see **§6K**. This section remains the historical guardrail reference.
 
 ### 1. 3I-0 / 3I-1 foundation audit — **PASS**
 
@@ -1107,7 +1112,150 @@ Read-only audit of `proposalPricingTypes.ts`, `proposalPricingEngine.ts` (+ test
 - **No** protected systems, persistence, SQL/migrations, old estimator/saved estimates
 - **No** Send / PDF / sign / payment / status
 
-**Stop for review after 3I-2A** before any Builder component wiring (3I-2B+).
+**Stop for review after 3I-2A** before any Builder component wiring (3I-2B+). **3I-2A/B/C complete** — see **§6K**.
+
+---
+
+## 6K. READ-ONLY BUILDER PRICING PREVIEW — 3I-2 COMPLETE (`5626c47`–`637b85a`)
+
+**Goal:** Wire 3I-1 mapper + engine into the Proposal Builder as a **read-only pricing preview** — customer dollars in the document canvas only; status words on option tabs and right rail; **no persistence**, **no internal profitability dollars**, **no company pricing policy UI**.
+
+**Working tree:** clean at `637b85a`. **Typecheck:** only **6** pre-existing errors in `RoofingClientV2.tsx` — unchanged. **Protected systems:** legacy pricing/payment/send/PDF/status/saved estimates **untouched**.
+
+### 3I-2 commit sequence
+
+| Commit | Slice | Summary |
+|--------|-------|---------|
+| `5626c47` | **3I-2A** | Pure Builder pricing preview orchestrator |
+| `f5bbd84` | **3I-2B** | Customer document pricing preview UI |
+| `637b85a` | **3I-2C** | Option-tab + right-rail pricing status surfaces |
+
+### 3I-2A — Pure orchestrator (`5626c47`)
+
+| File | Role |
+|------|------|
+| `app/lib/proposalBuilderPricingPreview.ts` | Pure orchestrator: 3H-3 quantity context → `mapProposalPricingInput` → `resolveProposalPricing` / `priceProposalLine` → `ProposalBuilderPricingPreview` DTO |
+| `app/lib/proposalBuilderPricingPreview.test.ts` | Orchestrator tests — **9/9 pass** |
+| `BUILDER_PREVIEW_PRICING_POLICY` | Preview-only policy constant (50% margin, 20% min, exact, `adjusted_measurement`, no tax, no discount, `actorRole: "rep"`) — **not** company configuration |
+
+**DTO separation:**
+
+- **`customer` slice** — customer-safe line display + customer subtotal/discount/tax/total only; **no** internal cost/profit/margin fields.
+- **`status` slice** — `pricingComplete`, `blockingLineCount`, `guardrailOutcome` only; **no dollars**.
+
+**Orchestrator rules implemented:**
+
+- All template options computed **independently** (loop per option).
+- Missing catalog → line `not_priced`; option totals **null** when blocked.
+- **`included` + unresolved quantity** → **blocking** (§6J decision locked).
+- **`grouped`** → rolls into subtotal; no per-line customer dollar in DTO (`showPrice: false`).
+- **`internal_only` / hidden** → `omitted` in customer line view.
+- Missing-catalog lines distinguished from genuine unresolved quantity via `itemType == null`.
+
+### 3I-2B — Customer document pricing UI (`f5bbd84`)
+
+**Builder files changed:**
+
+| File | Role |
+|------|------|
+| `ProposalBuilderClient.tsx` | Single `useMemo` → `buildProposalBuilderPricingPreview`; passes `pricingPreview` to canvas |
+| `ProposalBuilderCanvas.tsx` | Derives selected option **customer** view; threads to sections + totals |
+| `ProposalBuilderSectionPreview.tsx` | Filters `omitted` lines; passes `lineByTemplateItemId` |
+| `ProposalBuilderLinePreviewTable.tsx` | Customer price/status column in document rows only |
+| `ProposalBuilderDocumentTotals.tsx` | **New** — subtotal/total or "Pricing incomplete"; persistent preview banner |
+| `proposalBuilderConstants.ts` | Document/totals styles + `formatPriceCents` (UI layer only — orchestrator frozen) |
+
+**Document behavior (3I-2B only — no tab/rail status in this slice):**
+
+- Line prices/statuses appear **only inside the document canvas**.
+- Persistent preview banner (required):
+  > "Preview pricing — uses a placeholder 50% margin, not your company's configured pricing. Not a customer quote."
+- **`grouped`** → **In package** (no per-line dollar).
+- **`included`** → **Included**.
+- **`internal_only` / hidden** → omitted from customer document.
+- Incomplete pricing → **Pricing incomplete** footer; **no** subtotal/tax/total numbers.
+- Discount/tax rows hidden when 0/null.
+- 3H-3 quantity metadata (Qty/Source/Rule/Unit/Role) preserved on line rows.
+
+### 3I-2C — Pricing status surfaces (`637b85a`)
+
+**Builder files changed:**
+
+| File | Role |
+|------|------|
+| `ProposalBuilderOptionTabs.tsx` | Small **Complete / Incomplete** pill per option — **no dollars** |
+| `ProposalBuilderSummaryRail.tsx` | **Pricing** status block: Complete/Incomplete, blocking count, guardrail word |
+| `ProposalBuilderCanvas.tsx` | Passes `optionPricingCompleteById` to tabs (status slice only) |
+| `ProposalBuilderClient.tsx` | Passes `selectedOptionPricingStatus` to rail |
+| `proposalBuilderConstants.ts` | Status pill styles + label helpers |
+
+**Guardrail copy mapping (informational only — no enforcement):**
+
+| `guardrailOutcome` | Display |
+|--------------------|---------|
+| `pass` | Pass |
+| `warn` | Warning |
+| `block` | Blocked |
+
+**3I-2C explicitly did not change:** document line prices, totals footer, preview banner, disabled Preview/Send/Sign/Payment.
+
+### Boundaries preserved (3I-2 full)
+
+- **Preview / Send / Sign / Payment** remain **disabled** (`ProposalBuilderDisabledActions.tsx` unchanged).
+- **No proposal persistence** — no proposal records, line snapshots, or Supabase writes from Builder pricing preview.
+- **No SQL/migrations.**
+- **No PDF / send / sign / payment / status** adapters.
+- **No old estimator / saved estimate / `loadSaved` paths** in Builder pricing wiring.
+- **No protected systems touched** — `RoofingClient.tsx`, `SavedClient.tsx`, `estimateStore`, payments tables/APIs unchanged.
+- **No company pricing policy UI** — preview uses `BUILDER_PREVIEW_PRICING_POLICY` only.
+- **No editable margin / tax / discount controls.**
+- **No internal profitability drawer/rail** (cost/profit/margin dollars deferred to **3I-3**).
+
+### Test coverage (3I-2 checkpoint)
+
+| Suite | Result | Command |
+|-------|--------|---------|
+| Orchestrator tests | **9/9 pass** | `npx tsx --test app/lib/proposalBuilderPricingPreview.test.ts` |
+| Engine tests | **22/22 pass** | `npx tsx --test app/lib/proposalPricingEngine.test.ts` |
+| Mapper tests | **16/16 pass** | `npx tsx --test app/lib/proposalPricingInputMapper.test.ts` |
+| Typecheck | **6** pre-existing `RoofingClientV2.tsx` errors only | `npx tsc --noEmit` |
+
+### Visual / RoofrExact guardrails (3I-2)
+
+- Builder remains **proposal-document-first** — not a pricing spreadsheet or admin table.
+- **Customer prices/totals only inside the document canvas** (white document page).
+- **Internal pricing/profitability still deferred** — no cost/profit/margin dollars in any 3I-2 UI surface.
+- **Option tabs** are package selectors with small status pills — **not** quote-comparison cards with dollar totals.
+- **Right rail** shows informational pricing status only — **not** a profitability dashboard.
+- **Persistent placeholder pricing banner required** because policy is temporary preview-only.
+- **50% margin is preview-only** — not company configuration, not a customer quote.
+
+### Remaining known notes / future polish
+
+| Note | Detail |
+|------|--------|
+| Catalog setup price fallback | Opus review: `LinePriceCell` may still show catalog setup price label when `lineView` is undefined (edge case before preview computes); tighten in a future polish pass if needed |
+| Preview policy | `BUILDER_PREVIEW_PRICING_POLICY` is temporary — not persisted, not company truth |
+| Company/template pricing settings | **Not built yet** — decide in **3I-3** planning |
+| Internal profitability rail/drawer | **Deferred to 3I-3** (cost/profit/margin dollars) |
+| Proposal snapshots / persistence | **Deferred to 3J** |
+| PDF / send / sign / payment adapters | **Deferred to 3K** |
+| Line-level tax, `"whole"` rounding, `raw_plus_waste`, coverage/bundle conversion | Deferred per §6I |
+| Material orders / work orders / invoices | Later |
+
+### Next recommended path (no code until planned)
+
+**Do not jump straight to more UI.** Run an **Opus architecture pass** to choose the next phase:
+
+| Candidate | Question |
+|-----------|----------|
+| **3I-3** — Company pricing policy + internal profitability | Do we build company pricing policy controls and internal profitability rail **first**? |
+| **3J** — Proposal snapshot persistence | Or proposal record / line snapshot persistence **first**? |
+
+**Decide before code:**
+
+- Company pricing policy controls vs proposal snapshot persistence vs internal profitability rail — **pick one spine next**.
+- **No implementation** until next phase is explicitly scoped and guardrailed.
 
 ---
 
@@ -1119,7 +1267,7 @@ Read-only audit of `proposalPricingTypes.ts`, `proposalPricingEngine.ts` (+ test
 | **CatalogItem** | Reusable company-owned line item + **quantity driver** (`quantity_source`) — `catalog_items` |
 | **ProposalTemplate** | Reusable company-owned package (options, sections, catalog-backed items) — **types, tables, store, defaults, install helper**; **no UI** |
 | **Proposal** | Job-specific instance of template + measurement + snapshots — **not built** |
-| **Pricing engine** | **New-spine lib** (`proposalPricingEngine.ts` + mapper) — **3I-1 DONE**; legacy estimator `useMemo` still on saved-estimate path — **protected, not replaced** |
+| **Pricing engine** | **New-spine lib** (`proposalPricingEngine.ts` + mapper + orchestrator) — **3I-1 + 3I-2 DONE**; wired from Builder route only; legacy estimator `useMemo` still on saved-estimate path — **protected, not replaced** |
 | **Payments / approvals / status** | Estimates/proposals KV + APIs — **protected**; do not couple to catalog install |
 
 **Do not conflate:**
@@ -1135,11 +1283,11 @@ Read-only audit of `proposalPricingTypes.ts`, `proposalPricingEngine.ts` (+ test
 
 ## 8. CURRENT NEXT (SUMMARY)
 
-**Latest checkpoint:** **3I-1 pricing foundation complete** (`52b7148`). **3I-1 engine:** `162f9be` (+ hardening `1ddee44`, tests `d67910d`). **3I-0:** `6f9cbe1`. **3H-3:** `40e6720`. **3H-2:** `00fbf64`. **3H-1:** `feec663`. **Packet session bleed fix:** `c12ea4d`. **Pre-3H-2:** `abd718d`.
+**Latest checkpoint:** **3I-2 read-only Builder pricing preview complete** (`637b85a`). **3I-2 chain:** `5626c47` (orchestrator) → `f5bbd84` (document UI) → `637b85a` (status surfaces). **3I-1:** `162f9be`–`52b7148`. **3H-3:** `40e6720`. **3H-2:** `00fbf64`. **3H-1:** `feec663`. **Packet session bleed fix:** `c12ea4d`. **Pre-3H-2:** `abd718d`.
 
-**3G6 — COMPLETE** (3G6A–E + Templates D2 `227061c` + Catalog D2 `29ca190`). **3F9C Job Card** — COMPLETE (`0015be1`). **3H-1 shell** — COMPLETE (`feec663`). **3H-2 read-only preview** — COMPLETE (`00fbf64`). **3H-3 read-only quantity preview** — COMPLETE (`40e6720`). **3I-0 type contract** — COMPLETE (`6f9cbe1`). **3I-1 pure engine + mapper + tests** — COMPLETE (`162f9be`–`52b7148`). **Pre-3H-2 correction** — COMPLETE (`abd718d`). **Packet session bleed fix** — COMPLETE (`c12ea4d`). **Jobs Board save point:** `b27a444`.
+**3G6 — COMPLETE** (3G6A–E + Templates D2 `227061c` + Catalog D2 `29ca190`). **3F9C Job Card** — COMPLETE (`0015be1`). **3H-1 shell** — COMPLETE (`feec663`). **3H-2 read-only preview** — COMPLETE (`00fbf64`). **3H-3 read-only quantity preview** — COMPLETE (`40e6720`). **3I-0 type contract** — COMPLETE (`6f9cbe1`). **3I-1 pure engine + mapper + tests** — COMPLETE (`162f9be`–`52b7148`). **3I-2 Builder pricing preview (A/B/C)** — COMPLETE (`5626c47`–`637b85a`). **Pre-3H-2 correction** — COMPLETE (`abd718d`). **Packet session bleed fix** — COMPLETE (`c12ea4d`). **Jobs Board save point:** `b27a444`.
 
-**Immediate next:** **Review + commit handoff update (docs)** → plan **3I-2 read-only Builder pricing preview** (may call mapper + engine from Builder route only). **3I-2 must not** persist proposals, or enable Preview/Send/Sign/Payment. **Do not** start 3J (SQL/persistence) or 3K (PDF/send adapters) without explicit scope (see §11 — Pricing).
+**Immediate next:** **Review + commit handoff update (docs)** → **Opus architecture pass** for next phase (**3I-3** pricing policy / internal profitability **OR** **3J** proposal snapshot persistence). **No code** until next phase is planned. **Do not** start 3J (SQL/persistence), 3K (PDF/send adapters), or internal profitability dollars without explicit scope (see **§6K**, **§11**).
 
 **Optional (non-blocking):** Job Card tab extraction polish, Job Packet legacy gating, handoff-only doc updates.
 
@@ -1317,9 +1465,9 @@ Use this section as the **ordered checklist** for future GPT/Cursor sessions. Kn
 
 ### Current checkpoint
 
-**Latest code checkpoint:** **3I-1 pricing foundation complete** (`52b7148`). **3I-1 engine:** `162f9be` (+ `1ddee44`, `d67910d`). **3I-0:** `6f9cbe1`. **3H-3:** `40e6720`. **3H-2:** `00fbf64`. **3H-1:** `feec663`. **Packet session bleed fix:** `c12ea4d`. **Pre-3H-2:** `abd718d`.  
+**Latest code checkpoint:** **3I-2 read-only Builder pricing preview complete** (`637b85a`). **3I-2:** `5626c47`–`637b85a`. **3I-1:** `162f9be`–`52b7148`. **3H-3:** `40e6720`. **3H-2:** `00fbf64`. **3H-1:** `feec663`. **Packet session bleed fix:** `c12ea4d`. **Pre-3H-2:** `abd718d`.  
 **Jobs Board approved save point:** **3F9B4-RoofrExact** (`b27a444`).  
-**Latest handoff doc checkpoint:** **3I-1 pricing foundation** (§6I — docs pending commit) — **next: review + commit docs, then plan 3I-2 read-only Builder pricing preview**.
+**Latest handoff doc checkpoint:** **3I-2 complete** (§6K — docs pending commit) — **next: Opus architecture pass → choose 3I-3 vs 3J before any code**.
 
 **Completed working state (summary):**
 
@@ -1340,12 +1488,13 @@ Use this section as the **ordered checklist** for future GPT/Cursor sessions. Kn
 | **3H-2** Read-only proposal preview (document canvas, options, sections, lines) | **DONE** (`00fbf64`) — Builder-route-only |
 | **3H-3** Read-only proposal quantity preview (pure resolver, line row Qty/Source/Rule/Status) | **DONE** (`40e6720`) — Builder-route-only |
 | **3I-0** Proposal pricing type contract | **DONE** (`6f9cbe1`) — `proposalPricingTypes.ts` |
-| **3I-1** Pure pricing engine + input mapper + tests | **DONE** (`162f9be`–`52b7148`) — lib only; **not wired to Builder UI** |
+| **3I-1** Pure pricing engine + input mapper + tests | **DONE** (`162f9be`–`52b7148`) |
+| **3I-2** Read-only Builder pricing preview (orchestrator + document UI + status surfaces) | **DONE** (`5626c47`–`637b85a`) — see **§6K** |
 | **Canonical catalog route** | **`/tools/roofing/catalog`** — `CatalogSetupClient` |
 | **Canonical templates route** | **`/tools/roofing/templates`** — `TemplatesSetupClient` |
 | **Proposal Builder route** | **`/tools/roofing/proposals/builder?job=<uuid>`** |
 | **Job Card Proposals** | Setup links (3G6E); `+ Proposal` when Builder gates pass (3H-1) |
-| **Protected** | Legacy pricing, payments, approval, status, saved estimates, send/PDF **untouched** through 3I-1; new pure engine/mapper are new-spine lib only |
+| **Protected** | Legacy pricing, payments, approval, status, saved estimates, send/PDF **untouched** through 3I-2; new spine wired from Builder route only |
 
 **SQL note:** Catalog/template table verification was done in Supabase during 3F/3G stages; do not re-run schema changes from roadmap work unless a stage explicitly scopes a new migration.
 
@@ -1357,7 +1506,7 @@ Use this section as the **ordered checklist** for future GPT/Cursor sessions. Kn
 | **Job Packet → Job Card** | **Fixed** (`fd87152`, `abd718d`, **`c12ea4d`**) — stale `currentJobId` handoff; Continue gated; create-only from fresh packet; intake reset; **session bleed fix** — packet values → createJob → new UUID → persisted Job Card identity; browser smoke **confirmed** post-`c12ea4d` |
 | **Job Card identity** | **Improved** (`abd718d`, **`c12ea4d`**) — packet/direct `?job=` uses persisted `JobRecord`; board-origin still saved-estimate overlay; **not** full `JobCardViewModel` |
 | **Catalog / Templates** | Aligned workspace surfaces (`CatalogSetupClient`, `TemplatesSetupClient`); click-only install |
-| **Proposal Builder (3H-1 + 3H-2 + 3H-3)** | Read-only shell + document-style preview + quantity preview; composite gates; no proposal records; 3H-3 smoke via dev fixture (removed before `40e6720` commit) |
+| **Proposal Builder (3H-1 + 3H-2 + 3H-3 + 3I-2)** | Read-only shell + document preview + quantity preview + **pricing preview** (document dollars + tab/rail status words); composite gates; no proposal records |
 | **Legacy routes (still reachable)** | `?entry=manual&legacy=1` (legacy estimate workspace); `entry=manual` without legacy → Job Card quirk; hidden V2 preview (`sr-only` toggle); dead `renderEstimateBuilderShell` in repo |
 
 Treat these as **known architecture risks** — not forgotten — when planning 3I+ and Jobs Board spine migration.
@@ -1384,8 +1533,9 @@ Treat these as **known architecture risks** — not forgotten — when planning 
 7. ~~**3I-1 pricing engine decisions**~~ — **DONE** (§6H `ac589d8`; implemented §6I).
 8. ~~**3I-1A pure pricing engine**~~ — **DONE** (`162f9be`, `1ddee44`, `d67910d`).
 9. ~~**3I-1B pricing input mapper**~~ — **DONE** (`52b7148`).
-10. **3I-2 read-only Builder pricing preview** — **NEXT** — guardrails locked in **§6J**; start with **3I-2A** pure orchestrator (`proposalBuilderPricingPreview.ts` + tests + `BUILDER_PREVIEW_PRICING_POLICY`), **no UI**. Customer dollars in document only; internal profitability dollars deferred to **3I-3**; tabs/rail show status words only.
-11. **Jobs Board** remains saved-estimate spine — acceptable for 3I-2 if Builder uses `?job=`; migration **Future/Later**.
+10. ~~**3I-2 read-only Builder pricing preview**~~ — **DONE** (`5626c47`–`637b85a`) — see **§6K**.
+11. **Next phase planning (Opus pass)** — choose **3I-3** (company pricing policy / internal profitability) **OR** **3J** (proposal snapshot persistence) — **no code until scoped**.
+12. **Jobs Board** remains saved-estimate spine — acceptable for Builder `?job=`; migration **Future/Later**.
 
 ---
 
@@ -1819,31 +1969,37 @@ Committed **`0015be1`** after manual browser checks passed. **Do not move to 3G6
 
 **3H-3 complete:** Pure read-only quantity resolver + Builder line row quantity preview. See **§6F**.
 
-**Do not start 3I-2 until:** explicit scope for read-only Builder pricing preview. **3I-2 must consume 3I-1 mapper + engine** — not legacy estimator fields or saved-estimate snapshots.
+**Do not start 3I-3 or 3J until:** explicit scope chosen via architecture pass. **3I-2 complete** — see **§6K**.
 
 **Route (live):** `/tools/roofing/proposals/builder?job=<uuid>`
 
-**Likely new (later stages):** proposal record tables (migration when scoped — **3J**), line snapshots.
+**Likely new (later stages):** proposal record tables (migration when scoped — **3J**), line snapshots, company pricing policy UI (**3I-3**).
 
-**Suggested commits (remaining):** `docs: update handoff after 3I1 pricing foundation`, `3I2: add read-only builder pricing preview`
+**Suggested commits (completed):** `3I2: add builder pricing preview orchestrator`, `3I2: add customer document pricing preview`, `3I2: add builder pricing status surfaces`
 
-**Explicitly not in 3H-1/3H-2/3H-3/3I-1:** Builder UI pricing totals, proposal records, PDF/send/approval/payment/status, SQL/migrations, qty × price in UI.
+**Explicitly not in 3I-2:** proposal records, PDF/send/approval/payment/status, SQL/migrations, internal profitability dollars, company policy UI, enabling Preview/Send/Sign/Payment.
 
 ---
 
-### Stage 3I — Deterministic catalog pricing bridge — **3I-0 + 3I-1 DONE; 3I-2 NEXT**
+### Stage 3I — Deterministic catalog pricing bridge — **3I-0 + 3I-1 + 3I-2 DONE**
 
 **After** 3H-3 quantity preview is stable. **3I consumes 3H-3 resolved quantities** — not legacy estimator fields or saved-estimate snapshots.
 
 **3I-0 (`6f9cbe1`):** `app/lib/proposalPricingTypes.ts` — policy/input/output/guardrail types; function signatures.
 
-**3I-1 (`162f9be`–`52b7148`) — COMPLETE:** See **§6I**. Pure engine, input hardening, 22 engine tests, input mapper, 16 mapper tests. **No Builder UI wiring.** **No persistence.**
+**3I-1 (`162f9be`–`52b7148`) — COMPLETE:** See **§6I**. Pure engine, input hardening, 22 engine tests, input mapper, 16 mapper tests.
 
-**3I-2 (next — requires explicit scope; guardrails locked in §6J):** Read-only Builder pricing preview — call `mapProposalPricingInput` + `resolveProposalPricing` from Builder route only. Start with **3I-2A** pure orchestrator (no UI). Customer prices/totals in document canvas only with persistent preview banner; option tabs + rail show **status words only**; internal cost/profit/margin **dollars deferred to 3I-3**; `included` + unresolved stays blocking. **Must not** persist proposals. **Must not** enable Preview/Send/Sign/Payment. **No SQL/migrations.** **No protected systems.**
+**3I-2 (`5626c47`–`637b85a`) — COMPLETE:** See **§6K**. Three slices:
+
+- **3I-2A** — Pure orchestrator + 9 tests; customer/status DTO separation.
+- **3I-2B** — Customer document pricing UI (line prices, totals, preview banner).
+- **3I-2C** — Option-tab + right-rail status surfaces (Complete/Incomplete, blocking count, guardrail word — no dollars).
+
+**Next within 3I spine:** **3I-3** (company pricing policy + internal profitability planning) — **OR** jump to **3J** (proposal persistence) — **decide via Opus pass before code**.
 
 Run parallel to legacy estimator; do not overwrite `useMemo` until validated and explicitly scoped.
 
-**Suggested commits:** `docs: update handoff after 3I1 pricing foundation`, `3I2: add read-only builder pricing preview`
+**Suggested next docs commit:** `docs: update handoff after 3I2 builder pricing preview complete`
 
 ---
 
