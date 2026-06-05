@@ -9,16 +9,26 @@
 - `docs/fielddive-estimate-proposal-flow-model.md` — estimate/proposal UX model notes
 - `docs/fielddive-feature-placement-map.md` — feature placement matrix
 
-**Last updated checkpoint:** **3I-3B3c Builder company pricing policy wiring** (Builder reads `getResolvedCompanyPricingPolicy` — §6Q). **Prior:** **3I-3B3b settings UI** (`003e00b` — §6P); **3I-3B3a migration manually applied** (`630d278` — §6N/§6O); **3I-3B2B store** (`b5bbc7f` — §6N). **Working tree:** 3I-3B3c finish pending review (no commit). **Typecheck:** only **6** pre-existing errors in `app/tools/roofing-v2/RoofingClientV2.tsx` — unchanged. **Protected systems:** legacy `RoofingClient.tsx` pricing `useMemo`, payments, approval, status, saved estimates, send/PDF **untouched**.
+**Last updated checkpoint:** **3I-3B3 company pricing policy path complete** (`79c4b02` — §6Q; full path summary §6R). **Prior:** **3I-3B3b settings UI** (`003e00b` — §6P); **3I-3B3a migration manually applied** (`630d278` — §6N/§6O); **3I-3B2B store** (`b5bbc7f` — §6N); **3I-3B1 resolver** (`c1b52ee` — §6M). **Working tree:** docs checkpoint update pending review (no commit). **Tests:** **103/103** pass (form utils 17 + resolver 18 + store 21 + orchestrator 9 + engine 22 + mapper 16). **Typecheck:** only **6** pre-existing errors in `app/tools/roofing-v2/RoofingClientV2.tsx` — unchanged. **Protected systems:** legacy `RoofingClient.tsx` pricing `useMemo`, payments, approval, status, saved estimates, send/PDF **untouched**.
 
 **Jobs Board approved save point:** `b27a444` (3F9B4-RoofrExact). **Prior Job Board checkpoint:** `36fa3a9` (3F9B3).
 
-**Next (recommended):** **3I-3B3d** — optional readiness/copy polish only if needed after 3I-3B3c review. **Do not** persist proposals (3J), snapshot pricing, enable Preview/Send/Sign/Payment, or add internal profitability dollars without explicit scope.
+**Next (recommended):** **Architecture decision before more code** — choose one path explicitly; **no code until next phase is scoped:**
+- **Option A — 3I-3C:** internal profitability rail/drawer (internal cost/profit/margin dollars; customer document unchanged).
+- **Option B — 3J0:** proposal records / snapshot architecture (docs/types only first).
 
-### Recent committed sequence (3G6 spine + execution surfaces + 3H + 3I pricing foundation + 3I-2 Builder preview)
+**Do not** persist proposals (3J1+), snapshot pricing, enable Preview/Send/Sign/Payment, or add internal profitability without explicit scope. **Catalog custom delete/deactivate** is **not implemented** and remains a **separate later scope** — do not mix into pricing work.
+
+### Recent committed sequence (3G6 spine + execution surfaces + 3H + 3I pricing foundation + 3I-2 Builder preview + 3I-3 company policy)
 
 | Commit | Summary |
 |--------|---------|
+| `79c4b02` | **3I-3B3c** — Builder wired to `getResolvedCompanyPricingPolicy`; configured path passes real company `policy` into orchestrator; missing/loading/error keeps placeholder fallback; conditional banner/copy + status-only rail row (§6Q) |
+| `003e00b` | **3I-3B3b** — Company pricing policy settings UI at `/tools/settings/pricing` (§6P) |
+| `630d278` | docs: record 3I-3B3a manual migration apply (§6O) |
+| `b5bbc7f` | **3I-3B2B** — Company pricing policy store (`companyPricingPolicyStore.ts`) |
+| `76b87b8` | **3I-3B2A** — `company_pricing_policies` migration SQL |
+| `c1b52ee` | **3I-3B1** — Pure company pricing policy resolver (§6M) |
 | `637b85a` | **3I-2C** — Builder pricing status surfaces: option tabs show **Complete / Incomplete** only; right rail **Pricing** block (status, blocking count, guardrail word); no dollars; no document UI changes |
 | `f5bbd84` | **3I-2B** — Customer document pricing preview UI: line prices/statuses + totals footer + persistent preview banner in document canvas only; `formatPriceCents` in Builder constants (not orchestrator) |
 | `5626c47` | **3I-2A** — Pure Builder pricing preview orchestrator: `proposalBuilderPricingPreview.ts` + 9 tests; 3H-3 → mapper → engine → customer/status DTO |
@@ -1436,7 +1446,7 @@ Real company policy will source these (shape mirrors existing `PricingPolicy`):
 
 ## 6N. COMPANY PRICING POLICY PERSISTENCE — 3I-3B2 (migration + store — no UI/Builder)
 
-**Status:** **3I-3B2A migration committed** (`76b87b8`) and **manually applied** (3I-3B3a — §6O); **3I-3B2B store committed** (`b5bbc7f`). **No UI, no Builder wiring, no orchestrator change.** Builder still uses `BUILDER_PREVIEW_PRICING_POLICY` until **3I-3B3c**.
+**Status:** **3I-3B2A migration committed** (`76b87b8`) and **manually applied** (3I-3B3a — §6O); **3I-3B2B store committed** (`b5bbc7f`); **3I-3B3 path complete** (`003e00b` settings UI + `79c4b02` Builder wiring — §6P/§6Q/§6R). On the **configured path**, Builder uses saved company policy; on **missing/loading/error**, orchestrator placeholder fallback remains.
 
 ### 1. 3I-3B2A — migration (`76b87b8`)
 
@@ -1480,8 +1490,8 @@ Real company policy will source these (shape mirrors existing `PricingPolicy`):
 |-------|--------|
 | **3I-3B3a** | **DONE** — manual migration apply + verify (§6O); no app code |
 | **3I-3B3b** | **DONE** — minimal settings UI at `/tools/settings/pricing` (§6P); no Builder wiring |
-| **3I-3B3c** | **DONE** — Builder wiring: `getResolvedCompanyPricingPolicy` → orchestrator `policy` when configured (§6Q); placeholder fallback when missing |
-| **3I-3B3d** | **Optional** — additional readiness/copy polish if needed after review |
+| **3I-3B3c** | **DONE** — Builder wiring (`79c4b02`): `getResolvedCompanyPricingPolicy` → orchestrator `policy` when configured (§6Q); placeholder fallback when missing |
+| **3I-3B3d** | **Skipped** — copy/status polish absorbed into 3I-3B3c; no separate slice needed unless gaps found in review |
 
 ### 5. Boundaries (3I-3B2B)
 
@@ -1548,7 +1558,7 @@ select to_regclass('public.company_pricing_policies');
 
 ## 6P. COMPANY PRICING POLICY SETTINGS UI — 3I-3B3b
 
-**Status:** **3I-3B3b complete** (pending review/commit). UI-only slice. **No Builder wiring** — the Proposal Builder still uses its `BUILDER_PREVIEW_PRICING_POLICY` placeholder until **3I-3B3c**. Migration was already applied manually in 3I-3B3a (§6O).
+**Status:** **3I-3B3b complete** (`003e00b`). UI-only slice at `/tools/settings/pricing`. Builder wiring delivered in **3I-3B3c** (`79c4b02`). Migration was already applied manually in 3I-3B3a (§6O).
 
 ### 1. Route
 
@@ -1592,13 +1602,13 @@ select to_regclass('public.company_pricing_policies');
 
 ### 7. Next
 
-- **3I-3B3c** — Builder reads `getResolvedCompanyPricingPolicy(companyId)` and passes the real `policy` into the orchestrator (`proposalBuilderPricingPreview` already accepts `policy?`).
+- **3I-3B3c** — committed (`79c4b02`). See **§6Q** and path-complete summary **§6R**.
 
 ---
 
 ## 6Q. BUILDER COMPANY PRICING POLICY WIRING — 3I-3B3c
 
-**Status:** **3I-3B3c complete** (pending review/commit). Builder-only slice — **no orchestrator/engine/mapper/settings/SQL changes**. Preview / Send / Sign / Payment remain **disabled**. No proposal persistence/snapshots.
+**Status:** **3I-3B3c complete** (`79c4b02`). Builder-only slice — **no orchestrator/engine/mapper/settings/SQL changes**. Preview / Send / Sign / Payment remain **disabled**. No proposal persistence/snapshots.
 
 ### 1. Policy source (Builder)
 
@@ -1636,7 +1646,59 @@ Constants live in `proposalBuilderConstants.ts`. **No pricing math or totals log
 
 ### 5. Next
 
-- Review + commit 3I-3B3c, then **3I-3B3d** only if additional readiness/copy polish is needed.
+- Path complete — see **§6R** for checkpoint and next-phase decision (3I-3C vs 3J0).
+
+---
+
+## 6R. CHECKPOINT — 3I-3B3 COMPANY PRICING POLICY PATH COMPLETE
+
+**Status:** **3I-3B3 complete** (`79c4b02` latest commit). End-to-end company pricing policy path from resolver → persistence → settings UI → Builder wiring is **done**. **No code until next phase is explicitly scoped.**
+
+### 1. Committed sequence (3I-3B3)
+
+| Slice | Commit | What shipped |
+|-------|--------|--------------|
+| **3I-3B3a** | `630d278` (docs) | `company_pricing_policies` migration **manually applied** in Supabase SQL Editor and verified (§6O). Target: TradeTools AI / tradetools-ai / main / production. |
+| **3I-3B3b** | `003e00b` | Settings UI at **`/tools/settings/pricing`** — save/load company policy via store; starter seed pre-fill only; no auto-save (§6P). |
+| **3I-3B3c** | `79c4b02` | Builder reads **`getResolvedCompanyPricingPolicy(companyId)` only**; passes real `policy` when configured; placeholder fallback when missing/loading/error (§6Q). |
+
+Underlying foundation (pre-3I-3B3): **3I-3B1 resolver** (`c1b52ee`), **3I-3B2A migration SQL** (`76b87b8`), **3I-3B2B store** (`b5bbc7f`).
+
+### 2. Builder behavior (post-3I-3B3c)
+
+- **Configured company policy exists** → Builder passes resolved `policy` into `buildProposalBuilderPricingPreview`; customer document prices reflect saved company profitability/tax settings.
+- **Missing / loading / error / not configured** → Builder **omits** `policy`; orchestrator uses `BUILDER_PREVIEW_PRICING_POLICY` (50% margin placeholder).
+- **Raw `getCompanyPricingPolicy` is not used by Builder.**
+- **`DEFAULT_STARTER_PRICING_POLICY` is not used by Builder** (settings seed only; never masquerades as configured).
+- Conditional copy: configured path softens banner/footers; unconfigured path keeps strong placeholder warning + link to `/tools/settings/pricing`.
+- Summary rail: **Pricing policy** status-only row (Configured / Not configured / Checking) — no dollars, no policy detail.
+
+### 3. Explicitly unchanged / not started
+
+- **Preview / Send / Sign / Payment** remain **disabled** in Builder.
+- **No proposal persistence / snapshots** (3J not started).
+- **No PDF / send / sign / payment / status** flows touched.
+- **No old estimator / saved-estimate / loadSaved** paths touched.
+- **No internal profitability rail** (3I-3C not started — internal cost/profit/margin dollars still deferred).
+- **No 3J0 proposal record architecture** yet.
+- **Catalog custom delete/deactivate** — **not implemented**; separate later scope; **do not mix into pricing work**.
+
+### 4. Verification at checkpoint
+
+- **Tests:** **103/103** pass (form utils 17 + resolver 18 + store 21 + orchestrator 9 + engine 22 + mapper 16).
+- **Typecheck:** only **6** pre-existing errors in `app/tools/roofing-v2/RoofingClientV2.tsx`.
+- Manual smoke passed for configured-policy Builder path (banner, line footer, rail status, pricing updates after settings save).
+
+### 5. Next recommended (architecture decision — no code until scoped)
+
+Choose **one** path before writing more code:
+
+| Option | Phase | Scope |
+|--------|-------|--------|
+| **A** | **3I-3C** | Internal profitability rail/drawer — internal cost/profit/margin dollars; customer document unchanged |
+| **B** | **3J0** | Proposal records / snapshot architecture — docs/types only first |
+
+**Do not** start 3J1 persistence, enable send/PDF/sign/payment, or add internal profitability without explicit approval. **Do not** bundle catalog delete/deactivate into either path.
 
 ---
 
