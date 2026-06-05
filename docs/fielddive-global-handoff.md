@@ -9,15 +9,13 @@
 - `docs/fielddive-estimate-proposal-flow-model.md` — estimate/proposal UX model notes
 - `docs/fielddive-feature-placement-map.md` — feature placement matrix
 
-**Last updated checkpoint:** **3I-3B3 company pricing policy path complete** (`79c4b02` — §6Q; full path summary §6R). **Prior:** **3I-3B3b settings UI** (`003e00b` — §6P); **3I-3B3a migration manually applied** (`630d278` — §6N/§6O); **3I-3B2B store** (`b5bbc7f` — §6N); **3I-3B1 resolver** (`c1b52ee` — §6M). **Working tree:** docs checkpoint update pending review (no commit). **Tests:** **103/103** pass (form utils 17 + resolver 18 + store 21 + orchestrator 9 + engine 22 + mapper 16). **Typecheck:** only **6** pre-existing errors in `app/tools/roofing-v2/RoofingClientV2.tsx` — unchanged. **Protected systems:** legacy `RoofingClient.tsx` pricing `useMemo`, payments, approval, status, saved estimates, send/PDF **untouched**.
+**Last updated checkpoint:** **3I-3B3 company pricing policy path complete** (`79c4b02` — §6Q; full path summary §6R). **Architecture roadmap locked:** **§6S** (RoofrExact pricing → proposal arc; next slice **3I-3C**). **Prior:** **3I-3B3b settings UI** (`003e00b` — §6P); **3I-3B3a migration manually applied** (`630d278` — §6N/§6O); **3I-3B2B store** (`b5bbc7f` — §6N); **3I-3B1 resolver** (`c1b52ee` — §6M). **Working tree:** §6S docs update pending review (no commit). **Tests:** **103/103** pass (form utils 17 + resolver 18 + store 21 + orchestrator 9 + engine 22 + mapper 16). **Typecheck:** only **6** pre-existing errors in `app/tools/roofing-v2/RoofingClientV2.tsx` — unchanged. **Protected systems:** legacy `RoofingClient.tsx` pricing `useMemo`, payments, approval, status, saved estimates, send/PDF **untouched**.
 
 **Jobs Board approved save point:** `b27a444` (3F9B4-RoofrExact). **Prior Job Board checkpoint:** `36fa3a9` (3F9B3).
 
-**Next (recommended):** **Architecture decision before more code** — choose one path explicitly; **no code until next phase is scoped:**
-- **Option A — 3I-3C:** internal profitability rail/drawer (internal cost/profit/margin dollars; customer document unchanged).
-- **Option B — 3J0:** proposal records / snapshot architecture (docs/types only first).
+**Next (recommended):** **3I-3C — internal profitability rail** (§6S). **3I-3C is not optional vs 3J0** — it is the trust gate before snapshots. **Do not** start 3J0/3J1 until 3I-3C is scoped and complete.
 
-**Do not** persist proposals (3J1+), snapshot pricing, enable Preview/Send/Sign/Payment, or add internal profitability without explicit scope. **Catalog custom delete/deactivate** is **not implemented** and remains a **separate later scope** — do not mix into pricing work.
+**Do not** persist proposals (3J1+), snapshot pricing, enable Preview/Send/Sign/Payment, or persist placeholder pricing. **Catalog custom delete/deactivate** is **not implemented** and remains a **separate later scope** — do not mix into pricing/proposal work.
 
 ### Recent committed sequence (3G6 spine + execution surfaces + 3H + 3I pricing foundation + 3I-2 Builder preview + 3I-3 company policy)
 
@@ -1646,7 +1644,7 @@ Constants live in `proposalBuilderConstants.ts`. **No pricing math or totals log
 
 ### 5. Next
 
-- Path complete — see **§6R** for checkpoint and next-phase decision (3I-3C vs 3J0).
+- Path complete — see **§6R** for checkpoint; **§6S** for architecture roadmap (next: **3I-3C**).
 
 ---
 
@@ -1689,16 +1687,180 @@ Underlying foundation (pre-3I-3B3): **3I-3B1 resolver** (`c1b52ee`), **3I-3B2A m
 - **Typecheck:** only **6** pre-existing errors in `app/tools/roofing-v2/RoofingClientV2.tsx`.
 - Manual smoke passed for configured-policy Builder path (banner, line footer, rail status, pricing updates after settings save).
 
-### 5. Next recommended (architecture decision — no code until scoped)
+### 5. Next recommended
 
-Choose **one** path before writing more code:
+**Architecture decision closed** — see **§6S** for the full RoofrExact pricing → proposal roadmap.
 
-| Option | Phase | Scope |
-|--------|-------|--------|
-| **A** | **3I-3C** | Internal profitability rail/drawer — internal cost/profit/margin dollars; customer document unchanged |
-| **B** | **3J0** | Proposal records / snapshot architecture — docs/types only first |
+| Phase | Scope | Status |
+|-------|-------|--------|
+| **3I-3C** | Internal profitability rail/drawer — contractor-only; customer document unchanged | **Next** |
+| **3J0** | Proposal records / snapshot architecture — docs/types only | After 3I-3C |
 
-**Do not** start 3J1 persistence, enable send/PDF/sign/payment, or add internal profitability without explicit approval. **Do not** bundle catalog delete/deactivate into either path.
+**Do not** start 3J1 persistence, enable send/PDF/sign/payment, or skip 3I-3C. **Do not** bundle catalog delete/deactivate into pricing/proposal work.
+
+---
+
+## 6S. ROOFR-EXACT PRICING → PROPOSAL ARCHITECTURE ROADMAP
+
+**Status:** **Architecture roadmap locked** (docs only — no app code). **Checkpoint:** `eec7c78` / **3I-3B3 complete** (`79c4b02`). **Purpose:** Prevent drift before implementation continues. **Read this section before scoping any post-3I-3B3 work.**
+
+### 1. Key verdict
+
+- **3I-3C internal profitability rail is next** — not 3J0, not send/PDF, not persistence.
+- **3I-3C is not optional compared to 3J0** — it is the **trust gate** before snapshots. Contractors must verify live cost/profit/margin **before** anything is frozen into proposal records/snapshots.
+- **The pricing engine already computes internal profitability** — `ProposalOptionPricing.internalCostCents`, `internalProfitCents`, `effectiveMarginPct`; per-line `profitCents`, `marginPct`, `markupPct` in `proposalPricingTypes.ts` / engine output. **It is not surfaced in the UI yet.**
+- **Do not freeze numbers before they are visible/trusted.** Building snapshots (3J2) before the contractor can see live margin (3I-3C) risks freezing wrong numbers.
+- **3J0 (docs/types) follows 3I-3C** — snapshot field classification and lifecycle states are designed on paper only after live margin is visible and trusted.
+
+### 2. Phase order (RoofrExact arc)
+
+| Phase | ID | Name | Nature | Gate it unlocks |
+|-------|-----|------|--------|-----------------|
+| **P1** | **3I-3C** | Internal profitability rail/drawer | UI only — read-only, contractor-only | Contractor trusts live pricing |
+| **P2** | **3I-3D** | Guardrail surfacing | UI only — optional small follow-up | Visible warn/block before send (no enforcement yet) |
+| **P3** | **3J0** | Proposal record + snapshot architecture | **Docs/types only** | Agreed freeze model |
+| **P4** | **3J1** | Proposal draft record | SQL + store | Draft has id; survives reload |
+| **P5** | **3J2** | Snapshot-on-send writer | SQL/store + lib | Frozen snapshot exists as data |
+| **P6** | **3K0** | Preview | UI — reads snapshot | Preview button can light up |
+| **P7** | **3K1** | Send bridge | PDF + transmit | Send can light up |
+| **P8** | **3K2** | Approval / signature state | SQL + UI | Sign can light up |
+| **P9** | **3K3** | Deposits / payment schedule | SQL + UI | Payment can light up |
+| **P10** | **3L** | Material / work orders / invoices | SQL + UI | Post-acceptance fulfillment |
+| *(separate)* | — | Catalog delete/deactivate cleanup | Small UI/store slice | **Not on critical path** |
+
+#### P1 / 3I-3C — Internal profitability rail/drawer
+
+- **UI only** — read-only, contractor-only.
+- **No SQL**, **no persistence**, **no customer exposure**.
+- Uses existing engine/orchestrator internal fields (`ProposalOptionPricing`, line-level profitability from `ProposalPricingResult`).
+- Recomputes live with existing Builder preview pipeline — no new pricing math.
+
+#### P2 / 3I-3D — Guardrail surfacing (optional small follow-up)
+
+- **UI only** — warn/block badge from `ProfitabilityGuardrailResult.outcome`.
+- **No enforcement yet** — display only; send blocking deferred to 3K1+.
+
+#### P3 / 3J0 — Proposal record + snapshot architecture
+
+- **Docs/types only** — no SQL, no runtime bodies.
+- Lifecycle states (draft → sent → signed → …).
+- Draft/live vs freeze-on-send vs lock-on-sign (extends `PRICING_SNAPSHOT_INTENTS` in `proposalPricingTypes.ts`).
+- Snapshot vs reference field map (what freezes at send; what stays a live reference).
+- Revision / change-order rules (what bumps a version).
+
+#### P4 / 3J1 — Proposal draft record
+
+- **SQL + store** — `proposals` table (or equivalent).
+- Draft has **id** and survives reload.
+- **No send yet** — Preview/Send/Sign/Payment remain disabled.
+
+#### P5 / 3J2 — Snapshot-on-send writer
+
+- Snapshot builder + store.
+- Freezes resolved pricing, quantities, policy echo (`policyEcho`), customer copy per P3 classification.
+- **Still no send UI** until snapshot is stable and tested.
+
+#### P6 / 3K0 — Preview
+
+- Reads **snapshot** — not live Builder recompute.
+- Preview button can light up **only after** snapshot exists and is stable.
+
+#### P7 / 3K1 — Send bridge
+
+- PDF + transmit adapters.
+- Send can light up **only after** preview/snapshot stable.
+
+#### P8 / 3K2 — Approval / signature state
+
+- Customer-visible acceptance flow; contractor/internal status tracking.
+
+#### P9 / 3K3 — Deposits / payment schedule
+
+- Introduced **after** signed/accepted proposal (P8).
+- Deposit/financing fields exist as types only in `ProposalPricingTotals` today — remain deferred until P9.
+
+#### P10 / 3L — Material / work orders / invoices
+
+- **Post-acceptance only** — data flows from accepted proposal lines.
+- Too early before P8; no fulfillment tables until proposal acceptance model exists.
+
+### 3. Why this order matches RoofrExact
+
+1. **Trust before freeze** — Roofr shows contractor live margin in builder; P1 surfaces numbers already computed so correctness is verified before P5 snapshots.
+2. **Snapshot intent already declared** — `PRICING_SNAPSHOT_INTENTS` in `proposalPricingTypes.ts`; P3 turns declaration into record schema on paper before SQL.
+3. **Draft before snapshot** — snapshot = freeze the draft's resolved pricing; no draft id (P4) → nothing to freeze (P5).
+4. **Customer document reads snapshot, not live builder** — P6 Preview / P7 Send / P8 Sign / P9 Payment each require stable frozen data; enabling buttons early violates RoofrExact.
+5. **Payments follow approval; fulfillment follows acceptance** — P9 deposits only after P8 sign; P10 orders/invoices only after acceptance.
+
+### 4. Hard guardrails (all phases)
+
+- **Preview / Send / Sign / Payment** remain **disabled** until their **data prerequisites** exist (see phase table).
+- **Customer document / PDF** must **never** show internal cost / profit / margin.
+- **Placeholder pricing** (`BUILDER_PREVIEW_PRICING_POLICY`, 50% margin) must **never** be persisted or snapshotted — gate all persistence on configured company policy.
+- **Old estimator / saved-estimate / loadSaved / estimateStore** remain **protected** — new proposal spine is separate.
+- **Catalog delete/deactivate** is **separate scope** — must not mix into pricing/proposal commits.
+- **No proposal SQL before 3J0 docs/types are locked.**
+- **No snapshot SQL before field freeze/reference classification is locked** (P3 complete).
+- **No PDF / send / sign / payment** until snapshot (P5) is stable.
+
+### 5. Immediate next slice — 3I-3C only
+
+**Scope:**
+
+- Add internal profitability presenter utility + tests.
+- Surface **option-level** internal cost / profit / effective margin in **right rail only** (`ProposalBuilderSummaryRail`).
+- **Placeholder-aware labeling** — when policy unconfigured, label margin as placeholder / not real; never masquerade as configured profitability.
+- **No customer document changes.**
+- **No pricing math changes** (engine/mapper/orchestrator unchanged).
+- **No SQL / persistence.**
+
+**Files likely touched (3I-3C):**
+
+| File | Role |
+|------|------|
+| `app/tools/roofing/proposals/builder/ProposalBuilderSummaryRail.tsx` | Surface internal profitability (contractor-only) |
+| `app/tools/roofing/proposals/builder/proposalBuilderConstants.ts` | Placeholder-aware copy constants |
+| `app/lib/proposalProfitabilityPresenter.ts` | Pure presenter (format internal numbers + labels) |
+| `app/lib/proposalProfitabilityPresenter.test.ts` | Unit tests |
+| `docs/fielddive-global-handoff.md` | §6S checkpoint update after 3I-3C |
+| `ProposalBuilderClient.tsx` / `ProposalBuilderCanvas.tsx` | **Optional** — prop threading only if rail cannot read preview result otherwise |
+
+**Files forbidden (3I-3C):**
+
+| File / area | Reason |
+|-------------|--------|
+| `app/lib/proposalPricingEngine.ts` | No pricing math changes |
+| `app/lib/proposalPricingInputMapper.ts` | No pricing math changes |
+| `app/lib/proposalBuilderPricingPreview.ts` | Forbidden unless read-only type access is absolutely unavoidable |
+| `app/tools/roofing/proposals/builder/ProposalBuilderDocumentTotals.tsx` | Customer-facing — no internal numbers |
+| Customer-facing line columns in `ProposalBuilderLinePreviewTable.tsx` | Customer-facing — no internal numbers |
+| Settings files (`/tools/settings/pricing`, `companyPricingPolicy*`) | Out of scope |
+| SQL / migrations | No persistence |
+| APIs / send / payment / sign / status | Protected / deferred |
+| Old estimator / saved-estimate / loadSaved paths | Protected |
+
+**Tests / smoke (3I-3C):**
+
+- Unit tests: presenter formatting, placeholder-policy labeling.
+- Manual smoke: rail shows margin for configured policy; shows placeholder warning when unconfigured; **confirm no internal numbers in customer document**.
+- Regression: **103/103** tests pass; typecheck unchanged (6 pre-existing `RoofingClientV2.tsx` errors only).
+
+### 6. Drift risks to watch
+
+1. **Freezing before trusting** — skip 3I-3C → snapshot wrong numbers.
+2. **Placeholder leaking into persistence** — never write 50% placeholder as real policy/pricing.
+3. **Internal numbers bleeding to customer document** — strict customer vs internal column boundary.
+4. **Snapshot vs reference confusion** — live `catalog_item_id` where frozen unit price needed → sent doc mutates after send.
+5. **Coupling proposal records to legacy estimate/payment KV** — keep spines separate.
+6. **Enabling Preview/Send buttons early** — buttons stay disabled until data prerequisite exists.
+7. **Revision semantics undefined** — decide in P3 before P5 snapshot writer.
+8. **Catalog cleanup creeping into pricing commits** — keep isolated.
+
+### 7. Catalog cleanup (separate scope)
+
+- **Not on critical path** — does not block proposal correctness.
+- Deactivate via existing catalog UI or SQL is sufficient for stray test rows.
+- Scope as small standalone slice between phases if needed; **never bundle into 3I-3C or 3J commits**.
 
 ---
 
