@@ -69,6 +69,19 @@ export default function SettingsPage() {
           These details power proposals, emails, PDFs, customer notifications, and future automation.
         </p>
 
+        <Link
+          href="/tools/settings/pricing"
+          className="mb-6 flex items-center justify-between rounded-3xl border border-white/10 bg-white/[0.04] p-4 sm:p-5 shadow-[0_10px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl hover:bg-white/[0.07] transition-colors"
+        >
+          <span>
+            <span className="block text-sm font-semibold text-white/90">Company Pricing Policy</span>
+            <span className="mt-0.5 block text-xs text-white/55">
+              Default profitability and tax used to price proposals.
+            </span>
+          </span>
+          <span className="text-white/40 text-sm">→</span>
+        </Link>
+
         <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-4 sm:p-6 shadow-[0_10px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl">
           <h2 className="text-sm font-semibold text-white/90 mb-1">Company Identity</h2>
           <p className="text-xs text-white/60 mb-4">Used across job workspaces, proposals, customer emails, and documents.</p>

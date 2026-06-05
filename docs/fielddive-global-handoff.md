@@ -9,11 +9,11 @@
 - `docs/fielddive-estimate-proposal-flow-model.md` — estimate/proposal UX model notes
 - `docs/fielddive-feature-placement-map.md` — feature placement matrix
 
-**Last updated checkpoint:** **3I-3B3a migration manually applied** (docs only — §6N/§6O). **Prior:** **3I-3B2B store** (`b5bbc7f` — §6N); **3I-3B2A migration SQL** (`76b87b8`); **3I-3B1 resolver** (`c1b52ee` — §6M); **3I-3A spec** (`0f66a7b` — §6L); **3I-2 Builder pricing preview** (`637b85a`). **Working tree:** handoff doc update pending review (no commit). **Typecheck:** only **6** pre-existing errors in `app/tools/roofing-v2/RoofingClientV2.tsx` — unchanged. **Protected systems:** legacy `RoofingClient.tsx` pricing `useMemo`, payments, approval, status, saved estimates, send/PDF **untouched**.
+**Last updated checkpoint:** **3I-3B3b settings UI** (new files under `app/tools/settings/pricing/` + settings link — §6P). **Prior:** **3I-3B3a migration manually applied** (`630d278` — §6N/§6O); **3I-3B2B store** (`b5bbc7f` — §6N); **3I-3B2A migration SQL** (`76b87b8`); **3I-3B1 resolver** (`c1b52ee` — §6M); **3I-3A spec** (`0f66a7b` — §6L); **3I-2 Builder pricing preview** (`637b85a`). **Working tree:** 3I-3B3b implementation pending review (no commit). **Typecheck:** only **6** pre-existing errors in `app/tools/roofing-v2/RoofingClientV2.tsx` — unchanged. **Protected systems:** legacy `RoofingClient.tsx` pricing `useMemo`, payments, approval, status, saved estimates, send/PDF **untouched**.
 
 **Jobs Board approved save point:** `b27a444` (3F9B4-RoofrExact). **Prior Job Board checkpoint:** `36fa3a9` (3F9B3).
 
-**Next (recommended):** **3I-3B3b** — minimal company pricing policy settings UI only (`/tools/settings`). **No Builder wiring yet** (3I-3B3c). **Do not** persist proposals (3J), snapshot pricing, enable Preview/Send/Sign/Payment, or add internal profitability dollars without explicit scope.
+**Next (recommended):** **3I-3B3c** — Builder reads `getResolvedCompanyPricingPolicy(companyId)` and threads the real `policy` into `proposalBuilderPricingPreview` (retire `BUILDER_PREVIEW_PRICING_POLICY` from the configured path). **No Builder wiring yet** as of 3I-3B3b. **Do not** persist proposals (3J), snapshot pricing, enable Preview/Send/Sign/Payment, or add internal profitability dollars without explicit scope.
 
 ### Recent committed sequence (3G6 spine + execution surfaces + 3H + 3I pricing foundation + 3I-2 Builder preview)
 
@@ -1479,8 +1479,8 @@ Real company policy will source these (shape mirrors existing `PricingPolicy`):
 | Slice | Scope |
 |-------|--------|
 | **3I-3B3a** | **DONE** — manual migration apply + verify (§6O); no app code |
-| **3I-3B3b** | **Next** — minimal settings UI only (`/tools/settings`) |
-| **3I-3B3c** | Builder wiring: `getResolvedCompanyPricingPolicy` → orchestrator `policy` |
+| **3I-3B3b** | **DONE** — minimal settings UI at `/tools/settings/pricing` (§6P); no Builder wiring |
+| **3I-3B3c** | **Next** — Builder wiring: `getResolvedCompanyPricingPolicy` → orchestrator `policy` |
 | **3I-3B3d** | Banner/copy + readiness status surfaces |
 
 ### 5. Boundaries (3I-3B2B)
@@ -1543,6 +1543,56 @@ select to_regclass('public.company_pricing_policies');
 - **No** SQL/migration file edits.
 - **No** proposal persistence/snapshots, PDF/send/sign/payment/status, old estimator.
 - **No** protected systems touched.
+
+---
+
+## 6P. COMPANY PRICING POLICY SETTINGS UI — 3I-3B3b
+
+**Status:** **3I-3B3b complete** (pending review/commit). UI-only slice. **No Builder wiring** — the Proposal Builder still uses its `BUILDER_PREVIEW_PRICING_POLICY` placeholder until **3I-3B3c**. Migration was already applied manually in 3I-3B3a (§6O).
+
+### 1. Route
+
+- New route **`/tools/settings/pricing`**.
+- Server wrapper `app/tools/settings/pricing/page.tsx` resolves `companyId` server-side via the existing `getUserCompanyId` pattern (same as Builder): `createClient()` → `auth.getUser()` → `ensureUserIdentity()` → `getUserCompanyId()`. If unauthenticated / no company, it redirects to `/login?redirectTo=/tools/settings/pricing` (safe blocked path; no `getCurrentCompanyId` duplication).
+- `companyId` is passed as a prop into the client component.
+
+### 2. Client component
+
+`app/tools/settings/pricing/CompanyPricingPolicySettingsClient.tsx`:
+
+- On load: `getResolvedCompanyPricingPolicy(companyId)`.
+  - `configured: true` → form pre-fills from the resolved policy; status label **“Company pricing policy configured.”**
+  - `configured: false` → form pre-fills from `resolveStarterPricingPolicySeed()`; status label **“Starter defaults — not saved yet.”**
+- **Starter defaults never auto-save.** Save only on user click → `upsertCompanyPricingPolicy(companyId, policy)`.
+- After save, re-fetch via `getResolvedCompanyPricingPolicy(companyId)` and reflect configured state. Success/error states surfaced.
+- **No** localStorage, **no** proposal writes, **no** Builder writes.
+
+### 3. Form fields
+
+- **Editable:** `profitabilityType` (margin/markup), `defaultProfitabilityPct`, `minimumProfitabilityPct`, `salesTaxRatePct`, `materialPurchaseTaxRatePct` (empty input → `null`).
+- **Display-only locked:** `quantityRounding = exact`, `wasteModel = adjusted_measurement`.
+- **Not rendered/forced null:** `discount`, `subtotalOverrideCents` (always `null`); no template/job/manager overrides.
+
+### 4. Pure form utilities + validation
+
+`app/tools/settings/pricing/pricingPolicyFormUtils.ts` (no React, no Supabase, no I/O):
+
+- `policyToPricingPolicyFormState(policy)`, `starterSeedToPricingPolicyFormState(resolution)`, `pricingPolicyFormStateToPolicy(formState)`, `validatePricingPolicyFormState(formState)`.
+- Validation **delegates to `validateCompanyPricingPolicy`** (resolver contract — same single source of truth shared with store + DB). No drift: margin < 100 blocked, markup 100 allowed, minimum > default blocked, negative tax blocked, empty material tax → null.
+- Tests: `app/tools/settings/pricing/pricingPolicyFormUtils.test.ts` — **17** passing (mapping, locked fields, margin/markup boundaries, tax rules, starter seed carries no `configured` flag).
+
+### 5. Settings link
+
+- `app/tools/settings/page.tsx`: added a single navigation card linking to `/tools/settings/pricing`. Company profile save behavior unchanged; no settings restructure.
+
+### 6. Boundaries (3I-3B3b)
+
+- **No** Builder wiring or Builder pricing-behavior change; placeholder policy still active in Builder until **3I-3B3c**.
+- **No** engine / mapper / `proposalBuilderPricingPreview` changes; **no** SQL/migrations; **no** proposal records/snapshots; **no** PDF/send/sign/payment/status; **no** old estimator/saved-estimate paths; **no** `package.json`/lockfiles.
+
+### 7. Next
+
+- **3I-3B3c** — Builder reads `getResolvedCompanyPricingPolicy(companyId)` and passes the real `policy` into the orchestrator (`proposalBuilderPricingPreview` already accepts `policy?`).
 
 ---
 
