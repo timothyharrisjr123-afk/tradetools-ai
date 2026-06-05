@@ -1011,8 +1011,8 @@ Pricing contract **consumes** (later, in 3I-1):
 
 | Item | Stage |
 |------|-------|
-| Builder read-only pricing preview | **3I-2** |
-| Internal profitability rail (rep/manager UI) | Later |
+| Builder read-only pricing preview | **3I-2** (guardrails in §6J; start with **3I-2A** orchestrator) |
+| Internal profitability rail/drawer (cost/profit/margin dollars) | **3I-3 or later** (deferred per §6J) |
 | Proposal records / snapshots | **3J** |
 | PDF / send / sign / payment adapters | **3K** |
 | Tax fields on `CatalogItem` | Later catalog/pricing pass |
@@ -1035,6 +1035,79 @@ Pricing contract **consumes** (later, in 3I-1):
 - `localStorage`, Supabase calls, or saved-estimate state in mapper/engine
 
 **Protected systems:** legacy paths **untouched**.
+
+---
+
+## 6J. POST-3I-1 AUDIT + OPUS-CORRECTED 3I-2 GUARDRAILS (docs-only — before 3I-2A)
+
+**Status:** Pricing foundation audited after 3I-1 and Opus reviewed the proposed 3I-2 plan. This section records the audit result and the **binding guardrails** for 3I-2 implementation. **No 3I-1 code changes** — engine, mapper, tests are unchanged and correct.
+
+### 1. 3I-0 / 3I-1 foundation audit — **PASS**
+
+Read-only audit of `proposalPricingTypes.ts`, `proposalPricingEngine.ts` (+ tests), `proposalPricingInputMapper.ts` (+ tests), `proposalQuantityResolver.ts`, `proposalBuilderPreview.ts` against §6H:
+
+- **No computation drift** — engine matches §6H decisions.
+- **No old estimator / saved-estimate / `loadSaved` bleed** — mapper/engine import only the new spine.
+- **No waste / coverage / bundle math** — no `coverage_rate`, `waste_applies`, or bundle conversion anywhere.
+- **`"whole"` rounding inert** — present in union/const only; engine uses `exact` (qty as-is). Verified `10.7 → 107000`.
+- **`subtotalOverrideCents` inert** — on `PricingPolicy` type; **never read** by engine.
+- **No partial customer totals** — blocking nulls `customerSubtotalCents` / `customerTotalCents` at both section and option level.
+- **No `unit_price` fallback** — `cost_plus_margin` without finite cost → `unpriced` (blocking).
+- **Material purchase tax** — material-only (`itemType === "material"`) and internal-only (folds into effective cost; never on sales tax base).
+- **Discount before tax** — discount on customer subtotal, sales tax on post-discount net.
+- **Guardrail return-only** — `pass | warn | block` returned; no UI/send enforcement.
+- **Per-line `tax` (`PricingTaxInput`) inert** — only `policy.tax` is read; mapper sets line `tax: null`.
+
+**Verdict:** No 3I-1 code fixes required before 3I-2.
+
+### 2. Customer / internal separation risk (top structural note)
+
+- `ProposalLinePricing` is a **flat object** carrying **both** customer fields (`unitPriceCents`, `linePriceCents`) **and** internal fields (`unitCostCents`, `effectiveUnitCostCents`, `lineCostCents`, `profitCents`, `marginPct`, `markupPct`). `ProposalOptionPricing` likewise carries `internalCostCents` / `internalProfitCents`.
+- This is **correct for engine truth** (engine is the internal source of record) but **risky for UI** — the type does not structurally prevent internal dollars from reaching customer components.
+- On a **blocked** option, `internalCostCents` is **not** nulled (stays a number while customer total is null) — a further reason to keep internal dollars out of 3I-2.
+- **Rule:** the **3I-2 orchestrator DTO must enforce customer/internal separation**. The customer document may receive **only customer-safe fields** (line price / status / visibility, option customer subtotal/discount/tax/total). Internal cost/profit/margin **dollars are deferred** to the later internal-profitability phase (3I-3 or later).
+
+### 3. Opus-corrected 3I-2 rules (binding)
+
+- **No** internal cost / profit / margin **dollars** in any 3I-2 UI surface.
+- **No** dollar totals on option tabs. Option tabs show **status only**: **Priced** / **Incomplete**.
+- Customer prices / totals may appear **only inside the document canvas**.
+- **Persistent preview banner required** on the document totals block (not a footnote):
+  > "Preview pricing — uses a placeholder 50% margin, not your company's configured pricing. Not a customer quote."
+- **Grouped** lines show **name only** and roll into the section/option subtotal (no per-line dollar).
+- **`internal_only`** lines are **omitted** from the customer document.
+- Rail may show **status words only**: **Complete / Incomplete**, blocking-issue count, guardrail word (Pass / Warning / Blocked). **No internal dollar values** in the rail for 3I-2.
+- Internal profitability rail / drawer (cost/profit/margin dollars) is **deferred to 3I-3 or later**.
+
+### 4. `included` + unresolved quantity — **DECISION LOCKED**
+
+- **`included` + `quantityUnresolved` remains BLOCKING for 3I-2.**
+- **Reason:** even though the customer price is **$0**, internal cost / profit / material-order truth depends on quantity. Blocking is safer than allowing a fake "complete" total.
+- Revisit later only if product policy changes (e.g., included lines that never need quantity).
+
+### 5. Tests to add with 3I-2A (orchestrator)
+
+- `included` + unresolved quantity → **blocks** the option (locks decision §4).
+- Mixed section: `customer_visible` + `internal_only` + `included` → customer subtotal counts only visible; internal cost includes internal_only + included.
+- `grouped` + `customer_visible` in one section → section `customerSubtotalCents` rollup correctness.
+- Orchestrator **loops `resolveProposalPricing` per option** (engine returns `options: [single]` per call; orchestrator must not assume one call covers all options).
+- Orchestrator **customer DTO excludes** `profitCents`, `marginPct`, `markupPct`, `lineCostCents`, `internalCostCents`, `internalProfitCents`.
+
+### 6. Next implementation step — **3I-2A only**
+
+| Allowed | Detail |
+|---------|--------|
+| `app/lib/proposalBuilderPricingPreview.ts` | **New** — pure orchestrator: maps + prices all options (loop per option); returns DTO with separated customer-display vs internal data |
+| `app/lib/proposalBuilderPricingPreview.test.ts` | **New** — tests in §5 above |
+| `BUILDER_PREVIEW_PRICING_POLICY` | Single labeled preview-only policy constant (50% margin, 20% min, exact, `adjusted_measurement`, no tax, no discount, `actorRole: "rep"`) |
+
+**Forbidden in 3I-2A:**
+
+- **No** Builder UI wiring (no component changes)
+- **No** protected systems, persistence, SQL/migrations, old estimator/saved estimates
+- **No** Send / PDF / sign / payment / status
+
+**Stop for review after 3I-2A** before any Builder component wiring (3I-2B+).
 
 ---
 
@@ -1311,7 +1384,7 @@ Treat these as **known architecture risks** — not forgotten — when planning 
 7. ~~**3I-1 pricing engine decisions**~~ — **DONE** (§6H `ac589d8`; implemented §6I).
 8. ~~**3I-1A pure pricing engine**~~ — **DONE** (`162f9be`, `1ddee44`, `d67910d`).
 9. ~~**3I-1B pricing input mapper**~~ — **DONE** (`52b7148`).
-10. **3I-2 read-only Builder pricing preview** — **NEXT** — may call mapper + engine from Builder route only; **no persistence**, **no Send/Sign/Payment**; keep customer/internal separation.
+10. **3I-2 read-only Builder pricing preview** — **NEXT** — guardrails locked in **§6J**; start with **3I-2A** pure orchestrator (`proposalBuilderPricingPreview.ts` + tests + `BUILDER_PREVIEW_PRICING_POLICY`), **no UI**. Customer dollars in document only; internal profitability dollars deferred to **3I-3**; tabs/rail show status words only.
 11. **Jobs Board** remains saved-estimate spine — acceptable for 3I-2 if Builder uses `?job=`; migration **Future/Later**.
 
 ---
@@ -1766,7 +1839,7 @@ Committed **`0015be1`** after manual browser checks passed. **Do not move to 3G6
 
 **3I-1 (`162f9be`–`52b7148`) — COMPLETE:** See **§6I**. Pure engine, input hardening, 22 engine tests, input mapper, 16 mapper tests. **No Builder UI wiring.** **No persistence.**
 
-**3I-2 (next — requires explicit scope):** Read-only Builder pricing preview — call `mapProposalPricingInput` + `resolveProposalPricing` from Builder route only. Display option/customer totals read-only. **Must not** persist proposals. **Must not** enable Preview/Send/Sign/Payment. **Must** keep customer/internal separation. **No SQL/migrations.** **No protected systems.**
+**3I-2 (next — requires explicit scope; guardrails locked in §6J):** Read-only Builder pricing preview — call `mapProposalPricingInput` + `resolveProposalPricing` from Builder route only. Start with **3I-2A** pure orchestrator (no UI). Customer prices/totals in document canvas only with persistent preview banner; option tabs + rail show **status words only**; internal cost/profit/margin **dollars deferred to 3I-3**; `included` + unresolved stays blocking. **Must not** persist proposals. **Must not** enable Preview/Send/Sign/Payment. **No SQL/migrations.** **No protected systems.**
 
 Run parallel to legacy estimator; do not overwrite `useMemo` until validated and explicitly scoped.
 
