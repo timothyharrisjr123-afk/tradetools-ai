@@ -9,6 +9,9 @@
  *
  * Mapper follow-up (3I-1B): populate PricingLineInput.itemType from CatalogItem.item_type
  * so material purchase tax and labor unit cost resolution apply correctly.
+ *
+ * Input hardening (3I-1A.1): negative quantity → unsupported/block; negative profitability
+ * or fixed discount → unpriced or zero discount; quantity 0 → deliberate zero line amounts.
  */
 
 import type { CatalogItemType } from "@/app/lib/catalogTypes";
@@ -99,7 +102,7 @@ function deriveUnitCustomerPriceCents(
   policy: PricingPolicy
 ): number | null {
   const pct = policy.defaultProfitabilityPct;
-  if (!isFiniteNumber(pct)) return null;
+  if (!isFiniteNumber(pct) || pct < 0) return null;
 
   if (policy.profitabilityType === "margin") {
     if (pct >= 100) return null;
@@ -111,6 +114,7 @@ function deriveUnitCustomerPriceCents(
   return roundHalfUpCents(effectiveCost * (1 + pct / 100));
 }
 
+/** Resolved quantity when not flagged unresolved; null if missing/non-finite. */
 function lineQuantity(line: PricingLineInput): number | null {
   if (line.quantityUnresolved) return null;
   if (!isFiniteNumber(line.quantity)) return null;
@@ -180,6 +184,20 @@ function priceLine(line: PricingLineInput, policy: PricingPolicy): PricedLineCor
       unitPriceCents: finiteCents(line.unitPriceCents),
       linePriceCents: null,
       notes: null,
+    };
+  }
+
+  if (qty < 0) {
+    return {
+      status: "unsupported",
+      unresolved: true,
+      blocking: true,
+      unitCostCents: finiteCents(line.unitCostCents),
+      effectiveUnitCostCents: null,
+      lineCostCents: null,
+      unitPriceCents: finiteCents(line.unitPriceCents),
+      linePriceCents: null,
+      notes: "Invalid negative quantity",
     };
   }
 
@@ -430,6 +448,10 @@ function computeDiscountCents(
   if (discount.kind === "percent") {
     const pct = Math.max(0, Math.min(100, discount.value));
     return roundHalfUpCents((customerSubtotalCents * pct) / 100);
+  }
+
+  if (discount.value < 0) {
+    return 0;
   }
 
   return Math.min(roundHalfUpCents(discount.value), customerSubtotalCents);
