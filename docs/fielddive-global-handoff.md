@@ -9,11 +9,11 @@
 - `docs/fielddive-estimate-proposal-flow-model.md` — estimate/proposal UX model notes
 - `docs/fielddive-feature-placement-map.md` — feature placement matrix
 
-**Last updated checkpoint:** **3I-2 read-only Builder pricing preview complete** (`637b85a` — pricing status surfaces). **3I-2 commit chain:** **3I-2A** orchestrator (`5626c47`); **3I-2B** customer document pricing UI (`f5bbd84`); **3I-2C** option-tab + rail status surfaces (`637b85a`). **Prior:** **3I-1 pricing foundation** (`52b7148`); **post-3I-1 audit + guardrails** (`8f12db2`); **3H-3** (`40e6720`); **3H-2** (`00fbf64`); **3H-1** (`feec663`). **Working tree:** clean at `637b85a` (handoff doc update pending review). **Typecheck:** only **6** pre-existing errors in `app/tools/roofing-v2/RoofingClientV2.tsx` — unchanged. **Protected systems:** legacy `RoofingClient.tsx` pricing `useMemo`, payments, approval, status, saved estimates, send/PDF **untouched**.
+**Last updated checkpoint:** **3I-3B1 pure company pricing policy resolver** (pending review — §6M). **Prior:** **3I-3A pricing-policy source-of-truth spec** (`0f66a7b` — §6L). **3I-2 read-only Builder pricing preview complete** (`637b85a`). **Working tree:** 3I-3B1 files pending review (no commit). **Typecheck:** only **6** pre-existing errors in `app/tools/roofing-v2/RoofingClientV2.tsx` — unchanged. **Protected systems:** legacy `RoofingClient.tsx` pricing `useMemo`, payments, approval, status, saved estimates, send/PDF **untouched**.
 
 **Jobs Board approved save point:** `b27a444` (3F9B4-RoofrExact). **Prior Job Board checkpoint:** `36fa3a9` (3F9B3).
 
-**Next (recommended):** **Review + commit this docs update (3I-3A spec — §6L)** → **3I-3B** resolve real company pricing policy + retire `BUILDER_PREVIEW_PRICING_POLICY` placeholder (minimal source/settings; SQL only if needed). **No code** beyond the 3I-3A spec until 3I-3B is scoped. **Do not** persist proposals (3J), snapshot pricing, enable Preview/Send/Sign/Payment, or add internal profitability dollars without explicit scope.
+**Next (recommended):** **Review + commit 3I-3B1** (`companyPricingPolicy.ts` + tests + §6M) → **3I-3B2** persistence (`company_pricing_policies` table + store) → **3I-3B3** settings UI + Builder wiring + retire `BUILDER_PREVIEW_PRICING_POLICY`. **Do not** persist proposals (3J), snapshot pricing, enable Preview/Send/Sign/Payment, or add internal profitability dollars without explicit scope.
 
 ### Recent committed sequence (3G6 spine + execution surfaces + 3H + 3I pricing foundation + 3I-2 Builder preview)
 
@@ -1370,6 +1370,68 @@ Real company policy will source these (shape mirrors existing `PricingPolicy`):
 
 ---
 
+## 6M. COMPANY PRICING POLICY RESOLVER — 3I-3B1 (pure lib + tests — no SQL/UI/Builder)
+
+**Status:** **3I-3B1 complete (pending review).** Pure policy-resolution contract only. **No SQL, no UI, no Builder wiring, no orchestrator change.** Builder still uses `BUILDER_PREVIEW_PRICING_POLICY` until **3I-3B3**.
+
+### 1. What shipped (3I-3B1)
+
+| Artifact | Role |
+|----------|------|
+| `app/lib/companyPricingPolicy.ts` | Pure resolver: `resolveCompanyPricingPolicy(source)`, `validateCompanyPricingPolicy`, `DEFAULT_STARTER_PRICING_POLICY`, `resolveStarterPricingPolicySeed` |
+| `app/lib/companyPricingPolicy.test.ts` | Node built-in tests — configured/missing/invalid/starter/pass-through/stable shape |
+| **§6M (this section)** | Handoff lock for 3I-3B split |
+
+**Resolution contract (`CompanyPricingPolicyResolution`):**
+
+- `configured: boolean` — `true` only when a **valid stored company policy** was supplied.
+- `source: "company" \| "starter_default" \| "missing"` — where the result came from.
+- `policy: PricingPolicy \| null` — resolved policy when configured; `null` when missing/invalid.
+- `reason: string \| null` — human-readable message when not configured.
+
+**Rules (locked):**
+
+- Real stored company policy present and valid → `configured: true`, `source: "company"`.
+- Missing or invalid policy → `configured: false`, `source: "missing"`, `policy: null` — **never** silently treat starter as real company policy.
+- `DEFAULT_STARTER_PRICING_POLICY` / `resolveStarterPricingPolicySeed()` → settings-form seed only (`source: "starter_default"`, `configured: false`). **Not persisted, not snapshotted, not sendable, not a customer quote.**
+- No Supabase, localStorage, `companyProfile.ts`, I/O, writes, or runtime side effects.
+
+### 2. Storage decision (for 3I-3B2 — not implemented in 3I-3B1)
+
+- **Preferred:** new **`company_pricing_policies`** table (one row per company, FK to `companies`).
+- **Rejected/deferred:** adding pricing columns directly to **`companies`** — blast radius too high; profile row already owns unrelated fields.
+- **3I-3B2 next:** migration + read/write store that feeds `storedPolicy` into `resolveCompanyPricingPolicy()`.
+
+### 3. Precedence (unchanged from §6L — 3I-3B scope)
+
+1. **Company default pricing policy** — **first and only real source in 3I-3B** (layer 1).
+2. **Template override** — **deferred**.
+3. **Proposal/job override** — **deferred**.
+
+**Missing policy:** Builder remains **preview-only / non-sendable** (existing banner + placeholder until 3I-3B3 wiring).
+
+**Placeholder policy lock (unchanged):** `BUILDER_PREVIEW_PRICING_POLICY` (50% margin preview default) **must not** be persisted, snapshotted, or treated as company configuration. It remains Builder preview-only until **3I-3B3** retires it on the configured path.
+
+**3J deferral:** Proposal records/snapshots (**3J**) remain **deferred until real company policy exists** (3I-3B2 + 3I-3B3). Do not persist or snapshot placeholder/starter policy values.
+
+### 4. Next slices
+
+| Slice | Scope |
+|-------|--------|
+| **3I-3B2** | Persistence decision + SQL migration + store (`company_pricing_policies`) |
+| **3I-3B3** | Settings UI + wire Builder Client to pass resolved `policy` + retire `BUILDER_PREVIEW_PRICING_POLICY` on configured path |
+| **3I-3C** | Internal profitability rail (after real policy) |
+| **3J** | Proposal snapshots/persistence — **after 3I-3** |
+
+### 5. Boundaries (3I-3B1)
+
+- **No** SQL/migrations, UI, Builder/orchestrator/engine/mapper changes.
+- **No** PDF / send / sign / payment / status.
+- **No** proposal persistence or snapshots.
+- **No** protected systems touched.
+
+---
+
 ## 7. IMPORTANT ARCHITECTURE BOUNDARIES
 
 | Concept | Owns |
@@ -1398,7 +1460,7 @@ Real company policy will source these (shape mirrors existing `PricingPolicy`):
 
 **3G6 — COMPLETE** (3G6A–E + Templates D2 `227061c` + Catalog D2 `29ca190`). **3F9C Job Card** — COMPLETE (`0015be1`). **3H-1 shell** — COMPLETE (`feec663`). **3H-2 read-only preview** — COMPLETE (`00fbf64`). **3H-3 read-only quantity preview** — COMPLETE (`40e6720`). **3I-0 type contract** — COMPLETE (`6f9cbe1`). **3I-1 pure engine + mapper + tests** — COMPLETE (`162f9be`–`52b7148`). **3I-2 Builder pricing preview (A/B/C)** — COMPLETE (`5626c47`–`637b85a`). **Pre-3H-2 correction** — COMPLETE (`abd718d`). **Packet session bleed fix** — COMPLETE (`c12ea4d`). **Jobs Board save point:** `b27a444`.
 
-**Immediate next:** **Review + commit 3I-3A spec (§6L)** → **3I-3B** resolve real company pricing policy + retire placeholder. **No code** beyond the 3I-3A spec until 3I-3B is scoped. **Do not** start 3J (SQL/persistence), 3K (PDF/send adapters), or internal profitability dollars without explicit scope (see **§6K**, **§6L**, **§11**).
+**Immediate next:** **Review + commit 3I-3B1** (§6M) → **3I-3B2** persistence → **3I-3B3** settings UI + Builder wiring. **Do not** start 3J (SQL/persistence), 3K (PDF/send adapters), or internal profitability dollars without explicit scope (see **§6K**, **§6L**, **§6M**, **§11**).
 
 **Optional (non-blocking):** Job Card tab extraction polish, Job Packet legacy gating, handoff-only doc updates.
 
