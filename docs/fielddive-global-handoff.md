@@ -13,7 +13,7 @@
 
 **Jobs Board approved save point:** `b27a444` (3F9B4-RoofrExact). **Prior Job Board checkpoint:** `36fa3a9` (3F9B3).
 
-**Next (recommended):** **Review + commit this handoff update (docs)** → **Opus architecture pass** to choose next phase (**3I-3** company pricing policy / internal profitability planning **OR** **3J** proposal snapshot persistence planning). **No code** until next phase is planned and scoped. **Do not** persist proposals (3J), enable Preview/Send/Sign/Payment, or add internal profitability dollars without explicit scope.
+**Next (recommended):** **Review + commit this docs update (3I-3A spec — §6L)** → **3I-3B** resolve real company pricing policy + retire `BUILDER_PREVIEW_PRICING_POLICY` placeholder (minimal source/settings; SQL only if needed). **No code** beyond the 3I-3A spec until 3I-3B is scoped. **Do not** persist proposals (3J), snapshot pricing, enable Preview/Send/Sign/Payment, or add internal profitability dollars without explicit scope.
 
 ### Recent committed sequence (3G6 spine + execution surfaces + 3H + 3I pricing foundation + 3I-2 Builder preview)
 
@@ -1252,10 +1252,121 @@ Read-only audit of `proposalPricingTypes.ts`, `proposalPricingEngine.ts` (+ test
 | **3I-3** — Company pricing policy + internal profitability | Do we build company pricing policy controls and internal profitability rail **first**? |
 | **3J** — Proposal snapshot persistence | Or proposal record / line snapshot persistence **first**? |
 
-**Decide before code:**
+**Decided (Opus architecture pass, `38081c0`):** **3I-3 before 3J**, starting with **3I-3A pricing-policy source-of-truth spec (docs/types only)** — see **§6L**. Rationale: persisting/snapshotting the placeholder 50% policy would persist a lie; real company/template pricing must exist before proposal records/snapshots; draft pricing stays **live** until send per `PRICING_SNAPSHOT_INTENTS`.
 
-- Company pricing policy controls vs proposal snapshot persistence vs internal profitability rail — **pick one spine next**.
-- **No implementation** until next phase is explicitly scoped and guardrailed.
+---
+
+## 6L. PRICING POLICY SOURCE OF TRUTH — 3I-3A SPEC (docs/types only — no runtime)
+
+**Status:** Specification slice. **No runtime behavior, no UI, no SQL, no persistence, no engine/mapper/orchestrator change.** Locks the pricing-policy source of truth **before** any further pricing UI (3I-3B/C), persistence (3J), or migrations. Builder still runs `BUILDER_PREVIEW_PRICING_POLICY` (50% placeholder) until 3I-3B.
+
+### 1. Why 3I-3A comes before 3J
+
+- **Persisting the placeholder = persisting a lie.** `BUILDER_PREVIEW_PRICING_POLICY` is a loudly-disclaimed 50% margin ("not your company's configured pricing. Not a customer quote."). A proposal record or snapshot of those numbers gives permanence to data the UI itself says is fake.
+- **Real policy is the precondition for meaningful persistence.** Company (and later template/job) pricing must resolve to real numbers before a draft proposal or a snapshot has value.
+- **Draft pricing stays live until send.** The 3I-0 contract already encodes this — every field class in `PRICING_SNAPSHOT_INTENTS` is `liveOnlyInDraft: true` with `freezeStage: "freeze_on_send"` (or `lock_on_sign` for `option_selection`). A draft proposal record can exist while pricing recomputes live; it does **not** freeze policy.
+- **Snapshot/freeze belongs at send, not now.** Building freeze/lock semantics before send exists is speculative.
+
+### 2. Pricing policy source precedence (proposed)
+
+Resolution order for the effective `PricingPolicy` (highest precedence wins per field, later layers optional and deferred):
+
+1. **Company default pricing policy** — the base real policy (3I-3B target source).
+2. **Template override** *(optional, later)* — per-`ProposalTemplate` adjustments; **deferred**.
+3. **Proposal/job override** *(optional, later)* — per-proposal adjustments; **deferred**.
+
+**Fallback when no company policy exists:**
+
+- Builder must remain **clearly labeled preview-only** (existing banner) **or block sendability**.
+- The placeholder may be used **only** as a labeled preview default — never silently treated as real configuration.
+
+**Decided:**
+
+- **3I-3B replaces `BUILDER_PREVIEW_PRICING_POLICY` with resolved company policy** in the production-ready Builder pricing path.
+- Until company policy is configured, Builder stays preview-only / non-sendable.
+
+### 3. Placeholder policy retirement plan
+
+`BUILDER_PREVIEW_PRICING_POLICY`:
+
+- **Is temporary** — preview-only assumption.
+- **Must not be persisted.**
+- **Must not be snapshotted.**
+- **Must not be treated as company configuration.**
+- **Replaced by resolved company policy in 3I-3B.**
+- Banner copy remains required while any placeholder/preview policy is in effect.
+
+### 4. Company pricing policy settings (future fields — 3I-3B)
+
+Real company policy will source these (shape mirrors existing `PricingPolicy`):
+
+| Field | 3I-3B intent |
+|-------|--------------|
+| `profitabilityType` | `margin` \| `markup` |
+| `defaultProfitabilityPct` | company default |
+| `minimumProfitabilityPct` | company floor (guardrail input) |
+| `quantityRounding` | **`exact` only** for now |
+| `wasteModel` | **`adjusted_measurement` only** for now |
+| `salesTaxRatePct` | company default sales tax |
+| `materialPurchaseTaxRatePct` | internal material purchase tax (materials-only) |
+| `discount` policy | **deferred** unless explicitly scoped |
+| `subtotalOverrideCents` | **deferred** |
+| manager override | **deferred** |
+
+### 5. Guardrail policy
+
+- Guardrail remains **return-only** (`pass | warn | block`) — see §6I/§6J.
+- Rep/manager behavior stays **typed but not enforced**.
+- **Enforcement / send-blocking deferred.**
+- **Manager override deferred.**
+
+### 6. Draft/live vs snapshot/freeze model (confirm — no change)
+
+- **Builder draft pricing is live / recomputed** every render from current job/measurement/catalog/template + resolved policy.
+- **Proposal draft record (3J) persists references / option selection / customer copy — not frozen pricing.**
+- **Snapshot freezes pricing at send** (`freeze_on_send`).
+- **`lock_on_sign`** remains later for signed option/terms.
+- `PRICING_SNAPSHOT_INTENTS` already supports this; **no behavior change** in 3I-3A. Additive types/JSDoc only if clarification is needed.
+
+### 7. 3I-3B (next after 3I-3A)
+
+- Resolve **company pricing policy** (precedence layer 1).
+- **Remove placeholder** from the production-ready Builder pricing path.
+- **Minimal settings / source only** — not a full pricing admin suite.
+- **SQL only if** policy cannot live in an existing company/settings structure.
+- **No internal profitability rail yet.**
+
+### 8. 3I-3C (after 3I-3B)
+
+- Internal profitability rail/drawer — **after** real policy resolution.
+- May show internal cost / profit / margin **dollars**.
+- **Internal-only** — never customer-facing.
+- **Does not** enable send / sign / payment.
+
+### 9. 3J (after 3I-3)
+
+- **3J0** — proposal snapshot/record architecture, **docs/types only**.
+- **3J1** — SQL + draft records, **after** policy source is real.
+- **No PDF / send / sign / payment** until 3J is stable.
+
+### 10. Decisions required before any SQL
+
+1. **Where company pricing policy is stored** (existing company/settings store vs new table).
+2. **Whether template overrides exist** (and precedence).
+3. **Whether proposal/job overrides exist** (and precedence).
+4. **What a draft proposal persists vs recomputes** (persist references/selection/copy; recompute pricing live until send).
+5. **Lifecycle states** (draft → sent → signed) and which `freezeStage` each triggers.
+6. **Freeze-stage rules** confirmed against `PRICING_SNAPSHOT_INTENTS`.
+7. **Policy versioning / audit expectations** (does a sent proposal record which policy version produced it?).
+
+### Boundaries (3I-3A)
+
+- **No** runtime behavior, UI, SQL/migrations, persistence, or snapshots.
+- **No** engine / mapper / orchestrator / Builder UI changes.
+- **No** PDF / send / sign / payment / status.
+- **No** old estimator / saved-estimate / `loadSaved` coupling.
+- **No** protected systems touched.
+- Optional: additive types/JSDoc in `proposalPricingTypes.ts` only — no engine behavior, no runtime UI imports.
 
 ---
 
@@ -1287,7 +1398,7 @@ Read-only audit of `proposalPricingTypes.ts`, `proposalPricingEngine.ts` (+ test
 
 **3G6 — COMPLETE** (3G6A–E + Templates D2 `227061c` + Catalog D2 `29ca190`). **3F9C Job Card** — COMPLETE (`0015be1`). **3H-1 shell** — COMPLETE (`feec663`). **3H-2 read-only preview** — COMPLETE (`00fbf64`). **3H-3 read-only quantity preview** — COMPLETE (`40e6720`). **3I-0 type contract** — COMPLETE (`6f9cbe1`). **3I-1 pure engine + mapper + tests** — COMPLETE (`162f9be`–`52b7148`). **3I-2 Builder pricing preview (A/B/C)** — COMPLETE (`5626c47`–`637b85a`). **Pre-3H-2 correction** — COMPLETE (`abd718d`). **Packet session bleed fix** — COMPLETE (`c12ea4d`). **Jobs Board save point:** `b27a444`.
 
-**Immediate next:** **Review + commit handoff update (docs)** → **Opus architecture pass** for next phase (**3I-3** pricing policy / internal profitability **OR** **3J** proposal snapshot persistence). **No code** until next phase is planned. **Do not** start 3J (SQL/persistence), 3K (PDF/send adapters), or internal profitability dollars without explicit scope (see **§6K**, **§11**).
+**Immediate next:** **Review + commit 3I-3A spec (§6L)** → **3I-3B** resolve real company pricing policy + retire placeholder. **No code** beyond the 3I-3A spec until 3I-3B is scoped. **Do not** start 3J (SQL/persistence), 3K (PDF/send adapters), or internal profitability dollars without explicit scope (see **§6K**, **§6L**, **§11**).
 
 **Optional (non-blocking):** Job Card tab extraction polish, Job Packet legacy gating, handoff-only doc updates.
 
@@ -1467,7 +1578,7 @@ Use this section as the **ordered checklist** for future GPT/Cursor sessions. Kn
 
 **Latest code checkpoint:** **3I-2 read-only Builder pricing preview complete** (`637b85a`). **3I-2:** `5626c47`–`637b85a`. **3I-1:** `162f9be`–`52b7148`. **3H-3:** `40e6720`. **3H-2:** `00fbf64`. **3H-1:** `feec663`. **Packet session bleed fix:** `c12ea4d`. **Pre-3H-2:** `abd718d`.  
 **Jobs Board approved save point:** **3F9B4-RoofrExact** (`b27a444`).  
-**Latest handoff doc checkpoint:** **3I-2 complete** (§6K — docs pending commit) — **next: Opus architecture pass → choose 3I-3 vs 3J before any code**.
+**Latest handoff doc checkpoint:** **3I-3A pricing-policy source-of-truth spec** (§6L — docs pending commit; decision: 3I-3 before 3J) — **next: 3I-3B resolve real company pricing policy + retire placeholder**.
 
 **Completed working state (summary):**
 
@@ -1534,8 +1645,10 @@ Treat these as **known architecture risks** — not forgotten — when planning 
 8. ~~**3I-1A pure pricing engine**~~ — **DONE** (`162f9be`, `1ddee44`, `d67910d`).
 9. ~~**3I-1B pricing input mapper**~~ — **DONE** (`52b7148`).
 10. ~~**3I-2 read-only Builder pricing preview**~~ — **DONE** (`5626c47`–`637b85a`) — see **§6K**.
-11. **Next phase planning (Opus pass)** — choose **3I-3** (company pricing policy / internal profitability) **OR** **3J** (proposal snapshot persistence) — **no code until scoped**.
-12. **Jobs Board** remains saved-estimate spine — acceptable for Builder `?job=`; migration **Future/Later**.
+11. **3I-3A pricing-policy source-of-truth spec** — **DOCS-ONLY (current)** — see **§6L**. Decision: **3I-3 before 3J**.
+12. **3I-3B resolve real company pricing policy** — **NEXT** — replace `BUILDER_PREVIEW_PRICING_POLICY`; minimal source/settings; SQL only if policy needs a table; **no internal profitability rail yet**.
+13. **3I-3C internal profitability rail** → **3J0 snapshot types** → **3J1 persistence (SQL)** — in that order; see **§6L**.
+14. **Jobs Board** remains saved-estimate spine — acceptable for Builder `?job=`; migration **Future/Later**.
 
 ---
 
