@@ -212,6 +212,18 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
     });
   }, [starterGraph, activeCatalogItems, measurementHandoff, measurementQuantityMap, selectedOptionId]);
 
+  const effectiveSelectedOptionId = useMemo(
+    () =>
+      selectedOptionId ??
+      (starterGraph ? getDefaultSelectedOptionId(starterGraph) : null),
+    [selectedOptionId, starterGraph]
+  );
+
+  const selectedOptionPricingStatus = useMemo(() => {
+    if (!pricingPreview || !effectiveSelectedOptionId) return null;
+    return pricingPreview.byOptionId[effectiveSelectedOptionId]?.status ?? null;
+  }, [pricingPreview, effectiveSelectedOptionId]);
+
   const catalogReadiness = useMemo(
     () => deriveCatalogReadiness(activeCatalogItems, CATALOG_STARTER_DEFINITION_COUNT),
     [activeCatalogItems]
@@ -287,6 +299,7 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
               catalogReadiness={catalogReadiness}
               templateReadiness={templateReadiness}
               starterGraph={starterGraph}
+              selectedOptionPricingStatus={selectedOptionPricingStatus}
             />
           }
         />

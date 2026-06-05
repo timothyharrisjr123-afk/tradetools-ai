@@ -6,11 +6,17 @@ import {
   formatProposalQuantitiesDisplay,
   type MeasurementProposalHandoff,
 } from "@/app/lib/measurementProposalHandoff";
+import type { ProposalBuilderOptionStatus } from "@/app/lib/proposalBuilderPricingPreview";
 import type { ProposalTemplateReadiness } from "@/app/lib/proposalTemplateTypes";
 import { formatProposalTemplateReadinessLabel } from "@/app/lib/proposalTemplateReadiness";
 import { proposalTemplateReadinessStatusPillClass } from "@/app/lib/proposalTemplateReadiness";
 import { catalogReadinessStatusPillClass } from "@/app/tools/roofing/templates/templatesConstants";
-import { BUILDER_CARD, BUILDER_RAIL_STAT } from "./proposalBuilderConstants";
+import {
+  BUILDER_CARD,
+  BUILDER_RAIL_STAT,
+  formatGuardrailOutcomeLabel,
+  formatOptionPricingTabStatusLabel,
+} from "./proposalBuilderConstants";
 import type { ProposalTemplateGraph } from "@/app/lib/proposalTemplateStore";
 
 type ProposalBuilderSummaryRailProps = {
@@ -18,6 +24,8 @@ type ProposalBuilderSummaryRailProps = {
   catalogReadiness: CatalogReadinessSummary;
   templateReadiness: ProposalTemplateReadiness;
   starterGraph: ProposalTemplateGraph | null;
+  /** Selected option pricing status — words only, no dollars. */
+  selectedOptionPricingStatus: ProposalBuilderOptionStatus | null;
 };
 
 function RailStat({ label, value }: { label: string; value: string }) {
@@ -34,6 +42,7 @@ export default function ProposalBuilderSummaryRail({
   catalogReadiness,
   templateReadiness,
   starterGraph,
+  selectedOptionPricingStatus,
 }: ProposalBuilderSummaryRailProps) {
   const quantitiesDisplay = measurementHandoff
     ? formatProposalQuantitiesDisplay(measurementHandoff.quantities)
@@ -75,6 +84,22 @@ export default function ProposalBuilderSummaryRail({
           </div>
           <p className="mt-1 text-xs text-slate-600">{templateName}</p>
         </div>
+        {selectedOptionPricingStatus ? (
+          <div className={BUILDER_RAIL_STAT}>
+            <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">Pricing</p>
+            <div className="mt-1 space-y-1">
+              <p className="text-sm font-medium text-slate-900">
+                {formatOptionPricingTabStatusLabel(selectedOptionPricingStatus.pricingComplete)}
+              </p>
+              <p className="text-xs text-slate-600">
+                Blocking issues: {selectedOptionPricingStatus.blockingLineCount}
+              </p>
+              <p className="text-xs text-slate-600">
+                Guardrail: {formatGuardrailOutcomeLabel(selectedOptionPricingStatus.guardrailOutcome)}
+              </p>
+            </div>
+          </div>
+        ) : null}
       </div>
       <p className="text-xs leading-relaxed text-slate-500">
         Margin, markup, customer preview, send, sign, and payment controls are disabled in this

@@ -30,6 +30,41 @@ export const BUILDER_OPTION_TAB =
 export const BUILDER_OPTION_TAB_ACTIVE =
   "rounded-full border border-slate-900 bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm";
 
+/** Small per-option pricing status pill on option tabs (3I-2C). */
+export const BUILDER_OPTION_PRICING_STATUS_PILL =
+  "ml-2 inline-flex shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide";
+
+export const BUILDER_OPTION_PRICING_STATUS_PILL_COMPLETE =
+  "bg-emerald-100 text-emerald-800";
+
+export const BUILDER_OPTION_PRICING_STATUS_PILL_INCOMPLETE =
+  "bg-amber-100 text-amber-800";
+
+export const BUILDER_OPTION_PRICING_STATUS_PILL_COMPLETE_ON_ACTIVE =
+  "bg-white/20 text-emerald-100";
+
+export const BUILDER_OPTION_PRICING_STATUS_PILL_INCOMPLETE_ON_ACTIVE =
+  "bg-white/20 text-amber-100";
+
+/** Option tab / rail pricing status words only — no dollars. */
+export function formatOptionPricingTabStatusLabel(pricingComplete: boolean): string {
+  return pricingComplete ? "Complete" : "Incomplete";
+}
+
+/** Guardrail outcome → display word (informational only). */
+export function formatGuardrailOutcomeLabel(outcome: "pass" | "warn" | "block"): string {
+  switch (outcome) {
+    case "pass":
+      return "Pass";
+    case "warn":
+      return "Warning";
+    case "block":
+      return "Blocked";
+    default:
+      return "Blocked";
+  }
+}
+
 /** Desk/surface behind the proposal page. */
 export const BUILDER_DOCUMENT_SURFACE =
   "rounded-lg border border-slate-200/60 bg-slate-100/70 p-4 sm:p-6";

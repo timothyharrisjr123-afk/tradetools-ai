@@ -62,6 +62,15 @@ export default function ProposalBuilderCanvas({
       ? (pricingPreview?.byOptionId[effectiveOptionId]?.customer ?? null)
       : null;
 
+  const optionPricingCompleteById = pricingPreview
+    ? Object.fromEntries(
+        Object.entries(pricingPreview.byOptionId).map(([optionId, preview]) => [
+          optionId,
+          preview.status.pricingComplete,
+        ])
+      )
+    : undefined;
+
   if (!starterGraph) {
     return (
       <div className={BUILDER_DOCUMENT_SURFACE}>
@@ -99,6 +108,7 @@ export default function ProposalBuilderCanvas({
             graph={starterGraph}
             selectedOptionId={effectiveOptionId}
             onSelectOption={onSelectOption}
+            optionPricingCompleteById={optionPricingCompleteById}
           />
 
           {measurementContextLine ? (
