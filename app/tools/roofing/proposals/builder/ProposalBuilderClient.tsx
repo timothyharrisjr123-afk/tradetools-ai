@@ -28,6 +28,9 @@ import {
   buildProposalBuilderPricingPreview,
   type ProposalBuilderPricingPreview,
 } from "@/app/lib/proposalBuilderPricingPreview";
+import { getResolvedCompanyPricingPolicy } from "@/app/lib/companyPricingPolicyStore";
+import type { CompanyPricingPolicyResolution } from "@/app/lib/companyPricingPolicy";
+import type { PricingPolicy } from "@/app/lib/proposalPricingTypes";
 import { findStarterProposalTemplate } from "@/app/tools/roofing/templates/templatesSetupUtils";
 import ProposalBuilderBlockedState from "./ProposalBuilderBlockedState";
 import ProposalBuilderCanvas from "./ProposalBuilderCanvas";
@@ -63,6 +66,13 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
   const [templateLoadComplete, setTemplateLoadComplete] = useState(false);
   const [templateError, setTemplateError] = useState<string | null>(null);
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
+
+  // 3I-3B3c: resolved company pricing policy. Builder reads ONLY the resolver
+  // (getResolvedCompanyPricingPolicy) — never raw getCompanyPricingPolicy — and
+  // never auto-saves or writes any policy from here.
+  const [pricingResolution, setPricingResolution] =
+    useState<CompanyPricingPolicyResolution | null>(null);
+  const [pricingPolicyLoadComplete, setPricingPolicyLoadComplete] = useState(false);
 
   const loadJobContext = useCallback(async () => {
     setJobLoadComplete(false);
@@ -174,6 +184,19 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
     }
   }, [companyId]);
 
+  const loadPricingPolicy = useCallback(async () => {
+    setPricingPolicyLoadComplete(false);
+    try {
+      const resolution = await getResolvedCompanyPricingPolicy(companyId);
+      setPricingResolution(resolution);
+    } catch (err) {
+      console.warn("[ProposalBuilderClient] pricing policy resolve error:", err);
+      setPricingResolution(null);
+    } finally {
+      setPricingPolicyLoadComplete(true);
+    }
+  }, [companyId]);
+
   useEffect(() => {
     void loadJobContext();
   }, [loadJobContext]);
@@ -185,6 +208,10 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
   useEffect(() => {
     void loadTemplates();
   }, [loadTemplates]);
+
+  useEffect(() => {
+    void loadPricingPolicy();
+  }, [loadPricingPolicy]);
 
   useEffect(() => {
     if (!starterGraph) {
@@ -199,6 +226,18 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
     [catalogItems]
   );
 
+  // 3I-3B3c: Only a resolved, configured company policy is used. Starter/default
+  // never masquerades as configured — when not configured we leave `policy`
+  // undefined so the orchestrator's placeholder fallback applies.
+  const configuredPolicy = useMemo<PricingPolicy | null>(
+    () =>
+      pricingResolution?.configured && pricingResolution.policy
+        ? pricingResolution.policy
+        : null,
+    [pricingResolution]
+  );
+  const pricingPolicyConfigured = configuredPolicy != null;
+
   const pricingPreview = useMemo<ProposalBuilderPricingPreview | null>(() => {
     if (!starterGraph || activeCatalogItems.length === 0) return null;
     return buildProposalBuilderPricingPreview({
@@ -209,8 +248,16 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
         quantityMap: measurementQuantityMap,
       },
       selectedOptionId,
+      ...(configuredPolicy ? { policy: configuredPolicy } : {}),
     });
-  }, [starterGraph, activeCatalogItems, measurementHandoff, measurementQuantityMap, selectedOptionId]);
+  }, [
+    starterGraph,
+    activeCatalogItems,
+    measurementHandoff,
+    measurementQuantityMap,
+    selectedOptionId,
+    configuredPolicy,
+  ]);
 
   const effectiveSelectedOptionId = useMemo(
     () =>
@@ -291,6 +338,7 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
               measurementHandoff={measurementHandoff}
               measurementQuantityMap={measurementQuantityMap}
               pricingPreview={pricingPreview}
+              pricingPolicyConfigured={pricingPolicyConfigured}
             />
           }
           summaryRail={
@@ -300,6 +348,8 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
               templateReadiness={templateReadiness}
               starterGraph={starterGraph}
               selectedOptionPricingStatus={selectedOptionPricingStatus}
+              pricingPolicyConfigured={pricingPolicyConfigured}
+              pricingPolicyLoadComplete={pricingPolicyLoadComplete}
             />
           }
         />

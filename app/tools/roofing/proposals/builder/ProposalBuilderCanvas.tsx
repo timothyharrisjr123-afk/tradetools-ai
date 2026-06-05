@@ -27,6 +27,8 @@ type ProposalBuilderCanvasProps = {
   measurementHandoff: MeasurementProposalHandoff | null;
   measurementQuantityMap: MeasurementQuantityMap | null;
   pricingPreview: ProposalBuilderPricingPreview | null;
+  /** 3I-3B3c: drives preview banner/footer copy. Defaults to placeholder behavior. */
+  pricingPolicyConfigured?: boolean;
 };
 
 function buildMeasurementContextLine(handoff: MeasurementProposalHandoff | null): string | null {
@@ -44,6 +46,7 @@ export default function ProposalBuilderCanvas({
   measurementHandoff,
   measurementQuantityMap,
   pricingPreview,
+  pricingPolicyConfigured = false,
 }: ProposalBuilderCanvasProps) {
   const templateName = starterGraph?.template.name ?? STARTER_TEMPLATE_DISPLAY_NAME;
   const effectiveOptionId =
@@ -129,12 +132,16 @@ export default function ProposalBuilderCanvas({
                 measurementHandoff={measurementHandoff}
                 measurementQuantityMap={measurementQuantityMap}
                 optionCustomerView={optionCustomerView}
+                pricingPolicyConfigured={pricingPolicyConfigured}
               />
             ))
           )}
         </div>
 
-        <ProposalBuilderDocumentTotals optionCustomerView={optionCustomerView} />
+        <ProposalBuilderDocumentTotals
+          optionCustomerView={optionCustomerView}
+          pricingPolicyConfigured={pricingPolicyConfigured}
+        />
       </article>
     </div>
   );

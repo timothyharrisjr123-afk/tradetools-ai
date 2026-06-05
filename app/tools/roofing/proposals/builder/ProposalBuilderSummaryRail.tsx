@@ -16,6 +16,7 @@ import {
   BUILDER_RAIL_STAT,
   formatGuardrailOutcomeLabel,
   formatOptionPricingTabStatusLabel,
+  formatPricingPolicyConfiguredLabel,
 } from "./proposalBuilderConstants";
 import type { ProposalTemplateGraph } from "@/app/lib/proposalTemplateStore";
 
@@ -26,7 +27,19 @@ type ProposalBuilderSummaryRailProps = {
   starterGraph: ProposalTemplateGraph | null;
   /** Selected option pricing status — words only, no dollars. */
   selectedOptionPricingStatus: ProposalBuilderOptionStatus | null;
+  /** 3I-3B3c: company pricing policy configured (status-only; no policy detail). */
+  pricingPolicyConfigured?: boolean;
+  /** 3I-3B3c: resolver fetch finished — drives Checking vs Configured/Not configured. */
+  pricingPolicyLoadComplete?: boolean;
 };
+
+function pricingPolicyRailStatusLabel(
+  loadComplete: boolean,
+  configured: boolean
+): string {
+  if (!loadComplete) return "Checking…";
+  return formatPricingPolicyConfiguredLabel(configured);
+}
 
 function RailStat({ label, value }: { label: string; value: string }) {
   return (
@@ -43,6 +56,8 @@ export default function ProposalBuilderSummaryRail({
   templateReadiness,
   starterGraph,
   selectedOptionPricingStatus,
+  pricingPolicyConfigured = false,
+  pricingPolicyLoadComplete = false,
 }: ProposalBuilderSummaryRailProps) {
   const quantitiesDisplay = measurementHandoff
     ? formatProposalQuantitiesDisplay(measurementHandoff.quantities)
@@ -84,9 +99,18 @@ export default function ProposalBuilderSummaryRail({
           </div>
           <p className="mt-1 text-xs text-slate-600">{templateName}</p>
         </div>
+        <RailStat
+          label="Pricing policy"
+          value={pricingPolicyRailStatusLabel(
+            pricingPolicyLoadComplete,
+            pricingPolicyConfigured
+          )}
+        />
         {selectedOptionPricingStatus ? (
           <div className={BUILDER_RAIL_STAT}>
-            <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">Pricing</p>
+            <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
+              Option pricing
+            </p>
             <div className="mt-1 space-y-1">
               <p className="text-sm font-medium text-slate-900">
                 {formatOptionPricingTabStatusLabel(selectedOptionPricingStatus.pricingComplete)}

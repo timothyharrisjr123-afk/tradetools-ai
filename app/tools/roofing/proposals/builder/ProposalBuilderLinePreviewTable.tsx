@@ -1,6 +1,8 @@
 import type { ProposalBuilderLineCustomerView } from "@/app/lib/proposalBuilderPricingPreview";
 import type { ProposalPreviewLineRow } from "@/app/lib/proposalBuilderPreview";
 import {
+  BUILDER_LINE_FOOTER_CONFIGURED_COPY,
+  BUILDER_LINE_FOOTER_PLACEHOLDER_COPY,
   BUILDER_LINE_LIST_FOOTER,
   BUILDER_LINE_PRICE_COL_HEADER,
   BUILDER_LINE_PRICE_STATUS,
@@ -14,6 +16,8 @@ type ProposalBuilderLinePreviewTableProps = {
   sectionTitle: string;
   /** Keyed by templateItemId. When present, shows customer price/status. */
   lineViewByTemplateItemId?: Record<string, ProposalBuilderLineCustomerView>;
+  /** 3I-3B3c: drives the footer copy. Defaults to placeholder behavior. */
+  pricingPolicyConfigured?: boolean;
 };
 
 function LineMetaDetail({ label, value }: { label: string; value: string }) {
@@ -76,6 +80,7 @@ export default function ProposalBuilderLinePreviewTable({
   rows,
   sectionTitle,
   lineViewByTemplateItemId,
+  pricingPolicyConfigured = false,
 }: ProposalBuilderLinePreviewTableProps) {
   if (rows.length === 0) {
     return (
@@ -138,7 +143,9 @@ export default function ProposalBuilderLinePreviewTable({
         })}
       </ul>
       <p className={BUILDER_LINE_LIST_FOOTER}>
-        Preview pricing uses a placeholder margin. Not a customer contract amount.
+        {pricingPolicyConfigured
+          ? BUILDER_LINE_FOOTER_CONFIGURED_COPY
+          : BUILDER_LINE_FOOTER_PLACEHOLDER_COPY}
       </p>
     </div>
   );

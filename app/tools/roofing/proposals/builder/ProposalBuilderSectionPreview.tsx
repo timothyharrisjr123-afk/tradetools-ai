@@ -22,6 +22,8 @@ type ProposalBuilderSectionPreviewProps = {
   measurementQuantityMap: MeasurementQuantityMap | null;
   /** Customer pricing view for the currently selected option. */
   optionCustomerView: ProposalBuilderOptionCustomerView | null;
+  /** 3I-3B3c: drives line-list footer copy. Defaults to placeholder behavior. */
+  pricingPolicyConfigured?: boolean;
 };
 
 export default function ProposalBuilderSectionPreview({
@@ -31,6 +33,7 @@ export default function ProposalBuilderSectionPreview({
   measurementHandoff,
   measurementQuantityMap,
   optionCustomerView,
+  pricingPolicyConfigured = false,
 }: ProposalBuilderSectionPreviewProps) {
   const title = (section.customer_title ?? section.name).trim() || section.name;
   const catalogById = buildCatalogItemById(catalogItems);
@@ -77,6 +80,7 @@ export default function ProposalBuilderSectionPreview({
             rows={lineRows}
             sectionTitle={title}
             lineViewByTemplateItemId={lineViewByTemplateItemId}
+            pricingPolicyConfigured={pricingPolicyConfigured}
           />
         </div>
       ) : null}

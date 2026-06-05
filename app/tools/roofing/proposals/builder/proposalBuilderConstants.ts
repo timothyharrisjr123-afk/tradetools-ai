@@ -88,6 +88,43 @@ export const BUILDER_CONTEXT_STRIP = "text-xs text-slate-400";
 export const BUILDER_PRICING_PREVIEW_BANNER =
   "rounded-md border border-amber-200/80 bg-amber-50/60 px-4 py-3 text-xs leading-snug text-amber-900";
 
+/** Softer preview banner used once the company pricing policy is configured (3I-3B3c). */
+export const BUILDER_PRICING_CONFIGURED_BANNER =
+  "rounded-md border border-slate-200/80 bg-slate-50/70 px-4 py-3 text-xs leading-snug text-slate-600";
+
+/** Settings route for configuring the company pricing policy. */
+export const PRICING_SETTINGS_HREF = "/tools/settings/pricing";
+
+/**
+ * Builder preview banner copy (3I-3B3c). Configured path softens; missing path
+ * keeps the strong placeholder warning. The placeholder copy mirrors the
+ * orchestrator fallback (BUILDER_PREVIEW_PRICING_POLICY = 50% margin).
+ */
+export const BUILDER_PRICING_PREVIEW_CONFIGURED_COPY =
+  "Preview based on your company pricing. Not a sent quote.";
+
+export const BUILDER_PRICING_PREVIEW_PLACEHOLDER_COPY =
+  "Preview pricing — uses a placeholder 50% margin, not your company's configured pricing. Not a customer quote.";
+
+/** Line-list footer copy, conditional on pricing policy configuration (3I-3B3c). */
+export const BUILDER_LINE_FOOTER_CONFIGURED_COPY =
+  "Preview based on your company pricing. Not a customer contract amount.";
+
+export const BUILDER_LINE_FOOTER_PLACEHOLDER_COPY =
+  "Preview pricing uses a placeholder margin, not your company's configured pricing. Not a customer contract amount.";
+
+/** Document totals footnote, conditional on pricing policy configuration (3I-3B3c). */
+export const BUILDER_TOTALS_FOOTNOTE_CONFIGURED_COPY =
+  "Preview totals reflect your saved company pricing. Estimates only — not a sent quote.";
+
+export const BUILDER_TOTALS_FOOTNOTE_PLACEHOLDER_COPY =
+  "Final pricing requires your company's saved pricing configuration. Preview totals are estimates only.";
+
+/** Right-rail pricing-policy status word — no dollars, no policy detail (3I-3B3c). */
+export function formatPricingPolicyConfiguredLabel(configured: boolean): string {
+  return configured ? "Configured" : "Not configured";
+}
+
 /** Totals block at the foot of the proposal document page. */
 export const BUILDER_DOCUMENT_TOTALS_BLOCK = "border-t border-slate-200/80 pt-6 mt-6 space-y-2";
 

@@ -1,8 +1,15 @@
+import Link from "next/link";
 import type { ProposalBuilderOptionCustomerView } from "@/app/lib/proposalBuilderPricingPreview";
 import {
   BUILDER_DOCUMENT_TOTALS_BLOCK,
   BUILDER_LINE_LIST_FOOTER,
+  BUILDER_PRICING_CONFIGURED_BANNER,
   BUILDER_PRICING_PREVIEW_BANNER,
+  BUILDER_PRICING_PREVIEW_CONFIGURED_COPY,
+  BUILDER_PRICING_PREVIEW_PLACEHOLDER_COPY,
+  BUILDER_TOTALS_FOOTNOTE_CONFIGURED_COPY,
+  BUILDER_TOTALS_FOOTNOTE_PLACEHOLDER_COPY,
+  PRICING_SETTINGS_HREF,
   formatPriceCents,
 } from "./proposalBuilderConstants";
 
@@ -29,10 +36,13 @@ function TotalsRow({ label, valueLabel, bold = false }: TotalsRowProps) {
 
 type ProposalBuilderDocumentTotalsProps = {
   optionCustomerView: ProposalBuilderOptionCustomerView | null;
+  /** 3I-3B3c: softens the preview banner once company pricing is configured. */
+  pricingPolicyConfigured?: boolean;
 };
 
 export default function ProposalBuilderDocumentTotals({
   optionCustomerView,
+  pricingPolicyConfigured = false,
 }: ProposalBuilderDocumentTotalsProps) {
   const complete = optionCustomerView?.pricingComplete ?? false;
   const subtotal = optionCustomerView?.customerSubtotalCents ?? null;
@@ -43,14 +53,30 @@ export default function ProposalBuilderDocumentTotals({
   const showDiscount = complete && discount != null && discount !== 0;
   const showTax = complete && tax != null && tax !== 0;
 
+  const bannerClass = pricingPolicyConfigured
+    ? BUILDER_PRICING_CONFIGURED_BANNER
+    : BUILDER_PRICING_PREVIEW_BANNER;
+  const bannerCopy = pricingPolicyConfigured
+    ? BUILDER_PRICING_PREVIEW_CONFIGURED_COPY
+    : BUILDER_PRICING_PREVIEW_PLACEHOLDER_COPY;
+  const footnoteCopy = pricingPolicyConfigured
+    ? BUILDER_TOTALS_FOOTNOTE_CONFIGURED_COPY
+    : BUILDER_TOTALS_FOOTNOTE_PLACEHOLDER_COPY;
+
   return (
     <div className={BUILDER_DOCUMENT_TOTALS_BLOCK}>
-      {/* Persistent preview banner — always visible when this block renders. */}
-      <div className={BUILDER_PRICING_PREVIEW_BANNER}>
-        <span className="font-semibold">Preview pricing</span>
-        {" — "}
-        uses a placeholder 50% margin, not your company&apos;s configured pricing. Not a customer
-        quote.
+      <div className={bannerClass}>
+        <p>{bannerCopy}</p>
+        {!pricingPolicyConfigured ? (
+          <p className="mt-1.5">
+            <Link
+              href={PRICING_SETTINGS_HREF}
+              className="font-medium underline underline-offset-2 hover:opacity-80"
+            >
+              Set up company pricing
+            </Link>
+          </p>
+        ) : null}
       </div>
 
       {complete && subtotal != null && total != null ? (
@@ -74,10 +100,7 @@ export default function ProposalBuilderDocumentTotals({
         </p>
       )}
 
-      <p className={`${BUILDER_LINE_LIST_FOOTER} pt-2`}>
-        Final pricing requires your company&apos;s saved pricing configuration. Preview totals are
-        estimates only.
-      </p>
+      <p className={`${BUILDER_LINE_LIST_FOOTER} pt-2`}>{footnoteCopy}</p>
     </div>
   );
 }
