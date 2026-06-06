@@ -8,15 +8,18 @@ export const SETUP_STEP_ACTIVE_RING = "ring-2 ring-cyan-200/90 border-cyan-200";
 export const FIELD_INPUT =
   "w-full rounded-md border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-100 disabled:cursor-not-allowed disabled:opacity-60";
 export const TABLE_TH =
-  "px-3 py-3 pr-3 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500";
-export const TABLE_TH_WIDE = `${TABLE_TH} min-w-[9rem] pr-4`;
-export const TABLE_TH_COMPACT = `${TABLE_TH} whitespace-nowrap pr-2`;
-export const TABLE_TD = "px-3 py-3 pr-3 align-middle text-sm text-slate-700";
-export const TABLE_TD_WIDE = `${TABLE_TD} min-w-[9rem] pr-4`;
+  "px-2.5 py-2.5 pr-2 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500";
+export const TABLE_TH_WIDE = `${TABLE_TH} min-w-[7.5rem] pr-3`;
+export const TABLE_TH_COMPACT = `${TABLE_TH} whitespace-nowrap pr-1.5`;
+export const TABLE_TD = "px-2.5 py-2.5 pr-2 align-middle text-sm text-slate-700";
+export const TABLE_TD_WIDE = `${TABLE_TD} min-w-[7.5rem] pr-3`;
 export const TABLE_TD_NAME =
-  "px-3 py-3 pr-4 align-middle text-sm font-medium text-slate-900 min-w-[11rem] lg:whitespace-nowrap";
-export const TABLE_TD_COMPACT = `${TABLE_TD} whitespace-nowrap pr-2`;
-export const TABLE_TD_UNIT = `${TABLE_TD} min-w-[6.5rem] whitespace-nowrap`;
+  "px-2.5 py-2.5 pr-3 align-middle text-sm font-medium text-slate-900 min-w-[8.5rem] lg:whitespace-nowrap";
+export const TABLE_TD_COMPACT = `${TABLE_TD} whitespace-nowrap pr-1.5`;
+export const TABLE_TD_UNIT = `${TABLE_TD} min-w-[5.75rem] whitespace-nowrap`;
+/** Sticky action column — stays visible during horizontal table scroll. */
+export const TABLE_TH_ACTION = `${TABLE_TH_COMPACT} sticky right-0 z-[1] bg-slate-100/95 shadow-[-6px_0_8px_-6px_rgba(15,23,42,0.1)]`;
+export const TABLE_TD_ACTION = `${TABLE_TD_COMPACT} sticky right-0 z-[1] bg-white shadow-[-6px_0_8px_-6px_rgba(15,23,42,0.08)]`;
 export const TABLE_COLUMN_COUNT = 11;
 
 export type CatalogItemTypeFilter = "all" | CatalogItemType;

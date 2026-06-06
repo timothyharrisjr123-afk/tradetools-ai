@@ -13,6 +13,8 @@ import {
   TABLE_TD_UNIT,
   TABLE_TD_WIDE,
   TABLE_TH,
+  TABLE_TH_ACTION,
+  TABLE_TD_ACTION,
   TABLE_TH_COMPACT,
   TABLE_TH_WIDE,
 } from "../catalogAdminConstants";
@@ -47,8 +49,8 @@ export default function CatalogItemTable({
   onToggleActive,
 }: CatalogItemTableProps) {
   return (
-    <div className="mt-4 overflow-x-auto rounded-lg border border-slate-200 bg-slate-50/40 p-2 sm:p-3">
-      <table className="w-full min-w-[76rem] table-auto text-sm">
+    <div className="mt-4 overflow-x-auto rounded-lg border border-slate-200 bg-slate-50/40 px-1 py-2 sm:px-1.5">
+      <table className="w-full min-w-0 table-auto text-sm">
         <thead>
           <tr className="border-b border-slate-200 bg-slate-100/80 text-left">
             <th className={TABLE_TH_WIDE}>Name</th>
@@ -61,7 +63,7 @@ export default function CatalogItemTable({
             <th className={TABLE_TH_COMPACT}>Active</th>
             <th className={TABLE_TH_WIDE}>Seed key</th>
             <th className={TABLE_TH_COMPACT}>Sort</th>
-            <th className={TABLE_TH_COMPACT}>Action</th>
+            <th className={TABLE_TH_ACTION}>Action</th>
           </tr>
         </thead>
         <tbody className="bg-white">
@@ -89,7 +91,7 @@ export default function CatalogItemTable({
                 return (
                   <tr
                     key={item.id}
-                    className={`border-b border-slate-100 transition-colors hover:bg-slate-50/80 ${isSelected ? "bg-cyan-50/60 ring-1 ring-inset ring-cyan-200" : ""} ${!item.active ? "bg-slate-50/60 opacity-75" : ""}`}
+                    className={`group border-b border-slate-100 transition-colors hover:bg-slate-50/80 ${isSelected ? "bg-cyan-50/60 ring-1 ring-inset ring-cyan-200" : ""} ${!item.active ? "bg-slate-50/60 opacity-75" : ""}`}
                   >
                     <td className={TABLE_TD_NAME}>
                       {item.name}
@@ -102,7 +104,7 @@ export default function CatalogItemTable({
                     <td className={TABLE_TD_WIDE}>{item.customer_name?.trim() || "—"}</td>
                     <td className={TABLE_TD}>{catalogItemTypeLabel(item.item_type)}</td>
                     <td className={TABLE_TD_UNIT}>{catalogUnitLabel(item.unit)}</td>
-                    <td className={`${TABLE_TD_WIDE} lg:whitespace-nowrap`}>
+                    <td className={`${TABLE_TD_WIDE} max-w-[8rem] truncate`}>
                       {quantitySourceLabel(item.quantity_source)}
                     </td>
                     <td className={TABLE_TD_COMPACT}>
@@ -123,14 +125,16 @@ export default function CatalogItemTable({
                       </span>
                     </td>
                     <td
-                      className={`${TABLE_TD_WIDE} font-mono text-xs text-slate-600 lg:whitespace-nowrap`}
+                      className={`${TABLE_TD_WIDE} max-w-[7.5rem] truncate font-mono text-xs text-slate-600`}
                     >
                       {seedKey ?? "—"}
                     </td>
                     <td className={`${TABLE_TD_COMPACT} tabular-nums`}>
                       {item.sort_order != null ? item.sort_order : "—"}
                     </td>
-                    <td className={TABLE_TD_COMPACT}>
+                    <td
+                      className={`${TABLE_TD_ACTION} ${isSelected ? "bg-cyan-50/60" : !item.active ? "bg-slate-50/60" : "bg-white group-hover:bg-slate-50/80"}`}
+                    >
                       <div className="flex flex-col gap-1 sm:flex-row sm:items-center">
                         <button
                           type="button"

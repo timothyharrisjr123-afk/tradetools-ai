@@ -3,6 +3,10 @@ import type { CatalogReadinessState } from "@/app/lib/catalogReadiness";
 export const CATALOG_CARD =
   "rounded-md border border-slate-200/80 bg-white px-5 py-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]";
 
+/** Catalog items table section — slightly tighter horizontal padding for more table width. */
+export const CATALOG_ITEMS_SECTION =
+  "rounded-md border border-slate-200/80 bg-white px-3 py-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] sm:px-4";
+
 export const CATALOG_HERO_CARD =
   "rounded-lg border border-slate-200/90 bg-white px-5 py-5 shadow-[0_1px_3px_rgba(15,23,42,0.06)]";
 

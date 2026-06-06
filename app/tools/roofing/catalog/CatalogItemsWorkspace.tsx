@@ -5,7 +5,8 @@ import AddCatalogItemModal from "@/app/admin/catalog/components/AddCatalogItemMo
 import CatalogItemDetailPanel from "@/app/admin/catalog/components/CatalogItemDetailPanel";
 import CatalogItemTable from "@/app/admin/catalog/components/CatalogItemTable";
 import CatalogItemToolbar from "@/app/admin/catalog/components/CatalogItemToolbar";
-import { CARD, PRIMARY_BUTTON, type CatalogItemTypeFilter } from "@/app/admin/catalog/catalogAdminConstants";
+import { PRIMARY_BUTTON, type CatalogItemTypeFilter } from "@/app/admin/catalog/catalogAdminConstants";
+import { CATALOG_ITEMS_SECTION } from "./catalogConstants";
 import type {
   AddCatalogItemForm,
   CatalogItemEditDraft,
@@ -107,7 +108,7 @@ export default function CatalogItemsWorkspace({
   onSubmitAdd,
 }: CatalogItemsWorkspaceProps) {
   return (
-    <section id="catalog-configure-items" className={CARD}>
+    <section id="catalog-configure-items" className={CATALOG_ITEMS_SECTION}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <h2 className="text-base font-semibold text-slate-900">Catalog items</h2>
