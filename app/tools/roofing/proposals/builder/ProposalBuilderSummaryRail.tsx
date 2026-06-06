@@ -13,16 +13,25 @@ import { formatProposalTemplateReadinessLabel } from "@/app/lib/proposalTemplate
 import { proposalTemplateReadinessStatusPillClass } from "@/app/lib/proposalTemplateReadiness";
 import { catalogReadinessStatusPillClass } from "@/app/tools/roofing/templates/templatesConstants";
 import {
-  BUILDER_CARD,
   BUILDER_INTERNAL_PROFITABILITY_LABEL_COST,
   BUILDER_INTERNAL_PROFITABILITY_LABEL_MARGIN,
   BUILDER_INTERNAL_PROFITABILITY_LABEL_PROFIT,
   BUILDER_INTERNAL_PROFITABILITY_SECTION_NOTE,
   BUILDER_INTERNAL_PROFITABILITY_SECTION_TITLE,
+  BUILDER_RAIL_ACTIONS_NOTE,
+  BUILDER_RAIL_BLOCKING_LINES_LABEL,
+  BUILDER_RAIL_CARD,
+  BUILDER_RAIL_GROUP_HEADING,
+  BUILDER_RAIL_GUARDRAIL_LABEL,
+  BUILDER_RAIL_PRICING_CONFIDENCE_TITLE,
+  BUILDER_RAIL_PRICING_STATUS_LABEL,
+  BUILDER_RAIL_SETUP_READINESS_TITLE,
   BUILDER_RAIL_STAT,
-  formatGuardrailOutcomeLabel,
   formatOptionPricingTabStatusLabel,
   formatPricingPolicyConfiguredLabel,
+  guardrailOutcomePillClass,
+  guardrailRailMessage,
+  guardrailRailStatusLabel,
 } from "./proposalBuilderConstants";
 import type { ProposalTemplateGraph } from "@/app/lib/proposalTemplateStore";
 
@@ -51,11 +60,17 @@ function pricingPolicyRailStatusLabel(
 
 function RailStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className={BUILDER_RAIL_STAT}>
-      <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">{label}</p>
-      <p className="mt-0.5 text-sm font-medium text-slate-900">{value}</p>
+    <div className={`${BUILDER_RAIL_STAT} flex items-baseline justify-between gap-2`}>
+      <p className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-slate-500">
+        {label}
+      </p>
+      <p className="truncate text-right text-xs font-medium text-slate-900">{value}</p>
     </div>
   );
+}
+
+function RailGroupHeading({ title }: { title: string }) {
+  return <p className={`${BUILDER_RAIL_GROUP_HEADING} pb-0.5`}>{title}</p>;
 }
 
 export default function ProposalBuilderSummaryRail({
@@ -87,38 +102,50 @@ export default function ProposalBuilderSummaryRail({
       : false,
   });
 
+  const guardrailChecking = selectedOptionPricingStatus == null;
+  const guardrailOutcome = selectedOptionPricingStatus?.guardrailOutcome ?? null;
+  const guardrailPillKey = guardrailChecking
+    ? "checking"
+    : guardrailOutcome ?? "checking";
+  const guardrailMessage = guardrailRailMessage(guardrailOutcome, guardrailChecking);
+
   return (
-    <div className={`${BUILDER_CARD} space-y-4`}>
-      <div>
-        <h2 className="text-sm font-semibold text-slate-900">Job context</h2>
-        <p className="mt-1 text-xs text-slate-500">
-          Measurement and setup readiness for this proposal preview.
-        </p>
-      </div>
-      <div className="space-y-2">
+    <div className={`${BUILDER_RAIL_CARD} space-y-3`}>
+      <div className="space-y-1">
+        <RailGroupHeading title={BUILDER_RAIL_SETUP_READINESS_TITLE} />
         <RailStat label="Measurement" value={measurementStatus} />
         <RailStat label="Quantities" value={quantitiesDisplay} />
         {measurementHandoff?.selectedLabel ? (
           <RailStat label="Record" value={measurementHandoff.selectedLabel} />
         ) : null}
-        <div className={BUILDER_RAIL_STAT}>
-          <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">Catalog</p>
-          <div className="mt-1 flex flex-wrap items-center gap-2">
+        <div className={`${BUILDER_RAIL_STAT} flex items-center justify-between gap-2`}>
+          <p className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-slate-500">
+            Catalog
+          </p>
+          <div className="flex min-w-0 flex-wrap items-center justify-end gap-1.5">
             <span className={catalogReadinessStatusPillClass(catalogReadiness.state)}>
               {catalogLabel}
             </span>
-            <span className="text-xs text-slate-600">{catalogReadiness.activeItemCount} active</span>
+            <span className="text-[11px] text-slate-600">{catalogReadiness.activeItemCount} active</span>
           </div>
         </div>
-        <div className={BUILDER_RAIL_STAT}>
-          <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">Template</p>
-          <div className="mt-1 flex flex-wrap items-center gap-2">
+        <div className={`${BUILDER_RAIL_STAT} flex items-center justify-between gap-2`}>
+          <p className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-slate-500">
+            Template
+          </p>
+          <div className="flex min-w-0 flex-wrap items-center justify-end gap-1.5">
             <span className={proposalTemplateReadinessStatusPillClass(templateReadiness.status)}>
               {templateLabel}
             </span>
+            <span className="truncate text-[11px] text-slate-600" title={templateName}>
+              {templateName}
+            </span>
           </div>
-          <p className="mt-1 text-xs text-slate-600">{templateName}</p>
         </div>
+      </div>
+
+      <div className="space-y-1 border-t border-slate-100 pt-2">
+        <RailGroupHeading title={BUILDER_RAIL_PRICING_CONFIDENCE_TITLE} />
         <RailStat
           label="Pricing policy"
           value={pricingPolicyRailStatusLabel(
@@ -127,57 +154,67 @@ export default function ProposalBuilderSummaryRail({
           )}
         />
         {selectedOptionPricingStatus ? (
-          <div className={BUILDER_RAIL_STAT}>
-            <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
-              Option pricing
-            </p>
-            <div className="mt-1 space-y-1">
-              <p className="text-sm font-medium text-slate-900">
-                {formatOptionPricingTabStatusLabel(selectedOptionPricingStatus.pricingComplete)}
-              </p>
-              <p className="text-xs text-slate-600">
-                Blocking issues: {selectedOptionPricingStatus.blockingLineCount}
-              </p>
-              <p className="text-xs text-slate-600">
-                Guardrail: {formatGuardrailOutcomeLabel(selectedOptionPricingStatus.guardrailOutcome)}
-              </p>
-            </div>
-          </div>
+          <>
+            <RailStat
+              label={BUILDER_RAIL_PRICING_STATUS_LABEL}
+              value={formatOptionPricingTabStatusLabel(
+                selectedOptionPricingStatus.pricingComplete
+              )}
+            />
+            <RailStat
+              label={BUILDER_RAIL_BLOCKING_LINES_LABEL}
+              value={String(selectedOptionPricingStatus.blockingLineCount)}
+            />
+          </>
         ) : null}
-        <div className={`${BUILDER_RAIL_STAT} border-slate-200/90 bg-slate-100/60`}>
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-600">
-            {BUILDER_INTERNAL_PROFITABILITY_SECTION_TITLE}
+        <div className={`${BUILDER_RAIL_STAT} flex items-center justify-between gap-2`}>
+          <p className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-slate-500">
+            {BUILDER_RAIL_GUARDRAIL_LABEL}
           </p>
-          <p className="mt-1 text-[11px] leading-snug text-slate-500">
-            {BUILDER_INTERNAL_PROFITABILITY_SECTION_NOTE}
-          </p>
-          <p className="mt-2 text-xs font-medium text-slate-700">{internalProfitability.statusLabel}</p>
+          <span className={guardrailOutcomePillClass(guardrailPillKey)}>
+            {guardrailRailStatusLabel(guardrailOutcome, guardrailChecking)}
+          </span>
+        </div>
+        {guardrailMessage ? (
+          <p className="px-0.5 text-[11px] leading-snug text-slate-600">{guardrailMessage}</p>
+        ) : null}
+        <div className={BUILDER_RAIL_STAT}>
+          <div className="flex items-baseline justify-between gap-2">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-600">
+              {BUILDER_INTERNAL_PROFITABILITY_SECTION_TITLE}
+            </p>
+            {!internalProfitability.warningCopy ? (
+              <p className="text-[10px] text-slate-500">{BUILDER_INTERNAL_PROFITABILITY_SECTION_NOTE}</p>
+            ) : null}
+          </div>
           {internalProfitability.warningCopy ? (
-            <p className="mt-2 text-xs leading-snug text-amber-800">{internalProfitability.warningCopy}</p>
+            <p className="mt-1 text-[11px] leading-snug text-amber-800">
+              {internalProfitability.warningCopy}
+            </p>
           ) : null}
           {internalProfitability.shouldShowInternalNumbers ? (
-            <dl className="mt-2 space-y-1.5">
+            <dl className="mt-1.5 grid grid-cols-3 gap-1">
               <div>
-                <dt className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
+                <dt className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
                   {BUILDER_INTERNAL_PROFITABILITY_LABEL_COST}
                 </dt>
-                <dd className="text-sm tabular-nums font-medium text-slate-900">
+                <dd className="text-xs tabular-nums font-medium text-slate-900">
                   {internalProfitability.costDisplay}
                 </dd>
               </div>
               <div>
-                <dt className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
+                <dt className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
                   {BUILDER_INTERNAL_PROFITABILITY_LABEL_PROFIT}
                 </dt>
-                <dd className="text-sm tabular-nums font-medium text-slate-900">
+                <dd className="text-xs tabular-nums font-medium text-slate-900">
                   {internalProfitability.profitDisplay}
                 </dd>
               </div>
               <div>
-                <dt className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
+                <dt className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
                   {BUILDER_INTERNAL_PROFITABILITY_LABEL_MARGIN}
                 </dt>
-                <dd className="text-sm tabular-nums font-medium text-slate-900">
+                <dd className="text-xs tabular-nums font-medium text-slate-900">
                   {internalProfitability.marginDisplay}
                 </dd>
               </div>
@@ -185,10 +222,8 @@ export default function ProposalBuilderSummaryRail({
           ) : null}
         </div>
       </div>
-      <p className="text-xs leading-relaxed text-slate-500">
-        Customer preview, send, sign, and payment controls are disabled in this stage. No proposal
-        record or line snapshots are persisted.
-      </p>
+
+      <p className="text-[11px] leading-snug text-slate-500">{BUILDER_RAIL_ACTIONS_NOTE}</p>
     </div>
   );
 }

@@ -19,7 +19,11 @@ export const BUILDER_CANVAS_PLACEHOLDER =
   "flex min-h-[22rem] flex-col items-center justify-center rounded-lg border-2 border-dashed border-slate-200 bg-slate-50/50 px-6 py-12 text-center";
 
 export const BUILDER_RAIL_STAT =
-  "rounded-md border border-slate-100 bg-slate-50/80 px-3 py-2.5";
+  "rounded-md border border-slate-100 bg-slate-50/80 px-2.5 py-1.5";
+
+/** Right-rail shell — tighter than generic BUILDER_CARD. */
+export const BUILDER_RAIL_CARD =
+  "rounded-md border border-slate-200/80 bg-white px-3.5 py-3 shadow-[0_1px_2px_rgba(15,23,42,0.04)]";
 
 export const BUILDER_DISABLED_ACTION =
   "inline-flex items-center justify-center rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-400 cursor-not-allowed";
@@ -63,6 +67,82 @@ export function formatGuardrailOutcomeLabel(outcome: "pass" | "warn" | "block"):
     default:
       return "Blocked";
   }
+}
+
+/** 3I-3D1 — Builder right-rail group headings (Setup readiness / Pricing confidence). */
+export const BUILDER_RAIL_GROUP_HEADING =
+  "text-[11px] font-semibold uppercase tracking-wide text-slate-600";
+
+export const BUILDER_RAIL_SETUP_READINESS_TITLE = "Setup readiness";
+
+export const BUILDER_RAIL_PRICING_CONFIDENCE_TITLE = "Pricing confidence";
+
+export const BUILDER_RAIL_PRICING_STATUS_LABEL = "Pricing status";
+
+export const BUILDER_RAIL_BLOCKING_LINES_LABEL = "Blocking";
+
+export const BUILDER_RAIL_GUARDRAIL_LABEL = "Guardrail";
+
+export const BUILDER_GUARDRAIL_STATUS_CHECKING = "Checking…";
+
+export const BUILDER_GUARDRAIL_MESSAGE_WARN = "Review before send.";
+
+export const BUILDER_GUARDRAIL_MESSAGE_BLOCK = "Resolve blocking issues first.";
+
+export const BUILDER_GUARDRAIL_MESSAGE_CHECKING = "Checking…";
+
+export const BUILDER_RAIL_ACTIONS_NOTE =
+  "Preview, Send, Sign, and Payment disabled until record/snapshot phases.";
+
+export const BUILDER_GUARDRAIL_PILL_BASE =
+  "inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide";
+
+export const BUILDER_GUARDRAIL_PILL_PASS = `${BUILDER_GUARDRAIL_PILL_BASE} bg-emerald-100 text-emerald-800`;
+
+export const BUILDER_GUARDRAIL_PILL_WARN = `${BUILDER_GUARDRAIL_PILL_BASE} bg-amber-100 text-amber-800`;
+
+export const BUILDER_GUARDRAIL_PILL_BLOCK = `${BUILDER_GUARDRAIL_PILL_BASE} bg-red-100 text-red-800`;
+
+export const BUILDER_GUARDRAIL_PILL_CHECKING = `${BUILDER_GUARDRAIL_PILL_BASE} bg-slate-100 text-slate-600`;
+
+export function guardrailOutcomePillClass(
+  outcome: "pass" | "warn" | "block" | "checking"
+): string {
+  switch (outcome) {
+    case "pass":
+      return BUILDER_GUARDRAIL_PILL_PASS;
+    case "warn":
+      return BUILDER_GUARDRAIL_PILL_WARN;
+    case "block":
+      return BUILDER_GUARDRAIL_PILL_BLOCK;
+    default:
+      return BUILDER_GUARDRAIL_PILL_CHECKING;
+  }
+}
+
+/** Status-only guardrail helper copy — omitted on pass to keep the row compact (3I-3D1). */
+export function guardrailRailMessage(
+  outcome: "pass" | "warn" | "block" | null,
+  checking: boolean
+): string | null {
+  if (checking) return BUILDER_GUARDRAIL_MESSAGE_CHECKING;
+  switch (outcome) {
+    case "warn":
+      return BUILDER_GUARDRAIL_MESSAGE_WARN;
+    case "block":
+      return BUILDER_GUARDRAIL_MESSAGE_BLOCK;
+    default:
+      return null;
+  }
+}
+
+export function guardrailRailStatusLabel(
+  outcome: "pass" | "warn" | "block" | null,
+  checking: boolean
+): string {
+  if (checking) return BUILDER_GUARDRAIL_STATUS_CHECKING;
+  if (outcome == null) return BUILDER_GUARDRAIL_STATUS_CHECKING;
+  return formatGuardrailOutcomeLabel(outcome);
 }
 
 /** Desk/surface behind the proposal page. */
@@ -128,14 +208,13 @@ export function formatPricingPolicyConfiguredLabel(configured: boolean): string 
 /** 3I-3C — contractor-only internal profitability rail block. */
 export const BUILDER_INTERNAL_PROFITABILITY_SECTION_TITLE = "Internal profitability";
 
-export const BUILDER_INTERNAL_PROFITABILITY_SECTION_NOTE =
-  "Contractor-only. Not shown on customer document, option tabs, or PDF.";
+export const BUILDER_INTERNAL_PROFITABILITY_SECTION_NOTE = "Contractor-only.";
 
-export const BUILDER_INTERNAL_PROFITABILITY_LABEL_COST = "Internal cost";
+export const BUILDER_INTERNAL_PROFITABILITY_LABEL_COST = "Cost";
 
-export const BUILDER_INTERNAL_PROFITABILITY_LABEL_PROFIT = "Internal profit";
+export const BUILDER_INTERNAL_PROFITABILITY_LABEL_PROFIT = "Profit";
 
-export const BUILDER_INTERNAL_PROFITABILITY_LABEL_MARGIN = "Effective margin";
+export const BUILDER_INTERNAL_PROFITABILITY_LABEL_MARGIN = "Margin";
 
 /** Totals block at the foot of the proposal document page. */
 export const BUILDER_DOCUMENT_TOTALS_BLOCK = "border-t border-slate-200/80 pt-6 mt-6 space-y-2";
