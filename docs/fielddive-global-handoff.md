@@ -9,18 +9,25 @@
 - `docs/fielddive-estimate-proposal-flow-model.md` — estimate/proposal UX model notes
 - `docs/fielddive-feature-placement-map.md` — feature placement matrix
 
-**Last updated checkpoint:** **3J1C proposal records migrations applied + verified in production** (§6AA). **Docs checkpoint:** pending commit (this update). **Code checkpoint:** `0db2f45` (3J1C apply plan docs) / `7b23415` (3J1B migrations). **Prior:** `387993e` (3J1A), `3ae5e39` (3J0b). **Tests:** **118/118** proposal/pricing suites (run via `npx tsx --test`). **Typecheck:** only **6** pre-existing errors in `app/tools/roofing-v2/RoofingClientV2.tsx` — unchanged. **Protected systems:** legacy `RoofingClient.tsx` pricing `useMemo`, payments, approval, status, saved estimates, send/PDF **untouched**.
+**Last updated checkpoint:** **`13b4e72` — 3J2B3: add proposal record store** (§6AB). **Docs checkpoint:** pending commit (this update). **Prior:** `213e322` (3J2B2), `1033cd9` (3J2B1), `5b9fe19` (3J1C docs), `7b23415` (3J1B migrations). **Tests:** **180/180** proposal/pricing suites (run via `npx tsx --test`). **Typecheck:** only **6** pre-existing errors in `app/tools/roofing-v2/RoofingClientV2.tsx` — unchanged. **Protected systems:** legacy `RoofingClient.tsx` pricing `useMemo`, payments, approval, status, saved estimates, send/PDF **untouched**.
 
 **Jobs Board approved save point:** `b27a444` (3F9B4-RoofrExact). **Prior Job Board checkpoint:** `36fa3a9` (3F9B3).
 
-**Next (recommended):** **3J2 — proposal stores + snapshot builder + tests** (§6Z). **Not Builder UI (3I-3D2 / 3J3)** until 3J2 store/snapshot path exists. **Do not** enable Preview/Send/Sign/Payment until proposal records/versions are wired.
+**Next (recommended):** **3J3 — wire Job Card / Proposal entry to real proposal draft records and Builder read path** (§6AB). **Preview / Send / Sign / Payment remain disabled** until **3K+**. **3I-3D2 / §6Y visual work** should wait until the Builder opens a persisted draft graph.
 
-**Do not** persist proposals from app code yet (3J2 store not implemented). **Do not** snapshot pricing or persist placeholder policy. **Catalog custom delete/deactivate** is **not implemented** and remains a **separate later scope** — do not mix into pricing/proposal work.
+**Lib-layer proposal persistence is implemented** (`proposalRecordStore` + snapshot builder — §6AB). **No UI/API wiring yet** — store is not called from Builder or Job Card until **3J3**. **Do not** persist placeholder/unconfigured pricing policy. **Catalog custom delete/deactivate** is **not implemented** and remains a **separate later scope** — do not mix into pricing/proposal work.
 
-### Recent committed sequence (3G6 spine + execution surfaces + 3H + 3I pricing foundation + 3I-2 Builder preview + 3I-3 company policy)
+### Recent committed sequence (3G6 spine + execution surfaces + 3H + 3I pricing foundation + 3I-2 Builder preview + 3I-3 company policy + 3J proposal persistence spine)
 
 | Commit | Summary |
 |--------|---------|
+| `13b4e72` | **3J2B3** — `proposalRecordStore` + mocked tests; first DB-writing proposal lib layer (§6AB) |
+| `213e322` | **3J2B2** — Pure `proposalSnapshotBuilder` + tests; row-shape assembly only |
+| `1033cd9` | **3J2B1** — `proposalSnapshotStatusMapper` + customer-safe/configured-policy guards |
+| `5b9fe19` | docs: record 3J1C proposal records migration apply in production (§6AA) |
+| `7b23415` | **3J1B** — Harden proposal records before apply (007 migration) |
+| `387993e` | **3J1A** — Proposal records schema migration (006) |
+| `3ae5e39` | **3J0** — Proposal architecture types (§6Z) |
 | `fbdedbe` | **3I-3D1** — Builder right rail regrouped: Setup readiness + Pricing confidence; guardrail row; compact rail (§6V) |
 | `aa0073a` | **3I-3D0** — Builder rail pricing-confidence grouping spec (§6U) |
 | `79c4b02` | **3I-3B3c** — Builder wired to `getResolvedCompanyPricingPolicy`; configured path passes real company `policy` into orchestrator; missing/loading/error keeps placeholder fallback; conditional banner/copy + status-only rail row (§6Q) |
@@ -96,7 +103,7 @@
 - **Do not** create PDF / send / approval bridges before proposal records exist.
 - **Do not** touch payment / status / approval while working catalog or template setup (unless the stage explicitly scopes it).
 - **Do not treat table/store existence as product completion** — audit **architecture, functionality, layout, and UI** together before advancing the spine.
-- **3G6 Templates setup surface is complete** (3G6A–E + D2/D3) — **3H-1 Proposal Builder shell** (`feec663`); **3H-2 read-only proposal preview** (`00fbf64`); **3H-3 read-only quantity preview** (`40e6720`); **3I-1 pure pricing engine + input mapper** (`162f9be`–`52b7148`); **3I-2 read-only Builder pricing preview** (`5626c47`–`637b85a`) — **wired from Builder route only** via orchestrator; **3J** (persistence), **3K** (PDF/send adapters), **3I-3** (company policy / internal profitability) remain later; do not enable customer-send or proposal records without explicit scope.
+- **3G6 Templates setup surface is complete** (3G6A–E + D2/D3) — **3H-1 Proposal Builder shell** (`feec663`); **3H-2 read-only proposal preview** (`00fbf64`); **3H-3 read-only quantity preview** (`40e6720`); **3I-1 pure pricing engine + input mapper** (`162f9be`–`52b7148`); **3I-2 read-only Builder pricing preview** (`5626c47`–`637b85a`) — **wired from Builder route only** via orchestrator; **3I-3** company policy + internal profitability rail **done**; **3J2** lib persistence spine **done** (`13b4e72`, §6AB); **3J3** (UI wiring) and **3K** (PDF/send adapters) remain next; do not enable Preview/Send/Sign/Payment without explicit scope.
 - **Do not casually patch pricing** during catalog/template/Job Card link work — see **§11 — Pricing (protected + future redesign)**.
 
 ---
@@ -1721,8 +1728,9 @@ Underlying foundation (pre-3I-3B3): **3I-3B1 resolver** (`c1b52ee`), **3I-3B2A m
 | **P1** | **3I-3C** | Internal profitability rail/drawer | UI only — read-only, contractor-only | Contractor trusts live pricing |
 | **P2** | **3I-3D** | Guardrail surfacing | UI only — optional small follow-up | Visible warn/block before send (no enforcement yet) |
 | **P3** | **3J0b** | Proposal record + snapshot architecture | **Docs/types** — **done** (`3ae5e39`, §6Z) |
-| **P4** | **3J1** | Proposal draft record | SQL **committed + applied + verified** (§6AA); store **3J2 next** | Draft has id; survives reload |
-| **P5** | **3J2** | Snapshot-on-send writer | SQL/store + lib | Frozen snapshot exists as data |
+| **P4** | **3J1** | Proposal draft record | SQL **committed + applied + verified** (§6AA); lib store **done** (§6AB) | Draft has id; survives reload |
+| **P5** | **3J2** | Proposal persistence spine (mapper + builder + store) | **Done** (`1033cd9`–`13b4e72`, §6AB) | Draft graph can be written/read in lib layer |
+| **P5b** | **3J3** | Builder create/open draft path | UI wiring — **next** | Builder/Job Card use real proposal records |
 | **P6** | **3K0** | Preview | UI — reads snapshot | Preview button can light up |
 | **P7** | **3K1** | Send bridge | PDF + transmit | Send can light up |
 | **P8** | **3K2** | Approval / signature state | SQL + UI | Sign can light up |
@@ -1917,9 +1925,10 @@ Underlying foundation (pre-3I-3B3): **3I-3B1 resolver** (`c1b52ee`), **3I-3B2A m
 | **3I-3D2A** | Builder navigation model decision — **§6Y** | **Complete** (`d3a969b`) |
 | **3J0b** | Proposal records / versions / pages architecture — **§6Z** | **Complete** (`3ae5e39`; SQL applied §6AA) |
 | **3J1** | Proposal SQL migrations + RLS | **Done** (applied §6AA) |
-| **3J2** | Proposal stores + snapshot builder | **Next** |
+| **3J2** | Proposal stores + snapshot builder | **Complete** (`13b4e72`, §6AB) |
+| **3J3** | Builder create/open draft path | **Next** |
 
-**Do not** start 3J2 store work without scoping against §6Z. **Do not** enable Preview/Send/Sign/Payment until proposal records/versions are wired (3J2+). See **§6AA** guardrails.
+**Do not** start 3J3 UI wiring without scoping against §6AB. **Do not** enable Preview/Send/Sign/Payment until **3K+**. See **§6AB** phase boundaries.
 
 ---
 
@@ -2399,13 +2408,14 @@ No Builder layout redesign should be required when these features arrive — onl
 | **3I-3D2A** | This decision (§6Y) — **done** (`d3a969b`) |
 | **3J0b** | Proposal architecture docs + types (§6Z) — **done** (`3ae5e39`) |
 | **3J1** | Proposal SQL migrations + RLS — **done** (applied §6AA) |
-| **3J2** | Proposal stores + snapshot builder — **next** |
+| **3J2** | Proposal stores + snapshot builder — **done** (`13b4e72`, §6AB) |
+| **3J3** | Builder create/open draft path — **next** |
 
 ---
 
 ## 6Z. 3J0 PROPOSAL RECORDS / VERSIONS / PAGES ARCHITECTURE (docs + types; SQL applied §6AA)
 
-**Status:** **3J0b committed** (`3ae5e39`). **3J1A/3J1B migrations committed** (`387993e`, `7b23415`); **3J1C applied + verified in production** — see **§6AA**. **Checkpoint base:** `0db2f45` (docs) / `7b23415` (migrations). **Purpose:** Lock proposal record, snapshot, page, and lifecycle architecture before stores or Builder persistence. **No app runtime behavior yet — 3J2 next.**
+**Status:** **3J0b committed** (`3ae5e39`). **3J1A/3J1B migrations committed** (`387993e`, `7b23415`); **3J1C applied + verified in production** — see **§6AA**. **3J2 lib persistence spine complete** — see **§6AB** (`13b4e72`). **Purpose:** Lock proposal record, snapshot, page, and lifecycle architecture before Builder persistence. **Lib store exists; no UI/API wiring yet — 3J3 next.**
 
 ### 1. Why 3J0 is needed
 
@@ -2487,8 +2497,8 @@ Tables: `proposals`, `proposal_versions`, `proposal_pages`, `proposal_options`, 
 | **3J0b** | This section + domain type files — **done** (`3ae5e39`) |
 | **3J1A/3J1B** | SQL migrations + RLS hardening — **committed + applied** (`387993e`, `7b23415`) |
 | **3J1C** | Manual apply + verification — **done** (§6AA); production apply verified |
-| **3J2** | Stores + snapshot builder + tests — **next** |
-| **3J3** | Builder create/open draft path |
+| **3J2** | Stores + snapshot builder + tests — **done** (`13b4e72`, §6AB) |
+| **3J3** | Builder create/open draft path — **next** |
 | **3J4** | Page Context Strip backed by `proposal_pages` |
 | **3K** | Preview / PDF / send |
 | **3L** | Sign / payment |
@@ -2497,7 +2507,7 @@ Tables: `proposals`, `proposal_versions`, `proposal_pages`, `proposal_options`, 
 
 - Do not alter pricing engine / mapper / orchestrator math.
 - Do not expose internal summaries to customer routes.
-- Do not enable Preview/Send/Sign/Payment until snapshot writer (3J2) is stable.
+- Do not enable Preview/Send/Sign/Payment until **3K+** (lib persistence spine is stable — §6AB).
 - Do not couple to legacy estimate KV / `RoofingClient` useMemo path.
 
 ---
@@ -2559,19 +2569,22 @@ Use before applying 006/007 to **staging or other targets** — proposal tables 
 
 ### 5. Next sequence
 
+**Superseded by §6AB** — at time of 3J1C apply, next was 3J2. Current next: **3J3** (§6AB).
+
 | Step | Scope |
 |------|-------|
-| **Now** | Docs commit recording §6AA apply (this update) |
-| **Next** | **3J2** — `proposalRecordStore` + snapshot builder + tests |
-| **Then** | **3J3** — Builder create/open draft path |
+| **Done** | **3J2** — `proposalSnapshotStatusMapper`, `proposalSnapshotBuilder`, `proposalRecordStore` + tests (§6AB) |
+| **Next** | **3J3** — Builder create/open draft path; Job Card proposal entry wiring |
 | **Later** | **3J4** Page Context Strip; **3K** preview/PDF/send; **3L** sign/payment |
 
 ### 6. Guardrails (post-apply)
 
-- **Do not resume Builder UI (3I-3D2 / §6Y)** until **3J2** store/snapshot path exists.
-- **Do not enable Preview/Send/Sign/Payment** until proposal records/versions are wired through stores.
+**Historical (3J1C apply time):** guardrails below applied before 3J2 lib work. **Current guardrails:** see **§6AB**.
+
+- **Do not resume Builder UI (3I-3D2 / §6Y)** until Builder opens a persisted draft graph (**3J3**).
+- **Do not enable Preview/Send/Sign/Payment** until **3K+**.
 - **Customer-facing line snapshots** must remain free of internal cost/profit/margin/markup — internal fields only on `proposal_internal_summaries`.
-- **No app code writes** to proposal tables until `proposalRecordStore` (3J2) is scoped and implemented.
+- **`proposalRecordStore` exists** (3J2B3) — lib-layer writes only; **no UI/API wiring until 3J3**.
 
 ### 7. Boundaries (3J1C)
 
@@ -2582,6 +2595,86 @@ Use before applying 006/007 to **staging or other targets** — proposal tables 
 
 ---
 
+## 6AB. 3J2 PROPOSAL PERSISTENCE SPINE COMPLETE
+
+**Status:** **3J2 complete.** **Checkpoint:** `13b4e72` (3J2B3). **Prior:** `213e322` (3J2B2), `1033cd9` (3J2B1). **Purpose:** Record completion of the lib-layer proposal persistence spine before **3J3** UI/API wiring.
+
+### 1. Committed slices
+
+| Slice | Commit | Module | Scope |
+|-------|--------|--------|-------|
+| **3J2B1** | `1033cd9` | `proposalSnapshotStatusMapper.ts` | Engine/preview line status → persisted snapshot status mapping; `assertCustomerSafeLineRow`; `assertConfiguredPolicyForPersistence`; extract-only reuse in `proposalBuilderPricingPreview.ts` |
+| **3J2B2** | `213e322` | `proposalSnapshotBuilder.ts` | Pure row-shape assembly for draft/version/page/option/line/internal-summary payloads; no Supabase, no UI, no pricing math duplication |
+| **3J2B3** | `13b4e72` | `proposalRecordStore.ts` | First DB-writing proposal lib layer; mocked Supabase tests; sequential multi-table draft create/refresh/update |
+
+### 2. Boundaries (3J2 did not touch)
+
+- **Builder UI** — baseline unchanged; no create/open draft wiring
+- **Preview / Send / Sign / Payment** — remain disabled
+- **APIs** — no new routes; store not exposed over HTTP yet
+- **Pricing math** — `proposalPricingEngine.ts`, `proposalPricingInputMapper.ts` unchanged
+- **Old estimator / saved estimate / loadSaved paths** — untouched
+- **SQL/migrations** — 006/007 already applied (§6AA); no new migrations in 3J2
+- **Settings / catalog / package files** — untouched
+
+### 3. `proposalRecordStore` capabilities now available (lib layer)
+
+| Method | Purpose |
+|--------|---------|
+| `getProposalById` | Read one proposal header by company scope |
+| `listProposalsForJob` | Read proposal summaries for a job (company-scoped) |
+| `getDraftGraph` | Read header + current draft version + pages + options + line items + internal summaries (internal summaries kept separate from customer line rows) |
+| `createDraftProposal` | Create full draft proposal graph via snapshot builder + sequential Supabase writes |
+| `refreshDraftPricing` | Recompute pricing for **draft only** — updates options, line items, internal summaries; does not mutate pages/content |
+| `updateDraftSelectedOption` | Update `selected_option_id` for mutable draft only |
+| `appendProposalEvent` | **Insert-only** event writer — no update/delete helpers |
+
+### 4. High-risk safeguards handled (3J2B3)
+
+| Risk | Handling |
+|------|----------|
+| **Non-atomic multi-table writes** | Explicit documented write order (`CREATE_DRAFT_WRITE_STEPS`); code comments state Supabase JS is not one DB transaction; tests assert order |
+| **`customer_id` validation** | Same-company lookup fails closed when `customer_id` present — does not silently trust input |
+| **`jobs.active_proposal_id`** | Update scoped by job `id` + `company_id`; proposal id validated before write |
+| **`effective_margin_pct` DB CHECK** | `sanitizeEffectiveMarginPct`: null → null; negative → throws; `>= 100` → clamps to `99.9999`; applied on internal summary insert/refresh |
+| **`page_id` linking** | Pages inserted before line items; `buildPageIdByTemplateSectionId` maps `source_template_section_id` → runtime page id; `section_id` remains template-section echo |
+| **Customer/internal boundary** | `proposal_line_items` inserts customer-safe only (`assertLineInsertRowCustomerSafe`); internal cost/profit/margin/policy echo only on `proposal_internal_summaries` |
+| **Configured policy guard** | `assertConfiguredPolicyForPersistence` blocks placeholder/unconfigured policies on create and refresh |
+| **Policy echo split** | Customer-safe `ProposalVersionPolicyEcho` → `proposal_versions.policy_echo`; internal echo → `proposal_internal_summaries.policy_echo_json` only; full `PricingPolicy` not persisted as customer echo |
+| **Draft-only mutation** | `refreshDraftPricing` and `updateDraftSelectedOption` reject non-`draft` `version_kind` |
+| **Events append-only** | `appendProposalEvent` inserts only; no update/delete event methods in store |
+
+### 5. Verification (3J2)
+
+| Check | Result |
+|-------|--------|
+| **Tests** | **180/180** pass across proposal/pricing suites |
+| **Typecheck** | Only **6** known pre-existing `RoofingClientV2.tsx` errors |
+| **Forbidden files** | No Builder UI, API, migration, pricing engine/mapper, old estimator, or package changes in 3J2 commits |
+
+### 6. Phase boundary — what 3J3 unlocks
+
+| State | Detail |
+|-------|--------|
+| **Builder UI** | Still baseline — live preview only; no persisted draft open path |
+| **Failed 3I-3D2 visual attempts** | Remain reverted — do not resume sidebar-inside-sidebar or competing layout experiments |
+| **3J3 scope** | Wire Job Card / Proposal entry → `createDraftProposal`; Builder read path → `getDraftGraph`; optional `refreshDraftPricing` / `updateDraftSelectedOption` from Builder actions |
+| **3I-3D2 / §6Y visual work** | Wait until Builder opens a **persisted draft graph** (real `proposalId`, `proposal_pages`, frozen option/line snapshots) |
+| **Preview / Send / Sign / Payment** | Remain disabled until **3K+** even after 3J3 draft wiring |
+
+### 7. Roadmap position (3J band)
+
+| Slice | Status |
+|-------|--------|
+| **3J0** types | **Done** (`3ae5e39`, §6Z) |
+| **3J1** migrations applied + verified | **Done** (§6AA) |
+| **3J2** store + snapshot builder | **Done** (`13b4e72`, this section) |
+| **3J3** | **Next** — draft proposal create/open/read wiring (Job Card + Builder) |
+| **3J4** | Page Context Strip backed by `proposal_pages` |
+| **3K+** | Preview / PDF / send / sign / payment |
+
+---
+
 ## 7. IMPORTANT ARCHITECTURE BOUNDARIES
 
 | Concept | Owns |
@@ -2589,7 +2682,7 @@ Use before applying 006/007 to **staging or other targets** — proposal tables 
 | **MeasurementRecord** | Roof measurement truth (quantities, source, readiness) — `measurement_records` |
 | **CatalogItem** | Reusable company-owned line item + **quantity driver** (`quantity_source`) — `catalog_items` |
 | **ProposalTemplate** | Reusable company-owned package (options, sections, catalog-backed items) — **types, tables, store, defaults, install helper**; **no UI** |
-| **Proposal** | Job-specific instance of template + measurement + snapshots — **types locked (§6Z); SQL/store 3J1+** |
+| **Proposal** | Job-specific instance of template + measurement + snapshots — **types locked (§6Z); SQL applied (§6AA); lib store (§6AB); UI wiring 3J3+** |
 | **Pricing engine** | **New-spine lib** (`proposalPricingEngine.ts` + mapper + orchestrator) — **3I-1 + 3I-2 DONE**; wired from Builder route only; legacy estimator `useMemo` still on saved-estimate path — **protected, not replaced** |
 | **Payments / approvals / status** | Estimates/proposals KV + APIs — **protected**; do not couple to catalog install |
 
@@ -2788,9 +2881,9 @@ Use this section as the **ordered checklist** for future GPT/Cursor sessions. Kn
 
 ### Current checkpoint
 
-**Latest code checkpoint:** **3I-2 read-only Builder pricing preview complete** (`637b85a`). **3I-2:** `5626c47`–`637b85a`. **3I-1:** `162f9be`–`52b7148`. **3H-3:** `40e6720`. **3H-2:** `00fbf64`. **3H-1:** `feec663`. **Packet session bleed fix:** `c12ea4d`. **Pre-3H-2:** `abd718d`.  
+**Latest code checkpoint:** **`13b4e72` — 3J2B3: add proposal record store** (§6AB). **3J2:** `1033cd9`–`13b4e72`. **3J1:** migrations applied §6AA. **3J0:** `3ae5e39`. **3I-3D:** `fbdedbe`. **3I-3C:** `3491e48`. **3I-2:** `5626c47`–`637b85a`. **3H-3:** `40e6720`. **3H-2:** `00fbf64`. **3H-1:** `feec663`.  
 **Jobs Board approved save point:** **3F9B4-RoofrExact** (`b27a444`).  
-**Latest handoff doc checkpoint:** **3I-3A pricing-policy source-of-truth spec** (§6L — docs pending commit; decision: 3I-3 before 3J) — **next: 3I-3B resolve real company pricing policy + retire placeholder**.
+**Latest handoff doc checkpoint:** **3J2 proposal persistence spine complete** (§6AB — docs pending commit). **Next: 3J3** — wire Job Card / Proposal entry to real proposal draft records and Builder read path.
 
 **Completed working state (summary):**
 
@@ -2813,11 +2906,15 @@ Use this section as the **ordered checklist** for future GPT/Cursor sessions. Kn
 | **3I-0** Proposal pricing type contract | **DONE** (`6f9cbe1`) — `proposalPricingTypes.ts` |
 | **3I-1** Pure pricing engine + input mapper + tests | **DONE** (`162f9be`–`52b7148`) |
 | **3I-2** Read-only Builder pricing preview (orchestrator + document UI + status surfaces) | **DONE** (`5626c47`–`637b85a`) — see **§6K** |
+| **3I-3** Company pricing policy + internal profitability rail + rail regrouping | **DONE** — see **§6P**–**§6V** |
+| **3J0** Proposal architecture types | **DONE** (`3ae5e39`, §6Z) |
+| **3J1** Proposal SQL migrations + RLS | **DONE** — applied + verified (§6AA) |
+| **3J2** Snapshot mapper + builder + record store | **DONE** (`13b4e72`, §6AB) — lib layer only; no UI/API wiring |
 | **Canonical catalog route** | **`/tools/roofing/catalog`** — `CatalogSetupClient` |
 | **Canonical templates route** | **`/tools/roofing/templates`** — `TemplatesSetupClient` |
-| **Proposal Builder route** | **`/tools/roofing/proposals/builder?job=<uuid>`** |
-| **Job Card Proposals** | Setup links (3G6E); `+ Proposal` when Builder gates pass (3H-1) |
-| **Protected** | Legacy pricing, payments, approval, status, saved estimates, send/PDF **untouched** through 3I-2; new spine wired from Builder route only |
+| **Proposal Builder route** | **`/tools/roofing/proposals/builder?job=<uuid>`** — still live-preview only until **3J3** |
+| **Job Card Proposals** | Setup links (3G6E); `+ Proposal` when Builder gates pass (3H-1) — no persisted proposal yet until **3J3** |
+| **Protected** | Legacy pricing, payments, approval, status, saved estimates, send/PDF **untouched** through 3J2 |
 
 **SQL note:** Catalog/template table verification was done in Supabase during 3F/3G stages; do not re-run schema changes from roadmap work unless a stage explicitly scopes a new migration.
 
@@ -2857,10 +2954,14 @@ Treat these as **known architecture risks** — not forgotten — when planning 
 8. ~~**3I-1A pure pricing engine**~~ — **DONE** (`162f9be`, `1ddee44`, `d67910d`).
 9. ~~**3I-1B pricing input mapper**~~ — **DONE** (`52b7148`).
 10. ~~**3I-2 read-only Builder pricing preview**~~ — **DONE** (`5626c47`–`637b85a`) — see **§6K**.
-11. **3I-3A pricing-policy source-of-truth spec** — **DOCS-ONLY (current)** — see **§6L**. Decision: **3I-3 before 3J**.
-12. **3I-3B resolve real company pricing policy** — **NEXT** — replace `BUILDER_PREVIEW_PRICING_POLICY`; minimal source/settings; SQL only if policy needs a table; **no internal profitability rail yet**.
-13. **3I-3C internal profitability rail** → **3J0 snapshot types** → **3J1 persistence (SQL)** — in that order; see **§6L**.
-14. **Jobs Board** remains saved-estimate spine — acceptable for Builder `?job=`; migration **Future/Later**.
+11. ~~**3I-3A pricing-policy source-of-truth spec**~~ — **DONE** (§6L).
+12. ~~**3I-3B resolve real company pricing policy**~~ — **DONE** (`79c4b02`, §6Q).
+13. ~~**3I-3C internal profitability rail**~~ — **DONE** (`3491e48`, §6T).
+14. ~~**3J0 snapshot types**~~ — **DONE** (`3ae5e39`, §6Z).
+15. ~~**3J1 persistence (SQL)**~~ — **DONE** — applied + verified (§6AA).
+16. ~~**3J2 lib persistence spine**~~ — **DONE** (`13b4e72`, §6AB).
+17. **3J3 Builder create/open draft path** — **NEXT** — Job Card + Builder wiring to `proposalRecordStore`; Preview/Send/Sign/Payment still disabled.
+18. **Jobs Board** remains saved-estimate spine — acceptable for Builder `?job=`; migration **Future/Later**.
 
 ---
 
@@ -3328,11 +3429,13 @@ Run parallel to legacy estimator; do not overwrite `useMemo` until validated and
 
 ---
 
-### Stage 3J — Proposal records / output — **LATER**
+### Stage 3J — Proposal records / persistence — **3J2 LIB DONE; 3J3 UI NEXT**
 
-Persist job proposals separately from legacy estimates (`proposals`, `proposal_lines` or equivalent). Snapshot measurement, template, lines, pricing output, status.
+**3J0** types (`3ae5e39`), **3J1** SQL (006/007 applied §6AA), **3J2** lib spine (`13b4e72`, §6AB) — mapper, pure snapshot builder, `proposalRecordStore` with mocked tests.
 
-**Suggested commits:** `Add proposal records foundation`, `Persist proposal builder draft`, `Add proposal preview surface`
+**3J3 next:** Wire Job Card / Proposal entry and Builder read path to real draft proposal records (`createDraftProposal`, `getDraftGraph`, etc.). **No Preview/Send/Sign/Payment** until **3K+**.
+
+**Suggested commits:** `Wire Job Card proposal create to proposalRecordStore`, `Open Builder from persisted draft graph`, `Refresh draft pricing from Builder actions`
 
 ---
 
@@ -3511,3 +3614,4 @@ Treat as **drift** if a session:
 - **2026-06-04:** **Pre-3H-2 source-of-truth fix** (`abd718d`) — Activity rail readiness copy, fresh packet intake reset, Job Card `?job=` identity; handoff (`d4b4f25`).
 - **2026-06-04:** **3H-1 complete** — Proposal Builder shell and gates (`feec663`); packet handoff fix (`fd87152`); handoff (`cf3706f`); built-surface audit.
 - **2026-05-31:** **3G6 complete** — 3G6A–E (`15ad732`–`b78c9ee`), Templates D2 (`227061c`), Catalog D2 (`29ca190`); Job Card + Job Packet audits documented; **next: plan 3H** Proposal Builder (Roofr research; not until scoped); pricing remains protected.
+- **2026-06-06:** **3J2 complete** — 3J2B1 status mapper (`1033cd9`), 3J2B2 snapshot builder (`213e322`), 3J2B3 record store (`13b4e72`); §6AB added; **180/180** tests; **next: 3J3** Builder/Job Card draft wiring; Preview/Send/Sign/Payment remain disabled until 3K+.
