@@ -28,6 +28,11 @@ import {
   buildProposalBuilderPricingPreview,
   type ProposalBuilderPricingPreview,
 } from "@/app/lib/proposalBuilderPricingPreview";
+import {
+  adaptProposalDraftGraphToBuilderPreview,
+  validateProposalDraftGraphForJob,
+} from "@/app/lib/proposalDraftGraphAdapter";
+import { getDraftGraph, type ProposalDraftGraph } from "@/app/lib/proposalRecordStore";
 import { getResolvedCompanyPricingPolicy } from "@/app/lib/companyPricingPolicyStore";
 import type { CompanyPricingPolicyResolution } from "@/app/lib/companyPricingPolicy";
 import type { PricingPolicy } from "@/app/lib/proposalPricingTypes";
@@ -45,9 +50,18 @@ const CATALOG_STARTER_DEFINITION_COUNT = DEFAULT_ROOFING_CATALOG_DEFINITIONS.len
 export default function ProposalBuilderClient({ companyId }: { companyId: string }) {
   const searchParams = useSearchParams();
   const jobIdParam = searchParams.get("job");
+  const proposalIdParam = searchParams.get("proposal");
+  const hasPersistedProposalParam =
+    proposalIdParam != null && isUuidLike(proposalIdParam.trim());
 
   const [job, setJob] = useState<JobRecord | null>(null);
   const [jobLoadComplete, setJobLoadComplete] = useState(false);
+
+  const [persistedGraph, setPersistedGraph] = useState<ProposalDraftGraph | null>(null);
+  const [draftGraphError, setDraftGraphError] = useState<string | null>(null);
+  const [draftGraphLoadComplete, setDraftGraphLoadComplete] = useState(
+    !hasPersistedProposalParam
+  );
 
   const [measurementHandoff, setMeasurementHandoff] = useState<MeasurementProposalHandoff | null>(
     null
@@ -197,29 +211,102 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
     }
   }, [companyId]);
 
+  const loadPersistedDraft = useCallback(async () => {
+    if (!hasPersistedProposalParam) {
+      setPersistedGraph(null);
+      setDraftGraphError(null);
+      setDraftGraphLoadComplete(true);
+      return;
+    }
+
+    setDraftGraphLoadComplete(false);
+    setDraftGraphError(null);
+    setPersistedGraph(null);
+
+    const proposalId = proposalIdParam!.trim();
+    try {
+      const graph = await getDraftGraph(companyId, proposalId);
+      const validation = validateProposalDraftGraphForJob(graph, jobIdParam);
+      if (!validation.valid) {
+        setDraftGraphError(validation.message);
+        return;
+      }
+      setPersistedGraph(graph);
+    } catch (err) {
+      console.warn("[ProposalBuilderClient] persisted draft load error:", err);
+      setDraftGraphError("Could not load persisted proposal draft.");
+    } finally {
+      setDraftGraphLoadComplete(true);
+    }
+  }, [companyId, hasPersistedProposalParam, jobIdParam, proposalIdParam]);
+
   useEffect(() => {
     void loadJobContext();
   }, [loadJobContext]);
+
+  useEffect(() => {
+    void loadPersistedDraft();
+  }, [loadPersistedDraft]);
 
   useEffect(() => {
     void loadCatalog();
   }, [loadCatalog]);
 
   useEffect(() => {
+    if (hasPersistedProposalParam) return;
     void loadTemplates();
-  }, [loadTemplates]);
+  }, [loadTemplates, hasPersistedProposalParam]);
+
+  useEffect(() => {
+    if (!persistedGraph?.proposal.template_id) return;
+
+    let cancelled = false;
+    void (async () => {
+      setTemplateLoadComplete(false);
+      setTemplateError(null);
+      try {
+        const graph = await getProposalTemplateGraph(persistedGraph.proposal.template_id, {
+          companyId,
+        });
+        if (cancelled) return;
+        setStarterGraph(graph);
+        setCompanyTemplateCount(graph ? 1 : 0);
+      } catch (err) {
+        if (cancelled) return;
+        console.warn("[ProposalBuilderClient] persisted template fetch error:", err);
+        setTemplateError("Could not load proposal template for this draft.");
+        setStarterGraph(null);
+        setCompanyTemplateCount(0);
+      } finally {
+        if (!cancelled) setTemplateLoadComplete(true);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [companyId, persistedGraph?.proposal.template_id]);
 
   useEffect(() => {
     void loadPricingPolicy();
   }, [loadPricingPolicy]);
 
+  const adapterResult = useMemo(
+    () => (persistedGraph ? adaptProposalDraftGraphToBuilderPreview(persistedGraph) : null),
+    [persistedGraph]
+  );
+
   useEffect(() => {
+    if (adapterResult?.selectedTemplateOptionId) {
+      setSelectedOptionId(adapterResult.selectedTemplateOptionId);
+      return;
+    }
     if (!starterGraph) {
       setSelectedOptionId(null);
       return;
     }
     setSelectedOptionId(getDefaultSelectedOptionId(starterGraph));
-  }, [starterGraph?.template.id]);
+  }, [adapterResult?.selectedTemplateOptionId, starterGraph?.template.id]);
 
   const activeCatalogItems = useMemo(
     () => catalogItems.filter((item) => item.active),
@@ -236,9 +323,9 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
         : null,
     [pricingResolution]
   );
-  const pricingPolicyConfigured = configuredPolicy != null;
 
   const pricingPreview = useMemo<ProposalBuilderPricingPreview | null>(() => {
+    if (adapterResult) return adapterResult.pricingPreview;
     if (!starterGraph || activeCatalogItems.length === 0) return null;
     return buildProposalBuilderPricingPreview({
       graph: starterGraph,
@@ -251,6 +338,7 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
       ...(configuredPolicy ? { policy: configuredPolicy } : {}),
     });
   }, [
+    adapterResult,
     starterGraph,
     activeCatalogItems,
     measurementHandoff,
@@ -258,6 +346,10 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
     selectedOptionId,
     configuredPolicy,
   ]);
+
+  const pricingPolicyConfigured = adapterResult
+    ? adapterResult.pricingPolicyConfigured
+    : configuredPolicy != null;
 
   const effectiveSelectedOptionId = useMemo(
     () =>
@@ -293,20 +385,8 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
     [catalogReadiness, activeCatalogItems, starterGraph, companyTemplateCount]
   );
 
-  const builderReadiness = useMemo(
-    () =>
-      deriveProposalBuilderReadiness({
-        jobIdParam,
-        job,
-        jobLoadComplete,
-        measurementHandoff,
-        measurementLoadComplete,
-        catalogReadiness,
-        catalogLoadComplete,
-        templateReadiness,
-        templateLoadComplete,
-      }),
-    [
+  const builderReadiness = useMemo(() => {
+    const base = deriveProposalBuilderReadiness({
       jobIdParam,
       job,
       jobLoadComplete,
@@ -316,11 +396,29 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
       catalogLoadComplete,
       templateReadiness,
       templateLoadComplete,
-    ]
-  );
+    });
+
+    if (hasPersistedProposalParam && !draftGraphLoadComplete) {
+      return { ...base, ready: false, loading: true };
+    }
+
+    return base;
+  }, [
+    jobIdParam,
+    job,
+    jobLoadComplete,
+    measurementHandoff,
+    measurementLoadComplete,
+    catalogReadiness,
+    catalogLoadComplete,
+    templateReadiness,
+    templateLoadComplete,
+    hasPersistedProposalParam,
+    draftGraphLoadComplete,
+  ]);
 
   const loadError = catalogError ?? templateError;
-  const shellReady = builderReadiness.ready;
+  const shellReady = builderReadiness.ready && !draftGraphError;
   const normalizedJobId = (jobIdParam ?? "").trim() || null;
 
   return (
@@ -331,7 +429,12 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
         shellReady={shellReady}
       />
       <ProposalBuilderPageAlerts loadError={loadError} shellReady={shellReady} />
-      {shellReady ? (
+      {draftGraphError ? (
+        <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          {draftGraphError}
+        </div>
+      ) : null}
+      {!draftGraphError && shellReady ? (
         <ProposalBuilderWorkspaceLayout
           sectionNav={<ProposalBuilderSectionNav activeSectionId="overview" />}
           canvas={
@@ -359,7 +462,7 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
             />
           }
         />
-      ) : (
+      ) : !draftGraphError ? (
         <ProposalBuilderBlockedState
           loading={builderReadiness.loading}
           primaryGate={builderReadiness.primaryGate}
@@ -369,7 +472,7 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
           catalogReadiness={catalogReadiness}
           templateReadiness={templateReadiness}
         />
-      )}
+      ) : null}
     </div>
   );
 }

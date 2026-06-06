@@ -1,0 +1,251 @@
+/**
+ * Pure adapter: persisted ProposalDraftGraph → Builder preview DTOs (3J3D).
+ *
+ * No Supabase, React, pricing math, or UI. Customer/internal boundaries enforced
+ * at the DTO boundary — internal summaries feed rail-only fields only.
+ */
+
+import type {
+  ProposalBuilderLineCustomerView,
+  ProposalBuilderOptionPreview,
+  ProposalBuilderPricingPreview,
+  BuilderLineDisplayStatus,
+} from "@/app/lib/proposalBuilderPricingPreview";
+import { BUILDER_PREVIEW_ACTOR_ROLE, BUILDER_PREVIEW_PRICING_POLICY } from "@/app/lib/proposalBuilderPricingPreview";
+import type { CustomerVisibility } from "@/app/lib/catalogTypes";
+import { PROPOSAL_LINE_CUSTOMER_FORBIDDEN_KEYS } from "@/app/lib/proposalLineSnapshotTypes";
+import type { GuardrailOutcome } from "@/app/lib/proposalPricingTypes";
+import { PROPOSAL_SNAPSHOT_PRICING_STATUSES } from "@/app/lib/proposalSnapshotStatusMapper";
+import type {
+  ProposalDraftGraph,
+  ProposalLineItemRow,
+  ProposalOptionRow,
+} from "@/app/lib/proposalRecordStore";
+import { isUuidLike } from "@/app/lib/jobStore";
+
+export class ProposalDraftGraphAdapterError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ProposalDraftGraphAdapterError";
+  }
+}
+
+export type ProposalDraftGraphAdapterResult = {
+  pricingPreview: ProposalBuilderPricingPreview;
+  selectedTemplateOptionId: string | null;
+  templateId: string;
+  templateTitle: string | null;
+  pricingPolicyConfigured: boolean;
+};
+
+export type ValidateProposalDraftGraphForJobResult =
+  | { valid: true }
+  | { valid: false; message: string };
+
+const SNAPSHOT_STATUS_SET = new Set<string>(PROPOSAL_SNAPSHOT_PRICING_STATUSES);
+
+const GUARDRAIL_OUTCOMES: readonly GuardrailOutcome[] = ["pass", "warn", "block"];
+
+export function mapSnapshotPricingStatusToBuilderDisplayStatus(
+  status: string | null | undefined
+): BuilderLineDisplayStatus {
+  const normalized = (status ?? "").trim();
+  if (SNAPSHOT_STATUS_SET.has(normalized)) {
+    return normalized as BuilderLineDisplayStatus;
+  }
+  return "not_priced";
+}
+
+function normalizeGuardrailOutcome(value: string | null | undefined): GuardrailOutcome {
+  const v = (value ?? "").trim() as GuardrailOutcome;
+  if (GUARDRAIL_OUTCOMES.includes(v)) return v;
+  return "block";
+}
+
+function customerVisibilityForLine(
+  line: ProposalLineItemRow,
+  displayStatus: BuilderLineDisplayStatus
+): CustomerVisibility {
+  if (displayStatus === "omitted") return "internal_only";
+  if (displayStatus === "grouped") return "grouped";
+  if (!line.visible_to_customer) return "internal_only";
+  return "customer_visible";
+}
+
+function buildLineCustomerView(line: ProposalLineItemRow): ProposalBuilderLineCustomerView | null {
+  const templateItemId = (line.source_template_item_id ?? "").trim();
+  if (!templateItemId) return null;
+
+  const displayStatus = mapSnapshotPricingStatusToBuilderDisplayStatus(line.pricing_status);
+  const customerLinePriceCents =
+    displayStatus === "priced" ? line.customer_line_total_cents : null;
+
+  return {
+    templateItemId,
+    sectionId: line.section_id,
+    displayStatus,
+    showPrice: displayStatus === "priced" && customerLinePriceCents != null,
+    customerLinePriceCents,
+    customerVisibility: customerVisibilityForLine(line, displayStatus),
+  };
+}
+
+export function resolveSelectedTemplateOptionIdFromGraph(
+  graph: ProposalDraftGraph
+): string | null {
+  const options = [...graph.options].sort(
+    (a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)
+  );
+
+  const selectedRuntimeId = (graph.proposal.selected_option_id ?? "").trim();
+  if (selectedRuntimeId) {
+    const selected = options.find((o) => o.id === selectedRuntimeId);
+    const templateId = (selected?.source_template_option_id ?? "").trim();
+    if (templateId) return templateId;
+  }
+
+  const defaultOpt = options.find((o) => o.is_default);
+  const fallback = defaultOpt ?? options[0];
+  const templateId = (fallback?.source_template_option_id ?? "").trim();
+  return templateId || null;
+}
+
+export function validateProposalDraftGraphForJob(
+  graph: ProposalDraftGraph | null,
+  jobId: string | null | undefined
+): ValidateProposalDraftGraphForJobResult {
+  if (!graph) {
+    return { valid: false, message: "Could not load persisted proposal draft." };
+  }
+
+  if (graph.proposal.status !== "draft") {
+    return {
+      valid: false,
+      message: "Only draft proposals can be opened in Proposal Builder.",
+    };
+  }
+
+  const expectedJobId = (jobId ?? "").trim();
+  if (expectedJobId && isUuidLike(expectedJobId)) {
+    const proposalJobId = (graph.proposal.job_id ?? "").trim();
+    if (proposalJobId !== expectedJobId) {
+      return {
+        valid: false,
+        message: "This proposal does not belong to the job in the URL.",
+      };
+    }
+  }
+
+  if (graph.options.length === 0) {
+    return {
+      valid: false,
+      message: "Persisted proposal draft has no options to display.",
+    };
+  }
+
+  return { valid: true };
+}
+
+function buildOptionPreview(
+  option: ProposalOptionRow,
+  lines: ProposalLineItemRow[],
+  summary: ProposalDraftGraph["internalSummaries"][number] | undefined
+): ProposalBuilderOptionPreview | null {
+  const templateOptionId = (option.source_template_option_id ?? "").trim();
+  if (!templateOptionId) return null;
+
+  const lineViews: ProposalBuilderLineCustomerView[] = [];
+  const lineByTemplateItemId: Record<string, ProposalBuilderLineCustomerView> = {};
+
+  for (const line of lines) {
+    const view = buildLineCustomerView(line);
+    if (!view) continue;
+    lineViews.push(view);
+    lineByTemplateItemId[view.templateItemId] = view;
+
+    for (const key of PROPOSAL_LINE_CUSTOMER_FORBIDDEN_KEYS) {
+      if (key in line) {
+        throw new ProposalDraftGraphAdapterError(
+          `Persisted line row contains forbidden customer field: ${key}`
+        );
+      }
+    }
+  }
+
+  const customer = {
+    optionId: templateOptionId,
+    pricingComplete: Boolean(option.pricing_complete),
+    customerSubtotalCents: option.customer_subtotal_cents,
+    discountCents: option.discount_cents,
+    salesTaxCents: option.sales_tax_cents,
+    customerTotalCents: option.customer_total_cents,
+    lines: lineViews,
+    lineByTemplateItemId,
+  };
+
+  return {
+    optionId: templateOptionId,
+    customer,
+    status: {
+      optionId: templateOptionId,
+      pricingComplete: Boolean(option.pricing_complete),
+      blockingLineCount: option.blocking_line_count ?? 0,
+      guardrailOutcome: normalizeGuardrailOutcome(option.guardrail_outcome),
+    },
+    internal: {
+      optionId: templateOptionId,
+      internalCostCents: summary?.internal_cost_cents ?? null,
+      internalProfitCents: summary?.internal_profit_cents ?? null,
+      effectiveMarginPct: summary?.effective_margin_pct ?? null,
+    },
+  };
+}
+
+/**
+ * Map persisted draft graph rows into Builder pricing preview DTOs.
+ * Internal summaries remain on option.internal only — never merged into line rows.
+ */
+export function adaptProposalDraftGraphToBuilderPreview(
+  graph: ProposalDraftGraph
+): ProposalDraftGraphAdapterResult {
+  const linesByRuntimeOptionId = new Map<string, ProposalLineItemRow[]>();
+  for (const line of graph.lineItems) {
+    const bucket = linesByRuntimeOptionId.get(line.proposal_option_id) ?? [];
+    bucket.push(line);
+    linesByRuntimeOptionId.set(line.proposal_option_id, bucket);
+  }
+
+  const summaryByRuntimeOptionId = new Map(
+    graph.internalSummaries.map((s) => [s.proposal_option_id, s] as const)
+  );
+
+  const byOptionId: Record<string, ProposalBuilderOptionPreview> = {};
+  const optionIds: string[] = [];
+
+  for (const option of graph.options) {
+    const preview = buildOptionPreview(
+      option,
+      linesByRuntimeOptionId.get(option.id) ?? [],
+      summaryByRuntimeOptionId.get(option.id)
+    );
+    if (!preview) continue;
+    optionIds.push(preview.optionId);
+    byOptionId[preview.optionId] = preview;
+  }
+
+  const selectedTemplateOptionId = resolveSelectedTemplateOptionIdFromGraph(graph);
+
+  return {
+    pricingPreview: {
+      policyEcho: BUILDER_PREVIEW_PRICING_POLICY,
+      actorRole: BUILDER_PREVIEW_ACTOR_ROLE,
+      selectedOptionId: selectedTemplateOptionId,
+      optionIds,
+      byOptionId,
+    },
+    selectedTemplateOptionId,
+    templateId: graph.proposal.template_id,
+    templateTitle: graph.proposal.title,
+    pricingPolicyConfigured: Boolean((graph.proposal.pricing_policy_id ?? "").trim()),
+  };
+}
