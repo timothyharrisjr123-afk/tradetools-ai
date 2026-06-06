@@ -9,11 +9,11 @@
 - `docs/fielddive-estimate-proposal-flow-model.md` — estimate/proposal UX model notes
 - `docs/fielddive-feature-placement-map.md` — feature placement matrix
 
-**Last updated checkpoint:** **3I-3C internal profitability rail** (working tree — §6T). **Prior:** **3I-3B3 company pricing policy path complete** (`79c4b02` — §6Q/§6R); **architecture roadmap** (`9a7d5ac` — §6S). **Working tree:** §6T implementation pending review (no commit). **Tests:** prior **103/103** + new presenter tests (run full suite before commit). **Typecheck:** only **6** pre-existing errors in `app/tools/roofing-v2/RoofingClientV2.tsx` — unchanged. **Protected systems:** legacy `RoofingClient.tsx` pricing `useMemo`, payments, approval, status, saved estimates, send/PDF **untouched**.
+**Last updated checkpoint:** **3I-3C internal profitability rail committed** (`3491e48` — §6T); **catalog table width polish** (`23bbb8e`). **3I-3D rail spec locked:** **§6U** (rail-only pricing-confidence regrouping — docs pending review). **Prior:** **3I-3B3 company pricing policy path complete** (`79c4b02` — §6Q/§6R); **architecture roadmap** (`9a7d5ac` — §6S). **Working tree:** §6U docs update pending review (no commit). **Tests:** **111/111** pass (form utils 17 + resolver 18 + store 21 + orchestrator 9 + engine 22 + mapper 16 + profitability presenter 8). **Typecheck:** only **6** pre-existing errors in `app/tools/roofing-v2/RoofingClientV2.tsx` — unchanged. **Protected systems:** legacy `RoofingClient.tsx` pricing `useMemo`, payments, approval, status, saved estimates, send/PDF **untouched**.
 
 **Jobs Board approved save point:** `b27a444` (3F9B4-RoofrExact). **Prior Job Board checkpoint:** `36fa3a9` (3F9B3).
 
-**Next (recommended):** **3J0 — proposal record + snapshot architecture** (docs/types only — §6S). Optional tiny follow-up: **3I-3D** guardrail badge in internal rail. **Do not** start 3J1 persistence until 3J0 docs/types are locked.
+**Next (recommended):** **3I-3D1 — rail-only pricing-confidence regrouping** (§6U). Then **3J0 — proposal record + snapshot architecture** (docs/types only — §6S). **Do not** start 3J1 persistence until 3J0 docs/types are locked.
 
 **Do not** persist proposals (3J1+), snapshot pricing, enable Preview/Send/Sign/Payment, or persist placeholder pricing. **Catalog custom delete/deactivate** is **not implemented** and remains a **separate later scope** — do not mix into pricing/proposal work.
 
@@ -1866,7 +1866,7 @@ Underlying foundation (pre-3I-3B3): **3I-3B1 resolver** (`c1b52ee`), **3I-3B2A m
 
 ## 6T. INTERNAL PROFITABILITY RAIL — 3I-3C (contractor-only Builder rail)
 
-**Status:** **3I-3C implemented** (working tree — pending review/commit). **Prior checkpoint:** `9a7d5ac` (§6S roadmap). **Purpose:** Surface already-computed internal cost/profit/margin in the contractor-only Builder right rail — trust gate before 3J0 snapshots.
+**Status:** **3I-3C committed** (`3491e48`). **Prior checkpoint:** `9a7d5ac` (§6S roadmap). **Purpose:** Surface already-computed internal cost/profit/margin in the contractor-only Builder right rail — trust gate before 3J0 snapshots.
 
 ### 1. What shipped
 
@@ -1911,10 +1911,96 @@ Underlying foundation (pre-3I-3B3): **3I-3B1 resolver** (`c1b52ee`), **3I-3B2A m
 
 | Phase | Scope | Status |
 |-------|-------|--------|
-| **3J0** | Proposal record + snapshot architecture — **docs/types only** | **Next** |
-| **3I-3D** | Guardrail badge in internal rail (optional tiny follow-up) | Optional |
+| **3I-3D** | Builder rail pricing-confidence regrouping (rail-only) — spec in **§6U** | **Next** |
+| **3J0** | Proposal record + snapshot architecture — **docs/types only** | After 3I-3D |
 
 **Do not** start 3J1 persistence, snapshot SQL, or enable Preview/Send/Sign/Payment until 3J0 docs/types are locked and subsequent slices complete per **§6S**.
+
+---
+
+## 6U. BUILDER RAIL PRICING-CONFIDENCE GROUPING SPEC — 3I-3D0 (docs/spec only)
+
+**Status:** **Spec locked** (docs only — no app code). **Checkpoint:** `23bbb8e` (clean); pricing/proposal checkpoint `3491e48` (§6T). **Purpose:** Define the RoofrExact Builder right-rail regrouping before implementing **3I-3D1**. **Read before any rail change.**
+
+### 1. Verdict
+
+- **No broad page redesign.** The current 3-column Builder layout (`12rem nav / canvas / 17rem rail`, `ProposalBuilderWorkspaceLayout.tsx`) is acceptable / RoofrExact-enough for now.
+- **Do not blindly add another badge.** The problem is rail **structure**, not a missing pill.
+- **Root issue:** the rail mixes **setup readiness** (measurement/quantities/catalog/template) and **pricing confidence** (policy/pricing status/guardrail/internal profitability) under a single flat "Job context" stack. Guardrail is buried as the third text line inside "Option pricing."
+- **3I-3D is a rail-only regrouping** — headings, ordering, labels, a dedicated guardrail row, and copy de-duplication. Nothing else.
+
+### 2. Desired rail structure
+
+RoofrExact: the **customer document canvas** carries customer truth (price/status only); the **contractor rail** carries contractor intelligence, grouped by concern. Replace the single "Job context" header with two labeled groups + an actions note.
+
+**Group 1 — Setup readiness** ("Can I price this?")
+
+| Row | Value |
+|-----|-------|
+| Measurement | Ready / Not ready |
+| Quantities | summary |
+| Record | label (optional row — only when present) |
+| Catalog | readiness pill · N active |
+| Template | readiness pill · template name |
+
+**Group 2 — Pricing confidence** (contractor-only — "Is the price good and safe?")
+
+| Row | Value |
+|-----|-------|
+| Pricing policy | Configured / Not configured / Checking… |
+| Pricing status | Complete / Incomplete |
+| Blocking lines | count |
+| Guardrail | Pass / Warning / Blocked |
+| Internal profitability | cost / profit / margin, **or** warning copy when hidden |
+
+**Actions status note** (status-only):
+
+- Preview / Send / Sign / Payment remain **disabled** until the proposal record/snapshot phases (3J+).
+- **No action enablement in 3I-3D.**
+
+### 3. Guardrail decision
+
+- Guardrail becomes its **own visible row** in the Pricing confidence group (today it is a text line under "Option pricing").
+- Labeling: **Pass / Warning / Blocked** (reuse `formatGuardrailOutcomeLabel`; add a small pass/warn/block pill class in `proposalBuilderConstants.ts`).
+- **Status-only.** No enforcement, no send-gating, no manager approval or override in 3I-3D.
+
+### 4. Dedup rule
+
+- Avoid repeating "Configured / Complete" wording across rows.
+- **Pricing policy** owns Configured / Not configured / Checking.
+- **Pricing status** owns Complete / Incomplete (rename from "Option pricing" — "option" is redundant with the tabs).
+- **Internal profitability** must **not** restate policy/completeness status **except** in its warning/hidden state (e.g. placeholder or blocking → short warning explaining why dollars are hidden).
+
+### 5. Allowed changes in 3I-3D1
+
+- `app/tools/roofing/proposals/builder/ProposalBuilderSummaryRail.tsx`
+- `app/tools/roofing/proposals/builder/proposalBuilderConstants.ts`
+- `docs/fielddive-global-handoff.md` (completion note)
+- Scope limited to: rail ordering, group headings, labels, the new guardrail row, copy cleanup. No new props or client wiring expected — the rail already receives `selectedOptionPricingStatus` (carries `guardrailOutcome`) and `selectedOptionInternal`.
+
+### 6. Forbidden changes (3I-3D)
+
+- No page grid redesign (`ProposalBuilderWorkspaceLayout.tsx`).
+- No document canvas changes (`ProposalBuilderCanvas.tsx`).
+- No option tab changes (`ProposalBuilderOptionTabs.tsx`).
+- No Preview / Send / Sign / Payment enablement (`ProposalBuilderDisabledActions.tsx`).
+- No pricing math / engine / mapper / orchestrator changes (`proposalPricingEngine.ts`, `proposalPricingInputMapper.ts`, `proposalBuilderPricingPreview.ts`).
+- No customer document changes (`ProposalBuilderDocumentTotals.tsx`, customer columns in `ProposalBuilderLinePreviewTable.tsx`).
+- No internal cost/profit/margin in customer document / PDF.
+- No SQL / persistence / snapshots.
+- No settings / catalog changes.
+- No old estimator / saved-estimate / loadSaved / `estimateStore` changes.
+
+### 7. Next sequence
+
+| Slice | Scope |
+|-------|-------|
+| **3I-3D0** | This spec (docs only) |
+| **3I-3D1** | Rail-only implementation per §6U §2–§4 |
+| **3I-3D2** | Optional small page-layout polish — **only if** D1 review reveals a real layout need |
+| **3J0** | Proposal record / snapshot architecture — docs/types only |
+
+**Stable-before-3J0:** the *names and meaning* of pricing-confidence states (policy configured, pricing complete, blocking count, guardrail outcome) are frozen by this spec so the 3J0 snapshot field map can reference them. All rail values remain **live-only** (read from the live preview) until 3J1/3J2 — the rail must never read from a persisted record in 3I-3D.
 
 ---
 
