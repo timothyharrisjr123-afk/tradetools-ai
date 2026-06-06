@@ -9,13 +9,13 @@
 - `docs/fielddive-estimate-proposal-flow-model.md` — estimate/proposal UX model notes
 - `docs/fielddive-feature-placement-map.md` — feature placement matrix
 
-**Last updated checkpoint:** **3J1C proposal records migration manual apply plan** (§6AA — docs only; migrations committed, **not applied**). **Code checkpoint:** `7b23415` (3J1B harden). **Prior:** `387993e` (3J1A schema), `3ae5e39` (3J0b types). **Tests:** **118/118** proposal/pricing suites (run via `npx tsx --test`). **Typecheck:** only **6** pre-existing errors in `app/tools/roofing-v2/RoofingClientV2.tsx` — unchanged. **Protected systems:** legacy `RoofingClient.tsx` pricing `useMemo`, payments, approval, status, saved estimates, send/PDF **untouched**.
+**Last updated checkpoint:** **3J1C proposal records migrations applied + verified in production** (§6AA). **Docs checkpoint:** pending commit (this update). **Code checkpoint:** `0db2f45` (3J1C apply plan docs) / `7b23415` (3J1B migrations). **Prior:** `387993e` (3J1A), `3ae5e39` (3J0b). **Tests:** **118/118** proposal/pricing suites (run via `npx tsx --test`). **Typecheck:** only **6** pre-existing errors in `app/tools/roofing-v2/RoofingClientV2.tsx` — unchanged. **Protected systems:** legacy `RoofingClient.tsx` pricing `useMemo`, payments, approval, status, saved estimates, send/PDF **untouched**.
 
 **Jobs Board approved save point:** `b27a444` (3F9B4-RoofrExact). **Prior Job Board checkpoint:** `36fa3a9` (3F9B3).
 
-**Next (recommended):** **Manual target confirmation + preflight + apply 006 then 007** (§6AA) — **not 3J2 yet**. **Do not** apply without explicit target confirmation. **Do not** resume Builder UI (3I-3D2) until **3J3** draft open path exists unless explicitly scoped.
+**Next (recommended):** **3J2 — proposal stores + snapshot builder + tests** (§6Z). **Not Builder UI (3I-3D2 / 3J3)** until 3J2 store/snapshot path exists. **Do not** enable Preview/Send/Sign/Payment until proposal records/versions are wired.
 
-**Do not** persist proposals (3J1+), snapshot pricing, enable Preview/Send/Sign/Payment, or persist placeholder pricing. **Catalog custom delete/deactivate** is **not implemented** and remains a **separate later scope** — do not mix into pricing/proposal work.
+**Do not** persist proposals from app code yet (3J2 store not implemented). **Do not** snapshot pricing or persist placeholder policy. **Catalog custom delete/deactivate** is **not implemented** and remains a **separate later scope** — do not mix into pricing/proposal work.
 
 ### Recent committed sequence (3G6 spine + execution surfaces + 3H + 3I pricing foundation + 3I-2 Builder preview + 3I-3 company policy)
 
@@ -1721,7 +1721,7 @@ Underlying foundation (pre-3I-3B3): **3I-3B1 resolver** (`c1b52ee`), **3I-3B2A m
 | **P1** | **3I-3C** | Internal profitability rail/drawer | UI only — read-only, contractor-only | Contractor trusts live pricing |
 | **P2** | **3I-3D** | Guardrail surfacing | UI only — optional small follow-up | Visible warn/block before send (no enforcement yet) |
 | **P3** | **3J0b** | Proposal record + snapshot architecture | **Docs/types** — **done** (`3ae5e39`, §6Z) |
-| **P4** | **3J1** | Proposal draft record | SQL committed; **manual apply pending** (§6AA); store **3J2** | Draft has id; survives reload |
+| **P4** | **3J1** | Proposal draft record | SQL **committed + applied + verified** (§6AA); store **3J2 next** | Draft has id; survives reload |
 | **P5** | **3J2** | Snapshot-on-send writer | SQL/store + lib | Frozen snapshot exists as data |
 | **P6** | **3K0** | Preview | UI — reads snapshot | Preview button can light up |
 | **P7** | **3K1** | Send bridge | PDF + transmit | Send can light up |
@@ -1915,10 +1915,11 @@ Underlying foundation (pre-3I-3B3): **3I-3B1 resolver** (`c1b52ee`), **3I-3B2A m
 |-------|-------|--------|
 | **3I-3D** | Builder rail pricing-confidence regrouping (rail-only) — **§6U** spec, **§6V** implementation | **Complete** (`fbdedbe`) |
 | **3I-3D2A** | Builder navigation model decision — **§6Y** | **Complete** (`d3a969b`) |
-| **3J0b** | Proposal records / versions / pages architecture — **§6Z** | **Complete** (uncommitted; pending review) |
-| **3J1** | Proposal SQL migrations + RLS | **Next** |
+| **3J0b** | Proposal records / versions / pages architecture — **§6Z** | **Complete** (`3ae5e39`; SQL applied §6AA) |
+| **3J1** | Proposal SQL migrations + RLS | **Done** (applied §6AA) |
+| **3J2** | Proposal stores + snapshot builder | **Next** |
 
-**Do not** start 3J1 persistence, snapshot SQL, or enable Preview/Send/Sign/Payment until 3J0 docs/types are locked and subsequent slices complete per **§6S**.
+**Do not** start 3J2 store work without scoping against §6Z. **Do not** enable Preview/Send/Sign/Payment until proposal records/versions are wired (3J2+). See **§6AA** guardrails.
 
 ---
 
@@ -2396,14 +2397,15 @@ No Builder layout redesign should be required when these features arrive — onl
 | Slice | Scope |
 |-------|-------|
 | **3I-3D2A** | This decision (§6Y) — **done** (`d3a969b`) |
-| **3J0b** | Proposal architecture docs + types (§6Z) — **done** (pending review) |
-| **3J1** | Proposal SQL migrations + RLS — **Next** |
+| **3J0b** | Proposal architecture docs + types (§6Z) — **done** (`3ae5e39`) |
+| **3J1** | Proposal SQL migrations + RLS — **done** (applied §6AA) |
+| **3J2** | Proposal stores + snapshot builder — **next** |
 
 ---
 
-## 6Z. 3J0 PROPOSAL RECORDS / VERSIONS / PAGES ARCHITECTURE (docs + types; pending review)
+## 6Z. 3J0 PROPOSAL RECORDS / VERSIONS / PAGES ARCHITECTURE (docs + types; SQL applied §6AA)
 
-**Status:** **3J0b committed** (`3ae5e39`). **3J1A/3J1B migrations committed** (`387993e`, `7b23415`); **manual apply pending** — see **§6AA**. **Checkpoint base:** `7b23415`. **Purpose:** Lock proposal record, snapshot, page, and lifecycle architecture before stores or Builder persistence. **No runtime behavior in 3J0b/3J1.**
+**Status:** **3J0b committed** (`3ae5e39`). **3J1A/3J1B migrations committed** (`387993e`, `7b23415`); **3J1C applied + verified in production** — see **§6AA**. **Checkpoint base:** `0db2f45` (docs) / `7b23415` (migrations). **Purpose:** Lock proposal record, snapshot, page, and lifecycle architecture before stores or Builder persistence. **No app runtime behavior yet — 3J2 next.**
 
 ### 1. Why 3J0 is needed
 
@@ -2452,12 +2454,12 @@ Types: `cover`, `estimate`, `terms`, `warranty`, `project_overview`, `photos`, `
 
 **Instantiate (M5):** copy template graph → proposal pages/options/lines on create; draft **detaches** from template after create.
 
-### 6. Database plan (3J1 — committed; apply pending §6AA)
+### 6. Database plan (3J1 — committed; applied + verified §6AA)
 
-**Migrations (committed, not applied):**
+**Migrations (committed; applied manually in production):**
 
-- `supabase/migrations/20260606_006_create_proposal_records.sql` (3J1A)
-- `supabase/migrations/20260607_007_harden_proposal_records_before_apply.sql` (3J1B)
+- `supabase/migrations/20260606_006_create_proposal_records.sql` (3J1A) — **applied**
+- `supabase/migrations/20260607_007_harden_proposal_records_before_apply.sql` (3J1B) — **applied**
 
 Tables: `proposals`, `proposal_versions`, `proposal_pages`, `proposal_options`, `proposal_line_items`, `proposal_internal_summaries`, `proposal_events`.
 
@@ -2483,9 +2485,9 @@ Tables: `proposals`, `proposal_versions`, `proposal_pages`, `proposal_options`, 
 | Slice | Scope |
 |-------|-------|
 | **3J0b** | This section + domain type files — **done** (`3ae5e39`) |
-| **3J1A/3J1B** | SQL migrations + RLS hardening — **committed** (`387993e`, `7b23415`) |
-| **3J1C** | Manual apply plan — **done** (§6AA); **apply pending** |
-| **3J2** | Stores + snapshot builder + tests — **after successful apply** |
+| **3J1A/3J1B** | SQL migrations + RLS hardening — **committed + applied** (`387993e`, `7b23415`) |
+| **3J1C** | Manual apply + verification — **done** (§6AA); production apply verified |
+| **3J2** | Stores + snapshot builder + tests — **next** |
 | **3J3** | Builder create/open draft path |
 | **3J4** | Page Context Strip backed by `proposal_pages` |
 | **3K** | Preview / PDF / send |
@@ -2500,105 +2502,53 @@ Tables: `proposals`, `proposal_versions`, `proposal_pages`, `proposal_options`, 
 
 ---
 
-## 6AA. 3J1C PROPOSAL RECORDS MIGRATION MANUAL APPLY PLAN (docs only — apply pending)
+## 6AA. 3J1C PROPOSAL RECORDS MIGRATION MANUAL APPLY — APPLIED + VERIFIED
 
-**Status:** **3J1C apply plan prepared** (docs only). **Working tree was clean at `7b23415` when plan was prepared.** **006 and 007 are committed but NOT applied to any database yet.**
+**Status:** **3J1C complete.** Migrations **006 + 007 applied manually** in Supabase SQL Editor and **post-apply verification passed** (all 10 checks). **No rollback was run.** **No seed rows created.**
 
-### 1. Pending migrations
+### 1. Apply record
 
-| File | Commit | Role |
-|------|--------|------|
-| `supabase/migrations/20260606_006_create_proposal_records.sql` | `387993e` (3J1A) | Create seven proposal tables, RLS, indexes, triggers |
-| `supabase/migrations/20260607_007_harden_proposal_records_before_apply.sql` | `7b23415` (3J1B) | Parent-company RLS, composite FKs, header pointer hardening |
+| Item | Detail |
+|------|--------|
+| **Target** | **tradetools-ai** / **PRODUCTION** / ref **`rhquhnujnzjhweypavd`** |
+| **Method** | Manual paste + run in Supabase SQL Editor (user-confirmed target) |
+| **Order** | **006 first**, then **007** (only after 006 succeeded) |
+| **Preflight** | Passed before apply (§4 checks; all parent tables present including `customers`) |
 
-**Apply must be manual** through the **Supabase SQL Editor** only after explicit target confirmation. Do **not** use Supabase CLI, psql, or `.env.local` to infer the target. Do **not** edit migration files in the browser unless a failure is diagnosed and reviewed.
+| File | Commit | Status |
+|------|--------|--------|
+| `supabase/migrations/20260606_006_create_proposal_records.sql` | `387993e` (3J1A) | **Applied** |
+| `supabase/migrations/20260607_007_harden_proposal_records_before_apply.sql` | `7b23415` (3J1B) | **Applied** |
 
-### 2. Required target confirmation (before any apply)
+### 2. Post-apply verification (all PASS)
 
-User must confirm:
+| # | Check | Result |
+|---|-------|--------|
+| 01 | Tables exist (all seven) | PASS |
+| 02 | RLS policy counts | PASS |
+| 03 | No internal line columns on `proposal_line_items` | PASS |
+| 04 | `proposal_options` customer-safe column names | PASS |
+| 05 | `guardrail_outcome` pass/warn/block only | PASS |
+| 06 | Composite FKs from 007 present | PASS |
+| 07 | Old id-only FKs absent | PASS |
+| 08 | `set_updated_at` triggers on mutable tables only | PASS |
+| 09 | Key indexes present | PASS |
+| 10 | No seed rows (all counts 0) | PASS |
 
-- Supabase **project name**
-- **Project ref** (if visible)
-- **Environment:** production / staging / dev
-- This is the **intended target**
-- **005** `company_pricing_policies` is **already applied** (see §6O)
-- **006 and 007 have NOT already been applied**
+**Verified boundaries:**
 
-### 3. Apply order
+- `proposal_line_items` customer-safe — no internal cost/profit/margin/markup/`policy_echo_json` columns
+- `proposal_events` append-only RLS shape — SELECT + INSERT only; no app-user UPDATE/DELETE policies
+- `proposal_options` uses `customer_subtotal_cents`, `discount_cents`, `sales_tax_cents`, `customer_total_cents`
+- 007 composite FKs present; id-only header/catalog FKs replaced as expected
 
-1. Run **preflight SQL** (§4 below).
-2. Paste and run the **full contents** of **006**.
-3. **Only if 006 succeeds**, paste and run the **full contents** of **007**.
-4. Run **post-apply verification** (§5 below).
-5. Paste verification results back for review; then record apply result in docs (future §6AA update).
+### 3. Preflight reference (for future environments)
 
-**Rules:** Do **not** run 007 before 006. Do **not** partially rerun edited fragments unless a failure is diagnosed. Do **not** manually edit SQL in the browser unless reviewed.
+Use before applying 006/007 to **staging or other targets** — proposal tables must not already exist; parent tables + composite uniques must be present. See queries in prior §6AA revision (preflight SQL preserved in chat history / 3J1C apply plan).
 
-### 4. Critical preflight checks
+**Important:** `public.customers` must exist or 006 fails (`proposals.customer_id` FK). No customers migration in repo bundle.
 
-Preflight must confirm:
-
-**Proposal tables do not already exist** (all `to_regclass` → `null`):
-
-```sql
-select
-  to_regclass('public.proposals')                   as proposals,
-  to_regclass('public.proposal_versions')           as proposal_versions,
-  to_regclass('public.proposal_pages')              as proposal_pages,
-  to_regclass('public.proposal_options')            as proposal_options,
-  to_regclass('public.proposal_line_items')         as proposal_line_items,
-  to_regclass('public.proposal_internal_summaries') as proposal_internal_summaries,
-  to_regclass('public.proposal_events')             as proposal_events;
-```
-
-**Required parent tables exist** (all non-null):
-
-- `companies`, `jobs`, `proposal_templates`, `proposal_template_sections`, `proposal_template_options`, `proposal_template_items`, `catalog_items`, `measurement_records`, `company_pricing_policies`, `company_memberships`, **`customers`**
-
-```sql
-select
-  to_regclass('public.companies')                   as companies,
-  to_regclass('public.jobs')                        as jobs,
-  to_regclass('public.proposal_templates')          as proposal_templates,
-  to_regclass('public.proposal_template_sections')  as proposal_template_sections,
-  to_regclass('public.proposal_template_options')   as proposal_template_options,
-  to_regclass('public.proposal_template_items')     as proposal_template_items,
-  to_regclass('public.catalog_items')               as catalog_items,
-  to_regclass('public.measurement_records')         as measurement_records,
-  to_regclass('public.company_pricing_policies')    as company_pricing_policies,
-  to_regclass('public.company_memberships')         as company_memberships,
-  to_regclass('public.customers')                   as customers;
-```
-
-**Important:** `public.customers` must be verified because **006** declares `proposals.customer_id` FK → `customers(id)`. There is **no customers migration in the repo bundle** — if the target DB lacks `public.customers`, **006 will fail**.
-
-**Shared function exists:** `public.set_updated_at()`.
-
-**Composite uniques exist (007 depends on these):**
-
-- `catalog_items(id, company_id)` — from migration 004
-- `proposal_template_sections(id, company_id)` — from migration 004
-
-**`company_pricing_policies` RLS enabled** with policies present (005 applied).
-
-### 5. Post-apply verification summary
-
-After **both** 006 and 007 succeed, verify:
-
-| Check | Expected |
-|-------|----------|
-| All seven proposal tables exist | All `to_regclass` non-null |
-| RLS enabled on all seven | `relrowsecurity = true` |
-| Policies | Four policies on six tables; **`proposal_events` SELECT + INSERT only** — no UPDATE/DELETE app-user policies |
-| `proposal_line_items` customer-safe | **No** `unit_cost`, `unit_cost_cents`, `internal_cost`, `internal_cost_cents`, `profit`, `profit_cents`, `margin`, `margin_pct`, `markup`, `markup_pct`, `policy_echo_json` |
-| `proposal_options` column names | `customer_subtotal_cents`, `discount_cents`, `sales_tax_cents`, `customer_total_cents` present; **no** `subtotal_cents`, `tax_cents`, `total_cents` |
-| `guardrail_outcome` | CHECK: `pass`, `warn`, `block` only |
-| 007 composite FKs | `proposal_events` proposal/version company FKs; `proposal_line_items` catalog + section company FKs; four proposal header pointer company FKs |
-| Old id-only FKs replaced | `proposals_*_fkey` (id-only) and `proposal_line_items_catalog_item_id_fkey` **absent** |
-| `set_updated_at` triggers | On mutable tables only (`proposals`, `proposal_pages`, `proposal_options`, `proposal_line_items`, `proposal_internal_summaries`); **not** on `proposal_versions` or `proposal_events` |
-| No seed data | Row counts **0** on all seven tables |
-
-### 6. Failure handling
+### 4. Failure handling (unchanged — for future applies)
 
 - **If 006 fails:** do **not** run 007. Copy exact error text.
 - **If 006 partially succeeds:** stop; report table/policy state. Do not cleanup without review.
@@ -2607,20 +2557,26 @@ After **both** 006 and 007 succeed, verify:
 - Do **not** drop `public.set_updated_at()` (shared by jobs and other tables).
 - Do **not** drop proposal tables unless explicitly directed after review.
 
-### 7. Next sequence
+### 5. Next sequence
 
 | Step | Scope |
 |------|-------|
-| **Now** | Docs commit for §6AA (this section) |
-| **User action** | Target confirmation + preflight SQL |
-| **If preflight passes** | Apply 006 → 007 → post-apply verification |
-| **After apply** | Paste verification results; record apply in docs (update §6AA status) |
-| **Then** | **3J2** stores + snapshot builder — **only after successful apply** |
+| **Now** | Docs commit recording §6AA apply (this update) |
+| **Next** | **3J2** — `proposalRecordStore` + snapshot builder + tests |
+| **Then** | **3J3** — Builder create/open draft path |
+| **Later** | **3J4** Page Context Strip; **3K** preview/PDF/send; **3L** sign/payment |
 
-### 8. Boundaries (3J1C)
+### 6. Guardrails (post-apply)
 
-- **No** migration apply from agent/automation without user target confirmation.
-- **No** app code, Builder UI, pricing engine/mapper/orchestrator, APIs/stores/settings/catalog changes.
+- **Do not resume Builder UI (3I-3D2 / §6Y)** until **3J2** store/snapshot path exists.
+- **Do not enable Preview/Send/Sign/Payment** until proposal records/versions are wired through stores.
+- **Customer-facing line snapshots** must remain free of internal cost/profit/margin/markup — internal fields only on `proposal_internal_summaries`.
+- **No app code writes** to proposal tables until `proposalRecordStore` (3J2) is scoped and implemented.
+
+### 7. Boundaries (3J1C)
+
+- **No** further migration apply needed on production for 006/007.
+- **No** app code, Builder UI, pricing engine/mapper/orchestrator, APIs/stores/settings/catalog changes in 3J1C docs slice.
 - **No** edits to committed 006/007 migration files.
 - **No** protected systems touched.
 
