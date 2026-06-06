@@ -9,11 +9,11 @@
 - `docs/fielddive-estimate-proposal-flow-model.md` — estimate/proposal UX model notes
 - `docs/fielddive-feature-placement-map.md` — feature placement matrix
 
-**Last updated checkpoint:** **3I-3D2 RoofrExact hybrid workspace spec** (§6W — docs only; pending review, no commit). **Prior:** **3I-3D1 rail grouping committed** (`fbdedbe` — §6V); **3I-3D0 spec** (`aa0073a` — §6U); **3I-3C internal profitability rail** (`3491e48` — §6T). **Tests:** **111/111** pass. **Typecheck:** only **6** pre-existing errors in `app/tools/roofing-v2/RoofingClientV2.tsx` — unchanged. **Protected systems:** legacy `RoofingClient.tsx` pricing `useMemo`, payments, approval, status, saved estimates, send/PDF **untouched**.
+**Last updated checkpoint:** **3I-3D2A Builder navigation architecture decision** (§6W-Reset — docs only; pending review, no commit). **Prior spec:** **§6W** (`b2c2e31` — RoofrExact hybrid workspace spec). **Prior:** **3I-3D1 rail grouping committed** (`fbdedbe` — §6V); **3I-3D0 spec** (`aa0073a` — §6U); **3I-3C internal profitability rail** (`3491e48` — §6T). **Tests:** **111/111** pass. **Typecheck:** only **6** pre-existing errors in `app/tools/roofing-v2/RoofingClientV2.tsx` — unchanged. **Protected systems:** legacy `RoofingClient.tsx` pricing `useMemo`, payments, approval, status, saved estimates, send/PDF **untouched**.
 
 **Jobs Board approved save point:** `b27a444` (3F9B4-RoofrExact). **Prior Job Board checkpoint:** `36fa3a9` (3F9B3).
 
-**Next (recommended):** **3I-3D2 — RoofrExact hybrid workspace implementation** (§6W). Then **3J0 — proposal record + snapshot architecture** (docs/types only — §6S). Optional **3I-3D3** left nav/page menu only if D2 review reveals a real need. **Do not** start 3J1 persistence until 3J0 docs/types are locked.
+**Next (recommended):** **3I-3D2A — Builder navigation model decision** (§6W-Reset) — choose layout before any further 3I-3D2 code. Then **3I-3D2 implementation** per the selected model. Then **3J0 — proposal record + snapshot architecture** (docs/types only — §6S). **Do not** start 3J1 persistence until 3J0 docs/types are locked.
 
 **Do not** persist proposals (3J1+), snapshot pricing, enable Preview/Send/Sign/Payment, or persist placeholder pricing. **Catalog custom delete/deactivate** is **not implemented** and remains a **separate later scope** — do not mix into pricing/proposal work.
 
@@ -1914,7 +1914,8 @@ Underlying foundation (pre-3I-3B3): **3I-3B1 resolver** (`c1b52ee`), **3I-3B2A m
 | Phase | Scope | Status |
 |-------|-------|--------|
 | **3I-3D** | Builder rail pricing-confidence regrouping (rail-only) — **§6U** spec, **§6V** implementation | **Complete** (`fbdedbe`) |
-| **3I-3D2** | RoofrExact hybrid workspace — center canvas restructure — **§6W** | **Next** (spec locked pending review) |
+| **3I-3D2A** | Builder navigation model decision — **§6W-Reset** | **Next** (docs only; pending review) |
+| **3I-3D2** | RoofrExact hybrid workspace — center canvas restructure — **§6W** + **§6W-Reset** | After 3I-3D2A decision |
 | **3J0** | Proposal record + snapshot architecture — **docs/types only** | After 3I-3D2 |
 
 **Do not** start 3J1 persistence, snapshot SQL, or enable Preview/Send/Sign/Payment until 3J0 docs/types are locked and subsequent slices complete per **§6S**.
@@ -2000,8 +2001,8 @@ RoofrExact: the **customer document canvas** carries customer truth (price/statu
 |-------|-------|
 | **3I-3D0** | This spec (docs only) |
 | **3I-3D1** | Rail-only implementation per §6U §2–§4 — **done** (`fbdedbe`) |
-| **3I-3D2** | RoofrExact hybrid workspace — center canvas — spec **§6W** |
-| **3I-3D3** | Optional left nav / page menu — **only if** D2 review reveals a real need |
+| **3I-3D2A** | Builder navigation model decision — **§6W-Reset** (docs only) |
+| **3I-3D2** | Hybrid workspace + selected navigation — **§6W** + **§6W-Reset** |
 | **3J0** | Proposal record / snapshot architecture — docs/types only |
 
 **Stable-before-3J0:** the *names and meaning* of pricing-confidence states (policy configured, pricing complete, blocking count, guardrail outcome) are frozen by this spec so the 3J0 snapshot field map can reference them. All rail values remain **live-only** (read from the live preview) until 3J1/3J2 — the rail must never read from a persisted record in 3I-3D.
@@ -2037,7 +2038,8 @@ RoofrExact: the **customer document canvas** carries customer truth (price/statu
 
 | Slice | Scope |
 |-------|-------|
-| **3I-3D2** | RoofrExact hybrid workspace — center canvas restructure — **§6W** |
+| **3I-3D2A** | Builder navigation model decision — **§6W-Reset** |
+| **3I-3D2** | RoofrExact hybrid workspace — center canvas restructure — **§6W** + **§6W-Reset** |
 | **3J0** | Proposal record / snapshot architecture — docs/types only |
 
 ---
@@ -2186,12 +2188,90 @@ Visual/layout only — **same props, same data sources, same pricing preview pat
 
 | Slice | Scope |
 |-------|-------|
-| **3I-3D2 docs** | This spec (§6W) |
-| **3I-3D2 impl** | Hybrid workspace per §6W §3–§4 |
-| **3I-3D3** | Optional left nav / page menu — only if D2 review reveals a real need |
+| **3I-3D2A** | Navigation model decision — **§6W-Reset** (docs only) |
+| **3I-3D2 impl** | Hybrid workspace per §6W §3–§4 + selected model from §6W-Reset §5 |
 | **3J0** | Proposal record / snapshot architecture — docs/types only |
 
 **Stable-before-3J0:** 3I-3D2 does not change pricing-confidence state names or meanings frozen by §6U — rail and estimate panel continue to read live preview only until 3J1/3J2.
+
+---
+
+## 6W-Reset. FIELDIVE BUILDER STRATEGY CORRECTION — 3I-3D2 (docs only)
+
+**Status:** **Correction locked** (docs only — no app code). **Checkpoint base:** `b2c2e31`. **Purpose:** Reset rejected 3I-3D2 visual attempts and define the correct FieldDive-optimized Roofr capability model before any further Builder UI work.
+
+### 1. Current 3I-3D2 visual attempt — rejected
+
+The uncommitted 3I-3D2 Builder visual implementation (RoofrExact baseline scaffold / inner page tree) is **rejected and reverted**. Do not keep tweaking that approach.
+
+### 2. Reason for rejection
+
+| Issue | Detail |
+|-------|--------|
+| **Sidebar-inside-sidebar** | An inner left page rail/panel inside FieldDive’s existing 3-column Builder shell reads as a second navigation system — bulky, not premium, and not native to FieldDive’s app chrome. |
+| **Partial Roofr copy** | Copying Roofr’s page-menu **placement** without Roofr’s full page/preview architecture (proposal records, snapshots, real page routing, Preview mode) creates clutter without the payoff. |
+| **Rough page-tree stubs** | Faking Cover / customer pages / Preview as disabled tree items inside a nested rail slows scanning and feels like placeholder UI, not intentional Builder IA. |
+| **Not faster or cleaner** | The result was not faster to scan, not cleaner than committed baseline, and not clearly better than leaving navigation decisions until architecture is chosen. |
+
+### 3. Correct principle — FieldDive-optimized Roofr capability model
+
+This is **not** permission to ignore Roofr or do a random FieldDive redesign.
+
+| Rule | Meaning |
+|------|---------|
+| **Roofr capabilities = source of truth** | Every Roofr Builder capability must eventually exist in FieldDive. |
+| **Roofr IA/workflow = baseline** | Cover → Estimate → customer pages → Preview/Send is the workflow model. |
+| **Layout may adapt** | FieldDive may improve **placement and density** only when literal Roofr placement creates clutter or slows workflow **inside FieldDive’s app shell** — without dropping capabilities. |
+| **Final place, disabled if unavailable** | Future features (Cover, customer pages, Preview, Send, Sign, Payment) sit in their **logical final place**, clearly disabled — no fake routing, no fake saves. |
+| **No fake behavior** | No stub page trees that imply navigation that does not exist. No second-app-sidebar metaphors. |
+
+### 4. Roofr capabilities to preserve (non-negotiable)
+
+| Capability | Notes |
+|------------|-------|
+| **Proposal pages** | Cover, Estimate, and customer content pages are first-class pages — not random inline blocks. |
+| **Cover** | Future proposal page; disabled until record/snapshot phases. |
+| **Estimate** | Primary Builder work surface — compact line-item grid, section/category grouping, customer-safe price/status, attached totals. |
+| **Option packages** | Good/Better/Best (or template options) tied to Estimate — selectable, status-visible, no behavior regression. |
+| **Customer pages / content** | Prose, warranty, terms, photos — proposal pages, not mixed into the estimate scroll. |
+| **Estimate grid** | Compact Item / Qty / Unit / Price (customer-safe); contractor debug meta stays out of customer document. |
+| **Right pricing / settings / profitability context** | 3I-3D1 rail: Setup readiness, Pricing confidence, Guardrail, Internal profitability (contractor-only). |
+| **Preview / Send mode** | Separate customer-output mode — not the Builder edit surface. Disabled until post-3J0. |
+| **Signing / payment** | Later phases — disabled, final header placement only. |
+
+### 5. FieldDive layout direction — evaluate before next code
+
+Do **not** implement another visual pass until one navigation model is chosen.
+
+| Option | Description | Tradeoffs |
+|--------|-------------|-----------|
+| **A — Literal inner left page rail** | Roofr-like page tree in the Builder left column (Cover / Estimate / pages / Preview). | Closest to Roofr placement; highest risk of sidebar-inside-sidebar in FieldDive shell. |
+| **B — Compact Builder page strip / header** | Horizontal page/context strip above the estimate workspace (pages + option context); left column reserved or minimized. | Faster scan, less nested chrome; must still expose full page model clearly. |
+| **C — Builder popout / drawer page tree** | Page tree in a slide-over drawer; center stays full-width estimate workspace. | Reduces permanent clutter; adds one click for page context. |
+| **D — Expandable app-sidebar Builder tree** | Proposal pages live in the **app-level** sidebar when Builder is active — not a nested inner rail. | Native to FieldDive shell; requires app-sidebar integration discipline. |
+| **E — Hybrid** | e.g. Estimate + options in workspace header/strip; Cover/customer pages/Preview in drawer or app sidebar; center = estimate-only. | Likely best fit — match Roofr **capabilities** without copying Roofr **chrome** literally. |
+
+**§6W center-workspace targets** (estimate panel, compact grid, secondary content handling, right rail unchanged) **remain valid** regardless of which navigation option is selected.
+
+### 6. Selection criteria (for 3I-3D2A decision)
+
+Choose the model that best satisfies **all** of:
+
+1. **Fastest to scan** — estimate grid and option context visible with minimal nested chrome.
+2. **Least clutter** — no sidebar-inside-sidebar, no box-in-box card stacks, no long-paper scroll.
+3. **Closest to Roofr capability model** — all pages and modes accounted for, even if disabled.
+4. **Easiest to enable future proposal pages / snapshots** — chosen chrome maps cleanly to 3J0 record + page routing.
+5. **No fake behavior** — disabled controls do not imply working navigation or persistence.
+
+### 7. Next step — 3I-3D2A (architecture / design decision only)
+
+| Slice | Scope |
+|-------|-------|
+| **3I-3D2A** | **Decision only** — pick Option A–E (or hybrid variant); document wireframe-level placement for Cover, Estimate, options, customer pages, Preview, right rail, header actions. **No app code.** |
+| **3I-3D2** | Implement **one** selected navigation + center workspace model per §6W §3–§4 + §6W-Reset §4–§5. Visual/layout only; same pricing/data boundaries. |
+| **3J0** | Proposal record / snapshot architecture — docs/types only — after 3I-3D2 layout is stable. |
+
+**Do not** resume 3I-3D2 implementation until 3I-3D2A decision is reviewed and locked.
 
 ---
 
