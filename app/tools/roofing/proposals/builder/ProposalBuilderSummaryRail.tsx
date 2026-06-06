@@ -6,13 +6,19 @@ import {
   formatProposalQuantitiesDisplay,
   type MeasurementProposalHandoff,
 } from "@/app/lib/measurementProposalHandoff";
-import type { ProposalBuilderOptionStatus } from "@/app/lib/proposalBuilderPricingPreview";
+import type { ProposalBuilderOptionInternalView, ProposalBuilderOptionStatus } from "@/app/lib/proposalBuilderPricingPreview";
+import { presentProposalInternalProfitability } from "@/app/lib/proposalProfitabilityPresenter";
 import type { ProposalTemplateReadiness } from "@/app/lib/proposalTemplateTypes";
 import { formatProposalTemplateReadinessLabel } from "@/app/lib/proposalTemplateReadiness";
 import { proposalTemplateReadinessStatusPillClass } from "@/app/lib/proposalTemplateReadiness";
 import { catalogReadinessStatusPillClass } from "@/app/tools/roofing/templates/templatesConstants";
 import {
   BUILDER_CARD,
+  BUILDER_INTERNAL_PROFITABILITY_LABEL_COST,
+  BUILDER_INTERNAL_PROFITABILITY_LABEL_MARGIN,
+  BUILDER_INTERNAL_PROFITABILITY_LABEL_PROFIT,
+  BUILDER_INTERNAL_PROFITABILITY_SECTION_NOTE,
+  BUILDER_INTERNAL_PROFITABILITY_SECTION_TITLE,
   BUILDER_RAIL_STAT,
   formatGuardrailOutcomeLabel,
   formatOptionPricingTabStatusLabel,
@@ -27,6 +33,8 @@ type ProposalBuilderSummaryRailProps = {
   starterGraph: ProposalTemplateGraph | null;
   /** Selected option pricing status — words only, no dollars. */
   selectedOptionPricingStatus: ProposalBuilderOptionStatus | null;
+  /** 3I-3C: selected option internal profitability (contractor-only). */
+  selectedOptionInternal: ProposalBuilderOptionInternalView | null;
   /** 3I-3B3c: company pricing policy configured (status-only; no policy detail). */
   pricingPolicyConfigured?: boolean;
   /** 3I-3B3c: resolver fetch finished — drives Checking vs Configured/Not configured. */
@@ -56,6 +64,7 @@ export default function ProposalBuilderSummaryRail({
   templateReadiness,
   starterGraph,
   selectedOptionPricingStatus,
+  selectedOptionInternal,
   pricingPolicyConfigured = false,
   pricingPolicyLoadComplete = false,
 }: ProposalBuilderSummaryRailProps) {
@@ -66,6 +75,17 @@ export default function ProposalBuilderSummaryRail({
   const catalogLabel = formatCatalogReadinessLabel(catalogReadiness);
   const templateLabel = formatProposalTemplateReadinessLabel(templateReadiness);
   const templateName = starterGraph?.template.name ?? "Starter template";
+
+  const internalProfitability = presentProposalInternalProfitability({
+    internalCostCents: selectedOptionInternal?.internalCostCents ?? null,
+    internalProfitCents: selectedOptionInternal?.internalProfitCents ?? null,
+    effectiveMarginPct: selectedOptionInternal?.effectiveMarginPct ?? null,
+    pricingPolicyConfigured,
+    pricingPolicyLoadComplete,
+    hasBlockingIssues: selectedOptionPricingStatus
+      ? !selectedOptionPricingStatus.pricingComplete
+      : false,
+  });
 
   return (
     <div className={`${BUILDER_CARD} space-y-4`}>
@@ -124,10 +144,50 @@ export default function ProposalBuilderSummaryRail({
             </div>
           </div>
         ) : null}
+        <div className={`${BUILDER_RAIL_STAT} border-slate-200/90 bg-slate-100/60`}>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-600">
+            {BUILDER_INTERNAL_PROFITABILITY_SECTION_TITLE}
+          </p>
+          <p className="mt-1 text-[11px] leading-snug text-slate-500">
+            {BUILDER_INTERNAL_PROFITABILITY_SECTION_NOTE}
+          </p>
+          <p className="mt-2 text-xs font-medium text-slate-700">{internalProfitability.statusLabel}</p>
+          {internalProfitability.warningCopy ? (
+            <p className="mt-2 text-xs leading-snug text-amber-800">{internalProfitability.warningCopy}</p>
+          ) : null}
+          {internalProfitability.shouldShowInternalNumbers ? (
+            <dl className="mt-2 space-y-1.5">
+              <div>
+                <dt className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
+                  {BUILDER_INTERNAL_PROFITABILITY_LABEL_COST}
+                </dt>
+                <dd className="text-sm tabular-nums font-medium text-slate-900">
+                  {internalProfitability.costDisplay}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
+                  {BUILDER_INTERNAL_PROFITABILITY_LABEL_PROFIT}
+                </dt>
+                <dd className="text-sm tabular-nums font-medium text-slate-900">
+                  {internalProfitability.profitDisplay}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
+                  {BUILDER_INTERNAL_PROFITABILITY_LABEL_MARGIN}
+                </dt>
+                <dd className="text-sm tabular-nums font-medium text-slate-900">
+                  {internalProfitability.marginDisplay}
+                </dd>
+              </div>
+            </dl>
+          ) : null}
+        </div>
       </div>
       <p className="text-xs leading-relaxed text-slate-500">
-        Margin, markup, customer preview, send, sign, and payment controls are disabled in this
-        stage. No proposal record or line snapshots are persisted.
+        Customer preview, send, sign, and payment controls are disabled in this stage. No proposal
+        record or line snapshots are persisted.
       </p>
     </div>
   );

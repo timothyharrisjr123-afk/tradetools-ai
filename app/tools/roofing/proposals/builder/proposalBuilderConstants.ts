@@ -125,6 +125,18 @@ export function formatPricingPolicyConfiguredLabel(configured: boolean): string 
   return configured ? "Configured" : "Not configured";
 }
 
+/** 3I-3C — contractor-only internal profitability rail block. */
+export const BUILDER_INTERNAL_PROFITABILITY_SECTION_TITLE = "Internal profitability";
+
+export const BUILDER_INTERNAL_PROFITABILITY_SECTION_NOTE =
+  "Contractor-only. Not shown on customer document, option tabs, or PDF.";
+
+export const BUILDER_INTERNAL_PROFITABILITY_LABEL_COST = "Internal cost";
+
+export const BUILDER_INTERNAL_PROFITABILITY_LABEL_PROFIT = "Internal profit";
+
+export const BUILDER_INTERNAL_PROFITABILITY_LABEL_MARGIN = "Effective margin";
+
 /** Totals block at the foot of the proposal document page. */
 export const BUILDER_DOCUMENT_TOTALS_BLOCK = "border-t border-slate-200/80 pt-6 mt-6 space-y-2";
 

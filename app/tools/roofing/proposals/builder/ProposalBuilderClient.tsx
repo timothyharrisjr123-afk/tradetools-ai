@@ -271,6 +271,11 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
     return pricingPreview.byOptionId[effectiveSelectedOptionId]?.status ?? null;
   }, [pricingPreview, effectiveSelectedOptionId]);
 
+  const selectedOptionInternal = useMemo(() => {
+    if (!pricingPreview || !effectiveSelectedOptionId) return null;
+    return pricingPreview.byOptionId[effectiveSelectedOptionId]?.internal ?? null;
+  }, [pricingPreview, effectiveSelectedOptionId]);
+
   const catalogReadiness = useMemo(
     () => deriveCatalogReadiness(activeCatalogItems, CATALOG_STARTER_DEFINITION_COUNT),
     [activeCatalogItems]
@@ -348,6 +353,7 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
               templateReadiness={templateReadiness}
               starterGraph={starterGraph}
               selectedOptionPricingStatus={selectedOptionPricingStatus}
+              selectedOptionInternal={selectedOptionInternal}
               pricingPolicyConfigured={pricingPolicyConfigured}
               pricingPolicyLoadComplete={pricingPolicyLoadComplete}
             />

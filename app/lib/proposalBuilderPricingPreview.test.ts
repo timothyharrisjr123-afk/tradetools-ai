@@ -184,6 +184,11 @@ describe("proposalBuilderPricingPreview", () => {
     assert.equal(typeof line.customerLinePriceCents, "number");
     assert.equal(opt.status.blockingLineCount, 0);
     assert.equal(opt.status.guardrailOutcome, "pass");
+    assert.ok(opt.internal);
+    assert.equal(typeof opt.internal.internalCostCents, "number");
+    assert.equal(typeof opt.internal.internalProfitCents, "number");
+    assert.ok((opt.internal.internalCostCents ?? 0) > 0);
+    assertNoInternalDollarKeys(opt.customer, opt.customer.lines);
   });
 
   test("missing catalog blocks option and nulls customer totals", () => {

@@ -6,11 +6,11 @@
  *   → resolveProposalPricing / priceProposalLine (3I-1A)
  *   → ProposalBuilderPricingPreview DTO.
  *
- * Customer/internal separation is enforced at the DTO boundary: the returned
- * shapes carry ONLY customer-safe fields. Internal cost/profit/margin dollars
- * (profitCents, marginPct, markupPct, lineCostCents, internalCostCents,
- * internalProfitCents, effectiveUnitCostCents, unitCostCents) are deliberately
- * NOT exposed — they are deferred to a later internal-profitability phase (3I-3).
+ * Customer/internal separation is enforced at the DTO boundary: customer views
+ * carry ONLY customer-safe fields. Per-line cost/profit/margin are never exposed.
+ * Option-level internal profitability (internalCostCents, internalProfitCents,
+ * effectiveMarginPct) is exposed on `ProposalBuilderOptionInternalView` for the
+ * contractor-only Builder rail (3I-3C) — not for customer document surfaces.
  *
  * No React, Supabase, stores, persistence, legacy estimator, or UI. Guardrails: §6J.
  */
@@ -96,10 +96,20 @@ export type ProposalBuilderOptionStatus = {
   guardrailOutcome: GuardrailOutcome;
 };
 
+/** Contractor-only option view (3I-3C). Never render on customer document. */
+export type ProposalBuilderOptionInternalView = {
+  optionId: string;
+  internalCostCents: number | null;
+  internalProfitCents: number | null;
+  effectiveMarginPct: number | null;
+};
+
 export type ProposalBuilderOptionPreview = {
   optionId: string;
   customer: ProposalBuilderOptionCustomerView;
   status: ProposalBuilderOptionStatus;
+  /** Contractor-only rail — not for customer document / PDF. */
+  internal: ProposalBuilderOptionInternalView;
 };
 
 export type ProposalBuilderPricingPreview = {
@@ -225,7 +235,14 @@ function buildOptionPreview(
     guardrailOutcome: optionPricing?.guardrail.outcome ?? "block",
   };
 
-  return { optionId, customer, status };
+  const internal: ProposalBuilderOptionInternalView = {
+    optionId,
+    internalCostCents: optionPricing?.internalCostCents ?? null,
+    internalProfitCents: optionPricing?.internalProfitCents ?? null,
+    effectiveMarginPct: optionPricing?.effectiveMarginPct ?? null,
+  };
+
+  return { optionId, customer, status, internal };
 }
 
 // ---------------------------------------------------------------------------

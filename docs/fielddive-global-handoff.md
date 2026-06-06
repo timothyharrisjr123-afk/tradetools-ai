@@ -9,11 +9,11 @@
 - `docs/fielddive-estimate-proposal-flow-model.md` — estimate/proposal UX model notes
 - `docs/fielddive-feature-placement-map.md` — feature placement matrix
 
-**Last updated checkpoint:** **3I-3B3 company pricing policy path complete** (`79c4b02` — §6Q; full path summary §6R). **Architecture roadmap locked:** **§6S** (RoofrExact pricing → proposal arc; next slice **3I-3C**). **Prior:** **3I-3B3b settings UI** (`003e00b` — §6P); **3I-3B3a migration manually applied** (`630d278` — §6N/§6O); **3I-3B2B store** (`b5bbc7f` — §6N); **3I-3B1 resolver** (`c1b52ee` — §6M). **Working tree:** §6S docs update pending review (no commit). **Tests:** **103/103** pass (form utils 17 + resolver 18 + store 21 + orchestrator 9 + engine 22 + mapper 16). **Typecheck:** only **6** pre-existing errors in `app/tools/roofing-v2/RoofingClientV2.tsx` — unchanged. **Protected systems:** legacy `RoofingClient.tsx` pricing `useMemo`, payments, approval, status, saved estimates, send/PDF **untouched**.
+**Last updated checkpoint:** **3I-3C internal profitability rail** (working tree — §6T). **Prior:** **3I-3B3 company pricing policy path complete** (`79c4b02` — §6Q/§6R); **architecture roadmap** (`9a7d5ac` — §6S). **Working tree:** §6T implementation pending review (no commit). **Tests:** prior **103/103** + new presenter tests (run full suite before commit). **Typecheck:** only **6** pre-existing errors in `app/tools/roofing-v2/RoofingClientV2.tsx` — unchanged. **Protected systems:** legacy `RoofingClient.tsx` pricing `useMemo`, payments, approval, status, saved estimates, send/PDF **untouched**.
 
 **Jobs Board approved save point:** `b27a444` (3F9B4-RoofrExact). **Prior Job Board checkpoint:** `36fa3a9` (3F9B3).
 
-**Next (recommended):** **3I-3C — internal profitability rail** (§6S). **3I-3C is not optional vs 3J0** — it is the trust gate before snapshots. **Do not** start 3J0/3J1 until 3I-3C is scoped and complete.
+**Next (recommended):** **3J0 — proposal record + snapshot architecture** (docs/types only — §6S). Optional tiny follow-up: **3I-3D** guardrail badge in internal rail. **Do not** start 3J1 persistence until 3J0 docs/types are locked.
 
 **Do not** persist proposals (3J1+), snapshot pricing, enable Preview/Send/Sign/Payment, or persist placeholder pricing. **Catalog custom delete/deactivate** is **not implemented** and remains a **separate later scope** — do not mix into pricing/proposal work.
 
@@ -1693,8 +1693,8 @@ Underlying foundation (pre-3I-3B3): **3I-3B1 resolver** (`c1b52ee`), **3I-3B2A m
 
 | Phase | Scope | Status |
 |-------|-------|--------|
-| **3I-3C** | Internal profitability rail/drawer — contractor-only; customer document unchanged | **Next** |
-| **3J0** | Proposal records / snapshot architecture — docs/types only | After 3I-3C |
+| **3I-3C** | Internal profitability rail/drawer — contractor-only; customer document unchanged | **Done** (§6T — pending commit) |
+| **3J0** | Proposal records / snapshot architecture — docs/types only | **Next** |
 
 **Do not** start 3J1 persistence, enable send/PDF/sign/payment, or skip 3I-3C. **Do not** bundle catalog delete/deactivate into pricing/proposal work.
 
@@ -1861,6 +1861,60 @@ Underlying foundation (pre-3I-3B3): **3I-3B1 resolver** (`c1b52ee`), **3I-3B2A m
 - **Not on critical path** — does not block proposal correctness.
 - Deactivate via existing catalog UI or SQL is sufficient for stray test rows.
 - Scope as small standalone slice between phases if needed; **never bundle into 3I-3C or 3J commits**.
+
+---
+
+## 6T. INTERNAL PROFITABILITY RAIL — 3I-3C (contractor-only Builder rail)
+
+**Status:** **3I-3C implemented** (working tree — pending review/commit). **Prior checkpoint:** `9a7d5ac` (§6S roadmap). **Purpose:** Surface already-computed internal cost/profit/margin in the contractor-only Builder right rail — trust gate before 3J0 snapshots.
+
+### 1. What shipped
+
+| Deliverable | Location |
+|-------------|----------|
+| **Pure presenter** | `app/lib/proposalProfitabilityPresenter.ts` — format/label only; no pricing math |
+| **Presenter tests** | `app/lib/proposalProfitabilityPresenter.test.ts` |
+| **Orchestrator read-only extension** | `app/lib/proposalBuilderPricingPreview.ts` — `ProposalBuilderOptionInternalView` on `ProposalBuilderOptionPreview.internal` (pass-through from engine; no math change) |
+| **Summary rail UI** | `ProposalBuilderSummaryRail.tsx` — internal profitability block |
+| **Copy constants** | `proposalBuilderConstants.ts` — rail labels |
+| **Client threading** | `ProposalBuilderClient.tsx` — passes `selectedOptionInternal` to rail |
+
+### 2. Behavior
+
+- **Contractor-only** — internal cost, profit, and effective margin appear **only** in the right rail internal profitability block.
+- **Read-only** — no edit controls, no persistence, no SQL.
+- **Option-level** — selected option's `internalCostCents`, `internalProfitCents`, `effectiveMarginPct` from orchestrator internal branch.
+- **Configured company policy** → trusted internal dollars + margin when pricing complete (no blocking issues).
+- **Missing/unconfigured/loading policy** → internal dollars **hidden**; placeholder-aware warning shown instead.
+- **Blocking pricing issues** → internal dollars hidden; blocked warning shown.
+- **Customer document unchanged** — `ProposalBuilderDocumentTotals`, customer line columns, option tabs remain customer-safe only.
+- **Preview / Send / Sign / Payment** remain **disabled**.
+- **No proposal persistence / snapshots** (3J not started).
+
+### 3. Explicitly unchanged / forbidden
+
+- **No pricing math changes** — engine, mapper, company policy resolver/store untouched.
+- **No settings UI** changes.
+- **No SQL / migrations**.
+- **No PDF / send / sign / payment / status** paths touched.
+- **Old estimator / saved-estimate / loadSaved / estimateStore** untouched.
+- **Catalog delete/deactivate** — separate scope; not in this slice.
+
+### 4. Verification (3I-3C)
+
+- Unit tests: presenter formatting, placeholder/blocking/loading states.
+- Orchestrator test: internal branch populated; customer views still leak-free.
+- Manual smoke: ready Builder shows internal profitability in right rail only; customer document/option tabs clean; Preview/Send/Sign/Payment disabled; unconfigured policy does not show trusted internal dollars.
+- Regression: full test suite + typecheck (6 pre-existing `RoofingClientV2.tsx` errors only).
+
+### 5. Next recommended
+
+| Phase | Scope | Status |
+|-------|-------|--------|
+| **3J0** | Proposal record + snapshot architecture — **docs/types only** | **Next** |
+| **3I-3D** | Guardrail badge in internal rail (optional tiny follow-up) | Optional |
+
+**Do not** start 3J1 persistence, snapshot SQL, or enable Preview/Send/Sign/Payment until 3J0 docs/types are locked and subsequent slices complete per **§6S**.
 
 ---
 
