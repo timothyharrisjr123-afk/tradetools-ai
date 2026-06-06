@@ -9,18 +9,22 @@
 - `docs/fielddive-estimate-proposal-flow-model.md` — estimate/proposal UX model notes
 - `docs/fielddive-feature-placement-map.md` — feature placement matrix
 
-**Last updated checkpoint:** **`13b4e72` — 3J2B3: add proposal record store** (§6AB). **Docs checkpoint:** pending commit (this update). **Prior:** `213e322` (3J2B2), `1033cd9` (3J2B1), `5b9fe19` (3J1C docs), `7b23415` (3J1B migrations). **Tests:** **180/180** proposal/pricing suites (run via `npx tsx --test`). **Typecheck:** only **6** pre-existing errors in `app/tools/roofing-v2/RoofingClientV2.tsx` — unchanged. **Protected systems:** legacy `RoofingClient.tsx` pricing `useMemo`, payments, approval, status, saved estimates, send/PDF **untouched**.
+**Last updated checkpoint:** **`e38b276` — 3J3D: load persisted proposal draft in Builder** (§6AC). **Docs checkpoint:** pending commit (this update). **Prior:** `1915b2d` (3J3C), `fc43849` (3J3B), `13b4e72` (3J2B3), `213e322` (3J2B2). **Tests:** **109/109** proposal/pricing suites at 3J3D checkpoint (3J3B: 90/90, 3J3C: 99/99 cumulative). **Typecheck:** only **6** pre-existing errors in `app/tools/roofing-v2/RoofingClientV2.tsx` — unchanged. **Protected systems:** legacy `RoofingClient.tsx` pricing `useMemo`, payments, approval, status, saved estimates, send/PDF **untouched** outside the scoped Job Card → Builder draft launch flow.
 
 **Jobs Board approved save point:** `b27a444` (3F9B4-RoofrExact). **Prior Job Board checkpoint:** `36fa3a9` (3F9B3).
 
-**Next (recommended):** **3J3 — wire Job Card / Proposal entry to real proposal draft records and Builder read path** (§6AB). **Preview / Send / Sign / Payment remain disabled** until **3K+**. **3I-3D2 / §6Y visual work** should wait until the Builder opens a persisted draft graph.
+**Next (recommended):** **Manual smoke** of Job Card → **+ Proposal** → Builder persisted draft flow (§6AC). Then **3J3E** option selection persistence (`updateDraftSelectedOption`), if smoke passes. **Preview / Send / Sign / Payment remain disabled** until **3K+**. **3I-3D2 / §6Y visual work** remains deferred until persisted Builder flow is proven by smoke.
 
-**Lib-layer proposal persistence is implemented** (`proposalRecordStore` + snapshot builder — §6AB). **No UI/API wiring yet** — store is not called from Builder or Job Card until **3J3**. **Do not** persist placeholder/unconfigured pricing policy. **Catalog custom delete/deactivate** is **not implemented** and remains a **separate later scope** — do not mix into pricing/proposal work.
+**Job Card → Builder draft wiring is implemented** (3J3B/C/D — §6AC). **`createDraftProposal`** runs from Job Card **+ Proposal** only when clean DB identity is available; **Builder reads** persisted drafts via **`getDraftGraph`** + **`proposalDraftGraphAdapter`** when `?proposal=` is present — **no Builder create path**. **Do not** persist placeholder/unconfigured pricing policy. **Catalog custom delete/deactivate** is **not implemented** and remains a **separate later scope** — do not mix into pricing/proposal work.
 
 ### Recent committed sequence (3G6 spine + execution surfaces + 3H + 3I pricing foundation + 3I-2 Builder preview + 3I-3 company policy + 3J proposal persistence spine)
 
 | Commit | Summary |
 |--------|---------|
+| `e38b276` | **3J3D** — Builder reads persisted draft via `getDraftGraph` + `proposalDraftGraphAdapter`; error banner on invalid/wrong-job draft; live preview unchanged without `proposal=` (§6AC) |
+| `1915b2d` | **3J3C** — Job Card **+ Proposal** create/reuse draft via `resolveOrCreateProposalDraftEntry` + `createDraftProposal`; navigate with `?proposal=` (§6AC) |
+| `fc43849` | **3J3B** — Read-only active draft detection; `buildProposalBuilderHref(jobId, proposalId?)` (§6AC) |
+| `b24275b` | docs: record 3J2 proposal persistence spine (§6AB) |
 | `13b4e72` | **3J2B3** — `proposalRecordStore` + mocked tests; first DB-writing proposal lib layer (§6AB) |
 | `213e322` | **3J2B2** — Pure `proposalSnapshotBuilder` + tests; row-shape assembly only |
 | `1033cd9` | **3J2B1** — `proposalSnapshotStatusMapper` + customer-safe/configured-policy guards |
@@ -103,7 +107,7 @@
 - **Do not** create PDF / send / approval bridges before proposal records exist.
 - **Do not** touch payment / status / approval while working catalog or template setup (unless the stage explicitly scopes it).
 - **Do not treat table/store existence as product completion** — audit **architecture, functionality, layout, and UI** together before advancing the spine.
-- **3G6 Templates setup surface is complete** (3G6A–E + D2/D3) — **3H-1 Proposal Builder shell** (`feec663`); **3H-2 read-only proposal preview** (`00fbf64`); **3H-3 read-only quantity preview** (`40e6720`); **3I-1 pure pricing engine + input mapper** (`162f9be`–`52b7148`); **3I-2 read-only Builder pricing preview** (`5626c47`–`637b85a`) — **wired from Builder route only** via orchestrator; **3I-3** company policy + internal profitability rail **done**; **3J2** lib persistence spine **done** (`13b4e72`, §6AB); **3J3** (UI wiring) and **3K** (PDF/send adapters) remain next; do not enable Preview/Send/Sign/Payment without explicit scope.
+- **3G6 Templates setup surface is complete** (3G6A–E + D2/D3) — **3H-1 Proposal Builder shell** (`feec663`); **3H-2 read-only proposal preview** (`00fbf64`); **3H-3 read-only quantity preview** (`40e6720`); **3I-1 pure pricing engine + input mapper** (`162f9be`–`52b7148`); **3I-2 read-only Builder pricing preview** (`5626c47`–`637b85a`) — **wired from Builder route only** via orchestrator; **3I-3** company policy + internal profitability rail **done**; **3J2** lib persistence spine **done** (`13b4e72`, §6AB); **3J3** Job Card → persisted Builder draft flow **done** (`e38b276`, §6AC); **3J3E** option persistence optional next; **3K** (PDF/send adapters) remains later; do not enable Preview/Send/Sign/Payment without explicit scope.
 - **Do not casually patch pricing** during catalog/template/Job Card link work — see **§11 — Pricing (protected + future redesign)**.
 
 ---
@@ -1730,7 +1734,8 @@ Underlying foundation (pre-3I-3B3): **3I-3B1 resolver** (`c1b52ee`), **3I-3B2A m
 | **P3** | **3J0b** | Proposal record + snapshot architecture | **Docs/types** — **done** (`3ae5e39`, §6Z) |
 | **P4** | **3J1** | Proposal draft record | SQL **committed + applied + verified** (§6AA); lib store **done** (§6AB) | Draft has id; survives reload |
 | **P5** | **3J2** | Proposal persistence spine (mapper + builder + store) | **Done** (`1033cd9`–`13b4e72`, §6AB) | Draft graph can be written/read in lib layer |
-| **P5b** | **3J3** | Builder create/open draft path | UI wiring — **next** | Builder/Job Card use real proposal records |
+| **P5b** | **3J3** | Job Card → persisted Builder draft flow | **Done** (`fc43849`–`e38b276`, §6AC) | Builder/Job Card use real proposal records |
+| **P5c** | **3J3E** | Option selection persistence | Optional next | `updateDraftSelectedOption` from Builder |
 | **P6** | **3K0** | Preview | UI — reads snapshot | Preview button can light up |
 | **P7** | **3K1** | Send bridge | PDF + transmit | Send can light up |
 | **P8** | **3K2** | Approval / signature state | SQL + UI | Sign can light up |
@@ -1926,9 +1931,10 @@ Underlying foundation (pre-3I-3B3): **3I-3B1 resolver** (`c1b52ee`), **3I-3B2A m
 | **3J0b** | Proposal records / versions / pages architecture — **§6Z** | **Complete** (`3ae5e39`; SQL applied §6AA) |
 | **3J1** | Proposal SQL migrations + RLS | **Done** (applied §6AA) |
 | **3J2** | Proposal stores + snapshot builder | **Complete** (`13b4e72`, §6AB) |
-| **3J3** | Builder create/open draft path | **Next** |
+| **3J3** | Job Card → persisted Builder draft flow | **Complete** (`e38b276`, §6AC) |
+| **3J3E** | Option selection persistence | **Optional next** |
 
-**Do not** start 3J3 UI wiring without scoping against §6AB. **Do not** enable Preview/Send/Sign/Payment until **3K+**. See **§6AB** phase boundaries.
+**Do not** enable Preview/Send/Sign/Payment until **3K+**. See **§6AC** phase boundaries. **3I-3D2 visual work** remains deferred until persisted Builder flow is proven by manual smoke.
 
 ---
 
@@ -2409,13 +2415,16 @@ No Builder layout redesign should be required when these features arrive — onl
 | **3J0b** | Proposal architecture docs + types (§6Z) — **done** (`3ae5e39`) |
 | **3J1** | Proposal SQL migrations + RLS — **done** (applied §6AA) |
 | **3J2** | Proposal stores + snapshot builder — **done** (`13b4e72`, §6AB) |
-| **3J3** | Builder create/open draft path — **next** |
+| **3J3** | Job Card → persisted Builder draft flow — **done** (`e38b276`, §6AC) |
+| **3J3E** | Option selection persistence — **optional next** |
+| **3J4** | Page Context Strip backed by `proposal_pages` |
+| **3K** | Preview / PDF / send |
 
 ---
 
 ## 6Z. 3J0 PROPOSAL RECORDS / VERSIONS / PAGES ARCHITECTURE (docs + types; SQL applied §6AA)
 
-**Status:** **3J0b committed** (`3ae5e39`). **3J1A/3J1B migrations committed** (`387993e`, `7b23415`); **3J1C applied + verified in production** — see **§6AA**. **3J2 lib persistence spine complete** — see **§6AB** (`13b4e72`). **Purpose:** Lock proposal record, snapshot, page, and lifecycle architecture before Builder persistence. **Lib store exists; no UI/API wiring yet — 3J3 next.**
+**Status:** **3J0b committed** (`3ae5e39`). **3J1A/3J1B migrations committed** (`387993e`, `7b23415`); **3J1C applied + verified in production** — see **§6AA**. **3J2 lib persistence spine complete** — see **§6AB** (`13b4e72`). **3J3 Job Card → persisted Builder draft flow complete** — see **§6AC** (`e38b276`). **Purpose:** Lock proposal record, snapshot, page, and lifecycle architecture before Builder persistence.
 
 ### 1. Why 3J0 is needed
 
@@ -2488,7 +2497,7 @@ Tables: `proposals`, `proposal_versions`, `proposal_pages`, `proposal_options`, 
 | Sign / Payment | Attach to signed version + events |
 | Job Card | List proposals for job |
 
-**3I-3D2 UI remains deferred** until draft open path (3J3) unless explicitly re-scoped.
+**3I-3D2 UI remains deferred** until persisted Builder flow is proven by manual smoke (3J3 complete — §6AC).
 
 ### 8. Next sequence
 
@@ -2498,7 +2507,8 @@ Tables: `proposals`, `proposal_versions`, `proposal_pages`, `proposal_options`, 
 | **3J1A/3J1B** | SQL migrations + RLS hardening — **committed + applied** (`387993e`, `7b23415`) |
 | **3J1C** | Manual apply + verification — **done** (§6AA); production apply verified |
 | **3J2** | Stores + snapshot builder + tests — **done** (`13b4e72`, §6AB) |
-| **3J3** | Builder create/open draft path — **next** |
+| **3J3** | Job Card → persisted Builder draft flow — **done** (`e38b276`, §6AC) |
+| **3J3E** | Option selection persistence — **optional next** |
 | **3J4** | Page Context Strip backed by `proposal_pages` |
 | **3K** | Preview / PDF / send |
 | **3L** | Sign / payment |
@@ -2569,22 +2579,23 @@ Use before applying 006/007 to **staging or other targets** — proposal tables 
 
 ### 5. Next sequence
 
-**Superseded by §6AB** — at time of 3J1C apply, next was 3J2. Current next: **3J3** (§6AB).
+**Superseded by §6AC** — at time of 3J1C apply, next was 3J2. **3J3 complete** — see **§6AC**.
 
 | Step | Scope |
 |------|-------|
 | **Done** | **3J2** — `proposalSnapshotStatusMapper`, `proposalSnapshotBuilder`, `proposalRecordStore` + tests (§6AB) |
-| **Next** | **3J3** — Builder create/open draft path; Job Card proposal entry wiring |
+| **Done** | **3J3** — Job Card create/reuse + Builder persisted draft read path (§6AC) |
+| **Optional next** | **3J3E** — option selection persistence |
 | **Later** | **3J4** Page Context Strip; **3K** preview/PDF/send; **3L** sign/payment |
 
 ### 6. Guardrails (post-apply)
 
 **Historical (3J1C apply time):** guardrails below applied before 3J2 lib work. **Current guardrails:** see **§6AB**.
 
-- **Do not resume Builder UI (3I-3D2 / §6Y)** until Builder opens a persisted draft graph (**3J3**).
+- **Do not resume Builder UI (3I-3D2 / §6Y)** until persisted Builder flow is proven by manual smoke (**3J3 done** — §6AC).
 - **Do not enable Preview/Send/Sign/Payment** until **3K+**.
 - **Customer-facing line snapshots** must remain free of internal cost/profit/margin/markup — internal fields only on `proposal_internal_summaries`.
-- **`proposalRecordStore` exists** (3J2B3) — lib-layer writes only; **no UI/API wiring until 3J3**.
+- **`proposalRecordStore` wired** — Job Card create path + Builder read path (§6AC); **no Builder create path**.
 
 ### 7. Boundaries (3J1C)
 
@@ -2652,15 +2663,16 @@ Use before applying 006/007 to **staging or other targets** — proposal tables 
 | **Typecheck** | Only **6** known pre-existing `RoofingClientV2.tsx` errors |
 | **Forbidden files** | No Builder UI, API, migration, pricing engine/mapper, old estimator, or package changes in 3J2 commits |
 
-### 6. Phase boundary — what 3J3 unlocks
+### 6. Phase boundary — what 3J3 unlocked (historical — **3J3 now complete**, see **§6AC**)
 
 | State | Detail |
 |-------|--------|
-| **Builder UI** | Still baseline — live preview only; no persisted draft open path |
-| **Failed 3I-3D2 visual attempts** | Remain reverted — do not resume sidebar-inside-sidebar or competing layout experiments |
-| **3J3 scope** | Wire Job Card / Proposal entry → `createDraftProposal`; Builder read path → `getDraftGraph`; optional `refreshDraftPricing` / `updateDraftSelectedOption` from Builder actions |
-| **3I-3D2 / §6Y visual work** | Wait until Builder opens a **persisted draft graph** (real `proposalId`, `proposal_pages`, frozen option/line snapshots) |
-| **Preview / Send / Sign / Payment** | Remain disabled until **3K+** even after 3J3 draft wiring |
+| **Builder UI** | **3J3D:** persisted draft read when `?proposal=`; live preview fallback when absent |
+| **Failed 3I-3D2 visual attempts** | Remain reverted — do not resume sidebar-inside-sidebar or competing layout experiments until smoke passes |
+| **3J3 scope (done)** | Job Card **+ Proposal** → `createDraftProposal` / reuse; Builder → `getDraftGraph` + adapter |
+| **3J3E (optional next)** | `updateDraftSelectedOption` from Builder option tabs |
+| **3I-3D2 / §6Y visual work** | Deferred until persisted Builder flow proven by manual smoke |
+| **Preview / Send / Sign / Payment** | Remain disabled until **3K+** |
 
 ### 7. Roadmap position (3J band)
 
@@ -2668,10 +2680,113 @@ Use before applying 006/007 to **staging or other targets** — proposal tables 
 |-------|--------|
 | **3J0** types | **Done** (`3ae5e39`, §6Z) |
 | **3J1** migrations applied + verified | **Done** (§6AA) |
-| **3J2** store + snapshot builder | **Done** (`13b4e72`, this section) |
-| **3J3** | **Next** — draft proposal create/open/read wiring (Job Card + Builder) |
+| **3J2** store + snapshot builder | **Done** (`13b4e72`, §6AB) |
+| **3J3** Job Card → persisted Builder draft flow | **Done** (`e38b276`, §6AC) |
+| **3J3E** | Option selection persistence — **optional next** |
 | **3J4** | Page Context Strip backed by `proposal_pages` |
 | **3K+** | Preview / PDF / send / sign / payment |
+
+**Current status:** see **§6AC**.
+
+---
+
+## 6AC. 3J3 JOB CARD TO PERSISTED BUILDER DRAFT FLOW COMPLETE
+
+**Status:** **3J3 complete.** **Checkpoint:** `e38b276` (3J3D). **Prior:** `1915b2d` (3J3C), `fc43849` (3J3B). **Purpose:** Record completion of the Job Card → real proposal draft → Builder persisted read path before optional **3J3E** or **3I-3D2** visual work.
+
+### 1. Committed slices
+
+| Slice | Commit | Module / surface | Scope |
+|-------|--------|------------------|-------|
+| **3J3B** | `fc43849` | `proposalDraftEntry.ts` | Read-only `resolveProposalDraftEntry`; `buildProposalBuilderHref(jobId, proposalId?)` adds optional `proposal=` param |
+| **3J3C** | `1915b2d` | `RoofingClient.tsx` (Job Card **+ Proposal** only) | `resolveOrCreateProposalDraftEntry`: active draft → listed draft → `createDraftProposal` once; navigate with `?proposal=` |
+| **3J3D** | `e38b276` | `proposalDraftGraphAdapter.ts`, `ProposalBuilderClient.tsx` | Builder reads `getDraftGraph` when valid `?proposal=`; adapter maps graph to existing Builder preview DTOs |
+
+### 2. Boundaries (3J3 did not touch)
+
+- **Builder visual redesign** — no canvas/rail/table/layout changes; existing UI structure preserved
+- **Preview / Send / Sign / Payment** — remain disabled (`ProposalBuilderDisabledActions.tsx` unchanged)
+- **APIs** — no new routes; store called from client lib only
+- **SQL / migrations** — 006/007 unchanged; no new migrations in 3J3
+- **Pricing engine / math** — `proposalPricingEngine.ts`, `proposalPricingInputMapper.ts` unchanged
+- **Old estimator / saved estimate / loadSaved paths** — untouched outside the exact Job Card **+ Proposal** launch flow
+- **Settings / catalog / package files** — untouched
+
+### 3. Current workflow
+
+```
+Job Card → + Proposal click
+  → If hydratedJobRecord.active_proposal_id is valid draft → open existing proposal (no create)
+  → If active pointer missing/stale/non-draft/wrong job → listProposalsForJob; reuse existing draft if present
+  → If no draft and clean DB identity available → createDraftProposal creates real draft once
+  → Navigate to /tools/roofing/proposals/builder?job=<jobId>&proposal=<proposalId>
+
+Builder load
+  → If ?proposal=<valid uuid> → getDraftGraph(companyId, proposalId)
+  → validateProposalDraftGraphForJob (draft status, job match, options present)
+  → adaptProposalDraftGraphToBuilderPreview → existing Builder preview/rail surfaces
+  → Invalid proposal / wrong job / missing draft → error banner; no workspace; no silent live fallback
+  → ?job= only (no proposal param) → unchanged live preview via buildProposalBuilderPricingPreview
+```
+
+**Builder has no create path** — create runs from Job Card **+ Proposal** only when validation passes.
+
+### 4. Safeguards
+
+| Safeguard | Detail |
+|-----------|--------|
+| **Duplicate prevention** | active draft → listed draft → create once |
+| **Board-origin / non-hydrated jobs** | Fail closed for create — no silent draft creation |
+| **Missing customer/template/measurement/quantity context** | Blocks create |
+| **Unconfigured policy** | Shows *"Configure pricing policy before creating a proposal draft."* — no navigation |
+| **Customer/internal boundary** | Adapter `PROPOSAL_LINE_CUSTOMER_FORBIDDEN_KEYS` guard throws on polluted persisted line rows |
+| **Internal summaries** | Mapped to `option.internal` only — contractor-only rail; never merged into customer line rows |
+| **Preview / Send / Sign / Payment** | Remain disabled |
+| **Builder create path** | Does not exist — Builder reads persisted draft only when `?proposal=` present |
+| **Visual/layout work** | None in 3J3 — deferred **3I-3D2 / §6Y** until smoke proves persisted flow |
+
+### 5. Verification (3J3)
+
+| Checkpoint | Tests | Typecheck |
+|------------|-------|-----------|
+| **3J3B** (`fc43849`) | **90/90** pass | 6 known `RoofingClientV2.tsx` errors only |
+| **3J3C** (`1915b2d`) | **99/99** pass | same |
+| **3J3D** (`e38b276`) | **109/109** pass | same |
+
+**3J3D test files added:** `proposalDraftGraphAdapter.test.ts` (10 tests).
+
+### 6. Manual smoke checklist (recommended before 3J3E or 3I-3D2)
+
+- [ ] Packet/direct Job Card + configured policy → **+ Proposal** creates draft once; URL includes `proposal=`
+- [ ] Second **+ Proposal** click reuses same proposal id (no duplicate create)
+- [ ] Existing active draft opens with `proposal=` without creating
+- [ ] Unconfigured policy shows error; no fake persisted proposal; no navigation
+- [ ] Board-origin job does not create if DB identity is not clean
+- [ ] Builder with `?proposal=` loads persisted totals/lines (not live recompute as primary)
+- [ ] Wrong `job` + valid `proposal` shows error banner
+- [ ] Invalid/missing draft shows error banner
+- [ ] `?job=` only (no `proposal`) still uses live preview
+- [ ] Preview / Send / Sign / Payment remain disabled
+
+### 7. Roadmap position (post-3J3)
+
+| Slice | Status |
+|-------|--------|
+| **3J0** types | **Done** (`3ae5e39`, §6Z) |
+| **3J1** migrations applied + verified | **Done** (§6AA) |
+| **3J2** persistence spine | **Done** (`13b4e72`, §6AB) |
+| **3J3** Job Card → persisted Builder draft flow | **Done** (this section) |
+| **3J3E** | Option selection persistence — **optional next** |
+| **3J4** | Page Context Strip backed by `proposal_pages` |
+| **3K** | Preview / PDF / send — **later** |
+| **3I-3D2** | Visual work — **deferred** until persisted Builder flow proven by smoke |
+
+### 8. Next recommended
+
+1. **Manual smoke** — Job Card → **+ Proposal** → Builder persisted draft flow (checklist §6 above).
+2. **3J3E** (optional) — wire `updateDraftSelectedOption` when option tabs change.
+3. **Do not** enable Preview/Send/Sign/Payment until **3K+**.
+4. **Do not** resume **3I-3D2 / §6Y** visual work until smoke passes.
 
 ---
 
@@ -2682,7 +2797,7 @@ Use before applying 006/007 to **staging or other targets** — proposal tables 
 | **MeasurementRecord** | Roof measurement truth (quantities, source, readiness) — `measurement_records` |
 | **CatalogItem** | Reusable company-owned line item + **quantity driver** (`quantity_source`) — `catalog_items` |
 | **ProposalTemplate** | Reusable company-owned package (options, sections, catalog-backed items) — **types, tables, store, defaults, install helper**; **no UI** |
-| **Proposal** | Job-specific instance of template + measurement + snapshots — **types locked (§6Z); SQL applied (§6AA); lib store (§6AB); UI wiring 3J3+** |
+| **Proposal** | Job-specific instance of template + measurement + snapshots — **types (§6Z); SQL (§6AA); lib store (§6AB); Job Card create + Builder read (§6AC)** |
 | **Pricing engine** | **New-spine lib** (`proposalPricingEngine.ts` + mapper + orchestrator) — **3I-1 + 3I-2 DONE**; wired from Builder route only; legacy estimator `useMemo` still on saved-estimate path — **protected, not replaced** |
 | **Payments / approvals / status** | Estimates/proposals KV + APIs — **protected**; do not couple to catalog install |
 
@@ -2881,9 +2996,9 @@ Use this section as the **ordered checklist** for future GPT/Cursor sessions. Kn
 
 ### Current checkpoint
 
-**Latest code checkpoint:** **`13b4e72` — 3J2B3: add proposal record store** (§6AB). **3J2:** `1033cd9`–`13b4e72`. **3J1:** migrations applied §6AA. **3J0:** `3ae5e39`. **3I-3D:** `fbdedbe`. **3I-3C:** `3491e48`. **3I-2:** `5626c47`–`637b85a`. **3H-3:** `40e6720`. **3H-2:** `00fbf64`. **3H-1:** `feec663`.  
+**Latest code checkpoint:** **`e38b276` — 3J3D: load persisted proposal draft in Builder** (§6AC). **3J3:** `fc43849`–`e38b276`. **3J2:** `1033cd9`–`13b4e72`. **3J1:** migrations applied §6AA. **3J0:** `3ae5e39`. **3I-3D:** `fbdedbe`. **3I-3C:** `3491e48`. **3I-2:** `5626c47`–`637b85a`. **3H-3:** `40e6720`. **3H-2:** `00fbf64`. **3H-1:** `feec663`.  
 **Jobs Board approved save point:** **3F9B4-RoofrExact** (`b27a444`).  
-**Latest handoff doc checkpoint:** **3J2 proposal persistence spine complete** (§6AB — docs pending commit). **Next: 3J3** — wire Job Card / Proposal entry to real proposal draft records and Builder read path.
+**Latest handoff doc checkpoint:** **3J3 Job Card → persisted Builder draft flow complete** (§6AC — docs pending commit). **Next:** manual smoke, then optional **3J3E** option selection persistence.
 
 **Completed working state (summary):**
 
@@ -2909,12 +3024,13 @@ Use this section as the **ordered checklist** for future GPT/Cursor sessions. Kn
 | **3I-3** Company pricing policy + internal profitability rail + rail regrouping | **DONE** — see **§6P**–**§6V** |
 | **3J0** Proposal architecture types | **DONE** (`3ae5e39`, §6Z) |
 | **3J1** Proposal SQL migrations + RLS | **DONE** — applied + verified (§6AA) |
-| **3J2** Snapshot mapper + builder + record store | **DONE** (`13b4e72`, §6AB) — lib layer only; no UI/API wiring |
+| **3J2** Snapshot mapper + builder + record store | **DONE** (`13b4e72`, §6AB) — lib layer |
+| **3J3** Job Card → persisted Builder draft flow | **DONE** (`e38b276`, §6AC) |
 | **Canonical catalog route** | **`/tools/roofing/catalog`** — `CatalogSetupClient` |
 | **Canonical templates route** | **`/tools/roofing/templates`** — `TemplatesSetupClient` |
-| **Proposal Builder route** | **`/tools/roofing/proposals/builder?job=<uuid>`** — still live-preview only until **3J3** |
-| **Job Card Proposals** | Setup links (3G6E); `+ Proposal` when Builder gates pass (3H-1) — no persisted proposal yet until **3J3** |
-| **Protected** | Legacy pricing, payments, approval, status, saved estimates, send/PDF **untouched** through 3J2 |
+| **Proposal Builder route** | **`/tools/roofing/proposals/builder?job=<uuid>&proposal=<uuid>`** — persisted draft when `proposal=`; live preview fallback when absent |
+| **Job Card Proposals** | **+ Proposal** create/reuse draft (3J3C); opens Builder with `?proposal=` when successful |
+| **Protected** | Legacy pricing, payments, approval, status, saved estimates, send/PDF **untouched** outside scoped Job Card launch |
 
 **SQL note:** Catalog/template table verification was done in Supabase during 3F/3G stages; do not re-run schema changes from roadmap work unless a stage explicitly scopes a new migration.
 
@@ -2960,8 +3076,9 @@ Treat these as **known architecture risks** — not forgotten — when planning 
 14. ~~**3J0 snapshot types**~~ — **DONE** (`3ae5e39`, §6Z).
 15. ~~**3J1 persistence (SQL)**~~ — **DONE** — applied + verified (§6AA).
 16. ~~**3J2 lib persistence spine**~~ — **DONE** (`13b4e72`, §6AB).
-17. **3J3 Builder create/open draft path** — **NEXT** — Job Card + Builder wiring to `proposalRecordStore`; Preview/Send/Sign/Payment still disabled.
-18. **Jobs Board** remains saved-estimate spine — acceptable for Builder `?job=`; migration **Future/Later**.
+17. ~~**3J3 Job Card → persisted Builder draft flow**~~ — **DONE** (`e38b276`, §6AC) — manual smoke recommended before 3J3E.
+18. **3J3E option selection persistence** — **OPTIONAL NEXT** — `updateDraftSelectedOption`; Preview/Send/Sign/Payment still disabled.
+19. **Jobs Board** remains saved-estimate spine — acceptable for Builder `?job=`; migration **Future/Later**.
 
 ---
 
@@ -3429,13 +3546,13 @@ Run parallel to legacy estimator; do not overwrite `useMemo` until validated and
 
 ---
 
-### Stage 3J — Proposal records / persistence — **3J2 LIB DONE; 3J3 UI NEXT**
+### Stage 3J — Proposal records / persistence — **3J3 DONE; 3J3E OPTIONAL NEXT**
 
-**3J0** types (`3ae5e39`), **3J1** SQL (006/007 applied §6AA), **3J2** lib spine (`13b4e72`, §6AB) — mapper, pure snapshot builder, `proposalRecordStore` with mocked tests.
+**3J0** types (`3ae5e39`), **3J1** SQL (006/007 applied §6AA), **3J2** lib spine (`13b4e72`, §6AB), **3J3** Job Card → persisted Builder draft flow (`e38b276`, §6AC).
 
-**3J3 next:** Wire Job Card / Proposal entry and Builder read path to real draft proposal records (`createDraftProposal`, `getDraftGraph`, etc.). **No Preview/Send/Sign/Payment** until **3K+**.
+**3J3E optional next:** Wire `updateDraftSelectedOption` when Builder option tabs change. **No Preview/Send/Sign/Payment** until **3K+**.
 
-**Suggested commits:** `Wire Job Card proposal create to proposalRecordStore`, `Open Builder from persisted draft graph`, `Refresh draft pricing from Builder actions`
+**Suggested commits:** `3J3E: persist Builder option selection`, then **3J4** Page Context Strip, then **3K** preview/PDF/send
 
 ---
 
@@ -3614,4 +3731,5 @@ Treat as **drift** if a session:
 - **2026-06-04:** **Pre-3H-2 source-of-truth fix** (`abd718d`) — Activity rail readiness copy, fresh packet intake reset, Job Card `?job=` identity; handoff (`d4b4f25`).
 - **2026-06-04:** **3H-1 complete** — Proposal Builder shell and gates (`feec663`); packet handoff fix (`fd87152`); handoff (`cf3706f`); built-surface audit.
 - **2026-05-31:** **3G6 complete** — 3G6A–E (`15ad732`–`b78c9ee`), Templates D2 (`227061c`), Catalog D2 (`29ca190`); Job Card + Job Packet audits documented; **next: plan 3H** Proposal Builder (Roofr research; not until scoped); pricing remains protected.
+- **2026-06-06:** **3J3 complete** — 3J3B active draft detection (`fc43849`), 3J3C Job Card create/reuse (`1915b2d`), 3J3D Builder persisted read (`e38b276`); §6AC added; **109/109** tests at 3J3D; **next:** manual smoke, optional 3J3E; Preview/Send/Sign/Payment remain disabled until 3K+; 3I-3D2 visual work deferred until smoke passes.
 - **2026-06-06:** **3J2 complete** — 3J2B1 status mapper (`1033cd9`), 3J2B2 snapshot builder (`213e322`), 3J2B3 record store (`13b4e72`); §6AB added; **180/180** tests; **next: 3J3** Builder/Job Card draft wiring; Preview/Send/Sign/Payment remain disabled until 3K+.
