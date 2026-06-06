@@ -9,11 +9,11 @@
 - `docs/fielddive-estimate-proposal-flow-model.md` — estimate/proposal UX model notes
 - `docs/fielddive-feature-placement-map.md` — feature placement matrix
 
-**Last updated checkpoint:** **3I-3D1 builder rail pricing-confidence grouping** (§6V — rail-only; pending review, no commit). **Prior:** **3I-3D0 spec locked** (`aa0073a` — §6U); **3I-3C internal profitability rail** (`3491e48` — §6T); **catalog table width polish** (`23bbb8e`). **Tests:** **111/111** pass (form utils 17 + resolver 18 + store 21 + orchestrator 9 + engine 22 + mapper 16 + profitability presenter 8). **Typecheck:** only **6** pre-existing errors in `app/tools/roofing-v2/RoofingClientV2.tsx` — unchanged. **Protected systems:** legacy `RoofingClient.tsx` pricing `useMemo`, payments, approval, status, saved estimates, send/PDF **untouched**.
+**Last updated checkpoint:** **3I-3D2 RoofrExact hybrid workspace spec** (§6W — docs only; pending review, no commit). **Prior:** **3I-3D1 rail grouping committed** (`fbdedbe` — §6V); **3I-3D0 spec** (`aa0073a` — §6U); **3I-3C internal profitability rail** (`3491e48` — §6T). **Tests:** **111/111** pass. **Typecheck:** only **6** pre-existing errors in `app/tools/roofing-v2/RoofingClientV2.tsx` — unchanged. **Protected systems:** legacy `RoofingClient.tsx` pricing `useMemo`, payments, approval, status, saved estimates, send/PDF **untouched**.
 
 **Jobs Board approved save point:** `b27a444` (3F9B4-RoofrExact). **Prior Job Board checkpoint:** `36fa3a9` (3F9B3).
 
-**Next (recommended):** **3J0 — proposal record + snapshot architecture** (docs/types only — §6S). Optional **3I-3D2** page-layout polish only if D1 visual review reveals a real need. **Do not** start 3J1 persistence until 3J0 docs/types are locked.
+**Next (recommended):** **3I-3D2 — RoofrExact hybrid workspace implementation** (§6W). Then **3J0 — proposal record + snapshot architecture** (docs/types only — §6S). Optional **3I-3D3** left nav/page menu only if D2 review reveals a real need. **Do not** start 3J1 persistence until 3J0 docs/types are locked.
 
 **Do not** persist proposals (3J1+), snapshot pricing, enable Preview/Send/Sign/Payment, or persist placeholder pricing. **Catalog custom delete/deactivate** is **not implemented** and remains a **separate later scope** — do not mix into pricing/proposal work.
 
@@ -21,6 +21,8 @@
 
 | Commit | Summary |
 |--------|---------|
+| `fbdedbe` | **3I-3D1** — Builder right rail regrouped: Setup readiness + Pricing confidence; guardrail row; compact rail (§6V) |
+| `aa0073a` | **3I-3D0** — Builder rail pricing-confidence grouping spec (§6U) |
 | `79c4b02` | **3I-3B3c** — Builder wired to `getResolvedCompanyPricingPolicy`; configured path passes real company `policy` into orchestrator; missing/loading/error keeps placeholder fallback; conditional banner/copy + status-only rail row (§6Q) |
 | `003e00b` | **3I-3B3b** — Company pricing policy settings UI at `/tools/settings/pricing` (§6P) |
 | `630d278` | docs: record 3I-3B3a manual migration apply (§6O) |
@@ -1911,8 +1913,9 @@ Underlying foundation (pre-3I-3B3): **3I-3B1 resolver** (`c1b52ee`), **3I-3B2A m
 
 | Phase | Scope | Status |
 |-------|-------|--------|
-| **3I-3D** | Builder rail pricing-confidence regrouping (rail-only) — **§6U** spec, **§6V** implementation | **Complete** (3I-3D1 pending review) |
-| **3J0** | Proposal record + snapshot architecture — **docs/types only** | **Next** |
+| **3I-3D** | Builder rail pricing-confidence regrouping (rail-only) — **§6U** spec, **§6V** implementation | **Complete** (`fbdedbe`) |
+| **3I-3D2** | RoofrExact hybrid workspace — center canvas restructure — **§6W** | **Next** (spec locked pending review) |
+| **3J0** | Proposal record + snapshot architecture — **docs/types only** | After 3I-3D2 |
 
 **Do not** start 3J1 persistence, snapshot SQL, or enable Preview/Send/Sign/Payment until 3J0 docs/types are locked and subsequent slices complete per **§6S**.
 
@@ -1996,8 +1999,9 @@ RoofrExact: the **customer document canvas** carries customer truth (price/statu
 | Slice | Scope |
 |-------|-------|
 | **3I-3D0** | This spec (docs only) |
-| **3I-3D1** | Rail-only implementation per §6U §2–§4 |
-| **3I-3D2** | Optional small page-layout polish — **only if** D1 review reveals a real layout need |
+| **3I-3D1** | Rail-only implementation per §6U §2–§4 — **done** (`fbdedbe`) |
+| **3I-3D2** | RoofrExact hybrid workspace — center canvas — spec **§6W** |
+| **3I-3D3** | Optional left nav / page menu — **only if** D2 review reveals a real need |
 | **3J0** | Proposal record / snapshot architecture — docs/types only |
 
 **Stable-before-3J0:** the *names and meaning* of pricing-confidence states (policy configured, pricing complete, blocking count, guardrail outcome) are frozen by this spec so the 3J0 snapshot field map can reference them. All rail values remain **live-only** (read from the live preview) until 3J1/3J2 — the rail must never read from a persisted record in 3I-3D.
@@ -2006,7 +2010,7 @@ RoofrExact: the **customer document canvas** carries customer truth (price/statu
 
 ## 6V. BUILDER RAIL PRICING-CONFIDENCE GROUPING — 3I-3D1 (rail-only implementation)
 
-**Status:** **Complete** (pending review — no commit). **Spec:** **§6U**. **Prior checkpoint:** `aa0073a` (3I-3D0). **Scope:** UI/status surfacing only — no page redesign, no pricing math, no engine/mapper/orchestrator changes, no customer document changes, no action enablement, no SQL/persistence.
+**Status:** **Complete** (committed `fbdedbe`). **Spec:** **§6U**. **Prior checkpoint:** `aa0073a` (3I-3D0). **Scope:** UI/status surfacing only — no page redesign, no pricing math, no engine/mapper/orchestrator changes, no customer document changes at time of slice, no action enablement, no SQL/persistence.
 
 ### What shipped
 
@@ -2033,8 +2037,161 @@ RoofrExact: the **customer document canvas** carries customer truth (price/statu
 
 | Slice | Scope |
 |-------|-------|
-| **3I-3D2** | Optional small page-layout polish — **only if** D1 review reveals a real layout need |
+| **3I-3D2** | RoofrExact hybrid workspace — center canvas restructure — **§6W** |
 | **3J0** | Proposal record / snapshot architecture — docs/types only |
+
+---
+
+## 6W. ROOFR-EXACT BUILDER HYBRID WORKSPACE SPEC — 3I-3D2 (docs/spec only)
+
+**Status:** **Spec locked** (docs only — no app code). **Checkpoint:** `fbdedbe` (3I-3D1 committed). **Purpose:** Define the RoofrExact center-Builder restructure before implementing **3I-3D2**. **Read before any canvas/document UI change.**
+
+### 1. Verdict
+
+- **The long-paper center canvas is structurally wrong** for the Builder stage. FieldDive currently renders one narrow, centered white document page (`BUILDER_DOCUMENT_PAGE`) with all template sections stacked vertically — it reads as a read-only PDF scroll, not a proposal builder.
+- **Roofr's proposal builder/editor** is closer to a **structured proposal/estimate workspace**: left page/section menu, central estimate/editor workspace, option/package context, compact line-item table, settings/status side context, and **separate customer preview/output** (Preview mode) — not one endless blank paper.
+- **3I-3D2 is not a random visual polish pass.** It converts the center Builder from a long-paper metaphor into a **RoofrExact hybrid workspace** while preserving all current pricing and customer/internal boundaries.
+- **Do not fully implement page CRUD or customer Preview mode yet.** No proposal pages editor, no show/hide line toggles, no Preview button enablement — those belong to post-3J0/post-snapshot slices.
+- **Use a hybrid workspace now:** estimate/editor panel **primary**, customer content preview **secondary**.
+- **Keep the 3-column layout:** left nav (`12rem`) · center workspace (`minmax(0,1fr)`) · right rail (`17rem`) — `ProposalBuilderWorkspaceLayout.tsx` unchanged unless a future slice proves unavoidable.
+- **Keep 3I-3D1 right rail grouping** (Setup readiness + Pricing confidence) — do not regress rail structure in 3I-3D2.
+
+### 2. Roofr reference vs FieldDive today
+
+| Roofr surface | FieldDive today | 3I-3D2 target |
+|---------------|-----------------|---------------|
+| Left page menu (Cover, Estimate, + pages) | Static disabled stubs (`BUILDER_SECTIONS`) — not wired to content | **Leave as-is for 3I-3D2** — defer to optional **3I-3D3** |
+| Central estimate workspace | Single `<article>` document page with all sections in one scroll | **Full-width workspace** with estimate panel + content preview panel |
+| Option/package tabs | Embedded inside document header | **Workspace header** bar |
+| Line-item table | Tall list rows with contractor meta (Source, Rule, Unit, Role) | **Compact table/grid** — customer price/status only in center |
+| Estimate settings / status | Mixed into document footers + rail | Rail owns contractor confidence; center owns customer-safe totals |
+| Customer preview | Separate Preview mode | **Secondary preview panel** for prose sections — not dominant |
+
+### 3. Target center structure
+
+#### 3.1 Workspace header
+
+- Template name / proposal type label
+- **Option/package tabs** (`ProposalBuilderOptionTabs`) — moved out of document letterhead into header bar
+- Measurement context (compact one-line strip)
+- Selected option pricing status (Complete / Incomplete — **words only**, no dollars)
+- **Customer-safe only** — no internal cost/profit/margin
+
+#### 3.2 Estimate panel — primary
+
+- **Primary work surface** — visually dominant
+- Compact section groups for line-item sections only
+- **Line-item table/grid**, not tall paragraph-style rows
+- Columns (minimum): Item name · Qty · Unit · Customer price/status
+- Contractor debug meta (quantity source/rule/role) **removed from center** or collapsed — blocking/unresolved states remain visible via compact price/status cells and right rail
+- **Totals at panel foot** (`ProposalBuilderDocumentTotals`) — customer-safe subtotal/discount/tax/total or incomplete messaging
+- Pricing preview banner (configured vs placeholder) — **one instance** in estimate panel; dedupe line-list footers where redundant
+- **No internal cost/profit/margin**
+
+#### 3.3 Customer content preview panel — secondary
+
+- Non-line-item template sections only: project overview, scope notes, warranty, terms, custom text blocks
+- **Read-only** for now — no inline editing
+- **Less dominant** than estimate panel — smaller typography, lighter framing, clearly labeled (e.g. "Customer content preview")
+- Prose/warranty/terms — not mixed into the line-item scroll
+
+#### 3.4 Right rail — unchanged structure
+
+- **Setup readiness** + **Pricing confidence** groups (3I-3D1)
+- Guardrail row (status-only)
+- Internal profitability (contractor-only; 3I-3C presenter logic unchanged)
+- Tiny copy dedup only if center banner reduction requires it
+
+#### 3.5 Left nav — deferred
+
+- **Leave current nav as-is for 3I-3D2** unless absolutely needed for visual-only scroll targets
+- **Defer true page/section nav** (Cover, Estimate, custom pages, wired scroll/filter) to optional **3I-3D3**
+
+### 4. Expected implementation approach (3I-3D2 code slice)
+
+Visual/layout only — **same props, same data sources, same pricing preview paths**:
+
+1. Replace single narrow `BUILDER_DOCUMENT_PAGE` center with a **full-width workspace surface** (`BUILDER_WORKSPACE` token).
+2. Split `ProposalBuilderCanvas.tsx` into workspace header + estimate panel + content preview panel.
+3. Move option tabs into workspace header (visual integration in `ProposalBuilderOptionTabs.tsx` allowed).
+4. Refactor `ProposalBuilderLinePreviewTable.tsx` to compact table/grid rows.
+5. Refactor `ProposalBuilderSectionPreview.tsx` to route line-item sections → estimate panel layout; text sections → content preview panel layout.
+6. Attach `ProposalBuilderDocumentTotals.tsx` to estimate panel foot (not buried after all prose sections).
+7. Add workspace tokens in `proposalBuilderConstants.ts`; narrow or repurpose `BUILDER_DOCUMENT_PAGE` for preview sub-panel only.
+8. Reduce duplicate preview/placeholder copy across line footers, totals, and rail.
+9. Keep unresolved quantity/pricing states visible but compact (status cells, rail blocking count).
+
+### 5. Allowed files (3I-3D2 implementation)
+
+- `app/tools/roofing/proposals/builder/ProposalBuilderCanvas.tsx`
+- `app/tools/roofing/proposals/builder/ProposalBuilderSectionPreview.tsx`
+- `app/tools/roofing/proposals/builder/ProposalBuilderLinePreviewTable.tsx`
+- `app/tools/roofing/proposals/builder/ProposalBuilderDocumentTotals.tsx`
+- `app/tools/roofing/proposals/builder/ProposalBuilderOptionTabs.tsx` — visual integration only
+- `app/tools/roofing/proposals/builder/ProposalBuilderSummaryRail.tsx` — only if center copy dedup requires a tiny adjustment
+- `app/tools/roofing/proposals/builder/proposalBuilderConstants.ts`
+- `docs/fielddive-global-handoff.md`
+
+### 6. Forbidden files (3I-3D2)
+
+- `app/lib/proposalPricingEngine.ts`
+- `app/lib/proposalPricingInputMapper.ts`
+- `app/lib/proposalBuilderPricingPreview.ts`
+- `app/lib/proposalProfitabilityPresenter.ts`
+- `app/tools/roofing/proposals/builder/ProposalBuilderClient.tsx` — unless unavoidable for visual-only prop threading (prefer Canvas-local layout)
+- `app/tools/roofing/proposals/builder/ProposalBuilderDisabledActions.tsx`
+- `app/tools/roofing/proposals/builder/ProposalBuilderWorkspaceLayout.tsx` — defer unless D2 review proves unavoidable
+- `app/tools/roofing/proposals/builder/ProposalBuilderSectionNav.tsx` — defer to **3I-3D3**
+- Settings / catalog files
+- APIs
+- SQL / migrations
+- Package files
+- Old estimator / saved-estimate / loadSaved paths
+
+### 7. Hard rules (3I-3D2)
+
+**No:**
+
+- Pricing math changes
+- Pricing data shape changes
+- Engine / mapper / orchestrator changes
+- Proposal persistence
+- Snapshots
+- Preview / Send / Sign / Payment enablement
+- Internal cost/profit/margin in customer document or estimate panel
+- Customer/internal boundary changes
+- Catalog / settings changes
+
+**Yes:**
+
+- Visual restructure of center column only
+- Same live preview data paths
+- Customer prices/status/totals remain customer-safe in estimate panel
+- Internal profitability remains rail-only
+
+### 8. Verification (3I-3D2)
+
+| Check | Expectation |
+|-------|-------------|
+| `npx tsc --noEmit` | 6 pre-existing `RoofingClientV2.tsx` errors only |
+| Test suites (presenter, policy, orchestrator, engine, mapper) | **111/111 pass** |
+| Builder center | Reads as **workspace**, not long paper |
+| Option tabs | Still switch options; status pills unchanged |
+| Right rail | Setup readiness + Pricing confidence groups intact |
+| Customer areas | No internal cost/profit/margin |
+| Actions | Preview / Send / Sign / Payment remain disabled |
+| Persistence | No writes / snapshots / API calls |
+
+### 9. Next sequence
+
+| Slice | Scope |
+|-------|-------|
+| **3I-3D2 docs** | This spec (§6W) |
+| **3I-3D2 impl** | Hybrid workspace per §6W §3–§4 |
+| **3I-3D3** | Optional left nav / page menu — only if D2 review reveals a real need |
+| **3J0** | Proposal record / snapshot architecture — docs/types only |
+
+**Stable-before-3J0:** 3I-3D2 does not change pricing-confidence state names or meanings frozen by §6U — rail and estimate panel continue to read live preview only until 3J1/3J2.
 
 ---
 
