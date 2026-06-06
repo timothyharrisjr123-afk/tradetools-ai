@@ -31,6 +31,7 @@ import {
   type PricingPolicy,
 } from "@/app/lib/proposalPricingTypes";
 import type { ProposalTemplateGraph } from "@/app/lib/proposalTemplateStore";
+import { mapEngineLineStatusToSnapshot } from "@/app/lib/proposalSnapshotStatusMapper";
 import { sortTemplateOptionsByOrder } from "@/app/tools/roofing/templates/templatesSetupUtils";
 
 // ---------------------------------------------------------------------------
@@ -146,32 +147,6 @@ function isMissingCatalogLine(line: PricingLineInput): boolean {
   return line.itemType == null;
 }
 
-/**
- * Map engine line status + mapped visibility → customer display status.
- * Order matters: internal_only/hidden are omitted; unresolved/unpriced block
- * before included/priced classification (included + unresolved stays blocking).
- *
- * Missing-catalog lines reach the engine as unresolved_quantity (mapper marks
- * them quantityUnresolved) but surface as "not_priced" because the real problem
- * is the catalog link, not the measurement.
- */
-function resolveLineDisplayStatus(
-  line: PricingLineInput,
-  status: LinePricingStatus
-): BuilderLineDisplayStatus {
-  if (line.customerVisibility === "internal_only") return "omitted";
-  if (status === "hidden") return "omitted";
-  if (status === "unresolved_quantity") {
-    return isMissingCatalogLine(line) ? "not_priced" : "needs_quantity";
-  }
-  if (status === "unpriced" || status === "unsupported") return "not_priced";
-  if (status === "included") return "included";
-  if (status === "priced") {
-    return line.customerVisibility === "grouped" ? "grouped" : "priced";
-  }
-  return "not_priced";
-}
-
 function buildOptionPreview(
   graph: ProposalTemplateGraph,
   optionId: string,
@@ -203,7 +178,11 @@ function buildOptionPreview(
       blockingLineCount += 1;
     }
 
-    const displayStatus = resolveLineDisplayStatus(line, priced.status);
+    const displayStatus = mapEngineLineStatusToSnapshot({
+      engineStatus: priced.status,
+      customerVisibility: line.customerVisibility,
+      catalogItemMissing: isMissingCatalogLine(line),
+    });
     const showPrice = displayStatus === "priced";
     const view: ProposalBuilderLineCustomerView = {
       templateItemId: line.templateItemId,
