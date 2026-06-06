@@ -1,5 +1,5 @@
 /**
- * 3J3B — proposalDraftEntry + buildProposalBuilderHref tests.
+ * 3J3B/3J3C — proposalDraftEntry + buildProposalBuilderHref tests.
  *
  * Run: npx tsx --test app/lib/proposalDraftEntry.test.ts
  */
@@ -7,16 +7,28 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { buildProposalBuilderHref } from "./proposalBuilderReadiness";
-import type { ProposalRecord } from "./proposalRecordTypes";
+import type { MeasurementProposalHandoff } from "./measurementProposalHandoff";
+import type { MeasurementQuantityMap } from "./measurementTypes";
+import type { ProposalRecord, ProposalRecordStatusSummary } from "./proposalRecordTypes";
+import { ProposalSnapshotGuardError } from "./proposalSnapshotStatusMapper";
 import {
+  PROPOSAL_DRAFT_UNCONFIGURED_POLICY_MESSAGE,
+  resolveOrCreateProposalDraftEntry,
   resolveProposalDraftEntry,
+  validateProposalDraftCreatePayload,
+  type ProposalDraftCreatePayload,
   type ProposalDraftEntryDeps,
+  type ResolveOrCreateProposalDraftEntryDeps,
 } from "./proposalDraftEntry";
 
 const COMPANY_ID = "11111111-1111-4111-8111-111111111111";
 const JOB_ID = "22222222-2222-4222-8222-222222222222";
 const PROPOSAL_ID = "33333333-3333-4333-8333-333333333333";
+const LISTED_DRAFT_ID = "66666666-6666-4666-8666-666666666666";
 const OTHER_JOB_ID = "44444444-4444-4444-8444-444444444444";
+const CUSTOMER_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+const TEMPLATE_ID = "55555555-5555-4555-8555-555555555555";
+const MEASUREMENT_ID = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 
 function draftProposal(overrides: Partial<ProposalRecord> = {}): ProposalRecord {
   return {
@@ -24,7 +36,7 @@ function draftProposal(overrides: Partial<ProposalRecord> = {}): ProposalRecord 
     company_id: COMPANY_ID,
     job_id: JOB_ID,
     customer_id: null,
-    template_id: "55555555-5555-4555-8555-555555555555",
+    template_id: TEMPLATE_ID,
     status: "draft",
     current_draft_version_id: null,
     latest_sent_version_id: null,
@@ -41,6 +53,72 @@ function draftProposal(overrides: Partial<ProposalRecord> = {}): ProposalRecord 
     archived_at: null,
     deleted_at: null,
     ...overrides,
+  };
+}
+
+function draftSummary(
+  overrides: Partial<ProposalRecordStatusSummary> = {}
+): ProposalRecordStatusSummary {
+  return {
+    id: LISTED_DRAFT_ID,
+    job_id: JOB_ID,
+    status: "draft",
+    title: "Listed draft",
+    proposal_number: null,
+    template_id: TEMPLATE_ID,
+    latest_sent_version_id: null,
+    signed_version_id: null,
+    updated_at: "2026-06-06T00:00:00.000Z",
+    ...overrides,
+  };
+}
+
+function readyHandoff(): MeasurementProposalHandoff {
+  return {
+    proposalReady: true,
+    blockers: [],
+    selectedLabel: "Saved",
+    quantities: {
+      roof_squares: 10,
+      adjusted_roof_squares: 11,
+      roof_area_sqft: 1100,
+      waste_percent: 10,
+      eaves_lf: null,
+      rakes_lf: null,
+      ridges_lf: null,
+      hips_lf: null,
+      valleys_lf: null,
+      wall_flashing_lf: null,
+      step_flashing_lf: null,
+      transitions_lf: null,
+      parapet_wall_lf: null,
+      drip_edge_lf: null,
+      starter_lf: null,
+      ridge_cap_lf: null,
+      pipe_boots_count: null,
+      vents_count: null,
+      skylights_count: null,
+      chimneys_count: null,
+      satellite_dishes_count: null,
+    },
+    estimateReady: true,
+    productionReady: false,
+  };
+}
+
+function readyQuantityMap(): MeasurementQuantityMap {
+  return { shingles_squares: 11 };
+}
+
+function readyCreatePayload(): ProposalDraftCreatePayload {
+  return {
+    customer_id: CUSTOMER_ID,
+    template_id: TEMPLATE_ID,
+    measurement_record_id: MEASUREMENT_ID,
+    quantity_context: {
+      measurementHandoff: readyHandoff(),
+      quantityMap: readyQuantityMap(),
+    },
   };
 }
 
@@ -200,5 +278,220 @@ describe("resolveProposalDraftEntry", () => {
       { companyId: COMPANY_ID, jobId: JOB_ID, activeProposalId: PROPOSAL_ID },
       deps
     );
+  });
+});
+
+describe("validateProposalDraftCreatePayload", () => {
+  test("rejects missing customer_id", () => {
+    const payload = readyCreatePayload();
+    payload.customer_id = "";
+    const result = validateProposalDraftCreatePayload(payload);
+    assert.equal(result.valid, false);
+    if (!result.valid) assert.equal(result.reason, "missing_customer_id");
+  });
+});
+
+describe("resolveOrCreateProposalDraftEntry", () => {
+  test("returns active draft without create", async () => {
+    let createCalls = 0;
+    const deps: ResolveOrCreateProposalDraftEntryDeps = {
+      getProposalById: async () => draftProposal(),
+      listProposalsForJob: async () => {
+        throw new Error("listProposalsForJob must not be called when active draft valid");
+      },
+      createDraftProposal: async () => {
+        createCalls += 1;
+        throw new Error("createDraftProposal must not be called");
+      },
+    };
+    const result = await resolveOrCreateProposalDraftEntry(
+      {
+        companyId: COMPANY_ID,
+        jobId: JOB_ID,
+        activeProposalId: PROPOSAL_ID,
+        createPayload: readyCreatePayload(),
+      },
+      deps
+    );
+    assert.equal(createCalls, 0);
+    assert.equal(result.created, false);
+    assert.equal(result.proposalId, PROPOSAL_ID);
+    assert.equal(result.reason, "active_draft");
+  });
+
+  test("listed draft returned without create when active id invalid", async () => {
+    let createCalls = 0;
+    const deps: ResolveOrCreateProposalDraftEntryDeps = {
+      getProposalById: async () => draftProposal({ status: "sent" }),
+      listProposalsForJob: async () => [draftSummary()],
+      createDraftProposal: async () => {
+        createCalls += 1;
+        throw new Error("createDraftProposal must not be called");
+      },
+    };
+    const result = await resolveOrCreateProposalDraftEntry(
+      {
+        companyId: COMPANY_ID,
+        jobId: JOB_ID,
+        activeProposalId: PROPOSAL_ID,
+        createPayload: readyCreatePayload(),
+      },
+      deps
+    );
+    assert.equal(createCalls, 0);
+    assert.equal(result.created, false);
+    assert.equal(result.proposalId, LISTED_DRAFT_ID);
+    assert.equal(result.reason, "existing_job_draft");
+  });
+
+  test("creates once when no active or listed draft", async () => {
+    let createCalls = 0;
+    const deps: ResolveOrCreateProposalDraftEntryDeps = {
+      getProposalById: async () => null,
+      listProposalsForJob: async () => [],
+      createDraftProposal: async (input) => {
+        createCalls += 1;
+        assert.equal(input.company_id, COMPANY_ID);
+        assert.equal(input.job_id, JOB_ID);
+        return {
+          proposal: draftProposal({ id: PROPOSAL_ID }),
+          versionId: "77777777-7777-4777-8777-777777777777",
+          selectedOptionId: null,
+          writeSteps: [],
+        };
+      },
+    };
+    const result = await resolveOrCreateProposalDraftEntry(
+      {
+        companyId: COMPANY_ID,
+        jobId: JOB_ID,
+        activeProposalId: null,
+        createPayload: readyCreatePayload(),
+      },
+      deps
+    );
+    assert.equal(createCalls, 1);
+    assert.equal(result.created, true);
+    assert.equal(result.proposalId, PROPOSAL_ID);
+    assert.equal(result.reason, "created_draft");
+  });
+
+  test("second call uses listed draft and does not create again", async () => {
+    let createCalls = 0;
+    const deps: ResolveOrCreateProposalDraftEntryDeps = {
+      getProposalById: async () => null,
+      listProposalsForJob: async () => [draftSummary({ id: PROPOSAL_ID })],
+      createDraftProposal: async () => {
+        createCalls += 1;
+        throw new Error("createDraftProposal must not be called");
+      },
+    };
+    const result = await resolveOrCreateProposalDraftEntry(
+      {
+        companyId: COMPANY_ID,
+        jobId: JOB_ID,
+        activeProposalId: null,
+        createPayload: readyCreatePayload(),
+      },
+      deps
+    );
+    assert.equal(createCalls, 0);
+    assert.equal(result.reason, "existing_job_draft");
+    assert.equal(result.proposalId, PROPOSAL_ID);
+  });
+
+  test("wrong-job active id still finds listed draft before create", async () => {
+    let createCalls = 0;
+    const deps: ResolveOrCreateProposalDraftEntryDeps = {
+      getProposalById: async () => draftProposal({ job_id: OTHER_JOB_ID }),
+      listProposalsForJob: async () => [draftSummary()],
+      createDraftProposal: async () => {
+        createCalls += 1;
+        throw new Error("createDraftProposal must not be called");
+      },
+    };
+    const result = await resolveOrCreateProposalDraftEntry(
+      {
+        companyId: COMPANY_ID,
+        jobId: JOB_ID,
+        activeProposalId: PROPOSAL_ID,
+        createPayload: readyCreatePayload(),
+      },
+      deps
+    );
+    assert.equal(createCalls, 0);
+    assert.equal(result.reason, "existing_job_draft");
+  });
+
+  test("create failure surfaces unconfigured pricing policy", async () => {
+    const deps: ResolveOrCreateProposalDraftEntryDeps = {
+      getProposalById: async () => null,
+      listProposalsForJob: async () => [],
+      createDraftProposal: async () => {
+        throw new ProposalSnapshotGuardError(
+          "Pricing policy is not configured for persistence."
+        );
+      },
+    };
+    const result = await resolveOrCreateProposalDraftEntry(
+      {
+        companyId: COMPANY_ID,
+        jobId: JOB_ID,
+        activeProposalId: null,
+        createPayload: readyCreatePayload(),
+      },
+      deps
+    );
+    assert.equal(result.proposalId, null);
+    assert.equal(result.created, false);
+    assert.equal(result.reason, "unconfigured_pricing_policy");
+    assert.equal(result.errorMessage, PROPOSAL_DRAFT_UNCONFIGURED_POLICY_MESSAGE);
+  });
+
+  test("missing create payload fails closed without create", async () => {
+    let createCalls = 0;
+    const deps: ResolveOrCreateProposalDraftEntryDeps = {
+      getProposalById: async () => null,
+      listProposalsForJob: async () => [],
+      createDraftProposal: async () => {
+        createCalls += 1;
+        throw new Error("createDraftProposal must not be called");
+      },
+    };
+    const result = await resolveOrCreateProposalDraftEntry(
+      {
+        companyId: COMPANY_ID,
+        jobId: JOB_ID,
+        activeProposalId: null,
+        createPayload: null,
+      },
+      deps
+    );
+    assert.equal(createCalls, 0);
+    assert.equal(result.reason, "db_identity_not_ready");
+    assert.match(result.errorMessage ?? "", /persisted customer and measurement/i);
+  });
+
+  test("invalid company/job never creates", async () => {
+    let createCalls = 0;
+    const deps: ResolveOrCreateProposalDraftEntryDeps = {
+      getProposalById: async () => null,
+      listProposalsForJob: async () => [],
+      createDraftProposal: async () => {
+        createCalls += 1;
+        throw new Error("createDraftProposal must not be called");
+      },
+    };
+    const result = await resolveOrCreateProposalDraftEntry(
+      {
+        companyId: "bad",
+        jobId: JOB_ID,
+        activeProposalId: null,
+        createPayload: readyCreatePayload(),
+      },
+      deps
+    );
+    assert.equal(createCalls, 0);
+    assert.equal(result.reason, "invalid_company_or_job");
   });
 });

@@ -100,6 +100,7 @@ import {
 } from "@/app/lib/measurementReadiness";
 import {
   buildMeasurementProposalHandoff,
+  deriveQuantityMapFromRecord,
   formatProposalReadinessLabel,
   formatProposalSectionHeaderStatus,
   resolveProposalHandoffNextAction,
@@ -118,8 +119,12 @@ import {
   formatProposalBuilderDisabledButtonTitle,
   resolveJobCardProposalActivityLine,
 } from "@/app/lib/proposalBuilderReadiness";
-import { resolveProposalDraftEntry } from "@/app/lib/proposalDraftEntry";
-import { getProposalById } from "@/app/lib/proposalRecordStore";
+import { resolveOrCreateProposalDraftEntry } from "@/app/lib/proposalDraftEntry";
+import {
+  createDraftProposal,
+  getProposalById,
+  listProposalsForJob,
+} from "@/app/lib/proposalRecordStore";
 import { deriveProposalTemplateReadiness } from "@/app/lib/proposalTemplateReadiness";
 import {
   getProposalTemplateGraph,
@@ -1071,6 +1076,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
   const templateSetupFetchInFlightRef = useRef<string | null>(null);
   const [isSavingMeasurement, setIsSavingMeasurement] = useState(false);
   const [measurementSaveError, setMeasurementSaveError] = useState<string | null>(null);
+  const [proposalLaunchError, setProposalLaunchError] = useState<string | null>(null);
   const measurementSaveInFlightRef = useRef<string | null>(null);
   const measurementFormHydratedRef = useRef<string | null>(null);
   const [jobCardTab, setJobCardTab] = useState<JobCardTabId>("overview");
@@ -7019,6 +7025,27 @@ Thanks,`;
       : "No proposal yet";
     const proposalDocumentStatusMuted = !jobCardActiveProposalId;
 
+    const proposalDraftCreatePayload =
+      identityFromJobRecord &&
+      hydratedJobRecord &&
+      persistedSelectedMeasurement &&
+      !hasUnsavedChanges &&
+      proposalHandoff.proposalReady &&
+      starterTemplateGraph?.template.id &&
+      isUuidLike(hydratedJobRecord.customer_id ?? "") &&
+      isUuidLike(persistedSelectedMeasurement.id)
+        ? {
+            customer_id: hydratedJobRecord.customer_id!,
+            template_id: starterTemplateGraph.template.id,
+            measurement_record_id: persistedSelectedMeasurement.id,
+            quantity_context: {
+              measurementHandoff: proposalHandoff,
+              quantityMap: deriveQuantityMapFromRecord(persistedSelectedMeasurement),
+            },
+            title: starterTemplateGraph.template.name ?? null,
+          }
+        : null;
+
     const reportMeasurementRows: { label: string; value: string; muted?: boolean }[] = [
       {
         label: "Roof facets",
@@ -7619,24 +7646,39 @@ Thanks,`;
                       void (async () => {
                         if (!proposalBuilderLaunchEnabled || !currentJobId) return;
                         const cid = (companyId ?? "").trim();
-                        let href = buildProposalBuilderHref(currentJobId);
-                        if (cid && jobCardActiveProposalId) {
-                          const resolved = await resolveProposalDraftEntry(
-                            {
-                              companyId: cid,
-                              jobId: currentJobId,
-                              activeProposalId: jobCardActiveProposalId,
-                            },
-                            { getProposalById }
-                          );
-                          if (resolved.found && resolved.proposalId) {
-                            href = buildProposalBuilderHref(
-                              currentJobId,
-                              resolved.proposalId
-                            );
+                        if (!cid) return;
+
+                        setProposalLaunchError(null);
+
+                        const result = await resolveOrCreateProposalDraftEntry(
+                          {
+                            companyId: cid,
+                            jobId: currentJobId,
+                            activeProposalId: jobCardActiveProposalId,
+                            createPayload: proposalDraftCreatePayload,
+                          },
+                          {
+                            getProposalById,
+                            listProposalsForJob,
+                            createDraftProposal,
                           }
+                        );
+
+                        if (result.proposalId) {
+                          router.push(
+                            buildProposalBuilderHref(currentJobId, result.proposalId)
+                          );
+                          return;
                         }
-                        router.push(href);
+
+                        if (result.errorMessage) {
+                          setProposalLaunchError(result.errorMessage);
+                          console.error(
+                            "[RoofingClient] proposal draft entry failed:",
+                            result.reason,
+                            result.errorMessage
+                          );
+                        }
                       })();
                     }}
                     className={
@@ -7674,6 +7716,9 @@ Thanks,`;
                         muted={proposalDocumentStatusMuted}
                       />
                     </div>
+                    {proposalLaunchError ? (
+                      <p className="mt-2 text-[11px] text-red-600">{proposalLaunchError}</p>
+                    ) : null}
                   </div>
                   <div className={wsBlock}>
                     <WorkspaceHeading>Catalog setup</WorkspaceHeading>
