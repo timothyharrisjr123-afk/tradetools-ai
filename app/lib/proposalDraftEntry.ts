@@ -102,6 +102,30 @@ export type ResolveOrCreateProposalDraftEntryDeps = ProposalDraftEntryDeps & {
 export const PROPOSAL_DRAFT_UNCONFIGURED_POLICY_MESSAGE =
   "Configure pricing policy before creating a proposal draft.";
 
+/** Expected business failures — inline UI only; must not trigger dev overlay via console.error. */
+export const EXPECTED_PROPOSAL_DRAFT_ENTRY_FAILURE_REASONS = [
+  "no_active_proposal",
+  "proposal_not_found",
+  "wrong_company",
+  "wrong_job",
+  "non_draft_status",
+  "invalid_company_or_job",
+  "missing_customer_id",
+  "missing_template_id",
+  "missing_measurement_record_id",
+  "missing_quantity_context",
+  "db_identity_not_ready",
+  "unconfigured_pricing_policy",
+] as const satisfies readonly ResolveOrCreateProposalDraftEntryReason[];
+
+export function isExpectedProposalDraftEntryFailure(
+  reason: ResolveOrCreateProposalDraftEntryReason
+): boolean {
+  return (EXPECTED_PROPOSAL_DRAFT_ENTRY_FAILURE_REASONS as readonly string[]).includes(
+    reason
+  );
+}
+
 function normalizeId(value: string | null | undefined): string | null {
   if (value == null) return null;
   const trimmed = String(value).trim();
@@ -353,7 +377,9 @@ export async function resolveOrCreateProposalDraftEntry(
     };
   } catch (error) {
     const mapped = mapCreateFailureMessage(error);
-    console.error("[resolveOrCreateProposalDraftEntry] create failed:", error);
+    if (!isExpectedProposalDraftEntryFailure(mapped.reason)) {
+      console.error("[resolveOrCreateProposalDraftEntry] create failed:", error);
+    }
     return {
       proposalId: null,
       created: false,

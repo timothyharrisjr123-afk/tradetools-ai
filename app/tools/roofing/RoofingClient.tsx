@@ -119,7 +119,7 @@ import {
   formatProposalBuilderDisabledButtonTitle,
   resolveJobCardProposalActivityLine,
 } from "@/app/lib/proposalBuilderReadiness";
-import { resolveOrCreateProposalDraftEntry } from "@/app/lib/proposalDraftEntry";
+import { resolveOrCreateProposalDraftEntry, isExpectedProposalDraftEntryFailure } from "@/app/lib/proposalDraftEntry";
 import {
   createDraftProposal,
   getProposalById,
@@ -7673,11 +7673,13 @@ Thanks,`;
 
                         if (result.errorMessage) {
                           setProposalLaunchError(result.errorMessage);
-                          console.error(
-                            "[RoofingClient] proposal draft entry failed:",
-                            result.reason,
-                            result.errorMessage
-                          );
+                          if (!isExpectedProposalDraftEntryFailure(result.reason)) {
+                            console.error(
+                              "[RoofingClient] proposal draft entry failed:",
+                              result.reason,
+                              result.errorMessage
+                            );
+                          }
                         }
                       })();
                     }}

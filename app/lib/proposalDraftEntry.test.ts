@@ -13,6 +13,7 @@ import type { ProposalRecord, ProposalRecordStatusSummary } from "./proposalReco
 import { ProposalSnapshotGuardError } from "./proposalSnapshotStatusMapper";
 import {
   PROPOSAL_DRAFT_UNCONFIGURED_POLICY_MESSAGE,
+  isExpectedProposalDraftEntryFailure,
   resolveOrCreateProposalDraftEntry,
   resolveProposalDraftEntry,
   validateProposalDraftCreatePayload,
@@ -121,6 +122,26 @@ function readyCreatePayload(): ProposalDraftCreatePayload {
     },
   };
 }
+
+describe("isExpectedProposalDraftEntryFailure", () => {
+  test("expected business failures include db_identity_not_ready and validation reasons", () => {
+    assert.equal(isExpectedProposalDraftEntryFailure("db_identity_not_ready"), true);
+    assert.equal(isExpectedProposalDraftEntryFailure("missing_customer_id"), true);
+    assert.equal(isExpectedProposalDraftEntryFailure("missing_template_id"), true);
+    assert.equal(isExpectedProposalDraftEntryFailure("missing_measurement_record_id"), true);
+    assert.equal(isExpectedProposalDraftEntryFailure("missing_quantity_context"), true);
+    assert.equal(isExpectedProposalDraftEntryFailure("unconfigured_pricing_policy"), true);
+    assert.equal(isExpectedProposalDraftEntryFailure("no_active_proposal"), true);
+    assert.equal(isExpectedProposalDraftEntryFailure("proposal_not_found"), true);
+    assert.equal(isExpectedProposalDraftEntryFailure("wrong_company"), true);
+    assert.equal(isExpectedProposalDraftEntryFailure("wrong_job"), true);
+    assert.equal(isExpectedProposalDraftEntryFailure("non_draft_status"), true);
+  });
+
+  test("create_failed is unexpected and should allow console.error", () => {
+    assert.equal(isExpectedProposalDraftEntryFailure("create_failed"), false);
+  });
+});
 
 describe("buildProposalBuilderHref", () => {
   test("job-only route unchanged when proposalId omitted", () => {
