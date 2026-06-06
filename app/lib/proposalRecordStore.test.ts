@@ -1,0 +1,947 @@
+/**
+ * 3J2B3 — Programmatic tests for proposalRecordStore.ts (mocked Supabase).
+ *
+ * Run: npx tsx --test app/lib/proposalRecordStore.test.ts
+ */
+
+import assert from "node:assert/strict";
+import { describe, test } from "node:test";
+import type { CatalogItem } from "./catalogTypes";
+import type { CompanyPricingPolicyResolution } from "./companyPricingPolicy";
+import type { MeasurementProposalHandoff } from "./measurementProposalHandoff";
+import type { MeasurementQuantityMap } from "./measurementTypes";
+import type { ProposalQuantityPreviewContext } from "./proposalBuilderPreview";
+import {
+  DEFAULT_PROFITABILITY_TYPE,
+  DEFAULT_QUANTITY_ROUNDING,
+  DEFAULT_WASTE_MODEL,
+  type PricingPolicy,
+} from "./proposalPricingTypes";
+import {
+  appendProposalEvent,
+  assertLineInsertRowCustomerSafe,
+  buildDraftInstantiateInputFromPreview,
+  buildPageIdByTemplateSectionId,
+  CREATE_DRAFT_WRITE_STEPS,
+  createDraftProposal,
+  getDraftGraph,
+  listProposalsForJob,
+  ProposalRecordStoreError,
+  refreshDraftPricing,
+  sanitizeEffectiveMarginPct,
+  updateDraftSelectedOption,
+  type ProposalRecordStoreDeps,
+} from "./proposalRecordStore";
+import { buildProposalBuilderPricingPreview } from "./proposalBuilderPricingPreview";
+import { PROPOSAL_LINE_CUSTOMER_FORBIDDEN_KEYS } from "./proposalLineSnapshotTypes";
+import type { ProposalTemplateGraph } from "./proposalTemplateStore";
+import type {
+  ProposalTemplateItem,
+  ProposalTemplateOption,
+  ProposalTemplateSection,
+} from "./proposalTemplateTypes";
+
+const COMPANY_ID = "11111111-1111-4111-8111-111111111111";
+const JOB_ID = "22222222-2222-4222-8222-222222222222";
+const TEMPLATE_ID = "33333333-3333-4333-8333-333333333333";
+const POLICY_ID = "44444444-4444-4444-8444-444444444444";
+const CUSTOMER_ID = "55555555-5555-4555-8555-555555555555";
+const OTHER_CUSTOMER_ID = "66666666-6666-4666-8666-666666666666";
+
+const CONFIGURED_POLICY: PricingPolicy = {
+  profitabilityType: DEFAULT_PROFITABILITY_TYPE,
+  defaultProfitabilityPct: 35,
+  minimumProfitabilityPct: 25,
+  quantityRounding: DEFAULT_QUANTITY_ROUNDING,
+  wasteModel: DEFAULT_WASTE_MODEL,
+  discount: null,
+  tax: { salesTaxRatePct: 8, materialPurchaseTaxRatePct: null },
+  subtotalOverrideCents: null,
+};
+
+const CONFIGURED_RESOLUTION: CompanyPricingPolicyResolution = {
+  configured: true,
+  source: "company",
+  policy: CONFIGURED_POLICY,
+  reason: null,
+};
+
+const UNCONFIGURED_RESOLUTION: CompanyPricingPolicyResolution = {
+  configured: false,
+  source: "missing",
+  policy: null,
+  reason: "Company pricing policy is not configured.",
+};
+
+type MockOp = {
+  table: string;
+  action: "insert" | "update" | "delete" | "select";
+  payload?: unknown;
+};
+
+type MockState = {
+  ops: MockOp[];
+  tables: Record<string, Record<string, unknown>[]>;
+  idSeq: number;
+};
+
+const MOCK_UUID_POOL: string[] = [];
+
+function nextUuid(state: MockState, _prefix: number): string {
+  state.idSeq += 1;
+  while (MOCK_UUID_POOL.length < state.idSeq) {
+    const i = MOCK_UUID_POOL.length + 1;
+    MOCK_UUID_POOL.push(
+      `${String(i).padStart(8, "0")}-1111-4111-8111-${String(i).padStart(12, "1")}`
+    );
+  }
+  return MOCK_UUID_POOL[state.idSeq - 1]!;
+}
+
+function clone<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
+}
+
+function executeQuery(
+  table: string,
+  state: MockState,
+  filters: Record<string, unknown>,
+  pendingInsert: unknown,
+  pendingUpdate: unknown,
+  pendingDelete: boolean,
+  orderSpec: { column: string; ascending: boolean } | null,
+  isNullFilter: { column: string } | null,
+  options: { versionKind?: string } | undefined,
+  mode: "many" | "one"
+) {
+  if (pendingInsert) {
+    const base = clone(
+      (Array.isArray(pendingInsert) ? pendingInsert[0] : pendingInsert) as Record<string, unknown>
+    );
+    const tableLen = state.tables[table]?.length ?? 0;
+    const id = nextUuid(state, tableLen);
+    const row: Record<string, unknown> = {
+      id,
+      created_at: "2026-06-06T00:00:00Z",
+      updated_at: "2026-06-06T00:00:00Z",
+      ...base,
+    };
+    if (table === "proposal_versions" && options?.versionKind) {
+      row.version_kind = options.versionKind;
+    }
+    state.tables[table] = [...(state.tables[table] ?? []), row];
+    return { data: mode === "one" ? row : [row], error: null };
+  }
+
+  let rows = queryTable(table, filters, state, isNullFilter);
+  if (orderSpec) {
+    rows = [...rows].sort((a, b) => {
+      const av = (a as Record<string, unknown>)[orderSpec.column] as number;
+      const bv = (b as Record<string, unknown>)[orderSpec.column] as number;
+      return orderSpec.ascending ? av - bv : bv - av;
+    });
+  }
+
+  if (pendingUpdate) {
+    rows.forEach((row) => Object.assign(row as object, pendingUpdate as object));
+    return { data: mode === "one" ? rows[0] ?? null : rows, error: null };
+  }
+
+  if (pendingDelete) {
+    const toDelete = new Set(rows.map((r) => r.id));
+    state.tables[table] = (state.tables[table] ?? []).filter((r) => !toDelete.has(r.id));
+    return { data: mode === "one" ? null : [], error: null };
+  }
+
+  return { data: mode === "one" ? rows[0] ?? null : rows, error: null };
+}
+
+function queryTable(
+  table: string,
+  filters: Record<string, unknown>,
+  state: MockState,
+  isNullFilter: { column: string } | null
+) {
+  let rows = state.tables[table] ?? [];
+  rows = rows.filter((row) => {
+    const record = row as Record<string, unknown>;
+    if (isNullFilter && record[isNullFilter.column] != null) {
+      return false;
+    }
+    return Object.entries(filters).every(([key, value]) => {
+      if (key.startsWith("__in_")) {
+        const column = key.slice(5);
+        const ids = value as unknown[];
+        return ids.includes(record[column]);
+      }
+      return record[key] === value;
+    });
+  });
+  return rows;
+}
+
+function createMockSupabase(options?: {
+  rejectCustomer?: boolean;
+  versionKind?: string;
+}) {
+  const state: MockState = {
+    ops: [],
+    tables: {
+      customers: [{ id: CUSTOMER_ID, company_id: COMPANY_ID }],
+      jobs: [
+        {
+          id: JOB_ID,
+          company_id: COMPANY_ID,
+          customer_id: CUSTOMER_ID,
+          job_name: "Smith Roof",
+          address_formatted: "1 Main St",
+        },
+      ],
+      company_pricing_policies: [{ id: POLICY_ID, company_id: COMPANY_ID }],
+      proposals: [],
+      proposal_versions: [],
+      proposal_pages: [],
+      proposal_options: [],
+      proposal_line_items: [],
+      proposal_internal_summaries: [],
+      proposal_events: [],
+    },
+    idSeq: 0,
+  };
+
+  if (options?.rejectCustomer) {
+    state.tables.customers = [];
+  }
+
+  function from(table: string) {
+    const filters: Record<string, unknown> = {};
+    let pendingInsert: unknown;
+    let pendingUpdate: unknown;
+    let pendingDelete = false;
+    let orderSpec: { column: string; ascending: boolean } | null = null;
+    let isNullFilter: { column: string } | null = null;
+    let terminal: "many" | "one" | "maybeSingle" | "single" = "many";
+
+    const chain = {
+      select(_cols?: string) {
+        state.ops.push({ table, action: "select" });
+        return chain;
+      },
+      insert(data: unknown) {
+        pendingInsert = data;
+        state.ops.push({ table, action: "insert", payload: data });
+        return chain;
+      },
+      update(data: unknown) {
+        pendingUpdate = data;
+        state.ops.push({ table, action: "update", payload: data });
+        return chain;
+      },
+      delete() {
+        pendingDelete = true;
+        state.ops.push({ table, action: "delete" });
+        return chain;
+      },
+      eq(column: string, value: unknown) {
+        filters[column] = value;
+        return chain;
+      },
+      is(column: string, value: string) {
+        if (value === "null") {
+          isNullFilter = { column };
+        }
+        return chain;
+      },
+      in(column: string, values: unknown[]) {
+        filters[`__in_${column}`] = values;
+        return chain;
+      },
+      order(column: string, opts?: { ascending?: boolean }) {
+        orderSpec = { column, ascending: opts?.ascending ?? true };
+        return chain;
+      },
+      maybeSingle: async () => {
+        terminal = "maybeSingle";
+        const result = executeQuery(
+          table,
+          state,
+          filters,
+          pendingInsert,
+          pendingUpdate,
+          pendingDelete,
+          orderSpec,
+          isNullFilter,
+          options,
+          "one"
+        );
+        pendingInsert = undefined;
+        pendingUpdate = undefined;
+        pendingDelete = false;
+        return result;
+      },
+      single: async () => {
+        terminal = "single";
+        const result = await chain.maybeSingle();
+        if (!result.data) {
+          return { data: null, error: { message: "not found" } };
+        }
+        return result;
+      },
+      then(onFulfilled: (value: unknown) => unknown, onRejected?: (reason: unknown) => unknown) {
+        const mode = terminal === "many" ? "many" : "one";
+        return Promise.resolve(
+          executeQuery(
+            table,
+            state,
+            filters,
+            pendingInsert,
+            pendingUpdate,
+            pendingDelete,
+            orderSpec,
+            isNullFilter,
+            options,
+            mode
+          )
+        ).then((result) => {
+          pendingInsert = undefined;
+          pendingUpdate = undefined;
+          pendingDelete = false;
+          return onFulfilled(result);
+        }, onRejected);
+      },
+    };
+
+    return chain;
+  }
+
+  return {
+    supabase: { from },
+    state,
+  };
+}
+
+function catalog(overrides: Partial<CatalogItem> & Pick<CatalogItem, "id">): CatalogItem {
+  return {
+    company_id: COMPANY_ID,
+    name: overrides.name ?? overrides.id,
+    item_type: "material",
+    unit: "square",
+    quantity_source: "adjusted_roof_squares",
+    pricing_basis: "cost_plus_margin",
+    customer_visibility: "customer_visible",
+    active: true,
+    unit_cost_cents: 10_000,
+    ...overrides,
+  };
+}
+
+function testGraph(): ProposalTemplateGraph {
+  return {
+    template: {
+      id: TEMPLATE_ID,
+      company_id: COMPANY_ID,
+      name: "Standard Package",
+      status: "active",
+      active: true,
+    },
+    options: [
+      {
+        id: "77777777-7777-4777-8777-777777777777",
+        template_id: TEMPLATE_ID,
+        name: "Standard",
+        is_default: true,
+        visible_to_customer: true,
+        sort_order: 0,
+      },
+    ],
+    sections: [
+      {
+        id: "88888888-8888-4888-8888-888888888888",
+        template_id: TEMPLATE_ID,
+        option_id: "77777777-7777-4777-8777-777777777777",
+        kind: "line_items",
+        name: "Estimate",
+        sort_order: 0,
+      },
+      {
+        id: "99999999-9999-4999-8999-999999999999",
+        template_id: TEMPLATE_ID,
+        option_id: "77777777-7777-4777-8777-777777777777",
+        kind: "terms",
+        name: "Terms",
+        sort_order: 1,
+      },
+    ],
+    items: [
+      {
+        id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        template_id: TEMPLATE_ID,
+        option_id: "77777777-7777-4777-8777-777777777777",
+        section_id: "88888888-8888-4888-8888-888888888888",
+        catalog_item_id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        item_role: "standard",
+        sort_order: 0,
+      },
+    ],
+  };
+}
+
+function readyContext(): ProposalQuantityPreviewContext {
+  const handoff: MeasurementProposalHandoff = {
+    proposalReady: true,
+    blockers: [],
+    selectedLabel: "Job",
+    quantities: {
+      roof_squares: 20,
+      adjusted_roof_squares: 22,
+      roof_area_sqft: 2200,
+      waste_percent: 10,
+      eaves_lf: null,
+      rakes_lf: null,
+      ridges_lf: null,
+      hips_lf: null,
+      valleys_lf: null,
+      wall_flashing_lf: null,
+      step_flashing_lf: null,
+      transitions_lf: null,
+      parapet_wall_lf: null,
+      drip_edge_lf: null,
+      starter_lf: null,
+      ridge_cap_lf: null,
+      pipe_boots_count: null,
+      vents_count: null,
+      skylights_count: null,
+      chimneys_count: null,
+      satellite_dishes_count: null,
+    },
+    estimateReady: true,
+    productionReady: false,
+  };
+  const quantityMap: MeasurementQuantityMap = { shingles_squares: 22 };
+  return { measurementHandoff: handoff, quantityMap };
+}
+
+function storeDeps(
+  mock: ReturnType<typeof createMockSupabase>,
+  resolution: CompanyPricingPolicyResolution = CONFIGURED_RESOLUTION
+): ProposalRecordStoreDeps {
+  const g = testGraph();
+  const cat = catalog({ id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb" });
+  return {
+    getSupabase: () => mock.supabase as never,
+    getTemplateGraph: async () => g,
+    getCatalogItems: async () => [cat],
+    getResolvedPolicy: async () => resolution,
+  };
+}
+
+describe("sanitizeEffectiveMarginPct", () => {
+  test("effective_margin_pct >= 100 is clamped to 99.9999 before DB write", () => {
+    assert.equal(sanitizeEffectiveMarginPct(100), 99.9999);
+    assert.equal(sanitizeEffectiveMarginPct(150), 99.9999);
+  });
+
+  test("null stays null; negative throws", () => {
+    assert.equal(sanitizeEffectiveMarginPct(null), null);
+    assert.throws(() => sanitizeEffectiveMarginPct(-1), ProposalRecordStoreError);
+  });
+});
+
+describe("buildPageIdByTemplateSectionId", () => {
+  test("maps section id to runtime page id for page_id linking", () => {
+    const map = buildPageIdByTemplateSectionId([
+      { id: "page-1", source_template_section_id: "sec-a" },
+      { id: "page-2", source_template_section_id: "sec-b" },
+    ]);
+    assert.equal(map.get("sec-a"), "page-1");
+    assert.equal(map.get("sec-b"), "page-2");
+  });
+});
+
+describe("createDraftProposal", () => {
+  test("writes tables in correct order", async () => {
+    const mock = createMockSupabase();
+    const result = await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+        customer_id: CUSTOMER_ID,
+      },
+      storeDeps(mock)
+    );
+
+    assert.deepEqual(result.writeSteps, [...CREATE_DRAFT_WRITE_STEPS]);
+    const insertTables = mock.state.ops
+      .filter((op) => op.action === "insert")
+      .map((op) => op.table);
+    const firstProposalIdx = insertTables.indexOf("proposals");
+    const versionIdx = insertTables.indexOf("proposal_versions");
+    const pagesIdx = insertTables.indexOf("proposal_pages");
+    const optionsIdx = insertTables.indexOf("proposal_options");
+    const linesIdx = insertTables.indexOf("proposal_line_items");
+    const summariesIdx = insertTables.indexOf("proposal_internal_summaries");
+    assert.ok(firstProposalIdx < versionIdx);
+    assert.ok(versionIdx < pagesIdx);
+    assert.ok(pagesIdx < optionsIdx);
+    assert.ok(optionsIdx < linesIdx);
+    assert.ok(linesIdx <= summariesIdx);
+  });
+
+  test("inserts proposal header with company_id, job_id, template_id, pricing_policy_id, status draft", async () => {
+    const mock = createMockSupabase();
+    await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+      },
+      storeDeps(mock)
+    );
+
+    const header = mock.state.tables.proposals[0] as Record<string, unknown>;
+    assert.equal(header.company_id, COMPANY_ID);
+    assert.equal(header.job_id, JOB_ID);
+    assert.equal(header.template_id, TEMPLATE_ID);
+    assert.equal(header.pricing_policy_id, POLICY_ID);
+    assert.equal(header.status, "draft");
+  });
+
+  test("inserts proposal_versions v1 draft with frozen_at null", async () => {
+    const mock = createMockSupabase();
+    await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+      },
+      storeDeps(mock)
+    );
+
+    const version = mock.state.tables.proposal_versions[0] as Record<string, unknown>;
+    assert.equal(version.version_number, 1);
+    assert.equal(version.version_kind, "draft");
+    assert.equal(version.frozen_at, null);
+  });
+
+  test("inserts pages before line items", async () => {
+    const mock = createMockSupabase();
+    await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+      },
+      storeDeps(mock)
+    );
+
+    assert.ok(mock.state.tables.proposal_pages.length >= 1);
+    assert.ok(mock.state.tables.proposal_line_items.length >= 1);
+    const pageOpIdx = mock.state.ops.findIndex(
+      (op) => op.table === "proposal_pages" && op.action === "insert"
+    );
+    const lineOpIdx = mock.state.ops.findIndex(
+      (op) => op.table === "proposal_line_items" && op.action === "insert"
+    );
+    assert.ok(pageOpIdx >= 0 && lineOpIdx > pageOpIdx);
+  });
+
+  test("links line page_id after pages inserted", async () => {
+    const mock = createMockSupabase();
+    await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+      },
+      storeDeps(mock)
+    );
+
+    const estimatePage = mock.state.tables.proposal_pages.find(
+      (p) => p.page_type === "estimate"
+    ) as Record<string, unknown>;
+    assert.ok(estimatePage);
+    const line = mock.state.tables.proposal_line_items[0] as Record<string, unknown>;
+    assert.equal(line.page_id, estimatePage.id);
+    assert.equal(line.section_id, "88888888-8888-4888-8888-888888888888");
+  });
+
+  test("inserts options with customer_subtotal_cents / sales_tax_cents / customer_total_cents", async () => {
+    const mock = createMockSupabase();
+    await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+        quantity_context: readyContext(),
+      },
+      storeDeps(mock)
+    );
+
+    const option = mock.state.tables.proposal_options[0] as Record<string, unknown>;
+    assert.equal(typeof option.customer_subtotal_cents, "number");
+    assert.ok(option.customer_subtotal_cents != null);
+    assert.ok("sales_tax_cents" in option);
+    assert.ok("customer_total_cents" in option);
+    assert.ok(!("subtotal_cents" in option));
+    assert.ok(!("tax_cents" in option));
+    assert.ok(!("total_cents" in option));
+  });
+
+  test("inserts line items with no forbidden internal keys", async () => {
+    const mock = createMockSupabase();
+    await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+        quantity_context: readyContext(),
+      },
+      storeDeps(mock)
+    );
+
+    for (const line of mock.state.tables.proposal_line_items) {
+      const keys = Object.keys(line);
+      for (const forbidden of [...PROPOSAL_LINE_CUSTOMER_FORBIDDEN_KEYS, "policy_echo_json"]) {
+        assert.ok(!keys.includes(forbidden), `forbidden key on line insert: ${forbidden}`);
+      }
+      assertLineInsertRowCustomerSafe(line as Record<string, unknown>);
+    }
+  });
+
+  test("inserts internal summaries separately", async () => {
+    const mock = createMockSupabase();
+    await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+        quantity_context: readyContext(),
+      },
+      storeDeps(mock)
+    );
+
+    assert.equal(mock.state.tables.proposal_internal_summaries.length, 1);
+    const summary = mock.state.tables.proposal_internal_summaries[0] as Record<string, unknown>;
+    assert.ok("internal_cost_cents" in summary);
+    assert.ok("internal_profit_cents" in summary);
+    assert.ok("effective_margin_pct" in summary);
+    assert.ok("policy_echo_json" in summary);
+  });
+
+  test("updates current_draft_version_id and selected_option_id", async () => {
+    const mock = createMockSupabase();
+    const result = await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+        quantity_context: readyContext(),
+      },
+      storeDeps(mock)
+    );
+
+    const header = mock.state.tables.proposals[0] as Record<string, unknown>;
+    assert.equal(header.current_draft_version_id, result.versionId);
+    assert.equal(header.selected_option_id, result.selectedOptionId);
+  });
+
+  test("appends created event", async () => {
+    const mock = createMockSupabase();
+    await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+      },
+      storeDeps(mock)
+    );
+
+    const event = mock.state.tables.proposal_events.find(
+      (e) => e.event_type === "created"
+    ) as Record<string, unknown>;
+    assert.ok(event);
+    assert.equal(event.company_id, COMPANY_ID);
+  });
+
+  test("updates jobs.active_proposal_id only for same company/job", async () => {
+    const mock = createMockSupabase();
+    const result = await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+      },
+      storeDeps(mock)
+    );
+
+    const jobUpdate = mock.state.ops.find(
+      (op) => op.table === "jobs" && op.action === "update"
+    );
+    assert.ok(jobUpdate);
+    assert.equal((jobUpdate.payload as Record<string, unknown>).active_proposal_id, result.proposal.id);
+
+    const job = mock.state.tables.jobs[0] as Record<string, unknown>;
+    assert.equal(job.active_proposal_id, result.proposal.id);
+    assert.equal(job.company_id, COMPANY_ID);
+    assert.equal(job.id, JOB_ID);
+  });
+
+  test("rejects unconfigured/placeholder policy", async () => {
+    const mock = createMockSupabase();
+    await assert.rejects(
+      () =>
+        createDraftProposal(
+          {
+            company_id: COMPANY_ID,
+            job_id: JOB_ID,
+            template_id: TEMPLATE_ID,
+          },
+          storeDeps(mock, UNCONFIGURED_RESOLUTION)
+        ),
+      /not configured/i
+    );
+  });
+
+  test("validates customer_id same company or fails closed", async () => {
+    const mock = createMockSupabase({ rejectCustomer: true });
+    await assert.rejects(
+      () =>
+        createDraftProposal(
+          {
+            company_id: COMPANY_ID,
+            job_id: JOB_ID,
+            template_id: TEMPLATE_ID,
+            customer_id: OTHER_CUSTOMER_ID,
+          },
+          storeDeps(mock)
+        ),
+      ProposalRecordStoreError
+    );
+  });
+});
+
+describe("refreshDraftPricing", () => {
+  test("refuses non-draft version", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const created = await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+      },
+      deps
+    );
+
+    const version = mock.state.tables.proposal_versions[0] as Record<string, unknown>;
+    version.version_kind = "sent";
+
+    await assert.rejects(
+      () => refreshDraftPricing(COMPANY_ID, created.proposal.id, {}, deps),
+      /not mutable/i
+    );
+  });
+
+  test("updates options/lines/internal summaries but not pages/content", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const created = await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+        quantity_context: readyContext(),
+      },
+      deps
+    );
+
+    const pagesBefore = clone(mock.state.tables.proposal_pages);
+    const pageCountBefore = pagesBefore.length;
+
+    await refreshDraftPricing(
+      COMPANY_ID,
+      created.proposal.id,
+      { quantity_context: readyContext() },
+      deps
+    );
+
+    assert.equal(mock.state.tables.proposal_pages.length, pageCountBefore);
+    for (let i = 0; i < pageCountBefore; i += 1) {
+      assert.equal(
+        mock.state.tables.proposal_pages[i]!.title,
+        pagesBefore[i]!.title
+      );
+    }
+
+    const optionUpdate = mock.state.ops.some(
+      (op) => op.table === "proposal_options" && op.action === "update"
+    );
+    const lineInsert = mock.state.ops.some(
+      (op) => op.table === "proposal_line_items" && op.action === "insert"
+    );
+    const summaryInsert = mock.state.ops.some(
+      (op) => op.table === "proposal_internal_summaries" && op.action === "insert"
+    );
+    assert.ok(optionUpdate);
+    assert.ok(lineInsert);
+    assert.ok(summaryInsert);
+  });
+});
+
+describe("updateDraftSelectedOption", () => {
+  test("validates option belongs to same proposal/version/company", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const created = await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+      },
+      deps
+    );
+
+    const validOptionId = created.selectedOptionId!;
+    const updated = await updateDraftSelectedOption(
+      COMPANY_ID,
+      created.proposal.id,
+      validOptionId,
+      deps
+    );
+    assert.ok(updated);
+    assert.equal(updated.selected_option_id, validOptionId);
+
+    await assert.rejects(
+      () =>
+        updateDraftSelectedOption(
+          COMPANY_ID,
+          created.proposal.id,
+          "ffffffff-ffff-4fff-8fff-ffffffffffff",
+          deps
+        ),
+      ProposalRecordStoreError
+    );
+  });
+});
+
+describe("appendProposalEvent", () => {
+  test("inserts only — store exposes no update/delete event methods", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const created = await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+      },
+      deps
+    );
+
+    const event = await appendProposalEvent(
+      {
+        company_id: COMPANY_ID,
+        proposal_id: created.proposal.id,
+        proposal_version_id: created.versionId,
+        event_type: "draft_saved",
+        payload_json: { test: true },
+      },
+      deps
+    );
+    assert.ok(event);
+
+    const exported = [
+      "getProposalById",
+      "listProposalsForJob",
+      "getDraftGraph",
+      "createDraftProposal",
+      "refreshDraftPricing",
+      "updateDraftSelectedOption",
+      "appendProposalEvent",
+    ];
+    assert.ok(!exported.some((name) => name.includes("updateProposalEvent")));
+    assert.ok(!exported.some((name) => name.includes("deleteProposalEvent")));
+  });
+});
+
+describe("reads", () => {
+  test("getDraftGraph reads header/version/pages/options/lines/internal summaries by company scope", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const created = await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+        quantity_context: readyContext(),
+      },
+      deps
+    );
+
+    const graph = await getDraftGraph(COMPANY_ID, created.proposal.id, deps);
+    assert.ok(graph);
+    assert.equal(graph.proposal.id, created.proposal.id);
+    assert.equal(graph.version.version_kind, "draft");
+    assert.ok(graph.pages.length > 0);
+    assert.ok(graph.options.length > 0);
+    assert.ok(graph.lineItems.length > 0);
+    assert.ok(graph.internalSummaries.length > 0);
+
+    for (const line of graph.lineItems) {
+      assert.ok(!("internal_cost_cents" in line));
+      assert.ok(!("policy_echo_json" in line));
+    }
+  });
+
+  test("listProposalsForJob scopes by company_id and job_id", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+      },
+      deps
+    );
+
+    const list = await listProposalsForJob(COMPANY_ID, JOB_ID, deps);
+    assert.equal(list.length, 1);
+    assert.equal(list[0]!.job_id, JOB_ID);
+
+    const other = await listProposalsForJob(
+      COMPANY_ID,
+      "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+      deps
+    );
+    assert.equal(other.length, 0);
+  });
+});
+
+describe("buildDraftInstantiateInputFromPreview", () => {
+  test("customer policy echo is separate from internal summary path", () => {
+    const g = testGraph();
+    const cat = catalog({ id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb" });
+    const preview = buildProposalBuilderPricingPreview({
+      graph: g,
+      catalogItems: [cat],
+      quantityContext: readyContext(),
+      policy: CONFIGURED_POLICY,
+    });
+
+    const input = buildDraftInstantiateInputFromPreview({
+      companyId: COMPANY_ID,
+      graph: g,
+      catalogItems: [cat],
+      quantityContext: readyContext(),
+      preview,
+      policy: CONFIGURED_POLICY,
+      pricingPolicyId: POLICY_ID,
+      context: { job_id: JOB_ID, template_id: TEMPLATE_ID },
+    });
+
+    assert.ok(input.internalSummaryByTemplateOptionId["77777777-7777-4777-8777-777777777777"]);
+    assert.ok(input.lineItemsByTemplateOptionId["77777777-7777-4777-8777-777777777777"]!.length > 0);
+    assert.equal(input.policy.configured, true);
+  });
+});
