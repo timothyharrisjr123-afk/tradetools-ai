@@ -9,11 +9,11 @@
 - `docs/fielddive-estimate-proposal-flow-model.md` — estimate/proposal UX model notes
 - `docs/fielddive-feature-placement-map.md` — feature placement matrix
 
-**Last updated checkpoint:** **3I-3D2A Builder navigation architecture decision** (§6W-Reset — docs only; pending review, no commit). **Prior spec:** **§6W** (`b2c2e31` — RoofrExact hybrid workspace spec). **Prior:** **3I-3D1 rail grouping committed** (`fbdedbe` — §6V); **3I-3D0 spec** (`aa0073a` — §6U); **3I-3C internal profitability rail** (`3491e48` — §6T). **Tests:** **111/111** pass. **Typecheck:** only **6** pre-existing errors in `app/tools/roofing-v2/RoofingClientV2.tsx` — unchanged. **Protected systems:** legacy `RoofingClient.tsx` pricing `useMemo`, payments, approval, status, saved estimates, send/PDF **untouched**.
+**Last updated checkpoint:** **3I-3D2A Builder navigation model decision locked** (§6Y — docs only; pending review, no commit). **Prior:** **§6W-Reset** (`5467a92` — strategy correction after rejected visual attempt); **§6W** (`b2c2e31` — RoofrExact hybrid workspace spec). **Prior:** **3I-3D1 rail grouping committed** (`fbdedbe` — §6V). **Tests:** **111/111** pass. **Typecheck:** only **6** pre-existing errors in `app/tools/roofing-v2/RoofingClientV2.tsx` — unchanged. **Protected systems:** legacy `RoofingClient.tsx` pricing `useMemo`, payments, approval, status, saved estimates, send/PDF **untouched**.
 
 **Jobs Board approved save point:** `b27a444` (3F9B4-RoofrExact). **Prior Job Board checkpoint:** `36fa3a9` (3F9B3).
 
-**Next (recommended):** **3I-3D2A — Builder navigation model decision** (§6W-Reset) — choose layout before any further 3I-3D2 code. Then **3I-3D2 implementation** per the selected model. Then **3J0 — proposal record + snapshot architecture** (docs/types only — §6S). **Do not** start 3J1 persistence until 3J0 docs/types are locked.
+**Next (recommended):** **3I-3D2 — Hybrid Page Context Strip scaffold** (§6Y + §6W §3–§4). Then **3J0 — proposal record + snapshot architecture** (docs/types only — §6S). **Do not** start 3J1 persistence until 3J0 docs/types are locked.
 
 **Do not** persist proposals (3J1+), snapshot pricing, enable Preview/Send/Sign/Payment, or persist placeholder pricing. **Catalog custom delete/deactivate** is **not implemented** and remains a **separate later scope** — do not mix into pricing/proposal work.
 
@@ -1914,8 +1914,8 @@ Underlying foundation (pre-3I-3B3): **3I-3B1 resolver** (`c1b52ee`), **3I-3B2A m
 | Phase | Scope | Status |
 |-------|-------|--------|
 | **3I-3D** | Builder rail pricing-confidence regrouping (rail-only) — **§6U** spec, **§6V** implementation | **Complete** (`fbdedbe`) |
-| **3I-3D2A** | Builder navigation model decision — **§6W-Reset** | **Next** (docs only; pending review) |
-| **3I-3D2** | RoofrExact hybrid workspace — center canvas restructure — **§6W** + **§6W-Reset** | After 3I-3D2A decision |
+| **3I-3D2A** | Builder navigation model decision — **§6Y** | **Complete** (docs only; pending review) |
+| **3I-3D2** | Hybrid Page Context Strip scaffold — **§6Y** + **§6W** | **Next** |
 | **3J0** | Proposal record + snapshot architecture — **docs/types only** | After 3I-3D2 |
 
 **Do not** start 3J1 persistence, snapshot SQL, or enable Preview/Send/Sign/Payment until 3J0 docs/types are locked and subsequent slices complete per **§6S**.
@@ -2001,8 +2001,8 @@ RoofrExact: the **customer document canvas** carries customer truth (price/statu
 |-------|-------|
 | **3I-3D0** | This spec (docs only) |
 | **3I-3D1** | Rail-only implementation per §6U §2–§4 — **done** (`fbdedbe`) |
-| **3I-3D2A** | Builder navigation model decision — **§6W-Reset** (docs only) |
-| **3I-3D2** | Hybrid workspace + selected navigation — **§6W** + **§6W-Reset** |
+| **3I-3D2A** | Builder navigation model decision — **§6Y** (docs only) — **done** |
+| **3I-3D2** | Hybrid Page Context Strip scaffold — **§6Y** + **§6W** |
 | **3J0** | Proposal record / snapshot architecture — docs/types only |
 
 **Stable-before-3J0:** the *names and meaning* of pricing-confidence states (policy configured, pricing complete, blocking count, guardrail outcome) are frozen by this spec so the 3J0 snapshot field map can reference them. All rail values remain **live-only** (read from the live preview) until 3J1/3J2 — the rail must never read from a persisted record in 3I-3D.
@@ -2038,8 +2038,8 @@ RoofrExact: the **customer document canvas** carries customer truth (price/statu
 
 | Slice | Scope |
 |-------|-------|
-| **3I-3D2A** | Builder navigation model decision — **§6W-Reset** |
-| **3I-3D2** | RoofrExact hybrid workspace — center canvas restructure — **§6W** + **§6W-Reset** |
+| **3I-3D2A** | Builder navigation model decision — **§6Y** — **done** |
+| **3I-3D2** | Hybrid Page Context Strip scaffold — **§6Y** + **§6W** |
 | **3J0** | Proposal record / snapshot architecture — docs/types only |
 
 ---
@@ -2188,8 +2188,8 @@ Visual/layout only — **same props, same data sources, same pricing preview pat
 
 | Slice | Scope |
 |-------|-------|
-| **3I-3D2A** | Navigation model decision — **§6W-Reset** (docs only) |
-| **3I-3D2 impl** | Hybrid workspace per §6W §3–§4 + selected model from §6W-Reset §5 |
+| **3I-3D2A** | Navigation model decision — **§6Y** (docs only) — **done** |
+| **3I-3D2 impl** | Hybrid Page Context Strip scaffold per **§6Y** + **§6W** §3–§4 |
 | **3J0** | Proposal record / snapshot architecture — docs/types only |
 
 **Stable-before-3J0:** 3I-3D2 does not change pricing-confidence state names or meanings frozen by §6U — rail and estimate panel continue to read live preview only until 3J1/3J2.
@@ -2271,7 +2271,133 @@ Choose the model that best satisfies **all** of:
 | **3I-3D2** | Implement **one** selected navigation + center workspace model per §6W §3–§4 + §6W-Reset §4–§5. Visual/layout only; same pricing/data boundaries. |
 | **3J0** | Proposal record / snapshot architecture — docs/types only — after 3I-3D2 layout is stable. |
 
-**Do not** resume 3I-3D2 implementation until 3I-3D2A decision is reviewed and locked.
+**Do not** resume 3I-3D2 implementation until **§6Y** is reviewed and committed. **Decision locked in §6Y** — Option E (Hybrid Page Context Strip, E-B variant).
+
+---
+
+## 6Y. BUILDER NAVIGATION MODEL DECISION — 3I-3D2A (docs only)
+
+**Status:** **Decision locked** (docs only — no app code). **Checkpoint base:** `5467a92`. **Purpose:** Lock the Builder navigation/layout model before **3I-3D2** implementation. **Read before any Builder UI change.**
+
+### 1. Decision
+
+**Selected model:** **Option E — Hybrid Page Context Strip (E-B variant).**
+
+- **Primary navigation:** horizontal **Builder Page Context Strip** below the page header.
+- **Primary work surface:** full-width **Estimate workspace** (center column).
+- **Contractor context:** unchanged **Setup / Pricing rail** (right column).
+- **Overflow (later):** Pages dropdown expands or opens a drawer when customer page count exceeds strip capacity — not a permanent inner left page rail.
+
+### 2. Why this wins
+
+| Reason | Detail |
+|--------|--------|
+| **Roofr capability model preserved** | Cover, Estimate, customer pages, option packages, estimate grid, right pricing/profitability context, Preview/Send mode — all accounted for in final placement. |
+| **Avoids sidebar-inside-sidebar** | FieldDive already has `FieldDiveAppShell` app sidebar; no second permanent inner left page rail inside Builder. |
+| **Estimate editor dominant** | Removing the permanent inner left column recovers horizontal space for the compact estimate grid. |
+| **Works with FieldDive app shell** | Page strip is Builder-native chrome; app sidebar stays global module navigation. |
+| **Disabled future features in final place** | Cover, Pages, Preview segments sit where they will live when enabled — clearly disabled now, no fake routing. |
+| **Minimizes 3J/3K rework** | Strip segments map to proposal `pageId` routes; Preview becomes mode switch; Pages menu becomes persisted page list — no layout redesign expected. |
+| **Faster to scan** | Page context, option tabs, and estimate grid visible in one vertical slice without nested navigation chrome. |
+
+### 3. Rejected options
+
+| Option | Verdict | Reason |
+|--------|---------|--------|
+| **A — Literal inner left page rail** | **Rejected** | Creates sidebar-inside-sidebar with `FieldDiveAppShell`, wastes ~12rem width, and fakes a page tree before proposal records/pages exist. Prior visual attempt rejected for this pattern (§6W-Reset). |
+| **B — Compact page strip only** | **Strong but incomplete alone** | Correct primary IA, but many future customer pages need overflow beyond a single horizontal row. |
+| **C — Popout/drawer only** | **Overflow only** | Useful when page count grows, but hides IA if used as primary navigation; extra click to discover pages. |
+| **D — App-sidebar Builder tree** | **Deferred** | Requires `FieldDiveAppShell` changes; blurs app modules vs proposal pages; premature before proposal records/snapshots (3J0+). |
+| **E — Hybrid** | **Chosen** | Page Context Strip is primary; drawer/menu handles overflow later; matches FieldDive-optimized Roofr capability model (§6W-Reset §3). |
+
+### 4. Locked Builder structure
+
+```
+┌ FieldDiveAppShell (global app sidebar — unchanged) ─────────────────┐
+│ ProposalBuilderPageHeader                                          │
+│   ← Back · Job title · [Preview][Send][Sign][Payment] (disabled)   │
+├────────────────────────────────────────────────────────────────────┤
+│ Builder Page Context Strip                                         │
+│   [Cover]  [Estimate ●]  [Pages ▾]  ············  [Preview]      │
+│   disabled    active      labels/disabled          disabled        │
+├──────────────────────────────────────────────┬─────────────────────┤
+│ Estimate Workspace (primary)                  │ Setup / Pricing    │
+│   Toolbar: template · option tabs · meas     │ Rail (3I-3D1)      │
+│   Compact line-item grid (customer-safe)      │ unchanged          │
+│   Totals attached to estimate foot            │                    │
+└──────────────────────────────────────────────┴─────────────────────┘
+```
+
+| Rule | Detail |
+|------|--------|
+| **App sidebar** | `FieldDiveAppShell` remains global app navigation — unchanged in 3I-3D2. |
+| **Page Context Strip** | New horizontal strip below page header: Cover (disabled), Estimate (active), Pages dropdown/overflow (labels only / disabled), Preview (disabled). |
+| **Workspace columns** | **2-column:** center Estimate workspace + right Setup/Pricing rail. **Remove permanent inner left Builder sidebar** in 3I-3D2. |
+| **Estimate grid** | Primary work surface — compact Item / Qty / Unit / Price; customer-safe only. |
+| **Option packages** | Stay tied to Estimate — horizontal tabs in workspace toolbar (`ProposalBuilderOptionTabs`). |
+| **Customer pages** | **Not stacked inline** under estimate scroll; listed in Pages dropdown only until page routing exists. |
+| **Preview** | Separate future mode — disabled in header **and** strip; not inline content in Builder center. |
+| **Right rail** | 3I-3D1 grouping unchanged: Setup readiness, Pricing confidence, Guardrail, Internal profitability. |
+
+### 5. Future enablement (3J / 3K — no redesign expected)
+
+| Feature | Enablement path |
+|---------|-----------------|
+| **Persisted proposal pages** | Pages dropdown populates from proposal record page list; strip segments navigate by `pageId`. |
+| **Snapshots** | Estimate grid reads snapshot when in preview/review mode; layout unchanged. |
+| **Preview mode** | Header Preview + strip Preview enable → separate customer-output surface (not Builder edit grid). |
+| **Send / Sign / Payment** | Header actions enable; Builder remains edit mode. |
+| **Page CRUD** | Pages menu gains add/reorder/delete when records exist; optional drawer for long page lists. |
+| **Cover page editor** | Cover strip segment enables → center renders Cover editor instead of Estimate grid. |
+
+No Builder layout redesign should be required when these features arrive — only wiring and enablement.
+
+### 6. 3I-3D2 implementation scope (after §6Y commit)
+
+**Visual/layout scaffold only** — same props, data sources, and pricing preview paths.
+
+**Allowed files:**
+
+- `app/tools/roofing/proposals/builder/ProposalBuilderWorkspaceLayout.tsx` — 2-column grid
+- `app/tools/roofing/proposals/builder/ProposalBuilderSectionNav.tsx` — repurpose or replace with Page Context Strip component
+- `app/tools/roofing/proposals/builder/ProposalBuilderCanvas.tsx` — estimate-first workspace
+- `app/tools/roofing/proposals/builder/ProposalBuilderSectionPreview.tsx` — line sections → grid; prose → Pages menu labels only
+- `app/tools/roofing/proposals/builder/ProposalBuilderLinePreviewTable.tsx` — compact grid
+- `app/tools/roofing/proposals/builder/ProposalBuilderDocumentTotals.tsx` — attached estimate foot
+- `app/tools/roofing/proposals/builder/ProposalBuilderOptionTabs.tsx` — toolbar integration
+- `app/tools/roofing/proposals/builder/proposalBuilderConstants.ts` — strip + workspace tokens
+- `app/tools/roofing/proposals/builder/ProposalBuilderClient.tsx` — minimal compose wiring for strip page labels only
+- `docs/fielddive-global-handoff.md` — post-impl status update
+
+**Implementation requirements:**
+
+- 2-column Builder workspace (center + right rail)
+- Page Context Strip with disabled Cover / active Estimate / Pages dropdown / disabled Preview
+- Estimate-first center (no long-paper metaphor, no box-in-box)
+- Compact estimate grid (customer-safe columns only)
+- Disabled future controls in final place — no fake routing or persistence
+- Right rail unchanged (3I-3D1)
+- Header Preview / Send / Sign / Payment remain disabled
+
+### 7. Forbidden (3I-3D2)
+
+- `app/lib/*` — pricing engine, mapper, orchestrator, presenter, stores
+- Engine / mapper / orchestrator changes
+- Proposal persistence, snapshots, API calls
+- Preview / Send / Sign / Payment enablement
+- SQL / migrations
+- Settings / catalog / package changes
+- `FieldDiveAppShell.tsx` — app shell changes (Option D deferred)
+- `RoofingClient.tsx`, `SavedClient.tsx`, `estimateStore.ts`, `paymentsTable.ts`
+- Old estimator / saved-estimate / loadSaved paths
+
+### 8. Next sequence
+
+| Slice | Scope |
+|-------|-------|
+| **3I-3D2A** | This decision (§6Y) — **done** (pending docs commit) |
+| **3I-3D2** | Hybrid Page Context Strip visual scaffold per §6Y + §6W §3–§4 |
+| **3J0** | Proposal record / snapshot architecture — docs/types only — after 3I-3D2 layout is stable |
 
 ---
 
