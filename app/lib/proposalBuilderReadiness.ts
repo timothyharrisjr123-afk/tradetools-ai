@@ -186,8 +186,16 @@ export function formatProposalBuilderDisabledButtonTitle(
   return "Proposal Builder is not available yet.";
 }
 
-export function buildProposalBuilderHref(jobId: string): string {
-  return `/tools/roofing/proposals/builder?job=${encodeURIComponent(jobId)}`;
+export function buildProposalBuilderHref(
+  jobId: string,
+  proposalId?: string | null
+): string {
+  const base = `/tools/roofing/proposals/builder?job=${encodeURIComponent(jobId)}`;
+  const pid = proposalId == null ? "" : String(proposalId).trim();
+  if (!pid || !isUuidLike(pid)) {
+    return base;
+  }
+  return `${base}&proposal=${encodeURIComponent(pid)}`;
 }
 
 export function buildJobCardHref(jobId: string): string {

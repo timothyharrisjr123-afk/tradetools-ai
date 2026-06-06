@@ -118,6 +118,8 @@ import {
   formatProposalBuilderDisabledButtonTitle,
   resolveJobCardProposalActivityLine,
 } from "@/app/lib/proposalBuilderReadiness";
+import { resolveProposalDraftEntry } from "@/app/lib/proposalDraftEntry";
+import { getProposalById } from "@/app/lib/proposalRecordStore";
 import { deriveProposalTemplateReadiness } from "@/app/lib/proposalTemplateReadiness";
 import {
   getProposalTemplateGraph,
@@ -7007,6 +7009,16 @@ Thanks,`;
     const proposalBuilderActionPrimary =
       "inline-flex items-center gap-1.5 rounded-md border border-cyan-700 bg-cyan-700 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-cyan-800";
 
+    const jobCardActiveProposalId =
+      hydratedJobRecord?.active_proposal_id &&
+      isUuidLike(hydratedJobRecord.active_proposal_id)
+        ? hydratedJobRecord.active_proposal_id
+        : null;
+    const proposalDocumentStatusLabel = jobCardActiveProposalId
+      ? "Draft proposal available"
+      : "No proposal yet";
+    const proposalDocumentStatusMuted = !jobCardActiveProposalId;
+
     const reportMeasurementRows: { label: string; value: string; muted?: boolean }[] = [
       {
         label: "Roof facets",
@@ -7604,8 +7616,28 @@ Thanks,`;
                     type="button"
                     disabled={!proposalBuilderLaunchEnabled}
                     onClick={() => {
-                      if (!proposalBuilderLaunchEnabled || !currentJobId) return;
-                      router.push(buildProposalBuilderHref(currentJobId));
+                      void (async () => {
+                        if (!proposalBuilderLaunchEnabled || !currentJobId) return;
+                        const cid = (companyId ?? "").trim();
+                        let href = buildProposalBuilderHref(currentJobId);
+                        if (cid && jobCardActiveProposalId) {
+                          const resolved = await resolveProposalDraftEntry(
+                            {
+                              companyId: cid,
+                              jobId: currentJobId,
+                              activeProposalId: jobCardActiveProposalId,
+                            },
+                            { getProposalById }
+                          );
+                          if (resolved.found && resolved.proposalId) {
+                            href = buildProposalBuilderHref(
+                              currentJobId,
+                              resolved.proposalId
+                            );
+                          }
+                        }
+                        router.push(href);
+                      })();
                     }}
                     className={
                       proposalBuilderLaunchEnabled
@@ -7636,7 +7668,11 @@ Thanks,`;
                         muted={!proposalHandoff.proposalReady}
                       />
                       <StatusLine label="Template" value="Not selected" muted />
-                      <StatusLine label="Proposal document" value="No proposal yet" muted />
+                      <StatusLine
+                        label="Proposal document"
+                        value={proposalDocumentStatusLabel}
+                        muted={proposalDocumentStatusMuted}
+                      />
                     </div>
                   </div>
                   <div className={wsBlock}>
