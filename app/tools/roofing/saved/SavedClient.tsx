@@ -52,9 +52,11 @@ import {
 } from "@/app/lib/estimateStore";
 import {
   buildDbJobCardHref,
+  filterBoardEntriesByLaneStatus,
   getDbJobIdFromBoardEntry,
   isDbBoardJobEntry,
   mergeDbJobsIntoBoardEstimates,
+  searchBoardEntries,
 } from "@/app/lib/jobBoardAdapter";
 import { getJobsByCompany } from "@/app/lib/jobStore";
 import type { JobSummary } from "@/app/lib/jobTypes";
@@ -3851,26 +3853,10 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
     };
   }, [estimates]);
 
-  const bySearch = (e: RoofingEstimate) => {
-    const q = query.trim().toLowerCase();
-    if (!q) return true;
-    const hay = [
-      e.customerName,
-      e.customerEmail,
-      e.customerPhone,
-      e.address,
-      e.jobAddress1,
-      e.jobCity,
-      e.jobState,
-      e.jobZip,
-    ]
-      .filter(Boolean)
-      .join(" ")
-      .toLowerCase();
-    return hay.includes(q);
-  };
-
-  const searchFiltered = useMemo(() => estimates.filter(bySearch), [estimates, query]);
+  const searchFiltered = useMemo(
+    () => searchBoardEntries(estimates, query),
+    [estimates, query]
+  );
 
   const boardSourceEstimates = useMemo(
     () => mergeDbJobsIntoBoardEstimates(estimates, dbJobs),
@@ -3878,41 +3864,39 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
   );
 
   const boardSearchFiltered = useMemo(
-    () => boardSourceEstimates.filter(bySearch),
+    () => searchBoardEntries(boardSourceEstimates, query),
     [boardSourceEstimates, query]
   );
 
   const boardReady = hydrated && dbJobsLoaded;
   const hasBoardJobs = boardSourceEstimates.length > 0;
 
-  let filtered = searchFiltered
-    .filter((e) => {
-      if (statusFilter === "all") return true;
-      if (statusFilter === "scheduled") {
-        const hasSchedule = !!getScheduledDateKeyFromEstimate(e);
-        const norm = normalizeStatusValue(e.status || "estimate");
-        return hasSchedule && (norm === "scheduled" || norm === "in_progress");
-      }
-      const s = e.status || "estimate";
-      const norm = normalizeStatusValue(s);
-      if (statusFilter === "sent_pending") return norm === "pending" || s === "sent";
-      return norm === normalizeStatusValue(statusFilter);
-    });
+  const laneScheduleOptions = useMemo(
+    () => ({
+      hasSchedule: (e: RoofingEstimate) => !!getScheduledDateKeyFromEstimate(e),
+      scheduledView,
+      isPastScheduled,
+      parseScheduledSortKey,
+    }),
+    [scheduledView]
+  );
 
-  if (statusFilter === "scheduled") {
-    filtered = filtered
-      .filter((est) => {
-        if (scheduledView === "all") return true;
-        const past = isPastScheduled(est);
-        return scheduledView === "past" ? past : !past;
-      })
-      .sort((a, b) => parseScheduledSortKey(a) - parseScheduledSortKey(b));
-  }
+  /** Legacy estimates only — revenue, Command Deck queues, funnel metrics. */
+  const estimateLaneFiltered = useMemo(
+    () => filterBoardEntriesByLaneStatus(searchFiltered, statusFilter, laneScheduleOptions),
+    [searchFiltered, statusFilter, laneScheduleOptions]
+  );
+
+  /** Unified board (legacy + DB jobs) — Pipeline Lane, lane cards, lane counts. */
+  const filtered = useMemo(
+    () => filterBoardEntriesByLaneStatus(boardSearchFiltered, statusFilter, laneScheduleOptions),
+    [boardSearchFiltered, statusFilter, laneScheduleOptions]
+  );
 
   // ===============================
   // Pipeline Insight (contractor-first)
   // "Waiting to Schedule" = Approved + Deposit Paid jobs that are not scheduled/completed.
-  const waitingToSchedule = (filtered || []).filter((e: any) => {
+  const waitingToSchedule = (estimateLaneFiltered || []).filter((e: any) => {
     const s = String(e?.status || "").toLowerCase();
     const isWaiting = s === "approved" || s === "deposit_paid";
     return isWaiting;
@@ -3928,7 +3912,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
 
   const scheduledBoardItems =
     statusFilter === "scheduled"
-      ? (filtered || [])
+      ? (estimateLaneFiltered || [])
           .map((est) => {
             const key = getScheduledDateKeyFromEstimate(est);
             if (!key) return null;
@@ -3970,11 +3954,12 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
         }, 0)
       : 0;
 
-  const funnel = computeFunnelStats(filtered, batchStatuses);
+  const funnel = computeFunnelStats(estimateLaneFiltered, batchStatuses);
   const weakest = funnel.weakest;
 
   const pipelineInsight = getPipelineInsight(searchFiltered || []);
-  const currentList = statusFilter === "all" ? (searchFiltered || []) : (filtered || []);
+  const currentList =
+    statusFilter === "all" ? (searchFiltered || []) : (estimateLaneFiltered || []);
   const sentDueJobs = getSentDueJobs(currentList, batchStatuses);
   const approvedDueJobs = getApprovedDueJobs(currentList, paymentStates ?? {});
   const depositReadyJobs = getDepositReadyJobs(currentList, paymentStates ?? {});
@@ -4234,10 +4219,10 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
             )}
 
             {statusFilter === "all" && !boardReady && (
-              <div className="py-12 text-center text-sm text-slate-500">Loading saved estimates…</div>
+              <div className="py-12 text-center text-sm text-slate-500">Loading jobs…</div>
             )}
             {statusFilter === "all" && boardReady && !hasBoardJobs && (
-              <div className="py-12 text-center text-sm text-slate-500">No saved estimates yet.</div>
+              <div className="py-12 text-center text-sm text-slate-500">No jobs found.</div>
             )}
             {statusFilter === "all" && boardReady && hasBoardJobs && (
               <div className="w-full space-y-3">
@@ -4487,11 +4472,30 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
         )}
 
         {!hydrated && (
-          <div className="py-8 text-center text-sm text-white/60">Loading saved estimates…</div>
+          <div className="py-8 text-center text-sm text-white/60">Loading jobs…</div>
         )}
-        {hydrated && estimates.length === 0 && (
-          <div className="text-center text-sm text-white/60">No saved estimates yet.</div>
+        {hydrated && boardReady && !hasBoardJobs && (
+          <div className="text-center text-sm text-white/60">No jobs found.</div>
         )}
+        {hydrated &&
+          boardReady &&
+          hasBoardJobs &&
+          statusFilter !== "scheduled" &&
+          filtered.length === 0 && (
+            <div className="text-center text-sm text-white/60">No jobs match this view.</div>
+          )}
+        {process.env.NODE_ENV === "development" &&
+        !query.trim() &&
+        filterBoardEntriesByLaneStatus(
+          boardSourceEstimates.filter(isDbBoardJobEntry),
+          statusFilter,
+          laneScheduleOptions
+        ).length > 0 &&
+        filtered.filter(isDbBoardJobEntry).length === 0 ? (
+          <p className="sr-only" data-board-db-lane-wiring>
+            DB jobs match this lane filter but are missing from the unified lane list.
+          </p>
+        ) : null}
 
         {/* ── Command Deck — single composed surface (Queue + Assistant) — filtered lanes only ── */}
         {hydrated && (() => {

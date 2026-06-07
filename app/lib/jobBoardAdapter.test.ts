@@ -6,6 +6,7 @@ import type { JobSummary } from "./jobTypes";
 import {
   buildDbJobCardHref,
   buildJobCardRecoveryHref,
+  filterBoardEntriesByLaneStatus,
   filterDbJobsForBoard,
   getDbJobIdFromBoardEntry,
   isDbBoardJobEntry,
@@ -13,6 +14,7 @@ import {
   mapDbJobToBoardEstimate,
   mapDbJobStageToBoardColumnKey,
   mergeDbJobsIntoBoardEstimates,
+  searchBoardEntries,
 } from "./jobBoardAdapter";
 
 const JOB_ID = "11111111-1111-4111-8111-111111111111";
@@ -163,5 +165,84 @@ describe("jobBoardAdapter", () => {
     assert.equal(buildJobCardRecoveryHref(null), "/tools/roofing?entry=job-card");
     assert.equal(buildJobCardRecoveryHref(""), "/tools/roofing?entry=job-card");
     assert.equal(buildJobCardRecoveryHref("not-a-uuid"), "/tools/roofing?entry=job-card");
+  });
+
+  test("DB job mapped to New Lead appears when filtering estimate lane", () => {
+    const merged = mergeDbJobsIntoBoardEstimates([], [baseDbJob({ stage: "measurement" })]);
+    const lane = filterBoardEntriesByLaneStatus(merged, "estimate");
+    assert.equal(lane.length, 1);
+    assert.equal(isDbBoardJobEntry(lane[0]!), true);
+    assert.equal(lane[0]?.customerName, "Sabreena");
+  });
+
+  test("DB job is not dropped when statusFilter is not all", () => {
+    const merged = mergeDbJobsIntoBoardEstimates([], [baseDbJob({ stage: "intake" })]);
+    for (const filter of ["estimate", "sent_pending", "approved"] as const) {
+      const lane = filterBoardEntriesByLaneStatus(merged, filter);
+      if (filter === "estimate") {
+        assert.equal(lane.length, 1, `expected DB job in ${filter} lane`);
+      } else {
+        assert.equal(lane.length, 0, `expected no DB job in ${filter} lane`);
+      }
+    }
+  });
+
+  test("DB job search by customer name works", () => {
+    const merged = mergeDbJobsIntoBoardEstimates([], [baseDbJob()]);
+    const hits = searchBoardEntries(merged, "sabreena");
+    assert.equal(hits.length, 1);
+  });
+
+  test("DB job search by fallback name works", () => {
+    const merged = mergeDbJobsIntoBoardEstimates(
+      [],
+      [baseDbJob({ customer_name: null, job_name: "Packet Lead — roofing" })]
+    );
+    const hits = searchBoardEntries(merged, "packet lead");
+    assert.equal(hits.length, 1);
+    assert.equal(hits[0]?.customerName, "Packet Lead");
+  });
+
+  test("DB job search by address works", () => {
+    const merged = mergeDbJobsIntoBoardEstimates([], [baseDbJob()]);
+    const hits = searchBoardEntries(merged, "78701");
+    assert.equal(hits.length, 1);
+  });
+
+  test("DB job href remains job= only after lane filtering", () => {
+    const row = mapDbJobToBoardEstimate(baseDbJob());
+    const href = buildDbJobCardHref(JOB_ID);
+    assert.equal(row.status, "estimate");
+    const lane = filterBoardEntriesByLaneStatus([row], "estimate");
+    assert.equal(lane.length, 1);
+    assert.equal(buildDbJobCardHref(getDbJobIdFromBoardEntry(lane[0]!)!), href);
+    assert.doesNotMatch(href, /loadSaved/);
+    assert.doesNotMatch(href, /from=board/);
+  });
+
+  test("legacy estimate href path is unchanged — not a db board row", () => {
+    const estimate: RoofingEstimate = {
+      id: ESTIMATE_ID,
+      createdAt: "2026-01-01T00:00:00.000Z",
+      customerName: "Legacy Estimate",
+      address: "456 Oak",
+      zip: "78702",
+      roofAreaSqFt: 2400,
+      selectedTier: "Core",
+      suggestedPrice: 10000,
+      status: "estimate",
+    };
+    const lane = filterBoardEntriesByLaneStatus([estimate], "estimate");
+    assert.equal(lane.length, 1);
+    assert.equal(isDbBoardJobEntry(lane[0]!), false);
+  });
+
+  test("DB-only job is never hidden by legacy-only source arrays", () => {
+    const estimates: RoofingEstimate[] = [];
+    const merged = mergeDbJobsIntoBoardEstimates(estimates, [baseDbJob()]);
+    const legacyLane = filterBoardEntriesByLaneStatus(estimates, "estimate");
+    const unifiedLane = filterBoardEntriesByLaneStatus(merged, "estimate");
+    assert.equal(legacyLane.length, 0);
+    assert.equal(unifiedLane.length, 1);
   });
 });

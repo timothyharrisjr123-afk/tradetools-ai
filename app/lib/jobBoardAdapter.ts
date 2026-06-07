@@ -7,7 +7,29 @@ import type { RoofingEstimate } from "@/app/lib/estimateStore";
 import { isUuidLike } from "@/app/lib/jobStore";
 import type { JobSummary } from "@/app/lib/jobTypes";
 import type { BoardColumnKey } from "@/app/tools/roofing/saved/jobsBoardUtils";
-import { getBoardColumnByKey } from "@/app/tools/roofing/saved/jobsBoardUtils";
+import {
+  getBoardColumnByKey,
+  normalizeStatusValue,
+} from "@/app/tools/roofing/saved/jobsBoardUtils";
+
+/** Lane quick-filter values used by Job Board dark views and column headers. */
+export type BoardLaneStatusFilter =
+  | "all"
+  | "estimate"
+  | "sent_pending"
+  | "approved"
+  | "deposit_paid"
+  | "scheduled"
+  | "in_progress"
+  | "paid";
+
+export type BoardLaneScheduleOptions = {
+  /** When filtering the scheduled lane, require a schedule date on the row. */
+  hasSchedule?: (entry: RoofingEstimate) => boolean;
+  scheduledView?: "all" | "upcoming" | "past";
+  isPastScheduled?: (entry: RoofingEstimate) => boolean;
+  parseScheduledSortKey?: (entry: RoofingEstimate) => number;
+};
 
 /** Prefix for synthetic board row ids — avoids collision with saved estimate uuids. */
 export const DB_BOARD_JOB_ID_PREFIX = "dbjob:";
@@ -194,4 +216,87 @@ export function mergeDbJobsIntoBoardEstimates(
   const dbOnly = filterDbJobsForBoard(dbJobs, estimates);
   if (dbOnly.length === 0) return estimates;
   return [...estimates, ...dbOnly.map(mapDbJobToBoardEstimate)];
+}
+
+/**
+ * Whether a board row (legacy estimate or DB synthetic row) belongs in a lane filter.
+ */
+export function entryMatchesLaneStatusFilter(
+  entry: RoofingEstimate,
+  statusFilter: BoardLaneStatusFilter,
+  hasSchedule: (entry: RoofingEstimate) => boolean = () => false
+): boolean {
+  if (statusFilter === "all") return true;
+
+  if (statusFilter === "scheduled") {
+    const norm = normalizeStatusValue(entry.status || "estimate");
+    return hasSchedule(entry) && (norm === "scheduled" || norm === "in_progress");
+  }
+
+  const s = entry.status || "estimate";
+  const norm = normalizeStatusValue(s);
+  if (statusFilter === "sent_pending") return norm === "pending" || s === "sent";
+  return norm === normalizeStatusValue(statusFilter);
+}
+
+/**
+ * Filter unified board rows by lane/status (Overview columns + dark Pipeline Lane).
+ */
+export function filterBoardEntriesByLaneStatus(
+  entries: RoofingEstimate[],
+  statusFilter: BoardLaneStatusFilter,
+  options: BoardLaneScheduleOptions = {}
+): RoofingEstimate[] {
+  const hasSchedule = options.hasSchedule ?? (() => false);
+  let list = entries.filter((e) =>
+    entryMatchesLaneStatusFilter(e, statusFilter, hasSchedule)
+  );
+
+  if (statusFilter === "scheduled") {
+    const scheduledView = options.scheduledView ?? "all";
+    const isPastScheduled = options.isPastScheduled ?? (() => false);
+    const parseScheduledSortKey = options.parseScheduledSortKey ?? (() => 0);
+
+    list = list
+      .filter((est) => {
+        if (scheduledView === "all") return true;
+        const past = isPastScheduled(est);
+        return scheduledView === "past" ? past : !past;
+      })
+      .sort((a, b) => parseScheduledSortKey(a) - parseScheduledSortKey(b));
+  }
+
+  return list;
+}
+
+/** Search unified board rows by customer/name/address fields. */
+export function searchBoardEntries(
+  entries: RoofingEstimate[],
+  query: string
+): RoofingEstimate[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return entries;
+
+  return entries.filter((e) => {
+    const hay = [
+      e.customerName,
+      e.customerEmail,
+      e.customerPhone,
+      e.address,
+      e.jobAddress1,
+      e.jobCity,
+      e.jobState,
+      e.jobZip,
+      e.zip,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+    return hay.includes(q);
+  });
+}
+
+/** Count DB-only synthetic rows in a board source array. */
+export function countDbBoardJobEntries(entries: RoofingEstimate[]): number {
+  return entries.filter(isDbBoardJobEntry).length;
 }
