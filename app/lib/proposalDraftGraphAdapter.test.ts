@@ -377,4 +377,68 @@ describe("adaptProposalDraftGraphToBuilderPreview", () => {
     );
     assert.deepEqual(adapted.pricingPreview.optionIds, []);
   });
+
+  // Pricing Trust Hardening — no mixed truth.
+  test("Golden #2: exposes snapshot quantities keyed by option + template item (same source as price)", () => {
+    const adapted = adaptProposalDraftGraphToBuilderPreview(draftGraph());
+    const snap = adapted.snapshotQuantityByOptionId[TEMPLATE_OPT_A]?.[TEMPLATE_ITEM_1];
+    assert.ok(snap, "expected snapshot quantity view for the persisted line");
+    assert.equal(snap.quantityDisplayLabel, "22 SQ");
+    assert.equal(snap.quantitySourceLabel, "Measurement");
+    assert.equal(snap.unitLabel, "SQ");
+
+    // The price for the same line comes from the same snapshot row.
+    const line = adapted.pricingPreview.byOptionId[TEMPLATE_OPT_A]!.customer
+      .lineByTemplateItemId[TEMPLATE_ITEM_1]!;
+    assert.equal(line.customerLinePriceCents, 1100000);
+  });
+
+  test("exposes snapshot measurement id + display from context_echo for staleness", () => {
+    const adapted = adaptProposalDraftGraphToBuilderPreview(
+      draftGraph({
+        version: {
+          ...versionRow(),
+          context_echo: {
+            measurement_record_id: "abababab-abab-4bab-8bab-abababababab",
+            measurement_quantities_display: "23.0 SQ",
+          },
+        },
+      })
+    );
+    assert.equal(
+      adapted.snapshotMeasurementRecordId,
+      "abababab-abab-4bab-8bab-abababababab"
+    );
+    assert.equal(adapted.snapshotMeasurementDisplay, "23.0 SQ");
+  });
+
+  test("snapshot measurement id is null when context_echo has none", () => {
+    const adapted = adaptProposalDraftGraphToBuilderPreview(draftGraph());
+    assert.equal(adapted.snapshotMeasurementRecordId, null);
+    assert.equal(adapted.snapshotMeasurementDisplay, null);
+  });
+
+  test("Golden #12: missing quantity line exposes null snapshot quantity label (no faked price)", () => {
+    const adapted = adaptProposalDraftGraphToBuilderPreview(
+      draftGraph({
+        lineItems: [
+          lineRow({
+            pricing_status: "needs_quantity",
+            quantity: null,
+            quantity_display_label: null,
+            customer_line_total_cents: null,
+          }),
+        ],
+      })
+    );
+    const snap = adapted.snapshotQuantityByOptionId[TEMPLATE_OPT_A]?.[TEMPLATE_ITEM_1];
+    assert.ok(snap);
+    assert.equal(snap.quantityDisplayLabel, null);
+
+    const line =
+      adapted.pricingPreview.byOptionId[TEMPLATE_OPT_A]!.customer.lines[0]!;
+    assert.equal(line.displayStatus, "needs_quantity");
+    assert.equal(line.showPrice, false);
+    assert.equal(line.customerLinePriceCents, null);
+  });
 });

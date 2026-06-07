@@ -4,6 +4,7 @@ import type { MeasurementQuantityMap } from "@/app/lib/measurementTypes";
 import type { ProposalTemplateGraph } from "@/app/lib/proposalTemplateStore";
 import type { CatalogItem } from "@/app/lib/catalogTypes";
 import type { ProposalBuilderPricingPreview } from "@/app/lib/proposalBuilderPricingPreview";
+import type { ProposalSnapshotLineQuantityView } from "@/app/lib/proposalDraftGraphAdapter";
 import {
   getDefaultSelectedOptionId,
   getSectionsForOption,
@@ -27,11 +28,23 @@ type ProposalBuilderCanvasProps = {
   measurementHandoff: MeasurementProposalHandoff | null;
   measurementQuantityMap: MeasurementQuantityMap | null;
   pricingPreview: ProposalBuilderPricingPreview | null;
+  /**
+   * Persisted-path snapshot quantities for the selected option, keyed by
+   * templateItemId. When present, line quantities come from the snapshot and
+   * the measurement context strip reflects the snapshot, not the live job.
+   */
+  snapshotQuantityByTemplateItemId?: Record<string, ProposalSnapshotLineQuantityView> | null;
+  /** True when rendering a persisted draft (snapshot is the source of truth). */
+  isPersistedSnapshot?: boolean;
+  /** Customer-safe measurement labels captured at snapshot time (persisted path). */
+  snapshotMeasurementDisplay?: string | null;
   /** 3I-3B3c: drives preview banner/footer copy. Defaults to placeholder behavior. */
   pricingPolicyConfigured?: boolean;
 };
 
-function buildMeasurementContextLine(handoff: MeasurementProposalHandoff | null): string | null {
+function buildLiveMeasurementContextLine(
+  handoff: MeasurementProposalHandoff | null
+): string | null {
   if (!handoff) return null;
   const quantities = formatProposalQuantitiesDisplay(handoff.quantities);
   if (quantities === "—") return null;
@@ -46,6 +59,9 @@ export default function ProposalBuilderCanvas({
   measurementHandoff,
   measurementQuantityMap,
   pricingPreview,
+  snapshotQuantityByTemplateItemId,
+  isPersistedSnapshot = false,
+  snapshotMeasurementDisplay,
   pricingPolicyConfigured = false,
 }: ProposalBuilderCanvasProps) {
   const templateName = starterGraph?.template.name ?? STARTER_TEMPLATE_DISPLAY_NAME;
@@ -58,7 +74,14 @@ export default function ProposalBuilderCanvas({
       ? getSectionsForOption(starterGraph, effectiveOptionId)
       : [];
 
-  const measurementContextLine = buildMeasurementContextLine(measurementHandoff);
+  // No mixed truth: persisted drafts show the snapshot's measurement context,
+  // not the live job measurement. The live measurement only drives staleness +
+  // refresh upstream.
+  const measurementContextLine = isPersistedSnapshot
+    ? (snapshotMeasurementDisplay ?? "").trim()
+      ? `Measurement context (snapshot): ${snapshotMeasurementDisplay!.trim()}`
+      : null
+    : buildLiveMeasurementContextLine(measurementHandoff);
 
   const optionCustomerView =
     effectiveOptionId != null
@@ -132,6 +155,7 @@ export default function ProposalBuilderCanvas({
                 measurementHandoff={measurementHandoff}
                 measurementQuantityMap={measurementQuantityMap}
                 optionCustomerView={optionCustomerView}
+                snapshotQuantityByTemplateItemId={snapshotQuantityByTemplateItemId}
                 pricingPolicyConfigured={pricingPolicyConfigured}
               />
             ))

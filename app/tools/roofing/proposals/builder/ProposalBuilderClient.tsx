@@ -11,6 +11,7 @@ import type { JobRecord } from "@/app/lib/jobTypes";
 import {
   buildMeasurementProposalHandoff,
   deriveQuantityMapFromRecord,
+  formatProposalQuantitiesDisplay,
   type MeasurementProposalHandoff,
 } from "@/app/lib/measurementProposalHandoff";
 import { resolveMeasurementWorkspaceState } from "@/app/lib/measurementReadiness";
@@ -36,9 +37,14 @@ import {
 import {
   getDraftGraph,
   ProposalRecordStoreError,
+  refreshDraftPricing,
   updateDraftSelectedOption,
   type ProposalDraftGraph,
 } from "@/app/lib/proposalRecordStore";
+import {
+  deriveProposalPricingStale,
+  PROPOSAL_PRICING_STALE_BANNER_COPY,
+} from "@/app/lib/proposalStaleness";
 import { getResolvedCompanyPricingPolicy } from "@/app/lib/companyPricingPolicyStore";
 import type { CompanyPricingPolicyResolution } from "@/app/lib/companyPricingPolicy";
 import type { PricingPolicy } from "@/app/lib/proposalPricingTypes";
@@ -75,7 +81,17 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
   const [measurementQuantityMap, setMeasurementQuantityMap] = useState<MeasurementQuantityMap | null>(
     null
   );
+  const [selectedMeasurementId, setSelectedMeasurementId] = useState<string | null>(null);
+  const [selectedMeasurementUpdatedAt, setSelectedMeasurementUpdatedAt] = useState<string | null>(
+    null
+  );
   const [measurementLoadComplete, setMeasurementLoadComplete] = useState(false);
+
+  const [refreshInFlight, setRefreshInFlight] = useState(false);
+  const [refreshFeedback, setRefreshFeedback] = useState<
+    { kind: "success" | "error"; message: string } | null
+  >(null);
+  const refreshInFlightRef = useRef(false);
 
   const [catalogItems, setCatalogItems] = useState<CatalogItem[]>([]);
   const [catalogLoadComplete, setCatalogLoadComplete] = useState(false);
@@ -103,6 +119,8 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
     setJob(null);
     setMeasurementHandoff(null);
     setMeasurementQuantityMap(null);
+    setSelectedMeasurementId(null);
+    setSelectedMeasurementUpdatedAt(null);
 
     const jobId = (jobIdParam ?? "").trim();
     if (!jobId || !isUuidLike(jobId)) {
@@ -125,8 +143,12 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
         const handoff = buildMeasurementHandoffFromPersisted(measurement);
         setMeasurementHandoff(handoff);
         setMeasurementQuantityMap(deriveQuantityMapFromRecord(measurement));
+        setSelectedMeasurementId(measurement.id ?? null);
+        setSelectedMeasurementUpdatedAt(measurement.updated_at ?? null);
       } else {
         setMeasurementQuantityMap(null);
+        setSelectedMeasurementId(null);
+        setSelectedMeasurementUpdatedAt(null);
         setMeasurementHandoff({
           proposalReady: false,
           blockers: ["Save measurement first"],
@@ -163,6 +185,8 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
       setJob(null);
       setMeasurementHandoff(null);
       setMeasurementQuantityMap(null);
+      setSelectedMeasurementId(null);
+      setSelectedMeasurementUpdatedAt(null);
     } finally {
       setJobLoadComplete(true);
       setMeasurementLoadComplete(true);
@@ -446,6 +470,94 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
     [selectedOptionId, starterGraph]
   );
 
+  // No mixed truth: in the persisted path, line quantities come from the same
+  // snapshot as the prices (selected option only).
+  const snapshotQuantityByTemplateItemId = useMemo(() => {
+    if (!adapterResult || !effectiveSelectedOptionId) return null;
+    return adapterResult.snapshotQuantityByOptionId[effectiveSelectedOptionId] ?? null;
+  }, [adapterResult, effectiveSelectedOptionId]);
+
+  // Stale detection: snapshot measurement id vs currently selected measurement.
+  const proposalPricingStale = useMemo(() => {
+    if (!adapterResult) return { stale: false, reason: null as string | null };
+    return deriveProposalPricingStale({
+      snapshotMeasurementId: adapterResult.snapshotMeasurementRecordId,
+      currentMeasurementId: selectedMeasurementId,
+      snapshotUpdatedAt: persistedGraph?.proposal.updated_at ?? null,
+      measurementUpdatedAt: selectedMeasurementUpdatedAt,
+    });
+  }, [
+    adapterResult,
+    selectedMeasurementId,
+    selectedMeasurementUpdatedAt,
+    persistedGraph?.proposal.updated_at,
+  ]);
+
+  const handleRefreshDraftPricing = useCallback(() => {
+    if (!hasPersistedProposalParam || !persistedGraph || !proposalIdParam) return;
+    if (persistedGraph.proposal.status !== "draft") {
+      setRefreshFeedback({
+        kind: "error",
+        message: "Only draft proposals can refresh pricing.",
+      });
+      return;
+    }
+    if (refreshInFlightRef.current) return;
+
+    refreshInFlightRef.current = true;
+    setRefreshInFlight(true);
+    setRefreshFeedback(null);
+
+    const measurementDisplay = measurementHandoff
+      ? formatProposalQuantitiesDisplay(measurementHandoff.quantities)
+      : null;
+
+    void (async () => {
+      try {
+        const updatedGraph = await refreshDraftPricing(companyId, proposalIdParam.trim(), {
+          quantity_context: {
+            measurementHandoff,
+            quantityMap: measurementQuantityMap,
+          },
+          measurement_record_id: selectedMeasurementId,
+          measurement_quantities_display:
+            measurementDisplay && measurementDisplay !== "—" ? measurementDisplay : null,
+        });
+
+        if (!updatedGraph) {
+          throw new Error("Could not refresh draft pricing.");
+        }
+
+        setPersistedGraph(updatedGraph);
+        setRefreshFeedback({ kind: "success", message: "Draft pricing refreshed." });
+      } catch (err) {
+        const message =
+          err instanceof ProposalRecordStoreError
+            ? err.message
+            : err instanceof Error
+              ? err.message
+              : "Could not refresh draft pricing.";
+        setRefreshFeedback({ kind: "error", message });
+        if (!(err instanceof ProposalRecordStoreError)) {
+          console.warn("[ProposalBuilderClient] refresh draft pricing error:", err);
+        }
+      } finally {
+        refreshInFlightRef.current = false;
+        setRefreshInFlight(false);
+      }
+    })();
+  }, [
+    companyId,
+    hasPersistedProposalParam,
+    persistedGraph,
+    proposalIdParam,
+    measurementHandoff,
+    measurementQuantityMap,
+    selectedMeasurementId,
+  ]);
+
+  const showStaleBanner = Boolean(adapterResult) && proposalPricingStale.stale;
+
   const selectedOptionPricingStatus = useMemo(() => {
     if (!pricingPreview || !effectiveSelectedOptionId) return null;
     return pricingPreview.byOptionId[effectiveSelectedOptionId]?.status ?? null;
@@ -527,6 +639,30 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
           {optionPersistError}
         </div>
       ) : null}
+      {!draftGraphError && shellReady && showStaleBanner ? (
+        <div className="flex flex-col gap-3 rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 sm:flex-row sm:items-center sm:justify-between">
+          <span>{PROPOSAL_PRICING_STALE_BANNER_COPY}</span>
+          <button
+            type="button"
+            onClick={handleRefreshDraftPricing}
+            disabled={refreshInFlight}
+            className="inline-flex shrink-0 items-center justify-center rounded-md border border-amber-400 bg-white px-3 py-1.5 text-xs font-semibold text-amber-900 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {refreshInFlight ? "Refreshing…" : "Refresh draft pricing"}
+          </button>
+        </div>
+      ) : null}
+      {!draftGraphError && shellReady && refreshFeedback ? (
+        <div
+          className={`rounded-md border px-4 py-3 text-sm ${
+            refreshFeedback.kind === "success"
+              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+              : "border-red-200 bg-red-50 text-red-800"
+          }`}
+        >
+          {refreshFeedback.message}
+        </div>
+      ) : null}
       {!draftGraphError && shellReady ? (
         <ProposalBuilderWorkspaceLayout
           sectionNav={<ProposalBuilderSectionNav activeSectionId="overview" />}
@@ -539,6 +675,9 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
               measurementHandoff={measurementHandoff}
               measurementQuantityMap={measurementQuantityMap}
               pricingPreview={pricingPreview}
+              snapshotQuantityByTemplateItemId={snapshotQuantityByTemplateItemId}
+              isPersistedSnapshot={adapterResult != null}
+              snapshotMeasurementDisplay={adapterResult?.snapshotMeasurementDisplay ?? null}
               pricingPolicyConfigured={pricingPolicyConfigured}
             />
           }

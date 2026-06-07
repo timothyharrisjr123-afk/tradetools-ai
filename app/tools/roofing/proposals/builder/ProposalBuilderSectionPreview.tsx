@@ -1,4 +1,5 @@
 import type { ProposalBuilderOptionCustomerView } from "@/app/lib/proposalBuilderPricingPreview";
+import type { ProposalSnapshotLineQuantityView } from "@/app/lib/proposalDraftGraphAdapter";
 import type { MeasurementProposalHandoff } from "@/app/lib/measurementProposalHandoff";
 import type { MeasurementQuantityMap } from "@/app/lib/measurementTypes";
 import type { ProposalTemplateGraph } from "@/app/lib/proposalTemplateStore";
@@ -22,6 +23,11 @@ type ProposalBuilderSectionPreviewProps = {
   measurementQuantityMap: MeasurementQuantityMap | null;
   /** Customer pricing view for the currently selected option. */
   optionCustomerView: ProposalBuilderOptionCustomerView | null;
+  /**
+   * Persisted-path snapshot quantities for the selected option, keyed by
+   * templateItemId. When present, line quantities come from the snapshot.
+   */
+  snapshotQuantityByTemplateItemId?: Record<string, ProposalSnapshotLineQuantityView> | null;
   /** 3I-3B3c: drives line-list footer copy. Defaults to placeholder behavior. */
   pricingPolicyConfigured?: boolean;
 };
@@ -33,6 +39,7 @@ export default function ProposalBuilderSectionPreview({
   measurementHandoff,
   measurementQuantityMap,
   optionCustomerView,
+  snapshotQuantityByTemplateItemId,
   pricingPolicyConfigured = false,
 }: ProposalBuilderSectionPreviewProps) {
   const title = (section.customer_title ?? section.name).trim() || section.name;
@@ -80,6 +87,7 @@ export default function ProposalBuilderSectionPreview({
             rows={lineRows}
             sectionTitle={title}
             lineViewByTemplateItemId={lineViewByTemplateItemId}
+            snapshotQuantityByTemplateItemId={snapshotQuantityByTemplateItemId}
             pricingPolicyConfigured={pricingPolicyConfigured}
           />
         </div>

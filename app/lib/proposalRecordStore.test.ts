@@ -33,6 +33,7 @@ import {
   type ProposalRecordStoreDeps,
 } from "./proposalRecordStore";
 import { buildProposalBuilderPricingPreview } from "./proposalBuilderPricingPreview";
+import { deriveProposalPricingStale } from "./proposalStaleness";
 import { PROPOSAL_LINE_CUSTOMER_FORBIDDEN_KEYS } from "./proposalLineSnapshotTypes";
 import type { ProposalTemplateGraph } from "./proposalTemplateStore";
 import type {
@@ -421,6 +422,33 @@ function readyContext(): ProposalQuantityPreviewContext {
   return { measurementHandoff: handoff, quantityMap };
 }
 
+/** readyContext at an explicit (adjusted) roof-square count for 2300→2500 goldens. */
+function contextWithSquares(adjusted: number): ProposalQuantityPreviewContext {
+  const base = readyContext();
+  base.measurementHandoff!.quantities.roof_squares = adjusted;
+  base.measurementHandoff!.quantities.adjusted_roof_squares = adjusted;
+  base.measurementHandoff!.quantities.roof_area_sqft = adjusted * 100;
+  base.quantityMap = { shingles_squares: adjusted };
+  return base;
+}
+
+function optionTotalForVersion(
+  mock: ReturnType<typeof createMockSupabase>
+): number {
+  const option = mock.state.tables.proposal_options[0] as Record<string, unknown>;
+  return Number(option.customer_total_cents ?? 0);
+}
+
+function firstLineTotalForVersion(
+  mock: ReturnType<typeof createMockSupabase>
+): { quantity: number; total: number } {
+  const line = mock.state.tables.proposal_line_items[0] as Record<string, unknown>;
+  return {
+    quantity: Number(line.quantity ?? 0),
+    total: Number(line.customer_line_total_cents ?? 0),
+  };
+}
+
 function storeDeps(
   mock: ReturnType<typeof createMockSupabase>,
   resolution: CompanyPricingPolicyResolution = CONFIGURED_RESOLUTION
@@ -786,6 +814,217 @@ describe("refreshDraftPricing", () => {
     assert.ok(optionUpdate);
     assert.ok(lineInsert);
     assert.ok(summaryInsert);
+  });
+
+  // Pricing Trust Hardening goldens -------------------------------------------
+
+  test("Golden #3/#8: refresh at higher squares increases line quantity and totals", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const created = await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+        quantity_context: contextWithSquares(23),
+      },
+      deps
+    );
+
+    const before = firstLineTotalForVersion(mock);
+    const optionTotalBefore = optionTotalForVersion(mock);
+    assert.equal(before.quantity, 23);
+
+    await refreshDraftPricing(
+      COMPANY_ID,
+      created.proposal.id,
+      { quantity_context: contextWithSquares(25) },
+      deps
+    );
+
+    const after = firstLineTotalForVersion(mock);
+    const optionTotalAfter = optionTotalForVersion(mock);
+    assert.equal(after.quantity, 25);
+    assert.ok(after.total > before.total, "line total should grow with quantity");
+    assert.ok(optionTotalAfter > optionTotalBefore, "option total should grow with quantity");
+  });
+
+  test("Golden #9: option customer total equals sum of contributing line totals after refresh", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const created = await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+        quantity_context: contextWithSquares(22),
+      },
+      deps
+    );
+
+    await refreshDraftPricing(
+      COMPANY_ID,
+      created.proposal.id,
+      { quantity_context: contextWithSquares(26) },
+      deps
+    );
+
+    const option = mock.state.tables.proposal_options[0] as Record<string, unknown>;
+    const subtotal = Number(option.customer_subtotal_cents ?? 0);
+    const lineSum = (mock.state.tables.proposal_line_items as Record<string, unknown>[])
+      .filter((l) => l.pricing_status === "priced")
+      .reduce((acc, l) => acc + Number(l.customer_line_total_cents ?? 0), 0);
+    assert.equal(subtotal, lineSum);
+
+    const total =
+      subtotal -
+      Number(option.discount_cents ?? 0) +
+      Number(option.sales_tax_cents ?? 0);
+    assert.equal(Number(option.customer_total_cents ?? 0), total);
+  });
+
+  test("Golden #4: refresh preserves selected option", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const created = await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+        quantity_context: contextWithSquares(22),
+      },
+      deps
+    );
+
+    const selectedBefore = (mock.state.tables.proposals[0] as Record<string, unknown>)
+      .selected_option_id;
+
+    const graph = await refreshDraftPricing(
+      COMPANY_ID,
+      created.proposal.id,
+      { quantity_context: contextWithSquares(24) },
+      deps
+    );
+
+    assert.ok(graph);
+    assert.equal(graph.proposal.selected_option_id, selectedBefore);
+  });
+
+  test("Golden #14: refresh does not create a duplicate proposal/version", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const created = await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+        quantity_context: contextWithSquares(22),
+      },
+      deps
+    );
+
+    assert.equal(mock.state.tables.proposals.length, 1);
+    assert.equal(mock.state.tables.proposal_versions.length, 1);
+
+    await refreshDraftPricing(
+      COMPANY_ID,
+      created.proposal.id,
+      { quantity_context: contextWithSquares(24) },
+      deps
+    );
+
+    assert.equal(mock.state.tables.proposals.length, 1);
+    assert.equal(mock.state.tables.proposal_versions.length, 1);
+  });
+
+  test("Golden #11: persisted lines stay customer-safe after refresh", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const created = await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+        quantity_context: contextWithSquares(22),
+      },
+      deps
+    );
+
+    await refreshDraftPricing(
+      COMPANY_ID,
+      created.proposal.id,
+      { quantity_context: contextWithSquares(24) },
+      deps
+    );
+
+    for (const line of mock.state.tables.proposal_line_items as Record<string, unknown>[]) {
+      for (const key of PROPOSAL_LINE_CUSTOMER_FORBIDDEN_KEYS) {
+        assert.equal(key in line, false, `forbidden key ${key} leaked into line`);
+      }
+    }
+  });
+
+  test("Golden #1/#13: refresh re-stamps context_echo measurement id so staleness clears", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const SNAPSHOT_MEAS = "abababab-abab-4bab-8bab-abababababab";
+    const NEW_MEAS = "cdcdcdcd-cdcd-4dcd-8dcd-cdcdcdcdcdcd";
+
+    const created = await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+        measurement_record_id: SNAPSHOT_MEAS,
+        quantity_context: contextWithSquares(23),
+      },
+      deps
+    );
+
+    // Job's selected measurement moved on -> stale before refresh.
+    const versionBefore = mock.state.tables.proposal_versions[0] as Record<string, unknown>;
+    const echoBefore = versionBefore.context_echo as Record<string, unknown>;
+    assert.equal(echoBefore.measurement_record_id, SNAPSHOT_MEAS);
+    assert.equal(
+      deriveProposalPricingStale({
+        snapshotMeasurementId: echoBefore.measurement_record_id as string,
+        currentMeasurementId: NEW_MEAS,
+      }).stale,
+      true
+    );
+
+    await refreshDraftPricing(
+      COMPANY_ID,
+      created.proposal.id,
+      {
+        quantity_context: contextWithSquares(25),
+        measurement_record_id: NEW_MEAS,
+        measurement_quantities_display: "25.0 SQ",
+      },
+      deps
+    );
+
+    const versionAfter = mock.state.tables.proposal_versions[0] as Record<string, unknown>;
+    const echoAfter = versionAfter.context_echo as Record<string, unknown>;
+    assert.equal(echoAfter.measurement_record_id, NEW_MEAS);
+    assert.equal(echoAfter.measurement_quantities_display, "25.0 SQ");
+    // Other context_echo fields preserved (not wiped).
+    assert.equal(echoAfter.job_id, JOB_ID);
+
+    // Proposal header measurement id stays in sync.
+    assert.equal(
+      (mock.state.tables.proposals[0] as Record<string, unknown>).measurement_record_id,
+      NEW_MEAS
+    );
+
+    // Staleness now clears.
+    assert.equal(
+      deriveProposalPricingStale({
+        snapshotMeasurementId: echoAfter.measurement_record_id as string,
+        currentMeasurementId: NEW_MEAS,
+      }).stale,
+      false
+    );
   });
 });
 

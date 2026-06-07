@@ -1,5 +1,6 @@
 import type { ProposalBuilderLineCustomerView } from "@/app/lib/proposalBuilderPricingPreview";
 import type { ProposalPreviewLineRow } from "@/app/lib/proposalBuilderPreview";
+import type { ProposalSnapshotLineQuantityView } from "@/app/lib/proposalDraftGraphAdapter";
 import {
   BUILDER_LINE_FOOTER_CONFIGURED_COPY,
   BUILDER_LINE_FOOTER_PLACEHOLDER_COPY,
@@ -16,6 +17,12 @@ type ProposalBuilderLinePreviewTableProps = {
   sectionTitle: string;
   /** Keyed by templateItemId. When present, shows customer price/status. */
   lineViewByTemplateItemId?: Record<string, ProposalBuilderLineCustomerView>;
+  /**
+   * Persisted-path snapshot quantities keyed by templateItemId. When present,
+   * the quantity shown comes from the same snapshot as the price (no mixed
+   * truth) instead of the live measurement-derived row.
+   */
+  snapshotQuantityByTemplateItemId?: Record<string, ProposalSnapshotLineQuantityView> | null;
   /** 3I-3B3c: drives the footer copy. Defaults to placeholder behavior. */
   pricingPolicyConfigured?: boolean;
 };
@@ -80,6 +87,7 @@ export default function ProposalBuilderLinePreviewTable({
   rows,
   sectionTitle,
   lineViewByTemplateItemId,
+  snapshotQuantityByTemplateItemId,
   pricingPolicyConfigured = false,
 }: ProposalBuilderLinePreviewTableProps) {
   if (rows.length === 0) {
@@ -93,6 +101,20 @@ export default function ProposalBuilderLinePreviewTable({
       <ul className="divide-y divide-slate-200/80">
         {rows.map((row) => {
           const lineView = lineViewByTemplateItemId?.[row.id];
+          // No mixed truth: in the persisted path the quantity comes from the
+          // same snapshot as the price, not the live measurement-derived row.
+          const snapshotQty = snapshotQuantityByTemplateItemId?.[row.id];
+          const quantityDisplayLabel = snapshotQty
+            ? snapshotQty.quantityDisplayLabel ?? "—"
+            : row.quantityDisplayLabel;
+          const quantitySourceLabel = snapshotQty
+            ? snapshotQty.quantitySourceLabel ?? "—"
+            : row.quantitySourceLabel;
+          const unitLabel = snapshotQty ? snapshotQty.unitLabel ?? "—" : row.unitLabel;
+          const quantityUnresolved = snapshotQty
+            ? snapshotQty.quantityDisplayLabel == null
+            : row.quantityUnresolved;
+          const quantityStatusLabel = snapshotQty ? "" : row.quantityStatusLabel;
           return (
             <li
               key={row.id}
@@ -108,29 +130,29 @@ export default function ProposalBuilderLinePreviewTable({
                     <span className="text-slate-400">Qty: </span>
                     <span
                       className={
-                        row.quantityUnresolved
+                        quantityUnresolved
                           ? "text-slate-500"
                           : "font-medium tabular-nums text-slate-700"
                       }
                     >
-                      {row.quantityDisplayLabel}
+                      {quantityDisplayLabel}
                     </span>
                   </p>
                   <p className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-slate-500">
-                    <LineMetaDetail label="Source" value={row.quantitySourceLabel} />
+                    <LineMetaDetail label="Source" value={quantitySourceLabel} />
                     <LineMetaDetail label="Rule" value={row.quantityRuleLabel} />
-                    <LineMetaDetail label="Unit" value={row.unitLabel} />
+                    <LineMetaDetail label="Unit" value={unitLabel} />
                     <LineMetaDetail label="Role" value={row.roleLabel} />
                   </p>
-                  {row.quantityStatusLabel ? (
+                  {quantityStatusLabel ? (
                     <p
                       className={`mt-1 text-xs ${
-                        row.quantityUnresolved ? "text-amber-800/80" : "text-slate-400"
+                        quantityUnresolved ? "text-amber-800/80" : "text-slate-400"
                       }`}
                     >
-                      {row.quantityUnresolved
-                        ? row.quantityStatusLabel
-                        : `Status: ${row.quantityStatusLabel}`}
+                      {quantityUnresolved
+                        ? quantityStatusLabel
+                        : `Status: ${quantityStatusLabel}`}
                     </p>
                   ) : null}
                 </div>

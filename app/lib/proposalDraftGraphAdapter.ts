@@ -30,12 +30,37 @@ export class ProposalDraftGraphAdapterError extends Error {
   }
 }
 
+/**
+ * Snapshot quantity view for a persisted line, keyed by template item id.
+ * Drives the Builder's no-mixed-truth display: in the persisted path the
+ * quantity shown MUST come from the same snapshot as the price.
+ */
+export type ProposalSnapshotLineQuantityView = {
+  templateItemId: string;
+  quantityDisplayLabel: string | null;
+  quantitySourceLabel: string | null;
+  unitLabel: string | null;
+};
+
 export type ProposalDraftGraphAdapterResult = {
   pricingPreview: ProposalBuilderPricingPreview;
   selectedTemplateOptionId: string | null;
   templateId: string;
   templateTitle: string | null;
   pricingPolicyConfigured: boolean;
+  /**
+   * Persisted snapshot quantities keyed by template option id → template item id.
+   * Same source as the snapshot prices, so the Builder never pairs live
+   * quantities with snapshot prices.
+   */
+  snapshotQuantityByOptionId: Record<
+    string,
+    Record<string, ProposalSnapshotLineQuantityView>
+  >;
+  /** measurement_record_id captured in the version snapshot (for staleness). */
+  snapshotMeasurementRecordId: string | null;
+  /** Customer-safe measurement quantity labels captured at snapshot time. */
+  snapshotMeasurementDisplay: string | null;
 };
 
 export type ValidateProposalDraftGraphForJobResult =
@@ -70,6 +95,33 @@ function customerVisibilityForLine(
   if (displayStatus === "grouped") return "grouped";
   if (!line.visible_to_customer) return "internal_only";
   return "customer_visible";
+}
+
+function trimOrNull(value: string | null | undefined): string | null {
+  const v = (value ?? "").trim();
+  return v ? v : null;
+}
+
+function buildSnapshotLineQuantityView(
+  line: ProposalLineItemRow
+): ProposalSnapshotLineQuantityView | null {
+  const templateItemId = (line.source_template_item_id ?? "").trim();
+  if (!templateItemId) return null;
+  return {
+    templateItemId,
+    quantityDisplayLabel: trimOrNull(line.quantity_display_label),
+    quantitySourceLabel: trimOrNull(line.quantity_source_label),
+    unitLabel: trimOrNull(line.unit),
+  };
+}
+
+function readContextEchoString(
+  contextEcho: ProposalDraftGraph["version"]["context_echo"] | null | undefined,
+  key: string
+): string | null {
+  if (!contextEcho || typeof contextEcho !== "object") return null;
+  const value = (contextEcho as Record<string, unknown>)[key];
+  return typeof value === "string" ? trimOrNull(value) : null;
 }
 
 function buildLineCustomerView(line: ProposalLineItemRow): ProposalBuilderLineCustomerView | null {
@@ -238,16 +290,28 @@ export function adaptProposalDraftGraphToBuilderPreview(
 
   const byOptionId: Record<string, ProposalBuilderOptionPreview> = {};
   const optionIds: string[] = [];
+  const snapshotQuantityByOptionId: Record<
+    string,
+    Record<string, ProposalSnapshotLineQuantityView>
+  > = {};
 
   for (const option of graph.options) {
+    const optionLines = linesByRuntimeOptionId.get(option.id) ?? [];
     const preview = buildOptionPreview(
       option,
-      linesByRuntimeOptionId.get(option.id) ?? [],
+      optionLines,
       summaryByRuntimeOptionId.get(option.id)
     );
     if (!preview) continue;
     optionIds.push(preview.optionId);
     byOptionId[preview.optionId] = preview;
+
+    const snapshotQuantities: Record<string, ProposalSnapshotLineQuantityView> = {};
+    for (const line of optionLines) {
+      const view = buildSnapshotLineQuantityView(line);
+      if (view) snapshotQuantities[view.templateItemId] = view;
+    }
+    snapshotQuantityByOptionId[preview.optionId] = snapshotQuantities;
   }
 
   const selectedTemplateOptionId = resolveSelectedTemplateOptionIdFromGraph(graph);
@@ -264,5 +328,14 @@ export function adaptProposalDraftGraphToBuilderPreview(
     templateId: graph.proposal.template_id,
     templateTitle: graph.proposal.title,
     pricingPolicyConfigured: Boolean((graph.proposal.pricing_policy_id ?? "").trim()),
+    snapshotQuantityByOptionId,
+    snapshotMeasurementRecordId: readContextEchoString(
+      graph.version.context_echo,
+      "measurement_record_id"
+    ),
+    snapshotMeasurementDisplay: readContextEchoString(
+      graph.version.context_echo,
+      "measurement_quantities_display"
+    ),
   };
 }

@@ -245,6 +245,14 @@ export type CreateDraftProposalInput = {
 export type RefreshDraftPricingInput = {
   quantity_context?: ProposalQuantityPreviewContext | null;
   actor_role?: PricingActorRole;
+  /**
+   * Current selected measurement id. When provided, the refresh re-stamps the
+   * version `context_echo.measurement_record_id` and the proposal header so
+   * staleness detection (snapshot id vs current id) clears after refresh.
+   */
+  measurement_record_id?: string | null;
+  /** Customer-safe measurement quantity labels captured at refresh time. */
+  measurement_quantities_display?: string | null;
 };
 
 export type AppendProposalEventInput = {
@@ -1327,6 +1335,40 @@ export async function refreshDraftPricing(
         }),
         computed_at: new Date().toISOString(),
       });
+    }
+  }
+
+  // Re-stamp the snapshot measurement context so stale detection clears. Merge
+  // onto the existing context_echo — never wipe the rest of the customer-safe
+  // job/customer/company context captured at create time.
+  const stampMeasurementId = input.measurement_record_id !== undefined;
+  const stampMeasurementDisplay = input.measurement_quantities_display !== undefined;
+  if (stampMeasurementId || stampMeasurementDisplay) {
+    const existingContext =
+      version.context_echo && typeof version.context_echo === "object"
+        ? (version.context_echo as Record<string, unknown>)
+        : {};
+    const nextContext: Record<string, unknown> = {
+      ...existingContext,
+      ...(stampMeasurementId
+        ? { measurement_record_id: input.measurement_record_id ?? null }
+        : {}),
+      ...(stampMeasurementDisplay
+        ? { measurement_quantities_display: input.measurement_quantities_display ?? null }
+        : {}),
+    };
+    await supabase
+      .from("proposal_versions")
+      .update({ context_echo: nextContext })
+      .eq("id", version.id)
+      .eq("company_id", cid);
+
+    if (stampMeasurementId) {
+      await supabase
+        .from("proposals")
+        .update({ measurement_record_id: input.measurement_record_id ?? null })
+        .eq("id", pid)
+        .eq("company_id", cid);
     }
   }
 
