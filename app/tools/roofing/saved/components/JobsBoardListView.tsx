@@ -14,6 +14,8 @@ type JobsBoardListViewProps = {
   jobs: RoofingEstimate[];
   batchStatuses: Record<string, { status: string; viewedAt?: string | null; approvedAt?: string | null }>;
   onOpenJob: (job: RoofingEstimate) => void;
+  /** When set, shown on every row (legacy section). */
+  sourceBadge?: string | null;
 };
 
 function statusParts(
@@ -27,7 +29,7 @@ function statusParts(
   return parts.length > 0 ? parts.join(" · ") : "—";
 }
 
-export default function JobsBoardListView({ jobs, batchStatuses, onOpenJob }: JobsBoardListViewProps) {
+export default function JobsBoardListView({ jobs, batchStatuses, onOpenJob, sourceBadge }: JobsBoardListViewProps) {
   if (jobs.length === 0) {
     return (
       <p className="rounded-lg border border-slate-200/60 bg-white px-4 py-10 text-center text-sm text-slate-500">
@@ -76,10 +78,19 @@ export default function JobsBoardListView({ jobs, batchStatuses, onOpenJob }: Jo
                   className="cursor-pointer transition hover:bg-slate-50/80 focus-visible:outline-none focus-visible:bg-slate-50"
                 >
                   <td className="px-4 py-3 font-medium text-slate-900">
-                    {job.customerName ||
-                      (job as { name?: string }).name ||
-                      (job as { customer?: string }).customer ||
-                      "Unnamed customer"}
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span className="truncate">
+                        {job.customerName ||
+                          (job as { name?: string }).name ||
+                          (job as { customer?: string }).customer ||
+                          "Unnamed customer"}
+                      </span>
+                      {sourceBadge ? (
+                        <span className="shrink-0 rounded border border-amber-200/90 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800">
+                          {sourceBadge}
+                        </span>
+                      ) : null}
+                    </div>
                   </td>
                   <td className="max-w-[200px] truncate px-4 py-3 text-slate-600">
                     {(job.address || "").trim() || "—"}

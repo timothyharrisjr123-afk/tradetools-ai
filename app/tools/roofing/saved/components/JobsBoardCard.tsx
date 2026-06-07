@@ -58,9 +58,18 @@ export default function JobsBoardCard({ model, onOpen }: JobsBoardCardProps) {
     >
       {/* Top: customer name + value */}
       <div className="flex items-start justify-between gap-3">
-        <h3 className="min-w-0 flex-1 truncate text-sm font-semibold leading-snug text-slate-900">
-          {model.customerName}
-        </h3>
+        <div className="min-w-0 flex-1">
+          <div className="flex min-w-0 items-center gap-2">
+            <h3 className="min-w-0 truncate text-sm font-semibold leading-snug text-slate-900">
+              {model.customerName}
+            </h3>
+            {model.sourceBadge ? (
+              <span className="shrink-0 rounded border border-amber-200/90 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800">
+                {model.sourceBadge}
+              </span>
+            ) : null}
+          </div>
+        </div>
         {model.valueLabel ? (
           <span className="shrink-0 text-sm font-semibold tabular-nums text-slate-800">{model.valueLabel}</span>
         ) : null}

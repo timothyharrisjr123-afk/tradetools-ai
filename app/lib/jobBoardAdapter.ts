@@ -301,6 +301,82 @@ export function countDbBoardJobEntries(entries: RoofingEstimate[]): number {
   return entries.filter(isDbBoardJobEntry).length;
 }
 
+export type BoardEntrySource = "db_job" | "legacy_estimate";
+
+export function getBoardEntrySource(entry: RoofingEstimate): BoardEntrySource {
+  return isDbBoardJobEntry(entry) ? "db_job" : "legacy_estimate";
+}
+
+export function isLegacyBoardEstimateEntry(entry: RoofingEstimate): boolean {
+  return !isDbBoardJobEntry(entry);
+}
+
+/** Split unified board rows into DB job cards vs legacy saved estimates. */
+export function partitionBoardEntriesBySource(entries: RoofingEstimate[]): {
+  dbJobs: RoofingEstimate[];
+  legacyEstimates: RoofingEstimate[];
+} {
+  const dbJobs: RoofingEstimate[] = [];
+  const legacyEstimates: RoofingEstimate[] = [];
+  for (const entry of entries) {
+    if (isDbBoardJobEntry(entry)) dbJobs.push(entry);
+    else legacyEstimates.push(entry);
+  }
+  return { dbJobs, legacyEstimates };
+}
+
+/** Map DB job summaries to synthetic board rows (primary Job Board source). */
+export function mapDbJobsToBoardEstimates(dbJobs: JobSummary[]): RoofingEstimate[] {
+  return dbJobs
+    .filter((job) => job.id && isUuidLike(job.id))
+    .map((job) => mapDbJobToBoardEstimate(job));
+}
+
+/**
+ * Legacy estimates for the secondary board section.
+ * Drops rows already represented by a DB job card (linked via estimate.jobId).
+ */
+export function partitionLegacyEstimatesForBoardSection(
+  estimates: RoofingEstimate[],
+  dbJobIds: Iterable<string>
+): RoofingEstimate[] {
+  const representedJobIds = new Set<string>();
+  for (const rawId of dbJobIds) {
+    const id = String(rawId ?? "").trim();
+    if (isUuidLike(id)) representedJobIds.add(id);
+  }
+
+  return estimates.filter((est) => {
+    if (isDbBoardJobEntry(est)) return false;
+    const linkedJobId = getLinkedJobIdFromLegacyEstimate(est);
+    if (linkedJobId && representedJobIds.has(linkedJobId)) return false;
+    return true;
+  });
+}
+
+/** Resolve a linked DB job id from a DB board row or legacy estimate.jobId. */
+export function getLinkedJobIdFromLegacyEstimate(entry: RoofingEstimate): string | null {
+  if (isDbBoardJobEntry(entry)) return getDbJobIdFromBoardEntry(entry);
+  const jobId = String(entry.jobId ?? "").trim();
+  return isUuidLike(jobId) ? jobId : null;
+}
+
+/**
+ * Canonical open href for a board row.
+ * DB rows and linked legacy estimates open job=; legacy-only rows open loadSaved=.
+ */
+export function resolveBoardEntryOpenHref(entry: RoofingEstimate): string {
+  if (isDbBoardJobEntry(entry)) {
+    const jobId = getDbJobIdFromBoardEntry(entry);
+    if (jobId) return buildDbJobCardHref(jobId);
+  }
+
+  const linkedJobId = getLinkedJobIdFromLegacyEstimate(entry);
+  if (linkedJobId) return buildDbJobCardHref(linkedJobId);
+
+  return `/tools/roofing?loadSaved=${encodeURIComponent(entry.id)}`;
+}
+
 /**
  * When the board fetch returns no DB jobs but a valid last-opened job id exists,
  * offer a recovery link to reopen that Job Card (does not imply the job is listed).

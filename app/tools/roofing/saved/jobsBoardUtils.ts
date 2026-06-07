@@ -432,6 +432,8 @@ export type JobsBoardCardModel = {
   timeInStage: string | null;
   timeInStageTone: TimeInStageTone;
   valueLabel: string | null;
+  /** Shown on legacy saved-estimate cards only. */
+  sourceBadge?: string | null;
 };
 
 export function buildJobsBoardCardModel(

@@ -16,12 +16,14 @@ import FieldDiveAppShell from "../FieldDiveAppShell";
 import JobsBoardHeader from "./components/JobsBoardHeader";
 import JobsBoardColumn from "./components/JobsBoardColumn";
 import JobsBoardListView from "./components/JobsBoardListView";
+import JobsBoardCard from "./components/JobsBoardCard";
 import {
   applyBoardUpdatedDateFilter,
   buildJobsBoardCardModel,
   filterJobsByVisibleStages,
   getJobsForBoardColumn,
   getBoardColumnByKey,
+  getBoardColumnKeyForJob,
   getDefaultVisibleColumnKeys,
   isBoardFiltersActive,
   JOBS_BOARD_CATEGORY_GROUPS,
@@ -55,8 +57,11 @@ import {
   filterBoardEntriesByLaneStatus,
   getDbJobIdFromBoardEntry,
   isDbBoardJobEntry,
+  isLegacyBoardEstimateEntry,
   LAST_DB_JOB_ID_STORAGE_KEY,
-  mergeDbJobsIntoBoardEstimates,
+  mapDbJobsToBoardEstimates,
+  partitionLegacyEstimatesForBoardSection,
+  resolveBoardEntryOpenHref,
   resolveLastDbJobRecoveryHref,
   searchBoardEntries,
 } from "@/app/lib/jobBoardAdapter";
@@ -3192,15 +3197,11 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
   };
 
   const handleViewDetails = (estimate: RoofingEstimate) => {
-    if (isDbBoardJobEntry(estimate)) {
-      const jobId = getDbJobIdFromBoardEntry(estimate);
-      if (jobId) {
-        router.push(buildDbJobCardHref(jobId));
-        return;
-      }
+    const href = resolveBoardEntryOpenHref(estimate);
+    if (href.includes("loadSaved=")) {
+      setCurrentLoadedSavedId(estimate.id);
     }
-    setCurrentLoadedSavedId(estimate.id);
-    router.push(`/tools/roofing?loadSaved=${encodeURIComponent(estimate.id)}`);
+    router.push(href);
   };
 
   async function openTransactions(estimate: any) {
@@ -3310,15 +3311,11 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
     if (!id) return;
 
     if (action === "load") {
-      if (isDbBoardJobEntry(est)) {
-        const jobId = getDbJobIdFromBoardEntry(est);
-        if (jobId) {
-          router.push(buildDbJobCardHref(jobId));
-          return;
-        }
+      const href = resolveBoardEntryOpenHref(est);
+      if (href.includes("loadSaved=")) {
+        setCurrentLoadedSavedId(id);
       }
-      setCurrentLoadedSavedId(id);
-      router.push(`/tools/roofing?loadSaved=${encodeURIComponent(id)}`);
+      router.push(href);
       return;
     }
 
@@ -3890,18 +3887,29 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
     [estimates, query]
   );
 
-  const boardSourceEstimates = useMemo(
-    () => mergeDbJobsIntoBoardEstimates(estimates, dbJobs),
+  const dbBoardEntries = useMemo(
+    () => mapDbJobsToBoardEstimates(dbJobs),
+    [dbJobs]
+  );
+
+  const legacyBoardEntries = useMemo(
+    () => partitionLegacyEstimatesForBoardSection(estimates, dbJobs.map((job) => job.id)),
     [estimates, dbJobs]
   );
 
-  const boardSearchFiltered = useMemo(
-    () => searchBoardEntries(boardSourceEstimates, query),
-    [boardSourceEstimates, query]
+  const dbBoardSearchFiltered = useMemo(
+    () => searchBoardEntries(dbBoardEntries, query),
+    [dbBoardEntries, query]
+  );
+
+  const legacySearchFiltered = useMemo(
+    () => searchBoardEntries(legacyBoardEntries, query),
+    [legacyBoardEntries, query]
   );
 
   const boardReady = hydrated && dbJobsLoaded;
-  const hasBoardJobs = boardSourceEstimates.length > 0;
+  const hasBoardJobs = dbBoardEntries.length > 0;
+  const hasLegacyEstimates = legacyBoardEntries.length > 0;
 
   const lastDbJobRecoveryHref = useMemo(
     () => resolveLastDbJobRecoveryHref(lastDbJobId, dbJobs.length),
@@ -3924,10 +3932,10 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
     [searchFiltered, statusFilter, laneScheduleOptions]
   );
 
-  /** Unified board (legacy + DB jobs) — Pipeline Lane, lane cards, lane counts. */
+  /** DB jobs only — Pipeline Lane cards, lane counts, kanban columns. */
   const filtered = useMemo(
-    () => filterBoardEntriesByLaneStatus(boardSearchFiltered, statusFilter, laneScheduleOptions),
-    [boardSearchFiltered, statusFilter, laneScheduleOptions]
+    () => filterBoardEntriesByLaneStatus(dbBoardSearchFiltered, statusFilter, laneScheduleOptions),
+    [dbBoardSearchFiltered, statusFilter, laneScheduleOptions]
   );
 
   // ===============================
@@ -4002,8 +4010,8 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
   const depositReadyJobs = getDepositReadyJobs(currentList, paymentStates ?? {});
 
   const boardFilteredJobs = useMemo(
-    () => applyBoardUpdatedDateFilter(boardSearchFiltered || [], updatedOnOrAfter),
-    [boardSearchFiltered, updatedOnOrAfter]
+    () => applyBoardUpdatedDateFilter(dbBoardSearchFiltered || [], updatedOnOrAfter),
+    [dbBoardSearchFiltered, updatedOnOrAfter]
   );
 
   const boardFiltersActive = isBoardFiltersActive({
@@ -4013,8 +4021,10 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
   });
 
   const buildBoardCardModel = useCallback(
-    (job: RoofingEstimate, columnKey: BoardColumnKey) =>
-      buildJobsBoardCardModel(job, batchStatuses, { columnKey }),
+    (job: RoofingEstimate, columnKey: BoardColumnKey) => ({
+      ...buildJobsBoardCardModel(job, batchStatuses, { columnKey }),
+      sourceBadge: isLegacyBoardEstimateEntry(job) ? "Legacy" : null,
+    }),
     [batchStatuses]
   );
 
@@ -4032,12 +4042,12 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
     boardFilteredJobs.length === 0 &&
     (query.trim().length > 0 ||
       !!updatedOnOrAfter ||
-      (boardSearchFiltered?.length ?? 0) < boardSourceEstimates.length);
+      (dbBoardSearchFiltered?.length ?? 0) < dbBoardEntries.length);
 
   const statusDrivenGroups = useMemo(() => {
     if (statusFilter !== "all") return [];
 
-    const items = (boardSearchFiltered || []).slice();
+    const items = (dbBoardSearchFiltered || []).slice();
 
     const groups = [
       {
@@ -4097,7 +4107,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
     ];
 
     return groups.filter((group) => group.items.length > 0);
-  }, [boardSearchFiltered, statusFilter]);
+  }, [dbBoardSearchFiltered, statusFilter]);
 
   let nextActionText = "No action needed right now.";
   if (statusFilter === "sent_pending") {
@@ -4268,11 +4278,13 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
             {statusFilter === "all" && !boardReady && (
               <div className="py-12 text-center text-sm text-slate-500">Loading jobs…</div>
             )}
-            {statusFilter === "all" && boardReady && !hasBoardJobs && (
-              <div className="py-12 text-center text-sm text-slate-500">No jobs found.</div>
-            )}
-            {statusFilter === "all" && boardReady && hasBoardJobs && (
+            {statusFilter === "all" && boardReady && (
               <div className="w-full space-y-3">
+                {!hasBoardJobs && (
+                  <div className="py-12 text-center text-sm text-slate-500">No jobs found.</div>
+                )}
+                {hasBoardJobs && (
+                  <>
                 <JobsBoardHeader
                   query={query}
                   onQueryChange={setQuery}
@@ -4344,6 +4356,38 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                       })}
                     </div>
                   </div>
+                )}
+                  </>
+                )}
+
+                {hasLegacyEstimates && (
+                  <section className="rounded-lg border border-amber-200/70 bg-amber-50/30 px-4 py-4">
+                    <div className="flex flex-wrap items-baseline justify-between gap-2">
+                      <h2 className="text-sm font-semibold text-slate-800">Legacy saved estimates</h2>
+                      <span className="text-xs tabular-nums text-slate-500">
+                        {legacySearchFiltered.length} record{legacySearchFiltered.length !== 1 ? "s" : ""}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs leading-relaxed text-slate-600">
+                      Saved from the previous workflow. DB jobs above are the primary records for new work.
+                    </p>
+                    {legacySearchFiltered.length === 0 ? (
+                      <p className="mt-3 text-sm text-slate-500">No legacy estimates match your search.</p>
+                    ) : (
+                      <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                        {legacySearchFiltered.map((est) => {
+                          const columnKey = getBoardColumnKeyForJob(est) ?? "estimate";
+                          return (
+                            <JobsBoardCard
+                              key={est.id}
+                              model={buildBoardCardModel(est, columnKey)}
+                              onOpen={() => handleAction(est, "load")}
+                            />
+                          );
+                        })}
+                      </div>
+                    )}
+                  </section>
                 )}
               </div>
             )}
@@ -4534,7 +4578,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
         {process.env.NODE_ENV === "development" &&
         !query.trim() &&
         filterBoardEntriesByLaneStatus(
-          boardSourceEstimates.filter(isDbBoardJobEntry),
+          dbBoardEntries,
           statusFilter,
           laneScheduleOptions
         ).length > 0 &&
@@ -4656,6 +4700,9 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                   <div className="min-w-0">
                     <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-cyan-400/70">Command Deck</div>
                     <div className="mt-0.5 text-[15px] font-semibold text-white">Prepared by FieldDive · ready for confirmation</div>
+                    <div className="mt-0.5 text-[11px] font-normal text-white/40">
+                      Legacy saved estimates only — DB jobs use Job Card.
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -4954,7 +5001,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
           {/* Scheduled UX v2 enabled */}
           {hydrated && statusFilter === "scheduled" && (() => {
             const now = new Date();
-            const withDates = filtered
+            const withDates = estimateLaneFiltered
               .map((est) => {
                 const key = getScheduledDateKeyFromEstimate(est);
                 if (!key) return null;
@@ -5135,101 +5182,16 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
               <div className="h-px flex-1 bg-white/[0.06]" />
             </div>
           )}
-          {hydrated && statusFilter !== "scheduled" && filtered.map((e) => (
-            <SavedEstimateCard
-              key={e.id}
-              estimate={e}
-              batchStatuses={batchStatuses}
-              paymentState={paymentStates[e.id] ?? null}
-              checkoutLoading={checkoutLoading}
-              followUpInfo={getFollowUpInfo(e, paymentStates[e.id] ?? null, batchStatuses)}
-              onSendFollowUp={(est, kind) => sendFollowUpEmail(est, kind)}
-              followUpHidden={isFollowUpHidden(e.id)}
-              onFollowUpSnooze={(estimateId) =>
-                updateFollowUpPref(estimateId, {
-                  snoozeUntil: addDaysToIso(3),
-                  clearedUntil: null,
-                })
-              }
-              onFollowUpClear={(estimateId) =>
-                updateFollowUpPref(estimateId, {
-                  cleared: true,
-                  clearedUntil: null,
-                  snoozeUntil: null,
-                })
-              }
-              onStartCheckout={(id, type, est, remainingCentsForFull) => startCheckout(id, type, est, setCheckoutLoading, remainingCentsForFull, { statusFilter, scheduledView, query })}
-              onOpenDepositModal={(est) =>
-                setDepositModal({
-                  open: true,
-                  estimateId: est.id,
-                  estimateTotal: Number(est.totalContractPrice ?? est.suggestedPrice ?? 0),
-                  customValue: "",
-                  mode: "percent",
-                  percent: 10,
-                })
-              }
-              onOpenRemainingModal={(est, remainingCents) =>
-                setRemainingModal({
-                  open: true,
-                  estimateId: est.id,
-                  estimateTotalCents: toEstimateTotalCents(est),
-                  remainingCents,
-                  mode: "full",
-                  customValue: "",
-                })
-              }
-              onOpenOfflineModal={(est) => {
-                const total = Number(est.totalContractPrice ?? est.suggestedPrice ?? 0);
-                const totalCents = Math.round(total * 100);
-                const ps = paymentStates[est.id];
-                const depositPaidCents = ps?.depositAmountCents || 0;
-                const fullPaidCents = ps?.fullAmountCents || 0;
-                const offlinePaidCents = ps?.offlinePaidCents || 0;
-                const remainingCents = Math.max(totalCents - (depositPaidCents + fullPaidCents + offlinePaidCents), 0);
-                const remainingDollars = remainingCents / 100;
-                setOfflineModal({
-                  open: true,
-                  estimateId: est.id,
-                  estimateTotal: total,
-                  remaining: remainingDollars,
-                  amount: remainingDollars ? String(remainingDollars.toFixed(2)) : "",
-                  method: "cash",
-                  notes: "",
-                  stage: "deposit",
-                });
-              }}
-              onOpenTransactions={openTransactions}
-              openMoreFor={openMoreFor}
-              setOpenMoreFor={setOpenMoreFor}
-              moreMenuRef={moreMenuRef}
-              onLoad={(est) => handleAction(est, "load")}
-              onDelete={(id) => {
-                const est = filtered.find((x) => x.id === id);
-                if (est) handleAction(est, "delete");
-              }}
-              onPaymentNoteChange={(id, note) => {
-                updateSavedEstimate(id, { paymentNote: note });
-                setEstimates(getNormalizedEstimates());
-              }}
-              onStatusChange={(id, status) => {
-                applyStatusTransition({
-                  id,
-                  nextStatus: status,
-                  estimate: filtered.find((x) => x.id === id),
-                  variant: "paymentGate",
-                  paymentStates,
-                  setEstimates,
-                });
-              }}
-              onSend={(est) => handleAction(est, "send")}
-              onSchedule={(est) => handleAction(est, "schedule")}
-              onRecordPayment={(est) => handleAction(est, "pay")}
-              onMarkApproved={(est) => handleAction(est, "approve")}
-              onView={(est) => handleAction(est, "load")}
-              isFlashing={e.id === flashId}
-            />
-          ))}
+          {hydrated && statusFilter !== "scheduled" && filtered.map((e) => {
+            const columnKey = getBoardColumnKeyForJob(e) ?? "estimate";
+            return (
+              <JobsBoardCard
+                key={e.id}
+                model={buildBoardCardModel(e, columnKey)}
+                onOpen={() => handleAction(e, "load")}
+              />
+            );
+          })}
         </div>
               </div>
             )}
@@ -5238,7 +5200,9 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
 
       {/* Global scheduling modal */}
       {schedulingForId && (() => {
-        const e = filtered.find((x) => x.id === schedulingForId);
+        const e =
+          estimates.find((x) => x.id === schedulingForId) ??
+          filtered.find((x) => x.id === schedulingForId);
         if (!e) return null;
         return (
           <div

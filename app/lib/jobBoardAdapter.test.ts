@@ -9,11 +9,16 @@ import {
   filterBoardEntriesByLaneStatus,
   filterDbJobsForBoard,
   getDbJobIdFromBoardEntry,
+  getLinkedJobIdFromLegacyEstimate,
   isDbBoardJobEntry,
   mapDbJobToBoardCard,
   mapDbJobToBoardEstimate,
+  mapDbJobsToBoardEstimates,
   mapDbJobStageToBoardColumnKey,
   mergeDbJobsIntoBoardEstimates,
+  partitionBoardEntriesBySource,
+  partitionLegacyEstimatesForBoardSection,
+  resolveBoardEntryOpenHref,
   resolveLastDbJobRecoveryHref,
   searchBoardEntries,
 } from "./jobBoardAdapter";
@@ -261,5 +266,129 @@ describe("jobBoardAdapter", () => {
   test("resolveLastDbJobRecoveryHref ignored for invalid last id", () => {
     assert.equal(resolveLastDbJobRecoveryHref("not-a-uuid", 0), null);
     assert.equal(resolveLastDbJobRecoveryHref(null, 0), null);
+  });
+
+  test("partitionBoardEntriesBySource splits DB rows from legacy estimates", () => {
+    const dbRow = mapDbJobToBoardEstimate(baseDbJob());
+    const legacy: RoofingEstimate = {
+      id: ESTIMATE_ID,
+      createdAt: "2026-01-01T00:00:00.000Z",
+      customerName: "Legacy",
+      address: "456 Oak",
+      zip: "78702",
+      roofAreaSqFt: 2400,
+      selectedTier: "Core",
+      suggestedPrice: 10000,
+      status: "estimate",
+    };
+    const merged = mergeDbJobsIntoBoardEstimates([legacy], [baseDbJob()]);
+    const { dbJobs, legacyEstimates } = partitionBoardEntriesBySource(merged);
+    assert.equal(dbJobs.length, 1);
+    assert.equal(legacyEstimates.length, 1);
+    assert.equal(isDbBoardJobEntry(dbJobs[0]!), true);
+    assert.equal(isDbBoardJobEntry(legacyEstimates[0]!), false);
+  });
+
+  test("linked legacy estimate with jobId resolves open href to job=", () => {
+    const legacy: RoofingEstimate = {
+      id: ESTIMATE_ID,
+      jobId: LINKED_JOB_ID,
+      createdAt: "2026-01-01T00:00:00.000Z",
+      customerName: "Linked Legacy",
+      address: "456 Oak",
+      zip: "78702",
+      roofAreaSqFt: 2400,
+      selectedTier: "Core",
+      suggestedPrice: 10000,
+    };
+    const href = resolveBoardEntryOpenHref(legacy);
+    assert.equal(href, buildDbJobCardHref(LINKED_JOB_ID));
+    assert.doesNotMatch(href, /loadSaved/);
+  });
+
+  test("legacy estimate without jobId resolves open href to loadSaved=", () => {
+    const legacy: RoofingEstimate = {
+      id: ESTIMATE_ID,
+      createdAt: "2026-01-01T00:00:00.000Z",
+      customerName: "Legacy Only",
+      address: "456 Oak",
+      zip: "78702",
+      roofAreaSqFt: 2400,
+      selectedTier: "Core",
+      suggestedPrice: 10000,
+    };
+    const href = resolveBoardEntryOpenHref(legacy);
+    assert.match(href, /loadSaved=/);
+    assert.doesNotMatch(href, /from=board/);
+  });
+
+  test("DB job row resolves open href to job= only", () => {
+    const dbRow = mapDbJobToBoardEstimate(baseDbJob());
+    const href = resolveBoardEntryOpenHref(dbRow);
+    assert.equal(href, buildDbJobCardHref(JOB_ID));
+    assert.doesNotMatch(href, /loadSaved/);
+    assert.doesNotMatch(href, /from=board/);
+  });
+
+  test("legacy partition does not drop localStorage estimates without DB representation", () => {
+    const legacyOnly: RoofingEstimate[] = [
+      {
+        id: ESTIMATE_ID,
+        createdAt: "2026-01-01T00:00:00.000Z",
+        customerName: "Orphan Legacy",
+        address: "456 Oak",
+        zip: "78702",
+        roofAreaSqFt: 2400,
+        selectedTier: "Core",
+        suggestedPrice: 10000,
+      },
+    ];
+    const section = partitionLegacyEstimatesForBoardSection(legacyOnly, []);
+    assert.equal(section.length, 1);
+    assert.equal(section[0]?.id, ESTIMATE_ID);
+  });
+
+  test("legacy partition hides linked legacy when DB job is on the board", () => {
+    const linkedLegacy: RoofingEstimate = {
+      id: ESTIMATE_ID,
+      jobId: LINKED_JOB_ID,
+      createdAt: "2026-01-01T00:00:00.000Z",
+      customerName: "Linked",
+      address: "456 Oak",
+      zip: "78702",
+      roofAreaSqFt: 2400,
+      selectedTier: "Core",
+      suggestedPrice: 10000,
+    };
+    const orphanLegacy: RoofingEstimate = {
+      id: "44444444-4444-4444-8444-444444444444",
+      createdAt: "2026-01-02T00:00:00.000Z",
+      customerName: "Orphan",
+      address: "789 Pine",
+      zip: "78703",
+      roofAreaSqFt: 1800,
+      selectedTier: "Core",
+      suggestedPrice: 8000,
+    };
+    const section = partitionLegacyEstimatesForBoardSection(
+      [linkedLegacy, orphanLegacy],
+      [LINKED_JOB_ID]
+    );
+    assert.equal(section.length, 1);
+    assert.equal(section[0]?.id, orphanLegacy.id);
+    assert.equal(getLinkedJobIdFromLegacyEstimate(linkedLegacy), LINKED_JOB_ID);
+  });
+
+  test("DB partition does not drop DB jobs", () => {
+    const dbRows = mapDbJobsToBoardEstimates([baseDbJob(), baseDbJob({ id: LINKED_JOB_ID })]);
+    assert.equal(dbRows.length, 2);
+    assert.equal(dbRows.every(isDbBoardJobEntry), true);
+  });
+
+  test("search still works for DB job board entries", () => {
+    const dbRows = mapDbJobsToBoardEstimates([baseDbJob()]);
+    const hits = searchBoardEntries(dbRows, "sabreena");
+    assert.equal(hits.length, 1);
+    assert.equal(getDbJobIdFromBoardEntry(hits[0]!), JOB_ID);
   });
 });
