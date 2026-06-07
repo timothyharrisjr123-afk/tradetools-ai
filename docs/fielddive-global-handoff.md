@@ -174,6 +174,37 @@ Measurement Records (public.measurement_records)
 
 Do **not** skip catalog + templates and jump to Proposal Builder or pricing bridge.
 
+### ROOFR / RESEARCH-BASED IMPLEMENTATION STANDARD
+
+FieldDive should follow a **proven contractor workflow**, with **Roofr-style structure and visual behavior** as the primary reference where applicable.
+
+Every meaningful **visual, navigation, workflow, or module-placement** change must be checked against the research docs **before** implementation:
+
+- Read **`docs/competitive-architecture-audit.md`** before changing module architecture, dashboard behavior, proposal workflow layout, or competitor-aligned surfaces.
+- Read **`docs/fielddive-flow-map.md`** before changing routes, IA, Job Board, Job Card, setup flows, navigation, or module movement.
+- Read **`docs/fielddive-estimate-proposal-flow-model.md`** before changing estimate/proposal lifecycle, proposal Builder, draft refresh behavior, proposal records, send/sign/payment gates, or proposal state.
+- Read **`docs/fielddive-feature-placement-map.md`** before adding, moving, or removing a feature from a module.
+
+**Visual direction:**
+
+- Get as close to **Roofr-style clarity, hierarchy, spacing, and workflow** as possible without copying branding.
+- Do **not** make FieldDive slower, bulkier, or visually heavier just to add polish.
+- Prefer **clean, proven, contractor-friendly flows** over experimental UX.
+- Avoid boxes-inside-boxes, wasted space, duplicate panels, and visual clutter.
+- Keep the app **fast, clear, and mobile-aware**.
+- Do **not** leave important Roofr/proven workflow features out; place them in the **correct phase/module** if they are not ready yet.
+- Do **not** add features randomly. Every feature must belong to the **DB-first** job → measurement → proposal → approval → payment → production spine or a clearly documented **later** module.
+- Visual changes must **not** weaken DB identity, pricing trust, proposal snapshot trust, or lifecycle gates.
+
+**Builder-specific rule:**
+
+- The **left Builder sidebar/nav** can be implemented only as a **scoped post-smoke** slice.
+- It should follow the proven proposal Builder flow: **Overview → Options → Sections → Line items → Quantities**.
+- Quantities should remain **trust-safe / read-only** unless a later scoped edit flow is approved.
+- **Preview / Send / Sign / Payment remain disabled** until their lifecycle phases.
+
+**Smoke gate:** Manual smoke (**§6AE.5** → **§6AF.9** → **§6AD.7**) remains **mandatory** before any new Builder or proposal implementation work.
+
 ---
 
 ## 4. COMPLETED MEASUREMENT STAGE 3E
@@ -3410,6 +3441,7 @@ Use this section as the **ordered checklist** for future GPT/Cursor sessions. Kn
 
 - Proposal draft editing/persistence slices (e.g. line copy, page context — **3J4+**).
 - Continue DB-backed proposal lifecycle on the new spine.
+- After smoke passes, the next proposal draft editing/persistence slice must follow the **Roofr/research visual standard** (§3 — ROOFR / RESEARCH-BASED IMPLEMENTATION STANDARD) and may include **DB-backed Builder navigation** if scoped.
 - Keep **Preview / Send / Sign / Payment disabled** until **3K+** lifecycle is ready.
 
 **LATER**
