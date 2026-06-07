@@ -216,47 +216,69 @@ export function rowToJobSummary(row: JobRow): JobSummary {
 }
 
 export function jobDraftToInsertRow(draft: JobDraft | Partial<JobDraft>): Partial<JobRow> {
-  const contact = draft.contact;
-  const address = draft.address;
-  const formatted =
-    normalizeNullableString(address?.formatted) ?? buildFormattedAddress(address ?? null);
+  const row: Partial<JobRow> = {};
 
-  const row: Partial<JobRow> = {
-    id: draft.id,
-    company_id: draft.company_id,
-    customer_id: draft.customer_id ?? contact?.customer_id ?? null,
-    job_name: normalizeNullableString(draft.job_name),
-    stage: draft.stage,
-    status: draft.status,
-    source: draft.source,
-    priority: draft.priority ?? "normal",
-    customer_name: normalizeNullableString(contact?.customer_name),
-    customer_email: normalizeNullableString(contact?.customer_email),
-    customer_phone: normalizeNullableString(contact?.customer_phone),
-    address_line1: normalizeNullableString(address?.line1),
-    address_line2: normalizeNullableString(address?.line2),
-    address_city: normalizeNullableString(address?.city),
-    address_state: normalizeNullableString(address?.state),
-    address_zip: normalizeNullableString(address?.zip),
-    address_country: normalizeNullableString(address?.country) ?? "US",
-    address_formatted: formatted,
-    assigned_to: draft.assigned_to ?? null,
-    created_by: draft.created_by ?? null,
-    updated_by: draft.updated_by ?? null,
-    notes: normalizeNullableString(draft.notes),
-    summary: normalizeNullableString(draft.summary),
-    last_activity_at: draft.last_activity_at ?? null,
-    archived: draft.archived ?? false,
-    deleted_at: draft.deleted_at ?? null,
-    selected_measurement_id: draft.selected_measurement_id ?? null,
-    active_proposal_id: draft.active_proposal_id ?? null,
-    latest_estimate_id: normalizeNullableString(draft.latest_estimate_id),
-    latest_proposal_id: draft.latest_proposal_id ?? null,
-    source_metadata: draft.source_metadata ?? null,
-    custom_fields: draft.custom_fields ?? null,
-    created_at: draft.created_at,
-    updated_at: draft.updated_at,
-  };
+  if (draft.id !== undefined) row.id = draft.id;
+  if (draft.company_id !== undefined) row.company_id = draft.company_id;
+
+  if (draft.customer_id !== undefined) {
+    row.customer_id = draft.customer_id ?? draft.contact?.customer_id ?? null;
+  } else if (draft.contact !== undefined) {
+    row.customer_id = draft.contact?.customer_id ?? null;
+  }
+
+  if (draft.job_name !== undefined) {
+    row.job_name = normalizeNullableString(draft.job_name);
+  }
+
+  if (draft.stage !== undefined) row.stage = draft.stage;
+  if (draft.status !== undefined) row.status = draft.status;
+  if (draft.source !== undefined) row.source = draft.source;
+  if (draft.priority !== undefined) row.priority = draft.priority ?? "normal";
+
+  if (draft.contact !== undefined) {
+    row.customer_name = normalizeNullableString(draft.contact?.customer_name);
+    row.customer_email = normalizeNullableString(draft.contact?.customer_email);
+    row.customer_phone = normalizeNullableString(draft.contact?.customer_phone);
+  }
+
+  if (draft.address !== undefined) {
+    const address = draft.address;
+    const formatted =
+      normalizeNullableString(address?.formatted) ?? buildFormattedAddress(address ?? null);
+    row.address_line1 = normalizeNullableString(address?.line1);
+    row.address_line2 = normalizeNullableString(address?.line2);
+    row.address_city = normalizeNullableString(address?.city);
+    row.address_state = normalizeNullableString(address?.state);
+    row.address_zip = normalizeNullableString(address?.zip);
+    row.address_country = normalizeNullableString(address?.country) ?? "US";
+    row.address_formatted = formatted;
+  }
+
+  if (draft.assigned_to !== undefined) row.assigned_to = draft.assigned_to ?? null;
+  if (draft.created_by !== undefined) row.created_by = draft.created_by ?? null;
+  if (draft.updated_by !== undefined) row.updated_by = draft.updated_by ?? null;
+  if (draft.notes !== undefined) row.notes = normalizeNullableString(draft.notes);
+  if (draft.summary !== undefined) row.summary = normalizeNullableString(draft.summary);
+  if (draft.last_activity_at !== undefined) row.last_activity_at = draft.last_activity_at ?? null;
+  if (draft.archived !== undefined) row.archived = draft.archived ?? false;
+  if (draft.deleted_at !== undefined) row.deleted_at = draft.deleted_at ?? null;
+  if (draft.selected_measurement_id !== undefined) {
+    row.selected_measurement_id = draft.selected_measurement_id ?? null;
+  }
+  if (draft.active_proposal_id !== undefined) {
+    row.active_proposal_id = draft.active_proposal_id ?? null;
+  }
+  if (draft.latest_estimate_id !== undefined) {
+    row.latest_estimate_id = normalizeNullableString(draft.latest_estimate_id);
+  }
+  if (draft.latest_proposal_id !== undefined) {
+    row.latest_proposal_id = draft.latest_proposal_id ?? null;
+  }
+  if (draft.source_metadata !== undefined) row.source_metadata = draft.source_metadata ?? null;
+  if (draft.custom_fields !== undefined) row.custom_fields = draft.custom_fields ?? null;
+  if (draft.created_at !== undefined) row.created_at = draft.created_at;
+  if (draft.updated_at !== undefined) row.updated_at = draft.updated_at;
 
   return compactObject(row as Record<string, unknown>) as Partial<JobRow>;
 }

@@ -4854,7 +4854,11 @@ Thanks,`;
     const name = (customerName || "").trim() || null;
     const roofAreaSqft = parseFloat(area) || 0;
     const stage = roofAreaSqft > 0 ? "measurement" : "intake";
-    const jobName = line1 ?? (name ? `${name} — roofing` : null) ?? "Roofing job";
+    const jobName = name
+      ? `${name} — roofing`
+      : line1
+        ? line1
+        : "Roofing job";
 
     return {
       company_id: cid,
