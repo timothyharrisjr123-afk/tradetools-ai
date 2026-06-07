@@ -119,7 +119,13 @@ import {
   formatProposalBuilderDisabledButtonTitle,
   resolveJobCardProposalActivityLine,
 } from "@/app/lib/proposalBuilderReadiness";
-import { resolveOrCreateProposalDraftEntry, isExpectedProposalDraftEntryFailure } from "@/app/lib/proposalDraftEntry";
+import {
+  resolveOrCreateProposalDraftEntry,
+  isExpectedProposalDraftEntryFailure,
+  type ResolveOrCreateProposalDraftEntryReason,
+} from "@/app/lib/proposalDraftEntry";
+import { deriveProposalSetupChecklist } from "@/app/lib/proposalSetupChecklist";
+import { getResolvedCompanyPricingPolicy } from "@/app/lib/companyPricingPolicyStore";
 import {
   createDraftProposal,
   getProposalById,
@@ -147,6 +153,7 @@ import JobCardActivityPanel, { type JobCardActivityItem } from "@/app/tools/roof
 import JobCardOverviewSummary from "@/app/tools/roofing/jobCard/JobCardOverviewSummary";
 import { resolveJobCardIdentityFromRecord } from "@/app/tools/roofing/jobCard/jobCardIdentityUtils";
 import JobCardProposalsSetupLinks from "@/app/tools/roofing/jobCard/JobCardProposalsSetupLinks";
+import ProposalSetupChecklist from "@/app/tools/roofing/jobCard/ProposalSetupChecklist";
 import { loadCompanyVoiceProfile, saveCompanyVoiceProfile, type VoiceTone } from "@/app/lib/companyVoiceProfile";
 
 function safeUUID() {
@@ -1074,9 +1081,14 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
   const [starterTemplateGraph, setStarterTemplateGraph] = useState<ProposalTemplateGraph | null>(null);
   const [templateSetupLoadComplete, setTemplateSetupLoadComplete] = useState(false);
   const templateSetupFetchInFlightRef = useRef<string | null>(null);
+  const [pricingPolicyConfigured, setPricingPolicyConfigured] = useState<boolean | null>(null);
+  const [pricingPolicyLoadComplete, setPricingPolicyLoadComplete] = useState(false);
+  const pricingPolicyFetchInFlightRef = useRef<string | null>(null);
   const [isSavingMeasurement, setIsSavingMeasurement] = useState(false);
   const [measurementSaveError, setMeasurementSaveError] = useState<string | null>(null);
   const [proposalLaunchError, setProposalLaunchError] = useState<string | null>(null);
+  const [proposalLaunchReason, setProposalLaunchReason] =
+    useState<ResolveOrCreateProposalDraftEntryReason | null>(null);
   const measurementSaveInFlightRef = useRef<string | null>(null);
   const measurementFormHydratedRef = useRef<string | null>(null);
   const [jobCardTab, setJobCardTab] = useState<JobCardTabId>("overview");
@@ -1788,6 +1800,46 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
         if (templateSetupFetchInFlightRef.current === cid) {
           setTemplateSetupLoadComplete(true);
           templateSetupFetchInFlightRef.current = null;
+        }
+      }
+    })();
+  }, [entryMode, companyId, loadSavedId, restoreTick]);
+
+  useEffect(() => {
+    if (entryMode !== "job-card") {
+      setPricingPolicyConfigured(null);
+      setPricingPolicyLoadComplete(false);
+      pricingPolicyFetchInFlightRef.current = null;
+      return;
+    }
+
+    const cid = (companyId ?? "").trim();
+    if (!cid || !isUuidLike(cid)) {
+      setPricingPolicyConfigured(null);
+      setPricingPolicyLoadComplete(true);
+      pricingPolicyFetchInFlightRef.current = null;
+      return;
+    }
+
+    if (isRestoringRef.current) return;
+    if (loadSavedId && !loadAppliedRef.current) return;
+
+    pricingPolicyFetchInFlightRef.current = cid;
+    setPricingPolicyLoadComplete(false);
+
+    void (async () => {
+      try {
+        const resolution = await getResolvedCompanyPricingPolicy(cid);
+        if (pricingPolicyFetchInFlightRef.current !== cid) return;
+        setPricingPolicyConfigured(resolution.configured);
+      } catch (err) {
+        console.warn("[RoofingClient] pricing policy fetch error:", err);
+        if (pricingPolicyFetchInFlightRef.current !== cid) return;
+        setPricingPolicyConfigured(null);
+      } finally {
+        if (pricingPolicyFetchInFlightRef.current === cid) {
+          setPricingPolicyLoadComplete(true);
+          pricingPolicyFetchInFlightRef.current = null;
         }
       }
     })();
@@ -7046,6 +7098,73 @@ Thanks,`;
           }
         : null;
 
+    const proposalCreateBlockedOnBoard =
+      isBoardOrigin && proposalDraftCreatePayload == null;
+    const effectiveProposalBuilderButtonTitle =
+      proposalCreateBlockedOnBoard && proposalBuilderLaunchEnabled
+        ? "Save Job Card before creating a proposal draft"
+        : proposalBuilderButtonTitle;
+
+    const proposalSetupChecklist = deriveProposalSetupChecklist({
+      jobId: currentJobId,
+      isBoardOrigin,
+      identityFromJobRecord,
+      customerId: hydratedJobRecord?.customer_id ?? null,
+      measurementProposalReady: proposalHandoff.proposalReady,
+      hasPersistedMeasurement: Boolean(persistedSelectedMeasurement?.id),
+      hasUnsavedMeasurementChanges: hasUnsavedChanges,
+      catalogReady: catalogReadiness.state === "ready_for_templates",
+      templateReady: proposalTemplateReadiness.status === "ready_for_builder",
+      pricingPolicyConfigured,
+      pricingPolicyLoadComplete,
+      activeProposalId: jobCardActiveProposalId,
+      hasCreatePayload: proposalDraftCreatePayload != null,
+      proposalLaunchReason,
+    });
+
+    const handleLaunchProposalDraft = () => {
+      void (async () => {
+        if (!currentJobId) return;
+        const cid = (companyId ?? "").trim();
+        if (!cid) return;
+        if (isBoardOrigin && proposalDraftCreatePayload == null) return;
+
+        setProposalLaunchError(null);
+        setProposalLaunchReason(null);
+
+        const result = await resolveOrCreateProposalDraftEntry(
+          {
+            companyId: cid,
+            jobId: currentJobId,
+            activeProposalId: jobCardActiveProposalId,
+            createPayload: proposalDraftCreatePayload,
+          },
+          {
+            getProposalById,
+            listProposalsForJob,
+            createDraftProposal,
+          }
+        );
+
+        if (result.proposalId) {
+          router.push(buildProposalBuilderHref(currentJobId, result.proposalId));
+          return;
+        }
+
+        if (result.errorMessage) {
+          setProposalLaunchError(result.errorMessage);
+          setProposalLaunchReason(result.reason);
+          if (!isExpectedProposalDraftEntryFailure(result.reason)) {
+            console.error(
+              "[RoofingClient] proposal draft entry failed:",
+              result.reason,
+              result.errorMessage
+            );
+          }
+        }
+      })();
+    };
+
     const reportMeasurementRows: { label: string; value: string; muted?: boolean }[] = [
       {
         label: "Roof facets",
@@ -7642,53 +7761,13 @@ Thanks,`;
                   <button
                     type="button"
                     disabled={!proposalBuilderLaunchEnabled}
-                    onClick={() => {
-                      void (async () => {
-                        if (!proposalBuilderLaunchEnabled || !currentJobId) return;
-                        const cid = (companyId ?? "").trim();
-                        if (!cid) return;
-
-                        setProposalLaunchError(null);
-
-                        const result = await resolveOrCreateProposalDraftEntry(
-                          {
-                            companyId: cid,
-                            jobId: currentJobId,
-                            activeProposalId: jobCardActiveProposalId,
-                            createPayload: proposalDraftCreatePayload,
-                          },
-                          {
-                            getProposalById,
-                            listProposalsForJob,
-                            createDraftProposal,
-                          }
-                        );
-
-                        if (result.proposalId) {
-                          router.push(
-                            buildProposalBuilderHref(currentJobId, result.proposalId)
-                          );
-                          return;
-                        }
-
-                        if (result.errorMessage) {
-                          setProposalLaunchError(result.errorMessage);
-                          if (!isExpectedProposalDraftEntryFailure(result.reason)) {
-                            console.error(
-                              "[RoofingClient] proposal draft entry failed:",
-                              result.reason,
-                              result.errorMessage
-                            );
-                          }
-                        }
-                      })();
-                    }}
+                    onClick={handleLaunchProposalDraft}
                     className={
                       proposalBuilderLaunchEnabled
                         ? proposalBuilderActionPrimary
                         : passiveActionPrimary
                     }
-                    title={proposalBuilderButtonTitle}
+                    title={effectiveProposalBuilderButtonTitle}
                   >
                     + Proposal
                   </button>
@@ -7718,9 +7797,14 @@ Thanks,`;
                         muted={proposalDocumentStatusMuted}
                       />
                     </div>
-                    {proposalLaunchError ? (
-                      <p className="mt-2 text-[11px] text-red-600">{proposalLaunchError}</p>
-                    ) : null}
+                    <ProposalSetupChecklist
+                      checklist={proposalSetupChecklist}
+                      onSelectTab={setJobCardTab}
+                      onNavigate={router.push}
+                      onCreateProposal={handleLaunchProposalDraft}
+                      onOpenBuilder={(href) => router.push(href)}
+                      launchError={proposalLaunchError}
+                    />
                   </div>
                   <div className={wsBlock}>
                     <WorkspaceHeading>Catalog setup</WorkspaceHeading>

@@ -14,6 +14,7 @@ import { ProposalSnapshotGuardError } from "./proposalSnapshotStatusMapper";
 import {
   PROPOSAL_DRAFT_UNCONFIGURED_POLICY_MESSAGE,
   isExpectedProposalDraftEntryFailure,
+  resolveProposalLaunchBlockerActions,
   resolveOrCreateProposalDraftEntry,
   resolveProposalDraftEntry,
   validateProposalDraftCreatePayload,
@@ -140,6 +141,56 @@ describe("isExpectedProposalDraftEntryFailure", () => {
 
   test("create_failed is unexpected and should allow console.error", () => {
     assert.equal(isExpectedProposalDraftEntryFailure("create_failed"), false);
+  });
+});
+
+describe("resolveProposalLaunchBlockerActions", () => {
+  test("db_identity_not_ready maps to Open DB-backed Job Card", () => {
+    const actions = resolveProposalLaunchBlockerActions("db_identity_not_ready", {
+      jobId: "11111111-1111-4111-8111-111111111111",
+    });
+    assert.equal(actions[0]?.label, "Open DB-backed Job Card");
+    assert.equal(actions[0]?.actionType, "route");
+    assert.match(actions[0]?.href ?? "", /entry=job-card/);
+    assert.doesNotMatch(actions[0]?.href ?? "", /from=board/);
+  });
+
+  test("unconfigured_pricing_policy maps to Configure Pricing Policy", () => {
+    const actions = resolveProposalLaunchBlockerActions("unconfigured_pricing_policy");
+    assert.equal(actions[0]?.label, "Configure Pricing Policy");
+    assert.equal(actions[0]?.href, "/tools/settings/pricing");
+  });
+
+  test("missing_template maps to Open Templates", () => {
+    const actions = resolveProposalLaunchBlockerActions("missing_template");
+    assert.equal(actions[0]?.label, "Open Templates");
+    assert.equal(actions[0]?.href, "/tools/roofing/templates");
+  });
+
+  test("missing_quantity_context maps to Go to Measurements", () => {
+    const actions = resolveProposalLaunchBlockerActions("missing_quantity_context");
+    assert.equal(actions[0]?.label, "Go to Measurements");
+    assert.equal(actions[0]?.targetTab, "measurements");
+  });
+
+  test("wrong_job maps to Return to Job Board", () => {
+    const actions = resolveProposalLaunchBlockerActions("wrong_job");
+    assert.equal(actions[0]?.label, "Return to Job Board");
+    assert.equal(actions[0]?.href, "/tools/roofing/saved");
+  });
+
+  test("create_failed does not invent unsafe navigation", () => {
+    assert.deepEqual(resolveProposalLaunchBlockerActions("create_failed"), []);
+  });
+
+  test("unknown reason returns empty safe state", () => {
+    assert.deepEqual(resolveProposalLaunchBlockerActions("totally_unknown"), []);
+  });
+
+  test("catalogNotReady context maps to Open catalog setup", () => {
+    const actions = resolveProposalLaunchBlockerActions(null, { catalogNotReady: true });
+    assert.equal(actions[0]?.label, "Open catalog setup");
+    assert.equal(actions[0]?.href, "/tools/roofing/catalog");
   });
 });
 

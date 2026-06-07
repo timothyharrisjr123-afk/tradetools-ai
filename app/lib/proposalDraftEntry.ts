@@ -6,6 +6,7 @@
  */
 
 import { isUuidLike } from "@/app/lib/jobStore";
+import { buildJobCardHref } from "@/app/lib/proposalBuilderReadiness";
 import type { ProposalQuantityPreviewContext } from "@/app/lib/proposalBuilderPreview";
 import type {
   CreateDraftProposalInput,
@@ -124,6 +125,202 @@ export function isExpectedProposalDraftEntryFailure(
   return (EXPECTED_PROPOSAL_DRAFT_ENTRY_FAILURE_REASONS as readonly string[]).includes(
     reason
   );
+}
+
+export type ProposalLaunchBlockerActionType = "job_card_tab" | "route" | "none";
+
+export type ProposalLaunchBlockerTargetTab = "overview" | "measurements" | "proposals";
+
+export type ProposalLaunchBlockerAction = {
+  id: string;
+  label: string;
+  helperText?: string;
+  actionType: ProposalLaunchBlockerActionType;
+  targetTab?: ProposalLaunchBlockerTargetTab;
+  href?: string;
+};
+
+export type ResolveProposalLaunchBlockerActionsContext = {
+  catalogNotReady?: boolean;
+  templateNotReady?: boolean;
+  jobId?: string | null;
+};
+
+const JOB_BOARD_HREF = "/tools/roofing/saved";
+const CATALOG_HREF = "/tools/roofing/catalog";
+const TEMPLATES_HREF = "/tools/roofing/templates";
+const PRICING_SETTINGS_HREF = "/tools/settings/pricing";
+
+function goToMeasurementsAction(helperText: string): ProposalLaunchBlockerAction {
+  return {
+    id: "go-measurements",
+    label: "Go to Measurements",
+    helperText,
+    actionType: "job_card_tab",
+    targetTab: "measurements",
+  };
+}
+
+function returnToJobBoardAction(helperText: string): ProposalLaunchBlockerAction {
+  return {
+    id: "return-job-board",
+    label: "Return to Job Board",
+    helperText,
+    actionType: "route",
+    href: JOB_BOARD_HREF,
+  };
+}
+
+function openDbBackedJobCardAction(jobId: string): ProposalLaunchBlockerAction {
+  return {
+    id: "open-db-job-card",
+    label: "Open DB-backed Job Card",
+    helperText:
+      "Open this job as a saved Job Card before creating proposal drafts. Saving measurements alone does not unblock board-origin jobs.",
+    actionType: "route",
+    href: buildJobCardHref(jobId),
+  };
+}
+
+function openCatalogAction(): ProposalLaunchBlockerAction {
+  return {
+    id: "open-catalog",
+    label: "Open catalog setup",
+    helperText: "Finish company catalog setup before creating proposal drafts.",
+    actionType: "route",
+    href: CATALOG_HREF,
+  };
+}
+
+function openTemplatesAction(): ProposalLaunchBlockerAction {
+  return {
+    id: "open-templates",
+    label: "Open Templates",
+    helperText: "Install or select a proposal template.",
+    actionType: "route",
+    href: TEMPLATES_HREF,
+  };
+}
+
+function normalizeProposalLaunchBlockerReason(
+  reason: string | null | undefined
+): ResolveOrCreateProposalDraftEntryReason | null {
+  const key = (reason ?? "").trim();
+  if (!key) return null;
+
+  const aliases: Record<string, ResolveOrCreateProposalDraftEntryReason> = {
+    missing_customer: "missing_customer_id",
+    missing_template: "missing_template_id",
+    missing_measurement: "missing_measurement_record_id",
+  };
+
+  if (key in aliases) {
+    return aliases[key]!;
+  }
+
+  const known: ResolveOrCreateProposalDraftEntryReason[] = [
+    "no_active_proposal",
+    "proposal_not_found",
+    "wrong_company",
+    "wrong_job",
+    "non_draft_status",
+    "invalid_company_or_job",
+    "missing_customer_id",
+    "missing_template_id",
+    "missing_measurement_record_id",
+    "missing_quantity_context",
+    "db_identity_not_ready",
+    "unconfigured_pricing_policy",
+    "create_failed",
+  ];
+
+  if (known.includes(key as ResolveOrCreateProposalDraftEntryReason)) {
+    return key as ResolveOrCreateProposalDraftEntryReason;
+  }
+
+  return null;
+}
+
+/**
+ * Map proposal launch failure reasons to user-facing next actions (3J3-smoke-1).
+ * Pure — does not navigate or mutate state.
+ */
+export function resolveProposalLaunchBlockerActions(
+  reason: ResolveOrCreateProposalDraftEntryReason | string | null | undefined,
+  context?: ResolveProposalLaunchBlockerActionsContext
+): ProposalLaunchBlockerAction[] {
+  const normalized = normalizeProposalLaunchBlockerReason(reason);
+
+  if (!normalized) {
+    if (context?.catalogNotReady) {
+      return [openCatalogAction()];
+    }
+    if (context?.templateNotReady) {
+      return [openTemplatesAction()];
+    }
+    return [];
+  }
+
+  switch (normalized) {
+    case "db_identity_not_ready": {
+      const jobId = normalizeId(context?.jobId);
+      if (jobId) {
+        return [
+          openDbBackedJobCardAction(jobId),
+          returnToJobBoardAction("Reopen this job from the Job Board if needed."),
+        ];
+      }
+      return [
+        returnToJobBoardAction(
+          "Open a saved Job Card before creating proposal drafts."
+        ),
+      ];
+    }
+    case "missing_measurement_record_id":
+    case "missing_quantity_context":
+      return [
+        goToMeasurementsAction("Save measurement on the Job Card before creating a proposal draft."),
+      ];
+    case "missing_customer_id":
+      return [
+        {
+          id: "complete-customer",
+          label: "Complete Customer Info",
+          helperText: "A saved job customer is required before creating a proposal draft.",
+          actionType: "job_card_tab",
+          targetTab: "overview",
+        },
+      ];
+    case "missing_template_id":
+      return [openTemplatesAction()];
+    case "unconfigured_pricing_policy":
+      return [
+        {
+          id: "configure-pricing-policy",
+          label: "Configure Pricing Policy",
+          helperText: "Configure pricing before creating proposal drafts.",
+          actionType: "route",
+          href: PRICING_SETTINGS_HREF,
+        },
+      ];
+    case "wrong_company":
+    case "wrong_job":
+    case "proposal_not_found":
+    case "non_draft_status":
+    case "invalid_company_or_job":
+      return [returnToJobBoardAction("Reopen the job from the board.")];
+    case "create_failed":
+    case "no_active_proposal":
+      return [];
+    default:
+      if (context?.catalogNotReady) {
+        return [openCatalogAction()];
+      }
+      if (context?.templateNotReady) {
+        return [openTemplatesAction()];
+      }
+      return [];
+  }
 }
 
 function normalizeId(value: string | null | undefined): string | null {
