@@ -9,18 +9,25 @@
 - `docs/fielddive-estimate-proposal-flow-model.md` — estimate/proposal UX model notes
 - `docs/fielddive-feature-placement-map.md` — feature placement matrix
 
-**Last updated checkpoint:** **Code:** **`a7249b3` — 3J3E: persist proposal option selection** (§6AE). **Docs:** pending this commit (prior docs: `3b5138a`, §6AD). **DB-first foundation Phases A–D complete** — see **§6AD**. **Prior code:** `4f24f1f` (quantity resolver tests), `87be1b4` (Phase D validation lock), `e1a8f7c` / `a62ad93` / `2694bc4` / `0649e04` (Phases C–A), `e38b276` (3J3D, §6AC). **Tests (key suites at `a7249b3`):** `proposalRecordStore` **26/26**, `proposalDraftGraphAdapter` **16/16**, `proposalQuantityResolver` **32/32**, `proposalDraftEntry` **30/30**, `proposalSetupChecklist` **15/15**, `proposalPricingEngine` **22/22**, plus `jobStore`, `measurementStore`, `jobBoardAdapter`. **Typecheck:** only **6** pre-existing errors in `app/tools/roofing-v2/RoofingClientV2.tsx` — unchanged. **Protected systems:** legacy `RoofingClient.tsx` pricing `useMemo`, payments, approval, status, saved estimates, send/PDF **untouched** outside scoped DB-first Job Card → Builder draft flow.
+**When to read related docs:**
+
+- Read **`docs/fielddive-flow-map.md`** when changing routes, IA, screen flow, or Job Board / Job Card navigation.
+- Read **`docs/competitive-architecture-audit.md`** when adding modules, changing dashboard/Job Board architecture, or comparing against Roofr/competitor-style workflow.
+
+**Last updated checkpoint:** **Code:** **`ce3d6bc` — fix(proposals): harden pricing trust snapshot refresh** (§6AF). **Docs:** pending this commit (prior docs: `e96aaab`, §6AE). **DB-first foundation Phases A–D complete** — see **§6AD**. **Prior code:** `a7249b3` (3J3E option persistence, §6AE), `e96aaab` (docs), `4f24f1f` (quantity resolver tests), `87be1b4` (Phase D validation lock), `e1a8f7c` / `a62ad93` / `2694bc4` / `0649e04` (Phases C–A), `e38b276` (3J3D, §6AC). **Tests (pre-commit audit at `ce3d6bc`):** **175/175** across pricing-trust + foundation suites; key: `proposalRecordStore` **35/35**, `proposalDraftGraphAdapter` **19/19**, `proposalStaleness` **10/10**, `proposalPricingTrustFixtures` **10/10**, `proposalQuantityResolver` **32/32**, `proposalPricingEngine` **22/22**, `proposalPricingInputMapper` **16/16**, `proposalBuilderPricingPreview` **9/9**, `proposalSnapshotBuilder` **22/22**. **Typecheck:** only **6** pre-existing errors in `app/tools/roofing-v2/RoofingClientV2.tsx` — unchanged. **Protected systems:** legacy `RoofingClient.tsx` pricing `useMemo`, payments, approval, status, saved estimates, send/PDF **untouched** outside scoped DB-first Job Card → Builder draft flow. **Pricing engine/math files untouched** — issue was display/snapshot freshness, not formula bug (§6AF.6).
 
 **Jobs Board approved save point:** `b27a444` (3F9B4-RoofrExact visual baseline). **DB-first board partition:** `a62ad93` (§6AD). **Prior Job Board checkpoint:** `36fa3a9` (3F9B3).
 
-**Next (recommended):** **Manual smoke** — **§6AE.5** (3J3E option persistence) then **§6AD.7** (full DB-first foundation). After smoke: next proposal draft editing/persistence slice **or** legacy estimate import/conversion planning — **do not** return to `loadSaved`/`currentSaved` as main workflow. **Preview / Send / Sign / Payment remain disabled** until **3K+**. **3I-3D2 / §6Y visual work** remains deferred until smoke passes. **Do not** touch Builder visuals unless explicitly scoped.
+**Next (recommended):** See **§11 — Roadmap buckets** (TODAY / NEXT / LATER / DO NOT DO YET). **Run manual smoke before new feature work** — **§6AE.5** → **§6AF.9** → **§6AD.7**. After smoke passes: next **proposal draft editing/persistence** slice only (legacy import is **LATER**). **Preview / Send / Sign / Payment remain disabled** until **3K+**. **3I-3D2 / §6Y visual work** remains deferred until smoke passes. **Do not** touch Builder visuals unless explicitly scoped.
 
-**DB-first foundation is live** (§6AD). **3J3E option selection persists** (§6AE). Main workflow: **Job Board → DB job card (`job=`) → create/reuse DB proposal draft → Builder (`job=` + `proposal=`) → option tab persists to DB**. Legacy `loadSaved=` / `currentSaved` / board-origin paths are **preserved but separated** — they **cannot create DB proposals directly**. **DB proposal math uses the new spine only** (`measurement_records` → `proposalQuantityResolver` → `proposalPricingEngine` → snapshots) — **not** legacy saved-estimate / Core-Enhanced-Premium estimator math. **`createDraftProposal`** runs from Job Card **+ Proposal** only when clean DB `job=` identity is available; **Builder reads** persisted drafts via **`getDraftGraph`** + **`proposalDraftGraphAdapter`** when `?proposal=` is present — **no Builder create path**, **no silent fallback** on invalid `proposal=`. **Do not** persist placeholder/unconfigured pricing policy. **Catalog custom delete/deactivate** is **not implemented** and remains a **separate later scope**.
+**DB-first foundation is live** (§6AD). **3J3E option selection persists** (§6AE). **Pricing trust hardening complete** (§6AF) — persisted Builder path shows snapshot quantities with snapshot prices; stale detection + refresh wired. Main workflow: **Job Board → DB job card (`job=`) → create/reuse DB proposal draft → Builder (`job=` + `proposal=`) → option tab persists to DB; refresh draft pricing when measurement changes**. Legacy `loadSaved=` / `currentSaved` / board-origin paths are **preserved but separated** — they **cannot create DB proposals directly**. **DB proposal math uses the new spine only** (`measurement_records` → `proposalQuantityResolver` → `proposalPricingEngine` → snapshots) — **not** legacy saved-estimate / Core-Enhanced-Premium estimator math. **`createDraftProposal`** runs from Job Card **+ Proposal** only when clean DB `job=` identity is available; **Builder reads** persisted drafts via **`getDraftGraph`** + **`proposalDraftGraphAdapter`** when `?proposal=` is present — **no Builder create path**, **no silent fallback** on invalid `proposal=`. **Do not** persist placeholder/unconfigured pricing policy. **Catalog custom delete/deactivate** is **not implemented** and remains a **separate later scope**.
 
 ### Recent committed sequence (3G6 spine + execution surfaces + 3H + 3I pricing foundation + 3I-2 Builder preview + 3I-3 company policy + 3J proposal persistence spine)
 
 | Commit | Summary |
 |--------|---------|
+| `ce3d6bc` | **Pricing trust hardening** — No mixed truth in persisted Builder path; `proposalStaleness` stale detection; amber stale banner + Refresh draft pricing wired; `refreshDraftPricing` re-stamps `context_echo` measurement id/display; golden tests (§6AF) |
+| `e96aaab` | **Docs** — Update handoff after 3J3E option persistence (§6AE) |
 | `a7249b3` | **3J3E** — Persist Builder option selection to DB draft via `updateDraftSelectedOption`; template↔runtime option id mapping; optimistic UI + revert on failure (§6AE) |
 | `4f24f1f` | **Test** — `proposalQuantityResolver.test.ts` (32 tests); closes top pricing-foundation quantity-bridge gap; test-only |
 | `3b5138a` | **Docs** — Record DB-first foundation Phases A–D (§6AD) |
@@ -115,7 +122,7 @@
 - **Do not** create PDF / send / approval bridges before proposal records exist.
 - **Do not** touch payment / status / approval while working catalog or template setup (unless the stage explicitly scopes it).
 - **Do not treat table/store existence as product completion** — audit **architecture, functionality, layout, and UI** together before advancing the spine.
-- **3G6 Templates setup surface is complete** (3G6A–E + D2/D3) — **3H-1 Proposal Builder shell** (`feec663`); **3H-2 read-only proposal preview** (`00fbf64`); **3H-3 read-only quantity preview** (`40e6720`); **3I-1 pure pricing engine + input mapper** (`162f9be`–`52b7148`); **3I-2 read-only Builder pricing preview** (`5626c47`–`637b85a`) — **wired from Builder route only** via orchestrator; **3I-3** company policy + internal profitability rail **done**; **3J2** lib persistence spine **done** (`13b4e72`, §6AB); **3J3** Job Card → persisted Builder draft flow **done** (`e38b276`, §6AC); **DB-first foundation Phases A–D done** (`87be1b4`, §6AD); **3J3E** option selection persistence **done** (`a7249b3`, §6AE); **3K** (PDF/send adapters) remains later; do not enable Preview/Send/Sign/Payment without explicit scope.
+- **3G6 Templates setup surface is complete** (3G6A–E + D2/D3) — **3H-1 Proposal Builder shell** (`feec663`); **3H-2 read-only proposal preview** (`00fbf64`); **3H-3 read-only quantity preview** (`40e6720`); **3I-1 pure pricing engine + input mapper** (`162f9be`–`52b7148`); **3I-2 read-only Builder pricing preview** (`5626c47`–`637b85a`) — **wired from Builder route only** via orchestrator; **3I-3** company policy + internal profitability rail **done**; **3J2** lib persistence spine **done** (`13b4e72`, §6AB); **3J3** Job Card → persisted Builder draft flow **done** (`e38b276`, §6AC); **DB-first foundation Phases A–D done** (`87be1b4`, §6AD); **3J3E** option selection persistence **done** (`a7249b3`, §6AE); **Pricing trust hardening done** (`ce3d6bc`, §6AF); **3K** (PDF/send adapters) remains later; do not enable Preview/Send/Sign/Payment without explicit scope.
 - **Do not casually patch pricing** during catalog/template/Job Card link work — see **§11 — Pricing (protected + future redesign)**.
 
 ---
@@ -1744,6 +1751,7 @@ Underlying foundation (pre-3I-3B3): **3I-3B1 resolver** (`c1b52ee`), **3I-3B2A m
 | **P5** | **3J2** | Proposal persistence spine (mapper + builder + store) | **Done** (`1033cd9`–`13b4e72`, §6AB) | Draft graph can be written/read in lib layer |
 | **P5b** | **3J3** | Job Card → persisted Builder draft flow | **Done** (`fc43849`–`e38b276`, §6AC) | Builder/Job Card use real proposal records |
 | **P5c** | **3J3E** | Option selection persistence | **Done** (`a7249b3`, §6AE) | Builder option tab persists via `updateDraftSelectedOption` |
+| **P5d** | **Pricing trust** | Snapshot display + stale refresh | **Done** (`ce3d6bc`, §6AF) | No mixed truth; stale banner; refresh re-stamps context |
 | **P6** | **3K0** | Preview | UI — reads snapshot | Preview button can light up |
 | **P7** | **3K1** | Send bridge | PDF + transmit | Send can light up |
 | **P8** | **3K2** | Approval / signature state | SQL + UI | Sign can light up |
@@ -2763,7 +2771,7 @@ Builder load
 
 **3J3D test files:** `proposalDraftGraphAdapter.test.ts` (10 tests at 3J3D; **13** after Phase D test lock — §6AD).
 
-### 6. Manual smoke checklist (3J3 — historical; superseded by §6AE.5 + §6AD.7)
+### 6. Manual smoke checklist (3J3 — historical; superseded by §6AE.5 → §6AF.9 → §6AD.7)
 
 - [ ] Packet/direct Job Card + configured policy → **+ Proposal** creates draft once; URL includes `proposal=`
 - [ ] Second **+ Proposal** click reuses same proposal id (no duplicate create)
@@ -2791,7 +2799,7 @@ Builder load
 
 ### 8. Next recommended (historical — superseded by §6AE + §6AD.8)
 
-1. **Manual smoke** — **§6AE.5** (3J3E option persistence), then **§6AD.7** (full DB-first).
+1. **Manual smoke** — **§6AE.5** (3J3E option persistence) → **§6AF.9** (pricing trust) → **§6AD.7** (full DB-first).
 2. **Next proposal draft slice** or **legacy import planning** — after smoke.
 3. **Do not** enable Preview/Send/Sign/Payment until **3K+**.
 4. **Do not** resume **3I-3D2 / §6Y** visual work until smoke passes.
@@ -2800,7 +2808,7 @@ Builder load
 
 ## 6AD. DB-FIRST FOUNDATION PHASES A–D COMPLETE
 
-**Status:** **DB-first foundation complete (Phases A–D).** **Checkpoint:** `87be1b4`. **Follow-on:** **3J3E complete** (`a7249b3`, §6AE); quantity resolver tests (`4f24f1f`). **Prior:** `e1a8f7c` (Phase C), `a62ad93` (Phase B), `2694bc4` / `0649e04` (Phase A), `e38b276` (3J3, §6AC). **Purpose:** Record the repair work that makes DB records the main FieldDive foundation while preserving legacy localStorage estimates in a separated, non-destructive path.
+**Status:** **DB-first foundation complete (Phases A–D).** **Checkpoint:** `87be1b4`. **Follow-on:** **3J3E complete** (`a7249b3`, §6AE); **pricing trust hardening complete** (`ce3d6bc`, §6AF); quantity resolver tests (`4f24f1f`). **Prior:** `e1a8f7c` (Phase C), `a62ad93` (Phase B), `2694bc4` / `0649e04` (Phase A), `e38b276` (3J3, §6AC). **Purpose:** Record the repair work that makes DB records the main FieldDive foundation while preserving legacy localStorage estimates in a separated, non-destructive path.
 
 ### 1. Committed slices (Phases A–D)
 
@@ -2908,7 +2916,9 @@ Combines **§6AC** implementation with **Phases A–D** identity gates:
 
 ### 7. Manual smoke standard (DB-first foundation)
 
-Use **§6AE.5** for 3J3E option persistence smoke first, then this checklist for full DB-first verification.
+**Smoke order (full pass):** **§6AE.5** (3J3E option persistence) → **§6AF.9** (pricing trust) → **this checklist** (§6AD.7 full DB-first).
+
+Run **§6AE.5** and **§6AF.9** before this checklist if not already done.
 
 **Fresh DB job:**
 
@@ -2937,17 +2947,18 @@ Use **§6AE.5** for 3J3E option persistence smoke first, then this checklist for
 
 - [ ] Preview / Send / Sign / Payment remain disabled
 
-### 8. Remaining roadmap (post Phases A–D + 3J3E)
+### 8. Remaining roadmap (post Phases A–D + 3J3E + pricing trust)
 
 | Option | Notes |
 |--------|-------|
-| **3J3E** | Option selection persistence — **DONE** (`a7249b3`, §6AE) — manual smoke recommended |
-| **Next proposal draft slice** | Further draft editing/persistence (e.g. line copy, refresh pricing — scope deliberately) — **after 3J3E smoke** |
+| **3J3E** | Option selection persistence — **DONE** (`a7249b3`, §6AE) |
+| **Pricing trust** | Snapshot display + stale refresh — **DONE** (`ce3d6bc`, §6AF); pricing engine/math untouched |
+| **Next proposal draft slice** | Further draft editing/persistence (e.g. line copy, page context) — **after smoke**; **not** the pricing-trust stale/refresh fix (already done) |
 | **Legacy conversion/import** | Plan path to migrate linked legacy estimates to DB jobs — **no automatic backfill today** |
 | **Job Board legacy labeling** | Polish labels/badges after smoke confirms partition behavior |
 | **3J4** | Page Context Strip backed by `proposal_pages` |
 | **3K** | Preview / PDF / send — **later**; not ready |
-| **3I-3D2 / §6Y** | Visual work — **deferred** until DB-first + 3J3E smoke passes |
+| **3I-3D2 / §6Y** | Visual work — **deferred** until DB-first + pricing-trust smoke passes |
 
 **Do not return to `loadSaved` / `currentSaved` as the main workflow.** **Do not mark Preview/Send/Sign/Payment as ready.** **Do not mark legacy system deleted.** **Do not imply old rows are backfilled.** **Do not touch Builder visuals unless explicitly scoped.**
 
@@ -3025,7 +3036,7 @@ Requires a DB job with a proposal draft that has **multiple options**.
 - [ ] Confirm totals/lines **unchanged** except selected-option view (snapshotted options, not recomputed)
 - [ ] Confirm Preview / Send / Sign / Payment remain disabled
 
-Then run full **§6AD.7** DB-first smoke if not already done.
+Then run **§6AF.9** (pricing trust smoke), then **§6AD.7** (full DB-first) if not already done.
 
 ### 6. Verification (3J3E)
 
@@ -3036,8 +3047,139 @@ Then run full **§6AD.7** DB-first smoke if not already done.
 
 ### 7. Next after smoke
 
-- Next proposal draft editing/persistence slice (scope explicitly — not Builder visuals)
-- **Or** legacy estimate import/conversion planning
+See **§11 Roadmap buckets — NEXT** (proposal draft editing/persistence slices). Legacy import/conversion is **LATER**.
+
+- **Do not** enable Preview/Send/Sign/Payment until **3K+**
+- **Do not** return to `loadSaved` / `currentSaved` as main workflow
+
+---
+
+## 6AF. PRICING TRUST HARDENING — SNAPSHOT DISPLAY + STALE REFRESH COMPLETE
+
+**Status:** **Pricing trust hardening complete.** **Checkpoint:** `ce3d6bc`. **Prior:** `a7249b3` (3J3E, §6AE), `e96aaab` (docs). **Purpose:** Fix trust-critical mixed-source display in persisted Builder path and wire manual refresh when job measurement changes after proposal snapshot.
+
+### 1. Root issue
+
+| Problem | Detail |
+|---------|--------|
+| **Mixed truth** | Persisted proposal path showed **live/current measurement quantities** (from `measurementHandoff` + `proposalQuantityResolver`) beside **stale snapshot prices** (from `proposal_line_items` via `proposalDraftGraphAdapter`) |
+| **No stale signal** | Nothing compared `proposal_versions.context_echo.measurement_record_id` to the job's currently selected measurement |
+| **Refresh not wired** | `refreshDraftPricing` existed in store but was **not imported or called** from Builder UI |
+| **Context not re-stamped** | Refresh updated lines/options/summaries but did **not** update `context_echo` measurement fields — stale state could not clear |
+
+**Not a formula bug:** pricing engine/resolver were sound; issue was **display/snapshot freshness contract** (§6AF.6).
+
+### 2. Committed slice
+
+| Commit | Module / surface | Scope |
+|--------|------------------|-------|
+| `ce3d6bc` | `proposalStaleness.ts` (+ test), `proposalPricingTrustFixtures.test.ts`, `proposalDraftGraphAdapter.ts` (+ test), `proposalRecordStore.ts` (+ test), Builder client/canvas/section/line table | Snapshot qty display; stale detection; amber banner; refresh action; context_echo re-stamp |
+
+### 3. Fix — no mixed truth
+
+| Rule | Detail |
+|------|--------|
+| **Persisted path quantities** | Line qty labels from **`proposal_line_items`** snapshot via adapter `snapshotQuantityByOptionId` — same source as prices |
+| **Persisted path prices** | Unchanged — `customer_line_total_cents` from persisted snapshot |
+| **Live measurement** | Still loaded for staleness detection + refresh input only — **not** shown as priced qty when `?proposal=` |
+| **Context strip** | Persisted path: **`Measurement context (snapshot): …`** from `context_echo.measurement_quantities_display` |
+| **Live preview (no `proposal=`)** | Unchanged — live measurement context + live qty preview |
+
+### 4. Stale detection (`proposalStaleness.ts`)
+
+| Rule | Detail |
+|------|--------|
+| **Pure module** | No Supabase, React, fetch, localStorage, pricing math |
+| **Primary compare** | `context_echo.measurement_record_id` vs currently selected measurement id |
+| **Equal ids** | Not stale (unless optional timestamp path: measurement `updated_at` newer than snapshot proxy → `measurement_updated`) |
+| **Different ids** | Stale — `measurement_changed` |
+| **Missing snapshot id** | Stale trust-first — `measurement_unknown` (refresh records id and clears) |
+| **Banner copy** | *"Proposal pricing is based on an older measurement. Refresh draft pricing."* |
+
+### 5. Stale banner + Refresh draft pricing (Builder)
+
+| Rule | Detail |
+|------|--------|
+| **Banner** | Amber, non-blocking; shown when persisted draft + stale |
+| **Refresh action** | Draft-only button in banner; **persisted `?proposal=` context only** |
+| **Refresh input** | Current live `quantity_context` + `measurement_record_id` + `measurement_quantities_display` |
+| **On success** | `setPersistedGraph(updatedGraph)` from store `getDraftGraph`; stale clears; inline success feedback |
+| **On failure** | Inline error; no navigation |
+| **Explicitly NOT done** | No `createDraftProposal`; no navigation; no Preview/Send/Sign/Payment enablement |
+| **Preview / Send / Sign / Payment** | **Remain disabled** (`ProposalBuilderDisabledActions.tsx` unchanged) |
+
+### 6. Store refresh (`refreshDraftPricing`)
+
+| Rule | Detail |
+|------|--------|
+| **Draft-only** | Rejects non-draft version (existing + tested) |
+| **Re-snapshot** | Deletes/re-inserts line items + internal summaries; updates option totals |
+| **Preserves** | `selected_option_id`, pages/template structure |
+| **Re-stamps** | Merges `context_echo.measurement_record_id` + `measurement_quantities_display` without wiping other context keys; syncs `proposals.measurement_record_id` |
+| **Event** | Appends `draft_saved` with `{ reason: "refresh_draft_pricing" }` |
+| **Boundary** | Customer/internal separation unchanged — forbidden keys still guarded |
+
+### 7. Golden tests (pre-commit audit)
+
+| File | Coverage |
+|------|----------|
+| `proposalStaleness.test.ts` | Stale detection (2300→2500 class), equal ids, missing snapshot id, timestamp path, banner copy, stale clears after refresh id re-stamp |
+| `proposalPricingTrustFixtures.test.ts` | Pure engine: `unit_price`, `fixed_price`, `cost_plus_margin`, option total = line sum, missing qty blocks, `included` |
+| `proposalDraftGraphAdapter.test.ts` | Golden #2 snapshot qty same source as price; missing qty no fake price |
+| `proposalRecordStore.test.ts` | Refresh qty/total increase, option sum, preserve selected option, reject non-draft, no duplicate proposal/version, customer-safe lines, context_echo re-stamp |
+
+**Results:** **175/175** tests passed in pre-commit audit. **Typecheck:** only **6** known `RoofingClientV2.tsx` errors — unchanged.
+
+**Component-level gap:** stale banner render, refresh button click, post-refresh UI — **manual smoke** (§6AF.9).
+
+### 8. Protected math confirmation
+
+**No pricing engine/math files changed:**
+
+| File | Status |
+|------|--------|
+| `proposalPricingEngine.ts` | **Untouched** |
+| `proposalPricingInputMapper.ts` | **Untouched** |
+| `proposalQuantityResolver.ts` | **Untouched** |
+| `proposalSnapshotBuilder.ts` | **Untouched** |
+
+The fix was **display/snapshot freshness**, not a formula-engine bug.
+
+### 9. Manual smoke
+
+**User-reported (partial — aligns with fix):**
+
+- Proposal numbers change correctly after measurement changes / refresh
+- Builder showed **"Measurement context (snapshot)"**
+- Shingles and underlayment values updated after refresh (e.g. shingles/underlayment totals realigned to snapshot)
+
+**Full checklist (next GPT / QA — run before treating smoke complete):**
+
+- [ ] Create/open proposal at ~2300 sq ft
+- [ ] Change selected measurement to ~2500 sq ft
+- [ ] Open Builder with `?proposal=`
+- [ ] Confirm **amber stale banner** appears
+- [ ] Confirm line quantities are **snapshot** quantities, not live 2500
+- [ ] Confirm context strip says **snapshot**
+- [ ] Click **Refresh draft pricing**
+- [ ] Confirm shingles/underlayment quantities and totals update
+- [ ] Hard refresh Builder — refreshed values persist
+- [ ] Switch option, hard refresh — selection persists (§6AE)
+- [ ] Confirm **no duplicate proposal**
+- [ ] Confirm Preview / Send / Sign / Payment remain disabled
+
+Then continue to **§6AD.7** (full DB-first smoke) if not already done.
+
+### 10. Verification (pricing trust)
+
+| Checkpoint | Tests | Typecheck |
+|------------|-------|-----------|
+| **`ce3d6bc`** | **175/175** (see §6AF.7) | 6 known `RoofingClientV2.tsx` errors only |
+
+### 11. Next after smoke
+
+See **§11 Roadmap buckets — NEXT** (proposal draft editing/persistence slices). Legacy import/conversion is **LATER**.
+
 - **Do not** enable Preview/Send/Sign/Payment until **3K+**
 - **Do not** return to `loadSaved` / `currentSaved` as main workflow
 
@@ -3156,16 +3298,21 @@ git status --short
 git log --oneline -15
 ```
 
-Then open and read:
+Then open and read **in this file** (in order):
 
-- `docs/fielddive-global-handoff.md` (this file)
-- **§11 — Forward Roadmap / No-Drift Next Steps** (ordered stages; what is done vs next)
+1. **Header / checkpoint block** (code + docs checkpoint, tests, next recommended)
+2. **Recent commit table** (below header)
+3. **§6AD** — DB-first foundation Phases A–D
+4. **§6AE** — 3J3E option persistence + quantity resolver coverage
+5. **§6AF** — pricing trust hardening
+6. **§9** — required first prompt / resume instructions (this section)
+7. **§11** — roadmap buckets (TODAY / NEXT / LATER / DO NOT DO YET), current checkpoint, built-surface audit, manual smoke
 
-**Verify HEAD** is **`a7249b3`** (3J3E option persistence) or identify newer commits and reconcile this doc.
+**Verify HEAD** is **`ce3d6bc`** or newer (pricing trust hardening); if newer, reconcile this doc.
 
 **Confirm** working tree is clean (or note doc-only WIP).
 
-**Next:** manual smoke **§6AE.5** (3J3E option persistence) then **§6AD.7** (full DB-first foundation). **3J3E complete.** **DB-first Phases A–D complete.** **Preview / Send / Sign / Payment remain disabled** until **3K+**. **Do not** return to `loadSaved`/`currentSaved` as main workflow.
+**Run manual smoke before new feature work.** Order: **§6AE.5** (3J3E option persistence) → **§6AF.9** (pricing trust) → **§6AD.7** (full DB-first foundation). If smoke passes, continue **§11 Roadmap buckets — NEXT**. **Pricing trust hardening complete** (`ce3d6bc`, §6AF). **3J3E complete.** **DB-first Phases A–D complete.** **Preview / Send / Sign / Payment remain disabled** until **3K+**. **Do not** return to `loadSaved`/`currentSaved` as main workflow. **Do not** claim legacy deleted, old rows backfilled, pricing engine/math or SQL/migrations changed in `ce3d6bc`.
 
 Inspect before planning **3F9** (or chosen stage):
 
@@ -3198,7 +3345,7 @@ Inspect before planning **3F9** (or chosen stage):
 | `app/tools/roofing/jobCard/jobCardIdentityUtils.ts` | Pure Job Card identity display from `JobRecord` (pre-3H-2) |
 | `supabase/migrations/20260531_004_create_proposal_template_tables.sql` | Live template schema |
 
-Confirm: `+ Proposal` on Job Card launches Builder only when gates pass; `installDefaultRoofingCatalog` only from catalog route; `installDefaultRoofingProposalTemplates` click-only from templates route; **no** template install from Job Card; **no** proposal records from Builder shell.
+Confirm: `+ Proposal` on Job Card creates/reuses DB draft and opens Builder with `?job=&proposal=` when successful; `installDefaultRoofingCatalog` only from catalog route; `installDefaultRoofingProposalTemplates` click-only from templates route; **no** template install from Job Card; Builder **reads** persisted draft graph when `proposal=` present; **Preview / Send / Sign / Payment remain disabled**.
 
 ---
 
@@ -3229,7 +3376,7 @@ Confirm: `+ Proposal` on Job Card launches Builder only when gates pass; `instal
 
 | Route | Table / role |
 |-------|----------------|
-| `/tools/roofing/proposals/builder?job=<uuid>` | **3H-1 + 3H-2 + 3H-3** — Proposal Builder (read-only, gated); document-style preview with quantity preview when gates pass; blocked without job/gates; no proposal records |
+| `/tools/roofing/proposals/builder?job=<uuid>&proposal=<uuid>` | **3H + 3I + 3J + §6AF** — Proposal Builder; **persisted draft path** when `proposal=` (reads `getDraftGraph` + adapter); live preview only when `proposal=` absent; stale banner + Refresh draft pricing when measurement changes; **Preview / Send / Sign / Payment remain disabled** |
 | `/tools/roofing?entry=job-card&job=<uuid>` | Job Card for persisted job (packet-origin after Continue, or direct URL) |
 | `/tools/roofing?entry=job-card` | Job Card shell without job — limited (no measurement save without job id) |
 | `/tools/roofing?entry=packet` | Job Packet / New Job intake (canonical capture/prep) |
@@ -3245,13 +3392,52 @@ Confirm: `+ Proposal` on Job Card launches Builder only when gates pass; `instal
 
 ## 11. FORWARD ROADMAP / NO-DRIFT NEXT STEPS
 
-Use this section as the **ordered checklist** for future GPT/Cursor sessions. Knock items off top-to-bottom within each band; do not skip layers. Product/code stages marked **DONE** reflect commits through **3F8 Pass E** (`d422ee6`); handoff doc through **`d422ee6`** unless a later commit supersedes.
+Use this section as the **ordered checklist** for future GPT/Cursor sessions. Knock items off top-to-bottom within each band; do not skip layers. **Active roadmap:** **§11 Roadmap buckets** below; **code checkpoint** **`ce3d6bc`** (§6AF); **handoff doc** updated by commits after **`e96aaab`** (see header checkpoint block).
+
+### Roadmap buckets (TODAY / NEXT / LATER / DO NOT DO YET)
+
+**TODAY / IMMEDIATE**
+
+- Confirm latest checkpoint (HEAD **`ce3d6bc`** or newer; reconcile this doc if newer).
+- Run 3J3E option persistence smoke — **§6AE.5**.
+- Run pricing trust smoke — **§6AF.9**.
+- Run full DB-first smoke — **§6AD.7**.
+- **Do not start new feature work until smoke passes.**
+- If smoke fails, diagnose/fix the **failed path only** — do not broaden scope.
+- If smoke passes, continue the **next scoped roadmap slice** (see **NEXT** below).
+
+**NEXT**
+
+- Proposal draft editing/persistence slices (e.g. line copy, page context — **3J4+**).
+- Continue DB-backed proposal lifecycle on the new spine.
+- Keep **Preview / Send / Sign / Payment disabled** until **3K+** lifecycle is ready.
+
+**LATER**
+
+- Legacy estimate import/conversion (no automatic backfill today).
+- Proposal Preview (**3K**).
+- Send (**3K**).
+- E-sign / approval (**3K+**).
+- Payment (**3K+**).
+- Production/scheduling workflows.
+- Reports/analytics.
+- Broader module expansion.
+
+**DO NOT DO YET**
+
+- Do not use `loadSaved` / `currentSaved` as main workflow.
+- Do not enable Preview / Send / Sign / Payment.
+- Do not touch Builder visuals without explicit scope.
+- Do not change pricing math without golden-test proof.
+- Do not run SQL/migrations without approval.
+
+---
 
 ### Current checkpoint
 
-**Latest code checkpoint:** **`a7249b3` — 3J3E: persist proposal option selection** (§6AE). **DB-first foundation Phases A–D:** `0649e04`–`87be1b4` (§6AD). **Quantity resolver tests:** `4f24f1f`. **3J3:** `fc43849`–`e38b276` (§6AC). **3J2:** `1033cd9`–`13b4e72`. **3J1:** migrations applied §6AA. **3J0:** `3ae5e39`. **3I-3D:** `fbdedbe`. **3I-3C:** `3491e48`. **3I-2:** `5626c47`–`637b85a`. **3H-3:** `40e6720`. **3H-2:** `00fbf64`. **3H-1:** `feec663`.  
+**Latest code checkpoint:** **`ce3d6bc` — fix(proposals): harden pricing trust snapshot refresh** (§6AF). **DB-first foundation Phases A–D:** `0649e04`–`87be1b4` (§6AD). **3J3E:** `a7249b3` (§6AE). **Quantity resolver tests:** `4f24f1f`. **3J3:** `fc43849`–`e38b276` (§6AC). **3J2:** `1033cd9`–`13b4e72`. **3J1:** migrations applied §6AA. **3J0:** `3ae5e39`. **3I-3D:** `fbdedbe`. **3I-3C:** `3491e48`. **3I-2:** `5626c47`–`637b85a`. **3H-3:** `40e6720`. **3H-2:** `00fbf64`. **3H-1:** `feec663`.  
 **Jobs Board approved save point:** **3F9B4-RoofrExact** (`b27a444` visual baseline); **DB-first partition** (`a62ad93`, §6AD).  
-**Latest handoff doc checkpoint:** **pending this commit** (prior docs: `3b5138a`, §6AD). **Next:** manual smoke **§6AE.5** (3J3E option persistence), then **§6AD.7** (full DB-first); then next proposal draft slice **or** legacy import planning.
+**Latest handoff doc checkpoint:** **pending this commit** (prior docs: `e96aaab`, §6AE). **Next:** see **§11 Roadmap buckets — TODAY / IMMEDIATE** (smoke **§6AE.5** → **§6AF.9** → **§6AD.7** before new feature work).
 
 **Completed working state (summary):**
 
@@ -3280,7 +3466,8 @@ Use this section as the **ordered checklist** for future GPT/Cursor sessions. Kn
 | **3J2** Snapshot mapper + builder + record store | **DONE** (`13b4e72`, §6AB) — lib layer |
 | **3J3** Job Card → persisted Builder draft flow | **DONE** (`e38b276`, §6AC) |
 | **DB-first foundation Phases A–D** | **DONE** (`87be1b4`, §6AD) — sparse job/measurement updates, Job Board partition, `job=` identity, proposal validation test lock |
-| **3J3E option selection persistence** | **DONE** (`a7249b3`, §6AE) — manual smoke recommended (§6AE.5) |
+| **3J3E option selection persistence** | **DONE** (`a7249b3`, §6AE) |
+| **Pricing trust hardening** | **DONE** (`ce3d6bc`, §6AF) — snapshot qty+price alignment; stale detection; refresh wired; user partial smoke positive |
 | **Canonical catalog route** | **`/tools/roofing/catalog`** — `CatalogSetupClient` |
 | **Canonical templates route** | **`/tools/roofing/templates`** — `TemplatesSetupClient` |
 | **Proposal Builder route** | **`/tools/roofing/proposals/builder?job=<uuid>&proposal=<uuid>`** — persisted draft when `proposal=`; **live preview only** when `proposal=` absent (no silent fallback when `proposal=` invalid) |
@@ -3306,7 +3493,9 @@ Treat these as **known architecture notes** — legacy paths remain reachable bu
 
 ### Must confirm manually (remaining smoke)
 
-Use **§6AD.7** DB-first smoke checklist. **Optional remaining browser checks:**
+**Smoke order:** **§6AE.5** (3J3E option persistence) → **§6AF.9** (pricing trust) → **§6AD.7** (full DB-first foundation). **Run manual smoke before new feature work.**
+
+Use **§6AD.7** for the full DB-first checklist (after §6AE.5 and §6AF.9). **Optional remaining browser checks:**
 
 1. **Fresh packet** — **CONFIRMED** post-`c12ea4d`: clean contact/property fields; Continue creates new job UUID; Job Card shows persisted packet details; refresh preserves info.
 2. **Second packet** — **CONFIRMED** post-`c12ea4d`: return to packet starts clean; second packet yields different UUID and correct details; stale saved-estimate data does not bleed into packet-created Job Card.
@@ -3340,8 +3529,9 @@ Use **§6AD.7** DB-first smoke checklist. **Optional remaining browser checks:**
 16. ~~**3J2 lib persistence spine**~~ — **DONE** (`13b4e72`, §6AB).
 17. ~~**3J3 Job Card → persisted Builder draft flow**~~ — **DONE** (`e38b276`, §6AC).
 18. ~~**3J3E option selection persistence**~~ — **DONE** (`a7249b3`, §6AE) — manual smoke **§6AE.5**; Preview/Send/Sign/Payment still disabled.
-19. **Next proposal draft slice or legacy import** — after 3J3E + DB-first smoke; **do not** return to `loadSaved`/`currentSaved` as main workflow.
-19. **Jobs Board** remains saved-estimate spine — acceptable for Builder `?job=`; migration **Future/Later**.
+19. ~~**Pricing trust hardening**~~ — **DONE** (`ce3d6bc`, §6AF) — manual smoke **§6AF.9**; pricing engine/math untouched.
+20. **Next proposal draft slice** — after full smoke (**§6AE.5** → **§6AF.9** → **§6AD.7**); see **§11 Roadmap buckets — NEXT**; **do not** return to `loadSaved`/`currentSaved` as main workflow.
+21. **Jobs Board** remains saved-estimate spine — acceptable for Builder `?job=`; migration **Future/Later**.
 
 ---
 
@@ -3809,11 +3999,11 @@ Run parallel to legacy estimator; do not overwrite `useMemo` until validated and
 
 ---
 
-### Stage 3J — Proposal records / persistence — **3J3E DONE**
+### Stage 3J — Proposal records / persistence — **3J3E + PRICING TRUST DONE**
 
-**3J0** types (`3ae5e39`), **3J1** SQL (006/007 applied §6AA), **3J2** lib spine (`13b4e72`, §6AB), **3J3** Job Card → persisted Builder draft flow (`e38b276`, §6AC), **3J3E** option selection persistence (`a7249b3`, §6AE).
+**3J0** types (`3ae5e39`), **3J1** SQL (006/007 applied §6AA), **3J2** lib spine (`13b4e72`, §6AB), **3J3** Job Card → persisted Builder draft flow (`e38b276`, §6AC), **3J3E** option selection persistence (`a7249b3`, §6AE), **Pricing trust hardening** (`ce3d6bc`, §6AF).
 
-**Manual smoke:** §6AE.5 (3J3E option persistence). **No Preview/Send/Sign/Payment** until **3K+**.
+**Manual smoke:** **§6AE.5** → **§6AF.9** → **§6AD.7**. **No Preview/Send/Sign/Payment** until **3K+**.
 
 **Suggested commits:** **3J4** Page Context Strip, then **3K** preview/PDF/send
 
@@ -3994,7 +4184,8 @@ Treat as **drift** if a session:
 - **2026-06-04:** **Pre-3H-2 source-of-truth fix** (`abd718d`) — Activity rail readiness copy, fresh packet intake reset, Job Card `?job=` identity; handoff (`d4b4f25`).
 - **2026-06-04:** **3H-1 complete** — Proposal Builder shell and gates (`feec663`); packet handoff fix (`fd87152`); handoff (`cf3706f`); built-surface audit.
 - **2026-05-31:** **3G6 complete** — 3G6A–E (`15ad732`–`b78c9ee`), Templates D2 (`227061c`), Catalog D2 (`29ca190`); Job Card + Job Packet audits documented; **next: plan 3H** Proposal Builder (Roofr research; not until scoped); pricing remains protected.
-- **2026-06-07:** **3J3E complete** — Builder option selection persists to DB (`a7249b3`); quantity resolver test coverage (`4f24f1f`, 32 tests); §6AE added; **next:** manual smoke (§6AE.5 + §6AD.7), then next draft slice or legacy import; Preview/Send/Sign/Payment remain disabled until 3K+.
-- **2026-06-07:** **DB-first foundation Phases A–D complete** — Phase A customer/measurement sparse updates (`0649e04`, `2694bc4`), Phase B Job Board partition (`a62ad93`), Phase C `job=` identity (`e1a8f7c`), Phase D validation test lock (`87be1b4`); §6AD added; docs `3b5138a`; **next:** manual smoke, then 3J3E or legacy import planning; Preview/Send/Sign/Payment remain disabled until 3K+; legacy localStorage preserved not deleted.
+- **2026-06-07:** **Pricing trust hardening complete** — snapshot qty+price alignment, stale detection, refresh wired (`ce3d6bc`); §6AF added; **175/175** tests in pre-commit audit; pricing engine/math untouched; user partial smoke positive; **next (superseded by §11):** full manual smoke (**§6AE.5** → **§6AF.9** → **§6AD.7**), then **§11 NEXT** (proposal draft slice); legacy import is **LATER**; Preview/Send/Sign/Payment remain disabled until 3K+.
+- **2026-06-07:** **3J3E complete** — Builder option selection persists to DB (`a7249b3`); quantity resolver test coverage (`4f24f1f`, 32 tests); §6AE added; **next (superseded by §11):** manual smoke (**§6AE.5** → **§6AF.9** → **§6AD.7**), then **§11 NEXT** (proposal draft slice); legacy import is **LATER**; Preview/Send/Sign/Payment remain disabled until 3K+.
+- **2026-06-07:** **DB-first foundation Phases A–D complete** — Phase A customer/measurement sparse updates (`0649e04`, `2694bc4`), Phase B Job Board partition (`a62ad93`), Phase C `job=` identity (`e1a8f7c`), Phase D validation test lock (`87be1b4`); §6AD added; docs `3b5138a`; **next (historical):** manual smoke, then 3J3E (since done) — active **§11** supersedes; Preview/Send/Sign/Payment remain disabled until 3K+; legacy localStorage preserved not deleted.
 - **2026-06-06:** **3J3 complete** — 3J3B active draft detection (`fc43849`), 3J3C Job Card create/reuse (`1915b2d`), 3J3D Builder persisted read (`e38b276`); §6AC added; **109/109** tests at 3J3D; **next:** manual smoke, optional 3J3E; Preview/Send/Sign/Payment remain disabled until 3K+; 3I-3D2 visual work deferred until smoke passes.
 - **2026-06-06:** **3J2 complete** — 3J2B1 status mapper (`1033cd9`), 3J2B2 snapshot builder (`213e322`), 3J2B3 record store (`13b4e72`); §6AB added; **180/180** tests; **next: 3J3** Builder/Job Card draft wiring; Preview/Send/Sign/Payment remain disabled until 3K+.
