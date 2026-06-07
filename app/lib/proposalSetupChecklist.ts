@@ -25,6 +25,7 @@ export type ProposalSetupItemStatus =
 export type ProposalSetupActionType =
   | "job_card_tab"
   | "route"
+  | "normalize_job_card"
   | "create_proposal"
   | "open_builder"
   | "none";
@@ -146,8 +147,8 @@ function openDbBackedJobCardAction(jobId: string): ProposalSetupAction {
     label: "Open DB-backed Job Card",
     helperText:
       "Open this job as a saved Job Card before creating proposal drafts. Saving measurements alone does not unblock board-origin jobs.",
-    actionType: "route",
-    href: buildJobCardHref(jobId),
+    actionType: "normalize_job_card",
+    href: `${buildJobCardHref(jobId)}&tab=proposals`,
   };
 }
 

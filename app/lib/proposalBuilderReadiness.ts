@@ -214,6 +214,28 @@ export function buildJobCardReturnTo(
 }
 
 /**
+ * Validate a returnTo param and return a safe internal href, or null.
+ * Only allows internal absolute /tools/ paths — blocks external/protocol URLs.
+ */
+export function parseInternalReturnTo(
+  returnTo: string | null | undefined
+): string | null {
+  if (returnTo == null) return null;
+  let value = String(returnTo).trim();
+  if (!value) return null;
+  if (/%2f|%3a/i.test(value)) {
+    try {
+      value = decodeURIComponent(value);
+    } catch {
+      return null;
+    }
+  }
+  if (value.startsWith("//")) return null;
+  if (!value.startsWith("/tools/")) return null;
+  return value;
+}
+
+/**
  * Append return context (returnTo + job + tab) to a setup-route href
  * (Catalog / Templates / Pricing) so the user can return to the same Job Card.
  */

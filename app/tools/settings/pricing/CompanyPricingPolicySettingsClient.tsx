@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { parseInternalReturnTo } from "@/app/lib/proposalBuilderReadiness";
 import {
   getResolvedCompanyPricingPolicy,
   upsertCompanyPricingPolicy,
@@ -41,6 +42,12 @@ export default function CompanyPricingPolicySettingsClient({
   const [loading, setLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>({ kind: "idle" });
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [backToJobCardHref, setBackToJobCardHref] = useState<string | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setBackToJobCardHref(parseInternalReturnTo(params.get("returnTo")));
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -104,13 +111,24 @@ export default function CompanyPricingPolicySettingsClient({
   return (
     <main className="min-h-screen bg-[#0b0f19] text-white p-4 sm:p-6 lg:p-8 pb-10">
       <div className="mx-auto max-w-xl">
-        <Link
-          href="/tools/settings"
-          className="inline-flex items-center gap-2 text-sm text-white/70 hover:text-white/90 mb-6"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Settings
-        </Link>
+        <div className="mb-6 flex flex-wrap items-center gap-3">
+          <Link
+            href="/tools/settings"
+            className="inline-flex items-center gap-2 text-sm text-white/70 hover:text-white/90"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Settings
+          </Link>
+          {backToJobCardHref ? (
+            <Link
+              href={backToJobCardHref}
+              className="inline-flex items-center gap-1.5 rounded-md border border-cyan-400/30 bg-cyan-500/10 px-3 py-1.5 text-sm font-medium text-cyan-200 transition hover:bg-cyan-500/20"
+            >
+              <ArrowLeft className="h-4 w-4" aria-hidden />
+              Back to Job Card
+            </Link>
+          ) : null}
+        </div>
 
         <h1 className="text-xl font-semibold text-white/95 mb-2">Company Pricing Policy</h1>
         <p className="text-sm text-white/60 mb-4">

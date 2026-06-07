@@ -153,6 +153,7 @@ import { buildJobCardDisplayModel } from "@/app/tools/roofing/saved/jobsBoardUti
 import JobCardHeader from "@/app/tools/roofing/jobCard/JobCardHeader";
 import JobCardMetadataStrip from "@/app/tools/roofing/jobCard/JobCardMetadataStrip";
 import JobCardTabs, { type JobCardTabId } from "@/app/tools/roofing/jobCard/JobCardTabs";
+import { JOB_CARD_TABS } from "@/app/tools/roofing/jobCard/jobCardTypes";
 import JobCardSectionPanel from "@/app/tools/roofing/jobCard/JobCardSectionPanel";
 import JobCardActivityPanel, { type JobCardActivityItem } from "@/app/tools/roofing/jobCard/JobCardActivityPanel";
 import JobCardOverviewSummary from "@/app/tools/roofing/jobCard/JobCardOverviewSummary";
@@ -1095,6 +1096,8 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
   const [proposalLaunchError, setProposalLaunchError] = useState<string | null>(null);
   const [proposalLaunchReason, setProposalLaunchReason] =
     useState<ResolveOrCreateProposalDraftEntryReason | null>(null);
+  const [isLaunchingProposal, setIsLaunchingProposal] = useState(false);
+  const proposalLaunchInFlightRef = useRef(false);
   const measurementSaveInFlightRef = useRef<string | null>(null);
   const measurementFormHydratedRef = useRef<string | null>(null);
   const [jobCardTab, setJobCardTab] = useState<JobCardTabId>("overview");
@@ -1138,6 +1141,16 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
       // ignore storage failures
     }
   }, [entryMode, currentJobId]);
+
+  // Honor ?tab= on the Job Card (e.g. returnTo / normalization land on Proposals).
+  useEffect(() => {
+    if (entryMode !== "job-card") return;
+    const tab = searchParams.get("tab");
+    if (!tab) return;
+    if (JOB_CARD_TABS.some((t) => t.id === tab)) {
+      setJobCardTab(tab as JobCardTabId);
+    }
+  }, [entryMode, searchParams]);
 
   const isJobCardBoardContext =
     jobCardBoardOrigin || Boolean(loadSavedId) || isBoardOriginParam;
@@ -7260,46 +7273,69 @@ Thanks,`;
     });
 
     const handleLaunchProposalDraft = () => {
+      if (proposalLaunchInFlightRef.current) return;
       void (async () => {
         if (!currentJobId) return;
         const cid = (companyId ?? "").trim();
         if (!cid) return;
         if (isBoardOrigin && proposalDraftCreatePayload == null) return;
 
+        proposalLaunchInFlightRef.current = true;
+        setIsLaunchingProposal(true);
         setProposalLaunchError(null);
         setProposalLaunchReason(null);
 
-        const result = await resolveOrCreateProposalDraftEntry(
-          {
-            companyId: cid,
-            jobId: currentJobId,
-            activeProposalId: jobCardActiveProposalId,
-            createPayload: proposalDraftCreatePayload,
-          },
-          {
-            getProposalById,
-            listProposalsForJob,
-            createDraftProposal,
-          }
-        );
+        try {
+          const result = await resolveOrCreateProposalDraftEntry(
+            {
+              companyId: cid,
+              jobId: currentJobId,
+              activeProposalId: jobCardActiveProposalId,
+              createPayload: proposalDraftCreatePayload,
+            },
+            {
+              getProposalById,
+              listProposalsForJob,
+              createDraftProposal,
+            }
+          );
 
-        if (result.proposalId) {
-          router.push(buildProposalBuilderHref(currentJobId, result.proposalId));
-          return;
-        }
-
-        if (result.errorMessage) {
-          setProposalLaunchError(result.errorMessage);
-          setProposalLaunchReason(result.reason);
-          if (!isExpectedProposalDraftEntryFailure(result.reason)) {
-            console.error(
-              "[RoofingClient] proposal draft entry failed:",
-              result.reason,
-              result.errorMessage
-            );
+          if (result.proposalId) {
+            router.push(buildProposalBuilderHref(currentJobId, result.proposalId));
+            return;
           }
+
+          if (result.errorMessage) {
+            setProposalLaunchError(result.errorMessage);
+            setProposalLaunchReason(result.reason);
+            if (!isExpectedProposalDraftEntryFailure(result.reason)) {
+              console.error(
+                "[RoofingClient] proposal draft entry failed:",
+                result.reason,
+                result.errorMessage
+              );
+            }
+          }
+        } finally {
+          proposalLaunchInFlightRef.current = false;
+          setIsLaunchingProposal(false);
         }
       })();
+    };
+
+    // Board-origin identity normalization: clear sticky overlay state and open the
+    // clean DB job= path (no from=board, no loadSaved). Does NOT create a proposal.
+    const handleNormalizeAndOpenJobCard = (href: string) => {
+      setJobCardBoardOrigin(false);
+      setCurrentLoadedSavedId(null);
+      if (currentJobId && isUuidLike(currentJobId)) {
+        try {
+          window.localStorage.setItem(LAST_DB_JOB_ID_STORAGE_KEY, currentJobId);
+        } catch {
+          // ignore storage failures
+        }
+      }
+      router.push(href);
     };
 
     const reportMeasurementRows: { label: string; value: string; muted?: boolean }[] = [
@@ -7938,9 +7974,11 @@ Thanks,`;
                       checklist={proposalSetupChecklist}
                       onSelectTab={setJobCardTab}
                       onNavigate={router.push}
+                      onNormalizeJobCard={handleNormalizeAndOpenJobCard}
                       onCreateProposal={handleLaunchProposalDraft}
                       onOpenBuilder={(href) => router.push(href)}
                       launchError={proposalLaunchError}
+                      isLaunching={isLaunchingProposal}
                     />
                   </div>
                   <div className={wsBlock}>

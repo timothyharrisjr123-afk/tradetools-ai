@@ -41,9 +41,13 @@ describe("deriveProposalSetupChecklist", () => {
     );
 
     assert.equal(result.primaryAction.label, "Open DB-backed Job Card");
-    assert.equal(result.primaryAction.actionType, "route");
-    assert.match(result.primaryAction.href ?? "", /entry=job-card/);
-    assert.doesNotMatch(result.primaryAction.href ?? "", /from=board/);
+    assert.equal(result.primaryAction.actionType, "normalize_job_card");
+    const href = result.primaryAction.href ?? "";
+    assert.match(href, /entry=job-card/);
+    assert.match(href, new RegExp(`job=${JOB_ID}`));
+    assert.match(href, /tab=proposals/);
+    assert.doesNotMatch(href, /from=board/);
+    assert.doesNotMatch(href, /loadSaved/);
     assert.notEqual(result.primaryAction.label, "Go to Measurements");
     assert.equal(result.activeBlockerId, "db_job_card");
     assert.equal(result.quiet, false);

@@ -12,9 +12,12 @@ type ProposalSetupChecklistProps = {
   checklist: ProposalSetupChecklistResult;
   onSelectTab: (tab: "overview" | "measurements" | "proposals") => void;
   onNavigate: (href: string) => void;
+  onNormalizeJobCard: (href: string) => void;
   onCreateProposal: () => void;
   onOpenBuilder: (href: string) => void;
   launchError?: string | null;
+  /** True while a proposal create/open is in flight — disables primary + shows progress label. */
+  isLaunching?: boolean;
 };
 
 function statusLabel(status: ProposalSetupItemStatus): string {
@@ -56,31 +59,50 @@ function SetupActionButton({
   variant,
   onSelectTab,
   onNavigate,
+  onNormalizeJobCard,
   onCreateProposal,
   onOpenBuilder,
+  isLaunching,
 }: {
   action: ProposalSetupAction;
   variant: "primary" | "secondary";
   onSelectTab: ProposalSetupChecklistProps["onSelectTab"];
   onNavigate: ProposalSetupChecklistProps["onNavigate"];
+  onNormalizeJobCard: ProposalSetupChecklistProps["onNormalizeJobCard"];
   onCreateProposal: ProposalSetupChecklistProps["onCreateProposal"];
   onOpenBuilder: ProposalSetupChecklistProps["onOpenBuilder"];
+  isLaunching?: boolean;
 }) {
   const base =
     variant === "primary"
       ? "inline-flex items-center rounded-md border border-cyan-700 bg-cyan-700 px-2.5 py-1 text-xs font-semibold text-white shadow-sm hover:bg-cyan-800 disabled:cursor-not-allowed disabled:opacity-60"
       : "inline-flex items-center rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-cyan-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60";
 
+  // In-flight applies only to the proposal launch actions on the primary button.
+  const isLaunchAction =
+    action.actionType === "create_proposal" || action.actionType === "open_builder";
+  const showLaunching = Boolean(isLaunching) && isLaunchAction;
+  const label = showLaunching
+    ? action.actionType === "open_builder"
+      ? "Opening proposal…"
+      : "Creating proposal…"
+    : action.label;
+
   return (
     <div>
       <button
         type="button"
-        disabled={action.disabled || action.actionType === "none"}
+        disabled={action.disabled || action.actionType === "none" || showLaunching}
+        aria-busy={showLaunching || undefined}
         className={base}
         onClick={() => {
-          if (action.disabled || action.actionType === "none") return;
+          if (action.disabled || action.actionType === "none" || showLaunching) return;
           if (action.actionType === "job_card_tab" && action.targetTab) {
             onSelectTab(action.targetTab);
+            return;
+          }
+          if (action.actionType === "normalize_job_card" && action.href) {
+            onNormalizeJobCard(action.href);
             return;
           }
           if (action.actionType === "route" && action.href) {
@@ -96,7 +118,7 @@ function SetupActionButton({
           }
         }}
       >
-        {action.label}
+        {label}
       </button>
       {action.helperText ? (
         <p
@@ -131,9 +153,11 @@ export default function ProposalSetupChecklist({
   checklist,
   onSelectTab,
   onNavigate,
+  onNormalizeJobCard,
   onCreateProposal,
   onOpenBuilder,
   launchError,
+  isLaunching,
 }: ProposalSetupChecklistProps) {
   const [showDetails, setShowDetails] = useState(false);
 
@@ -184,8 +208,10 @@ export default function ProposalSetupChecklist({
           variant="primary"
           onSelectTab={onSelectTab}
           onNavigate={onNavigate}
+          onNormalizeJobCard={onNormalizeJobCard}
           onCreateProposal={onCreateProposal}
           onOpenBuilder={onOpenBuilder}
+          isLaunching={isLaunching}
         />
       </div>
 
@@ -198,8 +224,10 @@ export default function ProposalSetupChecklist({
               variant="secondary"
               onSelectTab={onSelectTab}
               onNavigate={onNavigate}
+              onNormalizeJobCard={onNormalizeJobCard}
               onCreateProposal={onCreateProposal}
               onOpenBuilder={onOpenBuilder}
+              isLaunching={isLaunching}
             />
           ))}
         </div>
