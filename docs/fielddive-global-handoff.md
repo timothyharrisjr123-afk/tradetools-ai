@@ -9,18 +9,23 @@
 - `docs/fielddive-estimate-proposal-flow-model.md` — estimate/proposal UX model notes
 - `docs/fielddive-feature-placement-map.md` — feature placement matrix
 
-**Last updated checkpoint:** **`e38b276` — 3J3D: load persisted proposal draft in Builder** (§6AC). **Docs checkpoint:** pending commit (this update). **Prior:** `1915b2d` (3J3C), `fc43849` (3J3B), `13b4e72` (3J2B3), `213e322` (3J2B2). **Tests:** **109/109** proposal/pricing suites at 3J3D checkpoint (3J3B: 90/90, 3J3C: 99/99 cumulative). **Typecheck:** only **6** pre-existing errors in `app/tools/roofing-v2/RoofingClientV2.tsx` — unchanged. **Protected systems:** legacy `RoofingClient.tsx` pricing `useMemo`, payments, approval, status, saved estimates, send/PDF **untouched** outside the scoped Job Card → Builder draft launch flow.
+**Last updated checkpoint:** **`87be1b4` — test: lock proposal draft graph validation** (§6AD). **DB-first foundation Phases A–D complete** — see **§6AD**. **Prior:** `e1a8f7c` (Phase C job= identity), `a62ad93` (Phase B Job Board partition), `2694bc4` / `0649e04` (Phase A data preservation), `e38b276` (3J3D, §6AC). **Tests:** **128/128** pass across foundation + proposal suites at Phase D checkpoint (`proposalDraftGraphAdapter` 13, `proposalDraftEntry` 30, `proposalSetupChecklist` 15, `proposalRecordStore` 23, plus `jobStore`, `measurementStore`, `jobBoardAdapter`). **Typecheck:** only **6** pre-existing errors in `app/tools/roofing-v2/RoofingClientV2.tsx` — unchanged. **Protected systems:** legacy `RoofingClient.tsx` pricing `useMemo`, payments, approval, status, saved estimates, send/PDF **untouched** outside scoped DB-first Job Card → Builder draft launch flow.
 
-**Jobs Board approved save point:** `b27a444` (3F9B4-RoofrExact). **Prior Job Board checkpoint:** `36fa3a9` (3F9B3).
+**Jobs Board approved save point:** `b27a444` (3F9B4-RoofrExact visual baseline). **DB-first board partition:** `a62ad93` (§6AD). **Prior Job Board checkpoint:** `36fa3a9` (3F9B3).
 
-**Next (recommended):** **Manual smoke** of Job Card → **+ Proposal** → Builder persisted draft flow (§6AC). Then **3J3E** option selection persistence (`updateDraftSelectedOption`), if smoke passes. **Preview / Send / Sign / Payment remain disabled** until **3K+**. **3I-3D2 / §6Y visual work** remains deferred until persisted Builder flow is proven by smoke.
+**Next (recommended):** **Manual smoke** using **§6AD.7** DB-first checklist. Then choose one: **3J3E** option selection persistence (`updateDraftSelectedOption`), **legacy estimate conversion/import path** planning, or **Job Board legacy labeling** polish after smoke. **Preview / Send / Sign / Payment remain disabled** until **3K+**. **3I-3D2 / §6Y visual work** remains deferred until DB-first smoke passes.
 
-**Job Card → Builder draft wiring is implemented** (3J3B/C/D — §6AC). **`createDraftProposal`** runs from Job Card **+ Proposal** only when clean DB identity is available; **Builder reads** persisted drafts via **`getDraftGraph`** + **`proposalDraftGraphAdapter`** when `?proposal=` is present — **no Builder create path**. **Do not** persist placeholder/unconfigured pricing policy. **Catalog custom delete/deactivate** is **not implemented** and remains a **separate later scope** — do not mix into pricing/proposal work.
+**DB-first foundation is live** (§6AD). Main workflow: **Job Board → DB job card (`job=`) → create/reuse DB proposal draft → Builder (`job=` + `proposal=`)**. Legacy `loadSaved=` / `currentSaved` / board-origin paths are **preserved but separated** — they **cannot create DB proposals directly**. **`createDraftProposal`** runs from Job Card **+ Proposal** only when clean DB `job=` identity is available; **Builder reads** persisted drafts via **`getDraftGraph`** + **`proposalDraftGraphAdapter`** when `?proposal=` is present — **no Builder create path**, **no silent fallback** on invalid `proposal=`. **Do not** persist placeholder/unconfigured pricing policy. **Catalog custom delete/deactivate** is **not implemented** and remains a **separate later scope**.
 
 ### Recent committed sequence (3G6 spine + execution surfaces + 3H + 3I pricing foundation + 3I-2 Builder preview + 3I-3 company policy + 3J proposal persistence spine)
 
 | Commit | Summary |
 |--------|---------|
+| `87be1b4` | **Phase D** — Test lock: `validateProposalDraftGraphForJob` rejects wrong job, non-draft, zero options; invalid `proposal=` cannot become valid persisted draft (§6AD) |
+| `e1a8f7c` | **Phase C** — Enforce DB `job=` as main Job Card identity; clear `currentLoadedSavedId` on clean routes; legacy session cannot bleed into DB job card (§6AD) |
+| `a62ad93` | **Phase B** — Partition DB jobs from legacy saved estimates on Job Board; primary kanban = DB jobs; legacy section labeled separately (§6AD) |
+| `2694bc4` | **Phase A** — Sparse measurement update mapper; partial saves no longer wipe `quantity_map` / line fields / proposal context; write `jobs.selected_measurement_id` after save (§6AD) |
+| `0649e04` | **Phase A** — Sparse job update via `jobDraftToInsertRow`; `updateJob({ customer_id })` no longer wipes customer/contact/address fields (§6AD) |
 | `e38b276` | **3J3D** — Builder reads persisted draft via `getDraftGraph` + `proposalDraftGraphAdapter`; error banner on invalid/wrong-job draft; live preview unchanged without `proposal=` (§6AC) |
 | `1915b2d` | **3J3C** — Job Card **+ Proposal** create/reuse draft via `resolveOrCreateProposalDraftEntry` + `createDraftProposal`; navigate with `?proposal=` (§6AC) |
 | `fc43849` | **3J3B** — Read-only active draft detection; `buildProposalBuilderHref(jobId, proposalId?)` (§6AC) |
@@ -107,7 +112,7 @@
 - **Do not** create PDF / send / approval bridges before proposal records exist.
 - **Do not** touch payment / status / approval while working catalog or template setup (unless the stage explicitly scopes it).
 - **Do not treat table/store existence as product completion** — audit **architecture, functionality, layout, and UI** together before advancing the spine.
-- **3G6 Templates setup surface is complete** (3G6A–E + D2/D3) — **3H-1 Proposal Builder shell** (`feec663`); **3H-2 read-only proposal preview** (`00fbf64`); **3H-3 read-only quantity preview** (`40e6720`); **3I-1 pure pricing engine + input mapper** (`162f9be`–`52b7148`); **3I-2 read-only Builder pricing preview** (`5626c47`–`637b85a`) — **wired from Builder route only** via orchestrator; **3I-3** company policy + internal profitability rail **done**; **3J2** lib persistence spine **done** (`13b4e72`, §6AB); **3J3** Job Card → persisted Builder draft flow **done** (`e38b276`, §6AC); **3J3E** option persistence optional next; **3K** (PDF/send adapters) remains later; do not enable Preview/Send/Sign/Payment without explicit scope.
+- **3G6 Templates setup surface is complete** (3G6A–E + D2/D3) — **3H-1 Proposal Builder shell** (`feec663`); **3H-2 read-only proposal preview** (`00fbf64`); **3H-3 read-only quantity preview** (`40e6720`); **3I-1 pure pricing engine + input mapper** (`162f9be`–`52b7148`); **3I-2 read-only Builder pricing preview** (`5626c47`–`637b85a`) — **wired from Builder route only** via orchestrator; **3I-3** company policy + internal profitability rail **done**; **3J2** lib persistence spine **done** (`13b4e72`, §6AB); **3J3** Job Card → persisted Builder draft flow **done** (`e38b276`, §6AC); **DB-first foundation Phases A–D done** (`87be1b4`, §6AD); **3J3E** option persistence optional next; **3K** (PDF/send adapters) remains later; do not enable Preview/Send/Sign/Payment without explicit scope.
 - **Do not casually patch pricing** during catalog/template/Job Card link work — see **§11 — Pricing (protected + future redesign)**.
 
 ---
@@ -2753,7 +2758,7 @@ Builder load
 | **3J3C** (`1915b2d`) | **99/99** pass | same |
 | **3J3D** (`e38b276`) | **109/109** pass | same |
 
-**3J3D test files added:** `proposalDraftGraphAdapter.test.ts` (10 tests).
+**3J3D test files:** `proposalDraftGraphAdapter.test.ts` (10 tests at 3J3D; **13** after Phase D test lock — §6AD).
 
 ### 6. Manual smoke checklist (recommended before 3J3E or 3I-3D2)
 
@@ -2783,10 +2788,170 @@ Builder load
 
 ### 8. Next recommended
 
-1. **Manual smoke** — Job Card → **+ Proposal** → Builder persisted draft flow (checklist §6 above).
+1. **Manual smoke** — use expanded **§6AD.7** DB-first checklist (supersedes checklist §6 above for foundation verification).
 2. **3J3E** (optional) — wire `updateDraftSelectedOption` when option tabs change.
 3. **Do not** enable Preview/Send/Sign/Payment until **3K+**.
-4. **Do not** resume **3I-3D2 / §6Y** visual work until smoke passes.
+4. **Do not** resume **3I-3D2 / §6Y** visual work until DB-first smoke passes.
+
+---
+
+## 6AD. DB-FIRST FOUNDATION PHASES A–D COMPLETE
+
+**Status:** **DB-first foundation complete (Phases A–D).** **Checkpoint:** `87be1b4`. **Prior:** `e1a8f7c` (Phase C), `a62ad93` (Phase B), `2694bc4` / `0649e04` (Phase A), `e38b276` (3J3, §6AC). **Purpose:** Record the repair work that makes DB records the main FieldDive foundation while preserving legacy localStorage estimates in a separated, non-destructive path.
+
+### 1. Committed slices (Phases A–D)
+
+| Phase | Commit | Module / surface | Scope |
+|-------|--------|------------------|-------|
+| **A — customer preservation** | `0649e04` | `jobStore.ts` | `jobDraftToInsertRow` sparse on update; `updateJob({ customer_id })` no longer wipes customer/contact/address fields when linking customer from Job Packet |
+| **A — measurement preservation** | `2694bc4` | `measurementStore.ts`, `RoofingClient.tsx` | Split insert vs sparse update mappers; partial measurement saves no longer null-wipe omitted fields; `jobs.selected_measurement_id` written after measurement save/select |
+| **B — Job Board partition** | `a62ad93` | `jobBoardAdapter.ts`, `SavedClient.tsx` | DB jobs render in primary kanban; legacy saved estimates in labeled secondary section; canonical open href resolution |
+| **C — job= identity** | `e1a8f7c` | `RoofingClient.tsx`, `SavedClient.tsx` | Clean `entry=job-card&job=<uuid>` is authoritative; `currentLoadedSavedId` / session storage cleared on DB routes; board open to `job=` clears legacy sticky id |
+| **D — validation test lock** | `87be1b4` | `proposalDraftGraphAdapter.test.ts` | Pure tests lock contract: invalid `proposal=` (wrong job, non-draft, zero options) returns `valid:false` — must not silently fall back to live preview |
+
+**Phase D audit:** No production code changes required — existing 3J3 + Phases A–C already enforce DB-only proposal create/open. Phase D adds test coverage only.
+
+### 2. Main source of truth
+
+DB-first records are now the **main FieldDive foundation**:
+
+| Table / record | Role |
+|----------------|------|
+| `jobs` | Job identity, stage, customer link, `selected_measurement_id`, `active_proposal_id` |
+| `customers` | Persisted customer records |
+| `measurement_records` | Roof measurement truth (quantities, `quantity_map`, proposal handoff context) |
+| `catalog_items` | Company catalog line items + quantity drivers |
+| `proposal_templates` (+ template graph tables) | Reusable proposal packages |
+| `company_pricing_policies` | Company pricing policy |
+| `proposals` | Job-specific proposal instance |
+| `proposal_versions` | Draft/sent version rows |
+| `proposal_pages` | Page snapshots |
+| `proposal_options` | Option snapshots |
+| `proposal_line_items` | Line item snapshots |
+| `proposal_internal_summaries` | Contractor-only profitability summaries |
+| `proposal_events` | Proposal lifecycle events |
+
+**Job Card source of truth:** persisted `JobRecord` + linked `measurement_records` + `proposals` — not legacy saved-estimate JSON.
+
+### 3. Legacy source status
+
+Legacy localStorage saved estimates are **preserved but separated**:
+
+| Rule | Detail |
+|------|--------|
+| **`loadSaved=`** | Legacy/import-only — opens saved estimate overlay path |
+| **`currentSaved` / `currentLoadedSavedId`** | Legacy session keys only — not authoritative for DB job cards |
+| **`roofing_current_loaded_saved_id`** | Cannot bleed into clean `job=` routes (Phase C clears/ignores on DB entry) |
+| **Job Board** | Legacy saved estimates appear in a **separate labeled section** ("Legacy saved estimates"); primary kanban = DB jobs only |
+| **Linked legacy** | Legacy estimate with valid `jobId` opens `job=` (DB-backed Job Card) |
+| **Legacy-only** | No linked `jobId` still opens `loadSaved=` |
+| **Data safety** | **No localStorage data deleted** — legacy rows remain accessible |
+| **No backfill implied** | Old saved estimates are **not** automatically converted to DB jobs/proposals |
+
+### 4. Route rules
+
+**Main workflow (DB-first):**
+
+```
+Job Board → DB job card
+  → /tools/roofing?entry=job-card&job=<jobId>
+  → Job Card source of truth = job= (persisted JobRecord)
+  → + Proposal (when checklist ready)
+  → create/reuse DB proposal draft
+  → /tools/roofing/proposals/builder?job=<jobId>&proposal=<proposalId>
+  → Builder reads persisted proposal graph only
+```
+
+**Legacy paths (preserved, restricted):**
+
+| Route / flag | Status |
+|--------------|--------|
+| `loadSaved=<estimateId>` | Legacy/import-only |
+| `from=board` | Legacy/old path marker — not used on clean DB reopen |
+| Board-origin + no DB identity | **Cannot create DB proposals directly** |
+| Legacy-only estimate | No create-proposal action; checklist directs to open DB-backed Job Card or return to board |
+
+### 5. Data preservation fixes
+
+| Fix | Detail |
+|-----|--------|
+| **`jobDraftToInsertRow` sparse on update** | `updateJob(patch)` only writes keys explicitly present in patch — omitted fields are not nulled |
+| **Customer link preservation** | `updateJob({ customer_id })` no longer wipes `customer_name`, `customer_email`, `customer_phone`, or address fields (`0649e04`) |
+| **Measurement sparse update mapper** | `measurementRecordToUpdateRow(patch)` replaces full-row mapper for updates; insert uses `measurementDraftToInsertRowFields` |
+| **Measurement re-save safety** | Re-save no longer wipes `quantity_map`, line fields, or proposal-relevant measurement context |
+| **`jobs.selected_measurement_id`** | Written after measurement save/select on Job Card (`2694bc4`) |
+| **`measurement_records.is_selected`** | Remains on row for compatibility; job pointer is authoritative for Job Card |
+
+### 6. Proposal DB-only flow
+
+Combines **§6AC** implementation with **Phases A–D** identity gates:
+
+| Rule | Detail |
+|------|--------|
+| **Create requires clean DB `job=` identity** | `identityFromJobRecord` must be true; `proposalDraftCreatePayload` null otherwise |
+| **Legacy / `loadSaved` blocked** | Cannot create DB proposal from legacy saved-estimate session |
+| **Board-origin blocked** | `isBoardOrigin` without clean DB identity cannot create |
+| **Create/reuse order** | `active_proposal_id` (valid draft) → listed job draft → `createDraftProposal` once |
+| **`jobs.active_proposal_id`** | Written by `createDraftProposal` in `proposalRecordStore`; Job Card re-hydrates on return |
+| **Builder with `proposal=`** | Reads `getDraftGraph` → `validateProposalDraftGraphForJob` → `adaptProposalDraftGraphToBuilderPreview` |
+| **Invalid persisted draft** | Wrong job, non-draft status, missing graph, zero options → **error banner**; **no silent live-preview fallback** |
+| **`job=` only (no `proposal=`)** | Live preview / no-persistence mode — clearly separate from persisted draft path |
+| **Preview / Send / Sign / Payment** | **Remain disabled** — not ready |
+
+**Test lock (`87be1b4`):** `validateProposalDraftGraphForJob` unit tests document the invalid-`proposal=` contract at the lib boundary the Builder relies on.
+
+### 7. Manual smoke standard (DB-first foundation)
+
+Use this checklist to verify Phases A–D before advancing to **3J3E**, legacy import planning, or board polish.
+
+**Fresh DB job:**
+
+- [ ] Create packet job with **unique** name / email / phone / address
+- [ ] Confirm Job Card shows same fields after create
+- [ ] Hard refresh Job Card — fields persist from DB
+- [ ] Save measurement **2400** sqft (or equivalent)
+- [ ] Hard refresh — selected measurement persists; `jobs.selected_measurement_id` set
+- [ ] Re-save measurement **2500** — hard refresh — **no measurement context wipe** (`quantity_map`, line fields intact)
+- [ ] Confirm Job Board shows DB job in **primary board** (not legacy section)
+- [ ] Confirm lane filter still shows DB job
+- [ ] Reopen from board via `job=` — URL has **no** `loadSaved=` and **no** `from=board` on clean DB path
+- [ ] Create proposal **only when checklist says ready** (customer + measurement + catalog + template + pricing configured)
+- [ ] Builder opens with `job=` **and** `proposal=`
+- [ ] Second **+ Proposal** click reuses same proposal id (no duplicate)
+- [ ] Invalid `proposal=` (wrong job / non-draft / empty options) shows error — **does not fall back silently** to live preview
+
+**Legacy:**
+
+- [ ] Legacy section still visible on Job Board
+- [ ] Legacy-only estimate opens via `loadSaved=`
+- [ ] Linked legacy estimate with valid `jobId` opens `job=`
+- [ ] Legacy-only / board-origin **cannot create DB proposal directly** — checklist shows open DB-backed Job Card or return to board
+
+**Still disabled (do not smoke as ready):**
+
+- [ ] Preview / Send / Sign / Payment remain disabled
+
+### 8. Remaining roadmap (post Phases A–D)
+
+| Option | Notes |
+|--------|-------|
+| **3J3E** | Option selection persistence / proposal draft updates (`updateDraftSelectedOption`) — **recommended next if smoke passes** |
+| **Legacy conversion/import** | Plan path to migrate linked legacy estimates to DB jobs — **no automatic backfill today** |
+| **Job Board legacy labeling** | Polish labels/badges after smoke confirms partition behavior |
+| **3J4** | Page Context Strip backed by `proposal_pages` |
+| **3K** | Preview / PDF / send — **later**; not ready |
+| **3I-3D2 / §6Y** | Visual work — **deferred** until DB-first smoke passes |
+
+**Do not mark Preview/Send/Sign/Payment as ready.** **Do not mark legacy system deleted.** **Do not imply old rows are backfilled.**
+
+### 9. Verification (Phases A–D)
+
+| Checkpoint | Tests | Typecheck |
+|------------|-------|-----------|
+| **Phase D** (`87be1b4`) | **128/128** pass across foundation + proposal suites; `proposalDraftGraphAdapter` **13/13** (+3 validation tests) | 6 known `RoofingClientV2.tsx` errors only |
+| **Phase C** (`e1a8f7c`) | `jobBoardAdapter`, `proposalSetupChecklist` extended | same |
+| **Phase B** (`a62ad93`) | `jobBoardAdapter` partition + href tests | same |
+| **Phase A** (`2694bc4`) | `measurementStore` sparse update tests (7) | same |
 
 ---
 
@@ -2996,9 +3161,9 @@ Use this section as the **ordered checklist** for future GPT/Cursor sessions. Kn
 
 ### Current checkpoint
 
-**Latest code checkpoint:** **`e38b276` — 3J3D: load persisted proposal draft in Builder** (§6AC). **3J3:** `fc43849`–`e38b276`. **3J2:** `1033cd9`–`13b4e72`. **3J1:** migrations applied §6AA. **3J0:** `3ae5e39`. **3I-3D:** `fbdedbe`. **3I-3C:** `3491e48`. **3I-2:** `5626c47`–`637b85a`. **3H-3:** `40e6720`. **3H-2:** `00fbf64`. **3H-1:** `feec663`.  
-**Jobs Board approved save point:** **3F9B4-RoofrExact** (`b27a444`).  
-**Latest handoff doc checkpoint:** **3J3 Job Card → persisted Builder draft flow complete** (§6AC — docs pending commit). **Next:** manual smoke, then optional **3J3E** option selection persistence.
+**Latest code checkpoint:** **`87be1b4` — test: lock proposal draft graph validation** (§6AD). **DB-first foundation Phases A–D:** `0649e04`–`87be1b4` (§6AD). **3J3:** `fc43849`–`e38b276` (§6AC). **3J2:** `1033cd9`–`13b4e72`. **3J1:** migrations applied §6AA. **3J0:** `3ae5e39`. **3I-3D:** `fbdedbe`. **3I-3C:** `3491e48`. **3I-2:** `5626c47`–`637b85a`. **3H-3:** `40e6720`. **3H-2:** `00fbf64`. **3H-1:** `feec663`.  
+**Jobs Board approved save point:** **3F9B4-RoofrExact** (`b27a444` visual baseline); **DB-first partition** (`a62ad93`, §6AD).  
+**Latest handoff doc checkpoint:** **DB-first foundation Phases A–D complete** (§6AD — docs pending commit). **Next:** manual smoke (§6AD.7), then **3J3E**, legacy import planning, or board legacy labeling polish.
 
 **Completed working state (summary):**
 
@@ -3026,11 +3191,13 @@ Use this section as the **ordered checklist** for future GPT/Cursor sessions. Kn
 | **3J1** Proposal SQL migrations + RLS | **DONE** — applied + verified (§6AA) |
 | **3J2** Snapshot mapper + builder + record store | **DONE** (`13b4e72`, §6AB) — lib layer |
 | **3J3** Job Card → persisted Builder draft flow | **DONE** (`e38b276`, §6AC) |
+| **DB-first foundation Phases A–D** | **DONE** (`87be1b4`, §6AD) — sparse job/measurement updates, Job Board partition, `job=` identity, proposal validation test lock |
 | **Canonical catalog route** | **`/tools/roofing/catalog`** — `CatalogSetupClient` |
 | **Canonical templates route** | **`/tools/roofing/templates`** — `TemplatesSetupClient` |
-| **Proposal Builder route** | **`/tools/roofing/proposals/builder?job=<uuid>&proposal=<uuid>`** — persisted draft when `proposal=`; live preview fallback when absent |
-| **Job Card Proposals** | **+ Proposal** create/reuse draft (3J3C); opens Builder with `?proposal=` when successful |
-| **Protected** | Legacy pricing, payments, approval, status, saved estimates, send/PDF **untouched** outside scoped Job Card launch |
+| **Proposal Builder route** | **`/tools/roofing/proposals/builder?job=<uuid>&proposal=<uuid>`** — persisted draft when `proposal=`; **live preview only** when `proposal=` absent (no silent fallback when `proposal=` invalid) |
+| **Job Card Proposals** | **+ Proposal** create/reuse draft (3J3C + §6AD gates); opens Builder with `?proposal=` when successful; **legacy/board-origin blocked** |
+| **Job Board primary board** | **DB jobs** (`a62ad93`); legacy saved estimates in **separate labeled section** |
+| **Protected** | Legacy pricing, payments, approval, status, saved estimates, send/PDF **untouched** outside scoped DB-first Job Card launch; **legacy localStorage not deleted** |
 
 **SQL note:** Catalog/template table verification was done in Supabase during 3F/3G stages; do not re-run schema changes from roadmap work unless a stage explicitly scopes a new migration.
 
@@ -3038,25 +3205,31 @@ Use this section as the **ordered checklist** for future GPT/Cursor sessions. Kn
 
 | Flow / surface | Finding |
 |----------------|---------|
-| **Jobs Board → Job Card** | Uses **saved estimates** / `?loadSaved=<id>` path — **not** pure `public.jobs` uuid navigation |
-| **Job Packet → Job Card** | **Fixed** (`fd87152`, `abd718d`, **`c12ea4d`**) — stale `currentJobId` handoff; Continue gated; create-only from fresh packet; intake reset; **session bleed fix** — packet values → createJob → new UUID → persisted Job Card identity; browser smoke **confirmed** post-`c12ea4d` |
-| **Job Card identity** | **Improved** (`abd718d`, **`c12ea4d`**) — packet/direct `?job=` uses persisted `JobRecord`; board-origin still saved-estimate overlay; **not** full `JobCardViewModel` |
+| **Jobs Board → Job Card** | **Improved (§6AD)** — primary kanban = DB jobs opening `job=`; legacy saved estimates in separate section opening `loadSaved=` or linked `job=` |
+| **Job Packet → Job Card** | **Fixed** (`fd87152`, `abd718d`, **`c12ea4d`**, **`0649e04`**) — stale `currentJobId` handoff; Continue gated; create-only from fresh packet; intake reset; customer link no longer wipes packet fields |
+| **Job Card identity** | **DB-first (§6AD)** — clean `entry=job-card&job=<uuid>` is authoritative; `identityFromJobRecord` gates proposal create; legacy session cleared on DB routes (`e1a8f7c`) |
+| **Measurement persistence** | **Fixed (§6AD)** — sparse update mapper; re-save does not wipe `quantity_map` / line fields; `jobs.selected_measurement_id` written after save |
 | **Catalog / Templates** | Aligned workspace surfaces (`CatalogSetupClient`, `TemplatesSetupClient`); click-only install |
-| **Proposal Builder (3H-1 + 3H-2 + 3H-3 + 3I-2)** | Read-only shell + document preview + quantity preview + **pricing preview** (document dollars + tab/rail status words); composite gates; no proposal records |
-| **Legacy routes (still reachable)** | `?entry=manual&legacy=1` (legacy estimate workspace); `entry=manual` without legacy → Job Card quirk; hidden V2 preview (`sr-only` toggle); dead `renderEstimateBuilderShell` in repo |
+| **Proposal Builder (3H + 3I + 3J + §6AD)** | Persisted draft read when `proposal=`; invalid draft errors (no silent fallback); live preview only without `proposal=`; Preview/Send/Sign/Payment disabled |
+| **Legacy routes (still reachable)** | `?entry=manual&legacy=1` (legacy estimate workspace); `loadSaved=` (legacy section); hidden V2 preview; **legacy data preserved, not deleted, not backfilled** |
 
-Treat these as **known architecture risks** — not forgotten — when planning 3I+ and Jobs Board spine migration.
+Treat these as **known architecture notes** — legacy paths remain reachable but separated; DB-first is the main workflow (§6AD).
 
 ### Must confirm manually (remaining smoke)
 
-**Optional remaining browser checks (not blocking 3I planning):**
+Use **§6AD.7** DB-first smoke checklist. **Optional remaining browser checks:**
 
 1. **Fresh packet** — **CONFIRMED** post-`c12ea4d`: clean contact/property fields; Continue creates new job UUID; Job Card shows persisted packet details; refresh preserves info.
 2. **Second packet** — **CONFIRMED** post-`c12ea4d`: return to packet starts clean; second packet yields different UUID and correct details; stale saved-estimate data does not bleed into packet-created Job Card.
 3. **Direct Job Card** — **CONFIRMED** post-`c12ea4d`: refresh preserves identity from DB (`JobRecord`).
-4. **Board-origin Job Card** — **NOT YET CONFIRMED** — open from Jobs Board; saved-estimate flow works; **Back to Job Board** works.
-5. **Activity rail** — **NOT YET CONFIRMED** (if not visually checked) — blocked gates show blocker copy; ready gates show **Proposal Builder ready**; copy does **not** imply Send/PDF/Payment/pricing is live.
-6. **Builder route (real gates)** — **NOT YET CONFIRMED** on live gated job — blocked/ready states; **3H-2 visual review PASSED** via temporary dev fixture (removed before `00fbf64` commit); **3H-3 quantity preview PASSED** via brief dev fixture + programmatic smoke (removed before `40e6720` commit)
+4. **Customer link preservation** — **NOT YET CONFIRMED** post-`0649e04`: link customer from packet job; hard refresh; packet name/email/phone/address still present.
+5. **Measurement re-save** — **NOT YET CONFIRMED** post-`2694bc4`: save 2400 → refresh → re-save 2500 → refresh; no `quantity_map` / line field wipe.
+6. **DB Job Board partition** — **NOT YET CONFIRMED** post-`a62ad93`: DB job in primary board; legacy in separate section; reopen via `job=` without `loadSaved=` / `from=board`.
+7. **Clean job= identity** — **NOT YET CONFIRMED** post-`e1a8f7c`: no legacy session bleed on DB job card routes.
+8. **Proposal DB-only flow** — **NOT YET CONFIRMED** post-§6AC/§6AD: create when checklist ready; reuse on second click; invalid `proposal=` shows error without silent fallback.
+9. **Board-origin Job Card** — **NOT YET CONFIRMED** — legacy board path still works; cannot create DB proposal without DB identity.
+10. **Activity rail** — **NOT YET CONFIRMED** (if not visually checked) — blocked gates show blocker copy; ready gates show **Proposal Builder ready**; copy does **not** imply Send/PDF/Payment/pricing is live.
+11. **Builder route (real gates)** — **NOT YET CONFIRMED** on live gated job — blocked/ready states; **3H-2/3H-3 visual review PASSED** via dev fixtures (removed before commit).
 
 ### Must-fix-before-3I (architecture — code items)
 
@@ -3731,5 +3904,6 @@ Treat as **drift** if a session:
 - **2026-06-04:** **Pre-3H-2 source-of-truth fix** (`abd718d`) — Activity rail readiness copy, fresh packet intake reset, Job Card `?job=` identity; handoff (`d4b4f25`).
 - **2026-06-04:** **3H-1 complete** — Proposal Builder shell and gates (`feec663`); packet handoff fix (`fd87152`); handoff (`cf3706f`); built-surface audit.
 - **2026-05-31:** **3G6 complete** — 3G6A–E (`15ad732`–`b78c9ee`), Templates D2 (`227061c`), Catalog D2 (`29ca190`); Job Card + Job Packet audits documented; **next: plan 3H** Proposal Builder (Roofr research; not until scoped); pricing remains protected.
+- **2026-06-07:** **DB-first foundation Phases A–D complete** — Phase A customer/measurement sparse updates (`0649e04`, `2694bc4`), Phase B Job Board partition (`a62ad93`), Phase C `job=` identity (`e1a8f7c`), Phase D validation test lock (`87be1b4`); §6AD added; **128/128** tests; **next:** manual smoke (§6AD.7), then 3J3E or legacy import planning; Preview/Send/Sign/Payment remain disabled until 3K+; legacy localStorage preserved not deleted.
 - **2026-06-06:** **3J3 complete** — 3J3B active draft detection (`fc43849`), 3J3C Job Card create/reuse (`1915b2d`), 3J3D Builder persisted read (`e38b276`); §6AC added; **109/109** tests at 3J3D; **next:** manual smoke, optional 3J3E; Preview/Send/Sign/Payment remain disabled until 3K+; 3I-3D2 visual work deferred until smoke passes.
 - **2026-06-06:** **3J2 complete** — 3J2B1 status mapper (`1033cd9`), 3J2B2 snapshot builder (`213e322`), 3J2B3 record store (`13b4e72`); §6AB added; **180/180** tests; **next: 3J3** Builder/Job Card draft wiring; Preview/Send/Sign/Payment remain disabled until 3K+.
