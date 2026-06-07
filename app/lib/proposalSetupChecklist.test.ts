@@ -53,6 +53,33 @@ describe("deriveProposalSetupChecklist", () => {
     assert.equal(result.quiet, false);
   });
 
+  test("legacy-only state (board-origin, no DB identity) blocks proposal create", () => {
+    const result = deriveProposalSetupChecklist(
+      baseInput({
+        isBoardOrigin: true,
+        identityFromJobRecord: false,
+        hasCreatePayload: false,
+      })
+    );
+
+    assert.notEqual(result.primaryAction.actionType, "create_proposal");
+    assert.equal(result.activeBlockerId, "db_job_card");
+  });
+
+  test("clean job= route facts produce DB identity complete + create proposal", () => {
+    const result = deriveProposalSetupChecklist(
+      baseInput({
+        isBoardOrigin: false,
+        identityFromJobRecord: true,
+      })
+    );
+
+    const dbItem = result.items.find((i) => i.id === "db_job_card");
+    assert.equal(dbItem?.status, "complete");
+    assert.equal(result.primaryAction.actionType, "create_proposal");
+    assert.notEqual(result.activeBlockerId, "db_job_card");
+  });
+
   test("missing measurement on direct job → Go to Measurements", () => {
     const result = deriveProposalSetupChecklist(
       baseInput({

@@ -330,6 +330,24 @@ describe("jobBoardAdapter", () => {
     assert.doesNotMatch(href, /from=board/);
   });
 
+  test("invalid jobId on legacy estimate falls back to loadSaved=", () => {
+    const legacy: RoofingEstimate = {
+      id: ESTIMATE_ID,
+      jobId: "not-a-uuid",
+      createdAt: "2026-01-01T00:00:00.000Z",
+      customerName: "Bad Link",
+      address: "456 Oak",
+      zip: "78702",
+      roofAreaSqFt: 2400,
+      selectedTier: "Core",
+      suggestedPrice: 10000,
+    };
+    assert.equal(getLinkedJobIdFromLegacyEstimate(legacy), null);
+    const href = resolveBoardEntryOpenHref(legacy);
+    assert.match(href, /loadSaved=/);
+    assert.doesNotMatch(href, /[?&]job=/);
+  });
+
   test("legacy partition does not drop localStorage estimates without DB representation", () => {
     const legacyOnly: RoofingEstimate[] = [
       {

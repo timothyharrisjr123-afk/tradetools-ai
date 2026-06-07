@@ -3200,6 +3200,9 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
     const href = resolveBoardEntryOpenHref(estimate);
     if (href.includes("loadSaved=")) {
       setCurrentLoadedSavedId(estimate.id);
+    } else {
+      // DB job= route — clear any legacy pointer so it cannot bleed into the DB flow.
+      setCurrentLoadedSavedId(null);
     }
     router.push(href);
   };
@@ -3314,6 +3317,9 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
       const href = resolveBoardEntryOpenHref(est);
       if (href.includes("loadSaved=")) {
         setCurrentLoadedSavedId(id);
+      } else {
+        // DB job= route — clear any legacy pointer so it cannot bleed into the DB flow.
+        setCurrentLoadedSavedId(null);
       }
       router.push(href);
       return;

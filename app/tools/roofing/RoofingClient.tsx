@@ -1155,6 +1155,17 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
   const isJobCardBoardContext =
     jobCardBoardOrigin || Boolean(loadSavedId) || isBoardOriginParam;
 
+  // Clean DB Job Card route: entry=job-card&job=<uuid> with no legacy/board-origin
+  // context. On this route the DB job record is the sole source of truth; legacy
+  // currentSaved/loadSaved state must not bleed in.
+  const isCleanDbJobCardRoute =
+    entryMode === "job-card" &&
+    !loadSavedId &&
+    !isBoardOriginParam &&
+    !jobCardBoardOrigin &&
+    Boolean(jobParam) &&
+    isUuidLike(jobParam ?? "");
+
   const beginRestoreWindow = useCallback((id: string) => {
     if (restoreTimerRef.current) window.clearTimeout(restoreTimerRef.current);
     isRestoringRef.current = true;
@@ -1586,6 +1597,16 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
     resetPacketIntakeFields();
     setCurrentLoadedSavedId(null);
   }, [entryMode, jobParam, loadSavedId, isBoardOriginParam, resetPacketIntakeFields]);
+
+  // Moving into the clean DB Job Card flow clears any lingering legacy
+  // "current loaded saved id" so currentSaved cannot fill/override DB job fields.
+  useEffect(() => {
+    if (!isCleanDbJobCardRoute) return;
+    if (!hasMounted) return;
+    if (getCurrentLoadedSavedId()) {
+      setCurrentLoadedSavedId(null);
+    }
+  }, [isCleanDbJobCardRoute, hasMounted]);
 
   const hydrateJobDisplayFromRecord = useCallback(
     (job: JobRecord, options: { fillEmptyOnly: boolean }) => {
@@ -3758,7 +3779,10 @@ Thanks,`;
     return `${baseText}${approveBlockText}`;
   }
 
-  const currentLoadedSavedId = loadSavedId ?? (hasMounted ? getCurrentLoadedSavedId() : null) ?? null;
+  const currentLoadedSavedId =
+    loadSavedId ??
+    (hasMounted && !isCleanDbJobCardRoute ? getCurrentLoadedSavedId() : null) ??
+    null;
   const savedEstimates = hasMounted ? getSavedEstimates() : [];
   const currentSaved = savedEstimates.find((e) => e.id === currentLoadedSavedId);
   const isLoadedWorkspace = hasMounted && !!currentSaved;
