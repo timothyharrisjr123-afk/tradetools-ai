@@ -14,6 +14,7 @@ import {
   mapDbJobToBoardEstimate,
   mapDbJobStageToBoardColumnKey,
   mergeDbJobsIntoBoardEstimates,
+  resolveLastDbJobRecoveryHref,
   searchBoardEntries,
 } from "./jobBoardAdapter";
 
@@ -244,5 +245,21 @@ describe("jobBoardAdapter", () => {
     const unifiedLane = filterBoardEntriesByLaneStatus(merged, "estimate");
     assert.equal(legacyLane.length, 0);
     assert.equal(unifiedLane.length, 1);
+  });
+
+  test("resolveLastDbJobRecoveryHref returns job= link when fetch empty and last id valid", () => {
+    const href = resolveLastDbJobRecoveryHref(JOB_ID, 0);
+    assert.equal(href, buildDbJobCardHref(JOB_ID));
+    assert.doesNotMatch(href!, /loadSaved/);
+    assert.doesNotMatch(href!, /from=board/);
+  });
+
+  test("resolveLastDbJobRecoveryHref ignored when DB jobs exist", () => {
+    assert.equal(resolveLastDbJobRecoveryHref(JOB_ID, 1), null);
+  });
+
+  test("resolveLastDbJobRecoveryHref ignored for invalid last id", () => {
+    assert.equal(resolveLastDbJobRecoveryHref("not-a-uuid", 0), null);
+    assert.equal(resolveLastDbJobRecoveryHref(null, 0), null);
   });
 });

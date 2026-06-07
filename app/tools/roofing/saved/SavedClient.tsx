@@ -55,7 +55,9 @@ import {
   filterBoardEntriesByLaneStatus,
   getDbJobIdFromBoardEntry,
   isDbBoardJobEntry,
+  LAST_DB_JOB_ID_STORAGE_KEY,
   mergeDbJobsIntoBoardEstimates,
+  resolveLastDbJobRecoveryHref,
   searchBoardEntries,
 } from "@/app/lib/jobBoardAdapter";
 import { getJobsByCompany } from "@/app/lib/jobStore";
@@ -2825,6 +2827,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
   const [estimates, setEstimates] = useState<RoofingEstimate[]>([]);
   const [dbJobs, setDbJobs] = useState<JobSummary[]>([]);
   const [dbJobsLoaded, setDbJobsLoaded] = useState(false);
+  const [lastDbJobId, setLastDbJobId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "estimate" | "sent_pending" | "approved" | "deposit_paid" | "scheduled" | "in_progress" | "paid">("all");
   const [boardSortKey, setBoardSortKey] = useState<BoardSortKey>(BOARD_DEFAULT_SORT_KEY);
@@ -3570,12 +3573,20 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
     setDbJobsLoaded(false);
 
     const loadDbJobs = () => {
-      void getJobsByCompany(cid).then((jobs) => {
-        if (!cancelled) {
-          setDbJobs(jobs);
-          setDbJobsLoaded(true);
-        }
-      });
+      void getJobsByCompany(cid)
+        .then((jobs) => {
+          if (!cancelled) {
+            setDbJobs(jobs);
+            setDbJobsLoaded(true);
+          }
+        })
+        .catch((err) => {
+          console.error("[SavedClient] getJobsByCompany failed", err);
+          if (!cancelled) {
+            setDbJobs([]);
+            setDbJobsLoaded(true);
+          }
+        });
     };
 
     loadDbJobs();
@@ -3583,12 +3594,33 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
     const onVisibility = () => {
       if (document.visibilityState === "visible") loadDbJobs();
     };
+    const onFocus = () => {
+      loadDbJobs();
+    };
+    const onPageShow = () => {
+      loadDbJobs();
+    };
+
     document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("focus", onFocus);
+    window.addEventListener("pageshow", onPageShow);
+
     return () => {
       cancelled = true;
       document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("focus", onFocus);
+      window.removeEventListener("pageshow", onPageShow);
     };
   }, [hydrated, companyId]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    try {
+      setLastDbJobId(window.localStorage.getItem(LAST_DB_JOB_ID_STORAGE_KEY));
+    } catch {
+      setLastDbJobId(null);
+    }
+  }, [hydrated, dbJobsLoaded]);
 
   useEffect(() => {
     const saved = loadBoardViewState();
@@ -3870,6 +3902,11 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
 
   const boardReady = hydrated && dbJobsLoaded;
   const hasBoardJobs = boardSourceEstimates.length > 0;
+
+  const lastDbJobRecoveryHref = useMemo(
+    () => resolveLastDbJobRecoveryHref(lastDbJobId, dbJobs.length),
+    [lastDbJobId, dbJobs.length]
+  );
 
   const laneScheduleOptions = useMemo(
     () => ({
@@ -4211,6 +4248,16 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
       )}
 
       <FieldDiveAppShell activeNav="jobs">
+          {boardReady && lastDbJobRecoveryHref ? (
+            <div className="mx-auto mb-3 max-w-[1800px] rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+              <Link
+                href={lastDbJobRecoveryHref}
+                className="font-medium text-blue-600 hover:text-blue-700"
+              >
+                Reopen last Job Card
+              </Link>
+            </div>
+          ) : null}
           <div className={statusFilter !== "all" ? "bg-slate-100" : ""}>
             {statusFilter === "all" && (
               <div className="sr-only" aria-hidden>

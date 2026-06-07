@@ -4925,6 +4925,15 @@ Thanks,`;
       jobHydratedRef.current = record.id;
       setCurrentJobId(record.id);
       await persistAndRefreshJobCardCustomer(record);
+      if (process.env.NODE_ENV === "development") {
+        const debugName =
+          (record.contact?.customer_name ?? customerName ?? "").trim() || "(none)";
+        console.debug(
+          `[FieldDive job create] id=${record.id} company=${cid} name=${debugName}`
+        );
+      }
+      setToast("Job saved. You can reopen it from the Job Board.");
+      setTimeout(() => setToast(null), 3500);
       router.push(`/tools/roofing?entry=job-card&job=${encodeURIComponent(record.id)}`);
     } finally {
       setIsCreatingJob(false);
@@ -4938,6 +4947,7 @@ Thanks,`;
     hydrateJobDisplayFromRecord,
     persistAndRefreshJobCardCustomer,
     router,
+    customerName,
   ]);
 
   function renderJobPacketWorkbench(

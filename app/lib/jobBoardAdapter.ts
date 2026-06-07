@@ -300,3 +300,17 @@ export function searchBoardEntries(
 export function countDbBoardJobEntries(entries: RoofingEstimate[]): number {
   return entries.filter(isDbBoardJobEntry).length;
 }
+
+/**
+ * When the board fetch returns no DB jobs but a valid last-opened job id exists,
+ * offer a recovery link to reopen that Job Card (does not imply the job is listed).
+ */
+export function resolveLastDbJobRecoveryHref(
+  lastJobId: string | null | undefined,
+  dbJobCount: number
+): string | null {
+  if (dbJobCount > 0) return null;
+  const id = (lastJobId ?? "").toString().trim();
+  if (!id || !isUuidLike(id)) return null;
+  return buildDbJobCardHref(id);
+}
