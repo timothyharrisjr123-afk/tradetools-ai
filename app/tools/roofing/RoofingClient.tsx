@@ -71,7 +71,11 @@ import {
   getOrCreateJobForEstimate,
   isUuidLike,
   buildFormattedAddress,
+  updateJob,
 } from "@/app/lib/jobStore";
+import { findOrCreateCustomer } from "@/app/lib/customerStore";
+import { ensureJobCustomerPersisted } from "@/app/lib/jobCardCustomerPersist";
+import { getSupabaseClient } from "@/app/lib/supabaseClient";
 import {
   getSelectedMeasurementForJob,
   createMeasurementRecord,
@@ -1084,6 +1088,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
   const [pricingPolicyConfigured, setPricingPolicyConfigured] = useState<boolean | null>(null);
   const [pricingPolicyLoadComplete, setPricingPolicyLoadComplete] = useState(false);
   const pricingPolicyFetchInFlightRef = useRef<string | null>(null);
+  const customerPersistInFlightRef = useRef<string | null>(null);
   const [isSavingMeasurement, setIsSavingMeasurement] = useState(false);
   const [measurementSaveError, setMeasurementSaveError] = useState<string | null>(null);
   const [proposalLaunchError, setProposalLaunchError] = useState<string | null>(null);
@@ -1844,6 +1849,123 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
       }
     })();
   }, [entryMode, companyId, loadSavedId, restoreTick]);
+
+  const buildJobCardCustomerAddressLine = useCallback((): string => {
+    return (
+      buildFormattedAddress({
+        line1: (jobAddress1 || "").trim() || null,
+        city: (jobCity || "").trim() || null,
+        state: (jobState || "").trim() || null,
+        zip: (jobZip || "").trim() || null,
+        country: "US",
+      }) ?? ""
+    );
+  }, [jobAddress1, jobCity, jobState, jobZip]);
+
+  const refreshHydratedJobRecord = useCallback(async (jobId: string) => {
+    const refreshed = await getJobById(jobId);
+    if (!refreshed) return null;
+    setHydratedJobRecord(refreshed);
+    jobHydratedRef.current = jobId;
+    hydrateJobDisplayFromRecord(refreshed, { fillEmptyOnly: false });
+    return refreshed;
+  }, [hydrateJobDisplayFromRecord]);
+
+  const persistJobCardCustomerForJob = useCallback(
+    async (job: JobRecord) => {
+      if (isJobCardBoardContext) return null;
+
+      const cid = (companyId ?? "").trim();
+      if (!cid || !job.id || !isUuidLike(job.id)) return null;
+
+      const supabase = getSupabaseClient();
+      if (!supabase) return null;
+
+      const email = (job.contact?.customer_email ?? customerEmail ?? "").trim();
+      const name = (job.contact?.customer_name ?? customerName ?? "").trim();
+      const phone = (job.contact?.customer_phone ?? customerPhone ?? "").trim();
+      const address =
+        (job.address?.formatted ?? "").trim() ||
+        buildFormattedAddress(job.address ?? null) ||
+        buildJobCardCustomerAddressLine();
+
+      return ensureJobCustomerPersisted({
+        companyId: cid,
+        jobId: job.id,
+        existingCustomerId: job.customer_id,
+        customerName: name,
+        customerEmail: email,
+        customerPhone: phone,
+        customerAddress: address,
+        deps: {
+          findOrCreateCustomer: (args) =>
+            findOrCreateCustomer({ supabase, ...args }),
+          updateJob,
+        },
+      });
+    },
+    [
+      isJobCardBoardContext,
+      companyId,
+      customerEmail,
+      customerName,
+      customerPhone,
+      buildJobCardCustomerAddressLine,
+    ]
+  );
+
+  const persistAndRefreshJobCardCustomer = useCallback(
+    async (job: JobRecord) => {
+      const result = await persistJobCardCustomerForJob(job);
+      if (result?.updated && job.id) {
+        await refreshHydratedJobRecord(job.id);
+      }
+      return result;
+    },
+    [persistJobCardCustomerForJob, refreshHydratedJobRecord]
+  );
+
+  useEffect(() => {
+    if (entryMode !== "job-card") return;
+    if (isJobCardBoardContext) return;
+
+    const job = hydratedJobRecord;
+    const jobId = currentJobId;
+    if (!job || !jobId || job.id !== jobId) return;
+    if (isUuidLike(job.customer_id ?? "")) return;
+
+    const email = (job.contact?.customer_email ?? customerEmail ?? "").trim();
+    if (!email) return;
+
+    if (isRestoringRef.current) return;
+    if (customerPersistInFlightRef.current === jobId) return;
+
+    customerPersistInFlightRef.current = jobId;
+
+    void (async () => {
+      try {
+        const result = await persistJobCardCustomerForJob(job);
+        if (customerPersistInFlightRef.current !== jobId) return;
+        if (result?.updated) {
+          await refreshHydratedJobRecord(jobId);
+        }
+      } catch (err) {
+        console.warn("[RoofingClient] job card customer persist error:", err);
+      } finally {
+        if (customerPersistInFlightRef.current === jobId) {
+          customerPersistInFlightRef.current = null;
+        }
+      }
+    })();
+  }, [
+    entryMode,
+    isJobCardBoardContext,
+    hydratedJobRecord,
+    currentJobId,
+    customerEmail,
+    persistJobCardCustomerForJob,
+    refreshHydratedJobRecord,
+  ]);
 
   useEffect(() => {
     if (entryMode !== "job-card") return;
@@ -4776,6 +4898,7 @@ Thanks,`;
       hydrateJobDisplayFromRecord(record, { fillEmptyOnly: false });
       jobHydratedRef.current = record.id;
       setCurrentJobId(record.id);
+      await persistAndRefreshJobCardCustomer(record);
       router.push(`/tools/roofing?entry=job-card&job=${encodeURIComponent(record.id)}`);
     } finally {
       setIsCreatingJob(false);
@@ -4787,6 +4910,7 @@ Thanks,`;
     companyId,
     buildJobDraftFromPacketState,
     hydrateJobDisplayFromRecord,
+    persistAndRefreshJobCardCustomer,
     router,
   ]);
 
