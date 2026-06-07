@@ -202,6 +202,38 @@ describe("validateProposalDraftGraphForJob", () => {
   test("accepts matching job", () => {
     assert.equal(validateProposalDraftGraphForJob(draftGraph(), JOB_ID).valid, true);
   });
+
+  // Phase D: invalid proposal= must never be treated as a valid persisted draft.
+  // These document that the Builder cannot silently fall back to live preview.
+  test("rejects wrong job id with a job-mismatch message", () => {
+    const result = validateProposalDraftGraphForJob(draftGraph(), OTHER_JOB_ID);
+    assert.equal(result.valid, false);
+    if (!result.valid) {
+      assert.match(result.message, /does not belong to the job/i);
+    }
+  });
+
+  test("rejects non-draft proposal status", () => {
+    const result = validateProposalDraftGraphForJob(
+      draftGraph({ proposal: proposal({ status: "sent" }) }),
+      JOB_ID
+    );
+    assert.equal(result.valid, false);
+    if (!result.valid) {
+      assert.match(result.message, /only draft proposals/i);
+    }
+  });
+
+  test("rejects graph with zero options", () => {
+    const result = validateProposalDraftGraphForJob(
+      draftGraph({ options: [], lineItems: [], internalSummaries: [] }),
+      JOB_ID
+    );
+    assert.equal(result.valid, false);
+    if (!result.valid) {
+      assert.match(result.message, /no options to display/i);
+    }
+  });
 });
 
 describe("adaptProposalDraftGraphToBuilderPreview", () => {
