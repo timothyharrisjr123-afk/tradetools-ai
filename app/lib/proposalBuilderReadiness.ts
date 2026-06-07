@@ -202,6 +202,38 @@ export function buildJobCardHref(jobId: string): string {
   return `/tools/roofing?entry=job-card&job=${encodeURIComponent(jobId)}`;
 }
 
+/**
+ * Encoded Job Card URL used as setup-route return target.
+ * DB-first: uses job= (never loadSaved=, never from=board).
+ */
+export function buildJobCardReturnTo(
+  jobId: string,
+  tab: "overview" | "measurements" | "proposals" = "proposals"
+): string {
+  return `/tools/roofing?entry=job-card&job=${encodeURIComponent(jobId)}&tab=${encodeURIComponent(tab)}`;
+}
+
+/**
+ * Append return context (returnTo + job + tab) to a setup-route href
+ * (Catalog / Templates / Pricing) so the user can return to the same Job Card.
+ */
+export function buildSetupRouteHref(
+  baseHref: string,
+  jobId: string,
+  options?: { tab?: "overview" | "measurements" | "proposals" }
+): string {
+  const tab = options?.tab ?? "proposals";
+  if (!jobId || !isUuidLike(jobId)) {
+    return baseHref;
+  }
+  const returnTo = buildJobCardReturnTo(jobId, tab);
+  const sep = baseHref.includes("?") ? "&" : "?";
+  return (
+    `${baseHref}${sep}returnTo=${encodeURIComponent(returnTo)}` +
+    `&job=${encodeURIComponent(jobId)}&tab=${encodeURIComponent(tab)}`
+  );
+}
+
 export function resolveJobCardProposalActivityLine(
   readiness: ProposalBuilderReadiness,
   context?: {

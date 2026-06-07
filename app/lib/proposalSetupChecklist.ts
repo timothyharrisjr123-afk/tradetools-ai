@@ -3,7 +3,7 @@
  * Blocker-driven guidance — no navigation or side effects.
  */
 
-import { buildJobCardHref } from "@/app/lib/proposalBuilderReadiness";
+import { buildJobCardHref, buildSetupRouteHref } from "@/app/lib/proposalBuilderReadiness";
 import { isUuidLike } from "@/app/lib/jobStore";
 
 export type ProposalSetupItemId =
@@ -161,33 +161,33 @@ function goToMeasurementsAction(label: string, helperText: string): ProposalSetu
   };
 }
 
-function openCatalogAction(): ProposalSetupAction {
+function openCatalogAction(jobId: string): ProposalSetupAction {
   return {
     id: "open-catalog",
     label: "Open Catalog Setup",
     helperText: "Finish company catalog setup before creating proposal drafts.",
     actionType: "route",
-    href: CATALOG_HREF,
+    href: buildSetupRouteHref(CATALOG_HREF, jobId),
   };
 }
 
-function openTemplatesAction(): ProposalSetupAction {
+function openTemplatesAction(jobId: string): ProposalSetupAction {
   return {
     id: "open-templates",
     label: "Open Templates",
     helperText: "Install or select a proposal template.",
     actionType: "route",
-    href: TEMPLATES_HREF,
+    href: buildSetupRouteHref(TEMPLATES_HREF, jobId),
   };
 }
 
-function configurePricingPolicyAction(): ProposalSetupAction {
+function configurePricingPolicyAction(jobId: string): ProposalSetupAction {
   return {
     id: "configure-pricing-policy",
     label: "Configure Pricing Policy",
     helperText: "Configure company pricing before creating proposal drafts.",
     actionType: "route",
-    href: PRICING_SETTINGS_HREF,
+    href: buildSetupRouteHref(PRICING_SETTINGS_HREF, jobId),
   };
 }
 
@@ -273,7 +273,7 @@ function derivePrimaryAction(input: ProposalSetupChecklistInput): {
 
   if (!input.catalogReady) {
     return {
-      action: openCatalogAction(),
+      action: openCatalogAction(jobId),
       blockerId: "catalog",
       secondaryActions: [],
     };
@@ -281,7 +281,7 @@ function derivePrimaryAction(input: ProposalSetupChecklistInput): {
 
   if (!input.templateReady) {
     return {
-      action: openTemplatesAction(),
+      action: openTemplatesAction(jobId),
       blockerId: "template",
       secondaryActions: [],
     };
@@ -289,7 +289,7 @@ function derivePrimaryAction(input: ProposalSetupChecklistInput): {
 
   if (pricingNeedsAction(input)) {
     return {
-      action: configurePricingPolicyAction(),
+      action: configurePricingPolicyAction(jobId),
       blockerId: "pricing_policy",
       secondaryActions: [],
     };

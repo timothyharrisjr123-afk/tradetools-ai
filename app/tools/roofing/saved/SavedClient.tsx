@@ -50,6 +50,14 @@ import {
   setEstimateStoreCompanyScope,
   type RoofingEstimate,
 } from "@/app/lib/estimateStore";
+import {
+  buildDbJobCardHref,
+  getDbJobIdFromBoardEntry,
+  isDbBoardJobEntry,
+  mergeDbJobsIntoBoardEstimates,
+} from "@/app/lib/jobBoardAdapter";
+import { getJobsByCompany } from "@/app/lib/jobStore";
+import type { JobSummary } from "@/app/lib/jobTypes";
 
 function pad2(n: number) {
   return String(n).padStart(2, "0");
@@ -2813,6 +2821,8 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
   }, [buildSha]);
   const [hydrated, setHydrated] = useState(false);
   const [estimates, setEstimates] = useState<RoofingEstimate[]>([]);
+  const [dbJobs, setDbJobs] = useState<JobSummary[]>([]);
+  const [dbJobsLoaded, setDbJobsLoaded] = useState(false);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "estimate" | "sent_pending" | "approved" | "deposit_paid" | "scheduled" | "in_progress" | "paid">("all");
   const [boardSortKey, setBoardSortKey] = useState<BoardSortKey>(BOARD_DEFAULT_SORT_KEY);
@@ -3177,6 +3187,13 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
   };
 
   const handleViewDetails = (estimate: RoofingEstimate) => {
+    if (isDbBoardJobEntry(estimate)) {
+      const jobId = getDbJobIdFromBoardEntry(estimate);
+      if (jobId) {
+        router.push(buildDbJobCardHref(jobId));
+        return;
+      }
+    }
     setCurrentLoadedSavedId(estimate.id);
     router.push(`/tools/roofing?loadSaved=${encodeURIComponent(estimate.id)}`);
   };
@@ -3288,12 +3305,20 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
     if (!id) return;
 
     if (action === "load") {
+      if (isDbBoardJobEntry(est)) {
+        const jobId = getDbJobIdFromBoardEntry(est);
+        if (jobId) {
+          router.push(buildDbJobCardHref(jobId));
+          return;
+        }
+      }
       setCurrentLoadedSavedId(id);
       router.push(`/tools/roofing?loadSaved=${encodeURIComponent(id)}`);
       return;
     }
 
     if (action === "delete") {
+      if (isDbBoardJobEntry(est)) return;
       deleteSavedEstimate(id);
       refreshSaved();
       return;
@@ -3529,6 +3554,39 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
   useEffect(() => {
     setHydrated(true);
   }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    const cid = (companyId ?? "").trim();
+    if (!cid) {
+      setDbJobs([]);
+      setDbJobsLoaded(true);
+      return;
+    }
+
+    let cancelled = false;
+    setDbJobsLoaded(false);
+
+    const loadDbJobs = () => {
+      void getJobsByCompany(cid).then((jobs) => {
+        if (!cancelled) {
+          setDbJobs(jobs);
+          setDbJobsLoaded(true);
+        }
+      });
+    };
+
+    loadDbJobs();
+
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") loadDbJobs();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      cancelled = true;
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [hydrated, companyId]);
 
   useEffect(() => {
     const saved = loadBoardViewState();
@@ -3814,6 +3872,19 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
 
   const searchFiltered = useMemo(() => estimates.filter(bySearch), [estimates, query]);
 
+  const boardSourceEstimates = useMemo(
+    () => mergeDbJobsIntoBoardEstimates(estimates, dbJobs),
+    [estimates, dbJobs]
+  );
+
+  const boardSearchFiltered = useMemo(
+    () => boardSourceEstimates.filter(bySearch),
+    [boardSourceEstimates, query]
+  );
+
+  const boardReady = hydrated && dbJobsLoaded;
+  const hasBoardJobs = boardSourceEstimates.length > 0;
+
   let filtered = searchFiltered
     .filter((e) => {
       if (statusFilter === "all") return true;
@@ -3909,8 +3980,8 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
   const depositReadyJobs = getDepositReadyJobs(currentList, paymentStates ?? {});
 
   const boardFilteredJobs = useMemo(
-    () => applyBoardUpdatedDateFilter(searchFiltered || [], updatedOnOrAfter),
-    [searchFiltered, updatedOnOrAfter]
+    () => applyBoardUpdatedDateFilter(boardSearchFiltered || [], updatedOnOrAfter),
+    [boardSearchFiltered, updatedOnOrAfter]
   );
 
   const boardFiltersActive = isBoardFiltersActive({
@@ -3939,12 +4010,12 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
     boardFilteredJobs.length === 0 &&
     (query.trim().length > 0 ||
       !!updatedOnOrAfter ||
-      (searchFiltered?.length ?? 0) < estimates.length);
+      (boardSearchFiltered?.length ?? 0) < boardSourceEstimates.length);
 
   const statusDrivenGroups = useMemo(() => {
     if (statusFilter !== "all") return [];
 
-    const items = (searchFiltered || []).slice();
+    const items = (boardSearchFiltered || []).slice();
 
     const groups = [
       {
@@ -4004,7 +4075,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
     ];
 
     return groups.filter((group) => group.items.length > 0);
-  }, [searchFiltered, statusFilter]);
+  }, [boardSearchFiltered, statusFilter]);
 
   let nextActionText = "No action needed right now.";
   if (statusFilter === "sent_pending") {
@@ -4162,13 +4233,13 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
               </div>
             )}
 
-            {statusFilter === "all" && !hydrated && (
+            {statusFilter === "all" && !boardReady && (
               <div className="py-12 text-center text-sm text-slate-500">Loading saved estimates…</div>
             )}
-            {statusFilter === "all" && hydrated && estimates.length === 0 && (
+            {statusFilter === "all" && boardReady && !hasBoardJobs && (
               <div className="py-12 text-center text-sm text-slate-500">No saved estimates yet.</div>
             )}
-            {statusFilter === "all" && hydrated && estimates.length > 0 && (
+            {statusFilter === "all" && boardReady && hasBoardJobs && (
               <div className="w-full space-y-3">
                 <JobsBoardHeader
                   query={query}

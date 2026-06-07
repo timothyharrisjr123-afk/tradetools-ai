@@ -85,7 +85,15 @@ describe("deriveProposalSetupChecklist", () => {
     );
 
     assert.equal(result.primaryAction.label, "Open Catalog Setup");
-    assert.equal(result.primaryAction.href, "/tools/roofing/catalog");
+    const catalogHref = result.primaryAction.href ?? "";
+    assert.match(catalogHref, /^\/tools\/roofing\/catalog\?/);
+    assert.match(catalogHref, /returnTo=/);
+    assert.match(catalogHref, new RegExp(`job=${JOB_ID}`));
+    assert.match(catalogHref, /tab=proposals/);
+    assert.match(
+      decodeURIComponent(catalogHref),
+      new RegExp(`returnTo=/tools/roofing\\?entry=job-card&job=${JOB_ID}&tab=proposals`)
+    );
     assert.equal(result.activeBlockerId, "catalog");
   });
 
@@ -97,7 +105,11 @@ describe("deriveProposalSetupChecklist", () => {
     );
 
     assert.equal(result.primaryAction.label, "Open Templates");
-    assert.equal(result.primaryAction.href, "/tools/roofing/templates");
+    const templatesHref = result.primaryAction.href ?? "";
+    assert.match(templatesHref, /^\/tools\/roofing\/templates\?/);
+    assert.match(templatesHref, /returnTo=/);
+    assert.match(templatesHref, new RegExp(`job=${JOB_ID}`));
+    assert.match(templatesHref, /tab=proposals/);
     assert.equal(result.activeBlockerId, "template");
   });
 
@@ -109,7 +121,11 @@ describe("deriveProposalSetupChecklist", () => {
     );
 
     assert.equal(result.primaryAction.label, "Configure Pricing Policy");
-    assert.equal(result.primaryAction.href, "/tools/settings/pricing");
+    const pricingHref = result.primaryAction.href ?? "";
+    assert.match(pricingHref, /^\/tools\/settings\/pricing\?/);
+    assert.match(pricingHref, /returnTo=/);
+    assert.match(pricingHref, new RegExp(`job=${JOB_ID}`));
+    assert.match(pricingHref, /tab=proposals/);
     assert.equal(result.activeBlockerId, "pricing_policy");
   });
 
@@ -191,6 +207,6 @@ describe("deriveProposalSetupChecklist", () => {
     );
 
     assert.equal(result.primaryAction.label, "Open Catalog Setup");
-    assert.equal(result.primaryAction.href, "/tools/roofing/catalog");
+    assert.match(result.primaryAction.href ?? "", /^\/tools\/roofing\/catalog\?/);
   });
 });

@@ -1,7 +1,11 @@
 "use client";
 
-import { useState, type ComponentType, type ReactNode } from "react";
+import { useEffect, useState, type ComponentType, type ReactNode } from "react";
 import Link from "next/link";
+import {
+  LAST_DB_JOB_ID_STORAGE_KEY,
+  buildJobCardRecoveryHref,
+} from "@/app/lib/jobBoardAdapter";
 import {
   Bell,
   Menu,
@@ -188,8 +192,24 @@ type FieldDiveAppShellProps = {
   children: ReactNode;
 };
 
+function resolveSubItems(items: NavSubItem[], jobCardHref: string): NavSubItem[] {
+  return items.map((sub) =>
+    sub.id === "job-card" && sub.href ? { ...sub, href: jobCardHref } : sub
+  );
+}
+
 export default function FieldDiveAppShell({ activeNav, activeSubId, children }: FieldDiveAppShellProps) {
   const [groupExpandedOverrides, setGroupExpandedOverrides] = useState<Record<string, boolean>>({});
+  const [jobCardHref, setJobCardHref] = useState("/tools/roofing?entry=job-card");
+
+  useEffect(() => {
+    try {
+      const lastJobId = window.localStorage.getItem(LAST_DB_JOB_ID_STORAGE_KEY);
+      setJobCardHref(buildJobCardRecoveryHref(lastJobId));
+    } catch {
+      // ignore storage failures — fallback href already set
+    }
+  }, []);
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
@@ -244,7 +264,7 @@ export default function FieldDiveAppShell({ activeNav, activeSubId, children }: 
                     {showSubItems ? (
                       <div id={`nav-group-${groupKey}`}>
                         <NavSubLinks
-                          items={subItems!}
+                          items={resolveSubItems(subItems!, jobCardHref)}
                           ariaLabel={subItemsAriaLabel}
                           activeSubId={moduleActive ? (activeSubId ?? defaultActiveSubId) : undefined}
                         />

@@ -75,6 +75,7 @@ import {
 } from "@/app/lib/jobStore";
 import { findOrCreateCustomer } from "@/app/lib/customerStore";
 import { ensureJobCustomerPersisted } from "@/app/lib/jobCardCustomerPersist";
+import { LAST_DB_JOB_ID_STORAGE_KEY } from "@/app/lib/jobBoardAdapter";
 import { getSupabaseClient } from "@/app/lib/supabaseClient";
 import {
   getSelectedMeasurementForJob,
@@ -1125,6 +1126,18 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
       setHydratedJobRecord(null);
     }
   }, [jobParam, entryMode]);
+
+  // Recovery: remember the last-opened DB Job Card so the sidebar / nav can
+  // reopen it via job= even if the URL loses the param. Read-only persistence.
+  useEffect(() => {
+    if (entryMode !== "job-card") return;
+    if (!currentJobId || !isUuidLike(currentJobId)) return;
+    try {
+      window.localStorage.setItem(LAST_DB_JOB_ID_STORAGE_KEY, currentJobId);
+    } catch {
+      // ignore storage failures
+    }
+  }, [entryMode, currentJobId]);
 
   const isJobCardBoardContext =
     jobCardBoardOrigin || Boolean(loadSavedId) || isBoardOriginParam;
