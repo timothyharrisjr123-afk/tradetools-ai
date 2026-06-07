@@ -361,9 +361,8 @@ export function rowToMeasurementRecord(row: MeasurementRecordRow): MeasurementRe
   };
 }
 
-function draftToRowFields(
-  draft: MeasurementRecordDraft | Partial<MeasurementRecordDraft>,
-  mode: "insert" | "update"
+function measurementDraftToInsertRowFields(
+  draft: MeasurementRecordDraft
 ): Partial<MeasurementRecordRow> {
   const row: Partial<MeasurementRecordRow> = {
     company_id: draft.company_id,
@@ -371,9 +370,9 @@ function draftToRowFields(
     estimate_id: draft.estimate_id ?? null,
     created_by: draft.created_by ?? null,
     updated_by: draft.updated_by ?? null,
-    status: draft.status ?? (mode === "insert" ? "draft" : undefined),
-    is_selected: draft.is_selected ?? (mode === "insert" ? false : undefined),
-    source_type: draft.source_type ?? (mode === "insert" ? "manual" : undefined),
+    status: draft.status ?? "draft",
+    is_selected: draft.is_selected ?? false,
+    source_type: draft.source_type ?? "manual",
     source_provider: normalizeNullableString(draft.source_provider),
     source_report_id: normalizeNullableString(draft.source_report_id),
     source_file_id: normalizeNullableString(draft.source_file_id),
@@ -382,7 +381,7 @@ function draftToRowFields(
     imported_at: draft.imported_at ?? null,
     model_version: normalizeNullableString(draft.model_version),
     source_metadata: draft.source_metadata ?? null,
-    is_verified: draft.is_verified ?? (mode === "insert" ? false : undefined),
+    is_verified: draft.is_verified ?? false,
     verified_by: draft.verified_by ?? null,
     verified_at: draft.verified_at ?? null,
     verification_notes: normalizeNullableString(draft.verification_notes),
@@ -432,8 +431,8 @@ function draftToRowFields(
     tear_off_required: draft.tear_off_required ?? null,
     debris_tons_estimate: normalizeNullableNumber(draft.debris_tons_estimate),
     disposal_notes: normalizeNullableString(draft.disposal_notes),
-    report_attached: draft.report_attached ?? (mode === "insert" ? false : undefined),
-    diagram_available: draft.diagram_available ?? (mode === "insert" ? false : undefined),
+    report_attached: draft.report_attached ?? false,
+    diagram_available: draft.diagram_available ?? false,
     report_file_id: normalizeNullableString(draft.report_file_id),
     report_type: normalizeNullableString(draft.report_type),
     report_source: normalizeNullableString(draft.report_source),
@@ -448,8 +447,8 @@ function draftToRowFields(
       draft.measurement_readiness_score != null
         ? Math.trunc(Number(draft.measurement_readiness_score))
         : null,
-    estimate_ready: draft.estimate_ready ?? (mode === "insert" ? false : undefined),
-    production_ready: draft.production_ready ?? (mode === "insert" ? false : undefined),
+    estimate_ready: draft.estimate_ready ?? false,
+    production_ready: draft.production_ready ?? false,
     created_at: draft.created_at,
     updated_at: draft.updated_at,
   };
@@ -457,16 +456,173 @@ function draftToRowFields(
   return compactObject(row as Record<string, unknown>) as Partial<MeasurementRecordRow>;
 }
 
-export function measurementRecordToInsertRow(
-  draft: MeasurementRecordDraft
-): Partial<MeasurementRecordRow> {
-  return draftToRowFields(draft, "insert");
-}
-
+/** Sparse patch mapper — only keys present on the patch are sent to Supabase update. */
 export function measurementRecordToUpdateRow(
   patch: Partial<MeasurementRecordDraft>
 ): Partial<MeasurementRecordRow> {
-  return draftToRowFields(patch, "update");
+  const row: Partial<MeasurementRecordRow> = {};
+
+  if (patch.job_id !== undefined) row.job_id = patch.job_id ?? null;
+  if (patch.estimate_id !== undefined) row.estimate_id = patch.estimate_id ?? null;
+  if (patch.created_by !== undefined) row.created_by = patch.created_by ?? null;
+  if (patch.updated_by !== undefined) row.updated_by = patch.updated_by ?? null;
+  if (patch.status !== undefined) row.status = patch.status;
+  if (patch.is_selected !== undefined) row.is_selected = patch.is_selected ?? false;
+  if (patch.source_type !== undefined) row.source_type = patch.source_type;
+  if (patch.source_provider !== undefined) {
+    row.source_provider = normalizeNullableString(patch.source_provider);
+  }
+  if (patch.source_report_id !== undefined) {
+    row.source_report_id = normalizeNullableString(patch.source_report_id);
+  }
+  if (patch.source_file_id !== undefined) {
+    row.source_file_id = normalizeNullableString(patch.source_file_id);
+  }
+  if (patch.source_url !== undefined) row.source_url = normalizeNullableString(patch.source_url);
+  if (patch.source_created_at !== undefined) row.source_created_at = patch.source_created_at ?? null;
+  if (patch.imported_at !== undefined) row.imported_at = patch.imported_at ?? null;
+  if (patch.model_version !== undefined) {
+    row.model_version = normalizeNullableString(patch.model_version);
+  }
+  if (patch.source_metadata !== undefined) row.source_metadata = patch.source_metadata ?? null;
+  if (patch.is_verified !== undefined) row.is_verified = patch.is_verified ?? false;
+  if (patch.verified_by !== undefined) row.verified_by = patch.verified_by ?? null;
+  if (patch.verified_at !== undefined) row.verified_at = patch.verified_at ?? null;
+  if (patch.verification_notes !== undefined) {
+    row.verification_notes = normalizeNullableString(patch.verification_notes);
+  }
+  if (patch.confidence_score !== undefined) {
+    row.confidence_score = normalizeNullableNumber(patch.confidence_score);
+  }
+  if (patch.confidence_label !== undefined) row.confidence_label = patch.confidence_label ?? null;
+  if (patch.field_confidence !== undefined) {
+    row.field_confidence = (patch.field_confidence as JsonObject | null) ?? null;
+  }
+  if (patch.roof_area_sqft !== undefined) {
+    row.roof_area_sqft = normalizeNullableNumber(patch.roof_area_sqft);
+  }
+  if (patch.roof_squares !== undefined) {
+    row.roof_squares = normalizeNullableNumber(patch.roof_squares);
+  }
+  if (patch.adjusted_roof_squares !== undefined) {
+    row.adjusted_roof_squares = normalizeNullableNumber(patch.adjusted_roof_squares);
+  }
+  if (patch.waste_percent !== undefined) {
+    row.waste_percent = normalizeNullableNumber(patch.waste_percent);
+  }
+  if (patch.predominant_pitch !== undefined) {
+    row.predominant_pitch = normalizeNullableString(patch.predominant_pitch);
+  }
+  if (patch.pitch_label !== undefined) row.pitch_label = normalizeNullableString(patch.pitch_label);
+  if (patch.pitch_segments !== undefined) row.pitch_segments = patch.pitch_segments ?? null;
+  if (patch.stories !== undefined) row.stories = normalizeNullableString(patch.stories);
+  if (patch.roof_complexity !== undefined) {
+    row.roof_complexity = normalizeNullableString(patch.roof_complexity);
+  }
+  if (patch.roof_type !== undefined) row.roof_type = normalizeNullableString(patch.roof_type);
+  if (patch.structure_count !== undefined) {
+    row.structure_count =
+      patch.structure_count != null ? Math.trunc(Number(patch.structure_count)) : null;
+  }
+  if (patch.roof_facets_count !== undefined) {
+    row.roof_facets_count =
+      patch.roof_facets_count != null ? Math.trunc(Number(patch.roof_facets_count)) : null;
+  }
+  if (patch.eaves_lf !== undefined) row.eaves_lf = normalizeNullableNumber(patch.eaves_lf);
+  if (patch.rakes_lf !== undefined) row.rakes_lf = normalizeNullableNumber(patch.rakes_lf);
+  if (patch.ridges_lf !== undefined) row.ridges_lf = normalizeNullableNumber(patch.ridges_lf);
+  if (patch.hips_lf !== undefined) row.hips_lf = normalizeNullableNumber(patch.hips_lf);
+  if (patch.valleys_lf !== undefined) row.valleys_lf = normalizeNullableNumber(patch.valleys_lf);
+  if (patch.wall_flashing_lf !== undefined) {
+    row.wall_flashing_lf = normalizeNullableNumber(patch.wall_flashing_lf);
+  }
+  if (patch.step_flashing_lf !== undefined) {
+    row.step_flashing_lf = normalizeNullableNumber(patch.step_flashing_lf);
+  }
+  if (patch.transitions_lf !== undefined) {
+    row.transitions_lf = normalizeNullableNumber(patch.transitions_lf);
+  }
+  if (patch.parapet_wall_lf !== undefined) {
+    row.parapet_wall_lf = normalizeNullableNumber(patch.parapet_wall_lf);
+  }
+  if (patch.drip_edge_lf !== undefined) row.drip_edge_lf = normalizeNullableNumber(patch.drip_edge_lf);
+  if (patch.starter_lf !== undefined) row.starter_lf = normalizeNullableNumber(patch.starter_lf);
+  if (patch.ridge_cap_lf !== undefined) row.ridge_cap_lf = normalizeNullableNumber(patch.ridge_cap_lf);
+  if (patch.pipe_boots_count !== undefined) {
+    row.pipe_boots_count =
+      patch.pipe_boots_count != null ? Math.trunc(Number(patch.pipe_boots_count)) : null;
+  }
+  if (patch.vents_count !== undefined) {
+    row.vents_count =
+      patch.vents_count != null ? Math.trunc(Number(patch.vents_count)) : null;
+  }
+  if (patch.skylights_count !== undefined) {
+    row.skylights_count =
+      patch.skylights_count != null ? Math.trunc(Number(patch.skylights_count)) : null;
+  }
+  if (patch.chimneys_count !== undefined) {
+    row.chimneys_count =
+      patch.chimneys_count != null ? Math.trunc(Number(patch.chimneys_count)) : null;
+  }
+  if (patch.satellite_dishes_count !== undefined) {
+    row.satellite_dishes_count =
+      patch.satellite_dishes_count != null
+        ? Math.trunc(Number(patch.satellite_dishes_count))
+        : null;
+  }
+  if (patch.other_penetrations !== undefined) {
+    row.other_penetrations = patch.other_penetrations ?? null;
+  }
+  if (patch.existing_layers_count !== undefined) {
+    row.existing_layers_count =
+      patch.existing_layers_count != null
+        ? Math.trunc(Number(patch.existing_layers_count))
+        : null;
+  }
+  if (patch.tear_off_required !== undefined) row.tear_off_required = patch.tear_off_required ?? null;
+  if (patch.debris_tons_estimate !== undefined) {
+    row.debris_tons_estimate = normalizeNullableNumber(patch.debris_tons_estimate);
+  }
+  if (patch.disposal_notes !== undefined) {
+    row.disposal_notes = normalizeNullableString(patch.disposal_notes);
+  }
+  if (patch.report_attached !== undefined) row.report_attached = patch.report_attached ?? false;
+  if (patch.diagram_available !== undefined) row.diagram_available = patch.diagram_available ?? false;
+  if (patch.report_file_id !== undefined) {
+    row.report_file_id = normalizeNullableString(patch.report_file_id);
+  }
+  if (patch.report_type !== undefined) row.report_type = normalizeNullableString(patch.report_type);
+  if (patch.report_source !== undefined) {
+    row.report_source = normalizeNullableString(patch.report_source);
+  }
+  if (patch.report_status !== undefined) {
+    row.report_status = normalizeNullableString(patch.report_status);
+  }
+  if (patch.report_last_updated_at !== undefined) {
+    row.report_last_updated_at = patch.report_last_updated_at ?? null;
+  }
+  if (patch.raw_measurements !== undefined) row.raw_measurements = patch.raw_measurements ?? null;
+  if (patch.assumptions !== undefined) row.assumptions = patch.assumptions ?? null;
+  if (patch.warnings !== undefined) row.warnings = patch.warnings ?? null;
+  if (patch.missing_fields !== undefined) row.missing_fields = patch.missing_fields ?? null;
+  if (patch.quantity_map !== undefined) row.quantity_map = patch.quantity_map ?? null;
+  if (patch.measurement_readiness_score !== undefined) {
+    row.measurement_readiness_score =
+      patch.measurement_readiness_score != null
+        ? Math.trunc(Number(patch.measurement_readiness_score))
+        : null;
+  }
+  if (patch.estimate_ready !== undefined) row.estimate_ready = patch.estimate_ready ?? false;
+  if (patch.production_ready !== undefined) row.production_ready = patch.production_ready ?? false;
+  if (patch.updated_at !== undefined) row.updated_at = patch.updated_at;
+
+  return compactObject(row as Record<string, unknown>) as Partial<MeasurementRecordRow>;
+}
+
+export function measurementRecordToInsertRow(
+  draft: MeasurementRecordDraft
+): Partial<MeasurementRecordRow> {
+  return measurementDraftToInsertRowFields(draft);
 }
 
 // ---------------------------------------------------------------------------

@@ -3866,6 +3866,16 @@ Thanks,`;
       }
 
       setPersistedSelectedMeasurement(record);
+
+      const linkedJob = await updateJob(jobId, { selected_measurement_id: record.id });
+      if (!linkedJob) {
+        console.warn("[RoofingClient] could not set jobs.selected_measurement_id", {
+          jobId,
+          measurementId: record.id,
+        });
+      } else {
+        setHydratedJobRecord(linkedJob);
+      }
     } catch (err) {
       console.warn("[RoofingClient] save measurement error:", err);
       setMeasurementSaveError(
