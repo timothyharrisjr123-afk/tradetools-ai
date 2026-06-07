@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { deriveCatalogReadiness } from "@/app/lib/catalogReadiness";
 import { getActiveCatalogItemsByCompany } from "@/app/lib/catalogStore";
@@ -30,9 +30,15 @@ import {
 } from "@/app/lib/proposalBuilderPricingPreview";
 import {
   adaptProposalDraftGraphToBuilderPreview,
+  resolveRuntimeOptionIdFromTemplateOptionId,
   validateProposalDraftGraphForJob,
 } from "@/app/lib/proposalDraftGraphAdapter";
-import { getDraftGraph, type ProposalDraftGraph } from "@/app/lib/proposalRecordStore";
+import {
+  getDraftGraph,
+  ProposalRecordStoreError,
+  updateDraftSelectedOption,
+  type ProposalDraftGraph,
+} from "@/app/lib/proposalRecordStore";
 import { getResolvedCompanyPricingPolicy } from "@/app/lib/companyPricingPolicyStore";
 import type { CompanyPricingPolicyResolution } from "@/app/lib/companyPricingPolicy";
 import type { PricingPolicy } from "@/app/lib/proposalPricingTypes";
@@ -80,6 +86,9 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
   const [templateLoadComplete, setTemplateLoadComplete] = useState(false);
   const [templateError, setTemplateError] = useState<string | null>(null);
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
+  const [optionPersistError, setOptionPersistError] = useState<string | null>(null);
+  const optionPersistInFlightRef = useRef(false);
+  const persistedTemplateOptionIdRef = useRef<string | null>(null);
 
   // 3I-3B3c: resolved company pricing policy. Builder reads ONLY the resolver
   // (getResolvedCompanyPricingPolicy) — never raw getCompanyPricingPolicy — and
@@ -299,14 +308,93 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
   useEffect(() => {
     if (adapterResult?.selectedTemplateOptionId) {
       setSelectedOptionId(adapterResult.selectedTemplateOptionId);
+      persistedTemplateOptionIdRef.current = adapterResult.selectedTemplateOptionId;
       return;
     }
     if (!starterGraph) {
       setSelectedOptionId(null);
+      persistedTemplateOptionIdRef.current = null;
       return;
     }
-    setSelectedOptionId(getDefaultSelectedOptionId(starterGraph));
+    const defaultId = getDefaultSelectedOptionId(starterGraph);
+    setSelectedOptionId(defaultId);
+    persistedTemplateOptionIdRef.current = null;
   }, [adapterResult?.selectedTemplateOptionId, starterGraph?.template.id]);
+
+  const handleSelectOption = useCallback(
+    (templateOptionId: string) => {
+      const nextTemplateOptionId = (templateOptionId ?? "").trim();
+      if (!nextTemplateOptionId) return;
+
+      if (!hasPersistedProposalParam || !persistedGraph || !proposalIdParam) {
+        setSelectedOptionId(nextTemplateOptionId);
+        setOptionPersistError(null);
+        return;
+      }
+
+      const previousTemplateOptionId =
+        selectedOptionId ?? persistedTemplateOptionIdRef.current ?? null;
+      if (nextTemplateOptionId === previousTemplateOptionId) return;
+      if (optionPersistInFlightRef.current) return;
+
+      const runtimeOptionId = resolveRuntimeOptionIdFromTemplateOptionId(
+        persistedGraph,
+        nextTemplateOptionId
+      );
+      if (!runtimeOptionId) {
+        setOptionPersistError("Selected option is not available on this proposal draft.");
+        return;
+      }
+
+      setSelectedOptionId(nextTemplateOptionId);
+      setOptionPersistError(null);
+      optionPersistInFlightRef.current = true;
+
+      void (async () => {
+        try {
+          const updated = await updateDraftSelectedOption(
+            companyId,
+            proposalIdParam.trim(),
+            runtimeOptionId
+          );
+          if (!updated) {
+            throw new Error("Could not save selected option.");
+          }
+
+          setPersistedGraph((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  proposal: { ...prev.proposal, selected_option_id: runtimeOptionId },
+                }
+              : prev
+          );
+          persistedTemplateOptionIdRef.current = nextTemplateOptionId;
+        } catch (err) {
+          setSelectedOptionId(previousTemplateOptionId);
+          const message =
+            err instanceof ProposalRecordStoreError
+              ? err.message
+              : err instanceof Error
+                ? err.message
+                : "Could not save selected option.";
+          setOptionPersistError(message);
+          if (!(err instanceof ProposalRecordStoreError)) {
+            console.warn("[ProposalBuilderClient] option persist error:", err);
+          }
+        } finally {
+          optionPersistInFlightRef.current = false;
+        }
+      })();
+    },
+    [
+      companyId,
+      hasPersistedProposalParam,
+      persistedGraph,
+      proposalIdParam,
+      selectedOptionId,
+    ]
+  );
 
   const activeCatalogItems = useMemo(
     () => catalogItems.filter((item) => item.active),
@@ -434,6 +522,11 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
           {draftGraphError}
         </div>
       ) : null}
+      {optionPersistError ? (
+        <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          {optionPersistError}
+        </div>
+      ) : null}
       {!draftGraphError && shellReady ? (
         <ProposalBuilderWorkspaceLayout
           sectionNav={<ProposalBuilderSectionNav activeSectionId="overview" />}
@@ -441,7 +534,7 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
             <ProposalBuilderCanvas
               starterGraph={starterGraph}
               selectedOptionId={selectedOptionId}
-              onSelectOption={setSelectedOptionId}
+              onSelectOption={handleSelectOption}
               catalogItems={activeCatalogItems}
               measurementHandoff={measurementHandoff}
               measurementQuantityMap={measurementQuantityMap}

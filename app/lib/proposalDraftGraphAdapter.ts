@@ -110,6 +110,23 @@ export function resolveSelectedTemplateOptionIdFromGraph(
   return templateId || null;
 }
 
+/** Map Builder/template option tab id → persisted proposal_options.id for draft updates. */
+export function resolveRuntimeOptionIdFromTemplateOptionId(
+  graph: ProposalDraftGraph,
+  templateOptionId: string | null | undefined
+): string | null {
+  const templateId = (templateOptionId ?? "").trim();
+  if (!templateId) return null;
+
+  for (const option of graph.options) {
+    const sourceId = (option.source_template_option_id ?? "").trim();
+    if (sourceId !== templateId) continue;
+    const runtimeId = (option.id ?? "").trim();
+    if (runtimeId && isUuidLike(runtimeId)) return runtimeId;
+  }
+  return null;
+}
+
 export function validateProposalDraftGraphForJob(
   graph: ProposalDraftGraph | null,
   jobId: string | null | undefined

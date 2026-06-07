@@ -19,6 +19,7 @@ import type { ProposalRecord } from "./proposalRecordTypes";
 import {
   adaptProposalDraftGraphToBuilderPreview,
   mapSnapshotPricingStatusToBuilderDisplayStatus,
+  resolveRuntimeOptionIdFromTemplateOptionId,
   resolveSelectedTemplateOptionIdFromGraph,
   validateProposalDraftGraphForJob,
 } from "./proposalDraftGraphAdapter";
@@ -187,6 +188,55 @@ describe("resolveSelectedTemplateOptionIdFromGraph", () => {
       proposal: proposal({ selected_option_id: RUNTIME_OPT_B }),
     });
     assert.equal(resolveSelectedTemplateOptionIdFromGraph(graph), TEMPLATE_OPT_B);
+  });
+});
+
+describe("resolveRuntimeOptionIdFromTemplateOptionId", () => {
+  test("maps template option id to persisted proposal_options.id", () => {
+    const graph = draftGraph({
+      options: [
+        optionRow({ id: RUNTIME_OPT_A, source_template_option_id: TEMPLATE_OPT_A }),
+        optionRow({
+          id: RUNTIME_OPT_B,
+          source_template_option_id: TEMPLATE_OPT_B,
+          is_default: false,
+          sort_order: 1,
+        }),
+      ],
+    });
+    assert.equal(
+      resolveRuntimeOptionIdFromTemplateOptionId(graph, TEMPLATE_OPT_B),
+      RUNTIME_OPT_B
+    );
+  });
+
+  test("returns null for unknown template option id", () => {
+    const graph = draftGraph();
+    assert.equal(
+      resolveRuntimeOptionIdFromTemplateOptionId(graph, "00000000-0000-4000-8000-000000000099"),
+      null
+    );
+  });
+
+  test("adapter round-trip: runtime selection maps to template tab and back", () => {
+    const graph = draftGraph({
+      options: [
+        optionRow({ id: RUNTIME_OPT_A, source_template_option_id: TEMPLATE_OPT_A }),
+        optionRow({
+          id: RUNTIME_OPT_B,
+          source_template_option_id: TEMPLATE_OPT_B,
+          is_default: false,
+          sort_order: 1,
+        }),
+      ],
+      proposal: proposal({ selected_option_id: RUNTIME_OPT_B }),
+    });
+    const templateId = resolveSelectedTemplateOptionIdFromGraph(graph);
+    assert.equal(templateId, TEMPLATE_OPT_B);
+    assert.equal(
+      resolveRuntimeOptionIdFromTemplateOptionId(graph, templateId),
+      RUNTIME_OPT_B
+    );
   });
 });
 

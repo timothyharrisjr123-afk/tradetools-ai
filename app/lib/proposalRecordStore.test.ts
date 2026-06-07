@@ -823,6 +823,82 @@ describe("updateDraftSelectedOption", () => {
       ProposalRecordStoreError
     );
   });
+
+  test("appends draft_saved event with selected_option_id payload", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const created = await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+      },
+      deps
+    );
+
+    const eventsBefore = mock.state.tables.proposal_events.length;
+    await updateDraftSelectedOption(
+      COMPANY_ID,
+      created.proposal.id,
+      created.selectedOptionId!,
+      deps
+    );
+
+    assert.equal(mock.state.tables.proposal_events.length, eventsBefore + 1);
+    const event = mock.state.tables.proposal_events.at(-1) as Record<string, unknown>;
+    assert.equal(event.event_type, "draft_saved");
+    assert.deepEqual(event.payload_json, { selected_option_id: created.selectedOptionId });
+  });
+
+  test("rejects non-draft proposal status", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const created = await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+      },
+      deps
+    );
+
+    const header = mock.state.tables.proposals[0] as Record<string, unknown>;
+    header.status = "sent";
+
+    await assert.rejects(
+      () =>
+        updateDraftSelectedOption(
+          COMPANY_ID,
+          created.proposal.id,
+          created.selectedOptionId!,
+          deps
+        ),
+      (err: unknown) =>
+        err instanceof ProposalRecordStoreError &&
+        /not in draft status/i.test(err.message)
+    );
+  });
+
+  test("getDraftGraph after update reflects persisted selected_option_id", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const created = await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+        quantity_context: readyContext(),
+      },
+      deps
+    );
+
+    const optionId = created.selectedOptionId!;
+    await updateDraftSelectedOption(COMPANY_ID, created.proposal.id, optionId, deps);
+
+    const graph = await getDraftGraph(COMPANY_ID, created.proposal.id, deps);
+    assert.ok(graph);
+    assert.equal(graph.proposal.selected_option_id, optionId);
+  });
 });
 
 describe("appendProposalEvent", () => {
