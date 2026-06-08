@@ -12,6 +12,7 @@ import type { ProposalTemplateReadiness } from "@/app/lib/proposalTemplateTypes"
 import { formatProposalTemplateReadinessLabel } from "@/app/lib/proposalTemplateReadiness";
 import { proposalTemplateReadinessStatusPillClass } from "@/app/lib/proposalTemplateReadiness";
 import { catalogReadinessStatusPillClass } from "@/app/tools/roofing/templates/templatesConstants";
+import { Lock } from "lucide-react";
 import {
   BUILDER_INTERNAL_PROFITABILITY_LABEL_COST,
   BUILDER_INTERNAL_PROFITABILITY_LABEL_MARGIN,
@@ -23,6 +24,7 @@ import {
   BUILDER_RAIL_CARD,
   BUILDER_RAIL_GROUP_HEADING,
   BUILDER_RAIL_GUARDRAIL_LABEL,
+  BUILDER_RAIL_MAIN_TITLE,
   BUILDER_RAIL_PRICING_CONFIDENCE_TITLE,
   BUILDER_RAIL_PRICING_STATUS_LABEL,
   BUILDER_RAIL_SETUP_READINESS_TITLE,
@@ -111,6 +113,7 @@ export default function ProposalBuilderSummaryRail({
 
   return (
     <div className={`${BUILDER_RAIL_CARD} space-y-3`}>
+      <p className={BUILDER_RAIL_MAIN_TITLE}>Setup &amp; Pricing</p>
       <div className="space-y-1">
         <RailGroupHeading title={BUILDER_RAIL_SETUP_READINESS_TITLE} />
         <RailStat label="Measurement" value={measurementStatus} />
@@ -223,7 +226,10 @@ export default function ProposalBuilderSummaryRail({
         </div>
       </div>
 
-      <p className="text-[11px] leading-snug text-slate-500">{BUILDER_RAIL_ACTIONS_NOTE}</p>
+      <p className="flex items-start gap-1.5 text-[11px] leading-snug text-slate-500">
+        <Lock className="mt-0.5 h-3 w-3 shrink-0" aria-hidden />
+        <span>{BUILDER_RAIL_ACTIONS_NOTE}</span>
+      </p>
     </div>
   );
 }

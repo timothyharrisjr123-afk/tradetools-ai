@@ -49,11 +49,17 @@ import { getResolvedCompanyPricingPolicy } from "@/app/lib/companyPricingPolicyS
 import type { CompanyPricingPolicyResolution } from "@/app/lib/companyPricingPolicy";
 import type { PricingPolicy } from "@/app/lib/proposalPricingTypes";
 import { findStarterProposalTemplate } from "@/app/tools/roofing/templates/templatesSetupUtils";
+import {
+  BUILDER_DEFAULT_PAGE_CONTEXT,
+  BUILDER_DEFAULT_WORKSPACE_SECTION,
+  type BuilderPageContextId,
+  type BuilderWorkspaceSectionId,
+} from "@/app/lib/proposalBuilderNavigation";
 import ProposalBuilderBlockedState from "./ProposalBuilderBlockedState";
 import ProposalBuilderCanvas from "./ProposalBuilderCanvas";
 import ProposalBuilderPageAlerts from "./ProposalBuilderPageAlerts";
+import ProposalBuilderPageContextStrip from "./ProposalBuilderPageContextStrip";
 import ProposalBuilderPageHeader from "./ProposalBuilderPageHeader";
-import ProposalBuilderSectionNav from "./ProposalBuilderSectionNav";
 import ProposalBuilderSummaryRail from "./ProposalBuilderSummaryRail";
 import ProposalBuilderWorkspaceLayout from "./ProposalBuilderWorkspaceLayout";
 
@@ -112,6 +118,11 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
   const [pricingResolution, setPricingResolution] =
     useState<CompanyPricingPolicyResolution | null>(null);
   const [pricingPolicyLoadComplete, setPricingPolicyLoadComplete] = useState(false);
+
+  const [activePageContextId, setActivePageContextId] =
+    useState<BuilderPageContextId>(BUILDER_DEFAULT_PAGE_CONTEXT);
+  const [activeWorkspaceSection, setActiveWorkspaceSection] =
+    useState<BuilderWorkspaceSectionId>(BUILDER_DEFAULT_WORKSPACE_SECTION);
 
   const loadJobContext = useCallback(async () => {
     setJobLoadComplete(false);
@@ -627,6 +638,7 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
         job={job}
         jobId={normalizedJobId}
         shellReady={shellReady}
+        showDraftSavedPill={hasPersistedProposalParam && draftGraphLoadComplete && !draftGraphError}
       />
       <ProposalBuilderPageAlerts loadError={loadError} shellReady={shellReady} />
       {draftGraphError ? (
@@ -665,7 +677,13 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
       ) : null}
       {!draftGraphError && shellReady ? (
         <ProposalBuilderWorkspaceLayout
-          sectionNav={<ProposalBuilderSectionNav activeSectionId="overview" />}
+          pageContextStrip={
+            <ProposalBuilderPageContextStrip
+              pages={persistedGraph?.pages}
+              activePageContextId={activePageContextId}
+              onSelectPageContext={setActivePageContextId}
+            />
+          }
           canvas={
             <ProposalBuilderCanvas
               starterGraph={starterGraph}
@@ -679,6 +697,12 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
               isPersistedSnapshot={adapterResult != null}
               snapshotMeasurementDisplay={adapterResult?.snapshotMeasurementDisplay ?? null}
               pricingPolicyConfigured={pricingPolicyConfigured}
+              activePageContextId={activePageContextId}
+              activeWorkspaceSection={activeWorkspaceSection}
+              onSelectWorkspaceSection={setActiveWorkspaceSection}
+              persistedPages={persistedGraph?.pages}
+              proposalId={hasPersistedProposalParam ? proposalIdParam?.trim() ?? null : null}
+              recordLabel={measurementHandoff?.selectedLabel ?? "Not saved"}
             />
           }
           summaryRail={

@@ -12,6 +12,98 @@ export const BUILDER_BLOCKED_BANNER =
 export const BUILDER_SHELL_BANNER =
   "rounded-md border border-cyan-200/80 bg-cyan-50/60 px-4 py-3 text-sm text-cyan-950";
 
+/** Shared horizontal stage width — header, alert, page strip, and builder grid align to these edges. */
+export const BUILDER_STAGE = "w-full max-w-[1640px]";
+
+/** 3J4A — read-only proposal stage alert. */
+export const BUILDER_READ_ONLY_ALERT =
+  "flex items-start gap-3 rounded-lg border border-amber-300/80 bg-amber-50/60 px-4 py-3.5 text-amber-950";
+
+export const BUILDER_READ_ONLY_ALERT_TITLE = "Read-only proposal preview";
+
+export const BUILDER_READ_ONLY_ALERT_BODY =
+  "Pricing, PDF, send, signature, and payment come later. Resolved quantities and proposal totals are not shown in this stage.";
+
+/** 3J4A — full-width page context strip. */
+export const BUILDER_PAGE_STRIP =
+  "flex min-h-[3.75rem] w-full items-center gap-1 overflow-x-auto rounded-xl border border-slate-200/90 bg-white px-4 shadow-[0_8px_24px_rgba(15,23,42,0.07),0_1px_3px_rgba(15,23,42,0.06)] [&::-webkit-scrollbar]:h-1";
+
+export const BUILDER_PAGE_STRIP_ITEM =
+  "relative inline-flex h-11 shrink-0 items-center gap-2 rounded-lg px-4 text-[14px] font-medium transition-colors";
+
+export const BUILDER_PAGE_STRIP_ITEM_ACTIVE =
+  "bg-blue-50/70 font-semibold text-blue-700 after:absolute after:-bottom-[9px] after:left-3 after:right-3 after:h-[3px] after:rounded-full after:bg-blue-600";
+
+export const BUILDER_PAGE_STRIP_ITEM_IDLE =
+  "text-slate-600 hover:bg-slate-50 hover:text-slate-900";
+
+export const BUILDER_PAGE_STRIP_ITEM_DISABLED =
+  "cursor-not-allowed text-slate-500";
+
+export const BUILDER_PAGE_STRIP_ITEM_FUTURE =
+  "cursor-not-allowed rounded-lg border border-dashed border-slate-300 bg-slate-50/80 text-slate-600";
+
+export const BUILDER_PAGE_STRIP_SOON =
+  "rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-slate-500 shadow-sm";
+
+export const BUILDER_PAGE_STRIP_DIVIDER = "mx-1 h-8 w-px shrink-0 bg-slate-200/90";
+
+/** 3J4A — main proposal canvas shell (internal bands carry padding). */
+export const BUILDER_CANVAS =
+  "w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_18px_50px_rgba(15,23,42,0.10),0_2px_8px_rgba(15,23,42,0.06)]";
+
+export const BUILDER_CANVAS_INNER = "px-7 py-6";
+
+export const BUILDER_CANVAS_HERO_DIVIDER =
+  "border-b border-slate-200/80 bg-white";
+
+export const BUILDER_CANVAS_KICKER =
+  "text-[12px] font-semibold uppercase tracking-[0.16em] text-blue-500/80";
+
+export const BUILDER_CANVAS_TITLE =
+  "text-[2.1rem] font-semibold leading-tight tracking-tight text-slate-950";
+
+export const BUILDER_CANVAS_SUBTITLE =
+  "mt-2 text-[15px] text-slate-600";
+
+export const BUILDER_SNAPSHOT_BADGE =
+  "flex items-center justify-between gap-3 rounded-xl border border-emerald-200/90 bg-emerald-50/70 px-5 py-3.5 shadow-[0_1px_4px_rgba(16,185,129,0.08)]";
+
+export const BUILDER_WORKSPACE_TABS =
+  "border-b border-slate-200/90 bg-slate-50/30 px-7";
+
+export const BUILDER_WORKSPACE_TAB_ACTIVE = "border-blue-600 text-blue-700 font-semibold";
+
+export const BUILDER_WORKSPACE_TAB_IDLE =
+  "border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700";
+
+export const BUILDER_PROJECT_IMAGE =
+  "relative h-[17.25rem] w-full overflow-hidden rounded-xl border border-slate-300/80 bg-slate-100 shadow-[0_16px_38px_rgba(15,23,42,0.20)] xl:w-[390px] 2xl:w-[410px]";
+
+export const BUILDER_PACKAGE_CARD =
+  "relative flex min-h-[11.75rem] flex-col rounded-lg border px-5 py-4 text-left transition duration-200";
+
+export const BUILDER_PACKAGE_CARD_IDLE =
+  "border-slate-200/90 bg-white shadow-[0_8px_22px_rgba(15,23,42,0.055),0_1px_3px_rgba(15,23,42,0.05)] hover:border-slate-300 hover:shadow-[0_12px_28px_rgba(15,23,42,0.08)]";
+
+export const BUILDER_PACKAGE_CARD_SELECTED =
+  "border-2 border-blue-500 bg-gradient-to-b from-blue-50/80 to-white shadow-[0_14px_30px_rgba(37,99,235,0.16),0_2px_6px_rgba(37,99,235,0.10)] ring-1 ring-blue-200/80";
+
+export const BUILDER_OVERVIEW_CARD =
+  "flex min-h-[5.75rem] items-start gap-3 rounded-xl border border-slate-200/90 bg-white px-4 py-4 shadow-[0_8px_22px_rgba(15,23,42,0.055),0_1px_3px_rgba(15,23,42,0.04)]";
+
+export const BUILDER_OVERVIEW_CARD_WARNING =
+  "border-amber-200/90 bg-amber-50/65 shadow-[0_10px_24px_rgba(245,158,11,0.10),0_1px_3px_rgba(245,158,11,0.06)]";
+
+/** Overview tab — full-width pricing preview notice. */
+export const BUILDER_OVERVIEW_PREVIEW_NOTICE =
+  "flex w-full items-start gap-3 rounded-xl border border-blue-200/80 bg-blue-50/75 px-5 py-4 text-sm leading-relaxed text-blue-950 shadow-[0_1px_4px_rgba(37,99,235,0.06)]";
+
+export const BUILDER_STATUS_PILL =
+  "inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-[11px] font-medium text-slate-600";
+
+export const BUILDER_RAIL_MAIN_TITLE = "text-base font-semibold text-slate-900";
+
 export const BUILDER_SECTION_NAV_ITEM =
   "flex w-full items-center rounded-md px-3 py-2 text-left text-sm font-medium transition-colors";
 
@@ -21,9 +113,9 @@ export const BUILDER_CANVAS_PLACEHOLDER =
 export const BUILDER_RAIL_STAT =
   "rounded-md border border-slate-100 bg-slate-50/80 px-2.5 py-1.5";
 
-/** Right-rail shell — tighter than generic BUILDER_CARD. */
+/** Right-rail shell — aligned with premium canvas surface. */
 export const BUILDER_RAIL_CARD =
-  "rounded-md border border-slate-200/80 bg-white px-3.5 py-3 shadow-[0_1px_2px_rgba(15,23,42,0.04)]";
+  "rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.08)]";
 
 export const BUILDER_DISABLED_ACTION =
   "inline-flex items-center justify-center rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-400 cursor-not-allowed";
@@ -92,7 +184,7 @@ export const BUILDER_GUARDRAIL_MESSAGE_BLOCK = "Resolve blocking issues first.";
 export const BUILDER_GUARDRAIL_MESSAGE_CHECKING = "Checking…";
 
 export const BUILDER_RAIL_ACTIONS_NOTE =
-  "Preview, Send, Sign, and Payment disabled until record/snapshot phases.";
+  "Preview, Send, Sign, and Payment remain disabled until record/snapshot phases.";
 
 export const BUILDER_GUARDRAIL_PILL_BASE =
   "inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide";
