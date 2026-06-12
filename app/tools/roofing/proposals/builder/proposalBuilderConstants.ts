@@ -19,10 +19,18 @@ export const BUILDER_STAGE = "w-full max-w-[1640px]";
 export const BUILDER_READ_ONLY_ALERT =
   "flex items-start gap-3 rounded-lg border border-amber-300/80 bg-amber-50/60 px-4 py-3.5 text-amber-950";
 
+/** 3J4B tightening — compact single-line read-only notice (less dominant). */
+export const BUILDER_READ_ONLY_ALERT_COMPACT =
+  "flex items-center gap-2 rounded-md border border-amber-200/80 bg-amber-50/50 px-3 py-1.5 text-[11px] leading-snug text-amber-900";
+
 export const BUILDER_READ_ONLY_ALERT_TITLE = "Read-only proposal preview";
 
 export const BUILDER_READ_ONLY_ALERT_BODY =
   "Pricing, PDF, send, signature, and payment come later. Resolved quantities and proposal totals are not shown in this stage.";
+
+/** 3J4B tightening — condensed body for the compact read-only notice. */
+export const BUILDER_READ_ONLY_ALERT_COMPACT_BODY =
+  "Read-only preview — pricing, PDF, send, signature, and payment come later.";
 
 /** 3J4A — full-width page context strip. */
 export const BUILDER_PAGE_STRIP =
@@ -45,6 +53,52 @@ export const BUILDER_PAGE_STRIP_ITEM_FUTURE =
 
 export const BUILDER_PAGE_STRIP_SOON =
   "rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-slate-500 shadow-sm";
+
+/** 3J4B6 — document-page status chip on the page strip. */
+export const BUILDER_PAGE_STRIP_CHIP_BASE =
+  "rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide";
+
+/**
+ * 3J4B6 — page strip chip text + class for an intrinsic page status.
+ * "Active" is decided by the component (selected context), not the model.
+ * Returns null when no chip should render (e.g. estimate idle).
+ */
+export function builderPageStripStatusChip(
+  status: "template" | "empty" | "soon" | "locked" | "none",
+  isActive: boolean
+): { label: string; className: string } | null {
+  if (isActive) {
+    return {
+      label: "Active",
+      className: `${BUILDER_PAGE_STRIP_CHIP_BASE} bg-blue-100 text-blue-700`,
+    };
+  }
+  switch (status) {
+    case "template":
+      return {
+        label: "Template",
+        className: `${BUILDER_PAGE_STRIP_CHIP_BASE} bg-slate-100 text-slate-600`,
+      };
+    case "empty":
+      return {
+        label: "Empty",
+        className: `${BUILDER_PAGE_STRIP_CHIP_BASE} border border-dashed border-slate-300 text-slate-500`,
+      };
+    case "soon":
+      return {
+        label: "Soon",
+        className: `${BUILDER_PAGE_STRIP_CHIP_BASE} border border-slate-200 bg-white text-slate-500 shadow-sm`,
+      };
+    case "locked":
+      return {
+        label: "Locked",
+        className: `${BUILDER_PAGE_STRIP_CHIP_BASE} bg-slate-100 text-slate-500`,
+      };
+    case "none":
+    default:
+      return null;
+  }
+}
 
 export const BUILDER_PAGE_STRIP_DIVIDER = "mx-1 h-8 w-px shrink-0 bg-slate-200/90";
 
@@ -83,6 +137,10 @@ export const BUILDER_PROJECT_IMAGE =
 export const BUILDER_PACKAGE_CARD =
   "relative flex min-h-[11.75rem] flex-col rounded-lg border px-5 py-4 text-left transition duration-200";
 
+/** 3J4B flow-focus: lower-dominance package card once a package is selected and pricing is blocked. */
+export const BUILDER_PACKAGE_CARD_COMPACT =
+  "relative flex min-h-[8.25rem] flex-col rounded-lg border px-4 py-3 text-left transition duration-200";
+
 export const BUILDER_PACKAGE_CARD_IDLE =
   "border-slate-200/90 bg-white shadow-[0_8px_22px_rgba(15,23,42,0.055),0_1px_3px_rgba(15,23,42,0.05)] hover:border-slate-300 hover:shadow-[0_12px_28px_rgba(15,23,42,0.08)]";
 
@@ -102,7 +160,101 @@ export const BUILDER_OVERVIEW_PREVIEW_NOTICE =
 export const BUILDER_STATUS_PILL =
   "inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-[11px] font-medium text-slate-600";
 
+/** 3J4B2 — header identity kicker above the job title. */
+export const BUILDER_HEADER_KICKER =
+  "text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-500/80";
+
+/** 3J4B2 — neutral context chip (template / package) in the header. */
+export const BUILDER_HEADER_CHIP =
+  "inline-flex max-w-full items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 shadow-sm";
+
+/** 3J4B2 — emerald Draft • Saved pill for a persisted draft. */
+export const BUILDER_HEADER_DRAFT_PILL =
+  "inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700";
+
+/** 3J4B2 — neutral setup-preview pill when no persisted draft exists yet. */
+export const BUILDER_HEADER_SETUP_PILL =
+  "inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-600";
+
+/** 3J4B2 — helper copy clarifying template vs master-template editing. */
+export const BUILDER_HEADER_TEMPLATE_HELPER =
+  "This proposal uses the template — editing here does not change the master template.";
+
 export const BUILDER_RAIL_MAIN_TITLE = "text-base font-semibold text-slate-900";
+
+/** 3J4B3 — guided path section heading in the right rail. */
+export const BUILDER_RAIL_GUIDED_PATH_TITLE = "Guided path";
+
+/** 3J4B4 — "what do I do next?" card at the top of the rail. */
+export const BUILDER_NEXT_ACTION_CARD =
+  "rounded-xl border border-blue-200/80 bg-blue-50/60 px-4 py-3.5 shadow-[0_1px_4px_rgba(37,99,235,0.06)]";
+
+export const BUILDER_NEXT_ACTION_KICKER =
+  "text-[10px] font-bold uppercase tracking-[0.12em] text-blue-600/80";
+
+export const BUILDER_NEXT_ACTION_TITLE = "mt-1 text-sm font-semibold text-slate-900";
+
+export const BUILDER_NEXT_ACTION_DESC = "mt-1 text-xs leading-snug text-slate-600";
+
+export const BUILDER_NEXT_ACTION_CTA =
+  "mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-md bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-blue-700";
+
+export const BUILDER_NEXT_ACTION_CTA_DISABLED =
+  "mt-3 inline-flex w-full cursor-not-allowed items-center justify-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-400";
+
+/** 3J4B3 — guided path step row (button or static). */
+export const BUILDER_GUIDED_STEP_ROW =
+  "flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left transition-colors";
+
+export const BUILDER_GUIDED_STEP_ROW_CLICKABLE = "hover:bg-slate-50";
+
+export const BUILDER_GUIDED_STEP_ROW_STATIC = "cursor-default";
+
+/** 3J4B3 — small status pill per guided step. */
+export const BUILDER_GUIDED_STEP_PILL_BASE =
+  "ml-auto inline-flex shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide";
+
+/**
+ * 3J4B3 — visual mapping for guided-step state.
+ * Pure presentation only — does not enable or change any lifecycle behavior.
+ */
+export function builderGuidedStepDotClass(
+  state: "ready" | "selected" | "attention" | "blocked" | "locked" | "future"
+): string {
+  switch (state) {
+    case "ready":
+    case "selected":
+      return "bg-emerald-500";
+    case "attention":
+      return "bg-amber-500";
+    case "blocked":
+      return "bg-red-500";
+    case "locked":
+      return "bg-slate-400";
+    case "future":
+    default:
+      return "bg-slate-300";
+  }
+}
+
+export function builderGuidedStepPillClass(
+  state: "ready" | "selected" | "attention" | "blocked" | "locked" | "future"
+): string {
+  switch (state) {
+    case "ready":
+    case "selected":
+      return `${BUILDER_GUIDED_STEP_PILL_BASE} bg-emerald-100 text-emerald-800`;
+    case "attention":
+      return `${BUILDER_GUIDED_STEP_PILL_BASE} bg-amber-100 text-amber-800`;
+    case "blocked":
+      return `${BUILDER_GUIDED_STEP_PILL_BASE} bg-red-100 text-red-800`;
+    case "locked":
+      return `${BUILDER_GUIDED_STEP_PILL_BASE} bg-slate-100 text-slate-600`;
+    case "future":
+    default:
+      return `${BUILDER_GUIDED_STEP_PILL_BASE} bg-slate-100 text-slate-500`;
+  }
+}
 
 export const BUILDER_SECTION_NAV_ITEM =
   "flex w-full items-center rounded-md px-3 py-2 text-left text-sm font-medium transition-colors";
@@ -167,7 +319,7 @@ export const BUILDER_RAIL_GROUP_HEADING =
 
 export const BUILDER_RAIL_SETUP_READINESS_TITLE = "Setup readiness";
 
-export const BUILDER_RAIL_PRICING_CONFIDENCE_TITLE = "Pricing confidence";
+export const BUILDER_RAIL_PRICING_CONFIDENCE_TITLE = "Pricing readiness";
 
 export const BUILDER_RAIL_PRICING_STATUS_LABEL = "Pricing status";
 
@@ -298,9 +450,13 @@ export function formatPricingPolicyConfiguredLabel(configured: boolean): string 
 }
 
 /** 3I-3C — contractor-only internal profitability rail block. */
-export const BUILDER_INTERNAL_PROFITABILITY_SECTION_TITLE = "Internal profitability";
+export const BUILDER_INTERNAL_PROFITABILITY_SECTION_TITLE = "Contractor-only profitability";
 
 export const BUILDER_INTERNAL_PROFITABILITY_SECTION_NOTE = "Contractor-only.";
+
+/** 3J4B — muted note shown when internal profitability is not yet reviewable. */
+export const BUILDER_INTERNAL_PROFITABILITY_TUCKED_COPY =
+  "Resolve pricing blockers before profitability review. Contractor-only — never shown on the customer proposal.";
 
 export const BUILDER_INTERNAL_PROFITABILITY_LABEL_COST = "Cost";
 

@@ -32,7 +32,16 @@ function LineMetaDetail({ label, value }: { label: string; value: string }) {
   return (
     <span>
       <span className="text-slate-400">{label}: </span>
-      <span>{value}</span>
+      <span className="text-slate-500">{value}</span>
+    </span>
+  );
+}
+
+/** 3J4C readability: compact amber blocker badge beside the line name. */
+function LineStatusBadge({ label }: { label: string }) {
+  return (
+    <span className="inline-flex shrink-0 items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
+      {label}
     </span>
   );
 }
@@ -122,38 +131,36 @@ export default function ProposalBuilderLinePreviewTable({
             >
               <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium leading-snug text-slate-900">{row.displayName}</p>
-                  {row.missingCatalog ? (
-                    <p className="mt-1 text-xs text-amber-800">Linked catalog item missing</p>
-                  ) : null}
-                  <p className="mt-1 text-xs text-slate-600">
-                    <span className="text-slate-400">Qty: </span>
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <p className="text-[15px] font-semibold leading-snug text-slate-900">
+                      {row.displayName}
+                    </p>
+                    {row.missingCatalog ? (
+                      <LineStatusBadge label="Catalog missing" />
+                    ) : quantityUnresolved ? (
+                      <LineStatusBadge label="Needs quantity" />
+                    ) : null}
+                  </div>
+                  <p className="mt-1 text-[13px] text-slate-600">
+                    <span className="text-slate-400">Qty </span>
                     <span
                       className={
                         quantityUnresolved
-                          ? "text-slate-500"
-                          : "font-medium tabular-nums text-slate-700"
+                          ? "text-slate-400"
+                          : "font-semibold tabular-nums text-slate-800"
                       }
                     >
                       {quantityDisplayLabel}
                     </span>
                   </p>
-                  <p className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-slate-500">
+                  <p className="mt-1.5 flex flex-wrap gap-x-2.5 gap-y-0.5 text-[11px] leading-snug text-slate-400">
                     <LineMetaDetail label="Source" value={quantitySourceLabel} />
                     <LineMetaDetail label="Rule" value={row.quantityRuleLabel} />
                     <LineMetaDetail label="Unit" value={unitLabel} />
                     <LineMetaDetail label="Role" value={row.roleLabel} />
                   </p>
-                  {quantityStatusLabel ? (
-                    <p
-                      className={`mt-1 text-xs ${
-                        quantityUnresolved ? "text-amber-800/80" : "text-slate-400"
-                      }`}
-                    >
-                      {quantityUnresolved
-                        ? quantityStatusLabel
-                        : `Status: ${quantityStatusLabel}`}
-                    </p>
+                  {quantityStatusLabel && !quantityUnresolved ? (
+                    <p className="mt-1 text-[11px] text-slate-400">Status: {quantityStatusLabel}</p>
                   ) : null}
                 </div>
                 <div className="shrink-0 text-left sm:text-right">

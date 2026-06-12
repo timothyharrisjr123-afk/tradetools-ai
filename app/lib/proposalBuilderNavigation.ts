@@ -31,12 +31,24 @@ export const BUILDER_WORKSPACE_SECTIONS: readonly {
 
 export type PageStripItemKind = "fixed" | "page" | "placeholder";
 
+/**
+ * 3J4B6 — intrinsic page status (document-page chip). Runtime "Active" is
+ * decided by the component from the selected context, never by this model.
+ */
+export type PageStripStatus =
+  | "template"
+  | "empty"
+  | "soon"
+  | "locked"
+  | "none";
+
 export type PageStripItem = {
   kind: PageStripItemKind;
   id: BuilderPageContextId;
   label: string;
   enabled: boolean;
   showSoon?: boolean;
+  status: PageStripStatus;
   pageType?: ProposalPageType | null;
   fromDb?: boolean;
 };
@@ -76,12 +88,14 @@ export function buildPageContextStripItems(
       label: "Cover",
       enabled: false,
       showSoon: true,
+      status: "soon",
     },
     {
       kind: "fixed",
       id: "estimate",
       label: "Estimate",
       enabled: true,
+      status: "none",
     },
   ];
 
@@ -94,6 +108,7 @@ export function buildPageContextStripItems(
         id: match.id,
         label: pageLabel(match),
         enabled: true,
+        status: "template",
         pageType: match.page_type,
         fromDb: true,
       });
@@ -103,6 +118,7 @@ export function buildPageContextStripItems(
         id: slot.id,
         label: slot.label,
         enabled: true,
+        status: "empty",
         pageType: slot.pageType,
         fromDb: false,
       });
@@ -115,6 +131,7 @@ export function buildPageContextStripItems(
     label: "Add Page",
     enabled: false,
     showSoon: true,
+    status: "soon",
   });
 
   const overflowPages = dbPages
@@ -125,6 +142,7 @@ export function buildPageContextStripItems(
         id: p.id,
         label: pageLabel(p),
         enabled: true,
+        status: "template",
         pageType: p.page_type,
         fromDb: true,
       })
@@ -136,6 +154,7 @@ export function buildPageContextStripItems(
     label: "Preview",
     enabled: false,
     showSoon: true,
+    status: "locked",
   });
 
   return { items, overflowPages };

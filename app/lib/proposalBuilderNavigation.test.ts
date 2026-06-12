@@ -59,6 +59,26 @@ describe("proposalBuilderNavigation", () => {
     assert.ok(!items.some((item) => item.id === "placeholder:terms"));
   });
 
+  it("assigns document-page status chips (3J4B6)", () => {
+    const { items } = buildPageContextStripItems([]);
+    const byId = (id: string) => items.find((item) => item.id === id);
+
+    assert.equal(byId("cover")?.status, "soon");
+    assert.equal(byId("estimate")?.status, "none");
+    assert.equal(byId("placeholder:terms")?.status, "empty");
+    assert.equal(byId("add_page")?.status, "soon");
+    assert.equal(byId("preview")?.status, "locked");
+  });
+
+  it("persisted page slots use template status", () => {
+    const pages = [
+      makePage({ id: "p-warranty", page_type: "warranty", customer_title: "Warranty" }),
+    ];
+    const { items } = buildPageContextStripItems(pages);
+    assert.equal(items.find((item) => item.id === "p-warranty")?.status, "template");
+    assert.equal(items.find((item) => item.id === "placeholder:terms")?.status, "empty");
+  });
+
   it("resolves display labels for placeholders and persisted pages", () => {
     const pages = [
       makePage({ id: "p-warranty", page_type: "warranty", customer_title: "Warranty" }),

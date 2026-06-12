@@ -51,10 +51,14 @@ import type { PricingPolicy } from "@/app/lib/proposalPricingTypes";
 import { findStarterProposalTemplate } from "@/app/tools/roofing/templates/templatesSetupUtils";
 import {
   BUILDER_DEFAULT_PAGE_CONTEXT,
-  BUILDER_DEFAULT_WORKSPACE_SECTION,
+  buildPageContextStripItems,
   type BuilderPageContextId,
-  type BuilderWorkspaceSectionId,
 } from "@/app/lib/proposalBuilderNavigation";
+import {
+  deriveProposalBuilderGuidance,
+  type ProposalBuilderGuardrailStatus,
+  type ProposalBuilderGuidanceTarget,
+} from "@/app/lib/proposalBuilderGuidance";
 import ProposalBuilderBlockedState from "./ProposalBuilderBlockedState";
 import ProposalBuilderCanvas from "./ProposalBuilderCanvas";
 import ProposalBuilderPageAlerts from "./ProposalBuilderPageAlerts";
@@ -121,8 +125,6 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
 
   const [activePageContextId, setActivePageContextId] =
     useState<BuilderPageContextId>(BUILDER_DEFAULT_PAGE_CONTEXT);
-  const [activeWorkspaceSection, setActiveWorkspaceSection] =
-    useState<BuilderWorkspaceSectionId>(BUILDER_DEFAULT_WORKSPACE_SECTION);
 
   const loadJobContext = useCallback(async () => {
     setJobLoadComplete(false);
@@ -632,6 +634,109 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
   const shellReady = builderReadiness.ready && !draftGraphError;
   const normalizedJobId = (jobIdParam ?? "").trim() || null;
 
+  const headerTemplateName = starterGraph?.template.name ?? null;
+  const headerSelectedPackageLabel = useMemo(() => {
+    if (!starterGraph || !effectiveSelectedOptionId) return null;
+    const match = starterGraph.options.find((o) => o.id === effectiveSelectedOptionId);
+    if (!match) return null;
+    return (match.customer_label ?? match.name).trim() || match.name;
+  }, [starterGraph, effectiveSelectedOptionId]);
+
+  // 3J4B3: single guided-flow source of truth. Pure derivation — no writes,
+  // no lifecycle enablement (Preview/Send/Sign/Payment/Production all false).
+  const hasPlaceholderPages = useMemo(() => {
+    const { items } = buildPageContextStripItems(persistedGraph?.pages);
+    return items.some((item) => item.kind === "placeholder");
+  }, [persistedGraph?.pages]);
+
+  const guidanceGuardrailStatus = useMemo<ProposalBuilderGuardrailStatus>(() => {
+    const outcome = selectedOptionPricingStatus?.guardrailOutcome ?? null;
+    if (outcome == null) return "unknown";
+    if (outcome === "pass") return "pass";
+    if (outcome === "warn") return "attention";
+    return "blocked";
+  }, [selectedOptionPricingStatus]);
+
+  const builderGuidance = useMemo(() => {
+    if (!shellReady) return null;
+    return deriveProposalBuilderGuidance({
+      hasPersistedProposal: hasPersistedProposalParam,
+      selectedOptionId: effectiveSelectedOptionId,
+      templateReady: templateReadiness.status === "ready_for_builder",
+      measurementReady: Boolean(measurementHandoff?.proposalReady),
+      measurementStale: showStaleBanner,
+      pricingComplete: selectedOptionPricingStatus?.pricingComplete ?? false,
+      blockingLineCount: selectedOptionPricingStatus?.blockingLineCount ?? 0,
+      guardrailStatus: guidanceGuardrailStatus,
+      hasProposalPages: (persistedGraph?.pages?.length ?? 0) > 0,
+      hasPlaceholderPages,
+      previewEnabled: false,
+      sendEnabled: false,
+      signEnabled: false,
+      paymentEnabled: false,
+      productionEnabled: false,
+    });
+  }, [
+    shellReady,
+    hasPersistedProposalParam,
+    effectiveSelectedOptionId,
+    templateReadiness.status,
+    measurementHandoff?.proposalReady,
+    showStaleBanner,
+    selectedOptionPricingStatus,
+    guidanceGuardrailStatus,
+    persistedGraph?.pages,
+    hasPlaceholderPages,
+  ]);
+
+  // 3J4C4: the Estimate document now holds sections, line items, totals, package
+  // options, and details inline, so the former workspace-tab targets all resolve
+  // to the Estimate document page. Lifecycle (action:preview/send/sign/payment/
+  // production) intentionally no-ops — nothing is enabled here.
+  const handleGuidanceNavigate = useCallback(
+    (target: ProposalBuilderGuidanceTarget) => {
+      switch (target) {
+        case "workspace:overview":
+        case "workspace:options":
+        case "workspace:sections":
+        case "workspace:line-items":
+        case "workspace:quantities":
+          setActivePageContextId("estimate");
+          return;
+        case "page:cover":
+          setActivePageContextId("cover");
+          return;
+        case "page:estimate":
+          setActivePageContextId("estimate");
+          return;
+        case "page:terms":
+          setActivePageContextId("placeholder:terms");
+          return;
+        case "page:warranty":
+          setActivePageContextId("placeholder:warranty");
+          return;
+        case "page:project-overview":
+          setActivePageContextId("placeholder:about");
+          return;
+        case "page:project-photos":
+          setActivePageContextId("placeholder:photos");
+          return;
+        case "action:refresh-pricing":
+          handleRefreshDraftPricing();
+          return;
+        case "action:preview":
+        case "action:send":
+        case "action:sign":
+        case "action:payment":
+        case "action:production":
+        case "none":
+        default:
+          return;
+      }
+    },
+    [handleRefreshDraftPricing]
+  );
+
   return (
     <div className="space-y-6">
       <ProposalBuilderPageHeader
@@ -639,6 +744,9 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
         jobId={normalizedJobId}
         shellReady={shellReady}
         showDraftSavedPill={hasPersistedProposalParam && draftGraphLoadComplete && !draftGraphError}
+        templateName={headerTemplateName}
+        selectedPackageLabel={headerSelectedPackageLabel}
+        guidance={builderGuidance}
       />
       <ProposalBuilderPageAlerts loadError={loadError} shellReady={shellReady} />
       {draftGraphError ? (
@@ -694,19 +802,15 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
               measurementQuantityMap={measurementQuantityMap}
               pricingPreview={pricingPreview}
               snapshotQuantityByTemplateItemId={snapshotQuantityByTemplateItemId}
-              isPersistedSnapshot={adapterResult != null}
-              snapshotMeasurementDisplay={adapterResult?.snapshotMeasurementDisplay ?? null}
               pricingPolicyConfigured={pricingPolicyConfigured}
               activePageContextId={activePageContextId}
-              activeWorkspaceSection={activeWorkspaceSection}
-              onSelectWorkspaceSection={setActiveWorkspaceSection}
               persistedPages={persistedGraph?.pages}
-              proposalId={hasPersistedProposalParam ? proposalIdParam?.trim() ?? null : null}
-              recordLabel={measurementHandoff?.selectedLabel ?? "Not saved"}
             />
           }
           summaryRail={
             <ProposalBuilderSummaryRail
+              guidance={builderGuidance}
+              onGuidanceNavigate={handleGuidanceNavigate}
               measurementHandoff={measurementHandoff}
               catalogReadiness={catalogReadiness}
               templateReadiness={templateReadiness}
@@ -715,6 +819,9 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
               selectedOptionInternal={selectedOptionInternal}
               pricingPolicyConfigured={pricingPolicyConfigured}
               pricingPolicyLoadComplete={pricingPolicyLoadComplete}
+              isPersistedSnapshot={adapterResult != null}
+              snapshotMeasurementDisplay={adapterResult?.snapshotMeasurementDisplay ?? null}
+              proposalId={hasPersistedProposalParam ? proposalIdParam?.trim() ?? null : null}
             />
           }
         />

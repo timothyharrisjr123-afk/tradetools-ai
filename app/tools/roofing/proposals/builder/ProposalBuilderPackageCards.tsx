@@ -5,13 +5,14 @@ import { sortTemplateOptionsByOrder } from "@/app/tools/roofing/templates/templa
 import type { ProposalTemplateGraph } from "@/app/lib/proposalTemplateStore";
 import {
   BUILDER_PACKAGE_CARD,
+  BUILDER_PACKAGE_CARD_COMPACT,
   BUILDER_PACKAGE_CARD_IDLE,
   BUILDER_PACKAGE_CARD_SELECTED,
 } from "./proposalBuilderConstants";
 
 type PackageAccent = "standard" | "enhanced" | "premium" | "default";
 
-type PackageMeta = {
+export type PackageMeta = {
   description: string;
   bullets: [string, string];
   accent: PackageAccent;
@@ -61,7 +62,7 @@ const ACCENT_STYLES: Record<
   },
 };
 
-function resolvePackageMeta(label: string): PackageMeta {
+export function resolvePackageMeta(label: string): PackageMeta {
   const key = label.trim().toLowerCase();
 
   return (
@@ -77,14 +78,21 @@ type ProposalBuilderPackageCardsProps = {
   graph: ProposalTemplateGraph;
   selectedOptionId: string | null;
   onSelectOption: (optionId: string) => void;
+  /** 3J4B8: open the Options detail tab for a package (does not change pricing). */
+  onViewDetails?: (optionId: string) => void;
+  /** 3J4B flow-focus: lower visual dominance once a package is selected and pricing is blocked. */
+  compact?: boolean;
 };
 
 export default function ProposalBuilderPackageCards({
   graph,
   selectedOptionId,
   onSelectOption,
+  onViewDetails,
+  compact = false,
 }: ProposalBuilderPackageCardsProps) {
   const options = sortTemplateOptionsByOrder(graph.options);
+  const cardBase = compact ? BUILDER_PACKAGE_CARD_COMPACT : BUILDER_PACKAGE_CARD;
 
   if (options.length === 0) {
     return (
@@ -102,13 +110,9 @@ export default function ProposalBuilderPackageCards({
         const { Icon } = accent;
 
         return (
-          <button
+          <div
             key={option.id}
-            type="button"
-            role="radio"
-            aria-checked={selected}
-            onClick={() => onSelectOption(option.id)}
-            className={`${BUILDER_PACKAGE_CARD} ${
+            className={`${cardBase} ${
               selected ? BUILDER_PACKAGE_CARD_SELECTED : BUILDER_PACKAGE_CARD_IDLE
             }`}
           >
@@ -118,39 +122,57 @@ export default function ProposalBuilderPackageCards({
               </span>
             ) : null}
 
-            <div className="flex items-start gap-3">
-              <div
-                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${accent.iconBg} ${
-                  selected ? "ml-3" : ""
-                }`}
-              >
-                <Icon className="h-5 w-5" aria-hidden />
-              </div>
-
-              <div className="min-w-0 flex-1 pt-1">
-                <p className="text-base font-semibold leading-tight text-slate-950">{label}</p>
-                <p className="mt-1.5 text-sm leading-5 text-slate-600">{meta.description}</p>
-              </div>
-            </div>
-
-            <div className="mt-4 space-y-2 text-sm text-slate-700">
-              {meta.bullets.map((bullet) => (
-                <div key={bullet} className="flex items-start gap-2">
-                  <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" aria-hidden />
-                  <span>{bullet}</span>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={selected}
+              onClick={() => onSelectOption(option.id)}
+              className="flex flex-1 flex-col text-left"
+            >
+              <div className="flex items-start gap-3">
+                <div
+                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${accent.iconBg} ${
+                    selected ? "ml-3" : ""
+                  }`}
+                >
+                  <Icon className="h-5 w-5" aria-hidden />
                 </div>
-              ))}
-            </div>
 
-            <div className="mt-auto flex items-center justify-between gap-3 pt-4">
-              <span className="text-sm font-semibold text-blue-700">View details</span>
+                <div className="min-w-0 flex-1 pt-1">
+                  <p className="text-base font-semibold leading-tight text-slate-950">{label}</p>
+                  <p className="mt-1.5 text-sm leading-5 text-slate-600">{meta.description}</p>
+                </div>
+              </div>
+
+              <div className={`${compact ? "mt-2.5 space-y-1.5" : "mt-4 space-y-2"} text-sm text-slate-700`}>
+                {meta.bullets.map((bullet) => (
+                  <div key={bullet} className="flex items-start gap-2">
+                    <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" aria-hidden />
+                    <span>{bullet}</span>
+                  </div>
+                ))}
+              </div>
+            </button>
+
+            <div className={`mt-auto flex items-center justify-between gap-3 ${compact ? "pt-3" : "pt-4"}`}>
+              {onViewDetails ? (
+                <button
+                  type="button"
+                  onClick={() => onViewDetails(option.id)}
+                  className="text-sm font-semibold text-blue-700 hover:text-blue-800"
+                >
+                  View details
+                </button>
+              ) : (
+                <span className="text-sm font-semibold text-blue-700">View details</span>
+              )}
               <span
                 className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${accent.chip}`}
               >
                 Included
               </span>
             </div>
-          </button>
+          </div>
         );
       })}
     </div>
