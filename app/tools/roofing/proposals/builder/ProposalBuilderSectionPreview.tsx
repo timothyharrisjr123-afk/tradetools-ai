@@ -71,7 +71,7 @@ export default function ProposalBuilderSectionPreview({
 
   return (
     <section className={BUILDER_DOCUMENT_SECTION}>
-      <h3 className="text-base font-semibold tracking-tight text-slate-900">{title}</h3>
+      <h3 className="text-lg font-semibold tracking-tight text-slate-900">{title}</h3>
 
       {showTextBlock ? (
         <div className={BUILDER_DOCUMENT_TEXT_BLOCK}>

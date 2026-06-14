@@ -175,8 +175,9 @@ export default function ProposalBuilderCanvas({
 
       {/* 3J4C1: the estimate document is the primary canvas content — sections,
           line items, blocker indicators, and totals render inline (no longer
-          hidden behind a Line Items tab). */}
-      <div className="space-y-9 px-7 pb-7 pt-6">
+          hidden behind a Line Items tab). Sections carry their own dividers, so
+          the inter-element gap stays modest (3J4D readability). */}
+      <div className="space-y-6 px-7 pb-7 pt-6">
         {optionBlockingLineCount > 0 || optionGuardrailAttention ? (
           <div className="rounded-lg border border-amber-200/80 bg-amber-50/60 px-4 py-3">
             <p className="text-sm font-semibold text-amber-900">

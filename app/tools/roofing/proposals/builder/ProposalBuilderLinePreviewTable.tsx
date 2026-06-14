@@ -1,3 +1,4 @@
+import { ChevronRight } from "lucide-react";
 import type { ProposalBuilderLineCustomerView } from "@/app/lib/proposalBuilderPricingPreview";
 import type { ProposalPreviewLineRow } from "@/app/lib/proposalBuilderPreview";
 import type { ProposalSnapshotLineQuantityView } from "@/app/lib/proposalDraftGraphAdapter";
@@ -28,12 +29,48 @@ type ProposalBuilderLinePreviewTableProps = {
 };
 
 function LineMetaDetail({ label, value }: { label: string; value: string }) {
-  if (!value || value === "—") return null;
   return (
     <span>
       <span className="text-slate-400">{label}: </span>
       <span className="text-slate-500">{value}</span>
     </span>
+  );
+}
+
+/**
+ * 3J4D readability: contractor/internal quantity-resolution detail (Source, Rule,
+ * Unit, Role, resolved status) tucked into a default-closed disclosure so the row
+ * reads as a customer-facing estimate line. Presentation only — same data.
+ */
+function LineDetailsDisclosure({
+  entries,
+  statusLabel,
+}: {
+  entries: { label: string; value: string }[];
+  statusLabel: string | null;
+}) {
+  return (
+    <details className="group mt-1.5">
+      <summary className="inline-flex cursor-pointer list-none items-center gap-1 text-[11px] font-medium text-slate-400 hover:text-slate-600 [&::-webkit-details-marker]:hidden">
+        <ChevronRight
+          className="h-3 w-3 shrink-0 transition-transform group-open:rotate-90"
+          aria-hidden
+        />
+        Line details
+      </summary>
+      <div className="mt-1.5 space-y-1 border-l border-slate-200/70 pl-2.5">
+        {entries.length > 0 ? (
+          <p className="flex flex-wrap gap-x-2.5 gap-y-0.5 text-[11px] leading-snug text-slate-400">
+            {entries.map((entry) => (
+              <LineMetaDetail key={entry.label} label={entry.label} value={entry.value} />
+            ))}
+          </p>
+        ) : null}
+        {statusLabel ? (
+          <p className="text-[11px] leading-snug text-slate-400">Status: {statusLabel}</p>
+        ) : null}
+      </div>
+    </details>
   );
 }
 
@@ -124,10 +161,22 @@ export default function ProposalBuilderLinePreviewTable({
             ? snapshotQty.quantityDisplayLabel == null
             : row.quantityUnresolved;
           const quantityStatusLabel = snapshotQty ? "" : row.quantityStatusLabel;
+          const needsAttention = row.missingCatalog || quantityUnresolved;
+
+          const detailEntries = [
+            { label: "Source", value: quantitySourceLabel },
+            { label: "Rule", value: row.quantityRuleLabel },
+            { label: "Unit", value: unitLabel },
+            { label: "Role", value: row.roleLabel },
+          ].filter((entry) => entry.value && entry.value !== "—");
+          const resolvedStatusLabel =
+            quantityStatusLabel && !quantityUnresolved ? quantityStatusLabel : null;
+          const hasLineDetails = detailEntries.length > 0 || resolvedStatusLabel != null;
+
           return (
             <li
               key={row.id}
-              className={`${BUILDER_PROPOSAL_LINE_ROW} ${row.missingCatalog ? "bg-amber-50/40" : ""}`}
+              className={`${BUILDER_PROPOSAL_LINE_ROW} ${needsAttention ? "bg-amber-50/40" : ""}`}
             >
               <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
                 <div className="min-w-0 flex-1">
@@ -153,14 +202,11 @@ export default function ProposalBuilderLinePreviewTable({
                       {quantityDisplayLabel}
                     </span>
                   </p>
-                  <p className="mt-1.5 flex flex-wrap gap-x-2.5 gap-y-0.5 text-[11px] leading-snug text-slate-400">
-                    <LineMetaDetail label="Source" value={quantitySourceLabel} />
-                    <LineMetaDetail label="Rule" value={row.quantityRuleLabel} />
-                    <LineMetaDetail label="Unit" value={unitLabel} />
-                    <LineMetaDetail label="Role" value={row.roleLabel} />
-                  </p>
-                  {quantityStatusLabel && !quantityUnresolved ? (
-                    <p className="mt-1 text-[11px] text-slate-400">Status: {quantityStatusLabel}</p>
+                  {hasLineDetails ? (
+                    <LineDetailsDisclosure
+                      entries={detailEntries}
+                      statusLabel={resolvedStatusLabel}
+                    />
                   ) : null}
                 </div>
                 <div className="shrink-0 text-left sm:text-right">
