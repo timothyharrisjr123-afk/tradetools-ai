@@ -154,7 +154,11 @@ export default function ProposalBuilderPackageCards({
               </div>
             </button>
 
-            <div className={`mt-auto flex items-center justify-between gap-3 ${compact ? "pt-3" : "pt-4"}`}>
+            <div
+              className={`mt-auto flex items-center gap-3 ${
+                onViewDetails ? "justify-between" : "justify-end"
+              } ${compact ? "pt-3" : "pt-4"}`}
+            >
               {onViewDetails ? (
                 <button
                   type="button"
@@ -163,13 +167,13 @@ export default function ProposalBuilderPackageCards({
                 >
                   View details
                 </button>
-              ) : (
-                <span className="text-sm font-semibold text-blue-700">View details</span>
-              )}
+              ) : null}
               <span
-                className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${accent.chip}`}
+                className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${
+                  selected ? "bg-blue-600 text-white" : accent.chip
+                }`}
               >
-                Included
+                {selected ? "Current" : "Included"}
               </span>
             </div>
           </div>

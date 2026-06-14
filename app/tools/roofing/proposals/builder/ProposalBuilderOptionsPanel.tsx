@@ -54,6 +54,12 @@ export default function ProposalBuilderOptionsPanel({
     { label: "Included / excluded details", value: null, placeholder: true },
   ];
 
+  // 3J4E: split present vs. missing so we don't repeat ugly "Not set" rows.
+  // Real values render as clean spec rows; the rest collapse into a single calm
+  // "to complete later" group instead of N italic placeholder lines.
+  const presentRows = rows.filter((row) => Boolean(row.value));
+  const missingLabels = rows.filter((row) => !row.value).map((row) => row.label);
+
   const showInternalName =
     Boolean((selectedOption.name ?? "").trim()) &&
     Boolean(selectedOption.customer_label) &&
@@ -62,41 +68,41 @@ export default function ProposalBuilderOptionsPanel({
   return (
     <div className="space-y-4">
       <div>
-        <h3 className="text-sm font-semibold text-slate-900">Package details</h3>
-        <p className="mt-1 text-xs text-slate-500">
-          Customer-facing option. Use “Change package” to switch the selected package.
+        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+          Package details
         </p>
+        {showInternalName ? (
+          <p className="mt-0.5 text-xs text-slate-500">Internal name: {selectedOption.name}</p>
+        ) : null}
       </div>
 
-      <div className="rounded-lg border border-slate-200/80 bg-slate-50/50 px-4 py-4">
-        <p className="text-base font-semibold text-slate-900">{label}</p>
-        {showInternalName ? (
-          <p className="mt-1 text-xs text-slate-500">Internal name: {selectedOption.name}</p>
-        ) : null}
-
-        <div className="mt-3 flex items-start gap-2 rounded-md border border-blue-200/70 bg-blue-50/60 px-3 py-2 text-[11px] leading-snug text-blue-900">
-          <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-blue-600" aria-hidden />
-          <span>
-            Draft template detail — placeholder differentiators shown for layout. Editing
-            customer-facing option details comes in a later phase.
-          </span>
-        </div>
-
-        <dl className="mt-4 divide-y divide-slate-200/70">
-          {rows.map((row) => (
+      {presentRows.length > 0 ? (
+        <dl className="divide-y divide-slate-200/70">
+          {presentRows.map((row) => (
             <div key={row.label} className="flex items-start justify-between gap-4 py-2">
               <dt className="text-xs font-medium text-slate-500">{row.label}</dt>
-              <dd className="max-w-[60%] text-right text-sm text-slate-700">
-                {row.value ? (
-                  row.value
-                ) : (
-                  <span className="text-xs italic text-slate-400">Not set (placeholder)</span>
-                )}
-              </dd>
+              <dd className="max-w-[60%] text-right text-sm text-slate-700">{row.value}</dd>
             </div>
           ))}
         </dl>
-      </div>
+      ) : null}
+
+      {missingLabels.length > 0 ? (
+        <div className="rounded-md border border-slate-200/70 bg-white px-3 py-3">
+          <div className="flex items-start gap-2">
+            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden />
+            <div className="min-w-0">
+              <p className="text-xs font-medium text-slate-600">Details to complete later</p>
+              <p className="mt-1 text-[11px] leading-snug text-slate-500">
+                {missingLabels.join(" · ")}
+              </p>
+              <p className="mt-1.5 text-[11px] leading-snug text-slate-400">
+                Customer-facing option details are added in a later editing phase.
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

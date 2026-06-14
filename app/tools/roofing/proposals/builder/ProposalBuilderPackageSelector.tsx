@@ -47,18 +47,26 @@ export default function ProposalBuilderPackageSelector({
 
     return (
       <div className="space-y-3">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border border-slate-200/90 bg-white px-4 py-3 shadow-[0_1px_3px_rgba(15,23,42,0.05)]">
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border border-slate-200/90 bg-white px-4 py-3.5 shadow-[0_1px_3px_rgba(15,23,42,0.05)]">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white">
             <Check className="h-4 w-4" aria-hidden />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
               Selected package
             </p>
-            <p className="truncate text-sm font-semibold text-slate-900" title={label}>
+            <p className="truncate text-base font-semibold leading-tight text-slate-950" title={label}>
               {label}
             </p>
-            <p className="truncate text-xs text-slate-500">{meta.description}</p>
+            <p className="mt-0.5 truncate text-[13px] text-slate-600">{meta.description}</p>
+            <p className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] text-slate-500">
+              {meta.bullets.map((bullet, index) => (
+                <span key={bullet} className="inline-flex items-center gap-1.5">
+                  {index > 0 ? <span className="text-slate-300" aria-hidden>·</span> : null}
+                  {bullet}
+                </span>
+              ))}
+            </p>
           </div>
           <div className="flex shrink-0 items-center gap-3">
             <button
@@ -97,13 +105,13 @@ export default function ProposalBuilderPackageSelector({
     <div className="space-y-2.5">
       {hasExplicitSelection ? (
         <div className="flex items-center justify-between gap-2">
-          <p className="text-[11px] font-medium text-slate-500">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">
             Choose the customer-facing package
           </p>
           <button
             type="button"
             onClick={() => setShowAll(false)}
-            className="text-xs font-semibold text-slate-500 hover:text-slate-700"
+            className="inline-flex items-center rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
           >
             Done
           </button>
