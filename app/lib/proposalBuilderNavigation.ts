@@ -186,6 +186,27 @@ export function isPlaceholderPageContext(contextId: BuilderPageContextId): boole
   return typeof contextId === "string" && contextId.startsWith("placeholder:");
 }
 
+/**
+ * 3J4F — resolve the proposal page_type for a context id so the canvas can
+ * pick the right read-only renderer. Persisted pages carry their own type;
+ * placeholder slots map through MOCK_PLACEHOLDER_PAGES; fixed slots are typed.
+ * Returns null for non-page contexts (preview, add_page) or unknown ids.
+ */
+export function resolvePageTypeForContext(
+  contextId: BuilderPageContextId,
+  pages: ProposalPageRow[] | null | undefined
+): ProposalPageType | null {
+  if (contextId === "cover") return "cover";
+  if (contextId === "estimate") return "estimate";
+  if (contextId === "preview" || contextId === "add_page") return null;
+
+  const placeholder = MOCK_PLACEHOLDER_PAGES.find((slot) => slot.id === contextId);
+  if (placeholder) return placeholder.pageType;
+
+  const persisted = resolvePersistedPageByContextId(pages, contextId);
+  return persisted?.page_type ?? null;
+}
+
 export function resolvePageContextDisplayLabel(
   contextId: BuilderPageContextId,
   pages: ProposalPageRow[] | null | undefined

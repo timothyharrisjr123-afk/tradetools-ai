@@ -12,10 +12,13 @@ import {
   isEstimatePageContext,
   isPlaceholderPageContext,
   resolvePageContextDisplayLabel,
+  resolvePageTypeForContext,
   resolvePersistedPageByContextId,
   type BuilderPageContextId,
 } from "@/app/lib/proposalBuilderNavigation";
+import type { ProposalPageType } from "@/app/lib/proposalPageTypes";
 import type { ProposalPageRow } from "@/app/lib/proposalRecordStore";
+import ProposalBuilderCustomerPage from "./ProposalBuilderCustomerPage";
 import ProposalBuilderDocumentTotals from "./ProposalBuilderDocumentTotals";
 import ProposalBuilderPackageSelector from "./ProposalBuilderPackageSelector";
 import ProposalBuilderSectionPreview from "./ProposalBuilderSectionPreview";
@@ -43,6 +46,40 @@ type ProposalBuilderCanvasProps = {
   activePageContextId: BuilderPageContextId;
   persistedPages: ProposalPageRow[] | null | undefined;
 };
+
+/** 3J4F — text page types that render as read-only customer document pages. */
+const CUSTOMER_TEXT_PAGE_TYPES: readonly ProposalPageType[] = [
+  "project_overview",
+  "terms",
+  "warranty",
+  "custom_text",
+] as const;
+
+function isCustomerTextPageType(pageType: ProposalPageType | null): boolean {
+  return pageType != null && CUSTOMER_TEXT_PAGE_TYPES.includes(pageType);
+}
+
+/** Page-specific calm empty state shown when no body content exists yet. */
+function emptyStateTextForPageType(pageType: ProposalPageType): string {
+  switch (pageType) {
+    case "project_overview":
+      return "Project overview content will appear here.";
+    case "terms":
+      return "Terms will appear here before sending.";
+    case "warranty":
+      return "Warranty details will appear here before sending.";
+    default:
+      return "Page content will appear here.";
+  }
+}
+
+/** Safely read content_json.body_markdown off a loosely-typed persisted page. */
+function readPageBodyMarkdown(page: ProposalPageRow | null): string | null {
+  if (!page) return null;
+  const content = page.content_json as { body_markdown?: unknown } | null | undefined;
+  const body = content?.body_markdown;
+  return typeof body === "string" ? body : null;
+}
 
 function CustomerPagePanel({
   title,
@@ -129,6 +166,24 @@ export default function ProposalBuilderCanvas({
     const persistedPage = resolvePersistedPageByContextId(persistedPages, activePageContextId);
     const placeholder = isPlaceholderPageContext(activePageContextId);
     const pageTitle = resolvePageContextDisplayLabel(activePageContextId, persistedPages);
+    const pageType = resolvePageTypeForContext(activePageContextId, persistedPages);
+
+    // 3J4F: customer-facing text pages render as read-only document pages with
+    // the persisted body (or a calm page-specific empty state). Cover, Photos,
+    // PDF attachments, and other media/editor-dependent pages stay honestly
+    // reserved behind the placeholder panel.
+    if (isCustomerTextPageType(pageType)) {
+      return (
+        <article className={BUILDER_CANVAS}>
+          <ProposalBuilderCustomerPage
+            pageType={pageType as ProposalPageType}
+            title={pageTitle}
+            bodyMarkdown={readPageBodyMarkdown(persistedPage)}
+            emptyStateText={emptyStateTextForPageType(pageType as ProposalPageType)}
+          />
+        </article>
+      );
+    }
 
     return (
       <article className={BUILDER_CANVAS}>
