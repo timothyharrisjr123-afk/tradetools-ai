@@ -110,17 +110,27 @@ const PREMIUM_OPTIONAL_UPGRADES: readonly DefaultProposalTemplateItemDefinition[
   })),
 ];
 
-const PROJECT_OVERVIEW_BODY =
-  "This proposal outlines a roof replacement scope based on field measurements, selected options, and the contractor's catalog setup.";
+const PROJECT_OVERVIEW_BODY = `This proposal outlines the recommended roofing work for your property based on the current job information, selected package, and contractor review.
 
-const SCOPE_NOTES_BODY =
-  "Final scope, quantities, and schedule should be confirmed by the contractor before work begins.";
+The Estimate page shows the selected option, itemized roofing scope, quantities, and pricing. Supporting pages provide warranty, terms, and project notes so you can review the work clearly before approval.
 
-const WARRANTY_BODY =
-  "Warranty details should be reviewed and completed by the contractor before sending the proposal.";
+Final scope details, site conditions, and any open items are confirmed by your contractor before work begins.`;
 
-const TERMS_BODY =
-  "Payment terms, exclusions, and project schedule should be reviewed and completed by the contractor before sending.";
+const SCOPE_NOTES_BODY = `Scope notes help clarify what is included, what may need confirmation, and any assumptions behind the proposal. Your final scope is based on the selected package, resolved line items, and contractor review.
+
+If additional work is discovered or requested, your contractor will review the change before it is added to the project.`;
+
+const WARRANTY_BODY = `Roofing warranties typically include two parts: manufacturer coverage for eligible material defects and workmanship coverage for installation-related issues.
+
+Manufacturer coverage depends on the selected products and manufacturer terms. Workmanship coverage is provided by the contractor and should be reviewed with your final proposal documents.
+
+Your contractor will confirm the applicable warranty details for the selected package before approval.`;
+
+const TERMS_BODY = `Terms and conditions outline how the proposal is reviewed, approved, and completed. Final terms should be confirmed by the contractor before acceptance.
+
+Items such as payment schedule, project timing, exclusions, change requests, site conditions, and warranty references may be completed or updated before the proposal is sent.
+
+Any changes to the approved scope should be reviewed and confirmed in writing before being added to the project.`;
 
 function sectionSeedKey(optionSeedKey: string, suffix: string): string {
   return `${optionSeedKey}${suffix}`;
