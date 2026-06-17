@@ -12,6 +12,20 @@ export const TEMPLATES_PREREQ_BANNER =
 export const TEMPLATES_LIBRARY_ROW =
   "rounded-lg border border-slate-200 bg-white px-4 py-4 shadow-sm";
 
+export const TEMPLATES_LIBRARY_ROW_SELECTED =
+  "rounded-lg border border-cyan-300 bg-cyan-50/40 px-4 py-4 shadow-sm ring-1 ring-cyan-200";
+
+export const TEMPLATES_WORKSPACE_ZONE =
+  "rounded-lg border border-slate-200/90 bg-white shadow-[0_1px_3px_rgba(15,23,42,0.05)]";
+
+export const TEMPLATES_LOCKED_BANNER =
+  "mt-4 rounded-md border border-slate-200 bg-slate-50 px-4 py-3";
+
+export const TEMPLATES_OPTION_GROUP =
+  "overflow-hidden rounded-lg border border-slate-200 bg-white";
+
+export const TEMPLATES_CONTENT_SECTION_ROW = "px-4 py-4";
+
 export const TEMPLATES_COMPACT_STAT =
   "rounded-md border border-slate-100 bg-slate-50/80 px-3 py-2 text-center";
 

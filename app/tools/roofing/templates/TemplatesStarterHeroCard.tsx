@@ -12,6 +12,7 @@ import {
 import type { ProposalTemplateReadiness } from "@/app/lib/proposalTemplateTypes";
 import type { InstallDefaultRoofingProposalTemplatesResult } from "@/app/lib/defaultRoofingProposalTemplateInstall";
 import {
+  TEMPLATES_CARD,
   TEMPLATES_COMPACT_STAT,
   TEMPLATES_HERO_CARD,
   TEMPLATES_OPTION_CHIP,
@@ -35,6 +36,7 @@ type TemplatesStarterHeroCardProps = {
   installDisabledTitle?: string;
   onInstallStarter: () => void;
   installResult: InstallDefaultRoofingProposalTemplatesResult | null;
+  compact?: boolean;
 };
 
 export default function TemplatesStarterHeroCard({
@@ -48,6 +50,7 @@ export default function TemplatesStarterHeroCard({
   installDisabledTitle,
   onInstallStarter,
   installResult,
+  compact = false,
 }: TemplatesStarterHeroCardProps) {
   const optionLabels = getPassiveStarterOptionLabels();
   const catalogPill = catalogReadinessStatusPillClass(catalogReadiness.state);
@@ -57,13 +60,19 @@ export default function TemplatesStarterHeroCard({
   const catalogLabel = formatCatalogReadinessLabel(catalogReadiness);
 
   return (
-    <section className={TEMPLATES_HERO_CARD} aria-labelledby="templates-starter-hero-heading">
+    <section
+      className={compact ? TEMPLATES_CARD : TEMPLATES_HERO_CARD}
+      aria-labelledby="templates-starter-hero-heading"
+    >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-            Starter template
+            {compact ? "Starter template install" : "Starter template"}
           </p>
-          <h2 id="templates-starter-hero-heading" className="mt-1 text-lg font-semibold text-slate-900">
+          <h2
+            id="templates-starter-hero-heading"
+            className={`mt-1 font-semibold text-slate-900 ${compact ? "text-base" : "text-lg"}`}
+          >
             {STARTER_TEMPLATE_DISPLAY_NAME}
           </h2>
         </div>
@@ -84,11 +93,13 @@ export default function TemplatesStarterHeroCard({
         </div>
       </div>
 
-      <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-600">
-        {STARTER_TEMPLATE_DISPLAY_DESCRIPTION}
-      </p>
+      {!compact && (
+        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-600">
+          {STARTER_TEMPLATE_DISPLAY_DESCRIPTION}
+        </p>
+      )}
 
-      {optionLabels.length > 0 && (
+      {!compact && optionLabels.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-2">
           {optionLabels.map((label) => (
             <span key={label} className={TEMPLATES_OPTION_CHIP}>
@@ -102,7 +113,7 @@ export default function TemplatesStarterHeroCard({
         {loading ? "Loading template state…" : proposalNextStep}
       </p>
 
-      {!loading && (
+      {!loading && !compact && (
         <dl className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
           <div className={TEMPLATES_COMPACT_STAT}>
             <dt className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
