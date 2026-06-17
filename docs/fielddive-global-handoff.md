@@ -11,15 +11,16 @@
 
 **When to read related docs:**
 
-- Read **`docs/fielddive-flow-map.md`** when changing routes, IA, screen flow, or Job Board / Job Card navigation.
+- Read **`docs/fielddive-flow-map.md`** when changing routes, IA, screen flow, or Job Board / Job Card navigation — but **§6AL / §6AM supersede** older flow-map terminology where they conflict (e.g. Job Board vs Command Center).
 - Read **`docs/competitive-architecture-audit.md`** when adding modules, changing dashboard/Job Board architecture, or comparing against Roofr/competitor-style workflow.
 - Read **§6AL** before any recovery or template/Builder/lifecycle work — **mandatory stage order**.
+- Read **§6AM** before nav/module placement, shell IA, or R5+ template workspace UI.
 
-**Last updated checkpoint:** **Code:** **`8c04c2a` — 3J4H: add template content editing helper** (`proposalTemplateContentEditing.ts`). **Docs checkpoint:** pending **R0** commit (prior docs: `40e5f5b`, 3J4H-R Roofr IA correction). **Smoke gate:** **PASSED** manually (§6AE.5 → §6AF.9 → §6AD.7; recorded at `0763799`). **DB-first foundation Phases A–D complete** — see **§6AD**. **Prior code:** `ce7aa39` (3J4G seed copy), `bfa0454` (3J4F customer pages). **Tests (pre-commit audit at `8c04c2a`):** content-editing helper **9/9**; guidance + navigation **19/19**. **Typecheck:** only **6** pre-existing errors in `app/tools/roofing-v2/RoofingClientV2.tsx` — unchanged. **Protected systems:** unchanged in 3J4H Pass 2 (pure helper only). **Working tree:** doc-only WIP for **R0** RoofrExact Recovery Playbook (§6AL).
+**Last updated checkpoint:** **Code:** **`8c04c2a` — 3J4H: add template content editing helper** (`proposalTemplateContentEditing.ts`). **Docs checkpoint:** **`f1dba95` — RoofrExact recovery playbook (§6AL)**; **R1** Global IA / module ownership map (§6AM) — **pending commit**. **Prior docs:** `40e5f5b` (3J4H-R Roofr IA correction). **Smoke gate:** **PASSED** manually (§6AE.5 → §6AF.9 → §6AD.7; recorded at `0763799`). **DB-first foundation Phases A–D complete** — see **§6AD**. **Prior code:** `ce7aa39` (3J4G seed copy), `bfa0454` (3J4F customer pages). **Tests (pre-commit audit at `8c04c2a`):** content-editing helper **9/9**; guidance + navigation **19/19**. **Typecheck:** only **6** pre-existing errors in `app/tools/roofing-v2/RoofingClientV2.tsx` — unchanged. **Protected systems:** unchanged in 3J4H Pass 2 (pure helper only). **Working tree:** doc-only WIP for **R1** (§6AM).
 
 **Jobs Board approved save point:** `b27a444` (3F9B4-RoofrExact visual baseline). **DB-first board partition:** `a62ad93` (§6AD). **Prior Job Board checkpoint:** `36fa3a9` (3F9B3).
 
-**Next (recommended):** **R0** — docs-only **RoofrExact Recovery Playbook** (§6AL), then **R1–R3** IA/module docs gates before **3J4H UI wiring**. **3J4H Pass 3B** (view-model helper) is **paused until R0 docs are committed**. **3J4H Pass 3C–3D** (workspace shell + content editor save) are **paused until R0–R3 docs gates are complete**. Template editor work is **not canceled** — it resumes in **§6AL** order (R4–R6 after gates). **Mandatory recovery order:** **§6AL** — do not fix downstream features before upstream IA/module drift is documented. **Later items** only in **§11 — Future / Later bucket** (stage IDs point to §6AL). **Preview / Send / Sign / Payment remain disabled** until **3K+** (R17–R20). **Do not** return to `loadSaved`/`currentSaved` as main workflow.
+**Next (recommended):** **R1** — Global IA / module ownership map (§6AM) — **pending commit**; then **R2–R3** docs gates before **3J4H UI wiring (R5–R6)**. **R4** (3J4H Pass 3B view-model) may proceed after **R0** per §6AL dependencies; **conservative order** is **R2–R3** docs before **R4** if IA gates are not yet satisfied. **3J4H Pass 3C–3D** (workspace shell + content editor save) remain **paused until R0–R3 docs gates are complete**. **Nav code** is **R7**; **Proposals hub** is **R16** — not this pass. **Mandatory recovery order:** **§6AL** + **§6AM** (R1). **Later items** only in **§11**. **Preview / Send / Sign / Payment remain disabled** until **R17–R20**. **Do not** return to `loadSaved`/`currentSaved` as main workflow.
 
 **DB-first foundation is live** (§6AD). **3J3E option selection persists** (§6AE). **Pricing trust hardening complete** (§6AF). **3J4C document-first Builder complete** (§6AG) — Estimate page renders the actual proposal document inline (package selector, blocker banner, sections, line items, totals); right rail is a contextual **Proposal Helper** inspector; old workspace tabs and Overview panel **removed**. **3J4D** refined Estimate line readability (§6AH). **3J4E** refined package/options surface inside Estimate (§6AI). **3J4F** extended Builder to customer-facing text pages — Terms, Warranty, Project Overview, custom_text render persisted `body_markdown` when present (§6AJ). Main workflow: **Job Board → DB job card (`job=`) → create/reuse DB proposal draft → Builder (`job=` + `proposal=`) → package selection persists to DB; refresh draft pricing when measurement changes**. Legacy `loadSaved=` / `currentSaved` / board-origin paths are **preserved but separated** — they **cannot create DB proposals directly**. **DB proposal math uses the new spine only** (`measurement_records` → `proposalQuantityResolver` → `proposalPricingEngine` → snapshots) — **not** legacy saved-estimate / Core-Enhanced-Premium estimator math. **`createDraftProposal`** runs from Job Card **+ Proposal** only when clean DB `job=` identity is available; **Builder reads** persisted drafts via **`getDraftGraph`** + **`proposalDraftGraphAdapter`** when `?proposal=` is present — **no Builder create path**, **no silent fallback** on invalid `proposal=`. **Do not** persist placeholder/unconfigured pricing policy. **Catalog custom delete/deactivate** is **not implemented** and remains a **separate later scope**.
 
@@ -3525,7 +3526,7 @@ Before each major page/workflow slice (Cover, Photos, Preview/PDF/Send, customer
 
 ## 6AK. 3J4G-ROADMAP + 3J4H-R — PROPOSAL CONTENT ARCHITECTURE (DOCS ONLY)
 
-**Status:** **3J4G-Roadmap** (`57108bd`) + **3J4H-R Roofr IA correction** (`40e5f5b`) + **R0 Recovery Playbook** (pending commit). **Code checkpoint:** `8c04c2a` (3J4H Pass 2 helper). **Purpose:** Lock **proposal content-authoring architecture**. Hardcoded seed bodies are **fallback seed content only** — not the final contractor-controlled content system.
+**Status:** **3J4G-Roadmap** (`57108bd`) + **3J4H-R Roofr IA correction** (`40e5f5b`) + **R0 Recovery Playbook** (`f1dba95`, §6AL) + **R1 module map** (§6AM, pending commit). **Code checkpoint:** `8c04c2a` (3J4H Pass 2 helper). **Purpose:** Lock **proposal content-authoring architecture**. Hardcoded seed bodies are **fallback seed content only** — not the final contractor-controlled content system.
 
 **Recovery order:** **§6AL — RoofrExact Recovery Playbook** is the **mandatory execution order** for all future work. This section records content architecture only — **sequencing is in §6AL**, not duplicated here.
 
@@ -3626,7 +3627,7 @@ defaultRoofingProposalTemplates.ts
 - **`/tools/roofing/templates`** becomes a **Template Workspace** (not setup-only) — **R5–R6**.
 - Use existing **`proposal_template_sections.content`**; wire **`updateProposalTemplateSection`** — **R6**.
 - **§6AL mapping:** **R4** = Pass 3B view-model helper; **R5** = Pass 3C workspace shell; **R6** = Pass 3D content editor + save.
-- **3J4H Pass 3B** can resume after **R0** commit. **3J4H UI wiring (R5–R6)** waits until **R1–R3** docs gates are complete.
+- **3J4H Pass 3B (R4)** may resume after **R0** (`f1dba95`); **3J4H UI wiring (R5–R6)** waits until **R1–R3** docs gates are complete (§6AM satisfies **R1** when committed).
 - **First slice (R6):** edit existing **text sections only** — Terms, Warranty, Project Overview/Scope; `body_markdown` in section content.
 - **Do not start with:** add/remove/reorder pages (**R10**), job-specific editing (**R12**), catalog item detail editing inside templates.
 - **Catalog** remains the single source for line item definitions; templates reference catalog items only.
@@ -3675,7 +3676,7 @@ Full mandatory order: **§6AL**. Open checklist with §6AL stage IDs: **§11 —
 
 ## 6AL. ROOFR EXACT RECOVERY PLAYBOOK
 
-**Status:** **R0** (pending commit). **Purpose:** Single ordered recovery roadmap from the earliest confirmed product-shell drift through templates, Builder, lifecycle, and production.
+**Status:** **R0** complete (`f1dba95`). **R1** module map in **§6AM** (pending commit). **Purpose:** Single ordered recovery roadmap from the earliest confirmed product-shell drift through templates, Builder, lifecycle, and production.
 
 **Opening rules (mandatory):**
 
@@ -3694,7 +3695,7 @@ Full mandatory order: **§6AL**. Open checklist with §6AL stage IDs: **§11 —
 | Stage | Type | Purpose | Depends on | Stop gate | Do not touch |
 |-------|------|---------|------------|-----------|--------------|
 | **R0** | Docs | Lock this playbook in handoff | — | §6AL committed; header/§11 aligned | App code |
-| **R1** | Docs | Global IA / module ownership (target + interim nav) | R0 | Target nav map documented; Templates interim route OK | Route migration |
+| **R1** | Docs | Global IA / module ownership (target + interim nav) | R0 | Target module map + current shell nav truth + interim rules documented (**§6AM**); nav code deferred **R7**; Proposals hub deferred **R16** | Route migration; nav code |
 | **R2** | Docs | Jobs Board / `saved` identity; legacy boundary | R0 | `/tools/roofing/saved` = Job Board documented | `estimateStore` migration |
 | **R3** | Docs | Proposals hub ownership (defer hub route) | R1 | Future hub spec; no premature route churn | Building hub UI |
 | **R4** | Code | 3J4H Pass 3B — `buildTemplateContentEditorViewModel` + tests | R0 | Helper tests pass; lib-only diff | UI, store changes |
@@ -3723,7 +3724,7 @@ Full mandatory order: **§6AL**. Open checklist with §6AL stage IDs: **§11 —
 | Pass | §6AL | Status |
 |------|------|--------|
 | Pass 2 helper (`8c04c2a`) | Pre-R4 | **DONE** |
-| Pass 3B view-model | **R4** | **Paused until R0 commit** |
+| Pass 3B view-model | **R4** | **Unblocked after R0** (`f1dba95`); conservative order: after R1–R3 docs |
 | Pass 3C workspace shell | **R5** | **Paused until R0–R3 docs gates** |
 | Pass 3D editor + save | **R6** | **Paused until R5** |
 
@@ -3745,7 +3746,7 @@ Template editor is **not canceled** — it resumes at **R4** after **R0**, with 
 ### Recovery guardrails
 
 - **Roofr evidence first** — Help Center, Academy, product pages before inventing flows.
-- **Repo truth second** — handoff §6AK + §6AL + §11.
+- **Repo truth second** — handoff §6AK + §6AL + §6AM + §11.
 - **Recovery order is mandatory** — see start/stop gate rule above.
 - **Long-term correct architecture over easy reuse** — reshape misaligned components.
 - **Old FieldDive surfaces** may be reused only if they fit Roofr-aligned architecture cleanly.
@@ -3777,6 +3778,94 @@ Template editor is **not canceled** — it resumes at **R4** after **R0**, with 
 - **R20** before **R21** (production)
 - **R16** (Proposals hub) does **not** block **R4–R6** (interim `/tools/roofing/templates` route)
 - **R9** (Job Card create) after **R6** recommended; does not block **R4**
+
+**R1 detail:** see **§6AM** — Global IA / Module Ownership Map (docs only; satisfies R1 stop gate when committed).
+
+---
+
+## 6AM. R1 — GLOBAL IA / MODULE OWNERSHIP MAP
+
+**Status:** **R1** docs — **pending commit**. **Depends on:** **R0** (`f1dba95`, §6AL). **Type:** **Docs only** — does **not** change routes, navigation code, or app behavior.
+
+**Mandatory statements:**
+
+- **R1 is docs-only.** No route migration. No `FieldDiveAppShell` code changes.
+- **Nav code** remains **R7** (light label/grouping updates only).
+- **Proposals hub code** remains **R16** (Draft/Sent/Won/Lost list + filters).
+- **R2** (Jobs Board / `saved` identity) and **R3** (Proposals hub ownership spec) are separate docs gates — this section does not replace them.
+
+### Flow-map cross-link
+
+`docs/fielddive-flow-map.md` remains a secondary IA anchor. Where it conflicts with the recovery roadmap — e.g. framing `/tools/roofing/saved` as **Command Center** instead of **Job Board** — **§6AL / §6AM supersede** the older terminology. **`/tools/roofing/saved` is Job Board** in the RoofrExact recovery model. **R2** documents Jobs Board / saved identity and legacy boundaries in detail.
+
+### Current shell nav truth (`FieldDiveAppShell.tsx`)
+
+Repo truth as of code checkpoint **`8c04c2a`**. `activeNav` keys: `jobs` | `newJob` | `catalog` | `templates`.
+
+| Label | Href | Nav key | Status | RoofrExact ownership | Interim rule | Future stage |
+|-------|------|---------|--------|----------------------|--------------|--------------|
+| **Job Board** | `/tools/roofing/saved` | `jobs` | **Live** | **Jobs / Job Board** — operational pipeline + DB job cards | Treat as **Job Board**, not Command Center or status-page architecture | **R2** identity docs; **R8** light copy/section code |
+| **New Job** | `/tools/roofing` | `newJob` | **Live** (expandable group) | **Job intake** — entry to Job Packet / Job Card | Primary intake path; not Proposals module | **R7** nav grouping |
+| ↳ Job Packet | `/tools/roofing?entry=packet` | sub `packet` | **Live** (default sub) | Job Packet intake | Keep lightweight prep flow | — |
+| ↳ Job Card | `/tools/roofing?entry=job-card` (recovery href may use last `job=`) | sub `job-card` | **Live** | **Job Card** — measurement → catalog → template → proposal readiness | Main execution launchpad; **+ Proposal** → Builder | **R9** create flow polish |
+| ↳ Instant Estimate | — | sub `instant` | **Soon** (no href) | Legacy estimator shortcut | **Do not expand**; not primary workflow | Isolate / retire (**R23**) |
+| **Calendar** | `#` (placeholder) | — | **Placeholder** | Scheduling (future) | Not a final feature surface; no nav investment | Later / TBD |
+| **Estimates** | `/tools/roofing` | — | **Live** (drift) | **Legacy label** — collides with New Job root | **Collision:** same href as New Job — **interim only**; does **not** define final Proposals architecture; **do not expand** saved-estimate nav | **R7** relabel/remove/hide; retire with legacy (**R23**) |
+| **Invoices** | `#` (placeholder) | — | **Placeholder** | Invoices / billing (future) | Not a final feature surface | **R21** production spine |
+| **Customers** | `/admin/customers` | — | **Live** (legacy shelf) | **Customers** data — company-scoped admin | **Legacy `/admin/*` shelf** — not primary workflow nav; do not wire as main module | **R7** migrate off primary nav; **R23** cleanup |
+| **Price Book (Legacy)** | `/admin/price-book` | — | **Live** (legacy) | Retired concept — replaced by **Catalog** | Label already marks legacy; do not expand | **Retire** (**R23**); catalog is truth |
+| **Catalog** | `/tools/roofing/catalog` | `catalog` | **Live** | **Catalog** — item definitions, pricing, quantity drivers | Canonical FieldDive catalog route | — |
+| **Templates** | `/tools/roofing/templates` | `templates` | **Live** | **Proposal Templates** — reusable template install + future Template Workspace | **Interim durable route** for template setup/content until Proposals hub (**R16**); **not** "Soon" | **R5–R6** workspace; hub at **R16** |
+| **AI Conductor** | `/tools/roofing/ai` | — | **Live** | AI / automation assist (future module) | Secondary; not proposal spine | **R22** automations alignment |
+| **Reports** | `#` (placeholder) | — | **Placeholder** | Reporting / measurement reports (future) | Not a final feature surface | Later |
+| **Settings** | `/tools/settings` | — | **Live** | **Settings / Company** — identity, branding, pricing policy | Company identity + `/tools/settings/pricing`; **not** Terms/Warranty prose | **R11** branding expansion |
+
+**Documented drift (R1):**
+
+- **Estimates** and **New Job** both resolve to `/tools/roofing` — interim collision; must not be read as final Proposals module placement.
+- **Customers** and **Price Book (Legacy)** use **`/admin/*`** — data shelves, not final primary modules.
+- **Templates** is **live** at `/tools/roofing/templates` — interim Template Workspace route until **R16**.
+- **Calendar / Invoices / Reports** `#` placeholders are not final surfaces.
+- **`/tools/roofing/saved`** = **Job Board** (not Command Center per older flow-map framing).
+
+### Target RoofrExact module ownership
+
+| Module | Owns | Must not own | Current route (if any) | Future target route | Stage |
+|--------|------|--------------|------------------------|---------------------|-------|
+| **Jobs / Job Board** | Operational pipeline, stage columns, DB job card entry, board → Job Card navigation | Proposal editing, template prose, pricing math internals | `/tools/roofing/saved` | Same (reshape in place) | **R2**, **R8** |
+| **Job Card** | Per-job readiness: measurement, catalog, template, proposal launch gates | Master template editing, company Terms defaults | `/tools/roofing?entry=job-card` + `?job=` | Same | **R9** |
+| **Measurements / Reports** | Roof measurement truth, quantity drivers | Catalog line definitions, proposal lifecycle | Job Card + `measurement_records` | Job Card + measurement surfaces | Done (data); UI polish later |
+| **Catalog** | Reusable line items, unit cost/price, quantity_source, install/readiness | Template package options, proposal snapshots | `/tools/roofing/catalog` | Same | Done |
+| **Proposals hub** | Proposal list, Draft/Sent/Won/Lost filters, hub → Templates / Builder links | Template content editing, Builder document canvas | **Missing** (no hub route) | `/tools/roofing/proposals` (planned) | **R16** code; **R3** docs |
+| **Proposal Templates** | Reusable packages, options, sections, template prose defaults, install | Job-specific `proposal_pages`, lifecycle send/sign | `/tools/roofing/templates` (interim) | Under Proposals hub long-term; **keep interim route until R16** | **R4–R6**, **R10** |
+| **Proposal Builder** | Job-specific proposal editing, Estimate + customer pages, package selection | Master template rows, company Terms store | `/tools/roofing/proposals/builder?job=&proposal=` | Same | **R12–R15**, **R17–R20** |
+| **Settings / Company** | Identity, branding, license, notifications, profitability **type** | Terms/Warranty/Scope body prose | `/tools/settings`, `/tools/settings/pricing` | Same | **R11** |
+| **Customers** | Company-scoped customer records | Primary workflow nav driver | `/admin/customers` (legacy shelf) | Future FieldDive-native route | **R7**, **R23** |
+| **Invoices / Payments** | Invoicing, deposits, payment truth (when scoped) | Draft proposal editing | Placeholder nav; protected APIs exist | Future module routes | **R20–R21** |
+| **Production / Work Orders / Material Orders** | Post-signature execution | Proposal authoring | Not built | Future routes | **R21** |
+| **Automations** | Follow-ups, stage ↔ status hooks | Core proposal spine | `/tools/roofing/ai` (partial) | TBD | **R22** |
+| **Legacy / admin data shelves** | Historical data access, migration sources | **Final module architecture** | `/admin/*`, `estimateStore`, `RoofingClient` monolith | Isolate → retire (**R23**) | **R23** |
+
+**Ownership rules (locked):**
+
+- **Jobs** own operational pipeline and Job Card entry — not proposal document editing.
+- **Catalog** owns item definitions and price book truth — templates reference catalog items only.
+- **Proposal Templates** own reusable proposal content and package/template setup — not job-specific pages.
+- **Proposals hub** (later) owns proposal list/lifecycle — **R16**; not built in R1.
+- **Builder** owns job-specific proposal editing — not master template rows.
+- **Settings** owns company identity/branding/pricing policy — **not** Terms/Warranty body prose (§6AK).
+- **`/admin/*` shelves** do not drive final module architecture.
+
+### Interim navigation rules (until **R7** nav code and **R16** Proposals hub)
+
+1. **Keep** `/tools/roofing/templates` as the **interim Template Workspace** route — live today; reshape at **R5–R6**, not retire until **R16**.
+2. **Do not create** `/tools/roofing/proposals/templates` (or similar nested URLs) before the Proposals hub exists.
+3. **Do not migrate** the Templates route to match Roofr URL structure prematurely — hub migration is **R16**.
+4. **Future** `/tools/roofing/proposals` hub (**R16**) should link to Templates and Builder — spec detail in **R3**.
+5. **Before R16**, proposal access remains through **Job Card → Builder** (`?job=` + `?proposal=`) and the **Templates** route — no primary nav Proposals module yet.
+6. **Do not point** primary workflow nav to **`/admin/*`** — Customers and Price Book remain legacy shelves until **R7**/**R23**.
+7. **Do not expand** legacy **Estimates** nav or saved-estimate workflow — collision with New Job is interim only.
+8. **Do not enable** Preview / Send / Sign / Payment from nav or module-placement changes — lifecycle is **R17–R20**.
 
 ---
 
@@ -3903,24 +3992,26 @@ Then open and read **in this file** (in order):
 5. **§6AI** — 3J4E package/options detail surface
 6. **§6AJ** — 3J4F customer content page rendering
 7. **§6AK** — 3J4G-Roadmap + 3J4H-R proposal content architecture (read before any content/template/editor work)
-8. **§3 Builder-specific rule + Roofr-aligned product principle** — no-drift rules
-9. **§6AD** — DB-first foundation Phases A–D
-10. **§6AE** — 3J3E option persistence + quantity resolver coverage
-11. **§6AF** — pricing trust hardening
-12. **§9** — required first prompt / resume instructions (this section)
-13. **§11** — roadmap buckets (TODAY / NEXT / LATER / DO NOT DO YET), current checkpoint, built-surface audit, manual smoke; **§11 — Future / Later bucket → Proposal Builder**
+8. **§6AL** — RoofrExact Recovery Playbook (mandatory stage order)
+9. **§6AM** — R1 Global IA / Module Ownership Map (read before nav/module placement or R5+ UI)
+10. **§3 Builder-specific rule + Roofr-aligned product principle** — no-drift rules
+11. **§6AD** — DB-first foundation Phases A–D
+12. **§6AE** — 3J3E option persistence + quantity resolver coverage
+13. **§6AF** — pricing trust hardening
+14. **§9** — required first prompt / resume instructions (this section)
+15. **§11** — roadmap buckets (TODAY / NEXT / LATER / DO NOT DO YET), current checkpoint, built-surface audit, manual smoke; **§11 — Future / Later bucket → Proposal Builder**
 
 **Verify HEAD** is **`bfa0454`** or newer (3J4F customer text pages); if newer, reconcile this doc.
 
 **Confirm** working tree is clean (or note doc-only WIP).
 
-**Smoke gate PASSED** (§11). **R0 Recovery Playbook** pending (§6AL). **Code:** `8c04c2a` (3J4H Pass 2). **Docs:** `40e5f5b` + pending R0. **3J4H Pass 3B (R4) paused until R0 commit.** **3J4H UI (R5–R6) paused until R0–R3.** **Do not reintroduce** old Overview/workspace tabs. **Preview / Send / Sign / Payment remain disabled** until **R17+**. **Mandatory order:** **§6AL**. **Do not** return to `loadSaved`/`currentSaved` as main workflow.
+**Smoke gate PASSED** (§11). **R0** complete (`f1dba95`, §6AL). **R1** module map pending commit (§6AM). **Code:** `8c04c2a` (3J4H Pass 2). **Docs:** `f1dba95` + pending R1. **3J4H UI (R5–R6) paused until R0–R3 docs gates.** **Nav code R7; Proposals hub R16.** **Do not reintroduce** old Overview/workspace tabs. **Preview / Send / Sign / Payment remain disabled** until **R17+**. **Mandatory order:** **§6AL** + **§6AM**. **Do not** return to `loadSaved`/`currentSaved` as main workflow.
 
 Inspect before planning **3F9** (or chosen stage):
 
 | File | Why |
 |------|-----|
-| `app/tools/roofing/FieldDiveAppShell.tsx` | Sidebar nav — **Jobs Board** primary; Catalog + Templates (Soon) |
+| `app/tools/roofing/FieldDiveAppShell.tsx` | Sidebar nav truth — **§6AM** table; Jobs Board + Catalog + Templates **live** |
 | Dashboard / pipeline route clients | Current command surface vs Jobs board |
 | Job Packet / New Job entry surfaces | Intake-prep role |
 | `app/tools/roofing/RoofingClient.tsx` | Job Card execution launchpad — **scoped regions only** |
@@ -3994,28 +4085,27 @@ Confirm: `+ Proposal` on Job Card creates/reuses DB draft and opens Builder with
 
 ## 11. FORWARD ROADMAP / NO-DRIFT NEXT STEPS
 
-Use this section as the **ordered checklist** for future GPT/Cursor sessions. **Mandatory recovery order:** **§6AL** (R0–R23). Items below reference **§6AL stage IDs** — knock off in stage order; do not skip upstream gates. **Code checkpoint:** **`8c04c2a`**. **Docs checkpoint:** pending **R0** (`40e5f5b` prior).
+Use this section as the **ordered checklist** for future GPT/Cursor sessions. **Mandatory recovery order:** **§6AL** (R0–R23) + **§6AM** (R1). Items below reference **§6AL stage IDs** — knock off in stage order; do not skip upstream gates. **Code checkpoint:** **`8c04c2a`**. **Docs checkpoint:** **`f1dba95`** (R0); **R1** §6AM **pending commit**.
 
 ### Roadmap buckets (TODAY / NEXT / LATER / DO NOT DO YET)
 
 **TODAY / IMMEDIATE**
 
-- **R0** — docs-only RoofrExact Recovery Playbook (§6AL) — **pending commit**
-- Confirm checkpoints: code **`8c04c2a`**; docs **`40e5f5b`** + pending R0
-- **3J4H Pass 3B (R4)** — **paused until R0 committed**
-- **3J4H Pass 3C–3D (R5–R6)** — **paused until R0–R3 docs gates complete**
+- **R1** — Global IA / module ownership map (§6AM) — **pending commit**
+- Confirm checkpoints: code **`8c04c2a`**; docs **`f1dba95`** (R0) + pending R1
+- **3J4H Pass 3C–3D (R5–R6)** — **paused until R0–R3 docs gates complete** (R1 pending; R2–R3 next)
 - **Smoke gate:** **PASSED** manually (`0763799`)
 - **Preview / Send / Sign / Payment remain disabled** (R17–R20)
 
-**NEXT (after R0)**
+**NEXT (after R1 commit)**
 
-- **R1** — Global IA / module ownership docs
 - **R2** — Jobs Board / saved identity docs
 - **R3** — Proposals hub ownership docs (interim Templates route; hub deferred to **R16**)
-- **R4** — 3J4H Pass 3B view-model helper (after R0)
+- **R4** — 3J4H Pass 3B view-model helper (unblocked after R0; conservative order after R2–R3)
 - **R5–R6** — 3J4H workspace + content editor save (after R1–R3 + R4)
 - **Do not** build company-level Terms/Warranty defaults (§6AK.6)
-- **Do not** migrate Proposals hub route before **R16** docs/code plan
+- **Do not** migrate Proposals hub route before **R16**
+- **Nav code** — **R7** only; **Proposals hub** — **R16** only
 
 **LATER (§6AL stages — see §6AL table for full order)**
 
@@ -4032,7 +4122,8 @@ Use this section as the **ordered checklist** for future GPT/Cursor sessions. **
 **DO NOT DO YET**
 
 - **3J4H UI wiring** before **R0–R3** docs gates
-- **R4** before **R0** commit
+- **Nav code** before **R7** (R1 is docs only)
+- **Proposals hub** before **R16**
 - Enable Preview / Send / Sign / Payment / Add Page (**R17+**)
 - Company Terms/Warranty content-default store; `/tools/settings/proposals` prose
 - Proposals hub route migration before **R16**
@@ -4048,8 +4139,8 @@ Use this section as the **ordered checklist** for future GPT/Cursor sessions. **
 
 **Latest code checkpoint:** **`8c04c2a` — 3J4H: add template content editing helper**. **Prior:** `ce7aa39` (3J4G), `bfa0454` (3J4F), `40e5f5b` (docs).  
 **Jobs Board approved save point:** **3F9B4-RoofrExact** (`b27a444`); **DB-first partition** (`a62ad93`, §6AD).  
-**Latest handoff doc checkpoint:** pending **R0** (§6AL). **Prior docs:** `40e5f5b` (3J4H-R), `57108bd` (3J4G-Roadmap). **Smoke gate:** **PASSED** (`0763799`).  
-**Next:** **R0** commit → **R1–R3** docs gates → **R4** (3J4H Pass 3B). **3J4H UI (R5–R6)** after R1–R3. Full order: **§6AL**.
+**Latest handoff doc checkpoint:** **`f1dba95`** (R0, §6AL); **R1** §6AM **pending commit**. **Prior docs:** `40e5f5b` (3J4H-R), `57108bd` (3J4G-Roadmap). **Smoke gate:** **PASSED** (`0763799`).  
+**Next:** **R1** commit → **R2–R3** docs gates → **R4** (3J4H Pass 3B). **3J4H UI (R5–R6)** after R1–R3. **Nav code R7; Proposals hub R16.** Full order: **§6AL** + **§6AM**.
 
 **Completed working state (summary):**
 
@@ -4166,10 +4257,11 @@ Treat these as **known architecture notes** — legacy paths remain reachable bu
 26. ~~**3J4G seed fallback copy**~~ — **DONE** (`ce7aa39`, §6AK).
 27. ~~**3J4H-R Roofr IA correction**~~ — **DONE** (`40e5f5b`, §6AK).
 28. ~~**3J4H Pass 2 helper**~~ — **DONE** (`8c04c2a`).
-29. **R0 Recovery Playbook** — **§6AL** docs checkpoint — **pending commit**.
-30. **Next docs gates** — **R1–R3** (IA, Jobs Board identity, Proposals hub ownership) before **3J4H UI (R5–R6)**.
-31. **Next code after R0** — **R4** (3J4H Pass 3B view-model); full order **§6AL**.
-32. **Jobs Board** legacy section — isolate per **R2/R8**; full migration **R23**.
+29. ~~**R0 Recovery Playbook**~~ — **DONE** (`f1dba95`, §6AL).
+30. **R1 Global IA / module map** — **§6AM** — **pending commit**.
+31. **Next docs gates** — **R2–R3** (Jobs Board identity, Proposals hub ownership) before **3J4H UI (R5–R6)**.
+32. **Next code (conservative)** — **R4** (3J4H Pass 3B view-model) after R2–R3; **R7** nav code; **R16** Proposals hub.
+33. **Jobs Board** legacy section — isolate per **R2/R8**; full migration **R23**.
 
 ---
 
@@ -4641,7 +4733,7 @@ Run parallel to legacy estimator; do not overwrite `useMemo` until validated and
 
 **3J0** types (`3ae5e39`), **3J1** SQL (006/007 applied §6AA), **3J2** lib spine (`13b4e72`, §6AB), **3J3** Job Card → persisted Builder draft flow (`e38b276`, §6AC), **3J3E** option selection persistence (`a7249b3`, §6AE), **Pricing trust hardening** (`ce3d6bc`, §6AF), **3J4A** final-surface navigation (`4c9a77d`), **3J4C document-first Builder** (`f8bffde`, §6AG), **3J4D Estimate readability** (`c42a559`, §6AH), **3J4E package/options** (`72768ae`, §6AI), **3J4F customer text pages** (`bfa0454`, §6AJ), **3J4G seed copy** (`ce7aa39`, §6AK), **3J4H-R** (`40e5f5b`, §6AK), **3J4H Pass 2 helper** (`8c04c2a`).
 
-**Open (§6AL order):** **R0** playbook → **R1–R3** docs gates → **R4–R6** template editor → **R7+**. **Not** company-level Terms/Warranty defaults. Checklist: **§11** with **§6AL** stage IDs.
+**Open (§6AL order):** **R1** §6AM (pending) → **R2–R3** docs gates → **R4–R6** template editor → **R7+**. **Not** company-level Terms/Warranty defaults. Checklist: **§11** with **§6AL** stage IDs.
 
 **Manual smoke:** **PASSED** — **§6AE.5** → **§6AF.9** → **§6AD.7** (`0763799`). **No Preview/Send/Sign/Payment** until **R17+**.
 
@@ -4774,15 +4866,15 @@ Treat as **drift** if a session:
 
 **Recovery docs (before 3J4H UI):**
 
-- **R0** — Recovery Playbook (§6AL) — **pending commit**
-- **R1** — Global IA / module ownership docs
+- ~~**R0**~~ — Recovery Playbook (§6AL) — **DONE** (`f1dba95`)
+- **R1** — Global IA / module ownership map (§6AM) — **pending commit**
 - **R2** — Jobs Board / saved identity docs
 - **R3** — Proposals hub ownership docs (interim `/tools/roofing/templates`; hub **R16**)
 
 **Template editor (§6AL R4–R6):**
 
 - ~~**3J4H Pass 2 helper**~~ — **DONE** (`8c04c2a`) — `proposalTemplateContentEditing.ts`
-- **R4 / 3J4H Pass 3B** — view-model helper — **after R0**; **paused until R0 commit**
+- **R4 / 3J4H Pass 3B** — view-model helper — unblocked after R0; conservative order after R2–R3
 - **R5 / 3J4H Pass 3C** — Template Workspace shell — **after R1–R3 + R4**
 - **R6 / 3J4H Pass 3D** — content editor + save — **after R5**
 
@@ -4891,7 +4983,8 @@ Treat as **drift** if a session:
 - **2026-05-31:** **3G6 complete** — 3G6A–E (`15ad732`–`b78c9ee`), Templates D2 (`227061c`), Catalog D2 (`29ca190`); Job Card + Job Packet audits documented; **next: plan 3H** Proposal Builder (Roofr research; not until scoped); pricing remains protected.
 - **2026-06-07:** **DB-first smoke gate PASSED** — user manual confirmation; §6AE.5 + §6AF.9 + §6AD.7 complete (recorded after `3ec6f42`); **NEXT open** for scoped proposal draft editing/persistence; left Builder sidebar not a failure; Preview/Send/Sign/Payment remain disabled until 3K+.
 - **2026-06-07:** **Pricing trust hardening complete** — snapshot qty+price alignment, stale detection, refresh wired (`ce3d6bc`); §6AF added; **175/175** tests in pre-commit audit; pricing engine/math untouched; user partial smoke positive; **next (superseded by §11):** full manual smoke (**§6AE.5** → **§6AF.9** → **§6AD.7**), then **§11 NEXT** (proposal draft slice); legacy import is **LATER**; Preview/Send/Sign/Payment remain disabled until 3K+.
-- **2026-06-15:** **R0 pending** — RoofrExact Recovery Playbook (§6AL); mandatory R0–R23 order; 3J4H Pass 3B paused until R0; 3J4H UI (R5–R6) paused until R0–R3; earliest drift = global IA/module ownership; §11 aligned to §6AL stage IDs.
+- **2026-06-15:** **R1 WIP** — Global IA / Module Ownership Map (§6AM); current shell nav truth + target module map + interim rules; §6AL R1 stop gate updated; stale R0/Templates-Soon lines cleaned; flow-map supersession note; **pending commit**.
+- **2026-06-15:** **R0 complete** — RoofrExact Recovery Playbook (`f1dba95`, §6AL); mandatory R0–R23 order; earliest drift = global IA/module ownership; §11 aligned to §6AL stage IDs.
 - **2026-06-15:** **3J4H Pass 2 complete** — `proposalTemplateContentEditing.ts` helper + tests (`8c04c2a`).
 - **2026-06-15:** **3J4H-R complete** — Roofr IA correction (`40e5f5b`, §6AK); template-first content model; company = branding only.
 - **2026-06-14:** **3J4G-Roadmap complete** — proposal content architecture lock (§6AK, docs only); four-layer model (company → template → job → customer render); current content chain documented; stage sequence 3J4G→3J4H→3J4I→3J4J→media→3K+; 3J4G guardrails; drift risks; §11 Future/Later Proposal Builder bucket updated as single later checklist; **next code: 3J4G** seed fallback copy only; seed defaults = fallback floor not final system.
