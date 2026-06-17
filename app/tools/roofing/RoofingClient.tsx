@@ -129,7 +129,12 @@ import {
   isExpectedProposalDraftEntryFailure,
   type ResolveOrCreateProposalDraftEntryReason,
 } from "@/app/lib/proposalDraftEntry";
-import { deriveProposalSetupChecklist } from "@/app/lib/proposalSetupChecklist";
+import {
+  deriveProposalSetupChecklist,
+  isProposalHeaderLaunchEnabled,
+  proposalHeaderButtonLabel,
+  proposalHeaderButtonTitle,
+} from "@/app/lib/proposalSetupChecklist";
 import { getResolvedCompanyPricingPolicy } from "@/app/lib/companyPricingPolicyStore";
 import {
   createDraftProposal,
@@ -7251,9 +7256,6 @@ Thanks,`;
       templateReadiness: proposalTemplateReadiness,
       templateLoadComplete: templateSetupLoadComplete,
     });
-    const proposalBuilderLaunchEnabled =
-      proposalBuilderReadiness.ready &&
-      Boolean(currentJobId && isUuidLike(currentJobId));
     const proposalBuilderButtonTitle = formatProposalBuilderDisabledButtonTitle(
       proposalBuilderReadiness,
       {
@@ -7298,10 +7300,6 @@ Thanks,`;
 
     const proposalCreateBlockedOnBoard =
       isBoardOrigin && proposalDraftCreatePayload == null;
-    const effectiveProposalBuilderButtonTitle =
-      proposalCreateBlockedOnBoard && proposalBuilderLaunchEnabled
-        ? "Save Job Card before creating a proposal draft"
-        : proposalBuilderButtonTitle;
 
     const proposalSetupChecklist = deriveProposalSetupChecklist({
       jobId: currentJobId,
@@ -7320,8 +7318,30 @@ Thanks,`;
       proposalLaunchReason,
     });
 
+    const proposalHeaderLaunchEnabled = isProposalHeaderLaunchEnabled(
+      proposalSetupChecklist,
+      { createBlockedOnBoard: proposalCreateBlockedOnBoard }
+    );
+    const proposalHeaderLabel = proposalHeaderButtonLabel(proposalSetupChecklist);
+    const effectiveProposalHeaderButtonTitle =
+      proposalCreateBlockedOnBoard && proposalHeaderLaunchEnabled
+        ? "Save Job Card before creating a proposal draft"
+        : proposalHeaderButtonTitle(proposalSetupChecklist, proposalBuilderButtonTitle);
+
+    const proposalTemplateStatusLabel = (() => {
+      const templateName = (starterTemplateGraph?.template.name ?? "").trim();
+      if (templateName) return templateName;
+      if (proposalTemplateReadiness.status === "ready_for_builder") {
+        return "Default template ready";
+      }
+      return "Not selected";
+    })();
+    const proposalTemplateStatusMuted =
+      proposalTemplateStatusLabel === "Not selected";
+
     const handleLaunchProposalDraft = () => {
       if (proposalLaunchInFlightRef.current) return;
+      if (!proposalHeaderLaunchEnabled) return;
       void (async () => {
         if (!currentJobId) return;
         const cid = (companyId ?? "").trim();
@@ -7349,6 +7369,7 @@ Thanks,`;
           );
 
           if (result.proposalId) {
+            await refreshHydratedJobRecord(currentJobId);
             router.push(buildProposalBuilderHref(currentJobId, result.proposalId));
             return;
           }
@@ -7981,16 +8002,21 @@ Thanks,`;
                 headerAction={
                   <button
                     type="button"
-                    disabled={!proposalBuilderLaunchEnabled}
+                    disabled={!proposalHeaderLaunchEnabled || isLaunchingProposal}
                     onClick={handleLaunchProposalDraft}
                     className={
-                      proposalBuilderLaunchEnabled
+                      proposalHeaderLaunchEnabled && !isLaunchingProposal
                         ? proposalBuilderActionPrimary
                         : passiveActionPrimary
                     }
-                    title={effectiveProposalBuilderButtonTitle}
+                    title={effectiveProposalHeaderButtonTitle}
+                    aria-busy={isLaunchingProposal || undefined}
                   >
-                    + Proposal
+                    {isLaunchingProposal
+                      ? proposalSetupChecklist.primaryAction.actionType === "open_builder"
+                        ? "Opening…"
+                        : "Creating…"
+                      : proposalHeaderLabel}
                   </button>
                 }
               >
@@ -8011,7 +8037,11 @@ Thanks,`;
                         value={proposalReadinessDisplay}
                         muted={!proposalHandoff.proposalReady}
                       />
-                      <StatusLine label="Template" value="Not selected" muted />
+                      <StatusLine
+                        label="Template"
+                        value={proposalTemplateStatusLabel}
+                        muted={proposalTemplateStatusMuted}
+                      />
                       <StatusLine
                         label="Proposal document"
                         value={proposalDocumentStatusLabel}
@@ -8048,9 +8078,32 @@ Thanks,`;
                   </div>
                   <div>
                     <WorkspaceHeading>Proposal list</WorkspaceHeading>
-                    <PlaceholderBox
-                      lines={["No proposals created yet", "Draft proposals will appear here"]}
-                    />
+                    {jobCardActiveProposalId ? (
+                      <div className="rounded-lg border border-emerald-200 bg-emerald-50/60 px-3 py-2.5">
+                        <p className="text-sm font-medium text-emerald-800">
+                          Draft proposal connected
+                        </p>
+                        <p className="mt-0.5 text-xs text-slate-600">
+                          Continue editing in Proposal Builder. A full proposal list will come
+                          later.
+                        </p>
+                        <button
+                          type="button"
+                          disabled={!proposalHeaderLaunchEnabled || isLaunchingProposal}
+                          onClick={handleLaunchProposalDraft}
+                          className="mt-2 inline-flex items-center text-xs font-semibold text-cyan-700 hover:text-cyan-900 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          Open in Builder
+                        </button>
+                      </div>
+                    ) : (
+                      <PlaceholderBox
+                        lines={[
+                          "No proposals created yet",
+                          "Draft proposals will appear here",
+                        ]}
+                      />
+                    )}
                   </div>
                 </div>
               </JobCardSectionPanel>

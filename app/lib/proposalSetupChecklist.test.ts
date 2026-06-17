@@ -3,6 +3,9 @@ import assert from "node:assert/strict";
 
 import {
   deriveProposalSetupChecklist,
+  isProposalHeaderLaunchEnabled,
+  proposalHeaderButtonLabel,
+  proposalHeaderButtonTitle,
   type ProposalSetupChecklistInput,
 } from "./proposalSetupChecklist";
 
@@ -239,5 +242,37 @@ describe("deriveProposalSetupChecklist", () => {
 
     assert.equal(result.primaryAction.label, "Open Catalog Setup");
     assert.match(result.primaryAction.href ?? "", /^\/tools\/roofing\/catalog\?/);
+  });
+
+  test("header launch disabled when pricing policy unconfigured", () => {
+    const result = deriveProposalSetupChecklist(
+      baseInput({
+        pricingPolicyConfigured: false,
+      })
+    );
+
+    assert.equal(isProposalHeaderLaunchEnabled(result), false);
+    assert.equal(proposalHeaderButtonLabel(result), "Proposal");
+    assert.match(proposalHeaderButtonTitle(result) ?? "", /pricing/i);
+  });
+
+  test("header launch enabled for create and open_builder", () => {
+    const createReady = deriveProposalSetupChecklist(baseInput());
+    assert.equal(isProposalHeaderLaunchEnabled(createReady), true);
+    assert.equal(proposalHeaderButtonLabel(createReady), "Create proposal");
+
+    const openExisting = deriveProposalSetupChecklist(
+      baseInput({ activeProposalId: PROPOSAL_ID })
+    );
+    assert.equal(isProposalHeaderLaunchEnabled(openExisting), true);
+    assert.equal(proposalHeaderButtonLabel(openExisting), "Open proposal");
+  });
+
+  test("header launch blocked for board-origin create without payload", () => {
+    const result = deriveProposalSetupChecklist(baseInput());
+    assert.equal(
+      isProposalHeaderLaunchEnabled(result, { createBlockedOnBoard: true }),
+      false
+    );
   });
 });

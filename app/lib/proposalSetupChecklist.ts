@@ -419,6 +419,47 @@ function deriveStatusText(
 /**
  * Derive compact proposal setup checklist state and a single primary next action.
  */
+/** Header CTA enablement — same launch actions as checklist primary, no duplicate gates. */
+export function isProposalHeaderLaunchEnabled(
+  checklist: ProposalSetupChecklistResult,
+  options?: { createBlockedOnBoard?: boolean }
+): boolean {
+  const { primaryAction } = checklist;
+  if (primaryAction.disabled) return false;
+  const isLaunchAction =
+    primaryAction.actionType === "create_proposal" ||
+    primaryAction.actionType === "open_builder";
+  if (!isLaunchAction) return false;
+  if (options?.createBlockedOnBoard && primaryAction.actionType === "create_proposal") {
+    return false;
+  }
+  return true;
+}
+
+/** Compact header label aligned with checklist primary action. */
+export function proposalHeaderButtonLabel(checklist: ProposalSetupChecklistResult): string {
+  const { primaryAction } = checklist;
+  if (primaryAction.actionType === "open_builder") return "Open proposal";
+  if (primaryAction.actionType === "create_proposal") return "Create proposal";
+  return "Proposal";
+}
+
+/** Disabled-state title for the header CTA — mirrors checklist guidance. */
+export function proposalHeaderButtonTitle(
+  checklist: ProposalSetupChecklistResult,
+  fallbackTitle?: string | null
+): string | undefined {
+  if (isProposalHeaderLaunchEnabled(checklist)) {
+    return checklist.primaryAction.helperText ?? undefined;
+  }
+  return (
+    checklist.primaryAction.helperText ??
+    checklist.statusText ??
+    fallbackTitle ??
+    undefined
+  );
+}
+
 export function deriveProposalSetupChecklist(
   input: ProposalSetupChecklistInput
 ): ProposalSetupChecklistResult {

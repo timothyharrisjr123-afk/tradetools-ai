@@ -20,7 +20,7 @@ export default function JobCardProposalsSetupLinks({ catalogState }: JobCardProp
           Open proposal templates
         </Link>
         <p className="mt-1 text-xs text-slate-500">
-          Install and manage reusable company templates. Proposal Builder on this job comes later.
+          Install and manage reusable company templates. Use Create proposal on this job when setup is complete.
         </p>
       </div>
     );
