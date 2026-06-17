@@ -24,6 +24,12 @@ import {
   Settings,
 } from "lucide-react";
 import { SignOutButton } from "@/app/components/auth/SignOutButton";
+import {
+  FIELD_DIVE_NAV_SECTIONS,
+  type FieldDiveNavIconName,
+  type FieldDiveNavItemConfig,
+  type FieldDiveNavSubItemConfig,
+} from "./fieldDiveNavConfig";
 
 export type FieldDiveActiveNav = "jobs" | "newJob" | "catalog" | "templates";
 export type FieldDiveActiveSubNav = "packet" | "job-card" | "instant";
@@ -32,55 +38,22 @@ type NavIcon = ComponentType<{ className?: string }>;
 
 type NavSubItemVariant = "active" | "available" | "soon";
 
-type NavSubItem = {
-  id: string;
-  label: string;
-  href?: string;
-  variant: NavSubItemVariant;
+const NAV_ICONS: Record<FieldDiveNavIconName, NavIcon> = {
+  briefcase: Briefcase,
+  clipboardList: ClipboardList,
+  layoutTemplate: LayoutTemplate,
+  package: Package,
+  settings: Settings,
+  users: Users,
+  bookOpen: BookOpen,
+  fileText: FileText,
+  calendar: Calendar,
+  receipt: Receipt,
+  barChart3: BarChart3,
+  bot: Bot,
 };
 
-type NavItem = {
-  key: FieldDiveActiveNav | null;
-  label: string;
-  href: string;
-  icon: NavIcon;
-  variant?: NavSubItemVariant;
-  subItems?: NavSubItem[];
-  subItemsAriaLabel?: string;
-  /** Sub-item id that receives active styling when this module is current */
-  activeSubId?: string;
-};
-
-const NEW_JOB_SUB_ITEMS: NavSubItem[] = [
-  { id: "packet", label: "Job Packet", href: "/tools/roofing?entry=packet", variant: "active" },
-  { id: "job-card", label: "Job Card", href: "/tools/roofing?entry=job-card", variant: "available" },
-  { id: "instant", label: "Instant Estimate", variant: "soon" },
-];
-
-const NAV_ITEMS: NavItem[] = [
-  { key: "jobs", label: "Job Board", href: "/tools/roofing/saved", icon: Briefcase },
-  {
-    key: "newJob",
-    label: "New Job",
-    href: "/tools/roofing",
-    icon: ClipboardList,
-    subItems: NEW_JOB_SUB_ITEMS,
-    subItemsAriaLabel: "New job entry paths",
-    activeSubId: "packet",
-  },
-  { key: null, label: "Calendar", href: "#", icon: Calendar },
-  { key: null, label: "Estimates", href: "/tools/roofing", icon: FileText },
-  { key: null, label: "Invoices", href: "#", icon: Receipt },
-  { key: null, label: "Customers", href: "/admin/customers", icon: Users },
-  { key: null, label: "Price Book (Legacy)", href: "/admin/price-book", icon: BookOpen },
-  { key: "catalog", label: "Catalog", href: "/tools/roofing/catalog", icon: Package },
-  { key: "templates", label: "Templates", href: "/tools/roofing/templates", icon: LayoutTemplate },
-  { key: null, label: "AI Conductor", href: "/tools/roofing/ai", icon: Bot },
-  { key: null, label: "Reports", href: "#", icon: BarChart3 },
-  { key: null, label: "Settings", href: "/tools/settings", icon: Settings },
-];
-
-function navGroupKey(item: NavItem): string {
+function navItemKey(item: FieldDiveNavItemConfig): string {
   return item.key ?? item.label;
 }
 
@@ -95,7 +68,7 @@ function FieldDiveLogoMark() {
   );
 }
 
-function resolveSubItemVariant(sub: NavSubItem, activeSubId?: string): NavSubItemVariant {
+function resolveSubItemVariant(sub: FieldDiveNavSubItemConfig, activeSubId?: string): NavSubItemVariant {
   if (sub.variant === "soon") return "soon";
   if (activeSubId && sub.id === activeSubId) return "active";
   return "available";
@@ -120,7 +93,6 @@ function parentNavClassName(moduleActive: boolean, isExpanded: boolean): string 
     "flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-200/80 focus-visible:ring-offset-1";
 
   if (moduleActive) {
-    // Open module group — readable but not the selected leaf row
     return `${base} font-medium text-slate-700 hover:bg-slate-100/80`;
   }
   if (isExpanded) {
@@ -134,7 +106,7 @@ function NavSubLinks({
   ariaLabel,
   activeSubId,
 }: {
-  items: NavSubItem[];
+  items: FieldDiveNavSubItemConfig[];
   ariaLabel?: string;
   activeSubId?: string;
 }) {
@@ -192,9 +164,127 @@ type FieldDiveAppShellProps = {
   children: ReactNode;
 };
 
-function resolveSubItems(items: NavSubItem[], jobCardHref: string): NavSubItem[] {
+function resolveSubItems(items: FieldDiveNavSubItemConfig[], jobCardHref: string): FieldDiveNavSubItemConfig[] {
   return items.map((sub) =>
     sub.id === "job-card" && sub.href ? { ...sub, href: jobCardHref } : sub
+  );
+}
+
+type NavSidebarItemProps = {
+  item: FieldDiveNavItemConfig;
+  activeNav: FieldDiveActiveNav;
+  activeSubId?: FieldDiveActiveSubNav;
+  jobCardHref: string;
+  groupExpandedOverrides: Record<string, boolean>;
+  onToggleGroup: (groupKey: string, defaultExpanded: boolean) => void;
+};
+
+function NavSidebarItem({
+  item,
+  activeNav,
+  activeSubId,
+  jobCardHref,
+  groupExpandedOverrides,
+  onToggleGroup,
+}: NavSidebarItemProps) {
+  const { key, label, href, kind, icon, subItems, subItemsAriaLabel, activeSubId: defaultActiveSubId, soonTitle } =
+    item;
+  const Icon = NAV_ICONS[icon];
+  const groupKey = navItemKey(item);
+  const moduleActive = key !== null && key === activeNav;
+  const hasSubItems = kind === "group" && Boolean(subItems?.length);
+  const defaultExpanded = moduleActive;
+  const isExpanded = groupExpandedOverrides[groupKey] ?? defaultExpanded;
+  const showSubItems = hasSubItems && isExpanded;
+
+  if (hasSubItems) {
+    return (
+      <div className="py-0.5">
+        <button
+          type="button"
+          className={parentNavClassName(moduleActive, isExpanded)}
+          aria-expanded={isExpanded}
+          aria-controls={`nav-group-${groupKey}`}
+          onClick={() => onToggleGroup(groupKey, defaultExpanded)}
+        >
+          <Icon
+            className={`h-4 w-4 shrink-0 ${
+              moduleActive ? "text-blue-600" : isExpanded ? "text-slate-500" : "text-slate-400"
+            }`}
+            aria-hidden
+          />
+          <span className="min-w-0 flex-1 text-left">{label}</span>
+          <ChevronDown
+            className={`h-3.5 w-3.5 shrink-0 transition-transform duration-200 ${
+              moduleActive ? "text-blue-500/70" : "text-slate-400"
+            } ${isExpanded ? "rotate-180" : ""}`}
+            aria-hidden
+          />
+        </button>
+        {showSubItems ? (
+          <div id={`nav-group-${groupKey}`}>
+            <NavSubLinks
+              items={resolveSubItems(subItems!, jobCardHref)}
+              ariaLabel={subItemsAriaLabel}
+              activeSubId={moduleActive ? (activeSubId ?? defaultActiveSubId) : undefined}
+            />
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+
+  if (kind === "soon") {
+    return (
+      <div
+        className="flex cursor-not-allowed items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-400"
+        aria-disabled="true"
+        title={soonTitle ?? `${label} — coming later`}
+      >
+        <span className="flex min-w-0 items-center gap-2.5">
+          <Icon className="h-4 w-4 shrink-0 text-slate-300" aria-hidden />
+          {label}
+        </span>
+        <span className="shrink-0 rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium leading-none text-slate-400">
+          Soon
+        </span>
+      </div>
+    );
+  }
+
+  if (kind === "legacy") {
+    const legacyCls =
+      "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-500 transition hover:bg-slate-50 hover:text-slate-700";
+    return (
+      <div>
+        {href ? (
+          <Link href={href} className={legacyCls} title={soonTitle}>
+            <Icon className="h-4 w-4 shrink-0 text-slate-400" aria-hidden />
+            {label}
+          </Link>
+        ) : (
+          <span className={legacyCls} title={soonTitle}>
+            <Icon className="h-4 w-4 shrink-0 text-slate-400" aria-hidden />
+            {label}
+          </span>
+        )}
+      </div>
+    );
+  }
+
+  const cls = moduleActive
+    ? "flex items-center gap-2.5 rounded-lg bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700 ring-1 ring-inset ring-blue-100"
+    : "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900";
+
+  return (
+    <div>
+      {href ? (
+        <Link href={href} className={cls}>
+          <Icon className={`h-4 w-4 shrink-0 ${moduleActive ? "text-blue-600" : "text-slate-400"}`} aria-hidden />
+          {label}
+        </Link>
+      ) : null}
+    </div>
   );
 }
 
@@ -222,101 +312,32 @@ export default function FieldDiveAppShell({ activeNav, activeSubId, children }: 
             <FieldDiveLogoMark />
             <span className="text-lg font-bold tracking-tight text-slate-900">FieldDive</span>
           </Link>
-          <nav className="flex-1 space-y-0.5 px-2 py-3">
-            {NAV_ITEMS.map((item) => {
-              const { key, label, href, icon: Icon, subItems, subItemsAriaLabel, activeSubId: defaultActiveSubId } = item;
-              const groupKey = navGroupKey(item);
-              const moduleActive = key !== null && key === activeNav;
-              const hasSubItems = Boolean(subItems?.length);
-              const defaultExpanded = moduleActive;
-              const isExpanded = groupExpandedOverrides[groupKey] ?? defaultExpanded;
-              const showSubItems = hasSubItems && isExpanded;
-
-              if (hasSubItems) {
-                return (
-                  <div key={label} className="py-0.5">
-                    <button
-                      type="button"
-                      className={parentNavClassName(moduleActive, isExpanded)}
-                      aria-expanded={isExpanded}
-                      aria-controls={`nav-group-${groupKey}`}
-                      onClick={() => {
+          <nav className="flex-1 space-y-4 px-2 py-3">
+            {FIELD_DIVE_NAV_SECTIONS.map((section) => (
+              <div key={section.id}>
+                <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                  {section.label}
+                </p>
+                <div className="space-y-0.5">
+                  {section.items.map((item) => (
+                    <NavSidebarItem
+                      key={navItemKey(item)}
+                      item={item}
+                      activeNav={activeNav}
+                      activeSubId={activeSubId}
+                      jobCardHref={jobCardHref}
+                      groupExpandedOverrides={groupExpandedOverrides}
+                      onToggleGroup={(groupKey, defaultExpanded) => {
                         setGroupExpandedOverrides((prev) => ({
                           ...prev,
                           [groupKey]: !(prev[groupKey] ?? defaultExpanded),
                         }));
                       }}
-                    >
-                      <Icon
-                        className={`h-4 w-4 shrink-0 ${
-                          moduleActive ? "text-blue-600" : isExpanded ? "text-slate-500" : "text-slate-400"
-                        }`}
-                        aria-hidden
-                      />
-                      <span className="min-w-0 flex-1 text-left">{label}</span>
-                      <ChevronDown
-                        className={`h-3.5 w-3.5 shrink-0 transition-transform duration-200 ${
-                          moduleActive ? "text-blue-500/70" : "text-slate-400"
-                        } ${isExpanded ? "rotate-180" : ""}`}
-                        aria-hidden
-                      />
-                    </button>
-                    {showSubItems ? (
-                      <div id={`nav-group-${groupKey}`}>
-                        <NavSubLinks
-                          items={resolveSubItems(subItems!, jobCardHref)}
-                          ariaLabel={subItemsAriaLabel}
-                          activeSubId={moduleActive ? (activeSubId ?? defaultActiveSubId) : undefined}
-                        />
-                      </div>
-                    ) : null}
-                  </div>
-                );
-              }
-
-              if (item.variant === "soon") {
-                return (
-                  <div
-                    key={label}
-                    className="flex cursor-not-allowed items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-400"
-                    aria-disabled="true"
-                    title={`${label} — coming soon`}
-                  >
-                    <span className="flex min-w-0 items-center gap-2.5">
-                      <Icon className="h-4 w-4 shrink-0 text-slate-300" aria-hidden />
-                      {label}
-                    </span>
-                    <span className="shrink-0 rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium leading-none text-slate-400">
-                      Soon
-                    </span>
-                  </div>
-                );
-              }
-
-              const cls = moduleActive
-                ? "flex items-center gap-2.5 rounded-lg bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700 ring-1 ring-inset ring-blue-100"
-                : "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900";
-              const inner = (
-                <>
-                  <Icon className={`h-4 w-4 shrink-0 ${moduleActive ? "text-blue-600" : "text-slate-400"}`} aria-hidden />
-                  {label}
-                </>
-              );
-
-              return (
-                <div key={label}>
-                  {href === "#" ? (
-                    <a href="#" className={cls} onClick={(e) => e.preventDefault()}>
-                      {inner}
-                    </a>
-                  ) : (
-                    <Link href={href} className={cls}>
-                      {inner}
-                    </Link>
-                  )}
+                    />
+                  ))}
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </nav>
           <div className="mt-auto border-t border-slate-100 p-3">
             <div className="flex items-center gap-2.5 rounded-lg border border-slate-100 bg-slate-50 px-2.5 py-2">
