@@ -17,19 +17,24 @@
 - Read **§6AN** before Job Board / `saved` route work, board partition, or legacy saved-estimate boundaries.
 - Read **§6AO** before Proposals hub / Templates / Builder route placement or lifecycle ownership.
 - Read **§6AP** before R10 template structure work — pre-R10 audit + P1 Job Card truth fixes.
+- Read **§6AQ** before R11 Settings branding work — R10 completion summary + deferred boundaries.
 
-**Last updated checkpoint:** **Code:** **`d0ba188` — fix(job-card): align proposal launch truth before R10**. **Docs checkpoint:** **pending this docs commit** (prior: **`5927ab5`** — R3 Proposals hub ownership map, §6AO). **Current state:** **R0–R9** complete/satisfied; **pre-R10** complete bug/issue audit completed; **pre-R10 P1** Job Card proposal truth fixes completed (`d0ba188`). **Smoke gate:** **PASSED** manually — existing-draft Job Card Proposals tab (`0763799` baseline + live re-check); **DB-first foundation Phases A–D complete** — see **§6AD**. **Tests (at `d0ba188`):** **141/141** (audit + pre-R10 suites). **Typecheck:** only **6** pre-existing errors in `app/tools/roofing-v2/RoofingClientV2.tsx` — unchanged. **Protected systems:** unchanged in pre-R10 P1 pass (Job Card proposal truth only). **Working tree:** doc-only WIP for this checkpoint.
+**Last updated checkpoint:** **Code:** **`b3dd904` — feat(templates): flow estimate settings into draft pages**. **Docs checkpoint:** **pending this docs commit** (prior: **`0106f9f`** — docs: checkpoint before R10 — R0–R9 and audit complete). **Current state:** **R0–R10** complete/satisfied. **R10** implemented across **R10a** (`bc42b1e`), **R10b** (`e33e659`), **R10c** (`b3dd904`); **R10 completion audit passed** — no P0/P1 issues. **Smoke gate:** **PASSED** manually — existing-draft Job Card Proposals tab (`0763799` baseline + live re-check); **DB-first foundation Phases A–D complete** — see **§6AD**. **Tests (at `b3dd904`):** **217/217** (R10 + safety suites). **Typecheck:** only **6** pre-existing errors in `app/tools/roofing-v2/RoofingClientV2.tsx` — unchanged. **Protected systems:** unchanged in R10 passes (template structure/settings + snapshot `settings_json` only). **Working tree:** doc-only WIP for this checkpoint.
 
 **Jobs Board approved save point:** `b27a444` (3F9B4-RoofrExact visual baseline). **DB-first board partition:** `a62ad93` (§6AD). **Jobs Board identity (R8):** `1191ddd`.
 
-**Next (recommended):** **R10 full-stage satisfaction/scope check** — Template structure/settings editor **audit only**; **do not** start R10 code directly. **R16** = Proposals hub code — not this pass. **Mandatory recovery order:** **§6AL** + **§6AM** + **§6AN** + **§6AO** + **§6AP**. **Later items** only in **§11**. **Preview / Send / Sign / Payment remain disabled** until **R17–R20**. **Do not** return to `loadSaved`/`currentSaved` as main workflow.
+**Next (recommended):** **R11 full-stage satisfaction/scope check** — Settings branding expansion **audit only**; **do not** start R11 code directly. **R16** = Proposals hub code — not this pass. **Mandatory recovery order:** **§6AL** + **§6AM** + **§6AN** + **§6AO** + **§6AP** + **§6AQ**. **Later items** only in **§11**. **Preview / Send / Sign / Payment remain disabled** until **R17–R20**. **Do not** return to `loadSaved`/`currentSaved` as main workflow.
 
-**DB-first foundation is live** (§6AD). **3J3E option selection persists** (§6AE). **Pricing trust hardening complete** (§6AF). **3J4C document-first Builder complete** (§6AG) — Estimate page renders the actual proposal document inline (package selector, blocker banner, sections, line items, totals); right rail is a contextual **Proposal Helper** inspector; old workspace tabs and Overview panel **removed**. **3J4D** refined Estimate line readability (§6AH). **3J4E** refined package/options surface inside Estimate (§6AI). **3J4F** extended Builder to customer-facing text pages — Terms, Warranty, Project Overview, custom_text render persisted `body_markdown` when present (§6AJ). **R4–R6** template content editor on `/tools/roofing/templates` **complete** (`9db2030`–`3c6214c`). **R7** light global IA nav **complete** (`05b9c54`). **R8** light Jobs Board identity **complete** (`1191ddd`). **R9** Job Card create/open draft flow **satisfied** (`1915b2d` + pre-R10 P1 at `d0ba188`). Main workflow: **Job Board → DB job card (`job=`) → Create proposal / Open proposal → create/reuse DB proposal draft → Builder (`job=` + `proposal=`) → package selection persists to DB; refresh draft pricing when measurement changes**. Legacy `loadSaved=` / `currentSaved` / board-origin paths are **preserved but separated** — they **cannot create DB proposals directly**. **DB proposal math uses the new spine only** (`measurement_records` → `proposalQuantityResolver` → `proposalPricingEngine` → snapshots) — **not** legacy saved-estimate / Core-Enhanced-Premium estimator math. **`createDraftProposal`** runs from Job Card **Create proposal** only when checklist + pricing gates pass; **Builder reads** persisted drafts via **`getDraftGraph`** + **`proposalDraftGraphAdapter`** when `?proposal=` is present — **no Builder create path**, **no silent fallback** on invalid `proposal=`. **Do not** persist placeholder/unconfigured pricing policy. **Catalog custom delete/deactivate** is **not implemented** and remains a **separate later scope**.
+**DB-first foundation is live** (§6AD). **3J3E option selection persists** (§6AE). **Pricing trust hardening complete** (§6AF). **3J4C document-first Builder complete** (§6AG) — Estimate page renders the actual proposal document inline (package selector, blocker banner, sections, line items, totals); right rail is a contextual **Proposal Helper** inspector; old workspace tabs and Overview panel **removed**. **3J4D** refined Estimate line readability (§6AH). **3J4E** refined package/options surface inside Estimate (§6AI). **3J4F** extended Builder to customer-facing text pages — Terms, Warranty, Project Overview, custom_text render persisted `body_markdown` when present (§6AJ). **R4–R6** template content editor on `/tools/roofing/templates` **complete** (`9db2030`–`3c6214c`). **R7** light global IA nav **complete** (`05b9c54`). **R8** light Jobs Board identity **complete** (`1191ddd`). **R9** Job Card create/open draft flow **satisfied** (`1915b2d` + pre-R10 P1 at `d0ba188`). **R10** template structure + estimate settings **complete** (`bc42b1e`–`b3dd904`, §6AQ). Main workflow: **Job Board → DB job card (`job=`) → Create proposal / Open proposal → create/reuse DB proposal draft → Builder (`job=` + `proposal=`) → package selection persists to DB; refresh draft pricing when measurement changes**. Legacy `loadSaved=` / `currentSaved` / board-origin paths are **preserved but separated** — they **cannot create DB proposals directly**. **DB proposal math uses the new spine only** (`measurement_records` → `proposalQuantityResolver` → `proposalPricingEngine` → snapshots) — **not** legacy saved-estimate / Core-Enhanced-Premium estimator math. **`createDraftProposal`** runs from Job Card **Create proposal** only when checklist + pricing gates pass; **Builder reads** persisted drafts via **`getDraftGraph`** + **`proposalDraftGraphAdapter`** when `?proposal=` is present — **no Builder create path**, **no silent fallback** on invalid `proposal=`. **Do not** persist placeholder/unconfigured pricing policy. **Catalog custom delete/deactivate** is **not implemented** and remains a **separate later scope**.
 
-### Recent committed sequence (recovery R0–R9 + pre-R10; then 3G6 spine + 3J + 3J4)
+### Recent committed sequence (recovery R0–R10; then 3G6 spine + 3J + 3J4)
 
 | Commit | Summary |
 |--------|---------|
+| `b3dd904` | **R10c** — Flow template estimate settings into draft `proposal_pages.settings_json` (`mapTemplateSectionsToProposalPages` + `proposalRecordStore` template pass-through) |
+| `e33e659` | **R10b** — Templates Workspace Structure & estimate settings UI on `/tools/roofing/templates` |
+| `bc42b1e` | **R10a** — Pure structure/settings helpers + tests (view model, mutation planners, estimate metadata) |
+| `0106f9f` | **Docs** — Checkpoint before R10 — R0–R9 and audit complete |
 | `d0ba188` | **Pre-R10 P1** — Job Card proposal truth alignment: header CTA gates match checklist/pricing; post-create job refresh; draft-connected Proposals tab UI; Create vs Open labels (§6AP) |
 | `1191ddd` | **R8** — Light Jobs Board identity correction (§6AN) |
 | `05b9c54` | **R7** — Light global IA nav correction (§6AM) |
@@ -3538,7 +3543,7 @@ Before each major page/workflow slice (Cover, Photos, Preview/PDF/Send, customer
 
 ## 6AK. 3J4G-ROADMAP + 3J4H-R — PROPOSAL CONTENT ARCHITECTURE (DOCS ONLY)
 
-**Status:** **3J4G-Roadmap** (`57108bd`) + **3J4H-R Roofr IA correction** (`40e5f5b`) + **R0–R3** recovery docs complete (`f1dba95`–`5927ab5`, §6AL–§6AO) + **R4–R6** template content editor **complete** (`9db2030`–`3c6214c`) + **pre-R10 P1** Job Card truth (`d0ba188`, §6AP). **Code checkpoint:** `d0ba188`. **Purpose:** Lock **proposal content-authoring architecture**. Hardcoded seed bodies are **fallback seed content only** — not the final contractor-controlled content system.
+**Status:** **3J4G-Roadmap** (`57108bd`) + **3J4H-R Roofr IA correction** (`40e5f5b`) + **R0–R3** recovery docs complete (`f1dba95`–`5927ab5`, §6AL–§6AO) + **R4–R6** template content editor **complete** (`9db2030`–`3c6214c`) + **R10** structure/settings **complete** (`bc42b1e`–`b3dd904`, §6AQ) + **pre-R10 P1** Job Card truth (`d0ba188`, §6AP). **Code checkpoint:** `b3dd904`. **Purpose:** Lock **proposal content-authoring architecture**. Hardcoded seed bodies are **fallback seed content only** — not the final contractor-controlled content system.
 
 **Recovery order:** **§6AL — RoofrExact Recovery Playbook** is the **mandatory execution order** for all future work. This section records content architecture only — **sequencing is in §6AL**, not duplicated here.
 
@@ -3594,7 +3599,8 @@ defaultRoofingProposalTemplates.ts
 | Capability | Status |
 |------------|--------|
 | Edit company branding beyond basic profile | **Partial** — `/tools/settings` has name/phone/email/license/logo; missing address, website, brand colors, CLN-on-cover |
-| Edit template page text (Terms/Warranty/Scope/etc.) | **Available (R6)** — per-section `body_markdown` editor on `/tools/roofing/templates`; template structure editing **R10** |
+| Edit template page text (Terms/Warranty/Scope/etc.) | **Available (R6)** — per-section `body_markdown` editor on `/tools/roofing/templates` |
+| Edit template structure + estimate display settings | **Available (R10)** — Structure & estimate settings on `/tools/roofing/templates` (§6AQ); **not** pricing policy/margins |
 | Edit job-specific proposal page text | **Not available** — only `updateDraftSelectedOption` persists; no `updateProposalPage` mutation path |
 
 **Persistence semantics:**
@@ -3610,7 +3616,7 @@ defaultRoofingProposalTemplates.ts
 | §6AL | Legacy label | Scope |
 |------|--------------|-------|
 | **R4–R6** | **3J4H** | Template content editor (view-model → workspace → save) |
-| **R10** | **3J4I** | Template page/content structure + estimate settings |
+| **R10** | **3J4I** | Template page/content structure + estimate settings | **DONE** (`bc42b1e`–`b3dd904`, §6AQ) |
 | **R12** | **3J4J** | Job-specific proposal page editor |
 | **R11** | Later | Company branding/identity in Settings |
 | **R14** | Later | Media foundation |
@@ -3638,10 +3644,10 @@ defaultRoofingProposalTemplates.ts
 - **`/tools/roofing/templates`** remains the **interim durable route** for reusable proposal content editing until a future **Proposals hub** exists (§6AL **R16**; ownership **§6AO**). Roofr long-term: Proposals ▸ Templates; **no route migration until R16**.
 - **`/tools/roofing/templates`** is the **Template Workspace** (R5–R6 **complete**) — install, readiness, per-section content editor.
 - Use existing **`proposal_template_sections.content`**; **`updateProposalTemplateSection`** wired — **R6 complete**.
-- **§6AL mapping:** **R4** = Pass 3B view-model helper (**done**); **R5** = Pass 3C workspace shell (**done**); **R6** = Pass 3D content editor + save (**done**).
-- **Next template slice:** **R10** — add/reorder pages, estimate settings — **audit before code**.
+- **§6AL mapping:** **R4** = Pass 3B view-model helper (**done**); **R5** = Pass 3C workspace shell (**done**); **R6** = Pass 3D content editor + save (**done**); **R10** = structure + estimate settings (**done**, §6AQ).
 - **First slice (R6):** edit existing **text sections only** — Terms, Warranty, Project Overview/Scope; `body_markdown` in section content.
-- **Do not start with:** add/remove/reorder pages (**R10**), job-specific editing (**R12**), catalog item detail editing inside templates.
+- **R10 (done):** add/reorder template sections per option; estimate display settings (`ProposalPageSettings`); new drafts receive estimate `settings_json` (§6AQ).
+- **Do not start with:** job-specific editing (**R12**), catalog item detail editing inside templates.
 - **Catalog** remains the single source for line item definitions; templates reference catalog items only.
 
 ### 8. Job-specific Builder guidance (3J4J — later)
@@ -3676,9 +3682,9 @@ See also **§11 — What counts as drift** and **§6AL** recovery guardrails.
 
 ### 10. Next code step (sequenced by §6AL)
 
-**Immediate:** **R10 full-stage satisfaction/scope check** — Template structure/settings editor (**audit only**; no code until audit passes).
+**Immediate:** **R11 full-stage satisfaction/scope check** — Settings branding expansion (**audit only**; no code until audit passes).
 
-**Do not start R10 code directly.** Do not edit template structure, Builder layout, Proposals hub, job-specific pages, or lifecycle actions before the audit.
+**Do not start R11 code directly.** Do not edit Settings branding before audit; do not touch pricing policy/math unless R11 audit explicitly scopes it; do not reopen Templates structure unless bugfix-scoped; do not touch Builder proposal page rendering; do not create Proposals hub; do not enable lifecycle actions.
 
 Full mandatory order: **§6AL**. Open checklist with §6AL stage IDs: **§11 — Future / Later bucket** only — **no duplicate list**.
 
@@ -3686,9 +3692,9 @@ Full mandatory order: **§6AL**. Open checklist with §6AL stage IDs: **§11 —
 
 ## 6AL. ROOFR EXACT RECOVERY PLAYBOOK
 
-**Status:** **R0** complete (`f1dba95`). **R1** complete (`b70cdd7`, §6AM). **R2** complete (`2e1c36b`, §6AN). **R3** complete (`5927ab5`, §6AO). **R4** complete (`9db2030`). **R5** complete (`ffc1cc0`). **R6** complete (`3c6214c`). **R7** complete (`05b9c54`). **R8** complete (`1191ddd`). **R9** complete/satisfied (`1915b2d` + pre-R10 audit; P1 truth at `d0ba188`). **Pre-R10 P1 bugfix** complete (`d0ba188`, §6AP). **Purpose:** Single ordered recovery roadmap from the earliest confirmed product-shell drift through templates, Builder, lifecycle, and production.
+**Status:** **R0** complete (`f1dba95`). **R1** complete (`b70cdd7`, §6AM). **R2** complete (`2e1c36b`, §6AN). **R3** complete (`5927ab5`, §6AO). **R4** complete (`9db2030`). **R5** complete (`ffc1cc0`). **R6** complete (`3c6214c`). **R7** complete (`05b9c54`). **R8** complete (`1191ddd`). **R9** complete/satisfied (`1915b2d` + pre-R10 audit; P1 truth at `d0ba188`). **R10** complete (`bc42b1e`–`b3dd904`, §6AQ). **Pre-R10 P1 bugfix** complete (`d0ba188`, §6AP). **Purpose:** Single ordered recovery roadmap from the earliest confirmed product-shell drift through templates, Builder, lifecycle, and production.
 
-**Next required gate:** **R10 full-stage satisfaction/scope check** (audit only — Template structure/settings editor) **before any R10 code**.
+**Next required gate:** **R11 full-stage satisfaction/scope check** (audit only — Settings branding expansion) **before any R11 code**.
 
 **Opening rules (mandatory):**
 
@@ -3716,7 +3722,7 @@ Full mandatory order: **§6AL**. Open checklist with §6AL stage IDs: **§11 —
 | **R7** | Code | Global IA nav code (light) | R1, R3; R6 preferred | Nav labels/grouping updated | Full hub build |
 | **R8** | Code | Jobs Board identity code (light) | R2 | Copy/sections clarify DB vs legacy | Status lane polish |
 | **R9** | Code | Job Card + Proposal create flow (+ measurement → template) | R6 | E2E create/open from Job Card Proposals tab; pre-R10 P1 truth at `d0ba188` | Preview/Send |
-| **R10** | Code | 3J4I — template structure + estimate settings | R6 | **Audit first** — add/reorder pages; template margin toggles | Job editor |
+| **R10** | Code | 3J4I — template structure + estimate settings | R6 | Add/reorder sections; estimate display settings on template + draft `settings_json` (**done** `bc42b1e`–`b3dd904`, §6AQ) | Job editor |
 | **R11** | Code | Settings branding expansion (not Terms prose) | R1 | Identity fields persist | `/tools/settings/proposals` |
 | **R12** | Code | 3J4J — job-specific page editor (`updateProposalPage`) | R6, R10 | Job edits don't mutate template | Template rows |
 | **R13** | Code | Dynamic fields (job card → text) | R11, R12 | Fields merge into text sections | Lifecycle |
@@ -3739,8 +3745,11 @@ Full mandatory order: **§6AL**. Open checklist with §6AL stage IDs: **§11 —
 | Pass 3B view-model (`9db2030`) | **R4** | **DONE** |
 | Pass 3C workspace shell (`ffc1cc0`) | **R5** | **DONE** |
 | Pass 3D editor + save (`3c6214c`) | **R6** | **DONE** |
+| R10a helpers (`bc42b1e`) | **R10** | **DONE** |
+| R10b Structure/Settings UI (`e33e659`) | **R10** | **DONE** |
+| R10c draft `settings_json` (`b3dd904`) | **R10** | **DONE** |
 
-Template content editor **resumed and completed** at **R4–R6**. **Next template work:** **R10** structure/settings — **audit before code**.
+Template content editor **completed** at **R4–R6**. Template structure + estimate settings **completed** at **R10** (§6AQ). **Next template-adjacent work:** **R12** job-specific page editor — **audit before code**.
 
 ### Cursor pass start/stop gate rule
 
@@ -3824,7 +3833,7 @@ This rule exists to catch drift before it compounds across template, Builder, an
 
 ### Current shell nav truth (`FieldDiveAppShell.tsx`)
 
-Repo truth as of code checkpoint **`d0ba188`**. `activeNav` keys: `jobs` | `newJob` | `catalog` | `templates`.
+Repo truth as of code checkpoint **`b3dd904`**. `activeNav` keys: `jobs` | `newJob` | `catalog` | `templates`.
 
 | Label | Href | Nav key | Status | RoofrExact ownership | Interim rule | Future stage |
 |-------|------|---------|--------|----------------------|--------------|--------------|
@@ -3861,7 +3870,7 @@ Repo truth as of code checkpoint **`d0ba188`**. `activeNav` keys: `jobs` | `newJ
 | **Measurements / Reports** | Roof measurement truth, quantity drivers | Catalog line definitions, proposal lifecycle | Job Card + `measurement_records` | Job Card + measurement surfaces | Done (data); UI polish later |
 | **Catalog** | Reusable line items, unit cost/price, quantity_source, install/readiness | Template package options, proposal snapshots | `/tools/roofing/catalog` | Same | Done |
 | **Proposals hub** | Proposal list, Draft/Sent/Won/Lost filters, hub → Templates / Builder links | Template content editing, Builder document canvas | **Missing** (no hub route) | `/tools/roofing/proposals` (planned) | **R16** code; **§6AO** (R3) |
-| **Proposal Templates** | Reusable packages, options, sections, template prose defaults, install | Job-specific `proposal_pages`, lifecycle send/sign | `/tools/roofing/templates` (interim) | Under Proposals hub long-term; **keep interim route until R16** | **R4–R6**, **R10** |
+| **Proposal Templates** | Reusable packages, options, sections, template prose defaults, install | Job-specific `proposal_pages`, lifecycle send/sign | `/tools/roofing/templates` (interim) | Under Proposals hub long-term; **keep interim route until R16** | **R4–R6**, **R10** (§6AQ) |
 | **Proposal Builder** | Job-specific proposal editing, Estimate + customer pages, package selection | Master template rows, company Terms store | `/tools/roofing/proposals/builder?job=&proposal=` | Same | **R12–R15**, **R17–R20** |
 | **Settings / Company** | Identity, branding, license, notifications, profitability **type** | Terms/Warranty/Scope body prose | `/tools/settings`, `/tools/settings/pricing` | Same | **R11** |
 | **Customers** | Company-scoped customer records | Primary workflow nav driver | `/admin/customers` (legacy shelf) | Future FieldDive-native route | **R7**, **R23** |
@@ -3908,7 +3917,7 @@ Repo truth as of code checkpoint **`d0ba188`**. `activeNav` keys: `jobs` | `newJ
 
 ### Route / file truth (`/tools/roofing/saved`)
 
-Repo truth as of code checkpoint **`d0ba188`**.
+Repo truth as of code checkpoint **`b3dd904`**.
 
 | Item | Truth |
 |------|-------|
@@ -4002,7 +4011,7 @@ Full route and legacy rules: **§6AD** §§2–4. R2 adds **identity framing**; 
 
 ### Current proposal route truth
 
-Repo truth as of code checkpoint **`d0ba188`**.
+Repo truth as of code checkpoint **`b3dd904`**.
 
 | Route / surface | Status | Identity | Interim rule | Future stage |
 |-----------------|--------|----------|--------------|--------------|
@@ -4084,7 +4093,7 @@ Repo truth as of code checkpoint **`d0ba188`**.
 
 ## 6AP. PRE-R10 AUDIT + P1 JOB CARD BUGFIX
 
-**Status:** **Pre-R10 audit complete**; **P1 bugfix complete** (`d0ba188`). **Depends on:** **R9** satisfied. **Next:** **R10 full-stage satisfaction/scope check** (audit only).
+**Status:** **Pre-R10 audit complete**; **P1 bugfix complete** (`d0ba188`). **Depends on:** **R9** satisfied. **Historical next (completed):** R10 full-stage satisfaction/scope check → R10a/b/c implementation (`bc42b1e`–`b3dd904`, §6AQ).
 
 ### Complete bug/issue audit (before R10)
 
@@ -4111,13 +4120,68 @@ Repo truth as of code checkpoint **`d0ba188`**.
 - **Proposals hub** remains deferred to **R16**.
 - **Preview / Send / Sign / Payment** remain locked.
 
-### R10 guardrail (next)
+### R10 guardrail (historical — satisfied by §6AQ)
 
-**Run R10 full-stage satisfaction/scope check** for Template structure/settings editor — **audit only**.
+**R10 full-stage satisfaction/scope check** completed; **R10a/b/c** implemented and audited. **Next gate:** **R11** (§6AQ).
 
-**Do not:** start R10 code directly; edit template structure before audit; Builder redesign; Proposals hub; job-specific proposal pages; lifecycle actions.
+**Protected systems remain frozen:** pricing math, proposal totals, quantity resolver, snapshot pricing trust, stale banner / `refreshDraftPricing`, approval/status/payment, Preview/Send/Sign/Payment locks, SQL/migrations/packages, legacy routes unless scoped.
 
-**Protected systems remain frozen:** pricing math, proposal totals, quantity resolver, snapshot builder, stale banner / `refreshDraftPricing`, approval/status/payment, Preview/Send/Sign/Payment locks, SQL/migrations/packages, legacy routes unless scoped.
+---
+
+## 6AQ. R10 COMPLETION — TEMPLATE STRUCTURE + ESTIMATE SETTINGS
+
+**Status:** **R10 complete** (`bc42b1e`–`b3dd904`). **R10 completion audit passed.** **Depends on:** **R6**. **Next:** **R11 full-stage satisfaction/scope check** (audit only).
+
+### R10 implementation commits
+
+| Commit | Pass | Scope |
+|--------|------|-------|
+| `bc42b1e` | **R10a** | Pure structure/settings helpers + tests (`proposalTemplateStructureEditorView`, `proposalTemplateStructureMutations`, `proposalTemplateEstimateSettings`) |
+| `e33e659` | **R10b** | Templates Workspace Structure & estimate settings UI (`TemplatesStructureSettingsShell`, `TemplatesSetupClient` wiring) |
+| `b3dd904` | **R10c** | Template estimate settings → draft `proposal_pages.settings_json` (`mapTemplateSectionsToProposalPages`, `proposalRecordStore` template pass-through) |
+
+### R10 completion audit (at `b3dd904`)
+
+- **R10 + safety tests:** **217/217** pass
+- **TypeScript:** only known `RoofingClientV2.tsx` errors (6)
+- **Working tree:** clean at audit
+- **No P0/P1 issues**
+- **Optional read-only DB smoke** for `settings_json` on new drafts **not performed**; unit coverage covers defaults, template metadata, per-option overrides, non-estimate pages `{}`, and input immutability
+
+### R10 behavior now true (`/tools/roofing/templates`)
+
+- **Structure view** — Standard / Enhanced / Premium separated; sections ordered by `sort_order`
+- **Add section** — allowed kinds only: `text`, `terms`, `warranty`, `image` (`createProposalTemplateSection`)
+- **Reorder** — within same option only via `sort_order` patches (`planReorderSections` + `updateProposalTemplateSection`)
+- **Remove/delete** — **intentionally blocked** until safe store delete semantics approved (`planRemoveSection`; UI disabled with reason)
+- **Estimate display settings** (`ProposalPageSettings`, **not** pricing policy):
+  - `show_line_prices`
+  - `show_option_totals`
+  - `show_section_headings`
+- **Storage:** `template.metadata.estimate_page_settings` + per-option `line_items` section metadata
+- **New drafts:** resolved settings on estimate page `settings_json` at instantiate; non-estimate pages keep `{}`
+- **Existing job `proposal_pages`:** not retroactively changed
+- **R6 content editor:** `body_markdown` per-section save **unchanged**
+
+### R10 deferred / boundaries (preserve)
+
+| Item | Status |
+|------|--------|
+| Section delete/remove | **Deferred** — no `deleteProposalTemplateSection`; remove buttons blocked by design |
+| Builder rendering of `settings_json` toggles | **Deferred** — **R15** (Builder layout + settings drawer) or later Builder pass |
+| `refreshDraftPricing` syncing `settings_json` | **Not implemented** — existing drafts unchanged unless product later scopes sync |
+| Job-specific `proposal_pages` editing | **R12** |
+| Proposals hub | **R16** |
+| Preview / Send / Sign / Payment | **R17+** |
+| Pricing policy / margins | **`/tools/settings/pricing`** — not template estimate display settings |
+
+### R11 guardrail (next)
+
+**Run R11 full-stage satisfaction/scope check** for Settings branding expansion — **audit only**.
+
+**Do not:** start R11 code directly; edit Settings branding before audit; touch pricing policy/math unless R11 audit explicitly scopes it; reopen Templates structure unless bugfix-scoped; touch Builder proposal page rendering; create Proposals hub; enable lifecycle actions.
+
+**Protected systems remain frozen:** pricing math, proposal totals, quantity resolver, snapshot builder pricing trust, stale banner / `refreshDraftPricing`, approval/status/payment, Preview/Send/Sign/Payment locks, SQL/migrations/packages, legacy routes unless scoped.
 
 ---
 
@@ -4127,7 +4191,7 @@ Repo truth as of code checkpoint **`d0ba188`**.
 |---------|------|
 | **MeasurementRecord** | Roof measurement truth (quantities, source, readiness) — `measurement_records` |
 | **CatalogItem** | Reusable company-owned line item + **quantity driver** (`quantity_source`) — `catalog_items` |
-| **ProposalTemplate** | Reusable company-owned package (options, sections, catalog-backed items) — **types, tables, store, defaults, install helper**; **install/readiness UI**; page **content editor** **R6 complete**; structure expansion **R10** (3J4I) |
+| **ProposalTemplate** | Reusable company-owned package (options, sections, catalog-backed items) — **types, tables, store, defaults, install helper**; **install/readiness UI**; page **content editor** **R6 complete**; **structure + estimate settings R10 complete** (§6AQ) |
 | **Proposal** | Job-specific instance of template + measurement + snapshots — **types (§6Z); SQL (§6AA); lib store (§6AB); Job Card create + Builder read (§6AC)**; page text is **copy-on-create** from template — job editor **3J4J** (§6AK) |
 | **Pricing engine** | **New-spine lib** (`proposalPricingEngine.ts` + mapper + orchestrator) — **3I-1 + 3I-2 DONE**; wired from Builder route only; legacy estimator `useMemo` still on saved-estimate path — **protected, not replaced** |
 | **Payments / approvals / status** | Estimates/proposals KV + APIs — **protected**; do not couple to catalog install |
@@ -4249,18 +4313,19 @@ Then open and read **in this file** (in order):
 10. **§6AN** — R2 Jobs Board / Saved Identity (read before board/saved/legacy partition work)
 11. **§6AO** — R3 Proposals Hub Ownership (read before hub/Templates/Builder placement)
 12. **§6AP** — Pre-R10 audit + P1 Job Card bugfix (read before R10)
-13. **§3 Builder-specific rule + Roofr-aligned product principle** — no-drift rules
-13. **§6AD** — DB-first foundation Phases A–D
-14. **§6AE** — 3J3E option persistence + quantity resolver coverage
-15. **§6AF** — pricing trust hardening
-16. **§9** — required first prompt / resume instructions (this section)
-17. **§11** — roadmap buckets (TODAY / NEXT / LATER / DO NOT DO YET), current checkpoint, built-surface audit, manual smoke; **§11 — Future / Later bucket → Proposal Builder**
+13. **§6AQ** — R10 completion summary (read before R11)
+14. **§3 Builder-specific rule + Roofr-aligned product principle** — no-drift rules
+15. **§6AD** — DB-first foundation Phases A–D
+16. **§6AE** — 3J3E option persistence + quantity resolver coverage
+17. **§6AF** — pricing trust hardening
+18. **§9** — required first prompt / resume instructions (this section)
+19. **§11** — roadmap buckets (TODAY / NEXT / LATER / DO NOT DO YET), current checkpoint, built-surface audit, manual smoke; **§11 — Future / Later bucket → Proposal Builder**
 
-**Verify HEAD** is **`d0ba188`** or newer (pre-R10 P1 Job Card truth); if newer, reconcile this doc.
+**Verify HEAD** is **`b3dd904`** or newer (R10 complete); if newer, reconcile this doc.
 
 **Confirm** working tree is clean (or note doc-only WIP).
 
-**Smoke gate PASSED** (§11 + live Job Card Proposals re-check). **R0–R9** complete/satisfied. **Pre-R10** audit + P1 bugfix complete (`d0ba188`, §6AP). **Code:** `d0ba188`. **Next:** **R10 full-stage satisfaction/scope check** (audit only — no R10 code yet). **R16** Proposals hub code later. **Do not reintroduce** old Overview/workspace tabs. **Preview / Send / Sign / Payment remain disabled** until **R17+**. **Mandatory order:** **§6AL** + **§6AM** + **§6AN** + **§6AO** + **§6AP**. **Do not** return to `loadSaved`/`currentSaved` as main workflow.
+**Smoke gate PASSED** (§11 + live Job Card Proposals re-check). **R0–R10** complete/satisfied. **Code:** `b3dd904`. **Next:** **R11 full-stage satisfaction/scope check** (audit only — no R11 code yet). **R16** Proposals hub code later. **Do not reintroduce** old Overview/workspace tabs. **Preview / Send / Sign / Payment remain disabled** until **R17+**. **Mandatory order:** **§6AL** + **§6AM** + **§6AN** + **§6AO** + **§6AP** + **§6AQ**. **Do not** return to `loadSaved`/`currentSaved` as main workflow.
 
 Inspect before planning **3F9** (or chosen stage):
 
@@ -4340,37 +4405,36 @@ Confirm: **Create proposal / Open proposal** on Job Card creates/reuses DB draft
 
 ## 11. FORWARD ROADMAP / NO-DRIFT NEXT STEPS
 
-Use this section as the **ordered checklist** for future GPT/Cursor sessions. **Mandatory recovery order:** **§6AL** (R0–R23) + **§6AM** + **§6AN** + **§6AO** + **§6AP**. Items below reference **§6AL stage IDs**. **Code checkpoint:** **`d0ba188`**. **Docs checkpoint:** **pending this docs commit** (prior: **`5927ab5`**, §6AO).
+Use this section as the **ordered checklist** for future GPT/Cursor sessions. **Mandatory recovery order:** **§6AL** (R0–R23) + **§6AM** + **§6AN** + **§6AO** + **§6AP** + **§6AQ**. Items below reference **§6AL stage IDs**. **Code checkpoint:** **`b3dd904`**. **Docs checkpoint:** **pending this docs commit** (prior: **`0106f9f`**, pre-R10 checkpoint).
 
 ### Roadmap buckets (TODAY / NEXT / LATER / DO NOT DO YET)
 
 **TODAY / IMMEDIATE**
 
-- **R10 full-stage satisfaction/scope check** — Template structure/settings editor (**audit only**; §6AP guardrails)
-- Confirm checkpoints: code **`d0ba188`**; docs pending this commit
-- **R0–R9** + **pre-R10 P1** complete — see §6AL + §6AP
+- **R11 full-stage satisfaction/scope check** — Settings branding expansion (**audit only**; §6AQ guardrails)
+- Confirm checkpoints: code **`b3dd904`**; docs pending this commit
+- **R0–R10** complete — see §6AL + §6AQ
 - **Smoke gate:** **PASSED** (DB-first + live Job Card Proposals re-check)
 - **Preview / Send / Sign / Payment remain disabled** (R17–R20)
 - **No Proposals hub code** — **R16** only; **no Template route migration**
 
-**NEXT (after R10 audit passes)**
+**NEXT (after R11 audit passes)**
 
-- **R10 code** — 3J4I template structure + estimate settings (only after audit)
-- **R11–R15** — branding, job page editor, media, Builder layout (§6AL order)
+- **R11 code** — Settings branding expansion (only after audit)
+- **R12–R15** — job page editor, dynamic fields, media, Builder layout (§6AL order)
 - **R16** — Proposals hub foundation (later)
 
 **LATER (§6AL stages — see §6AL table for full order)**
 
-- **R11** — Settings branding (not Terms prose)
 - **R12** — 3J4J job-specific page editor
-- **R13–R15** — dynamic fields, media, Builder layout
+- **R13–R15** — dynamic fields, media, Builder layout (incl. `settings_json` rendering — **R15**)
 - **R16** — Proposals hub foundation
 - **R17–R20** — Preview / Send / Sign / Payment (**3K0–3K3**)
 - **R21–R23** — production spine, automations, legacy cleanup
 
 **DO NOT DO YET**
 
-- **R10 code** before **R10 full-stage satisfaction/scope check**
+- **R11 code** before **R11 full-stage satisfaction/scope check**
 - **Proposals hub** before **R16**
 - Enable Preview / Send / Sign / Payment / Add Page (**R17+**)
 - Company Terms/Warranty content-default store; `/tools/settings/proposals` prose
@@ -4380,15 +4444,16 @@ Use this section as the **ordered checklist** for future GPT/Cursor sessions. **
 - SQL/migrations/package changes without explicit stage scope
 - More Builder presentation polish (3J4D/3J4E baseline sufficient)
 - Protected pricing/math/totals/quantity/stale/refresh without explicit scope
+- Reopen Templates structure/settings unless bugfix-scoped
 
 ---
 
 ### Current checkpoint
 
-**Latest code checkpoint:** **`d0ba188` — fix(job-card): align proposal launch truth before R10**. **Prior:** `1191ddd` (R8), `05b9c54` (R7), `3c6214c` (R6).  
+**Latest code checkpoint:** **`b3dd904` — feat(templates): flow estimate settings into draft pages**. **Prior:** `e33e659` (R10b), `bc42b1e` (R10a), `0106f9f` (docs pre-R10).  
 **Jobs Board approved save point:** **3F9B4-RoofrExact** (`b27a444`); **DB-first partition** (`a62ad93`, §6AD); **R8 identity** (`1191ddd`).  
-**Latest handoff doc checkpoint:** **pending this docs commit** (prior: **`5927ab5`**, §6AO). **Smoke gate:** **PASSED** (`0763799` + live Job Card Proposals).  
-**Next:** **R10 full-stage satisfaction/scope check** (audit only). Full order: **§6AL** + **§6AM** + **§6AN** + **§6AO** + **§6AP**.
+**Latest handoff doc checkpoint:** **pending this docs commit** (prior: **`0106f9f`**, pre-R10). **Smoke gate:** **PASSED** (`0763799` + live Job Card Proposals).  
+**Next:** **R11 full-stage satisfaction/scope check** (audit only). Full order: **§6AL** + **§6AM** + **§6AN** + **§6AO** + **§6AP** + **§6AQ**.
 
 **Completed working state (summary):**
 
@@ -4439,6 +4504,7 @@ Use this section as the **ordered checklist** for future GPT/Cursor sessions. **
 | **R8 Light Jobs Board identity** | **DONE** (`1191ddd`) |
 | **R9 Job Card proposal create/open** | **DONE/satisfied** (`1915b2d` + `d0ba188` §6AP) |
 | **Pre-R10 P1 Job Card truth** | **DONE** (`d0ba188`, §6AP) |
+| **R10 Template structure + estimate settings** | **DONE** (`bc42b1e`–`b3dd904`, §6AQ) |
 | **DB-first + proposal smoke gate** | **PASSED** manually (`0763799` + live Job Card Proposals) — §6AE.5 + §6AF.9 + §6AD.7 |
 | **Canonical catalog route** | **`/tools/roofing/catalog`** — `CatalogSetupClient` |
 | **Canonical templates route** | **`/tools/roofing/templates`** — `TemplatesSetupClient` |
@@ -4522,7 +4588,8 @@ Treat these as **known architecture notes** — legacy paths remain reachable bu
 33. ~~**R4–R6 Template content editor**~~ — **DONE** (`9db2030`–`3c6214c`).
 34. ~~**R7–R8**~~ — **DONE** (`05b9c54`, `1191ddd`).
 35. ~~**R9 Job Card proposal create/open**~~ + ~~**Pre-R10 P1**~~ — **DONE/satisfied** (`d0ba188`, §6AP).
-36. **Next** — **R10 full-stage satisfaction/scope check** (audit only); **R16** Proposals hub later.
+36. ~~**R10 Template structure + estimate settings**~~ — **DONE** (`bc42b1e`–`b3dd904`, §6AQ).
+37. **Next** — **R11 full-stage satisfaction/scope check** (audit only); **R16** Proposals hub later.
 
 ---
 
@@ -4994,7 +5061,7 @@ Run parallel to legacy estimator; do not overwrite `useMemo` until validated and
 
 **3J0** types (`3ae5e39`), **3J1** SQL (006/007 applied §6AA), **3J2** lib spine (`13b4e72`, §6AB), **3J3** Job Card → persisted Builder draft flow (`e38b276`, §6AC), **3J3E** option selection persistence (`a7249b3`, §6AE), **Pricing trust hardening** (`ce3d6bc`, §6AF), **3J4A** final-surface navigation (`4c9a77d`), **3J4C document-first Builder** (`f8bffde`, §6AG), **3J4D Estimate readability** (`c42a559`, §6AH), **3J4E package/options** (`72768ae`, §6AI), **3J4F customer text pages** (`bfa0454`, §6AJ), **3J4G seed copy** (`ce7aa39`, §6AK), **3J4H-R** (`40e5f5b`, §6AK), **3J4H Pass 2 helper** (`8c04c2a`).
 
-**Open (§6AL order):** **R10** full-stage satisfaction/scope check (audit only) → **R10 code** after audit → **R11+**. **R0–R9** + **pre-R10 P1** complete. **Not** company-level Terms/Warranty defaults. Checklist: **§11** with **§6AL** stage IDs.
+**Open (§6AL order):** **R11** full-stage satisfaction/scope check (audit only) → **R11 code** after audit → **R12+**. **R0–R10** complete. **Not** company-level Terms/Warranty defaults. Checklist: **§11** with **§6AL** stage IDs.
 
 **Manual smoke:** **PASSED** — **§6AE.5** → **§6AF.9** → **§6AD.7** (`0763799`). **No Preview/Send/Sign/Payment** until **R17+**.
 
@@ -5134,10 +5201,11 @@ Treat as **drift** if a session:
 - ~~**R4–R6**~~ — Template content editor — **DONE** (`9db2030`–`3c6214c`)
 - ~~**R7–R8**~~ — Light IA nav + Jobs Board identity — **DONE** (`05b9c54`, `1191ddd`)
 - ~~**R9**~~ + ~~**Pre-R10 P1**~~ — **DONE/satisfied** (`d0ba188`, §6AP)
+- ~~**R10**~~ — **DONE** (`bc42b1e`–`b3dd904`, §6AQ)
 
 **Next (§6AL):**
 
-- **R10** — 3J4I template structure + estimate settings — **audit first** (§6AP)
+- **R11** — Settings branding expansion — **audit first** (§6AQ)
 - **R16** — Proposals hub — interim `/tools/roofing/templates` until hub ships
 
 **Completed document-first Builder slices:**
@@ -5243,6 +5311,8 @@ Treat as **drift** if a session:
 - **2026-05-31:** **3G6 complete** — 3G6A–E (`15ad732`–`b78c9ee`), Templates D2 (`227061c`), Catalog D2 (`29ca190`); Job Card + Job Packet audits documented; **next: plan 3H** Proposal Builder (Roofr research; not until scoped); pricing remains protected.
 - **2026-06-07:** **DB-first smoke gate PASSED** — user manual confirmation; §6AE.5 + §6AF.9 + §6AD.7 complete (recorded after `3ec6f42`); **NEXT open** for scoped proposal draft editing/persistence; left Builder sidebar not a failure; Preview/Send/Sign/Payment remain disabled until 3K+.
 - **2026-06-07:** **Pricing trust hardening complete** — snapshot qty+price alignment, stale detection, refresh wired (`ce3d6bc`); §6AF added; **175/175** tests in pre-commit audit; pricing engine/math untouched; user partial smoke positive; **next (superseded by §11):** full manual smoke (**§6AE.5** → **§6AF.9** → **§6AD.7**), then **§11 NEXT** (proposal draft slice); legacy import is **LATER**; Preview/Send/Sign/Payment remain disabled until 3K+.
+- **2026-06-17:** **Post-R10 docs checkpoint** — header/§6AL/§6AK/§11 + new **§6AQ** aligned to `b3dd904`; R0–R10 complete; **next: R11 full-stage satisfaction/scope check** (audit only).
+- **2026-06-17:** **R10 complete** — R10a (`bc42b1e`), R10b (`e33e659`), R10c (`b3dd904`); completion audit passed; **217/217** tests.
 - **2026-06-17:** **Pre-R10 docs checkpoint** — header/§6AL/§6AK/§6AO/§6AP/§11 aligned to `d0ba188`; R0–R9 + pre-R10 P1 complete; **next: R10 full-stage satisfaction/scope check** (audit only).
 - **2026-06-17:** **Pre-R10 P1 complete** — Job Card proposal truth alignment (`d0ba188`, §6AP); header CTA gates, post-create refresh, draft-connected Proposals tab; **141/141** tests; live smoke passed.
 - **2026-06-15:** **R3 WIP** — Proposals Hub Ownership (§6AO); route truth; hub owns/must-not-own; interim posture; R4–R6 / R9 / R16 relationships; §6AL R3 stop gate; stale R2 checkpoint lines cleaned; **committed `5927ab5`**.
