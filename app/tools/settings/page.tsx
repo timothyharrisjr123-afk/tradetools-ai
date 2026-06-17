@@ -1,195 +1,28 @@
-"use client";
+import { ensureUserIdentity, getUserCompanyId } from "@/app/lib/ensureUserIdentity";
+import { createClient } from "@/app/lib/supabase/server";
+import FieldDiveAppShell from "@/app/tools/roofing/FieldDiveAppShell";
+import { redirect } from "next/navigation";
+import SettingsCompanyBrandingClient from "./SettingsCompanyBrandingClient";
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
-import {
-  type CompanyProfile,
-  loadCompanyProfileFromSupabase,
-  saveCompanyProfile,
-} from "@/app/lib/companyProfile";
-import { ArrowLeft } from "lucide-react";
+export const dynamic = "force-dynamic";
 
-const inputClass =
-  "w-full rounded-2xl border border-white/15 bg-white/[0.07] px-4 py-3 text-white/95 placeholder:text-white/35 focus:outline-none focus:ring-2 focus:ring-blue-500/35 focus:border-white/25 text-sm";
-
-export default function SettingsPage() {
-  const [profile, setProfile] = useState<CompanyProfile>({
-    companyName: "",
-    phone: "",
-    email: "",
-    license: "",
-    logoDataUrl: "",
-    notificationsEmail: "",
-  });
-  const [saved, setSaved] = useState(false);
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    loadCompanyProfileFromSupabase().then(setProfile);
-  }, []);
-
-  const handleSave = async () => {
-    setSaved(false);
-    setSaving(true);
-    try {
-      const ok = await saveCompanyProfile(profile);
-      if (ok) {
-        setSaved(true);
-        setTimeout(() => setSaved(false), 2500);
-      }
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = typeof reader.result === "string" ? reader.result : "";
-      setProfile((p) => ({ ...p, logoDataUrl: dataUrl }));
-    };
-    reader.readAsDataURL(file);
-  };
+export default async function SettingsPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    redirect("/login?redirectTo=/tools/settings");
+  }
+  await ensureUserIdentity(supabase, user);
+  const companyId = await getUserCompanyId(supabase, user.id);
+  if (!companyId) {
+    redirect("/login?redirectTo=/tools/settings");
+  }
 
   return (
-    <main className="min-h-screen bg-[#0b0f19] text-white p-4 sm:p-6 lg:p-8 pb-10">
-      <div className="mx-auto max-w-xl">
-        <Link
-          href="/tools"
-          className="inline-flex items-center gap-2 text-sm text-white/70 hover:text-white/90 mb-6"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Command Center
-        </Link>
-
-        <h1 className="text-xl font-semibold text-white/95 mb-2">Business Profile</h1>
-        <p className="text-sm text-white/60 mb-6">
-          These details power proposals, emails, PDFs, customer notifications, and future automation.
-        </p>
-
-        <Link
-          href="/tools/settings/pricing"
-          className="mb-6 flex items-center justify-between rounded-3xl border border-white/10 bg-white/[0.04] p-4 sm:p-5 shadow-[0_10px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl hover:bg-white/[0.07] transition-colors"
-        >
-          <span>
-            <span className="block text-sm font-semibold text-white/90">Company Pricing Policy</span>
-            <span className="mt-0.5 block text-xs text-white/55">
-              Default profitability and tax used to price proposals.
-            </span>
-          </span>
-          <span className="text-white/40 text-sm">→</span>
-        </Link>
-
-        <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-4 sm:p-6 shadow-[0_10px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl">
-          <h2 className="text-sm font-semibold text-white/90 mb-1">Company Identity</h2>
-          <p className="text-xs text-white/60 mb-4">Used across job workspaces, proposals, customer emails, and documents.</p>
-
-          <div className="space-y-3">
-            <div className="space-y-1.5">
-              <label htmlFor="company-name" className="block text-sm font-medium text-slate-300">
-                Company Name
-              </label>
-              <input
-                id="company-name"
-                type="text"
-                value={profile.companyName}
-                onChange={(e) => setProfile((p) => ({ ...p, companyName: e.target.value }))}
-                placeholder="Your company name"
-                className={inputClass}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label htmlFor="company-phone" className="block text-sm font-medium text-slate-300">
-                Phone
-              </label>
-              <input
-                id="company-phone"
-                type="tel"
-                value={profile.phone}
-                onChange={(e) => setProfile((p) => ({ ...p, phone: e.target.value }))}
-                placeholder="(555) 123-4567"
-                className={inputClass}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label htmlFor="company-email" className="block text-sm font-medium text-slate-300">
-                Email
-              </label>
-              <input
-                id="company-email"
-                type="email"
-                value={profile.email}
-                onChange={(e) => setProfile((p) => ({ ...p, email: e.target.value }))}
-                placeholder="contact@company.com"
-                className={inputClass}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label htmlFor="company-license" className="block text-sm font-medium text-slate-300">
-                License <span className="text-white/50">(optional)</span>
-              </label>
-              <input
-                id="company-license"
-                type="text"
-                value={profile.license}
-                onChange={(e) => setProfile((p) => ({ ...p, license: e.target.value }))}
-                placeholder="License number"
-                className={inputClass}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="block text-xs text-white/70 mb-1">Approval notification email</label>
-              <input
-                type="email"
-                placeholder="Where approval notifications should be sent"
-                value={profile.notificationsEmail ?? ""}
-                onChange={(e) => setProfile((p) => ({ ...p, notificationsEmail: e.target.value }))}
-                className={inputClass}
-              />
-              <p className="mt-1 text-xs text-white/50">
-                When a customer approves, we&apos;ll notify you at this email.
-              </p>
-            </div>
-            <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-slate-300">Logo</label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleLogoChange}
-                className="block w-full text-sm text-white/80 file:mr-3 file:rounded-lg file:border-0 file:bg-white/10 file:px-3 file:py-2 file:text-sm file:text-white/90 hover:file:bg-white/15"
-              />
-              {profile.logoDataUrl ? (
-                <div className="mt-2 space-y-1.5">
-                  <p className="text-xs font-medium text-white/60">Current logo</p>
-                  <div className="rounded-xl border border-white/10 bg-white/[0.04] p-2 inline-block">
-                    <img
-                      src={profile.logoDataUrl}
-                      alt="Company logo"
-                      className="max-h-24 max-w-[240px] object-contain"
-                    />
-                  </div>
-                </div>
-              ) : null}
-            </div>
-          </div>
-
-          <div className="mt-5 flex items-center gap-3">
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={saving}
-              className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white/90 hover:bg-white/15 active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              {saving ? "Saving..." : "Save Profile"}
-            </button>
-            {saved && (
-              <span className="text-sm text-emerald-400/90">Business profile saved.</span>
-            )}
-          </div>
-        </div>
-      </div>
-    </main>
+    <FieldDiveAppShell>
+      <SettingsCompanyBrandingClient />
+    </FieldDiveAppShell>
   );
 }

@@ -92,7 +92,7 @@ export function loadCompanyProfile(): CompanyProfile {
 }
 
 /** Browser-only: get current user's company_id from company_memberships. */
-async function getCurrentCompanyId(): Promise<string | null> {
+export async function getCurrentCompanyId(): Promise<string | null> {
   if (typeof window === "undefined") return null;
   const supabase = getSupabaseClient();
   if (!supabase) return null;
@@ -106,16 +106,107 @@ async function getCurrentCompanyId(): Promise<string | null> {
   return membership?.company_id ?? null;
 }
 
-export async function loadCompanyProfileFromSupabase(): Promise<CompanyProfile> {
-  if (typeof window === "undefined") return { ...DEFAULTS };
+export type CompanyProfileLoadStatus =
+  | "success_db"
+  | "no_user"
+  | "no_company_id"
+  | "no_row"
+  | "select_error"
+  | "client_unavailable"
+  | "exception";
+
+export type CompanyProfileLoadResult = {
+  profile: CompanyProfile;
+  status: CompanyProfileLoadStatus;
+  /** True when profile values came from a companies row (not cache-only fallback). */
+  fromDatabase: boolean;
+  usedCacheFallback: boolean;
+  /** Settings and other DB-truth flows should block save unless this is true. */
+  canUseForSave: boolean;
+};
+
+export type CompanyProfileLoadOptions = {
+  /** When true, empty DB columns stay empty — no localStorage backfill (Settings DB-truth load). */
+  dbTruthOnly?: boolean;
+};
+
+function companyProfileFromDbRow(
+  row: Record<string, unknown>,
+  cached: CompanyProfile,
+  options: CompanyProfileLoadOptions = {}
+): CompanyProfile {
+  const dbTruthOnly = options.dbTruthOnly === true;
+  const orCache = (dbValue: string, cacheValue: string) =>
+    dbTruthOnly ? dbValue : dbValue || cacheValue;
+
+  return normalizeCompanyProfile({
+    companyName: orCache((row.name ?? "").toString().trim(), cached.companyName),
+    email: orCache((row.owner_email ?? "").toString().trim(), cached.email),
+    phone: orCache((row.phone ?? "").toString().trim(), cached.phone),
+    license: orCache((row.license ?? "").toString().trim(), cached.license),
+    logoDataUrl: dbTruthOnly
+      ? typeof row.logo_url === "string"
+        ? row.logo_url
+        : ""
+      : typeof row.logo_url === "string"
+        ? row.logo_url
+        : cached.logoDataUrl,
+    notificationsEmail: orCache(
+      (row.notifications_email ?? "").toString().trim(),
+      cached.notificationsEmail ?? ""
+    ),
+  });
+}
+
+/** Structured core profile load — distinguishes DB truth from cache/auth failures. */
+export async function loadCompanyProfileResultFromSupabase(
+  options: CompanyProfileLoadOptions = {}
+): Promise<CompanyProfileLoadResult> {
+  if (typeof window === "undefined") {
+    return {
+      profile: { ...DEFAULTS },
+      status: "client_unavailable",
+      fromDatabase: false,
+      usedCacheFallback: false,
+      canUseForSave: false,
+    };
+  }
+
   const cached = readCompanyProfileCache();
+
   try {
     const supabase = getSupabaseClient();
-    if (!supabase) return cached;
+    if (!supabase) {
+      return {
+        profile: cached,
+        status: "client_unavailable",
+        fromDatabase: false,
+        usedCacheFallback: true,
+        canUseForSave: false,
+      };
+    }
+
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user?.id) return cached;
+    if (!user?.id) {
+      return {
+        profile: cached,
+        status: "no_user",
+        fromDatabase: false,
+        usedCacheFallback: true,
+        canUseForSave: false,
+      };
+    }
+
     const companyId = await getCurrentCompanyId();
-    if (!companyId) return cached;
+    if (!companyId) {
+      return {
+        profile: cached,
+        status: "no_company_id",
+        fromDatabase: false,
+        usedCacheFallback: true,
+        canUseForSave: false,
+      };
+    }
 
     const { data: row, error } = await supabase
       .from("companies")
@@ -125,44 +216,78 @@ export async function loadCompanyProfileFromSupabase(): Promise<CompanyProfile> 
 
     if (error) {
       console.error("[companyProfile]", error);
-      return cached;
+      return {
+        profile: cached,
+        status: "select_error",
+        fromDatabase: false,
+        usedCacheFallback: true,
+        canUseForSave: false,
+      };
     }
-    if (!row) return cached;
 
-    const merged: CompanyProfile = normalizeCompanyProfile({
-      companyName: (row.name ?? "").toString().trim() || cached.companyName,
-      email: (row.owner_email ?? "").toString().trim() || cached.email,
-      phone: (row.phone ?? "").toString().trim() || cached.phone,
-      license: (row.license ?? "").toString().trim() || cached.license,
-      logoDataUrl: typeof row.logo_url === "string" ? row.logo_url : cached.logoDataUrl,
-      notificationsEmail:
-      (row.notifications_email ?? "").toString().trim() || cached.notificationsEmail,
-    });
+    if (!row) {
+      return {
+        profile: cached,
+        status: "no_row",
+        fromDatabase: false,
+        usedCacheFallback: true,
+        canUseForSave: false,
+      };
+    }
+
+    const merged = companyProfileFromDbRow(row as Record<string, unknown>, cached, options);
     writeCompanyProfileCache(merged);
-    return merged;
+    return {
+      profile: merged,
+      status: "success_db",
+      fromDatabase: true,
+      usedCacheFallback: false,
+      canUseForSave: true,
+    };
   } catch (err) {
     console.error("[companyProfile]", err);
-    return cached;
+    return {
+      profile: cached,
+      status: "exception",
+      fromDatabase: false,
+      usedCacheFallback: true,
+      canUseForSave: false,
+    };
   }
 }
 
-export async function saveCompanyProfileToSupabase(p: CompanyProfile): Promise<boolean> {
+/** Legacy helper — returns profile only; prefer loadCompanyProfileResultFromSupabase for Settings. */
+export async function loadCompanyProfileFromSupabase(): Promise<CompanyProfile> {
+  const result = await loadCompanyProfileResultFromSupabase();
+  return result.profile;
+}
+
+export type SaveCompanyProfileOptions = {
+  /** When false, skips localStorage cache write (e.g. split branding save). Default true. */
+  updateCache?: boolean;
+};
+
+export async function saveCompanyProfileToSupabase(
+  p: CompanyProfile,
+  options: SaveCompanyProfileOptions = {}
+): Promise<boolean> {
+  const updateCache = options.updateCache !== false;
   if (typeof window === "undefined") return false;
   const normalized = normalizeCompanyProfile(p);
   try {
     const supabase = getSupabaseClient();
     if (!supabase) {
-      writeCompanyProfileCache(normalized);
+      if (updateCache) writeCompanyProfileCache(normalized);
       return false;
     }
     const { data: { user } } = await supabase.auth.getUser();
     if (!user?.id) {
-      writeCompanyProfileCache(normalized);
+      if (updateCache) writeCompanyProfileCache(normalized);
       return false;
     }
     const companyId = await getCurrentCompanyId();
     if (!companyId) {
-      writeCompanyProfileCache(normalized);
+      if (updateCache) writeCompanyProfileCache(normalized);
       return false;
     }
 
@@ -180,14 +305,14 @@ export async function saveCompanyProfileToSupabase(p: CompanyProfile): Promise<b
 
     if (error) {
       console.error("[companyProfile]", error);
-      writeCompanyProfileCache(normalized);
+      if (updateCache) writeCompanyProfileCache(normalized);
       return false;
     }
-    writeCompanyProfileCache(normalized);
+    if (updateCache) writeCompanyProfileCache(normalized);
     return true;
   } catch (err) {
     console.error("[companyProfile]", err);
-    writeCompanyProfileCache(normalized);
+    if (updateCache) writeCompanyProfileCache(normalized);
     return false;
   }
 }

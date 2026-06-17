@@ -272,6 +272,31 @@ describe("mergeCompanyBrandingProfile", () => {
     assert.equal(merged.address, "");
     assert.equal(merged.showLicenseOnCover, false);
   });
+
+  test("row-shaped extended fields do not wipe core identity on merge", () => {
+    const merged = mergeCompanyBrandingProfile(
+      {
+        companyName: "Anderson Roofing",
+        email: "test@example.com",
+        phone: "(555) 123-4567",
+        license: "CLN 123-456",
+        logoDataUrl: "",
+        notificationsEmail: "notify@example.com",
+      },
+      {
+        address: "123 Main St, City, ST 12345",
+        website: "example.com",
+        brandPrimaryColor: "#123456",
+        brandSecondaryColor: "#abcdef",
+        showLicenseOnCover: true,
+      }
+    );
+
+    assert.equal(merged.companyName, "Anderson Roofing");
+    assert.equal(merged.email, "test@example.com");
+    assert.equal(merged.address, "123 Main St, City, ST 12345");
+    assert.equal(merged.website, "https://example.com");
+  });
 });
 
 describe("schema / persistence capability", () => {

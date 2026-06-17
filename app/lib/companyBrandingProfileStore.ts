@@ -107,13 +107,21 @@ export function mergeBrandingRowMetadata(
 export function rowToCompanyBrandingProfileFields(
   row: CompanyBrandingProfileRow
 ): CompanyBrandingExtendedFields {
-  return normalizeCompanyBrandingProfile({
+  const normalized = normalizeCompanyBrandingProfile({
     address: row.address ?? "",
     website: row.website ?? "",
     brandPrimaryColor: row.brand_primary_color ?? "",
     brandSecondaryColor: row.brand_secondary_color ?? "",
     showLicenseOnCover: row.show_license_on_cover,
   });
+
+  return {
+    address: normalized.address,
+    website: normalized.website,
+    brandPrimaryColor: normalized.brandPrimaryColor,
+    brandSecondaryColor: normalized.brandSecondaryColor,
+    showLicenseOnCover: normalized.showLicenseOnCover,
+  };
 }
 
 /** Default upsert payload for ensure/bootstrap (empty extended branding). */
@@ -149,18 +157,40 @@ export function companyBrandingProfileToUpsertPayload(
 // Supabase reads
 // ---------------------------------------------------------------------------
 
-export async function getCompanyBrandingProfile(
+export type CompanyBrandingProfileLoadStatus =
+  | "success"
+  | "missing_row"
+  | "read_error"
+  | "client_unavailable"
+  | "invalid_company_id";
+
+export type CompanyBrandingProfileLoadResult = {
+  status: CompanyBrandingProfileLoadStatus;
+  fields: CompanyBrandingExtendedFields | null;
+  /** True only when read succeeded but no row exists — safe to bootstrap empty row. */
+  canEnsureEmptyRow: boolean;
+};
+
+export async function getCompanyBrandingProfileResult(
   companyId: string
-): Promise<CompanyBrandingExtendedFields | null> {
+): Promise<CompanyBrandingProfileLoadResult> {
   const supabase = getSupabaseClient();
   if (!supabase) {
     console.error("[companyBrandingProfileStore] getCompanyBrandingProfile: Supabase client unavailable");
-    return null;
+    return {
+      status: "client_unavailable",
+      fields: null,
+      canEnsureEmptyRow: false,
+    };
   }
   const scopedCompanyId = normalizeCompanyId(companyId);
   if (!scopedCompanyId) {
     console.error("[companyBrandingProfileStore] getCompanyBrandingProfile: invalid company id");
-    return null;
+    return {
+      status: "invalid_company_id",
+      fields: null,
+      canEnsureEmptyRow: false,
+    };
   }
 
   try {
@@ -174,14 +204,39 @@ export async function getCompanyBrandingProfile(
       console.error("[companyBrandingProfileStore] getCompanyBrandingProfile failed:", error.message, {
         companyId: scopedCompanyId,
       });
-      return null;
+      return {
+        status: "read_error",
+        fields: null,
+        canEnsureEmptyRow: false,
+      };
     }
-    if (!data) return null;
-    return rowToCompanyBrandingProfileFields(data as CompanyBrandingProfileRow);
+    if (!data) {
+      return {
+        status: "missing_row",
+        fields: null,
+        canEnsureEmptyRow: true,
+      };
+    }
+    return {
+      status: "success",
+      fields: rowToCompanyBrandingProfileFields(data as CompanyBrandingProfileRow),
+      canEnsureEmptyRow: false,
+    };
   } catch (err) {
     console.error("[companyBrandingProfileStore] getCompanyBrandingProfile error:", err);
-    return null;
+    return {
+      status: "read_error",
+      fields: null,
+      canEnsureEmptyRow: false,
+    };
   }
+}
+
+export async function getCompanyBrandingProfile(
+  companyId: string
+): Promise<CompanyBrandingExtendedFields | null> {
+  const result = await getCompanyBrandingProfileResult(companyId);
+  return result.fields;
 }
 
 // ---------------------------------------------------------------------------
@@ -257,12 +312,17 @@ export async function upsertCompanyBrandingProfile(
 
 /**
  * Ensure a branding profile row exists for the company. Creates an empty row
- * when missing; returns current extended fields (possibly empty).
+ * only when read succeeded and row is confirmed missing — never on read errors.
  */
 export async function ensureCompanyBrandingProfile(
   companyId: string
 ): Promise<CompanyBrandingExtendedFields | null> {
-  const existing = await getCompanyBrandingProfile(companyId);
-  if (existing) return existing;
-  return upsertCompanyBrandingProfile(companyId, {});
+  const result = await getCompanyBrandingProfileResult(companyId);
+  if (result.status === "success" && result.fields) {
+    return result.fields;
+  }
+  if (result.status === "missing_row" && result.canEnsureEmptyRow) {
+    return upsertCompanyBrandingProfile(companyId, {});
+  }
+  return null;
 }

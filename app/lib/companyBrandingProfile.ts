@@ -257,9 +257,18 @@ export function mergeCompanyBrandingProfile(
   core: Partial<CompanyProfile>,
   extended: Partial<Pick<CompanyBrandingProfile, CompanyBrandingDeferredFieldKey>> = {}
 ): CompanyBrandingProfile {
+  const normalizedExtended = normalizeCompanyBrandingProfile({
+    address: extended.address,
+    website: extended.website,
+    brandPrimaryColor: extended.brandPrimaryColor,
+    brandSecondaryColor: extended.brandSecondaryColor,
+    showLicenseOnCover: extended.showLicenseOnCover,
+  });
+  const deferredOnly = deferredFieldsFromProfile(normalizedExtended);
+
   return normalizeCompanyBrandingProfile({
     ...companyProfileToBrandingProfile(core),
-    ...extended,
+    ...deferredOnly,
   });
 }
 

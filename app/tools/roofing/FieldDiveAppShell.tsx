@@ -159,7 +159,8 @@ function NavSubLinks({
 }
 
 type FieldDiveAppShellProps = {
-  activeNav: FieldDiveActiveNav;
+  /** When omitted, no sidebar item is marked active (e.g. Settings). */
+  activeNav?: FieldDiveActiveNav;
   activeSubId?: FieldDiveActiveSubNav;
   children: ReactNode;
 };
@@ -172,7 +173,7 @@ function resolveSubItems(items: FieldDiveNavSubItemConfig[], jobCardHref: string
 
 type NavSidebarItemProps = {
   item: FieldDiveNavItemConfig;
-  activeNav: FieldDiveActiveNav;
+  activeNav?: FieldDiveActiveNav;
   activeSubId?: FieldDiveActiveSubNav;
   jobCardHref: string;
   groupExpandedOverrides: Record<string, boolean>;
@@ -191,7 +192,7 @@ function NavSidebarItem({
     item;
   const Icon = NAV_ICONS[icon];
   const groupKey = navItemKey(item);
-  const moduleActive = key !== null && key === activeNav;
+  const moduleActive = key !== null && activeNav !== undefined && key === activeNav;
   const hasSubItems = kind === "group" && Boolean(subItems?.length);
   const defaultExpanded = moduleActive;
   const isExpanded = groupExpandedOverrides[groupKey] ?? defaultExpanded;
