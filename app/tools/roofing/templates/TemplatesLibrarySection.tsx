@@ -16,6 +16,8 @@ type TemplatesLibrarySectionProps = {
   catalogReady: boolean;
   proposalReadiness: ProposalTemplateReadiness;
   onSelectTemplate: (templateId: string) => void;
+  templateSwitchDisabled?: boolean;
+  templateSwitchDisabledReason?: string;
 };
 
 export default function TemplatesLibrarySection({
@@ -26,6 +28,8 @@ export default function TemplatesLibrarySection({
   catalogReady,
   proposalReadiness,
   onSelectTemplate,
+  templateSwitchDisabled = false,
+  templateSwitchDisabledReason,
 }: TemplatesLibrarySectionProps) {
   const sortedTemplates = sortTemplatesByOrder(templates);
   const templateCountLabel =
@@ -42,9 +46,16 @@ export default function TemplatesLibrarySection({
         )}
       </div>
       <p className="mt-1 text-sm text-slate-600">
-        Company templates available for Proposal Builder. Select a template to review its workspace
-        content below.
+        Company templates available for Proposal Builder. Select a template to review and edit its
+        workspace content below.
       </p>
+
+      {templateSwitchDisabled ? (
+        <p className="mt-2 text-xs text-amber-800" role="status">
+          {templateSwitchDisabledReason ??
+            "Save or revert unsaved content changes before switching templates."}
+        </p>
+      ) : null}
 
       <div className="mt-4 space-y-3">
         {loading ? (
@@ -60,6 +71,10 @@ export default function TemplatesLibrarySection({
               proposalReadiness={
                 template.id === selectedTemplateId ? proposalReadiness : null
               }
+              selectDisabled={
+                templateSwitchDisabled && template.id !== selectedTemplateId
+              }
+              selectDisabledTitle={templateSwitchDisabledReason}
             />
           ))
         ) : (

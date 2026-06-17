@@ -1,31 +1,63 @@
 "use client";
 
-import { proposalTemplateSectionKindLabel } from "@/app/lib/proposalTemplateTypes";
+import { useEffect, useMemo, useState } from "react";
 import type { TemplateContentEditorViewModel } from "@/app/lib/proposalTemplateContentEditorView";
+import type { ProposalTemplateGraph } from "@/app/lib/proposalTemplateStore";
 import {
   TEMPLATES_CARD,
-  TEMPLATES_CONTENT_SECTION_ROW,
   TEMPLATES_LOCKED_BANNER,
   TEMPLATES_OPTION_GROUP,
 } from "./templatesConstants";
+import TemplatesContentSectionRow from "./TemplatesContentSectionRow";
+import {
+  buildInitialSectionDrafts,
+  countDirtySectionDrafts,
+  findSectionContent,
+} from "./templatesContentEditorUtils";
+
+type SectionSaveError = {
+  sectionId: string;
+  message: string;
+};
 
 type TemplatesContentEditorShellProps = {
   viewModel: TemplateContentEditorViewModel;
+  graph: ProposalTemplateGraph;
+  savingSectionId: string | null;
+  sectionSaveError: SectionSaveError | null;
+  onSaveSection: (args: {
+    sectionId: string;
+    optionId: string;
+    draftBody: string;
+  }) => void;
+  onDirtySectionCountChange: (count: number) => void;
 };
-
-function SectionBodyPreview({ body }: { body: string }) {
-  if (!body.trim()) {
-    return <p className="text-sm italic text-slate-400">No body content yet.</p>;
-  }
-
-  return (
-    <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-700">{body}</p>
-  );
-}
 
 export default function TemplatesContentEditorShell({
   viewModel,
+  graph,
+  savingSectionId,
+  sectionSaveError,
+  onSaveSection,
+  onDirtySectionCountChange,
 }: TemplatesContentEditorShellProps) {
+  const initialDrafts = useMemo(() => buildInitialSectionDrafts(viewModel), [viewModel]);
+  const [draftsBySectionId, setDraftsBySectionId] =
+    useState<Record<string, string>>(initialDrafts);
+
+  useEffect(() => {
+    setDraftsBySectionId(initialDrafts);
+  }, [initialDrafts]);
+
+  const dirtySectionCount = useMemo(
+    () => countDirtySectionDrafts(viewModel, graph, draftsBySectionId),
+    [viewModel, graph, draftsBySectionId]
+  );
+
+  useEffect(() => {
+    onDirtySectionCountChange(dirtySectionCount);
+  }, [dirtySectionCount, onDirtySectionCountChange]);
+
   return (
     <section className={TEMPLATES_CARD} aria-labelledby="templates-content-editor-heading">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -34,22 +66,30 @@ export default function TemplatesContentEditorShell({
             Template content
           </h2>
           <p className="mt-1 text-sm text-slate-600">
-            Reusable prose by package option — text, terms, and warranty sections for{" "}
+            Reusable master prose by package option — text, terms, and warranty for{" "}
             <span className="font-medium text-slate-800">{viewModel.templateName}</span>.
           </p>
         </div>
-        <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-semibold text-slate-600 ring-1 ring-slate-200">
-          Read-only
+        <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-800 ring-1 ring-emerald-200">
+          Editable
         </span>
       </div>
 
       <div className={TEMPLATES_LOCKED_BANNER} role="status">
-        <p className="text-sm font-medium text-slate-800">Editing locked until R6</p>
+        <p className="text-sm font-medium text-slate-800">Master template content</p>
         <p className="mt-1 text-xs leading-relaxed text-slate-600">
-          Editing and save wiring comes in R6. Each package option keeps its own Terms, Warranty,
-          and overview sections — there is no shared bulk field across Standard, Enhanced, or Premium.
+          Changes save to this company template and apply to future proposal drafts created from it.
+          Existing job proposal pages are not changed. Each package option has its own sections — save
+          one section at a time. Template structure and estimate settings come in a later stage.
         </p>
       </div>
+
+      {dirtySectionCount > 0 ? (
+        <p className="mt-3 text-xs text-amber-800" role="status">
+          {dirtySectionCount} section{dirtySectionCount === 1 ? "" : "s"} with unsaved changes.
+          Save or revert before switching templates.
+        </p>
+      ) : null}
 
       {viewModel.optionGroups.length === 0 ? (
         <p className="mt-4 text-sm text-slate-500">
@@ -69,28 +109,31 @@ export default function TemplatesContentEditorShell({
 
               <ul className="divide-y divide-slate-100">
                 {group.sections.map((section) => (
-                  <li key={section.sectionId} className={TEMPLATES_CONTENT_SECTION_ROW}>
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold text-slate-900">{section.displayTitle}</p>
-                        <p className="mt-0.5 text-xs text-slate-500">{section.name}</p>
-                      </div>
-                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600 ring-1 ring-slate-200">
-                        {proposalTemplateSectionKindLabel(section.kind)}
-                      </span>
-                    </div>
-
-                    <div
-                      className="mt-3 rounded-md border border-slate-200 bg-slate-50/70 px-3 py-3"
-                      aria-readonly="true"
-                    >
-                      <SectionBodyPreview body={section.bodyMarkdown} />
-                    </div>
-
-                    <p className="mt-2 text-[11px] text-slate-400">
-                      Locked preview — changes will not persist on this page.
-                    </p>
-                  </li>
+                  <TemplatesContentSectionRow
+                    key={section.sectionId}
+                    section={section}
+                    existingContent={findSectionContent(graph, section.sectionId)}
+                    draftBody={draftsBySectionId[section.sectionId] ?? section.bodyMarkdown}
+                    onDraftChange={(nextBody) =>
+                      setDraftsBySectionId((current) => ({
+                        ...current,
+                        [section.sectionId]: nextBody,
+                      }))
+                    }
+                    onSave={() =>
+                      onSaveSection({
+                        sectionId: section.sectionId,
+                        optionId: section.optionId,
+                        draftBody: draftsBySectionId[section.sectionId] ?? section.bodyMarkdown,
+                      })
+                    }
+                    isSaving={savingSectionId === section.sectionId}
+                    saveError={
+                      sectionSaveError?.sectionId === section.sectionId
+                        ? sectionSaveError.message
+                        : null
+                    }
+                  />
                 ))}
               </ul>
             </div>

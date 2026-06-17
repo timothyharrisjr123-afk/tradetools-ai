@@ -74,8 +74,8 @@ export default function TemplatesSelectedTemplatePanel({
       </dl>
 
       <p className="mt-3 text-xs text-slate-500">
-        Template structure and estimate settings will expand here in a later stage. Content editing
-        unlocks in R6.
+        Master template content below saves per section and applies to future proposal drafts.
+        Template structure and estimate settings expand in a later stage.
       </p>
     </section>
   );

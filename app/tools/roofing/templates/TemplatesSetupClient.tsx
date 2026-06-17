@@ -13,6 +13,7 @@ import { deriveProposalTemplateReadiness } from "@/app/lib/proposalTemplateReadi
 import {
   getProposalTemplateGraph,
   getProposalTemplatesByCompany,
+  updateProposalTemplateSection,
   type ProposalTemplateGraph,
 } from "@/app/lib/proposalTemplateStore";
 import type { ProposalTemplate } from "@/app/lib/proposalTemplateTypes";
@@ -34,8 +35,14 @@ import {
   isTemplateWorkspaceActive,
   resolveDefaultSelectedTemplateId,
 } from "./templatesWorkspaceUtils";
+import { buildSectionContentSavePatch } from "./templatesContentEditorUtils";
 
 const CATALOG_STARTER_DEFINITION_COUNT = DEFAULT_ROOFING_CATALOG_DEFINITIONS.length;
+
+type SectionSaveError = {
+  sectionId: string;
+  message: string;
+};
 
 export default function TemplatesSetupClient({ companyId }: { companyId: string }) {
   const [catalogItems, setCatalogItems] = useState<CatalogItem[]>([]);
@@ -55,6 +62,10 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
     useState<InstallDefaultRoofingProposalTemplatesResult | null>(null);
   const [installMessage, setInstallMessage] = useState<string | null>(null);
   const [installError, setInstallError] = useState<string | null>(null);
+
+  const [savingSectionId, setSavingSectionId] = useState<string | null>(null);
+  const [sectionSaveError, setSectionSaveError] = useState<SectionSaveError | null>(null);
+  const [dirtySectionCount, setDirtySectionCount] = useState(0);
 
   const loadCatalog = useCallback(async () => {
     setCatalogLoading(true);
@@ -146,6 +157,10 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
 
   const handleSelectTemplate = useCallback(
     (templateId: string) => {
+      if (dirtySectionCount > 0 && templateId !== selectedTemplateId) {
+        return;
+      }
+
       void (async () => {
         if (templateId === selectedTemplateId) return;
 
@@ -164,8 +179,82 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
         }
       })();
     },
-    [loadTemplateGraph, selectedTemplateId, starterGraph]
+    [dirtySectionCount, loadTemplateGraph, selectedTemplateId, starterGraph]
   );
+
+  const reloadSelectedGraph = useCallback(
+    async (templateId: string) => {
+      const freshGraph = await getProposalTemplateGraph(templateId, { companyId });
+      setSelectedGraph(freshGraph);
+      setStarterGraph((currentStarterGraph) =>
+        currentStarterGraph?.template.id === templateId ? freshGraph : currentStarterGraph
+      );
+      return freshGraph;
+    },
+    [companyId]
+  );
+
+  const handleSaveSection = useCallback(
+    (args: { sectionId: string; optionId: string; draftBody: string }) => {
+      void (async () => {
+        if (!selectedGraph || !selectedTemplateId || savingSectionId) return;
+
+        const section = selectedGraph.sections.find((row) => row.id === args.sectionId);
+        if (!section) {
+          setSectionSaveError({
+            sectionId: args.sectionId,
+            message: "Could not find the section to save.",
+          });
+          return;
+        }
+
+        setSavingSectionId(args.sectionId);
+        setSectionSaveError(null);
+
+        try {
+          const content = buildSectionContentSavePatch(section.content, args.draftBody);
+          const updated = await updateProposalTemplateSection(
+            args.sectionId,
+            { content },
+            {
+              companyId,
+              templateId: selectedTemplateId,
+              optionId: args.optionId,
+            }
+          );
+
+          if (!updated) {
+            setSectionSaveError({
+              sectionId: args.sectionId,
+              message: "Could not save this section. Try again.",
+            });
+            return;
+          }
+
+          await reloadSelectedGraph(selectedTemplateId);
+        } catch (err) {
+          console.warn("[TemplatesSetupClient] section save error:", err);
+          setSectionSaveError({
+            sectionId: args.sectionId,
+            message: "Save failed unexpectedly.",
+          });
+        } finally {
+          setSavingSectionId(null);
+        }
+      })();
+    },
+    [
+      companyId,
+      reloadSelectedGraph,
+      savingSectionId,
+      selectedGraph,
+      selectedTemplateId,
+    ]
+  );
+
+  const handleDirtySectionCountChange = useCallback((count: number) => {
+    setDirtySectionCount(count);
+  }, []);
 
   const activeItems = useMemo(() => catalogItems.filter((item) => item.active), [catalogItems]);
 
@@ -308,6 +397,8 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
               catalogReady={catalogReady}
               proposalReadiness={proposalReadiness}
               onSelectTemplate={handleSelectTemplate}
+              templateSwitchDisabled={dirtySectionCount > 0}
+              templateSwitchDisabledReason="Save or revert unsaved content changes before switching templates."
             />
 
             {workspaceActive && selectedGraph && contentViewModel ? (
@@ -323,7 +414,14 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
                   graph={selectedGraph}
                   contentViewModel={contentViewModel}
                 />
-                <TemplatesContentEditorShell viewModel={contentViewModel} />
+                <TemplatesContentEditorShell
+                  viewModel={contentViewModel}
+                  graph={selectedGraph}
+                  savingSectionId={savingSectionId}
+                  sectionSaveError={sectionSaveError}
+                  onSaveSection={handleSaveSection}
+                  onDirtySectionCountChange={handleDirtySectionCountChange}
+                />
               </div>
             ) : null}
           </div>

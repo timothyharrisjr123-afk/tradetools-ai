@@ -20,6 +20,8 @@ type TemplatesTemplateLibraryRowProps = {
   onSelect: () => void;
   graph?: ProposalTemplateGraph | null;
   proposalReadiness?: ProposalTemplateReadiness | null;
+  selectDisabled?: boolean;
+  selectDisabledTitle?: string;
 };
 
 export default function TemplatesTemplateLibraryRow({
@@ -28,6 +30,8 @@ export default function TemplatesTemplateLibraryRow({
   onSelect,
   graph = null,
   proposalReadiness = null,
+  selectDisabled = false,
+  selectDisabledTitle,
 }: TemplatesTemplateLibraryRowProps) {
   const statusLabel = proposalTemplateStatusLabel(template.status);
   const rowClass = selected ? TEMPLATES_LIBRARY_ROW_SELECTED : TEMPLATES_LIBRARY_ROW;
@@ -40,7 +44,11 @@ export default function TemplatesTemplateLibraryRow({
         <button
           type="button"
           onClick={onSelect}
-          className="min-w-0 flex-1 text-left"
+          disabled={selectDisabled}
+          title={selectDisabled ? selectDisabledTitle : undefined}
+          className={`min-w-0 flex-1 text-left ${
+            selectDisabled ? "cursor-not-allowed opacity-60" : ""
+          }`}
           aria-pressed={selected}
         >
           <div className="flex flex-wrap items-center gap-2">
