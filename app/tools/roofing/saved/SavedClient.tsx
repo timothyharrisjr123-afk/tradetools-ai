@@ -3932,13 +3932,13 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
     [scheduledView]
   );
 
-  /** Legacy estimates only — revenue, Command Deck queues, funnel metrics. */
+  /** Legacy estimates only — revenue, legacy queue, funnel metrics. */
   const estimateLaneFiltered = useMemo(
     () => filterBoardEntriesByLaneStatus(searchFiltered, statusFilter, laneScheduleOptions),
     [searchFiltered, statusFilter, laneScheduleOptions]
   );
 
-  /** DB jobs only — Pipeline Lane cards, lane counts, kanban columns. */
+  /** DB jobs only — Job Board lane cards, lane counts, kanban columns. */
   const filtered = useMemo(
     () => filterBoardEntriesByLaneStatus(dbBoardSearchFiltered, statusFilter, laneScheduleOptions),
     [dbBoardSearchFiltered, statusFilter, laneScheduleOptions]
@@ -4306,6 +4306,23 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                   filtersActive={boardFiltersActive}
                 />
 
+                <section
+                  aria-labelledby="active-jobs-section-heading"
+                  className="rounded-md border border-slate-200/70 bg-white px-3 py-2.5"
+                >
+                  <h2 id="active-jobs-section-heading" className="text-sm font-semibold text-slate-800">
+                    Active jobs
+                  </h2>
+                  <p className="mt-0.5 text-xs leading-relaxed text-slate-600">
+                    Primary database job records for current work. Open any card in Job Card to continue the job
+                    workflow.
+                  </p>
+                  <p className="mt-1.5 text-[11px] leading-relaxed text-slate-500">
+                    Board stage labels are interim operational lanes — not the future Proposals document hub
+                    (Draft / Sent / Won / Lost).
+                  </p>
+                </section>
+
                 {boardFilterZeroMatch ? (
                   <p className="rounded-md border border-slate-200/80 bg-slate-50 px-3 py-2 text-sm text-slate-600">
                     No jobs match your search or filter.
@@ -4375,7 +4392,8 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                       </span>
                     </div>
                     <p className="mt-1 text-xs leading-relaxed text-slate-600">
-                      Saved from the previous workflow. DB jobs above are the primary records for new work.
+                      Kept for continuity from the prior saved-estimate workflow. DB jobs above are primary — start
+                      new work from Job Card, not legacy saved estimates.
                     </p>
                     {legacySearchFiltered.length === 0 ? (
                       <p className="mt-3 text-sm text-slate-500">No legacy estimates match your search.</p>
@@ -4445,13 +4463,17 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                   <div className="min-w-0">
                     <div className="inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.26em] text-cyan-300/78">
                       <Sparkles className="h-3.5 w-3.5 text-cyan-300" aria-hidden />
-                      Pipeline Lane
+                      Job Board lane
                     </div>
                     <h1 className="mt-2 text-[26px] font-semibold tracking-[-0.035em] text-white sm:text-[32px]">
                       {pageTitle[statusFilter]}
                     </h1>
                     <p className="mt-1 max-w-xl text-sm leading-snug text-white/55">
                       {pageSubtitle[statusFilter]}
+                    </p>
+                    <p className="mt-2 max-w-xl text-xs leading-snug text-white/40">
+                      Interim operational stage view — DB jobs open in Job Card. Proposal document lifecycle lists
+                      belong to the future Proposals hub, not this board lane.
                     </p>
                   </div>
 
@@ -4474,12 +4496,12 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                     />
 
                     <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 lg:justify-end">
-                      <span className="mr-1 text-[11px] font-medium text-white/42">Quick filters:</span>
+                      <span className="mr-1 text-[11px] font-medium text-white/42">Board stages:</span>
                       {[
                         ["all", "Overview"],
-                        ["estimate", "Draft"],
+                        ["estimate", "New lead"],
                         ["sent_pending", "Sent"],
-                        ["approved", "Approved"],
+                        ["approved", "Signed"],
                         ["deposit_paid", "Ready to schedule"],
                         ["scheduled", "Scheduled"],
                         ["in_progress", "On site"],
@@ -4527,11 +4549,13 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
             })()}
           </div>
         </div>
-        {/* Pipeline Lane Overview bar — filtered lanes */}
+        {/* Job Board lane overview — filtered operational stages */}
         {hydrated && (
           <div className="flex items-center gap-4 rounded-2xl border border-white/[0.07] bg-white/[0.03] px-5 py-3.5">
             <div className="min-w-0 flex-1">
-              <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/35">Jobs in this lane</div>
+              <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/35">
+                DB jobs in this lane
+              </div>
               <div className="mt-0.5 text-lg font-bold tabular-nums text-white">{filtered.length}</div>
             </div>
             {statusFilter === "scheduled" && (
@@ -4594,7 +4618,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
           </p>
         ) : null}
 
-        {/* ── Command Deck — single composed surface (Queue + Assistant) — filtered lanes only ── */}
+        {/* ── Legacy saved-estimate queue — secondary to primary Job Board (filtered lanes only) ── */}
         {hydrated && (() => {
           const lanes = [
             {
@@ -4690,7 +4714,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
 
           return (
             <section
-              aria-label="Command deck"
+              aria-label="Legacy saved-estimate queue"
               className="relative overflow-hidden rounded-[26px] border border-cyan-400/10 bg-[radial-gradient(ellipse_120%_90%_at_50%_-8%,rgba(18,40,72,0.52)_0%,rgba(7,16,30,0.96)_48%,rgba(4,9,18,1)_100%)] shadow-[0_28px_72px_-28px_rgba(0,0,0,0.48)] ring-1 ring-cyan-400/[0.07]"
             >
               <div className="pointer-events-none absolute -left-24 top-1/3 h-[420px] w-[420px] rounded-full bg-cyan-500/[0.05] blur-[110px]" aria-hidden />
@@ -4704,10 +4728,14 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                     <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)]" aria-hidden />
                   </div>
                   <div className="min-w-0">
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-cyan-400/70">Command Deck</div>
-                    <div className="mt-0.5 text-[15px] font-semibold text-white">Prepared by FieldDive · ready for confirmation</div>
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-cyan-400/70">
+                      Legacy saved-estimate queue
+                    </div>
+                    <div className="mt-0.5 text-[15px] font-semibold text-white">
+                      Follow-ups from prior saved estimates
+                    </div>
                     <div className="mt-0.5 text-[11px] font-normal text-white/40">
-                      Legacy saved estimates only — DB jobs use Job Card.
+                      Secondary to the Job Board — DB jobs above open in Job Card, not here.
                     </div>
                   </div>
                 </div>
@@ -4717,7 +4745,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                     Live
                   </span>
                   <span className="rounded-full border border-white/[0.08] bg-white/[0.03] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-white/45">
-                    AI Work Queue
+                    Legacy queue
                   </span>
                 </div>
               </div>
@@ -4836,11 +4864,13 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-indigo-300/75">
                           <span className="inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)]" aria-hidden />
-                          Command Reviewer
+                          Legacy lane insights
                         </div>
-                        <div className="mt-1 text-[15px] font-semibold text-white">Reviewing your pipeline now</div>
+                        <div className="mt-1 text-[15px] font-semibold text-white">
+                          Saved-estimate follow-ups in this stage
+                        </div>
                         <div className="mt-0.5 text-[12px] leading-snug text-white/50">
-                          Tracking revenue movement, contractor approvals, and bottlenecks behind the queue.
+                          Legacy metrics only — not the primary Job Board or future Proposals hub.
                         </div>
                       </div>
                     </div>
@@ -5182,8 +5212,12 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
           {hydrated && statusFilter !== "scheduled" && (
             <div className="flex items-center gap-4 pb-1">
               <div className="min-w-0">
-                <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-white/30">Jobs in this lane</div>
-                <div className="mt-0.5 text-sm font-semibold text-white/70">{filtered.length} job{filtered.length !== 1 ? "s" : ""} · FieldDive reviewed</div>
+                <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-white/30">
+                  DB jobs in this lane
+                </div>
+                <div className="mt-0.5 text-sm font-semibold text-white/70">
+                  {filtered.length} job{filtered.length !== 1 ? "s" : ""} · open in Job Card
+                </div>
               </div>
               <div className="h-px flex-1 bg-white/[0.06]" />
             </div>

@@ -33,7 +33,7 @@ export default function JobsBoardHeader({
   onUpdatedOnOrAfterChange,
   filtersActive,
 }: JobsBoardHeaderProps) {
-  const countLabel = `${jobCount} job${jobCount === 1 ? "" : "s"} in pipeline`;
+  const countLabel = `${jobCount} active job${jobCount === 1 ? "" : "s"}`;
 
   return (
     <div className="space-y-3">
@@ -41,6 +41,10 @@ export default function JobsBoardHeader({
         <div className="min-w-0">
           <h1 className="text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">Job Board</h1>
           <p className="mt-0.5 text-sm text-slate-500">{countLabel}</p>
+          <p className="mt-1 max-w-xl text-xs leading-relaxed text-slate-500">
+            Operational job pipeline — primary DB records open in Job Card. Legacy saved estimates stay in the
+            section below.
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2 sm:justify-end">
           <div className="relative w-full min-w-[200px] sm:w-72">
