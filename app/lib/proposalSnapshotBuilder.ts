@@ -20,7 +20,12 @@ import type {
   LinePricingStatus,
   PricingPolicy,
 } from "@/app/lib/proposalPricingTypes";
+import {
+  DEFAULT_ESTIMATE_PAGE_SETTINGS,
+  resolveEstimatePageSettingsForOption,
+} from "@/app/lib/proposalTemplateEstimateSettings";
 import type {
+  ProposalTemplate,
   ProposalTemplateItem,
   ProposalTemplateItemRole,
   ProposalTemplateOption,
@@ -165,6 +170,8 @@ export type MapTemplateSectionsToProposalPagesInput = {
   sections: readonly ProposalTemplateSection[];
   /** When set, only sections for this template option become pages. */
   spineOptionId?: string | null;
+  /** Template row for estimate display settings metadata (R10c). */
+  template?: ProposalTemplate | null;
 };
 
 export type PreviewGuardrailState = GuardrailOutcome | "checking" | "loading";
@@ -244,6 +251,8 @@ export type DraftInstantiateInput = {
   policy: BuildPolicyEchoInput;
   templateOptions: readonly ProposalTemplateOption[];
   templateSections: readonly ProposalTemplateSection[];
+  /** Template row for estimate display settings on instantiate (R10c). */
+  template?: ProposalTemplate | null;
   optionPricing: readonly OptionPricingSnapshotInput[];
   lineItemsByTemplateOptionId: Readonly<Record<string, readonly LineItemSnapshotInput[]>>;
   internalSummaryByTemplateOptionId: Readonly<
@@ -330,6 +339,26 @@ function sectionVisibleToCustomer(section: ProposalTemplateSection, pageType: Pr
     return false;
   }
   return true;
+}
+
+function resolveEstimatePageSettingsForMapping(
+  template: ProposalTemplate | null | undefined,
+  sections: readonly ProposalTemplateSection[],
+  optionId: string
+): ProposalPageSettings {
+  if (!template) {
+    return { ...DEFAULT_ESTIMATE_PAGE_SETTINGS };
+  }
+
+  return resolveEstimatePageSettingsForOption(
+    {
+      template,
+      options: [],
+      sections: [...sections],
+      items: [],
+    },
+    optionId
+  );
 }
 
 function buildPageContent(section: ProposalTemplateSection): ProposalPageContent {
@@ -436,6 +465,15 @@ export function mapTemplateSectionsToProposalPages(
   return sections.map((section, index) => {
     const pageType = mapSectionKindToPageType(section)!;
     const title = (section.name ?? "").trim() || formatProposalPageTypeLabel(pageType);
+    const settings_json =
+      pageType === "estimate"
+        ? resolveEstimatePageSettingsForMapping(
+            input.template,
+            input.sections,
+            section.option_id
+          )
+        : {};
+
     return {
       company_id: input.company_id,
       proposal_version_id: input.proposal_version_id ?? null,
@@ -446,7 +484,7 @@ export function mapTemplateSectionsToProposalPages(
       visible_to_customer: sectionVisibleToCustomer(section, pageType),
       source_template_section_id: section.id,
       content_json: buildPageContent(section),
-      settings_json: {},
+      settings_json,
     };
   });
 }
@@ -607,6 +645,7 @@ export function buildDraftInstantiatePayload(input: DraftInstantiateInput): Draf
     proposal_version_id: input.proposal_version_id ?? null,
     sections: input.templateSections,
     spineOptionId,
+    template: input.template ?? null,
   });
 
   const selectedTemplateOptionId =

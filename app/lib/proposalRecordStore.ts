@@ -539,6 +539,7 @@ export function buildDraftInstantiateInputFromPreview(params: {
     },
     templateOptions: params.graph.options,
     templateSections: params.graph.sections,
+    template: params.graph.template,
     optionPricing,
     lineItemsByTemplateOptionId,
     internalSummaryByTemplateOptionId,

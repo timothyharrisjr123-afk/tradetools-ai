@@ -30,7 +30,12 @@ import {
   DEFAULT_WASTE_MODEL,
   type PricingPolicy,
 } from "./proposalPricingTypes";
+import {
+  DEFAULT_ESTIMATE_PAGE_SETTINGS,
+  ESTIMATE_PAGE_SETTINGS_METADATA_KEY,
+} from "./proposalTemplateEstimateSettings";
 import type {
+  ProposalTemplate,
   ProposalTemplateItem,
   ProposalTemplateOption,
   ProposalTemplateSection,
@@ -77,6 +82,18 @@ function templateOption(id: string, isDefault = false): ProposalTemplateOption {
     is_default: isDefault,
     visible_to_customer: true,
     sort_order: 0,
+  };
+}
+
+function templateRow(overrides: Partial<ProposalTemplate> = {}): ProposalTemplate {
+  return {
+    id: TEMPLATE_ID,
+    company_id: COMPANY_ID,
+    name: "Starter",
+    status: "active",
+    active: true,
+    metadata: {},
+    ...overrides,
   };
 }
 
@@ -255,6 +272,204 @@ describe("mapTemplateSectionsToProposalPages", () => {
     });
     assert.equal(pages.length, 1);
     assert.equal(pages[0]!.page_type, "estimate");
+  });
+
+  test("estimate page gets default settings when template metadata is absent", () => {
+    const pages = mapTemplateSectionsToProposalPages({
+      ...base,
+      template: templateRow(),
+      sections: [
+        section({
+          id: "sec-est",
+          option_id: "opt-1",
+          kind: "line_items",
+          name: "Estimate",
+        }),
+      ],
+    });
+
+    assert.deepEqual(pages[0]!.settings_json, { ...DEFAULT_ESTIMATE_PAGE_SETTINGS });
+  });
+
+  test("estimate page inherits template metadata estimate settings", () => {
+    const pages = mapTemplateSectionsToProposalPages({
+      ...base,
+      template: templateRow({
+        metadata: {
+          [ESTIMATE_PAGE_SETTINGS_METADATA_KEY]: {
+            show_line_prices: false,
+            show_option_totals: true,
+            show_section_headings: false,
+          },
+        },
+      }),
+      sections: [
+        section({
+          id: "sec-est",
+          option_id: "opt-1",
+          kind: "line_items",
+          name: "Estimate",
+        }),
+      ],
+    });
+
+    assert.deepEqual(pages[0]!.settings_json, {
+      show_line_prices: false,
+      show_option_totals: true,
+      show_section_headings: false,
+    });
+  });
+
+  test("line_items section metadata overrides template defaults on estimate page", () => {
+    const pages = mapTemplateSectionsToProposalPages({
+      ...base,
+      template: templateRow({
+        metadata: {
+          [ESTIMATE_PAGE_SETTINGS_METADATA_KEY]: {
+            show_line_prices: true,
+            show_option_totals: true,
+            show_section_headings: true,
+          },
+        },
+      }),
+      sections: [
+        section({
+          id: "sec-est",
+          option_id: "opt-1",
+          kind: "line_items",
+          name: "Estimate",
+          metadata: {
+            [ESTIMATE_PAGE_SETTINGS_METADATA_KEY]: {
+              show_line_prices: false,
+              show_section_headings: false,
+            },
+          },
+        }),
+      ],
+    });
+
+    assert.deepEqual(pages[0]!.settings_json, {
+      show_line_prices: false,
+      show_option_totals: true,
+      show_section_headings: false,
+    });
+  });
+
+  test("per-option estimate settings stay isolated by option_id", () => {
+    const pagesStandard = mapTemplateSectionsToProposalPages({
+      ...base,
+      spineOptionId: "opt-standard",
+      template: templateRow(),
+      sections: [
+        section({
+          id: "sec-est-standard",
+          option_id: "opt-standard",
+          kind: "line_items",
+          name: "Standard estimate",
+          metadata: {
+            [ESTIMATE_PAGE_SETTINGS_METADATA_KEY]: { show_line_prices: false },
+          },
+        }),
+        section({
+          id: "sec-est-premium",
+          option_id: "opt-premium",
+          kind: "line_items",
+          name: "Premium estimate",
+          metadata: {
+            [ESTIMATE_PAGE_SETTINGS_METADATA_KEY]: { show_option_totals: false },
+          },
+        }),
+      ],
+    });
+
+    const pagesPremium = mapTemplateSectionsToProposalPages({
+      ...base,
+      spineOptionId: "opt-premium",
+      template: templateRow(),
+      sections: [
+        section({
+          id: "sec-est-standard",
+          option_id: "opt-standard",
+          kind: "line_items",
+          name: "Standard estimate",
+          metadata: {
+            [ESTIMATE_PAGE_SETTINGS_METADATA_KEY]: { show_line_prices: false },
+          },
+        }),
+        section({
+          id: "sec-est-premium",
+          option_id: "opt-premium",
+          kind: "line_items",
+          name: "Premium estimate",
+          metadata: {
+            [ESTIMATE_PAGE_SETTINGS_METADATA_KEY]: { show_option_totals: false },
+          },
+        }),
+      ],
+    });
+
+    assert.equal(pagesStandard[0]!.settings_json.show_line_prices, false);
+    assert.equal(pagesStandard[0]!.settings_json.show_option_totals, true);
+    assert.equal(pagesPremium[0]!.settings_json.show_option_totals, false);
+    assert.equal(pagesPremium[0]!.settings_json.show_line_prices, true);
+  });
+
+  test("non-estimate pages do not receive estimate display settings", () => {
+    const pages = mapTemplateSectionsToProposalPages({
+      ...base,
+      template: templateRow({
+        metadata: {
+          [ESTIMATE_PAGE_SETTINGS_METADATA_KEY]: { show_line_prices: false },
+        },
+      }),
+      sections: [
+        section({
+          id: "sec-est",
+          option_id: "opt-1",
+          kind: "line_items",
+          name: "Estimate",
+        }),
+        section({
+          id: "sec-terms",
+          option_id: "opt-1",
+          kind: "terms",
+          name: "Terms",
+          content: { body_markdown: "Terms body" },
+        }),
+      ],
+    });
+
+    assert.deepEqual(pages.find((page) => page.page_type === "estimate")!.settings_json, {
+      show_line_prices: false,
+      show_option_totals: true,
+      show_section_headings: true,
+    });
+    assert.deepEqual(pages.find((page) => page.page_type === "terms")!.settings_json, {});
+    assert.equal(
+      pages.find((page) => page.page_type === "terms")!.content_json.body_markdown,
+      "Terms body"
+    );
+  });
+
+  test("does not mutate input sections array", () => {
+    const sections = [
+      section({
+        id: "sec-est",
+        option_id: "opt-1",
+        kind: "line_items",
+        name: "Estimate",
+        metadata: { keep: true },
+      }),
+    ];
+    const snapshot = JSON.stringify(sections);
+
+    mapTemplateSectionsToProposalPages({
+      ...base,
+      template: templateRow(),
+      sections,
+    });
+
+    assert.equal(JSON.stringify(sections), snapshot);
   });
 });
 
@@ -580,6 +795,9 @@ describe("buildDraftInstantiatePayload", () => {
           kind: "line_items",
           name: "Estimate",
           sort_order: 0,
+          metadata: {
+            [ESTIMATE_PAGE_SETTINGS_METADATA_KEY]: { show_line_prices: false },
+          },
         }),
         section({
           id: "sec-terms",
@@ -589,6 +807,7 @@ describe("buildDraftInstantiatePayload", () => {
           sort_order: 1,
         }),
       ],
+      template: templateRow(),
       optionPricing: [
         {
           source_template_option_id: "opt-1",
@@ -643,6 +862,17 @@ describe("buildDraftInstantiatePayload", () => {
     assert.equal(payload.internalSummaries.length, 1);
     assert.equal(payload.selectedTemplateOptionId, "opt-1");
     assert.equal(payload.events[0]!.event_type, "created");
+
+    const estimatePage = payload.pages.find((page) => page.page_type === "estimate");
+    assert.deepEqual(estimatePage?.settings_json, {
+      show_line_prices: false,
+      show_option_totals: true,
+      show_section_headings: true,
+    });
+    assert.deepEqual(
+      payload.pages.find((page) => page.page_type === "terms")?.settings_json,
+      {}
+    );
   });
 });
 
