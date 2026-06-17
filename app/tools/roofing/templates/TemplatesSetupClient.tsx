@@ -13,13 +13,25 @@ import { deriveProposalTemplateReadiness } from "@/app/lib/proposalTemplateReadi
 import {
   getProposalTemplateGraph,
   getProposalTemplatesByCompany,
+  createProposalTemplateSection,
+  updateProposalTemplate,
   updateProposalTemplateSection,
   type ProposalTemplateGraph,
 } from "@/app/lib/proposalTemplateStore";
-import type { ProposalTemplate } from "@/app/lib/proposalTemplateTypes";
+import type { ProposalTemplate, ProposalTemplateSectionKind } from "@/app/lib/proposalTemplateTypes";
+import type { ProposalPageSettings } from "@/app/lib/proposalPageTypes";
+import {
+  buildLineItemsSectionEstimateSettingsPatch,
+  buildTemplateEstimateSettingsPatch,
+} from "@/app/lib/proposalTemplateEstimateSettings";
+import {
+  planAddSection,
+  planReorderSections,
+} from "@/app/lib/proposalTemplateStructureMutations";
 import TemplatesBuilderFootnote from "./TemplatesBuilderFootnote";
 import TemplatesCatalogPrerequisite from "./TemplatesCatalogPrerequisite";
 import TemplatesContentEditorShell from "./TemplatesContentEditorShell";
+import TemplatesStructureSettingsShell from "./TemplatesStructureSettingsShell";
 import TemplatesLibrarySection from "./TemplatesLibrarySection";
 import TemplatesOnboardingZone from "./TemplatesOnboardingZone";
 import TemplatesPageAlerts from "./TemplatesPageAlerts";
@@ -36,6 +48,11 @@ import {
   resolveDefaultSelectedTemplateId,
 } from "./templatesWorkspaceUtils";
 import { buildSectionContentSavePatch } from "./templatesContentEditorUtils";
+import {
+  buildWorkspaceStructureViewModel,
+  computeReorderedSectionIds,
+  getOrderedSectionIdsForOption,
+} from "./templatesStructureEditorUtils";
 
 const CATALOG_STARTER_DEFINITION_COUNT = DEFAULT_ROOFING_CATALOG_DEFINITIONS.length;
 
@@ -43,6 +60,13 @@ type SectionSaveError = {
   sectionId: string;
   message: string;
 };
+
+type StructureSettingsBusy =
+  | { kind: "add"; optionId: string; sectionKind: ProposalTemplateSectionKind }
+  | { kind: "move"; sectionId: string }
+  | { kind: "settings-template" }
+  | { kind: "settings-option"; optionId: string }
+  | null;
 
 export default function TemplatesSetupClient({ companyId }: { companyId: string }) {
   const [catalogItems, setCatalogItems] = useState<CatalogItem[]>([]);
@@ -66,6 +90,9 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
   const [savingSectionId, setSavingSectionId] = useState<string | null>(null);
   const [sectionSaveError, setSectionSaveError] = useState<SectionSaveError | null>(null);
   const [dirtySectionCount, setDirtySectionCount] = useState(0);
+
+  const [structureBusy, setStructureBusy] = useState<StructureSettingsBusy>(null);
+  const [structureError, setStructureError] = useState<string | null>(null);
 
   const loadCatalog = useCallback(async () => {
     setCatalogLoading(true);
@@ -256,6 +283,216 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
     setDirtySectionCount(count);
   }, []);
 
+  const handleAddSection = useCallback(
+    (optionId: string, kind: ProposalTemplateSectionKind) => {
+      void (async () => {
+        if (!selectedGraph || !selectedTemplateId || structureBusy || savingSectionId) return;
+
+        const plan = planAddSection({ graph: selectedGraph, optionId, kind });
+        if (plan.status === "blocked") {
+          setStructureError(plan.reason);
+          return;
+        }
+
+        setStructureBusy({ kind: "add", optionId, sectionKind: kind });
+        setStructureError(null);
+
+        try {
+          const created = await createProposalTemplateSection(plan.draft, {
+            companyId,
+            templateId: selectedTemplateId,
+            optionId,
+          });
+
+          if (!created) {
+            setStructureError("Could not add this section. Try again.");
+            return;
+          }
+
+          await reloadSelectedGraph(selectedTemplateId);
+        } catch (err) {
+          console.warn("[TemplatesSetupClient] add section error:", err);
+          setStructureError("Add section failed unexpectedly.");
+        } finally {
+          setStructureBusy(null);
+        }
+      })();
+    },
+    [
+      companyId,
+      reloadSelectedGraph,
+      savingSectionId,
+      selectedGraph,
+      selectedTemplateId,
+      structureBusy,
+    ]
+  );
+
+  const handleMoveSection = useCallback(
+    (optionId: string, sectionId: string, direction: "up" | "down") => {
+      void (async () => {
+        if (!selectedGraph || !selectedTemplateId || structureBusy || savingSectionId) {
+          return;
+        }
+
+        const viewModel = buildWorkspaceStructureViewModel(selectedGraph);
+        if (!viewModel) return;
+
+        const orderedIds = getOrderedSectionIdsForOption(viewModel, optionId);
+        const nextOrder = computeReorderedSectionIds(orderedIds, sectionId, direction);
+        if (!nextOrder) return;
+
+        const plan = planReorderSections({
+          graph: selectedGraph,
+          optionId,
+          orderedSectionIds: nextOrder,
+        });
+
+        if (plan.status === "blocked") {
+          setStructureError(plan.reason);
+          return;
+        }
+
+        setStructureBusy({ kind: "move", sectionId });
+        setStructureError(null);
+
+        try {
+          const results = await Promise.all(
+            plan.patches.map((patch) =>
+              updateProposalTemplateSection(
+                patch.sectionId,
+                { sort_order: patch.sort_order },
+                {
+                  companyId,
+                  templateId: selectedTemplateId,
+                  optionId,
+                }
+              )
+            )
+          );
+
+          if (results.some((row) => !row)) {
+            setStructureError("Could not reorder sections. Try again.");
+            return;
+          }
+
+          await reloadSelectedGraph(selectedTemplateId);
+        } catch (err) {
+          console.warn("[TemplatesSetupClient] reorder section error:", err);
+          setStructureError("Reorder failed unexpectedly.");
+        } finally {
+          setStructureBusy(null);
+        }
+      })();
+    },
+    [
+      companyId,
+      reloadSelectedGraph,
+      savingSectionId,
+      selectedGraph,
+      selectedTemplateId,
+      structureBusy,
+    ]
+  );
+
+  const handleSaveTemplateEstimateSettings = useCallback(
+    (patch: Partial<ProposalPageSettings>) => {
+      void (async () => {
+        if (!selectedGraph || !selectedTemplateId || structureBusy || savingSectionId) return;
+
+        setStructureBusy({ kind: "settings-template" });
+        setStructureError(null);
+
+        try {
+          const metadata = buildTemplateEstimateSettingsPatch(selectedGraph.template, patch);
+          const updated = await updateProposalTemplate(
+            selectedTemplateId,
+            { metadata },
+            { companyId }
+          );
+
+          if (!updated) {
+            setStructureError("Could not save template estimate settings. Try again.");
+            return;
+          }
+
+          await reloadSelectedGraph(selectedTemplateId);
+        } catch (err) {
+          console.warn("[TemplatesSetupClient] template settings save error:", err);
+          setStructureError("Settings save failed unexpectedly.");
+        } finally {
+          setStructureBusy(null);
+        }
+      })();
+    },
+    [
+      companyId,
+      reloadSelectedGraph,
+      savingSectionId,
+      selectedGraph,
+      selectedTemplateId,
+      structureBusy,
+    ]
+  );
+
+  const handleSaveOptionEstimateSettings = useCallback(
+    (optionId: string, patch: Partial<ProposalPageSettings>) => {
+      void (async () => {
+        if (!selectedGraph || !selectedTemplateId || structureBusy || savingSectionId) return;
+
+        const lineItemsSection = selectedGraph.sections.find(
+          (section) => section.option_id === optionId && section.kind === "line_items"
+        );
+
+        if (!lineItemsSection) {
+          setStructureError("No estimate section found for this package option.");
+          return;
+        }
+
+        const metadata = buildLineItemsSectionEstimateSettingsPatch(lineItemsSection, patch);
+        if (!metadata) {
+          setStructureError("Could not build estimate settings for this option.");
+          return;
+        }
+
+        setStructureBusy({ kind: "settings-option", optionId });
+        setStructureError(null);
+
+        try {
+          const updated = await updateProposalTemplateSection(
+            lineItemsSection.id,
+            { metadata },
+            {
+              companyId,
+              templateId: selectedTemplateId,
+              optionId,
+            }
+          );
+
+          if (!updated) {
+            setStructureError("Could not save option estimate settings. Try again.");
+            return;
+          }
+
+          await reloadSelectedGraph(selectedTemplateId);
+        } catch (err) {
+          console.warn("[TemplatesSetupClient] option settings save error:", err);
+          setStructureError("Settings save failed unexpectedly.");
+        } finally {
+          setStructureBusy(null);
+        }
+      })();
+    },
+    [
+      companyId,
+      reloadSelectedGraph,
+      savingSectionId,
+      selectedGraph,
+      selectedTemplateId,
+      structureBusy,
+    ]
+  );
+
   const activeItems = useMemo(() => catalogItems.filter((item) => item.active), [catalogItems]);
 
   const catalogReadiness = useMemo(
@@ -270,6 +507,10 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
   const workspaceActive = isTemplateWorkspaceActive(companyTemplates, selectedGraph);
   const contentViewModel = useMemo(
     () => buildWorkspaceContentViewModel(selectedGraph),
+    [selectedGraph]
+  );
+  const structureViewModel = useMemo(
+    () => buildWorkspaceStructureViewModel(selectedGraph),
     [selectedGraph]
   );
 
@@ -401,12 +642,13 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
               templateSwitchDisabledReason="Save or revert unsaved content changes before switching templates."
             />
 
-            {workspaceActive && selectedGraph && contentViewModel ? (
+            {workspaceActive && selectedGraph && contentViewModel && structureViewModel ? (
               <div className={`${TEMPLATES_WORKSPACE_ZONE} space-y-6 p-5`}>
                 <div>
                   <h2 className="text-sm font-semibold text-slate-900">Template workspace</h2>
                   <p className="mt-1 text-xs text-slate-500">
-                    Review selected template context and master content by package option.
+                    Review selected template context, structure, estimate settings, and master
+                    content by package option.
                   </p>
                 </div>
 
@@ -414,11 +656,23 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
                   graph={selectedGraph}
                   contentViewModel={contentViewModel}
                 />
+                <TemplatesStructureSettingsShell
+                  graph={selectedGraph}
+                  viewModel={structureViewModel}
+                  structureBusy={structureBusy}
+                  structureError={structureError}
+                  contentSaveBlocked={savingSectionId != null}
+                  onAddSection={handleAddSection}
+                  onMoveSection={handleMoveSection}
+                  onSaveTemplateEstimateSettings={handleSaveTemplateEstimateSettings}
+                  onSaveOptionEstimateSettings={handleSaveOptionEstimateSettings}
+                />
                 <TemplatesContentEditorShell
                   viewModel={contentViewModel}
                   graph={selectedGraph}
                   savingSectionId={savingSectionId}
                   sectionSaveError={sectionSaveError}
+                  contentSaveBlocked={structureBusy != null}
                   onSaveSection={handleSaveSection}
                   onDirtySectionCountChange={handleDirtySectionCountChange}
                 />

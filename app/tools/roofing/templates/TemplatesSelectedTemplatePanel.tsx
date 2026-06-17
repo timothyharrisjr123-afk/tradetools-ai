@@ -74,8 +74,8 @@ export default function TemplatesSelectedTemplatePanel({
       </dl>
 
       <p className="mt-3 text-xs text-slate-500">
-        Master template content below saves per section and applies to future proposal drafts.
-        Template structure and estimate settings expand in a later stage.
+        Master template content and structure below save per section or option and apply to future
+        proposal drafts. Existing job proposals are not changed.
       </p>
     </section>
   );

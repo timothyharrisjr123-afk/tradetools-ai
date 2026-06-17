@@ -25,6 +25,7 @@ type TemplatesContentEditorShellProps = {
   graph: ProposalTemplateGraph;
   savingSectionId: string | null;
   sectionSaveError: SectionSaveError | null;
+  contentSaveBlocked?: boolean;
   onSaveSection: (args: {
     sectionId: string;
     optionId: string;
@@ -38,6 +39,7 @@ export default function TemplatesContentEditorShell({
   graph,
   savingSectionId,
   sectionSaveError,
+  contentSaveBlocked = false,
   onSaveSection,
   onDirtySectionCountChange,
 }: TemplatesContentEditorShellProps) {
@@ -79,10 +81,16 @@ export default function TemplatesContentEditorShell({
         <p className="text-sm font-medium text-slate-800">Master template content</p>
         <p className="mt-1 text-xs leading-relaxed text-slate-600">
           Changes save to this company template and apply to future proposal drafts created from it.
-          Existing job proposal pages are not changed. Each package option has its own sections — save
-          one section at a time. Template structure and estimate settings come in a later stage.
+          Existing job proposal pages are not changed. Each package option has its own sections —
+          save one section at a time. Structure and estimate settings are configured above.
         </p>
       </div>
+
+      {contentSaveBlocked ? (
+        <p className="mt-3 text-xs text-amber-800" role="status">
+          Content save is paused while structure or settings are saving.
+        </p>
+      ) : null}
 
       {dirtySectionCount > 0 ? (
         <p className="mt-3 text-xs text-amber-800" role="status">
@@ -128,6 +136,7 @@ export default function TemplatesContentEditorShell({
                       })
                     }
                     isSaving={savingSectionId === section.sectionId}
+                    saveDisabled={contentSaveBlocked}
                     saveError={
                       sectionSaveError?.sectionId === section.sectionId
                         ? sectionSaveError.message

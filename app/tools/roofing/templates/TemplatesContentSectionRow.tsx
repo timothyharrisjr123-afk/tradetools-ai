@@ -13,6 +13,7 @@ type TemplatesContentSectionRowProps = {
   onDraftChange: (nextBody: string) => void;
   onSave: () => void;
   isSaving: boolean;
+  saveDisabled?: boolean;
   saveError?: string | null;
 };
 
@@ -23,6 +24,7 @@ export default function TemplatesContentSectionRow({
   onDraftChange,
   onSave,
   isSaving,
+  saveDisabled = false,
   saveError,
 }: TemplatesContentSectionRowProps) {
   const isDirty = isSectionBodyDraftDirty(
@@ -30,7 +32,7 @@ export default function TemplatesContentSectionRow({
     section.bodyMarkdown,
     draftBody
   );
-  const saveDisabled = !isDirty || isSaving;
+  const saveButtonDisabled = !isDirty || isSaving || saveDisabled;
 
   return (
     <li className={TEMPLATES_CONTENT_SECTION_ROW}>
@@ -66,9 +68,9 @@ export default function TemplatesContentSectionRow({
         <button
           type="button"
           onClick={onSave}
-          disabled={saveDisabled}
+          disabled={saveButtonDisabled}
           className={`rounded-md px-3 py-1.5 text-sm font-semibold shadow-sm ${
-            saveDisabled
+            saveButtonDisabled
               ? "cursor-not-allowed border border-slate-200 bg-slate-50 text-slate-400"
               : "bg-slate-900 text-white hover:bg-slate-800"
           }`}
