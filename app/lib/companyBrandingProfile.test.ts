@@ -16,6 +16,7 @@ import {
   deriveCompanyBrandingPersistenceCapability,
   deriveCompanyBrandingReadiness,
   mapCompanyBrandingToProposalContextEcho,
+  mergeCompanyBrandingProfile,
   normalizeBrandColorHex,
   normalizeCompanyBrandingProfile,
   normalizeShowLicenseOnCover,
@@ -188,7 +189,7 @@ describe("buildCompanyBrandingViewModel", () => {
     const vm = buildCompanyBrandingViewModel({ companyName: "Summit Roofing" });
     assert.equal(vm.profile.companyName, "Summit Roofing");
     assert.equal(vm.readiness.level, "usable");
-    assert.equal(vm.persistence.canPersistExtendedBrandingToDatabase, false);
+    assert.equal(vm.persistence.canPersistExtendedBrandingToDatabase, true);
     assert.deepEqual(vm.persistence.deferredFieldKeys, COMPANY_BRANDING_DEFERRED_FIELD_KEYS);
   });
 });
@@ -232,12 +233,54 @@ describe("mapCompanyBrandingToProposalContextEcho", () => {
   });
 });
 
+describe("mergeCompanyBrandingProfile", () => {
+  test("composes core company fields with extended branding row fields", () => {
+    const merged = mergeCompanyBrandingProfile(
+      {
+        companyName: "Summit Roofing",
+        phone: "918-555-0100",
+        email: "hello@summit.com",
+        license: "OK-12345",
+        logoDataUrl: "data:image/png;base64,abc",
+        notificationsEmail: "alerts@summit.com",
+      },
+      {
+        address: "123 Main St",
+        website: "summitroofing.com",
+        brandPrimaryColor: "#aabbcc",
+        showLicenseOnCover: true,
+      }
+    );
+
+    assert.equal(merged.companyName, "Summit Roofing");
+    assert.equal(merged.email, "hello@summit.com");
+    assert.equal(merged.address, "123 Main St");
+    assert.equal(merged.website, "https://summitroofing.com");
+    assert.equal(merged.brandPrimaryColor, "#aabbcc");
+    assert.equal(merged.showLicenseOnCover, true);
+  });
+
+  test("extended fields default when omitted", () => {
+    const merged = mergeCompanyBrandingProfile({
+      companyName: "Summit Roofing",
+      phone: "",
+      email: "",
+      license: "",
+      logoDataUrl: "",
+      notificationsEmail: "",
+    });
+    assert.equal(merged.address, "");
+    assert.equal(merged.showLicenseOnCover, false);
+  });
+});
+
 describe("schema / persistence capability", () => {
-  test("reports extended branding persistence blocked in repo", () => {
+  test("reports extended branding persistence via company_branding_profiles", () => {
     const capability = deriveCompanyBrandingPersistenceCapability();
-    assert.equal(capability.canPersistExtendedBrandingToDatabase, false);
-    assert.ok(capability.deferredReason.includes("schema approval"));
+    assert.equal(capability.canPersistExtendedBrandingToDatabase, true);
+    assert.ok(capability.deferredReason.includes("company_branding_profiles"));
     assert.deepEqual(capability.persistableFieldKeys, COMPANY_BRANDING_PERSISTABLE_FIELD_KEYS);
+    assert.deepEqual(capability.deferredFieldKeys, COMPANY_BRANDING_DEFERRED_FIELD_KEYS);
   });
 
   test("splitBrandingProfileForPersistence keeps deferred fields out of CompanyProfile", () => {
@@ -270,7 +313,7 @@ describe("schema / persistence capability", () => {
   });
 });
 
-describe("metadata helpers (pure; no DB column verified)", () => {
+describe("metadata helpers (legacy nested + flat row metadata)", () => {
   test("parseBrandingFromCompanyMetadata reads nested branding key", () => {
     const parsed = parseBrandingFromCompanyMetadata({
       seed_key: "keep-me",

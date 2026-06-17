@@ -1,19 +1,21 @@
 /**
- * R11a — Pure company branding/profile foundation.
+ * R11a/R11b — Pure company branding/profile foundation.
  *
- * Schema truth (repo-verified at R11a; no live DB mutation):
- * - `companyProfile.ts` reads/writes `companies` columns:
+ * Persistence model (Option B):
+ * - Core identity on `public.companies` via `companyProfile.ts`:
  *   name, owner_email, phone, license, logo_url, notifications_email
- * - No `companies` table migration exists in this repo.
- * - No `companies.metadata` (or branding JSON column) usage exists in repo code.
- *
- * Extended branding fields (address, website, colors, CLN-on-cover) are modeled
- * here for normalization/readiness only until schema approval wires persistence.
+ * - Extended branding on `public.company_branding_profiles` via
+ *   `companyBrandingProfileStore.ts` (one row per company).
+ * - Row `metadata` jsonb holds future branding-only extensions (flat keys).
  */
 
 import type { CompanyProfile } from "@/app/lib/companyProfile";
 
-/** Nested key under `companies.metadata` when/if metadata column is approved. */
+/**
+ * Legacy nested key used by Option A helpers/tests only.
+ * Option B stores typed fields on `company_branding_profiles` columns; future
+ * extensions use flat keys on `company_branding_profiles.metadata`.
+ */
 export const COMPANY_BRANDING_METADATA_KEY = "branding";
 
 /** Repo-verified DB-backed identity columns on `companies`. */
@@ -29,7 +31,7 @@ export const COMPANY_BRANDING_PERSISTABLE_FIELD_KEYS = [
 export type CompanyBrandingPersistableFieldKey =
   (typeof COMPANY_BRANDING_PERSISTABLE_FIELD_KEYS)[number];
 
-/** Branding fields with no verified DB column or metadata wiring in repo yet. */
+/** Extended branding fields persisted on `company_branding_profiles`. */
 export const COMPANY_BRANDING_DEFERRED_FIELD_KEYS = [
   "address",
   "website",
@@ -242,12 +244,23 @@ export function brandingProfileToCompanyProfile(
 
 export function deriveCompanyBrandingPersistenceCapability(): CompanyBrandingPersistenceCapability {
   return {
-    canPersistExtendedBrandingToDatabase: false,
+    canPersistExtendedBrandingToDatabase: true,
     persistableFieldKeys: COMPANY_BRANDING_PERSISTABLE_FIELD_KEYS,
     deferredFieldKeys: COMPANY_BRANDING_DEFERRED_FIELD_KEYS,
     deferredReason:
-      "Repo has no companies migration or metadata usage for address, website, brand colors, or CLN-on-cover. Await schema approval before R11b persistence wiring.",
+      "Core identity persists on public.companies. Extended branding persists on public.company_branding_profiles (migration 20260617_008). Runtime writes succeed only after migration is applied.",
   };
+}
+
+/** Compose full branding profile from core company fields + extended branding row. */
+export function mergeCompanyBrandingProfile(
+  core: Partial<CompanyProfile>,
+  extended: Partial<Pick<CompanyBrandingProfile, CompanyBrandingDeferredFieldKey>> = {}
+): CompanyBrandingProfile {
+  return normalizeCompanyBrandingProfile({
+    ...companyProfileToBrandingProfile(core),
+    ...extended,
+  });
 }
 
 function deferredFieldsFromProfile(
@@ -275,8 +288,8 @@ function hasNonDefaultDeferredValues(
 }
 
 /**
- * Splits a branding profile into fields that `companyProfile.ts` can persist today
- * vs extended fields that must not be written to Supabase until schema approval.
+ * Splits a branding profile into core fields (`companies`) vs extended fields
+ * (`company_branding_profiles`). Never duplicates core fields into the branding table.
  */
 export function splitBrandingProfileForPersistence(
   input: Partial<CompanyBrandingProfile>
@@ -310,8 +323,9 @@ export function parseBrandingFromCompanyMetadata(
 }
 
 /**
- * Build a metadata patch for extended branding fields, preserving unrelated keys.
- * Does not assume `companies.metadata` exists — pure helper for approved schema only.
+ * Legacy Option A nested-metadata patch helper (tests/back-compat).
+ * Option B uses typed columns on `company_branding_profiles`; use
+ * `mergeBrandingRowMetadata` in the store for flat row metadata.
  */
 export function buildBrandingMetadataPatch(
   existingMetadata: unknown,
