@@ -148,6 +148,13 @@ export type BuildContextEchoInput = {
   address_formatted?: string | null;
   company_name?: string | null;
   company_logo_url?: string | null;
+  company_phone?: string | null;
+  company_license?: string | null;
+  company_address?: string | null;
+  company_website?: string | null;
+  brand_primary_color?: string | null;
+  brand_secondary_color?: string | null;
+  show_license_on_cover?: boolean;
   template_id: string;
   template_name?: string | null;
   measurement_record_id?: string | null;
@@ -392,6 +399,13 @@ export function buildContextEcho(input: BuildContextEchoInput): ProposalVersionC
     address_formatted: input.address_formatted ?? null,
     company_name: input.company_name ?? null,
     company_logo_url: input.company_logo_url ?? null,
+    company_phone: input.company_phone ?? null,
+    company_license: input.company_license ?? null,
+    company_address: input.company_address ?? null,
+    company_website: input.company_website ?? null,
+    brand_primary_color: input.brand_primary_color ?? null,
+    brand_secondary_color: input.brand_secondary_color ?? null,
+    show_license_on_cover: input.show_license_on_cover ?? false,
     template_id: input.template_id,
     template_name: input.template_name ?? null,
     measurement_record_id: input.measurement_record_id ?? null,

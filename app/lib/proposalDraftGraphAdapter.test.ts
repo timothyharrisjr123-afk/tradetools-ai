@@ -416,6 +416,49 @@ describe("adaptProposalDraftGraphToBuilderPreview", () => {
     const adapted = adaptProposalDraftGraphToBuilderPreview(draftGraph());
     assert.equal(adapted.snapshotMeasurementRecordId, null);
     assert.equal(adapted.snapshotMeasurementDisplay, null);
+    assert.deepEqual(adapted.proposalCompanyContext, {
+      companyName: null,
+      companyLogoUrl: null,
+      companyPhone: null,
+      companyLicense: null,
+      companyAddress: null,
+      companyWebsite: null,
+      brandPrimaryColor: null,
+      brandSecondaryColor: null,
+      showLicenseOnCover: false,
+    });
+  });
+
+  test("exposes proposalCompanyContext from context_echo", () => {
+    const adapted = adaptProposalDraftGraphToBuilderPreview(
+      draftGraph({
+        version: {
+          ...versionRow(),
+          context_echo: {
+            company_name: "Summit Roofing",
+            company_logo_url: "data:image/png;base64,abc",
+            company_phone: "918-555-0100",
+            company_license: "OK-12345",
+            company_address: "456 HQ Blvd",
+            company_website: "https://summitroofing.com",
+            brand_primary_color: "#112233",
+            brand_secondary_color: "#445566",
+            show_license_on_cover: true,
+          },
+        },
+      })
+    );
+    assert.deepEqual(adapted.proposalCompanyContext, {
+      companyName: "Summit Roofing",
+      companyLogoUrl: "data:image/png;base64,abc",
+      companyPhone: "918-555-0100",
+      companyLicense: "OK-12345",
+      companyAddress: "456 HQ Blvd",
+      companyWebsite: "https://summitroofing.com",
+      brandPrimaryColor: "#112233",
+      brandSecondaryColor: "#445566",
+      showLicenseOnCover: true,
+    });
   });
 
   test("Golden #12: missing quantity line exposes null snapshot quantity label (no faked price)", () => {

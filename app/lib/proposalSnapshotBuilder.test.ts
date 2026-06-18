@@ -124,6 +124,7 @@ describe("buildContextEcho", () => {
     assert.equal(echo.job_id, JOB_ID);
     assert.equal(echo.measurement_quantities_display, "24 SQ");
     assert.equal(echo.template_id, TEMPLATE_ID);
+    assert.equal(echo.show_license_on_cover, false);
 
     const keys = Object.keys(echo);
     for (const forbidden of [
@@ -133,9 +134,33 @@ describe("buildContextEcho", () => {
       "margin_pct",
       "catalog_supplier_metadata",
       "policy_echo_json",
+      "notifications_email",
     ]) {
       assert.ok(!keys.includes(forbidden), `forbidden key: ${forbidden}`);
     }
+  });
+
+  test("includes company branding fields when provided", () => {
+    const echo = buildContextEcho({
+      job_id: JOB_ID,
+      template_id: TEMPLATE_ID,
+      address_formatted: "1 Main St",
+      company_name: "Summit Roofing",
+      company_logo_url: "data:image/png;base64,abc",
+      company_phone: "918-555-0100",
+      company_license: "OK-12345",
+      company_address: "456 HQ Blvd",
+      company_website: "https://summitroofing.com",
+      brand_primary_color: "#112233",
+      brand_secondary_color: "#445566",
+      show_license_on_cover: true,
+    });
+
+    assert.equal(echo.company_name, "Summit Roofing");
+    assert.equal(echo.company_address, "456 HQ Blvd");
+    assert.equal(echo.address_formatted, "1 Main St");
+    assert.equal(echo.show_license_on_cover, true);
+    assert.notEqual(echo.company_address, echo.address_formatted);
   });
 });
 

@@ -8,6 +8,8 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import type { CatalogItem } from "./catalogTypes";
 import type { CompanyPricingPolicyResolution } from "./companyPricingPolicy";
+import type { CompanyProfile } from "./companyProfile";
+import type { CompanyBrandingExtendedFields } from "./companyBrandingProfileStore";
 import type { MeasurementProposalHandoff } from "./measurementProposalHandoff";
 import type { MeasurementQuantityMap } from "./measurementTypes";
 import type { ProposalQuantityPreviewContext } from "./proposalBuilderPreview";
@@ -48,6 +50,23 @@ const TEMPLATE_ID = "33333333-3333-4333-8333-333333333333";
 const POLICY_ID = "44444444-4444-4444-8444-444444444444";
 const CUSTOMER_ID = "55555555-5555-4555-8555-555555555555";
 const OTHER_CUSTOMER_ID = "66666666-6666-4666-8666-666666666666";
+
+const TEST_COMPANY_CORE: CompanyProfile = {
+  companyName: "Summit Roofing",
+  phone: "918-555-0100",
+  email: "hello@summit.com",
+  license: "OK-12345",
+  logoDataUrl: "data:image/png;base64,abc",
+  notificationsEmail: "",
+};
+
+const TEST_COMPANY_BRANDING: CompanyBrandingExtendedFields = {
+  address: "456 HQ Blvd",
+  website: "https://summitroofing.com",
+  brandPrimaryColor: "#112233",
+  brandSecondaryColor: "#445566",
+  showLicenseOnCover: true,
+};
 
 const CONFIGURED_POLICY: PricingPolicy = {
   profitabilityType: DEFAULT_PROFITABILITY_TYPE,
@@ -451,7 +470,12 @@ function firstLineTotalForVersion(
 
 function storeDeps(
   mock: ReturnType<typeof createMockSupabase>,
-  resolution: CompanyPricingPolicyResolution = CONFIGURED_RESOLUTION
+  resolution: CompanyPricingPolicyResolution = CONFIGURED_RESOLUTION,
+  companyContext?: {
+    core?: CompanyProfile;
+    branding?: CompanyBrandingExtendedFields | null;
+    brandingLoadOk?: boolean;
+  }
 ): ProposalRecordStoreDeps {
   const g = testGraph();
   const cat = catalog({ id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb" });
@@ -460,6 +484,14 @@ function storeDeps(
     getTemplateGraph: async () => g,
     getCatalogItems: async () => [cat],
     getResolvedPolicy: async () => resolution,
+    loadProposalCompanyContext: async () => ({
+      core: companyContext?.core ?? TEST_COMPANY_CORE,
+      branding:
+        companyContext && "branding" in companyContext
+          ? (companyContext.branding ?? null)
+          : TEST_COMPANY_BRANDING,
+      brandingLoadOk: companyContext?.brandingLoadOk ?? true,
+    }),
   };
 }
 
@@ -550,6 +582,54 @@ describe("createDraftProposal", () => {
     assert.equal(version.version_number, 1);
     assert.equal(version.version_kind, "draft");
     assert.equal(version.frozen_at, null);
+  });
+
+  test("stamps company branding fields into context_echo at create", async () => {
+    const mock = createMockSupabase();
+    await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+      },
+      storeDeps(mock)
+    );
+
+    const version = mock.state.tables.proposal_versions[0] as Record<string, unknown>;
+    const echo = version.context_echo as Record<string, unknown>;
+    assert.equal(echo.company_name, "Summit Roofing");
+    assert.equal(echo.company_logo_url, "data:image/png;base64,abc");
+    assert.equal(echo.company_phone, "918-555-0100");
+    assert.equal(echo.company_license, "OK-12345");
+    assert.equal(echo.company_address, "456 HQ Blvd");
+    assert.equal(echo.company_website, "https://summitroofing.com");
+    assert.equal(echo.brand_primary_color, "#112233");
+    assert.equal(echo.brand_secondary_color, "#445566");
+    assert.equal(echo.show_license_on_cover, true);
+    assert.equal(echo.address_formatted, "1 Main St");
+    assert.notEqual(echo.company_address, echo.address_formatted);
+    assert.equal("notifications_email" in echo, false);
+  });
+
+  test("missing branding row stamps core fields with null extended branding", async () => {
+    const mock = createMockSupabase();
+    await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+      },
+      storeDeps(mock, CONFIGURED_RESOLUTION, { branding: null })
+    );
+
+    const echo = (mock.state.tables.proposal_versions[0] as Record<string, unknown>)
+      .context_echo as Record<string, unknown>;
+    assert.equal(echo.company_name, "Summit Roofing");
+    assert.equal(echo.company_phone, "918-555-0100");
+    assert.equal(echo.company_address, null);
+    assert.equal(echo.company_website, null);
+    assert.equal(echo.brand_primary_color, null);
+    assert.equal(echo.show_license_on_cover, false);
   });
 
   test("inserts pages before line items", async () => {
@@ -1010,6 +1090,15 @@ describe("refreshDraftPricing", () => {
     assert.equal(echoAfter.measurement_quantities_display, "25.0 SQ");
     // Other context_echo fields preserved (not wiped).
     assert.equal(echoAfter.job_id, JOB_ID);
+    assert.equal(echoAfter.company_name, "Summit Roofing");
+    assert.equal(echoAfter.company_logo_url, "data:image/png;base64,abc");
+    assert.equal(echoAfter.company_phone, "918-555-0100");
+    assert.equal(echoAfter.company_license, "OK-12345");
+    assert.equal(echoAfter.company_address, "456 HQ Blvd");
+    assert.equal(echoAfter.company_website, "https://summitroofing.com");
+    assert.equal(echoAfter.brand_primary_color, "#112233");
+    assert.equal(echoAfter.brand_secondary_color, "#445566");
+    assert.equal(echoAfter.show_license_on_cover, true);
 
     // Proposal header measurement id stays in sync.
     assert.equal(

@@ -42,6 +42,19 @@ export type ProposalSnapshotLineQuantityView = {
   unitLabel: string | null;
 };
 
+/** Read-only company branding slice from persisted context_echo (R11c). */
+export type ProposalCompanyContext = {
+  companyName: string | null;
+  companyLogoUrl: string | null;
+  companyPhone: string | null;
+  companyLicense: string | null;
+  companyAddress: string | null;
+  companyWebsite: string | null;
+  brandPrimaryColor: string | null;
+  brandSecondaryColor: string | null;
+  showLicenseOnCover: boolean;
+};
+
 export type ProposalDraftGraphAdapterResult = {
   pricingPreview: ProposalBuilderPricingPreview;
   selectedTemplateOptionId: string | null;
@@ -61,6 +74,8 @@ export type ProposalDraftGraphAdapterResult = {
   snapshotMeasurementRecordId: string | null;
   /** Customer-safe measurement quantity labels captured at snapshot time. */
   snapshotMeasurementDisplay: string | null;
+  /** Company branding stamped on the proposal version context_echo. */
+  proposalCompanyContext: ProposalCompanyContext;
 };
 
 export type ValidateProposalDraftGraphForJobResult =
@@ -122,6 +137,32 @@ function readContextEchoString(
   if (!contextEcho || typeof contextEcho !== "object") return null;
   const value = (contextEcho as Record<string, unknown>)[key];
   return typeof value === "string" ? trimOrNull(value) : null;
+}
+
+function readContextEchoBoolean(
+  contextEcho: ProposalDraftGraph["version"]["context_echo"] | null | undefined,
+  key: string
+): boolean | null {
+  if (!contextEcho || typeof contextEcho !== "object") return null;
+  const value = (contextEcho as Record<string, unknown>)[key];
+  if (typeof value === "boolean") return value;
+  return null;
+}
+
+export function readProposalCompanyContextFromEcho(
+  contextEcho: ProposalDraftGraph["version"]["context_echo"] | null | undefined
+): ProposalCompanyContext {
+  return {
+    companyName: readContextEchoString(contextEcho, "company_name"),
+    companyLogoUrl: readContextEchoString(contextEcho, "company_logo_url"),
+    companyPhone: readContextEchoString(contextEcho, "company_phone"),
+    companyLicense: readContextEchoString(contextEcho, "company_license"),
+    companyAddress: readContextEchoString(contextEcho, "company_address"),
+    companyWebsite: readContextEchoString(contextEcho, "company_website"),
+    brandPrimaryColor: readContextEchoString(contextEcho, "brand_primary_color"),
+    brandSecondaryColor: readContextEchoString(contextEcho, "brand_secondary_color"),
+    showLicenseOnCover: readContextEchoBoolean(contextEcho, "show_license_on_cover") ?? false,
+  };
 }
 
 function buildLineCustomerView(line: ProposalLineItemRow): ProposalBuilderLineCustomerView | null {
@@ -337,5 +378,6 @@ export function adaptProposalDraftGraphToBuilderPreview(
       graph.version.context_echo,
       "measurement_quantities_display"
     ),
+    proposalCompanyContext: readProposalCompanyContextFromEcho(graph.version.context_echo),
   };
 }

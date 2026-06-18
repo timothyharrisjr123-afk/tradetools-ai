@@ -15,6 +15,13 @@
 
 import type { CatalogItem } from "@/app/lib/catalogTypes";
 import { getActiveCatalogItemsByCompany } from "@/app/lib/catalogStore";
+import {
+  buildProposalCompanyContextEchoFromProfile,
+  mergeCompanyBrandingProfile,
+} from "@/app/lib/companyBrandingProfile";
+import type { CompanyBrandingExtendedFields } from "@/app/lib/companyBrandingProfileStore";
+import { getCompanyBrandingProfileResult } from "@/app/lib/companyBrandingProfileStore";
+import { normalizeCompanyProfile, type CompanyProfile } from "@/app/lib/companyProfile";
 import { getResolvedCompanyPricingPolicy } from "@/app/lib/companyPricingPolicyStore";
 import { getSupabaseClient } from "@/app/lib/supabaseClient";
 import {
@@ -276,11 +283,22 @@ const MARGIN_DB_MAX = 99.9999;
 // Injectable deps (tests)
 // ---------------------------------------------------------------------------
 
+export type ProposalCompanyContextLoadResult = {
+  core: CompanyProfile;
+  branding: CompanyBrandingExtendedFields | null;
+  /** False when branding read failed; core-only stamping still proceeds. */
+  brandingLoadOk: boolean;
+};
+
 export type ProposalRecordStoreDeps = {
   getSupabase?: typeof getSupabaseClient;
   getTemplateGraph?: typeof getProposalTemplateGraph;
   getCatalogItems?: typeof getActiveCatalogItemsByCompany;
   getResolvedPolicy?: typeof getResolvedCompanyPricingPolicy;
+  loadProposalCompanyContext?: (
+    companyId: string,
+    supabase: NonNullable<ReturnType<typeof getSupabaseClient>>
+  ) => Promise<ProposalCompanyContextLoadResult>;
 };
 
 function resolveDeps(deps?: ProposalRecordStoreDeps) {
@@ -289,6 +307,8 @@ function resolveDeps(deps?: ProposalRecordStoreDeps) {
     getTemplateGraph: deps?.getTemplateGraph ?? getProposalTemplateGraph,
     getCatalogItems: deps?.getCatalogItems ?? getActiveCatalogItemsByCompany,
     getResolvedPolicy: deps?.getResolvedPolicy ?? getResolvedCompanyPricingPolicy,
+    loadProposalCompanyContext:
+      deps?.loadProposalCompanyContext ?? loadProposalCompanyContextFromDatabase,
   };
 }
 
@@ -426,6 +446,81 @@ async function fetchCompanyPricingPolicyId(
 
   if (error || !data?.id) return null;
   return String(data.id);
+}
+
+const EMPTY_COMPANY_PROFILE: CompanyProfile = {
+  companyName: "",
+  phone: "",
+  email: "",
+  license: "",
+  logoDataUrl: "",
+  notificationsEmail: "",
+};
+
+function companyProfileFromCompaniesRow(row: Record<string, unknown>): CompanyProfile {
+  return normalizeCompanyProfile({
+    companyName: (row.name ?? "").toString().trim(),
+    email: (row.owner_email ?? "").toString().trim(),
+    phone: (row.phone ?? "").toString().trim(),
+    license: (row.license ?? "").toString().trim(),
+    logoDataUrl: typeof row.logo_url === "string" ? row.logo_url.trim() : "",
+    notificationsEmail: (row.notifications_email ?? "").toString().trim(),
+  });
+}
+
+/** DB-truth company core + branding for proposal context_echo stamping (no localStorage). */
+export async function loadProposalCompanyContextFromDatabase(
+  companyId: string,
+  supabase: NonNullable<ReturnType<typeof getSupabaseClient>>
+): Promise<ProposalCompanyContextLoadResult> {
+  const { data: row, error } = await supabase
+    .from("companies")
+    .select("name, owner_email, phone, license, logo_url, notifications_email")
+    .eq("id", companyId)
+    .maybeSingle();
+
+  const core =
+    error || !row
+      ? { ...EMPTY_COMPANY_PROFILE }
+      : companyProfileFromCompaniesRow(row as Record<string, unknown>);
+
+  const brandingResult = await getCompanyBrandingProfileResult(companyId);
+  if (brandingResult.status === "success" && brandingResult.fields) {
+    return { core, branding: brandingResult.fields, brandingLoadOk: true };
+  }
+  if (brandingResult.status === "missing_row") {
+    return { core, branding: null, brandingLoadOk: true };
+  }
+
+  return { core, branding: null, brandingLoadOk: false };
+}
+
+function mergeCompanyContextEchoInput(
+  stamped: ReturnType<typeof buildProposalCompanyContextEchoFromProfile>,
+  overrides?: Partial<BuildContextEchoInput>
+): Pick<
+  BuildContextEchoInput,
+  | "company_name"
+  | "company_logo_url"
+  | "company_phone"
+  | "company_license"
+  | "company_address"
+  | "company_website"
+  | "brand_primary_color"
+  | "brand_secondary_color"
+  | "show_license_on_cover"
+> {
+  return {
+    company_name: overrides?.company_name ?? stamped.company_name,
+    company_logo_url: overrides?.company_logo_url ?? stamped.company_logo_url,
+    company_phone: overrides?.company_phone ?? stamped.company_phone,
+    company_license: overrides?.company_license ?? stamped.company_license,
+    company_address: overrides?.company_address ?? stamped.company_address,
+    company_website: overrides?.company_website ?? stamped.company_website,
+    brand_primary_color: overrides?.brand_primary_color ?? stamped.brand_primary_color,
+    brand_secondary_color: overrides?.brand_secondary_color ?? stamped.brand_secondary_color,
+    show_license_on_cover: overrides?.show_license_on_cover ?? stamped.show_license_on_cover,
+  };
 }
 
 /**
@@ -866,6 +961,14 @@ export async function createDraftProposal(
     actorRole,
   });
 
+  const companySource = await d.loadProposalCompanyContext(companyId, supabase);
+  const mergedCompanyProfile = mergeCompanyBrandingProfile(
+    companySource.core,
+    companySource.branding ?? {}
+  );
+  const stampedCompany = buildProposalCompanyContextEchoFromProfile(mergedCompanyProfile);
+  const companyEcho = mergeCompanyContextEchoInput(stampedCompany, input.context);
+
   const contextEcho: BuildContextEchoInput = {
     job_id: jobId,
     job_name: input.context?.job_name ?? jobEcho.job_name,
@@ -874,8 +977,7 @@ export async function createDraftProposal(
     customer_email: input.context?.customer_email ?? null,
     customer_phone: input.context?.customer_phone ?? null,
     address_formatted: input.context?.address_formatted ?? jobEcho.address_formatted,
-    company_name: input.context?.company_name ?? null,
-    company_logo_url: input.context?.company_logo_url ?? null,
+    ...companyEcho,
     template_id: templateId,
     template_name: input.context?.template_name ?? graph.template.name,
     measurement_record_id: input.measurement_record_id ?? null,

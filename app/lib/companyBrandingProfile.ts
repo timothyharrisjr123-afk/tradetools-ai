@@ -106,6 +106,13 @@ export type CompanyBrandingViewModel = {
 export type ProposalContextEchoCompanyFields = {
   company_name: string | null;
   company_logo_url: string | null;
+  company_phone: string | null;
+  company_license: string | null;
+  company_address: string | null;
+  company_website: string | null;
+  brand_primary_color: string | null;
+  brand_secondary_color: string | null;
+  show_license_on_cover: boolean;
 };
 
 export type BrandingMetadataPayload = {
@@ -500,7 +507,12 @@ export function buildCompanyBrandingViewModel(
   };
 }
 
-/** Maps branding profile to existing proposal `context_echo` company fields only. */
+function echoNullableString(value: string): string | null {
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+/** Maps merged company branding profile to proposal `context_echo` company slice. */
 export function mapCompanyBrandingToProposalContextEcho(
   input: Partial<CompanyBrandingProfile> | Partial<CompanyProfile>
 ): ProposalContextEchoCompanyFields {
@@ -509,11 +521,19 @@ export function mapCompanyBrandingToProposalContextEcho(
       ? normalizeCompanyBrandingProfile(input as Partial<CompanyBrandingProfile>)
       : companyProfileToBrandingProfile(input as Partial<CompanyProfile>);
 
-  const companyName = profile.companyName.trim();
-  const logo = profile.logoDataUrl.trim();
-
   return {
-    company_name: companyName.length > 0 ? companyName : null,
-    company_logo_url: logo.length > 0 ? logo : null,
+    company_name: echoNullableString(profile.companyName),
+    company_logo_url: echoNullableString(profile.logoDataUrl),
+    company_phone: echoNullableString(profile.phone),
+    company_license: echoNullableString(profile.license),
+    company_address: echoNullableString(profile.address),
+    company_website: echoNullableString(profile.website),
+    brand_primary_color: echoNullableString(profile.brandPrimaryColor),
+    brand_secondary_color: echoNullableString(profile.brandSecondaryColor),
+    show_license_on_cover: profile.showLicenseOnCover,
   };
 }
+
+/** Alias for proposal draft stamping — merged profile in, context_echo company slice out. */
+export const buildProposalCompanyContextEchoFromProfile =
+  mapCompanyBrandingToProposalContextEcho;

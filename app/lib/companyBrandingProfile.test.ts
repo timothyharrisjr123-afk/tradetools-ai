@@ -195,41 +195,67 @@ describe("buildCompanyBrandingViewModel", () => {
 });
 
 describe("mapCompanyBrandingToProposalContextEcho", () => {
-  test("maps company_name and company_logo_url only", () => {
+  test("maps full company branding slice for context_echo", () => {
     const echo = mapCompanyBrandingToProposalContextEcho(fullBrandingInput());
     assert.deepEqual(echo, {
       company_name: "Summit Roofing",
       company_logo_url: "data:image/png;base64,abc",
+      company_phone: "918-555-0100",
+      company_license: "OK-12345",
+      company_address: "123 Main St, Tulsa, OK",
+      company_website: "https://summitroofing.com",
+      brand_primary_color: "#aabbcc",
+      brand_secondary_color: "#336699",
+      show_license_on_cover: true,
     });
-    assert.equal("address" in echo, false);
-    assert.equal("website" in echo, false);
+    assert.equal("notificationsEmail" in echo, false);
+    assert.equal("email" in echo, false);
   });
 
-  test("empty strings become null", () => {
+  test("empty strings become null; show_license_on_cover defaults false", () => {
     const echo = mapCompanyBrandingToProposalContextEcho({
       companyName: "  ",
       logoDataUrl: "",
+      showLicenseOnCover: false,
     });
     assert.deepEqual(echo, {
       company_name: null,
       company_logo_url: null,
+      company_phone: null,
+      company_license: null,
+      company_address: null,
+      company_website: null,
+      brand_primary_color: null,
+      brand_secondary_color: null,
+      show_license_on_cover: false,
     });
+  });
+
+  test("preserves company_license when show_license_on_cover is false", () => {
+    const echo = mapCompanyBrandingToProposalContextEcho({
+      ...fullBrandingInput(),
+      showLicenseOnCover: false,
+    });
+    assert.equal(echo.company_license, "OK-12345");
+    assert.equal(echo.show_license_on_cover, false);
   });
 
   test("accepts legacy CompanyProfile shape", () => {
     const legacy: CompanyProfile = {
       companyName: "Legacy Co",
-      phone: "",
-      email: "",
-      license: "",
+      phone: "555-0100",
+      email: "owner@legacy.com",
+      license: "LIC-9",
       logoDataUrl: "https://cdn.example/logo.png",
-      notificationsEmail: "",
+      notificationsEmail: "notify@legacy.com",
     };
     const echo = mapCompanyBrandingToProposalContextEcho(legacy);
-    assert.deepEqual(echo, {
-      company_name: "Legacy Co",
-      company_logo_url: "https://cdn.example/logo.png",
-    });
+    assert.equal(echo.company_name, "Legacy Co");
+    assert.equal(echo.company_logo_url, "https://cdn.example/logo.png");
+    assert.equal(echo.company_phone, "555-0100");
+    assert.equal(echo.company_license, "LIC-9");
+    assert.equal(echo.company_address, null);
+    assert.equal("notificationsEmail" in echo, false);
   });
 });
 
