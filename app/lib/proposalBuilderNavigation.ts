@@ -8,6 +8,7 @@ import type { ProposalPageRow } from "@/app/lib/proposalRecordStore";
 import {
   BUILDER_ADD_PAGE_STRIP_POLICY,
   BUILDER_DEFAULT_LANDING_PAGE_CONTEXT,
+  BUILDER_OVERFLOW_MENU_LABEL,
   BUILDER_PREVIEW_STRIP_POLICY,
   PROPOSAL_BUILDER_ALL_PLACEHOLDER_SLOTS,
   PROPOSAL_BUILDER_PLACEHOLDERS_AFTER_ESTIMATE,
@@ -157,6 +158,7 @@ export function buildPageContextStripItems(
 
   const overflowPages = dbPages
     .filter((p) => p.page_type !== "estimate" && p.page_type !== "cover" && !usedIds.has(p.id))
+    .sort((a, b) => a.sort_order - b.sort_order || a.id.localeCompare(b.id))
     .map(
       (p): PageStripItem => ({
         kind: "page",
@@ -230,6 +232,41 @@ export function resolvePageTypeForContext(
 
   const persisted = resolvePersistedPageByContextId(pages, contextId);
   return persisted?.page_type ?? null;
+}
+
+/** R16C1 — true when the active context id is a persisted overflow strip page. */
+export function isOverflowPageContext(
+  contextId: BuilderPageContextId,
+  overflowPages: PageStripItem[]
+): boolean {
+  return overflowPages.some((page) => page.id === contextId);
+}
+
+/** R16C1 — active overflow strip item, if any. */
+export function resolveActiveOverflowPage(
+  contextId: BuilderPageContextId,
+  overflowPages: PageStripItem[]
+): PageStripItem | null {
+  return overflowPages.find((page) => page.id === contextId) ?? null;
+}
+
+export type OverflowMenuTriggerState = {
+  label: string;
+  isOverflowActive: boolean;
+  overflowCount: number;
+};
+
+/** R16C1 — overflow menu trigger label: active page name or "More pages". */
+export function resolveOverflowMenuTriggerState(
+  activeContextId: BuilderPageContextId,
+  overflowPages: PageStripItem[]
+): OverflowMenuTriggerState {
+  const active = resolveActiveOverflowPage(activeContextId, overflowPages);
+  return {
+    label: active?.label ?? BUILDER_OVERFLOW_MENU_LABEL,
+    isOverflowActive: active != null,
+    overflowCount: overflowPages.length,
+  };
 }
 
 export function resolvePageContextDisplayLabel(

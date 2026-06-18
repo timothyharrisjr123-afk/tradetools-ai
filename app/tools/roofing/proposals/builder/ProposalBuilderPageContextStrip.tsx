@@ -11,6 +11,7 @@ import type { ProposalPageRow } from "@/app/lib/proposalRecordStore";
 import {
   builderPageStripStatusChip,
   BUILDER_PAGE_STRIP,
+  BUILDER_PAGE_STRIP_SCROLL,
   BUILDER_PAGE_STRIP_DIVIDER,
   BUILDER_PAGE_STRIP_ITEM,
   BUILDER_PAGE_STRIP_ITEM_ACTIVE,
@@ -18,6 +19,7 @@ import {
   BUILDER_PAGE_STRIP_ITEM_FUTURE,
   BUILDER_PAGE_STRIP_ITEM_IDLE,
 } from "./proposalBuilderConstants";
+import ProposalBuilderOverflowMenu from "./ProposalBuilderOverflowMenu";
 
 type ProposalBuilderPageContextStripProps = {
   pages: ProposalPageRow[] | null | undefined;
@@ -91,38 +93,50 @@ export default function ProposalBuilderPageContextStrip({
   });
 
   const visibleItems = items.filter((item) => item.id !== "preview");
-  const overflowCount = overflowPages.length;
+  const primaryItems = visibleItems.filter((item) => item.id !== "add_page");
+  const addPageItem = visibleItems.find((item) => item.id === "add_page");
+  const hasOverflow = overflowPages.length > 0;
 
   return (
     <nav className={BUILDER_PAGE_STRIP} aria-label="Proposal pages">
-      {visibleItems.map((item, index) => {
-        const isActive = activePageContextId === item.id;
-        const showDividerBeforeAddPage =
-          item.id === "add_page" && index > 0 && visibleItems[index - 1]?.id !== "add_page";
+      <div className={BUILDER_PAGE_STRIP_SCROLL}>
+        {primaryItems.map((item) => {
+          const isActive = activePageContextId === item.id;
 
-        return (
-          <span key={item.id} className="contents">
-            {showDividerBeforeAddPage ? (
-              <span className={BUILDER_PAGE_STRIP_DIVIDER} aria-hidden />
-            ) : null}
+          return (
             <StripButton
+              key={item.id}
               item={item}
               isActive={isActive}
               onSelect={onSelectPageContext}
               icon={stripItemIcon(item, isActive)}
-              futureAction={item.id === "add_page"}
             />
-          </span>
-        );
-      })}
+          );
+        })}
+      </div>
 
-      {overflowCount > 0 ? (
-        <span
-          className="ml-1 inline-flex shrink-0 items-center rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500"
-          title={`${overflowCount} additional page${overflowCount === 1 ? "" : "s"} not shown in strip`}
-        >
-          +{overflowCount}
-        </span>
+      {hasOverflow ? (
+        <>
+          <span className={BUILDER_PAGE_STRIP_DIVIDER} aria-hidden />
+          <ProposalBuilderOverflowMenu
+            overflowPages={overflowPages}
+            activePageContextId={activePageContextId}
+            onSelectPageContext={onSelectPageContext}
+          />
+        </>
+      ) : null}
+
+      {addPageItem ? (
+        <>
+          <span className={BUILDER_PAGE_STRIP_DIVIDER} aria-hidden />
+          <StripButton
+            item={addPageItem}
+            isActive={activePageContextId === addPageItem.id}
+            onSelect={onSelectPageContext}
+            icon={stripItemIcon(addPageItem, activePageContextId === addPageItem.id)}
+            futureAction
+          />
+        </>
       ) : null}
     </nav>
   );

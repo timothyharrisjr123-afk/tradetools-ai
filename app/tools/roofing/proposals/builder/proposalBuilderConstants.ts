@@ -32,9 +32,13 @@ export const BUILDER_READ_ONLY_ALERT_BODY =
 export const BUILDER_READ_ONLY_ALERT_COMPACT_BODY =
   "Read-only preview — pricing, PDF, send, signature, and payment come later.";
 
-/** 3J4A — full-width page context strip. */
+/** 3J4A — full-width page context strip shell (R16C1: no overflow — menu portals to body). */
 export const BUILDER_PAGE_STRIP =
-  "flex min-h-[3.75rem] w-full items-center gap-1 overflow-x-auto rounded-xl border border-slate-200/90 bg-white px-4 shadow-[0_8px_24px_rgba(15,23,42,0.07),0_1px_3px_rgba(15,23,42,0.06)] [&::-webkit-scrollbar]:h-1";
+  "flex min-h-[3.75rem] w-full items-center gap-1 rounded-xl border border-slate-200/90 bg-white px-4 shadow-[0_8px_24px_rgba(15,23,42,0.07),0_1px_3px_rgba(15,23,42,0.06)]";
+
+/** R16C1 — horizontally scrollable primary strip tabs only. */
+export const BUILDER_PAGE_STRIP_SCROLL =
+  "flex min-h-[3.75rem] min-w-0 flex-1 items-center gap-1 overflow-x-auto [&::-webkit-scrollbar]:h-1";
 
 export const BUILDER_PAGE_STRIP_ITEM =
   "relative inline-flex h-11 shrink-0 items-center gap-2 rounded-lg px-4 text-[14px] font-medium transition-colors";
@@ -101,6 +105,38 @@ export function builderPageStripStatusChip(
 }
 
 export const BUILDER_PAGE_STRIP_DIVIDER = "mx-1 h-8 w-px shrink-0 bg-slate-200/90";
+
+/** R16C1 — overflow menu trigger in the page strip. */
+export const BUILDER_PAGE_STRIP_OVERFLOW_TRIGGER =
+  "relative inline-flex h-11 max-w-[11rem] shrink-0 items-center gap-1.5 rounded-lg px-3 text-[14px] font-medium transition-colors";
+
+export const BUILDER_PAGE_STRIP_OVERFLOW_TRIGGER_ACTIVE =
+  "bg-blue-50/70 font-semibold text-blue-700 after:absolute after:-bottom-[9px] after:left-3 after:right-3 after:h-[3px] after:rounded-full after:bg-blue-600";
+
+export const BUILDER_PAGE_STRIP_OVERFLOW_TRIGGER_IDLE =
+  "text-slate-600 hover:bg-slate-50 hover:text-slate-900";
+
+export const BUILDER_PAGE_STRIP_OVERFLOW_COUNT_BADGE =
+  "inline-flex min-w-[1.125rem] items-center justify-center rounded-full bg-slate-200/90 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600";
+
+/** R16C1 — overflow menu panel (position set inline when portaled to body). */
+export const BUILDER_PAGE_STRIP_OVERFLOW_MENU =
+  "min-w-[14rem] max-w-[min(18rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-slate-200/90 bg-white py-1 shadow-[0_12px_32px_rgba(15,23,42,0.12),0_2px_6px_rgba(15,23,42,0.06)]";
+
+export const BUILDER_PAGE_STRIP_OVERFLOW_MENU_HEADING =
+  "px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-slate-500";
+
+export const BUILDER_PAGE_STRIP_OVERFLOW_MENU_ITEM =
+  "flex w-full items-start gap-2 px-3 py-2.5 text-left transition-colors hover:bg-slate-50";
+
+export const BUILDER_PAGE_STRIP_OVERFLOW_MENU_ITEM_ACTIVE =
+  "bg-blue-50/70 hover:bg-blue-50/70";
+
+export const BUILDER_PAGE_STRIP_OVERFLOW_MENU_ITEM_LABEL =
+  "truncate text-sm font-medium text-slate-800";
+
+export const BUILDER_PAGE_STRIP_OVERFLOW_MENU_ITEM_TYPE =
+  "truncate text-[11px] text-slate-500";
 
 /** 3J4A — main proposal canvas shell (internal bands carry padding). */
 export const BUILDER_CANVAS =
@@ -181,6 +217,9 @@ export {
   BUILDER_DOCUMENT_READ_ONLY_FOOTER,
   BUILDER_HEADER_WORKSPACE_CONTEXT_NOTE,
   BUILDER_HEADER_WORKSPACE_KICKER,
+  BUILDER_OVERFLOW_MENU_ARIA_LABEL,
+  BUILDER_OVERFLOW_MENU_HEADING,
+  BUILDER_OVERFLOW_MENU_LABEL,
   BUILDER_PAGE_EDIT_HELPER_COPY,
   BUILDER_PAGE_EDIT_MERGE_PREVIEW_LABEL,
   BUILDER_UNSAVED_PAGE_EDIT_CONFIRM,

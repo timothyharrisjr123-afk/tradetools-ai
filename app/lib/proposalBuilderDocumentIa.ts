@@ -40,6 +40,15 @@ export const BUILDER_PAGE_EDIT_HELPER_COPY =
 export const BUILDER_UNSAVED_PAGE_EDIT_CONFIRM =
   "You have unsaved changes on this page. Discard them and leave?";
 
+/** R16C1 — overflow menu trigger when no overflow page is active. */
+export const BUILDER_OVERFLOW_MENU_LABEL = "More pages";
+
+/** R16C1 — aria label for the overflow pages menu control. */
+export const BUILDER_OVERFLOW_MENU_ARIA_LABEL = "More proposal pages";
+
+/** R16C1 — menu heading when listing overflow pages. */
+export const BUILDER_OVERFLOW_MENU_HEADING = "Additional pages";
+
 /** R16B — optional label for display-only merge preview under the editor. */
 export const BUILDER_PAGE_EDIT_MERGE_PREVIEW_LABEL = "Customer preview (display only)";
 

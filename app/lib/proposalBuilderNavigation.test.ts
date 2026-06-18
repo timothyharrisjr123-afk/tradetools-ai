@@ -5,6 +5,9 @@ import {
   BUILDER_DEFAULT_WORKSPACE_SECTION,
   buildPageContextStripItems,
   isEstimatePageContext,
+  isOverflowPageContext,
+  resolveActiveOverflowPage,
+  resolveOverflowMenuTriggerState,
   resolvePageContextDisplayLabel,
 } from "./proposalBuilderNavigation";
 import type { ProposalPageRow } from "./proposalRecordStore";
@@ -112,5 +115,100 @@ describe("proposalBuilderNavigation", () => {
     assert.equal(resolvePageContextDisplayLabel("placeholder:about", pages), "Project overview");
     assert.equal(resolvePageContextDisplayLabel("p-warranty", pages), "Warranty");
     assert.equal(resolvePageContextDisplayLabel("estimate", pages), "Estimate");
+  });
+
+  it("puts custom_text and duplicate page_type pages in overflow (R16C1)", () => {
+    const pages = [
+      makePage({ id: "p-overview", page_type: "project_overview", sort_order: 1 }),
+      makePage({ id: "p-terms", page_type: "terms", sort_order: 2 }),
+      makePage({ id: "p-warranty", page_type: "warranty", sort_order: 3 }),
+      makePage({
+        id: "p-custom",
+        page_type: "custom_text",
+        customer_title: "Custom Text",
+        sort_order: 4,
+      }),
+      makePage({ id: "p-terms-2", page_type: "terms", customer_title: "Extra Terms", sort_order: 5 }),
+    ];
+    const { items, overflowPages } = buildPageContextStripItems(pages);
+
+    assert.deepEqual(
+      overflowPages.map((page) => page.id),
+      ["p-custom", "p-terms-2"]
+    );
+    assert.ok(items.some((item) => item.id === "p-terms"));
+    assert.ok(!items.some((item) => item.id === "p-custom"));
+    assert.ok(!items.some((item) => item.id === "p-terms-2"));
+  });
+
+  it("never includes cover or estimate in overflow (R16C1)", () => {
+    const pages = [
+      makePage({ id: "p-cover", page_type: "cover", sort_order: 0 }),
+      makePage({ id: "p-estimate", page_type: "estimate", sort_order: 1 }),
+      makePage({ id: "p-custom", page_type: "custom_text", sort_order: 2 }),
+    ];
+    const { overflowPages } = buildPageContextStripItems(pages);
+
+    assert.deepEqual(overflowPages.map((page) => page.id), ["p-custom"]);
+    assert.ok(!overflowPages.some((page) => page.pageType === "cover"));
+    assert.ok(!overflowPages.some((page) => page.pageType === "estimate"));
+  });
+
+  it("sorts overflow pages by sort_order (R16C1)", () => {
+    const pages = [
+      makePage({ id: "p-overview", page_type: "project_overview", sort_order: 0 }),
+      makePage({ id: "p-z", page_type: "custom_text", customer_title: "Z Page", sort_order: 30 }),
+      makePage({ id: "p-a", page_type: "custom_text", customer_title: "A Page", sort_order: 10 }),
+    ];
+    const { overflowPages } = buildPageContextStripItems(pages);
+
+    assert.deepEqual(
+      overflowPages.map((page) => page.id),
+      ["p-a", "p-z"]
+    );
+  });
+
+  it("resolves active overflow page state by persisted page id (R16C1)", () => {
+    const pages = [
+      makePage({ id: "p-overview", page_type: "project_overview", sort_order: 0 }),
+      makePage({ id: "p-custom", page_type: "custom_text", customer_title: "Custom Text", sort_order: 1 }),
+    ];
+    const { overflowPages } = buildPageContextStripItems(pages);
+
+    assert.equal(isOverflowPageContext("p-custom", overflowPages), true);
+    assert.equal(isOverflowPageContext("estimate", overflowPages), false);
+    assert.equal(isOverflowPageContext("placeholder:terms", overflowPages), false);
+
+    const active = resolveActiveOverflowPage("p-custom", overflowPages);
+    assert.equal(active?.label, "Custom Text");
+
+    const trigger = resolveOverflowMenuTriggerState("p-custom", overflowPages);
+    assert.equal(trigger.label, "Custom Text");
+    assert.equal(trigger.isOverflowActive, true);
+    assert.equal(trigger.overflowCount, 1);
+
+    const idleTrigger = resolveOverflowMenuTriggerState("estimate", overflowPages);
+    assert.equal(idleTrigger.label, "More pages");
+    assert.equal(idleTrigger.isOverflowActive, false);
+    assert.equal(idleTrigger.overflowCount, 1);
+  });
+
+  it("keeps primary strip behavior unchanged when overflow exists (R16C1)", () => {
+    const pages = [
+      makePage({ id: "p-overview", page_type: "project_overview", sort_order: 0 }),
+      makePage({ id: "p-custom", page_type: "custom_text", sort_order: 1 }),
+    ];
+    const { items } = buildPageContextStripItems(pages);
+    const visibleIds = items.filter((item) => item.id !== "preview").map((item) => item.id);
+
+    assert.deepEqual(visibleIds, [
+      "cover",
+      "p-overview",
+      "estimate",
+      "placeholder:terms",
+      "placeholder:warranty",
+      "placeholder:photos",
+      "add_page",
+    ]);
   });
 });
