@@ -55,6 +55,15 @@ export type ProposalCompanyContext = {
   showLicenseOnCover: boolean;
 };
 
+/** Read-only customer identity slice from persisted context_echo (R12). */
+export type ProposalCustomerContext = {
+  customerId: string | null;
+  customerName: string | null;
+  customerEmail: string | null;
+  customerPhone: string | null;
+  customerAddress: string | null;
+};
+
 export type ProposalDraftGraphAdapterResult = {
   pricingPreview: ProposalBuilderPricingPreview;
   selectedTemplateOptionId: string | null;
@@ -76,6 +85,8 @@ export type ProposalDraftGraphAdapterResult = {
   snapshotMeasurementDisplay: string | null;
   /** Company branding stamped on the proposal version context_echo. */
   proposalCompanyContext: ProposalCompanyContext;
+  /** Customer identity stamped on the proposal version context_echo. */
+  proposalCustomerContext: ProposalCustomerContext;
 };
 
 export type ValidateProposalDraftGraphForJobResult =
@@ -162,6 +173,18 @@ export function readProposalCompanyContextFromEcho(
     brandPrimaryColor: readContextEchoString(contextEcho, "brand_primary_color"),
     brandSecondaryColor: readContextEchoString(contextEcho, "brand_secondary_color"),
     showLicenseOnCover: readContextEchoBoolean(contextEcho, "show_license_on_cover") ?? false,
+  };
+}
+
+export function readProposalCustomerContextFromEcho(
+  contextEcho: ProposalDraftGraph["version"]["context_echo"] | null | undefined
+): ProposalCustomerContext {
+  return {
+    customerId: readContextEchoString(contextEcho, "customer_id"),
+    customerName: readContextEchoString(contextEcho, "customer_name"),
+    customerEmail: readContextEchoString(contextEcho, "customer_email"),
+    customerPhone: readContextEchoString(contextEcho, "customer_phone"),
+    customerAddress: readContextEchoString(contextEcho, "customer_address"),
   };
 }
 
@@ -379,5 +402,6 @@ export function adaptProposalDraftGraphToBuilderPreview(
       "measurement_quantities_display"
     ),
     proposalCompanyContext: readProposalCompanyContextFromEcho(graph.version.context_echo),
+    proposalCustomerContext: readProposalCustomerContextFromEcho(graph.version.context_echo),
   };
 }

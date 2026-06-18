@@ -145,6 +145,7 @@ export type BuildContextEchoInput = {
   customer_name?: string | null;
   customer_email?: string | null;
   customer_phone?: string | null;
+  customer_address?: string | null;
   address_formatted?: string | null;
   company_name?: string | null;
   company_logo_url?: string | null;
@@ -396,6 +397,7 @@ export function buildContextEcho(input: BuildContextEchoInput): ProposalVersionC
     customer_name: input.customer_name ?? null,
     customer_email: input.customer_email ?? null,
     customer_phone: input.customer_phone ?? null,
+    customer_address: input.customer_address ?? null,
     address_formatted: input.address_formatted ?? null,
     company_name: input.company_name ?? null,
     company_logo_url: input.company_logo_url ?? null,

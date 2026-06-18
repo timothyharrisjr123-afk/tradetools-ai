@@ -21,6 +21,8 @@ export type ProposalVersionContextEcho = {
   customer_name: string | null;
   customer_email: string | null;
   customer_phone: string | null;
+  /** Customer mailing/customer address — distinct from job address_formatted. */
+  customer_address?: string | null;
   address_formatted: string | null;
   company_name: string | null;
   company_logo_url: string | null;

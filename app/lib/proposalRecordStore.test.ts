@@ -207,7 +207,22 @@ function createMockSupabase(options?: {
   const state: MockState = {
     ops: [],
     tables: {
-      customers: [{ id: CUSTOMER_ID, company_id: COMPANY_ID }],
+      customers: [
+        {
+          id: CUSTOMER_ID,
+          company_id: COMPANY_ID,
+          name: "Jane Smith",
+          email: "jane@example.com",
+          phone: "918-555-0200",
+          address: "99 Mailing Ln",
+        },
+        {
+          id: OTHER_CUSTOMER_ID,
+          company_id: COMPANY_ID,
+          name: "Other Customer",
+          email: "other@example.com",
+        },
+      ],
       jobs: [
         {
           id: JOB_ID,
@@ -215,6 +230,9 @@ function createMockSupabase(options?: {
           customer_id: CUSTOMER_ID,
           job_name: "Smith Roof",
           address_formatted: "1 Main St",
+          customer_name: "Wrong Job Denorm Name",
+          customer_email: "wrong@job.com",
+          customer_phone: "555-0000",
         },
       ],
       company_pricing_policies: [{ id: POLICY_ID, company_id: COMPANY_ID }],
@@ -609,6 +627,77 @@ describe("createDraftProposal", () => {
     assert.equal(echo.address_formatted, "1 Main St");
     assert.notEqual(echo.company_address, echo.address_formatted);
     assert.equal("notifications_email" in echo, false);
+  });
+
+  test("stamps customer identity from customers row at create", async () => {
+    const mock = createMockSupabase();
+    await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+      },
+      storeDeps(mock)
+    );
+
+    const echo = (mock.state.tables.proposal_versions[0] as Record<string, unknown>)
+      .context_echo as Record<string, unknown>;
+    assert.equal(echo.customer_id, CUSTOMER_ID);
+    assert.equal(echo.customer_name, "Jane Smith");
+    assert.equal(echo.customer_email, "jane@example.com");
+    assert.equal(echo.customer_phone, "918-555-0200");
+    assert.equal(echo.customer_address, "99 Mailing Ln");
+    assert.equal(echo.address_formatted, "1 Main St");
+    assert.notEqual(echo.customer_address, echo.address_formatted);
+    assert.notEqual(echo.customer_name, "Wrong Job Denorm Name");
+    assert.notEqual(echo.customer_email, "wrong@job.com");
+  });
+
+  test("rejects payload customer_id mismatch with job customer_id", async () => {
+    const mock = createMockSupabase();
+    await assert.rejects(
+      () =>
+        createDraftProposal(
+          {
+            company_id: COMPANY_ID,
+            job_id: JOB_ID,
+            template_id: TEMPLATE_ID,
+            customer_id: OTHER_CUSTOMER_ID,
+          },
+          storeDeps(mock)
+        ),
+      /does not match job customer_id/
+    );
+  });
+
+  test("fail-soft null customer echo when loader returns empty slice", async () => {
+    const mock = createMockSupabase();
+    await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+        customer_id: CUSTOMER_ID,
+      },
+      {
+        ...storeDeps(mock),
+        loadProposalCustomerContext: async () => ({
+          customer_name: null,
+          customer_email: null,
+          customer_phone: null,
+          customer_address: null,
+        }),
+      }
+    );
+
+    const echo = (mock.state.tables.proposal_versions[0] as Record<string, unknown>)
+      .context_echo as Record<string, unknown>;
+    assert.equal(echo.customer_id, CUSTOMER_ID);
+    assert.equal(echo.customer_name, null);
+    assert.equal(echo.customer_email, null);
+    assert.equal(echo.customer_phone, null);
+    assert.equal(echo.customer_address, null);
+    assert.equal(echo.address_formatted, "1 Main St");
   });
 
   test("missing branding row stamps core fields with null extended branding", async () => {
@@ -1090,6 +1179,12 @@ describe("refreshDraftPricing", () => {
     assert.equal(echoAfter.measurement_quantities_display, "25.0 SQ");
     // Other context_echo fields preserved (not wiped).
     assert.equal(echoAfter.job_id, JOB_ID);
+    assert.equal(echoAfter.customer_id, CUSTOMER_ID);
+    assert.equal(echoAfter.customer_name, "Jane Smith");
+    assert.equal(echoAfter.customer_email, "jane@example.com");
+    assert.equal(echoAfter.customer_phone, "918-555-0200");
+    assert.equal(echoAfter.customer_address, "99 Mailing Ln");
+    assert.equal(echoAfter.address_formatted, "1 Main St");
     assert.equal(echoAfter.company_name, "Summit Roofing");
     assert.equal(echoAfter.company_logo_url, "data:image/png;base64,abc");
     assert.equal(echoAfter.company_phone, "918-555-0100");

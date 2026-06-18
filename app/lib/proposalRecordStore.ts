@@ -22,6 +22,10 @@ import {
 import type { CompanyBrandingExtendedFields } from "@/app/lib/companyBrandingProfileStore";
 import { getCompanyBrandingProfileResult } from "@/app/lib/companyBrandingProfileStore";
 import { normalizeCompanyProfile, type CompanyProfile } from "@/app/lib/companyProfile";
+import {
+  loadProposalCustomerContextFromDatabase,
+  type ProposalContextEchoCustomerFields,
+} from "@/app/lib/proposalCustomerContext";
 import { getResolvedCompanyPricingPolicy } from "@/app/lib/companyPricingPolicyStore";
 import { getSupabaseClient } from "@/app/lib/supabaseClient";
 import {
@@ -299,6 +303,11 @@ export type ProposalRecordStoreDeps = {
     companyId: string,
     supabase: NonNullable<ReturnType<typeof getSupabaseClient>>
   ) => Promise<ProposalCompanyContextLoadResult>;
+  loadProposalCustomerContext?: (
+    companyId: string,
+    customerId: string | null | undefined,
+    supabase: NonNullable<ReturnType<typeof getSupabaseClient>>
+  ) => Promise<ProposalContextEchoCustomerFields>;
 };
 
 function resolveDeps(deps?: ProposalRecordStoreDeps) {
@@ -309,6 +318,8 @@ function resolveDeps(deps?: ProposalRecordStoreDeps) {
     getResolvedPolicy: deps?.getResolvedPolicy ?? getResolvedCompanyPricingPolicy,
     loadProposalCompanyContext:
       deps?.loadProposalCompanyContext ?? loadProposalCompanyContextFromDatabase,
+    loadProposalCustomerContext:
+      deps?.loadProposalCustomerContext ?? loadProposalCustomerContextFromDatabase,
   };
 }
 
@@ -520,6 +531,21 @@ function mergeCompanyContextEchoInput(
     brand_primary_color: overrides?.brand_primary_color ?? stamped.brand_primary_color,
     brand_secondary_color: overrides?.brand_secondary_color ?? stamped.brand_secondary_color,
     show_license_on_cover: overrides?.show_license_on_cover ?? stamped.show_license_on_cover,
+  };
+}
+
+function mergeCustomerContextEchoInput(
+  stamped: ProposalContextEchoCustomerFields,
+  overrides?: Partial<BuildContextEchoInput>
+): Pick<
+  BuildContextEchoInput,
+  "customer_name" | "customer_email" | "customer_phone" | "customer_address"
+> {
+  return {
+    customer_name: overrides?.customer_name ?? stamped.customer_name,
+    customer_email: overrides?.customer_email ?? stamped.customer_email,
+    customer_phone: overrides?.customer_phone ?? stamped.customer_phone,
+    customer_address: overrides?.customer_address ?? stamped.customer_address,
   };
 }
 
@@ -938,10 +964,17 @@ export async function createDraftProposal(
 
   const policy = policyResolution.policy!;
 
-  const customerId = input.customer_id ?? null;
-  await validateCustomerBelongsToCompany(supabase, companyId, customerId);
-
   const jobEcho = await validateJobBelongsToCompany(supabase, companyId, jobId);
+
+  const inputCustomerId = (input.customer_id ?? "").trim() || null;
+  const jobCustomerId = (jobEcho.customer_id ?? "").trim() || null;
+  if (inputCustomerId && jobCustomerId && inputCustomerId !== jobCustomerId) {
+    throw new ProposalRecordStoreError(
+      "customer_id does not match job customer_id (fail closed)."
+    );
+  }
+  const resolvedCustomerId = inputCustomerId ?? jobCustomerId;
+  await validateCustomerBelongsToCompany(supabase, companyId, resolvedCustomerId);
 
   const graph = await d.getTemplateGraph(templateId, { companyId });
   if (!graph) {
@@ -969,13 +1002,18 @@ export async function createDraftProposal(
   const stampedCompany = buildProposalCompanyContextEchoFromProfile(mergedCompanyProfile);
   const companyEcho = mergeCompanyContextEchoInput(stampedCompany, input.context);
 
+  const customerSource = await d.loadProposalCustomerContext(
+    companyId,
+    resolvedCustomerId,
+    supabase
+  );
+  const customerEcho = mergeCustomerContextEchoInput(customerSource, input.context);
+
   const contextEcho: BuildContextEchoInput = {
     job_id: jobId,
     job_name: input.context?.job_name ?? jobEcho.job_name,
-    customer_id: customerId ?? jobEcho.customer_id,
-    customer_name: input.context?.customer_name ?? null,
-    customer_email: input.context?.customer_email ?? null,
-    customer_phone: input.context?.customer_phone ?? null,
+    customer_id: resolvedCustomerId,
+    ...customerEcho,
     address_formatted: input.context?.address_formatted ?? jobEcho.address_formatted,
     ...companyEcho,
     template_id: templateId,
@@ -1005,7 +1043,7 @@ export async function createDraftProposal(
     .insert({
       company_id: companyId,
       job_id: jobId,
-      customer_id: customerId ?? jobEcho.customer_id,
+      customer_id: resolvedCustomerId,
       template_id: templateId,
       status: "draft",
       measurement_record_id: input.measurement_record_id ?? null,

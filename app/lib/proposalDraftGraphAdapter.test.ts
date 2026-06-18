@@ -427,6 +427,13 @@ describe("adaptProposalDraftGraphToBuilderPreview", () => {
       brandSecondaryColor: null,
       showLicenseOnCover: false,
     });
+    assert.deepEqual(adapted.proposalCustomerContext, {
+      customerId: null,
+      customerName: null,
+      customerEmail: null,
+      customerPhone: null,
+      customerAddress: null,
+    });
   });
 
   test("exposes proposalCompanyContext from context_echo", () => {
@@ -458,6 +465,31 @@ describe("adaptProposalDraftGraphToBuilderPreview", () => {
       brandPrimaryColor: "#112233",
       brandSecondaryColor: "#445566",
       showLicenseOnCover: true,
+    });
+  });
+
+  test("exposes proposalCustomerContext from context_echo", () => {
+    const adapted = adaptProposalDraftGraphToBuilderPreview(
+      draftGraph({
+        version: {
+          ...versionRow(),
+          context_echo: {
+            customer_id: "55555555-5555-4555-8555-555555555555",
+            customer_name: "Jane Smith",
+            customer_email: "jane@example.com",
+            customer_phone: "918-555-0200",
+            customer_address: "99 Mailing Ln",
+            address_formatted: "1 Main St",
+          },
+        },
+      })
+    );
+    assert.deepEqual(adapted.proposalCustomerContext, {
+      customerId: "55555555-5555-4555-8555-555555555555",
+      customerName: "Jane Smith",
+      customerEmail: "jane@example.com",
+      customerPhone: "918-555-0200",
+      customerAddress: "99 Mailing Ln",
     });
   });
 

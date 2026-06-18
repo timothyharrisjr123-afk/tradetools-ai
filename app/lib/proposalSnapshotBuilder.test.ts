@@ -162,6 +162,22 @@ describe("buildContextEcho", () => {
     assert.equal(echo.show_license_on_cover, true);
     assert.notEqual(echo.company_address, echo.address_formatted);
   });
+
+  test("includes customer mailing address separate from job site address", () => {
+    const echo = buildContextEcho({
+      job_id: JOB_ID,
+      template_id: TEMPLATE_ID,
+      customer_name: "Jane Smith",
+      customer_email: "jane@example.com",
+      customer_phone: "918-555-0200",
+      customer_address: "99 Mailing Ln",
+      address_formatted: "1 Main St",
+    });
+
+    assert.equal(echo.customer_address, "99 Mailing Ln");
+    assert.equal(echo.address_formatted, "1 Main St");
+    assert.notEqual(echo.customer_address, echo.address_formatted);
+  });
 });
 
 describe("buildPolicyEchoCustomerSafe", () => {
