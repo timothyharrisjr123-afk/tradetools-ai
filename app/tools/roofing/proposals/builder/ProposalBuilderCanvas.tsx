@@ -18,6 +18,11 @@ import {
   type BuilderPageContextId,
 } from "@/app/lib/proposalBuilderNavigation";
 import type { ProposalCoverViewModel } from "@/app/lib/proposalCoverViewModel";
+import type { ProposalDocumentContext } from "@/app/lib/proposalDocumentTokenTypes";
+import {
+  proposalDocumentBodyContractorNotice,
+  renderProposalDocumentPageBody,
+} from "@/app/lib/proposalDocumentBodyRenderer";
 import type { ProposalPageType } from "@/app/lib/proposalPageTypes";
 import type { ProposalPageRow } from "@/app/lib/proposalRecordStore";
 import ProposalBuilderCoverPage from "./ProposalBuilderCoverPage";
@@ -49,6 +54,8 @@ type ProposalBuilderCanvasProps = {
   activePageContextId: BuilderPageContextId;
   persistedPages: ProposalPageRow[] | null | undefined;
   coverViewModel?: ProposalCoverViewModel | null;
+  proposalDocumentContext?: ProposalDocumentContext | null;
+  pricingComplete?: boolean;
 };
 
 /** 3J4F — text page types that render as read-only customer document pages. */
@@ -123,6 +130,8 @@ export default function ProposalBuilderCanvas({
   activePageContextId,
   persistedPages,
   coverViewModel,
+  proposalDocumentContext,
+  pricingComplete = false,
 }: ProposalBuilderCanvasProps) {
   const templateName = starterGraph?.template.name ?? STARTER_TEMPLATE_DISPLAY_NAME;
   const effectiveOptionId =
@@ -182,13 +191,28 @@ export default function ProposalBuilderCanvas({
     // PDF attachments, and other media/editor-dependent pages stay honestly
     // reserved behind the placeholder panel.
     if (isCustomerTextPageType(pageType)) {
+      const rawBodyMarkdown = readPageBodyMarkdown(persistedPage);
+      let displayBody = rawBodyMarkdown;
+      let contractorNotice: string | null = null;
+
+      if (proposalDocumentContext && rawBodyMarkdown) {
+        const rendered = renderProposalDocumentPageBody(
+          rawBodyMarkdown,
+          proposalDocumentContext,
+          { pricingComplete }
+        );
+        displayBody = rendered.displayText;
+        contractorNotice = proposalDocumentBodyContractorNotice(rendered.diagnostics);
+      }
+
       return (
         <article className={BUILDER_CANVAS}>
           <ProposalBuilderCustomerPage
             pageType={pageType as ProposalPageType}
             title={pageTitle}
-            bodyMarkdown={readPageBodyMarkdown(persistedPage)}
+            bodyMarkdown={displayBody}
             emptyStateText={emptyStateTextForPageType(pageType as ProposalPageType)}
+            contractorNotice={contractorNotice}
           />
         </article>
       );

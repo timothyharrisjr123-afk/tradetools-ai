@@ -820,6 +820,8 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
               activePageContextId={activePageContextId}
               persistedPages={persistedGraph?.pages}
               coverViewModel={coverViewModel}
+              proposalDocumentContext={adapterResult?.proposalDocumentContext ?? null}
+              pricingComplete={selectedOptionPricingStatus?.pricingComplete ?? false}
             />
           }
           summaryRail={

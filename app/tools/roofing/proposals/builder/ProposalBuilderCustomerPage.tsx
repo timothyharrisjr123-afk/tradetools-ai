@@ -11,10 +11,12 @@ import {
 type ProposalBuilderCustomerPageProps = {
   pageType: ProposalPageType;
   title: string;
-  /** Persisted customer-facing body text (content_json.body_markdown). */
+  /** Display body text (raw or token-merged at render time). */
   bodyMarkdown?: string | null;
   /** Page-specific calm copy shown when no body content exists yet. */
   emptyStateText: string;
+  /** Builder-only muted note when token merge suppressed or removed placeholders. */
+  contractorNotice?: string | null;
 };
 
 type TextBlock =
@@ -85,6 +87,7 @@ export default function ProposalBuilderCustomerPage({
   title,
   bodyMarkdown,
   emptyStateText,
+  contractorNotice,
 }: ProposalBuilderCustomerPageProps) {
   const body = (bodyMarkdown ?? "").trim();
   const hasBody = body.length > 0;
@@ -114,6 +117,9 @@ export default function ProposalBuilderCustomerPage({
             <p className="mt-6 border-t border-slate-100 pt-3 text-[11px] leading-snug text-slate-400">
               Read-only customer page from the saved draft. Page editing comes in a later phase.
             </p>
+            {contractorNotice ? (
+              <p className="mt-2 text-[11px] leading-snug text-slate-400">{contractorNotice}</p>
+            ) : null}
           </>
         ) : (
           <div className="flex min-h-[16rem] flex-col items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50/50 px-6 py-12 text-center">
