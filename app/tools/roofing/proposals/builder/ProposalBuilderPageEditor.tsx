@@ -1,11 +1,18 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import type { ProposalDocumentContext } from "@/app/lib/proposalDocumentTokenTypes";
 import {
   proposalDocumentBodyContractorNotice,
   renderProposalDocumentPageBody,
 } from "@/app/lib/proposalDocumentBodyRenderer";
+import {
+  assertInsertableDocumentToken,
+  formatProposalDocumentTokenPlaceholder,
+  insertTextAtCursor,
+  resolveTextareaInsertionSelection,
+} from "@/app/lib/proposalDocumentTokenPicker";
+import ProposalBuilderTokenPickerMenu from "./ProposalBuilderTokenPickerMenu";
 import {
   BUILDER_PAGE_EDIT_HELPER_COPY,
   BUILDER_PAGE_EDIT_MERGE_PREVIEW_LABEL,
@@ -21,8 +28,6 @@ type ProposalBuilderPageEditorProps = {
   saveError?: string | null;
   proposalDocumentContext?: ProposalDocumentContext | null;
   pricingComplete?: boolean;
-  /** Future token picker seam — not wired in R16B. */
-  onInsertToken?: (tokenName: string) => void;
 };
 
 export default function ProposalBuilderPageEditor({
@@ -36,6 +41,8 @@ export default function ProposalBuilderPageEditor({
   proposalDocumentContext = null,
   pricingComplete = false,
 }: ProposalBuilderPageEditorProps) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
   const mergePreview = useMemo(() => {
     if (!proposalDocumentContext) return null;
     const trimmed = draftBody.trim();
@@ -50,11 +57,53 @@ export default function ProposalBuilderPageEditor({
       ? proposalDocumentBodyContractorNotice(mergePreview.diagnostics)
       : null;
 
+  const handleInsertToken = useCallback(
+    (tokenName: string) => {
+      const insertable = assertInsertableDocumentToken(tokenName);
+      if (!insertable) return;
+
+      const textarea = textareaRef.current;
+      const currentValue = draftBody;
+      const isFocused = document.activeElement === textarea;
+      const selection = resolveTextareaInsertionSelection(
+        currentValue,
+        textarea?.selectionStart,
+        textarea?.selectionEnd,
+        isFocused
+      );
+      const placeholder = formatProposalDocumentTokenPlaceholder(insertable);
+      const next = insertTextAtCursor({
+        value: currentValue,
+        selectionStart: selection.selectionStart,
+        selectionEnd: selection.selectionEnd,
+        insertText: placeholder,
+      });
+
+      onDraftBodyChange(next.value);
+
+      requestAnimationFrame(() => {
+        const el = textareaRef.current;
+        if (!el) return;
+        el.focus();
+        el.setSelectionRange(next.selectionStart, next.selectionEnd);
+      });
+    },
+    [draftBody, onDraftBodyChange]
+  );
+
   return (
     <div className="space-y-4 px-7 pb-7 pt-2">
       <p className="text-xs text-slate-500">{BUILDER_PAGE_EDIT_HELPER_COPY}</p>
 
+      <div className="flex flex-wrap items-center gap-2">
+        <ProposalBuilderTokenPickerMenu
+          pricingComplete={pricingComplete}
+          onInsertToken={handleInsertToken}
+        />
+      </div>
+
       <textarea
+        ref={textareaRef}
         value={draftBody}
         onChange={(event) => onDraftBodyChange(event.target.value)}
         rows={14}

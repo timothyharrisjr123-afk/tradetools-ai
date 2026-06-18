@@ -138,6 +138,33 @@ export const BUILDER_PAGE_STRIP_OVERFLOW_MENU_ITEM_LABEL =
 export const BUILDER_PAGE_STRIP_OVERFLOW_MENU_ITEM_TYPE =
   "truncate text-[11px] text-slate-500";
 
+/** R16C2 — token picker trigger in page editor toolbar. */
+export const BUILDER_TOKEN_PICKER_TRIGGER =
+  "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50";
+
+export const BUILDER_TOKEN_PICKER_TRIGGER_TEXT = "truncate";
+
+/** R16C2 — portaled token picker menu panel. */
+export const BUILDER_TOKEN_PICKER_MENU =
+  "min-w-[16rem] max-w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-slate-200/90 bg-white py-1 shadow-[0_12px_32px_rgba(15,23,42,0.12),0_2px_6px_rgba(15,23,42,0.06)]";
+
+export const BUILDER_TOKEN_PICKER_MENU_GROUP = "py-1";
+
+export const BUILDER_TOKEN_PICKER_MENU_GROUP_HEADING =
+  "px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-slate-500";
+
+export const BUILDER_TOKEN_PICKER_ITEM =
+  "flex w-full items-start gap-2 px-3 py-2.5 text-left transition-colors hover:bg-slate-50";
+
+export const BUILDER_TOKEN_PICKER_ITEM_LABEL = "truncate text-sm font-medium text-slate-800";
+
+export const BUILDER_TOKEN_PICKER_ITEM_PLACEHOLDER =
+  "truncate font-mono text-[11px] text-slate-500";
+
+export const BUILDER_TOKEN_PICKER_ITEM_DESCRIPTION = "truncate text-[11px] text-slate-500";
+
+export const BUILDER_TOKEN_PICKER_ITEM_HINT = "truncate text-[11px] text-amber-700/90";
+
 /** 3J4A — main proposal canvas shell (internal bands carry padding). */
 export const BUILDER_CANVAS =
   "w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_18px_50px_rgba(15,23,42,0.10),0_2px_8px_rgba(15,23,42,0.06)]";
@@ -222,6 +249,9 @@ export {
   BUILDER_OVERFLOW_MENU_LABEL,
   BUILDER_PAGE_EDIT_HELPER_COPY,
   BUILDER_PAGE_EDIT_MERGE_PREVIEW_LABEL,
+  BUILDER_TOKEN_PICKER_ARIA_LABEL,
+  BUILDER_TOKEN_PICKER_HEADING,
+  BUILDER_TOKEN_PICKER_TRIGGER_LABEL,
   BUILDER_UNSAVED_PAGE_EDIT_CONFIRM,
 } from "@/app/lib/proposalBuilderDocumentIa";
 

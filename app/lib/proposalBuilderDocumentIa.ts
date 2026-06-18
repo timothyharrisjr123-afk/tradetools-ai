@@ -34,7 +34,16 @@ export const BUILDER_DOCUMENT_READ_ONLY_FOOTER =
 
 /** R16B — helper when editing job-specific page body text. */
 export const BUILDER_PAGE_EDIT_HELPER_COPY =
-  "Changes apply to this proposal only — not the master template.";
+  "Changes apply to this proposal only — not the master template. Use Insert field for dynamic values. Saved text keeps field placeholders.";
+
+/** R16C2 — token picker trigger label in page editor chrome. */
+export const BUILDER_TOKEN_PICKER_TRIGGER_LABEL = "Insert field";
+
+/** R16C2 — aria label for token picker trigger. */
+export const BUILDER_TOKEN_PICKER_ARIA_LABEL = "Insert field";
+
+/** R16C2 — token picker menu heading. */
+export const BUILDER_TOKEN_PICKER_HEADING = "Document fields";
 
 /** R16B — confirm when navigating away from a dirty page edit session. */
 export const BUILDER_UNSAVED_PAGE_EDIT_CONFIRM =
