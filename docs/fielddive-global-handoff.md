@@ -28,19 +28,22 @@
 - Read **§6AY** before any Builder body authoring, page content edit/save, Estimate section filtering, or `updateDraftProposalPageContent` work — R16B proposal body authoring foundation, post-R16B validation, P2/P3 carryover.
 - Read **§6AZ** before choosing the next Builder stage after R16B — whole-app Roofr-aligned audit (2026-06-18), P2/P3 findings, R16C planning guidance.
 - Read **§6BA** before any Builder strip overflow navigation, More pages menu, or overflow page routing work — R16C1 overflow navigation foundation, portal menu fix, post-R16C1 validation.
+- Read **§6BB** before any Builder document token picker, Insert field control, or R16B editor token insertion work — R16C2 registry-driven token picker foundation, post-R16C2 validation.
 
-**Last updated checkpoint:** **Code:** **`967f0de` — feat(proposals): add builder strip overflow page navigation**. **Docs checkpoint:** **pending this commit** (prior: **`5362d7e`** — docs: checkpoint after R16B body authoring and whole-app audit). **Current state:** **R0–R15** complete/satisfied; **R14** body merge at `f359ad4` (§6AW); **R16A** Builder chrome/customer document IA separation complete at `18cebca` (§6AX); **R16B** proposal body authoring foundation complete at `589f5a0` (§6AY); **R16C1** Builder strip overflow page navigation complete at `967f0de` (§6BA). **R16A / R16B / R16C ≠ §6AL R16 Proposals hub** — hub remains **not started**. **R16C program:** **R16C1** overflow navigation **complete**; **R16C2** token picker and **R16C3** page visibility **not started**. **Latest completed product audit:** **whole-app Roofr-aligned audit after R16B** (2026-06-18, §6AZ) — **Proceed**; no P0/P1 blockers; **R16C1 browser audit after portal fix passed** (§6BA). **Playwright auth:** outside-repo `storageState` at `C:\Users\sabre\.cursor\fielddive-playwright-auth.json` — test-only audits; no auth/RLS bypass; session expiry requires normal login and re-save. **Do not use** `C:\Users\sabre.cursor\...` (missing `.` before `cursor`) — that path is a common typo. **Tests (post-R16C1):** **167/167** relevant R16C1 + safety suites pass (§6BA); prior whole-app audit suite **370/370** pass (§6AZ). **Typecheck:** only **6** pre-existing errors in `app/tools/roofing-v2/RoofingClientV2.tsx` — unchanged. **Protected systems:** unchanged in R16C1 pass. **Working tree:** clean at `967f0de`; doc-only WIP for this checkpoint.
+**Last updated checkpoint:** **Code:** **`0cf76d2` — feat(proposals): add registry-driven document token picker in R16B editor**. **Docs checkpoint:** **pending this commit** (prior: **`7530433`** — docs: checkpoint after R16C1 builder strip overflow navigation). **Current state:** **R0–R15** complete/satisfied; **R14** body merge at `f359ad4` (§6AW); **R16A** Builder chrome/customer document IA separation complete at `18cebca` (§6AX); **R16B** proposal body authoring foundation complete at `589f5a0` (§6AY); **R16C1** Builder strip overflow page navigation complete at `967f0de` (§6BA); **R16C2** document token picker in R16B editor complete at `0cf76d2` (§6BB). **R16A / R16B / R16C ≠ §6AL R16 Proposals hub** — hub remains **not started**. **R16C program:** **R16C1** overflow navigation **complete**; **R16C2** token picker **complete**; **R16C3** page visibility **not started**. **Latest completed product audit:** **whole-app Roofr-aligned audit after R16B** (2026-06-18, §6AZ) — **Proceed**; no P0/P1 blockers; **R16C2 pre-commit audit passed** (§6BB). **Playwright auth:** outside-repo `storageState` at `C:\Users\sabre\.cursor\fielddive-playwright-auth.json` — test-only audits; no auth/RLS bypass; session expiry requires normal login and re-save. **Do not use** `C:\Users\sabre.cursor\...` (missing `.` before `cursor`) — that path is a common typo. **Tests (post-R16C2):** **103/103** combined relevant R16C2 + safety suites pass (§6BB); prior R16C1 batch **167/167** pass (§6BA); prior whole-app audit suite **370/370** pass (§6AZ). **Typecheck:** only **6** pre-existing errors in `app/tools/roofing-v2/RoofingClientV2.tsx` — unchanged. **Protected systems:** unchanged in R16C2 pass. **Working tree:** clean at `0cf76d2`; doc-only WIP for this checkpoint.
 
 **Jobs Board approved save point:** `b27a444` (3F9B4-RoofrExact visual baseline). **DB-first board partition:** `a62ad93` (§6AD). **Jobs Board identity (R8):** `1191ddd`.
 
-**Next (recommended):** **Do not start Preview/PDF/lifecycle (R17–R20) or §6AL R16 Proposals hub automatically.** **Do not start R16C2/R16C3 implementation until explicitly approved.** **Immediate next after this docs commit:** **R16C2 planning only** — document token picker inside the R16B editor (§6BA); **R16C3** page visibility/hide-show remains deferred. **No implementation** without explicit scoped direction. **Mandatory recovery order:** **§6AL** + **§6AM** + **§6AN** + **§6AO** + **§6AP** + **§6AQ** + **§6AR** + **§6AS** + **§6AT** + **§6AU** + **§6AV** + **§6AW** + **§6AX** + **§6AY** + **§6AZ** + **§6BA**. **Later items** only in **§11**. **Preview / Send / Sign / Payment remain disabled** until **R17–R20**. **Do not** return to `loadSaved`/`currentSaved` as main workflow.
+**Next (recommended):** **Do not start Preview/PDF/lifecycle (R17–R20) or §6AL R16 Proposals hub automatically.** **Do not start R16C3 implementation until explicitly approved.** **Immediate next after this docs commit:** **R16C3 planning only** — page visibility / hide-show foundation (§6BB); **R17 Preview remains blocked** until R16C3 visibility contract is planned, implemented, audited, and checkpointed. **No implementation** without explicit scoped direction. **Mandatory recovery order:** **§6AL** + **§6AM** + **§6AN** + **§6AO** + **§6AP** + **§6AQ** + **§6AR** + **§6AS** + **§6AT** + **§6AU** + **§6AV** + **§6AW** + **§6AX** + **§6AY** + **§6AZ** + **§6BA** + **§6BB**. **Later items** only in **§11**. **Preview / Send / Sign / Payment remain disabled** until **R17–R20**. **Do not** return to `loadSaved`/`currentSaved` as main workflow.
 
-**DB-first foundation is live** (§6AD). **3J3E option selection persists** (§6AE). **Pricing trust hardening complete** (§6AF). **3J4C document-first Builder complete** (§6AG) — Estimate page renders the actual proposal document inline (package selector, sections, line items, totals); right rail is a contextual **Proposal Helper** inspector; old workspace tabs and Overview panel **removed**. **R16A** (§6AX) removed the amber **Preview-unlock blocker banner** from the Estimate **canvas**; pricing/blocking guidance remains in the rail. **3J4D** refined Estimate line readability (§6AH). **3J4E** refined package/options surface inside Estimate (§6AI). **3J4F** extended Builder to customer-facing text pages — Terms, Warranty, Project Overview, custom_text render persisted `body_markdown` when present (§6AJ). **R14** adds display-time `{{token_name}}` merge on those text pages from frozen `proposalDocumentContext` + R13 resolver (`f359ad4`, §6AW) — stored `body_markdown` unchanged; no write-back. **R4–R6** template content editor on `/tools/roofing/templates` **complete** (`9db2030`–`3c6214c`). **R7** light global IA nav **complete** (`05b9c54`). **R8** light Jobs Board identity **complete** (`1191ddd`). **R9** Job Card create/open draft flow **satisfied** (`1915b2d` + pre-R10 P1 at `d0ba188`). **R10** template structure + estimate settings **complete** (`bc42b1e`–`b3dd904`, §6AQ). **R11** company branding Settings **complete** (`0146dac`–`139e8a3`, §6AR). **R11c** stamps company core + branding into `proposal_versions.context_echo` at new draft create only (`29722a0`, §6AS) — **no Builder cover UI**. **R12** stamps DB-truth customer identity into `proposal_versions.context_echo` at new draft create only (`31059e3`, §6AT) — **no Job Card UI changes, no Builder customer display**. **R13** adds pure frozen document token foundation (`e40db30`, §6AU) — registry, `ProposalDocumentContext`, resolver. **R15** adds read-only branded **Cover** tab in Proposal Builder (`ab5a400`, §6AV) — consumes `proposalDocumentContext` + resolver; **not** Preview/PDF/send/sign/payment. **R14** wires body text pages to the same frozen context at display time (`f359ad4`, §6AW). **R16A** separates contractor workspace chrome from customer document IA (`18cebca`, §6AX) — customer-logical page strip order, workspace header, simplified body shell; **not** Preview/PDF/lifecycle/hub. **R16B** adds per-proposal draft body authoring for text pages (`589f5a0`, §6AY) — raw `body_markdown` persist, R14 display merge only, Estimate line-items-only de-duplication on persisted path; **not** token picker, page visibility, media, Preview, or lifecycle. **R16C1** adds Builder strip overflow page navigation (`967f0de`, §6BA) — More pages menu for persisted overflow pages by `page.id`, dirty-edit guard preserved, portal menu fix; **not** token picker, page visibility, Preview, or lifecycle. Main workflow: **Job Board → DB job card (`job=`) → Create proposal / Open proposal → create/reuse DB proposal draft → Builder (`job=` + `proposal=`) → package selection persists to DB; refresh draft pricing when measurement changes**. Legacy `loadSaved=` / `currentSaved` / board-origin paths are **preserved but separated** — they **cannot create DB proposals directly**. **DB proposal math uses the new spine only** (`measurement_records` → `proposalQuantityResolver` → `proposalPricingEngine` → snapshots) — **not** legacy saved-estimate / Core-Enhanced-Premium estimator math. **`createDraftProposal`** runs from Job Card **Create proposal** only when checklist + pricing gates pass; **Builder reads** persisted drafts via **`getDraftGraph`** + **`proposalDraftGraphAdapter`** when `?proposal=` is present — **no Builder create path**, **no silent fallback** on invalid `proposal=`. **Do not** persist placeholder/unconfigured pricing policy. **Catalog custom delete/deactivate** is **not implemented** and remains a **separate later scope**.
+**DB-first foundation is live** (§6AD). **3J3E option selection persists** (§6AE). **Pricing trust hardening complete** (§6AF). **3J4C document-first Builder complete** (§6AG) — Estimate page renders the actual proposal document inline (package selector, sections, line items, totals); right rail is a contextual **Proposal Helper** inspector; old workspace tabs and Overview panel **removed**. **R16A** (§6AX) removed the amber **Preview-unlock blocker banner** from the Estimate **canvas**; pricing/blocking guidance remains in the rail. **3J4D** refined Estimate line readability (§6AH). **3J4E** refined package/options surface inside Estimate (§6AI). **3J4F** extended Builder to customer-facing text pages — Terms, Warranty, Project Overview, custom_text render persisted `body_markdown` when present (§6AJ). **R14** adds display-time `{{token_name}}` merge on those text pages from frozen `proposalDocumentContext` + R13 resolver (`f359ad4`, §6AW) — stored `body_markdown` unchanged; no write-back. **R4–R6** template content editor on `/tools/roofing/templates` **complete** (`9db2030`–`3c6214c`). **R7** light global IA nav **complete** (`05b9c54`). **R8** light Jobs Board identity **complete** (`1191ddd`). **R9** Job Card create/open draft flow **satisfied** (`1915b2d` + pre-R10 P1 at `d0ba188`). **R10** template structure + estimate settings **complete** (`bc42b1e`–`b3dd904`, §6AQ). **R11** company branding Settings **complete** (`0146dac`–`139e8a3`, §6AR). **R11c** stamps company core + branding into `proposal_versions.context_echo` at new draft create only (`29722a0`, §6AS) — **no Builder cover UI**. **R12** stamps DB-truth customer identity into `proposal_versions.context_echo` at new draft create only (`31059e3`, §6AT) — **no Job Card UI changes, no Builder customer display**. **R13** adds pure frozen document token foundation (`e40db30`, §6AU) — registry, `ProposalDocumentContext`, resolver. **R15** adds read-only branded **Cover** tab in Proposal Builder (`ab5a400`, §6AV) — consumes `proposalDocumentContext` + resolver; **not** Preview/PDF/send/sign/payment. **R14** wires body text pages to the same frozen context at display time (`f359ad4`, §6AW). **R16A** separates contractor workspace chrome from customer document IA (`18cebca`, §6AX) — customer-logical page strip order, workspace header, simplified body shell; **not** Preview/PDF/lifecycle/hub. **R16B** adds per-proposal draft body authoring for text pages (`589f5a0`, §6AY) — raw `body_markdown` persist, R14 display merge only, Estimate line-items-only de-duplication on persisted path; **not** token picker, page visibility, media, Preview, or lifecycle. **R16C1** adds Builder strip overflow page navigation (`967f0de`, §6BA) — More pages menu for persisted overflow pages by `page.id`, dirty-edit guard preserved, portal menu fix; **not** page visibility, Preview, or lifecycle. **R16C2** adds registry-driven document token picker in the R16B editor (`0cf76d2`, §6BB) — Insert field menu inserts raw `{{token_name}}` only; R14 display-time merge unchanged; save persists raw `body_markdown` only; **not** page visibility, Preview, or lifecycle. Main workflow: **Job Board → DB job card (`job=`) → Create proposal / Open proposal → create/reuse DB proposal draft → Builder (`job=` + `proposal=`) → package selection persists to DB; refresh draft pricing when measurement changes**. Legacy `loadSaved=` / `currentSaved` / board-origin paths are **preserved but separated** — they **cannot create DB proposals directly**. **DB proposal math uses the new spine only** (`measurement_records` → `proposalQuantityResolver` → `proposalPricingEngine` → snapshots) — **not** legacy saved-estimate / Core-Enhanced-Premium estimator math. **`createDraftProposal`** runs from Job Card **Create proposal** only when checklist + pricing gates pass; **Builder reads** persisted drafts via **`getDraftGraph`** + **`proposalDraftGraphAdapter`** when `?proposal=` is present — **no Builder create path**, **no silent fallback** on invalid `proposal=`. **Do not** persist placeholder/unconfigured pricing policy. **Catalog custom delete/deactivate** is **not implemented** and remains a **separate later scope**.
 
-### Recent committed sequence (recovery R0–R16C1; then 3G6 spine + 3J + 3J4)
+### Recent committed sequence (recovery R0–R16C2; then 3G6 spine + 3J + 3J4)
 
 | Commit | Summary |
 |--------|---------|
+| `0cf76d2` | **R16C2** — Registry-driven document token picker in R16B editor; Insert field menu; raw `{{token}}` insert only; R14 merge preview unchanged; lifecycle still locked |
+| `7530433` | **Docs** — Checkpoint after R16C1 builder strip overflow navigation |
 | `967f0de` | **R16C1** — Builder strip overflow page navigation; More pages menu; overflow pages navigate by persisted `page.id`; portal menu fix; dirty-edit guard preserved; lifecycle still locked |
 | `589f5a0` | **R16B** — Draft body page authoring foundation; `proposalPageContentEditing` + `updateDraftProposalPageContent`; Builder Edit/Save/Cancel; Estimate filters to line_items/upgrade_group only on persisted path; lifecycle still locked |
 | `e5dd2fb` | **Docs** — Checkpoint after R16A builder chrome and document IA separation |
@@ -5368,7 +5371,7 @@ raw body_markdown + proposalDocumentContext + { pricingComplete }
 - **R16B** is complete and committed at **`589f5a0`**.
 - **R16B is not the same as §6AL R16 Proposals hub.**
 - **R16B** = per-proposal draft body authoring for text pages on persisted Builder path.
-- **R16C** (proposed) = Builder authoring completion + page visibility foundation — **partial**: **R16C1** overflow navigation **complete** at `967f0de` (§6BA); **R16C2** token picker + **R16C3** visibility **not started**.
+- **R16C** (proposed) = Builder authoring completion + page visibility foundation — **partial**: **R16C1** overflow navigation **complete** at `967f0de` (§6BA); **R16C2** token picker **complete** at `0cf76d2` (§6BB); **R16C3** visibility **not started**.
 
 ### 2. R16B implementation commit and files changed
 
@@ -5425,7 +5428,7 @@ raw body_markdown + proposalDocumentContext + { pricingComplete }
 
 **Not built yet (explicit deferrals):**
 
-- **Token picker** — manual `{{token}}` entry only; `onInsertToken` seam exists unwired.
+- **Token picker** — **addressed in R16C2** (`0cf76d2`, §6BB) — registry-driven Insert field menu; raw `{{token}}` insert; R14 display-time merge preserved.
 - **Page visibility / hide-show** — all pages conceptually visible; blocks future Preview WYSIWYG parity.
 - **Custom Text overflow navigation** — **addressed in R16C1** (`967f0de`, §6BA) — More pages menu; Scope notes reachable.
 - **Media / photos / PDF / report pages** — placeholder panels only.
@@ -5488,12 +5491,12 @@ raw body_markdown + proposalDocumentContext + { pricingComplete }
 |-------|---------|--------|
 | **R16A** | Builder chrome / customer document IA separation | **Complete** at `18cebca` (§6AX) |
 | **R16B** | Proposal body authoring foundation | **Complete** at `589f5a0` (§6AY) |
-| **R16C** | Proposed Builder authoring completion + page visibility foundation | **Partial** — **R16C1** overflow navigation **complete** at `967f0de` (§6BA); **R16C2** token picker + **R16C3** visibility **not started** |
+| **R16C** | Proposed Builder authoring completion + page visibility foundation | **Partial** — **R16C1** overflow navigation **complete** at `967f0de` (§6BA); **R16C2** token picker **complete** at `0cf76d2` (§6BB); **R16C3** visibility **not started** |
 | **§6AL R16** | Future Proposals hub / Draft-Sent-Won-Lost lifecycle module | **Not started** — distinct from R16A/B/C |
 
 ### 8. Next-stage guidance (historical — superseded by §6AZ)
 
-**Do not start R16C2/R16C3, Preview, PDF, lifecycle (R17–R20), or §6AL R16 hub without explicit approval.** See **§6AZ** for whole-app audit findings; **§6BA** for R16C1 completion and next R16C2 planning scope.
+**Do not start R16C3, Preview, PDF, lifecycle (R17–R20), or §6AL R16 hub without explicit approval.** See **§6AZ** for whole-app audit findings; **§6BB** for R16C2 completion and next R16C3 planning scope.
 
 ---
 
@@ -5549,7 +5552,7 @@ raw body_markdown + proposalDocumentContext + { pricingComplete }
 | Finding | App area | Fix before next impl? |
 |---------|----------|----------------------|
 | **`+1` strip overflow not navigable; Custom Text unreachable** | Builder strip | **Addressed in R16C1** (`967f0de`, §6BA) |
-| **No token picker; manual `{{token}}` only** | Builder authoring | **Yes** |
+| **No token picker; manual `{{token}}` only** | Builder authoring | **Addressed in R16C2** (`0cf76d2`, §6BB) |
 | **No page visibility / hide-show** | Builder pages | **Yes** — blocks Preview WYSIWYG |
 | **Project Photos / media placeholder** | Builder pages | Before R17 Preview |
 | **Dual legacy estimate send/approve/payment spine** | Board / RoofingClient / APIs | At lifecycle bridge (R18–R20) |
@@ -5573,8 +5576,8 @@ raw body_markdown + proposalDocumentContext + { pricingComplete }
 Likely scope (in order):
 
 1. **Strip overflow navigation** — **Complete** at **`967f0de`** (§6BA) — More pages menu; Scope notes / Custom Text reachable.
-2. **Token picker** — insert into R16B editor; keep R14 display-time merge — **not started** (R16C2 planning only).
-3. **Page visibility / hide-show foundation** — Roofr-style eye-icon model — **not started** (R16C3).
+2. **Token picker** — **Complete** at **`0cf76d2`** (§6BB) — Insert field in R16B editor; raw `{{token}}` insert; R14 display-time merge preserved.
+3. **Page visibility / hide-show foundation** — Roofr-style eye-icon model — **not started** (R16C3 planning only).
 4. Preserve: raw `body_markdown` persistence; R14 renderer; Preview/Send/Sign/Payment **disabled**.
 
 **Do not start yet:**
@@ -5600,7 +5603,7 @@ Likely scope (in order):
 - **R16C1** is complete and committed at **`967f0de`**.
 - **R16C1 is not the same as §6AL R16 Proposals hub.**
 - **R16C1** = Builder strip overflow page navigation — More pages menu for persisted overflow proposal pages.
-- **R16C program status:** **R16C1** overflow navigation **complete**; **R16C2** token picker and **R16C3** page visibility **not started**.
+- **R16C program status:** **R16C1** overflow navigation **complete**; **R16C2** token picker **complete** at `0cf76d2` (§6BB); **R16C3** page visibility **not started**.
 
 ### 2. R16C1 implementation commit and files changed
 
@@ -5658,9 +5661,9 @@ Likely scope (in order):
 
 **Not built yet (explicit deferrals):**
 
-- **R16C2 token picker** — manual `{{token}}` entry only in R16B editor.
+- **R16C2 token picker** — **complete** at `0cf76d2` (§6BB).
 - **R16C3 page visibility / hide-show** — all pages conceptually visible.
-- **Preview / customer route** — not built (R17 blocked until R16C2/R16C3 scoped).
+- **Preview / customer route** — not built (R17 blocked until R16C3 scoped/completed).
 - **Media / photos / PDF / report pages** — placeholder panels only.
 
 ### 6. Protected systems unchanged
@@ -5714,23 +5717,23 @@ The stamped audit draft still contains **`"Saved R16C1 marker text."`** on the S
 | **R16A** | Builder chrome / customer document IA separation | **Complete** at `18cebca` (§6AX) |
 | **R16B** | Proposal body authoring foundation | **Complete** at `589f5a0` (§6AY) |
 | **R16C1** | Builder strip overflow page navigation | **Complete** at `967f0de` (§6BA) |
-| **R16C2** | Proposed token picker in R16B editor | **Not started** — planning only |
-| **R16C3** | Proposed page visibility / hide-show foundation | **Not started** |
+| **R16C2** | Document token picker in R16B editor | **Complete** at `0cf76d2` (§6BB) |
+| **R16C3** | Proposed page visibility / hide-show foundation | **Not started** — planning only |
 | **§6AL R16** | Future Proposals hub / Draft-Sent-Won-Lost lifecycle module | **Not started** — distinct from R16A/B/C |
 
-### 9. Next-stage guidance (after this docs checkpoint)
+### 9. Next-stage guidance (historical — superseded by §6BB)
 
-**Do not start R16C2/R16C3 implementation until explicitly approved.**
+**Do not start R16C3 implementation until explicitly approved.**
 
-**Do not start Preview / PDF / lifecycle (R17–R20) automatically** — R17 remains blocked until R16C2/R16C3 are properly scoped/completed.
+**Do not start Preview / PDF / lifecycle (R17–R20) automatically** — R17 remains blocked until R16C3 is properly scoped/completed.
 
 **Do not start §6AL R16 Proposals hub, media/photos upload, or pricing/snapshot changes without explicit scope.**
 
-**Recommended immediate next:**
+**Recommended immediate next (historical at R16C1 docs time; superseded by §6BB):**
 
 | Option | Focus |
 |--------|--------|
-| **R16C2 planning only** | Document token picker inside R16B editor — raw `{{token}}` insert; keep R14 display-time merge |
+| ~~**R16C2 planning only**~~ | **Complete** at `0cf76d2` (§6BB) — document token picker in R16B editor |
 
 **Continue preserving:**
 
@@ -5739,6 +5742,165 @@ The stamped audit draft still contains **`"Saved R16C1 marker text."`** on the S
 - Raw `body_markdown` persistence + R14 display merge only
 - Pricing trust + snapshot safety
 - Single `activePageContextId` navigation model (no parallel overflow state)
+
+---
+
+## 6BB. R16C2 COMPLETION — DOCUMENT TOKEN PICKER IN R16B EDITOR
+
+**Status:** **R16C2 complete** (`0cf76d2`). **Pre-commit audit passed** — code/test/source-of-truth + authenticated Playwright browser verification; no P0/P1 blockers. **Naming:** **R16C2 ≠ §6AL R16 Proposals hub**. **R16C2** = registry-driven document token picker inside the existing R16B text editor (second slice of proposed **R16C** program). **§6AL R16** Proposals hub (Draft/Sent/Won/Lost list) remains **not started**.
+
+### 1. Scope completed
+
+- **R16C2** is complete and committed at **`0cf76d2`**.
+- **R16C2 is not the same as §6AL R16 Proposals hub.**
+- **R16C2** = registry-driven document token picker in the R16B editor — Insert field control for persisted text pages.
+- **R16C program status:** **R16C1** overflow navigation **complete** at `967f0de` (§6BA); **R16C2** token picker **complete** at `0cf76d2` (§6BB); **R16C3** page visibility **not started**.
+
+### 2. R16C2 implementation commit and files changed
+
+| Commit | Pass | Scope |
+|--------|------|-------|
+| `0cf76d2` | **R16C2** | Registry-driven document token picker in R16B editor — raw `{{token}}` insert only; portaled menu; R14 merge preview unchanged; **no lifecycle enablement** |
+
+**R16C2 changed exactly 6 app files (no docs/SQL/migrations/packages):**
+
+- `app/lib/proposalDocumentTokenPicker.ts` (**new**)
+- `app/lib/proposalDocumentTokenPicker.test.ts` (**new**)
+- `app/tools/roofing/proposals/builder/ProposalBuilderTokenPickerMenu.tsx` (**new**)
+- `app/tools/roofing/proposals/builder/ProposalBuilderPageEditor.tsx`
+- `app/lib/proposalBuilderDocumentIa.ts`
+- `app/tools/roofing/proposals/builder/proposalBuilderConstants.ts`
+
+**Not in R16C2:** Preview/Send/Sign/Payment enablement; PDF; customer preview route; page visibility/hide-show; page reorder; media/photos upload; Proposals hub; pricing engine/snapshot math changes; `refreshDraftPricing` behavior changes; R15 cover VM logic changes; R14 body renderer logic changes; R13 registry/resolver semantics changes; `proposalRecordStore` / store changes; Job Card / Jobs Board / Templates UI changes; SQL/migrations/packages; legacy `RoofingClient` PDF; `estimateStore` reuse on DB proposals; template/context_echo mutation.
+
+### 3. Behavior added / changed
+
+- **Insert field** control appears in **R16B edit mode only** — editor chrome above the textarea (not customer read surface).
+- Menu heading: **Document fields**.
+- Picker model **`proposalDocumentTokenPicker.ts`** derives from existing **R13 token registry** — not a hardcoded UI-only token list.
+- **19 body-text tokens** available, grouped by domain: Company, Customer, Job, Measurement, Proposal, Selected package, Pricing.
+- **Cover/styling-only tokens excluded** from body-text picker: `company_logo_url`, `brand_primary_color`, `brand_secondary_color`, `show_license_on_cover`.
+- **Pricing tokens** (`proposal_total`, `selected_package_total`) remain **insertable** with hint when pricing incomplete: *Preview hidden until pricing is complete.*
+- Clicking a token inserts canonical raw lowercase snake_case placeholder only, e.g. **`{{customer_name}}`** — **never** resolved/rendered values.
+- Menu closes on token click; focus returns to textarea with cursor after inserted token.
+- Selected text replacement and cursor insertion supported via pure `insertTextAtCursor` helper.
+- Unfocused textarea: insert at end of document.
+- **Merge preview** updates immediately through existing **R14** `renderProposalDocumentPageBody` path on local draft.
+- **Save** still persists raw **`body_markdown` only** via existing **R16B** `updateDraftProposalPageContent` — unchanged.
+- Manual custom/malformed tokens remain manually typable in textarea.
+- **Dirty-edit guard** preserved — token insertion routes through `onDraftBodyChange` only; no parallel draft/token state in Client.
+- **Portaled menu** to `document.body` with fixed positioning (R16C1 overflow menu pattern) — not clipped by canvas/strip overflow.
+- **Preview / Send / Sign / Payment remain disabled.**
+
+### 4. Architecture (picker model)
+
+| Layer | Role |
+|-------|------|
+| **R13 registry** | Canonical token names, domains, availability — unchanged |
+| **`proposalDocumentTokenPicker.ts`** | Presentation metadata, domain grouping, body surface filter, placeholder format, insertion helpers |
+| **`ProposalBuilderTokenPickerMenu.tsx`** | Portaled Insert field UI |
+| **`ProposalBuilderPageEditor.tsx`** | Textarea ref, insert wiring, merge preview (existing R14 path) |
+
+**Token coverage test:** every available registry token is either included for `body_text` surface or explicitly excluded with reason (`cover_styling`).
+
+### 5. Source-of-truth guardrails
+
+| Surface | Rule |
+|---------|------|
+| **Token insertion** | Raw `{{token_name}}` placeholders only — never rendered output |
+| **Persistence** | `proposal_pages.content_json.body_markdown` stores raw text including tokens |
+| **Display merge** | **R14 only** — read view + edit merge preview |
+| **Registry** | **R13** remains source of supported tokens — picker does not invent tokens |
+| **Store / DB** | **No new writes** beyond existing R16B body save path |
+| **Templates / context_echo** | **Not mutated** from picker |
+
+### 6. Protected systems unchanged
+
+- **No** docs/SQL/migrations/packages in R16C2 code commit.
+- **No** `proposalRecordStore` changes.
+- **No** pricing engine / snapshot builder / `refreshDraftPricing` changes.
+- **No** R14 body renderer / R15 cover VM changes.
+- **No** R13 registry/resolver semantics changes.
+- **No** payment/approval/status/send/PDF changes.
+- **No** template / `context_echo` mutation.
+- **Preview / Send / Sign / Payment remain disabled.**
+
+### 7. R16C2 validation (at `0cf76d2`)
+
+**Verdict:** **Proceed.** **No P0/P1 blockers.**
+
+| Check | Result |
+|-------|--------|
+| R16C2 committed 6 app files only | **Pass** |
+| No docs/SQL/migrations/packages in R16C2 commit | **Pass** |
+| Pre-commit audit | **Pass** |
+| Combined relevant test suites | **103/103** pass |
+| `npx tsc --noEmit` | Only **6** known `RoofingClientV2.tsx` errors |
+
+**Authenticated Playwright — browser audit** (storageState: `C:\Users\sabre\.cursor\fielddive-playwright-auth.json`; draft `job=f5a7d4ab-8758-48e1-848c-e7e4fa7895cb`, `proposal=f3a12198-fc90-4d7d-8079-f0d15b47a2b7`):
+
+| Check | Result |
+|-------|--------|
+| Builder opens without login redirect | **Pass** |
+| Project Overview edit mode shows Insert field | **Pass** |
+| Insert field opens **visible** menu (not clipped) | **Pass** |
+| Token domain groups appear | **Pass** |
+| Insert `{{customer_name}}` → raw in textarea | **Pass** |
+| Merge preview resolves customer name | **Pass** |
+| Save/reload/edit → source remains raw token | **Pass** |
+| Read view renders merged value | **Pass** |
+| More pages → Scope notes still works | **Pass** |
+| Insert field works on Scope notes | **Pass** |
+| Dirty guard after token insert without save | **Pass** |
+| Estimate line-items-only — no prose duplication | **Pass** |
+| Preview / Send / Sign / Payment disabled | **Pass** |
+| Mobile ~390px — token menu usable; no horizontal page overflow | **Pass** (in edit mode) |
+| **0** functional console errors | **Pass** |
+
+**Known DB draft residue (not git issues):**
+
+| Page | Residue | Optional restore |
+|------|---------|------------------|
+| **Project overview** | Appended **`{{customer_name}}`** from R16C2 browser save test | Edit → remove trailing `{{customer_name}}` → Save |
+| **Scope notes** | **`Saved R16C1 marker text.`** from R16C1 browser save test | More pages → Scope notes → Edit → replace with `Final scope, quantities, and schedule should be confirmed by the contractor before work begins.` → Save |
+
+**Known follow-up / non-blocker:**
+
+At **390px cold load**, strip tab clicks may hit a **pre-existing More pages overlap/tap-target issue** from **R16C1** strip layout — **R16C2 did not cause or worsen it**. Token picker menu itself is usable at 390px once in edit mode. Track as **Builder strip mobile polish** — likely before or during **R16C3**; **do not fix in R16C2**.
+
+### 8. Naming guardrails
+
+| Label | Meaning | Status |
+|-------|---------|--------|
+| **R16A** | Builder chrome / customer document IA separation | **Complete** at `18cebca` (§6AX) |
+| **R16B** | Proposal body authoring foundation | **Complete** at `589f5a0` (§6AY) |
+| **R16C1** | Builder strip overflow page navigation | **Complete** at `967f0de` (§6BA) |
+| **R16C2** | Document token picker in R16B editor | **Complete** at `0cf76d2` (§6BB) |
+| **R16C3** | Proposed page visibility / hide-show foundation | **Not started** — planning only |
+| **§6AL R16** | Future Proposals hub / Draft-Sent-Won-Lost lifecycle module | **Not started** — distinct from R16A/B/C |
+
+### 9. Next-stage guidance (after this docs checkpoint)
+
+**Do not start R16C3 implementation until explicitly approved.**
+
+**Do not start Preview / PDF / lifecycle (R17–R20) automatically** — **R17 remains blocked** until R16C3 visibility contract is planned, implemented, audited, and checkpointed.
+
+**Do not start §6AL R16 Proposals hub, media/photos upload, or pricing/snapshot changes without explicit scope.**
+
+**Recommended immediate next:**
+
+| Option | Focus |
+|--------|--------|
+| **R16C3 planning only** | Page visibility / hide-show foundation — Roofr-style model; blocks Preview WYSIWYG parity |
+
+**Continue preserving:**
+
+- Preview / Send / Sign / Payment **disabled**
+- Frozen **`proposalDocumentContext`** for customer document surfaces
+- Raw `body_markdown` persistence + R14 display merge only
+- Pricing trust + snapshot safety
+- Single `activePageContextId` navigation model (no parallel overflow state)
+- Insert field inserts raw tokens only — never rendered output
 
 ---
 
@@ -5881,18 +6043,23 @@ Then open and read **in this file** (in order):
 21. **§6AY** — R16B proposal body authoring foundation (read before body edit/save, `updateDraftProposalPageContent`, or Estimate section filtering)
 22. **§6AZ** — Whole-app Roofr-aligned audit after R16B (read before choosing next Builder stage; R16C planning)
 23. **§6BA** — R16C1 Builder strip overflow page navigation (read before overflow menu, More pages control, or overflow routing)
-24. **§3 Builder-specific rule + Roofr-aligned product principle** — no-drift rules; **Playwright MCP test-only guardrail**
-25. **§6AD** — DB-first foundation Phases A–D
-26. **§6AE** — 3J3E option persistence + quantity resolver coverage
-27. **§6AF** — pricing trust hardening
-28. **§9** — required first prompt / resume instructions (this section)
-29. **§11** — roadmap buckets (TODAY / NEXT / LATER / DO NOT DO YET), current checkpoint, built-surface audit, manual smoke; **§11 — Future / Later bucket → Proposal Builder**
+24. **§6BB** — R16C2 document token picker in R16B editor (read before Insert field, token insertion, or picker model work)
+25. **§3 Builder-specific rule + Roofr-aligned product principle** — no-drift rules; **Playwright MCP test-only guardrail**
+26. **§6AD** — DB-first foundation Phases A–D
+27. **§6AE** — 3J3E option persistence + quantity resolver coverage
+28. **§6AF** — pricing trust hardening
+29. **§9** — required first prompt / resume instructions (this section)
+30. **§11** — roadmap buckets (TODAY / NEXT / LATER / DO NOT DO YET), current checkpoint, built-surface audit, manual smoke; **§11 — Future / Later bucket → Proposal Builder**
 
-**Verify HEAD** is **`967f0de`** or newer (R16C1 complete); if newer, reconcile this doc.
+**Verify HEAD** is **`0cf76d2`** or newer (R16C2 complete); if newer, reconcile this doc.
+
+**Latest docs checkpoint:** **pending this commit** (prior: **`7530433`** — docs: checkpoint after R16C1 builder strip overflow navigation).
+
+**Next action:** **R16C3 planning only** — page visibility / hide-show foundation. **Do not start R16C3 implementation or R17 Preview** until explicitly approved.
 
 **Confirm** working tree is clean (or note doc-only WIP).
 
-**Whole-app Roofr-aligned audit passed** (2026-06-18, §6AZ) + **R16B validation passed** (§6AY) + **R16C1 browser audit passed** (§6BA). **R0–R15** complete/satisfied; **R16A** at `18cebca` (§6AX); **R16B** at `589f5a0` (§6AY); **R16C1** at `967f0de` (§6BA). **Code:** `967f0de`. **Next:** **R16C2 planning only** until explicitly approved — token picker in R16B editor; **R16C3** page visibility deferred; **do not auto-start Preview/PDF/lifecycle or §6AL R16 hub**. **Do not reintroduce** Estimate prose duplication on persisted path. **Preview / Send / Sign / Payment remain disabled** until **R17+**. **Mandatory order:** **§6AL** + **§6AM** + **§6AN** + **§6AO** + **§6AP** + **§6AQ** + **§6AR** + **§6AS** + **§6AT** + **§6AU** + **§6AV** + **§6AW** + **§6AX** + **§6AY** + **§6AZ** + **§6BA**. **Do not** return to `loadSaved`/`currentSaved` as main workflow.
+**Whole-app Roofr-aligned audit passed** (2026-06-18, §6AZ) + **R16B validation passed** (§6AY) + **R16C1 browser audit passed** (§6BA) + **R16C2 pre-commit audit passed** (§6BB). **R0–R15** complete/satisfied; **R16A** at `18cebca` (§6AX); **R16B** at `589f5a0` (§6AY); **R16C1** at `967f0de` (§6BA); **R16C2** at `0cf76d2` (§6BB). **Code:** `0cf76d2`. **Next:** **R16C3 planning only** until explicitly approved — page visibility / hide-show foundation; **R17 Preview blocked** until R16C3 scoped/completed; **do not auto-start Preview/PDF/lifecycle or §6AL R16 hub**. **Do not reintroduce** Estimate prose duplication on persisted path. **Preview / Send / Sign / Payment remain disabled** until **R17+**. **Mandatory order:** **§6AL** + **§6AM** + **§6AN** + **§6AO** + **§6AP** + **§6AQ** + **§6AR** + **§6AS** + **§6AT** + **§6AU** + **§6AV** + **§6AW** + **§6AX** + **§6AY** + **§6AZ** + **§6BA** + **§6BB**. **Do not** return to `loadSaved`/`currentSaved` as main workflow.
 
 Inspect before planning **3F9** (or chosen stage):
 
@@ -6895,6 +7062,8 @@ Treat as **drift** if a session:
 - **2026-05-31:** **3G6 complete** — 3G6A–E (`15ad732`–`b78c9ee`), Templates D2 (`227061c`), Catalog D2 (`29ca190`); Job Card + Job Packet audits documented; **next: plan 3H** Proposal Builder (Roofr research; not until scoped); pricing remains protected.
 - **2026-06-07:** **DB-first smoke gate PASSED** — user manual confirmation; §6AE.5 + §6AF.9 + §6AD.7 complete (recorded after `3ec6f42`); **NEXT open** for scoped proposal draft editing/persistence; left Builder sidebar not a failure; Preview/Send/Sign/Payment remain disabled until 3K+.
 - **2026-06-07:** **Pricing trust hardening complete** — snapshot qty+price alignment, stale detection, refresh wired (`ce3d6bc`); §6AF added; **175/175** tests in pre-commit audit; pricing engine/math untouched; user partial smoke positive; **next (superseded by §11):** full manual smoke (**§6AE.5** → **§6AF.9** → **§6AD.7**), then **§11 NEXT** (proposal draft slice); legacy import is **LATER**; Preview/Send/Sign/Payment remain disabled until 3K+.
+- **2026-06-18:** **R16C2 complete** — registry-driven document token picker in R16B editor (`0cf76d2`); Insert field menu; raw `{{token}}` insert only; R14 merge preview unchanged; §6BB; **103/103** relevant tests; pre-commit + browser audit passed; **next: R16C3 planning only** (page visibility); R17 blocked until R16C3 scoped/completed.
+- **2026-06-18:** **Post-R16C1 docs checkpoint** (`7530433`) — §6BA + header; R16C1 browser audit passed.
 - **2026-06-18:** **R16C1 complete** — Builder strip overflow page navigation (`967f0de`); More pages menu; portal menu fix; Scope notes reachable; dirty-edit guard preserved; §6BA; **167/167** relevant tests; full browser audit passed; **next: R16C2 planning only** (token picker); R16C3/R17+ remain deferred.
 - **2026-06-18:** **Post-R16B docs checkpoint** (`5362d7e`) — §6AY + §6AZ; whole-app audit Proceed; overflow P2 carried into R16C1 (now complete).
 - **2026-06-18:** **R16B complete** — draft body page authoring foundation (`589f5a0`); Edit/Save/Cancel; Estimate de-duplication; §6AY.
