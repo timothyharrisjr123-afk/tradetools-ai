@@ -1,0 +1,112 @@
+/**
+ * R16A — Proposal Builder document IA: page order, shared copy, chrome vs document surfaces.
+ * Pure module — no React, no pricing math, no lifecycle enablement.
+ */
+
+import type { ProposalPageType } from "@/app/lib/proposalPageTypes";
+
+/** Customer-logical page strip order (visible items; Preview is modeled separately and stays locked). */
+export const PROPOSAL_BUILDER_STRIP_ORDER = [
+  "cover",
+  "project_overview",
+  "estimate",
+  "terms",
+  "warranty",
+  "photos",
+  "add_page",
+] as const;
+
+export type ProposalBuilderStripSlotId = (typeof PROPOSAL_BUILDER_STRIP_ORDER)[number];
+
+/** Default Builder landing — contractor workflow (pricing/package work). */
+export const BUILDER_DEFAULT_LANDING_PAGE_CONTEXT = "estimate" as const;
+
+/** Contractor workspace header kicker (chrome, not document truth). */
+export const BUILDER_HEADER_WORKSPACE_KICKER = "Proposal workspace";
+
+/** Subtle note under live job context in the header. */
+export const BUILDER_HEADER_WORKSPACE_CONTEXT_NOTE =
+  "Live job context — document pages use saved draft snapshot";
+
+/** Standard read-only footer on customer document body pages. */
+export const BUILDER_DOCUMENT_READ_ONLY_FOOTER =
+  "Read-only draft page. Content editing comes in a later phase.";
+
+/** Customer-safe draft note on the Cover page (no lifecycle wording). */
+export const BUILDER_COVER_DRAFT_NOTE = "Draft proposal — not sent to customer.";
+
+/** Lifecycle actions remain disabled in R16A and later roadmap phases until explicitly enabled. */
+export const BUILDER_LIFECYCLE_ACTIONS_LOCKED = true;
+
+export const BUILDER_ADD_PAGE_STRIP_POLICY = {
+  enabled: false,
+  showSoon: true,
+  status: "soon" as const,
+};
+
+export const BUILDER_PREVIEW_STRIP_POLICY = {
+  enabled: false,
+  showSoon: true,
+  status: "locked" as const,
+};
+
+export type ProposalBuilderPlaceholderSlot = {
+  id: string;
+  label: string;
+  pageType: ProposalPageType;
+  stripSlot: ProposalBuilderStripSlotId;
+};
+
+/** Placeholder slots before Estimate in the customer-logical strip. */
+export const PROPOSAL_BUILDER_PLACEHOLDERS_BEFORE_ESTIMATE: readonly ProposalBuilderPlaceholderSlot[] =
+  [
+    {
+      id: "placeholder:about",
+      label: "Project overview",
+      pageType: "project_overview",
+      stripSlot: "project_overview",
+    },
+  ] as const;
+
+/** Placeholder slots after Estimate in the customer-logical strip. */
+export const PROPOSAL_BUILDER_PLACEHOLDERS_AFTER_ESTIMATE: readonly ProposalBuilderPlaceholderSlot[] =
+  [
+    {
+      id: "placeholder:terms",
+      label: "Terms",
+      pageType: "terms",
+      stripSlot: "terms",
+    },
+    {
+      id: "placeholder:warranty",
+      label: "Warranty",
+      pageType: "warranty",
+      stripSlot: "warranty",
+    },
+    {
+      id: "placeholder:photos",
+      label: "Project Photos",
+      pageType: "photos",
+      stripSlot: "photos",
+    },
+  ] as const;
+
+/** All placeholder slots in strip order (for context-id → page_type resolution). */
+export const PROPOSAL_BUILDER_ALL_PLACEHOLDER_SLOTS: readonly ProposalBuilderPlaceholderSlot[] =
+  [
+    ...PROPOSAL_BUILDER_PLACEHOLDERS_BEFORE_ESTIMATE,
+    ...PROPOSAL_BUILDER_PLACEHOLDERS_AFTER_ESTIMATE,
+  ] as const;
+
+export function isChromeSurface(surface: "chrome" | "document"): boolean {
+  return surface === "chrome";
+}
+
+export function isDocumentSurface(surface: "chrome" | "document"): boolean {
+  return surface === "document";
+}
+
+/** Visible strip item ids in customer-logical order (excludes locked Preview). */
+export function visibleProposalBuilderStripItemIds(): ProposalBuilderStripSlotId[] {
+  return [...PROPOSAL_BUILDER_STRIP_ORDER];
+}

@@ -6,8 +6,7 @@ import { PROPOSAL_COVER_DEFAULT_BRAND_ACCENT } from "@/app/lib/proposalCoverView
 import {
   BUILDER_CANVAS,
   BUILDER_CANVAS_HERO_DIVIDER,
-  BUILDER_CANVAS_KICKER,
-  BUILDER_COVER_DRAFT_NOTICE,
+  BUILDER_COVER_DRAFT_NOTE,
   BUILDER_COVER_IDENTITY_INCOMPLETE,
   BUILDER_COVER_SECTION_LABEL,
 } from "./proposalBuilderConstants";
@@ -68,8 +67,6 @@ export default function ProposalBuilderCoverPage({ viewModel }: ProposalBuilderC
 
       <header className={BUILDER_CANVAS_HERO_DIVIDER}>
         <div className="space-y-6 px-7 pb-6 pt-6">
-          <p className={BUILDER_CANVAS_KICKER}>Proposal document</p>
-
           {viewModel.documentIdentityIncomplete ? (
             <p className={BUILDER_COVER_IDENTITY_INCOMPLETE}>
               {viewModel.documentIdentityIncompleteMessage}
@@ -196,9 +193,7 @@ export default function ProposalBuilderCoverPage({ viewModel }: ProposalBuilderC
         )}
 
         {/* 6. Draft / read-only note */}
-        <p className={BUILDER_COVER_DRAFT_NOTICE}>
-          Draft document — not sent. Preview, send, and signature remain unavailable in this stage.
-        </p>
+        <p className="text-[11px] leading-snug text-slate-400">{BUILDER_COVER_DRAFT_NOTE}</p>
       </div>
     </article>
   );

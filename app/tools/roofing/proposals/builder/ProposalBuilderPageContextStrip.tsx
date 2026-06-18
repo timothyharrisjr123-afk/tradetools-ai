@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { FileText, Layers, Plus } from "lucide-react";
+import { FileText, Plus } from "lucide-react";
 import {
   buildPageContextStripItems,
   type BuilderPageContextId,
@@ -65,6 +65,21 @@ function StripButton({
   );
 }
 
+function stripItemIcon(item: PageStripItem, isActive: boolean): ReactNode | undefined {
+  if (item.id === "estimate") {
+    return (
+      <FileText
+        className={`h-4 w-4 shrink-0 ${isActive ? "text-blue-700" : "text-slate-500"}`}
+        aria-hidden
+      />
+    );
+  }
+  if (item.id === "add_page") {
+    return <Plus className="h-4 w-4 shrink-0" aria-hidden />;
+  }
+  return undefined;
+}
+
 export default function ProposalBuilderPageContextStrip({
   pages,
   activePageContextId,
@@ -75,69 +90,39 @@ export default function ProposalBuilderPageContextStrip({
     persistedProposalDocument,
   });
 
-  const cover = items.find((item) => item.id === "cover");
-  const estimate = items.find((item) => item.id === "estimate");
-  const addPage = items.find((item) => item.id === "add_page");
-  const pageSlots = items.filter((item) => item.kind === "page" || item.kind === "placeholder");
-
+  const visibleItems = items.filter((item) => item.id !== "preview");
   const overflowCount = overflowPages.length;
 
   return (
     <nav className={BUILDER_PAGE_STRIP} aria-label="Proposal pages">
-      {cover ? (
-        <StripButton item={cover} isActive={activePageContextId === cover.id} onSelect={onSelectPageContext} />
-      ) : null}
+      {visibleItems.map((item, index) => {
+        const isActive = activePageContextId === item.id;
+        const showDividerBeforeAddPage =
+          item.id === "add_page" && index > 0 && visibleItems[index - 1]?.id !== "add_page";
 
-      {estimate ? (
-        <StripButton
-          item={estimate}
-          isActive={activePageContextId === estimate.id}
-          onSelect={onSelectPageContext}
-          icon={
-            <FileText
-              className={`h-4 w-4 shrink-0 ${
-                activePageContextId === estimate.id ? "text-blue-700" : "text-slate-500"
-              }`}
-              aria-hidden
+        return (
+          <span key={item.id} className="contents">
+            {showDividerBeforeAddPage ? (
+              <span className={BUILDER_PAGE_STRIP_DIVIDER} aria-hidden />
+            ) : null}
+            <StripButton
+              item={item}
+              isActive={isActive}
+              onSelect={onSelectPageContext}
+              icon={stripItemIcon(item, isActive)}
+              futureAction={item.id === "add_page"}
             />
-          }
-        />
-      ) : null}
-
-      <span className={BUILDER_PAGE_STRIP_DIVIDER} aria-hidden />
-      <span
-        className="inline-flex shrink-0 items-center gap-1.5 px-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400"
-        title="Customer-facing proposal pages"
-      >
-        <Layers className="h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden />
-        Pages
-        {overflowCount > 0 ? (
-          <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500">
-            +{overflowCount}
           </span>
-        ) : null}
-      </span>
+        );
+      })}
 
-      {pageSlots.map((item) => (
-        <StripButton
-          key={item.id}
-          item={item}
-          isActive={activePageContextId === item.id}
-          onSelect={onSelectPageContext}
-        />
-      ))}
-
-      {addPage ? (
-        <>
-          <span className={BUILDER_PAGE_STRIP_DIVIDER} aria-hidden />
-          <StripButton
-            item={addPage}
-            isActive={activePageContextId === addPage.id}
-            onSelect={onSelectPageContext}
-            futureAction
-            icon={<Plus className="h-4 w-4 shrink-0" aria-hidden />}
-          />
-        </>
+      {overflowCount > 0 ? (
+        <span
+          className="ml-1 inline-flex shrink-0 items-center rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500"
+          title={`${overflowCount} additional page${overflowCount === 1 ? "" : "s"} not shown in strip`}
+        >
+          +{overflowCount}
+        </span>
       ) : null}
     </nav>
   );

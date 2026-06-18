@@ -175,6 +175,14 @@ export const BUILDER_STATUS_PILL =
 export const BUILDER_HEADER_KICKER =
   "text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-500/80";
 
+/** R16A — re-export workspace copy from IA module for builder UI. */
+export {
+  BUILDER_COVER_DRAFT_NOTE,
+  BUILDER_DOCUMENT_READ_ONLY_FOOTER,
+  BUILDER_HEADER_WORKSPACE_CONTEXT_NOTE,
+  BUILDER_HEADER_WORKSPACE_KICKER,
+} from "@/app/lib/proposalBuilderDocumentIa";
+
 /** 3J4B2 — neutral context chip (template / package) in the header. */
 export const BUILDER_HEADER_CHIP =
   "inline-flex max-w-full items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 shadow-sm";

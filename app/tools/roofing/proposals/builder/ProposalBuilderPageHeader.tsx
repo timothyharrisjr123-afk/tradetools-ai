@@ -1,15 +1,15 @@
 import Link from "next/link";
-import { ArrowLeft, FileText, Layers } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { buildJobCardHref } from "@/app/lib/proposalBuilderReadiness";
 import type { JobRecord } from "@/app/lib/jobTypes";
 import type { ProposalBuilderGuidance } from "@/app/lib/proposalBuilderGuidance";
 import ProposalBuilderDisabledActions from "./ProposalBuilderDisabledActions";
 import {
-  BUILDER_HEADER_CHIP,
   BUILDER_HEADER_DRAFT_PILL,
   BUILDER_HEADER_KICKER,
   BUILDER_HEADER_SETUP_PILL,
-  BUILDER_HEADER_TEMPLATE_HELPER,
+  BUILDER_HEADER_WORKSPACE_CONTEXT_NOTE,
+  BUILDER_HEADER_WORKSPACE_KICKER,
   BUILDER_STAGE,
 } from "./proposalBuilderConstants";
 
@@ -18,8 +18,6 @@ type ProposalBuilderPageHeaderProps = {
   jobId: string | null;
   shellReady: boolean;
   showDraftSavedPill?: boolean;
-  templateName?: string | null;
-  selectedPackageLabel?: string | null;
   guidance?: ProposalBuilderGuidance | null;
 };
 
@@ -52,17 +50,12 @@ export default function ProposalBuilderPageHeader({
   jobId,
   shellReady,
   showDraftSavedPill = false,
-  templateName = null,
-  selectedPackageLabel = null,
   guidance = null,
 }: ProposalBuilderPageHeaderProps) {
   const title = resolveJobTitle(job);
   const subtitle = resolveJobSubtitle(job);
   const backHref = jobId ? buildJobCardHref(jobId) : "/tools/roofing/saved";
 
-  const trimmedTemplate = (templateName ?? "").trim();
-  const trimmedPackage = (selectedPackageLabel ?? "").trim();
-  const showChips = shellReady && (trimmedTemplate.length > 0 || trimmedPackage.length > 0);
   const showSetupPill = shellReady && !showDraftSavedPill;
 
   return (
@@ -77,7 +70,7 @@ export default function ProposalBuilderPageHeader({
             Back to Job Card
           </Link>
 
-          <p className={`mt-3 ${BUILDER_HEADER_KICKER}`}>Proposal Builder</p>
+          <p className={`mt-3 ${BUILDER_HEADER_KICKER}`}>{BUILDER_HEADER_WORKSPACE_KICKER}</p>
 
           <div className="mt-1 flex flex-wrap items-center gap-2.5">
             <h1 className="text-[1.65rem] font-semibold leading-tight tracking-tight text-slate-950">
@@ -98,30 +91,8 @@ export default function ProposalBuilderPageHeader({
             <p className="mt-1.5 text-sm text-slate-500">Job-specific proposal</p>
           )}
 
-          {showChips ? (
-            <>
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                {trimmedTemplate ? (
-                  <span className={BUILDER_HEADER_CHIP} title={`Template: ${trimmedTemplate}`}>
-                    <FileText className="h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden />
-                    <span className="truncate">
-                      <span className="text-slate-500">Template:</span> {trimmedTemplate}
-                    </span>
-                  </span>
-                ) : null}
-                {trimmedPackage ? (
-                  <span className={BUILDER_HEADER_CHIP} title={`Package: ${trimmedPackage}`}>
-                    <Layers className="h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden />
-                    <span className="truncate">
-                      <span className="text-slate-500">Package:</span> {trimmedPackage}
-                    </span>
-                  </span>
-                ) : null}
-              </div>
-              {trimmedTemplate ? (
-                <p className="mt-1.5 text-xs text-slate-400">{BUILDER_HEADER_TEMPLATE_HELPER}</p>
-              ) : null}
-            </>
+          {shellReady ? (
+            <p className="mt-1.5 text-xs text-slate-400">{BUILDER_HEADER_WORKSPACE_CONTEXT_NOTE}</p>
           ) : null}
         </div>
 

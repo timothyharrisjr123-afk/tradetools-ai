@@ -635,14 +635,6 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
   const shellReady = builderReadiness.ready && !draftGraphError;
   const normalizedJobId = (jobIdParam ?? "").trim() || null;
 
-  const headerTemplateName = starterGraph?.template.name ?? null;
-  const headerSelectedPackageLabel = useMemo(() => {
-    if (!starterGraph || !effectiveSelectedOptionId) return null;
-    const match = starterGraph.options.find((o) => o.id === effectiveSelectedOptionId);
-    if (!match) return null;
-    return (match.customer_label ?? match.name).trim() || match.name;
-  }, [starterGraph, effectiveSelectedOptionId]);
-
   // 3J4B3: single guided-flow source of truth. Pure derivation — no writes,
   // no lifecycle enablement (Preview/Send/Sign/Payment/Production all false).
   const hasPlaceholderPages = useMemo(() => {
@@ -757,8 +749,6 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
         jobId={normalizedJobId}
         shellReady={shellReady}
         showDraftSavedPill={hasPersistedProposalParam && draftGraphLoadComplete && !draftGraphError}
-        templateName={headerTemplateName}
-        selectedPackageLabel={headerSelectedPackageLabel}
         guidance={builderGuidance}
       />
       <ProposalBuilderPageAlerts loadError={loadError} shellReady={shellReady} />

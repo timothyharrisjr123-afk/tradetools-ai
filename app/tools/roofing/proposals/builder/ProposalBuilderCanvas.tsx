@@ -147,17 +147,6 @@ export default function ProposalBuilderCanvas({
       ? (pricingPreview?.byOptionId[effectiveOptionId]?.customer ?? null)
       : null;
 
-  const optionStatus =
-    effectiveOptionId != null
-      ? (pricingPreview?.byOptionId[effectiveOptionId]?.status ?? null)
-      : null;
-
-  const optionBlockingLineCount = optionStatus?.blockingLineCount ?? 0;
-  const optionGuardrailAttention =
-    optionStatus != null &&
-    optionStatus.pricingComplete &&
-    optionStatus.guardrailOutcome !== "pass";
-
   if (!starterGraph) {
     return (
       <article className={BUILDER_CANVAS}>
@@ -238,17 +227,11 @@ export default function ProposalBuilderCanvas({
       <header className={BUILDER_CANVAS_HERO_DIVIDER}>
         <div className="space-y-4 px-7 pb-5 pt-5">
           <div>
-            <div className="flex items-baseline gap-2">
-              <p className={BUILDER_CANVAS_KICKER}>Proposal document</p>
-              <span className="text-[10px] font-medium uppercase tracking-wide text-slate-400">
-                Customer-facing page
-              </span>
-            </div>
             <h2 className="text-xl font-semibold leading-tight tracking-tight text-slate-950">
               Estimate
             </h2>
             <p className="mt-0.5 text-[13px] text-slate-500">
-              Customer-facing estimate document — package options, line items, and totals.
+              Package options, line items, and totals for the customer proposal.
             </p>
           </div>
 
@@ -266,21 +249,6 @@ export default function ProposalBuilderCanvas({
           hidden behind a Line Items tab). Sections carry their own dividers, so
           the inter-element gap stays modest (3J4D readability). */}
       <div className="space-y-6 px-7 pb-7 pt-6">
-        {optionBlockingLineCount > 0 || optionGuardrailAttention ? (
-          <div className="rounded-lg border border-amber-200/80 bg-amber-50/60 px-4 py-3">
-            <p className="text-sm font-semibold text-amber-900">
-              {optionBlockingLineCount > 0
-                ? `${optionBlockingLineCount} line item${optionBlockingLineCount === 1 ? "" : "s"} need attention before Preview unlocks.`
-                : "Profitability needs contractor review before this option is ready."}
-            </p>
-            <p className="mt-1 text-xs leading-snug text-amber-800">
-              {optionBlockingLineCount > 0
-                ? "Missing quantities or catalog prices are flagged below. Fixes happen from Measurement or Catalog setup."
-                : "Contractor-only profitability is below target. Review before this option is ready."}
-            </p>
-          </div>
-        ) : null}
-
         {sections.length === 0 ? (
           <p className="text-sm text-slate-500">No line items for the selected option.</p>
         ) : (

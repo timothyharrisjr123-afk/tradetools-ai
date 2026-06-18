@@ -34,18 +34,29 @@ describe("proposalBuilderNavigation", () => {
     assert.equal(isEstimatePageContext("cover"), false);
   });
 
-  it("builds strip with cover disabled by default", () => {
+  it("builds strip in customer-logical order with cover disabled by default (R16A)", () => {
     const { items } = buildPageContextStripItems([]);
-    const ids = items.map((item) => item.id);
-    assert.ok(ids.includes("cover"));
-    assert.ok(ids.includes("estimate"));
-    assert.ok(ids.includes("placeholder:terms"));
-    assert.ok(ids.includes("add_page"));
-    assert.ok(ids.includes("preview"));
+    const allIds = items.map((item) => item.id);
+    const visibleIds = items.filter((item) => item.id !== "preview").map((item) => item.id);
+    assert.deepEqual(visibleIds, [
+      "cover",
+      "placeholder:about",
+      "estimate",
+      "placeholder:terms",
+      "placeholder:warranty",
+      "placeholder:photos",
+      "add_page",
+    ]);
+    assert.ok(allIds.includes("preview"));
     const cover = items.find((item) => item.id === "cover");
     assert.equal(cover?.enabled, false);
     assert.equal(cover?.showSoon, true);
     assert.equal(cover?.status, "soon");
+    const estimate = items.find((item) => item.id === "estimate");
+    assert.equal(estimate?.enabled, true);
+    const addPage = items.find((item) => item.id === "add_page");
+    assert.equal(addPage?.enabled, false);
+    assert.equal(addPage?.showSoon, true);
   });
 
   it("enables cover when persisted proposal document path is active (R15)", () => {
@@ -77,10 +88,12 @@ describe("proposalBuilderNavigation", () => {
     const byId = (id: string) => items.find((item) => item.id === id);
 
     assert.equal(byId("cover")?.status, "soon");
+    assert.equal(byId("placeholder:about")?.status, "empty");
     assert.equal(byId("estimate")?.status, "none");
     assert.equal(byId("placeholder:terms")?.status, "empty");
     assert.equal(byId("add_page")?.status, "soon");
     assert.equal(byId("preview")?.status, "locked");
+    assert.equal(byId("preview")?.enabled, false);
   });
 
   it("persisted page slots use template status", () => {

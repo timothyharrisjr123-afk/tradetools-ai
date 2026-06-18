@@ -1,9 +1,19 @@
 /**
  * Pure Proposal Builder page/workspace navigation (3J4A mock).
+ * R16A — customer-logical strip order via proposalBuilderDocumentIa.
  */
 
 import type { ProposalPageType } from "@/app/lib/proposalPageTypes";
 import type { ProposalPageRow } from "@/app/lib/proposalRecordStore";
+import {
+  BUILDER_ADD_PAGE_STRIP_POLICY,
+  BUILDER_DEFAULT_LANDING_PAGE_CONTEXT,
+  BUILDER_PREVIEW_STRIP_POLICY,
+  PROPOSAL_BUILDER_ALL_PLACEHOLDER_SLOTS,
+  PROPOSAL_BUILDER_PLACEHOLDERS_AFTER_ESTIMATE,
+  PROPOSAL_BUILDER_PLACEHOLDERS_BEFORE_ESTIMATE,
+  type ProposalBuilderPlaceholderSlot,
+} from "./proposalBuilderDocumentIa";
 
 export type BuilderPageContextId = "cover" | "estimate" | "preview" | "add_page" | (string & {});
 
@@ -14,7 +24,8 @@ export type BuilderWorkspaceSectionId =
   | "lines"
   | "quantities";
 
-export const BUILDER_DEFAULT_PAGE_CONTEXT: BuilderPageContextId = "estimate";
+export const BUILDER_DEFAULT_PAGE_CONTEXT: BuilderPageContextId =
+  BUILDER_DEFAULT_LANDING_PAGE_CONTEXT;
 
 export const BUILDER_DEFAULT_WORKSPACE_SECTION: BuilderWorkspaceSectionId = "overview";
 
@@ -53,17 +64,6 @@ export type PageStripItem = {
   fromDb?: boolean;
 };
 
-const MOCK_PLACEHOLDER_PAGES: readonly {
-  id: string;
-  label: string;
-  pageType: ProposalPageType;
-}[] = [
-  { id: "placeholder:terms", label: "Terms", pageType: "terms" },
-  { id: "placeholder:warranty", label: "Warranty", pageType: "warranty" },
-  { id: "placeholder:about", label: "Project overview", pageType: "project_overview" },
-  { id: "placeholder:photos", label: "Project Photos", pageType: "photos" },
-] as const;
-
 function findPageByType(pages: ProposalPageRow[], pageType: ProposalPageType): ProposalPageRow | null {
   return pages.find((p) => p.page_type === pageType) ?? null;
 }
@@ -73,6 +73,37 @@ function pageLabel(page: ProposalPageRow): string {
   if (customer) return customer;
   const title = (page.title ?? "").trim();
   return title || page.page_type;
+}
+
+function appendPlaceholderOrPageSlot(
+  items: PageStripItem[],
+  slot: ProposalBuilderPlaceholderSlot,
+  dbPages: ProposalPageRow[],
+  usedIds: Set<string>
+): void {
+  const match = findPageByType(dbPages, slot.pageType);
+  if (match) {
+    usedIds.add(match.id);
+    items.push({
+      kind: "page",
+      id: match.id,
+      label: pageLabel(match),
+      enabled: true,
+      status: "template",
+      pageType: match.page_type,
+      fromDb: true,
+    });
+  } else {
+    items.push({
+      kind: "placeholder",
+      id: slot.id,
+      label: slot.label,
+      enabled: true,
+      status: "empty",
+      pageType: slot.pageType,
+      fromDb: false,
+    });
+  }
 }
 
 export type BuildPageContextStripItemsOptions = {
@@ -97,48 +128,31 @@ export function buildPageContextStripItems(
       status: coverEnabled ? "none" : "soon",
       ...(coverEnabled ? {} : { showSoon: true }),
     },
-    {
-      kind: "fixed",
-      id: "estimate",
-      label: "Estimate",
-      enabled: true,
-      status: "none",
-    },
   ];
 
-  for (const slot of MOCK_PLACEHOLDER_PAGES) {
-    const match = findPageByType(dbPages, slot.pageType);
-    if (match) {
-      usedIds.add(match.id);
-      items.push({
-        kind: "page",
-        id: match.id,
-        label: pageLabel(match),
-        enabled: true,
-        status: "template",
-        pageType: match.page_type,
-        fromDb: true,
-      });
-    } else {
-      items.push({
-        kind: "placeholder",
-        id: slot.id,
-        label: slot.label,
-        enabled: true,
-        status: "empty",
-        pageType: slot.pageType,
-        fromDb: false,
-      });
-    }
+  for (const slot of PROPOSAL_BUILDER_PLACEHOLDERS_BEFORE_ESTIMATE) {
+    appendPlaceholderOrPageSlot(items, slot, dbPages, usedIds);
+  }
+
+  items.push({
+    kind: "fixed",
+    id: "estimate",
+    label: "Estimate",
+    enabled: true,
+    status: "none",
+  });
+
+  for (const slot of PROPOSAL_BUILDER_PLACEHOLDERS_AFTER_ESTIMATE) {
+    appendPlaceholderOrPageSlot(items, slot, dbPages, usedIds);
   }
 
   items.push({
     kind: "fixed",
     id: "add_page",
     label: "Add Page",
-    enabled: false,
-    showSoon: true,
-    status: "soon",
+    enabled: BUILDER_ADD_PAGE_STRIP_POLICY.enabled,
+    showSoon: BUILDER_ADD_PAGE_STRIP_POLICY.showSoon,
+    status: BUILDER_ADD_PAGE_STRIP_POLICY.status,
   });
 
   const overflowPages = dbPages
@@ -159,9 +173,9 @@ export function buildPageContextStripItems(
     kind: "fixed",
     id: "preview",
     label: "Preview",
-    enabled: false,
-    showSoon: true,
-    status: "locked",
+    enabled: BUILDER_PREVIEW_STRIP_POLICY.enabled,
+    showSoon: BUILDER_PREVIEW_STRIP_POLICY.showSoon,
+    status: BUILDER_PREVIEW_STRIP_POLICY.status,
   });
 
   return { items, overflowPages };
@@ -200,7 +214,7 @@ export function isPlaceholderPageContext(contextId: BuilderPageContextId): boole
 /**
  * 3J4F — resolve the proposal page_type for a context id so the canvas can
  * pick the right read-only renderer. Persisted pages carry their own type;
- * placeholder slots map through MOCK_PLACEHOLDER_PAGES; fixed slots are typed.
+ * placeholder slots map through PROPOSAL_BUILDER_ALL_PLACEHOLDER_SLOTS; fixed slots are typed.
  * Returns null for non-page contexts (preview, add_page) or unknown ids.
  */
 export function resolvePageTypeForContext(
@@ -211,7 +225,7 @@ export function resolvePageTypeForContext(
   if (contextId === "estimate") return "estimate";
   if (contextId === "preview" || contextId === "add_page") return null;
 
-  const placeholder = MOCK_PLACEHOLDER_PAGES.find((slot) => slot.id === contextId);
+  const placeholder = PROPOSAL_BUILDER_ALL_PLACEHOLDER_SLOTS.find((slot) => slot.id === contextId);
   if (placeholder) return placeholder.pageType;
 
   const persisted = resolvePersistedPageByContextId(pages, contextId);
@@ -235,7 +249,7 @@ export function resolvePageContextDisplayLabel(
       break;
   }
 
-  const placeholder = MOCK_PLACEHOLDER_PAGES.find((slot) => slot.id === contextId);
+  const placeholder = PROPOSAL_BUILDER_ALL_PLACEHOLDER_SLOTS.find((slot) => slot.id === contextId);
   if (placeholder) return placeholder.label;
 
   const persisted = resolvePersistedPageByContextId(pages, contextId);

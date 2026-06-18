@@ -5,7 +5,7 @@ import {
 } from "@/app/lib/proposalPageTypes";
 import {
   BUILDER_CANVAS_HERO_DIVIDER,
-  BUILDER_CANVAS_KICKER,
+  BUILDER_DOCUMENT_READ_ONLY_FOOTER,
 } from "./proposalBuilderConstants";
 
 type ProposalBuilderCustomerPageProps = {
@@ -92,21 +92,18 @@ export default function ProposalBuilderCustomerPage({
   const body = (bodyMarkdown ?? "").trim();
   const hasBody = body.length > 0;
   const typeLabel = formatProposalPageTypeLabel(pageType);
+  const showTypeLabel = typeLabel.toLowerCase() !== title.trim().toLowerCase();
 
   return (
     <>
       <header className={BUILDER_CANVAS_HERO_DIVIDER}>
         <div className="space-y-1 px-7 pb-5 pt-5">
-          <div className="flex items-baseline gap-2">
-            <p className={BUILDER_CANVAS_KICKER}>Proposal document</p>
-            <span className="text-[10px] font-medium uppercase tracking-wide text-slate-400">
-              Customer-facing page
-            </span>
-          </div>
           <h2 className="text-xl font-semibold leading-tight tracking-tight text-slate-950">
             {title}
           </h2>
-          <p className="text-[13px] text-slate-500">{typeLabel} page</p>
+          {showTypeLabel ? (
+            <p className="text-[13px] text-slate-500">{typeLabel} page</p>
+          ) : null}
         </div>
       </header>
 
@@ -115,7 +112,7 @@ export default function ProposalBuilderCustomerPage({
           <>
             <SafeBodyText body={body} />
             <p className="mt-6 border-t border-slate-100 pt-3 text-[11px] leading-snug text-slate-400">
-              Read-only customer page from the saved draft. Page editing comes in a later phase.
+              {BUILDER_DOCUMENT_READ_ONLY_FOOTER}
             </p>
             {contractorNotice ? (
               <p className="mt-2 text-[11px] leading-snug text-slate-400">{contractorNotice}</p>
