@@ -63,6 +63,8 @@ export type PageStripItem = {
   status: PageStripStatus;
   pageType?: ProposalPageType | null;
   fromDb?: boolean;
+  /** R16C3 — false when persisted page is hidden from future customer preview. */
+  customerVisible?: boolean;
 };
 
 function findPageByType(pages: ProposalPageRow[], pageType: ProposalPageType): ProposalPageRow | null {
@@ -93,6 +95,7 @@ function appendPlaceholderOrPageSlot(
       status: "template",
       pageType: match.page_type,
       fromDb: true,
+      customerVisible: match.visible_to_customer,
     });
   } else {
     items.push({
@@ -168,6 +171,7 @@ export function buildPageContextStripItems(
         status: "template",
         pageType: p.page_type,
         fromDb: true,
+        customerVisible: p.visible_to_customer,
       })
     );
 

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Check, ChevronDown } from "lucide-react";
+import { Check, ChevronDown, EyeOff } from "lucide-react";
 import {
   resolveOverflowMenuTriggerState,
   type BuilderPageContextId,
@@ -19,6 +19,7 @@ import {
   BUILDER_PAGE_STRIP_OVERFLOW_MENU_ITEM_ACTIVE,
   BUILDER_PAGE_STRIP_OVERFLOW_MENU_ITEM_LABEL,
   BUILDER_PAGE_STRIP_OVERFLOW_MENU_ITEM_TYPE,
+  BUILDER_PAGE_STRIP_HIDDEN_INDICATOR,
   BUILDER_PAGE_STRIP_OVERFLOW_TRIGGER,
   BUILDER_PAGE_STRIP_OVERFLOW_TRIGGER_ACTIVE,
   BUILDER_PAGE_STRIP_OVERFLOW_TRIGGER_IDLE,
@@ -154,6 +155,12 @@ export default function ProposalBuilderOverflowMenu({
                   </span>
                 ) : null}
               </span>
+              {page.customerVisible === false ? (
+                <EyeOff
+                  className={`mt-0.5 h-4 w-4 shrink-0 ${BUILDER_PAGE_STRIP_HIDDEN_INDICATOR}`}
+                  aria-label="Hidden from customer"
+                />
+              ) : null}
               {isActive ? <Check className="mt-0.5 h-4 w-4 shrink-0 text-blue-700" aria-hidden /> : null}
             </button>
           );

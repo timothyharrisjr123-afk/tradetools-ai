@@ -138,6 +138,29 @@ export const BUILDER_PAGE_STRIP_OVERFLOW_MENU_ITEM_LABEL =
 export const BUILDER_PAGE_STRIP_OVERFLOW_MENU_ITEM_TYPE =
   "truncate text-[11px] text-slate-500";
 
+/** R16C3 — compact hidden indicator on strip tabs (icon-only). */
+export const BUILDER_PAGE_STRIP_HIDDEN_INDICATOR =
+  "inline-flex shrink-0 text-slate-400";
+
+/** R16C3 — contractor-only banner when viewing a hidden page. */
+export const BUILDER_PAGE_HIDDEN_BANNER =
+  "border-b border-slate-200/80 bg-slate-100/80 px-7 py-2.5 text-[13px] text-slate-600";
+
+/** R16C3 — page workspace visibility toggle control. */
+export const BUILDER_PAGE_VISIBILITY_CONTROL =
+  "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md border px-3 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60";
+
+export const BUILDER_PAGE_VISIBILITY_CONTROL_IDLE =
+  "border-slate-300 bg-white text-slate-700 hover:bg-slate-50";
+
+export const BUILDER_PAGE_VISIBILITY_CONTROL_HIDDEN =
+  "border-amber-300/80 bg-amber-50/60 text-amber-900 hover:bg-amber-50";
+
+export const BUILDER_PAGE_VISIBILITY_CONTROL_ACTIVE = "opacity-70";
+
+export const BUILDER_PAGE_VISIBILITY_REQUIRED_NOTICE =
+  "text-[12px] text-slate-500";
+
 /** R16C2 — token picker trigger in page editor toolbar. */
 export const BUILDER_TOKEN_PICKER_TRIGGER =
   "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50";

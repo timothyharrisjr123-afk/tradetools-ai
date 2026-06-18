@@ -39,6 +39,7 @@ import {
   ProposalRecordStoreError,
   refreshDraftPricing,
   updateDraftProposalPageContent,
+  updateDraftProposalPageVisibility,
   updateDraftSelectedOption,
   type ProposalDraftGraph,
 } from "@/app/lib/proposalRecordStore";
@@ -140,6 +141,9 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
   const [pageEditSaveInFlight, setPageEditSaveInFlight] = useState(false);
   const [pageEditSaveError, setPageEditSaveError] = useState<string | null>(null);
   const pageEditSaveInFlightRef = useRef(false);
+  const [pageVisibilityToggleInFlight, setPageVisibilityToggleInFlight] = useState(false);
+  const [pageVisibilityToggleError, setPageVisibilityToggleError] = useState<string | null>(null);
+  const pageVisibilityToggleInFlightRef = useRef(false);
 
   const loadJobContext = useCallback(async () => {
     setJobLoadComplete(false);
@@ -690,6 +694,47 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
     clearPageEditSession,
   ]);
 
+  const handleTogglePageVisibility = useCallback(
+    (pageId: string, visibleToCustomer: boolean) => {
+      if (!hasPersistedProposalParam || !proposalIdParam) return;
+      if (pageVisibilityToggleInFlightRef.current) return;
+
+      pageVisibilityToggleInFlightRef.current = true;
+      setPageVisibilityToggleInFlight(true);
+      setPageVisibilityToggleError(null);
+
+      void (async () => {
+        try {
+          const updated = await updateDraftProposalPageVisibility(
+            companyId,
+            proposalIdParam.trim(),
+            pageId,
+            visibleToCustomer
+          );
+          if (!updated) {
+            throw new Error("Could not update page visibility.");
+          }
+          setPersistedGraph(updated);
+        } catch (err) {
+          const message =
+            err instanceof ProposalRecordStoreError
+              ? err.message
+              : err instanceof Error
+                ? err.message
+                : "Could not update page visibility.";
+          setPageVisibilityToggleError(message);
+          if (!(err instanceof ProposalRecordStoreError)) {
+            console.warn("[ProposalBuilderClient] page visibility toggle error:", err);
+          }
+        } finally {
+          pageVisibilityToggleInFlightRef.current = false;
+          setPageVisibilityToggleInFlight(false);
+        }
+      })();
+    },
+    [hasPersistedProposalParam, proposalIdParam, companyId]
+  );
+
   const selectedOptionPricingStatus = useMemo(() => {
     if (!pricingPreview || !effectiveSelectedOptionId) return null;
     return pricingPreview.byOptionId[effectiveSelectedOptionId]?.status ?? null;
@@ -904,6 +949,11 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
           {refreshFeedback.message}
         </div>
       ) : null}
+      {!draftGraphError && shellReady && pageVisibilityToggleError ? (
+        <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          {pageVisibilityToggleError}
+        </div>
+      ) : null}
       {!draftGraphError && shellReady ? (
         <ProposalBuilderWorkspaceLayout
           pageContextStrip={
@@ -940,6 +990,8 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
               pageEditSaveDisabled={!pageEditIsDirty}
               pageEditSaveInFlight={pageEditSaveInFlight}
               pageEditSaveError={pageEditSaveError}
+              onTogglePageVisibility={handleTogglePageVisibility}
+              pageVisibilityToggleInFlight={pageVisibilityToggleInFlight}
             />
           }
           summaryRail={

@@ -32,6 +32,7 @@ import {
   refreshDraftPricing,
   sanitizeEffectiveMarginPct,
   updateDraftProposalPageContent,
+  updateDraftProposalPageVisibility,
   updateDraftSelectedOption,
   type ProposalRecordStoreDeps,
 } from "./proposalRecordStore";
@@ -1775,6 +1776,218 @@ describe("reads", () => {
       deps
     );
     assert.equal(other.length, 0);
+  });
+});
+
+describe("updateDraftProposalPageVisibility", () => {
+  function findPageByType(mock: ReturnType<typeof createMockSupabase>, pageType: string) {
+    return mock.state.tables.proposal_pages.find(
+      (p) => (p as Record<string, unknown>).page_type === pageType
+    ) as Record<string, unknown> | undefined;
+  }
+
+  test("toggles visible_to_customer for toggleable page", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const created = await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+      },
+      deps
+    );
+
+    const termsPage = findPageByType(mock, "terms");
+    assert.ok(termsPage?.id);
+    assert.equal(termsPage!.visible_to_customer, true);
+
+    const graph = await updateDraftProposalPageVisibility(
+      COMPANY_ID,
+      created.proposal.id,
+      termsPage!.id as string,
+      false,
+      deps
+    );
+
+    assert.ok(graph);
+    const updated = graph.pages.find((p) => p.id === termsPage!.id);
+    assert.equal(updated?.visible_to_customer, false);
+  });
+
+  test("rejects non-draft proposal", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const created = await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+      },
+      deps
+    );
+
+    const termsPage = findPageByType(mock, "terms");
+    (mock.state.tables.proposals[0] as Record<string, unknown>).status = "sent";
+
+    await assert.rejects(
+      () =>
+        updateDraftProposalPageVisibility(
+          COMPANY_ID,
+          created.proposal.id,
+          termsPage!.id as string,
+          false,
+          deps
+        ),
+      (err: unknown) =>
+        err instanceof ProposalRecordStoreError && /not in draft status/i.test(err.message)
+    );
+  });
+
+  test("rejects wrong company", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const created = await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+      },
+      deps
+    );
+
+    const termsPage = findPageByType(mock, "terms");
+    const result = await updateDraftProposalPageVisibility(
+      "00000000-0000-4000-8000-000000000099",
+      created.proposal.id,
+      termsPage!.id as string,
+      false,
+      deps
+    );
+    assert.equal(result, null);
+  });
+
+  test("rejects non-toggleable page types", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const created = await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+      },
+      deps
+    );
+
+    const estimatePage = findPageByType(mock, "estimate");
+    assert.ok(estimatePage?.id);
+
+    await assert.rejects(
+      () =>
+        updateDraftProposalPageVisibility(
+          COMPANY_ID,
+          created.proposal.id,
+          estimatePage!.id as string,
+          false,
+          deps
+        ),
+      (err: unknown) =>
+        err instanceof ProposalRecordStoreError && /not toggleable/i.test(err.message)
+    );
+  });
+
+  test("only mutates visible_to_customer and updated_at", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const created = await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+      },
+      deps
+    );
+
+    const termsPage = findPageByType(mock, "terms");
+    termsPage!.content_json = { body_markdown: "Keep me" };
+    termsPage!.sort_order = 42;
+    const contentBefore = clone(termsPage!.content_json);
+    const sortOrderBefore = termsPage!.sort_order;
+
+    await updateDraftProposalPageVisibility(
+      COMPANY_ID,
+      created.proposal.id,
+      termsPage!.id as string,
+      false,
+      deps
+    );
+
+    const row = mock.state.tables.proposal_pages.find((p) => p.id === termsPage!.id) as Record<
+      string,
+      unknown
+    >;
+    assert.equal(row.visible_to_customer, false);
+    assert.deepEqual(row.content_json, contentBefore);
+    assert.equal(row.sort_order, sortOrderBefore);
+  });
+
+  test("appends draft_saved event with visible_to_customer metadata", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const created = await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+      },
+      deps
+    );
+
+    const eventsBefore = mock.state.tables.proposal_events.length;
+    const termsPage = findPageByType(mock, "terms");
+
+    await updateDraftProposalPageVisibility(
+      COMPANY_ID,
+      created.proposal.id,
+      termsPage!.id as string,
+      false,
+      deps
+    );
+
+    assert.equal(mock.state.tables.proposal_events.length, eventsBefore + 1);
+    const event = mock.state.tables.proposal_events.at(-1) as Record<string, unknown>;
+    assert.equal(event.event_type, "draft_saved");
+    assert.deepEqual(event.payload_json, {
+      page_id: termsPage!.id,
+      field: "visible_to_customer",
+      value: false,
+    });
+  });
+
+  test("no-ops when visibility unchanged", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const created = await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+      },
+      deps
+    );
+
+    const termsPage = findPageByType(mock, "terms");
+    const eventsBefore = mock.state.tables.proposal_events.length;
+
+    await updateDraftProposalPageVisibility(
+      COMPANY_ID,
+      created.proposal.id,
+      termsPage!.id as string,
+      true,
+      deps
+    );
+
+    assert.equal(mock.state.tables.proposal_events.length, eventsBefore);
   });
 });
 

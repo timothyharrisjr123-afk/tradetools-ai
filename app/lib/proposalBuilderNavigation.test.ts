@@ -211,4 +211,32 @@ describe("proposalBuilderNavigation", () => {
       "add_page",
     ]);
   });
+
+  it("carries customerVisible metadata without filtering hidden pages (R16C3)", () => {
+    const pages = [
+      makePage({
+        id: "p-terms",
+        page_type: "terms",
+        customer_title: "Terms",
+        visible_to_customer: false,
+      }),
+      makePage({
+        id: "p-custom",
+        page_type: "custom_text",
+        customer_title: "Scope notes",
+        visible_to_customer: false,
+        sort_order: 10,
+      }),
+      makePage({ id: "p-overview", page_type: "project_overview", sort_order: 0 }),
+    ];
+    const { items, overflowPages } = buildPageContextStripItems(pages);
+
+    const terms = items.find((item) => item.id === "p-terms");
+    assert.equal(terms?.customerVisible, false);
+    assert.ok(items.some((item) => item.id === "p-terms"));
+
+    const scopeNotes = overflowPages.find((item) => item.id === "p-custom");
+    assert.equal(scopeNotes?.customerVisible, false);
+    assert.deepEqual(overflowPages.map((page) => page.id), ["p-custom"]);
+  });
 });

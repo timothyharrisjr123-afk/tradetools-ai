@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { FileText, Plus } from "lucide-react";
+import { EyeOff, FileText, Plus } from "lucide-react";
 import {
   buildPageContextStripItems,
   type BuilderPageContextId,
@@ -18,6 +18,7 @@ import {
   BUILDER_PAGE_STRIP_ITEM_DISABLED,
   BUILDER_PAGE_STRIP_ITEM_FUTURE,
   BUILDER_PAGE_STRIP_ITEM_IDLE,
+  BUILDER_PAGE_STRIP_HIDDEN_INDICATOR,
 } from "./proposalBuilderConstants";
 import ProposalBuilderOverflowMenu from "./ProposalBuilderOverflowMenu";
 
@@ -62,6 +63,12 @@ function StripButton({
     >
       {icon}
       {item.label}
+      {item.fromDb && item.customerVisible === false ? (
+        <EyeOff
+          className={`h-3.5 w-3.5 ${BUILDER_PAGE_STRIP_HIDDEN_INDICATOR}`}
+          aria-label="Hidden from customer"
+        />
+      ) : null}
       {chip ? <span className={chip.className}>{chip.label}</span> : null}
     </button>
   );

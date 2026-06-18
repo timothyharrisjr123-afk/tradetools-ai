@@ -45,6 +45,16 @@ export const BUILDER_TOKEN_PICKER_ARIA_LABEL = "Insert field";
 /** R16C2 — token picker menu heading. */
 export const BUILDER_TOKEN_PICKER_HEADING = "Document fields";
 
+/** R16C3 — contractor banner when page is hidden from future customer preview. */
+export const BUILDER_PAGE_HIDDEN_FROM_CUSTOMER_BANNER =
+  "This page is hidden from the future customer preview.";
+
+/** R16C3 — visibility toggle labels. */
+export const BUILDER_PAGE_VISIBILITY_VISIBLE_LABEL = "Visible to customer";
+export const BUILDER_PAGE_VISIBILITY_HIDDEN_LABEL = "Hidden from customer";
+export const BUILDER_PAGE_VISIBILITY_REQUIRED_NOTICE =
+  "Required on the customer proposal.";
+
 /** R16B — confirm when navigating away from a dirty page edit session. */
 export const BUILDER_UNSAVED_PAGE_EDIT_CONFIRM =
   "You have unsaved changes on this page. Discard them and leave?";

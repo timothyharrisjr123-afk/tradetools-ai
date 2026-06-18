@@ -63,6 +63,7 @@ import {
   isEditableProposalPageType,
   mergeProposalPageBodyMarkdown,
 } from "@/app/lib/proposalPageContentEditing";
+import { canToggleProposalPageVisibility } from "@/app/lib/proposalPageVisibilityEditing";
 import type {
   ProposalVersionContextEcho,
   ProposalVersionPolicyEcho,
@@ -1715,6 +1716,101 @@ export async function updateDraftProposalPageContent(
       proposal_version_id: version.id,
       event_type: "draft_saved",
       payload_json: { page_id: pgId, field: "body_markdown" },
+    },
+    deps
+  );
+
+  return getDraftGraph(cid, pid, deps);
+}
+
+// ---------------------------------------------------------------------------
+// Update draft proposal page visibility (visible_to_customer only)
+// ---------------------------------------------------------------------------
+
+export async function updateDraftProposalPageVisibility(
+  companyId: string,
+  proposalId: string,
+  pageId: string,
+  visibleToCustomer: boolean,
+  deps?: ProposalRecordStoreDeps
+): Promise<ProposalDraftGraph | null> {
+  const { getSupabase } = resolveDeps(deps);
+  const supabase = getSupabase();
+  const cid = normalizeCompanyId(companyId);
+  const pid = (proposalId ?? "").trim();
+  const pgId = (pageId ?? "").trim();
+  if (!supabase || !cid || !isUuidLike(pid) || !isUuidLike(pgId)) return null;
+
+  const { data: proposalData, error: proposalError } = await supabase
+    .from("proposals")
+    .select(PROPOSAL_SELECT)
+    .eq("id", pid)
+    .eq("company_id", cid)
+    .maybeSingle();
+
+  if (proposalError || !proposalData) return null;
+  const proposal = proposalData as ProposalRow;
+  if ((proposal.status as ProposalStatus) !== "draft") {
+    throw new ProposalRecordStoreError("Proposal is not in draft status.");
+  }
+
+  const version = await loadDraftVersionOrThrow(supabase, cid, proposal);
+  const draftVersionId = (proposal.current_draft_version_id ?? "").trim();
+  if (!draftVersionId || version.id !== draftVersionId) {
+    throw new ProposalRecordStoreError("Proposal draft version is not mutable.");
+  }
+
+  const { data: pageData, error: pageError } = await supabase
+    .from("proposal_pages")
+    .select("*")
+    .eq("id", pgId)
+    .eq("company_id", cid)
+    .eq("proposal_version_id", version.id)
+    .maybeSingle();
+
+  if (pageError || !pageData) {
+    throw new ProposalRecordStoreError("Proposal page not found for this draft.");
+  }
+
+  const page = pageData as ProposalPageRow;
+  if (!canToggleProposalPageVisibility(page.page_type)) {
+    throw new ProposalRecordStoreError("Proposal page type visibility is not toggleable.");
+  }
+
+  const nextVisible = Boolean(visibleToCustomer);
+  if (page.visible_to_customer === nextVisible) {
+    return getDraftGraph(cid, pid, deps);
+  }
+
+  const now = new Date().toISOString();
+
+  const { error: updateError } = await supabase
+    .from("proposal_pages")
+    .update({
+      visible_to_customer: nextVisible,
+      updated_at: now,
+    })
+    .eq("id", pgId)
+    .eq("company_id", cid)
+    .eq("proposal_version_id", version.id);
+
+  if (updateError) {
+    throw new ProposalRecordStoreError(
+      updateError.message ?? "Failed to update proposal page visibility."
+    );
+  }
+
+  await appendProposalEvent(
+    {
+      company_id: cid,
+      proposal_id: pid,
+      proposal_version_id: version.id,
+      event_type: "draft_saved",
+      payload_json: {
+        page_id: pgId,
+        field: "visible_to_customer",
+        value: nextVisible,
+      },
     },
     deps
   );

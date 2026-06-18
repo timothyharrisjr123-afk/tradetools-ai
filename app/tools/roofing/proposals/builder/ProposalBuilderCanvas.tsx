@@ -24,10 +24,15 @@ import {
   isEditableProposalPageType,
   readProposalPageBodyMarkdown,
 } from "@/app/lib/proposalPageContentEditing";
+import {
+  getProposalPageVisibilityState,
+  type ProposalPageVisibilityState,
+} from "@/app/lib/proposalPageVisibilityEditing";
 import type { ProposalPageType } from "@/app/lib/proposalPageTypes";
 import type { ProposalPageRow } from "@/app/lib/proposalRecordStore";
 import ProposalBuilderCoverPage from "./ProposalBuilderCoverPage";
 import ProposalBuilderEditableTextPage from "./ProposalBuilderEditableTextPage";
+import ProposalBuilderPageVisibilityControl from "./ProposalBuilderPageVisibilityControl";
 import ProposalBuilderDocumentTotals from "./ProposalBuilderDocumentTotals";
 import ProposalBuilderPackageSelector from "./ProposalBuilderPackageSelector";
 import ProposalBuilderSectionPreview from "./ProposalBuilderSectionPreview";
@@ -39,6 +44,8 @@ import {
   BUILDER_CANVAS_PLACEHOLDER,
   BUILDER_CANVAS_SUBTITLE,
   BUILDER_CANVAS_TITLE,
+  BUILDER_PAGE_HIDDEN_BANNER,
+  BUILDER_PAGE_VISIBILITY_REQUIRED_NOTICE,
 } from "./proposalBuilderConstants";
 import { STARTER_TEMPLATE_DISPLAY_NAME } from "@/app/tools/roofing/templates/templatesSetupUtils";
 
@@ -68,6 +75,8 @@ type ProposalBuilderCanvasProps = {
   pageEditSaveDisabled?: boolean;
   pageEditSaveInFlight?: boolean;
   pageEditSaveError?: string | null;
+  onTogglePageVisibility?: (pageId: string, visibleToCustomer: boolean) => void;
+  pageVisibilityToggleInFlight?: boolean;
 };
 
 /** 3J4F — text page types that render as read-only customer document pages. */
@@ -106,24 +115,60 @@ function CustomerPagePanel({
   title,
   body,
   placeholder,
+  pageVisibility = null,
+  onToggleVisibility,
+  visibilityToggleInFlight = false,
 }: {
   title: string;
   body: string;
   placeholder?: boolean;
+  pageVisibility?: ProposalPageVisibilityState | null;
+  onToggleVisibility?: () => void;
+  visibilityToggleInFlight?: boolean;
 }) {
+  const showVisibilityControl =
+    pageVisibility != null &&
+    (pageVisibility.canToggle || pageVisibility.requiredNotice != null);
+
   return (
-    <div className={`${BUILDER_CANVAS_INNER} space-y-4`}>
-      <div>
-        <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
-        <p className="mt-2 text-sm leading-relaxed text-slate-600">{body}</p>
-      </div>
-      {placeholder ? (
-        <div className={`${BUILDER_CANVAS_PLACEHOLDER} min-h-[16rem]`}>
-          <p className="text-sm font-medium text-slate-700">Page content comes in a later editing phase.</p>
-          <p className="mt-2 text-xs text-slate-500">This page slot is reserved on the final proposal surface.</p>
-        </div>
+    <article className={BUILDER_CANVAS}>
+      {showVisibilityControl ? (
+        <>
+          <div className={`${BUILDER_CANVAS_HERO_DIVIDER} border-b border-slate-200/80 bg-slate-50/60`}>
+            <div className="flex flex-wrap items-center justify-between gap-3 px-7 py-3">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
+                Proposal page workspace
+              </p>
+              <ProposalBuilderPageVisibilityControl
+                pageTitle={title}
+                visibleToCustomer={pageVisibility!.visibleToCustomer}
+                canToggle={pageVisibility!.canToggle}
+                requiredNotice={pageVisibility!.requiredNotice}
+                onToggle={onToggleVisibility}
+                toggleInFlight={visibilityToggleInFlight}
+              />
+            </div>
+          </div>
+          {pageVisibility?.bannerText ? (
+            <div className={BUILDER_PAGE_HIDDEN_BANNER} role="status">
+              {pageVisibility.bannerText}
+            </div>
+          ) : null}
+        </>
       ) : null}
-    </div>
+      <div className={`${BUILDER_CANVAS_INNER} space-y-4`}>
+        <div>
+          <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
+          <p className="mt-2 text-sm leading-relaxed text-slate-600">{body}</p>
+        </div>
+        {placeholder ? (
+          <div className={`${BUILDER_CANVAS_PLACEHOLDER} min-h-[16rem]`}>
+            <p className="text-sm font-medium text-slate-700">Page content comes in a later editing phase.</p>
+            <p className="mt-2 text-xs text-slate-500">This page slot is reserved on the final proposal surface.</p>
+          </div>
+        ) : null}
+      </div>
+    </article>
   );
 }
 
@@ -152,6 +197,8 @@ export default function ProposalBuilderCanvas({
   pageEditSaveDisabled = false,
   pageEditSaveInFlight = false,
   pageEditSaveError = null,
+  onTogglePageVisibility,
+  pageVisibilityToggleInFlight = false,
 }: ProposalBuilderCanvasProps) {
   const templateName = starterGraph?.template.name ?? STARTER_TEMPLATE_DISPLAY_NAME;
   const effectiveOptionId =
@@ -170,6 +217,16 @@ export default function ProposalBuilderCanvas({
     effectiveOptionId != null
       ? (pricingPreview?.byOptionId[effectiveOptionId]?.customer ?? null)
       : null;
+
+  function resolvePageVisibility(page: ProposalPageRow | null): ProposalPageVisibilityState | null {
+    if (!page) return null;
+    return getProposalPageVisibilityState(page);
+  }
+
+  function handleToggleVisibilityForPage(page: ProposalPageRow | null) {
+    if (!page || !onTogglePageVisibility) return;
+    onTogglePageVisibility(page.id, !page.visible_to_customer);
+  }
 
   if (!starterGraph) {
     return (
@@ -191,7 +248,28 @@ export default function ProposalBuilderCanvas({
 
   if (!isEstimatePageContext(activePageContextId)) {
     if (isCoverPageContext(activePageContextId) && coverViewModel) {
-      return <ProposalBuilderCoverPage viewModel={coverViewModel} />;
+      const coverVisibility = getProposalPageVisibilityState({
+        page_type: "cover",
+        visible_to_customer: true,
+        title: "Cover",
+      });
+      return (
+        <>
+          <div className={`${BUILDER_CANVAS} border-b-0`}>
+            <div className={`${BUILDER_CANVAS_HERO_DIVIDER} border-b border-slate-200/80 bg-slate-50/60`}>
+              <div className="flex flex-wrap items-center justify-between gap-3 px-7 py-3">
+                <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
+                  Proposal page workspace
+                </p>
+                <span className={BUILDER_PAGE_VISIBILITY_REQUIRED_NOTICE}>
+                  {coverVisibility.requiredNotice}
+                </span>
+              </div>
+            </div>
+          </div>
+          <ProposalBuilderCoverPage viewModel={coverViewModel} />
+        </>
+      );
     }
 
     const persistedPage = resolvePersistedPageByContextId(persistedPages, activePageContextId);
@@ -210,6 +288,7 @@ export default function ProposalBuilderCanvas({
         persistedPage != null &&
         isEditableProposalPageType(pageType) &&
         onStartPageEdit != null;
+      const pageVisibility = resolvePageVisibility(persistedPage);
 
       return (
         <ProposalBuilderEditableTextPage
@@ -231,36 +310,61 @@ export default function ProposalBuilderCanvas({
           saveInFlight={pageEditSaveInFlight}
           saveError={pageEditSaveError}
           canEdit={canEdit}
+          pageVisibility={pageVisibility}
+          onToggleVisibility={
+            persistedPage && pageVisibility?.canToggle
+              ? () => handleToggleVisibilityForPage(persistedPage)
+              : undefined
+          }
+          visibilityToggleInFlight={pageVisibilityToggleInFlight}
         />
       );
     }
 
+    const pageVisibility = resolvePageVisibility(persistedPage);
+
     return (
-      <article className={BUILDER_CANVAS}>
-        <CustomerPagePanel
-          title={pageTitle}
-          body={
-            persistedPage
-              ? "Read-only customer page from the saved draft. Full page editing comes in a later phase."
-              : "This proposal page is reserved on the final surface. Content editing is not enabled in this stage."
-          }
-          placeholder={placeholder || !persistedPage}
-        />
-      </article>
+      <CustomerPagePanel
+        title={pageTitle}
+        body={
+          persistedPage
+            ? "Read-only customer page from the saved draft. Full page editing comes in a later phase."
+            : "This proposal page is reserved on the final surface. Content editing is not enabled in this stage."
+        }
+        placeholder={placeholder || !persistedPage}
+        pageVisibility={persistedPage ? pageVisibility : null}
+        onToggleVisibility={
+          persistedPage && pageVisibility?.canToggle
+            ? () => handleToggleVisibilityForPage(persistedPage)
+            : undefined
+        }
+        visibilityToggleInFlight={pageVisibilityToggleInFlight}
+      />
     );
   }
+
+  const estimateVisibility = getProposalPageVisibilityState({
+    page_type: "estimate",
+    visible_to_customer: true,
+    title: "Estimate",
+  });
 
   return (
     <article className={BUILDER_CANVAS}>
       <header className={BUILDER_CANVAS_HERO_DIVIDER}>
         <div className="space-y-4 px-7 pb-5 pt-5">
-          <div>
-            <h2 className="text-xl font-semibold leading-tight tracking-tight text-slate-950">
-              Estimate
-            </h2>
-            <p className="mt-0.5 text-[13px] text-slate-500">
-              Package options, line items, and totals for the customer proposal.
-            </p>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="text-xl font-semibold leading-tight tracking-tight text-slate-950">
+                Estimate
+              </h2>
+              <p className="mt-0.5 text-[13px] text-slate-500">
+                Package options, line items, and totals for the customer proposal.
+              </p>
+            </div>
+            <span className={BUILDER_PAGE_VISIBILITY_REQUIRED_NOTICE}>
+              {estimateVisibility.requiredNotice}
+            </span>
           </div>
 
           <ProposalBuilderPackageSelector
