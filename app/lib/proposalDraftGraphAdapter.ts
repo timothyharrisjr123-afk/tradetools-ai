@@ -16,6 +16,8 @@ import type { CustomerVisibility } from "@/app/lib/catalogTypes";
 import { PROPOSAL_LINE_CUSTOMER_FORBIDDEN_KEYS } from "@/app/lib/proposalLineSnapshotTypes";
 import type { GuardrailOutcome } from "@/app/lib/proposalPricingTypes";
 import { PROPOSAL_SNAPSHOT_PRICING_STATUSES } from "@/app/lib/proposalSnapshotStatusMapper";
+import { buildProposalDocumentContextFromDraftGraph } from "@/app/lib/proposalDocumentContext";
+import type { ProposalDocumentContext } from "@/app/lib/proposalDocumentTokenTypes";
 import type {
   ProposalDraftGraph,
   ProposalLineItemRow,
@@ -87,6 +89,8 @@ export type ProposalDraftGraphAdapterResult = {
   proposalCompanyContext: ProposalCompanyContext;
   /** Customer identity stamped on the proposal version context_echo. */
   proposalCustomerContext: ProposalCustomerContext;
+  /** Frozen document token context for cover/display/PDF (R13). */
+  proposalDocumentContext: ProposalDocumentContext;
 };
 
 export type ValidateProposalDraftGraphForJobResult =
@@ -403,5 +407,6 @@ export function adaptProposalDraftGraphToBuilderPreview(
     ),
     proposalCompanyContext: readProposalCompanyContextFromEcho(graph.version.context_echo),
     proposalCustomerContext: readProposalCustomerContextFromEcho(graph.version.context_echo),
+    proposalDocumentContext: buildProposalDocumentContextFromDraftGraph(graph),
   };
 }

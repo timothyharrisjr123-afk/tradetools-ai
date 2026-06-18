@@ -493,6 +493,33 @@ describe("adaptProposalDraftGraphToBuilderPreview", () => {
     });
   });
 
+  test("exposes proposalDocumentContext from persisted graph (R13)", () => {
+    const adapted = adaptProposalDraftGraphToBuilderPreview(
+      draftGraph({
+        proposal: proposal({ proposal_number: "P-99", title: "Doc title" }),
+        version: {
+          ...versionRow(),
+          created_at: "2026-06-10T00:00:00.000Z",
+          context_echo: {
+            company_name: "Summit Roofing",
+            customer_name: "Jane Smith",
+            job_name: "Jones roof",
+            address_formatted: "1 Main St",
+            template_name: "Standard",
+            measurement_quantities_display: "24 SQ",
+          },
+        },
+      })
+    );
+    assert.equal(adapted.proposalDocumentContext.company.companyName, "Summit Roofing");
+    assert.equal(adapted.proposalDocumentContext.customer.customerName, "Jane Smith");
+    assert.equal(adapted.proposalDocumentContext.jobAddress, "1 Main St");
+    assert.equal(adapted.proposalDocumentContext.proposalNumber, "P-99");
+    assert.equal(adapted.proposalDocumentContext.templateName, "Standard");
+    assert.equal(adapted.proposalDocumentContext.selectedPackage.packageName, "Good");
+    assert.equal(adapted.proposalDocumentContext.selectedPackage.customerTotalCents, 10800);
+  });
+
   test("Golden #12: missing quantity line exposes null snapshot quantity label (no faked price)", () => {
     const adapted = adaptProposalDraftGraphToBuilderPreview(
       draftGraph({
