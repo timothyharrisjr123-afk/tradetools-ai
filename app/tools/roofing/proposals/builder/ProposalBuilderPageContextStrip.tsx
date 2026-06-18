@@ -23,6 +23,7 @@ type ProposalBuilderPageContextStripProps = {
   pages: ProposalPageRow[] | null | undefined;
   activePageContextId: BuilderPageContextId;
   onSelectPageContext: (id: BuilderPageContextId) => void;
+  persistedProposalDocument?: boolean;
 };
 
 function StripButton({
@@ -68,8 +69,11 @@ export default function ProposalBuilderPageContextStrip({
   pages,
   activePageContextId,
   onSelectPageContext,
+  persistedProposalDocument = false,
 }: ProposalBuilderPageContextStripProps) {
-  const { items, overflowPages } = buildPageContextStripItems(pages);
+  const { items, overflowPages } = buildPageContextStripItems(pages, {
+    persistedProposalDocument,
+  });
 
   const cover = items.find((item) => item.id === "cover");
   const estimate = items.find((item) => item.id === "estimate");

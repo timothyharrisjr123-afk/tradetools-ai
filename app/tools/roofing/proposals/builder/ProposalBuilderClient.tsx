@@ -54,6 +54,7 @@ import {
   buildPageContextStripItems,
   type BuilderPageContextId,
 } from "@/app/lib/proposalBuilderNavigation";
+import { buildProposalCoverViewModel } from "@/app/lib/proposalCoverViewModel";
 import {
   deriveProposalBuilderGuidance,
   type ProposalBuilderGuardrailStatus,
@@ -645,9 +646,21 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
   // 3J4B3: single guided-flow source of truth. Pure derivation — no writes,
   // no lifecycle enablement (Preview/Send/Sign/Payment/Production all false).
   const hasPlaceholderPages = useMemo(() => {
-    const { items } = buildPageContextStripItems(persistedGraph?.pages);
+    const { items } = buildPageContextStripItems(persistedGraph?.pages, {
+      persistedProposalDocument: Boolean(adapterResult?.proposalDocumentContext),
+    });
     return items.some((item) => item.kind === "placeholder");
-  }, [persistedGraph?.pages]);
+  }, [persistedGraph?.pages, adapterResult?.proposalDocumentContext]);
+
+  const coverViewModel = useMemo(() => {
+    if (!adapterResult?.proposalDocumentContext) return null;
+    return buildProposalCoverViewModel(adapterResult.proposalDocumentContext, {
+      pricingComplete: selectedOptionPricingStatus?.pricingComplete ?? false,
+    });
+  }, [
+    adapterResult?.proposalDocumentContext,
+    selectedOptionPricingStatus?.pricingComplete,
+  ]);
 
   const guidanceGuardrailStatus = useMemo<ProposalBuilderGuardrailStatus>(() => {
     const outcome = selectedOptionPricingStatus?.guardrailOutcome ?? null;
@@ -790,6 +803,7 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
               pages={persistedGraph?.pages}
               activePageContextId={activePageContextId}
               onSelectPageContext={setActivePageContextId}
+              persistedProposalDocument={Boolean(adapterResult?.proposalDocumentContext)}
             />
           }
           canvas={
@@ -805,6 +819,7 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
               pricingPolicyConfigured={pricingPolicyConfigured}
               activePageContextId={activePageContextId}
               persistedPages={persistedGraph?.pages}
+              coverViewModel={coverViewModel}
             />
           }
           summaryRail={

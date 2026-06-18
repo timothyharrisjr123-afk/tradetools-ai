@@ -9,6 +9,7 @@ import {
   getSectionsForOption,
 } from "@/app/lib/proposalBuilderPreview";
 import {
+  isCoverPageContext,
   isEstimatePageContext,
   isPlaceholderPageContext,
   resolvePageContextDisplayLabel,
@@ -16,8 +17,10 @@ import {
   resolvePersistedPageByContextId,
   type BuilderPageContextId,
 } from "@/app/lib/proposalBuilderNavigation";
+import type { ProposalCoverViewModel } from "@/app/lib/proposalCoverViewModel";
 import type { ProposalPageType } from "@/app/lib/proposalPageTypes";
 import type { ProposalPageRow } from "@/app/lib/proposalRecordStore";
+import ProposalBuilderCoverPage from "./ProposalBuilderCoverPage";
 import ProposalBuilderCustomerPage from "./ProposalBuilderCustomerPage";
 import ProposalBuilderDocumentTotals from "./ProposalBuilderDocumentTotals";
 import ProposalBuilderPackageSelector from "./ProposalBuilderPackageSelector";
@@ -45,6 +48,7 @@ type ProposalBuilderCanvasProps = {
   pricingPolicyConfigured?: boolean;
   activePageContextId: BuilderPageContextId;
   persistedPages: ProposalPageRow[] | null | undefined;
+  coverViewModel?: ProposalCoverViewModel | null;
 };
 
 /** 3J4F — text page types that render as read-only customer document pages. */
@@ -118,6 +122,7 @@ export default function ProposalBuilderCanvas({
   pricingPolicyConfigured = false,
   activePageContextId,
   persistedPages,
+  coverViewModel,
 }: ProposalBuilderCanvasProps) {
   const templateName = starterGraph?.template.name ?? STARTER_TEMPLATE_DISPLAY_NAME;
   const effectiveOptionId =
@@ -163,6 +168,10 @@ export default function ProposalBuilderCanvas({
   }
 
   if (!isEstimatePageContext(activePageContextId)) {
+    if (isCoverPageContext(activePageContextId) && coverViewModel) {
+      return <ProposalBuilderCoverPage viewModel={coverViewModel} />;
+    }
+
     const persistedPage = resolvePersistedPageByContextId(persistedPages, activePageContextId);
     const placeholder = isPlaceholderPageContext(activePageContextId);
     const pageTitle = resolvePageContextDisplayLabel(activePageContextId, persistedPages);

@@ -23,6 +23,8 @@ import {
   resolveSelectedTemplateOptionIdFromGraph,
   validateProposalDraftGraphForJob,
 } from "./proposalDraftGraphAdapter";
+import { buildProposalCoverViewModel } from "./proposalCoverViewModel";
+import { formatPriceCents } from "@/app/tools/roofing/proposals/builder/proposalBuilderConstants";
 
 const COMPANY_ID = "11111111-1111-4111-8111-111111111111";
 const JOB_ID = "22222222-2222-4222-8222-222222222222";
@@ -518,6 +520,45 @@ describe("adaptProposalDraftGraphToBuilderPreview", () => {
     assert.equal(adapted.proposalDocumentContext.templateName, "Standard");
     assert.equal(adapted.proposalDocumentContext.selectedPackage.packageName, "Good");
     assert.equal(adapted.proposalDocumentContext.selectedPackage.customerTotalCents, 10800);
+  });
+
+  test("cover view model total aligns with pricing preview when pricing complete (R15)", () => {
+    const adapted = adaptProposalDraftGraphToBuilderPreview(draftGraph());
+    const templateOptionId = adapted.selectedTemplateOptionId!;
+    const status = adapted.pricingPreview.byOptionId[templateOptionId]?.status;
+    const customerTotal =
+      adapted.pricingPreview.byOptionId[templateOptionId]?.customer?.customerTotalCents ?? null;
+
+    assert.equal(status?.pricingComplete, true);
+    assert.equal(customerTotal, 10800);
+
+    const coverVm = buildProposalCoverViewModel(adapted.proposalDocumentContext, {
+      pricingComplete: status?.pricingComplete ?? false,
+    });
+    assert.equal(coverVm.packageSummary.totalDisplay, formatPriceCents(10800));
+    assert.equal(coverVm.packageSummary.totalDisplay, formatPriceCents(customerTotal!));
+  });
+
+  test("cover view model suppresses total when pricing incomplete (R15)", () => {
+    const adapted = adaptProposalDraftGraphToBuilderPreview(
+      draftGraph({
+        options: [
+          optionRow({
+            pricing_complete: false,
+            blocking_line_count: 1,
+            customer_total_cents: null,
+          }),
+        ],
+      })
+    );
+    const templateOptionId = adapted.selectedTemplateOptionId!;
+    const status = adapted.pricingPreview.byOptionId[templateOptionId]?.status;
+    assert.equal(status?.pricingComplete, false);
+
+    const coverVm = buildProposalCoverViewModel(adapted.proposalDocumentContext, {
+      pricingComplete: false,
+    });
+    assert.equal(coverVm.packageSummary.totalDisplay, null);
   });
 
   test("Golden #12: missing quantity line exposes null snapshot quantity label (no faked price)", () => {

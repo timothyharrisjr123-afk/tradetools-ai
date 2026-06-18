@@ -34,7 +34,7 @@ describe("proposalBuilderNavigation", () => {
     assert.equal(isEstimatePageContext("cover"), false);
   });
 
-  it("builds strip with cover, estimate, placeholders, and preview", () => {
+  it("builds strip with cover disabled by default", () => {
     const { items } = buildPageContextStripItems([]);
     const ids = items.map((item) => item.id);
     assert.ok(ids.includes("cover"));
@@ -45,6 +45,19 @@ describe("proposalBuilderNavigation", () => {
     const cover = items.find((item) => item.id === "cover");
     assert.equal(cover?.enabled, false);
     assert.equal(cover?.showSoon, true);
+    assert.equal(cover?.status, "soon");
+  });
+
+  it("enables cover when persisted proposal document path is active (R15)", () => {
+    const { items } = buildPageContextStripItems([], { persistedProposalDocument: true });
+    const cover = items.find((item) => item.id === "cover");
+    assert.equal(cover?.enabled, true);
+    assert.equal(cover?.showSoon, undefined);
+    assert.equal(cover?.status, "none");
+    const preview = items.find((item) => item.id === "preview");
+    assert.equal(preview?.enabled, false);
+    assert.equal(preview?.status, "locked");
+    assert.equal(BUILDER_DEFAULT_PAGE_CONTEXT, "estimate");
   });
 
   it("maps persisted pages into strip slots by page_type", () => {

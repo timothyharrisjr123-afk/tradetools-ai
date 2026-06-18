@@ -75,20 +75,27 @@ function pageLabel(page: ProposalPageRow): string {
   return title || page.page_type;
 }
 
+export type BuildPageContextStripItemsOptions = {
+  /** R15 — persisted proposal with frozen document context enables Cover navigation. */
+  persistedProposalDocument?: boolean;
+};
+
 export function buildPageContextStripItems(
-  pages: ProposalPageRow[] | null | undefined
+  pages: ProposalPageRow[] | null | undefined,
+  options?: BuildPageContextStripItemsOptions
 ): { items: PageStripItem[]; overflowPages: PageStripItem[] } {
   const dbPages = pages ?? [];
   const usedIds = new Set<string>();
+  const coverEnabled = options?.persistedProposalDocument === true;
 
   const items: PageStripItem[] = [
     {
       kind: "fixed",
       id: "cover",
       label: "Cover",
-      enabled: false,
-      showSoon: true,
-      status: "soon",
+      enabled: coverEnabled,
+      status: coverEnabled ? "none" : "soon",
+      ...(coverEnabled ? {} : { showSoon: true }),
     },
     {
       kind: "fixed",
@@ -162,6 +169,10 @@ export function buildPageContextStripItems(
 
 export function isEstimatePageContext(contextId: BuilderPageContextId): boolean {
   return contextId === "estimate";
+}
+
+export function isCoverPageContext(contextId: BuilderPageContextId): boolean {
+  return contextId === "cover";
 }
 
 export function resolvePersistedPageByContextId(

@@ -114,6 +114,17 @@ export const BUILDER_CANVAS_HERO_DIVIDER =
 export const BUILDER_CANVAS_KICKER =
   "text-[12px] font-semibold uppercase tracking-[0.16em] text-blue-500/80";
 
+/** R15 — cover page section kicker. */
+export const BUILDER_COVER_SECTION_LABEL =
+  "text-[11px] font-semibold uppercase tracking-wide text-slate-500";
+
+/** R15 — contractor-only notice when stamped identity fields are missing. */
+export const BUILDER_COVER_IDENTITY_INCOMPLETE =
+  "rounded-md border border-amber-200/80 bg-amber-50/60 px-3 py-2 text-xs text-amber-900";
+
+/** R15 — quiet draft-stage footnote on the cover (not lifecycle enablement). */
+export const BUILDER_COVER_DRAFT_NOTICE = "text-[11px] leading-snug text-slate-400";
+
 export const BUILDER_CANVAS_TITLE =
   "text-[2.1rem] font-semibold leading-tight tracking-tight text-slate-950";
 
