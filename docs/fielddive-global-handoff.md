@@ -23,20 +23,23 @@
 - Read **§6AT** before R13/R15 proposal document truth or customer/company display work — R12 customer identity context_echo stamping summary, post-R12 audit, authenticated Playwright verification, P2 carryover.
 - Read **§6AU** before R14/R15 proposal document truth work — R13 frozen document token foundation (registry, `ProposalDocumentContext`, resolver), post-R13 audit, P2 carryover.
 - Read **§6AV** before R16+ lifecycle work — R15 read-only branded cover, address dedupe, post-R15 audit, P2 carryover.
-- Read **§6AW** before R16/R17 lifecycle, Preview/PDF, or template token authoring — R14 read-only body/page token merge, post-R14 audit, P3 carryover.
+- Read **§6AW** before R17 lifecycle, Preview/PDF, or template token authoring — R14 read-only body/page token merge, post-R14 audit, P3 carryover.
+- Read **§6AX** before any Builder chrome/document IA, page strip, or workspace-header change — R16A builder chrome vs customer document separation, post-R16A audit, P3 carryover.
 
-**Last updated checkpoint:** **Code:** **`f359ad4` — feat(proposals): merge document tokens into read-only body pages from frozen context**. **Docs checkpoint:** **pending this commit** (prior: **`1921b0a`** — docs: checkpoint after R15 read-only branded proposal cover). **Current state:** **R0–R15** complete/satisfied; **R14** body/page token merge complete at `f359ad4` (§6AW). Proposal **Cover** (R15) and **body text pages** (R14) now consume frozen **`proposalDocumentContext`** for read-only customer-facing display. **Post-R14 full-surface product safety audit passed** — code/test/source-of-truth + **authenticated Playwright MCP** visual verification; no P0/P1 blockers. **Playwright auth:** outside-repo `storageState` at `C:\Users\sabre\.cursor\fielddive-playwright-auth.json` — test-only audits; no auth/RLS bypass; session expiry requires normal login and re-save. **Do not use** `C:\Users\sabre.cursor\...` (missing `.` before `cursor`) — that path is a common typo. **Tests (post-R14 audit):** R14/R13/R15 focused **96/96** pass; full combined relevant run **380/380** pass. **Typecheck:** only **6** pre-existing errors in `app/tools/roofing-v2/RoofingClientV2.tsx` — unchanged. **Protected systems:** unchanged in R14 pass. **Working tree:** clean at `f359ad4`; doc-only WIP for this checkpoint.
+**Last updated checkpoint:** **Code:** **`18cebca` — feat(proposals): separate builder chrome from customer document IA**. **Docs checkpoint:** **pending this commit** (prior: **`ead672f`** — docs: checkpoint after R14 read-only body page token merge). **Current state:** **R0–R15** complete/satisfied; **R14** body merge at `f359ad4` (§6AW); **R16A** Builder chrome/customer document IA separation complete at `18cebca` (§6AX). **R16A is not §6AL R16 Proposals hub** — hub remains **not started**. **Post-R16A product safety audit passed** — code/test/source-of-truth + **authenticated Playwright MCP** visual verification; no P0/P1 blockers. **Playwright auth:** outside-repo `storageState` at `C:\Users\sabre\.cursor\fielddive-playwright-auth.json` — test-only audits; no auth/RLS bypass; session expiry requires normal login and re-save. **Do not use** `C:\Users\sabre.cursor\...` (missing `.` before `cursor`) — that path is a common typo. **Tests (post-R16A audit):** **345/345** pass (R16A/R14/R15/R13 + safety suites). **Typecheck:** only **6** pre-existing errors in `app/tools/roofing-v2/RoofingClientV2.tsx` — unchanged. **Protected systems:** unchanged in R16A pass. **Working tree:** clean at `18cebca` at time of R16A audit; doc-only WIP for this checkpoint.
 
 **Jobs Board approved save point:** `b27a444` (3F9B4-RoofrExact visual baseline). **DB-first board partition:** `a62ad93` (§6AD). **Jobs Board identity (R8):** `1191ddd`.
 
-**Next (recommended):** **Do not start R16/R17 automatically.** **Scope the next stage only after explicit direction** — likely **R16 / R15.5 product-document audit** or next document/lifecycle boundary; **do not auto-start implementation**. **No implementation** without scoped audit. **Mandatory recovery order:** **§6AL** + **§6AM** + **§6AN** + **§6AO** + **§6AP** + **§6AQ** + **§6AR** + **§6AS** + **§6AT** + **§6AU** + **§6AV** + **§6AW**. **Later items** only in **§11**. **Preview / Send / Sign / Payment remain disabled** until **R17–R20**. **Do not** return to `loadSaved`/`currentSaved` as main workflow.
+**Next (recommended):** **Do not start Preview/PDF/lifecycle (R17–R20) or §6AL R16 Proposals hub automatically.** **Immediate next after this docs commit:** **Roofr-aligned duplication/drift audit** and **scoped next-stage decision** (optional small **R16B** polish vs body-authoring scope) — **planning/audit only**; use live-web Roofr research addendum as alignment input, **not** as an automatic implementation command. **No implementation** without explicit scoped direction. **Mandatory recovery order:** **§6AL** + **§6AM** + **§6AN** + **§6AO** + **§6AP** + **§6AQ** + **§6AR** + **§6AS** + **§6AT** + **§6AU** + **§6AV** + **§6AW** + **§6AX**. **Later items** only in **§11**. **Preview / Send / Sign / Payment remain disabled** until **R17–R20**. **Do not** return to `loadSaved`/`currentSaved` as main workflow.
 
-**DB-first foundation is live** (§6AD). **3J3E option selection persists** (§6AE). **Pricing trust hardening complete** (§6AF). **3J4C document-first Builder complete** (§6AG) — Estimate page renders the actual proposal document inline (package selector, blocker banner, sections, line items, totals); right rail is a contextual **Proposal Helper** inspector; old workspace tabs and Overview panel **removed**. **3J4D** refined Estimate line readability (§6AH). **3J4E** refined package/options surface inside Estimate (§6AI). **3J4F** extended Builder to customer-facing text pages — Terms, Warranty, Project Overview, custom_text render persisted `body_markdown` when present (§6AJ). **R14** adds display-time `{{token_name}}` merge on those text pages from frozen `proposalDocumentContext` + R13 resolver (`f359ad4`, §6AW) — stored `body_markdown` unchanged; no write-back. **R4–R6** template content editor on `/tools/roofing/templates` **complete** (`9db2030`–`3c6214c`). **R7** light global IA nav **complete** (`05b9c54`). **R8** light Jobs Board identity **complete** (`1191ddd`). **R9** Job Card create/open draft flow **satisfied** (`1915b2d` + pre-R10 P1 at `d0ba188`). **R10** template structure + estimate settings **complete** (`bc42b1e`–`b3dd904`, §6AQ). **R11** company branding Settings **complete** (`0146dac`–`139e8a3`, §6AR). **R11c** stamps company core + branding into `proposal_versions.context_echo` at new draft create only (`29722a0`, §6AS) — **no Builder cover UI**. **R12** stamps DB-truth customer identity into `proposal_versions.context_echo` at new draft create only (`31059e3`, §6AT) — **no Job Card UI changes, no Builder customer display**. **R13** adds pure frozen document token foundation (`e40db30`, §6AU) — registry, `ProposalDocumentContext`, resolver. **R15** adds read-only branded **Cover** tab in Proposal Builder (`ab5a400`, §6AV) — consumes `proposalDocumentContext` + resolver; **not** Preview/PDF/send/sign/payment. **R14** wires body text pages to the same frozen context at display time (`f359ad4`, §6AW). Main workflow: **Job Board → DB job card (`job=`) → Create proposal / Open proposal → create/reuse DB proposal draft → Builder (`job=` + `proposal=`) → package selection persists to DB; refresh draft pricing when measurement changes**. Legacy `loadSaved=` / `currentSaved` / board-origin paths are **preserved but separated** — they **cannot create DB proposals directly**. **DB proposal math uses the new spine only** (`measurement_records` → `proposalQuantityResolver` → `proposalPricingEngine` → snapshots) — **not** legacy saved-estimate / Core-Enhanced-Premium estimator math. **`createDraftProposal`** runs from Job Card **Create proposal** only when checklist + pricing gates pass; **Builder reads** persisted drafts via **`getDraftGraph`** + **`proposalDraftGraphAdapter`** when `?proposal=` is present — **no Builder create path**, **no silent fallback** on invalid `proposal=`. **Do not** persist placeholder/unconfigured pricing policy. **Catalog custom delete/deactivate** is **not implemented** and remains a **separate later scope**.
+**DB-first foundation is live** (§6AD). **3J3E option selection persists** (§6AE). **Pricing trust hardening complete** (§6AF). **3J4C document-first Builder complete** (§6AG) — Estimate page renders the actual proposal document inline (package selector, sections, line items, totals); right rail is a contextual **Proposal Helper** inspector; old workspace tabs and Overview panel **removed**. **R16A** (§6AX) removed the amber **Preview-unlock blocker banner** from the Estimate **canvas**; pricing/blocking guidance remains in the rail. **3J4D** refined Estimate line readability (§6AH). **3J4E** refined package/options surface inside Estimate (§6AI). **3J4F** extended Builder to customer-facing text pages — Terms, Warranty, Project Overview, custom_text render persisted `body_markdown` when present (§6AJ). **R14** adds display-time `{{token_name}}` merge on those text pages from frozen `proposalDocumentContext` + R13 resolver (`f359ad4`, §6AW) — stored `body_markdown` unchanged; no write-back. **R4–R6** template content editor on `/tools/roofing/templates` **complete** (`9db2030`–`3c6214c`). **R7** light global IA nav **complete** (`05b9c54`). **R8** light Jobs Board identity **complete** (`1191ddd`). **R9** Job Card create/open draft flow **satisfied** (`1915b2d` + pre-R10 P1 at `d0ba188`). **R10** template structure + estimate settings **complete** (`bc42b1e`–`b3dd904`, §6AQ). **R11** company branding Settings **complete** (`0146dac`–`139e8a3`, §6AR). **R11c** stamps company core + branding into `proposal_versions.context_echo` at new draft create only (`29722a0`, §6AS) — **no Builder cover UI**. **R12** stamps DB-truth customer identity into `proposal_versions.context_echo` at new draft create only (`31059e3`, §6AT) — **no Job Card UI changes, no Builder customer display**. **R13** adds pure frozen document token foundation (`e40db30`, §6AU) — registry, `ProposalDocumentContext`, resolver. **R15** adds read-only branded **Cover** tab in Proposal Builder (`ab5a400`, §6AV) — consumes `proposalDocumentContext` + resolver; **not** Preview/PDF/send/sign/payment. **R14** wires body text pages to the same frozen context at display time (`f359ad4`, §6AW). **R16A** separates contractor workspace chrome from customer document IA (`18cebca`, §6AX) — customer-logical page strip order, workspace header, simplified body shell; **not** Preview/PDF/lifecycle/hub. Main workflow: **Job Board → DB job card (`job=`) → Create proposal / Open proposal → create/reuse DB proposal draft → Builder (`job=` + `proposal=`) → package selection persists to DB; refresh draft pricing when measurement changes**. Legacy `loadSaved=` / `currentSaved` / board-origin paths are **preserved but separated** — they **cannot create DB proposals directly**. **DB proposal math uses the new spine only** (`measurement_records` → `proposalQuantityResolver` → `proposalPricingEngine` → snapshots) — **not** legacy saved-estimate / Core-Enhanced-Premium estimator math. **`createDraftProposal`** runs from Job Card **Create proposal** only when checklist + pricing gates pass; **Builder reads** persisted drafts via **`getDraftGraph`** + **`proposalDraftGraphAdapter`** when `?proposal=` is present — **no Builder create path**, **no silent fallback** on invalid `proposal=`. **Do not** persist placeholder/unconfigured pricing policy. **Catalog custom delete/deactivate** is **not implemented** and remains a **separate later scope**.
 
-### Recent committed sequence (recovery R0–R15 + R14 body merge; then 3G6 spine + 3J + 3J4)
+### Recent committed sequence (recovery R0–R16A; then 3G6 spine + 3J + 3J4)
 
 | Commit | Summary |
 |--------|---------|
+| `18cebca` | **R16A** — Separate Builder chrome from customer document IA; pure `proposalBuilderDocumentIa`; customer-logical page strip; workspace header; Estimate canvas banner removed; lifecycle still locked |
+| `ead672f` | **Docs** — Checkpoint after R14 read-only body page token merge |
 | `f359ad4` | **R14** — Display-time token merge for read-only body pages; `proposalDocumentBodyRenderer` + Builder wiring; frozen `proposalDocumentContext` + R13 resolver only; stored `body_markdown` unchanged |
 | `1921b0a` | **Docs** — Checkpoint after R15 read-only branded proposal cover |
 | `ab5a400` | **R15** — Read-only branded Cover tab/page in Proposal Builder; `proposalCoverViewModel` + `ProposalBuilderCoverPage`; frozen `proposalDocumentContext` + R13 resolver only; address dedupe; Cover nav enabled for persisted proposal path |
@@ -5190,6 +5193,166 @@ raw body_markdown + proposalDocumentContext + { pricingComplete }
 
 ---
 
+## 6AX. R16A COMPLETION — BUILDER CHROME / CUSTOMER DOCUMENT IA SEPARATION
+
+**Status:** **R16A complete** (`18cebca`). **Post-R16A product safety audit passed** — code/test/source-of-truth + **authenticated Playwright MCP** visual verification; no P0/P1 blockers. **Naming:** **R16A ≠ §6AL R16 Proposals hub**. **R16A** = Builder chrome / customer document IA polish. **§6AL R16** Proposals hub (Draft/Sent/Won/Lost list) remains **not started**.
+
+### 1. Scope completed
+
+- **R16A** is complete and committed at **`18cebca`**.
+- **R16A is not the same as §6AL R16 Proposals hub.**
+- **R16A** = Builder chrome / customer document IA polish.
+- **§6AL R16** Proposals hub remains **not started**.
+
+### 2. R16A implementation commit and files changed
+
+| Commit | Pass | Scope |
+|--------|------|-------|
+| `18cebca` | **R16A** | Separate Builder chrome from customer document IA — pure IA/copy/order module + Builder UI wiring; **no lifecycle enablement** |
+
+**R16A changed exactly 11 files (no SQL/docs/packages):**
+
+- `app/lib/proposalBuilderDocumentIa.ts`
+- `app/lib/proposalBuilderDocumentIa.test.ts`
+- `app/lib/proposalBuilderNavigation.ts`
+- `app/lib/proposalBuilderNavigation.test.ts`
+- `app/tools/roofing/proposals/builder/ProposalBuilderPageHeader.tsx`
+- `app/tools/roofing/proposals/builder/ProposalBuilderClient.tsx`
+- `app/tools/roofing/proposals/builder/ProposalBuilderCanvas.tsx`
+- `app/tools/roofing/proposals/builder/ProposalBuilderCustomerPage.tsx`
+- `app/tools/roofing/proposals/builder/ProposalBuilderCoverPage.tsx`
+- `app/tools/roofing/proposals/builder/ProposalBuilderPageContextStrip.tsx`
+- `app/tools/roofing/proposals/builder/proposalBuilderConstants.ts`
+
+**Not in R16A:** Preview/Send/Sign/Payment enablement; PDF; customer preview route; body-page editing; token picker; token insertion UI; media/photos implementation; Proposals hub; pricing engine/snapshot math changes; `refreshDraftPricing` behavior changes; R15 cover VM logic changes; R14 body renderer logic changes; R13 token resolver/registry changes; Job Card / Jobs Board / Templates UI changes; SQL/migrations/packages; legacy `RoofingClient` PDF; `estimateStore` reuse.
+
+### 3. Behavior added / changed
+
+- New pure IA/copy/order module: **`proposalBuilderDocumentIa.ts`**.
+- **Customer-logical page strip order:**
+  **Cover → Project Overview → Estimate → Terms → Warranty → Project Photos → Add Page**.
+- **Default landing remains Estimate.**
+- **Header** is explicitly **contractor workspace chrome** (`Proposal workspace` kicker).
+- **Header no longer shows template/package chips.**
+- **Header includes live-context / saved-snapshot distinction:**
+  “Live job context — document pages use saved draft snapshot”.
+- **Estimate canvas no longer shows** the amber **Preview-unlock blocker banner** (guidance moved to rail only).
+- **Pricing/blocking guidance remains** in the Proposal Helper rail / guidance area.
+- **Body pages** have simplified shell and **standardized read-only footer**
+  (“Read-only draft page. Content editing comes in a later phase.”).
+- **Cover draft note shortened** to: **“Draft proposal — not sent to customer.”**
+  (no Preview/send/signature lifecycle wording).
+- **Page strip renders in navigation order** (customer-logical order enforced in strip component).
+- **Add Page** remains **disabled / Soon**.
+- **Preview** remains **locked** and **not active in visible strip UI** (filtered from strip; lifecycle disabled).
+
+### 4. Source-of-truth boundary
+
+| Surface | Rule |
+|---------|------|
+| **Header / workspace chrome** | May use live **`JobRecord`** only as **workspace context** (title, address, back link) — **not** document truth |
+| **Cover** | R15 **`buildProposalCoverViewModel`** from frozen **`proposalDocumentContext`** |
+| **Body text pages** | R14 **`renderProposalDocumentPageBody`** from frozen **`proposalDocumentContext`** + persisted `body_markdown` |
+| **Estimate** | Existing persisted graph + pricing preview path (unchanged) |
+
+**Mandatory boundaries preserved:**
+
+- **No** live Settings/customers/jobs reads for proposal **document rendering**.
+- **No** `JobRecord` for Cover/body document truth.
+- **No** pricing recalculation introduced.
+- **No** token-rendered text persisted.
+- **R15** cover VM **unchanged** (module not in R16A diff).
+- **R14** body renderer **unchanged** (module not in R16A diff).
+- **R13** token resolver/registry **unchanged**.
+
+### 5. Protected systems unchanged
+
+- **No** docs/SQL/packages in R16A code commit.
+- **No** pricing engine changes.
+- **No** proposal snapshot builder changes.
+- **No** `refreshDraftPricing` behavior changes.
+- **No** payment/approval/status/send/PDF changes.
+- **No** Job Card / Jobs Board / Templates UI changes.
+- **Preview / Send / Sign / Payment remain disabled.**
+- **No** PDF / customer route.
+- **No** Proposals hub.
+- **No** body editing.
+- **No** token picker.
+- **No** media/photos implementation.
+
+### 6. Post-R16A audit results (at `18cebca`)
+
+**Verdict:** **Proceed to docs checkpoint.** **No P0/P1 blockers.**
+
+**Tests:**
+
+| Suite | Result |
+|-------|--------|
+| R16A IA + navigation + guidance + R14/R15/R13 + safety suites | **345/345** pass |
+
+**TypeScript:** only **6** known pre-existing `RoofingClientV2.tsx` errors — unchanged.
+
+**Authenticated Playwright visual audit** (storageState: `C:\Users\sabre\.cursor\fielddive-playwright-auth.json`; draft `job=f5a7d4ab-8758-48e1-848c-e7e4fa7895cb`, `proposal=f3a12198-fc90-4d7d-8079-f0d15b47a2b7`):
+
+| Check | Result |
+|-------|--------|
+| Builder opened without login redirect | **Pass** |
+| Default tab Estimate | **Pass** |
+| Strip order Cover → Project Overview → Estimate → Terms → Warranty → Project Photos → Add Page | **Pass** |
+| Cover renders (R15 baseline) | **Pass** |
+| Cover draft note shortened and customer-safe | **Pass** |
+| Project Overview / Terms / Warranty read-only | **Pass** |
+| Estimate package / lines / totals | **Pass** |
+| No amber Preview-unlock banner on Estimate canvas | **Pass** |
+| Header workspace label; no template/package chips | **Pass** |
+| Rail shows Proposal Helper / Blocking / Pricing status | **Pass** |
+| Preview / Send / Sign / Payment disabled | **Pass** |
+| No Proposals hub | **Pass** |
+| **0** console errors after clean reload | **Pass** |
+| Mobile ~390px — no horizontal overflow | **Pass** |
+| Visual duplication reduced vs pre-R16A | **Pass** |
+
+**Working tree:** clean at `18cebca` at time of R16A audit; doc-only WIP for this checkpoint.
+
+### 7. Known P3 carryover (post-R16A, non-blocking)
+
+| Item | Priority | Notes |
+|------|----------|-------|
+| **Rail copy “Preview based on your company pricing”** | P3 | Future **R16B** polish can rephrase to “Draft pricing preview” |
+| **Compact chrome alert “Read-only preview”** | P3 | Optional future copy tighten in workspace chrome |
+| **Header live context vs frozen document context** | P3 | Intentional separation — keep documented |
+| **`BUILDER_PREVIEW_BANNER` constant unused** | P3 | Orphan after canvas banner removal; optional cleanup later |
+| **`+1` strip overflow chip** | P3 | Extra DB page not mapped to standard slot — expected for now |
+| **Transient HMR-only console error** | P4 | `optionBlockingLineCount` observed during hot reload only; clean reload **0** errors; grep confirmed no committed-code defect |
+
+### 8. Next-stage guidance (after this docs checkpoint)
+
+**Do not start Preview / PDF / lifecycle (R17–R20) automatically.**
+
+**Do not start §6AL R16 Proposals hub, body editing, token picker, or media/photos without explicit scope.**
+
+**Use the live-web Roofr research addendum as future alignment input — do not implement from it yet.**
+
+**Recommended immediate next (planning/audit only):**
+
+| Option | Focus |
+|--------|--------|
+| **Roofr-aligned duplication/drift audit** | Header vs document, strip order, Preview gate, page hide/show, drawer-vs-canvas, signed immutability, payments separate from proposal send |
+| **Small scoped R16B polish** | Rail/copy cleanup (e.g. “Draft pricing preview”) |
+| **Body-authoring scope decision** | `updateProposalPage`, token picker — separate explicit stage |
+
+**Continue combining docs checkpoints where safe**, but document source-of-truth / lifecycle / pricing / document-boundary changes promptly.
+
+**Any next stage must preserve:**
+
+- Preview / Send / Sign / Payment **disabled**
+- Frozen **`proposalDocumentContext`** for customer document surfaces
+- Pricing trust + snapshot safety
+- Templates / Job Card / Jobs Board boundaries
+- Single shared resolver + body renderer for future customer-facing surfaces
+
+---
+
 ## 7. IMPORTANT ARCHITECTURE BOUNDARIES
 
 | Concept | Owns |
@@ -5323,20 +5486,21 @@ Then open and read **in this file** (in order):
 15. **§6AS** — R11c company branding context_echo stamping
 16. **§6AT** — R12 customer identity context_echo stamping (read before R15)
 17. **§6AU** — R13 frozen document token foundation (read before R14/R15)
-18. **§6AV** — R15 read-only branded cover (read before R16+ lifecycle)
-19. **§6AW** — R14 read-only body/page token merge (read before Preview/PDF/template token authoring or R16+ lifecycle)
-20. **§3 Builder-specific rule + Roofr-aligned product principle** — no-drift rules; **Playwright MCP test-only guardrail**
-21. **§6AD** — DB-first foundation Phases A–D
-22. **§6AE** — 3J3E option persistence + quantity resolver coverage
-23. **§6AF** — pricing trust hardening
-24. **§9** — required first prompt / resume instructions (this section)
-25. **§11** — roadmap buckets (TODAY / NEXT / LATER / DO NOT DO YET), current checkpoint, built-surface audit, manual smoke; **§11 — Future / Later bucket → Proposal Builder**
+18. **§6AV** — R15 read-only branded cover (read before R17+ lifecycle)
+19. **§6AW** — R14 read-only body/page token merge (read before Preview/PDF/template token authoring or R17+ lifecycle)
+20. **§6AX** — R16A Builder chrome / customer document IA separation (read before any Builder chrome/strip/header change)
+21. **§3 Builder-specific rule + Roofr-aligned product principle** — no-drift rules; **Playwright MCP test-only guardrail**
+22. **§6AD** — DB-first foundation Phases A–D
+23. **§6AE** — 3J3E option persistence + quantity resolver coverage
+24. **§6AF** — pricing trust hardening
+25. **§9** — required first prompt / resume instructions (this section)
+26. **§11** — roadmap buckets (TODAY / NEXT / LATER / DO NOT DO YET), current checkpoint, built-surface audit, manual smoke; **§11 — Future / Later bucket → Proposal Builder**
 
-**Verify HEAD** is **`f359ad4`** or newer (R14 complete); if newer, reconcile this doc.
+**Verify HEAD** is **`18cebca`** or newer (R16A complete); if newer, reconcile this doc.
 
 **Confirm** working tree is clean (or note doc-only WIP).
 
-**Post-R14 audit passed** (code/test/SOT + **authenticated Playwright MCP** visual verification); details in **§6AW**. **R0–R15** complete/satisfied; **R14** body merge at `f359ad4`. **Code:** `f359ad4`. **Next:** **Do not auto-start R16/R17** — scope next stage only after explicit direction (§6AW). **R16** Proposals hub code later. **Do not reintroduce** old Overview/workspace tabs. **Preview / Send / Sign / Payment remain disabled** until **R17+**. **Mandatory order:** **§6AL** + **§6AM** + **§6AN** + **§6AO** + **§6AP** + **§6AQ** + **§6AR** + **§6AS** + **§6AT** + **§6AU** + **§6AV** + **§6AW**. **Do not** return to `loadSaved`/`currentSaved` as main workflow.
+**Post-R16A audit passed** (code/test/SOT + **authenticated Playwright MCP** visual verification); details in **§6AX**. **R0–R15** complete/satisfied; **R16A** at `18cebca`. **Code:** `18cebca`. **Next:** **Roofr-aligned duplication/drift audit** or scoped **R16B** / body-authoring decision — **planning only**; **do not auto-start Preview/PDF/lifecycle or §6AL R16 hub** (§6AX). **Do not reintroduce** old Overview/workspace tabs or Estimate canvas Preview-unlock banner. **Preview / Send / Sign / Payment remain disabled** until **R17+**. **Mandatory order:** **§6AL** + **§6AM** + **§6AN** + **§6AO** + **§6AP** + **§6AQ** + **§6AR** + **§6AS** + **§6AT** + **§6AU** + **§6AV** + **§6AW** + **§6AX**. **Do not** return to `loadSaved`/`currentSaved` as main workflow.
 
 Inspect before planning **3F9** (or chosen stage):
 
