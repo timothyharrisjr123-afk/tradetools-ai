@@ -22,20 +22,23 @@
 - Read **§6AS** before R15 branded cover/display work — R11c company branding context_echo stamping summary, P2 carryover, visual-check guardrail.
 - Read **§6AT** before R13/R15 proposal document truth or customer/company display work — R12 customer identity context_echo stamping summary, post-R12 audit, authenticated Playwright verification, P2 carryover.
 - Read **§6AU** before R14/R15 proposal document truth work — R13 frozen document token foundation (registry, `ProposalDocumentContext`, resolver), post-R13 audit, P2 carryover.
-- Read **§6AV** before R14 body/page token merge or R16+ lifecycle work — R15 read-only branded cover, address dedupe, post-R15 audit, P2 carryover.
+- Read **§6AV** before R16+ lifecycle work — R15 read-only branded cover, address dedupe, post-R15 audit, P2 carryover.
+- Read **§6AW** before R16/R17 lifecycle, Preview/PDF, or template token authoring — R14 read-only body/page token merge, post-R14 audit, P3 carryover.
 
-**Last updated checkpoint:** **Code:** **`ab5a400` — feat(proposals): add read-only branded cover from frozen document context**. **Docs checkpoint:** **pending this commit** (prior: **`b294226`** — docs: checkpoint after R13 document token foundation). **Current state:** **R0–R15** complete/satisfied. **R11** spans **R11a** (`0146dac`), **R11b store** (`097d25e`), **R11b Settings** (`139e8a3`), **R11c company branding context_echo** (`29722a0`, §6AS), **R12 customer identity context_echo** (`31059e3`, §6AT), **R13 frozen document token foundation** (`e40db30`, §6AU), **R15 read-only branded cover** (`ab5a400`, §6AV). **Post-R15 full-surface product safety audit passed** — code/test/source-of-truth + **authenticated Playwright MCP** visual verification; no P0/P1 blockers. **Playwright auth:** outside-repo `storageState` at `C:\Users\sabre\.cursor\fielddive-playwright-auth.json` — test-only audits; no auth/RLS bypass; session expiry requires normal login and re-save. **Tests (post-R15 audit):** **326/326** R15 + safety + guidance pass; **61/61** pricing/template validation; **387/387** combined audit run. **Typecheck:** only **6** pre-existing errors in `app/tools/roofing-v2/RoofingClientV2.tsx` — unchanged. **Protected systems:** unchanged in R15 pass. **Working tree:** clean at `ab5a400`; doc-only WIP for this checkpoint.
+**Last updated checkpoint:** **Code:** **`f359ad4` — feat(proposals): merge document tokens into read-only body pages from frozen context**. **Docs checkpoint:** **pending this commit** (prior: **`1921b0a`** — docs: checkpoint after R15 read-only branded proposal cover). **Current state:** **R0–R15** complete/satisfied; **R14** body/page token merge complete at `f359ad4` (§6AW). Proposal **Cover** (R15) and **body text pages** (R14) now consume frozen **`proposalDocumentContext`** for read-only customer-facing display. **Post-R14 full-surface product safety audit passed** — code/test/source-of-truth + **authenticated Playwright MCP** visual verification; no P0/P1 blockers. **Playwright auth:** outside-repo `storageState` at `C:\Users\sabre\.cursor\fielddive-playwright-auth.json` — test-only audits; no auth/RLS bypass; session expiry requires normal login and re-save. **Do not use** `C:\Users\sabre.cursor\...` (missing `.` before `cursor`) — that path is a common typo. **Tests (post-R14 audit):** R14/R13/R15 focused **96/96** pass; full combined relevant run **380/380** pass. **Typecheck:** only **6** pre-existing errors in `app/tools/roofing-v2/RoofingClientV2.tsx` — unchanged. **Protected systems:** unchanged in R14 pass. **Working tree:** clean at `f359ad4`; doc-only WIP for this checkpoint.
 
 **Jobs Board approved save point:** `b27a444` (3F9B4-RoofrExact visual baseline). **DB-first board partition:** `a62ad93` (§6AD). **Jobs Board identity (R8):** `1191ddd`.
 
-**Next (recommended):** **Do not start R16/R17 automatically.** **R14/R16 scoping only** after explicit direction — **recommended next architectural stage is R14 body/page token merge foundation** (wire R13 resolver into persisted text pages), **not** lifecycle enablement. **No implementation** without scoped audit. **Mandatory recovery order:** **§6AL** + **§6AM** + **§6AN** + **§6AO** + **§6AP** + **§6AQ** + **§6AR** + **§6AS** + **§6AT** + **§6AU** + **§6AV**. **Later items** only in **§11**. **Preview / Send / Sign / Payment remain disabled** until **R17–R20**. **Do not** return to `loadSaved`/`currentSaved` as main workflow.
+**Next (recommended):** **Do not start R16/R17 automatically.** **Scope the next stage only after explicit direction** — likely **R16 / R15.5 product-document audit** or next document/lifecycle boundary; **do not auto-start implementation**. **No implementation** without scoped audit. **Mandatory recovery order:** **§6AL** + **§6AM** + **§6AN** + **§6AO** + **§6AP** + **§6AQ** + **§6AR** + **§6AS** + **§6AT** + **§6AU** + **§6AV** + **§6AW**. **Later items** only in **§11**. **Preview / Send / Sign / Payment remain disabled** until **R17–R20**. **Do not** return to `loadSaved`/`currentSaved` as main workflow.
 
-**DB-first foundation is live** (§6AD). **3J3E option selection persists** (§6AE). **Pricing trust hardening complete** (§6AF). **3J4C document-first Builder complete** (§6AG) — Estimate page renders the actual proposal document inline (package selector, blocker banner, sections, line items, totals); right rail is a contextual **Proposal Helper** inspector; old workspace tabs and Overview panel **removed**. **3J4D** refined Estimate line readability (§6AH). **3J4E** refined package/options surface inside Estimate (§6AI). **3J4F** extended Builder to customer-facing text pages — Terms, Warranty, Project Overview, custom_text render persisted `body_markdown` when present (§6AJ). **R4–R6** template content editor on `/tools/roofing/templates` **complete** (`9db2030`–`3c6214c`). **R7** light global IA nav **complete** (`05b9c54`). **R8** light Jobs Board identity **complete** (`1191ddd`). **R9** Job Card create/open draft flow **satisfied** (`1915b2d` + pre-R10 P1 at `d0ba188`). **R10** template structure + estimate settings **complete** (`bc42b1e`–`b3dd904`, §6AQ). **R11** company branding Settings **complete** (`0146dac`–`139e8a3`, §6AR). **R11c** stamps company core + branding into `proposal_versions.context_echo` at new draft create only (`29722a0`, §6AS) — **no Builder cover UI**. **R12** stamps DB-truth customer identity into `proposal_versions.context_echo` at new draft create only (`31059e3`, §6AT) — **no Job Card UI changes, no Builder customer display**. **R13** adds pure frozen document token foundation (`e40db30`, §6AU) — registry, `ProposalDocumentContext`, resolver; **no markdown substitution, no token rendering in body pages**. **R15** adds read-only branded **Cover** tab in Proposal Builder (`ab5a400`, §6AV) — consumes `proposalDocumentContext` + resolver; **not** Preview/PDF/send/sign/payment. Main workflow: **Job Board → DB job card (`job=`) → Create proposal / Open proposal → create/reuse DB proposal draft → Builder (`job=` + `proposal=`) → package selection persists to DB; refresh draft pricing when measurement changes**. Legacy `loadSaved=` / `currentSaved` / board-origin paths are **preserved but separated** — they **cannot create DB proposals directly**. **DB proposal math uses the new spine only** (`measurement_records` → `proposalQuantityResolver` → `proposalPricingEngine` → snapshots) — **not** legacy saved-estimate / Core-Enhanced-Premium estimator math. **`createDraftProposal`** runs from Job Card **Create proposal** only when checklist + pricing gates pass; **Builder reads** persisted drafts via **`getDraftGraph`** + **`proposalDraftGraphAdapter`** when `?proposal=` is present — **no Builder create path**, **no silent fallback** on invalid `proposal=`. **Do not** persist placeholder/unconfigured pricing policy. **Catalog custom delete/deactivate** is **not implemented** and remains a **separate later scope**.
+**DB-first foundation is live** (§6AD). **3J3E option selection persists** (§6AE). **Pricing trust hardening complete** (§6AF). **3J4C document-first Builder complete** (§6AG) — Estimate page renders the actual proposal document inline (package selector, blocker banner, sections, line items, totals); right rail is a contextual **Proposal Helper** inspector; old workspace tabs and Overview panel **removed**. **3J4D** refined Estimate line readability (§6AH). **3J4E** refined package/options surface inside Estimate (§6AI). **3J4F** extended Builder to customer-facing text pages — Terms, Warranty, Project Overview, custom_text render persisted `body_markdown` when present (§6AJ). **R14** adds display-time `{{token_name}}` merge on those text pages from frozen `proposalDocumentContext` + R13 resolver (`f359ad4`, §6AW) — stored `body_markdown` unchanged; no write-back. **R4–R6** template content editor on `/tools/roofing/templates` **complete** (`9db2030`–`3c6214c`). **R7** light global IA nav **complete** (`05b9c54`). **R8** light Jobs Board identity **complete** (`1191ddd`). **R9** Job Card create/open draft flow **satisfied** (`1915b2d` + pre-R10 P1 at `d0ba188`). **R10** template structure + estimate settings **complete** (`bc42b1e`–`b3dd904`, §6AQ). **R11** company branding Settings **complete** (`0146dac`–`139e8a3`, §6AR). **R11c** stamps company core + branding into `proposal_versions.context_echo` at new draft create only (`29722a0`, §6AS) — **no Builder cover UI**. **R12** stamps DB-truth customer identity into `proposal_versions.context_echo` at new draft create only (`31059e3`, §6AT) — **no Job Card UI changes, no Builder customer display**. **R13** adds pure frozen document token foundation (`e40db30`, §6AU) — registry, `ProposalDocumentContext`, resolver. **R15** adds read-only branded **Cover** tab in Proposal Builder (`ab5a400`, §6AV) — consumes `proposalDocumentContext` + resolver; **not** Preview/PDF/send/sign/payment. **R14** wires body text pages to the same frozen context at display time (`f359ad4`, §6AW). Main workflow: **Job Board → DB job card (`job=`) → Create proposal / Open proposal → create/reuse DB proposal draft → Builder (`job=` + `proposal=`) → package selection persists to DB; refresh draft pricing when measurement changes**. Legacy `loadSaved=` / `currentSaved` / board-origin paths are **preserved but separated** — they **cannot create DB proposals directly**. **DB proposal math uses the new spine only** (`measurement_records` → `proposalQuantityResolver` → `proposalPricingEngine` → snapshots) — **not** legacy saved-estimate / Core-Enhanced-Premium estimator math. **`createDraftProposal`** runs from Job Card **Create proposal** only when checklist + pricing gates pass; **Builder reads** persisted drafts via **`getDraftGraph`** + **`proposalDraftGraphAdapter`** when `?proposal=` is present — **no Builder create path**, **no silent fallback** on invalid `proposal=`. **Do not** persist placeholder/unconfigured pricing policy. **Catalog custom delete/deactivate** is **not implemented** and remains a **separate later scope**.
 
-### Recent committed sequence (recovery R0–R15; then 3G6 spine + 3J + 3J4)
+### Recent committed sequence (recovery R0–R15 + R14 body merge; then 3G6 spine + 3J + 3J4)
 
 | Commit | Summary |
 |--------|---------|
+| `f359ad4` | **R14** — Display-time token merge for read-only body pages; `proposalDocumentBodyRenderer` + Builder wiring; frozen `proposalDocumentContext` + R13 resolver only; stored `body_markdown` unchanged |
+| `1921b0a` | **Docs** — Checkpoint after R15 read-only branded proposal cover |
 | `ab5a400` | **R15** — Read-only branded Cover tab/page in Proposal Builder; `proposalCoverViewModel` + `ProposalBuilderCoverPage`; frozen `proposalDocumentContext` + R13 resolver only; address dedupe; Cover nav enabled for persisted proposal path |
 | `b294226` | **Docs** — Checkpoint after R13 document token foundation |
 | `e40db30` | **R13** — Frozen document token registry + `ProposalDocumentContext` + pure resolver; adapter exposes `proposalDocumentContext` DTO (read-only; no markdown merge) |
@@ -177,7 +180,7 @@ When closing a stage that touches **Settings**, **shell**, **persistence**, **pr
 - **If Playwright has no auth session**, Cursor must report protected routes as **unauthenticated** (redirect to `/login`) and **must not claim** protected workflows were verified.
 - **Route 200 / login-shell load is not full workflow verification** — proposal flow requires authenticated session.
 - Future authenticated browser audits should use a **logged-in session or Playwright `storageState`** — **do not add secrets to the repo**.
-- **Configured local auth (R12 close):** outside-repo `storageState` at `C:\Users\sabre\.cursor\fielddive-playwright-auth.json` — session expiry requires normal login and re-save; no repo auth/session files.
+- **Configured local auth (R12 close):** outside-repo `storageState` at `C:\Users\sabre\.cursor\fielddive-playwright-auth.json` — session expiry requires normal login and re-save; no repo auth/session files. **Do not use** `C:\Users\sabre.cursor\...` (missing `.` before `cursor`) — common typo.
 - When Playwright auth is missing, cite **unit/integration tests** for `context_echo` stamping proof and note **user manual smoke** if reported separately.
 
 ### No-drift warnings (catalog / proposal spine)
@@ -4759,7 +4762,7 @@ Pre-R12 drafts may remain null because **no backfill** was scoped.
 
 **R15, Preview, PDF, and send must consume the same resolver** to avoid drift from `context_echo` + snapshot truth.
 
-**Adapter:** `adaptProposalDraftGraphToBuilderPreview` exposes read-only **`proposalDocumentContext`**. **R15 Cover consumes it** — see **§6AV**. Body text pages still render static `body_markdown` without token substitution.
+**Adapter:** `adaptProposalDraftGraphToBuilderPreview` exposes read-only **`proposalDocumentContext`**. **R15 Cover** and **R14 body pages** consume it — see **§6AV** and **§6AW**.
 
 ### Post-R13 audit results (at `e40db30`)
 
@@ -4795,9 +4798,9 @@ Pre-R12 drafts may remain null because **no backfill** was scoped.
 | Item | Priority | Notes |
 |------|----------|-------|
 | **Builder header chrome uses live `JobRecord`** | P2 | R15 Cover uses `proposalDocumentContext` — see **§6AV**; header alignment deferred |
-| **`proposalDocumentContext` unused by UI** | P3 | **Addressed in R15** — Cover consumes it; body pages still static |
+| **`proposalDocumentContext` unused by UI** | P3 | **Addressed in R15 + R14** — Cover (§6AV) + body pages (§6AW) |
 | **Catalog Playwright navigation flake** | P2 | Retry `/tools/roofing/catalog` in later browser audit |
-| **Text merge / `{{token}}` in `body_markdown`** | P2 | Deferred — resolver ready; wiring is later slice |
+| **Text merge / `{{token}}` in `body_markdown`** | P2 | **Addressed in R14** (`f359ad4`, §6AW) — display-time merge; stored markdown unchanged |
 | Pre-R11c/R12 drafts missing echo keys | P2 | No backfill — resolver returns empty strings |
 | Customer/company refresh for existing drafts | P2 | Deferred |
 | Legacy `RoofingClient` / packet localStorage | P2 | Not token resolver path |
@@ -4828,7 +4831,7 @@ Pre-R12 drafts may remain null because **no backfill** was scoped.
 
 ## 6AV. R15 COMPLETION — READ-ONLY BRANDED PROPOSAL COVER
 
-**Status:** **R15 complete** (`ab5a400`). **Post-R15 full-surface product safety audit passed** — code/test/source-of-truth + **authenticated Playwright MCP** visual verification; no P0/P1 blockers. **Depends on:** **R13** frozen document token foundation (§6AU) + **R11c/R12** context_echo stamping (§6AS, §6AT). **Next:** **Do not auto-start R16/R17** — **R14 scoping only** after explicit direction (body/page token merge foundation).
+**Status:** **R15 complete** (`ab5a400`). **Post-R15 full-surface product safety audit passed** — code/test/source-of-truth + **authenticated Playwright MCP** visual verification; no P0/P1 blockers. **Depends on:** **R13** frozen document token foundation (§6AU) + **R11c/R12** context_echo stamping (§6AS, §6AT). **Next-stage guidance:** superseded by **§6AW** (R14 complete at `f359ad4`).
 
 ### R15 implementation commit
 
@@ -4965,31 +4968,19 @@ persisted graph
 | **Builder header chrome uses live `JobRecord`** | P2 | Cover uses frozen `proposalDocumentContext`; header/document alignment can be scoped later |
 | **Complete-pricing cover↔Estimate total parity** | P2 | Unit-tested; audit draft had incomplete pricing — not browser-verified when total shown |
 | **Partial/pre-R12 cover** | P3 | Unit-tested only; no live partial-draft browser audit |
-| **Markdown/body token substitution** | P2 | **Not wired** — body pages still static `body_markdown` |
+| **Markdown/body token substitution** | P2 | **Addressed in R14** (`f359ad4`, §6AW) — display-time merge only; no write-back |
 | **Template token authoring UI** | P2 | Not wired |
 | **PDF / Preview / send / sign / payment** | P2 | Future lifecycle stages (R17–R20) |
 | **`RoofingClientV2.tsx` TypeScript errors (6)** | P3 | Pre-existing |
 | Pre-R11c/R12 drafts missing echo keys | P2 | No backfill — graceful empty/collapse |
 
-### Next stage guidance (after this docs checkpoint)
+### Next stage guidance (historical — superseded by §6AW)
 
 **Do not start R16/R17 automatically.**
 
 **Do not enable Preview / Send / Sign / Payment.**
 
-**Recommended next architectural stage to scope:** **R14 body/page token merge foundation** — because:
-
-- **R13** created the resolver and frozen context.
-- **R15** proved Cover can consume the resolver correctly.
-- **Body pages** (Terms, Warranty, Project Overview, custom_text) still render **static markdown without token substitution**.
-
-**R14 scoping rules (when explicitly directed):**
-
-- Use the **same R13 resolver** and **frozen `proposalDocumentContext`**.
-- **No** PDF / send / sign / payment / customer preview route.
-- **No** live DB reads; **no** legacy `RoofingClient` PDF / `estimateStore`.
-- **Scoping only** before implementation — no auto-start.
-- Any visible body-page work needs **visual/browser checks** (authenticated Playwright test-only audits).
+**Recommended next architectural stage to scope:** **R14 body/page token merge foundation** — **now complete** at `f359ad4` (§6AW).
 
 **R16** (Proposals hub code) and **R17–R20** (lifecycle) remain **later** — not next by default.
 
@@ -5000,6 +4991,202 @@ persisted graph
 - `context_echo` frozen-truth rules
 - Templates / Job Card / Jobs Board boundaries
 - Single shared resolver for all customer-facing surfaces
+
+---
+
+## 6AW. R14 COMPLETION — READ-ONLY BODY/PAGE TOKEN MERGE FOUNDATION
+
+**Status:** **R14 complete** (`f359ad4`). **Post-R14 full-surface product safety audit passed** — code/test/source-of-truth + **authenticated Playwright MCP** visual verification; no P0/P1 blockers. **Depends on:** **R13** frozen document token foundation (§6AU) + **R15** cover proof that Builder can consume frozen context safely (§6AV). **Next:** **Do not auto-start R16/R17** — scope next stage only after explicit direction.
+
+### R14 implementation commit
+
+| Commit | Pass | Scope |
+|--------|------|-------|
+| `f359ad4` | **R14** | Display-time token merge for read-only body text pages — pure body renderer + minimal Builder wiring; **no lifecycle enablement** |
+
+**R14 changed exactly 5 files (no SQL/docs/packages):**
+
+- `app/lib/proposalDocumentBodyRenderer.ts`
+- `app/lib/proposalDocumentBodyRenderer.test.ts`
+- `app/tools/roofing/proposals/builder/ProposalBuilderClient.tsx`
+- `app/tools/roofing/proposals/builder/ProposalBuilderCanvas.tsx`
+- `app/tools/roofing/proposals/builder/ProposalBuilderCustomerPage.tsx`
+
+**Not in R14:** PDF; Preview/Send/Sign/Payment enablement; customer preview route; template editor token picker; token insertion UI; body-page editing; template/draft backfill; DB writes/migrations; pricing engine/snapshot math changes; Job Card / Jobs Board / Templates changes; R15 cover rework; legacy `RoofingClient` PDF; `estimateStore` reuse; live Settings/customers/jobs reads for document rendering; `JobRecord` as proposal document truth.
+
+### R14 summary
+
+- Added **display-time token merge** for read-only Builder body text pages.
+- Body pages now render `{{token_name}}` placeholders using frozen **`proposalDocumentContext`** + **R13 resolver**.
+- Stored **`content_json.body_markdown`** remains **unchanged** — no write-back of rendered text.
+- **No DB writes. No migrations.**
+- **No** template editor token picker, token insertion UI, or body editing.
+- **No** Preview / PDF / send / sign / payment.
+- **No** live Settings/customers/jobs reads for document rendering.
+- **No** `JobRecord` as proposal document truth.
+- **No** pricing recalculation, `RoofingClient` PDF, or `estimateStore`.
+
+### Body renderer architecture
+
+**Data flow:**
+
+```
+raw body_markdown + proposalDocumentContext + { pricingComplete }
+  → renderProposalDocumentPageBody(...)
+  → { displayText, diagnostics }
+  → ProposalBuilderCustomerPage (plain React text nodes)
+```
+
+| Layer | Role |
+|-------|------|
+| `proposalDocumentBodyRenderer` | **Pure** — token substitution + diagnostics; no I/O |
+| R13 registry + `resolveProposalDocumentToken` | Frozen context → string values |
+| `ProposalBuilderCanvas` | Calls renderer for customer text page types when context exists; fallback to raw body when absent |
+| `ProposalBuilderCustomerPage` | Existing safe plain-text parser (paragraphs + bullets); optional muted `contractorNotice` |
+
+**Safety:**
+
+- Renderer is **plain text only** — no markdown HTML rendering.
+- Existing body display path remains **React text nodes** — no `dangerouslySetInnerHTML`.
+- **Diagnostics** track: tokens found, unknown tokens removed, money tokens suppressed, malformed placeholders remaining.
+
+### Page coverage
+
+**Token merge applies** (read-only customer text pages only):
+
+- `project_overview`
+- `terms`
+- `warranty`
+- `custom_text`
+
+**Token merge does not apply:**
+
+| Page / surface | Path |
+|----------------|------|
+| **Cover** | R15 `buildProposalCoverViewModel` → `ProposalBuilderCoverPage` (§6AV) |
+| **Estimate** | Snapshot pricing / line items (unchanged) |
+| **Photos / media** | Placeholder panel |
+| **Add Page** | Disabled / “Soon” |
+| **Preview** | Locked / disabled |
+| **Signature / payment future pages** | Not token-merged; not enabled |
+
+### Token policy
+
+| Rule | Behavior |
+|------|----------|
+| Syntax | `{{token_name}}` — snake_case registry tokens only |
+| Known tokens | Resolve through R13 resolver from frozen context |
+| Unknown R13-pattern tokens | Empty string — not leaked |
+| Missing values | Empty string — no throw |
+| Repeated tokens | Consistent resolution |
+| Paragraphs + bullet lines | Tokens resolve **before** display parsing |
+| Supported raw tokens | Must not remain visible after render |
+| Malformed placeholders | e.g. `{{ customer_name }}`, `{{CUSTOMER_NAME}}` may remain — tested/documented |
+| `customer_address` vs `job_address` | Resolve **independently** in body text |
+| R15 cover address dedupe | **Not** applied to body text |
+
+### Pricing token policy
+
+| Token | When `pricingComplete === false` | When `pricingComplete === true` |
+|-------|----------------------------------|----------------------------------|
+| `proposal_total` | Empty string | Persisted snapshot cents via R13 resolver |
+| `selected_package_total` | Empty string | Persisted snapshot cents via R13 resolver |
+
+- **No pricing engine recalculation** in R14.
+- **Estimate tab** pricing content unchanged.
+- **Cover** pricing/total gating unchanged (R15).
+
+### Stored vs rendered content (mandatory)
+
+| Layer | Rule |
+|-------|------|
+| **`proposal_pages.content_json.body_markdown`** | Raw source text — **never mutated** by R14 |
+| **Rendered display text** | Derived at **display time only** in Builder |
+| **Write-back** | **None** — no rendered text persisted |
+| **Template migration / backfill** | **None** |
+| **Future Preview/PDF** | Must **reuse `renderProposalDocumentPageBody`** — **no second substitution path** |
+
+### Post-R14 audit results (at `f359ad4`)
+
+**Post-R14 full-surface product safety audit:** **passed** — no P0/P1; protected systems unchanged in R14 scope.
+
+**Tests:**
+
+| Suite | Result |
+|-------|--------|
+| R14/R13/R15 focused (8 files) | **96/96** pass |
+| Full combined relevant run (R14 + safety + pricing/template) | **380/380** pass |
+
+**TypeScript:** only **6** known pre-existing `RoofingClientV2.tsx` errors — unchanged.
+
+**Authenticated Playwright visual audit** (storageState: `C:\Users\sabre\.cursor\fielddive-playwright-auth.json`; draft `job=f5a7d4ab-8758-48e1-848c-e7e4fa7895cb`, `proposal=f3a12198-fc90-4d7d-8079-f0d15b47a2b7`):
+
+| Check | Result |
+|-------|--------|
+| Builder opened without login redirect | **Pass** |
+| Cover worked; matched R15 baseline | **Pass** |
+| Cover had no raw `{{token}}` | **Pass** |
+| Estimate worked unchanged | **Pass** |
+| Project Overview, Terms, Warranty read-only | **Pass** |
+| Custom text page | **N/A** — not on audit draft strip |
+| Seeded bodies had no tokens | **Pass** — no regression; unit tests prove merge |
+| Preview/Send/Sign/Payment disabled | **Pass** |
+| No Proposals hub | **Pass** |
+| No console errors (error level) | **Pass** |
+| Mobile ~390px — no horizontal overflow | **Pass** |
+| Contractor notice | **N/A** — not triggered (no suppressed/unknown tokens on draft) |
+
+**Auth path note:** correct path is `C:\Users\sabre\.cursor\fielddive-playwright-auth.json`. **`C:\Users\sabre.cursor\...`** (missing `.` before `cursor`) is a **typo** — do not reuse.
+
+**Working tree:** clean at `f359ad4` before this docs commit.
+
+### Known P3 carryover (post-R14)
+
+| Item | Priority | Notes |
+|------|----------|-------|
+| **Browser-visible token merge on live draft** | P3 | Seeded body pages are static prose (no `{{tokens}}`); substitution proven by unit tests only |
+| **Custom text page browser verification** | P3 | Audit draft had no `custom_text` page; code + tests include `custom_text` |
+| **Future tokenized test fixture** | P3 | Safe non-production fixture would improve browser verification |
+| **Template token picker / authoring** | P2 | Not wired |
+| **Body page editing** | P2 | Not wired |
+| **Preview / PDF / customer route / send / sign / payment** | P2 | Future lifecycle stages (R17–R20) |
+| **`RoofingClientV2.tsx` TypeScript errors (6)** | P3 | Pre-existing |
+| **Builder header chrome uses live `JobRecord`** | P2 | Cover + body use frozen context; header alignment deferred |
+| Pre-R11c/R12 drafts missing echo keys | P2 | No backfill — graceful empty/collapse |
+
+### Protected systems (unchanged in R14)
+
+- Pricing math/totals; stale pricing trust; proposal snapshot builder totals
+- Selected option persistence; proposal DB identity; `refreshDraftPricing` (pages/content untouched)
+- Approval/status/payment/send/PDF locks; Builder disabled lifecycle chain
+- R15 cover architecture and address dedupe
+- Job Card proposal gates; Templates save behavior; Jobs Board identity/stages
+- R11c company branding stamping; R12 customer identity stamping; R13 resolver behavior
+
+### Next stage guidance (after this docs checkpoint)
+
+**Do not auto-start R16/R17.**
+
+**Do not enable Preview / Send / Sign / Payment.**
+
+**Next stage should be scoped only after explicit direction.** Recommended **planning** options (scoping only — **no implementation** until approved):
+
+| Option | Focus |
+|--------|--------|
+| **Full Roofr/document comparison audit** | Now that Cover + body pages are visible |
+| **Proposal document page polish / document IA audit** | Read-only document surface quality |
+| **Template token authoring / picker scope** | Authoring UX — separate from R14 display merge |
+| **Preview / PDF / customer-facing route scope** | Lifecycle boundary — R17+ |
+
+**Any visible document/lifecycle work needs authenticated Playwright visual checks** (test-only; outside-repo `storageState`; no auth/RLS bypass; route 200 ≠ full verification).
+
+**Any next stage must preserve:**
+
+- Preview / Send / Sign / Payment **disabled**
+- Pricing trust + snapshot safety
+- `context_echo` frozen-truth rules
+- Templates / Job Card / Jobs Board boundaries
+- Single shared resolver + body renderer for all future customer-facing surfaces
 
 ---
 
@@ -5136,19 +5323,20 @@ Then open and read **in this file** (in order):
 15. **§6AS** — R11c company branding context_echo stamping
 16. **§6AT** — R12 customer identity context_echo stamping (read before R15)
 17. **§6AU** — R13 frozen document token foundation (read before R14/R15)
-18. **§6AV** — R15 read-only branded cover (read before R14 body merge or R16+ lifecycle)
-19. **§3 Builder-specific rule + Roofr-aligned product principle** — no-drift rules; **Playwright MCP test-only guardrail**
-20. **§6AD** — DB-first foundation Phases A–D
-21. **§6AE** — 3J3E option persistence + quantity resolver coverage
-22. **§6AF** — pricing trust hardening
-23. **§9** — required first prompt / resume instructions (this section)
-24. **§11** — roadmap buckets (TODAY / NEXT / LATER / DO NOT DO YET), current checkpoint, built-surface audit, manual smoke; **§11 — Future / Later bucket → Proposal Builder**
+18. **§6AV** — R15 read-only branded cover (read before R16+ lifecycle)
+19. **§6AW** — R14 read-only body/page token merge (read before Preview/PDF/template token authoring or R16+ lifecycle)
+20. **§3 Builder-specific rule + Roofr-aligned product principle** — no-drift rules; **Playwright MCP test-only guardrail**
+21. **§6AD** — DB-first foundation Phases A–D
+22. **§6AE** — 3J3E option persistence + quantity resolver coverage
+23. **§6AF** — pricing trust hardening
+24. **§9** — required first prompt / resume instructions (this section)
+25. **§11** — roadmap buckets (TODAY / NEXT / LATER / DO NOT DO YET), current checkpoint, built-surface audit, manual smoke; **§11 — Future / Later bucket → Proposal Builder**
 
-**Verify HEAD** is **`ab5a400`** or newer (R15 complete); if newer, reconcile this doc.
+**Verify HEAD** is **`f359ad4`** or newer (R14 complete); if newer, reconcile this doc.
 
 **Confirm** working tree is clean (or note doc-only WIP).
 
-**Post-R15 audit passed** (code/test/SOT + **authenticated Playwright MCP** visual verification); details in **§6AV**. **R0–R15** complete/satisfied. **Code:** `ab5a400`. **Next:** **Do not auto-start R16/R17** — **R14 scoping only** after explicit direction (body/page token merge foundation, §6AV). **R16** Proposals hub code later. **Do not reintroduce** old Overview/workspace tabs. **Preview / Send / Sign / Payment remain disabled** until **R17+**. **Mandatory order:** **§6AL** + **§6AM** + **§6AN** + **§6AO** + **§6AP** + **§6AQ** + **§6AR** + **§6AS** + **§6AT** + **§6AU** + **§6AV**. **Do not** return to `loadSaved`/`currentSaved` as main workflow.
+**Post-R14 audit passed** (code/test/SOT + **authenticated Playwright MCP** visual verification); details in **§6AW**. **R0–R15** complete/satisfied; **R14** body merge at `f359ad4`. **Code:** `f359ad4`. **Next:** **Do not auto-start R16/R17** — scope next stage only after explicit direction (§6AW). **R16** Proposals hub code later. **Do not reintroduce** old Overview/workspace tabs. **Preview / Send / Sign / Payment remain disabled** until **R17+**. **Mandatory order:** **§6AL** + **§6AM** + **§6AN** + **§6AO** + **§6AP** + **§6AQ** + **§6AR** + **§6AS** + **§6AT** + **§6AU** + **§6AV** + **§6AW**. **Do not** return to `loadSaved`/`currentSaved` as main workflow.
 
 Inspect before planning **3F9** (or chosen stage):
 
@@ -5212,7 +5400,7 @@ Confirm: **Create proposal / Open proposal** on Job Card creates/reuses DB draft
 
 | Route | Table / role |
 |-------|----------------|
-| `/tools/roofing/proposals/builder?job=<uuid>&proposal=<uuid>` | **3H + 3I + 3J + §6AF + §6AG–§6AJ** — **document-first** Proposal Builder; Estimate renders inline document (package selector, line items, totals); text pages (Terms/Warranty/Project Overview) render read-only `body_markdown`; Proposal Helper inspector rail; **persisted draft path** when `proposal=`; stale banner + Refresh draft pricing when measurement changes; **Preview / Send / Sign / Payment remain disabled** |
+| `/tools/roofing/proposals/builder?job=<uuid>&proposal=<uuid>` | **3H + 3I + 3J + §6AF + §6AG–§6AJ + §6AV + §6AW** — **document-first** Proposal Builder; Estimate renders inline document; Cover (R15) + text pages (R14 token merge at display time) consume frozen `proposalDocumentContext`; Proposal Helper inspector rail; **persisted draft path** when `proposal=`; stale banner + Refresh draft pricing; **Preview / Send / Sign / Payment remain disabled** |
 | `/tools/roofing?entry=job-card&job=<uuid>` | Job Card for persisted job (packet-origin after Continue, or direct URL) |
 | `/tools/roofing?entry=job-card` | Job Card shell without job — limited (no measurement save without job id) |
 | `/tools/roofing?entry=packet` | Job Packet / New Job intake (canonical capture/prep) |
@@ -6151,7 +6339,9 @@ Treat as **drift** if a session:
 - **2026-05-31:** **3G6 complete** — 3G6A–E (`15ad732`–`b78c9ee`), Templates D2 (`227061c`), Catalog D2 (`29ca190`); Job Card + Job Packet audits documented; **next: plan 3H** Proposal Builder (Roofr research; not until scoped); pricing remains protected.
 - **2026-06-07:** **DB-first smoke gate PASSED** — user manual confirmation; §6AE.5 + §6AF.9 + §6AD.7 complete (recorded after `3ec6f42`); **NEXT open** for scoped proposal draft editing/persistence; left Builder sidebar not a failure; Preview/Send/Sign/Payment remain disabled until 3K+.
 - **2026-06-07:** **Pricing trust hardening complete** — snapshot qty+price alignment, stale detection, refresh wired (`ce3d6bc`); §6AF added; **175/175** tests in pre-commit audit; pricing engine/math untouched; user partial smoke positive; **next (superseded by §11):** full manual smoke (**§6AE.5** → **§6AF.9** → **§6AD.7**), then **§11 NEXT** (proposal draft slice); legacy import is **LATER**; Preview/Send/Sign/Payment remain disabled until 3K+.
-- **2026-06-18:** **Post-R15 docs checkpoint** (this commit) — §6AV + header; post-R15 audit **387/387**; authenticated Playwright visual verification; **next: R14 scoping** (body/page token merge foundation; explicit direction).
+- **2026-06-18:** **Post-R14 docs checkpoint** (this commit) — §6AW + header; post-R14 audit **380/380**; authenticated Playwright visual verification; **next: scoped planning only** (§6AW).
+- **2026-06-18:** **R14 complete** — read-only body/page token merge at display time (`f359ad4`); `proposalDocumentBodyRenderer` + frozen `proposalDocumentContext` + R13 resolver; §6AW.
+- **2026-06-18:** **Post-R15 docs checkpoint** (`1921b0a`) — §6AV + header; post-R15 audit **387/387**; authenticated Playwright visual verification.
 - **2026-06-18:** **R15 complete** — read-only branded Cover tab in Proposal Builder (`ab5a400`); `proposalCoverViewModel` + frozen `proposalDocumentContext` + R13 resolver; address dedupe; §6AV.
 - **2026-06-18:** **Post-R13 docs checkpoint** (`b294226`) — §6AU + header; post-R13 audit **350/350**; authenticated Playwright light verification; **next: R15 scoping/planning** (explicit direction).
 - **2026-06-18:** **R13 complete** — frozen document token registry + `ProposalDocumentContext` + pure resolver (`e40db30`); adapter `proposalDocumentContext` DTO; no Builder UI / no markdown merge; §6AU.
