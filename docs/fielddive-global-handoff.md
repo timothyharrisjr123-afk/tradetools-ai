@@ -21,19 +21,22 @@
 - Read **§6AR** before R11 Settings branding work — R11a/R11b completion summary (historical).
 - Read **§6AS** before R15 branded cover/display work — R11c company branding context_echo stamping summary, P2 carryover, visual-check guardrail.
 - Read **§6AT** before R13/R15 proposal document truth or customer/company display work — R12 customer identity context_echo stamping summary, post-R12 audit, authenticated Playwright verification, P2 carryover.
+- Read **§6AU** before R15 branded cover/display work — R13 frozen document token foundation (registry, `ProposalDocumentContext`, resolver), post-R13 audit, P2 carryover.
 
-**Last updated checkpoint:** **Code:** **`31059e3` — feat(proposals): stamp customer identity into draft context echo**. **Docs checkpoint:** **pending this commit** (prior: **`f4d9874`** — docs: checkpoint after R11c company branding context echo). **Current state:** **R0–R12** complete/satisfied. **R11** spans **R11a** (`0146dac`), **R11b store** (`097d25e`), **R11b Settings** (`139e8a3`), **R11c company branding context_echo** (`29722a0`, §6AS), **R12 customer identity context_echo** (`31059e3`, §6AT). **Post-R12 full-surface product safety audit passed** — code/test/source-of-truth + **authenticated Playwright MCP** verification; no P0/P1 blockers. **Playwright auth:** outside-repo `storageState` at `C:\Users\sabre\.cursor\fielddive-playwright-auth.json` — no auth/RLS bypass; session expiry requires normal login and re-save. **Tests (post-R12 audit):** **265/265** requested R12 suites pass; **326/326** combined audit run (265 + 61 pricing/template validation). **Typecheck:** only **6** pre-existing errors in `app/tools/roofing-v2/RoofingClientV2.tsx` — unchanged. **Protected systems:** unchanged in R12 pass. **Working tree:** clean at `31059e3`; doc-only WIP for this checkpoint.
+**Last updated checkpoint:** **Code:** **`e40db30` — feat(proposals): add frozen document token registry and resolver**. **Docs checkpoint:** **pending this commit** (prior: **`89ef2ba`** — docs: checkpoint after R12 customer identity context echo). **Current state:** **R0–R13** complete/satisfied. **R11** spans **R11a** (`0146dac`), **R11b store** (`097d25e`), **R11b Settings** (`139e8a3`), **R11c company branding context_echo** (`29722a0`, §6AS), **R12 customer identity context_echo** (`31059e3`, §6AT), **R13 frozen document token foundation** (`e40db30`, §6AU). **Post-R13 full-surface product safety audit passed** — code/test/source-of-truth + **authenticated Playwright MCP** light verification; no P0/P1 blockers. **Playwright auth:** outside-repo `storageState` at `C:\Users\sabre\.cursor\fielddive-playwright-auth.json` — no auth/RLS bypass; session expiry requires normal login and re-save. **Tests (post-R13 audit):** **291/291** R13 + safety suites pass; **59/59** pricing/template validation; **350/350** combined audit run. **Typecheck:** only **6** pre-existing errors in `app/tools/roofing-v2/RoofingClientV2.tsx` — unchanged. **Protected systems:** unchanged in R13 pass. **Working tree:** clean at `e40db30`; doc-only WIP for this checkpoint.
 
 **Jobs Board approved save point:** `b27a444` (3F9B4-RoofrExact visual baseline). **DB-first board partition:** `a62ad93` (§6AD). **Jobs Board identity (R8):** `1191ddd`.
 
-**Next (recommended):** **Do not start R13 / R15 automatically.** Choose **only after explicit direction:** **R13 scoping** (proposal document/customer/company/page truth continuation) **or** **R15 scoping** (branded cover/display planning). **No implementation** without scoped audit. **R16** = Proposals hub code — not next by default. **Mandatory recovery order:** **§6AL** + **§6AM** + **§6AN** + **§6AO** + **§6AP** + **§6AQ** + **§6AR** + **§6AS** + **§6AT**. **Later items** only in **§11**. **Preview / Send / Sign / Payment remain disabled** until **R17–R20**. **Do not** return to `loadSaved`/`currentSaved` as main workflow.
+**Next (recommended):** **Do not start R15 automatically.** **R15 scoping/planning only** after explicit direction — branded cover/display consuming `proposalDocumentContext` + resolver; **mandatory visual/browser check** when R15 code begins. **No implementation** without scoped audit. **R16** = Proposals hub code — not next by default. **Mandatory recovery order:** **§6AL** + **§6AM** + **§6AN** + **§6AO** + **§6AP** + **§6AQ** + **§6AR** + **§6AS** + **§6AT** + **§6AU**. **Later items** only in **§11**. **Preview / Send / Sign / Payment remain disabled** until **R17–R20**. **Do not** return to `loadSaved`/`currentSaved` as main workflow.
 
-**DB-first foundation is live** (§6AD). **3J3E option selection persists** (§6AE). **Pricing trust hardening complete** (§6AF). **3J4C document-first Builder complete** (§6AG) — Estimate page renders the actual proposal document inline (package selector, blocker banner, sections, line items, totals); right rail is a contextual **Proposal Helper** inspector; old workspace tabs and Overview panel **removed**. **3J4D** refined Estimate line readability (§6AH). **3J4E** refined package/options surface inside Estimate (§6AI). **3J4F** extended Builder to customer-facing text pages — Terms, Warranty, Project Overview, custom_text render persisted `body_markdown` when present (§6AJ). **R4–R6** template content editor on `/tools/roofing/templates` **complete** (`9db2030`–`3c6214c`). **R7** light global IA nav **complete** (`05b9c54`). **R8** light Jobs Board identity **complete** (`1191ddd`). **R9** Job Card create/open draft flow **satisfied** (`1915b2d` + pre-R10 P1 at `d0ba188`). **R10** template structure + estimate settings **complete** (`bc42b1e`–`b3dd904`, §6AQ). **R11** company branding Settings **complete** (`0146dac`–`139e8a3`, §6AR). **R11c** stamps company core + branding into `proposal_versions.context_echo` at new draft create only (`29722a0`, §6AS) — **no Builder cover UI**. **R12** stamps DB-truth customer identity into `proposal_versions.context_echo` at new draft create only (`31059e3`, §6AT) — **no Job Card UI changes, no Builder customer display**. Main workflow: **Job Board → DB job card (`job=`) → Create proposal / Open proposal → create/reuse DB proposal draft → Builder (`job=` + `proposal=`) → package selection persists to DB; refresh draft pricing when measurement changes**. Legacy `loadSaved=` / `currentSaved` / board-origin paths are **preserved but separated** — they **cannot create DB proposals directly**. **DB proposal math uses the new spine only** (`measurement_records` → `proposalQuantityResolver` → `proposalPricingEngine` → snapshots) — **not** legacy saved-estimate / Core-Enhanced-Premium estimator math. **`createDraftProposal`** runs from Job Card **Create proposal** only when checklist + pricing gates pass; **Builder reads** persisted drafts via **`getDraftGraph`** + **`proposalDraftGraphAdapter`** when `?proposal=` is present — **no Builder create path**, **no silent fallback** on invalid `proposal=`. **Do not** persist placeholder/unconfigured pricing policy. **Catalog custom delete/deactivate** is **not implemented** and remains a **separate later scope**.
+**DB-first foundation is live** (§6AD). **3J3E option selection persists** (§6AE). **Pricing trust hardening complete** (§6AF). **3J4C document-first Builder complete** (§6AG) — Estimate page renders the actual proposal document inline (package selector, blocker banner, sections, line items, totals); right rail is a contextual **Proposal Helper** inspector; old workspace tabs and Overview panel **removed**. **3J4D** refined Estimate line readability (§6AH). **3J4E** refined package/options surface inside Estimate (§6AI). **3J4F** extended Builder to customer-facing text pages — Terms, Warranty, Project Overview, custom_text render persisted `body_markdown` when present (§6AJ). **R4–R6** template content editor on `/tools/roofing/templates` **complete** (`9db2030`–`3c6214c`). **R7** light global IA nav **complete** (`05b9c54`). **R8** light Jobs Board identity **complete** (`1191ddd`). **R9** Job Card create/open draft flow **satisfied** (`1915b2d` + pre-R10 P1 at `d0ba188`). **R10** template structure + estimate settings **complete** (`bc42b1e`–`b3dd904`, §6AQ). **R11** company branding Settings **complete** (`0146dac`–`139e8a3`, §6AR). **R11c** stamps company core + branding into `proposal_versions.context_echo` at new draft create only (`29722a0`, §6AS) — **no Builder cover UI**. **R12** stamps DB-truth customer identity into `proposal_versions.context_echo` at new draft create only (`31059e3`, §6AT) — **no Job Card UI changes, no Builder customer display**. **R13** adds pure frozen document token foundation (`e40db30`, §6AU) — registry, `ProposalDocumentContext`, resolver; **no Builder UI, no markdown substitution, no token rendering**. Main workflow: **Job Board → DB job card (`job=`) → Create proposal / Open proposal → create/reuse DB proposal draft → Builder (`job=` + `proposal=`) → package selection persists to DB; refresh draft pricing when measurement changes**. Legacy `loadSaved=` / `currentSaved` / board-origin paths are **preserved but separated** — they **cannot create DB proposals directly**. **DB proposal math uses the new spine only** (`measurement_records` → `proposalQuantityResolver` → `proposalPricingEngine` → snapshots) — **not** legacy saved-estimate / Core-Enhanced-Premium estimator math. **`createDraftProposal`** runs from Job Card **Create proposal** only when checklist + pricing gates pass; **Builder reads** persisted drafts via **`getDraftGraph`** + **`proposalDraftGraphAdapter`** when `?proposal=` is present — **no Builder create path**, **no silent fallback** on invalid `proposal=`. **Do not** persist placeholder/unconfigured pricing policy. **Catalog custom delete/deactivate** is **not implemented** and remains a **separate later scope**.
 
-### Recent committed sequence (recovery R0–R12; then 3G6 spine + 3J + 3J4)
+### Recent committed sequence (recovery R0–R13; then 3G6 spine + 3J + 3J4)
 
 | Commit | Summary |
 |--------|---------|
+| `e40db30` | **R13** — Frozen document token registry + `ProposalDocumentContext` + pure resolver; adapter exposes `proposalDocumentContext` DTO (read-only; no Builder UI / no markdown merge) |
+| `89ef2ba` | **Docs** — Checkpoint after R12 customer identity context echo |
 | `31059e3` | **R12** — Stamp DB-truth customer identity into `proposal_versions.context_echo` at draft create; adapter `proposalCustomerContext` DTO (read-only; no Builder customer display) |
 | `f4d9874` | **Docs** — Checkpoint after R11c company branding context echo |
 | `29722a0` | **R11c** — Stamp company core + branding into `proposal_versions.context_echo` at draft create; adapter `proposalCompanyContext` DTO (read-only; no Builder cover UI) |
@@ -3723,7 +3726,7 @@ See also **§11 — What counts as drift** and **§6AL** recovery guardrails.
 
 ### 10. Next code step (sequenced by §6AL)
 
-**Immediate:** **Do not auto-start R12 or R15.** After this docs checkpoint, choose **R12 scoping** (customer echo) **or** **R15 scoping** (branded cover/display) **only after explicit direction** (§6AS).
+**Immediate:** **Do not auto-start R15.** After R13 docs checkpoint (§6AU), **R15 scoping/planning** (branded cover/display) **only after explicit direction**.
 
 **Do not start implementation** without scoped audit. Do not touch pricing policy/math unless explicitly scoped; do not reopen R11b/R11c paths unless bugfix-scoped; do not create Proposals hub; do not enable lifecycle actions.
 
@@ -3733,9 +3736,9 @@ Full mandatory order: **§6AL**. Open checklist with §6AL stage IDs: **§11 —
 
 ## 6AL. ROOFR EXACT RECOVERY PLAYBOOK
 
-**Status:** **R0** complete (`f1dba95`). **R1** complete (`b70cdd7`, §6AM). **R2** complete (`2e1c36b`, §6AN). **R3** complete (`5927ab5`, §6AO). **R4** complete (`9db2030`). **R5** complete (`ffc1cc0`). **R6** complete (`3c6214c`). **R7** complete (`05b9c54`). **R8** complete (`1191ddd`). **R9** complete/satisfied (`1915b2d` + pre-R10 audit; P1 truth at `d0ba188`). **R10** complete (`bc42b1e`–`b3dd904`, §6AQ). **R11** complete (`0146dac`–`139e8a3`, §6AR). **R11c** complete (`29722a0`, §6AS). **Pre-R10 P1 bugfix** complete (`d0ba188`, §6AP). **Purpose:** Single ordered recovery roadmap from the earliest confirmed product-shell drift through templates, Builder, lifecycle, and production.
+**Status:** **R0** complete (`f1dba95`). **R1** complete (`b70cdd7`, §6AM). **R2** complete (`2e1c36b`, §6AN). **R3** complete (`5927ab5`, §6AO). **R4** complete (`9db2030`). **R5** complete (`ffc1cc0`). **R6** complete (`3c6214c`). **R7** complete (`05b9c54`). **R8** complete (`1191ddd`). **R9** complete/satisfied (`1915b2d` + pre-R10 audit; P1 truth at `d0ba188`). **R10** complete (`bc42b1e`–`b3dd904`, §6AQ). **R11** complete (`0146dac`–`139e8a3`, §6AR). **R11c** complete (`29722a0`, §6AS). **R12** complete (`31059e3`, §6AT). **R13** complete (`e40db30`, §6AU). **Pre-R10 P1 bugfix** complete (`d0ba188`, §6AP). **Purpose:** Single ordered recovery roadmap from the earliest confirmed product-shell drift through templates, Builder, lifecycle, and production.
 
-**Next required gate:** **Explicit-direction scoping** — **R12** customer echo **or** **R15** branded cover/display (§6AS). **Do not auto-start code.**
+**Next required gate:** **Explicit-direction scoping** — **R15** branded cover/display (§6AU). **Do not auto-start code.**
 
 **Opening rules (mandatory):**
 
@@ -3767,7 +3770,7 @@ Full mandatory order: **§6AL**. Open checklist with §6AL stage IDs: **§11 —
 | **R11** | Code | Settings branding expansion (not Terms prose) | R1 | Identity + extended branding persist on `/tools/settings` (**done** `0146dac`–`139e8a3`, §6AR) | R11c echo stamping |
 | **R11c** | Code | Company branding → `context_echo` at draft create | R11b | Stamp DB-truth branding into `proposal_versions.context_echo`; adapter DTO only (**done** `29722a0`, §6AS) | Builder cover UI |
 | **R12** | Code | 3J4J — job-specific page editor (`updateProposalPage`) | R6, R10 | Job edits don't mutate template | Template rows |
-| **R13** | Code | Dynamic fields (job card → text) | R11, R12 | Fields merge into text sections | Lifecycle |
+| **R13** | Code | Frozen document token foundation (registry + context + resolver) | R11c, R12 | 23 tokens resolve from frozen graph only (**done** `e40db30`, §6AU) | Builder UI, markdown merge, lifecycle |
 | **R14** | Code | Media foundation (cover/photos/PDF/report) | R10 | Storage + refs exist | Fake upload UI |
 | **R15** | Code | Builder layout (left rail + right settings drawer) | R12, R14 | Roofr-shaped editor chrome | Enable Preview |
 | **R16** | Code | Proposals hub foundation (Draft/Sent/Won/Lost) | R7, R9 | Hub list + status filters | Retire Templates route |
@@ -4466,7 +4469,7 @@ When **branded cover/display** work begins (**R15** or dedicated display stage):
 | **R12 scoping** | Customer echo / customer identity stamping (separate from company branding) — **now complete** (`31059e3`, §6AT) |
 | **R15 scoping** | Branded cover/display — read `proposalCompanyContext`, render cover; **requires visual check** |
 
-**Current next stage:** see **§6AT** — **R13 / R15 scoping only** after explicit direction.
+**Current next stage:** see **§6AU** — **R15 scoping/planning only** after explicit direction.
 
 **Any next stage must preserve:**
 
@@ -4645,6 +4648,179 @@ Pre-R12 drafts may remain null because **no backfill** was scoped.
 
 **Note on §6AL stage IDs:** In the recovery playbook table, historical **R12 = 3J4J job page editor** referred to a later content-editing slice. The **R12 completed at `31059e3`** is **customer identity context_echo stamping** — reconcile §6AL references before starting job-page editor work.
 
+**Superseded by §6AU:** R13 scoping guidance below — **R13 is complete** at `e40db30`.
+
+---
+
+## 6AU. R13 COMPLETION — FROZEN DOCUMENT TOKEN FOUNDATION
+
+**Status:** **R13 complete** (`e40db30`). **Post-R13 full-surface product safety audit passed** — code/test/source-of-truth + **authenticated Playwright MCP** light verification; no P0/P1 blockers. **Depends on:** **R11c** (company echo, §6AS) + **R12** (customer echo, §6AT). **Next:** **Do not auto-start R15** — scoping/planning only after explicit direction.
+
+### R13 implementation commit
+
+| Commit | Pass | Scope |
+|--------|------|-------|
+| `e40db30` | **R13** | Pure frozen document token foundation — registry, context builder, resolver, adapter DTO; **lib-only** |
+
+**R13 changed only scoped app/lib files (no SQL/docs/packages):**
+
+- `app/lib/proposalDocumentTokenTypes.ts`
+- `app/lib/proposalDocumentTokenRegistry.ts` + `.test.ts`
+- `app/lib/proposalDocumentContext.ts` + `.test.ts`
+- `app/lib/proposalDocumentTokenResolver.ts` + `.test.ts`
+- `app/lib/proposalDraftGraphAdapter.ts` + `.test.ts` (minimal integration — exposes `proposalDocumentContext`)
+
+**Not in R13:** Builder cover/display UI; token rendering in Builder; markdown substitution in customer-facing pages; template editor changes; Job Card / Jobs Board changes; Preview/Send/Sign/Payment enablement; SQL/migrations; package changes; pricing recalculation; legacy `RoofingClient` PDF path; `estimateStore` reuse.
+
+### R13 summary
+
+- **R13 is a pure frozen document token foundation** — lib-only; unblocks later R15 branded cover/display and future text merge without wiring visual UI now.
+- Added **central token registry** (23 available tokens), **`ProposalDocumentContext`** builder, **pure resolver** (+ optional `substituteProposalDocumentTokens` helper), and **adapter integration**.
+- **No Builder UI** was added; **no token rendering** wired into Builder; **no markdown substitution** wired into `ProposalBuilderCustomerPage` or template bodies.
+- Dynamic fields resolve from **persisted proposal graph data only** — not live Settings/customers/jobs, not localStorage/cache, not pricing engine recalculation.
+
+### Token registry (23 available tokens)
+
+**Public future syntax:** `{{token_name}}` (stable snake_case names).
+
+**Company (9):** `company_name`, `company_logo_url`, `company_phone`, `company_license`, `company_address`, `company_website`, `brand_primary_color`, `brand_secondary_color`, `show_license_on_cover`
+
+**Customer (4):** `customer_name`, `customer_email`, `customer_phone`, `customer_address`
+
+**Job (2):** `job_name`, `job_address`
+
+**Measurement (1):** `measurement_summary`
+
+**Proposal (4):** `proposal_number`, `proposal_title`, `template_name`, `proposal_created_date`
+
+**Selected package / pricing (3):** `selected_package_name`, `selected_package_total`, `proposal_total` (alias of selected package total)
+
+**Field separation (mandatory):**
+
+- **`customer_address`** = `context_echo.customer_address` (customer mailing)
+- **`job_address`** = `context_echo.address_formatted` (job/site) — **must never be conflated**
+
+**Not available yet:** `proposal_expires_date`, `sales_rep_name`, signature/payment/lifecycle tokens — absent from registry until explicit product + stamping decisions.
+
+**§6AL reconciliation:** Historical §6AL labeled **R13** as “Dynamic fields (job card → text)”. **R13 completed at `e40db30`** is the **pure token foundation** only. **Text substitution / body merge** in `proposal_pages.body_markdown` belongs to **later slices** (post-R15 or dedicated merge stage) — not R13.
+
+### `ProposalDocumentContext`
+
+**Builder:** `buildProposalDocumentContextFromDraftGraph(graph)` — persisted `ProposalDraftGraph` rows only.
+
+| Source | Fields |
+|--------|--------|
+| R11c/R12 echo readers | `company`, `customer` slices from `context_echo` |
+| `context_echo` | `job_name`, `address_formatted` → jobAddress, `measurement_quantities_display`, `template_name` |
+| `proposals` row | `proposal_number`, `title` |
+| `proposal_versions` row | `created_at` → proposalCreatedDateIso |
+| Selected runtime `proposal_options` row | `customer_label` / `name` → packageName; `customer_total_cents` → customerTotalCents |
+
+**Selected option resolution order:**
+
+1. `proposals.selected_option_id` → matching runtime option
+2. Else `is_default` option
+3. Else first option by `sort_order`
+
+**Tolerates** old drafts with missing R11c/R12 echo keys (null slices; no throw).
+
+**Must not import:** Supabase, stores, localStorage, `estimateStore`, `RoofingClient`, `proposalPricingEngine`, live Settings/customers/jobs loaders.
+
+### Resolver behavior (pure)
+
+| Function | Role |
+|----------|------|
+| `resolveProposalDocumentToken(tokenName, context)` | Single token → `{ value, resolved }` |
+| `resolveAllProposalDocumentTokens(context)` | All registry tokens → map |
+| `substituteProposalDocumentTokens(text, context)` | Replace `{{token}}` in text — **pure; not wired to UI** |
+
+**Rules:**
+
+- Unknown/unavailable tokens → empty string, `resolved: false`; **must not throw**
+- Missing string values → empty string
+- Missing `show_license_on_cover` → `"false"`
+- Money tokens → format **persisted cents only** (no repricing)
+- Date tokens → stable UTC `en-US` long format (e.g. `June 10, 2026`)
+- Substitution → unresolved placeholders become empty strings (no raw `{{token}}` leak to customer-facing output)
+
+### Source-of-truth rules (R13 lock)
+
+| Token domain | Frozen source | Live reads in resolver path? |
+|--------------|---------------|------------------------------|
+| Company tokens | `context_echo` (R11c) | **No** |
+| Customer tokens | `context_echo` (R12) | **No** |
+| Job/site address | `context_echo.address_formatted` | **No** |
+| Customer mailing | `context_echo.customer_address` | **No** |
+| `proposal_total` / package total | Selected runtime option `customer_total_cents` | **No** — not pricing engine |
+| Template/page prose | `proposal_pages.content_json.body_markdown` (static copy-on-create) | N/A — **no token duplication in pages introduced** |
+
+**R15, Preview, PDF, and send must consume the same resolver** to avoid drift from `context_echo` + snapshot truth.
+
+**Adapter:** `adaptProposalDraftGraphToBuilderPreview` exposes read-only **`proposalDocumentContext`**. **Builder UI does not consume it yet** — expected, not a defect.
+
+### Post-R13 audit results (at `e40db30`)
+
+**Post-R13 full-surface product safety audit:** **passed** — no P0/P1; protected systems unchanged in R13 scope.
+
+**Tests:**
+
+| Suite | Result |
+|-------|--------|
+| R13 + safety suites (15 files) | **291/291** pass |
+| Pricing/template validation | **59/59** pass |
+| **Combined audit run** | **350/350** pass |
+
+**TypeScript:** only **6** known pre-existing `RoofingClientV2.tsx` errors — unchanged.
+
+**Playwright MCP (authenticated light audit):**
+
+| Check | Result |
+|-------|--------|
+| MCP available | **Yes** |
+| Auth | Outside-repo `storageState`: `C:\Users\sabre\.cursor\fielddive-playwright-auth.json` |
+| `/tools/settings` | Loaded — no `/login` redirect |
+| `/tools/roofing/saved` (Jobs Board) | Loaded |
+| `/tools/roofing/templates` | Loaded |
+| `/tools/roofing/catalog` | **Transient `net::ERR_ABORTED`** on navigate (×2) — navigation flake; **not** auth failure; **not** R13 regression — retry in later browser audit |
+| Builder (existing route) | Opened — pricing lines visible; **Preview/Send/Sign/Payment disabled**; **no Proposals hub nav**; **no token UI** (expected for R13) |
+| Console errors (error level) | **None observed** on verified routes |
+
+**Working tree:** clean at `e40db30` before this docs commit.
+
+### Known P2/P3 carryover (post-R13)
+
+| Item | Priority | Notes |
+|------|----------|-------|
+| **Builder header chrome uses live `JobRecord`** | P2 | `ProposalBuilderPageHeader.tsx` — R15 cover/display **must** use `proposalDocumentContext` / frozen tokens |
+| **`proposalDocumentContext` computed but unused by UI** | P3 | Expected until R15; optional lazy-build later if perf matters |
+| **Catalog Playwright navigation flake** | P2 | Retry `/tools/roofing/catalog` in later browser audit |
+| **Text merge / `{{token}}` in `body_markdown`** | P2 | Deferred — resolver ready; wiring is later slice |
+| Pre-R11c/R12 drafts missing echo keys | P2 | No backfill — resolver returns empty strings |
+| Customer/company refresh for existing drafts | P2 | Deferred |
+| Legacy `RoofingClient` / packet localStorage | P2 | Not token resolver path |
+| `RoofingClientV2.tsx` TypeScript errors (6) | P3 | Pre-existing |
+
+### Next stage guidance (after this docs checkpoint)
+
+**Do not start R15 code automatically.**
+
+**Recommended:** **R15 scoping/planning** after explicit user direction — branded cover/display consuming **`proposalDocumentContext` + resolver**.
+
+**R15 must:**
+
+- Read frozen proposal graph truth only — **no live Settings/customers/jobs**
+- **Not** use legacy `RoofingClient` PDF / `estimateStore`
+- **Not** enable Preview / Send / Sign / Payment
+- Include **explicit visual/browser checks** — first customer-facing document display slice
+
+**Any next stage must preserve:**
+
+- Preview / Send / Sign / Payment **disabled**
+- Pricing trust + snapshot safety
+- `context_echo` frozen-truth rules
+- Templates / Job Card / Jobs Board boundaries
+- Single shared resolver for all future customer-facing surfaces
+
 ---
 
 ## 7. IMPORTANT ARCHITECTURE BOUNDARIES
@@ -4778,19 +4954,20 @@ Then open and read **in this file** (in order):
 13. **§6AQ** — R10 completion summary
 14. **§6AR** — R11a/R11b completion summary
 15. **§6AS** — R11c company branding context_echo stamping
-16. **§6AT** — R12 customer identity context_echo stamping (read before R13/R15)
-17. **§3 Builder-specific rule + Roofr-aligned product principle** — no-drift rules; **Playwright MCP test-only guardrail**
-18. **§6AD** — DB-first foundation Phases A–D
-19. **§6AE** — 3J3E option persistence + quantity resolver coverage
-20. **§6AF** — pricing trust hardening
-21. **§9** — required first prompt / resume instructions (this section)
-22. **§11** — roadmap buckets (TODAY / NEXT / LATER / DO NOT DO YET), current checkpoint, built-surface audit, manual smoke; **§11 — Future / Later bucket → Proposal Builder**
+16. **§6AT** — R12 customer identity context_echo stamping (read before R15)
+17. **§6AU** — R13 frozen document token foundation (read before R15 branded cover/display)
+18. **§3 Builder-specific rule + Roofr-aligned product principle** — no-drift rules; **Playwright MCP test-only guardrail**
+19. **§6AD** — DB-first foundation Phases A–D
+20. **§6AE** — 3J3E option persistence + quantity resolver coverage
+21. **§6AF** — pricing trust hardening
+22. **§9** — required first prompt / resume instructions (this section)
+23. **§11** — roadmap buckets (TODAY / NEXT / LATER / DO NOT DO YET), current checkpoint, built-surface audit, manual smoke; **§11 — Future / Later bucket → Proposal Builder**
 
-**Verify HEAD** is **`31059e3`** or newer (R12 complete); if newer, reconcile this doc.
+**Verify HEAD** is **`e40db30`** or newer (R13 complete); if newer, reconcile this doc.
 
 **Confirm** working tree is clean (or note doc-only WIP).
 
-**Post-R12 audit passed** (code/test/SOT + **authenticated Playwright MCP**); details in **§6AT**. **R0–R12** complete/satisfied. **Code:** `31059e3`. **Next:** **Do not auto-start R13/R15** — scoping pass only after explicit direction (**R13** proposal document truth **or** **R15** branded cover/display; §6AT). **R16** Proposals hub code later. **Do not reintroduce** old Overview/workspace tabs. **Preview / Send / Sign / Payment remain disabled** until **R17+**. **Mandatory order:** **§6AL** + **§6AM** + **§6AN** + **§6AO** + **§6AP** + **§6AQ** + **§6AR** + **§6AS** + **§6AT**. **Do not** return to `loadSaved`/`currentSaved` as main workflow.
+**Post-R13 audit passed** (code/test/SOT + **authenticated Playwright MCP** light verification); details in **§6AU**. **R0–R13** complete/satisfied. **Code:** `e40db30`. **Next:** **Do not auto-start R15** — scoping/planning only after explicit direction (§6AU). **R16** Proposals hub code later. **Do not reintroduce** old Overview/workspace tabs. **Preview / Send / Sign / Payment remain disabled** until **R17+**. **Mandatory order:** **§6AL** + **§6AM** + **§6AN** + **§6AO** + **§6AP** + **§6AQ** + **§6AR** + **§6AS** + **§6AT** + **§6AU**. **Do not** return to `loadSaved`/`currentSaved` as main workflow.
 
 Inspect before planning **3F9** (or chosen stage):
 
@@ -4870,38 +5047,40 @@ Confirm: **Create proposal / Open proposal** on Job Card creates/reuses DB draft
 
 ## 11. FORWARD ROADMAP / NO-DRIFT NEXT STEPS
 
-Use this section as the **ordered checklist** for future GPT/Cursor sessions. **Mandatory recovery order:** **§6AL** (R0–R23) + **§6AM** + **§6AN** + **§6AO** + **§6AP** + **§6AQ** + **§6AR** + **§6AS** + **§6AT**. Items below reference **§6AL stage IDs**. **Code checkpoint:** **`31059e3`**. **Docs checkpoint:** **pending this commit** (prior: **`f4d9874`**, post-R11c checkpoint).
+Use this section as the **ordered checklist** for future GPT/Cursor sessions. **Mandatory recovery order:** **§6AL** (R0–R23) + **§6AM** + **§6AN** + **§6AO** + **§6AP** + **§6AQ** + **§6AR** + **§6AS** + **§6AT** + **§6AU**. Items below reference **§6AL stage IDs**. **Code checkpoint:** **`e40db30`**. **Docs checkpoint:** **pending this commit** (prior: **`89ef2ba`**, post-R12 checkpoint).
 
 ### Roadmap buckets (TODAY / NEXT / LATER / DO NOT DO YET)
 
 **TODAY / IMMEDIATE**
 
-- **Docs checkpoint** — post-R12 handoff alignment (this commit)
-- Confirm checkpoints: code **`31059e3`**; docs pending this commit
-- **R0–R12** complete — see §6AL + §6AR + §6AS + §6AT
-- **Post-R12 audit:** **265/265** requested suites + **326/326** combined; **authenticated Playwright** verified (§6AT)
+- **Docs checkpoint** — post-R13 handoff alignment (this commit)
+- Confirm checkpoints: code **`e40db30`**; docs pending this commit
+- **R0–R13** complete — see §6AL + §6AR + §6AS + §6AT + §6AU
+- **Post-R13 audit:** **291/291** R13 + safety + **59/59** pricing/template = **350/350** combined; **authenticated Playwright** light verified (§6AU)
 - **Preview / Send / Sign / Payment remain disabled** (R17–R20)
 - **No Proposals hub code** — **R16** only; **no Template route migration**
 
 **NEXT (after docs checkpoint — explicit direction only)**
 
-- **R13 scoping** — proposal document/customer/company/page truth continuation (**or**)
-- **R15 scoping** — branded cover/display planning with **mandatory visual check** (§6AS + §6AT)
-- **Do not auto-start implementation**
+- **R15 scoping/planning** — branded cover/display consuming `proposalDocumentContext` + resolver; **mandatory visual check** (§6AS + §6AT + §6AU)
+- **Do not auto-start R15 implementation**
 - **R16** — Proposals hub foundation (later)
 
 **LATER (§6AL stages — see §6AL table for full order)**
 
 - **3J4J** — job-specific proposal page editor (historical §6AL “R12” label — reconcile before code)
-- **R13–R15** — dynamic fields, media, Builder layout / cover display (incl. `settings_json` rendering — **R15**)
+- **Text merge / body `{{token}}` substitution** — later slice (resolver ready; not R13)
+- **R14** — media foundation (cover/photos/PDF/report storage)
+- **R15** — Builder branded cover/display (incl. `settings_json` rendering where applicable)
 - **R16** — Proposals hub foundation
 - **R17–R20** — Preview / Send / Sign / Payment (**3K0–3K3**)
 - **R21–R23** — production spine, automations, legacy cleanup
 
 **DO NOT DO YET**
 
-- **R13 / R15 code** before explicit-direction scoping pass
-- **Builder branded cover / customer display UI** before R15 scope audit + visual check (§6AS + §6AT)
+- **R15 code** before explicit-direction scoping pass + visual check (§6AU)
+- **Builder branded cover / customer display UI** before R15 scope audit
+- **Markdown token merge wiring** before dedicated scope (resolver exists; UI wiring is separate)
 - **Proposals hub** before **R16**
 - Enable Preview / Send / Sign / Payment / Add Page (**R17+**)
 - Company Terms/Warranty content-default store; `/tools/settings/proposals` prose
@@ -4912,15 +5091,17 @@ Use this section as the **ordered checklist** for future GPT/Cursor sessions. **
 - More Builder presentation polish (3J4D/3J4E baseline sufficient)
 - Protected pricing/math/totals/quantity/stale/refresh without explicit scope
 - Reopen Templates structure/settings unless bugfix-scoped
+- Live Settings/customers/jobs reads for proposal document display
+- Legacy `RoofingClient` PDF / `estimateStore` for new proposal document path
 
 ---
 
 ### Current checkpoint
 
-**Latest code checkpoint:** **`31059e3` — feat(proposals): stamp customer identity into draft context echo**. **Prior:** `f4d9874` (docs post-R11c), `29722a0` (R11c), `9d57a82` (docs post-R11b), `139e8a3` (R11b).  
+**Latest code checkpoint:** **`e40db30` — feat(proposals): add frozen document token registry and resolver**. **Prior:** `89ef2ba` (docs post-R12), `31059e3` (R12), `29722a0` (R11c).  
 **Jobs Board approved save point:** **3F9B4-RoofrExact** (`b27a444`); **DB-first partition** (`a62ad93`, §6AD); **R8 identity** (`1191ddd`).  
-**Latest handoff doc checkpoint:** **pending this commit** (prior: **`f4d9874`**, post-R11c). **Post-R12 audit:** **265/265** requested + **326/326** combined; **authenticated Playwright** verified (§6AT).  
-**Next:** **Do not auto-start R13/R15** — scoping only after explicit direction (§6AT). Full order: **§6AL** + **§6AM** + **§6AN** + **§6AO** + **§6AP** + **§6AQ** + **§6AR** + **§6AS** + **§6AT**.
+**Latest handoff doc checkpoint:** **pending this commit** (prior: **`89ef2ba`**, post-R12). **Post-R13 audit:** **350/350** combined; **authenticated Playwright** light verified (§6AU).  
+**Next:** **Do not auto-start R15** — scoping/planning only after explicit direction (§6AU). Full order: **§6AL** + **§6AM** + **§6AN** + **§6AO** + **§6AP** + **§6AQ** + **§6AR** + **§6AS** + **§6AT** + **§6AU**.
 
 **Completed working state (summary):**
 
@@ -4974,6 +5155,7 @@ Use this section as the **ordered checklist** for future GPT/Cursor sessions. **
 | **R10 Template structure + estimate settings** | **DONE** (`bc42b1e`–`b3dd904`, §6AQ) |
 | **R11 Company branding Settings + R11c echo** | **DONE** (`0146dac`–`29722a0`, §6AR + §6AS); post-R11c audit passed |
 | **R12 Customer identity context_echo** | **DONE** (`31059e3`, §6AT); post-R12 audit **265/265** + **326/326**; **authenticated Playwright** verified |
+| **R13 Frozen document token foundation** | **DONE** (`e40db30`, §6AU); post-R13 audit **350/350**; **authenticated Playwright** light verified; no Builder UI / no markdown merge |
 | **DB-first + proposal smoke gate** | **PASSED** manually (`0763799` + live Job Card Proposals) — §6AE.5 + §6AF.9 + §6AD.7 |
 | **Canonical catalog route** | **`/tools/roofing/catalog`** — `CatalogSetupClient` |
 | **Canonical templates route** | **`/tools/roofing/templates`** — `TemplatesSetupClient` |
@@ -5061,7 +5243,8 @@ Treat these as **known architecture notes** — legacy paths remain reachable bu
 37. ~~**R11 Settings branding expansion**~~ — **DONE** (`0146dac`–`139e8a3`, §6AR).
 38. ~~**R11c context_echo stamping**~~ — **DONE** (`29722a0`, §6AS).
 39. ~~**R12 customer identity context_echo stamping**~~ — **DONE** (`31059e3`, §6AT).
-40. **Next** — **R13** or **R15 scoping** (explicit direction only); **R16** Proposals hub later.
+40. ~~**R13 frozen document token foundation**~~ — **DONE** (`e40db30`, §6AU).
+41. **Next** — **R15 scoping/planning** (explicit direction only); **R16** Proposals hub later.
 
 ---
 
@@ -5533,7 +5716,7 @@ Run parallel to legacy estimator; do not overwrite `useMemo` until validated and
 
 **3J0** types (`3ae5e39`), **3J1** SQL (006/007 applied §6AA), **3J2** lib spine (`13b4e72`, §6AB), **3J3** Job Card → persisted Builder draft flow (`e38b276`, §6AC), **3J3E** option selection persistence (`a7249b3`, §6AE), **Pricing trust hardening** (`ce3d6bc`, §6AF), **3J4A** final-surface navigation (`4c9a77d`), **3J4C document-first Builder** (`f8bffde`, §6AG), **3J4D Estimate readability** (`c42a559`, §6AH), **3J4E package/options** (`72768ae`, §6AI), **3J4F customer text pages** (`bfa0454`, §6AJ), **3J4G seed copy** (`ce7aa39`, §6AK), **3J4H-R** (`40e5f5b`, §6AK), **3J4H Pass 2 helper** (`8c04c2a`).
 
-**Open (§6AL order):** **R13** or **R15 scoping** (explicit direction) → code after scope audit. **R0–R12** complete. **Not** company-level Terms/Warranty defaults. Checklist: **§11** with **§6AL** stage IDs.
+**Open (§6AL order):** **R15 scoping/planning** (explicit direction) → code after scope audit. **R0–R13** complete. **Not** company-level Terms/Warranty defaults. Checklist: **§11** with **§6AL** stage IDs.
 
 **Manual smoke:** **PASSED** — **§6AE.5** → **§6AF.9** → **§6AD.7** (`0763799`). **No Preview/Send/Sign/Payment** until **R17+**.
 
@@ -5680,7 +5863,8 @@ Treat as **drift** if a session:
 - ~~**R11**~~ — **DONE** (`0146dac`–`139e8a3`, §6AR)
 - ~~**R11c**~~ — **DONE** (`29722a0`, §6AS) — company branding context_echo; no Builder cover UI
 - ~~**R12**~~ — **DONE** (`31059e3`, §6AT) — customer identity context_echo; no Builder customer display
-- **R13** or **R15** — **scope first** after explicit direction (§6AT)
+- ~~**R13**~~ — **DONE** (`e40db30`, §6AU) — frozen document token foundation; no Builder UI
+- **R15** — **scope first** after explicit direction (§6AU)
 - **R16** — Proposals hub — interim `/tools/roofing/templates` until hub ships
 
 **Completed document-first Builder slices:**
@@ -5698,7 +5882,7 @@ Treat as **drift** if a session:
 - **R10 / 3J4I** — template page/content structure + estimate settings drawer — **next after audit**
 - **R11** — company branding/identity in Settings — **not** Terms/Warranty prose
 - **R12 / 3J4J** — job-specific proposal page editor (`updateProposalPage`)
-- **R13** — dynamic fields foundation
+- ~~**R13**~~ — frozen document token foundation — **DONE** (`e40db30`, §6AU)
 - **R14** — media foundation (Cover / Photos / PDF / measurement-report)
 - **R15** — Builder layout alignment (left rail + right settings drawer)
 - **R16** — Proposals module/dashboard (Draft/Sent/Won/Lost)
@@ -5786,7 +5970,9 @@ Treat as **drift** if a session:
 - **2026-05-31:** **3G6 complete** — 3G6A–E (`15ad732`–`b78c9ee`), Templates D2 (`227061c`), Catalog D2 (`29ca190`); Job Card + Job Packet audits documented; **next: plan 3H** Proposal Builder (Roofr research; not until scoped); pricing remains protected.
 - **2026-06-07:** **DB-first smoke gate PASSED** — user manual confirmation; §6AE.5 + §6AF.9 + §6AD.7 complete (recorded after `3ec6f42`); **NEXT open** for scoped proposal draft editing/persistence; left Builder sidebar not a failure; Preview/Send/Sign/Payment remain disabled until 3K+.
 - **2026-06-07:** **Pricing trust hardening complete** — snapshot qty+price alignment, stale detection, refresh wired (`ce3d6bc`); §6AF added; **175/175** tests in pre-commit audit; pricing engine/math untouched; user partial smoke positive; **next (superseded by §11):** full manual smoke (**§6AE.5** → **§6AF.9** → **§6AD.7**), then **§11 NEXT** (proposal draft slice); legacy import is **LATER**; Preview/Send/Sign/Payment remain disabled until 3K+.
-- **2026-06-18:** **Post-R12 docs checkpoint** (this commit) — §6AT + header; authenticated Playwright verification; **next: R13 or R15 scoping** (explicit direction).
+- **2026-06-18:** **Post-R13 docs checkpoint** (this commit) — §6AU + header; post-R13 audit **350/350**; authenticated Playwright light verification; **next: R15 scoping/planning** (explicit direction).
+- **2026-06-18:** **R13 complete** — frozen document token registry + `ProposalDocumentContext` + pure resolver (`e40db30`); adapter `proposalDocumentContext` DTO; no Builder UI / no markdown merge; §6AU.
+- **2026-06-18:** **Post-R12 docs checkpoint** (`89ef2ba`) — §6AT + header; authenticated Playwright verification; **next: R13 or R15 scoping** (explicit direction).
 - **2026-06-18:** **R12 complete** — customer identity context_echo stamping at draft create (`31059e3`); adapter `proposalCustomerContext` DTO; no Builder customer display; §6AT.
 - **2026-06-17:** **Post-R11c docs checkpoint** — header + new **§6AS** aligned to `29722a0`; R0–R11c complete; post-R11c audit passed; **433/433** audit tests; branded cover deferred; **next: R12 or R15 scoping** (explicit direction).
 - **2026-06-17:** **R11c complete** — context_echo stamping at draft create (`29722a0`); adapter `proposalCompanyContext` DTO; no Builder cover UI; §6AS.
