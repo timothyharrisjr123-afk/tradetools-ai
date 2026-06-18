@@ -17,6 +17,8 @@ type ProposalBuilderCustomerPageProps = {
   emptyStateText: string;
   /** Builder-only muted note when token merge suppressed or removed placeholders. */
   contractorNotice?: string | null;
+  /** R16B — show hint to use workspace Edit control when page is editable. */
+  showEditHint?: boolean;
 };
 
 type TextBlock =
@@ -88,6 +90,7 @@ export default function ProposalBuilderCustomerPage({
   bodyMarkdown,
   emptyStateText,
   contractorNotice,
+  showEditHint = false,
 }: ProposalBuilderCustomerPageProps) {
   const body = (bodyMarkdown ?? "").trim();
   const hasBody = body.length > 0;
@@ -123,7 +126,9 @@ export default function ProposalBuilderCustomerPage({
             <FileText className="h-6 w-6 text-slate-300" aria-hidden />
             <p className="mt-3 text-sm font-medium text-slate-600">{emptyStateText}</p>
             <p className="mt-1.5 text-xs text-slate-400">
-              Page content is added in a later editing phase.
+              {showEditHint
+                ? "Select Edit above to add or change content for this proposal."
+                : "Page content is added in a later editing phase."}
             </p>
           </div>
         )}

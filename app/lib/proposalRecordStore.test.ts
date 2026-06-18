@@ -31,6 +31,7 @@ import {
   ProposalRecordStoreError,
   refreshDraftPricing,
   sanitizeEffectiveMarginPct,
+  updateDraftProposalPageContent,
   updateDraftSelectedOption,
   type ProposalRecordStoreDeps,
 } from "./proposalRecordStore";
@@ -1321,6 +1322,366 @@ describe("updateDraftSelectedOption", () => {
     const graph = await getDraftGraph(COMPANY_ID, created.proposal.id, deps);
     assert.ok(graph);
     assert.equal(graph.proposal.selected_option_id, optionId);
+  });
+});
+
+describe("updateDraftProposalPageContent", () => {
+  function findEditablePage(mock: ReturnType<typeof createMockSupabase>, pageType: string) {
+    return mock.state.tables.proposal_pages.find(
+      (p) => (p as Record<string, unknown>).page_type === pageType
+    ) as Record<string, unknown> | undefined;
+  }
+
+  test("updates body_markdown for editable page", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const created = await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+      },
+      deps
+    );
+
+    const termsPage = findEditablePage(mock, "terms");
+    assert.ok(termsPage?.id);
+
+    const graph = await updateDraftProposalPageContent(
+      COMPANY_ID,
+      created.proposal.id,
+      termsPage!.id as string,
+      "Updated terms for this job only.",
+      deps
+    );
+
+    assert.ok(graph);
+    const updated = graph.pages.find((p) => p.id === termsPage!.id);
+    assert.equal(
+      (updated?.content_json as { body_markdown?: string }).body_markdown,
+      "Updated terms for this job only."
+    );
+  });
+
+  test("rejects non-draft proposal", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const created = await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+      },
+      deps
+    );
+
+    const termsPage = findEditablePage(mock, "terms");
+    (mock.state.tables.proposals[0] as Record<string, unknown>).status = "sent";
+
+    await assert.rejects(
+      () =>
+        updateDraftProposalPageContent(
+          COMPANY_ID,
+          created.proposal.id,
+          termsPage!.id as string,
+          "Nope",
+          deps
+        ),
+      (err: unknown) =>
+        err instanceof ProposalRecordStoreError && /not in draft status/i.test(err.message)
+    );
+  });
+
+  test("rejects wrong company", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const created = await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+      },
+      deps
+    );
+
+    const termsPage = findEditablePage(mock, "terms");
+    assert.ok(termsPage?.id);
+
+    const result = await updateDraftProposalPageContent(
+      "00000000-0000-4000-8000-000000000099",
+      created.proposal.id,
+      termsPage!.id as string,
+      "Nope",
+      deps
+    );
+    assert.equal(result, null);
+  });
+
+  test("rejects page not in current draft version", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const created = await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+      },
+      deps
+    );
+
+    const termsPage = findEditablePage(mock, "terms");
+    termsPage!.proposal_version_id = "ffffffff-ffff-4fff-8fff-ffffffffffff";
+
+    await assert.rejects(
+      () =>
+        updateDraftProposalPageContent(
+          COMPANY_ID,
+          created.proposal.id,
+          termsPage!.id as string,
+          "Nope",
+          deps
+        ),
+      ProposalRecordStoreError
+    );
+  });
+
+  test("rejects non-editable page type", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const created = await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+      },
+      deps
+    );
+
+    const estimatePage = findEditablePage(mock, "estimate");
+    assert.ok(estimatePage?.id);
+
+    await assert.rejects(
+      () =>
+        updateDraftProposalPageContent(
+          COMPANY_ID,
+          created.proposal.id,
+          estimatePage!.id as string,
+          "Nope",
+          deps
+        ),
+      (err: unknown) =>
+        err instanceof ProposalRecordStoreError && /not editable/i.test(err.message)
+    );
+  });
+
+  test("rejects page not belonging to proposal", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const created = await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+      },
+      deps
+    );
+
+    const other = await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+      },
+      deps
+    );
+
+    const otherTermsPage = mock.state.tables.proposal_pages.find(
+      (p) =>
+        (p as Record<string, unknown>).proposal_version_id === other.versionId &&
+        (p as Record<string, unknown>).page_type === "terms"
+    ) as Record<string, unknown> | undefined;
+
+    assert.ok(otherTermsPage?.id);
+
+    await assert.rejects(
+      () =>
+        updateDraftProposalPageContent(
+          COMPANY_ID,
+          created.proposal.id,
+          otherTermsPage!.id as string,
+          "Cross-proposal write",
+          deps
+        ),
+      ProposalRecordStoreError
+    );
+  });
+
+  test("does not mutate template rows", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const created = await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+      },
+      deps
+    );
+
+    const templatesBefore = clone(mock.state.tables.proposal_templates ?? []);
+    const sectionsBefore = clone(mock.state.tables.proposal_template_sections ?? []);
+    const termsPage = findEditablePage(mock, "terms");
+
+    await updateDraftProposalPageContent(
+      COMPANY_ID,
+      created.proposal.id,
+      termsPage!.id as string,
+      "Body only mutation",
+      deps
+    );
+
+    assert.deepEqual(mock.state.tables.proposal_templates ?? [], templatesBefore);
+    assert.deepEqual(mock.state.tables.proposal_template_sections ?? [], sectionsBefore);
+  });
+
+  test("preserves non-body content_json keys", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const created = await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+      },
+      deps
+    );
+
+    const termsPage = findEditablePage(mock, "terms");
+    termsPage!.content_json = {
+      body_markdown: "Old",
+      media_refs: [{ storage_key: "keep-me", sort_order: 0 }],
+    };
+
+    await updateDraftProposalPageContent(
+      COMPANY_ID,
+      created.proposal.id,
+      termsPage!.id as string,
+      "New body",
+      deps
+    );
+
+    const row = mock.state.tables.proposal_pages.find((p) => p.id === termsPage!.id) as Record<
+      string,
+      unknown
+    >;
+    const content = row.content_json as {
+      body_markdown?: string;
+      media_refs?: unknown[];
+    };
+    assert.equal(content.body_markdown, "New body");
+    assert.deepEqual(content.media_refs, [{ storage_key: "keep-me", sort_order: 0 }]);
+  });
+
+  test("appends draft_saved event with page_id and field metadata", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const created = await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+      },
+      deps
+    );
+
+    const eventsBefore = mock.state.tables.proposal_events.length;
+    const termsPage = findEditablePage(mock, "terms");
+
+    await updateDraftProposalPageContent(
+      COMPANY_ID,
+      created.proposal.id,
+      termsPage!.id as string,
+      "Event test body",
+      deps
+    );
+
+    assert.equal(mock.state.tables.proposal_events.length, eventsBefore + 1);
+    const event = mock.state.tables.proposal_events.at(-1) as Record<string, unknown>;
+    assert.equal(event.event_type, "draft_saved");
+    assert.deepEqual(event.payload_json, {
+      page_id: termsPage!.id,
+      field: "body_markdown",
+    });
+  });
+
+  test("does not mutate context_echo, options, or lines", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const created = await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+        quantity_context: readyContext(),
+      },
+      deps
+    );
+
+    const versionBefore = clone(mock.state.tables.proposal_versions[0]);
+    const optionsBefore = clone(mock.state.tables.proposal_options);
+    const linesBefore = clone(mock.state.tables.proposal_line_items);
+    const termsPage = findEditablePage(mock, "terms");
+
+    await updateDraftProposalPageContent(
+      COMPANY_ID,
+      created.proposal.id,
+      termsPage!.id as string,
+      "Isolation body",
+      deps
+    );
+
+    assert.deepEqual(mock.state.tables.proposal_versions[0], versionBefore);
+    assert.deepEqual(mock.state.tables.proposal_options, optionsBefore);
+    assert.deepEqual(mock.state.tables.proposal_line_items, linesBefore);
+  });
+
+  test("refreshDraftPricing does not wipe edited body text", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const created = await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+        quantity_context: readyContext(),
+      },
+      deps
+    );
+
+    const termsPage = findEditablePage(mock, "terms");
+    await updateDraftProposalPageContent(
+      COMPANY_ID,
+      created.proposal.id,
+      termsPage!.id as string,
+      "Persisted after refresh {{customer_name}}",
+      deps
+    );
+
+    await refreshDraftPricing(
+      COMPANY_ID,
+      created.proposal.id,
+      { quantity_context: readyContext() },
+      deps
+    );
+
+    const row = mock.state.tables.proposal_pages.find((p) => p.id === termsPage!.id) as Record<
+      string,
+      unknown
+    >;
+    assert.equal(
+      (row.content_json as { body_markdown?: string }).body_markdown,
+      "Persisted after refresh {{customer_name}}"
+    );
   });
 });
 

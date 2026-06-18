@@ -170,6 +170,16 @@ export function isLineItemsSectionKind(kind: string): boolean {
   return kind === "line_items" || kind === "upgrade_group";
 }
 
+/**
+ * R16B — Estimate canvas shows pricing/line-item sections only.
+ * Text/terms/warranty prose belongs on persisted proposal_pages, not inline on Estimate.
+ */
+export function filterSectionsForEstimateCanvas(
+  sections: ProposalTemplateSection[]
+): ProposalTemplateSection[] {
+  return sections.filter((section) => isLineItemsSectionKind(section.kind));
+}
+
 export function truncatePreviewText(text: string, maxLength = 480): string {
   const trimmed = text.trim();
   if (trimmed.length <= maxLength) return trimmed;

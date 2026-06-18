@@ -28,9 +28,20 @@ export const BUILDER_HEADER_WORKSPACE_KICKER = "Proposal workspace";
 export const BUILDER_HEADER_WORKSPACE_CONTEXT_NOTE =
   "Live job context — document pages use saved draft snapshot";
 
-/** Standard read-only footer on customer document body pages. */
+/** Standard read-only footer on customer document body pages (view mode). */
 export const BUILDER_DOCUMENT_READ_ONLY_FOOTER =
-  "Read-only draft page. Content editing comes in a later phase.";
+  "Read-only view of saved draft content.";
+
+/** R16B — helper when editing job-specific page body text. */
+export const BUILDER_PAGE_EDIT_HELPER_COPY =
+  "Changes apply to this proposal only — not the master template.";
+
+/** R16B — confirm when navigating away from a dirty page edit session. */
+export const BUILDER_UNSAVED_PAGE_EDIT_CONFIRM =
+  "You have unsaved changes on this page. Discard them and leave?";
+
+/** R16B — optional label for display-only merge preview under the editor. */
+export const BUILDER_PAGE_EDIT_MERGE_PREVIEW_LABEL = "Customer preview (display only)";
 
 /** Customer-safe draft note on the Cover page (no lifecycle wording). */
 export const BUILDER_COVER_DRAFT_NOTE = "Draft proposal — not sent to customer.";

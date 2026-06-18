@@ -7,6 +7,7 @@ import type { ProposalSnapshotLineQuantityView } from "@/app/lib/proposalDraftGr
 import {
   getDefaultSelectedOptionId,
   getSectionsForOption,
+  filterSectionsForEstimateCanvas,
 } from "@/app/lib/proposalBuilderPreview";
 import {
   isCoverPageContext,
@@ -20,13 +21,13 @@ import {
 import type { ProposalCoverViewModel } from "@/app/lib/proposalCoverViewModel";
 import type { ProposalDocumentContext } from "@/app/lib/proposalDocumentTokenTypes";
 import {
-  proposalDocumentBodyContractorNotice,
-  renderProposalDocumentPageBody,
-} from "@/app/lib/proposalDocumentBodyRenderer";
+  isEditableProposalPageType,
+  readProposalPageBodyMarkdown,
+} from "@/app/lib/proposalPageContentEditing";
 import type { ProposalPageType } from "@/app/lib/proposalPageTypes";
 import type { ProposalPageRow } from "@/app/lib/proposalRecordStore";
 import ProposalBuilderCoverPage from "./ProposalBuilderCoverPage";
-import ProposalBuilderCustomerPage from "./ProposalBuilderCustomerPage";
+import ProposalBuilderEditableTextPage from "./ProposalBuilderEditableTextPage";
 import ProposalBuilderDocumentTotals from "./ProposalBuilderDocumentTotals";
 import ProposalBuilderPackageSelector from "./ProposalBuilderPackageSelector";
 import ProposalBuilderSectionPreview from "./ProposalBuilderSectionPreview";
@@ -56,6 +57,17 @@ type ProposalBuilderCanvasProps = {
   coverViewModel?: ProposalCoverViewModel | null;
   proposalDocumentContext?: ProposalDocumentContext | null;
   pricingComplete?: boolean;
+  /** R16B — persisted draft path enables page body editing and estimate de-duplication. */
+  persistedProposalPath?: boolean;
+  pageEditActiveContextId?: BuilderPageContextId | null;
+  pageEditDraftBody?: string;
+  onPageEditDraftBodyChange?: (value: string) => void;
+  onStartPageEdit?: (contextId: BuilderPageContextId, rawBody: string | null) => void;
+  onCancelPageEdit?: () => void;
+  onSavePageEdit?: () => void;
+  pageEditSaveDisabled?: boolean;
+  pageEditSaveInFlight?: boolean;
+  pageEditSaveError?: string | null;
 };
 
 /** 3J4F — text page types that render as read-only customer document pages. */
@@ -87,9 +99,7 @@ function emptyStateTextForPageType(pageType: ProposalPageType): string {
 /** Safely read content_json.body_markdown off a loosely-typed persisted page. */
 function readPageBodyMarkdown(page: ProposalPageRow | null): string | null {
   if (!page) return null;
-  const content = page.content_json as { body_markdown?: unknown } | null | undefined;
-  const body = content?.body_markdown;
-  return typeof body === "string" ? body : null;
+  return readProposalPageBodyMarkdown(page.content_json);
 }
 
 function CustomerPagePanel({
@@ -132,15 +142,29 @@ export default function ProposalBuilderCanvas({
   coverViewModel,
   proposalDocumentContext,
   pricingComplete = false,
+  persistedProposalPath = false,
+  pageEditActiveContextId = null,
+  pageEditDraftBody = "",
+  onPageEditDraftBodyChange,
+  onStartPageEdit,
+  onCancelPageEdit,
+  onSavePageEdit,
+  pageEditSaveDisabled = false,
+  pageEditSaveInFlight = false,
+  pageEditSaveError = null,
 }: ProposalBuilderCanvasProps) {
   const templateName = starterGraph?.template.name ?? STARTER_TEMPLATE_DISPLAY_NAME;
   const effectiveOptionId =
     selectedOptionId ?? (starterGraph ? getDefaultSelectedOptionId(starterGraph) : null);
 
-  const sections =
+  const allSections =
     starterGraph && effectiveOptionId
       ? getSectionsForOption(starterGraph, effectiveOptionId)
       : [];
+
+  const sections = persistedProposalPath
+    ? filterSectionsForEstimateCanvas(allSections)
+    : allSections;
 
   const optionCustomerView =
     effectiveOptionId != null
@@ -181,29 +205,33 @@ export default function ProposalBuilderCanvas({
     // reserved behind the placeholder panel.
     if (isCustomerTextPageType(pageType)) {
       const rawBodyMarkdown = readPageBodyMarkdown(persistedPage);
-      let displayBody = rawBodyMarkdown;
-      let contractorNotice: string | null = null;
-
-      if (proposalDocumentContext && rawBodyMarkdown) {
-        const rendered = renderProposalDocumentPageBody(
-          rawBodyMarkdown,
-          proposalDocumentContext,
-          { pricingComplete }
-        );
-        displayBody = rendered.displayText;
-        contractorNotice = proposalDocumentBodyContractorNotice(rendered.diagnostics);
-      }
+      const canEdit =
+        persistedProposalPath &&
+        persistedPage != null &&
+        isEditableProposalPageType(pageType) &&
+        onStartPageEdit != null;
 
       return (
-        <article className={BUILDER_CANVAS}>
-          <ProposalBuilderCustomerPage
-            pageType={pageType as ProposalPageType}
-            title={pageTitle}
-            bodyMarkdown={displayBody}
-            emptyStateText={emptyStateTextForPageType(pageType as ProposalPageType)}
-            contractorNotice={contractorNotice}
-          />
-        </article>
+        <ProposalBuilderEditableTextPage
+          pageType={pageType as ProposalPageType}
+          title={pageTitle}
+          rawBodyMarkdown={rawBodyMarkdown}
+          emptyStateText={emptyStateTextForPageType(pageType as ProposalPageType)}
+          proposalDocumentContext={proposalDocumentContext}
+          pricingComplete={pricingComplete}
+          isEditing={pageEditActiveContextId === activePageContextId}
+          editDraftBody={pageEditDraftBody}
+          onEditDraftBodyChange={onPageEditDraftBodyChange ?? (() => {})}
+          onStartEdit={() =>
+            onStartPageEdit?.(activePageContextId, rawBodyMarkdown)
+          }
+          onCancelEdit={() => onCancelPageEdit?.()}
+          onSaveEdit={() => onSavePageEdit?.()}
+          saveDisabled={pageEditSaveDisabled}
+          saveInFlight={pageEditSaveInFlight}
+          saveError={pageEditSaveError}
+          canEdit={canEdit}
+        />
       );
     }
 

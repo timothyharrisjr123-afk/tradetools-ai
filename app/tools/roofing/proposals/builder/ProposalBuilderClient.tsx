@@ -38,9 +38,13 @@ import {
   getDraftGraph,
   ProposalRecordStoreError,
   refreshDraftPricing,
+  updateDraftProposalPageContent,
   updateDraftSelectedOption,
   type ProposalDraftGraph,
 } from "@/app/lib/proposalRecordStore";
+import {
+  bodyMarkdownChanged,
+} from "@/app/lib/proposalPageContentEditing";
 import {
   deriveProposalPricingStale,
   PROPOSAL_PRICING_STALE_BANNER_COPY,
@@ -52,8 +56,10 @@ import { findStarterProposalTemplate } from "@/app/tools/roofing/templates/templ
 import {
   BUILDER_DEFAULT_PAGE_CONTEXT,
   buildPageContextStripItems,
+  resolvePersistedPageByContextId,
   type BuilderPageContextId,
 } from "@/app/lib/proposalBuilderNavigation";
+import { BUILDER_UNSAVED_PAGE_EDIT_CONFIRM } from "./proposalBuilderConstants";
 import { buildProposalCoverViewModel } from "@/app/lib/proposalCoverViewModel";
 import {
   deriveProposalBuilderGuidance,
@@ -126,6 +132,14 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
 
   const [activePageContextId, setActivePageContextId] =
     useState<BuilderPageContextId>(BUILDER_DEFAULT_PAGE_CONTEXT);
+
+  const [pageEditActiveContextId, setPageEditActiveContextId] =
+    useState<BuilderPageContextId | null>(null);
+  const [pageEditDraftBody, setPageEditDraftBody] = useState("");
+  const [pageEditOriginalBody, setPageEditOriginalBody] = useState("");
+  const [pageEditSaveInFlight, setPageEditSaveInFlight] = useState(false);
+  const [pageEditSaveError, setPageEditSaveError] = useState<string | null>(null);
+  const pageEditSaveInFlightRef = useRef(false);
 
   const loadJobContext = useCallback(async () => {
     setJobLoadComplete(false);
@@ -572,6 +586,110 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
 
   const showStaleBanner = Boolean(adapterResult) && proposalPricingStale.stale;
 
+  const clearPageEditSession = useCallback(() => {
+    setPageEditActiveContextId(null);
+    setPageEditDraftBody("");
+    setPageEditOriginalBody("");
+    setPageEditSaveError(null);
+  }, []);
+
+  const pageEditIsDirty = useMemo(
+    () => bodyMarkdownChanged(pageEditOriginalBody, pageEditDraftBody),
+    [pageEditOriginalBody, pageEditDraftBody]
+  );
+
+  const handleSelectPageContext = useCallback(
+    (id: BuilderPageContextId) => {
+      if (
+        pageEditActiveContextId != null &&
+        pageEditIsDirty &&
+        !window.confirm(BUILDER_UNSAVED_PAGE_EDIT_CONFIRM)
+      ) {
+        return;
+      }
+      clearPageEditSession();
+      setActivePageContextId(id);
+    },
+    [pageEditActiveContextId, pageEditIsDirty, clearPageEditSession]
+  );
+
+  const handleStartPageEdit = useCallback(
+    (contextId: BuilderPageContextId, rawBody: string | null) => {
+      setPageEditActiveContextId(contextId);
+      setPageEditDraftBody(rawBody ?? "");
+      setPageEditOriginalBody(rawBody ?? "");
+      setPageEditSaveError(null);
+    },
+    []
+  );
+
+  const handleCancelPageEdit = useCallback(() => {
+    clearPageEditSession();
+  }, [clearPageEditSession]);
+
+  const handleSavePageEdit = useCallback(() => {
+    if (!hasPersistedProposalParam || !persistedGraph || !proposalIdParam) return;
+    if (pageEditActiveContextId == null) return;
+    if (pageEditSaveInFlightRef.current) return;
+
+    const persistedPage = resolvePersistedPageByContextId(
+      persistedGraph.pages,
+      pageEditActiveContextId
+    );
+    if (!persistedPage?.id) {
+      setPageEditSaveError("Could not find this draft page to save.");
+      return;
+    }
+
+    if (!pageEditIsDirty) {
+      clearPageEditSession();
+      return;
+    }
+
+    pageEditSaveInFlightRef.current = true;
+    setPageEditSaveInFlight(true);
+    setPageEditSaveError(null);
+
+    void (async () => {
+      try {
+        const updated = await updateDraftProposalPageContent(
+          companyId,
+          proposalIdParam.trim(),
+          persistedPage.id,
+          pageEditDraftBody
+        );
+        if (!updated) {
+          throw new Error("Could not save page content.");
+        }
+        setPersistedGraph(updated);
+        clearPageEditSession();
+      } catch (err) {
+        const message =
+          err instanceof ProposalRecordStoreError
+            ? err.message
+            : err instanceof Error
+              ? err.message
+              : "Could not save page content.";
+        setPageEditSaveError(message);
+        if (!(err instanceof ProposalRecordStoreError)) {
+          console.warn("[ProposalBuilderClient] page content save error:", err);
+        }
+      } finally {
+        pageEditSaveInFlightRef.current = false;
+        setPageEditSaveInFlight(false);
+      }
+    })();
+  }, [
+    hasPersistedProposalParam,
+    persistedGraph,
+    proposalIdParam,
+    pageEditActiveContextId,
+    pageEditIsDirty,
+    pageEditDraftBody,
+    companyId,
+    clearPageEditSession,
+  ]);
+
   const selectedOptionPricingStatus = useMemo(() => {
     if (!pricingPreview || !effectiveSelectedOptionId) return null;
     return pricingPreview.byOptionId[effectiveSelectedOptionId]?.status ?? null;
@@ -706,25 +824,25 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
         case "workspace:sections":
         case "workspace:line-items":
         case "workspace:quantities":
-          setActivePageContextId("estimate");
+          handleSelectPageContext("estimate");
           return;
         case "page:cover":
-          setActivePageContextId("cover");
+          handleSelectPageContext("cover");
           return;
         case "page:estimate":
-          setActivePageContextId("estimate");
+          handleSelectPageContext("estimate");
           return;
         case "page:terms":
-          setActivePageContextId("placeholder:terms");
+          handleSelectPageContext("placeholder:terms");
           return;
         case "page:warranty":
-          setActivePageContextId("placeholder:warranty");
+          handleSelectPageContext("placeholder:warranty");
           return;
         case "page:project-overview":
-          setActivePageContextId("placeholder:about");
+          handleSelectPageContext("placeholder:about");
           return;
         case "page:project-photos":
-          setActivePageContextId("placeholder:photos");
+          handleSelectPageContext("placeholder:photos");
           return;
         case "action:refresh-pricing":
           handleRefreshDraftPricing();
@@ -739,7 +857,7 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
           return;
       }
     },
-    [handleRefreshDraftPricing]
+    [handleRefreshDraftPricing, handleSelectPageContext]
   );
 
   return (
@@ -792,7 +910,7 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
             <ProposalBuilderPageContextStrip
               pages={persistedGraph?.pages}
               activePageContextId={activePageContextId}
-              onSelectPageContext={setActivePageContextId}
+              onSelectPageContext={handleSelectPageContext}
               persistedProposalDocument={Boolean(adapterResult?.proposalDocumentContext)}
             />
           }
@@ -812,6 +930,16 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
               coverViewModel={coverViewModel}
               proposalDocumentContext={adapterResult?.proposalDocumentContext ?? null}
               pricingComplete={selectedOptionPricingStatus?.pricingComplete ?? false}
+              persistedProposalPath={Boolean(adapterResult && persistedGraph?.pages?.length)}
+              pageEditActiveContextId={pageEditActiveContextId}
+              pageEditDraftBody={pageEditDraftBody}
+              onPageEditDraftBodyChange={setPageEditDraftBody}
+              onStartPageEdit={handleStartPageEdit}
+              onCancelPageEdit={handleCancelPageEdit}
+              onSavePageEdit={handleSavePageEdit}
+              pageEditSaveDisabled={!pageEditIsDirty}
+              pageEditSaveInFlight={pageEditSaveInFlight}
+              pageEditSaveError={pageEditSaveError}
             />
           }
           summaryRail={

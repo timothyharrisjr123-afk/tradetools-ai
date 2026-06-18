@@ -39,7 +39,7 @@ describe("proposalBuilderDocumentIa", () => {
   it("exposes shared workspace and document copy", () => {
     assert.match(BUILDER_HEADER_WORKSPACE_KICKER, /workspace/i);
     assert.match(BUILDER_HEADER_WORKSPACE_CONTEXT_NOTE, /saved draft snapshot/i);
-    assert.match(BUILDER_DOCUMENT_READ_ONLY_FOOTER, /read-only draft page/i);
+    assert.match(BUILDER_DOCUMENT_READ_ONLY_FOOTER, /read-only view/i);
     assert.equal(BUILDER_COVER_DRAFT_NOTE, "Draft proposal — not sent to customer.");
   });
 
