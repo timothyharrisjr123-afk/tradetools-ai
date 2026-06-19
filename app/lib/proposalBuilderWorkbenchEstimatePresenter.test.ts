@@ -14,6 +14,7 @@ import {
   WORKBENCH_DISPLAY_SETTINGS_ENTRY_LABEL,
   WORKBENCH_HIDDEN_FROM_CUSTOMER_LABEL,
   WORKBENCH_LINE_INCLUDED_LABEL,
+  WORKBENCH_SCOPE_REVIEW_ROW_HELPER,
   WORKBENCH_TOTALS_INCOMPLETE_COPY,
   WORKBENCH_UPGRADES_EMPTY_COPY,
   buildProposalWorkbenchEstimatePresentation,
@@ -219,7 +220,7 @@ describe("buildProposalWorkbenchEstimatePresentation", () => {
     assert.equal(result.meta.readyLineCount, 1);
   });
 
-  test("quantity blocker lines classified into needsAttention", () => {
+  test("quantity blocker lines classified into scopeReview bucket", () => {
     const scopeSection = section("sec-scope", "line_items", OPTION_STANDARD);
     const templateGraph = graph(
       [option(OPTION_STANDARD)],
@@ -243,11 +244,18 @@ describe("buildProposalWorkbenchEstimatePresentation", () => {
     assert.equal(result.needsAttention.show, true);
     assert.equal(result.needsAttention.lines.length, 1);
     assert.deepEqual(result.needsAttention.lines[0]?.reasons, ["needs_quantity"]);
+    assert.equal(result.needsAttention.lines[0]?.attentionKind, "scope_review");
     assert.equal(result.needsAttention.lines[0]?.amountLabel, "Needs quantity");
+    assert.equal(result.needsAttention.lines[0]?.suggestedAction, WORKBENCH_SCOPE_REVIEW_ROW_HELPER);
+    assert.equal(result.needsAttention.scopeReview.show, true);
+    assert.equal(result.needsAttention.scopeReview.count, 1);
+    assert.equal(result.needsAttention.hardBlockers.show, false);
     assert.equal(result.meta.attentionLineCount, 1);
+    assert.equal(result.meta.scopeReviewLineCount, 1);
+    assert.equal(result.meta.hardBlockerLineCount, 0);
   });
 
-  test("not_priced classified into needsAttention", () => {
+  test("not_priced classified into hardBlockers", () => {
     const scopeSection = section("sec-scope", "line_items", OPTION_STANDARD);
     const templateGraph = graph(
       [option(OPTION_STANDARD)],
@@ -269,9 +277,12 @@ describe("buildProposalWorkbenchEstimatePresentation", () => {
 
     assert.equal(result.readyScope.sections.length, 0);
     assert.equal(result.needsAttention.lines[0]?.reasons.includes("not_priced"), true);
+    assert.equal(result.needsAttention.lines[0]?.attentionKind, "hard_blocker");
+    assert.equal(result.needsAttention.hardBlockers.count, 1);
+    assert.equal(result.needsAttention.scopeReview.count, 0);
   });
 
-  test("missing catalog classified into needsAttention", () => {
+  test("missing catalog classified into hardBlockers", () => {
     const scopeSection = section("sec-scope", "line_items", OPTION_STANDARD);
     const templateGraph = graph(
       [option(OPTION_STANDARD)],
@@ -292,7 +303,51 @@ describe("buildProposalWorkbenchEstimatePresentation", () => {
     );
 
     assert.equal(result.needsAttention.lines[0]?.reasons.includes("missing_catalog"), true);
+    assert.equal(result.needsAttention.lines[0]?.attentionKind, "hard_blocker");
     assert.equal(result.needsAttention.lines[0]?.suggestedAction, "Link a catalog item for this line.");
+    assert.equal(result.needsAttention.hardBlockers.show, true);
+    assert.equal(result.meta.hardBlockerLineCount, 1);
+  });
+
+  test("hard blockers and scope review split when both exist", () => {
+    const scopeSection = section("sec-scope", "line_items", OPTION_STANDARD);
+    const templateGraph = graph(
+      [option(OPTION_STANDARD)],
+      [scopeSection],
+      [
+        item({ id: "line-ready", section_id: "sec-scope" }),
+        item({ id: "line-blocked", section_id: "sec-scope" }),
+        item({ id: "line-missing", section_id: "sec-scope", catalog_item_id: "missing-cat" }),
+      ]
+    );
+
+    const result = buildProposalWorkbenchEstimatePresentation(
+      buildInput({
+        graph: templateGraph,
+        sections: [scopeSection],
+        catalogItems: [catalog({ id: "cat-1" })],
+        snapshotQuantityByTemplateItemId: {
+          ...snapshotQty("line-ready", "24 sq"),
+          ...snapshotQty("line-blocked", "24 sq"),
+        },
+        optionCustomerView: optionCustomerView(
+          {
+            "line-ready": lineView("line-ready", "priced"),
+            "line-blocked": lineView("line-blocked", "needs_quantity"),
+            "line-missing": lineView("line-missing", "not_priced"),
+          },
+          { pricingComplete: false, customerSubtotalCents: null, customerTotalCents: null }
+        ),
+      })
+    );
+
+    assert.equal(result.needsAttention.hardBlockers.count, 1);
+    assert.equal(result.needsAttention.scopeReview.count, 1);
+    assert.equal(result.needsAttention.hardBlockers.lines[0]?.templateItemId, "line-missing");
+    assert.equal(result.needsAttention.scopeReview.lines[0]?.templateItemId, "line-blocked");
+    assert.equal(result.meta.hardBlockerLineCount, 1);
+    assert.equal(result.meta.scopeReviewLineCount, 1);
+    assert.equal(result.meta.attentionLineCount, 2);
   });
 
   test("upgrade_group sections isolated into upgradesZone", () => {

@@ -38,7 +38,25 @@ export const WORKBENCH_ESTIMATE_PAGE_SUBTITLE =
   "Package options, line items, and totals for the customer proposal.";
 
 export const WORKBENCH_TOTALS_INCOMPLETE_COPY =
-  "Totals appear when pricing is complete. Resolve items in Needs attention or check Pricing readiness in the rail.";
+  "Totals appear when quantity and pricing review is complete. Check scope review below or Pricing readiness in the rail.";
+
+export const WORKBENCH_HARD_BLOCKERS_TITLE = "Pricing blockers";
+export const WORKBENCH_HARD_BLOCKERS_DESCRIPTION =
+  "Catalog or pricing setup must be resolved before these lines can appear on the customer proposal.";
+
+export const WORKBENCH_SCOPE_REVIEW_TITLE = "Scope review";
+export const WORKBENCH_SCOPE_REVIEW_SUBTITLE = "Items needing quantity or applicability";
+export const WORKBENCH_SCOPE_REVIEW_DESCRIPTION =
+  "These template lines need quantity or job-specific review before totals are final.";
+
+export const WORKBENCH_SCOPE_REVIEW_ROW_HELPER =
+  "Add quantity or mark not applicable when line editing is enabled.";
+
+export const WORKBENCH_SCOPE_REVIEW_FUTURE_ACTIONS = [
+  { id: "set_quantity", label: "Set quantity", enabled: false as const },
+  { id: "mark_na", label: "Mark N/A", enabled: false as const },
+  { id: "remove", label: "Remove", enabled: false as const },
+] as const;
 
 export const WORKBENCH_DISPLAY_SETTINGS_ENTRY_LABEL = "Estimate display settings";
 export const WORKBENCH_DISPLAY_SETTINGS_COMING_SOON_BADGE = "Coming soon";
@@ -119,10 +137,13 @@ export type WorkbenchScopeSection = {
   lines: WorkbenchScopeLine[];
 };
 
+export type WorkbenchAttentionKind = "hard_blocker" | "scope_review";
+
 export type WorkbenchAttentionLine = {
   templateItemId: string;
   name: string;
   reasons: WorkbenchAttentionReason[];
+  attentionKind: WorkbenchAttentionKind;
   qtyLabel: string;
   qtyUnresolved: boolean;
   amountLabel: string;
@@ -131,11 +152,22 @@ export type WorkbenchAttentionLine = {
   suggestedAction: string | null;
 };
 
+export type WorkbenchAttentionBucket = {
+  show: boolean;
+  count: number;
+  title: string;
+  description: string;
+  lines: WorkbenchAttentionLine[];
+  railHint: string | null;
+};
+
 export type WorkbenchNeedsAttentionZone = {
   show: boolean;
   blockingCount: number;
   lines: WorkbenchAttentionLine[];
   railHint: string | null;
+  hardBlockers: WorkbenchAttentionBucket;
+  scopeReview: WorkbenchAttentionBucket;
 };
 
 export type WorkbenchUpgradeSection = {
@@ -186,7 +218,10 @@ export type WorkbenchEstimatePresentationMeta = {
   pricingPolicyConfigured: boolean;
   suppressedDocumentBlockerCount: number;
   readyLineCount: number;
+  /** All attention lines (hard blockers + scope review). */
   attentionLineCount: number;
+  hardBlockerLineCount: number;
+  scopeReviewLineCount: number;
   upgradeLineCount: number;
   sourceLineCount: number;
 };
@@ -386,12 +421,22 @@ function attentionAmountLabel(reasons: WorkbenchAttentionReason[]): string {
   return WORKBENCH_ATTENTION_AMOUNT_NOT_PRICED;
 }
 
-function suggestedActionForReasons(reasons: WorkbenchAttentionReason[]): string | null {
+function attentionKindForReasons(reasons: WorkbenchAttentionReason[]): WorkbenchAttentionKind {
+  if (reasons.some((reason) => reason !== "needs_quantity")) {
+    return "hard_blocker";
+  }
+  return "scope_review";
+}
+
+function suggestedActionForReasons(
+  reasons: WorkbenchAttentionReason[],
+  attentionKind: WorkbenchAttentionKind
+): string | null {
+  if (attentionKind === "scope_review") {
+    return WORKBENCH_SCOPE_REVIEW_ROW_HELPER;
+  }
   if (reasons.includes("missing_catalog")) {
     return "Link a catalog item for this line.";
-  }
-  if (reasons.includes("needs_quantity")) {
-    return "Resolve quantity from measurement or line setup.";
   }
   if (reasons.includes("not_priced") || reasons.includes("missing_pricing_view")) {
     return "Check company pricing and catalog setup.";
@@ -459,17 +504,35 @@ function buildAttentionLine(
   snapshotQty: ProposalSnapshotLineQuantityView | undefined
 ): WorkbenchAttentionLine {
   const qtyState = resolveQtyState(row, snapshotQty);
+  const attentionKind = attentionKindForReasons(classification.reasons);
 
   return {
     templateItemId: row.id,
     name: row.displayName,
     reasons: classification.reasons,
+    attentionKind,
     qtyLabel: qtyState.qtyLabel,
     qtyUnresolved: qtyState.qtyUnresolved,
     amountLabel: attentionAmountLabel(classification.reasons),
     hiddenFromCustomer: isHiddenFromCustomer(lineView),
     detailMeta: buildDetailMeta(row, qtyState.quantityStatusLabel),
-    suggestedAction: suggestedActionForReasons(classification.reasons),
+    suggestedAction: suggestedActionForReasons(classification.reasons, attentionKind),
+  };
+}
+
+function buildAttentionBucket(
+  lines: WorkbenchAttentionLine[],
+  title: string,
+  description: string,
+  railHint: string | null
+): WorkbenchAttentionBucket {
+  return {
+    show: lines.length > 0,
+    count: lines.length,
+    title,
+    description,
+    lines,
+    railHint: lines.length > 0 ? railHint : null,
   };
 }
 
@@ -647,6 +710,8 @@ export function buildProposalWorkbenchEstimatePresentation(
   let suppressedDocumentBlockerCount = 0;
   let readyLineCount = 0;
   let attentionLineCount = 0;
+  let hardBlockerLineCount = 0;
+  let scopeReviewLineCount = 0;
   let upgradeLineCount = 0;
   let sourceLineCount = 0;
 
@@ -704,10 +769,14 @@ export function buildProposalWorkbenchEstimatePresentation(
       }
 
       if (classification.zone === "attention") {
-        attentionLines.push(
-          buildAttentionLine(row, lineView, classification, snapshotQty)
-        );
+        const attentionLine = buildAttentionLine(row, lineView, classification, snapshotQty);
+        attentionLines.push(attentionLine);
         attentionLineCount += 1;
+        if (attentionLine.attentionKind === "hard_blocker") {
+          hardBlockerLineCount += 1;
+        } else {
+          scopeReviewLineCount += 1;
+        }
         continue;
       }
 
@@ -732,6 +801,11 @@ export function buildProposalWorkbenchEstimatePresentation(
     ? parseEstimatePageSettings(input.estimatePageSettings)
     : null;
 
+  const hardBlockerLines = attentionLines.filter((line) => line.attentionKind === "hard_blocker");
+  const scopeReviewLines = attentionLines.filter((line) => line.attentionKind === "scope_review");
+  const attentionRailHint =
+    attentionLines.length > 0 ? "See Pricing readiness in the rail for setup guidance." : null;
+
   return {
     page: {
       title: WORKBENCH_ESTIMATE_PAGE_TITLE,
@@ -745,10 +819,19 @@ export function buildProposalWorkbenchEstimatePresentation(
       show: attentionLines.length > 0,
       blockingCount: attentionLines.length,
       lines: attentionLines,
-      railHint:
-        attentionLines.length > 0
-          ? "See Pricing readiness in the rail for setup guidance."
-          : null,
+      railHint: attentionRailHint,
+      hardBlockers: buildAttentionBucket(
+        hardBlockerLines,
+        WORKBENCH_HARD_BLOCKERS_TITLE,
+        WORKBENCH_HARD_BLOCKERS_DESCRIPTION,
+        attentionRailHint
+      ),
+      scopeReview: buildAttentionBucket(
+        scopeReviewLines,
+        WORKBENCH_SCOPE_REVIEW_TITLE,
+        WORKBENCH_SCOPE_REVIEW_DESCRIPTION,
+        attentionRailHint
+      ),
     },
     upgradesZone: {
       show: hasTemplateUpgradeSections,
@@ -779,6 +862,8 @@ export function buildProposalWorkbenchEstimatePresentation(
       suppressedDocumentBlockerCount,
       readyLineCount,
       attentionLineCount,
+      hardBlockerLineCount,
+      scopeReviewLineCount,
       upgradeLineCount,
       sourceLineCount,
     },

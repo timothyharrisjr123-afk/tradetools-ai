@@ -33,9 +33,7 @@ import type { ProposalPageRow } from "@/app/lib/proposalRecordStore";
 import ProposalBuilderCoverPage from "./ProposalBuilderCoverPage";
 import ProposalBuilderEditableTextPage from "./ProposalBuilderEditableTextPage";
 import ProposalBuilderPageVisibilityControl from "./ProposalBuilderPageVisibilityControl";
-import ProposalBuilderDocumentTotals from "./ProposalBuilderDocumentTotals";
-import ProposalBuilderPackageSelector from "./ProposalBuilderPackageSelector";
-import ProposalBuilderSectionPreview from "./ProposalBuilderSectionPreview";
+import ProposalBuilderWorkbenchEstimateDocument from "./ProposalBuilderWorkbenchEstimateDocument";
 import {
   BUILDER_CANVAS,
   BUILDER_CANVAS_HERO_DIVIDER,
@@ -350,60 +348,20 @@ export default function ProposalBuilderCanvas({
   });
 
   return (
-    <article className={BUILDER_CANVAS}>
-      <header className={BUILDER_CANVAS_HERO_DIVIDER}>
-        <div className="space-y-4 px-7 pb-5 pt-5">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h2 className="text-xl font-semibold leading-tight tracking-tight text-slate-950">
-                Estimate
-              </h2>
-              <p className="mt-0.5 text-[13px] text-slate-500">
-                Package options, line items, and totals for the customer proposal.
-              </p>
-            </div>
-            <span className={BUILDER_PAGE_VISIBILITY_REQUIRED_NOTICE}>
-              {estimateVisibility.requiredNotice}
-            </span>
-          </div>
-
-          <ProposalBuilderPackageSelector
-            graph={starterGraph}
-            selectedOptionId={selectedOptionId}
-            effectiveOptionId={effectiveOptionId}
-            onSelectOption={onSelectOption}
-          />
-        </div>
-      </header>
-
-      {/* 3J4C1: the estimate document is the primary canvas content — sections,
-          line items, blocker indicators, and totals render inline (no longer
-          hidden behind a Line Items tab). Sections carry their own dividers, so
-          the inter-element gap stays modest (3J4D readability). */}
-      <div className="space-y-6 px-7 pb-7 pt-6">
-        {sections.length === 0 ? (
-          <p className="text-sm text-slate-500">No line items for the selected option.</p>
-        ) : (
-          sections.map((section) => (
-            <ProposalBuilderSectionPreview
-              key={section.id}
-              graph={starterGraph}
-              section={section}
-              catalogItems={catalogItems}
-              measurementHandoff={measurementHandoff}
-              measurementQuantityMap={measurementQuantityMap}
-              optionCustomerView={optionCustomerView}
-              snapshotQuantityByTemplateItemId={snapshotQuantityByTemplateItemId}
-              pricingPolicyConfigured={pricingPolicyConfigured}
-            />
-          ))
-        )}
-
-        <ProposalBuilderDocumentTotals
-          optionCustomerView={optionCustomerView}
-          pricingPolicyConfigured={pricingPolicyConfigured}
-        />
-      </div>
-    </article>
+    <ProposalBuilderWorkbenchEstimateDocument
+      graph={starterGraph}
+      sections={sections}
+      catalogItems={catalogItems}
+      selectedOptionId={selectedOptionId}
+      effectiveOptionId={effectiveOptionId}
+      onSelectOption={onSelectOption}
+      measurementHandoff={measurementHandoff}
+      measurementQuantityMap={measurementQuantityMap}
+      optionCustomerView={optionCustomerView}
+      snapshotQuantityByTemplateItemId={snapshotQuantityByTemplateItemId}
+      pricingPolicyConfigured={pricingPolicyConfigured}
+      persistedPages={persistedPages}
+      estimateVisibilityNotice={estimateVisibility.requiredNotice}
+    />
   );
 }

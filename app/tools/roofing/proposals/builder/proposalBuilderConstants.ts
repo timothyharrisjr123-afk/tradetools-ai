@@ -642,6 +642,225 @@ export const CUSTOMER_PREVIEW_ESTIMATE_UPGRADES_PANEL =
 export const CUSTOMER_PREVIEW_ESTIMATE_TOTALS_PANEL =
   "rounded-xl border border-slate-200/80 bg-slate-50/50 px-5 py-5";
 
+/** R17C2 — Builder Estimate workbench surfaces (not customer Preview). */
+export const WORKBENCH_ESTIMATE_KICKER = "Contractor estimate workbench";
+
+/** Premium estimate workbench header band — aligns with BUILDER_RAIL_CARD depth. */
+export const WORKBENCH_HEADER =
+  "border-b border-slate-200/70 bg-gradient-to-b from-slate-50/90 via-white to-white px-5 pb-5 pt-5 sm:px-7";
+
+export const WORKBENCH_HEADER_KICKER =
+  "text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-600/80";
+
+export const WORKBENCH_HEADER_TITLE =
+  "mt-1 text-[1.35rem] font-semibold leading-tight tracking-tight text-slate-950 sm:text-[1.45rem]";
+
+export const WORKBENCH_HEADER_SUBTITLE = "mt-1 max-w-2xl text-[13px] leading-relaxed text-slate-600";
+
+export const WORKBENCH_HEADER_STAT =
+  "inline-flex items-center gap-1.5 rounded-full border border-slate-200/90 bg-white/90 px-2.5 py-1 text-[11px] font-medium text-slate-600 shadow-sm";
+
+export const WORKBENCH_HEADER_STAT_READY = "font-semibold tabular-nums text-emerald-700";
+
+export const WORKBENCH_HEADER_STAT_ATTENTION = "font-semibold tabular-nums text-amber-700";
+
+export const WORKBENCH_HEADER_STAT_REVIEW = "font-semibold tabular-nums text-slate-700";
+
+/** Inset work surface — reduces stacked white-card feel inside BUILDER_CANVAS. */
+export const WORKBENCH_BODY =
+  "space-y-4 bg-gradient-to-b from-slate-100/35 to-slate-50/20 px-4 py-5 sm:space-y-5 sm:px-6 sm:py-6";
+
+/** Shared module shell — one elevation level, no nested card headers. */
+export const WORKBENCH_MODULE =
+  "overflow-hidden rounded-xl border border-slate-200/75 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.05),0_1px_2px_rgba(15,23,42,0.04)]";
+
+export const WORKBENCH_MODULE_COMPACT =
+  "overflow-hidden rounded-xl border border-slate-200/70 bg-white/95 shadow-[0_4px_16px_rgba(15,23,42,0.04)]";
+
+export const WORKBENCH_MODULE_INNER = "px-4 py-4 sm:px-5 sm:py-4";
+
+export const WORKBENCH_MODULE_KICKER =
+  "text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400";
+
+export const WORKBENCH_MODULE_TITLE = "text-sm font-semibold text-slate-900";
+
+export const WORKBENCH_MODULE_DESC = "mt-0.5 text-[12px] leading-snug text-slate-500";
+
+/** Top command module for package / option selection. */
+export const WORKBENCH_PACKAGE_MODULE =
+  "overflow-hidden rounded-xl border border-blue-200/70 bg-gradient-to-br from-blue-50/50 via-white to-white shadow-[0_10px_28px_rgba(37,99,235,0.10),0_1px_3px_rgba(37,99,235,0.06)] ring-1 ring-blue-100/80";
+
+export const WORKBENCH_PACKAGE_ACCENT = "h-1 bg-gradient-to-r from-blue-600 via-blue-500 to-blue-400/80";
+
+export const WORKBENCH_PACKAGE_ACTIVE_CHIP =
+  "inline-flex items-center gap-1 rounded-full border border-blue-200/80 bg-blue-600 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm";
+
+export const WORKBENCH_ZONE_PANEL = WORKBENCH_MODULE;
+
+export const WORKBENCH_ZONE_HEADER =
+  "flex flex-wrap items-start justify-between gap-2 border-b border-slate-100/90 bg-slate-50/40 px-4 py-3 sm:px-5";
+
+export const WORKBENCH_ZONE_BODY = WORKBENCH_MODULE_INNER;
+
+export const WORKBENCH_ATTENTION_ZONE =
+  "overflow-hidden rounded-xl border border-amber-300/70 bg-gradient-to-br from-amber-50/80 via-amber-50/40 to-white shadow-[0_10px_26px_rgba(245,158,11,0.12),0_1px_3px_rgba(245,158,11,0.08)] ring-1 ring-amber-200/60";
+
+export const WORKBENCH_ATTENTION_ZONE_HEADER =
+  "border-b border-amber-200/60 bg-amber-50/70 px-4 py-3.5 sm:px-5";
+
+export const WORKBENCH_ATTENTION_COUNT_BADGE =
+  "inline-flex min-w-[1.75rem] items-center justify-center rounded-full bg-amber-600 px-2 py-0.5 text-[11px] font-bold tabular-nums text-white shadow-sm";
+
+export const WORKBENCH_ATTENTION_ITEM =
+  "rounded-lg border border-amber-200/70 bg-white/90 px-3 py-2.5 shadow-[0_1px_4px_rgba(245,158,11,0.06)]";
+
+export const WORKBENCH_ATTENTION_ITEM_INDEX =
+  "flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber-100 text-[11px] font-bold text-amber-800";
+
+/** R17C2.5 — calmer scope review queue (not hard error treatment). */
+export const WORKBENCH_SCOPE_REVIEW_ZONE =
+  "overflow-hidden rounded-xl border border-slate-200/80 bg-gradient-to-br from-slate-50/90 via-white to-white shadow-[0_6px_18px_rgba(15,23,42,0.04)] ring-1 ring-slate-200/60";
+
+export const WORKBENCH_SCOPE_REVIEW_ZONE_HEADER =
+  "border-b border-slate-100 bg-slate-50/60 px-4 py-3.5 sm:px-5";
+
+export const WORKBENCH_SCOPE_REVIEW_COUNT_BADGE =
+  "inline-flex min-w-[1.75rem] items-center justify-center rounded-full bg-slate-600 px-2 py-0.5 text-[11px] font-bold tabular-nums text-white shadow-sm";
+
+export const WORKBENCH_SCOPE_REVIEW_ITEM =
+  "rounded-lg border border-slate-200/70 bg-white px-3 py-2.5";
+
+export const WORKBENCH_SCOPE_REVIEW_ITEM_INDEX =
+  "flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[11px] font-bold text-slate-600";
+
+export const WORKBENCH_SCOPE_REVIEW_PILL =
+  "inline-flex shrink-0 items-center rounded-full border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-slate-600";
+
+export const WORKBENCH_FUTURE_ACTION_CHIP =
+  "inline-flex cursor-not-allowed items-center rounded-md border border-slate-200/80 bg-slate-50 px-2 py-1 text-[10px] font-medium text-slate-400 opacity-80";
+
+export const WORKBENCH_UPGRADES_ZONE =
+  "overflow-hidden rounded-xl border border-slate-200/60 bg-slate-50/30";
+
+export const WORKBENCH_UPGRADES_EMPTY =
+  "flex items-start gap-2.5 rounded-lg border border-slate-200/60 bg-white/70 px-3 py-2.5 text-[12px] leading-snug text-slate-500";
+
+export const WORKBENCH_SCOPE_SECTION =
+  "rounded-lg border border-slate-100/90 bg-slate-50/25 px-3 py-2 sm:px-3.5 sm:py-2.5";
+
+export const WORKBENCH_SCOPE_SECTION_TITLE =
+  "flex flex-wrap items-center justify-between gap-2 text-[13px] font-semibold text-slate-800";
+
+export const WORKBENCH_SCOPE_COUNT_CHIP =
+  "inline-flex items-center rounded-full bg-slate-200/60 px-2 py-0.5 text-[10px] font-semibold tabular-nums text-slate-600";
+
+export const WORKBENCH_LINE_ROW =
+  "border-b border-slate-100/80 py-2 last:border-b-0 last:pb-0 first:pt-0 transition-colors hover:bg-slate-50/40";
+
+export const WORKBENCH_LINE_GRID =
+  "grid grid-cols-1 gap-x-4 gap-y-1 sm:grid-cols-[minmax(0,1fr)_4.75rem_5.25rem] sm:items-start";
+
+export const WORKBENCH_LINE_NAME = "text-[14px] font-semibold leading-snug text-slate-900";
+
+export const WORKBENCH_LINE_QTY =
+  "text-[12px] tabular-nums text-slate-500 sm:pt-0.5 sm:text-right";
+
+export const WORKBENCH_LINE_QTY_VALUE = "font-semibold text-slate-700";
+
+export const WORKBENCH_LINE_AMOUNT =
+  "shrink-0 text-[13px] tabular-nums font-semibold text-slate-900 sm:pt-0.5 sm:text-right";
+
+export const WORKBENCH_LINE_AMOUNT_INCLUDED =
+  "shrink-0 text-[11px] font-semibold uppercase tracking-wide text-slate-500 sm:pt-1 sm:text-right";
+
+export const WORKBENCH_LINE_AMOUNT_ATTENTION =
+  "shrink-0 text-[10px] font-semibold uppercase tracking-wide text-amber-700 sm:pt-1 sm:text-right";
+
+export const WORKBENCH_SETTINGS_MODULE =
+  "overflow-hidden rounded-xl border border-slate-200/70 bg-gradient-to-r from-slate-50/80 to-white shadow-[0_4px_14px_rgba(15,23,42,0.04)]";
+
+export const WORKBENCH_SETTINGS_ENTRY =
+  "flex flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-start sm:justify-between sm:gap-4 sm:px-5";
+
+export const WORKBENCH_SETTINGS_TOGGLE_STUB =
+  "inline-flex items-center gap-1.5 rounded-md border border-slate-200/80 bg-slate-100/80 px-2 py-1 text-[10px] font-medium text-slate-500";
+
+export const WORKBENCH_SETTINGS_TOGGLE_STUB_ON =
+  "inline-flex items-center gap-1.5 rounded-md border border-slate-300/80 bg-white px-2 py-1 text-[10px] font-medium text-slate-700 shadow-sm";
+
+export const WORKBENCH_HINT_STRIP =
+  "flex items-start gap-2 rounded-lg border border-slate-200/60 bg-white/80 px-3 py-2.5 text-[11px] leading-snug text-slate-600 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]";
+
+export const WORKBENCH_TOTALS_ZONE =
+  "overflow-hidden rounded-xl border border-slate-200/75 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.05)]";
+
+export const WORKBENCH_TOTALS_HEADER =
+  "border-b border-slate-100/90 bg-slate-50/50 px-4 py-3.5 sm:px-5";
+
+export const WORKBENCH_TOTALS_BODY = "px-4 py-4 sm:px-5 sm:py-4";
+
+export const WORKBENCH_TOTALS_INCOMPLETE_PANEL =
+  "rounded-lg border border-slate-200/70 bg-slate-50/60 px-3.5 py-3 text-[13px] leading-relaxed text-slate-600";
+
+export const WORKBENCH_TOTALS_AMOUNT_STACK =
+  "mt-3 space-y-1.5 rounded-lg border border-slate-100 bg-slate-50/30 px-3.5 py-3";
+
+export const WORKBENCH_TOTALS_FOOTNOTE = "mt-3 text-[11px] leading-snug text-slate-400";
+
+/** R17C2 Phase 2.6 — Edit Option shell (UI only; no backend). */
+export const WORKBENCH_EDIT_OPTION_TITLE = "Edit option";
+
+export const WORKBENCH_EDIT_OPTION_COMING_SOON_BADGE =
+  "inline-flex items-center rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-500";
+
+export const WORKBENCH_EDIT_OPTION_TRIGGER_PRIMARY =
+  "inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-blue-600/90 bg-blue-600 px-3 py-2 text-[12px] font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600";
+
+export const WORKBENCH_EDIT_OPTION_TRIGGER_SECONDARY =
+  "inline-flex shrink-0 items-center gap-1 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600";
+
+export const WORKBENCH_EDIT_OPTION_DRAWER_BACKDROP =
+  "fixed inset-0 z-[70] bg-slate-900/35 backdrop-blur-[1px]";
+
+export const WORKBENCH_EDIT_OPTION_DRAWER_PANEL =
+  "fixed inset-y-0 right-0 z-[71] flex w-full max-w-md flex-col border-l border-slate-200/90 bg-white shadow-[-12px_0_40px_rgba(15,23,42,0.12)]";
+
+export const WORKBENCH_EDIT_OPTION_DRAWER_HEADER =
+  "shrink-0 border-b border-slate-100 bg-gradient-to-b from-slate-50/90 to-white px-4 py-4 sm:px-5";
+
+export const WORKBENCH_EDIT_OPTION_DRAWER_BODY =
+  "min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-5";
+
+export const WORKBENCH_EDIT_OPTION_DRAWER_FOOTER =
+  "shrink-0 border-t border-slate-100 bg-slate-50/60 px-4 py-3 sm:px-5";
+
+export const WORKBENCH_EDIT_OPTION_SECTION =
+  "rounded-lg border border-slate-200/80 bg-slate-50/40 px-3.5 py-3";
+
+export const WORKBENCH_EDIT_OPTION_SECTION_TITLE =
+  "text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500";
+
+export const WORKBENCH_EDIT_OPTION_SECTION_DESC =
+  "mt-1 text-[12px] leading-snug text-slate-600";
+
+export const WORKBENCH_EDIT_OPTION_CONTROL =
+  "mt-2.5 w-full rounded-md border border-slate-200 bg-white px-2.5 py-2 text-[12px] text-slate-400 opacity-60 cursor-not-allowed";
+
+export const WORKBENCH_EDIT_OPTION_CONTROL_BTN =
+  "mt-2.5 inline-flex w-full items-center justify-center rounded-md border border-slate-200 bg-white px-2.5 py-2 text-[12px] font-medium text-slate-400 opacity-60 cursor-not-allowed";
+
+export const WORKBENCH_EDIT_OPTION_INTRO_COPY =
+  "Scope editing is coming next. Soon you’ll be able to set quantities, mark items not applicable, remove lines from this proposal, add catalog items, and move items to upgrades.";
+
+export const WORKBENCH_EDIT_OPTION_TRUST_COPY =
+  "These actions require the scope decision layer so pricing stays trustworthy after refresh.";
+
+export const WORKBENCH_EDIT_OPTION_FOOTER_COPY =
+  "Line editing is not enabled yet — preview only. No changes are saved.";
+
+export const WORKBENCH_EDIT_OPTION_CHIP_HINT =
+  "Available in Edit option (coming soon)";
+
 /**
  * Format a whole-cents integer as a USD dollar string, e.g. "$1,234.56".
  * Customer-facing only — never pass internal cost/profit cents here.
