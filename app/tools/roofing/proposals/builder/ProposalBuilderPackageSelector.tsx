@@ -5,7 +5,8 @@ import { Check, ChevronDown, Pencil } from "lucide-react";
 import { sortTemplateOptionsByOrder } from "@/app/tools/roofing/templates/templatesSetupUtils";
 import type { ProposalTemplateGraph } from "@/app/lib/proposalTemplateStore";
 import ProposalBuilderOptionsPanel from "./ProposalBuilderOptionsPanel";
-import ProposalBuilderPackageCards, { resolvePackageMeta } from "./ProposalBuilderPackageCards";
+import ProposalBuilderPackageCards from "./ProposalBuilderPackageCards";
+import { resolvePackageMeta } from "@/app/lib/proposalPackagePresentation";
 
 type ProposalBuilderPackageSelectorProps = {
   graph: ProposalTemplateGraph;

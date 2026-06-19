@@ -1,7 +1,7 @@
 import { Info } from "lucide-react";
 import type { ProposalTemplateGraph } from "@/app/lib/proposalTemplateStore";
 import { sortTemplateOptionsByOrder } from "@/app/tools/roofing/templates/templatesSetupUtils";
-import { resolvePackageMeta } from "./ProposalBuilderPackageCards";
+import { resolvePackageMeta } from "@/app/lib/proposalPackagePresentation";
 
 type ProposalBuilderOptionsPanelProps = {
   graph: ProposalTemplateGraph;

@@ -1,19 +1,23 @@
 "use client";
 
 import type { ProposalCustomerPreviewEstimatePage } from "@/app/lib/proposalCustomerPreviewViewModel";
+import { buildCustomerPreviewEstimatePresentation } from "@/app/lib/proposalCustomerEstimatePresenter";
 import type { ProposalTemplateGraph } from "@/app/lib/proposalTemplateStore";
 import type { CatalogItem } from "@/app/lib/catalogTypes";
 import {
   filterSectionsForEstimateCanvas,
   getSectionsForOption,
 } from "@/app/lib/proposalBuilderPreview";
-import ProposalBuilderDocumentTotals from "../builder/ProposalBuilderDocumentTotals";
-import ProposalBuilderSectionPreview from "../builder/ProposalBuilderSectionPreview";
+import { resolvePackageMeta } from "@/app/lib/proposalPackagePresentation";
 import {
   BUILDER_CANVAS,
   BUILDER_CANVAS_HERO_DIVIDER,
   BUILDER_CANVAS_INNER,
+  BUILDER_CANVAS_KICKER,
+  CUSTOMER_PREVIEW_ESTIMATE_CHAPTER_KICKER,
+  CUSTOMER_PREVIEW_ESTIMATE_CHAPTER_SUBTITLE,
 } from "../builder/proposalBuilderConstants";
+import ProposalCustomerPreviewEstimateDocument from "./ProposalCustomerPreviewEstimateDocument";
 
 type ProposalCustomerPreviewEstimateSectionProps = {
   page: ProposalCustomerPreviewEstimatePage;
@@ -32,44 +36,41 @@ export default function ProposalCustomerPreviewEstimateSection({
   const sections = filterSectionsForEstimateCanvas(allSections);
   const optionCustomerView = page.optionPreview?.customer ?? null;
 
+  const packageMeta = page.selectedOptionLabel
+    ? resolvePackageMeta(page.selectedOptionLabel)
+    : null;
+
+  const presentation = buildCustomerPreviewEstimatePresentation({
+    graph: templateGraph,
+    sections,
+    catalogItems,
+    optionCustomerView,
+    selectedOptionLabel: page.selectedOptionLabel,
+    packageMeta,
+  });
+
+  const chapterTitle = page.title;
+  const pricingComplete = optionCustomerView?.pricingComplete ?? false;
+
   return (
     <article className={BUILDER_CANVAS}>
       <header className={BUILDER_CANVAS_HERO_DIVIDER}>
         <div className="space-y-2 px-7 pb-5 pt-5">
+          <p className={BUILDER_CANVAS_KICKER}>{CUSTOMER_PREVIEW_ESTIMATE_CHAPTER_KICKER}</p>
           <h2 className="text-xl font-semibold leading-tight tracking-tight text-slate-950">
-            {page.title}
+            {chapterTitle}
           </h2>
-          {page.selectedOptionLabel ? (
-            <p className="text-[13px] text-slate-500">
-              Selected package:{" "}
-              <span className="font-medium text-slate-700">{page.selectedOptionLabel}</span>
-            </p>
-          ) : null}
+          <p className="max-w-prose text-[14px] leading-relaxed text-slate-500">
+            {CUSTOMER_PREVIEW_ESTIMATE_CHAPTER_SUBTITLE}
+          </p>
         </div>
       </header>
 
-      <div className={`${BUILDER_CANVAS_INNER} space-y-6 px-7 pb-7 pt-6`}>
-        {sections.length === 0 ? (
-          <p className="text-sm text-slate-500">No line items for the selected package.</p>
-        ) : (
-          sections.map((section) => (
-            <ProposalBuilderSectionPreview
-              key={section.id}
-              graph={templateGraph}
-              section={section}
-              catalogItems={catalogItems}
-              measurementHandoff={null}
-              measurementQuantityMap={null}
-              optionCustomerView={optionCustomerView}
-              snapshotQuantityByTemplateItemId={page.snapshotQuantityByTemplateItemId}
-              pricingPolicyConfigured={page.pricingPolicyConfigured}
-            />
-          ))
-        )}
-
-        <ProposalBuilderDocumentTotals
-          optionCustomerView={optionCustomerView}
-          pricingPolicyConfigured={page.pricingPolicyConfigured}
+      <div className={`${BUILDER_CANVAS_INNER} px-7 pb-7 pt-6`}>
+        <ProposalCustomerPreviewEstimateDocument
+          presentation={presentation}
+          chapterTitle={chapterTitle}
+          pricingComplete={pricingComplete}
         />
       </div>
     </article>

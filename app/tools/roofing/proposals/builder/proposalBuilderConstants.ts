@@ -610,6 +610,38 @@ export const BUILDER_LINE_PRICE_VALUE =
 /** Per-line: status badge (Included / In package / Needs quantity / Not priced). */
 export const BUILDER_LINE_PRICE_STATUS = "text-xs font-medium text-slate-500";
 
+/** R17C1 — customer Preview estimate document copy (not Builder workbench). */
+export const CUSTOMER_PREVIEW_ESTIMATE_UPGRADES_HEADING = "Optional upgrades";
+
+export const CUSTOMER_PREVIEW_ESTIMATE_CHAPTER_KICKER = "Proposal estimate";
+
+export const CUSTOMER_PREVIEW_ESTIMATE_CHAPTER_SUBTITLE =
+  "Selected package and included scope for this proposal.";
+
+export const CUSTOMER_PREVIEW_SELECTED_PACKAGE_LABEL = "Selected package";
+
+export const CUSTOMER_PREVIEW_SCOPE_SECTION_HEADING = "Included scope";
+
+/** Shown inside scope panel when pricing is incomplete but safe lines exist. */
+export const CUSTOMER_PREVIEW_ESTIMATE_PARTIAL_PRICING_NOTE =
+  "Additional line items may appear once pricing is finalized.";
+
+/** R17C1 — Preview estimate document surface (not Builder workbench). */
+export const CUSTOMER_PREVIEW_ESTIMATE_PACKAGE_HERO =
+  "relative overflow-hidden rounded-2xl border border-blue-200/70 bg-gradient-to-br from-blue-50/90 via-white to-slate-50/80 px-6 py-6 shadow-[0_8px_24px_rgba(37,99,235,0.06)] ring-1 ring-blue-100/80";
+
+export const CUSTOMER_PREVIEW_ESTIMATE_SCOPE_PANEL =
+  "overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-[0_1px_3px_rgba(15,23,42,0.04)]";
+
+export const CUSTOMER_PREVIEW_ESTIMATE_SCOPE_PANEL_HEADER =
+  "border-b border-slate-100 bg-slate-50/60 px-5 py-4";
+
+export const CUSTOMER_PREVIEW_ESTIMATE_UPGRADES_PANEL =
+  "overflow-hidden rounded-xl border border-dashed border-slate-300/90 bg-slate-50/40 px-5 py-5";
+
+export const CUSTOMER_PREVIEW_ESTIMATE_TOTALS_PANEL =
+  "rounded-xl border border-slate-200/80 bg-slate-50/50 px-5 py-5";
+
 /**
  * Format a whole-cents integer as a USD dollar string, e.g. "$1,234.56".
  * Customer-facing only — never pass internal cost/profit cents here.
