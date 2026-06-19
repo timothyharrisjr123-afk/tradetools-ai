@@ -30,7 +30,11 @@ export const BUILDER_READ_ONLY_ALERT_BODY =
 
 /** 3J4B tightening — condensed body for the compact read-only notice. */
 export const BUILDER_READ_ONLY_ALERT_COMPACT_BODY =
-  "Read-only preview — pricing, PDF, send, signature, and payment come later.";
+  "Saved drafts: use Preview in the header for contractor customer preview. Send, Sign, Payment, PDF, and public customer sharing are not enabled.";
+
+/** 3J4B tightening — setup path without a saved draft yet. */
+export const BUILDER_READ_ONLY_ALERT_COMPACT_BODY_SETUP =
+  "Setup preview only — save a draft proposal to open Customer Preview. Send, Sign, Payment, PDF, and public customer sharing are not enabled.";
 
 /** 3J4A — full-width page context strip shell (R16C1: no overflow — menu portals to body). */
 export const BUILDER_PAGE_STRIP =
@@ -386,6 +390,10 @@ export const BUILDER_RAIL_CARD =
 export const BUILDER_DISABLED_ACTION =
   "inline-flex items-center justify-center rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-400 cursor-not-allowed";
 
+/** R17B — enabled Preview lifecycle action in Builder header. */
+export const BUILDER_PREVIEW_ENABLED_ACTION =
+  "inline-flex items-center justify-center rounded-md border border-blue-300 bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700";
+
 export const BUILDER_OPTION_TAB =
   "rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50";
 
@@ -450,7 +458,17 @@ export const BUILDER_GUARDRAIL_MESSAGE_BLOCK = "Resolve blocking issues first.";
 export const BUILDER_GUARDRAIL_MESSAGE_CHECKING = "Checking…";
 
 export const BUILDER_RAIL_ACTIONS_NOTE =
-  "Preview, Send, Sign, and Payment remain disabled until record/snapshot phases.";
+  "Preview unlocks with a saved draft proposal. Send, Sign, Payment, PDF, and public customer sharing remain disabled.";
+
+/** R17B — saved draft path: contractor Customer Preview is available from the header. */
+export const BUILDER_RAIL_ACTIONS_NOTE_PREVIEW_ENABLED =
+  "Customer Preview is available from the header for saved drafts. Send, Sign, Payment, PDF, and public customer sharing remain disabled.";
+
+export function resolveBuilderRailActionsNote(previewAvailable: boolean): string {
+  return previewAvailable
+    ? BUILDER_RAIL_ACTIONS_NOTE_PREVIEW_ENABLED
+    : BUILDER_RAIL_ACTIONS_NOTE;
+}
 
 export const BUILDER_GUARDRAIL_PILL_BASE =
   "inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide";

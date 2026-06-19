@@ -549,7 +549,9 @@ function deriveNextAction(input: ProposalBuilderGuidanceInput): ProposalBuilderN
     return {
       id: "resolve_pricing_blockers",
       title: "Resolve pricing blockers",
-      description: `${blockerCount} line item${blockerCount === 1 ? "" : "s"} need pricing or quantity attention before Preview can unlock.`,
+      description: input.previewEnabled
+        ? `${blockerCount} line item${blockerCount === 1 ? "" : "s"} need pricing or quantity attention before this draft is customer-ready.`
+        : `${blockerCount} line item${blockerCount === 1 ? "" : "s"} need pricing or quantity attention before Preview can unlock.`,
       ctaLabel: "Open Line Items",
       target: "workspace:line-items",
       priority: 3,

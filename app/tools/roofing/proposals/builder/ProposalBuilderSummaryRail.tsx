@@ -32,7 +32,6 @@ import {
   BUILDER_RAIL_GUIDED_PATH_TITLE,
 } from "./proposalBuilderConstants";
 import {
-  BUILDER_RAIL_ACTIONS_NOTE,
   BUILDER_RAIL_BLOCKING_LINES_LABEL,
   BUILDER_RAIL_CARD,
   BUILDER_RAIL_GROUP_HEADING,
@@ -46,6 +45,7 @@ import {
   guardrailOutcomePillClass,
   guardrailRailMessage,
   guardrailRailStatusLabel,
+  resolveBuilderRailActionsNote,
 } from "./proposalBuilderConstants";
 import type { ProposalTemplateGraph } from "@/app/lib/proposalTemplateStore";
 
@@ -254,6 +254,8 @@ export default function ProposalBuilderSummaryRail({
     ? "checking"
     : guardrailOutcome ?? "checking";
   const guardrailMessage = guardrailRailMessage(guardrailOutcome, guardrailChecking);
+  const previewAvailable =
+    guidance?.lifecycleLocks?.find((lock) => lock.actionId === "preview")?.state === "ready";
 
   return (
     <div className={`${BUILDER_RAIL_CARD} space-y-3`}>
@@ -265,8 +267,7 @@ export default function ProposalBuilderSummaryRail({
         <NextActionCard guidance={guidance} onNavigate={onGuidanceNavigate} />
       ) : null}
 
-      {/* Pricing readiness stays visible — it explains the document's inline
-          blockers and why Preview is locked. */}
+      {/* Pricing readiness stays visible — it explains inline blockers and draft readiness. */}
       <div className="space-y-1 border-t border-slate-100 pt-2">
         <RailGroupHeading title={BUILDER_RAIL_PRICING_CONFIDENCE_TITLE} />
         <RailStat
@@ -361,7 +362,9 @@ export default function ProposalBuilderSummaryRail({
         ) : null}
       </InspectorDisclosure>
 
-      <p className="pt-0.5 text-[10px] leading-snug text-slate-400">{BUILDER_RAIL_ACTIONS_NOTE}</p>
+      <p className="pt-0.5 text-[10px] leading-snug text-slate-400">
+        {resolveBuilderRailActionsNote(Boolean(previewAvailable))}
+      </p>
     </div>
   );
 }

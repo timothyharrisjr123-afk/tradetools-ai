@@ -19,6 +19,8 @@ type ProposalBuilderCustomerPageProps = {
   contractorNotice?: string | null;
   /** R16B — show hint to use workspace Edit control when page is editable. */
   showEditHint?: boolean;
+  /** R17B — hide Builder read-only footer on customer Preview surface. */
+  showReadOnlyFooter?: boolean;
 };
 
 type TextBlock =
@@ -91,6 +93,7 @@ export default function ProposalBuilderCustomerPage({
   emptyStateText,
   contractorNotice,
   showEditHint = false,
+  showReadOnlyFooter = true,
 }: ProposalBuilderCustomerPageProps) {
   const body = (bodyMarkdown ?? "").trim();
   const hasBody = body.length > 0;
@@ -114,9 +117,11 @@ export default function ProposalBuilderCustomerPage({
         {hasBody ? (
           <>
             <SafeBodyText body={body} />
-            <p className="mt-6 border-t border-slate-100 pt-3 text-[11px] leading-snug text-slate-400">
-              {BUILDER_DOCUMENT_READ_ONLY_FOOTER}
-            </p>
+            {showReadOnlyFooter ? (
+              <p className="mt-6 border-t border-slate-100 pt-3 text-[11px] leading-snug text-slate-400">
+                {BUILDER_DOCUMENT_READ_ONLY_FOOTER}
+              </p>
+            ) : null}
             {contractorNotice ? (
               <p className="mt-2 text-[11px] leading-snug text-slate-400">{contractorNotice}</p>
             ) : null}

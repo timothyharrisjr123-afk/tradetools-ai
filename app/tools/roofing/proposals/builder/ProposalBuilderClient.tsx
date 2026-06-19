@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { deriveCatalogReadiness } from "@/app/lib/catalogReadiness";
 import { getActiveCatalogItemsByCompany } from "@/app/lib/catalogStore";
 import type { CatalogItem } from "@/app/lib/catalogTypes";
@@ -66,7 +66,9 @@ import {
   deriveProposalBuilderGuidance,
   type ProposalBuilderGuardrailStatus,
   type ProposalBuilderGuidanceTarget,
+  type ProposalBuilderLifecycleActionId,
 } from "@/app/lib/proposalBuilderGuidance";
+import { buildProposalCustomerPreviewHref } from "@/app/lib/proposalCustomerPreviewViewModel";
 import ProposalBuilderBlockedState from "./ProposalBuilderBlockedState";
 import ProposalBuilderCanvas from "./ProposalBuilderCanvas";
 import ProposalBuilderPageAlerts from "./ProposalBuilderPageAlerts";
@@ -78,6 +80,7 @@ import ProposalBuilderWorkspaceLayout from "./ProposalBuilderWorkspaceLayout";
 const CATALOG_STARTER_DEFINITION_COUNT = DEFAULT_ROOFING_CATALOG_DEFINITIONS.length;
 
 export default function ProposalBuilderClient({ companyId }: { companyId: string }) {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const jobIdParam = searchParams.get("job");
   const proposalIdParam = searchParams.get("proposal");
@@ -798,8 +801,8 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
   const shellReady = builderReadiness.ready && !draftGraphError;
   const normalizedJobId = (jobIdParam ?? "").trim() || null;
 
-  // 3J4B3: single guided-flow source of truth. Pure derivation — no writes,
-  // no lifecycle enablement (Preview/Send/Sign/Payment/Production all false).
+  // 3J4B3: single guided-flow source of truth. Preview enablement is R17B-only;
+  // Send/Sign/Payment/Production remain disabled.
   const hasPlaceholderPages = useMemo(() => {
     const { items } = buildPageContextStripItems(persistedGraph?.pages, {
       persistedProposalDocument: Boolean(adapterResult?.proposalDocumentContext),
@@ -827,6 +830,11 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
 
   const builderGuidance = useMemo(() => {
     if (!shellReady) return null;
+    const previewEnabled =
+      hasPersistedProposalParam &&
+      draftGraphLoadComplete &&
+      !draftGraphError &&
+      persistedGraph != null;
     return deriveProposalBuilderGuidance({
       hasPersistedProposal: hasPersistedProposalParam,
       selectedOptionId: effectiveSelectedOptionId,
@@ -838,7 +846,7 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
       guardrailStatus: guidanceGuardrailStatus,
       hasProposalPages: (persistedGraph?.pages?.length ?? 0) > 0,
       hasPlaceholderPages,
-      previewEnabled: false,
+      previewEnabled,
       sendEnabled: false,
       signEnabled: false,
       paymentEnabled: false,
@@ -847,6 +855,9 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
   }, [
     shellReady,
     hasPersistedProposalParam,
+    draftGraphLoadComplete,
+    draftGraphError,
+    persistedGraph,
     effectiveSelectedOptionId,
     templateReadiness.status,
     measurementHandoff?.proposalReady,
@@ -856,6 +867,34 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
     persistedGraph?.pages,
     hasPlaceholderPages,
   ]);
+
+  const handleLifecycleAction = useCallback(
+    (actionId: ProposalBuilderLifecycleActionId) => {
+      if (actionId !== "preview") return;
+      const jobId = (jobIdParam ?? "").trim();
+      const proposalId = (proposalIdParam ?? "").trim();
+      if (!isUuidLike(jobId) || !isUuidLike(proposalId)) return;
+
+      if (
+        pageEditActiveContextId != null &&
+        pageEditIsDirty &&
+        !window.confirm(BUILDER_UNSAVED_PAGE_EDIT_CONFIRM)
+      ) {
+        return;
+      }
+
+      clearPageEditSession();
+      router.push(buildProposalCustomerPreviewHref(jobId, proposalId));
+    },
+    [
+      jobIdParam,
+      proposalIdParam,
+      pageEditActiveContextId,
+      pageEditIsDirty,
+      clearPageEditSession,
+      router,
+    ]
+  );
 
   // 3J4C4: the Estimate document now holds sections, line items, totals, package
   // options, and details inline, so the former workspace-tab targets all resolve
@@ -893,6 +932,8 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
           handleRefreshDraftPricing();
           return;
         case "action:preview":
+          handleLifecycleAction("preview");
+          return;
         case "action:send":
         case "action:sign":
         case "action:payment":
@@ -902,7 +943,7 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
           return;
       }
     },
-    [handleRefreshDraftPricing, handleSelectPageContext]
+    [handleRefreshDraftPricing, handleSelectPageContext, handleLifecycleAction]
   );
 
   return (
@@ -913,8 +954,18 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
         shellReady={shellReady}
         showDraftSavedPill={hasPersistedProposalParam && draftGraphLoadComplete && !draftGraphError}
         guidance={builderGuidance}
+        onLifecycleAction={handleLifecycleAction}
       />
-      <ProposalBuilderPageAlerts loadError={loadError} shellReady={shellReady} />
+      <ProposalBuilderPageAlerts
+        loadError={loadError}
+        shellReady={shellReady}
+        hasPersistedDraft={
+          hasPersistedProposalParam &&
+          draftGraphLoadComplete &&
+          !draftGraphError &&
+          persistedGraph != null
+        }
+      />
       {draftGraphError ? (
         <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
           {draftGraphError}

@@ -74,6 +74,12 @@ export const BUILDER_PAGE_EDIT_MERGE_PREVIEW_LABEL = "Customer preview (display 
 /** Customer-safe draft note on the Cover page (no lifecycle wording). */
 export const BUILDER_COVER_DRAFT_NOTE = "Draft proposal — not sent to customer.";
 
+/** R17B — contractor Preview chrome (authenticated, not sent). */
+export const CUSTOMER_PREVIEW_PAGE_TITLE = "Customer preview";
+export const CUSTOMER_PREVIEW_DRAFT_NOTICE =
+  "Draft preview — not sent to customer.";
+export const CUSTOMER_PREVIEW_BACK_TO_BUILDER_LABEL = "Back to Builder";
+
 /** Lifecycle actions remain disabled in R16A and later roadmap phases until explicitly enabled. */
 export const BUILDER_LIFECYCLE_ACTIONS_LOCKED = true;
 

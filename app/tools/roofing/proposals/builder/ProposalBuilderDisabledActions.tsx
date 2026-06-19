@@ -1,6 +1,12 @@
 import { Lock } from "lucide-react";
-import type { ProposalBuilderLifecycleLock } from "@/app/lib/proposalBuilderGuidance";
-import { BUILDER_DISABLED_ACTION } from "./proposalBuilderConstants";
+import type {
+  ProposalBuilderLifecycleActionId,
+  ProposalBuilderLifecycleLock,
+} from "@/app/lib/proposalBuilderGuidance";
+import {
+  BUILDER_DISABLED_ACTION,
+  BUILDER_PREVIEW_ENABLED_ACTION,
+} from "./proposalBuilderConstants";
 
 const FALLBACK_ACTIONS = [
   { id: "preview", label: "Preview" },
@@ -14,10 +20,13 @@ const HEADER_ACTION_ORDER = ["preview", "send", "sign", "payment"] as const;
 type ProposalBuilderDisabledActionsProps = {
   /** 3J4B7: lifecycle locks from the guidance model (single source of truth). */
   lifecycleLocks?: ProposalBuilderLifecycleLock[] | null;
+  /** R17B — invoked when an enabled lifecycle action is clicked. */
+  onLifecycleAction?: (actionId: ProposalBuilderLifecycleActionId) => void;
 };
 
 export default function ProposalBuilderDisabledActions({
   lifecycleLocks = null,
+  onLifecycleAction,
 }: ProposalBuilderDisabledActionsProps) {
   const headerLocks = lifecycleLocks
     ? HEADER_ACTION_ORDER.map((id) =>
@@ -46,23 +55,38 @@ export default function ProposalBuilderDisabledActions({
   return (
     <div className="flex flex-wrap items-center gap-2" aria-label="Proposal lifecycle (staged, locked)">
       {headerLocks.map((lock) => {
-        // Preview is the first locked-but-reachable stage — give it a slightly
-        // stronger affordance than the deeper-future actions. All remain disabled.
-        const reachable = lock.actionId === "preview";
+        const enabled = lock.state === "ready";
         const reason = lock.lockedReason ?? lock.unlockSummary;
+        const isPreview = lock.actionId === "preview";
+
         return (
           <button
             key={lock.actionId}
             type="button"
-            disabled
-            aria-disabled
-            aria-label={`${lock.label} — locked. ${reason}`}
-            className={`${BUILDER_DISABLED_ACTION} ${
-              reachable ? "border-blue-200 bg-blue-50/40 text-blue-400" : ""
-            }`}
-            title={reason}
+            disabled={!enabled}
+            aria-disabled={!enabled}
+            aria-label={
+              enabled
+                ? `${lock.label} — open customer preview`
+                : `${lock.label} — locked. ${reason}`
+            }
+            className={
+              enabled
+                ? isPreview
+                  ? BUILDER_PREVIEW_ENABLED_ACTION
+                  : BUILDER_DISABLED_ACTION
+                : `${BUILDER_DISABLED_ACTION} ${
+                    isPreview ? "border-blue-200 bg-blue-50/40 text-blue-400" : ""
+                  }`
+            }
+            title={enabled ? "Open customer preview" : reason}
+            onClick={() => {
+              if (enabled) {
+                onLifecycleAction?.(lock.actionId);
+              }
+            }}
           >
-            <Lock className="mr-1 h-3.5 w-3.5" aria-hidden />
+            {!enabled ? <Lock className="mr-1 h-3.5 w-3.5" aria-hidden /> : null}
             {lock.label}
           </button>
         );

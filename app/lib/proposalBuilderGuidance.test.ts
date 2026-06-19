@@ -159,6 +159,23 @@ describe("deriveProposalBuilderGuidance", () => {
     assert.equal(guidance.isReadyForPreviewWhenEnabled, false);
   });
 
+  test("preview enabled unlocks Preview lifecycle action while Send stays locked", () => {
+    const guidance = deriveProposalBuilderGuidance(baseInput({ previewEnabled: true }));
+
+    const preview = lifecycleById(guidance, "preview");
+    const send = lifecycleById(guidance, "send");
+
+    assert.equal(preview.state, "ready");
+    assert.equal(preview.lockedReason, null);
+    assert.equal(send.state, "locked");
+    assert.equal(send.lockedReason, "Available after Preview.");
+  });
+
+  test("preview disabled when roadmap flag false even if setup ready", () => {
+    const guidance = deriveProposalBuilderGuidance(baseInput({ previewEnabled: false }));
+    assert.equal(lifecycleById(guidance, "preview").state, "locked");
+  });
+
   test("lifecycle locks follow Preview → Send → Sign → Payment → Production order", () => {
     const guidance = deriveProposalBuilderGuidance(baseInput());
 

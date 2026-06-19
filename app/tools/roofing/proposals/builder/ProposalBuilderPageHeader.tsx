@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { buildJobCardHref } from "@/app/lib/proposalBuilderReadiness";
 import type { JobRecord } from "@/app/lib/jobTypes";
-import type { ProposalBuilderGuidance } from "@/app/lib/proposalBuilderGuidance";
+import type { ProposalBuilderGuidance, ProposalBuilderLifecycleActionId } from "@/app/lib/proposalBuilderGuidance";
 import ProposalBuilderDisabledActions from "./ProposalBuilderDisabledActions";
 import {
   BUILDER_HEADER_DRAFT_PILL,
@@ -19,6 +19,9 @@ type ProposalBuilderPageHeaderProps = {
   shellReady: boolean;
   showDraftSavedPill?: boolean;
   guidance?: ProposalBuilderGuidance | null;
+  onLifecycleAction?: (
+    actionId: ProposalBuilderLifecycleActionId
+  ) => void;
 };
 
 function resolveJobTitle(job: JobRecord | null): string {
@@ -51,6 +54,7 @@ export default function ProposalBuilderPageHeader({
   shellReady,
   showDraftSavedPill = false,
   guidance = null,
+  onLifecycleAction,
 }: ProposalBuilderPageHeaderProps) {
   const title = resolveJobTitle(job);
   const subtitle = resolveJobSubtitle(job);
@@ -98,7 +102,10 @@ export default function ProposalBuilderPageHeader({
 
         {shellReady ? (
           <div className="shrink-0 pt-6">
-            <ProposalBuilderDisabledActions lifecycleLocks={guidance?.lifecycleLocks ?? null} />
+            <ProposalBuilderDisabledActions
+              lifecycleLocks={guidance?.lifecycleLocks ?? null}
+              onLifecycleAction={onLifecycleAction}
+            />
           </div>
         ) : null}
       </div>

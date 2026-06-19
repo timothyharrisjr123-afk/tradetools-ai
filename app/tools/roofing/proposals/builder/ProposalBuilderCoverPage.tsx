@@ -13,6 +13,8 @@ import {
 
 type ProposalBuilderCoverPageProps = {
   viewModel: ProposalCoverViewModel;
+  /** R17B — hide Builder draft note on customer Preview surface. */
+  showDraftNote?: boolean;
 };
 
 function CoverDetailRow({ label, value }: { label: string; value: string }) {
@@ -42,7 +44,10 @@ function CoverSection({
   );
 }
 
-export default function ProposalBuilderCoverPage({ viewModel }: ProposalBuilderCoverPageProps) {
+export default function ProposalBuilderCoverPage({
+  viewModel,
+  showDraftNote = true,
+}: ProposalBuilderCoverPageProps) {
   const [logoFailed, setLogoFailed] = useState(false);
   const accentColor =
     viewModel.company.brandPrimaryColor ?? PROPOSAL_COVER_DEFAULT_BRAND_ACCENT;
@@ -193,7 +198,9 @@ export default function ProposalBuilderCoverPage({ viewModel }: ProposalBuilderC
         )}
 
         {/* 6. Draft / read-only note */}
-        <p className="text-[11px] leading-snug text-slate-400">{BUILDER_COVER_DRAFT_NOTE}</p>
+        {showDraftNote ? (
+          <p className="text-[11px] leading-snug text-slate-400">{BUILDER_COVER_DRAFT_NOTE}</p>
+        ) : null}
       </div>
     </article>
   );
