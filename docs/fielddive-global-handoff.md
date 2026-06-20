@@ -33,22 +33,25 @@
 - Read **§6BD** before R17 Preview planning context or post-R16C Builder integration history — R16C final whole-Builder audit (2026-06-18), stable foundation verdict, mobile findings, R17 planning gate (**historical — superseded by §6BE / §6BF for current resume**).
 - Read **§6BE** before R17A/R17B customer Preview foundation context — authenticated contractor Preview route, Builder wiring, R17A VM (**historical foundation — superseded by §6BF for current Preview Estimate resume**).
 - Read **§6BF** before R17C1 Preview Estimate document presentation context — R17C1 Preview Estimate document presentation layer, architecture separation, validation (**historical Preview foundation — superseded by §6BG for current Builder Estimate resume**).
-- Read **§6BG** before R17C2 Builder Estimate workbench context — R17C2 Builder Estimate workbench hierarchy, scope review semantics, gated Edit Option shell (**historical Builder workbench resume — superseded by §6BH for Edit Option / scope decision backend resume**).
-- Read **§6BH** before R17D Phase 2 manual quantity UI/API, R17C3 document typography polish, Edit Option action wiring, or any post-R17D Phase 1 scope decision work — R17D Phase 1 scope decision overlay foundation, merge-on-refresh contract, R18 guardrails.
+- Read **§6BG** before R17C2 Builder Estimate workbench context — R17C2 Builder Estimate workbench hierarchy, scope review semantics, gated Edit Option shell (**historical Builder workbench resume — superseded by §6BI for current Edit Option / scope decision resume**).
+- Read **§6BH** before R17D Phase 1 scope decision overlay backend context — merge-on-refresh contract, migration/store/merge foundation (**historical Phase 1 resume — superseded by §6BI for current R17D resume**).
+- Read **§6BI** before R17D Phase 2.5/Phase 3, browser smoke, R17C3 document typography polish, or any post-R17D Phase 2 Edit Option work — R17D Phase 2 manual quantity UI/API code checkpoint, DB environment warning, browser-audit blockers, R18 guardrails.
 
-**Last updated checkpoint:** **Code:** **`43c83a2` — feat(proposals): add scope decision overlay foundation in R17D**. **Docs checkpoint:** **pending this commit** (prior: **`ccbd30d`** — docs: checkpoint after R17C2 Builder estimate workbench). **Current state:** **R0–R15** complete/satisfied; **R14** body merge at `f359ad4` (§6AW); **R16A** Builder chrome/customer document IA separation complete at `18cebca` (§6AX); **R16B** proposal body authoring foundation complete at `589f5a0` (§6AY); **R16C1** Builder strip overflow page navigation complete at `967f0de` (§6BA); **R16C2** document token picker in R16B editor complete at `0cf76d2` (§6BB); **R16C3** page visibility hide-show foundation complete at `25f1375` (§6BC); **R17A/R17B** customer Preview foundation complete at `8ac2bcb` (§6BE); **R17C1** Preview Estimate document presentation layer complete at `9c2244a` (§6BF); **R17C2** Builder Estimate workbench hierarchy complete at `3e65774` (§6BG; Phase 1 presenter at `3c04322`); **R17D Phase 1** scope decision overlay foundation complete at `43c83a2` (§6BH). **R16A / R16B / R16C / R17 ≠ §6AL R16 Proposals hub** — hub remains **not started**. **R16C program:** **R16C1** overflow navigation **complete**; **R16C2** token picker **complete**; **R16C3** page visibility **complete** — **R16C final whole-Builder audit passed** (§6BD). **R17A/R17B complete** — authenticated contractor Customer Preview at `/tools/roofing/proposals/preview?job=&proposal=`; **R17C1 complete** — Preview Estimate uses pure document presentation layer; **R17C2 complete** — Builder Estimate uses zoned contractor workbench (not flat mixed list); **R17D Phase 1 complete** — persisted scope decision overlay + merge-on-refresh foundation; **`manual_quantity` proven**; Edit Option UI actions **not enabled**; **Send / Sign / Payment / PDF / public customer route remain disabled**. **Migration `20260618_009_create_proposal_option_scope_decisions.sql` committed only — SQL not run/applied manually.** **Latest completed product audit:** **R17C2 Phase 2/2.5/2.6 pre-commit audit** (2026-06-18, §6BG) — **Proceed**; **541/541** automated tests (`app/lib/proposal*.test.ts`) after R17D Phase 1; working tree clean after code commit `43c83a2`; doc-only WIP for this checkpoint. **Playwright auth:** outside-repo `storageState` at `C:\Users\sabre\.cursor\fielddive-playwright-auth.json` — test-only audits; no auth/RLS bypass; session expiry requires normal login and re-save. **Do not use** `C:\Users\sabre.cursor\...` (missing `.` before `cursor`) — that path is a common typo. **Tests (post-R17D Phase 1):** **541/541** full proposal lib batch pass (§6BH); prior R17C2 batch **529/529** pass (§6BG). **Typecheck:** only **6** pre-existing errors in `app/tools/roofing-v2/RoofingClientV2.tsx` — unchanged. **Protected systems:** unchanged in R17D Phase 1 code commit. **Working tree:** clean at `43c83a2`; doc-only WIP for this checkpoint.
+**Last updated checkpoint:** **Code:** **`f5712ff` — feat(proposals): enable manual quantity scope decisions in R17D**. **Docs checkpoint:** **pending this commit** (prior: **`9b66bf4`** — docs: checkpoint after R17D Phase 1 scope decision overlay foundation). **Current state:** **R0–R15** complete/satisfied; **R14** body merge at `f359ad4` (§6AW); **R16A** Builder chrome/customer document IA separation complete at `18cebca` (§6AX); **R16B** proposal body authoring foundation complete at `589f5a0` (§6AY); **R16C1** Builder strip overflow page navigation complete at `967f0de` (§6BA); **R16C2** document token picker in R16B editor complete at `0cf76d2` (§6BB); **R16C3** page visibility hide-show foundation complete at `25f1375` (§6BC); **R17A/R17B** customer Preview foundation complete at `8ac2bcb` (§6BE); **R17C1** Preview Estimate document presentation layer complete at `9c2244a` (§6BF); **R17C2** Builder Estimate workbench hierarchy complete at `3e65774` (§6BG; Phase 1 presenter at `3c04322`); **R17D Phase 1** scope decision overlay foundation complete at `43c83a2` (§6BH); **R17D Phase 2** manual quantity UI/API code complete at `f5712ff` (§6BI). **R16A / R16B / R16C / R17 ≠ §6AL R16 Proposals hub** — hub remains **not started**. **R16C program:** **R16C1** overflow navigation **complete**; **R16C2** token picker **complete**; **R16C3** page visibility **complete** — **R16C final whole-Builder audit passed** (§6BD). **R17A/R17B complete** — authenticated contractor Customer Preview at `/tools/roofing/proposals/preview?job=&proposal=`; **R17C1 complete** — Preview Estimate uses pure document presentation layer; **R17C2 complete** — Builder Estimate uses zoned contractor workbench (not flat mixed list); **R17D Phase 1 complete** — persisted scope decision overlay + merge-on-refresh foundation; **R17D Phase 2 complete (code only)** — first real Edit Option action **`manual_quantity`** wired in Builder; **browser audit pending** (§6BI). **Send / Sign / Payment / PDF / public customer route remain disabled**. **Migration `20260618_009_create_proposal_option_scope_decisions.sql` appears applied** to the currently configured Supabase project **`rhquhnujjnzjhweypavd`** (manual SQL Editor apply; verification query returned table/indexes/constraints/policies for `proposal_option_scope_decisions`). **That project is labeled Production in Supabase dashboard — not a separate DEV target.** **No separate DEV Supabase target is configured.** **DB environment warning / follow-up:** create or configure a true DEV Supabase target for future migration testing. **Latest automated validation:** **547/547** full proposal lib batch pass after R17D Phase 2 code (`f5712ff`, §6BI); working tree clean after code commit `f5712ff`; doc-only WIP for this checkpoint. **Playwright auth:** outside-repo `storageState` at `C:\Users\sabre\.cursor\fielddive-playwright-auth.json` — **expired** at time of this checkpoint; test-only audits; no auth/RLS bypass; session expiry requires normal login and re-save. **Do not use** `C:\Users\sabre.cursor\...` (missing `.` before `cursor`) — that path is a common typo. **Typecheck:** only **6** pre-existing errors in `app/tools/roofing-v2/RoofingClientV2.tsx` — unchanged. **Protected systems:** unchanged in R17D Phase 2 code commit. **Working tree:** clean at `f5712ff`; doc-only WIP for this checkpoint.
 
 **Jobs Board approved save point:** `b27a444` (3F9B4-RoofrExact visual baseline). **DB-first board partition:** `a62ad93` (§6AD). **Jobs Board identity (R8):** `1191ddd`.
 
-**Next (recommended):** **Do not start R18 Send planning, R18 implementation, §6AL R16 Proposals hub, PDF, public customer route, or lifecycle enablement automatically.** **Immediate next after this docs commit:** **R17D Phase 2 — manual quantity UI/API** (first real Edit Option action, using proven overlay) **or** **R17C3** Cover / Project Overview / document typography rhythm — user may choose typography first; **do not start R18 yet**. **R17D Phase 1 backend foundation is complete** (`43c83a2`, §6BH) — `manual_quantity` merge-on-refresh proven; Edit Option shell remains UI-only until Phase 2 wires the first action. **R17C2 Builder Estimate workbench is complete** (`3e65774`, §6BG). **R17C1 Preview Estimate presentation is complete** — authenticated contractor-only; **not** public/tokenized customer access. **Send / Sign / Payment / PDF / public customer sharing remain disabled.** **No implementation** without explicit scoped direction. **Mandatory recovery order:** **§6AL** + **§6AM** + **§6AN** + **§6AO** + **§6AP** + **§6AQ** + **§6AR** + **§6AS** + **§6AT** + **§6AU** + **§6AV** + **§6AW** + **§6AX** + **§6AY** + **§6AZ** + **§6BA** + **§6BB** + **§6BC** + **§6BD** + **§6BE** + **§6BF** + **§6BG** + **§6BH**. **Later items** only in **§11**. **Do not** return to `loadSaved`/`currentSaved` as main workflow.
+**Next (recommended):** **Do not start new R17D product feature work, R18 Send planning, R18 implementation, §6AL R16 Proposals hub, PDF, public customer route, or lifecycle enablement automatically.** **Immediate next after this docs commit (in order):** (1) **refresh Playwright auth**; (2) **run manual quantity browser smoke** against the current approved target (`rhquhnujjnzjhweypavd`) or a future DEV target once configured; (3) **then** decide **R17D Phase 2.5** (reset/clear manual quantity) **or R17D Phase 3** (exclude/N/A) **or R17C3** typography — **do not start R18 yet**. **Follow-up (DB environment):** configure a true DEV Supabase target for future migration testing — migration `20260618_009` was applied to the Production-labeled configured project, not a separate DEV project. **R17D Phase 2 code is complete** (`f5712ff`, §6BI) — **`manual_quantity` Edit Option action wired**; **browser audit not completed** (Playwright auth expired; smoke not run). **R17D Phase 1 backend foundation is complete** (`43c83a2`, §6BH). **R17C2 Builder Estimate workbench is complete** (`3e65774`, §6BG). **R17C1 Preview Estimate presentation is complete** — authenticated contractor-only; **not** public/tokenized customer access. **Send / Sign / Payment / PDF / public customer sharing remain disabled.** **No new feature implementation** without explicit scoped direction. **Mandatory recovery order:** **§6AL** + **§6AM** + **§6AN** + **§6AO** + **§6AP** + **§6AQ** + **§6AR** + **§6AS** + **§6AT** + **§6AU** + **§6AV** + **§6AW** + **§6AX** + **§6AY** + **§6AZ** + **§6BA** + **§6BB** + **§6BC** + **§6BD** + **§6BE** + **§6BF** + **§6BG** + **§6BH** + **§6BI**. **Later items** only in **§11**. **Do not** return to `loadSaved`/`currentSaved` as main workflow.
 
-**DB-first foundation is live** (§6AD). **3J3E option selection persists** (§6AE). **Pricing trust hardening complete** (§6AF). **3J4C document-first Builder complete** (§6AG) — Estimate page renders the actual proposal document inline (package selector, sections, line items, totals); right rail is a contextual **Proposal Helper** inspector; old workspace tabs and Overview panel **removed**. **R16A** (§6AX) removed the amber **Preview-unlock blocker banner** from the Estimate **canvas**; pricing/blocking guidance remains in the rail. **3J4D** refined Estimate line readability (§6AH). **3J4E** refined package/options surface inside Estimate (§6AI). **3J4F** extended Builder to customer-facing text pages — Terms, Warranty, Project Overview, custom_text render persisted `body_markdown` when present (§6AJ). **R14** adds display-time `{{token_name}}` merge on those text pages from frozen `proposalDocumentContext` + R13 resolver (`f359ad4`, §6AW) — stored `body_markdown` unchanged; no write-back. **R4–R6** template content editor on `/tools/roofing/templates` **complete** (`9db2030`–`3c6214c`). **R7** light global IA nav **complete** (`05b9c54`). **R8** light Jobs Board identity **complete** (`1191ddd`). **R9** Job Card create/open draft flow **satisfied** (`1915b2d` + pre-R10 P1 at `d0ba188`). **R10** template structure + estimate settings **complete** (`bc42b1e`–`b3dd904`, §6AQ). **R11** company branding Settings **complete** (`0146dac`–`139e8a3`, §6AR). **R11c** stamps company core + branding into `proposal_versions.context_echo` at new draft create only (`29722a0`, §6AS) — **no Builder cover UI**. **R12** stamps DB-truth customer identity into `proposal_versions.context_echo` at new draft create only (`31059e3`, §6AT) — **no Job Card UI changes, no Builder customer display**. **R13** adds pure frozen document token foundation (`e40db30`, §6AU) — registry, `ProposalDocumentContext`, resolver. **R15** adds read-only branded **Cover** tab in Proposal Builder (`ab5a400`, §6AV) — consumes `proposalDocumentContext` + resolver; **not** Preview/PDF/send/sign/payment. **R14** wires body text pages to the same frozen context at display time (`f359ad4`, §6AW). **R16A** separates contractor workspace chrome from customer document IA (`18cebca`, §6AX) — customer-logical page strip order, workspace header, simplified body shell; **not** Preview/PDF/lifecycle/hub. **R16B** adds per-proposal draft body authoring for text pages (`589f5a0`, §6AY) — raw `body_markdown` persist, R14 display merge only, Estimate line-items-only de-duplication on persisted path; **not** token picker, page visibility, media, Preview, or lifecycle. **R16C1** adds Builder strip overflow page navigation (`967f0de`, §6BA) — More pages menu for persisted overflow pages by `page.id`, dirty-edit guard preserved, portal menu fix; **not** page visibility, Preview, or lifecycle. **R16C2** adds registry-driven document token picker in the R16B editor (`0cf76d2`, §6BB) — Insert field menu inserts raw `{{token_name}}` only; R14 display-time merge unchanged; save persists raw `body_markdown` only; **not** page visibility, Preview, or lifecycle. **R16C3** adds DB-backed proposal page visibility hide-show foundation (`25f1375`, §6BC) — toggles existing `proposal_pages.visible_to_customer` via `updateDraftProposalPageVisibility`; hidden pages remain contractor-visible and editable in Builder; Cover/Estimate required; `getCustomerPreviewPages` R17 contract helper only; **not** Preview, customer route, PDF, or lifecycle. **R17A/R17B** adds authenticated contractor Customer Preview foundation (`8ac2bcb`, §6BE) — pure `proposalCustomerPreviewViewModel` + `/tools/roofing/proposals/preview?job=&proposal=` route; header Preview enabled when persisted draft loads; dirty-edit guard before Preview navigation; **not** public/tokenized customer access, PDF, Send, Sign, Payment, or lifecycle. **R17C1** adds Preview Estimate document presentation layer (`9c2244a`, §6BF) — pure `proposalCustomerEstimatePresenter` + Preview-only estimate UI; shared `proposalPackagePresentation`; Preview Estimate no longer imports Builder workbench table components; **not** R17C2 Builder workbench hierarchy (now complete at `3e65774`, §6BG), R17C3 typography polish, R18, PDF, Send, Sign, Payment, or lifecycle. **R17C2 Phase 1** adds pure Builder workbench estimate presenter (`3c04322`, §6BG) — `proposalBuilderWorkbenchEstimatePresenter` DTO only; no UI. **R17C2 Phase 2** adds zoned Builder Estimate workbench UI + scope review / hard blocker split + gated Edit Option shell (`3e65774`, §6BG) — **not** R17D scope decision backend, R17C3 typography, R18, PDF, Send, Sign, Payment, or lifecycle. **R17D Phase 1** adds persisted scope decision overlay + merge-on-refresh foundation (`43c83a2`, §6BH) — `proposal_option_scope_decisions` table (migration committed only); **`manual_quantity` proven**; zero-decision refresh unchanged; **not** Edit Option UI actions, R17C3 typography, R18, PDF, Send, Sign, Payment, or lifecycle. Main workflow: **Job Board → DB job card (`job=`) → Create proposal / Open proposal → create/reuse DB proposal draft → Builder (`job=` + `proposal=`) → package selection persists to DB; refresh draft pricing when measurement changes**. Legacy `loadSaved=` / `currentSaved` / board-origin paths are **preserved but separated** — they **cannot create DB proposals directly**. **DB proposal math uses the new spine only** (`measurement_records` → `proposalQuantityResolver` → `proposalPricingEngine` → snapshots) — **not** legacy saved-estimate / Core-Enhanced-Premium estimator math. **`createDraftProposal`** runs from Job Card **Create proposal** only when checklist + pricing gates pass; **Builder reads** persisted drafts via **`getDraftGraph`** + **`proposalDraftGraphAdapter`** when `?proposal=` is present — **no Builder create path**, **no silent fallback** on invalid `proposal=`. **Do not** persist placeholder/unconfigured pricing policy. **Catalog custom delete/deactivate** is **not implemented** and remains a **separate later scope**.
+**DB-first foundation is live** (§6AD). **3J3E option selection persists** (§6AE). **Pricing trust hardening complete** (§6AF). **3J4C document-first Builder complete** (§6AG) — Estimate page renders the actual proposal document inline (package selector, sections, line items, totals); right rail is a contextual **Proposal Helper** inspector; old workspace tabs and Overview panel **removed**. **R16A** (§6AX) removed the amber **Preview-unlock blocker banner** from the Estimate **canvas**; pricing/blocking guidance remains in the rail. **3J4D** refined Estimate line readability (§6AH). **3J4E** refined package/options surface inside Estimate (§6AI). **3J4F** extended Builder to customer-facing text pages — Terms, Warranty, Project Overview, custom_text render persisted `body_markdown` when present (§6AJ). **R14** adds display-time `{{token_name}}` merge on those text pages from frozen `proposalDocumentContext` + R13 resolver (`f359ad4`, §6AW) — stored `body_markdown` unchanged; no write-back. **R4–R6** template content editor on `/tools/roofing/templates` **complete** (`9db2030`–`3c6214c`). **R7** light global IA nav **complete** (`05b9c54`). **R8** light Jobs Board identity **complete** (`1191ddd`). **R9** Job Card create/open draft flow **satisfied** (`1915b2d` + pre-R10 P1 at `d0ba188`). **R10** template structure + estimate settings **complete** (`bc42b1e`–`b3dd904`, §6AQ). **R11** company branding Settings **complete** (`0146dac`–`139e8a3`, §6AR). **R11c** stamps company core + branding into `proposal_versions.context_echo` at new draft create only (`29722a0`, §6AS) — **no Builder cover UI**. **R12** stamps DB-truth customer identity into `proposal_versions.context_echo` at new draft create only (`31059e3`, §6AT) — **no Job Card UI changes, no Builder customer display**. **R13** adds pure frozen document token foundation (`e40db30`, §6AU) — registry, `ProposalDocumentContext`, resolver. **R15** adds read-only branded **Cover** tab in Proposal Builder (`ab5a400`, §6AV) — consumes `proposalDocumentContext` + resolver; **not** Preview/PDF/send/sign/payment. **R14** wires body text pages to the same frozen context at display time (`f359ad4`, §6AW). **R16A** separates contractor workspace chrome from customer document IA (`18cebca`, §6AX) — customer-logical page strip order, workspace header, simplified body shell; **not** Preview/PDF/lifecycle/hub. **R16B** adds per-proposal draft body authoring for text pages (`589f5a0`, §6AY) — raw `body_markdown` persist, R14 display merge only, Estimate line-items-only de-duplication on persisted path; **not** token picker, page visibility, media, Preview, or lifecycle. **R16C1** adds Builder strip overflow page navigation (`967f0de`, §6BA) — More pages menu for persisted overflow pages by `page.id`, dirty-edit guard preserved, portal menu fix; **not** page visibility, Preview, or lifecycle. **R16C2** adds registry-driven document token picker in the R16B editor (`0cf76d2`, §6BB) — Insert field menu inserts raw `{{token_name}}` only; R14 display-time merge unchanged; save persists raw `body_markdown` only; **not** page visibility, Preview, or lifecycle. **R16C3** adds DB-backed proposal page visibility hide-show foundation (`25f1375`, §6BC) — toggles existing `proposal_pages.visible_to_customer` via `updateDraftProposalPageVisibility`; hidden pages remain contractor-visible and editable in Builder; Cover/Estimate required; `getCustomerPreviewPages` R17 contract helper only; **not** Preview, customer route, PDF, or lifecycle. **R17A/R17B** adds authenticated contractor Customer Preview foundation (`8ac2bcb`, §6BE) — pure `proposalCustomerPreviewViewModel` + `/tools/roofing/proposals/preview?job=&proposal=` route; header Preview enabled when persisted draft loads; dirty-edit guard before Preview navigation; **not** public/tokenized customer access, PDF, Send, Sign, Payment, or lifecycle. **R17C1** adds Preview Estimate document presentation layer (`9c2244a`, §6BF) — pure `proposalCustomerEstimatePresenter` + Preview-only estimate UI; shared `proposalPackagePresentation`; Preview Estimate no longer imports Builder workbench table components; **not** R17C2 Builder workbench hierarchy (now complete at `3e65774`, §6BG), R17C3 typography polish, R18, PDF, Send, Sign, Payment, or lifecycle. **R17C2 Phase 1** adds pure Builder workbench estimate presenter (`3c04322`, §6BG) — `proposalBuilderWorkbenchEstimatePresenter` DTO only; no UI. **R17C2 Phase 2** adds zoned Builder Estimate workbench UI + scope review / hard blocker split + gated Edit Option shell (`3e65774`, §6BG) — **not** R17D scope decision backend, R17C3 typography, R18, PDF, Send, Sign, Payment, or lifecycle. **R17D Phase 1** adds persisted scope decision overlay + merge-on-refresh foundation (`43c83a2`, §6BH) — `proposal_option_scope_decisions` migration (`20260618_009`); **`manual_quantity` proven in tests**; zero-decision refresh unchanged; migration **appears applied** on configured project per §6BI. **R17D Phase 2** adds manual quantity UI/API — first real Edit Option action wired in Builder (`f5712ff`, §6BI); **`manual_quantity` only**; other Edit Option actions remain disabled; **browser audit pending** (Playwright auth expired; smoke not run); **not** R17C3 typography, R18, PDF, Send, Sign, Payment, or lifecycle. Main workflow: **Job Board → DB job card (`job=`) → Create proposal / Open proposal → create/reuse DB proposal draft → Builder (`job=` + `proposal=`) → package selection persists to DB; refresh draft pricing when measurement changes**. Legacy `loadSaved=` / `currentSaved` / board-origin paths are **preserved but separated** — they **cannot create DB proposals directly**. **DB proposal math uses the new spine only** (`measurement_records` → `proposalQuantityResolver` → `proposalPricingEngine` → snapshots) — **not** legacy saved-estimate / Core-Enhanced-Premium estimator math. **`createDraftProposal`** runs from Job Card **Create proposal** only when checklist + pricing gates pass; **Builder reads** persisted drafts via **`getDraftGraph`** + **`proposalDraftGraphAdapter`** when `?proposal=` is present — **no Builder create path**, **no silent fallback** on invalid `proposal=`. **Do not** persist placeholder/unconfigured pricing policy. **Catalog custom delete/deactivate** is **not implemented** and remains a **separate later scope**.
 
 ### Recent committed sequence (recovery R0–R17C2; then 3G6 spine + 3J + 3J4)
 
 | Commit | Summary |
 |--------|---------|
-| `43c83a2` | **R17D Phase 1** — Scope decision overlay foundation; `proposal_option_scope_decisions` migration (committed only); types/store/merge lib; `refreshDraftPricing` merge-on-refresh; **`manual_quantity` proven**; zero-decision path unchanged; **541/541** tests |
+| `f5712ff` | **R17D Phase 2** — Manual quantity UI/API; `applyManualQuantityScopeDecision`; Builder Set quantity chip + Edit Option drawer quantity section live; other Edit Option actions remain disabled; **547/547** tests; **browser audit pending** (§6BI) |
+| `9b66bf4` | **Docs** — Checkpoint after R17D Phase 1 scope decision overlay foundation |
+| `43c83a2` | **R17D Phase 1** — Scope decision overlay foundation; `proposal_option_scope_decisions` migration (`20260618_009`); types/store/merge lib; `refreshDraftPricing` merge-on-refresh; **`manual_quantity` proven**; zero-decision path unchanged; **541/541** tests; migration **appears applied** on configured project per §6BI |
 | `ccbd30d` | **Docs** — Checkpoint after R17C2 Builder estimate workbench |
 | `3e65774` | **R17C2 Phase 2** — Builder Estimate workbench zones; zoned UI (package, settings entry, ready scope, scope review / hard blockers, upgrades, totals); gated Edit Option shell; scope review semantics; **529/529** tests |
 | `3c04322` | **R17C2 Phase 1** — Builder workbench estimate presenter foundation; pure `proposalBuilderWorkbenchEstimatePresenter` DTO; no UI |
@@ -6582,7 +6585,7 @@ R17C1 fixes **Preview Estimate information presentation** without starting R17C2
 
 ## 6BG. R17C2 BUILDER ESTIMATE WORKBENCH HIERARCHY
 
-**Status:** **Complete (R17C2).** **Code checkpoint:** **`3e65774` — feat(proposals): add Builder estimate workbench zones in R17C2** (Phase 1 presenter: **`3c04322`**). **Docs checkpoint:** **`ccbd30d`** — docs: checkpoint after R17C2 Builder estimate workbench. **For current Edit Option / scope decision backend resume, read §6BH** — R17D Phase 1 at **`43c83a2`**. **Working tree:** clean after code commit `3e65774`; superseded for Edit Option/backend resume by §6BH after R17D Phase 1 at `43c83a2`.
+**Status:** **Complete (R17C2).** **Code checkpoint:** **`3e65774` — feat(proposals): add Builder estimate workbench zones in R17C2** (Phase 1 presenter: **`3c04322`**). **Docs checkpoint:** **`ccbd30d`** — docs: checkpoint after R17C2 Builder estimate workbench. **For current Edit Option / scope decision resume, read §6BI** — R17D Phase 2 at **`f5712ff`**. **Working tree:** clean after code commit `3e65774`; superseded for Edit Option/backend resume by §6BI after R17D Phase 2 at `f5712ff`.
 
 ### 1. Executive verdict
 
@@ -6728,7 +6731,8 @@ Roofr **Edit Option** workflow (research): add/remove catalog lines per proposal
 | Gap | Stage |
 |-----|-------|
 | **R17D Phase 1** — scope decision overlay + merge-on-refresh foundation | **Complete** at `43c83a2` (§6BH) |
-| **R17D Phase 2+** — real Edit Option actions (manual qty UI/API first, then exclude/N/A, hide, add catalog/custom, move to upgrade, quantity source) | Phase 2 **not started** — **recommended next** |
+| **R17D Phase 2** — manual quantity UI/API (first real Edit Option action) | **Complete (code only)** at `f5712ff` (§6BI); **browser audit pending** |
+| **R17D Phase 2.5+ / Phase 3+** — reset/clear manual qty; exclude/N/A; hide; add catalog/custom; move to upgrade; quantity source | Not started |
 | **R17C3** — Cover / Project Overview / document typography rhythm | Not started |
 | **R17C4** — estimate display policy consumer from existing `settings_json` | Not started — likely before R18 |
 | **R18 Send / public route / PDF / Sign / Payment / lifecycle** | Blocked |
@@ -6740,9 +6744,9 @@ Roofr **Edit Option** workflow (research): add/remove catalog lines per proposal
 - **R18 should own public/tokenized customer access** when implemented.
 - **Do not reuse RoofingClient PDF or `estimateStore`.**
 
-### 14. Next-stage guidance (historical — superseded by §6BH)
+### 14. Next-stage guidance (historical — superseded by §6BI)
 
-**Superseded.** R17D Phase 1 is complete at `43c83a2` (§6BH). See §6BH for current next-stage guidance.
+**Superseded.** R17D Phase 1 is complete at `43c83a2` (§6BH); R17D Phase 2 code is complete at `f5712ff` (§6BI). See §6BI for current next-stage guidance.
 
 **Historical recommended path (pre-R17D Phase 1):**
 
@@ -6756,7 +6760,7 @@ Roofr **Edit Option** workflow (research): add/remove catalog lines per proposal
 
 ## 6BH. R17D PHASE 1 SCOPE DECISION OVERLAY FOUNDATION
 
-**Status:** **Complete (R17D Phase 1).** **Code checkpoint:** **`43c83a2` — feat(proposals): add scope decision overlay foundation in R17D**. **Docs checkpoint:** **pending this commit** (prior: **`ccbd30d`** — docs: checkpoint after R17C2 Builder estimate workbench). **Working tree:** clean after code commit `43c83a2`; doc-only WIP for this checkpoint. **Migration committed only — SQL was not run/applied manually.**
+**Status:** **Complete (R17D Phase 1).** **Code checkpoint:** **`43c83a2` — feat(proposals): add scope decision overlay foundation in R17D**. **Docs checkpoint:** **`9b66bf4` — docs: checkpoint after R17D Phase 1 scope decision overlay foundation**. **For current R17D resume, read §6BI** — R17D Phase 2 at **`f5712ff`**. **Working tree:** clean after code commit `43c83a2`. **Migration apply status at Phase 1 docs checkpoint:** committed to repo only; **superseded by §6BI** — migration **appears applied** on configured project `rhquhnujjnzjhweypavd`.
 
 ### 1. Executive verdict
 
@@ -6790,7 +6794,7 @@ Roofr **Edit Option** workflow (research): add/remove catalog lines per proposal
 
 | Artifact | Path |
 |----------|------|
-| Migration (committed only) | `supabase/migrations/20260618_009_create_proposal_option_scope_decisions.sql` |
+| Migration | `supabase/migrations/20260618_009_create_proposal_option_scope_decisions.sql` — **appears applied** on configured project per §6BI |
 | Types | `app/lib/proposalScopeDecisionTypes.ts` |
 | Pure merge | `app/lib/proposalScopeDecisionMerge.ts` |
 | Merge tests | `app/lib/proposalScopeDecisionMerge.test.ts` |
@@ -6829,7 +6833,7 @@ Roofr **Edit Option** workflow (research): add/remove catalog lines per proposal
 
 **RLS:** company_memberships pattern matching `proposal_line_items`. **No public policies.**
 
-**Apply status:** migration **committed to repo only** — **SQL not run/applied manually** at time of this checkpoint.
+**Apply status (historical at Phase 1 docs checkpoint):** migration **committed to repo only**. **Current status (§6BI):** migration **appears applied** manually in Supabase SQL Editor on configured project **`rhquhnujjnzjhweypavd`** (dashboard label: **Production**); verification query returned constraints/indexes/policies for `proposal_option_scope_decisions`. **Not a separate DEV target.**
 
 ### 6. Store / API foundation
 
@@ -6885,13 +6889,13 @@ Roofr **Edit Option** workflow (research): add/remove catalog lines per proposal
 - **No public route** · **No PDF** · **No Send / Sign / Payment / lifecycle work**
 - **No pricing engine math changes** · **No snapshot builder math changes**
 - **No R13/R14/R15 semantic changes** · **No package files**
-- Migration committed but **not applied manually**
+- Migration **appears applied** on configured project per §6BI (supersedes Phase 1 “committed only” note)
 
 ### 10. Known follow-ups
 
 | Follow-up | Stage |
 |-----------|-------|
-| **R17D Phase 2** — first real Edit Option action: **manual quantity UI/API** | **Recommended next** |
+| **R17D Phase 2** — first real Edit Option action: **manual quantity UI/API** | **Complete (code only)** at `f5712ff` (§6BI); **browser audit pending** |
 | **R17D Phase 3** — exclude / not_applicable | Not started |
 | **R17D Phase 4** — hide from customer | Not started |
 | **R17D later phases** — move to upgrade, add catalog/custom, quantity source mapping | Not started |
@@ -6908,34 +6912,173 @@ Roofr **Edit Option** workflow (research): add/remove catalog lines per proposal
 - **R18 should own public/tokenized customer access** when implemented.
 - **Do not reuse RoofingClient PDF or `estimateStore`.**
 
+### 12. Next-stage guidance (historical — superseded by §6BI)
+
+**Superseded.** R17D Phase 1 is complete at `43c83a2` (§6BH); R17D Phase 2 code is complete at `f5712ff` (§6BI). See §6BI for current next-stage guidance.
+
+---
+
+## 6BI. R17D PHASE 2 MANUAL QUANTITY UI/API CODE CHECKPOINT
+
+**Status:** **Complete (R17D Phase 2 code).** **Code checkpoint:** **`f5712ff` — feat(proposals): enable manual quantity scope decisions in R17D**. **Docs checkpoint:** **pending this commit** (prior: **`9b66bf4`** — docs: checkpoint after R17D Phase 1 scope decision overlay foundation). **Working tree:** clean after code commit `f5712ff`; doc-only WIP for this checkpoint. **Browser audit:** **not completed** — Playwright auth expired; manual quantity smoke not run. **Migration:** `20260618_009_create_proposal_option_scope_decisions.sql` **appears applied** to the currently configured Supabase project **`rhquhnujjnzjhweypavd`** (Supabase dashboard label: **Production**; manual SQL Editor apply; verification query returned constraints/indexes/policies). **This was not a separate DEV target — no separate DEV Supabase target is configured.**
+
+### 1. Executive verdict
+
+- **R17D Phase 2 code and tests complete and stable.**
+- **First real Edit Option action enabled:** **`manual_quantity` only.**
+- Uses **R17D Phase 1 scope decision overlay** (`43c83a2`, §6BH) — not direct line-item patching.
+- **Browser smoke not completed** — do **not** claim browser audit passed.
+- **Other Edit Option actions remain disabled** (Remove, Mark N/A, Hide, Add catalog/custom, Move upgrade, Quantity source).
+- **R18 Send / public route / PDF / Sign / Payment / lifecycle remain blocked.**
+
+### 2. R17D Phase 2 purpose
+
+- Enables the first real Edit Option action: **`manual_quantity`**.
+- Persists contractor intent as a **`manual_quantity`** row in `proposal_option_scope_decisions`.
+- Save path: **`upsertDraftScopeDecision` → `refreshDraftPricing` → refreshed `persistedGraph` / workbench render**.
+- **`proposal_line_items` remain derived snapshot output** — rebuilt through refresh, never patched as decision truth.
+- **Templates are not mutated** for job-specific scope.
+
+### 3. R17D Phase 2 code artifacts
+
+| Artifact | Path |
+|----------|------|
+| Action helper | `app/lib/proposalScopeDecisionActions.ts` |
+| Action tests | `app/lib/proposalScopeDecisionActions.test.ts` |
+| Builder client handler | `app/tools/roofing/proposals/builder/ProposalBuilderClient.tsx` |
+| Canvas props | `app/tools/roofing/proposals/builder/ProposalBuilderCanvas.tsx` |
+| Workbench document / drawer wiring | `app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchEstimateDocument.tsx` |
+| Edit Option drawer quantity section | `app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchEditOptionShell.tsx` |
+| Scope Review Set quantity chip | `app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchAttentionZone.tsx` |
+| Package zone tooltip copy | `app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchPackageZone.tsx` |
+| Workbench constants / copy tokens | `app/tools/roofing/proposals/builder/proposalBuilderConstants.ts` |
+| Presenter test update | `app/lib/proposalBuilderWorkbenchEstimatePresenter.test.ts` |
+| Store integration test update | `app/lib/proposalRecordStore.test.ts` |
+
+**Not changed in Phase 2 code commit:** docs, package files, migrations, pricing engine, snapshot builder, Preview UI, public route, PDF, Send, Sign, Payment, lifecycle.
+
+### 4. UI behavior
+
+| Surface | Behavior |
+|---------|----------|
+| **Scope Review “Set quantity” chip** | Enabled on `needs_quantity` rows when persisted draft path (`?proposal=`) is active |
+| **Chip / row click** | Opens existing Edit Option drawer **focused on that line** |
+| **Edit Option drawer — quantity section** | **Live:** line picker (multi-line), focused line name, decimal numeric input, unit suffix, inline validation, Save/Cancel footer, loading state |
+| **Package/header “Edit option”** | Opens drawer in general workflow mode (first scope-review line pre-selected when applicable) |
+| **Other drawer sections** | Disabled with honest coming-soon copy |
+| **After save** | Drawer closes only after successful persisted decision + refresh; workbench updates from refreshed `persistedGraph` — **no fake local row movement** |
+
+### 5. Other Edit Option actions still disabled
+
+- Remove
+- Mark N/A
+- Hide from customer
+- Add catalog
+- Add custom
+- Move upgrade
+- Quantity source mapping
+
+### 6. Store / action flow
+
+| Step | Detail |
+|------|--------|
+| Helper | `applyManualQuantityScopeDecision` |
+| Validation | Finite; `>= 0`; decimals allowed; empty string rejected |
+| Persist | Upserts `decision_type: "manual_quantity"` via `upsertDraftScopeDecision` |
+| Refresh | Calls `refreshDraftPricing`; returns updated graph |
+| Client | `ProposalBuilderClient.handleApplyManualQuantity` resolves runtime `proposal_option_id` from selected template option via persisted graph option rows |
+| Gating | Persisted draft path only — not enabled on unsaved/non-persisted proposal path |
+| Context | Reuses existing refresh context / measurement quantity context from `handleRefreshDraftPricing` |
+| Feedback | Success uses existing refresh banner pattern; errors surface in drawer |
+
+### 7. Automated validation (pre-commit)
+
+| Check | Result |
+|-------|--------|
+| `proposalScopeDecisionActions.test.ts` | Added — validation + reject paths |
+| `proposalRecordStore.test.ts` | Updated — `applyManualQuantityScopeDecision` integration (decimal, upsert+refresh, second update) |
+| `proposalBuilderWorkbenchEstimatePresenter.test.ts` | Updated — resolved snapshot qty moves line from scope review → ready scope |
+| Full `app/lib/proposal*.test.ts` batch | **547/547** pass |
+
+**Confirmed in tests:**
+
+- Manual quantity action helper validates and rejects invalid input
+- Decimal quantity allowed
+- Upsert + refresh flow tested in order
+- Second update/refresh preserves manual quantity
+- Presenter classification tested for resolved snapshot → ready scope
+- No `proposal_line_items` direct update ops used as decision truth
+
+### 8. Browser audit status — **NOT COMPLETED**
+
+**Do not claim browser smoke passed.**
+
+| Blocker | Detail |
+|---------|--------|
+| **Playwright auth expired** | `C:\Users\sabre\.cursor\fielddive-playwright-auth.json` session expired |
+| **Manual quantity smoke not run** | Set quantity → drawer → save → refresh → hard refresh → Preview regression **not completed** |
+| **DB environment warning** | Migration applied to configured project **`rhquhnujjnzjhweypavd`**, which Supabase dashboard labels **Production** — **not a separate DEV target** |
+| **No separate DEV target** | No second Supabase URL / DB credentials configured in repo or env — **follow-up:** create/configure true DEV Supabase for future migration testing |
+
+**Migration status (accurate):** `20260618_009` **appears applied** on `rhquhnujjnzjhweypavd` — do **not** claim migration remains unapplied or that a dev-only migration was performed.
+
+**Stamped draft for browser smoke (when auth refreshed):**
+
+- Builder: `job=f5a7d4ab-8758-48e1-848c-e7e4fa7895cb`, `proposal=f3a12198-fc90-4d7d-8079-f0d15b47a2b7`
+- Auth: `C:\Users\sabre\.cursor\fielddive-playwright-auth.json` (not `C:\Users\sabre.cursor\...` typo path)
+
+### 9. Source-of-truth unchanged (R17D Phase 2 code commit)
+
+- **No docs/package/migration changes** in Phase 2 code commit
+- **No pricing engine math changes** · **No snapshot builder math changes**
+- **No Preview UI changes** · **No public route** · **No PDF**
+- **No Send / Sign / Payment / lifecycle work**
+- Migration `20260618_009` **appears applied** on configured project `rhquhnujjnzjhweypavd` (Production-labeled; not a separate DEV target)
+
+### 10. Known follow-ups
+
+| Follow-up | Stage |
+|-----------|-------|
+| **Playwright auth refresh + manual quantity browser smoke** | **Immediate next** — against current approved target or future DEV target |
+| **Configure true DEV Supabase target** | **DB environment follow-up** — for future migration testing (current apply was on Production-labeled configured project) |
+| **R17D Phase 2.5** — clear/reset manual quantity | Not started |
+| **R17D Phase 3** — exclude / not_applicable | Not started |
+| **R17D Phase 4** — hide from customer | Not started |
+| **R17D later phases** — move to upgrade, add catalog/custom, quantity source mapping | Not started |
+| **R17C3** | Document typography still pending |
+| **R17C4** | Estimate display policy consumer likely pending before R18 |
+| **R18** | Send/public/PDF/Sign/Payment/lifecycle **blocked** |
+
+### 11. R18 guardrails (unchanged)
+
+- **Do not start R18 Send planning or implementation** until scope decisions are stable, browser smoke passes, and presentation alignment (R17C3/R17C4) is explicitly resolved.
+- **Do not enable additional Edit Option actions** without using the R17D overlay.
+- **R18 should own public/tokenized customer access** when implemented.
+- **Do not reuse RoofingClient PDF or `estimateStore`.**
+
 ### 12. Next-stage guidance (after this docs checkpoint)
 
-**Do not start R18 Send planning, R18 implementation, §6AL R16 Proposals hub, PDF, or lifecycle enablement automatically.**
+**Do not start new R17D product feature work, R18 Send planning, R18 implementation, §6AL R16 Proposals hub, PDF, or lifecycle enablement automatically.**
 
-**Recommended product path (best long-term correctness):**
+**Immediate next (in order):**
 
-1. **R17D Phase 2** — manual quantity UI/API, using the proven overlay (**recommended next**)
-2. **R17D Phase 3** — exclude / not_applicable
-3. **R17D Phase 4** — hide from customer
-4. **R17D later phases** — move to upgrade, add catalog/custom, quantity source mapping
-5. **R17C3 / R17C4** — scoped visual/document follow-ups (user may choose R17C3 before Phase 2 if preferred)
-6. **R18** — only after scope decisions are stable
+1. **Refresh Playwright auth** (`C:\Users\sabre\.cursor\fielddive-playwright-auth.json`)
+2. **Run manual quantity browser smoke** — stamped draft on current approved target (`rhquhnujjnzjhweypavd`) or future DEV target once configured
+3. **Then** decide **R17D Phase 2.5** (reset/clear) **or R17D Phase 3** (exclude/N/A) **or R17C3** typography
 
-**Immediate decision after this docs checkpoint:**
+**DB environment follow-up (not blocking browser smoke on current target):**
 
-| Option | Focus |
-|--------|--------|
-| **R17D Phase 2** | Manual quantity UI/API — **recommended product path** |
-| **R17C3** | Cover / Project Overview / document typography rhythm |
+- Create/configure a **true DEV Supabase target** for future migration testing
+- Record that migration `20260618_009` was applied to the **Production-labeled configured project**, not a separate DEV project
 
 **Continue preserving:**
 
-- R17D Phase 1 overlay + merge-on-refresh contract (`43c83a2`)
+- R17D Phase 1 overlay + merge-on-refresh contract (`43c83a2`, §6BH)
+- R17D Phase 2 manual quantity code (`f5712ff`, §6BI)
 - R17C2 workbench zones + scope review semantics (`3e65774`, §6BG)
 - R17C1 document presentation layer (`9c2244a`, §6BF)
 - Send / Sign / Payment / PDF / public customer sharing **disabled**
 - Preview Estimate **must not** re-import Builder workbench UI
-- Edit Option shell **must remain gated** until Phase 2 wires first action
 - Pricing trust + snapshot safety
 
 ---
@@ -7084,24 +7227,25 @@ Then open and read **in this file** (in order):
 26. **§6BD** — R16C final whole-Builder audit before R17 planning (historical context; superseded by §6BE / §6BF / §6BG for current resume)
 27. **§6BE** — R17A/R17B customer Preview foundation (historical foundation; superseded by §6BF for current Preview Estimate resume)
 28. **§6BF** — R17C1 Preview Estimate document presentation layer (historical Preview foundation; superseded by §6BG for current Builder Estimate resume)
-29. **§6BG** — R17C2 Builder Estimate workbench hierarchy (historical Builder workbench context; superseded by §6BH for Edit Option / scope decision backend resume)
-30. **§6BH** — R17D Phase 1 scope decision overlay foundation (read before R17D Phase 2 manual quantity UI/API, R17C3 document typography polish, Edit Option action wiring, or R18 Send planning)
-31. **§3 Builder-specific rule + Roofr-aligned product principle** — no-drift rules; **Playwright MCP test-only guardrail**
-32. **§6AD** — DB-first foundation Phases A–D
-33. **§6AE** — 3J3E option persistence + quantity resolver coverage
-34. **§6AF** — pricing trust hardening
-35. **§9** — required first prompt / resume instructions (this section)
-36. **§11** — roadmap buckets (TODAY / NEXT / LATER / DO NOT DO YET), current checkpoint, built-surface audit, manual smoke; **§11 — Future / Later bucket → Proposal Builder**
+29. **§6BG** — R17C2 Builder Estimate workbench hierarchy (historical Builder workbench context; superseded by §6BI for current Edit Option / scope decision resume)
+30. **§6BH** — R17D Phase 1 scope decision overlay foundation (historical Phase 1 backend; superseded by §6BI for current R17D resume)
+31. **§6BI** — R17D Phase 2 manual quantity UI/API code checkpoint (read before browser smoke, R17D Phase 2.5/Phase 3, R17C3 typography polish, or R18 Send planning)
+32. **§3 Builder-specific rule + Roofr-aligned product principle** — no-drift rules; **Playwright MCP test-only guardrail**
+33. **§6AD** — DB-first foundation Phases A–D
+34. **§6AE** — 3J3E option persistence + quantity resolver coverage
+35. **§6AF** — pricing trust hardening
+36. **§9** — required first prompt / resume instructions (this section)
+37. **§11** — roadmap buckets (TODAY / NEXT / LATER / DO NOT DO YET), current checkpoint, built-surface audit, manual smoke; **§11 — Future / Later bucket → Proposal Builder**
 
-**Verify HEAD** is **`43c83a2`** or newer (R17D Phase 1 complete); if newer, reconcile this doc.
+**Verify HEAD** is **`f5712ff`** or newer (R17D Phase 2 code complete); if newer, reconcile this doc.
 
-**Latest docs checkpoint:** **pending this commit** (prior: **`ccbd30d`** — docs: checkpoint after R17C2 Builder estimate workbench).
+**Latest docs checkpoint:** **pending this commit** (prior: **`9b66bf4`** — docs: checkpoint after R17D Phase 1 scope decision overlay foundation).
 
-**Next action:** **R17D Phase 2 manual quantity UI/API planning/implementation** (recommended product path) **unless user chooses R17C3 document typography first** — **do not start R18 Send planning, R18 implementation, Send / Sign / Payment / PDF / public customer route / lifecycle enablement / §6AL R16 hub** until scope decisions and presentation alignment are explicitly scoped.
+**Next action (mandatory first resume step):** **Playwright auth refresh → manual quantity browser smoke** — **do not start new R17D feature work, R18 Send planning, R18 implementation, Send / Sign / Payment / PDF / public customer route / lifecycle enablement / §6AL R16 hub** until browser smoke passes or user explicitly scopes otherwise. **DB follow-up:** configure true DEV Supabase for future migration testing (migration `20260618_009` appears applied on Production-labeled configured project `rhquhnujjnzjhweypavd`).
 
 **Confirm** working tree is clean (or note doc-only WIP).
 
-**Whole-app Roofr-aligned audit passed** (2026-06-18, §6AZ) + **R16B validation passed** (§6AY) + **R16C1 browser audit passed** (§6BA) + **R16C2 pre-commit audit passed** (§6BB) + **R16C3 pre-commit audit passed** (§6BC) + **R16C final whole-Builder audit passed** (§6BD) + **R17A/R17B pre-commit audit passed** (§6BE) + **R17C1 pre-commit audit passed** (§6BF) + **R17C2 pre-commit audit passed** (§6BG) + **R17D Phase 1 pre-commit validation passed** (§6BH). **R0–R15** complete/satisfied; **R16A** at `18cebca` (§6AX); **R16B** at `589f5a0` (§6AY); **R16C1** at `967f0de` (§6BA); **R16C2** at `0cf76d2` (§6BB); **R16C3** at `25f1375` (§6BC); **R17A/R17B** at `8ac2bcb` (§6BE); **R17C1** at `9c2244a` (§6BF); **R17C2** at `3e65774` (§6BG); **R17D Phase 1** at `43c83a2` (§6BH). **Code:** `43c83a2`. **Next:** **R17D Phase 2 manual quantity UI/API** or **R17C3 typography** — **do not auto-start R18 Send planning, R18 implementation, Preview/PDF/lifecycle expansion, or §6AL R16 hub**; **Edit Option shell must remain gated** until Phase 2 wires first action. **Header Preview enabled** for saved drafts; **Send / Sign / Payment / PDF / public customer sharing remain disabled**. **Mandatory order:** **§6AL** + **§6AM** + **§6AN** + **§6AO** + **§6AP** + **§6AQ** + **§6AR** + **§6AS** + **§6AT** + **§6AU** + **§6AV** + **§6AW** + **§6AX** + **§6AY** + **§6AZ** + **§6BA** + **§6BB** + **§6BC** + **§6BD** + **§6BE** + **§6BF** + **§6BG** + **§6BH**. **Do not** return to `loadSaved`/`currentSaved` as main workflow.
+**Whole-app Roofr-aligned audit passed** (2026-06-18, §6AZ) + **R16B validation passed** (§6AY) + **R16C1 browser audit passed** (§6BA) + **R16C2 pre-commit audit passed** (§6BB) + **R16C3 pre-commit audit passed** (§6BC) + **R16C final whole-Builder audit passed** (§6BD) + **R17A/R17B pre-commit audit passed** (§6BE) + **R17C1 pre-commit audit passed** (§6BF) + **R17C2 pre-commit audit passed** (§6BG) + **R17D Phase 1 pre-commit validation passed** (§6BH) + **R17D Phase 2 automated tests passed** (§6BI). **R17D Phase 2 browser audit:** **pending** (§6BI). **R0–R15** complete/satisfied; **R16A** at `18cebca` (§6AX); **R16B** at `589f5a0` (§6AY); **R16C1** at `967f0de` (§6BA); **R16C2** at `0cf76d2` (§6BB); **R16C3** at `25f1375` (§6BC); **R17A/R17B** at `8ac2bcb` (§6BE); **R17C1** at `9c2244a` (§6BF); **R17C2** at `3e65774` (§6BG); **R17D Phase 1** at `43c83a2` (§6BH); **R17D Phase 2** at `f5712ff` (§6BI). **Code:** `f5712ff`. **Next:** **Playwright auth refresh + manual quantity browser smoke** — then **R17D Phase 2.5 / Phase 3 / R17C3** — **do not auto-start R18**. **Migration `20260618_009` appears applied** on configured project `rhquhnujjnzjhweypavd` (Production-labeled; not separate DEV). **Header Preview enabled** for saved drafts; **Send / Sign / Payment / PDF / public customer sharing remain disabled**. **Mandatory order:** **§6AL** + **§6AM** + **§6AN** + **§6AO** + **§6AP** + **§6AQ** + **§6AR** + **§6AS** + **§6AT** + **§6AU** + **§6AV** + **§6AW** + **§6AX** + **§6AY** + **§6AZ** + **§6BA** + **§6BB** + **§6BC** + **§6BD** + **§6BE** + **§6BF** + **§6BG** + **§6BH** + **§6BI**. **Do not** return to `loadSaved`/`currentSaved` as main workflow.
 
 Inspect before planning **3F9** (or chosen stage):
 
@@ -8087,7 +8231,8 @@ Treat as **drift** if a session:
 
 ## Changelog (handoff doc only)
 
-- **2026-06-18:** **Post-R17C2 Builder Estimate workbench docs checkpoint** (this commit) — §6BG + header + §9; zoned Builder Estimate workbench UI; scope review / hard blocker split; gated Edit Option shell; **529/529** automated tests; desktop + 390px authenticated browser audit + Preview regression; working tree clean after code commit `3e65774`; **next: decide R17D vs R17C3** before R18 Send planning; **no R18 implementation** until explicitly approved.
+- **2026-06-20:** **Post-R17D Phase 2 manual quantity code checkpoint docs WIP** (this commit) — §6BI + header + §9; R17D Phase 2 code at `f5712ff`; **`manual_quantity` Edit Option action wired**; **547/547** automated tests; migration `20260618_009` **appears applied** on configured Supabase project `rhquhnujjnzjhweypavd` (Production-labeled; not separate DEV); **browser audit pending** (Playwright auth expired; manual quantity smoke not run); working tree clean after code commit `f5712ff`; **next: auth refresh → browser smoke**; **DB follow-up:** configure true DEV Supabase for future migration testing; **no R18 implementation** until explicitly approved.
+- **2026-06-18:** **Post-R17D Phase 1 scope decision overlay foundation docs checkpoint** (`9b66bf4`) — §6BH + header + §9; scope decision overlay + merge-on-refresh; **`manual_quantity` proven in tests**; migration committed only; **541/541** tests; **next: R17D Phase 2 manual quantity UI/API**.
 - **2026-06-18:** **R17C2 complete** — Builder Estimate workbench hierarchy (`3e65774` Phase 2 UI + `3c04322` Phase 1 presenter); §6BG.
 - **2026-05-31:** Initial global handoff after Stage 3F6B (`a62addb`).
 - **2026-05-31:** Updated after Stage 3F7A (`6b37370`) — read-only installed catalog list in admin; next: 3F7B.
