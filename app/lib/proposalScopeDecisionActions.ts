@@ -1,0 +1,123 @@
+/**
+ * R17D Phase 2 — orchestrated scope decision actions (upsert + trusted refresh).
+ */
+
+import type { ProposalQuantityPreviewContext } from "@/app/lib/proposalBuilderPreview";
+import {
+  refreshDraftPricing,
+  type ProposalDraftGraph,
+  type ProposalRecordStoreDeps,
+} from "@/app/lib/proposalRecordStore";
+import {
+  upsertDraftScopeDecision,
+  type ProposalScopeDecisionStoreDeps,
+} from "@/app/lib/proposalScopeDecisionStore";
+import type { ProposalScopeDecision } from "@/app/lib/proposalScopeDecisionTypes";
+
+export class ProposalScopeDecisionActionError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ProposalScopeDecisionActionError";
+  }
+}
+
+export type ManualQuantityValidationResult =
+  | { ok: true; quantity: number }
+  | { ok: false; message: string };
+
+export function validateManualQuantityInput(value: unknown): ManualQuantityValidationResult {
+  if (typeof value === "string" && value.trim().length === 0) {
+    return { ok: false, message: "Enter a valid quantity." };
+  }
+
+  const parsed =
+    typeof value === "number"
+      ? value
+      : typeof value === "string"
+        ? Number(value.trim())
+        : Number.NaN;
+
+  if (!Number.isFinite(parsed)) {
+    return { ok: false, message: "Enter a valid quantity." };
+  }
+  if (parsed < 0) {
+    return { ok: false, message: "Quantity cannot be negative." };
+  }
+  return { ok: true, quantity: parsed };
+}
+
+export type ManualQuantityRefreshContext = {
+  quantity_context: ProposalQuantityPreviewContext | null;
+  measurement_record_id?: string | null;
+  measurement_quantities_display?: string | null;
+};
+
+export type ApplyManualQuantityScopeDecisionInput = {
+  companyId: string;
+  proposalId: string;
+  runtimeProposalOptionId: string;
+  sourceTemplateItemId: string;
+  quantity: unknown;
+  refreshContext: ManualQuantityRefreshContext;
+  quantityDisplayLabel?: string | null;
+  actorUserId?: string | null;
+};
+
+export type ApplyManualQuantityScopeDecisionResult = {
+  decision: ProposalScopeDecision;
+  graph: ProposalDraftGraph;
+};
+
+export type ProposalScopeDecisionActionDeps = ProposalScopeDecisionStoreDeps &
+  ProposalRecordStoreDeps;
+
+export async function applyManualQuantityScopeDecision(
+  input: ApplyManualQuantityScopeDecisionInput,
+  deps?: ProposalScopeDecisionActionDeps
+): Promise<ApplyManualQuantityScopeDecisionResult> {
+  const validation = validateManualQuantityInput(input.quantity);
+  if (!validation.ok) {
+    throw new ProposalScopeDecisionActionError(validation.message);
+  }
+
+  const companyId = (input.companyId ?? "").trim();
+  const proposalId = (input.proposalId ?? "").trim();
+  const runtimeProposalOptionId = (input.runtimeProposalOptionId ?? "").trim();
+  const sourceTemplateItemId = (input.sourceTemplateItemId ?? "").trim();
+
+  if (!companyId || !proposalId || !runtimeProposalOptionId || !sourceTemplateItemId) {
+    throw new ProposalScopeDecisionActionError(
+      "companyId, proposalId, runtimeProposalOptionId, and sourceTemplateItemId are required."
+    );
+  }
+
+  const payload: { quantity: number; quantity_display_label?: string | null } = {
+    quantity: validation.quantity,
+  };
+  const displayLabel = (input.quantityDisplayLabel ?? "").trim();
+  if (displayLabel) {
+    payload.quantity_display_label = displayLabel;
+  }
+
+  const decision = await upsertDraftScopeDecision(
+    {
+      company_id: companyId,
+      proposal_id: proposalId,
+      proposal_option_id: runtimeProposalOptionId,
+      decision_type: "manual_quantity",
+      source_template_item_id: sourceTemplateItemId,
+      payload,
+      actor_user_id: input.actorUserId ?? null,
+    },
+    deps
+  );
+
+  const graph = await refreshDraftPricing(companyId, proposalId, input.refreshContext, deps);
+  if (!graph) {
+    throw new ProposalScopeDecisionActionError(
+      "Scope decision saved but draft pricing could not be refreshed."
+    );
+  }
+
+  return { decision, graph };
+}

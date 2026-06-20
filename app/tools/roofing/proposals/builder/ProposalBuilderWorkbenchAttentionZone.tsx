@@ -8,6 +8,7 @@ import {
   WORKBENCH_ATTENTION_ZONE,
   WORKBENCH_ATTENTION_ZONE_HEADER,
   WORKBENCH_EDIT_OPTION_CHIP_HINT,
+  WORKBENCH_EDIT_OPTION_CHIP_ENABLED,
   WORKBENCH_EDIT_OPTION_TITLE,
   WORKBENCH_EDIT_OPTION_TRIGGER_SECONDARY,
   WORKBENCH_FUTURE_ACTION_CHIP,
@@ -26,6 +27,8 @@ import ProposalBuilderWorkbenchLineRow from "./ProposalBuilderWorkbenchLineRow";
 type ProposalBuilderWorkbenchAttentionZoneProps = {
   zone: WorkbenchNeedsAttentionZone;
   onOpenEditOption: () => void;
+  onSetQuantityForLine?: (templateItemId: string) => void;
+  manualQuantityEnabled?: boolean;
 };
 
 function HardBlockersSection({ zone }: { zone: WorkbenchNeedsAttentionZone["hardBlockers"] }) {
@@ -72,9 +75,13 @@ function HardBlockersSection({ zone }: { zone: WorkbenchNeedsAttentionZone["hard
 function ScopeReviewSection({
   zone,
   onOpenEditOption,
+  onSetQuantityForLine,
+  manualQuantityEnabled = false,
 }: {
   zone: WorkbenchNeedsAttentionZone["scopeReview"];
   onOpenEditOption: () => void;
+  onSetQuantityForLine?: (templateItemId: string) => void;
+  manualQuantityEnabled?: boolean;
 }) {
   if (!zone.show) return null;
 
@@ -101,7 +108,7 @@ function ScopeReviewSection({
               type="button"
               onClick={onOpenEditOption}
               className={WORKBENCH_EDIT_OPTION_TRIGGER_SECONDARY}
-              title="Open Edit option — scope editing coming soon"
+              title="Open Edit option — set manual quantity for scope review lines"
             >
               {WORKBENCH_EDIT_OPTION_TITLE}
             </button>
@@ -121,18 +128,44 @@ function ScopeReviewSection({
                 <div className="min-w-0 flex-1">
                   <ProposalBuilderWorkbenchLineRow variant="scope_review" line={line} compact />
                   <div className="mt-2 flex flex-wrap gap-1.5">
-                    {WORKBENCH_SCOPE_REVIEW_FUTURE_ACTIONS.map((action) => (
-                      <button
-                        key={action.id}
-                        type="button"
-                        disabled
-                        aria-disabled="true"
-                        className={WORKBENCH_FUTURE_ACTION_CHIP}
-                        title={WORKBENCH_EDIT_OPTION_CHIP_HINT}
-                      >
-                        {action.label}
-                      </button>
-                    ))}
+                    {WORKBENCH_SCOPE_REVIEW_FUTURE_ACTIONS.map((action) => {
+                      const isSetQuantity = action.id === "set_quantity";
+                      const canSetQuantity =
+                        isSetQuantity &&
+                        manualQuantityEnabled &&
+                        line.reasons.includes("needs_quantity") &&
+                        Boolean(onSetQuantityForLine);
+
+                      if (canSetQuantity) {
+                        return (
+                          <button
+                            key={action.id}
+                            type="button"
+                            className={WORKBENCH_EDIT_OPTION_CHIP_ENABLED}
+                            onClick={() => onSetQuantityForLine!(line.templateItemId)}
+                          >
+                            {action.label}
+                          </button>
+                        );
+                      }
+
+                      return (
+                        <button
+                          key={action.id}
+                          type="button"
+                          disabled
+                          aria-disabled="true"
+                          className={WORKBENCH_FUTURE_ACTION_CHIP}
+                          title={
+                            isSetQuantity && manualQuantityEnabled
+                              ? WORKBENCH_EDIT_OPTION_CHIP_HINT
+                              : "Coming soon — not enabled in this phase"
+                          }
+                        >
+                          {action.label}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
@@ -147,13 +180,20 @@ function ScopeReviewSection({
 export default function ProposalBuilderWorkbenchAttentionZone({
   zone,
   onOpenEditOption,
+  onSetQuantityForLine,
+  manualQuantityEnabled = false,
 }: ProposalBuilderWorkbenchAttentionZoneProps) {
   if (!zone.show) return null;
 
   return (
     <div className="space-y-4">
       <HardBlockersSection zone={zone.hardBlockers} />
-      <ScopeReviewSection zone={zone.scopeReview} onOpenEditOption={onOpenEditOption} />
+      <ScopeReviewSection
+        zone={zone.scopeReview}
+        onOpenEditOption={onOpenEditOption}
+        onSetQuantityForLine={onSetQuantityForLine}
+        manualQuantityEnabled={manualQuantityEnabled}
+      />
     </div>
   );
 }

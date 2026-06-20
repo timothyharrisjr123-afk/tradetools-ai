@@ -1775,6 +1775,66 @@ describe("updateDraftProposalPageContent", () => {
     );
     assert.equal(lineUpdateOps.length, 0, "scope decisions must not patch proposal_line_items directly");
   });
+
+  test("R17D Phase 2: applyManualQuantityScopeDecision upserts then refreshes graph", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const ctx = contextWithSquares(22);
+    const created = await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+        quantity_context: ctx,
+      },
+      deps
+    );
+
+    const runtimeOption = mock.state.tables.proposal_options[0] as Record<string, unknown>;
+    const templateItemId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+
+    const { applyManualQuantityScopeDecision } = await import("./proposalScopeDecisionActions");
+
+    const { graph } = await applyManualQuantityScopeDecision(
+      {
+        companyId: COMPANY_ID,
+        proposalId: created.proposal.id,
+        runtimeProposalOptionId: runtimeOption.id as string,
+        sourceTemplateItemId: templateItemId,
+        quantity: 18.5,
+        quantityDisplayLabel: "18.5 square",
+        refreshContext: { quantity_context: ctx },
+      },
+      deps
+    );
+
+    assert.ok(graph);
+    assert.equal(mock.state.tables.proposal_option_scope_decisions.length, 1);
+    const line = mock.state.tables.proposal_line_items[0] as Record<string, unknown>;
+    assert.equal(Number(line.quantity), 18.5);
+
+    await applyManualQuantityScopeDecision(
+      {
+        companyId: COMPANY_ID,
+        proposalId: created.proposal.id,
+        runtimeProposalOptionId: runtimeOption.id as string,
+        sourceTemplateItemId: templateItemId,
+        quantity: 20,
+        quantityDisplayLabel: "20 square",
+        refreshContext: { quantity_context: ctx },
+      },
+      deps
+    );
+
+    assert.equal(mock.state.tables.proposal_option_scope_decisions.length, 1);
+    assert.equal(
+      (
+        (mock.state.tables.proposal_option_scope_decisions[0] as Record<string, unknown>)
+          .payload_json as { quantity: number; quantity_display_label?: string }
+      ).quantity,
+      20
+    );
+  });
 });
 
 describe("appendProposalEvent", () => {

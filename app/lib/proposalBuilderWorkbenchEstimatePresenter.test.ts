@@ -255,6 +255,37 @@ describe("buildProposalWorkbenchEstimatePresentation", () => {
     assert.equal(result.meta.hardBlockerLineCount, 0);
   });
 
+  test("resolved snapshot quantity moves line from scopeReview to readyScope", () => {
+    const scopeSection = section("sec-scope", "line_items", OPTION_STANDARD);
+    const templateGraph = graph(
+      [option(OPTION_STANDARD)],
+      [scopeSection],
+      [item({ id: "line-blocked", section_id: "sec-scope" })]
+    );
+
+    const result = buildProposalWorkbenchEstimatePresentation(
+      buildInput({
+        graph: templateGraph,
+        sections: [scopeSection],
+        snapshotQuantityByTemplateItemId: snapshotQty("line-blocked", "18 square"),
+        optionCustomerView: optionCustomerView(
+          {
+            "line-blocked": lineView("line-blocked", "priced", {
+              customerLinePriceCents: 18_000,
+            }),
+          },
+          { pricingComplete: true, customerSubtotalCents: 18_000, customerTotalCents: 19_440 }
+        ),
+      })
+    );
+
+    assert.equal(result.needsAttention.scopeReview.count, 0);
+    assert.equal(result.readyScope.sections[0]?.lines[0]?.templateItemId, "line-blocked");
+    assert.equal(result.readyScope.sections[0]?.lines[0]?.qtyLabel, "18 square");
+    assert.equal(result.meta.scopeReviewLineCount, 0);
+    assert.equal(result.meta.readyLineCount, 1);
+  });
+
   test("not_priced classified into hardBlockers", () => {
     const scopeSection = section("sec-scope", "line_items", OPTION_STANDARD);
     const templateGraph = graph(

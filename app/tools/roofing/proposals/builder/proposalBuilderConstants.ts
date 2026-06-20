@@ -861,6 +861,30 @@ export const WORKBENCH_EDIT_OPTION_FOOTER_COPY =
 export const WORKBENCH_EDIT_OPTION_CHIP_HINT =
   "Available in Edit option (coming soon)";
 
+export const WORKBENCH_EDIT_OPTION_CHIP_ENABLED =
+  "inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-800 transition-colors hover:bg-blue-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:opacity-60";
+
+export const WORKBENCH_EDIT_OPTION_CONTROL_ENABLED =
+  "mt-2.5 w-full rounded-md border border-slate-300 bg-white px-2.5 py-2 text-[13px] text-slate-900 shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400";
+
+export const WORKBENCH_EDIT_OPTION_SAVE_BTN =
+  "inline-flex items-center justify-center rounded-md border border-blue-600 bg-blue-600 px-3 py-2 text-[12px] font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:opacity-60";
+
+export const WORKBENCH_EDIT_OPTION_CANCEL_BTN =
+  "inline-flex items-center justify-center rounded-md border border-slate-200 bg-white px-3 py-2 text-[12px] font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:opacity-60";
+
+export const WORKBENCH_EDIT_OPTION_LINE_PICKER =
+  "w-full rounded-md border border-slate-200 bg-white px-2.5 py-2 text-left text-[12px] text-slate-800 transition-colors hover:border-blue-200 hover:bg-blue-50/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600";
+
+export const WORKBENCH_EDIT_OPTION_LINE_PICKER_ACTIVE =
+  "w-full rounded-md border border-blue-300 bg-blue-50/60 px-2.5 py-2 text-left text-[12px] font-semibold text-blue-900";
+
+export const WORKBENCH_EDIT_OPTION_INTRO_COPY_LIVE =
+  "Set manual quantities for scope review lines. Saved quantities persist through pricing refresh and appear on the customer proposal when priced.";
+
+export const WORKBENCH_EDIT_OPTION_FOOTER_COPY_LIVE =
+  "Manual quantity saves a scope decision and refreshes draft pricing. Other line actions are still coming soon.";
+
 /**
  * Format a whole-cents integer as a USD dollar string, e.g. "$1,234.56".
  * Customer-facing only — never pass internal cost/profit cents here.

@@ -52,7 +52,7 @@ export default function ProposalBuilderWorkbenchPackageZone({
               type="button"
               onClick={onOpenEditOption}
               className={WORKBENCH_EDIT_OPTION_TRIGGER_PRIMARY}
-              title="Open Edit option — scope editing coming soon"
+              title="Open Edit option — set manual quantity for scope review lines"
             >
               <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden />
               {WORKBENCH_EDIT_OPTION_TITLE}

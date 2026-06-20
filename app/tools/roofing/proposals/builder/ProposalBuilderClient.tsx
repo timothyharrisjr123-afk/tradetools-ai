@@ -35,6 +35,10 @@ import {
   validateProposalDraftGraphForJob,
 } from "@/app/lib/proposalDraftGraphAdapter";
 import {
+  applyManualQuantityScopeDecision,
+  ProposalScopeDecisionActionError,
+} from "@/app/lib/proposalScopeDecisionActions";
+import {
   getDraftGraph,
   ProposalRecordStoreError,
   refreshDraftPricing,
@@ -146,6 +150,10 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
   const pageEditSaveInFlightRef = useRef(false);
   const [pageVisibilityToggleInFlight, setPageVisibilityToggleInFlight] = useState(false);
   const [pageVisibilityToggleError, setPageVisibilityToggleError] = useState<string | null>(null);
+
+  const [manualQuantityInFlight, setManualQuantityInFlight] = useState(false);
+  const [manualQuantityError, setManualQuantityError] = useState<string | null>(null);
+  const manualQuantityInFlightRef = useRef(false);
   const pageVisibilityToggleInFlightRef = useRef(false);
 
   const loadJobContext = useCallback(async () => {
@@ -590,6 +598,92 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
     measurementQuantityMap,
     selectedMeasurementId,
   ]);
+
+  const handleApplyManualQuantity = useCallback(
+    async (
+      templateItemId: string,
+      quantity: string,
+      quantityDisplayLabel?: string | null
+    ) => {
+      if (!hasPersistedProposalParam || !persistedGraph || !proposalIdParam) {
+        throw new ProposalScopeDecisionActionError(
+          "Manual quantity requires a saved proposal draft."
+        );
+      }
+
+      const runtimeOptionId = resolveRuntimeOptionIdFromTemplateOptionId(
+        persistedGraph,
+        effectiveSelectedOptionId
+      );
+      if (!runtimeOptionId) {
+        throw new ProposalScopeDecisionActionError(
+          "Selected option is not available on this proposal draft."
+        );
+      }
+
+      if (manualQuantityInFlightRef.current) {
+        throw new ProposalScopeDecisionActionError("Manual quantity save already in progress.");
+      }
+
+      manualQuantityInFlightRef.current = true;
+      setManualQuantityInFlight(true);
+      setManualQuantityError(null);
+
+      const measurementDisplay = measurementHandoff
+        ? formatProposalQuantitiesDisplay(measurementHandoff.quantities)
+        : null;
+
+      try {
+        const { graph } = await applyManualQuantityScopeDecision({
+          companyId,
+          proposalId: proposalIdParam.trim(),
+          runtimeProposalOptionId: runtimeOptionId,
+          sourceTemplateItemId: templateItemId,
+          quantity,
+          quantityDisplayLabel,
+          refreshContext: {
+            quantity_context: {
+              measurementHandoff,
+              quantityMap: measurementQuantityMap,
+            },
+            measurement_record_id: selectedMeasurementId,
+            measurement_quantities_display:
+              measurementDisplay && measurementDisplay !== "—" ? measurementDisplay : null,
+          },
+        });
+
+        setPersistedGraph(graph);
+        setRefreshFeedback({
+          kind: "success",
+          message: "Manual quantity saved and draft pricing refreshed.",
+        });
+      } catch (err) {
+        const message =
+          err instanceof ProposalScopeDecisionActionError
+            ? err.message
+            : err instanceof ProposalRecordStoreError
+              ? err.message
+              : err instanceof Error
+                ? err.message
+                : "Could not save manual quantity.";
+        setManualQuantityError(message);
+        throw err;
+      } finally {
+        manualQuantityInFlightRef.current = false;
+        setManualQuantityInFlight(false);
+      }
+    },
+    [
+      companyId,
+      effectiveSelectedOptionId,
+      hasPersistedProposalParam,
+      measurementHandoff,
+      measurementQuantityMap,
+      persistedGraph,
+      proposalIdParam,
+      selectedMeasurementId,
+    ]
+  );
 
   const showStaleBanner = Boolean(adapterResult) && proposalPricingStale.stale;
 
@@ -1043,6 +1137,16 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
               pageEditSaveError={pageEditSaveError}
               onTogglePageVisibility={handleTogglePageVisibility}
               pageVisibilityToggleInFlight={pageVisibilityToggleInFlight}
+              persistedDraftEnabled={Boolean(
+                hasPersistedProposalParam && persistedGraph && !draftGraphError
+              )}
+              manualQuantityInFlight={manualQuantityInFlight}
+              manualQuantityError={manualQuantityError}
+              onApplyManualQuantity={
+                hasPersistedProposalParam && persistedGraph && !draftGraphError
+                  ? handleApplyManualQuantity
+                  : undefined
+              }
             />
           }
           summaryRail={
