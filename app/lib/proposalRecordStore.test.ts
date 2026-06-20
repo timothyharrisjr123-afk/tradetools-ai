@@ -245,6 +245,7 @@ function createMockSupabase(options?: {
       proposal_line_items: [],
       proposal_internal_summaries: [],
       proposal_events: [],
+      proposal_option_scope_decisions: [],
     },
     idSeq: 0,
   };
@@ -1683,6 +1684,96 @@ describe("updateDraftProposalPageContent", () => {
       (row.content_json as { body_markdown?: string }).body_markdown,
       "Persisted after refresh {{customer_name}}"
     );
+  });
+
+  test("R17D: zero scope decisions — refresh output unchanged vs baseline instantiate", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const ctx = contextWithSquares(22);
+    const created = await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+        quantity_context: ctx,
+      },
+      deps
+    );
+
+    const beforeLine = firstLineTotalForVersion(mock);
+    const beforeOptionTotal = optionTotalForVersion(mock);
+    const decisionCountBefore = mock.state.tables.proposal_option_scope_decisions.length;
+
+    await refreshDraftPricing(COMPANY_ID, created.proposal.id, { quantity_context: ctx }, deps);
+
+    const afterLine = firstLineTotalForVersion(mock);
+    const afterOptionTotal = optionTotalForVersion(mock);
+    assert.equal(afterLine.quantity, beforeLine.quantity);
+    assert.equal(afterLine.total, beforeLine.total);
+    assert.equal(afterOptionTotal, beforeOptionTotal);
+    assert.equal(mock.state.tables.proposal_option_scope_decisions.length, decisionCountBefore);
+  });
+
+  test("R17D: manual_quantity survives refresh and changes snapshot quantity/pricing", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const ctx = contextWithSquares(22);
+    const created = await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+        quantity_context: ctx,
+      },
+      deps
+    );
+
+    const runtimeOption = mock.state.tables.proposal_options[0] as Record<string, unknown>;
+    const templateItemId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+
+    const { upsertDraftScopeDecision } = await import("./proposalScopeDecisionStore");
+    await upsertDraftScopeDecision(
+      {
+        company_id: COMPANY_ID,
+        proposal_id: created.proposal.id,
+        proposal_option_id: runtimeOption.id as string,
+        decision_type: "manual_quantity",
+        source_template_item_id: templateItemId,
+        payload: { quantity: 18 },
+      },
+      deps
+    );
+
+    assert.equal(mock.state.tables.proposal_option_scope_decisions.length, 1);
+
+    await refreshDraftPricing(COMPANY_ID, created.proposal.id, { quantity_context: ctx }, deps);
+
+    assert.equal(mock.state.tables.proposal_option_scope_decisions.length, 1);
+    const decisionRow = mock.state.tables.proposal_option_scope_decisions[0] as Record<
+      string,
+      unknown
+    >;
+    assert.equal(decisionRow.active, true);
+    assert.equal((decisionRow.payload_json as { quantity: number }).quantity, 18);
+
+    const line = mock.state.tables.proposal_line_items[0] as Record<string, unknown>;
+    assert.equal(Number(line.quantity), 18);
+    assert.equal(line.quantity_source_label, "Manual");
+    assert.ok(Number(line.customer_line_total_cents) > 0);
+
+    const lineDeleteOps = mock.state.ops.filter(
+      (op) => op.table === "proposal_line_items" && op.action === "delete"
+    );
+    const lineInsertOps = mock.state.ops.filter(
+      (op) => op.table === "proposal_line_items" && op.action === "insert"
+    );
+    assert.ok(lineDeleteOps.length > 0);
+    assert.ok(lineInsertOps.length > 0);
+
+    const lineUpdateOps = mock.state.ops.filter(
+      (op) => op.table === "proposal_line_items" && op.action === "update"
+    );
+    assert.equal(lineUpdateOps.length, 0, "scope decisions must not patch proposal_line_items directly");
   });
 });
 

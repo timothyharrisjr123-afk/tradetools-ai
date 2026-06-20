@@ -60,6 +60,12 @@ import {
 } from "@/app/lib/proposalTemplateStore";
 import { resolveProposalLineQuantity } from "@/app/lib/proposalQuantityResolver";
 import {
+  buildDraftInstantiateInputWithScopeDecisions,
+  groupScopeDecisionsByTemplateOptionId,
+  hasAnyActiveScopeDecisions,
+} from "@/app/lib/proposalScopeDecisionMerge";
+import { getScopeDecisionsForDraftGraph } from "@/app/lib/proposalScopeDecisionStore";
+import {
   isEditableProposalPageType,
   mergeProposalPageBodyMarkdown,
 } from "@/app/lib/proposalPageContentEditing";
@@ -1363,20 +1369,57 @@ export async function refreshDraftPricing(
     actorRole,
   });
 
-  const instantiateInput = buildDraftInstantiateInputFromPreview({
-    companyId: cid,
-    graph,
-    catalogItems,
-    quantityContext,
-    preview,
-    policy,
-    pricingPolicyId: proposal.pricing_policy_id!,
-    context: {
-      job_id: proposal.job_id ?? "",
-      template_id: templateId,
-    },
-    selectedTemplateOptionId,
-  });
+  const scopeDecisionRows = await getScopeDecisionsForDraftGraph(cid, version.id, deps);
+  const { data: optionPointerRows } = await supabase
+    .from("proposal_options")
+    .select("id, source_template_option_id")
+    .eq("company_id", cid)
+    .eq("proposal_version_id", version.id);
+
+  const proposalOptionById = new Map(
+    (
+      (optionPointerRows ?? []) as Array<{
+        id: string;
+        source_template_option_id: string | null;
+      }>
+    ).map((row) => [row.id, row] as const)
+  );
+
+  const scopeDecisionsByTemplateOptionId = groupScopeDecisionsByTemplateOptionId(
+    scopeDecisionRows,
+    proposalOptionById
+  );
+
+  const instantiateInput = hasAnyActiveScopeDecisions(scopeDecisionsByTemplateOptionId)
+    ? buildDraftInstantiateInputWithScopeDecisions({
+        companyId: cid,
+        graph,
+        catalogItems,
+        quantityContext,
+        preview,
+        policy,
+        pricingPolicyId: proposal.pricing_policy_id!,
+        context: {
+          job_id: proposal.job_id ?? "",
+          template_id: templateId,
+        },
+        selectedTemplateOptionId,
+        scopeDecisionsByTemplateOptionId,
+      }).input
+    : buildDraftInstantiateInputFromPreview({
+        companyId: cid,
+        graph,
+        catalogItems,
+        quantityContext,
+        preview,
+        policy,
+        pricingPolicyId: proposal.pricing_policy_id!,
+        context: {
+          job_id: proposal.job_id ?? "",
+          template_id: templateId,
+        },
+        selectedTemplateOptionId,
+      });
 
   const payload = buildDraftInstantiatePayload(instantiateInput);
 
