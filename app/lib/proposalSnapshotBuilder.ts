@@ -228,6 +228,8 @@ export type LineItemSnapshotInput = {
   customer_line_total_cents?: number | null;
   engineStatus: LinePricingStatus;
   customerVisibility: CustomerVisibility;
+  /** Priced line hidden from customer document but still in option totals. */
+  hiddenButInCalc?: boolean;
   catalogItemMissing?: boolean;
   measurement_quantity_key?: string | null;
 };
@@ -569,7 +571,8 @@ export function buildLineItemSnapshots(
     const visible_to_customer =
       line.customerVisibility !== "internal_only" &&
       pricing_status !== "omitted" &&
-      line.engineStatus !== "hidden";
+      line.engineStatus !== "hidden" &&
+      line.hiddenButInCalc !== true;
 
     const quantityDisplay =
       (line.quantity_display_label ?? "").trim() ||

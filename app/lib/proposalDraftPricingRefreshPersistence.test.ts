@@ -10,6 +10,7 @@ import {
   buildDraftPricingRefreshGraphSnapshotFromTables,
   buildDraftPricingRefreshPersistPayload,
   DRAFT_PRICING_REFRESH_ATOMIC_TABLES,
+  isRefreshDraftPricingRpcEnabled,
   PERSIST_DRAFT_PRICING_REFRESH_RPC_V1,
   persistDraftPricingRefreshSequential,
   persistDraftPricingRefreshViaRpc,
@@ -134,6 +135,52 @@ function minimalInstantiateInput(): DraftInstantiateInput {
   };
 }
 
+describe("isRefreshDraftPricingRpcEnabled env gate", { concurrency: 1 }, () => {
+  const originalUse = process.env.USE_REFRESH_DRAFT_PRICING_RPC;
+  const originalPublic = process.env.NEXT_PUBLIC_USE_REFRESH_DRAFT_PRICING_RPC;
+
+  function restoreEnv(): void {
+    if (originalUse === undefined) {
+      delete process.env.USE_REFRESH_DRAFT_PRICING_RPC;
+    } else {
+      process.env.USE_REFRESH_DRAFT_PRICING_RPC = originalUse;
+    }
+    if (originalPublic === undefined) {
+      delete process.env.NEXT_PUBLIC_USE_REFRESH_DRAFT_PRICING_RPC;
+    } else {
+      process.env.NEXT_PUBLIC_USE_REFRESH_DRAFT_PRICING_RPC = originalPublic;
+    }
+  }
+
+  test("default off when env flags are unset", () => {
+    delete process.env.USE_REFRESH_DRAFT_PRICING_RPC;
+    delete process.env.NEXT_PUBLIC_USE_REFRESH_DRAFT_PRICING_RPC;
+    assert.equal(isRefreshDraftPricingRpcEnabled(), false);
+    restoreEnv();
+  });
+
+  test("enables only when USE_REFRESH_DRAFT_PRICING_RPC is exactly 1", () => {
+    delete process.env.NEXT_PUBLIC_USE_REFRESH_DRAFT_PRICING_RPC;
+    process.env.USE_REFRESH_DRAFT_PRICING_RPC = "1";
+    assert.equal(isRefreshDraftPricingRpcEnabled(), true);
+    restoreEnv();
+  });
+
+  test("enables only when NEXT_PUBLIC_USE_REFRESH_DRAFT_PRICING_RPC is exactly 1", () => {
+    delete process.env.USE_REFRESH_DRAFT_PRICING_RPC;
+    process.env.NEXT_PUBLIC_USE_REFRESH_DRAFT_PRICING_RPC = "1";
+    assert.equal(isRefreshDraftPricingRpcEnabled(), true);
+    restoreEnv();
+  });
+
+  test("truthy values other than 1 do not enable RPC mode", () => {
+    process.env.USE_REFRESH_DRAFT_PRICING_RPC = "true";
+    process.env.NEXT_PUBLIC_USE_REFRESH_DRAFT_PRICING_RPC = "yes";
+    assert.equal(isRefreshDraftPricingRpcEnabled(), false);
+    restoreEnv();
+  });
+});
+
 describe("draft pricing refresh persistence contract", () => {
   test("documents atomic table bundle for RPC", () => {
     assert.deepEqual(DRAFT_PRICING_REFRESH_ATOMIC_TABLES, [
@@ -153,6 +200,86 @@ describe("draft pricing refresh persistence contract", () => {
       REFRESH_DRAFT_PRICING_SEQUENTIAL_STEPS_PER_OPTION[1],
       "proposal_line_items.delete"
     );
+  });
+
+  test("buildDraftPricingRefreshPersistPayload preserves priced hidden-from-customer line", () => {
+    const instantiatePayload = minimalInstantiatePayload();
+    instantiatePayload.options[0]!.customer_subtotal_cents = 15_000;
+    instantiatePayload.options[0]!.customer_total_cents = 15_000;
+
+    const instantiateInput = minimalInstantiateInput();
+    instantiateInput.lineItemsByTemplateOptionId[TEMPLATE_OPT] = [
+      {
+        source_template_item_id: "item-visible",
+        catalog_item_id: "cat-visible",
+        catalog_seed_key: null,
+        section_id: "sec-1",
+        page_id: null,
+        sort_order: 0,
+        customer_name: "Shingles",
+        description: null,
+        role: null,
+        quantity: 22,
+        quantity_display_label: "22 SQ",
+        quantity_source_label: "Measurement",
+        unit: "SQ",
+        customer_unit_price_cents: 500,
+        customer_line_total_cents: 10_000,
+        engineStatus: "priced",
+        customerVisibility: "customer_visible",
+        catalogItemMissing: false,
+        measurement_quantity_key: null,
+      },
+      {
+        source_template_item_id: "item-hidden",
+        catalog_item_id: "cat-hidden",
+        catalog_seed_key: null,
+        section_id: "sec-1",
+        page_id: null,
+        sort_order: 1,
+        customer_name: "Hidden underlayment",
+        description: null,
+        role: null,
+        quantity: 1,
+        quantity_display_label: "1 EA",
+        quantity_source_label: "Template",
+        unit: "EA",
+        customer_unit_price_cents: 5000,
+        customer_line_total_cents: 5000,
+        engineStatus: "priced",
+        customerVisibility: "customer_visible",
+        hiddenButInCalc: true,
+        catalogItemMissing: false,
+        measurement_quantity_key: null,
+      },
+    ];
+
+    const payload = buildDraftPricingRefreshPersistPayload({
+      companyId: COMPANY_ID,
+      proposalId: PROPOSAL_ID,
+      proposalVersionId: VERSION_ID,
+      instantiatePayload,
+      instantiateInput,
+      existingOptions: [{ id: OPTION_ID, source_template_option_id: TEMPLATE_OPT }],
+      pageIdBySection: new Map([["sec-1", "page-1"]]),
+      policy: TEST_POLICY,
+      pricingPolicyId: "policy-1",
+      measurementStamp: null,
+    });
+
+    assert.equal(payload.options.length, 1);
+    assert.equal(payload.options[0]!.line_items.length, 2);
+    assert.equal(payload.options[0]!.pricing.customer_subtotal_cents, 15_000);
+    assert.equal(payload.options[0]!.pricing.customer_total_cents, 15_000);
+
+    const hiddenLine = payload.options[0]!.line_items.find(
+      (line) => line.source_template_item_id === "item-hidden"
+    );
+    assert.ok(hiddenLine, "expected hidden priced line in persist payload");
+    assert.equal(hiddenLine.pricing_status, "priced");
+    assert.equal(hiddenLine.visible_to_customer, false);
+    assert.notEqual(hiddenLine.pricing_status, "omitted");
+    assert.equal(hiddenLine.customer_line_total_cents, 5000);
   });
 
   test("buildDraftPricingRefreshPersistPayload maps option lines and internal summary", () => {
