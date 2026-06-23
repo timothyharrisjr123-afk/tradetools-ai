@@ -344,6 +344,48 @@ describe("buildProposalWorkbenchEstimatePresentation", () => {
     assert.equal(result.needsAttention.scopeReview.lines[0]?.reasons.includes("needs_quantity"), true);
   });
 
+  test("R17D Phase 3A: excluded line moves to decision trace zone", () => {
+    const scopeSection = section("sec-scope", "line_items", OPTION_STANDARD);
+    const templateGraph = graph(
+      [option(OPTION_STANDARD)],
+      [scopeSection],
+      [item({ id: "line-priced", section_id: "sec-scope" })]
+    );
+
+    const result = buildProposalWorkbenchEstimatePresentation(
+      buildInput({
+        graph: templateGraph,
+        sections: [scopeSection],
+        activeScopeDecisionsForOption: [
+          {
+            id: "dec-excluded",
+            companyId: COMPANY_ID,
+            proposalId: "proposal-1",
+            proposalVersionId: "version-1",
+            proposalOptionId: "runtime-opt",
+            decisionType: "excluded",
+            sourceTemplateItemId: "line-priced",
+            instanceLineKey: null,
+            payload: {},
+            active: true,
+            createdBy: null,
+            updatedBy: null,
+            createdAt: "2026-06-18T00:00:00Z",
+            updatedAt: "2026-06-18T00:00:00Z",
+          },
+        ],
+      })
+    );
+
+    assert.equal(result.readyScope.sections.length, 0);
+    assert.equal(result.needsAttention.scopeReview.count, 0);
+    assert.equal(result.needsAttention.hardBlockers.count, 0);
+    assert.equal(result.decisionTraceZone.excluded.count, 1);
+    assert.equal(result.decisionTraceZone.excluded.lines[0]?.templateItemId, "line-priced");
+    assert.equal(result.meta.excludedLineCount, 1);
+    assert.equal(result.meta.readyLineCount, 0);
+  });
+
   test("not_priced classified into hardBlockers", () => {
     const scopeSection = section("sec-scope", "line_items", OPTION_STANDARD);
     const templateGraph = graph(

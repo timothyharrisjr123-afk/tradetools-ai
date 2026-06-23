@@ -64,6 +64,7 @@ import {
   groupScopeDecisionsByTemplateOptionId,
   hasAnyActiveScopeDecisions,
 } from "@/app/lib/proposalScopeDecisionMerge";
+import type { ProposalScopeDecision } from "@/app/lib/proposalScopeDecisionTypes";
 import { getScopeDecisionsForDraftGraph } from "@/app/lib/proposalScopeDecisionStore";
 import {
   isEditableProposalPageType,
@@ -244,6 +245,8 @@ export type ProposalDraftGraph = {
   options: ProposalOptionRow[];
   lineItems: ProposalLineItemRow[];
   internalSummaries: ProposalInternalSummaryRow[];
+  /** Active scope decisions for the current draft version (R17D Phase 3A+). */
+  scopeDecisions: ProposalScopeDecision[];
 };
 
 // ---------------------------------------------------------------------------
@@ -884,6 +887,8 @@ export async function getDraftGraph(
       internalSummaries = (summariesRes.data ?? []) as ProposalInternalSummaryRow[];
     }
 
+    const scopeDecisions = await getScopeDecisionsForDraftGraph(cid, versionId, deps);
+
     return {
       proposal: rowToProposalRecord(proposal),
       version,
@@ -891,6 +896,7 @@ export async function getDraftGraph(
       options,
       lineItems,
       internalSummaries,
+      scopeDecisions,
     };
   } catch {
     return null;

@@ -7,11 +7,12 @@ import {
   WORKBENCH_ATTENTION_ITEM_INDEX,
   WORKBENCH_ATTENTION_ZONE,
   WORKBENCH_ATTENTION_ZONE_HEADER,
-  WORKBENCH_EDIT_OPTION_CHIP_HINT,
   WORKBENCH_EDIT_OPTION_CHIP_ENABLED,
+  WORKBENCH_EDIT_OPTION_CHIP_HINT,
   WORKBENCH_EDIT_OPTION_TITLE,
   WORKBENCH_EDIT_OPTION_TRIGGER_SECONDARY,
   WORKBENCH_FUTURE_ACTION_CHIP,
+  WORKBENCH_REMOVE_FROM_OPTION_ACTION,
   WORKBENCH_MODULE_DESC,
   WORKBENCH_MODULE_INNER,
   WORKBENCH_MODULE_KICKER,
@@ -28,7 +29,9 @@ type ProposalBuilderWorkbenchAttentionZoneProps = {
   zone: WorkbenchNeedsAttentionZone;
   onOpenEditOption: () => void;
   onSetQuantityForLine?: (templateItemId: string) => void;
+  onRemoveFromOptionForLine?: (templateItemId: string) => void;
   manualQuantityEnabled?: boolean;
+  excludeEnabled?: boolean;
 };
 
 function HardBlockersSection({ zone }: { zone: WorkbenchNeedsAttentionZone["hardBlockers"] }) {
@@ -77,11 +80,15 @@ function ScopeReviewSection({
   onOpenEditOption,
   onSetQuantityForLine,
   manualQuantityEnabled = false,
+  onRemoveFromOptionForLine,
+  excludeEnabled = false,
 }: {
   zone: WorkbenchNeedsAttentionZone["scopeReview"];
   onOpenEditOption: () => void;
   onSetQuantityForLine?: (templateItemId: string) => void;
   manualQuantityEnabled?: boolean;
+  onRemoveFromOptionForLine?: (templateItemId: string) => void;
+  excludeEnabled?: boolean;
 }) {
   if (!zone.show) return null;
 
@@ -130,11 +137,14 @@ function ScopeReviewSection({
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {WORKBENCH_SCOPE_REVIEW_FUTURE_ACTIONS.map((action) => {
                       const isSetQuantity = action.id === "set_quantity";
+                      const isRemove = action.id === "remove";
                       const canSetQuantity =
                         isSetQuantity &&
                         manualQuantityEnabled &&
                         line.reasons.includes("needs_quantity") &&
                         Boolean(onSetQuantityForLine);
+                      const canRemove =
+                        isRemove && excludeEnabled && Boolean(onRemoveFromOptionForLine);
 
                       if (canSetQuantity) {
                         return (
@@ -145,6 +155,19 @@ function ScopeReviewSection({
                             onClick={() => onSetQuantityForLine!(line.templateItemId)}
                           >
                             {action.label}
+                          </button>
+                        );
+                      }
+
+                      if (canRemove) {
+                        return (
+                          <button
+                            key={action.id}
+                            type="button"
+                            className={WORKBENCH_EDIT_OPTION_CHIP_ENABLED}
+                            onClick={() => onRemoveFromOptionForLine!(line.templateItemId)}
+                          >
+                            {WORKBENCH_REMOVE_FROM_OPTION_ACTION}
                           </button>
                         );
                       }
@@ -182,6 +205,8 @@ export default function ProposalBuilderWorkbenchAttentionZone({
   onOpenEditOption,
   onSetQuantityForLine,
   manualQuantityEnabled = false,
+  onRemoveFromOptionForLine,
+  excludeEnabled = false,
 }: ProposalBuilderWorkbenchAttentionZoneProps) {
   if (!zone.show) return null;
 
@@ -193,6 +218,8 @@ export default function ProposalBuilderWorkbenchAttentionZone({
         onOpenEditOption={onOpenEditOption}
         onSetQuantityForLine={onSetQuantityForLine}
         manualQuantityEnabled={manualQuantityEnabled}
+        onRemoveFromOptionForLine={onRemoveFromOptionForLine}
+        excludeEnabled={excludeEnabled}
       />
     </div>
   );

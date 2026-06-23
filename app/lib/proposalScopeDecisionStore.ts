@@ -616,3 +616,20 @@ export async function clearDraftScopeDecisionByTarget(
 
   return rowToProposalScopeDecision(data as ProposalScopeDecisionRow);
 }
+
+export async function clearDraftScopeDecisionByTargetIfActive(
+  input: ClearDraftScopeDecisionByTargetInput,
+  deps?: ProposalScopeDecisionStoreDeps
+): Promise<ProposalScopeDecision | null> {
+  try {
+    return await clearDraftScopeDecisionByTarget(input, deps);
+  } catch (error) {
+    if (
+      error instanceof ProposalRecordStoreError &&
+      error.message === "No active scope decision found for this target."
+    ) {
+      return null;
+    }
+    throw error;
+  }
+}

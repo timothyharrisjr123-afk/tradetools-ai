@@ -76,14 +76,19 @@ type ProposalBuilderCanvasProps = {
   onTogglePageVisibility?: (pageId: string, visibleToCustomer: boolean) => void;
   pageVisibilityToggleInFlight?: boolean;
   persistedDraftEnabled?: boolean;
+  activeScopeDecisionsForOption?: import("@/app/lib/proposalScopeDecisionTypes").ProposalScopeDecision[];
   manualQuantityInFlight?: boolean;
   manualQuantityError?: string | null;
+  excludeInFlight?: boolean;
+  excludeError?: string | null;
   onApplyManualQuantity?: (
     templateItemId: string,
     quantity: string,
     quantityDisplayLabel?: string | null
   ) => Promise<void>;
   onClearManualQuantity?: (templateItemId: string) => Promise<void>;
+  onExcludeLine?: (templateItemId: string) => Promise<void>;
+  onRestoreExcludedLine?: (templateItemId: string) => Promise<void>;
 };
 
 /** 3J4F — text page types that render as read-only customer document pages. */
@@ -207,10 +212,15 @@ export default function ProposalBuilderCanvas({
   onTogglePageVisibility,
   pageVisibilityToggleInFlight = false,
   persistedDraftEnabled = false,
+  activeScopeDecisionsForOption = [],
   manualQuantityInFlight = false,
   manualQuantityError = null,
+  excludeInFlight = false,
+  excludeError = null,
   onApplyManualQuantity,
   onClearManualQuantity,
+  onExcludeLine,
+  onRestoreExcludedLine,
 }: ProposalBuilderCanvasProps) {
   const templateName = starterGraph?.template.name ?? STARTER_TEMPLATE_DISPLAY_NAME;
   const effectiveOptionId =
@@ -377,10 +387,15 @@ export default function ProposalBuilderCanvas({
       persistedPages={persistedPages}
       estimateVisibilityNotice={estimateVisibility.requiredNotice}
       persistedDraftEnabled={persistedDraftEnabled}
+      activeScopeDecisionsForOption={activeScopeDecisionsForOption}
       manualQuantityInFlight={manualQuantityInFlight}
       manualQuantityError={manualQuantityError}
+      excludeInFlight={excludeInFlight}
+      excludeError={excludeError}
       onApplyManualQuantity={onApplyManualQuantity}
       onClearManualQuantity={onClearManualQuantity}
+      onExcludeLine={onExcludeLine}
+      onRestoreExcludedLine={onRestoreExcludedLine}
     />
   );
 }

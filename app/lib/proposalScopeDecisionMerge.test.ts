@@ -9,7 +9,9 @@ import { describe, test } from "node:test";
 import type { CatalogItem } from "./catalogTypes";
 import { buildProposalBuilderPricingPreview } from "./proposalBuilderPricingPreview";
 import type { ProposalQuantityPreviewContext } from "./proposalBuilderPreview";
+import { buildCatalogItemById } from "./proposalBuilderPreview";
 import { buildDraftInstantiateInputFromPreview } from "./proposalRecordStore";
+import { mapProposalPricingInput } from "./proposalPricingInputMapper";
 import {
   DEFAULT_PROFITABILITY_TYPE,
   DEFAULT_QUANTITY_ROUNDING,
@@ -376,7 +378,7 @@ describe("proposalScopeDecisionMerge", () => {
       lines: [],
       decisions: [
         decision({
-          decisionType: "excluded",
+          decisionType: "not_applicable",
           sourceTemplateItemId: STANDARD_ITEM_ID,
           payload: {},
         }),
@@ -387,5 +389,109 @@ describe("proposalScopeDecisionMerge", () => {
     assert.equal(mapped.length, 0);
     assert.equal(report.unsupported.length, 1);
     assert.ok(report.warnings.length > 0);
+  });
+
+  test("excluded removes line from merged pricing input and snapshot instantiate", () => {
+    const graph = twoOptionGraph();
+    const catalogItems = [catalog(CATALOG_STANDARD_ID), catalog(CATALOG_ENHANCED_ID)];
+    const ctx = quantityContext(22);
+    const preview = buildProposalBuilderPricingPreview({
+      graph,
+      catalogItems,
+      quantityContext: ctx,
+      policy: POLICY,
+    });
+
+    const baseline = buildDraftInstantiateInputFromPreview({
+      companyId: COMPANY_ID,
+      graph,
+      catalogItems,
+      quantityContext: ctx,
+      preview,
+      policy: POLICY,
+      pricingPolicyId: "policy-id",
+      context: { job_id: "job", template_id: TEMPLATE_ID },
+    });
+
+    const { input, mergeReport } = buildDraftInstantiateInputWithScopeDecisions({
+      companyId: COMPANY_ID,
+      graph,
+      catalogItems,
+      quantityContext: ctx,
+      preview,
+      policy: POLICY,
+      pricingPolicyId: "policy-id",
+      context: { job_id: "job", template_id: TEMPLATE_ID },
+      scopeDecisionsByTemplateOptionId: {
+        [STANDARD_OPTION_ID]: [
+          decision({
+            decisionType: "excluded",
+            payload: {},
+          }),
+        ],
+      },
+    });
+
+    assert.equal(mergeReport.applied.length, 1);
+    assert.equal(mergeReport.applied[0]?.decisionType, "excluded");
+    assert.equal(mergeReport.unsupported.length, 0);
+    assert.equal(input.lineItemsByTemplateOptionId[STANDARD_OPTION_ID]?.length, 0);
+    assert.equal(input.lineItemsByTemplateOptionId[ENHANCED_OPTION_ID]?.length, 1);
+
+    const baselineStandardTotal =
+      baseline.optionPricing.find((row) => row.source_template_option_id === STANDARD_OPTION_ID)
+        ?.customer_total_cents ?? null;
+    const excludedStandardTotal =
+      input.optionPricing.find((row) => row.source_template_option_id === STANDARD_OPTION_ID)
+        ?.customer_total_cents ?? null;
+    assert.notEqual(baselineStandardTotal, excludedStandardTotal);
+    assert.equal(excludedStandardTotal, 0);
+  });
+
+  test("excluded wins over manual_quantity on same target", () => {
+    const graph = twoOptionGraph();
+    const catalogItems = [catalog(CATALOG_STANDARD_ID), catalog(CATALOG_ENHANCED_ID)];
+    const ctx = quantityContext(22);
+    const preview = buildProposalBuilderPricingPreview({
+      graph,
+      catalogItems,
+      quantityContext: ctx,
+      policy: POLICY,
+    });
+
+    const report = createEmptyScopeDecisionMergeReport();
+    const mappedInput = mapProposalPricingInput({
+      optionId: STANDARD_OPTION_ID,
+      policy: POLICY,
+      actorRole: preview.actorRole,
+      graph,
+      catalogItems: buildCatalogItemById(catalogItems),
+      quantityContext: ctx,
+    });
+
+    const merged = mergeScopeDecisionsIntoPricingLines({
+      graph,
+      templateOptionId: STANDARD_OPTION_ID,
+      lines: mappedInput.lines,
+      decisions: [
+        decision({
+          decisionType: "excluded",
+          payload: {},
+        }),
+        decision({
+          id: "22222222-2222-4222-8222-000000000002",
+          decisionType: "manual_quantity",
+          payload: { quantity: 99 },
+        }),
+      ],
+      report,
+    });
+
+    assert.equal(merged.length, 0);
+    assert.equal(report.applied.filter((entry) => entry.decisionType === "excluded").length, 1);
+    assert.equal(
+      report.ignored.filter((entry) => entry.decisionType === "manual_quantity").length,
+      1
+    );
   });
 });

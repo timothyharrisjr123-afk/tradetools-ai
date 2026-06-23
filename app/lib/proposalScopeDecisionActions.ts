@@ -1,5 +1,5 @@
 /**
- * R17D Phase 2 — orchestrated scope decision actions (upsert + trusted refresh).
+ * R17D Phase 2+ — orchestrated scope decision actions (upsert + trusted refresh).
  */
 
 import type { ProposalQuantityPreviewContext } from "@/app/lib/proposalBuilderPreview";
@@ -10,6 +10,7 @@ import {
 } from "@/app/lib/proposalRecordStore";
 import {
   clearDraftScopeDecisionByTarget,
+  clearDraftScopeDecisionByTargetIfActive,
   upsertDraftScopeDecision,
   type ProposalScopeDecisionStoreDeps,
 } from "@/app/lib/proposalScopeDecisionStore";
@@ -72,15 +73,17 @@ export type ApplyManualQuantityScopeDecisionResult = {
 export type ProposalScopeDecisionActionDeps = ProposalScopeDecisionStoreDeps &
   ProposalRecordStoreDeps;
 
-export async function applyManualQuantityScopeDecision(
-  input: ApplyManualQuantityScopeDecisionInput,
-  deps?: ProposalScopeDecisionActionDeps
-): Promise<ApplyManualQuantityScopeDecisionResult> {
-  const validation = validateManualQuantityInput(input.quantity);
-  if (!validation.ok) {
-    throw new ProposalScopeDecisionActionError(validation.message);
-  }
-
+function validateScopeDecisionTargetIds(input: {
+  companyId: string;
+  proposalId: string;
+  runtimeProposalOptionId: string;
+  sourceTemplateItemId: string;
+}): {
+  companyId: string;
+  proposalId: string;
+  runtimeProposalOptionId: string;
+  sourceTemplateItemId: string;
+} {
   const companyId = (input.companyId ?? "").trim();
   const proposalId = (input.proposalId ?? "").trim();
   const runtimeProposalOptionId = (input.runtimeProposalOptionId ?? "").trim();
@@ -92,6 +95,35 @@ export async function applyManualQuantityScopeDecision(
     );
   }
 
+  return { companyId, proposalId, runtimeProposalOptionId, sourceTemplateItemId };
+}
+
+async function refreshAfterScopeDecision(
+  companyId: string,
+  proposalId: string,
+  refreshContext: ManualQuantityRefreshContext,
+  deps?: ProposalScopeDecisionActionDeps
+): Promise<ProposalDraftGraph> {
+  const graph = await refreshDraftPricing(companyId, proposalId, refreshContext, deps);
+  if (!graph) {
+    throw new ProposalScopeDecisionActionError(
+      "Scope decision saved but draft pricing could not be refreshed."
+    );
+  }
+  return graph;
+}
+
+export async function applyManualQuantityScopeDecision(
+  input: ApplyManualQuantityScopeDecisionInput,
+  deps?: ProposalScopeDecisionActionDeps
+): Promise<ApplyManualQuantityScopeDecisionResult> {
+  const validation = validateManualQuantityInput(input.quantity);
+  if (!validation.ok) {
+    throw new ProposalScopeDecisionActionError(validation.message);
+  }
+
+  const ids = validateScopeDecisionTargetIds(input);
+
   const payload: { quantity: number; quantity_display_label?: string | null } = {
     quantity: validation.quantity,
   };
@@ -102,23 +134,23 @@ export async function applyManualQuantityScopeDecision(
 
   const decision = await upsertDraftScopeDecision(
     {
-      company_id: companyId,
-      proposal_id: proposalId,
-      proposal_option_id: runtimeProposalOptionId,
+      company_id: ids.companyId,
+      proposal_id: ids.proposalId,
+      proposal_option_id: ids.runtimeProposalOptionId,
       decision_type: "manual_quantity",
-      source_template_item_id: sourceTemplateItemId,
+      source_template_item_id: ids.sourceTemplateItemId,
       payload,
       actor_user_id: input.actorUserId ?? null,
     },
     deps
   );
 
-  const graph = await refreshDraftPricing(companyId, proposalId, input.refreshContext, deps);
-  if (!graph) {
-    throw new ProposalScopeDecisionActionError(
-      "Scope decision saved but draft pricing could not be refreshed."
-    );
-  }
+  const graph = await refreshAfterScopeDecision(
+    ids.companyId,
+    ids.proposalId,
+    input.refreshContext,
+    deps
+  );
 
   return { decision, graph };
 }
@@ -140,35 +172,129 @@ export async function clearManualQuantityScopeDecision(
   input: ClearManualQuantityScopeDecisionInput,
   deps?: ProposalScopeDecisionActionDeps
 ): Promise<ClearManualQuantityScopeDecisionResult> {
-  const companyId = (input.companyId ?? "").trim();
-  const proposalId = (input.proposalId ?? "").trim();
-  const runtimeProposalOptionId = (input.runtimeProposalOptionId ?? "").trim();
-  const sourceTemplateItemId = (input.sourceTemplateItemId ?? "").trim();
-
-  if (!companyId || !proposalId || !runtimeProposalOptionId || !sourceTemplateItemId) {
-    throw new ProposalScopeDecisionActionError(
-      "companyId, proposalId, runtimeProposalOptionId, and sourceTemplateItemId are required."
-    );
-  }
+  const ids = validateScopeDecisionTargetIds(input);
 
   await clearDraftScopeDecisionByTarget(
     {
-      company_id: companyId,
-      proposal_id: proposalId,
-      proposal_option_id: runtimeProposalOptionId,
+      company_id: ids.companyId,
+      proposal_id: ids.proposalId,
+      proposal_option_id: ids.runtimeProposalOptionId,
       decision_type: "manual_quantity",
-      source_template_item_id: sourceTemplateItemId,
+      source_template_item_id: ids.sourceTemplateItemId,
       actor_user_id: input.actorUserId ?? null,
     },
     deps
   );
 
-  const graph = await refreshDraftPricing(companyId, proposalId, input.refreshContext, deps);
-  if (!graph) {
-    throw new ProposalScopeDecisionActionError(
-      "Scope decision cleared but draft pricing could not be refreshed."
-    );
+  const graph = await refreshAfterScopeDecision(
+    ids.companyId,
+    ids.proposalId,
+    input.refreshContext,
+    deps
+  );
+
+  return { graph };
+}
+
+export type ExcludeLineFromProposalOptionInput = {
+  companyId: string;
+  proposalId: string;
+  runtimeProposalOptionId: string;
+  sourceTemplateItemId: string;
+  refreshContext: ManualQuantityRefreshContext;
+  reason?: string | null;
+  actorUserId?: string | null;
+};
+
+export type ExcludeLineFromProposalOptionResult = {
+  decision: ProposalScopeDecision;
+  graph: ProposalDraftGraph;
+};
+
+export async function excludeLineFromProposalOption(
+  input: ExcludeLineFromProposalOptionInput,
+  deps?: ProposalScopeDecisionActionDeps
+): Promise<ExcludeLineFromProposalOptionResult> {
+  const ids = validateScopeDecisionTargetIds(input);
+
+  await clearDraftScopeDecisionByTargetIfActive(
+    {
+      company_id: ids.companyId,
+      proposal_id: ids.proposalId,
+      proposal_option_id: ids.runtimeProposalOptionId,
+      decision_type: "manual_quantity",
+      source_template_item_id: ids.sourceTemplateItemId,
+      actor_user_id: input.actorUserId ?? null,
+    },
+    deps
+  );
+
+  const payload: { reason?: string | null } = {};
+  const reason = (input.reason ?? "").trim();
+  if (reason) {
+    payload.reason = reason;
   }
+
+  const decision = await upsertDraftScopeDecision(
+    {
+      company_id: ids.companyId,
+      proposal_id: ids.proposalId,
+      proposal_option_id: ids.runtimeProposalOptionId,
+      decision_type: "excluded",
+      source_template_item_id: ids.sourceTemplateItemId,
+      payload,
+      actor_user_id: input.actorUserId ?? null,
+    },
+    deps
+  );
+
+  const graph = await refreshAfterScopeDecision(
+    ids.companyId,
+    ids.proposalId,
+    input.refreshContext,
+    deps
+  );
+
+  return { decision, graph };
+}
+
+export type ClearExcludedLineInput = {
+  companyId: string;
+  proposalId: string;
+  runtimeProposalOptionId: string;
+  sourceTemplateItemId: string;
+  refreshContext: ManualQuantityRefreshContext;
+  actorUserId?: string | null;
+};
+
+export type ClearExcludedLineResult = {
+  graph: ProposalDraftGraph;
+};
+
+export async function clearExcludedLine(
+  input: ClearExcludedLineInput,
+  deps?: ProposalScopeDecisionActionDeps
+): Promise<ClearExcludedLineResult> {
+  const ids = validateScopeDecisionTargetIds(input);
+
+  await clearDraftScopeDecisionByTarget(
+    {
+      company_id: ids.companyId,
+      proposal_id: ids.proposalId,
+      proposal_option_id: ids.runtimeProposalOptionId,
+      decision_type: "excluded",
+      source_template_item_id: ids.sourceTemplateItemId,
+      actor_user_id: input.actorUserId ?? null,
+    },
+    deps
+  );
+
+  const graph = await refreshAfterScopeDecision(
+    ids.companyId,
+    ids.proposalId,
+    input.refreshContext,
+    deps
+  );
 
   return { graph };
 }

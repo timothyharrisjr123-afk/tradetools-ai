@@ -7,6 +7,7 @@ import { WORKBENCH_HIDDEN_FROM_CUSTOMER_LABEL } from "@/app/lib/proposalBuilderW
 import {
   WORKBENCH_EDIT_OPTION_CHIP_ENABLED,
   WORKBENCH_EDIT_QUANTITY_ACTION,
+  WORKBENCH_REMOVE_FROM_OPTION_ACTION,
   WORKBENCH_LINE_AMOUNT,
   WORKBENCH_LINE_AMOUNT_ATTENTION,
   WORKBENCH_LINE_AMOUNT_INCLUDED,
@@ -61,6 +62,7 @@ type ScopeLineRowProps = {
   line: WorkbenchScopeLine;
   compact?: boolean;
   onEditQuantity?: () => void;
+  onRemoveFromOption?: () => void;
 };
 
 type HardBlockerLineRowProps = {
@@ -165,7 +167,7 @@ export default function ProposalBuilderWorkbenchLineRow(
     );
   }
 
-  const { line, onEditQuantity } = props;
+  const { line, onEditQuantity, onRemoveFromOption } = props;
   const hasAttention = line.attentionReasons.length > 0;
   const amountClass = hasAttention
     ? WORKBENCH_LINE_AMOUNT_ATTENTION
@@ -192,6 +194,15 @@ export default function ProposalBuilderWorkbenchLineRow(
                 className={WORKBENCH_EDIT_OPTION_CHIP_ENABLED}
               >
                 {WORKBENCH_EDIT_QUANTITY_ACTION}
+              </button>
+            ) : null}
+            {onRemoveFromOption ? (
+              <button
+                type="button"
+                onClick={onRemoveFromOption}
+                className={WORKBENCH_EDIT_OPTION_CHIP_ENABLED}
+              >
+                {WORKBENCH_REMOVE_FROM_OPTION_ACTION}
               </button>
             ) : null}
           </div>

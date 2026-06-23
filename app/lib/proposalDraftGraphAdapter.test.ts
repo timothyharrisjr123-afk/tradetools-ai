@@ -160,6 +160,7 @@ function draftGraph(overrides: Partial<ProposalDraftGraph> = {}): ProposalDraftG
     options: [optionRow()],
     lineItems: [lineRow()],
     internalSummaries: [summaryRow()],
+    scopeDecisions: [],
     ...overrides,
   };
 }

@@ -215,6 +215,7 @@ function minimalGraph(overrides: Partial<ProposalDraftGraph> = {}): ProposalDraf
         updated_at: "2026-06-06T00:00:00.000Z",
       },
     ],
+    scopeDecisions: [],
     ...overrides,
   };
 }

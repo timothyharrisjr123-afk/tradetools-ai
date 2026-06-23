@@ -205,6 +205,7 @@ describe("proposalDocumentTokenResolver", () => {
       ],
       lineItems: [],
       internalSummaries: [],
+      scopeDecisions: [],
     };
 
     const context = buildProposalDocumentContextFromDraftGraph(graph);

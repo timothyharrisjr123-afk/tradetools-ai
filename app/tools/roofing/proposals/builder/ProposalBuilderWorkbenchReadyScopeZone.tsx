@@ -16,11 +16,13 @@ import ProposalBuilderWorkbenchLineRow from "./ProposalBuilderWorkbenchLineRow";
 type ProposalBuilderWorkbenchReadyScopeZoneProps = {
   sections: WorkbenchScopeSection[];
   onEditQuantityForLine?: (templateItemId: string) => void;
+  onRemoveFromOptionForLine?: (templateItemId: string) => void;
 };
 
 export default function ProposalBuilderWorkbenchReadyScopeZone({
   sections,
   onEditQuantityForLine,
+  onRemoveFromOptionForLine,
 }: ProposalBuilderWorkbenchReadyScopeZoneProps) {
   const lineCount = sections.reduce((sum, section) => sum + section.lines.length, 0);
 
@@ -64,6 +66,11 @@ export default function ProposalBuilderWorkbenchReadyScopeZone({
                       onEditQuantity={
                         line.manualQuantityActive && onEditQuantityForLine
                           ? () => onEditQuantityForLine(line.templateItemId)
+                          : undefined
+                      }
+                      onRemoveFromOption={
+                        onRemoveFromOptionForLine
+                          ? () => onRemoveFromOptionForLine(line.templateItemId)
                           : undefined
                       }
                     />

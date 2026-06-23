@@ -24,6 +24,7 @@ import type { ProposalSnapshotLineQuantityView } from "@/app/lib/proposalDraftGr
 import type { ProposalPageSettings } from "@/app/lib/proposalPageTypes";
 import { resolvePackageMeta } from "@/app/lib/proposalPackagePresentation";
 import type { ProposalTemplateGraph } from "@/app/lib/proposalTemplateStore";
+import type { ProposalScopeDecision } from "@/app/lib/proposalScopeDecisionTypes";
 import type {
   ProposalTemplateOption,
   ProposalTemplateOptionSelectionMode,
@@ -51,6 +52,14 @@ export const WORKBENCH_SCOPE_REVIEW_DESCRIPTION =
 
 export const WORKBENCH_SCOPE_REVIEW_ROW_HELPER =
   "Add quantity or mark not applicable when line editing is enabled.";
+
+export const WORKBENCH_DECISION_TRACE_REMOVED_TITLE = "Removed from this option";
+export const WORKBENCH_DECISION_TRACE_REMOVED_DESCRIPTION =
+  "Template lines excluded from this package for this job. Restore to return them to scope review or customer-ready scope.";
+export const WORKBENCH_DECISION_TRACE_REMOVED_STATUS = "Removed";
+export const WORKBENCH_DECISION_TRACE_NOT_APPLICABLE_TITLE = "Not applicable for this job";
+export const WORKBENCH_DECISION_TRACE_NOT_APPLICABLE_DESCRIPTION =
+  "Template lines marked not applicable for this job will appear here in a future update.";
 
 export const WORKBENCH_SCOPE_REVIEW_FUTURE_ACTIONS = [
   { id: "set_quantity", label: "Set quantity", enabled: false as const },
@@ -117,6 +126,28 @@ export type WorkbenchPackageZone = {
   selectionMode: ProposalTemplateOptionSelectionMode;
   customerSelectionMode: WorkbenchCustomerSelectionMode;
   customerSigningHint: string | null;
+};
+
+export type WorkbenchDecisionTraceLine = {
+  templateItemId: string;
+  name: string;
+  qtyLabel: string | null;
+  statusLabel: typeof WORKBENCH_DECISION_TRACE_REMOVED_STATUS;
+  detailMeta: WorkbenchLineDetailMeta;
+};
+
+export type WorkbenchDecisionTraceBucket = {
+  show: boolean;
+  count: number;
+  title: string;
+  description: string;
+  lines: WorkbenchDecisionTraceLine[];
+};
+
+export type WorkbenchDecisionTraceZone = {
+  show: boolean;
+  excluded: WorkbenchDecisionTraceBucket;
+  notApplicable: WorkbenchDecisionTraceBucket;
 };
 
 export type WorkbenchScopeLine = {
@@ -224,6 +255,7 @@ export type WorkbenchEstimatePresentationMeta = {
   attentionLineCount: number;
   hardBlockerLineCount: number;
   scopeReviewLineCount: number;
+  excludedLineCount: number;
   upgradeLineCount: number;
   sourceLineCount: number;
 };
@@ -241,6 +273,7 @@ export type ProposalWorkbenchEstimatePresentation = {
   upgradesZone: WorkbenchUpgradesZone;
   totalsZone: WorkbenchTotalsZone;
   displaySettingsEntry: WorkbenchDisplaySettingsEntry;
+  decisionTraceZone: WorkbenchDecisionTraceZone;
   meta: WorkbenchEstimatePresentationMeta;
 };
 
@@ -256,6 +289,8 @@ export type BuildProposalWorkbenchEstimatePresentationInput = {
   snapshotQuantityByTemplateItemId?: Record<string, ProposalSnapshotLineQuantityView> | null;
   /** Read-only estimate page settings from draft graph when available. */
   estimatePageSettings?: ProposalPageSettings | null;
+  /** Active scope decisions for the selected runtime proposal option (R17D Phase 3A+). */
+  activeScopeDecisionsForOption?: ProposalScopeDecision[] | null;
 };
 
 type LineClassification =
@@ -348,6 +383,53 @@ function isQtyUnresolved(
     return snapshotQty.quantityDisplayLabel == null;
   }
   return row.quantityUnresolved;
+}
+
+function buildExcludedTemplateItemIdSet(
+  decisions: ProposalScopeDecision[] | null | undefined
+): Set<string> {
+  const excluded = new Set<string>();
+  for (const decision of decisions ?? []) {
+    if (!decision.active || decision.decisionType !== "excluded") continue;
+    const templateItemId = (decision.sourceTemplateItemId ?? "").trim();
+    if (templateItemId) {
+      excluded.add(templateItemId);
+    }
+  }
+  return excluded;
+}
+
+function buildDecisionTraceLine(
+  row: ProposalPreviewLineRow,
+  snapshotQty: ProposalSnapshotLineQuantityView | undefined
+): WorkbenchDecisionTraceLine {
+  const qtyState = resolveQtyState(row, snapshotQty);
+  const qtyLabel =
+    qtyState.qtyLabel && qtyState.qtyLabel !== "—" && !qtyState.qtyUnresolved
+      ? qtyState.qtyLabel
+      : null;
+
+  return {
+    templateItemId: row.id,
+    name: row.displayName,
+    qtyLabel,
+    statusLabel: WORKBENCH_DECISION_TRACE_REMOVED_STATUS,
+    detailMeta: buildDetailMeta(row, qtyState.quantityStatusLabel),
+  };
+}
+
+function buildDecisionTraceBucket(
+  lines: WorkbenchDecisionTraceLine[],
+  title: string,
+  description: string
+): WorkbenchDecisionTraceBucket {
+  return {
+    show: lines.length > 0,
+    count: lines.length,
+    title,
+    description,
+    lines,
+  };
 }
 
 function classifyLine(
@@ -708,15 +790,18 @@ export function buildProposalWorkbenchEstimatePresentation(
     input.effectiveOptionId
   );
   const pricingPolicyConfigured = input.pricingPolicyConfigured ?? false;
+  const excludedTemplateItemIds = buildExcludedTemplateItemIdSet(input.activeScopeDecisionsForOption);
 
   const readySections: WorkbenchScopeSection[] = [];
   const attentionLines: WorkbenchAttentionLine[] = [];
+  const excludedTraceLines: WorkbenchDecisionTraceLine[] = [];
   const upgradeSections: WorkbenchUpgradeSection[] = [];
   let suppressedDocumentBlockerCount = 0;
   let readyLineCount = 0;
   let attentionLineCount = 0;
   let hardBlockerLineCount = 0;
   let scopeReviewLineCount = 0;
+  let excludedLineCount = 0;
   let upgradeLineCount = 0;
   let sourceLineCount = 0;
 
@@ -737,8 +822,14 @@ export function buildProposalWorkbenchEstimatePresentation(
 
       for (const row of rows) {
         sourceLineCount += 1;
-        const lineView = input.optionCustomerView?.lineByTemplateItemId[row.id];
         const snapshotQty = input.snapshotQuantityByTemplateItemId?.[row.id];
+        if (excludedTemplateItemIds.has(row.id)) {
+          excludedTraceLines.push(buildDecisionTraceLine(row, snapshotQty));
+          excludedLineCount += 1;
+          continue;
+        }
+
+        const lineView = input.optionCustomerView?.lineByTemplateItemId[row.id];
         const classification = classifyLine(row, lineView, snapshotQty);
 
         if (wouldSuppressFromDocument(row, lineView)) {
@@ -765,8 +856,14 @@ export function buildProposalWorkbenchEstimatePresentation(
 
     for (const row of rows) {
       sourceLineCount += 1;
-      const lineView = input.optionCustomerView?.lineByTemplateItemId[row.id];
       const snapshotQty = input.snapshotQuantityByTemplateItemId?.[row.id];
+      if (excludedTemplateItemIds.has(row.id)) {
+        excludedTraceLines.push(buildDecisionTraceLine(row, snapshotQty));
+        excludedLineCount += 1;
+        continue;
+      }
+
+      const lineView = input.optionCustomerView?.lineByTemplateItemId[row.id];
       const classification = classifyLine(row, lineView, snapshotQty);
 
       if (wouldSuppressFromDocument(row, lineView)) {
@@ -862,6 +959,19 @@ export function buildProposalWorkbenchEstimatePresentation(
       currentSettings: parsedSettings,
       settingsSummary: formatSettingsSummary(parsedSettings),
     },
+    decisionTraceZone: {
+      show: excludedTraceLines.length > 0,
+      excluded: buildDecisionTraceBucket(
+        excludedTraceLines,
+        WORKBENCH_DECISION_TRACE_REMOVED_TITLE,
+        WORKBENCH_DECISION_TRACE_REMOVED_DESCRIPTION
+      ),
+      notApplicable: buildDecisionTraceBucket(
+        [],
+        WORKBENCH_DECISION_TRACE_NOT_APPLICABLE_TITLE,
+        WORKBENCH_DECISION_TRACE_NOT_APPLICABLE_DESCRIPTION
+      ),
+    },
     meta: {
       pricingPolicyConfigured,
       suppressedDocumentBlockerCount,
@@ -869,6 +979,7 @@ export function buildProposalWorkbenchEstimatePresentation(
       attentionLineCount,
       hardBlockerLineCount,
       scopeReviewLineCount,
+      excludedLineCount,
       upgradeLineCount,
       sourceLineCount,
     },

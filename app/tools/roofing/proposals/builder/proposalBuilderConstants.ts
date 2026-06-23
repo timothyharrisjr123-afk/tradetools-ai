@@ -904,6 +904,44 @@ export const WORKBENCH_EDIT_OPTION_USE_MEASUREMENT_BTN =
 export const WORKBENCH_MANUAL_QUANTITY_ACTIVE_READOUT =
   "mt-2 rounded-md border border-blue-200/70 bg-white px-3 py-2.5 text-[13px] font-semibold tabular-nums text-slate-900";
 
+/** R17D Phase 3A — exclude/remove from proposal option. */
+export const WORKBENCH_REMOVE_FROM_OPTION_ACTION = "Remove from option";
+
+export const WORKBENCH_EXCLUDE_SECTION_TITLE = "Remove from this option";
+
+export const WORKBENCH_EXCLUDE_SECTION_DESC =
+  "Exclude this template line from the customer proposal for this package without changing the master template.";
+
+export const WORKBENCH_EXCLUDE_HELPER_COPY =
+  "This line won't appear on the customer proposal for this package. The template is unchanged.";
+
+export const WORKBENCH_EXCLUDE_ACTION_LABEL = "Remove from this option";
+
+export const WORKBENCH_EXCLUDE_IN_FLIGHT_LABEL = "Removing…";
+
+export const WORKBENCH_EXCLUDE_SUCCESS =
+  "Line removed from this option and draft pricing refreshed.";
+
+export const WORKBENCH_RESTORE_EXCLUDED_ACTION = "Include in this option again";
+
+export const WORKBENCH_RESTORE_EXCLUDED_SUCCESS =
+  "Line restored to this option and draft pricing refreshed.";
+
+export const WORKBENCH_EXCLUDE_ACTION_BTN =
+  "inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-3 py-2 text-[12px] font-semibold text-slate-800 shadow-sm transition-colors hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:opacity-60";
+
+export const WORKBENCH_DECISION_TRACE_ZONE =
+  "rounded-xl border border-slate-200/80 bg-slate-50/50 shadow-sm";
+
+export const WORKBENCH_DECISION_TRACE_ZONE_HEADER =
+  "border-b border-slate-200/70 px-4 py-3";
+
+export const WORKBENCH_DECISION_TRACE_ITEM =
+  "rounded-lg border border-slate-200/70 bg-white px-3 py-2.5";
+
+export const WORKBENCH_DECISION_TRACE_REMOVED_PILL =
+  "inline-flex shrink-0 items-center rounded-full border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-slate-600";
+
 /**
  * Format a whole-cents integer as a USD dollar string, e.g. "$1,234.56".
  * Customer-facing only — never pass internal cost/profit cents here.

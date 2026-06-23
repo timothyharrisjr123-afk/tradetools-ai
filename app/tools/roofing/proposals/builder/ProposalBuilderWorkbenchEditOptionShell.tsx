@@ -34,6 +34,12 @@ import {
   WORKBENCH_MANUAL_QUANTITY_ACTIVE_BADGE,
   WORKBENCH_MANUAL_QUANTITY_ACTIVE_READOUT,
   WORKBENCH_MANUAL_QUANTITY_RESET_HELPER,
+  WORKBENCH_EXCLUDE_ACTION_BTN,
+  WORKBENCH_EXCLUDE_ACTION_LABEL,
+  WORKBENCH_EXCLUDE_HELPER_COPY,
+  WORKBENCH_EXCLUDE_IN_FLIGHT_LABEL,
+  WORKBENCH_EXCLUDE_SECTION_DESC,
+  WORKBENCH_EXCLUDE_SECTION_TITLE,
   WORKBENCH_MODULE_DESC,
   WORKBENCH_MODULE_KICKER,
   WORKBENCH_MODULE_TITLE,
@@ -44,6 +50,13 @@ export type ManualQuantityEditorLine = {
   name: string;
   unitLabel: string | null;
 };
+
+export type ExcludeEditorLine = {
+  templateItemId: string;
+  name: string;
+};
+
+export type EditOptionDrawerIntent = "quantity" | "exclude";
 
 export type ManualQuantityActiveLine = {
   templateItemId: string;
@@ -62,10 +75,10 @@ type EditOptionShellSection = {
 
 const DISABLED_SHELL_SECTIONS: readonly EditOptionShellSection[] = [
   {
-    id: "exclude",
-    title: "Mark not applicable / remove",
-    description: "Exclude template lines from this package without changing the master template.",
-    controlLabel: "Mark not applicable · Remove from proposal",
+    id: "mark_na",
+    title: "Mark not applicable",
+    description: "Mark template lines as not applicable for this job without changing the master template.",
+    controlLabel: "Mark N/A",
     controlKind: "button",
   },
   {
@@ -111,14 +124,18 @@ export type ProposalBuilderWorkbenchEditOptionShellProps = {
   optionLabel: string | null;
   scopeReviewCount: number;
   scopeReviewLines: ManualQuantityEditorLine[];
+  excludeEligibleLines: ExcludeEditorLine[];
   manualActiveLines: ManualQuantityActiveLine[];
   focusedTemplateItemId: string | null;
+  drawerIntent: EditOptionDrawerIntent;
   onFocusTemplateItemId: (templateItemId: string) => void;
   persistedDraftEnabled: boolean;
-  manualQuantityInFlight: boolean;
+  scopeEditInFlight: boolean;
   manualQuantityError: string | null;
+  excludeError: string | null;
   onApplyManualQuantity: (templateItemId: string, quantity: string, quantityDisplayLabel?: string | null) => Promise<void>;
   onClearManualQuantity: (templateItemId: string) => Promise<void>;
+  onExcludeLine: (templateItemId: string) => Promise<void>;
 };
 
 function ShellSectionControl({ section }: { section: EditOptionShellSection }) {
@@ -155,14 +172,18 @@ export default function ProposalBuilderWorkbenchEditOptionShell({
   optionLabel,
   scopeReviewCount,
   scopeReviewLines,
+  excludeEligibleLines,
   manualActiveLines,
   focusedTemplateItemId,
+  drawerIntent,
   onFocusTemplateItemId,
   persistedDraftEnabled,
-  manualQuantityInFlight,
+  scopeEditInFlight,
   manualQuantityError,
+  excludeError,
   onApplyManualQuantity,
   onClearManualQuantity,
+  onExcludeLine,
 }: ProposalBuilderWorkbenchEditOptionShellProps) {
   const [quantityDraft, setQuantityDraft] = useState("");
   const [localValidationError, setLocalValidationError] = useState<string | null>(null);
@@ -177,13 +198,24 @@ export default function ProposalBuilderWorkbenchEditOptionShell({
     return manualActiveLines.find((line) => line.templateItemId === focusedTemplateItemId) ?? null;
   }, [focusedTemplateItemId, manualActiveLines]);
 
-  const editableLineCount = scopeReviewLines.length + manualActiveLines.length;
-  const showLiveQuantity = persistedDraftEnabled && editableLineCount > 0;
+  const activeExcludeLine = useMemo(() => {
+    if (!focusedTemplateItemId) return null;
+    return excludeEligibleLines.find((line) => line.templateItemId === focusedTemplateItemId) ?? null;
+  }, [excludeEligibleLines, focusedTemplateItemId]);
+
+  const editableLineCount = scopeReviewLines.length + manualActiveLines.length + excludeEligibleLines.length;
+  const showLiveQuantity = persistedDraftEnabled && (scopeReviewLines.length > 0 || manualActiveLines.length > 0);
+  const showLiveExclude = persistedDraftEnabled && excludeEligibleLines.length > 0;
   const manualActiveMode = Boolean(activeManualLine);
+  const excludeMode = drawerIntent === "exclude" && Boolean(activeExcludeLine);
 
   const pickerLines = useMemo(() => {
     const seen = new Set<string>();
-    const rows: Array<{ templateItemId: string; name: string; kind: "scope_review" | "manual_active" }> = [];
+    const rows: Array<{
+      templateItemId: string;
+      name: string;
+      kind: "scope_review" | "manual_active" | "exclude_eligible";
+    }> = [];
     for (const line of scopeReviewLines) {
       if (seen.has(line.templateItemId)) continue;
       seen.add(line.templateItemId);
@@ -194,8 +226,13 @@ export default function ProposalBuilderWorkbenchEditOptionShell({
       seen.add(line.templateItemId);
       rows.push({ templateItemId: line.templateItemId, name: line.name, kind: "manual_active" });
     }
+    for (const line of excludeEligibleLines) {
+      if (seen.has(line.templateItemId)) continue;
+      seen.add(line.templateItemId);
+      rows.push({ templateItemId: line.templateItemId, name: line.name, kind: "exclude_eligible" });
+    }
     return rows;
-  }, [manualActiveLines, scopeReviewLines]);
+  }, [excludeEligibleLines, manualActiveLines, scopeReviewLines]);
 
   useEffect(() => {
     if (!open) {
@@ -213,7 +250,7 @@ export default function ProposalBuilderWorkbenchEditOptionShell({
     if (!open) return;
 
     function handleEscape(event: KeyboardEvent) {
-      if (event.key === "Escape" && !manualQuantityInFlight) {
+      if (event.key === "Escape" && !scopeEditInFlight) {
         onClose();
       }
     }
@@ -226,10 +263,10 @@ export default function ProposalBuilderWorkbenchEditOptionShell({
       document.removeEventListener("keydown", handleEscape);
       document.body.style.overflow = previousOverflow;
     };
-  }, [open, onClose, manualQuantityInFlight]);
+  }, [open, onClose, scopeEditInFlight]);
 
   const handleSave = useCallback(async () => {
-    if (!activeScopeReviewLine || manualQuantityInFlight) return;
+    if (!activeScopeReviewLine || scopeEditInFlight) return;
 
     const validation = validateManualQuantityInput(quantityDraft);
     if (!validation.ok) {
@@ -241,16 +278,21 @@ export default function ProposalBuilderWorkbenchEditOptionShell({
     const unit = activeScopeReviewLine.unitLabel?.trim();
     const displayLabel = unit ? `${validation.quantity} ${unit}` : String(validation.quantity);
     await onApplyManualQuantity(activeScopeReviewLine.templateItemId, quantityDraft, displayLabel);
-  }, [activeScopeReviewLine, manualQuantityInFlight, onApplyManualQuantity, quantityDraft]);
+  }, [activeScopeReviewLine, scopeEditInFlight, onApplyManualQuantity, quantityDraft]);
 
   const handleClear = useCallback(async () => {
-    if (!activeManualLine || manualQuantityInFlight) return;
+    if (!activeManualLine || scopeEditInFlight) return;
     await onClearManualQuantity(activeManualLine.templateItemId);
-  }, [activeManualLine, manualQuantityInFlight, onClearManualQuantity]);
+  }, [activeManualLine, scopeEditInFlight, onClearManualQuantity]);
+
+  const handleExclude = useCallback(async () => {
+    if (!activeExcludeLine || scopeEditInFlight) return;
+    await onExcludeLine(activeExcludeLine.templateItemId);
+  }, [activeExcludeLine, onExcludeLine, scopeEditInFlight]);
 
   const saveDisabled =
     !activeScopeReviewLine ||
-    manualQuantityInFlight ||
+    scopeEditInFlight ||
     quantityDraft.trim().length === 0 ||
     !validateManualQuantityInput(quantityDraft).ok;
 
@@ -259,11 +301,15 @@ export default function ProposalBuilderWorkbenchEditOptionShell({
   }
 
   const scopeHint =
-    scopeReviewCount > 0
-      ? `${scopeReviewCount} item${scopeReviewCount === 1 ? "" : "s"} in scope review — set manual quantity below.`
-      : manualActiveLines.length > 0
-        ? `${manualActiveLines.length} manual quantit${manualActiveLines.length === 1 ? "y" : "ies"} active on this package.`
-        : "No scope review lines need quantity on this package.";
+    excludeMode && activeExcludeLine
+      ? `Remove ${activeExcludeLine.name} from this package for this job.`
+      : scopeReviewCount > 0
+        ? `${scopeReviewCount} item${scopeReviewCount === 1 ? "" : "s"} in scope review — set manual quantity or remove from this option below.`
+        : manualActiveLines.length > 0
+          ? `${manualActiveLines.length} manual quantit${manualActiveLines.length === 1 ? "y" : "ies"} active on this package.`
+          : excludeEligibleLines.length > 0
+            ? "Remove template lines from this package without changing the master template."
+            : "No scope review lines need quantity on this package.";
 
   return createPortal(
     <>
@@ -271,10 +317,10 @@ export default function ProposalBuilderWorkbenchEditOptionShell({
         className={WORKBENCH_EDIT_OPTION_DRAWER_BACKDROP}
         aria-hidden="true"
         onClick={() => {
-          if (!manualQuantityInFlight) onClose();
+          if (!scopeEditInFlight) onClose();
         }}
         onKeyDown={(event) => {
-          if (event.key === "Escape" && !manualQuantityInFlight) {
+          if (event.key === "Escape" && !scopeEditInFlight) {
             onClose();
           }
         }}
@@ -295,7 +341,7 @@ export default function ProposalBuilderWorkbenchEditOptionShell({
                 <p className={WORKBENCH_MODULE_KICKER} id="workbench-edit-option-kicker">
                   Package scope
                 </p>
-                {!showLiveQuantity ? (
+                {!showLiveQuantity && !showLiveExclude ? (
                   <span className={WORKBENCH_EDIT_OPTION_COMING_SOON_BADGE}>Coming soon</span>
                 ) : null}
               </div>
@@ -312,7 +358,7 @@ export default function ProposalBuilderWorkbenchEditOptionShell({
             <button
               type="button"
               onClick={onClose}
-              disabled={manualQuantityInFlight}
+              disabled={scopeEditInFlight}
               className="inline-flex shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white p-1.5 text-slate-600 shadow-sm hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:opacity-60"
               aria-label="Close Edit option"
             >
@@ -370,7 +416,7 @@ export default function ProposalBuilderWorkbenchEditOptionShell({
                                   : WORKBENCH_EDIT_OPTION_LINE_PICKER
                               }
                               onClick={() => onFocusTemplateItemId(line.templateItemId)}
-                              disabled={manualQuantityInFlight}
+                              disabled={scopeEditInFlight}
                             >
                               <span className="flex items-center justify-between gap-2">
                                 <span>{line.name}</span>
@@ -425,7 +471,7 @@ export default function ProposalBuilderWorkbenchEditOptionShell({
                             setQuantityDraft(event.target.value);
                             setLocalValidationError(null);
                           }}
-                          disabled={manualQuantityInFlight}
+                          disabled={scopeEditInFlight}
                           placeholder="Enter quantity"
                           className={WORKBENCH_EDIT_OPTION_CONTROL_ENABLED}
                           aria-invalid={Boolean(localValidationError || manualQuantityError)}
@@ -456,6 +502,33 @@ export default function ProposalBuilderWorkbenchEditOptionShell({
               )}
             </section>
 
+            {showLiveExclude ? (
+              <section
+                className={WORKBENCH_EDIT_OPTION_SECTION}
+                aria-labelledby="edit-option-section-exclude"
+              >
+                <h4 className={WORKBENCH_EDIT_OPTION_SECTION_TITLE} id="edit-option-section-exclude">
+                  {WORKBENCH_EXCLUDE_SECTION_TITLE}
+                </h4>
+                <p className={WORKBENCH_EDIT_OPTION_SECTION_DESC}>{WORKBENCH_EXCLUDE_SECTION_DESC}</p>
+                {activeExcludeLine ? (
+                  <div className="mt-2.5 space-y-2">
+                    <p className="text-[12px] font-medium text-slate-700">{activeExcludeLine.name}</p>
+                    <p className="text-[12px] leading-snug text-slate-600">{WORKBENCH_EXCLUDE_HELPER_COPY}</p>
+                    {excludeError ? (
+                      <p className="text-[12px] text-red-600" role="alert">
+                        {excludeError}
+                      </p>
+                    ) : null}
+                  </div>
+                ) : (
+                  <p className="mt-2.5 text-[12px] text-slate-500">
+                    Select a line to remove from this option.
+                  </p>
+                )}
+              </section>
+            ) : null}
+
             {DISABLED_SHELL_SECTIONS.map((section) => (
               <section
                 key={section.id}
@@ -478,7 +551,7 @@ export default function ProposalBuilderWorkbenchEditOptionShell({
               <button
                 type="button"
                 onClick={onClose}
-                disabled={manualQuantityInFlight}
+                disabled={scopeEditInFlight}
                 className={WORKBENCH_EDIT_OPTION_CANCEL_BTN}
               >
                 Cancel
@@ -486,18 +559,37 @@ export default function ProposalBuilderWorkbenchEditOptionShell({
               <button
                 type="button"
                 onClick={() => void handleClear()}
-                disabled={manualQuantityInFlight}
+                disabled={scopeEditInFlight}
                 className={WORKBENCH_EDIT_OPTION_USE_MEASUREMENT_BTN}
               >
-                {manualQuantityInFlight ? "Clearing…" : WORKBENCH_USE_MEASUREMENT_QUANTITY_LABEL}
+                {scopeEditInFlight ? "Clearing…" : WORKBENCH_USE_MEASUREMENT_QUANTITY_LABEL}
               </button>
             </div>
-          ) : showLiveQuantity && activeScopeReviewLine ? (
+          ) : excludeMode && showLiveExclude && activeExcludeLine ? (
             <div className="flex flex-wrap items-center justify-end gap-2">
               <button
                 type="button"
                 onClick={onClose}
-                disabled={manualQuantityInFlight}
+                disabled={scopeEditInFlight}
+                className={WORKBENCH_EDIT_OPTION_CANCEL_BTN}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleExclude()}
+                disabled={scopeEditInFlight}
+                className={WORKBENCH_EXCLUDE_ACTION_BTN}
+              >
+                {scopeEditInFlight ? WORKBENCH_EXCLUDE_IN_FLIGHT_LABEL : WORKBENCH_EXCLUDE_ACTION_LABEL}
+              </button>
+            </div>
+          ) : showLiveQuantity && activeScopeReviewLine && drawerIntent === "quantity" ? (
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={scopeEditInFlight}
                 className={WORKBENCH_EDIT_OPTION_CANCEL_BTN}
               >
                 Cancel
@@ -508,7 +600,7 @@ export default function ProposalBuilderWorkbenchEditOptionShell({
                 disabled={saveDisabled}
                 className={WORKBENCH_EDIT_OPTION_SAVE_BTN}
               >
-                {manualQuantityInFlight ? "Saving…" : "Save quantity"}
+                {scopeEditInFlight ? "Saving…" : "Save quantity"}
               </button>
             </div>
           ) : (

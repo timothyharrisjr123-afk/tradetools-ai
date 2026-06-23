@@ -9,7 +9,9 @@ import { describe, test } from "node:test";
 import type { ProposalQuantityPreviewContext } from "./proposalBuilderPreview";
 import {
   applyManualQuantityScopeDecision,
+  clearExcludedLine,
   clearManualQuantityScopeDecision,
+  excludeLineFromProposalOption,
   ProposalScopeDecisionActionError,
   validateManualQuantityInput,
 } from "./proposalScopeDecisionActions";
@@ -87,6 +89,38 @@ describe("clearManualQuantityScopeDecision", () => {
     await assert.rejects(
       () =>
         clearManualQuantityScopeDecision({
+          companyId: COMPANY_ID,
+          proposalId: PROPOSAL_ID,
+          runtimeProposalOptionId: OPTION_ID,
+          sourceTemplateItemId: "",
+          refreshContext: REFRESH_CONTEXT,
+        }),
+      (err: unknown) => err instanceof ProposalScopeDecisionActionError
+    );
+  });
+});
+
+describe("excludeLineFromProposalOption", () => {
+  test("rejects missing ids", async () => {
+    await assert.rejects(
+      () =>
+        excludeLineFromProposalOption({
+          companyId: "",
+          proposalId: PROPOSAL_ID,
+          runtimeProposalOptionId: OPTION_ID,
+          sourceTemplateItemId: TEMPLATE_ITEM_ID,
+          refreshContext: REFRESH_CONTEXT,
+        }),
+      (err: unknown) => err instanceof ProposalScopeDecisionActionError
+    );
+  });
+});
+
+describe("clearExcludedLine", () => {
+  test("rejects missing sourceTemplateItemId", async () => {
+    await assert.rejects(
+      () =>
+        clearExcludedLine({
           companyId: COMPANY_ID,
           proposalId: PROPOSAL_ID,
           runtimeProposalOptionId: OPTION_ID,

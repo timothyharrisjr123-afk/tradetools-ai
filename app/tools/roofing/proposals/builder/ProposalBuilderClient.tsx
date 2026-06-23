@@ -36,7 +36,9 @@ import {
 } from "@/app/lib/proposalDraftGraphAdapter";
 import {
   applyManualQuantityScopeDecision,
+  clearExcludedLine,
   clearManualQuantityScopeDecision,
+  excludeLineFromProposalOption,
   ProposalScopeDecisionActionError,
 } from "@/app/lib/proposalScopeDecisionActions";
 import {
@@ -65,7 +67,11 @@ import {
   resolvePersistedPageByContextId,
   type BuilderPageContextId,
 } from "@/app/lib/proposalBuilderNavigation";
-import { BUILDER_UNSAVED_PAGE_EDIT_CONFIRM } from "./proposalBuilderConstants";
+import {
+  BUILDER_UNSAVED_PAGE_EDIT_CONFIRM,
+  WORKBENCH_EXCLUDE_SUCCESS,
+  WORKBENCH_RESTORE_EXCLUDED_SUCCESS,
+} from "./proposalBuilderConstants";
 import { buildProposalCoverViewModel } from "@/app/lib/proposalCoverViewModel";
 import {
   deriveProposalBuilderGuidance,
@@ -155,6 +161,9 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
   const [manualQuantityInFlight, setManualQuantityInFlight] = useState(false);
   const [manualQuantityError, setManualQuantityError] = useState<string | null>(null);
   const manualQuantityInFlightRef = useRef(false);
+  const [excludeInFlight, setExcludeInFlight] = useState(false);
+  const [excludeError, setExcludeError] = useState<string | null>(null);
+  const excludeInFlightRef = useRef(false);
   const pageVisibilityToggleInFlightRef = useRef(false);
 
   const loadJobContext = useCallback(async () => {
@@ -521,6 +530,20 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
     return adapterResult.snapshotQuantityByOptionId[effectiveSelectedOptionId] ?? null;
   }, [adapterResult, effectiveSelectedOptionId]);
 
+  const activeScopeDecisionsForOption = useMemo(() => {
+    if (!persistedGraph?.scopeDecisions?.length || !effectiveSelectedOptionId) {
+      return [];
+    }
+    const runtimeOptionId = resolveRuntimeOptionIdFromTemplateOptionId(
+      persistedGraph,
+      effectiveSelectedOptionId
+    );
+    if (!runtimeOptionId) return [];
+    return persistedGraph.scopeDecisions.filter(
+      (decision) => decision.active && decision.proposalOptionId === runtimeOptionId
+    );
+  }, [persistedGraph, effectiveSelectedOptionId]);
+
   // Stale detection: snapshot measurement id vs currently selected measurement.
   const proposalPricingStale = useMemo(() => {
     if (!adapterResult) return { stale: false, reason: null as string | null };
@@ -622,7 +645,7 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
         );
       }
 
-      if (manualQuantityInFlightRef.current) {
+      if (manualQuantityInFlightRef.current || excludeInFlightRef.current) {
         throw new ProposalScopeDecisionActionError("Manual quantity save already in progress.");
       }
 
@@ -704,7 +727,7 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
         );
       }
 
-      if (manualQuantityInFlightRef.current) {
+      if (manualQuantityInFlightRef.current || excludeInFlightRef.current) {
         throw new ProposalScopeDecisionActionError("Manual quantity action already in progress.");
       }
 
@@ -752,6 +775,166 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
       } finally {
         manualQuantityInFlightRef.current = false;
         setManualQuantityInFlight(false);
+      }
+    },
+    [
+      companyId,
+      effectiveSelectedOptionId,
+      hasPersistedProposalParam,
+      measurementHandoff,
+      measurementQuantityMap,
+      persistedGraph,
+      proposalIdParam,
+      selectedMeasurementId,
+    ]
+  );
+
+  const handleExcludeLine = useCallback(
+    async (templateItemId: string) => {
+      if (!hasPersistedProposalParam || !persistedGraph || !proposalIdParam) {
+        throw new ProposalScopeDecisionActionError(
+          "Remove from option requires a saved proposal draft."
+        );
+      }
+
+      const runtimeOptionId = resolveRuntimeOptionIdFromTemplateOptionId(
+        persistedGraph,
+        effectiveSelectedOptionId
+      );
+      if (!runtimeOptionId) {
+        throw new ProposalScopeDecisionActionError(
+          "Selected option is not available on this proposal draft."
+        );
+      }
+
+      if (excludeInFlightRef.current || manualQuantityInFlightRef.current) {
+        throw new ProposalScopeDecisionActionError("Remove from option already in progress.");
+      }
+
+      excludeInFlightRef.current = true;
+      setExcludeInFlight(true);
+      setExcludeError(null);
+
+      const measurementDisplay = measurementHandoff
+        ? formatProposalQuantitiesDisplay(measurementHandoff.quantities)
+        : null;
+
+      try {
+        const { graph } = await excludeLineFromProposalOption({
+          companyId,
+          proposalId: proposalIdParam.trim(),
+          runtimeProposalOptionId: runtimeOptionId,
+          sourceTemplateItemId: templateItemId,
+          refreshContext: {
+            quantity_context: {
+              measurementHandoff,
+              quantityMap: measurementQuantityMap,
+            },
+            measurement_record_id: selectedMeasurementId,
+            measurement_quantities_display:
+              measurementDisplay && measurementDisplay !== "—" ? measurementDisplay : null,
+          },
+        });
+
+        setPersistedGraph(graph);
+        setRefreshFeedback({
+          kind: "success",
+          message: WORKBENCH_EXCLUDE_SUCCESS,
+        });
+      } catch (err) {
+        const message =
+          err instanceof ProposalScopeDecisionActionError
+            ? err.message
+            : err instanceof ProposalRecordStoreError
+              ? err.message
+              : err instanceof Error
+                ? err.message
+                : "Could not remove line from this option.";
+        setExcludeError(message);
+        throw err;
+      } finally {
+        excludeInFlightRef.current = false;
+        setExcludeInFlight(false);
+      }
+    },
+    [
+      companyId,
+      effectiveSelectedOptionId,
+      hasPersistedProposalParam,
+      measurementHandoff,
+      measurementQuantityMap,
+      persistedGraph,
+      proposalIdParam,
+      selectedMeasurementId,
+    ]
+  );
+
+  const handleRestoreExcludedLine = useCallback(
+    async (templateItemId: string) => {
+      if (!hasPersistedProposalParam || !persistedGraph || !proposalIdParam) {
+        throw new ProposalScopeDecisionActionError(
+          "Restore requires a saved proposal draft."
+        );
+      }
+
+      const runtimeOptionId = resolveRuntimeOptionIdFromTemplateOptionId(
+        persistedGraph,
+        effectiveSelectedOptionId
+      );
+      if (!runtimeOptionId) {
+        throw new ProposalScopeDecisionActionError(
+          "Selected option is not available on this proposal draft."
+        );
+      }
+
+      if (excludeInFlightRef.current || manualQuantityInFlightRef.current) {
+        throw new ProposalScopeDecisionActionError("Restore already in progress.");
+      }
+
+      excludeInFlightRef.current = true;
+      setExcludeInFlight(true);
+      setExcludeError(null);
+
+      const measurementDisplay = measurementHandoff
+        ? formatProposalQuantitiesDisplay(measurementHandoff.quantities)
+        : null;
+
+      try {
+        const { graph } = await clearExcludedLine({
+          companyId,
+          proposalId: proposalIdParam.trim(),
+          runtimeProposalOptionId: runtimeOptionId,
+          sourceTemplateItemId: templateItemId,
+          refreshContext: {
+            quantity_context: {
+              measurementHandoff,
+              quantityMap: measurementQuantityMap,
+            },
+            measurement_record_id: selectedMeasurementId,
+            measurement_quantities_display:
+              measurementDisplay && measurementDisplay !== "—" ? measurementDisplay : null,
+          },
+        });
+
+        setPersistedGraph(graph);
+        setRefreshFeedback({
+          kind: "success",
+          message: WORKBENCH_RESTORE_EXCLUDED_SUCCESS,
+        });
+      } catch (err) {
+        const message =
+          err instanceof ProposalScopeDecisionActionError
+            ? err.message
+            : err instanceof ProposalRecordStoreError
+              ? err.message
+              : err instanceof Error
+                ? err.message
+                : "Could not restore line to this option.";
+        setExcludeError(message);
+        throw err;
+      } finally {
+        excludeInFlightRef.current = false;
+        setExcludeInFlight(false);
       }
     },
     [
@@ -1223,6 +1406,9 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
               )}
               manualQuantityInFlight={manualQuantityInFlight}
               manualQuantityError={manualQuantityError}
+              activeScopeDecisionsForOption={activeScopeDecisionsForOption}
+              excludeInFlight={excludeInFlight}
+              excludeError={excludeError}
               onApplyManualQuantity={
                 hasPersistedProposalParam && persistedGraph && !draftGraphError
                   ? handleApplyManualQuantity
@@ -1231,6 +1417,16 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
               onClearManualQuantity={
                 hasPersistedProposalParam && persistedGraph && !draftGraphError
                   ? handleClearManualQuantity
+                  : undefined
+              }
+              onExcludeLine={
+                hasPersistedProposalParam && persistedGraph && !draftGraphError
+                  ? handleExcludeLine
+                  : undefined
+              }
+              onRestoreExcludedLine={
+                hasPersistedProposalParam && persistedGraph && !draftGraphError
+                  ? handleRestoreExcludedLine
                   : undefined
               }
             />

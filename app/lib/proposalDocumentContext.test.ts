@@ -118,6 +118,7 @@ function draftGraph(overrides: Partial<ProposalDraftGraph> = {}): ProposalDraftG
     ],
     lineItems: [] as ProposalLineItemRow[],
     internalSummaries: [] as ProposalInternalSummaryRow[],
+    scopeDecisions: [],
     ...overrides,
   };
 }

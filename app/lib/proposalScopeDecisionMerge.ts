@@ -2,6 +2,7 @@
  * R17D Phase 1 — pure scope decision merge into pricing input before snapshot build.
  *
  * Phase 1 fully implements manual_quantity for template-targeted lines.
+ * Phase 3A implements excluded (omit from pricing input).
  * Other decision types are typed but produce explicit unsupported/warning entries.
  */
 
@@ -114,6 +115,69 @@ export type MergeScopeDecisionsIntoPricingLinesParams = {
   report: ProposalScopeDecisionMergeReport;
 };
 
+function applyExcludedDecisionsToPricingLines(
+  graph: ProposalTemplateGraph,
+  templateOptionId: string,
+  lines: PricingLineInput[],
+  decisions: ProposalScopeDecision[],
+  report: ProposalScopeDecisionMergeReport
+): { lines: PricingLineInput[]; excludedTemplateItemIds: Set<string> } {
+  const excludedTemplateItemIds = new Set<string>();
+
+  for (const decision of decisions) {
+    if (!decision.active) {
+      continue;
+    }
+    if (decision.decisionType !== "excluded") {
+      continue;
+    }
+
+    const templateItemId = decision.sourceTemplateItemId;
+    if (!templateItemId) {
+      report.stale.push({
+        decisionId: decision.id,
+        decisionType: decision.decisionType,
+        sourceTemplateItemId: decision.sourceTemplateItemId,
+        instanceLineKey: decision.instanceLineKey,
+        message: "excluded requires source_template_item_id.",
+      });
+      continue;
+    }
+
+    const templateItem = graph.items.find((item) => item.id === templateItemId);
+    if (!templateItem || templateItem.option_id !== templateOptionId) {
+      report.stale.push({
+        decisionId: decision.id,
+        decisionType: decision.decisionType,
+        sourceTemplateItemId: templateItemId,
+        instanceLineKey: decision.instanceLineKey,
+        message: "source_template_item_id is missing or not on this option.",
+      });
+      continue;
+    }
+
+    excludedTemplateItemIds.add(templateItemId);
+    report.applied.push({
+      decisionId: decision.id,
+      decisionType: decision.decisionType,
+      sourceTemplateItemId: templateItemId,
+      instanceLineKey: decision.instanceLineKey,
+      message: "Excluded line from proposal option pricing input.",
+    });
+  }
+
+  if (excludedTemplateItemIds.size === 0) {
+    return { lines: lines.map((line) => ({ ...line })), excludedTemplateItemIds };
+  }
+
+  return {
+    lines: lines
+      .filter((line) => !excludedTemplateItemIds.has(line.templateItemId))
+      .map((line) => ({ ...line })),
+    excludedTemplateItemIds,
+  };
+}
+
 export function mergeScopeDecisionsIntoPricingLines(
   params: MergeScopeDecisionsIntoPricingLinesParams
 ): PricingLineInput[] {
@@ -121,9 +185,6 @@ export function mergeScopeDecisionsIntoPricingLines(
   if (decisions.length === 0) {
     return lines;
   }
-
-  const lineByTemplateItemId = new Map(lines.map((line) => [line.templateItemId, line]));
-  const merged = lines.map((line) => ({ ...line }));
 
   for (const decision of decisions) {
     if (!decision.active) {
@@ -134,11 +195,39 @@ export function mergeScopeDecisionsIntoPricingLines(
         instanceLineKey: decision.instanceLineKey,
         message: "Decision is inactive.",
       });
+    }
+  }
+
+  const { lines: merged, excludedTemplateItemIds } = applyExcludedDecisionsToPricingLines(
+    graph,
+    templateOptionId,
+    lines,
+    decisions,
+    report
+  );
+
+  for (const decision of decisions) {
+    if (!decision.active) {
+      continue;
+    }
+
+    if (decision.decisionType === "excluded") {
       continue;
     }
 
     if (decision.decisionType === "manual_quantity") {
       const templateItemId = decision.sourceTemplateItemId;
+      if (templateItemId && excludedTemplateItemIds.has(templateItemId)) {
+        report.ignored.push({
+          decisionId: decision.id,
+          decisionType: decision.decisionType,
+          sourceTemplateItemId: templateItemId,
+          instanceLineKey: decision.instanceLineKey,
+          message: "manual_quantity ignored because line is excluded.",
+        });
+        continue;
+      }
+
       if (!templateItemId) {
         report.stale.push({
           decisionId: decision.id,
@@ -203,14 +292,11 @@ export function mergeScopeDecisionsIntoPricingLines(
       decisionType: decision.decisionType,
       sourceTemplateItemId: decision.sourceTemplateItemId,
       instanceLineKey: decision.instanceLineKey,
-      message: `${decision.decisionType} is not implemented in R17D Phase 1 merge.`,
+      message: `${decision.decisionType} is not implemented in R17D Phase 3A merge.`,
     });
     report.warnings.push(
-      `Scope decision ${decision.id} (${decision.decisionType}) is not implemented in Phase 1 merge.`
+      `Scope decision ${decision.id} (${decision.decisionType}) is not implemented in Phase 3A merge.`
     );
-
-    // Preserve lineByTemplateItemId reference for future types; no silent mutation.
-    void lineByTemplateItemId;
   }
 
   return merged;
