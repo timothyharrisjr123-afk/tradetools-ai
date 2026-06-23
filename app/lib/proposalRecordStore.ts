@@ -6,9 +6,12 @@
  *
  * Uses getSupabaseClient() + RLS (same pattern as jobStore / catalogStore).
  *
- * NOT atomic: Supabase JS issues sequential requests without a guaranteed
- * single DB transaction. On partial failure, earlier rows may persist;
- * callers must treat errors as potentially inconsistent and reconcile manually.
+ * refreshDraftPricing calculation stays in TypeScript; persistence is staged
+ * toward RPC `persist_draft_pricing_refresh_v1` (see proposalDraftPricingRefreshPersistence).
+ * Until the migration is applied and USE_REFRESH_DRAFT_PRICING_RPC=1, refresh uses
+ * sequential Supabase writes (non-atomic — partial failure may corrupt the graph).
+ *
+ * createDraftProposal and other multi-table writes remain non-atomic (later stage).
  *
  * No React, Builder UI, APIs, pricing formula changes, or legacy estimator paths.
  */
@@ -66,6 +69,13 @@ import {
 } from "@/app/lib/proposalScopeDecisionMerge";
 import type { ProposalScopeDecision } from "@/app/lib/proposalScopeDecisionTypes";
 import { getScopeDecisionsForDraftGraph } from "@/app/lib/proposalScopeDecisionStore";
+import {
+  buildDraftPricingRefreshPersistPayload,
+  isRefreshDraftPricingRpcEnabled,
+  persistDraftPricingRefreshSequential,
+  persistDraftPricingRefreshViaRpc,
+  ProposalDraftPricingRefreshPersistenceError,
+} from "@/app/lib/proposalDraftPricingRefreshPersistence";
 import {
   isEditableProposalPageType,
   mergeProposalPageBodyMarkdown,
@@ -1446,137 +1456,62 @@ export async function refreshDraftPricing(
     ).data ?? []
   );
 
-  for (const optionPayload of payload.options) {
-    const existing = options.find(
-      (o) => o.source_template_option_id === optionPayload.source_template_option_id
-    );
-    if (!existing) continue;
-
-    await supabase
-      .from("proposal_options")
-      .update({
-        customer_subtotal_cents: optionPayload.customer_subtotal_cents,
-        discount_cents: optionPayload.discount_cents,
-        sales_tax_cents: optionPayload.sales_tax_cents,
-        customer_total_cents: optionPayload.customer_total_cents,
-        pricing_complete: optionPayload.pricing_complete,
-        blocking_line_count: optionPayload.blocking_line_count,
-        guardrail_outcome: optionPayload.guardrail_outcome,
-      })
-      .eq("id", existing.id)
-      .eq("company_id", cid);
-
-    await supabase
-      .from("proposal_line_items")
-      .delete()
-      .eq("company_id", cid)
-      .eq("proposal_option_id", existing.id);
-
-    await supabase
-      .from("proposal_internal_summaries")
-      .delete()
-      .eq("company_id", cid)
-      .eq("proposal_option_id", existing.id);
-
-    const linesForOption =
-      instantiateInput.lineItemsByTemplateOptionId[optionPayload.source_template_option_id] ?? [];
-
-    const builtLines = buildLineItemSnapshots({
-      company_id: cid,
-      proposal_option_id: existing.id,
-      lines: linesForOption,
-    });
-
-    for (const built of builtLines) {
-      const insertRow = {
-        company_id: cid,
-        proposal_option_id: existing.id,
-        source_template_item_id: built.source_template_item_id,
-        catalog_item_id: built.catalog_item_id,
-        catalog_seed_key: built.catalog_seed_key,
-        section_id: built.section_id,
-        page_id: built.section_id ? pageIdBySection.get(built.section_id) ?? null : null,
-        sort_order: built.sort_order,
-        customer_name: built.customer_name,
-        description: built.description,
-        role: built.role,
-        quantity: built.quantity,
-        quantity_display_label: built.quantity_display_label,
-        quantity_source_label: built.quantity_source_label,
-        unit: built.unit,
-        customer_unit_price_cents: built.customer_unit_price_cents,
-        customer_line_total_cents: built.customer_line_total_cents,
-        pricing_status: built.pricing_status,
-        visible_to_customer: built.visible_to_customer,
-        measurement_quantity_key: built.measurement_quantity_key,
-      };
-      assertLineInsertRowCustomerSafe(insertRow);
-      await supabase.from("proposal_line_items").insert(insertRow);
-    }
-
-    const internalInput =
-      instantiateInput.internalSummaryByTemplateOptionId[optionPayload.source_template_option_id];
-    if (internalInput) {
-      await supabase.from("proposal_internal_summaries").insert({
-        company_id: cid,
-        proposal_option_id: existing.id,
-        internal_cost_cents: internalInput.internal_cost_cents,
-        internal_profit_cents: internalInput.internal_profit_cents,
-        effective_margin_pct: sanitizeEffectiveMarginPct(internalInput.effective_margin_pct),
-        policy_echo_json: buildInternalPolicyEchoJson({
-          policy,
-          pricingPolicyId: proposal.pricing_policy_id,
-          source: "company",
-        }),
-        computed_at: new Date().toISOString(),
-      });
-    }
-  }
-
-  // Re-stamp the snapshot measurement context so stale detection clears. Merge
-  // onto the existing context_echo — never wipe the rest of the customer-safe
-  // job/customer/company context captured at create time.
   const stampMeasurementId = input.measurement_record_id !== undefined;
   const stampMeasurementDisplay = input.measurement_quantities_display !== undefined;
-  if (stampMeasurementId || stampMeasurementDisplay) {
-    const existingContext =
-      version.context_echo && typeof version.context_echo === "object"
-        ? (version.context_echo as Record<string, unknown>)
-        : {};
-    const nextContext: Record<string, unknown> = {
-      ...existingContext,
-      ...(stampMeasurementId
-        ? { measurement_record_id: input.measurement_record_id ?? null }
-        : {}),
-      ...(stampMeasurementDisplay
-        ? { measurement_quantities_display: input.measurement_quantities_display ?? null }
-        : {}),
-    };
-    await supabase
-      .from("proposal_versions")
-      .update({ context_echo: nextContext })
-      .eq("id", version.id)
-      .eq("company_id", cid);
+  const measurementStamp =
+    stampMeasurementId || stampMeasurementDisplay
+      ? {
+          ...(stampMeasurementId
+            ? { measurement_record_id: input.measurement_record_id ?? null }
+            : {}),
+          ...(stampMeasurementDisplay
+            ? { measurement_quantities_display: input.measurement_quantities_display ?? null }
+            : {}),
+          context_echo: {
+            ...(version.context_echo && typeof version.context_echo === "object"
+              ? (version.context_echo as Record<string, unknown>)
+              : {}),
+            ...(stampMeasurementId
+              ? { measurement_record_id: input.measurement_record_id ?? null }
+              : {}),
+            ...(stampMeasurementDisplay
+              ? {
+                  measurement_quantities_display:
+                    input.measurement_quantities_display ?? null,
+                }
+              : {}),
+          },
+        }
+      : null;
 
-    if (stampMeasurementId) {
-      await supabase
-        .from("proposals")
-        .update({ measurement_record_id: input.measurement_record_id ?? null })
-        .eq("id", pid)
-        .eq("company_id", cid);
+  const persistPayload = buildDraftPricingRefreshPersistPayload({
+    companyId: cid,
+    proposalId: pid,
+    proposalVersionId: version.id,
+    instantiatePayload: payload,
+    instantiateInput,
+    existingOptions: options.map((row) => ({
+      id: row.id,
+      source_template_option_id: row.source_template_option_id,
+    })),
+    pageIdBySection,
+    policy,
+    pricingPolicyId: proposal.pricing_policy_id!,
+    measurementStamp,
+  });
+
+  try {
+    if (isRefreshDraftPricingRpcEnabled()) {
+      await persistDraftPricingRefreshViaRpc(supabase, persistPayload);
+    } else {
+      await persistDraftPricingRefreshSequential(supabase, persistPayload);
     }
+  } catch (error) {
+    if (error instanceof ProposalDraftPricingRefreshPersistenceError) {
+      throw new ProposalRecordStoreError(error.message);
+    }
+    throw error;
   }
-
-  await appendProposalEvent(
-    {
-      company_id: cid,
-      proposal_id: pid,
-      proposal_version_id: version.id,
-      event_type: "draft_saved",
-      payload_json: { reason: "refresh_draft_pricing" },
-    },
-    deps
-  );
 
   return getDraftGraph(cid, pid, deps);
 }

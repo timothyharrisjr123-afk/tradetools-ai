@@ -14,6 +14,10 @@ import type { MeasurementProposalHandoff } from "./measurementProposalHandoff";
 import type { MeasurementQuantityMap } from "./measurementTypes";
 import type { ProposalQuantityPreviewContext } from "./proposalBuilderPreview";
 import {
+  buildDraftPricingRefreshGraphSnapshotFromTables,
+  validateDraftPricingRefreshGraphIntegrity,
+} from "./proposalDraftPricingRefreshPersistence";
+import {
   DEFAULT_PROFITABILITY_TYPE,
   DEFAULT_QUANTITY_ROUNDING,
   DEFAULT_WASTE_MODEL,
@@ -205,6 +209,8 @@ function queryTable(
 function createMockSupabase(options?: {
   rejectCustomer?: boolean;
   versionKind?: string;
+  failOn?: { table: string; action: "insert" | "update" | "delete" };
+  shouldFailOn?: () => boolean;
 }) {
   const state: MockState = {
     ops: [],
@@ -269,16 +275,35 @@ function createMockSupabase(options?: {
         return chain;
       },
       insert(data: unknown) {
+        if (
+          options?.failOn?.table === table &&
+          options.failOn.action === "insert" &&
+          (options.shouldFailOn?.() ?? true)
+        ) {
+          throw new Error(`mock failOn ${table}.insert`);
+        }
         pendingInsert = data;
         state.ops.push({ table, action: "insert", payload: data });
         return chain;
       },
       update(data: unknown) {
+        if (
+          options?.failOn?.table === table &&
+          options.failOn.action === "update"
+        ) {
+          throw new Error(`mock failOn ${table}.update`);
+        }
         pendingUpdate = data;
         state.ops.push({ table, action: "update", payload: data });
         return chain;
       },
       delete() {
+        if (
+          options?.failOn?.table === table &&
+          options.failOn.action === "delete"
+        ) {
+          throw new Error(`mock failOn ${table}.delete`);
+        }
         pendingDelete = true;
         state.ops.push({ table, action: "delete" });
         return chain;
@@ -356,7 +381,10 @@ function createMockSupabase(options?: {
   }
 
   return {
-    supabase: { from },
+    supabase: {
+      from,
+      rpc: async () => ({ data: { ok: true }, error: null }),
+    },
     state,
   };
 }
@@ -1211,6 +1239,55 @@ describe("refreshDraftPricing", () => {
         currentMeasurementId: NEW_MEAS,
       }).stale,
       false
+    );
+  });
+
+  test("sequential refresh line insert failure leaves corrupt graph (documents non-atomic risk)", async () => {
+    let refreshStarted = false;
+    const mock = createMockSupabase({
+      failOn: { table: "proposal_line_items", action: "insert" },
+      shouldFailOn: () => refreshStarted,
+    });
+    const deps = storeDeps(mock);
+    const created = await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+        quantity_context: contextWithSquares(22),
+      },
+      deps
+    );
+
+    const linesBefore = mock.state.tables.proposal_line_items.length;
+    assert.ok(linesBefore > 0);
+
+    refreshStarted = true;
+
+    await assert.rejects(
+      () =>
+        refreshDraftPricing(
+          COMPANY_ID,
+          created.proposal.id,
+          { quantity_context: contextWithSquares(24) },
+          deps
+        ),
+      /mock failOn proposal_line_items\.insert/
+    );
+
+    assert.equal(mock.state.tables.proposal_line_items.length, 0);
+
+    const snapshot = buildDraftPricingRefreshGraphSnapshotFromTables({
+      options: mock.state.tables.proposal_options as Record<string, unknown>[],
+      lineItems: mock.state.tables.proposal_line_items as Record<string, unknown>[],
+      internalSummaries:
+        mock.state.tables.proposal_internal_summaries as Record<string, unknown>[],
+    });
+
+    const violations = validateDraftPricingRefreshGraphIntegrity(snapshot);
+    assert.ok(
+      violations.some((violation) => violation.code === "option_totals_without_lines"),
+      "expected corrupt graph when line insert fails after delete"
     );
   });
 });
