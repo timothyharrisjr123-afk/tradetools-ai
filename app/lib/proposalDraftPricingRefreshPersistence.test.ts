@@ -10,7 +10,7 @@ import {
   buildDraftPricingRefreshGraphSnapshotFromTables,
   buildDraftPricingRefreshPersistPayload,
   DRAFT_PRICING_REFRESH_ATOMIC_TABLES,
-  isRefreshDraftPricingRpcEnabled,
+  isRefreshDraftPricingSequentialEnabled,
   PERSIST_DRAFT_PRICING_REFRESH_RPC_V1,
   persistDraftPricingRefreshSequential,
   persistDraftPricingRefreshViaRpc,
@@ -135,48 +135,54 @@ function minimalInstantiateInput(): DraftInstantiateInput {
   };
 }
 
-describe("isRefreshDraftPricingRpcEnabled env gate", { concurrency: 1 }, () => {
-  const originalUse = process.env.USE_REFRESH_DRAFT_PRICING_RPC;
-  const originalPublic = process.env.NEXT_PUBLIC_USE_REFRESH_DRAFT_PRICING_RPC;
+describe("isRefreshDraftPricingSequentialEnabled escape hatch", { concurrency: 1 }, () => {
+  const originalSequential = process.env.USE_REFRESH_DRAFT_PRICING_SEQUENTIAL;
+  const originalLegacyRpc = process.env.USE_REFRESH_DRAFT_PRICING_RPC;
+  const originalLegacyPublic = process.env.NEXT_PUBLIC_USE_REFRESH_DRAFT_PRICING_RPC;
 
   function restoreEnv(): void {
-    if (originalUse === undefined) {
+    if (originalSequential === undefined) {
+      delete process.env.USE_REFRESH_DRAFT_PRICING_SEQUENTIAL;
+    } else {
+      process.env.USE_REFRESH_DRAFT_PRICING_SEQUENTIAL = originalSequential;
+    }
+    if (originalLegacyRpc === undefined) {
       delete process.env.USE_REFRESH_DRAFT_PRICING_RPC;
     } else {
-      process.env.USE_REFRESH_DRAFT_PRICING_RPC = originalUse;
+      process.env.USE_REFRESH_DRAFT_PRICING_RPC = originalLegacyRpc;
     }
-    if (originalPublic === undefined) {
+    if (originalLegacyPublic === undefined) {
       delete process.env.NEXT_PUBLIC_USE_REFRESH_DRAFT_PRICING_RPC;
     } else {
-      process.env.NEXT_PUBLIC_USE_REFRESH_DRAFT_PRICING_RPC = originalPublic;
+      process.env.NEXT_PUBLIC_USE_REFRESH_DRAFT_PRICING_RPC = originalLegacyPublic;
     }
   }
 
-  test("default off when env flags are unset", () => {
+  test("sequential off by default when escape hatch env is unset", () => {
+    delete process.env.USE_REFRESH_DRAFT_PRICING_SEQUENTIAL;
     delete process.env.USE_REFRESH_DRAFT_PRICING_RPC;
     delete process.env.NEXT_PUBLIC_USE_REFRESH_DRAFT_PRICING_RPC;
-    assert.equal(isRefreshDraftPricingRpcEnabled(), false);
+    assert.equal(isRefreshDraftPricingSequentialEnabled(), false);
     restoreEnv();
   });
 
-  test("enables only when USE_REFRESH_DRAFT_PRICING_RPC is exactly 1", () => {
-    delete process.env.NEXT_PUBLIC_USE_REFRESH_DRAFT_PRICING_RPC;
+  test("enables sequential only when USE_REFRESH_DRAFT_PRICING_SEQUENTIAL is exactly 1", () => {
+    process.env.USE_REFRESH_DRAFT_PRICING_SEQUENTIAL = "1";
+    assert.equal(isRefreshDraftPricingSequentialEnabled(), true);
+    restoreEnv();
+  });
+
+  test("truthy values other than 1 do not enable sequential escape hatch", () => {
+    process.env.USE_REFRESH_DRAFT_PRICING_SEQUENTIAL = "true";
+    assert.equal(isRefreshDraftPricingSequentialEnabled(), false);
+    restoreEnv();
+  });
+
+  test("legacy USE_REFRESH_DRAFT_PRICING_RPC env does not enable sequential path", () => {
+    delete process.env.USE_REFRESH_DRAFT_PRICING_SEQUENTIAL;
     process.env.USE_REFRESH_DRAFT_PRICING_RPC = "1";
-    assert.equal(isRefreshDraftPricingRpcEnabled(), true);
-    restoreEnv();
-  });
-
-  test("enables only when NEXT_PUBLIC_USE_REFRESH_DRAFT_PRICING_RPC is exactly 1", () => {
-    delete process.env.USE_REFRESH_DRAFT_PRICING_RPC;
     process.env.NEXT_PUBLIC_USE_REFRESH_DRAFT_PRICING_RPC = "1";
-    assert.equal(isRefreshDraftPricingRpcEnabled(), true);
-    restoreEnv();
-  });
-
-  test("truthy values other than 1 do not enable RPC mode", () => {
-    process.env.USE_REFRESH_DRAFT_PRICING_RPC = "true";
-    process.env.NEXT_PUBLIC_USE_REFRESH_DRAFT_PRICING_RPC = "yes";
-    assert.equal(isRefreshDraftPricingRpcEnabled(), false);
+    assert.equal(isRefreshDraftPricingSequentialEnabled(), false);
     restoreEnv();
   });
 });
@@ -193,7 +199,7 @@ describe("draft pricing refresh persistence contract", () => {
     ]);
   });
 
-  test("documents sequential per-option write order before RPC is live", () => {
+  test("documents sequential per-option write order for legacy backstop path", () => {
     assert.equal(REFRESH_DRAFT_PRICING_SEQUENTIAL_STEPS_PER_OPTION.length, 5);
     assert.equal(REFRESH_DRAFT_PRICING_SEQUENTIAL_STEPS_PER_OPTION[0], "proposal_options.update");
     assert.equal(

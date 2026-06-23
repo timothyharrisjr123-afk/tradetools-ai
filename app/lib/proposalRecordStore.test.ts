@@ -113,38 +113,52 @@ type MockRpcCall = {
   args: Record<string, unknown> | undefined;
 };
 
-function withRefreshPricingRpcDisabled<T>(fn: () => Promise<T>): Promise<T> {
-  const priorRpc = process.env.USE_REFRESH_DRAFT_PRICING_RPC;
-  const priorPublic = process.env.NEXT_PUBLIC_USE_REFRESH_DRAFT_PRICING_RPC;
+function withRefreshPricingSequentialEnabled<T>(fn: () => Promise<T>): Promise<T> {
+  const priorSequential = process.env.USE_REFRESH_DRAFT_PRICING_SEQUENTIAL;
+  const priorLegacyRpc = process.env.USE_REFRESH_DRAFT_PRICING_RPC;
+  const priorLegacyPublic = process.env.NEXT_PUBLIC_USE_REFRESH_DRAFT_PRICING_RPC;
+  process.env.USE_REFRESH_DRAFT_PRICING_SEQUENTIAL = "1";
   delete process.env.USE_REFRESH_DRAFT_PRICING_RPC;
   delete process.env.NEXT_PUBLIC_USE_REFRESH_DRAFT_PRICING_RPC;
   return fn().finally(() => {
-    if (priorRpc !== undefined) {
-      process.env.USE_REFRESH_DRAFT_PRICING_RPC = priorRpc;
+    if (priorSequential !== undefined) {
+      process.env.USE_REFRESH_DRAFT_PRICING_SEQUENTIAL = priorSequential;
+    } else {
+      delete process.env.USE_REFRESH_DRAFT_PRICING_SEQUENTIAL;
+    }
+    if (priorLegacyRpc !== undefined) {
+      process.env.USE_REFRESH_DRAFT_PRICING_RPC = priorLegacyRpc;
     } else {
       delete process.env.USE_REFRESH_DRAFT_PRICING_RPC;
     }
-    if (priorPublic !== undefined) {
-      process.env.NEXT_PUBLIC_USE_REFRESH_DRAFT_PRICING_RPC = priorPublic;
+    if (priorLegacyPublic !== undefined) {
+      process.env.NEXT_PUBLIC_USE_REFRESH_DRAFT_PRICING_RPC = priorLegacyPublic;
     } else {
       delete process.env.NEXT_PUBLIC_USE_REFRESH_DRAFT_PRICING_RPC;
     }
   });
 }
 
-function withRefreshPricingRpcEnabled<T>(fn: () => Promise<T>): Promise<T> {
-  const priorRpc = process.env.USE_REFRESH_DRAFT_PRICING_RPC;
-  const priorPublic = process.env.NEXT_PUBLIC_USE_REFRESH_DRAFT_PRICING_RPC;
-  process.env.USE_REFRESH_DRAFT_PRICING_RPC = "1";
+function withRefreshPricingDefaultPath<T>(fn: () => Promise<T>): Promise<T> {
+  const priorSequential = process.env.USE_REFRESH_DRAFT_PRICING_SEQUENTIAL;
+  const priorLegacyRpc = process.env.USE_REFRESH_DRAFT_PRICING_RPC;
+  const priorLegacyPublic = process.env.NEXT_PUBLIC_USE_REFRESH_DRAFT_PRICING_RPC;
+  delete process.env.USE_REFRESH_DRAFT_PRICING_SEQUENTIAL;
+  delete process.env.USE_REFRESH_DRAFT_PRICING_RPC;
   delete process.env.NEXT_PUBLIC_USE_REFRESH_DRAFT_PRICING_RPC;
   return fn().finally(() => {
-    if (priorRpc !== undefined) {
-      process.env.USE_REFRESH_DRAFT_PRICING_RPC = priorRpc;
+    if (priorSequential !== undefined) {
+      process.env.USE_REFRESH_DRAFT_PRICING_SEQUENTIAL = priorSequential;
+    } else {
+      delete process.env.USE_REFRESH_DRAFT_PRICING_SEQUENTIAL;
+    }
+    if (priorLegacyRpc !== undefined) {
+      process.env.USE_REFRESH_DRAFT_PRICING_RPC = priorLegacyRpc;
     } else {
       delete process.env.USE_REFRESH_DRAFT_PRICING_RPC;
     }
-    if (priorPublic !== undefined) {
-      process.env.NEXT_PUBLIC_USE_REFRESH_DRAFT_PRICING_RPC = priorPublic;
+    if (priorLegacyPublic !== undefined) {
+      process.env.NEXT_PUBLIC_USE_REFRESH_DRAFT_PRICING_RPC = priorLegacyPublic;
     } else {
       delete process.env.NEXT_PUBLIC_USE_REFRESH_DRAFT_PRICING_RPC;
     }
@@ -1311,7 +1325,7 @@ describe("refreshDraftPricing", () => {
   });
 
   test("sequential refresh line insert failure leaves corrupt graph (documents non-atomic risk)", async () => {
-    await withRefreshPricingRpcDisabled(async () => {
+    await withRefreshPricingSequentialEnabled(async () => {
       let refreshStarted = false;
       const mock = createMockSupabase({
         failOn: { table: "proposal_line_items", action: "insert" },
@@ -1361,8 +1375,8 @@ describe("refreshDraftPricing", () => {
     });
   });
 
-  test("RPC off: refresh uses sequential persistence writes (no pricing refresh RPC)", async () => {
-    await withRefreshPricingRpcDisabled(async () => {
+  test("sequential escape hatch: refresh uses direct table writes (no pricing refresh RPC)", async () => {
+    await withRefreshPricingSequentialEnabled(async () => {
       const mock = createMockSupabase();
       const deps = storeDeps(mock);
       const created = await createDraftProposal(
@@ -1399,8 +1413,8 @@ describe("refreshDraftPricing", () => {
     });
   });
 
-  test("RPC on: refresh calls persist_draft_pricing_refresh_v1 and applies graph", async () => {
-    await withRefreshPricingRpcEnabled(async () => {
+  test("default refresh calls persist_draft_pricing_refresh_v1 and applies graph", async () => {
+    await withRefreshPricingDefaultPath(async () => {
       const mock = createMockSupabase();
       const deps = storeDeps(mock);
       const created = await createDraftProposal(
@@ -1434,8 +1448,8 @@ describe("refreshDraftPricing", () => {
     });
   });
 
-  test("RPC on: refresh surfaces RPC failure as ProposalRecordStoreError without sequential fallback", async () => {
-    await withRefreshPricingRpcEnabled(async () => {
+  test("default refresh surfaces RPC failure as ProposalRecordStoreError without sequential fallback", async () => {
+    await withRefreshPricingDefaultPath(async () => {
       const mock = createMockSupabase({ rpcFailOn: "function does not exist" });
       const deps = storeDeps(mock);
       const created = await createDraftProposal(

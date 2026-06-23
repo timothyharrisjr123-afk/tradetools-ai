@@ -4,8 +4,8 @@
  * TypeScript pricing/snapshot math stays in proposalRecordStore + snapshot builder.
  * This module prepares the persist payload and defines graph integrity invariants.
  *
- * Live refresh still uses sequential Supabase writes until migration
- * `persist_draft_pricing_refresh_v1` is applied and RPC mode is enabled.
+ * Live refresh uses transactional RPC `persist_draft_pricing_refresh_v1` by default.
+ * Sequential Supabase writes remain available only via explicit test/dev escape hatch.
  */
 
 import { PROPOSAL_LINE_CUSTOMER_FORBIDDEN_KEYS } from "@/app/lib/proposalLineSnapshotTypes";
@@ -412,14 +412,12 @@ export function buildDraftPricingRefreshPersistPayload(
 }
 
 // ---------------------------------------------------------------------------
-// RPC mode gate
+// Persistence path gate (RPC default; sequential test/dev escape hatch only)
 // ---------------------------------------------------------------------------
 
-export function isRefreshDraftPricingRpcEnabled(): boolean {
-  return (
-    process.env.USE_REFRESH_DRAFT_PRICING_RPC === "1" ||
-    process.env.NEXT_PUBLIC_USE_REFRESH_DRAFT_PRICING_RPC === "1"
-  );
+/** Explicit opt-in to legacy non-atomic sequential writes — not for production. */
+export function isRefreshDraftPricingSequentialEnabled(): boolean {
+  return process.env.USE_REFRESH_DRAFT_PRICING_SEQUENTIAL === "1";
 }
 
 type SupabaseClient = NonNullable<ReturnType<typeof getSupabaseClient>>;
@@ -440,7 +438,7 @@ export async function persistDraftPricingRefreshViaRpc(
 }
 
 // ---------------------------------------------------------------------------
-// Sequential persist (legacy path — non-atomic until RPC is live)
+// Sequential persist (legacy non-atomic path — test/backstop only)
 // ---------------------------------------------------------------------------
 
 export async function persistDraftPricingRefreshSequential(

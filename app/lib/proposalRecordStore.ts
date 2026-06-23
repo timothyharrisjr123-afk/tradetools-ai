@@ -6,10 +6,10 @@
  *
  * Uses getSupabaseClient() + RLS (same pattern as jobStore / catalogStore).
  *
- * refreshDraftPricing calculation stays in TypeScript; persistence is staged
- * toward RPC `persist_draft_pricing_refresh_v1` (see proposalDraftPricingRefreshPersistence).
- * Until the migration is applied and USE_REFRESH_DRAFT_PRICING_RPC=1, refresh uses
- * sequential Supabase writes (non-atomic — partial failure may corrupt the graph).
+ * refreshDraftPricing calculation stays in TypeScript; persistence uses transactional
+ * RPC `persist_draft_pricing_refresh_v1` by default (see proposalDraftPricingRefreshPersistence).
+ * Sequential Supabase writes are available only via USE_REFRESH_DRAFT_PRICING_SEQUENTIAL=1
+ * (test/dev escape hatch — non-atomic, partial failure may corrupt the graph).
  *
  * createDraftProposal and other multi-table writes remain non-atomic (later stage).
  *
@@ -71,7 +71,7 @@ import type { ProposalScopeDecision } from "@/app/lib/proposalScopeDecisionTypes
 import { getScopeDecisionsForDraftGraph } from "@/app/lib/proposalScopeDecisionStore";
 import {
   buildDraftPricingRefreshPersistPayload,
-  isRefreshDraftPricingRpcEnabled,
+  isRefreshDraftPricingSequentialEnabled,
   persistDraftPricingRefreshSequential,
   persistDraftPricingRefreshViaRpc,
   ProposalDraftPricingRefreshPersistenceError,
@@ -1501,10 +1501,10 @@ export async function refreshDraftPricing(
   });
 
   try {
-    if (isRefreshDraftPricingRpcEnabled()) {
-      await persistDraftPricingRefreshViaRpc(supabase, persistPayload);
-    } else {
+    if (isRefreshDraftPricingSequentialEnabled()) {
       await persistDraftPricingRefreshSequential(supabase, persistPayload);
+    } else {
+      await persistDraftPricingRefreshViaRpc(supabase, persistPayload);
     }
   } catch (error) {
     if (error instanceof ProposalDraftPricingRefreshPersistenceError) {
