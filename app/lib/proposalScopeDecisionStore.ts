@@ -512,3 +512,107 @@ export async function clearDraftScopeDecision(
 
   return rowToProposalScopeDecision(data as ProposalScopeDecisionRow);
 }
+
+export type ClearDraftScopeDecisionByTargetInput = {
+  company_id: string;
+  proposal_id: string;
+  proposal_option_id: string;
+  decision_type: ProposalScopeDecisionType;
+  source_template_item_id?: string | null;
+  instance_line_key?: string | null;
+  actor_user_id?: string | null;
+};
+
+export async function clearDraftScopeDecisionByTarget(
+  input: ClearDraftScopeDecisionByTargetInput,
+  deps?: ProposalScopeDecisionStoreDeps
+): Promise<ProposalScopeDecision> {
+  const cid = normalizeCompanyId(input.company_id);
+  const pid = (input.proposal_id ?? "").trim();
+  const proposalOptionId = (input.proposal_option_id ?? "").trim();
+
+  if (!cid || !isUuidLike(pid) || !isUuidLike(proposalOptionId)) {
+    throw new ProposalRecordStoreError(
+      "company_id, proposal_id, and proposal_option_id are required UUIDs."
+    );
+  }
+
+  const { supabase, version } = await loadMutableDraftContext(cid, pid, deps);
+  await assertProposalOptionOnDraft(supabase, cid, version.id, proposalOptionId);
+
+  const target = validateDecisionTarget(
+    input.decision_type,
+    input.source_template_item_id,
+    input.instance_line_key
+  );
+
+  let existingQuery = supabase
+    .from("proposal_option_scope_decisions")
+    .select("*")
+    .eq("company_id", cid)
+    .eq("proposal_id", pid)
+    .eq("proposal_version_id", version.id)
+    .eq("proposal_option_id", proposalOptionId)
+    .eq("decision_type", input.decision_type)
+    .eq("active", true);
+
+  existingQuery = target.sourceTemplateItemId
+    ? existingQuery.eq("source_template_item_id", target.sourceTemplateItemId).is(
+        "instance_line_key",
+        null
+      )
+    : existingQuery.eq("instance_line_key", target.instanceLineKey!).is(
+        "source_template_item_id",
+        null
+      );
+
+  const { data: existingRows, error: existingError } = await existingQuery;
+  if (existingError) {
+    throw new ProposalRecordStoreError(
+      existingError.message ?? "Failed to look up scope decision for clear."
+    );
+  }
+
+  const existing = (existingRows ?? [])[0] as ProposalScopeDecisionRow | undefined;
+  if (!existing) {
+    throw new ProposalRecordStoreError("No active scope decision found for this target.");
+  }
+
+  const now = new Date().toISOString();
+  const { data, error } = await supabase
+    .from("proposal_option_scope_decisions")
+    .update({
+      active: false,
+      updated_at: now,
+      updated_by: input.actor_user_id ?? null,
+    })
+    .eq("id", existing.id)
+    .eq("company_id", cid)
+    .select("*")
+    .single();
+
+  if (error || !data) {
+    throw new ProposalRecordStoreError(error?.message ?? "Failed to clear scope decision.");
+  }
+
+  await appendProposalEvent(
+    {
+      company_id: cid,
+      proposal_id: pid,
+      proposal_version_id: version.id,
+      event_type: "draft_saved",
+      actor_user_id: input.actor_user_id ?? null,
+      payload_json: {
+        reason: "scope_decision_clear",
+        decision_id: existing.id,
+        decision_type: input.decision_type,
+        proposal_option_id: proposalOptionId,
+        source_template_item_id: target.sourceTemplateItemId,
+        instance_line_key: target.instanceLineKey,
+      },
+    },
+    deps
+  );
+
+  return rowToProposalScopeDecision(data as ProposalScopeDecisionRow);
+}

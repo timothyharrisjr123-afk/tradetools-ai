@@ -26,6 +26,7 @@ import {
 } from "./proposalBuilderConstants";
 import ProposalBuilderWorkbenchAttentionZone from "./ProposalBuilderWorkbenchAttentionZone";
 import ProposalBuilderWorkbenchEditOptionShell, {
+  type ManualQuantityActiveLine,
   type ManualQuantityEditorLine,
 } from "./ProposalBuilderWorkbenchEditOptionShell";
 import ProposalBuilderWorkbenchPackageZone from "./ProposalBuilderWorkbenchPackageZone";
@@ -56,6 +57,7 @@ type ProposalBuilderWorkbenchEstimateDocumentProps = {
     quantity: string,
     quantityDisplayLabel?: string | null
   ) => Promise<void>;
+  onClearManualQuantity?: (templateItemId: string) => Promise<void>;
 };
 
 function readEstimatePageSettingsFromPersisted(
@@ -86,6 +88,7 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
   manualQuantityInFlight = false,
   manualQuantityError = null,
   onApplyManualQuantity,
+  onClearManualQuantity,
 }: ProposalBuilderWorkbenchEstimateDocumentProps) {
   const quantityContext =
     measurementHandoff || measurementQuantityMap
@@ -126,13 +129,35 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
       }));
   }, [presentation.needsAttention.scopeReview]);
 
+  const manualActiveLines = useMemo((): ManualQuantityActiveLine[] => {
+    const lines: ManualQuantityActiveLine[] = [];
+    for (const section of presentation.readyScope.sections) {
+      for (const line of section.lines) {
+        if (!line.manualQuantityActive) continue;
+        lines.push({
+          templateItemId: line.templateItemId,
+          name: line.name,
+          unitLabel: line.detailMeta.unit?.trim() || null,
+          quantityDisplayLabel: line.qtyLabel,
+        });
+      }
+    }
+    return lines;
+  }, [presentation.readyScope.sections]);
+
+  const quantityEditingEnabled =
+    persistedDraftEnabled && Boolean(onApplyManualQuantity) && Boolean(onClearManualQuantity);
+
+  const hasEditableQuantityLines =
+    scopeReviewLines.length > 0 || manualActiveLines.length > 0;
+
   const openEditOption = useCallback(() => {
     setFocusedTemplateItemId((current) => {
       if (current) return current;
-      return scopeReviewLines[0]?.templateItemId ?? null;
+      return scopeReviewLines[0]?.templateItemId ?? manualActiveLines[0]?.templateItemId ?? null;
     });
     setEditOptionOpen(true);
-  }, [scopeReviewLines]);
+  }, [manualActiveLines, scopeReviewLines]);
 
   const openEditOptionForLine = useCallback((templateItemId: string) => {
     setFocusedTemplateItemId(templateItemId);
@@ -155,8 +180,18 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
     [onApplyManualQuantity]
   );
 
-  const manualQuantityEnabled =
-    persistedDraftEnabled && Boolean(onApplyManualQuantity) && scopeReviewLines.length > 0;
+  const handleClearManualQuantity = useCallback(
+    async (templateItemId: string) => {
+      if (!onClearManualQuantity) return;
+      await onClearManualQuantity(templateItemId);
+      setEditOptionOpen(false);
+      setFocusedTemplateItemId(null);
+    },
+    [onClearManualQuantity]
+  );
+
+  const scopeReviewManualQuantityEnabled =
+    quantityEditingEnabled && scopeReviewLines.length > 0;
 
   return (
     <article className={BUILDER_CANVAS}>
@@ -214,13 +249,18 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
 
         <ProposalBuilderWorkbenchSettingsEntry entry={presentation.displaySettingsEntry} />
 
-        <ProposalBuilderWorkbenchReadyScopeZone sections={presentation.readyScope.sections} />
+        <ProposalBuilderWorkbenchReadyScopeZone
+          sections={presentation.readyScope.sections}
+          onEditQuantityForLine={
+            quantityEditingEnabled ? openEditOptionForLine : undefined
+          }
+        />
 
         <ProposalBuilderWorkbenchAttentionZone
           zone={presentation.needsAttention}
           onOpenEditOption={openEditOption}
           onSetQuantityForLine={openEditOptionForLine}
-          manualQuantityEnabled={manualQuantityEnabled}
+          manualQuantityEnabled={scopeReviewManualQuantityEnabled}
         />
 
         <ProposalBuilderWorkbenchUpgradesZone zone={presentation.upgradesZone} />
@@ -234,12 +274,14 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
         optionLabel={presentation.packageZone.label}
         scopeReviewCount={meta.scopeReviewLineCount}
         scopeReviewLines={scopeReviewLines}
+        manualActiveLines={manualActiveLines}
         focusedTemplateItemId={focusedTemplateItemId}
         onFocusTemplateItemId={setFocusedTemplateItemId}
-        persistedDraftEnabled={manualQuantityEnabled}
+        persistedDraftEnabled={quantityEditingEnabled && hasEditableQuantityLines}
         manualQuantityInFlight={manualQuantityInFlight}
         manualQuantityError={manualQuantityError}
         onApplyManualQuantity={handleApplyManualQuantity}
+        onClearManualQuantity={handleClearManualQuantity}
       />
     </article>
   );

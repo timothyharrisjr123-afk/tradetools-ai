@@ -1835,6 +1835,207 @@ describe("updateDraftProposalPageContent", () => {
       20
     );
   });
+
+  test("R17D Phase 2.5: clearManualQuantityScopeDecision clears manual snapshot and reverts to measurement", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const ctx = contextWithSquares(22);
+    const created = await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+        quantity_context: ctx,
+      },
+      deps
+    );
+
+    const runtimeOption = mock.state.tables.proposal_options[0] as Record<string, unknown>;
+    const templateItemId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+
+    const { applyManualQuantityScopeDecision, clearManualQuantityScopeDecision } = await import(
+      "./proposalScopeDecisionActions"
+    );
+
+    await applyManualQuantityScopeDecision(
+      {
+        companyId: COMPANY_ID,
+        proposalId: created.proposal.id,
+        runtimeProposalOptionId: runtimeOption.id as string,
+        sourceTemplateItemId: templateItemId,
+        quantity: 18,
+        quantityDisplayLabel: "18 square",
+        refreshContext: { quantity_context: ctx },
+      },
+      deps
+    );
+
+    let line = mock.state.tables.proposal_line_items[0] as Record<string, unknown>;
+    assert.equal(line.quantity_source_label, "Manual");
+    assert.equal(Number(line.quantity), 18);
+
+    mock.state.ops.length = 0;
+
+    const { graph } = await clearManualQuantityScopeDecision(
+      {
+        companyId: COMPANY_ID,
+        proposalId: created.proposal.id,
+        runtimeProposalOptionId: runtimeOption.id as string,
+        sourceTemplateItemId: templateItemId,
+        refreshContext: { quantity_context: ctx },
+      },
+      deps
+    );
+
+    assert.ok(graph);
+    assert.equal(
+      (mock.state.tables.proposal_option_scope_decisions[0] as Record<string, unknown>).active,
+      false
+    );
+
+    line = mock.state.tables.proposal_line_items[0] as Record<string, unknown>;
+    assert.notEqual(line.quantity_source_label, "Manual");
+    assert.equal(Number(line.quantity), 22);
+
+    const lineUpdateOps = mock.state.ops.filter(
+      (op) => op.table === "proposal_line_items" && op.action === "update"
+    );
+    assert.equal(lineUpdateOps.length, 0, "clear must rebuild line items without direct updates");
+  });
+
+  test("R17D Phase 2.5: clear without measurement reverts line to needs_quantity path", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const created = await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+        quantity_context: null,
+      },
+      deps
+    );
+
+    const runtimeOption = mock.state.tables.proposal_options[0] as Record<string, unknown>;
+    const templateItemId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+
+    const { applyManualQuantityScopeDecision, clearManualQuantityScopeDecision } = await import(
+      "./proposalScopeDecisionActions"
+    );
+
+    await applyManualQuantityScopeDecision(
+      {
+        companyId: COMPANY_ID,
+        proposalId: created.proposal.id,
+        runtimeProposalOptionId: runtimeOption.id as string,
+        sourceTemplateItemId: templateItemId,
+        quantity: 18,
+        refreshContext: { quantity_context: null },
+      },
+      deps
+    );
+
+    await clearManualQuantityScopeDecision(
+      {
+        companyId: COMPANY_ID,
+        proposalId: created.proposal.id,
+        runtimeProposalOptionId: runtimeOption.id as string,
+        sourceTemplateItemId: templateItemId,
+        refreshContext: { quantity_context: null },
+      },
+      deps
+    );
+
+    const line = mock.state.tables.proposal_line_items[0] as Record<string, unknown>;
+    assert.equal(line.quantity, null);
+    assert.notEqual(line.quantity_source_label, "Manual");
+  });
+
+  test("R17D Phase 2.5: second refresh preserves cleared manual quantity state", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const ctx = contextWithSquares(22);
+    const created = await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+        quantity_context: ctx,
+      },
+      deps
+    );
+
+    const runtimeOption = mock.state.tables.proposal_options[0] as Record<string, unknown>;
+    const templateItemId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+
+    const { applyManualQuantityScopeDecision, clearManualQuantityScopeDecision } = await import(
+      "./proposalScopeDecisionActions"
+    );
+
+    await applyManualQuantityScopeDecision(
+      {
+        companyId: COMPANY_ID,
+        proposalId: created.proposal.id,
+        runtimeProposalOptionId: runtimeOption.id as string,
+        sourceTemplateItemId: templateItemId,
+        quantity: 18,
+        refreshContext: { quantity_context: ctx },
+      },
+      deps
+    );
+
+    await clearManualQuantityScopeDecision(
+      {
+        companyId: COMPANY_ID,
+        proposalId: created.proposal.id,
+        runtimeProposalOptionId: runtimeOption.id as string,
+        sourceTemplateItemId: templateItemId,
+        refreshContext: { quantity_context: ctx },
+      },
+      deps
+    );
+
+    await refreshDraftPricing(COMPANY_ID, created.proposal.id, { quantity_context: ctx }, deps);
+
+    const line = mock.state.tables.proposal_line_items[0] as Record<string, unknown>;
+    assert.notEqual(line.quantity_source_label, "Manual");
+    assert.equal(Number(line.quantity), 22);
+    assert.equal(
+      (mock.state.tables.proposal_option_scope_decisions[0] as Record<string, unknown>).active,
+      false
+    );
+  });
+
+  test("R17D Phase 2.5: clearManualQuantityScopeDecision rejects when no active manual quantity", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const created = await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+      },
+      deps
+    );
+
+    const runtimeOption = mock.state.tables.proposal_options[0] as Record<string, unknown>;
+    const { clearManualQuantityScopeDecision } = await import("./proposalScopeDecisionActions");
+
+    await assert.rejects(
+      () =>
+        clearManualQuantityScopeDecision(
+          {
+            companyId: COMPANY_ID,
+            proposalId: created.proposal.id,
+            runtimeProposalOptionId: runtimeOption.id as string,
+            sourceTemplateItemId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+            refreshContext: { quantity_context: null },
+          },
+          deps
+        ),
+      (err: unknown) => err instanceof ProposalRecordStoreError
+    );
+  });
 });
 
 describe("appendProposalEvent", () => {

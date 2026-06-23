@@ -9,6 +9,7 @@ import {
   type ProposalRecordStoreDeps,
 } from "@/app/lib/proposalRecordStore";
 import {
+  clearDraftScopeDecisionByTarget,
   upsertDraftScopeDecision,
   type ProposalScopeDecisionStoreDeps,
 } from "@/app/lib/proposalScopeDecisionStore";
@@ -120,4 +121,54 @@ export async function applyManualQuantityScopeDecision(
   }
 
   return { decision, graph };
+}
+
+export type ClearManualQuantityScopeDecisionInput = {
+  companyId: string;
+  proposalId: string;
+  runtimeProposalOptionId: string;
+  sourceTemplateItemId: string;
+  refreshContext: ManualQuantityRefreshContext;
+  actorUserId?: string | null;
+};
+
+export type ClearManualQuantityScopeDecisionResult = {
+  graph: ProposalDraftGraph;
+};
+
+export async function clearManualQuantityScopeDecision(
+  input: ClearManualQuantityScopeDecisionInput,
+  deps?: ProposalScopeDecisionActionDeps
+): Promise<ClearManualQuantityScopeDecisionResult> {
+  const companyId = (input.companyId ?? "").trim();
+  const proposalId = (input.proposalId ?? "").trim();
+  const runtimeProposalOptionId = (input.runtimeProposalOptionId ?? "").trim();
+  const sourceTemplateItemId = (input.sourceTemplateItemId ?? "").trim();
+
+  if (!companyId || !proposalId || !runtimeProposalOptionId || !sourceTemplateItemId) {
+    throw new ProposalScopeDecisionActionError(
+      "companyId, proposalId, runtimeProposalOptionId, and sourceTemplateItemId are required."
+    );
+  }
+
+  await clearDraftScopeDecisionByTarget(
+    {
+      company_id: companyId,
+      proposal_id: proposalId,
+      proposal_option_id: runtimeProposalOptionId,
+      decision_type: "manual_quantity",
+      source_template_item_id: sourceTemplateItemId,
+      actor_user_id: input.actorUserId ?? null,
+    },
+    deps
+  );
+
+  const graph = await refreshDraftPricing(companyId, proposalId, input.refreshContext, deps);
+  if (!graph) {
+    throw new ProposalScopeDecisionActionError(
+      "Scope decision cleared but draft pricing could not be refreshed."
+    );
+  }
+
+  return { graph };
 }

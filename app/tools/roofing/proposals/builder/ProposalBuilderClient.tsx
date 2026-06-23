@@ -36,6 +36,7 @@ import {
 } from "@/app/lib/proposalDraftGraphAdapter";
 import {
   applyManualQuantityScopeDecision,
+  clearManualQuantityScopeDecision,
   ProposalScopeDecisionActionError,
 } from "@/app/lib/proposalScopeDecisionActions";
 import {
@@ -685,6 +686,86 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
     ]
   );
 
+  const handleClearManualQuantity = useCallback(
+    async (templateItemId: string) => {
+      if (!hasPersistedProposalParam || !persistedGraph || !proposalIdParam) {
+        throw new ProposalScopeDecisionActionError(
+          "Manual quantity requires a saved proposal draft."
+        );
+      }
+
+      const runtimeOptionId = resolveRuntimeOptionIdFromTemplateOptionId(
+        persistedGraph,
+        effectiveSelectedOptionId
+      );
+      if (!runtimeOptionId) {
+        throw new ProposalScopeDecisionActionError(
+          "Selected option is not available on this proposal draft."
+        );
+      }
+
+      if (manualQuantityInFlightRef.current) {
+        throw new ProposalScopeDecisionActionError("Manual quantity action already in progress.");
+      }
+
+      manualQuantityInFlightRef.current = true;
+      setManualQuantityInFlight(true);
+      setManualQuantityError(null);
+
+      const measurementDisplay = measurementHandoff
+        ? formatProposalQuantitiesDisplay(measurementHandoff.quantities)
+        : null;
+
+      try {
+        const { graph } = await clearManualQuantityScopeDecision({
+          companyId,
+          proposalId: proposalIdParam.trim(),
+          runtimeProposalOptionId: runtimeOptionId,
+          sourceTemplateItemId: templateItemId,
+          refreshContext: {
+            quantity_context: {
+              measurementHandoff,
+              quantityMap: measurementQuantityMap,
+            },
+            measurement_record_id: selectedMeasurementId,
+            measurement_quantities_display:
+              measurementDisplay && measurementDisplay !== "—" ? measurementDisplay : null,
+          },
+        });
+
+        setPersistedGraph(graph);
+        setRefreshFeedback({
+          kind: "success",
+          message: "Manual quantity cleared and draft pricing refreshed.",
+        });
+      } catch (err) {
+        const message =
+          err instanceof ProposalScopeDecisionActionError
+            ? err.message
+            : err instanceof ProposalRecordStoreError
+              ? err.message
+              : err instanceof Error
+                ? err.message
+                : "Could not clear manual quantity.";
+        setManualQuantityError(message);
+        throw err;
+      } finally {
+        manualQuantityInFlightRef.current = false;
+        setManualQuantityInFlight(false);
+      }
+    },
+    [
+      companyId,
+      effectiveSelectedOptionId,
+      hasPersistedProposalParam,
+      measurementHandoff,
+      measurementQuantityMap,
+      persistedGraph,
+      proposalIdParam,
+      selectedMeasurementId,
+    ]
+  );
+
   const showStaleBanner = Boolean(adapterResult) && proposalPricingStale.stale;
 
   const clearPageEditSession = useCallback(() => {
@@ -1145,6 +1226,11 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
               onApplyManualQuantity={
                 hasPersistedProposalParam && persistedGraph && !draftGraphError
                   ? handleApplyManualQuantity
+                  : undefined
+              }
+              onClearManualQuantity={
+                hasPersistedProposalParam && persistedGraph && !draftGraphError
+                  ? handleClearManualQuantity
                   : undefined
               }
             />

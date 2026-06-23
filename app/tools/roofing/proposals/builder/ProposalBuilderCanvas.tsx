@@ -83,6 +83,7 @@ type ProposalBuilderCanvasProps = {
     quantity: string,
     quantityDisplayLabel?: string | null
   ) => Promise<void>;
+  onClearManualQuantity?: (templateItemId: string) => Promise<void>;
 };
 
 /** 3J4F — text page types that render as read-only customer document pages. */
@@ -209,6 +210,7 @@ export default function ProposalBuilderCanvas({
   manualQuantityInFlight = false,
   manualQuantityError = null,
   onApplyManualQuantity,
+  onClearManualQuantity,
 }: ProposalBuilderCanvasProps) {
   const templateName = starterGraph?.template.name ?? STARTER_TEMPLATE_DISPLAY_NAME;
   const effectiveOptionId =
@@ -378,6 +380,7 @@ export default function ProposalBuilderCanvas({
       manualQuantityInFlight={manualQuantityInFlight}
       manualQuantityError={manualQuantityError}
       onApplyManualQuantity={onApplyManualQuantity}
+      onClearManualQuantity={onClearManualQuantity}
     />
   );
 }

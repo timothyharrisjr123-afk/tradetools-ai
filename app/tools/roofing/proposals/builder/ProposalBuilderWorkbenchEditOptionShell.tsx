@@ -29,6 +29,11 @@ import {
   WORKBENCH_EDIT_OPTION_SECTION_TITLE,
   WORKBENCH_EDIT_OPTION_TITLE,
   WORKBENCH_EDIT_OPTION_TRUST_COPY,
+  WORKBENCH_EDIT_OPTION_USE_MEASUREMENT_BTN,
+  WORKBENCH_USE_MEASUREMENT_QUANTITY_LABEL,
+  WORKBENCH_MANUAL_QUANTITY_ACTIVE_BADGE,
+  WORKBENCH_MANUAL_QUANTITY_ACTIVE_READOUT,
+  WORKBENCH_MANUAL_QUANTITY_RESET_HELPER,
   WORKBENCH_MODULE_DESC,
   WORKBENCH_MODULE_KICKER,
   WORKBENCH_MODULE_TITLE,
@@ -38,6 +43,13 @@ export type ManualQuantityEditorLine = {
   templateItemId: string;
   name: string;
   unitLabel: string | null;
+};
+
+export type ManualQuantityActiveLine = {
+  templateItemId: string;
+  name: string;
+  unitLabel: string | null;
+  quantityDisplayLabel: string;
 };
 
 type EditOptionShellSection = {
@@ -99,12 +111,14 @@ export type ProposalBuilderWorkbenchEditOptionShellProps = {
   optionLabel: string | null;
   scopeReviewCount: number;
   scopeReviewLines: ManualQuantityEditorLine[];
+  manualActiveLines: ManualQuantityActiveLine[];
   focusedTemplateItemId: string | null;
   onFocusTemplateItemId: (templateItemId: string) => void;
   persistedDraftEnabled: boolean;
   manualQuantityInFlight: boolean;
   manualQuantityError: string | null;
   onApplyManualQuantity: (templateItemId: string, quantity: string, quantityDisplayLabel?: string | null) => Promise<void>;
+  onClearManualQuantity: (templateItemId: string) => Promise<void>;
 };
 
 function ShellSectionControl({ section }: { section: EditOptionShellSection }) {
@@ -141,23 +155,47 @@ export default function ProposalBuilderWorkbenchEditOptionShell({
   optionLabel,
   scopeReviewCount,
   scopeReviewLines,
+  manualActiveLines,
   focusedTemplateItemId,
   onFocusTemplateItemId,
   persistedDraftEnabled,
   manualQuantityInFlight,
   manualQuantityError,
   onApplyManualQuantity,
+  onClearManualQuantity,
 }: ProposalBuilderWorkbenchEditOptionShellProps) {
   const [quantityDraft, setQuantityDraft] = useState("");
   const [localValidationError, setLocalValidationError] = useState<string | null>(null);
 
-  const activeLine = useMemo(() => {
+  const activeScopeReviewLine = useMemo(() => {
     if (!focusedTemplateItemId) return null;
     return scopeReviewLines.find((line) => line.templateItemId === focusedTemplateItemId) ?? null;
   }, [focusedTemplateItemId, scopeReviewLines]);
 
-  const quantityEnabled =
-    persistedDraftEnabled && scopeReviewLines.length > 0 && Boolean(activeLine);
+  const activeManualLine = useMemo(() => {
+    if (!focusedTemplateItemId) return null;
+    return manualActiveLines.find((line) => line.templateItemId === focusedTemplateItemId) ?? null;
+  }, [focusedTemplateItemId, manualActiveLines]);
+
+  const editableLineCount = scopeReviewLines.length + manualActiveLines.length;
+  const showLiveQuantity = persistedDraftEnabled && editableLineCount > 0;
+  const manualActiveMode = Boolean(activeManualLine);
+
+  const pickerLines = useMemo(() => {
+    const seen = new Set<string>();
+    const rows: Array<{ templateItemId: string; name: string; kind: "scope_review" | "manual_active" }> = [];
+    for (const line of scopeReviewLines) {
+      if (seen.has(line.templateItemId)) continue;
+      seen.add(line.templateItemId);
+      rows.push({ templateItemId: line.templateItemId, name: line.name, kind: "scope_review" });
+    }
+    for (const line of manualActiveLines) {
+      if (seen.has(line.templateItemId)) continue;
+      seen.add(line.templateItemId);
+      rows.push({ templateItemId: line.templateItemId, name: line.name, kind: "manual_active" });
+    }
+    return rows;
+  }, [manualActiveLines, scopeReviewLines]);
 
   useEffect(() => {
     if (!open) {
@@ -191,7 +229,7 @@ export default function ProposalBuilderWorkbenchEditOptionShell({
   }, [open, onClose, manualQuantityInFlight]);
 
   const handleSave = useCallback(async () => {
-    if (!activeLine || manualQuantityInFlight) return;
+    if (!activeScopeReviewLine || manualQuantityInFlight) return;
 
     const validation = validateManualQuantityInput(quantityDraft);
     if (!validation.ok) {
@@ -200,13 +238,18 @@ export default function ProposalBuilderWorkbenchEditOptionShell({
     }
 
     setLocalValidationError(null);
-    const unit = activeLine.unitLabel?.trim();
+    const unit = activeScopeReviewLine.unitLabel?.trim();
     const displayLabel = unit ? `${validation.quantity} ${unit}` : String(validation.quantity);
-    await onApplyManualQuantity(activeLine.templateItemId, quantityDraft, displayLabel);
-  }, [activeLine, manualQuantityInFlight, onApplyManualQuantity, quantityDraft]);
+    await onApplyManualQuantity(activeScopeReviewLine.templateItemId, quantityDraft, displayLabel);
+  }, [activeScopeReviewLine, manualQuantityInFlight, onApplyManualQuantity, quantityDraft]);
+
+  const handleClear = useCallback(async () => {
+    if (!activeManualLine || manualQuantityInFlight) return;
+    await onClearManualQuantity(activeManualLine.templateItemId);
+  }, [activeManualLine, manualQuantityInFlight, onClearManualQuantity]);
 
   const saveDisabled =
-    !quantityEnabled ||
+    !activeScopeReviewLine ||
     manualQuantityInFlight ||
     quantityDraft.trim().length === 0 ||
     !validateManualQuantityInput(quantityDraft).ok;
@@ -218,9 +261,9 @@ export default function ProposalBuilderWorkbenchEditOptionShell({
   const scopeHint =
     scopeReviewCount > 0
       ? `${scopeReviewCount} item${scopeReviewCount === 1 ? "" : "s"} in scope review — set manual quantity below.`
-      : "No scope review lines need quantity on this package.";
-
-  const showLiveQuantity = persistedDraftEnabled && scopeReviewLines.length > 0;
+      : manualActiveLines.length > 0
+        ? `${manualActiveLines.length} manual quantit${manualActiveLines.length === 1 ? "y" : "ies"} active on this package.`
+        : "No scope review lines need quantity on this package.";
 
   return createPortal(
     <>
@@ -307,15 +350,15 @@ export default function ProposalBuilderWorkbenchEditOptionShell({
                   className={WORKBENCH_EDIT_OPTION_CONTROL}
                   title="Save the proposal draft before editing scope"
                 />
-              ) : scopeReviewLines.length === 0 ? (
+              ) : editableLineCount === 0 ? (
                 <p className="mt-2.5 text-[12px] text-slate-500">
                   No scope review lines need quantity on this package.
                 </p>
               ) : (
                 <div className="mt-2.5 space-y-3">
-                  {scopeReviewLines.length > 1 ? (
-                    <ul className="space-y-1.5" aria-label="Scope review lines">
-                      {scopeReviewLines.map((line) => {
+                  {pickerLines.length > 1 ? (
+                    <ul className="space-y-1.5" aria-label="Editable scope lines">
+                      {pickerLines.map((line) => {
                         const isActive = line.templateItemId === focusedTemplateItemId;
                         return (
                           <li key={line.templateItemId}>
@@ -329,7 +372,14 @@ export default function ProposalBuilderWorkbenchEditOptionShell({
                               onClick={() => onFocusTemplateItemId(line.templateItemId)}
                               disabled={manualQuantityInFlight}
                             >
-                              {line.name}
+                              <span className="flex items-center justify-between gap-2">
+                                <span>{line.name}</span>
+                                {line.kind === "manual_active" ? (
+                                  <span className="shrink-0 rounded-full border border-blue-200 bg-blue-50 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-blue-800">
+                                    {WORKBENCH_MANUAL_QUANTITY_ACTIVE_BADGE}
+                                  </span>
+                                ) : null}
+                              </span>
                             </button>
                           </li>
                         );
@@ -337,51 +387,69 @@ export default function ProposalBuilderWorkbenchEditOptionShell({
                     </ul>
                   ) : null}
 
-                  {activeLine ? (
-                    <>
-                      <div>
-                        <label
-                          htmlFor="edit-option-manual-quantity"
-                          className="text-[12px] font-medium text-slate-700"
-                        >
-                          {activeLine.name}
-                        </label>
-                        <div className="mt-1.5 flex items-center gap-2">
-                          <input
-                            id="edit-option-manual-quantity"
-                            type="text"
-                            inputMode="decimal"
-                            value={quantityDraft}
-                            onChange={(event) => {
-                              setQuantityDraft(event.target.value);
-                              setLocalValidationError(null);
-                            }}
-                            disabled={manualQuantityInFlight}
-                            placeholder="Enter quantity"
-                            className={WORKBENCH_EDIT_OPTION_CONTROL_ENABLED}
-                            aria-invalid={Boolean(localValidationError || manualQuantityError)}
-                          />
-                          {activeLine.unitLabel ? (
-                            <span className="shrink-0 text-[12px] font-medium text-slate-500">
-                              {activeLine.unitLabel}
-                            </span>
-                          ) : null}
-                        </div>
-                        {localValidationError ? (
-                          <p className="mt-1.5 text-[12px] text-red-600" role="alert">
-                            {localValidationError}
-                          </p>
-                        ) : null}
-                        {manualQuantityError ? (
-                          <p className="mt-1.5 text-[12px] text-red-600" role="alert">
-                            {manualQuantityError}
-                          </p>
+                  {manualActiveMode && activeManualLine ? (
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-[12px] font-medium text-slate-700">{activeManualLine.name}</p>
+                        <span className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-blue-800">
+                          {WORKBENCH_MANUAL_QUANTITY_ACTIVE_BADGE}
+                        </span>
+                      </div>
+                      <p className={WORKBENCH_MANUAL_QUANTITY_ACTIVE_READOUT} aria-live="polite">
+                        {activeManualLine.quantityDisplayLabel}
+                      </p>
+                      <p className="mt-2 text-[12px] leading-snug text-slate-600">
+                        {WORKBENCH_MANUAL_QUANTITY_RESET_HELPER}
+                      </p>
+                      {manualQuantityError ? (
+                        <p className="mt-1.5 text-[12px] text-red-600" role="alert">
+                          {manualQuantityError}
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : activeScopeReviewLine ? (
+                    <div>
+                      <label
+                        htmlFor="edit-option-manual-quantity"
+                        className="text-[12px] font-medium text-slate-700"
+                      >
+                        {activeScopeReviewLine.name}
+                      </label>
+                      <div className="mt-1.5 flex items-center gap-2">
+                        <input
+                          id="edit-option-manual-quantity"
+                          type="text"
+                          inputMode="decimal"
+                          value={quantityDraft}
+                          onChange={(event) => {
+                            setQuantityDraft(event.target.value);
+                            setLocalValidationError(null);
+                          }}
+                          disabled={manualQuantityInFlight}
+                          placeholder="Enter quantity"
+                          className={WORKBENCH_EDIT_OPTION_CONTROL_ENABLED}
+                          aria-invalid={Boolean(localValidationError || manualQuantityError)}
+                        />
+                        {activeScopeReviewLine.unitLabel ? (
+                          <span className="shrink-0 text-[12px] font-medium text-slate-500">
+                            {activeScopeReviewLine.unitLabel}
+                          </span>
                         ) : null}
                       </div>
-                    </>
+                      {localValidationError ? (
+                        <p className="mt-1.5 text-[12px] text-red-600" role="alert">
+                          {localValidationError}
+                        </p>
+                      ) : null}
+                      {manualQuantityError ? (
+                        <p className="mt-1.5 text-[12px] text-red-600" role="alert">
+                          {manualQuantityError}
+                        </p>
+                      ) : null}
+                    </div>
                   ) : (
                     <p className="text-[12px] text-slate-500">
-                      Select a scope review line to set manual quantity.
+                      Select a line to review quantity decisions.
                     </p>
                   )}
                 </div>
@@ -405,7 +473,26 @@ export default function ProposalBuilderWorkbenchEditOptionShell({
         </div>
 
         <footer className={WORKBENCH_EDIT_OPTION_DRAWER_FOOTER}>
-          {showLiveQuantity && activeLine ? (
+          {showLiveQuantity && manualActiveMode && activeManualLine ? (
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={manualQuantityInFlight}
+                className={WORKBENCH_EDIT_OPTION_CANCEL_BTN}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleClear()}
+                disabled={manualQuantityInFlight}
+                className={WORKBENCH_EDIT_OPTION_USE_MEASUREMENT_BTN}
+              >
+                {manualQuantityInFlight ? "Clearing…" : WORKBENCH_USE_MEASUREMENT_QUANTITY_LABEL}
+              </button>
+            </div>
+          ) : showLiveQuantity && activeScopeReviewLine ? (
             <div className="flex flex-wrap items-center justify-end gap-2">
               <button
                 type="button"

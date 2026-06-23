@@ -9,6 +9,7 @@ import { describe, test } from "node:test";
 import type { ProposalQuantityPreviewContext } from "./proposalBuilderPreview";
 import {
   applyManualQuantityScopeDecision,
+  clearManualQuantityScopeDecision,
   ProposalScopeDecisionActionError,
   validateManualQuantityInput,
 } from "./proposalScopeDecisionActions";
@@ -60,6 +61,36 @@ describe("applyManualQuantityScopeDecision", () => {
           runtimeProposalOptionId: OPTION_ID,
           sourceTemplateItemId: TEMPLATE_ITEM_ID,
           quantity: "",
+          refreshContext: REFRESH_CONTEXT,
+        }),
+      (err: unknown) => err instanceof ProposalScopeDecisionActionError
+    );
+  });
+});
+
+describe("clearManualQuantityScopeDecision", () => {
+  test("rejects missing ids", async () => {
+    await assert.rejects(
+      () =>
+        clearManualQuantityScopeDecision({
+          companyId: "",
+          proposalId: PROPOSAL_ID,
+          runtimeProposalOptionId: OPTION_ID,
+          sourceTemplateItemId: TEMPLATE_ITEM_ID,
+          refreshContext: REFRESH_CONTEXT,
+        }),
+      (err: unknown) => err instanceof ProposalScopeDecisionActionError
+    );
+  });
+
+  test("rejects missing sourceTemplateItemId", async () => {
+    await assert.rejects(
+      () =>
+        clearManualQuantityScopeDecision({
+          companyId: COMPANY_ID,
+          proposalId: PROPOSAL_ID,
+          runtimeProposalOptionId: OPTION_ID,
+          sourceTemplateItemId: "",
           refreshContext: REFRESH_CONTEXT,
         }),
       (err: unknown) => err instanceof ProposalScopeDecisionActionError

@@ -286,6 +286,64 @@ describe("buildProposalWorkbenchEstimatePresentation", () => {
     assert.equal(result.meta.readyLineCount, 1);
   });
 
+  test("R17D Phase 2.5: manual snapshot flags ready line as manualQuantityActive", () => {
+    const scopeSection = section("sec-scope", "line_items", OPTION_STANDARD);
+    const templateGraph = graph(
+      [option(OPTION_STANDARD)],
+      [scopeSection],
+      [item({ id: "line-manual", section_id: "sec-scope" })]
+    );
+
+    const result = buildProposalWorkbenchEstimatePresentation(
+      buildInput({
+        graph: templateGraph,
+        sections: [scopeSection],
+        snapshotQuantityByTemplateItemId: {
+          "line-manual": {
+            templateItemId: "line-manual",
+            quantityDisplayLabel: "18 Linear foot",
+            quantitySourceLabel: "Manual",
+            unitLabel: "Linear foot",
+          },
+        },
+        optionCustomerView: optionCustomerView({
+          "line-manual": lineView("line-manual", "priced", {
+            customerLinePriceCents: 7_200,
+          }),
+        }),
+      })
+    );
+
+    const line = result.readyScope.sections[0]?.lines[0];
+    assert.equal(line?.manualQuantityActive, true);
+    assert.equal(line?.qtyLabel, "18 Linear foot");
+  });
+
+  test("R17D Phase 2.5: cleared unresolved snapshot returns line to scopeReview", () => {
+    const scopeSection = section("sec-scope", "line_items", OPTION_STANDARD);
+    const templateGraph = graph(
+      [option(OPTION_STANDARD)],
+      [scopeSection],
+      [item({ id: "line-blocked", section_id: "sec-scope" })]
+    );
+
+    const result = buildProposalWorkbenchEstimatePresentation(
+      buildInput({
+        graph: templateGraph,
+        sections: [scopeSection],
+        quantityContext: null,
+        snapshotQuantityByTemplateItemId: {},
+        optionCustomerView: optionCustomerView({
+          "line-blocked": lineView("line-blocked", "needs_quantity"),
+        }),
+      })
+    );
+
+    assert.equal(result.needsAttention.scopeReview.count, 1);
+    assert.equal(result.readyScope.sections.length, 0);
+    assert.equal(result.needsAttention.scopeReview.lines[0]?.reasons.includes("needs_quantity"), true);
+  });
+
   test("not_priced classified into hardBlockers", () => {
     const scopeSection = section("sec-scope", "line_items", OPTION_STANDARD);
     const templateGraph = graph(

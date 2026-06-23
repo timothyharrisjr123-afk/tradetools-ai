@@ -5,6 +5,8 @@ import type {
 } from "@/app/lib/proposalBuilderWorkbenchEstimatePresenter";
 import { WORKBENCH_HIDDEN_FROM_CUSTOMER_LABEL } from "@/app/lib/proposalBuilderWorkbenchEstimatePresenter";
 import {
+  WORKBENCH_EDIT_OPTION_CHIP_ENABLED,
+  WORKBENCH_EDIT_QUANTITY_ACTION,
   WORKBENCH_LINE_AMOUNT,
   WORKBENCH_LINE_AMOUNT_ATTENTION,
   WORKBENCH_LINE_AMOUNT_INCLUDED,
@@ -58,6 +60,7 @@ type ScopeLineRowProps = {
   variant: "scope";
   line: WorkbenchScopeLine;
   compact?: boolean;
+  onEditQuantity?: () => void;
 };
 
 type HardBlockerLineRowProps = {
@@ -162,7 +165,7 @@ export default function ProposalBuilderWorkbenchLineRow(
     );
   }
 
-  const { line } = props;
+  const { line, onEditQuantity } = props;
   const hasAttention = line.attentionReasons.length > 0;
   const amountClass = hasAttention
     ? WORKBENCH_LINE_AMOUNT_ATTENTION
@@ -182,6 +185,15 @@ export default function ProposalBuilderWorkbenchLineRow(
                 ))
               : null}
             {line.hiddenFromCustomer ? <HiddenFromCustomerBadge /> : null}
+            {onEditQuantity ? (
+              <button
+                type="button"
+                onClick={onEditQuantity}
+                className={WORKBENCH_EDIT_OPTION_CHIP_ENABLED}
+              >
+                {WORKBENCH_EDIT_QUANTITY_ACTION}
+              </button>
+            ) : null}
           </div>
           <p className={`${WORKBENCH_LINE_QTY} mt-0.5 sm:hidden`}>
             Qty{" "}

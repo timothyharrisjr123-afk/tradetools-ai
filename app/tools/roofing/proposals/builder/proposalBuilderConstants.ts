@@ -885,6 +885,25 @@ export const WORKBENCH_EDIT_OPTION_INTRO_COPY_LIVE =
 export const WORKBENCH_EDIT_OPTION_FOOTER_COPY_LIVE =
   "Manual quantity saves a scope decision and refreshes draft pricing. Other line actions are still coming soon.";
 
+/** R17D Phase 2.5 — manual quantity active state in Edit Option drawer. */
+export const WORKBENCH_MANUAL_QUANTITY_ACTIVE_BADGE = "Manual quantity";
+
+export const WORKBENCH_EDIT_QUANTITY_ACTION = "Edit quantity";
+
+export const WORKBENCH_USE_MEASUREMENT_QUANTITY_LABEL = "Use measurement quantity";
+
+export const WORKBENCH_MANUAL_QUANTITY_RESET_HELPER =
+  "Return this line to measurement-driven quantity for this package.";
+
+export const WORKBENCH_MANUAL_QUANTITY_CLEAR_SUCCESS =
+  "Manual quantity cleared and draft pricing refreshed.";
+
+export const WORKBENCH_EDIT_OPTION_USE_MEASUREMENT_BTN =
+  "inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-3 py-2 text-[12px] font-semibold text-slate-800 shadow-sm transition-colors hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:opacity-60";
+
+export const WORKBENCH_MANUAL_QUANTITY_ACTIVE_READOUT =
+  "mt-2 rounded-md border border-blue-200/70 bg-white px-3 py-2.5 text-[13px] font-semibold tabular-nums text-slate-900";
+
 /**
  * Format a whole-cents integer as a USD dollar string, e.g. "$1,234.56".
  * Customer-facing only — never pass internal cost/profit cents here.

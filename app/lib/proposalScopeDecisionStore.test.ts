@@ -8,6 +8,7 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
   clearDraftScopeDecision,
+  clearDraftScopeDecisionByTarget,
   getScopeDecisionsForDraftVersion,
   getScopeDecisionsForProposalOption,
   upsertDraftScopeDecision,
@@ -495,6 +496,207 @@ describe("proposalScopeDecisionStore", () => {
       (mock.state.tables.proposal_option_scope_decisions[0] as Record<string, unknown>).active,
       false
     );
+  });
+
+  test("clearDraftScopeDecisionByTarget deactivates matching manual_quantity row", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const created = await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+      },
+      deps
+    );
+    const runtimeOption = mock.state.tables.proposal_options[0] as Record<string, unknown>;
+    const templateItemId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+
+    await upsertDraftScopeDecision(
+      {
+        company_id: COMPANY_ID,
+        proposal_id: created.proposal.id,
+        proposal_option_id: runtimeOption.id as string,
+        decision_type: "manual_quantity",
+        source_template_item_id: templateItemId,
+        payload: { quantity: 10 },
+      },
+      deps
+    );
+
+    await clearDraftScopeDecisionByTarget(
+      {
+        company_id: COMPANY_ID,
+        proposal_id: created.proposal.id,
+        proposal_option_id: runtimeOption.id as string,
+        decision_type: "manual_quantity",
+        source_template_item_id: templateItemId,
+      },
+      deps
+    );
+
+    const active = await getScopeDecisionsForProposalOption(
+      COMPANY_ID,
+      runtimeOption.id as string,
+      undefined,
+      deps
+    );
+    assert.equal(active.length, 0);
+    assert.equal(
+      (mock.state.tables.proposal_option_scope_decisions[0] as Record<string, unknown>).active,
+      false
+    );
+  });
+
+  test("clearDraftScopeDecisionByTarget throws when no active row exists", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const created = await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+      },
+      deps
+    );
+    const runtimeOption = mock.state.tables.proposal_options[0] as Record<string, unknown>;
+
+    await assert.rejects(
+      () =>
+        clearDraftScopeDecisionByTarget(
+          {
+            company_id: COMPANY_ID,
+            proposal_id: created.proposal.id,
+            proposal_option_id: runtimeOption.id as string,
+            decision_type: "manual_quantity",
+            source_template_item_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+          },
+          deps
+        ),
+      (err: unknown) => err instanceof ProposalRecordStoreError
+    );
+  });
+
+  test("clearDraftScopeDecisionByTarget does not clear other decision types", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const created = await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+      },
+      deps
+    );
+    const runtimeOption = mock.state.tables.proposal_options[0] as Record<string, unknown>;
+    const templateItemId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+
+    await upsertDraftScopeDecision(
+      {
+        company_id: COMPANY_ID,
+        proposal_id: created.proposal.id,
+        proposal_option_id: runtimeOption.id as string,
+        decision_type: "manual_quantity",
+        source_template_item_id: templateItemId,
+        payload: { quantity: 10 },
+      },
+      deps
+    );
+
+    await assert.rejects(
+      () =>
+        clearDraftScopeDecisionByTarget(
+          {
+            company_id: COMPANY_ID,
+            proposal_id: created.proposal.id,
+            proposal_option_id: runtimeOption.id as string,
+            decision_type: "remove",
+            source_template_item_id: templateItemId,
+          },
+          deps
+        ),
+      (err: unknown) => err instanceof ProposalRecordStoreError
+    );
+
+    const active = await getScopeDecisionsForProposalOption(
+      COMPANY_ID,
+      runtimeOption.id as string,
+      undefined,
+      deps
+    );
+    assert.equal(active.length, 1);
+    assert.equal(active[0].decisionType, "manual_quantity");
+  });
+
+  test("clearDraftScopeDecisionByTarget does not clear other options", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const created = await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+      },
+      deps
+    );
+    const options = mock.state.tables.proposal_options as Record<string, unknown>[];
+    const optionA = options[0];
+    const optionB = options[1] ?? options[0];
+
+    await upsertDraftScopeDecision(
+      {
+        company_id: COMPANY_ID,
+        proposal_id: created.proposal.id,
+        proposal_option_id: optionA.id as string,
+        decision_type: "manual_quantity",
+        source_template_item_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        payload: { quantity: 10 },
+      },
+      deps
+    );
+
+    if (optionB.id !== optionA.id) {
+      await upsertDraftScopeDecision(
+        {
+          company_id: COMPANY_ID,
+          proposal_id: created.proposal.id,
+          proposal_option_id: optionB.id as string,
+          decision_type: "manual_quantity",
+          source_template_item_id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+          payload: { quantity: 12 },
+        },
+        deps
+      );
+    }
+
+    await clearDraftScopeDecisionByTarget(
+      {
+        company_id: COMPANY_ID,
+        proposal_id: created.proposal.id,
+        proposal_option_id: optionA.id as string,
+        decision_type: "manual_quantity",
+        source_template_item_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      },
+      deps
+    );
+
+    const activeA = await getScopeDecisionsForProposalOption(
+      COMPANY_ID,
+      optionA.id as string,
+      undefined,
+      deps
+    );
+    assert.equal(activeA.length, 0);
+
+    if (optionB.id !== optionA.id) {
+      const activeB = await getScopeDecisionsForProposalOption(
+        COMPANY_ID,
+        optionB.id as string,
+        undefined,
+        deps
+      );
+      assert.equal(activeB.length, 1);
+    }
   });
 
   test("rejects invalid source_template_item_id", async () => {

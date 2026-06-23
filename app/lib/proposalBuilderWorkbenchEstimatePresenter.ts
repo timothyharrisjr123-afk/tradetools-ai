@@ -129,6 +129,8 @@ export type WorkbenchScopeLine = {
   hiddenFromCustomer: boolean;
   detailMeta: WorkbenchLineDetailMeta;
   attentionReasons: WorkbenchAttentionReason[];
+  /** R17D Phase 2.5 — snapshot shows an active manual quantity override. */
+  manualQuantityActive: boolean;
 };
 
 export type WorkbenchScopeSection = {
@@ -494,6 +496,7 @@ function buildScopeLine(
     hiddenFromCustomer,
     detailMeta: buildDetailMeta(row, qtyState.quantityStatusLabel),
     attentionReasons: [],
+    manualQuantityActive: snapshotQty?.quantitySourceLabel === "Manual",
   };
 }
 
@@ -556,6 +559,7 @@ function buildUpgradeScopeLine(
       hiddenFromCustomer,
       detailMeta: buildDetailMeta(row, qtyState.quantityStatusLabel),
       attentionReasons: [],
+      manualQuantityActive: snapshotQty?.quantitySourceLabel === "Manual",
     };
   }
 
@@ -569,6 +573,7 @@ function buildUpgradeScopeLine(
     hiddenFromCustomer,
     detailMeta: buildDetailMeta(row, qtyState.quantityStatusLabel),
     attentionReasons: classification.reasons,
+    manualQuantityActive: snapshotQty?.quantitySourceLabel === "Manual",
   };
 }
 
