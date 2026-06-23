@@ -530,7 +530,7 @@ function suggestedActionForReasons(
 
 function isHiddenFromCustomer(lineView: ProposalBuilderLineCustomerView | undefined): boolean {
   if (!lineView) return false;
-  return lineView.displayStatus === "omitted" || lineView.customerVisibility === "internal_only";
+  return !lineView.showOnCustomerDocument;
 }
 
 function wouldSuppressFromDocument(

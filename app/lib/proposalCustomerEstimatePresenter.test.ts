@@ -117,6 +117,7 @@ function lineView(
     showPrice,
     customerLinePriceCents: showPrice ? 12_500 : null,
     customerVisibility: "customer_visible",
+    showOnCustomerDocument: displayStatus !== "omitted",
     ...overrides,
   };
 }
@@ -390,5 +391,85 @@ describe("buildCustomerPreviewEstimatePresentation", () => {
     assert.equal(result.suppressedBlockerCount, 1);
     assert.equal(result.showFinalizingMessage, true);
     assert.equal(CUSTOMER_PREVIEW_ESTIMATE_FINALIZING_COPY.length > 0, true);
+  });
+
+  test("priced line hidden from customer document is omitted from scope list", () => {
+    const scopeSection = section("sec-scope", "line_items", {
+      name: "Roofing materials",
+      customer_title: "Roofing materials",
+    });
+    const templateGraph = graph([scopeSection], [
+      item({ id: "line-priced", section_id: "sec-scope" }),
+      item({ id: "line-visible", section_id: "sec-scope" }),
+    ]);
+    const input: BuildCustomerPreviewEstimatePresentationInput = {
+      ...buildInput(),
+      graph: templateGraph,
+      sections: [scopeSection],
+      optionCustomerView: {
+        optionId: OPTION_ID,
+        pricingComplete: true,
+        customerSubtotalCents: 15_000,
+        discountCents: 0,
+        salesTaxCents: 0,
+        customerTotalCents: 15_000,
+        lines: [],
+        lineByTemplateItemId: {
+          "line-priced": lineView("line-priced", "priced", {
+            showOnCustomerDocument: false,
+            customerLinePriceCents: 2_500,
+          }),
+          "line-visible": lineView("line-visible", "priced", {
+            customerLinePriceCents: 12_500,
+          }),
+        },
+      },
+    };
+
+    const result = buildCustomerPreviewEstimatePresentation(input);
+    assert.equal(result.scopeSections.length, 1);
+    assert.equal(result.scopeSections[0]?.lines.length, 1);
+    assert.equal(result.scopeSections[0]?.lines[0]?.templateItemId, "line-visible");
+    assert.equal(result.totals.show, true);
+    assert.equal(result.totals.totalLabel, "$150.00");
+    assert.equal(result.suppressedBlockerCount, 0);
+  });
+
+  test("internal_only line is omitted and does not affect hidden-but-in-calc totals path", () => {
+    const scopeSection = section("sec-scope", "line_items", {
+      name: "Roofing materials",
+      customer_title: "Roofing materials",
+    });
+    const templateGraph = graph([scopeSection], [
+      item({ id: "line-priced", section_id: "sec-scope" }),
+      item({ id: "line-visible", section_id: "sec-scope" }),
+    ]);
+    const input: BuildCustomerPreviewEstimatePresentationInput = {
+      ...buildInput(),
+      graph: templateGraph,
+      sections: [scopeSection],
+      optionCustomerView: {
+        optionId: OPTION_ID,
+        pricingComplete: true,
+        customerSubtotalCents: 12_500,
+        discountCents: 0,
+        salesTaxCents: 0,
+        customerTotalCents: 12_500,
+        lines: [],
+        lineByTemplateItemId: {
+          "line-priced": lineView("line-priced", "omitted", {
+            customerVisibility: "internal_only",
+            showOnCustomerDocument: false,
+            showPrice: false,
+            customerLinePriceCents: null,
+          }),
+          "line-visible": lineView("line-visible", "priced"),
+        },
+      },
+    };
+
+    const result = buildCustomerPreviewEstimatePresentation(input);
+    assert.equal(result.scopeSections[0]?.lines.length, 1);
+    assert.equal(result.scopeSections[0]?.lines[0]?.templateItemId, "line-visible");
   });
 });

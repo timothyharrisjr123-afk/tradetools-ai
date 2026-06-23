@@ -150,6 +150,12 @@ const LIFECYCLE_LABELS: Record<ProposalBuilderLifecycleActionId, string> = {
 const PREVIEW_ROADMAP_LOCK_COPY =
   "Preview is locked in this roadmap phase until customer preview is enabled.";
 
+export const CUSTOMER_PREVIEW_READY_COPY = "Customer preview is ready.";
+export const CONTRACTOR_PREVIEW_REVIEW_COPY =
+  "Draft preview for contractor review only — pricing or scope is not customer-ready.";
+export const CONTRACTOR_PREVIEW_REVIEW_REASON =
+  "Draft is not customer-ready — resolve blockers before sending.";
+
 function hasSelectedPackage(input: ProposalBuilderGuidanceInput): boolean {
   return (input.selectedOptionId ?? "").trim().length > 0;
 }
@@ -176,7 +182,10 @@ function deriveIsReadyForPreviewWhenEnabled(input: ProposalBuilderGuidanceInput)
 
 function derivePreviewUnlockSummary(input: ProposalBuilderGuidanceInput): string {
   if (input.previewEnabled) {
-    return "Preview is available.";
+    if (deriveIsReadyForPreviewWhenEnabled(input)) {
+      return CUSTOMER_PREVIEW_READY_COPY;
+    }
+    return CONTRACTOR_PREVIEW_REVIEW_COPY;
   }
 
   const blockers: string[] = [];
@@ -223,7 +232,12 @@ function derivePreviewUnlockSummary(input: ProposalBuilderGuidanceInput): string
 }
 
 function derivePreviewLockedReason(input: ProposalBuilderGuidanceInput): string {
-  if (input.previewEnabled) return "";
+  if (input.previewEnabled) {
+    if (deriveIsReadyForPreviewWhenEnabled(input)) {
+      return "";
+    }
+    return CONTRACTOR_PREVIEW_REVIEW_REASON;
+  }
 
   if (input.blockingLineCount > 0) {
     return `${input.blockingLineCount} line item${input.blockingLineCount === 1 ? "" : "s"} need pricing or quantity attention before Preview can unlock.`;
@@ -449,6 +463,84 @@ function derivePagesStep(input: ProposalBuilderGuidanceInput): ProposalBuilderGu
   };
 }
 
+function derivePreviewLifecycleStep(
+  input: ProposalBuilderGuidanceInput,
+  previewUnlockSummary: string,
+  previewLockedReason: string,
+  isReadyForPreviewWhenEnabled: boolean
+): ProposalBuilderGuidanceStep {
+  if (!input.previewEnabled) {
+    return deriveLifecycleStep(
+      "preview",
+      false,
+      previewLockedReason,
+      previewUnlockSummary,
+      "action:preview"
+    );
+  }
+
+  if (isReadyForPreviewWhenEnabled) {
+    return {
+      id: "preview",
+      label: STEP_LABELS.preview,
+      state: "ready",
+      shortStatusLabel: "Ready",
+      description: CUSTOMER_PREVIEW_READY_COPY,
+      target: "action:preview",
+      lockedReason: null,
+      isClickableNow: true,
+    };
+  }
+
+  return {
+    id: "preview",
+    label: STEP_LABELS.preview,
+    state: "attention",
+    shortStatusLabel: "Review",
+    description: CONTRACTOR_PREVIEW_REVIEW_COPY,
+    target: "action:preview",
+    lockedReason: CONTRACTOR_PREVIEW_REVIEW_REASON,
+    isClickableNow: true,
+  };
+}
+
+function derivePreviewLifecycleLock(
+  input: ProposalBuilderGuidanceInput,
+  previewUnlockSummary: string,
+  previewLockedReason: string,
+  isReadyForPreviewWhenEnabled: boolean
+): ProposalBuilderLifecycleLock {
+  if (!input.previewEnabled) {
+    return deriveLifecycleLock(
+      "preview",
+      false,
+      previewLockedReason,
+      previewUnlockSummary,
+      "action:preview"
+    );
+  }
+
+  if (isReadyForPreviewWhenEnabled) {
+    return {
+      actionId: "preview",
+      label: LIFECYCLE_LABELS.preview,
+      state: "ready",
+      lockedReason: null,
+      unlockSummary: CUSTOMER_PREVIEW_READY_COPY,
+      target: "action:preview",
+    };
+  }
+
+  return {
+    actionId: "preview",
+    label: LIFECYCLE_LABELS.preview,
+    state: "attention",
+    lockedReason: CONTRACTOR_PREVIEW_REVIEW_REASON,
+    unlockSummary: CONTRACTOR_PREVIEW_REVIEW_COPY,
+    target: "action:preview",
+  };
+}
+
 function deriveLifecycleStep(
   id: Extract<
     ProposalBuilderGuidanceStepId,
@@ -619,16 +711,11 @@ export function deriveProposalBuilderGuidance(
   const previewUnlockSummary = derivePreviewUnlockSummary(input);
   const isReadyForPreviewWhenEnabled = deriveIsReadyForPreviewWhenEnabled(input);
 
-  const previewStep = deriveLifecycleStep(
-    "preview",
-    input.previewEnabled,
+  const previewStep = derivePreviewLifecycleStep(
+    input,
+    previewUnlockSummary,
     previewLockedReason,
-    input.previewEnabled
-      ? "Preview is available."
-      : isReadyForPreviewWhenEnabled
-        ? PREVIEW_ROADMAP_LOCK_COPY
-        : previewUnlockSummary,
-    "action:preview"
+    isReadyForPreviewWhenEnabled
   );
 
   const sendStep = deriveLifecycleStep(
@@ -668,16 +755,11 @@ export function deriveProposalBuilderGuidance(
   );
 
   const lifecycleLocks: ProposalBuilderLifecycleLock[] = [
-    deriveLifecycleLock(
-      "preview",
-      input.previewEnabled,
+    derivePreviewLifecycleLock(
+      input,
+      previewUnlockSummary,
       previewLockedReason,
-      input.previewEnabled
-        ? "Preview is available."
-        : isReadyForPreviewWhenEnabled
-          ? PREVIEW_ROADMAP_LOCK_COPY
-          : previewUnlockSummary,
-      "action:preview"
+      isReadyForPreviewWhenEnabled
     ),
     deriveLifecycleLock(
       "send",

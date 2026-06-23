@@ -75,6 +75,11 @@ export type ProposalBuilderLineCustomerView = {
   showPrice: boolean;
   customerLinePriceCents: number | null;
   customerVisibility: CustomerVisibility;
+  /**
+   * When false, omit from customer document line lists. Snapshot option totals remain
+   * authoritative — hidden-but-in-calc lines keep customerVisibility customer_visible.
+   */
+  showOnCustomerDocument: boolean;
 };
 
 /** Customer-safe option view. Customer totals only — null when blocked. */
@@ -184,6 +189,11 @@ function buildOptionPreview(
       catalogItemMissing: isMissingCatalogLine(line),
     });
     const showPrice = displayStatus === "priced";
+    const showOnCustomerDocument =
+      line.customerVisibility !== "internal_only" &&
+      displayStatus !== "omitted" &&
+      line.hiddenButInCalc !== true;
+
     const view: ProposalBuilderLineCustomerView = {
       templateItemId: line.templateItemId,
       sectionId: line.sectionId ?? null,
@@ -191,6 +201,7 @@ function buildOptionPreview(
       showPrice,
       customerLinePriceCents: showPrice ? priced.linePriceCents : null,
       customerVisibility: line.customerVisibility,
+      showOnCustomerDocument,
     };
     lines.push(view);
     lineByTemplateItemId[line.templateItemId] = view;

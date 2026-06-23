@@ -95,6 +95,10 @@ function mapDocumentLine(
     return { line: null, suppressed: true };
   }
 
+  if (!lineView.showOnCustomerDocument) {
+    return { line: null, suppressed: false };
+  }
+
   const { displayStatus, showPrice, customerLinePriceCents } = lineView;
 
   if (displayStatus === "omitted") {

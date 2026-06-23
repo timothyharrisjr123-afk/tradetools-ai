@@ -55,9 +55,10 @@ export default function ProposalBuilderDisabledActions({
   return (
     <div className="flex flex-wrap items-center gap-2" aria-label="Proposal lifecycle (staged, locked)">
       {headerLocks.map((lock) => {
-        const enabled = lock.state === "ready";
-        const reason = lock.lockedReason ?? lock.unlockSummary;
         const isPreview = lock.actionId === "preview";
+        const enabled =
+          lock.state === "ready" || (isPreview && lock.state === "attention");
+        const reason = lock.lockedReason ?? lock.unlockSummary;
 
         return (
           <button
@@ -67,19 +68,29 @@ export default function ProposalBuilderDisabledActions({
             aria-disabled={!enabled}
             aria-label={
               enabled
-                ? `${lock.label} — open customer preview`
+                ? lock.state === "attention" && isPreview
+                  ? `${lock.label} — contractor review only. ${reason}`
+                  : `${lock.label} — open customer preview`
                 : `${lock.label} — locked. ${reason}`
             }
             className={
               enabled
                 ? isPreview
-                  ? BUILDER_PREVIEW_ENABLED_ACTION
+                  ? lock.state === "attention"
+                    ? `${BUILDER_PREVIEW_ENABLED_ACTION} border-amber-300 bg-amber-50/80 text-amber-900 hover:bg-amber-100/80`
+                    : BUILDER_PREVIEW_ENABLED_ACTION
                   : BUILDER_DISABLED_ACTION
                 : `${BUILDER_DISABLED_ACTION} ${
                     isPreview ? "border-blue-200 bg-blue-50/40 text-blue-400" : ""
                   }`
             }
-            title={enabled ? "Open customer preview" : reason}
+            title={
+              enabled
+                ? lock.state === "attention" && isPreview
+                  ? `Contractor review preview — ${reason}`
+                  : "Open customer preview"
+                : reason
+            }
             onClick={() => {
               if (enabled) {
                 onLifecycleAction?.(lock.actionId);

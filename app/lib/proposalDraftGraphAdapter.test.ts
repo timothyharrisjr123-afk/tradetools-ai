@@ -18,9 +18,11 @@ import type {
 import type { ProposalRecord } from "./proposalRecordTypes";
 import {
   adaptProposalDraftGraphToBuilderPreview,
+  customerVisibilityForSnapshotLine,
   mapSnapshotPricingStatusToBuilderDisplayStatus,
   resolveRuntimeOptionIdFromTemplateOptionId,
   resolveSelectedTemplateOptionIdFromGraph,
+  showOnCustomerDocumentForSnapshotLine,
   validateProposalDraftGraphForJob,
 } from "./proposalDraftGraphAdapter";
 import { buildProposalCoverViewModel } from "./proposalCoverViewModel";
@@ -372,6 +374,48 @@ describe("adaptProposalDraftGraphToBuilderPreview", () => {
       adapted.pricingPreview.byOptionId[TEMPLATE_OPT_A]!.customer.lines[0]!;
     assert.equal(line.displayStatus, "omitted");
     assert.equal(line.showPrice, false);
+    assert.equal(line.showOnCustomerDocument, false);
+  });
+
+  test("priced hidden-from-customer snapshot line keeps customer_visible semantics", () => {
+    const row = lineRow({
+      pricing_status: "priced",
+      visible_to_customer: false,
+      customer_line_total_cents: 5000,
+    });
+    const displayStatus = mapSnapshotPricingStatusToBuilderDisplayStatus(row.pricing_status);
+
+    assert.equal(customerVisibilityForSnapshotLine(row, displayStatus), "customer_visible");
+    assert.equal(showOnCustomerDocumentForSnapshotLine(row, displayStatus), false);
+
+    const adapted = adaptProposalDraftGraphToBuilderPreview(
+      draftGraph({
+        lineItems: [row],
+        options: [
+          {
+            ...optionRow(),
+            customer_subtotal_cents: 5000,
+            customer_total_cents: 5000,
+          },
+        ],
+      })
+    );
+    const line =
+      adapted.pricingPreview.byOptionId[TEMPLATE_OPT_A]!.customer.lines[0]!;
+    assert.equal(line.displayStatus, "priced");
+    assert.equal(line.customerVisibility, "customer_visible");
+    assert.equal(line.showOnCustomerDocument, false);
+  });
+
+  test("omitted snapshot line maps to internal_only visibility", () => {
+    const row = lineRow({
+      pricing_status: "omitted",
+      visible_to_customer: false,
+      customer_line_total_cents: null,
+    });
+    const displayStatus = mapSnapshotPricingStatusToBuilderDisplayStatus(row.pricing_status);
+    assert.equal(customerVisibilityForSnapshotLine(row, displayStatus), "internal_only");
+    assert.equal(showOnCustomerDocumentForSnapshotLine(row, displayStatus), false);
   });
 
   test("empty graph options still returns structure without throwing", () => {

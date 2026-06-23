@@ -117,14 +117,40 @@ function normalizeGuardrailOutcome(value: string | null | undefined): GuardrailO
   return "block";
 }
 
-function customerVisibilityForLine(
+function isContributingSnapshotDisplayStatus(displayStatus: BuilderLineDisplayStatus): boolean {
+  return (
+    displayStatus === "priced" ||
+    displayStatus === "included" ||
+    displayStatus === "grouped"
+  );
+}
+
+/**
+ * Snapshot customerVisibility drives subtotal semantics on persisted totals.
+ * hidden-but-in-calc (visible_to_customer false while still priced) stays customer_visible.
+ */
+export function customerVisibilityForSnapshotLine(
   line: ProposalLineItemRow,
   displayStatus: BuilderLineDisplayStatus
 ): CustomerVisibility {
   if (displayStatus === "omitted") return "internal_only";
   if (displayStatus === "grouped") return "grouped";
-  if (!line.visible_to_customer) return "internal_only";
+  if (
+    line.visible_to_customer === false &&
+    isContributingSnapshotDisplayStatus(displayStatus)
+  ) {
+    return "customer_visible";
+  }
+  if (line.visible_to_customer === false) return "internal_only";
   return "customer_visible";
+}
+
+export function showOnCustomerDocumentForSnapshotLine(
+  line: ProposalLineItemRow,
+  displayStatus: BuilderLineDisplayStatus
+): boolean {
+  if (displayStatus === "omitted") return false;
+  return line.visible_to_customer !== false;
 }
 
 function trimOrNull(value: string | null | undefined): string | null {
@@ -200,13 +226,17 @@ function buildLineCustomerView(line: ProposalLineItemRow): ProposalBuilderLineCu
   const customerLinePriceCents =
     displayStatus === "priced" ? line.customer_line_total_cents : null;
 
+  const customerVisibility = customerVisibilityForSnapshotLine(line, displayStatus);
+  const showOnCustomerDocument = showOnCustomerDocumentForSnapshotLine(line, displayStatus);
+
   return {
     templateItemId,
     sectionId: line.section_id,
     displayStatus,
     showPrice: displayStatus === "priced" && customerLinePriceCents != null,
     customerLinePriceCents,
-    customerVisibility: customerVisibilityForLine(line, displayStatus),
+    customerVisibility,
+    showOnCustomerDocument,
   };
 }
 

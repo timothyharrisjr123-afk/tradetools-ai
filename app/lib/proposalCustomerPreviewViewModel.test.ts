@@ -280,17 +280,18 @@ describe("buildProposalCustomerPreviewDocument", () => {
     }
   });
 
-  test("customer-invisible lines are marked internal_only in estimate option preview", () => {
+  test("customer-hidden priced line keeps customer_visible totals semantics", () => {
     const doc = buildProposalCustomerPreviewDocument(minimalGraph());
     const estimate = doc.pages.find((page) => page.kind === "estimate");
     assert.ok(estimate?.kind === "estimate");
     if (estimate?.kind === "estimate") {
       const lines = estimate.optionPreview?.customer.lines ?? [];
       assert.equal(lines.length, 2);
-      const internalLine = lines.find(
+      const hiddenLine = lines.find(
         (line) => line.templateItemId === "15151515-1515-4515-8515-151515151515"
       );
-      assert.equal(internalLine?.customerVisibility, "internal_only");
+      assert.equal(hiddenLine?.customerVisibility, "customer_visible");
+      assert.equal(hiddenLine?.showOnCustomerDocument, false);
     }
   });
 

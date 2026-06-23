@@ -132,6 +132,7 @@ function lineView(
     showPrice,
     customerLinePriceCents: showPrice ? 12_500 : null,
     customerVisibility: "customer_visible",
+    showOnCustomerDocument: displayStatus !== "omitted",
     ...overrides,
   };
 }
@@ -529,7 +530,7 @@ describe("buildProposalWorkbenchEstimatePresentation", () => {
     assert.equal(result.needsAttention.lines[0]?.templateItemId, "line-blocked");
   });
 
-  test("internal_only lines remain visible in workbench with hidden flag", () => {
+  test("hidden-from-customer lines remain visible in workbench with hidden flag", () => {
     const scopeSection = section("sec-scope", "line_items", OPTION_STANDARD);
     const templateGraph = graph(
       [option(OPTION_STANDARD)],
@@ -543,9 +544,10 @@ describe("buildProposalWorkbenchEstimatePresentation", () => {
         sections: [scopeSection],
         snapshotQuantityByTemplateItemId: snapshotQty("line-internal", "24 sq"),
         optionCustomerView: optionCustomerView({
-          "line-internal": lineView("line-internal", "omitted", {
-            customerVisibility: "internal_only",
-            showPrice: false,
+          "line-internal": lineView("line-internal", "priced", {
+            customerVisibility: "customer_visible",
+            showOnCustomerDocument: false,
+            showPrice: true,
             customerLinePriceCents: 9_900,
           }),
         }),

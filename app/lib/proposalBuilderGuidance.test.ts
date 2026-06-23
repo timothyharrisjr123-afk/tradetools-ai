@@ -159,7 +159,7 @@ describe("deriveProposalBuilderGuidance", () => {
     assert.equal(guidance.isReadyForPreviewWhenEnabled, false);
   });
 
-  test("preview enabled unlocks Preview lifecycle action while Send stays locked", () => {
+  test("preview enabled when customer-ready unlocks Preview lifecycle action while Send stays locked", () => {
     const guidance = deriveProposalBuilderGuidance(baseInput({ previewEnabled: true }));
 
     const preview = lifecycleById(guidance, "preview");
@@ -167,8 +167,32 @@ describe("deriveProposalBuilderGuidance", () => {
 
     assert.equal(preview.state, "ready");
     assert.equal(preview.lockedReason, null);
+    assert.match(preview.unlockSummary, /Customer preview is ready/i);
     assert.equal(send.state, "locked");
     assert.equal(send.lockedReason, "Available after Preview.");
+  });
+
+  test("preview enabled with blockers uses contractor review attention state", () => {
+    const guidance = deriveProposalBuilderGuidance(
+      baseInput({ previewEnabled: true, blockingLineCount: 3 })
+    );
+
+    const preview = lifecycleById(guidance, "preview");
+    assert.equal(preview.state, "attention");
+    assert.match(preview.unlockSummary, /contractor review/i);
+    assert.match(guidance.previewUnlockSummary, /contractor review/i);
+    assert.equal(guidance.isReadyForPreviewWhenEnabled, false);
+    assert.equal(lifecycleById(guidance, "send").state, "locked");
+  });
+
+  test("preview unlock summary does not claim customer-ready when blockers exist", () => {
+    const guidance = deriveProposalBuilderGuidance(
+      baseInput({ previewEnabled: true, measurementStale: true })
+    );
+
+    assert.match(guidance.previewUnlockSummary, /contractor review/i);
+    assert.doesNotMatch(guidance.previewUnlockSummary, /Customer preview is ready/i);
+    assert.equal(lifecycleById(guidance, "preview").state, "attention");
   });
 
   test("preview disabled when roadmap flag false even if setup ready", () => {
