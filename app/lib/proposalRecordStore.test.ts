@@ -15,7 +15,10 @@ import type { MeasurementQuantityMap } from "./measurementTypes";
 import type { ProposalQuantityPreviewContext } from "./proposalBuilderPreview";
 import {
   buildDraftPricingRefreshGraphSnapshotFromTables,
+  PERSIST_DRAFT_PRICING_REFRESH_RPC_V1,
+  persistDraftPricingRefreshSequential,
   validateDraftPricingRefreshGraphIntegrity,
+  type DraftPricingRefreshPersistPayload,
 } from "./proposalDraftPricingRefreshPersistence";
 import {
   DEFAULT_PROFITABILITY_TYPE,
@@ -101,9 +104,52 @@ const UNCONFIGURED_RESOLUTION: CompanyPricingPolicyResolution = {
 
 type MockOp = {
   table: string;
-  action: "insert" | "update" | "delete" | "select";
+  action: "insert" | "update" | "delete" | "select" | "rpc";
   payload?: unknown;
 };
+
+type MockRpcCall = {
+  name: string;
+  args: Record<string, unknown> | undefined;
+};
+
+function withRefreshPricingRpcDisabled<T>(fn: () => Promise<T>): Promise<T> {
+  const priorRpc = process.env.USE_REFRESH_DRAFT_PRICING_RPC;
+  const priorPublic = process.env.NEXT_PUBLIC_USE_REFRESH_DRAFT_PRICING_RPC;
+  delete process.env.USE_REFRESH_DRAFT_PRICING_RPC;
+  delete process.env.NEXT_PUBLIC_USE_REFRESH_DRAFT_PRICING_RPC;
+  return fn().finally(() => {
+    if (priorRpc !== undefined) {
+      process.env.USE_REFRESH_DRAFT_PRICING_RPC = priorRpc;
+    } else {
+      delete process.env.USE_REFRESH_DRAFT_PRICING_RPC;
+    }
+    if (priorPublic !== undefined) {
+      process.env.NEXT_PUBLIC_USE_REFRESH_DRAFT_PRICING_RPC = priorPublic;
+    } else {
+      delete process.env.NEXT_PUBLIC_USE_REFRESH_DRAFT_PRICING_RPC;
+    }
+  });
+}
+
+function withRefreshPricingRpcEnabled<T>(fn: () => Promise<T>): Promise<T> {
+  const priorRpc = process.env.USE_REFRESH_DRAFT_PRICING_RPC;
+  const priorPublic = process.env.NEXT_PUBLIC_USE_REFRESH_DRAFT_PRICING_RPC;
+  process.env.USE_REFRESH_DRAFT_PRICING_RPC = "1";
+  delete process.env.NEXT_PUBLIC_USE_REFRESH_DRAFT_PRICING_RPC;
+  return fn().finally(() => {
+    if (priorRpc !== undefined) {
+      process.env.USE_REFRESH_DRAFT_PRICING_RPC = priorRpc;
+    } else {
+      delete process.env.USE_REFRESH_DRAFT_PRICING_RPC;
+    }
+    if (priorPublic !== undefined) {
+      process.env.NEXT_PUBLIC_USE_REFRESH_DRAFT_PRICING_RPC = priorPublic;
+    } else {
+      delete process.env.NEXT_PUBLIC_USE_REFRESH_DRAFT_PRICING_RPC;
+    }
+  });
+}
 
 type MockState = {
   ops: MockOp[];
@@ -211,6 +257,7 @@ function createMockSupabase(options?: {
   versionKind?: string;
   failOn?: { table: string; action: "insert" | "update" | "delete" };
   shouldFailOn?: () => boolean;
+  rpcFailOn?: string;
 }) {
   const state: MockState = {
     ops: [],
@@ -380,12 +427,33 @@ function createMockSupabase(options?: {
     return chain;
   }
 
+  const rpcCalls: MockRpcCall[] = [];
+
+  async function rpc(name: string, args?: Record<string, unknown>) {
+    rpcCalls.push({ name, args });
+    state.ops.push({ table: "__rpc__", action: "rpc", payload: { name, args } });
+
+    if (options?.rpcFailOn) {
+      return { data: null, error: { message: options.rpcFailOn } };
+    }
+
+    if (name === PERSIST_DRAFT_PRICING_REFRESH_RPC_V1) {
+      const payload = args?.p_payload as DraftPricingRefreshPersistPayload | undefined;
+      if (payload) {
+        await persistDraftPricingRefreshSequential({ from, rpc } as never, payload);
+      }
+    }
+
+    return { data: { ok: true }, error: null };
+  }
+
   return {
     supabase: {
       from,
-      rpc: async () => ({ data: { ok: true }, error: null }),
+      rpc,
     },
     state,
+    rpcCalls,
   };
 }
 
@@ -1243,52 +1311,166 @@ describe("refreshDraftPricing", () => {
   });
 
   test("sequential refresh line insert failure leaves corrupt graph (documents non-atomic risk)", async () => {
-    let refreshStarted = false;
-    const mock = createMockSupabase({
-      failOn: { table: "proposal_line_items", action: "insert" },
-      shouldFailOn: () => refreshStarted,
+    await withRefreshPricingRpcDisabled(async () => {
+      let refreshStarted = false;
+      const mock = createMockSupabase({
+        failOn: { table: "proposal_line_items", action: "insert" },
+        shouldFailOn: () => refreshStarted,
+      });
+      const deps = storeDeps(mock);
+      const created = await createDraftProposal(
+        {
+          company_id: COMPANY_ID,
+          job_id: JOB_ID,
+          template_id: TEMPLATE_ID,
+          quantity_context: contextWithSquares(22),
+        },
+        deps
+      );
+
+      const linesBefore = mock.state.tables.proposal_line_items.length;
+      assert.ok(linesBefore > 0);
+
+      refreshStarted = true;
+
+      await assert.rejects(
+        () =>
+          refreshDraftPricing(
+            COMPANY_ID,
+            created.proposal.id,
+            { quantity_context: contextWithSquares(24) },
+            deps
+          ),
+        /mock failOn proposal_line_items\.insert/
+      );
+
+      assert.equal(mock.state.tables.proposal_line_items.length, 0);
+
+      const snapshot = buildDraftPricingRefreshGraphSnapshotFromTables({
+        options: mock.state.tables.proposal_options as Record<string, unknown>[],
+        lineItems: mock.state.tables.proposal_line_items as Record<string, unknown>[],
+        internalSummaries:
+          mock.state.tables.proposal_internal_summaries as Record<string, unknown>[],
+      });
+
+      const violations = validateDraftPricingRefreshGraphIntegrity(snapshot);
+      assert.ok(
+        violations.some((violation) => violation.code === "option_totals_without_lines"),
+        "expected corrupt graph when line insert fails after delete"
+      );
     });
-    const deps = storeDeps(mock);
-    const created = await createDraftProposal(
-      {
-        company_id: COMPANY_ID,
-        job_id: JOB_ID,
-        template_id: TEMPLATE_ID,
-        quantity_context: contextWithSquares(22),
-      },
-      deps
-    );
+  });
 
-    const linesBefore = mock.state.tables.proposal_line_items.length;
-    assert.ok(linesBefore > 0);
+  test("RPC off: refresh uses sequential persistence writes (no pricing refresh RPC)", async () => {
+    await withRefreshPricingRpcDisabled(async () => {
+      const mock = createMockSupabase();
+      const deps = storeDeps(mock);
+      const created = await createDraftProposal(
+        {
+          company_id: COMPANY_ID,
+          job_id: JOB_ID,
+          template_id: TEMPLATE_ID,
+          quantity_context: contextWithSquares(22),
+        },
+        deps
+      );
 
-    refreshStarted = true;
+      mock.rpcCalls.length = 0;
+      mock.state.ops.length = 0;
 
-    await assert.rejects(
-      () =>
-        refreshDraftPricing(
-          COMPANY_ID,
-          created.proposal.id,
-          { quantity_context: contextWithSquares(24) },
-          deps
-        ),
-      /mock failOn proposal_line_items\.insert/
-    );
+      await refreshDraftPricing(
+        COMPANY_ID,
+        created.proposal.id,
+        { quantity_context: contextWithSquares(24) },
+        deps
+      );
 
-    assert.equal(mock.state.tables.proposal_line_items.length, 0);
-
-    const snapshot = buildDraftPricingRefreshGraphSnapshotFromTables({
-      options: mock.state.tables.proposal_options as Record<string, unknown>[],
-      lineItems: mock.state.tables.proposal_line_items as Record<string, unknown>[],
-      internalSummaries:
-        mock.state.tables.proposal_internal_summaries as Record<string, unknown>[],
+      assert.equal(mock.rpcCalls.length, 0);
+      assert.ok(
+        mock.state.ops.some(
+          (op) => op.table === "proposal_line_items" && op.action === "insert"
+        )
+      );
+      assert.ok(
+        mock.state.ops.some(
+          (op) => op.table === "proposal_options" && op.action === "update"
+        )
+      );
     });
+  });
 
-    const violations = validateDraftPricingRefreshGraphIntegrity(snapshot);
-    assert.ok(
-      violations.some((violation) => violation.code === "option_totals_without_lines"),
-      "expected corrupt graph when line insert fails after delete"
-    );
+  test("RPC on: refresh calls persist_draft_pricing_refresh_v1 and applies graph", async () => {
+    await withRefreshPricingRpcEnabled(async () => {
+      const mock = createMockSupabase();
+      const deps = storeDeps(mock);
+      const created = await createDraftProposal(
+        {
+          company_id: COMPANY_ID,
+          job_id: JOB_ID,
+          template_id: TEMPLATE_ID,
+          quantity_context: contextWithSquares(23),
+        },
+        deps
+      );
+
+      mock.rpcCalls.length = 0;
+
+      await refreshDraftPricing(
+        COMPANY_ID,
+        created.proposal.id,
+        { quantity_context: contextWithSquares(25) },
+        deps
+      );
+
+      assert.equal(mock.rpcCalls.length, 1);
+      assert.equal(mock.rpcCalls[0]!.name, PERSIST_DRAFT_PRICING_REFRESH_RPC_V1);
+      assert.ok(mock.rpcCalls[0]!.args?.p_payload);
+      assert.equal(firstLineTotalForVersion(mock).quantity, 25);
+
+      const pricingRefreshRpcOps = mock.state.ops.filter(
+        (op) => op.action === "rpc" && (op.payload as { name?: string })?.name === PERSIST_DRAFT_PRICING_REFRESH_RPC_V1
+      );
+      assert.equal(pricingRefreshRpcOps.length, 1);
+    });
+  });
+
+  test("RPC on: refresh surfaces RPC failure as ProposalRecordStoreError without sequential fallback", async () => {
+    await withRefreshPricingRpcEnabled(async () => {
+      const mock = createMockSupabase({ rpcFailOn: "function does not exist" });
+      const deps = storeDeps(mock);
+      const created = await createDraftProposal(
+        {
+          company_id: COMPANY_ID,
+          job_id: JOB_ID,
+          template_id: TEMPLATE_ID,
+          quantity_context: contextWithSquares(22),
+        },
+        deps
+      );
+
+      const linesBefore = clone(mock.state.tables.proposal_line_items);
+      const optionBefore = clone(mock.state.tables.proposal_options[0]);
+
+      await assert.rejects(
+        () =>
+          refreshDraftPricing(
+            COMPANY_ID,
+            created.proposal.id,
+            { quantity_context: contextWithSquares(24) },
+            deps
+          ),
+        (error: unknown) => {
+          assert.ok(error instanceof ProposalRecordStoreError);
+          assert.match(String(error.message), /function does not exist/);
+          return true;
+        }
+      );
+
+      assert.deepEqual(mock.state.tables.proposal_line_items, linesBefore);
+      assert.deepEqual(mock.state.tables.proposal_options[0], optionBefore);
+      assert.equal(mock.rpcCalls.length, 1);
+      assert.equal(mock.rpcCalls[0]!.name, PERSIST_DRAFT_PRICING_REFRESH_RPC_V1);
+    });
   });
 });
 
