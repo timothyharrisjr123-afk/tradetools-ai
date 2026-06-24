@@ -13,12 +13,17 @@ import {
   buildInternalPolicyEchoJson,
   buildInternalSummarySnapshots,
   buildLineItemSnapshots,
+  buildLineSectionIdToPersistedPageSectionMap,
   buildOptionSnapshots,
   buildPolicyEchoCustomerSafe,
   mapTemplateSectionsToProposalPages,
+  normalizeDraftInstantiateInputLineSectionIds,
   normalizeGuardrailOutcomeForSnapshot,
+  normalizeLineSectionIdsForSpinePages,
   ProposalSnapshotBuilderError,
+  resolveSpineLineItemsSectionId,
   templateItemToLineInput,
+  type DraftInstantiateInput,
 } from "./proposalSnapshotBuilder";
 import {
   assertCustomerSafeLineRow,
@@ -914,6 +919,166 @@ describe("buildDraftInstantiatePayload", () => {
       payload.pages.find((page) => page.page_type === "terms")?.settings_json,
       {}
     );
+  });
+});
+
+describe("line section id spine page mapping", () => {
+  const OPT_STANDARD = "opt-standard";
+  const OPT_ENHANCED = "opt-enhanced";
+  const SEC_STD_LINES = "sec-std-lines";
+  const SEC_STD_TERMS = "sec-std-terms";
+  const SEC_ENH_LINES = "sec-enh-lines";
+  const SEC_ENH_UPGRADES = "sec-enh-upgrades";
+
+  function pricedLineInput(
+    itemId: string,
+    sectionId: string
+  ): ReturnType<typeof templateItemToLineInput> {
+    return templateItemToLineInput(
+      templateItem({
+        id: itemId,
+        option_id: OPT_ENHANCED,
+        section_id: sectionId,
+      }),
+      {
+        engineStatus: "priced",
+        customerVisibility: "customer_visible",
+        customerUnitPriceCents: 500,
+        customerLineTotalCents: 500,
+        quantity: 1,
+      }
+    );
+  }
+
+  function starterLikeInstantiateInput(): DraftInstantiateInput {
+    return {
+      company_id: COMPANY_ID,
+      context: { job_id: JOB_ID, template_id: TEMPLATE_ID },
+      policy: POLICY_INPUT,
+      templateOptions: [templateOption(OPT_STANDARD, true), templateOption(OPT_ENHANCED, false)],
+      templateSections: [
+        section({
+          id: SEC_STD_LINES,
+          option_id: OPT_STANDARD,
+          kind: "line_items",
+          name: "Roof replacement scope",
+          sort_order: 20,
+        }),
+        section({
+          id: SEC_STD_TERMS,
+          option_id: OPT_STANDARD,
+          kind: "terms",
+          name: "Terms",
+          sort_order: 60,
+        }),
+        section({
+          id: SEC_ENH_LINES,
+          option_id: OPT_ENHANCED,
+          kind: "line_items",
+          name: "Roof replacement scope",
+          sort_order: 20,
+        }),
+        section({
+          id: SEC_ENH_UPGRADES,
+          option_id: OPT_ENHANCED,
+          kind: "upgrade_group",
+          name: "Optional upgrades",
+          sort_order: 30,
+        }),
+      ],
+      template: templateRow(),
+      optionPricing: [
+        {
+          source_template_option_id: OPT_STANDARD,
+          name: "Standard",
+          sort_order: 0,
+          is_default: true,
+          visible_to_customer: true,
+          customer_subtotal_cents: 50_000,
+          discount_cents: null,
+          sales_tax_cents: 4_000,
+          customer_total_cents: 54_000,
+          pricing_complete: true,
+          blocking_line_count: 0,
+          guardrail_outcome: "pass",
+          is_selected: true,
+        },
+        {
+          source_template_option_id: OPT_ENHANCED,
+          name: "Enhanced",
+          sort_order: 1,
+          is_default: false,
+          visible_to_customer: true,
+          customer_subtotal_cents: 55_000,
+          discount_cents: null,
+          sales_tax_cents: 4_400,
+          customer_total_cents: 59_400,
+          pricing_complete: true,
+          blocking_line_count: 0,
+          guardrail_outcome: "pass",
+        },
+      ],
+      lineItemsByTemplateOptionId: {
+        [OPT_STANDARD]: [pricedLineInput("item-std", SEC_STD_LINES)],
+        [OPT_ENHANCED]: [
+          pricedLineInput("item-enh-core", SEC_ENH_LINES),
+          pricedLineInput("item-enh-upgrade", SEC_ENH_UPGRADES),
+        ],
+      },
+      internalSummaryByTemplateOptionId: {},
+    };
+  }
+
+  test("resolveSpineLineItemsSectionId returns default option line_items section", () => {
+    const sections = starterLikeInstantiateInput().templateSections;
+    assert.equal(resolveSpineLineItemsSectionId(sections, OPT_STANDARD), SEC_STD_LINES);
+  });
+
+  test("buildLineSectionIdToPersistedPageSectionMap maps all line-bearing sections to spine estimate", () => {
+    const map = buildLineSectionIdToPersistedPageSectionMap(
+      starterLikeInstantiateInput().templateSections,
+      OPT_STANDARD
+    );
+    assert.equal(map.get(SEC_STD_LINES), SEC_STD_LINES);
+    assert.equal(map.get(SEC_ENH_LINES), SEC_STD_LINES);
+    assert.equal(map.get(SEC_ENH_UPGRADES), SEC_STD_LINES);
+    assert.equal(map.has(SEC_STD_TERMS), false);
+  });
+
+  test("normalizeLineSectionIdsForSpinePages rewrites non-spine and upgrade_group section ids", () => {
+    const map = buildLineSectionIdToPersistedPageSectionMap(
+      starterLikeInstantiateInput().templateSections,
+      OPT_STANDARD
+    );
+    const normalized = normalizeLineSectionIdsForSpinePages(
+      starterLikeInstantiateInput().lineItemsByTemplateOptionId[OPT_ENHANCED]!,
+      map
+    );
+    assert.equal(normalized[0]!.section_id, SEC_STD_LINES);
+    assert.equal(normalized[1]!.section_id, SEC_STD_LINES);
+  });
+
+  test("buildDraftInstantiatePayload keeps spine pages only and normalizes all line section ids", () => {
+    const payload = buildDraftInstantiatePayload(starterLikeInstantiateInput());
+
+    assert.deepEqual(
+      payload.pages.map((page) => page.source_template_section_id).sort(),
+      [SEC_STD_LINES, SEC_STD_TERMS]
+    );
+    assert.ok(
+      payload.lineItems.every((line) => line.section_id === SEC_STD_LINES),
+      "every line section_id must map to spine estimate page section"
+    );
+  });
+
+  test("customer document IA unchanged — non-spine option sections do not become pages", () => {
+    const payload = buildDraftInstantiatePayload(starterLikeInstantiateInput());
+    const pageSectionIds = new Set(
+      payload.pages.map((page) => page.source_template_section_id).filter(Boolean)
+    );
+    assert.ok(!pageSectionIds.has(SEC_ENH_LINES));
+    assert.ok(!pageSectionIds.has(SEC_ENH_UPGRADES));
+    assert.equal(payload.pages.filter((page) => page.page_type === "estimate").length, 1);
   });
 });
 

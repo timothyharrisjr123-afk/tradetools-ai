@@ -4,9 +4,8 @@
  * TypeScript pricing/snapshot math stays in proposalRecordStore + snapshot builder.
  * This module prepares the persist payload and defines graph integrity invariants.
  *
- * Live create remains sequential until migration review/apply and Remediation 4C
- * switches createDraftProposal to RPC `persist_draft_proposal_create_v1` by default.
- * Sequential Supabase writes will remain available only via explicit test/dev escape hatch.
+ * Live create uses transactional RPC `persist_draft_proposal_create_v1` by default.
+ * Sequential Supabase writes remain available only via explicit test/dev escape hatch.
  */
 
 import { isUuidLike } from "@/app/lib/jobStore";
@@ -15,6 +14,7 @@ import type { PricingPolicy } from "@/app/lib/proposalPricingTypes";
 import {
   buildInternalPolicyEchoJson,
   buildLineItemSnapshots,
+  normalizeDraftInstantiateInputLineSectionIds,
   type DraftInstantiateInput,
   type DraftInstantiatePayload,
 } from "@/app/lib/proposalSnapshotBuilder";
@@ -691,6 +691,7 @@ export function buildDraftProposalCreatePersistPayload(
   const jobId = input.jobId.trim();
   const templateId = input.templateId.trim();
   const pricingPolicyId = input.pricingPolicyId.trim();
+  const instantiateInput = normalizeDraftInstantiateInputLineSectionIds(input.instantiateInput);
 
   const pages: DraftProposalCreatePagePersistRow[] = input.instantiatePayload.pages.map(
     (page) => ({
@@ -709,7 +710,7 @@ export function buildDraftProposalCreatePersistPayload(
 
   for (const optionPayload of input.instantiatePayload.options) {
     const linesForOption =
-      input.instantiateInput.lineItemsByTemplateOptionId[
+      instantiateInput.lineItemsByTemplateOptionId[
         optionPayload.source_template_option_id
       ] ?? [];
 
@@ -743,7 +744,7 @@ export function buildDraftProposalCreatePersistPayload(
     });
 
     const internalInput =
-      input.instantiateInput.internalSummaryByTemplateOptionId[
+      instantiateInput.internalSummaryByTemplateOptionId[
         optionPayload.source_template_option_id
       ];
 
@@ -806,15 +807,279 @@ export function buildDraftProposalCreatePersistPayload(
 }
 
 // ---------------------------------------------------------------------------
-// Persistence path gate (RPC future default; sequential test/dev escape hatch)
+// Sequential persist (legacy non-atomic path — test/backstop only)
+// ---------------------------------------------------------------------------
+
+type SupabaseClient = NonNullable<ReturnType<typeof getSupabaseClient>>;
+
+function buildPageIdBySectionFromInsertedPages(
+  pages: ReadonlyArray<{ id: string; source_template_section_id: string | null }>
+): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const page of pages) {
+    if (page.source_template_section_id) {
+      map.set(page.source_template_section_id, page.id);
+    }
+  }
+  return map;
+}
+
+/**
+ * Legacy non-atomic create persist — mirrors pre-4C store write order.
+ * Used by test/dev escape hatch and RPC mock harness only.
+ */
+export async function persistDraftProposalCreateSequential(
+  supabase: SupabaseClient,
+  payload: DraftProposalCreatePersistPayload
+): Promise<DraftProposalCreateRpcResult> {
+  const companyId = payload.company_id;
+
+  const { data: proposalRow, error: proposalError } = await supabase
+    .from("proposals")
+    .insert({
+      company_id: companyId,
+      job_id: payload.job_id,
+      customer_id: payload.customer_id,
+      template_id: payload.template_id,
+      status: "draft",
+      measurement_record_id: payload.measurement_record_id,
+      pricing_policy_id: payload.pricing_policy_id,
+      title: payload.title,
+      created_by: payload.created_by,
+    })
+    .select("*")
+    .single();
+
+  if (proposalError || !proposalRow) {
+    throw new ProposalDraftCreatePersistenceError(
+      proposalError?.message ?? "Failed to insert proposal header."
+    );
+  }
+
+  const proposalId = String((proposalRow as { id: string }).id);
+
+  const { data: versionRow, error: versionError } = await supabase
+    .from("proposal_versions")
+    .insert({
+      company_id: companyId,
+      proposal_id: proposalId,
+      version_number: 1,
+      version_kind: "draft",
+      parent_version_id: null,
+      frozen_at: null,
+      context_echo: payload.context_echo,
+      policy_echo: payload.policy_echo,
+      created_by: payload.created_by,
+    })
+    .select("*")
+    .single();
+
+  if (versionError || !versionRow) {
+    throw new ProposalDraftCreatePersistenceError(
+      versionError?.message ?? "Failed to insert draft version."
+    );
+  }
+
+  const versionId = String((versionRow as { id: string }).id);
+
+  const insertedPages: Array<{ id: string; source_template_section_id: string | null }> = [];
+  for (const page of payload.pages) {
+    const { data: pageRow, error: pageError } = await supabase
+      .from("proposal_pages")
+      .insert({
+        company_id: companyId,
+        proposal_version_id: versionId,
+        page_type: page.page_type,
+        sort_order: page.sort_order,
+        title: page.title,
+        customer_title: page.customer_title,
+        visible_to_customer: page.visible_to_customer,
+        source_template_section_id: page.source_template_section_id,
+        content_json: page.content_json,
+        settings_json: page.settings_json,
+      })
+      .select("*")
+      .single();
+
+    if (pageError || !pageRow) {
+      throw new ProposalDraftCreatePersistenceError(
+        pageError?.message ?? "Failed to insert proposal page."
+      );
+    }
+
+    insertedPages.push({
+      id: String((pageRow as { id: string }).id),
+      source_template_section_id:
+        (pageRow as { source_template_section_id: string | null }).source_template_section_id ??
+        page.source_template_section_id,
+    });
+  }
+
+  const pageIdBySection = buildPageIdBySectionFromInsertedPages(insertedPages);
+
+  const templateOptionIdToRuntimeOptionId = new Map<string, string>();
+  let selectedRuntimeOptionId: string | null = null;
+
+  for (const option of payload.options) {
+    const { data: optionRow, error: optionError } = await supabase
+      .from("proposal_options")
+      .insert({
+        company_id: companyId,
+        proposal_version_id: versionId,
+        source_template_option_id: option.source_template_option_id,
+        name: option.name,
+        customer_label: option.customer_label,
+        sort_order: option.sort_order,
+        is_default: option.is_default,
+        visible_to_customer: option.visible_to_customer,
+        customer_subtotal_cents: option.customer_subtotal_cents,
+        discount_cents: option.discount_cents,
+        sales_tax_cents: option.sales_tax_cents,
+        customer_total_cents: option.customer_total_cents,
+        pricing_complete: option.pricing_complete,
+        blocking_line_count: option.blocking_line_count,
+        guardrail_outcome: option.guardrail_outcome,
+        selected_at: option.selected_at,
+      })
+      .select("*")
+      .single();
+
+    if (optionError || !optionRow) {
+      throw new ProposalDraftCreatePersistenceError(
+        optionError?.message ?? "Failed to insert proposal option."
+      );
+    }
+
+    const runtimeOptionId = String((optionRow as { id: string }).id);
+    templateOptionIdToRuntimeOptionId.set(option.source_template_option_id, runtimeOptionId);
+
+    if (
+      payload.selected_source_template_option_id &&
+      option.source_template_option_id === payload.selected_source_template_option_id
+    ) {
+      selectedRuntimeOptionId = runtimeOptionId;
+    } else if (!selectedRuntimeOptionId && option.is_default) {
+      selectedRuntimeOptionId = runtimeOptionId;
+    }
+
+    for (const line of option.line_items) {
+      assertCreatePersistLineRowCustomerSafe(line as unknown as Record<string, unknown>);
+
+      const { error: lineError } = await supabase.from("proposal_line_items").insert({
+        company_id: companyId,
+        proposal_option_id: runtimeOptionId,
+        source_template_item_id: line.source_template_item_id,
+        catalog_item_id: line.catalog_item_id,
+        catalog_seed_key: line.catalog_seed_key,
+        section_id: line.section_id,
+        page_id: line.section_id ? pageIdBySection.get(line.section_id) ?? null : null,
+        sort_order: line.sort_order,
+        customer_name: line.customer_name,
+        description: line.description,
+        role: line.role,
+        quantity: line.quantity,
+        quantity_display_label: line.quantity_display_label,
+        quantity_source_label: line.quantity_source_label,
+        unit: line.unit,
+        customer_unit_price_cents: line.customer_unit_price_cents,
+        customer_line_total_cents: line.customer_line_total_cents,
+        pricing_status: line.pricing_status,
+        visible_to_customer: line.visible_to_customer,
+        measurement_quantity_key: line.measurement_quantity_key,
+      });
+
+      if (lineError) {
+        throw new ProposalDraftCreatePersistenceError(
+          lineError.message ?? "Failed to insert line item."
+        );
+      }
+    }
+
+    if (option.internal_summary) {
+      const { error: summaryError } = await supabase.from("proposal_internal_summaries").insert({
+        company_id: companyId,
+        proposal_option_id: runtimeOptionId,
+        internal_cost_cents: option.internal_summary.internal_cost_cents,
+        internal_profit_cents: option.internal_summary.internal_profit_cents,
+        effective_margin_pct: option.internal_summary.effective_margin_pct,
+        policy_echo_json: option.internal_summary.policy_echo_json,
+        computed_at: option.internal_summary.computed_at,
+      });
+
+      if (summaryError) {
+        throw new ProposalDraftCreatePersistenceError(
+          summaryError.message ?? "Failed to insert internal summary."
+        );
+      }
+    }
+  }
+
+  if (!selectedRuntimeOptionId && templateOptionIdToRuntimeOptionId.size > 0) {
+    selectedRuntimeOptionId = [...templateOptionIdToRuntimeOptionId.values()][0] ?? null;
+  }
+
+  const { error: pointerError } = await supabase
+    .from("proposals")
+    .update({
+      current_draft_version_id: versionId,
+      selected_option_id: selectedRuntimeOptionId,
+    })
+    .eq("id", proposalId)
+    .eq("company_id", companyId);
+
+  if (pointerError) {
+    throw new ProposalDraftCreatePersistenceError(
+      pointerError.message ?? "Failed to update proposal pointers."
+    );
+  }
+
+  const { error: eventError } = await supabase.from("proposal_events").insert({
+    company_id: companyId,
+    proposal_id: proposalId,
+    proposal_version_id: versionId,
+    event_type: payload.event.event_type,
+    actor_user_id: payload.event.actor_user_id,
+    payload_json: payload.event.payload_json,
+  });
+
+  if (eventError) {
+    throw new ProposalDraftCreatePersistenceError(
+      eventError.message ?? "Failed to append proposal create event."
+    );
+  }
+
+  if (payload.set_job_active_proposal) {
+    const { error: jobError } = await supabase
+      .from("jobs")
+      .update({ active_proposal_id: proposalId })
+      .eq("id", payload.job_id)
+      .eq("company_id", companyId);
+
+    if (jobError) {
+      throw new ProposalDraftCreatePersistenceError(
+        jobError.message ?? "Failed to update jobs.active_proposal_id."
+      );
+    }
+  }
+
+  return {
+    ok: true,
+    proposal_id: proposalId,
+    proposal_version_id: versionId,
+    selected_option_id: selectedRuntimeOptionId,
+    page_count: payload.pages.length,
+    option_count: payload.options.length,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Persistence path gate (RPC default; sequential test/dev escape hatch)
 // ---------------------------------------------------------------------------
 
 /** Explicit opt-in to legacy non-atomic sequential writes — not for production. */
 export function isCreateDraftProposalSequentialEnabled(): boolean {
   return process.env.USE_CREATE_DRAFT_PROPOSAL_SEQUENTIAL === "1";
 }
-
-type SupabaseClient = NonNullable<ReturnType<typeof getSupabaseClient>>;
 
 export async function persistDraftProposalCreateViaRpc(
   supabase: SupabaseClient,

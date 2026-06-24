@@ -641,9 +641,102 @@ export function resolveSpineOptionId(
   if (explicit) {
     return explicit;
   }
-  const sorted = options.slice().sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+  const sorted = (options ?? []).slice().sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
   const defaultOption = sorted.find((o) => o.is_default) ?? sorted[0];
   return defaultOption?.id ?? null;
+}
+
+/** Template section kinds that hold priced line items (upgrade_group has no standalone page). */
+const LINE_BEARING_TEMPLATE_SECTION_KINDS = new Set<ProposalTemplateSection["kind"]>([
+  "line_items",
+  "upgrade_group",
+]);
+
+/**
+ * Spine option's line_items section — becomes the shared estimate page for all options.
+ * RPC maps line.section_id → page via source_template_section_id on this section.
+ */
+export function resolveSpineLineItemsSectionId(
+  sections: readonly ProposalTemplateSection[],
+  spineOptionId: string | null
+): string | null {
+  if (!spineOptionId) return null;
+  const match = sections.find(
+    (section) => section.option_id === spineOptionId && section.kind === "line_items"
+  );
+  return match?.id ?? null;
+}
+
+/**
+ * Maps every line-bearing template section id to the spine estimate page section id.
+ * Customer document pages stay on the spine option; multi-option lines share one estimate page.
+ */
+export function buildLineSectionIdToPersistedPageSectionMap(
+  sections: readonly ProposalTemplateSection[],
+  spineOptionId: string | null
+): ReadonlyMap<string, string> {
+  const spineEstimateSectionId = resolveSpineLineItemsSectionId(sections, spineOptionId);
+  if (!spineEstimateSectionId) {
+    return new Map();
+  }
+
+  const map = new Map<string, string>();
+  for (const section of sections) {
+    if (!LINE_BEARING_TEMPLATE_SECTION_KINDS.has(section.kind)) {
+      continue;
+    }
+    map.set(section.id, spineEstimateSectionId);
+  }
+  return map;
+}
+
+export function normalizeLineSectionIdsForSpinePages(
+  lines: readonly LineItemSnapshotInput[],
+  sectionIdMap: ReadonlyMap<string, string>
+): LineItemSnapshotInput[] {
+  if (sectionIdMap.size === 0) {
+    return [...lines];
+  }
+
+  return lines.map((line) => {
+    const sectionId = (line.section_id ?? "").trim();
+    if (!sectionId) {
+      return line;
+    }
+    const mapped = sectionIdMap.get(sectionId);
+    if (!mapped || mapped === sectionId) {
+      return line;
+    }
+    return { ...line, section_id: mapped };
+  });
+}
+
+/** Align line section_id echoes with spine proposal pages before persist/invariant checks. */
+export function normalizeDraftInstantiateInputLineSectionIds(
+  input: DraftInstantiateInput
+): DraftInstantiateInput {
+  if (!input.templateOptions?.length || !input.templateSections?.length) {
+    return input;
+  }
+
+  const spineOptionId = resolveSpineOptionId(input.templateOptions, input.spineOptionId);
+  const sectionIdMap = buildLineSectionIdToPersistedPageSectionMap(
+    input.templateSections,
+    spineOptionId
+  );
+  if (sectionIdMap.size === 0) {
+    return input;
+  }
+
+  const lineItemsByTemplateOptionId: Record<string, LineItemSnapshotInput[]> = {};
+  for (const [optionId, lines] of Object.entries(input.lineItemsByTemplateOptionId)) {
+    lineItemsByTemplateOptionId[optionId] = normalizeLineSectionIdsForSpinePages(
+      lines,
+      sectionIdMap
+    );
+  }
+
+  return { ...input, lineItemsByTemplateOptionId };
 }
 
 // ---------------------------------------------------------------------------
@@ -653,31 +746,35 @@ export function resolveSpineOptionId(
 export function buildDraftInstantiatePayload(input: DraftInstantiateInput): DraftInstantiatePayload {
   assertConfiguredPolicyForPersistence(input.policy);
 
-  const computedAt = input.computedAt ?? new Date().toISOString();
-  const spineOptionId = resolveSpineOptionId(input.templateOptions, input.spineOptionId);
+  const normalizedInput = normalizeDraftInstantiateInputLineSectionIds(input);
+  const computedAt = normalizedInput.computedAt ?? new Date().toISOString();
+  const spineOptionId = resolveSpineOptionId(
+    normalizedInput.templateOptions,
+    normalizedInput.spineOptionId
+  );
 
-  const contextEcho = buildContextEcho(input.context);
-  const policyEcho = buildPolicyEchoCustomerSafe(input.policy);
+  const contextEcho = buildContextEcho(normalizedInput.context);
+  const policyEcho = buildPolicyEchoCustomerSafe(normalizedInput.policy);
 
   const pages = mapTemplateSectionsToProposalPages({
-    company_id: input.company_id,
-    proposal_version_id: input.proposal_version_id ?? null,
-    sections: input.templateSections,
+    company_id: normalizedInput.company_id,
+    proposal_version_id: normalizedInput.proposal_version_id ?? null,
+    sections: normalizedInput.templateSections,
     spineOptionId,
-    template: input.template ?? null,
+    template: normalizedInput.template ?? null,
   });
 
   const selectedTemplateOptionId =
-    (input.selectedTemplateOptionId ?? "").trim() ||
-    input.optionPricing.find((o) => o.is_selected)?.source_template_option_id ||
-    input.optionPricing.find((o) => o.is_default)?.source_template_option_id ||
-    input.optionPricing[0]?.source_template_option_id ||
+    (normalizedInput.selectedTemplateOptionId ?? "").trim() ||
+    normalizedInput.optionPricing.find((o) => o.is_selected)?.source_template_option_id ||
+    normalizedInput.optionPricing.find((o) => o.is_default)?.source_template_option_id ||
+    normalizedInput.optionPricing[0]?.source_template_option_id ||
     null;
 
   const options = buildOptionSnapshots({
-    company_id: input.company_id,
-    proposal_version_id: input.proposal_version_id ?? null,
-    options: input.optionPricing.map((option) => ({
+    company_id: normalizedInput.company_id,
+    proposal_version_id: normalizedInput.proposal_version_id ?? null,
+    options: normalizedInput.optionPricing.map((option) => ({
       ...option,
       is_selected:
         option.is_selected ??
@@ -689,30 +786,30 @@ export function buildDraftInstantiatePayload(input: DraftInstantiateInput): Draf
   const lineItems: ProposalLineItemSnapshotPayload[] = [];
   const internalSummaries: ProposalInternalSummarySnapshotPayload[] = [];
 
-  for (const option of input.optionPricing) {
+  for (const option of normalizedInput.optionPricing) {
     const templateOptionId = option.source_template_option_id;
-    const rawLines = input.lineItemsByTemplateOptionId[templateOptionId] ?? [];
+    const rawLines = normalizedInput.lineItemsByTemplateOptionId[templateOptionId] ?? [];
 
     lineItems.push(
       ...buildLineItemSnapshots({
-        company_id: input.company_id,
+        company_id: normalizedInput.company_id,
         lines: rawLines,
       })
     );
 
-    const internalInput = input.internalSummaryByTemplateOptionId[templateOptionId];
+    const internalInput = normalizedInput.internalSummaryByTemplateOptionId[templateOptionId];
     if (internalInput) {
       const policyEchoJson =
         internalInput.policy_echo_json ??
         buildInternalPolicyEchoJson({
-          policy: input.policy.policy!,
-          pricingPolicyId: input.policy.pricingPolicyId ?? null,
-          source: input.policy.source,
+          policy: normalizedInput.policy.policy!,
+          pricingPolicyId: normalizedInput.policy.pricingPolicyId ?? null,
+          source: normalizedInput.policy.source,
         });
 
       internalSummaries.push(
         ...buildInternalSummarySnapshots({
-          company_id: input.company_id,
+          company_id: normalizedInput.company_id,
           summary: {
             ...internalInput,
             policy_echo_json: policyEchoJson,

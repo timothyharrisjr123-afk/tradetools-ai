@@ -11,8 +11,10 @@
  * Sequential Supabase writes are available only via USE_REFRESH_DRAFT_PRICING_SEQUENTIAL=1
  * (test/dev escape hatch — non-atomic, partial failure may corrupt the graph).
  *
- * createDraftProposal remains sequential (non-atomic) until Remediation 4C switches
- * to transactional RPC via proposalDraftCreatePersistence (4A foundation staged).
+ * createDraftProposal calculation stays in TypeScript; persistence uses transactional
+ * RPC `persist_draft_proposal_create_v1` by default (see proposalDraftCreatePersistence).
+ * Sequential Supabase writes are available only via USE_CREATE_DRAFT_PROPOSAL_SEQUENTIAL=1
+ * (test/dev escape hatch — non-atomic, partial failure may corrupt the graph).
  *
  * No React, Builder UI, APIs, pricing formula changes, or legacy estimator paths.
  */
@@ -78,6 +80,15 @@ import {
   ProposalDraftPricingRefreshPersistenceError,
 } from "@/app/lib/proposalDraftPricingRefreshPersistence";
 import {
+  assertDraftProposalCreateGraphInvariants,
+  buildDraftProposalCreatePersistPayload,
+  isCreateDraftProposalSequentialEnabled,
+  persistDraftProposalCreateSequential,
+  persistDraftProposalCreateViaRpc,
+  PERSIST_DRAFT_PROPOSAL_CREATE_RPC_V1,
+  ProposalDraftCreatePersistenceError,
+} from "@/app/lib/proposalDraftCreatePersistence";
+import {
   isEditableProposalPageType,
   mergeProposalPageBodyMarkdown,
 } from "@/app/lib/proposalPageContentEditing";
@@ -114,7 +125,12 @@ export const CREATE_DRAFT_WRITE_STEPS = [
   "jobs.update_active_proposal",
 ] as const;
 
-export type CreateDraftWriteStep = (typeof CREATE_DRAFT_WRITE_STEPS)[number];
+/** RPC persist step label when create uses transactional RPC (default path). */
+export const CREATE_DRAFT_RPC_PERSIST_STEP = PERSIST_DRAFT_PROPOSAL_CREATE_RPC_V1;
+
+export type CreateDraftWriteStep =
+  | (typeof CREATE_DRAFT_WRITE_STEPS)[number]
+  | typeof CREATE_DRAFT_RPC_PERSIST_STEP;
 
 // ---------------------------------------------------------------------------
 // DB row shapes (snake_case)
@@ -462,12 +478,6 @@ function sortOptionsByOrder<T extends { sort_order?: number | null; id: string }
 
 function isMissingCatalogLine(itemType: unknown): boolean {
   return itemType == null;
-}
-
-function pushWriteStep(steps: CreateDraftWriteStep[], step: CreateDraftWriteStep): void {
-  if (steps.length === 0 || steps[steps.length - 1] !== step) {
-    steps.push(step);
-  }
 }
 
 async function fetchCompanyPricingPolicyId(
@@ -977,8 +987,6 @@ export async function createDraftProposal(
     throw new ProposalRecordStoreError("company_id, job_id, and template_id are required UUIDs.");
   }
 
-  const writeSteps: CreateDraftWriteStep[] = [];
-
   const policyResolution = await d.getResolvedPolicy(companyId);
   const pricingPolicyId = (await fetchCompanyPricingPolicyId(supabase, companyId)) ?? "";
 
@@ -1063,259 +1071,65 @@ export async function createDraftProposal(
   });
 
   const payload = buildDraftInstantiatePayload(instantiateInput);
+  const resolvedTitle = input.title ?? graph.template.name;
 
-  // --- 1. proposals header ---
-  pushWriteStep(writeSteps, "proposals.insert");
-  const { data: proposalRow, error: proposalError } = await supabase
-    .from("proposals")
-    .insert({
-      company_id: companyId,
-      job_id: jobId,
-      customer_id: resolvedCustomerId,
-      template_id: templateId,
-      status: "draft",
-      measurement_record_id: input.measurement_record_id ?? null,
-      pricing_policy_id: pricingPolicyId,
-      title: input.title ?? graph.template.name,
-      created_by: input.created_by ?? null,
-    })
-    .select(PROPOSAL_SELECT)
-    .single();
+  const persistPayload = buildDraftProposalCreatePersistPayload({
+    companyId,
+    jobId,
+    customerId: resolvedCustomerId,
+    templateId,
+    measurementRecordId: input.measurement_record_id ?? null,
+    pricingPolicyId,
+    title: resolvedTitle,
+    createdBy: input.created_by ?? null,
+    instantiatePayload: payload,
+    instantiateInput,
+    policy,
+  });
 
-  if (proposalError || !proposalRow) {
-    throw new ProposalRecordStoreError(
-      proposalError?.message ?? "Failed to insert proposal header."
-    );
+  try {
+    assertDraftProposalCreateGraphInvariants(persistPayload);
+  } catch (error) {
+    if (error instanceof ProposalDraftCreatePersistenceError) {
+      throw new ProposalRecordStoreError(error.message);
+    }
+    throw error;
   }
 
-  const proposalId = (proposalRow as ProposalRow).id;
+  let persistResult;
+  let writeSteps: CreateDraftWriteStep[];
 
-  // --- 2. proposal_versions v1 draft ---
-  pushWriteStep(writeSteps, "proposal_versions.insert");
-  const { data: versionRow, error: versionError } = await supabase
-    .from("proposal_versions")
-    .insert({
-      company_id: companyId,
-      proposal_id: proposalId,
-      version_number: 1,
-      version_kind: "draft",
-      parent_version_id: null,
-      frozen_at: null,
-      context_echo: payload.contextEcho,
-      policy_echo: payload.policyEcho,
-      created_by: input.created_by ?? null,
-    })
-    .select("*")
-    .single();
-
-  if (versionError || !versionRow) {
-    throw new ProposalRecordStoreError(
-      versionError?.message ?? "Failed to insert draft version."
-    );
-  }
-
-  const versionId = (versionRow as ProposalVersionRow).id;
-
-  // --- 3. pages ---
-  pushWriteStep(writeSteps, "proposal_pages.insert");
-  const insertedPages: ProposalPageRow[] = [];
-  for (const page of payload.pages) {
-    const { data: pageRow, error: pageError } = await supabase
-      .from("proposal_pages")
-      .insert({
-        company_id: companyId,
-        proposal_version_id: versionId,
-        page_type: page.page_type,
-        sort_order: page.sort_order,
-        title: page.title,
-        customer_title: page.customer_title,
-        visible_to_customer: page.visible_to_customer,
-        source_template_section_id: page.source_template_section_id,
-        content_json: page.content_json,
-        settings_json: page.settings_json,
-      })
-      .select("*")
-      .single();
-
-    if (pageError || !pageRow) {
-      throw new ProposalRecordStoreError(pageError?.message ?? "Failed to insert proposal page.");
-    }
-    insertedPages.push(pageRow as ProposalPageRow);
-  }
-
-  const pageIdBySection = buildPageIdByTemplateSectionId(insertedPages);
-
-  // --- 4. options + 5. lines + 6. internal summaries (per template option) ---
-  pushWriteStep(writeSteps, "proposal_options.insert");
-
-  const templateOptionIdToRuntimeOptionId = new Map<string, string>();
-  let selectedRuntimeOptionId: string | null = null;
-
-  for (const option of payload.options) {
-    const { data: optionRow, error: optionError } = await supabase
-      .from("proposal_options")
-      .insert({
-        company_id: companyId,
-        proposal_version_id: versionId,
-        source_template_option_id: option.source_template_option_id,
-        name: option.name,
-        customer_label: option.customer_label,
-        sort_order: option.sort_order,
-        is_default: option.is_default,
-        visible_to_customer: option.visible_to_customer,
-        customer_subtotal_cents: option.customer_subtotal_cents,
-        discount_cents: option.discount_cents,
-        sales_tax_cents: option.sales_tax_cents,
-        customer_total_cents: option.customer_total_cents,
-        pricing_complete: option.pricing_complete,
-        blocking_line_count: option.blocking_line_count,
-        guardrail_outcome: option.guardrail_outcome,
-        selected_at: option.selected_at,
-      })
-      .select("*")
-      .single();
-
-    if (optionError || !optionRow) {
-      throw new ProposalRecordStoreError(optionError?.message ?? "Failed to insert proposal option.");
-    }
-
-    const runtimeOptionId = (optionRow as ProposalOptionRow).id;
-    templateOptionIdToRuntimeOptionId.set(option.source_template_option_id, runtimeOptionId);
-
-    if (
-      payload.selectedTemplateOptionId &&
-      option.source_template_option_id === payload.selectedTemplateOptionId
-    ) {
-      selectedRuntimeOptionId = runtimeOptionId;
-    } else if (!selectedRuntimeOptionId && option.is_default) {
-      selectedRuntimeOptionId = runtimeOptionId;
-    }
-
-    const linesForOption =
-      instantiateInput.lineItemsByTemplateOptionId[option.source_template_option_id] ?? [];
-
-    const builtLines = buildLineItemSnapshots({
-      company_id: companyId,
-      proposal_option_id: runtimeOptionId,
-      lines: linesForOption,
-    });
-
-    pushWriteStep(writeSteps, "proposal_line_items.insert");
-    for (const built of builtLines) {
-      const insertRow = {
-        company_id: companyId,
-        proposal_option_id: runtimeOptionId,
-        source_template_item_id: built.source_template_item_id,
-        catalog_item_id: built.catalog_item_id,
-        catalog_seed_key: built.catalog_seed_key,
-        section_id: built.section_id,
-        page_id: built.section_id ? pageIdBySection.get(built.section_id) ?? null : null,
-        sort_order: built.sort_order,
-        customer_name: built.customer_name,
-        description: built.description,
-        role: built.role,
-        quantity: built.quantity,
-        quantity_display_label: built.quantity_display_label,
-        quantity_source_label: built.quantity_source_label,
-        unit: built.unit,
-        customer_unit_price_cents: built.customer_unit_price_cents,
-        customer_line_total_cents: built.customer_line_total_cents,
-        pricing_status: built.pricing_status,
-        visible_to_customer: built.visible_to_customer,
-        measurement_quantity_key: built.measurement_quantity_key,
-      };
-      assertLineInsertRowCustomerSafe(insertRow);
-
-      const { error: lineError } = await supabase.from("proposal_line_items").insert(insertRow);
-      if (lineError) {
-        throw new ProposalRecordStoreError(lineError.message ?? "Failed to insert line item.");
+  if (isCreateDraftProposalSequentialEnabled()) {
+    try {
+      persistResult = await persistDraftProposalCreateSequential(supabase, persistPayload);
+    } catch (error) {
+      if (error instanceof ProposalDraftCreatePersistenceError) {
+        throw new ProposalRecordStoreError(error.message);
       }
+      throw error;
     }
-
-    const internalInput =
-      instantiateInput.internalSummaryByTemplateOptionId[option.source_template_option_id];
-    if (internalInput) {
-      pushWriteStep(writeSteps, "proposal_internal_summaries.insert");
-      const policyEchoJson = buildInternalPolicyEchoJson({
-        policy,
-        pricingPolicyId,
-        source: "company",
-      });
-
-      const { error: summaryError } = await supabase.from("proposal_internal_summaries").insert({
-        company_id: companyId,
-        proposal_option_id: runtimeOptionId,
-        internal_cost_cents: internalInput.internal_cost_cents,
-        internal_profit_cents: internalInput.internal_profit_cents,
-        effective_margin_pct: sanitizeEffectiveMarginPct(internalInput.effective_margin_pct),
-        policy_echo_json: policyEchoJson,
-        computed_at: instantiateInput.computedAt ?? new Date().toISOString(),
-      });
-
-      if (summaryError) {
-        throw new ProposalRecordStoreError(
-          summaryError.message ?? "Failed to insert internal summary."
-        );
+    writeSteps = [...CREATE_DRAFT_WRITE_STEPS];
+  } else {
+    try {
+      persistResult = await persistDraftProposalCreateViaRpc(supabase, persistPayload);
+    } catch (error) {
+      if (error instanceof ProposalDraftCreatePersistenceError) {
+        throw new ProposalRecordStoreError(error.message);
       }
+      throw error;
     }
+    writeSteps = [CREATE_DRAFT_RPC_PERSIST_STEP];
   }
 
-  if (!selectedRuntimeOptionId && templateOptionIdToRuntimeOptionId.size > 0) {
-    selectedRuntimeOptionId = [...templateOptionIdToRuntimeOptionId.values()][0] ?? null;
-  }
-
-  // --- 7. update proposal pointers ---
-  pushWriteStep(writeSteps, "proposals.update_pointers");
-  const { error: pointerError } = await supabase
-    .from("proposals")
-    .update({
-      current_draft_version_id: versionId,
-      selected_option_id: selectedRuntimeOptionId,
-    })
-    .eq("id", proposalId)
-    .eq("company_id", companyId);
-
-  if (pointerError) {
-    throw new ProposalRecordStoreError(pointerError.message ?? "Failed to update proposal pointers.");
-  }
-
-  // --- 8. created event ---
-  pushWriteStep(writeSteps, "proposal_events.insert");
-  await appendProposalEvent(
-    {
-      company_id: companyId,
-      proposal_id: proposalId,
-      proposal_version_id: versionId,
-      event_type: "created",
-      actor_user_id: input.created_by ?? null,
-      payload_json: { template_id: templateId, job_id: jobId },
-    },
-    deps
-  );
-
-  // --- 9. jobs.active_proposal_id ---
-  pushWriteStep(writeSteps, "jobs.update_active_proposal");
-  const { error: jobError } = await supabase
-    .from("jobs")
-    .update({ active_proposal_id: proposalId })
-    .eq("id", jobId)
-    .eq("company_id", companyId);
-
-  if (jobError) {
-    throw new ProposalRecordStoreError(
-      jobError.message ?? "Failed to update jobs.active_proposal_id."
-    );
-  }
-
-  const refreshed = await getProposalById(companyId, proposalId, deps);
+  const refreshed = await getProposalById(companyId, persistResult.proposal_id, deps);
   if (!refreshed) {
     throw new ProposalRecordStoreError("Proposal created but could not be re-read.");
   }
 
   return {
     proposal: refreshed,
-    versionId,
-    selectedOptionId: selectedRuntimeOptionId,
+    versionId: persistResult.proposal_version_id,
+    selectedOptionId: persistResult.selected_option_id,
     writeSteps,
   };
 }

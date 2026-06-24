@@ -362,7 +362,22 @@ function storeDeps(mock: ReturnType<typeof createMockSupabase>): ProposalRecordS
   };
 }
 
-describe("proposalScopeDecisionStore", () => {
+describe("proposalScopeDecisionStore", { concurrency: 1 }, () => {
+  let priorCreateSequential: string | undefined;
+
+  test.beforeEach(() => {
+    priorCreateSequential = process.env.USE_CREATE_DRAFT_PROPOSAL_SEQUENTIAL;
+    process.env.USE_CREATE_DRAFT_PROPOSAL_SEQUENTIAL = "1";
+  });
+
+  test.afterEach(() => {
+    if (priorCreateSequential !== undefined) {
+      process.env.USE_CREATE_DRAFT_PROPOSAL_SEQUENTIAL = priorCreateSequential;
+    } else {
+      delete process.env.USE_CREATE_DRAFT_PROPOSAL_SEQUENTIAL;
+    }
+  });
+
   test("upsertDraftScopeDecision inserts and reads back", async () => {
     const mock = createMockSupabase();
     const deps = storeDeps(mock);

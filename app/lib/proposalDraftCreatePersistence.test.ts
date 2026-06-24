@@ -21,6 +21,11 @@ import {
 } from "./proposalDraftCreatePersistence";
 import type { DraftInstantiateInput, DraftInstantiatePayload } from "./proposalSnapshotBuilder";
 import {
+  buildDraftInstantiatePayload,
+  templateItemToLineInput,
+} from "./proposalSnapshotBuilder";
+import type { ProposalTemplateSection } from "./proposalTemplateTypes";
+import {
   DEFAULT_PROFITABILITY_TYPE,
   DEFAULT_QUANTITY_ROUNDING,
   DEFAULT_WASTE_MODEL,
@@ -230,6 +235,200 @@ describe("draft proposal create persistence contract", () => {
         assert.equal("page_id" in line, false);
       }
     }
+  });
+
+  test("starter-like multi-option create payload passes invariants after spine section normalization", () => {
+    const OPT_STANDARD = "77777777-7777-4777-8777-777777777777";
+    const OPT_ENHANCED = "66666666-6666-4666-8666-666666666666";
+    const SEC_STD_LINES = "88888888-8888-4888-8888-888888888888";
+    const SEC_STD_TERMS = "99999999-9999-4999-8999-999999999999";
+    const SEC_ENH_LINES = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+    const SEC_ENH_UPGRADES = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+
+    function sectionRow(
+      overrides: Partial<ProposalTemplateSection> &
+        Pick<ProposalTemplateSection, "id" | "option_id" | "kind" | "name">
+    ): ProposalTemplateSection {
+      return { template_id: TEMPLATE_ID, sort_order: 0, ...overrides };
+    }
+
+    const instantiateInput: DraftInstantiateInput = {
+      company_id: COMPANY_ID,
+      context: { job_id: JOB_ID, template_id: TEMPLATE_ID },
+      policy: {
+        configured: true,
+        policy: TEST_POLICY,
+        pricingPolicyId: POLICY_ID,
+        source: "company",
+      },
+      templateOptions: [
+        {
+          id: OPT_STANDARD,
+          template_id: TEMPLATE_ID,
+          name: "Standard",
+          is_default: true,
+          visible_to_customer: true,
+          sort_order: 0,
+        },
+        {
+          id: OPT_ENHANCED,
+          template_id: TEMPLATE_ID,
+          name: "Enhanced",
+          is_default: false,
+          visible_to_customer: true,
+          sort_order: 1,
+        },
+      ],
+      templateSections: [
+        sectionRow({
+          id: SEC_STD_LINES,
+          option_id: OPT_STANDARD,
+          kind: "line_items",
+          name: "Scope",
+        }),
+        sectionRow({
+          id: SEC_STD_TERMS,
+          option_id: OPT_STANDARD,
+          kind: "terms",
+          name: "Terms",
+        }),
+        sectionRow({
+          id: SEC_ENH_LINES,
+          option_id: OPT_ENHANCED,
+          kind: "line_items",
+          name: "Scope",
+        }),
+        sectionRow({
+          id: SEC_ENH_UPGRADES,
+          option_id: OPT_ENHANCED,
+          kind: "upgrade_group",
+          name: "Upgrades",
+        }),
+      ],
+      optionPricing: [
+        {
+          source_template_option_id: OPT_STANDARD,
+          name: "Standard",
+          sort_order: 0,
+          is_default: true,
+          visible_to_customer: true,
+          customer_subtotal_cents: 10_000,
+          discount_cents: 0,
+          sales_tax_cents: 0,
+          customer_total_cents: 10_000,
+          pricing_complete: true,
+          blocking_line_count: 0,
+          guardrail_outcome: "pass",
+          is_selected: true,
+        },
+        {
+          source_template_option_id: OPT_ENHANCED,
+          name: "Enhanced",
+          sort_order: 1,
+          is_default: false,
+          visible_to_customer: true,
+          customer_subtotal_cents: 12_000,
+          discount_cents: 0,
+          sales_tax_cents: 0,
+          customer_total_cents: 12_000,
+          pricing_complete: true,
+          blocking_line_count: 0,
+          guardrail_outcome: "pass",
+        },
+      ],
+      lineItemsByTemplateOptionId: {
+        [OPT_STANDARD]: [
+          templateItemToLineInput(
+            {
+              id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+              template_id: TEMPLATE_ID,
+              option_id: OPT_STANDARD,
+              section_id: SEC_STD_LINES,
+              catalog_item_id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+              item_role: "standard",
+              sort_order: 0,
+            },
+            {
+              engineStatus: "priced",
+              customerVisibility: "customer_visible",
+              customerLineTotalCents: 10_000,
+            }
+          ),
+        ],
+        [OPT_ENHANCED]: [
+          templateItemToLineInput(
+            {
+              id: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+              template_id: TEMPLATE_ID,
+              option_id: OPT_ENHANCED,
+              section_id: SEC_ENH_LINES,
+              catalog_item_id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+              item_role: "standard",
+              sort_order: 0,
+            },
+            {
+              engineStatus: "priced",
+              customerVisibility: "customer_visible",
+              customerLineTotalCents: 10_000,
+            }
+          ),
+          templateItemToLineInput(
+            {
+              id: "ffffffff-ffff-4fff-8fff-ffffffffffff",
+              template_id: TEMPLATE_ID,
+              option_id: OPT_ENHANCED,
+              section_id: SEC_ENH_UPGRADES,
+              catalog_item_id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+              item_role: "optional_addon",
+              sort_order: 1,
+            },
+            {
+              engineStatus: "priced",
+              customerVisibility: "customer_visible",
+              customerLineTotalCents: 2_000,
+            }
+          ),
+        ],
+      },
+      internalSummaryByTemplateOptionId: {
+        [OPT_STANDARD]: {
+          internal_cost_cents: 7000,
+          internal_profit_cents: 3000,
+          effective_margin_pct: 30,
+        },
+        [OPT_ENHANCED]: {
+          internal_cost_cents: 8000,
+          internal_profit_cents: 4000,
+          effective_margin_pct: 33,
+        },
+      },
+      selectedTemplateOptionId: OPT_STANDARD,
+    };
+
+    const instantiatePayload = buildDraftInstantiatePayload(instantiateInput);
+    const persistPayload = buildDraftProposalCreatePersistPayload({
+      companyId: COMPANY_ID,
+      jobId: JOB_ID,
+      customerId: CUSTOMER_ID,
+      templateId: TEMPLATE_ID,
+      measurementRecordId: null,
+      pricingPolicyId: POLICY_ID,
+      title: "Roof Proposal",
+      createdBy: null,
+      instantiatePayload,
+      instantiateInput,
+      policy: TEST_POLICY,
+    });
+
+    assert.doesNotThrow(() => assertDraftProposalCreateGraphInvariants(persistPayload));
+
+    const enhanced = persistPayload.options.find((o) => o.name === "Enhanced");
+    assert.ok(enhanced);
+    assert.equal(enhanced!.line_items.length, 2);
+    assert.ok(
+      enhanced!.line_items.every((line) => line.section_id === SEC_STD_LINES),
+      "upgrade_group and non-spine line_items sections map to spine estimate page"
+    );
   });
 });
 

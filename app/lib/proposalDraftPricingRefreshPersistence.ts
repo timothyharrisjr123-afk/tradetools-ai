@@ -13,6 +13,7 @@ import type { PricingPolicy } from "@/app/lib/proposalPricingTypes";
 import {
   buildInternalPolicyEchoJson,
   buildLineItemSnapshots,
+  normalizeDraftInstantiateInputLineSectionIds,
   type DraftInstantiateInput,
   type DraftInstantiatePayload,
 } from "@/app/lib/proposalSnapshotBuilder";
@@ -315,6 +316,7 @@ export function buildDraftPricingRefreshPersistPayload(
   const companyId = input.companyId.trim();
   const proposalId = input.proposalId.trim();
   const proposalVersionId = input.proposalVersionId.trim();
+  const instantiateInput = normalizeDraftInstantiateInputLineSectionIds(input.instantiateInput);
 
   const options: DraftPricingRefreshOptionPersistPayload[] = [];
 
@@ -325,7 +327,7 @@ export function buildDraftPricingRefreshPersistPayload(
     if (!existing) continue;
 
     const linesForOption =
-      input.instantiateInput.lineItemsByTemplateOptionId[
+      instantiateInput.lineItemsByTemplateOptionId[
         optionPayload.source_template_option_id
       ] ?? [];
 

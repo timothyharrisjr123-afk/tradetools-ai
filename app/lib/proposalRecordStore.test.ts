@@ -21,6 +21,11 @@ import {
   type DraftPricingRefreshPersistPayload,
 } from "./proposalDraftPricingRefreshPersistence";
 import {
+  PERSIST_DRAFT_PROPOSAL_CREATE_RPC_V1,
+  persistDraftProposalCreateSequential,
+  type DraftProposalCreatePersistPayload,
+} from "./proposalDraftCreatePersistence";
+import {
   DEFAULT_PROFITABILITY_TYPE,
   DEFAULT_QUANTITY_ROUNDING,
   DEFAULT_WASTE_MODEL,
@@ -32,6 +37,7 @@ import {
   buildDraftInstantiateInputFromPreview,
   buildPageIdByTemplateSectionId,
   CREATE_DRAFT_WRITE_STEPS,
+  CREATE_DRAFT_RPC_PERSIST_STEP,
   createDraftProposal,
   getDraftGraph,
   listProposalsForJob,
@@ -135,6 +141,30 @@ function withRefreshPricingSequentialEnabled<T>(fn: () => Promise<T>): Promise<T
       process.env.NEXT_PUBLIC_USE_REFRESH_DRAFT_PRICING_RPC = priorLegacyPublic;
     } else {
       delete process.env.NEXT_PUBLIC_USE_REFRESH_DRAFT_PRICING_RPC;
+    }
+  });
+}
+
+function withCreateDraftProposalSequentialEnabled<T>(fn: () => Promise<T>): Promise<T> {
+  const priorSequential = process.env.USE_CREATE_DRAFT_PROPOSAL_SEQUENTIAL;
+  process.env.USE_CREATE_DRAFT_PROPOSAL_SEQUENTIAL = "1";
+  return fn().finally(() => {
+    if (priorSequential !== undefined) {
+      process.env.USE_CREATE_DRAFT_PROPOSAL_SEQUENTIAL = priorSequential;
+    } else {
+      delete process.env.USE_CREATE_DRAFT_PROPOSAL_SEQUENTIAL;
+    }
+  });
+}
+
+function withCreateDraftProposalDefaultPath<T>(fn: () => Promise<T>): Promise<T> {
+  const priorSequential = process.env.USE_CREATE_DRAFT_PROPOSAL_SEQUENTIAL;
+  delete process.env.USE_CREATE_DRAFT_PROPOSAL_SEQUENTIAL;
+  return fn().finally(() => {
+    if (priorSequential !== undefined) {
+      process.env.USE_CREATE_DRAFT_PROPOSAL_SEQUENTIAL = priorSequential;
+    } else {
+      delete process.env.USE_CREATE_DRAFT_PROPOSAL_SEQUENTIAL;
     }
   });
 }
@@ -272,6 +302,7 @@ function createMockSupabase(options?: {
   failOn?: { table: string; action: "insert" | "update" | "delete" };
   shouldFailOn?: () => boolean;
   rpcFailOn?: string;
+  rpcFailOnFor?: string;
 }) {
   const state: MockState = {
     ops: [],
@@ -448,7 +479,9 @@ function createMockSupabase(options?: {
     state.ops.push({ table: "__rpc__", action: "rpc", payload: { name, args } });
 
     if (options?.rpcFailOn) {
-      return { data: null, error: { message: options.rpcFailOn } };
+      if (!options.rpcFailOnFor || options.rpcFailOnFor === name) {
+        return { data: null, error: { message: options.rpcFailOn } };
+      }
     }
 
     if (name === PERSIST_DRAFT_PRICING_REFRESH_RPC_V1) {
@@ -456,6 +489,16 @@ function createMockSupabase(options?: {
       if (payload) {
         await persistDraftPricingRefreshSequential({ from, rpc } as never, payload);
       }
+      return { data: { ok: true }, error: null };
+    }
+
+    if (name === PERSIST_DRAFT_PROPOSAL_CREATE_RPC_V1) {
+      const payload = args?.p_payload as DraftProposalCreatePersistPayload | undefined;
+      if (!payload) {
+        return { data: null, error: { message: "missing create payload" } };
+      }
+      const result = await persistDraftProposalCreateSequential({ from, rpc } as never, payload);
+      return { data: result, error: null };
     }
 
     return { data: { ok: true }, error: null };
@@ -650,33 +693,160 @@ describe("buildPageIdByTemplateSectionId", () => {
 });
 
 describe("createDraftProposal", () => {
-  test("writes tables in correct order", async () => {
-    const mock = createMockSupabase();
-    const result = await createDraftProposal(
-      {
-        company_id: COMPANY_ID,
-        job_id: JOB_ID,
-        template_id: TEMPLATE_ID,
-        customer_id: CUSTOMER_ID,
-      },
-      storeDeps(mock)
-    );
+  test("sequential escape hatch writes tables in correct order", async () => {
+    await withCreateDraftProposalSequentialEnabled(async () => {
+      const mock = createMockSupabase();
+      const result = await createDraftProposal(
+        {
+          company_id: COMPANY_ID,
+          job_id: JOB_ID,
+          template_id: TEMPLATE_ID,
+          customer_id: CUSTOMER_ID,
+        },
+        storeDeps(mock)
+      );
 
-    assert.deepEqual(result.writeSteps, [...CREATE_DRAFT_WRITE_STEPS]);
-    const insertTables = mock.state.ops
-      .filter((op) => op.action === "insert")
-      .map((op) => op.table);
-    const firstProposalIdx = insertTables.indexOf("proposals");
-    const versionIdx = insertTables.indexOf("proposal_versions");
-    const pagesIdx = insertTables.indexOf("proposal_pages");
-    const optionsIdx = insertTables.indexOf("proposal_options");
-    const linesIdx = insertTables.indexOf("proposal_line_items");
-    const summariesIdx = insertTables.indexOf("proposal_internal_summaries");
-    assert.ok(firstProposalIdx < versionIdx);
-    assert.ok(versionIdx < pagesIdx);
-    assert.ok(pagesIdx < optionsIdx);
-    assert.ok(optionsIdx < linesIdx);
-    assert.ok(linesIdx <= summariesIdx);
+      assert.deepEqual(result.writeSteps, [...CREATE_DRAFT_WRITE_STEPS]);
+      const insertTables = mock.state.ops
+        .filter((op) => op.action === "insert")
+        .map((op) => op.table);
+      const firstProposalIdx = insertTables.indexOf("proposals");
+      const versionIdx = insertTables.indexOf("proposal_versions");
+      const pagesIdx = insertTables.indexOf("proposal_pages");
+      const optionsIdx = insertTables.indexOf("proposal_options");
+      const linesIdx = insertTables.indexOf("proposal_line_items");
+      const summariesIdx = insertTables.indexOf("proposal_internal_summaries");
+      assert.ok(firstProposalIdx < versionIdx);
+      assert.ok(versionIdx < pagesIdx);
+      assert.ok(pagesIdx < optionsIdx);
+      assert.ok(optionsIdx < linesIdx);
+      assert.ok(linesIdx <= summariesIdx);
+    });
+  });
+
+  test("default create calls persist_draft_proposal_create_v1 and reloads graph", async () => {
+    await withCreateDraftProposalDefaultPath(async () => {
+      const mock = createMockSupabase();
+      const result = await createDraftProposal(
+        {
+          company_id: COMPANY_ID,
+          job_id: JOB_ID,
+          template_id: TEMPLATE_ID,
+          customer_id: CUSTOMER_ID,
+        },
+        storeDeps(mock)
+      );
+
+      assert.deepEqual(result.writeSteps, [CREATE_DRAFT_RPC_PERSIST_STEP]);
+      assert.equal(mock.rpcCalls.length, 1);
+      assert.equal(mock.rpcCalls[0]!.name, PERSIST_DRAFT_PROPOSAL_CREATE_RPC_V1);
+      assert.ok(mock.rpcCalls[0]!.args?.p_payload);
+      assert.equal(result.proposal.current_draft_version_id, result.versionId);
+      assert.equal(result.proposal.selected_option_id, result.selectedOptionId);
+      assert.ok(result.proposal.id);
+      assert.ok(mock.state.tables.proposals.length > 0);
+      assert.ok(mock.state.tables.proposal_options.length > 0);
+      assert.ok(mock.state.tables.proposal_line_items.length > 0);
+    });
+  });
+
+  test("default create surfaces RPC failure as ProposalRecordStoreError without sequential fallback", async () => {
+    await withCreateDraftProposalDefaultPath(async () => {
+      const mock = createMockSupabase({
+        rpcFailOn: "function does not exist",
+        rpcFailOnFor: PERSIST_DRAFT_PROPOSAL_CREATE_RPC_V1,
+      });
+      const proposalsBefore = mock.state.tables.proposals.length;
+
+      await assert.rejects(
+        () =>
+          createDraftProposal(
+            {
+              company_id: COMPANY_ID,
+              job_id: JOB_ID,
+              template_id: TEMPLATE_ID,
+              customer_id: CUSTOMER_ID,
+            },
+            storeDeps(mock)
+          ),
+        (error: unknown) => {
+          assert.ok(error instanceof ProposalRecordStoreError);
+          assert.match(String(error.message), /function does not exist/);
+          return true;
+        }
+      );
+
+      assert.equal(mock.rpcCalls.length, 1);
+      assert.equal(mock.state.tables.proposals.length, proposalsBefore);
+    });
+  });
+
+  test("default create uses template title fallback when input title omitted", async () => {
+    await withCreateDraftProposalDefaultPath(async () => {
+      const mock = createMockSupabase();
+      await createDraftProposal(
+        {
+          company_id: COMPANY_ID,
+          job_id: JOB_ID,
+          template_id: TEMPLATE_ID,
+        },
+        storeDeps(mock)
+      );
+
+      const header = mock.state.tables.proposals[0] as Record<string, unknown>;
+      assert.equal(header.title, "Standard Package");
+    });
+  });
+
+  test("sequential escape hatch create uses direct table writes (no create RPC)", async () => {
+    await withCreateDraftProposalSequentialEnabled(async () => {
+      const mock = createMockSupabase();
+      await createDraftProposal(
+        {
+          company_id: COMPANY_ID,
+          job_id: JOB_ID,
+          template_id: TEMPLATE_ID,
+        },
+        storeDeps(mock)
+      );
+
+      assert.equal(mock.rpcCalls.length, 0);
+      assert.ok(
+        mock.state.ops.some(
+          (op) => op.table === "proposals" && op.action === "insert"
+        )
+      );
+      assert.ok(
+        mock.state.ops.some(
+          (op) => op.table === "proposal_line_items" && op.action === "insert"
+        )
+      );
+    });
+  });
+
+  test("sequential create line insert failure leaves partial graph (documents non-atomic risk)", async () => {
+    await withCreateDraftProposalSequentialEnabled(async () => {
+      const mock = createMockSupabase({
+        failOn: { table: "proposal_line_items", action: "insert" },
+      });
+
+      await assert.rejects(
+        () =>
+          createDraftProposal(
+            {
+              company_id: COMPANY_ID,
+              job_id: JOB_ID,
+              template_id: TEMPLATE_ID,
+            },
+            storeDeps(mock)
+          ),
+        /mock failOn proposal_line_items\.insert/
+      );
+
+      assert.ok(mock.state.tables.proposals.length > 0);
+      assert.ok(mock.state.tables.proposal_versions.length > 0);
+      assert.equal(mock.state.tables.proposal_line_items.length, 0);
+    });
   });
 
   test("inserts proposal header with company_id, job_id, template_id, pricing_policy_id, status draft", async () => {
@@ -1450,7 +1620,10 @@ describe("refreshDraftPricing", () => {
 
   test("default refresh surfaces RPC failure as ProposalRecordStoreError without sequential fallback", async () => {
     await withRefreshPricingDefaultPath(async () => {
-      const mock = createMockSupabase({ rpcFailOn: "function does not exist" });
+      const mock = createMockSupabase({
+        rpcFailOn: "function does not exist",
+        rpcFailOnFor: PERSIST_DRAFT_PRICING_REFRESH_RPC_V1,
+      });
       const deps = storeDeps(mock);
       const created = await createDraftProposal(
         {
@@ -1482,8 +1655,11 @@ describe("refreshDraftPricing", () => {
 
       assert.deepEqual(mock.state.tables.proposal_line_items, linesBefore);
       assert.deepEqual(mock.state.tables.proposal_options[0], optionBefore);
-      assert.equal(mock.rpcCalls.length, 1);
-      assert.equal(mock.rpcCalls[0]!.name, PERSIST_DRAFT_PRICING_REFRESH_RPC_V1);
+      const refreshRpcCalls = mock.rpcCalls.filter(
+        (call) => call.name === PERSIST_DRAFT_PRICING_REFRESH_RPC_V1
+      );
+      assert.equal(refreshRpcCalls.length, 1);
+      assert.equal(refreshRpcCalls[0]!.name, PERSIST_DRAFT_PRICING_REFRESH_RPC_V1);
     });
   });
 });
