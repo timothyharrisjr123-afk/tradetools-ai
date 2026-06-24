@@ -850,7 +850,7 @@ export const WORKBENCH_EDIT_OPTION_CONTROL_BTN =
   "mt-2.5 inline-flex w-full items-center justify-center rounded-md border border-slate-200 bg-white px-2.5 py-2 text-[12px] font-medium text-slate-400 opacity-60 cursor-not-allowed";
 
 export const WORKBENCH_EDIT_OPTION_INTRO_COPY =
-  "Scope editing is coming next. Soon you’ll be able to set quantities, mark items not applicable, remove lines from this proposal, add catalog items, and move items to upgrades.";
+  "Scope editing is coming next. Soon you’ll be able to set quantities, remove lines from this proposal, add catalog items, and move items to upgrades.";
 
 export const WORKBENCH_EDIT_OPTION_TRUST_COPY =
   "These actions require the scope decision layer so pricing stays trustworthy after refresh.";

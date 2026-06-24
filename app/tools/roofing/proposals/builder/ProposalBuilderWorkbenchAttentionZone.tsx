@@ -102,7 +102,7 @@ function ScopeReviewSection({
               <p className={WORKBENCH_MODULE_KICKER} id="workbench-scope-review-heading">
                 {zone.title}
               </p>
-              <p className={WORKBENCH_MODULE_TITLE}>Review quantity or applicability</p>
+              <p className={WORKBENCH_MODULE_TITLE}>Review quantity</p>
               <p className={WORKBENCH_MODULE_DESC}>
                 {zone.count === 1
                   ? "1 template item needs review before totals are final."

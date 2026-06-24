@@ -75,13 +75,6 @@ type EditOptionShellSection = {
 
 const DISABLED_SHELL_SECTIONS: readonly EditOptionShellSection[] = [
   {
-    id: "mark_na",
-    title: "Mark not applicable",
-    description: "Mark template lines as not applicable for this job without changing the master template.",
-    controlLabel: "Mark N/A",
-    controlKind: "button",
-  },
-  {
     id: "catalog",
     title: "Add from catalog",
     description: "Pull additional catalog items into this option’s scope.",

@@ -46,24 +46,20 @@ export const WORKBENCH_HARD_BLOCKERS_DESCRIPTION =
   "Catalog or pricing setup must be resolved before these lines can appear on the customer proposal.";
 
 export const WORKBENCH_SCOPE_REVIEW_TITLE = "Scope review";
-export const WORKBENCH_SCOPE_REVIEW_SUBTITLE = "Items needing quantity or applicability";
+export const WORKBENCH_SCOPE_REVIEW_SUBTITLE = "Items needing quantity review";
 export const WORKBENCH_SCOPE_REVIEW_DESCRIPTION =
-  "These template lines need quantity or job-specific review before totals are final.";
+  "These template lines need quantity review before totals are final.";
 
 export const WORKBENCH_SCOPE_REVIEW_ROW_HELPER =
-  "Add quantity or mark not applicable when line editing is enabled.";
+  "Set quantity in Edit option when line editing is enabled.";
 
 export const WORKBENCH_DECISION_TRACE_REMOVED_TITLE = "Removed from this option";
 export const WORKBENCH_DECISION_TRACE_REMOVED_DESCRIPTION =
   "Template lines excluded from this package for this job. Restore to return them to scope review or customer-ready scope.";
 export const WORKBENCH_DECISION_TRACE_REMOVED_STATUS = "Removed";
-export const WORKBENCH_DECISION_TRACE_NOT_APPLICABLE_TITLE = "Not applicable for this job";
-export const WORKBENCH_DECISION_TRACE_NOT_APPLICABLE_DESCRIPTION =
-  "Template lines marked not applicable for this job will appear here in a future update.";
 
 export const WORKBENCH_SCOPE_REVIEW_FUTURE_ACTIONS = [
   { id: "set_quantity", label: "Set quantity", enabled: false as const },
-  { id: "mark_na", label: "Mark N/A", enabled: false as const },
   { id: "remove", label: "Remove", enabled: false as const },
 ] as const;
 
@@ -147,7 +143,6 @@ export type WorkbenchDecisionTraceBucket = {
 export type WorkbenchDecisionTraceZone = {
   show: boolean;
   excluded: WorkbenchDecisionTraceBucket;
-  notApplicable: WorkbenchDecisionTraceBucket;
 };
 
 export type WorkbenchScopeLine = {
@@ -965,11 +960,6 @@ export function buildProposalWorkbenchEstimatePresentation(
         excludedTraceLines,
         WORKBENCH_DECISION_TRACE_REMOVED_TITLE,
         WORKBENCH_DECISION_TRACE_REMOVED_DESCRIPTION
-      ),
-      notApplicable: buildDecisionTraceBucket(
-        [],
-        WORKBENCH_DECISION_TRACE_NOT_APPLICABLE_TITLE,
-        WORKBENCH_DECISION_TRACE_NOT_APPLICABLE_DESCRIPTION
       ),
     },
     meta: {
