@@ -11,7 +11,8 @@
  * Sequential Supabase writes are available only via USE_REFRESH_DRAFT_PRICING_SEQUENTIAL=1
  * (test/dev escape hatch — non-atomic, partial failure may corrupt the graph).
  *
- * createDraftProposal and other multi-table writes remain non-atomic (later stage).
+ * createDraftProposal remains sequential (non-atomic) until Remediation 4C switches
+ * to transactional RPC via proposalDraftCreatePersistence (4A foundation staged).
  *
  * No React, Builder UI, APIs, pricing formula changes, or legacy estimator paths.
  */
