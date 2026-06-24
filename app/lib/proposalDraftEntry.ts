@@ -6,6 +6,11 @@
  */
 
 import { isUuidLike } from "@/app/lib/jobStore";
+import {
+  buildCleanDbJobCardHref,
+  evaluateDbProposalLaunchSpine,
+  type ProductSpineRouteHints,
+} from "@/app/lib/productSpine";
 import { buildJobCardHref } from "@/app/lib/proposalBuilderReadiness";
 import type { ProposalQuantityPreviewContext } from "@/app/lib/proposalBuilderPreview";
 import type {
@@ -44,7 +49,9 @@ export type ResolveOrCreateProposalDraftEntryReason =
   | "missing_quantity_context"
   | "db_identity_not_ready"
   | "unconfigured_pricing_policy"
-  | "create_failed";
+  | "create_failed"
+  | "mixed_spine_context"
+  | "legacy_spine_blocked";
 
 export type ResolveProposalDraftEntryInput = {
   companyId: string;
@@ -74,6 +81,8 @@ export type ResolveOrCreateProposalDraftEntryInput = {
   activeProposalId?: string | null;
   /** When omitted, create is skipped after active/list checks (fail closed). */
   createPayload?: ProposalDraftCreatePayload | null;
+  /** Explicit route/query hints for DB vs legacy spine guardrails. */
+  routeHints?: ProductSpineRouteHints | null;
 };
 
 export type ResolveOrCreateProposalDraftEntryResult = {
@@ -117,6 +126,8 @@ export const EXPECTED_PROPOSAL_DRAFT_ENTRY_FAILURE_REASONS = [
   "missing_quantity_context",
   "db_identity_not_ready",
   "unconfigured_pricing_policy",
+  "mixed_spine_context",
+  "legacy_spine_blocked",
 ] as const satisfies readonly ResolveOrCreateProposalDraftEntryReason[];
 
 export function isExpectedProposalDraftEntryFailure(
@@ -232,6 +243,8 @@ function normalizeProposalLaunchBlockerReason(
     "db_identity_not_ready",
     "unconfigured_pricing_policy",
     "create_failed",
+    "mixed_spine_context",
+    "legacy_spine_blocked",
   ];
 
   if (known.includes(key as ResolveOrCreateProposalDraftEntryReason)) {
@@ -273,6 +286,28 @@ export function resolveProposalLaunchBlockerActions(
       return [
         returnToJobBoardAction(
           "Open a saved Job Card before creating proposal drafts."
+        ),
+      ];
+    }
+    case "mixed_spine_context":
+    case "legacy_spine_blocked": {
+      const jobId = normalizeId(context?.jobId);
+      if (jobId) {
+        return [
+          {
+            id: "normalize-db-job-card",
+            label: "Open clean DB Job Card",
+            helperText:
+              "Legacy saved estimate sessions cannot create or open DB proposal drafts. Open a clean DB Job Card route.",
+            actionType: "route",
+            href: buildCleanDbJobCardHref(jobId),
+          },
+          returnToJobBoardAction("Return to the Job Board and reopen this job."),
+        ];
+      }
+      return [
+        returnToJobBoardAction(
+          "Open a DB-backed Job Card before creating proposal drafts."
         ),
       ];
     }
@@ -493,6 +528,16 @@ export async function resolveOrCreateProposalDraftEntry(
       created: false,
       reason: "invalid_company_or_job",
       errorMessage: "A valid company and job are required to open Proposal Builder.",
+    };
+  }
+
+  const spineLaunch = evaluateDbProposalLaunchSpine(input.routeHints ?? null);
+  if (!spineLaunch.allowed && input.routeHints) {
+    return {
+      proposalId: null,
+      created: false,
+      reason: spineLaunch.reason ?? "mixed_spine_context",
+      errorMessage: spineLaunch.errorMessage,
     };
   }
 

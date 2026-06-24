@@ -566,4 +566,61 @@ describe("resolveOrCreateProposalDraftEntry", () => {
     assert.equal(createCalls, 0);
     assert.equal(result.reason, "invalid_company_or_job");
   });
+
+  test("mixed spine context blocks create and open", async () => {
+    let createCalls = 0;
+    const deps: ResolveOrCreateProposalDraftEntryDeps = {
+      getProposalById: async () => null,
+      listProposalsForJob: async () => [],
+      createDraftProposal: async () => {
+        createCalls += 1;
+        throw new Error("createDraftProposal must not be called");
+      },
+    };
+    const result = await resolveOrCreateProposalDraftEntry(
+      {
+        companyId: COMPANY_ID,
+        jobId: JOB_ID,
+        activeProposalId: null,
+        createPayload: readyCreatePayload(),
+        routeHints: {
+          pathname: "/tools/roofing",
+          entry: "job-card",
+          job: JOB_ID,
+          from: "board",
+        },
+      },
+      deps
+    );
+    assert.equal(createCalls, 0);
+    assert.equal(result.reason, "mixed_spine_context");
+    assert.match(result.errorMessage ?? "", /clean DB Job Card/i);
+  });
+
+  test("legacy loadSaved spine blocks DB proposal create", async () => {
+    let createCalls = 0;
+    const deps: ResolveOrCreateProposalDraftEntryDeps = {
+      getProposalById: async () => null,
+      listProposalsForJob: async () => [],
+      createDraftProposal: async () => {
+        createCalls += 1;
+        throw new Error("createDraftProposal must not be called");
+      },
+    };
+    const result = await resolveOrCreateProposalDraftEntry(
+      {
+        companyId: COMPANY_ID,
+        jobId: JOB_ID,
+        activeProposalId: null,
+        createPayload: readyCreatePayload(),
+        routeHints: {
+          pathname: "/tools/roofing",
+          loadSaved: "33333333-3333-4333-8333-333333333333",
+        },
+      },
+      deps
+    );
+    assert.equal(createCalls, 0);
+    assert.equal(result.reason, "legacy_spine_blocked");
+  });
 });

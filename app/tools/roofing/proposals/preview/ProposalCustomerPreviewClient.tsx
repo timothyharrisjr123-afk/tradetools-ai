@@ -15,6 +15,10 @@ import {
   buildProposalBuilderHref,
 } from "@/app/lib/proposalBuilderReadiness";
 import {
+  evaluateDbProposalLaunchSpine,
+  productSpineRouteHintsFromSearchParams,
+} from "@/app/lib/productSpine";
+import {
   CUSTOMER_PREVIEW_BACK_TO_BUILDER_LABEL,
   CUSTOMER_PREVIEW_DRAFT_NOTICE,
   CUSTOMER_PREVIEW_PAGE_TITLE,
@@ -49,6 +53,17 @@ export default function ProposalCustomerPreviewClient({
   const hasValidParams =
     isUuidLike(normalizedJobId) && isUuidLike(normalizedProposalId);
 
+  const routeSpineLaunch = useMemo(
+    () =>
+      evaluateDbProposalLaunchSpine(
+        productSpineRouteHintsFromSearchParams(
+          "/tools/roofing/proposals/preview",
+          searchParams
+        )
+      ),
+    [searchParams]
+  );
+
   const [job, setJob] = useState<JobRecord | null>(null);
   const [persistedGraph, setPersistedGraph] = useState<ProposalDraftGraph | null>(null);
   const [templateGraph, setTemplateGraph] = useState<ProposalTemplateGraph | null>(null);
@@ -66,6 +81,15 @@ export default function ProposalCustomerPreviewClient({
     setPersistedGraph(null);
     setTemplateGraph(null);
     setJob(null);
+
+    if (!routeSpineLaunch.allowed) {
+      setLoadError(
+        routeSpineLaunch.errorMessage ??
+          "A valid DB proposal route is required to preview this draft."
+      );
+      setLoadComplete(true);
+      return;
+    }
 
     if (!hasValidParams) {
       setLoadError("A valid job and proposal are required to preview this draft.");
@@ -111,7 +135,14 @@ export default function ProposalCustomerPreviewClient({
     } finally {
       setLoadComplete(true);
     }
-  }, [companyId, hasValidParams, normalizedJobId, normalizedProposalId]);
+  }, [
+    companyId,
+    hasValidParams,
+    normalizedJobId,
+    normalizedProposalId,
+    routeSpineLaunch.allowed,
+    routeSpineLaunch.errorMessage,
+  ]);
 
   useEffect(() => {
     void loadPreview();

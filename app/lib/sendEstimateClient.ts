@@ -1,4 +1,5 @@
 import type { SendEstimateEmailMeta } from "@/app/lib/sendEstimateEmail";
+import { validateLegacyEstimateSendPayload } from "@/app/lib/legacyEstimateSendGuard";
 
 function uint8ToBase64(bytes: Uint8Array) {
   let binary = "";
@@ -49,7 +50,18 @@ export async function sendEstimateEmailWithPdf(args: {
   contractorEmail?: string;
   approvalToken?: string;
   notifyEmail?: string;
+  proposalId?: string;
+  dbProposalRouteContext?: boolean;
 }) {
+  const legacySendValidation = validateLegacyEstimateSendPayload({
+    savedEstimateId: args.savedEstimateId,
+    proposalId: args.proposalId,
+    dbProposalRouteContext: args.dbProposalRouteContext,
+  });
+  if (!legacySendValidation.ok) {
+    throw new Error(legacySendValidation.error ?? "Send blocked.");
+  }
+
   const pdfBase64 = uint8ToBase64(args.pdfBytes);
   const pdfFilename = args.pdfFilename || "estimate.pdf";
   const sendMeta = metaToSendMeta(args.meta);

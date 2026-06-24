@@ -21,6 +21,14 @@ describe("parseInternalReturnTo", () => {
     assert.equal(parseInternalReturnTo(encoded), decoded);
   });
 
+  test("strips legacy loadSaved and from=board params from returnTo", () => {
+    const dirty = `/tools/roofing?entry=job-card&job=${JOB_ID}&loadSaved=abc&from=board&tab=proposals`;
+    assert.equal(
+      parseInternalReturnTo(dirty),
+      `/tools/roofing?entry=job-card&job=${JOB_ID}&tab=proposals`
+    );
+  });
+
   test("rejects null/empty", () => {
     assert.equal(parseInternalReturnTo(null), null);
     assert.equal(parseInternalReturnTo(undefined), null);

@@ -76,6 +76,8 @@ import {
 import { findOrCreateCustomer } from "@/app/lib/customerStore";
 import { ensureJobCustomerPersisted } from "@/app/lib/jobCardCustomerPersist";
 import { LAST_DB_JOB_ID_STORAGE_KEY } from "@/app/lib/jobBoardAdapter";
+import { LEGACY_ESTIMATE_SEND_BLOCKED_FOR_DB_MESSAGE } from "@/app/lib/legacyEstimateSendGuard";
+import { productSpineRouteHintsFromSearchParams } from "@/app/lib/productSpine";
 import { getSupabaseClient } from "@/app/lib/supabaseClient";
 import {
   getSelectedMeasurementForJob,
@@ -1496,17 +1498,21 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
     if (typeof window === "undefined") return;
 
     const params = new URLSearchParams(window.location.search);
-    const fromSuffix = isJobCardBoardContext ? "&from=board" : "";
-    const targetPath = `/tools/roofing?entry=job-card&job=${encodeURIComponent(currentJobId)}${fromSuffix}`;
+    const legacyFromSuffix = loadSavedId && isJobCardBoardContext ? "&from=board" : "";
+    const loadSavedSuffix = loadSavedId
+      ? `&loadSaved=${encodeURIComponent(loadSavedId)}`
+      : "";
+    const targetPath = `/tools/roofing?entry=job-card&job=${encodeURIComponent(currentJobId)}${loadSavedSuffix}${legacyFromSuffix}`;
     if (
       params.get("entry") === "job-card" &&
       params.get("job") === currentJobId &&
-      (params.get("from") === "board") === isJobCardBoardContext
+      (params.get("loadSaved") ?? null) === (loadSavedId ?? null) &&
+      (params.get("from") === "board") === Boolean(loadSavedId && isJobCardBoardContext)
     ) {
       return;
     }
     window.history.replaceState({}, "", targetPath);
-  }, [entryMode, currentJobId, isJobCardBoardContext]);
+  }, [entryMode, currentJobId, isJobCardBoardContext, loadSavedId]);
 
   useEffect(() => {
     if (!loadSavedId) return;
@@ -4011,6 +4017,10 @@ Thanks,`;
     });
 
     if (isSending) return;
+    if (isCleanDbJobCardRoute) {
+      failSend(LEGACY_ESTIMATE_SEND_BLOCKED_FOR_DB_MESSAGE);
+      return;
+    }
     if (isLocked) {
       failSend("This is locked. Duplicate to revise.");
       return;
@@ -7360,6 +7370,10 @@ Thanks,`;
               jobId: currentJobId,
               activeProposalId: jobCardActiveProposalId,
               createPayload: proposalDraftCreatePayload,
+              routeHints: productSpineRouteHintsFromSearchParams(
+                "/tools/roofing",
+                searchParams
+              ),
             },
             {
               getProposalById,

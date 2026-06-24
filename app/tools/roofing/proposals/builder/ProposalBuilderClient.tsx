@@ -80,6 +80,10 @@ import {
   type ProposalBuilderLifecycleActionId,
 } from "@/app/lib/proposalBuilderGuidance";
 import { buildProposalCustomerPreviewHref } from "@/app/lib/proposalCustomerPreviewViewModel";
+import {
+  evaluateDbProposalLaunchSpine,
+  productSpineRouteHintsFromSearchParams,
+} from "@/app/lib/productSpine";
 import ProposalBuilderBlockedState from "./ProposalBuilderBlockedState";
 import ProposalBuilderCanvas from "./ProposalBuilderCanvas";
 import ProposalBuilderPageAlerts from "./ProposalBuilderPageAlerts";
@@ -97,6 +101,18 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
   const proposalIdParam = searchParams.get("proposal");
   const hasPersistedProposalParam =
     proposalIdParam != null && isUuidLike(proposalIdParam.trim());
+
+  const routeSpineLaunch = useMemo(
+    () =>
+      evaluateDbProposalLaunchSpine(
+        productSpineRouteHintsFromSearchParams(
+          "/tools/roofing/proposals/builder",
+          searchParams
+        )
+      ),
+    [searchParams]
+  );
+  const spineRouteError = routeSpineLaunch.allowed ? null : routeSpineLaunch.errorMessage;
 
   const [job, setJob] = useState<JobRecord | null>(null);
   const [jobLoadComplete, setJobLoadComplete] = useState(false);
@@ -1156,7 +1172,7 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
   ]);
 
   const loadError = catalogError ?? templateError;
-  const shellReady = builderReadiness.ready && !draftGraphError;
+  const shellReady = builderReadiness.ready && !draftGraphError && !spineRouteError;
   const normalizedJobId = (jobIdParam ?? "").trim() || null;
 
   // 3J4B3: single guided-flow source of truth. Preview enablement is R17B-only;
@@ -1324,6 +1340,11 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
           persistedGraph != null
         }
       />
+      {spineRouteError ? (
+        <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          {spineRouteError}
+        </div>
+      ) : null}
       {draftGraphError ? (
         <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
           {draftGraphError}

@@ -8,6 +8,7 @@ import type { CatalogReadinessSummary } from "@/app/lib/catalogReadiness";
 import type { MeasurementProposalHandoff } from "@/app/lib/measurementProposalHandoff";
 import type { JobRecord } from "@/app/lib/jobTypes";
 import { isUuidLike } from "@/app/lib/jobStore";
+import { normalizeDbProposalHref } from "@/app/lib/productSpine";
 import type { ProposalTemplateReadiness } from "@/app/lib/proposalTemplateTypes";
 import { formatProposalTemplateNextStepCopy } from "@/app/lib/proposalTemplateReadiness";
 import { formatCatalogNextStepCopy } from "@/app/lib/catalogReadiness";
@@ -232,7 +233,7 @@ export function parseInternalReturnTo(
   }
   if (value.startsWith("//")) return null;
   if (!value.startsWith("/tools/")) return null;
-  return value;
+  return normalizeDbProposalHref(value);
 }
 
 /**

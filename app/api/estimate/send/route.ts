@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { z } from "zod";
 import { putApprovalRecord } from "@/app/lib/kv";
+import { validateLegacyEstimateSendPayload } from "@/app/lib/legacyEstimateSendGuard";
 
 const EmailSchema = z.string().email();
 
@@ -24,6 +25,9 @@ const BodySchema = z.object({
   pdfBase64: z.string().min(50),
   pdfFilename: z.string().min(1).default("estimate.pdf"),
   savedEstimateId: z.string().uuid().optional(),
+  proposalId: z.string().uuid().optional(),
+  proposalJobId: z.string().uuid().optional(),
+  dbProposalRouteContext: z.boolean().optional(),
   contractorEmail: z.string().email().optional(),
   approvalToken: z.string().uuid().optional(),
   notifyEmail: z.string().optional(),
@@ -142,8 +146,21 @@ export async function POST(req: Request) {
       );
     }
 
-    const { to, meta, pdfBase64, pdfFilename, savedEstimateId, contractorEmail, approvalToken: clientToken, notifyEmail: notifyEmailBody } =
+    const { to, meta, pdfBase64, pdfFilename, savedEstimateId, proposalId, proposalJobId, dbProposalRouteContext, contractorEmail, approvalToken: clientToken, notifyEmail: notifyEmailBody } =
       parsed.data;
+
+    const legacySendValidation = validateLegacyEstimateSendPayload({
+      savedEstimateId,
+      proposalId,
+      proposalJobId,
+      dbProposalRouteContext,
+    });
+    if (!legacySendValidation.ok) {
+      return NextResponse.json(
+        { success: false, error: legacySendValidation.error ?? "Send blocked." },
+        { status: 422 }
+      );
+    }
 
     const toEmail = normalizeEmail(to);
     if (!toEmail) {
