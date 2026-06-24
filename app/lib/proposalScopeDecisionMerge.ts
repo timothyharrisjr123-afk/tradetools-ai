@@ -3,6 +3,7 @@
  *
  * Phase 1 fully implements manual_quantity for template-targeted lines.
  * Phase 3A implements excluded (omit from pricing input).
+ * Phase 4 implements visibility_override (customer-hidden but still priced via hiddenButInCalc).
  * Other decision types are typed but produce explicit unsupported/warning entries.
  */
 
@@ -24,6 +25,7 @@ import { mapEngineLineStatusToSnapshot } from "@/app/lib/proposalSnapshotStatusM
 import type { ProposalTemplateGraph } from "@/app/lib/proposalTemplateStore";
 import {
   parseManualQuantityPayload,
+  parseVisibilityOverridePayload,
   type ProposalScopeDecision,
   type ProposalScopeDecisionType,
 } from "@/app/lib/proposalScopeDecisionTypes";
@@ -215,6 +217,77 @@ export function mergeScopeDecisionsIntoPricingLines(
       continue;
     }
 
+    if (decision.decisionType === "visibility_override") {
+      const templateItemId = decision.sourceTemplateItemId;
+      if (templateItemId && excludedTemplateItemIds.has(templateItemId)) {
+        report.ignored.push({
+          decisionId: decision.id,
+          decisionType: decision.decisionType,
+          sourceTemplateItemId: templateItemId,
+          instanceLineKey: decision.instanceLineKey,
+          message: "visibility_override ignored because line is excluded.",
+        });
+        continue;
+      }
+
+      if (!templateItemId) {
+        report.stale.push({
+          decisionId: decision.id,
+          decisionType: decision.decisionType,
+          sourceTemplateItemId: decision.sourceTemplateItemId,
+          instanceLineKey: decision.instanceLineKey,
+          message: "visibility_override requires source_template_item_id.",
+        });
+        continue;
+      }
+
+      const templateItem = graph.items.find((item) => item.id === templateItemId);
+      if (!templateItem || templateItem.option_id !== templateOptionId) {
+        report.stale.push({
+          decisionId: decision.id,
+          decisionType: decision.decisionType,
+          sourceTemplateItemId: templateItemId,
+          instanceLineKey: decision.instanceLineKey,
+          message: "source_template_item_id is missing or not on this option.",
+        });
+        continue;
+      }
+
+      const parsed = parseVisibilityOverridePayload(decision.payload as Record<string, unknown>);
+      if (!parsed || parsed.visible_to_customer !== false) {
+        report.stale.push({
+          decisionId: decision.id,
+          decisionType: decision.decisionType,
+          sourceTemplateItemId: templateItemId,
+          instanceLineKey: decision.instanceLineKey,
+          message: "visibility_override payload must set visible_to_customer: false.",
+        });
+        continue;
+      }
+
+      const target = merged.find((line) => line.templateItemId === templateItemId);
+      if (!target) {
+        report.stale.push({
+          decisionId: decision.id,
+          decisionType: decision.decisionType,
+          sourceTemplateItemId: templateItemId,
+          instanceLineKey: decision.instanceLineKey,
+          message: "Template line is not present in pricing input.",
+        });
+        continue;
+      }
+
+      target.hiddenButInCalc = true;
+      report.applied.push({
+        decisionId: decision.id,
+        decisionType: decision.decisionType,
+        sourceTemplateItemId: templateItemId,
+        instanceLineKey: decision.instanceLineKey,
+        message: "Line hidden from customer document but still priced in option total.",
+      });
+      continue;
+    }
+
     if (decision.decisionType === "manual_quantity") {
       const templateItemId = decision.sourceTemplateItemId;
       if (templateItemId && excludedTemplateItemIds.has(templateItemId)) {
@@ -292,10 +365,10 @@ export function mergeScopeDecisionsIntoPricingLines(
       decisionType: decision.decisionType,
       sourceTemplateItemId: decision.sourceTemplateItemId,
       instanceLineKey: decision.instanceLineKey,
-      message: `${decision.decisionType} is not implemented in R17D Phase 3A merge.`,
+      message: `${decision.decisionType} is not implemented in R17D scope decision merge.`,
     });
     report.warnings.push(
-      `Scope decision ${decision.id} (${decision.decisionType}) is not implemented in Phase 3A merge.`
+      `Scope decision ${decision.id} (${decision.decisionType}) is not implemented in scope decision merge.`
     );
   }
 
@@ -407,6 +480,7 @@ export function buildDraftInstantiateInputWithScopeDecisions(
             unit: line.unit,
             customerUnitPriceCents: showPrice ? priced.unitPriceCents : null,
             customerLineTotalCents: showPrice ? priced.linePriceCents : null,
+            hiddenButInCalc: line.hiddenButInCalc === true,
           })
         );
       }
@@ -488,6 +562,7 @@ export function buildDraftInstantiateInputWithScopeDecisions(
           unit: line.unit,
           customerUnitPriceCents: showPrice ? priced.unitPriceCents : null,
           customerLineTotalCents: showPrice ? priced.linePriceCents : null,
+          hiddenButInCalc: line.hiddenButInCalc === true,
         })
       );
     }

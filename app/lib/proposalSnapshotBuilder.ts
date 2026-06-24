@@ -846,6 +846,7 @@ export function templateItemToLineInput(
     unit?: string | null;
     customerUnitPriceCents?: number | null;
     customerLineTotalCents?: number | null;
+    hiddenButInCalc?: boolean;
   }
 ): LineItemSnapshotInput {
   return {
@@ -869,5 +870,6 @@ export function templateItemToLineInput(
     customerVisibility: pricing.customerVisibility,
     catalogItemMissing: pricing.catalogItemMissing,
     measurement_quantity_key: item.quantity_rule?.measurement_quantity_key ?? null,
+    hiddenButInCalc: pricing.hiddenButInCalc === true ? true : undefined,
   };
 }

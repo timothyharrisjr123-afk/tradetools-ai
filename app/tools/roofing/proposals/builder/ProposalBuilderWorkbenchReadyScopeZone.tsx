@@ -17,12 +17,16 @@ type ProposalBuilderWorkbenchReadyScopeZoneProps = {
   sections: WorkbenchScopeSection[];
   onEditQuantityForLine?: (templateItemId: string) => void;
   onRemoveFromOptionForLine?: (templateItemId: string) => void;
+  onHideFromCustomerForLine?: (templateItemId: string) => void;
+  onRestoreVisibilityForLine?: (templateItemId: string) => void;
 };
 
 export default function ProposalBuilderWorkbenchReadyScopeZone({
   sections,
   onEditQuantityForLine,
   onRemoveFromOptionForLine,
+  onHideFromCustomerForLine,
+  onRestoreVisibilityForLine,
 }: ProposalBuilderWorkbenchReadyScopeZoneProps) {
   const lineCount = sections.reduce((sum, section) => sum + section.lines.length, 0);
 
@@ -71,6 +75,16 @@ export default function ProposalBuilderWorkbenchReadyScopeZone({
                       onRemoveFromOption={
                         onRemoveFromOptionForLine
                           ? () => onRemoveFromOptionForLine(line.templateItemId)
+                          : undefined
+                      }
+                      onHideFromCustomer={
+                        !line.hiddenFromCustomer && onHideFromCustomerForLine
+                          ? () => onHideFromCustomerForLine(line.templateItemId)
+                          : undefined
+                      }
+                      onRestoreVisibility={
+                        line.hiddenFromCustomer && onRestoreVisibilityForLine
+                          ? () => onRestoreVisibilityForLine(line.templateItemId)
                           : undefined
                       }
                     />

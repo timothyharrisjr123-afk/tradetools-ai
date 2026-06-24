@@ -81,6 +81,8 @@ type ProposalBuilderCanvasProps = {
   manualQuantityError?: string | null;
   excludeInFlight?: boolean;
   excludeError?: string | null;
+  visibilityInFlight?: boolean;
+  visibilityError?: string | null;
   onApplyManualQuantity?: (
     templateItemId: string,
     quantity: string,
@@ -89,6 +91,8 @@ type ProposalBuilderCanvasProps = {
   onClearManualQuantity?: (templateItemId: string) => Promise<void>;
   onExcludeLine?: (templateItemId: string) => Promise<void>;
   onRestoreExcludedLine?: (templateItemId: string) => Promise<void>;
+  onHideLine?: (templateItemId: string) => Promise<void>;
+  onRestoreVisibility?: (templateItemId: string) => Promise<void>;
 };
 
 /** 3J4F — text page types that render as read-only customer document pages. */
@@ -217,10 +221,14 @@ export default function ProposalBuilderCanvas({
   manualQuantityError = null,
   excludeInFlight = false,
   excludeError = null,
+  visibilityInFlight = false,
+  visibilityError = null,
   onApplyManualQuantity,
   onClearManualQuantity,
   onExcludeLine,
   onRestoreExcludedLine,
+  onHideLine,
+  onRestoreVisibility,
 }: ProposalBuilderCanvasProps) {
   const templateName = starterGraph?.template.name ?? STARTER_TEMPLATE_DISPLAY_NAME;
   const effectiveOptionId =
@@ -392,10 +400,14 @@ export default function ProposalBuilderCanvas({
       manualQuantityError={manualQuantityError}
       excludeInFlight={excludeInFlight}
       excludeError={excludeError}
+      visibilityInFlight={visibilityInFlight}
+      visibilityError={visibilityError}
       onApplyManualQuantity={onApplyManualQuantity}
       onClearManualQuantity={onClearManualQuantity}
       onExcludeLine={onExcludeLine}
       onRestoreExcludedLine={onRestoreExcludedLine}
+      onHideLine={onHideLine}
+      onRestoreVisibility={onRestoreVisibility}
     />
   );
 }

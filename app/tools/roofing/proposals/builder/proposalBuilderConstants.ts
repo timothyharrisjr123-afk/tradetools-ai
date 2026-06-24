@@ -927,6 +927,32 @@ export const WORKBENCH_RESTORE_EXCLUDED_ACTION = "Include in this option again";
 export const WORKBENCH_RESTORE_EXCLUDED_SUCCESS =
   "Line restored to this option and draft pricing refreshed.";
 
+/** R17D Phase 4 — hide line from customer proposal (still priced). */
+export const WORKBENCH_HIDE_FROM_CUSTOMER_ACTION = "Hide from customer";
+
+export const WORKBENCH_HIDE_SECTION_TITLE = "Hide from customer";
+
+export const WORKBENCH_HIDE_SECTION_DESC =
+  "Keep this line priced in the package total but omit it from the customer-facing proposal document.";
+
+export const WORKBENCH_HIDE_HELPER_COPY =
+  "Contractors still see this line in the Builder. The customer proposal and Preview will not show it. Option total is unchanged.";
+
+export const WORKBENCH_HIDE_ACTION_LABEL = "Hide from customer";
+
+export const WORKBENCH_HIDE_IN_FLIGHT_LABEL = "Hiding…";
+
+export const WORKBENCH_HIDE_SUCCESS =
+  "Line hidden from customer proposal and draft pricing refreshed.";
+
+export const WORKBENCH_RESTORE_VISIBILITY_ACTION = "Restore visibility";
+
+export const WORKBENCH_RESTORE_VISIBILITY_SUCCESS =
+  "Line visibility restored and draft pricing refreshed.";
+
+export const WORKBENCH_HIDE_ACTION_BTN =
+  "inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-3 py-2 text-[12px] font-semibold text-slate-800 shadow-sm transition-colors hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:opacity-60";
+
 export const WORKBENCH_EXCLUDE_ACTION_BTN =
   "inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-3 py-2 text-[12px] font-semibold text-slate-800 shadow-sm transition-colors hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:opacity-60";
 

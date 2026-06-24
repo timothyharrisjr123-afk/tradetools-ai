@@ -9,9 +9,11 @@ import { describe, test } from "node:test";
 import type { ProposalQuantityPreviewContext } from "./proposalBuilderPreview";
 import {
   applyManualQuantityScopeDecision,
+  clearCustomerVisibilityHide,
   clearExcludedLine,
   clearManualQuantityScopeDecision,
   excludeLineFromProposalOption,
+  hideLineFromCustomer,
   ProposalScopeDecisionActionError,
   validateManualQuantityInput,
 } from "./proposalScopeDecisionActions";
@@ -121,6 +123,38 @@ describe("clearExcludedLine", () => {
     await assert.rejects(
       () =>
         clearExcludedLine({
+          companyId: COMPANY_ID,
+          proposalId: PROPOSAL_ID,
+          runtimeProposalOptionId: OPTION_ID,
+          sourceTemplateItemId: "",
+          refreshContext: REFRESH_CONTEXT,
+        }),
+      (err: unknown) => err instanceof ProposalScopeDecisionActionError
+    );
+  });
+});
+
+describe("hideLineFromCustomer", () => {
+  test("rejects missing ids", async () => {
+    await assert.rejects(
+      () =>
+        hideLineFromCustomer({
+          companyId: "",
+          proposalId: PROPOSAL_ID,
+          runtimeProposalOptionId: OPTION_ID,
+          sourceTemplateItemId: TEMPLATE_ITEM_ID,
+          refreshContext: REFRESH_CONTEXT,
+        }),
+      (err: unknown) => err instanceof ProposalScopeDecisionActionError
+    );
+  });
+});
+
+describe("clearCustomerVisibilityHide", () => {
+  test("rejects missing sourceTemplateItemId", async () => {
+    await assert.rejects(
+      () =>
+        clearCustomerVisibilityHide({
           companyId: COMPANY_ID,
           proposalId: PROPOSAL_ID,
           runtimeProposalOptionId: OPTION_ID,

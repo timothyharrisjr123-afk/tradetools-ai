@@ -30,6 +30,7 @@ import ProposalBuilderWorkbenchDecisionTraceZone from "./ProposalBuilderWorkbenc
 import ProposalBuilderWorkbenchEditOptionShell, {
   type EditOptionDrawerIntent,
   type ExcludeEditorLine,
+  type HideEditorLine,
   type ManualQuantityActiveLine,
   type ManualQuantityEditorLine,
 } from "./ProposalBuilderWorkbenchEditOptionShell";
@@ -59,6 +60,8 @@ type ProposalBuilderWorkbenchEstimateDocumentProps = {
   manualQuantityError?: string | null;
   excludeInFlight?: boolean;
   excludeError?: string | null;
+  visibilityInFlight?: boolean;
+  visibilityError?: string | null;
   onApplyManualQuantity?: (
     templateItemId: string,
     quantity: string,
@@ -67,6 +70,8 @@ type ProposalBuilderWorkbenchEstimateDocumentProps = {
   onClearManualQuantity?: (templateItemId: string) => Promise<void>;
   onExcludeLine?: (templateItemId: string) => Promise<void>;
   onRestoreExcludedLine?: (templateItemId: string) => Promise<void>;
+  onHideLine?: (templateItemId: string) => Promise<void>;
+  onRestoreVisibility?: (templateItemId: string) => Promise<void>;
 };
 
 function readEstimatePageSettingsFromPersisted(
@@ -99,10 +104,14 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
   manualQuantityError = null,
   excludeInFlight = false,
   excludeError = null,
+  visibilityInFlight = false,
+  visibilityError = null,
   onApplyManualQuantity,
   onClearManualQuantity,
   onExcludeLine,
   onRestoreExcludedLine,
+  onHideLine,
+  onRestoreVisibility,
 }: ProposalBuilderWorkbenchEstimateDocumentProps) {
   const quantityContext =
     measurementHandoff || measurementQuantityMap
@@ -129,7 +138,7 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
   });
 
   const { meta } = presentation;
-  const scopeEditInFlight = manualQuantityInFlight || excludeInFlight;
+  const scopeEditInFlight = manualQuantityInFlight || excludeInFlight || visibilityInFlight;
 
   const [editOptionOpen, setEditOptionOpen] = useState(false);
   const [focusedTemplateItemId, setFocusedTemplateItemId] = useState<string | null>(null);
@@ -175,13 +184,27 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
     return lines;
   }, [presentation.needsAttention.scopeReview.lines, presentation.readyScope.sections]);
 
+  const hideEligibleLines = useMemo((): HideEditorLine[] => {
+    const lines: HideEditorLine[] = [];
+    for (const section of presentation.readyScope.sections) {
+      for (const line of section.lines) {
+        if (line.hiddenFromCustomer) continue;
+        lines.push({ templateItemId: line.templateItemId, name: line.name });
+      }
+    }
+    return lines;
+  }, [presentation.readyScope.sections]);
+
   const quantityEditingEnabled =
     persistedDraftEnabled && Boolean(onApplyManualQuantity) && Boolean(onClearManualQuantity);
   const excludeEnabled = persistedDraftEnabled && Boolean(onExcludeLine) && Boolean(onRestoreExcludedLine);
+  const visibilityEnabled =
+    persistedDraftEnabled && Boolean(onHideLine) && Boolean(onRestoreVisibility);
 
   const hasEditableQuantityLines =
     scopeReviewLines.length > 0 || manualActiveLines.length > 0;
-  const hasEditableScopeLines = hasEditableQuantityLines || excludeEligibleLines.length > 0;
+  const hasEditableScopeLines =
+    hasEditableQuantityLines || excludeEligibleLines.length > 0 || hideEligibleLines.length > 0;
 
   const openEditOption = useCallback(() => {
     setDrawerIntent("quantity");
@@ -235,6 +258,24 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
       setFocusedTemplateItemId(null);
     },
     [onExcludeLine]
+  );
+
+  const handleHideLine = useCallback(
+    async (templateItemId: string) => {
+      if (!onHideLine) return;
+      await onHideLine(templateItemId);
+      setEditOptionOpen(false);
+      setFocusedTemplateItemId(null);
+    },
+    [onHideLine]
+  );
+
+  const handleRestoreVisibility = useCallback(
+    async (templateItemId: string) => {
+      if (!onRestoreVisibility) return;
+      await onRestoreVisibility(templateItemId);
+    },
+    [onRestoreVisibility]
   );
 
   const handleRestoreExcludedLine = useCallback(
@@ -316,6 +357,14 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
               ? (templateItemId) => openEditOptionForLine(templateItemId, "exclude")
               : undefined
           }
+          onHideFromCustomerForLine={
+            visibilityEnabled
+              ? (templateItemId) => openEditOptionForLine(templateItemId, "visibility")
+              : undefined
+          }
+          onRestoreVisibilityForLine={
+            visibilityEnabled ? handleRestoreVisibility : undefined
+          }
         />
 
         <ProposalBuilderWorkbenchAttentionZone
@@ -353,6 +402,7 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
         scopeReviewCount={meta.scopeReviewLineCount}
         scopeReviewLines={scopeReviewLines}
         excludeEligibleLines={excludeEligibleLines}
+        hideEligibleLines={hideEligibleLines}
         manualActiveLines={manualActiveLines}
         focusedTemplateItemId={focusedTemplateItemId}
         drawerIntent={drawerIntent}
@@ -361,9 +411,11 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
         scopeEditInFlight={scopeEditInFlight}
         manualQuantityError={manualQuantityError}
         excludeError={excludeError}
+        visibilityError={visibilityError}
         onApplyManualQuantity={handleApplyManualQuantity}
         onClearManualQuantity={handleClearManualQuantity}
         onExcludeLine={handleExcludeLine}
+        onHideLine={handleHideLine}
       />
     </article>
   );

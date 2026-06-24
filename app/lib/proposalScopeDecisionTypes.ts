@@ -214,3 +214,13 @@ export function parseManualQuantityPayload(
     quantity_display_label: quantityDisplayLabel,
   };
 }
+
+export function parseVisibilityOverridePayload(
+  payload: Record<string, unknown>
+): VisibilityOverrideScopeDecisionPayload | null {
+  const visibleToCustomer = payload.visible_to_customer;
+  if (typeof visibleToCustomer !== "boolean") {
+    return null;
+  }
+  return { visible_to_customer: visibleToCustomer };
+}

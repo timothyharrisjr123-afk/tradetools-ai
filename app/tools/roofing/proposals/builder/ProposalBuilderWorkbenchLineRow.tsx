@@ -7,7 +7,9 @@ import { WORKBENCH_HIDDEN_FROM_CUSTOMER_LABEL } from "@/app/lib/proposalBuilderW
 import {
   WORKBENCH_EDIT_OPTION_CHIP_ENABLED,
   WORKBENCH_EDIT_QUANTITY_ACTION,
+  WORKBENCH_HIDE_FROM_CUSTOMER_ACTION,
   WORKBENCH_REMOVE_FROM_OPTION_ACTION,
+  WORKBENCH_RESTORE_VISIBILITY_ACTION,
   WORKBENCH_LINE_AMOUNT,
   WORKBENCH_LINE_AMOUNT_ATTENTION,
   WORKBENCH_LINE_AMOUNT_INCLUDED,
@@ -63,6 +65,8 @@ type ScopeLineRowProps = {
   compact?: boolean;
   onEditQuantity?: () => void;
   onRemoveFromOption?: () => void;
+  onHideFromCustomer?: () => void;
+  onRestoreVisibility?: () => void;
 };
 
 type HardBlockerLineRowProps = {
@@ -167,7 +171,7 @@ export default function ProposalBuilderWorkbenchLineRow(
     );
   }
 
-  const { line, onEditQuantity, onRemoveFromOption } = props;
+  const { line, onEditQuantity, onRemoveFromOption, onHideFromCustomer, onRestoreVisibility } = props;
   const hasAttention = line.attentionReasons.length > 0;
   const amountClass = hasAttention
     ? WORKBENCH_LINE_AMOUNT_ATTENTION
@@ -203,6 +207,24 @@ export default function ProposalBuilderWorkbenchLineRow(
                 className={WORKBENCH_EDIT_OPTION_CHIP_ENABLED}
               >
                 {WORKBENCH_REMOVE_FROM_OPTION_ACTION}
+              </button>
+            ) : null}
+            {line.hiddenFromCustomer && onRestoreVisibility ? (
+              <button
+                type="button"
+                onClick={onRestoreVisibility}
+                className={WORKBENCH_EDIT_OPTION_CHIP_ENABLED}
+              >
+                {WORKBENCH_RESTORE_VISIBILITY_ACTION}
+              </button>
+            ) : null}
+            {!line.hiddenFromCustomer && onHideFromCustomer ? (
+              <button
+                type="button"
+                onClick={onHideFromCustomer}
+                className={WORKBENCH_EDIT_OPTION_CHIP_ENABLED}
+              >
+                {WORKBENCH_HIDE_FROM_CUSTOMER_ACTION}
               </button>
             ) : null}
           </div>

@@ -494,4 +494,148 @@ describe("proposalScopeDecisionMerge", () => {
       1
     );
   });
+
+  test("visibility_override hides line from customer document but keeps priced totals", () => {
+    const graph = twoOptionGraph();
+    const catalogItems = [catalog(CATALOG_STANDARD_ID), catalog(CATALOG_ENHANCED_ID)];
+    const ctx = quantityContext(22);
+    const preview = buildProposalBuilderPricingPreview({
+      graph,
+      catalogItems,
+      quantityContext: ctx,
+      policy: POLICY,
+    });
+
+    const baseline = buildDraftInstantiateInputFromPreview({
+      companyId: COMPANY_ID,
+      graph,
+      catalogItems,
+      quantityContext: ctx,
+      preview,
+      policy: POLICY,
+      pricingPolicyId: "policy-id",
+      context: { job_id: "job", template_id: TEMPLATE_ID },
+    });
+
+    const { input, mergeReport } = buildDraftInstantiateInputWithScopeDecisions({
+      companyId: COMPANY_ID,
+      graph,
+      catalogItems,
+      quantityContext: ctx,
+      preview,
+      policy: POLICY,
+      pricingPolicyId: "policy-id",
+      context: { job_id: "job", template_id: TEMPLATE_ID },
+      scopeDecisionsByTemplateOptionId: {
+        [STANDARD_OPTION_ID]: [
+          decision({
+            decisionType: "visibility_override",
+            payload: { visible_to_customer: false },
+          }),
+        ],
+      },
+    });
+
+    assert.equal(mergeReport.applied.length, 1);
+    assert.equal(mergeReport.applied[0]?.decisionType, "visibility_override");
+
+    const hiddenLine = input.lineItemsByTemplateOptionId[STANDARD_OPTION_ID]![0]!;
+    assert.equal(hiddenLine.hiddenButInCalc, true);
+    assert.equal(hiddenLine.customer_line_total_cents, baseline.lineItemsByTemplateOptionId[STANDARD_OPTION_ID]![0]!.customer_line_total_cents);
+
+    const baselineTotal =
+      baseline.optionPricing.find((row) => row.source_template_option_id === STANDARD_OPTION_ID)
+        ?.customer_total_cents ?? null;
+    const hiddenTotal =
+      input.optionPricing.find((row) => row.source_template_option_id === STANDARD_OPTION_ID)
+        ?.customer_total_cents ?? null;
+    assert.equal(hiddenTotal, baselineTotal);
+  });
+
+  test("excluded wins over visibility_override on same target", () => {
+    const graph = twoOptionGraph();
+    const catalogItems = [catalog(CATALOG_STANDARD_ID), catalog(CATALOG_ENHANCED_ID)];
+    const ctx = quantityContext(22);
+    const preview = buildProposalBuilderPricingPreview({
+      graph,
+      catalogItems,
+      quantityContext: ctx,
+      policy: POLICY,
+    });
+
+    const report = createEmptyScopeDecisionMergeReport();
+    const mappedInput = mapProposalPricingInput({
+      optionId: STANDARD_OPTION_ID,
+      policy: POLICY,
+      actorRole: preview.actorRole,
+      graph,
+      catalogItems: buildCatalogItemById(catalogItems),
+      quantityContext: ctx,
+    });
+
+    const merged = mergeScopeDecisionsIntoPricingLines({
+      graph,
+      templateOptionId: STANDARD_OPTION_ID,
+      lines: mappedInput.lines,
+      decisions: [
+        decision({
+          decisionType: "excluded",
+          payload: {},
+        }),
+        decision({
+          id: "22222222-2222-4222-8222-000000000003",
+          decisionType: "visibility_override",
+          payload: { visible_to_customer: false },
+        }),
+      ],
+      report,
+    });
+
+    assert.equal(merged.length, 0);
+    assert.equal(
+      report.ignored.filter((entry) => entry.decisionType === "visibility_override").length,
+      1
+    );
+  });
+
+  test("manual_quantity coexists with visibility_override on same target", () => {
+    const graph = twoOptionGraph();
+    const catalogItems = [catalog(CATALOG_STANDARD_ID), catalog(CATALOG_ENHANCED_ID)];
+    const ctx = quantityContext(22);
+    const preview = buildProposalBuilderPricingPreview({
+      graph,
+      catalogItems,
+      quantityContext: ctx,
+      policy: POLICY,
+    });
+
+    const { input, mergeReport } = buildDraftInstantiateInputWithScopeDecisions({
+      companyId: COMPANY_ID,
+      graph,
+      catalogItems,
+      quantityContext: ctx,
+      preview,
+      policy: POLICY,
+      pricingPolicyId: "policy-id",
+      context: { job_id: "job", template_id: TEMPLATE_ID },
+      scopeDecisionsByTemplateOptionId: {
+        [STANDARD_OPTION_ID]: [
+          decision({
+            decisionType: "manual_quantity",
+            payload: { quantity: 18 },
+          }),
+          decision({
+            id: "22222222-2222-4222-8222-000000000004",
+            decisionType: "visibility_override",
+            payload: { visible_to_customer: false },
+          }),
+        ],
+      },
+    });
+
+    assert.equal(mergeReport.applied.length, 2);
+    const line = input.lineItemsByTemplateOptionId[STANDARD_OPTION_ID]![0]!;
+    assert.equal(line.quantity, 18);
+    assert.equal(line.hiddenButInCalc, true);
+  });
 });

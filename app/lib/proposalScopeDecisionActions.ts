@@ -229,6 +229,18 @@ export async function excludeLineFromProposalOption(
     deps
   );
 
+  await clearDraftScopeDecisionByTargetIfActive(
+    {
+      company_id: ids.companyId,
+      proposal_id: ids.proposalId,
+      proposal_option_id: ids.runtimeProposalOptionId,
+      decision_type: "visibility_override",
+      source_template_item_id: ids.sourceTemplateItemId,
+      actor_user_id: input.actorUserId ?? null,
+    },
+    deps
+  );
+
   const payload: { reason?: string | null } = {};
   const reason = (input.reason ?? "").trim();
   if (reason) {
@@ -283,6 +295,90 @@ export async function clearExcludedLine(
       proposal_id: ids.proposalId,
       proposal_option_id: ids.runtimeProposalOptionId,
       decision_type: "excluded",
+      source_template_item_id: ids.sourceTemplateItemId,
+      actor_user_id: input.actorUserId ?? null,
+    },
+    deps
+  );
+
+  const graph = await refreshAfterScopeDecision(
+    ids.companyId,
+    ids.proposalId,
+    input.refreshContext,
+    deps
+  );
+
+  return { graph };
+}
+
+export type HideLineFromCustomerInput = {
+  companyId: string;
+  proposalId: string;
+  runtimeProposalOptionId: string;
+  sourceTemplateItemId: string;
+  refreshContext: ManualQuantityRefreshContext;
+  actorUserId?: string | null;
+};
+
+export type HideLineFromCustomerResult = {
+  decision: ProposalScopeDecision;
+  graph: ProposalDraftGraph;
+};
+
+export async function hideLineFromCustomer(
+  input: HideLineFromCustomerInput,
+  deps?: ProposalScopeDecisionActionDeps
+): Promise<HideLineFromCustomerResult> {
+  const ids = validateScopeDecisionTargetIds(input);
+
+  const decision = await upsertDraftScopeDecision(
+    {
+      company_id: ids.companyId,
+      proposal_id: ids.proposalId,
+      proposal_option_id: ids.runtimeProposalOptionId,
+      decision_type: "visibility_override",
+      source_template_item_id: ids.sourceTemplateItemId,
+      payload: { visible_to_customer: false },
+      actor_user_id: input.actorUserId ?? null,
+    },
+    deps
+  );
+
+  const graph = await refreshAfterScopeDecision(
+    ids.companyId,
+    ids.proposalId,
+    input.refreshContext,
+    deps
+  );
+
+  return { decision, graph };
+}
+
+export type ClearCustomerVisibilityHideInput = {
+  companyId: string;
+  proposalId: string;
+  runtimeProposalOptionId: string;
+  sourceTemplateItemId: string;
+  refreshContext: ManualQuantityRefreshContext;
+  actorUserId?: string | null;
+};
+
+export type ClearCustomerVisibilityHideResult = {
+  graph: ProposalDraftGraph;
+};
+
+export async function clearCustomerVisibilityHide(
+  input: ClearCustomerVisibilityHideInput,
+  deps?: ProposalScopeDecisionActionDeps
+): Promise<ClearCustomerVisibilityHideResult> {
+  const ids = validateScopeDecisionTargetIds(input);
+
+  await clearDraftScopeDecisionByTarget(
+    {
+      company_id: ids.companyId,
+      proposal_id: ids.proposalId,
+      proposal_option_id: ids.runtimeProposalOptionId,
+      decision_type: "visibility_override",
       source_template_item_id: ids.sourceTemplateItemId,
       actor_user_id: input.actorUserId ?? null,
     },
