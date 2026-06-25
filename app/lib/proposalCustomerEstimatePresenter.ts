@@ -4,6 +4,8 @@
  * Maps snapshot-backed pricing preview + template line rows into a document-safe
  * DTO for authenticated Preview (and future public/PDF consumers).
  *
+ * R17C4 Phase 4A — honors estimate page display policy from `settings_json`.
+ *
  * No React, DB, pricing math, or persistence. Does not mutate inputs.
  */
 
@@ -14,6 +16,11 @@ import {
   buildLinePreviewRowsForSection,
   type ProposalPreviewLineRow,
 } from "@/app/lib/proposalBuilderPreview";
+import {
+  resolveCustomerPreviewEstimateDisplayPolicy,
+  type ResolvedCustomerPreviewEstimateDisplayPolicy,
+} from "@/app/lib/proposalCustomerEstimateDisplayPolicy";
+import type { ProposalPageSettings } from "@/app/lib/proposalPageTypes";
 import type { ProposalTemplateGraph } from "@/app/lib/proposalTemplateStore";
 import type { ProposalTemplateSection } from "@/app/lib/proposalTemplateTypes";
 import { formatPriceCents } from "@/app/tools/roofing/proposals/builder/proposalBuilderConstants";
@@ -35,13 +42,18 @@ export type CustomerPreviewEstimateLine = {
   templateItemId: string;
   name: string;
   kind: CustomerPreviewEstimateLineKind;
-  /** Formatted price for priced lines; status label for included/grouped. */
-  valueLabel: string;
+  /**
+   * Formatted price for priced lines; status label for included/grouped.
+   * Null when display policy hides per-line dollar amounts.
+   */
+  valueLabel: string | null;
 };
 
 export type CustomerPreviewEstimateSectionPresentation = {
   sectionId: string;
   title: string;
+  /** When false, customer Preview omits section heading chrome. */
+  showHeading: boolean;
   lines: CustomerPreviewEstimateLine[];
 };
 
@@ -64,6 +76,7 @@ export type CustomerPreviewEstimatePresentation = {
   scopeSections: CustomerPreviewEstimateSectionPresentation[];
   upgradeSections: CustomerPreviewEstimateSectionPresentation[];
   totals: CustomerPreviewEstimateTotalsPresentation;
+  displayPolicy: ResolvedCustomerPreviewEstimateDisplayPolicy;
   suppressedBlockerCount: number;
   /** True when no document-safe scope or upgrade lines are available to render. */
   showFinalizingMessage: boolean;
@@ -76,6 +89,8 @@ export type BuildCustomerPreviewEstimatePresentationInput = {
   optionCustomerView: ProposalBuilderOptionCustomerView | null;
   selectedOptionLabel: string | null;
   packageMeta?: CustomerPreviewPackageMetaInput | null;
+  /** Estimate page settings from persisted `proposal_pages.settings_json`. */
+  estimatePageSettings?: ProposalPageSettings | null;
 };
 
 function sectionTitle(section: ProposalTemplateSection): string {
@@ -84,7 +99,8 @@ function sectionTitle(section: ProposalTemplateSection): string {
 
 function mapDocumentLine(
   row: ProposalPreviewLineRow,
-  optionCustomerView: ProposalBuilderOptionCustomerView | null
+  optionCustomerView: ProposalBuilderOptionCustomerView | null,
+  showLinePrices: boolean
 ): { line: CustomerPreviewEstimateLine | null; suppressed: boolean } {
   if (row.missingCatalog) {
     return { line: null, suppressed: true };
@@ -144,7 +160,7 @@ function mapDocumentLine(
         templateItemId: row.id,
         name: row.displayName,
         kind: "priced",
-        valueLabel: formatPriceCents(customerLinePriceCents),
+        valueLabel: showLinePrices ? formatPriceCents(customerLinePriceCents) : null,
       },
       suppressed: false,
     };
@@ -157,14 +173,16 @@ function buildSectionPresentation(
   section: ProposalTemplateSection,
   graph: ProposalTemplateGraph,
   catalogById: Map<string, CatalogItem>,
-  optionCustomerView: ProposalBuilderOptionCustomerView | null
+  optionCustomerView: ProposalBuilderOptionCustomerView | null,
+  showLinePrices: boolean,
+  showSectionHeadings: boolean
 ): { section: CustomerPreviewEstimateSectionPresentation; suppressedCount: number } {
   const rows = buildLinePreviewRowsForSection(graph, section.id, catalogById, null);
   const lines: CustomerPreviewEstimateLine[] = [];
   let suppressedCount = 0;
 
   for (const row of rows) {
-    const mapped = mapDocumentLine(row, optionCustomerView);
+    const mapped = mapDocumentLine(row, optionCustomerView, showLinePrices);
     if (mapped.suppressed) {
       suppressedCount += 1;
     }
@@ -177,6 +195,7 @@ function buildSectionPresentation(
     section: {
       sectionId: section.id,
       title: sectionTitle(section),
+      showHeading: showSectionHeadings,
       lines,
     },
     suppressedCount,
@@ -184,7 +203,8 @@ function buildSectionPresentation(
 }
 
 function buildTotals(
-  optionCustomerView: ProposalBuilderOptionCustomerView | null
+  optionCustomerView: ProposalBuilderOptionCustomerView | null,
+  showOptionTotals: boolean
 ): CustomerPreviewEstimateTotalsPresentation {
   const complete = optionCustomerView?.pricingComplete ?? false;
   if (!complete) {
@@ -216,7 +236,7 @@ function buildTotals(
   const showTax = tax != null && tax !== 0;
 
   return {
-    show: true,
+    show: showOptionTotals,
     subtotalLabel: formatPriceCents(subtotal),
     discountLabel: showDiscount && discount != null ? `−${formatPriceCents(Math.abs(discount))}` : null,
     taxLabel: showTax && tax != null ? formatPriceCents(tax) : null,
@@ -231,6 +251,7 @@ export function buildCustomerPreviewEstimatePresentation(
   input: BuildCustomerPreviewEstimatePresentationInput
 ): CustomerPreviewEstimatePresentation {
   const catalogById = buildCatalogItemById(input.catalogItems);
+  const displayPolicy = resolveCustomerPreviewEstimateDisplayPolicy(input.estimatePageSettings);
 
   let suppressedBlockerCount = 0;
   const scopeSections: CustomerPreviewEstimateSectionPresentation[] = [];
@@ -241,7 +262,9 @@ export function buildCustomerPreviewEstimatePresentation(
       section,
       input.graph,
       catalogById,
-      input.optionCustomerView
+      input.optionCustomerView,
+      displayPolicy.showLinePrices,
+      displayPolicy.showSectionHeadings
     );
     suppressedBlockerCount += built.suppressedCount;
 
@@ -270,7 +293,8 @@ export function buildCustomerPreviewEstimatePresentation(
     },
     scopeSections,
     upgradeSections,
-    totals: buildTotals(input.optionCustomerView),
+    totals: buildTotals(input.optionCustomerView, displayPolicy.showOptionTotals),
+    displayPolicy,
     suppressedBlockerCount,
     showFinalizingMessage: documentLineCount === 0,
   };

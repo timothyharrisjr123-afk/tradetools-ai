@@ -38,9 +38,11 @@ export default function ProposalCustomerPreviewLineList({
           <p className="min-w-0 text-[15px] font-medium leading-snug text-slate-900">
             {line.name}
           </p>
-          <p className={`shrink-0 sm:text-right ${valueClassName(line.kind)}`}>
-            {line.valueLabel}
-          </p>
+          {line.valueLabel != null ? (
+            <p className={`shrink-0 sm:text-right ${valueClassName(line.kind)}`}>
+              {line.valueLabel}
+            </p>
+          ) : null}
         </li>
       ))}
     </ul>

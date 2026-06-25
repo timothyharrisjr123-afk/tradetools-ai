@@ -472,4 +472,123 @@ describe("buildCustomerPreviewEstimatePresentation", () => {
     assert.equal(result.scopeSections[0]?.lines.length, 1);
     assert.equal(result.scopeSections[0]?.lines[0]?.templateItemId, "line-visible");
   });
+
+  test("show_line_prices false keeps priced lines visible without dollar amounts", () => {
+    const result = buildCustomerPreviewEstimatePresentation(
+      buildInput({
+        estimatePageSettings: { show_line_prices: false },
+      })
+    );
+    const line = result.scopeSections[0]?.lines[0];
+    assert.equal(line?.kind, "priced");
+    assert.equal(line?.name.length > 0, true);
+    assert.equal(line?.valueLabel, null);
+    assert.equal(result.displayPolicy.showLinePrices, false);
+  });
+
+  test("show_option_totals false hides totals panel while source totals remain", () => {
+    const input = buildInput({
+      estimatePageSettings: { show_option_totals: false },
+    });
+    const result = buildCustomerPreviewEstimatePresentation(input);
+    assert.equal(result.totals.show, false);
+    assert.equal(result.totals.totalLabel, "$125.00");
+    assert.equal(input.optionCustomerView?.customerTotalCents, 12_500);
+  });
+
+  test("show_section_headings false hides section heading display", () => {
+    const result = buildCustomerPreviewEstimatePresentation(
+      buildInput({
+        estimatePageSettings: { show_section_headings: false },
+      })
+    );
+    assert.equal(result.scopeSections[0]?.showHeading, false);
+    assert.equal(result.scopeSections[0]?.lines.length, 1);
+  });
+
+  test("hidden line omitted regardless of display settings", () => {
+    const scopeSection = section("sec-scope", "line_items");
+    const templateGraph = graph([scopeSection], [
+      item({ id: "line-hidden", section_id: "sec-scope" }),
+      item({ id: "line-visible", section_id: "sec-scope" }),
+    ]);
+    const input = buildInput({
+      graph: templateGraph,
+      sections: [scopeSection],
+      estimatePageSettings: {
+        show_line_prices: true,
+        show_option_totals: true,
+        show_section_headings: true,
+      },
+      optionCustomerView: {
+        optionId: OPTION_ID,
+        pricingComplete: true,
+        customerSubtotalCents: 15_000,
+        discountCents: 0,
+        salesTaxCents: 0,
+        customerTotalCents: 15_000,
+        lines: [],
+        lineByTemplateItemId: {
+          "line-hidden": lineView("line-hidden", "priced", {
+            showOnCustomerDocument: false,
+          }),
+          "line-visible": lineView("line-visible", "priced"),
+        },
+      },
+    });
+    const result = buildCustomerPreviewEstimatePresentation(input);
+    assert.equal(result.scopeSections[0]?.lines.length, 1);
+    assert.equal(result.totals.show, true);
+    assert.equal(result.totals.totalLabel, "$150.00");
+  });
+
+  test("excluded omitted line stays omitted with display settings on", () => {
+    const scopeSection = section("sec-scope", "line_items");
+    const templateGraph = graph([scopeSection], [
+      item({ id: "line-priced", section_id: "sec-scope" }),
+    ]);
+    const result = buildCustomerPreviewEstimatePresentation(
+      buildInput({
+        graph: templateGraph,
+        sections: [scopeSection],
+        estimatePageSettings: {
+          show_line_prices: false,
+          show_option_totals: false,
+          show_section_headings: false,
+        },
+        optionCustomerView: {
+          optionId: OPTION_ID,
+          pricingComplete: true,
+          customerSubtotalCents: 12_500,
+          discountCents: 0,
+          salesTaxCents: 0,
+          customerTotalCents: 12_500,
+          lines: [],
+          lineByTemplateItemId: {
+            "line-priced": lineView("line-priced", "omitted"),
+          },
+        },
+      })
+    );
+    assert.equal(result.scopeSections.length, 0);
+  });
+
+  test("pricing incomplete with display settings does not fabricate totals", () => {
+    const result = buildCustomerPreviewEstimatePresentation(
+      buildInput({
+        estimatePageSettings: {
+          show_line_prices: true,
+          show_option_totals: true,
+        },
+        optionCustomerView: {
+          ...buildInput().optionCustomerView!,
+          pricingComplete: false,
+          customerSubtotalCents: null,
+          customerTotalCents: null,
+        },
+      })
+    );
+    assert.equal(result.totals.show, false);
+    assert.equal(result.totals.totalLabel, null);
+  });
 });

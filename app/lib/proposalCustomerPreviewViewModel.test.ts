@@ -280,6 +280,32 @@ describe("buildProposalCustomerPreviewDocument", () => {
     }
   });
 
+  test("estimate page threads settings_json into estimatePageSettings", () => {
+    const doc = buildProposalCustomerPreviewDocument(
+      minimalGraph({
+        pages: minimalGraph().pages.map((page) =>
+          page.id === PAGE_ESTIMATE
+            ? {
+                ...page,
+                settings_json: {
+                  show_line_prices: false,
+                  show_option_totals: true,
+                  show_section_headings: false,
+                },
+              }
+            : page
+        ),
+      })
+    );
+    const estimate = doc.pages.find((page) => page.kind === "estimate");
+    assert.ok(estimate?.kind === "estimate");
+    if (estimate?.kind === "estimate") {
+      assert.equal(estimate.estimatePageSettings?.show_line_prices, false);
+      assert.equal(estimate.estimatePageSettings?.show_option_totals, true);
+      assert.equal(estimate.estimatePageSettings?.show_section_headings, false);
+    }
+  });
+
   test("customer-hidden priced line keeps customer_visible totals semantics", () => {
     const doc = buildProposalCustomerPreviewDocument(minimalGraph());
     const estimate = doc.pages.find((page) => page.kind === "estimate");

@@ -47,6 +47,7 @@ export default function ProposalCustomerPreviewEstimateSection({
     optionCustomerView,
     selectedOptionLabel: page.selectedOptionLabel,
     packageMeta,
+    estimatePageSettings: page.estimatePageSettings,
   });
 
   const chapterTitle = page.title;

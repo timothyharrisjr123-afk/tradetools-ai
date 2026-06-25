@@ -18,7 +18,8 @@ import {
   type ProposalDocumentPageBodyDiagnostics,
 } from "@/app/lib/proposalDocumentBodyRenderer";
 import { readProposalPageBodyMarkdown } from "@/app/lib/proposalPageContentEditing";
-import type { ProposalPageType } from "@/app/lib/proposalPageTypes";
+import { readEstimatePageSettingsFromProposalPage } from "@/app/lib/proposalCustomerEstimateDisplayPolicy";
+import type { ProposalPageSettings, ProposalPageType } from "@/app/lib/proposalPageTypes";
 import {
   getCustomerPreviewPages,
   resolveProposalPageDisplayTitle,
@@ -80,6 +81,8 @@ export type ProposalCustomerPreviewEstimatePage = {
   optionPreview: ProposalBuilderOptionPreview | null;
   snapshotQuantityByTemplateItemId: Record<string, ProposalSnapshotLineQuantityView>;
   pricingPolicyConfigured: boolean;
+  /** Resolved from persisted estimate page `settings_json`. */
+  estimatePageSettings: ProposalPageSettings | null;
 };
 
 export type ProposalCustomerPreviewPlaceholderPage = {
@@ -227,6 +230,7 @@ function mapVisibleDbPage(
           ? (adapter.snapshotQuantityByOptionId[selectedTemplateOptionId] ?? {})
           : {},
       pricingPolicyConfigured: adapter.pricingPolicyConfigured,
+      estimatePageSettings: readEstimatePageSettingsFromProposalPage(page.settings_json),
     };
   }
 

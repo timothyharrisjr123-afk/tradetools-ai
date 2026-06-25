@@ -94,21 +94,23 @@ export default function ProposalCustomerPreviewEstimateDocument({
             const heading = resolveScopeSectionHeading(section.title, chapterTitle);
             return (
               <section key={section.sectionId} className={CUSTOMER_PREVIEW_ESTIMATE_SCOPE_PANEL}>
-                <header className={CUSTOMER_PREVIEW_ESTIMATE_SCOPE_PANEL_HEADER}>
-                  <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                    <h3 className="text-lg font-semibold tracking-tight text-slate-900">
-                      {heading}
-                    </h3>
-                    <span className="text-[12px] font-medium text-slate-500">
-                      {section.lines.length}{" "}
-                      {section.lines.length === 1 ? "item" : "items"}
-                    </span>
-                  </div>
-                  {heading !== section.title ? (
-                    <p className="mt-1 text-[13px] text-slate-500">{section.title}</p>
-                  ) : null}
-                </header>
-                <div className="px-5 py-4">
+                {section.showHeading ? (
+                  <header className={CUSTOMER_PREVIEW_ESTIMATE_SCOPE_PANEL_HEADER}>
+                    <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                      <h3 className="text-lg font-semibold tracking-tight text-slate-900">
+                        {heading}
+                      </h3>
+                      <span className="text-[12px] font-medium text-slate-500">
+                        {section.lines.length}{" "}
+                        {section.lines.length === 1 ? "item" : "items"}
+                      </span>
+                    </div>
+                    {heading !== section.title ? (
+                      <p className="mt-1 text-[13px] text-slate-500">{section.title}</p>
+                    ) : null}
+                  </header>
+                ) : null}
+                <div className={section.showHeading ? "px-5 py-4" : "px-5 py-5"}>
                   <ProposalCustomerPreviewLineList lines={section.lines} variant="scope" />
                 </div>
               </section>
@@ -137,8 +139,10 @@ export default function ProposalCustomerPreviewEstimateDocument({
           <div className="mt-5 space-y-5">
             {upgradeSections.map((section) => (
               <div key={section.sectionId}>
-                <h4 className="text-[15px] font-medium text-slate-800">{section.title}</h4>
-                <div className="mt-3">
+                {section.showHeading ? (
+                  <h4 className="text-[15px] font-medium text-slate-800">{section.title}</h4>
+                ) : null}
+                <div className={section.showHeading ? "mt-3" : undefined}>
                   <ProposalCustomerPreviewLineList lines={section.lines} variant="upgrade" />
                 </div>
               </div>
