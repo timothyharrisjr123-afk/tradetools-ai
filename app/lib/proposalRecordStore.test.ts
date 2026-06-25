@@ -5,6 +5,7 @@
  */
 
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, test } from "node:test";
 import type { CatalogItem } from "./catalogTypes";
 import type { CompanyPricingPolicyResolution } from "./companyPricingPolicy";
@@ -25,6 +26,10 @@ import {
   persistDraftProposalCreateSequential,
   type DraftProposalCreatePersistPayload,
 } from "./proposalDraftCreatePersistence";
+import type { ProposalSendFreezePersistPayload } from "./proposalSendFreezePersistence";
+import {
+  PERSIST_PROPOSAL_SEND_FREEZE_RPC_V1,
+} from "./proposalSendFreezeRpcPersistence";
 import {
   DEFAULT_PROFITABILITY_TYPE,
   DEFAULT_QUANTITY_ROUNDING,
@@ -39,9 +44,11 @@ import {
   CREATE_DRAFT_WRITE_STEPS,
   CREATE_DRAFT_RPC_PERSIST_STEP,
   createDraftProposal,
+  freezeDraftToSentSnapshot,
   getDraftGraph,
   listProposalsForJob,
   ProposalRecordStoreError,
+  PROPOSAL_SEND_FREEZE_RPC_PERSIST_STEP,
   refreshDraftPricing,
   sanitizeEffectiveMarginPct,
   updateDraftProposalPageContent,
@@ -196,6 +203,30 @@ function withRefreshPricingDefaultPath<T>(fn: () => Promise<T>): Promise<T> {
   });
 }
 
+function withProposalSendFreezeRpcEnabled<T>(fn: () => Promise<T>): Promise<T> {
+  const prior = process.env.USE_PROPOSAL_SEND_FREEZE_RPC;
+  process.env.USE_PROPOSAL_SEND_FREEZE_RPC = "1";
+  return fn().finally(() => {
+    if (prior === undefined) {
+      delete process.env.USE_PROPOSAL_SEND_FREEZE_RPC;
+    } else {
+      process.env.USE_PROPOSAL_SEND_FREEZE_RPC = prior;
+    }
+  });
+}
+
+function withProposalSendFreezeRpcDisabled<T>(fn: () => Promise<T>): Promise<T> {
+  const prior = process.env.USE_PROPOSAL_SEND_FREEZE_RPC;
+  delete process.env.USE_PROPOSAL_SEND_FREEZE_RPC;
+  return fn().finally(() => {
+    if (prior === undefined) {
+      delete process.env.USE_PROPOSAL_SEND_FREEZE_RPC;
+    } else {
+      process.env.USE_PROPOSAL_SEND_FREEZE_RPC = prior;
+    }
+  });
+}
+
 type MockState = {
   ops: MockOp[];
   tables: Record<string, Record<string, unknown>[]>;
@@ -304,6 +335,8 @@ function createMockSupabase(options?: {
   shouldFailOn?: () => boolean;
   rpcFailOn?: string;
   rpcFailOnFor?: string;
+  rpcMalformedFor?: string;
+  rpcMalformedData?: unknown;
 }) {
   const state: MockState = {
     ops: [],
@@ -502,6 +535,41 @@ function createMockSupabase(options?: {
       return { data: result, error: null };
     }
 
+    if (name === PERSIST_PROPOSAL_SEND_FREEZE_RPC_V1) {
+      if (options?.rpcMalformedFor === name) {
+        return {
+          data: options.rpcMalformedData ?? { ok: true, proposal_id: "not-a-uuid" },
+          error: null,
+        };
+      }
+
+      const payload = args?.p_payload as ProposalSendFreezePersistPayload | undefined;
+      if (!payload) {
+        return { data: null, error: { message: "missing send-freeze payload" } };
+      }
+
+      const proposal = state.tables.proposals.find(
+        (row) => row.id === payload.proposal_id
+      ) as Record<string, unknown> | undefined;
+      if (proposal) {
+        proposal.latest_sent_version_id = payload.sent_version_id;
+      }
+
+      return {
+        data: {
+          ok: true,
+          proposal_id: payload.proposal_id,
+          draft_version_id: payload.draft_version_id,
+          sent_version_id: payload.sent_version_id,
+          version_number: payload.version_number,
+          page_count: payload.pages.length,
+          option_count: payload.options.length,
+          latest_sent_version_id: payload.sent_version_id,
+        },
+        error: null,
+      };
+    }
+
     return { data: { ok: true }, error: null };
   }
 
@@ -513,6 +581,30 @@ function createMockSupabase(options?: {
     state,
     rpcCalls,
   };
+}
+
+async function seedSendFreezeReadyProposal(
+  mock: ReturnType<typeof createMockSupabase>,
+  deps: ProposalRecordStoreDeps = storeDeps(mock)
+) {
+  const quantityContext = readyContext();
+  const created = await createDraftProposal(
+    {
+      company_id: COMPANY_ID,
+      job_id: JOB_ID,
+      template_id: TEMPLATE_ID,
+      customer_id: CUSTOMER_ID,
+      quantity_context: quantityContext,
+    },
+    deps
+  );
+  await refreshDraftPricing(
+    COMPANY_ID,
+    created.proposal.id,
+    { quantity_context: quantityContext },
+    deps
+  );
+  return created;
 }
 
 function catalog(overrides: Partial<CatalogItem> & Pick<CatalogItem, "id">): CatalogItem {
@@ -2956,6 +3048,155 @@ describe("updateDraftProposalPageSettings", () => {
       field: "settings_json",
       patch: { show_line_prices: false },
     });
+  });
+});
+
+describe("freezeDraftToSentSnapshot", () => {
+  test("flag OFF throws before graph load or RPC", async () => {
+    await withProposalSendFreezeRpcDisabled(async () => {
+      const mock = createMockSupabase();
+      const created = await seedSendFreezeReadyProposal(mock);
+      const opsBefore = mock.state.ops.length;
+
+      await assert.rejects(
+        () => freezeDraftToSentSnapshot(COMPANY_ID, created.proposal.id, {}, storeDeps(mock)),
+        (error: unknown) => {
+          assert.ok(error instanceof ProposalRecordStoreError);
+          assert.match(String(error.message), /not enabled/);
+          return true;
+        }
+      );
+
+      assert.equal(mock.state.ops.length, opsBefore);
+      assert.equal(
+        mock.rpcCalls.filter((call) => call.name === PERSIST_PROPOSAL_SEND_FREEZE_RPC_V1).length,
+        0
+      );
+    });
+  });
+
+  test("readiness failure blocks RPC", async () => {
+    await withProposalSendFreezeRpcEnabled(async () => {
+      const mock = createMockSupabase();
+      const deps = storeDeps(mock);
+      const created = await seedSendFreezeReadyProposal(mock, deps);
+      const option = mock.state.tables.proposal_options[0] as Record<string, unknown>;
+      option.pricing_complete = false;
+
+      await assert.rejects(
+        () => freezeDraftToSentSnapshot(COMPANY_ID, created.proposal.id, {}, deps),
+        (error: unknown) => {
+          assert.ok(error instanceof ProposalRecordStoreError);
+          assert.match(String(error.message), /Send-freeze blocked/);
+          assert.match(String(error.message), /pricing is incomplete/);
+          return true;
+        }
+      );
+
+      assert.equal(
+        mock.rpcCalls.filter((call) => call.name === PERSIST_PROPOSAL_SEND_FREEZE_RPC_V1).length,
+        0
+      );
+    });
+  });
+
+  test("flag ON + ready graph calls persist_proposal_send_freeze_v1 with client_page_id", async () => {
+    await withProposalSendFreezeRpcEnabled(async () => {
+      const mock = createMockSupabase();
+      const deps = storeDeps(mock);
+      const created = await seedSendFreezeReadyProposal(mock, deps);
+      const draftVersionIdBefore = created.proposal.current_draft_version_id;
+      const statusBefore = created.proposal.status;
+      const linesBefore = clone(mock.state.tables.proposal_line_items);
+      const optionsBefore = clone(mock.state.tables.proposal_options);
+      const scopeBefore = clone(mock.state.tables.proposal_option_scope_decisions);
+
+      const result = await freezeDraftToSentSnapshot(COMPANY_ID, created.proposal.id, {}, deps);
+
+      const freezeRpc = mock.rpcCalls.find(
+        (call) => call.name === PERSIST_PROPOSAL_SEND_FREEZE_RPC_V1
+      );
+      assert.ok(freezeRpc);
+      const payload = freezeRpc.args?.p_payload as ProposalSendFreezePersistPayload;
+      assert.ok(payload.pages.every((page) => page.client_page_id));
+      assert.ok(!("scope_decisions" in (payload as object)));
+      assert.ok(!("public_token" in (payload as object)));
+
+      assert.deepEqual(result.writeSteps, [PROPOSAL_SEND_FREEZE_RPC_PERSIST_STEP]);
+      assert.equal(result.proposalId, created.proposal.id);
+      assert.equal(result.draftVersionId, draftVersionIdBefore);
+      assert.ok(result.sentVersionId);
+      assert.equal(result.latestSentVersionId, result.sentVersionId);
+      assert.equal(result.readiness.ready, true);
+
+      const header = mock.state.tables.proposals[0] as Record<string, unknown>;
+      assert.equal(header.latest_sent_version_id, result.sentVersionId);
+      assert.equal(header.current_draft_version_id, draftVersionIdBefore);
+      assert.equal(header.status, statusBefore);
+      assert.notEqual(header.status, "sent");
+
+      assert.deepEqual(mock.state.tables.proposal_line_items, linesBefore);
+      assert.deepEqual(mock.state.tables.proposal_options, optionsBefore);
+      assert.deepEqual(mock.state.tables.proposal_option_scope_decisions, scopeBefore);
+    });
+  });
+
+  test("RPC error wraps as ProposalRecordStoreError without sequential fallback", async () => {
+    await withProposalSendFreezeRpcEnabled(async () => {
+      const mock = createMockSupabase({
+        rpcFailOn: "permission denied for function persist_proposal_send_freeze_v1",
+        rpcFailOnFor: PERSIST_PROPOSAL_SEND_FREEZE_RPC_V1,
+      });
+      const deps = storeDeps(mock);
+      const created = await seedSendFreezeReadyProposal(mock, deps);
+      const latestSentBefore = (mock.state.tables.proposals[0] as Record<string, unknown>)
+        .latest_sent_version_id;
+
+      await assert.rejects(
+        () => freezeDraftToSentSnapshot(COMPANY_ID, created.proposal.id, {}, deps),
+        (error: unknown) => {
+          assert.ok(error instanceof ProposalRecordStoreError);
+          assert.match(String(error.message), /permission denied/);
+          return true;
+        }
+      );
+
+      assert.equal(
+        (mock.state.tables.proposals[0] as Record<string, unknown>).latest_sent_version_id,
+        latestSentBefore
+      );
+    });
+  });
+
+  test("malformed RPC response rejected", async () => {
+    await withProposalSendFreezeRpcEnabled(async () => {
+      const mock = createMockSupabase({
+        rpcMalformedFor: PERSIST_PROPOSAL_SEND_FREEZE_RPC_V1,
+      });
+      const deps = storeDeps(mock);
+      const created = await seedSendFreezeReadyProposal(mock, deps);
+
+      await assert.rejects(
+        () => freezeDraftToSentSnapshot(COMPANY_ID, created.proposal.id, {}, deps),
+        (error: unknown) => {
+          assert.ok(error instanceof ProposalRecordStoreError);
+          return true;
+        }
+      );
+    });
+  });
+
+  test("store freezeDraftToSentSnapshot has no sequential fallback path", () => {
+    const source = readFileSync(new URL("./proposalRecordStore.ts", import.meta.url), "utf8");
+    const fnMatch = source.match(
+      /export async function freezeDraftToSentSnapshot\([\s\S]*?\n\}/
+    );
+    assert.ok(fnMatch);
+    const freezeFn = fnMatch[0]!;
+    assert.doesNotMatch(freezeFn, /persistProposalSendFreezeSequential/);
+    assert.doesNotMatch(freezeFn, /refreshDraftPricing/);
+    assert.doesNotMatch(source, /\/approve\/|app\/lib\/kv/);
+    assert.doesNotMatch(source, /NEXT_PUBLIC_USE_PROPOSAL_SEND_FREEZE/);
   });
 });
 

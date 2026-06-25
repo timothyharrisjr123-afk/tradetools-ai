@@ -16,7 +16,8 @@
  * Sequential Supabase writes are available only via USE_CREATE_DRAFT_PROPOSAL_SEQUENTIAL=1
  * (test/dev escape hatch — non-atomic, partial failure may corrupt the graph).
  *
- * No React, Builder UI, APIs, pricing formula changes, or legacy estimator paths.
+ * freezeDraftToSentSnapshot uses transactional RPC `persist_proposal_send_freeze_v1` only when
+ * USE_PROPOSAL_SEND_FREEZE_RPC=1 (default OFF — see proposalSendFreezeRpcPersistence).
  */
 
 import type { CatalogItem } from "@/app/lib/catalogTypes";
@@ -89,6 +90,19 @@ import {
   ProposalDraftCreatePersistenceError,
 } from "@/app/lib/proposalDraftCreatePersistence";
 import {
+  buildProposalSendFreezePersistPayload,
+  validateProposalSendFreezePersistPayload,
+  validateSendFreezeGraphIntegrity,
+} from "@/app/lib/proposalSendFreezePersistence";
+import type { ProposalSendFreezeReadiness } from "@/app/lib/proposalSendFreezeReadiness";
+import { deriveProposalSendFreezeReadiness } from "@/app/lib/proposalSendFreezeReadiness";
+import {
+  isProposalSendFreezeRpcEnabled,
+  PERSIST_PROPOSAL_SEND_FREEZE_RPC_V1,
+  persistProposalSendFreezeViaRpc,
+  ProposalSendFreezeRpcPersistenceError,
+} from "@/app/lib/proposalSendFreezeRpcPersistence";
+import {
   isEditableProposalPageType,
   mergeProposalPageBodyMarkdown,
 } from "@/app/lib/proposalPageContentEditing";
@@ -137,6 +151,9 @@ export const CREATE_DRAFT_WRITE_STEPS = [
 
 /** RPC persist step label when create uses transactional RPC (default path). */
 export const CREATE_DRAFT_RPC_PERSIST_STEP = PERSIST_DRAFT_PROPOSAL_CREATE_RPC_V1;
+
+/** RPC persist step label when send-freeze uses transactional RPC (opt-in only). */
+export const PROPOSAL_SEND_FREEZE_RPC_PERSIST_STEP = PERSIST_PROPOSAL_SEND_FREEZE_RPC_V1;
 
 export type CreateDraftWriteStep =
   | (typeof CREATE_DRAFT_WRITE_STEPS)[number]
@@ -1725,4 +1742,159 @@ export async function updateDraftProposalPageSettings(
   );
 
   return getDraftGraph(cid, pid, deps);
+}
+
+// ---------------------------------------------------------------------------
+// Send-freeze draft → sent snapshot (opt-in RPC only)
+// ---------------------------------------------------------------------------
+
+export type FreezeDraftToSentSnapshotInput = {
+  /** When true, adds readiness warning only (does not block). */
+  pricingStale?: boolean;
+  frozenAt?: string;
+  sentVersionId?: string;
+};
+
+export type FreezeDraftToSentSnapshotResult = {
+  proposalId: string;
+  draftVersionId: string;
+  sentVersionId: string;
+  versionNumber: number;
+  pageCount: number;
+  optionCount: number;
+  latestSentVersionId: string;
+  readiness: ProposalSendFreezeReadiness;
+  writeSteps: [typeof PROPOSAL_SEND_FREEZE_RPC_PERSIST_STEP];
+};
+
+async function loadProposalVersionNumbers(
+  supabase: NonNullable<ReturnType<typeof getSupabaseClient>>,
+  companyId: string,
+  proposalId: string
+): Promise<number[]> {
+  const { data, error } = await supabase
+    .from("proposal_versions")
+    .select("version_number")
+    .eq("company_id", companyId)
+    .eq("proposal_id", proposalId);
+
+  if (error) {
+    throw new ProposalRecordStoreError(
+      error.message ?? "Failed to load proposal version numbers."
+    );
+  }
+
+  return ((data ?? []) as Array<{ version_number: number }>)
+    .map((row) => row.version_number)
+    .filter((n) => Number.isFinite(n));
+}
+
+/**
+ * Persists an immutable sent snapshot from the current draft graph via RPC.
+ * Requires USE_PROPOSAL_SEND_FREEZE_RPC=1. Does not enable Send, public route, or lifecycle UI.
+ */
+export async function freezeDraftToSentSnapshot(
+  companyId: string,
+  proposalId: string,
+  input: FreezeDraftToSentSnapshotInput = {},
+  deps?: ProposalRecordStoreDeps
+): Promise<FreezeDraftToSentSnapshotResult> {
+  if (!isProposalSendFreezeRpcEnabled()) {
+    throw new ProposalRecordStoreError("Proposal send-freeze RPC is not enabled.");
+  }
+
+  const { getSupabase } = resolveDeps(deps);
+  const supabase = getSupabase();
+  const cid = normalizeCompanyId(companyId);
+  const pid = (proposalId ?? "").trim();
+
+  if (!supabase) {
+    throw new ProposalRecordStoreError("Supabase client unavailable.");
+  }
+  if (!cid || !isUuidLike(pid)) {
+    throw new ProposalRecordStoreError("company_id and proposal_id are required UUIDs.");
+  }
+
+  const graph = await getDraftGraph(cid, pid, deps);
+  if (!graph) {
+    throw new ProposalRecordStoreError("Proposal draft graph not found.");
+  }
+
+  const readiness = deriveProposalSendFreezeReadiness({
+    graph,
+    pricingStale: input.pricingStale,
+  });
+
+  if (!readiness.ready) {
+    throw new ProposalRecordStoreError(
+      `Send-freeze blocked: ${readiness.blockingReasons.join(" ")}`
+    );
+  }
+
+  const statusBefore = graph.proposal.status;
+  const draftVersionIdBefore = graph.proposal.current_draft_version_id;
+
+  const existingVersionNumbers = await loadProposalVersionNumbers(supabase, cid, pid);
+
+  const payload = buildProposalSendFreezePersistPayload(graph, {
+    existingVersionNumbers,
+    frozenAt: input.frozenAt,
+    sentVersionId: input.sentVersionId,
+  });
+
+  validateProposalSendFreezePersistPayload(payload);
+
+  const integrityViolations = validateSendFreezeGraphIntegrity(payload);
+  if (integrityViolations.length > 0) {
+    throw new ProposalRecordStoreError(integrityViolations[0]!.message);
+  }
+
+  let rpcResult;
+  try {
+    rpcResult = await persistProposalSendFreezeViaRpc(supabase, payload);
+  } catch (error) {
+    if (error instanceof ProposalSendFreezeRpcPersistenceError) {
+      throw new ProposalRecordStoreError(error.message);
+    }
+    throw error;
+  }
+
+  const refreshed = await getProposalById(cid, pid, deps);
+  if (!refreshed) {
+    throw new ProposalRecordStoreError("Proposal not found after send-freeze RPC.");
+  }
+
+  if (refreshed.latest_sent_version_id !== rpcResult.sent_version_id) {
+    throw new ProposalRecordStoreError(
+      "Send-freeze RPC succeeded but latest_sent_version_id was not updated."
+    );
+  }
+
+  if (refreshed.current_draft_version_id !== draftVersionIdBefore) {
+    throw new ProposalRecordStoreError(
+      "Send-freeze RPC must not change current_draft_version_id."
+    );
+  }
+
+  if (refreshed.status === "sent") {
+    throw new ProposalRecordStoreError(
+      "Send-freeze RPC must not set proposal status to sent."
+    );
+  }
+
+  if (refreshed.status !== statusBefore) {
+    throw new ProposalRecordStoreError("Send-freeze RPC must not change proposal status.");
+  }
+
+  return {
+    proposalId: rpcResult.proposal_id,
+    draftVersionId: rpcResult.draft_version_id,
+    sentVersionId: rpcResult.sent_version_id,
+    versionNumber: rpcResult.version_number,
+    pageCount: rpcResult.page_count,
+    optionCount: rpcResult.option_count,
+    latestSentVersionId: rpcResult.latest_sent_version_id,
+    readiness,
+    writeSteps: [PROPOSAL_SEND_FREEZE_RPC_PERSIST_STEP],
+  };
 }

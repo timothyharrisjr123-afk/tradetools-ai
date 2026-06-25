@@ -91,7 +91,8 @@ export type ProposalEventType =
   | "revised"
   | "archived"
   | "payment_requested"
-  | "payment_recorded";
+  | "payment_recorded"
+  | "snapshot_frozen";
 
 export const PROPOSAL_EVENT_TYPES: readonly ProposalEventType[] = [
   "created",
@@ -105,6 +106,7 @@ export const PROPOSAL_EVENT_TYPES: readonly ProposalEventType[] = [
   "archived",
   "payment_requested",
   "payment_recorded",
+  "snapshot_frozen",
 ] as const;
 
 // ---------------------------------------------------------------------------
