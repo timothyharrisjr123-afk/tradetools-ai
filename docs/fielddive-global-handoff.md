@@ -40,13 +40,13 @@
 - Read **§6BK** for historical R17D Phase 3A exclude/remove context only — **superseded by §6BL** for current audit remediation resume.
 - Read **§6BL** before R18/public proposal architecture work — **Audit Remediation Track complete** + **second whole-app audit before R18 passed** (§6BL.21).
 - Read **§6BM** before any R18 implementation — **R18A public proposal architecture plan** (immutable sent snapshot first; Send/PDF/Sign/Payment remain phased/disabled; **read-only public route exists** at §6BN.11). **R18B4D send-freeze smoke PASS** documented at **§6BM.13**.
-- Read **§6BN** before R18 public proposal work — **R18C4B public proposal route + customer shell complete** at **`265d8f6`** (§6BN.11); **R18C4A orchestrator + view model complete** at **`8523812`** (§6BN.10).
+- Read **§6BN** before R18 public proposal work — **R18C4C contractor Preview public review link panel complete** at **`bab25c8`** (§6BN.12); **R18C4B public proposal route + customer shell complete** at **`265d8f6`** (§6BN.11); **R18C4A orchestrator + view model complete** at **`8523812`** (§6BN.10).
 
-**Last updated checkpoint:** **Code:** **`265d8f6` — feat(proposals): add public proposal route and customer shell in R18C4B**. **Docs checkpoint:** **pending this commit** (prior: **`1585f9e`** — docs: checkpoint after R18C3B public access token minting live verify). **R18C progress:** **R18C1** sent version graph loader (`53973f0`); **R18C2A** public access token tables (`b651c7a`); **R18C2B** resolve/record RPCs **live-verified PASS** (`e7798a7`, §6BN); **R18C3A** app-side public access token server boundary (`b51383a`, §6BN.7); **R18C3B** public access token minting **complete + live-verified PASS** (`5c47854`, §6BN.9); **R18C4A** public access orchestrator + render-ready view model **complete** (`8523812`, §6BN.10); **R18C4B** public proposal route `/p/[token]` + customer shell **complete** (`265d8f6`, §6BN.11). **Next:** **docs checkpoint (this commit)**, then **plan next R18 public proposal slice** without enabling Send/PDF/Sign/Payment/lifecycle/status. **R18B immutable sent snapshot foundation:** **implemented and smoke-validated** — **`freezeDraftToSentSnapshot`** + **`persist_proposal_send_freeze_v1`**; **R18B4D disposable smoke: PASS** (§6BM.13). **Public route exists and is read-only** — token-resolved, sent/signed-version-only, customer-safe DTO/VM based; **does not enable Send/email, Sign, PDF, Payment, or lifecycle/status mutation**. **Send/PDF/Sign/Payment/lifecycle remain disabled** until each R18 phase is explicitly approved (§6BM). **Audit status:** **second whole-app audit before R18 passed** — **no blockers found** (§6BL.21). **Status:** **Audit Remediation Track complete** (§6BL). **Migrations applied on configured project `rhquhnujjnzjhweypavd`:** scope decisions, refresh/create RPCs, send-freeze RPC (§6BM.13), public access token tables (R18C2A), public access resolve/record RPCs (R18C2B §6BN), public access mint RPC (R18C3B §6BN.9). **Working tree:** doc-only WIP for this checkpoint.
+**Last updated checkpoint:** **Code:** **`bab25c8` — feat(proposals): add contractor preview public review link panel in R18C4C**. **Docs checkpoint:** **pending this commit** (prior: **`21f05b3`** — docs: checkpoint after R18C4A/R18C4B public proposal route and customer shell). **R18C progress:** **R18C1** sent version graph loader (`53973f0`); **R18C2A** public access token tables (`b651c7a`); **R18C2B** resolve/record RPCs **live-verified PASS** (`e7798a7`, §6BN); **R18C3A** app-side public access token server boundary (`b51383a`, §6BN.7); **R18C3B** public access token minting **complete + live-verified PASS** (`5c47854`, §6BN.9); **R18C4A** public access orchestrator + render-ready view model **complete** (`8523812`, §6BN.10); **R18C4B** public proposal route `/p/[token]` + customer shell **complete** (`265d8f6`, §6BN.11); **R18C4C** contractor Preview review-link bridge **complete** (`bab25c8`, §6BN.12). **Next:** **plan R18D contractor Send gate separately**; **do not** enable Send/email, PDF, Sign/acceptance, Payment/deposit, lifecycle/status mutation, or pricing changes without explicit scope approval. **R18B immutable sent snapshot foundation:** **implemented and smoke-validated** — **`freezeDraftToSentSnapshot`** + **`persist_proposal_send_freeze_v1`**; **R18B4D disposable smoke: PASS** (§6BM.13). **Public route exists and is read-only** — token-resolved, sent/signed-version-only, customer-safe DTO/VM based; **contractors can create/open/copy a review link from Preview for QA** — **this is not production Send**. **Send/PDF/Sign/Payment/lifecycle remain disabled** until each R18 phase is explicitly approved (§6BM). **Audit status:** **second whole-app audit before R18 passed** — **no blockers found** (§6BL.21). **Status:** **Audit Remediation Track complete** (§6BL). **Migrations applied on configured project `rhquhnujjnzjhweypavd`:** scope decisions, refresh/create RPCs, send-freeze RPC (§6BM.13), public access token tables (R18C2A), public access resolve/record RPCs (R18C2B §6BN), public access mint RPC (R18C3B §6BN.9). **Working tree:** doc-only WIP for this checkpoint.
 
 **Jobs Board approved save point:** `b27a444` (3F9B4-RoofrExact visual baseline). **DB-first board partition:** `a62ad93` (§6AD). **Jobs Board identity (R8):** `1191ddd`.
 
-**Next (recommended):** **Plan next R18 public proposal slice after R18C4B** — **do not** enable Send/email delivery, PDF, Sign/acceptance, Payment/deposit, lifecycle/status mutation, or proposal status changes unless explicitly approved. Candidate slices may include **R18C4C** public-shell polish/QA, **R18D** contractor Send-gate planning, or **R18G** signature planning — each must be planned separately. **Do not assume `/p/[token]` means Send is enabled** — tokens can be minted by server helper/smoke only; production Send/email delivery remains unbuilt. **R18C4A complete** at `8523812` (§6BN.10). **R18C4B complete** at `265d8f6` (§6BN.11). **R18C3B complete + live-verified PASS** at `5c47854` (§6BN.9). **R18C3A complete** at `b51383a` (§6BN.7). **R18C2B live-verified PASS** at `e7798a7` (§6BN). **R18C1** sent version graph loader (`53973f0`); **R18C2A** public access token tables (`b651c7a`). **R18B immutable sent snapshot foundation smoke-validated** (§6BM.13). **R18A complete** (§6BM). **Mandatory recovery order:** **§6AL** through **§6BK** (historical); **§6BL** (audit remediation); **§6BM** → **§6BN** → **R18C4+ planning**. **Trust order:** Header/current checkpoint → **§6BN** latest R18 notes → **§6BM** / **§6BL** → **§11 override**. **Older sections may mention public route as future/unbuilt; those are stale after R18C4B.**
+**Next (recommended):** **Plan R18D contractor Send gate separately** — **do not** enable Send/email delivery, PDF, Sign/acceptance, Payment/deposit, lifecycle/status mutation, or proposal status changes unless explicitly approved. **R18D must be planned before implementation** because it touches send-freeze UX, email delivery, public link creation, possibly lifecycle/status rules, and customer communication. **After R18C4C, contractors can create/open/copy a review link from Preview for QA, but this is still not a production Send flow.** **Do not assume `/p/[token]` or a review link means Send is enabled** — review links are QA/review only until R18D+ explicitly approved. **R18C4C complete** at `bab25c8` (§6BN.12). **R18C4A complete** at `8523812` (§6BN.10). **R18C4B complete** at `265d8f6` (§6BN.11). **R18C3B complete + live-verified PASS** at `5c47854` (§6BN.9). **R18C3A complete** at `b51383a` (§6BN.7). **R18C2B live-verified PASS** at `e7798a7` (§6BN). **R18C1** sent version graph loader (`53973f0`); **R18C2A** public access token tables (`b651c7a`). **R18B immutable sent snapshot foundation smoke-validated** (§6BM.13). **R18A complete** (§6BM). **Mandatory recovery order:** **§6AL** through **§6BK** (historical); **§6BL** (audit remediation); **§6BM** → **§6BN** → **R18D+ planning**. **Trust order:** Header/current checkpoint → **§6BN** latest R18 notes → **§6BM** / **§6BL** → **§11 override**. **Older sections may mention public route or review-link access as future/unbuilt; those are stale after R18C4C.**
 
 **DB-first foundation is live** (§6AD). **3J3E option selection persists** (§6AE). **Pricing trust hardening complete** (§6AF). **3J4C document-first Builder complete** (§6AG) — Estimate page renders the actual proposal document inline (package selector, sections, line items, totals); right rail is a contextual **Proposal Helper** inspector; old workspace tabs and Overview panel **removed**. **R16A** (§6AX) removed the amber **Preview-unlock blocker banner** from the Estimate **canvas**; pricing/blocking guidance remains in the rail. **3J4D** refined Estimate line readability (§6AH). **3J4E** refined package/options surface inside Estimate (§6AI). **3J4F** extended Builder to customer-facing text pages — Terms, Warranty, Project Overview, custom_text render persisted `body_markdown` when present (§6AJ). **R14** adds display-time `{{token_name}}` merge on those text pages from frozen `proposalDocumentContext` + R13 resolver (`f359ad4`, §6AW) — stored `body_markdown` unchanged; no write-back. **R4–R6** template content editor on `/tools/roofing/templates` **complete** (`9db2030`–`3c6214c`). **R7** light global IA nav **complete** (`05b9c54`). **R8** light Jobs Board identity **complete** (`1191ddd`). **R9** Job Card create/open draft flow **satisfied** (`1915b2d` + pre-R10 P1 at `d0ba188`). **R10** template structure + estimate settings **complete** (`bc42b1e`–`b3dd904`, §6AQ). **R11** company branding Settings **complete** (`0146dac`–`139e8a3`, §6AR). **R11c** stamps company core + branding into `proposal_versions.context_echo` at new draft create only (`29722a0`, §6AS) — **no Builder cover UI**. **R12** stamps DB-truth customer identity into `proposal_versions.context_echo` at new draft create only (`31059e3`, §6AT) — **no Job Card UI changes, no Builder customer display**. **R13** adds pure frozen document token foundation (`e40db30`, §6AU) — registry, `ProposalDocumentContext`, resolver. **R15** adds read-only branded **Cover** tab in Proposal Builder (`ab5a400`, §6AV) — consumes `proposalDocumentContext` + resolver; **not** Preview/PDF/send/sign/payment. **R14** wires body text pages to the same frozen context at display time (`f359ad4`, §6AW). **R16A** separates contractor workspace chrome from customer document IA (`18cebca`, §6AX) — customer-logical page strip order, workspace header, simplified body shell; **not** Preview/PDF/lifecycle/hub. **R16B** adds per-proposal draft body authoring for text pages (`589f5a0`, §6AY) — raw `body_markdown` persist, R14 display merge only, Estimate line-items-only de-duplication on persisted path; **not** token picker, page visibility, media, Preview, or lifecycle. **R16C1** adds Builder strip overflow page navigation (`967f0de`, §6BA) — More pages menu for persisted overflow pages by `page.id`, dirty-edit guard preserved, portal menu fix; **not** page visibility, Preview, or lifecycle. **R16C2** adds registry-driven document token picker in the R16B editor (`0cf76d2`, §6BB) — Insert field menu inserts raw `{{token_name}}` only; R14 display-time merge unchanged; save persists raw `body_markdown` only; **not** page visibility, Preview, or lifecycle. **R16C3** adds DB-backed proposal page visibility hide-show foundation (`25f1375`, §6BC) — toggles existing `proposal_pages.visible_to_customer` via `updateDraftProposalPageVisibility`; hidden pages remain contractor-visible and editable in Builder; Cover/Estimate required; `getCustomerPreviewPages` R17 contract helper only; **not** Preview, customer route, PDF, or lifecycle. **R17A/R17B** adds authenticated contractor Customer Preview foundation (`8ac2bcb`, §6BE) — pure `proposalCustomerPreviewViewModel` + `/tools/roofing/proposals/preview?job=&proposal=` route; header Preview enabled when persisted draft loads; dirty-edit guard before Preview navigation; **not** public/tokenized customer access, PDF, Send, Sign, Payment, or lifecycle. **R17C1** adds Preview Estimate document presentation layer (`9c2244a`, §6BF) — pure `proposalCustomerEstimatePresenter` + Preview-only estimate UI; shared `proposalPackagePresentation`; Preview Estimate no longer imports Builder workbench table components; **not** R17C2 Builder workbench hierarchy (now complete at `3e65774`, §6BG), R17C3 typography polish, R18, PDF, Send, Sign, Payment, or lifecycle. **R17C2 Phase 1** adds pure Builder workbench estimate presenter (`3c04322`, §6BG) — `proposalBuilderWorkbenchEstimatePresenter` DTO only; no UI. **R17C2 Phase 2** adds zoned Builder Estimate workbench UI + scope review / hard blocker split + gated Edit Option shell (`3e65774`, §6BG) — **not** R17D scope decision backend, R17C3 typography, R18, PDF, Send, Sign, Payment, or lifecycle. **R17D Phase 1** adds persisted scope decision overlay + merge-on-refresh foundation (`43c83a2`, §6BH) — `proposal_option_scope_decisions` migration (`20260618_009`); **`manual_quantity` proven in tests**; zero-decision refresh unchanged; migration **appears applied** on configured project per §6BI. **R17D Phase 2** adds manual quantity UI/API — first real Edit Option action wired in Builder (`f5712ff`, §6BI); **`manual_quantity` only**; other Edit Option actions remain disabled; **full post-Phase-2 audit passed** (§6BI); **not** R17C3 typography, R18, PDF, Send, Sign, Payment, or lifecycle. Main workflow: **Job Board → DB job card (`job=`) → Create proposal / Open proposal → create/reuse DB proposal draft → Builder (`job=` + `proposal=`) → package selection persists to DB; refresh draft pricing when measurement changes**. Legacy `loadSaved=` / `currentSaved` / board-origin paths are **preserved but separated** — they **cannot create DB proposals directly**. **DB proposal math uses the new spine only** (`measurement_records` → `proposalQuantityResolver` → `proposalPricingEngine` → snapshots) — **not** legacy saved-estimate / Core-Enhanced-Premium estimator math. **`createDraftProposal`** runs from Job Card **Create proposal** only when checklist + pricing gates pass; **Builder reads** persisted drafts via **`getDraftGraph`** + **`proposalDraftGraphAdapter`** when `?proposal=` is present — **no Builder create path**, **no silent fallback** on invalid `proposal=`. **Do not** persist placeholder/unconfigured pricing policy. **Catalog custom delete/deactivate** is **not implemented** and remains a **separate later scope**.
 
@@ -54,7 +54,9 @@
 
 | Commit | Summary |
 |--------|---------|
-| *(pending)* | **Docs** — Record R18C4A/R18C4B public proposal orchestrator + `/p/[token]` route checkpoint (§6BN.10–§6BN.11) |
+| *(pending)* | **Docs** — Record R18C4C contractor Preview public review link panel checkpoint (§6BN.12) |
+| `bab25c8` | **R18C4C** — Contractor Preview public review link panel; POST `/api/proposals/public-review-link`; mint bridge to R18C3B; opens R18C4B `/p/[token]`; authenticated browser smoke PASS (§6BN.12); **no Send / email / PDF / Sign / Payment / lifecycle** |
+| `21f05b3` | **Docs** — Record R18C4A/R18C4B public proposal orchestrator + `/p/[token]` route checkpoint (§6BN.10–§6BN.11) |
 | `265d8f6` | **R18C4B** — Public proposal route `/p/[token]` + premium read-only customer shell; server admin graph loader fix (`proposalVersionGraphStore.server.ts`); browser smoke PASS (§6BN.11); **no Send / PDF / Sign / Payment / lifecycle** |
 | `8523812` | **R18C4A** — Public access orchestrator + render-ready public proposal document view model (§6BN.10); **no route/UI** |
 | `1585f9e` | **Docs** — Record R18C3B public access token minting + live DB verification checkpoint (§6BN.9) |
@@ -8194,7 +8196,7 @@ Builder Estimate workbench usable; Scope Review rows wrap; Set quantity reachabl
 | **Phase 4C qty/unit/subtotal granularity** | **Future backlog only** (§6BL.16) — not implemented |
 | **Mark N/A** | **Visible drift removed** at `8dd8e7f` — **do not implement**; product drift, not future feature work |
 | **Customer visibility UI wording** | **Live** as “Hide from customer” — future UX backlog to reframe as neutral customer-visibility / eye-icon language; **not a blocker** |
-| **Send/Sign/Payment/PDF/public route/lifecycle** | **Public route `/p/[token]` exists (read-only)** at **`265d8f6`** (§6BN.11); **Send/email, Sign, PDF, Payment, lifecycle/status mutation remain disabled** |
+| **Send/Sign/Payment/PDF/public route/lifecycle** | **Public route `/p/[token]` exists (read-only)** at **`265d8f6`** (§6BN.11); **Contractor Preview review-link bridge** at **`bab25c8`** (§6BN.12); **Send/email, Sign, PDF, Payment, lifecycle/status mutation remain disabled** |
 | **R18A** | **Complete** (§6BM) — public proposal architecture planning; **immutable sent snapshot first** |
 | **R18B** | **Foundation implemented**; **R18B4D smoke PASS** (§6BM.13) — `freezeDraftToSentSnapshot` + `persist_proposal_send_freeze_v1` |
 | **R18C1** | Sent version graph loader — **complete** (`53973f0`) |
@@ -8204,7 +8206,8 @@ Builder Estimate workbench usable; Scope Review rows wrap; Set quantity reachabl
 | **R18C3B** | Public access token minting — **complete + live-verified PASS** (`5c47854`, §6BN.9) |
 | **R18C4A** | Public access orchestrator + render-ready view model — **complete** (`8523812`, §6BN.10) |
 | **R18C4B** | Public proposal route + customer shell — **complete** (`265d8f6`, §6BN.11) |
-| **R18C4C+** | **Next (planning only)** — public-shell polish/QA or next R18 slice; **do not** enable Send/PDF/Sign/Payment/lifecycle unless explicitly approved |
+| **R18C4C** | Contractor Preview public review link panel — **complete** (`bab25c8`, §6BN.12) |
+| **R18D+** | **Next (planning only)** — contractor Send-gate planning; **do not** enable Send/PDF/Sign/Payment/lifecycle unless explicitly approved |
 | **Legacy estimates/approvals** | **Preserved but isolated** from DB proposal spine |
 
 ### 19. Audit remediation status tracker
@@ -8232,20 +8235,21 @@ Builder Estimate workbench usable; Scope Review rows wrap; Set quantity reachabl
 | **Add catalog / Add custom line / Move to upgrade / Quantity source override** | Disabled shell only; types staged; future expansion |
 | **Phase 4C qty/unit/subtotal granularity** | Future backlog only — not current unless explicitly scoped |
 | **Mark N/A** | Product drift — **do not implement** |
-| **Send/Sign/Payment/PDF/public route/lifecycle** | **Public route `/p/[token]` exists (read-only)** at **`265d8f6`** (§6BN.11); **Send/email, Sign, PDF, Payment, lifecycle/status mutation remain disabled** |
+| **Send/Sign/Payment/PDF/public route/lifecycle** | **Public route `/p/[token]` exists (read-only)** at **`265d8f6`** (§6BN.11); **Contractor Preview review-link bridge** at **`bab25c8`** (§6BN.12); **Send/email, Sign, PDF, Payment, lifecycle/status mutation remain disabled** |
 | **R17C3 document typography polish** | Presentation polish; separate from scope editing |
 
 ### 20. Next recommended sequence
 
-**Audit Remediation Track complete.** **Second whole-app audit before R18 passed** (§6BL.21). **R18A public proposal architecture planning complete** (§6BM). **R18B immutable sent snapshot foundation smoke-validated** (§6BM.13; code `76840d1`). **R18C3A public access token server boundary complete** (`b51383a`, §6BN.7). **R18C3B public access token minting complete + live-verified PASS** (`5c47854`, §6BN.9). **R18C4A public access orchestrator + view model complete** (`8523812`, §6BN.10). **R18C4B public proposal route + customer shell complete** (`265d8f6`, §6BN.11). **Phase 4 Hide complete** at `e79c53a` (§6BL.13). **Phase 4A complete** at `1424f1e` (§6BL.14). **Phase 4B complete** at `38a126e` (§6BL.15). **Phase 4C is future backlog only** (§6BL.16). **Next:** **plan next R18 public proposal slice after R18C4B** — **do not** enable Send/email, PDF, Sign/acceptance, Payment/deposit, lifecycle/status mutation unless explicitly approved.
+**Audit Remediation Track complete.** **Second whole-app audit before R18 passed** (§6BL.21). **R18A public proposal architecture planning complete** (§6BM). **R18B immutable sent snapshot foundation smoke-validated** (§6BM.13; code `76840d1`). **R18C3A public access token server boundary complete** (`b51383a`, §6BN.7). **R18C3B public access token minting complete + live-verified PASS** (`5c47854`, §6BN.9). **R18C4A public access orchestrator + view model complete** (`8523812`, §6BN.10). **R18C4B public proposal route + customer shell complete** (`265d8f6`, §6BN.11). **R18C4C contractor Preview review-link bridge complete** (`bab25c8`, §6BN.12). **Phase 4 Hide complete** at `e79c53a` (§6BL.13). **Phase 4A complete** at `1424f1e` (§6BL.14). **Phase 4B complete** at `38a126e` (§6BL.15). **Phase 4C is future backlog only** (§6BL.16). **Next:** **plan R18D contractor Send gate separately** — **do not** enable Send/email, PDF, Sign/acceptance, Payment/deposit, lifecycle/status mutation unless explicitly approved.
 
-**A. R18 post-C4B planning (recommended next — planning only; do not enable Send/PDF/Sign/Payment/lifecycle):**
+**A. R18 post-C4C planning (recommended next — planning only; do not enable Send/PDF/Sign/Payment/lifecycle):**
 
-- **R18C public access now includes:** token tables/activity; resolve/record RPCs; server token hash/resolve/record boundary; mint infrastructure; public access orchestrator/view model; **`/p/[token]` public proposal route + customer shell** (§6BN.10–§6BN.11)
-- Candidate next slices: **R18C4C** public-shell polish/QA; **R18D** contractor Send-gate planning; **R18G** signature planning — each must be planned separately
-- **Do not assume `/p/[token]` means Send is enabled** — tokens can be minted by server helper/smoke only; production Send/email delivery remains unbuilt
+- **R18C public access now includes:** token tables/activity; resolve/record RPCs; server token hash/resolve/record boundary; mint infrastructure; public access orchestrator/view model; **`/p/[token]` public proposal route + customer shell** (§6BN.10–§6BN.11); **Contractor Preview review-link bridge for QA/open/copy** (§6BN.12)
+- **Next slice:** **R18D** contractor Send-gate planning — must be planned before implementation (send-freeze UX, email delivery, public link creation, lifecycle/status rules, customer communication)
+- **After R18C4C:** contractors can create/open/copy a review link from Preview for QA — **still not production Send**
+- **Do not assume `/p/[token]` or a review link means Send is enabled**
 - **Do not build Send, PDF, Sign, Payment, or lifecycle/status mutation** until explicitly approved
-- Full architecture: **§6BM** (R18A complete); **R18B smoke-validated** (§6BM.13); **R18C4A/C4B complete** (§6BN.10–§6BN.11)
+- Full architecture: **§6BM** (R18A complete); **R18B smoke-validated** (§6BM.13); **R18C4A/C4B/C4C complete** (§6BN.10–§6BN.12)
 
 **B. R18B immutable sent snapshot foundation (complete at code `76840d1`; smoke PASS §6BM.13):**
 
@@ -8389,7 +8393,7 @@ Builder Estimate workbench usable; Scope Review rows wrap; Set quantity reachabl
 
 ## 6BM. R18 PUBLIC PROPOSAL ARCHITECTURE — R18A PLANNING CHECKPOINT
 
-**Status:** **R18A complete** — architecture planning only. **R18B foundation implemented**; **R18B4D disposable send-freeze smoke: PASS** (§6BM.13). **R18C2B resolve/record RPCs complete** at **`e7798a7`** (**§6BN** — live-verified PASS). **R18C3A public access token server boundary complete** at **`b51383a`** (**§6BN.7**). **R18C3B public access token minting complete + live-verified PASS** at **`5c47854`** (**§6BN.9**). **R18C4A public access orchestrator + render-ready view model complete** at **`8523812`** (**§6BN.10**). **R18C4B public proposal route `/p/[token]` + customer shell complete** at **`265d8f6`** (**§6BN.11**). **Docs checkpoint:** **pending this commit** (prior: **`1585f9e`** — docs: checkpoint after R18C3B public access token minting live verify). **Next:** **plan next R18 public proposal slice after R18C4B** (§6BN.12) — **do not** enable Send/email delivery, PDF, Sign/acceptance, Payment/deposit, lifecycle/status mutation unless explicitly approved. **Public route exists and is read-only** — token-resolved, sent/signed-version-only, customer-safe DTO/VM based; **does not enable Send/email, Sign, PDF, Payment, or lifecycle/status mutation**.
+**Status:** **R18A complete** — architecture planning only. **R18B foundation implemented**; **R18B4D disposable send-freeze smoke: PASS** (§6BM.13). **R18C2B resolve/record RPCs complete** at **`e7798a7`** (**§6BN** — live-verified PASS). **R18C3A public access token server boundary complete** at **`b51383a`** (**§6BN.7**). **R18C3B public access token minting complete + live-verified PASS** at **`5c47854`** (**§6BN.9**). **R18C4A public access orchestrator + render-ready view model complete** at **`8523812`** (**§6BN.10**). **R18C4B public proposal route `/p/[token]` + customer shell complete** at **`265d8f6`** (**§6BN.11**). **R18C4C contractor Preview public review link panel complete** at **`bab25c8`** (**§6BN.12**). **Docs checkpoint:** **pending this commit** (prior: **`21f05b3`** — docs: checkpoint after R18C4A/R18C4B public proposal route and customer shell). **Next:** **plan R18D contractor Send gate separately** (§6BN.13) — **do not** enable Send/email delivery, PDF, Sign/acceptance, Payment/deposit, lifecycle/status mutation unless explicitly approved. **Public route exists and is read-only** — token-resolved, sent/signed-version-only, customer-safe DTO/VM based; **does not enable Send/email, Sign, PDF, Payment, or lifecycle/status mutation**.
 
 ### 1. Core architecture decision
 
@@ -8641,7 +8645,7 @@ Existing tables reused: `proposals`, `proposal_versions`, `proposal_pages`, `pro
 
 ## 6BN. R18C PUBLIC ACCESS — RESOLVE / RECORD RPCs + APP SERVER BOUNDARY
 
-**Status:** **R18C2B complete** at **`e7798a7`** (**live-verified PASS** on **`rhquhnujjnzjhweypavd`**). **R18C3A complete** at **`b51383a`**. **R18C3B complete + live-verified PASS** at **`5c47854`** (§6BN.9). **R18C4A complete** at **`8523812`** (§6BN.10). **R18C4B complete** at **`265d8f6`** (§6BN.11). **Docs checkpoint:** **pending this commit** (prior: **`1585f9e`** — docs: checkpoint after R18C3B public access token minting live verify). **Next:** **plan next R18 public proposal slice after R18C4B** — **do not** enable Send/email, PDF, Sign/acceptance, Payment/deposit, lifecycle/status mutation unless explicitly approved (§6BN.12).
+**Status:** **R18C2B complete** at **`e7798a7`** (**live-verified PASS** on **`rhquhnujjnzjhweypavd`**). **R18C3A complete** at **`b51383a`**. **R18C3B complete + live-verified PASS** at **`5c47854`** (§6BN.9). **R18C4A complete** at **`8523812`** (§6BN.10). **R18C4B complete** at **`265d8f6`** (§6BN.11). **R18C4C complete** at **`bab25c8`** (§6BN.12). **Docs checkpoint:** **pending this commit** (prior: **`21f05b3`** — docs: checkpoint after R18C4A/R18C4B public proposal route and customer shell). **Next:** **plan R18D contractor Send gate separately** — **do not** enable Send/email, PDF, Sign/acceptance, Payment/deposit, lifecycle/status mutation unless explicitly approved (§6BN.13).
 
 ### 1. Code checkpoint
 
@@ -9099,17 +9103,139 @@ Used existing **R18B4D disposable sent version** (row left in place under dispos
 
 ---
 
-### 12. R18 post-C4B next-step guardrails (planning — not built beyond read-only route)
+### 12. R18C4C COMPLETION — CONTRACTOR PREVIEW PUBLIC REVIEW LINK PANEL
+
+**Status:** **R18C4C complete and committed** at **`bab25c8`**. **Authenticated browser smoke PASS.** **Working tree clean after code commit.**
+
+#### 12.1 Code delivered (`bab25c8`)
+
+| File | Role |
+|------|------|
+| `app/tools/roofing/proposals/preview/ProposalCustomerPreviewClient.tsx` | Mounts Customer view readiness panel above draft preview document |
+| `app/tools/roofing/proposals/preview/ProposalCustomerPreviewPublicAccessPanel.tsx` | Panel UI: create/open/copy review link; deferred Send/Sign/PDF/Payment row |
+| `app/api/proposals/public-review-link/route.ts` | Authenticated POST endpoint |
+| `app/lib/proposalPublicReviewLink.ts` | Injectable mint orchestration (testable) |
+| `app/lib/proposalPublicReviewLink.server.ts` | Server-only bridge to R18C3B mint + company-scoped proposal load |
+| `app/lib/proposalPublicReviewLink.server.test.ts` | Mint + guardrail tests |
+| `app/lib/proposalPublicReviewReadiness.ts` | Pure readiness VM + product copy constants |
+| `app/lib/proposalPublicReviewReadiness.test.ts` | Readiness state tests |
+
+#### 12.2 Behavior
+
+Authenticated **Contractor Preview** now includes a **Customer view / Public Proposal readiness panel** above the draft preview document.
+
+The panel lets the contractor **create a review link**, **open the customer view**, and **copy the review link** for QA/review.
+
+- Review link creation uses existing **R18C3B mint infrastructure** through a server-only bridge.
+- Review link opens the existing **R18C4B `/p/[token]`** public proposal route.
+- Raw token is returned only as part of the review URL after explicit contractor action.
+- Raw token is **not** stored in DB/localStorage, **not** logged, and **`token_hash` is never exposed**.
+- Panel clearly says the link is a **review link only** and **does not email the customer**.
+
+**R18C4C review links are not Send.** They do not email the customer, do not mutate lifecycle/status, do not create sent events, do not enable PDF/Sign/Payment, and do not change pricing.
+
+#### 12.3 Panel UI states
+
+| State | Behavior |
+|-------|----------|
+| **Loading** | Checking public proposal readiness |
+| **No sent snapshot** | “Customer view requires a sent proposal snapshot”; Create/Open/Copy **disabled**; draft preview still renders |
+| **Sent snapshot ready** | Create review link **enabled**; Open/Copy **disabled** until mint |
+| **Review link ready** | Open customer view and Copy review link **enabled** |
+| **Mint error** | Customer-safe error; no stack traces/internal IDs |
+
+**Deferred actions (always disabled in R18C4C):**
+
+- Send proposal — not enabled yet
+- Signature — coming later
+- PDF — coming later
+- Payment — coming later
+
+No Send/email/PDF/Sign/Payment/lifecycle/status behavior is wired.
+
+#### 12.4 Server/API behavior
+
+**New POST endpoint:** `/api/proposals/public-review-link`
+
+- Authenticated only
+- Validates Supabase session and company context
+- Validates `proposalId` / `jobId` UUIDs
+- Loads proposal through company-scoped server Supabase client
+- Verifies proposal belongs to company and `job_id` matches request
+- Requires `signed_version_id` or `latest_sent_version_id`
+- Mints public access token with metadata `{ source: "contractor_preview_qa" }`
+- Returns narrow response: `{ ok, publicUrl, tokenPrefix, expiresAt }`
+- Does **not** return `token_hash` or internal IDs
+- Does **not** mutate `proposals.status`
+- Does **not** create `proposal_events` sent events
+- Does **not** send email
+
+#### 12.5 Authenticated browser smoke
+
+**Happy-path smoke PASS** on existing **R18B4D disposable** proposal (`c0b9a92e-…` / job `6fb015e6-…`):
+
+- Contractor Preview loaded
+- Sent snapshot status **Ready**
+- Create review link POST **200**
+- Review-link-ready UI rendered
+- Open customer view opened `/p/<token>`
+- Public shell rendered header, cover, pages, options, deferred actions, footer
+- Copy review link copied full URL
+- No raw token localStorage persistence
+- No Send/email/lifecycle mutation
+- No `token_hash` / internal IDs visible
+
+**No-sent-snapshot path PASS:**
+
+- Panel explains sent snapshot required
+- Create/Open/Copy disabled
+- Draft preview still renders
+- POST returns safe **400** if attempted
+
+**390px Preview PASS:**
+
+- No horizontal overflow
+- Panel stacks; buttons stacked/readable
+- Deferred actions wrap
+- Draft preview remains usable
+
+**390px public route from panel PASS:**
+
+- No horizontal overflow
+- Header/cover/options/future actions/footer stack correctly
+
+#### 12.6 Tests (R18C4C)
+
+| Suite | Result |
+|-------|--------|
+| R18C4C targeted (5 files) | **46/46 pass** |
+| Proposal lib full suite after R18C4C | **821/821 pass** |
+| `tsc` | No R18C4C file errors; unrelated pre-existing project errors remain |
+
+#### 12.7 Boundaries preserved (R18C4C)
+
+- **No** Send / email delivery
+- **No** PDF generation or download wiring
+- **No** Sign / acceptance wiring
+- **No** Payment / deposit wiring
+- **No** lifecycle / status mutation
+- **No** pricing changes
+- Review link is **QA/review only** — not production Send
+
+---
+
+### 13. R18 post-C4C next-step guardrails (planning — not built beyond review-link bridge)
 
 | Rule | Detail |
 |------|--------|
 | Public route | **`/p/[token]` exists (read-only)** — do not add Send/PDF/Sign/Payment wiring without explicit approval |
+| Review link vs Send | **R18C4C review links are not Send** — create/open/copy from Preview is QA/review only; does not email customer or mutate lifecycle/status |
 | Send / email delivery | **Do not** wire Send/email delivery unless explicitly approved |
 | PDF / Sign / Payment / lifecycle | **Remain disabled** |
-| Status mutation | **Do not** mutate `proposals.status` from public route or view recording |
+| Status mutation | **Do not** mutate `proposals.status` from public route, review-link mint, or view recording |
 | Sent immutability | **Do not** mutate sent proposal versions |
-| Token mint vs Send | **Do not assume `/p/[token]` means Send is enabled** — tokens can be minted by server helper/smoke only; production Send/email delivery remains unbuilt |
-| Candidate next slices | **R18C4C** public-shell polish/QA; **R18D** contractor Send-gate planning; **R18G** signature planning — plan separately |
+| Token mint vs Send | **Do not assume `/p/[token]` or a review link means Send is enabled** — review links and tokens can be minted for QA; production Send/email delivery remains unbuilt |
+| Next slice | **R18D** contractor Send-gate planning — plan separately before implementation; then **R18G** signature planning |
 | Public route composition | Implemented: `resolveProposalPublicAccessToken` → `getPublicProposalVersionGraph(..., { requireSentVersion: true })` → public DTO → document VM → (serve) → `recordProposalCustomerView` (server-only tracking) |
 | Route token hashing | Hash **exact URL token segment** consistently with minted token behavior (`hashProposalPublicAccessToken`) |
 
@@ -9121,10 +9247,11 @@ Used existing **R18B4D disposable sent version** (row left in place under dispos
 - Mint infrastructure
 - Public access orchestrator/view model
 - **`/p/[token]` public proposal route + customer shell**
+- **Contractor Preview review-link bridge for QA/open/copy** (§6BN.12)
 
-**Mandatory read:** **§6BN** + **§6BM** before next R18 slice planning.
+**Mandatory read:** **§6BN** + **§6BM** before R18D planning.
 
-**Stale-section warning:** **Trust order:** Header/current checkpoint → **§6BN** latest R18 notes → **§6BM** / **§6BL** → **§11 override**. **Older sections may mention public route as future/unbuilt; those are stale after R18C4B.**
+**Stale-section warning:** **Trust order:** Header/current checkpoint → **§6BN** latest R18 notes → **§6BM** / **§6BL** → **§11 override**. **Older sections may mention public route or review-link access as future/unbuilt; those are stale after R18C4C.**
 
 ---
 
@@ -9282,8 +9409,8 @@ Then open and read **in this file** (in order):
 32. **§6BJ** — R17D Phase 2.5 manual quantity reset + full audit checkpoint (historical Phase 2.5; read for reset context; superseded by §6BK for current exclude/remove resume)
 33. **§6BK** — R17D Phase 3A exclude/remove from option + full audit checkpoint (**historical Phase 3A only**; superseded by §6BL for current resume)
 34. **§6BL** — Audit Remediation Track post whole-app audit (**complete**; **second whole-app audit before R18 PASS** at §6BL.21; **Phase 4 Hide complete** at `e79c53a` §6BL.13; **Phase 4A/4B estimate display settings complete** at `1424f1e`/`38a126e` §6BL.14–§6BL.15)
-35. **§6BM** — **R18A public proposal architecture plan** (**complete** — read before any R18 implementation; **immutable sent snapshot first**; Send/PDF/Sign/Payment remain phased/disabled; **public route exists read-only** at §6BN.11)
-36. **§6BN** — **R18C public access** (**R18C4B complete** — `/p/[token]` route + customer shell §6BN.11; **R18C4A complete** — orchestrator + view model §6BN.10; R18C3B mint §6BN.9; R18C3A boundary §6BN.7; R18C2B RPCs)
+35. **§6BM** — **R18A public proposal architecture plan** (**complete** — read before any R18 implementation; **immutable sent snapshot first**; Send/PDF/Sign/Payment remain phased/disabled; **public route exists read-only** at §6BN.11; **review-link bridge exists on Contractor Preview** at §6BN.12)
+36. **§6BN** — **R18C public access** (**R18C4C complete** — Contractor Preview review-link bridge §6BN.12; **R18C4B complete** — `/p/[token]` route + customer shell §6BN.11; **R18C4A complete** — orchestrator + view model §6BN.10; R18C3B mint §6BN.9; R18C3A boundary §6BN.7; R18C2B RPCs)
 37. **§3 Builder-specific rule + Roofr-aligned product principle** — no-drift rules; **Playwright MCP test-only guardrail**
 38. **§6AD** — DB-first foundation Phases A–D
 39. **§6AE** — 3J3E option persistence + quantity resolver coverage
@@ -9291,29 +9418,30 @@ Then open and read **in this file** (in order):
 41. **§9** — required first prompt / resume instructions (this section)
 42. **§11** — roadmap buckets (TODAY / NEXT / LATER / DO NOT DO YET), current checkpoint, built-surface audit, manual smoke; **§11 — Future / Later bucket → Proposal Builder**
 
-**Verify HEAD** is **`265d8f6`** or newer (R18C4B complete); if newer, reconcile this doc.
+**Verify HEAD** is **`bab25c8`** or newer (R18C4C complete); if newer, reconcile this doc.
 
-**Latest docs checkpoint:** **pending this commit** (prior: **`1585f9e`** — docs: checkpoint after R18C3B public access token minting live verify).
+**Latest docs checkpoint:** **pending this commit** (prior: **`21f05b3`** — docs: checkpoint after R18C4A/R18C4B public proposal route and customer shell).
 
-**Mandatory read through §6BM** (including **§6BM.13 R18B4D smoke PASS**) and **§6BN** (R18C2B live verification + **R18C3A server boundary** §6BN.7 + **R18C3B token minting** §6BN.9 + **R18C4A orchestrator/VM** §6BN.10 + **R18C4B public route/shell** §6BN.11) before any next R18 slice.
+**Mandatory read through §6BM** (including **§6BM.13 R18B4D smoke PASS**) and **§6BN** (R18C2B live verification + **R18C3A server boundary** §6BN.7 + **R18C3B token minting** §6BN.9 + **R18C4A orchestrator/VM** §6BN.10 + **R18C4B public route/shell** §6BN.11 + **R18C4C review-link panel** §6BN.12) before any next R18 slice.
 
 **Next action (mandatory first resume step):**
 
-1. **Plan next R18 public proposal slice after R18C4B** (§6BN.12) — **do not** enable Send/email delivery, PDF, Sign/acceptance, Payment/deposit, lifecycle/status mutation unless explicitly approved. Candidate slices: **R18C4C** polish/QA, **R18D** Send-gate planning, **R18G** signature planning.
-2. **R18C4B complete** (§6BN.11; code `265d8f6`) — `/p/[token]` read-only customer shell; server graph loader fix; browser smoke PASS; **does not** enable Send/PDF/Sign/Payment/lifecycle.
-3. **R18C4A complete** (§6BN.10; code `8523812`) — orchestrator + render-ready document view model; **no Send/PDF/Sign/Payment/lifecycle**.
-4. **R18C3B complete + live-verified PASS** (§6BN.9; code `5c47854`) — mint infrastructure + migrations `018`/`019` on `rhquhnujjnzjhweypavd`; disposable mint→resolve smoke PASS; **does not** enable Send or email delivery.
-5. **R18C3A complete** (§6BN.7; code `b51383a`) — SHA-256 hash helper + server-only `service_role` resolve/record wrappers.
-6. **R18C2B live-verified PASS** (§6BN; code `e7798a7`) — resolve/record RPCs + permission hardening on `rhquhnujjnzjhweypavd`.
-7. **R18C1/R18C2A complete** — sent graph loader (`53973f0`); public access token tables (`b651c7a`).
-8. **R18B immutable sent snapshot foundation smoke-validated** (§6BM.13) — `freezeDraftToSentSnapshot` + `persist_proposal_send_freeze_v1`.
-9. **Send / Sign / Payment / PDF / lifecycle/status mutation remain disabled** until each R18 phase is explicitly approved (§6BM.11).
+1. **Plan R18D contractor Send gate separately** (§6BN.13) — **do not** enable Send/email delivery, PDF, Sign/acceptance, Payment/deposit, lifecycle/status mutation unless explicitly approved. R18D must be planned before implementation.
+2. **R18C4C complete** (§6BN.12; code `bab25c8`) — Contractor Preview review-link create/open/copy; mint bridge to R18C3B; opens R18C4B `/p/[token]`; authenticated browser smoke PASS; **does not** enable Send/email/PDF/Sign/Payment/lifecycle.
+3. **R18C4B complete** (§6BN.11; code `265d8f6`) — `/p/[token]` read-only customer shell; server graph loader fix; browser smoke PASS; **does not** enable Send/PDF/Sign/Payment/lifecycle.
+4. **R18C4A complete** (§6BN.10; code `8523812`) — orchestrator + render-ready document view model; **no Send/PDF/Sign/Payment/lifecycle**.
+5. **R18C3B complete + live-verified PASS** (§6BN.9; code `5c47854`) — mint infrastructure + migrations `018`/`019` on `rhquhnujjnzjhweypavd`; disposable mint→resolve smoke PASS; **does not** enable Send or email delivery.
+6. **R18C3A complete** (§6BN.7; code `b51383a`) — SHA-256 hash helper + server-only `service_role` resolve/record wrappers.
+7. **R18C2B live-verified PASS** (§6BN; code `e7798a7`) — resolve/record RPCs + permission hardening on `rhquhnujjnzjhweypavd`.
+8. **R18C1/R18C2A complete** — sent graph loader (`53973f0`); public access token tables (`b651c7a`).
+9. **R18B immutable sent snapshot foundation smoke-validated** (§6BM.13) — `freezeDraftToSentSnapshot` + `persist_proposal_send_freeze_v1`.
+10. **Send / Sign / Payment / PDF / lifecycle/status mutation remain disabled** until each R18 phase is explicitly approved (§6BM.11).
 
-**Do not enable** Send / Sign / Payment / PDF / lifecycle without explicit scoped direction and per-phase approval. **Do not assume `/p/[token]` means Send is enabled** — tokens can be minted by server helper/smoke only; production Send/email delivery remains unbuilt. **Public route is read-only** at `/p/[token]` — composed: `resolveProposalPublicAccessToken` → `getPublicProposalVersionGraph(..., { requireSentVersion: true })` → public DTO → document VM → (serve) → `recordProposalCustomerView` (server-only tracking); hash **exact URL token segment** consistently with mint behavior.
+**Do not enable** Send / Sign / Payment / PDF / lifecycle without explicit scoped direction and per-phase approval. **Do not assume `/p/[token]` or a review link means Send is enabled** — R18C4C review links are QA/review only; production Send/email delivery remains unbuilt. **Public route is read-only** at `/p/[token]` — composed: `resolveProposalPublicAccessToken` → `getPublicProposalVersionGraph(..., { requireSentVersion: true })` → public DTO → document VM → (serve) → `recordProposalCustomerView` (server-only tracking); hash **exact URL token segment** consistently with mint behavior.
 
 **Confirm** working tree is clean (or note doc-only WIP).
 
-**Whole-app Roofr-aligned audit passed** (2026-06-18, §6AZ) + **R16B validation passed** (§6AY) + **R16C1 browser audit passed** (§6BA) + **R16C2 pre-commit audit passed** (§6BB) + **R16C3 pre-commit audit passed** (§6BC) + **R16C final whole-Builder audit passed** (§6BD) + **R17A/R17B pre-commit audit passed** (§6BE) + **R17C1 pre-commit audit passed** (§6BF) + **R17C2 pre-commit audit passed** (§6BG) + **R17D Phase 1 pre-commit validation passed** (§6BH) + **R17D Phase 2 automated tests passed** (§6BI) + **R17D Phase 2 full audit passed** (§6BI) + **R17D Phase 2.5 automated tests passed** (§6BJ) + **R17D Phase 2.5 full audit passed** (§6BJ) + **R17D Phase 3A automated tests passed** (§6BK) + **R17D Phase 3A full audit passed** (§6BK) → **post-Phase-3A whole-app audit triggered Audit Remediation Track** (§6BL). **Remediation 1 complete** at `6e27716`; **Remediation 2B complete** at `377dfe2`; **Remediation 3A complete** at `b65c684`; **Transactional create Remediation 4A complete** at `daf5268`; **Transactional create Remediation 4B migration applied** manually on `rhquhnujjnzjhweypavd`; **Transactional create Remediation 4C complete** at `f684b73`; **Post-transaction spine audit passed** (§6BL.11); **Mark N/A drift cleanup complete** at `8dd8e7f` (§6BL.12); **R17D Phase 4 Hide complete** at `e79c53a` (§6BL.13); **R17D Phase 4A estimate display policy consumer complete** at `1424f1e` (§6BL.14); **R17D Phase 4B Builder display settings editing complete** at `38a126e` (§6BL.15); **second whole-app audit before R18 passed** (§6BL.21). **R0–R15** complete/satisfied; **R16A** at `18cebca` (§6AX); **R16B** at `589f5a0` (§6AY); **R16C1** at `967f0de` (§6BA); **R16C2** at `0cf76d2` (§6BB); **R16C3** at `25f1375` (§6BC); **R17A/R17B** at `8ac2bcb` (§6BE); **R17C1** at `9c2244a` (§6BF); **R17C2** at `3e65774` (§6BG); **R17D Phase 1** at `43c83a2` (§6BH); **R17D Phase 2** at `f5712ff` (§6BI); **R17D Phase 2.5** at `a12fb92` (§6BJ); **R17D Phase 3A** at `2dca3c0` (§6BK). **Code:** `265d8f6`. **R18A complete** (§6BM). **R18B4D smoke PASS** (§6BM.13). **R18C3A complete** (§6BN.7). **R18C3B complete + live-verified PASS** (§6BN.9). **R18C4A complete** (§6BN.10). **R18C4B complete** (§6BN.11). **Next:** **plan next R18 public proposal slice after R18C4B** (§6BN.12) — **not** Send/PDF/Sign/Payment/lifecycle unless explicitly approved. **Migrations applied on configured project `rhquhnujjnzjhweypavd`:** `20260618_009` (scope decisions), `20260624_010` (refresh pricing RPC), `20260625_011` (create draft RPC), `20260626_012` (send-freeze RPC; R18B4D smoke §6BM.13), `20260626_014`/`015` (public access token tables R18C2A), `20260626_016`/`017` (public access resolve/record RPCs R18C2B), `20260626_018`/`019` (public access mint RPC R18C3B §6BN.9). **Header Preview enabled** for saved drafts; **Send / Sign / Payment / PDF / lifecycle/status mutation remain disabled**. **Public route `/p/[token]` exists (read-only)**. **Mandatory order for historical context:** **§6AL** through **§6BK**; **current resume:** **§6BM** → **§6BN** → **R18 post-C4B planning**. **Do not** return to `loadSaved`/`currentSaved` as main workflow.
+**Whole-app Roofr-aligned audit passed** (2026-06-18, §6AZ) + **R16B validation passed** (§6AY) + **R16C1 browser audit passed** (§6BA) + **R16C2 pre-commit audit passed** (§6BB) + **R16C3 pre-commit audit passed** (§6BC) + **R16C final whole-Builder audit passed** (§6BD) + **R17A/R17B pre-commit audit passed** (§6BE) + **R17C1 pre-commit audit passed** (§6BF) + **R17C2 pre-commit audit passed** (§6BG) + **R17D Phase 1 pre-commit validation passed** (§6BH) + **R17D Phase 2 automated tests passed** (§6BI) + **R17D Phase 2 full audit passed** (§6BI) + **R17D Phase 2.5 automated tests passed** (§6BJ) + **R17D Phase 2.5 full audit passed** (§6BJ) + **R17D Phase 3A automated tests passed** (§6BK) + **R17D Phase 3A full audit passed** (§6BK) → **post-Phase-3A whole-app audit triggered Audit Remediation Track** (§6BL). **Remediation 1 complete** at `6e27716`; **Remediation 2B complete** at `377dfe2`; **Remediation 3A complete** at `b65c684`; **Transactional create Remediation 4A complete** at `daf5268`; **Transactional create Remediation 4B migration applied** manually on `rhquhnujjnzjhweypavd`; **Transactional create Remediation 4C complete** at `f684b73`; **Post-transaction spine audit passed** (§6BL.11); **Mark N/A drift cleanup complete** at `8dd8e7f` (§6BL.12); **R17D Phase 4 Hide complete** at `e79c53a` (§6BL.13); **R17D Phase 4A estimate display policy consumer complete** at `1424f1e` (§6BL.14); **R17D Phase 4B Builder display settings editing complete** at `38a126e` (§6BL.15); **second whole-app audit before R18 passed** (§6BL.21). **R0–R15** complete/satisfied; **R16A** at `18cebca` (§6AX); **R16B** at `589f5a0` (§6AY); **R16C1** at `967f0de` (§6BA); **R16C2** at `0cf76d2` (§6BB); **R16C3** at `25f1375` (§6BC); **R17A/R17B** at `8ac2bcb` (§6BE); **R17C1** at `9c2244a` (§6BF); **R17C2** at `3e65774` (§6BG); **R17D Phase 1** at `43c83a2` (§6BH); **R17D Phase 2** at `f5712ff` (§6BI); **R17D Phase 2.5** at `a12fb92` (§6BJ); **R17D Phase 3A** at `2dca3c0` (§6BK). **Code:** `bab25c8`. **R18A complete** (§6BM). **R18B4D smoke PASS** (§6BM.13). **R18C3A complete** (§6BN.7). **R18C3B complete + live-verified PASS** (§6BN.9). **R18C4A complete** (§6BN.10). **R18C4B complete** (§6BN.11). **R18C4C complete** (§6BN.12). **Next:** **plan R18D contractor Send gate separately** (§6BN.13) — **not** Send/PDF/Sign/Payment/lifecycle unless explicitly approved. **Migrations applied on configured project `rhquhnujjnzjhweypavd`:** `20260618_009` (scope decisions), `20260624_010` (refresh pricing RPC), `20260625_011` (create draft RPC), `20260626_012` (send-freeze RPC; R18B4D smoke §6BM.13), `20260626_014`/`015` (public access token tables R18C2A), `20260626_016`/`017` (public access resolve/record RPCs R18C2B), `20260626_018`/`019` (public access mint RPC R18C3B §6BN.9). **Header Preview enabled** for saved drafts; **Customer view review-link panel enabled** on Preview (§6BN.12); **Send / Sign / Payment / PDF / lifecycle/status mutation remain disabled**. **Public route `/p/[token]` exists (read-only)**. **Mandatory order for historical context:** **§6AL** through **§6BK**; **current resume:** **§6BM** → **§6BN** → **R18D planning**. **Do not** return to `loadSaved`/`currentSaved` as main workflow.
 
 Inspect before planning **3F9** (or chosen stage):
 
@@ -9396,12 +9524,13 @@ Confirm: **Create proposal / Open proposal** on Job Card creates/reuses DB draft
 | `/tools/roofing/saved` | Jobs Board (SavedClient — **RoofingEstimate** cards) |
 | `/tools/roofing/templates` | **Live** — template install/recheck, readiness, library (`3G6A–D2`) |
 | `/p/[token]` | **R18C4B** — **read-only** public customer proposal route; token-resolved, sent/signed-version-only, customer-safe DTO/VM shell (§6BN.11); **no FieldDive app shell**; **Send / Sign / Payment / PDF remain disabled** |
+| `/api/proposals/public-review-link` | **R18C4C** — authenticated POST to mint review link for Contractor Preview QA (§6BN.12); opens `/p/[token]`; **does not email customer or mutate lifecycle/status** |
 
 ---
 
 ## 11. FORWARD ROADMAP / NO-DRIFT NEXT STEPS
 
-**Current checkpoint override:** Header + **§6BN** + **§6BM** (including **§6BM.13**) + **§6BL** supersede stale checkpoint lines in this section and stale **§8 CURRENT NEXT** / old **§11 body** / old **§6AL R18 row**. **Code:** **`265d8f6` — R18C4B public proposal route + customer shell**. **Docs:** pending this commit (prior: **`1585f9e`**). **R18C4B complete** (§6BN.11). **R18C4A complete** (§6BN.10). **R18C3B complete + live-verified PASS** (§6BN.9). **R18C3A complete** (§6BN.7). **R18C2B live-verified PASS** (§6BN). **R18C1** (`53973f0`); **R18C2A** (`b651c7a`). **R18A complete** (§6BM). **R18B4D smoke PASS** (§6BM.13). **Audit Remediation Track complete.** **Second whole-app audit before R18 passed** (§6BL.21) — **no blockers**. **Public route `/p/[token]` exists (read-only)** — token-resolved, sent/signed-version-only; **does not enable Send/email, Sign, PDF, Payment, or lifecycle/status mutation**. **Immediate next:** **plan next R18 public proposal slice after R18C4B** (§6BN.12) — **do not** enable Send/email delivery, PDF/Sign/Payment/lifecycle unless explicitly approved.
+**Current checkpoint override:** Header + **§6BN** + **§6BM** (including **§6BM.13**) + **§6BL** supersede stale checkpoint lines in this section and stale **§8 CURRENT NEXT** / old **§11 body** / old **§6AL R18 row**. **Code:** **`bab25c8` — R18C4C contractor Preview public review link panel**. **Docs:** pending this commit (prior: **`21f05b3`**). **R18C4C complete** (§6BN.12). **R18C4B complete** (§6BN.11). **R18C4A complete** (§6BN.10). **R18C3B complete + live-verified PASS** (§6BN.9). **R18C3A complete** (§6BN.7). **R18C2B live-verified PASS** (§6BN). **R18C1** (`53973f0`); **R18C2A** (`b651c7a`). **R18A complete** (§6BM). **R18B4D smoke PASS** (§6BM.13). **Audit Remediation Track complete.** **Second whole-app audit before R18 passed** (§6BL.21) — **no blockers**. **Public route `/p/[token]` exists (read-only)** — token-resolved, sent/signed-version-only; **Contractor Preview review-link bridge for QA/open/copy** (§6BN.12); **does not enable Send/email, Sign, PDF, Payment, or lifecycle/status mutation**. **Immediate next:** **plan R18D contractor Send gate separately** (§6BN.13) — **do not** enable Send/email delivery, PDF/Sign/Payment/lifecycle unless explicitly approved.
 
 Use this section as the **ordered checklist** for future GPT/Cursor sessions.
 
@@ -10309,7 +10438,8 @@ Treat as **drift** if a session:
 
 ## Changelog (handoff doc only)
 
-- **2026-06-25:** **R18C4A/R18C4B public proposal route docs checkpoint** (pending this commit) — **§6BN.10–§6BN.12** + header + §6BM + §6BL + §9 + §10 + §11 override + recent commits; code at `265d8f6` (R18C4B) + `8523812` (R18C4A); prior docs `1585f9e`; R18C4A orchestrator + render-ready document VM (22/22 targeted, 790/790 proposal lib); R18C4B `/p/[token]` read-only customer shell + server graph loader fix (`proposalVersionGraphStore.server.ts`); valid-token + error-path + 390px browser smoke PASS; **804/804** proposal lib tests; **no Send/PDF/Sign/Payment/lifecycle**; **next:** plan next R18 slice after R18C4B (§6BN.12).
+- **2026-06-25:** **R18C4C contractor Preview public review link panel docs checkpoint** (pending this commit) — **§6BN.12–§6BN.13** + header + §6BM + §6BL + §9 + §10 + §11 override + recent commits; code at `bab25c8`; prior docs `21f05b3`; R18C4C Contractor Preview review-link panel (create/open/copy); POST `/api/proposals/public-review-link`; mint bridge to R18C3B; opens R18C4B `/p/[token]`; authenticated happy-path + no-sent-snapshot + 390px browser smoke PASS; **46/46** targeted + **821/821** proposal lib tests; **no Send/email/PDF/Sign/Payment/lifecycle**; **next:** plan R18D contractor Send gate separately (§6BN.13).
+- **2026-06-25:** **R18C4A/R18C4B public proposal route docs checkpoint** (`21f05b3`) — **§6BN.10–§6BN.12** + header + §6BM + §6BL + §9 + §10 + §11 override + recent commits; code at `265d8f6` (R18C4B) + `8523812` (R18C4A); prior docs `1585f9e`; R18C4A orchestrator + render-ready document VM (22/22 targeted, 790/790 proposal lib); R18C4B `/p/[token]` read-only customer shell + server graph loader fix (`proposalVersionGraphStore.server.ts`); valid-token + error-path + 390px browser smoke PASS; **804/804** proposal lib tests; **no Send/PDF/Sign/Payment/lifecycle**; **historical next at that time:** plan next R18 slice after R18C4B — **now superseded by §6BN.12** (R18C4C complete).
 - **2026-06-25:** **R18C3B public access token minting docs checkpoint** (`1585f9e`) — **§6BN.8–§6BN.10** + header + §6BM + §6BL + §9 + §10 + §11 override + recent commits; code at `5c47854`; prior docs `887631c`; pure token generator + mint RPC persistence + server-only mint facade; migrations `018`/`019` applied live on `rhquhnujjnzjhweypavd` (**all_pass**); `mint_proposal_public_access_token_v1` service_role EXECUTE only; hash-only DB storage; raw token once-only server envelope; **26/26** targeted + **768/768** proposal lib tests; disposable mint→resolve smoke PASS (`R18C3B-DISPOSABLE`); **no public route / no Send / no customer UI**; Roofr-aligned mint infrastructure recorded; **historical next at that time:** R18C4 planning only — **now superseded by §6BN.10–§6BN.11** (R18C4A/C4B complete).
 - **2026-06-25:** **R18C3A public access token server boundary docs checkpoint** (`887631c`) — **§6BN.7–§6BN.8** + header + §6BM + §6BL + §9 + §10 + §11 override + recent commits; code at `b51383a`; prior docs `9f3acad`; SHA-256 hash helper + server-only `service_role` RPC facade + injectable persistence layer; **`server-only` dependency**; resolve/record wrappers use `p_token_hash` only; success envelopes exclude raw token and `token_hash`; **28/28** targeted + **742/742** proposal lib tests; forbidden exposure checks passed; **no public route / no token mint / no customer UI / no SQL**; Roofr-aligned server boundary architecture recorded; **next:** R18C3B planning (since complete at §6BN.9).
 - **2026-06-25:** **R18C2B public access resolve RPCs docs checkpoint** (`9f3acad`) — **§6BN** + header + §6BM + §9 + recent commits; code at `e7798a7`; prior docs `ce94094`; **R18C2B live-verified PASS** on `rhquhnujjnzjhweypavd` via Cursor `DATABASE_URL` read-only verification (`verify_failed_count=0`); resolve/record RPCs + internal validator `service_role` revoke; verification lessons (no `has_function_privilege('PUBLIC')`; record RPC identity-args behavior); **no public route/token generation/app wrappers**; **Send/PDF/Sign/Payment/lifecycle remain disabled**; **historical next at that time:** R18C3 app-side hash + thin `service_role` wrappers — **now complete** at §6BN.7 (`b51383a`).
