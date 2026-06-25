@@ -19,7 +19,7 @@ import {
 } from "@/app/lib/proposalPublicAccessRpcStore.server";
 import { buildProposalPublicGraphDto } from "@/app/lib/proposalPublicGraphDto";
 import { buildProposalPublicProposalDocumentViewModel } from "@/app/lib/proposalPublicProposalViewModel";
-import { getProposalVersionGraph } from "@/app/lib/proposalRecordStore";
+import { getPublicProposalVersionGraph } from "@/app/lib/proposalVersionGraphStore.server";
 
 export type {
   LoadPublicProposalByTokenFailure,
@@ -36,7 +36,7 @@ export async function loadPublicProposalByToken(
 ): Promise<LoadPublicProposalByTokenResult> {
   const mergedDeps: ProposalPublicAccessOrchestratorDeps = {
     resolveToken: deps?.resolveToken ?? resolveProposalPublicAccessToken,
-    getVersionGraph: deps?.getVersionGraph ?? getProposalVersionGraph,
+    getVersionGraph: deps?.getVersionGraph ?? getPublicProposalVersionGraph,
     buildDto: deps?.buildDto ?? buildProposalPublicGraphDto,
     buildDocumentViewModel: deps?.buildDocumentViewModel ?? buildProposalPublicProposalDocumentViewModel,
     recordView: deps?.recordView ?? recordProposalCustomerView,

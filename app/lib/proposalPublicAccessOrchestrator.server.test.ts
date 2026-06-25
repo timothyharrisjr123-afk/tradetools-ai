@@ -685,15 +685,27 @@ describe("forbidden exposure guardrails", () => {
     assert.doesNotMatch(source, /getDraftGraph\(/);
   });
 
-  test("server entry module imports server-only", () => {
+  test("server entry module imports server-only and public version graph loader", () => {
     const source = readFileSync(
       new URL("./proposalPublicAccessOrchestrator.server.ts", import.meta.url),
       "utf8"
     );
     assert.match(source, /import "server-only"/);
+    assert.match(source, /getPublicProposalVersionGraph/);
+    assert.match(source, /proposalVersionGraphStore\.server/);
+    assert.doesNotMatch(source, /from "@\/app\/lib\/supabaseClient"/);
+    assert.doesNotMatch(source, /from "@\/app\/lib\/proposalRecordStore"/);
   });
 
-  test("no /p/[token] route file exists", () => {
-    assert.throws(() => readFileSync(new URL("../../p/[token]/page.tsx", import.meta.url), "utf8"));
+  test("public route page exists and follows R18C4B guardrails", () => {
+    const source = readFileSync(
+      new URL("../p/[token]/page.tsx", import.meta.url),
+      "utf8"
+    );
+    assert.match(source, /loadPublicProposalByToken/);
+    assert.match(source, /PublicProposalPage document=\{result\.document\}/);
+    assert.doesNotMatch(source, /result\.tracking/);
+    assert.doesNotMatch(source, /searchParams/);
+    assert.doesNotMatch(source, /getDraftGraph\(/);
   });
 });
