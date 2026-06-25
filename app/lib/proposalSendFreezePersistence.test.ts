@@ -7,6 +7,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, test } from "node:test";
+import { isUuidLike } from "./jobStore";
 import {
   buildProposalSendFreezePersistPayload,
   buildSendFreezeGraphLikeFromPayload,
@@ -26,7 +27,15 @@ const TEMPLATE_OPT_A = "77777777-7777-4777-8777-777777777777";
 const RUNTIME_OPT_A = "99999999-9999-4999-8999-999999999999";
 const PAGE_ESTIMATE = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const PAGE_OVERVIEW = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+const SENT_PAGE_OVERVIEW = "d1111111-1111-4111-8111-111111111111";
+const SENT_PAGE_ESTIMATE = "d2222222-2222-4222-8222-222222222222";
 const FROZEN_AT = "2026-06-18T12:00:00.000Z";
+
+function sentPageIdFactory(): () => string {
+  const sentPageIds = [SENT_PAGE_OVERVIEW, SENT_PAGE_ESTIMATE];
+  let index = 0;
+  return () => sentPageIds[index++] ?? `e0000000-0000-4000-8000-${String(index).padStart(12, "0")}`;
+}
 
 function draftGraph(overrides: Partial<ProposalDraftGraph> = {}): ProposalDraftGraph {
   return {
@@ -240,7 +249,7 @@ describe("buildProposalSendFreezePersistPayload", () => {
     const payload = buildProposalSendFreezePersistPayload(graph, {
       frozenAt: FROZEN_AT,
       sentVersionId: SENT_VERSION_ID,
-      idFactory: () => "page-id-placeholder",
+      idFactory: sentPageIdFactory(),
     });
     payload.pages[0]!.title = "MUTATED";
     payload.options[0]!.customer_total_cents = 1;
@@ -355,11 +364,143 @@ describe("buildProposalSendFreezePersistPayload", () => {
     const payload = buildProposalSendFreezePersistPayload(draftGraph(), {
       frozenAt: FROZEN_AT,
       sentVersionId: SENT_VERSION_ID,
+      idFactory: sentPageIdFactory(),
     });
     const like = buildSendFreezeGraphLikeFromPayload(payload);
     assert.equal(like.version.version_kind, "sent");
     assert.equal(like.version.frozen_at, FROZEN_AT);
     assert.equal(like.options.length, 1);
+    assert.equal(like.pages[0]!.id, like.pages[0]!.client_page_id);
+    assert.equal(like.pages[1]!.id, like.pages[1]!.client_page_id);
+  });
+});
+
+describe("R18B3 client_page_id payload alignment", () => {
+  test("page rows include client_page_id", () => {
+    const payload = buildProposalSendFreezePersistPayload(draftGraph(), {
+      frozenAt: FROZEN_AT,
+      sentVersionId: SENT_VERSION_ID,
+      idFactory: sentPageIdFactory(),
+    });
+    assert.equal(payload.pages.length, 2);
+    for (const page of payload.pages) {
+      assert.ok(isUuidLike(page.client_page_id));
+    }
+    assert.equal(payload.pages[0]!.client_page_id, SENT_PAGE_OVERVIEW);
+    assert.equal(payload.pages[1]!.client_page_id, SENT_PAGE_ESTIMATE);
+  });
+
+  test("client_page_id values match remapped line page_id references", () => {
+    const payload = buildProposalSendFreezePersistPayload(draftGraph(), {
+      frozenAt: FROZEN_AT,
+      sentVersionId: SENT_VERSION_ID,
+      idFactory: sentPageIdFactory(),
+    });
+    const clientPageIds = new Set(payload.pages.map((page) => page.client_page_id));
+    for (const line of payload.options[0]!.line_items) {
+      assert.ok(line.page_id);
+      assert.ok(clientPageIds.has(line.page_id!));
+      assert.equal(line.page_id, SENT_PAGE_ESTIMATE);
+    }
+  });
+
+  test("custom page line reference stays mapped through payload and graph-like round trip", () => {
+    const graph = draftGraph({
+      lineItems: [
+        {
+          id: "21212121-2121-4212-8212-212121212121",
+          company_id: COMPANY_ID,
+          proposal_option_id: RUNTIME_OPT_A,
+          source_template_item_id: "23232323-2323-4232-8232-232323232323",
+          catalog_item_id: null,
+          catalog_seed_key: null,
+          section_id: null,
+          page_id: PAGE_OVERVIEW,
+          sort_order: 0,
+          customer_name: "Overview line",
+          description: null,
+          role: null,
+          quantity: 1,
+          quantity_display_label: "1",
+          quantity_source_label: null,
+          unit: "EA",
+          customer_unit_price_cents: 2500,
+          customer_line_total_cents: 2500,
+          pricing_status: "priced",
+          visible_to_customer: true,
+          measurement_quantity_key: null,
+          created_at: "2026-06-06T00:00:00.000Z",
+          updated_at: "2026-06-06T00:00:00.000Z",
+        },
+      ],
+      options: [
+        {
+          ...draftGraph().options[0]!,
+          customer_subtotal_cents: 2500,
+          customer_total_cents: 2700,
+          sales_tax_cents: 200,
+        },
+      ],
+      internalSummaries: draftGraph().internalSummaries,
+      scopeDecisions: [],
+    });
+
+    const payload = buildProposalSendFreezePersistPayload(graph, {
+      frozenAt: FROZEN_AT,
+      sentVersionId: SENT_VERSION_ID,
+      idFactory: sentPageIdFactory(),
+    });
+    const overviewPage = payload.pages.find((page) => page.page_type === "project_overview");
+    assert.ok(overviewPage);
+    assert.equal(payload.options[0]!.line_items[0]!.page_id, overviewPage!.client_page_id);
+
+    const like = buildSendFreezeGraphLikeFromPayload(payload);
+    const likeOverview = like.pages.find((page) => page.page_type === "project_overview");
+    assert.ok(likeOverview);
+    assert.equal(likeOverview!.id, overviewPage!.client_page_id);
+    assert.equal(payload.options[0]!.line_items[0]!.page_id, likeOverview!.id);
+  });
+
+  test("missing client_page_id is rejected", () => {
+    const payload = buildProposalSendFreezePersistPayload(draftGraph(), {
+      frozenAt: FROZEN_AT,
+      sentVersionId: SENT_VERSION_ID,
+      idFactory: sentPageIdFactory(),
+    });
+    const invalid = structuredClone(payload);
+    delete (invalid.pages[0] as { client_page_id?: string }).client_page_id;
+    assert.throws(
+      () => validateProposalSendFreezePersistPayload(invalid),
+      /client_page_id/
+    );
+  });
+
+  test("duplicate client_page_id is rejected", () => {
+    const payload = buildProposalSendFreezePersistPayload(draftGraph(), {
+      frozenAt: FROZEN_AT,
+      sentVersionId: SENT_VERSION_ID,
+      idFactory: sentPageIdFactory(),
+    });
+    const invalid = structuredClone(payload);
+    invalid.pages[1]!.client_page_id = invalid.pages[0]!.client_page_id;
+    assert.throws(
+      () => validateProposalSendFreezePersistPayload(invalid),
+      /Duplicate client_page_id/
+    );
+  });
+
+  test("line page_id referencing unknown client_page_id is rejected", () => {
+    const payload = buildProposalSendFreezePersistPayload(draftGraph(), {
+      frozenAt: FROZEN_AT,
+      sentVersionId: SENT_VERSION_ID,
+      idFactory: sentPageIdFactory(),
+    });
+    const invalid = structuredClone(payload);
+    invalid.options[0]!.line_items[0]!.page_id = "f9999999-9999-4999-8999-999999999999";
+    assert.throws(
+      () => validateProposalSendFreezePersistPayload(invalid),
+      /page client_page_id/
+    );
   });
 });
 

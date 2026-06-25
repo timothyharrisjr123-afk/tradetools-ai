@@ -6,6 +6,7 @@
  */
 
 import { resolveSelectedTemplateOptionIdFromGraph } from "@/app/lib/proposalDraftGraphAdapter";
+import { isUuidLike } from "@/app/lib/jobStore";
 import { PROPOSAL_LINE_CUSTOMER_FORBIDDEN_KEYS } from "@/app/lib/proposalLineSnapshotTypes";
 import type {
   ProposalDraftGraph,
@@ -52,6 +53,8 @@ export class ProposalSendFreezePersistenceError extends Error {
 // ---------------------------------------------------------------------------
 
 export type ProposalSendFreezePagePersistRow = {
+  /** Explicit sent `proposal_pages.id` for RPC insert and line → page FK mapping. */
+  client_page_id: string;
   page_type: string;
   sort_order: number;
   title: string;
@@ -179,8 +182,12 @@ function resolveNextVersionNumber(
 // Row mappers (deep copy — no mutation of source graph)
 // ---------------------------------------------------------------------------
 
-function copyPageRow(page: ProposalPageRow): ProposalSendFreezePagePersistRow {
+function copyPageRow(
+  page: ProposalPageRow,
+  clientPageId: string
+): ProposalSendFreezePagePersistRow {
   return {
+    client_page_id: clientPageId,
     page_type: page.page_type,
     sort_order: page.sort_order,
     title: page.title,
@@ -311,8 +318,9 @@ export function buildProposalSendFreezePersistPayload(
     .slice()
     .sort((a, b) => a.sort_order - b.sort_order)
     .map((page) => {
-      draftToSentPageIds.set(page.id, idFactory());
-      return copyPageRow(page);
+      const clientPageId = idFactory();
+      draftToSentPageIds.set(page.id, clientPageId);
+      return copyPageRow(page, clientPageId);
     });
 
   const summaryByOptionId = new Map(
@@ -415,9 +423,32 @@ export function validateProposalSendFreezePersistPayload(
     }
   }
 
+  const clientPageIds = new Set<string>();
+  for (const page of payload.pages) {
+    const clientPageId = (page.client_page_id ?? "").trim();
+    if (!clientPageId) {
+      throw new ProposalSendFreezePersistenceError("Each page requires client_page_id.");
+    }
+    if (!isUuidLike(clientPageId)) {
+      throw new ProposalSendFreezePersistenceError("client_page_id must be a UUID.");
+    }
+    if (clientPageIds.has(clientPageId)) {
+      throw new ProposalSendFreezePersistenceError(
+        "Duplicate client_page_id values are not allowed in send-freeze payload."
+      );
+    }
+    clientPageIds.add(clientPageId);
+  }
+
   for (const option of payload.options) {
     for (const line of option.line_items) {
       assertLineRowCustomerSafe(line as unknown as Record<string, unknown>);
+      const linePageId = (line.page_id ?? "").trim();
+      if (linePageId && !clientPageIds.has(linePageId)) {
+        throw new ProposalSendFreezePersistenceError(
+          "Each line page_id must reference a page client_page_id in the same payload."
+        );
+      }
     }
     if (option.internal_summary != null && option.internal_summary.contractor_only !== true) {
       throw new ProposalSendFreezePersistenceError(
@@ -478,6 +509,11 @@ export function validateSendFreezeGraphIntegrity(
   return violations;
 }
 
+/** Sent page row for graph-like consumers — `id` mirrors `client_page_id`. */
+export type ProposalSendFreezeGraphLikePage = ProposalSendFreezePagePersistRow & {
+  id: string;
+};
+
 /** Builds an in-memory sent graph-like snapshot from payload (read-only helper for tests/public DTO). */
 export type ProposalSendFreezeGraphLike = {
   version: {
@@ -491,7 +527,7 @@ export type ProposalSendFreezeGraphLike = {
     context_echo: ProposalSendFreezePersistPayload["context_echo"];
     policy_echo: ProposalSendFreezePersistPayload["policy_echo"];
   };
-  pages: ProposalSendFreezePagePersistRow[];
+  pages: ProposalSendFreezeGraphLikePage[];
   options: ProposalSendFreezeOptionPersistPayload[];
 };
 
@@ -510,7 +546,10 @@ export function buildSendFreezeGraphLikeFromPayload(
       context_echo: payload.context_echo,
       policy_echo: payload.policy_echo,
     },
-    pages: payload.pages,
+    pages: payload.pages.map((page) => ({
+      ...page,
+      id: page.client_page_id,
+    })),
     options: payload.options,
   };
 }
