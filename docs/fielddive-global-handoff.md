@@ -38,13 +38,14 @@
 - Read **§6BI** before R17D Phase 2 manual quantity set/update context — Phase 2 code + full audit (**historical Phase 2 resume — superseded by §6BJ / §6BK for current manual quantity / Edit Option resume**).
 - Read **§6BJ** before R17D Phase 2.5 manual quantity reset context — Phase 2.5 code + full audit (**historical Phase 2.5 resume — superseded by §6BK for current exclude/remove Edit Option resume**).
 - Read **§6BK** for historical R17D Phase 3A exclude/remove context only — **superseded by §6BL** for current audit remediation resume.
-- Read **§6BL** before R18/public proposal architecture planning or resuming feature roadmap — **Audit Remediation Track complete** + **second whole-app audit before R18 passed** (Remediation 1 + 2B + 3A + transactional create 4A/4B/4C + post-transaction spine audit + Mark N/A drift cleanup + **R17D Phase 4 Hide** at `e79c53a` + **R17D Phase 4A/4B estimate display settings** at `1424f1e`/`38a126e` + **§6BL.21 second whole-app audit PASS**).
+- Read **§6BL** before R18/public proposal architecture work — **Audit Remediation Track complete** + **second whole-app audit before R18 passed** (§6BL.21).
+- Read **§6BM** before any R18 implementation — **R18A public proposal architecture plan** (immutable sent snapshot first; Send/PDF/Sign/Payment/public route remain phased/disabled).
 
-**Last updated checkpoint:** **Code:** **`38a126e` — feat(proposals): enable proposal-level estimate display settings in Builder**. **Docs checkpoint:** **pending this commit** (prior: **`f55566d`** — docs: record R17D Phase 4A + 4B estimate display settings checkpoint). **Audit status:** **second whole-app audit before R18 passed** — **no blockers found** (§6BL.21). **Status:** **Audit Remediation Track complete** (§6BL). **Current state:** **Remediation 1** (Preview/customer-trust) **complete** at `6e27716`; **Remediation 2A–2B** (transactional `refreshDraftPricing` RPC persistence) **complete** at `377dfe2`; **Remediation 3A** (dual spine isolation guardrails) **complete** at `b65c684`; **Transactional create Remediation 4A–4C** (`createDraftProposal` RPC persistence) **complete** at `f684b73`; **Post-transaction spine audit** **passed** (§6BL.11); **Mark N/A drift cleanup** **complete** at `8dd8e7f` (§6BL.12); **R17D Phase 4 Hide from customer** **complete** at `e79c53a` (§6BL.13); **R17D Phase 4A estimate display policy consumer** **complete** at `1424f1e` (§6BL.14); **R17D Phase 4B Builder proposal-level display settings editing** **complete** at `38a126e` (§6BL.15); **R17D Phase 3A** exclude/remove **complete** at `2dca3c0` (§6BK); **existing-template-line Edit Option parity closed** for Roofr-aligned scope (manual quantity, reset, exclude/remove/restore, customer visibility, estimate display settings); **remaining disabled Edit Option shell items are future expansion, not blockers** (§6BL.21). **Next:** **R18/public proposal architecture planning** — **planning/research only**; **do not enable Send/PDF/Sign/Payment/public route/lifecycle** until architecture is planned, reviewed, and explicitly approved. **Migration `20260624_010_create_refresh_draft_pricing_rpc.sql` manually applied** on configured Supabase project **`rhquhnujjnzjhweypavd`** (verification: `persist_draft_pricing_refresh_v1` exists; authenticated execute = true). **Migration `20260625_011_create_draft_proposal_create_rpc.sql` manually applied** on same project (verification: `persist_draft_proposal_create_v1` exists; authenticated execute = true). **Migration `20260618_009_create_proposal_option_scope_decisions.sql` appears applied** on same project. **That project is labeled Production in Supabase dashboard — not a separate DEV target.** **No separate DEV Supabase target is configured.** **Latest automated validation:** **647/647** full proposal lib batch pass + **91/91** targeted spine/route guard tests (§6BL.21). **Playwright auth:** outside-repo `storageState` at `C:\Users\sabre\.cursor\fielddive-playwright-auth.json`. **Do not use** `C:\Users\sabre\.cursor\...` (missing `.` before `cursor`) — that path is a common typo. **Protected systems:** Mark N/A behavior not implemented; Send/Sign/Payment/PDF/public route/lifecycle **not enabled**. **DB proposal spine is now:** clean-route guarded; legacy-isolated; transactional on pricing refresh; transactional on initial draft creation; post-transaction audit passed; Mark N/A visible drift removed; **Phase 4 Hide enabled** via scope decisions; **Phase 4A/4B estimate display settings** consumer + Builder editing enabled; **second whole-app audit passed** (§6BL.21). **Working tree:** doc-only WIP for this checkpoint.
+**Last updated checkpoint:** **Code:** **`38a126e` — feat(proposals): enable proposal-level estimate display settings in Builder**. **Docs checkpoint:** **pending this commit** (prior: **`3e892d4`** — docs: record second whole-app audit before R18 planning). **R18A status:** **public proposal / customer experience architecture planning complete** (§6BM). **Next:** **R18B immutable sent snapshot foundation** — explicit scoped approval required; **Send/PDF/Sign/Payment/public route/lifecycle remain disabled** until each phase is approved (§6BM). **Audit status:** **second whole-app audit before R18 passed** — **no blockers found** (§6BL.21). **Status:** **Audit Remediation Track complete** (§6BL). **Current state:** **Remediation 1** (Preview/customer-trust) **complete** at `6e27716`; **Remediation 2A–2B** (transactional `refreshDraftPricing` RPC persistence) **complete** at `377dfe2`; **Remediation 3A** (dual spine isolation guardrails) **complete** at `b65c684`; **Transactional create Remediation 4A–4C** (`createDraftProposal` RPC persistence) **complete** at `f684b73`; **Post-transaction spine audit** **passed** (§6BL.11); **Mark N/A drift cleanup** **complete** at `8dd8e7f` (§6BL.12); **R17D Phase 4 Hide from customer** **complete** at `e79c53a` (§6BL.13); **R17D Phase 4A estimate display policy consumer** **complete** at `1424f1e` (§6BL.14); **R17D Phase 4B Builder proposal-level display settings editing** **complete** at `38a126e` (§6BL.15); **R17D Phase 3A** exclude/remove **complete** at `2dca3c0` (§6BK); **existing-template-line Edit Option parity closed** for Roofr-aligned scope (manual quantity, reset, exclude/remove/restore, customer visibility, estimate display settings); **remaining disabled Edit Option shell items are future expansion, not blockers** (§6BL.21). **Migration `20260624_010_create_refresh_draft_pricing_rpc.sql` manually applied** on configured Supabase project **`rhquhnujjnzjhweypavd`** (verification: `persist_draft_pricing_refresh_v1` exists; authenticated execute = true). **Migration `20260625_011_create_draft_proposal_create_rpc.sql` manually applied** on same project (verification: `persist_draft_proposal_create_v1` exists; authenticated execute = true). **Migration `20260618_009_create_proposal_option_scope_decisions.sql` appears applied** on same project. **That project is labeled Production in Supabase dashboard — not a separate DEV target.** **No separate DEV Supabase target is configured.** **Latest automated validation:** **647/647** full proposal lib batch pass + **91/91** targeted spine/route guard tests (§6BL.21). **Playwright auth:** outside-repo `storageState` at `C:\Users\sabre\.cursor\fielddive-playwright-auth.json`. **Do not use** `C:\Users\sabre\.cursor\...` (missing `.` before `cursor`) — that path is a common typo. **Protected systems:** Mark N/A behavior not implemented; Send/Sign/Payment/PDF/public route/lifecycle **not enabled**. **DB proposal spine is now:** clean-route guarded; legacy-isolated; transactional on pricing refresh; transactional on initial draft creation; post-transaction audit passed; Mark N/A visible drift removed; **Phase 4 Hide enabled** via scope decisions; **Phase 4A/4B estimate display settings** consumer + Builder editing enabled; **second whole-app audit passed** (§6BL.21). **Working tree:** doc-only WIP for this checkpoint.
 
 **Jobs Board approved save point:** `b27a444` (3F9B4-RoofrExact visual baseline). **DB-first board partition:** `a62ad93` (§6AD). **Jobs Board identity (R8):** `1191ddd`.
 
-**Next (recommended):** **R18/public proposal architecture planning** — **planning/research only** (§6BL.20–§6BL.21). **First R18 step:** architecture/research for public customer proposal route, approval/signing/payment boundaries, PDF/send boundaries, token/security model, immutable sent/public snapshot requirements, and contractor Preview vs public customer view separation — **do not build or enable lifecycle actions yet.** **Phase 4 Hide complete** at `e79c53a` (§6BL.13). **Phase 4A estimate display policy consumer complete** at `1424f1e` (§6BL.14). **Phase 4B Builder proposal-level display settings editing complete** at `38a126e` (§6BL.15). **Phase 4C qty/unit/subtotal granularity is future backlog only** (§6BL.16) — not current unless explicitly scoped. **Post-transaction spine audit passed** (§6BL.11). **Second whole-app audit before R18 passed** (§6BL.21) — **no blockers**. **Mark N/A drift cleanup complete** at `8dd8e7f` — **do not implement Mark N/A** (§6BL.12). **Send / Sign / Payment / PDF / public customer sharing remain disabled** until R18 architecture is planned, reviewed, and explicitly approved. **R17D Phase 3A is complete** (`2dca3c0`, §6BK). **Remediation 1 complete** (`6e27716`). **Remediation 2B complete** (`377dfe2`). **Remediation 3A complete** (`b65c684`). **Transactional create Remediation 4C complete** (`f684b73`). **No new feature implementation** without explicit scoped direction. **Mandatory recovery order for historical context:** **§6AL** through **§6BK**; **current resume:** **§6BL** → **R18 planning**.
+**Next (recommended):** **R18B immutable sent snapshot foundation** (§6BM.6–§6BM.12) — **first implementation slice** after explicit scoped approval; **not** a basic public page. **R18A complete** (§6BM). **Send / Sign / Payment / PDF / public customer route / lifecycle remain disabled** until each R18 phase is explicitly approved. **Mandatory recovery order:** **§6AL** through **§6BK** (historical); **§6BL** (audit remediation); **§6BM** → **R18B** (when approved).
 
 **DB-first foundation is live** (§6AD). **3J3E option selection persists** (§6AE). **Pricing trust hardening complete** (§6AF). **3J4C document-first Builder complete** (§6AG) — Estimate page renders the actual proposal document inline (package selector, sections, line items, totals); right rail is a contextual **Proposal Helper** inspector; old workspace tabs and Overview panel **removed**. **R16A** (§6AX) removed the amber **Preview-unlock blocker banner** from the Estimate **canvas**; pricing/blocking guidance remains in the rail. **3J4D** refined Estimate line readability (§6AH). **3J4E** refined package/options surface inside Estimate (§6AI). **3J4F** extended Builder to customer-facing text pages — Terms, Warranty, Project Overview, custom_text render persisted `body_markdown` when present (§6AJ). **R14** adds display-time `{{token_name}}` merge on those text pages from frozen `proposalDocumentContext` + R13 resolver (`f359ad4`, §6AW) — stored `body_markdown` unchanged; no write-back. **R4–R6** template content editor on `/tools/roofing/templates` **complete** (`9db2030`–`3c6214c`). **R7** light global IA nav **complete** (`05b9c54`). **R8** light Jobs Board identity **complete** (`1191ddd`). **R9** Job Card create/open draft flow **satisfied** (`1915b2d` + pre-R10 P1 at `d0ba188`). **R10** template structure + estimate settings **complete** (`bc42b1e`–`b3dd904`, §6AQ). **R11** company branding Settings **complete** (`0146dac`–`139e8a3`, §6AR). **R11c** stamps company core + branding into `proposal_versions.context_echo` at new draft create only (`29722a0`, §6AS) — **no Builder cover UI**. **R12** stamps DB-truth customer identity into `proposal_versions.context_echo` at new draft create only (`31059e3`, §6AT) — **no Job Card UI changes, no Builder customer display**. **R13** adds pure frozen document token foundation (`e40db30`, §6AU) — registry, `ProposalDocumentContext`, resolver. **R15** adds read-only branded **Cover** tab in Proposal Builder (`ab5a400`, §6AV) — consumes `proposalDocumentContext` + resolver; **not** Preview/PDF/send/sign/payment. **R14** wires body text pages to the same frozen context at display time (`f359ad4`, §6AW). **R16A** separates contractor workspace chrome from customer document IA (`18cebca`, §6AX) — customer-logical page strip order, workspace header, simplified body shell; **not** Preview/PDF/lifecycle/hub. **R16B** adds per-proposal draft body authoring for text pages (`589f5a0`, §6AY) — raw `body_markdown` persist, R14 display merge only, Estimate line-items-only de-duplication on persisted path; **not** token picker, page visibility, media, Preview, or lifecycle. **R16C1** adds Builder strip overflow page navigation (`967f0de`, §6BA) — More pages menu for persisted overflow pages by `page.id`, dirty-edit guard preserved, portal menu fix; **not** page visibility, Preview, or lifecycle. **R16C2** adds registry-driven document token picker in the R16B editor (`0cf76d2`, §6BB) — Insert field menu inserts raw `{{token_name}}` only; R14 display-time merge unchanged; save persists raw `body_markdown` only; **not** page visibility, Preview, or lifecycle. **R16C3** adds DB-backed proposal page visibility hide-show foundation (`25f1375`, §6BC) — toggles existing `proposal_pages.visible_to_customer` via `updateDraftProposalPageVisibility`; hidden pages remain contractor-visible and editable in Builder; Cover/Estimate required; `getCustomerPreviewPages` R17 contract helper only; **not** Preview, customer route, PDF, or lifecycle. **R17A/R17B** adds authenticated contractor Customer Preview foundation (`8ac2bcb`, §6BE) — pure `proposalCustomerPreviewViewModel` + `/tools/roofing/proposals/preview?job=&proposal=` route; header Preview enabled when persisted draft loads; dirty-edit guard before Preview navigation; **not** public/tokenized customer access, PDF, Send, Sign, Payment, or lifecycle. **R17C1** adds Preview Estimate document presentation layer (`9c2244a`, §6BF) — pure `proposalCustomerEstimatePresenter` + Preview-only estimate UI; shared `proposalPackagePresentation`; Preview Estimate no longer imports Builder workbench table components; **not** R17C2 Builder workbench hierarchy (now complete at `3e65774`, §6BG), R17C3 typography polish, R18, PDF, Send, Sign, Payment, or lifecycle. **R17C2 Phase 1** adds pure Builder workbench estimate presenter (`3c04322`, §6BG) — `proposalBuilderWorkbenchEstimatePresenter` DTO only; no UI. **R17C2 Phase 2** adds zoned Builder Estimate workbench UI + scope review / hard blocker split + gated Edit Option shell (`3e65774`, §6BG) — **not** R17D scope decision backend, R17C3 typography, R18, PDF, Send, Sign, Payment, or lifecycle. **R17D Phase 1** adds persisted scope decision overlay + merge-on-refresh foundation (`43c83a2`, §6BH) — `proposal_option_scope_decisions` migration (`20260618_009`); **`manual_quantity` proven in tests**; zero-decision refresh unchanged; migration **appears applied** on configured project per §6BI. **R17D Phase 2** adds manual quantity UI/API — first real Edit Option action wired in Builder (`f5712ff`, §6BI); **`manual_quantity` only**; other Edit Option actions remain disabled; **full post-Phase-2 audit passed** (§6BI); **not** R17C3 typography, R18, PDF, Send, Sign, Payment, or lifecycle. Main workflow: **Job Board → DB job card (`job=`) → Create proposal / Open proposal → create/reuse DB proposal draft → Builder (`job=` + `proposal=`) → package selection persists to DB; refresh draft pricing when measurement changes**. Legacy `loadSaved=` / `currentSaved` / board-origin paths are **preserved but separated** — they **cannot create DB proposals directly**. **DB proposal math uses the new spine only** (`measurement_records` → `proposalQuantityResolver` → `proposalPricingEngine` → snapshots) — **not** legacy saved-estimate / Core-Enhanced-Premium estimator math. **`createDraftProposal`** runs from Job Card **Create proposal** only when checklist + pricing gates pass; **Builder reads** persisted drafts via **`getDraftGraph`** + **`proposalDraftGraphAdapter`** when `?proposal=` is present — **no Builder create path**, **no silent fallback** on invalid `proposal=`. **Do not** persist placeholder/unconfigured pricing policy. **Catalog custom delete/deactivate** is **not implemented** and remains a **separate later scope**.
 
@@ -52,7 +53,8 @@
 
 | Commit | Summary |
 |--------|---------|
-| *(pending)* | **Docs** — Record second whole-app audit before R18 + R18 planning gate (§6BL.21) |
+| *(pending)* | **Docs** — Record R18A public proposal architecture plan (§6BM) |
+| `3e892d4` | **Docs** — Record second whole-app audit before R18 planning (§6BL.21) |
 | `f55566d` | **Docs** — Record R17D Phase 4A + 4B estimate display settings checkpoint |
 | `38a126e` | **R17D Phase 4B** — Builder proposal-level estimate display settings editing; persists to `proposal_pages.settings_json`; Preview consumes via Phase 4A; no template/line_items/pricing refresh mutation; **647/647** tests; browser smoke passed (§6BL.15) |
 | `1424f1e` | **R17D Phase 4A** — Customer Preview estimate display policy consumer from `settings_json`; **637/637** tests; Preview no-regression smoke (§6BL.14) |
@@ -7572,14 +7574,14 @@ Builder Estimate workbench usable; Scope Review rows wrap; Set quantity reachabl
 
 ## 6BL. AUDIT REMEDIATION TRACK — POST WHOLE-APP AUDIT CHECKPOINT
 
-**Status:** **Complete.** **Second whole-app audit before R18:** **PASS** (§6BL.21). **Code checkpoint:** **`38a126e` — feat(proposals): enable proposal-level estimate display settings in Builder**. **Docs checkpoint:** **pending this commit** (prior: **`f55566d`** — docs: record R17D Phase 4A + 4B estimate display settings checkpoint). **Working tree:** clean after code commit `38a126e`; doc-only WIP for this checkpoint.
+**Status:** **Complete.** **Second whole-app audit before R18:** **PASS** (§6BL.21). **R18A public proposal architecture planning:** **complete** (§6BM). **Code checkpoint:** **`38a126e` — feat(proposals): enable proposal-level estimate display settings in Builder**. **Docs checkpoint:** **pending this commit** (prior: **`3e892d4`** — docs: record second whole-app audit before R18 planning). **Next:** **R18B immutable sent snapshot foundation** — explicit scoped approval required.
 
 ### 1. Executive verdict
 
 - **Whole-app audit completed** after R17D Phase 3A (`2dca3c0`, §6BK); findings drove **Audit Remediation Track** — not new feature roadmap work.
 - **Audit Remediation Track complete** — all targeted remediations done or intentionally deferred.
 - **Second whole-app audit before R18 passed** (§6BL.21) — **no blockers found**.
-- **Next:** **R18/public proposal architecture planning** — **planning/research only**; **do not enable Send/PDF/Sign/Payment/public route/lifecycle** until architecture is planned, reviewed, and explicitly approved.
+- **Next:** **R18B immutable sent snapshot foundation** (§6BM) — **first implementation slice** after explicit scoped approval; **R18A architecture planning complete** (§6BM); **do not enable Send/PDF/Sign/Payment/public route/lifecycle** until each R18 phase is explicitly approved.
 - **Completed:** Remediation 1 (Preview/customer-trust); Remediation 2A–2B (transactional `refreshDraftPricing` RPC persistence); Remediation 3A (dual spine isolation); transactional create Remediation 4A–4C (`createDraftProposal` RPC persistence); **post-transaction spine audit** (§6BL.11); **Mark N/A drift cleanup** (`8dd8e7f`, §6BL.12); **R17D Phase 4 Hide from customer** (`e79c53a`, §6BL.13); **R17D Phase 4A estimate display policy consumer** (`1424f1e`, §6BL.14); **R17D Phase 4B Builder proposal-level display settings editing** (`38a126e`, §6BL.15); **existing-template-line Edit Option parity closed** for Roofr-aligned scope (§6BL.21).
 - **Intentionally deferred (not blockers):** Add catalog, Add custom line, Move to upgrade, Quantity source override, Phase 4C qty/unit/subtotal granularity, Mark N/A (product drift — do not implement), Send/Sign/Payment/PDF/public route/lifecycle (R18+ architecture approval required).
 - **Protected systems unchanged across remediation commits:** no Mark N/A behavior, Send/Sign/Payment/PDF/public route/lifecycle enabled; no pricing engine math changes; no direct `proposal_line_items` mutation outside refresh/create persistence paths; no template mutation from Phase 4B display settings edits.
@@ -8180,7 +8182,8 @@ Builder Estimate workbench usable; Scope Review rows wrap; Set quantity reachabl
 | **Mark N/A** | **Visible drift removed** at `8dd8e7f` — **do not implement**; product drift, not future feature work |
 | **Customer visibility UI wording** | **Live** as “Hide from customer” — future UX backlog to reframe as neutral customer-visibility / eye-icon language; **not a blocker** |
 | **Send/Sign/Payment/PDF/public route/lifecycle** | **Disabled / not implemented** — require R18+ architecture planning, review, and explicit approval before enablement |
-| **R18** | **Planning/research may begin next** — **implementation blocked** until architecture approved |
+| **R18A** | **Complete** (§6BM) — public proposal architecture planning; **immutable sent snapshot first** |
+| **R18B+** | **Implementation blocked** until each phase explicitly approved — see §6BM.11 staging |
 | **Legacy estimates/approvals** | **Preserved but isolated** from DB proposal spine |
 
 ### 19. Audit remediation status tracker
@@ -8213,17 +8216,15 @@ Builder Estimate workbench usable; Scope Review rows wrap; Set quantity reachabl
 
 ### 20. Next recommended sequence
 
-**Audit Remediation Track complete.** **Second whole-app audit before R18 passed** (§6BL.21). **Phase 4 Hide complete** at `e79c53a` (§6BL.13). **Phase 4A complete** at `1424f1e` (§6BL.14). **Phase 4B complete** at `38a126e` (§6BL.15). **Phase 4C is future backlog only** (§6BL.16). **Next:** **R18/public proposal architecture planning** — **planning/research only**. **Do not enable Send/PDF/Sign/Payment/public route/lifecycle yet.**
+**Audit Remediation Track complete.** **Second whole-app audit before R18 passed** (§6BL.21). **R18A public proposal architecture planning complete** (§6BM). **Phase 4 Hide complete** at `e79c53a` (§6BL.13). **Phase 4A complete** at `1424f1e` (§6BL.14). **Phase 4B complete** at `38a126e` (§6BL.15). **Phase 4C is future backlog only** (§6BL.16). **Next:** **R18B immutable sent snapshot foundation** — **not** a basic public page; **Send/PDF/Sign/Payment/public route/lifecycle remain disabled** until each R18 phase is explicitly approved.
 
-**A. R18/public proposal architecture planning (recommended first step):**
+**A. R18B immutable sent snapshot foundation (recommended first implementation slice — after explicit approval):**
 
-- Public customer proposal route architecture
-- Approval/signing/payment boundaries
-- PDF/send boundaries
-- Token/security model
-- Immutable sent/public snapshot requirements
-- Contractor authenticated Preview vs public customer view separation
-- **Planning/research only** — **do not build or enable lifecycle actions** until architecture is reviewed and explicitly approved
+- Transactional freeze-on-send RPC creating `proposal_versions` with `version_kind='sent'`
+- Copy pages/options/line items/display settings/branding/customer context/terms into sent version
+- Draft remains separately editable; public truth binds to sent version only
+- **Do not build public route, Send, PDF, Sign, or Payment** until R18C+ phases approved
+- Full architecture: **§6BM** (R18A complete)
 
 **B. Continue preserving:**
 
@@ -8353,7 +8354,179 @@ Builder Estimate workbench usable; Scope Review rows wrap; Set quantity reachabl
 | Preview graph fetch includes `proposal_internal_summaries` but UI does not expose contractor-only data | Deferred optimization |
 | “Hide from customer” → neutral customer-visibility language | Deferred UX backlog |
 
-**Verdict:** **PASS — no blockers before R18/public proposal architecture planning.**
+**Verdict:** **PASS — no blockers before R18 implementation planning; R18A architecture complete** (§6BM).
+
+---
+
+## 6BM. R18 PUBLIC PROPOSAL ARCHITECTURE — R18A PLANNING CHECKPOINT
+
+**Status:** **R18A complete** — architecture planning only; **no implementation**. **Code checkpoint:** **`38a126e`**. **Docs checkpoint:** **pending this commit** (prior: **`3e892d4`**). **Next:** **R18B immutable sent snapshot foundation** — explicit scoped approval required. **Send / PDF / Sign / Payment / public customer route / lifecycle remain disabled** until each R18 phase is explicitly approved.
+
+### 1. Core architecture decision
+
+**R18 must not start with a basic public page or quick customer link.**
+
+**R18 must start with immutable sent/public snapshot architecture.**
+
+| Surface | Graph truth | Auth |
+|---------|-------------|------|
+| **Builder** | Mutable **draft** graph | Contractor session |
+| **Contractor Preview** | Mutable **draft** graph (review only) | Contractor session |
+| **Public customer proposal** | **Frozen sent** `proposal_versions` snapshot only | Public token |
+
+**Core principles:**
+
+- Draft Builder and contractor Preview use the **mutable draft graph**.
+- Public customer proposal reads a **frozen sent version/snapshot only**.
+- Builder edits after send **must not mutate** public/sent customer truth.
+- Revisions require **new sent version**, **duplicate/resend**, or **supersede** flow (Roofr-aligned).
+- **Do not reuse** legacy KV `/approve/[token]` for DB proposals (`app/lib/kv.ts` is legacy estimate spine only).
+
+### 2. Roofr research findings (public sources)
+
+**Confirmed Roofr-aligned behaviors:**
+
+| Behavior | Sources |
+|----------|---------|
+| **Preview and Send** contractor gate before customer delivery | [Roofr Academy — Sending and Signing Proposals](https://academy.roofr.com/lesson-videos/sending-proposals) |
+| **E-signature-ready** interactive customer proposal (not PDF-first) | [Roofr Proposals product](https://roofr.com/proposals), Academy |
+| Customer **review and sign** on phone/tablet; **Sign Now** in-person | Academy, [Help — create proposal](https://roofrhelp.zendesk.com/hc/en-us/articles/33558996111511) |
+| **Sent / viewed** status tracking on job card + proposals dashboard | Academy |
+| **Signed proposal immutable**; changes require **copy + re-send** | [Help — Update Signed Proposal](https://roofrhelp.zendesk.com/hc/en-us/articles/31586375583383) |
+| **Unsigned sent** can cancel signature request and edit original | Help — Update Signed Proposal |
+| **Co-signer / sequential signing** (primary signs → co-signer emailed) | [Help — customize proposal](https://roofrhelp.zendesk.com/hc/en-us/articles/33886302824471), Academy |
+| **Multi-option** templates; customer selects option when viewing/signing | [Help — proposal template](https://roofrhelp.zendesk.com/hc/en-us/articles/33413003649943), Masterclass |
+| **Display customization** (line prices, qty, subtotals toggles) | Help — template + estimate settings |
+| **PDF download/sign** capability | Academy, product page |
+| **Payment/deposit** generally via **invoice/payment request after sign** — not first public-route slice | [Help — Invoices](https://roofrhelp.zendesk.com/hc/en-us/articles/33381809091351), [Payments help](https://roofr.com/help/how-to-request-credit-card-ach-payments) |
+
+**Research uncertainties (do not invent behavior):**
+
+| Gap | FieldDive stance |
+|-----|------------------|
+| Exact public **token/link URL format** | Not public — design FieldDive token route independently |
+| Exact **expiration** automation | Unclear in Roofr public docs — FieldDive should design **token TTL + revocation** even if Roofr is loose |
+| **Live upgrade pricing** on customer doc vs frozen-at-send | **Architecture decision required** — default **freeze at send**; option/upgrade selection recorded on acceptance, not by mutating sent lines |
+| **Payment on proposal page** vs invoice-linked | **Defer payment-on-proposal** — invoice/payment spine in **R18I** |
+
+### 3. Route architecture (planned — not built)
+
+| Route | Path | Auth | Status |
+|-------|------|------|--------|
+| Builder | `/tools/roofing/proposals/builder?job=&proposal=` | Contractor | **Live** |
+| Contractor Preview | `/tools/roofing/proposals/preview?job=&proposal=` | Contractor | **Live** |
+| Public customer proposal | `/p/[publicToken]` or `/proposal/[publicToken]` | **Token only** | **R18C+** |
+| Expired/revoked public | Same public route, error state | Token | **R18C+** |
+| Accept/sign step | Embedded in public route or subpath | Token + CSRF | **R18G** |
+| Legacy approval | `/approve/[token]` | None | **Legacy estimate only — preserve, isolate** |
+
+**Rules:**
+
+- Public route **must not** accept `job=` / `proposal=` UUID query params.
+- Contractor Preview **must not** become the public route (separate presenter + loader).
+- `productSpine.ts` must classify `public_proposal_customer` and block mixed spine.
+
+### 4. Security / token architecture (planned)
+
+- **Supabase-backed token table** for DB proposals — **not** KV legacy tokens.
+- Raw token shown/sent **once** at delivery; store **hash only** (e.g. SHA-256).
+- Bind token to: `company_id`, `proposal_id`, **`proposal_version_id` (sent)**, optional recipient hash.
+- **Expiration** (`expires_at`) and **revocation** (`revoked_at`, reason).
+- **Access logs** — append-only customer activity (viewed_at, ip_hash, user_agent).
+- **Public DTO only** — never expose: `proposal_internal_summaries`, raw scope decisions, unit costs, margins, catalog costs, contractor notes, Builder labels.
+
+### 5. Immutable sent snapshot model — R18B direction
+
+**R18B prepares foundation only** — does **not** enable Send, public route, sign, payment, or full lifecycle.
+
+Planned freeze-on-send flow (transactional RPC — mirror create/refresh pattern):
+
+1. Validate readiness (pricing complete, blockers, required pages).
+2. Final `refreshDraftPricing` + merge scope decisions (hide/exclude/manual qty).
+3. Create `proposal_versions` row: `version_kind='sent'`, `frozen_at=now()`.
+4. **Copy** pages, options, line_items, estimate `settings_json`, `context_echo`, terms into sent version.
+5. Update `proposals.latest_sent_version_id`, status/events (full lifecycle enablement later).
+6. Public token (R18C) binds to **sent version id** only.
+7. Draft version remains separately editable; signed sent version **immutable**; changes → duplicate/revision/resend.
+
+**Integrates completed work:** transactional create/refresh, scope decisions, display settings (4A/4B), `proposalCustomerEstimatePresenter`, branding/customer `context_echo` (R11c/R12).
+
+### 6. Data model / migrations likely needed (plan only — do not create yet)
+
+| Phase | Likely artifact |
+|-------|-----------------|
+| **R18B** | Transactional **`persist_proposal_send_freeze_v1`** (or send-prep freeze RPC); possible status/event enum extensions |
+| **R18C** | `proposal_public_access_tokens` (hashed), `proposal_customer_activity` |
+| **R18G** | `proposal_signers`, `proposal_signatures`, `proposal_acceptances` |
+| **R18F** | `proposal_delivery_attempts` |
+| **R18H** | `proposal_document_artifacts` (PDF storage refs) |
+| **R18I** | `proposal_payment_intents` (invoice-linked) |
+
+Existing tables reused: `proposals`, `proposal_versions`, `proposal_pages`, `proposal_options`, `proposal_line_items`, `proposal_events`.
+
+### 7. Lifecycle / status model (planned)
+
+| Status | R18 scope |
+|--------|-----------|
+| `draft`, `previewed` | Existing |
+| `sent`, `viewed` | R18C–F |
+| `option_selected`, `accepted`/`signed`, `declined` | R18G |
+| `revoked`, `expired`, `revised`, `archived` | R18C–G |
+| `deposit_requested`, `deposit_paid` | **Deferred R18I** |
+
+**R18B does not enable full lifecycle** — only immutable sent snapshot foundation.
+
+### 8. Premium customer UX vision (R18D target)
+
+- Branded hero/cover, customer/job identity, company contact footer.
+- Package/option presentation; estimate scope honoring **hide/exclude/display settings** (frozen at send).
+- Terms/warranty text pages from frozen context.
+- **Mobile-first** layout; trust indicators; clear pricing presentation.
+- Later CTAs: select option → sign → pay (phased).
+- **Not** a quick public HTML dump; **not** Builder/workbench UI exposed publicly.
+
+### 9. Contractor workflow (R18E target)
+
+- **Preview and Send** gate (Roofr-aligned).
+- Readiness checklist: pricing complete, branding/customer identity, display settings review, hidden/excluded summary.
+- Send remains **disabled** until R18F explicitly approved.
+
+### 10. Deferred backlog boundaries (unchanged)
+
+- Add catalog / custom line / move to upgrade / quantity source — **deferred**
+- Phase 4C qty/unit/subtotal granularity — **deferred**
+- Mark N/A — **product drift / do not implement**
+- Neutral customer-visibility wording — **UX polish backlog**
+- Send / PDF / Sign / Payment / public route / lifecycle — **disabled until phased approval**
+
+### 11. Recommended R18 staging (mandatory order)
+
+| Phase | Deliverable |
+|-------|-------------|
+| **R18A** | Architecture plan / docs checkpoint — **complete** |
+| **R18B** | Immutable sent snapshot foundation |
+| **R18C** | Token + public read skeleton |
+| **R18D** | Premium public proposal UI (frozen snapshot consumer) |
+| **R18E** | Contractor Preview-and-Send / readiness gate |
+| **R18F** | Email delivery |
+| **R18G** | Acceptance / signature |
+| **R18H** | PDF from frozen snapshot |
+| **R18I** | Deposit / payment (invoice-linked) |
+| **R18J** | Full lifecycle audit |
+
+**Why B before D/C UI:** public page must not read live draft graph.
+
+### 12. Stop conditions (halt implementation if)
+
+- Public route reads **live draft graph** (`current_draft_version_id` directly).
+- Token security not designed (hashing, expiry, revocation).
+- No **immutable sent snapshot** RPC approved.
+- Internal data exposed on public DTO.
+- Contractor Preview reused as public route.
+- Send/PDF/Sign/Payment enabled before phase approval.
+- Payment/signature assumptions unclear.
+- Mobile customer UX not in acceptance criteria.
+- Legacy KV `/approve/[token]` reused for DB proposals.
 
 ---
 
@@ -8510,33 +8683,34 @@ Then open and read **in this file** (in order):
 31. **§6BI** — R17D Phase 2 manual quantity set/update UI/API + full audit checkpoint (historical Phase 2; read for set/update context; superseded by §6BJ / §6BK for current manual quantity resume)
 32. **§6BJ** — R17D Phase 2.5 manual quantity reset + full audit checkpoint (historical Phase 2.5; read for reset context; superseded by §6BK for current exclude/remove resume)
 33. **§6BK** — R17D Phase 3A exclude/remove from option + full audit checkpoint (**historical Phase 3A only**; superseded by §6BL for current resume)
-34. **§6BL** — Audit Remediation Track post whole-app audit (**complete**; **second whole-app audit before R18 PASS** at §6BL.21; read before R18/public proposal architecture planning; **Phase 4 Hide complete** at `e79c53a` §6BL.13; **Phase 4A/4B estimate display settings complete** at `1424f1e`/`38a126e` §6BL.14–§6BL.15)
-35. **§3 Builder-specific rule + Roofr-aligned product principle** — no-drift rules; **Playwright MCP test-only guardrail**
-36. **§6AD** — DB-first foundation Phases A–D
-37. **§6AE** — 3J3E option persistence + quantity resolver coverage
-38. **§6AF** — pricing trust hardening
-39. **§9** — required first prompt / resume instructions (this section)
-40. **§11** — roadmap buckets (TODAY / NEXT / LATER / DO NOT DO YET), current checkpoint, built-surface audit, manual smoke; **§11 — Future / Later bucket → Proposal Builder**
+34. **§6BL** — Audit Remediation Track post whole-app audit (**complete**; **second whole-app audit before R18 PASS** at §6BL.21; **Phase 4 Hide complete** at `e79c53a` §6BL.13; **Phase 4A/4B estimate display settings complete** at `1424f1e`/`38a126e` §6BL.14–§6BL.15)
+35. **§6BM** — **R18A public proposal architecture plan** (**complete** — read before any R18 implementation; **immutable sent snapshot first**; Send/PDF/Sign/Payment/public route/lifecycle phased/disabled)
+36. **§3 Builder-specific rule + Roofr-aligned product principle** — no-drift rules; **Playwright MCP test-only guardrail**
+37. **§6AD** — DB-first foundation Phases A–D
+38. **§6AE** — 3J3E option persistence + quantity resolver coverage
+39. **§6AF** — pricing trust hardening
+40. **§9** — required first prompt / resume instructions (this section)
+41. **§11** — roadmap buckets (TODAY / NEXT / LATER / DO NOT DO YET), current checkpoint, built-surface audit, manual smoke; **§11 — Future / Later bucket → Proposal Builder**
 
 **Verify HEAD** is this docs commit after approved/committed (code remains **`38a126e`** or newer); if newer, reconcile this doc.
 
-**Latest docs checkpoint:** **pending this commit** (prior: **`f55566d`** — docs: record R17D Phase 4A + 4B estimate display settings checkpoint).
+**Latest docs checkpoint:** **pending this commit** (prior: **`3e892d4`** — docs: record second whole-app audit before R18 planning).
 
-**Mandatory read through §6BL** before R18/public proposal architecture planning.
+**Mandatory read through §6BM** before any R18 implementation.
 
 **Next action (mandatory first resume step):**
 
-1. **R18/public proposal architecture planning** (§6BL.20–§6BL.21) — **planning/research only**; **not** lifecycle implementation.
-2. **First R18 planning topics:** public customer proposal route architecture; approval/signing/payment boundaries; PDF/send boundaries; token/security model; immutable sent/public snapshot requirements; contractor Preview vs public customer view separation.
+1. **R18B immutable sent snapshot foundation** (§6BM.5–§6BM.6) — **first implementation slice** after explicit scoped approval; **not** a basic public page or public route.
+2. **R18A complete** (§6BM) — architecture locked: draft/Preview = mutable graph; public customer = frozen sent snapshot only; token security; route separation; premium UX vision; R18B–R18J staging.
 3. **Audit Remediation Track complete.** **Second whole-app audit before R18 passed** (§6BL.21) — **no blockers**.
 4. **Phase 4 Hide complete** at `e79c53a` (§6BL.13). **Phase 4A estimate display policy consumer complete** at `1424f1e` (§6BL.14). **Phase 4B Builder display settings editing complete** at `38a126e` (§6BL.15). **Phase 4C qty/unit/subtotal granularity is future backlog only** (§6BL.16). **Post-transaction spine audit passed** (§6BL.11). **Mark N/A drift cleanup complete** at `8dd8e7f` — **do not implement Mark N/A** (§6BL.12).
-5. **Send / Sign / Payment / PDF / public customer sharing remain disabled** until R18 architecture is planned, reviewed, and explicitly approved.
+5. **Send / Sign / Payment / PDF / public customer route / lifecycle remain disabled** until each R18 phase is explicitly approved (§6BM.11).
 
-**Do not enable** Send / Sign / Payment / PDF / public customer route / lifecycle without explicit scoped direction and architecture approval. **Do not start R18 implementation** until planning is complete and approved.
+**Do not enable** Send / Sign / Payment / PDF / public customer route / lifecycle without explicit scoped direction and per-phase approval. **Do not start R18B** until this docs checkpoint is reviewed and approved.
 
 **Confirm** working tree is clean (or note doc-only WIP).
 
-**Whole-app Roofr-aligned audit passed** (2026-06-18, §6AZ) + **R16B validation passed** (§6AY) + **R16C1 browser audit passed** (§6BA) + **R16C2 pre-commit audit passed** (§6BB) + **R16C3 pre-commit audit passed** (§6BC) + **R16C final whole-Builder audit passed** (§6BD) + **R17A/R17B pre-commit audit passed** (§6BE) + **R17C1 pre-commit audit passed** (§6BF) + **R17C2 pre-commit audit passed** (§6BG) + **R17D Phase 1 pre-commit validation passed** (§6BH) + **R17D Phase 2 automated tests passed** (§6BI) + **R17D Phase 2 full audit passed** (§6BI) + **R17D Phase 2.5 automated tests passed** (§6BJ) + **R17D Phase 2.5 full audit passed** (§6BJ) + **R17D Phase 3A automated tests passed** (§6BK) + **R17D Phase 3A full audit passed** (§6BK) → **post-Phase-3A whole-app audit triggered Audit Remediation Track** (§6BL). **Remediation 1 complete** at `6e27716`; **Remediation 2B complete** at `377dfe2`; **Remediation 3A complete** at `b65c684`; **Transactional create Remediation 4A complete** at `daf5268`; **Transactional create Remediation 4B migration applied** manually on `rhquhnujjnzjhweypavd`; **Transactional create Remediation 4C complete** at `f684b73`; **Post-transaction spine audit passed** (§6BL.11); **Mark N/A drift cleanup complete** at `8dd8e7f` (§6BL.12); **R17D Phase 4 Hide complete** at `e79c53a` (§6BL.13); **R17D Phase 4A estimate display policy consumer complete** at `1424f1e` (§6BL.14); **R17D Phase 4B Builder display settings editing complete** at `38a126e` (§6BL.15); **second whole-app audit before R18 passed** (§6BL.21). **R0–R15** complete/satisfied; **R16A** at `18cebca` (§6AX); **R16B** at `589f5a0` (§6AY); **R16C1** at `967f0de` (§6BA); **R16C2** at `0cf76d2` (§6BB); **R16C3** at `25f1375` (§6BC); **R17A/R17B** at `8ac2bcb` (§6BE); **R17C1** at `9c2244a` (§6BF); **R17C2** at `3e65774` (§6BG); **R17D Phase 1** at `43c83a2` (§6BH); **R17D Phase 2** at `f5712ff` (§6BI); **R17D Phase 2.5** at `a12fb92` (§6BJ); **R17D Phase 3A** at `2dca3c0` (§6BK). **Code:** `38a126e`. **Next:** **§6BL.20** — R18/public proposal architecture planning; **not** R18 implementation until architecture approved. **Migrations applied on configured project `rhquhnujjnzjhweypavd`:** `20260618_009` (scope decisions), `20260624_010` (refresh pricing RPC), `20260625_011` (create draft RPC). **Header Preview enabled** for saved drafts; **Send / Sign / Payment / PDF / public customer sharing remain disabled**. **Mandatory order for historical context:** **§6AL** through **§6BK**; **current resume:** **§6BL** → **R18 planning**. **Do not** return to `loadSaved`/`currentSaved` as main workflow.
+**Whole-app Roofr-aligned audit passed** (2026-06-18, §6AZ) + **R16B validation passed** (§6AY) + **R16C1 browser audit passed** (§6BA) + **R16C2 pre-commit audit passed** (§6BB) + **R16C3 pre-commit audit passed** (§6BC) + **R16C final whole-Builder audit passed** (§6BD) + **R17A/R17B pre-commit audit passed** (§6BE) + **R17C1 pre-commit audit passed** (§6BF) + **R17C2 pre-commit audit passed** (§6BG) + **R17D Phase 1 pre-commit validation passed** (§6BH) + **R17D Phase 2 automated tests passed** (§6BI) + **R17D Phase 2 full audit passed** (§6BI) + **R17D Phase 2.5 automated tests passed** (§6BJ) + **R17D Phase 2.5 full audit passed** (§6BJ) + **R17D Phase 3A automated tests passed** (§6BK) + **R17D Phase 3A full audit passed** (§6BK) → **post-Phase-3A whole-app audit triggered Audit Remediation Track** (§6BL). **Remediation 1 complete** at `6e27716`; **Remediation 2B complete** at `377dfe2`; **Remediation 3A complete** at `b65c684`; **Transactional create Remediation 4A complete** at `daf5268`; **Transactional create Remediation 4B migration applied** manually on `rhquhnujjnzjhweypavd`; **Transactional create Remediation 4C complete** at `f684b73`; **Post-transaction spine audit passed** (§6BL.11); **Mark N/A drift cleanup complete** at `8dd8e7f` (§6BL.12); **R17D Phase 4 Hide complete** at `e79c53a` (§6BL.13); **R17D Phase 4A estimate display policy consumer complete** at `1424f1e` (§6BL.14); **R17D Phase 4B Builder display settings editing complete** at `38a126e` (§6BL.15); **second whole-app audit before R18 passed** (§6BL.21). **R0–R15** complete/satisfied; **R16A** at `18cebca` (§6AX); **R16B** at `589f5a0` (§6AY); **R16C1** at `967f0de` (§6BA); **R16C2** at `0cf76d2` (§6BB); **R16C3** at `25f1375` (§6BC); **R17A/R17B** at `8ac2bcb` (§6BE); **R17C1** at `9c2244a` (§6BF); **R17C2** at `3e65774` (§6BG); **R17D Phase 1** at `43c83a2` (§6BH); **R17D Phase 2** at `f5712ff` (§6BI); **R17D Phase 2.5** at `a12fb92` (§6BJ); **R17D Phase 3A** at `2dca3c0` (§6BK). **Code:** `38a126e`. **R18A complete** (§6BM). **Next:** **R18B immutable sent snapshot foundation** (§6BM.5–§6BM.6) — **not** R18 implementation until explicitly approved. **Migrations applied on configured project `rhquhnujjnzjhweypavd`:** `20260618_009` (scope decisions), `20260624_010` (refresh pricing RPC), `20260625_011` (create draft RPC). **Header Preview enabled** for saved drafts; **Send / Sign / Payment / PDF / public customer sharing remain disabled**. **Mandatory order for historical context:** **§6AL** through **§6BK**; **current resume:** **§6BM** → **R18B** (when approved). **Do not** return to `loadSaved`/`currentSaved` as main workflow.
 
 Inspect before planning **3F9** (or chosen stage):
 
@@ -8618,7 +8792,7 @@ Confirm: **Create proposal / Open proposal** on Job Card creates/reuses DB draft
 
 ## 11. FORWARD ROADMAP / NO-DRIFT NEXT STEPS
 
-**Current checkpoint override:** Header + **§6BL** supersede stale checkpoint lines in this section. **Code:** **`38a126e`**. **Docs:** pending this commit (prior: **`f55566d`**). **Audit Remediation Track complete.** **Second whole-app audit before R18 passed** (§6BL.21) — **no blockers**. **Transactional create Remediation 1–4C complete** through `f684b73`; **post-transaction spine audit passed** (§6BL.11); **Mark N/A drift cleanup complete** at `8dd8e7f` (§6BL.12); **Phase 4 Hide complete** at `e79c53a` (§6BL.13); **Phase 4A estimate display policy consumer complete** at `1424f1e` (§6BL.14); **Phase 4B Builder display settings editing complete** at `38a126e` (§6BL.15); **Phase 4C future backlog only** (§6BL.16); **immediate next:** **R18/public proposal architecture planning** (§6BL.20) — **planning/research only**; **Send/Sign/Payment/PDF/public route/lifecycle remain disabled** until architecture approved.
+**Current checkpoint override:** Header + **§6BL** + **§6BM** supersede stale checkpoint lines in this section. **Code:** **`38a126e`**. **Docs:** pending this commit (prior: **`3e892d4`**). **R18A complete** (§6BM). **Audit Remediation Track complete.** **Second whole-app audit before R18 passed** (§6BL.21) — **no blockers**. **Transactional create Remediation 1–4C complete** through `f684b73`; **post-transaction spine audit passed** (§6BL.11); **Mark N/A drift cleanup complete** at `8dd8e7f` (§6BL.12); **Phase 4 Hide complete** at `e79c53a` (§6BL.13); **Phase 4A estimate display policy consumer complete** at `1424f1e` (§6BL.14); **Phase 4B Builder display settings editing complete** at `38a126e` (§6BL.15); **Phase 4C future backlog only** (§6BL.16); **immediate next:** **R18B immutable sent snapshot foundation** (§6BM.5–§6BM.6) — **first implementation slice** after explicit approval; **Send/Sign/Payment/PDF/public route/lifecycle remain disabled** until each R18 phase approved.
 
 Use this section as the **ordered checklist** for future GPT/Cursor sessions.
 
@@ -9526,7 +9700,8 @@ Treat as **drift** if a session:
 
 ## Changelog (handoff doc only)
 
-- **2026-06-25:** **Post-second-whole-app-audit-before-R18 docs checkpoint** (pending this commit) — §6BL.18–§6BL.21 + header + §9 + §11 override; code at `38a126e`; prior docs `f55566d`; **Audit Remediation Track complete**; **second whole-app audit PASS** — **647/647** + **91/91** tests; static/route/builder/preview/network/mobile/a11y audits passed; **no blockers**; existing-template-line Edit Option parity closed; deferred shell items not blockers; **next:** R18/public proposal architecture **planning/research only**; Send/Sign/Payment/PDF/public route/lifecycle **remain disabled** until architecture planned, reviewed, and explicitly approved; Mark N/A remains drift; Phase 4C + catalog/custom/upgrade/qty-source deferred.
+- **2026-06-18:** **R18A public proposal architecture planning docs checkpoint** (pending this commit) — **§6BM** + header + §6BL.20 + §9 + §11 override; code at `38a126e`; prior docs `3e892d4`; **R18A complete** — immutable sent snapshot first (R18B); route/token/security/lifecycle/customer UX/contractor workflow/staging R18A–R18J documented; Roofr research findings + uncertainties recorded; **Send/PDF/Sign/Payment/public route/lifecycle remain disabled** until each phase explicitly approved; deferred backlog preserved (catalog/custom/upgrade/qty source, Phase 4C, Mark N/A do-not-implement, neutral visibility wording); **next:** R18B after explicit scoped approval.
+- **2026-06-25:** **Post-second-whole-app-audit-before-R18 docs checkpoint** (`3e892d4`) — §6BL.18–§6BL.21 + header + §9 + §11 override; code at `38a126e`; prior docs `f55566d`; **Audit Remediation Track complete**; **second whole-app audit PASS** — **647/647** + **91/91** tests; static/route/builder/preview/network/mobile/a11y audits passed; **no blockers**; existing-template-line Edit Option parity closed; deferred shell items not blockers; **historical next at that time:** R18/public proposal architecture planning — **now complete** at §6BM (R18A).
 - **2026-06-18:** **Post-R17D Phase 4A + 4B estimate display settings docs checkpoint** (`f55566d`) — §6BL.14–§6BL.20 + header + §9 + §11 override; code at `38a126e` (Builder proposal-level `settings_json` display settings editing) + `1424f1e` (Preview display policy consumer); prior docs `1dd303a`; **Phase 4A/4B complete**; **Phase 4C future backlog only**; Mark N/A remains drift; Send/Sign/Payment/PDF/public route/lifecycle **disabled**; **647/647** tests; browser smoke on proposal `3db12ac5-…` / job `c3a26242-…`; **historical next at that time:** remaining audit remediation + second whole-app audit — **now complete** (§6BL.21).
 - **2026-06-24:** **Post-R17D Phase 4 Hide from customer docs checkpoint** (`1dd303a`) — §6BL.13 + header + §9 + §11 override; code at `e79c53a` (`visibility_override` hide-from-customer; **624/624** tests; browser smoke on proposal `3db12ac5-…`); prior docs `50b6a4d`; **Phase 4 Hide complete**; Mark N/A remains drift; Send/Sign/Payment/PDF/public route/lifecycle **disabled**; **historical next at that time:** estimate display settings review — **now complete** at `1424f1e`/`38a126e` (§6BL.14–§6BL.15).
 - **2026-06-18:** **Post-transaction spine audit + Mark N/A drift cleanup docs checkpoint** (`50b6a4d`) — §6BL.11–§6BL.17 + header + §9 + §11 override; code at `8dd8e7f` (Mark N/A visible drift removed; **no Mark N/A implementation**); prior docs `21e2c79`; post-transaction spine audit **PASS** — **19/19** create persistence + **619/619** proposal lib; existing/new draft RPC smoke; legacy isolation; protected surfaces; mobile 390px; **historical next at that time:** Phase 4 Hide if explicitly scoped — **now complete** at `e79c53a` (§6BL.13).
