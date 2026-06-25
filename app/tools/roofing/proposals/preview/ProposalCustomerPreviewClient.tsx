@@ -38,6 +38,7 @@ import {
 } from "@/app/lib/proposalTemplateStore";
 import { BUILDER_STAGE } from "../builder/proposalBuilderConstants";
 import ProposalCustomerPreviewDocumentView from "./ProposalCustomerPreviewDocument";
+import ProposalCustomerPreviewPublicAccessPanel from "./ProposalCustomerPreviewPublicAccessPanel";
 
 export default function ProposalCustomerPreviewClient({
   companyId,
@@ -197,15 +198,32 @@ export default function ProposalCustomerPreviewClient({
       </header>
 
       {!loadComplete ? (
-        <div className={`${BUILDER_STAGE} text-sm text-slate-500`}>Loading preview…</div>
+        <div className={`${BUILDER_STAGE} space-y-4`}>
+          {hasValidParams && routeSpineLaunch.allowed ? (
+            <ProposalCustomerPreviewPublicAccessPanel
+              jobId={normalizedJobId}
+              proposalId={normalizedProposalId}
+              proposal={persistedGraph?.proposal ?? null}
+              loading
+            />
+          ) : null}
+          <div className="text-sm text-slate-500">Loading preview…</div>
+        </div>
       ) : loadError ? (
         <div
           className={`${BUILDER_STAGE} rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800`}
         >
           {loadError}
         </div>
-      ) : previewDocument ? (
+      ) : previewDocument && persistedGraph ? (
         <div className={`${BUILDER_STAGE} space-y-4`}>
+          <ProposalCustomerPreviewPublicAccessPanel
+            jobId={normalizedJobId}
+            proposalId={normalizedProposalId}
+            proposal={persistedGraph.proposal}
+            loading={false}
+          />
+
           {previewDocument.readiness.warnings.length > 0 || pricingStale.stale ? (
             <div className="space-y-2 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
               {pricingStale.stale ? <p>{PROPOSAL_PRICING_STALE_BANNER_COPY}</p> : null}
