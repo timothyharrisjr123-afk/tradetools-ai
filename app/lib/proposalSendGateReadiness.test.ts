@@ -10,7 +10,9 @@ import { describe, test } from "node:test";
 import type { ProposalSendFreezeReadiness } from "./proposalSendFreezeReadiness";
 import {
   buildProposalSendGateReadinessViewModel,
+  canPrepareCustomerSendLink,
   SEND_GATE_CUSTOMER_LINK_PLACEHOLDER,
+  SEND_GATE_CUSTOMER_LINK_READY_LABEL,
   SEND_GATE_DEFERRED_ACTIONS,
   SEND_GATE_DELIVERY_DISABLED_MESSAGE,
   SEND_GATE_LOADING_MESSAGE,
@@ -18,6 +20,7 @@ import {
   SEND_GATE_NO_SENT_SNAPSHOT_BODY,
   SEND_GATE_PANEL_INTRO,
   SEND_GATE_PANEL_TITLE,
+  SEND_GATE_PREPARE_CUSTOMER_LINK_LABEL,
 } from "./proposalSendGateReadiness";
 
 function readySendFreeze(overrides: Partial<ProposalSendFreezeReadiness> = {}): ProposalSendFreezeReadiness {
@@ -74,6 +77,7 @@ describe("buildProposalSendGateReadinessViewModel", () => {
     assert.equal(vm.summary, SEND_GATE_LOADING_MESSAGE);
     assert.equal(vm.deliveryEnabled, false);
     assert.equal(vm.canSend, false);
+    assert.equal(vm.canPrepareCustomerLink, false);
     assert.equal(vm.checklist.every((item) => item.status === "loading"), true);
   });
 
@@ -99,6 +103,7 @@ describe("buildProposalSendGateReadinessViewModel", () => {
     assert.match(customerView?.detail ?? "", /needs sent snapshot/i);
     assert.equal(sentSnapshot?.status, "missing");
     assert.match(sentSnapshot?.detail ?? "", /not created yet/i);
+    assert.equal(vm.canPrepareCustomerLink, true);
   });
 
   test("sent snapshot ready keeps send disabled because delivery is not enabled", () => {
@@ -116,11 +121,31 @@ describe("buildProposalSendGateReadinessViewModel", () => {
     assert.equal(vm.canSend, false);
     assert.equal(vm.deliveryEnabled, false);
     assert.equal(vm.disabledReason, SEND_GATE_DELIVERY_DISABLED_MESSAGE);
+    assert.equal(vm.canPrepareCustomerLink, true);
 
     const customerView = vm.checklist.find((item) => item.id === "customer_view");
     const sentSnapshot = vm.checklist.find((item) => item.id === "sent_snapshot");
     assert.equal(customerView?.status, "ready");
     assert.equal(sentSnapshot?.status, "ready");
+  });
+
+  test("canPrepareCustomerLink is false when readiness blocks", () => {
+    const vm = buildProposalSendGateReadinessViewModel({
+      hasSentSnapshot: false,
+      sendFreezeReadiness: readySendFreeze({ ready: false, blockingReasons: ["Blocked"] }),
+      previewReadiness: previewReadiness({ pricingComplete: false, blockingLineCount: 2 }),
+      recipientEmail: null,
+      customerFirstName: null,
+      companyName: null,
+      projectAddress: null,
+    });
+
+    assert.equal(vm.canPrepareCustomerLink, false);
+  });
+
+  test("R18D2 copy constants are present", () => {
+    assert.equal(SEND_GATE_PREPARE_CUSTOMER_LINK_LABEL, "Prepare customer link");
+    assert.equal(SEND_GATE_CUSTOMER_LINK_READY_LABEL, "Customer link ready");
   });
 
   test("missing recipient email surfaces missing checklist and body guidance", () => {
@@ -338,8 +363,9 @@ describe("R18D1 send gate guardrails", () => {
     assert.match(panel, /Send proposal/);
     assert.match(panel, /SEND_GATE_DELIVERY_DISABLED_MESSAGE/);
     assert.match(panel, /SEND_GATE_CUSTOMER_LINK_PLACEHOLDER|linkLabel/);
-    assert.doesNotMatch(panel, /\/api\/proposals\/send/);
-    assert.doesNotMatch(panel, /fetch\(/);
+    assert.match(panel, /\/api\/proposals\/send-prep/);
+    assert.match(panel, /SEND_GATE_PREPARE_CUSTOMER_LINK_LABEL/);
+    assert.doesNotMatch(panel, /\/api\/proposals\/send(?!-prep)/);
     assert.doesNotMatch(builderClient, /ProposalCustomerPreviewSendGatePanel/);
   });
 });

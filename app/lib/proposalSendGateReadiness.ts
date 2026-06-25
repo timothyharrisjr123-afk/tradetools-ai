@@ -27,6 +27,14 @@ export const SEND_GATE_MISSING_RECIPIENT_BODY =
   "Add a customer email before this proposal can be sent.";
 
 export const SEND_GATE_CUSTOMER_LINK_PLACEHOLDER = "Available after send";
+export const SEND_GATE_CUSTOMER_LINK_READY_LABEL = "Customer link ready";
+
+export const SEND_GATE_PREPARE_CUSTOMER_LINK_LABEL = "Prepare customer link";
+export const SEND_GATE_PREPARING_CUSTOMER_LINK_MESSAGE = "Preparing customer link…";
+export const SEND_GATE_CUSTOMER_LINK_READY_TITLE = "Customer send link ready.";
+export const SEND_GATE_CUSTOMER_LINK_READY_BODY =
+  "This creates the customer proposal link but does not email the customer.";
+export const SEND_GATE_SNAPSHOT_PREPARED_LABEL = "Snapshot prepared";
 
 export const SEND_GATE_DEFERRED_SIGNATURE = "Signature — coming later";
 export const SEND_GATE_DEFERRED_PDF = "PDF — coming later";
@@ -76,6 +84,7 @@ export type ProposalSendGateReadinessViewModel = {
   body: string | null;
   deliveryEnabled: false;
   canSend: false;
+  canPrepareCustomerLink: boolean;
   disabledReason: string;
   checklist: SendGateChecklistItem[];
   messagePreview: SendGateMessagePreview;
@@ -165,6 +174,45 @@ export function hasProposalSendSnapshot(proposal: Pick<
 > | null): boolean {
   if (!proposal) return false;
   return hasPublicProposalSentSnapshot(proposal);
+}
+
+export function isSendPrepReadinessBlocking(input: {
+  sendFreezeReadiness: ProposalSendFreezeReadiness | null;
+  previewReadiness: Pick<
+    ProposalCustomerPreviewReadiness,
+    "blockingLineCount" | "pricingComplete"
+  > | null;
+  recipientEmail: string | null;
+}): boolean {
+  if (!input.recipientEmail) {
+    return true;
+  }
+  if (!input.sendFreezeReadiness?.ready) {
+    return true;
+  }
+  if ((input.previewReadiness?.blockingLineCount ?? 0) > 0) {
+    return true;
+  }
+  if (input.previewReadiness?.pricingComplete === false) {
+    return true;
+  }
+  return false;
+}
+
+export function canPrepareCustomerSendLink(input: {
+  loading: boolean;
+  prepPending?: boolean;
+  sendFreezeReadiness: ProposalSendFreezeReadiness | null;
+  previewReadiness: Pick<
+    ProposalCustomerPreviewReadiness,
+    "blockingLineCount" | "pricingComplete"
+  > | null;
+  recipientEmail: string | null;
+}): boolean {
+  if (input.loading || input.prepPending) {
+    return false;
+  }
+  return !isSendPrepReadinessBlocking(input);
 }
 
 function buildDefaultSubject(companyName: string | null): string {
@@ -374,6 +422,7 @@ export function buildProposalSendGateReadinessViewModel(
       body: null,
       deliveryEnabled: false,
       canSend: false,
+      canPrepareCustomerLink: false,
       disabledReason,
       checklist: [
         {
@@ -420,6 +469,13 @@ export function buildProposalSendGateReadinessViewModel(
     buildBrandingChecklist(input.sendFreezeReadiness),
   ];
 
+  const canPrepareCustomerLink = canPrepareCustomerSendLink({
+    loading: false,
+    sendFreezeReadiness: input.sendFreezeReadiness,
+    previewReadiness: input.previewReadiness,
+    recipientEmail: input.recipientEmail,
+  });
+
   if (!input.hasSentSnapshot) {
     return {
       phase: "no_sent_snapshot",
@@ -428,6 +484,7 @@ export function buildProposalSendGateReadinessViewModel(
       body: SEND_GATE_NO_SENT_SNAPSHOT_BODY,
       deliveryEnabled: false,
       canSend: false,
+      canPrepareCustomerLink,
       disabledReason,
       checklist,
       messagePreview,
@@ -447,6 +504,7 @@ export function buildProposalSendGateReadinessViewModel(
     body: bodyParts.length > 0 ? bodyParts.join(" ") : null,
     deliveryEnabled: false,
     canSend: false,
+    canPrepareCustomerLink,
     disabledReason,
     checklist,
     messagePreview,

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { ExternalLink, Link2, Loader2 } from "lucide-react";
 import { deriveProposalSendFreezeReadiness } from "@/app/lib/proposalSendFreezeReadiness";
 import type { ProposalCustomerPreviewReadiness } from "@/app/lib/proposalCustomerPreviewViewModel";
 import type { JobRecord } from "@/app/lib/jobTypes";
@@ -13,13 +14,26 @@ import {
   resolveSendGateCustomerName,
   resolveSendGateProjectAddress,
   resolveSendGateRecipientEmail,
+  SEND_GATE_CUSTOMER_LINK_READY_BODY,
+  SEND_GATE_CUSTOMER_LINK_READY_LABEL,
+  SEND_GATE_CUSTOMER_LINK_READY_TITLE,
   SEND_GATE_DELIVERY_DISABLED_MESSAGE,
   SEND_GATE_PANEL_TITLE,
+  SEND_GATE_PREPARE_CUSTOMER_LINK_LABEL,
+  SEND_GATE_PREPARING_CUSTOMER_LINK_MESSAGE,
   type SendGateChecklistStatus,
 } from "@/app/lib/proposalSendGateReadiness";
 import { BUILDER_CARD, BUILDER_DISABLED_ACTION } from "../builder/proposalBuilderConstants";
 
+type SendPrepSessionLink = {
+  publicUrl: string;
+  tokenPrefix: string;
+  expiresAt: string | null;
+};
+
 type ProposalCustomerPreviewSendGatePanelProps = {
+  jobId: string;
+  proposalId: string;
   graph: ProposalDraftGraph | null;
   job: JobRecord | null;
   previewReadiness: ProposalCustomerPreviewReadiness | null;
@@ -29,6 +43,9 @@ type ProposalCustomerPreviewSendGatePanelProps = {
 
 const SEND_PRIMARY_ACTION =
   "inline-flex w-full items-center justify-center gap-2 rounded-md border border-blue-300 bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400 sm:w-auto";
+
+const SEND_SECONDARY_ACTION =
+  "inline-flex w-full items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-400 sm:w-auto";
 
 function checklistStatusClass(status: SendGateChecklistStatus): string {
   switch (status) {
@@ -47,12 +64,19 @@ function checklistStatusClass(status: SendGateChecklistStatus): string {
 }
 
 export default function ProposalCustomerPreviewSendGatePanel({
+  jobId,
+  proposalId,
   graph,
   job,
   previewReadiness,
   pricingStale = false,
   loading,
 }: ProposalCustomerPreviewSendGatePanelProps) {
+  const [sessionCustomerLink, setSessionCustomerLink] = useState<SendPrepSessionLink | null>(null);
+  const [prepPending, setPrepPending] = useState(false);
+  const [prepErrorMessage, setPrepErrorMessage] = useState<string | null>(null);
+  const [copyMessage, setCopyMessage] = useState<string | null>(null);
+
   const sendFreezeReadiness = useMemo(() => {
     if (!graph || loading) return null;
     return deriveProposalSendFreezeReadiness({
@@ -91,7 +115,6 @@ export default function ProposalCustomerPreviewSendGatePanel({
       companyName,
       customerFirstName,
       graph,
-      job,
       loading,
       previewReadiness,
       pricingStale,
@@ -101,11 +124,96 @@ export default function ProposalCustomerPreviewSendGatePanel({
     ]
   );
 
+  const canPrepareCustomerLink =
+    readiness.canPrepareCustomerLink && !prepPending && !sessionCustomerLink;
+
   const [subjectDraft, setSubjectDraft] = useState<string | null>(null);
   const [bodyDraft, setBodyDraft] = useState<string | null>(null);
 
   const subjectValue = subjectDraft ?? readiness.messagePreview.subject;
   const bodyValue = bodyDraft ?? readiness.messagePreview.body;
+  const linkLabel = sessionCustomerLink
+    ? SEND_GATE_CUSTOMER_LINK_READY_LABEL
+    : readiness.messagePreview.linkLabel;
+
+  async function handlePrepareCustomerLink() {
+    if (!canPrepareCustomerLink || !recipientEmail) {
+      return;
+    }
+
+    setPrepPending(true);
+    setPrepErrorMessage(null);
+    setCopyMessage(null);
+
+    try {
+      const response = await fetch("/api/proposals/send-prep", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          proposalId,
+          jobId,
+          recipientEmail,
+        }),
+      });
+
+      const payload = (await response.json().catch(() => null)) as
+        | {
+            ok: true;
+            publicUrl: string;
+            tokenPrefix: string;
+            expiresAt: string | null;
+            snapshotStatus: string;
+            deliveryEnabled: false;
+          }
+        | { ok: false; message?: string }
+        | null;
+
+      if (!response.ok || !payload || payload.ok !== true || !payload.publicUrl) {
+        setPrepErrorMessage(
+          payload && payload.ok === false && payload.message
+            ? payload.message
+            : "We couldn't prepare a customer link yet. Check the proposal and try again."
+        );
+        setSessionCustomerLink(null);
+        return;
+      }
+
+      setSessionCustomerLink({
+        publicUrl: payload.publicUrl,
+        tokenPrefix: payload.tokenPrefix,
+        expiresAt: payload.expiresAt,
+      });
+      setPrepErrorMessage(null);
+    } catch {
+      setPrepErrorMessage(
+        "We couldn't prepare a customer link yet. Check the proposal and try again."
+      );
+      setSessionCustomerLink(null);
+    } finally {
+      setPrepPending(false);
+    }
+  }
+
+  function handleOpenCustomerProposal() {
+    if (!sessionCustomerLink?.publicUrl) {
+      return;
+    }
+
+    window.open(sessionCustomerLink.publicUrl, "_blank", "noopener,noreferrer");
+  }
+
+  async function handleCopyCustomerSendLink() {
+    if (!sessionCustomerLink?.publicUrl) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(sessionCustomerLink.publicUrl);
+      setCopyMessage("Customer send link copied.");
+    } catch {
+      setCopyMessage("Could not copy the customer send link.");
+    }
+  }
 
   return (
     <section
@@ -118,6 +226,12 @@ export default function ProposalCustomerPreviewSendGatePanel({
         </p>
         {readiness.phase === "loading" ? (
           <p className="text-sm text-slate-500">{readiness.summary}</p>
+        ) : sessionCustomerLink ? (
+          <>
+            <p className="text-sm font-medium text-slate-900">{SEND_GATE_CUSTOMER_LINK_READY_TITLE}</p>
+            <p className="text-sm text-slate-600">{SEND_GATE_CUSTOMER_LINK_READY_BODY}</p>
+            <p className="text-sm text-slate-500">{SEND_GATE_DELIVERY_DISABLED_MESSAGE}</p>
+          </>
         ) : (
           <>
             <p className="text-sm text-slate-700">{readiness.summary}</p>
@@ -180,12 +294,59 @@ export default function ProposalCustomerPreviewSendGatePanel({
             />
           </label>
           <p className="text-xs text-slate-500">
-            Public proposal link: {readiness.messagePreview.linkLabel}
+            Review your proposal here:
+            <span className="ml-1 font-medium text-slate-700">{linkLabel}</span>
           </p>
         </div>
       </div>
 
+      {prepErrorMessage ? (
+        <p className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          {prepErrorMessage}
+        </p>
+      ) : null}
+
+      {copyMessage ? <p className="text-sm text-emerald-700">{copyMessage}</p> : null}
+
       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+        {sessionCustomerLink ? (
+          <>
+            <button
+              type="button"
+              className={SEND_PRIMARY_ACTION}
+              onClick={handleOpenCustomerProposal}
+            >
+              <ExternalLink className="h-4 w-4" aria-hidden />
+              Open customer proposal
+            </button>
+            <button
+              type="button"
+              className={SEND_SECONDARY_ACTION}
+              onClick={() => void handleCopyCustomerSendLink()}
+            >
+              <Link2 className="h-4 w-4" aria-hidden />
+              Copy customer send link
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            className={SEND_PRIMARY_ACTION}
+            disabled={!canPrepareCustomerLink}
+            aria-disabled={!canPrepareCustomerLink}
+            onClick={() => void handlePrepareCustomerLink()}
+          >
+            {prepPending ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                {SEND_GATE_PREPARING_CUSTOMER_LINK_MESSAGE}
+              </>
+            ) : (
+              SEND_GATE_PREPARE_CUSTOMER_LINK_LABEL
+            )}
+          </button>
+        )}
+
         <button
           type="button"
           className={SEND_PRIMARY_ACTION}

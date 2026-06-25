@@ -209,6 +209,8 @@ export default function ProposalCustomerPreviewClient({
                 loading
               />
               <ProposalCustomerPreviewSendGatePanel
+                jobId={normalizedJobId}
+                proposalId={normalizedProposalId}
                 graph={persistedGraph}
                 job={job}
                 previewReadiness={null}
@@ -235,6 +237,8 @@ export default function ProposalCustomerPreviewClient({
           />
 
           <ProposalCustomerPreviewSendGatePanel
+            jobId={normalizedJobId}
+            proposalId={normalizedProposalId}
             graph={persistedGraph}
             job={job}
             previewReadiness={previewDocument.readiness}
