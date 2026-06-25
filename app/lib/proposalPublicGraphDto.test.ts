@@ -15,7 +15,7 @@ import {
   buildProposalSendFreezePersistPayload,
   buildSendFreezeGraphLikeFromPayload,
 } from "./proposalSendFreezePersistence";
-import type { ProposalDraftGraph, ProposalPageRow } from "./proposalRecordStore";
+import type { ProposalDraftGraph, ProposalPageRow, ProposalVersionGraph } from "./proposalRecordStore";
 
 const COMPANY_ID = "11111111-1111-4111-8111-111111111111";
 const PROPOSAL_ID = "33333333-3333-4333-8333-333333333333";
@@ -285,6 +285,62 @@ describe("buildProposalPublicGraphDto", () => {
     assert.equal(dto.version_kind, "sent");
     assert.equal(dto.frozen_at, "2026-06-18T12:00:00.000Z");
     assert.equal(dto.options[0]!.line_items.length, 1);
+  });
+
+  test("consumes explicit sent ProposalVersionGraph shape without scope decisions", () => {
+    const draft = draftGraph();
+    const versionGraph: ProposalVersionGraph = {
+      proposal: { ...draft.proposal, latest_sent_version_id: VERSION_ID },
+      version: {
+        ...draft.version,
+        version_kind: "sent",
+        frozen_at: "2026-06-18T12:00:00.000Z",
+        parent_version_id: draft.version.id,
+        version_number: 2,
+      },
+      pages: draft.pages,
+      options: draft.options,
+      lineItems: draft.lineItems,
+      internalSummaries: draft.internalSummaries,
+    };
+
+    const like = {
+      version: versionGraph.version,
+      pages: versionGraph.pages,
+      options: versionGraph.options.map((option) => ({
+        source_template_option_id: option.source_template_option_id!,
+        name: option.name,
+        customer_label: option.customer_label,
+        sort_order: option.sort_order,
+        visible_to_customer: option.visible_to_customer,
+        customer_subtotal_cents: option.customer_subtotal_cents,
+        discount_cents: option.discount_cents,
+        sales_tax_cents: option.sales_tax_cents,
+        customer_total_cents: option.customer_total_cents,
+        line_items: versionGraph.lineItems
+          .filter((line) => line.proposal_option_id === option.id)
+          .map((line) => ({
+            source_template_item_id: line.source_template_item_id,
+            customer_name: line.customer_name,
+            description: line.description,
+            quantity: line.quantity,
+            quantity_display_label: line.quantity_display_label,
+            unit: line.unit,
+            customer_unit_price_cents: line.customer_unit_price_cents,
+            customer_line_total_cents: line.customer_line_total_cents,
+            pricing_status: line.pricing_status,
+            visible_to_customer: line.visible_to_customer,
+            page_id: line.page_id,
+            sort_order: line.sort_order,
+          })),
+      })),
+    };
+
+    const dto = buildProposalPublicGraphDto(like, TEMPLATE_OPT_A);
+    assert.equal(dto.version_kind, "sent");
+    assert.ok(!("internalSummaries" in dto));
+    assert.ok(!("scopeDecisions" in dto));
+    assert.doesNotThrow(() => assertPublicDtoShape(dto));
   });
 });
 

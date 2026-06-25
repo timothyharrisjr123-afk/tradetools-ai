@@ -46,6 +46,8 @@ import {
   createDraftProposal,
   freezeDraftToSentSnapshot,
   getDraftGraph,
+  getLatestSentProposalVersionGraph,
+  getProposalVersionGraph,
   listProposalsForJob,
   ProposalRecordStoreError,
   PROPOSAL_SEND_FREEZE_RPC_PERSIST_STEP,
@@ -3197,6 +3199,386 @@ describe("freezeDraftToSentSnapshot", () => {
     assert.doesNotMatch(freezeFn, /refreshDraftPricing/);
     assert.doesNotMatch(source, /\/approve\/|app\/lib\/kv/);
     assert.doesNotMatch(source, /NEXT_PUBLIC_USE_PROPOSAL_SEND_FREEZE/);
+  });
+});
+
+function seedExplicitSentVersionGraph(
+  mock: ReturnType<typeof createMockSupabase>,
+  created: { proposal: { id: string }; versionId: string }
+): string {
+  const state = mock.state;
+  const draftVersionId = created.versionId;
+  const draftVersion = state.tables.proposal_versions.find(
+    (v) => v.id === draftVersionId
+  ) as Record<string, unknown>;
+
+  const sentVersionId = nextUuid(state, state.tables.proposal_versions.length);
+
+  state.tables.proposal_versions.push({
+    ...clone(draftVersion),
+    id: sentVersionId,
+    version_kind: "sent",
+    version_number: Number(draftVersion.version_number) + 1,
+    parent_version_id: draftVersionId,
+    frozen_at: "2026-06-18T12:00:00.000Z",
+  });
+
+  const draftPages = state.tables.proposal_pages.filter(
+    (p) => (p as Record<string, unknown>).proposal_version_id === draftVersionId
+  );
+  const pageIdMap = new Map<string, string>();
+  for (const page of draftPages) {
+    const p = page as Record<string, unknown>;
+    const newPageId = nextUuid(state, state.tables.proposal_pages.length);
+    pageIdMap.set(p.id as string, newPageId);
+    state.tables.proposal_pages.push({
+      ...clone(p),
+      id: newPageId,
+      proposal_version_id: sentVersionId,
+      title: `${String(p.title)}-sent`,
+    });
+  }
+
+  const draftOptions = state.tables.proposal_options.filter(
+    (o) => (o as Record<string, unknown>).proposal_version_id === draftVersionId
+  );
+  const optionIdMap = new Map<string, string>();
+  for (const option of draftOptions) {
+    const o = option as Record<string, unknown>;
+    const newOptionId = nextUuid(state, state.tables.proposal_options.length);
+    optionIdMap.set(o.id as string, newOptionId);
+    state.tables.proposal_options.push({
+      ...clone(o),
+      id: newOptionId,
+      proposal_version_id: sentVersionId,
+    });
+  }
+
+  for (const line of state.tables.proposal_line_items) {
+    const l = line as Record<string, unknown>;
+    const srcOptionId = l.proposal_option_id as string;
+    if (!optionIdMap.has(srcOptionId)) continue;
+    const newLineId = nextUuid(state, state.tables.proposal_line_items.length);
+    const srcPageId = l.page_id as string | null;
+    state.tables.proposal_line_items.push({
+      ...clone(l),
+      id: newLineId,
+      proposal_option_id: optionIdMap.get(srcOptionId),
+      page_id: srcPageId ? pageIdMap.get(srcPageId) ?? null : null,
+    });
+  }
+
+  for (const summary of state.tables.proposal_internal_summaries) {
+    const s = summary as Record<string, unknown>;
+    const srcOptionId = s.proposal_option_id as string;
+    if (!optionIdMap.has(srcOptionId)) continue;
+    const newSummaryId = nextUuid(state, state.tables.proposal_internal_summaries.length);
+    state.tables.proposal_internal_summaries.push({
+      ...clone(s),
+      id: newSummaryId,
+      proposal_option_id: optionIdMap.get(srcOptionId),
+    });
+  }
+
+  const proposal = state.tables.proposals.find((p) => p.id === created.proposal.id) as Record<
+    string,
+    unknown
+  >;
+  proposal.latest_sent_version_id = sentVersionId;
+
+  return sentVersionId;
+}
+
+describe("getProposalVersionGraph", () => {
+  test("loads explicit sent version pages/options/lines by proposal_version_id", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const created = await seedSendFreezeReadyProposal(mock, deps);
+    const sentVersionId = seedExplicitSentVersionGraph(mock, created);
+
+    const graph = await getProposalVersionGraph(
+      COMPANY_ID,
+      created.proposal.id,
+      sentVersionId,
+      {},
+      deps
+    );
+
+    assert.ok(graph);
+    assert.equal(graph.version.id, sentVersionId);
+    assert.equal(graph.version.version_kind, "sent");
+    assert.ok(graph.pages.length > 0);
+    assert.ok(graph.options.length > 0);
+    assert.ok(graph.lineItems.length > 0);
+    assert.ok(graph.pages.every((p) => p.proposal_version_id === sentVersionId));
+    assert.ok(graph.options.every((o) => o.proposal_version_id === sentVersionId));
+    assert.ok(!("scopeDecisions" in graph));
+  });
+
+  test("excludes internal summaries by default", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const created = await seedSendFreezeReadyProposal(mock, deps);
+    const sentVersionId = seedExplicitSentVersionGraph(mock, created);
+
+    const graph = await getProposalVersionGraph(
+      COMPANY_ID,
+      created.proposal.id,
+      sentVersionId,
+      {},
+      deps
+    );
+
+    assert.ok(graph);
+    assert.equal(graph.internalSummaries.length, 0);
+  });
+
+  test("includes internal summaries only when requested", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const created = await seedSendFreezeReadyProposal(mock, deps);
+    const sentVersionId = seedExplicitSentVersionGraph(mock, created);
+
+    const graph = await getProposalVersionGraph(
+      COMPANY_ID,
+      created.proposal.id,
+      sentVersionId,
+      { includeInternalSummaries: true },
+      deps
+    );
+
+    assert.ok(graph);
+    assert.ok(graph.internalSummaries.length > 0);
+  });
+
+  test("never loads scope decisions even when draft version has them", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const created = await seedSendFreezeReadyProposal(mock, deps);
+    mock.state.tables.proposal_option_scope_decisions.push({
+      id: "18181818-1818-4818-8818-181818181818",
+      company_id: COMPANY_ID,
+      proposal_id: created.proposal.id,
+      proposal_version_id: created.versionId,
+      proposal_option_id: (mock.state.tables.proposal_options[0] as Record<string, unknown>).id,
+      decision_type: "excluded",
+      source_template_item_id: "17171717-1717-4717-8717-171717171717",
+      instance_line_key: null,
+      payload_json: {},
+      active: true,
+      created_by: null,
+      updated_by: null,
+      created_at: "2026-06-06T00:00:00.000Z",
+      updated_at: "2026-06-06T00:00:00.000Z",
+    });
+    const sentVersionId = seedExplicitSentVersionGraph(mock, created);
+
+    const graph = await getProposalVersionGraph(
+      COMPANY_ID,
+      created.proposal.id,
+      sentVersionId,
+      {},
+      deps
+    );
+
+    assert.ok(graph);
+    assert.ok(mock.state.tables.proposal_option_scope_decisions.length > 0);
+    assert.ok(!("scopeDecisions" in graph));
+  });
+
+  test("requireSentVersion rejects draft version", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const created = await seedSendFreezeReadyProposal(mock, deps);
+
+    await assert.rejects(
+      () =>
+        getProposalVersionGraph(
+          COMPANY_ID,
+          created.proposal.id,
+          created.versionId,
+          { requireSentVersion: true },
+          deps
+        ),
+      (error: unknown) => {
+        assert.ok(error instanceof ProposalRecordStoreError);
+        assert.match(String(error.message), /not a sent\/signed snapshot/);
+        return true;
+      }
+    );
+  });
+
+  test("requireSentVersion rejects superseded version", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const created = await seedSendFreezeReadyProposal(mock, deps);
+    const sentVersionId = seedExplicitSentVersionGraph(mock, created);
+    const sentVersion = mock.state.tables.proposal_versions.find(
+      (v) => v.id === sentVersionId
+    ) as Record<string, unknown>;
+    sentVersion.version_kind = "superseded";
+
+    await assert.rejects(
+      () =>
+        getProposalVersionGraph(
+          COMPANY_ID,
+          created.proposal.id,
+          sentVersionId,
+          { requireSentVersion: true },
+          deps
+        ),
+      (error: unknown) => {
+        assert.ok(error instanceof ProposalRecordStoreError);
+        assert.match(String(error.message), /not a sent\/signed snapshot/);
+        return true;
+      }
+    );
+  });
+
+  test("requireSentVersion accepts sent version", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const created = await seedSendFreezeReadyProposal(mock, deps);
+    const sentVersionId = seedExplicitSentVersionGraph(mock, created);
+
+    const graph = await getProposalVersionGraph(
+      COMPANY_ID,
+      created.proposal.id,
+      sentVersionId,
+      { requireSentVersion: true },
+      deps
+    );
+
+    assert.ok(graph);
+    assert.equal(graph.version.version_kind, "sent");
+  });
+
+  test("requireSentVersion accepts signed version", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const created = await seedSendFreezeReadyProposal(mock, deps);
+    const sentVersionId = seedExplicitSentVersionGraph(mock, created);
+    const sentVersion = mock.state.tables.proposal_versions.find(
+      (v) => v.id === sentVersionId
+    ) as Record<string, unknown>;
+    sentVersion.version_kind = "signed";
+
+    const graph = await getProposalVersionGraph(
+      COMPANY_ID,
+      created.proposal.id,
+      sentVersionId,
+      { requireSentVersion: true },
+      deps
+    );
+
+    assert.ok(graph);
+    assert.equal(graph.version.version_kind, "signed");
+  });
+
+  test("wrong company/proposal/version combination returns null", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const created = await seedSendFreezeReadyProposal(mock, deps);
+    const sentVersionId = seedExplicitSentVersionGraph(mock, created);
+
+    assert.equal(
+      await getProposalVersionGraph(
+        "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+        created.proposal.id,
+        sentVersionId,
+        {},
+        deps
+      ),
+      null
+    );
+    assert.equal(
+      await getProposalVersionGraph(
+        COMPANY_ID,
+        "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+        sentVersionId,
+        {},
+        deps
+      ),
+      null
+    );
+    assert.equal(
+      await getProposalVersionGraph(
+        COMPANY_ID,
+        created.proposal.id,
+        "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+        {},
+        deps
+      ),
+      null
+    );
+  });
+
+  test("does not fall back to current_draft_version_id", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const created = await seedSendFreezeReadyProposal(mock, deps);
+    const sentVersionId = seedExplicitSentVersionGraph(mock, created);
+
+    const draftGraph = await getDraftGraph(COMPANY_ID, created.proposal.id, deps);
+    const sentGraph = await getProposalVersionGraph(
+      COMPANY_ID,
+      created.proposal.id,
+      sentVersionId,
+      {},
+      deps
+    );
+
+    assert.ok(draftGraph);
+    assert.ok(sentGraph);
+    assert.notEqual(draftGraph.pages[0]!.title, sentGraph!.pages[0]!.title);
+    assert.match(String(sentGraph!.pages[0]!.title), /-sent$/);
+  });
+
+  test("getLatestSentProposalVersionGraph returns latest sent when pointer exists", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const created = await seedSendFreezeReadyProposal(mock, deps);
+    const sentVersionId = seedExplicitSentVersionGraph(mock, created);
+
+    const graph = await getLatestSentProposalVersionGraph(
+      COMPANY_ID,
+      created.proposal.id,
+      { requireSentVersion: true },
+      deps
+    );
+
+    assert.ok(graph);
+    assert.equal(graph.version.id, sentVersionId);
+    assert.equal(graph.proposal.latest_sent_version_id, sentVersionId);
+  });
+
+  test("getLatestSentProposalVersionGraph returns null when pointer absent", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const created = await seedSendFreezeReadyProposal(mock, deps);
+
+    const graph = await getLatestSentProposalVersionGraph(
+      COMPANY_ID,
+      created.proposal.id,
+      {},
+      deps
+    );
+
+    assert.equal(graph, null);
+  });
+
+  test("version graph loader has no public route/token/Send/lifecycle wiring", () => {
+    const source = readFileSync(new URL("./proposalRecordStore.ts", import.meta.url), "utf8");
+    const fnMatch = source.match(
+      /export async function getProposalVersionGraph\([\s\S]*?\n\}/
+    );
+    assert.ok(fnMatch);
+    const loaderFn = fnMatch[0]!;
+    assert.doesNotMatch(loaderFn, /getDraftGraph/);
+    assert.doesNotMatch(loaderFn, /getScopeDecisionsForDraftGraph/);
+    assert.doesNotMatch(loaderFn, /current_draft_version_id/);
+    assert.doesNotMatch(source, /\/p\/\[|generatePublicToken|proposal_public_access/);
+    assert.doesNotMatch(source, /\/approve\/|app\/lib\/kv/);
   });
 });
 

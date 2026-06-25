@@ -303,6 +303,23 @@ export type ProposalDraftGraph = {
   scopeDecisions: ProposalScopeDecision[];
 };
 
+/** Explicit-version graph read shape (R18C1) — no scope decisions on sent/signed snapshots. */
+export type ProposalVersionGraph = {
+  proposal: ProposalRecord;
+  version: ProposalVersionRow;
+  pages: ProposalPageRow[];
+  options: ProposalOptionRow[];
+  lineItems: ProposalLineItemRow[];
+  internalSummaries: ProposalInternalSummaryRow[];
+};
+
+export type GetProposalVersionGraphOptions = {
+  /** When true, only `sent` and `signed` versions are allowed (public customer planning). */
+  requireSentVersion?: boolean;
+  /** When false (default), internal summaries are omitted from the graph. */
+  includeInternalSummaries?: boolean;
+};
+
 // ---------------------------------------------------------------------------
 // Inputs
 // ---------------------------------------------------------------------------
@@ -814,6 +831,111 @@ async function loadDraftVersionOrThrow(
   return data as ProposalVersionRow;
 }
 
+const PUBLIC_CUSTOMER_PROPOSAL_VERSION_KINDS: readonly ProposalVersionKind[] = [
+  "sent",
+  "signed",
+] as const;
+
+function isPublicCustomerProposalVersionKind(kind: ProposalVersionKind): boolean {
+  return (PUBLIC_CUSTOMER_PROPOSAL_VERSION_KINDS as readonly string[]).includes(kind);
+}
+
+async function loadProposalVersionRow(
+  supabase: NonNullable<ReturnType<typeof getSupabaseClient>>,
+  companyId: string,
+  proposalId: string,
+  versionId: string,
+  options: GetProposalVersionGraphOptions = {}
+): Promise<ProposalVersionRow | null> {
+  const { data, error } = await supabase
+    .from("proposal_versions")
+    .select("*")
+    .eq("id", versionId)
+    .eq("company_id", companyId)
+    .eq("proposal_id", proposalId)
+    .maybeSingle();
+
+  if (error || !data) {
+    return null;
+  }
+
+  const version = data as ProposalVersionRow;
+  const kind = version.version_kind as ProposalVersionKind;
+
+  if (options.requireSentVersion && !isPublicCustomerProposalVersionKind(kind)) {
+    throw new ProposalRecordStoreError(
+      `Version ${versionId} is not a sent/signed snapshot (kind=${version.version_kind}).`
+    );
+  }
+
+  return version;
+}
+
+async function loadProposalVersionChildRows(
+  supabase: NonNullable<ReturnType<typeof getSupabaseClient>>,
+  companyId: string,
+  versionId: string,
+  includeInternalSummaries: boolean
+): Promise<{
+  pages: ProposalPageRow[];
+  options: ProposalOptionRow[];
+  lineItems: ProposalLineItemRow[];
+  internalSummaries: ProposalInternalSummaryRow[];
+}> {
+  const [pagesRes, optionsRes] = await Promise.all([
+    supabase
+      .from("proposal_pages")
+      .select("*")
+      .eq("company_id", companyId)
+      .eq("proposal_version_id", versionId)
+      .order("sort_order"),
+    supabase
+      .from("proposal_options")
+      .select("*")
+      .eq("company_id", companyId)
+      .eq("proposal_version_id", versionId)
+      .order("sort_order"),
+  ]);
+
+  const options = (optionsRes.data ?? []) as ProposalOptionRow[];
+  const optionIds = options.map((o) => o.id);
+
+  let lineItems: ProposalLineItemRow[] = [];
+  let internalSummaries: ProposalInternalSummaryRow[] = [];
+
+  if (optionIds.length > 0) {
+    const lineItemsPromise = supabase
+      .from("proposal_line_items")
+      .select("*")
+      .eq("company_id", companyId)
+      .in("proposal_option_id", optionIds)
+      .order("sort_order");
+
+    if (includeInternalSummaries) {
+      const [linesRes, summariesRes] = await Promise.all([
+        lineItemsPromise,
+        supabase
+          .from("proposal_internal_summaries")
+          .select("*")
+          .eq("company_id", companyId)
+          .in("proposal_option_id", optionIds),
+      ]);
+      lineItems = (linesRes.data ?? []) as ProposalLineItemRow[];
+      internalSummaries = (summariesRes.data ?? []) as ProposalInternalSummaryRow[];
+    } else {
+      const { data: linesData } = await lineItemsPromise;
+      lineItems = (linesData ?? []) as ProposalLineItemRow[];
+    }
+  }
+
+  return {
+    pages: (pagesRes.data ?? []) as ProposalPageRow[],
+    options,
+    lineItems,
+    internalSummaries,
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Reads
 // ---------------------------------------------------------------------------
@@ -896,51 +1018,19 @@ export async function getDraftGraph(
 
     const versionId = version.id;
 
-    const [pagesRes, optionsRes] = await Promise.all([
-      supabase
-        .from("proposal_pages")
-        .select("*")
-        .eq("company_id", cid)
-        .eq("proposal_version_id", versionId)
-        .order("sort_order"),
-      supabase
-        .from("proposal_options")
-        .select("*")
-        .eq("company_id", cid)
-        .eq("proposal_version_id", versionId)
-        .order("sort_order"),
-    ]);
-
-    const options = (optionsRes.data ?? []) as ProposalOptionRow[];
-    const optionIds = options.map((o) => o.id);
-
-    let lineItems: ProposalLineItemRow[] = [];
-    let internalSummaries: ProposalInternalSummaryRow[] = [];
-
-    if (optionIds.length > 0) {
-      const [linesRes, summariesRes] = await Promise.all([
-        supabase
-          .from("proposal_line_items")
-          .select("*")
-          .eq("company_id", cid)
-          .in("proposal_option_id", optionIds)
-          .order("sort_order"),
-        supabase
-          .from("proposal_internal_summaries")
-          .select("*")
-          .eq("company_id", cid)
-          .in("proposal_option_id", optionIds),
-      ]);
-      lineItems = (linesRes.data ?? []) as ProposalLineItemRow[];
-      internalSummaries = (summariesRes.data ?? []) as ProposalInternalSummaryRow[];
-    }
+    const { pages, options, lineItems, internalSummaries } = await loadProposalVersionChildRows(
+      supabase,
+      cid,
+      versionId,
+      true
+    );
 
     const scopeDecisions = await getScopeDecisionsForDraftGraph(cid, versionId, deps);
 
     return {
       proposal: rowToProposalRecord(proposal),
       version,
-      pages: (pagesRes.data ?? []) as ProposalPageRow[],
+      pages,
       options,
       lineItems,
       internalSummaries,
@@ -949,6 +1039,71 @@ export async function getDraftGraph(
   } catch {
     return null;
   }
+}
+
+/**
+ * Read-only explicit proposal version graph (R18C1).
+ * Never falls back to current_draft_version_id; never loads scope decisions.
+ */
+export async function getProposalVersionGraph(
+  companyId: string,
+  proposalId: string,
+  versionId: string,
+  options: GetProposalVersionGraphOptions = {},
+  deps?: ProposalRecordStoreDeps
+): Promise<ProposalVersionGraph | null> {
+  const { getSupabase } = resolveDeps(deps);
+  const supabase = getSupabase();
+  const cid = normalizeCompanyId(companyId);
+  const pid = (proposalId ?? "").trim();
+  const vid = (versionId ?? "").trim();
+  if (!supabase || !cid || !isUuidLike(pid) || !isUuidLike(vid)) return null;
+
+  try {
+    const { data: proposalData, error: proposalError } = await supabase
+      .from("proposals")
+      .select(PROPOSAL_SELECT)
+      .eq("id", pid)
+      .eq("company_id", cid)
+      .maybeSingle();
+
+    if (proposalError || !proposalData) return null;
+
+    const version = await loadProposalVersionRow(supabase, cid, pid, vid, options);
+    if (!version) return null;
+    const includeInternalSummaries = options.includeInternalSummaries === true;
+    const { pages, options: optionRows, lineItems, internalSummaries } =
+      await loadProposalVersionChildRows(supabase, cid, vid, includeInternalSummaries);
+
+    return {
+      proposal: rowToProposalRecord(proposalData as ProposalRow),
+      version,
+      pages,
+      options: optionRows,
+      lineItems,
+      internalSummaries,
+    };
+  } catch (error) {
+    if (error instanceof ProposalRecordStoreError) throw error;
+    return null;
+  }
+}
+
+/**
+ * Convenience read of proposals.latest_sent_version_id via explicit version loader.
+ * Not for public token routes without token-bound version validation (R18C+).
+ */
+export async function getLatestSentProposalVersionGraph(
+  companyId: string,
+  proposalId: string,
+  options: GetProposalVersionGraphOptions = {},
+  deps?: ProposalRecordStoreDeps
+): Promise<ProposalVersionGraph | null> {
+  const proposal = await getProposalById(companyId, proposalId, deps);
+  const sentVersionId = (proposal?.latest_sent_version_id ?? "").trim();
+  if (!proposal || !sentVersionId || !isUuidLike(sentVersionId)) return null;
+
+  return getProposalVersionGraph(companyId, proposalId, sentVersionId, options, deps);
 }
 
 // ---------------------------------------------------------------------------
