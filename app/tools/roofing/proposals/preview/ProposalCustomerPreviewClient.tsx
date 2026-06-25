@@ -39,6 +39,7 @@ import {
 import { BUILDER_STAGE } from "../builder/proposalBuilderConstants";
 import ProposalCustomerPreviewDocumentView from "./ProposalCustomerPreviewDocument";
 import ProposalCustomerPreviewPublicAccessPanel from "./ProposalCustomerPreviewPublicAccessPanel";
+import ProposalCustomerPreviewSendGatePanel from "./ProposalCustomerPreviewSendGatePanel";
 
 export default function ProposalCustomerPreviewClient({
   companyId,
@@ -200,12 +201,21 @@ export default function ProposalCustomerPreviewClient({
       {!loadComplete ? (
         <div className={`${BUILDER_STAGE} space-y-4`}>
           {hasValidParams && routeSpineLaunch.allowed ? (
-            <ProposalCustomerPreviewPublicAccessPanel
-              jobId={normalizedJobId}
-              proposalId={normalizedProposalId}
-              proposal={persistedGraph?.proposal ?? null}
-              loading
-            />
+            <>
+              <ProposalCustomerPreviewPublicAccessPanel
+                jobId={normalizedJobId}
+                proposalId={normalizedProposalId}
+                proposal={persistedGraph?.proposal ?? null}
+                loading
+              />
+              <ProposalCustomerPreviewSendGatePanel
+                graph={persistedGraph}
+                job={job}
+                previewReadiness={null}
+                pricingStale={pricingStale.stale}
+                loading
+              />
+            </>
           ) : null}
           <div className="text-sm text-slate-500">Loading preview…</div>
         </div>
@@ -221,6 +231,14 @@ export default function ProposalCustomerPreviewClient({
             jobId={normalizedJobId}
             proposalId={normalizedProposalId}
             proposal={persistedGraph.proposal}
+            loading={false}
+          />
+
+          <ProposalCustomerPreviewSendGatePanel
+            graph={persistedGraph}
+            job={job}
+            previewReadiness={previewDocument.readiness}
+            pricingStale={pricingStale.stale}
             loading={false}
           />
 
