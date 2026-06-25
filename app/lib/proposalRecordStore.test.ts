@@ -45,6 +45,7 @@ import {
   refreshDraftPricing,
   sanitizeEffectiveMarginPct,
   updateDraftProposalPageContent,
+  updateDraftProposalPageSettings,
   updateDraftProposalPageVisibility,
   updateDraftSelectedOption,
   type ProposalRecordStoreDeps,
@@ -2789,6 +2790,172 @@ describe("updateDraftProposalPageVisibility", () => {
     );
 
     assert.equal(mock.state.tables.proposal_events.length, eventsBefore);
+  });
+});
+
+describe("updateDraftProposalPageSettings", () => {
+  function findPageByType(mock: ReturnType<typeof createMockSupabase>, pageType: string) {
+    return mock.state.tables.proposal_pages.find(
+      (p) => (p as Record<string, unknown>).page_type === pageType
+    ) as Record<string, unknown> | undefined;
+  }
+
+  test("updates settings_json on estimate page only", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const created = await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+      },
+      deps
+    );
+
+    const estimatePage = findPageByType(mock, "estimate");
+    assert.ok(estimatePage?.id);
+
+    const graph = await updateDraftProposalPageSettings(
+      COMPANY_ID,
+      created.proposal.id,
+      estimatePage!.id as string,
+      { show_line_prices: false },
+      deps
+    );
+
+    assert.ok(graph);
+    const updated = graph.pages.find((p) => p.id === estimatePage!.id);
+    assert.equal(updated?.settings_json.show_line_prices, false);
+    assert.equal(updated?.settings_json.show_option_totals, true);
+  });
+
+  test("rejects non-estimate page types", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const created = await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+      },
+      deps
+    );
+
+    const termsPage = findPageByType(mock, "terms");
+    assert.ok(termsPage?.id);
+
+    await assert.rejects(
+      () =>
+        updateDraftProposalPageSettings(
+          COMPANY_ID,
+          created.proposal.id,
+          termsPage!.id as string,
+          { show_line_prices: false },
+          deps
+        ),
+      (err: unknown) =>
+        err instanceof ProposalRecordStoreError && /does not support estimate display settings/i.test(err.message)
+    );
+  });
+
+  test("only mutates settings_json and updated_at", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const created = await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+      },
+      deps
+    );
+
+    const estimatePage = findPageByType(mock, "estimate");
+    estimatePage!.content_json = { body_markdown: "Keep me" };
+    estimatePage!.visible_to_customer = true;
+    const contentBefore = clone(estimatePage!.content_json);
+    const visibleBefore = estimatePage!.visible_to_customer;
+
+    await updateDraftProposalPageSettings(
+      COMPANY_ID,
+      created.proposal.id,
+      estimatePage!.id as string,
+      { show_option_totals: false },
+      deps
+    );
+
+    const row = mock.state.tables.proposal_pages.find((p) => p.id === estimatePage!.id) as Record<
+      string,
+      unknown
+    >;
+    assert.deepEqual(row.settings_json, {
+      show_line_prices: true,
+      show_option_totals: false,
+      show_section_headings: true,
+    });
+    assert.deepEqual(row.content_json, contentBefore);
+    assert.equal(row.visible_to_customer, visibleBefore);
+  });
+
+  test("does not mutate proposal_line_items or option totals", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const created = await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+      },
+      deps
+    );
+
+    const lineItemsBefore = clone(mock.state.tables.proposal_line_items);
+    const optionsBefore = clone(mock.state.tables.proposal_options);
+    const estimatePage = findPageByType(mock, "estimate");
+
+    await updateDraftProposalPageSettings(
+      COMPANY_ID,
+      created.proposal.id,
+      estimatePage!.id as string,
+      { show_section_headings: false },
+      deps
+    );
+
+    assert.deepEqual(mock.state.tables.proposal_line_items, lineItemsBefore);
+    assert.deepEqual(mock.state.tables.proposal_options, optionsBefore);
+  });
+
+  test("appends draft_saved event with settings_json metadata", async () => {
+    const mock = createMockSupabase();
+    const deps = storeDeps(mock);
+    const created = await createDraftProposal(
+      {
+        company_id: COMPANY_ID,
+        job_id: JOB_ID,
+        template_id: TEMPLATE_ID,
+      },
+      deps
+    );
+
+    const eventsBefore = mock.state.tables.proposal_events.length;
+    const estimatePage = findPageByType(mock, "estimate");
+
+    await updateDraftProposalPageSettings(
+      COMPANY_ID,
+      created.proposal.id,
+      estimatePage!.id as string,
+      { show_line_prices: false },
+      deps
+    );
+
+    assert.equal(mock.state.tables.proposal_events.length, eventsBefore + 1);
+    const event = mock.state.tables.proposal_events.at(-1) as Record<string, unknown>;
+    assert.equal(event.event_type, "draft_saved");
+    assert.deepEqual(event.payload_json, {
+      page_id: estimatePage!.id,
+      field: "settings_json",
+      patch: { show_line_prices: false },
+    });
   });
 });
 

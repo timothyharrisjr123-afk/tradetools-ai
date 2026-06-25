@@ -11,6 +11,7 @@ import type { ProposalTemplateGraph } from "@/app/lib/proposalTemplateStore";
 import type { ProposalTemplateSection } from "@/app/lib/proposalTemplateTypes";
 import type { ProposalPageSettings } from "@/app/lib/proposalPageTypes";
 import type { ProposalPageRow } from "@/app/lib/proposalRecordStore";
+import type { EstimateSettingsToggleKey } from "@/app/tools/roofing/templates/templatesStructureEditorUtils";
 import { useCallback, useMemo, useState } from "react";
 import {
   BUILDER_CANVAS,
@@ -72,6 +73,12 @@ type ProposalBuilderWorkbenchEstimateDocumentProps = {
   onRestoreExcludedLine?: (templateItemId: string) => Promise<void>;
   onHideLine?: (templateItemId: string) => Promise<void>;
   onRestoreVisibility?: (templateItemId: string) => Promise<void>;
+  estimateSettingsSaveInFlight?: boolean;
+  estimateSettingsSaveError?: string | null;
+  onToggleEstimateDisplaySetting?: (
+    key: EstimateSettingsToggleKey,
+    nextValue: boolean
+  ) => void;
 };
 
 function readEstimatePageSettingsFromPersisted(
@@ -112,6 +119,9 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
   onRestoreExcludedLine,
   onHideLine,
   onRestoreVisibility,
+  estimateSettingsSaveInFlight = false,
+  estimateSettingsSaveError = null,
+  onToggleEstimateDisplaySetting,
 }: ProposalBuilderWorkbenchEstimateDocumentProps) {
   const quantityContext =
     measurementHandoff || measurementQuantityMap
@@ -134,6 +144,7 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
     quantityContext,
     snapshotQuantityByTemplateItemId,
     estimatePageSettings,
+    estimateSettingsEditingEnabled: persistedDraftEnabled && estimatePageSettings != null,
     activeScopeDecisionsForOption,
   });
 
@@ -343,7 +354,12 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
           onOpenEditOption={openEditOption}
         />
 
-        <ProposalBuilderWorkbenchSettingsEntry entry={presentation.displaySettingsEntry} />
+        <ProposalBuilderWorkbenchSettingsEntry
+          entry={presentation.displaySettingsEntry}
+          saving={estimateSettingsSaveInFlight}
+          error={estimateSettingsSaveError}
+          onToggleSetting={onToggleEstimateDisplaySetting}
+        />
 
         <ProposalBuilderWorkbenchReadyScopeZone
           sections={presentation.readyScope.sections}

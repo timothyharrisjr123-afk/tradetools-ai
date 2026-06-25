@@ -66,7 +66,9 @@ export const WORKBENCH_SCOPE_REVIEW_FUTURE_ACTIONS = [
 export const WORKBENCH_DISPLAY_SETTINGS_ENTRY_LABEL = "Estimate display settings";
 export const WORKBENCH_DISPLAY_SETTINGS_COMING_SOON_BADGE = "Coming soon";
 export const WORKBENCH_DISPLAY_SETTINGS_LOCKED_COPY =
-  "Control line prices, totals, and headings on the customer proposal. Saved on template today — customer display wiring in a future update.";
+  "Saved on the proposal template today. Open a persisted draft to edit customer Preview display for this job.";
+export const WORKBENCH_DISPLAY_SETTINGS_HELP_COPY =
+  "Controls what the customer sees in Preview. Contractor pricing and workbench detail stay unchanged.";
 
 export const WORKBENCH_CUSTOMER_PACKAGE_CHOICE_HINT =
   "Customer package choice happens when the proposal is sent for signing — not in this editor.";
@@ -234,10 +236,11 @@ export type WorkbenchTotalsZone = {
 
 export type WorkbenchDisplaySettingsEntry = {
   visible: true;
-  enabled: false;
+  enabled: boolean;
   label: string;
-  comingSoonBadge: string;
-  lockedCopy: string;
+  comingSoonBadge: string | null;
+  lockedCopy: string | null;
+  helpCopy: string;
   currentSettings: ProposalPageSettings | null;
   settingsSummary: string | null;
 };
@@ -284,6 +287,8 @@ export type BuildProposalWorkbenchEstimatePresentationInput = {
   snapshotQuantityByTemplateItemId?: Record<string, ProposalSnapshotLineQuantityView> | null;
   /** Read-only estimate page settings from draft graph when available. */
   estimatePageSettings?: ProposalPageSettings | null;
+  /** When true, Builder may edit persisted estimate page display settings. */
+  estimateSettingsEditingEnabled?: boolean;
   /** Active scope decisions for the selected runtime proposal option (R17D Phase 3A+). */
   activeScopeDecisionsForOption?: ProposalScopeDecision[] | null;
 };
@@ -897,6 +902,8 @@ export function buildProposalWorkbenchEstimatePresentation(
   const parsedSettings = input.estimatePageSettings
     ? parseEstimatePageSettings(input.estimatePageSettings)
     : null;
+  const settingsEditingEnabled =
+    input.estimateSettingsEditingEnabled === true && parsedSettings != null;
 
   const hardBlockerLines = attentionLines.filter((line) => line.attentionKind === "hard_blocker");
   const scopeReviewLines = attentionLines.filter((line) => line.attentionKind === "scope_review");
@@ -947,10 +954,11 @@ export function buildProposalWorkbenchEstimatePresentation(
     totalsZone: buildTotalsZone(input.optionCustomerView, pricingPolicyConfigured),
     displaySettingsEntry: {
       visible: true,
-      enabled: false,
+      enabled: settingsEditingEnabled,
       label: WORKBENCH_DISPLAY_SETTINGS_ENTRY_LABEL,
-      comingSoonBadge: WORKBENCH_DISPLAY_SETTINGS_COMING_SOON_BADGE,
-      lockedCopy: WORKBENCH_DISPLAY_SETTINGS_LOCKED_COPY,
+      comingSoonBadge: settingsEditingEnabled ? null : WORKBENCH_DISPLAY_SETTINGS_COMING_SOON_BADGE,
+      lockedCopy: settingsEditingEnabled ? null : WORKBENCH_DISPLAY_SETTINGS_LOCKED_COPY,
+      helpCopy: WORKBENCH_DISPLAY_SETTINGS_HELP_COPY,
       currentSettings: parsedSettings,
       settingsSummary: formatSettingsSummary(parsedSettings),
     },

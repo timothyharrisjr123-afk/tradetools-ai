@@ -614,7 +614,25 @@ describe("buildProposalWorkbenchEstimatePresentation", () => {
     assert.equal(result.displaySettingsEntry.enabled, false);
     assert.equal(result.displaySettingsEntry.label, WORKBENCH_DISPLAY_SETTINGS_ENTRY_LABEL);
     assert.equal(result.displaySettingsEntry.comingSoonBadge, WORKBENCH_DISPLAY_SETTINGS_COMING_SOON_BADGE);
-    assert.match(result.displaySettingsEntry.lockedCopy, /future update/i);
+    assert.match(result.displaySettingsEntry.lockedCopy ?? "", /persisted draft/i);
+  });
+
+  test("displaySettingsEntry enables editing when persisted settings are available", () => {
+    const result = buildProposalWorkbenchEstimatePresentation(
+      buildInput({
+        estimatePageSettings: {
+          show_line_prices: true,
+          show_option_totals: true,
+          show_section_headings: true,
+        },
+        estimateSettingsEditingEnabled: true,
+      })
+    );
+
+    assert.equal(result.displaySettingsEntry.enabled, true);
+    assert.equal(result.displaySettingsEntry.comingSoonBadge, null);
+    assert.equal(result.displaySettingsEntry.lockedCopy, null);
+    assert.match(result.displaySettingsEntry.helpCopy, /Preview/i);
   });
 
   test("displaySettingsEntry exposes read-only settings summary when provided", () => {

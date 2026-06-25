@@ -48,6 +48,7 @@ import {
   ProposalRecordStoreError,
   refreshDraftPricing,
   updateDraftProposalPageContent,
+  updateDraftProposalPageSettings,
   updateDraftProposalPageVisibility,
   updateDraftSelectedOption,
   type ProposalDraftGraph,
@@ -63,6 +64,7 @@ import { getResolvedCompanyPricingPolicy } from "@/app/lib/companyPricingPolicyS
 import type { CompanyPricingPolicyResolution } from "@/app/lib/companyPricingPolicy";
 import type { PricingPolicy } from "@/app/lib/proposalPricingTypes";
 import { findStarterProposalTemplate } from "@/app/tools/roofing/templates/templatesSetupUtils";
+import type { EstimateSettingsToggleKey } from "@/app/tools/roofing/templates/templatesStructureEditorUtils";
 import {
   BUILDER_DEFAULT_PAGE_CONTEXT,
   buildPageContextStripItems,
@@ -188,6 +190,9 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
   const [visibilityError, setVisibilityError] = useState<string | null>(null);
   const visibilityInFlightRef = useRef(false);
   const pageVisibilityToggleInFlightRef = useRef(false);
+  const [estimateSettingsSaveInFlight, setEstimateSettingsSaveInFlight] = useState(false);
+  const [estimateSettingsSaveError, setEstimateSettingsSaveError] = useState<string | null>(null);
+  const estimateSettingsSaveInFlightRef = useRef(false);
 
   const loadJobContext = useCallback(async () => {
     setJobLoadComplete(false);
@@ -1287,6 +1292,53 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
     [hasPersistedProposalParam, proposalIdParam, companyId]
   );
 
+  const handleToggleEstimateDisplaySetting = useCallback(
+    (key: EstimateSettingsToggleKey, nextValue: boolean) => {
+      if (!hasPersistedProposalParam || !persistedGraph || !proposalIdParam) return;
+      if (estimateSettingsSaveInFlightRef.current) return;
+
+      const estimatePage = persistedGraph.pages.find((page) => page.page_type === "estimate");
+      if (!estimatePage?.id) {
+        setEstimateSettingsSaveError("Could not find the estimate page for this draft.");
+        return;
+      }
+
+      estimateSettingsSaveInFlightRef.current = true;
+      setEstimateSettingsSaveInFlight(true);
+      setEstimateSettingsSaveError(null);
+
+      void (async () => {
+        try {
+          const updated = await updateDraftProposalPageSettings(
+            companyId,
+            proposalIdParam.trim(),
+            estimatePage.id,
+            { [key]: nextValue }
+          );
+          if (!updated) {
+            throw new Error("Could not save estimate display settings.");
+          }
+          setPersistedGraph(updated);
+        } catch (err) {
+          const message =
+            err instanceof ProposalRecordStoreError
+              ? err.message
+              : err instanceof Error
+                ? err.message
+                : "Could not save estimate display settings.";
+          setEstimateSettingsSaveError(message);
+          if (!(err instanceof ProposalRecordStoreError)) {
+            console.warn("[ProposalBuilderClient] estimate settings save error:", err);
+          }
+        } finally {
+          estimateSettingsSaveInFlightRef.current = false;
+          setEstimateSettingsSaveInFlight(false);
+        }
+      })();
+    },
+    [hasPersistedProposalParam, persistedGraph, proposalIdParam, companyId]
+  );
+
   const selectedOptionPricingStatus = useMemo(() => {
     if (!pricingPreview || !effectiveSelectedOptionId) return null;
     return pricingPreview.byOptionId[effectiveSelectedOptionId]?.status ?? null;
@@ -1559,6 +1611,11 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
           {pageVisibilityToggleError}
         </div>
       ) : null}
+      {!draftGraphError && shellReady && estimateSettingsSaveError ? (
+        <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          {estimateSettingsSaveError}
+        </div>
+      ) : null}
       {!draftGraphError && shellReady ? (
         <ProposalBuilderWorkspaceLayout
           pageContextStrip={
@@ -1597,6 +1654,13 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
               pageEditSaveError={pageEditSaveError}
               onTogglePageVisibility={handleTogglePageVisibility}
               pageVisibilityToggleInFlight={pageVisibilityToggleInFlight}
+              onToggleEstimateDisplaySetting={
+                hasPersistedProposalParam && persistedGraph && !draftGraphError
+                  ? handleToggleEstimateDisplaySetting
+                  : undefined
+              }
+              estimateSettingsSaveInFlight={estimateSettingsSaveInFlight}
+              estimateSettingsSaveError={estimateSettingsSaveError}
               persistedDraftEnabled={Boolean(
                 hasPersistedProposalParam && persistedGraph && !draftGraphError
               )}

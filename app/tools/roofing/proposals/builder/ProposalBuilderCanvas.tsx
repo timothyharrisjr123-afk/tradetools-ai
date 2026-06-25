@@ -75,6 +75,12 @@ type ProposalBuilderCanvasProps = {
   pageEditSaveError?: string | null;
   onTogglePageVisibility?: (pageId: string, visibleToCustomer: boolean) => void;
   pageVisibilityToggleInFlight?: boolean;
+  onToggleEstimateDisplaySetting?: (
+    key: import("@/app/tools/roofing/templates/templatesStructureEditorUtils").EstimateSettingsToggleKey,
+    nextValue: boolean
+  ) => void;
+  estimateSettingsSaveInFlight?: boolean;
+  estimateSettingsSaveError?: string | null;
   persistedDraftEnabled?: boolean;
   activeScopeDecisionsForOption?: import("@/app/lib/proposalScopeDecisionTypes").ProposalScopeDecision[];
   manualQuantityInFlight?: boolean;
@@ -215,6 +221,9 @@ export default function ProposalBuilderCanvas({
   pageEditSaveError = null,
   onTogglePageVisibility,
   pageVisibilityToggleInFlight = false,
+  onToggleEstimateDisplaySetting,
+  estimateSettingsSaveInFlight = false,
+  estimateSettingsSaveError = null,
   persistedDraftEnabled = false,
   activeScopeDecisionsForOption = [],
   manualQuantityInFlight = false,
@@ -408,6 +417,9 @@ export default function ProposalBuilderCanvas({
       onRestoreExcludedLine={onRestoreExcludedLine}
       onHideLine={onHideLine}
       onRestoreVisibility={onRestoreVisibility}
+      estimateSettingsSaveInFlight={estimateSettingsSaveInFlight}
+      estimateSettingsSaveError={estimateSettingsSaveError}
+      onToggleEstimateDisplaySetting={onToggleEstimateDisplaySetting}
     />
   );
 }
