@@ -16,6 +16,7 @@ import {
   needsSendPrepRefreeze,
   normalizeRecipientEmail,
   prepareProposalCustomerSendLink,
+  resolveProposalSendSnapshotVersion,
   SEND_PREP_FREEZE_UNAVAILABLE_MESSAGE,
   SEND_PREP_MINT_METADATA,
   SEND_PREP_MISSING_RECIPIENT_MESSAGE,
@@ -502,6 +503,62 @@ describe("prepareProposalCustomerSendLink", () => {
   });
 });
 
+describe("resolveProposalSendSnapshotVersion", () => {
+  test("preserves R18D2 snapshot create/reuse/refreeze behavior", async () => {
+    let proposal = proposalRecord();
+    const createResult = await resolveProposalSendSnapshotVersion(
+      {
+        companyId: COMPANY_ID,
+        proposalId: PROPOSAL_ID,
+        jobId: JOB_ID,
+      },
+      {
+        isFreezeEnabled: () => true,
+        getProposal: async () => proposal,
+        getDraftGraph: async () => readyDraftGraph({ proposal }),
+        getSentVersionFrozenAt: async () => null,
+        freezeDraft: async () => {
+          proposal = proposalRecord({ latest_sent_version_id: SENT_VERSION_ID });
+          return { sentVersionId: SENT_VERSION_ID };
+        },
+      }
+    );
+    assert.equal(createResult.ok, true);
+    if (!createResult.ok) return;
+    assert.equal(createResult.snapshotStatus, "created");
+
+    const reuseResult = await resolveProposalSendSnapshotVersion(
+      {
+        companyId: COMPANY_ID,
+        proposalId: PROPOSAL_ID,
+        jobId: JOB_ID,
+      },
+      {
+        isFreezeEnabled: () => true,
+        getProposal: async () =>
+          proposalRecord({
+            latest_sent_version_id: SENT_VERSION_ID,
+            updated_at: "2026-06-26T12:00:00.000Z",
+          }),
+        getDraftGraph: async () =>
+          readyDraftGraph({
+            proposal: proposalRecord({
+              latest_sent_version_id: SENT_VERSION_ID,
+              updated_at: "2026-06-26T12:00:00.000Z",
+            }),
+          }),
+        getSentVersionFrozenAt: async () => "2026-06-26T12:00:00.000Z",
+        freezeDraft: async () => {
+          throw new Error("freeze should not be called");
+        },
+      }
+    );
+    assert.equal(reuseResult.ok, true);
+    if (!reuseResult.ok) return;
+    assert.equal(reuseResult.snapshotStatus, "reused");
+  });
+});
+
 describe("R18D2 send prep guardrails", () => {
   test("server module is server-only and wires freeze + mint", () => {
     const source = readFileSync(
@@ -536,6 +593,7 @@ describe("R18D2 send prep guardrails", () => {
 
     assert.match(panel, /SEND_GATE_PREPARE_CUSTOMER_LINK_LABEL/);
     assert.match(panel, /\/api\/proposals\/send-prep/);
+    assert.match(panel, /\/api\/proposals\/send/);
     assert.match(panel, /Open customer proposal/);
     assert.match(panel, /Copy customer send link/);
     assert.match(panel, /Send proposal/);

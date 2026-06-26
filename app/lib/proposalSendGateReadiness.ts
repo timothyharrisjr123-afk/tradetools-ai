@@ -16,7 +16,14 @@ export const SEND_GATE_PANEL_TITLE = "Send proposal";
 
 export const SEND_GATE_PANEL_INTRO = "Review before sending to your customer.";
 
-export const SEND_GATE_DELIVERY_DISABLED_MESSAGE = "Email delivery is not enabled yet.";
+export const SEND_GATE_DELIVERY_DISABLED_MESSAGE = "Email delivery is not configured yet.";
+
+export const SEND_GATE_EMAIL_SEND_DISCLAIMER =
+  "Sends the proposal link by email. Does not change proposal or job status yet.";
+
+export const SEND_GATE_SEND_PROPOSAL_BY_EMAIL_LABEL = "Send proposal by email";
+export const SEND_GATE_SENDING_PROPOSAL_EMAIL_MESSAGE = "Sending proposal email…";
+export const SEND_GATE_EMAIL_PROVIDER_ACCEPTED_TITLE = "Email accepted by email provider";
 
 export const SEND_GATE_LOADING_MESSAGE = "Checking send readiness…";
 
@@ -82,10 +89,11 @@ export type ProposalSendGateReadinessViewModel = {
   heading: string;
   summary: string;
   body: string | null;
-  deliveryEnabled: false;
-  canSend: false;
+  deliveryEnabled: boolean;
+  canSend: boolean;
   canPrepareCustomerLink: boolean;
   disabledReason: string;
+  emailSendDisclaimer: string;
   checklist: SendGateChecklistItem[];
   messagePreview: SendGateMessagePreview;
   deferredActions: readonly { id: string; label: string }[];
@@ -104,6 +112,7 @@ export type BuildProposalSendGateReadinessInput = {
   companyName: string | null;
   projectAddress: string | null;
   pricingStale?: boolean;
+  emailDeliveryConfigured?: boolean;
 };
 
 function readContextEchoString(
@@ -213,6 +222,60 @@ export function canPrepareCustomerSendLink(input: {
     return false;
   }
   return !isSendPrepReadinessBlocking(input);
+}
+
+export function resolveSendGateDeliveryEnabled(emailDeliveryConfigured?: boolean): boolean {
+  return emailDeliveryConfigured === true;
+}
+
+export function resolveSendGateCanSend(input: {
+  loading?: boolean;
+  sendFreezeReadiness: ProposalSendFreezeReadiness | null;
+  previewReadiness: Pick<
+    ProposalCustomerPreviewReadiness,
+    "blockingLineCount" | "pricingComplete"
+  > | null;
+  recipientEmail: string | null;
+  emailDeliveryConfigured?: boolean;
+}): boolean {
+  if (input.loading) {
+    return false;
+  }
+  if (!resolveSendGateDeliveryEnabled(input.emailDeliveryConfigured)) {
+    return false;
+  }
+  return !isSendPrepReadinessBlocking(input);
+}
+
+function resolveSendGateDisabledReason(input: {
+  deliveryEnabled: boolean;
+  canSend: boolean;
+  recipientEmail: string | null;
+  sendFreezeReadiness: ProposalSendFreezeReadiness | null;
+  previewReadiness: Pick<
+    ProposalCustomerPreviewReadiness,
+    "blockingLineCount" | "pricingComplete"
+  > | null;
+}): string {
+  if (!input.deliveryEnabled) {
+    return SEND_GATE_DELIVERY_DISABLED_MESSAGE;
+  }
+  if (!input.recipientEmail) {
+    return SEND_GATE_MISSING_RECIPIENT_BODY;
+  }
+  if (!input.canSend) {
+    if (!input.sendFreezeReadiness?.ready) {
+      return input.sendFreezeReadiness?.blockingReasons[0] ?? "Proposal readiness needs review.";
+    }
+    if ((input.previewReadiness?.blockingLineCount ?? 0) > 0) {
+      return "Pricing or scope needs review before sending.";
+    }
+    if (input.previewReadiness?.pricingComplete === false) {
+      return "Pricing or scope needs review before sending.";
+    }
+    return "Proposal readiness needs review before sending.";
+  }
+  return "";
 }
 
 function buildDefaultSubject(companyName: string | null): string {
@@ -400,7 +463,22 @@ export function buildProposalSendGateReadinessViewModel(
   input: BuildProposalSendGateReadinessInput
 ): ProposalSendGateReadinessViewModel {
   const deferredActions = SEND_GATE_DEFERRED_ACTIONS;
-  const disabledReason = SEND_GATE_DELIVERY_DISABLED_MESSAGE;
+  const deliveryEnabled = resolveSendGateDeliveryEnabled(input.emailDeliveryConfigured);
+  const canSend = resolveSendGateCanSend({
+    loading: input.loading,
+    sendFreezeReadiness: input.sendFreezeReadiness,
+    previewReadiness: input.previewReadiness,
+    recipientEmail: input.recipientEmail,
+    emailDeliveryConfigured: input.emailDeliveryConfigured,
+  });
+  const disabledReason = resolveSendGateDisabledReason({
+    deliveryEnabled,
+    canSend,
+    recipientEmail: input.recipientEmail,
+    sendFreezeReadiness: input.sendFreezeReadiness,
+    previewReadiness: input.previewReadiness,
+  });
+  const emailSendDisclaimer = SEND_GATE_EMAIL_SEND_DISCLAIMER;
 
   const messagePreview: SendGateMessagePreview = {
     to: input.recipientEmail ?? "",
@@ -424,6 +502,7 @@ export function buildProposalSendGateReadinessViewModel(
       canSend: false,
       canPrepareCustomerLink: false,
       disabledReason,
+      emailSendDisclaimer,
       checklist: [
         {
           id: "customer_view",
@@ -486,6 +565,7 @@ export function buildProposalSendGateReadinessViewModel(
       canSend: false,
       canPrepareCustomerLink,
       disabledReason,
+      emailSendDisclaimer,
       checklist,
       messagePreview,
       deferredActions,
@@ -502,10 +582,11 @@ export function buildProposalSendGateReadinessViewModel(
     heading: SEND_GATE_PANEL_TITLE,
     summary: SEND_GATE_PANEL_INTRO,
     body: bodyParts.length > 0 ? bodyParts.join(" ") : null,
-    deliveryEnabled: false,
-    canSend: false,
+    deliveryEnabled,
+    canSend,
     canPrepareCustomerLink,
     disabledReason,
+    emailSendDisclaimer,
     checklist,
     messagePreview,
     deferredActions,

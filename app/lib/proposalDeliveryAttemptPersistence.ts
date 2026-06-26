@@ -213,6 +213,40 @@ export async function markProposalDeliveryAttemptFailedWithClient(
   return mapRow(data as Record<string, unknown>);
 }
 
+export type FindProposalDeliveryAttemptByIdempotencyKeyInput = {
+  company_id: string;
+  idempotency_key: string;
+};
+
+export async function findProposalDeliveryAttemptByIdempotencyKeyWithClient(
+  supabase: SupabaseClient,
+  input: FindProposalDeliveryAttemptByIdempotencyKeyInput
+): Promise<ProposalDeliveryAttemptRow | null> {
+  const companyId = input.company_id.trim();
+  const idempotencyKey = input.idempotency_key.trim();
+
+  if (!companyId || !idempotencyKey) {
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from(PROPOSAL_DELIVERY_ATTEMPTS_TABLE)
+    .select()
+    .eq("company_id", companyId)
+    .eq("idempotency_key", idempotencyKey)
+    .maybeSingle();
+
+  if (error) {
+    throw new ProposalDeliveryAttemptPersistenceError(error.message, error.code);
+  }
+
+  if (!data) {
+    return null;
+  }
+
+  return mapRow(data as Record<string, unknown>);
+}
+
 export async function listProposalDeliveryAttemptsForProposalWithClient(
   supabase: SupabaseClient,
   input: ListProposalDeliveryAttemptsInput

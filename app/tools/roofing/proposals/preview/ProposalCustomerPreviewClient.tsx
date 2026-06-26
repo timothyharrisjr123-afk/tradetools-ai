@@ -43,8 +43,10 @@ import ProposalCustomerPreviewSendGatePanel from "./ProposalCustomerPreviewSendG
 
 export default function ProposalCustomerPreviewClient({
   companyId,
+  emailDeliveryConfigured,
 }: {
   companyId: string;
+  emailDeliveryConfigured: boolean;
 }) {
   const searchParams = useSearchParams();
   const jobIdParam = searchParams.get("job");
@@ -216,6 +218,7 @@ export default function ProposalCustomerPreviewClient({
                 previewReadiness={null}
                 pricingStale={pricingStale.stale}
                 loading
+                emailDeliveryConfigured={emailDeliveryConfigured}
               />
             </>
           ) : null}
@@ -244,6 +247,7 @@ export default function ProposalCustomerPreviewClient({
             previewReadiness={previewDocument.readiness}
             pricingStale={pricingStale.stale}
             loading={false}
+            emailDeliveryConfigured={emailDeliveryConfigured}
           />
 
           {previewDocument.readiness.warnings.length > 0 || pricingStale.stale ? (

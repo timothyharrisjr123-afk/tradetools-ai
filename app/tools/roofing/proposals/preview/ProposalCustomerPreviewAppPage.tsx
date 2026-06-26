@@ -5,12 +5,17 @@ import ProposalCustomerPreviewClient from "./ProposalCustomerPreviewClient";
 
 export default function ProposalCustomerPreviewAppPage({
   companyId,
+  emailDeliveryConfigured,
 }: {
   companyId: string;
+  emailDeliveryConfigured: boolean;
 }) {
   return (
     <FieldDiveAppShell activeNav="templates">
-      <ProposalCustomerPreviewClient companyId={companyId} />
+      <ProposalCustomerPreviewClient
+        companyId={companyId}
+        emailDeliveryConfigured={emailDeliveryConfigured}
+      />
     </FieldDiveAppShell>
   );
 }

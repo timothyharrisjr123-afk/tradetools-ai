@@ -6,10 +6,12 @@ import "server-only";
 
 import {
   createProposalDeliveryAttemptedWithClient,
+  findProposalDeliveryAttemptByIdempotencyKeyWithClient,
   listProposalDeliveryAttemptsForProposalWithClient,
   markProposalDeliveryAttemptFailedWithClient,
   markProposalDeliveryAttemptProviderAcceptedWithClient,
 } from "@/app/lib/proposalDeliveryAttemptPersistence";
+import type { FindProposalDeliveryAttemptByIdempotencyKeyInput } from "@/app/lib/proposalDeliveryAttemptPersistence";
 import type {
   CreateProposalDeliveryAttemptInput,
   ListProposalDeliveryAttemptsInput,
@@ -71,4 +73,11 @@ export async function listProposalDeliveryAttemptsForProposal(
   deps?: ProposalDeliveryAttemptStoreDeps
 ): Promise<ProposalDeliveryAttemptRow[]> {
   return listProposalDeliveryAttemptsForProposalWithClient(resolveSupabase(deps), input);
+}
+
+export async function findProposalDeliveryAttemptByIdempotencyKey(
+  input: FindProposalDeliveryAttemptByIdempotencyKeyInput,
+  deps?: ProposalDeliveryAttemptStoreDeps
+): Promise<ProposalDeliveryAttemptRow | null> {
+  return findProposalDeliveryAttemptByIdempotencyKeyWithClient(resolveSupabase(deps), input);
 }

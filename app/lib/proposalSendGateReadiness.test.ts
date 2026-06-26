@@ -15,6 +15,7 @@ import {
   SEND_GATE_CUSTOMER_LINK_READY_LABEL,
   SEND_GATE_DEFERRED_ACTIONS,
   SEND_GATE_DELIVERY_DISABLED_MESSAGE,
+  SEND_GATE_EMAIL_SEND_DISCLAIMER,
   SEND_GATE_LOADING_MESSAGE,
   SEND_GATE_MISSING_RECIPIENT_BODY,
   SEND_GATE_NO_SENT_SNAPSHOT_BODY,
@@ -106,7 +107,7 @@ describe("buildProposalSendGateReadinessViewModel", () => {
     assert.equal(vm.canPrepareCustomerLink, true);
   });
 
-  test("sent snapshot ready keeps send disabled because delivery is not enabled", () => {
+  test("sent snapshot ready keeps send disabled when delivery is not configured", () => {
     const vm = buildProposalSendGateReadinessViewModel({
       hasSentSnapshot: true,
       sendFreezeReadiness: readySendFreeze(),
@@ -115,6 +116,7 @@ describe("buildProposalSendGateReadinessViewModel", () => {
       customerFirstName: "Jane",
       companyName: "Summit Roofing",
       projectAddress: "123 Main St",
+      emailDeliveryConfigured: false,
     });
 
     assert.equal(vm.phase, "ready");
@@ -122,11 +124,31 @@ describe("buildProposalSendGateReadinessViewModel", () => {
     assert.equal(vm.deliveryEnabled, false);
     assert.equal(vm.disabledReason, SEND_GATE_DELIVERY_DISABLED_MESSAGE);
     assert.equal(vm.canPrepareCustomerLink, true);
+    assert.equal(vm.emailSendDisclaimer, SEND_GATE_EMAIL_SEND_DISCLAIMER);
 
     const customerView = vm.checklist.find((item) => item.id === "customer_view");
     const sentSnapshot = vm.checklist.find((item) => item.id === "sent_snapshot");
     assert.equal(customerView?.status, "ready");
     assert.equal(sentSnapshot?.status, "ready");
+  });
+
+  test("sent snapshot ready enables send when delivery is configured and readiness passes", () => {
+    const vm = buildProposalSendGateReadinessViewModel({
+      hasSentSnapshot: true,
+      sendFreezeReadiness: readySendFreeze(),
+      previewReadiness: previewReadiness(),
+      recipientEmail: "jane@example.com",
+      customerFirstName: "Jane",
+      companyName: "Summit Roofing",
+      projectAddress: "123 Main St",
+      emailDeliveryConfigured: true,
+    });
+
+    assert.equal(vm.phase, "ready");
+    assert.equal(vm.canSend, true);
+    assert.equal(vm.deliveryEnabled, true);
+    assert.equal(vm.emailSendDisclaimer, SEND_GATE_EMAIL_SEND_DISCLAIMER);
+    assert.match(vm.emailSendDisclaimer, /Does not change proposal or job status yet/i);
   });
 
   test("canPrepareCustomerLink is false when readiness blocks", () => {
@@ -282,8 +304,36 @@ describe("buildProposalSendGateReadinessViewModel", () => {
   });
 });
 
+describe("R18D3B send gate delivery readiness", () => {
+  test("deliveryEnabled follows email config only", () => {
+    const configured = buildProposalSendGateReadinessViewModel({
+      hasSentSnapshot: true,
+      sendFreezeReadiness: readySendFreeze(),
+      previewReadiness: previewReadiness(),
+      recipientEmail: "jane@example.com",
+      customerFirstName: "Jane",
+      companyName: "Summit Roofing",
+      projectAddress: null,
+      emailDeliveryConfigured: true,
+    });
+    const notConfigured = buildProposalSendGateReadinessViewModel({
+      hasSentSnapshot: true,
+      sendFreezeReadiness: readySendFreeze(),
+      previewReadiness: previewReadiness(),
+      recipientEmail: "jane@example.com",
+      customerFirstName: "Jane",
+      companyName: "Summit Roofing",
+      projectAddress: null,
+      emailDeliveryConfigured: false,
+    });
+
+    assert.equal(configured.deliveryEnabled, true);
+    assert.equal(notConfigured.deliveryEnabled, false);
+  });
+});
+
 describe("R18D1 send gate guardrails", () => {
-  test("view model never enables send or delivery in R18D1", () => {
+  test("view model never exposes forbidden token fields", () => {
     const scenarios = [
       buildProposalSendGateReadinessViewModel({
         loading: true,
@@ -316,8 +366,6 @@ describe("R18D1 send gate guardrails", () => {
     ];
 
     for (const vm of scenarios) {
-      assert.equal(vm.canSend, false);
-      assert.equal(vm.deliveryEnabled, false);
       const serialized = JSON.stringify(vm);
       assert.doesNotMatch(serialized, /token_hash|raw_token|rawToken/);
       assert.doesNotMatch(serialized, /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
@@ -364,8 +412,9 @@ describe("R18D1 send gate guardrails", () => {
     assert.match(panel, /SEND_GATE_DELIVERY_DISABLED_MESSAGE/);
     assert.match(panel, /SEND_GATE_CUSTOMER_LINK_PLACEHOLDER|linkLabel/);
     assert.match(panel, /\/api\/proposals\/send-prep/);
-    assert.match(panel, /SEND_GATE_PREPARE_CUSTOMER_LINK_LABEL/);
-    assert.doesNotMatch(panel, /\/api\/proposals\/send(?!-prep)/);
+    assert.match(panel, /\/api\/proposals\/send/);
+    assert.match(panel, /SEND_GATE_SEND_PROPOSAL_BY_EMAIL_LABEL/);
+    assert.match(panel, /SEND_GATE_EMAIL_SEND_DISCLAIMER|emailSendDisclaimer/);
     assert.doesNotMatch(builderClient, /ProposalCustomerPreviewSendGatePanel/);
   });
 });

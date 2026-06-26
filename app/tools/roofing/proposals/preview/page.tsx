@@ -1,4 +1,5 @@
 import { ensureUserIdentity, getUserCompanyId } from "@/app/lib/ensureUserIdentity";
+import { isProposalEmailDeliveryConfigured } from "@/app/lib/proposalEmailDelivery.server";
 import { createClient } from "@/app/lib/supabase/server";
 import { redirect } from "next/navigation";
 import ProposalCustomerPreviewAppPage from "./ProposalCustomerPreviewAppPage";
@@ -19,5 +20,10 @@ export default async function ProposalCustomerPreviewPage() {
     redirect("/login?redirectTo=/tools/roofing/proposals/preview");
   }
 
-  return <ProposalCustomerPreviewAppPage companyId={companyId} />;
+  return (
+    <ProposalCustomerPreviewAppPage
+      companyId={companyId}
+      emailDeliveryConfigured={isProposalEmailDeliveryConfigured()}
+    />
+  );
 }

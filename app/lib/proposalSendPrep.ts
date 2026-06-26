@@ -77,7 +77,7 @@ export type ProposalSendPrepMintResult =
     }
   | { ok: false; code: string };
 
-export type PrepareProposalCustomerSendLinkDeps = {
+export type ResolveProposalSendSnapshotDeps = {
   getProposal: (companyId: string, proposalId: string) => Promise<ProposalRecord | null>;
   getDraftGraph: (companyId: string, proposalId: string) => Promise<ProposalDraftGraph | null>;
   getSentVersionFrozenAt: (
@@ -90,8 +90,35 @@ export type PrepareProposalCustomerSendLinkDeps = {
     proposalId: string;
     pricingStale?: boolean;
   }) => Promise<{ sentVersionId: string }>;
-  mintToken: (input: ProposalPublicAccessMintRequest) => Promise<ProposalSendPrepMintResult>;
   isFreezeEnabled: () => boolean;
+};
+
+export type ResolveProposalSendSnapshotInput = {
+  companyId: string;
+  proposalId: string;
+  jobId: string;
+  pricingStale?: boolean;
+};
+
+export type ResolveProposalSendSnapshotSuccess = {
+  ok: true;
+  proposal: ProposalRecord;
+  proposalVersionId: string;
+  snapshotStatus: SendPrepSnapshotStatus;
+};
+
+export type ResolveProposalSendSnapshotFailure = {
+  ok: false;
+  message: string;
+  code?: string;
+};
+
+export type ResolveProposalSendSnapshotResult =
+  | ResolveProposalSendSnapshotSuccess
+  | ResolveProposalSendSnapshotFailure;
+
+export type PrepareProposalCustomerSendLinkDeps = ResolveProposalSendSnapshotDeps & {
+  mintToken: (input: ProposalPublicAccessMintRequest) => Promise<ProposalSendPrepMintResult>;
   now?: () => Date;
 };
 
@@ -156,27 +183,16 @@ export function needsSendPrepRefreeze(input: {
   return draftMs > frozenMs;
 }
 
-export async function prepareProposalCustomerSendLink(
-  input: PrepareProposalCustomerSendLinkInput,
-  deps: PrepareProposalCustomerSendLinkDeps
-): Promise<PrepareProposalCustomerSendLinkResult> {
+export async function resolveProposalSendSnapshotVersion(
+  input: ResolveProposalSendSnapshotInput,
+  deps: ResolveProposalSendSnapshotDeps
+): Promise<ResolveProposalSendSnapshotResult> {
   const companyId = input.companyId.trim();
   const proposalId = input.proposalId.trim();
   const jobId = input.jobId.trim();
-  const userId = input.userId.trim();
-  const origin = input.origin.trim();
-  const recipientEmail = normalizeRecipientEmail(input.recipientEmail);
 
-  if (!isUuidLike(companyId) || !isUuidLike(proposalId) || !isUuidLike(jobId) || userId.length === 0) {
+  if (!isUuidLike(companyId) || !isUuidLike(proposalId) || !isUuidLike(jobId)) {
     return failure(SEND_PREP_ERROR_MESSAGE, "invalid_request");
-  }
-
-  if (origin.length === 0) {
-    return failure(SEND_PREP_ERROR_MESSAGE, "invalid_request");
-  }
-
-  if (!recipientEmail) {
-    return failure(SEND_PREP_MISSING_RECIPIENT_MESSAGE, "missing_recipient");
   }
 
   let proposal = await deps.getProposal(companyId, proposalId);
@@ -189,28 +205,9 @@ export async function prepareProposalCustomerSendLink(
   }
 
   const statusBefore = proposal.status;
-
   const graph = await deps.getDraftGraph(companyId, proposalId);
   if (!graph) {
     return failure(SEND_PREP_ERROR_MESSAGE, "draft_not_found");
-  }
-
-  const sendFreezeReadiness = deriveProposalSendFreezeReadiness({
-    graph,
-    pricingStale: input.pricingStale,
-  });
-
-  if (
-    isSendPrepReadinessBlocking({
-      sendFreezeReadiness,
-      previewReadiness: {
-        blockingLineCount: sendFreezeReadiness.summary.blockingLineCount,
-        pricingComplete: sendFreezeReadiness.summary.pricingComplete,
-      },
-      recipientEmail,
-    })
-  ) {
-    return failure(SEND_PREP_READINESS_BLOCKED_MESSAGE, "readiness_blocked");
   }
 
   const hasSentSnapshot = hasPublicProposalSentSnapshot(proposal);
@@ -270,6 +267,86 @@ export async function prepareProposalCustomerSendLink(
       }
     }
   }
+
+  return {
+    ok: true,
+    proposal,
+    proposalVersionId: targetVersionId,
+    snapshotStatus,
+  };
+}
+
+export async function prepareProposalCustomerSendLink(
+  input: PrepareProposalCustomerSendLinkInput,
+  deps: PrepareProposalCustomerSendLinkDeps
+): Promise<PrepareProposalCustomerSendLinkResult> {
+  const companyId = input.companyId.trim();
+  const proposalId = input.proposalId.trim();
+  const jobId = input.jobId.trim();
+  const userId = input.userId.trim();
+  const origin = input.origin.trim();
+  const recipientEmail = normalizeRecipientEmail(input.recipientEmail);
+
+  if (!isUuidLike(companyId) || !isUuidLike(proposalId) || !isUuidLike(jobId) || userId.length === 0) {
+    return failure(SEND_PREP_ERROR_MESSAGE, "invalid_request");
+  }
+
+  if (origin.length === 0) {
+    return failure(SEND_PREP_ERROR_MESSAGE, "invalid_request");
+  }
+
+  if (!recipientEmail) {
+    return failure(SEND_PREP_MISSING_RECIPIENT_MESSAGE, "missing_recipient");
+  }
+
+  let proposal = await deps.getProposal(companyId, proposalId);
+  if (!proposal) {
+    return failure(SEND_PREP_ERROR_MESSAGE, "proposal_not_found");
+  }
+
+  if ((proposal.job_id ?? "").trim() !== jobId) {
+    return failure(SEND_PREP_ERROR_MESSAGE, "binding_mismatch");
+  }
+
+  const graph = await deps.getDraftGraph(companyId, proposalId);
+  if (!graph) {
+    return failure(SEND_PREP_ERROR_MESSAGE, "draft_not_found");
+  }
+
+  const sendFreezeReadiness = deriveProposalSendFreezeReadiness({
+    graph,
+    pricingStale: input.pricingStale,
+  });
+
+  if (
+    isSendPrepReadinessBlocking({
+      sendFreezeReadiness,
+      previewReadiness: {
+        blockingLineCount: sendFreezeReadiness.summary.blockingLineCount,
+        pricingComplete: sendFreezeReadiness.summary.pricingComplete,
+      },
+      recipientEmail,
+    })
+  ) {
+    return failure(SEND_PREP_READINESS_BLOCKED_MESSAGE, "readiness_blocked");
+  }
+
+  const snapshotResult = await resolveProposalSendSnapshotVersion(
+    {
+      companyId,
+      proposalId,
+      jobId,
+      pricingStale: input.pricingStale,
+    },
+    deps
+  );
+
+  if (!snapshotResult.ok) {
+    return snapshotResult;
+  }
+
+  const targetVersionId = snapshotResult.proposalVersionId;
+  const snapshotStatus = snapshotResult.snapshotStatus;
 
   let recipientEmailHash: string;
   try {

@@ -11,6 +11,7 @@ import { describe, test } from "node:test";
 import {
   buildAttemptedDeliveryInsertPayload,
   createProposalDeliveryAttemptedWithClient,
+  findProposalDeliveryAttemptByIdempotencyKeyWithClient,
   listProposalDeliveryAttemptsForProposalWithClient,
   markProposalDeliveryAttemptFailedWithClient,
   markProposalDeliveryAttemptProviderAcceptedWithClient,
@@ -333,6 +334,58 @@ describe("R18D3A persistence behavior", () => {
     assert.equal(rows[1]?.id, "older");
   });
 
+  test("find by idempotency key scopes to company and returns row", async () => {
+    const eqCalls: string[] = [];
+
+    const lookupSupabase = {
+      from: () => ({
+        select: () => ({
+          eq: (column: string, value: string) => {
+            eqCalls.push(`${column}:${value}`);
+            if (column === "idempotency_key") {
+              return {
+                maybeSingle: () =>
+                  Promise.resolve({
+                    data: baseAttemptRow(),
+                    error: null,
+                  }),
+              };
+            }
+            return {
+              eq: (nextColumn: string, nextValue: string) => {
+                eqCalls.push(`${nextColumn}:${nextValue}`);
+                return {
+                  maybeSingle: () =>
+                    Promise.resolve({
+                      data: baseAttemptRow(),
+                      error: null,
+                    }),
+                };
+              },
+            };
+          },
+        }),
+      }),
+    };
+
+    const row = await findProposalDeliveryAttemptByIdempotencyKeyWithClient(lookupSupabase as never, {
+      company_id: COMPANY_ID,
+      idempotency_key: IDEMPOTENCY_KEY,
+    });
+
+    assert.equal(row?.id, ATTEMPT_ID);
+    assert.ok(eqCalls.some((call) => call === `company_id:${COMPANY_ID}`));
+    assert.ok(eqCalls.some((call) => call === `idempotency_key:${IDEMPOTENCY_KEY}`));
+  });
+
+  test("find by idempotency key returns null for empty input", async () => {
+    const row = await findProposalDeliveryAttemptByIdempotencyKeyWithClient({} as never, {
+      company_id: "",
+      idempotency_key: "",
+    });
+    assert.equal(row, null);
+  });
+
   test("recipient helpers hash and redact without persisting raw email in payload", () => {
     const fields = buildRecipientDeliveryFieldsFromEmail("  Jane@Example.COM ");
     assert.equal(fields.recipient_email_hash, hashRecipientEmailForDelivery("jane@example.com"));
@@ -361,6 +414,7 @@ describe("R18D3A server entry guardrails", () => {
     );
     assert.match(source, /import "server-only"/);
     assert.match(source, /createAdminClient/);
+    assert.match(source, /findProposalDeliveryAttemptByIdempotencyKey/);
     assert.doesNotMatch(source, /from "resend"|from 'resend'/i);
     assert.doesNotMatch(source, /\/api\/proposals\/send/);
     assert.doesNotMatch(source, /\.from\("proposal_events"\)|\.from\('proposal_events'\)/);

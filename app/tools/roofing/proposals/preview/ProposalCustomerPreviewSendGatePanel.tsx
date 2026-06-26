@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ExternalLink, Link2, Loader2 } from "lucide-react";
+import { ExternalLink, Link2, Loader2, Mail } from "lucide-react";
 import { deriveProposalSendFreezeReadiness } from "@/app/lib/proposalSendFreezeReadiness";
 import type { ProposalCustomerPreviewReadiness } from "@/app/lib/proposalCustomerPreviewViewModel";
 import type { JobRecord } from "@/app/lib/jobTypes";
@@ -18,9 +18,12 @@ import {
   SEND_GATE_CUSTOMER_LINK_READY_LABEL,
   SEND_GATE_CUSTOMER_LINK_READY_TITLE,
   SEND_GATE_DELIVERY_DISABLED_MESSAGE,
+  SEND_GATE_EMAIL_PROVIDER_ACCEPTED_TITLE,
   SEND_GATE_PANEL_TITLE,
   SEND_GATE_PREPARE_CUSTOMER_LINK_LABEL,
   SEND_GATE_PREPARING_CUSTOMER_LINK_MESSAGE,
+  SEND_GATE_SEND_PROPOSAL_BY_EMAIL_LABEL,
+  SEND_GATE_SENDING_PROPOSAL_EMAIL_MESSAGE,
   type SendGateChecklistStatus,
 } from "@/app/lib/proposalSendGateReadiness";
 import { BUILDER_CARD, BUILDER_DISABLED_ACTION } from "../builder/proposalBuilderConstants";
@@ -31,6 +34,11 @@ type SendPrepSessionLink = {
   expiresAt: string | null;
 };
 
+type EmailSendSuccess = {
+  recipientDisplay: string;
+  subject: string;
+};
+
 type ProposalCustomerPreviewSendGatePanelProps = {
   jobId: string;
   proposalId: string;
@@ -39,6 +47,7 @@ type ProposalCustomerPreviewSendGatePanelProps = {
   previewReadiness: ProposalCustomerPreviewReadiness | null;
   pricingStale?: boolean;
   loading: boolean;
+  emailDeliveryConfigured: boolean;
 };
 
 const SEND_PRIMARY_ACTION =
@@ -71,11 +80,15 @@ export default function ProposalCustomerPreviewSendGatePanel({
   previewReadiness,
   pricingStale = false,
   loading,
+  emailDeliveryConfigured,
 }: ProposalCustomerPreviewSendGatePanelProps) {
   const [sessionCustomerLink, setSessionCustomerLink] = useState<SendPrepSessionLink | null>(null);
   const [prepPending, setPrepPending] = useState(false);
   const [prepErrorMessage, setPrepErrorMessage] = useState<string | null>(null);
   const [copyMessage, setCopyMessage] = useState<string | null>(null);
+  const [sendPending, setSendPending] = useState(false);
+  const [sendErrorMessage, setSendErrorMessage] = useState<string | null>(null);
+  const [sendSuccess, setSendSuccess] = useState<EmailSendSuccess | null>(null);
 
   const sendFreezeReadiness = useMemo(() => {
     if (!graph || loading) return null;
@@ -110,10 +123,12 @@ export default function ProposalCustomerPreviewSendGatePanel({
         companyName,
         projectAddress,
         pricingStale,
+        emailDeliveryConfigured,
       }),
     [
       companyName,
       customerFirstName,
+      emailDeliveryConfigured,
       graph,
       loading,
       previewReadiness,
@@ -124,8 +139,13 @@ export default function ProposalCustomerPreviewSendGatePanel({
     ]
   );
 
+  const actionsLocked = prepPending || sendPending;
+
   const canPrepareCustomerLink =
-    readiness.canPrepareCustomerLink && !prepPending && !sessionCustomerLink;
+    readiness.canPrepareCustomerLink && !actionsLocked && !sessionCustomerLink;
+
+  const canSendProposalEmail =
+    readiness.canSend && !actionsLocked && !sendSuccess && Boolean(recipientEmail);
 
   const [subjectDraft, setSubjectDraft] = useState<string | null>(null);
   const [bodyDraft, setBodyDraft] = useState<string | null>(null);
@@ -194,8 +214,71 @@ export default function ProposalCustomerPreviewSendGatePanel({
     }
   }
 
+  async function handleSendProposalByEmail() {
+    if (!canSendProposalEmail || !recipientEmail) {
+      return;
+    }
+
+    setSendPending(true);
+    setSendErrorMessage(null);
+    setCopyMessage(null);
+
+    try {
+      const response = await fetch("/api/proposals/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          proposalId,
+          jobId,
+          recipientEmail,
+          subject: subjectValue,
+          body: bodyValue,
+        }),
+      });
+
+      const payload = (await response.json().catch(() => null)) as
+        | {
+            ok: true;
+            deliveryAttemptId: string;
+            deliveryStatus: "provider_accepted";
+            recipientDisplay: string;
+            deliveryEnabled: true;
+            snapshotStatus?: string;
+          }
+        | {
+            ok: false;
+            code?: string;
+            message?: string;
+            deliveryAttemptId?: string;
+            deliveryStatus?: "failed";
+          }
+        | null;
+
+      if (!response.ok || !payload || payload.ok !== true) {
+        setSendErrorMessage(
+          payload && payload.ok === false && payload.message
+            ? payload.message
+            : "We couldn't send the proposal email yet. Check the proposal and try again."
+        );
+        return;
+      }
+
+      setSendSuccess({
+        recipientDisplay: payload.recipientDisplay,
+        subject: subjectValue,
+      });
+      setSendErrorMessage(null);
+    } catch {
+      setSendErrorMessage(
+        "We couldn't send the proposal email yet. Check the proposal and try again."
+      );
+    } finally {
+      setSendPending(false);
+    }
+  }
+
   function handleOpenCustomerProposal() {
-    if (!sessionCustomerLink?.publicUrl) {
+    if (!sessionCustomerLink?.publicUrl || actionsLocked) {
       return;
     }
 
@@ -203,7 +286,7 @@ export default function ProposalCustomerPreviewSendGatePanel({
   }
 
   async function handleCopyCustomerSendLink() {
-    if (!sessionCustomerLink?.publicUrl) {
+    if (!sessionCustomerLink?.publicUrl || actionsLocked) {
       return;
     }
 
@@ -226,17 +309,33 @@ export default function ProposalCustomerPreviewSendGatePanel({
         </p>
         {readiness.phase === "loading" ? (
           <p className="text-sm text-slate-500">{readiness.summary}</p>
+        ) : sendSuccess ? (
+          <>
+            <p className="text-sm font-medium text-slate-900">{SEND_GATE_EMAIL_PROVIDER_ACCEPTED_TITLE}</p>
+            <p className="text-sm text-slate-600">
+              To: <span className="font-medium text-slate-800">{sendSuccess.recipientDisplay}</span>
+            </p>
+            <p className="text-sm text-slate-600">
+              Subject: <span className="font-medium text-slate-800">{sendSuccess.subject}</span>
+            </p>
+          </>
         ) : sessionCustomerLink ? (
           <>
             <p className="text-sm font-medium text-slate-900">{SEND_GATE_CUSTOMER_LINK_READY_TITLE}</p>
             <p className="text-sm text-slate-600">{SEND_GATE_CUSTOMER_LINK_READY_BODY}</p>
-            <p className="text-sm text-slate-500">{SEND_GATE_DELIVERY_DISABLED_MESSAGE}</p>
+            {!readiness.deliveryEnabled ? (
+              <p className="text-sm text-slate-500">{SEND_GATE_DELIVERY_DISABLED_MESSAGE}</p>
+            ) : null}
           </>
         ) : (
           <>
             <p className="text-sm text-slate-700">{readiness.summary}</p>
             {readiness.body ? <p className="text-sm text-slate-600">{readiness.body}</p> : null}
-            <p className="text-sm text-slate-500">{SEND_GATE_DELIVERY_DISABLED_MESSAGE}</p>
+            {!readiness.deliveryEnabled ? (
+              <p className="text-sm text-slate-500">{SEND_GATE_DELIVERY_DISABLED_MESSAGE}</p>
+            ) : (
+              <p className="text-sm text-slate-500">{readiness.emailSendDisclaimer}</p>
+            )}
           </>
         )}
       </div>
@@ -281,7 +380,8 @@ export default function ProposalCustomerPreviewSendGatePanel({
               type="text"
               value={subjectValue}
               onChange={(event) => setSubjectDraft(event.target.value)}
-              className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
+              disabled={actionsLocked || Boolean(sendSuccess)}
+              className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 disabled:bg-slate-50 disabled:text-slate-500"
             />
           </label>
           <label className="block space-y-1">
@@ -290,7 +390,8 @@ export default function ProposalCustomerPreviewSendGatePanel({
               value={bodyValue}
               onChange={(event) => setBodyDraft(event.target.value)}
               rows={8}
-              className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
+              disabled={actionsLocked || Boolean(sendSuccess)}
+              className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 disabled:bg-slate-50 disabled:text-slate-500"
             />
           </label>
           <p className="text-xs text-slate-500">
@@ -306,6 +407,12 @@ export default function ProposalCustomerPreviewSendGatePanel({
         </p>
       ) : null}
 
+      {sendErrorMessage ? (
+        <p className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          {sendErrorMessage}
+        </p>
+      ) : null}
+
       {copyMessage ? <p className="text-sm text-emerald-700">{copyMessage}</p> : null}
 
       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
@@ -314,6 +421,7 @@ export default function ProposalCustomerPreviewSendGatePanel({
             <button
               type="button"
               className={SEND_PRIMARY_ACTION}
+              disabled={actionsLocked}
               onClick={handleOpenCustomerProposal}
             >
               <ExternalLink className="h-4 w-4" aria-hidden />
@@ -322,6 +430,7 @@ export default function ProposalCustomerPreviewSendGatePanel({
             <button
               type="button"
               className={SEND_SECONDARY_ACTION}
+              disabled={actionsLocked}
               onClick={() => void handleCopyCustomerSendLink()}
             >
               <Link2 className="h-4 w-4" aria-hidden />
@@ -350,11 +459,22 @@ export default function ProposalCustomerPreviewSendGatePanel({
         <button
           type="button"
           className={SEND_PRIMARY_ACTION}
-          disabled
-          aria-disabled="true"
-          title={readiness.disabledReason}
+          disabled={!canSendProposalEmail}
+          aria-disabled={!canSendProposalEmail}
+          title={!readiness.canSend ? readiness.disabledReason : undefined}
+          onClick={() => void handleSendProposalByEmail()}
         >
-          Send proposal
+          {sendPending ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+              {SEND_GATE_SENDING_PROPOSAL_EMAIL_MESSAGE}
+            </>
+          ) : (
+            <>
+              <Mail className="h-4 w-4" aria-hidden />
+              {SEND_GATE_SEND_PROPOSAL_BY_EMAIL_LABEL}
+            </>
+          )}
         </button>
       </div>
 
