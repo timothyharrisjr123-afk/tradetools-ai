@@ -12,6 +12,10 @@ import type { ProposalPublicAccessMintRequest } from "@/app/lib/proposalPublicAc
 import type { ProposalDeliveryAttemptRow } from "@/app/lib/proposalDeliveryAttemptTypes";
 import { buildRecipientDeliveryFieldsFromEmail } from "@/app/lib/proposalDeliveryAttemptTypes";
 import { buildProposalEmailTemplate } from "@/app/lib/proposalEmailTemplate";
+import {
+  resolveSendGateCustomerFirstName,
+  resolveSendGateProjectAddress,
+} from "@/app/lib/proposalSendGateReadiness";
 import type { ProposalDraftGraph } from "@/app/lib/proposalRecordStore";
 import { deriveProposalSendFreezeReadiness } from "@/app/lib/proposalSendFreezeReadiness";
 import { isSendPrepReadinessBlocking } from "@/app/lib/proposalSendGateReadiness";
@@ -360,18 +364,27 @@ export async function sendProposalEmail(
     return failure(PROPOSAL_EMAIL_SEND_ERROR_MESSAGE, "mint_failed");
   }
 
+  const contextEcho =
+    graph.version.context_echo != null &&
+    typeof graph.version.context_echo === "object" &&
+    !Array.isArray(graph.version.context_echo)
+      ? (graph.version.context_echo as Record<string, unknown>)
+      : null;
+  const companyNameFromEcho = contextEcho
+    ? String(contextEcho.company_name ?? "").trim() || null
+    : null;
+  const customerNameFromEcho = contextEcho
+    ? String(contextEcho.customer_name ?? "").trim() || null
+    : null;
+
   const emailTemplate = buildProposalEmailTemplate({
     origin,
     rawToken: mintResult.raw_token,
     subject,
     body,
-    companyName:
-      graph.version.context_echo != null &&
-      typeof graph.version.context_echo === "object" &&
-      !Array.isArray(graph.version.context_echo)
-        ? String((graph.version.context_echo as Record<string, unknown>).company_name ?? "").trim() ||
-          null
-        : null,
+    companyName: companyNameFromEcho,
+    customerFirstName: resolveSendGateCustomerFirstName(customerNameFromEcho),
+    projectAddress: resolveSendGateProjectAddress(graph),
   });
 
   let attempt: ProposalDeliveryAttemptRow;

@@ -34,6 +34,9 @@ export const SEND_GATE_MISSING_RECIPIENT_BODY =
   "Add a customer email before this proposal can be sent.";
 
 export const SEND_GATE_CUSTOMER_LINK_PLACEHOLDER = "Available after send";
+
+export const SEND_GATE_EMAIL_LINK_NOTE =
+  "A secure proposal link is added automatically when the email is sent.";
 export const SEND_GATE_CUSTOMER_LINK_READY_LABEL = "Customer link ready";
 
 export const SEND_GATE_PREPARE_CUSTOMER_LINK_LABEL = "Prepare customer link";
@@ -283,25 +286,27 @@ function buildDefaultSubject(companyName: string | null): string {
   return `Your proposal from ${company}`;
 }
 
-function buildDefaultBody(input: {
+export function buildDefaultProposalEmailBody(input: {
   customerFirstName: string | null;
   companyName: string | null;
   projectAddress: string | null;
 }): string {
   const greetingName = (input.customerFirstName ?? "").trim() || "there";
-  const company = (input.companyName ?? "").trim() || "Your contractor team";
-  const addressLine = (input.projectAddress ?? "").trim();
-  const projectLine = addressLine
-    ? `\n\nYour proposal for ${addressLine} is ready to review.`
-    : "\n\nYour proposal is ready to review.";
+  const company = (input.companyName ?? "").trim() || "Your contractor";
 
-  return `Hi ${greetingName},${projectLine}
+  return `Hi ${greetingName},
 
-Review your proposal here:
-${SEND_GATE_CUSTOMER_LINK_PLACEHOLDER}
+${company} has prepared your roofing proposal for your project.
 
-Thanks,
-${company}`;
+Review the proposal details using the secure link below.`;
+}
+
+function buildDefaultBody(input: {
+  customerFirstName: string | null;
+  companyName: string | null;
+  projectAddress: string | null;
+}): string {
+  return buildDefaultProposalEmailBody(input);
 }
 
 function checklistStatusLabel(status: SendGateChecklistStatus): string {
@@ -489,7 +494,7 @@ export function buildProposalSendGateReadinessViewModel(
       companyName: input.companyName,
       projectAddress: input.projectAddress,
     }),
-    linkLabel: SEND_GATE_CUSTOMER_LINK_PLACEHOLDER,
+    linkLabel: SEND_GATE_EMAIL_LINK_NOTE,
   };
 
   if (input.loading) {

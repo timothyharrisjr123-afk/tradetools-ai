@@ -394,10 +394,7 @@ export default function ProposalCustomerPreviewSendGatePanel({
               className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 disabled:bg-slate-50 disabled:text-slate-500"
             />
           </label>
-          <p className="text-xs text-slate-500">
-            Review your proposal here:
-            <span className="ml-1 font-medium text-slate-700">{linkLabel}</span>
-          </p>
+          <p className="text-xs text-slate-500">{linkLabel}</p>
         </div>
       </div>
 

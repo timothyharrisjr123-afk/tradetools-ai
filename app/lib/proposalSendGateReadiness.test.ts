@@ -11,7 +11,7 @@ import type { ProposalSendFreezeReadiness } from "./proposalSendFreezeReadiness"
 import {
   buildProposalSendGateReadinessViewModel,
   canPrepareCustomerSendLink,
-  SEND_GATE_CUSTOMER_LINK_PLACEHOLDER,
+  SEND_GATE_EMAIL_LINK_NOTE,
   SEND_GATE_CUSTOMER_LINK_READY_LABEL,
   SEND_GATE_DEFERRED_ACTIONS,
   SEND_GATE_DELIVERY_DISABLED_MESSAGE,
@@ -204,9 +204,12 @@ describe("buildProposalSendGateReadinessViewModel", () => {
     assert.equal(vm.messagePreview.toMissing, false);
     assert.match(vm.messagePreview.subject, /Anderson Roofing/);
     assert.match(vm.messagePreview.body, /Hi Jane,/);
-    assert.match(vm.messagePreview.body, /456 Oak Ave/);
-    assert.equal(vm.messagePreview.linkLabel, SEND_GATE_CUSTOMER_LINK_PLACEHOLDER);
-    assert.match(vm.messagePreview.body, /Available after send/);
+    assert.match(vm.messagePreview.body, /prepared your roofing proposal for your project/);
+    assert.match(vm.messagePreview.body, /Review the proposal details using the secure link below/);
+    assert.doesNotMatch(vm.messagePreview.body, /456 Oak Ave/);
+    assert.equal(vm.messagePreview.linkLabel, SEND_GATE_EMAIL_LINK_NOTE);
+    assert.doesNotMatch(vm.messagePreview.body, /Available after send/i);
+    assert.doesNotMatch(vm.messagePreview.body, /Review your proposal here/i);
     assert.doesNotMatch(vm.messagePreview.body, /https?:\/\//);
   });
 
@@ -223,7 +226,7 @@ describe("buildProposalSendGateReadinessViewModel", () => {
 
     assert.match(vm.messagePreview.subject, /your contractor/i);
     assert.match(vm.messagePreview.body, /Hi there,/);
-    assert.match(vm.messagePreview.body, /Your contractor team/);
+    assert.match(vm.messagePreview.body, /Your contractor/);
   });
 
   test("send-freeze blocking maps to pricing and branding checklist", () => {
