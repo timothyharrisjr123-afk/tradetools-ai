@@ -18,6 +18,8 @@ import {
   WORKBENCH_TOTALS_INCOMPLETE_COPY,
   WORKBENCH_UPGRADES_EMPTY_COPY,
   buildProposalWorkbenchEstimatePresentation,
+  isUpgradeLineExcludeEligible,
+  isUpgradeLineScopeReviewEligible,
   type BuildProposalWorkbenchEstimatePresentationInput,
   type WorkbenchAttentionReason,
 } from "./proposalBuilderWorkbenchEstimatePresenter";
@@ -772,6 +774,53 @@ describe("buildProposalWorkbenchEstimatePresentation", () => {
 
     assert.equal(result.upgradesZone.sections[0]?.lines[0]?.attentionReasons.includes("needs_quantity"), true);
     assert.equal(result.needsAttention.lines.length, 0);
+    assert.equal(result.upgradesZone.scopeReview.show, true);
+    assert.equal(result.upgradesZone.scopeReview.count, 1);
+    assert.equal(result.upgradesZone.scopeReview.lines[0]?.templateItemId, "line-upgrade");
+    assert.equal(result.meta.upgradeScopeReviewLineCount, 1);
+  });
+
+  test("upgrade scope review eligibility helpers", () => {
+    const needsQuantityLine = {
+      templateItemId: "line-upgrade",
+      name: "Upgrade add-on",
+      qtyLabel: "Not resolved",
+      qtyUnresolved: true,
+      amountLabel: "Needs quantity",
+      statusKind: "priced" as const,
+      hiddenFromCustomer: false,
+      detailMeta: { source: "—", rule: "—", unit: "each", role: "Optional add-on", resolvedStatus: null },
+      attentionReasons: ["needs_quantity" as const],
+      manualQuantityActive: false,
+    };
+
+    assert.equal(isUpgradeLineScopeReviewEligible(needsQuantityLine), true);
+    assert.equal(isUpgradeLineExcludeEligible(needsQuantityLine), true);
+
+    const missingCatalogLine = {
+      ...needsQuantityLine,
+      attentionReasons: ["missing_catalog" as const, "needs_quantity" as const],
+    };
+    assert.equal(isUpgradeLineScopeReviewEligible(missingCatalogLine), false);
+    assert.equal(isUpgradeLineExcludeEligible(missingCatalogLine), false);
+  });
+
+  test("resolved upgrade manual quantity clears upgrade scope review bucket", () => {
+    const result = buildProposalWorkbenchEstimatePresentation(
+      buildInput({
+        snapshotQuantityByTemplateItemId: {
+          ...snapshotQty("line-upgrade", "2 ea"),
+        },
+        optionCustomerView: optionCustomerView({
+          "line-priced": lineView("line-priced", "priced"),
+          "line-upgrade": lineView("line-upgrade", "priced", { customerLinePriceCents: 2_500 }),
+        }, { pricingComplete: true, customerSubtotalCents: 5_000, customerTotalCents: 5_000 }),
+      })
+    );
+
+    assert.equal(result.upgradesZone.scopeReview.count, 0);
+    assert.equal(result.meta.upgradeScopeReviewLineCount, 0);
+    assert.equal(result.upgradesZone.sections[0]?.lines[0]?.attentionReasons.length, 0);
   });
 
   test("presenter does not mutate input", () => {

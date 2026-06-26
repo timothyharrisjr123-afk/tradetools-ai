@@ -211,6 +211,8 @@ export type WorkbenchUpgradesZone = {
   hasTemplateUpgradeSections: boolean;
   isEmpty: boolean;
   sections: WorkbenchUpgradeSection[];
+  /** Optional-upgrade lines needing quantity review — same scope-review semantics as main scope. */
+  scopeReview: WorkbenchAttentionBucket;
   customerSelectionEnabled: false;
   customerSelectionHint: string | null;
   emptyCopy: string | null;
@@ -255,8 +257,23 @@ export type WorkbenchEstimatePresentationMeta = {
   scopeReviewLineCount: number;
   excludedLineCount: number;
   upgradeLineCount: number;
+  /** Optional-upgrade lines in scope review (needs quantity only). */
+  upgradeScopeReviewLineCount: number;
   sourceLineCount: number;
 };
+
+/** Optional-upgrade line eligible for manual quantity when only needs_quantity blocks pricing. */
+export function isUpgradeLineScopeReviewEligible(line: WorkbenchScopeLine): boolean {
+  return (
+    line.attentionReasons.includes("needs_quantity") &&
+    !line.attentionReasons.some((reason) => reason !== "needs_quantity")
+  );
+}
+
+/** Optional-upgrade line eligible for exclude when scope decisions support removal. */
+export function isUpgradeLineExcludeEligible(line: WorkbenchScopeLine): boolean {
+  return !line.attentionReasons.includes("missing_catalog");
+}
 
 export type ProposalWorkbenchEstimatePresentation = {
   page: {
@@ -796,6 +813,7 @@ export function buildProposalWorkbenchEstimatePresentation(
   const attentionLines: WorkbenchAttentionLine[] = [];
   const excludedTraceLines: WorkbenchDecisionTraceLine[] = [];
   const upgradeSections: WorkbenchUpgradeSection[] = [];
+  const upgradeScopeReviewLines: WorkbenchAttentionLine[] = [];
   let suppressedDocumentBlockerCount = 0;
   let readyLineCount = 0;
   let attentionLineCount = 0;
@@ -836,8 +854,18 @@ export function buildProposalWorkbenchEstimatePresentation(
           suppressedDocumentBlockerCount += 1;
         }
 
-        lines.push(buildUpgradeScopeLine(row, lineView, classification, snapshotQty));
+        const upgradeLine = buildUpgradeScopeLine(row, lineView, classification, snapshotQty);
+        lines.push(upgradeLine);
         upgradeLineCount += 1;
+
+        if (
+          classification.zone === "attention" &&
+          attentionKindForReasons(classification.reasons) === "scope_review"
+        ) {
+          upgradeScopeReviewLines.push(
+            buildAttentionLine(row, lineView, classification, snapshotQty)
+          );
+        }
       }
 
       upgradeSections.push({
@@ -942,6 +970,12 @@ export function buildProposalWorkbenchEstimatePresentation(
       hasTemplateUpgradeSections,
       isEmpty: hasTemplateUpgradeSections && upgradeLineTotal === 0,
       sections: upgradeSections,
+      scopeReview: buildAttentionBucket(
+        upgradeScopeReviewLines,
+        WORKBENCH_SCOPE_REVIEW_TITLE,
+        "Optional upgrade lines need quantity review before totals are final.",
+        upgradeScopeReviewLines.length > 0 ? attentionRailHint : null
+      ),
       customerSelectionEnabled: false,
       customerSelectionHint: hasTemplateUpgradeSections
         ? WORKBENCH_CUSTOMER_UPGRADE_SELECTION_HINT
@@ -979,6 +1013,7 @@ export function buildProposalWorkbenchEstimatePresentation(
       scopeReviewLineCount,
       excludedLineCount,
       upgradeLineCount,
+      upgradeScopeReviewLineCount: upgradeScopeReviewLines.length,
       sourceLineCount,
     },
   };

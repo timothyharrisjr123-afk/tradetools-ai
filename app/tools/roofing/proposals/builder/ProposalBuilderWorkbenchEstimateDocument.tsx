@@ -5,7 +5,7 @@ import type { MeasurementQuantityMap } from "@/app/lib/measurementTypes";
 import type { CatalogItem } from "@/app/lib/catalogTypes";
 import type { ProposalBuilderOptionCustomerView } from "@/app/lib/proposalBuilderPricingPreview";
 import type { ProposalSnapshotLineQuantityView } from "@/app/lib/proposalDraftGraphAdapter";
-import { buildProposalWorkbenchEstimatePresentation } from "@/app/lib/proposalBuilderWorkbenchEstimatePresenter";
+import { buildProposalWorkbenchEstimatePresentation, isUpgradeLineExcludeEligible } from "@/app/lib/proposalBuilderWorkbenchEstimatePresenter";
 import type { ProposalScopeDecision } from "@/app/lib/proposalScopeDecisionTypes";
 import type { ProposalTemplateGraph } from "@/app/lib/proposalTemplateStore";
 import type { ProposalTemplateSection } from "@/app/lib/proposalTemplateTypes";
@@ -156,15 +156,29 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
   const [drawerIntent, setDrawerIntent] = useState<EditOptionDrawerIntent>("quantity");
 
   const scopeReviewLines = useMemo((): ManualQuantityEditorLine[] => {
-    if (!presentation.needsAttention.scopeReview.show) return [];
-    return presentation.needsAttention.scopeReview.lines
-      .filter((line) => line.reasons.includes("needs_quantity"))
-      .map((line) => ({
-        templateItemId: line.templateItemId,
-        name: line.name,
-        unitLabel: line.detailMeta.unit?.trim() || null,
-      }));
-  }, [presentation.needsAttention.scopeReview]);
+    const lines: ManualQuantityEditorLine[] = [];
+    if (presentation.needsAttention.scopeReview.show) {
+      for (const line of presentation.needsAttention.scopeReview.lines) {
+        if (!line.reasons.includes("needs_quantity")) continue;
+        lines.push({
+          templateItemId: line.templateItemId,
+          name: line.name,
+          unitLabel: line.detailMeta.unit?.trim() || null,
+        });
+      }
+    }
+    if (presentation.upgradesZone.scopeReview.show) {
+      for (const line of presentation.upgradesZone.scopeReview.lines) {
+        if (!line.reasons.includes("needs_quantity")) continue;
+        lines.push({
+          templateItemId: line.templateItemId,
+          name: line.name,
+          unitLabel: line.detailMeta.unit?.trim() || null,
+        });
+      }
+    }
+    return lines;
+  }, [presentation.needsAttention.scopeReview, presentation.upgradesZone.scopeReview]);
 
   const manualActiveLines = useMemo((): ManualQuantityActiveLine[] => {
     const lines: ManualQuantityActiveLine[] = [];
@@ -179,21 +193,48 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
         });
       }
     }
+    for (const section of presentation.upgradesZone.sections) {
+      for (const line of section.lines) {
+        if (!line.manualQuantityActive) continue;
+        lines.push({
+          templateItemId: line.templateItemId,
+          name: line.name,
+          unitLabel: line.detailMeta.unit?.trim() || null,
+          quantityDisplayLabel: line.qtyLabel,
+        });
+      }
+    }
     return lines;
-  }, [presentation.readyScope.sections]);
+  }, [presentation.readyScope.sections, presentation.upgradesZone.sections]);
 
   const excludeEligibleLines = useMemo((): ExcludeEditorLine[] => {
     const lines: ExcludeEditorLine[] = [];
+    const seen = new Set<string>();
+    const pushLine = (templateItemId: string, name: string) => {
+      if (seen.has(templateItemId)) return;
+      seen.add(templateItemId);
+      lines.push({ templateItemId, name });
+    };
     for (const section of presentation.readyScope.sections) {
       for (const line of section.lines) {
-        lines.push({ templateItemId: line.templateItemId, name: line.name });
+        pushLine(line.templateItemId, line.name);
       }
     }
     for (const line of presentation.needsAttention.scopeReview.lines) {
-      lines.push({ templateItemId: line.templateItemId, name: line.name });
+      pushLine(line.templateItemId, line.name);
+    }
+    for (const section of presentation.upgradesZone.sections) {
+      for (const line of section.lines) {
+        if (!isUpgradeLineExcludeEligible(line)) continue;
+        pushLine(line.templateItemId, line.name);
+      }
     }
     return lines;
-  }, [presentation.needsAttention.scopeReview.lines, presentation.readyScope.sections]);
+  }, [
+    presentation.needsAttention.scopeReview.lines,
+    presentation.readyScope.sections,
+    presentation.upgradesZone.sections,
+  ]);
 
   const hideEligibleLines = useMemo((): HideEditorLine[] => {
     const lines: HideEditorLine[] = [];
@@ -406,7 +447,26 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
           excludeInFlight={excludeInFlight}
         />
 
-        <ProposalBuilderWorkbenchUpgradesZone zone={presentation.upgradesZone} />
+        <ProposalBuilderWorkbenchUpgradesZone
+          zone={presentation.upgradesZone}
+          onSetQuantityForLine={
+            quantityEditingEnabled
+              ? (templateItemId) => openEditOptionForLine(templateItemId, "quantity")
+              : undefined
+          }
+          onEditQuantityForLine={
+            quantityEditingEnabled
+              ? (templateItemId) => openEditOptionForLine(templateItemId, "quantity")
+              : undefined
+          }
+          onRemoveFromOptionForLine={
+            excludeEnabled
+              ? (templateItemId) => openEditOptionForLine(templateItemId, "exclude")
+              : undefined
+          }
+          manualQuantityEnabled={scopeReviewManualQuantityEnabled}
+          excludeEnabled={excludeEnabled}
+        />
 
         <ProposalBuilderWorkbenchTotalsZone zone={presentation.totalsZone} />
       </div>
@@ -415,7 +475,7 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
         open={editOptionOpen}
         onClose={closeEditOption}
         optionLabel={presentation.packageZone.label}
-        scopeReviewCount={meta.scopeReviewLineCount}
+        scopeReviewCount={meta.scopeReviewLineCount + meta.upgradeScopeReviewLineCount}
         scopeReviewLines={scopeReviewLines}
         excludeEligibleLines={excludeEligibleLines}
         hideEligibleLines={hideEligibleLines}

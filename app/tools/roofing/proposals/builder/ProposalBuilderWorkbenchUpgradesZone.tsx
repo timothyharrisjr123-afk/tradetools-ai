@@ -1,12 +1,22 @@
 import { Info, Sparkles } from "lucide-react";
-import type { WorkbenchUpgradesZone } from "@/app/lib/proposalBuilderWorkbenchEstimatePresenter";
 import {
+  isUpgradeLineExcludeEligible,
+  isUpgradeLineScopeReviewEligible,
+  WORKBENCH_SCOPE_REVIEW_FUTURE_ACTIONS,
+  type WorkbenchUpgradesZone,
+} from "@/app/lib/proposalBuilderWorkbenchEstimatePresenter";
+import {
+  WORKBENCH_EDIT_OPTION_CHIP_ENABLED,
+  WORKBENCH_EDIT_OPTION_CHIP_HINT,
+  WORKBENCH_EDIT_QUANTITY_ACTION,
+  WORKBENCH_FUTURE_ACTION_CHIP,
   WORKBENCH_HINT_STRIP,
   WORKBENCH_MODULE_COMPACT,
   WORKBENCH_MODULE_DESC,
   WORKBENCH_MODULE_INNER,
   WORKBENCH_MODULE_KICKER,
   WORKBENCH_MODULE_TITLE,
+  WORKBENCH_REMOVE_FROM_OPTION_ACTION,
   WORKBENCH_SCOPE_COUNT_CHIP,
   WORKBENCH_SCOPE_SECTION,
   WORKBENCH_SCOPE_SECTION_TITLE,
@@ -18,10 +28,20 @@ import ProposalBuilderWorkbenchLineRow from "./ProposalBuilderWorkbenchLineRow";
 
 type ProposalBuilderWorkbenchUpgradesZoneProps = {
   zone: WorkbenchUpgradesZone;
+  onSetQuantityForLine?: (templateItemId: string) => void;
+  onEditQuantityForLine?: (templateItemId: string) => void;
+  onRemoveFromOptionForLine?: (templateItemId: string) => void;
+  manualQuantityEnabled?: boolean;
+  excludeEnabled?: boolean;
 };
 
 export default function ProposalBuilderWorkbenchUpgradesZone({
   zone,
+  onSetQuantityForLine,
+  onEditQuantityForLine,
+  onRemoveFromOptionForLine,
+  manualQuantityEnabled = false,
+  excludeEnabled = false,
 }: ProposalBuilderWorkbenchUpgradesZoneProps) {
   if (!zone.show) return null;
 
@@ -84,13 +104,88 @@ export default function ProposalBuilderWorkbenchUpgradesZone({
                 <span className={WORKBENCH_SCOPE_COUNT_CHIP}>{section.lines.length}</span>
               </div>
               <ul className="mt-1.5">
-                {section.lines.map((line) => (
-                  <ProposalBuilderWorkbenchLineRow
-                    key={line.templateItemId}
-                    variant="scope"
-                    line={line}
-                  />
-                ))}
+                {section.lines.map((line) => {
+                  const canSetQuantity =
+                    manualQuantityEnabled &&
+                    isUpgradeLineScopeReviewEligible(line) &&
+                    Boolean(onSetQuantityForLine);
+                  const canEditQuantity =
+                    line.manualQuantityActive && Boolean(onEditQuantityForLine);
+                  const canRemove =
+                    excludeEnabled &&
+                    isUpgradeLineExcludeEligible(line) &&
+                    Boolean(onRemoveFromOptionForLine);
+                  const showActionRow =
+                    canSetQuantity ||
+                    canEditQuantity ||
+                    (canRemove && line.attentionReasons.length > 0);
+
+                  return (
+                    <li key={line.templateItemId} className="space-y-2">
+                      <ProposalBuilderWorkbenchLineRow variant="scope" line={line} />
+                      {showActionRow ? (
+                        <div className="flex flex-wrap gap-1.5 pl-0.5">
+                          {WORKBENCH_SCOPE_REVIEW_FUTURE_ACTIONS.map((action) => {
+                            const isSetQuantity = action.id === "set_quantity";
+                            const isRemove = action.id === "remove";
+
+                            if (isSetQuantity && canSetQuantity) {
+                              return (
+                                <button
+                                  key={action.id}
+                                  type="button"
+                                  className={WORKBENCH_EDIT_OPTION_CHIP_ENABLED}
+                                  onClick={() => onSetQuantityForLine!(line.templateItemId)}
+                                >
+                                  {action.label}
+                                </button>
+                              );
+                            }
+
+                            if (isRemove && canRemove) {
+                              return (
+                                <button
+                                  key={action.id}
+                                  type="button"
+                                  className={WORKBENCH_EDIT_OPTION_CHIP_ENABLED}
+                                  onClick={() => onRemoveFromOptionForLine!(line.templateItemId)}
+                                >
+                                  {WORKBENCH_REMOVE_FROM_OPTION_ACTION}
+                                </button>
+                              );
+                            }
+
+                            if (isSetQuantity && manualQuantityEnabled) {
+                              return (
+                                <button
+                                  key={action.id}
+                                  type="button"
+                                  disabled
+                                  aria-disabled="true"
+                                  className={WORKBENCH_FUTURE_ACTION_CHIP}
+                                  title={WORKBENCH_EDIT_OPTION_CHIP_HINT}
+                                >
+                                  {action.label}
+                                </button>
+                              );
+                            }
+
+                            return null;
+                          })}
+                          {canEditQuantity ? (
+                            <button
+                              type="button"
+                              className={WORKBENCH_EDIT_OPTION_CHIP_ENABLED}
+                              onClick={() => onEditQuantityForLine!(line.templateItemId)}
+                            >
+                              {WORKBENCH_EDIT_QUANTITY_ACTION}
+                            </button>
+                          ) : null}
+                        </div>
+                      ) : null}
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           ) : null
