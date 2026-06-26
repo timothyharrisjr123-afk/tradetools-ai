@@ -275,6 +275,34 @@ describe("buildProposalPublicGraphDto", () => {
     );
   });
 
+  test("public DTO maps line role to line_presentation_group", () => {
+    const graph = draftGraph();
+    const dto = buildProposalPublicGraphDto(
+      {
+        ...graph,
+        lineItems: [
+          {
+            ...graph.lineItems[0]!,
+            customer_name: "Included item",
+            role: null,
+          },
+          {
+            ...graph.lineItems[0]!,
+            id: "20202020-2020-4202-8202-202020202020",
+            source_template_item_id: "21212121-2121-4212-8212-212121212121",
+            customer_name: "Optional vent",
+            role: "optional_addon",
+            sort_order: 3,
+          },
+        ],
+      },
+      TEMPLATE_OPT_A
+    );
+
+    const groups = dto.options[0]!.line_items.map((line) => line.line_presentation_group);
+    assert.deepEqual(groups, ["included", "upgrade"]);
+  });
+
   test("works from send-freeze graph-like payload", () => {
     const payload = buildProposalSendFreezePersistPayload(draftGraph(), {
       frozenAt: "2026-06-18T12:00:00.000Z",

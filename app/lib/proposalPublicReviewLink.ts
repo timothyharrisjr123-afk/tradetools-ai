@@ -6,12 +6,14 @@
 
 import { isUuidLike } from "@/app/lib/jobStore";
 import type { ProposalPublicAccessMintRequest } from "@/app/lib/proposalPublicAccessTokenMintPersistence";
-import type { ProposalRecord } from "@/app/lib/proposalRecordTypes";
 import {
   buildPublicProposalReviewUrl,
   PUBLIC_REVIEW_MINT_ERROR_MESSAGE,
-  resolvePublicProposalSnapshotVersionId,
 } from "@/app/lib/proposalPublicReviewReadiness";
+import {
+  resolveProposalSendSnapshotVersion,
+  type ResolveProposalSendSnapshotDeps,
+} from "@/app/lib/proposalSendPrep";
 
 export const PUBLIC_REVIEW_LINK_MINT_METADATA = {
   source: "contractor_preview_qa",
@@ -52,10 +54,10 @@ export type ProposalPublicReviewMintResult =
     }
   | { ok: false; code: string };
 
-export type ProposalPublicReviewLinkDeps = {
-  getProposal: (companyId: string, proposalId: string) => Promise<ProposalRecord | null>;
+export type ProposalPublicReviewLinkDeps = ResolveProposalSendSnapshotDeps & {
   mintToken: (input: ProposalPublicAccessMintRequest) => Promise<ProposalPublicReviewMintResult>;
   now?: () => Date;
+  pricingStale?: boolean;
 };
 
 function failure(message: string): CreatePublicProposalReviewLinkFailure {
@@ -86,19 +88,21 @@ export async function createPublicProposalReviewLink(
     return failure(PUBLIC_REVIEW_MINT_ERROR_MESSAGE);
   }
 
-  const proposal = await deps.getProposal(companyId, proposalId);
-  if (!proposal) {
-    return failure(PUBLIC_REVIEW_MINT_ERROR_MESSAGE);
+  const snapshotResult = await resolveProposalSendSnapshotVersion(
+    {
+      companyId,
+      proposalId,
+      jobId,
+      pricingStale: deps.pricingStale === true,
+    },
+    deps
+  );
+
+  if (!snapshotResult.ok) {
+    return failure(snapshotResult.message);
   }
 
-  if ((proposal.job_id ?? "").trim() !== jobId) {
-    return failure(PUBLIC_REVIEW_MINT_ERROR_MESSAGE);
-  }
-
-  const snapshotVersionId = resolvePublicProposalSnapshotVersionId(proposal);
-  if (!snapshotVersionId) {
-    return failure(PUBLIC_REVIEW_MINT_ERROR_MESSAGE);
-  }
+  const snapshotVersionId = snapshotResult.proposalVersionId;
 
   const mintResult = await deps.mintToken({
     company_id: companyId,

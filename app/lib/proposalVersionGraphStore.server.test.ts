@@ -43,8 +43,7 @@ describe("proposalVersionGraphStore.server source guardrails", () => {
       "../p/[token]/page.tsx",
       "../p/[token]/PublicProposalPage.tsx",
       "../p/[token]/PublicProposalErrorPage.tsx",
-      "../p/[token]/PublicProposalHeader.tsx",
-      "../p/[token]/PublicProposalCompanyMark.tsx",
+      "../components/proposal-packet/ProposalPacket.tsx",
     ];
 
     for (const file of files) {

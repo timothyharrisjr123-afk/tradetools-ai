@@ -1,17 +1,20 @@
 /**
- * R18C4A — Pure public proposal estimate/option card presentation from public DTO.
+ * R18C4A — Public proposal estimate presentation (transitional).
  *
- * Maps frozen sent snapshot lines and totals into customer-safe option cards.
- * No DB, React, draft graph, or pricing engine math.
+ * Delegates to shared customer packet presenter. Prefer buildCustomerPacketFromPublicDto.
  */
 
 import type { ResolvedCustomerPreviewEstimateDisplayPolicy } from "@/app/lib/proposalCustomerEstimateDisplayPolicy";
+import {
+  buildCustomerPacketEstimateFromPublicDto,
+  formatCustomerPacketPriceCents,
+} from "@/app/lib/proposalCustomerPacketPresenter";
+import type { PackageAccent } from "@/app/lib/proposalPackagePresentation";
 import type {
   ProposalPublicGraphDto,
   ProposalPublicGraphLineDto,
   ProposalPublicGraphOptionDto,
 } from "@/app/lib/proposalPublicGraphDto";
-import { resolvePackageMeta, type PackageAccent } from "@/app/lib/proposalPackagePresentation";
 
 export type ProposalPublicEstimateLineViewModel = {
   name: string;
@@ -22,9 +25,8 @@ export type ProposalPublicEstimateLineViewModel = {
   kind: "priced" | "included" | "informational";
 };
 
-export type ProposalPublicEstimateScopeSectionViewModel = {
+export type ProposalPublicScopeGroupViewModel = {
   title: string;
-  showHeading: boolean;
   lines: ProposalPublicEstimateLineViewModel[];
 };
 
@@ -34,8 +36,56 @@ export type ProposalPublicOptionTotalsViewModel = {
   discountLabel: string | null;
   taxLabel: string | null;
   totalLabel: string | null;
+  totalInvestmentLabel: string | null;
 };
 
+export type ProposalPublicScopeGroupSummaryViewModel = {
+  title: string;
+  itemCount: number;
+  previewLabel: string;
+};
+
+export type ProposalPublicPrimaryPackageViewModel = {
+  optionKey: string;
+  label: string;
+  description: string;
+  bullets: [string, string];
+  accent: PackageAccent;
+  totalInvestmentLabel: string | null;
+  scopeGroups: ProposalPublicScopeGroupViewModel[];
+  scopeGroupSummaries: ProposalPublicScopeGroupSummaryViewModel[];
+  scopeHighlights: string[];
+};
+
+export type ProposalPublicAlternateOptionViewModel = {
+  optionKey: string;
+  label: string;
+  description: string;
+  totalInvestmentLabel: string | null;
+  accent: PackageAccent;
+};
+
+export type ProposalPublicOptionalUpgradeViewModel = {
+  name: string;
+  valueLabel: string | null;
+};
+
+export type ProposalPublicSelectedOptionViewModel = {
+  optionKey: string;
+  label: string;
+  selectionMode: "frozen_default" | "frozen_selected";
+};
+
+export type ProposalPublicEstimateLayoutViewModel = {
+  layout: "selected_primary";
+  primaryPackage: ProposalPublicPrimaryPackageViewModel | null;
+  alternateOptions: ProposalPublicAlternateOptionViewModel[];
+  optionalUpgrades: ProposalPublicOptionalUpgradeViewModel[];
+  selectedOption: ProposalPublicSelectedOptionViewModel | null;
+  displayPolicy: ResolvedCustomerPreviewEstimateDisplayPolicy;
+};
+
+/** @deprecated Retained for transitional tests — prefer packet VM. */
 export type ProposalPublicOptionCardViewModel = {
   optionKey: string;
   label: string;
@@ -50,160 +100,153 @@ export type ProposalPublicOptionCardViewModel = {
   visible: boolean;
 };
 
-export type ProposalPublicSelectedOptionViewModel = {
-  optionKey: string;
-  label: string;
-  selectionMode: "frozen_default" | "frozen_selected";
+export type ProposalPublicEstimateScopeSectionViewModel = {
+  title: string;
+  showHeading: boolean;
+  lines: ProposalPublicEstimateLineViewModel[];
 };
 
-function formatCustomerPriceCents(cents: number): string {
-  const dollars = (Math.round(cents) / 100).toFixed(2);
-  const [whole, dec] = dollars.split(".");
-  const withCommas = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-  return `$${withCommas}.${dec}`;
+function mapScopeGroups(
+  includedDetails: { title: string; lines: { name: string; valueLabel: string | null; kind: string }[] }[]
+): ProposalPublicScopeGroupViewModel[] {
+  return includedDetails.map((group) => ({
+    title: group.title,
+    lines: group.lines.map((line) => ({
+      name: line.name,
+      description: null,
+      quantityLabel: null,
+      unit: null,
+      valueLabel: line.valueLabel,
+      kind: line.kind as ProposalPublicEstimateLineViewModel["kind"],
+    })),
+  }));
 }
 
-function optionLabel(option: ProposalPublicGraphOptionDto): string {
-  return (option.customer_label ?? option.name).trim() || option.name;
-}
+export function buildProposalPublicEstimateLayout(
+  dto: ProposalPublicGraphDto,
+  displayPolicy: ResolvedCustomerPreviewEstimateDisplayPolicy = dto.displayPolicy
+): ProposalPublicEstimateLayoutViewModel {
+  const { estimate, comparison, upgrades } = buildCustomerPacketEstimateFromPublicDto(dto, displayPolicy);
 
-function mapLine(
-  line: ProposalPublicGraphLineDto,
-  displayPolicy: ResolvedCustomerPreviewEstimateDisplayPolicy
-): ProposalPublicEstimateLineViewModel {
-  const showQty = displayPolicy.showLinePrices;
-  const quantityLabel =
-    showQty && line.quantity_display_label
-      ? line.quantity_display_label
-      : showQty && line.quantity != null
-        ? String(line.quantity)
-        : null;
+  const primaryPackage: ProposalPublicPrimaryPackageViewModel | null = estimate
+    ? {
+        optionKey: estimate.optionKey,
+        label: estimate.label,
+        description: estimate.description,
+        bullets: [estimate.bullets[0] ?? "", estimate.bullets[1] ?? ""] as [string, string],
+        accent: estimate.accent,
+        totalInvestmentLabel: estimate.totalInvestmentLabel,
+        scopeGroups: mapScopeGroups(estimate.includedDetails),
+        scopeGroupSummaries: estimate.scopeGroupSummaries,
+        scopeHighlights: estimate.includedDetails.flatMap((g) => g.lines.map((l) => l.name)).slice(0, 8),
+      }
+    : null;
 
-  let kind: ProposalPublicEstimateLineViewModel["kind"] = "informational";
-  let valueLabel: string | null = null;
+  const alternateOptions: ProposalPublicAlternateOptionViewModel[] =
+    comparison?.options.map((option) => ({
+      optionKey: option.optionKey,
+      label: option.label,
+      description: option.description,
+      totalInvestmentLabel: option.totalInvestmentLabel,
+      accent: option.accent,
+    })) ?? [];
 
-  if (line.pricing_status === "included" || line.pricing_status === "grouped") {
-    kind = "included";
-    valueLabel = "Included";
-  } else if (line.pricing_status === "priced" && line.customer_line_total_cents != null) {
-    kind = "priced";
-    valueLabel = displayPolicy.showLinePrices
-      ? formatCustomerPriceCents(line.customer_line_total_cents)
-      : null;
-  }
+  const optionalUpgrades: ProposalPublicOptionalUpgradeViewModel[] =
+    upgrades?.items.map((item) => ({ name: item.name, valueLabel: item.valueLabel })) ?? [];
+
+  const selectedKey = (dto.selected_template_option_id ?? "").trim();
+  const selectedOption: ProposalPublicSelectedOptionViewModel | null = estimate
+    ? {
+        optionKey: estimate.optionKey,
+        label: estimate.label,
+        selectionMode: selectedKey.length > 0 ? "frozen_selected" : "frozen_default",
+      }
+    : null;
 
   return {
-    name: line.customer_name,
-    description: line.description,
-    quantityLabel,
-    unit: showQty ? line.unit : null,
-    valueLabel,
-    kind,
+    layout: "selected_primary",
+    primaryPackage,
+    alternateOptions,
+    optionalUpgrades,
+    selectedOption,
+    displayPolicy,
   };
-}
-
-function mapTotals(
-  option: ProposalPublicGraphOptionDto,
-  displayPolicy: ResolvedCustomerPreviewEstimateDisplayPolicy
-): ProposalPublicOptionTotalsViewModel {
-  const showTotals = displayPolicy.showOptionTotals;
-  if (!showTotals) {
-    return {
-      showTotals: false,
-      subtotalLabel: null,
-      discountLabel: null,
-      taxLabel: null,
-      totalLabel: null,
-    };
-  }
-
-  const subtotal = option.customer_subtotal_cents;
-  const discount = option.discount_cents;
-  const tax = option.sales_tax_cents;
-  const total = option.customer_total_cents;
-
-  return {
-    showTotals: true,
-    subtotalLabel: subtotal != null ? formatCustomerPriceCents(subtotal) : null,
-    discountLabel:
-      discount != null && discount !== 0 ? `−${formatCustomerPriceCents(Math.abs(discount))}` : null,
-    taxLabel: tax != null && tax !== 0 ? formatCustomerPriceCents(tax) : null,
-    totalLabel: total != null ? formatCustomerPriceCents(total) : null,
-  };
-}
-
-function mapScopeSections(
-  lines: ProposalPublicGraphLineDto[],
-  displayPolicy: ResolvedCustomerPreviewEstimateDisplayPolicy
-): ProposalPublicEstimateScopeSectionViewModel[] {
-  const mappedLines = lines.map((line) => mapLine(line, displayPolicy));
-  if (mappedLines.length === 0) {
-    return [];
-  }
-
-  return [
-    {
-      title: "Included scope",
-      showHeading: displayPolicy.showSectionHeadings,
-      lines: mappedLines,
-    },
-  ];
 }
 
 export function buildProposalPublicOptionCards(
   dto: ProposalPublicGraphDto,
   displayPolicy: ResolvedCustomerPreviewEstimateDisplayPolicy
 ): ProposalPublicOptionCardViewModel[] {
-  const selectedKey = (dto.selected_template_option_id ?? "").trim();
-  const visibleOptions = dto.options
-    .filter((option) => option.visible_to_customer)
-    .sort((a, b) => a.sort_order - b.sort_order);
+  const layout = buildProposalPublicEstimateLayout(dto, displayPolicy);
+  const cards: ProposalPublicOptionCardViewModel[] = [];
 
-  const defaultKey =
-    visibleOptions.find((option) => option.source_template_option_id === selectedKey)
-      ?.source_template_option_id ??
-    visibleOptions[0]?.source_template_option_id ??
-    null;
+  if (layout.primaryPackage) {
+    const selectedOption = dto.options.find(
+      (option) => option.source_template_option_id === layout.primaryPackage!.optionKey
+    );
+    if (selectedOption) {
+      cards.push({
+        optionKey: layout.primaryPackage.optionKey,
+        label: layout.primaryPackage.label,
+        customerLabel: selectedOption.customer_label,
+        sortOrder: selectedOption.sort_order,
+        accent: layout.primaryPackage.accent,
+        isSelected: true,
+        isRecommended: true,
+        totals: {
+          showTotals: displayPolicy.showOptionTotals,
+          subtotalLabel: null,
+          discountLabel: null,
+          taxLabel: null,
+          totalLabel: layout.primaryPackage.totalInvestmentLabel,
+          totalInvestmentLabel: layout.primaryPackage.totalInvestmentLabel,
+        },
+        scopeSections: [
+          {
+            title: "Included scope",
+            showHeading: displayPolicy.showSectionHeadings,
+            lines: layout.primaryPackage.scopeGroups.flatMap((g) => g.lines),
+          },
+        ],
+        upgradeSections: [],
+        visible: true,
+      });
+    }
+  }
 
-  return visibleOptions.map((option) => {
-    const label = optionLabel(option);
-    const accent = resolvePackageMeta(label).accent;
-    const optionKey = option.source_template_option_id;
-    const isSelected = selectedKey.length > 0 ? optionKey === selectedKey : optionKey === defaultKey;
-    const isRecommended = optionKey === defaultKey;
-
-    return {
-      optionKey,
-      label,
+  for (const alternate of layout.alternateOptions) {
+    const option = dto.options.find((item) => item.source_template_option_id === alternate.optionKey);
+    if (!option) continue;
+    cards.push({
+      optionKey: alternate.optionKey,
+      label: alternate.label,
       customerLabel: option.customer_label,
       sortOrder: option.sort_order,
-      accent,
-      isSelected,
-      isRecommended,
-      totals: mapTotals(option, displayPolicy),
-      scopeSections: mapScopeSections(option.line_items, displayPolicy),
+      accent: alternate.accent,
+      isSelected: false,
+      isRecommended: false,
+      totals: {
+        showTotals: displayPolicy.showOptionTotals,
+        subtotalLabel: null,
+        discountLabel: null,
+        taxLabel: null,
+        totalLabel: alternate.totalInvestmentLabel,
+        totalInvestmentLabel: alternate.totalInvestmentLabel,
+      },
+      scopeSections: [],
       upgradeSections: [],
       visible: true,
-    };
-  });
+    });
+  }
+
+  return cards.sort((a, b) => a.sortOrder - b.sortOrder);
 }
 
 export function buildProposalPublicSelectedOptionViewModel(
   dto: ProposalPublicGraphDto,
-  optionCards: ProposalPublicOptionCardViewModel[]
+  _optionCards: ProposalPublicOptionCardViewModel[]
 ): ProposalPublicSelectedOptionViewModel | null {
-  const selectedKey = (dto.selected_template_option_id ?? "").trim();
-  const card =
-    optionCards.find((option) => option.isSelected) ??
-    (selectedKey ? optionCards.find((option) => option.optionKey === selectedKey) : null) ??
-    optionCards[0] ??
-    null;
-
-  if (!card) return null;
-
-  return {
-    optionKey: card.optionKey,
-    label: card.label,
-    selectionMode: selectedKey.length > 0 ? "frozen_selected" : "frozen_default",
-  };
+  return buildProposalPublicEstimateLayout(dto, dto.displayPolicy).selectedOption;
 }
+
+export { formatCustomerPacketPriceCents as formatProposalPublicCustomerPriceCents };

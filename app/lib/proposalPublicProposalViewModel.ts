@@ -7,10 +7,11 @@
 
 import { buildProposalCoverViewModel } from "@/app/lib/proposalCoverViewModel";
 import { renderProposalDocumentPageBody } from "@/app/lib/proposalDocumentBodyRenderer";
+import { buildCustomerPacketFromPublicDto } from "@/app/lib/proposalCustomerPacketPresenter";
+import type { ProposalCustomerPacketViewModel } from "@/app/lib/proposalCustomerPacketViewModel";
 import {
-  buildProposalPublicOptionCards,
-  buildProposalPublicSelectedOptionViewModel,
-  type ProposalPublicOptionCardViewModel,
+  buildProposalPublicEstimateLayout,
+  type ProposalPublicEstimateLayoutViewModel,
 } from "@/app/lib/proposalPublicEstimatePresentation";
 import type { ProposalPublicGraphDto, ProposalPublicGraphPageDto } from "@/app/lib/proposalPublicGraphDto";
 import { readProposalPageBodyMarkdown } from "@/app/lib/proposalPageContentEditing";
@@ -36,7 +37,7 @@ export const PROPOSAL_PUBLIC_PDF_PLACEHOLDER =
   "PDF attachments will appear here when attachment support is enabled.";
 
 export const PROPOSAL_PUBLIC_SUPPORT_MESSAGE =
-  "Contact your contractor with any questions about this proposal.";
+  "Questions about this proposal? Reply to your contractor's email or use the contact details below.";
 
 export type ProposalPublicFutureActionId = "sign_accept" | "download_pdf" | "payment_deposit";
 
@@ -150,13 +151,7 @@ export type ProposalPublicProposalDocumentPageViewModel =
   | ProposalPublicDeferredDocumentPageViewModel
   | ProposalPublicPlaceholderDocumentPageViewModel;
 
-export type ProposalPublicProposalEstimateSectionViewModel = {
-  sectionTitle: string;
-  layout: "option_cards";
-  options: ProposalPublicOptionCardViewModel[];
-  selectedOption: ReturnType<typeof buildProposalPublicSelectedOptionViewModel>;
-  displayPolicy: ProposalPublicGraphDto["displayPolicy"];
-};
+export type ProposalPublicProposalEstimateSectionViewModel = ProposalPublicEstimateLayoutViewModel;
 
 export type ProposalPublicProposalFooterViewModel = {
   company: ProposalPublicCompanyContactBlock;
@@ -173,6 +168,8 @@ export type ProposalPublicProposalDocumentMeta = {
 export type ProposalPublicProposalDocumentViewModel = {
   kind: "document";
   meta: ProposalPublicProposalDocumentMeta;
+  /** Shared customer packet — primary render contract for Public (and future Preview). */
+  packet: ProposalCustomerPacketViewModel;
   header: ProposalPublicProposalHeaderViewModel;
   cover: ProposalPublicProposalCoverSectionViewModel;
   pages: ProposalPublicProposalDocumentPageViewModel[];
@@ -480,7 +477,8 @@ export function buildProposalPublicProposalDocumentViewModel(
   const pricingComplete = isPublicProposalPricingComplete(dto);
   const coverVm = buildProposalCoverViewModel(documentContext, { pricingComplete });
   const heroContent = findCoverHeroContent(dto.pages, documentContext, pricingComplete);
-  const optionCards = buildProposalPublicOptionCards(dto, dto.displayPolicy);
+  const estimateLayout = buildProposalPublicEstimateLayout(dto, dto.displayPolicy);
+  const packet = buildCustomerPacketFromPublicDto(dto);
 
   const pages = dto.pages
     .slice()
@@ -498,16 +496,11 @@ export function buildProposalPublicProposalDocumentViewModel(
       frozenAt: dto.frozen_at,
       proposalTitle,
     },
+    packet,
     header: buildHeader(coverVm),
     cover: buildCoverSection(dto, coverVm, heroContent),
     pages,
-    estimate: {
-      sectionTitle: optionCards.length > 1 ? "Your options" : "Estimate",
-      layout: "option_cards",
-      options: optionCards,
-      selectedOption: buildProposalPublicSelectedOptionViewModel(dto, optionCards),
-      displayPolicy: dto.displayPolicy,
-    },
+    estimate: estimateLayout,
     futureActions: buildProposalPublicFutureActions(),
     footer: {
       company: buildCompanyContactBlock(

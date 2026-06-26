@@ -21,6 +21,40 @@ const VERSION_ID = "44444444-4444-4444-8444-444444444444";
 const TEMPLATE_OPT_A = "77777777-7777-4777-8777-777777777777";
 const RUNTIME_OPT_A = "99999999-9999-4999-8999-999999999999";
 
+function minimalPacketStub() {
+  return {
+    cover: {
+      proposalLabel: "Your roofing proposal",
+      headline: "Roof Replacement",
+      confidenceCopy: "A clear roof replacement proposal prepared for your home.",
+      company: {
+        companyName: "Summit Roofing",
+        preparedByLabel: "Summit Roofing",
+        logoUrl: null,
+        logoMonogram: "SR",
+        brandPrimaryColor: null,
+        brandSecondaryColor: null,
+      },
+      preparedFor: {
+        customerName: "Jane Homeowner",
+        customerEmail: null,
+        customerPhone: null,
+        hasAnyField: true,
+      },
+      project: {
+        jobName: null,
+        propertyAddress: "123 Main St",
+        hasAnyField: true,
+      },
+    },
+    estimate: null,
+    comparison: null,
+    upgrades: null,
+    details: null,
+    contact: null,
+  };
+}
+
 function resolveSuccess() {
   return {
     ok: true as const,
@@ -142,6 +176,7 @@ function publicDto(): ProposalPublicGraphDto {
             customer_line_total_cents: 10000,
             pricing_status: "priced",
             visible_to_customer: true,
+            line_presentation_group: "included",
           },
         ],
       },
@@ -182,6 +217,7 @@ describe("loadPublicProposalByToken", () => {
           assert.equal(dto.selected_template_option_id, TEMPLATE_OPT_A);
           return {
             kind: "document",
+            packet: minimalPacketStub(),
             meta: {
               statusLabel: "Review proposal",
               versionKind: "sent",
@@ -236,9 +272,10 @@ describe("loadPublicProposalByToken", () => {
             },
             pages: [],
             estimate: {
-              sectionTitle: "Estimate",
-              layout: "option_cards",
-              options: [],
+              layout: "selected_primary",
+              primaryPackage: null,
+              alternateOptions: [],
+              optionalUpgrades: [],
               selectedOption: null,
               displayPolicy: dto.displayPolicy,
             },
@@ -296,6 +333,7 @@ describe("loadPublicProposalByToken", () => {
       buildDto: () => publicDto(),
       buildDocumentViewModel: () => ({
         kind: "document",
+        packet: minimalPacketStub(),
         meta: { statusLabel: "Review proposal", versionKind: "sent", frozenAt: null, proposalTitle: null },
         header: {
           company: { companyName: null, logoUrl: null, logoMonogram: null, brandPrimaryColor: null, brandSecondaryColor: null, hasAnyField: false },
@@ -311,7 +349,7 @@ describe("loadPublicProposalByToken", () => {
           heroContent: null,
         },
         pages: [],
-        estimate: { sectionTitle: "Estimate", layout: "option_cards", options: [], selectedOption: null, displayPolicy: { showLinePrices: true, showOptionTotals: true, showSectionHeadings: true } },
+        estimate: { layout: "selected_primary", primaryPackage: null, alternateOptions: [], optionalUpgrades: [], selectedOption: null, displayPolicy: { showLinePrices: true, showOptionTotals: true, showSectionHeadings: true } },
         futureActions: [],
         footer: { company: { companyName: null, phone: null, email: null, website: null, license: null, address: null, hasAnyField: false }, supportMessage: "Contact your contractor with any questions about this proposal." },
       }),
@@ -338,6 +376,7 @@ describe("loadPublicProposalByToken", () => {
       buildDto: () => publicDto(),
       buildDocumentViewModel: () => ({
         kind: "document",
+        packet: minimalPacketStub(),
         meta: { statusLabel: "Review proposal", versionKind: "sent", frozenAt: null, proposalTitle: null },
         header: {
           company: { companyName: null, logoUrl: null, logoMonogram: null, brandPrimaryColor: null, brandSecondaryColor: null, hasAnyField: false },
@@ -353,7 +392,7 @@ describe("loadPublicProposalByToken", () => {
           heroContent: null,
         },
         pages: [],
-        estimate: { sectionTitle: "Estimate", layout: "option_cards", options: [], selectedOption: null, displayPolicy: { showLinePrices: true, showOptionTotals: true, showSectionHeadings: true } },
+        estimate: { layout: "selected_primary", primaryPackage: null, alternateOptions: [], optionalUpgrades: [], selectedOption: null, displayPolicy: { showLinePrices: true, showOptionTotals: true, showSectionHeadings: true } },
         futureActions: [],
         footer: { company: { companyName: null, phone: null, email: null, website: null, license: null, address: null, hasAnyField: false }, supportMessage: "Contact your contractor with any questions about this proposal." },
       }),
@@ -379,6 +418,7 @@ describe("loadPublicProposalByToken", () => {
       buildDto: () => publicDto(),
       buildDocumentViewModel: () => ({
         kind: "document",
+        packet: minimalPacketStub(),
         meta: { statusLabel: "Review proposal", versionKind: "sent", frozenAt: null, proposalTitle: null },
         header: {
           company: { companyName: null, logoUrl: null, logoMonogram: null, brandPrimaryColor: null, brandSecondaryColor: null, hasAnyField: false },
@@ -394,7 +434,7 @@ describe("loadPublicProposalByToken", () => {
           heroContent: null,
         },
         pages: [],
-        estimate: { sectionTitle: "Estimate", layout: "option_cards", options: [], selectedOption: null, displayPolicy: { showLinePrices: true, showOptionTotals: true, showSectionHeadings: true } },
+        estimate: { layout: "selected_primary", primaryPackage: null, alternateOptions: [], optionalUpgrades: [], selectedOption: null, displayPolicy: { showLinePrices: true, showOptionTotals: true, showSectionHeadings: true } },
         futureActions: [],
         footer: { company: { companyName: null, phone: null, email: null, website: null, license: null, address: null, hasAnyField: false }, supportMessage: "Contact your contractor with any questions about this proposal." },
       }),
@@ -437,6 +477,7 @@ describe("loadPublicProposalByToken", () => {
       buildDto: () => publicDto(),
       buildDocumentViewModel: () => ({
         kind: "document",
+        packet: minimalPacketStub(),
         meta: {
           statusLabel: "Review proposal",
           versionKind: "sent",
@@ -491,9 +532,10 @@ describe("loadPublicProposalByToken", () => {
         },
         pages: [],
         estimate: {
-          sectionTitle: "Estimate",
-          layout: "option_cards",
-          options: [],
+          layout: "selected_primary",
+          primaryPackage: null,
+          alternateOptions: [],
+          optionalUpgrades: [],
           selectedOption: null,
           displayPolicy: {
             showLinePrices: true,
@@ -533,6 +575,7 @@ describe("loadPublicProposalByToken", () => {
       buildDto: () => publicDto(),
       buildDocumentViewModel: () => ({
         kind: "document",
+        packet: minimalPacketStub(),
         meta: { statusLabel: "Review proposal", versionKind: "sent", frozenAt: null, proposalTitle: null },
         header: {
           company: { companyName: null, logoUrl: null, logoMonogram: null, brandPrimaryColor: null, brandSecondaryColor: null, hasAnyField: false },
@@ -548,7 +591,7 @@ describe("loadPublicProposalByToken", () => {
           heroContent: null,
         },
         pages: [],
-        estimate: { sectionTitle: "Estimate", layout: "option_cards", options: [], selectedOption: null, displayPolicy: { showLinePrices: true, showOptionTotals: true, showSectionHeadings: true } },
+        estimate: { layout: "selected_primary", primaryPackage: null, alternateOptions: [], optionalUpgrades: [], selectedOption: null, displayPolicy: { showLinePrices: true, showOptionTotals: true, showSectionHeadings: true } },
         futureActions: [],
         footer: { company: { companyName: null, phone: null, email: null, website: null, license: null, address: null, hasAnyField: false }, supportMessage: "Contact your contractor with any questions about this proposal." },
       }),
@@ -579,6 +622,7 @@ describe("loadPublicProposalByToken", () => {
       buildDto: () => publicDto(),
       buildDocumentViewModel: () => ({
         kind: "document",
+        packet: minimalPacketStub(),
         meta: {
           statusLabel: "Review proposal",
           versionKind: "sent",
@@ -633,9 +677,10 @@ describe("loadPublicProposalByToken", () => {
         },
         pages: [],
         estimate: {
-          sectionTitle: "Estimate",
-          layout: "option_cards",
-          options: [],
+          layout: "selected_primary",
+          primaryPackage: null,
+          alternateOptions: [],
+          optionalUpgrades: [],
           selectedOption: null,
           displayPolicy: {
             showLinePrices: true,

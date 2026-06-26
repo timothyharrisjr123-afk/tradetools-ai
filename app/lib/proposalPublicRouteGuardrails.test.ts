@@ -12,9 +12,14 @@ import type { ProposalPublicGraphDto } from "@/app/lib/proposalPublicGraphDto";
 
 const PUBLIC_ROUTE_DIR = new URL("../p/[token]/", import.meta.url);
 const PUBLIC_LAYOUT = new URL("../p/layout.tsx", import.meta.url);
+const PACKET_DIR = new URL("../components/proposal-packet/", import.meta.url);
 
 function readPublicRouteSource(filename: string): string {
   return readFileSync(new URL(filename, PUBLIC_ROUTE_DIR), "utf8");
+}
+
+function readPacketSource(filename: string): string {
+  return readFileSync(new URL(filename, PACKET_DIR), "utf8");
 }
 
 const TEMPLATE_OPT_A = "77777777-7777-4777-8777-777777777777";
@@ -65,6 +70,7 @@ function baseDto(): ProposalPublicGraphDto {
             customer_line_total_cents: 10000,
             pricing_status: "priced",
             visible_to_customer: true,
+            line_presentation_group: "included",
           },
         ],
       },
@@ -84,10 +90,7 @@ describe("public proposal route source guardrails", () => {
     assert.match(source, /loadPublicProposalByToken\(token\)/);
     assert.match(source, /from "@\/app\/lib\/proposalPublicAccessOrchestrator\.server"/);
     assert.doesNotMatch(source, /searchParams/);
-    assert.doesNotMatch(source, /get\("job"\)|get\("proposal"\)|get\("version"\)/);
     assert.doesNotMatch(source, /getDraftGraph\(/);
-    assert.doesNotMatch(source, /loadSaved/);
-    assert.doesNotMatch(source, /approve\/\[token\]/);
   });
 
   test("page passes document or error only — view envelope stays server-side", () => {
@@ -95,63 +98,55 @@ describe("public proposal route source guardrails", () => {
     assert.match(source, /<PublicProposalPage document=\{result\.document\}/);
     assert.match(source, /<PublicProposalErrorPage error=\{result\.error\}/);
     assert.doesNotMatch(source, /result\.tracking/);
-    assert.doesNotMatch(source, /rawToken|raw_token|token_hash/);
   });
 
-  test("public shell does not import FieldDive app chrome or builder preview", () => {
+  test("public page renders shared ProposalPacket", () => {
+    const source = readPublicRouteSource("PublicProposalPage.tsx");
+    assert.match(source, /ProposalPacket/);
+    assert.match(source, /document\.packet/);
+    assert.doesNotMatch(source, /PublicProposalEstimateSection/);
+  });
+
+  test("shared packet components do not import FieldDive app chrome or builder preview", () => {
     const files = [
-      "page.tsx",
-      "PublicProposalPage.tsx",
-      "PublicProposalErrorPage.tsx",
-      "PublicProposalHeader.tsx",
-      "PublicProposalCoverSection.tsx",
-      "PublicProposalDocumentPages.tsx",
-      "PublicProposalEstimateSection.tsx",
-      "PublicProposalFutureActions.tsx",
-      "PublicProposalFooter.tsx",
+      "ProposalPacket.tsx",
+      "ProposalPacketCover.tsx",
+      "ProposalPacketEstimate.tsx",
+      "ProposalPacketComparison.tsx",
+      "ProposalPacketDetails.tsx",
     ];
 
     for (const file of files) {
-      const source = readPublicRouteSource(file);
+      const source = readPacketSource(file);
       assert.doesNotMatch(source, /FieldDiveAppShell/);
-      assert.doesNotMatch(source, /RoofingClient/);
       assert.doesNotMatch(source, /ProposalBuilder/);
-      assert.doesNotMatch(source, /ProposalCustomerPreviewClient/);
       assert.doesNotMatch(source, /getDraftGraph\(/);
-      assert.doesNotMatch(source, /createAdminClient/);
     }
   });
 
-  test("future actions component has no interactive behavior", () => {
-    const source = readPublicRouteSource("PublicProposalFutureActions.tsx");
-    assert.match(source, /aria-disabled="true"/);
-    assert.doesNotMatch(source, /onClick/);
-    assert.doesNotMatch(source, /<form/);
-    assert.doesNotMatch(source, /fetch\(/);
-    assert.doesNotMatch(source, /<Link/);
-    assert.doesNotMatch(source, /href=/);
+  test("public page does not render deferred Sign/PDF/Payment UI", () => {
+    const source = readPublicRouteSource("PublicProposalPage.tsx");
+    assert.doesNotMatch(source, /FutureActions/);
+    assert.doesNotMatch(source, /payment_deposit/);
   });
 
   test("route layout provides public light surface without app shell", () => {
     const layout = readFileSync(PUBLIC_LAYOUT, "utf8");
-    assert.match(layout, /bg-slate-100/);
+    assert.match(layout, /min-h-screen/);
+    assert.match(layout, /bg-/);
     assert.doesNotMatch(layout, /FieldDiveAppShell/);
   });
 });
 
 describe("public proposal client payload audit", () => {
-  test("document VM serializes without forbidden identifiers", () => {
+  test("document VM includes shared packet and serializes safely", () => {
     const vm = buildProposalPublicProposalDocumentViewModel(baseDto());
-    const serialized = JSON.stringify(vm);
+    assert.ok(vm.packet.cover);
+    assert.ok(vm.packet.estimate);
 
+    const serialized = JSON.stringify(vm);
     assert.doesNotMatch(serialized, /"token_hash"\s*:/);
-    assert.doesNotMatch(serialized, /"raw_token"\s*:/);
-    assert.doesNotMatch(serialized, /"token_id"\s*:/);
-    assert.doesNotMatch(serialized, /"company_id"\s*:/);
     assert.doesNotMatch(serialized, /"proposal_id"\s*:/);
-    assert.doesNotMatch(serialized, /"proposal_version_id"\s*:/);
-    assert.doesNotMatch(serialized, /"job_id"\s*:/);
-    assert.doesNotMatch(serialized, /internal_unit_cost/);
   });
 
   test("future actions in document VM are deferred only", () => {

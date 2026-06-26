@@ -100,6 +100,7 @@ function baseDto(overrides: Partial<ProposalPublicGraphDto> = {}): ProposalPubli
             customer_line_total_cents: 10000,
             pricing_status: "priced",
             visible_to_customer: true,
+            line_presentation_group: "included",
           },
         ],
       },
@@ -123,13 +124,15 @@ describe("buildProposalPublicProposalDocumentViewModel", () => {
     assert.ok(vm.header.company.companyName);
     assert.ok(vm.cover.headline);
     assert.ok(vm.pages.length >= 1);
-    assert.equal(vm.estimate.options.length, 1);
+    assert.ok(vm.packet.cover);
+    assert.ok(vm.packet.estimate);
+    assert.equal(vm.estimate.layout, "selected_primary");
     assert.equal(vm.futureActions.length, 3);
     assert.ok(vm.footer.company.hasAnyField);
     assertPublicProposalDocumentViewModelSafe(vm);
   });
 
-  test("multi-option DTO produces multiple option cards", () => {
+  test("multi-option DTO produces primary package plus secondary alternates", () => {
     const dto = baseDto({
       options: [
         ...baseDto().options,
@@ -155,6 +158,7 @@ describe("buildProposalPublicProposalDocumentViewModel", () => {
               customer_line_total_cents: 15000,
               pricing_status: "priced",
               visible_to_customer: true,
+              line_presentation_group: "included",
             },
           ],
         },
@@ -162,17 +166,18 @@ describe("buildProposalPublicProposalDocumentViewModel", () => {
     });
 
     const vm = buildProposalPublicProposalDocumentViewModel(dto);
-    assert.equal(vm.estimate.options.length, 2);
-    assert.equal(vm.estimate.sectionTitle, "Your options");
+    assert.equal(vm.estimate.primaryPackage?.optionKey, TEMPLATE_OPT_A);
+    assert.equal(vm.estimate.alternateOptions.length, 1);
+    assert.equal(vm.estimate.alternateOptions[0]?.optionKey, TEMPLATE_OPT_B);
   });
 
-  test("single option DTO produces one option card", () => {
+  test("single option DTO produces one primary package", () => {
     const vm = buildProposalPublicProposalDocumentViewModel(baseDto());
-    assert.equal(vm.estimate.options.length, 1);
-    assert.equal(vm.estimate.sectionTitle, "Estimate");
+    assert.equal(vm.estimate.primaryPackage?.optionKey, TEMPLATE_OPT_A);
+    assert.equal(vm.estimate.alternateOptions.length, 0);
   });
 
-  test("hidden options do not appear in estimate cards", () => {
+  test("hidden options do not appear in alternate options", () => {
     const dto = baseDto({
       options: [
         baseDto().options[0]!,
@@ -192,8 +197,8 @@ describe("buildProposalPublicProposalDocumentViewModel", () => {
     });
 
     const vm = buildProposalPublicProposalDocumentViewModel(dto);
-    assert.equal(vm.estimate.options.length, 1);
-    assert.equal(vm.estimate.options[0]?.optionKey, TEMPLATE_OPT_A);
+    assert.equal(vm.estimate.alternateOptions.length, 0);
+    assert.equal(vm.estimate.primaryPackage?.optionKey, TEMPLATE_OPT_A);
   });
 
   test("display policy hides line prices and totals when disabled", () => {
@@ -206,10 +211,10 @@ describe("buildProposalPublicProposalDocumentViewModel", () => {
     });
 
     const vm = buildProposalPublicProposalDocumentViewModel(dto);
-    const line = vm.estimate.options[0]?.scopeSections[0]?.lines[0];
+    const line = vm.estimate.primaryPackage?.scopeGroups[0]?.lines[0];
     assert.equal(line?.valueLabel, null);
     assert.equal(line?.quantityLabel, null);
-    assert.equal(vm.estimate.options[0]?.totals.showTotals, false);
+    assert.equal(vm.estimate.primaryPackage?.totalInvestmentLabel, null);
   });
 
   test("future actions are all deferred", () => {
@@ -321,7 +326,8 @@ describe("buildProposalPublicProposalDocumentViewModel", () => {
     );
 
     const vm = buildProposalPublicProposalDocumentViewModel(graphDto);
-    const lineNames = vm.estimate.options[0]?.scopeSections[0]?.lines.map((line) => line.name) ?? [];
+    const lineNames =
+      vm.estimate.primaryPackage?.scopeGroups.flatMap((group) => group.lines.map((line) => line.name)) ?? [];
     assert.deepEqual(lineNames, ["Visible"]);
   });
 });

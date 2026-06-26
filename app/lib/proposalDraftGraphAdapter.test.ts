@@ -25,6 +25,7 @@ import {
   showOnCustomerDocumentForSnapshotLine,
   validateProposalDraftGraphForJob,
 } from "./proposalDraftGraphAdapter";
+import type { ProposalVersionGraph } from "./proposalRecordStore";
 import { buildProposalCoverViewModel } from "./proposalCoverViewModel";
 import { formatPriceCents } from "@/app/tools/roofing/proposals/builder/proposalBuilderConstants";
 
@@ -193,6 +194,79 @@ describe("resolveSelectedTemplateOptionIdFromGraph", () => {
       proposal: proposal({ selected_option_id: RUNTIME_OPT_B }),
     });
     assert.equal(resolveSelectedTemplateOptionIdFromGraph(graph), TEMPLATE_OPT_B);
+  });
+
+  test("sent version graph uses frozen selected_at, not live proposal selected_option_id", () => {
+    const sentVersionId = "10101010-1010-4010-8010-101010101010";
+    const frozenStandardId = "20202020-2020-4020-8020-202020202020";
+    const frozenPremiumId = "30303030-3030-4030-8030-303030303030";
+    const graph: ProposalVersionGraph = {
+      proposal: proposal({ selected_option_id: RUNTIME_OPT_B }),
+      version: {
+        ...versionRow(),
+        id: sentVersionId,
+        version_kind: "sent" as const,
+        frozen_at: "2026-06-06T00:00:00.000Z",
+      },
+      options: [
+        optionRow({
+          id: frozenStandardId,
+          proposal_version_id: sentVersionId,
+          source_template_option_id: TEMPLATE_OPT_A,
+          selected_at: "2026-06-01T00:00:00.000Z",
+          is_default: true,
+          sort_order: 0,
+        }),
+        optionRow({
+          id: frozenPremiumId,
+          proposal_version_id: sentVersionId,
+          source_template_option_id: TEMPLATE_OPT_B,
+          selected_at: "2026-06-06T00:00:00.000Z",
+          is_default: false,
+          sort_order: 1,
+        }),
+      ],
+      lineItems: [],
+      internalSummaries: [],
+      pages: [],
+    };
+    assert.equal(resolveSelectedTemplateOptionIdFromGraph(graph), TEMPLATE_OPT_B);
+  });
+
+  test("sent version graph ignores draft runtime selected_option_id when frozen selected_at differs", () => {
+    const sentVersionId = "10101010-1010-4010-8010-101010101010";
+    const frozenStandardId = "20202020-2020-4020-8020-202020202020";
+    const graph: ProposalVersionGraph = {
+      proposal: proposal({ selected_option_id: RUNTIME_OPT_B }),
+      version: {
+        ...versionRow(),
+        id: sentVersionId,
+        version_kind: "sent" as const,
+        frozen_at: "2026-06-06T00:00:00.000Z",
+      },
+      options: [
+        optionRow({
+          id: frozenStandardId,
+          proposal_version_id: sentVersionId,
+          source_template_option_id: TEMPLATE_OPT_A,
+          selected_at: "2026-06-06T00:00:00.000Z",
+          is_default: true,
+          sort_order: 0,
+        }),
+        optionRow({
+          id: "30303030-3030-4030-8030-303030303030",
+          proposal_version_id: sentVersionId,
+          source_template_option_id: TEMPLATE_OPT_B,
+          selected_at: null,
+          is_default: false,
+          sort_order: 1,
+        }),
+      ],
+      lineItems: [],
+      internalSummaries: [],
+      pages: [],
+    };
+    assert.equal(resolveSelectedTemplateOptionIdFromGraph(graph), TEMPLATE_OPT_A);
   });
 });
 

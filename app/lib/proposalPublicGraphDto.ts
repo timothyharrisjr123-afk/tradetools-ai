@@ -48,6 +48,8 @@ export type ProposalPublicGraphPageDto = {
   settings_json: Record<string, unknown>;
 };
 
+export type ProposalPublicLinePresentationGroup = "included" | "upgrade";
+
 export type ProposalPublicGraphLineDto = {
   source_template_item_id: string | null;
   customer_name: string;
@@ -59,6 +61,7 @@ export type ProposalPublicGraphLineDto = {
   customer_line_total_cents: number | null;
   pricing_status: string;
   visible_to_customer: true;
+  line_presentation_group: ProposalPublicLinePresentationGroup;
 };
 
 export type ProposalPublicGraphOptionDto = {
@@ -126,6 +129,14 @@ function isPublicCustomerLine(line: {
   return line.visible_to_customer === true && line.pricing_status !== "omitted";
 }
 
+function resolveLinePresentationGroup(role: string | null | undefined): ProposalPublicLinePresentationGroup {
+  const normalized = (role ?? "").trim().toLowerCase();
+  if (normalized === "upgrade" || normalized === "optional_addon") {
+    return "upgrade";
+  }
+  return "included";
+}
+
 function mapPublicLine(
   line: ProposalLineItemRow | ProposalSendFreezeOptionPersistPayload["line_items"][number]
 ): ProposalPublicGraphLineDto | null {
@@ -142,6 +153,7 @@ function mapPublicLine(
     customer_line_total_cents: line.customer_line_total_cents,
     pricing_status: line.pricing_status,
     visible_to_customer: true,
+    line_presentation_group: resolveLinePresentationGroup(line.role),
   };
 
   assertNoForbiddenKeys(dto as unknown as Record<string, unknown>, "line");

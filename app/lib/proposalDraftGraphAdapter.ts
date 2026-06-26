@@ -22,6 +22,7 @@ import type {
   ProposalDraftGraph,
   ProposalLineItemRow,
   ProposalOptionRow,
+  ProposalVersionGraph,
 } from "@/app/lib/proposalRecordStore";
 import { isUuidLike } from "@/app/lib/jobStore";
 
@@ -240,24 +241,54 @@ function buildLineCustomerView(line: ProposalLineItemRow): ProposalBuilderLineCu
   };
 }
 
+function resolveSelectedTemplateOptionIdFromFrozenOptions(
+  options: ProposalOptionRow[]
+): string | null {
+  const sorted = [...options].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+
+  const selectedByTimestamp = sorted
+    .filter((option) => (option.selected_at ?? "").trim().length > 0)
+    .sort((a, b) => Date.parse(b.selected_at!) - Date.parse(a.selected_at!));
+
+  if (selectedByTimestamp.length > 0) {
+    const templateId = (selectedByTimestamp[0]?.source_template_option_id ?? "").trim();
+    if (templateId) return templateId;
+  }
+
+  const defaultOpt = sorted.find((option) => option.is_default);
+  const fallback = defaultOpt ?? sorted[0];
+  const templateId = (fallback?.source_template_option_id ?? "").trim();
+  return templateId || null;
+}
+
+/**
+ * Resolves the customer-selected template option id from a draft or frozen version graph.
+ *
+ * Draft graphs: use proposals.selected_option_id mapped to draft option runtime ids.
+ * Sent/signed graphs: use frozen option rows (selected_at / default) — never live
+ * proposal.selected_option_id, which references draft runtime ids that differ from
+ * immutable snapshot option ids.
+ */
 export function resolveSelectedTemplateOptionIdFromGraph(
-  graph: ProposalDraftGraph
+  graph: ProposalDraftGraph | ProposalVersionGraph
 ): string | null {
   const options = [...graph.options].sort(
     (a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)
   );
+  const versionKind = graph.version.version_kind;
+
+  if (versionKind === "sent" || versionKind === "signed") {
+    return resolveSelectedTemplateOptionIdFromFrozenOptions(options);
+  }
 
   const selectedRuntimeId = (graph.proposal.selected_option_id ?? "").trim();
   if (selectedRuntimeId) {
-    const selected = options.find((o) => o.id === selectedRuntimeId);
+    const selected = options.find((option) => option.id === selectedRuntimeId);
     const templateId = (selected?.source_template_option_id ?? "").trim();
     if (templateId) return templateId;
   }
 
-  const defaultOpt = options.find((o) => o.is_default);
-  const fallback = defaultOpt ?? options[0];
-  const templateId = (fallback?.source_template_option_id ?? "").trim();
-  return templateId || null;
+  return resolveSelectedTemplateOptionIdFromFrozenOptions(options);
 }
 
 /** Map Builder/template option tab id → persisted proposal_options.id for draft updates. */
