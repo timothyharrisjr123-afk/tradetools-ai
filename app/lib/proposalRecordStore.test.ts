@@ -52,6 +52,7 @@ import {
   ProposalRecordStoreError,
   PROPOSAL_SEND_FREEZE_RPC_PERSIST_STEP,
   refreshDraftPricing,
+  restampDraftProposalIdentityEcho,
   sanitizeEffectiveMarginPct,
   updateDraftProposalPageContent,
   updateDraftProposalPageSettings,
@@ -61,6 +62,7 @@ import {
 } from "./proposalRecordStore";
 import { buildProposalBuilderPricingPreview } from "./proposalBuilderPricingPreview";
 import { deriveProposalPricingStale } from "./proposalStaleness";
+import { buildFullProposalIdentityEchoSnapshot } from "./proposalIdentityEcho";
 import { PROPOSAL_LINE_CUSTOMER_FORBIDDEN_KEYS } from "./proposalLineSnapshotTypes";
 import type { ProposalTemplateGraph } from "./proposalTemplateStore";
 import type {
@@ -3049,6 +3051,155 @@ describe("updateDraftProposalPageSettings", () => {
       page_id: estimatePage!.id,
       field: "settings_json",
       patch: { show_line_prices: false },
+    });
+  });
+});
+
+describe("restampDraftProposalIdentityEcho", () => {
+  test("updates stale company_email and preserves measurement echo fields", async () => {
+    await withCreateDraftProposalSequentialEnabled(async () => {
+      const mock = createMockSupabase();
+      const deps = storeDeps(mock);
+      const created = await createDraftProposal(
+        {
+          company_id: COMPANY_ID,
+          job_id: JOB_ID,
+          template_id: TEMPLATE_ID,
+          measurement_record_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+          quantity_context: contextWithSquares(22),
+        },
+        deps
+      );
+
+      const versionBefore = mock.state.tables.proposal_versions[0] as Record<string, unknown>;
+      const echoBefore = versionBefore.context_echo as Record<string, unknown>;
+      echoBefore.company_email = "stale@example.com";
+      echoBefore.measurement_quantities_display = "22.0 SQ";
+      echoBefore.custom_identity_marker = "keep-me";
+
+      const updatedAtBefore = (mock.state.tables.proposals[0] as Record<string, unknown>)
+        .updated_at as string;
+
+      const result = await restampDraftProposalIdentityEcho(
+        COMPANY_ID,
+        created.proposal.id,
+        {
+          liveIdentity: buildFullProposalIdentityEchoSnapshot({
+            company_name: echoBefore.company_name as string,
+            company_email: "fresh@example.com",
+            company_phone: echoBefore.company_phone as string,
+            company_address: echoBefore.company_address as string,
+            company_website: echoBefore.company_website as string,
+            company_logo_url: echoBefore.company_logo_url as string,
+            customer_name: echoBefore.customer_name as string,
+            customer_email: echoBefore.customer_email as string,
+            customer_phone: echoBefore.customer_phone as string,
+            customer_address: echoBefore.customer_address as string,
+            address_formatted: echoBefore.address_formatted as string,
+            job_name: echoBefore.job_name as string,
+            template_name: echoBefore.template_name as string,
+          }),
+        },
+        deps
+      );
+
+      assert.equal(result.restamped, true);
+      assert.equal(result.changedFields.some((field) => field.key === "company_email"), true);
+
+      const echoAfter = (mock.state.tables.proposal_versions[0] as Record<string, unknown>)
+        .context_echo as Record<string, unknown>;
+      assert.equal(echoAfter.company_email, "fresh@example.com");
+      assert.equal(echoAfter.measurement_quantities_display, "22.0 SQ");
+      assert.equal(echoAfter.custom_identity_marker, "keep-me");
+
+      const updatedAtAfter = (mock.state.tables.proposals[0] as Record<string, unknown>)
+        .updated_at as string;
+      assert.notEqual(updatedAtAfter, updatedAtBefore);
+    });
+  });
+
+  test("is idempotent when identity echo already matches live snapshot", async () => {
+    await withCreateDraftProposalSequentialEnabled(async () => {
+      const mock = createMockSupabase();
+      const deps = storeDeps(mock);
+      const created = await createDraftProposal(
+        {
+          company_id: COMPANY_ID,
+          job_id: JOB_ID,
+          template_id: TEMPLATE_ID,
+          quantity_context: contextWithSquares(22),
+        },
+        deps
+      );
+
+      const versionRow = mock.state.tables.proposal_versions[0] as Record<string, unknown>;
+      const echo = versionRow.context_echo as Record<string, unknown>;
+      const liveIdentity = buildFullProposalIdentityEchoSnapshot({
+        company_name: echo.company_name as string,
+        company_email: echo.company_email as string | null,
+        company_phone: echo.company_phone as string,
+        company_address: echo.company_address as string,
+        company_website: echo.company_website as string,
+        company_logo_url: echo.company_logo_url as string,
+        customer_name: echo.customer_name as string,
+        customer_email: echo.customer_email as string,
+        customer_phone: echo.customer_phone as string,
+        customer_address: echo.customer_address as string,
+        address_formatted: echo.address_formatted as string,
+        job_name: echo.job_name as string,
+        template_name: echo.template_name as string,
+      });
+
+      const updatedAtBefore = (mock.state.tables.proposals[0] as Record<string, unknown>)
+        .updated_at as string;
+
+      const result = await restampDraftProposalIdentityEcho(
+        COMPANY_ID,
+        created.proposal.id,
+        { liveIdentity },
+        deps
+      );
+
+      assert.equal(result.restamped, false);
+      assert.deepEqual(result.changedFields, []);
+      assert.equal(
+        (mock.state.tables.proposals[0] as Record<string, unknown>).updated_at,
+        updatedAtBefore
+      );
+    });
+  });
+
+  test("skips restamp when signed snapshot exists", async () => {
+    await withCreateDraftProposalSequentialEnabled(async () => {
+      const mock = createMockSupabase();
+      const deps = storeDeps(mock);
+      const created = await createDraftProposal(
+        {
+          company_id: COMPANY_ID,
+          job_id: JOB_ID,
+          template_id: TEMPLATE_ID,
+          quantity_context: contextWithSquares(22),
+        },
+        deps
+      );
+
+      const proposalRow = mock.state.tables.proposals[0] as Record<string, unknown>;
+      proposalRow.signed_version_id = "99999999-9999-4999-8999-999999999999";
+
+      const result = await restampDraftProposalIdentityEcho(
+        COMPANY_ID,
+        created.proposal.id,
+        {
+          liveIdentity: buildFullProposalIdentityEchoSnapshot({
+            company_email: "fresh@example.com",
+          }),
+        },
+        deps
+      );
+
+      assert.equal(result.skipped, true);
+      assert.equal(result.skipReason, "signed_snapshot");
+      assert.equal(result.restamped, false);
     });
   });
 });

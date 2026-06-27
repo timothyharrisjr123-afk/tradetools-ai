@@ -9,8 +9,10 @@ import { describe, test } from "node:test";
 
 import {
   PROPOSAL_IDENTITY_ECHO_KEYS,
+  buildFullProposalIdentityEchoSnapshot,
   diffProposalIdentityEcho,
   hasProposalIdentityEchoDrift,
+  mergeProposalIdentityEchoIntoContextEcho,
   normalizeProposalIdentityEchoValue,
   pickProposalIdentityEchoSnapshot,
 } from "./proposalIdentityEcho";
@@ -265,5 +267,43 @@ describe("diffProposalIdentityEcho", () => {
 
     assert.deepEqual(draft, draftBefore);
     assert.deepEqual(live, liveBefore);
+  });
+});
+
+describe("mergeProposalIdentityEchoIntoContextEcho", () => {
+  test("updates only allowlisted identity keys and preserves other echo fields", () => {
+    const merged = mergeProposalIdentityEchoIntoContextEcho(
+      {
+        company_name: "Old Co",
+        company_email: "old@example.com",
+        measurement_quantities_display: "24 SQ",
+        pricing_policy_id: "policy-1",
+        customer_id: "cust-1",
+      },
+      buildFullProposalIdentityEchoSnapshot({
+        company_name: "New Co",
+        company_email: "new@example.com",
+        company_phone: "918-555-0100",
+      })
+    );
+
+    assert.equal(merged.company_name, "New Co");
+    assert.equal(merged.company_email, "new@example.com");
+    assert.equal(merged.company_phone, "918-555-0100");
+    assert.equal(merged.measurement_quantities_display, "24 SQ");
+    assert.equal(merged.pricing_policy_id, "policy-1");
+    assert.equal(merged.customer_id, "cust-1");
+  });
+
+  test("clears identity keys when live value is null", () => {
+    const merged = mergeProposalIdentityEchoIntoContextEcho(
+      { company_website: "https://old.example.com", job_id: "job-1" },
+      buildFullProposalIdentityEchoSnapshot({
+        company_website: null,
+      })
+    );
+
+    assert.equal("company_website" in merged, false);
+    assert.equal(merged.job_id, "job-1");
   });
 });

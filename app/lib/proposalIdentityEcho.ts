@@ -129,3 +129,39 @@ export function hasProposalIdentityEchoDrift(
 ): boolean {
   return diffProposalIdentityEcho(draftEcho, liveEcho).isStale;
 }
+
+/** Full identity snapshot with every allowlist key normalized (null when empty). */
+export function buildFullProposalIdentityEchoSnapshot(
+  fields: Partial<Record<ProposalIdentityEchoKey, unknown>>
+): Record<ProposalIdentityEchoKey, ProposalIdentityEchoValue> {
+  const snapshot = {} as Record<ProposalIdentityEchoKey, ProposalIdentityEchoValue>;
+  for (const key of PROPOSAL_IDENTITY_ECHO_KEYS) {
+    snapshot[key] = normalizeProposalIdentityEchoValue(fields[key]);
+  }
+  return snapshot;
+}
+
+/**
+ * Merge live identity values into a context_echo blob.
+ * Updates only allowlist keys; preserves all other echo fields.
+ */
+export function mergeProposalIdentityEchoIntoContextEcho(
+  contextEcho: unknown,
+  liveIdentity: Record<ProposalIdentityEchoKey, ProposalIdentityEchoValue>
+): Record<string, unknown> {
+  const base =
+    contextEcho != null && typeof contextEcho === "object" && !Array.isArray(contextEcho)
+      ? { ...(contextEcho as Record<string, unknown>) }
+      : {};
+
+  for (const key of PROPOSAL_IDENTITY_ECHO_KEYS) {
+    const normalized = liveIdentity[key] ?? null;
+    if (normalized == null) {
+      delete base[key];
+    } else {
+      base[key] = normalized;
+    }
+  }
+
+  return base;
+}

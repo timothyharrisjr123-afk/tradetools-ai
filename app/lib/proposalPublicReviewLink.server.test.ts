@@ -259,7 +259,7 @@ describe("proposalPublicReviewLink server guardrails", () => {
     );
     assert.match(source, /import "server-only"/);
     assert.match(source, /mintProposalPublicAccessToken/);
-    assert.match(source, /freezeDraftToSentSnapshot/);
+    assert.match(source, /buildProposalSendSnapshotServerDeps/);
     assert.doesNotMatch(source, /send_email|proposal_events|proposals\.status/);
   });
 

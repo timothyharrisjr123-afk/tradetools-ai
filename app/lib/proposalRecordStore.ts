@@ -65,6 +65,18 @@ import {
   getProposalTemplateGraph,
   type ProposalTemplateGraph,
 } from "@/app/lib/proposalTemplateStore";
+import {
+  buildFullProposalIdentityEchoSnapshot,
+  diffProposalIdentityEcho,
+  mergeProposalIdentityEchoIntoContextEcho,
+  pickProposalIdentityEchoSnapshot,
+  type ProposalIdentityEchoDiff,
+  type ProposalIdentityEchoKey,
+  type ProposalIdentityEchoSnapshot,
+  type ProposalIdentityEchoValue,
+} from "@/app/lib/proposalIdentityEcho";
+import type { LoadLiveProposalIdentityEchoInput } from "@/app/lib/proposalIdentityEchoLive";
+import { composeLiveProposalIdentityEchoFromSources } from "@/app/lib/proposalIdentityEchoLive";
 import { resolveProposalLineQuantity } from "@/app/lib/proposalQuantityResolver";
 import {
   buildDraftInstantiateInputWithScopeDecisions,
@@ -393,6 +405,9 @@ export type ProposalRecordStoreDeps = {
     customerId: string | null | undefined,
     supabase: NonNullable<ReturnType<typeof getSupabaseClient>>
   ) => Promise<ProposalContextEchoCustomerFields>;
+  loadLiveProposalIdentityEcho?: (
+    input: LoadLiveProposalIdentityEchoInput
+  ) => Promise<Record<ProposalIdentityEchoKey, ProposalIdentityEchoValue>>;
 };
 
 function resolveDeps(deps?: ProposalRecordStoreDeps) {
@@ -405,6 +420,8 @@ function resolveDeps(deps?: ProposalRecordStoreDeps) {
       deps?.loadProposalCompanyContext ?? loadProposalCompanyContextFromDatabase,
     loadProposalCustomerContext:
       deps?.loadProposalCustomerContext ?? loadProposalCustomerContextFromDatabase,
+    loadLiveProposalIdentityEcho:
+      deps?.loadLiveProposalIdentityEcho ?? loadLiveProposalIdentityEchoForDraftProposal,
   };
 }
 
@@ -1899,6 +1916,209 @@ export async function updateDraftProposalPageSettings(
   );
 
   return getDraftGraph(cid, pid, deps);
+}
+
+const PROPOSAL_IDENTITY_ECHO_SELECT =
+  "id, company_id, job_id, customer_id, template_id, signed_version_id, proposal_number, title, current_draft_version_id";
+
+export async function loadLiveProposalIdentityEchoForDraftProposal(
+  input: LoadLiveProposalIdentityEchoInput,
+  deps?: ProposalRecordStoreDeps
+): Promise<Record<ProposalIdentityEchoKey, ProposalIdentityEchoValue>> {
+  const d = resolveDeps(deps);
+  const supabase = d.getSupabase();
+  const companyId = normalizeCompanyId(input.companyId);
+  const proposalId = (input.proposalId ?? "").trim();
+
+  if (!supabase || !companyId || !isUuidLike(proposalId)) {
+    throw new ProposalRecordStoreError("company_id and proposal_id are required UUIDs.");
+  }
+
+  const { data: proposalRow, error: proposalError } = await supabase
+    .from("proposals")
+    .select(PROPOSAL_IDENTITY_ECHO_SELECT)
+    .eq("id", proposalId)
+    .eq("company_id", companyId)
+    .maybeSingle();
+
+  if (proposalError || !proposalRow) {
+    throw new ProposalRecordStoreError("Proposal not found.");
+  }
+
+  const jobId = (input.jobId ?? (proposalRow.job_id as string | null) ?? "").trim();
+  if (!jobId || !isUuidLike(jobId)) {
+    throw new ProposalRecordStoreError("job_id is required.");
+  }
+
+  const jobEcho = await validateJobBelongsToCompany(supabase, companyId, jobId);
+
+  const companySource = await d.loadProposalCompanyContext(companyId, supabase);
+  const mergedCompanyProfile = mergeCompanyBrandingProfile(
+    companySource.core,
+    companySource.branding ?? {}
+  );
+  const companyEcho = buildProposalCompanyContextEchoFromProfile(mergedCompanyProfile);
+
+  const proposalCustomerId = (proposalRow.customer_id as string | null) ?? null;
+  const resolvedCustomerId = proposalCustomerId ?? jobEcho.customer_id;
+  const customerEcho = await d.loadProposalCustomerContext(
+    companyId,
+    resolvedCustomerId,
+    supabase
+  );
+
+  const templateId = (proposalRow.template_id as string | null) ?? null;
+  let templateName: string | null = null;
+  if (templateId) {
+    const graph = await d.getTemplateGraph(templateId, { companyId });
+    templateName = (graph?.template.name ?? "").trim() || null;
+  }
+
+  const proposalNumber = ((proposalRow.proposal_number as string | null) ?? "").trim() || null;
+  const proposalTitle = ((proposalRow.title as string | null) ?? "").trim() || null;
+
+  return composeLiveProposalIdentityEchoFromSources({
+    companyEcho,
+    customerEcho,
+    jobName: jobEcho.job_name,
+    addressFormatted: jobEcho.address_formatted,
+    templateName,
+    proposalNumber,
+    proposalTitle,
+  });
+}
+
+/** Alias matching Stage B planning name. */
+export const buildLiveProposalIdentityEchoForDraftProposal =
+  loadLiveProposalIdentityEchoForDraftProposal;
+
+// ---------------------------------------------------------------------------
+// Restamp draft identity echo (Stage B — identity/contact/project display)
+// ---------------------------------------------------------------------------
+
+export type RestampDraftProposalIdentityEchoInput = {
+  /** When provided, skips live DB load — for tests and explicit caller control. */
+  liveIdentity?: ProposalIdentityEchoSnapshot;
+  jobId?: string | null;
+};
+
+export type RestampDraftProposalIdentityEchoResult = {
+  restamped: boolean;
+  skipped: boolean;
+  skipReason?: "signed_snapshot";
+  changedFields: ProposalIdentityEchoDiff[];
+  before: ProposalIdentityEchoSnapshot;
+  after: ProposalIdentityEchoSnapshot;
+  proposalUpdatedAt: string | null;
+};
+
+export async function restampDraftProposalIdentityEcho(
+  companyId: string,
+  proposalId: string,
+  input: RestampDraftProposalIdentityEchoInput = {},
+  deps?: ProposalRecordStoreDeps
+): Promise<RestampDraftProposalIdentityEchoResult> {
+  const d = resolveDeps(deps);
+  const supabase = d.getSupabase();
+  const cid = normalizeCompanyId(companyId);
+  const pid = (proposalId ?? "").trim();
+
+  if (!supabase || !cid || !isUuidLike(pid)) {
+    throw new ProposalRecordStoreError("company_id and proposal_id are required UUIDs.");
+  }
+
+  const { data: proposalData, error: proposalError } = await supabase
+    .from("proposals")
+    .select(PROPOSAL_SELECT)
+    .eq("id", pid)
+    .eq("company_id", cid)
+    .maybeSingle();
+
+  if (proposalError || !proposalData) {
+    throw new ProposalRecordStoreError("Proposal not found.");
+  }
+
+  const proposal = proposalData as ProposalRow;
+  const signedVersionId = (proposal.signed_version_id ?? "").trim();
+  if (signedVersionId.length > 0 && isUuidLike(signedVersionId)) {
+    const before = pickProposalIdentityEchoSnapshot(
+      (await loadDraftVersionOrThrow(supabase, cid, proposal)).context_echo
+    );
+    return {
+      restamped: false,
+      skipped: true,
+      skipReason: "signed_snapshot",
+      changedFields: [],
+      before,
+      after: before,
+      proposalUpdatedAt: proposal.updated_at ?? null,
+    };
+  }
+
+  const version = await loadDraftVersionOrThrow(supabase, cid, proposal);
+  const before = pickProposalIdentityEchoSnapshot(version.context_echo);
+
+  const liveIdentity =
+    input.liveIdentity != null
+      ? buildFullProposalIdentityEchoSnapshot(input.liveIdentity)
+      : await d.loadLiveProposalIdentityEcho({
+          companyId: cid,
+          proposalId: pid,
+          jobId: input.jobId ?? proposal.job_id ?? null,
+        });
+
+  const staleness = diffProposalIdentityEcho(version.context_echo, liveIdentity);
+  if (!staleness.isStale) {
+    return {
+      restamped: false,
+      skipped: false,
+      changedFields: [],
+      before,
+      after: before,
+      proposalUpdatedAt: proposal.updated_at ?? null,
+    };
+  }
+
+  const mergedContextEcho = mergeProposalIdentityEchoIntoContextEcho(
+    version.context_echo,
+    liveIdentity
+  );
+  const after = pickProposalIdentityEchoSnapshot(mergedContextEcho);
+  const restampedAt = new Date().toISOString();
+
+  const { error: versionError } = await supabase
+    .from("proposal_versions")
+    .update({ context_echo: mergedContextEcho })
+    .eq("id", version.id)
+    .eq("company_id", cid)
+    .eq("proposal_id", pid);
+
+  if (versionError) {
+    throw new ProposalRecordStoreError(
+      versionError.message ?? "Failed to update draft context_echo identity fields."
+    );
+  }
+
+  const { error: proposalUpdateError } = await supabase
+    .from("proposals")
+    .update({ updated_at: restampedAt })
+    .eq("id", pid)
+    .eq("company_id", cid);
+
+  if (proposalUpdateError) {
+    throw new ProposalRecordStoreError(
+      proposalUpdateError.message ?? "Failed to touch proposal updated_at after identity restamp."
+    );
+  }
+
+  return {
+    restamped: true,
+    skipped: false,
+    changedFields: staleness.changedFields,
+    before,
+    after,
+    proposalUpdatedAt: restampedAt,
+  };
 }
 
 // ---------------------------------------------------------------------------

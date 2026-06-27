@@ -557,6 +557,109 @@ describe("resolveProposalSendSnapshotVersion", () => {
     if (!reuseResult.ok) return;
     assert.equal(reuseResult.snapshotStatus, "reused");
   });
+
+  test("restamps stale identity before refreeze when ensure hook reports drift", async () => {
+    let proposal = proposalRecord({
+      latest_sent_version_id: SENT_VERSION_ID,
+      updated_at: "2026-06-26T12:00:00.000Z",
+    });
+    let ensureCalls = 0;
+    let freezeCalls = 0;
+
+    const result = await resolveProposalSendSnapshotVersion(
+      {
+        companyId: COMPANY_ID,
+        proposalId: PROPOSAL_ID,
+        jobId: JOB_ID,
+      },
+      {
+        isFreezeEnabled: () => true,
+        getProposal: async () => proposal,
+        getDraftGraph: async () =>
+          readyDraftGraph({
+            proposal,
+            version: {
+              id: DRAFT_VERSION_ID,
+              company_id: COMPANY_ID,
+              proposal_id: PROPOSAL_ID,
+              version_number: 1,
+              version_kind: "draft",
+              parent_version_id: null,
+              frozen_at: null,
+              context_echo: {
+                company_email: "stale@example.com",
+              },
+              policy_echo: { configured: true },
+              created_by: null,
+              created_at: "2026-06-26T12:00:00.000Z",
+            },
+          }),
+        getSentVersionFrozenAt: async () => "2026-06-26T12:00:00.000Z",
+        ensureProposalIdentityEchoFresh: async () => {
+          ensureCalls += 1;
+          proposal = proposalRecord({
+            latest_sent_version_id: SENT_VERSION_ID,
+            updated_at: "2026-06-27T13:00:00.000Z",
+          });
+          return {
+            identityRestamped: true,
+            changedFields: [
+              {
+                key: "company_email",
+                draftValue: "stale@example.com",
+                liveValue: "fresh@example.com",
+              },
+            ],
+          };
+        },
+        freezeDraft: async () => {
+          freezeCalls += 1;
+          return { sentVersionId: "55555555-5555-4555-8555-555555555555" };
+        },
+      }
+    );
+
+    assert.equal(result.ok, true);
+    if (!result.ok) return;
+    assert.equal(ensureCalls, 1);
+    assert.equal(result.identityRestamped, true);
+    assert.equal(result.identityChangedFields?.[0]?.key, "company_email");
+    assert.equal(freezeCalls, 1);
+    assert.equal(result.snapshotStatus, "refrozen");
+  });
+
+  test("does not call identity ensure hook when signed snapshot exists", async () => {
+    let ensureCalls = 0;
+
+    const result = await resolveProposalSendSnapshotVersion(
+      {
+        companyId: COMPANY_ID,
+        proposalId: PROPOSAL_ID,
+        jobId: JOB_ID,
+      },
+      {
+        isFreezeEnabled: () => true,
+        getProposal: async () =>
+          proposalRecord({
+            latest_sent_version_id: SENT_VERSION_ID,
+            signed_version_id: SENT_VERSION_ID,
+            updated_at: "2026-06-27T13:00:00.000Z",
+          }),
+        getDraftGraph: async () => readyDraftGraph(),
+        getSentVersionFrozenAt: async () => "2026-06-26T12:00:00.000Z",
+        ensureProposalIdentityEchoFresh: async () => {
+          ensureCalls += 1;
+          return { identityRestamped: false, changedFields: [] };
+        },
+        freezeDraft: async () => {
+          throw new Error("freeze should not be called");
+        },
+      }
+    );
+
+    assert.equal(result.ok, true);
+    assert.equal(ensureCalls, 0);
+  });
 });
 
 describe("R18D2 send prep guardrails", () => {
@@ -566,7 +669,7 @@ describe("R18D2 send prep guardrails", () => {
       "utf8"
     );
     assert.match(source, /import "server-only"/);
-    assert.match(source, /freezeDraftToSentSnapshot/);
+    assert.match(source, /buildProposalSendSnapshotServerDeps/);
     assert.match(source, /mintProposalPublicAccessToken/);
     assert.doesNotMatch(source, /send_email|Resend|proposals\.status\s*=\s*["']sent["']/);
     assert.doesNotMatch(source, /event_type.*sent/);

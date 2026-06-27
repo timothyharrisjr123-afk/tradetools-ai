@@ -19,6 +19,7 @@ import {
 import { buildPublicReviewLinkExpiresAt } from "@/app/lib/proposalPublicReviewLink";
 import { deriveProposalSendFreezeReadiness } from "@/app/lib/proposalSendFreezeReadiness";
 import { isSendPrepReadinessBlocking } from "@/app/lib/proposalSendGateReadiness";
+import type { ProposalIdentityEchoDiff } from "@/app/lib/proposalIdentityEcho";
 
 export const SEND_PREP_MINT_METADATA = {
   source: "contractor_send_prep",
@@ -91,6 +92,15 @@ export type ResolveProposalSendSnapshotDeps = {
     pricingStale?: boolean;
   }) => Promise<{ sentVersionId: string }>;
   isFreezeEnabled: () => boolean;
+  ensureProposalIdentityEchoFresh?: (input: {
+    companyId: string;
+    proposalId: string;
+    jobId: string;
+    hasSignedSnapshot: boolean;
+  }) => Promise<{
+    identityRestamped: boolean;
+    changedFields: ProposalIdentityEchoDiff[];
+  }>;
 };
 
 export type ResolveProposalSendSnapshotInput = {
@@ -105,6 +115,8 @@ export type ResolveProposalSendSnapshotSuccess = {
   proposal: ProposalRecord;
   proposalVersionId: string;
   snapshotStatus: SendPrepSnapshotStatus;
+  identityRestamped?: boolean;
+  identityChangedFields?: ProposalIdentityEchoDiff[];
 };
 
 export type ResolveProposalSendSnapshotFailure = {
@@ -214,6 +226,30 @@ export async function resolveProposalSendSnapshotVersion(
   const hasSignedSnapshot = hasSignedProposalSnapshot(proposal);
   let targetVersionId = resolvePublicProposalSnapshotVersionId(proposal);
   let snapshotStatus: SendPrepSnapshotStatus = "reused";
+  let identityRestamped = false;
+  let identityChangedFields: ProposalIdentityEchoDiff[] = [];
+
+  if (!hasSignedSnapshot && deps.ensureProposalIdentityEchoFresh) {
+    const identityFreshResult = await deps.ensureProposalIdentityEchoFresh({
+      companyId,
+      proposalId,
+      jobId,
+      hasSignedSnapshot,
+    });
+    identityRestamped = identityFreshResult.identityRestamped;
+    identityChangedFields = identityFreshResult.changedFields;
+
+    if (identityFreshResult.identityRestamped) {
+      proposal = await deps.getProposal(companyId, proposalId);
+      if (!proposal) {
+        return failure(SEND_PREP_ERROR_MESSAGE, "proposal_not_found");
+      }
+
+      if (proposal.status !== statusBefore) {
+        return failure(SEND_PREP_ERROR_MESSAGE, "status_changed");
+      }
+    }
+  }
 
   const shouldRefreeze = needsSendPrepRefreeze({
     hasSentSnapshot,
@@ -273,6 +309,8 @@ export async function resolveProposalSendSnapshotVersion(
     proposal,
     proposalVersionId: targetVersionId,
     snapshotStatus,
+    identityRestamped,
+    identityChangedFields,
   };
 }
 

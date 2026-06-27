@@ -6,19 +6,14 @@ import "server-only";
 
 import { adaptProposalDraftGraphToBuilderPreview } from "@/app/lib/proposalDraftGraphAdapter";
 import { getSelectedMeasurementForJob } from "@/app/lib/measurementStore";
+import { buildProposalSendSnapshotServerDeps } from "@/app/lib/proposalIdentityEcho.server";
 import {
   prepareProposalCustomerSendLink,
   type PrepareProposalCustomerSendLinkInput,
   type PrepareProposalCustomerSendLinkResult,
 } from "@/app/lib/proposalSendPrep";
-import { isProposalSendFreezeRpcEnabled } from "@/app/lib/proposalSendFreezeRpcPersistence";
 import { mintProposalPublicAccessToken } from "@/app/lib/proposalPublicAccessTokenMintStore.server";
-import {
-  freezeDraftToSentSnapshot,
-  getDraftGraph,
-  getProposalById,
-  getProposalVersionGraph,
-} from "@/app/lib/proposalRecordStore";
+import { getDraftGraph } from "@/app/lib/proposalRecordStore";
 import { deriveProposalPricingStale } from "@/app/lib/proposalStaleness";
 import { createClient } from "@/app/lib/supabase/server";
 
@@ -52,35 +47,8 @@ export async function prepareProposalCustomerSendLinkForContractor(
   return prepareProposalCustomerSendLink(
     { ...input, pricingStale },
     {
-      getProposal: (companyId, proposalId) =>
-        getProposalById(companyId, proposalId, {
-          getSupabase: () => supabase,
-        }),
-      getDraftGraph: (companyId, proposalId) =>
-        getDraftGraph(companyId, proposalId, {
-          getSupabase: () => supabase,
-        }),
-      getSentVersionFrozenAt: async (companyId, proposalId, versionId) => {
-        const versionGraph = await getProposalVersionGraph(
-          companyId,
-          proposalId,
-          versionId,
-          {},
-          { getSupabase: () => supabase }
-        );
-        return versionGraph?.version.frozen_at ?? null;
-      },
-      freezeDraft: async ({ companyId, proposalId, pricingStale: stale }) => {
-        const result = await freezeDraftToSentSnapshot(
-          companyId,
-          proposalId,
-          { pricingStale: stale },
-          { getSupabase: () => supabase }
-        );
-        return { sentVersionId: result.sentVersionId };
-      },
+      ...buildProposalSendSnapshotServerDeps(supabase),
       mintToken: mintProposalPublicAccessToken,
-      isFreezeEnabled: isProposalSendFreezeRpcEnabled,
     }
   );
 }

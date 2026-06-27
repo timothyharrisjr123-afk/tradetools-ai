@@ -23,14 +23,9 @@ import {
   type SendProposalEmailInput,
   type SendProposalEmailResult,
 } from "@/app/lib/proposalEmailDelivery";
+import { buildProposalSendSnapshotServerDeps } from "@/app/lib/proposalIdentityEcho.server";
 import { mintProposalPublicAccessToken } from "@/app/lib/proposalPublicAccessTokenMintStore.server";
-import { isProposalSendFreezeRpcEnabled } from "@/app/lib/proposalSendFreezeRpcPersistence";
-import {
-  freezeDraftToSentSnapshot,
-  getDraftGraph,
-  getProposalById,
-  getProposalVersionGraph,
-} from "@/app/lib/proposalRecordStore";
+import { getDraftGraph } from "@/app/lib/proposalRecordStore";
 import { deriveProposalPricingStale } from "@/app/lib/proposalStaleness";
 import { createClient } from "@/app/lib/supabase/server";
 
@@ -139,34 +134,7 @@ export async function sendProposalEmailForContractor(
   return sendProposalEmail(
     { ...input, pricingStale },
     {
-      getProposal: (companyId, proposalId) =>
-        getProposalById(companyId, proposalId, {
-          getSupabase: () => supabase,
-        }),
-      getDraftGraph: (companyId, proposalId) =>
-        getDraftGraph(companyId, proposalId, {
-          getSupabase: () => supabase,
-        }),
-      getSentVersionFrozenAt: async (companyId, proposalId, versionId) => {
-        const versionGraph = await getProposalVersionGraph(
-          companyId,
-          proposalId,
-          versionId,
-          {},
-          { getSupabase: () => supabase }
-        );
-        return versionGraph?.version.frozen_at ?? null;
-      },
-      freezeDraft: async ({ companyId, proposalId, pricingStale: stale }) => {
-        const result = await freezeDraftToSentSnapshot(
-          companyId,
-          proposalId,
-          { pricingStale: stale },
-          { getSupabase: () => supabase }
-        );
-        return { sentVersionId: result.sentVersionId };
-      },
-      isFreezeEnabled: isProposalSendFreezeRpcEnabled,
+      ...buildProposalSendSnapshotServerDeps(supabase),
       mintToken: async (mintInput) => {
         const mintResult = await mintProposalPublicAccessToken(mintInput);
         if (!mintResult.ok) {
