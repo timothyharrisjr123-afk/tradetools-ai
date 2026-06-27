@@ -406,7 +406,8 @@ export type ProposalRecordStoreDeps = {
     supabase: NonNullable<ReturnType<typeof getSupabaseClient>>
   ) => Promise<ProposalContextEchoCustomerFields>;
   loadLiveProposalIdentityEcho?: (
-    input: LoadLiveProposalIdentityEchoInput
+    input: LoadLiveProposalIdentityEchoInput,
+    storeDeps?: ProposalRecordStoreDeps
   ) => Promise<Record<ProposalIdentityEchoKey, ProposalIdentityEchoValue>>;
 };
 
@@ -591,7 +592,7 @@ export async function loadProposalCompanyContextFromDatabase(
       ? { ...EMPTY_COMPANY_PROFILE }
       : companyProfileFromCompaniesRow(row as Record<string, unknown>);
 
-  const brandingResult = await getCompanyBrandingProfileResult(companyId);
+  const brandingResult = await getCompanyBrandingProfileResult(companyId, supabase);
   if (brandingResult.status === "success" && brandingResult.fields) {
     return { core, branding: brandingResult.fields, brandingLoadOk: true };
   }
@@ -2061,11 +2062,14 @@ export async function restampDraftProposalIdentityEcho(
   const liveIdentity =
     input.liveIdentity != null
       ? buildFullProposalIdentityEchoSnapshot(input.liveIdentity)
-      : await d.loadLiveProposalIdentityEcho({
-          companyId: cid,
-          proposalId: pid,
-          jobId: input.jobId ?? proposal.job_id ?? null,
-        });
+      : await d.loadLiveProposalIdentityEcho(
+          {
+            companyId: cid,
+            proposalId: pid,
+            jobId: input.jobId ?? proposal.job_id ?? null,
+          },
+          deps
+        );
 
   const staleness = diffProposalIdentityEcho(version.context_echo, liveIdentity);
   if (!staleness.isStale) {

@@ -3169,6 +3169,48 @@ describe("restampDraftProposalIdentityEcho", () => {
     });
   });
 
+  test("loads live identity through injected store deps when liveIdentity is omitted", async () => {
+    await withCreateDraftProposalSequentialEnabled(async () => {
+      const mock = createMockSupabase();
+      const deps = storeDeps(mock, CONFIGURED_RESOLUTION, {
+        core: {
+          ...TEST_COMPANY_CORE,
+          email: "fresh-from-store-deps@example.com",
+        },
+      });
+      const created = await createDraftProposal(
+        {
+          company_id: COMPANY_ID,
+          job_id: JOB_ID,
+          template_id: TEMPLATE_ID,
+          quantity_context: contextWithSquares(22),
+        },
+        deps
+      );
+
+      const versionRow = mock.state.tables.proposal_versions[0] as Record<string, unknown>;
+      const echo = versionRow.context_echo as Record<string, unknown>;
+      echo.company_email = "stale@example.com";
+
+      const result = await restampDraftProposalIdentityEcho(
+        COMPANY_ID,
+        created.proposal.id,
+        { jobId: JOB_ID },
+        deps
+      );
+
+      assert.equal(result.restamped, true);
+      assert.equal(result.changedFields.some((field) => field.key === "company_email"), true);
+      assert.equal(
+        ((mock.state.tables.proposal_versions[0] as Record<string, unknown>).context_echo as Record<
+          string,
+          unknown
+        >).company_email,
+        "fresh-from-store-deps@example.com"
+      );
+    });
+  });
+
   test("skips restamp when signed snapshot exists", async () => {
     await withCreateDraftProposalSequentialEnabled(async () => {
       const mock = createMockSupabase();

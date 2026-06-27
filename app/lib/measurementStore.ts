@@ -663,9 +663,10 @@ export async function getMeasurementById(id: string): Promise<MeasurementRecord 
 }
 
 export async function getSelectedMeasurementForJob(
-  jobId: string
+  jobId: string,
+  supabaseClient?: ReturnType<typeof getSupabaseClient>
 ): Promise<MeasurementRecord | null> {
-  const supabase = getSupabaseClient();
+  const supabase = supabaseClient ?? getSupabaseClient();
   if (!supabase) {
     console.error("[measurementStore] getSelectedMeasurementForJob: Supabase client unavailable");
     return null;

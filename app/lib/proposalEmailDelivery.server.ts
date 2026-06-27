@@ -118,7 +118,7 @@ export async function sendProposalEmailForContractor(
       getSupabase: () => supabase,
     });
     if (graph) {
-      const measurement = await getSelectedMeasurementForJob(input.jobId);
+      const measurement = await getSelectedMeasurementForJob(input.jobId, supabase);
       const adapter = adaptProposalDraftGraphToBuilderPreview(graph);
       pricingStale = deriveProposalPricingStale({
         snapshotMeasurementId: adapter.snapshotMeasurementRecordId,

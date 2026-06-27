@@ -172,9 +172,10 @@ export type CompanyBrandingProfileLoadResult = {
 };
 
 export async function getCompanyBrandingProfileResult(
-  companyId: string
+  companyId: string,
+  supabaseClient?: ReturnType<typeof getSupabaseClient>
 ): Promise<CompanyBrandingProfileLoadResult> {
-  const supabase = getSupabaseClient();
+  const supabase = supabaseClient ?? getSupabaseClient();
   if (!supabase) {
     console.error("[companyBrandingProfileStore] getCompanyBrandingProfile: Supabase client unavailable");
     return {
