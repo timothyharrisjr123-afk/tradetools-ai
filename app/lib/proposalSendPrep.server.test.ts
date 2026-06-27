@@ -697,6 +697,8 @@ describe("R18D2 send prep guardrails", () => {
     assert.match(panel, /SEND_GATE_PREPARE_CUSTOMER_LINK_LABEL/);
     assert.match(panel, /\/api\/proposals\/send-prep/);
     assert.match(panel, /\/api\/proposals\/send/);
+    assert.match(panel, /ProposalCustomerPreviewDeliveryHistorySection/);
+    assert.match(panel, /deliveryHistoryRefreshKey/);
     assert.match(panel, /Open customer proposal/);
     assert.match(panel, /Copy customer send link/);
     assert.match(panel, /Send proposal/);

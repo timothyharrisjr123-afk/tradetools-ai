@@ -27,6 +27,7 @@ import {
   type SendGateChecklistStatus,
 } from "@/app/lib/proposalSendGateReadiness";
 import { BUILDER_CARD, BUILDER_DISABLED_ACTION } from "../builder/proposalBuilderConstants";
+import ProposalCustomerPreviewDeliveryHistorySection from "./ProposalCustomerPreviewDeliveryHistorySection";
 
 type SendPrepSessionLink = {
   publicUrl: string;
@@ -89,6 +90,7 @@ export default function ProposalCustomerPreviewSendGatePanel({
   const [sendPending, setSendPending] = useState(false);
   const [sendErrorMessage, setSendErrorMessage] = useState<string | null>(null);
   const [sendSuccess, setSendSuccess] = useState<EmailSendSuccess | null>(null);
+  const [deliveryHistoryRefreshKey, setDeliveryHistoryRefreshKey] = useState(0);
 
   const sendFreezeReadiness = useMemo(() => {
     if (!graph || loading) return null;
@@ -268,6 +270,7 @@ export default function ProposalCustomerPreviewSendGatePanel({
         subject: subjectValue,
       });
       setSendErrorMessage(null);
+      setDeliveryHistoryRefreshKey((key) => key + 1);
     } catch {
       setSendErrorMessage(
         "We couldn't send the proposal email yet. Check the proposal and try again."
@@ -474,6 +477,12 @@ export default function ProposalCustomerPreviewSendGatePanel({
           )}
         </button>
       </div>
+
+      <ProposalCustomerPreviewDeliveryHistorySection
+        proposalId={proposalId}
+        jobId={jobId}
+        refreshKey={deliveryHistoryRefreshKey}
+      />
 
       <div className="space-y-2 border-t border-slate-200/80 pt-4">
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">

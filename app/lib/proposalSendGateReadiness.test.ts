@@ -416,6 +416,8 @@ describe("R18D1 send gate guardrails", () => {
     assert.match(panel, /SEND_GATE_CUSTOMER_LINK_PLACEHOLDER|linkLabel/);
     assert.match(panel, /\/api\/proposals\/send-prep/);
     assert.match(panel, /\/api\/proposals\/send/);
+    assert.match(panel, /ProposalCustomerPreviewDeliveryHistorySection/);
+    assert.match(panel, /deliveryHistoryRefreshKey/);
     assert.match(panel, /SEND_GATE_SEND_PROPOSAL_BY_EMAIL_LABEL/);
     assert.match(panel, /SEND_GATE_EMAIL_SEND_DISCLAIMER|emailSendDisclaimer/);
     assert.doesNotMatch(builderClient, /ProposalCustomerPreviewSendGatePanel/);
