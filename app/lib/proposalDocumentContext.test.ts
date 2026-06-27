@@ -20,6 +20,7 @@ import {
   buildProposalDocumentContextFromDraftGraph,
   resolveSelectedRuntimeOptionFromGraph,
 } from "./proposalDocumentContext";
+import { pickProposalIdentityEchoSnapshot } from "./proposalIdentityEcho";
 
 const COMPANY_ID = "11111111-1111-4111-8111-111111111111";
 const JOB_ID = "22222222-2222-4222-8222-222222222222";
@@ -131,6 +132,8 @@ describe("proposalDocumentContext", () => {
           context_echo: {
             company_name: "Summit Roofing",
             company_phone: "918-555-0100",
+            company_email: "office@summit.com",
+            company_address: "500 HQ Blvd",
             customer_name: "Jane Smith",
             customer_email: "jane@example.com",
             customer_address: "99 Mailing Ln",
@@ -145,6 +148,8 @@ describe("proposalDocumentContext", () => {
 
     assert.equal(context.company.companyName, "Summit Roofing");
     assert.equal(context.company.companyPhone, "918-555-0100");
+    assert.equal(context.company.companyEmail, "office@summit.com");
+    assert.equal(context.company.companyAddress, "500 HQ Blvd");
     assert.equal(context.customer.customerName, "Jane Smith");
     assert.equal(context.customer.customerEmail, "jane@example.com");
     assert.equal(context.customer.customerAddress, "99 Mailing Ln");
@@ -153,6 +158,22 @@ describe("proposalDocumentContext", () => {
     assert.equal(context.measurementSummary, "24 SQ");
     assert.equal(context.templateName, "Standard roof");
     assert.notEqual(context.customer.customerAddress, context.jobAddress);
+
+    const identitySnapshot = pickProposalIdentityEchoSnapshot(
+      draftGraph({
+        version: versionRow({
+          context_echo: {
+            company_name: "Summit Roofing",
+            company_email: "office@summit.com",
+            company_address: "500 HQ Blvd",
+            measurement_quantities_display: "24 SQ",
+          },
+        }),
+      }).version.context_echo
+    );
+    assert.equal(identitySnapshot.company_email, "office@summit.com");
+    assert.equal(identitySnapshot.company_address, "500 HQ Blvd");
+    assert.equal("measurement_quantities_display" in identitySnapshot, false);
   });
 
   test("selected package uses persisted selected_option_id and snapshot cents", () => {
