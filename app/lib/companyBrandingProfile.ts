@@ -107,6 +107,7 @@ export type ProposalContextEchoCompanyFields = {
   company_name: string | null;
   company_logo_url: string | null;
   company_phone: string | null;
+  company_email: string | null;
   company_license: string | null;
   company_address: string | null;
   company_website: string | null;
@@ -525,6 +526,7 @@ export function mapCompanyBrandingToProposalContextEcho(
     company_name: echoNullableString(profile.companyName),
     company_logo_url: echoNullableString(profile.logoDataUrl),
     company_phone: echoNullableString(profile.phone),
+    company_email: echoNullableString(profile.email),
     company_license: echoNullableString(profile.license),
     company_address: echoNullableString(profile.address),
     company_website: echoNullableString(profile.website),

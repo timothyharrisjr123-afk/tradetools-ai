@@ -50,6 +50,7 @@ export type ProposalCompanyContext = {
   companyName: string | null;
   companyLogoUrl: string | null;
   companyPhone: string | null;
+  companyEmail: string | null;
   companyLicense: string | null;
   companyAddress: string | null;
   companyWebsite: string | null;
@@ -198,6 +199,7 @@ export function readProposalCompanyContextFromEcho(
     companyName: readContextEchoString(contextEcho, "company_name"),
     companyLogoUrl: readContextEchoString(contextEcho, "company_logo_url"),
     companyPhone: readContextEchoString(contextEcho, "company_phone"),
+    companyEmail: readContextEchoString(contextEcho, "company_email"),
     companyLicense: readContextEchoString(contextEcho, "company_license"),
     companyAddress: readContextEchoString(contextEcho, "company_address"),
     companyWebsite: readContextEchoString(contextEcho, "company_website"),

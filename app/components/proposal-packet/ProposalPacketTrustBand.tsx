@@ -1,39 +1,37 @@
 import { IconChat, IconShield, IconTool } from "./ProposalPacketIcons";
 import { PROPOSAL_PACKET_TRUST_BAND } from "./proposalPacketStyles";
 
-const TRUST_POINTS = [
+const TRUST_ITEMS = [
   {
-    icon: IconShield,
     title: "Quality materials",
-    description: "Premium products, built to last",
+    body: "Premium products, built to last",
+    icon: IconShield,
   },
   {
-    icon: IconTool,
     title: "Expert installation",
-    description: "Experienced local professionals",
+    body: "Experienced local professionals",
+    icon: IconTool,
   },
   {
-    icon: IconChat,
     title: "Clear process",
-    description: "Honest communication every step",
+    body: "Honest communication every step",
+    icon: IconChat,
   },
 ] as const;
 
 export default function ProposalPacketTrustBand() {
   return (
-    <section className={PROPOSAL_PACKET_TRUST_BAND} aria-label="Why choose us">
-      <div className="grid gap-8 sm:grid-cols-3 sm:gap-6">
-        {TRUST_POINTS.map((point) => {
-          const Icon = point.icon;
+    <section className={PROPOSAL_PACKET_TRUST_BAND} aria-label="Proposal confidence points">
+      <div className="grid gap-5 sm:grid-cols-3 sm:gap-6">
+        {TRUST_ITEMS.map((item) => {
+          const Icon = item.icon;
           return (
-            <div key={point.title} className="flex gap-4 sm:flex-col sm:items-center sm:text-center">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/20 bg-white/10">
-                <Icon className="h-5 w-5 text-white" />
+            <div key={item.title} className="flex flex-col items-center text-center">
+              <div className="flex h-11 w-11 items-center justify-center rounded-full border border-white/12 bg-white/[0.08] text-white">
+                <Icon className="h-[18px] w-[18px]" />
               </div>
-              <div>
-                <p className="text-base font-semibold text-white">{point.title}</p>
-                <p className="mt-1 text-sm leading-relaxed text-white/75">{point.description}</p>
-              </div>
+              <p className="mt-2.5 text-[13px] font-bold text-white">{item.title}</p>
+              <p className="mt-1 max-w-[11rem] text-[12px] leading-snug text-white/70">{item.body}</p>
             </div>
           );
         })}

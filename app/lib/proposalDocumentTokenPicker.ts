@@ -89,6 +89,11 @@ const PICKER_PRESENTATION: Readonly<Record<ProposalDocumentTokenName, PickerPres
     description: "Contractor phone from proposal context",
     surfaces: ["body_text"],
   },
+  company_email: {
+    label: "Company email",
+    description: "Contractor business email from proposal context",
+    surfaces: ["body_text"],
+  },
   company_license: {
     label: "Company license",
     description: "Contractor license number",

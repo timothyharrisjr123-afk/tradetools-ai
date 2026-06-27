@@ -1,50 +1,68 @@
 import type { ProposalCustomerPacketUpgradesViewModel } from "@/app/lib/proposalCustomerPacketViewModel";
-import { IconPlus } from "./ProposalPacketIcons";
 import {
-  PROPOSAL_PACKET_ROW,
+  PROPOSAL_CUSTOMER_PACKET_UPGRADES_FOOTNOTE,
+  PROPOSAL_CUSTOMER_PACKET_UPGRADES_INTRO_LINE1,
+  PROPOSAL_CUSTOMER_PACKET_UPGRADES_INTRO_LINE2,
+} from "@/app/lib/proposalCustomerPacketViewModel";
+import {
   PROPOSAL_PACKET_SECONDARY_PRICE,
   PROPOSAL_PACKET_SECTION_INTRO,
   PROPOSAL_PACKET_SECTION_TITLE,
+  PROPOSAL_PACKET_UPGRADE_GROUP,
+  PROPOSAL_PACKET_UPGRADE_ROW,
 } from "./proposalPacketStyles";
 
 type ProposalPacketUpgradesProps = {
   upgrades: ProposalCustomerPacketUpgradesViewModel;
-  embedded?: boolean;
 };
 
-export default function ProposalPacketUpgrades({
-  upgrades,
-  embedded = false,
-}: ProposalPacketUpgradesProps) {
-  if (upgrades.items.length === 0) {
-    return null;
-  }
+function UpgradeRadioMark() {
+  return (
+    <span
+      className="flex h-[15px] w-[15px] shrink-0 items-center justify-center rounded-full border-2 border-[#cbd5e1] bg-white"
+      aria-hidden
+    />
+  );
+}
+
+export default function ProposalPacketUpgrades({ upgrades }: ProposalPacketUpgradesProps) {
+  if (upgrades.items.length === 0) return null;
 
   return (
-    <section className={embedded ? "min-w-0" : undefined} aria-label="Optional add-ons">
-      <div className="mb-5">
-        <h3 className={PROPOSAL_PACKET_SECTION_TITLE}>Optional add-ons</h3>
-        <p className={PROPOSAL_PACKET_SECTION_INTRO}>
-          Available upgrades your contractor included for review. These are optional and not required
-          for your selected package.
+    <section aria-label="Optional add-ons">
+      <div className="mb-4">
+        <h2 className={PROPOSAL_PACKET_SECTION_TITLE}>Optional add-ons</h2>
+        <p className={PROPOSAL_PACKET_SECTION_INTRO}>{PROPOSAL_CUSTOMER_PACKET_UPGRADES_INTRO_LINE1}</p>
+        <p className={`${PROPOSAL_PACKET_SECTION_INTRO} mt-0.5`}>
+          {PROPOSAL_CUSTOMER_PACKET_UPGRADES_INTRO_LINE2}
         </p>
       </div>
-      <div className="space-y-3" role="list" aria-readonly="true">
-        {upgrades.items.map((item) => (
+
+      <div className={PROPOSAL_PACKET_UPGRADE_GROUP} role="list" aria-readonly="true">
+        {upgrades.items.map((item, index) => (
           <div
             key={item.name}
-            className={PROPOSAL_PACKET_ROW}
+            className={[
+              PROPOSAL_PACKET_UPGRADE_ROW,
+              index > 0 ? "border-t border-[#e8edf2]" : "",
+            ].join(" ")}
             role="listitem"
             aria-disabled="true"
           >
-            <IconPlus className="h-4 w-4 shrink-0 text-[#64748b]" aria-hidden />
-            <span className="min-w-0 flex-1 text-sm text-[#0f172a]">{item.name}</span>
+            <UpgradeRadioMark />
+            <span className="min-w-0 flex-1 text-[13px] font-medium text-[#0f172a]">{item.name}</span>
             {item.valueLabel ? (
-              <span className={PROPOSAL_PACKET_SECONDARY_PRICE}>{item.valueLabel}</span>
+              <span className={`${PROPOSAL_PACKET_SECONDARY_PRICE} whitespace-nowrap text-[13px]`}>
+                {item.valueLabel}
+              </span>
             ) : null}
           </div>
         ))}
       </div>
+
+      <p className="mt-2.5 text-[12px] leading-relaxed text-[#64748b]">
+        {PROPOSAL_CUSTOMER_PACKET_UPGRADES_FOOTNOTE}
+      </p>
     </section>
   );
 }

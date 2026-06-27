@@ -70,7 +70,7 @@ export default function ProposalPacketScope({ estimate }: ProposalPacketScopePro
           <div>
             <h2 className={PROPOSAL_PACKET_SECTION_TITLE}>Included in this estimate</h2>
             <p className={PROPOSAL_PACKET_SECTION_INTRO}>
-              High-level scope included with your selected package.
+              High-level scope included with the current package.
             </p>
           </div>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 lg:gap-4">

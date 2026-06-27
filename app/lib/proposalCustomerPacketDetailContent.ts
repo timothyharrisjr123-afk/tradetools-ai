@@ -21,7 +21,7 @@ const GENERIC_OVERVIEW_PATTERN =
   /outlines a roof replacement scope based on field measurements/i;
 
 export const PROPOSAL_CUSTOMER_PACKET_OVERVIEW_COPY =
-  "This proposal summarizes the selected roof replacement package, included scope, and available options for your home.";
+  "This proposal summarizes the roof replacement package, included scope, and available options for your home.";
 
 export function finalizeCustomerPacketDetailBody(pageType: string, body: string): string {
   const normalized = normalizeCustomerPacketDetailBody(body);

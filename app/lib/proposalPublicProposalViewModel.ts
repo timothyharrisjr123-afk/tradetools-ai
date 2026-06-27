@@ -261,20 +261,19 @@ function buildCompanyBrandingBlock(
 }
 
 function buildCompanyContactBlock(
-  coverCompany: ReturnType<typeof buildProposalCoverViewModel>["company"],
-  companyEmail: string | null
+  coverCompany: ReturnType<typeof buildProposalCoverViewModel>["company"]
 ): ProposalPublicCompanyContactBlock {
   return {
     companyName: coverCompany.companyName,
     phone: coverCompany.phone,
-    email: companyEmail,
+    email: coverCompany.email,
     website: coverCompany.website,
     license: coverCompany.license,
     address: coverCompany.address,
     hasAnyField: hasAnyNonEmpty(
       coverCompany.companyName,
       coverCompany.phone,
-      companyEmail,
+      coverCompany.email,
       coverCompany.website,
       coverCompany.license,
       coverCompany.address
@@ -301,21 +300,15 @@ function buildHeader(
   };
 }
 
-function readOptionalCompanyEmail(contextEcho: Record<string, unknown>): string | null {
-  const value = contextEcho.company_email;
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
-}
 
 function buildCoverSection(
   dto: ProposalPublicGraphDto,
   coverVm: ReturnType<typeof buildProposalCoverViewModel>,
   heroContent: ProposalPublicCoverHeroContent | null
 ): ProposalPublicProposalCoverSectionViewModel {
-  const companyEmail = readOptionalCompanyEmail(dto.context_echo);
-
   return {
     headline: coverVm.headline,
-    company: buildCompanyContactBlock(coverVm.company, companyEmail),
+    company: buildCompanyContactBlock(coverVm.company),
     customer: {
       customerName: coverVm.customer.customerName,
       customerEmail: coverVm.customer.customerEmail,
@@ -503,10 +496,7 @@ export function buildProposalPublicProposalDocumentViewModel(
     estimate: estimateLayout,
     futureActions: buildProposalPublicFutureActions(),
     footer: {
-      company: buildCompanyContactBlock(
-        coverVm.company,
-        readOptionalCompanyEmail(dto.context_echo)
-      ),
+      company: buildCompanyContactBlock(coverVm.company),
       supportMessage: PROPOSAL_PUBLIC_SUPPORT_MESSAGE,
     },
   };

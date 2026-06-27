@@ -57,6 +57,8 @@ function resolveAvailableTokenValue(
       return emptyOrString(context.company.companyLogoUrl);
     case "company_phone":
       return emptyOrString(context.company.companyPhone);
+    case "company_email":
+      return emptyOrString(context.company.companyEmail);
     case "company_license":
       return emptyOrString(context.company.companyLicense);
     case "company_address":

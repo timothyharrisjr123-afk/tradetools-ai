@@ -25,6 +25,7 @@ import type {
   ProposalCustomerPacketDetailsViewModel,
   ProposalCustomerPacketEstimateLineViewModel,
   ProposalCustomerPacketEstimateViewModel,
+  ProposalCustomerPacketFooterMetadataViewModel,
   ProposalCustomerPacketScopeGroupSummaryViewModel,
   ProposalCustomerPacketScopeGroupViewModel,
   ProposalCustomerPacketUpgradesViewModel,
@@ -66,6 +67,74 @@ const TEXT_DETAIL_PAGE_TYPES = new Set<string>([
   "warranty",
   "custom_text",
 ]);
+
+const HTTP_URL_PATTERN = /^https?:\/\//i;
+
+const COVER_MEDIA_ECHO_KEYS = [
+  "cover_image_url",
+  "proposal_cover_image_url",
+  "job_photo_url",
+  "property_photo_url",
+  "inspection_photo_url",
+] as const;
+
+const COVER_MEDIA_CONTENT_KEYS = [
+  "cover_image_url",
+  "hero_image_url",
+  "image_url",
+  "public_url",
+] as const;
+
+function readHttpUrl(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const trimmed = value.trim();
+  return HTTP_URL_PATTERN.test(trimmed) ? trimmed : null;
+}
+
+function readCoverMediaUrlFromPageContent(
+  content: Record<string, unknown> | null | undefined
+): string | null {
+  if (!content || typeof content !== "object") {
+    return null;
+  }
+  for (const key of COVER_MEDIA_CONTENT_KEYS) {
+    const url = readHttpUrl(content[key]);
+    if (url) {
+      return url;
+    }
+  }
+  return null;
+}
+
+function resolveCoverMediaUrl(
+  dto: ProposalPublicGraphDto,
+  companyLogoUrl: string | null
+): string | null {
+  for (const key of COVER_MEDIA_ECHO_KEYS) {
+    const url = readHttpUrl(dto.context_echo[key]);
+    if (url) {
+      return url;
+    }
+  }
+
+  const pages = [...dto.pages].sort((a, b) => a.sort_order - b.sort_order);
+  for (const page of pages) {
+    if (page.page_type === "cover" || page.page_type === "photos") {
+      const url = readCoverMediaUrlFromPageContent(page.content_json);
+      if (url) {
+        return url;
+      }
+    }
+  }
+
+  if (companyLogoUrl && HTTP_URL_PATTERN.test(companyLogoUrl)) {
+    return companyLogoUrl;
+  }
+
+  return null;
+}
 
 export function formatCustomerPacketPriceCents(cents: number): string {
   const dollars = (Math.round(cents) / 100).toFixed(2);
@@ -233,19 +302,20 @@ export function buildCustomerPacketEstimateFromPublicDto(
     includedDetails: scopeGroups,
   };
 
-  const alternates = visibleOptions.filter((option) => option.source_template_option_id !== selectedKey);
   const comparison: ProposalCustomerPacketComparisonViewModel | null =
-    alternates.length > 0
+    visibleOptions.length >= 2
       ? {
-          options: alternates.map((option) => {
+          options: visibleOptions.map((option) => {
             const label = optionLabel(option);
             const meta = resolvePackageMeta(label);
             return {
               optionKey: option.source_template_option_id,
               label,
               description: meta.description,
+              bullets: [...meta.bullets],
               totalInvestmentLabel: formatTotalInvestment(option, displayPolicy),
               accent: meta.accent,
+              isCurrent: option.source_template_option_id === selectedKey,
             };
           }),
         }
@@ -261,8 +331,61 @@ export function buildCustomerPacketEstimateFromPublicDto(
   return { estimate, comparison, upgrades };
 }
 
-function readOptionalCompanyEmail(contextEcho: Record<string, unknown>): string | null {
-  const value = contextEcho.company_email;
+function formatFooterDateLabel(isoOrDate: string | null): string | null {
+  if (!isoOrDate) {
+    return null;
+  }
+  const trimmed = isoOrDate.trim();
+  if (!trimmed) {
+    return null;
+  }
+  const parsed = Date.parse(trimmed);
+  if (Number.isNaN(parsed)) {
+    return trimmed;
+  }
+  return new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date(parsed));
+}
+
+function buildFooterMetadataFromPublicDto(
+  dto: ProposalPublicGraphDto,
+  license: string | null
+): ProposalCustomerPacketFooterMetadataViewModel | null {
+  const proposalDateLabel =
+    formatFooterDateLabel(dto.frozen_at) ??
+    formatFooterDateLabel(readContextEchoString(dto.context_echo, "proposal_created_date"));
+  const proposalReferenceLabel = readContextEchoString(dto.context_echo, "proposal_number");
+  const licenseLabel = (license ?? "").trim() || null;
+  const insuredLabel = readContextEchoString(dto.context_echo, "company_insured");
+
+  const hasAnyField =
+    proposalDateLabel != null ||
+    proposalReferenceLabel != null ||
+    licenseLabel != null ||
+    insuredLabel != null;
+
+  return hasAnyField
+    ? {
+        proposalDateLabel,
+        proposalReferenceLabel,
+        licenseLabel,
+        insuredLabel,
+        hasAnyField,
+      }
+    : null;
+}
+
+function readContextEchoString(
+  contextEcho: Record<string, unknown> | null | undefined,
+  key: string
+): string | null {
+  if (!contextEcho || typeof contextEcho !== "object") {
+    return null;
+  }
+  const value = contextEcho[key];
   return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
 }
 
@@ -286,6 +409,7 @@ function buildCoverFromPublicDto(dto: ProposalPublicGraphDto): ProposalCustomerP
     proposalLabel: PROPOSAL_CUSTOMER_PACKET_PROPOSAL_LABEL,
     headline: coverVm.headline,
     confidenceCopy: PROPOSAL_CUSTOMER_PACKET_COVER_CONFIDENCE,
+    coverMediaUrl: resolveCoverMediaUrl(dto, coverVm.company.logoUrl),
     company: {
       companyName,
       preparedByLabel: companyName,
@@ -341,13 +465,12 @@ function buildContactFromPublicDto(dto: ProposalPublicGraphDto): ProposalCustome
   const documentContext = buildProposalDocumentContextFromPublicDto(dto);
   const pricingComplete = isPublicProposalPricingComplete(dto);
   const coverVm = buildProposalCoverViewModel(documentContext, { pricingComplete });
-  const companyEmail = readOptionalCompanyEmail(dto.context_echo);
 
   const contact: ProposalCustomerPacketContactViewModel = {
     supportMessage: PROPOSAL_CUSTOMER_PACKET_SUPPORT_MESSAGE,
     companyName: coverVm.company.companyName,
     phone: coverVm.company.phone,
-    email: companyEmail,
+    email: coverVm.company.email,
     website: coverVm.company.website,
     license: coverVm.company.license,
     address: coverVm.company.address,
@@ -358,6 +481,7 @@ function buildContactFromPublicDto(dto: ProposalPublicGraphDto): ProposalCustome
     (contact.phone ?? "").trim().length > 0 ||
     (contact.email ?? "").trim().length > 0 ||
     (contact.website ?? "").trim().length > 0 ||
+    (contact.address ?? "").trim().length > 0 ||
     (contact.supportMessage ?? "").trim().length > 0;
 
   return hasAny ? contact : null;
@@ -370,6 +494,7 @@ export function buildCustomerPacketFromPublicDto(
     dto,
     dto.displayPolicy
   );
+  const contact = buildContactFromPublicDto(dto);
 
   return {
     cover: buildCoverFromPublicDto(dto),
@@ -377,7 +502,8 @@ export function buildCustomerPacketFromPublicDto(
     comparison,
     upgrades,
     details: buildDetailsFromPublicDto(dto),
-    contact: buildContactFromPublicDto(dto),
+    contact,
+    footerMetadata: buildFooterMetadataFromPublicDto(dto, contact?.license ?? null),
   };
 }
 

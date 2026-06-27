@@ -16,6 +16,7 @@ export type ProposalCoverCompanyBlock = {
   logoUrl: string | null;
   logoMonogram: string | null;
   phone: string | null;
+  email: string | null;
   license: string | null;
   address: string | null;
   website: string | null;
@@ -122,6 +123,7 @@ export function buildProposalCoverViewModel(
   const companyName = nonEmpty(tokenValue(context, "company_name"));
   const logoUrl = nonEmpty(tokenValue(context, "company_logo_url"));
   const companyPhone = nonEmpty(tokenValue(context, "company_phone"));
+  const companyEmail = nonEmpty(tokenValue(context, "company_email"));
   const companyAddress = nonEmpty(tokenValue(context, "company_address"));
   const companyWebsite = nonEmpty(tokenValue(context, "company_website"));
   const brandPrimaryColor = nonEmpty(tokenValue(context, "brand_primary_color"));
@@ -163,6 +165,7 @@ export function buildProposalCoverViewModel(
       logoUrl,
       logoMonogram: logoUrl ? null : monogramFromCompanyName(companyName),
       phone: companyPhone,
+      email: companyEmail,
       license: companyLicense,
       address: companyAddress,
       website: companyWebsite,
@@ -172,6 +175,7 @@ export function buildProposalCoverViewModel(
         companyName,
         logoUrl,
         companyPhone,
+        companyEmail,
         companyLicense,
         companyAddress,
         companyWebsite

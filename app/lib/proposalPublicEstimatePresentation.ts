@@ -143,13 +143,15 @@ export function buildProposalPublicEstimateLayout(
     : null;
 
   const alternateOptions: ProposalPublicAlternateOptionViewModel[] =
-    comparison?.options.map((option) => ({
-      optionKey: option.optionKey,
-      label: option.label,
-      description: option.description,
-      totalInvestmentLabel: option.totalInvestmentLabel,
-      accent: option.accent,
-    })) ?? [];
+    comparison?.options
+      .filter((option) => !option.isCurrent)
+      .map((option) => ({
+        optionKey: option.optionKey,
+        label: option.label,
+        description: option.description,
+        totalInvestmentLabel: option.totalInvestmentLabel,
+        accent: option.accent,
+      })) ?? [];
 
   const optionalUpgrades: ProposalPublicOptionalUpgradeViewModel[] =
     upgrades?.items.map((item) => ({ name: item.name, valueLabel: item.valueLabel })) ?? [];

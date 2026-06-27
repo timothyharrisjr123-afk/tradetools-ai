@@ -92,6 +92,47 @@ export function IconChat({ className = "h-5 w-5" }: IconProps) {
   );
 }
 
+export function IconDownload({ className = "h-4 w-4" }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
+      <path d="M12 4v10m0 0 4-4m-4 4-4-4M5 20h14" />
+    </svg>
+  );
+}
+
+export function IconShare({ className = "h-4 w-4" }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
+      <circle cx="18" cy="5" r="2.5" />
+      <circle cx="6" cy="12" r="2.5" />
+      <circle cx="18" cy="19" r="2.5" />
+      <path d="M8.2 10.8 15.8 6.7M8.2 13.2l7.6 4.1" />
+    </svg>
+  );
+}
+
+export function IconInfo({ className = "h-4 w-4" }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 10v6M12 7.5v.01" />
+    </svg>
+  );
+}
+
+export function packageAccentIconClass(accent: string): string {
+  switch (accent) {
+    case "premium":
+      return "bg-[#071f3a]/10 text-[#071f3a]";
+    case "enhanced":
+      return "bg-[#2563eb]/10 text-[#2563eb]";
+    case "standard":
+      return "bg-slate-100 text-[#475569]";
+    default:
+      return "bg-slate-100 text-[#475569]";
+  }
+}
+
 export function scopeGroupIcon(title: string) {
   if (/material/i.test(title)) return IconShield;
   if (/ventilation|flashing/i.test(title)) return IconTool;

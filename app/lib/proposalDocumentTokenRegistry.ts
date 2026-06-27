@@ -31,6 +31,12 @@ export const PROPOSAL_DOCUMENT_TOKEN_REGISTRY: readonly ProposalDocumentTokenReg
       sourcePath: "context_echo.company_phone",
     },
     {
+      name: "company_email",
+      domain: "company",
+      availability: "available",
+      sourcePath: "context_echo.company_email",
+    },
+    {
       name: "company_license",
       domain: "company",
       availability: "available",

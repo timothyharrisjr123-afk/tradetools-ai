@@ -1,16 +1,16 @@
 import type { ProposalCustomerPacketEstimateViewModel } from "@/app/lib/proposalCustomerPacketViewModel";
+import ProposalPacketCurrentPackage from "./ProposalPacketCurrentPackage";
 import ProposalPacketScope from "./ProposalPacketScope";
-import ProposalPacketSelectedCard from "./ProposalPacketSelectedCard";
 
 type ProposalPacketEstimateProps = {
   estimate: ProposalCustomerPacketEstimateViewModel;
 };
 
-/** Legacy estimate section — split across hero card and scope in the main packet. */
+/** Legacy estimate section — composed via current package and scope in the main packet. */
 export default function ProposalPacketEstimate({ estimate }: ProposalPacketEstimateProps) {
   return (
     <>
-      <ProposalPacketSelectedCard estimate={estimate} />
+      <ProposalPacketCurrentPackage estimate={estimate} />
       <ProposalPacketScope estimate={estimate} />
     </>
   );

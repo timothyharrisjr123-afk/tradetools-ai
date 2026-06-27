@@ -27,6 +27,7 @@ function minimalPacketStub() {
       proposalLabel: "Your roofing proposal",
       headline: "Roof Replacement",
       confidenceCopy: "A clear roof replacement proposal prepared for your home.",
+      coverMediaUrl: null,
       company: {
         companyName: "Summit Roofing",
         preparedByLabel: "Summit Roofing",
@@ -52,6 +53,7 @@ function minimalPacketStub() {
     upgrades: null,
     details: null,
     contact: null,
+    footerMetadata: null,
   };
 }
 

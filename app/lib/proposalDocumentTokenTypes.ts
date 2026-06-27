@@ -28,6 +28,7 @@ export type ProposalDocumentTokenName =
   | "company_name"
   | "company_logo_url"
   | "company_phone"
+  | "company_email"
   | "company_license"
   | "company_address"
   | "company_website"

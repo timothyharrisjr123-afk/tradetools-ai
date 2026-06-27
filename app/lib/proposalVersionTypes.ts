@@ -28,6 +28,8 @@ export type ProposalVersionContextEcho = {
   company_logo_url: string | null;
   /** Company contact phone — distinct from customer_phone. */
   company_phone?: string | null;
+  /** Company business email — distinct from customer_email. */
+  company_email?: string | null;
   /** Company license stored for document identity; show_license_on_cover gates display. */
   company_license?: string | null;
   /** Company HQ / mailing address — distinct from job address_formatted. */

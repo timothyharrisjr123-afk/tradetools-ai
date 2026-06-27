@@ -201,6 +201,7 @@ describe("mapCompanyBrandingToProposalContextEcho", () => {
       company_name: "Summit Roofing",
       company_logo_url: "data:image/png;base64,abc",
       company_phone: "918-555-0100",
+      company_email: "hello@summit.com",
       company_license: "OK-12345",
       company_address: "123 Main St, Tulsa, OK",
       company_website: "https://summitroofing.com",
@@ -209,7 +210,6 @@ describe("mapCompanyBrandingToProposalContextEcho", () => {
       show_license_on_cover: true,
     });
     assert.equal("notificationsEmail" in echo, false);
-    assert.equal("email" in echo, false);
   });
 
   test("empty strings become null; show_license_on_cover defaults false", () => {
@@ -222,6 +222,7 @@ describe("mapCompanyBrandingToProposalContextEcho", () => {
       company_name: null,
       company_logo_url: null,
       company_phone: null,
+      company_email: null,
       company_license: null,
       company_address: null,
       company_website: null,

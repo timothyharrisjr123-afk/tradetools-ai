@@ -593,6 +593,7 @@ function mergeCompanyContextEchoInput(
   | "company_name"
   | "company_logo_url"
   | "company_phone"
+  | "company_email"
   | "company_license"
   | "company_address"
   | "company_website"
@@ -604,6 +605,7 @@ function mergeCompanyContextEchoInput(
     company_name: overrides?.company_name ?? stamped.company_name,
     company_logo_url: overrides?.company_logo_url ?? stamped.company_logo_url,
     company_phone: overrides?.company_phone ?? stamped.company_phone,
+    company_email: overrides?.company_email ?? stamped.company_email,
     company_license: overrides?.company_license ?? stamped.company_license,
     company_address: overrides?.company_address ?? stamped.company_address,
     company_website: overrides?.company_website ?? stamped.company_website,

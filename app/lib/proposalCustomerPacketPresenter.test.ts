@@ -7,6 +7,13 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { buildCustomerPacketFromPublicDto } from "./proposalCustomerPacketPresenter";
+import {
+  PROPOSAL_CUSTOMER_PACKET_COMPARE_HEADING,
+  PROPOSAL_CUSTOMER_PACKET_CURRENT_BADGE,
+  PROPOSAL_CUSTOMER_PACKET_CURRENT_PACKAGE_LABEL,
+  PROPOSAL_CUSTOMER_PACKET_CURRENT_TOTAL_LABEL,
+  PROPOSAL_CUSTOMER_PACKET_CURRENT_TOTAL_SUMMARY,
+} from "./proposalCustomerPacketViewModel";
 import type { ProposalPublicGraphDto } from "./proposalPublicGraphDto";
 
 const TEMPLATE_OPT_A = "77777777-7777-4777-8777-777777777777";
@@ -76,7 +83,7 @@ function baseDto(overrides: Partial<ProposalPublicGraphDto> = {}): ProposalPubli
         source_template_option_id: TEMPLATE_OPT_B,
         name: "Premium",
         customer_label: "Premium",
-        sort_order: 1,
+        sort_order: 2,
         visible_to_customer: true,
         customer_subtotal_cents: 25000,
         discount_cents: 0,
@@ -111,6 +118,32 @@ function baseDto(overrides: Partial<ProposalPublicGraphDto> = {}): ProposalPubli
           },
         ],
       },
+      {
+        source_template_option_id: TEMPLATE_OPT_C,
+        name: "Enhanced",
+        customer_label: "Enhanced",
+        sort_order: 1,
+        visible_to_customer: true,
+        customer_subtotal_cents: 19000,
+        discount_cents: 0,
+        sales_tax_cents: 1428,
+        customer_total_cents: 20428,
+        line_items: [
+          {
+            source_template_item_id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+            customer_name: "roofing.architectural_shingles",
+            description: null,
+            quantity: 25,
+            quantity_display_label: "25",
+            unit: "SQ",
+            customer_unit_price_cents: 760,
+            customer_line_total_cents: 19000,
+            pricing_status: "priced",
+            visible_to_customer: true,
+            line_presentation_group: "included",
+          },
+        ],
+      },
     ],
     displayPolicy: {
       showLinePrices: true,
@@ -128,23 +161,51 @@ describe("buildCustomerPacketFromPublicDto", () => {
     assert.ok(packet.estimate);
   });
 
-  test("selected option is primary in estimate", () => {
+  test("current option is primary in estimate", () => {
     const packet = buildCustomerPacketFromPublicDto(baseDto());
     assert.equal(packet.estimate?.optionKey, TEMPLATE_OPT_B);
     assert.equal(packet.estimate?.label, "Premium");
   });
 
-  test("total investment appears once as primary money moment on estimate", () => {
+  test("current proposal total uses frozen package total", () => {
     const packet = buildCustomerPacketFromPublicDto(baseDto());
     assert.equal(packet.estimate?.totalInvestmentLabel, "$270.28");
     assert.equal(packet.cover.headline?.includes("$"), false);
   });
 
-  test("alternate options are secondary comparison only", () => {
+  test("comparison includes all visible packages with current marked", () => {
     const packet = buildCustomerPacketFromPublicDto(baseDto());
-    assert.equal(packet.comparison?.options.length, 1);
-    assert.equal(packet.comparison?.options[0]?.optionKey, TEMPLATE_OPT_A);
-    assert.equal(packet.comparison?.options[0]?.totalInvestmentLabel, "$108.00");
+    assert.equal(packet.comparison?.options.length, 3);
+    const current = packet.comparison?.options.find((option) => option.isCurrent);
+    assert.equal(current?.optionKey, TEMPLATE_OPT_B);
+    assert.equal(current?.label, "Premium");
+    assert.equal(current?.totalInvestmentLabel, "$270.28");
+    const standard = packet.comparison?.options.find((option) => option.optionKey === TEMPLATE_OPT_A);
+    assert.equal(standard?.isCurrent, false);
+    assert.equal(standard?.totalInvestmentLabel, "$108.00");
+    const enhanced = packet.comparison?.options.find((option) => option.optionKey === TEMPLATE_OPT_C);
+    assert.equal(enhanced?.isCurrent, false);
+    assert.equal(enhanced?.totalInvestmentLabel, "$204.28");
+  });
+
+  test("standard can be primary current package", () => {
+    const packet = buildCustomerPacketFromPublicDto(
+      baseDto({ selected_template_option_id: TEMPLATE_OPT_A })
+    );
+    assert.equal(packet.estimate?.label, "Standard");
+    assert.equal(packet.estimate?.totalInvestmentLabel, "$108.00");
+    const current = packet.comparison?.options.find((option) => option.isCurrent);
+    assert.equal(current?.optionKey, TEMPLATE_OPT_A);
+  });
+
+  test("enhanced can be primary current package", () => {
+    const packet = buildCustomerPacketFromPublicDto(
+      baseDto({ selected_template_option_id: TEMPLATE_OPT_C })
+    );
+    assert.equal(packet.estimate?.label, "Enhanced");
+    assert.equal(packet.estimate?.totalInvestmentLabel, "$204.28");
+    const current = packet.comparison?.options.find((option) => option.isCurrent);
+    assert.equal(current?.optionKey, TEMPLATE_OPT_C);
   });
 
   test("optional upgrades render only when present", () => {
@@ -168,7 +229,7 @@ describe("buildCustomerPacketFromPublicDto", () => {
     assert.equal(packet.upgrades, null);
   });
 
-  test("missing alternates omits comparison", () => {
+  test("single visible package omits comparison", () => {
     const packet = buildCustomerPacketFromPublicDto(
       baseDto({
         options: baseDto().options.filter((option) => option.source_template_option_id === TEMPLATE_OPT_B),
@@ -274,5 +335,89 @@ describe("buildCustomerPacketFromPublicDto", () => {
     assert.doesNotMatch(serialized, /sign \/ accept/);
     assert.doesNotMatch(serialized, /pay deposit/);
     assert.doesNotMatch(serialized, /download pdf/);
+  });
+
+  test("customer-facing copy uses neutral current package language", () => {
+    assert.equal(PROPOSAL_CUSTOMER_PACKET_CURRENT_PACKAGE_LABEL, "Current package");
+    assert.equal(PROPOSAL_CUSTOMER_PACKET_COMPARE_HEADING, "Compare packages");
+    assert.equal(PROPOSAL_CUSTOMER_PACKET_CURRENT_BADGE, "Current");
+    assert.equal(PROPOSAL_CUSTOMER_PACKET_CURRENT_TOTAL_LABEL, "Current proposal total");
+    assert.match(PROPOSAL_CUSTOMER_PACKET_CURRENT_TOTAL_SUMMARY, /current package shown above/i);
+  });
+
+  test("serialized packet avoids recommendation and selection action language", () => {
+    const packet = buildCustomerPacketFromPublicDto(baseDto());
+    const serialized = JSON.stringify(packet).toLowerCase();
+    assert.doesNotMatch(serialized, /recommended/);
+    assert.doesNotMatch(serialized, /selected package/);
+    assert.doesNotMatch(serialized, /\bchoose\b/);
+    assert.doesNotMatch(serialized, /update total/);
+    assert.doesNotMatch(serialized, /\bapprove\b/);
+    assert.doesNotMatch(serialized, /pay deposit/);
+    assert.doesNotMatch(serialized, /sign \/ accept/);
+  });
+
+  test("maps contractor company contact fields from context_echo", () => {
+    const packet = buildCustomerPacketFromPublicDto(
+      baseDto({
+        context_echo: {
+          ...baseDto().context_echo,
+          company_name: "Summit Roofing",
+          company_phone: "918-555-0100",
+          company_email: "ops@summit.test",
+          company_website: "https://summit.test",
+          company_address: "456 HQ Blvd",
+          customer_phone: "555-CUSTOMER",
+          customer_email: "customer@test.com",
+        },
+      })
+    );
+
+    assert.equal(packet.contact?.companyName, "Summit Roofing");
+    assert.equal(packet.contact?.phone, "918-555-0100");
+    assert.equal(packet.contact?.email, "ops@summit.test");
+    assert.equal(packet.contact?.website, "https://summit.test");
+    assert.equal(packet.contact?.address, "456 HQ Blvd");
+    assert.notEqual(packet.contact?.phone, "555-CUSTOMER");
+    assert.notEqual(packet.contact?.email, "customer@test.com");
+  });
+
+  test("omits missing contractor contact fields without placeholders", () => {
+    const packet = buildCustomerPacketFromPublicDto(
+      baseDto({
+        context_echo: {
+          company_name: "Summit Roofing",
+          customer_name: "Jane Homeowner",
+          customer_phone: "555-CUSTOMER",
+          customer_email: "customer@test.com",
+          address_formatted: "123 Main St",
+          template_name: "Roof Replacement",
+        },
+      })
+    );
+
+    assert.equal(packet.contact?.phone, null);
+    assert.equal(packet.contact?.email, null);
+    assert.equal(packet.contact?.website, null);
+    assert.equal(packet.contact?.address, null);
+    assert.equal(packet.contact?.companyName, "Summit Roofing");
+  });
+
+  test("cover media uses real url when present and omits fake stock placeholders", () => {
+    const packet = buildCustomerPacketFromPublicDto(
+      baseDto({
+        context_echo: {
+          ...baseDto().context_echo,
+          job_photo_url: "https://cdn.example.com/job-front.jpg",
+        },
+      })
+    );
+    assert.equal(packet.cover.coverMediaUrl, "https://cdn.example.com/job-front.jpg");
+    assert.doesNotMatch(JSON.stringify(packet.cover), /placeholder/i);
+  });
+
+  test("cover media falls back to null without real urls", () => {
+    const packet = buildCustomerPacketFromPublicDto(baseDto());
+    assert.equal(packet.cover.coverMediaUrl, null);
   });
 });
