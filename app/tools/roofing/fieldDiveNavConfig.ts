@@ -31,6 +31,8 @@ export type FieldDiveNavItemConfig = {
 export type FieldDiveNavSectionConfig = {
   id: FieldDiveNavSectionId;
   label: string;
+  /** When true, section starts collapsed in the sidebar (Advanced). */
+  collapsedByDefault?: boolean;
   items: FieldDiveNavItemConfig[];
 };
 
@@ -48,17 +50,6 @@ export type FieldDiveNavIconName =
   | "barChart3"
   | "bot";
 
-export const NEW_JOB_SUB_ITEMS: FieldDiveNavSubItemConfig[] = [
-  { id: "packet", label: "Job Packet", href: "/tools/roofing?entry=packet", variant: "active" },
-  {
-    id: "job-card",
-    label: "Job Card",
-    href: "/tools/roofing?entry=job-card",
-    variant: "available",
-  },
-  { id: "instant", label: "Instant Estimate", variant: "soon" },
-];
-
 export const FIELD_DIVE_NAV_SECTIONS: FieldDiveNavSectionConfig[] = [
   {
     id: "operations",
@@ -66,54 +57,74 @@ export const FIELD_DIVE_NAV_SECTIONS: FieldDiveNavSectionConfig[] = [
     items: [
       {
         key: "jobs",
-        label: "Job Board",
+        label: "Jobs",
         href: "/tools/roofing/saved",
         kind: "link",
         icon: "briefcase",
       },
       {
         key: "newJob",
-        label: "New Job",
-        href: "/tools/roofing",
-        kind: "group",
+        label: "New job",
+        href: "/tools/roofing?entry=packet",
+        kind: "link",
         icon: "clipboardList",
-        subItems: NEW_JOB_SUB_ITEMS,
-        subItemsAriaLabel: "New job entry paths",
-        activeSubId: "packet",
       },
     ],
   },
   {
     id: "setup",
-    label: "Company setup",
+    label: "Setup",
     items: [
       {
+        key: null,
+        label: "Company profile",
+        href: "/tools/settings",
+        kind: "link",
+        icon: "settings",
+      },
+      {
+        key: null,
+        label: "Pricing rules",
+        href: "/tools/settings/pricing",
+        kind: "link",
+        icon: "settings",
+      },
+      {
         key: "catalog",
-        label: "Catalog",
+        label: "Price book",
         href: "/tools/roofing/catalog",
         kind: "link",
         icon: "package",
       },
       {
         key: "templates",
-        label: "Templates",
+        label: "Proposal templates",
         href: "/tools/roofing/templates",
         kind: "link",
         icon: "layoutTemplate",
-      },
-      {
-        key: null,
-        label: "Settings",
-        href: "/tools/settings",
-        kind: "link",
-        icon: "settings",
       },
     ],
   },
   {
     id: "legacyAndFuture",
-    label: "Legacy & future",
+    label: "Advanced",
+    collapsedByDefault: true,
     items: [
+      {
+        key: null,
+        label: "Instant Estimate",
+        kind: "soon",
+        icon: "fileText",
+        soonTitle: "Instant Estimate — coming later; not part of the primary job workflow",
+      },
+      {
+        key: null,
+        label: "Legacy price book",
+        href: "/admin/price-book",
+        kind: "legacy",
+        icon: "bookOpen",
+        soonTitle: "Replaced by Price book — legacy admin shelf only. Do not use for new proposals.",
+      },
       {
         key: null,
         label: "Customers (Legacy)",
@@ -124,19 +135,11 @@ export const FIELD_DIVE_NAV_SECTIONS: FieldDiveNavSectionConfig[] = [
       },
       {
         key: null,
-        label: "Price Book (Legacy)",
-        href: "/admin/price-book",
-        kind: "legacy",
-        icon: "bookOpen",
-        soonTitle: "Replaced by Catalog — legacy admin shelf only",
-      },
-      {
-        key: null,
         label: "Estimates (Legacy)",
         kind: "soon",
         icon: "fileText",
         soonTitle:
-          "Legacy saved-estimate entry removed from primary nav — use Job Board and New Job",
+          "Legacy saved-estimate entry removed from primary nav — use Jobs and New job",
       },
       {
         key: null,

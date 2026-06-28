@@ -28,6 +28,7 @@ import {
   FIELD_DIVE_NAV_SECTIONS,
   type FieldDiveNavIconName,
   type FieldDiveNavItemConfig,
+  type FieldDiveNavSectionConfig,
   type FieldDiveNavSubItemConfig,
 } from "./fieldDiveNavConfig";
 
@@ -289,6 +290,66 @@ function NavSidebarItem({
   );
 }
 
+type NavSidebarSectionProps = {
+  section: FieldDiveNavSectionConfig;
+  activeNav?: FieldDiveActiveNav;
+  activeSubId?: FieldDiveActiveSubNav;
+  jobCardHref: string;
+  groupExpandedOverrides: Record<string, boolean>;
+  onToggleGroup: (groupKey: string, defaultExpanded: boolean) => void;
+};
+
+function NavSidebarSection({
+  section,
+  activeNav,
+  activeSubId,
+  jobCardHref,
+  groupExpandedOverrides,
+  onToggleGroup,
+}: NavSidebarSectionProps) {
+  const sectionKey = `section:${section.id}`;
+  const defaultExpanded = !section.collapsedByDefault;
+  const isExpanded = groupExpandedOverrides[sectionKey] ?? defaultExpanded;
+
+  return (
+    <div>
+      {section.collapsedByDefault ? (
+        <button
+          type="button"
+          onClick={() => onToggleGroup(sectionKey, defaultExpanded)}
+          className="flex w-full items-center justify-between px-3 pb-1 text-left text-[10px] font-semibold uppercase tracking-wide text-slate-400 hover:text-slate-600"
+          aria-expanded={isExpanded}
+        >
+          <span>{section.label}</span>
+          <ChevronDown
+            className={`h-3.5 w-3.5 shrink-0 transition-transform ${isExpanded ? "rotate-0" : "-rotate-90"}`}
+            aria-hidden
+          />
+        </button>
+      ) : (
+        <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+          {section.label}
+        </p>
+      )}
+      {isExpanded ? (
+        <div className="space-y-0.5">
+          {section.items.map((item) => (
+            <NavSidebarItem
+              key={navItemKey(item)}
+              item={item}
+              activeNav={activeNav}
+              activeSubId={activeSubId}
+              jobCardHref={jobCardHref}
+              groupExpandedOverrides={groupExpandedOverrides}
+              onToggleGroup={onToggleGroup}
+            />
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export default function FieldDiveAppShell({ activeNav, activeSubId, children }: FieldDiveAppShellProps) {
   const [groupExpandedOverrides, setGroupExpandedOverrides] = useState<Record<string, boolean>>({});
   const [jobCardHref, setJobCardHref] = useState("/tools/roofing?entry=job-card");
@@ -315,29 +376,20 @@ export default function FieldDiveAppShell({ activeNav, activeSubId, children }: 
           </Link>
           <nav className="flex-1 space-y-4 px-2 py-3">
             {FIELD_DIVE_NAV_SECTIONS.map((section) => (
-              <div key={section.id}>
-                <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                  {section.label}
-                </p>
-                <div className="space-y-0.5">
-                  {section.items.map((item) => (
-                    <NavSidebarItem
-                      key={navItemKey(item)}
-                      item={item}
-                      activeNav={activeNav}
-                      activeSubId={activeSubId}
-                      jobCardHref={jobCardHref}
-                      groupExpandedOverrides={groupExpandedOverrides}
-                      onToggleGroup={(groupKey, defaultExpanded) => {
-                        setGroupExpandedOverrides((prev) => ({
-                          ...prev,
-                          [groupKey]: !(prev[groupKey] ?? defaultExpanded),
-                        }));
-                      }}
-                    />
-                  ))}
-                </div>
-              </div>
+              <NavSidebarSection
+                key={section.id}
+                section={section}
+                activeNav={activeNav}
+                activeSubId={activeSubId}
+                jobCardHref={jobCardHref}
+                groupExpandedOverrides={groupExpandedOverrides}
+                onToggleGroup={(groupKey, defaultExpanded) => {
+                  setGroupExpandedOverrides((prev) => ({
+                    ...prev,
+                    [groupKey]: !(prev[groupKey] ?? defaultExpanded),
+                  }));
+                }}
+              />
             ))}
           </nav>
           <div className="mt-auto border-t border-slate-100 p-3">

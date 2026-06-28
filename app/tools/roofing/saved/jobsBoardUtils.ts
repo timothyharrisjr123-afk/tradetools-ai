@@ -234,7 +234,9 @@ export type CardStatusBadge = {
 
 function isJobMeasured(est: RoofingEstimate): boolean {
   const area = Number(est.area ?? (est as { roofAreaSqFt?: number }).roofAreaSqFt ?? 0);
-  return Number.isFinite(area) && area > 0;
+  if (Number.isFinite(area) && area > 0) return true;
+  const measurementId = (est as { selected_measurement_id?: string | null }).selected_measurement_id;
+  return Boolean(measurementId?.trim());
 }
 
 function getReportStatusBadge(est: RoofingEstimate): CardStatusBadge {
@@ -332,11 +334,15 @@ export function getStageAnchorIso(
   return firstValidIsoDate(createdAt);
 }
 
-function daysInStage(anchorIso: string | null): number | null {
-  if (!anchorIso) return null;
-  const ts = new Date(anchorIso).getTime();
+function daysSinceIso(iso: string | null): number | null {
+  if (!iso) return null;
+  const ts = new Date(iso).getTime();
   if (Number.isNaN(ts)) return null;
   return Math.floor((Date.now() - ts) / 86400000);
+}
+
+function daysInStage(anchorIso: string | null): number | null {
+  return daysSinceIso(anchorIso);
 }
 
 export function buildTimeInStageLabel(anchorIso: string | null): string | null {
@@ -412,26 +418,243 @@ export function statusBadgeClass(tone: CardStatusBadgeTone): string {
     case "proposal_draft":
       return "bg-slate-100/60 text-slate-500";
     case "proposal_none":
-      return "bg-slate-100/60 text-slate-500";
+      return "No Proposal";
     default:
       return "bg-slate-100/60 text-slate-500";
   }
+}
+
+export type JobsBoardOverviewMetricKind = "count" | "currency";
+
+export type JobsBoardOverviewMetric = {
+  id:
+    | "active_jobs"
+    | "proposal_drafts"
+    | "reports_missing"
+    | "recently_updated"
+    | "stalled_30d"
+    | "pipeline_value";
+  label: string;
+  value: number;
+  kind?: JobsBoardOverviewMetricKind;
+  /** Pre-formatted display for currency metrics. */
+  displayValue?: string;
+  /** When true, show even if value is 0. */
+  alwaysShow?: boolean;
+};
+
+export type JobsBoardCommandSummary = {
+  activeJobs: number;
+  metrics: JobsBoardOverviewMetric[];
+  /** Plain-language insight when count chips would be redundant. */
+  insight: string | null;
+};
+
+/** Stage-specific empty-column guidance (visual only). */
+export const BOARD_STAGE_EMPTY_HINTS: Partial<Record<BoardColumnKey, string>> = {
+  estimate: "New leads start here when you create a job.",
+  leads: "Jobs land here after a proposal is sent to the customer.",
+  approved: "Signed proposals appear here while deposit or scheduling is pending.",
+  deposit_paid: "Deposit-collected jobs ready for scheduling show here.",
+  scheduled: "Scheduled install dates appear in this column.",
+  in_progress: "Jobs currently in production appear here.",
+  paid: "Completed jobs are archived in this stage.",
+};
+
+export type JobsBoardTaskDisplay = {
+  /** True when linked_counts (or equivalent) provides task data. */
+  available: boolean;
+  label: string | null;
+};
+
+export function deriveJobsBoardTaskDisplay(est: RoofingEstimate): JobsBoardTaskDisplay {
+  const counts = (
+    est as {
+      linked_counts?: {
+        tasks?: number | null;
+        blocking_tasks?: number | null;
+      } | null;
+    }
+  ).linked_counts;
+
+  const blocking = counts?.blocking_tasks;
+  if (typeof blocking === "number" && Number.isFinite(blocking) && blocking > 0) {
+    return {
+      available: true,
+      label: `${blocking} blocking task${blocking !== 1 ? "s" : ""}`,
+    };
+  }
+
+  const taskCount = counts?.tasks;
+  if (typeof taskCount === "number" && Number.isFinite(taskCount)) {
+    if (taskCount === 0) return { available: true, label: "0 tasks" };
+    return { available: true, label: `${taskCount} open task${taskCount !== 1 ? "s" : ""}` };
+  }
+
+  return { available: false, label: null };
+}
+
+export type CardHeadlineTone = "action" | "ready" | "neutral";
+
+export function deriveJobsBoardHeadline(
+  columnKey: BoardColumnKey,
+  reportStatus: CardStatusBadge,
+  proposalStatus: CardStatusBadge
+): { headline: string; tone: CardHeadlineTone } {
+  if (columnKey === "estimate") {
+    if (reportStatus.tone === "report_missing") {
+      return { headline: "Needs measurement", tone: "action" };
+    }
+    if (proposalStatus.tone === "proposal_draft") {
+      return { headline: "Proposal draft", tone: "neutral" };
+    }
+    if (proposalStatus.tone === "proposal_none") {
+      return { headline: "Proposal not started", tone: "action" };
+    }
+    if (reportStatus.tone === "report_ok") {
+      return { headline: "Report complete", tone: "ready" };
+    }
+  }
+
+  if (columnKey === "leads") {
+    if (proposalStatus.tone === "proposal_sent") {
+      return { headline: "Proposal sent", tone: "neutral" };
+    }
+    if (reportStatus.tone === "report_missing") {
+      return { headline: "Needs measurement", tone: "action" };
+    }
+    return { headline: "Awaiting customer review", tone: "neutral" };
+  }
+
+  if (columnKey === "approved") return { headline: "Proposal signed", tone: "ready" };
+  if (columnKey === "deposit_paid") return { headline: "Ready to schedule", tone: "neutral" };
+  if (columnKey === "scheduled") return { headline: "Scheduled", tone: "neutral" };
+  if (columnKey === "in_progress") return { headline: "In production", tone: "neutral" };
+  if (columnKey === "paid") return { headline: "Completed", tone: "ready" };
+
+  return { headline: getBoardColumnByKey(columnKey).label, tone: "neutral" };
+}
+
+function compactReportLabel(status: CardStatusBadge): string {
+  return status.tone === "report_ok" ? "Report complete" : "Report missing";
+}
+
+function compactProposalLabel(status: CardStatusBadge): string {
+  switch (status.tone) {
+    case "proposal_draft":
+      return "Proposal draft";
+    case "proposal_none":
+      return "No proposal";
+    case "proposal_sent":
+      return "Proposal sent";
+    case "proposal_signed":
+      return "Proposal signed";
+    default:
+      return status.label;
+  }
+}
+
+export function buildJobsBoardStatusLine(
+  columnKey: BoardColumnKey,
+  reportStatus: CardStatusBadge,
+  proposalStatus: CardStatusBadge,
+  tasksDisplay: JobsBoardTaskDisplay
+): string {
+  const parts: string[] = [];
+
+  if (columnKey === "estimate" || columnKey === "leads" || columnKey === "approved") {
+    parts.push(compactReportLabel(reportStatus));
+    parts.push(compactProposalLabel(proposalStatus));
+  } else if (columnKey === "deposit_paid" || columnKey === "scheduled" || columnKey === "in_progress") {
+    parts.push(getBoardColumnByKey(columnKey).label);
+    if (proposalStatus.tone === "proposal_signed") parts.push("Proposal signed");
+  } else if (columnKey === "paid") {
+    parts.push("Completed");
+  }
+
+  if (tasksDisplay.available && tasksDisplay.label) {
+    parts.push(tasksDisplay.label);
+  }
+
+  return parts.filter(Boolean).join(" · ");
+}
+
+export function cardHeadlineToneClass(tone: CardHeadlineTone): string {
+  switch (tone) {
+    case "action":
+      return "text-amber-800/90";
+    case "ready":
+      return "text-emerald-700/90";
+    default:
+      return "text-slate-700";
+  }
+}
+
+export function shouldEmphasizeCardValue(columnKey: BoardColumnKey, hasValue: boolean): boolean {
+  if (!hasValue) return false;
+  return (
+    columnKey === "approved" ||
+    columnKey === "deposit_paid" ||
+    columnKey === "scheduled" ||
+    columnKey === "in_progress" ||
+    columnKey === "paid"
+  );
+}
+
+function deriveNextStepLabel(
+  reportStatus: CardStatusBadge,
+  proposalStatus: CardStatusBadge
+): string {
+  if (reportStatus.tone === "report_missing") return "Add measurement";
+  if (proposalStatus.tone === "proposal_none") return "Create proposal";
+  if (proposalStatus.tone === "proposal_draft") return "Open proposal";
+  if (proposalStatus.tone === "proposal_sent") return "Review proposal";
+  if (proposalStatus.tone === "proposal_signed") return "Open job card";
+  return "Open job card";
+}
+
+function deriveAssigneeLabel(est: RoofingEstimate): string | null {
+  const assigned =
+    (est as { assigned_to?: string | null }).assigned_to ??
+    (est as { assignedTo?: string | null }).assignedTo;
+  if (!assigned?.trim()) return "Unassigned";
+  return "Assigned";
+}
+
+function deriveTasksLabel(est: RoofingEstimate): string {
+  const counts = (
+    est as {
+      linked_counts?: {
+        tasks?: number | null;
+        completed_tasks?: number | null;
+      } | null;
+    }
+  ).linked_counts;
+
+  const open = counts?.tasks;
+  const completed = counts?.completed_tasks;
+
+  if (typeof open === "number" && typeof completed === "number" && Number.isFinite(open) && Number.isFinite(completed)) {
+    const total = open + completed;
+    return `${completed}/${total}`;
+  }
+  if (typeof open === "number" && Number.isFinite(open)) {
+    return `0/${open}`;
+  }
+  return "0/0";
 }
 
 export type JobsBoardCardModel = {
   id: string;
   customerName: string;
   address: string;
-  /** Structural placeholder — FieldDive has no task system yet. */
   tasksLabel: string;
   reportStatus: CardStatusBadge;
   proposalStatus: CardStatusBadge;
-  /** Always null until real assignee data exists. */
-  assigneeInitials: string | null;
+  assigneeLabel: string | null;
   lastUpdatedDisplay: string | null;
   timeInStage: string | null;
   timeInStageTone: TimeInStageTone;
-  valueLabel: string | null;
   /** Shown on legacy saved-estimate cards only. */
   sourceBadge?: string | null;
 };
@@ -443,21 +666,21 @@ export function buildJobsBoardCardModel(
 ): JobsBoardCardModel {
   void opts;
   const anchorIso = getStageAnchorIso(estimate, batchStatuses);
-  const totalCents = toEstimateTotalCents(estimate);
   const lastUpdatedIso = getLastUpdatedIso(estimate);
+  const reportStatus = getReportStatusBadge(estimate);
+  const proposalStatus = getProposalStatusBadge(estimate);
 
   return {
     id: estimate.id,
     customerName: getEstimateDisplayName(estimate),
     address: getBoardCardAddress(estimate),
-    tasksLabel: "0/0",
-    reportStatus: getReportStatusBadge(estimate),
-    proposalStatus: getProposalStatusBadge(estimate),
-    assigneeInitials: null,
+    tasksLabel: deriveTasksLabel(estimate),
+    reportStatus,
+    proposalStatus,
+    assigneeLabel: deriveAssigneeLabel(estimate),
     lastUpdatedDisplay: buildLastUpdatedDisplay(lastUpdatedIso),
     timeInStage: buildTimeInStageLabel(anchorIso),
     timeInStageTone: timeInStageTone(anchorIso),
-    valueLabel: totalCents > 0 ? formatCentsToCurrency(totalCents) : null,
   };
 }
 
@@ -489,7 +712,7 @@ export function buildJobCardDisplayModel(
       customerName: board.customerName,
       address: board.address || "—",
       stageLabel: getBoardStageLabelForJob(estimate),
-      valueLabel: board.valueLabel,
+      valueLabel: null,
       lastUpdatedDisplay: board.lastUpdatedDisplay,
       timeInStage: board.timeInStage,
       timeInStageTone: board.timeInStageTone,

@@ -186,6 +186,11 @@ export function mapDbJobToBoardEstimate(job: JobSummary): RoofingEstimate {
     suggestedPrice: 0,
     status: mapDbJobToEstimateStatus(job),
     supabaseBacked: true,
+    assigned_to: job.assigned_to ?? undefined,
+    selected_measurement_id: job.selected_measurement_id ?? undefined,
+  } as RoofingEstimate & {
+    assigned_to?: string | null;
+    selected_measurement_id?: string | null;
   };
 }
 

@@ -4,7 +4,24 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import RoofingClient from "./RoofingClient";
 
-export default async function Page() {
+function hasRoofingWorkspaceDeepLink(
+  params: Record<string, string | string[] | undefined>
+): boolean {
+  const keys = ["entry", "job", "loadSaved", "legacy", "tab", "from", "autoSend"] as const;
+  return keys.some((key) => params[key] != null && params[key] !== "");
+}
+
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = await searchParams;
+
+  if (!hasRoofingWorkspaceDeepLink(params)) {
+    redirect("/tools/roofing/saved");
+  }
+
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {

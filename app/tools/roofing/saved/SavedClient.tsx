@@ -17,6 +17,10 @@ import JobsBoardHeader from "./components/JobsBoardHeader";
 import JobsBoardColumn from "./components/JobsBoardColumn";
 import JobsBoardListView from "./components/JobsBoardListView";
 import JobsBoardCard from "./components/JobsBoardCard";
+import JobsBoardPipelineGuidance from "./components/JobsBoardPipelineGuidance";
+import JobsBoardEmptyState from "./components/JobsBoardEmptyState";
+import JobsBoardLegacySection from "./components/JobsBoardLegacySection";
+import { useCompanySetupReadiness } from "./useCompanySetupReadiness";
 import {
   applyBoardUpdatedDateFilter,
   buildJobsBoardCardModel,
@@ -2824,6 +2828,7 @@ function SavedEstimateCard({
 
 export default function SavedClient({ companyId }: { companyId?: string }) {
   setEstimateStoreCompanyScope(companyId ?? null);
+  const companySetupReadiness = useCompanySetupReadiness(companyId);
   const buildSha = (process.env.NEXT_PUBLIC_BUILD_SHA || "local").toString().slice(0, 7);
   useEffect(() => {
     console.log("[BUILD]", buildSha);
@@ -4286,15 +4291,9 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
             )}
             {statusFilter === "all" && boardReady && (
               <div className="w-full space-y-3">
-                {!hasBoardJobs && (
-                  <div className="py-12 text-center text-sm text-slate-500">No jobs found.</div>
-                )}
-                {hasBoardJobs && (
-                  <>
                 <JobsBoardHeader
                   query={query}
                   onQueryChange={setQuery}
-                  jobCount={boardVisibleJobs.length}
                   viewMode={boardViewMode}
                   onViewModeChange={setBoardViewMode}
                   sortKey={boardSortKey}
@@ -4306,23 +4305,16 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                   filtersActive={boardFiltersActive}
                 />
 
-                <section
-                  aria-labelledby="active-jobs-section-heading"
-                  className="rounded-md border border-slate-200/70 bg-white px-3 py-2.5"
-                >
-                  <h2 id="active-jobs-section-heading" className="text-sm font-semibold text-slate-800">
-                    Active jobs
-                  </h2>
-                  <p className="mt-0.5 text-xs leading-relaxed text-slate-600">
-                    Primary database job records for current work. Open any card in Job Card to continue the job
-                    workflow.
-                  </p>
-                  <p className="mt-1.5 text-[11px] leading-relaxed text-slate-500">
-                    Board stage labels are interim operational lanes — not the future Proposals document hub
-                    (Draft / Sent / Won / Lost).
-                  </p>
-                </section>
+                <JobsBoardPipelineGuidance readiness={companySetupReadiness} />
 
+                {!hasBoardJobs ? (
+                  <JobsBoardEmptyState
+                    setupIncomplete={companySetupReadiness.showBanner}
+                    setupPrimaryHref={companySetupReadiness.primaryHref}
+                    searchActive={query.trim().length > 0 || boardFiltersActive}
+                  />
+                ) : (
+                  <>
                 {boardFilterZeroMatch ? (
                   <p className="rounded-md border border-slate-200/80 bg-slate-50 px-3 py-2 text-sm text-slate-600">
                     No jobs match your search or filter.
@@ -4337,43 +4329,40 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                     onOpenJob={(job) => handleAction(job, "load")}
                   />
                 ) : (
-                  <div className="overflow-x-auto pb-2 pr-8 pt-0.5 [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-200/50 [&::-webkit-scrollbar-track]:bg-transparent">
-                    <div className="inline-flex min-w-min items-stretch gap-0 pr-4">
+                  <div className="overflow-x-auto rounded-xl border border-slate-200/80 bg-white pb-2 shadow-sm [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-200/60 [&::-webkit-scrollbar-track]:bg-transparent">
+                    <div className="inline-flex min-w-min items-stretch pr-2">
                       {JOBS_BOARD_CATEGORY_GROUPS.map((group) => {
                         const visibleKeysInGroup = group.columnKeys.filter((k) =>
                           visibleColumnKeys.includes(k)
                         );
                         if (visibleKeysInGroup.length === 0) return null;
                         return (
-                          <div key={group.id} className="flex shrink-0 flex-col gap-1 pr-1">
-                            <p className="px-3 text-[10px] font-medium uppercase tracking-wider text-slate-400/75">
-                              {group.label}
-                            </p>
-                            <div className="flex">
-                              {visibleKeysInGroup.map((columnKey) => {
-                                const column = getBoardColumnByKey(columnKey);
-                                const columnJobs = sortJobsForBoardColumn(
-                                  getJobsForBoardColumn(boardVisibleJobs, column.key),
-                                  boardSortKey,
-                                  batchStatuses
-                                );
-                                const columnTotalCents = sumJobsValueCents(columnJobs);
-                                return (
-                                  <JobsBoardColumn
-                                    key={column.key}
-                                    column={column}
-                                    jobs={columnJobs}
-                                    buildCardModel={(job) => buildBoardCardModel(job, column.key)}
-                                    onOpenJob={(job) => handleAction(job, "load")}
-                                    onOpenLane={() => setStatusFilter(column.listFilter)}
-                                    filterActive={boardFilterZeroMatch}
-                                    columnTotalLabel={
-                                      columnTotalCents > 0 ? formatCentsToCurrency(columnTotalCents) : null
-                                    }
-                                  />
-                                );
-                              })}
-                            </div>
+                          <div key={group.id} className="flex shrink-0">
+                            {visibleKeysInGroup.map((columnKey, columnIndex) => {
+                              const column = getBoardColumnByKey(columnKey);
+                              const columnJobs = sortJobsForBoardColumn(
+                                getJobsForBoardColumn(boardVisibleJobs, column.key),
+                                boardSortKey,
+                                batchStatuses
+                              );
+                              const columnTotalCents = sumJobsValueCents(columnJobs);
+                              const showCategoryLabel = columnIndex === 0;
+                              return (
+                                <JobsBoardColumn
+                                  key={column.key}
+                                  column={column}
+                                  jobs={columnJobs}
+                                  buildCardModel={(job) => buildBoardCardModel(job, column.key)}
+                                  onOpenJob={(job) => handleAction(job, "load")}
+                                  onOpenLane={() => setStatusFilter(column.listFilter)}
+                                  filterActive={boardFilterZeroMatch}
+                                  columnTotalLabel={
+                                    columnTotalCents > 0 ? formatCentsToCurrency(columnTotalCents) : null
+                                  }
+                                  categoryLabel={showCategoryLabel ? group.label : null}
+                                />
+                              );
+                            })}
                           </div>
                         );
                       })}
@@ -4383,36 +4372,16 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                   </>
                 )}
 
-                {hasLegacyEstimates && (
-                  <section className="rounded-lg border border-amber-200/70 bg-amber-50/30 px-4 py-4">
-                    <div className="flex flex-wrap items-baseline justify-between gap-2">
-                      <h2 className="text-sm font-semibold text-slate-800">Legacy saved estimates</h2>
-                      <span className="text-xs tabular-nums text-slate-500">
-                        {legacySearchFiltered.length} record{legacySearchFiltered.length !== 1 ? "s" : ""}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-xs leading-relaxed text-slate-600">
-                      Kept for continuity from the prior saved-estimate workflow. DB jobs above are primary — start
-                      new work from Job Card, not legacy saved estimates.
-                    </p>
-                    {legacySearchFiltered.length === 0 ? (
-                      <p className="mt-3 text-sm text-slate-500">No legacy estimates match your search.</p>
-                    ) : (
-                      <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                        {legacySearchFiltered.map((est) => {
-                          const columnKey = getBoardColumnKeyForJob(est) ?? "estimate";
-                          return (
-                            <JobsBoardCard
-                              key={est.id}
-                              model={buildBoardCardModel(est, columnKey)}
-                              onOpen={() => handleAction(est, "load")}
-                            />
-                          );
-                        })}
-                      </div>
-                    )}
-                  </section>
-                )}
+                {hasLegacyEstimates ? (
+                  <JobsBoardLegacySection
+                    count={legacyBoardEntries.length}
+                    jobs={legacySearchFiltered}
+                    buildCardModel={buildBoardCardModel}
+                    getColumnKey={(job) => getBoardColumnKeyForJob(job) ?? "estimate"}
+                    onOpenJob={(est) => handleAction(est, "load")}
+                    searchEmpty={legacySearchFiltered.length === 0}
+                  />
+                ) : null}
               </div>
             )}
 

@@ -6657,7 +6657,7 @@ Thanks,`;
                       <button type="button" onClick={handleCustomizeDescription} className="rounded-md px-2 py-1.5 text-left text-[12px] text-white/80 hover:bg-white/[0.05]">Customize description</button>
                       <button type="button" onClick={loadExample} className="rounded-md px-2 py-1.5 text-left text-[12px] text-white/80 hover:bg-white/[0.05]">Load example values</button>
                       <button type="button" onClick={reset} className="rounded-md px-2 py-1.5 text-left text-[12px] text-white/80 hover:bg-white/[0.05]">Reset</button>
-                      <a href="/tools/roofing/saved" className="rounded-md px-2 py-1.5 text-left text-[12px] text-white/80 hover:bg-white/[0.05]">Open Command Center</a>
+                      <a href="/tools/roofing/saved" className="rounded-md px-2 py-1.5 text-left text-[12px] text-white/80 hover:bg-white/[0.05]">Open Job Board</a>
                       <label className="mt-1 flex items-center gap-2 rounded-md px-2 py-1.5 text-[11px] text-white/70">
                         <input
                           type="checkbox"
