@@ -10895,6 +10895,90 @@ First login / Jobs Board
 | **S8 — Supplier integration** | Provider mapping, SKU links, refresh/change approval, history | No silent mutation of proposal snapshots |
 | **S9 — smoke/audit** | Desktop/mobile UI plus quantity, proposal, template, material-order, and snapshot truth audit | Required before declaring systems live |
 
+##### 13.4.4 S1A Quantity/Waste Architecture Decision (docs only)
+
+**Decision status:** **Approved architecture direction; docs-only record.** Current checkpoint: **`8d4e86b` — `feat(roofing): align Catalog with Roofr command surface`**. S1A changes no app code, schema, migrations, SQL, UI, pricing math, proposal persistence, or protected systems.
+
+###### Current production mode — preserve
+
+- FieldDive remains on **`adjusted_measurement`**.
+- The live production path remains **MeasurementRecord / handoff → `quantity_source` lookup → resolved line quantity → pricing input**.
+- Current `proposalQuantityResolver` behavior remains unchanged in S1A.
+- Measurement waste is assumed to be applied upstream when `adjusted_roof_squares` is used. The pricing engine must not re-apply waste.
+- `coverage_rate` and `waste_applies` remain **non-authoritative compatibility/stub fields**. They do not currently drive resolver or pricing behavior.
+- Coverage and Waste UI remains planned/blocked. Do not expose either as a truthful live value.
+
+###### Durable long-term target — Option D dual-mode quantity resolver
+
+FieldDive’s durable target is an explicit dual-mode quantity layer. This is a future target, not authorization to enable the second mode.
+
+| Mode | Status / source | Coverage and waste rule |
+|------|-----------------|-------------------------|
+| **`adjusted_measurement`** | Current default and only production-supported mode; consumes measurement quantities whose waste is already upstream | Catalog `waste_pct` must not apply. Coverage may only be considered in a later approved slice if conversion semantics are explicit and no waste is re-applied |
+| **`raw_plus_waste`** | Future opt-in mode; consumes proven raw measurements | Applies approved coverage conversion and `waste_pct` through pure, tested quantity helpers; requires schema/model, rounding policy, snapshot/staleness support, and tests before UI or engine wiring |
+
+The future resolver must treat quantity mode as an explicit truth boundary. Mixed adjusted/raw inputs within one unresolved calculation path are forbidden.
+
+###### Explicit rejected moves in S1A
+
+- Do not add a live **Coverage** column or editable Coverage control.
+- Do not add a live **Waste %** column or editable Waste control.
+- Do not add sales-tax, material-purchase-tax, or supplier columns as part of S1.
+- Do not change pricing-engine math or pricing-policy validation in S1A.
+- Do not migrate, refresh, or recalculate existing proposals under a future quantity mode.
+- Do not present Coverage/Waste as truthful until resolver, snapshots, draft refresh, and staleness detection support the same mode and inputs.
+- Do not treat the existing `coverage_rate` / `waste_applies` fields as evidence that the feature is live.
+
+###### Snapshot and proposal-trust rules
+
+- Sent/frozen proposals must never be recalculated under a newly introduced quantity mode.
+- When coverage/waste-enabled quantity resolution is eventually approved, each resolved line must snapshot:
+  - quantity mode;
+  - source measurement key and source measurement value;
+  - `coverage_rate` actually used (or explicit not-applicable value);
+  - `waste_pct` actually used, or explicit **n/a** under adjusted mode;
+  - final resolved purchase quantity.
+- Draft refresh may re-resolve quantity inputs only while the proposal remains draft and only through an explicit approved refresh path.
+- Future staleness detection must identify drift in quantity mode, source measurement key/value, coverage, and waste.
+- A proposal must not combine an adjusted-measurement snapshot with a newly computed raw-plus-waste quantity without an explicit draft migration/rebuild decision.
+- Catalog references may remain live for draft discovery, but sent/frozen proposal quantity and pricing truth must remain snapshot-owned.
+
+###### Tax and supplier boundaries
+
+- Tax remains outside S1 quantity/waste work.
+- Company **Pricing Rules** remain the tax source of truth today.
+- Per-item sales tax and material purchase tax require a later, separate architecture decision defining customer-visible versus internal cost behavior.
+- Supplier integration remains later than stable quantity/waste truth.
+- Supplier price refresh must never mutate sent/frozen proposal snapshots.
+- Future supplier cost changes require a draft-only acceptance/refresh path and must preserve the cost/quantity values used by existing snapshots.
+- Supplier SKU, unit, package, or coverage metadata must not silently change quantity semantics.
+
+###### S1 follow-on sequence
+
+| Step | Scope | Guardrail |
+|------|-------|-----------|
+| **S1A — decision record** | This docs-only dual-mode decision and trust boundary | No app/schema/math/UI changes |
+| **S1B — pure quantity-mode helpers/types** | Define mode-aware quantity input/output contracts and pure helpers | No UI; no pricing-engine wiring; current resolver unchanged |
+| **S1C — fixtures/tests** | Lock current behavior; specify future coverage/waste formulas; prove no double waste | Tests before persistence or UI |
+| **S1D — schema proposal** | Document proposed fields/ownership only | No migration until separately approved |
+| **S1E — optional internal debug output** | Inspect resolved input/driver values if genuinely useful | Internal/read-only; no customer UI |
+| **S1F — read-only UI** | Show engine-backed values only after math is proven | No live column before truth support |
+| **S1G — editable UI** | Catalog/default/override editing after validation and stores exist | Later explicit approval |
+| **S1H — draft refresh / snapshot / staleness integration** | Re-resolve drafts and persist/freeze all quantity drivers | Sent/frozen proposals immutable |
+| **S1I — smoke/audit** | Quantity, pricing, Builder, customer/public, snapshot, and mobile audit | Required before declaring mode live |
+
+###### S1 stop conditions
+
+Stop and return to architecture review if:
+
+- raw measurement quantities are missing, inconsistent, or unreliable for `raw_plus_waste`;
+- the waste status of `adjusted_roof_squares` cannot be proven for supported measurement sources;
+- coverage conversion would silently change existing draft proposal quantities;
+- pricing-engine changes become necessary before pure quantity helpers and tests establish the contract;
+- any UI would show Coverage/Waste as live before resolver, persistence, snapshot, and staleness truth is proven;
+- tax or supplier scope begins to enter quantity/waste helpers, models, or tests;
+- existing proposals would require automatic migration or recalculation to adopt the future mode.
+
 **P3 — polish**
 
 - Nav active-state fixes
@@ -10950,7 +11034,7 @@ First login / Jobs Board
 | **Affected pages** | Setup Hub (`/tools/roofing/setup` proposed) |
 | **Success criteria** | One place for company readiness status |
 
-**Immediate next after the P0D commit:** **S1 — Quantity/Waste Architecture Decision (§6BO.13.4.3)**. Do **not** start Coverage/Waste/Tax/Supplier/CSV/Bulk/Columns UI or schema work first. Slice 3 Pricing rules remains a separate P0 roadmap slice and is not authorization to change pricing math.
+**Immediate next after S1A review/commit:** **S1B — pure quantity-mode helpers/types**, followed by **S1C fixtures/tests (§6BO.13.4.4)**. Do **not** start Coverage/Waste/Tax/Supplier/CSV/Bulk/Columns UI, schema, migrations, or pricing-engine changes first. Slice 3 Pricing rules remains a separate P0 roadmap slice and is not authorization to change pricing math.
 
 #### 13.6 Stage C / R18D3D sequencing (with P0 UI)
 
@@ -12158,6 +12242,7 @@ Treat as **drift** if a session:
 
 ## Changelog (handoff doc only)
 
+- **2026-07-16:** **S1A Quantity/Waste Architecture Decision record** (docs only; uncommitted) — production remains `adjusted_measurement` with current resolver unchanged; `coverage_rate` / `waste_applies` remain non-authoritative stubs; durable target is Option D dual-mode (`adjusted_measurement` + future `raw_plus_waste`); snapshot/trust rules, tax/supplier boundaries, S1A–S1I sequence, and stop conditions recorded in **§6BO.13.4.4**; next after review/commit is **S1B pure helpers/types**, then **S1C fixtures/tests**, not UI columns.
 - **2026-07-16:** **Catalog P0D Roofr parity correction + systems research lock** (uncommitted with P0A–P0C) — continuous ungrouped All items (no MATERIALS/LABOR/FEES divider rows); disabled reserved selection checkbox column (no bulk bar); command bar Search · Filters & sort · Re-order / Columns / Manage (Coming soon) · Add; Roofr systems map, explicit truth stop rules, and S0–S9 sequence recorded in **§6BO.13.4.1–§6BO.13.4.3**; next after commit is **S1 Quantity/Waste Architecture Decision**, not UI column work.
 - **2026-07-16:** **Catalog P0C Roofr command-surface visual parity** (uncommitted with P0A/P0B) — P0B = structure pass; P0C = wider workspace, unified command bar+table card, disabled Manage catalog / Columns / Re-order (Coming soon layout-only), polished group headers, Proposal/Status pills, spaced Edit|Deactivate, Settings future-tools planned list; deferred features remain in **§6BO.13.4** (no active CSV/reorder/columns/bulk/tax/waste/coverage/supplier).
 - **2026-07-16:** **Catalog P0B Roofr visual-parity layout** (uncommitted with P0A) — Slice 2 layout intent changed from guided/setup-first to **Roofr-like table-first** (title → All items/Settings → toolbar → table); removed Catalog page checklist rail / dominant starter hero / roadmap footnote dominance; Settings = honest Pricing rules + Templates links; deferred Roofr-parity features recorded in **§6BO.13.4** (bulk/checkboxes/Add to template/tax/waste/coverage/reorder/columns/supplier); table columns Name/Type/Measurement/Unit/Unit cost/Unit price/Proposal/Status/Actions only.
