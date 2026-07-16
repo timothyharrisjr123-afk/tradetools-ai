@@ -284,7 +284,7 @@ describe("disabled raw branch — raw_plus_waste math/echo", () => {
     }
   });
 
-  test("13. raw_plus_waste remains not production-enabled", () => {
+  test("13. raw_plus_waste remains not globally production-enabled", () => {
     assert.equal(RAW_PLUS_WASTE_PRODUCTION_ENABLED, false);
     assert.equal(DEFAULT_QUANTITY_MODE, "adjusted_measurement");
 
@@ -297,16 +297,17 @@ describe("disabled raw branch — raw_plus_waste math/echo", () => {
       assert.ok(result.notes.some((n) => /disabled branch/i.test(n)));
     }
 
+    // Phase 5: production adapter may import catalogQuantityMode for policy-gated
+    // raw path, but default calls stay adjusted and this helper stays unwired.
     const adapterSrc = readFileSync(
       path.join(process.cwd(), "app/lib/proposalQuantityResolutionAdapter.ts"),
       "utf8"
     );
-    assert.equal(
-      /from\s+["']@\/app\/lib\/catalogQuantityMode["']/.test(adapterSrc),
-      false
-    );
     assert.equal(adapterSrc.includes("resolveDisabledRawPlusWaste"), false);
-    assert.match(adapterSrc, /Do not enable raw_plus_waste/);
+    assert.match(
+      adapterSrc,
+      /raw_plus_waste activates only when options\.wasteModel === "raw_plus_waste"/
+    );
   });
 });
 

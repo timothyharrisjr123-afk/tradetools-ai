@@ -143,8 +143,16 @@ type PricedLineCore = {
   notes: string | null;
 };
 
+function isSupportedWasteModel(wasteModel: PricingPolicy["wasteModel"]): boolean {
+  // Phase 5: accept adjusted_measurement (default) and policy-gated raw_plus_waste.
+  // Engine never applies coverage/waste math — quantities are already resolved upstream.
+  return (
+    wasteModel === DEFAULT_WASTE_MODEL || wasteModel === "raw_plus_waste"
+  );
+}
+
 function priceLine(line: PricingLineInput, policy: PricingPolicy): PricedLineCore {
-  if (policy.wasteModel !== DEFAULT_WASTE_MODEL) {
+  if (!isSupportedWasteModel(policy.wasteModel)) {
     return {
       status: "unsupported",
       unresolved: true,

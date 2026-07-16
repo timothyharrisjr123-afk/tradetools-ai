@@ -15,6 +15,7 @@ import type { MeasurementQuantityMap } from "./measurementTypes";
 import {
   alignAdjustedEchoToPersistedQuantity,
   resolveProposalLineQuantityViaAdapter,
+  type AdjustedQuantityResolutionEcho,
 } from "./proposalQuantityResolutionAdapter";
 import {
   resolveProposalLineQuantity,
@@ -354,8 +355,9 @@ describe("alignAdjustedEchoToPersistedQuantity", () => {
       catalogItem: catalog({ id: "shingles", quantity_source: "adjusted_roof_squares" }),
       templateItem: templateItem({ id: "line-align" }),
     });
+    assert.equal(adapted.quantityResolutionEcho.quantity_mode, "adjusted_measurement");
     const aligned = alignAdjustedEchoToPersistedQuantity(
-      adapted.quantityResolutionEcho,
+      adapted.quantityResolutionEcho as AdjustedQuantityResolutionEcho,
       24.5
     );
     assert.equal(aligned.resolved_purchase_quantity, 24.5);
@@ -369,8 +371,9 @@ describe("alignAdjustedEchoToPersistedQuantity", () => {
       catalogItem: catalog({ id: "shingles", quantity_source: "adjusted_roof_squares" }),
       templateItem: templateItem({ id: "line-align-manual" }),
     });
+    assert.equal(adapted.quantityResolutionEcho.quantity_mode, "adjusted_measurement");
     const aligned = alignAdjustedEchoToPersistedQuantity(
-      adapted.quantityResolutionEcho,
+      adapted.quantityResolutionEcho as AdjustedQuantityResolutionEcho,
       30,
       { clearSourceMeasurementValue: true }
     );
@@ -418,5 +421,126 @@ describe("proposalQuantityResolutionAdapter — catalog drivers ignored under ad
     assertPreviewIdentity(directBase, adaptedDrivers.preview);
     assert.equal(adaptedDrivers.preview.quantity, 22);
     assert.equal(adaptedDrivers.quantityMode, "adjusted_measurement");
+  });
+});
+
+describe("proposalQuantityResolutionAdapter — raw_plus_waste policy mode", () => {
+  test("5–7. uses raw source, coverage then waste, stamps raw echo", () => {
+    const adapted = resolveProposalLineQuantityViaAdapter(
+      {
+        measurementHandoff: readyHandoff({
+          roof_squares: 100,
+          adjusted_roof_squares: 110,
+        }),
+        quantityMap: null,
+        catalogItem: catalog({
+          id: "shingles-raw",
+          quantity_source: "adjusted_roof_squares",
+          coverage_rate: 50,
+          waste_applies: true,
+          waste_pct: 10,
+        }),
+        templateItem: templateItem({ id: "line-raw" }),
+      },
+      { wasteModel: "raw_plus_waste" }
+    );
+    assert.equal(adapted.quantityMode, "raw_plus_waste");
+    assert.equal(adapted.preview.unresolved, false);
+    assert.equal(adapted.preview.quantity, 2.2);
+    assert.equal(adapted.quantityResolutionEcho.quantity_mode, "raw_plus_waste");
+    assert.equal(adapted.quantityResolutionEcho.source_measurement_key, "roof_squares");
+    assert.equal(adapted.quantityResolutionEcho.source_measurement_value, 100);
+    assert.equal(adapted.quantityResolutionEcho.coverage_rate_used, 50);
+    assert.equal(adapted.quantityResolutionEcho.waste_pct_used, 10);
+    assert.equal(adapted.quantityResolutionEcho.resolved_purchase_quantity, 2.2);
+    assert.equal(
+      adapted.preview.quantity,
+      adapted.quantityResolutionEcho.resolved_purchase_quantity
+    );
+  });
+
+  test("8. rejects already-adjusted source when raw squares missing", () => {
+    const adapted = resolveProposalLineQuantityViaAdapter(
+      {
+        measurementHandoff: readyHandoff({
+          roof_squares: null,
+          adjusted_roof_squares: 110,
+        }),
+        quantityMap: null,
+        catalogItem: catalog({
+          id: "shingles-adj-only",
+          quantity_source: "adjusted_roof_squares",
+          waste_applies: true,
+          waste_pct: 10,
+        }),
+        templateItem: templateItem({ id: "line-adj-only" }),
+      },
+      { wasteModel: "raw_plus_waste" }
+    );
+    assert.equal(adapted.preview.unresolved, true);
+    assert.equal(adapted.preview.quantity, null);
+    assert.equal(adapted.quantityResolutionEcho.resolved_purchase_quantity, null);
+  });
+
+  test("9. skips waste when waste_applies=false", () => {
+    const adapted = resolveProposalLineQuantityViaAdapter(
+      {
+        measurementHandoff: readyHandoff({ roof_squares: 12 }),
+        quantityMap: null,
+        catalogItem: catalog({
+          id: "labor-raw",
+          item_type: "labor",
+          quantity_source: "roof_squares",
+          waste_applies: false,
+          waste_pct: 15,
+          coverage_rate: null,
+        }),
+        templateItem: templateItem({ id: "line-labor-raw" }),
+      },
+      { wasteModel: "raw_plus_waste" }
+    );
+    assert.equal(adapted.preview.quantity, 12);
+    assert.equal(adapted.quantityResolutionEcho.waste_pct_used, null);
+  });
+
+  test("11. rejects missing raw source", () => {
+    const adapted = resolveProposalLineQuantityViaAdapter(
+      {
+        measurementHandoff: readyHandoff({ roof_squares: null }),
+        quantityMap: null,
+        catalogItem: catalog({
+          id: "shingles-missing",
+          quantity_source: "roof_squares",
+          waste_applies: true,
+          waste_pct: 10,
+        }),
+        templateItem: templateItem({ id: "line-missing-raw" }),
+      },
+      { wasteModel: "raw_plus_waste" }
+    );
+    assert.equal(adapted.preview.unresolved, true);
+    assert.equal(adapted.quantityResolutionEcho.resolved_purchase_quantity, null);
+  });
+
+  test("default/omitted wasteModel stays adjusted (no production enable by accident)", () => {
+    const adapted = resolveProposalLineQuantityViaAdapter({
+      measurementHandoff: readyHandoff({
+        roof_squares: 100,
+        adjusted_roof_squares: 110,
+      }),
+      quantityMap: null,
+      catalogItem: catalog({
+        id: "shingles-default",
+        quantity_source: "adjusted_roof_squares",
+        coverage_rate: 50,
+        waste_applies: true,
+        waste_pct: 10,
+      }),
+      templateItem: templateItem({ id: "line-default" }),
+    });
+    assert.equal(adapted.quantityMode, "adjusted_measurement");
+    assert.equal(adapted.preview.quantity, 110);
+    assert.equal(adapted.quantityResolutionEcho.coverage_rate_used, null);
+    assert.equal(adapted.quantityResolutionEcho.waste_pct_used, null);
   });
 });

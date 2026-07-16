@@ -12,6 +12,7 @@ import {
   type CatalogItemRow,
 } from "@/app/lib/catalogStore";
 import { getSelectedMeasurementForJob } from "@/app/lib/measurementStore";
+import { getResolvedCompanyPricingPolicy } from "@/app/lib/companyPricingPolicyStore";
 import {
   runDraftQuantityResolutionPreflight,
   type LoadDraftQuantityResolutionPreflightDeps,
@@ -85,6 +86,11 @@ function buildDraftQuantityResolutionPreflightServerDeps(
     },
     getSelectedMeasurement: (jobId) =>
       getSelectedMeasurementForJob(jobId, supabase),
+    getWasteModel: async (companyId) => {
+      const resolution = await getResolvedCompanyPricingPolicy(companyId);
+      if (!resolution.configured || resolution.policy == null) return null;
+      return resolution.policy.wasteModel;
+    },
   };
 }
 

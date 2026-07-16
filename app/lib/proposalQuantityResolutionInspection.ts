@@ -1,9 +1,8 @@
 /**
- * S3D5 — internal draft quantity_resolution_echo inspection (metadata only).
+ * S3D5 / Phase 5 — internal draft quantity_resolution_echo inspection (metadata only).
  *
- * Composes adapter current-echo + S3D4 compare for loaded draft lines.
- * Callers must supply honest ProposalQuantityResolverInput (template, catalog,
- * live measurement). Does not invent current values from draft rows alone.
+ * Composes adapter current-echo + compare for loaded draft lines.
+ * Dual-mode: adjusted (default) or raw_plus_waste when wasteModel selects it.
  *
  * Not persisted. Not customer/public. No UI. No auto-refresh. No DB writes.
  * Does not mutate line quantities or pricing.
@@ -11,15 +10,18 @@
 
 import {
   resolveProposalLineQuantityViaAdapter,
-  type AdjustedQuantityResolutionEcho,
+  type QuantityResolutionEcho,
 } from "@/app/lib/proposalQuantityResolutionAdapter";
 import type { ProposalQuantityResolverInput } from "@/app/lib/proposalQuantityResolver";
 import {
   compareAdjustedQuantityResolutionEcho,
+  compareRawPlusWasteQuantityResolutionEcho,
   type QuantityResolutionEchoStalenessReason,
-  type QuantityResolutionEchoStalenessResult,
   type QuantityResolutionEchoStalenessStatus,
 } from "@/app/lib/proposalQuantityResolutionStaleness";
+import type { WasteModel } from "@/app/lib/proposalPricingTypes";
+import type { RawPlusWasteQuantityResolutionEcho } from "@/app/lib/proposalQuantityResolutionDisabledRawBranch";
+import type { AdjustedQuantityResolutionEcho } from "@/app/lib/proposalQuantityResolutionAdapter";
 
 export type DraftLineQuantityResolutionInspection = {
   /** proposal_line_items.id when available. */
@@ -29,7 +31,7 @@ export type DraftLineQuantityResolutionInspection = {
   status: QuantityResolutionEchoStalenessStatus;
   reasons: QuantityResolutionEchoStalenessReason[];
   previous: Record<string, unknown> | null;
-  current: AdjustedQuantityResolutionEcho | null;
+  current: QuantityResolutionEcho | null;
 };
 
 export type InspectLoadedDraftLineQuantityResolutionInput = {
@@ -42,12 +44,19 @@ export type InspectLoadedDraftLineQuantityResolutionInput = {
    * returns unknown (missing_current_echo) rather than inventing values.
    */
   resolverInput: ProposalQuantityResolverInput | null | undefined;
+  /** From company/draft policy. Default adjusted_measurement. */
+  wasteModel?: WasteModel | null;
 };
 
 function toInspection(
   lineId: string | null,
   sourceTemplateItemId: string | null,
-  result: QuantityResolutionEchoStalenessResult
+  result: {
+    status: QuantityResolutionEchoStalenessStatus;
+    reasons: QuantityResolutionEchoStalenessReason[];
+    previous: Record<string, unknown> | null;
+    current: QuantityResolutionEcho | null;
+  }
 ): DraftLineQuantityResolutionInspection {
   return {
     lineId,
@@ -60,8 +69,8 @@ function toInspection(
 }
 
 /**
- * Inspect one loaded draft line's persisted echo against current adjusted-mode
- * adapter echo. Pure / internal metadata only.
+ * Inspect one loaded draft line's persisted echo against current adapter echo.
+ * Pure / internal metadata only.
  */
 export function inspectLoadedDraftLineQuantityResolution(
   input: InspectLoadedDraftLineQuantityResolutionInput
@@ -76,7 +85,19 @@ export function inspectLoadedDraftLineQuantityResolution(
       ? input.sourceTemplateItemId.trim()
       : null;
 
+  const wasteModel = input.wasteModel ?? "adjusted_measurement";
+
   if (input.resolverInput == null) {
+    if (wasteModel === "raw_plus_waste") {
+      return toInspection(
+        lineId,
+        sourceTemplateItemId,
+        compareRawPlusWasteQuantityResolutionEcho({
+          persistedEcho: input.persistedEcho,
+          currentEcho: null,
+        })
+      );
+    }
     return toInspection(
       lineId,
       sourceTemplateItemId,
@@ -87,13 +108,28 @@ export function inspectLoadedDraftLineQuantityResolution(
     );
   }
 
-  const adapted = resolveProposalLineQuantityViaAdapter(input.resolverInput);
+  const adapted = resolveProposalLineQuantityViaAdapter(input.resolverInput, {
+    wasteModel,
+  });
+
+  if (wasteModel === "raw_plus_waste") {
+    return toInspection(
+      lineId,
+      sourceTemplateItemId,
+      compareRawPlusWasteQuantityResolutionEcho({
+        persistedEcho: input.persistedEcho,
+        currentEcho: adapted.quantityResolutionEcho as RawPlusWasteQuantityResolutionEcho,
+        currentPreviewUnresolved: adapted.preview.unresolved === true,
+      })
+    );
+  }
+
   return toInspection(
     lineId,
     sourceTemplateItemId,
     compareAdjustedQuantityResolutionEcho({
       persistedEcho: input.persistedEcho,
-      currentEcho: adapted.quantityResolutionEcho,
+      currentEcho: adapted.quantityResolutionEcho as AdjustedQuantityResolutionEcho,
       currentPreviewUnresolved: adapted.preview.unresolved === true,
     })
   );
@@ -117,6 +153,7 @@ export function inspectLoadedDraftLinesQuantityResolution(input: {
   resolveInputForLine: (
     line: LoadedDraftLineForQuantityInspection
   ) => ProposalQuantityResolverInput | null | undefined;
+  wasteModel?: WasteModel | null;
 }): Record<string, DraftLineQuantityResolutionInspection> {
   const out: Record<string, DraftLineQuantityResolutionInspection> = {};
 
@@ -138,6 +175,7 @@ export function inspectLoadedDraftLinesQuantityResolution(input: {
       sourceTemplateItemId,
       persistedEcho: line.quantity_resolution_echo ?? null,
       resolverInput: input.resolveInputForLine(line),
+      wasteModel: input.wasteModel,
     });
   }
 

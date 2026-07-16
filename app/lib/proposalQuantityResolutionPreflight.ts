@@ -17,6 +17,7 @@ import {
 } from "@/app/lib/proposalQuantityResolutionInspection";
 import type { ProposalQuantityResolverInput } from "@/app/lib/proposalQuantityResolver";
 import type { QuantityResolutionEchoStalenessStatus } from "@/app/lib/proposalQuantityResolutionStaleness";
+import type { WasteModel } from "@/app/lib/proposalPricingTypes";
 import type { ProposalTemplateItem } from "@/app/lib/proposalTemplateTypes";
 
 export type QuantityResolutionPreflightStatus = QuantityResolutionEchoStalenessStatus;
@@ -45,6 +46,8 @@ export type SummarizeLoadedDraftQuantityResolutionPreflightInput = {
     | Readonly<Record<string, CatalogItem>>;
   /** Live measurement handoff + quantity map; null is honest (may yield unresolved). */
   quantityContext: ProposalQuantityPreviewContext | null | undefined;
+  /** From company/draft policy. Default adjusted_measurement. */
+  wasteModel?: WasteModel | null;
 };
 
 function lookupById<T>(
@@ -121,6 +124,7 @@ export function summarizeLoadedDraftQuantityResolutionPreflight(
 ): QuantityResolutionPreflightSummary {
   const byLineId = inspectLoadedDraftLinesQuantityResolution({
     lines: input.lines,
+    wasteModel: input.wasteModel,
     resolveInputForLine: (line) =>
       buildProposalQuantityResolverInputForLoadedDraftLine({
         line: line as LoadedDraftLineForQuantityPreflight,

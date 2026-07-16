@@ -205,7 +205,7 @@ describe("inspectLoadedDraftLineQuantityResolution", () => {
     assert.equal(result.current, null);
   });
 
-  test("9. raw_plus_waste and whole remain disabled (flagged stale, not current)", () => {
+  test("9. raw_plus_waste under adjusted policy is flagged stale, not current", () => {
     const result = inspectLoadedDraftLineQuantityResolution({
       lineId: LINE_ID,
       persistedEcho: {
@@ -220,6 +220,85 @@ describe("inspectLoadedDraftLineQuantityResolution", () => {
     assert.ok(result.reasons.includes("quantity_mode_mismatch"));
     assert.ok(result.reasons.includes("rounding_mode_mismatch"));
     assert.ok(result.reasons.includes("waste_pct_used_non_null"));
+  });
+
+  test("15. matching raw echo under raw policy reports current", () => {
+    const input: ProposalQuantityResolverInput = {
+      measurementHandoff: readyHandoff({
+        roof_squares: 100,
+        adjusted_roof_squares: 110,
+      }),
+      quantityMap: null,
+      catalogItem: catalog({
+        id: "cat-shingles",
+        quantity_source: "adjusted_roof_squares",
+        coverage_rate: 50,
+        waste_applies: true,
+        waste_pct: 10,
+      }),
+      templateItem: templateItem({ id: "ti-shingles", catalog_item_id: "cat-shingles" }),
+    };
+    const result = inspectLoadedDraftLineQuantityResolution({
+      lineId: LINE_ID,
+      persistedEcho: {
+        quantity_mode: "raw_plus_waste",
+        source_measurement_key: "roof_squares",
+        source_measurement_value: 100,
+        coverage_rate_used: 50,
+        waste_pct_used: 10,
+        rounding_mode_used: "exact",
+        resolved_purchase_quantity: 2.2,
+      },
+      resolverInput: input,
+      wasteModel: "raw_plus_waste",
+    });
+    assert.equal(result.status, "current");
+    assert.deepEqual(result.reasons, []);
+    assert.equal(result.current?.resolved_purchase_quantity, 2.2);
+  });
+
+  test("16–17. raw echo mismatch / adjusted-under-raw are stale", () => {
+    const input: ProposalQuantityResolverInput = {
+      measurementHandoff: readyHandoff({
+        roof_squares: 100,
+        adjusted_roof_squares: 110,
+      }),
+      quantityMap: null,
+      catalogItem: catalog({
+        id: "cat-shingles",
+        quantity_source: "adjusted_roof_squares",
+        coverage_rate: 50,
+        waste_applies: true,
+        waste_pct: 10,
+      }),
+      templateItem: templateItem({ id: "ti-shingles", catalog_item_id: "cat-shingles" }),
+    };
+
+    const qtyMismatch = inspectLoadedDraftLineQuantityResolution({
+      lineId: LINE_ID,
+      persistedEcho: {
+        quantity_mode: "raw_plus_waste",
+        source_measurement_key: "roof_squares",
+        source_measurement_value: 100,
+        coverage_rate_used: 50,
+        waste_pct_used: 10,
+        rounding_mode_used: "exact",
+        resolved_purchase_quantity: 9,
+      },
+      resolverInput: input,
+      wasteModel: "raw_plus_waste",
+    });
+    assert.equal(qtyMismatch.status, "stale");
+    assert.ok(qtyMismatch.reasons.includes("resolved_purchase_quantity_mismatch"));
+
+    const adjustedUnderRaw = inspectLoadedDraftLineQuantityResolution({
+      lineId: LINE_ID,
+      persistedEcho: matchingPersistedEcho(110),
+      resolverInput: input,
+      wasteModel: "raw_plus_waste",
+    });
+    assert.equal(adjustedUnderRaw.status, "stale");
+    assert.ok(adjustedUnderRaw.reasons.includes("quantity_mode_mismatch"));
   });
 });
 

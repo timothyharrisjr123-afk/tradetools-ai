@@ -15,7 +15,7 @@ import { priceProposalLine, resolveProposalPricing } from "@/app/lib/proposalPri
 import { mapProposalPricingInput } from "@/app/lib/proposalPricingInputMapper";
 import type { LinePricingStatus, PricingActorRole, PricingLineInput, PricingPolicy } from "@/app/lib/proposalPricingTypes";
 import {
-  alignAdjustedEchoToPersistedQuantity,
+  alignQuantityResolutionEchoToPersistedQuantity,
   resolveProposalLineQuantityViaAdapter,
 } from "@/app/lib/proposalQuantityResolutionAdapter";
 import {
@@ -462,14 +462,17 @@ export function buildDraftInstantiateInputWithScopeDecisions(
         if (!templateItem) continue;
 
         const catalog = line.catalogItemId ? catalogById.get(line.catalogItemId) : undefined;
-        const qtyResolved = resolveProposalLineQuantityViaAdapter({
-          measurementHandoff: params.quantityContext?.measurementHandoff ?? null,
-          quantityMap: params.quantityContext?.quantityMap ?? null,
-          catalogItem: catalog ?? null,
-          templateItem,
-        });
+        const qtyResolved = resolveProposalLineQuantityViaAdapter(
+          {
+            measurementHandoff: params.quantityContext?.measurementHandoff ?? null,
+            quantityMap: params.quantityContext?.quantityMap ?? null,
+            catalogItem: catalog ?? null,
+            templateItem,
+          },
+          { wasteModel: params.policy.wasteModel }
+        );
         const qtyPreview = qtyResolved.preview;
-        const quantityResolutionEcho = alignAdjustedEchoToPersistedQuantity(
+        const quantityResolutionEcho = alignQuantityResolutionEchoToPersistedQuantity(
           qtyResolved.quantityResolutionEcho,
           line.quantity
         );
@@ -535,12 +538,15 @@ export function buildDraftInstantiateInputWithScopeDecisions(
       if (!templateItem) continue;
 
       const catalog = line.catalogItemId ? catalogById.get(line.catalogItemId) : undefined;
-      const qtyResolved = resolveProposalLineQuantityViaAdapter({
-        measurementHandoff: params.quantityContext?.measurementHandoff ?? null,
-        quantityMap: params.quantityContext?.quantityMap ?? null,
-        catalogItem: catalog ?? null,
-        templateItem,
-      });
+      const qtyResolved = resolveProposalLineQuantityViaAdapter(
+        {
+          measurementHandoff: params.quantityContext?.measurementHandoff ?? null,
+          quantityMap: params.quantityContext?.quantityMap ?? null,
+          catalogItem: catalog ?? null,
+          templateItem,
+        },
+        { wasteModel: params.policy.wasteModel }
+      );
       const qtyPreview = qtyResolved.preview;
 
       const manualDecision = optionDecisions.find(
@@ -553,7 +559,7 @@ export function buildDraftInstantiateInputWithScopeDecisions(
         ? parseManualQuantityPayload(manualDecision.payload as Record<string, unknown>)
         : null;
 
-      const quantityResolutionEcho = alignAdjustedEchoToPersistedQuantity(
+      const quantityResolutionEcho = alignQuantityResolutionEchoToPersistedQuantity(
         qtyResolved.quantityResolutionEcho,
         line.quantity,
         { clearSourceMeasurementValue: Boolean(manualPayload) }

@@ -6,7 +6,7 @@
  *
  * Does not fetch from stores. Does not write DB. Does not auto-refresh.
  * Does not attach metadata to customer/public DTOs. Does not touch UI.
- * Adjusted-measurement only via existing adapter/preflight chain.
+ * Dual-mode when wasteModel is supplied (default adjusted_measurement).
  */
 
 import type { CatalogItem } from "@/app/lib/catalogTypes";
@@ -16,6 +16,7 @@ import {
   type LoadedDraftLineForQuantityPreflight,
   type QuantityResolutionPreflightSummary,
 } from "@/app/lib/proposalQuantityResolutionPreflight";
+import type { WasteModel } from "@/app/lib/proposalPricingTypes";
 import type { ProposalTemplateItem } from "@/app/lib/proposalTemplateTypes";
 
 /**
@@ -55,6 +56,8 @@ export type OrchestrateDraftQuantityResolutionPreflightInput = {
    * Null is honest and may yield unresolved/unknown.
    */
   quantityContext: ProposalQuantityPreviewContext | null | undefined;
+  /** From company/draft policy. Default adjusted_measurement. */
+  wasteModel?: WasteModel | null;
   /** Optional caller identity — not used in comparison math. */
   identity?: DraftQuantityResolutionPreflightIdentity | null;
 };
@@ -115,6 +118,7 @@ export function orchestrateDraftQuantityResolutionPreflight(
     templateItemsById: buildTemplateItemsByIdForQuantityPreflight(input.templateItems),
     catalogItemsById: buildCatalogItemsByIdForQuantityPreflight(input.catalogItems),
     quantityContext: input.quantityContext ?? null,
+    wasteModel: input.wasteModel,
   });
 
   return {

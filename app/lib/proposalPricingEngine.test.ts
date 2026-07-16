@@ -469,12 +469,30 @@ describe("proposalPricingEngine", () => {
     );
     assert.equal(wholeIgnored.options[0]?.customerSubtotalCents, 107_000);
 
-    const badWaste = resolveProposalPricing(
+    // Phase 5: engine accepts raw_plus_waste but does not apply coverage/waste math.
+    const rawAccepted = resolveProposalPricing(
       baseInput({
         policy: basePolicy({ wasteModel: "raw_plus_waste" }),
+        lines: [
+          baseLine({
+            pricingBasis: "unit_price",
+            unitPriceCents: 10_000,
+            quantity: 2.2,
+          }),
+        ],
       })
     );
-    assert.equal(badWaste.options[0]?.hasBlockingIssues, true);
-    assert.equal(badWaste.options[0]?.customerTotalCents, null);
+    assert.equal(rawAccepted.options[0]?.hasBlockingIssues, false);
+    assert.equal(rawAccepted.options[0]?.customerSubtotalCents, 22_000);
+
+    const mysteryWaste = resolveProposalPricing(
+      baseInput({
+        policy: basePolicy({
+          wasteModel: "mystery" as PricingPolicy["wasteModel"],
+        }),
+      })
+    );
+    assert.equal(mysteryWaste.options[0]?.hasBlockingIssues, true);
+    assert.equal(mysteryWaste.options[0]?.customerTotalCents, null);
   });
 });

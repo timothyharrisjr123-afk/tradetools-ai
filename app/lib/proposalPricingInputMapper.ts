@@ -1,10 +1,12 @@
 /**
- * FieldDive Proposal Pricing Input Mapper (3I-1B).
+ * FieldDive Proposal Pricing Input Mapper (3I-1B / raw_plus_waste Phase 5).
  *
- * Pure mapping from template graph + catalog + 3H-3 quantity preview → ProposalPricingInput.
- * No pricing math, no quantity resolution, no DB, React, stores, or legacy estimator imports.
+ * Pure mapping from template graph + catalog + quantity adapter → ProposalPricingInput.
+ * No pricing math, no DB, React, stores, or legacy estimator imports.
  *
- * Quantity comes exclusively from resolveProposalLineQuantity (3H-3).
+ * Quantity comes from resolveProposalLineQuantityViaAdapter (adjusted default;
+ * raw_plus_waste only when policy.wasteModel selects it). Engine receives
+ * already-resolved quantities and does not apply coverage/waste.
  * Economics come exclusively from CatalogItem fields — no invented costs, prices, or tax.
  */
 
@@ -16,7 +18,7 @@ import {
   getSectionsForOption,
   isLineItemsSectionKind,
 } from "@/app/lib/proposalBuilderPreview";
-import { resolveProposalLineQuantity } from "@/app/lib/proposalQuantityResolver";
+import { resolveProposalLineQuantityViaAdapter } from "@/app/lib/proposalQuantityResolutionAdapter";
 import type {
   PricingActorRole,
   PricingLineInput,
@@ -116,13 +118,14 @@ function mapMissingCatalogLine(
 }
 
 /**
- * Map one template line + catalog + 3H-3 quantity preview to PricingLineInput.
+ * Map one template line + catalog + quantity adapter preview to PricingLineInput.
  */
 export function mapTemplateItemToPricingLineInput(
   templateItem: ProposalTemplateItem,
   catalog: CatalogItem | null | undefined,
   quantityContext: ProposalQuantityPreviewContext | null,
-  optionId: string
+  optionId: string,
+  wasteModel?: PricingPolicy["wasteModel"] | null
 ): PricingLineInput {
   const catalogId = (templateItem.catalog_item_id ?? "").trim();
   const hasCatalogId = Boolean(catalogId);
@@ -135,12 +138,15 @@ export function mapTemplateItemToPricingLineInput(
     return mapMissingCatalogLine(templateItem, optionId);
   }
 
-  const quantityPreview = resolveProposalLineQuantity({
-    measurementHandoff: quantityContext?.measurementHandoff ?? null,
-    quantityMap: quantityContext?.quantityMap ?? null,
-    catalogItem: catalog,
-    templateItem,
-  });
+  const quantityPreview = resolveProposalLineQuantityViaAdapter(
+    {
+      measurementHandoff: quantityContext?.measurementHandoff ?? null,
+      quantityMap: quantityContext?.quantityMap ?? null,
+      catalogItem: catalog,
+      templateItem,
+    },
+    { wasteModel: wasteModel ?? "adjusted_measurement" }
+  ).preview;
 
   return {
     templateItemId: templateItem.id,
@@ -169,7 +175,8 @@ export function mapPricingLineInputsForOption(
   graph: ProposalTemplateGraph,
   optionId: string,
   catalogById: Map<string, CatalogItem>,
-  quantityContext: ProposalQuantityPreviewContext | null
+  quantityContext: ProposalQuantityPreviewContext | null,
+  wasteModel?: PricingPolicy["wasteModel"] | null
 ): PricingLineInput[] {
   const sections = getSectionsForOption(graph, optionId).filter((section) =>
     isLineItemsSectionKind(section.kind)
@@ -181,7 +188,13 @@ export function mapPricingLineInputsForOption(
       const catalogId = (templateItem.catalog_item_id ?? "").trim();
       const catalog = catalogId ? catalogById.get(catalogId) : undefined;
       lines.push(
-        mapTemplateItemToPricingLineInput(templateItem, catalog, quantityContext, optionId)
+        mapTemplateItemToPricingLineInput(
+          templateItem,
+          catalog,
+          quantityContext,
+          optionId,
+          wasteModel
+        )
       );
     }
   }
@@ -197,7 +210,8 @@ export function mapProposalPricingInput(params: MapProposalPricingInputParams): 
     params.graph,
     params.optionId,
     catalogById,
-    params.quantityContext
+    params.quantityContext,
+    params.policy.wasteModel
   );
 
   return {

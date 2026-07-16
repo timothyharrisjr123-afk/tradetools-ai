@@ -78,7 +78,7 @@ import {
 import type { LoadLiveProposalIdentityEchoInput } from "@/app/lib/proposalIdentityEchoLive";
 import { composeLiveProposalIdentityEchoFromSources } from "@/app/lib/proposalIdentityEchoLive";
 import {
-  alignAdjustedEchoToPersistedQuantity,
+  alignQuantityResolutionEchoToPersistedQuantity,
   resolveProposalLineQuantityViaAdapter,
 } from "@/app/lib/proposalQuantityResolutionAdapter";
 import {
@@ -723,14 +723,17 @@ export function buildDraftInstantiateInputFromPreview(params: {
       if (!templateItem) continue;
 
       const catalog = line.catalogItemId ? catalogById.get(line.catalogItemId) : undefined;
-      const qtyResolved = resolveProposalLineQuantityViaAdapter({
-        measurementHandoff: params.quantityContext?.measurementHandoff ?? null,
-        quantityMap: params.quantityContext?.quantityMap ?? null,
-        catalogItem: catalog ?? null,
-        templateItem,
-      });
+      const qtyResolved = resolveProposalLineQuantityViaAdapter(
+        {
+          measurementHandoff: params.quantityContext?.measurementHandoff ?? null,
+          quantityMap: params.quantityContext?.quantityMap ?? null,
+          catalogItem: catalog ?? null,
+          templateItem,
+        },
+        { wasteModel: params.policy.wasteModel }
+      );
       const qtyPreview = qtyResolved.preview;
-      const quantityResolutionEcho = alignAdjustedEchoToPersistedQuantity(
+      const quantityResolutionEcho = alignQuantityResolutionEchoToPersistedQuantity(
         qtyResolved.quantityResolutionEcho,
         line.quantity
       );

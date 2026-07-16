@@ -17,12 +17,14 @@ import {
 import { resolveMeasurementWorkspaceState } from "@/app/lib/measurementReadiness";
 import type { ProposalQuantityPreviewContext } from "@/app/lib/proposalBuilderPreview";
 import { validateProposalDraftGraphForJob } from "@/app/lib/proposalDraftGraphAdapter";
+import { wasteModelFromPolicyEcho } from "@/app/lib/proposalQuantityResolutionAdapter";
 import type { ProposalDraftGraph } from "@/app/lib/proposalRecordStore";
 import {
   orchestrateDraftQuantityResolutionPreflight,
   type DraftQuantityResolutionPreflightOrchestratorResult,
   type OrchestrateDraftQuantityResolutionPreflightInput,
 } from "@/app/lib/proposalQuantityResolutionPreflightOrchestrator";
+import type { WasteModel } from "@/app/lib/proposalPricingTypes";
 import type { ProposalTemplateItem } from "@/app/lib/proposalTemplateTypes";
 
 export type LoadDraftQuantityResolutionPreflightDeps = {
@@ -36,6 +38,8 @@ export type LoadDraftQuantityResolutionPreflightDeps = {
   ) => Promise<readonly ProposalTemplateItem[] | null>;
   getCatalogItems: (companyId: string) => Promise<readonly CatalogItem[]>;
   getSelectedMeasurement: (jobId: string) => Promise<MeasurementRecord | null>;
+  /** Optional: live company policy waste model. Falls back to draft policy_echo. */
+  getWasteModel?: (companyId: string) => Promise<WasteModel | null>;
 };
 
 export type LoadDraftQuantityResolutionPreflightInput = {
@@ -99,13 +103,18 @@ export async function loadDraftQuantityResolutionPreflightInput(
   const templateId = (graph.proposal.template_id ?? "").trim();
   const jobId = (graph.proposal.job_id ?? "").trim();
 
-  const [templateItems, catalogItems, measurement] = await Promise.all([
-    templateId
-      ? deps.getTemplateItems(templateId, companyId)
-      : Promise.resolve(null),
-    deps.getCatalogItems(companyId),
-    jobId ? deps.getSelectedMeasurement(jobId) : Promise.resolve(null),
-  ]);
+  const [templateItems, catalogItems, measurement, liveWasteModel] =
+    await Promise.all([
+      templateId
+        ? deps.getTemplateItems(templateId, companyId)
+        : Promise.resolve(null),
+      deps.getCatalogItems(companyId),
+      jobId ? deps.getSelectedMeasurement(jobId) : Promise.resolve(null),
+      deps.getWasteModel ? deps.getWasteModel(companyId) : Promise.resolve(null),
+    ]);
+
+  const wasteModel =
+    liveWasteModel ?? wasteModelFromPolicyEcho(graph.version?.policy_echo);
 
   return {
     lineItems: graph.lineItems,
@@ -114,6 +123,7 @@ export async function loadDraftQuantityResolutionPreflightInput(
     quantityContext: buildProposalQuantityPreviewContextFromPersistedMeasurement(
       measurement
     ),
+    wasteModel,
     identity: {
       proposalId: graph.proposal.id,
       jobId: jobId || null,

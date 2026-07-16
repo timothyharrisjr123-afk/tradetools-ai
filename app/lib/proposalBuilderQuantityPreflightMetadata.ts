@@ -1,18 +1,23 @@
 /**
- * Block A — Builder-internal quantity resolution preflight metadata.
+ * Block A / Phase 5 — Builder-internal quantity resolution preflight metadata.
  *
  * Pure compose over the S3D7 orchestrator from already-loaded Builder deps.
  * Invisible by default: no banner, no blocking, no auto-refresh, no DB writes,
- * no customer/public DTO exposure. Adjusted-measurement only via existing chain.
+ * no customer/public DTO exposure.
+ *
+ * Dual-mode: wasteModel from optional input, else draft version.policy_echo,
+ * else adjusted_measurement. No UI mode switch required.
  */
 
 import type { CatalogItem } from "@/app/lib/catalogTypes";
 import type { ProposalQuantityPreviewContext } from "@/app/lib/proposalBuilderPreview";
+import { wasteModelFromPolicyEcho } from "@/app/lib/proposalQuantityResolutionAdapter";
 import {
   orchestrateDraftQuantityResolutionPreflight,
   type DraftQuantityResolutionPreflightOrchestratorResult,
 } from "@/app/lib/proposalQuantityResolutionPreflightOrchestrator";
 import type { ProposalDraftGraph } from "@/app/lib/proposalRecordStore";
+import type { WasteModel } from "@/app/lib/proposalPricingTypes";
 import type { ProposalTemplateItem } from "@/app/lib/proposalTemplateTypes";
 
 export type ProposalBuilderQuantityPreflightMetadata = {
@@ -27,6 +32,8 @@ export type ResolveProposalBuilderQuantityPreflightMetadataInput = {
   templateItems: readonly ProposalTemplateItem[] | null | undefined;
   catalogItems: readonly CatalogItem[] | null | undefined;
   quantityContext: ProposalQuantityPreviewContext | null | undefined;
+  /** Optional explicit policy mode; defaults from draft policy_echo. */
+  wasteModel?: WasteModel | null;
 };
 
 /**
@@ -56,11 +63,15 @@ export function resolveProposalBuilderQuantityPreflightMetadata(
   if (graph == null) return null;
   if (graph.proposal.status !== "draft") return null;
 
+  const wasteModel =
+    input.wasteModel ?? wasteModelFromPolicyEcho(graph.version?.policy_echo);
+
   const result = orchestrateDraftQuantityResolutionPreflight({
     lineItems: graph.lineItems,
     templateItems: input.templateItems ?? null,
     catalogItems: input.catalogItems ?? [],
     quantityContext: input.quantityContext ?? null,
+    wasteModel,
     identity: {
       proposalId: graph.proposal.id,
       jobId: graph.proposal.job_id ?? null,

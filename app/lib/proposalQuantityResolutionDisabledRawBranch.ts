@@ -1,17 +1,11 @@
 /**
- * Phase 2 — disabled/test-only raw_plus_waste quantity branch.
+ * Phase 2 helper — stand-alone raw_plus_waste quantity branch fixtures.
  *
- * Intentionally unwired from production:
- * - Do not import from proposalRecordStore, draft create/refresh, pricing engine,
- *   pricing input mapper, Builder UI, or customer/public DTOs.
- * - Production adapter remains adjusted_measurement-only
- *   (resolveProposalLineQuantityViaAdapter).
- * - Company policy app validator may stage raw_plus_waste (Phase 3); live DB CHECK
- *   still rejects until the review-only migration is explicitly applied.
- * - Pricing engine / production quantity adapter remain adjusted-only.
+ * Phase 5 production path uses resolveProposalLineQuantityViaAdapter({ wasteModel:
+ * "raw_plus_waste" }) instead of importing this module into create/refresh.
+ * This file remains for focused fixture/tests and echo type export.
  *
- * Uses pure catalogQuantityMode math. Exercises raw echo shape for
- * disabled-branch tests and future dual-mode prep only.
+ * RAW_PLUS_WASTE_PRODUCTION_ENABLED stays false (not a global enable switch).
  */
 
 import {
