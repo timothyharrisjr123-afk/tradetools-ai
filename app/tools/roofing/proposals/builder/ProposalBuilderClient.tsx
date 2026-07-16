@@ -17,6 +17,7 @@ import {
 import { resolveMeasurementWorkspaceState } from "@/app/lib/measurementReadiness";
 import { getSelectedMeasurementForJob } from "@/app/lib/measurementStore";
 import type { MeasurementQuantityMap, MeasurementRecord } from "@/app/lib/measurementTypes";
+import { resolveProposalBuilderQuantityPreflightMetadata } from "@/app/lib/proposalBuilderQuantityPreflightMetadata";
 import { deriveProposalBuilderReadiness } from "@/app/lib/proposalBuilderReadiness";
 import { deriveProposalTemplateReadiness } from "@/app/lib/proposalTemplateReadiness";
 import {
@@ -408,6 +409,30 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
   const adapterResult = useMemo(
     () => (persistedGraph ? adaptProposalDraftGraphToBuilderPreview(persistedGraph) : null),
     [persistedGraph]
+  );
+
+  // Block A — internal quantity preflight metadata only (no banner, no blocking, no refresh).
+  const quantityPreflight = useMemo(
+    () =>
+      resolveProposalBuilderQuantityPreflightMetadata({
+        draftGraph: persistedGraph,
+        templateItems: starterGraph?.items ?? null,
+        catalogItems,
+        quantityContext:
+          measurementHandoff && measurementQuantityMap
+            ? {
+                measurementHandoff,
+                quantityMap: measurementQuantityMap,
+              }
+            : null,
+      }),
+    [
+      persistedGraph,
+      starterGraph?.items,
+      catalogItems,
+      measurementHandoff,
+      measurementQuantityMap,
+    ]
   );
 
   useEffect(() => {
@@ -1548,7 +1573,13 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
   );
 
   return (
-    <div className="space-y-6">
+    <div
+      className="space-y-6"
+      data-builder-quantity-preflight={quantityPreflight?.status ?? "none"}
+      data-builder-quantity-preflight-current={String(quantityPreflight?.currentCount ?? 0)}
+      data-builder-quantity-preflight-stale={String(quantityPreflight?.staleCount ?? 0)}
+      data-builder-quantity-preflight-unknown={String(quantityPreflight?.unknownCount ?? 0)}
+    >
       <ProposalBuilderPageHeader
         job={job}
         jobId={normalizedJobId}
