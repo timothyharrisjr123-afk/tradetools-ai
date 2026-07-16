@@ -13,10 +13,11 @@ import type {
 
 export const BUILDER_QUANTITY_SOURCES_RAIL_LABEL = "Quantity sources" as const;
 
+/** Short values — rail label already says "Quantity sources" (matches sibling stats). */
 export const BUILDER_QUANTITY_STATUS_LABEL = {
-  current: "Quantity sources current",
-  unknown: "Quantity sources need review",
-  stale: "Quantity sources changed",
+  current: "Current",
+  unknown: "Need review",
+  stale: "Changed",
 } as const satisfies Record<QuantityPreflightTrustStatus, string>;
 
 export const BUILDER_QUANTITY_STATUS_HELPER = {

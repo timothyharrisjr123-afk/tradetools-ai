@@ -127,8 +127,7 @@ describe("Phase 6 Builder quantity status UI wiring", () => {
       const src = readFileSync(path.join(process.cwd(), rel), "utf8");
       assert.equal(src.includes("proposalBuilderQuantityStatusCopy"), false, rel);
       assert.equal(src.includes("presentBuilderQuantityStatus"), false, rel);
-      assert.equal(src.includes("Quantity sources current"), false, rel);
-      assert.equal(src.includes("Quantity sources changed"), false, rel);
+      assert.equal(src.includes(BUILDER_QUANTITY_SOURCES_RAIL_LABEL), false, rel);
       assert.equal(src.includes("quantityPreflightTrust"), false, rel);
     }
   });
