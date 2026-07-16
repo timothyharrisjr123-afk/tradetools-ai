@@ -18,6 +18,10 @@ import type {
   ProposalBuilderGuidanceTarget,
 } from "@/app/lib/proposalBuilderGuidance";
 import {
+  presentBuilderQuantityStatus,
+} from "@/app/lib/proposalBuilderQuantityStatusCopy";
+import type { QuantityPreflightTrustSignal } from "@/app/lib/proposalBuilderTrustSignals";
+import {
   builderGuidedStepDotClass,
   builderGuidedStepPillClass,
   BUILDER_GUIDED_STEP_ROW,
@@ -72,6 +76,11 @@ type ProposalBuilderSummaryRailProps = {
   snapshotMeasurementDisplay?: string | null;
   /** 3J4C4: persisted draft id, surfaced in the ambient "About" disclosure. */
   proposalId?: string | null;
+  /**
+   * Phase 6: contractor-only quantity preflight trust (read-only status).
+   * Non-blocking; no auto-refresh; not customer-facing.
+   */
+  quantityPreflightTrust?: QuantityPreflightTrustSignal | null;
 };
 
 function pricingPolicyRailStatusLabel(
@@ -231,6 +240,7 @@ export default function ProposalBuilderSummaryRail({
   isPersistedSnapshot = false,
   snapshotMeasurementDisplay,
   proposalId,
+  quantityPreflightTrust = null,
 }: ProposalBuilderSummaryRailProps) {
   const quantitiesDisplay = isPersistedSnapshot
     ? (snapshotMeasurementDisplay ?? "").trim() || "—"
@@ -247,6 +257,7 @@ export default function ProposalBuilderSummaryRail({
   const draftStatusLine = proposalId
     ? "Saved draft — building the job-specific proposal."
     : "No saved draft yet — previewing this job's proposal setup.";
+  const quantityStatus = presentBuilderQuantityStatus(quantityPreflightTrust);
 
   const guardrailChecking = selectedOptionPricingStatus == null;
   const guardrailOutcome = selectedOptionPricingStatus?.guardrailOutcome ?? null;
@@ -302,6 +313,21 @@ export default function ProposalBuilderSummaryRail({
         {guardrailMessage ? (
           <p className="px-0.5 text-[11px] leading-snug text-slate-600">{guardrailMessage}</p>
         ) : null}
+        {/* Phase 6: contractor-only quantity trust — informational, non-blocking. */}
+        <div
+          className="space-y-0.5"
+          data-builder-quantity-status={quantityStatus.status}
+          data-builder-quantity-status-severity={quantityStatus.severity}
+          data-builder-quantity-status-block={String(quantityStatus.shouldBlock)}
+          data-builder-quantity-status-autorefresh={String(
+            quantityStatus.shouldAutoRefresh
+          )}
+        >
+          <RailStat label={quantityStatus.label} value={quantityStatus.statusLabel} />
+          <p className="px-0.5 text-[11px] leading-snug text-slate-500">
+            {quantityStatus.helperText}
+          </p>
+        </div>
       </div>
 
       {/* Setup readiness facts and the guided path are ambient — collapsed by

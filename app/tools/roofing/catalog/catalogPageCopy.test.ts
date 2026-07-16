@@ -118,6 +118,13 @@ describe("Catalog P0B–P0D page shell", () => {
     assert.ok(!source.includes('type="number"'));
     assert.ok(CATALOG_SETTINGS_PLANNED_TOOLS.some((t) => t.title.includes("Catalog defaults")));
     assert.ok(CATALOG_SETTINGS_PLANNED_TOOLS.length >= 5);
+    const coverageWaste = CATALOG_SETTINGS_PLANNED_TOOLS.find(
+      (t) => t.id === "coverage_waste_tax"
+    );
+    assert.ok(coverageWaste);
+    assert.match(coverageWaste!.detail, /not enabled yet/i);
+    assert.match(coverageWaste!.detail, /Planned only/i);
+    assert.equal(/editable/i.test(coverageWaste!.detail), false);
   });
 
   test("table renders Proposal/Status pills and spaced actions", () => {

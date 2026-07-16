@@ -412,7 +412,8 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
     [persistedGraph]
   );
 
-  // Block A — internal quantity preflight metadata only (no banner, no blocking, no refresh).
+  // Block A / Phase 6 — quantity preflight metadata for contractor helper rail
+  // (read-only status; no banner, no blocking, no auto-refresh).
   const quantityPreflight = useMemo(
     () =>
       resolveProposalBuilderQuantityPreflightMetadata({
@@ -436,7 +437,7 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
     ]
   );
 
-  // Slice A — sibling internal trust compose (invisible; not merged into pricing stale).
+  // Slice A / Phase 6 — sibling internal trust compose (not merged into pricing stale).
   const quantityPreflightTrust = useMemo(
     () =>
       composeProposalBuilderInternalTrustSignals({ quantityPreflight })
@@ -1764,6 +1765,7 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
               isPersistedSnapshot={adapterResult != null}
               snapshotMeasurementDisplay={adapterResult?.snapshotMeasurementDisplay ?? null}
               proposalId={hasPersistedProposalParam ? proposalIdParam?.trim() ?? null : null}
+              quantityPreflightTrust={quantityPreflightTrust}
             />
           }
         />

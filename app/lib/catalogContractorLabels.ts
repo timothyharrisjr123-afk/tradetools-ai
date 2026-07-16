@@ -53,7 +53,8 @@ export const CATALOG_SETTINGS_PLANNED_TOOLS = [
   {
     id: "coverage_waste_tax",
     title: "Coverage, waste, and tax controls",
-    detail: "Available after quantity/pricing engine architecture supports them.",
+    detail:
+      "Coverage and waste are backed by the raw quantity-mode foundation, but editing is not enabled yet. Planned only — no live columns or fields.",
   },
   {
     id: "supplier",
