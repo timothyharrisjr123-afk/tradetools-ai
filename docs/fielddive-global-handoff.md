@@ -45,10 +45,10 @@
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** **`e17eab5` — feat(proposals): show delivery history in Preview Send panel for R18D3C3**
+- **Code checkpoint:** **`36a0b55` — feat(roofing): add Jobs command surface P0**
 - **Docs checkpoint:** **pending this commit**
-- **Prior docs checkpoint:** **`ba3659e` — docs: record Stage C policy and operating-flow audit sequencing**
-- **Next:** **Slice 1 — Jobs command surface P0**, after this docs checkpoint is reviewed/committed (§6BO.13). **Do not start Stage C1** until this approved UI/flow roadmap docs checkpoint is committed. **After that**, Stage C1 may run **in parallel** with P0 UI slices (pure helpers/tests only). **No** lifecycle/status/job-board movement, `proposal_events` writes, public route behavior changes, SQL, Sign, PDF, Payment, or webhooks in P0 UI slices unless explicitly scoped. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
+- **Prior docs checkpoint:** **`fc86123` — docs: record approved page-by-page UI flow roadmap and P0 slices**
+- **Next:** **Slice 2 — Catalog P0**, after this docs correction is reviewed/committed (§6BO.13). **Stage C1 may proceed in parallel** with P0 UI slices (pure helpers/tests only) — **do not mix Stage C implementation into UI slices**. **No** lifecycle/status/job-board movement, `proposal_events` writes, public route behavior changes, SQL, Sign, PDF, Payment, or webhooks in P0 UI slices unless explicitly scoped. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
 
 **Trust order:** Header/current checkpoint → **§6BO.13** (approved page-by-page UI flow roadmap + P0 implementation sequence — **supersedes separate Command Center language**) → **§6BM** / **§6BN** (R18 letter-phase roadmap + R18C–R18D3C implementation history) → **§6BO** / **§6BO.11** / **§6BO.12** (completed remediation side-track + **approved Stage C policy** + **operating-flow audit sequencing — complete; outcome in §6BO.13**) → **§6BL** → **§11 override**. Stage B browser smoke required local-only **`USE_PROPOSAL_SEND_FREEZE_RPC=1`** in `.env.local` (gitignored, not committed). **Do not proceed** to docs-only or next feature work unless working tree is clean. **Still do not** mutate `proposals.status = sent`, write sent `proposal_events`, move Jobs Board cards, add Job Card send activity, enable PDF/Sign/Payment, or add webhooks unless separately approved.
 
@@ -58,7 +58,9 @@
 
 | Commit | Summary |
 |--------|---------|
-| *(pending)* | **Docs** — Record approved page-by-page UI flow roadmap + P0 implementation sequence (§6BO.13) |
+| *(pending)* | **Docs** — Catalog naming roadmap correction before Slice 2 (§6BO.13) |
+| `36a0b55` | **Slice 1** — Jobs command surface P0: default route → Job Board; Jobs/Setup/Advanced nav; setup guidance; legacy de-emphasis; Roofr-style job card snapshots; **no lifecycle/status movement** |
+| `fc86123` | **Docs** — Record approved page-by-page UI flow roadmap + P0 implementation sequence (§6BO.13) |
 | `ba3659e` | **Docs** — Record Stage C policy + operating-flow audit sequencing decision (§6BO.11, §6BO.12) |
 | `6d0e021` | **Docs** — Record R18D3C contractor delivery status/history UI checkpoint (§6BN.20) |
 | `e17eab5` | **R18D3C3** — Preview Send panel read-only **Email delivery history** UI; client fetch/refetch after send success; **13/13** client + **1021/1021** proposal lib tests; **R18D3C4 browser smoke PASS** (§6BN.20.8); **no Send orchestration/lifecycle/status/job-board/public-route changes** |
@@ -9870,7 +9872,7 @@ Commit **`79e4c4f`** fixed a Builder workbench gap where optional-upgrade lines 
 
 ### 20. R18D3C — CONTRACTOR DELIVERY STATUS/HISTORY UI — COMPLETE (§6BN.20)
 
-**Status:** **R18D3C complete.** Browser smoke/audit **PASS** (§6BN.20.8). **Code checkpoint:** **`e17eab5`** (R18D3C3 Preview UI). **Docs checkpoint:** pending this commit (prior docs: **`ba3659e`**). **Next:** **Slice 1 — Jobs command surface P0** (§6BO.13).
+**Status:** **R18D3C complete.** Browser smoke/audit **PASS** (§6BN.20.8). **Code checkpoint:** **`36a0b55`** (Slice 1 Jobs command surface P0). **Docs checkpoint:** pending this commit (prior docs: **`fc86123`**). **Next:** **Slice 2 — Catalog P0** (§6BO.13).
 
 #### 20.1 Substage commits
 
@@ -10009,7 +10011,7 @@ Unit/source tests cover empty/failed/refetch behavior. Live send skipped because
 
 #### 20.9 Recommended next (Stage C approved — R18D3D blocked until Stage C4)
 
-**Approved next:** **Slice 1 — Jobs command surface P0** (§6BO.13). **Do not start Stage C1** until approved UI/flow roadmap docs checkpoint is committed; **after that**, Stage C1 may run in parallel with P0 UI slices (pure helpers/tests only).
+**Approved next:** **Slice 2 — Catalog P0** (§6BO.13). **Slice 1 complete** at **`36a0b55`**. **Stage C1 may proceed in parallel** with P0 UI slices (pure helpers/tests only) — **do not mix Stage C implementation into UI slices**.
 
 **R18D3D remains blocked until at least Stage C4 is live and smoke-validated**, then explicitly approved — R18D3D touches proposal status, `proposal_events`, Jobs Board movement, and Job Card activity.
 
@@ -10033,7 +10035,7 @@ Unit/source tests cover empty/failed/refetch behavior. Live send skipped because
 | Status mutation | **Do not** mutate `proposals.status` from public route, review-link mint, send-prep, Send gate UI, or view recording |
 | Sent immutability | **Do not** mutate sent proposal versions |
 | Token mint vs Send | **R18D3B Send emails customer** when readiness + sent snapshot exist — **still not** lifecycle/status/job-board truth; review links and prep-only flows remain distinct |
-| Next slice | **Slice 1 — Jobs command surface P0** (§6BO.13); then Slices 2–5; **Stage C1** after this docs checkpoint — may run in parallel with P0 UI (pure helpers/tests); Stage C policy approved (§6BO.11); **R18D3D blocked** until at least **Stage C4** + P0 trust fixes + explicit approval; **R18D3E later** Resend webhooks; **deferred:** public proposal + email brand polish (§6BN.19.7); **R18G later** signature; **R18H later** PDF; **R18I later** Payment/deposit |
+| Next slice | **Slice 2 — Catalog P0** (§6BO.13); **Slice 1 complete** at **`36a0b55`**; then Slices 3–5; **Stage C1 may run in parallel** with P0 UI (pure helpers/tests) — do not mix Stage C into UI slices; Stage C policy approved (§6BO.11); **R18D3D blocked** until at least **Stage C4** + P0 trust fixes + explicit approval; **R18D3E later** Resend webhooks; **deferred:** public proposal + email brand polish (§6BN.19.7); **R18G later** signature; **R18H later** PDF; **R18I later** Payment/deposit |
 | Public route composition | Implemented: `resolveProposalPublicAccessToken` → `getPublicProposalVersionGraph(..., { requireSentVersion: true })` → public DTO → document VM → (serve) → `recordProposalCustomerView` (server-only tracking) |
 | Route token hashing | Hash **exact URL token segment** consistently with minted token behavior (`hashProposalPublicAccessToken`) |
 
@@ -10062,7 +10064,7 @@ Unit/source tests cover empty/failed/refetch behavior. Live send skipped because
 - **R18D3A complete:** delivery-attempt foundation — migration/store/view model/tests; migration `20260626_020` **live-applied + verified PASS** on `rhquhnujjnzjhweypavd` (§6BN.17.7)
 - **R18D3B complete + live-smoked:** real email send orchestration with Resend and delivery attempts (§6BN.18); **still no** status/events/job-board mutation unless separately approved
 - **R18D3C complete:** contractor delivery status/history UI — presenter (§6BN.20.1 **`f0627e1`**), read API (§6BN.20.1 **`1811f7a`**), Preview UI (§6BN.20.1 **`e17eab5`**), browser smoke PASS (§6BN.20.8); **still no** lifecycle/status/job-board mutation
-- **Next:** **Slice 1 — Jobs command surface P0** (§6BO.13); **Stage C1** after this docs checkpoint — may run in parallel with P0 UI; Stage C policy approved (§6BO.11); **deferred customer-facing polish** (§6BN.19.7); **R18D3E later** Resend webhooks
+- **Next:** **Slice 2 — Catalog P0** (§6BO.13); **Slice 1 complete** at **`36a0b55`**; **Stage C1 may run in parallel** with P0 UI — do not mix Stage C into UI slices; Stage C policy approved (§6BO.11); **deferred customer-facing polish** (§6BN.19.7); **R18D3E later** Resend webhooks
 - **Later:** R18D3D proposal status/events/job activity semantics; R18D3E Resend webhooks (`delivered`/`bounced`/`complained`)
 - **R18G later:** Signature/acceptance
 - **R18H later:** PDF
@@ -10078,7 +10080,7 @@ Unit/source tests cover empty/failed/refetch behavior. Live send skipped because
 
 **Framing:** Stage A/B truth-pipeline work was a **necessary remediation side-track** discovered during public proposal / email send work. It **does not automatically redefine** the R18 roadmap. **Stage C token supersession / stale-link policy is now the approved architecture direction** (§6BO.11) — **not customer-facing polish**; it is the access-truth policy layer between R18 public/send infrastructure and future lifecycle/status/sign/payment work. Preview/Public WYSIWYG (Stage D) remains a valid future task but **not automatically next**.
 
-**Status:** **Public proposal packet foundation complete** at **`4402821`**. **Public proposal packet presentation polish complete** at **`99de56b`**. **Stage A identity echo staleness detection complete** at **`d3e2d13`**. **Stage B restamp-before-freeze complete** at **`10a1971`**. **Stage B server-deps fix complete** at **`ee643d0`**. **Stage B end-to-end browser smoke PASS** (§6BO.7). **Old public links remain stale by design** until Stage C supersession policy is implemented (§6BO.11). **R18D3C delivery history UI complete** at **`e17eab5`** (§6BN.20). **Stage C policy direction approved** (§6BO.11). **Approved UI flow roadmap** (§6BO.13 — pending this commit). **Docs checkpoint:** **pending this commit** (prior docs: **`ba3659e`**).
+**Status:** **Public proposal packet foundation complete** at **`4402821`**. **Public proposal packet presentation polish complete** at **`99de56b`**. **Stage A identity echo staleness detection complete** at **`d3e2d13`**. **Stage B restamp-before-freeze complete** at **`10a1971`**. **Stage B server-deps fix complete** at **`ee643d0`**. **Stage B end-to-end browser smoke PASS** (§6BO.7). **Old public links remain stale by design** until Stage C supersession policy is implemented (§6BO.11). **R18D3C delivery history UI complete** at **`e17eab5`** (§6BN.20). **Stage C policy direction approved** (§6BO.11). **Approved UI flow roadmap recorded** at **`fc86123`** (§6BO.13). **Slice 1 Jobs command surface P0 complete** at **`36a0b55`**. **Catalog naming correction** pending this commit. **Docs checkpoint:** **pending this commit** (prior docs: **`fc86123`**).
 
 ### 0. R18 roadmap position (recovery)
 
@@ -10115,11 +10117,11 @@ Unit/source tests cover empty/failed/refetch behavior. Live send skipped because
 
 | Item | Value |
 |------|-------|
-| **Latest code checkpoint** | **`e17eab5` — feat(proposals): show delivery history in Preview Send panel for R18D3C3** |
+| **Latest code checkpoint** | **`36a0b55` — feat(roofing): add Jobs command surface P0** |
 | **Latest docs checkpoint** | **pending this commit** |
-| **Prior docs checkpoint** | **`ba3659e` — docs: record Stage C policy and operating-flow audit sequencing** |
+| **Prior docs checkpoint** | **`fc86123` — docs: record approved page-by-page UI flow roadmap and P0 slices** |
 | **Working tree before docs** | **clean** |
-| **Next** | **Slice 1 — Jobs command surface P0** (§6BO.13). **Do not start Stage C1** until this docs checkpoint is committed; **after that**, Stage C1 may run in parallel with P0 UI slices. **R18D3D remains blocked** until at least **Stage C4** + P0 trust fixes + explicit approval |
+| **Next** | **Slice 2 — Catalog P0** (§6BO.13) after this docs correction. **Slice 1 complete** at **`36a0b55`**. **Stage C1 may run in parallel** with P0 UI slices — do not mix Stage C into UI slices. **R18D3D remains blocked** until at least **Stage C4** + P0 trust fixes + explicit approval |
 
 **Local-only QA env (not committed):**
 
@@ -10339,7 +10341,7 @@ Full Stage B smoke **passed** after enabling local **`USE_PROPOSAL_SEND_FREEZE_R
 
 **Do not proceed** to R18D3D lifecycle/status/job-board implementation until **Stage C4 (email-send supersession)** is live, smoke-validated, and explicitly approved (§6BO.11).
 
-1. **Stage C — token supersession / stale-link policy** — **approved direction** (§6BO.11); **Stage C1 after §6BO.13 docs checkpoint** — may run in parallel with P0 UI slices (pure helpers/tests); category-isolated supersession; stale-link UX without redirect or token leak
+1. **Stage C — token supersession / stale-link policy** — **approved direction** (§6BO.11); **Stage C1 may run in parallel** with P0 UI slices (pure helpers/tests) — **do not mix Stage C implementation into UI slices**; category-isolated supersession; stale-link UX without redirect or token leak
 2. **R18D3D — lifecycle/status/job activity** — **blocked until at least Stage C4 + explicit approval** (§6BN.20.9, §6BO.11)
 3. **Stage D — Preview/Public WYSIWYG packet unification** — `buildCustomerPacketFromPreviewGraph`; contractor Preview renders same ProposalPacket as public route
 4. **Stage E — Email/public packet alignment** — later; notification-only vs minimal packet summary
@@ -10350,11 +10352,11 @@ Full Stage B smoke **passed** after enabling local **`USE_PROPOSAL_SEND_FREEZE_R
 
 ### 10. Required next Cursor task
 
-**Slice 1 — Jobs command surface P0** (§6BO.13) — after this docs checkpoint is committed:
+**Slice 2 — Catalog P0** (§6BO.13) — after this docs correction is reviewed/committed:
 
-- Default route → Job Board; setup-incomplete banner; Advanced nav demotion; legacy section de-emphasis; empty state copy
-- **Do not start Stage C1** until this approved UI/flow roadmap docs checkpoint is committed
-- **After docs checkpoint:** Stage C1 may run **in parallel** with P0 UI slices (pure token classification + supersession decision helpers and tests only)
+- Keep **Catalog** as page/nav name; plain-English hero; setup/readiness checklist; grouped views; unpriced filter; contractor-understood table/drawer labels; labor × measurement explainer; customer description/visibility; measurement mapping; next step to Proposal templates
+- **Slice 1 complete** at **`36a0b55`** — see §6BO.13.5
+- **Stage C1 may proceed in parallel** with P0 UI slices (pure token classification + supersession decision helpers and tests only) — **do not mix Stage C implementation into UI slices**
 - **Do not implement R18D3D** until at least **Stage C4** + P0 trust fixes + explicit approval — R18D3D touches proposal status, `proposal_events`, Jobs Board movement, and Job Card activity
 - **Do not enable** lifecycle/status/job-board/sign/PDF/payment, public route behavior changes, SQL, or webhooks in P0 UI slices (§6BO.13.7 guardrails)
 - **R18D3E** webhooks, **R18G** Sign, **R18H** PDF, **R18I** Payment, **R18J** lifecycle audit remain downstream
@@ -10608,7 +10610,7 @@ Stage C protects future lifecycle truth, but **contractor workflow clarity is a 
 
 | Internal / legacy | Approved UI label |
 |-------------------|-------------------|
-| Catalog | **Price book** |
+| Catalog | **Catalog** (keep page/nav name — **do not rename to Price book**) |
 | Pricing policy | **Pricing rules** |
 | Customer Preview / Contractor Preview | **Customer view** |
 | Options | **Packages** |
@@ -10616,7 +10618,19 @@ Stage C protects future lifecycle truth, but **contractor workflow clarity is a 
 | Public URL (contractor UI) | **Customer link** |
 | QA review URL (contractor UI) | **Team review link** |
 
-**Profit placement policy:** Margin/markup + guardrails live in **Pricing rules**. Item cost/sell live in **Price book**. Job cost, profit, and margin live in **Contractor estimate workbench** (contractor-only). **Customer view** and **public `/p/[token]`** never show cost/profit. **P0 trust rule:** if Pricing rules are unsaved, **block profit dollars/margin or show hard block state** — **never silent placeholder profit**.
+**Approved Catalog naming decision (2026-06-25 — before Slice 2):** **Keep Catalog as the page name.** Roofr uses “Catalog,” and FieldDive should keep **Catalog** as the contractor-facing page/nav label. The problem is **not** the word Catalog — the problem is that the current Catalog page is bulky, hard to read, and not plain-English enough. **Redesign Catalog** into a guided setup surface for materials, labor, costs, customer prices, descriptions, visibility, and measurement mapping. **“Price book”** may appear only as helper language when explaining pricing inside Catalog — **not** as the primary page/nav label.
+
+**Surface distinctions (contractor setup vs job work):**
+
+| Surface | Owns |
+|---------|------|
+| **Catalog** | What the contractor sells/installs, what it costs, what the customer pays, and how quantities are measured |
+| **Pricing rules** | How FieldDive calculates margin, markup, profit targets, and taxes |
+| **Proposal templates** | How proposal content/packages are structured and shown to the customer |
+| **Builder / Contractor estimate workbench** | Job-specific proposal economics before send |
+| **Job Costing** | **Future Job Card deep-detail module** for actual production/job profitability — **not** part of Catalog, **not** on Job Board card face, **not** Slice 2 |
+
+**Profit placement policy:** Margin/markup + guardrails live in **Pricing rules**. Item cost/sell live in **Catalog**. Job cost, profit, and margin live in **Contractor estimate workbench** (contractor-only). **Job Costing** (actual production profitability) is a **future Job Card module** — not Catalog, not Job Board cards. **Customer view** and **public `/p/[token]`** never show cost/profit. **P0 trust rule:** if Pricing rules are unsaved, **block profit dollars/margin or show hard block state** — **never silent placeholder profit**.
 
 #### 13.2 Approved first-login-to-send journey
 
@@ -10626,7 +10640,7 @@ First login / Jobs Board
 → Setup Hub
 → Company profile / branding
 → Pricing rules
-→ Price book + labor lines
+→ Catalog + labor lines
 → Proposal templates
 → Jobs Board daily work
 → New job / Job Card
@@ -10656,14 +10670,21 @@ First login / Jobs Board
 
 - Shows setup progress (e.g. **2 of 4 complete**)
 - Primary CTA: **Continue setup** → Setup Hub
-- Chips: Company profile · Pricing rules · Price book · Proposal templates
+- Chips: Company profile · Pricing rules · **Catalog** · Proposal templates
 
 **Setup Hub** (proposed route: `/tools/roofing/setup`)
 
 - Separate lightweight route — **not** a drawer
 - Company setup only — four status cards with progress
-- Cards: **Company profile** · **Pricing rules** · **Price book** · **Proposal templates**
+- Cards: **Company profile** · **Pricing rules** · **Catalog** · **Proposal templates**
 - Per-job setup (measurement) stays on Job Card
+
+**Setup nav** (sidebar — Slice 1 live at `36a0b55`)
+
+- **Company profile**
+- **Pricing rules**
+- **Catalog** (route `/tools/roofing/catalog` — **not** “Price book” as page/nav label)
+- **Proposal templates**
 
 **Company profile / branding** (`/tools/settings`)
 
@@ -10674,19 +10695,28 @@ First login / Jobs Board
 
 - Visible under **Setup** nav
 - Margin/markup, default profit %, minimum profit %, taxes
-- Cross-link to Price book
+- Cross-link to Catalog
 - If unsaved: **block profit dollars/margin or hard block state** — never silent placeholder profit
 
-**Price book** (`/tools/roofing/catalog` — UI rename only)
+**Catalog** (`/tools/roofing/catalog`)
 
-- Rename **Catalog** → **Price book** in all contractor-facing UI
-- Items, costs, customer prices, labor lines, customer descriptions, visibility, measurement mapping
-- Readiness checklist, unpriced filter, grouped table, item drawer, **Next: Proposal templates →**
-- **Not** a job-profit dashboard
+- **Keep Catalog** as page/nav name — **do not rename to Price book**
+- **P0B:** Roofr-like **table-first** structure (title → All items / Settings → toolbar → table) — not a guided setup wizard
+- **P0C:** Roofr **command-surface visual polish** — wider workspace, denser command bar, unified table card, Proposal/Status pills, spaced row actions, Settings future-tools shell
+- **P0D (current):** Roofr **parity correction** — continuous ungrouped All items table; disabled/reserved selection checkbox column; command bar = Search · Filters & sort · Re-order / Columns / Manage (Coming soon) · Add; no MATERIALS/LABOR/FEES group divider rows
+- First viewport: **Catalog title → All items / Settings tabs → command bar → continuous table**
+- No dominant starter hero, readiness stat cards, or right-side setup checklist when items exist
+- Settings tab = Pricing rules + Proposal templates (active) + **planned** future tools (disabled / Coming soon — no fake forms)
+- Command bar planned controls: **Re-order items**, **Columns**, **Manage catalog** (Coming soon — not active)
+- Columns (supported): reserved selection · Name · Type · Measurement · Unit · Unit cost · Unit price · Proposal · Status · Actions
+- Explain labor as rate per unit × job measurement (helper in edit panel)
+- Empty catalog: compact install starter empty state inside table area
+- **Not** a job-profit dashboard; **not** Job Costing (future Job Card module)
+- Deferred Roofr-parity features: see **§6BO.13.4** (no fake Coverage / Waste % / tax columns / bulk **behavior**; disabled selection + toolbar placeholders are layout-only)
 
-**Labor** (Phase 1 — within Price book)
+**Labor** (Phase 1 — within Catalog)
 
-- Labor = **Labor-type price book lines** × measurement quantities
+- Labor = **Labor-type catalog lines** × measurement quantities
 - Explainer: unit rate × measurement quantity (e.g. install labor $/square × squares)
 - **No fake crew-size / hourly burden math** until implemented in schema
 
@@ -10700,7 +10730,7 @@ First login / Jobs Board
 
 - New job via Job Packet intake → Job Card
 - **Job Card tabs (P1):** show **Overview**, **Measurements**, **Proposals**, **Attachments**; move shell tabs under **More / coming later**
-- **Proposals tab** checklist labels align with Setup: **Price book**, **Pricing rules**, **Templates**
+- **Proposals tab** checklist labels align with Setup: **Catalog**, **Pricing rules**, **Templates**
 
 **Proposal Builder** (`/tools/roofing/proposals/builder`)
 
@@ -10743,7 +10773,7 @@ First login / Jobs Board
 **Advanced** (nav group)
 
 - Legacy Price Book (`/admin/price-book`), Instant Estimate, legacy customers, AI conductor
-- Collapsed by default; warning on legacy price book: replaced by Price book
+- Collapsed by default; warning on legacy price book: replaced by **Catalog**
 
 **Future lifecycle / status** (R18D3D — blocked)
 
@@ -10754,7 +10784,7 @@ First login / Jobs Board
 **P0 — blocks contractor understanding/trust**
 
 - Job Board as default home + setup incomplete banner
-- Price book rename/simplification
+- **Catalog P0** — Roofr-like table-first Catalog (keep Catalog name; **not** rename to Price book; **not** setup-wizard layout)
 - Pricing rules in Setup nav + no silent placeholder profit
 - Customer view rename + profit-hidden banner
 - Send panel labels + honest post-send copy
@@ -10768,7 +10798,8 @@ First login / Jobs Board
 - Proposal strip: Build → Customer view → Send
 - Template + package badges
 - Customer-will-see summary on Customer view
-- Price book labor explainer card
+- Catalog labor explainer polish (P0B already has one-line labor helper)
+- **Catalog Settings — real content** (beyond Pricing rules / Templates links + P0D planned-tools list)
 - Job Card tab reduction
 - Informational **Email sent** badge on board card — no column move
 - Delivery history highlight after send
@@ -10779,35 +10810,118 @@ First login / Jobs Board
 - Delivery history on Job Card Proposals
 - Workbench labor summary card
 - Template-level profit minimums
-- Bulk price book import
+- Bulk Catalog import / **Download CSV export** (toolbar **Manage catalog** is layout placeholder only in P0D)
+- Catalog **Re-order items** (drag/`sort_order` UX — toolbar control disabled in P0D)
+- Catalog **Columns / display customization** (toolbar control disabled in P0D)
+- Catalog **Mark as Material / type bulk actions** (after selection model)
+- Catalog **bulk deactivate** policy (after selection model + confirm UX)
 - Lifecycle placeholder → real R18D3D
 - Tags/tasks/assignees on board
+
+**P2 / Blocked until architecture — Catalog Roofr parity (do not fake active behavior in P0)**
+
+| Feature | Why deferred | Needed before implement | P0D UI note |
+|---------|--------------|-------------------------|-------------|
+| Row selection + real bulk action bar | No safe bulk actions yet | Selection model + real actions | **Disabled checkbox column reserved** (no selection state / bulk bar) |
+| Manage catalog CSV import/export | No bulk CSV pipeline | Import/export architecture + confirm UX | Disabled command-bar + Settings planned row |
+| Columns / display controls | No column prefs model | Display prefs store | Disabled command-bar + Settings planned row |
+| Re-order items | No drag/`sort_order` UX yet | Sort UX + persist | Disabled command-bar + Settings planned row |
+| Add to template from Catalog | Store API needs template/option/section/role | Catalog→template picker UX | Not shown |
+| Mark as Material / type bulk actions | Needs selection model | Bulk type update API | Not shown |
+| Bulk deactivate / hard Delete | No safe bulk/delete policy; template refs | Referential delete + confirm | Not shown |
+| Manage sales tax / purchase tax (Catalog) | Tax is company Pricing Rules | Do not duplicate on Catalog; catalog-level tax only if architecture approved | Settings planned under coverage/waste/tax |
+| Manage waste factor / Waste % column | Only `waste_applies` bool; engine must not re-apply under `adjusted_measurement` | Schema % + quantity/pricing engine path | Settings planned; **no** Waste % column |
+| Coverage column | `coverage_rate` unused by engines | Quantity/pricing engine support | Settings planned; **no** Coverage column |
+| Sales tax % / purchase tax % columns | No per-item tax fields | Catalog-level tax architecture (if ever approved) | **No** tax columns |
+| Supplier / ABC / QXO | Unsupported | Integration architecture | Settings planned row |
+| Real Catalog Settings content | Beyond links + planned list | Product-approved settings model | P0C/P0D shell only |
+
+##### 13.4.1 Roofr Catalog systems research lock (P0D boundary)
+
+**Research status:** Public Roofr Help Center, Roofr Academy, and Roofr Masterclass references confirm the behaviors below at a product level. Exact UI chrome or calculation ordering that is not publicly specified remains **unconfirmed** and must not be guessed in implementation.
+
+**Public references reviewed:**
+
+- Roofr Help — [How to create a Roofr Catalog](https://roofrhelp.zendesk.com/hc/en-us/articles/33257762983831-How-to-create-a-Roofr-Catalog)
+- Roofr Help — [How to format your CSV for catalog upload](https://roofrhelp.zendesk.com/hc/en-us/articles/33478981922327-How-to-format-your-CSV-for-catalog-upload)
+- Roofr Help — [How to manage material purchase tax](https://roofrhelp.zendesk.com/hc/en-us/articles/33331344381335-How-to-manage-material-purchase-tax)
+- Roofr Help — [How to connect Catalog items to ABC Pricing](https://roofrhelp.zendesk.com/hc/en-us/articles/31668956942999-How-to-Connect-your-Roofr-Catalog-items-to-ABC-Pricing)
+- Roofr Academy — [Building Your Catalog](https://academy.roofr.com/lesson-videos/catalog-building)
+- Roofr Masterclass — [Building Your Catalog: A Step by Step with Nic and Pete](https://roofr.com/masterclass/building-your-catalog)
+
+| System | Roofr public behavior | FieldDive current state | Truth classification / why not live now |
+|--------|-----------------------|-------------------------|-----------------------------------------|
+| **Coverage** | Per-item coverage states how much area or length one purchased unit covers; editable with measurement/unit; present in CSV and imported roofing systems; feeds proposal/material quantity workflows | `CatalogItem.coverage_rate` exists in types/store, but quantity resolver/pricing paths do not apply coverage or bundle conversion | **Stub.** A live Coverage quantity column would imply calculations that FieldDive does not perform |
+| **Waste** | Optional per-item percent; Catalog Settings can provide defaults for new items; CSV supports `WASTE`; proposal-level waste is also described publicly | `waste_applies` boolean exists; company policy is locked to `adjusted_measurement`; adjusted measurements already contain waste | **Partial/stub.** No `waste_pct`; applying catalog waste now risks double-applying waste |
+| **Sales tax** | Customer tax can be entered per item, defaulted for new items, and represented in CSV | Company Pricing Rules own `salesTaxRatePct`; pricing engine applies the approved company policy, not per-item Catalog tax | **Real at company level only.** Per-item Catalog sales tax would create a second source of truth |
+| **Material purchase tax** | Materials-only column; individually editable, bulk-managed, defaultable for new items, and available in CSV; contributes to true material unit cost | Company Pricing Rules support optional `materialPurchaseTaxRatePct`; Catalog items have no per-item purchase-tax field | **Real at company level only.** Per-item display/edit would not match current schema or cost-basis policy |
+| **Supplier / ABC / QXO / SRS** | Catalog rows can link to supplier products manually or by SKU CSV; supplier prices can refresh automatically; public docs identify ABC, QXO/Beacon, and SRS SKU fields | No supplier connection/model, SKU mapping, refresh history, approval policy, or Catalog supplier store | **Planned.** A connection/status or live-price UI would be fake and could undermine proposal snapshot truth |
+| **Columns / display** | Column visibility controls include material purchase tax and support a wider configurable Catalog table | P0D exposes a disabled **Columns** command only; no preference model or safe future columns | **Planned.** Keep disabled until supported columns and persistence ownership are approved |
+| **Manage catalog CSV** | Manage catalog supports download, adding new rows, updating existing rows, fixed-column CSV validation, and UUID-based matching; imports can also use roofing systems | No Catalog CSV parser/exporter, dry-run validation, ID matching contract, or protected upsert flow | **Planned.** Real import could duplicate rows or damage template references |
+| **Bulk selection / actions** | Header/row checkboxes drive bulk actions such as purchase-tax management and Add to templates; public demonstrations also show type/edit/delete workflows | P0D reserves disabled checkbox cells only; no selection state, safe bulk action, picker, or delete policy | **Layout-only.** Enabling selection without a safe action would misrepresent capability and introduce referential risk |
+
+**Confirmed P0D UI foundation (commit boundary):**
+
+- Continuous **All items** table; no Materials / Labor / Fees & Other group bands
+- Disabled/reserved selection checkbox column; no selection state, selected count, or bulk bar
+- Roofr-like command bar: Search · Filters & sort · Re-order / Columns / Manage (Coming soon) · Add
+- Settings future-tools panel plus active Pricing rules and Proposal templates links
+- No active CSV, re-order, column preferences, bulk actions, tax, waste, coverage, or supplier behavior
+- Existing truthful columns remain: Name · Type · Measurement · Unit · Unit cost · Unit price · Proposal · Status · Actions
+
+##### 13.4.2 Catalog systems stop rules
+
+- **Coverage:** Do not show Coverage as a live quantity column or editable quantity control until the quantity resolver uses `coverage_rate` truthfully and rounding/unit semantics are approved and tested.
+- **Waste:** Do not show Waste % as live until a `waste_pct` model and pure math tests exist. Under `adjusted_measurement`, waste is already upstream; **never apply waste twice**.
+- **Tax:** Do not add per-item sales-tax or material-purchase-tax columns until the Catalog-versus-Pricing-Rules source-of-truth architecture is explicitly approved, including customer-visible versus internal-only behavior.
+- **Supplier:** Do not apply supplier price updates until supplier mapping, change approval, refresh history, and frozen-proposal snapshot protection are designed. Supplier refresh must never mutate sent/frozen proposal truth.
+- **CSV:** Do not enable real CSV upsert until stable ID/UUID matching, validation/dry-run behavior, duplicate policy, and template-reference protection are designed.
+- **Bulk:** Do not enable checkboxes or bulk actions until a real selection model and at least one safe first action (prefer bulk deactivate, not hard delete) are designed and tested.
+- **Columns / re-order:** Keep controls planned/disabled until persistence ownership and supported behavior are defined; do not expose unsupported Coverage/Waste/Tax/Supplier columns through display preferences.
+- Any slice that would change schema, migrations, quantity/pricing math, proposal snapshots, sent/public proposal truth, or material-order calculations requires separate explicit approval.
+
+##### 13.4.3 Catalog systems implementation sequence after P0D
+
+| Step | Scope | Gate |
+|------|-------|------|
+| **S0 — docs research lock + P0D commit** | Commit the P0A–P0D Catalog chrome foundation and this research/stop-rule record | Current step; no systems behavior |
+| **S1 — Quantity/Waste Architecture Decision** | Decide coverage units, quantity conversion, rounding, raw-vs-adjusted measurement ownership, and waste precedence | **Immediate next after P0D commit; not UI column work** |
+| **S2 — schema/model** | Add only approved fields/models after S1 (for example waste percent or supplier mappings) | Requires explicit schema/migration approval |
+| **S3 — pure math/tests** | Prove coverage conversion, waste single-application, rounding, and tax/cost incidence without UI | Must pass before live columns/editing |
+| **S4 — read-only UI** | Show proven values and optional columns without editing | Only truthful engine-backed values |
+| **S5 — editable UI** | Detail/settings/bulk editing after validation and store APIs exist | No fake forms; audit/update rules required |
+| **S6 — proposal/template/material-order integration** | Connect approved quantity/cost rules while preserving snapshots and references | Sent/frozen proposal truth protected |
+| **S7 — Manage catalog CSV** | Export, preview/dry-run, validated ID-based create/update | Reference-safe; no hard-delete import |
+| **S8 — Supplier integration** | Provider mapping, SKU links, refresh/change approval, history | No silent mutation of proposal snapshots |
+| **S9 — smoke/audit** | Desktop/mobile UI plus quantity, proposal, template, material-order, and snapshot truth audit | Required before declaring systems live |
 
 **P3 — polish**
 
 - Nav active-state fixes
 - Stale page header copy cleanup
 - Settings shell visual alignment with roofing shell
+- Catalog Settings shell further visual polish beyond P0C
 
 #### 13.5 Approved implementation sequence (slices)
 
-**Slice 1 — Jobs command surface P0**
+**Slice 1 — Jobs command surface P0 — COMPLETE**
 
 | | |
 |---|---|
-| **Scope** | Default route → Job Board; setup banner; Advanced nav demotion; legacy section de-emphasis; empty state copy |
-| **Must not touch** | Lifecycle columns; Stage C; pricing math |
-| **Affected pages** | Jobs Board, nav |
-| **Success criteria** | New contractor lands on Jobs; sees setup progress when incomplete; legacy paths not prominent |
+| **Code** | **`36a0b55` — feat(roofing): add Jobs command surface P0** |
+| **Result** | `/tools/roofing` redirects to Job Board when no deep-link params; Jobs / Setup / Advanced nav grouping; Advanced collapsed by default; Job Board setup guidance; legacy estimates de-emphasized; job cards simplified to Roofr-style snapshots (tasks / report / proposal / assignee / time-in-stage / updated metadata); **no** top metric cards, Value, or heavy Next button on card face |
+| **Must not touch (preserved)** | Lifecycle/status movement; Stage C; SQL; pricing math; public route behavior |
+| **Known follow-ups** | Later wording clarification: Report → measurement language where appropriate; **Job Costing** belongs in future Job Card deep detail — not Job Board cards |
 
-**Slice 2 — Price book P0**
+**Slice 2 — Catalog P0 (P0B + P0C + P0D Roofr parity — commit-ready foundation)**
 
 | | |
 |---|---|
-| **Scope** | Rename UI; hero/checklist/grouping; unpriced filter; item drawer labels; next step to Templates |
-| **Must not touch** | Catalog schema/store architecture unless explicitly required; pricing engine math |
-| **Affected pages** | Price book (`/tools/roofing/catalog`) |
-| **Success criteria** | Contractor understands item costs/prices without jargon |
+| **Scope** | Keep **Catalog** as page/nav name; **P0B** table-first structure; **P0C** visual polish; **P0D** Roofr parity correction — continuous ungrouped All items; disabled reserved selection column; command bar Search · Filters & sort · Re-order / Columns / Manage (Coming soon) · Add; columns selection+Name/Type/Measurement/Unit/Unit cost/Unit price/Proposal/Status/Actions; **no** group divider rows; **no** Coverage/Waste/tax/bulk/reorder **active** behavior |
+| **Must not touch** | Pricing engine math; proposal pricing calculations; catalog schema/store architecture unless explicitly required; SQL/migrations; lifecycle/status/job-board movement; public proposal route behavior; PDF/Sign/Payment/webhooks |
+| **Affected pages** | Catalog (`/tools/roofing/catalog`) |
+| **Success criteria** | Continuous catalog command surface (not grouped admin report); disabled selection + planned command controls look reserved not broken; unsupported Roofr features omitted or disabled-only and recorded in §6BO.13.4; systems research and stop rules locked before commit |
+| **Known follow-ups (deferred Roofr parity)** | Real bulk bar (activate checkboxes); Add to template; Mark as Material bulk; hard delete policy; CSV (activate Manage catalog); Catalog tax/waste/coverage columns; supplier/ABC/QXO; real reorder; real column customization; real Catalog Settings content — see §6BO.13.4 |
 
 **Slice 3 — Pricing rules P0**
 
@@ -10836,13 +10950,13 @@ First login / Jobs Board
 | **Affected pages** | Setup Hub (`/tools/roofing/setup` proposed) |
 | **Success criteria** | One place for company readiness status |
 
-**Immediate next implementation:** **Slice 1 — Jobs command surface P0** (after this docs checkpoint is committed).
+**Immediate next after the P0D commit:** **S1 — Quantity/Waste Architecture Decision (§6BO.13.4.3)**. Do **not** start Coverage/Waste/Tax/Supplier/CSV/Bulk/Columns UI or schema work first. Slice 3 Pricing rules remains a separate P0 roadmap slice and is not authorization to change pricing math.
 
 #### 13.6 Stage C / R18D3D sequencing (with P0 UI)
 
 | Rule | Detail |
 |------|--------|
-| **Stage C1** | **May proceed only after this roadmap is recorded** (this docs checkpoint). **May run in parallel** with P0 UI slices because Stage C1 is **pure helpers/tests only** — no UI, no lifecycle, no board movement |
+| **Stage C1** | **May proceed in parallel** with P0 UI slices (approved UI/flow roadmap recorded at **`fc86123`**). Stage C1 is **pure helpers/tests only** — **do not mix Stage C implementation into UI slices**; no UI, no lifecycle, no board movement |
 | **R18D3D** | **Blocked** until **Stage C4** live + smoke-validated **plus P0 trust fixes** (Pricing rules profit policy, Customer view profit-hidden proof, Send honesty), then explicitly approved |
 | **P0 UI slices** | **Do not** implement lifecycle/status/job-board movement, `proposal_events` writes, Stage C token supersession in UI, public route behavior changes, SQL/migrations, pricing math changes, PDF/Sign/Payment/webhooks |
 
@@ -11025,19 +11139,20 @@ Then open and read **in this file** (in order):
 45. **§9** — required first prompt / resume instructions (this section)
 46. **§11** — roadmap buckets (TODAY / NEXT / LATER / DO NOT DO YET), current checkpoint, built-surface audit, manual smoke; **§11 — Future / Later bucket → Proposal Builder**
 
-**Verify HEAD** is **`e17eab5`** or newer (R18D3C Preview delivery history UI); if newer, reconcile this doc.
+**Verify HEAD** is **`36a0b55`** or newer (Slice 1 Jobs command surface P0); if newer, reconcile this doc.
 
-**Latest docs checkpoint:** **pending this commit** (prior docs: **`ba3659e`** — docs: record Stage C policy and operating-flow audit sequencing).
+**Latest docs checkpoint:** **pending this commit** (prior docs: **`fc86123`** — docs: record approved page-by-page UI flow roadmap and P0 slices).
 
 **Mandatory read:** **§6BO.13** (approved UI flow roadmap + P0 slices), **§6BM** / **§6BN** (R18 roadmap + implementation history), **§6BO.11** (approved Stage C policy), **§6BO.12** (audit complete — outcome §6BO.13), and **§6BO** (completed remediation side-track) before any next slice.
 
 **Next action (mandatory first resume step):**
 
-1. **Slice 1 — Jobs command surface P0** (§6BO.13) — after this docs checkpoint is reviewed/committed.
-2. **Do not start Stage C1** until this approved UI/flow roadmap docs checkpoint is committed. **After that**, Stage C1 may run **in parallel** with P0 UI slices (pure helpers/tests only).
-3. **Do not implement R18D3D** until at least **Stage C4** + P0 trust fixes + explicit approval — it touches proposal status, `proposal_events`, Jobs Board movement, and Job Card activity.
-4. **Do not enable** lifecycle/status/job-board mutation, PDF, Sign, Payment, webhooks, public route behavior changes, or SQL in P0 UI slices (§6BO.13.7).
-5. **R18D3C complete** at **`e17eab5`** (§6BN.20); **R18D3E** webhooks, **R18G/H/I/J** remain downstream.
+1. **Docs correction — Catalog naming** (this commit) — then **Slice 2 — Catalog P0** (§6BO.13).
+2. **Slice 1 complete** at **`36a0b55`** — Jobs command surface P0 (§6BO.13.5).
+3. **Stage C1 may proceed in parallel** with P0 UI slices (pure helpers/tests only) — **do not mix Stage C implementation into UI slices**.
+4. **Do not implement R18D3D** until at least **Stage C4** + P0 trust fixes + explicit approval — it touches proposal status, `proposal_events`, Jobs Board movement, and Job Card activity.
+5. **Do not enable** lifecycle/status/job-board mutation, PDF, Sign, Payment, webhooks, public route behavior changes, or SQL in P0 UI slices (§6BO.13.7).
+6. **R18D3C complete** at **`e17eab5`** (§6BN.20); **R18D3E** webhooks, **R18G/H/I/J** remain downstream.
 
 **Do not enable** lifecycle/status/job-board mutation, PDF, Sign, or Payment without explicit scoped direction. **R18D3B Send emails customer** when readiness + sent snapshot exist — **does not** mutate proposal/job lifecycle. **Public route is read-only** at `/p/[token]`.
 
@@ -11135,7 +11250,7 @@ Confirm: **Create proposal / Open proposal** on Job Card creates/reuses DB draft
 
 ## 11. FORWARD ROADMAP / NO-DRIFT NEXT STEPS
 
-**Current checkpoint override:** Header + **§6BO.13** + **§6BM** / **§6BN** + **§6BO** + **§6BL** supersede stale checkpoint lines in this section and stale **§8 CURRENT NEXT** / old **§11 body** / old **§6AL R18 row**. **Code:** **`e17eab5` — feat(proposals): show delivery history in Preview Send panel for R18D3C3**. **Docs:** pending this commit (prior docs: **`ba3659e`**). **R18D3C complete** (§6BN.20). **Approved UI flow roadmap** (§6BO.13). **Stage C policy approved** (§6BO.11). **Truth-pipeline remediation (complete):** §6BO. **R18D3B complete + live-smoked** (§6BN.18). **R18D3A complete** (§6BN.17). **Public route `/p/[token]` exists (read-only)**. **Customer view: Copy customer link + Email proposal to customer + read-only delivery history** when readiness green (§6BN.18, §6BN.20). **Lifecycle/status/job-board/PDF/Sign/Payment/webhooks remain disabled in P0 UI slices.** **Immediate next:** **Slice 1 — Jobs command surface P0** (§6BO.13); **Stage C1** after this docs checkpoint — may run in parallel with P0 UI; **R18D3D blocked** until at least **Stage C4** + P0 trust fixes + explicit approval. **Do not create a separate Command Center** — evolve Job Board (§6BO.13).
+**Current checkpoint override:** Header + **§6BO.13** + **§6BM** / **§6BN** + **§6BO** + **§6BL** supersede stale checkpoint lines in this section and stale **§8 CURRENT NEXT** / old **§11 body** / old **§6AL R18 row**. **Code:** **`36a0b55` — feat(roofing): add Jobs command surface P0**. **Docs:** pending this commit (prior docs: **`fc86123`**). **Slice 1 complete** (§6BO.13.5). **Catalog naming correction** — keep **Catalog** as page name; Slice 2 is **Catalog P0** (not Price book P0). **R18D3C complete** (§6BN.20). **Approved UI flow roadmap** (§6BO.13). **Stage C policy approved** (§6BO.11). **Truth-pipeline remediation (complete):** §6BO. **R18D3B complete + live-smoked** (§6BN.18). **R18D3A complete** (§6BN.17). **Public route `/p/[token]` exists (read-only)**. **Customer view: Copy customer link + Email proposal to customer + read-only delivery history** when readiness green (§6BN.18, §6BN.20). **Lifecycle/status/job-board/PDF/Sign/Payment/webhooks remain disabled in P0 UI slices.** **Immediate next:** **Slice 2 — Catalog P0** (§6BO.13); **Stage C1 may run in parallel** with P0 UI — do not mix Stage C into UI slices; **R18D3D blocked** until at least **Stage C4** + P0 trust fixes + explicit approval. **Job Costing** = future Job Card module — not Catalog, not Job Board cards. **Do not create a separate Command Center** — evolve Job Board (§6BO.13).
 
 Use this section as the **ordered checklist** for future GPT/Cursor sessions.
 
@@ -12043,7 +12158,11 @@ Treat as **drift** if a session:
 
 ## Changelog (handoff doc only)
 
-- **2026-06-27:** **Approved page-by-page UI flow roadmap docs checkpoint** (pending this commit) — **§6BO.13** + header/§6BO.0/§6BN.16/§6BN.20/§6BL/§9/§11 override + recent commits; **current code checkpoint `e17eab5`**; prior docs **`ba3659e`**; Final Page-by-Page UI Flow Map **approved** as implementation reference; **no separate Command Center** — Job Board = command surface; P0/P1/P2/P3 priority list; implementation Slices 1–5; **next: Slice 1 — Jobs command surface P0**; **Stage C1** after this commit — may run in parallel with P0 UI (pure helpers/tests); **R18D3D blocked until Stage C4 + P0 trust fixes**.
+- **2026-07-16:** **Catalog P0D Roofr parity correction + systems research lock** (uncommitted with P0A–P0C) — continuous ungrouped All items (no MATERIALS/LABOR/FEES divider rows); disabled reserved selection checkbox column (no bulk bar); command bar Search · Filters & sort · Re-order / Columns / Manage (Coming soon) · Add; Roofr systems map, explicit truth stop rules, and S0–S9 sequence recorded in **§6BO.13.4.1–§6BO.13.4.3**; next after commit is **S1 Quantity/Waste Architecture Decision**, not UI column work.
+- **2026-07-16:** **Catalog P0C Roofr command-surface visual parity** (uncommitted with P0A/P0B) — P0B = structure pass; P0C = wider workspace, unified command bar+table card, disabled Manage catalog / Columns / Re-order (Coming soon layout-only), polished group headers, Proposal/Status pills, spaced Edit|Deactivate, Settings future-tools planned list; deferred features remain in **§6BO.13.4** (no active CSV/reorder/columns/bulk/tax/waste/coverage/supplier).
+- **2026-07-16:** **Catalog P0B Roofr visual-parity layout** (uncommitted with P0A) — Slice 2 layout intent changed from guided/setup-first to **Roofr-like table-first** (title → All items/Settings → toolbar → table); removed Catalog page checklist rail / dominant starter hero / roadmap footnote dominance; Settings = honest Pricing rules + Templates links; deferred Roofr-parity features recorded in **§6BO.13.4** (bulk/checkboxes/Add to template/tax/waste/coverage/reorder/columns/supplier); table columns Name/Type/Measurement/Unit/Unit cost/Unit price/Proposal/Status/Actions only.
+- **2026-06-25:** **Catalog naming roadmap correction before Slice 2** (pending this commit) — **§6BO.13** Catalog naming decision; **keep Catalog as page/nav name** (do not rename to Price book); Slice 2 renamed to **Catalog P0**; Slice 1 marked **complete** at **`36a0b55`**; Catalog / Pricing rules / Templates / Job Costing distinctions; Setup nav lists **Catalog**; header/§6BO.0/§6BN.20/§9/§11 override updated; **current code checkpoint `36a0b55`**; prior docs **`fc86123`**; **next: Slice 2 — Catalog P0**; **Stage C1 may run in parallel** with P0 UI — do not mix Stage C into UI slices; **R18D3D blocked until Stage C4 + P0 trust fixes**.
+- **2026-06-27:** **Approved page-by-page UI flow roadmap docs checkpoint** (`fc86123`) — **§6BO.13** + header/§6BO.0/§6BN.16/§6BN.20/§6BL/§9/§11 override + recent commits; **current code checkpoint `e17eab5`** at that time; prior docs **`ba3659e`**; Final Page-by-Page UI Flow Map **approved** as implementation reference; **no separate Command Center** — Job Board = command surface; P0/P1/P2/P3 priority list; implementation Slices 1–5; **historical next at that time: Slice 1** — **now complete at `36a0b55`**; Catalog rename direction **superseded by Catalog naming correction (2026-06-25)**.
 - **2026-06-27:** **Stage C policy + operating-flow audit sequencing docs checkpoint** (`ba3659e`) — **§6BO.11** + **§6BO.12** + header/§6BO.0/§6BO.8–§6BO.10/§6BN.16/§6BN.20.9/§6BL/§9/§11 override + recent commits; **current code checkpoint `e17eab5`**; prior docs **`6d0e021`**; approved Stage C architecture direction; operating-flow audit before Stage C1 — **outcome superseded by §6BO.13**; **R18D3D blocked until at least Stage C4**.
 - **2026-06-27:** **R18D3C contractor delivery status/history UI docs checkpoint** (`6d0e021`) — **§6BN.20** + header/§6BO.0/§6BO.9–§6BO.10/§6BL/§9/§11 override + recent commits; **current code checkpoint `e17eab5`**; prior docs **`4599126`**; R18D3C1–C3 commits `f0627e1`/`1811f7a`/`e17eab5`; R18D3C4 browser smoke PASS; **1021/1021** proposal lib tests; **historical next at that time:** no-code priority decision before R18D3D (Stage C vs lifecycle) — **superseded by §6BO.11** (Stage C approved).
 - **2026-06-27:** **R18 roadmap recovery docs correction** (`4599126`) — reframed §6BO as completed remediation side-track; restored **§6BO.0** R18 letter-phase order + progress; prior docs **`5efcc45`**; code through **`ee643d0`** at that docs commit.

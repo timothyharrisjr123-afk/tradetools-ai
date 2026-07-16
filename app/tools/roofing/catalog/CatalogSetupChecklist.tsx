@@ -79,7 +79,7 @@ export default function CatalogSetupChecklist({
               </span>
             </div>
             {pricingActive && !loading && (
-              <p className="mt-0.5 text-[11px] text-slate-600">Set unit prices on active items</p>
+              <p className="mt-0.5 text-[11px] text-slate-600">Set customer prices on active items</p>
             )}
           </div>
         </li>

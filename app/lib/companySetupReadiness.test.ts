@@ -4,9 +4,17 @@
 
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { deriveCompanySetupReadiness } from "./companySetupReadiness";
+import { deriveCompanySetupReadiness, COMPANY_SETUP_STEP_DEFINITIONS } from "./companySetupReadiness";
 
 describe("deriveCompanySetupReadiness", () => {
+  test("setup step definitions use Catalog label for catalog route", () => {
+    const catalogStep = COMPANY_SETUP_STEP_DEFINITIONS.find((step) => step.id === "price_book");
+    assert.ok(catalogStep);
+    assert.equal(catalogStep.label, "Catalog");
+    assert.equal(catalogStep.href, "/tools/roofing/catalog");
+    assert.ok(!COMPANY_SETUP_STEP_DEFINITIONS.some((step) => step.label === "Price book"));
+  });
+
   test("loading hides completion and banner", () => {
     const result = deriveCompanySetupReadiness({
       loading: true,

@@ -5,6 +5,7 @@ import {
   type CatalogReadinessSummary,
 } from "@/app/lib/catalogReadiness";
 import type { InstallDefaultRoofingCatalogResult } from "@/app/lib/defaultRoofingCatalogInstall";
+import { CATALOG_CONTRACTOR_LABELS } from "@/app/lib/catalogContractorLabels";
 import { STARTER_DEFINITION_COUNT } from "@/app/admin/catalog/catalogAdminUtils";
 import {
   CATALOG_COMPACT_STAT,
@@ -98,7 +99,7 @@ export default function CatalogStarterHeroCard({
           </div>
           <div className={CATALOG_COMPACT_STAT}>
             <dt className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-              Unpriced
+              {CATALOG_CONTRACTOR_LABELS.needsPrice}
             </dt>
             <dd className="mt-0.5 text-sm font-semibold tabular-nums text-slate-900">{unpricedCount}</dd>
           </div>
@@ -107,8 +108,8 @@ export default function CatalogStarterHeroCard({
 
       {unpricedCount > 0 && readiness.activeItemCount > 0 && !loading && (
         <p className="mt-3 text-xs text-amber-900">
-          <span className="font-semibold">{unpricedCount} unpriced</span> active item
-          {unpricedCount === 1 ? "" : "s"} — set unit prices in the catalog table below.
+          <span className="font-semibold">{unpricedCount} need price</span> active item
+          {unpricedCount === 1 ? "" : "s"} — set customer prices in the catalog table below.
         </p>
       )}
 

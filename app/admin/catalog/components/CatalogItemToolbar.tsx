@@ -1,8 +1,19 @@
+"use client";
+
+import {
+  CATALOG_COMING_SOON_LABEL,
+  CATALOG_COMMAND_BAR_PLANNED_CONTROLS,
+  CATALOG_FILTERS_SORT_LABEL,
+} from "@/app/lib/catalogContractorLabels";
 import {
   CATALOG_TYPE_FILTER_OPTIONS,
+  COMMAND_CONTROL_DISABLED,
+  COMMAND_CONTROL_SOON_BADGE,
   FILTER_CHIP_BASE,
   FILTER_CHIP_OFF,
   FILTER_CHIP_ON,
+  FILTERS_SORT_TRIGGER,
+  PRIMARY_BUTTON,
   TOOLBAR_INPUT,
   type CatalogItemTypeFilter,
 } from "../catalogAdminConstants";
@@ -12,17 +23,17 @@ type CatalogItemToolbarProps = {
   onSearchChange: (value: string) => void;
   itemTypeFilter: CatalogItemTypeFilter;
   onItemTypeFilterChange: (value: CatalogItemTypeFilter) => void;
-  unpricedOnly: boolean;
-  onUnpricedOnlyChange: () => void;
   showInactive: boolean;
   onShowInactiveChange: () => void;
   hasListFilters: boolean;
   onClearFilters: () => void;
-  groupByItemType: boolean;
   filteredItemsCount: number;
   sortedItemsCount: number;
-  unpricedCount: number;
-  filteredUnpricedCount: number;
+  needsPriceCount: number;
+  filteredNeedsPriceCount: number;
+  compactStatusLine: string | null;
+  onAddItem: () => void;
+  addDisabled: boolean;
 };
 
 export default function CatalogItemToolbar({
@@ -30,99 +41,155 @@ export default function CatalogItemToolbar({
   onSearchChange,
   itemTypeFilter,
   onItemTypeFilterChange,
-  unpricedOnly,
-  onUnpricedOnlyChange,
   showInactive,
   onShowInactiveChange,
   hasListFilters,
   onClearFilters,
-  groupByItemType,
   filteredItemsCount,
   sortedItemsCount,
-  unpricedCount,
-  filteredUnpricedCount,
+  needsPriceCount,
+  filteredNeedsPriceCount,
+  compactStatusLine,
+  onAddItem,
+  addDisabled,
 }: CatalogItemToolbarProps) {
+  const activeFilterLabel =
+    CATALOG_TYPE_FILTER_OPTIONS.find((option) => option.value === itemTypeFilter)?.label ?? "All";
+
   return (
     <div
-      className="mt-5 rounded-lg border border-slate-200 bg-slate-50/50 p-4"
+      className="border-b border-slate-200/90 bg-slate-50/40 px-3.5 py-3.5 sm:px-4"
       role="region"
-      aria-label="Catalog item filters"
+      aria-label="Catalog command bar"
     >
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <label className="block min-w-0 flex-1">
-          <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Search catalog
-          </span>
-          <input
-            type="search"
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Name, customer label, seed key, type, unit, quantity source…"
-            className={TOOLBAR_INPUT}
-            aria-label="Search catalog items"
-          />
-        </label>
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={onUnpricedOnlyChange}
-            className={`${FILTER_CHIP_BASE} ${unpricedOnly ? FILTER_CHIP_ON : FILTER_CHIP_OFF}`}
-            aria-pressed={unpricedOnly}
-          >
-            Unpriced only
-          </button>
-          <button
-            type="button"
-            onClick={onShowInactiveChange}
-            className={`${FILTER_CHIP_BASE} ${showInactive ? FILTER_CHIP_ON : FILTER_CHIP_OFF}`}
-            aria-pressed={showInactive}
-          >
-            Show inactive
-          </button>
-          {hasListFilters && (
-            <button
-              type="button"
-              onClick={onClearFilters}
-              className={`${FILTER_CHIP_BASE} ${FILTER_CHIP_OFF}`}
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex min-w-0 flex-1 flex-col gap-2.5 sm:flex-row sm:items-center">
+          <label className="block min-w-0 flex-1 sm:max-w-[16rem] lg:max-w-[18rem]">
+            <span className="sr-only">Search catalog</span>
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(e) => onSearchChange(e.target.value)}
+              placeholder="Search catalog…"
+              className={TOOLBAR_INPUT}
+              aria-label="Search catalog"
+            />
+          </label>
+
+          <details className="relative">
+            <summary
+              className={`${FILTERS_SORT_TRIGGER} list-none [&::-webkit-details-marker]:hidden`}
             >
-              Clear filters
-            </button>
-          )}
+              <span>{CATALOG_FILTERS_SORT_LABEL}</span>
+              <span className="font-medium text-slate-500">· {activeFilterLabel}</span>
+              {showInactive ? (
+                <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500">
+                  Inactive
+                </span>
+              ) : null}
+            </summary>
+            <div
+              className="absolute left-0 z-20 mt-1.5 w-[min(100vw-2rem,18rem)] rounded-lg border border-slate-200 bg-white p-3 shadow-lg"
+              role="group"
+              aria-label="Catalog filters"
+            >
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                Type
+              </p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {CATALOG_TYPE_FILTER_OPTIONS.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => onItemTypeFilterChange(option.value)}
+                    className={`${FILTER_CHIP_BASE} ${
+                      itemTypeFilter === option.value ? FILTER_CHIP_ON : FILTER_CHIP_OFF
+                    }`}
+                    aria-pressed={itemTypeFilter === option.value}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+              <div className="mt-3 border-t border-slate-100 pt-3">
+                <button
+                  type="button"
+                  onClick={onShowInactiveChange}
+                  className={`${FILTER_CHIP_BASE} ${showInactive ? FILTER_CHIP_ON : FILTER_CHIP_OFF}`}
+                  aria-pressed={showInactive}
+                >
+                  Show inactive
+                </button>
+              </div>
+              <div className="mt-3 border-t border-slate-100 pt-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  Sort
+                </p>
+                <span
+                  className={`${COMMAND_CONTROL_DISABLED} mt-2`}
+                  aria-disabled="true"
+                  title={`Sort — ${CATALOG_COMING_SOON_LABEL}`}
+                >
+                  <span>Sort options</span>
+                  <span className={COMMAND_CONTROL_SOON_BADGE}>{CATALOG_COMING_SOON_LABEL}</span>
+                </span>
+              </div>
+              {hasListFilters ? (
+                <button
+                  type="button"
+                  onClick={onClearFilters}
+                  className="mt-3 text-xs font-semibold text-slate-600 hover:text-slate-900"
+                >
+                  Clear filters
+                </button>
+              ) : null}
+            </div>
+          </details>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+          <div
+            className="flex flex-wrap items-center gap-1.5"
+            role="group"
+            aria-label="Planned catalog tools"
+          >
+            {CATALOG_COMMAND_BAR_PLANNED_CONTROLS.map((control) => (
+              <span
+                key={control.id}
+                className={COMMAND_CONTROL_DISABLED}
+                aria-disabled="true"
+                title={`${control.label} — ${CATALOG_COMING_SOON_LABEL}`}
+              >
+                <span>{control.label}</span>
+                <span className={COMMAND_CONTROL_SOON_BADGE}>{CATALOG_COMING_SOON_LABEL}</span>
+              </span>
+            ))}
+          </div>
+          <button type="button" onClick={onAddItem} disabled={addDisabled} className={PRIMARY_BUTTON}>
+            Add catalog item
+          </button>
         </div>
       </div>
-      <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label="Filter by item type">
-        {CATALOG_TYPE_FILTER_OPTIONS.map((option) => (
-          <button
-            key={option.value}
-            type="button"
-            onClick={() => onItemTypeFilterChange(option.value)}
-            className={`${FILTER_CHIP_BASE} ${
-              itemTypeFilter === option.value ? FILTER_CHIP_ON : FILTER_CHIP_OFF
-            }`}
-            aria-pressed={itemTypeFilter === option.value}
-          >
-            {option.label}
-          </button>
-        ))}
-      </div>
-      <p className="mt-3 text-xs leading-relaxed text-slate-600">
-        <span className="font-semibold text-slate-800">
+      <p className="mt-2.5 text-xs text-slate-500">
+        <span className="font-medium text-slate-700">
           Showing {filteredItemsCount} of {sortedItemsCount}{" "}
           {showInactive ? "items" : "active items"}
         </span>
-        {unpricedCount > 0 && (
+        {compactStatusLine ? (
           <>
             {" "}
-            · <span className="text-amber-800">{unpricedCount} unpriced</span> in catalog
+            · <span className="text-slate-600">{compactStatusLine}</span>
           </>
-        )}
-        {hasListFilters && filteredUnpricedCount > 0 && filteredUnpricedCount !== unpricedCount && (
-          <>
-            {" "}
-            · <span className="text-amber-800">{filteredUnpricedCount} unpriced</span> in this view
-          </>
-        )}
-        {groupByItemType && filteredItemsCount > 0 && <> · Grouped by type</>}
+        ) : null}
+        {hasListFilters &&
+          filteredNeedsPriceCount > 0 &&
+          filteredNeedsPriceCount !== needsPriceCount && (
+            <>
+              {" "}
+              · <span className="text-amber-800">{filteredNeedsPriceCount} need price</span> in
+              this view
+            </>
+          )}
       </p>
     </div>
   );

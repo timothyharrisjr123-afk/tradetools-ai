@@ -17,7 +17,7 @@ export default function CatalogAppPage({ companyId }: { companyId: string }) {
 
   return (
     <FieldDiveAppShell activeNav="catalog">
-      <div className="mx-auto w-full max-w-[92rem]">
+      <div className="mx-auto w-full max-w-[100rem]">
         {backToJobCardHref ? (
           <div className="mb-4">
             <Link

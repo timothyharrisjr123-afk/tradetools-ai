@@ -4,14 +4,18 @@ import {
   PRICING_BASES,
   catalogItemTypeLabel,
   catalogUnitLabel,
-  customerVisibilityLabel,
   pricingBasisLabel,
   quantitySourceLabel,
 } from "@/app/lib/catalogTypes";
 import type { CustomerVisibility, PricingBasis } from "@/app/lib/catalogTypes";
+import {
+  CATALOG_CONTRACTOR_LABELS,
+  CATALOG_FIELD_HELPERS,
+  formatCatalogItemStatus,
+  formatProposalVisibilityShort,
+} from "@/app/lib/catalogContractorLabels";
 import { FIELD_INPUT, PRIMARY_BUTTON, SECONDARY_BUTTON } from "../catalogAdminConstants";
 import type { CatalogItemEditDraft } from "../catalogAdminUtils";
-import { extractSeedKey } from "../catalogAdminUtils";
 
 type CatalogItemDetailPanelProps = {
   item: CatalogItem;
@@ -28,6 +32,16 @@ type CatalogItemDetailPanelProps = {
   onToggleActive: () => void;
 };
 
+function FieldHelper({ text }: { text: string }) {
+  return <span className="mt-1 block text-xs leading-relaxed text-slate-500">{text}</span>;
+}
+
+const PROPOSAL_OPTIONS: { value: CustomerVisibility; label: string }[] = [
+  { value: "customer_visible", label: "Visible" },
+  { value: "grouped", label: "Grouped" },
+  { value: "internal_only", label: "Hidden" },
+];
+
 export default function CatalogItemDetailPanel({
   item,
   editDraft,
@@ -39,37 +53,25 @@ export default function CatalogItemDetailPanel({
   onClose,
   onToggleActive,
 }: CatalogItemDetailPanelProps) {
-  const seedKey = extractSeedKey(item.metadata ?? null);
-
   return (
     <div
       id="catalog-item-detail-panel"
-      className="mt-4 rounded-lg border border-cyan-200 bg-cyan-50/30 p-5 shadow-sm"
+      className="mt-3 rounded-lg border border-slate-200 bg-white p-5 shadow-sm"
       role="region"
       aria-labelledby="catalog-item-detail-heading"
     >
       <div className="mb-5 flex flex-wrap items-start justify-between gap-3 border-b border-slate-200 pb-4">
         <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-cyan-800">
-            Selected catalog item
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            Edit catalog item
           </p>
           <h3 id="catalog-item-detail-heading" className="mt-1 text-base font-semibold text-slate-900">
             {item.name}
           </h3>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <span
-              className={
-                item.active
-                  ? "rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-800 ring-1 ring-emerald-200"
-                  : "rounded-full bg-slate-200 px-2 py-0.5 text-xs font-semibold text-slate-700 ring-1 ring-slate-300"
-              }
-            >
-              {item.active ? "Active" : "Inactive"}
-            </span>
-            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700 ring-1 ring-slate-200">
-              {seedKey ? `Seed: ${seedKey}` : "Custom item"}
-            </span>
-          </div>
+          <p className="mt-2 text-xs text-slate-600">
+            {CATALOG_CONTRACTOR_LABELS.status}: {formatCatalogItemStatus(item)} · Proposal:{" "}
+            {formatProposalVisibilityShort(item.customer_visibility)}
+          </p>
         </div>
         <button
           type="button"
@@ -81,52 +83,11 @@ export default function CatalogItemDetailPanel({
         </button>
       </div>
 
-      <section className="mb-5">
-        <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Overview / identity
-        </h4>
-        <dl className="mt-3 grid grid-cols-1 gap-4 rounded-md border border-slate-200 bg-white p-4 text-xs sm:grid-cols-2">
-          <div>
-            <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-              Internal name
-            </dt>
-            <dd className="mt-0.5 text-sm font-medium text-slate-900">{item.name}</dd>
-          </div>
-          <div>
-            <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-              Item type
-            </dt>
-            <dd className="mt-0.5 text-sm font-medium text-slate-900">
-              {catalogItemTypeLabel(item.item_type)}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-              Unit
-            </dt>
-            <dd className="mt-0.5 text-sm font-medium text-slate-900">
-              {catalogUnitLabel(item.unit)}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-              Quantity source
-            </dt>
-            <dd className="mt-0.5 text-sm font-medium text-slate-900">
-              {quantitySourceLabel(item.quantity_source)}
-            </dd>
-          </div>
-          <div className="sm:col-span-2">
-            <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-              Seed key
-            </dt>
-            <dd className="mt-0.5 font-mono text-sm text-slate-800">{seedKey ?? "Custom item"}</dd>
-          </div>
-        </dl>
-        <p className="mt-3 text-xs leading-relaxed text-slate-500">
-          Structural fields drive future template and proposal quantities and stay read-only for now.
+      {item.item_type === "labor" && (
+        <p className="mb-5 text-xs leading-relaxed text-slate-600">
+          {CATALOG_FIELD_HELPERS.laborExplainer}
         </p>
-      </section>
+      )}
 
       {editError && (
         <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
@@ -134,24 +95,35 @@ export default function CatalogItemDetailPanel({
         </div>
       )}
 
-      <section className="mb-5">
+      <section className="mb-6">
+        <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          Item details
+        </h4>
+        <dl className="mt-3 grid grid-cols-1 gap-4 text-xs sm:grid-cols-2">
+          <div>
+            <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+              {CATALOG_CONTRACTOR_LABELS.name}
+            </dt>
+            <dd className="mt-0.5 text-sm font-medium text-slate-900">{item.name}</dd>
+          </div>
+          <div>
+            <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+              {CATALOG_CONTRACTOR_LABELS.type}
+            </dt>
+            <dd className="mt-0.5 text-sm font-medium text-slate-900">
+              {catalogItemTypeLabel(item.item_type)}
+            </dd>
+          </div>
+        </dl>
+      </section>
+
+      <section className="mb-6">
         <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Pricing</h4>
         <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <label className="block text-sm">
-            <span className="mb-1.5 block text-xs font-medium text-slate-700">Unit price</span>
-            <input
-              type="text"
-              inputMode="decimal"
-              placeholder="25.00"
-              className={`${FIELD_INPUT} tabular-nums`}
-              value={editDraft.unit_price_dollars}
-              onChange={(e) => onDraftChange("unit_price_dollars", e.target.value)}
-              disabled={isSaving}
-            />
-            <span className="mt-1 block text-xs text-slate-500">Leave blank for Unpriced</span>
-          </label>
-          <label className="block text-sm">
-            <span className="mb-1.5 block text-xs font-medium text-slate-700">Unit cost</span>
+            <span className="mb-1.5 block text-xs font-medium text-slate-700">
+              {CATALOG_CONTRACTOR_LABELS.unitCost}
+            </span>
             <input
               type="text"
               inputMode="decimal"
@@ -161,18 +133,33 @@ export default function CatalogItemDetailPanel({
               onChange={(e) => onDraftChange("unit_cost_dollars", e.target.value)}
               disabled={isSaving}
             />
-            <span className="mt-1 block text-xs text-slate-500">Leave blank for Unpriced</span>
+            <FieldHelper text={CATALOG_FIELD_HELPERS.unitCost} />
+          </label>
+          <label className="block text-sm">
+            <span className="mb-1.5 block text-xs font-medium text-slate-700">
+              {CATALOG_CONTRACTOR_LABELS.unitPrice}
+            </span>
+            <input
+              type="text"
+              inputMode="decimal"
+              placeholder="25.00"
+              className={`${FIELD_INPUT} tabular-nums`}
+              value={editDraft.unit_price_dollars}
+              onChange={(e) => onDraftChange("unit_price_dollars", e.target.value)}
+              disabled={isSaving}
+            />
+            <FieldHelper text={CATALOG_FIELD_HELPERS.unitPrice} />
           </label>
           {item.item_type === "labor" && (
-            <label className="block text-sm sm:col-span-2">
+            <label className="block text-sm">
               <span className="mb-1.5 block text-xs font-medium text-slate-700">
-                Labor unit cost
+                Labor cost (optional)
               </span>
               <input
                 type="text"
                 inputMode="decimal"
                 placeholder="Optional"
-                className={`${FIELD_INPUT} max-w-xs tabular-nums`}
+                className={`${FIELD_INPUT} tabular-nums`}
                 value={editDraft.labor_unit_cost_dollars}
                 onChange={(e) => onDraftChange("labor_unit_cost_dollars", e.target.value)}
                 disabled={isSaving}
@@ -180,7 +167,7 @@ export default function CatalogItemDetailPanel({
             </label>
           )}
           <label className="block text-sm">
-            <span className="mb-1.5 block text-xs font-medium text-slate-700">Pricing basis</span>
+            <span className="mb-1.5 block text-xs font-medium text-slate-700">How price is set</span>
             <select
               className={FIELD_INPUT}
               value={editDraft.pricing_basis}
@@ -197,14 +184,14 @@ export default function CatalogItemDetailPanel({
         </div>
       </section>
 
-      <section className="mb-5">
+      <section className="mb-6">
         <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Customer-facing
+          Proposal display
         </h4>
         <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <label className="block text-sm sm:col-span-2">
             <span className="mb-1.5 block text-xs font-medium text-slate-700">
-              Customer-facing name
+              {CATALOG_CONTRACTOR_LABELS.customerName}
             </span>
             <input
               type="text"
@@ -215,7 +202,9 @@ export default function CatalogItemDetailPanel({
             />
           </label>
           <label className="block text-sm sm:col-span-2">
-            <span className="mb-1.5 block text-xs font-medium text-slate-700">Description</span>
+            <span className="mb-1.5 block text-xs font-medium text-slate-700">
+              {CATALOG_CONTRACTOR_LABELS.customerDescription}
+            </span>
             <textarea
               rows={2}
               className={`${FIELD_INPUT} resize-y`}
@@ -223,10 +212,11 @@ export default function CatalogItemDetailPanel({
               onChange={(e) => onDraftChange("description", e.target.value)}
               disabled={isSaving}
             />
+            <FieldHelper text={CATALOG_FIELD_HELPERS.customerDescription} />
           </label>
-          <label className="block text-sm">
+          <label className="block text-sm sm:col-span-2">
             <span className="mb-1.5 block text-xs font-medium text-slate-700">
-              Customer visibility
+              {CATALOG_CONTRACTOR_LABELS.proposal}
             </span>
             <select
               className={FIELD_INPUT}
@@ -236,26 +226,42 @@ export default function CatalogItemDetailPanel({
               }
               disabled={isSaving}
             >
-              {CUSTOMER_VISIBILITIES.map((visibility) => (
-                <option key={visibility} value={visibility}>
-                  {customerVisibilityLabel(visibility)}
+              {PROPOSAL_OPTIONS.filter((option) =>
+                CUSTOMER_VISIBILITIES.includes(option.value)
+              ).map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
                 </option>
               ))}
             </select>
-          </label>
-          <label className="block text-sm">
-            <span className="mb-1.5 block text-xs font-medium text-slate-700">Sort order</span>
-            <input
-              type="text"
-              inputMode="numeric"
-              placeholder="Optional"
-              className={`${FIELD_INPUT} max-w-[8rem] tabular-nums`}
-              value={editDraft.sort_order}
-              onChange={(e) => onDraftChange("sort_order", e.target.value)}
-              disabled={isSaving}
-            />
+            <FieldHelper text={CATALOG_FIELD_HELPERS.proposal} />
           </label>
         </div>
+      </section>
+
+      <section className="mb-6">
+        <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          Measurement
+        </h4>
+        <dl className="mt-3 grid grid-cols-1 gap-4 text-xs sm:grid-cols-2">
+          <div>
+            <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+              {CATALOG_CONTRACTOR_LABELS.measurement}
+            </dt>
+            <dd className="mt-0.5 text-sm font-medium text-slate-900">
+              {quantitySourceLabel(item.quantity_source)}
+            </dd>
+            <FieldHelper text={CATALOG_FIELD_HELPERS.measurement} />
+          </div>
+          <div>
+            <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+              {CATALOG_CONTRACTOR_LABELS.unit}
+            </dt>
+            <dd className="mt-0.5 text-sm font-medium text-slate-900">
+              {catalogUnitLabel(item.unit)}
+            </dd>
+          </div>
+        </dl>
       </section>
 
       <div className="flex flex-wrap gap-3 border-t border-slate-200 pt-5">

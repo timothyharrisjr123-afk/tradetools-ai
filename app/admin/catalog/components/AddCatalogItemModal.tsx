@@ -16,12 +16,20 @@ import {
   quantitySourceLabel,
 } from "@/app/lib/catalogTypes";
 import {
-  CATALOG_TYPE_FILTER_OPTIONS,
+  CATALOG_CONTRACTOR_LABELS,
+  CATALOG_FIELD_HELPERS,
+} from "@/app/lib/catalogContractorLabels";
+import {
+  CATALOG_ADD_ITEM_TYPE_OPTIONS,
   FIELD_INPUT,
   PRIMARY_BUTTON,
   SECONDARY_BUTTON,
 } from "../catalogAdminConstants";
 import type { AddCatalogItemForm } from "../catalogAdminUtils";
+
+function FieldHelper({ text }: { text: string }) {
+  return <span className="mt-1 block text-xs leading-relaxed text-slate-500">{text}</span>;
+}
 
 type AddCatalogItemModalProps = {
   open: boolean;
@@ -84,7 +92,7 @@ export default function AddCatalogItemModal({
               onChange={(e) => onChange("item_type", e.target.value as CatalogItemType)}
               disabled={creatingItem}
             >
-              {CATALOG_TYPE_FILTER_OPTIONS.filter((o) => o.value !== "all").map((option) => (
+              {CATALOG_ADD_ITEM_TYPE_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
@@ -108,7 +116,7 @@ export default function AddCatalogItemModal({
           </label>
           <label className="block text-sm sm:col-span-2">
             <span className="mb-1.5 block text-xs font-medium text-slate-700">
-              Quantity source *
+              {CATALOG_CONTRACTOR_LABELS.measurement} *
             </span>
             <select
               className={FIELD_INPUT}
@@ -122,13 +130,11 @@ export default function AddCatalogItemModal({
                 </option>
               ))}
             </select>
-            <span className="mt-1 block text-xs text-slate-500">
-              Default <span className="font-medium">Fixed quantity</span> for custom manual lines.
-            </span>
+            <FieldHelper text={CATALOG_FIELD_HELPERS.measurement} />
           </label>
           <label className="block text-sm sm:col-span-2">
             <span className="mb-1.5 block text-xs font-medium text-slate-700">
-              Customer-facing name
+              {CATALOG_CONTRACTOR_LABELS.customerName}
             </span>
             <input
               type="text"
@@ -139,7 +145,9 @@ export default function AddCatalogItemModal({
             />
           </label>
           <label className="block text-sm sm:col-span-2">
-            <span className="mb-1.5 block text-xs font-medium text-slate-700">Description</span>
+            <span className="mb-1.5 block text-xs font-medium text-slate-700">
+              {CATALOG_CONTRACTOR_LABELS.customerDescription}
+            </span>
             <textarea
               rows={2}
               className={`${FIELD_INPUT} resize-y`}
@@ -149,7 +157,9 @@ export default function AddCatalogItemModal({
             />
           </label>
           <label className="block text-sm">
-            <span className="mb-1.5 block text-xs font-medium text-slate-700">Unit price</span>
+            <span className="mb-1.5 block text-xs font-medium text-slate-700">
+              {CATALOG_CONTRACTOR_LABELS.unitPrice}
+            </span>
             <input
               type="text"
               inputMode="decimal"
@@ -161,7 +171,9 @@ export default function AddCatalogItemModal({
             />
           </label>
           <label className="block text-sm">
-            <span className="mb-1.5 block text-xs font-medium text-slate-700">Unit cost</span>
+            <span className="mb-1.5 block text-xs font-medium text-slate-700">
+              {CATALOG_CONTRACTOR_LABELS.unitCost}
+            </span>
             <input
               type="text"
               inputMode="decimal"
@@ -188,7 +200,9 @@ export default function AddCatalogItemModal({
             </select>
           </label>
           <label className="block text-sm">
-            <span className="mb-1.5 block text-xs font-medium text-slate-700">Visibility</span>
+            <span className="mb-1.5 block text-xs font-medium text-slate-700">
+              {CATALOG_CONTRACTOR_LABELS.proposal}
+            </span>
             <select
               className={FIELD_INPUT}
               value={form.customer_visibility}

@@ -91,7 +91,7 @@ export const FIELD_DIVE_NAV_SECTIONS: FieldDiveNavSectionConfig[] = [
       },
       {
         key: "catalog",
-        label: "Price book",
+        label: "Catalog",
         href: "/tools/roofing/catalog",
         kind: "link",
         icon: "package",
@@ -123,7 +123,7 @@ export const FIELD_DIVE_NAV_SECTIONS: FieldDiveNavSectionConfig[] = [
         href: "/admin/price-book",
         kind: "legacy",
         icon: "bookOpen",
-        soonTitle: "Replaced by Price book — legacy admin shelf only. Do not use for new proposals.",
+        soonTitle: "Replaced by Catalog — legacy admin shelf only. Do not use for new proposals.",
       },
       {
         key: null,

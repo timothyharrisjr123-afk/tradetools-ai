@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   countUnpricedCatalogItems,
   deriveCatalogReadiness,
-  formatStarterCatalogAvailability,
 } from "@/app/lib/catalogReadiness";
 import {
   createCatalogItem,
@@ -19,9 +18,12 @@ import {
   type InstallDefaultRoofingCatalogResult,
 } from "@/app/lib/defaultRoofingCatalogInstall";
 import {
-  CATALOG_TYPE_GROUP_SECTIONS,
-  type CatalogItemTypeFilter,
-} from "@/app/admin/catalog/catalogAdminConstants";
+  catalogItemMatchesContractorFilter,
+  CATALOG_CONTRACTOR_LABELS,
+  formatCatalogCompactStatusLine,
+  type CatalogContractorTypeFilter,
+  type CatalogPageTab,
+} from "@/app/lib/catalogContractorLabels";
 import {
   EMPTY_ADD_CATALOG_FORM,
   STARTER_DEFINITION_COUNT,
@@ -38,12 +40,15 @@ import {
 import CatalogItemsWorkspace from "./CatalogItemsWorkspace";
 import CatalogPageAlerts from "./CatalogPageAlerts";
 import CatalogPageHeader from "./CatalogPageHeader";
-import CatalogRoadmapFootnote from "./CatalogRoadmapFootnote";
-import CatalogSetupChecklist from "./CatalogSetupChecklist";
-import CatalogStarterHeroCard from "./CatalogStarterHeroCard";
-import CatalogWorkspaceLayout from "./CatalogWorkspaceLayout";
+import CatalogSettingsPanel from "./CatalogSettingsPanel";
+
+const TAB_BASE =
+  "shrink-0 border-b-2 px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300";
+const TAB_ACTIVE = "border-slate-900 text-slate-900";
+const TAB_INACTIVE = "border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-800";
 
 export default function CatalogSetupClient({ companyId }: { companyId: string }) {
+  const [activeTab, setActiveTab] = useState<CatalogPageTab>("all_items");
   const [items, setItems] = useState<CatalogItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [installing, setInstalling] = useState(false);
@@ -57,8 +62,7 @@ export default function CatalogSetupClient({ companyId }: { companyId: string })
   const [savingItemId, setSavingItemId] = useState<string | null>(null);
   const [editError, setEditError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [itemTypeFilter, setItemTypeFilter] = useState<CatalogItemTypeFilter>("all");
-  const [unpricedOnly, setUnpricedOnly] = useState(false);
+  const [itemTypeFilter, setItemTypeFilter] = useState<CatalogContractorTypeFilter>("all");
   const [showInactive, setShowInactive] = useState(false);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [addForm, setAddForm] = useState<AddCatalogItemForm>(EMPTY_ADD_CATALOG_FORM);
@@ -106,10 +110,18 @@ export default function CatalogSetupClient({ companyId }: { companyId: string })
     [activeItems]
   );
 
-  const starterDisplay = formatStarterCatalogAvailability(readiness);
   const starterInstalled = hasAllStarterSeedKeys(activeItems);
   const unpricedCount = useMemo(() => countUnpricedCatalogItems(activeItems), [activeItems]);
-  const templateReadinessReady = readiness.state === "ready_for_templates";
+
+  const compactStatusLine = useMemo(
+    () =>
+      formatCatalogCompactStatusLine({
+        pricedCount: readiness.pricedItemCount,
+        activeCount: readiness.activeItemCount,
+        needsPriceCount: unpricedCount,
+      }),
+    [readiness.pricedItemCount, readiness.activeItemCount, unpricedCount]
+  );
 
   const sortedItems = useMemo(() => [...items].sort(compareCatalogItemsForDisplay), [items]);
 
@@ -117,10 +129,7 @@ export default function CatalogSetupClient({ companyId }: { companyId: string })
 
   const filteredItems = useMemo(() => {
     return sortedItems.filter((item) => {
-      if (itemTypeFilter !== "all" && item.item_type !== itemTypeFilter) {
-        return false;
-      }
-      if (unpricedOnly && !isCatalogItemUnpriced(item)) {
+      if (!catalogItemMatchesContractorFilter(item, itemTypeFilter)) {
         return false;
       }
       if (normalizedSearch && !catalogItemSearchHaystack(item).includes(normalizedSearch)) {
@@ -128,41 +137,20 @@ export default function CatalogSetupClient({ companyId }: { companyId: string })
       }
       return true;
     });
-  }, [sortedItems, itemTypeFilter, unpricedOnly, normalizedSearch]);
+  }, [sortedItems, itemTypeFilter, normalizedSearch]);
 
   const filteredUnpricedCount = useMemo(
     () => filteredItems.filter((item) => isCatalogItemUnpriced(item)).length,
     [filteredItems]
   );
 
-  const hasListFilters =
-    normalizedSearch.length > 0 || itemTypeFilter !== "all" || unpricedOnly;
+  const hasListFilters = normalizedSearch.length > 0 || itemTypeFilter !== "all";
 
-  const groupByItemType = itemTypeFilter === "all";
-
-  const groupedFilteredItems = useMemo(() => {
-    if (!groupByItemType) {
-      return [{ key: "flat", label: "", items: filteredItems }];
-    }
-    const sections = CATALOG_TYPE_GROUP_SECTIONS.map((section) => ({
-      key: section.key,
-      label: section.label,
-      items: filteredItems.filter((item) =>
-        (section.types as readonly string[]).includes(item.item_type)
-      ),
-    })).filter((section) => section.items.length > 0);
-
-    const groupedIds = new Set(sections.flatMap((section) => section.items.map((item) => item.id)));
-    const uncategorized = filteredItems.filter((item) => !groupedIds.has(item.id));
-    if (uncategorized.length > 0) {
-      sections.push({
-        key: "uncategorized",
-        label: "Other types",
-        items: [...uncategorized].sort(compareCatalogItemsForDisplay),
-      });
-    }
-    return sections;
-  }, [filteredItems, groupByItemType]);
+  /** P0D: continuous flat list — no MATERIALS/LABOR/FEES group divider rows. */
+  const groupedFilteredItems = useMemo(
+    () => [{ key: "flat", label: "", items: filteredItems }],
+    [filteredItems]
+  );
 
   const editingItem = useMemo(
     () => (editingItemId ? items.find((item) => item.id === editingItemId) : null),
@@ -172,14 +160,6 @@ export default function CatalogSetupClient({ companyId }: { companyId: string })
   function clearListFilters() {
     setSearchQuery("");
     setItemTypeFilter("all");
-    setUnpricedOnly(false);
-  }
-
-  function startPricingQueue() {
-    setUnpricedOnly(true);
-    setSearchQuery("");
-    setItemTypeFilter("all");
-    document.getElementById("catalog-configure-items")?.scrollIntoView({ behavior: "smooth" });
   }
 
   function openAddCatalogModal() {
@@ -211,13 +191,19 @@ export default function CatalogSetupClient({ companyId }: { companyId: string })
       return;
     }
 
-    const unitPrice = parseDollarsToCentsOrNull(addForm.unit_price_dollars, "Unit price");
+    const unitPrice = parseDollarsToCentsOrNull(
+      addForm.unit_price_dollars,
+      CATALOG_CONTRACTOR_LABELS.unitPrice
+    );
     if (unitPrice.error) {
       setAddError(unitPrice.error);
       return;
     }
 
-    const unitCost = parseDollarsToCentsOrNull(addForm.unit_cost_dollars, "Unit cost");
+    const unitCost = parseDollarsToCentsOrNull(
+      addForm.unit_cost_dollars,
+      CATALOG_CONTRACTOR_LABELS.unitCost
+    );
     if (unitCost.error) {
       setAddError(unitCost.error);
       return;
@@ -335,13 +321,19 @@ export default function CatalogSetupClient({ companyId }: { companyId: string })
   async function handleSaveItem(item: CatalogItem) {
     if (!editDraft || savingItemId) return;
 
-    const unitPrice = parseDollarsToCentsOrNull(editDraft.unit_price_dollars, "Unit price");
+    const unitPrice = parseDollarsToCentsOrNull(
+      editDraft.unit_price_dollars,
+      CATALOG_CONTRACTOR_LABELS.unitPrice
+    );
     if (unitPrice.error) {
       setEditError(unitPrice.error);
       return;
     }
 
-    const unitCost = parseDollarsToCentsOrNull(editDraft.unit_cost_dollars, "Unit cost");
+    const unitCost = parseDollarsToCentsOrNull(
+      editDraft.unit_cost_dollars,
+      CATALOG_CONTRACTOR_LABELS.unitCost
+    );
     if (unitCost.error) {
       setEditError(unitCost.error);
       return;
@@ -351,7 +343,7 @@ export default function CatalogSetupClient({ companyId }: { companyId: string })
     if (item.item_type === "labor") {
       const labor = parseDollarsToCentsOrNull(
         editDraft.labor_unit_cost_dollars,
-        "Labor unit cost"
+        "Labor cost"
       );
       if (labor.error) {
         setEditError(labor.error);
@@ -448,88 +440,91 @@ export default function CatalogSetupClient({ companyId }: { companyId: string })
 
   const busy =
     loading || installing || savingItemId != null || creatingItem || togglingActiveId != null;
-  const installButtonLabel = installing
-    ? "Installing…"
-    : starterInstalled
-      ? "Recheck starter catalog"
-      : "Install starter roofing catalog";
+  const showEmptyInstall = !loading && sortedItems.length === 0;
 
   return (
-    <div className="w-full space-y-6 text-slate-900">
+    <div className="w-full space-y-3 text-slate-900">
       <CatalogPageHeader />
 
       <CatalogPageAlerts loadError={loadError} message={message} />
 
-      <CatalogWorkspaceLayout
-        main={
-          <>
-            <CatalogStarterHeroCard
-              loading={loading}
-              busy={busy}
-              readiness={readiness}
-              starterInstalled={starterInstalled}
-              starterDisplay={starterDisplay}
-              unpricedCount={unpricedCount}
-              installButtonLabel={installButtonLabel}
-              onInstallStarter={() => void handleInstallStarter()}
-              onStartPricingQueue={startPricingQueue}
-              installResult={installResult}
-            />
-            <CatalogItemsWorkspace
-              loading={loading}
-              busy={busy}
-              unpricedCount={unpricedCount}
-              showInactive={showInactive}
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              itemTypeFilter={itemTypeFilter}
-              onItemTypeFilterChange={setItemTypeFilter}
-              unpricedOnly={unpricedOnly}
-              onUnpricedOnlyChange={() => setUnpricedOnly((prev) => !prev)}
-              onShowInactiveChange={() => setShowInactive((prev) => !prev)}
-              hasListFilters={hasListFilters}
-              onClearFilters={clearListFilters}
-              groupByItemType={groupByItemType}
-              filteredItemsCount={filteredItems.length}
-              sortedItemsCount={sortedItems.length}
-              filteredUnpricedCount={filteredUnpricedCount}
-              sortedItems={sortedItems}
-              filteredItems={filteredItems}
-              groupedFilteredItems={groupedFilteredItems}
-              editingItem={editingItem}
-              editingItemId={editingItemId}
-              editDraft={editDraft}
-              editError={editError}
-              savingItemId={savingItemId}
-              togglingActiveId={togglingActiveId}
-              onEditToggle={handleEditToggle}
-              onToggleActive={(item) => void handleToggleActive(item)}
-              onDraftChange={handleDraftChange}
-              onSaveItem={() => editingItem && void handleSaveItem(editingItem)}
-              onCloseEditor={closeEditor}
-              onAddItem={openAddCatalogModal}
-              addModalOpen={addModalOpen}
-              addForm={addForm}
-              addError={addError}
-              creatingItem={creatingItem}
-              onAddFormChange={handleAddFormChange}
-              onCloseAddModal={closeAddCatalogModal}
-              onSubmitAdd={() => void handleCreateCatalogItem()}
-            />
-          </>
-        }
-        aside={
-          <CatalogSetupChecklist
-            loading={loading}
-            starterInstalled={starterInstalled}
-            readiness={readiness}
-            unpricedCount={unpricedCount}
-            templateReadinessReady={templateReadinessReady}
-          />
-        }
-      />
+      <div className="space-y-0">
+        <div
+          className="-mb-px flex gap-1 overflow-x-auto border-b border-slate-200 bg-transparent"
+          role="tablist"
+          aria-label="Catalog sections"
+        >
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === "all_items"}
+            className={`${TAB_BASE} ${activeTab === "all_items" ? TAB_ACTIVE : TAB_INACTIVE}`}
+            onClick={() => setActiveTab("all_items")}
+          >
+            All items
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === "settings"}
+            className={`${TAB_BASE} ${activeTab === "settings" ? TAB_ACTIVE : TAB_INACTIVE}`}
+            onClick={() => setActiveTab("settings")}
+          >
+            Settings
+          </button>
+        </div>
 
-      <CatalogRoadmapFootnote />
+        {activeTab === "settings" ? (
+          <div className="pt-3">
+            <CatalogSettingsPanel />
+          </div>
+        ) : (
+          <CatalogItemsWorkspace
+            loading={loading}
+            busy={busy}
+            needsPriceCount={unpricedCount}
+            compactStatusLine={compactStatusLine}
+            showEmptyInstall={showEmptyInstall}
+            starterInstalled={starterInstalled}
+            installing={installing}
+            installResult={installResult}
+            onInstallStarter={() => void handleInstallStarter()}
+            showInactive={showInactive}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            itemTypeFilter={itemTypeFilter}
+            onItemTypeFilterChange={setItemTypeFilter}
+            onShowInactiveChange={() => setShowInactive((prev) => !prev)}
+            hasListFilters={hasListFilters}
+            onClearFilters={clearListFilters}
+            filteredItemsCount={filteredItems.length}
+            sortedItemsCount={sortedItems.length}
+            filteredNeedsPriceCount={filteredUnpricedCount}
+            sortedItems={sortedItems}
+            filteredItems={filteredItems}
+            groupedFilteredItems={groupedFilteredItems}
+            editingItem={editingItem}
+            editingItemId={editingItemId}
+            editDraft={editDraft}
+            editError={editError}
+            savingItemId={savingItemId}
+            togglingActiveId={togglingActiveId}
+            onEditToggle={handleEditToggle}
+            onToggleActive={(item) => void handleToggleActive(item)}
+            onDraftChange={handleDraftChange}
+            onSaveItem={() => editingItem && void handleSaveItem(editingItem)}
+            onCloseEditor={closeEditor}
+            onAddItem={openAddCatalogModal}
+            addModalOpen={addModalOpen}
+            addForm={addForm}
+            addError={addError}
+            creatingItem={creatingItem}
+            onAddFormChange={handleAddFormChange}
+            onCloseAddModal={closeAddCatalogModal}
+            onSubmitAdd={() => void handleCreateCatalogItem()}
+          />
+        )}
+      </div>
     </div>
   );
 }

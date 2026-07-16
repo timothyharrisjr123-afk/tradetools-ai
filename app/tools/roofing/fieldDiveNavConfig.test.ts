@@ -16,6 +16,15 @@ import {
 } from "./fieldDiveNavConfig";
 
 describe("fieldDiveNavConfig", () => {
+  test("Setup nav uses Catalog label, not Price book", () => {
+    const setup = FIELD_DIVE_NAV_SECTIONS.find((section) => section.id === "setup");
+    assert.ok(setup);
+    const catalog = setup.items.find((item) => item.key === "catalog");
+    assert.ok(catalog);
+    assert.equal(catalog.label, "Catalog");
+    assert.equal(catalog.href, "/tools/roofing/catalog");
+  });
+
   test("keeps Jobs and Proposal templates reachable", () => {
     assert.equal(hasNavHref("/tools/roofing/saved"), true);
     assert.equal(hasNavHref("/tools/roofing/templates"), true);

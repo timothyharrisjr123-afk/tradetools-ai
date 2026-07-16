@@ -6,19 +6,35 @@ import {
   quantitySourceLabel,
 } from "@/app/lib/catalogTypes";
 import {
-  TABLE_COLUMN_COUNT,
+  CATALOG_BULK_SELECTION_PLANNED_TITLE,
+  CATALOG_CONTRACTOR_LABELS,
+  catalogItemDisplayName,
+  catalogStatusPillTone,
+  formatCatalogItemStatus,
+  formatProposalVisibilityShort,
+  proposalVisibilityPillTone,
+} from "@/app/lib/catalogContractorLabels";
+import {
+  CATALOG_PILL_PROPOSAL_GROUPED,
+  CATALOG_PILL_PROPOSAL_HIDDEN,
+  CATALOG_PILL_PROPOSAL_VISIBLE,
+  CATALOG_PILL_STATUS_ACTIVE,
+  CATALOG_PILL_STATUS_INACTIVE,
+  CATALOG_PILL_STATUS_NEEDS_PRICE,
+  CATALOG_SELECT_CHECKBOX,
   TABLE_TD,
   TABLE_TD_COMPACT,
   TABLE_TD_NAME,
+  TABLE_TD_SELECT,
   TABLE_TD_UNIT,
   TABLE_TD_WIDE,
   TABLE_TH,
   TABLE_TH_ACTION,
   TABLE_TD_ACTION,
   TABLE_TH_COMPACT,
+  TABLE_TH_SELECT,
   TABLE_TH_WIDE,
 } from "../catalogAdminConstants";
-import { extractSeedKey } from "../catalogAdminUtils";
 import CatalogPriceTableCell from "./CatalogPriceTableCell";
 
 export type CatalogItemTableSection = {
@@ -28,8 +44,8 @@ export type CatalogItemTableSection = {
 };
 
 type CatalogItemTableProps = {
+  /** Flat continuous list sections (P0D — no group divider rows). */
   groupedFilteredItems: CatalogItemTableSection[];
-  groupByItemType: boolean;
   selectedItemId: string | null;
   savingItemId: string | null;
   togglingActiveId: string | null;
@@ -38,9 +54,38 @@ type CatalogItemTableProps = {
   onToggleActive: (item: CatalogItem) => void;
 };
 
+function proposalPillClass(visibility: CatalogItem["customer_visibility"]): string {
+  const tone = proposalVisibilityPillTone(visibility);
+  if (tone === "visible") return CATALOG_PILL_PROPOSAL_VISIBLE;
+  if (tone === "grouped") return CATALOG_PILL_PROPOSAL_GROUPED;
+  if (tone === "hidden") return CATALOG_PILL_PROPOSAL_HIDDEN;
+  return CATALOG_PILL_PROPOSAL_HIDDEN;
+}
+
+function statusPillClass(item: CatalogItem): string {
+  const tone = catalogStatusPillTone(item);
+  if (tone === "needs_price") return CATALOG_PILL_STATUS_NEEDS_PRICE;
+  if (tone === "inactive") return CATALOG_PILL_STATUS_INACTIVE;
+  return CATALOG_PILL_STATUS_ACTIVE;
+}
+
+function PlannedSelectCheckbox({ id }: { id: string }) {
+  return (
+    <input
+      id={id}
+      type="checkbox"
+      disabled
+      aria-disabled="true"
+      tabIndex={-1}
+      className={CATALOG_SELECT_CHECKBOX}
+      title={CATALOG_BULK_SELECTION_PLANNED_TITLE}
+      aria-label={CATALOG_BULK_SELECTION_PLANNED_TITLE}
+    />
+  );
+}
+
 export default function CatalogItemTable({
   groupedFilteredItems,
-  groupByItemType,
   selectedItemId,
   savingItemId,
   togglingActiveId,
@@ -48,121 +93,104 @@ export default function CatalogItemTable({
   onEditToggle,
   onToggleActive,
 }: CatalogItemTableProps) {
+  const flatItems = groupedFilteredItems.flatMap((section) => section.items);
+
   return (
-    <div className="mt-4 overflow-x-auto rounded-lg border border-slate-200 bg-slate-50/40 px-1 py-2 sm:px-1.5">
-      <table className="w-full min-w-0 table-auto text-sm">
+    <div className="overflow-x-auto bg-white">
+      <table className="w-full min-w-[54rem] table-auto text-sm">
         <thead>
           <tr className="border-b border-slate-200 bg-slate-100/80 text-left">
-            <th className={TABLE_TH_WIDE}>Name</th>
-            <th className={TABLE_TH_WIDE}>Customer name</th>
-            <th className={TABLE_TH}>Type</th>
-            <th className={TABLE_TH}>Unit</th>
-            <th className={TABLE_TH_WIDE}>Quantity source</th>
-            <th className={TABLE_TH_COMPACT}>Unit price</th>
-            <th className={TABLE_TH_COMPACT}>Unit cost</th>
-            <th className={TABLE_TH_COMPACT}>Active</th>
-            <th className={TABLE_TH_WIDE}>Seed key</th>
-            <th className={TABLE_TH_COMPACT}>Sort</th>
-            <th className={TABLE_TH_ACTION}>Action</th>
+            <th className={TABLE_TH_SELECT} scope="col">
+              <PlannedSelectCheckbox id="catalog-select-all-planned" />
+            </th>
+            <th className={TABLE_TH_WIDE}>{CATALOG_CONTRACTOR_LABELS.name}</th>
+            <th className={TABLE_TH}>{CATALOG_CONTRACTOR_LABELS.type}</th>
+            <th className={TABLE_TH_WIDE}>{CATALOG_CONTRACTOR_LABELS.measurement}</th>
+            <th className={TABLE_TH}>{CATALOG_CONTRACTOR_LABELS.unit}</th>
+            <th className={TABLE_TH_COMPACT}>{CATALOG_CONTRACTOR_LABELS.unitCost}</th>
+            <th className={TABLE_TH_COMPACT}>{CATALOG_CONTRACTOR_LABELS.unitPrice}</th>
+            <th className={TABLE_TH_COMPACT}>{CATALOG_CONTRACTOR_LABELS.proposal}</th>
+            <th className={TABLE_TH_COMPACT}>{CATALOG_CONTRACTOR_LABELS.status}</th>
+            <th className={TABLE_TH_ACTION}>{CATALOG_CONTRACTOR_LABELS.actions}</th>
           </tr>
         </thead>
-        <tbody className="bg-white">
-          {groupedFilteredItems.map((section) => (
-            <Fragment key={section.key}>
-              {groupByItemType && section.label ? (
-                <tr className="border-b border-slate-200 bg-slate-100/70">
-                  <td
-                    colSpan={TABLE_COLUMN_COUNT}
-                    className="px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-slate-600"
-                  >
-                    {section.label}
-                    <span className="ml-2 font-normal normal-case text-slate-500">
-                      ({section.items.length})
+        <tbody>
+          {flatItems.map((item) => {
+            const isSelected = selectedItemId === item.id;
+            const isSaving = savingItemId === item.id;
+            const isTogglingActive = togglingActiveId === item.id;
+            const display = catalogItemDisplayName(item);
+            const status = formatCatalogItemStatus(item);
+            const proposalLabel = formatProposalVisibilityShort(item.customer_visibility);
+
+            return (
+              <Fragment key={item.id}>
+                <tr
+                  className={`group border-b border-slate-100 transition-colors hover:bg-slate-50/90 ${isSelected ? "bg-slate-50 ring-1 ring-inset ring-slate-200" : ""} ${!item.active ? "opacity-70" : ""}`}
+                >
+                  <td className={TABLE_TD_SELECT}>
+                    <PlannedSelectCheckbox id={`catalog-select-${item.id}`} />
+                  </td>
+                  <td className={TABLE_TD_NAME}>
+                    <span className="font-medium text-slate-900">{display.primary}</span>
+                    {display.secondary ? (
+                      <span className="mt-0.5 block text-xs font-normal text-slate-500">
+                        {display.secondary}
+                      </span>
+                    ) : null}
+                  </td>
+                  <td className={TABLE_TD}>
+                    <span className="text-slate-600">{catalogItemTypeLabel(item.item_type)}</span>
+                  </td>
+                  <td className={`${TABLE_TD_WIDE} max-w-[10rem] truncate text-slate-600`}>
+                    {quantitySourceLabel(item.quantity_source)}
+                  </td>
+                  <td className={TABLE_TD_UNIT}>{catalogUnitLabel(item.unit)}</td>
+                  <td className={TABLE_TD_COMPACT}>
+                    <CatalogPriceTableCell cents={item.unit_cost_cents} emptyLabel="—" />
+                  </td>
+                  <td className={TABLE_TD_COMPACT}>
+                    <CatalogPriceTableCell cents={item.unit_price_cents} />
+                  </td>
+                  <td className={TABLE_TD_COMPACT}>
+                    <span className={proposalPillClass(item.customer_visibility)}>
+                      {proposalLabel}
                     </span>
                   </td>
-                </tr>
-              ) : null}
-              {section.items.map((item) => {
-                const seedKey = extractSeedKey(item.metadata ?? null);
-                const isSelected = selectedItemId === item.id;
-                const isSaving = savingItemId === item.id;
-                const isTogglingActive = togglingActiveId === item.id;
-
-                return (
-                  <tr
-                    key={item.id}
-                    className={`group border-b border-slate-100 transition-colors hover:bg-slate-50/80 ${isSelected ? "bg-cyan-50/60 ring-1 ring-inset ring-cyan-200" : ""} ${!item.active ? "bg-slate-50/60 opacity-75" : ""}`}
+                  <td className={TABLE_TD_COMPACT}>
+                    <span className={statusPillClass(item)}>{status}</span>
+                  </td>
+                  <td
+                    className={`${TABLE_TD_ACTION} ${isSelected ? "bg-slate-50" : "bg-white group-hover:bg-slate-50/90"}`}
                   >
-                    <td className={TABLE_TD_NAME}>
-                      {item.name}
-                      {!item.active && (
-                        <span className="ml-2 inline-block rounded-full bg-slate-200 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-slate-600">
-                          Inactive
-                        </span>
-                      )}
-                    </td>
-                    <td className={TABLE_TD_WIDE}>{item.customer_name?.trim() || "—"}</td>
-                    <td className={TABLE_TD}>{catalogItemTypeLabel(item.item_type)}</td>
-                    <td className={TABLE_TD_UNIT}>{catalogUnitLabel(item.unit)}</td>
-                    <td className={`${TABLE_TD_WIDE} max-w-[8rem] truncate`}>
-                      {quantitySourceLabel(item.quantity_source)}
-                    </td>
-                    <td className={TABLE_TD_COMPACT}>
-                      <CatalogPriceTableCell cents={item.unit_price_cents} />
-                    </td>
-                    <td className={TABLE_TD_COMPACT}>
-                      <CatalogPriceTableCell cents={item.unit_cost_cents} />
-                    </td>
-                    <td className={TABLE_TD_COMPACT}>
-                      <span
-                        className={
-                          item.active
-                            ? "text-emerald-700 font-medium"
-                            : "text-slate-500 font-medium"
+                    <div className="flex items-center justify-end gap-3">
+                      <button
+                        type="button"
+                        onClick={() => onEditToggle(item)}
+                        disabled={
+                          isSaving ||
+                          isTogglingActive ||
+                          (savingItemId != null && !isSaving)
                         }
+                        className="text-sm font-semibold text-slate-900 underline-offset-2 hover:underline disabled:cursor-not-allowed disabled:opacity-50 disabled:no-underline"
                       >
-                        {item.active ? "Yes" : "No"}
-                      </span>
-                    </td>
-                    <td
-                      className={`${TABLE_TD_WIDE} max-w-[7.5rem] truncate font-mono text-xs text-slate-600`}
-                    >
-                      {seedKey ?? "—"}
-                    </td>
-                    <td className={`${TABLE_TD_COMPACT} tabular-nums`}>
-                      {item.sort_order != null ? item.sort_order : "—"}
-                    </td>
-                    <td
-                      className={`${TABLE_TD_ACTION} ${isSelected ? "bg-cyan-50/60" : !item.active ? "bg-slate-50/60" : "bg-white group-hover:bg-slate-50/80"}`}
-                    >
-                      <div className="flex flex-col gap-1 sm:flex-row sm:items-center">
-                        <button
-                          type="button"
-                          onClick={() => onEditToggle(item)}
-                          disabled={
-                            isSaving ||
-                            isTogglingActive ||
-                            (savingItemId != null && !isSaving)
-                          }
-                          className="text-sm font-semibold text-cyan-700 hover:text-cyan-900 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          {isSelected ? "Close" : "Edit"}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => onToggleActive(item)}
-                          disabled={busy && !isTogglingActive}
-                          className="text-left text-xs font-semibold text-slate-600 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          {isTogglingActive ? "…" : item.active ? "Deactivate" : "Reactivate"}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </Fragment>
-          ))}
+                        {isSelected ? "Close" : "Edit"}
+                      </button>
+                      <span className="h-3.5 w-px shrink-0 bg-slate-200" aria-hidden />
+                      <button
+                        type="button"
+                        onClick={() => onToggleActive(item)}
+                        disabled={busy && !isTogglingActive}
+                        className="text-xs font-medium text-slate-400 hover:text-slate-600 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {isTogglingActive ? "…" : item.active ? "Deactivate" : "Reactivate"}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </Fragment>
+            );
+          })}
         </tbody>
       </table>
     </div>
