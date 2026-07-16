@@ -97,6 +97,11 @@ export type CatalogItem = {
   default_quantity?: number | null;
   coverage_rate?: number | null;
   waste_applies?: boolean | null;
+  /**
+   * Future raw_plus_waste catalog driver (percent points; 10 = 10%).
+   * Nullable/non-authoritative until separately approved production wiring.
+   */
+  waste_pct?: number | null;
   unit_cost_cents?: number | null;
   unit_price_cents?: number | null;
   labor_unit_cost_cents?: number | null;

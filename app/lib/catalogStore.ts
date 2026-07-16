@@ -38,6 +38,8 @@ export type CatalogItemRow = {
   default_quantity?: number | null;
   coverage_rate?: number | null;
   waste_applies: boolean;
+  /** Future driver; nullable. Non-authoritative until separately wired. */
+  waste_pct?: number | null;
   unit_cost_cents?: number | string | null;
   unit_price_cents?: number | string | null;
   labor_unit_cost_cents?: number | string | null;
@@ -56,7 +58,7 @@ export type CatalogItemInsertRow = Partial<CatalogItemRow>;
 export type CatalogItemUpdateRow = Partial<CatalogItemRow>;
 
 const CATALOG_ITEM_SELECT_COLUMNS =
-  "id, company_id, name, customer_name, description, item_type, unit, quantity_source, default_quantity, coverage_rate, waste_applies, unit_cost_cents, unit_price_cents, labor_unit_cost_cents, pricing_basis, customer_visibility, active, sort_order, metadata, created_by, updated_by, created_at, updated_at";
+  "id, company_id, name, customer_name, description, item_type, unit, quantity_source, default_quantity, coverage_rate, waste_applies, waste_pct, unit_cost_cents, unit_price_cents, labor_unit_cost_cents, pricing_basis, customer_visibility, active, sort_order, metadata, created_by, updated_by, created_at, updated_at";
 
 /** Subset for future admin list queries (full row mapper supports summary today). */
 export const CATALOG_ITEM_SUMMARY_SELECT_COLUMNS =
@@ -138,6 +140,7 @@ export function rowToCatalogItem(row: CatalogItemRow): CatalogItem {
     default_quantity: normalizeNullableNumber(row.default_quantity),
     coverage_rate: normalizeNullableNumber(row.coverage_rate),
     waste_applies: Boolean(row.waste_applies),
+    waste_pct: normalizeNullableNumber(row.waste_pct),
     unit_cost_cents: normalizeNullableInteger(row.unit_cost_cents),
     unit_price_cents: normalizeNullableInteger(row.unit_price_cents),
     labor_unit_cost_cents: normalizeNullableInteger(row.labor_unit_cost_cents),
@@ -204,6 +207,10 @@ function draftToRowFields(
         : mode === "insert"
           ? false
           : undefined,
+    waste_pct:
+      draft.waste_pct !== undefined
+        ? normalizeNullableNumber(draft.waste_pct)
+        : undefined,
     unit_cost_cents:
       draft.unit_cost_cents !== undefined
         ? normalizeNullableInteger(draft.unit_cost_cents)

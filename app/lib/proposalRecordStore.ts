@@ -272,6 +272,11 @@ export type ProposalLineItemRow = {
   pricing_status: string;
   visible_to_customer: boolean;
   measurement_quantity_key: string | null;
+  /**
+   * Future quantity-resolution audit echo (DB jsonb). Internal row awareness only.
+   * Not customer-facing; not populated by draft create/refresh/snapshot/send paths yet.
+   */
+  quantity_resolution_echo?: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
 };
