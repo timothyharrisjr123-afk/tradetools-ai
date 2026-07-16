@@ -10886,7 +10886,7 @@ First login / Jobs Board
 |------|-------|------|
 | **S0 — docs research lock + P0D commit** | Commit the P0A–P0D Catalog chrome foundation and this research/stop-rule record | Current step; no systems behavior |
 | **S1 — Quantity/Waste Architecture Decision** | Decide coverage units, quantity conversion, rounding, raw-vs-adjusted measurement ownership, and waste precedence | **Immediate next after P0D commit; not UI column work** |
-| **S2 — schema/model** | Add only approved fields/models after S1 (for example waste percent or supplier mappings) | Requires explicit schema/migration approval |
+| **S2 — schema/model migration draft** | Unapplied additive draft `20260716_021_add_quantity_resolution_fields.sql` (waste_pct + quantity_resolution_echo); disposable-validated | Do not apply to production without explicit approval; no UI/resolver/engine wiring |
 | **S3 — pure math/tests** | Prove coverage conversion, waste single-application, rounding, and tax/cost incidence without UI | Must pass before live columns/editing |
 | **S4 — read-only UI** | Show proven values and optional columns without editing | Only truthful engine-backed values |
 | **S5 — editable UI** | Detail/settings/bulk editing after validation and store APIs exist | No fake forms; audit/update rules required |
@@ -11042,7 +11042,26 @@ The helpers remain intentionally **unwired**. Production still supports **`adjus
 - No widening of `waste_model` or `quantity_rounding` DB checks yet.
 - No proposal draft refresh, snapshot-builder, sent/frozen, or customer-presentation changes yet.
 - No tax/supplier scope bleed into quantity schema.
-- No migration until the **S2 migration draft proposal** is reviewed and explicitly approved.
+- Do **not** apply the S2 migration to production without separate explicit approval. The draft exists and is disposable-validated only.
+
+###### S2 migration draft + disposable validation note
+
+**Status:** **Draft created; disposable-validated; unapplied.** File: `supabase/migrations/20260716_021_add_quantity_resolution_fields.sql`.
+
+Additive-only scope:
+
+- nullable `catalog_items.waste_pct` with finite/`>= 0` check;
+- nullable `proposal_line_items.quantity_resolution_echo jsonb` with object-or-null check;
+- comments clarifying `coverage_rate` / `waste_applies` / `waste_pct` / echo remain non-authoritative until separately wired;
+- no `coverage_basis`;
+- no `catalog_items.quantity_mode`;
+- no `company_pricing_policies` `waste_model` / `quantity_rounding` CHECK widening;
+- no UI, resolver, pricing-engine, pricing-mapper, or snapshot-builder wiring;
+- no invented backfills and no old-proposal migration.
+
+**Disposable validation:** applied once in an in-memory **PGlite** database with stub tables (not Docker/psql/Supabase CLI; not a full Supabase restore). Result: **26/26** checks passed (columns/nullability, validated constraints, comments, valid/invalid waste and echo values, unchanged row counts/quantities, policy CHECKs still limited to `adjusted_measurement` + `exact`). **Production SQL was not run.** Live Supabase was not used.
+
+**Next after this checkpoint:** do **not** apply to production without explicit approval; do **not** add Coverage/Waste UI columns; do **not** wire resolver/engine/mapper/snapshot paths.
 
 **P3 — polish**
 
@@ -11099,7 +11118,7 @@ The helpers remain intentionally **unwired**. Production still supports **`adjus
 | **Affected pages** | Setup Hub (`/tools/roofing/setup` proposed) |
 | **Success criteria** | One place for company readiness status |
 
-**Immediate next after S1E docs review/commit:** **S2 — migration draft proposal only (§6BO.13.4.3–§6BO.13.4.4)**. S2 may produce SQL text for review, but it is **not a live migration**: do not run SQL, apply migrations, add Coverage/Waste UI columns, or wire the resolver, pricing engine, pricing mapper, or snapshot builder. Slice 3 Pricing rules remains a separate P0 roadmap slice and is not authorization to change pricing math.
+**Immediate next after S2 draft checkpoint:** keep the S2 migration **unapplied** until separately approved. Do **not** run production SQL, apply migrations, add Coverage/Waste UI columns, or wire the resolver, pricing engine, pricing mapper, or snapshot builder. Optional parallel docs/work: Catalog P0 roadmap Slice 3 Pricing rules remains separate and is not authorization to change pricing math or apply quantity schema.
 
 #### 13.6 Stage C / R18D3D sequencing (with P0 UI)
 
@@ -12307,7 +12326,8 @@ Treat as **drift** if a session:
 
 ## Changelog (handoff doc only)
 
-- **2026-07-16:** **S1E Quantity/Waste schema/model decision lock** (pending docs commit; code checkpoint **`60b75cb`**) — records S1B/S1C completion and unwired pure helper/test modules; locks pricing-policy mode ownership, future nullable catalog drivers, preferred nullable line quantity-resolution echo, no measurement change, exact-only rounding, additive/no-backfill migration sequence, and stop rules in **§6BO.13.4.4**; next is **S2 migration draft proposal only**, SQL review text only and unapplied.
+- **2026-07-16:** **S2 quantity-resolution migration draft + disposable validation** (pending this commit; prior docs **`4dffa39`**, helpers **`60b75cb`**) — adds unapplied `supabase/migrations/20260716_021_add_quantity_resolution_fields.sql` (nullable `waste_pct` + nullable `quantity_resolution_echo` + comments/checks only; no policy CHECK widening; no coverage_basis; no catalog quantity_mode; no UI/resolver/engine wiring); disposable PGlite/stub validation **26/26 PASS**; not a full Supabase restore; production SQL not run; next remains do-not-apply without explicit approval.
+- **2026-07-16:** **S1E Quantity/Waste schema/model decision lock** (**`4dffa39` — `docs: lock S1 quantity schema model decision`**; code checkpoint **`60b75cb`**) — records S1B/S1C completion and unwired pure helper/test modules; locks pricing-policy mode ownership, future nullable catalog drivers, preferred nullable line quantity-resolution echo, no measurement change, exact-only rounding, additive/no-backfill migration sequence, and stop rules in **§6BO.13.4.4**; next after that commit was **S2 migration draft proposal only**, SQL review text only and unapplied.
 - **2026-07-16:** **S1B/S1C pure quantity-mode helpers and tests** (**`60b75cb` — `feat(catalog): add pure quantity-mode helpers and tests`**) — added `app/lib/catalogQuantityMode.ts` and focused tests with adjusted pass-through/double-waste protection plus future coverage/waste/exact-rounding contracts; helpers remain unwired and production behavior remains unchanged.
 - **2026-07-16:** **S1A Quantity/Waste Architecture Decision record** (docs only; uncommitted) — production remains `adjusted_measurement` with current resolver unchanged; `coverage_rate` / `waste_applies` remain non-authoritative stubs; durable target is Option D dual-mode (`adjusted_measurement` + future `raw_plus_waste`); snapshot/trust rules, tax/supplier boundaries, S1A–S1I sequence, and stop conditions recorded in **§6BO.13.4.4**; next after review/commit is **S1B pure helpers/types**, then **S1C fixtures/tests**, not UI columns.
 - **2026-07-16:** **Catalog P0D Roofr parity correction + systems research lock** (uncommitted with P0A–P0C) — continuous ungrouped All items (no MATERIALS/LABOR/FEES divider rows); disabled reserved selection checkbox column (no bulk bar); command bar Search · Filters & sort · Re-order / Columns / Manage (Coming soon) · Add; Roofr systems map, explicit truth stop rules, and S0–S9 sequence recorded in **§6BO.13.4.1–§6BO.13.4.3**; next after commit is **S1 Quantity/Waste Architecture Decision**, not UI column work.
