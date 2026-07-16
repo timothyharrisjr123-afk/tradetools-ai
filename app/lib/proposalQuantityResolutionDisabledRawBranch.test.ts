@@ -1,9 +1,10 @@
 /**
- * Phase 2 — disabled/test-only raw_plus_waste branch + raw echo/staleness.
+ * Historical Phase 2 fixture helper + raw echo/staleness compare coverage.
  *
  * Run: npx tsx --test app/lib/proposalQuantityResolutionDisabledRawBranch.test.ts
  *
- * Production adapter/policy remain adjusted_measurement-only.
+ * Production raw_plus_waste is policy-gated on the adapter path; this helper
+ * stays unwired from draft create/refresh. Default remains adjusted_measurement.
  */
 
 import assert from "node:assert/strict";
@@ -137,7 +138,7 @@ function validCompanyPolicy(overrides: Partial<PricingPolicy> = {}): PricingPoli
   };
 }
 
-describe("disabled raw branch — adjusted regression identity", () => {
+describe("fixture raw helper — adjusted regression identity", () => {
   test("1–4. adjusted adapter still deep-equals resolver; ignores catalog coverage/waste", () => {
     const input: ProposalQuantityResolverInput = {
       measurementHandoff: readyHandoff({ adjusted_roof_squares: 24 }),
@@ -173,7 +174,7 @@ describe("disabled raw branch — adjusted regression identity", () => {
   });
 });
 
-describe("disabled raw branch — raw_plus_waste math/echo", () => {
+describe("fixture raw helper — raw_plus_waste math/echo", () => {
   test("5. computes source → coverage → waste → exact", () => {
     const result = resolveDisabledRawPlusWasteQuantityBranch({
       rawSourceQuantity: 100,
@@ -284,7 +285,7 @@ describe("disabled raw branch — raw_plus_waste math/echo", () => {
     }
   });
 
-  test("13. raw_plus_waste remains not globally production-enabled", () => {
+  test("13. fixture helper stays unwired; production gate is policy on adapter", () => {
     assert.equal(RAW_PLUS_WASTE_PRODUCTION_ENABLED, false);
     assert.equal(DEFAULT_QUANTITY_MODE, "adjusted_measurement");
 
@@ -293,12 +294,16 @@ describe("disabled raw branch — raw_plus_waste math/echo", () => {
     });
     assert.equal(result.productionEnabled, false);
     if (result.ok) {
-      assert.ok(result.notes.some((n) => /not production-enabled/i.test(n)));
-      assert.ok(result.notes.some((n) => /disabled branch/i.test(n)));
+      assert.ok(
+        result.notes.some((n) => /policy-gated via adapter/i.test(n))
+      );
+      assert.ok(
+        result.notes.some((n) => /fixture helper; not the production adapter path/i.test(n))
+      );
     }
 
-    // Phase 5: production adapter may import catalogQuantityMode for policy-gated
-    // raw path, but default calls stay adjusted and this helper stays unwired.
+    // Production adapter imports catalogQuantityMode for policy-gated raw path,
+    // but default calls stay adjusted and this helper stays unwired.
     const adapterSrc = readFileSync(
       path.join(process.cwd(), "app/lib/proposalQuantityResolutionAdapter.ts"),
       "utf8"
@@ -311,7 +316,7 @@ describe("disabled raw branch — raw_plus_waste math/echo", () => {
   });
 });
 
-describe("disabled raw branch — staleness/preflight compare path", () => {
+describe("fixture raw helper — staleness/preflight compare path", () => {
   test("14. matching raw echo can compare current", () => {
     const current = rawEcho();
     const result = compareRawPlusWasteQuantityResolutionEcho({
@@ -421,22 +426,21 @@ describe("disabled raw branch — staleness/preflight compare path", () => {
   });
 });
 
-describe("disabled raw branch — policy / production gates", () => {
-  test("21. company policy may stage raw_plus_waste; quantity production stays disabled", () => {
+describe("fixture raw helper — policy / production gates", () => {
+  test("21. company policy may store raw_plus_waste; helper flag stays false; default adjusted", () => {
     const result = resolveCompanyPricingPolicy({
       storedPolicy: validCompanyPolicy({
         wasteModel: "raw_plus_waste",
       }),
     });
-    // Phase 3: app validator stages recognition for future storage.
     assert.equal(result.configured, true);
     assert.equal(result.policy?.wasteModel, "raw_plus_waste");
-    // Quantity-layer production enablement remains false.
+    // This fixture helper's flag stays false; production gate is policy on adapter.
     assert.equal(RAW_PLUS_WASTE_PRODUCTION_ENABLED, false);
     assert.equal(DEFAULT_QUANTITY_MODE, "adjusted_measurement");
   });
 
-  test("22. live CHECK widening is review-only migration draft (not applied here)", () => {
+  test("22. migration SQL file widens waste_model CHECK only (not applied by this unit test)", () => {
     const disabledSrc = readFileSync(
       path.join(process.cwd(), "app/lib/proposalQuantityResolutionDisabledRawBranch.ts"),
       "utf8"

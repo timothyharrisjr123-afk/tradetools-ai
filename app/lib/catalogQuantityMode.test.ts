@@ -37,7 +37,7 @@ describe("catalogQuantityMode — mode guards", () => {
     }
   });
 
-  test("19. no helper returns raw_plus_waste as production-enabled", () => {
+  test("19. helper notes mark raw as policy-gated (default stays adjusted)", () => {
     assert.equal(DEFAULT_QUANTITY_MODE, "adjusted_measurement");
     const result = resolveRawPlusWasteQuantity({
       sourceQuantity: 100,
@@ -46,9 +46,11 @@ describe("catalogQuantityMode — mode guards", () => {
     assert.equal(result.ok, true);
     if (result.ok) {
       assert.equal(result.mode, "raw_plus_waste");
-      assert.ok(result.notes?.includes("not production-enabled"));
       assert.ok(
-        result.notes?.some((n) => /not wired into production/i.test(n))
+        result.notes?.some((n) => /policy-gated via adapter/i.test(n))
+      );
+      assert.ok(
+        result.notes?.some((n) => /not a UI-selectable mode/i.test(n))
       );
     }
   });

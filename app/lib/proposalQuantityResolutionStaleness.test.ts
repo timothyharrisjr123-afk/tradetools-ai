@@ -170,7 +170,7 @@ describe("compareAdjustedQuantityResolutionEcho", () => {
     assert.ok(!halfKnown.reasons.includes("source_measurement_value_mismatch"));
   });
 
-  test("12. no raw_plus_waste enablement — mode still flagged stale, not accepted as current", () => {
+  test("12. raw echo under adjusted comparer is flagged stale, not accepted as current", () => {
     const result = compareAdjustedQuantityResolutionEcho({
       persistedEcho: persistedEcho({
         quantity_mode: "raw_plus_waste",

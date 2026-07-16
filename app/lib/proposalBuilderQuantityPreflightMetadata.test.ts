@@ -387,7 +387,7 @@ describe("resolveProposalBuilderQuantityPreflightMetadata", () => {
     assert.equal(src.includes("from \"@/app/lib/supabase"), false);
   });
 
-  test("9. raw_plus_waste and whole remain disabled (flagged stale)", () => {
+  test("9. raw/whole echo under default adjusted policy is flagged stale", () => {
     const meta = resolveProposalBuilderQuantityPreflightMetadata({
       draftGraph: draftGraph({
         lineItems: [

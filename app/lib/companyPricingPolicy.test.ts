@@ -150,7 +150,7 @@ describe("companyPricingPolicy", () => {
     assert.equal(result.policy?.wasteModel, "adjusted_measurement");
   });
 
-  test("Phase 3: raw_plus_waste is staged/recognized by app validator (not default)", () => {
+  test("Phase 3: raw_plus_waste is recognized by app validator (not default)", () => {
     assert.deepEqual([...STAGED_POLICY_WASTE_MODELS], [
       "adjusted_measurement",
       "raw_plus_waste",

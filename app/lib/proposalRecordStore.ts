@@ -276,8 +276,9 @@ export type ProposalLineItemRow = {
   visible_to_customer: boolean;
   measurement_quantity_key: string | null;
   /**
-   * Future quantity-resolution audit echo (DB jsonb). Internal row awareness only.
-   * Not customer-facing; not populated by draft create/refresh/snapshot/send paths yet.
+   * Quantity-resolution audit echo (DB jsonb). Internal row awareness only.
+   * Populated by draft create/refresh when quantity resolution stamps an echo.
+   * Not customer-facing; customer/public DTOs omit this field.
    */
   quantity_resolution_echo?: Record<string, unknown> | null;
   created_at: string;

@@ -9,10 +9,9 @@
  * - Missing/invalid policy → not configured (never silently use starter as real policy).
  * - DEFAULT_STARTER_PRICING_POLICY is settings-form seed only — not production Builder policy.
  * - Defaults remain adjusted_measurement + exact.
- * - Phase 3: raw_plus_waste is staged as a recognized policy waste_model literal for
- *   future storage after the review-only DB CHECK migration is explicitly applied.
- *   It does NOT enable quantity-layer production wiring, UI mode switching, or
- *   pricing-engine support (engine still rejects non-default waste models).
+ * - raw_plus_waste is a recognized policy waste_model literal (not the default).
+ *   Backend quantity resolution is policy-gated when wasteModel === "raw_plus_waste".
+ *   No settings/UI mode switch; whole rounding remains unsupported.
  */
 
 import {
@@ -31,8 +30,9 @@ export const STAGED_POLICY_WASTE_MODELS: readonly WasteModel[] = [
 ] as const;
 
 /**
- * True when a waste_model literal is recognized for staged policy storage/validation.
- * Does not mean production quantity resolution or pricing-engine support is enabled.
+ * True when a waste_model literal is recognized for policy storage/validation.
+ * Activation of raw quantity resolution still requires policy.wasteModel ===
+ * "raw_plus_waste" on the adapter path; UI has no mode switch.
  */
 export function isStagedPolicyWasteModel(value: unknown): value is WasteModel {
   return value === "adjusted_measurement" || value === "raw_plus_waste";
@@ -152,10 +152,8 @@ export function validateCompanyPricingPolicy(
     };
   }
 
-  // Phase 3: raw_plus_waste is a staged recognized policy literal (not the default).
-  // Production quantity adapter/resolver and pricing engine remain adjusted-only until
-  // later gated phases. Live DB CHECK still rejects raw until the review-only migration
-  // is explicitly applied.
+  // raw_plus_waste is a recognized policy literal (not the default). Backend
+  // quantity resolution is policy-gated; settings UI stays locked to adjusted.
   if (!isStagedPolicyWasteModel(candidate.wasteModel)) {
     return {
       valid: false,

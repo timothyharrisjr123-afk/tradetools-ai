@@ -357,7 +357,7 @@ describe("runDraftQuantityResolutionPreflight", () => {
     );
   });
 
-  test("7. raw_plus_waste and whole remain disabled (flagged stale)", async () => {
+  test("7. raw/whole echo under default adjusted policy is flagged stale", async () => {
     const result = await runDraftQuantityResolutionPreflight(
       {
         companyId: COMPANY_ID,

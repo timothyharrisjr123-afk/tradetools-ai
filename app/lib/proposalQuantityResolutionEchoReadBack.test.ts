@@ -1,10 +1,10 @@
 /**
- * S3D9 — quantity_resolution_echo read-back verification (test-only).
+ * S3D9 — quantity_resolution_echo read-back verification (unit tests).
  *
  * Stitches: create/refresh persist payload → simulated loaded line rows →
  * preflight orchestration (current / stale / unknown).
  *
- * No live DB. No production SQL. No UI. No new production code.
+ * No live DB. No production SQL. No UI.
  *
  * Run: npx tsx --test app/lib/proposalQuantityResolutionEchoReadBack.test.ts
  */
@@ -515,7 +515,7 @@ describe("S3D9 quantity_resolution_echo read-back chain", () => {
     assert.equal(customerRows[0]!.quantity, 22);
   });
 
-  test("5. ProposalLineItemRow / load path can carry echo (select *); raw_plus_waste/whole still disabled", async () => {
+  test("5. ProposalLineItemRow / load path can carry echo (select *); default path stays adjusted", async () => {
     const storeSrc = readFileSync(
       path.join(process.cwd(), "app/lib/proposalRecordStore.ts"),
       "utf8"

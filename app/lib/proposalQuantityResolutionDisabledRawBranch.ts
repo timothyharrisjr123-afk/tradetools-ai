@@ -1,11 +1,13 @@
 /**
- * Phase 2 helper — stand-alone raw_plus_waste quantity branch fixtures.
+ * Historical helper filename (Phase 2). Kept for fixture/tests and the shared
+ * RawPlusWasteQuantityResolutionEcho type export.
  *
- * Phase 5 production path uses resolveProposalLineQuantityViaAdapter({ wasteModel:
- * "raw_plus_waste" }) instead of importing this module into create/refresh.
- * This file remains for focused fixture/tests and echo type export.
+ * Production raw_plus_waste activates only via
+ * resolveProposalLineQuantityViaAdapter when policy.wasteModel === "raw_plus_waste".
+ * This module is not the production gate and is not imported by draft create/refresh.
  *
- * RAW_PLUS_WASTE_PRODUCTION_ENABLED stays false (not a global enable switch).
+ * RAW_PLUS_WASTE_PRODUCTION_ENABLED stays false on this helper only — it does not
+ * mean the policy-gated adapter path cannot run.
  */
 
 import {
@@ -21,7 +23,10 @@ import {
   type ProposalQuantityResolverInput,
 } from "@/app/lib/proposalQuantityResolver";
 
-/** Always false — this module never enables production raw_plus_waste. */
+/**
+ * Always false for this fixture helper.
+ * Production activation is policy-gated on the adapter path, not this constant.
+ */
 export const RAW_PLUS_WASTE_PRODUCTION_ENABLED = false as const;
 
 export type RawPlusWasteQuantityResolutionEcho = {
@@ -70,8 +75,8 @@ export type DisabledRawPlusWasteBranchResult =
   | DisabledRawPlusWasteBranchFailure;
 
 /**
- * Disabled-branch raw_plus_waste resolve: source → coverage → waste → exact.
- * Never production-enabled. Requires proven raw source.
+ * Fixture-helper raw_plus_waste resolve: source → coverage → waste → exact.
+ * Requires proven raw source. Not the draft create/refresh production path.
  */
 export function resolveDisabledRawPlusWasteQuantityBranch(
   input: DisabledRawPlusWasteBranchInput
@@ -115,7 +120,7 @@ export function resolveDisabledRawPlusWasteQuantityBranch(
     quantityResolutionEcho: echo,
     notes: [
       ...(helper.notes ?? []),
-      "disabled branch; not reachable via live company policy",
+      "fixture helper; not the production adapter path",
     ],
   };
 }
@@ -132,9 +137,9 @@ export type DisabledRawBranchAdapterResult = {
 };
 
 /**
- * Test-only composition: keep production resolver preview identity, and
- * separately compute a disabled raw_plus_waste branch from proven raw inputs.
- * Does not replace or mutate the adjusted adapter path.
+ * Fixture composition: keep adjusted resolver preview identity, and separately
+ * compute a raw_plus_waste helper result from proven raw inputs.
+ * Does not replace or mutate the policy-gated production adapter path.
  */
 export function resolveProposalLineQuantityWithDisabledRawBranch(
   resolverInput: ProposalQuantityResolverInput,

@@ -1,18 +1,18 @@
 /**
- * Catalog quantity-mode helpers (S1B / raw_plus_waste Phase 1) — pure foundation only.
+ * Catalog quantity-mode helpers (S1B / raw_plus_waste Phase 1 math foundation).
  *
- * Production today remains on adjusted_measurement via proposalQuantityResolver
+ * Default production path remains adjusted_measurement via proposalQuantityResolver
  * (measurement → quantity_source → resolved qty). The pricing engine does not
- * apply coverage or waste when wasteModel is adjusted_measurement.
+ * apply coverage or waste; it prices the already-resolved quantity.
  *
- * This module is intentionally unwired:
- * - Do not import into proposalQuantityResolver, pricing engine, mapper, or UI.
- * - raw_plus_waste is a future-mode helper only until schema/math/tests + wiring
- *   are separately approved.
- * - DEFAULT_QUANTITY_MODE stays adjusted_measurement; helpers never mark
- *   raw_plus_waste as production-enabled.
+ * Pure helpers:
+ * - Used by the policy-gated adapter raw_plus_waste path
+ *   (resolveProposalLineQuantityViaAdapter when wasteModel === "raw_plus_waste").
+ * - Do not import into pricing engine math or UI.
+ * - DEFAULT_QUANTITY_MODE stays adjusted_measurement; activation is policy-gated,
+ *   not a global helper flag. No settings/UI mode switch.
  *
- * Formula order for future raw_plus_waste: source → coverage → waste → exact.
+ * Formula order for raw_plus_waste: source → coverage → waste → exact.
  * Coverage null/undefined = 1:1. Exact rounding only; whole returns
  * unsupported_rounding (never silently applied).
  */
@@ -80,7 +80,7 @@ export const DEFAULT_QUANTITY_MODE: QuantityMode = "adjusted_measurement";
 
 /**
  * Validates mode literals for helper use.
- * raw_plus_waste is allowed as a future helper mode (not production-enabled).
+ * raw_plus_waste is a valid helper mode; production activation is policy-gated.
  */
 export function assertQuantityModeAllowed(
   mode: string
@@ -309,8 +309,8 @@ export type ResolveRawPlusWasteInput = {
 };
 
 /**
- * Future helper mode only — not wired into production resolver or pricing.
- * Order: source → coverage → waste (if wasteApplies) → exact rounding.
+ * Pure raw_plus_waste helper. Used by the policy-gated adapter path; not by
+ * pricing-engine math. Order: source → coverage → waste (if wasteApplies) → exact.
  * Rejects missing raw source and already-adjusted sources.
  */
 export function resolveRawPlusWasteQuantity(
@@ -367,8 +367,8 @@ export function resolveRawPlusWasteQuantity(
     wastePctUsed,
     resolvedQuantity: rounded.quantity,
     notes: [
-      "future mode; not wired into production quantity resolver",
-      "not production-enabled",
+      "pure helper; production activation is policy-gated via adapter",
+      "default remains adjusted_measurement; not a UI-selectable mode",
     ],
   };
 }

@@ -202,7 +202,7 @@ describe("companyPricingPolicyStore", () => {
     assert.equal(v.valid, false);
   });
 
-  test("wasteModel raw_plus_waste is staged/valid for storage shape (Phase 3)", () => {
+  test("wasteModel raw_plus_waste is valid for storage shape (not default)", () => {
     const v = validateStorableCompanyPricingPolicy(
       validPolicy({ wasteModel: "raw_plus_waste" })
     );

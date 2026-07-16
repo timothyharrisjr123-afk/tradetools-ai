@@ -181,7 +181,7 @@ describe("composeQuantityPreflightTrustSignal", () => {
     assert.equal(bundle.quantityPreflightTrust?.severity, "neutral");
   });
 
-  test("11. raw_plus_waste and whole remain disabled (composer is adjusted-path only)", () => {
+  test("11. trust composer has no raw/whole semantics (mode-agnostic metadata only)", () => {
     const src = readFileSync(
       path.join(process.cwd(), "app/lib/proposalBuilderTrustSignals.ts"),
       "utf8"

@@ -1,15 +1,16 @@
 /**
  * S3D4 — draft quantity_resolution_echo staleness detection (pure).
  *
- * Compares a persisted draft line echo against a current adjusted-mode echo.
- * Detection/metadata only: no DB writes, no auto-refresh, no UI, no quantity math.
+ * Compares a persisted draft line echo against a current echo for the active
+ * quantity mode. Detection/metadata only: no DB writes, no auto-refresh, no UI,
+ * no quantity math.
  *
  * Missing/malformed historical echoes are "unknown", not "stale".
  * Customer/public DTOs must not expose this result.
  *
- * Phase 2 also exports compareRawPlusWasteQuantityResolutionEcho for
- * disabled/test-only raw↔raw echo comparison. Production preflight/inspection
- * still use the adjusted comparer only.
+ * Dual-mode: compareAdjustedQuantityResolutionEcho for adjusted_measurement;
+ * compareRawPlusWasteQuantityResolutionEcho for policy-gated raw_plus_waste.
+ * Inspection/preflight dispatch by wasteModel (Phase 5).
  */
 
 import type { AdjustedQuantityResolutionEcho } from "@/app/lib/proposalQuantityResolutionAdapter";
@@ -189,9 +190,9 @@ export function compareAdjustedQuantityResolutionEcho(
 }
 
 /**
- * Disabled/test-only: compare persisted echo vs current raw_plus_waste echo.
+ * Compare persisted echo vs current raw_plus_waste echo (policy-gated path).
  * Allows matching non-null coverage/waste when both sides are raw_plus_waste.
- * Does not enable production raw_plus_waste; inspection/preflight stay adjusted-only.
+ * Used by inspection/preflight when wasteModel === "raw_plus_waste".
  */
 export function compareRawPlusWasteQuantityResolutionEcho(
   input: CompareRawPlusWasteQuantityResolutionEchoInput

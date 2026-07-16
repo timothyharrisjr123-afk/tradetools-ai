@@ -275,7 +275,7 @@ describe("summarizeLoadedDraftQuantityResolutionPreflight", () => {
     );
   });
 
-  test("8. raw_plus_waste and whole remain disabled (flagged stale)", () => {
+  test("8. raw/whole echo under default adjusted policy is flagged stale", () => {
     const summary = summarizeLoadedDraftQuantityResolutionPreflight({
       lines: [
         {
