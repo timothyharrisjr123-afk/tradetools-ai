@@ -1,5 +1,5 @@
 /**
- * FieldDive Company Pricing Policy resolver (3I-3B1).
+ * FieldDive Company Pricing Policy resolver (3I-3B1 / raw_plus_waste Phase 3).
  *
  * Pure policy-resolution contract — no Supabase, localStorage, React, Builder UI,
  * persistence, snapshots, or engine/mapper calls.
@@ -8,6 +8,11 @@
  * - Real stored company policy → configured.
  * - Missing/invalid policy → not configured (never silently use starter as real policy).
  * - DEFAULT_STARTER_PRICING_POLICY is settings-form seed only — not production Builder policy.
+ * - Defaults remain adjusted_measurement + exact.
+ * - Phase 3: raw_plus_waste is staged as a recognized policy waste_model literal for
+ *   future storage after the review-only DB CHECK migration is explicitly applied.
+ *   It does NOT enable quantity-layer production wiring, UI mode switching, or
+ *   pricing-engine support (engine still rejects non-default waste models).
  */
 
 import {
@@ -16,7 +21,22 @@ import {
   DEFAULT_WASTE_MODEL,
   type PricingPolicy,
   type ProfitabilityType,
+  type WasteModel,
 } from "@/app/lib/proposalPricingTypes";
+
+/** Policy waste models recognized by the app validator (Phase 3 staging). */
+export const STAGED_POLICY_WASTE_MODELS: readonly WasteModel[] = [
+  "adjusted_measurement",
+  "raw_plus_waste",
+] as const;
+
+/**
+ * True when a waste_model literal is recognized for staged policy storage/validation.
+ * Does not mean production quantity resolution or pricing-engine support is enabled.
+ */
+export function isStagedPolicyWasteModel(value: unknown): value is WasteModel {
+  return value === "adjusted_measurement" || value === "raw_plus_waste";
+}
 
 // ---------------------------------------------------------------------------
 // Starter default — settings-form seed only, NOT configured company policy
@@ -132,10 +152,15 @@ export function validateCompanyPricingPolicy(
     };
   }
 
-  if (candidate.wasteModel !== "adjusted_measurement") {
+  // Phase 3: raw_plus_waste is a staged recognized policy literal (not the default).
+  // Production quantity adapter/resolver and pricing engine remain adjusted-only until
+  // later gated phases. Live DB CHECK still rejects raw until the review-only migration
+  // is explicitly applied.
+  if (!isStagedPolicyWasteModel(candidate.wasteModel)) {
     return {
       valid: false,
-      reason: 'Only wasteModel "adjusted_measurement" is supported in this phase.',
+      reason:
+        'Unsupported wasteModel. Expected "adjusted_measurement" or staged "raw_plus_waste".',
     };
   }
 
@@ -169,7 +194,7 @@ export function validateCompanyPricingPolicy(
     defaultProfitabilityPct,
     minimumProfitabilityPct,
     quantityRounding: "exact",
-    wasteModel: "adjusted_measurement",
+    wasteModel: candidate.wasteModel,
     discount: null,
     tax: {
       salesTaxRatePct: tax.salesTaxRatePct,

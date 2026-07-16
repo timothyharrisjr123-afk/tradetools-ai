@@ -6,7 +6,9 @@
  *   pricing input mapper, Builder UI, or customer/public DTOs.
  * - Production adapter remains adjusted_measurement-only
  *   (resolveProposalLineQuantityViaAdapter).
- * - Company policy validators / DB CHECKs still reject raw_plus_waste.
+ * - Company policy app validator may stage raw_plus_waste (Phase 3); live DB CHECK
+ *   still rejects until the review-only migration is explicitly applied.
+ * - Pricing engine / production quantity adapter remain adjusted-only.
  *
  * Uses pure catalogQuantityMode math. Exercises raw echo shape for
  * disabled-branch tests and future dual-mode prep only.

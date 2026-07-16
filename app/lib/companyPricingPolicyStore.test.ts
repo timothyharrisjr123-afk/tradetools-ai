@@ -202,11 +202,20 @@ describe("companyPricingPolicyStore", () => {
     assert.equal(v.valid, false);
   });
 
-  test("wasteModel raw_plus_waste is invalid", () => {
+  test("wasteModel raw_plus_waste is staged/valid for storage shape (Phase 3)", () => {
     const v = validateStorableCompanyPricingPolicy(
-      validPolicy({ wasteModel: "raw_plus_waste" as PricingPolicy["wasteModel"] })
+      validPolicy({ wasteModel: "raw_plus_waste" })
     );
-    assert.equal(v.valid, false);
+    assert.equal(v.valid, true);
+    if (v.valid) {
+      assert.equal(v.policy.wasteModel, "raw_plus_waste");
+    }
+    // Default / adjusted fixtures remain unchanged.
+    const adjusted = validateStorableCompanyPricingPolicy(validPolicy());
+    assert.equal(adjusted.valid, true);
+    if (adjusted.valid) {
+      assert.equal(adjusted.policy.wasteModel, "adjusted_measurement");
+    }
   });
 
   test("non-null discount is invalid", () => {

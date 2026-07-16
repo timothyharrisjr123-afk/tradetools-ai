@@ -6,14 +6,22 @@
 
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import {
   DEFAULT_STARTER_PRICING_POLICY,
+  isStagedPolicyWasteModel,
   resolveCompanyPricingPolicy,
   resolveStarterPricingPolicySeed,
+  STAGED_POLICY_WASTE_MODELS,
   validateCompanyPricingPolicy,
   type CompanyPricingPolicyResolution,
 } from "./companyPricingPolicy";
-import type { PricingPolicy, ProfitabilityType } from "./proposalPricingTypes";
+import {
+  DEFAULT_WASTE_MODEL,
+  type PricingPolicy,
+  type ProfitabilityType,
+} from "./proposalPricingTypes";
 
 function validCompanyPolicy(overrides: Partial<PricingPolicy> = {}): PricingPolicy {
   return {
@@ -110,7 +118,6 @@ describe("companyPricingPolicy", () => {
       validCompanyPolicy({ minimumProfitabilityPct: -1 }),
       validCompanyPolicy({ minimumProfitabilityPct: 50, defaultProfitabilityPct: 40 }),
       validCompanyPolicy({ quantityRounding: "whole" as PricingPolicy["quantityRounding"] }),
-      validCompanyPolicy({ wasteModel: "raw_plus_waste" as PricingPolicy["wasteModel"] }),
       validCompanyPolicy({
         discount: { kind: "percent", value: 10 },
       }),
@@ -119,6 +126,9 @@ describe("companyPricingPolicy", () => {
         ...validCompanyPolicy(),
         tax: { salesTaxRatePct: NaN, materialPurchaseTaxRatePct: null },
       },
+      validCompanyPolicy({
+        wasteModel: "mystery_waste" as PricingPolicy["wasteModel"],
+      }),
     ];
 
     for (const bad of cases) {
@@ -128,6 +138,88 @@ describe("companyPricingPolicy", () => {
       assert.equal(result.policy, null);
       assert.ok(result.reason);
     }
+  });
+
+  test("Phase 3: adjusted_measurement remains default and valid", () => {
+    assert.equal(DEFAULT_WASTE_MODEL, "adjusted_measurement");
+    assert.equal(DEFAULT_STARTER_PRICING_POLICY.wasteModel, "adjusted_measurement");
+    const result = resolveCompanyPricingPolicy({
+      storedPolicy: validCompanyPolicy({ wasteModel: "adjusted_measurement" }),
+    });
+    assert.equal(result.configured, true);
+    assert.equal(result.policy?.wasteModel, "adjusted_measurement");
+  });
+
+  test("Phase 3: raw_plus_waste is staged/recognized by app validator (not default)", () => {
+    assert.deepEqual([...STAGED_POLICY_WASTE_MODELS], [
+      "adjusted_measurement",
+      "raw_plus_waste",
+    ]);
+    assert.equal(isStagedPolicyWasteModel("raw_plus_waste"), true);
+    assert.equal(isStagedPolicyWasteModel("adjusted_measurement"), true);
+    assert.equal(isStagedPolicyWasteModel("mystery"), false);
+
+    const validated = validateCompanyPricingPolicy(
+      validCompanyPolicy({ wasteModel: "raw_plus_waste" })
+    );
+    assert.equal(validated.valid, true);
+    if (validated.valid) {
+      assert.equal(validated.policy.wasteModel, "raw_plus_waste");
+    }
+
+    const resolved = resolveCompanyPricingPolicy({
+      storedPolicy: validCompanyPolicy({ wasteModel: "raw_plus_waste" }),
+    });
+    assert.equal(resolved.configured, true);
+    assert.equal(resolved.policy?.wasteModel, "raw_plus_waste");
+
+    // Defaults must not flip to raw.
+    assert.equal(DEFAULT_STARTER_PRICING_POLICY.wasteModel, "adjusted_measurement");
+    assert.equal(DEFAULT_WASTE_MODEL, "adjusted_measurement");
+  });
+
+  test("Phase 3: whole rounding remains rejected", () => {
+    const result = resolveCompanyPricingPolicy({
+      storedPolicy: validCompanyPolicy({
+        quantityRounding: "whole" as PricingPolicy["quantityRounding"],
+      }),
+    });
+    assert.equal(result.configured, false);
+    assert.match(result.reason ?? "", /quantityRounding/);
+  });
+
+  test("Phase 3: review-only migration widens waste_model CHECK only", () => {
+    const sqlPath = path.join(
+      process.cwd(),
+      "supabase/migrations/20260716_023_allow_raw_plus_waste_policy_mode.sql"
+    );
+    const sql = readFileSync(sqlPath, "utf8");
+    assert.match(sql, /REVIEW ONLY — DO NOT APPLY WITHOUT EXPLICIT APPROVAL/);
+    assert.match(sql, /waste_model in \('adjusted_measurement', 'raw_plus_waste'\)/);
+    assert.match(sql, /company_pricing_policies_waste_model_check/);
+    // Must not widen quantity_rounding (comments may mention it).
+    assert.equal(/quantity_rounding\s+in\s*\(/i.test(sql), false);
+    assert.equal(/company_pricing_policies_quantity_rounding_check/i.test(sql), false);
+    // Forward executable body (non-comment lines) must not UPDATE/backfill rows.
+    const executable = sql
+      .split("\n")
+      .filter((line) => !/^\s*--/.test(line))
+      .join("\n");
+    assert.equal(/\bupdate\s+public\.company_pricing_policies\b/i.test(executable), false);
+    assert.equal(/\bbackfill\b/i.test(executable), false);
+    assert.match(sql, /Do not UPDATE \/ backfill existing rows/i);
+  });
+
+  test("Phase 3: settings UI remains locked to adjusted_measurement (no mode control)", () => {
+    const formUtils = readFileSync(
+      path.join(process.cwd(), "app/tools/settings/pricing/pricingPolicyFormUtils.ts"),
+      "utf8"
+    );
+    assert.match(
+      formUtils,
+      /LOCKED_WASTE_MODEL:\s*PricingPolicy\["wasteModel"\]\s*=\s*"adjusted_measurement"/
+    );
+    assert.equal(formUtils.includes("raw_plus_waste"), false);
   });
 
   test("no placeholder policy masquerades as company configured", () => {

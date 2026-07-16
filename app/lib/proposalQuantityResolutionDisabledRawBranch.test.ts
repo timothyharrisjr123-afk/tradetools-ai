@@ -421,24 +421,37 @@ describe("disabled raw branch — staleness/preflight compare path", () => {
 });
 
 describe("disabled raw branch — policy / production gates", () => {
-  test("21. company pricing policy still rejects raw_plus_waste", () => {
+  test("21. company policy may stage raw_plus_waste; quantity production stays disabled", () => {
     const result = resolveCompanyPricingPolicy({
       storedPolicy: validCompanyPolicy({
-        wasteModel: "raw_plus_waste" as PricingPolicy["wasteModel"],
+        wasteModel: "raw_plus_waste",
       }),
     });
-    assert.equal(result.configured, false);
-    assert.equal(result.policy, null);
-    assert.ok(result.reason);
+    // Phase 3: app validator stages recognition for future storage.
+    assert.equal(result.configured, true);
+    assert.equal(result.policy?.wasteModel, "raw_plus_waste");
+    // Quantity-layer production enablement remains false.
+    assert.equal(RAW_PLUS_WASTE_PRODUCTION_ENABLED, false);
+    assert.equal(DEFAULT_QUANTITY_MODE, "adjusted_measurement");
   });
 
-  test("22. DB/CHECK widening is not present in this phase code", () => {
+  test("22. live CHECK widening is review-only migration draft (not applied here)", () => {
     const disabledSrc = readFileSync(
       path.join(process.cwd(), "app/lib/proposalQuantityResolutionDisabledRawBranch.ts"),
       "utf8"
     );
-    assert.match(disabledSrc, /DB CHECKs still reject raw_plus_waste/);
     assert.equal(disabledSrc.includes("ALTER TABLE"), false);
+
+    const migration = readFileSync(
+      path.join(
+        process.cwd(),
+        "supabase/migrations/20260716_023_allow_raw_plus_waste_policy_mode.sql"
+      ),
+      "utf8"
+    );
+    assert.match(migration, /REVIEW ONLY — DO NOT APPLY WITHOUT EXPLICIT APPROVAL/);
+    assert.match(migration, /waste_model in \('adjusted_measurement', 'raw_plus_waste'\)/);
+    assert.equal(migration.includes("quantity_rounding in"), false);
 
     const adapterSrc = readFileSync(
       path.join(process.cwd(), "app/lib/proposalQuantityResolutionAdapter.ts"),
