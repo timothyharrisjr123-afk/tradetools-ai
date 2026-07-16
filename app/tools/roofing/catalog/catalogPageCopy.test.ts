@@ -95,10 +95,11 @@ describe("Catalog P0B–P0D page shell", () => {
     assert.ok(!source.includes("bulk"));
     assert.ok(!source.includes("Bulk actions"));
     assert.ok(!source.includes("onSelect"));
-    assert.ok(!source.includes("Coverage"));
-    assert.ok(!source.includes("Waste"));
     assert.ok(!source.includes("Sales tax"));
     assert.ok(!source.includes("Supplier"));
+    // Coverage/Waste live on item edit + name secondary line — not table columns.
+    assert.ok(!source.includes("CATALOG_CONTRACTOR_LABELS.coverage"));
+    assert.ok(!source.includes("CATALOG_CONTRACTOR_LABELS.waste"));
   });
 
   test("Settings panel links to Pricing rules and Proposal templates without tax forms", () => {
@@ -122,9 +123,21 @@ describe("Catalog P0B–P0D page shell", () => {
       (t) => t.id === "coverage_waste_tax"
     );
     assert.ok(coverageWaste);
-    assert.match(coverageWaste!.detail, /not enabled yet/i);
-    assert.match(coverageWaste!.detail, /Planned only/i);
-    assert.equal(/editable/i.test(coverageWaste!.detail), false);
+    assert.match(coverageWaste!.detail, /editable on each catalog item/i);
+    assert.match(coverageWaste!.detail, /quantity-mode switching/i);
+    assert.match(coverageWaste!.detail, /remain planned/i);
+    assert.equal(/raw_plus_waste/i.test(coverageWaste!.detail), false);
+  });
+
+  test("Phase 7 Coverage/Waste appear on catalog item edit/add surfaces", () => {
+    const edit = readAdminComponent("CatalogItemDetailPanel.tsx");
+    const add = readAdminComponent("AddCatalogItemModal.tsx");
+    assert.match(edit, /data-catalog-quantity-drivers="edit"/);
+    assert.match(add, /data-catalog-quantity-drivers="add"/);
+    assert.ok(edit.includes("CATALOG_CONTRACTOR_LABELS.coverage"));
+    assert.ok(edit.includes("CATALOG_CONTRACTOR_LABELS.waste"));
+    assert.ok(edit.includes("CATALOG_FIELD_HELPERS.quantityDriversSection"));
+    assert.ok(add.includes("CATALOG_FIELD_HELPERS.quantityDriversSection"));
   });
 
   test("table renders Proposal/Status pills and spaced actions", () => {

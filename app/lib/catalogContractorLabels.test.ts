@@ -69,6 +69,20 @@ describe("catalogContractorLabels", () => {
     }
   });
 
+  test("Phase 7 Coverage/Waste labels and helpers are contractor-facing", () => {
+    assert.equal(CATALOG_CONTRACTOR_LABELS.coverage, "Coverage");
+    assert.equal(CATALOG_CONTRACTOR_LABELS.waste, "Waste");
+    assert.equal(CATALOG_CONTRACTOR_LABELS.wasteApplies, "Apply waste");
+    assert.match(CATALOG_FIELD_HELPERS.quantityDriversSection, /Used by raw quantity mode/i);
+    assert.match(CATALOG_FIELD_HELPERS.quantityDriversSection, /Does not change adjusted-mode/i);
+    assert.match(CATALOG_FIELD_HELPERS.coverage, /one purchase unit covers/i);
+    assert.match(CATALOG_FIELD_HELPERS.waste, /Extra material percentage/i);
+    const planned = CATALOG_SETTINGS_PLANNED_TOOLS.find((t) => t.id === "coverage_waste_tax");
+    assert.ok(planned);
+    assert.match(planned!.detail, /editable on each catalog item/i);
+    assert.match(planned!.detail, /remain planned/i);
+  });
+
   test("filter options include Materials, Labor, Fees & Other, Needs price", () => {
     const labels = CATALOG_CONTRACTOR_FILTER_OPTIONS.map((option) => option.label);
     assert.deepEqual(labels, ["All", "Materials", "Labor", "Fees & Other", "Needs price"]);
@@ -137,6 +151,10 @@ describe("catalogContractorLabels", () => {
     assert.equal(
       CATALOG_FIELD_HELPERS.laborExplainer,
       "Labor is priced like a catalog item: rate per unit × job measurement."
+    );
+    assert.equal(
+      CATALOG_FIELD_HELPERS.waste,
+      "Extra material percentage used by raw quantity mode."
     );
   });
 

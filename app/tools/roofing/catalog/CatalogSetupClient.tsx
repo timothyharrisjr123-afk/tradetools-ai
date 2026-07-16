@@ -28,6 +28,7 @@ import {
   EMPTY_ADD_CATALOG_FORM,
   STARTER_DEFINITION_COUNT,
   buildEditDraftFromItem,
+  parseCatalogQuantityDrivers,
   catalogItemSearchHaystack,
   compareCatalogItemsForDisplay,
   hasAllStarterSeedKeys,
@@ -209,6 +210,16 @@ export default function CatalogSetupClient({ companyId }: { companyId: string })
       return;
     }
 
+    const quantityDrivers = parseCatalogQuantityDrivers({
+      coverage_rate: addForm.coverage_rate,
+      waste_applies: addForm.waste_applies,
+      waste_pct: addForm.waste_pct,
+    });
+    if (quantityDrivers.error) {
+      setAddError(quantityDrivers.error);
+      return;
+    }
+
     const draft: CatalogItemDraft = {
       company_id: companyId,
       name,
@@ -223,7 +234,9 @@ export default function CatalogSetupClient({ companyId }: { companyId: string })
       pricing_basis: addForm.pricing_basis,
       customer_visibility: addForm.customer_visibility,
       active: true,
-      waste_applies: false,
+      coverage_rate: quantityDrivers.coverage_rate,
+      waste_applies: quantityDrivers.waste_applies,
+      waste_pct: quantityDrivers.waste_pct,
       metadata: null,
     };
 
@@ -358,6 +371,16 @@ export default function CatalogSetupClient({ companyId }: { companyId: string })
       return;
     }
 
+    const quantityDrivers = parseCatalogQuantityDrivers({
+      coverage_rate: editDraft.coverage_rate,
+      waste_applies: editDraft.waste_applies,
+      waste_pct: editDraft.waste_pct,
+    });
+    if (quantityDrivers.error) {
+      setEditError(quantityDrivers.error);
+      return;
+    }
+
     const patch: Partial<CatalogItemDraft> = {
       customer_name: editDraft.customer_name.trim() || null,
       description: editDraft.description.trim() || null,
@@ -366,6 +389,9 @@ export default function CatalogSetupClient({ companyId }: { companyId: string })
       pricing_basis: editDraft.pricing_basis,
       customer_visibility: editDraft.customer_visibility,
       sort_order: sortParsed.sort_order,
+      coverage_rate: quantityDrivers.coverage_rate,
+      waste_applies: quantityDrivers.waste_applies,
+      waste_pct: quantityDrivers.waste_pct,
     };
 
     if (item.item_type === "labor") {

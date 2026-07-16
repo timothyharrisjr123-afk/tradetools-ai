@@ -20,7 +20,7 @@ export const TABLE_TD_UNIT = `${TABLE_TD} min-w-[5.75rem] whitespace-nowrap`;
 /** Sticky action column — stays visible during horizontal table scroll. */
 export const TABLE_TH_ACTION = `${TABLE_TH_COMPACT} sticky right-0 z-[1] bg-slate-100/95 shadow-[-6px_0_8px_-6px_rgba(15,23,42,0.12)]`;
 export const TABLE_TD_ACTION = `${TABLE_TD_COMPACT} sticky right-0 z-[1] bg-white shadow-[-6px_0_8px_-6px_rgba(15,23,42,0.08)]`;
-/** Contractor Catalog table column count (incl. reserved selection; no Coverage/tax). */
+/** Contractor Catalog table column count (incl. reserved selection; Coverage/Waste in edit + name detail). */
 export const TABLE_COLUMN_COUNT = 10;
 
 /** Reserved bulk-selection checkbox (P0D — disabled layout parity only). */

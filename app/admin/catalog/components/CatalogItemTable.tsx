@@ -14,6 +14,7 @@ import {
   formatProposalVisibilityShort,
   proposalVisibilityPillTone,
 } from "@/app/lib/catalogContractorLabels";
+import { formatCatalogQuantityDriversLine } from "../catalogAdminUtils";
 import {
   CATALOG_PILL_PROPOSAL_GROUPED,
   CATALOG_PILL_PROPOSAL_HIDDEN,
@@ -120,6 +121,7 @@ export default function CatalogItemTable({
             const isSaving = savingItemId === item.id;
             const isTogglingActive = togglingActiveId === item.id;
             const display = catalogItemDisplayName(item);
+            const quantityDriversLine = formatCatalogQuantityDriversLine(item);
             const status = formatCatalogItemStatus(item);
             const proposalLabel = formatProposalVisibilityShort(item.customer_visibility);
 
@@ -136,6 +138,14 @@ export default function CatalogItemTable({
                     {display.secondary ? (
                       <span className="mt-0.5 block text-xs font-normal text-slate-500">
                         {display.secondary}
+                      </span>
+                    ) : null}
+                    {quantityDriversLine ? (
+                      <span
+                        className="mt-0.5 block text-xs font-normal text-slate-500"
+                        data-catalog-quantity-drivers-line
+                      >
+                        {quantityDriversLine}
                       </span>
                     ) : null}
                   </td>

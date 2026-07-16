@@ -220,6 +220,67 @@ export default function AddCatalogItemModal({
           </label>
         </div>
 
+        <section className="mt-5 border-t border-slate-200 pt-4" data-catalog-quantity-drivers="add">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            {CATALOG_CONTRACTOR_LABELS.quantityDrivers}
+          </h3>
+          <p className="mt-1.5 text-xs leading-relaxed text-slate-500">
+            {CATALOG_FIELD_HELPERS.quantityDriversSection}
+          </p>
+          <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <label className="block text-sm">
+              <span className="mb-1.5 block text-xs font-medium text-slate-700">
+                {CATALOG_CONTRACTOR_LABELS.coverage}
+              </span>
+              <input
+                type="text"
+                inputMode="decimal"
+                placeholder="Optional"
+                className={`${FIELD_INPUT} tabular-nums`}
+                value={form.coverage_rate}
+                onChange={(e) => onChange("coverage_rate", e.target.value)}
+                disabled={creatingItem}
+                aria-label={CATALOG_CONTRACTOR_LABELS.coverage}
+              />
+              <FieldHelper text={CATALOG_FIELD_HELPERS.coverage} />
+            </label>
+            <div className="block text-sm">
+              <span className="mb-1.5 block text-xs font-medium text-slate-700">
+                {CATALOG_CONTRACTOR_LABELS.waste}
+              </span>
+              <label className="mb-2 flex items-center gap-2 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-300"
+                  checked={form.waste_applies}
+                  onChange={(e) => onChange("waste_applies", e.target.checked)}
+                  disabled={creatingItem}
+                />
+                <span>{CATALOG_CONTRACTOR_LABELS.wasteApplies}</span>
+              </label>
+              <FieldHelper text={CATALOG_FIELD_HELPERS.wasteApplies} />
+              <input
+                type="text"
+                inputMode="decimal"
+                placeholder={form.waste_applies ? "Optional %" : "Inactive"}
+                className={`${FIELD_INPUT} mt-2 tabular-nums`}
+                value={form.waste_pct}
+                onChange={(e) => onChange("waste_pct", e.target.value)}
+                disabled={creatingItem || !form.waste_applies}
+                aria-label={CATALOG_CONTRACTOR_LABELS.waste}
+                aria-disabled={!form.waste_applies}
+              />
+              <FieldHelper
+                text={
+                  form.waste_applies
+                    ? CATALOG_FIELD_HELPERS.waste
+                    : "Waste percent is inactive while Apply waste is off."
+                }
+              />
+            </div>
+          </div>
+        </section>
+
         <div className="mt-5 flex flex-wrap justify-end gap-2 border-t border-slate-200 pt-4">
           <button
             type="button"

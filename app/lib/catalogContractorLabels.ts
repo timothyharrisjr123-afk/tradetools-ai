@@ -52,9 +52,9 @@ export const CATALOG_SETTINGS_PLANNED_TOOLS = [
   },
   {
     id: "coverage_waste_tax",
-    title: "Coverage, waste, and tax controls",
+    title: "Quantity mode switch and tax controls",
     detail:
-      "Coverage and waste are backed by the raw quantity-mode foundation, but editing is not enabled yet. Planned only — no live columns or fields.",
+      "Coverage and waste are editable on each catalog item. Company quantity-mode switching and tax controls remain planned — not available here.",
   },
   {
     id: "supplier",
@@ -90,6 +90,10 @@ export const CATALOG_CONTRACTOR_LABELS = {
   customerDescription: "Customer description",
   needsPrice: "Needs price",
   catalogItems: "Catalog items",
+  coverage: "Coverage",
+  waste: "Waste",
+  wasteApplies: "Apply waste",
+  quantityDrivers: "Coverage & waste",
 } as const;
 
 export const CATALOG_TABLE_HEADERS = [
@@ -117,6 +121,11 @@ export const CATALOG_FIELD_HELPERS = {
   customerDescription: "Optional short text the customer may see on the proposal.",
   laborExplainer: "Labor is priced like a catalog item: rate per unit × job measurement.",
   leaveBlankNeedsPrice: "Leave blank until you set a price.",
+  quantityDriversSection:
+    "Used by raw quantity mode. Does not change adjusted-mode proposals. Not customer-facing.",
+  coverage: "How much measurement one purchase unit covers. Example: 1 bundle covers 33.3 sq ft.",
+  waste: "Extra material percentage used by raw quantity mode.",
+  wasteApplies: "When off, waste percent is ignored by raw quantity mode.",
 } as const;
 
 export type CatalogContractorTypeFilter =
