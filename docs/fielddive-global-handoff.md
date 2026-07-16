@@ -10897,7 +10897,7 @@ First login / Jobs Board
 
 ##### 13.4.4 S1A Quantity/Waste Architecture Decision (docs only)
 
-**Decision status:** **Approved architecture direction; docs-only record.** Current checkpoint: **`8d4e86b` — `feat(roofing): align Catalog with Roofr command surface`**. S1A changes no app code, schema, migrations, SQL, UI, pricing math, proposal persistence, or protected systems.
+**Decision status:** **Approved architecture direction; docs-only record.** S1A was locked at **`44a1d29` — `docs: record S1 quantity and waste architecture decision`**. Current code checkpoint: **`60b75cb` — `feat(catalog): add pure quantity-mode helpers and tests`**. S1A changes no app code, schema, migrations, SQL, UI, pricing math, proposal persistence, or protected systems.
 
 ###### Current production mode — preserve
 
@@ -10958,10 +10958,10 @@ The future resolver must treat quantity mode as an explicit truth boundary. Mixe
 | Step | Scope | Guardrail |
 |------|-------|-----------|
 | **S1A — decision record** | This docs-only dual-mode decision and trust boundary | No app/schema/math/UI changes |
-| **S1B — pure quantity-mode helpers/types** | Define mode-aware quantity input/output contracts and pure helpers | No UI; no pricing-engine wiring; current resolver unchanged |
-| **S1C — fixtures/tests** | Lock current behavior; specify future coverage/waste formulas; prove no double waste | Tests before persistence or UI |
-| **S1D — schema proposal** | Document proposed fields/ownership only | No migration until separately approved |
-| **S1E — optional internal debug output** | Inspect resolved input/driver values if genuinely useful | Internal/read-only; no customer UI |
+| **S1B — pure quantity-mode helpers/types — COMPLETE (`60b75cb`)** | Define mode-aware quantity input/output contracts and pure helpers | No UI; no pricing-engine wiring; current resolver unchanged |
+| **S1C — fixtures/tests — COMPLETE (`60b75cb`)** | Lock current behavior; specify future coverage/waste formulas; prove no double waste | Tests before persistence or UI |
+| **S1D — schema proposal — APPROVED** | Document proposed fields/ownership only | No migration until separately approved |
+| **S1E — docs/schema decision lock — CURRENT** | Lock the approved S1D ownership, additive-field, snapshot, migration-sequence, and stop-rule decisions in this handoff | Docs only; no schema, SQL, app behavior, or production wiring |
 | **S1F — read-only UI** | Show engine-backed values only after math is proven | No live column before truth support |
 | **S1G — editable UI** | Catalog/default/override editing after validation and stores exist | Later explicit approval |
 | **S1H — draft refresh / snapshot / staleness integration** | Re-resolve drafts and persist/freeze all quantity drivers | Sent/frozen proposals immutable |
@@ -10978,6 +10978,71 @@ Stop and return to architecture review if:
 - any UI would show Coverage/Waste as live before resolver, persistence, snapshot, and staleness truth is proven;
 - tax or supplier scope begins to enter quantity/waste helpers, models, or tests;
 - existing proposals would require automatic migration or recalculation to adopt the future mode.
+
+###### S1D/S1E schema/model decision lock (docs only)
+
+**Decision status:** **S1D proposal approved and locked by S1E documentation only.** S1B/S1C completed at **`60b75cb` — `feat(catalog): add pure quantity-mode helpers and tests`**. The pure foundation is:
+
+- `app/lib/catalogQuantityMode.ts`;
+- `app/lib/catalogQuantityMode.test.ts`.
+
+The helpers remain intentionally **unwired**. Production still supports **`adjusted_measurement` only**. The production resolver, pricing engine, pricing input mapper, snapshot builder, UI, database schema, and migrations remain unchanged.
+
+**Quantity-mode ownership**
+
+- Primary owner: existing `company_pricing_policies.waste_model` / the resolved company pricing policy.
+- Freeze/audit echo owner: proposal-version `policy_echo`.
+- Do **not** add `catalog_items.quantity_mode` in v1.
+- Do **not** permit silent per-line or per-item mode mixing. A proposal calculation must have one explicit quantity-mode truth boundary.
+
+**Future catalog quantity drivers**
+
+- Keep existing nullable `catalog_items.coverage_rate` as a future driver; it remains non-authoritative until separately approved resolver/snapshot integration exists.
+- Keep existing `catalog_items.waste_applies` as the material/application gate.
+- Proposed additive field: `catalog_items.waste_pct numeric null` (percent points; for example `10` means 10%).
+- Optional proposed additive field: `catalog_items.coverage_basis text null`, only if needed to make the measurement-units-per-purchase-unit contract unambiguous.
+- Do **not** add `catalog_items.quantity_mode` in v1.
+- Do **not** add tax or supplier fields to the S1 quantity schema.
+
+**Future proposal snapshot/freeze driver echo**
+
+- Preferred additive field: `proposal_line_items.quantity_resolution_echo jsonb null`.
+- When quantity-mode persistence is separately approved, the echo should store:
+  - `quantity_mode`;
+  - `source_measurement_key`;
+  - `source_measurement_value`;
+  - `coverage_rate_used`;
+  - `waste_pct_used`;
+  - `rounding_mode_used`;
+  - `resolved_purchase_quantity`.
+- Existing proposal line quantities remain customer-safe and freeze-on-send.
+- Existing proposals require no migration, refresh, or recalculation; a null echo remains valid for historical rows.
+
+**Measurement and rounding**
+
+- No S1 measurement schema change. Raw and adjusted measurement fields already exist.
+- Add a future `measurement_waste_included` field only if source audits prove that adjusted-measurement waste semantics cannot be trusted; that finding is a stop condition, not an assumed migration.
+- Keep **`exact`** as the current/default rounding mode.
+- **`whole`** remains contract-only and unsupported until its math, unit semantics, tests, and DB checks receive separate approval.
+- Do **not** widen the current `quantity_rounding` CHECK yet.
+
+**Future additive migration sequence (not created or applied in S1E)**
+
+1. Add nullable `catalog_items.waste_pct`.
+2. Optionally add nullable `catalog_items.coverage_basis` only if the reviewed contract requires it.
+3. Add nullable `proposal_line_items.quantity_resolution_echo`.
+4. Perform no invented coverage/waste backfills and require no migration of old proposals.
+5. Do not widen `waste_model` to enable `raw_plus_waste`, or widen `quantity_rounding` to enable `whole`, in the same first migration.
+6. Treat `raw_plus_waste` enablement as separate later work requiring explicit resolver, draft-refresh, snapshot, staleness, freeze, and smoke approval.
+
+**Locked stop rules**
+
+- No Coverage or Waste UI columns or editing yet.
+- No `raw_plus_waste` production resolver/engine wiring yet.
+- No widening of `waste_model` or `quantity_rounding` DB checks yet.
+- No proposal draft refresh, snapshot-builder, sent/frozen, or customer-presentation changes yet.
+- No tax/supplier scope bleed into quantity schema.
+- No migration until the **S2 migration draft proposal** is reviewed and explicitly approved.
 
 **P3 — polish**
 
@@ -11034,7 +11099,7 @@ Stop and return to architecture review if:
 | **Affected pages** | Setup Hub (`/tools/roofing/setup` proposed) |
 | **Success criteria** | One place for company readiness status |
 
-**Immediate next after S1A review/commit:** **S1B — pure quantity-mode helpers/types**, followed by **S1C fixtures/tests (§6BO.13.4.4)**. Do **not** start Coverage/Waste/Tax/Supplier/CSV/Bulk/Columns UI, schema, migrations, or pricing-engine changes first. Slice 3 Pricing rules remains a separate P0 roadmap slice and is not authorization to change pricing math.
+**Immediate next after S1E docs review/commit:** **S2 — migration draft proposal only (§6BO.13.4.3–§6BO.13.4.4)**. S2 may produce SQL text for review, but it is **not a live migration**: do not run SQL, apply migrations, add Coverage/Waste UI columns, or wire the resolver, pricing engine, pricing mapper, or snapshot builder. Slice 3 Pricing rules remains a separate P0 roadmap slice and is not authorization to change pricing math.
 
 #### 13.6 Stage C / R18D3D sequencing (with P0 UI)
 
@@ -12242,6 +12307,8 @@ Treat as **drift** if a session:
 
 ## Changelog (handoff doc only)
 
+- **2026-07-16:** **S1E Quantity/Waste schema/model decision lock** (pending docs commit; code checkpoint **`60b75cb`**) — records S1B/S1C completion and unwired pure helper/test modules; locks pricing-policy mode ownership, future nullable catalog drivers, preferred nullable line quantity-resolution echo, no measurement change, exact-only rounding, additive/no-backfill migration sequence, and stop rules in **§6BO.13.4.4**; next is **S2 migration draft proposal only**, SQL review text only and unapplied.
+- **2026-07-16:** **S1B/S1C pure quantity-mode helpers and tests** (**`60b75cb` — `feat(catalog): add pure quantity-mode helpers and tests`**) — added `app/lib/catalogQuantityMode.ts` and focused tests with adjusted pass-through/double-waste protection plus future coverage/waste/exact-rounding contracts; helpers remain unwired and production behavior remains unchanged.
 - **2026-07-16:** **S1A Quantity/Waste Architecture Decision record** (docs only; uncommitted) — production remains `adjusted_measurement` with current resolver unchanged; `coverage_rate` / `waste_applies` remain non-authoritative stubs; durable target is Option D dual-mode (`adjusted_measurement` + future `raw_plus_waste`); snapshot/trust rules, tax/supplier boundaries, S1A–S1I sequence, and stop conditions recorded in **§6BO.13.4.4**; next after review/commit is **S1B pure helpers/types**, then **S1C fixtures/tests**, not UI columns.
 - **2026-07-16:** **Catalog P0D Roofr parity correction + systems research lock** (uncommitted with P0A–P0C) — continuous ungrouped All items (no MATERIALS/LABOR/FEES divider rows); disabled reserved selection checkbox column (no bulk bar); command bar Search · Filters & sort · Re-order / Columns / Manage (Coming soon) · Add; Roofr systems map, explicit truth stop rules, and S0–S9 sequence recorded in **§6BO.13.4.1–§6BO.13.4.3**; next after commit is **S1 Quantity/Waste Architecture Decision**, not UI column work.
 - **2026-07-16:** **Catalog P0C Roofr command-surface visual parity** (uncommitted with P0A/P0B) — P0B = structure pass; P0C = wider workspace, unified command bar+table card, disabled Manage catalog / Columns / Re-order (Coming soon layout-only), polished group headers, Proposal/Status pills, spaced Edit|Deactivate, Settings future-tools planned list; deferred features remain in **§6BO.13.4** (no active CSV/reorder/columns/bulk/tax/waste/coverage/supplier).
