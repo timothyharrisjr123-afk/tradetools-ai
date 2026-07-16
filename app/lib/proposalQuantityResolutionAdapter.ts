@@ -7,6 +7,8 @@
  *
  * Do not import into pricing engine math. Do not enable raw_plus_waste.
  * Do not import catalogQuantityMode into production resolve paths yet.
+ * Phase 2 disabled/test-only raw branch lives in
+ * proposalQuantityResolutionDisabledRawBranch.ts (unwired from this adapter).
  * Customer/public DTOs must omit quantity_resolution_echo.
  */
 
