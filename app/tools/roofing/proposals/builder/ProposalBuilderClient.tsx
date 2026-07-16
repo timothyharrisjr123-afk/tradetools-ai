@@ -18,6 +18,7 @@ import { resolveMeasurementWorkspaceState } from "@/app/lib/measurementReadiness
 import { getSelectedMeasurementForJob } from "@/app/lib/measurementStore";
 import type { MeasurementQuantityMap, MeasurementRecord } from "@/app/lib/measurementTypes";
 import { resolveProposalBuilderQuantityPreflightMetadata } from "@/app/lib/proposalBuilderQuantityPreflightMetadata";
+import { composeProposalBuilderInternalTrustSignals } from "@/app/lib/proposalBuilderTrustSignals";
 import { deriveProposalBuilderReadiness } from "@/app/lib/proposalBuilderReadiness";
 import { deriveProposalTemplateReadiness } from "@/app/lib/proposalTemplateReadiness";
 import {
@@ -433,6 +434,14 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
       measurementHandoff,
       measurementQuantityMap,
     ]
+  );
+
+  // Slice A — sibling internal trust compose (invisible; not merged into pricing stale).
+  const quantityPreflightTrust = useMemo(
+    () =>
+      composeProposalBuilderInternalTrustSignals({ quantityPreflight })
+        .quantityPreflightTrust,
+    [quantityPreflight]
   );
 
   useEffect(() => {
@@ -1579,6 +1588,12 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
       data-builder-quantity-preflight-current={String(quantityPreflight?.currentCount ?? 0)}
       data-builder-quantity-preflight-stale={String(quantityPreflight?.staleCount ?? 0)}
       data-builder-quantity-preflight-unknown={String(quantityPreflight?.unknownCount ?? 0)}
+      data-builder-quantity-trust-status={quantityPreflightTrust?.status ?? "unknown"}
+      data-builder-quantity-trust-severity={quantityPreflightTrust?.severity ?? "neutral"}
+      data-builder-quantity-trust-block={String(quantityPreflightTrust?.shouldBlock ?? false)}
+      data-builder-quantity-trust-autorefresh={String(
+        quantityPreflightTrust?.shouldAutoRefresh ?? false
+      )}
     >
       <ProposalBuilderPageHeader
         job={job}
