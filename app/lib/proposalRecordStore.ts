@@ -77,7 +77,10 @@ import {
 } from "@/app/lib/proposalIdentityEcho";
 import type { LoadLiveProposalIdentityEchoInput } from "@/app/lib/proposalIdentityEchoLive";
 import { composeLiveProposalIdentityEchoFromSources } from "@/app/lib/proposalIdentityEchoLive";
-import { resolveProposalLineQuantity } from "@/app/lib/proposalQuantityResolver";
+import {
+  alignAdjustedEchoToPersistedQuantity,
+  resolveProposalLineQuantityViaAdapter,
+} from "@/app/lib/proposalQuantityResolutionAdapter";
 import {
   buildDraftInstantiateInputWithScopeDecisions,
   groupScopeDecisionsByTemplateOptionId,
@@ -720,12 +723,17 @@ export function buildDraftInstantiateInputFromPreview(params: {
       if (!templateItem) continue;
 
       const catalog = line.catalogItemId ? catalogById.get(line.catalogItemId) : undefined;
-      const qtyPreview = resolveProposalLineQuantity({
+      const qtyResolved = resolveProposalLineQuantityViaAdapter({
         measurementHandoff: params.quantityContext?.measurementHandoff ?? null,
         quantityMap: params.quantityContext?.quantityMap ?? null,
         catalogItem: catalog ?? null,
         templateItem,
       });
+      const qtyPreview = qtyResolved.preview;
+      const quantityResolutionEcho = alignAdjustedEchoToPersistedQuantity(
+        qtyResolved.quantityResolutionEcho,
+        line.quantity
+      );
 
       const previewLine = optionPreview.customer.lineByTemplateItemId[line.templateItemId];
       const showPrice = previewLine?.displayStatus === "priced";
@@ -741,6 +749,7 @@ export function buildDraftInstantiateInputFromPreview(params: {
           unit: line.unit,
           customerUnitPriceCents: showPrice ? priced.unitPriceCents : null,
           customerLineTotalCents: showPrice ? priced.linePriceCents : null,
+          quantityResolutionEcho,
         })
       );
     }

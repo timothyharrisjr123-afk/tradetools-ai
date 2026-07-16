@@ -14,7 +14,10 @@ import { buildCatalogItemById } from "@/app/lib/proposalBuilderPreview";
 import { priceProposalLine, resolveProposalPricing } from "@/app/lib/proposalPricingEngine";
 import { mapProposalPricingInput } from "@/app/lib/proposalPricingInputMapper";
 import type { LinePricingStatus, PricingActorRole, PricingLineInput, PricingPolicy } from "@/app/lib/proposalPricingTypes";
-import { resolveProposalLineQuantity } from "@/app/lib/proposalQuantityResolver";
+import {
+  alignAdjustedEchoToPersistedQuantity,
+  resolveProposalLineQuantityViaAdapter,
+} from "@/app/lib/proposalQuantityResolutionAdapter";
 import {
   type DraftInstantiateInput,
   type LineItemSnapshotInput,
@@ -459,12 +462,17 @@ export function buildDraftInstantiateInputWithScopeDecisions(
         if (!templateItem) continue;
 
         const catalog = line.catalogItemId ? catalogById.get(line.catalogItemId) : undefined;
-        const qtyPreview = resolveProposalLineQuantity({
+        const qtyResolved = resolveProposalLineQuantityViaAdapter({
           measurementHandoff: params.quantityContext?.measurementHandoff ?? null,
           quantityMap: params.quantityContext?.quantityMap ?? null,
           catalogItem: catalog ?? null,
           templateItem,
         });
+        const qtyPreview = qtyResolved.preview;
+        const quantityResolutionEcho = alignAdjustedEchoToPersistedQuantity(
+          qtyResolved.quantityResolutionEcho,
+          line.quantity
+        );
 
         const previewLine = optionPreview.customer.lineByTemplateItemId[line.templateItemId];
         const showPrice = previewLine?.displayStatus === "priced";
@@ -481,6 +489,7 @@ export function buildDraftInstantiateInputWithScopeDecisions(
             customerUnitPriceCents: showPrice ? priced.unitPriceCents : null,
             customerLineTotalCents: showPrice ? priced.linePriceCents : null,
             hiddenButInCalc: line.hiddenButInCalc === true,
+            quantityResolutionEcho,
           })
         );
       }
@@ -526,12 +535,13 @@ export function buildDraftInstantiateInputWithScopeDecisions(
       if (!templateItem) continue;
 
       const catalog = line.catalogItemId ? catalogById.get(line.catalogItemId) : undefined;
-      const qtyPreview = resolveProposalLineQuantity({
+      const qtyResolved = resolveProposalLineQuantityViaAdapter({
         measurementHandoff: params.quantityContext?.measurementHandoff ?? null,
         quantityMap: params.quantityContext?.quantityMap ?? null,
         catalogItem: catalog ?? null,
         templateItem,
       });
+      const qtyPreview = qtyResolved.preview;
 
       const manualDecision = optionDecisions.find(
         (d) =>
@@ -542,6 +552,12 @@ export function buildDraftInstantiateInputWithScopeDecisions(
       const manualPayload = manualDecision
         ? parseManualQuantityPayload(manualDecision.payload as Record<string, unknown>)
         : null;
+
+      const quantityResolutionEcho = alignAdjustedEchoToPersistedQuantity(
+        qtyResolved.quantityResolutionEcho,
+        line.quantity,
+        { clearSourceMeasurementValue: Boolean(manualPayload) }
+      );
 
       const displayStatus = mapEngineLineStatusToSnapshot({
         engineStatus: priced.status,
@@ -563,6 +579,7 @@ export function buildDraftInstantiateInputWithScopeDecisions(
           customerUnitPriceCents: showPrice ? priced.unitPriceCents : null,
           customerLineTotalCents: showPrice ? priced.linePriceCents : null,
           hiddenButInCalc: line.hiddenButInCalc === true,
+          quantityResolutionEcho,
         })
       );
     }

@@ -12,7 +12,10 @@ import type {
   ProposalQuantitySummary,
 } from "./measurementProposalHandoff";
 import type { MeasurementQuantityMap } from "./measurementTypes";
-import { resolveProposalLineQuantityViaAdapter } from "./proposalQuantityResolutionAdapter";
+import {
+  alignAdjustedEchoToPersistedQuantity,
+  resolveProposalLineQuantityViaAdapter,
+} from "./proposalQuantityResolutionAdapter";
 import {
   resolveProposalLineQuantity,
   type ProposalQuantityPreview,
@@ -340,6 +343,40 @@ describe("proposalQuantityResolutionAdapter — adjusted echo (S3D2, not persist
     assert.equal(adaptedDrivers.quantityResolutionEcho.coverage_rate_used, null);
     assert.equal(adaptedDrivers.quantityResolutionEcho.waste_pct_used, null);
     assert.equal(adaptedDrivers.preview.quantity, 22);
+  });
+});
+
+describe("alignAdjustedEchoToPersistedQuantity", () => {
+  test("keeps source value when persisted qty matches passthrough echo", () => {
+    const adapted = resolveProposalLineQuantityViaAdapter({
+      measurementHandoff: readyHandoff({ adjusted_roof_squares: 24.5 }),
+      quantityMap: null,
+      catalogItem: catalog({ id: "shingles", quantity_source: "adjusted_roof_squares" }),
+      templateItem: templateItem({ id: "line-align" }),
+    });
+    const aligned = alignAdjustedEchoToPersistedQuantity(
+      adapted.quantityResolutionEcho,
+      24.5
+    );
+    assert.equal(aligned.resolved_purchase_quantity, 24.5);
+    assert.equal(aligned.source_measurement_value, 24.5);
+  });
+
+  test("clears source value for manual qty alignment", () => {
+    const adapted = resolveProposalLineQuantityViaAdapter({
+      measurementHandoff: readyHandoff({ adjusted_roof_squares: 24.5 }),
+      quantityMap: null,
+      catalogItem: catalog({ id: "shingles", quantity_source: "adjusted_roof_squares" }),
+      templateItem: templateItem({ id: "line-align-manual" }),
+    });
+    const aligned = alignAdjustedEchoToPersistedQuantity(
+      adapted.quantityResolutionEcho,
+      30,
+      { clearSourceMeasurementValue: true }
+    );
+    assert.equal(aligned.resolved_purchase_quantity, 30);
+    assert.equal(aligned.source_measurement_value, null);
+    assert.equal(aligned.quantity_mode, "adjusted_measurement");
   });
 });
 

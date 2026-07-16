@@ -634,6 +634,44 @@ describe("buildOptionSnapshots", () => {
 });
 
 describe("buildLineItemSnapshots", () => {
+  test("S3D3 does not copy quantity_resolution_echo onto customer-safe snapshot rows", () => {
+    const rows = buildLineItemSnapshots({
+      company_id: "c1",
+      proposal_option_id: "o1",
+      lines: [
+        {
+          source_template_item_id: "t1",
+          catalog_item_id: "cat1",
+          catalog_seed_key: null,
+          section_id: "s1",
+          sort_order: 0,
+          customer_name: "Shingles",
+          description: null,
+          role: "standard",
+          quantity: 22,
+          quantity_display_label: "22 SQ",
+          quantity_source_label: "Measurement",
+          unit: "SQ",
+          customer_unit_price_cents: 500,
+          customer_line_total_cents: 11000,
+          engineStatus: "priced",
+          customerVisibility: "customer_visible",
+          measurement_quantity_key: "adjusted_roof_squares",
+          quantity_resolution_echo: {
+            quantity_mode: "adjusted_measurement",
+            resolved_purchase_quantity: 22,
+          },
+        },
+      ],
+    });
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0]!.quantity, 22);
+    assert.equal(
+      Object.prototype.hasOwnProperty.call(rows[0], "quantity_resolution_echo"),
+      false
+    );
+  });
+
   test("returns customer-safe rows", () => {
     const rows = buildLineItemSnapshots({
       company_id: COMPANY_ID,

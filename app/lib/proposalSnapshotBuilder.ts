@@ -233,6 +233,12 @@ export type LineItemSnapshotInput = {
   hiddenButInCalc?: boolean;
   catalogItemMissing?: boolean;
   measurement_quantity_key?: string | null;
+  /**
+   * Internal draft-only quantity resolution audit echo.
+   * Carried for draft create/refresh persist; never copied onto customer-safe
+   * ProposalLineItemSnapshotPayload by buildLineItemSnapshots.
+   */
+  quantity_resolution_echo?: Record<string, unknown> | null;
 };
 
 export type BuildLineItemSnapshotsInput = {
@@ -849,6 +855,7 @@ export function templateItemToLineInput(
     customerUnitPriceCents?: number | null;
     customerLineTotalCents?: number | null;
     hiddenButInCalc?: boolean;
+    quantityResolutionEcho?: Record<string, unknown> | null;
   }
 ): LineItemSnapshotInput {
   return {
@@ -873,5 +880,9 @@ export function templateItemToLineInput(
     catalogItemMissing: pricing.catalogItemMissing,
     measurement_quantity_key: item.quantity_rule?.measurement_quantity_key ?? null,
     hiddenButInCalc: pricing.hiddenButInCalc === true ? true : undefined,
+    quantity_resolution_echo:
+      pricing.quantityResolutionEcho !== undefined
+        ? pricing.quantityResolutionEcho
+        : undefined,
   };
 }

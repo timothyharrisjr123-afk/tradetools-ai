@@ -105,6 +105,8 @@ export type DraftProposalCreateLinePersistRow = {
   pricing_status: string;
   visible_to_customer: boolean;
   measurement_quantity_key: string | null;
+  /** Internal adjusted-mode audit echo; draft persist only. */
+  quantity_resolution_echo?: Record<string, unknown> | null;
 };
 
 export type DraftProposalCreateInternalSummaryPersist = {
@@ -720,6 +722,9 @@ export function buildDraftProposalCreatePersistPayload(
     });
 
     const line_items: DraftProposalCreateLinePersistRow[] = builtLines.map((built) => {
+      const sourceLine = linesForOption.find(
+        (line) => line.source_template_item_id === built.source_template_item_id
+      );
       const row: DraftProposalCreateLinePersistRow = {
         source_template_item_id: built.source_template_item_id,
         catalog_item_id: built.catalog_item_id,
@@ -738,6 +743,7 @@ export function buildDraftProposalCreatePersistPayload(
         pricing_status: built.pricing_status,
         visible_to_customer: built.visible_to_customer,
         measurement_quantity_key: built.measurement_quantity_key,
+        quantity_resolution_echo: sourceLine?.quantity_resolution_echo ?? null,
       };
       assertCreatePersistLineRowCustomerSafe(row as unknown as Record<string, unknown>);
       return row;
@@ -986,6 +992,7 @@ export async function persistDraftProposalCreateSequential(
         pricing_status: line.pricing_status,
         visible_to_customer: line.visible_to_customer,
         measurement_quantity_key: line.measurement_quantity_key,
+        quantity_resolution_echo: line.quantity_resolution_echo ?? null,
       });
 
       if (lineError) {

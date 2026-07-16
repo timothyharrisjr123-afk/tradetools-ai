@@ -121,6 +121,15 @@ function minimalInstantiateInput(): DraftInstantiateInput {
           customerVisibility: "customer_visible",
           catalogItemMissing: false,
           measurement_quantity_key: null,
+          quantity_resolution_echo: {
+            quantity_mode: "adjusted_measurement",
+            source_measurement_key: "adjusted_roof_squares",
+            source_measurement_value: 22,
+            coverage_rate_used: null,
+            waste_pct_used: null,
+            rounding_mode_used: "exact",
+            resolved_purchase_quantity: 22,
+          },
         },
       ],
     },
@@ -311,6 +320,38 @@ describe("draft pricing refresh persistence contract", () => {
     assert.equal(payload.options[0]!.line_items[0]!.page_id, "page-1");
     assert.ok(payload.options[0]!.internal_summary);
     assert.equal(payload.event.event_type, "draft_saved");
+  });
+
+  test("S3D3 draft refresh persist rows include adjusted quantity_resolution_echo without changing qty/totals", () => {
+    const payload = buildDraftPricingRefreshPersistPayload({
+      companyId: COMPANY_ID,
+      proposalId: PROPOSAL_ID,
+      proposalVersionId: VERSION_ID,
+      instantiatePayload: minimalInstantiatePayload(),
+      instantiateInput: minimalInstantiateInput(),
+      existingOptions: [
+        { id: OPTION_ID, source_template_option_id: TEMPLATE_OPT },
+      ],
+      pageIdBySection: new Map([["sec-1", "page-1"]]),
+      policy: TEST_POLICY,
+      pricingPolicyId: "policy-1",
+      measurementStamp: null,
+    });
+
+    const line = payload.options[0]!.line_items[0]!;
+    assert.equal(line.quantity, 22);
+    assert.equal(line.customer_unit_price_cents, 500);
+    assert.equal(line.customer_line_total_cents, 10_000);
+    assert.equal(payload.options[0]!.pricing.customer_total_cents, 10_000);
+
+    const echo = line.quantity_resolution_echo as Record<string, unknown>;
+    assert.ok(echo);
+    assert.equal(echo.quantity_mode, "adjusted_measurement");
+    assert.equal(echo.coverage_rate_used, null);
+    assert.equal(echo.waste_pct_used, null);
+    assert.equal(echo.rounding_mode_used, "exact");
+    assert.equal(echo.resolved_purchase_quantity, 22);
+    assert.equal(echo.resolved_purchase_quantity, line.quantity);
   });
 
   test("graph integrity detects option totals without lines corruption", () => {

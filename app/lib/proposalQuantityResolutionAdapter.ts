@@ -1,12 +1,13 @@
 /**
- * S3D1/S3D2 — quantity resolution adapter (no production wiring).
+ * S3D1/S3D2/S3D3 — quantity resolution adapter.
  *
  * S3D1: wraps resolveProposalLineQuantity without changing math/labels.
  * S3D2: computes internal adjusted-mode quantity_resolution_echo metadata.
+ * S3D3: draft create/refresh may persist the echo; quantities stay resolver/mapper-owned.
  *
- * Intentionally unwired from pricing mapper, engine, snapshot builder, and
- * draft create/refresh. Do not persist quantity_resolution_echo.
+ * Do not import into pricing engine math. Do not enable raw_plus_waste.
  * Do not import catalogQuantityMode into production resolve paths yet.
+ * Customer/public DTOs must omit quantity_resolution_echo.
  */
 
 import type { QuantitySource } from "@/app/lib/catalogTypes";
@@ -43,9 +44,36 @@ export type ProposalQuantityResolutionAdapterResult = {
   preview: ProposalQuantityPreview;
   /** Metadata only; does not change resolve behavior. */
   quantityMode: AdapterQuantityMode;
-  /** Internal echo only — not persisted in S3D2. */
+  /** Internal echo — draft persist only in S3D3; never customer/public. */
   quantityResolutionEcho: AdjustedQuantityResolutionEcho;
 };
+
+/**
+ * Align echo purchase qty with the quantity that will be persisted.
+ * Does not change that quantity. Clears source_measurement_value when the
+ * persisted qty cannot be proven as a direct measurement passthrough.
+ */
+export function alignAdjustedEchoToPersistedQuantity(
+  echo: AdjustedQuantityResolutionEcho,
+  persistedQuantity: number | null | undefined,
+  options?: { clearSourceMeasurementValue?: boolean }
+): AdjustedQuantityResolutionEcho {
+  const qty =
+    persistedQuantity != null && Number.isFinite(persistedQuantity)
+      ? persistedQuantity
+      : null;
+  const clearSource =
+    options?.clearSourceMeasurementValue === true ||
+    qty == null ||
+    qty !== echo.resolved_purchase_quantity ||
+    echo.source_measurement_value == null;
+
+  return {
+    ...echo,
+    resolved_purchase_quantity: qty,
+    source_measurement_value: clearSource ? null : echo.source_measurement_value,
+  };
+}
 
 function isMultiplierRule(input: ProposalQuantityResolverInput): boolean {
   return input.templateItem.quantity_rule?.mode === "multiplier";

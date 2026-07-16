@@ -123,6 +123,15 @@ function minimalInstantiateInput(): DraftInstantiateInput {
           customerVisibility: "customer_visible",
           catalogItemMissing: false,
           measurement_quantity_key: null,
+          quantity_resolution_echo: {
+            quantity_mode: "adjusted_measurement",
+            source_measurement_key: "adjusted_roof_squares",
+            source_measurement_value: 22,
+            coverage_rate_used: null,
+            waste_pct_used: null,
+            rounding_mode_used: "exact",
+            resolved_purchase_quantity: 22,
+          },
         },
       ],
     },
@@ -224,6 +233,26 @@ describe("draft proposal create persistence contract", () => {
     assert.ok(option.internal_summary);
 
     assert.doesNotThrow(() => assertDraftProposalCreateGraphInvariants(payload));
+  });
+
+  test("S3D3 draft create persist rows include adjusted quantity_resolution_echo without changing qty/totals", () => {
+    const payload = buildHappyPayload();
+    const line = payload.options[0]!.line_items[0]!;
+    const option = payload.options[0]!;
+
+    assert.equal(line.quantity, 22);
+    assert.equal(line.customer_unit_price_cents, 500);
+    assert.equal(line.customer_line_total_cents, 10_000);
+    assert.equal(option.customer_total_cents, 10_000);
+
+    const echo = line.quantity_resolution_echo as Record<string, unknown>;
+    assert.ok(echo);
+    assert.equal(echo.quantity_mode, "adjusted_measurement");
+    assert.equal(echo.coverage_rate_used, null);
+    assert.equal(echo.waste_pct_used, null);
+    assert.equal(echo.rounding_mode_used, "exact");
+    assert.equal(echo.resolved_purchase_quantity, 22);
+    assert.equal(echo.resolved_purchase_quantity, line.quantity);
   });
 
   test("payload uses section_id for RPC page mapping without pre-generated page ids", () => {
