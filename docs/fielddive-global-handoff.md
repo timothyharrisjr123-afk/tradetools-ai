@@ -11072,6 +11072,57 @@ An earlier smoke-table error was caused by temporary validation-table lifecycle,
 
 **Next after this checkpoint:** type/store alignment planning or resolver-integration planning only, with a separate approval gate before implementation. Do **not** skip to UI columns.
 
+###### raw_plus_waste implementation path lock (Phase 1 docs + pure math)
+
+**Status:** **Phase 1 locked — docs + pure helper/test expansion only.** Helpers remain in `app/lib/catalogQuantityMode.ts` / `app/lib/catalogQuantityMode.test.ts` and stay **intentionally unwired**. This lock does **not** authorize production enablement.
+
+**Current production mode (unchanged)**
+
+- `adjusted_measurement` remains the default and only active production mode.
+- `raw_plus_waste` remains future-only.
+- Whole rounding remains unsupported (`unsupported_rounding`).
+- Coverage/Waste UI remains inactive (no editable columns; no live truthful display).
+- Production resolver, pricing engine, pricing input mapper, draft create/refresh persistence, and customer/public DTOs remain on the adjusted path.
+
+**Formula / order (future `raw_plus_waste` only)**
+
+1. **Source** — raw measurement source quantity only (not `adjusted_roof_squares` or any already-wasted value). Unknown/unproven source must fail/violate, not guess. Pure helper flag `sourceAlreadyAdjusted: true` → `double_waste_risk`.
+2. **Coverage** — `null`/`undefined` `coverage_rate` = 1:1; valid `coverage_rate` = source units covered by one purchase unit; `purchase_qty = source_qty / coverage_rate`. Invalid `0` / negative / non-finite → `invalid_coverage`.
+3. **Waste** — applies only when `waste_applies === true`. `waste_pct` null/undefined = no waste. `resolved = covered * (1 + waste_pct / 100)`. Invalid negative / non-finite → `invalid_waste`. `waste_applies === false` skips waste even if `waste_pct` is present.
+4. **Rounding** — exact only in this phase; whole remains separate/future (`unsupported_rounding`).
+
+Order: **source → coverage → waste → exact**.
+
+**No-double-waste rules**
+
+- `adjusted_measurement` must never apply catalog `waste_pct` (`waste_forbidden_in_adjusted_mode` / double-waste risk).
+- `adjusted_measurement` ignores coverage in this phase (`coverageRateUsed` stays null even if coverage input is supplied).
+- `raw_plus_waste` must not use `adjusted_roof_squares` or already-wasted measurement values.
+- `raw_plus_waste` requires raw measurement source proof; unknown source proof must fail/violate.
+- Helpers never mark `raw_plus_waste` as production-enabled (`DEFAULT_QUANTITY_MODE` stays `adjusted_measurement`; success notes include `not production-enabled`).
+
+**Item behavior**
+
+- Materials may use coverage + waste when the future mode is enabled.
+- Labor/fees should usually have `waste_applies=false`.
+- `coverage_rate` should usually be null for labor/fees unless explicitly supported later.
+
+**Future sequence (gated; do not skip)**
+
+| Phase | Scope | Guardrail |
+|-------|-------|-----------|
+| **1 — docs + pure math/tests** | This lock + expanded `catalogQuantityMode` helpers/tests | No resolver wiring; no policy CHECK widening; no UI |
+| **2 — disabled resolver branch tests** | Fixture/tests for a future branch that stays disabled | No production path change |
+| **3 — policy/app validator staging** | App-level validators prepare for dual mode without enabling | No DB CHECK widening |
+| **4 — DB CHECK widening** | Only after explicit approval | Separate gate; not bundled with UI |
+| **5 — draft refresh / snapshot / staleness dual-mode** | Echo + staleness for both modes | Sent/frozen immutable; no auto-refresh |
+| **6 — read-only UI** | Show proven engine-backed values only | No editing |
+| **7 — editable UI** | Catalog/default/override editing | Later explicit approval |
+
+**Stop conditions (same family as S1)** — stop if raw source proof is unreliable; if adjusted waste ownership is unprovable; if coverage would silently change existing draft quantities; if UI would show Coverage/Waste before truth support; if tax/supplier scope bleeds in; if existing proposals would require automatic migration.
+
+**Next after Phase 1:** Phase 2 — disabled resolver branch tests only. Do **not** enable `raw_plus_waste` in company policy, widen DB CHECKs, wire the production resolver, or add Coverage/Waste UI.
+
 **P3 — polish**
 
 - Nav active-state fixes
@@ -12335,6 +12386,7 @@ Treat as **drift** if a session:
 
 ## Changelog (handoff doc only)
 
+- **2026-07-16:** **raw_plus_waste Phase 1 — docs lock + pure math expansion** — locked formula/order (source → coverage → waste → exact), no-double-waste rules, item behavior, and gated Phases 1–7 in **§6BO.13.4.4**; expanded unwired `catalogQuantityMode` helpers/tests (`sourceAlreadyAdjusted` → `double_waste_risk`; adjusted ignores coverage this phase; success notes mark `not production-enabled`). No resolver/engine/mapper/UI/policy CHECK/DTO changes. Production remains `adjusted_measurement` only; whole rounding remains unsupported. **Next:** Phase 2 — disabled resolver branch tests only.
 - **2026-07-16:** **Slice A internal-only quantity preflight trust composer** — added pure `proposalBuilderTrustSignals` that maps Builder quantity preflight metadata to a sibling internal trust signal (`current→ok`, `unknown→neutral`, `stale→needs_review`). Unknown remains neutral (not stale). Stale is internal `needs_review` only: `shouldBlock=false`, `shouldAutoRefresh=false`, `customerVisible=false`. Not merged into `deriveProposalPricingStale`; no visible Builder banner/CTA; no Send-gate or customer/public exposure. Builder exposes trust status/severity via invisible data attrs only. `raw_plus_waste` and whole rounding remain disabled. **Next:** Catalog planned/read-only UI polish, or docs lock for raw_plus_waste path (product priority).
 - **2026-07-16:** **Block A internal Builder quantity preflight metadata + app-flow smoke** — PASS on approved project/ref **`rhquhnujjnzjhweypavd`** using smoke proposal **`5b7b49d7-89a1-42be-a06c-e032303e4fcc`**. Added pure `proposalBuilderQuantityPreflightMetadata` and wired inert Builder-only `quantityPreflight` into `ProposalBuilderClient` (data attributes only; no banner, no blocking, no auto-refresh). App-flow smoke: Builder opened draft, internal metadata returned **`current`** (`currentCount=1`, `staleCount=0`, `unknownCount=0`); draft refresh preserved valid `quantity_resolution_echo`; totals unchanged; customer/public DTOs remain clean. No raw-plus-waste or whole rounding. **Next:** Block B planning — staleness integration, read-only/planned Catalog columns, raw-plus-waste planning.
 - **2026-07-16:** **S3D13 valid-selected-measurement quantity-resolution echo live smoke** — PASS on approved project/ref **`rhquhnujjnzjhweypavd`** using job **`c9497cc1-c8d2-406e-8455-5a6f9cc369d3`**, same-job selected measurement **`62f5d03b-7215-4504-bb0c-3c1b116a79b3`**, and customer-free draft-only smoke proposal **`5b7b49d7-89a1-42be-a06c-e032303e4fcc`**. Live draft create and refresh each persisted and read back one valid adjusted/exact `quantity_resolution_echo`; internal read-only preflight returned **`current`** (`currentCount=1`, `staleCount=0`, `unknownCount=0`). The prior S3D11 `unknown/current_unresolved` result was correct because its stamped measurement belonged to a different job; no cross-job fallback was added. No UI, customer/public behavior, auto-refresh, raw-plus-waste, or whole-rounding behavior was enabled. **Next:** combined Block A — internal Builder metadata consumer + app-flow smoke.

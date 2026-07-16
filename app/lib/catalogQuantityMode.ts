@@ -1,5 +1,5 @@
 /**
- * Catalog quantity-mode helpers (S1B) — pure foundation only.
+ * Catalog quantity-mode helpers (S1B / raw_plus_waste Phase 1) — pure foundation only.
  *
  * Production today remains on adjusted_measurement via proposalQuantityResolver
  * (measurement → quantity_source → resolved qty). The pricing engine does not
@@ -9,9 +9,12 @@
  * - Do not import into proposalQuantityResolver, pricing engine, mapper, or UI.
  * - raw_plus_waste is a future-mode helper only until schema/math/tests + wiring
  *   are separately approved.
+ * - DEFAULT_QUANTITY_MODE stays adjusted_measurement; helpers never mark
+ *   raw_plus_waste as production-enabled.
  *
- * Coverage null/undefined = 1:1 (no conversion). Exact rounding only;
- * whole returns unsupported_rounding (never silently applied).
+ * Formula order for future raw_plus_waste: source → coverage → waste → exact.
+ * Coverage null/undefined = 1:1. Exact rounding only; whole returns
+ * unsupported_rounding (never silently applied).
  */
 
 // ---------------------------------------------------------------------------
@@ -221,6 +224,11 @@ export function applyQuantityRounding(
 
 export type ResolveAdjustedMeasurementInput = {
   sourceQuantity: number;
+  /**
+   * Ignored in this phase. Coverage is not applied under adjusted_measurement;
+   * coverageRateUsed remains null even when provided.
+   */
+  coverage?: CoverageInput;
   waste?: WasteInput;
   rounding?: RoundingInput;
 };
@@ -285,7 +293,16 @@ export function resolveAdjustedMeasurementQuantity(
 }
 
 export type ResolveRawPlusWasteInput = {
+  /**
+   * Must be a raw (pre-waste) measurement quantity.
+   * Do not pass adjusted_roof_squares or other already-wasted values.
+   */
   sourceQuantity: number | null | undefined;
+  /**
+   * When true, source is known to already include waste / be adjusted —
+   * raw_plus_waste refuses to proceed (double_waste_risk).
+   */
+  sourceAlreadyAdjusted?: boolean;
   coverage?: CoverageInput;
   waste?: WasteInput;
   rounding?: RoundingInput;
@@ -293,7 +310,8 @@ export type ResolveRawPlusWasteInput = {
 
 /**
  * Future helper mode only — not wired into production resolver or pricing.
- * Order: coverage → waste (if wasteApplies) → exact rounding.
+ * Order: source → coverage → waste (if wasteApplies) → exact rounding.
+ * Rejects missing raw source and already-adjusted sources.
  */
 export function resolveRawPlusWasteQuantity(
   input: ResolveRawPlusWasteInput
@@ -304,6 +322,15 @@ export function resolveRawPlusWasteQuantity(
       ok: false,
       code: "missing_raw_source",
       message: "raw_plus_waste requires a finite raw sourceQuantity.",
+    };
+  }
+
+  if (input.sourceAlreadyAdjusted === true) {
+    return {
+      ok: false,
+      code: "double_waste_risk",
+      message:
+        "raw_plus_waste forbids already-adjusted sources; provide a proven raw measurement quantity.",
     };
   }
 
@@ -339,6 +366,9 @@ export function resolveRawPlusWasteQuantity(
     coverageRateUsed: covered.coverageRateUsed,
     wastePctUsed,
     resolvedQuantity: rounded.quantity,
-    notes: ["future mode; not wired into production quantity resolver"],
+    notes: [
+      "future mode; not wired into production quantity resolver",
+      "not production-enabled",
+    ],
   };
 }
