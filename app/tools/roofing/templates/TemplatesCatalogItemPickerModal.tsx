@@ -9,7 +9,6 @@ import {
 } from "@/app/lib/catalogTypes";
 import {
   TEMPLATE_ADD_FROM_CATALOG_LABEL,
-  TEMPLATE_CATALOG_SOT_COPY,
   TEMPLATE_RELINK_CATALOG_LABEL,
   formatCatalogPickerPriceLine,
   listActiveCatalogItemsForPicker,
@@ -70,10 +69,10 @@ export default function TemplatesCatalogItemPickerModal({
             {title}
           </h2>
           <p className="mt-1 text-xs leading-relaxed text-slate-500">
-            {TEMPLATE_CATALOG_SOT_COPY}
+            Prices come from Catalog. Only active items can be added.
           </p>
           <p className="mt-1 text-xs text-slate-500">
-            Only active Catalog items can be linked. Inactive items are hidden.
+            Inactive Catalog items are hidden from this list.
           </p>
         </div>
 

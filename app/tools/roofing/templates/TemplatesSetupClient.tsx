@@ -11,6 +11,7 @@ import {
 } from "@/app/lib/defaultRoofingProposalTemplateInstall";
 import {
   buildCatalogByIdMap,
+  buildTemplateCatalogLinkView,
   catalogItemIdsAlreadyInSection,
   defaultItemRoleForSectionKind,
   deriveTemplateCatalogLinkReadiness,
@@ -20,10 +21,11 @@ import {
 } from "@/app/lib/proposalTemplateCatalogLink";
 import { deriveProposalTemplateReadiness } from "@/app/lib/proposalTemplateReadiness";
 import {
-  getProposalTemplateGraph,
-  getProposalTemplatesByCompany,
   createProposalTemplateItem,
   createProposalTemplateSection,
+  deleteProposalTemplateItem,
+  getProposalTemplateGraph,
+  getProposalTemplatesByCompany,
   updateProposalTemplate,
   updateProposalTemplateItem,
   updateProposalTemplateSection,
@@ -39,6 +41,7 @@ import {
   planAddSection,
   planReorderSections,
 } from "@/app/lib/proposalTemplateStructureMutations";
+import TemplatesAddItemSectionChooser from "./TemplatesAddItemSectionChooser";
 import TemplatesBuilderFootnote from "./TemplatesBuilderFootnote";
 import TemplatesCatalogItemPickerModal, {
   type TemplatesCatalogPickerMode,
@@ -48,6 +51,7 @@ import TemplatesLibrarySection from "./TemplatesLibrarySection";
 import TemplatesOnboardingZone from "./TemplatesOnboardingZone";
 import TemplatesPageAlerts from "./TemplatesPageAlerts";
 import TemplatesPageHeader from "./TemplatesPageHeader";
+import TemplatesRemoveItemConfirmModal from "./TemplatesRemoveItemConfirmModal";
 import TemplatesSelectedWorkspace from "./TemplatesSelectedWorkspace";
 import TemplatesStarterHeroCard from "./TemplatesStarterHeroCard";
 import TemplatesWorkspaceLayout from "./TemplatesWorkspaceLayout";
@@ -65,6 +69,9 @@ import {
 } from "./templatesStructureEditorUtils";
 import {
   buildTemplateCreatesSummary,
+  defaultSelectedPackageOptionId,
+  listCatalogTargetSectionsForOption,
+  type CatalogTargetSectionChoice,
   type TemplatesEditTabId,
   type TemplatesWorkspaceMode,
   summarizePackageOptionsForWorkspace,
@@ -84,6 +91,7 @@ type StructureSettingsBusy =
   | { kind: "settings-option"; optionId: string }
   | { kind: "add-item"; sectionId: string }
   | { kind: "relink-item"; itemId: string }
+  | { kind: "remove-item"; itemId: string }
   | null;
 
 type CatalogPickerState =
@@ -126,9 +134,14 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
   const [structureBusy, setStructureBusy] = useState<StructureSettingsBusy>(null);
   const [structureError, setStructureError] = useState<string | null>(null);
   const [catalogPicker, setCatalogPicker] = useState<CatalogPickerState>(null);
-  const [workspaceMode, setWorkspaceMode] = useState<TemplatesWorkspaceMode>("use");
+  const [workspaceMode, setWorkspaceMode] = useState<TemplatesWorkspaceMode>("review");
   const [editTab, setEditTab] = useState<TemplatesEditTabId>("packages");
+  const [selectedPackageOptionId, setSelectedPackageOptionId] = useState<string | null>(null);
   const [focusSectionId, setFocusSectionId] = useState<string | null>(null);
+  const [addSectionChoices, setAddSectionChoices] = useState<CatalogTargetSectionChoice[] | null>(
+    null
+  );
+  const [removeConfirmItemId, setRemoveConfirmItemId] = useState<string | null>(null);
 
   const loadCatalog = useCallback(async () => {
     setCatalogLoading(true);
@@ -231,9 +244,12 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
         setGraphLoading(true);
         setTemplatesError(null);
         setSelectedTemplateId(templateId);
-        setWorkspaceMode("use");
+        setWorkspaceMode("review");
         setEditTab("packages");
+        setSelectedPackageOptionId(null);
         setFocusSectionId(null);
+        setRemoveConfirmItemId(null);
+        setAddSectionChoices(null);
         try {
           const graph = await loadTemplateGraph(templateId, starterGraph);
           setSelectedGraph(graph);
@@ -655,14 +671,14 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
             }
           );
           if (!updated) {
-            setStructureError("Could not change Catalog link. Try again.");
+            setStructureError("Could not replace Catalog item. Try again.");
             return;
           }
           setCatalogPicker(null);
           await reloadSelectedGraph(selectedTemplateId);
         } catch (err) {
           console.warn("[TemplatesSetupClient] relink catalog item error:", err);
-          setStructureError("Changing Catalog link failed unexpectedly.");
+          setStructureError("Replacing Catalog item failed unexpectedly.");
         } finally {
           setStructureBusy(null);
         }
@@ -749,6 +765,19 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
     });
   }, [selectedGraph, packageSummaries, contentViewModel?.totalEditableSectionCount]);
 
+  useEffect(() => {
+    if (packageSummaries.length === 0) {
+      setSelectedPackageOptionId(null);
+      return;
+    }
+    setSelectedPackageOptionId((current) => {
+      if (current && packageSummaries.some((row) => row.optionId === current)) {
+        return current;
+      }
+      return defaultSelectedPackageOptionId(packageSummaries);
+    });
+  }, [packageSummaries]);
+
   const handleSelectEditTab = useCallback((tab: TemplatesEditTabId) => {
     setEditTab(tab);
     if (tab !== "packages") {
@@ -756,38 +785,122 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
     }
   }, []);
 
-  const handleEnterEditMode = useCallback((tab: TemplatesEditTabId = "packages") => {
-    setWorkspaceMode("edit");
+  const handleOpenAdvanced = useCallback((tab: TemplatesEditTabId = "packages") => {
+    setWorkspaceMode("advanced");
     setEditTab(tab);
     if (tab !== "packages") {
       setFocusSectionId(null);
     }
   }, []);
 
-  const handleBackToSummary = useCallback(() => {
-    setWorkspaceMode("use");
+  const handleBackToReview = useCallback(() => {
+    setWorkspaceMode("review");
     setFocusSectionId(null);
   }, []);
 
-  const handleFixCatalogLinks = useCallback(() => {
-    setWorkspaceMode("edit");
-    setEditTab("packages");
+  const handleSelectPackage = useCallback((optionId: string) => {
+    setSelectedPackageOptionId(optionId);
+  }, []);
+
+  const handleQuoteAddItem = useCallback(() => {
+    if (!selectedGraph || !selectedPackageOptionId || structureBusy || savingSectionId) return;
+    const choices = listCatalogTargetSectionsForOption(selectedGraph, selectedPackageOptionId);
+    if (choices.length === 0) {
+      setStructureError("This package has no section that accepts Catalog items yet.");
+      return;
+    }
+    if (choices.length === 1) {
+      handleOpenAddCatalogItem(choices[0].optionId, choices[0].sectionId);
+      return;
+    }
+    setAddSectionChoices(choices);
+  }, [
+    handleOpenAddCatalogItem,
+    savingSectionId,
+    selectedGraph,
+    selectedPackageOptionId,
+    structureBusy,
+  ]);
+
+  const handleChooseAddSection = useCallback(
+    (sectionId: string) => {
+      const choice = addSectionChoices?.find((row) => row.sectionId === sectionId);
+      setAddSectionChoices(null);
+      if (!choice) return;
+      handleOpenAddCatalogItem(choice.optionId, choice.sectionId);
+    },
+    [addSectionChoices, handleOpenAddCatalogItem]
+  );
+
+  const handleRequestRemoveItem = useCallback((templateItemId: string) => {
+    setRemoveConfirmItemId(templateItemId);
+  }, []);
+
+  const handleConfirmRemoveItem = useCallback(() => {
+    void (async () => {
+      if (!selectedGraph || !selectedTemplateId || !removeConfirmItemId) return;
+      if (structureBusy || savingSectionId) return;
+
+      const item = selectedGraph.items.find((row) => row.id === removeConfirmItemId);
+      if (!item) {
+        setStructureError("Template item not found.");
+        setRemoveConfirmItemId(null);
+        return;
+      }
+
+      setStructureBusy({ kind: "remove-item", itemId: item.id });
+      setStructureError(null);
+      try {
+        const removed = await deleteProposalTemplateItem(item.id, {
+          companyId,
+          templateId: selectedTemplateId,
+          optionId: item.option_id,
+          sectionId: item.section_id,
+        });
+        if (!removed) {
+          setStructureError("Could not remove this item from the template. Try again.");
+          return;
+        }
+        setRemoveConfirmItemId(null);
+        await reloadSelectedGraph(selectedTemplateId);
+      } catch (err) {
+        console.warn("[TemplatesSetupClient] remove template item error:", err);
+        setStructureError("Removing the template item failed unexpectedly.");
+      } finally {
+        setStructureBusy(null);
+      }
+    })();
+  }, [
+    companyId,
+    reloadSelectedGraph,
+    removeConfirmItemId,
+    savingSectionId,
+    selectedGraph,
+    selectedTemplateId,
+    structureBusy,
+  ]);
+
+  const handleFixIssues = useCallback(() => {
     const problemId = selectedLinkReadiness.firstProblemItemId;
     if (problemId) {
       const item = selectedGraph?.items.find((row) => row.id === problemId);
-      setFocusSectionId(item?.section_id ?? null);
-      // Allow Packages edit tab to mount before scrolling / opening relink.
-      window.setTimeout(() => {
-        const el = document.querySelector(`[data-templates-catalog-link="${problemId}"]`);
-        el?.scrollIntoView({ behavior: "smooth", block: "center" });
-        handleOpenRelinkCatalogItem(problemId);
-      }, 50);
-      return;
+      if (item) {
+        setSelectedPackageOptionId(item.option_id);
+        setWorkspaceMode("review");
+        window.setTimeout(() => {
+          const el = document.querySelector(`[data-templates-catalog-link="${problemId}"]`);
+          el?.scrollIntoView({ behavior: "smooth", block: "center" });
+          handleOpenRelinkCatalogItem(problemId);
+        }, 50);
+        return;
+      }
     }
-    setFocusSectionId(null);
+    setWorkspaceMode("review");
     window.setTimeout(() => {
-      const firstAdd = document.querySelector("[data-templates-add-from-catalog]");
-      firstAdd?.scrollIntoView({ behavior: "smooth", block: "center" });
+      document.querySelector("[data-templates-add-item]")?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
     }, 50);
   }, [
     handleOpenRelinkCatalogItem,
@@ -795,15 +908,13 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
     selectedLinkReadiness.firstProblemItemId,
   ]);
 
-  const handleAddCatalogItemsCta = useCallback(() => {
-    setWorkspaceMode("edit");
-    setEditTab("packages");
-    setFocusSectionId(null);
-    window.setTimeout(() => {
-      const firstAdd = document.querySelector("[data-templates-add-from-catalog]");
-      firstAdd?.scrollIntoView({ behavior: "smooth", block: "center" });
-    }, 50);
-  }, []);
+  const removeConfirmItemName = useMemo(() => {
+    if (!removeConfirmItemId || !selectedGraph) return "This item";
+    const item = selectedGraph.items.find((row) => row.id === removeConfirmItemId);
+    if (!item) return "This item";
+    const catalogById = buildCatalogByIdMap(catalogItems);
+    return buildTemplateCatalogLinkView(item, catalogById).displayName;
+  }, [catalogItems, removeConfirmItemId, selectedGraph]);
 
   const handleInstallStarter = useCallback(() => {
     void (async () => {
@@ -919,8 +1030,8 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
                 mode={workspaceMode}
                 editTab={editTab}
                 onSelectEditTab={handleSelectEditTab}
-                onEnterEditMode={handleEnterEditMode}
-                onBackToSummary={handleBackToSummary}
+                onOpenAdvanced={handleOpenAdvanced}
+                onBackToReview={handleBackToReview}
                 graph={selectedGraph}
                 proposalReadiness={proposalReadiness}
                 linkReadiness={selectedLinkReadiness}
@@ -931,11 +1042,15 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
                 structureBusy={structureBusy}
                 structureError={structureError}
                 catalogItems={catalogItems}
+                selectedPackageOptionId={selectedPackageOptionId}
+                onSelectPackage={handleSelectPackage}
                 focusSectionId={focusSectionId}
                 savingSectionId={savingSectionId}
                 sectionSaveError={sectionSaveError}
-                onFixLinks={handleFixCatalogLinks}
-                onAddCatalogItems={handleAddCatalogItemsCta}
+                onAddItem={handleQuoteAddItem}
+                onReplaceItem={handleOpenRelinkCatalogItem}
+                onRemoveItem={handleRequestRemoveItem}
+                onFixIssues={handleFixIssues}
                 onAddSection={handleAddSection}
                 onMoveSection={handleMoveSection}
                 onSaveTemplateEstimateSettings={handleSaveTemplateEstimateSettings}
@@ -986,6 +1101,24 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
           setCatalogPicker(null);
         }}
         onSelect={handleCatalogPickerSelect}
+      />
+
+      <TemplatesAddItemSectionChooser
+        open={addSectionChoices != null}
+        choices={addSectionChoices ?? []}
+        onCancel={() => setAddSectionChoices(null)}
+        onChoose={handleChooseAddSection}
+      />
+
+      <TemplatesRemoveItemConfirmModal
+        open={removeConfirmItemId != null}
+        itemName={removeConfirmItemName}
+        busy={structureBusy?.kind === "remove-item"}
+        onCancel={() => {
+          if (structureBusy?.kind === "remove-item") return;
+          setRemoveConfirmItemId(null);
+        }}
+        onConfirm={handleConfirmRemoveItem}
       />
     </div>
   );

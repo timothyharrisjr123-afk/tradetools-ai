@@ -45,11 +45,11 @@
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** **`97c12e5` — polish(templates): add use first template flow** (Templates Flow Redesign P1)
-- **Docs checkpoint:** **pending this commit — contractor-first template page redesign plan** (**§6BO.13.4.9**)
-- **Prior docs checkpoint:** Templates Flow Redesign P1 notes (**§6BO.13.4.8** G)
-- **Next:** **Templates Page Redesign P2** — Included-in-quote manager + Add / Remove / Replace (see **§6BO.13.4.9**). Then Integrated Flow **P2** Job Card proposal start. Do **not** start dedicated `/templates/[id]` unless the Included-manager model proves insufficient; do **not** start supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
-- **Historical note:** **`97c12e5` Use-first / Edit-mode improved IA but is still not contractor-simple** — edits still require deep structure chrome; no Remove-from-template. Redesign locked in **§6BO.13.4.9**.
+- **Code checkpoint:** **pending this commit — polish(templates): add quote setup review** (Templates Page P2)
+- **Docs checkpoint:** Templates Page P2 notes (this header + **§6BO.13.4.9** I)
+- **Prior code:** **`97c12e5`** Use-first P1; **`1a63aff`** docs plan §6BO.13.4.9
+- **Next:** **Integrated Flow P2** — Job Card proposal start / guided creation path. Do **not** start dedicated `/templates/[id]` unless Quote Setup Review proves insufficient; do **not** start supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
+- **Historical note:** **P2 Quote Setup Review** replaces P1 Use-surface as the default Templates IA — included items + Add/Remove/Replace on the main path; Advanced settings secondary.
 
 **Trust order:** Header/current checkpoint → **§6BO.13** (approved page-by-page UI flow roadmap + P0 implementation sequence — **supersedes separate Command Center language**) → **§6BM** / **§6BN** (R18 letter-phase roadmap + R18C–R18D3C implementation history) → **§6BO** / **§6BO.11** / **§6BO.12** (completed remediation side-track + **approved Stage C policy** + **operating-flow audit sequencing — complete; outcome in §6BO.13**) → **§6BL** → **§11 override**. Stage B browser smoke required local-only **`USE_PROPOSAL_SEND_FREEZE_RPC=1`** in `.env.local` (gitignored, not committed). **Do not proceed** to docs-only or next feature work unless working tree is clean. **Still do not** mutate `proposals.status = sent`, write sent `proposal_events`, move Jobs Board cards, add Job Card send activity, enable PDF/Sign/Payment, or add webhooks unless separately approved.
 
@@ -11509,7 +11509,7 @@ Contractor screenshots + code review of `/tools/roofing/templates` show an admin
 
 ##### I. Next coding block (superseded)
 
-See **§6BO.13.4.9** — Templates Page Redesign P2 (Included manager) is the immediate next coding block before Integrated Flow P2.
+See **§6BO.13.4.9** I — Templates Page P2 Quote Setup Review is shipped. Next coding: Integrated Flow P2.
 
 #### 13.4.8 Templates contractor-first flow redesign plan — COMPLETE (2026-07-17)
 
@@ -11947,10 +11947,32 @@ Setup (collapsed when healthy): Catalog ready · Starter installed
 | **Risks** | Remove semantics (drafts already snapshotted stay frozen — honest); long item lists (package filter + collapse); contractors editing company template mid-day (expected; copy that changes apply to future quotes) |
 | **Next coding prompt** | **Templates Page Redesign P2 — implement Option B Included manager + Add/Remove/Replace** on `/tools/roofing/templates` per §6BO.13.4.9 |
 
-##### H. Next coding block
+##### H. Next coding block (plan-era; superseded by I)
 
-**Templates Page Redesign P2** — Included-in-this-quote manager + Add / Remove / Replace.
-Then **Integrated Flow P2** — Job Card proposal start / guided creation path.
+Was: Templates Page Redesign P2. **P2 shipped — see I.** Next: Integrated Flow P2.
+
+##### I. Templates Page P2 — Quote Setup Review — IMPLEMENTED (2026-07-17)
+
+**Status:** App UI + store delete helper only. **No migrations, SQL, package, pricing formula, Customer Preview, send/public/lifecycle, supplier, material ordering, proposal import, CSV mapping, raw mode, or whole-rounding changes.** RLS already allowed `proposal_template_items` DELETE (company-scoped).
+
+**Plan checkpoint:** **`1a63aff`** / **§6BO.13.4.9**. **Prior UI:** **`97c12e5`** Use-first / Edit-mode.
+
+| Topic | What shipped |
+|-------|----------------|
+| **Default model** | **Quote Setup Review** — library + selected hero + package selector + Included items manager |
+| **Hero** | Name, Ready/Needs attention, counts, What this includes, Use from Job Card, one trust note |
+| **Package selector** | One package at a time (Standard / Enhanced / Premium); drives included list |
+| **Included items** | Name, type/unit/visibility, Replace item, Remove from template; empty: “No items included here yet. Add from Catalog.” |
+| **Add item** | Modal picker (active Catalog only); section chooser when multiple targets; duplicates blocked |
+| **Replace item** | Relink picker; preserves section/position; contractor label (not “Change catalog link”) |
+| **Remove from template** | Confirm modal; `deleteProposalTemplateItem` — template row only; Catalog untouched |
+| **Advanced settings** | Secondary: Edit sections / Customer display / Content, warranty & terms |
+| **Preserved** | Starter install; readiness; linked/inactive/missing; estimate/content editors; Builder freeze / Preview safety; Job Card create start |
+| **Behavior boundaries** | Unchanged pricing/snapshots/Preview/lifecycle/supplier/material/import |
+
+**Key files:** `TemplatesQuoteSetupReview.tsx`, `TemplatesIncludedItemsManager.tsx`, `TemplatesRemoveItemConfirmModal.tsx`, `TemplatesAddItemSectionChooser.tsx`, `TemplatesSelectedWorkspace.tsx`, `TemplatesSetupClient.tsx`, `proposalTemplateStore.ts` (`deleteProposalTemplateItem`), `proposalTemplateCatalogLink.ts` (labels).
+
+**Next recommended block:** **Integrated Flow P2 — Job Card proposal start / guided creation path.**
 
 #### 13.4.6 Integrated Catalog → Proposal workflow research + FieldDive flow design — COMPLETE (2026-07-17)
 
@@ -12141,9 +12163,9 @@ Roofr keeps this simple by: forcing Catalog-before-Template, automating qty from
 
 **Templates Flow Redesign P1 — Use-first / Edit-mode** — **DONE** (see **§6BO.13.4.8** G).
 
-**Templates Page Redesign P2 — Included manager + Add/Remove/Replace** — **NEXT** (see **§6BO.13.4.9**).
+**Templates Page Redesign P2 — Quote Setup Review + Included manager** — **DONE** (see **§6BO.13.4.9** I).
 
-**Integrated Flow P2 — job-card proposal start / guided creation path** — queued after Templates Page P2.
+**Integrated Flow P2 — job-card proposal start / guided creation path — NEXT**
 
 - **Goal:** Make Job Card → measurement → template → Create proposal the most obvious connected path when setup is ready; clarify blocked states with fix actions.
 - **Likely files:** Job Card proposals tab / launch helpers, optional guided create modal if needed (only if real route support).
@@ -13436,7 +13458,8 @@ Treat as **drift** if a session:
 
 ## Changelog (handoff doc only)
 
-- **2026-07-17:** **Proposal Templates page contractor-first redesign plan** (docs only) — recorded **§6BO.13.4.9**: critique of `97c12e5` (still structure-admin; no Remove); Options A/B/C; chose **Option B Included-in-quote manager**; Add/Remove/Replace flow; final wireframe + implementation plan. No app code. **Next coding block:** Templates Page Redesign **P2**.
+- **2026-07-17:** **Templates Page P2 — Quote Setup Review** — default Templates IA: selected hero + package selector + Included items; Add / Replace / Remove from template (store delete; Catalog untouched); Advanced settings secondary; pricing/Preview/lifecycle unchanged. **Next:** Integrated Flow **P2** Job Card proposal start.
+- **2026-07-17:** **Proposal Templates page contractor-first redesign plan** (docs only) — recorded **§6BO.13.4.9**: critique of `97c12e5`; Options A/B/C; chose **Option B Included-in-quote manager**; Add/Remove/Replace flow; final wireframe. No app code. **Next coding block:** Templates Page Redesign **P2**.
 - **2026-07-17:** **Templates Flow Redesign P1** — Use-first / Edit-mode on `/tools/roofing/templates`: default Use surface (readiness + what this creates + Open Jobs / Fix); Edit template mode for Packages & Catalog / Customer display / Content; no first-load edit tab strip; Catalog add/re-link + estimate/content preserved; pricing/Preview/lifecycle unchanged. Superseded as end-state by **§6BO.13.4.9** (still not contractor-simple).
 - **2026-07-17:** **Templates contractor-first flow redesign plan** (docs only) — recorded **§6BO.13.4.8**: honest critique of `e2df6ac` (tabs still editor-framed); Options A/B/C; chose **Option B Use-first + Edit mode**; text wireframe + implementation plan. No app code. **Next coding block:** Templates Flow Redesign **P1**.
 - **2026-07-17:** **Templates Workspace Redesign P0** — contractor-first `/tools/roofing/templates`: Overview readiness + Open Jobs; Packages & Catalog / Estimate / Content tabs; no first-load Catalog dump; Catalog add/re-link preserved; pricing/Preview/lifecycle unchanged. Superseded as first-load IA by P1 Use-first.

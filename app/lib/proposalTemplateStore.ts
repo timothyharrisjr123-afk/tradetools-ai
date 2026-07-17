@@ -1630,6 +1630,76 @@ export async function updateProposalTemplateItem(
   }
 }
 
+/**
+ * Remove a template item row only. Does not delete or mutate Catalog items.
+ * Existing proposal drafts keep snapshotted lines until refreshed.
+ */
+export async function deleteProposalTemplateItem(
+  id: string,
+  options: {
+    companyId: string;
+    templateId?: string;
+    optionId?: string;
+    sectionId?: string;
+  }
+): Promise<boolean> {
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    console.error(
+      "[proposalTemplateStore] deleteProposalTemplateItem: Supabase client unavailable"
+    );
+    return false;
+  }
+
+  const itemId = normalizeUuidParam(id, "deleteProposalTemplateItem");
+  if (!itemId) return false;
+
+  const companyId = normalizeCompanyId(options.companyId);
+  if (!companyId) {
+    console.error("[proposalTemplateStore] deleteProposalTemplateItem: invalid company id");
+    return false;
+  }
+
+  try {
+    let query = supabase
+      .from("proposal_template_items")
+      .delete()
+      .eq("id", itemId)
+      .eq("company_id", companyId);
+
+    if (options.templateId) {
+      const templateId = normalizeUuidParam(options.templateId, "deleteProposalTemplateItem");
+      if (!templateId) return false;
+      query = query.eq("template_id", templateId);
+    }
+    if (options.optionId) {
+      const optionId = normalizeUuidParam(options.optionId, "deleteProposalTemplateItem");
+      if (!optionId) return false;
+      query = query.eq("option_id", optionId);
+    }
+    if (options.sectionId) {
+      const sectionId = normalizeUuidParam(options.sectionId, "deleteProposalTemplateItem");
+      if (!sectionId) return false;
+      query = query.eq("section_id", sectionId);
+    }
+
+    const { data, error } = await query.select("id").maybeSingle();
+
+    if (error) {
+      console.error(
+        "[proposalTemplateStore] deleteProposalTemplateItem failed:",
+        error.message,
+        { id: itemId, companyId }
+      );
+      return false;
+    }
+    return data != null;
+  } catch (err) {
+    console.error("[proposalTemplateStore] deleteProposalTemplateItem error:", err);
+    return false;
+  }
+}
+
 async function fetchItemById(
   supabase: NonNullable<ReturnType<typeof getSupabaseClient>>,
   itemId: string,

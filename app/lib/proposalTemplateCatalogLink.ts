@@ -48,8 +48,11 @@ export const TEMPLATE_CATALOG_SOT_COPY =
 export const TEMPLATE_CATALOG_DRAFT_REFRESH_COPY =
   "Existing proposal drafts keep snapshotted prices until you refresh draft pricing from Job Card / Builder. Linking or re-linking here does not change drafts automatically." as const;
 
-export const TEMPLATE_ADD_FROM_CATALOG_LABEL = "Add item from catalog" as const;
-export const TEMPLATE_RELINK_CATALOG_LABEL = "Change catalog link" as const;
+export const TEMPLATE_ADD_FROM_CATALOG_LABEL = "Add item" as const;
+export const TEMPLATE_RELINK_CATALOG_LABEL = "Replace item" as const;
+export const TEMPLATE_REMOVE_FROM_TEMPLATE_LABEL = "Remove from template" as const;
+export const TEMPLATE_REMOVE_CONFIRM_COPY =
+  "Remove this item from the template? The Catalog item will not be deleted." as const;
 
 export function defaultItemRoleForSectionKind(
   kind: ProposalTemplateSectionKind
@@ -97,26 +100,25 @@ export function buildTemplateCatalogLinkView(
     case "linked":
       displayName = overrideName || catalogName || "Catalog item";
       statusLabel = "Linked";
-      statusDetail = "Uses live Catalog economics when proposals are created or refreshed.";
+      statusDetail = "Uses Catalog pricing when proposals are created or refreshed.";
       break;
     case "inactive":
-      displayName = overrideName || catalogName || "Inactive catalog item";
-      statusLabel = "Inactive catalog item";
+      displayName = overrideName || catalogName || "Inactive Catalog item";
+      statusLabel = "Inactive in Catalog";
       statusDetail =
-        "This Catalog item is inactive. Reactivate it in Catalog or change the link to an active item. Builder treats inactive items as unresolved.";
+        "This Catalog item is inactive. Reactivate it in Catalog or replace it with an active item.";
       break;
     case "missing_catalog":
-      displayName = overrideName || "Missing catalog item";
+      displayName = overrideName || "Missing Catalog item";
       statusLabel = "Catalog item missing";
       statusDetail =
-        "No matching Catalog row for this link. Change the link to an active Catalog item. Do not rely on name matching.";
+        "No matching Catalog item for this link. Replace it with an active Catalog item.";
       break;
     case "missing_id":
     default:
       displayName = overrideName || "Unlinked template item";
       statusLabel = "Not linked";
-      statusDetail =
-        "This template line has no catalog_item_id. Link an active Catalog item before using this template in proposals.";
+      statusDetail = "This line is not linked to a Catalog item. Replace it with an active item.";
       break;
   }
 

@@ -14,7 +14,7 @@ import {
 } from "./templatesWorkspaceFlow";
 
 describe("templatesWorkspaceFlow", () => {
-  test("edit tabs are packages / estimate / content — no overview tab", () => {
+  test("edit tabs are packages / estimate / content — advanced only", () => {
     assert.deepEqual(
       TEMPLATES_EDIT_TABS.map((t) => t.id),
       ["packages", "estimate", "content"]

@@ -41,25 +41,23 @@ describe("Templates catalog link page (Integrated Flow P0 + Redesign P0)", () =>
     assert.ok(panel.includes("data-templates-add-from-catalog"));
     assert.ok(panel.includes("TEMPLATE_ADD_FROM_CATALOG_LABEL") || panel.includes(TEMPLATE_ADD_FROM_CATALOG_LABEL));
     assert.ok(picker.includes("data-templates-catalog-picker"));
-    assert.ok(picker.includes("Only active Catalog items"));
+    assert.ok(picker.includes("active Catalog") || picker.includes("Inactive Catalog"));
   });
 
-  test("Catalog SoT remains in picker; Use surface holds the single trust note", () => {
-    const picker = read("TemplatesCatalogItemPickerModal.tsx");
-    const use = read("TemplatesUseSurface.tsx");
+  test("Catalog SoT constant retained; Quote review holds the single trust note", () => {
+    const review = read("TemplatesQuoteSetupReview.tsx");
     const footnote = read("TemplatesBuilderFootnote.tsx");
     const header = read("TemplatesPageHeader.tsx");
 
     assert.match(TEMPLATE_CATALOG_SOT_COPY, /Catalog is the source of truth/i);
     assert.match(TEMPLATE_CATALOG_DRAFT_REFRESH_COPY, /snapshotted|refresh draft pricing/i);
-    assert.ok(picker.includes("TEMPLATE_CATALOG_SOT_COPY") || picker.includes(TEMPLATE_CATALOG_SOT_COPY));
-    assert.ok(use.includes("TEMPLATES_WORKSPACE_TRUST_NOTE"));
+    assert.ok(review.includes("TEMPLATES_WORKSPACE_TRUST_NOTE"));
     assert.ok(footnote.includes("Job Card"));
     assert.ok(!footnote.includes("later stage"));
     assert.ok(header.includes("Job Card"));
     assert.ok(!header.includes("later stages"));
-    assert.equal(TEMPLATE_ADD_FROM_CATALOG_LABEL, "Add item from catalog");
-    assert.equal(TEMPLATE_RELINK_CATALOG_LABEL, "Change catalog link");
+    assert.equal(TEMPLATE_ADD_FROM_CATALOG_LABEL, "Add item");
+    assert.equal(TEMPLATE_RELINK_CATALOG_LABEL, "Replace item");
   });
 
   test("no fake supplier sync / material ordering / proposal import claims", () => {
@@ -68,7 +66,7 @@ describe("Templates catalog link page (Integrated Flow P0 + Redesign P0)", () =>
       read("TemplatesSectionCatalogItems.tsx"),
       read("TemplatesCatalogItemPickerModal.tsx"),
       read("TemplatesBuilderFootnote.tsx"),
-      read("TemplatesUseSurface.tsx"),
+      read("TemplatesQuoteSetupReview.tsx"),
       TEMPLATE_CATALOG_SOT_COPY,
       TEMPLATE_CATALOG_DRAFT_REFRESH_COPY,
     ].join("\n");
@@ -81,7 +79,7 @@ describe("Templates catalog link page (Integrated Flow P0 + Redesign P0)", () =>
   test("inactive items are not addable by default in picker", () => {
     const picker = read("TemplatesCatalogItemPickerModal.tsx");
     assert.ok(picker.includes("listActiveCatalogItemsForPicker"));
-    assert.match(picker, /Only active Catalog items can be linked/i);
+    assert.match(picker, /Only active items can be added|Inactive Catalog items are hidden/i);
   });
 
   test("re-link control is present for template items", () => {

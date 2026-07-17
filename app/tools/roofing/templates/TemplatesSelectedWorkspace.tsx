@@ -12,7 +12,7 @@ import { TEMPLATES_WORKSPACE_ZONE } from "./templatesConstants";
 import TemplatesContentEditorShell from "./TemplatesContentEditorShell";
 import TemplatesEstimateDisplayTab from "./TemplatesEstimateDisplayTab";
 import TemplatesPackagesCatalogTab from "./TemplatesPackagesCatalogTab";
-import TemplatesUseSurface from "./TemplatesUseSurface";
+import TemplatesQuoteSetupReview from "./TemplatesQuoteSetupReview";
 import {
   TEMPLATES_EDIT_TABS,
   type PackageOptionSummary,
@@ -28,6 +28,7 @@ type StructureSettingsBusy =
   | { kind: "settings-option"; optionId: string }
   | { kind: "add-item"; sectionId: string }
   | { kind: "relink-item"; itemId: string }
+  | { kind: "remove-item"; itemId: string }
   | null;
 
 type SectionSaveError = {
@@ -39,8 +40,8 @@ type TemplatesSelectedWorkspaceProps = {
   mode: TemplatesWorkspaceMode;
   editTab: TemplatesEditTabId;
   onSelectEditTab: (tab: TemplatesEditTabId) => void;
-  onEnterEditMode: (tab?: TemplatesEditTabId) => void;
-  onBackToSummary: () => void;
+  onOpenAdvanced: (tab?: TemplatesEditTabId) => void;
+  onBackToReview: () => void;
   graph: ProposalTemplateGraph;
   proposalReadiness: ProposalTemplateReadiness;
   linkReadiness: TemplateCatalogLinkReadiness;
@@ -51,11 +52,15 @@ type TemplatesSelectedWorkspaceProps = {
   structureBusy: StructureSettingsBusy;
   structureError: string | null;
   catalogItems: readonly CatalogItem[];
+  selectedPackageOptionId: string | null;
+  onSelectPackage: (optionId: string) => void;
   focusSectionId: string | null;
   savingSectionId: string | null;
   sectionSaveError: SectionSaveError | null;
-  onFixLinks: () => void;
-  onAddCatalogItems: () => void;
+  onAddItem: () => void;
+  onReplaceItem: (templateItemId: string) => void;
+  onRemoveItem: (templateItemId: string) => void;
+  onFixIssues: () => void;
   onAddSection: (optionId: string, kind: ProposalTemplateSectionKind) => void;
   onMoveSection: (
     optionId: string,
@@ -81,8 +86,8 @@ export default function TemplatesSelectedWorkspace({
   mode,
   editTab,
   onSelectEditTab,
-  onEnterEditMode,
-  onBackToSummary,
+  onOpenAdvanced,
+  onBackToReview,
   graph,
   proposalReadiness,
   linkReadiness,
@@ -93,11 +98,15 @@ export default function TemplatesSelectedWorkspace({
   structureBusy,
   structureError,
   catalogItems,
+  selectedPackageOptionId,
+  onSelectPackage,
   focusSectionId,
   savingSectionId,
   sectionSaveError,
-  onFixLinks,
-  onAddCatalogItems,
+  onAddItem,
+  onReplaceItem,
+  onRemoveItem,
+  onFixIssues,
   onAddSection,
   onMoveSection,
   onSaveTemplateEstimateSettings,
@@ -108,22 +117,30 @@ export default function TemplatesSelectedWorkspace({
   onDirtySectionCountChange,
 }: TemplatesSelectedWorkspaceProps) {
   const contentSaveBlocked = savingSectionId != null;
+  const managerBusy = structureBusy != null || contentSaveBlocked;
 
-  if (mode === "use") {
+  if (mode === "review") {
     return (
       <div
         className={`${TEMPLATES_WORKSPACE_ZONE} space-y-4 p-4 sm:p-5`}
         data-templates-selected-workspace
-        data-templates-workspace-mode="use"
+        data-templates-workspace-mode="review"
       >
-        <TemplatesUseSurface
+        <TemplatesQuoteSetupReview
           graph={graph}
           proposalReadiness={proposalReadiness}
           linkReadiness={linkReadiness}
+          packageSummaries={packageSummaries}
           createsSummary={createsSummary}
-          onFixLinks={onFixLinks}
-          onAddCatalogItems={onAddCatalogItems}
-          onEditTemplate={() => onEnterEditMode("packages")}
+          catalogItems={catalogItems}
+          selectedPackageOptionId={selectedPackageOptionId}
+          onSelectPackage={onSelectPackage}
+          busy={managerBusy}
+          onAddItem={onAddItem}
+          onReplaceItem={onReplaceItem}
+          onRemoveItem={onRemoveItem}
+          onFixIssues={onFixIssues}
+          onOpenAdvanced={() => onOpenAdvanced("packages")}
         />
       </div>
     );
@@ -133,40 +150,41 @@ export default function TemplatesSelectedWorkspace({
     <div
       className={`${TEMPLATES_WORKSPACE_ZONE} space-y-4 p-4 sm:p-5`}
       data-templates-selected-workspace
-      data-templates-workspace-mode="edit"
+      data-templates-workspace-mode="advanced"
       data-templates-active-tab={editTab}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-            Edit mode
+            Advanced settings
           </p>
           <h2
             className="mt-1 text-base font-semibold text-slate-900"
             data-templates-edit-mode-heading
           >
-            Editing {graph.template.name}
+            {graph.template.name}
           </h2>
           <p className="mt-0.5 text-xs text-slate-500">
-            Change packages, Catalog links, customer display, or content. Return to the summary when
-            finished.
+            Sections, customer display, and content. Daily item changes stay on the quote review.
           </p>
         </div>
         <button
           type="button"
-          onClick={onBackToSummary}
+          onClick={onBackToReview}
           className="inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
           data-templates-back-to-summary
+          data-templates-back-to-review
         >
-          Back to template summary
+          Back to quote review
         </button>
       </div>
 
       <div
         className="-mx-1 flex gap-1 overflow-x-auto border-b border-slate-200 px-1 pb-px"
         role="tablist"
-        aria-label="Edit template"
+        aria-label="Advanced template settings"
         data-templates-edit-tabs
+        data-templates-advanced-tabs
       >
         {TEMPLATES_EDIT_TABS.map((tab) => {
           const selected = editTab === tab.id;

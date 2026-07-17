@@ -23,10 +23,13 @@ import {
   type ProposalTemplateSectionKind,
 } from "@/app/lib/proposalTemplateTypes";
 
-/** Page mode — default is use (readiness / outcome), not edit. */
-export type TemplatesWorkspaceMode = "use" | "edit";
+/** Page mode — default is quote setup review, not advanced editor. */
+export type TemplatesWorkspaceMode = "review" | "advanced";
 
-/** Edit-mode tools only — never the first-load IA. */
+/** @deprecated Prefer review | advanced */
+export type TemplatesLegacyUseEditMode = "use" | "edit";
+
+/** Advanced tools only — never the first-load IA. */
 export type TemplatesEditTabId = "packages" | "estimate" | "content";
 
 /** @deprecated Prefer TemplatesEditTabId — kept for gradual rename in tests. */
@@ -36,20 +39,23 @@ export const TEMPLATES_EDIT_TABS: ReadonlyArray<{
   id: TemplatesEditTabId;
   label: string;
 }> = [
-  { id: "packages", label: "Packages & Catalog" },
+  { id: "packages", label: "Edit sections" },
   { id: "estimate", label: "Customer display" },
-  { id: "content", label: "Content" },
+  { id: "content", label: "Content, warranty & terms" },
 ] as const;
 
-/** @deprecated Use TEMPLATES_EDIT_TABS — overview is no longer a tab. */
+/** @deprecated Use TEMPLATES_EDIT_TABS */
 export const TEMPLATES_WORKSPACE_TABS = TEMPLATES_EDIT_TABS;
 
-/** Single trust note for Use surface — do not repeat under every section. */
+/** Single trust note — do not repeat under every section. */
 export const TEMPLATES_WORKSPACE_TRUST_NOTE =
   "Catalog controls item pricing and measurements. Existing proposal drafts keep frozen prices until refreshed in Builder." as const;
 
 export const TEMPLATES_USE_OUTCOME_SUMMARY =
   "This builds a multi-package roof proposal from Catalog items and job measurements." as const;
+
+export const TEMPLATES_QUOTE_SETUP_OUTCOME =
+  "Review what goes on the quote, make quick changes, then create the proposal from a Job Card." as const;
 
 export type PackageOptionSummaryStatus = "ready" | "needs_attention";
 
@@ -202,4 +208,39 @@ export function defaultExpandedPackageOptionId(
   const needsAttention = summaries.find((row) => row.status === "needs_attention");
   if (needsAttention) return needsAttention.optionId;
   return summaries[0]?.optionId ?? null;
+}
+
+/** Default package for quote review — first option, preferring needs_attention. */
+export function defaultSelectedPackageOptionId(
+  summaries: readonly PackageOptionSummary[]
+): string | null {
+  return defaultExpandedPackageOptionId(summaries);
+}
+
+export type CatalogTargetSectionChoice = {
+  sectionId: string;
+  optionId: string;
+  label: string;
+  kind: ProposalTemplateSectionKind;
+};
+
+/** Catalog-capable sections for a package — used when Add item has multiple targets. */
+export function listCatalogTargetSectionsForOption(
+  graph: ProposalTemplateGraph,
+  optionId: string
+): CatalogTargetSectionChoice[] {
+  const sections = graph.sections
+    .filter((row) => row.option_id === optionId && sectionAcceptsCatalogItems(row.kind))
+    .slice()
+    .sort((a, b) => a.sort_order - b.sort_order);
+
+  return sections.map((section) => ({
+    sectionId: section.id,
+    optionId: section.option_id,
+    kind: section.kind,
+    label:
+      section.kind === "upgrade_group"
+        ? section.name?.trim() || "Optional upgrades"
+        : section.name?.trim() || "Estimate items",
+  }));
 }
