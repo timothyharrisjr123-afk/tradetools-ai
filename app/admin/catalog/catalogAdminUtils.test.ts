@@ -14,6 +14,7 @@ import {
   buildEditDraftFromItem,
   formatCatalogQuantityDriversLine,
   parseCatalogQuantityDrivers,
+  parseCoverageBasisOrNull,
   parseCoverageRateOrNull,
   parseDollarsToCentsOrNull,
   parseStrictFiniteNumber,
@@ -108,17 +109,57 @@ describe("parseDollarsToCentsOrNull", () => {
   });
 });
 
+describe("parseCoverageBasisOrNull", () => {
+  test("accepts empty and approved enum values", () => {
+    assert.deepEqual(parseCoverageBasisOrNull(""), { value: null, error: null });
+    assert.deepEqual(parseCoverageBasisOrNull("roof_square"), {
+      value: "roof_square",
+      error: null,
+    });
+  });
+
+  test("rejects invalid enum values", () => {
+    assert.match(parseCoverageBasisOrNull("bundle").error ?? "", /not valid/i);
+  });
+});
+
 describe("parseCatalogQuantityDrivers", () => {
   test("parses coverage, waste_applies, and waste_pct together", () => {
     const parsed = parseCatalogQuantityDrivers({
       coverage_rate: "33.3",
+      coverage_basis: "square_feet",
       waste_applies: true,
       waste_pct: "10",
     });
     assert.equal(parsed.error, null);
     assert.equal(parsed.coverage_rate, 33.3);
+    assert.equal(parsed.coverage_basis, "square_feet");
     assert.equal(parsed.waste_applies, true);
     assert.equal(parsed.waste_pct, 10);
+  });
+
+  test("null coverage forces coverage_basis null", () => {
+    const parsed = parseCatalogQuantityDrivers({
+      coverage_rate: "",
+      coverage_basis: "roof_square",
+      waste_applies: false,
+      waste_pct: "",
+    });
+    assert.equal(parsed.error, null);
+    assert.equal(parsed.coverage_rate, null);
+    assert.equal(parsed.coverage_basis, null);
+  });
+
+  test("non-null coverage + null basis is allowed", () => {
+    const parsed = parseCatalogQuantityDrivers({
+      coverage_rate: "5",
+      coverage_basis: "",
+      waste_applies: true,
+      waste_pct: "10",
+    });
+    assert.equal(parsed.error, null);
+    assert.equal(parsed.coverage_rate, 5);
+    assert.equal(parsed.coverage_basis, null);
   });
 
   test("keeps waste_pct when waste_applies is false (inactive, still stored)", () => {
@@ -150,7 +191,7 @@ describe("parseCatalogQuantityDrivers", () => {
 });
 
 describe("buildCatalogCreateDraft / buildCatalogUpdatePatch", () => {
-  test("create payload includes coverage_rate, waste_applies, and waste_pct", () => {
+  test("create payload includes coverage_rate, coverage_basis, waste_applies, and waste_pct", () => {
     const built = buildCatalogCreateDraft("00000000-0000-4000-8000-000000000001", {
       ...EMPTY_ADD_CATALOG_FORM,
       name: "Audit material",
@@ -160,18 +201,74 @@ describe("buildCatalogCreateDraft / buildCatalogUpdatePatch", () => {
       unit_cost_dollars: "10.25",
       unit_price_dollars: "25.50",
       coverage_rate: "5",
+      coverage_basis: "roof_square",
       waste_applies: true,
       waste_pct: "10",
     });
     assert.equal(built.ok, true);
     if (!built.ok) return;
     assert.equal(built.draft.coverage_rate, 5);
+    assert.equal(built.draft.coverage_basis, "roof_square");
     assert.equal(built.draft.waste_applies, true);
     assert.equal(built.draft.waste_pct, 10);
     assert.equal(built.draft.unit_cost_cents, 1025);
     assert.equal(built.draft.unit_price_cents, 2550);
     assert.equal(built.draft.active, true);
+    assert.equal(built.coverageCompatibility, "compatible");
+  });
+
+  test("create with coverage and null basis is allowed but not_verified", () => {
+    const built = buildCatalogCreateDraft("00000000-0000-4000-8000-000000000001", {
+      ...EMPTY_ADD_CATALOG_FORM,
+      name: "Unverified material",
+      unit: "bundle",
+      quantity_source: "roof_squares",
+      coverage_rate: "5",
+      coverage_basis: "",
+    });
+    assert.equal(built.ok, true);
+    if (!built.ok) return;
+    assert.equal(built.draft.coverage_rate, 5);
+    assert.equal(built.draft.coverage_basis, null);
     assert.equal(built.coverageCompatibility, "not_verified");
+  });
+
+  test("clearing coverage clears basis on create/update payloads", () => {
+    const create = buildCatalogCreateDraft("00000000-0000-4000-8000-000000000001", {
+      ...EMPTY_ADD_CATALOG_FORM,
+      name: "Cleared",
+      coverage_rate: "",
+      coverage_basis: "roof_square",
+    });
+    assert.equal(create.ok, true);
+    if (!create.ok) return;
+    assert.equal(create.draft.coverage_rate, null);
+    assert.equal(create.draft.coverage_basis, null);
+
+    const update = buildCatalogUpdatePatch(
+      item({
+        id: "1",
+        quantity_source: "roof_squares",
+        coverage_rate: 5,
+        coverage_basis: "roof_square",
+      }),
+      {
+        ...buildEditDraftFromItem(
+          item({
+            id: "1",
+            quantity_source: "roof_squares",
+            coverage_rate: 5,
+            coverage_basis: "roof_square",
+          })
+        ),
+        coverage_rate: "",
+        coverage_basis: "roof_square",
+      }
+    );
+    assert.equal(update.ok, true);
+    if (!update.ok) return;
+    assert.equal(update.patch.coverage_rate, null);
+    assert.equal(update.patch.coverage_basis, null);
   });
 
   test("malformed numeric values block create and update", () => {
@@ -192,7 +289,7 @@ describe("buildCatalogCreateDraft / buildCatalogUpdatePatch", () => {
     assert.equal(updateBlocked.ok, false);
   });
 
-  test("update payload includes coverage/waste and Apply waste off still stores waste_pct", () => {
+  test("update payload includes coverage/basis/waste and Apply waste off still stores waste_pct", () => {
     const built = buildCatalogUpdatePatch(
       item({ id: "1", quantity_source: "roof_squares", unit: "bundle" }),
       {
@@ -202,6 +299,7 @@ describe("buildCatalogCreateDraft / buildCatalogUpdatePatch", () => {
             quantity_source: "roof_squares",
             unit: "bundle",
             coverage_rate: 5,
+            coverage_basis: "roof_square",
             waste_applies: true,
             waste_pct: 10,
           })
@@ -209,13 +307,16 @@ describe("buildCatalogCreateDraft / buildCatalogUpdatePatch", () => {
         waste_applies: false,
         waste_pct: "10",
         coverage_rate: "7.5",
+        coverage_basis: "roof_square",
       }
     );
     assert.equal(built.ok, true);
     if (!built.ok) return;
     assert.equal(built.patch.coverage_rate, 7.5);
+    assert.equal(built.patch.coverage_basis, "roof_square");
     assert.equal(built.patch.waste_applies, false);
     assert.equal(built.patch.waste_pct, 10);
+    assert.equal(built.coverageCompatibility, "compatible");
   });
 
   test("deactivate remains soft status — create/update builders never emit delete markers", () => {
@@ -237,16 +338,18 @@ describe("buildCatalogCreateDraft / buildCatalogUpdatePatch", () => {
 });
 
 describe("buildEditDraftFromItem / formatCatalogQuantityDriversLine", () => {
-  test("edit draft hydrates coverage and waste fields", () => {
+  test("edit draft hydrates coverage, basis, and waste fields", () => {
     const draft = buildEditDraftFromItem(
       item({
         id: "1",
         coverage_rate: 33.3,
+        coverage_basis: "square_feet",
         waste_applies: true,
         waste_pct: 10,
       })
     );
     assert.equal(draft.coverage_rate, "33.3");
+    assert.equal(draft.coverage_basis, "square_feet");
     assert.equal(draft.waste_applies, true);
     assert.equal(draft.waste_pct, "10");
   });
@@ -260,15 +363,21 @@ describe("buildEditDraftFromItem / formatCatalogQuantityDriversLine", () => {
     );
     assert.equal(
       formatCatalogQuantityDriversLine(
-        item({ id: "2", coverage_rate: 33.3, waste_applies: true, waste_pct: 10 })
+        item({
+          id: "2",
+          coverage_rate: 33.3,
+          coverage_basis: "square_feet",
+          waste_applies: true,
+          waste_pct: 10,
+        })
       ),
-      "Coverage 33.3 · Waste 10%"
+      "Coverage 33.3 · Square feet · Waste 10%"
     );
   });
 });
 
 describe("Catalog Coverage/Waste UI wiring", () => {
-  test("edit and add surfaces include Coverage and Waste fields", () => {
+  test("edit and add surfaces include Coverage, Coverage basis, and Waste fields", () => {
     const edit = readFileSync(
       join(process.cwd(), "app/admin/catalog/components/CatalogItemDetailPanel.tsx"),
       "utf8"
@@ -283,11 +392,18 @@ describe("Catalog Coverage/Waste UI wiring", () => {
     );
     assert.match(edit, /data-catalog-quantity-drivers="edit"/);
     assert.match(add, /data-catalog-quantity-drivers="add"/);
+    assert.match(edit, /data-catalog-coverage-basis="edit"/);
+    assert.match(add, /data-catalog-coverage-basis="add"/);
+    assert.ok(edit.includes("CATALOG_CONTRACTOR_LABELS.coverageBasis"));
+    assert.ok(add.includes("CATALOG_CONTRACTOR_LABELS.coverageBasis"));
     assert.match(setup, /buildCatalogCreateDraft/);
     assert.match(setup, /buildCatalogUpdatePatch/);
     assert.match(setup, /loadCatalogItemsByCompany|loadActiveCatalogItemsByCompany/);
+    assert.match(setup, /coverage_basis = ""/);
     assert.equal(setup.includes("shouldAutoRefresh"), false);
     assert.equal(/Send block|block send/i.test(setup), false);
+    assert.equal(/wasteModel|raw_plus_waste|whole rounding/i.test(edit), false);
+    assert.equal(/wasteModel|raw_plus_waste|whole rounding/i.test(add), false);
   });
 
   test("table keeps no Coverage/Waste columns; shows secondary detail line", () => {

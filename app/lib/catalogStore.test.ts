@@ -74,6 +74,35 @@ describe("catalogStore quantity-driver mapper", () => {
     assert.equal(item.waste_pct, 10);
   });
 
+  test("rowToCatalogItem maps null coverage_basis", () => {
+    assert.equal(rowToCatalogItem(baseRow({ coverage_basis: null })).coverage_basis, null);
+    const missing = baseRow();
+    delete missing.coverage_basis;
+    assert.equal(rowToCatalogItem(missing).coverage_basis, null);
+  });
+
+  test("rowToCatalogItem maps each approved coverage_basis value", () => {
+    for (const basis of [
+      "roof_square",
+      "square_feet",
+      "linear_feet",
+      "each",
+      "tons",
+    ] as const) {
+      assert.equal(
+        rowToCatalogItem(baseRow({ coverage_rate: 5, coverage_basis: basis })).coverage_basis,
+        basis
+      );
+    }
+  });
+
+  test("rowToCatalogItem rejects invalid coverage_basis as null", () => {
+    assert.equal(
+      rowToCatalogItem(baseRow({ coverage_basis: "bundle" })).coverage_basis,
+      null
+    );
+  });
+
   test("rowToCatalogItem maps 0 and positive waste_pct", () => {
     assert.equal(rowToCatalogItem(baseRow({ waste_pct: 0 })).waste_pct, 0);
     assert.equal(rowToCatalogItem(baseRow({ waste_pct: 12.5 })).waste_pct, 12.5);
@@ -91,11 +120,13 @@ describe("catalogStore quantity-driver mapper", () => {
     const insert = catalogItemDraftToInsertRow(
       baseDraft({
         coverage_rate: 5,
+        coverage_basis: "roof_square",
         waste_applies: true,
         waste_pct: 10,
       })
     );
     assert.equal(insert.coverage_rate, 5);
+    assert.equal(insert.coverage_basis, "roof_square");
     assert.equal(insert.waste_applies, true);
     assert.equal(insert.waste_pct, 10);
   });
@@ -109,24 +140,29 @@ describe("catalogStore quantity-driver mapper", () => {
     const omitted = catalogItemPatchToUpdateRow({ name: "Rename only" });
     assert.equal("waste_pct" in omitted, false);
     assert.equal("coverage_rate" in omitted, false);
+    assert.equal("coverage_basis" in omitted, false);
 
     const patched = catalogItemPatchToUpdateRow({
       coverage_rate: 7.5,
+      coverage_basis: "square_feet",
       waste_applies: false,
       waste_pct: 12,
     });
     assert.equal(patched.coverage_rate, 7.5);
+    assert.equal(patched.coverage_basis, "square_feet");
     assert.equal(patched.waste_applies, false);
     assert.equal(patched.waste_pct, 12);
   });
 
-  test("update-to-null clears quantity drivers", () => {
+  test("update-to-null clears quantity drivers including coverage_basis", () => {
     const patched = catalogItemPatchToUpdateRow({
       coverage_rate: null,
+      coverage_basis: null,
       waste_pct: null,
       waste_applies: false,
     });
     assert.equal(patched.coverage_rate, null);
+    assert.equal(patched.coverage_basis, null);
     assert.equal(patched.waste_pct, null);
     assert.equal(patched.waste_applies, false);
   });

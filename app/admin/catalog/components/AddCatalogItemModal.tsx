@@ -1,16 +1,19 @@
 import type {
   CatalogItemType,
   CatalogUnit,
+  CoverageBasis,
   CustomerVisibility,
   PricingBasis,
   QuantitySource,
 } from "@/app/lib/catalogTypes";
 import {
   CATALOG_UNITS,
+  COVERAGE_BASES,
   CUSTOMER_VISIBILITIES,
   PRICING_BASES,
   QUANTITY_SOURCES,
   catalogUnitLabel,
+  coverageBasisLabel,
   customerVisibilityLabel,
   pricingBasisLabel,
   quantitySourceLabel,
@@ -18,14 +21,22 @@ import {
 import {
   CATALOG_CONTRACTOR_LABELS,
   CATALOG_FIELD_HELPERS,
+  coverageBasisFieldHelper,
 } from "@/app/lib/catalogContractorLabels";
+import {
+  catalogCoverageCompatibilityLabel,
+  classifyCatalogCoverageCompatibility,
+} from "@/app/lib/catalogCoverageCompatibility";
 import {
   CATALOG_ADD_ITEM_TYPE_OPTIONS,
   FIELD_INPUT,
   PRIMARY_BUTTON,
   SECONDARY_BUTTON,
 } from "../catalogAdminConstants";
-import type { AddCatalogItemForm } from "../catalogAdminUtils";
+import {
+  parseCoverageRateOrNull,
+  type AddCatalogItemForm,
+} from "../catalogAdminUtils";
 
 function FieldHelper({ text }: { text: string }) {
   return <span className="mt-1 block text-xs leading-relaxed text-slate-500">{text}</span>;
@@ -51,6 +62,17 @@ export default function AddCatalogItemModal({
   onSubmit,
 }: AddCatalogItemModalProps) {
   if (!open) return null;
+
+  const coverageParsed = parseCoverageRateOrNull(form.coverage_rate);
+  const coverageEnabled = coverageParsed.value != null;
+  const coverageCompatibility = classifyCatalogCoverageCompatibility({
+    quantity_source: form.quantity_source,
+    unit: form.unit,
+    coverage_rate: coverageParsed.value,
+    coverage_basis: form.coverage_basis || null,
+    waste_applies: form.waste_applies,
+  });
+  const compatibilityLabel = catalogCoverageCompatibilityLabel(coverageCompatibility);
 
   return (
     <div
@@ -244,7 +266,47 @@ export default function AddCatalogItemModal({
               />
               <FieldHelper text={CATALOG_FIELD_HELPERS.coverage} />
             </label>
-            <div className="block text-sm">
+            <label className="block text-sm">
+              <span className="mb-1.5 flex items-center justify-between gap-2 text-xs font-medium text-slate-700">
+                <span>{CATALOG_CONTRACTOR_LABELS.coverageBasis}</span>
+                {compatibilityLabel ? (
+                  <span
+                    className="font-normal text-slate-500"
+                    data-catalog-coverage-compatibility={coverageCompatibility}
+                  >
+                    {compatibilityLabel}
+                  </span>
+                ) : null}
+              </span>
+              <select
+                className={FIELD_INPUT}
+                value={coverageEnabled ? form.coverage_basis : ""}
+                onChange={(e) =>
+                  onChange("coverage_basis", e.target.value as "" | CoverageBasis)
+                }
+                disabled={creatingItem || !coverageEnabled}
+                aria-label={CATALOG_CONTRACTOR_LABELS.coverageBasis}
+                aria-disabled={!coverageEnabled}
+                data-catalog-coverage-basis="add"
+              >
+                <option value="">
+                  {coverageEnabled ? "Select basis" : "Set coverage first"}
+                </option>
+                {COVERAGE_BASES.map((basis) => (
+                  <option key={basis} value={basis}>
+                    {coverageBasisLabel(basis)}
+                  </option>
+                ))}
+              </select>
+              <FieldHelper
+                text={
+                  coverageEnabled
+                    ? coverageBasisFieldHelper(form.coverage_basis)
+                    : CATALOG_FIELD_HELPERS.coverageBasis
+                }
+              />
+            </label>
+            <div className="block text-sm sm:col-span-2">
               <span className="mb-1.5 block text-xs font-medium text-slate-700">
                 {CATALOG_CONTRACTOR_LABELS.waste}
               </span>
@@ -263,7 +325,7 @@ export default function AddCatalogItemModal({
                 type="text"
                 inputMode="decimal"
                 placeholder={form.waste_applies ? "Optional %" : "Inactive"}
-                className={`${FIELD_INPUT} mt-2 tabular-nums`}
+                className={`${FIELD_INPUT} mt-2 max-w-xs tabular-nums`}
                 value={form.waste_pct}
                 onChange={(e) => onChange("waste_pct", e.target.value)}
                 disabled={creatingItem || !form.waste_applies}

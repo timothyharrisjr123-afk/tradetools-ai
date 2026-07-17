@@ -15,10 +15,12 @@ import type {
   CatalogItemSummary,
   CatalogItemType,
   CatalogUnit,
+  CoverageBasis,
   CustomerVisibility,
   PricingBasis,
   QuantitySource,
 } from "@/app/lib/catalogTypes";
+import { isCoverageBasis } from "@/app/lib/catalogTypes";
 
 // ---------------------------------------------------------------------------
 // DB row shape (public.catalog_items)
@@ -37,6 +39,8 @@ export type CatalogItemRow = {
   quantity_source: string;
   default_quantity?: number | null;
   coverage_rate?: number | null;
+  /** Measurement-side unit of coverage_rate. Null when unset. Not purchase unit. */
+  coverage_basis?: string | null;
   waste_applies: boolean;
   /** Item waste percent (points; 10 = 10%). Used by policy-gated raw_plus_waste only. */
   waste_pct?: number | null;
@@ -58,7 +62,12 @@ export type CatalogItemInsertRow = Partial<CatalogItemRow>;
 export type CatalogItemUpdateRow = Partial<CatalogItemRow>;
 
 const CATALOG_ITEM_SELECT_COLUMNS =
-  "id, company_id, name, customer_name, description, item_type, unit, quantity_source, default_quantity, coverage_rate, waste_applies, waste_pct, unit_cost_cents, unit_price_cents, labor_unit_cost_cents, pricing_basis, customer_visibility, active, sort_order, metadata, created_by, updated_by, created_at, updated_at";
+  "id, company_id, name, customer_name, description, item_type, unit, quantity_source, default_quantity, coverage_rate, coverage_basis, waste_applies, waste_pct, unit_cost_cents, unit_price_cents, labor_unit_cost_cents, pricing_basis, customer_visibility, active, sort_order, metadata, created_by, updated_by, created_at, updated_at";
+
+function normalizeCoverageBasis(value: unknown): CoverageBasis | null {
+  if (value == null || value === "") return null;
+  return isCoverageBasis(value) ? value : null;
+}
 
 /** Subset for future admin list queries (full row mapper supports summary today). */
 export const CATALOG_ITEM_SUMMARY_SELECT_COLUMNS =
@@ -139,6 +148,7 @@ export function rowToCatalogItem(row: CatalogItemRow): CatalogItem {
     quantity_source: row.quantity_source as QuantitySource,
     default_quantity: normalizeNullableNumber(row.default_quantity),
     coverage_rate: normalizeNullableNumber(row.coverage_rate),
+    coverage_basis: normalizeCoverageBasis(row.coverage_basis),
     waste_applies: Boolean(row.waste_applies),
     waste_pct: normalizeNullableNumber(row.waste_pct),
     unit_cost_cents: normalizeNullableInteger(row.unit_cost_cents),
@@ -200,6 +210,10 @@ function draftToRowFields(
     coverage_rate:
       draft.coverage_rate !== undefined
         ? normalizeNullableNumber(draft.coverage_rate)
+        : undefined,
+    coverage_basis:
+      draft.coverage_basis !== undefined
+        ? normalizeCoverageBasis(draft.coverage_basis)
         : undefined,
     waste_applies:
       draft.waste_applies !== undefined

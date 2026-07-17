@@ -45,10 +45,10 @@
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** **`fb7b9a9` — chore(db): add coverage basis migration draft** (architecture lock **`9a9209a`**; P1 **`dfe627f`**)
-- **Docs checkpoint:** **pending this commit — coverage_basis migration 024 applied + verified**
-- **Prior docs checkpoint:** **`fb7b9a9` — coverage_basis migration draft**
-- **Next:** Combined app support — types/store/parser + Add/Edit Coverage basis selector + classifier `compatible` for proven pairings + tests (§6BO.13.4.5 Steps C–F). Schema live on **`rhquhnujjnzjhweypavd`**. Do **not** enable Settings raw mode switch; adjusted mode unaffected; existing null basis rows remain `not_verified`. **Do not** expose a Settings waste-model control without approval. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
+- **Code checkpoint:** **pending this commit — coverage_basis Steps C–F app support** (schema apply docs **`0e37905`**; migration draft **`fb7b9a9`**)
+- **Docs checkpoint:** **pending this commit — coverage_basis Steps C–F complete**
+- **Prior docs checkpoint:** **`0e37905` — coverage_basis migration 024 applied**
+- **Next:** Controlled live smoke with non-null `coverage_basis` (Step H), then raw mode switch planning only if pairings can stay `compatible` (Step I). Schema live on **`rhquhnujjnzjhweypavd`**. Classifier can return `compatible` for proven source/basis pairings. Do **not** enable Settings raw mode switch; adjusted mode unaffected. **Do not** expose a Settings waste-model control without approval. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
 - **Historical note:** Header language that still says “Slice 2 — Catalog P0 next” or “Coverage/Waste inactive / raw unwired” in older §6BO.13.4 rows is **superseded** by Phase 5–7 + Catalog P1 + coverage_basis lock below.
 
 **Trust order:** Header/current checkpoint → **§6BO.13** (approved page-by-page UI flow roadmap + P0 implementation sequence — **supersedes separate Command Center language**) → **§6BM** / **§6BN** (R18 letter-phase roadmap + R18C–R18D3C implementation history) → **§6BO** / **§6BO.11** / **§6BO.12** (completed remediation side-track + **approved Stage C policy** + **operating-flow audit sequencing — complete; outcome in §6BO.13**) → **§6BL** → **§11 override**. Stage B browser smoke required local-only **`USE_PROPOSAL_SEND_FREEZE_RPC=1`** in `.env.local` (gitignored, not committed). **Do not proceed** to docs-only or next feature work unless working tree is clean. **Still do not** mutate `proposals.status = sent`, write sent `proposal_events`, move Jobs Board cards, add Job Card send activity, enable PDF/Sign/Payment, or add webhooks unless separately approved.
@@ -11220,22 +11220,20 @@ Order: **source → coverage → waste → exact**.
 - Live verify: catalog count **17** unchanged; all **17** rows `coverage_basis` null; proposal count **21** unchanged; policy count **1** unchanged (`adjusted_measurement` / `exact`; **0** raw; **0** whole)
 - Invalid value `bundle` rejected; valid `roof_square` accepted in rolled-back probe (final non-null count **0**)
 - Column comment present; adjusted mode unaffected; raw mode switch still blocked; whole rounding CHECK still `exact` only
-- App types/store/UI/classifier **not** wired yet
+- App types/store/UI/classifier: **wired in Steps C–F** (see below)
 
-**Planned UI direction (not implemented in this checkpoint):**
+**Steps C–F — app support COMPLETE:**
 
-Coverage & waste editor should eventually include:
+- Types: `CoverageBasis` + `COVERAGE_BASES` on `CatalogItem`
+- Store: read/write `coverage_basis` via select/mappers/create/update (no invented default; invalid → null)
+- Parser: `parseCoverageBasisOrNull`; clearing `coverage_rate` forces `coverage_basis` null; missing basis with coverage allowed (`not_verified`, does not block adjusted save)
+- Add/Edit UI: Coverage basis selector in Coverage & waste; disabled/cleared when Coverage empty; helper text by basis; optional status chip (Compatible / Not verified / Incompatible)
+- Classifier: returns `compatible` for proven source↔basis pairings (incl. `adjusted_roof_squares` via approved remap category); mismatch → `incompatible`; custom/labor_multiplier → `not_verified`
+- Compatibility remains a trust/setup gate (not a second math engine); raw math still uses numeric `coverage_rate`
+- Adjusted mode unaffected; `raw_plus_waste` policy-gated; no Settings mode switch; no whole rounding; no customer/public exposure
+- Local app-flow smoke PASS: create with `roof_squares` / coverage `5` / basis `roof_square` / waste `10` → Compatible; persist + secondary line; mismatch → Incompatible; clear coverage clears basis; deactivate; Settings planned-only; Preview clean of internals
 
-- Coverage value
-- Coverage basis selector
-- Helper text based on selected basis
-- Optional contractor-only status chip: Not verified / Compatible / Incompatible
-- Clearing `coverage_rate` clears `coverage_basis`
-- No Settings raw mode switch yet
-- No whole rounding
-- No customer/public exposure
-
-**UI visual rule (when implemented):** Coverage basis controls must match the Roofr-aligned Catalog Add/Edit item pattern — clean light shell, compact form rows, clear labels/helper text. **Not** the old dark/blue standalone UI; **not** generic oversized cards; **not** fake-active controls; **not** a technical math dump to the contractor.
+**UI visual rule:** Coverage basis controls match the Roofr-aligned Catalog Add/Edit item pattern — clean light shell, compact form rows, clear labels/helper text. **Not** the old dark/blue standalone UI; **not** generic oversized cards; **not** fake-active controls; **not** a technical math dump to the contractor.
 
 **Approved implementation sequence:**
 
@@ -11243,12 +11241,12 @@ Coverage & waste editor should eventually include:
 |---|---|---|
 | **A** | Docs/model decision lock (this section) | Done (`9a9209a`) |
 | **B** | Migration draft, review-only | Done (`fb7b9a9`) |
-| **C** | Types / store / parser support | **Next** (combined with D–F) |
-| **D** | Add/Edit Coverage basis selector | **Next** (combined with C–F) |
-| **E** | Classifier can return `compatible` for proven pairings | **Next** (combined with C–F) |
-| **F** | Tests | **Next** (combined with C–E) |
+| **C** | Types / store / parser support | **Done** (this commit) |
+| **D** | Add/Edit Coverage basis selector | **Done** (this commit) |
+| **E** | Classifier can return `compatible` for proven pairings | **Done** (this commit) |
+| **F** | Tests | **Done** (this commit; 237 focused pass) |
 | **G** | Live SQL only after approval | **Done** — applied + verified on `rhquhnujjnzjhweypavd` |
-| **H** | Controlled smoke with non-null basis | After C–F app wiring |
+| **H** | Controlled smoke with non-null basis | **Next** |
 | **I** | Only then revisit raw mode switch planning | After H |
 
 **Still deferred (unchanged):**
@@ -12527,7 +12525,8 @@ Treat as **drift** if a session:
 
 ## Changelog (handoff doc only)
 
-- **2026-07-17:** **`coverage_basis` Step G — migration 024 applied + verified PASS** — applied `supabase/migrations/20260717_024_add_catalog_items_coverage_basis.sql` to **`rhquhnujjnzjhweypavd`**. Live: `catalog_items.coverage_basis` text nullable, no default; CHECK allows null/`roof_square`/`square_feet`/`linear_feet`/`each`/`tons`; catalog **17** unchanged all null; proposals **21** / policies **1** unchanged (`adjusted_measurement`/`exact`, 0 raw, 0 whole); invalid rejected / valid accepted in rolled-back probe; comment present. No app code/UI/classifier; no backfill; adjusted unaffected; raw mode switch still blocked. **Next:** combined Steps C–F — types/store/parser + Add/Edit basis selector + classifier `compatible` + tests.
+- **2026-07-17:** **`coverage_basis` Steps C–F — types/store/parser/UI/classifier/tests** — `CoverageBasis` on CatalogItem; store maps create/update/read; Add/Edit Coverage basis selector (clears with coverage; status chip; Roofr-aligned); classifier returns `compatible` for proven pairings; clearing coverage clears basis; compatibility is trust/setup only; adjusted unaffected; raw policy-gated; no mode switch/whole/customer-public; focused tests **237 pass**; local Catalog smoke PASS. **Next:** Step H controlled live smoke with non-null basis, then Step I mode-switch planning only if compatible.
+- **2026-07-17:** **`coverage_basis` Step G — migration 024 applied + verified PASS** — applied `supabase/migrations/20260717_024_add_catalog_items_coverage_basis.sql` to **`rhquhnujjnzjhweypavd`**. Live: `catalog_items.coverage_basis` text nullable, no default; CHECK allows null/`roof_square`/`square_feet`/`linear_feet`/`each`/`tons`; catalog **17** unchanged all null; proposals **21** / policies **1** unchanged (`adjusted_measurement`/`exact`, 0 raw, 0 whole); invalid rejected / valid accepted in rolled-back probe; comment present. No app code/UI/classifier; no backfill; adjusted unaffected; raw mode switch still blocked. Checkpoint **`0e37905`**. **Next:** combined Steps C–F.
 - **2026-07-17:** **`coverage_basis` Step B — review-only migration draft** — added unapplied `supabase/migrations/20260717_024_add_catalog_items_coverage_basis.sql`: nullable `catalog_items.coverage_basis text`, CHECK (`null` / `roof_square` / `square_feet` / `linear_feet` / `each` / `tons`), no default, no UPDATE/backfill, comments + rollback notes; marked REVIEW ONLY. No live SQL apply; no app code/types/store/UI/classifier; no proposal/pricing/policy changes. Checkpoint **`fb7b9a9`**. **Next:** live SQL apply (Step G) with explicit approval, then app wiring.
 - **2026-07-17:** **`coverage_basis` architecture decision lock (docs only)** — locked approved model in **§6BO.13.4.5**: nullable enum (`null` / `roof_square` / `square_feet` / `linear_feet` / `each` / `tons`); authority = measurement-side unit of coverage divisor (not purchase `unit`); classifier states + rules (`not_applicable` / `compatible` / `not_verified` / `incompatible`); core source↔basis map; existing-row policy (no backfill; null basis → `not_verified`); planned additive schema (no live SQL); planned Roofr-aligned Coverage basis UI (no mode switch yet); sequence A→I; deferred list unchanged. No app code, migrations, SQL, Catalog/pricing/proposal behavior changes. **Next:** Step B — review-only migration draft for `catalog_items.coverage_basis`.
 - **2026-07-17:** **Catalog P1 remediation — validation + read-failure hardening** — strict numeric parse rejects malformed suffixes for price/Coverage/Waste; Coverage/Waste rules unchanged (empty→null; coverage > 0; waste ≥ 0; waste inactive when Apply waste off); pure coverage/unit compatibility classifier (`not_applicable` / `not_verified` / `incompatible`, never fake `compatible`); Catalog list load result distinguishes success-empty vs failed-read; starter install protected from failed reads; Retry on load error; behavioral create/update tests; Settings remains planned-only (no raw mode switch); adjusted mode unaffected; `raw_plus_waste` remains policy-gated; no SQL/migrations/pricing-engine/proposal lifecycle changes. Contained P2: Catalog nav `aria-current="page"`; Coverage helper copy no longer assumes sq ft. Checkpoint **`dfe627f`**. **Next:** `coverage_basis` architecture lock (§6BO.13.4.5).

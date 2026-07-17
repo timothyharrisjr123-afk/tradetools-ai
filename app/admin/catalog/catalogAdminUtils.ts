@@ -2,12 +2,15 @@ import type {
   CatalogItem,
   CatalogItemDraft,
   CatalogItemType,
+  CoverageBasis,
   CustomerVisibility,
   PricingBasis,
 } from "@/app/lib/catalogTypes";
 import {
   catalogItemTypeLabel,
   catalogUnitLabel,
+  coverageBasisLabel,
+  isCoverageBasis,
   quantitySourceLabel,
 } from "@/app/lib/catalogTypes";
 import { DEFAULT_ROOFING_CATALOG_DEFINITIONS } from "@/app/lib/defaultRoofingCatalog";
@@ -35,6 +38,8 @@ export type CatalogItemEditDraft = {
   sort_order: string;
   /** Empty string = null (1:1 / no conversion). */
   coverage_rate: string;
+  /** Empty string = null. Cleared automatically when coverage_rate is empty. */
+  coverage_basis: "" | CoverageBasis;
   waste_applies: boolean;
   /** Empty string = null (no item waste). Inactive when waste_applies is false. */
   waste_pct: string;
@@ -52,6 +57,7 @@ export type AddCatalogItemForm = {
   pricing_basis: PricingBasis;
   customer_visibility: CustomerVisibility;
   coverage_rate: string;
+  coverage_basis: "" | CoverageBasis;
   waste_applies: boolean;
   waste_pct: string;
 };
@@ -68,6 +74,7 @@ export const EMPTY_ADD_CATALOG_FORM: AddCatalogItemForm = {
   pricing_basis: "unit_price",
   customer_visibility: "customer_visible",
   coverage_rate: "",
+  coverage_basis: "",
   waste_applies: false,
   waste_pct: "",
 };
@@ -183,25 +190,48 @@ export function parseWastePctOrNull(
   return { value: parsed.value, error: null };
 }
 
+/** Empty = null. Invalid enum values are rejected. */
+export function parseCoverageBasisOrNull(
+  value: string | CoverageBasis | null | undefined
+): { value: CoverageBasis | null; error: string | null } {
+  if (value == null) return { value: null, error: null };
+  const trimmed = String(value).trim();
+  if (!trimmed) return { value: null, error: null };
+  if (!isCoverageBasis(trimmed)) {
+    return { value: null, error: "Coverage basis is not valid." };
+  }
+  return { value: trimmed, error: null };
+}
+
 export function formatNullableNumberForInput(value: number | null | undefined): string {
   if (value == null || !Number.isFinite(value)) return "";
   return String(value);
 }
 
+export function formatCoverageBasisForInput(
+  value: CoverageBasis | null | undefined
+): "" | CoverageBasis {
+  return value != null && isCoverageBasis(value) ? value : "";
+}
+
 export type CatalogQuantityDriversParsed = {
   coverage_rate: number | null;
+  coverage_basis: CoverageBasis | null;
   waste_applies: boolean;
   waste_pct: number | null;
   error: string | null;
 };
 
 /**
- * Parse Coverage / Waste form fields for Catalog create/update.
+ * Parse Coverage / Coverage basis / Waste form fields for Catalog create/update.
+ * When coverage_rate is null, coverage_basis is forced null.
  * When waste_applies is false, waste_pct is still validated if present so bad
  * values cannot be saved, but raw mode ignores it until waste applies.
+ * Missing basis with non-null coverage is allowed (not_verified) — does not block save.
  */
 export function parseCatalogQuantityDrivers(input: {
   coverage_rate: string;
+  coverage_basis?: string | CoverageBasis | null;
   waste_applies: boolean;
   waste_pct: string;
 }): CatalogQuantityDriversParsed {
@@ -209,22 +239,38 @@ export function parseCatalogQuantityDrivers(input: {
   if (coverage.error) {
     return {
       coverage_rate: null,
+      coverage_basis: null,
       waste_applies: input.waste_applies,
       waste_pct: null,
       error: coverage.error,
     };
   }
+
+  const basis = parseCoverageBasisOrNull(input.coverage_basis);
+  if (basis.error) {
+    return {
+      coverage_rate: coverage.value,
+      coverage_basis: null,
+      waste_applies: input.waste_applies,
+      waste_pct: null,
+      error: basis.error,
+    };
+  }
+
   const waste = parseWastePctOrNull(input.waste_pct);
   if (waste.error) {
     return {
       coverage_rate: coverage.value,
+      coverage_basis: coverage.value == null ? null : basis.value,
       waste_applies: input.waste_applies,
       waste_pct: null,
       error: waste.error,
     };
   }
+
   return {
     coverage_rate: coverage.value,
+    coverage_basis: coverage.value == null ? null : basis.value,
     waste_applies: input.waste_applies,
     waste_pct: waste.value,
     error: null,
@@ -233,11 +279,17 @@ export function parseCatalogQuantityDrivers(input: {
 
 /** Compact table secondary line — omit when both drivers are unset/off. */
 export function formatCatalogQuantityDriversLine(
-  item: Pick<CatalogItem, "coverage_rate" | "waste_applies" | "waste_pct">
+  item: Pick<
+    CatalogItem,
+    "coverage_rate" | "coverage_basis" | "waste_applies" | "waste_pct"
+  >
 ): string | null {
   const parts: string[] = [];
   if (item.coverage_rate != null && Number.isFinite(item.coverage_rate)) {
     parts.push(`Coverage ${item.coverage_rate}`);
+    if (item.coverage_basis != null && isCoverageBasis(item.coverage_basis)) {
+      parts.push(coverageBasisLabel(item.coverage_basis));
+    }
   }
   if (item.waste_applies) {
     if (item.waste_pct != null && Number.isFinite(item.waste_pct)) {
@@ -250,6 +302,7 @@ export function formatCatalogQuantityDriversLine(
 }
 
 export function buildEditDraftFromItem(item: CatalogItem): CatalogItemEditDraft {
+  const coverageRate = formatNullableNumberForInput(item.coverage_rate);
   return {
     customer_name: item.customer_name?.trim() ?? "",
     description: item.description?.trim() ?? "",
@@ -259,7 +312,11 @@ export function buildEditDraftFromItem(item: CatalogItem): CatalogItemEditDraft 
     pricing_basis: item.pricing_basis,
     customer_visibility: item.customer_visibility,
     sort_order: item.sort_order != null ? String(item.sort_order) : "",
-    coverage_rate: formatNullableNumberForInput(item.coverage_rate),
+    coverage_rate: coverageRate,
+    coverage_basis:
+      coverageRate.trim() === ""
+        ? ""
+        : formatCoverageBasisForInput(item.coverage_basis),
     waste_applies: Boolean(item.waste_applies),
     waste_pct: formatNullableNumberForInput(item.waste_pct),
   };
@@ -324,6 +381,7 @@ export function buildCatalogCreateDraft(
 
   const quantityDrivers = parseCatalogQuantityDrivers({
     coverage_rate: form.coverage_rate,
+    coverage_basis: form.coverage_basis,
     waste_applies: form.waste_applies,
     waste_pct: form.waste_pct,
   });
@@ -335,6 +393,7 @@ export function buildCatalogCreateDraft(
     quantity_source: form.quantity_source,
     unit: form.unit,
     coverage_rate: quantityDrivers.coverage_rate,
+    coverage_basis: quantityDrivers.coverage_basis,
     waste_applies: quantityDrivers.waste_applies,
     waste_pct: quantityDrivers.waste_pct,
   });
@@ -357,6 +416,7 @@ export function buildCatalogCreateDraft(
       customer_visibility: form.customer_visibility,
       active: true,
       coverage_rate: quantityDrivers.coverage_rate,
+      coverage_basis: quantityDrivers.coverage_basis,
       waste_applies: quantityDrivers.waste_applies,
       waste_pct: quantityDrivers.waste_pct,
       metadata: null,
@@ -401,6 +461,7 @@ export function buildCatalogUpdatePatch(
 
   const quantityDrivers = parseCatalogQuantityDrivers({
     coverage_rate: editDraft.coverage_rate,
+    coverage_basis: editDraft.coverage_basis,
     waste_applies: editDraft.waste_applies,
     waste_pct: editDraft.waste_pct,
   });
@@ -412,6 +473,7 @@ export function buildCatalogUpdatePatch(
     quantity_source: item.quantity_source,
     unit: item.unit,
     coverage_rate: quantityDrivers.coverage_rate,
+    coverage_basis: quantityDrivers.coverage_basis,
     waste_applies: quantityDrivers.waste_applies,
     waste_pct: quantityDrivers.waste_pct,
   });
@@ -425,6 +487,7 @@ export function buildCatalogUpdatePatch(
     customer_visibility: editDraft.customer_visibility,
     sort_order: sortParsed.sort_order,
     coverage_rate: quantityDrivers.coverage_rate,
+    coverage_basis: quantityDrivers.coverage_basis,
     waste_applies: quantityDrivers.waste_applies,
     waste_pct: quantityDrivers.waste_pct,
   };

@@ -1,9 +1,11 @@
-import type { CatalogItem } from "@/app/lib/catalogTypes";
+import type { CatalogItem, CoverageBasis } from "@/app/lib/catalogTypes";
 import {
+  COVERAGE_BASES,
   CUSTOMER_VISIBILITIES,
   PRICING_BASES,
   catalogItemTypeLabel,
   catalogUnitLabel,
+  coverageBasisLabel,
   pricingBasisLabel,
   quantitySourceLabel,
 } from "@/app/lib/catalogTypes";
@@ -11,11 +13,19 @@ import type { CustomerVisibility, PricingBasis } from "@/app/lib/catalogTypes";
 import {
   CATALOG_CONTRACTOR_LABELS,
   CATALOG_FIELD_HELPERS,
+  coverageBasisFieldHelper,
   formatCatalogItemStatus,
   formatProposalVisibilityShort,
 } from "@/app/lib/catalogContractorLabels";
+import {
+  catalogCoverageCompatibilityLabel,
+  classifyCatalogCoverageCompatibility,
+} from "@/app/lib/catalogCoverageCompatibility";
 import { FIELD_INPUT, PRIMARY_BUTTON, SECONDARY_BUTTON } from "../catalogAdminConstants";
-import type { CatalogItemEditDraft } from "../catalogAdminUtils";
+import {
+  parseCoverageRateOrNull,
+  type CatalogItemEditDraft,
+} from "../catalogAdminUtils";
 
 type CatalogItemDetailPanelProps = {
   item: CatalogItem;
@@ -53,6 +63,17 @@ export default function CatalogItemDetailPanel({
   onClose,
   onToggleActive,
 }: CatalogItemDetailPanelProps) {
+  const coverageParsed = parseCoverageRateOrNull(editDraft.coverage_rate);
+  const coverageEnabled = coverageParsed.value != null;
+  const coverageCompatibility = classifyCatalogCoverageCompatibility({
+    quantity_source: item.quantity_source,
+    unit: item.unit,
+    coverage_rate: coverageParsed.value,
+    coverage_basis: editDraft.coverage_basis || null,
+    waste_applies: editDraft.waste_applies,
+  });
+  const compatibilityLabel = catalogCoverageCompatibilityLabel(coverageCompatibility);
+
   return (
     <div
       id="catalog-item-detail-panel"
@@ -288,7 +309,47 @@ export default function CatalogItemDetailPanel({
             />
             <FieldHelper text={CATALOG_FIELD_HELPERS.coverage} />
           </label>
-          <div className="block text-sm">
+          <label className="block text-sm">
+            <span className="mb-1.5 flex items-center justify-between gap-2 text-xs font-medium text-slate-700">
+              <span>{CATALOG_CONTRACTOR_LABELS.coverageBasis}</span>
+              {compatibilityLabel ? (
+                <span
+                  className="font-normal text-slate-500"
+                  data-catalog-coverage-compatibility={coverageCompatibility}
+                >
+                  {compatibilityLabel}
+                </span>
+              ) : null}
+            </span>
+            <select
+              className={FIELD_INPUT}
+              value={coverageEnabled ? editDraft.coverage_basis : ""}
+              onChange={(e) =>
+                onDraftChange("coverage_basis", e.target.value as "" | CoverageBasis)
+              }
+              disabled={isSaving || !coverageEnabled}
+              aria-label={CATALOG_CONTRACTOR_LABELS.coverageBasis}
+              aria-disabled={!coverageEnabled}
+              data-catalog-coverage-basis="edit"
+            >
+              <option value="">
+                {coverageEnabled ? "Select basis" : "Set coverage first"}
+              </option>
+              {COVERAGE_BASES.map((basis) => (
+                <option key={basis} value={basis}>
+                  {coverageBasisLabel(basis)}
+                </option>
+              ))}
+            </select>
+            <FieldHelper
+              text={
+                coverageEnabled
+                  ? coverageBasisFieldHelper(editDraft.coverage_basis)
+                  : CATALOG_FIELD_HELPERS.coverageBasis
+              }
+            />
+          </label>
+          <div className="block text-sm sm:col-span-2">
             <span className="mb-1.5 block text-xs font-medium text-slate-700">
               {CATALOG_CONTRACTOR_LABELS.waste}
             </span>
@@ -307,7 +368,7 @@ export default function CatalogItemDetailPanel({
               type="text"
               inputMode="decimal"
               placeholder={editDraft.waste_applies ? "Optional %" : "Inactive"}
-              className={`${FIELD_INPUT} mt-2 tabular-nums`}
+              className={`${FIELD_INPUT} mt-2 max-w-xs tabular-nums`}
               value={editDraft.waste_pct}
               onChange={(e) => onDraftChange("waste_pct", e.target.value)}
               disabled={isSaving || !editDraft.waste_applies}

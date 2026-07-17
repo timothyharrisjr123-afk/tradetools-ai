@@ -15,6 +15,7 @@ import {
   CATALOG_SETTINGS_PLANNED_TOOLS,
   CATALOG_TABLE_HEADERS,
   catalogItemMatchesContractorFilter,
+  coverageBasisFieldHelper,
   formatCatalogCompactStatusLine,
   formatCatalogItemStatus,
   formatProposalVisibilityShort,
@@ -71,13 +72,18 @@ describe("catalogContractorLabels", () => {
 
   test("Phase 7 Coverage/Waste labels and helpers are contractor-facing", () => {
     assert.equal(CATALOG_CONTRACTOR_LABELS.coverage, "Coverage");
+    assert.equal(CATALOG_CONTRACTOR_LABELS.coverageBasis, "Coverage basis");
     assert.equal(CATALOG_CONTRACTOR_LABELS.waste, "Waste");
     assert.equal(CATALOG_CONTRACTOR_LABELS.wasteApplies, "Apply waste");
     assert.match(CATALOG_FIELD_HELPERS.quantityDriversSection, /Used by raw quantity mode/i);
     assert.match(CATALOG_FIELD_HELPERS.quantityDriversSection, /Does not change adjusted-mode/i);
     assert.match(CATALOG_FIELD_HELPERS.coverage, /one purchase unit covers/i);
-    assert.match(CATALOG_FIELD_HELPERS.coverage, /not verified yet/i);
-    assert.equal(/sq ft/i.test(CATALOG_FIELD_HELPERS.coverage), false);
+    assert.match(CATALOG_FIELD_HELPERS.coverageBasis, /What the coverage value measures/i);
+    assert.equal(/sq ft|square feet/i.test(CATALOG_FIELD_HELPERS.coverage), false);
+    assert.equal(/sq ft|square feet/i.test(CATALOG_FIELD_HELPERS.coverageBasis), false);
+    assert.match(coverageBasisFieldHelper("square_feet"), /square feet/i);
+    assert.match(coverageBasisFieldHelper("roof_square"), /roof squares/i);
+    assert.match(coverageBasisFieldHelper(""), /What the coverage value measures/i);
     assert.match(CATALOG_FIELD_HELPERS.waste, /Extra material percentage/i);
     const planned = CATALOG_SETTINGS_PLANNED_TOOLS.find((t) => t.id === "coverage_waste_tax");
     assert.ok(planned);

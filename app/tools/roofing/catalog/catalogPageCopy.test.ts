@@ -145,7 +145,10 @@ describe("Catalog P0B–P0D page shell", () => {
     const add = readAdminComponent("AddCatalogItemModal.tsx");
     assert.match(edit, /data-catalog-quantity-drivers="edit"/);
     assert.match(add, /data-catalog-quantity-drivers="add"/);
+    assert.match(edit, /data-catalog-coverage-basis="edit"/);
+    assert.match(add, /data-catalog-coverage-basis="add"/);
     assert.ok(edit.includes("CATALOG_CONTRACTOR_LABELS.coverage"));
+    assert.ok(edit.includes("CATALOG_CONTRACTOR_LABELS.coverageBasis"));
     assert.ok(edit.includes("CATALOG_CONTRACTOR_LABELS.waste"));
     assert.ok(edit.includes("CATALOG_FIELD_HELPERS.quantityDriversSection"));
     assert.ok(add.includes("CATALOG_FIELD_HELPERS.quantityDriversSection"));

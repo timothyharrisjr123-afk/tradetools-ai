@@ -78,6 +78,17 @@ export type CustomerVisibility =
   | "internal_only"
   | "grouped";
 
+/**
+ * Measurement-side unit of the coverage divisor (what coverage_rate measures).
+ * Not the purchase/sell unit — see `unit`.
+ */
+export type CoverageBasis =
+  | "roof_square"
+  | "square_feet"
+  | "linear_feet"
+  | "each"
+  | "tons";
+
 // ---------------------------------------------------------------------------
 // Records
 // ---------------------------------------------------------------------------
@@ -96,6 +107,11 @@ export type CatalogItem = {
   quantity_source: QuantitySource;
   default_quantity?: number | null;
   coverage_rate?: number | null;
+  /**
+   * Measurement-side unit of coverage_rate. Null when coverage is unset or not yet chosen.
+   * Do not infer from purchase `unit`.
+   */
+  coverage_basis?: CoverageBasis | null;
   waste_applies?: boolean | null;
   /**
    * Item waste percent (points; 10 = 10%). Editable on Catalog items.
@@ -221,6 +237,14 @@ export const CUSTOMER_VISIBILITIES: readonly CustomerVisibility[] = [
   "grouped",
 ] as const;
 
+export const COVERAGE_BASES: readonly CoverageBasis[] = [
+  "roof_square",
+  "square_feet",
+  "linear_feet",
+  "each",
+  "tons",
+] as const;
+
 const MEASUREMENT_QUANTITY_SOURCES: ReadonlySet<QuantitySource> = new Set([
   "roof_squares",
   "adjusted_roof_squares",
@@ -313,6 +337,14 @@ const CUSTOMER_VISIBILITY_LABELS: Record<CustomerVisibility, string> = {
   grouped: "Grouped",
 };
 
+const COVERAGE_BASIS_LABELS: Record<CoverageBasis, string> = {
+  roof_square: "Roof squares",
+  square_feet: "Square feet",
+  linear_feet: "Linear feet",
+  each: "Each/count",
+  tons: "Tons",
+};
+
 export function catalogItemTypeLabel(value: CatalogItemType): string {
   return CATALOG_ITEM_TYPE_LABELS[value];
 }
@@ -331,6 +363,17 @@ export function pricingBasisLabel(value: PricingBasis): string {
 
 export function customerVisibilityLabel(value: CustomerVisibility): string {
   return CUSTOMER_VISIBILITY_LABELS[value];
+}
+
+export function coverageBasisLabel(value: CoverageBasis): string {
+  return COVERAGE_BASIS_LABELS[value];
+}
+
+export function isCoverageBasis(value: unknown): value is CoverageBasis {
+  return (
+    typeof value === "string" &&
+    (COVERAGE_BASES as readonly string[]).includes(value)
+  );
 }
 
 /** True when quantity is expected to come from a measurement field (not fixed/custom-only). */

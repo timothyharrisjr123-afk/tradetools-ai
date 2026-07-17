@@ -39,7 +39,7 @@ type ServerSupabase = NonNullable<ReturnType<typeof getSupabaseClient>>;
 
 /** Matches catalogStore CATALOG_ITEM_SELECT_COLUMNS (read-only reuse). */
 const CATALOG_ITEM_SELECT_COLUMNS =
-  "id, company_id, name, customer_name, description, item_type, unit, quantity_source, default_quantity, coverage_rate, waste_applies, waste_pct, unit_cost_cents, unit_price_cents, labor_unit_cost_cents, pricing_basis, customer_visibility, active, sort_order, metadata, created_by, updated_by, created_at, updated_at";
+  "id, company_id, name, customer_name, description, item_type, unit, quantity_source, default_quantity, coverage_rate, coverage_basis, waste_applies, waste_pct, unit_cost_cents, unit_price_cents, labor_unit_cost_cents, pricing_basis, customer_visibility, active, sort_order, metadata, created_by, updated_by, created_at, updated_at";
 
 function buildDraftQuantityResolutionPreflightServerDeps(
   supabase: ServerSupabase

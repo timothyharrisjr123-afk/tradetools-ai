@@ -3,7 +3,12 @@
  * Internal types/store field names unchanged — presentation only.
  */
 
-import type { CatalogItem, CatalogItemType, CustomerVisibility } from "@/app/lib/catalogTypes";
+import type {
+  CatalogItem,
+  CatalogItemType,
+  CoverageBasis,
+  CustomerVisibility,
+} from "@/app/lib/catalogTypes";
 
 function itemNeedsPrice(item: CatalogItem): boolean {
   return item.unit_price_cents == null || !Number.isFinite(item.unit_price_cents);
@@ -91,6 +96,7 @@ export const CATALOG_CONTRACTOR_LABELS = {
   needsPrice: "Needs price",
   catalogItems: "Catalog items",
   coverage: "Coverage",
+  coverageBasis: "Coverage basis",
   waste: "Waste",
   wasteApplies: "Apply waste",
   quantityDrivers: "Coverage & waste",
@@ -123,11 +129,30 @@ export const CATALOG_FIELD_HELPERS = {
   leaveBlankNeedsPrice: "Leave blank until you set a price.",
   quantityDriversSection:
     "Used by raw quantity mode. Does not change adjusted-mode proposals. Not customer-facing.",
-  coverage:
-    "How much measurement one purchase unit covers. Dimensional units are not verified yet — enter the rate that matches your measurement source.",
+  coverage: "How much measurement one purchase unit covers.",
+  coverageBasis: "What the coverage value measures.",
   waste: "Extra material percentage used by raw quantity mode.",
   wasteApplies: "When off, waste percent is ignored by raw quantity mode.",
 } as const;
+
+export function coverageBasisFieldHelper(
+  basis: CoverageBasis | "" | null | undefined
+): string {
+  switch (basis) {
+    case "roof_square":
+      return "Coverage is measured in roof squares.";
+    case "square_feet":
+      return "Coverage is measured in square feet.";
+    case "linear_feet":
+      return "Coverage is measured in linear feet.";
+    case "each":
+      return "Coverage is measured by count.";
+    case "tons":
+      return "Coverage is measured in tons.";
+    default:
+      return CATALOG_FIELD_HELPERS.coverageBasis;
+  }
+}
 
 export type CatalogContractorTypeFilter =
   | "all"

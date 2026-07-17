@@ -182,7 +182,13 @@ export default function CatalogSetupClient({ companyId }: { companyId: string })
     key: K,
     value: AddCatalogItemForm[K]
   ) {
-    setAddForm((prev) => ({ ...prev, [key]: value }));
+    setAddForm((prev) => {
+      const next = { ...prev, [key]: value };
+      if (key === "coverage_rate" && String(value).trim() === "") {
+        next.coverage_basis = "";
+      }
+      return next;
+    });
     setAddError(null);
   }
 
@@ -282,7 +288,14 @@ export default function CatalogSetupClient({ companyId }: { companyId: string })
     key: K,
     value: CatalogItemEditDraft[K]
   ) {
-    setEditDraft((prev) => (prev ? { ...prev, [key]: value } : prev));
+    setEditDraft((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev, [key]: value };
+      if (key === "coverage_rate" && String(value).trim() === "") {
+        next.coverage_basis = "";
+      }
+      return next;
+    });
     setEditError(null);
   }
 

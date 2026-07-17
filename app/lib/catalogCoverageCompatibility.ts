@@ -1,15 +1,15 @@
 /**
- * Catalog coverage/unit compatibility classifier (P1 guardrail).
+ * Catalog coverage / coverage_basis compatibility classifier.
  *
- * The current schema has coverage_rate but no coverage_basis / dimensional unit.
- * This helper must not invent conversion truth. When coverage is set, status is
- * not_verified unless a clear incompatibility can be proven from existing fields.
+ * coverage_basis is the measurement-side unit of the coverage divisor.
+ * Do not use purchase unit as a proxy for basis.
  *
- * Does not block adjusted-mode Catalog saves. Raw mode switch remains deferred
- * until product-approved dimensional verification exists.
+ * Compatibility is a trust/setup gate — not a second math engine.
+ * adjusted_measurement still ignores coverage/waste.
+ * Raw mode switch remains blocked until status is compatible.
  */
 
-import type { CatalogUnit, QuantitySource } from "@/app/lib/catalogTypes";
+import type { CatalogUnit, CoverageBasis, QuantitySource } from "@/app/lib/catalogTypes";
 
 export type CatalogCoverageCompatibilityStatus =
   | "compatible"
@@ -21,17 +21,51 @@ export type CatalogCoverageCompatibilityInput = {
   quantity_source: QuantitySource;
   unit: CatalogUnit;
   coverage_rate: number | null | undefined;
+  coverage_basis?: CoverageBasis | null;
   waste_applies?: boolean | null;
   waste_pct?: number | null;
 };
 
+type CoverageBasisCategory =
+  | "roof_square"
+  | "square_feet"
+  | "linear_feet"
+  | "each"
+  | "tons";
+
 /**
- * Classify whether coverage can be treated as dimensionally verified.
+ * Map quantity source → measurement category for coverage_basis matching.
+ * adjusted_roof_squares is treated as roof_square because the approved raw path
+ * remaps it to roof_squares (never treats adjusted values as raw proof).
+ */
+export function coverageBasisCategoryForQuantitySource(
+  source: QuantitySource
+): CoverageBasisCategory | "unmapped" | "fixed" {
+  if (source === "fixed") return "fixed";
+  if (
+    source === "roof_squares" ||
+    source === "tear_off_squares" ||
+    source === "adjusted_roof_squares"
+  ) {
+    return "roof_square";
+  }
+  if (source === "roof_area_sqft") return "square_feet";
+  if (source === "debris_tons") return "tons";
+  if (source.endsWith("_lf")) return "linear_feet";
+  if (source.endsWith("_count")) return "each";
+  // custom / labor_multiplier / unknown
+  return "unmapped";
+}
+
+/**
+ * Classify whether coverage + basis can be treated as dimensionally verified.
  *
- * - null/empty coverage → not_applicable (1:1 / no conversion)
- * - coverage on fixed quantity sources → incompatible (coverage cannot convert a fixed qty)
- * - any other non-null coverage → not_verified (no coverage_basis in schema)
- * - never returns compatible until dimensional basis exists
+ * - null coverage → not_applicable
+ * - coverage > 0 + null basis → not_verified
+ * - fixed source + non-null coverage → incompatible
+ * - source/basis same category → compatible
+ * - source/basis mismatch → incompatible
+ * - custom / labor_multiplier / unmapped → not_verified
  */
 export function classifyCatalogCoverageCompatibility(
   input: CatalogCoverageCompatibilityInput
@@ -53,13 +87,43 @@ export function classifyCatalogCoverageCompatibility(
     return "incompatible";
   }
 
-  // Schema cannot prove that coverage units match the measurement source or
-  // purchase unit (no coverage_basis). Do not pretend compatibility.
-  return "not_verified";
+  const basis = input.coverage_basis ?? null;
+  if (basis == null) {
+    return "not_verified";
+  }
+
+  const sourceCategory = coverageBasisCategoryForQuantitySource(input.quantity_source);
+  if (sourceCategory === "fixed") {
+    return "incompatible";
+  }
+  if (sourceCategory === "unmapped") {
+    return "not_verified";
+  }
+  if (sourceCategory === basis) {
+    return "compatible";
+  }
+  return "incompatible";
 }
 
 export function catalogCoverageCompatibilityBlocksRawModeSwitch(
   status: CatalogCoverageCompatibilityStatus
 ): boolean {
   return status === "not_verified" || status === "incompatible";
+}
+
+export function catalogCoverageCompatibilityLabel(
+  status: CatalogCoverageCompatibilityStatus
+): string | null {
+  switch (status) {
+    case "compatible":
+      return "Compatible";
+    case "not_verified":
+      return "Not verified";
+    case "incompatible":
+      return "Incompatible";
+    case "not_applicable":
+      return null;
+    default:
+      return null;
+  }
 }
