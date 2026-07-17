@@ -2,19 +2,28 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { deriveCatalogReadiness } from "@/app/lib/catalogReadiness";
-import { getActiveCatalogItemsByCompany } from "@/app/lib/catalogStore";
+import { getCatalogItemsByCompany } from "@/app/lib/catalogStore";
 import type { CatalogItem } from "@/app/lib/catalogTypes";
 import { DEFAULT_ROOFING_CATALOG_DEFINITIONS } from "@/app/lib/defaultRoofingCatalog";
 import {
   installDefaultRoofingProposalTemplates,
   type InstallDefaultRoofingProposalTemplatesResult,
 } from "@/app/lib/defaultRoofingProposalTemplateInstall";
+import {
+  catalogItemIdsAlreadyInSection,
+  defaultItemRoleForSectionKind,
+  extractCatalogSeedKey,
+  nextTemplateItemSortOrder,
+  sectionAcceptsCatalogItems,
+} from "@/app/lib/proposalTemplateCatalogLink";
 import { deriveProposalTemplateReadiness } from "@/app/lib/proposalTemplateReadiness";
 import {
   getProposalTemplateGraph,
   getProposalTemplatesByCompany,
+  createProposalTemplateItem,
   createProposalTemplateSection,
   updateProposalTemplate,
+  updateProposalTemplateItem,
   updateProposalTemplateSection,
   type ProposalTemplateGraph,
 } from "@/app/lib/proposalTemplateStore";
@@ -29,6 +38,9 @@ import {
   planReorderSections,
 } from "@/app/lib/proposalTemplateStructureMutations";
 import TemplatesBuilderFootnote from "./TemplatesBuilderFootnote";
+import TemplatesCatalogItemPickerModal, {
+  type TemplatesCatalogPickerMode,
+} from "./TemplatesCatalogItemPickerModal";
 import TemplatesCatalogPrerequisite from "./TemplatesCatalogPrerequisite";
 import TemplatesContentEditorShell from "./TemplatesContentEditorShell";
 import TemplatesStructureSettingsShell from "./TemplatesStructureSettingsShell";
@@ -66,6 +78,22 @@ type StructureSettingsBusy =
   | { kind: "move"; sectionId: string }
   | { kind: "settings-template" }
   | { kind: "settings-option"; optionId: string }
+  | { kind: "add-item"; sectionId: string }
+  | { kind: "relink-item"; itemId: string }
+  | null;
+
+type CatalogPickerState =
+  | {
+      mode: "add";
+      optionId: string;
+      sectionId: string;
+    }
+  | {
+      mode: "relink";
+      templateItemId: string;
+      sectionId: string;
+      optionId: string;
+    }
   | null;
 
 export default function TemplatesSetupClient({ companyId }: { companyId: string }) {
@@ -93,12 +121,14 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
 
   const [structureBusy, setStructureBusy] = useState<StructureSettingsBusy>(null);
   const [structureError, setStructureError] = useState<string | null>(null);
+  const [catalogPicker, setCatalogPicker] = useState<CatalogPickerState>(null);
 
   const loadCatalog = useCallback(async () => {
     setCatalogLoading(true);
     setCatalogError(null);
     try {
-      const rows = await getActiveCatalogItemsByCompany(companyId);
+      // Load all items so inactive/missing links can be detected; picker filters to active.
+      const rows = await getCatalogItemsByCompany(companyId);
       setCatalogItems(rows);
     } catch (err) {
       console.warn("[TemplatesSetupClient] catalog fetch error:", err);
@@ -493,6 +523,150 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
     ]
   );
 
+  const handleOpenAddCatalogItem = useCallback(
+    (optionId: string, sectionId: string) => {
+      if (!selectedGraph || structureBusy || savingSectionId) return;
+      const section = selectedGraph.sections.find((row) => row.id === sectionId);
+      if (!section || !sectionAcceptsCatalogItems(section.kind)) {
+        setStructureError("Catalog items can only be added to line items or upgrade sections.");
+        return;
+      }
+      setStructureError(null);
+      setCatalogPicker({ mode: "add", optionId, sectionId });
+    },
+    [savingSectionId, selectedGraph, structureBusy]
+  );
+
+  const handleOpenRelinkCatalogItem = useCallback(
+    (templateItemId: string) => {
+      if (!selectedGraph || structureBusy || savingSectionId) return;
+      const item = selectedGraph.items.find((row) => row.id === templateItemId);
+      if (!item) {
+        setStructureError("Template item not found.");
+        return;
+      }
+      setStructureError(null);
+      setCatalogPicker({
+        mode: "relink",
+        templateItemId: item.id,
+        sectionId: item.section_id,
+        optionId: item.option_id,
+      });
+    },
+    [savingSectionId, selectedGraph, structureBusy]
+  );
+
+  const handleCatalogPickerSelect = useCallback(
+    (catalogItem: CatalogItem) => {
+      void (async () => {
+        if (!selectedGraph || !selectedTemplateId || !catalogPicker) return;
+        if (!catalogItem.active) {
+          setStructureError("Only active Catalog items can be linked to a template.");
+          return;
+        }
+
+        const sectionItems = selectedGraph.items.filter(
+          (row) => row.section_id === catalogPicker.sectionId
+        );
+        const alreadyLinked = catalogItemIdsAlreadyInSection(sectionItems);
+        if (catalogPicker.mode === "add" && alreadyLinked.has(catalogItem.id)) {
+          setStructureError("That Catalog item is already linked in this section.");
+          return;
+        }
+        if (
+          catalogPicker.mode === "relink" &&
+          alreadyLinked.has(catalogItem.id) &&
+          selectedGraph.items.find((row) => row.id === catalogPicker.templateItemId)
+            ?.catalog_item_id !== catalogItem.id
+        ) {
+          setStructureError("That Catalog item is already linked in this section.");
+          return;
+        }
+
+        const section = selectedGraph.sections.find((row) => row.id === catalogPicker.sectionId);
+        if (!section) {
+          setStructureError("Template section not found.");
+          return;
+        }
+
+        const seedKey = extractCatalogSeedKey(catalogItem);
+
+        if (catalogPicker.mode === "add") {
+          setStructureBusy({ kind: "add-item", sectionId: catalogPicker.sectionId });
+          setStructureError(null);
+          try {
+            const created = await createProposalTemplateItem(
+              {
+                template_id: selectedTemplateId,
+                option_id: catalogPicker.optionId,
+                section_id: catalogPicker.sectionId,
+                catalog_item_id: catalogItem.id,
+                catalog_seed_key: seedKey,
+                item_role: defaultItemRoleForSectionKind(section.kind),
+                customer_visibility: "inherit_catalog",
+                sort_order: nextTemplateItemSortOrder(sectionItems),
+              },
+              {
+                companyId,
+                templateId: selectedTemplateId,
+                optionId: catalogPicker.optionId,
+                sectionId: catalogPicker.sectionId,
+              }
+            );
+            if (!created) {
+              setStructureError("Could not add Catalog item to this template. Try again.");
+              return;
+            }
+            setCatalogPicker(null);
+            await reloadSelectedGraph(selectedTemplateId);
+          } catch (err) {
+            console.warn("[TemplatesSetupClient] add catalog item error:", err);
+            setStructureError("Adding Catalog item failed unexpectedly.");
+          } finally {
+            setStructureBusy(null);
+          }
+          return;
+        }
+
+        setStructureBusy({ kind: "relink-item", itemId: catalogPicker.templateItemId });
+        setStructureError(null);
+        try {
+          const updated = await updateProposalTemplateItem(
+            catalogPicker.templateItemId,
+            {
+              catalog_item_id: catalogItem.id,
+              catalog_seed_key: seedKey,
+            },
+            {
+              companyId,
+              templateId: selectedTemplateId,
+              optionId: catalogPicker.optionId,
+              sectionId: catalogPicker.sectionId,
+            }
+          );
+          if (!updated) {
+            setStructureError("Could not change Catalog link. Try again.");
+            return;
+          }
+          setCatalogPicker(null);
+          await reloadSelectedGraph(selectedTemplateId);
+        } catch (err) {
+          console.warn("[TemplatesSetupClient] relink catalog item error:", err);
+          setStructureError("Changing Catalog link failed unexpectedly.");
+        } finally {
+          setStructureBusy(null);
+        }
+      })();
+    },
+    [
+      catalogPicker,
+      companyId,
+      reloadSelectedGraph,
+      selectedGraph,
+      selectedTemplateId,
+    ]
+  );
+
   const activeItems = useMemo(() => catalogItems.filter((item) => item.active), [catalogItems]);
 
   const catalogReadiness = useMemo(
@@ -662,10 +836,13 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
                   structureBusy={structureBusy}
                   structureError={structureError}
                   contentSaveBlocked={savingSectionId != null}
+                  catalogItems={catalogItems}
                   onAddSection={handleAddSection}
                   onMoveSection={handleMoveSection}
                   onSaveTemplateEstimateSettings={handleSaveTemplateEstimateSettings}
                   onSaveOptionEstimateSettings={handleSaveOptionEstimateSettings}
+                  onAddCatalogItemToSection={handleOpenAddCatalogItem}
+                  onRelinkTemplateItem={handleOpenRelinkCatalogItem}
                 />
                 <TemplatesContentEditorShell
                   viewModel={contentViewModel}
@@ -692,6 +869,41 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
       />
 
       <TemplatesBuilderFootnote />
+
+      <TemplatesCatalogItemPickerModal
+        open={catalogPicker != null}
+        mode={(catalogPicker?.mode ?? "add") as TemplatesCatalogPickerMode}
+        catalogItems={catalogItems}
+        excludeCatalogItemIds={
+          catalogPicker
+            ? (() => {
+                const ids = catalogItemIdsAlreadyInSection(
+                  (selectedGraph?.items ?? []).filter(
+                    (row) => row.section_id === catalogPicker.sectionId
+                  )
+                );
+                if (catalogPicker.mode === "relink") {
+                  const current = selectedGraph?.items.find(
+                    (row) => row.id === catalogPicker.templateItemId
+                  );
+                  const currentCatalogId = (current?.catalog_item_id ?? "").trim();
+                  if (currentCatalogId) ids.delete(currentCatalogId);
+                }
+                return ids;
+              })()
+            : undefined
+        }
+        busy={
+          structureBusy?.kind === "add-item" || structureBusy?.kind === "relink-item"
+        }
+        onClose={() => {
+          if (structureBusy?.kind === "add-item" || structureBusy?.kind === "relink-item") {
+            return;
+          }
+          setCatalogPicker(null);
+        }}
+        onSelect={handleCatalogPickerSelect}
+      />
     </div>
   );
 }

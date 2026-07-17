@@ -8,9 +8,9 @@ export default function TemplatesPageHeader() {
         Proposal templates
       </h1>
       <p className="mt-1.5 max-w-3xl text-sm leading-relaxed text-slate-600">
-        Reusable company templates for Proposal Builder. Install starter packages, review template
-        content by option, and prepare master prose here — job-specific proposals open from Job Card
-        in later stages.
+        Reusable company templates for Proposal Builder. Link Catalog items into template structure,
+        install starter packages, and prepare options for job proposals. Create or open proposals from
+        the Job Card — Catalog remains the source of truth for item pricing.
       </p>
     </header>
   );

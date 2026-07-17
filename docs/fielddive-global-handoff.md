@@ -45,11 +45,12 @@
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** **`09c458e` — polish(catalog): complete management workspace ux**
-- **Docs checkpoint:** **pending this commit — integrated Catalog → Proposal workflow map**
+- **Code checkpoint:** **pending this commit — feat(templates): add catalog item linking foundation**
+- **Docs checkpoint:** **pending this commit — Integrated Flow P0 Template catalog link**
+- **Prior docs checkpoint:** **`ba6030c` — docs: map integrated catalog to proposal workflow**
 - **Prior code checkpoint:** **`09c458e` — polish(catalog): complete management workspace ux**
-- **Next:** Integrated Flow **P0** coding block — truth/flow blockers on the Catalog → Templates → Builder → Preview spine (see **§6BO.13.4.6**). Do **not** start supplier sync, material ordering, CSV mapping assistant, proposal import, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
-- **Historical note:** Header language that still says “Slice 2 — Catalog P0 next” or “Coverage/Waste inactive / raw unwired” in older §6BO.13.4 rows is **superseded** by Phase 5–7 + Catalog management foundation + Catalog UX completion + **§6BO.13.4.6** integrated workflow research below.
+- **Next:** Integrated Flow **P1** — setup-to-proposal smoothness / Builder refresh + catalog-edit trust guidance (see **§6BO.13.4.6**). Do **not** start supplier sync, material ordering, CSV mapping assistant, proposal import, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
+- **Historical note:** Header language that still says “Slice 2 — Catalog P0 next” or “Coverage/Waste inactive / raw unwired” in older §6BO.13.4 rows is **superseded** by Phase 5–7 + Catalog management foundation + Catalog UX completion + **§6BO.13.4.6** integrated workflow research + Integrated Flow P0 Template catalog linking below.
 
 **Trust order:** Header/current checkpoint → **§6BO.13** (approved page-by-page UI flow roadmap + P0 implementation sequence — **supersedes separate Command Center language**) → **§6BM** / **§6BN** (R18 letter-phase roadmap + R18C–R18D3C implementation history) → **§6BO** / **§6BO.11** / **§6BO.12** (completed remediation side-track + **approved Stage C policy** + **operating-flow audit sequencing — complete; outcome in §6BO.13**) → **§6BL** → **§11 override**. Stage B browser smoke required local-only **`USE_PROPOSAL_SEND_FREEZE_RPC=1`** in `.env.local` (gitignored, not committed). **Do not proceed** to docs-only or next feature work unless working tree is clean. **Still do not** mutate `proposals.status = sent`, write sent `proposal_events`, move Jobs Board cards, add Job Card send activity, enable PDF/Sign/Payment, or add webhooks unless separately approved.
 
@@ -11350,7 +11351,18 @@ Order: **source → coverage → waste → exact**.
 - Atomic CSV import RPC (if required later)
 - CSV mapping/import assistant (non-exact headers) — see **§6BO.13.4.6**
 
-**Next coding block:** Integrated Flow **P0** — truth/flow blockers (§6BO.13.4.6). Research/docs for the integrated spine are complete below — **not** raw mode switch.
+**Integrated Flow P0 — Template Add item from Catalog / re-link — COMPLETE (2026-07-17):**
+
+- **Schema decision:** use existing `proposal_template_items.catalog_item_id` (+ optional `catalog_seed_key`) — **no migration**
+- Pure helpers: `app/lib/proposalTemplateCatalogLink.ts` — link status (`linked` / `missing_id` / `missing_catalog` / `inactive`), active-only picker filter, next sort_order, SoT/refresh copy constants
+- UI: Structure workspace on `line_items` / `upgrade_group` sections lists linked Catalog items; **Add item from catalog** picker (active only); **Change catalog link** re-links `catalog_item_id` without silent name remap; no economics edited on template
+- Store: `createProposalTemplateItem` / `updateProposalTemplateItem` wired from `TemplatesSetupClient`; Templates load full catalog via `getCatalogItemsByCompany` for inactive/missing honesty
+- Copy: Catalog SoT + draft refresh honesty; Templates footnote/header no longer claim Builder is a “later stage”
+- Builder/pricing/Preview: unchanged formulas; mapper still treats missing/inactive as unresolved; Preview remains clean of purchase tax/SKUs/internal cost
+- Local UI smoke PASS; live CRUD smoke on **`rhquhnujjnzjhweypavd`**: add → persist `catalog_item_id` → re-link → delete disposable row; proposals **23** / policies **1** / events **304** / tokens **22** unchanged
+- Protected: no supplier sync, material ordering, proposal import, CSV mapping, raw mode, whole rounding, send/lifecycle
+
+**Next coding block:** Integrated Flow **P1** — setup-to-proposal smoothness / Builder refresh + catalog-edit trust guidance — **not** raw mode switch.
 
 #### 13.4.6 Integrated Catalog → Proposal workflow research + FieldDive flow design — COMPLETE (2026-07-17)
 
@@ -12829,6 +12841,7 @@ Treat as **drift** if a session:
 
 ## Changelog (handoff doc only)
 
+- **2026-07-17:** **Integrated Flow P0 — Template Add item from Catalog / re-link foundation** — existing `catalog_item_id` (no migration); Structure picker + link status + re-link; Catalog SoT / draft-refresh copy; Builder/Preview/pricing unchanged. Focused tests pass. Local + live smoke PASS on **`rhquhnujjnzjhweypavd`** (disposable item cleaned). **Next:** Integrated Flow P1 setup-to-proposal smoothness / Builder refresh trust guidance.
 - **2026-07-17:** **Integrated Catalog → Proposal workflow research + flow design** (docs only) — recorded **§6BO.13.4.6**: Roofr public research (confirmed vs unconfirmed), FieldDive spine map, target integrated flow (Catalog SoT → Template links → Builder snapshots → Preview filter → Material Orders later), CSV mapping assistant as P2 future requirement, gap table, staged roadmap P0–P2 + Future. No app code/migrations/SQL/package/pricing/Preview/lifecycle/supplier/ordering changes. **Next coding block:** Integrated Flow **P0** (template catalog linkage + honest setup→Builder copy/trust) — not CSV mapping, not supplier sync, not raw mode.
 - **2026-07-17:** **Catalog UX completion pass** — cohesion/usability polish only (Filters label, Add/Edit section hierarchy, quieter Manage/bulk copy, detail tax/SKU de-duplication, empty-state inactive hint fix, reorder active-state clarity). No new major systems; no pricing/Preview/supplier sync/material ordering/proposal import/raw mode/migrations/package changes. Focused tests **194 pass**. Local UI smoke PASS. **Next:** integrated workflow pass (Catalog → Templates → Builder → Preview → future Material Ordering).
 - **2026-07-17:** **Catalog supplier SKU storage** — migration `20260717_026` applied on **`rhquhnujjnzjhweypavd`** (`abc_sku`/`qxo_sku`/`srs_sku` nullable text, CHECK 1..128, no default/backfill); types/store/Add/Edit/detail + CSV persist; no supplier sync/API/material order; proposal pricing + Customer Preview unchanged. Focused tests **170 pass**. Local UI smoke + live CRUD smoke PASS. **Next:** selection + bulk actions foundation → reorder → Catalog UX completion → integrated workflow pass.

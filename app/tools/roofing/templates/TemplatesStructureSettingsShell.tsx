@@ -12,6 +12,7 @@ import {
   proposalTemplateSectionKindLabel,
   type ProposalTemplateSectionKind,
 } from "@/app/lib/proposalTemplateTypes";
+import type { CatalogItem } from "@/app/lib/catalogTypes";
 import type { ProposalTemplateGraph } from "@/app/lib/proposalTemplateStore";
 import {
   TEMPLATES_CARD,
@@ -30,6 +31,8 @@ type StructureSettingsBusy =
   | { kind: "move"; sectionId: string }
   | { kind: "settings-template" }
   | { kind: "settings-option"; optionId: string }
+  | { kind: "add-item"; sectionId: string }
+  | { kind: "relink-item"; itemId: string }
   | null;
 
 type TemplatesStructureSettingsShellProps = {
@@ -38,6 +41,7 @@ type TemplatesStructureSettingsShellProps = {
   structureBusy: StructureSettingsBusy;
   structureError: string | null;
   contentSaveBlocked: boolean;
+  catalogItems: readonly CatalogItem[];
   onAddSection: (optionId: string, kind: ProposalTemplateSectionKind) => void;
   onMoveSection: (
     optionId: string,
@@ -49,6 +53,8 @@ type TemplatesStructureSettingsShellProps = {
     optionId: string,
     patch: Partial<ProposalPageSettings>
   ) => void;
+  onAddCatalogItemToSection: (optionId: string, sectionId: string) => void;
+  onRelinkTemplateItem: (templateItemId: string) => void;
 };
 
 function isStructureDisabled(
@@ -111,10 +117,13 @@ export default function TemplatesStructureSettingsShell({
   structureBusy,
   structureError,
   contentSaveBlocked,
+  catalogItems,
   onAddSection,
   onMoveSection,
   onSaveTemplateEstimateSettings,
   onSaveOptionEstimateSettings,
+  onAddCatalogItemToSection,
+  onRelinkTemplateItem,
 }: TemplatesStructureSettingsShellProps) {
   const structureDisabled = isStructureDisabled(structureBusy, contentSaveBlocked);
   const templateSettings = useMemo(
@@ -149,10 +158,11 @@ export default function TemplatesStructureSettingsShell({
           Template structure controls future proposal drafts
         </p>
         <p className="mt-1 text-xs leading-relaxed text-slate-600">
-          Reorder and add sections per package option (Standard, Enhanced, Premium). Existing job
-          proposals are not changed. Remove is blocked until safe delete semantics are approved.
-          Estimate display settings control line visibility, totals, and headings — not pricing or
-          margin. Pricing policy remains in Settings.
+          Reorder and add sections per package option. Link Catalog items into line-item and upgrade
+          sections — Catalog remains the source of truth for pricing and quantity drivers. Existing
+          job proposal drafts keep snapshotted values until you refresh draft pricing. Remove section
+          is blocked until safe delete semantics are approved. Estimate display settings control line
+          visibility, totals, and headings — not pricing or margin.
         </p>
       </div>
 
@@ -193,24 +203,42 @@ export default function TemplatesStructureSettingsShell({
                   </div>
 
                   <ul className="divide-y divide-slate-100">
-                    {group.sections.map((section, sectionIndex) => (
-                      <TemplatesStructureSectionRow
-                        key={section.sectionId}
-                        section={section}
-                        sectionIndex={sectionIndex}
-                        sectionCount={group.sections.length}
-                        removeState={describeRemoveSectionState(graph, section.sectionId)}
-                        isMoving={
-                          structureBusy?.kind === "move" &&
-                          structureBusy.sectionId === section.sectionId
-                        }
-                        structureDisabled={structureDisabled}
-                        onMoveUp={() => onMoveSection(group.optionId, section.sectionId, "up")}
-                        onMoveDown={() =>
-                          onMoveSection(group.optionId, section.sectionId, "down")
-                        }
-                      />
-                    ))}
+                    {group.sections.map((section, sectionIndex) => {
+                      const sectionItems = graph.items.filter(
+                        (item) => item.section_id === section.sectionId
+                      );
+                      const catalogItemsBusy =
+                        (structureBusy?.kind === "add-item" &&
+                          structureBusy.sectionId === section.sectionId) ||
+                        (structureBusy?.kind === "relink-item" &&
+                          sectionItems.some((item) => item.id === structureBusy.itemId));
+
+                      return (
+                        <TemplatesStructureSectionRow
+                          key={section.sectionId}
+                          section={section}
+                          sectionIndex={sectionIndex}
+                          sectionCount={group.sections.length}
+                          removeState={describeRemoveSectionState(graph, section.sectionId)}
+                          isMoving={
+                            structureBusy?.kind === "move" &&
+                            structureBusy.sectionId === section.sectionId
+                          }
+                          structureDisabled={structureDisabled}
+                          onMoveUp={() => onMoveSection(group.optionId, section.sectionId, "up")}
+                          onMoveDown={() =>
+                            onMoveSection(group.optionId, section.sectionId, "down")
+                          }
+                          sectionItems={sectionItems}
+                          catalogItems={catalogItems}
+                          catalogItemsBusy={catalogItemsBusy}
+                          onAddFromCatalog={() =>
+                            onAddCatalogItemToSection(group.optionId, section.sectionId)
+                          }
+                          onRelinkCatalogItem={onRelinkTemplateItem}
+                        />
+                      );
+                    })}
                   </ul>
 
                   <div className="border-t border-slate-100 bg-slate-50/50 px-4 py-3">

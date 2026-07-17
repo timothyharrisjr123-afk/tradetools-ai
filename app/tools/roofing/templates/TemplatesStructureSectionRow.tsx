@@ -1,9 +1,12 @@
 "use client";
 
+import type { CatalogItem } from "@/app/lib/catalogTypes";
 import { proposalTemplateSectionKindLabel } from "@/app/lib/proposalTemplateTypes";
+import type { ProposalTemplateItem } from "@/app/lib/proposalTemplateTypes";
 import type { TemplateStructureSectionView } from "@/app/lib/proposalTemplateStructureEditorView";
 import type { PlanRemoveSectionResult } from "@/app/lib/proposalTemplateStructureMutations";
 import { TEMPLATES_CONTENT_SECTION_ROW } from "./templatesConstants";
+import TemplatesSectionCatalogItems from "./TemplatesSectionCatalogItems";
 
 type TemplatesStructureSectionRowProps = {
   section: TemplateStructureSectionView;
@@ -14,6 +17,11 @@ type TemplatesStructureSectionRowProps = {
   structureDisabled: boolean;
   onMoveUp: () => void;
   onMoveDown: () => void;
+  sectionItems: readonly ProposalTemplateItem[];
+  catalogItems: readonly CatalogItem[];
+  catalogItemsBusy: boolean;
+  onAddFromCatalog: () => void;
+  onRelinkCatalogItem: (templateItemId: string) => void;
 };
 
 export default function TemplatesStructureSectionRow({
@@ -25,6 +33,11 @@ export default function TemplatesStructureSectionRow({
   structureDisabled,
   onMoveUp,
   onMoveDown,
+  sectionItems,
+  catalogItems,
+  catalogItemsBusy,
+  onAddFromCatalog,
+  onRelinkCatalogItem,
 }: TemplatesStructureSectionRowProps) {
   const canMoveUp = sectionIndex > 0 && section.isReorderable && !structureDisabled && !isMoving;
   const canMoveDown =
@@ -107,6 +120,16 @@ export default function TemplatesStructureSectionRow({
           </button>
         </div>
       </div>
+
+      <TemplatesSectionCatalogItems
+        sectionKind={section.kind}
+        sectionItems={sectionItems}
+        catalogItems={catalogItems}
+        structureDisabled={structureDisabled}
+        busy={catalogItemsBusy}
+        onAddFromCatalog={onAddFromCatalog}
+        onRelink={onRelinkCatalogItem}
+      />
     </li>
   );
 }
