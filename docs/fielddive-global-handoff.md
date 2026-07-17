@@ -45,12 +45,12 @@
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** **`c29ff33` — feat(proposals): add setup to builder trust flow**
-- **Docs checkpoint:** **pending this commit — Templates workspace redesign plan**
-- **Prior docs checkpoint:** Integrated Flow P1 trust flow docs (same era as `c29ff33`)
-- **Prior code checkpoint:** **`3e96db1` — feat(templates): add catalog item linking foundation**
-- **Next:** **Templates Workspace Redesign P0** — overview-first progressive disclosure on `/tools/roofing/templates` (see **§6BO.13.4.7**). Do **not** start dedicated `/templates/[id]` route yet, supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. Integrated Flow P2 (Job Card proposal start) remains queued after Templates density fix unless product priority flips. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
-- **Historical note:** Header language that still says “Slice 2 — Catalog P0 next” or “Coverage/Waste inactive / raw unwired” in older §6BO.13.4 rows is **superseded** by Phase 5–7 + Catalog management foundation + Catalog UX completion + **§6BO.13.4.6** integrated workflow research + Integrated Flow **P0/P1** + **§6BO.13.4.7** Templates workspace redesign plan below.
+- **Code checkpoint:** **pending this commit — polish(templates): simplify proposal template workspace**
+- **Docs checkpoint:** **pending this commit — Templates Workspace Redesign P0 implemented**
+- **Prior docs checkpoint:** **`0e6ccd1` — docs: plan templates workspace redesign**
+- **Prior code checkpoint:** **`c29ff33` — feat(proposals): add setup to builder trust flow**
+- **Next:** Integrated Flow **P2** — Job Card proposal start / guided creation path (see **§6BO.13.4.6** / **§6BO.13.4.7**). Do **not** start dedicated `/templates/[id]` unless Overview tabs prove insufficient; do **not** start supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
+- **Historical note:** Header language that still says “Slice 2 — Catalog P0 next” or “Coverage/Waste inactive / raw unwired” in older §6BO.13.4 rows is **superseded** by Phase 5–7 + Catalog management foundation + Catalog UX completion + **§6BO.13.4.6** integrated workflow research + Integrated Flow **P0/P1** + **§6BO.13.4.7** Templates workspace redesign (plan + P0 implementation) below.
 
 **Trust order:** Header/current checkpoint → **§6BO.13** (approved page-by-page UI flow roadmap + P0 implementation sequence — **supersedes separate Command Center language**) → **§6BM** / **§6BN** (R18 letter-phase roadmap + R18C–R18D3C implementation history) → **§6BO** / **§6BO.11** / **§6BO.12** (completed remediation side-track + **approved Stage C policy** + **operating-flow audit sequencing — complete; outcome in §6BO.13**) → **§6BL** → **§11 override**. Stage B browser smoke required local-only **`USE_PROPOSAL_SEND_FREEZE_RPC=1`** in `.env.local` (gitignored, not committed). **Do not proceed** to docs-only or next feature work unless working tree is clean. **Still do not** mutate `proposals.status = sent`, write sent `proposal_events`, move Jobs Board cards, add Job Card send activity, enable PDF/Sign/Payment, or add webhooks unless separately approved.
 
@@ -11402,9 +11402,21 @@ Order: **source → coverage → waste → exact**.
 
 #### 13.4.7 Templates workspace redesign research + plan — COMPLETE (2026-07-17)
 
-**Status:** Docs-only research + product design lock. **No app code, migrations, SQL, package, pricing, Preview, send/public/lifecycle, supplier API, material ordering, or proposal import changes in this block.**
+**Status:** Research/plan complete at **`0e6ccd1`**. **Templates Workspace Redesign P0 implemented** (contractor-first Overview flow — not accordion-only collapse of the old admin dump).
 
 **Code checkpoint at plan start:** **`c29ff33`** — Integrated Flow P1 setup-to-Builder trust complete.
+
+**Redesign P0 implementation (same section):**
+
+- **Flow:** Library → Overview (use/readiness) → focused edit tabs (Packages & Catalog / Estimate display / Content).
+- **First load:** Overview only — no all-options/all-sections/all-Catalog-items dump; one trust note; Open Jobs (no Create Proposal).
+- **Packages & Catalog:** compact package cards; expand one option; Edit section to reveal Included Catalog items + add/re-link.
+- **Estimate display:** own tab; template defaults + collapsed option overrides.
+- **Content:** own tab; one package option open at a time.
+- **Preserved:** starter install, Catalog link honesty, estimate toggles, structure reorder/add section, Builder freeze/refresh, Preview safety, pricing formulas unchanged.
+- **Local smoke PASS:** Overview first (0 Catalog links mounted) → Packages expand one section → add/re-link controls → Estimate tab → 390px usable.
+- **Deferred:** `/templates/[id]` route.
+- **Next coding block:** Integrated Flow **P2** — Job Card proposal start / guided creation path.
 
 ##### A. Screenshot-driven issue (current FieldDive)
 
@@ -11498,7 +11510,7 @@ Contractor screenshots + code review of `/tools/roofing/templates` show an admin
 
 ##### I. Next coding block
 
-**Templates Workspace Redesign P0** — overview-first progressive disclosure on existing route (tabs + collapsed options/sections + consolidated readiness). Then resume Integrated Flow **P2** (Job Card proposal start) or CSV mapping if import friction wins.
+**Integrated Flow P2** — Job Card proposal start / guided creation path. CSV mapping assistant remains an alternate if import friction wins.
 
 #### 13.4.6 Integrated Catalog → Proposal workflow research + FieldDive flow design — COMPLETE (2026-07-17)
 
@@ -11685,9 +11697,9 @@ Roofr keeps this simple by: forcing Catalog-before-Template, automating qty from
 
 **Integrated Flow P1 — setup-to-proposal smoothness** — **COMPLETE** (see P1 section above this research block).
 
-**Templates Workspace Redesign P0 — overview-first progressive disclosure (immediate next)** — see **§6BO.13.4.7**.
+**Templates Workspace Redesign P0 — overview-first progressive disclosure** — **COMPLETE** (see **§6BO.13.4.7**).
 
-**Integrated Flow P2 — job-card proposal start / guided creation path (queued after Templates Redesign P0)**
+**Integrated Flow P2 — job-card proposal start / guided creation path (preferred next)**
 
 - **Goal:** Make Job Card → measurement → template → Create proposal the most obvious connected path when setup is ready; clarify blocked states with fix actions.
 - **Likely files:** Job Card proposals tab / launch helpers, optional guided create modal if needed (only if real route support).
@@ -12980,6 +12992,7 @@ Treat as **drift** if a session:
 
 ## Changelog (handoff doc only)
 
+- **2026-07-17:** **Templates Workspace Redesign P0** — contractor-first `/tools/roofing/templates`: Overview readiness + Open Jobs; Packages & Catalog / Estimate / Content tabs; no first-load Catalog dump; Catalog add/re-link preserved; pricing/Preview/lifecycle unchanged. **Next:** Integrated Flow **P2** Job Card proposal start.
 - **2026-07-17:** **Templates workspace redesign research + plan** (docs only) — recorded **§6BO.13.4.7**: screenshot/code critique of dense all-expanded Templates page; targeted Roofr template UX research (confirmed vs unconfirmed); chosen hybrid model A+D+E+F (Overview-first tabs + collapsed options/sections; defer `/templates/[id]`); page structure + implementation plan. No app code/migrations/SQL/package/pricing/Preview/lifecycle changes. **Next coding block:** Templates Workspace Redesign **P0**.
 - **2026-07-17:** **Integrated Flow P0 — Template Add item from Catalog / re-link foundation** — existing `catalog_item_id` (no migration); Structure picker + link status + re-link; Catalog SoT / draft-refresh copy; Builder/Preview/pricing unchanged. Focused tests pass. Local + live smoke PASS on **`rhquhnujjnzjhweypavd`** (disposable item cleaned). **Next:** Integrated Flow P1 setup-to-proposal smoothness / Builder refresh trust guidance.
 - **2026-07-17:** **Integrated Catalog → Proposal workflow research + flow design** (docs only) — recorded **§6BO.13.4.6**: Roofr public research (confirmed vs unconfirmed), FieldDive spine map, target integrated flow (Catalog SoT → Template links → Builder snapshots → Preview filter → Material Orders later), CSV mapping assistant as P2 future requirement, gap table, staged roadmap P0–P2 + Future. No app code/migrations/SQL/package/pricing/Preview/lifecycle/supplier/ordering changes. **Next coding block:** Integrated Flow **P0** (template catalog linkage + honest setup→Builder copy/trust) — not CSV mapping, not supplier sync, not raw mode.

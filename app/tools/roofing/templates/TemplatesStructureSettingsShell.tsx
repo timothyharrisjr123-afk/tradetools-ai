@@ -202,7 +202,7 @@ export default function TemplatesStructureSettingsShell({
                     </p>
                   </div>
 
-                  <ul className="divide-y divide-slate-100">
+                  <div className="divide-y divide-slate-100">
                     {group.sections.map((section, sectionIndex) => {
                       const sectionItems = graph.items.filter(
                         (item) => item.section_id === section.sectionId
@@ -239,7 +239,7 @@ export default function TemplatesStructureSettingsShell({
                         />
                       );
                     })}
-                  </ul>
+                  </div>
 
                   <div className="border-t border-slate-100 bg-slate-50/50 px-4 py-3">
                     <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">

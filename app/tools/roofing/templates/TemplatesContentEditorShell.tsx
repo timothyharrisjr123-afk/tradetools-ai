@@ -5,7 +5,6 @@ import type { TemplateContentEditorViewModel } from "@/app/lib/proposalTemplateC
 import type { ProposalTemplateGraph } from "@/app/lib/proposalTemplateStore";
 import {
   TEMPLATES_CARD,
-  TEMPLATES_LOCKED_BANNER,
   TEMPLATES_OPTION_GROUP,
 } from "./templatesConstants";
 import TemplatesContentSectionRow from "./TemplatesContentSectionRow";
@@ -46,10 +45,22 @@ export default function TemplatesContentEditorShell({
   const initialDrafts = useMemo(() => buildInitialSectionDrafts(viewModel), [viewModel]);
   const [draftsBySectionId, setDraftsBySectionId] =
     useState<Record<string, string>>(initialDrafts);
+  const [expandedOptionId, setExpandedOptionId] = useState<string | null>(
+    () => viewModel.optionGroups[0]?.optionId ?? null
+  );
 
   useEffect(() => {
     setDraftsBySectionId(initialDrafts);
   }, [initialDrafts]);
+
+  useEffect(() => {
+    setExpandedOptionId((current) => {
+      if (current && viewModel.optionGroups.some((g) => g.optionId === current)) {
+        return current;
+      }
+      return viewModel.optionGroups[0]?.optionId ?? null;
+    });
+  }, [viewModel.optionGroups]);
 
   const dirtySectionCount = useMemo(
     () => countDirtySectionDrafts(viewModel, graph, draftsBySectionId),
@@ -61,29 +72,24 @@ export default function TemplatesContentEditorShell({
   }, [dirtySectionCount, onDirtySectionCountChange]);
 
   return (
-    <section className={TEMPLATES_CARD} aria-labelledby="templates-content-editor-heading">
+    <section
+      className={TEMPLATES_CARD}
+      aria-labelledby="templates-content-editor-heading"
+      data-templates-content-tab
+    >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 id="templates-content-editor-heading" className="text-base font-semibold text-slate-900">
-            Template content
+          <h2 id="templates-content-editor-heading" className="text-sm font-semibold text-slate-900">
+            Content
           </h2>
-          <p className="mt-1 text-sm text-slate-600">
-            Reusable master prose by package option — text, terms, and warranty for{" "}
-            <span className="font-medium text-slate-800">{viewModel.templateName}</span>.
+          <p className="mt-1 text-xs leading-relaxed text-slate-600">
+            Master prose for future drafts (terms, warranty, and text pages). Open one package option
+            at a time.
           </p>
         </div>
         <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-800 ring-1 ring-emerald-200">
-          Editable
+          {viewModel.totalEditableSectionCount} editable
         </span>
-      </div>
-
-      <div className={TEMPLATES_LOCKED_BANNER} role="status">
-        <p className="text-sm font-medium text-slate-800">Master template content</p>
-        <p className="mt-1 text-xs leading-relaxed text-slate-600">
-          Changes save to this company template and apply to future proposal drafts created from it.
-          Existing job proposal pages are not changed. Each package option has its own sections —
-          save one section at a time. Structure and estimate settings are configured above.
-        </p>
       </div>
 
       {contentSaveBlocked ? (
@@ -104,49 +110,71 @@ export default function TemplatesContentEditorShell({
           No editable text sections found for this template yet.
         </p>
       ) : (
-        <div className="mt-5 space-y-5">
-          {viewModel.optionGroups.map((group) => (
-            <div key={group.optionId} className={TEMPLATES_OPTION_GROUP}>
-              <div className="border-b border-slate-200/80 px-4 py-3">
-                <h3 className="text-sm font-semibold text-slate-900">{group.optionLabel}</h3>
-                <p className="mt-0.5 text-xs text-slate-500">
-                  {group.sections.length} editable section
-                  {group.sections.length === 1 ? "" : "s"} · per-option content
-                </p>
-              </div>
+        <div className="mt-5 space-y-3">
+          {viewModel.optionGroups.map((group) => {
+            const open = expandedOptionId === group.optionId;
+            return (
+              <div key={group.optionId} className={TEMPLATES_OPTION_GROUP}>
+                <button
+                  type="button"
+                  className="flex w-full items-center justify-between gap-2 border-b border-slate-200/80 px-4 py-3 text-left"
+                  onClick={() =>
+                    setExpandedOptionId((current) =>
+                      current === group.optionId ? null : group.optionId
+                    )
+                  }
+                  aria-expanded={open}
+                >
+                  <span>
+                    <span className="block text-sm font-semibold text-slate-900">
+                      {group.optionLabel}
+                    </span>
+                    <span className="mt-0.5 block text-xs text-slate-500">
+                      {group.sections.length} editable section
+                      {group.sections.length === 1 ? "" : "s"}
+                    </span>
+                  </span>
+                  <span className="text-xs font-semibold text-slate-500">
+                    {open ? "Hide" : "Open"}
+                  </span>
+                </button>
 
-              <ul className="divide-y divide-slate-100">
-                {group.sections.map((section) => (
-                  <TemplatesContentSectionRow
-                    key={section.sectionId}
-                    section={section}
-                    existingContent={findSectionContent(graph, section.sectionId)}
-                    draftBody={draftsBySectionId[section.sectionId] ?? section.bodyMarkdown}
-                    onDraftChange={(nextBody) =>
-                      setDraftsBySectionId((current) => ({
-                        ...current,
-                        [section.sectionId]: nextBody,
-                      }))
-                    }
-                    onSave={() =>
-                      onSaveSection({
-                        sectionId: section.sectionId,
-                        optionId: section.optionId,
-                        draftBody: draftsBySectionId[section.sectionId] ?? section.bodyMarkdown,
-                      })
-                    }
-                    isSaving={savingSectionId === section.sectionId}
-                    saveDisabled={contentSaveBlocked}
-                    saveError={
-                      sectionSaveError?.sectionId === section.sectionId
-                        ? sectionSaveError.message
-                        : null
-                    }
-                  />
-                ))}
-              </ul>
-            </div>
-          ))}
+                {open ? (
+                  <ul className="divide-y divide-slate-100">
+                    {group.sections.map((section) => (
+                      <TemplatesContentSectionRow
+                        key={section.sectionId}
+                        section={section}
+                        existingContent={findSectionContent(graph, section.sectionId)}
+                        draftBody={draftsBySectionId[section.sectionId] ?? section.bodyMarkdown}
+                        onDraftChange={(nextBody) =>
+                          setDraftsBySectionId((current) => ({
+                            ...current,
+                            [section.sectionId]: nextBody,
+                          }))
+                        }
+                        onSave={() =>
+                          onSaveSection({
+                            sectionId: section.sectionId,
+                            optionId: section.optionId,
+                            draftBody:
+                              draftsBySectionId[section.sectionId] ?? section.bodyMarkdown,
+                          })
+                        }
+                        isSaving={savingSectionId === section.sectionId}
+                        saveDisabled={contentSaveBlocked}
+                        saveError={
+                          sectionSaveError?.sectionId === section.sectionId
+                            ? sectionSaveError.message
+                            : null
+                        }
+                      />
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+            );
+          })}
         </div>
       )}
     </section>

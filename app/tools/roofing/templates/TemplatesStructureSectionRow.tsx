@@ -20,6 +20,8 @@ type TemplatesStructureSectionRowProps = {
   sectionItems: readonly ProposalTemplateItem[];
   catalogItems: readonly CatalogItem[];
   catalogItemsBusy: boolean;
+  /** When false, omit Catalog item list (compact Packages tab rows). Default true for compatibility. */
+  showCatalogItems?: boolean;
   onAddFromCatalog: () => void;
   onRelinkCatalogItem: (templateItemId: string) => void;
 };
@@ -36,6 +38,7 @@ export default function TemplatesStructureSectionRow({
   sectionItems,
   catalogItems,
   catalogItemsBusy,
+  showCatalogItems = true,
   onAddFromCatalog,
   onRelinkCatalogItem,
 }: TemplatesStructureSectionRowProps) {
@@ -51,7 +54,7 @@ export default function TemplatesStructureSectionRow({
     "Section removal is blocked until safe delete semantics are approved.";
 
   return (
-    <li className={TEMPLATES_CONTENT_SECTION_ROW}>
+    <div className={TEMPLATES_CONTENT_SECTION_ROW} data-templates-structure-section-row>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
@@ -121,15 +124,17 @@ export default function TemplatesStructureSectionRow({
         </div>
       </div>
 
-      <TemplatesSectionCatalogItems
-        sectionKind={section.kind}
-        sectionItems={sectionItems}
-        catalogItems={catalogItems}
-        structureDisabled={structureDisabled}
-        busy={catalogItemsBusy}
-        onAddFromCatalog={onAddFromCatalog}
-        onRelink={onRelinkCatalogItem}
-      />
-    </li>
+      {showCatalogItems ? (
+        <TemplatesSectionCatalogItems
+          sectionKind={section.kind}
+          sectionItems={sectionItems}
+          catalogItems={catalogItems}
+          structureDisabled={structureDisabled}
+          busy={catalogItemsBusy}
+          onAddFromCatalog={onAddFromCatalog}
+          onRelink={onRelinkCatalogItem}
+        />
+      ) : null}
+    </div>
   );
 }

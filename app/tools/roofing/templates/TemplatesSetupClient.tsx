@@ -44,18 +44,13 @@ import TemplatesCatalogItemPickerModal, {
   type TemplatesCatalogPickerMode,
 } from "./TemplatesCatalogItemPickerModal";
 import TemplatesCatalogPrerequisite from "./TemplatesCatalogPrerequisite";
-import TemplatesContentEditorShell from "./TemplatesContentEditorShell";
-import TemplatesStructureSettingsShell from "./TemplatesStructureSettingsShell";
 import TemplatesLibrarySection from "./TemplatesLibrarySection";
 import TemplatesOnboardingZone from "./TemplatesOnboardingZone";
 import TemplatesPageAlerts from "./TemplatesPageAlerts";
 import TemplatesPageHeader from "./TemplatesPageHeader";
-import TemplatesSelectedTemplatePanel from "./TemplatesSelectedTemplatePanel";
-import TemplatesSetupChecklist from "./TemplatesSetupChecklist";
-import TemplatesSetupNextActions from "./TemplatesSetupNextActions";
+import TemplatesSelectedWorkspace from "./TemplatesSelectedWorkspace";
 import TemplatesStarterHeroCard from "./TemplatesStarterHeroCard";
 import TemplatesWorkspaceLayout from "./TemplatesWorkspaceLayout";
-import { TEMPLATES_WORKSPACE_ZONE } from "./templatesConstants";
 import { deriveInstallFeedback, findStarterProposalTemplate } from "./templatesSetupUtils";
 import {
   buildWorkspaceContentViewModel,
@@ -68,6 +63,10 @@ import {
   computeReorderedSectionIds,
   getOrderedSectionIdsForOption,
 } from "./templatesStructureEditorUtils";
+import {
+  summarizePackageOptionsForWorkspace,
+  type TemplatesWorkspaceTabId,
+} from "./templatesWorkspaceFlow";
 
 const CATALOG_STARTER_DEFINITION_COUNT = DEFAULT_ROOFING_CATALOG_DEFINITIONS.length;
 
@@ -125,6 +124,8 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
   const [structureBusy, setStructureBusy] = useState<StructureSettingsBusy>(null);
   const [structureError, setStructureError] = useState<string | null>(null);
   const [catalogPicker, setCatalogPicker] = useState<CatalogPickerState>(null);
+  const [workspaceTab, setWorkspaceTab] = useState<TemplatesWorkspaceTabId>("overview");
+  const [focusSectionId, setFocusSectionId] = useState<string | null>(null);
 
   const loadCatalog = useCallback(async () => {
     setCatalogLoading(true);
@@ -227,6 +228,8 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
         setGraphLoading(true);
         setTemplatesError(null);
         setSelectedTemplateId(templateId);
+        setWorkspaceTab("overview");
+        setFocusSectionId(null);
         try {
           const graph = await loadTemplateGraph(templateId, starterGraph);
           setSelectedGraph(graph);
@@ -715,17 +718,46 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
     return deriveTemplateCatalogLinkReadiness(selectedGraph?.items ?? [], catalogById);
   }, [catalogItems, selectedGraph?.items]);
 
+  const packageSummaries = useMemo(() => {
+    if (!selectedGraph || !structureViewModel) return [];
+    return summarizePackageOptionsForWorkspace(
+      selectedGraph,
+      structureViewModel,
+      catalogItems
+    );
+  }, [selectedGraph, structureViewModel, catalogItems]);
+
+  const handleSelectWorkspaceTab = useCallback((tab: TemplatesWorkspaceTabId) => {
+    setWorkspaceTab(tab);
+    if (tab !== "packages") {
+      setFocusSectionId(null);
+    }
+  }, []);
+
   const handleFixCatalogLinks = useCallback(() => {
+    setWorkspaceTab("packages");
     const problemId = selectedLinkReadiness.firstProblemItemId;
     if (problemId) {
-      const el = document.querySelector(`[data-templates-catalog-link="${problemId}"]`);
-      el?.scrollIntoView({ behavior: "smooth", block: "center" });
-      handleOpenRelinkCatalogItem(problemId);
+      const item = selectedGraph?.items.find((row) => row.id === problemId);
+      setFocusSectionId(item?.section_id ?? null);
+      // Allow Packages tab to mount before scrolling / opening relink.
+      window.setTimeout(() => {
+        const el = document.querySelector(`[data-templates-catalog-link="${problemId}"]`);
+        el?.scrollIntoView({ behavior: "smooth", block: "center" });
+        handleOpenRelinkCatalogItem(problemId);
+      }, 50);
       return;
     }
-    const firstAdd = document.querySelector("[data-templates-add-from-catalog]");
-    firstAdd?.scrollIntoView({ behavior: "smooth", block: "center" });
-  }, [handleOpenRelinkCatalogItem, selectedLinkReadiness.firstProblemItemId]);
+    setFocusSectionId(null);
+    window.setTimeout(() => {
+      const firstAdd = document.querySelector("[data-templates-add-from-catalog]");
+      firstAdd?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 50);
+  }, [
+    handleOpenRelinkCatalogItem,
+    selectedGraph?.items,
+    selectedLinkReadiness.firstProblemItemId,
+  ]);
 
   const handleInstallStarter = useCallback(() => {
     void (async () => {
@@ -817,7 +849,7 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
 
       <TemplatesWorkspaceLayout
         main={
-          <div className="space-y-6">
+          <div className="space-y-5">
             <TemplatesOnboardingZone
               workspaceActive={workspaceActive}
               catalogPrerequisite={catalogPrerequisite}
@@ -837,60 +869,35 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
             />
 
             {workspaceActive && selectedGraph && contentViewModel && structureViewModel ? (
-              <div className={`${TEMPLATES_WORKSPACE_ZONE} space-y-6 p-5`}>
-                <div>
-                  <h2 className="text-sm font-semibold text-slate-900">Template workspace</h2>
-                  <p className="mt-1 text-xs text-slate-500">
-                    Review selected template context, structure, estimate settings, and master
-                    content by package option.
-                  </p>
-                </div>
-
-                <TemplatesSelectedTemplatePanel
-                  graph={selectedGraph}
-                  contentViewModel={contentViewModel}
-                />
-                <TemplatesSetupNextActions
-                  proposalReadiness={proposalReadiness}
-                  linkReadiness={selectedLinkReadiness}
-                  onFixLinks={handleFixCatalogLinks}
-                />
-                <TemplatesStructureSettingsShell
-                  graph={selectedGraph}
-                  viewModel={structureViewModel}
-                  structureBusy={structureBusy}
-                  structureError={structureError}
-                  contentSaveBlocked={savingSectionId != null}
-                  catalogItems={catalogItems}
-                  onAddSection={handleAddSection}
-                  onMoveSection={handleMoveSection}
-                  onSaveTemplateEstimateSettings={handleSaveTemplateEstimateSettings}
-                  onSaveOptionEstimateSettings={handleSaveOptionEstimateSettings}
-                  onAddCatalogItemToSection={handleOpenAddCatalogItem}
-                  onRelinkTemplateItem={handleOpenRelinkCatalogItem}
-                />
-                <TemplatesContentEditorShell
-                  viewModel={contentViewModel}
-                  graph={selectedGraph}
-                  savingSectionId={savingSectionId}
-                  sectionSaveError={sectionSaveError}
-                  contentSaveBlocked={structureBusy != null}
-                  onSaveSection={handleSaveSection}
-                  onDirtySectionCountChange={handleDirtySectionCountChange}
-                />
-              </div>
+              <TemplatesSelectedWorkspace
+                activeTab={workspaceTab}
+                onSelectTab={handleSelectWorkspaceTab}
+                graph={selectedGraph}
+                proposalReadiness={proposalReadiness}
+                linkReadiness={selectedLinkReadiness}
+                packageSummaries={packageSummaries}
+                contentViewModel={contentViewModel}
+                structureViewModel={structureViewModel}
+                structureBusy={structureBusy}
+                structureError={structureError}
+                catalogItems={catalogItems}
+                focusSectionId={focusSectionId}
+                savingSectionId={savingSectionId}
+                sectionSaveError={sectionSaveError}
+                onFixLinks={handleFixCatalogLinks}
+                onAddSection={handleAddSection}
+                onMoveSection={handleMoveSection}
+                onSaveTemplateEstimateSettings={handleSaveTemplateEstimateSettings}
+                onSaveOptionEstimateSettings={handleSaveOptionEstimateSettings}
+                onAddCatalogItemToSection={handleOpenAddCatalogItem}
+                onRelinkTemplateItem={handleOpenRelinkCatalogItem}
+                onSaveSection={handleSaveSection}
+                onDirtySectionCountChange={handleDirtySectionCountChange}
+              />
             ) : null}
           </div>
         }
-        aside={
-          <TemplatesSetupChecklist
-            loading={loading}
-            catalogReady={catalogReady}
-            readiness={catalogReadiness}
-            starterInstalled={starterInstalled}
-            proposalReadiness={proposalReadiness}
-          />
-        }
+        aside={null}
       />
 
       <TemplatesBuilderFootnote />

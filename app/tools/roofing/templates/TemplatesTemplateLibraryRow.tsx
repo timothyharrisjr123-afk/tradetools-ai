@@ -1,13 +1,11 @@
 "use client";
 
 import {
-  proposalTemplateReadinessStatusLabel,
   proposalTemplateStatusLabel,
   type ProposalTemplate,
   type ProposalTemplateReadiness,
 } from "@/app/lib/proposalTemplateTypes";
 import type { ProposalTemplateGraph } from "@/app/lib/proposalTemplateStore";
-import { proposalTemplateReadinessStatusPillClass } from "@/app/lib/proposalTemplateReadiness";
 import {
   TEMPLATES_LIBRARY_ROW,
   TEMPLATES_LIBRARY_ROW_SELECTED,
@@ -37,9 +35,13 @@ export default function TemplatesTemplateLibraryRow({
   const rowClass = selected ? TEMPLATES_LIBRARY_ROW_SELECTED : TEMPLATES_LIBRARY_ROW;
   const sortedOptions = graph ? sortTemplateOptionsByOrder(graph.options) : [];
   const catalogLinkedCount = graph ? countCatalogLinkedTemplateItems(graph) : null;
+  const ready =
+    selected &&
+    proposalReadiness?.status === "ready_for_builder" &&
+    (proposalReadiness.missing_catalog_item_count ?? 0) === 0;
 
   return (
-    <article className={rowClass}>
+    <article className={rowClass} data-templates-library-row={template.id}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <button
           type="button"
@@ -71,41 +73,30 @@ export default function TemplatesTemplateLibraryRow({
             {statusLabel}
           </span>
           {selected && proposalReadiness ? (
-            <span className={proposalTemplateReadinessStatusPillClass(proposalReadiness.status)}>
-              {proposalTemplateReadinessStatusLabel(proposalReadiness.status)}
+            <span
+              className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ${
+                ready
+                  ? "bg-emerald-50 text-emerald-800 ring-emerald-200"
+                  : "bg-amber-50 text-amber-800 ring-amber-200"
+              }`}
+              data-templates-library-ready={ready ? "true" : "false"}
+            >
+              {ready ? "Ready" : "Needs attention"}
             </span>
           ) : null}
         </div>
       </div>
 
       {selected && graph ? (
-        <>
-          <p className="mt-2 text-xs text-slate-600">
-            {sortedOptions.length} options · {graph.sections.length} sections · {graph.items.length}{" "}
-            line items
-          </p>
-          <p className="mt-1 text-xs text-slate-600">
-            {catalogLinkedCount} catalog-linked lines
-            {proposalReadiness
-              ? ` · ${proposalReadiness.missing_catalog_item_count} missing links · ${proposalReadiness.priced_catalog_item_count} priced (linked)`
-              : ""}
-          </p>
-          {sortedOptions.length > 0 && (
-            <ul className="mt-3 flex flex-wrap gap-2">
-              {sortedOptions.map((option) => (
-                <li
-                  key={option.id}
-                  className="rounded-md border border-slate-100 bg-slate-50 px-2.5 py-1 text-xs text-slate-800"
-                >
-                  {option.customer_label ?? option.name}
-                  {option.is_default ? " (default)" : ""}
-                </li>
-              ))}
-            </ul>
-          )}
-        </>
+        <p className="mt-2 text-xs text-slate-600" data-templates-library-summary>
+          {sortedOptions.length} options · {graph.sections.length} sections ·{" "}
+          {catalogLinkedCount ?? 0} Catalog links
+          {proposalReadiness && proposalReadiness.missing_catalog_item_count > 0
+            ? ` · ${proposalReadiness.missing_catalog_item_count} missing`
+            : ""}
+        </p>
       ) : (
-        <p className="mt-2 text-xs text-slate-500">Select to open in the workspace below.</p>
+        <p className="mt-2 text-xs text-slate-500">Select to review readiness and make edits.</p>
       )}
     </article>
   );

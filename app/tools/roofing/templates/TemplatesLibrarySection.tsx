@@ -46,8 +46,7 @@ export default function TemplatesLibrarySection({
         )}
       </div>
       <p className="mt-1 text-sm text-slate-600">
-        Company templates available for Proposal Builder. Select a template to review and edit its
-        workspace content below.
+        Select a template to see if it is ready and what to do next.
       </p>
 
       {templateSwitchDisabled ? (

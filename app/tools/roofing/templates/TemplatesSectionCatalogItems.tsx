@@ -4,8 +4,6 @@ import type { CatalogItem } from "@/app/lib/catalogTypes";
 import { formatProposalVisibilityShort } from "@/app/lib/catalogContractorLabels";
 import {
   TEMPLATE_ADD_FROM_CATALOG_LABEL,
-  TEMPLATE_CATALOG_DRAFT_REFRESH_COPY,
-  TEMPLATE_CATALOG_SOT_COPY,
   TEMPLATE_RELINK_CATALOG_LABEL,
   buildCatalogByIdMap,
   buildTemplateCatalogLinkView,
@@ -71,10 +69,10 @@ export default function TemplatesSectionCatalogItems({
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-            Catalog items in this section
+            Included Catalog items
           </p>
           <p className="mt-1 text-[11px] leading-relaxed text-slate-500">
-            {TEMPLATE_CATALOG_SOT_COPY}
+            Prices and measurements come from Catalog — not edited here.
           </p>
         </div>
         <button
@@ -159,9 +157,6 @@ export default function TemplatesSectionCatalogItems({
         </ul>
       )}
 
-      <p className="mt-3 text-[11px] leading-relaxed text-slate-400">
-        {TEMPLATE_CATALOG_DRAFT_REFRESH_COPY}
-      </p>
     </div>
   );
 }
