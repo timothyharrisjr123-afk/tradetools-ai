@@ -47,6 +47,10 @@ type CatalogItemToolbarProps = {
   columnPrefsReady?: boolean;
   onColumnVisibilityChange: (columnId: CatalogOptionalColumnId, visible: boolean) => void;
   onResetColumnVisibility: () => void;
+  onDownloadCsvTemplate: () => void;
+  onExportCsv: () => void;
+  onUploadCsv: () => void;
+  csvActionsDisabled?: boolean;
 };
 
 export default function CatalogItemToolbar({
@@ -69,6 +73,10 @@ export default function CatalogItemToolbar({
   columnPrefsReady = true,
   onColumnVisibilityChange,
   onResetColumnVisibility,
+  onDownloadCsvTemplate,
+  onExportCsv,
+  onUploadCsv,
+  csvActionsDisabled = false,
 }: CatalogItemToolbarProps) {
   const activeFilterLabel =
     CATALOG_TYPE_FILTER_OPTIONS.find((option) => option.value === itemTypeFilter)?.label ?? "All";
@@ -239,32 +247,66 @@ export default function CatalogItemToolbar({
                   Manage catalog
                 </p>
                 <ul className="space-y-0.5">
-                  {CATALOG_MANAGE_MENU_ITEMS.map((item) => (
-                    <li key={item.id}>
-                      <span
-                        className="flex cursor-not-allowed select-none items-start justify-between gap-2 rounded-md px-1.5 py-1.5 text-sm text-slate-500"
-                        aria-disabled="true"
-                        title={item.detail}
-                        role="menuitem"
-                        data-catalog-manage-item={item.id}
-                        data-catalog-manage-status="planned"
-                      >
-                        <span className="min-w-0">
-                          <span className="block font-medium text-slate-600">{item.label}</span>
-                          <span className="mt-0.5 block text-[11px] leading-snug text-slate-400">
-                            {item.detail}
+                  {CATALOG_MANAGE_MENU_ITEMS.map((item) => {
+                    const isLive = item.status === "live";
+                    if (isLive) {
+                      const onClick =
+                        item.id === "download_template"
+                          ? onDownloadCsvTemplate
+                          : item.id === "download_csv"
+                            ? onExportCsv
+                            : item.id === "upload_csv"
+                              ? onUploadCsv
+                              : undefined;
+                      return (
+                        <li key={item.id}>
+                          <button
+                            type="button"
+                            className="flex w-full items-start justify-between gap-2 rounded-md px-1.5 py-1.5 text-left text-sm text-slate-800 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            title={item.detail}
+                            role="menuitem"
+                            data-catalog-manage-item={item.id}
+                            data-catalog-manage-status="live"
+                            disabled={csvActionsDisabled || !onClick}
+                            onClick={() => onClick?.()}
+                          >
+                            <span className="min-w-0">
+                              <span className="block font-medium text-slate-900">{item.label}</span>
+                              <span className="mt-0.5 block text-[11px] leading-snug text-slate-500">
+                                {item.detail}
+                              </span>
+                            </span>
+                          </button>
+                        </li>
+                      );
+                    }
+                    return (
+                      <li key={item.id}>
+                        <span
+                          className="flex cursor-not-allowed select-none items-start justify-between gap-2 rounded-md px-1.5 py-1.5 text-sm text-slate-500"
+                          aria-disabled="true"
+                          title={item.detail}
+                          role="menuitem"
+                          data-catalog-manage-item={item.id}
+                          data-catalog-manage-status="planned"
+                        >
+                          <span className="min-w-0">
+                            <span className="block font-medium text-slate-600">{item.label}</span>
+                            <span className="mt-0.5 block text-[11px] leading-snug text-slate-400">
+                              {item.detail}
+                            </span>
+                          </span>
+                          <span className={`${COMMAND_CONTROL_SOON_BADGE} shrink-0`}>
+                            {CATALOG_PLANNED_LABEL}
                           </span>
                         </span>
-                        <span className={`${COMMAND_CONTROL_SOON_BADGE} shrink-0`}>
-                          {CATALOG_PLANNED_LABEL}
-                        </span>
-                      </span>
-                    </li>
-                  ))}
+                      </li>
+                    );
+                  })}
                 </ul>
                 <p className="mt-2 border-t border-slate-100 px-1.5 pt-2 text-[11px] leading-relaxed text-slate-500">
-                  CSV, suppliers, Jumpstart, reorder, and bulk purchase tax are not live yet. Use
-                  Add catalog item for new rows.
+                  CSV v1 template, export, and preview import are live. Suppliers, Jumpstart,
+                  reorder, and bulk purchase tax remain planned.
                 </p>
               </div>
             </details>

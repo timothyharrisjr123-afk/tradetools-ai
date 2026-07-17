@@ -13,6 +13,7 @@ import {
   type CatalogOptionalColumnVisibility,
 } from "@/app/lib/catalogColumnVisibility";
 import AddCatalogItemModal from "@/app/admin/catalog/components/AddCatalogItemModal";
+import CatalogCsvImportModal from "@/app/admin/catalog/components/CatalogCsvImportModal";
 import CatalogItemDetailPanel from "@/app/admin/catalog/components/CatalogItemDetailPanel";
 import CatalogItemTable from "@/app/admin/catalog/components/CatalogItemTable";
 import CatalogItemToolbar from "@/app/admin/catalog/components/CatalogItemToolbar";
@@ -21,6 +22,7 @@ import {
   PRIMARY_BUTTON,
   type CatalogItemTypeFilter,
 } from "@/app/admin/catalog/catalogAdminConstants";
+import type { CatalogCsvAnalyzeResult } from "@/app/lib/catalogCsv";
 import CatalogInstallFeedback from "./CatalogInstallFeedback";
 import type {
   AddCatalogItemForm,
@@ -82,6 +84,21 @@ type CatalogItemsWorkspaceProps = {
   ) => void;
   onCloseAddModal: () => void;
   onSubmitAdd: () => void;
+  onDownloadCsvTemplate: () => void;
+  onExportCsv: () => void;
+  onUploadCsv: () => void;
+  csvActionsDisabled?: boolean;
+  csvImportOpen: boolean;
+  csvFileName: string | null;
+  csvAnalyzing: boolean;
+  csvImporting: boolean;
+  csvAnalysis: CatalogCsvAnalyzeResult | null;
+  csvImportError: string | null;
+  csvImportSuccess: string | null;
+  onCloseCsvImport: () => void;
+  onPickCsvFile: (file: File) => void;
+  onClearCsvFile: () => void;
+  onConfirmCsvImport: () => void;
 };
 
 export default function CatalogItemsWorkspace({
@@ -127,6 +144,21 @@ export default function CatalogItemsWorkspace({
   onAddFormChange,
   onCloseAddModal,
   onSubmitAdd,
+  onDownloadCsvTemplate,
+  onExportCsv,
+  onUploadCsv,
+  csvActionsDisabled = false,
+  csvImportOpen,
+  csvFileName,
+  csvAnalyzing,
+  csvImporting,
+  csvAnalysis,
+  csvImportError,
+  csvImportSuccess,
+  onCloseCsvImport,
+  onPickCsvFile,
+  onClearCsvFile,
+  onConfirmCsvImport,
 }: CatalogItemsWorkspaceProps) {
   const [columnVisibility, setColumnVisibility] = useState<CatalogOptionalColumnVisibility>(
     defaultCatalogOptionalColumnVisibility
@@ -195,6 +227,10 @@ export default function CatalogItemsWorkspace({
           columnPrefsReady={columnPrefsHydrated}
           onColumnVisibilityChange={handleColumnVisibilityChange}
           onResetColumnVisibility={handleResetColumnVisibility}
+          onDownloadCsvTemplate={onDownloadCsvTemplate}
+          onExportCsv={onExportCsv}
+          onUploadCsv={onUploadCsv}
+          csvActionsDisabled={csvActionsDisabled || busy}
         />
 
         {loading ? (
@@ -278,6 +314,20 @@ export default function CatalogItemsWorkspace({
         onChange={onAddFormChange}
         onClose={onCloseAddModal}
         onSubmit={onSubmitAdd}
+      />
+
+      <CatalogCsvImportModal
+        open={csvImportOpen}
+        fileName={csvFileName}
+        analyzing={csvAnalyzing}
+        importing={csvImporting}
+        analysis={csvAnalysis}
+        importError={csvImportError}
+        importSuccess={csvImportSuccess}
+        onClose={onCloseCsvImport}
+        onPickFile={onPickCsvFile}
+        onClearFile={onClearCsvFile}
+        onConfirmImport={onConfirmCsvImport}
       />
     </div>
   );

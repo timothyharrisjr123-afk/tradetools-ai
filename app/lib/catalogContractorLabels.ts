@@ -39,39 +39,52 @@ export const CATALOG_COMMAND_BAR_ACTIVE_CONTROLS = [
 ] as const;
 
 /**
- * Manage Catalog menu entries — all planned/disabled in this shell.
- * No fake-active CSV, supplier, Jumpstart, reorder, or bulk purchase tax.
+ * Manage Catalog menu entries.
+ * CSV download/export + upload preview/import are live (v1).
+ * Supplier, Jumpstart, reorder, and bulk purchase tax remain planned.
  */
 export const CATALOG_MANAGE_MENU_ITEMS = [
   {
+    id: "download_template",
+    label: "Download template",
+    detail: "Empty Catalog CSV v1 headers",
+    status: "live" as const,
+  },
+  {
     id: "download_csv",
     label: "Download CSV",
-    detail: "Export catalog rows — Planned",
+    detail: "Export current catalog rows",
+    status: "live" as const,
   },
   {
     id: "upload_csv",
     label: "Upload CSV",
-    detail: "Import or update from spreadsheet — Planned",
+    detail: "Preview, validate, then import",
+    status: "live" as const,
   },
   {
     id: "reorder",
     label: "Reorder items",
     detail: "Drag or sort catalog order — Planned",
+    status: "planned" as const,
   },
   {
     id: "connect_supplier",
     label: "Connect supplier",
     detail: "ABC / QXO / SRS pricing — Planned",
+    status: "planned" as const,
   },
   {
     id: "jumpstart",
     label: "Jumpstart / import starter",
     detail: "Curated import with supplier prices — Planned",
+    status: "planned" as const,
   },
   {
     id: "bulk_purchase_tax",
     label: "Bulk edit purchase tax",
     detail: "Set purchase tax on many items — Planned",
+    status: "planned" as const,
   },
 ] as const;
 
@@ -93,7 +106,8 @@ export const CATALOG_SETTINGS_PLANNED_TOOLS = [
   {
     id: "csv",
     title: "Manage catalog CSV import/export",
-    detail: "Bulk add or update catalog rows from a spreadsheet — Planned (not live).",
+    detail:
+      "CSV v1 is live on All items (template, export, preview import). Supplier SKU columns are reserved only — not persisted yet.",
   },
   {
     id: "reorder",

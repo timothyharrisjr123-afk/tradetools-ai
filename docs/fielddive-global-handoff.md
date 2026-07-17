@@ -45,11 +45,11 @@
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** **pending this commit — feat(catalog): add columns and manage catalog shell**
-- **Docs checkpoint:** **pending this commit — Catalog Columns + Manage Catalog shell**
-- **Prior code checkpoint:** **`5d17467` — feat(catalog): add item tax capture fields**
-- **Next:** CSV v1 planning/build. Columns + Manage Catalog shell live; CSV/supplier/Jumpstart/reorder/bulk purchase tax remain Planned (not fake-active). Item tax capture-only; proposal/customer tax math unchanged. Do **not** enable Settings raw mode switch; adjusted mode unaffected. **Do not** expose a Settings waste-model control without approval. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
-- **Historical note:** Header language that still says “Slice 2 — Catalog P0 next” or “Coverage/Waste inactive / raw unwired” in older §6BO.13.4 rows is **superseded** by Phase 5–7 + Catalog P1 + coverage_basis + item tax + Columns/Manage shell below.
+- **Code checkpoint:** **pending this commit — feat(catalog): add csv import export foundation**
+- **Docs checkpoint:** **pending this commit — Catalog CSV v1 foundation**
+- **Prior code checkpoint:** **`556a97b` — feat(catalog): add columns and manage catalog shell**
+- **Next:** Supplier SKU durable schema (if SKU persistence is next), or bulk selection/actions, or proposal/template integration — **not** raw mode switch. CSV v1 live (template/export/preview-import). Item tax capture-only; proposal/customer tax math unchanged. Do **not** enable Settings raw mode switch; adjusted mode unaffected. **Do not** expose a Settings waste-model control without approval. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
+- **Historical note:** Header language that still says “Slice 2 — Catalog P0 next” or “Coverage/Waste inactive / raw unwired” in older §6BO.13.4 rows is **superseded** by Phase 5–7 + Catalog P1 + coverage_basis + item tax + Columns/Manage shell + CSV v1 below.
 
 **Trust order:** Header/current checkpoint → **§6BO.13** (approved page-by-page UI flow roadmap + P0 implementation sequence — **supersedes separate Command Center language**) → **§6BM** / **§6BN** (R18 letter-phase roadmap + R18C–R18D3C implementation history) → **§6BO** / **§6BO.11** / **§6BO.12** (completed remediation side-track + **approved Stage C policy** + **operating-flow audit sequencing — complete; outcome in §6BO.13**) → **§6BL** → **§11 override**. Stage B browser smoke required local-only **`USE_PROPOSAL_SEND_FREEZE_RPC=1`** in `.env.local` (gitignored, not committed). **Do not proceed** to docs-only or next feature work unless working tree is clean. **Still do not** mutate `proposals.status = sent`, write sent `proposal_events`, move Jobs Board cards, add Job Card send activity, enable PDF/Sign/Payment, or add webhooks unless separately approved.
 
@@ -11267,23 +11267,37 @@ Order: **source → coverage → waste → exact**.
 - Required always visible: selection checkbox, name, actions
 - Coverage/waste/tax stay on name secondary line + item detail (not crowded into default table)
 - Column prefs: `localStorage` key `fielddive.catalog.columnVisibility.v1` (no DB prefs)
-- Active **Manage catalog** menu with Planned-only entries: Download CSV, Upload CSV, Reorder, Connect supplier, Jumpstart/import starter, Bulk edit purchase tax
-- Re-order toolbar chip remains Coming soon; no fake-active CSV/supplier/bulk/Jumpstart
+- Active **Manage catalog** menu shell delivered; CSV entries activated in CSV v1 below; Reorder / Connect supplier / Jumpstart / Bulk edit purchase tax remain Planned
+- Re-order toolbar chip remains Coming soon
 - Future flow requirements (not built): material ordering, proposal selector from Catalog, supplier pricing sync
+
+**Catalog CSV v1 — COMPLETE (2026-07-17):**
+
+- Pure helpers: `app/lib/catalogCsv.ts` (parse / validate / template / export / import apply via store adapters)
+- Stable headers: `id,name,description,item_type,quantity_source,unit,unit_cost,unit_price,proposal_visibility,active,coverage,coverage_basis,waste_applies,waste_pct,sales_tax_rate_pct,purchase_tax_rate_pct,abc_sku,qxo_sku,srs_sku`
+- **Download template** — headers only (safe if re-uploaded unchanged; no data rows)
+- **Download CSV** — exports full company catalog (active + inactive), stable ids, blank nullables, predictable money/percent formatting
+- **Upload CSV** — local parse → preview summary (creates/updates/unchanged/invalid/warnings) → confirm import; **Import disabled when any invalid row**; no auto-import on file pick; no silent skip of invalid rows
+- Create: blank `id`. Update: company-scoped `id` only (never cross-company). No hard delete from CSV. `active` changes only when explicitly set
+- Coverage blank clears `coverage_basis`. Tax/coverage/waste/money use existing strict parsers
+- Supplier SKU columns **reserved only** — present in template/export; non-empty values warn and are **not persisted** (no durable SKU schema yet; do not fake supplier sync)
+- Write path: `createCatalogItem` / `updateCatalogItem` (same validation builders as Add/Edit where practical); sequential company-scoped writes with clear stop-on-failure reporting (true DB transaction/RPC remains a future upgrade if all-or-nothing atomicity is required)
+- No package dependency added; no supplier sync; no material ordering; no proposal import; no pricing-engine / Customer Preview / send-public-lifecycle changes
 
 **Still deferred:**
 
 - Raw mode switch (Settings waste-model control)
 - Whole rounding
 - Proposal line-tax engine (item sales tax → proposal totals)
-- CSV import/export (v1 next)
-- Supplier integrations
+- Durable supplier SKU schema + persistence (`abc_sku` / `qxo_sku` / `srs_sku`)
+- Supplier integrations / price sync
 - Reorder behavior
 - Bulk actions (incl. bulk purchase tax)
 - Add-to-template
 - Material orders / true-cost application of purchase tax
+- Atomic CSV import RPC (if required later)
 
-**Next Catalog block:** CSV v1 planning/build (not raw mode switch).
+**Next Catalog block:** supplier SKU schema/support (if persistence is next), or bulk selection/actions, or proposal/template integration — **not** raw mode switch.
 
 **P3 — polish**
 
@@ -11311,7 +11325,7 @@ Order: **source → coverage → waste → exact**.
 | **Must not touch** | Pricing engine math; proposal pricing calculations; catalog schema/store architecture unless explicitly required; SQL/migrations; lifecycle/status/job-board movement; public proposal route behavior; PDF/Sign/Payment/webhooks |
 | **Affected pages** | Catalog (`/tools/roofing/catalog`) |
 | **Success criteria** | Continuous catalog command surface (not grouped admin report); disabled selection + planned command controls look reserved not broken; unsupported Roofr features omitted or disabled-only and recorded in §6BO.13.4; systems research and stop rules locked before commit |
-| **Known follow-ups (deferred Roofr parity)** | Real bulk bar (activate checkboxes); Add to template; Mark as Material bulk; hard delete policy; CSV (activate Manage catalog); Catalog tax/waste/coverage columns; supplier/ABC/QXO; real reorder; real column customization; real Catalog Settings content — see §6BO.13.4 |
+| **Known follow-ups (deferred Roofr parity)** | Real bulk bar (activate checkboxes); Add to template; Mark as Material bulk; hard delete policy; durable supplier SKU schema (CSV SKU columns reserved); Catalog tax/waste/coverage as default table columns (optional); supplier/ABC/QXO sync; real reorder; company-wide column defaults; real Catalog Settings content — see §6BO.13.4 |
 
 **Slice 3 — Pricing rules P0**
 
@@ -12548,6 +12562,7 @@ Treat as **drift** if a session:
 
 ## Changelog (handoff doc only)
 
+- **2026-07-17:** **Catalog CSV v1 foundation** — FieldDive-native template/export/preview-import; create (blank id) + company-scoped update-by-id; strict header/row validation; reserved supplier SKU columns (warn, not persisted); Manage Catalog live CSV actions; no package changes; no supplier sync/material order/proposal import; proposal pricing + Customer Preview unchanged. Focused tests **160 pass** (CSV + admin/store/labels/page-copy + pricing/snapshot unchanged). Local UI smoke + live CRUD smoke PASS on **`rhquhnujjnzjhweypavd`**. **Next:** supplier SKU schema, or bulk actions, or proposal/template integration.
 - **2026-07-17:** **Catalog Columns + Manage Catalog shell** — active Columns menu (optional column show/hide; required name/actions/select fixed; localStorage prefs); active Manage Catalog menu with Planned Download/Upload CSV, Reorder, Connect supplier, Jumpstart, Bulk edit purchase tax (no fake-active behavior); Re-order chip still Coming soon; item tax capture-only unchanged; no migrations/SQL/pricing/Preview/send. **Next:** CSV v1 planning/build.
 - **2026-07-17:** **Catalog item tax capture fields** — added nullable `sales_tax_rate_pct` + `purchase_tax_rate_pct` on `catalog_items` (migration `20260717_025`, applied + verified on **`rhquhnujjnzjhweypavd`**; no default/backfill; CHECK 0..100). Types/store/parser/Add/Edit/detail UI wired; sales tax capture-only; purchase tax internal/never customer-facing; proposal pricing math + Customer Preview unchanged; no CSV/supplier/columns/bulk/raw mode switch. Focused tests **184 pass**; local UI smoke + live CRUD smoke PASS. **Next:** Columns + Manage Catalog shell, then CSV v1.
 - **2026-07-17:** **`coverage_basis` Step H — Catalog live integration smoke PASS** — on **`rhquhnujjnzjhweypavd`**, temporarily set catalog **`2f5f67d2-92d3-4bbb-9323-433baa5f9f71`** to Coverage `5` / basis `roof_square` / waste `10`, classifier **compatible**, policy temporarily raw/exact, draft **`61356e56-8ef8-4fb6-85b4-672f18103b98`** create+refresh quantity **`5.5`** with matching raw echo (`coverage_rate_used=5`, `waste_pct_used=10`; **`coverage_basis_used` not in echo yet**); preflight current 1/0/0; restored policy/catalog/job pointer; tokens unchanged; draft events only. No mode switch. **Next:** Catalog integrated feature/tax planning (not raw mode switch).

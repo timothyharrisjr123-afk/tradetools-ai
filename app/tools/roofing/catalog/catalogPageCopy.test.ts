@@ -112,26 +112,37 @@ describe("Catalog P0B–P0D page shell", () => {
     );
   });
 
-  test("Manage Catalog menu lists planned CSV/supplier/bulk/reorder without fake-active actions", () => {
+  test("Manage Catalog menu activates CSV v1 and keeps supplier/bulk/reorder planned", () => {
     const source = readAdminComponent("CatalogItemToolbar.tsx");
+    const setup = readCatalogFile("CatalogSetupClient.tsx");
+    const workspace = readCatalogFile("CatalogItemsWorkspace.tsx");
     assert.ok(source.includes("CATALOG_MANAGE_MENU_ITEMS"));
+    assert.ok(source.includes("data-catalog-manage-status=\"live\""));
     assert.ok(source.includes("data-catalog-manage-status=\"planned\""));
+    assert.ok(source.includes("onDownloadCsvTemplate"));
+    assert.ok(source.includes("onExportCsv"));
+    assert.ok(source.includes("onUploadCsv"));
     assert.ok(source.includes("CATALOG_PLANNED_LABEL") || source.includes(CATALOG_PLANNED_LABEL));
     const labels = CATALOG_MANAGE_MENU_ITEMS.map((i) => i.label);
+    assert.ok(labels.includes("Download template"));
     assert.ok(labels.includes("Download CSV"));
     assert.ok(labels.includes("Upload CSV"));
     assert.ok(labels.includes("Connect supplier"));
     assert.ok(labels.includes("Bulk edit purchase tax"));
     assert.ok(labels.includes("Jumpstart / import starter"));
     assert.ok(labels.includes("Reorder items"));
-    for (const item of CATALOG_MANAGE_MENU_ITEMS) {
+    const liveIds = CATALOG_MANAGE_MENU_ITEMS.filter((i) => i.status === "live").map((i) => i.id);
+    assert.deepEqual(liveIds, ["download_template", "download_csv", "upload_csv"]);
+    for (const item of CATALOG_MANAGE_MENU_ITEMS.filter((i) => i.status === "planned")) {
       assert.match(item.detail, /Planned/i);
     }
-    assert.equal(/CSV import is live|supplier is connected|bulk purchase tax is live/i.test(source), false);
-    assert.ok(!source.includes("onDownloadCsv"));
-    assert.ok(!source.includes("onUploadCsv"));
+    assert.ok(setup.includes("analyzeCatalogCsv"));
+    assert.ok(setup.includes("applyCatalogCsvImport"));
+    assert.ok(setup.includes("buildCatalogCsvTemplate"));
+    assert.ok(workspace.includes("CatalogCsvImportModal"));
     assert.ok(!source.includes("onConnectSupplier"));
     assert.ok(!source.includes("onBulkPurchaseTax"));
+    assert.equal(/supplier is connected|bulk purchase tax is live/i.test(source), false);
   });
 
   test("disabled selection column renders without bulk bar", () => {
@@ -189,7 +200,8 @@ describe("Catalog P0B–P0D page shell", () => {
     assert.match(columnsTool!.detail, /live on All items/i);
     const csvTool = CATALOG_SETTINGS_PLANNED_TOOLS.find((t) => t.id === "csv");
     assert.ok(csvTool);
-    assert.match(csvTool!.detail, /Planned \(not live\)/i);
+    assert.match(csvTool!.detail, /CSV v1 is live/i);
+    assert.match(csvTool!.detail, /reserved only/i);
   });
 
   test("load failure retry path is available and empty install is load-error gated", () => {

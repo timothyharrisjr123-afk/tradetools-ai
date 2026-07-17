@@ -6,6 +6,14 @@ import {
   deriveCatalogReadiness,
 } from "@/app/lib/catalogReadiness";
 import {
+  analyzeCatalogCsv,
+  applyCatalogCsvImport,
+  buildCatalogCsvExport,
+  buildCatalogCsvTemplate,
+  downloadCatalogCsvFile,
+  type CatalogCsvAnalyzeResult,
+} from "@/app/lib/catalogCsv";
+import {
   createCatalogItem,
   loadActiveCatalogItemsByCompany,
   loadCatalogItemsByCompany,
@@ -68,6 +76,14 @@ export default function CatalogSetupClient({ companyId }: { companyId: string })
   const [addError, setAddError] = useState<string | null>(null);
   const [creatingItem, setCreatingItem] = useState(false);
   const [togglingActiveId, setTogglingActiveId] = useState<string | null>(null);
+  const [csvImportOpen, setCsvImportOpen] = useState(false);
+  const [csvFileName, setCsvFileName] = useState<string | null>(null);
+  const [csvAnalyzing, setCsvAnalyzing] = useState(false);
+  const [csvImporting, setCsvImporting] = useState(false);
+  const [csvAnalysis, setCsvAnalysis] = useState<CatalogCsvAnalyzeResult | null>(null);
+  const [csvImportError, setCsvImportError] = useState<string | null>(null);
+  const [csvImportSuccess, setCsvImportSuccess] = useState<string | null>(null);
+  const [csvExistingItems, setCsvExistingItems] = useState<CatalogItem[]>([]);
 
   const fetchCatalogLoad = useCallback(async () => {
     if (showInactive) {
@@ -330,6 +346,132 @@ export default function CatalogSetupClient({ companyId }: { companyId: string })
     }
   }
 
+  function handleDownloadCsvTemplate() {
+    downloadCatalogCsvFile("fielddive-catalog-template-v1.csv", buildCatalogCsvTemplate());
+  }
+
+  async function handleExportCsv() {
+    if (busy) return;
+    setLoadError(null);
+    try {
+      const result = await loadCatalogItemsByCompany(companyId);
+      if (!result.ok) {
+        setLoadError(result.error || "Could not export catalog CSV.");
+        return;
+      }
+      downloadCatalogCsvFile(
+        "fielddive-catalog-export.csv",
+        buildCatalogCsvExport(result.items)
+      );
+      setMessage(`Exported ${result.items.length} catalog item${result.items.length === 1 ? "" : "s"}.`);
+    } catch (err) {
+      console.warn("[CatalogSetupClient] CSV export error:", err);
+      setLoadError("Could not export catalog CSV.");
+    }
+  }
+
+  function resetCsvImportState() {
+    setCsvFileName(null);
+    setCsvAnalysis(null);
+    setCsvImportError(null);
+    setCsvImportSuccess(null);
+    setCsvExistingItems([]);
+    setCsvAnalyzing(false);
+  }
+
+  function handleOpenCsvImport() {
+    if (busy || csvImporting) return;
+    resetCsvImportState();
+    setCsvImportOpen(true);
+  }
+
+  function handleCloseCsvImport() {
+    if (csvImporting) return;
+    setCsvImportOpen(false);
+    resetCsvImportState();
+  }
+
+  async function handlePickCsvFile(file: File) {
+    if (csvImporting) return;
+    setCsvAnalyzing(true);
+    setCsvFileName(file.name);
+    setCsvAnalysis(null);
+    setCsvImportError(null);
+    setCsvImportSuccess(null);
+    try {
+      const text = await file.text();
+      const existing = await loadCatalogItemsByCompany(companyId);
+      if (!existing.ok) {
+        setCsvImportError(existing.error || "Could not load catalog for CSV validation.");
+        setCsvExistingItems([]);
+        setCsvAnalysis(null);
+        return;
+      }
+      setCsvExistingItems(existing.items);
+      setCsvAnalysis(analyzeCatalogCsv(text, existing.items));
+    } catch (err) {
+      console.warn("[CatalogSetupClient] CSV parse error:", err);
+      setCsvImportError("Could not read CSV file.");
+      setCsvAnalysis(null);
+    } finally {
+      setCsvAnalyzing(false);
+    }
+  }
+
+  function handleClearCsvFile() {
+    if (csvImporting || csvAnalyzing) return;
+    resetCsvImportState();
+  }
+
+  async function handleConfirmCsvImport() {
+    if (!csvAnalysis || !csvAnalysis.ok || csvImporting || csvAnalyzing) return;
+    if (csvAnalysis.summary.createCount === 0 && csvAnalysis.summary.updateCount === 0) {
+      setCsvImportError("Nothing to import — all rows are unchanged or empty.");
+      return;
+    }
+
+    setCsvImporting(true);
+    setCsvImportError(null);
+    setCsvImportSuccess(null);
+    setLoadError(null);
+
+    try {
+      const write = await applyCatalogCsvImport({
+        companyId,
+        analysis: csvAnalysis,
+        existingItems: csvExistingItems,
+        createItem: createCatalogItem,
+        updateItem: updateCatalogItem,
+      });
+
+      if (!write.ok) {
+        setCsvImportError(
+          write.errors.length
+            ? write.errors.join(" ")
+            : "Import failed partway through. Reload Catalog and review rows before retrying."
+        );
+        await loadCatalog();
+        return;
+      }
+
+      setCsvImportSuccess(
+        `Imported ${write.createdCount} created, ${write.updatedCount} updated` +
+          (write.skippedUnchangedCount > 0
+            ? `, ${write.skippedUnchangedCount} unchanged skipped.`
+            : ".")
+      );
+      setMessage(
+        `CSV import complete: ${write.createdCount} created, ${write.updatedCount} updated.`
+      );
+      await loadCatalog();
+    } catch (err) {
+      console.warn("[CatalogSetupClient] CSV import error:", err);
+      setCsvImportError("Import failed unexpectedly.");
+    } finally {
+      setCsvImporting(false);
+    }
+  }
+
   async function handleInstallStarter() {
     if (loading || installing || savingItemId || loadError) return;
 
@@ -380,7 +522,12 @@ export default function CatalogSetupClient({ companyId }: { companyId: string })
   }
 
   const busy =
-    loading || installing || savingItemId != null || creatingItem || togglingActiveId != null;
+    loading ||
+    installing ||
+    savingItemId != null ||
+    creatingItem ||
+    togglingActiveId != null ||
+    csvImporting;
   const showEmptyInstall = !loading && !loadError && sortedItems.length === 0;
 
   return (
@@ -467,6 +614,21 @@ export default function CatalogSetupClient({ companyId }: { companyId: string })
             onAddFormChange={handleAddFormChange}
             onCloseAddModal={closeAddCatalogModal}
             onSubmitAdd={() => void handleCreateCatalogItem()}
+            onDownloadCsvTemplate={handleDownloadCsvTemplate}
+            onExportCsv={() => void handleExportCsv()}
+            onUploadCsv={handleOpenCsvImport}
+            csvActionsDisabled={csvImporting || csvAnalyzing}
+            csvImportOpen={csvImportOpen}
+            csvFileName={csvFileName}
+            csvAnalyzing={csvAnalyzing}
+            csvImporting={csvImporting}
+            csvAnalysis={csvAnalysis}
+            csvImportError={csvImportError}
+            csvImportSuccess={csvImportSuccess}
+            onCloseCsvImport={handleCloseCsvImport}
+            onPickCsvFile={(file) => void handlePickCsvFile(file)}
+            onClearCsvFile={handleClearCsvFile}
+            onConfirmCsvImport={() => void handleConfirmCsvImport()}
           />
         )}
       </div>
