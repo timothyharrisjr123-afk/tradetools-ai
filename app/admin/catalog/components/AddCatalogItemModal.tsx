@@ -343,6 +343,52 @@ export default function AddCatalogItemModal({
           </div>
         </section>
 
+        <section className="mt-5 border-t border-slate-200 pt-4" data-catalog-tax="add">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            {CATALOG_CONTRACTOR_LABELS.tax}
+          </h3>
+          <p className="mt-1.5 text-xs leading-relaxed text-slate-500">
+            {CATALOG_FIELD_HELPERS.taxSection}
+          </p>
+          <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <label className="block text-sm">
+              <span className="mb-1.5 block text-xs font-medium text-slate-700">
+                {CATALOG_CONTRACTOR_LABELS.salesTax}
+              </span>
+              <input
+                type="text"
+                inputMode="decimal"
+                placeholder="Optional %"
+                className={`${FIELD_INPUT} tabular-nums`}
+                value={form.sales_tax_rate_pct}
+                onChange={(e) => onChange("sales_tax_rate_pct", e.target.value)}
+                disabled={creatingItem}
+                aria-label={CATALOG_CONTRACTOR_LABELS.salesTax}
+                data-catalog-sales-tax="add"
+              />
+              <FieldHelper text={CATALOG_FIELD_HELPERS.salesTax} />
+            </label>
+            <label className="block text-sm">
+              <span className="mb-1.5 block text-xs font-medium text-slate-700">
+                {CATALOG_CONTRACTOR_LABELS.purchaseTax}
+                <span className="ml-1 font-normal text-slate-500">(internal)</span>
+              </span>
+              <input
+                type="text"
+                inputMode="decimal"
+                placeholder="Optional %"
+                className={`${FIELD_INPUT} tabular-nums`}
+                value={form.purchase_tax_rate_pct}
+                onChange={(e) => onChange("purchase_tax_rate_pct", e.target.value)}
+                disabled={creatingItem}
+                aria-label={CATALOG_CONTRACTOR_LABELS.purchaseTax}
+                data-catalog-purchase-tax="add"
+              />
+              <FieldHelper text={CATALOG_FIELD_HELPERS.purchaseTax} />
+            </label>
+          </div>
+        </section>
+
         <div className="mt-5 flex flex-wrap justify-end gap-2 border-t border-slate-200 pt-4">
           <button
             type="button"

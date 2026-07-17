@@ -44,6 +44,10 @@ export type CatalogItemRow = {
   waste_applies: boolean;
   /** Item waste percent (points; 10 = 10%). Used by policy-gated raw_plus_waste only. */
   waste_pct?: number | null;
+  /** Customer-facing item sales tax capture (percent points). Not applied to proposals yet. */
+  sales_tax_rate_pct?: number | string | null;
+  /** Internal material purchase tax capture (percent points). Never customer-facing. */
+  purchase_tax_rate_pct?: number | string | null;
   unit_cost_cents?: number | string | null;
   unit_price_cents?: number | string | null;
   labor_unit_cost_cents?: number | string | null;
@@ -62,7 +66,7 @@ export type CatalogItemInsertRow = Partial<CatalogItemRow>;
 export type CatalogItemUpdateRow = Partial<CatalogItemRow>;
 
 const CATALOG_ITEM_SELECT_COLUMNS =
-  "id, company_id, name, customer_name, description, item_type, unit, quantity_source, default_quantity, coverage_rate, coverage_basis, waste_applies, waste_pct, unit_cost_cents, unit_price_cents, labor_unit_cost_cents, pricing_basis, customer_visibility, active, sort_order, metadata, created_by, updated_by, created_at, updated_at";
+  "id, company_id, name, customer_name, description, item_type, unit, quantity_source, default_quantity, coverage_rate, coverage_basis, waste_applies, waste_pct, sales_tax_rate_pct, purchase_tax_rate_pct, unit_cost_cents, unit_price_cents, labor_unit_cost_cents, pricing_basis, customer_visibility, active, sort_order, metadata, created_by, updated_by, created_at, updated_at";
 
 function normalizeCoverageBasis(value: unknown): CoverageBasis | null {
   if (value == null || value === "") return null;
@@ -151,6 +155,8 @@ export function rowToCatalogItem(row: CatalogItemRow): CatalogItem {
     coverage_basis: normalizeCoverageBasis(row.coverage_basis),
     waste_applies: Boolean(row.waste_applies),
     waste_pct: normalizeNullableNumber(row.waste_pct),
+    sales_tax_rate_pct: normalizeNullableNumber(row.sales_tax_rate_pct),
+    purchase_tax_rate_pct: normalizeNullableNumber(row.purchase_tax_rate_pct),
     unit_cost_cents: normalizeNullableInteger(row.unit_cost_cents),
     unit_price_cents: normalizeNullableInteger(row.unit_price_cents),
     labor_unit_cost_cents: normalizeNullableInteger(row.labor_unit_cost_cents),
@@ -224,6 +230,14 @@ function draftToRowFields(
     waste_pct:
       draft.waste_pct !== undefined
         ? normalizeNullableNumber(draft.waste_pct)
+        : undefined,
+    sales_tax_rate_pct:
+      draft.sales_tax_rate_pct !== undefined
+        ? normalizeNullableNumber(draft.sales_tax_rate_pct)
+        : undefined,
+    purchase_tax_rate_pct:
+      draft.purchase_tax_rate_pct !== undefined
+        ? normalizeNullableNumber(draft.purchase_tax_rate_pct)
         : undefined,
     unit_cost_cents:
       draft.unit_cost_cents !== undefined

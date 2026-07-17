@@ -126,9 +126,12 @@ describe("Catalog P0B–P0D page shell", () => {
     );
     assert.ok(coverageWaste);
     assert.match(coverageWaste!.detail, /editable on each catalog item/i);
+    assert.match(coverageWaste!.detail, /item tax rates/i);
+    assert.match(coverageWaste!.detail, /Proposal line-tax math/i);
     assert.match(coverageWaste!.detail, /quantity-mode switching/i);
     assert.match(coverageWaste!.detail, /remain planned/i);
     assert.equal(/raw_plus_waste/i.test(coverageWaste!.detail), false);
+    assert.equal(/line-tax math is active/i.test(coverageWaste!.detail), false);
   });
 
   test("load failure retry path is available and empty install is load-error gated", () => {
@@ -152,6 +155,39 @@ describe("Catalog P0B–P0D page shell", () => {
     assert.ok(edit.includes("CATALOG_CONTRACTOR_LABELS.waste"));
     assert.ok(edit.includes("CATALOG_FIELD_HELPERS.quantityDriversSection"));
     assert.ok(add.includes("CATALOG_FIELD_HELPERS.quantityDriversSection"));
+  });
+
+  test("item tax capture appears on add/edit; purchase tax marked internal; no active line-tax claim", () => {
+    const edit = readAdminComponent("CatalogItemDetailPanel.tsx");
+    const add = readAdminComponent("AddCatalogItemModal.tsx");
+    assert.match(add, /data-catalog-tax="add"/);
+    assert.match(edit, /data-catalog-tax="edit"/);
+    assert.ok(add.includes("CATALOG_CONTRACTOR_LABELS.salesTax"));
+    assert.ok(add.includes("CATALOG_CONTRACTOR_LABELS.purchaseTax"));
+    assert.ok(edit.includes("CATALOG_CONTRACTOR_LABELS.salesTax"));
+    assert.ok(edit.includes("CATALOG_CONTRACTOR_LABELS.purchaseTax"));
+    assert.match(add, /\(internal\)/);
+    assert.match(edit, /\(internal\)/);
+    assert.ok(add.includes("CATALOG_FIELD_HELPERS.purchaseTax"));
+    assert.ok(add.includes("CATALOG_FIELD_HELPERS.salesTax"));
+    assert.equal(/line-tax math is active/i.test(add), false);
+    assert.equal(/line-tax math is active/i.test(edit), false);
+    const table = readAdminComponent("CatalogItemTable.tsx");
+    assert.ok(!table.includes("sales_tax_rate_pct"));
+    assert.ok(!table.includes("purchase_tax_rate_pct"));
+  });
+
+  test("Customer Preview sources stay free of purchase tax catalog fields", () => {
+    const files = [
+      "app/lib/proposalCustomerEstimatePresenter.ts",
+      "app/lib/proposalCustomerPreviewViewModel.ts",
+      "app/lib/proposalPricingEngine.ts",
+    ];
+    for (const rel of files) {
+      const source = readFileSync(join(process.cwd(), rel), "utf8");
+      assert.ok(!source.includes("purchase_tax_rate_pct"), rel);
+      assert.ok(!source.includes("Material purchase tax"), rel);
+    }
   });
 
   test("table renders Proposal/Status pills and spaced actions", () => {

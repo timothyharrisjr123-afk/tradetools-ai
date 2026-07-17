@@ -88,7 +88,18 @@ describe("catalogContractorLabels", () => {
     const planned = CATALOG_SETTINGS_PLANNED_TOOLS.find((t) => t.id === "coverage_waste_tax");
     assert.ok(planned);
     assert.match(planned!.detail, /editable on each catalog item/i);
+    assert.match(planned!.detail, /Proposal line-tax math/i);
     assert.match(planned!.detail, /remain planned/i);
+  });
+
+  test("item tax labels and helpers are capture-only and purchase tax is internal", () => {
+    assert.equal(CATALOG_CONTRACTOR_LABELS.salesTax, "Sales tax");
+    assert.equal(CATALOG_CONTRACTOR_LABELS.purchaseTax, "Material purchase tax");
+    assert.match(CATALOG_FIELD_HELPERS.salesTax, /not active yet/i);
+    assert.match(CATALOG_FIELD_HELPERS.purchaseTax, /Never shown to customers/i);
+    assert.match(CATALOG_FIELD_HELPERS.purchaseTax, /Internal/i);
+    assert.match(CATALOG_FIELD_HELPERS.taxSection, /not active yet/i);
+    assert.equal(/proposal totals are updated|line-tax math is active/i.test(CATALOG_FIELD_HELPERS.salesTax), false);
   });
 
   test("filter options include Materials, Labor, Fees & Other, Needs price", () => {

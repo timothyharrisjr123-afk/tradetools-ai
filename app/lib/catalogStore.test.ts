@@ -168,6 +168,65 @@ describe("catalogStore quantity-driver mapper", () => {
   });
 });
 
+describe("catalogStore item tax mapper", () => {
+  test("rowToCatalogItem maps sales_tax_rate_pct null", () => {
+    assert.equal(rowToCatalogItem(baseRow({ sales_tax_rate_pct: null })).sales_tax_rate_pct, null);
+    const missing = baseRow();
+    delete missing.sales_tax_rate_pct;
+    assert.equal(rowToCatalogItem(missing).sales_tax_rate_pct, null);
+  });
+
+  test("rowToCatalogItem maps purchase_tax_rate_pct null", () => {
+    assert.equal(
+      rowToCatalogItem(baseRow({ purchase_tax_rate_pct: null })).purchase_tax_rate_pct,
+      null
+    );
+    const missing = baseRow();
+    delete missing.purchase_tax_rate_pct;
+    assert.equal(rowToCatalogItem(missing).purchase_tax_rate_pct, null);
+  });
+
+  test("rowToCatalogItem maps valid tax values", () => {
+    const item = rowToCatalogItem(
+      baseRow({ sales_tax_rate_pct: 8.25, purchase_tax_rate_pct: 6.5 })
+    );
+    assert.equal(item.sales_tax_rate_pct, 8.25);
+    assert.equal(item.purchase_tax_rate_pct, 6.5);
+  });
+
+  test("create payload includes both tax fields when set", () => {
+    const insert = catalogItemDraftToInsertRow(
+      baseDraft({ sales_tax_rate_pct: 8.25, purchase_tax_rate_pct: 6.5 })
+    );
+    assert.equal(insert.sales_tax_rate_pct, 8.25);
+    assert.equal(insert.purchase_tax_rate_pct, 6.5);
+  });
+
+  test("update payload includes both tax fields when set", () => {
+    const patched = catalogItemPatchToUpdateRow({
+      sales_tax_rate_pct: 7,
+      purchase_tax_rate_pct: 5,
+    });
+    assert.equal(patched.sales_tax_rate_pct, 7);
+    assert.equal(patched.purchase_tax_rate_pct, 5);
+  });
+
+  test("existing nulls remain valid on update-to-null", () => {
+    const patched = catalogItemPatchToUpdateRow({
+      sales_tax_rate_pct: null,
+      purchase_tax_rate_pct: null,
+    });
+    assert.equal(patched.sales_tax_rate_pct, null);
+    assert.equal(patched.purchase_tax_rate_pct, null);
+  });
+
+  test("insert omits tax fields when draft does not set them", () => {
+    const insert = catalogItemDraftToInsertRow(baseDraft());
+    assert.equal("sales_tax_rate_pct" in insert, false);
+    assert.equal("purchase_tax_rate_pct" in insert, false);
+  });
+});
+
 describe("CatalogItemsLoadResult contract", () => {
   test("success with rows, success empty, and failed read are distinct shapes", () => {
     const withRows: CatalogItemsLoadResult = {

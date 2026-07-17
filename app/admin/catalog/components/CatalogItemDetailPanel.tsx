@@ -23,6 +23,7 @@ import {
 } from "@/app/lib/catalogCoverageCompatibility";
 import { FIELD_INPUT, PRIMARY_BUTTON, SECONDARY_BUTTON } from "../catalogAdminConstants";
 import {
+  formatCatalogTaxRateDisplay,
   parseCoverageRateOrNull,
   type CatalogItemEditDraft,
 } from "../catalogAdminUtils";
@@ -383,6 +384,71 @@ export default function CatalogItemDetailPanel({
               }
             />
           </div>
+        </div>
+      </section>
+
+      <section className="mb-6" data-catalog-tax="edit">
+        <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          {CATALOG_CONTRACTOR_LABELS.tax}
+        </h4>
+        <p className="mt-1.5 text-xs leading-relaxed text-slate-500">
+          {CATALOG_FIELD_HELPERS.taxSection}
+        </p>
+        <dl className="mt-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
+          <div>
+            <dt className="text-xs font-medium text-slate-500">
+              {CATALOG_CONTRACTOR_LABELS.salesTax}
+            </dt>
+            <dd className="mt-0.5 font-medium text-slate-900" data-catalog-sales-tax-display>
+              {formatCatalogTaxRateDisplay(item.sales_tax_rate_pct)}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs font-medium text-slate-500">
+              {CATALOG_CONTRACTOR_LABELS.purchaseTax}{" "}
+              <span className="font-normal">(internal)</span>
+            </dt>
+            <dd className="mt-0.5 font-medium text-slate-900" data-catalog-purchase-tax-display>
+              {formatCatalogTaxRateDisplay(item.purchase_tax_rate_pct)}
+            </dd>
+          </div>
+        </dl>
+        <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <label className="block text-sm">
+            <span className="mb-1.5 block text-xs font-medium text-slate-700">
+              {CATALOG_CONTRACTOR_LABELS.salesTax}
+            </span>
+            <input
+              type="text"
+              inputMode="decimal"
+              placeholder="Optional %"
+              className={`${FIELD_INPUT} tabular-nums`}
+              value={editDraft.sales_tax_rate_pct}
+              onChange={(e) => onDraftChange("sales_tax_rate_pct", e.target.value)}
+              disabled={isSaving}
+              aria-label={CATALOG_CONTRACTOR_LABELS.salesTax}
+              data-catalog-sales-tax="edit"
+            />
+            <FieldHelper text={CATALOG_FIELD_HELPERS.salesTax} />
+          </label>
+          <label className="block text-sm">
+            <span className="mb-1.5 block text-xs font-medium text-slate-700">
+              {CATALOG_CONTRACTOR_LABELS.purchaseTax}
+              <span className="ml-1 font-normal text-slate-500">(internal)</span>
+            </span>
+            <input
+              type="text"
+              inputMode="decimal"
+              placeholder="Optional %"
+              className={`${FIELD_INPUT} tabular-nums`}
+              value={editDraft.purchase_tax_rate_pct}
+              onChange={(e) => onDraftChange("purchase_tax_rate_pct", e.target.value)}
+              disabled={isSaving}
+              aria-label={CATALOG_CONTRACTOR_LABELS.purchaseTax}
+              data-catalog-purchase-tax="edit"
+            />
+            <FieldHelper text={CATALOG_FIELD_HELPERS.purchaseTax} />
+          </label>
         </div>
       </section>
 

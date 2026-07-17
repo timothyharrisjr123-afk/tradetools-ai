@@ -43,6 +43,10 @@ export type CatalogItemEditDraft = {
   waste_applies: boolean;
   /** Empty string = null (no item waste). Inactive when waste_applies is false. */
   waste_pct: string;
+  /** Empty string = null. Capture only — not applied to proposal totals yet. */
+  sales_tax_rate_pct: string;
+  /** Empty string = null. Internal only — never customer-facing. */
+  purchase_tax_rate_pct: string;
 };
 
 export type AddCatalogItemForm = {
@@ -60,6 +64,8 @@ export type AddCatalogItemForm = {
   coverage_basis: "" | CoverageBasis;
   waste_applies: boolean;
   waste_pct: string;
+  sales_tax_rate_pct: string;
+  purchase_tax_rate_pct: string;
 };
 
 export const EMPTY_ADD_CATALOG_FORM: AddCatalogItemForm = {
@@ -77,7 +83,12 @@ export const EMPTY_ADD_CATALOG_FORM: AddCatalogItemForm = {
   coverage_basis: "",
   waste_applies: false,
   waste_pct: "",
+  sales_tax_rate_pct: "",
+  purchase_tax_rate_pct: "",
 };
+
+/** Catalog item tax capture bound — matches company sales-tax isFinitePct (0..100). */
+export const CATALOG_TAX_RATE_PCT_MAX = 100;
 
 export function extractSeedKey(metadata: Record<string, unknown> | null | undefined): string | null {
   if (metadata == null || typeof metadata !== "object" || Array.isArray(metadata)) {
@@ -188,6 +199,78 @@ export function parseWastePctOrNull(
     return { value: null, error: "Waste cannot be negative." };
   }
   return { value: parsed.value, error: null };
+}
+
+/**
+ * Empty/null = unset item tax rate. Valid values: 0..CATALOG_TAX_RATE_PCT_MAX inclusive.
+ * Same strict numeric parsing as Coverage/Waste — no silent coercion.
+ */
+export function parseTaxRatePctOrNull(
+  value: string,
+  fieldLabel: string
+): { value: number | null; error: string | null } {
+  const parsed = parseStrictFiniteNumber(value);
+  if (parsed.error === "empty") return { value: null, error: null };
+  if (parsed.error === "invalid" || parsed.value == null) {
+    return { value: null, error: `${fieldLabel} must be a valid number.` };
+  }
+  if (parsed.value < 0) {
+    return { value: null, error: `${fieldLabel} cannot be negative.` };
+  }
+  if (parsed.value > CATALOG_TAX_RATE_PCT_MAX) {
+    return {
+      value: null,
+      error: `${fieldLabel} cannot exceed ${CATALOG_TAX_RATE_PCT_MAX}%.`,
+    };
+  }
+  return { value: parsed.value, error: null };
+}
+
+export function parseCatalogTaxRates(input: {
+  sales_tax_rate_pct: string;
+  purchase_tax_rate_pct: string;
+}): {
+  sales_tax_rate_pct: number | null;
+  purchase_tax_rate_pct: number | null;
+  error: string | null;
+} {
+  const sales = parseTaxRatePctOrNull(
+    input.sales_tax_rate_pct,
+    CATALOG_CONTRACTOR_LABELS.salesTax
+  );
+  if (sales.error) {
+    return {
+      sales_tax_rate_pct: null,
+      purchase_tax_rate_pct: null,
+      error: sales.error,
+    };
+  }
+  const purchase = parseTaxRatePctOrNull(
+    input.purchase_tax_rate_pct,
+    CATALOG_CONTRACTOR_LABELS.purchaseTax
+  );
+  if (purchase.error) {
+    return {
+      sales_tax_rate_pct: null,
+      purchase_tax_rate_pct: null,
+      error: purchase.error,
+    };
+  }
+  return {
+    sales_tax_rate_pct: sales.value,
+    purchase_tax_rate_pct: purchase.value,
+    error: null,
+  };
+}
+
+/** Display helper for detail summary — null means unset / company default. */
+export function formatCatalogTaxRateDisplay(
+  value: number | null | undefined
+): string {
+  if (value == null || !Number.isFinite(value)) {
+    return "Not set (company default)";
+  }
+  return `${value}%`;
 }
 
 /** Empty = null. Invalid enum values are rejected. */
@@ -319,6 +402,8 @@ export function buildEditDraftFromItem(item: CatalogItem): CatalogItemEditDraft 
         : formatCoverageBasisForInput(item.coverage_basis),
     waste_applies: Boolean(item.waste_applies),
     waste_pct: formatNullableNumberForInput(item.waste_pct),
+    sales_tax_rate_pct: formatNullableNumberForInput(item.sales_tax_rate_pct),
+    purchase_tax_rate_pct: formatNullableNumberForInput(item.purchase_tax_rate_pct),
   };
 }
 
@@ -389,6 +474,14 @@ export function buildCatalogCreateDraft(
     return { ok: false, error: quantityDrivers.error };
   }
 
+  const taxRates = parseCatalogTaxRates({
+    sales_tax_rate_pct: form.sales_tax_rate_pct,
+    purchase_tax_rate_pct: form.purchase_tax_rate_pct,
+  });
+  if (taxRates.error) {
+    return { ok: false, error: taxRates.error };
+  }
+
   const coverageCompatibility = classifyCatalogCoverageCompatibility({
     quantity_source: form.quantity_source,
     unit: form.unit,
@@ -419,6 +512,8 @@ export function buildCatalogCreateDraft(
       coverage_basis: quantityDrivers.coverage_basis,
       waste_applies: quantityDrivers.waste_applies,
       waste_pct: quantityDrivers.waste_pct,
+      sales_tax_rate_pct: taxRates.sales_tax_rate_pct,
+      purchase_tax_rate_pct: taxRates.purchase_tax_rate_pct,
       metadata: null,
     },
   };
@@ -469,6 +564,14 @@ export function buildCatalogUpdatePatch(
     return { ok: false, error: quantityDrivers.error };
   }
 
+  const taxRates = parseCatalogTaxRates({
+    sales_tax_rate_pct: editDraft.sales_tax_rate_pct,
+    purchase_tax_rate_pct: editDraft.purchase_tax_rate_pct,
+  });
+  if (taxRates.error) {
+    return { ok: false, error: taxRates.error };
+  }
+
   const coverageCompatibility = classifyCatalogCoverageCompatibility({
     quantity_source: item.quantity_source,
     unit: item.unit,
@@ -490,6 +593,8 @@ export function buildCatalogUpdatePatch(
     coverage_basis: quantityDrivers.coverage_basis,
     waste_applies: quantityDrivers.waste_applies,
     waste_pct: quantityDrivers.waste_pct,
+    sales_tax_rate_pct: taxRates.sales_tax_rate_pct,
+    purchase_tax_rate_pct: taxRates.purchase_tax_rate_pct,
   };
 
   if (item.item_type === "labor") {

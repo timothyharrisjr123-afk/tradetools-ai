@@ -119,6 +119,16 @@ export type CatalogItem = {
    * adjusted_measurement. No Settings mode switch yet.
    */
   waste_pct?: number | null;
+  /**
+   * Customer-facing item sales tax rate (percent points; 8.25 = 8.25%).
+   * Catalog capture / source of truth only — not applied to proposal totals yet.
+   */
+  sales_tax_rate_pct?: number | null;
+  /**
+   * Internal supplier/material purchase tax rate (percent points).
+   * Never customer-facing. Capture only — not applied to proposal/customer output yet.
+   */
+  purchase_tax_rate_pct?: number | null;
   unit_cost_cents?: number | null;
   unit_price_cents?: number | null;
   labor_unit_cost_cents?: number | null;

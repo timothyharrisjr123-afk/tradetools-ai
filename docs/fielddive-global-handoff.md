@@ -45,11 +45,11 @@
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** **`b1d0ef1` — feat(catalog): add coverage basis support** (schema apply **`0e37905`**; migration draft **`fb7b9a9`**)
-- **Docs checkpoint:** **pending this commit — coverage_basis live integration smoke PASS**
-- **Prior docs checkpoint:** **`b1d0ef1` — coverage_basis Steps C–F**
-- **Next:** Catalog integrated feature/tax planning (not raw mode switch). Coverage basis live smoke PASS; classifier `compatible` proven; `coverage_basis_used` not yet in quantity echo (future enhancement). Do **not** enable Settings raw mode switch; adjusted mode unaffected. **Do not** expose a Settings waste-model control without approval. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
-- **Historical note:** Header language that still says “Slice 2 — Catalog P0 next” or “Coverage/Waste inactive / raw unwired” in older §6BO.13.4 rows is **superseded** by Phase 5–7 + Catalog P1 + coverage_basis lock below.
+- **Code checkpoint:** **pending this commit — feat(catalog): add item tax capture fields** (migration `20260717_025` applied on **`rhquhnujjnzjhweypavd`**)
+- **Docs checkpoint:** **pending this commit — catalog item tax capture**
+- **Prior code checkpoint:** **`b7cd3b2` — docs: record catalog coverage basis live smoke**
+- **Next:** Columns + Manage Catalog shell, then CSV v1. Item tax is capture/display only — proposal line-tax math and Customer Preview tax behavior unchanged. Do **not** enable Settings raw mode switch; adjusted mode unaffected. **Do not** expose a Settings waste-model control without approval. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
+- **Historical note:** Header language that still says “Slice 2 — Catalog P0 next” or “Coverage/Waste inactive / raw unwired” in older §6BO.13.4 rows is **superseded** by Phase 5–7 + Catalog P1 + coverage_basis + item tax capture below.
 
 **Trust order:** Header/current checkpoint → **§6BO.13** (approved page-by-page UI flow roadmap + P0 implementation sequence — **supersedes separate Command Center language**) → **§6BM** / **§6BN** (R18 letter-phase roadmap + R18C–R18D3C implementation history) → **§6BO** / **§6BO.11** / **§6BO.12** (completed remediation side-track + **approved Stage C policy** + **operating-flow audit sequencing — complete; outcome in §6BO.13**) → **§6BL** → **§11 override**. Stage B browser smoke required local-only **`USE_PROPOSAL_SEND_FREEZE_RPC=1`** in `.env.local` (gitignored, not committed). **Do not proceed** to docs-only or next feature work unless working tree is clean. **Still do not** mutate `proposals.status = sent`, write sent `proposal_events`, move Jobs Board cards, add Job Card send activity, enable PDF/Sign/Payment, or add webhooks unless separately approved.
 
@@ -11249,20 +11249,32 @@ Order: **source → coverage → waste → exact**.
 | **F** | Tests | **Done** (this commit; 237 focused pass) |
 | **G** | Live SQL only after approval | **Done** — applied + verified on `rhquhnujjnzjhweypavd` |
 | **H** | Controlled smoke with non-null basis | **Done** — live integration smoke PASS (2026-07-17) |
-| **I** | Only then revisit raw mode switch planning | Deferred — next is Catalog feature/tax planning, not mode switch |
+| **I** | Only then revisit raw mode switch planning | Deferred — item tax capture done; next is Columns + Manage Catalog shell, not mode switch |
 
-**Still deferred (unchanged):**
+**Catalog item tax capture — COMPLETE (2026-07-17):**
+
+- Migration `supabase/migrations/20260717_025_add_catalog_items_tax_rate_fields.sql` applied to **`rhquhnujjnzjhweypavd`**
+- Nullable `catalog_items.sales_tax_rate_pct` + `catalog_items.purchase_tax_rate_pct` (0..100, no default, no backfill)
+- `sales_tax_rate_pct` = customer-facing item sales tax **capture only** (proposal line-tax math not active)
+- `purchase_tax_rate_pct` = internal supplier/material purchase tax capture; **never customer-facing**
+- Types/store/Add/Edit/detail UI wired; table columns unchanged (detail panel); Settings planned copy updated
+- Proposal pricing engine / Customer Preview / public DTOs unchanged
+- Local Catalog UI smoke + live CRUD smoke PASS; no proposal events/tokens created by tax smoke
+
+**Still deferred:**
 
 - Raw mode switch (Settings waste-model control)
 - Whole rounding
+- Proposal line-tax engine (item sales tax → proposal totals)
 - CSV import/export
 - Supplier integrations
-- Item-level tax controls
 - Columns customization
 - Reorder
 - Bulk actions
 - Add-to-template
-- Material orders
+- Material orders / true-cost application of purchase tax
+
+**Next Catalog blocks:** Columns + Manage Catalog shell → CSV v1 (not raw mode switch).
 
 **P3 — polish**
 
@@ -12527,6 +12539,7 @@ Treat as **drift** if a session:
 
 ## Changelog (handoff doc only)
 
+- **2026-07-17:** **Catalog item tax capture fields** — added nullable `sales_tax_rate_pct` + `purchase_tax_rate_pct` on `catalog_items` (migration `20260717_025`, applied + verified on **`rhquhnujjnzjhweypavd`**; no default/backfill; CHECK 0..100). Types/store/parser/Add/Edit/detail UI wired; sales tax capture-only; purchase tax internal/never customer-facing; proposal pricing math + Customer Preview unchanged; no CSV/supplier/columns/bulk/raw mode switch. Focused tests **184 pass**; local UI smoke + live CRUD smoke PASS. **Next:** Columns + Manage Catalog shell, then CSV v1.
 - **2026-07-17:** **`coverage_basis` Step H — Catalog live integration smoke PASS** — on **`rhquhnujjnzjhweypavd`**, temporarily set catalog **`2f5f67d2-92d3-4bbb-9323-433baa5f9f71`** to Coverage `5` / basis `roof_square` / waste `10`, classifier **compatible**, policy temporarily raw/exact, draft **`61356e56-8ef8-4fb6-85b4-672f18103b98`** create+refresh quantity **`5.5`** with matching raw echo (`coverage_rate_used=5`, `waste_pct_used=10`; **`coverage_basis_used` not in echo yet**); preflight current 1/0/0; restored policy/catalog/job pointer; tokens unchanged; draft events only. No mode switch. **Next:** Catalog integrated feature/tax planning (not raw mode switch).
 - **2026-07-17:** **`coverage_basis` Steps C–F — types/store/parser/UI/classifier/tests** — `CoverageBasis` on CatalogItem; store maps create/update/read; Add/Edit Coverage basis selector (clears with coverage; status chip; Roofr-aligned); classifier returns `compatible` for proven pairings; clearing coverage clears basis; compatibility is trust/setup only; adjusted unaffected; raw policy-gated; no mode switch/whole/customer-public; focused tests **237 pass**; local Catalog smoke PASS. Checkpoint **`b1d0ef1`**. **Next:** Step H live smoke.
 - **2026-07-17:** **`coverage_basis` Step G — migration 024 applied + verified PASS** — applied `supabase/migrations/20260717_024_add_catalog_items_coverage_basis.sql` to **`rhquhnujjnzjhweypavd`**. Live: `catalog_items.coverage_basis` text nullable, no default; CHECK allows null/`roof_square`/`square_feet`/`linear_feet`/`each`/`tons`; catalog **17** unchanged all null; proposals **21** / policies **1** unchanged (`adjusted_measurement`/`exact`, 0 raw, 0 whole); invalid rejected / valid accepted in rolled-back probe; comment present. No app code/UI/classifier; no backfill; adjusted unaffected; raw mode switch still blocked. Checkpoint **`0e37905`**. **Next:** combined Steps C–F.

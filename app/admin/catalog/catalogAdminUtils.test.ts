@@ -18,7 +18,10 @@ import {
   parseCoverageRateOrNull,
   parseDollarsToCentsOrNull,
   parseStrictFiniteNumber,
+  parseTaxRatePctOrNull,
   parseWastePctOrNull,
+  formatCatalogTaxRateDisplay,
+  CATALOG_TAX_RATE_PCT_MAX,
 } from "./catalogAdminUtils";
 
 function item(
@@ -91,6 +94,55 @@ describe("parseWastePctOrNull", () => {
     assert.match(parseWastePctOrNull("-1").error ?? "", /cannot be negative/i);
     assert.match(parseWastePctOrNull("nope").error ?? "", /valid number/i);
     assert.match(parseWastePctOrNull("10xyz").error ?? "", /valid number/i);
+  });
+});
+
+describe("parseTaxRatePctOrNull", () => {
+  test("empty → null", () => {
+    assert.deepEqual(parseTaxRatePctOrNull("", "Sales tax"), {
+      value: null,
+      error: null,
+    });
+    assert.deepEqual(parseTaxRatePctOrNull("   ", "Sales tax"), {
+      value: null,
+      error: null,
+    });
+  });
+
+  test("valid number and decimal accepted", () => {
+    assert.deepEqual(parseTaxRatePctOrNull("8", "Sales tax"), {
+      value: 8,
+      error: null,
+    });
+    assert.deepEqual(parseTaxRatePctOrNull("8.25", "Sales tax"), {
+      value: 8.25,
+      error: null,
+    });
+    assert.deepEqual(parseTaxRatePctOrNull("0", "Sales tax"), {
+      value: 0,
+      error: null,
+    });
+    assert.deepEqual(parseTaxRatePctOrNull(String(CATALOG_TAX_RATE_PCT_MAX), "Sales tax"), {
+      value: CATALOG_TAX_RATE_PCT_MAX,
+      error: null,
+    });
+  });
+
+  test("negative, above-bound, malformed, NaN/Infinity rejected", () => {
+    assert.match(parseTaxRatePctOrNull("-1", "Sales tax").error ?? "", /cannot be negative/i);
+    assert.match(
+      parseTaxRatePctOrNull("100.01", "Sales tax").error ?? "",
+      /cannot exceed/i
+    );
+    assert.match(parseTaxRatePctOrNull("5abc", "Sales tax").error ?? "", /valid number/i);
+    assert.match(parseTaxRatePctOrNull("NaN", "Sales tax").error ?? "", /valid number/i);
+    assert.match(parseTaxRatePctOrNull("Infinity", "Sales tax").error ?? "", /valid number/i);
+  });
+
+  test("formatCatalogTaxRateDisplay shows unset honestly", () => {
+    assert.equal(formatCatalogTaxRateDisplay(null), "Not set (company default)");
+    assert.equal(formatCatalogTaxRateDisplay(undefined), "Not set (company default)");
+    assert.equal(formatCatalogTaxRateDisplay(8.25), "8.25%");
   });
 });
 
@@ -215,6 +267,66 @@ describe("buildCatalogCreateDraft / buildCatalogUpdatePatch", () => {
     assert.equal(built.draft.unit_price_cents, 2550);
     assert.equal(built.draft.active, true);
     assert.equal(built.coverageCompatibility, "compatible");
+  });
+
+  test("create payload includes sales_tax_rate_pct and purchase_tax_rate_pct", () => {
+    const built = buildCatalogCreateDraft("00000000-0000-4000-8000-000000000001", {
+      ...EMPTY_ADD_CATALOG_FORM,
+      name: "Tax capture material",
+      unit_cost_dollars: "10",
+      unit_price_dollars: "20",
+      sales_tax_rate_pct: "8.25",
+      purchase_tax_rate_pct: "6.5",
+    });
+    assert.equal(built.ok, true);
+    if (!built.ok) return;
+    assert.equal(built.draft.sales_tax_rate_pct, 8.25);
+    assert.equal(built.draft.purchase_tax_rate_pct, 6.5);
+  });
+
+  test("create/update allow null tax rates and reject invalid tax", () => {
+    const emptyTax = buildCatalogCreateDraft("00000000-0000-4000-8000-000000000001", {
+      ...EMPTY_ADD_CATALOG_FORM,
+      name: "No tax",
+    });
+    assert.equal(emptyTax.ok, true);
+    if (!emptyTax.ok) return;
+    assert.equal(emptyTax.draft.sales_tax_rate_pct, null);
+    assert.equal(emptyTax.draft.purchase_tax_rate_pct, null);
+
+    const badSales = buildCatalogCreateDraft("00000000-0000-4000-8000-000000000001", {
+      ...EMPTY_ADD_CATALOG_FORM,
+      name: "Bad sales tax",
+      sales_tax_rate_pct: "101",
+    });
+    assert.equal(badSales.ok, false);
+
+    const update = buildCatalogUpdatePatch(item({ id: "1", sales_tax_rate_pct: 8 }), {
+      ...buildEditDraftFromItem(item({ id: "1", sales_tax_rate_pct: 8 })),
+      sales_tax_rate_pct: "",
+      purchase_tax_rate_pct: "",
+    });
+    assert.equal(update.ok, true);
+    if (!update.ok) return;
+    assert.equal(update.patch.sales_tax_rate_pct, null);
+    assert.equal(update.patch.purchase_tax_rate_pct, null);
+
+    const updateBad = buildCatalogUpdatePatch(item({ id: "1" }), {
+      ...buildEditDraftFromItem(item({ id: "1" })),
+      purchase_tax_rate_pct: "5abc",
+    });
+    assert.equal(updateBad.ok, false);
+  });
+
+  test("edit draft maps null and finite tax rates", () => {
+    const empty = buildEditDraftFromItem(item({ id: "1" }));
+    assert.equal(empty.sales_tax_rate_pct, "");
+    assert.equal(empty.purchase_tax_rate_pct, "");
+    const filled = buildEditDraftFromItem(
+      item({ id: "1", sales_tax_rate_pct: 8.25, purchase_tax_rate_pct: 6 })
+    );
+    assert.equal(filled.sales_tax_rate_pct, "8.25");
+    assert.equal(filled.purchase_tax_rate_pct, "6");
   });
 
   test("create with coverage and null basis is allowed but not_verified", () => {

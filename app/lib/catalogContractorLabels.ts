@@ -59,7 +59,7 @@ export const CATALOG_SETTINGS_PLANNED_TOOLS = [
     id: "coverage_waste_tax",
     title: "Quantity mode switch and tax controls",
     detail:
-      "Coverage and waste are editable on each catalog item. Company quantity-mode switching and tax controls remain planned — not available here.",
+      "Coverage, waste, and item tax rates are editable on each catalog item. Proposal line-tax math and company quantity-mode switching remain planned — not available here.",
   },
   {
     id: "supplier",
@@ -100,6 +100,9 @@ export const CATALOG_CONTRACTOR_LABELS = {
   waste: "Waste",
   wasteApplies: "Apply waste",
   quantityDrivers: "Coverage & waste",
+  tax: "Tax",
+  salesTax: "Sales tax",
+  purchaseTax: "Material purchase tax",
 } as const;
 
 export const CATALOG_TABLE_HEADERS = [
@@ -133,6 +136,12 @@ export const CATALOG_FIELD_HELPERS = {
   coverageBasis: "What the coverage value measures.",
   waste: "Extra material percentage used by raw quantity mode.",
   wasteApplies: "When off, waste percent is ignored by raw quantity mode.",
+  taxSection:
+    "Item tax rates are captured on the catalog item. Proposal line-tax math is not active yet.",
+  salesTax:
+    "Customer tax rate for this catalog item. Proposal line-tax math is not active yet.",
+  purchaseTax:
+    "Internal supplier/material tax for true cost. Never shown to customers.",
 } as const;
 
 export function coverageBasisFieldHelper(
