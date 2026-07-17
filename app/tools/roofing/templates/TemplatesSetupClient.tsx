@@ -10,8 +10,10 @@ import {
   type InstallDefaultRoofingProposalTemplatesResult,
 } from "@/app/lib/defaultRoofingProposalTemplateInstall";
 import {
+  buildCatalogByIdMap,
   catalogItemIdsAlreadyInSection,
   defaultItemRoleForSectionKind,
+  deriveTemplateCatalogLinkReadiness,
   extractCatalogSeedKey,
   nextTemplateItemSortOrder,
   sectionAcceptsCatalogItems,
@@ -50,6 +52,7 @@ import TemplatesPageAlerts from "./TemplatesPageAlerts";
 import TemplatesPageHeader from "./TemplatesPageHeader";
 import TemplatesSelectedTemplatePanel from "./TemplatesSelectedTemplatePanel";
 import TemplatesSetupChecklist from "./TemplatesSetupChecklist";
+import TemplatesSetupNextActions from "./TemplatesSetupNextActions";
 import TemplatesStarterHeroCard from "./TemplatesStarterHeroCard";
 import TemplatesWorkspaceLayout from "./TemplatesWorkspaceLayout";
 import { TEMPLATES_WORKSPACE_ZONE } from "./templatesConstants";
@@ -707,6 +710,23 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
     ]
   );
 
+  const selectedLinkReadiness = useMemo(() => {
+    const catalogById = buildCatalogByIdMap(catalogItems);
+    return deriveTemplateCatalogLinkReadiness(selectedGraph?.items ?? [], catalogById);
+  }, [catalogItems, selectedGraph?.items]);
+
+  const handleFixCatalogLinks = useCallback(() => {
+    const problemId = selectedLinkReadiness.firstProblemItemId;
+    if (problemId) {
+      const el = document.querySelector(`[data-templates-catalog-link="${problemId}"]`);
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+      handleOpenRelinkCatalogItem(problemId);
+      return;
+    }
+    const firstAdd = document.querySelector("[data-templates-add-from-catalog]");
+    firstAdd?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [handleOpenRelinkCatalogItem, selectedLinkReadiness.firstProblemItemId]);
+
   const handleInstallStarter = useCallback(() => {
     void (async () => {
       if (catalogLoading || templatesLoading || installing || !catalogReady) return;
@@ -829,6 +849,11 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
                 <TemplatesSelectedTemplatePanel
                   graph={selectedGraph}
                   contentViewModel={contentViewModel}
+                />
+                <TemplatesSetupNextActions
+                  proposalReadiness={proposalReadiness}
+                  linkReadiness={selectedLinkReadiness}
+                  onFixLinks={handleFixCatalogLinks}
                 />
                 <TemplatesStructureSettingsShell
                   graph={selectedGraph}

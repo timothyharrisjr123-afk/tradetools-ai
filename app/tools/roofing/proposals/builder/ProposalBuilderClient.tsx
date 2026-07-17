@@ -3,7 +3,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { deriveCatalogReadiness } from "@/app/lib/catalogReadiness";
-import { getActiveCatalogItemsByCompany } from "@/app/lib/catalogStore";
+import { getCatalogItemsByCompany } from "@/app/lib/catalogStore";
+import {
+  PROPOSAL_SNAPSHOT_FROZEN_HELPER_COPY,
+  deriveDraftCatalogEconomicsStale,
+  formatDraftCatalogEconomicsStaleBanner,
+} from "@/app/lib/proposalCatalogEconomicsStaleness";
 import type { CatalogItem } from "@/app/lib/catalogTypes";
 import { DEFAULT_ROOFING_CATALOG_DEFINITIONS } from "@/app/lib/defaultRoofingCatalog";
 import { getJobById, isUuidLike } from "@/app/lib/jobStore";
@@ -280,7 +285,9 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
     setCatalogLoadComplete(false);
     setCatalogError(null);
     try {
-      const rows = await getActiveCatalogItemsByCompany(companyId);
+      // Full catalog (active + inactive) so draft Catalog-link staleness can
+      // distinguish missing vs inactive. Pricing preview still uses active-only.
+      const rows = await getCatalogItemsByCompany(companyId);
       setCatalogItems(rows);
     } catch (err) {
       console.warn("[ProposalBuilderClient] catalog fetch error:", err);
@@ -622,6 +629,41 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
     selectedMeasurementUpdatedAt,
     persistedGraph?.proposal.updated_at,
   ]);
+
+  const catalogById = useMemo(() => {
+    const map = new Map<string, CatalogItem>();
+    for (const item of catalogItems) map.set(item.id, item);
+    return map;
+  }, [catalogItems]);
+
+  // Catalog economics drift vs frozen draft lines (updated_at / missing / inactive).
+  const draftCatalogEconomicsStale = useMemo(() => {
+    if (!adapterResult || !persistedGraph?.lineItems?.length) {
+      return {
+        stale: false,
+        reason: null as ReturnType<typeof deriveDraftCatalogEconomicsStale>["reason"],
+        affectedCount: 0,
+        updatedCount: 0,
+        missingCount: 0,
+        inactiveCount: 0,
+      };
+    }
+    return deriveDraftCatalogEconomicsStale({
+      snapshotLines: persistedGraph.lineItems,
+      liveCatalogById: catalogById,
+      snapshotUpdatedAt: persistedGraph.proposal.updated_at ?? null,
+    });
+  }, [adapterResult, catalogById, persistedGraph]);
+
+  const staleBannerCopy = useMemo(() => {
+    const measurementStale = proposalPricingStale.stale;
+    const catalogBanner = formatDraftCatalogEconomicsStaleBanner(draftCatalogEconomicsStale);
+    if (measurementStale && catalogBanner) {
+      return `${PROPOSAL_PRICING_STALE_BANNER_COPY} Linked Catalog items also changed after this snapshot — refresh draft pricing to re-pull measurement quantities and live Catalog economics.`;
+    }
+    if (measurementStale) return PROPOSAL_PRICING_STALE_BANNER_COPY;
+    return catalogBanner;
+  }, [draftCatalogEconomicsStale, proposalPricingStale.stale]);
 
   const handleRefreshDraftPricing = useCallback(() => {
     if (!hasPersistedProposalParam || !persistedGraph || !proposalIdParam) return;
@@ -1180,7 +1222,9 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
     ]
   );
 
-  const showStaleBanner = Boolean(adapterResult) && proposalPricingStale.stale;
+  const showStaleBanner =
+    Boolean(adapterResult) &&
+    (proposalPricingStale.stale || draftCatalogEconomicsStale.stale);
 
   const clearPageEditSession = useCallback(() => {
     setPageEditActiveContextId(null);
@@ -1476,7 +1520,7 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
       selectedOptionId: effectiveSelectedOptionId,
       templateReady: templateReadiness.status === "ready_for_builder",
       measurementReady: Boolean(measurementHandoff?.proposalReady),
-      measurementStale: showStaleBanner,
+      measurementStale: proposalPricingStale.stale,
       pricingComplete: selectedOptionPricingStatus?.pricingComplete ?? false,
       blockingLineCount: selectedOptionPricingStatus?.blockingLineCount ?? 0,
       guardrailStatus: guidanceGuardrailStatus,
@@ -1497,7 +1541,7 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
     effectiveSelectedOptionId,
     templateReadiness.status,
     measurementHandoff?.proposalReady,
-    showStaleBanner,
+    proposalPricingStale.stale,
     selectedOptionPricingStatus,
     guidanceGuardrailStatus,
     persistedGraph?.pages,
@@ -1629,14 +1673,38 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
           {optionPersistError}
         </div>
       ) : null}
-      {!draftGraphError && shellReady && showStaleBanner ? (
-        <div className="flex flex-col gap-3 rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 sm:flex-row sm:items-center sm:justify-between">
-          <span>{PROPOSAL_PRICING_STALE_BANNER_COPY}</span>
+      {!draftGraphError &&
+      shellReady &&
+      hasPersistedProposalParam &&
+      draftGraphLoadComplete &&
+      !draftGraphError &&
+      persistedGraph != null ? (
+        <p
+          className="text-xs leading-relaxed text-slate-500"
+          data-builder-snapshot-frozen-helper
+        >
+          {PROPOSAL_SNAPSHOT_FROZEN_HELPER_COPY}
+        </p>
+      ) : null}
+      {!draftGraphError && shellReady && showStaleBanner && staleBannerCopy ? (
+        <div
+          className="flex flex-col gap-3 rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 sm:flex-row sm:items-center sm:justify-between"
+          data-builder-stale-banner
+          data-builder-stale-reason={
+            proposalPricingStale.stale && draftCatalogEconomicsStale.stale
+              ? "measurement_and_catalog"
+              : proposalPricingStale.stale
+                ? "measurement"
+                : draftCatalogEconomicsStale.reason ?? "catalog"
+          }
+        >
+          <span>{staleBannerCopy}</span>
           <button
             type="button"
             onClick={handleRefreshDraftPricing}
-            disabled={refreshInFlight}
+            disabled={refreshInFlight || persistedGraph?.proposal.status !== "draft"}
             className="inline-flex shrink-0 items-center justify-center rounded-md border border-amber-400 bg-white px-3 py-1.5 text-xs font-semibold text-amber-900 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+            data-builder-refresh-draft-pricing
           >
             {refreshInFlight ? "Refreshing…" : "Refresh draft pricing"}
           </button>

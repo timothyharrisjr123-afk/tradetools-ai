@@ -221,7 +221,7 @@ export function formatProposalTemplateNextStepCopy(
     case "needs_pricing":
       return "Set unit prices on catalog items linked to template line items in catalog setup.";
     case "ready_for_builder":
-      return "Template setup is ready. Proposal Builder opens from Job Card in a later stage.";
+      return "Template setup is ready. Create or open a proposal from a Job Card to use this template in Proposal Builder.";
     default:
       return "Complete catalog and template setup on this page.";
   }

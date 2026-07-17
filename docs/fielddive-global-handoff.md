@@ -45,12 +45,12 @@
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** **pending this commit — feat(templates): add catalog item linking foundation**
-- **Docs checkpoint:** **pending this commit — Integrated Flow P0 Template catalog link**
+- **Code checkpoint:** **pending this commit — feat(proposals): add setup to builder trust flow**
+- **Docs checkpoint:** **pending this commit — Integrated Flow P1 setup-to-Builder trust**
+- **Prior code checkpoint:** **`3e96db1` — feat(templates): add catalog item linking foundation**
 - **Prior docs checkpoint:** **`ba6030c` — docs: map integrated catalog to proposal workflow**
-- **Prior code checkpoint:** **`09c458e` — polish(catalog): complete management workspace ux**
-- **Next:** Integrated Flow **P1** — setup-to-proposal smoothness / Builder refresh + catalog-edit trust guidance (see **§6BO.13.4.6**). Do **not** start supplier sync, material ordering, CSV mapping assistant, proposal import, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
-- **Historical note:** Header language that still says “Slice 2 — Catalog P0 next” or “Coverage/Waste inactive / raw unwired” in older §6BO.13.4 rows is **superseded** by Phase 5–7 + Catalog management foundation + Catalog UX completion + **§6BO.13.4.6** integrated workflow research + Integrated Flow P0 Template catalog linking below.
+- **Next:** Integrated Flow **P2** — job-card proposal start flow / guided proposal creation path (preferred), **or** CSV mapping assistant if import friction is higher priority (see **§6BO.13.4.6** / P1 research note). Do **not** start supplier sync, material ordering, proposal import, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
+- **Historical note:** Header language that still says “Slice 2 — Catalog P0 next” or “Coverage/Waste inactive / raw unwired” in older §6BO.13.4 rows is **superseded** by Phase 5–7 + Catalog management foundation + Catalog UX completion + **§6BO.13.4.6** integrated workflow research + Integrated Flow **P0** Template catalog linking + Integrated Flow **P1** setup-to-Builder trust below.
 
 **Trust order:** Header/current checkpoint → **§6BO.13** (approved page-by-page UI flow roadmap + P0 implementation sequence — **supersedes separate Command Center language**) → **§6BM** / **§6BN** (R18 letter-phase roadmap + R18C–R18D3C implementation history) → **§6BO** / **§6BO.11** / **§6BO.12** (completed remediation side-track + **approved Stage C policy** + **operating-flow audit sequencing — complete; outcome in §6BO.13**) → **§6BL** → **§11 override**. Stage B browser smoke required local-only **`USE_PROPOSAL_SEND_FREEZE_RPC=1`** in `.env.local` (gitignored, not committed). **Do not proceed** to docs-only or next feature work unless working tree is clean. **Still do not** mutate `proposals.status = sent`, write sent `proposal_events`, move Jobs Board cards, add Job Card send activity, enable PDF/Sign/Payment, or add webhooks unless separately approved.
 
@@ -11362,7 +11362,43 @@ Order: **source → coverage → waste → exact**.
 - Local UI smoke PASS; live CRUD smoke on **`rhquhnujjnzjhweypavd`**: add → persist `catalog_item_id` → re-link → delete disposable row; proposals **23** / policies **1** / events **304** / tokens **22** unchanged
 - Protected: no supplier sync, material ordering, proposal import, CSV mapping, raw mode, whole rounding, send/lifecycle
 
-**Next coding block:** Integrated Flow **P1** — setup-to-proposal smoothness / Builder refresh + catalog-edit trust guidance — **not** raw mode switch.
+**Integrated Flow P1 — setup-to-Builder trust flow — COMPLETE (2026-07-17):**
+
+##### P1 targeted Roofr research (setup → proposal only)
+
+**Question:** How does Roofr guide a contractor from setup into proposal creation?
+
+**Confirmed Roofr patterns (public help):**
+1. Setup order is **Catalog → Proposal Templates → create proposal from Job Card** (Create Catalog / Create Template / Create Proposal help).
+2. Proposal create is a **job-page action**: Job Card → `+ Proposal` → choose measurement → choose template (Create a Proposal help).
+3. Templates **link** catalog items; contractors do not re-edit catalog economics on the template (Create Template help).
+4. Catalog price changes affect **new** template/proposal pricing paths; existing/signed proposals are not silently rewritten as a live price book (public docs emphasize create/copy/edit patterns rather than auto-mutating historical proposals).
+5. Guidance model is primarily **page actions + smart defaults** (job CTA, template picker, measurement auto-quantities) — not a long multi-step wizard for every proposal.
+
+**Unconfirmed in public Roofr docs:**
+- Exact “catalog price changed on an open draft” banner / modal UX.
+- Whether open drafts auto-refresh catalog economics without user action.
+- Exact readiness checklist UI on Catalog/Templates screens.
+
+**FieldDive interaction model decision (P1):** **hybrid**
+- **Readiness card + direct action buttons** on Catalog/Templates (Open Templates / Fix Catalog links / Open Jobs).
+- **Job Card** remains the only Create/Open proposal entry (no fake Create Proposal on Templates).
+- Builder reuses existing **Refresh draft pricing** for measurement **and** Catalog economics drift (explicit user action; no silent auto-refresh).
+- Not a full wizard; not copy-only banners.
+
+##### P1 shipped behavior
+
+- Pure helpers: `deriveTemplateCatalogLinkReadiness` (template link ready/warning/blocked + next action); `deriveDraftCatalogEconomicsStale` (draft Catalog missing/inactive/`updated_at` drift vs snapshot) + frozen-snapshot helper copy.
+- Templates: Setup → proposal path card with linked/inactive/missing counts, **Fix Catalog links**, **Open Jobs to create a proposal** (no Create Proposal), checklist Open Jobs when `ready_for_builder`.
+- Catalog All items: when `ready_for_templates`, action-backed **Open Proposal templates** next step.
+- Job Card setup links: Catalog → Templates → ready copy (job + measurement + template + Catalog → frozen draft).
+- Builder: loads full catalog for inactive/missing honesty; frozen snapshot helper; stale banner for measurement and/or Catalog economics with real Refresh CTA; no silent mutation.
+- Customer Preview: unchanged customer-safe surface (no purchase tax / SKUs / internal cost / contractor stale debug).
+- Protected: no supplier sync, material ordering, proposal import, CSV mapping, raw mode, whole rounding, pricing formula changes, send/public/lifecycle.
+- Local smoke PASS: Catalog next CTA → Templates readiness/Open Jobs (no Create Proposal) → Job Card setup `ready` → Builder frozen helper + Catalog stale banner + Refresh CTA → Preview clean.
+- Live smoke on **`rhquhnujjnzjhweypavd`** (read-only counts): proposals **23** / policies **1** / events **304** / tokens **22** unchanged; linked template items present (**47**); no starter mutation / no new draft created for P1 smoke.
+
+**Next coding block:** Integrated Flow **P2** — job-card proposal start / guided creation path (preferred), or CSV mapping assistant if import friction wins — **not** raw mode switch.
 
 #### 13.4.6 Integrated Catalog → Proposal workflow research + FieldDive flow design — COMPLETE (2026-07-17)
 
@@ -11547,15 +11583,16 @@ Roofr keeps this simple by: forcing Catalog-before-Template, automating qty from
 - **Tests/smoke:** template add/link catalog item; Job Card create → Builder snapshot; Preview still clean of purchase tax/SKUs.
 - **User-visible:** Can attach catalog items to templates intentionally; no stale “Builder later” lies.
 
-**Integrated Flow P1 — setup-to-proposal smoothness**
+**Integrated Flow P1 — setup-to-proposal smoothness** — **COMPLETE** (see P1 section above this research block).
 
-- **Goal:** Reduce friction from priced catalog → ready template → draft → refresh trust.
-- **Likely files:** Builder staleness/helper, catalog readiness messaging, optional bulk “Add to template” once picker exists.
-- **Protected:** same as P0; no fake ordering.
-- **Tests/smoke:** catalog edit → refresh path documented/tested; readiness gates on board/card.
-- **User-visible:** Fewer “why didn’t my price change?” surprises; clearer next steps.
+**Integrated Flow P2 — job-card proposal start / guided creation path (preferred next)**
 
-**Integrated Flow P2 — CSV mapping assistant / supplier-ready flow**
+- **Goal:** Make Job Card → measurement → template → Create proposal the most obvious connected path when setup is ready; clarify blocked states with fix actions.
+- **Likely files:** Job Card proposals tab / launch helpers, optional guided create modal if needed (only if real route support).
+- **Protected:** same as P0/P1; no fake ordering; no Preview redesign.
+- **Alternate P2 if import friction is higher:** CSV mapping assistant (non-exact headers) — see below.
+
+**Integrated Flow P2 alternate — CSV mapping assistant / supplier-ready flow**
 
 - **Goal:** Accept non-exact CSVs via mapping while keeping strict FieldDive CSV as baseline; prepare SKU-centric imports without live sync.
 - **Likely files:** new `catalogCsvMapping*` pure module + Manage Catalog upload UX; saved mapping prefs.

@@ -922,6 +922,7 @@ export default function CatalogSetupClient({ companyId }: { companyId: string })
             busy={busy}
             needsPriceCount={unpricedCount}
             compactStatusLine={compactStatusLine}
+            catalogReadyForTemplates={readiness.state === "ready_for_templates"}
             showEmptyInstall={showEmptyInstall}
             starterInstalled={starterInstalled}
             installing={installing}

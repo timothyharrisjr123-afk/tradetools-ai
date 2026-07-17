@@ -279,6 +279,19 @@ describe("Catalog P0B–P0D page shell", () => {
     assert.equal(/supplier sync is active|material ordering is live/i.test(modal + setup), false);
   });
 
+  test("All items shows Open Proposal templates next action when catalog ready", () => {
+    const workspace = readCatalogFile("CatalogItemsWorkspace.tsx");
+    const setup = readCatalogFile("CatalogSetupClient.tsx");
+    assert.ok(workspace.includes("data-catalog-next-templates"));
+    assert.ok(workspace.includes("data-catalog-open-templates"));
+    assert.ok(workspace.includes("Open Proposal templates"));
+    assert.ok(workspace.includes("Create proposals from a Job Card"));
+    assert.ok(setup.includes("catalogReadyForTemplates"));
+    assert.ok(setup.includes('readiness.state === "ready_for_templates"'));
+    assert.ok(workspace.includes("Create proposals from a Job Card"));
+    assert.equal(/href=.*Create proposal|Create proposal button/i.test(workspace), false);
+  });
+
   test("Settings panel links to Pricing rules and Proposal templates without tax forms", () => {
     const source = readCatalogFile("CatalogSettingsPanel.tsx");
     assert.ok(source.includes("Catalog settings"));

@@ -13,6 +13,7 @@ import {
   buildTemplateCatalogLinkView,
   catalogItemIdsAlreadyInSection,
   defaultItemRoleForSectionKind,
+  deriveTemplateCatalogLinkReadiness,
   extractCatalogSeedKey,
   listActiveCatalogItemsForPicker,
   nextTemplateItemSortOrder,
@@ -165,5 +166,35 @@ describe("proposalTemplateCatalogLink", () => {
       ),
       false
     );
+  });
+
+  test("deriveTemplateCatalogLinkReadiness ready / fix_links / add_items", () => {
+    const active = catalog({ id: "c1", name: "A", active: true });
+    const inactive = catalog({ id: "c2", name: "B", active: false });
+    const map = buildCatalogByIdMap([active, inactive]);
+
+    const ready = deriveTemplateCatalogLinkReadiness(
+      [templateItem({ id: "i1", catalog_item_id: "c1" })],
+      map
+    );
+    assert.equal(ready.severity, "ready");
+    assert.equal(ready.nextAction, "open_jobs");
+
+    const blocked = deriveTemplateCatalogLinkReadiness(
+      [
+        templateItem({ id: "i1", catalog_item_id: "c1" }),
+        templateItem({ id: "i2", catalog_item_id: "c2" }),
+        templateItem({ id: "i3", catalog_item_id: "gone" }),
+      ],
+      map
+    );
+    assert.equal(blocked.severity, "blocked");
+    assert.equal(blocked.nextAction, "fix_links");
+    assert.equal(blocked.inactive, 1);
+    assert.equal(blocked.missingCatalog, 1);
+    assert.equal(blocked.firstProblemItemId, "i2");
+
+    const empty = deriveTemplateCatalogLinkReadiness([], map);
+    assert.equal(empty.nextAction, "add_items");
   });
 });

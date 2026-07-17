@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useLayoutEffect, useState } from "react";
 import type { CatalogItem } from "@/app/lib/catalogTypes";
 import type { InstallDefaultRoofingCatalogResult } from "@/app/lib/defaultRoofingCatalogInstall";
@@ -48,6 +49,8 @@ type CatalogItemsWorkspaceProps = {
   busy: boolean;
   needsPriceCount: number;
   compactStatusLine: string | null;
+  /** When true, show action-backed next step to Templates (not Create proposal). */
+  catalogReadyForTemplates?: boolean;
   showEmptyInstall: boolean;
   starterInstalled: boolean;
   installing: boolean;
@@ -136,6 +139,7 @@ export default function CatalogItemsWorkspace({
   busy,
   needsPriceCount,
   compactStatusLine,
+  catalogReadyForTemplates = false,
   showEmptyInstall,
   starterInstalled,
   installing,
@@ -258,6 +262,27 @@ export default function CatalogItemsWorkspace({
 
   return (
     <div id="catalog-configure-items" className="space-y-3">
+      {catalogReadyForTemplates && !showEmptyInstall ? (
+        <div
+          className="flex flex-col gap-2 rounded-xl border border-emerald-200/80 bg-emerald-50/50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+          data-catalog-next-templates
+        >
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-slate-900">Catalog ready for templates</p>
+            <p className="mt-0.5 text-xs leading-relaxed text-slate-600">
+              Next: link these items in Proposal templates. Create proposals from a Job Card after
+              the template is ready — not from Catalog.
+            </p>
+          </div>
+          <Link
+            href="/tools/roofing/templates"
+            className={`${PRIMARY_BUTTON} shrink-0`}
+            data-catalog-open-templates
+          >
+            Open Proposal templates
+          </Link>
+        </div>
+      ) : null}
       <div className={CATALOG_SURFACE_CARD}>
         <CatalogItemToolbar
           searchQuery={searchQuery}

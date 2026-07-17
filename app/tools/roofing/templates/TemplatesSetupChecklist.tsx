@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import type { CatalogReadinessSummary } from "@/app/lib/catalogReadiness";
 import { formatCatalogSectionStatus } from "@/app/lib/catalogReadiness";
 import {
@@ -102,6 +103,15 @@ export default function TemplatesSetupChecklist({
             {!loading && (
               <p className="mt-0.5 text-[11px] leading-relaxed text-slate-600">{proposalNextStep}</p>
             )}
+            {!loading && builderReady ? (
+              <Link
+                href="/tools/roofing/saved"
+                className="mt-1.5 inline-flex text-[11px] font-semibold text-cyan-700 hover:text-cyan-900"
+                data-templates-checklist-open-jobs
+              >
+                Open Jobs to create a proposal →
+              </Link>
+            ) : null}
           </div>
         </li>
       </ol>

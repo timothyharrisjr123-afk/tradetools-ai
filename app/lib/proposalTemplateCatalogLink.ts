@@ -219,3 +219,120 @@ export function extractCatalogSeedKey(item: CatalogItem): string | null {
   const trimmed = raw.trim();
   return trimmed.length > 0 ? trimmed : null;
 }
+
+export type TemplateCatalogLinkReadinessSeverity = "ready" | "warning" | "blocked";
+
+export type TemplateCatalogLinkNextAction =
+  | "none"
+  | "fix_links"
+  | "add_items"
+  | "open_jobs";
+
+export type TemplateCatalogLinkReadiness = {
+  totalItems: number;
+  linkedActive: number;
+  inactive: number;
+  missingCatalog: number;
+  missingId: number;
+  problemCount: number;
+  severity: TemplateCatalogLinkReadinessSeverity;
+  nextAction: TemplateCatalogLinkNextAction;
+  summaryLabel: string;
+  detail: string;
+  /** First template item id that needs a fix action, if any. */
+  firstProblemItemId: string | null;
+};
+
+/**
+ * Summarize Catalog link health for a selected template graph's items.
+ * Uses full catalog map so inactive rows are distinguishable from missing.
+ */
+export function deriveTemplateCatalogLinkReadiness(
+  templateItems: readonly ProposalTemplateItem[],
+  catalogById: ReadonlyMap<string, CatalogItem>
+): TemplateCatalogLinkReadiness {
+  let linkedActive = 0;
+  let inactive = 0;
+  let missingCatalog = 0;
+  let missingId = 0;
+  let firstProblemItemId: string | null = null;
+
+  for (const item of templateItems) {
+    const status = resolveTemplateCatalogLinkStatus(item, catalogById);
+    switch (status) {
+      case "linked":
+        linkedActive += 1;
+        break;
+      case "inactive":
+        inactive += 1;
+        if (!firstProblemItemId) firstProblemItemId = item.id;
+        break;
+      case "missing_catalog":
+        missingCatalog += 1;
+        if (!firstProblemItemId) firstProblemItemId = item.id;
+        break;
+      case "missing_id":
+        missingId += 1;
+        if (!firstProblemItemId) firstProblemItemId = item.id;
+        break;
+    }
+  }
+
+  const totalItems = templateItems.length;
+  const problemCount = inactive + missingCatalog + missingId;
+
+  if (totalItems === 0) {
+    return {
+      totalItems: 0,
+      linkedActive: 0,
+      inactive: 0,
+      missingCatalog: 0,
+      missingId: 0,
+      problemCount: 0,
+      severity: "blocked",
+      nextAction: "add_items",
+      summaryLabel: "No Catalog items linked",
+      detail:
+        "Add active Catalog items to line-item or upgrade sections before using this template on a job.",
+      firstProblemItemId: null,
+    };
+  }
+
+  if (problemCount > 0) {
+    return {
+      totalItems,
+      linkedActive,
+      inactive,
+      missingCatalog,
+      missingId,
+      problemCount,
+      severity: "blocked",
+      nextAction: "fix_links",
+      summaryLabel: `${problemCount} Catalog link${problemCount === 1 ? "" : "s"} need attention`,
+      detail: [
+        missingId > 0 ? `${missingId} not linked` : null,
+        missingCatalog > 0 ? `${missingCatalog} missing` : null,
+        inactive > 0 ? `${inactive} inactive` : null,
+        `${linkedActive} linked active`,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+      firstProblemItemId,
+    };
+  }
+
+  return {
+    totalItems,
+    linkedActive,
+    inactive: 0,
+    missingCatalog: 0,
+    missingId: 0,
+    problemCount: 0,
+    severity: "ready",
+    nextAction: "open_jobs",
+    summaryLabel: `${linkedActive} Catalog item${linkedActive === 1 ? "" : "s"} linked`,
+    detail:
+      "Template Catalog links look healthy. Create or open a proposal from a Job Card to use this template in Builder.",
+    firstProblemItemId: null,
+  };
+}

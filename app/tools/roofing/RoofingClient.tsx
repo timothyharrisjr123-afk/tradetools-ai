@@ -8088,7 +8088,12 @@ Thanks,`;
                       />
                       <StatusLine label="Next step" value={catalogNextStep} muted={catalogReadiness.state === "ready_for_templates"} />
                     </div>
-                    <JobCardProposalsSetupLinks catalogState={catalogReadiness.state} />
+                    <JobCardProposalsSetupLinks
+                      catalogState={catalogReadiness.state}
+                      templateReady={
+                        proposalTemplateReadiness.status === "ready_for_builder"
+                      }
+                    />
                   </div>
                   <div>
                     <WorkspaceHeading>Proposal list</WorkspaceHeading>
