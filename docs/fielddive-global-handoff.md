@@ -45,11 +45,11 @@
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** **pending this commit — Catalog P1 remediation** (prior: **`7a35954` — docs: record raw plus waste coverage smoke checkpoint**; Coverage/Waste controls at **`7795725`**)
-- **Docs checkpoint:** **pending this commit**
-- **Prior docs checkpoint:** **`7a35954` — docs: record raw plus waste coverage smoke checkpoint**
-- **Next:** Phase 8 raw-mode-switch planning behind explicit product approval, or Pricing Rules shell rebuild before any mode UI. Catalog P0 / raw_plus_waste Phases 1–7 / Catalog P1 remediation are complete. **Do not** expose a Settings waste-model control without approval. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
-- **Historical note:** Header language that still says “Slice 2 — Catalog P0 next” or “Coverage/Waste inactive / raw unwired” in older §6BO.13.4 rows is **superseded** by Phase 5–7 + Catalog P1 remediation below.
+- **Code checkpoint:** **`dfe627f` — fix(catalog): harden item validation and read failures** (Coverage/Waste at **`7795725`**; raw smoke docs at **`7a35954`**)
+- **Docs checkpoint:** **pending this commit — coverage_basis architecture decision lock**
+- **Prior docs checkpoint:** **`dfe627f` — Catalog P1 remediation** (handoff recorded with that commit)
+- **Next:** Review-only migration draft for nullable `catalog_items.coverage_basis` (no live SQL). Do **not** implement app code, mode switch, or Catalog UI for basis until that draft is approved. Catalog P0 / raw_plus_waste Phases 1–7 / Catalog P1 / coverage_basis model lock are complete. **Do not** expose a Settings waste-model control without approval. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
+- **Historical note:** Header language that still says “Slice 2 — Catalog P0 next” or “Coverage/Waste inactive / raw unwired” in older §6BO.13.4 rows is **superseded** by Phase 5–7 + Catalog P1 + coverage_basis lock below.
 
 **Trust order:** Header/current checkpoint → **§6BO.13** (approved page-by-page UI flow roadmap + P0 implementation sequence — **supersedes separate Command Center language**) → **§6BM** / **§6BN** (R18 letter-phase roadmap + R18C–R18D3C implementation history) → **§6BO** / **§6BO.11** / **§6BO.12** (completed remediation side-track + **approved Stage C policy** + **operating-flow audit sequencing — complete; outcome in §6BO.13**) → **§6BL** → **§11 override**. Stage B browser smoke required local-only **`USE_PROPOSAL_SEND_FREEZE_RPC=1`** in `.env.local` (gitignored, not committed). **Do not proceed** to docs-only or next feature work unless working tree is clean. **Still do not** mutate `proposals.status = sent`, write sent `proposal_events`, move Jobs Board cards, add Job Card send activity, enable PDF/Sign/Payment, or add webhooks unless separately approved.
 
@@ -11139,9 +11139,127 @@ Order: **source → coverage → waste → exact**.
 
 **Controlled non-null Coverage/Waste smoke — PASS (2026-07-16):** approved project **`rhquhnujjnzjhweypavd`**; company/policy **`e1fd48bb-fe22-4dfe-9622-3f25eb2109b6`** / **`8d1e019c-b8eb-4725-8f22-90bbcfb09cbb`**; job/measurement **`c9497cc1-c8d2-406e-8455-5a6f9cc369d3`** / **`62f5d03b-7215-4504-bb0c-3c1b116a79b3`**; dedicated one-line template **`24cdbe2e-ff54-4d6e-8588-5a5b6b133c2f`** (template item **`843a9a7c-7acc-414c-8ab7-993ccf11731a`**); catalog item **`2f5f67d2-92d3-4bbb-9323-433baa5f9f71`**; successful draft proposal **`3a5889b8-06d6-4abd-bcc2-e0aa4fe89c7b`**. Original/restored catalog values were `coverage_rate=null`, `waste_applies=true`, `waste_pct=null`; temporary values were `5 / true / 10`. Proven raw source was `roof_squares=25` in measurement and handoff. Expected and observed exact math: **`25 / 5 × 1.10 = 5.5`**. Create persisted one line (`f35737bb-08b9-44ec-b640-72bd1e5af4a4`) at `quantity=5.5` with raw echo (`source=roof_squares:25`, coverage `5`, waste `10`, exact, resolved `5.5`); refresh replaced the persistence row as expected (`c5839da6-cd2a-49f4-aab1-6fdd87ff2c03`) and preserved the same quantity/echo. Internal preflight returned **current** (`currentCount=1`, `staleCount=0`, `unknownCount=0`). Temporary policy state was `raw_plus_waste / exact` (**1 raw / 0 adjusted**); restore verified `adjusted_measurement / exact` (**1 adjusted / 0 raw**), original catalog values, and null job `active_proposal_id`. Company public-token inventory was unchanged at 22 and the smoke proposal had zero; only `created` then `draft_saved` occurred; proposal stayed draft-only with no sent/signed/paid pointers. Two preliminary guard attempts (`ec1193e9-bc3b-453d-82d9-471d03e4a423`, create only; `bc102770-e2bb-4e21-ae8b-c9b6aba5f71d`, create + refresh) stopped on smoke-script assumptions about pricing status/line-row identity, not quantity mismatches; both remained draft-only, had no public tokens, used only allowed events, and each restoration passed.
 
-**Catalog P1 remediation — COMPLETE (validation + read-failure hardening):** Strict Catalog numeric parsing rejects malformed suffixes (`12abc`, `5abc`, `10xyz`, `NaN`, `Infinity`, `--1`, `1.2.3`) for unit cost/price, Coverage, and Waste %. Coverage empty → null (1:1); Coverage must be > 0; Waste empty → null; Waste ≥ 0; Waste input disabled when Apply waste is off. Pure `classifyCatalogCoverageCompatibility` returns `not_applicable` (null coverage), `not_verified` (coverage set — no `coverage_basis` in schema), or `incompatible` (e.g. coverage on `fixed` source); **never** returns `compatible` without dimensional proof; does **not** block adjusted-mode saves; raw mode switch remains deferred. Catalog list loads use `loadCatalogItemsByCompany` / `CatalogItemsLoadResult` so success-empty ≠ failed-read; UI shows load error + Retry; starter empty-install is gated off when `loadError` is set; starter install aborts without creating rows on failed reads. Behavioral create/update builders + tests cover coverage/waste payloads, malformed blocking, soft deactivate (no hard delete), Settings planned-only (no mode switch), adjusted ignore, policy-gated raw. Contained P2: Catalog nav `aria-current="page"`; Coverage helper copy no longer claims sq ft without basis; stale “future/unwired” comments corrected. No SQL/migrations; no pricing-engine math change; no raw UI switch; no whole rounding; deferred Roofr parity unchanged.
+**Catalog P1 remediation — COMPLETE (validation + read-failure hardening):** Strict Catalog numeric parsing rejects malformed suffixes (`12abc`, `5abc`, `10xyz`, `NaN`, `Infinity`, `--1`, `1.2.3`) for unit cost/price, Coverage, and Waste %. Coverage empty → null (1:1); Coverage must be > 0; Waste empty → null; Waste ≥ 0; Waste input disabled when Apply waste is off. Pure `classifyCatalogCoverageCompatibility` returns `not_applicable` (null coverage), `not_verified` (coverage set — no `coverage_basis` in schema), or `incompatible` (e.g. coverage on `fixed` source); **never** returns `compatible` without dimensional proof; does **not** block adjusted-mode saves; raw mode switch remains deferred. Catalog list loads use `loadCatalogItemsByCompany` / `CatalogItemsLoadResult` so success-empty ≠ failed-read; UI shows load error + Retry; starter empty-install is gated off when `loadError` is set; starter install aborts without creating rows on failed reads. Behavioral create/update builders + tests cover coverage/waste payloads, malformed blocking, soft deactivate (no hard delete), Settings planned-only (no mode switch), adjusted ignore, policy-gated raw. Contained P2: Catalog nav `aria-current="page"`; Coverage helper copy no longer claims sq ft without basis; stale “future/unwired” comments corrected. No SQL/migrations; no pricing-engine math change; no raw UI switch; no whole rounding; deferred Roofr parity unchanged. Checkpoint: **`dfe627f`**.
 
-**Next after Catalog P1 remediation:** Phase 8 mode-switch planning behind explicit product approval (blocked while coverage remains `not_verified`), or Pricing Rules FieldDive shell rebuild before any mode UI. Do not enable Settings waste-model control or switch live company policy without approval.
+**Next after Catalog P1 remediation:** Lock `coverage_basis` architecture in docs (this section), then review-only migration draft. Phase 8 mode-switch planning remains blocked until compatibility can return `compatible` for proven pairings. Do not enable Settings waste-model control or switch live company policy without approval.
+
+#### 13.4.5 `coverage_basis` architecture — APPROVED MODEL LOCK (docs only)
+
+**Status:** Decision locked. **No app code, no migration file, no live SQL, no Catalog UI, no pricing/proposal changes in this checkpoint.**
+
+**Authority:** `coverage_basis` is the measurement-side unit of the coverage divisor. It answers: “what does the coverage number measure?” It is **not** the purchase/sell unit.
+
+| Concept | Role |
+|---|---|
+| `coverage_rate` | How much measurement one purchase unit covers |
+| `coverage_basis` | Unit of that measurement (roof square, sq ft, LF, each, tons) |
+| `unit` | What the contractor buys/sells (bundle, roll, piece, etc.) |
+
+**Do not** use purchase `unit` as a proxy for basis.
+
+**Approved enum (planned nullable catalog item field):**
+
+| Value | Meaning |
+|---|---|
+| `null` | No basis set (default for existing / 1:1 / unset) |
+| `roof_square` | Coverage measured in roof squares |
+| `square_feet` | Coverage measured in square feet |
+| `linear_feet` | Coverage measured in linear feet |
+| `each` | Coverage measured per count/each |
+| `tons` | Coverage measured in tons |
+
+**Examples:**
+
+- `coverage_rate = 5`, `coverage_basis = roof_square`, `unit = bundle` → one purchase unit covers 5 roof squares
+- `coverage_rate = 33.3`, `coverage_basis = square_feet`, `unit = bundle` → one purchase unit covers 33.3 sq ft
+- `coverage_rate = 10`, `coverage_basis = linear_feet`, `unit = roll` → one purchase unit covers 10 LF
+
+**Compatibility classifier states (approved):**
+
+| State | Meaning |
+|---|---|
+| `not_applicable` | No coverage divisor in play |
+| `compatible` | Source and basis are same category (proven) |
+| `not_verified` | Coverage set but basis missing / source unmapped |
+| `incompatible` | Fixed source with coverage, or source/basis category mismatch |
+
+**Classifier rules:**
+
+1. `coverage_rate` null → `not_applicable`
+2. `coverage_rate > 0` + `coverage_basis` null → `not_verified`
+3. Quantity source `fixed` + non-null `coverage_rate` → `incompatible`
+4. Source and basis same category → `compatible`
+5. Source and basis different categories → `incompatible`
+6. `custom` / `labor_multiplier` / unknown sources → `not_verified` until explicitly mapped
+
+**Core source → basis category map:**
+
+| `coverage_basis` | Compatible quantity sources |
+|---|---|
+| `roof_square` | `roof_squares`, `tear_off_squares`; `adjusted_roof_squares` only via approved adjusted→raw remap to `roof_squares` |
+| `square_feet` | `roof_area_sqft` |
+| `linear_feet` | `*_lf` sources |
+| `each` | `*_count` sources |
+| `tons` | `debris_tons` |
+
+**Existing rows policy:**
+
+- No backfill
+- No existing-row mutation
+- Rows with non-null `coverage_rate` and null `coverage_basis` remain `not_verified` until the user sets a basis
+- `adjusted_measurement` continues to ignore coverage/waste
+- Settings / product raw_plus_waste mode switch remains **blocked** until compatibility can be proven (`compatible`)
+
+**Planned schema (future additive migration — not created in this checkpoint):**
+
+- Add nullable `catalog_items.coverage_basis text`
+- CHECK allows only `null` or approved enum values above
+- Column comments clarify field authority (measurement-side unit of coverage divisor; not purchase unit)
+- No default
+- No backfill
+- No live SQL without explicit approval
+
+**Planned UI direction (not implemented in this checkpoint):**
+
+Coverage & waste editor should eventually include:
+
+- Coverage value
+- Coverage basis selector
+- Helper text based on selected basis
+- Optional contractor-only status chip: Not verified / Compatible / Incompatible
+- Clearing `coverage_rate` clears `coverage_basis`
+- No Settings raw mode switch yet
+- No whole rounding
+- No customer/public exposure
+
+**UI visual rule (when implemented):** Coverage basis controls must match the Roofr-aligned Catalog Add/Edit item pattern — clean light shell, compact form rows, clear labels/helper text. **Not** the old dark/blue standalone UI; **not** generic oversized cards; **not** fake-active controls; **not** a technical math dump to the contractor.
+
+**Approved implementation sequence:**
+
+| Step | Work | Gate |
+|---|---|---|
+| **A** | Docs/model decision lock (this section) | Done when committed |
+| **B** | Migration draft, review-only | No live SQL |
+| **C** | Types / store / parser support | After B approved |
+| **D** | Add/Edit Coverage basis selector | After C |
+| **E** | Classifier can return `compatible` for proven pairings | After D |
+| **F** | Tests | With C–E |
+| **G** | Live SQL only after approval | Explicit gate |
+| **H** | Controlled smoke with non-null basis | After G |
+| **I** | Only then revisit raw mode switch planning | After H |
+
+**Still deferred (unchanged):**
+
+- Raw mode switch (Settings waste-model control)
+- Whole rounding
+- CSV import/export
+- Supplier integrations
+- Item-level tax controls
+- Columns customization
+- Reorder
+- Bulk actions
+- Add-to-template
+- Material orders
 
 **P3 — polish**
 
@@ -12406,7 +12524,8 @@ Treat as **drift** if a session:
 
 ## Changelog (handoff doc only)
 
-- **2026-07-17:** **Catalog P1 remediation — validation + read-failure hardening** — strict numeric parse rejects malformed suffixes for price/Coverage/Waste; Coverage/Waste rules unchanged (empty→null; coverage > 0; waste ≥ 0; waste inactive when Apply waste off); pure coverage/unit compatibility classifier (`not_applicable` / `not_verified` / `incompatible`, never fake `compatible`); Catalog list load result distinguishes success-empty vs failed-read; starter install protected from failed reads; Retry on load error; behavioral create/update tests; Settings remains planned-only (no raw mode switch); adjusted mode unaffected; `raw_plus_waste` remains policy-gated; no SQL/migrations/pricing-engine/proposal lifecycle changes. Contained P2: Catalog nav `aria-current="page"`; Coverage helper copy no longer assumes sq ft. **Next:** Phase 8 mode-switch planning (blocked while coverage `not_verified`) or Pricing Rules shell rebuild.
+- **2026-07-17:** **`coverage_basis` architecture decision lock (docs only)** — locked approved model in **§6BO.13.4.5**: nullable enum (`null` / `roof_square` / `square_feet` / `linear_feet` / `each` / `tons`); authority = measurement-side unit of coverage divisor (not purchase `unit`); classifier states + rules (`not_applicable` / `compatible` / `not_verified` / `incompatible`); core source↔basis map; existing-row policy (no backfill; null basis → `not_verified`); planned additive schema (no live SQL); planned Roofr-aligned Coverage basis UI (no mode switch yet); sequence A→I; deferred list unchanged. No app code, migrations, SQL, Catalog/pricing/proposal behavior changes. **Next:** Step B — review-only migration draft for `catalog_items.coverage_basis`.
+- **2026-07-17:** **Catalog P1 remediation — validation + read-failure hardening** — strict numeric parse rejects malformed suffixes for price/Coverage/Waste; Coverage/Waste rules unchanged (empty→null; coverage > 0; waste ≥ 0; waste inactive when Apply waste off); pure coverage/unit compatibility classifier (`not_applicable` / `not_verified` / `incompatible`, never fake `compatible`); Catalog list load result distinguishes success-empty vs failed-read; starter install protected from failed reads; Retry on load error; behavioral create/update tests; Settings remains planned-only (no raw mode switch); adjusted mode unaffected; `raw_plus_waste` remains policy-gated; no SQL/migrations/pricing-engine/proposal lifecycle changes. Contained P2: Catalog nav `aria-current="page"`; Coverage helper copy no longer assumes sq ft. Checkpoint **`dfe627f`**. **Next:** `coverage_basis` architecture lock (§6BO.13.4.5).
 - **2026-07-16:** **raw_plus_waste non-null Catalog driver controlled live smoke — PASS** — on **`rhquhnujjnzjhweypavd`**, temporarily set catalog item **`2f5f67d2-92d3-4bbb-9323-433baa5f9f71`** to Coverage `5`, Apply waste `true`, Waste `10`, switched only policy **`8d1e019c-b8eb-4725-8f22-90bbcfb09cbb`** to raw/exact, and created/refreshed draft **`3a5889b8-06d6-4abd-bcc2-e0aa4fe89c7b`**. Source `roof_squares=25`; exact result **`25 / 5 × 1.10 = 5.5`** persisted in line quantity and raw echo on create + refresh; preflight **current 1 / stale 0 / unknown 0**. Restored policy to adjusted/exact (**1 adjusted / 0 raw**), catalog to `null / true / null`, and job pointer to null; public-token inventory unchanged; only `created` / `draft_saved`; no send/public/signed/paid/whole/UI/customer-public enablement. **Next:** Phase 8 mode-switch planning behind product approval, or raw-mode hardening.
 - **2026-07-16:** **raw_plus_waste Phase 6 — read-only contractor quantity trust surface** — Builder Proposal helper rail shows Quantity sources status (current / need review / changed) from existing preflight trust; Catalog Settings planned Coverage/Waste copy updated; no editable fields, no Settings mode switch, no customer/public exposure, no auto-refresh/Send block, no whole rounding, no SQL/math/resolver changes. **Next:** Phase 7 editable Catalog fields planning, or read-only UI hardening.
 - **2026-07-16:** **raw_plus_waste Phase 7 — editable Catalog Coverage/Waste item controls** — Coverage / Apply waste / Waste % on Catalog item edit + add; persist via existing store fields; table secondary detail (no new columns); Settings planned copy updated (mode switch/tax still Coming soon); adjusted default unchanged; raw policy-gated; no Settings mode switch; no whole rounding; no customer/public exposure; no auto-refresh/Send block. **Next:** controlled raw smoke with non-null coverage/waste, or Phase 8 mode-switch planning behind product approval.
