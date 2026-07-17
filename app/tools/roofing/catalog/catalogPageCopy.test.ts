@@ -10,6 +10,8 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, test } from "node:test";
 import {
+  CATALOG_BULK_PURCHASE_TAX_HELPER,
+  CATALOG_BULK_PURCHASE_TAX_TITLE,
   CATALOG_COMMAND_BAR_ACTIVE_CONTROLS,
   CATALOG_COMMAND_BAR_PLANNED_CONTROLS,
   CATALOG_COMING_SOON_LABEL,
@@ -197,10 +199,15 @@ describe("Catalog P0B–P0D page shell", () => {
     assert.ok(liveIds.includes("mark_inactive"));
     assert.ok(liveIds.includes("proposal_visible"));
     assert.ok(liveIds.includes("proposal_hidden"));
+    assert.ok(liveIds.includes("bulk_purchase_tax"));
     for (const planned of CATALOG_BULK_PLANNED_ACTIONS) {
       assert.equal(planned.status, "planned");
       assert.match(planned.detail, /Planned|not available/i);
     }
+    assert.equal(
+      CATALOG_BULK_PLANNED_ACTIONS.some((a) => a.id === "bulk_purchase_tax"),
+      false
+    );
     assert.ok(CATALOG_BULK_PLANNED_ACTIONS.some((a) => a.id === "delete_items"));
     assert.ok(CATALOG_BULK_PLANNED_ACTIONS.some((a) => a.id === "add_to_proposal_or_order"));
     assert.equal(
@@ -209,6 +216,31 @@ describe("Catalog P0B–P0D page shell", () => {
       ),
       false
     );
+  });
+
+  test("bulk purchase tax modal is live with internal helper copy", () => {
+    const modal = readAdminComponent("CatalogBulkPurchaseTaxModal.tsx");
+    const workspace = readCatalogFile("CatalogItemsWorkspace.tsx");
+    const setup = readCatalogFile("CatalogSetupClient.tsx");
+    assert.ok(workspace.includes("CatalogBulkPurchaseTaxModal"));
+    assert.ok(modal.includes("data-catalog-bulk-purchase-tax-modal"));
+    assert.ok(modal.includes("data-catalog-bulk-purchase-tax-count"));
+    assert.ok(
+      modal.includes("CATALOG_BULK_PURCHASE_TAX_HELPER") ||
+        modal.includes(CATALOG_BULK_PURCHASE_TAX_HELPER)
+    );
+    assert.ok(
+      modal.includes("CATALOG_BULK_PURCHASE_TAX_TITLE") ||
+        modal.includes(CATALOG_BULK_PURCHASE_TAX_TITLE)
+    );
+    assert.match(CATALOG_BULK_PURCHASE_TAX_HELPER, /internal material-cost metadata/i);
+    assert.match(CATALOG_BULK_PURCHASE_TAX_HELPER, /does not change customer proposal tax/i);
+    assert.match(CATALOG_BULK_PURCHASE_TAX_HELPER, /Customer Preview/i);
+    assert.ok(setup.includes("applyCatalogBulkPurchaseTax"));
+    assert.ok(setup.includes("resolveBulkPurchaseTaxRate"));
+    assert.ok(setup.includes("purchase_tax_rate_pct"));
+    assert.ok(setup.includes("openPurchaseTaxModal") || setup.includes("setPurchaseTaxModalOpen"));
+    assert.equal(/supplier sync is active|material ordering is live/i.test(modal + setup), false);
   });
 
   test("Settings panel links to Pricing rules and Proposal templates without tax forms", () => {

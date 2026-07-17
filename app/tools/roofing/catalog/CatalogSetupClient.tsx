@@ -15,8 +15,14 @@ import {
 } from "@/app/lib/catalogCsv";
 import {
   applyCatalogBulkAction,
+  applyCatalogBulkPurchaseTax,
+  formatCatalogBulkPurchaseTaxResultMessage,
   formatCatalogBulkResultMessage,
+  isCatalogBulkImmediateActionId,
+  isCatalogBulkModalActionId,
+  resolveBulkPurchaseTaxRate,
   type CatalogBulkLiveActionId,
+  type CatalogBulkPurchaseTaxMode,
 } from "@/app/lib/catalogBulkActions";
 import {
   createCatalogItem,
@@ -97,6 +103,11 @@ export default function CatalogSetupClient({ companyId }: { companyId: string })
   const [csvExistingItems, setCsvExistingItems] = useState<CatalogItem[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
+  const [purchaseTaxModalOpen, setPurchaseTaxModalOpen] = useState(false);
+  const [purchaseTaxMode, setPurchaseTaxMode] =
+    useState<CatalogBulkPurchaseTaxMode>("set");
+  const [purchaseTaxRateInput, setPurchaseTaxRateInput] = useState("");
+  const [purchaseTaxError, setPurchaseTaxError] = useState<string | null>(null);
 
   const fetchCatalogLoad = useCallback(async () => {
     if (showInactive) {
@@ -329,6 +340,21 @@ export default function CatalogSetupClient({ companyId }: { companyId: string })
     setSelectedIds(new Set());
   }
 
+  function openPurchaseTaxModal() {
+    setPurchaseTaxModalOpen(true);
+    setPurchaseTaxMode("set");
+    setPurchaseTaxRateInput("");
+    setPurchaseTaxError(null);
+    setMessage(null);
+    setLoadError(null);
+  }
+
+  function closePurchaseTaxModal() {
+    if (bulkBusy) return;
+    setPurchaseTaxModalOpen(false);
+    setPurchaseTaxError(null);
+  }
+
   async function handleBulkLiveAction(actionId: CatalogBulkLiveActionId) {
     if (
       bulkBusy ||
@@ -341,6 +367,13 @@ export default function CatalogSetupClient({ companyId }: { companyId: string })
     ) {
       return;
     }
+
+    if (isCatalogBulkModalActionId(actionId)) {
+      openPurchaseTaxModal();
+      return;
+    }
+
+    if (!isCatalogBulkImmediateActionId(actionId)) return;
 
     const ids = [...selectedIds];
     setBulkBusy(true);
@@ -377,6 +410,69 @@ export default function CatalogSetupClient({ companyId }: { companyId: string })
     } catch (err) {
       console.warn("[CatalogSetupClient] bulk action error:", err);
       setLoadError("Bulk update failed unexpectedly. Reload Catalog before retrying.");
+      await loadCatalog();
+    } finally {
+      setBulkBusy(false);
+    }
+  }
+
+  async function handleConfirmPurchaseTax() {
+    if (
+      bulkBusy ||
+      selectedIds.size === 0 ||
+      savingItemId != null ||
+      creatingItem ||
+      togglingActiveId != null ||
+      csvImporting ||
+      installing
+    ) {
+      return;
+    }
+
+    const resolved = resolveBulkPurchaseTaxRate(purchaseTaxMode, purchaseTaxRateInput);
+    if (!resolved.ok) {
+      setPurchaseTaxError(resolved.error);
+      return;
+    }
+
+    const ids = [...selectedIds];
+    setBulkBusy(true);
+    setPurchaseTaxError(null);
+    setLoadError(null);
+    setMessage(null);
+
+    try {
+      const result = await applyCatalogBulkPurchaseTax({
+        companyId,
+        selectedIds: ids,
+        purchaseTaxRatePct: resolved.rate,
+        adapters: {
+          updatePurchaseTax: async (id, purchaseTaxRatePct, options) =>
+            updateCatalogItem(id, { purchase_tax_rate_pct: purchaseTaxRatePct }, options),
+        },
+      });
+
+      const resultMessage = formatCatalogBulkPurchaseTaxResultMessage(
+        purchaseTaxMode,
+        result
+      );
+      if (result.ok) {
+        setMessage(resultMessage);
+        setSelectedIds(new Set());
+        setPurchaseTaxModalOpen(false);
+        setPurchaseTaxRateInput("");
+      } else {
+        setPurchaseTaxError(resultMessage);
+        if (result.successCount > 0) {
+          setSelectedIds(new Set());
+        }
+      }
+      await loadCatalog();
+    } catch (err) {
+      console.warn("[CatalogSetupClient] bulk purchase tax error:", err);
+      setPurchaseTaxError(
+        "Bulk purchase tax failed unexpectedly. Reload Catalog before retrying."
+      );
       await loadCatalog();
     } finally {
       setBulkBusy(false);
@@ -719,6 +815,20 @@ export default function CatalogSetupClient({ companyId }: { companyId: string })
             onToggleSelectAllVisible={handleToggleSelectAllVisible}
             onClearSelection={handleClearSelection}
             onBulkLiveAction={(actionId) => void handleBulkLiveAction(actionId)}
+            purchaseTaxModalOpen={purchaseTaxModalOpen}
+            purchaseTaxMode={purchaseTaxMode}
+            purchaseTaxRateInput={purchaseTaxRateInput}
+            purchaseTaxError={purchaseTaxError}
+            onPurchaseTaxModeChange={(mode) => {
+              setPurchaseTaxMode(mode);
+              setPurchaseTaxError(null);
+            }}
+            onPurchaseTaxRateInputChange={(value) => {
+              setPurchaseTaxRateInput(value);
+              setPurchaseTaxError(null);
+            }}
+            onClosePurchaseTaxModal={closePurchaseTaxModal}
+            onConfirmPurchaseTax={() => void handleConfirmPurchaseTax()}
             onEditToggle={handleEditToggle}
             onToggleActive={(item) => void handleToggleActive(item)}
             onDraftChange={handleDraftChange}

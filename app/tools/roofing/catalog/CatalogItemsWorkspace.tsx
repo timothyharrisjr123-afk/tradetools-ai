@@ -14,6 +14,7 @@ import {
 } from "@/app/lib/catalogColumnVisibility";
 import AddCatalogItemModal from "@/app/admin/catalog/components/AddCatalogItemModal";
 import CatalogBulkActionBar from "@/app/admin/catalog/components/CatalogBulkActionBar";
+import CatalogBulkPurchaseTaxModal from "@/app/admin/catalog/components/CatalogBulkPurchaseTaxModal";
 import CatalogCsvImportModal from "@/app/admin/catalog/components/CatalogCsvImportModal";
 import CatalogItemDetailPanel from "@/app/admin/catalog/components/CatalogItemDetailPanel";
 import CatalogItemTable from "@/app/admin/catalog/components/CatalogItemTable";
@@ -23,7 +24,10 @@ import {
   PRIMARY_BUTTON,
   type CatalogItemTypeFilter,
 } from "@/app/admin/catalog/catalogAdminConstants";
-import type { CatalogBulkLiveActionId } from "@/app/lib/catalogBulkActions";
+import type {
+  CatalogBulkLiveActionId,
+  CatalogBulkPurchaseTaxMode,
+} from "@/app/lib/catalogBulkActions";
 import type { CatalogCsvAnalyzeResult } from "@/app/lib/catalogCsv";
 import CatalogInstallFeedback from "./CatalogInstallFeedback";
 import type {
@@ -73,6 +77,14 @@ type CatalogItemsWorkspaceProps = {
   onToggleSelectAllVisible: () => void;
   onClearSelection: () => void;
   onBulkLiveAction: (actionId: CatalogBulkLiveActionId) => void;
+  purchaseTaxModalOpen: boolean;
+  purchaseTaxMode: CatalogBulkPurchaseTaxMode;
+  purchaseTaxRateInput: string;
+  purchaseTaxError: string | null;
+  onPurchaseTaxModeChange: (mode: CatalogBulkPurchaseTaxMode) => void;
+  onPurchaseTaxRateInputChange: (value: string) => void;
+  onClosePurchaseTaxModal: () => void;
+  onConfirmPurchaseTax: () => void;
   onEditToggle: (item: CatalogItem) => void;
   onToggleActive: (item: CatalogItem) => void;
   onDraftChange: <K extends keyof CatalogItemEditDraft>(
@@ -145,6 +157,14 @@ export default function CatalogItemsWorkspace({
   onToggleSelectAllVisible,
   onClearSelection,
   onBulkLiveAction,
+  purchaseTaxModalOpen,
+  purchaseTaxMode,
+  purchaseTaxRateInput,
+  purchaseTaxError,
+  onPurchaseTaxModeChange,
+  onPurchaseTaxRateInputChange,
+  onClosePurchaseTaxModal,
+  onConfirmPurchaseTax,
   onEditToggle,
   onToggleActive,
   onDraftChange,
@@ -352,6 +372,19 @@ export default function CatalogItemsWorkspace({
         onPickFile={onPickCsvFile}
         onClearFile={onClearCsvFile}
         onConfirmImport={onConfirmCsvImport}
+      />
+
+      <CatalogBulkPurchaseTaxModal
+        open={purchaseTaxModalOpen}
+        selectedCount={selectedIds.size}
+        mode={purchaseTaxMode}
+        rateInput={purchaseTaxRateInput}
+        error={purchaseTaxError}
+        busy={bulkBusy}
+        onModeChange={onPurchaseTaxModeChange}
+        onRateInputChange={onPurchaseTaxRateInputChange}
+        onClose={onClosePurchaseTaxModal}
+        onConfirm={onConfirmPurchaseTax}
       />
     </div>
   );

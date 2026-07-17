@@ -87,10 +87,14 @@ export const CATALOG_MANAGE_MENU_ITEMS = [
   {
     id: "bulk_purchase_tax",
     label: "Bulk edit purchase tax",
-    detail: "Set purchase tax on many items — Planned",
+    detail: "Select table rows, then use the bulk action bar — Manage shortcut Planned",
     status: "planned" as const,
   },
 ] as const;
+
+export const CATALOG_BULK_PURCHASE_TAX_TITLE = "Bulk edit purchase tax" as const;
+export const CATALOG_BULK_PURCHASE_TAX_HELPER =
+  "Purchase tax is internal material-cost metadata. It does not change customer proposal tax or Customer Preview." as const;
 
 export type CatalogManageMenuItemId = (typeof CATALOG_MANAGE_MENU_ITEMS)[number]["id"];
 

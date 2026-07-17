@@ -45,11 +45,11 @@
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** **pending this commit — feat(catalog): add bulk selection foundation**
-- **Docs checkpoint:** **pending this commit — Catalog selection + bulk actions foundation**
-- **Prior code checkpoint:** **`d716edd` — feat(catalog): add supplier sku storage**
-- **Next:** Bulk purchase tax modal → reorder/drag-and-drop → Catalog UX completion pass → integrated workflow pass (Catalog → Templates → Builder → Preview → future Material Ordering). Supplier **sync** remains planned. Do **not** enable Settings raw mode switch; adjusted mode unaffected. **Do not** expose a Settings waste-model control without approval. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
-- **Historical note:** Header language that still says “Slice 2 — Catalog P0 next” or “Coverage/Waste inactive / raw unwired” in older §6BO.13.4 rows is **superseded** by Phase 5–7 + Catalog P1 + coverage_basis + item tax + Columns/Manage shell + CSV v1 + supplier SKU storage + selection/bulk foundation below.
+- **Code checkpoint:** **pending this commit — feat(catalog): add bulk purchase tax action**
+- **Docs checkpoint:** **pending this commit — Catalog bulk purchase tax modal**
+- **Prior code checkpoint:** **`1d800d9` — feat(catalog): add bulk selection foundation**
+- **Next:** Reorder/drag-and-drop foundation → Catalog UX completion pass → integrated workflow pass (Catalog → Templates → Builder → Preview → future Material Ordering). Supplier **sync** remains planned. Do **not** enable Settings raw mode switch; adjusted mode unaffected. **Do not** expose a Settings waste-model control without approval. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
+- **Historical note:** Header language that still says “Slice 2 — Catalog P0 next” or “Coverage/Waste inactive / raw unwired” in older §6BO.13.4 rows is **superseded** by Phase 5–7 + Catalog P1 + coverage_basis + item tax + Columns/Manage shell + CSV v1 + supplier SKU storage + selection/bulk foundation + bulk purchase tax below.
 
 **Trust order:** Header/current checkpoint → **§6BO.13** (approved page-by-page UI flow roadmap + P0 implementation sequence — **supersedes separate Command Center language**) → **§6BM** / **§6BN** (R18 letter-phase roadmap + R18C–R18D3C implementation history) → **§6BO** / **§6BO.11** / **§6BO.12** (completed remediation side-track + **approved Stage C policy** + **operating-flow audit sequencing — complete; outcome in §6BO.13**) → **§6BL** → **§11 override**. Stage B browser smoke required local-only **`USE_PROPOSAL_SEND_FREEZE_RPC=1`** in `.env.local` (gitignored, not committed). **Do not proceed** to docs-only or next feature work unless working tree is clean. **Still do not** mutate `proposals.status = sent`, write sent `proposal_events`, move Jobs Board cards, add Job Card send activity, enable PDF/Sign/Payment, or add webhooks unless separately approved.
 
@@ -11307,6 +11307,17 @@ Order: **source → coverage → waste → exact**.
 - Pure helpers: `app/lib/catalogSelection.ts`, `app/lib/catalogBulkActions.ts`; UI: `CatalogBulkActionBar`, live checkboxes in `CatalogItemTable`
 - Local UI smoke + live CRUD smoke PASS on **`rhquhnujjnzjhweypavd`** (disposable `BULK-SMOKE-*` items: bulk inactive → active → inactive cleanup); tax/SKU preserved; Customer Preview clean of purchase tax / supplier SKUs; no supplier sync / material order / proposal import behavior
 
+**Catalog bulk purchase tax modal — COMPLETE (2026-07-17):**
+
+- Live bulk action **Bulk edit purchase tax** opens validation-backed modal (`CatalogBulkPurchaseTaxModal`) when rows are selected
+- Set rate (strict 0–100 percent, decimals allowed) or Clear to null — uses `parseTaxRatePctOrNull` / `resolveBulkPurchaseTaxRate`
+- Apply path: `applyCatalogBulkPurchaseTax` → `updateCatalogItem({ purchase_tax_rate_pct })` only; sequential; stop-on-failure; reload + clear selection on success
+- Does **not** mutate sales tax, SKUs, visibility, active, or prices; does **not** change proposal pricing math or Customer Preview
+- Purchase tax remains internal material-cost metadata; helper copy states no customer proposal tax / Preview impact
+- Manage Catalog menu entry stays Planned as a shortcut (live path is selection bulk bar)
+- Selection/bulk foundation, CSV, supplier SKU storage preserved; no supplier sync / material ordering / proposal import
+- Local + live smoke PASS on **`rhquhnujjnzjhweypavd`** (`BULK-SMOKE-*`: set 7.25 → clear null; sales tax/SKU/visibility/active unchanged; proposals/policies/events/tokens unchanged; Preview clean)
+
 **Still deferred:**
 
 - Raw mode switch (Settings waste-model control)
@@ -11314,13 +11325,12 @@ Order: **source → coverage → waste → exact**.
 - Proposal line-tax engine (item sales tax → proposal totals)
 - Supplier integrations / price sync / authentication
 - Reorder behavior / drag-and-drop
-- Bulk purchase tax modal (validation + safe UX)
 - Bulk supplier SKU edit / assign supplier
 - Export selected CSV
 - Add-to-template / add-to-proposal / material orders
 - Atomic CSV import RPC (if required later)
 
-**Next Catalog block:** bulk purchase tax modal → reorder/drag-and-drop → Catalog UX completion pass → integrated workflow pass — **not** raw mode switch.
+**Next Catalog block:** reorder/drag-and-drop foundation → Catalog UX completion pass → integrated workflow pass — **not** raw mode switch.
 
 **P3 — polish**
 

@@ -57,7 +57,9 @@ export default function CatalogBulkActionBar({
               key={action.id}
               type="button"
               className={
-                action.id === "mark_inactive" || action.id === "proposal_hidden"
+                action.id === "mark_inactive" ||
+                action.id === "proposal_hidden" ||
+                action.id === "bulk_purchase_tax"
                   ? SECONDARY_BUTTON
                   : PRIMARY_BUTTON
               }
@@ -107,7 +109,7 @@ export default function CatalogBulkActionBar({
               </ul>
               <p className="mt-2 border-t border-slate-100 px-1.5 pt-2 text-[11px] leading-relaxed text-slate-500">
                 Supplier sync, material ordering, hard delete, and template/proposal import are not
-                live. Purchase tax stays internal.
+                live. Purchase tax remains internal contractor metadata.
               </p>
             </div>
           </details>

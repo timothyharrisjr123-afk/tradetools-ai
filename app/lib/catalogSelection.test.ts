@@ -16,7 +16,10 @@ import {
   CATALOG_BULK_LIVE_ACTIONS,
   CATALOG_BULK_PLANNED_ACTIONS,
   applyCatalogBulkAction,
+  applyCatalogBulkPurchaseTax,
+  formatCatalogBulkPurchaseTaxResultMessage,
   formatCatalogBulkResultMessage,
+  resolveBulkPurchaseTaxRate,
 } from "./catalogBulkActions";
 
 describe("catalogSelection", () => {
@@ -71,6 +74,11 @@ describe("catalogBulkActions", () => {
     assert.ok(liveIds.has("mark_inactive"));
     assert.ok(liveIds.has("proposal_visible"));
     assert.ok(liveIds.has("proposal_hidden"));
+    assert.ok(liveIds.has("bulk_purchase_tax"));
+    assert.equal(
+      CATALOG_BULK_PLANNED_ACTIONS.some((a) => a.id === "bulk_purchase_tax"),
+      false
+    );
   });
 
   test("applyCatalogBulkAction marks inactive sequentially via adapter", async () => {
@@ -147,5 +155,125 @@ describe("catalogBulkActions", () => {
     });
     assert.equal(result.ok, true);
     assert.deepEqual(calls, ["x:internal_only"]);
+  });
+});
+
+describe("catalogBulkPurchaseTax", () => {
+  test("resolveBulkPurchaseTaxRate accepts decimals and rejects invalid set values", () => {
+    assert.deepEqual(resolveBulkPurchaseTaxRate("set", "7.25"), {
+      ok: true,
+      rate: 7.25,
+    });
+    assert.deepEqual(resolveBulkPurchaseTaxRate("set", "0"), { ok: true, rate: 0 });
+    assert.deepEqual(resolveBulkPurchaseTaxRate("set", "100"), {
+      ok: true,
+      rate: 100,
+    });
+    assert.equal(resolveBulkPurchaseTaxRate("set", "").ok, false);
+    assert.equal(resolveBulkPurchaseTaxRate("set", "   ").ok, false);
+    assert.match(resolveBulkPurchaseTaxRate("set", "-1").error ?? "", /negative/i);
+    assert.match(resolveBulkPurchaseTaxRate("set", "100.01").error ?? "", /exceed/i);
+    assert.match(resolveBulkPurchaseTaxRate("set", "5abc").error ?? "", /valid number/i);
+    assert.match(resolveBulkPurchaseTaxRate("set", "NaN").error ?? "", /valid number/i);
+    assert.match(resolveBulkPurchaseTaxRate("set", "Infinity").error ?? "", /valid number/i);
+  });
+
+  test("resolveBulkPurchaseTaxRate clear always yields null", () => {
+    assert.deepEqual(resolveBulkPurchaseTaxRate("clear", ""), { ok: true, rate: null });
+    assert.deepEqual(resolveBulkPurchaseTaxRate("clear", "7.25"), {
+      ok: true,
+      rate: null,
+    });
+  });
+
+  test("applyCatalogBulkPurchaseTax sets only purchase tax via adapter", async () => {
+    const patches: Array<{ id: string; rate: number | null }> = [];
+    const result = await applyCatalogBulkPurchaseTax({
+      companyId: "11111111-1111-4111-8111-111111111111",
+      selectedIds: ["a", "b"],
+      purchaseTaxRatePct: 7.25,
+      adapters: {
+        updatePurchaseTax: async (id, purchaseTaxRatePct) => {
+          patches.push({ id, rate: purchaseTaxRatePct });
+          return {
+            id,
+            company_id: "11111111-1111-4111-8111-111111111111",
+            name: id,
+            item_type: "material",
+            unit: "each",
+            quantity_source: "fixed",
+            pricing_basis: "unit_price",
+            customer_visibility: "customer_visible",
+            active: true,
+            sales_tax_rate_pct: 8.25,
+            purchase_tax_rate_pct: purchaseTaxRatePct,
+            abc_sku: "KEEP-SKU",
+          };
+        },
+      },
+    });
+    assert.equal(result.ok, true);
+    assert.deepEqual(patches, [
+      { id: "a", rate: 7.25 },
+      { id: "b", rate: 7.25 },
+    ]);
+    assert.match(
+      formatCatalogBulkPurchaseTaxResultMessage("set", result),
+      /purchase tax/i
+    );
+  });
+
+  test("applyCatalogBulkPurchaseTax clear sets null", async () => {
+    const rates: Array<number | null> = [];
+    const result = await applyCatalogBulkPurchaseTax({
+      companyId: "11111111-1111-4111-8111-111111111111",
+      selectedIds: ["x"],
+      purchaseTaxRatePct: null,
+      adapters: {
+        updatePurchaseTax: async (_id, purchaseTaxRatePct) => {
+          rates.push(purchaseTaxRatePct);
+          return {
+            id: "x",
+            company_id: "11111111-1111-4111-8111-111111111111",
+            name: "x",
+            item_type: "material",
+            unit: "each",
+            quantity_source: "fixed",
+            pricing_basis: "unit_price",
+            customer_visibility: "customer_visible",
+            active: false,
+            purchase_tax_rate_pct: purchaseTaxRatePct,
+          };
+        },
+      },
+    });
+    assert.equal(result.ok, true);
+    assert.deepEqual(rates, [null]);
+    assert.match(
+      formatCatalogBulkPurchaseTaxResultMessage("clear", result),
+      /cleared purchase tax/i
+    );
+  });
+
+  test("applyCatalogBulkPurchaseTax stops on first failure", async () => {
+    let calls = 0;
+    const result = await applyCatalogBulkPurchaseTax({
+      companyId: "11111111-1111-4111-8111-111111111111",
+      selectedIds: ["a", "b"],
+      purchaseTaxRatePct: 1,
+      adapters: {
+        updatePurchaseTax: async () => {
+          calls++;
+          return null;
+        },
+      },
+    });
+    assert.equal(result.ok, false);
+    assert.equal(calls, 1);
+    assert.equal(result.successCount, 0);
+    assert.match(
+      formatCatalogBulkPurchaseTaxResultMessage("set", result),
+      /failed/i
+    );
   });
 });
