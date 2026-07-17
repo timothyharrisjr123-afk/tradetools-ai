@@ -14,6 +14,7 @@ import {
   CATALOG_COMMAND_BAR_ACTIVE_CONTROLS,
   CATALOG_COMMAND_BAR_PLANNED_CONTROLS,
   CATALOG_COMING_SOON_LABEL,
+  CATALOG_FIELD_HELPERS,
   CATALOG_FILTERS_SORT_LABEL,
   CATALOG_MANAGE_MENU_ITEMS,
   CATALOG_PAGE_SUBTITLE,
@@ -201,7 +202,11 @@ describe("Catalog P0B–P0D page shell", () => {
     const csvTool = CATALOG_SETTINGS_PLANNED_TOOLS.find((t) => t.id === "csv");
     assert.ok(csvTool);
     assert.match(csvTool!.detail, /CSV v1 is live/i);
-    assert.match(csvTool!.detail, /reserved only/i);
+    assert.match(csvTool!.detail, /Supplier SKU fields persist/i);
+    const supplierTool = CATALOG_SETTINGS_PLANNED_TOOLS.find((t) => t.id === "supplier");
+    assert.ok(supplierTool);
+    assert.match(supplierTool!.detail, /SKU storage is live/i);
+    assert.match(supplierTool!.detail, /remain Planned/i);
   });
 
   test("load failure retry path is available and empty install is load-error gated", () => {
@@ -247,6 +252,29 @@ describe("Catalog P0B–P0D page shell", () => {
     assert.ok(!table.includes("purchase_tax_rate_pct"));
   });
 
+  test("supplier SKU storage appears on add/edit; no sync claim; table stays clean", () => {
+    const edit = readAdminComponent("CatalogItemDetailPanel.tsx");
+    const add = readAdminComponent("AddCatalogItemModal.tsx");
+    assert.match(add, /data-catalog-supplier="add"/);
+    assert.match(edit, /data-catalog-supplier="edit"/);
+    assert.ok(add.includes("CATALOG_CONTRACTOR_LABELS.abcSku"));
+    assert.ok(add.includes("CATALOG_CONTRACTOR_LABELS.qxoSku"));
+    assert.ok(add.includes("CATALOG_CONTRACTOR_LABELS.srsSku"));
+    assert.ok(add.includes("CATALOG_FIELD_HELPERS.supplierSection"));
+    assert.ok(edit.includes("CATALOG_FIELD_HELPERS.supplierSection"));
+    assert.match(CATALOG_FIELD_HELPERS.supplierSection, /No supplier sync is active yet/i);
+    assert.equal(
+      /supplier is connected|prices refresh|sync is live/i.test(
+        add + edit + CATALOG_FIELD_HELPERS.supplierSection
+      ),
+      false
+    );
+    const table = readAdminComponent("CatalogItemTable.tsx");
+    assert.ok(!table.includes("abc_sku"));
+    assert.ok(!table.includes("qxo_sku"));
+    assert.ok(!table.includes("srs_sku"));
+  });
+
   test("Customer Preview sources stay free of purchase tax catalog fields", () => {
     const files = [
       "app/lib/proposalCustomerEstimatePresenter.ts",
@@ -257,6 +285,9 @@ describe("Catalog P0B–P0D page shell", () => {
       const source = readFileSync(join(process.cwd(), rel), "utf8");
       assert.ok(!source.includes("purchase_tax_rate_pct"), rel);
       assert.ok(!source.includes("Material purchase tax"), rel);
+      assert.ok(!source.includes("abc_sku"), rel);
+      assert.ok(!source.includes("qxo_sku"), rel);
+      assert.ok(!source.includes("srs_sku"), rel);
     }
   });
 

@@ -329,6 +329,45 @@ describe("buildCatalogCreateDraft / buildCatalogUpdatePatch", () => {
     assert.equal(filled.purchase_tax_rate_pct, "6");
   });
 
+  test("create/update include supplier SKUs; blank clears; overlong rejected", () => {
+    const built = buildCatalogCreateDraft("00000000-0000-4000-8000-000000000001", {
+      ...EMPTY_ADD_CATALOG_FORM,
+      name: "SKU material",
+      abc_sku: " ABC-1 ",
+      qxo_sku: "QXO/2",
+      srs_sku: "SRS_3",
+    });
+    assert.equal(built.ok, true);
+    if (!built.ok) return;
+    assert.equal(built.draft.abc_sku, "ABC-1");
+    assert.equal(built.draft.qxo_sku, "QXO/2");
+    assert.equal(built.draft.srs_sku, "SRS_3");
+
+    const cleared = buildCatalogUpdatePatch(
+      item({ id: "1", abc_sku: "OLD", qxo_sku: "OLD", srs_sku: "OLD" }),
+      {
+        ...buildEditDraftFromItem(
+          item({ id: "1", abc_sku: "OLD", qxo_sku: "OLD", srs_sku: "OLD" })
+        ),
+        abc_sku: "",
+        qxo_sku: "",
+        srs_sku: "",
+      }
+    );
+    assert.equal(cleared.ok, true);
+    if (!cleared.ok) return;
+    assert.equal(cleared.patch.abc_sku, null);
+    assert.equal(cleared.patch.qxo_sku, null);
+    assert.equal(cleared.patch.srs_sku, null);
+
+    const overlong = buildCatalogCreateDraft("00000000-0000-4000-8000-000000000001", {
+      ...EMPTY_ADD_CATALOG_FORM,
+      name: "Bad SKU",
+      abc_sku: "X".repeat(129),
+    });
+    assert.equal(overlong.ok, false);
+  });
+
   test("create with coverage and null basis is allowed but not_verified", () => {
     const built = buildCatalogCreateDraft("00000000-0000-4000-8000-000000000001", {
       ...EMPTY_ADD_CATALOG_FORM,

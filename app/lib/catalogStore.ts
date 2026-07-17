@@ -48,6 +48,12 @@ export type CatalogItemRow = {
   sales_tax_rate_pct?: number | string | null;
   /** Internal material purchase tax capture (percent points). Never customer-facing. */
   purchase_tax_rate_pct?: number | string | null;
+  /** Contractor/internal ABC supplier SKU. Not customer-facing. No sync implied. */
+  abc_sku?: string | null;
+  /** Contractor/internal QXO supplier SKU. Not customer-facing. No sync implied. */
+  qxo_sku?: string | null;
+  /** Contractor/internal SRS supplier SKU. Not customer-facing. No sync implied. */
+  srs_sku?: string | null;
   unit_cost_cents?: number | string | null;
   unit_price_cents?: number | string | null;
   labor_unit_cost_cents?: number | string | null;
@@ -66,7 +72,7 @@ export type CatalogItemInsertRow = Partial<CatalogItemRow>;
 export type CatalogItemUpdateRow = Partial<CatalogItemRow>;
 
 const CATALOG_ITEM_SELECT_COLUMNS =
-  "id, company_id, name, customer_name, description, item_type, unit, quantity_source, default_quantity, coverage_rate, coverage_basis, waste_applies, waste_pct, sales_tax_rate_pct, purchase_tax_rate_pct, unit_cost_cents, unit_price_cents, labor_unit_cost_cents, pricing_basis, customer_visibility, active, sort_order, metadata, created_by, updated_by, created_at, updated_at";
+  "id, company_id, name, customer_name, description, item_type, unit, quantity_source, default_quantity, coverage_rate, coverage_basis, waste_applies, waste_pct, sales_tax_rate_pct, purchase_tax_rate_pct, abc_sku, qxo_sku, srs_sku, unit_cost_cents, unit_price_cents, labor_unit_cost_cents, pricing_basis, customer_visibility, active, sort_order, metadata, created_by, updated_by, created_at, updated_at";
 
 function normalizeCoverageBasis(value: unknown): CoverageBasis | null {
   if (value == null || value === "") return null;
@@ -157,6 +163,9 @@ export function rowToCatalogItem(row: CatalogItemRow): CatalogItem {
     waste_pct: normalizeNullableNumber(row.waste_pct),
     sales_tax_rate_pct: normalizeNullableNumber(row.sales_tax_rate_pct),
     purchase_tax_rate_pct: normalizeNullableNumber(row.purchase_tax_rate_pct),
+    abc_sku: normalizeNullableString(row.abc_sku),
+    qxo_sku: normalizeNullableString(row.qxo_sku),
+    srs_sku: normalizeNullableString(row.srs_sku),
     unit_cost_cents: normalizeNullableInteger(row.unit_cost_cents),
     unit_price_cents: normalizeNullableInteger(row.unit_price_cents),
     labor_unit_cost_cents: normalizeNullableInteger(row.labor_unit_cost_cents),
@@ -239,6 +248,12 @@ function draftToRowFields(
       draft.purchase_tax_rate_pct !== undefined
         ? normalizeNullableNumber(draft.purchase_tax_rate_pct)
         : undefined,
+    abc_sku:
+      draft.abc_sku !== undefined ? normalizeNullableString(draft.abc_sku) : undefined,
+    qxo_sku:
+      draft.qxo_sku !== undefined ? normalizeNullableString(draft.qxo_sku) : undefined,
+    srs_sku:
+      draft.srs_sku !== undefined ? normalizeNullableString(draft.srs_sku) : undefined,
     unit_cost_cents:
       draft.unit_cost_cents !== undefined
         ? normalizeNullableInteger(draft.unit_cost_cents)

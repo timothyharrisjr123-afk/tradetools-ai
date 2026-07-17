@@ -129,6 +129,21 @@ export type CatalogItem = {
    * Never customer-facing. Capture only — not applied to proposal/customer output yet.
    */
   purchase_tax_rate_pct?: number | null;
+  /**
+   * Contractor/internal ABC supplier SKU. Not customer-facing.
+   * Storage only — does not imply supplier sync or material ordering.
+   */
+  abc_sku?: string | null;
+  /**
+   * Contractor/internal QXO (Beacon) supplier SKU. Not customer-facing.
+   * Storage only — does not imply supplier sync or material ordering.
+   */
+  qxo_sku?: string | null;
+  /**
+   * Contractor/internal SRS supplier SKU. Not customer-facing.
+   * Storage only — does not imply supplier sync or material ordering.
+   */
+  srs_sku?: string | null;
   unit_cost_cents?: number | null;
   unit_price_cents?: number | null;
   labor_unit_cost_cents?: number | null;

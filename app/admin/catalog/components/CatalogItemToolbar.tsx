@@ -305,8 +305,8 @@ export default function CatalogItemToolbar({
                   })}
                 </ul>
                 <p className="mt-2 border-t border-slate-100 px-1.5 pt-2 text-[11px] leading-relaxed text-slate-500">
-                  CSV v1 template, export, and preview import are live. Suppliers, Jumpstart,
-                  reorder, and bulk purchase tax remain planned.
+                  CSV v1 template, export, and preview import are live (including supplier SKU
+                  fields). Supplier sync, Jumpstart, reorder, and bulk purchase tax remain planned.
                 </p>
               </div>
             </details>

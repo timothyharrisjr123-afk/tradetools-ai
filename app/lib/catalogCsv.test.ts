@@ -248,23 +248,77 @@ describe("catalogCsv", () => {
   });
 
   test("export round-trip", () => {
-    const existing = item();
+    const existing = item({
+      abc_sku: "ABC-100",
+      qxo_sku: "QXO/200",
+      srs_sku: "SRS_300",
+    });
     const exported = buildCatalogCsvExport([existing]);
     const result = analyzeCatalogCsv(exported, [existing]);
     assert.equal(result.ok, true);
     assert.equal(result.summary.unchangedCount, 1);
     assert.equal(result.rows[0].action, "unchanged");
     const raw = catalogItemToCsvRawRow(existing);
-    assert.equal(raw.abc_sku, "");
+    assert.equal(raw.abc_sku, "ABC-100");
+    assert.equal(raw.qxo_sku, "QXO/200");
+    assert.equal(raw.srs_sku, "SRS_300");
     assert.equal(raw.purchase_tax_rate_pct, "");
   });
 
-  test("reserved supplier SKU values warn and do not invalidate", () => {
-    const text = csv([headerRow(), createRow({ abc_sku: "ABC-1" })]);
+  test("import create with supplier SKUs persists values (no sync warning)", () => {
+    const text = csv([
+      headerRow(),
+      createRow({ abc_sku: "ABC-1", qxo_sku: "QXO-2", srs_sku: "SRS-3" }),
+    ]);
     const result = analyzeCatalogCsv(text, []);
     assert.equal(result.ok, true);
     assert.equal(result.rows[0].action, "create");
-    assert.ok(result.rows[0].warnings.some((w) => /abc_sku/i.test(w) && /reserved/i.test(w)));
+    assert.equal(result.rows[0].values?.abc_sku, "ABC-1");
+    assert.equal(result.rows[0].values?.qxo_sku, "QXO-2");
+    assert.equal(result.rows[0].values?.srs_sku, "SRS-3");
+    assert.equal(
+      result.rows[0].warnings.some((w) => /reserved|not imported/i.test(w)),
+      false
+    );
+  });
+
+  test("update changes supplier SKUs and blank clears them", () => {
+    const existing = item({ abc_sku: "OLD-A", qxo_sku: "OLD-Q", srs_sku: "OLD-S" });
+    const updateText = csv([
+      headerRow(),
+      createRow({
+        id: ITEM_ID,
+        name: existing.name,
+        description: existing.description ?? "",
+        item_type: existing.item_type,
+        quantity_source: existing.quantity_source,
+        unit: existing.unit,
+        unit_cost: "10.00",
+        unit_price: "25.00",
+        coverage: "3",
+        coverage_basis: "roof_square",
+        waste_applies: "true",
+        waste_pct: "10",
+        sales_tax_rate_pct: "8.25",
+        abc_sku: "NEW-A",
+        qxo_sku: "",
+        srs_sku: "NEW-S",
+      }),
+    ]);
+    const updateResult = analyzeCatalogCsv(updateText, [existing]);
+    assert.equal(updateResult.ok, true);
+    assert.equal(updateResult.rows[0].action, "update");
+    assert.equal(updateResult.rows[0].values?.abc_sku, "NEW-A");
+    assert.equal(updateResult.rows[0].values?.qxo_sku, null);
+    assert.equal(updateResult.rows[0].values?.srs_sku, "NEW-S");
+  });
+
+  test("invalid overlong SKU blocks row", () => {
+    const text = csv([headerRow(), createRow({ abc_sku: "X".repeat(129) })]);
+    const result = analyzeCatalogCsv(text, []);
+    assert.equal(result.ok, false);
+    assert.equal(result.rows[0].action, "invalid");
+    assert.ok(result.rows[0].errors.some((e) => /ABC SKU/i.test(e) && /128/i.test(e)));
   });
 
   test("applyCatalogCsvImport creates and updates via adapters", async () => {
@@ -318,6 +372,65 @@ describe("catalogCsv", () => {
     assert.equal(created[0].name, "CSV smoke create");
     assert.equal(updated[0].patch.active, false);
     assert.equal(updated[0].patch.description, "Patched");
+  });
+
+  test("applyCatalogCsvImport writes supplier SKUs on create/update", async () => {
+    const existing = item({ abc_sku: null, qxo_sku: null, srs_sku: null });
+    const text = csv([
+      headerRow(),
+      createRow({
+        name: "SKU create",
+        abc_sku: "A-1",
+        qxo_sku: "Q-1",
+        srs_sku: "S-1",
+      }),
+      createRow({
+        id: ITEM_ID,
+        name: existing.name,
+        description: existing.description ?? "",
+        item_type: existing.item_type,
+        quantity_source: existing.quantity_source,
+        unit: existing.unit,
+        unit_cost: "10.00",
+        unit_price: "25.00",
+        coverage: "3",
+        coverage_basis: "roof_square",
+        waste_applies: "true",
+        waste_pct: "10",
+        sales_tax_rate_pct: "8.25",
+        abc_sku: "A-2",
+        qxo_sku: "",
+        srs_sku: "S-2",
+      }),
+    ]);
+    const analysis = analyzeCatalogCsv(text, [existing]);
+    assert.equal(analysis.ok, true);
+    let createdSkus: Partial<CatalogItem> | null = null;
+    let updatedSkus: Partial<CatalogItem> | null = null;
+    const write = await applyCatalogCsvImport({
+      companyId: COMPANY_A,
+      analysis,
+      existingItems: [existing],
+      createItem: async (draft) => {
+        createdSkus = {
+          abc_sku: draft.abc_sku,
+          qxo_sku: draft.qxo_sku,
+          srs_sku: draft.srs_sku,
+        };
+        return { id: "44444444-4444-4444-8444-444444444444", ...draft };
+      },
+      updateItem: async (id, patch) => {
+        updatedSkus = {
+          abc_sku: patch.abc_sku,
+          qxo_sku: patch.qxo_sku,
+          srs_sku: patch.srs_sku,
+        };
+        return { ...existing, ...patch, id };
+      },
+    });
+    assert.equal(write.ok, true);
+    assert.deepEqual(createdSkus, { abc_sku: "A-1", qxo_sku: "Q-1", srs_sku: "S-1" });
+    assert.deepEqual(updatedSkus, { abc_sku: "A-2", qxo_sku: null, srs_sku: "S-2" });
   });
 
   test("blank active on update leaves active unset in patch builder path", async () => {

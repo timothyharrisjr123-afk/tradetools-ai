@@ -227,6 +227,56 @@ describe("catalogStore item tax mapper", () => {
   });
 });
 
+describe("catalogStore supplier SKU mapper", () => {
+  test("rowToCatalogItem maps null and missing SKUs as null", () => {
+    assert.equal(rowToCatalogItem(baseRow({ abc_sku: null })).abc_sku, null);
+    assert.equal(rowToCatalogItem(baseRow({ qxo_sku: null })).qxo_sku, null);
+    assert.equal(rowToCatalogItem(baseRow({ srs_sku: null })).srs_sku, null);
+    const missing = baseRow();
+    delete missing.abc_sku;
+    delete missing.qxo_sku;
+    delete missing.srs_sku;
+    const item = rowToCatalogItem(missing);
+    assert.equal(item.abc_sku, null);
+    assert.equal(item.qxo_sku, null);
+    assert.equal(item.srs_sku, null);
+  });
+
+  test("rowToCatalogItem maps valid SKU values", () => {
+    const item = rowToCatalogItem(
+      baseRow({ abc_sku: "ABC-1", qxo_sku: "QXO/2", srs_sku: "SRS_3" })
+    );
+    assert.equal(item.abc_sku, "ABC-1");
+    assert.equal(item.qxo_sku, "QXO/2");
+    assert.equal(item.srs_sku, "SRS_3");
+  });
+
+  test("create/update payloads include SKUs when set; blank becomes null", () => {
+    const insert = catalogItemDraftToInsertRow(
+      baseDraft({ abc_sku: "ABC-1", qxo_sku: "QXO/2", srs_sku: "SRS_3" })
+    );
+    assert.equal(insert.abc_sku, "ABC-1");
+    assert.equal(insert.qxo_sku, "QXO/2");
+    assert.equal(insert.srs_sku, "SRS_3");
+
+    const patched = catalogItemPatchToUpdateRow({
+      abc_sku: null,
+      qxo_sku: "  ",
+      srs_sku: "SRS_9",
+    });
+    assert.equal(patched.abc_sku, null);
+    assert.equal(patched.qxo_sku, null);
+    assert.equal(patched.srs_sku, "SRS_9");
+  });
+
+  test("insert omits SKU fields when draft does not set them", () => {
+    const insert = catalogItemDraftToInsertRow(baseDraft());
+    assert.equal("abc_sku" in insert, false);
+    assert.equal("qxo_sku" in insert, false);
+    assert.equal("srs_sku" in insert, false);
+  });
+});
+
 describe("CatalogItemsLoadResult contract", () => {
   test("success with rows, success empty, and failed read are distinct shapes", () => {
     const withRows: CatalogItemsLoadResult = {

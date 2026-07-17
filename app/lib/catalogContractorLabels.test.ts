@@ -102,6 +102,18 @@ describe("catalogContractorLabels", () => {
     assert.equal(/proposal totals are updated|line-tax math is active/i.test(CATALOG_FIELD_HELPERS.salesTax), false);
   });
 
+  test("supplier SKU labels and helpers are storage-only with no sync claim", () => {
+    assert.equal(CATALOG_CONTRACTOR_LABELS.abcSku, "ABC SKU");
+    assert.equal(CATALOG_CONTRACTOR_LABELS.qxoSku, "QXO SKU");
+    assert.equal(CATALOG_CONTRACTOR_LABELS.srsSku, "SRS SKU");
+    assert.match(CATALOG_FIELD_HELPERS.supplierSection, /No supplier sync is active yet/i);
+    assert.equal(/supplier is connected|prices refresh|sync is live/i.test(CATALOG_FIELD_HELPERS.supplierSection), false);
+    const supplierTool = CATALOG_SETTINGS_PLANNED_TOOLS.find((t) => t.id === "supplier");
+    assert.ok(supplierTool);
+    assert.match(supplierTool!.detail, /SKU storage is live/i);
+    assert.match(supplierTool!.detail, /remain Planned/i);
+  });
+
   test("filter options include Materials, Labor, Fees & Other, Needs price", () => {
     const labels = CATALOG_CONTRACTOR_FILTER_OPTIONS.map((option) => option.label);
     assert.deepEqual(labels, ["All", "Materials", "Labor", "Fees & Other", "Needs price"]);

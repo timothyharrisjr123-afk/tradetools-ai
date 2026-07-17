@@ -389,6 +389,68 @@ export default function AddCatalogItemModal({
           </div>
         </section>
 
+        <section className="mt-5 border-t border-slate-200 pt-4" data-catalog-supplier="add">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            {CATALOG_CONTRACTOR_LABELS.supplier}
+            <span className="ml-1 font-normal normal-case tracking-normal text-slate-500">
+              (internal)
+            </span>
+          </h3>
+          <p className="mt-1.5 text-xs leading-relaxed text-slate-500">
+            {CATALOG_FIELD_HELPERS.supplierSection}
+          </p>
+          <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <label className="block text-sm">
+              <span className="mb-1.5 block text-xs font-medium text-slate-700">
+                {CATALOG_CONTRACTOR_LABELS.abcSku}
+              </span>
+              <input
+                type="text"
+                placeholder="Optional"
+                className={FIELD_INPUT}
+                value={form.abc_sku}
+                onChange={(e) => onChange("abc_sku", e.target.value)}
+                disabled={creatingItem}
+                aria-label={CATALOG_CONTRACTOR_LABELS.abcSku}
+                data-catalog-abc-sku="add"
+              />
+              <FieldHelper text={CATALOG_FIELD_HELPERS.abcSku} />
+            </label>
+            <label className="block text-sm">
+              <span className="mb-1.5 block text-xs font-medium text-slate-700">
+                {CATALOG_CONTRACTOR_LABELS.qxoSku}
+              </span>
+              <input
+                type="text"
+                placeholder="Optional"
+                className={FIELD_INPUT}
+                value={form.qxo_sku}
+                onChange={(e) => onChange("qxo_sku", e.target.value)}
+                disabled={creatingItem}
+                aria-label={CATALOG_CONTRACTOR_LABELS.qxoSku}
+                data-catalog-qxo-sku="add"
+              />
+              <FieldHelper text={CATALOG_FIELD_HELPERS.qxoSku} />
+            </label>
+            <label className="block text-sm">
+              <span className="mb-1.5 block text-xs font-medium text-slate-700">
+                {CATALOG_CONTRACTOR_LABELS.srsSku}
+              </span>
+              <input
+                type="text"
+                placeholder="Optional"
+                className={FIELD_INPUT}
+                value={form.srs_sku}
+                onChange={(e) => onChange("srs_sku", e.target.value)}
+                disabled={creatingItem}
+                aria-label={CATALOG_CONTRACTOR_LABELS.srsSku}
+                data-catalog-srs-sku="add"
+              />
+              <FieldHelper text={CATALOG_FIELD_HELPERS.srsSku} />
+            </label>
+          </div>
+        </section>
+
         <div className="mt-5 flex flex-wrap justify-end gap-2 border-t border-slate-200 pt-4">
           <button
             type="button"

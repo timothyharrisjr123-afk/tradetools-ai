@@ -59,7 +59,7 @@ export default function CatalogCsvImportModal({
           </h2>
           <p className="mt-1 text-sm text-slate-600">
             Preview and validate before import. Invalid rows block the whole import. Supplier SKU
-            columns are reserved and are not saved yet.
+            fields are saved on catalog items; no supplier sync runs.
           </p>
         </div>
 

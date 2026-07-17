@@ -47,6 +47,12 @@ export type CatalogItemEditDraft = {
   sales_tax_rate_pct: string;
   /** Empty string = null. Internal only — never customer-facing. */
   purchase_tax_rate_pct: string;
+  /** Empty string = null. Internal supplier SKU — no sync implied. */
+  abc_sku: string;
+  /** Empty string = null. Internal supplier SKU — no sync implied. */
+  qxo_sku: string;
+  /** Empty string = null. Internal supplier SKU — no sync implied. */
+  srs_sku: string;
 };
 
 export type AddCatalogItemForm = {
@@ -66,6 +72,9 @@ export type AddCatalogItemForm = {
   waste_pct: string;
   sales_tax_rate_pct: string;
   purchase_tax_rate_pct: string;
+  abc_sku: string;
+  qxo_sku: string;
+  srs_sku: string;
 };
 
 export const EMPTY_ADD_CATALOG_FORM: AddCatalogItemForm = {
@@ -85,10 +94,16 @@ export const EMPTY_ADD_CATALOG_FORM: AddCatalogItemForm = {
   waste_pct: "",
   sales_tax_rate_pct: "",
   purchase_tax_rate_pct: "",
+  abc_sku: "",
+  qxo_sku: "",
+  srs_sku: "",
 };
 
 /** Catalog item tax capture bound — matches company sales-tax isFinitePct (0..100). */
 export const CATALOG_TAX_RATE_PCT_MAX = 100;
+
+/** Matches DB CHECK char_length 1..128 on catalog_items.*_sku. */
+export const CATALOG_SUPPLIER_SKU_MAX_LENGTH = 128;
 
 export function extractSeedKey(metadata: Record<string, unknown> | null | undefined): string | null {
   if (metadata == null || typeof metadata !== "object" || Array.isArray(metadata)) {
@@ -224,6 +239,81 @@ export function parseTaxRatePctOrNull(
     };
   }
   return { value: parsed.value, error: null };
+}
+
+/**
+ * Parse a supplier SKU string field.
+ * Empty → null. Trim only. Reject control chars and overlong values.
+ * Preserves ordinary supplier formats (letters, numbers, -, _, /, spaces).
+ */
+export function parseSupplierSkuOrNull(
+  value: string,
+  fieldLabel: string
+): { value: string | null; error: string | null } {
+  const trimmed = value.trim();
+  if (!trimmed) return { value: null, error: null };
+  if (trimmed.length > CATALOG_SUPPLIER_SKU_MAX_LENGTH) {
+    return {
+      value: null,
+      error: `${fieldLabel} cannot exceed ${CATALOG_SUPPLIER_SKU_MAX_LENGTH} characters.`,
+    };
+  }
+  // Reject C0/C1 control characters (including tabs/newlines) — SKUs are single-line identifiers.
+  if (/[\u0000-\u001F\u007F-\u009F]/.test(trimmed)) {
+    return {
+      value: null,
+      error: `${fieldLabel} contains invalid characters.`,
+    };
+  }
+  return { value: trimmed, error: null };
+}
+
+export function parseCatalogSupplierSkus(input: {
+  abc_sku: string;
+  qxo_sku: string;
+  srs_sku: string;
+}): {
+  abc_sku: string | null;
+  qxo_sku: string | null;
+  srs_sku: string | null;
+  error: string | null;
+} {
+  const abc = parseSupplierSkuOrNull(input.abc_sku, CATALOG_CONTRACTOR_LABELS.abcSku);
+  if (abc.error) {
+    return { abc_sku: null, qxo_sku: null, srs_sku: null, error: abc.error };
+  }
+  const qxo = parseSupplierSkuOrNull(input.qxo_sku, CATALOG_CONTRACTOR_LABELS.qxoSku);
+  if (qxo.error) {
+    return { abc_sku: null, qxo_sku: null, srs_sku: null, error: qxo.error };
+  }
+  const srs = parseSupplierSkuOrNull(input.srs_sku, CATALOG_CONTRACTOR_LABELS.srsSku);
+  if (srs.error) {
+    return { abc_sku: null, qxo_sku: null, srs_sku: null, error: srs.error };
+  }
+  return {
+    abc_sku: abc.value,
+    qxo_sku: qxo.value,
+    srs_sku: srs.value,
+    error: null,
+  };
+}
+
+/** Display helper for detail summary — null means no supplier SKU linked. */
+export function formatCatalogSupplierSkuDisplay(
+  value: string | null | undefined
+): string {
+  const trimmed = value?.trim() ?? "";
+  return trimmed.length > 0 ? trimmed : "Not linked";
+}
+
+export function formatCatalogSupplierSkusSummary(
+  item: Pick<CatalogItem, "abc_sku" | "qxo_sku" | "srs_sku">
+): string {
+  const parts: string[] = [];
+  if (item.abc_sku?.trim()) parts.push(`ABC ${item.abc_sku.trim()}`);
+  if (item.qxo_sku?.trim()) parts.push(`QXO ${item.qxo_sku.trim()}`);
+  if (item.srs_sku?.trim()) parts.push(`SRS ${item.srs_sku.trim()}`);
+  return parts.length > 0 ? parts.join(" · ") : "No supplier SKUs";
 }
 
 export function parseCatalogTaxRates(input: {
@@ -404,6 +494,9 @@ export function buildEditDraftFromItem(item: CatalogItem): CatalogItemEditDraft 
     waste_pct: formatNullableNumberForInput(item.waste_pct),
     sales_tax_rate_pct: formatNullableNumberForInput(item.sales_tax_rate_pct),
     purchase_tax_rate_pct: formatNullableNumberForInput(item.purchase_tax_rate_pct),
+    abc_sku: item.abc_sku?.trim() ?? "",
+    qxo_sku: item.qxo_sku?.trim() ?? "",
+    srs_sku: item.srs_sku?.trim() ?? "",
   };
 }
 
@@ -418,6 +511,9 @@ export function catalogItemSearchHaystack(item: CatalogItem): string {
     item.customer_name ?? "",
     item.description ?? "",
     seedKey,
+    item.abc_sku ?? "",
+    item.qxo_sku ?? "",
+    item.srs_sku ?? "",
     item.item_type,
     catalogItemTypeLabel(item.item_type),
     item.unit,
@@ -482,6 +578,15 @@ export function buildCatalogCreateDraft(
     return { ok: false, error: taxRates.error };
   }
 
+  const supplierSkus = parseCatalogSupplierSkus({
+    abc_sku: form.abc_sku,
+    qxo_sku: form.qxo_sku,
+    srs_sku: form.srs_sku,
+  });
+  if (supplierSkus.error) {
+    return { ok: false, error: supplierSkus.error };
+  }
+
   const coverageCompatibility = classifyCatalogCoverageCompatibility({
     quantity_source: form.quantity_source,
     unit: form.unit,
@@ -514,6 +619,9 @@ export function buildCatalogCreateDraft(
       waste_pct: quantityDrivers.waste_pct,
       sales_tax_rate_pct: taxRates.sales_tax_rate_pct,
       purchase_tax_rate_pct: taxRates.purchase_tax_rate_pct,
+      abc_sku: supplierSkus.abc_sku,
+      qxo_sku: supplierSkus.qxo_sku,
+      srs_sku: supplierSkus.srs_sku,
       metadata: null,
     },
   };
@@ -572,6 +680,15 @@ export function buildCatalogUpdatePatch(
     return { ok: false, error: taxRates.error };
   }
 
+  const supplierSkus = parseCatalogSupplierSkus({
+    abc_sku: editDraft.abc_sku,
+    qxo_sku: editDraft.qxo_sku,
+    srs_sku: editDraft.srs_sku,
+  });
+  if (supplierSkus.error) {
+    return { ok: false, error: supplierSkus.error };
+  }
+
   const coverageCompatibility = classifyCatalogCoverageCompatibility({
     quantity_source: item.quantity_source,
     unit: item.unit,
@@ -595,6 +712,9 @@ export function buildCatalogUpdatePatch(
     waste_pct: quantityDrivers.waste_pct,
     sales_tax_rate_pct: taxRates.sales_tax_rate_pct,
     purchase_tax_rate_pct: taxRates.purchase_tax_rate_pct,
+    abc_sku: supplierSkus.abc_sku,
+    qxo_sku: supplierSkus.qxo_sku,
+    srs_sku: supplierSkus.srs_sku,
   };
 
   if (item.item_type === "labor") {

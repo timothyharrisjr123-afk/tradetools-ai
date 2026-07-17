@@ -107,7 +107,7 @@ export const CATALOG_SETTINGS_PLANNED_TOOLS = [
     id: "csv",
     title: "Manage catalog CSV import/export",
     detail:
-      "CSV v1 is live on All items (template, export, preview import). Supplier SKU columns are reserved only — not persisted yet.",
+      "CSV v1 is live on All items (template, export, preview import). Supplier SKU fields persist on catalog items; supplier sync remains planned.",
   },
   {
     id: "reorder",
@@ -123,7 +123,8 @@ export const CATALOG_SETTINGS_PLANNED_TOOLS = [
   {
     id: "supplier",
     title: "Supplier integrations",
-    detail: "ABC, QXO, and supplier pricing — Planned (not connected).",
+    detail:
+      "ABC / QXO / SRS SKU storage is live on catalog items. Supplier pricing sync and connections remain Planned (not connected).",
   },
 ] as const;
 
@@ -162,6 +163,10 @@ export const CATALOG_CONTRACTOR_LABELS = {
   tax: "Tax",
   salesTax: "Sales tax",
   purchaseTax: "Material purchase tax",
+  supplier: "Supplier",
+  abcSku: "ABC SKU",
+  qxoSku: "QXO SKU",
+  srsSku: "SRS SKU",
 } as const;
 
 export const CATALOG_TABLE_HEADERS = [
@@ -201,6 +206,11 @@ export const CATALOG_FIELD_HELPERS = {
     "Customer tax rate for this catalog item. Proposal line-tax math is not active yet.",
   purchaseTax:
     "Internal supplier/material tax for true cost. Never shown to customers.",
+  supplierSection:
+    "Supplier SKU links are saved for future supplier pricing and ordering. No supplier sync is active yet.",
+  abcSku: "ABC product identifier for this catalog item. Internal only.",
+  qxoSku: "QXO (Beacon) product identifier for this catalog item. Internal only.",
+  srsSku: "SRS product identifier for this catalog item. Internal only.",
 } as const;
 
 export function coverageBasisFieldHelper(

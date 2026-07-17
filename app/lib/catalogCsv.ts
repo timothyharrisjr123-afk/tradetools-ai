@@ -1,8 +1,8 @@
 /**
  * FieldDive Catalog CSV v1 — pure parse / validate / export foundation.
  *
- * No DB writes. No supplier sync. Supplier SKU columns are reserved headers only
- * (not persisted until durable schema exists).
+ * No DB writes. No supplier sync. Supplier SKU columns persist on catalog items
+ * as contractor/internal metadata only — they do not activate integrations.
  *
  * CSV headers are stable machine keys. UI uses FieldDive contractor labels.
  */
@@ -11,6 +11,7 @@ import {
   formatCentsForInput,
   formatNullableNumberForInput,
   parseCatalogQuantityDrivers,
+  parseCatalogSupplierSkus,
   parseCatalogTaxRates,
   parseDollarsToCentsOrNull,
   buildCatalogCreateDraft,
@@ -63,11 +64,15 @@ export const CATALOG_CSV_HEADERS = [
 
 export type CatalogCsvHeader = (typeof CATALOG_CSV_HEADERS)[number];
 
-export const CATALOG_CSV_RESERVED_SKU_HEADERS = [
+/** Supplier SKU CSV columns — persisted on catalog items; sync remains planned. */
+export const CATALOG_CSV_SUPPLIER_SKU_HEADERS = [
   "abc_sku",
   "qxo_sku",
   "srs_sku",
 ] as const;
+
+/** @deprecated Use CATALOG_CSV_SUPPLIER_SKU_HEADERS — kept for transitional callers. */
+export const CATALOG_CSV_RESERVED_SKU_HEADERS = CATALOG_CSV_SUPPLIER_SKU_HEADERS;
 
 export type CatalogCsvRowAction = "create" | "update" | "invalid" | "unchanged";
 
@@ -91,6 +96,9 @@ export type CatalogCsvParsedValues = {
   waste_pct: number | null;
   sales_tax_rate_pct: number | null;
   purchase_tax_rate_pct: number | null;
+  abc_sku: string | null;
+  qxo_sku: string | null;
+  srs_sku: string | null;
 };
 
 export type CatalogCsvAnalyzedRow = {
@@ -229,9 +237,9 @@ export function catalogItemToCsvRawRow(item: CatalogItem): CatalogCsvRawRow {
     waste_pct: formatPercentForCsv(item.waste_pct ?? null),
     sales_tax_rate_pct: formatPercentForCsv(item.sales_tax_rate_pct ?? null),
     purchase_tax_rate_pct: formatPercentForCsv(item.purchase_tax_rate_pct ?? null),
-    abc_sku: "",
-    qxo_sku: "",
-    srs_sku: "",
+    abc_sku: item.abc_sku?.trim() ?? "",
+    qxo_sku: item.qxo_sku?.trim() ?? "",
+    srs_sku: item.srs_sku?.trim() ?? "",
   };
 }
 
@@ -350,6 +358,9 @@ export function catalogCsvValuesMatchItem(
   if (!valuesEqualNumber(values.purchase_tax_rate_pct, item.purchase_tax_rate_pct)) {
     return false;
   }
+  if ((values.abc_sku ?? null) !== (item.abc_sku ?? null)) return false;
+  if ((values.qxo_sku ?? null) !== (item.qxo_sku ?? null)) return false;
+  if ((values.srs_sku ?? null) !== (item.srs_sku ?? null)) return false;
   return true;
 }
 
@@ -362,14 +373,6 @@ function validateDataRow(
 ): CatalogCsvAnalyzedRow {
   const errors: string[] = [];
   const warnings: string[] = [];
-
-  for (const skuHeader of CATALOG_CSV_RESERVED_SKU_HEADERS) {
-    if (raw[skuHeader].trim()) {
-      warnings.push(
-        `Supplier SKU column "${skuHeader}" is reserved and was not imported (no durable SKU schema yet).`
-      );
-    }
-  }
 
   const idRaw = raw.id.trim();
   let id: string | null = null;
@@ -464,6 +467,15 @@ function validateDataRow(
     errors.push(taxRates.error);
   }
 
+  const supplierSkus = parseCatalogSupplierSkus({
+    abc_sku: raw.abc_sku,
+    qxo_sku: raw.qxo_sku,
+    srs_sku: raw.srs_sku,
+  });
+  if (supplierSkus.error) {
+    errors.push(supplierSkus.error);
+  }
+
   if (
     raw.coverage_basis.trim() &&
     !COVERAGE_BASIS_SET.has(raw.coverage_basis.trim()) &&
@@ -501,6 +513,9 @@ function validateDataRow(
     waste_pct: quantityDrivers.waste_pct,
     sales_tax_rate_pct: taxRates.sales_tax_rate_pct,
     purchase_tax_rate_pct: taxRates.purchase_tax_rate_pct,
+    abc_sku: supplierSkus.abc_sku,
+    qxo_sku: supplierSkus.qxo_sku,
+    srs_sku: supplierSkus.srs_sku,
   };
 
   if (!id) {
@@ -677,6 +692,9 @@ export function catalogCsvValuesToAddForm(values: CatalogCsvParsedValues): AddCa
     waste_pct: formatPercentForCsv(values.waste_pct),
     sales_tax_rate_pct: formatPercentForCsv(values.sales_tax_rate_pct),
     purchase_tax_rate_pct: formatPercentForCsv(values.purchase_tax_rate_pct),
+    abc_sku: values.abc_sku ?? "",
+    qxo_sku: values.qxo_sku ?? "",
+    srs_sku: values.srs_sku ?? "",
   };
 }
 
@@ -729,11 +747,14 @@ export function buildCatalogCsvUpdatePatch(
     waste_pct: quantityDrivers.waste_pct,
     sales_tax_rate_pct: taxRates.sales_tax_rate_pct,
     purchase_tax_rate_pct: taxRates.purchase_tax_rate_pct,
+    abc_sku: values.abc_sku,
+    qxo_sku: values.qxo_sku,
+    srs_sku: values.srs_sku,
   };
   if (values.active != null) {
     patch.active = values.active;
   }
-  // Preserve fields not represented in CSV v1.
+  // Preserve fields not represented in CSV v1 (pricing_basis, sort_order, labor, metadata).
   void item;
   return { ok: true, patch };
 }

@@ -23,6 +23,8 @@ import {
 } from "@/app/lib/catalogCoverageCompatibility";
 import { FIELD_INPUT, PRIMARY_BUTTON, SECONDARY_BUTTON } from "../catalogAdminConstants";
 import {
+  formatCatalogSupplierSkuDisplay,
+  formatCatalogSupplierSkusSummary,
   formatCatalogTaxRateDisplay,
   parseCoverageRateOrNull,
   type CatalogItemEditDraft,
@@ -448,6 +450,100 @@ export default function CatalogItemDetailPanel({
               data-catalog-purchase-tax="edit"
             />
             <FieldHelper text={CATALOG_FIELD_HELPERS.purchaseTax} />
+          </label>
+        </div>
+      </section>
+
+      <section className="mb-6" data-catalog-supplier="edit">
+        <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          {CATALOG_CONTRACTOR_LABELS.supplier}
+          <span className="ml-1 font-normal normal-case tracking-normal text-slate-500">
+            (internal)
+          </span>
+        </h4>
+        <p className="mt-1.5 text-xs leading-relaxed text-slate-500">
+          {CATALOG_FIELD_HELPERS.supplierSection}
+        </p>
+        <p
+          className="mt-2 text-sm font-medium text-slate-800"
+          data-catalog-supplier-summary
+        >
+          {formatCatalogSupplierSkusSummary(item)}
+        </p>
+        <dl className="mt-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-3">
+          <div>
+            <dt className="text-xs font-medium text-slate-500">
+              {CATALOG_CONTRACTOR_LABELS.abcSku}
+            </dt>
+            <dd className="mt-0.5 font-medium text-slate-900" data-catalog-abc-sku-display>
+              {formatCatalogSupplierSkuDisplay(item.abc_sku)}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs font-medium text-slate-500">
+              {CATALOG_CONTRACTOR_LABELS.qxoSku}
+            </dt>
+            <dd className="mt-0.5 font-medium text-slate-900" data-catalog-qxo-sku-display>
+              {formatCatalogSupplierSkuDisplay(item.qxo_sku)}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs font-medium text-slate-500">
+              {CATALOG_CONTRACTOR_LABELS.srsSku}
+            </dt>
+            <dd className="mt-0.5 font-medium text-slate-900" data-catalog-srs-sku-display>
+              {formatCatalogSupplierSkuDisplay(item.srs_sku)}
+            </dd>
+          </div>
+        </dl>
+        <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <label className="block text-sm">
+            <span className="mb-1.5 block text-xs font-medium text-slate-700">
+              {CATALOG_CONTRACTOR_LABELS.abcSku}
+            </span>
+            <input
+              type="text"
+              placeholder="Optional"
+              className={FIELD_INPUT}
+              value={editDraft.abc_sku}
+              onChange={(e) => onDraftChange("abc_sku", e.target.value)}
+              disabled={isSaving}
+              aria-label={CATALOG_CONTRACTOR_LABELS.abcSku}
+              data-catalog-abc-sku="edit"
+            />
+            <FieldHelper text={CATALOG_FIELD_HELPERS.abcSku} />
+          </label>
+          <label className="block text-sm">
+            <span className="mb-1.5 block text-xs font-medium text-slate-700">
+              {CATALOG_CONTRACTOR_LABELS.qxoSku}
+            </span>
+            <input
+              type="text"
+              placeholder="Optional"
+              className={FIELD_INPUT}
+              value={editDraft.qxo_sku}
+              onChange={(e) => onDraftChange("qxo_sku", e.target.value)}
+              disabled={isSaving}
+              aria-label={CATALOG_CONTRACTOR_LABELS.qxoSku}
+              data-catalog-qxo-sku="edit"
+            />
+            <FieldHelper text={CATALOG_FIELD_HELPERS.qxoSku} />
+          </label>
+          <label className="block text-sm">
+            <span className="mb-1.5 block text-xs font-medium text-slate-700">
+              {CATALOG_CONTRACTOR_LABELS.srsSku}
+            </span>
+            <input
+              type="text"
+              placeholder="Optional"
+              className={FIELD_INPUT}
+              value={editDraft.srs_sku}
+              onChange={(e) => onDraftChange("srs_sku", e.target.value)}
+              disabled={isSaving}
+              aria-label={CATALOG_CONTRACTOR_LABELS.srsSku}
+              data-catalog-srs-sku="edit"
+            />
+            <FieldHelper text={CATALOG_FIELD_HELPERS.srsSku} />
           </label>
         </div>
       </section>
