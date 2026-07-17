@@ -45,11 +45,11 @@
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** **pending this commit — polish(catalog): complete management workspace ux**
-- **Docs checkpoint:** **pending this commit — Catalog UX completion pass**
-- **Prior code checkpoint:** **`2a143f1` — feat(catalog): add reorder foundation**
-- **Next:** Integrated workflow pass across Catalog → Templates → Proposal Builder → Customer Preview → future Material Ordering. Supplier **sync** remains planned. Do **not** enable Settings raw mode switch; adjusted mode unaffected. **Do not** expose a Settings waste-model control without approval. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
-- **Historical note:** Header language that still says “Slice 2 — Catalog P0 next” or “Coverage/Waste inactive / raw unwired” in older §6BO.13.4 rows is **superseded** by Phase 5–7 + Catalog P1 + coverage_basis + item tax + Columns/Manage shell + CSV v1 + supplier SKU storage + selection/bulk foundation + bulk purchase tax + reorder foundation + Catalog UX completion pass below.
+- **Code checkpoint:** **`09c458e` — polish(catalog): complete management workspace ux**
+- **Docs checkpoint:** **pending this commit — integrated Catalog → Proposal workflow map**
+- **Prior code checkpoint:** **`09c458e` — polish(catalog): complete management workspace ux**
+- **Next:** Integrated Flow **P0** coding block — truth/flow blockers on the Catalog → Templates → Builder → Preview spine (see **§6BO.13.4.6**). Do **not** start supplier sync, material ordering, CSV mapping assistant, proposal import, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
+- **Historical note:** Header language that still says “Slice 2 — Catalog P0 next” or “Coverage/Waste inactive / raw unwired” in older §6BO.13.4 rows is **superseded** by Phase 5–7 + Catalog management foundation + Catalog UX completion + **§6BO.13.4.6** integrated workflow research below.
 
 **Trust order:** Header/current checkpoint → **§6BO.13** (approved page-by-page UI flow roadmap + P0 implementation sequence — **supersedes separate Command Center language**) → **§6BM** / **§6BN** (R18 letter-phase roadmap + R18C–R18D3C implementation history) → **§6BO** / **§6BO.11** / **§6BO.12** (completed remediation side-track + **approved Stage C policy** + **operating-flow audit sequencing — complete; outcome in §6BO.13**) → **§6BL** → **§11 override**. Stage B browser smoke required local-only **`USE_PROPOSAL_SEND_FREEZE_RPC=1`** in `.env.local` (gitignored, not committed). **Do not proceed** to docs-only or next feature work unless working tree is clean. **Still do not** mutate `proposals.status = sent`, write sent `proposal_events`, move Jobs Board cards, add Job Card send activity, enable PDF/Sign/Payment, or add webhooks unless separately approved.
 
@@ -11348,8 +11348,223 @@ Order: **source → coverage → waste → exact**.
 - Export selected CSV
 - Add-to-template / add-to-proposal / material orders
 - Atomic CSV import RPC (if required later)
+- CSV mapping/import assistant (non-exact headers) — see **§6BO.13.4.6**
 
-**Next Catalog block:** Integrated workflow pass across Catalog → Templates → Proposal Builder → Customer Preview → future Material Ordering — **not** raw mode switch.
+**Next coding block:** Integrated Flow **P0** — truth/flow blockers (§6BO.13.4.6). Research/docs for the integrated spine are complete below — **not** raw mode switch.
+
+#### 13.4.6 Integrated Catalog → Proposal workflow research + FieldDive flow design — COMPLETE (2026-07-17)
+
+**Status:** Docs-only research + design lock. **No app code, migrations, SQL, package, pricing, Preview, send/public/lifecycle, supplier API, material ordering, or proposal import changes in this block.**
+
+**Code checkpoint at research start:** **`09c458e`** — Catalog management foundation + UX completion pass complete.
+
+##### A. Research sources reviewed (public)
+
+| Source | URL / location | Used for |
+|--------|----------------|----------|
+| Roofr Help — Create a Catalog | https://roofrhelp.zendesk.com/hc/en-us/articles/33257762983831-How-to-create-a-Roofr-Catalog | Catalog role; manual / Jumpstart / CSV; waste & tax on items |
+| Roofr Help — Format CSV for catalog upload | https://roofrhelp.zendesk.com/hc/en-us/articles/33478981922327-How-to-format-your-CSV-for-catalog-upload | Exact headers; UUID create/update; SKU + purchase tax columns |
+| Roofr Help — Create a Proposal Template | https://roofrhelp.zendesk.com/hc/en-us/articles/33413003649943-How-to-create-a-Roofr-Proposal-Template | Catalog → template “Add item from catalog”; no catalog edits on template |
+| Roofr Help — Create a Proposal | https://roofrhelp.zendesk.com/hc/en-us/articles/33558996111511-How-to-create-a-Roofr-Proposal | Job card → measurement → template → auto quantities |
+| Roofr Help — Create a Material Order | https://roofrhelp.zendesk.com/hc/en-us/articles/31586645578391-How-to-Create-a-Material-Order | Order from won proposal; Job Card material orders tab |
+| Roofr Help — Connect supplier items on material order | https://roofrhelp.zendesk.com/hc/en-us/articles/32876461628183-How-to-connect-supplier-items-from-your-Roofr-material-order | Supplier mapping at order stage |
+| Roofr Help — ABC Supply end-to-end | https://roofrhelp.zendesk.com/hc/en-us/articles/31668818815255-Integrating-ABC-Supply-An-end-to-end-guide | Jumpstart + SKU CSV + proposal supplier settings + order |
+| Roofr Help — Import from supplier history | https://roofrhelp.zendesk.com/hc/en-us/articles/39771832726039-How-to-import-items-from-supplier-history | Alternate catalog populate path (supplier history) |
+| Roofr Help — Profitability minimums | https://roofr.com/help/how-to-set-profitability-minimums-on-your-proposals | Template-level margin/markup defaults |
+| Roofr Help — Show/hide line details | https://roofr.com/help/how-to-show-hide-line-items-totals-quantities-and-unit-pricing-on-a-proposal | Estimate display toggles (qty/unit price/totals) |
+| Roofr blog — Digital proposals / templates | https://roofr.com/blog/digital-roof-proposals , https://roofr.com/blog/benefits-of-roof-proposal-templates | High-level measurement → proposal → order narrative |
+| Roofr Masterclass — Building Your Catalog | https://roofr.com/masterclass/building-your-catalog | Jumpstart + CSV template practice (transcript) |
+| Roofr Masterclass — Multi-option proposals | https://roofr.com/masterclass/multi-option-proposals | Hide line items; catalog mapping narrative (transcript) |
+| FieldDive codebase (this repo) | Catalog / Templates / Builder / Preview / Job Card / pricing+snapshot libs | Current FieldDive truth path |
+
+##### B. Confirmed Roofr workflow findings
+
+1. **Catalog is the item library for proposals and material orders** — materials, labor, and other resources live in Catalog; they appear on proposals and can feed material orders (Create a Catalog help).
+2. **Contractor setup order is Catalog → Templates → Proposals from Job** — templates require catalog items first; proposal create is from a job with a measurement report, then template selection (Create Proposal / Create Template help).
+3. **Templates link catalog items; they do not re-edit catalog economics** — “Add item from catalog”; “You can not edit catalog item details at the template level” (Create Template help).
+4. **Proposal compile automates quantities from measurement + catalog/template mapping** — Roofr combines report measurements with material amounts from catalog items and template (Create Proposal help).
+5. **Customer-facing simplicity is controlled by estimate display settings** — show/hide line item details (subtotals, quantity, unit prices) at template and proposal estimate settings (Create Template / Customize proposal help).
+6. **Sales tax vs purchase tax are distinct on catalog items** — sales tax = tax customer pays; material purchase tax = tax paid when purchasing materials (Create a Catalog help). CSV columns include `TAX_RATE` and `PURCHASE_TAX` (CSV format help).
+7. **Supplier SKUs are storage columns on CSV** — `ABC_SKU`, `BEACON_SKU` (QXO), `SRS_SKU` (CSV format help). Connecting live supplier pricing is a separate integration flow (ABC guide / supplier history import).
+8. **CSV import is template-strict** — column headers must remain as provided; do not rearrange/remove; Name required; other columns optional but still present; empty UUID = create, present UUID = update (CSV format + Create Catalog help). Public docs describe **no interactive column-mapping UI** for arbitrary supplier CSVs.
+9. **Jumpstart / roofing-system import** is a first-class onboarding path separate from blank CSV (Create Catalog + masterclass + ABC guide).
+10. **Material orders come after a won proposal (or from scratch / template)** — “Create material order” from won proposal populates materials; Job Card has Material orders tab (Material Order help). Supplier item connect can happen at order stage (Connect supplier items help).
+11. **Reorder / bulk / drag-drop** — FieldDive already mirrors Roofr-like Catalog command surface; Roofr DnD specifics for catalog reorder are **not** fully documented in the public pages reviewed (treat UI mechanics as partially unconfirmed).
+
+##### C. Unconfirmed / not fully documented in public sources
+
+| Topic | Status |
+|-------|--------|
+| Interactive CSV column-mapping for arbitrary supplier spreadsheet headers | **Unconfirmed / appears absent** — public docs insist on exact Roofr template headers |
+| Whether catalog price edits auto-refresh open proposals without user action | **Unconfirmed** from public help |
+| Exact “hide entire line item from customer” vs “hide qty/unit price only” product model | **Partially confirmed** — display toggles confirmed; per-line hide exists in masterclass narrative but exact UI contract not fully pinned in help pages fetched |
+| Full list of CSV columns / validation edge cases for missing enums | **Partially confirmed** — Name required; UUID rules confirmed; full validation matrix not re-audited live |
+| Whether purchase tax ever appears on customer proposal surfaces | **Unconfirmed in public docs**; FieldDive treats purchase tax as internal-only (keep) |
+| Drag-and-drop reorder of catalog rows | **Unconfirmed** in public help (FieldDive uses button reorder foundation) |
+| Proposal import of external PDF/estimates into catalog/template | **Out of scope / not confirmed** as Roofr primary path |
+
+##### D. Current FieldDive spine (as implemented)
+
+```
+Setup (company):
+  Catalog (/tools/roofing/catalog)
+    → Templates (/tools/roofing/templates) [catalog readiness gate]
+Daily work:
+  Job Board (/tools/roofing/saved)
+    → Job Card (job=) — checklist gates
+    → Create/Open draft (Job Card only)
+    → Builder (?job=&proposal=) — snapshot display; refresh re-prices from live catalog
+    → Contractor Customer Preview (?job=&proposal=)
+Future:
+  Job Card Material Orders tab (stub) ← proposal lines + catalog SKUs/qty
+```
+
+| Stage | Current truth |
+|-------|----------------|
+| **Catalog** | Company SoT for item economics, measurement mapping, coverage/waste/basis, item tax capture, supplier SKU storage, CSV v1, selection/bulk/reorder |
+| **Templates** | Structure + `catalog_item_id` links (install resolves `catalog_seed_key` → id). **No price overrides** on template items. Prerequisite banner when catalog not ready. **No first-class “Add item from catalog” picker UI** (Planned bulk/copy only) |
+| **Draft create** | Job Card → `createDraftProposal`: template graph + **live** catalog + measurement + policy → pricing engine → snapshots |
+| **Builder** | With `proposal=`: reads **snapshots**. Refresh reloads live catalog + template + measurement and rewrites snapshots. Without `proposal=`: live starter preview only (cannot create DB draft) |
+| **Preview** | Customer-safe pages/lines; omits unit cost, profit, purchase tax, supplier SKUs; company policy sales tax drives totals; catalog item tax rates **not** wired into line tax |
+| **Material orders** | Job Card stub + Catalog Planned bulk “Add to proposal / material order”; SKUs stored for future |
+
+##### E. FieldDive integrated flow map (target long-term)
+
+**1. Catalog source-of-truth role**
+
+Belongs in Catalog:
+- Item identity (name, type, unit, active/sort)
+- Economics (unit cost/price, pricing basis, labor cost)
+- Quantity drivers (measurement source, coverage, coverage basis, waste)
+- Customer presentation defaults (customer name/description, proposal visibility)
+- Tax capture (sales tax rate capture; purchase tax internal)
+- Supplier SKU storage (ABC/QXO/SRS) — **not** live sync
+- CSV maintenance of the above
+
+Does **not** belong in Catalog:
+- Per-job quantities / selected package choices
+- Proposal page copy / branding / tokens
+- Customer document assembly
+- Send/lifecycle/payment
+- Live supplier auth/pricing sync (separate integration stage)
+- Material order logistics (branch, delivery, PO) — order surface later
+
+**2. Template integration**
+
+- Templates compose **which catalog items** appear in which option/section and estimate display settings.
+- Templates must **reference** `catalog_item_id` (and may retain seed keys for install defaults) — **never duplicate** unit price/cost/tax/SKU as competing SoT.
+- Target UX (Roofr-aligned): **Add item from catalog** in template option editor; cannot edit catalog economics on the template.
+- FieldDive starter install already resolves seed→id; durable gap is contractor **picker + unlink/replace** without reinstall.
+
+**3. Proposal Builder integration**
+
+- Draft create/refresh pulls: template structure + **live CatalogItem** economics/drivers + measurement + company pricing policy.
+- Builder with persisted `proposal=` displays **snapshots** (stable contractor document); refresh is the intentional re-sync from live catalog.
+- Visibility/tax/coverage truth:
+  - Visibility: catalog default → proposal line display status (existing snapshot path)
+  - Coverage/waste: apply per company waste model (default adjusted ignores catalog coverage; raw remains gated — **no Settings switch yet**)
+  - Sales tax: company policy remains authoritative for proposal totals until an approved item-line-tax stage
+  - Purchase tax / SKUs: internal; available to future ordering/cost views — never customer canvas
+
+**4. Customer Preview integration**
+
+Customer sees: branded pages, customer-facing names/descriptions, allowed line presentation, option totals/tax per estimate display policy.
+Customer never sees: unit cost, purchase tax, supplier SKUs, internal margin/profit, catalog-only internal fields.
+Contractor Preview remains the trust gate before public send (R18 path unchanged by this research).
+
+**5. Material ordering future integration**
+
+Natural join (Roofr-aligned):
+- Input: won/selected proposal option lines (`catalog_item_id`, quantity, unit) + Catalog SKUs + purchase tax + supplier connection
+- Surface: Job Card Material Orders (already stubbed) — **not** Catalog page as the order editor
+- Catalog’s job beforehand: durable SKUs + internal cost/purchase tax + correct quantities via proposal math
+- Do **not** invent ordering until Catalog→Template→Proposal quantity/SKU trust is solid
+
+**6. CSV / import integration**
+
+- **Now (v1):** Strict FieldDive CSV headers (`catalogCsv.ts`) — exact column order; blank `id` = create; id = company-scoped update; preview then import; SKUs persist; no sync.
+- **Future (P2):** Behind-the-scenes **CSV mapping/import assistant** for non-matching uploads:
+  - Detect uploaded headers
+  - Map columns → FieldDive fields
+  - Preview unmatched / ignored columns
+  - Save reusable mappings (incl. supplier-specific shapes later)
+  - Keep strict FieldDive CSV as the clean baseline export/template
+- **Do not build mapping yet.** Jumpstart/supplier-priced starter remains Planned (separate from Install starter catalog).
+
+**7. Job page / main workflow integration**
+
+- Catalog stays a **Setup** workspace; Job Card links when readiness fails (`JobCardProposalsSetupLinks`).
+- Daily path: Job Board → Job Card → Create proposal → Builder → Preview.
+- Catalog must not become a job editor; Job Card must not become a catalog editor.
+- Material Orders tab later consumes proposal readiness — already the correct stub location.
+
+**8. Contractor-simple flow (target)**
+
+1. Setup Catalog (starter install and/or CSV / future Jumpstart) — price + map measurements + coverage/waste as needed
+2. Setup Templates (add/confirm catalog items on options; estimate display)
+3. Open Job → ensure measurement → Create proposal from template
+4. Review/adjust in Builder → Preview as customer
+5. Later: send/sign (R18+) → Create material order from won proposal
+
+Roofr keeps this simple by: forcing Catalog-before-Template, automating qty from measurement mapping, hiding internal cost/tax complexity from the customer document, and deferring supplier connect to catalog/order stages—not the first proposal click.
+
+##### F. Gap analysis (current vs desired)
+
+| ID | Priority | Current | Desired | Areas | Risk | Stage | Code now? |
+|----|----------|---------|---------|-------|------|-------|-----------|
+| G1 | **P0** | No first-class Template “Add item from catalog” / re-link UI; install-only seed resolution | Contractor can add/replace catalog items on template options without reinstall | `templates/*`, `proposalTemplateStore.ts` | Medium — structure edits | Integrated Flow P0 | **Later (next coding block)** |
+| G2 | **P0** | Stale Templates footnote: Builder “later stage” | Accurate Job Card → Builder copy | `TemplatesBuilderFootnote.tsx` | Low | P0 | Later |
+| G3 | **P0** | Catalog price/driver edits do not signal draft staleness (measurement-focused only) | Honest refresh guidance when catalog economics change (or documented refresh expectation) | `proposalStaleness.ts`, Builder helper | Medium — trust | P0/P1 | Later |
+| G4 | **P1** | Catalog item sales tax stored but mapper sets `tax: null`; company policy tax only | Clear product rule + eventual line-tax stage **or** honest “capture only” everywhere | `proposalPricingInputMapper.ts`, Catalog copy | High if faked | Future / tax stage | **Not now** |
+| G5 | **P1** | Planned bulk “Add to template / proposal / order” | Wire only after template picker + proposal attach contracts exist | `catalogBulkActions.ts` | High if fake-active | P1+ | Not now |
+| G6 | **P1** | Dual Builder paths (live preview without `proposal=` vs snapshot) confuse setup | Stronger empty-state / “open from Job Card” guidance | Builder client | Medium | P1 | Later |
+| G7 | **P2** | Strict CSV only; non-matching supplier CSVs fail hard | Mapping assistant (detect/map/preview/save) | New CSV mapping module + Manage Catalog | Medium | Integrated Flow P2 | **Not now** |
+| G8 | **P2** | Roadmap/footnote copy may still say CSV Planned in places | Align copy with live CSV v1 | Catalog roadmap components | Low | P2 polish | Later |
+| G9 | **Future** | Material Orders stub; SKUs storage-only | Order from won proposal + supplier connect | Job Card, new order libs | High | Future | Not now |
+| G10 | **Future** | Supplier Connect / Jumpstart Planned | Real integrations after ordering contract | Manage Catalog, APIs | High | Future | Not now |
+| G11 | **Future** | Raw mode switch blocked; coverage unused in default adjusted | Policy-gated raw UI behind approval | Settings pricing | High | Separate track | Not now |
+| G12 | **P2** | shared `app/admin/catalog/components` naming under tools Catalog | Optional rename/move for clarity (not required for flow) | admin/tools catalog | Low | Polish | Optional |
+
+##### G. Staged implementation roadmap (no code in this docs block)
+
+**Integrated Flow P0 — truth/flow blockers**
+
+- **Goal:** Make Catalog → Templates → Job Card → Builder → Preview feel like one honest spine (copy + template catalog linkage foundation).
+- **Likely files:** `app/tools/roofing/templates/*`, `proposalTemplateStore.ts`, Job Card proposal links, Builder empty/helper copy, handoff tests/smoke.
+- **Protected:** pricing engine math, Customer Preview DTOs, send/public/lifecycle, raw mode, supplier APIs, material ordering, CSV mapping.
+- **Tests/smoke:** template add/link catalog item; Job Card create → Builder snapshot; Preview still clean of purchase tax/SKUs.
+- **User-visible:** Can attach catalog items to templates intentionally; no stale “Builder later” lies.
+
+**Integrated Flow P1 — setup-to-proposal smoothness**
+
+- **Goal:** Reduce friction from priced catalog → ready template → draft → refresh trust.
+- **Likely files:** Builder staleness/helper, catalog readiness messaging, optional bulk “Add to template” once picker exists.
+- **Protected:** same as P0; no fake ordering.
+- **Tests/smoke:** catalog edit → refresh path documented/tested; readiness gates on board/card.
+- **User-visible:** Fewer “why didn’t my price change?” surprises; clearer next steps.
+
+**Integrated Flow P2 — CSV mapping assistant / supplier-ready flow**
+
+- **Goal:** Accept non-exact CSVs via mapping while keeping strict FieldDive CSV as baseline; prepare SKU-centric imports without live sync.
+- **Likely files:** new `catalogCsvMapping*` pure module + Manage Catalog upload UX; saved mapping prefs.
+- **Protected:** no supplier auth; no auto price sync; strict template export unchanged.
+- **Tests/smoke:** map sample mismatched headers → preview → import; round-trip strict CSV still works.
+- **User-visible:** Upload supplier-ish spreadsheets without hand-rewriting headers.
+
+**Future — material ordering / supplier sync**
+
+- **Goal:** Job Card material order from won proposal; supplier connect/sync; Jumpstart with live prices.
+- **Depends on:** solid catalog_item_id + qty snapshots + SKUs; R18+ lifecycle for “won” semantics as approved.
+- **Protected until then:** no fake Place Order buttons.
+
+##### H. Decisions locked by this research
+
+1. FieldDive remains **Catalog SoT → Template links → Proposal snapshots → Preview customer filter → Order later**.
+2. Strict CSV v1 stays the **baseline**; mapping assistant is **P2**, not a patch on v1.
+3. Item tax capture stays **capture-only** until an explicit line-tax engine stage — do not silently invent proposal tax from catalog rates.
+4. Purchase tax + SKUs stay **internal** through Preview/public.
+5. Material ordering attaches at **Job Card / won proposal**, not inside Catalog management.
+6. Next coding block is **Integrated Flow P0**, not supplier sync, not CSV mapping, not raw mode.
 
 **P3 — polish**
 
@@ -12614,6 +12829,7 @@ Treat as **drift** if a session:
 
 ## Changelog (handoff doc only)
 
+- **2026-07-17:** **Integrated Catalog → Proposal workflow research + flow design** (docs only) — recorded **§6BO.13.4.6**: Roofr public research (confirmed vs unconfirmed), FieldDive spine map, target integrated flow (Catalog SoT → Template links → Builder snapshots → Preview filter → Material Orders later), CSV mapping assistant as P2 future requirement, gap table, staged roadmap P0–P2 + Future. No app code/migrations/SQL/package/pricing/Preview/lifecycle/supplier/ordering changes. **Next coding block:** Integrated Flow **P0** (template catalog linkage + honest setup→Builder copy/trust) — not CSV mapping, not supplier sync, not raw mode.
 - **2026-07-17:** **Catalog UX completion pass** — cohesion/usability polish only (Filters label, Add/Edit section hierarchy, quieter Manage/bulk copy, detail tax/SKU de-duplication, empty-state inactive hint fix, reorder active-state clarity). No new major systems; no pricing/Preview/supplier sync/material ordering/proposal import/raw mode/migrations/package changes. Focused tests **194 pass**. Local UI smoke PASS. **Next:** integrated workflow pass (Catalog → Templates → Builder → Preview → future Material Ordering).
 - **2026-07-17:** **Catalog supplier SKU storage** — migration `20260717_026` applied on **`rhquhnujjnzjhweypavd`** (`abc_sku`/`qxo_sku`/`srs_sku` nullable text, CHECK 1..128, no default/backfill); types/store/Add/Edit/detail + CSV persist; no supplier sync/API/material order; proposal pricing + Customer Preview unchanged. Focused tests **170 pass**. Local UI smoke + live CRUD smoke PASS. **Next:** selection + bulk actions foundation → reorder → Catalog UX completion → integrated workflow pass.
 - **2026-07-17:** **Catalog CSV v1 foundation** — FieldDive-native template/export/preview-import; create (blank id) + company-scoped update-by-id; strict header/row validation; reserved supplier SKU columns (warn, not persisted); Manage Catalog live CSV actions; no package changes; no supplier sync/material order/proposal import; proposal pricing + Customer Preview unchanged. Focused tests **160 pass** (CSV + admin/store/labels/page-copy + pricing/snapshot unchanged). Local UI smoke + live CRUD smoke PASS on **`rhquhnujjnzjhweypavd`**. **Next:** supplier SKU schema, or bulk actions, or proposal/template integration.
