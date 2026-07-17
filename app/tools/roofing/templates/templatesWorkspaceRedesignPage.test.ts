@@ -1,7 +1,7 @@
 /**
  * Run: npx tsx --test app/tools/roofing/templates/templatesWorkspaceRedesignPage.test.ts
  *
- * Source-level assertions for Templates Workspace Redesign P0 (contractor-first flow).
+ * Source-level assertions for Templates Flow Redesign P1 (Use-first / Edit-mode).
  */
 
 import assert from "node:assert/strict";
@@ -16,45 +16,68 @@ function read(name: string): string {
   return readFileSync(join(ROOT, name), "utf8");
 }
 
-describe("Templates workspace redesign P0", () => {
-  test("first view is Overview — not a full structure dump", () => {
+describe("Templates Flow Redesign P1 — Use-first / Edit-mode", () => {
+  test("1–2. default opens in use/summary mode — no edit tabs as first-load IA", () => {
     const setup = read("TemplatesSetupClient.tsx");
     const workspace = read("TemplatesSelectedWorkspace.tsx");
-    const packages = read("TemplatesPackagesCatalogTab.tsx");
 
+    assert.ok(setup.includes('useState<TemplatesWorkspaceMode>("use")'));
     assert.ok(setup.includes("TemplatesSelectedWorkspace"));
-    assert.ok(setup.includes('useState<TemplatesWorkspaceTabId>("overview")'));
-    assert.ok(!setup.includes("TemplatesStructureSettingsShell"));
-    assert.ok(workspace.includes('activeTab === "overview"'));
-    assert.ok(workspace.includes("TemplatesOverviewPanel"));
-    assert.ok(workspace.includes('data-templates-tab="packages"') || workspace.includes('id: "packages"') || workspace.includes("TEMPLATES_WORKSPACE_TABS"));
-    assert.ok(packages.includes("data-templates-package-list"));
-    assert.ok(packages.includes("Edit section"));
-    assert.ok(packages.includes("showCatalogItems"));
+    assert.ok(workspace.includes('mode === "use"'));
+    assert.ok(workspace.includes("TemplatesUseSurface"));
+    assert.ok(workspace.includes('data-templates-workspace-mode="use"'));
+    // Edit tabs only render in edit mode
+    assert.ok(workspace.includes("data-templates-edit-tabs"));
+    assert.ok(workspace.includes('data-templates-workspace-mode="edit"'));
+    // First-load Use surface has no tab strip / edit IA
+    const useSurface = read("TemplatesUseSurface.tsx");
+    assert.ok(!useSurface.includes('role="tablist"'));
+    assert.ok(!useSurface.includes("Packages & Catalog"));
+    assert.ok(!useSurface.includes("data-templates-tab="));
+    assert.ok(!useSurface.includes("data-templates-edit-tabs"));
   });
 
-  test("Overview shows readiness, Open Jobs, and single trust note", () => {
-    const overview = read("TemplatesOverviewPanel.tsx");
-    assert.ok(overview.includes("data-templates-overview"));
-    assert.ok(overview.includes("data-templates-open-jobs"));
-    assert.ok(overview.includes("Open Jobs to create a proposal"));
-    assert.ok(overview.includes("data-templates-fix-links"));
-    assert.ok(overview.includes("data-templates-trust-note"));
-    assert.ok(overview.includes("TEMPLATES_WORKSPACE_TRUST_NOTE"));
-    assert.match(TEMPLATES_WORKSPACE_TRUST_NOTE, /Catalog controls item pricing/i);
-    assert.ok(overview.includes("There is no Create proposal button"));
+  test("3–5. readiness hero, what this creates, Open Jobs primary when ready", () => {
+    const use = read("TemplatesUseSurface.tsx");
+    assert.ok(use.includes("data-templates-use-surface"));
+    assert.ok(use.includes("data-templates-use-status"));
+    assert.ok(use.includes("Ready to use"));
+    assert.ok(use.includes("Needs attention"));
+    assert.ok(use.includes("data-templates-what-this-creates"));
+    assert.ok(use.includes("What this creates"));
+    assert.ok(use.includes("data-templates-open-jobs"));
+    assert.ok(use.includes("Open Jobs to create a proposal"));
+    assert.ok(use.includes('data-templates-primary-cta="open_jobs"'));
   });
 
-  test("Estimate display is its own tab, not Overview dump", () => {
+  test("6. no fake Create Proposal action", () => {
+    const setup = read("TemplatesSetupClient.tsx");
+    const use = read("TemplatesUseSurface.tsx");
+    assert.equal(setup.includes('href="/tools/roofing/proposals/builder"'), false);
+    assert.equal(/data-templates-create-proposal/i.test(setup + use), false);
+    assert.ok(use.includes("There is no Create proposal button"));
+  });
+
+  test("7–9. Edit template enters edit mode; Back exits; packages only in edit", () => {
+    const setup = read("TemplatesSetupClient.tsx");
     const workspace = read("TemplatesSelectedWorkspace.tsx");
-    const estimate = read("TemplatesEstimateDisplayTab.tsx");
-    assert.ok(workspace.includes('activeTab === "estimate"'));
-    assert.ok(estimate.includes("data-templates-estimate-tab"));
-    assert.ok(estimate.includes("Does not change pricing or margin"));
-    assert.ok(!read("TemplatesOverviewPanel.tsx").includes("EstimateSettingsToggles"));
+    const use = read("TemplatesUseSurface.tsx");
+
+    assert.ok(use.includes("data-templates-edit-template"));
+    assert.ok(use.includes("Edit template"));
+    assert.ok(setup.includes("handleEnterEditMode"));
+    assert.ok(setup.includes("handleBackToSummary"));
+    assert.ok(setup.includes('setWorkspaceMode("edit")'));
+    assert.ok(setup.includes('setWorkspaceMode("use")'));
+    assert.ok(workspace.includes("data-templates-back-to-summary"));
+    assert.ok(workspace.includes("Back to template summary"));
+    assert.ok(workspace.includes("data-templates-edit-mode-heading"));
+    assert.ok(workspace.includes("Editing "));
+    assert.ok(workspace.includes('editTab === "packages"'));
+    assert.ok(workspace.includes("TemplatesPackagesCatalogTab"));
   });
 
-  test("Catalog add/re-link remain wired through Packages tab", () => {
+  test("10–12. Catalog add / re-link / link states preserved in Packages edit tool", () => {
     const setup = read("TemplatesSetupClient.tsx");
     const packages = read("TemplatesPackagesCatalogTab.tsx");
     const section = read("TemplatesStructureSectionRow.tsx");
@@ -67,23 +90,32 @@ describe("Templates workspace redesign P0", () => {
     assert.ok(items.includes("data-templates-add-from-catalog"));
     assert.ok(items.includes("data-templates-relink-catalog"));
     assert.ok(items.includes("Included Catalog items"));
+    assert.ok(items.includes("data-templates-catalog-link-status"));
   });
 
-  test("header and footnote stay short — no repeated SoT essays", () => {
+  test("13–14. Customer display + Content exist in edit mode only as tools", () => {
+    const workspace = read("TemplatesSelectedWorkspace.tsx");
+    const estimate = read("TemplatesEstimateDisplayTab.tsx");
+    assert.ok(workspace.includes('editTab === "estimate"'));
+    assert.ok(workspace.includes('editTab === "content"'));
+    assert.ok(workspace.includes("TemplatesEstimateDisplayTab"));
+    assert.ok(workspace.includes("TemplatesContentEditorShell"));
+    assert.ok(estimate.includes("data-templates-estimate-tab"));
+    assert.ok(estimate.includes("Does not change pricing or margin"));
+  });
+
+  test("15. trust note is concise and not repeated under every section", () => {
+    const use = read("TemplatesUseSurface.tsx");
+    const items = read("TemplatesSectionCatalogItems.tsx");
     const header = read("TemplatesPageHeader.tsx");
     const footnote = read("TemplatesBuilderFootnote.tsx");
-    const items = read("TemplatesSectionCatalogItems.tsx");
+    assert.ok(use.includes("data-templates-trust-note"));
+    assert.ok(use.includes("TEMPLATES_WORKSPACE_TRUST_NOTE"));
+    assert.match(TEMPLATES_WORKSPACE_TRUST_NOTE, /Catalog controls item pricing/i);
+    assert.ok(!items.includes("TEMPLATE_CATALOG_SOT_COPY"));
+    assert.ok(!items.includes("TEMPLATE_CATALOG_DRAFT_REFRESH_COPY"));
     assert.ok(header.includes("Job Card"));
     assert.ok(!header.includes("source of truth"));
     assert.ok(footnote.includes("Job Card"));
-    assert.ok(!items.includes("TEMPLATE_CATALOG_SOT_COPY"));
-    assert.ok(!items.includes("TEMPLATE_CATALOG_DRAFT_REFRESH_COPY"));
-  });
-
-  test("no fake Create Proposal route on Templates", () => {
-    const setup = read("TemplatesSetupClient.tsx");
-    const overview = read("TemplatesOverviewPanel.tsx");
-    assert.equal(setup.includes('href="/tools/roofing/proposals/builder"'), false);
-    assert.equal(/data-templates-create-proposal/i.test(setup + overview), false);
   });
 });

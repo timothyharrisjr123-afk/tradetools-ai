@@ -11,12 +11,14 @@ import type { ProposalTemplateGraph } from "@/app/lib/proposalTemplateStore";
 import { TEMPLATES_WORKSPACE_ZONE } from "./templatesConstants";
 import TemplatesContentEditorShell from "./TemplatesContentEditorShell";
 import TemplatesEstimateDisplayTab from "./TemplatesEstimateDisplayTab";
-import TemplatesOverviewPanel from "./TemplatesOverviewPanel";
 import TemplatesPackagesCatalogTab from "./TemplatesPackagesCatalogTab";
+import TemplatesUseSurface from "./TemplatesUseSurface";
 import {
-  TEMPLATES_WORKSPACE_TABS,
+  TEMPLATES_EDIT_TABS,
   type PackageOptionSummary,
-  type TemplatesWorkspaceTabId,
+  type TemplateCreatesSummary,
+  type TemplatesEditTabId,
+  type TemplatesWorkspaceMode,
 } from "./templatesWorkspaceFlow";
 
 type StructureSettingsBusy =
@@ -34,12 +36,16 @@ type SectionSaveError = {
 };
 
 type TemplatesSelectedWorkspaceProps = {
-  activeTab: TemplatesWorkspaceTabId;
-  onSelectTab: (tab: TemplatesWorkspaceTabId) => void;
+  mode: TemplatesWorkspaceMode;
+  editTab: TemplatesEditTabId;
+  onSelectEditTab: (tab: TemplatesEditTabId) => void;
+  onEnterEditMode: (tab?: TemplatesEditTabId) => void;
+  onBackToSummary: () => void;
   graph: ProposalTemplateGraph;
   proposalReadiness: ProposalTemplateReadiness;
   linkReadiness: TemplateCatalogLinkReadiness;
   packageSummaries: readonly PackageOptionSummary[];
+  createsSummary: TemplateCreatesSummary;
   contentViewModel: TemplateContentEditorViewModel;
   structureViewModel: TemplateStructureEditorViewModel;
   structureBusy: StructureSettingsBusy;
@@ -49,6 +55,7 @@ type TemplatesSelectedWorkspaceProps = {
   savingSectionId: string | null;
   sectionSaveError: SectionSaveError | null;
   onFixLinks: () => void;
+  onAddCatalogItems: () => void;
   onAddSection: (optionId: string, kind: ProposalTemplateSectionKind) => void;
   onMoveSection: (
     optionId: string,
@@ -71,12 +78,16 @@ type TemplatesSelectedWorkspaceProps = {
 };
 
 export default function TemplatesSelectedWorkspace({
-  activeTab,
-  onSelectTab,
+  mode,
+  editTab,
+  onSelectEditTab,
+  onEnterEditMode,
+  onBackToSummary,
   graph,
   proposalReadiness,
   linkReadiness,
   packageSummaries,
+  createsSummary,
   contentViewModel,
   structureViewModel,
   structureBusy,
@@ -86,6 +97,7 @@ export default function TemplatesSelectedWorkspace({
   savingSectionId,
   sectionSaveError,
   onFixLinks,
+  onAddCatalogItems,
   onAddSection,
   onMoveSection,
   onSaveTemplateEstimateSettings,
@@ -97,29 +109,67 @@ export default function TemplatesSelectedWorkspace({
 }: TemplatesSelectedWorkspaceProps) {
   const contentSaveBlocked = savingSectionId != null;
 
+  if (mode === "use") {
+    return (
+      <div
+        className={`${TEMPLATES_WORKSPACE_ZONE} space-y-4 p-4 sm:p-5`}
+        data-templates-selected-workspace
+        data-templates-workspace-mode="use"
+      >
+        <TemplatesUseSurface
+          graph={graph}
+          proposalReadiness={proposalReadiness}
+          linkReadiness={linkReadiness}
+          createsSummary={createsSummary}
+          onFixLinks={onFixLinks}
+          onAddCatalogItems={onAddCatalogItems}
+          onEditTemplate={() => onEnterEditMode("packages")}
+        />
+      </div>
+    );
+  }
+
   return (
     <div
       className={`${TEMPLATES_WORKSPACE_ZONE} space-y-4 p-4 sm:p-5`}
       data-templates-selected-workspace
-      data-templates-active-tab={activeTab}
+      data-templates-workspace-mode="edit"
+      data-templates-active-tab={editTab}
     >
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 className="text-sm font-semibold text-slate-900">Template workspace</h2>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            Edit mode
+          </p>
+          <h2
+            className="mt-1 text-base font-semibold text-slate-900"
+            data-templates-edit-mode-heading
+          >
+            Editing {graph.template.name}
+          </h2>
           <p className="mt-0.5 text-xs text-slate-500">
-            Review readiness first. Open edit tabs only when you need a change.
+            Change packages, Catalog links, customer display, or content. Return to the summary when
+            finished.
           </p>
         </div>
+        <button
+          type="button"
+          onClick={onBackToSummary}
+          className="inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+          data-templates-back-to-summary
+        >
+          Back to template summary
+        </button>
       </div>
 
       <div
         className="-mx-1 flex gap-1 overflow-x-auto border-b border-slate-200 px-1 pb-px"
         role="tablist"
-        aria-label="Template workspace"
-        data-templates-workspace-tabs
+        aria-label="Edit template"
+        data-templates-edit-tabs
       >
-        {TEMPLATES_WORKSPACE_TABS.map((tab) => {
-          const selected = activeTab === tab.id;
+        {TEMPLATES_EDIT_TABS.map((tab) => {
+          const selected = editTab === tab.id;
           return (
             <button
               key={tab.id}
@@ -127,7 +177,7 @@ export default function TemplatesSelectedWorkspace({
               role="tab"
               aria-selected={selected}
               data-templates-tab={tab.id}
-              onClick={() => onSelectTab(tab.id)}
+              onClick={() => onSelectEditTab(tab.id)}
               className={`shrink-0 rounded-t-md px-3 py-2 text-xs font-semibold transition ${
                 selected
                   ? "border border-b-white border-slate-200 bg-white text-slate-900"
@@ -140,22 +190,8 @@ export default function TemplatesSelectedWorkspace({
         })}
       </div>
 
-      <div role="tabpanel" data-templates-tab-panel={activeTab}>
-        {activeTab === "overview" ? (
-          <TemplatesOverviewPanel
-            graph={graph}
-            proposalReadiness={proposalReadiness}
-            linkReadiness={linkReadiness}
-            packageSummaries={packageSummaries}
-            editableProseCount={contentViewModel.totalEditableSectionCount}
-            onFixLinks={onFixLinks}
-            onOpenPackages={() => onSelectTab("packages")}
-            onOpenEstimate={() => onSelectTab("estimate")}
-            onOpenContent={() => onSelectTab("content")}
-          />
-        ) : null}
-
-        {activeTab === "packages" ? (
+      <div role="tabpanel" data-templates-tab-panel={editTab}>
+        {editTab === "packages" ? (
           <TemplatesPackagesCatalogTab
             graph={graph}
             viewModel={structureViewModel}
@@ -172,7 +208,7 @@ export default function TemplatesSelectedWorkspace({
           />
         ) : null}
 
-        {activeTab === "estimate" ? (
+        {editTab === "estimate" ? (
           <TemplatesEstimateDisplayTab
             graph={graph}
             viewModel={structureViewModel}
@@ -183,7 +219,7 @@ export default function TemplatesSelectedWorkspace({
           />
         ) : null}
 
-        {activeTab === "content" ? (
+        {editTab === "content" ? (
           <TemplatesContentEditorShell
             viewModel={contentViewModel}
             graph={graph}

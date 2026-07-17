@@ -56,7 +56,7 @@ export default function TemplatesEstimateDisplayTab({
         id="templates-estimate-display-heading"
         className="text-sm font-semibold text-slate-900"
       >
-        Estimate display
+        Customer display
       </h2>
       <p className="mt-1 text-xs leading-relaxed text-slate-600">
         Controls what customers see in future proposal drafts. Does not change pricing or margin

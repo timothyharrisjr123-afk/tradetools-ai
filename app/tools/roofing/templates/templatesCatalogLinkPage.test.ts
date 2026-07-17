@@ -44,16 +44,16 @@ describe("Templates catalog link page (Integrated Flow P0 + Redesign P0)", () =>
     assert.ok(picker.includes("Only active Catalog items"));
   });
 
-  test("Catalog SoT remains in picker; Overview holds the single trust note", () => {
+  test("Catalog SoT remains in picker; Use surface holds the single trust note", () => {
     const picker = read("TemplatesCatalogItemPickerModal.tsx");
-    const overview = read("TemplatesOverviewPanel.tsx");
+    const use = read("TemplatesUseSurface.tsx");
     const footnote = read("TemplatesBuilderFootnote.tsx");
     const header = read("TemplatesPageHeader.tsx");
 
     assert.match(TEMPLATE_CATALOG_SOT_COPY, /Catalog is the source of truth/i);
     assert.match(TEMPLATE_CATALOG_DRAFT_REFRESH_COPY, /snapshotted|refresh draft pricing/i);
     assert.ok(picker.includes("TEMPLATE_CATALOG_SOT_COPY") || picker.includes(TEMPLATE_CATALOG_SOT_COPY));
-    assert.ok(overview.includes("TEMPLATES_WORKSPACE_TRUST_NOTE"));
+    assert.ok(use.includes("TEMPLATES_WORKSPACE_TRUST_NOTE"));
     assert.ok(footnote.includes("Job Card"));
     assert.ok(!footnote.includes("later stage"));
     assert.ok(header.includes("Job Card"));
@@ -68,7 +68,7 @@ describe("Templates catalog link page (Integrated Flow P0 + Redesign P0)", () =>
       read("TemplatesSectionCatalogItems.tsx"),
       read("TemplatesCatalogItemPickerModal.tsx"),
       read("TemplatesBuilderFootnote.tsx"),
-      read("TemplatesOverviewPanel.tsx"),
+      read("TemplatesUseSurface.tsx"),
       TEMPLATE_CATALOG_SOT_COPY,
       TEMPLATE_CATALOG_DRAFT_REFRESH_COPY,
     ].join("\n");

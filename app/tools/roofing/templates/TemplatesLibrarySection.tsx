@@ -46,7 +46,7 @@ export default function TemplatesLibrarySection({
         )}
       </div>
       <p className="mt-1 text-sm text-slate-600">
-        Select a template to see if it is ready and what to do next.
+        Select a template to review readiness and what it creates.
       </p>
 
       {templateSwitchDisabled ? (

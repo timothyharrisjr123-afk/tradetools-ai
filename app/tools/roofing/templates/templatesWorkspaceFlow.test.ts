@@ -5,20 +5,84 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  TEMPLATES_WORKSPACE_TABS,
+  TEMPLATES_EDIT_TABS,
   TEMPLATES_WORKSPACE_TRUST_NOTE,
+  buildTemplateCreatesSummary,
   defaultExpandedPackageOptionId,
+  formatCustomerDisplaySummary,
   summarizePackageOptionsForWorkspace,
 } from "./templatesWorkspaceFlow";
 
 describe("templatesWorkspaceFlow", () => {
-  test("tabs cover use vs edit surfaces", () => {
+  test("edit tabs are packages / estimate / content — no overview tab", () => {
     assert.deepEqual(
-      TEMPLATES_WORKSPACE_TABS.map((t) => t.id),
-      ["overview", "packages", "estimate", "content"]
+      TEMPLATES_EDIT_TABS.map((t) => t.id),
+      ["packages", "estimate", "content"]
     );
     assert.match(TEMPLATES_WORKSPACE_TRUST_NOTE, /Catalog controls item pricing/i);
     assert.match(TEMPLATES_WORKSPACE_TRUST_NOTE, /frozen prices/i);
+  });
+
+  test("formatCustomerDisplaySummary describes estimate toggles", () => {
+    assert.match(
+      formatCustomerDisplaySummary({
+        show_line_prices: true,
+        show_option_totals: true,
+        show_section_headings: true,
+      }),
+      /line prices.*package totals.*section headings/i
+    );
+  });
+
+  test("buildTemplateCreatesSummary lists packages and customer areas", () => {
+    const graph = {
+      template: {
+        id: "t1",
+        name: "Roof replacement",
+        metadata: {},
+      },
+      options: [],
+      sections: [
+        { id: "s1", kind: "line_items", option_id: "o1" },
+        { id: "s2", kind: "terms", option_id: "o1" },
+        { id: "s3", kind: "warranty", option_id: "o1" },
+      ],
+      items: [],
+    } as never;
+
+    const summary = buildTemplateCreatesSummary({
+      graph,
+      packageSummaries: [
+        {
+          optionId: "o1",
+          optionLabel: "Standard",
+          sectionCount: 3,
+          catalogSectionCount: 1,
+          linkedItemCount: 4,
+          issueCount: 0,
+          status: "ready",
+        },
+        {
+          optionId: "o2",
+          optionLabel: "Premium",
+          sectionCount: 2,
+          catalogSectionCount: 1,
+          linkedItemCount: 2,
+          issueCount: 1,
+          status: "needs_attention",
+        },
+      ],
+      editableProseCount: 2,
+    });
+
+    assert.deepEqual(summary.packageLabels, ["Standard", "Premium"]);
+    assert.equal(summary.linkedCatalogCount, 6);
+    assert.equal(summary.issueCount, 1);
+    assert.ok(summary.customerFacingAreas.includes("Estimate packages"));
+    assert.ok(summary.customerFacingAreas.includes("Terms"));
+    assert.ok(summary.customerFacingAreas.includes("Warranty"));
+    assert.equal(summary.editableProseCount, 2);
+    assert.match(summary.customerDisplayLine, /Customer estimate shows/i);
   });
 
   test("defaultExpandedPackageOptionId prefers needs_attention", () => {

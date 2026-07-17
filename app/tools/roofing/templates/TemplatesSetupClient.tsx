@@ -64,8 +64,10 @@ import {
   getOrderedSectionIdsForOption,
 } from "./templatesStructureEditorUtils";
 import {
+  buildTemplateCreatesSummary,
+  type TemplatesEditTabId,
+  type TemplatesWorkspaceMode,
   summarizePackageOptionsForWorkspace,
-  type TemplatesWorkspaceTabId,
 } from "./templatesWorkspaceFlow";
 
 const CATALOG_STARTER_DEFINITION_COUNT = DEFAULT_ROOFING_CATALOG_DEFINITIONS.length;
@@ -124,7 +126,8 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
   const [structureBusy, setStructureBusy] = useState<StructureSettingsBusy>(null);
   const [structureError, setStructureError] = useState<string | null>(null);
   const [catalogPicker, setCatalogPicker] = useState<CatalogPickerState>(null);
-  const [workspaceTab, setWorkspaceTab] = useState<TemplatesWorkspaceTabId>("overview");
+  const [workspaceMode, setWorkspaceMode] = useState<TemplatesWorkspaceMode>("use");
+  const [editTab, setEditTab] = useState<TemplatesEditTabId>("packages");
   const [focusSectionId, setFocusSectionId] = useState<string | null>(null);
 
   const loadCatalog = useCallback(async () => {
@@ -228,7 +231,8 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
         setGraphLoading(true);
         setTemplatesError(null);
         setSelectedTemplateId(templateId);
-        setWorkspaceTab("overview");
+        setWorkspaceMode("use");
+        setEditTab("packages");
         setFocusSectionId(null);
         try {
           const graph = await loadTemplateGraph(templateId, starterGraph);
@@ -727,20 +731,52 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
     );
   }, [selectedGraph, structureViewModel, catalogItems]);
 
-  const handleSelectWorkspaceTab = useCallback((tab: TemplatesWorkspaceTabId) => {
-    setWorkspaceTab(tab);
+  const createsSummary = useMemo(() => {
+    if (!selectedGraph) {
+      return {
+        packageLabels: [] as string[],
+        linkedCatalogCount: 0,
+        issueCount: 0,
+        customerFacingAreas: [] as string[],
+        customerDisplayLine: "",
+        editableProseCount: 0,
+      };
+    }
+    return buildTemplateCreatesSummary({
+      graph: selectedGraph,
+      packageSummaries,
+      editableProseCount: contentViewModel?.totalEditableSectionCount ?? 0,
+    });
+  }, [selectedGraph, packageSummaries, contentViewModel?.totalEditableSectionCount]);
+
+  const handleSelectEditTab = useCallback((tab: TemplatesEditTabId) => {
+    setEditTab(tab);
     if (tab !== "packages") {
       setFocusSectionId(null);
     }
   }, []);
 
+  const handleEnterEditMode = useCallback((tab: TemplatesEditTabId = "packages") => {
+    setWorkspaceMode("edit");
+    setEditTab(tab);
+    if (tab !== "packages") {
+      setFocusSectionId(null);
+    }
+  }, []);
+
+  const handleBackToSummary = useCallback(() => {
+    setWorkspaceMode("use");
+    setFocusSectionId(null);
+  }, []);
+
   const handleFixCatalogLinks = useCallback(() => {
-    setWorkspaceTab("packages");
+    setWorkspaceMode("edit");
+    setEditTab("packages");
     const problemId = selectedLinkReadiness.firstProblemItemId;
     if (problemId) {
       const item = selectedGraph?.items.find((row) => row.id === problemId);
       setFocusSectionId(item?.section_id ?? null);
-      // Allow Packages tab to mount before scrolling / opening relink.
+      // Allow Packages edit tab to mount before scrolling / opening relink.
       window.setTimeout(() => {
         const el = document.querySelector(`[data-templates-catalog-link="${problemId}"]`);
         el?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -758,6 +794,16 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
     selectedGraph?.items,
     selectedLinkReadiness.firstProblemItemId,
   ]);
+
+  const handleAddCatalogItemsCta = useCallback(() => {
+    setWorkspaceMode("edit");
+    setEditTab("packages");
+    setFocusSectionId(null);
+    window.setTimeout(() => {
+      const firstAdd = document.querySelector("[data-templates-add-from-catalog]");
+      firstAdd?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 50);
+  }, []);
 
   const handleInstallStarter = useCallback(() => {
     void (async () => {
@@ -870,12 +916,16 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
 
             {workspaceActive && selectedGraph && contentViewModel && structureViewModel ? (
               <TemplatesSelectedWorkspace
-                activeTab={workspaceTab}
-                onSelectTab={handleSelectWorkspaceTab}
+                mode={workspaceMode}
+                editTab={editTab}
+                onSelectEditTab={handleSelectEditTab}
+                onEnterEditMode={handleEnterEditMode}
+                onBackToSummary={handleBackToSummary}
                 graph={selectedGraph}
                 proposalReadiness={proposalReadiness}
                 linkReadiness={selectedLinkReadiness}
                 packageSummaries={packageSummaries}
+                createsSummary={createsSummary}
                 contentViewModel={contentViewModel}
                 structureViewModel={structureViewModel}
                 structureBusy={structureBusy}
@@ -885,6 +935,7 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
                 savingSectionId={savingSectionId}
                 sectionSaveError={sectionSaveError}
                 onFixLinks={handleFixCatalogLinks}
+                onAddCatalogItems={handleAddCatalogItemsCta}
                 onAddSection={handleAddSection}
                 onMoveSection={handleMoveSection}
                 onSaveTemplateEstimateSettings={handleSaveTemplateEstimateSettings}
