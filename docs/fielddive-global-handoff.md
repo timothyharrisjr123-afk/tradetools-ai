@@ -45,12 +45,12 @@
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** **pending this commit — polish(templates): simplify proposal template workspace**
-- **Docs checkpoint:** **pending this commit — Templates Workspace Redesign P0 implemented**
-- **Prior docs checkpoint:** **`0e6ccd1` — docs: plan templates workspace redesign**
-- **Prior code checkpoint:** **`c29ff33` — feat(proposals): add setup to builder trust flow**
-- **Next:** Integrated Flow **P2** — Job Card proposal start / guided creation path (see **§6BO.13.4.6** / **§6BO.13.4.7**). Do **not** start dedicated `/templates/[id]` unless Overview tabs prove insufficient; do **not** start supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
-- **Historical note:** Header language that still says “Slice 2 — Catalog P0 next” or “Coverage/Waste inactive / raw unwired” in older §6BO.13.4 rows is **superseded** by Phase 5–7 + Catalog management foundation + Catalog UX completion + **§6BO.13.4.6** integrated workflow research + Integrated Flow **P0/P1** + **§6BO.13.4.7** Templates workspace redesign (plan + P0 implementation) below.
+- **Code checkpoint:** **`e2df6ac` — polish(templates): simplify proposal template workspace**
+- **Docs checkpoint:** **pending this commit — contractor-first Templates flow plan**
+- **Prior docs checkpoint:** Templates Workspace Redesign P0 implementation notes (era of `e2df6ac`)
+- **Prior plan checkpoint:** **`0e6ccd1` — docs: plan templates workspace redesign**
+- **Next:** **Templates Flow Redesign P1** — Use-first / Edit-mode Templates experience (see **§6BO.13.4.8**). Then Integrated Flow **P2** Job Card proposal start. Do **not** start dedicated `/templates/[id]` unless Use/Edit mode on the same route proves insufficient; do **not** start supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
+- **Historical note:** **`e2df6ac` reduced density but is not final** — tabs still frame the page as an editor. Flow-first decision locked in **§6BO.13.4.8**.
 
 **Trust order:** Header/current checkpoint → **§6BO.13** (approved page-by-page UI flow roadmap + P0 implementation sequence — **supersedes separate Command Center language**) → **§6BM** / **§6BN** (R18 letter-phase roadmap + R18C–R18D3C implementation history) → **§6BO** / **§6BO.11** / **§6BO.12** (completed remediation side-track + **approved Stage C policy** + **operating-flow audit sequencing — complete; outcome in §6BO.13**) → **§6BL** → **§11 override**. Stage B browser smoke required local-only **`USE_PROPOSAL_SEND_FREEZE_RPC=1`** in `.env.local` (gitignored, not committed). **Do not proceed** to docs-only or next feature work unless working tree is clean. **Still do not** mutate `proposals.status = sent`, write sent `proposal_events`, move Jobs Board cards, add Job Card send activity, enable PDF/Sign/Payment, or add webhooks unless separately approved.
 
@@ -11508,9 +11508,153 @@ Contractor screenshots + code review of `/tools/roofing/templates` show an admin
 | **Risks** | Accidental loss of structure actions; dirty-state across tabs; over-collapsing hiding link problems (mitigate badges + Fix links) |
 | **`/templates/[id]`** | **Later** — not in Redesign P0 |
 
-##### I. Next coding block
+##### I. Next coding block (superseded)
 
-**Integrated Flow P2** — Job Card proposal start / guided creation path. CSV mapping assistant remains an alternate if import friction wins.
+See **§6BO.13.4.8** — Templates Flow Redesign P1 (Use-first) is the immediate next coding block before Integrated Flow P2.
+
+#### 13.4.8 Templates contractor-first flow redesign plan — COMPLETE (2026-07-17)
+
+**Status:** Docs-only flow redesign decision. **No app code, migrations, SQL, package, pricing, Preview, send/public/lifecycle, supplier, material ordering, or proposal import changes in this block.**
+
+**Code checkpoint at plan start:** **`e2df6ac`** — Templates Workspace Redesign P0 (tabs + collapsed packages) shipped.
+
+##### A. Why `e2df6ac` is improved but not excellent
+
+P0 fixed the worst problem (all options/sections/Catalog items dumped on load). The page is shorter and safer.
+
+It is still **not contractor-fast**:
+
+| Critique question | Honest answer |
+|-------------------|---------------|
+| Does first screen tell what to do next? | **Partially.** Open Jobs exists, but sits among equal-weight edit buttons and tab chrome. |
+| Is “Open Jobs…” visually strong enough? | **No.** Same size/weight as “Edit packages & Catalog”, “Estimate display”, “Edit content”. |
+| Is Use vs Edit obvious? | **No.** Default shell is still “Template workspace” with Overview as a tab among edit tabs. |
+| Does page explain what customer will see? | **No.** No customer-facing package/page/display summary — only contractor counts. |
+| Does page explain what template includes without deep edit? | **Weak.** Package chips + link counts; not “Good/Better/Best includes X materials / terms / warranty”. |
+| Still feels like admin tooling? | **Yes.** Library card + tab strip + readiness stats = setup console, not outcome page. |
+| Are tabs the right mental model? | **Wrong as first chrome.** Tabs hide depth but keep the *editor* identity. |
+| Should default be readiness/preview/use? | **Yes.** |
+| Should advanced editing go behind “Edit template”? | **Yes.** |
+| What would feel premium + contractor-fast? | Outcome hero: Ready / Not ready → one primary CTA → “what this creates” → issues → quiet Edit entry. |
+
+**Verdict:** P0 was a necessary density cut. It did **not** change the product story from “admin workspace” to “prepare → use from Job”.
+
+##### B. Targeted Roofr / public findings (flow separation)
+
+Sources: Create Proposal Template help; Create Proposal help; Academy “Proposal Templates” + “Creating Proposals from Job Cards”.
+
+| Confirmed | Unconfirmed |
+|-----------|-------------|
+| Templates live under Proposals → Templates; deep work is **Edit Option** / page editor | Exact Templates list visual density / readiness badges |
+| Proposal create is **Job Card → measurement → Use this template** (recommended) | Whether Templates list shows “ready” status |
+| Template editing and proposal creation are **separate intents** | Pixel-perfect first screen of Templates list |
+| Estimate/display settings are secondary editor chrome | Public screenshots of a “use summary” vs editor landing |
+
+**FieldDive judgment (where public evidence is thin):** Contractors spend most days creating proposals from jobs, not editing templates. Templates page must default to **readiness + outcome**, not editor tabs.
+
+##### C. Design options
+
+**Option A — Same route, stronger Overview (keep tabs)**  
+First: library + Overview tab. Primary CTA: Open Jobs. Edit via sibling tabs.  
+Pros: smallest delta from `e2df6ac`. Cons: still tab-as-identity; Use/Edit blur. Risk: polish without flow change. **Not recommended as end state.**
+
+**Option B — Use-first page + Edit mode (same route)** ★ **RECOMMENDED**  
+First: library + **Use surface** (no tab strip). Primary: Open Jobs / Fix issues. Secondary: **Edit template** enters edit mode (packages / display / content as task list or secondary nav).  
+Pros: clear mental model; keeps route; reuses editors; matches Job-Card create truth. Cons: needs mode state + CTA hierarchy work. Risk: weak Edit entry hides legit setup. Mitigate: issues CTA → Edit packages.  
+
+**Option C — Library + dedicated detail/editor route**  
+First: list/readiness only. Select → `/templates/[id]` detail (use default) then edit.  
+Pros: cleanest separation. Cons: routing, selection state, dirty guards; more scope. Risk: delays Integrated Flow P2. **Later** if B saturates.
+
+##### D. Recommended final flow (Option B)
+
+**1. Page model:** `/tools/roofing/templates` with `mode: use | edit`. Default `use`. No tab strip on Use surface.
+
+**2. Text-screen wireframe (text):**
+
+```
+Proposal templates
+Prepare reusable proposal packages. Create proposals from a Job Card.
+
+┌ Library (compact) ──────────────────────────────┐
+│ ● Roof Replacement Starter     Ready            │
+│   3 packages · Catalog links healthy            │
+└─────────────────────────────────────────────────┘
+
+┌ SELECTED — Roof Replacement Starter ─ READY ────┐
+│ This template builds a multi-package roof       │
+│ proposal from your Catalog + job measurement.   │
+│                                                 │
+│  [ Open Jobs to create a proposal ]  ← PRIMARY  │
+│  Fix issues (only if not ready)                 │
+│                                                 │
+│ What this creates                               │
+│  Packages: Standard · Enhanced · Premium        │
+│  Includes: materials/labor links, terms,        │
+│            warranty, cover/estimate pages       │
+│  Customer sees: package choice + estimate       │
+│            display per template settings        │
+│                                                 │
+│ Issues (if any)                                 │
+│  • 2 Catalog links need attention  [Fix]        │
+│                                                 │
+│ ──────── advanced ────────                      │
+│  Edit template →                                │
+└─────────────────────────────────────────────────┘
+```
+
+Edit mode (after “Edit template”):
+
+```
+← Done editing                          [Ready]
+Edit: Packages & Catalog | Customer display | Content pages
+… focused editors (reuse P0 packages/estimate/content) …
+```
+
+**3. CTA hierarchy**  
+1) Open Jobs to create a proposal (ready) **or** Fix Catalog links / Open Catalog (blocked)  
+2) Edit template  
+3) Quiet trust one-liner  
+
+**4. Library:** Compact selector; Ready / Needs attention; select resets to Use mode.
+
+**5. Readiness:** Hero badge + one sentence outcome; issues list with action → Edit packages (or Catalog).
+
+**6. What this includes:** Package names; Catalog link health; pages/prose present (terms/warranty/etc.) — outcome language, not sort_order metadata.
+
+**7. Customer-facing summary:** Short “Customer will see…” from estimate display defaults + package list — **not** a full Preview route; no fake live proposal.
+
+**8. Advanced edit entry:** Single **Edit template** control; not three equal Overview buttons + always-visible tabs.
+
+**9. Packages/Catalog edit:** Inside Edit mode only (P0 Packages tab behavior).
+
+**10. Content edit:** Inside Edit mode only.
+
+**11. Mobile:** Stack library → hero → primary CTA → includes → Edit. Edit mode = stacked task chooser.
+
+**12. Remove from first load:** Tab strip; equal-weight edit CTAs; “Template workspace” editor framing; repeated SoT essays; admin stats without outcome story.
+
+**13. Keep accessible:** Starter install; Catalog prerequisite; add/re-link; estimate toggles; content save; readiness helpers; Job-only create; Builder freeze truth.
+
+**14. Why better than `e2df6ac`:** Changes product identity from **editor-with-overview-tab** to **use-surface-with-edit-mode**; makes next action obvious in seconds; keeps Job Card as create start.
+
+##### E. Implementation plan (no code in this block)
+
+| Item | Plan |
+|------|------|
+| **Likely files** | `TemplatesSetupClient.tsx`, `TemplatesSelectedWorkspace.tsx`, `TemplatesOverviewPanel.tsx`, `TemplatesPageHeader.tsx`, `templatesWorkspaceFlow.ts`; new `TemplatesUseSurface.tsx`, `TemplatesEditModeShell.tsx`, `TemplatesIncludesSummary.tsx` (pure summary helpers ok) |
+| **Refactor** | Stop rendering tablist in Use mode; Overview becomes Use surface; Packages/Estimate/Content only in Edit mode |
+| **Retire / demote** | Tab-as-primary IA; equal Overview edit buttons; sticky checklist if still unused |
+| **Route** | Same route + `mode` state (optional `?mode=edit` later). **No `/templates/[id]` in P1** |
+| **Tests** | Use mode default; no tablist on first load; primary Open Jobs; Edit template reveals editors; no Create Proposal; Catalog link + estimate + content still wired; Preview/pricing unchanged |
+| **Smoke** | First screen Use-only → Open Jobs visible → Edit template → Packages/Estimate/Content → Done editing → Use; 390px; Preview still clean |
+| **Protected** | Pricing formulas, snapshots, Preview DTOs, send/public/lifecycle, Catalog SoT, Job-only create, no migrations |
+| **Risks** | Edit mode discoverability; dirty content when leaving Edit; overselling “customer will see” without a real preview — keep summary honest |
+
+##### F. Next coding block
+
+**Templates Flow Redesign P1** — implement Option B Use-first / Edit-mode on `/tools/roofing/templates`.  
+Then **Integrated Flow P2** — Job Card proposal start / guided creation path.
 
 #### 13.4.6 Integrated Catalog → Proposal workflow research + FieldDive flow design — COMPLETE (2026-07-17)
 
@@ -11697,9 +11841,11 @@ Roofr keeps this simple by: forcing Catalog-before-Template, automating qty from
 
 **Integrated Flow P1 — setup-to-proposal smoothness** — **COMPLETE** (see P1 section above this research block).
 
-**Templates Workspace Redesign P0 — overview-first progressive disclosure** — **COMPLETE** (see **§6BO.13.4.7**).
+**Templates Workspace Redesign P0 — overview-first progressive disclosure** — **COMPLETE** at `e2df6ac` (see **§6BO.13.4.7**) — **improved density, not final flow**.
 
-**Integrated Flow P2 — job-card proposal start / guided creation path (preferred next)**
+**Templates Flow Redesign P1 — Use-first / Edit-mode** — **NEXT** (see **§6BO.13.4.8**).
+
+**Integrated Flow P2 — job-card proposal start / guided creation path (queued after Templates Flow P1)**
 
 - **Goal:** Make Job Card → measurement → template → Create proposal the most obvious connected path when setup is ready; clarify blocked states with fix actions.
 - **Likely files:** Job Card proposals tab / launch helpers, optional guided create modal if needed (only if real route support).
@@ -12992,6 +13138,7 @@ Treat as **drift** if a session:
 
 ## Changelog (handoff doc only)
 
+- **2026-07-17:** **Templates contractor-first flow redesign plan** (docs only) — recorded **§6BO.13.4.8**: honest critique of `e2df6ac` (tabs still editor-framed); Options A/B/C; chose **Option B Use-first + Edit mode**; text wireframe + implementation plan. No app code. **Next coding block:** Templates Flow Redesign **P1**.
 - **2026-07-17:** **Templates Workspace Redesign P0** — contractor-first `/tools/roofing/templates`: Overview readiness + Open Jobs; Packages & Catalog / Estimate / Content tabs; no first-load Catalog dump; Catalog add/re-link preserved; pricing/Preview/lifecycle unchanged. **Next:** Integrated Flow **P2** Job Card proposal start.
 - **2026-07-17:** **Templates workspace redesign research + plan** (docs only) — recorded **§6BO.13.4.7**: screenshot/code critique of dense all-expanded Templates page; targeted Roofr template UX research (confirmed vs unconfirmed); chosen hybrid model A+D+E+F (Overview-first tabs + collapsed options/sections; defer `/templates/[id]`); page structure + implementation plan. No app code/migrations/SQL/package/pricing/Preview/lifecycle changes. **Next coding block:** Templates Workspace Redesign **P0**.
 - **2026-07-17:** **Integrated Flow P0 — Template Add item from Catalog / re-link foundation** — existing `catalog_item_id` (no migration); Structure picker + link status + re-link; Catalog SoT / draft-refresh copy; Builder/Preview/pricing unchanged. Focused tests pass. Local + live smoke PASS on **`rhquhnujjnzjhweypavd`** (disposable item cleaned). **Next:** Integrated Flow P1 setup-to-proposal smoothness / Builder refresh trust guidance.
