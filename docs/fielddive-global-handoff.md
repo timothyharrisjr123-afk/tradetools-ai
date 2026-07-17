@@ -45,12 +45,11 @@
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** **pending this commit — polish(templates): add use first template flow** (Templates Flow Redesign P1)
-- **Docs checkpoint:** Templates Flow Redesign P1 notes (this header + **§6BO.13.4.8** G)
-- **Prior code checkpoint:** **`409e2f4` — docs: plan contractor-first templates flow**
-- **Prior P0 code:** **`e2df6ac` — polish(templates): simplify proposal template workspace**
-- **Next:** **Integrated Flow P2** — Job Card proposal start / guided creation path. Do **not** start dedicated `/templates/[id]` unless Use/Edit mode on the same route proves insufficient; do **not** start supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
-- **Historical note:** **`e2df6ac` reduced density but kept editor-framed tabs**; **P1** implements locked Option B Use-first / Edit-mode (**§6BO.13.4.8**).
+- **Code checkpoint:** **`97c12e5` — polish(templates): add use first template flow** (Templates Flow Redesign P1)
+- **Docs checkpoint:** **pending this commit — contractor-first template page redesign plan** (**§6BO.13.4.9**)
+- **Prior docs checkpoint:** Templates Flow Redesign P1 notes (**§6BO.13.4.8** G)
+- **Next:** **Templates Page Redesign P2** — Included-in-quote manager + Add / Remove / Replace (see **§6BO.13.4.9**). Then Integrated Flow **P2** Job Card proposal start. Do **not** start dedicated `/templates/[id]` unless the Included-manager model proves insufficient; do **not** start supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
+- **Historical note:** **`97c12e5` Use-first / Edit-mode improved IA but is still not contractor-simple** — edits still require deep structure chrome; no Remove-from-template. Redesign locked in **§6BO.13.4.9**.
 
 **Trust order:** Header/current checkpoint → **§6BO.13** (approved page-by-page UI flow roadmap + P0 implementation sequence — **supersedes separate Command Center language**) → **§6BM** / **§6BN** (R18 letter-phase roadmap + R18C–R18D3C implementation history) → **§6BO** / **§6BO.11** / **§6BO.12** (completed remediation side-track + **approved Stage C policy** + **operating-flow audit sequencing — complete; outcome in §6BO.13**) → **§6BL** → **§11 override**. Stage B browser smoke required local-only **`USE_PROPOSAL_SEND_FREEZE_RPC=1`** in `.env.local` (gitignored, not committed). **Do not proceed** to docs-only or next feature work unless working tree is clean. **Still do not** mutate `proposals.status = sent`, write sent `proposal_events`, move Jobs Board cards, add Job Card send activity, enable PDF/Sign/Payment, or add webhooks unless separately approved.
 
@@ -11510,7 +11509,7 @@ Contractor screenshots + code review of `/tools/roofing/templates` show an admin
 
 ##### I. Next coding block (superseded)
 
-See **§6BO.13.4.8** — Templates Flow Redesign P1 (Use-first) is the immediate next coding block before Integrated Flow P2.
+See **§6BO.13.4.9** — Templates Page Redesign P2 (Included manager) is the immediate next coding block before Integrated Flow P2.
 
 #### 13.4.8 Templates contractor-first flow redesign plan — COMPLETE (2026-07-17)
 
@@ -11673,7 +11672,285 @@ Was: Templates Flow Redesign P1. **P1 shipped — see G.** Next: Integrated Flow
 
 **Key files:** `TemplatesUseSurface.tsx`, `TemplatesSelectedWorkspace.tsx`, `TemplatesSetupClient.tsx`, `templatesWorkspaceFlow.ts`, `TemplatesPageHeader.tsx`, `TemplatesEstimateDisplayTab.tsx` (Customer display label). Removed unused `TemplatesOverviewPanel.tsx`.
 
-**Next recommended block:** **Integrated Flow P2 — Job Card proposal start / guided creation path.**
+**Next recommended block (superseded):** Was Integrated Flow P2. **Templates page still not contractor-simple — see §6BO.13.4.9.** Next coding: **Templates Page Redesign P2**.
+
+#### 13.4.9 Proposal Templates page contractor-first redesign plan — COMPLETE (2026-07-17)
+
+**Status:** Docs-only redesign plan. **No app code, migrations, SQL, package, pricing, Preview, send/public/lifecycle, supplier, material ordering, CSV mapping, Job Card, or Builder changes in this block.**
+
+**Code checkpoint at plan start:** **`97c12e5`** — Templates Flow Redesign P1 (Use-first / Edit-mode) shipped.
+
+##### A. Contractor workflow (quote after measurement)
+
+Scenario: measurements are done; contractor wants a simple roof replacement quote.
+
+| Step | Contractor intent |
+|------|-------------------|
+| 1 | Pick the right company proposal template |
+| 2 | Confirm package options (e.g. Standard / Enhanced / Premium) |
+| 3 | Confirm key customer pages (terms, warranty, estimate) exist |
+| 4 | Quick add if something is missing (e.g. Permit fee) |
+| 5 | Quick remove if something does not belong on this template |
+| 6 | Quick replace if the wrong Catalog item is linked |
+| 7 | Leave Catalog economics and pricing math alone |
+| 8 | Continue to quote from a Job Card (not “create proposal” on Templates) |
+
+**1. What the contractor cares about**
+- Which template to use for this kind of job
+- What the quote will include (packages + key line items + terms/warranty)
+- Whether anything important is missing or broken
+- Fast Add / Remove / Replace of included items
+- Clear Ready vs Needs attention
+- How to keep moving toward the quote (Job Card)
+
+**2. What they do not care about on this page**
+- Internal section kinds, sort_order, protection reasons
+- Template graph / “structure editor” framing
+- Catalog cost/margin editing
+- Pricing engine formulas, tax math, waste models
+- Repeated source-of-truth lectures
+- Admin metadata (seed keys, `catalog_item_id`, option IDs)
+
+**3. Hide from first view**
+- Full package → section → item tree
+- Section add/move/remove chrome
+- Customer display toggles dump
+- Content/prose editor
+- Onboarding/install zone when starter is already healthy (collapse)
+- Equal-weight “Edit template” as the only path to change inclusions
+
+**4. One click away**
+- Select another template
+- Add item / Remove from template / Replace item on the included list
+- Fix broken links
+- Continue to Jobs (Job Card create path)
+- Expand a package’s included items list
+
+**5. Deeper editing only**
+- Customer display (what customers see on estimate)
+- Terms / warranty / text content authoring
+- Section structure (add section types, reorder sections)
+- Starter install / Catalog prerequisite when company setup is incomplete
+
+##### B. Honest critique of `97c12e5` (current page)
+
+P1 correctly removed first-load tabs and added readiness + “What this creates.” It is **still too close to an admin template console**.
+
+| Question | Honest answer |
+|----------|---------------|
+| Does quoting feel faster? | **No.** Primary path still leaves Templates to Jobs; the common mid-visit job (tweak inclusions) is buried under **Edit template → Packages → Expand → Edit section**. |
+| Does selected view feel like “what this quote includes”? | **Partially.** Counts and package names exist; **no scannable included-items list** on the use surface. |
+| Is Add / Remove / Replace obvious? | **No.** Add exists only deep in edit mode. Relabel is **Change catalog link** (technical). **Remove from template does not exist** (store has create/update item only; section Remove blocked). |
+| Still centered on internal structure? | **Yes** once Edit opens — same collapsed structure editor, not an inclusions manager. |
+| First-time contractor confusion | “Template library” + setup/onboarding above; “Edit template” opens structure language; no Remove; Open Jobs vs inventing Create Proposal. |
+| Simplest powerful version | Template picker + **Included in this quote** list with Add/Remove/Replace + Ready CTA + Advanced tucked away. |
+
+**Verdict:** Do **not** preserve the current display by tucking the same structure page into Edit mode. Redesign around **inclusions management**, not template-database browsing.
+
+##### C. Three layout options (text wireframes)
+
+###### OPTION A — Template cards + quote-ready summary
+
+```
+Proposal templates
+Templates for the quotes you send from Jobs.
+
+┌ Template cards ─────────────────────────────────┐
+│ [Roof replacement ● Ready]  [Other…]            │
+└─────────────────────────────────────────────────┘
+
+┌ Roof replacement — Ready ───────────────────────┐
+│ Packages: Standard · Enhanced · Premium         │
+│ Includes: Terms · Warranty · Estimate           │
+│ 46 items linked                                 │
+│                                                 │
+│ [ Continue from Job Card ]  ← PRIMARY           │
+│ [ Manage included items ]                       │
+│ Advanced: Customer display · Content            │
+└─────────────────────────────────────────────────┘
+```
+
+| | |
+|--|--|
+| **Primary CTA** | Continue from Job Card / Open Jobs |
+| **Secondary CTA** | Manage included items |
+| **Add** | Opens manage → Add item modal |
+| **Remove** | Inside manage list |
+| **Replace** | Inside manage list |
+| **Customer display / Content** | Advanced links |
+| **Hidden** | Structure tree; section chrome |
+| **Pros** | Clear ready state; low first-load noise |
+| **Cons** | Inclusions still one step away; easy to skip manage |
+| **Risk** | Becomes another summary-only page (like P1) |
+| **Faster?** | Somewhat — only if Manage is obvious |
+
+###### OPTION B — Template selector + “Included in this quote” manager ★
+
+```
+Proposal templates
+Choose a template, confirm what is included, then quote from a Job.
+
+┌ Your templates ─────────────────────────────────┐
+│ ● Roof replacement          Ready               │
+│   Other template            Needs attention     │
+└─────────────────────────────────────────────────┘
+
+┌ Included in this quote — Roof replacement ──────┐
+│ Ready to use                                    │
+│ Packages: Standard · Enhanced · Premium         │
+│                                                 │
+│ Package: [ Standard ▼ ]                         │
+│ Included items                                  │
+│  Architectural shingles          [Replace] [✕]  │
+│  …                                              │
+│  Permit / administrative fee     [Replace] [✕]  │
+│  [ + Add item ]                                 │
+│                                                 │
+│ Also includes: Terms · Warranty · Estimate text │
+│                                                 │
+│ [ Open Jobs to create a proposal ] ← PRIMARY    │
+│ Advanced ▸ Customer display · Edit content      │
+│            · Template structure                 │
+└─────────────────────────────────────────────────┘
+```
+
+| | |
+|--|--|
+| **Primary CTA** | Open Jobs to create a proposal (or Fix when not ready) |
+| **Secondary CTA** | Add item (always visible on included list) |
+| **Add** | Modal: search active Catalog → Add to selected package/section |
+| **Remove** | Row action “Remove from template” (confirm; Catalog untouched) |
+| **Replace** | Modal: pick different active Catalog item; keep slot |
+| **Customer display / Content** | Advanced disclosure |
+| **Hidden** | Section reorder/add; sort_order; SoT essays; structure dump |
+| **Pros** | Matches contractor mental model; quick edits on default surface |
+| **Cons** | Need package switcher; must ship Remove store path |
+| **Risk** | List noise if all packages dump at once — mitigate with package filter |
+| **Faster?** | **Yes** — see + change inclusions without Edit mode maze |
+
+###### OPTION C — Guided template review
+
+```
+Step 1 Choose → Step 2 Review includes → Step 3 Quick edits → Step 4 Ready
+(single page progress, not a multi-route wizard)
+```
+
+| | |
+|--|--|
+| **Primary CTA** | Next / Ready → Open Jobs |
+| **Secondary** | Skip to edits |
+| **Add/Remove/Replace** | Step 3 only |
+| **Advanced** | After Ready or footer |
+| **Pros** | Teaching path for first-time users |
+| **Cons** | Extra friction for daily users; feels productized/wizard |
+| **Risk** | Contractors hate forced steps |
+| **Faster?** | First visit yes; day-to-day **no** |
+
+##### D. Selected model
+
+**Recommend OPTION B — Template selector + Included-in-this-quote manager.**
+
+Why (not “easiest to build”):
+- Simplest contractor story: pick → see included → tweak → go to Job
+- Fastest path to the actual mid-page job (Add/Remove/Replace)
+- Least confusion vs structure editor + “Change catalog link”
+- Long-term quality: Templates page becomes **quote composition**, not DB admin
+- Preserves Catalog SoT, Job-only create, Builder freeze — only changes **presentation + remove capability**
+
+Why better than `97c12e5`:
+- P1 Use surface answers readiness but **not inclusions**
+- P1 Edit mode reuses the **same structure UI** (wrong product identity)
+- B puts inclusions on the default surface; structure/content/display become Advanced
+
+**Defer Option C** as optional first-run coach later. **Borrow from A:** strong Ready badge + Open Jobs primary.
+
+##### E. Quick edit flow (Add / Remove / Replace) — critical
+
+**Surface:** Default-page **Included items** list (package-scoped). Not buried in Edit → Packages → section.
+
+**Chrome:** Prefer **modal** (reuse/evolve Catalog picker) over drawer for Add/Replace; Remove is **inline row + short confirm**.
+
+| Action | Label | Behavior |
+|--------|-------|----------|
+| Add | **Add item** | Modal; search active Catalog; pick package (default current); add to default line-items section; exclude already-included ids |
+| Remove | **Remove from template** | Confirm: “Remove from this template? The Catalog item stays in your Catalog.” Deletes **template item row only** |
+| Replace | **Replace item** | Modal (relink); keeps section/position; swap Catalog link |
+
+**Empty state:** “No items in this package yet. Add item to include Catalog lines on quotes.”
+
+**Confirmations:** Remove requires confirm. Add/Replace: no confirm after pick (immediate). Never imply Catalog delete.
+
+**Mobile:** Full-screen modal for Add/Replace; row actions stack; package selector sticky.
+
+**Copy rules:** Prefer Add item / Remove from template / Replace item / Included items. Avoid `catalog_item_id`, “Change catalog link”, repeated SoT under every row (one quiet note in Advanced or modal footer max).
+
+**Gap vs today:** Add + Replace(=relink) exist deep in edit UI. **Remove-from-template is missing** — coding block must add store delete for template items (no Catalog delete; no migration if RLS already allows delete).
+
+##### F. Final recommended wireframe (build from this)
+
+```
+Proposal templates
+Choose a template, confirm what it includes, then create the quote from a Job Card.
+
+┌ YOUR TEMPLATES (compact) ───────────────────────┐
+│ ● Roof replacement     Ready      3 packages    │
+│   Smoke template       Needs attention          │
+└─────────────────────────────────────────────────┘
+
+┌ ROOF REPLACEMENT                    Ready to use ┐
+│ This quote template includes the packages and   │
+│ Catalog items below. Pricing stays in Catalog.  │
+│                                                 │
+│ Packages: Standard · Enhanced · Premium         │
+│ Customer pages: Estimate · Terms · Warranty     │
+│                                                 │
+│ Viewing package: [ Standard ▼ ]                 │
+│                                                 │
+│ Included items                    [ + Add item ]│
+│ ┌─────────────────────────────────────────────┐ │
+│ │ Architectural shingles     Linked           │ │
+│ │                    [Replace] [Remove]       │ │
+│ │ Permit / administrative fee Linked          │ │
+│ │                    [Replace] [Remove]       │ │
+│ │ …                                           │ │
+│ └─────────────────────────────────────────────┘ │
+│                                                 │
+│ Issues (if any): 2 items need attention [Fix]   │
+│                                                 │
+│ [ Open Jobs to create a proposal ]  ← PRIMARY   │
+│                                                 │
+│ Advanced ▸                                      │
+│   Customer display settings                     │
+│   Edit terms / warranty / content               │
+│   Template structure (sections)                 │
+│                                                 │
+│ Quiet note: Catalog prices; drafts stay frozen  │
+│ until refreshed in Builder.                     │
+└─────────────────────────────────────────────────┘
+
+Setup (collapsed when healthy): Catalog ready · Starter installed
+```
+
+**Mobile (~390px):** Templates list → selected header/status → primary CTA → package selector → Included items → Advanced. Modals full-bleed.
+
+##### G. Implementation plan (plan only — do not implement here)
+
+| Item | Plan |
+|------|------|
+| **Likely files** | `TemplatesSetupClient.tsx`, `TemplatesUseSurface.tsx` → refactor/replace with Included manager; `TemplatesSectionCatalogItems.tsx` / picker modal; `TemplatesPackagesCatalogTab.tsx` demoted to Advanced; `proposalTemplateStore.ts` (+ delete item); `proposalTemplateCatalogLink.ts` labels; `templatesWorkspaceFlow.ts`; page header/library copy |
+| **Create** | `TemplatesIncludedManager.tsx` (or equivalent); package filter; Remove confirm; Rename Replace labels |
+| **Refactor** | Default surface = selector + included list + CTAs; stop requiring Edit mode for Add/Remove/Replace |
+| **Demote / retire** | Structure-first Packages tab as default edit path; “Change catalog link” label; Use surface that only shows counts; loud onboarding when healthy |
+| **Tests** | Default shows Included items; Add/Remove/Replace labels; Remove does not delete Catalog; no Create Proposal; Advanced hides structure; readiness CTAs; existing link/readiness/Builder trust/Preview suites still pass |
+| **Smoke** | Select template → see items → Add → Remove → Replace → Open Jobs primary → Advanced customer display/content → 390px; no supplier/import |
+| **Protected** | Pricing formulas, snapshots, Preview DTOs, send/public/lifecycle, Job-only create, Catalog economics, no migrations/SQL/packages unless delete blocked by RLS (investigate first; prefer no migration) |
+| **Risks** | Remove semantics (drafts already snapshotted stay frozen — honest); long item lists (package filter + collapse); contractors editing company template mid-day (expected; copy that changes apply to future quotes) |
+| **Next coding prompt** | **Templates Page Redesign P2 — implement Option B Included manager + Add/Remove/Replace** on `/tools/roofing/templates` per §6BO.13.4.9 |
+
+##### H. Next coding block
+
+**Templates Page Redesign P2** — Included-in-this-quote manager + Add / Remove / Replace.
+Then **Integrated Flow P2** — Job Card proposal start / guided creation path.
 
 #### 13.4.6 Integrated Catalog → Proposal workflow research + FieldDive flow design — COMPLETE (2026-07-17)
 
@@ -11864,7 +12141,9 @@ Roofr keeps this simple by: forcing Catalog-before-Template, automating qty from
 
 **Templates Flow Redesign P1 — Use-first / Edit-mode** — **DONE** (see **§6BO.13.4.8** G).
 
-**Integrated Flow P2 — job-card proposal start / guided creation path — NEXT**
+**Templates Page Redesign P2 — Included manager + Add/Remove/Replace** — **NEXT** (see **§6BO.13.4.9**).
+
+**Integrated Flow P2 — job-card proposal start / guided creation path** — queued after Templates Page P2.
 
 - **Goal:** Make Job Card → measurement → template → Create proposal the most obvious connected path when setup is ready; clarify blocked states with fix actions.
 - **Likely files:** Job Card proposals tab / launch helpers, optional guided create modal if needed (only if real route support).
@@ -13157,7 +13436,8 @@ Treat as **drift** if a session:
 
 ## Changelog (handoff doc only)
 
-- **2026-07-17:** **Templates Flow Redesign P1** — Use-first / Edit-mode on `/tools/roofing/templates`: default Use surface (readiness + what this creates + Open Jobs / Fix); Edit template mode for Packages & Catalog / Customer display / Content; no first-load edit tab strip; Catalog add/re-link + estimate/content preserved; pricing/Preview/lifecycle unchanged. **Next:** Integrated Flow **P2** Job Card proposal start.
+- **2026-07-17:** **Proposal Templates page contractor-first redesign plan** (docs only) — recorded **§6BO.13.4.9**: critique of `97c12e5` (still structure-admin; no Remove); Options A/B/C; chose **Option B Included-in-quote manager**; Add/Remove/Replace flow; final wireframe + implementation plan. No app code. **Next coding block:** Templates Page Redesign **P2**.
+- **2026-07-17:** **Templates Flow Redesign P1** — Use-first / Edit-mode on `/tools/roofing/templates`: default Use surface (readiness + what this creates + Open Jobs / Fix); Edit template mode for Packages & Catalog / Customer display / Content; no first-load edit tab strip; Catalog add/re-link + estimate/content preserved; pricing/Preview/lifecycle unchanged. Superseded as end-state by **§6BO.13.4.9** (still not contractor-simple).
 - **2026-07-17:** **Templates contractor-first flow redesign plan** (docs only) — recorded **§6BO.13.4.8**: honest critique of `e2df6ac` (tabs still editor-framed); Options A/B/C; chose **Option B Use-first + Edit mode**; text wireframe + implementation plan. No app code. **Next coding block:** Templates Flow Redesign **P1**.
 - **2026-07-17:** **Templates Workspace Redesign P0** — contractor-first `/tools/roofing/templates`: Overview readiness + Open Jobs; Packages & Catalog / Estimate / Content tabs; no first-load Catalog dump; Catalog add/re-link preserved; pricing/Preview/lifecycle unchanged. Superseded as first-load IA by P1 Use-first.
 - **2026-07-17:** **Templates workspace redesign research + plan** (docs only) — recorded **§6BO.13.4.7**: screenshot/code critique of dense all-expanded Templates page; targeted Roofr template UX research (confirmed vs unconfirmed); chosen hybrid model A+D+E+F (Overview-first tabs + collapsed options/sections; defer `/templates/[id]`); page structure + implementation plan. No app code/migrations/SQL/package/pricing/Preview/lifecycle changes. **Next coding block:** Templates Workspace Redesign **P0**.
