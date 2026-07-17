@@ -8,7 +8,8 @@
  */
 
 import { buildDefaultRoofingCatalogDrafts } from "@/app/lib/defaultRoofingCatalog";
-import { createCatalogItem, getCatalogItemsByCompany } from "@/app/lib/catalogStore";
+import { createCatalogItem, loadCatalogItemsByCompany } from "@/app/lib/catalogStore";
+import type { CatalogItem } from "@/app/lib/catalogTypes";
 
 export type InstallDefaultRoofingCatalogResult = {
   companyId: string;
@@ -35,9 +36,7 @@ function extractSeedKey(metadata: Record<string, unknown> | null | undefined): s
   return trimmed.length > 0 ? trimmed : null;
 }
 
-function buildExistingSeedKeySet(
-  items: Awaited<ReturnType<typeof getCatalogItemsByCompany>>
-): Set<string> {
+function buildExistingSeedKeySet(items: CatalogItem[]): Set<string> {
   const keys = new Set<string>();
   for (const item of items) {
     const seedKey = extractSeedKey(item.metadata ?? null);
@@ -48,6 +47,8 @@ function buildExistingSeedKeySet(
 
 /**
  * Insert missing starter catalog rows for a company (insert-only, seed_key dedupe).
+ * Aborts without creating rows when the catalog read fails — never treats failed
+ * reads as an empty catalog.
  */
 export async function installDefaultRoofingCatalog(
   companyId: string
@@ -60,8 +61,23 @@ export async function installDefaultRoofingCatalog(
     return null;
   }
 
-  const existingItems = await getCatalogItemsByCompany(scopedCompanyId);
-  const existingSeedKeys = buildExistingSeedKeySet(existingItems);
+  const existingLoad = await loadCatalogItemsByCompany(scopedCompanyId);
+  if (!existingLoad.ok) {
+    console.error(
+      "[defaultRoofingCatalogInstall] installDefaultRoofingCatalog: catalog read failed",
+      { companyId: scopedCompanyId, error: existingLoad.error }
+    );
+    return {
+      companyId: scopedCompanyId,
+      createdCount: 0,
+      skippedCount: 0,
+      failedCount: 1,
+      createdIds: [],
+      errors: [existingLoad.error || "Could not load catalog items before starter install."],
+    };
+  }
+
+  const existingSeedKeys = buildExistingSeedKeySet(existingLoad.items);
   const drafts = buildDefaultRoofingCatalogDrafts(scopedCompanyId);
 
   const createdIds: string[] = [];

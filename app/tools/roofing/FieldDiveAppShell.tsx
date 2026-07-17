@@ -281,7 +281,11 @@ function NavSidebarItem({
   return (
     <div>
       {href ? (
-        <Link href={href} className={cls}>
+        <Link
+          href={href}
+          className={cls}
+          aria-current={moduleActive ? "page" : undefined}
+        >
           <Icon className={`h-4 w-4 shrink-0 ${moduleActive ? "text-blue-600" : "text-slate-400"}`} aria-hidden />
           {label}
         </Link>

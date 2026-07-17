@@ -1,5 +1,5 @@
 /**
- * S3B — catalog store mapper awareness for waste_pct (no DB, no UI).
+ * Catalog store mapper + load-result contracts (no live DB).
  *
  * Run: npx tsx --test app/lib/catalogStore.test.ts
  */
@@ -12,6 +12,7 @@ import {
   catalogItemPatchToUpdateRow,
   rowToCatalogItem,
   type CatalogItemRow,
+  type CatalogItemsLoadResult,
 } from "./catalogStore";
 
 function baseRow(overrides: Partial<CatalogItemRow> = {}): CatalogItemRow {
@@ -47,7 +48,7 @@ function baseDraft(overrides: Partial<CatalogItemDraft> = {}): CatalogItemDraft 
   };
 }
 
-describe("catalogStore waste_pct mapper (S3B)", () => {
+describe("catalogStore quantity-driver mapper", () => {
   test("rowToCatalogItem maps null waste_pct", () => {
     const item = rowToCatalogItem(baseRow({ waste_pct: null }));
     assert.equal(item.waste_pct, null);
@@ -58,6 +59,19 @@ describe("catalogStore waste_pct mapper (S3B)", () => {
     delete row.waste_pct;
     const item = rowToCatalogItem(row);
     assert.equal(item.waste_pct, null);
+  });
+
+  test("rowToCatalogItem maps coverage_rate, waste_applies, and waste_pct together", () => {
+    const item = rowToCatalogItem(
+      baseRow({
+        coverage_rate: 5,
+        waste_applies: true,
+        waste_pct: 10,
+      })
+    );
+    assert.equal(item.coverage_rate, 5);
+    assert.equal(item.waste_applies, true);
+    assert.equal(item.waste_pct, 10);
   });
 
   test("rowToCatalogItem maps 0 and positive waste_pct", () => {
@@ -73,24 +87,75 @@ describe("catalogStore waste_pct mapper (S3B)", () => {
     );
   });
 
+  test("insert row passes through coverage/waste drivers when set", () => {
+    const insert = catalogItemDraftToInsertRow(
+      baseDraft({
+        coverage_rate: 5,
+        waste_applies: true,
+        waste_pct: 10,
+      })
+    );
+    assert.equal(insert.coverage_rate, 5);
+    assert.equal(insert.waste_applies, true);
+    assert.equal(insert.waste_pct, 10);
+  });
+
   test("insert row omits waste_pct when draft does not set it", () => {
     const insert = catalogItemDraftToInsertRow(baseDraft());
     assert.equal("waste_pct" in insert, false);
   });
 
-  test("insert row passes through null and positive waste_pct when set", () => {
-    const withNull = catalogItemDraftToInsertRow(baseDraft({ waste_pct: null }));
-    assert.equal(withNull.waste_pct, null);
-
-    const withValue = catalogItemDraftToInsertRow(baseDraft({ waste_pct: 10 }));
-    assert.equal(withValue.waste_pct, 10);
-  });
-
-  test("update patch passes waste_pct only when present", () => {
+  test("update patch passes coverage/waste only when present", () => {
     const omitted = catalogItemPatchToUpdateRow({ name: "Rename only" });
     assert.equal("waste_pct" in omitted, false);
+    assert.equal("coverage_rate" in omitted, false);
 
-    const patched = catalogItemPatchToUpdateRow({ waste_pct: 8 });
-    assert.equal(patched.waste_pct, 8);
+    const patched = catalogItemPatchToUpdateRow({
+      coverage_rate: 7.5,
+      waste_applies: false,
+      waste_pct: 12,
+    });
+    assert.equal(patched.coverage_rate, 7.5);
+    assert.equal(patched.waste_applies, false);
+    assert.equal(patched.waste_pct, 12);
+  });
+
+  test("update-to-null clears quantity drivers", () => {
+    const patched = catalogItemPatchToUpdateRow({
+      coverage_rate: null,
+      waste_pct: null,
+      waste_applies: false,
+    });
+    assert.equal(patched.coverage_rate, null);
+    assert.equal(patched.waste_pct, null);
+    assert.equal(patched.waste_applies, false);
+  });
+});
+
+describe("CatalogItemsLoadResult contract", () => {
+  test("success with rows, success empty, and failed read are distinct shapes", () => {
+    const withRows: CatalogItemsLoadResult = {
+      ok: true,
+      items: [rowToCatalogItem(baseRow())],
+    };
+    const empty: CatalogItemsLoadResult = { ok: true, items: [] };
+    const failed: CatalogItemsLoadResult = {
+      ok: false,
+      error: "Could not load catalog items.",
+    };
+
+    assert.equal(withRows.ok, true);
+    if (withRows.ok) assert.equal(withRows.items.length, 1);
+
+    assert.equal(empty.ok, true);
+    if (empty.ok) assert.equal(empty.items.length, 0);
+
+    assert.equal(failed.ok, false);
+    if (!failed.ok) {
+      assert.match(failed.error, /Could not load catalog items/i);
+    }
+
+    // Failed must never look like success empty.
+    assert.notEqual(failed.ok, empty.ok);
   });
 });

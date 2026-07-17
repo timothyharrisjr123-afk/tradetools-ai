@@ -117,6 +117,8 @@ describe("Catalog P0B–P0D page shell", () => {
     assert.ok(!source.includes("waste_applies"));
     assert.ok(!source.includes("coverage_rate"));
     assert.ok(!source.includes('type="number"'));
+    assert.ok(!source.includes("wasteModel"));
+    assert.ok(!/raw_plus_waste|mode switch/i.test(source));
     assert.ok(CATALOG_SETTINGS_PLANNED_TOOLS.some((t) => t.title.includes("Catalog defaults")));
     assert.ok(CATALOG_SETTINGS_PLANNED_TOOLS.length >= 5);
     const coverageWaste = CATALOG_SETTINGS_PLANNED_TOOLS.find(
@@ -127,6 +129,15 @@ describe("Catalog P0B–P0D page shell", () => {
     assert.match(coverageWaste!.detail, /quantity-mode switching/i);
     assert.match(coverageWaste!.detail, /remain planned/i);
     assert.equal(/raw_plus_waste/i.test(coverageWaste!.detail), false);
+  });
+
+  test("load failure retry path is available and empty install is load-error gated", () => {
+    const alerts = readCatalogFile("CatalogPageAlerts.tsx");
+    const setup = readCatalogFile("CatalogSetupClient.tsx");
+    assert.ok(alerts.includes("onRetryLoad"));
+    assert.ok(alerts.includes("Retry"));
+    assert.ok(setup.includes("!loadError && sortedItems.length === 0"));
+    assert.ok(setup.includes("loadCatalogItemsByCompany") || setup.includes("loadActiveCatalogItemsByCompany"));
   });
 
   test("Phase 7 Coverage/Waste appear on catalog item edit/add surfaces", () => {

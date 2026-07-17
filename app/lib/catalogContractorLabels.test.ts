@@ -76,6 +76,8 @@ describe("catalogContractorLabels", () => {
     assert.match(CATALOG_FIELD_HELPERS.quantityDriversSection, /Used by raw quantity mode/i);
     assert.match(CATALOG_FIELD_HELPERS.quantityDriversSection, /Does not change adjusted-mode/i);
     assert.match(CATALOG_FIELD_HELPERS.coverage, /one purchase unit covers/i);
+    assert.match(CATALOG_FIELD_HELPERS.coverage, /not verified yet/i);
+    assert.equal(/sq ft/i.test(CATALOG_FIELD_HELPERS.coverage), false);
     assert.match(CATALOG_FIELD_HELPERS.waste, /Extra material percentage/i);
     const planned = CATALOG_SETTINGS_PLANNED_TOOLS.find((t) => t.id === "coverage_waste_tax");
     assert.ok(planned);

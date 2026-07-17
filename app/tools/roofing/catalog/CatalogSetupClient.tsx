@@ -7,19 +7,18 @@ import {
 } from "@/app/lib/catalogReadiness";
 import {
   createCatalogItem,
-  getActiveCatalogItemsByCompany,
-  getCatalogItemsByCompany,
+  loadActiveCatalogItemsByCompany,
+  loadCatalogItemsByCompany,
   setCatalogItemActive,
   updateCatalogItem,
 } from "@/app/lib/catalogStore";
-import type { CatalogItem, CatalogItemDraft } from "@/app/lib/catalogTypes";
+import type { CatalogItem } from "@/app/lib/catalogTypes";
 import {
   installDefaultRoofingCatalog,
   type InstallDefaultRoofingCatalogResult,
 } from "@/app/lib/defaultRoofingCatalogInstall";
 import {
   catalogItemMatchesContractorFilter,
-  CATALOG_CONTRACTOR_LABELS,
   formatCatalogCompactStatusLine,
   type CatalogContractorTypeFilter,
   type CatalogPageTab,
@@ -27,14 +26,13 @@ import {
 import {
   EMPTY_ADD_CATALOG_FORM,
   STARTER_DEFINITION_COUNT,
+  buildCatalogCreateDraft,
+  buildCatalogUpdatePatch,
   buildEditDraftFromItem,
-  parseCatalogQuantityDrivers,
   catalogItemSearchHaystack,
   compareCatalogItemsForDisplay,
   hasAllStarterSeedKeys,
   isCatalogItemUnpriced,
-  parseDollarsToCentsOrNull,
-  parseSortOrderOrNull,
   type AddCatalogItemForm,
   type CatalogItemEditDraft,
 } from "@/app/admin/catalog/catalogAdminUtils";
@@ -71,19 +69,24 @@ export default function CatalogSetupClient({ companyId }: { companyId: string })
   const [creatingItem, setCreatingItem] = useState(false);
   const [togglingActiveId, setTogglingActiveId] = useState<string | null>(null);
 
-  const fetchCatalogRows = useCallback(async () => {
+  const fetchCatalogLoad = useCallback(async () => {
     if (showInactive) {
-      return getCatalogItemsByCompany(companyId);
+      return loadCatalogItemsByCompany(companyId);
     }
-    return getActiveCatalogItemsByCompany(companyId);
+    return loadActiveCatalogItemsByCompany(companyId);
   }, [companyId, showInactive]);
 
   const loadCatalog = useCallback(async () => {
     setLoading(true);
     setLoadError(null);
     try {
-      const rows = await fetchCatalogRows();
-      setItems(rows);
+      const result = await fetchCatalogLoad();
+      if (!result.ok) {
+        setLoadError(result.error);
+        setItems([]);
+        return;
+      }
+      setItems(result.items);
     } catch (err) {
       console.warn("[CatalogSetupClient] catalog fetch error:", err);
       setLoadError("Could not load catalog items.");
@@ -91,7 +94,7 @@ export default function CatalogSetupClient({ companyId }: { companyId: string })
     } finally {
       setLoading(false);
     }
-  }, [fetchCatalogRows]);
+  }, [fetchCatalogLoad]);
 
   useEffect(() => {
     let cancelled = false;
@@ -186,66 +189,18 @@ export default function CatalogSetupClient({ companyId }: { companyId: string })
   async function handleCreateCatalogItem() {
     if (creatingItem) return;
 
-    const name = addForm.name.trim();
-    if (!name) {
-      setAddError("Name is required.");
+    const built = buildCatalogCreateDraft(companyId, addForm);
+    if (!built.ok) {
+      setAddError(built.error);
       return;
     }
-
-    const unitPrice = parseDollarsToCentsOrNull(
-      addForm.unit_price_dollars,
-      CATALOG_CONTRACTOR_LABELS.unitPrice
-    );
-    if (unitPrice.error) {
-      setAddError(unitPrice.error);
-      return;
-    }
-
-    const unitCost = parseDollarsToCentsOrNull(
-      addForm.unit_cost_dollars,
-      CATALOG_CONTRACTOR_LABELS.unitCost
-    );
-    if (unitCost.error) {
-      setAddError(unitCost.error);
-      return;
-    }
-
-    const quantityDrivers = parseCatalogQuantityDrivers({
-      coverage_rate: addForm.coverage_rate,
-      waste_applies: addForm.waste_applies,
-      waste_pct: addForm.waste_pct,
-    });
-    if (quantityDrivers.error) {
-      setAddError(quantityDrivers.error);
-      return;
-    }
-
-    const draft: CatalogItemDraft = {
-      company_id: companyId,
-      name,
-      item_type: addForm.item_type,
-      unit: addForm.unit,
-      quantity_source: addForm.quantity_source,
-      customer_name: addForm.customer_name.trim() || null,
-      description: addForm.description.trim() || null,
-      unit_price_cents: unitPrice.cents,
-      unit_cost_cents: unitCost.cents,
-      labor_unit_cost_cents: null,
-      pricing_basis: addForm.pricing_basis,
-      customer_visibility: addForm.customer_visibility,
-      active: true,
-      coverage_rate: quantityDrivers.coverage_rate,
-      waste_applies: quantityDrivers.waste_applies,
-      waste_pct: quantityDrivers.waste_pct,
-      metadata: null,
-    };
 
     setCreatingItem(true);
     setAddError(null);
     setLoadError(null);
 
     try {
-      const created = await createCatalogItem(draft);
+      const created = await createCatalogItem(built.draft);
       if (!created) {
         setAddError("Could not create catalog item. Try again.");
         return;
@@ -334,68 +289,10 @@ export default function CatalogSetupClient({ companyId }: { companyId: string })
   async function handleSaveItem(item: CatalogItem) {
     if (!editDraft || savingItemId) return;
 
-    const unitPrice = parseDollarsToCentsOrNull(
-      editDraft.unit_price_dollars,
-      CATALOG_CONTRACTOR_LABELS.unitPrice
-    );
-    if (unitPrice.error) {
-      setEditError(unitPrice.error);
+    const built = buildCatalogUpdatePatch(item, editDraft);
+    if (!built.ok) {
+      setEditError(built.error);
       return;
-    }
-
-    const unitCost = parseDollarsToCentsOrNull(
-      editDraft.unit_cost_dollars,
-      CATALOG_CONTRACTOR_LABELS.unitCost
-    );
-    if (unitCost.error) {
-      setEditError(unitCost.error);
-      return;
-    }
-
-    let laborCents: number | null | undefined = undefined;
-    if (item.item_type === "labor") {
-      const labor = parseDollarsToCentsOrNull(
-        editDraft.labor_unit_cost_dollars,
-        "Labor cost"
-      );
-      if (labor.error) {
-        setEditError(labor.error);
-        return;
-      }
-      laborCents = labor.cents;
-    }
-
-    const sortParsed = parseSortOrderOrNull(editDraft.sort_order);
-    if (sortParsed.error) {
-      setEditError(sortParsed.error);
-      return;
-    }
-
-    const quantityDrivers = parseCatalogQuantityDrivers({
-      coverage_rate: editDraft.coverage_rate,
-      waste_applies: editDraft.waste_applies,
-      waste_pct: editDraft.waste_pct,
-    });
-    if (quantityDrivers.error) {
-      setEditError(quantityDrivers.error);
-      return;
-    }
-
-    const patch: Partial<CatalogItemDraft> = {
-      customer_name: editDraft.customer_name.trim() || null,
-      description: editDraft.description.trim() || null,
-      unit_price_cents: unitPrice.cents,
-      unit_cost_cents: unitCost.cents,
-      pricing_basis: editDraft.pricing_basis,
-      customer_visibility: editDraft.customer_visibility,
-      sort_order: sortParsed.sort_order,
-      coverage_rate: quantityDrivers.coverage_rate,
-      waste_applies: quantityDrivers.waste_applies,
-      waste_pct: quantityDrivers.waste_pct,
-    };
-
-    if (item.item_type === "labor") {
-      patch.labor_unit_cost_cents = laborCents ?? null;
     }
 
     setSavingItemId(item.id);
@@ -403,7 +300,7 @@ export default function CatalogSetupClient({ companyId }: { companyId: string })
     setLoadError(null);
 
     try {
-      const updated = await updateCatalogItem(item.id, patch, { companyId });
+      const updated = await updateCatalogItem(item.id, built.patch, { companyId });
       if (!updated) {
         setEditError("Could not save catalog item. Try again.");
         return;
@@ -421,7 +318,7 @@ export default function CatalogSetupClient({ companyId }: { companyId: string })
   }
 
   async function handleInstallStarter() {
-    if (loading || installing || savingItemId) return;
+    if (loading || installing || savingItemId || loadError) return;
 
     setInstalling(true);
     setLoadError(null);
@@ -454,8 +351,13 @@ export default function CatalogSetupClient({ companyId }: { companyId: string })
         );
       }
 
-      const rows = await fetchCatalogRows();
-      setItems(rows);
+      const reload = await fetchCatalogLoad();
+      if (!reload.ok) {
+        setLoadError(reload.error);
+        setItems([]);
+        return;
+      }
+      setItems(reload.items);
     } catch (err) {
       console.warn("[CatalogSetupClient] install error:", err);
       setLoadError("Install failed unexpectedly.");
@@ -466,13 +368,17 @@ export default function CatalogSetupClient({ companyId }: { companyId: string })
 
   const busy =
     loading || installing || savingItemId != null || creatingItem || togglingActiveId != null;
-  const showEmptyInstall = !loading && sortedItems.length === 0;
+  const showEmptyInstall = !loading && !loadError && sortedItems.length === 0;
 
   return (
     <div className="w-full space-y-3 text-slate-900">
       <CatalogPageHeader />
 
-      <CatalogPageAlerts loadError={loadError} message={message} />
+      <CatalogPageAlerts
+        loadError={loadError}
+        message={message}
+        onRetryLoad={() => void loadCatalog()}
+      />
 
       <div className="space-y-0">
         <div

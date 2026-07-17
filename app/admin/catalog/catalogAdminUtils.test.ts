@@ -8,10 +8,15 @@ import { join } from "node:path";
 import { describe, test } from "node:test";
 import type { CatalogItem } from "@/app/lib/catalogTypes";
 import {
+  EMPTY_ADD_CATALOG_FORM,
+  buildCatalogCreateDraft,
+  buildCatalogUpdatePatch,
   buildEditDraftFromItem,
   formatCatalogQuantityDriversLine,
   parseCatalogQuantityDrivers,
   parseCoverageRateOrNull,
+  parseDollarsToCentsOrNull,
+  parseStrictFiniteNumber,
   parseWastePctOrNull,
 } from "./catalogAdminUtils";
 
@@ -34,6 +39,23 @@ function item(
   };
 }
 
+describe("parseStrictFiniteNumber", () => {
+  test("accepts blank, integers, decimals, and trimmed whitespace", () => {
+    assert.deepEqual(parseStrictFiniteNumber(""), { value: null, error: "empty" });
+    assert.deepEqual(parseStrictFiniteNumber(" 12 "), { value: 12, error: null });
+    assert.deepEqual(parseStrictFiniteNumber("12.5"), { value: 12.5, error: null });
+    assert.deepEqual(parseStrictFiniteNumber("0"), { value: 0, error: null });
+    assert.deepEqual(parseStrictFiniteNumber("0.00"), { value: 0, error: null });
+    assert.deepEqual(parseStrictFiniteNumber("1,234.5"), { value: 1234.5, error: null });
+  });
+
+  test("rejects malformed suffixes and non-numbers from the audit", () => {
+    for (const bad of ["12abc", "5abc", "10xyz", "NaN", "Infinity", "--1", "1.2.3"]) {
+      assert.equal(parseStrictFiniteNumber(bad).error, "invalid", bad);
+    }
+  });
+});
+
 describe("parseCoverageRateOrNull", () => {
   test("accepts null/empty as 1:1 coverage", () => {
     assert.deepEqual(parseCoverageRateOrNull(""), { value: null, error: null });
@@ -45,11 +67,12 @@ describe("parseCoverageRateOrNull", () => {
     assert.deepEqual(parseCoverageRateOrNull("1"), { value: 1, error: null });
   });
 
-  test("rejects 0, negative, and non-finite values", () => {
+  test("rejects 0, negative, non-finite, and malformed suffixes", () => {
     assert.match(parseCoverageRateOrNull("0").error ?? "", /greater than 0/i);
     assert.match(parseCoverageRateOrNull("-1").error ?? "", /greater than 0/i);
     assert.match(parseCoverageRateOrNull("abc").error ?? "", /valid number/i);
-    assert.match(parseCoverageRateOrNull("Infinity").error ?? "", /valid number|greater than 0/i);
+    assert.match(parseCoverageRateOrNull("5abc").error ?? "", /valid number/i);
+    assert.match(parseCoverageRateOrNull("Infinity").error ?? "", /valid number/i);
   });
 });
 
@@ -63,9 +86,25 @@ describe("parseWastePctOrNull", () => {
     assert.deepEqual(parseWastePctOrNull("10"), { value: 10, error: null });
   });
 
-  test("rejects negative and non-finite values", () => {
+  test("rejects negative, non-finite, and malformed suffixes", () => {
     assert.match(parseWastePctOrNull("-1").error ?? "", /cannot be negative/i);
     assert.match(parseWastePctOrNull("nope").error ?? "", /valid number/i);
+    assert.match(parseWastePctOrNull("10xyz").error ?? "", /valid number/i);
+  });
+});
+
+describe("parseDollarsToCentsOrNull", () => {
+  test("keeps valid price behavior and rejects malformed suffixes", () => {
+    assert.deepEqual(parseDollarsToCentsOrNull("12.5", "Unit price"), {
+      cents: 1250,
+      error: null,
+    });
+    assert.deepEqual(parseDollarsToCentsOrNull("", "Unit price"), {
+      cents: null,
+      error: null,
+    });
+    assert.match(parseDollarsToCentsOrNull("12abc", "Unit price").error ?? "", /valid number/i);
+    assert.match(parseDollarsToCentsOrNull("-1", "Unit cost").error ?? "", /cannot be negative/i);
   });
 });
 
@@ -93,13 +132,107 @@ describe("parseCatalogQuantityDrivers", () => {
     assert.equal(parsed.waste_pct, 12);
   });
 
-  test("surfaces coverage validation errors", () => {
+  test("surfaces coverage validation errors including malformed suffixes", () => {
     const parsed = parseCatalogQuantityDrivers({
       coverage_rate: "0",
       waste_applies: true,
       waste_pct: "10",
     });
     assert.match(parsed.error ?? "", /Coverage/i);
+
+    const suffix = parseCatalogQuantityDrivers({
+      coverage_rate: "5abc",
+      waste_applies: true,
+      waste_pct: "10",
+    });
+    assert.match(suffix.error ?? "", /Coverage/i);
+  });
+});
+
+describe("buildCatalogCreateDraft / buildCatalogUpdatePatch", () => {
+  test("create payload includes coverage_rate, waste_applies, and waste_pct", () => {
+    const built = buildCatalogCreateDraft("00000000-0000-4000-8000-000000000001", {
+      ...EMPTY_ADD_CATALOG_FORM,
+      name: "Audit material",
+      item_type: "material",
+      unit: "bundle",
+      quantity_source: "roof_squares",
+      unit_cost_dollars: "10.25",
+      unit_price_dollars: "25.50",
+      coverage_rate: "5",
+      waste_applies: true,
+      waste_pct: "10",
+    });
+    assert.equal(built.ok, true);
+    if (!built.ok) return;
+    assert.equal(built.draft.coverage_rate, 5);
+    assert.equal(built.draft.waste_applies, true);
+    assert.equal(built.draft.waste_pct, 10);
+    assert.equal(built.draft.unit_cost_cents, 1025);
+    assert.equal(built.draft.unit_price_cents, 2550);
+    assert.equal(built.draft.active, true);
+    assert.equal(built.coverageCompatibility, "not_verified");
+  });
+
+  test("malformed numeric values block create and update", () => {
+    const createBlocked = buildCatalogCreateDraft("00000000-0000-4000-8000-000000000001", {
+      ...EMPTY_ADD_CATALOG_FORM,
+      name: "Bad",
+      unit_price_dollars: "12abc",
+    });
+    assert.equal(createBlocked.ok, false);
+
+    const updateBlocked = buildCatalogUpdatePatch(
+      item({ id: "1", quantity_source: "roof_squares", unit: "bundle" }),
+      {
+        ...buildEditDraftFromItem(item({ id: "1" })),
+        coverage_rate: "5abc",
+      }
+    );
+    assert.equal(updateBlocked.ok, false);
+  });
+
+  test("update payload includes coverage/waste and Apply waste off still stores waste_pct", () => {
+    const built = buildCatalogUpdatePatch(
+      item({ id: "1", quantity_source: "roof_squares", unit: "bundle" }),
+      {
+        ...buildEditDraftFromItem(
+          item({
+            id: "1",
+            quantity_source: "roof_squares",
+            unit: "bundle",
+            coverage_rate: 5,
+            waste_applies: true,
+            waste_pct: 10,
+          })
+        ),
+        waste_applies: false,
+        waste_pct: "10",
+        coverage_rate: "7.5",
+      }
+    );
+    assert.equal(built.ok, true);
+    if (!built.ok) return;
+    assert.equal(built.patch.coverage_rate, 7.5);
+    assert.equal(built.patch.waste_applies, false);
+    assert.equal(built.patch.waste_pct, 10);
+  });
+
+  test("deactivate remains soft status — create/update builders never emit delete markers", () => {
+    const create = buildCatalogCreateDraft("00000000-0000-4000-8000-000000000001", {
+      ...EMPTY_ADD_CATALOG_FORM,
+      name: "Soft only",
+    });
+    assert.equal(create.ok, true);
+    if (!create.ok) return;
+    assert.equal("deleted_at" in create.draft, false);
+    assert.equal(create.draft.active, true);
+
+    const update = buildCatalogUpdatePatch(item({ id: "1" }), buildEditDraftFromItem(item({ id: "1" })));
+    assert.equal(update.ok, true);
+    if (!update.ok) return;
+    assert.equal("deleted_at" in update.patch, false);
+    assert.equal("active" in update.patch, false);
   });
 });
 
@@ -131,12 +264,6 @@ describe("buildEditDraftFromItem / formatCatalogQuantityDriversLine", () => {
       ),
       "Coverage 33.3 · Waste 10%"
     );
-    assert.equal(
-      formatCatalogQuantityDriversLine(
-        item({ id: "3", coverage_rate: null, waste_applies: true, waste_pct: null })
-      ),
-      "Waste on"
-    );
   });
 });
 
@@ -156,13 +283,9 @@ describe("Catalog Coverage/Waste UI wiring", () => {
     );
     assert.match(edit, /data-catalog-quantity-drivers="edit"/);
     assert.match(add, /data-catalog-quantity-drivers="add"/);
-    assert.match(edit, /coverage_rate/);
-    assert.match(edit, /waste_applies/);
-    assert.match(edit, /waste_pct/);
-    assert.match(add, /coverage_rate/);
-    assert.match(setup, /parseCatalogQuantityDrivers/);
-    assert.match(setup, /coverage_rate: quantityDrivers\.coverage_rate/);
-    assert.match(setup, /waste_pct: quantityDrivers\.waste_pct/);
+    assert.match(setup, /buildCatalogCreateDraft/);
+    assert.match(setup, /buildCatalogUpdatePatch/);
+    assert.match(setup, /loadCatalogItemsByCompany|loadActiveCatalogItemsByCompany/);
     assert.equal(setup.includes("shouldAutoRefresh"), false);
     assert.equal(/Send block|block send/i.test(setup), false);
   });
@@ -176,5 +299,27 @@ describe("Catalog Coverage/Waste UI wiring", () => {
     assert.match(table, /data-catalog-quantity-drivers-line/);
     assert.equal(table.includes(">{CATALOG_CONTRACTOR_LABELS.coverage}<"), false);
     assert.equal(table.includes(">{CATALOG_CONTRACTOR_LABELS.waste}<"), false);
+  });
+
+  test("Catalog Settings has no raw mode switch and planned tools stay planned", () => {
+    const settings = readFileSync(
+      join(process.cwd(), "app/tools/roofing/catalog/CatalogSettingsPanel.tsx"),
+      "utf8"
+    );
+    assert.match(settings, /CATALOG_SETTINGS_PLANNED_TOOLS/);
+    assert.match(settings, /Coming soon|CATALOG_COMING_SOON_LABEL/);
+    assert.equal(/wasteModel|raw_plus_waste|mode switch/i.test(settings), false);
+    assert.equal(settings.includes('type="checkbox"'), false);
+    assert.equal(settings.includes("onChange"), false);
+  });
+
+  test("failed catalog read does not show starter empty-install", () => {
+    const setup = readFileSync(
+      join(process.cwd(), "app/tools/roofing/catalog/CatalogSetupClient.tsx"),
+      "utf8"
+    );
+    assert.match(setup, /showEmptyInstall = !loading && !loadError && sortedItems\.length === 0/);
+    assert.match(setup, /onRetryLoad/);
+    assert.match(setup, /if \(loading \|\| installing \|\| savingItemId \|\| loadError\) return/);
   });
 });

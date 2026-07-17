@@ -98,8 +98,9 @@ export type CatalogItem = {
   coverage_rate?: number | null;
   waste_applies?: boolean | null;
   /**
-   * Future raw_plus_waste catalog driver (percent points; 10 = 10%).
-   * Nullable/non-authoritative until separately approved production wiring.
+   * Item waste percent (points; 10 = 10%). Editable on Catalog items.
+   * Applied only when company policy wasteModel is raw_plus_waste; ignored under
+   * adjusted_measurement. No Settings mode switch yet.
    */
   waste_pct?: number | null;
   unit_cost_cents?: number | null;

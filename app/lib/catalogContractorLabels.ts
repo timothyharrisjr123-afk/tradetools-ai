@@ -123,7 +123,8 @@ export const CATALOG_FIELD_HELPERS = {
   leaveBlankNeedsPrice: "Leave blank until you set a price.",
   quantityDriversSection:
     "Used by raw quantity mode. Does not change adjusted-mode proposals. Not customer-facing.",
-  coverage: "How much measurement one purchase unit covers. Example: 1 bundle covers 33.3 sq ft.",
+  coverage:
+    "How much measurement one purchase unit covers. Dimensional units are not verified yet — enter the rate that matches your measurement source.",
   waste: "Extra material percentage used by raw quantity mode.",
   wasteApplies: "When off, waste percent is ignored by raw quantity mode.",
 } as const;

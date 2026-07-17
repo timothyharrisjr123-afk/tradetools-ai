@@ -38,7 +38,7 @@ export type CatalogItemRow = {
   default_quantity?: number | null;
   coverage_rate?: number | null;
   waste_applies: boolean;
-  /** Future driver; nullable. Non-authoritative until separately wired. */
+  /** Item waste percent (points; 10 = 10%). Used by policy-gated raw_plus_waste only. */
   waste_pct?: number | null;
   unit_cost_cents?: number | string | null;
   unit_price_cents?: number | string | null;
@@ -332,23 +332,31 @@ export async function getCatalogItemById(
   }
 }
 
-export async function getCatalogItemsByCompany(
+export type CatalogItemsLoadResult =
+  | { ok: true; items: CatalogItem[] }
+  | { ok: false; error: string };
+
+/**
+ * Discriminated catalog list load — preserves success-empty vs failed-read.
+ * Prefer this over array getters when empty-state / starter install depends on truth.
+ */
+export async function loadCatalogItemsByCompany(
   companyId: string,
   options?: {
     activeOnly?: boolean;
     itemType?: CatalogItemType;
     quantitySource?: QuantitySource;
   }
-): Promise<CatalogItem[]> {
+): Promise<CatalogItemsLoadResult> {
   const supabase = getSupabaseClient();
   if (!supabase) {
-    console.error("[catalogStore] getCatalogItemsByCompany: Supabase client unavailable");
-    return [];
+    console.error("[catalogStore] loadCatalogItemsByCompany: Supabase client unavailable");
+    return { ok: false, error: "Catalog service is unavailable." };
   }
   const scopedCompanyId = normalizeCompanyId(companyId);
   if (!scopedCompanyId) {
-    console.error("[catalogStore] getCatalogItemsByCompany: invalid company id");
-    return [];
+    console.error("[catalogStore] loadCatalogItemsByCompany: invalid company id");
+    return { ok: false, error: "Invalid company context for catalog load." };
   }
 
   try {
@@ -362,23 +370,44 @@ export async function getCatalogItemsByCompany(
     const { data, error } = await query;
 
     if (error) {
-      console.error("[catalogStore] getCatalogItemsByCompany failed:", error.message, {
+      console.error("[catalogStore] loadCatalogItemsByCompany failed:", error.message, {
         companyId: scopedCompanyId,
       });
-      return [];
+      return { ok: false, error: "Could not load catalog items." };
     }
     const rows = (data ?? []) as CatalogItemRow[];
-    return rows.map(rowToCatalogItem);
+    return { ok: true, items: rows.map(rowToCatalogItem) };
   } catch (err) {
-    console.error("[catalogStore] getCatalogItemsByCompany error:", err);
-    return [];
+    console.error("[catalogStore] loadCatalogItemsByCompany error:", err);
+    return { ok: false, error: "Could not load catalog items." };
   }
+}
+
+export async function getCatalogItemsByCompany(
+  companyId: string,
+  options?: {
+    activeOnly?: boolean;
+    itemType?: CatalogItemType;
+    quantitySource?: QuantitySource;
+  }
+): Promise<CatalogItem[]> {
+  const result = await loadCatalogItemsByCompany(companyId, options);
+  if (!result.ok) {
+    throw new Error(result.error);
+  }
+  return result.items;
 }
 
 export async function getActiveCatalogItemsByCompany(
   companyId: string
 ): Promise<CatalogItem[]> {
   return getCatalogItemsByCompany(companyId, { activeOnly: true });
+}
+
+export async function loadActiveCatalogItemsByCompany(
+  companyId: string
+): Promise<CatalogItemsLoadResult> {
+  return loadCatalogItemsByCompany(companyId, { activeOnly: true });
 }
 
 export async function getCatalogItemsByQuantitySource(
