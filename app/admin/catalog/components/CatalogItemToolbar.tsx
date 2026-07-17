@@ -4,11 +4,20 @@ import {
   CATALOG_COMING_SOON_LABEL,
   CATALOG_COMMAND_BAR_PLANNED_CONTROLS,
   CATALOG_FILTERS_SORT_LABEL,
+  CATALOG_MANAGE_MENU_ITEMS,
+  CATALOG_PLANNED_LABEL,
 } from "@/app/lib/catalogContractorLabels";
 import {
+  CATALOG_OPTIONAL_COLUMNS,
+  type CatalogOptionalColumnId,
+  type CatalogOptionalColumnVisibility,
+} from "@/app/lib/catalogColumnVisibility";
+import {
   CATALOG_TYPE_FILTER_OPTIONS,
+  COMMAND_CONTROL_ACTIVE,
   COMMAND_CONTROL_DISABLED,
   COMMAND_CONTROL_SOON_BADGE,
+  COMMAND_MENU_PANEL,
   FILTER_CHIP_BASE,
   FILTER_CHIP_OFF,
   FILTER_CHIP_ON,
@@ -34,6 +43,10 @@ type CatalogItemToolbarProps = {
   compactStatusLine: string | null;
   onAddItem: () => void;
   addDisabled: boolean;
+  columnVisibility: CatalogOptionalColumnVisibility;
+  columnPrefsReady?: boolean;
+  onColumnVisibilityChange: (columnId: CatalogOptionalColumnId, visible: boolean) => void;
+  onResetColumnVisibility: () => void;
 };
 
 export default function CatalogItemToolbar({
@@ -52,6 +65,10 @@ export default function CatalogItemToolbar({
   compactStatusLine,
   onAddItem,
   addDisabled,
+  columnVisibility,
+  columnPrefsReady = true,
+  onColumnVisibilityChange,
+  onResetColumnVisibility,
 }: CatalogItemToolbarProps) {
   const activeFilterLabel =
     CATALOG_TYPE_FILTER_OPTIONS.find((option) => option.value === itemTypeFilter)?.label ?? "All";
@@ -151,7 +168,7 @@ export default function CatalogItemToolbar({
           <div
             className="flex flex-wrap items-center gap-1.5"
             role="group"
-            aria-label="Planned catalog tools"
+            aria-label="Catalog tools"
           >
             {CATALOG_COMMAND_BAR_PLANNED_CONTROLS.map((control) => (
               <span
@@ -159,11 +176,98 @@ export default function CatalogItemToolbar({
                 className={COMMAND_CONTROL_DISABLED}
                 aria-disabled="true"
                 title={`${control.label} — ${CATALOG_COMING_SOON_LABEL}`}
+                data-catalog-command={control.id}
               >
                 <span>{control.label}</span>
                 <span className={COMMAND_CONTROL_SOON_BADGE}>{CATALOG_COMING_SOON_LABEL}</span>
               </span>
             ))}
+
+            <details className="relative" data-catalog-columns-menu>
+              <summary className={COMMAND_CONTROL_ACTIVE} aria-label="Columns">
+                <span>Columns</span>
+              </summary>
+              <div className={COMMAND_MENU_PANEL} role="group" aria-label="Catalog columns">
+                <p className="px-1.5 pb-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  Show columns
+                </p>
+                <p className="mb-2 px-1.5 text-[11px] leading-relaxed text-slate-500">
+                  Name and Actions always stay visible. Coverage, waste, and tax stay on the item
+                  detail panel.
+                </p>
+                <ul className="space-y-0.5">
+                  {CATALOG_OPTIONAL_COLUMNS.map((col) => {
+                    const checked = columnVisibility[col.id] !== false;
+                    return (
+                      <li key={col.id}>
+                        <label className="flex cursor-pointer items-center gap-2 rounded-md px-1.5 py-1.5 text-sm text-slate-800 hover:bg-slate-50">
+                          <input
+                            type="checkbox"
+                            className="h-3.5 w-3.5 rounded border-slate-300 text-slate-900 focus:ring-slate-300"
+                            checked={checked}
+                            disabled={!columnPrefsReady}
+                            onChange={(e) => onColumnVisibilityChange(col.id, e.target.checked)}
+                            data-catalog-column-toggle={col.id}
+                          />
+                          <span>{col.label}</span>
+                        </label>
+                      </li>
+                    );
+                  })}
+                </ul>
+                <button
+                  type="button"
+                  onClick={onResetColumnVisibility}
+                  className="mt-2 w-full rounded-md px-1.5 py-1.5 text-left text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  data-catalog-columns-reset
+                >
+                  Reset columns
+                </button>
+              </div>
+            </details>
+
+            <details className="relative" data-catalog-manage-menu>
+              <summary className={COMMAND_CONTROL_ACTIVE} aria-label="Manage catalog">
+                <span>Manage catalog</span>
+              </summary>
+              <div
+                className={COMMAND_MENU_PANEL}
+                role="menu"
+                aria-label="Manage catalog menu"
+              >
+                <p className="px-1.5 pb-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  Manage catalog
+                </p>
+                <ul className="space-y-0.5">
+                  {CATALOG_MANAGE_MENU_ITEMS.map((item) => (
+                    <li key={item.id}>
+                      <span
+                        className="flex cursor-not-allowed select-none items-start justify-between gap-2 rounded-md px-1.5 py-1.5 text-sm text-slate-500"
+                        aria-disabled="true"
+                        title={item.detail}
+                        role="menuitem"
+                        data-catalog-manage-item={item.id}
+                        data-catalog-manage-status="planned"
+                      >
+                        <span className="min-w-0">
+                          <span className="block font-medium text-slate-600">{item.label}</span>
+                          <span className="mt-0.5 block text-[11px] leading-snug text-slate-400">
+                            {item.detail}
+                          </span>
+                        </span>
+                        <span className={`${COMMAND_CONTROL_SOON_BADGE} shrink-0`}>
+                          {CATALOG_PLANNED_LABEL}
+                        </span>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-2 border-t border-slate-100 px-1.5 pt-2 text-[11px] leading-relaxed text-slate-500">
+                  CSV, suppliers, Jumpstart, reorder, and bulk purchase tax are not live yet. Use
+                  Add catalog item for new rows.
+                </p>
+              </div>
+            </details>
           </div>
           <button type="button" onClick={onAddItem} disabled={addDisabled} className={PRIMARY_BUTTON}>
             Add catalog item

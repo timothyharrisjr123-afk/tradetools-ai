@@ -17,21 +17,65 @@ function itemNeedsPrice(item: CatalogItem): boolean {
 export const CATALOG_PAGE_SUBTITLE =
   "Manage the materials, labor, and fees used in proposals." as const;
 
-/** P0C/P0D layout-parity command controls — disabled / Coming soon only. */
+/** Planned-only badge copy — never claim live CSV/supplier/bulk behavior. */
 export const CATALOG_COMING_SOON_LABEL = "Coming soon" as const;
+export const CATALOG_PLANNED_LABEL = "Planned" as const;
 
 export const CATALOG_BULK_SELECTION_PLANNED_TITLE =
   "Bulk selection planned — Coming soon" as const;
 
-/** Desktop command-bar order: Re-order → Columns → Manage (right cluster). */
+/** Still planned-only in the command bar (no drag-reorder behavior yet). */
 export const CATALOG_COMMAND_BAR_PLANNED_CONTROLS = [
   { id: "reorder", label: "Re-order items" },
-  { id: "columns", label: "Columns" },
-  { id: "manage_catalog", label: "Manage catalog" },
 ] as const;
 
 export type CatalogCommandBarPlannedControlId =
   (typeof CATALOG_COMMAND_BAR_PLANNED_CONTROLS)[number]["id"];
+
+/** Active command-bar menus (Columns + Manage catalog). */
+export const CATALOG_COMMAND_BAR_ACTIVE_CONTROLS = [
+  { id: "columns", label: "Columns" },
+  { id: "manage_catalog", label: "Manage catalog" },
+] as const;
+
+/**
+ * Manage Catalog menu entries — all planned/disabled in this shell.
+ * No fake-active CSV, supplier, Jumpstart, reorder, or bulk purchase tax.
+ */
+export const CATALOG_MANAGE_MENU_ITEMS = [
+  {
+    id: "download_csv",
+    label: "Download CSV",
+    detail: "Export catalog rows — Planned",
+  },
+  {
+    id: "upload_csv",
+    label: "Upload CSV",
+    detail: "Import or update from spreadsheet — Planned",
+  },
+  {
+    id: "reorder",
+    label: "Reorder items",
+    detail: "Drag or sort catalog order — Planned",
+  },
+  {
+    id: "connect_supplier",
+    label: "Connect supplier",
+    detail: "ABC / QXO / SRS pricing — Planned",
+  },
+  {
+    id: "jumpstart",
+    label: "Jumpstart / import starter",
+    detail: "Curated import with supplier prices — Planned",
+  },
+  {
+    id: "bulk_purchase_tax",
+    label: "Bulk edit purchase tax",
+    detail: "Set purchase tax on many items — Planned",
+  },
+] as const;
+
+export type CatalogManageMenuItemId = (typeof CATALOG_MANAGE_MENU_ITEMS)[number]["id"];
 
 /** Settings tab future tools — planned only, no active forms. */
 export const CATALOG_SETTINGS_PLANNED_TOOLS = [
@@ -43,17 +87,18 @@ export const CATALOG_SETTINGS_PLANNED_TOOLS = [
   {
     id: "columns",
     title: "Columns / display controls",
-    detail: "Choose which catalog columns appear in the table.",
+    detail:
+      "Table Columns control is live on All items. Company-wide column defaults remain planned here.",
   },
   {
     id: "csv",
     title: "Manage catalog CSV import/export",
-    detail: "Bulk add or update catalog rows from a spreadsheet.",
+    detail: "Bulk add or update catalog rows from a spreadsheet — Planned (not live).",
   },
   {
     id: "reorder",
     title: "Re-order items",
-    detail: "Drag or sort catalog rows for proposal defaults.",
+    detail: "Drag or sort catalog rows for proposal defaults — Planned.",
   },
   {
     id: "coverage_waste_tax",
@@ -64,7 +109,7 @@ export const CATALOG_SETTINGS_PLANNED_TOOLS = [
   {
     id: "supplier",
     title: "Supplier integrations",
-    detail: "ABC, QXO, and supplier pricing after integration architecture.",
+    detail: "ABC, QXO, and supplier pricing — Planned (not connected).",
   },
 ] as const;
 

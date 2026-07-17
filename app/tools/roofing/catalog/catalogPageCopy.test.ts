@@ -11,13 +11,20 @@ import { join } from "node:path";
 import { describe, test } from "node:test";
 import {
   CATALOG_BULK_SELECTION_PLANNED_TITLE,
+  CATALOG_COMMAND_BAR_ACTIVE_CONTROLS,
   CATALOG_COMMAND_BAR_PLANNED_CONTROLS,
   CATALOG_COMING_SOON_LABEL,
   CATALOG_FILTERS_SORT_LABEL,
+  CATALOG_MANAGE_MENU_ITEMS,
   CATALOG_PAGE_SUBTITLE,
+  CATALOG_PLANNED_LABEL,
   CATALOG_SETTINGS_PLANNED_TOOLS,
   CATALOG_TABLE_HEADERS,
 } from "@/app/lib/catalogContractorLabels";
+import {
+  CATALOG_OPTIONAL_COLUMNS,
+  CATALOG_REQUIRED_COLUMN_IDS,
+} from "@/app/lib/catalogColumnVisibility";
 
 const ROOT = join(process.cwd(), "app/tools/roofing/catalog");
 const ADMIN_ROOT = join(process.cwd(), "app/admin/catalog/components");
@@ -62,24 +69,69 @@ describe("Catalog P0B–P0D page shell", () => {
     assert.ok(!table.includes("Grouped by type"));
   });
 
-  test("command bar has Search, Filters & sort, planned controls, and Add", () => {
+  test("command bar has Search, Filters & sort, Columns, Manage catalog, and Add", () => {
     const source = readAdminComponent("CatalogItemToolbar.tsx");
     assert.ok(source.includes("Search catalog"));
     assert.ok(source.includes("CATALOG_FILTERS_SORT_LABEL") || source.includes(CATALOG_FILTERS_SORT_LABEL));
     assert.ok(source.includes("Show inactive"));
     assert.ok(source.includes("Add catalog item"));
     assert.ok(source.includes("CATALOG_COMMAND_BAR_PLANNED_CONTROLS"));
-    assert.ok(source.includes("aria-disabled"));
-    assert.ok(source.includes("CATALOG_COMING_SOON_LABEL"));
+    assert.ok(source.includes("data-catalog-columns-menu"));
+    assert.ok(source.includes("data-catalog-manage-menu"));
+    assert.ok(source.includes("onColumnVisibilityChange"));
     assert.deepEqual(
       CATALOG_COMMAND_BAR_PLANNED_CONTROLS.map((c) => c.label),
-      ["Re-order items", "Columns", "Manage catalog"]
+      ["Re-order items"]
+    );
+    assert.deepEqual(
+      CATALOG_COMMAND_BAR_ACTIVE_CONTROLS.map((c) => c.label),
+      ["Columns", "Manage catalog"]
     );
     assert.equal(CATALOG_COMING_SOON_LABEL, "Coming soon");
-    assert.ok(!source.includes("Manage catalog menu"));
-    assert.ok(!source.includes("onManageCatalog"));
-    assert.ok(!source.includes("onColumns"));
     assert.ok(!source.includes("onReorder"));
+  });
+
+  test("Columns control toggles optional columns; required columns stay fixed", () => {
+    const toolbar = readAdminComponent("CatalogItemToolbar.tsx");
+    const table = readAdminComponent("CatalogItemTable.tsx");
+    const workspace = readCatalogFile("CatalogItemsWorkspace.tsx");
+    assert.ok(toolbar.includes("data-catalog-column-toggle"));
+    assert.ok(toolbar.includes("CATALOG_OPTIONAL_COLUMNS"));
+    assert.ok(toolbar.includes("Reset columns"));
+    assert.ok(table.includes("columnVisibility"));
+    assert.ok(table.includes("isCatalogOptionalColumnVisible"));
+    assert.ok(workspace.includes("CATALOG_COLUMN_PREFS_STORAGE_KEY"));
+    assert.ok(workspace.includes("localStorage"));
+    assert.deepEqual([...CATALOG_REQUIRED_COLUMN_IDS], ["select", "name", "actions"]);
+    assert.ok(CATALOG_OPTIONAL_COLUMNS.some((c) => c.id === "type"));
+    assert.ok(CATALOG_OPTIONAL_COLUMNS.some((c) => c.id === "unit_price"));
+    // Coverage / tax are not optional table columns in this shell.
+    assert.equal(
+      CATALOG_OPTIONAL_COLUMNS.some((c) => c.id === "coverage" || c.id === "tax"),
+      false
+    );
+  });
+
+  test("Manage Catalog menu lists planned CSV/supplier/bulk/reorder without fake-active actions", () => {
+    const source = readAdminComponent("CatalogItemToolbar.tsx");
+    assert.ok(source.includes("CATALOG_MANAGE_MENU_ITEMS"));
+    assert.ok(source.includes("data-catalog-manage-status=\"planned\""));
+    assert.ok(source.includes("CATALOG_PLANNED_LABEL") || source.includes(CATALOG_PLANNED_LABEL));
+    const labels = CATALOG_MANAGE_MENU_ITEMS.map((i) => i.label);
+    assert.ok(labels.includes("Download CSV"));
+    assert.ok(labels.includes("Upload CSV"));
+    assert.ok(labels.includes("Connect supplier"));
+    assert.ok(labels.includes("Bulk edit purchase tax"));
+    assert.ok(labels.includes("Jumpstart / import starter"));
+    assert.ok(labels.includes("Reorder items"));
+    for (const item of CATALOG_MANAGE_MENU_ITEMS) {
+      assert.match(item.detail, /Planned/i);
+    }
+    assert.equal(/CSV import is live|supplier is connected|bulk purchase tax is live/i.test(source), false);
+    assert.ok(!source.includes("onDownloadCsv"));
+    assert.ok(!source.includes("onUploadCsv"));
+    assert.ok(!source.includes("onConnectSupplier"));
+    assert.ok(!source.includes("onBulkPurchaseTax"));
   });
 
   test("disabled selection column renders without bulk bar", () => {
@@ -132,6 +184,12 @@ describe("Catalog P0B–P0D page shell", () => {
     assert.match(coverageWaste!.detail, /remain planned/i);
     assert.equal(/raw_plus_waste/i.test(coverageWaste!.detail), false);
     assert.equal(/line-tax math is active/i.test(coverageWaste!.detail), false);
+    const columnsTool = CATALOG_SETTINGS_PLANNED_TOOLS.find((t) => t.id === "columns");
+    assert.ok(columnsTool);
+    assert.match(columnsTool!.detail, /live on All items/i);
+    const csvTool = CATALOG_SETTINGS_PLANNED_TOOLS.find((t) => t.id === "csv");
+    assert.ok(csvTool);
+    assert.match(csvTool!.detail, /Planned \(not live\)/i);
   });
 
   test("load failure retry path is available and empty install is load-error gated", () => {

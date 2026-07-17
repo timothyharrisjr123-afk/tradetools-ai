@@ -1,7 +1,17 @@
 "use client";
 
+import { useEffect, useLayoutEffect, useState } from "react";
 import type { CatalogItem } from "@/app/lib/catalogTypes";
 import type { InstallDefaultRoofingCatalogResult } from "@/app/lib/defaultRoofingCatalogInstall";
+import {
+  CATALOG_COLUMN_PREFS_STORAGE_KEY,
+  defaultCatalogOptionalColumnVisibility,
+  normalizeCatalogOptionalColumnVisibility,
+  parseCatalogOptionalColumnVisibilityJson,
+  serializeCatalogOptionalColumnVisibility,
+  type CatalogOptionalColumnId,
+  type CatalogOptionalColumnVisibility,
+} from "@/app/lib/catalogColumnVisibility";
 import AddCatalogItemModal from "@/app/admin/catalog/components/AddCatalogItemModal";
 import CatalogItemDetailPanel from "@/app/admin/catalog/components/CatalogItemDetailPanel";
 import CatalogItemTable from "@/app/admin/catalog/components/CatalogItemTable";
@@ -118,6 +128,50 @@ export default function CatalogItemsWorkspace({
   onCloseAddModal,
   onSubmitAdd,
 }: CatalogItemsWorkspaceProps) {
+  const [columnVisibility, setColumnVisibility] = useState<CatalogOptionalColumnVisibility>(
+    defaultCatalogOptionalColumnVisibility
+  );
+  const [columnPrefsHydrated, setColumnPrefsHydrated] = useState(false);
+
+  // Hydrate before paint so toggles are not overwritten by a late localStorage read.
+  useLayoutEffect(() => {
+    try {
+      setColumnVisibility(
+        parseCatalogOptionalColumnVisibilityJson(
+          window.localStorage.getItem(CATALOG_COLUMN_PREFS_STORAGE_KEY)
+        )
+      );
+    } catch {
+      setColumnVisibility(defaultCatalogOptionalColumnVisibility());
+    }
+    setColumnPrefsHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!columnPrefsHydrated) return;
+    try {
+      window.localStorage.setItem(
+        CATALOG_COLUMN_PREFS_STORAGE_KEY,
+        serializeCatalogOptionalColumnVisibility(columnVisibility)
+      );
+    } catch {
+      // Ignore quota / private-mode write failures — in-memory prefs still work.
+    }
+  }, [columnVisibility, columnPrefsHydrated]);
+
+  const handleColumnVisibilityChange = (
+    columnId: CatalogOptionalColumnId,
+    visible: boolean
+  ) => {
+    setColumnVisibility((prev) =>
+      normalizeCatalogOptionalColumnVisibility({ ...prev, [columnId]: visible })
+    );
+  };
+
+  const handleResetColumnVisibility = () => {
+    setColumnVisibility(defaultCatalogOptionalColumnVisibility());
+  };
+
   return (
     <div id="catalog-configure-items" className="space-y-3">
       <div className={CATALOG_SURFACE_CARD}>
@@ -137,6 +191,10 @@ export default function CatalogItemsWorkspace({
           compactStatusLine={compactStatusLine}
           onAddItem={onAddItem}
           addDisabled={busy}
+          columnVisibility={columnVisibility}
+          columnPrefsReady={columnPrefsHydrated}
+          onColumnVisibilityChange={handleColumnVisibilityChange}
+          onResetColumnVisibility={handleResetColumnVisibility}
         />
 
         {loading ? (
@@ -191,6 +249,7 @@ export default function CatalogItemsWorkspace({
             savingItemId={savingItemId}
             togglingActiveId={togglingActiveId}
             busy={busy}
+            columnVisibility={columnVisibility}
             onEditToggle={onEditToggle}
             onToggleActive={onToggleActive}
           />

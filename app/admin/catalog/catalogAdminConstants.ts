@@ -75,6 +75,11 @@ export const COMMAND_CONTROL_DISABLED =
   "inline-flex cursor-not-allowed select-none items-center gap-1.5 rounded-md border border-slate-300/80 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 shadow-sm";
 export const COMMAND_CONTROL_SOON_BADGE =
   "rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-slate-500";
+/** Active command-bar menu triggers (Columns / Manage catalog). */
+export const COMMAND_CONTROL_ACTIVE =
+  "inline-flex cursor-pointer list-none items-center gap-1.5 rounded-md border border-slate-300/90 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-800 shadow-sm hover:border-slate-400 hover:bg-slate-50 [&::-webkit-details-marker]:hidden";
+export const COMMAND_MENU_PANEL =
+  "absolute right-0 z-30 mt-1.5 w-[min(100vw-2rem,17.5rem)] rounded-lg border border-slate-200 bg-white p-2 shadow-lg";
 export const FILTERS_SORT_TRIGGER =
   "inline-flex items-center gap-1.5 rounded-md border border-slate-300/90 bg-white px-3 py-2 text-xs font-semibold text-slate-800 shadow-sm hover:border-slate-400 hover:bg-slate-50";
 export const ROADMAP_CARD =

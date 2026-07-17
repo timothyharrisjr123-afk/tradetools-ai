@@ -14,6 +14,11 @@ import {
   formatProposalVisibilityShort,
   proposalVisibilityPillTone,
 } from "@/app/lib/catalogContractorLabels";
+import {
+  countVisibleOptionalCatalogColumns,
+  isCatalogOptionalColumnVisible,
+  type CatalogOptionalColumnVisibility,
+} from "@/app/lib/catalogColumnVisibility";
 import { formatCatalogQuantityDriversLine } from "../catalogAdminUtils";
 import {
   CATALOG_PILL_PROPOSAL_GROUPED,
@@ -51,6 +56,7 @@ type CatalogItemTableProps = {
   savingItemId: string | null;
   togglingActiveId: string | null;
   busy: boolean;
+  columnVisibility: CatalogOptionalColumnVisibility;
   onEditToggle: (item: CatalogItem) => void;
   onToggleActive: (item: CatalogItem) => void;
 };
@@ -91,27 +97,53 @@ export default function CatalogItemTable({
   savingItemId,
   togglingActiveId,
   busy,
+  columnVisibility,
   onEditToggle,
   onToggleActive,
 }: CatalogItemTableProps) {
   const flatItems = groupedFilteredItems.flatMap((section) => section.items);
+  const showType = isCatalogOptionalColumnVisible(columnVisibility, "type");
+  const showMeasurement = isCatalogOptionalColumnVisible(columnVisibility, "measurement");
+  const showUnit = isCatalogOptionalColumnVisible(columnVisibility, "unit");
+  const showUnitCost = isCatalogOptionalColumnVisible(columnVisibility, "unit_cost");
+  const showUnitPrice = isCatalogOptionalColumnVisible(columnVisibility, "unit_price");
+  const showProposal = isCatalogOptionalColumnVisible(columnVisibility, "proposal");
+  const showStatus = isCatalogOptionalColumnVisible(columnVisibility, "status");
+  const visibleOptional = countVisibleOptionalCatalogColumns(columnVisibility);
+  // Required: select + name + actions (3). Optional count drives min width.
+  const minWidthRem = Math.max(28, 18 + visibleOptional * 5.5);
 
   return (
     <div className="overflow-x-auto bg-white">
-      <table className="w-full min-w-[54rem] table-auto text-sm">
+      <table
+        className="w-full table-auto text-sm"
+        style={{ minWidth: `${minWidthRem}rem` }}
+        data-catalog-table
+        data-catalog-visible-optional={visibleOptional}
+      >
         <thead>
           <tr className="border-b border-slate-200 bg-slate-100/80 text-left">
             <th className={TABLE_TH_SELECT} scope="col">
               <PlannedSelectCheckbox id="catalog-select-all-planned" />
             </th>
             <th className={TABLE_TH_WIDE}>{CATALOG_CONTRACTOR_LABELS.name}</th>
-            <th className={TABLE_TH}>{CATALOG_CONTRACTOR_LABELS.type}</th>
-            <th className={TABLE_TH_WIDE}>{CATALOG_CONTRACTOR_LABELS.measurement}</th>
-            <th className={TABLE_TH}>{CATALOG_CONTRACTOR_LABELS.unit}</th>
-            <th className={TABLE_TH_COMPACT}>{CATALOG_CONTRACTOR_LABELS.unitCost}</th>
-            <th className={TABLE_TH_COMPACT}>{CATALOG_CONTRACTOR_LABELS.unitPrice}</th>
-            <th className={TABLE_TH_COMPACT}>{CATALOG_CONTRACTOR_LABELS.proposal}</th>
-            <th className={TABLE_TH_COMPACT}>{CATALOG_CONTRACTOR_LABELS.status}</th>
+            {showType ? <th className={TABLE_TH}>{CATALOG_CONTRACTOR_LABELS.type}</th> : null}
+            {showMeasurement ? (
+              <th className={TABLE_TH_WIDE}>{CATALOG_CONTRACTOR_LABELS.measurement}</th>
+            ) : null}
+            {showUnit ? <th className={TABLE_TH}>{CATALOG_CONTRACTOR_LABELS.unit}</th> : null}
+            {showUnitCost ? (
+              <th className={TABLE_TH_COMPACT}>{CATALOG_CONTRACTOR_LABELS.unitCost}</th>
+            ) : null}
+            {showUnitPrice ? (
+              <th className={TABLE_TH_COMPACT}>{CATALOG_CONTRACTOR_LABELS.unitPrice}</th>
+            ) : null}
+            {showProposal ? (
+              <th className={TABLE_TH_COMPACT}>{CATALOG_CONTRACTOR_LABELS.proposal}</th>
+            ) : null}
+            {showStatus ? (
+              <th className={TABLE_TH_COMPACT}>{CATALOG_CONTRACTOR_LABELS.status}</th>
+            ) : null}
             <th className={TABLE_TH_ACTION}>{CATALOG_CONTRACTOR_LABELS.actions}</th>
           </tr>
         </thead>
@@ -149,27 +181,41 @@ export default function CatalogItemTable({
                       </span>
                     ) : null}
                   </td>
-                  <td className={TABLE_TD}>
-                    <span className="text-slate-600">{catalogItemTypeLabel(item.item_type)}</span>
-                  </td>
-                  <td className={`${TABLE_TD_WIDE} max-w-[10rem] truncate text-slate-600`}>
-                    {quantitySourceLabel(item.quantity_source)}
-                  </td>
-                  <td className={TABLE_TD_UNIT}>{catalogUnitLabel(item.unit)}</td>
-                  <td className={TABLE_TD_COMPACT}>
-                    <CatalogPriceTableCell cents={item.unit_cost_cents} emptyLabel="—" />
-                  </td>
-                  <td className={TABLE_TD_COMPACT}>
-                    <CatalogPriceTableCell cents={item.unit_price_cents} />
-                  </td>
-                  <td className={TABLE_TD_COMPACT}>
-                    <span className={proposalPillClass(item.customer_visibility)}>
-                      {proposalLabel}
-                    </span>
-                  </td>
-                  <td className={TABLE_TD_COMPACT}>
-                    <span className={statusPillClass(item)}>{status}</span>
-                  </td>
+                  {showType ? (
+                    <td className={TABLE_TD}>
+                      <span className="text-slate-600">{catalogItemTypeLabel(item.item_type)}</span>
+                    </td>
+                  ) : null}
+                  {showMeasurement ? (
+                    <td className={`${TABLE_TD_WIDE} max-w-[10rem] truncate text-slate-600`}>
+                      {quantitySourceLabel(item.quantity_source)}
+                    </td>
+                  ) : null}
+                  {showUnit ? (
+                    <td className={TABLE_TD_UNIT}>{catalogUnitLabel(item.unit)}</td>
+                  ) : null}
+                  {showUnitCost ? (
+                    <td className={TABLE_TD_COMPACT}>
+                      <CatalogPriceTableCell cents={item.unit_cost_cents} emptyLabel="—" />
+                    </td>
+                  ) : null}
+                  {showUnitPrice ? (
+                    <td className={TABLE_TD_COMPACT}>
+                      <CatalogPriceTableCell cents={item.unit_price_cents} />
+                    </td>
+                  ) : null}
+                  {showProposal ? (
+                    <td className={TABLE_TD_COMPACT}>
+                      <span className={proposalPillClass(item.customer_visibility)}>
+                        {proposalLabel}
+                      </span>
+                    </td>
+                  ) : null}
+                  {showStatus ? (
+                    <td className={TABLE_TD_COMPACT}>
+                      <span className={statusPillClass(item)}>{status}</span>
+                    </td>
+                  ) : null}
                   <td
                     className={`${TABLE_TD_ACTION} ${isSelected ? "bg-slate-50" : "bg-white group-hover:bg-slate-50/90"}`}
                   >

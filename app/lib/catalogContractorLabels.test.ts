@@ -107,11 +107,11 @@ describe("catalogContractorLabels", () => {
     assert.deepEqual(labels, ["All", "Materials", "Labor", "Fees & Other", "Needs price"]);
   });
 
-  test("P0D command-bar planned controls are Coming soon layout placeholders", () => {
+  test("command-bar planned reorder remains Coming soon; Columns/Manage are active menus", () => {
     assert.equal(CATALOG_COMING_SOON_LABEL, "Coming soon");
     assert.deepEqual(
       CATALOG_COMMAND_BAR_PLANNED_CONTROLS.map((c) => c.label),
-      ["Re-order items", "Columns", "Manage catalog"]
+      ["Re-order items"]
     );
     const titles = CATALOG_SETTINGS_PLANNED_TOOLS.map((t) => t.title);
     assert.ok(titles.some((t) => t.includes("Catalog defaults")));
@@ -119,6 +119,10 @@ describe("catalogContractorLabels", () => {
     assert.ok(titles.some((t) => t.includes("Columns")));
     assert.ok(titles.some((t) => t.includes("Re-order")));
     assert.ok(titles.some((t) => t.toLowerCase().includes("supplier")));
+    const columnsTool = CATALOG_SETTINGS_PLANNED_TOOLS.find((t) => t.id === "columns");
+    assert.ok(columnsTool);
+    assert.match(columnsTool!.detail, /live on All items/i);
+    assert.match(columnsTool!.detail, /remain planned/i);
   });
 
   test("catalogItemMatchesContractorFilter handles fees_other and needs_price", () => {
