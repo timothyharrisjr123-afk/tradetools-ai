@@ -25,6 +25,15 @@ import {
   type CatalogBulkPurchaseTaxMode,
 } from "@/app/lib/catalogBulkActions";
 import {
+  applyCatalogSortOrder,
+  catalogReorderOrderChanged,
+  formatCatalogReorderResultMessage,
+  isCatalogReorderAvailable,
+  moveCatalogItemInOrder,
+  CATALOG_REORDER_UNAVAILABLE_COPY,
+  type CatalogReorderDirection,
+} from "@/app/lib/catalogReorder";
+import {
   createCatalogItem,
   loadActiveCatalogItemsByCompany,
   loadCatalogItemsByCompany,
@@ -108,6 +117,13 @@ export default function CatalogSetupClient({ companyId }: { companyId: string })
     useState<CatalogBulkPurchaseTaxMode>("set");
   const [purchaseTaxRateInput, setPurchaseTaxRateInput] = useState("");
   const [purchaseTaxError, setPurchaseTaxError] = useState<string | null>(null);
+  const [reorderMode, setReorderMode] = useState(false);
+  const [reorderBusy, setReorderBusy] = useState(false);
+  const [reorderItemsById, setReorderItemsById] = useState<Map<string, CatalogItem>>(
+    () => new Map()
+  );
+  const [reorderOriginalIds, setReorderOriginalIds] = useState<string[]>([]);
+  const [reorderOrderedIds, setReorderOrderedIds] = useState<string[]>([]);
 
   const fetchCatalogLoad = useCallback(async () => {
     if (showInactive) {
@@ -190,11 +206,28 @@ export default function CatalogSetupClient({ companyId }: { companyId: string })
 
   const hasListFilters = normalizedSearch.length > 0 || itemTypeFilter !== "all";
 
+  const reorderAvailable = isCatalogReorderAvailable({
+    searchQuery,
+    itemTypeFilter,
+  });
+
+  const reorderDisplayItems = useMemo(() => {
+    if (!reorderMode) return [];
+    return reorderOrderedIds
+      .map((id) => reorderItemsById.get(id))
+      .filter((item): item is CatalogItem => item != null);
+  }, [reorderMode, reorderOrderedIds, reorderItemsById]);
+
+  const displayFilteredItems = reorderMode ? reorderDisplayItems : filteredItems;
+  const displaySortedItems = reorderMode ? reorderDisplayItems : sortedItems;
+
   /** P0D: continuous flat list — no MATERIALS/LABOR/FEES group divider rows. */
   const groupedFilteredItems = useMemo(
-    () => [{ key: "flat", label: "", items: filteredItems }],
-    [filteredItems]
+    () => [{ key: "flat", label: "", items: displayFilteredItems }],
+    [displayFilteredItems]
   );
+
+  const reorderDirty = catalogReorderOrderChanged(reorderOriginalIds, reorderOrderedIds);
 
   const visibleFilteredIds = useMemo(
     () => filteredItems.map((item) => item.id),
@@ -340,6 +373,109 @@ export default function CatalogSetupClient({ companyId }: { companyId: string })
     setSelectedIds(new Set());
   }
 
+  function exitReorderMode() {
+    setReorderMode(false);
+    setReorderBusy(false);
+    setReorderItemsById(new Map());
+    setReorderOriginalIds([]);
+    setReorderOrderedIds([]);
+  }
+
+  async function handleEnterReorder() {
+    if (reorderMode || reorderBusy || bulkBusy || savingItemId != null || creatingItem) {
+      return;
+    }
+    if (
+      !isCatalogReorderAvailable({
+        searchQuery,
+        itemTypeFilter,
+      })
+    ) {
+      setLoadError(null);
+      setMessage(CATALOG_REORDER_UNAVAILABLE_COPY);
+      return;
+    }
+
+    setReorderBusy(true);
+    setLoadError(null);
+    setMessage(null);
+    setSelectedIds(new Set());
+    closeEditor();
+    closePurchaseTaxModal();
+
+    try {
+      const result = await loadCatalogItemsByCompany(companyId);
+      if (!result.ok) {
+        setLoadError(result.error);
+        return;
+      }
+      const sorted = [...result.items].sort(compareCatalogItemsForDisplay);
+      const ids = sorted.map((item) => item.id);
+      setReorderItemsById(new Map(sorted.map((item) => [item.id, item])));
+      setReorderOriginalIds(ids);
+      setReorderOrderedIds(ids);
+      setReorderMode(true);
+      setMessage(null);
+    } catch (err) {
+      console.warn("[CatalogSetupClient] enter reorder error:", err);
+      setLoadError("Could not load catalog items for reorder.");
+    } finally {
+      setReorderBusy(false);
+    }
+  }
+
+  function handleCancelReorder() {
+    if (reorderBusy) return;
+    exitReorderMode();
+    setMessage("Reorder cancelled. Catalog order unchanged.");
+  }
+
+  function handleReorderMove(itemId: string, direction: CatalogReorderDirection) {
+    if (!reorderMode || reorderBusy) return;
+    setReorderOrderedIds((prev) => moveCatalogItemInOrder(prev, itemId, direction));
+  }
+
+  async function handleSaveReorder() {
+    if (!reorderMode || reorderBusy || !reorderDirty) return;
+
+    setReorderBusy(true);
+    setLoadError(null);
+    setMessage(null);
+
+    try {
+      const currentById = new Map<string, number | null | undefined>();
+      for (const [id, item] of reorderItemsById) {
+        currentById.set(id, item.sort_order);
+      }
+      const result = await applyCatalogSortOrder({
+        companyId,
+        orderedIds: reorderOrderedIds,
+        currentById,
+        adapters: {
+          updateSortOrder: async (id, sortOrder, options) =>
+            updateCatalogItem(id, { sort_order: sortOrder }, options),
+        },
+      });
+      const resultMessage = formatCatalogReorderResultMessage(result);
+      if (result.ok) {
+        setMessage(resultMessage);
+        exitReorderMode();
+        await loadCatalog();
+      } else {
+        setLoadError(resultMessage);
+        if (result.successCount > 0) {
+          await loadCatalog();
+        }
+      }
+    } catch (err) {
+      console.warn("[CatalogSetupClient] save reorder error:", err);
+      setLoadError("Catalog reorder failed unexpectedly. Reload Catalog before retrying.");
+      await loadCatalog();
+    } finally {
+      setReorderBusy(false);
+    }
+  }
+
   function openPurchaseTaxModal() {
     setPurchaseTaxModalOpen(true);
     setPurchaseTaxMode("set");
@@ -357,6 +493,7 @@ export default function CatalogSetupClient({ companyId }: { companyId: string })
 
   async function handleBulkLiveAction(actionId: CatalogBulkLiveActionId) {
     if (
+      reorderMode ||
       bulkBusy ||
       selectedIds.size === 0 ||
       savingItemId != null ||
@@ -735,7 +872,8 @@ export default function CatalogSetupClient({ companyId }: { companyId: string })
     creatingItem ||
     togglingActiveId != null ||
     csvImporting ||
-    bulkBusy;
+    bulkBusy ||
+    reorderBusy;
   const showEmptyInstall = !loading && !loadError && sortedItems.length === 0;
 
   return (
@@ -797,12 +935,20 @@ export default function CatalogSetupClient({ companyId }: { companyId: string })
             onShowInactiveChange={() => setShowInactive((prev) => !prev)}
             hasListFilters={hasListFilters}
             onClearFilters={clearListFilters}
-            filteredItemsCount={filteredItems.length}
-            sortedItemsCount={sortedItems.length}
+            filteredItemsCount={displayFilteredItems.length}
+            sortedItemsCount={displaySortedItems.length}
             filteredNeedsPriceCount={filteredUnpricedCount}
-            sortedItems={sortedItems}
-            filteredItems={filteredItems}
+            sortedItems={displaySortedItems}
+            filteredItems={displayFilteredItems}
             groupedFilteredItems={groupedFilteredItems}
+            reorderMode={reorderMode}
+            reorderAvailable={reorderAvailable}
+            reorderDirty={reorderDirty}
+            reorderBusy={reorderBusy}
+            onEnterReorder={() => void handleEnterReorder()}
+            onCancelReorder={handleCancelReorder}
+            onSaveReorder={() => void handleSaveReorder()}
+            onReorderMove={handleReorderMove}
             editingItem={editingItem}
             editingItemId={editingItemId}
             editDraft={editDraft}

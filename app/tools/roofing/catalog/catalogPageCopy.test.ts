@@ -77,26 +77,23 @@ describe("Catalog P0B–P0D page shell", () => {
     assert.ok(!table.includes("Grouped by type"));
   });
 
-  test("command bar has Search, Filters & sort, Columns, Manage catalog, and Add", () => {
+  test("command bar has Search, Filters & sort, Reorder, Columns, Manage catalog, and Add", () => {
     const source = readAdminComponent("CatalogItemToolbar.tsx");
     assert.ok(source.includes("Search catalog"));
     assert.ok(source.includes("CATALOG_FILTERS_SORT_LABEL") || source.includes(CATALOG_FILTERS_SORT_LABEL));
     assert.ok(source.includes("Show inactive"));
     assert.ok(source.includes("Add catalog item"));
-    assert.ok(source.includes("CATALOG_COMMAND_BAR_PLANNED_CONTROLS"));
+    assert.ok(source.includes('data-catalog-command="reorder"'));
+    assert.ok(source.includes("onEnterReorder"));
     assert.ok(source.includes("data-catalog-columns-menu"));
     assert.ok(source.includes("data-catalog-manage-menu"));
     assert.ok(source.includes("onColumnVisibilityChange"));
-    assert.deepEqual(
-      CATALOG_COMMAND_BAR_PLANNED_CONTROLS.map((c) => c.label),
-      ["Re-order items"]
-    );
+    assert.deepEqual(CATALOG_COMMAND_BAR_PLANNED_CONTROLS.map((c) => c.label), []);
     assert.deepEqual(
       CATALOG_COMMAND_BAR_ACTIVE_CONTROLS.map((c) => c.label),
-      ["Columns", "Manage catalog"]
+      ["Re-order items", "Columns", "Manage catalog"]
     );
     assert.equal(CATALOG_COMING_SOON_LABEL, "Coming soon");
-    assert.ok(!source.includes("onReorder"));
   });
 
   test("Columns control toggles optional columns; required columns stay fixed", () => {
@@ -120,7 +117,7 @@ describe("Catalog P0B–P0D page shell", () => {
     );
   });
 
-  test("Manage Catalog menu activates CSV v1 and keeps supplier/bulk/reorder planned", () => {
+  test("Manage Catalog menu activates CSV + reorder; supplier/jumpstart stay planned", () => {
     const source = readAdminComponent("CatalogItemToolbar.tsx");
     const setup = readCatalogFile("CatalogSetupClient.tsx");
     const workspace = readCatalogFile("CatalogItemsWorkspace.tsx");
@@ -130,6 +127,7 @@ describe("Catalog P0B–P0D page shell", () => {
     assert.ok(source.includes("onDownloadCsvTemplate"));
     assert.ok(source.includes("onExportCsv"));
     assert.ok(source.includes("onUploadCsv"));
+    assert.ok(source.includes("onEnterReorder"));
     assert.ok(source.includes("CATALOG_PLANNED_LABEL") || source.includes(CATALOG_PLANNED_LABEL));
     const labels = CATALOG_MANAGE_MENU_ITEMS.map((i) => i.label);
     assert.ok(labels.includes("Download template"));
@@ -140,17 +138,44 @@ describe("Catalog P0B–P0D page shell", () => {
     assert.ok(labels.includes("Jumpstart / import starter"));
     assert.ok(labels.includes("Reorder items"));
     const liveIds = CATALOG_MANAGE_MENU_ITEMS.filter((i) => i.status === "live").map((i) => i.id);
-    assert.deepEqual(liveIds, ["download_template", "download_csv", "upload_csv"]);
+    assert.deepEqual(liveIds, [
+      "download_template",
+      "download_csv",
+      "upload_csv",
+      "reorder",
+    ]);
     for (const item of CATALOG_MANAGE_MENU_ITEMS.filter((i) => i.status === "planned")) {
       assert.match(item.detail, /Planned/i);
     }
     assert.ok(setup.includes("analyzeCatalogCsv"));
     assert.ok(setup.includes("applyCatalogCsvImport"));
     assert.ok(setup.includes("buildCatalogCsvTemplate"));
+    assert.ok(setup.includes("applyCatalogSortOrder"));
     assert.ok(workspace.includes("CatalogCsvImportModal"));
+    assert.ok(workspace.includes("CatalogReorderBar"));
     assert.ok(!source.includes("onConnectSupplier"));
     assert.ok(!source.includes("onBulkPurchaseTax"));
-    assert.equal(/supplier is connected|bulk purchase tax is live/i.test(source), false);
+    assert.equal(/supplier is connected|material ordering is live/i.test(source), false);
+  });
+
+  test("reorder mode UI shows helper, move controls, and filter guard", () => {
+    const bar = readAdminComponent("CatalogReorderBar.tsx");
+    const table = readAdminComponent("CatalogItemTable.tsx");
+    const setup = readCatalogFile("CatalogSetupClient.tsx");
+    assert.ok(bar.includes("data-catalog-reorder-bar"));
+    assert.ok(bar.includes("data-catalog-reorder-helper"));
+    assert.ok(bar.includes("data-catalog-reorder-save"));
+    assert.ok(bar.includes("CATALOG_REORDER_HELPER_COPY") || /display order only/i.test(bar));
+    assert.ok(table.includes("reorderMode"));
+    assert.ok(table.includes("data-catalog-reorder-controls"));
+    assert.ok(table.includes('data-catalog-reorder-move="up"'));
+    assert.ok(table.includes('data-catalog-reorder-move="down"'));
+    assert.ok(table.includes('data-catalog-reorder-move="top"'));
+    assert.ok(table.includes('data-catalog-reorder-move="bottom"'));
+    assert.ok(setup.includes("isCatalogReorderAvailable"));
+    assert.ok(setup.includes("CATALOG_REORDER_UNAVAILABLE_COPY"));
+    assert.ok(setup.includes("moveCatalogItemInOrder"));
+    assert.equal(/supplier sync is active|proposal import is live/i.test(bar + setup), false);
   });
 
   test("row selection and select-all controls are live", () => {

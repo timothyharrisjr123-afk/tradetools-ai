@@ -755,6 +755,7 @@ export function buildCatalogCsvUpdatePatch(
     patch.active = values.active;
   }
   // Preserve fields not represented in CSV v1 (pricing_basis, sort_order, labor, metadata).
+  // Catalog display order is managed by Reorder mode (sort_order) — not CSV v1 round-trip.
   void item;
   return { ok: true, patch };
 }

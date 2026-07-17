@@ -28,16 +28,14 @@ export const CATALOG_BULK_SELECTION_PLANNED_TITLE =
 export const CATALOG_SELECT_ROW_ARIA = "Select catalog item" as const;
 export const CATALOG_SELECT_ALL_ARIA = "Select all visible catalog items" as const;
 
-/** Still planned-only in the command bar (no drag-reorder behavior yet). */
-export const CATALOG_COMMAND_BAR_PLANNED_CONTROLS = [
-  { id: "reorder", label: "Re-order items" },
-] as const;
+/** No remaining planned-only command-bar chips (Reorder is an active control). */
+export const CATALOG_COMMAND_BAR_PLANNED_CONTROLS = [] as const;
 
-export type CatalogCommandBarPlannedControlId =
-  (typeof CATALOG_COMMAND_BAR_PLANNED_CONTROLS)[number]["id"];
+export type CatalogCommandBarPlannedControlId = never;
 
-/** Active command-bar menus (Columns + Manage catalog). */
+/** Active command-bar menus/controls (Reorder + Columns + Manage catalog). */
 export const CATALOG_COMMAND_BAR_ACTIVE_CONTROLS = [
+  { id: "reorder", label: "Re-order items" },
   { id: "columns", label: "Columns" },
   { id: "manage_catalog", label: "Manage catalog" },
 ] as const;
@@ -45,7 +43,8 @@ export const CATALOG_COMMAND_BAR_ACTIVE_CONTROLS = [
 /**
  * Manage Catalog menu entries.
  * CSV download/export + upload preview/import are live (v1).
- * Supplier, Jumpstart, reorder, and bulk purchase tax remain planned.
+ * Reorder items is live (display order via sort_order).
+ * Supplier, Jumpstart, and Manage bulk-purchase-tax shortcut remain planned.
  */
 export const CATALOG_MANAGE_MENU_ITEMS = [
   {
@@ -69,8 +68,8 @@ export const CATALOG_MANAGE_MENU_ITEMS = [
   {
     id: "reorder",
     label: "Reorder items",
-    detail: "Drag or sort catalog order — Planned",
-    status: "planned" as const,
+    detail: "Change Catalog display order (sort_order)",
+    status: "live" as const,
   },
   {
     id: "connect_supplier",
@@ -120,7 +119,8 @@ export const CATALOG_SETTINGS_PLANNED_TOOLS = [
   {
     id: "reorder",
     title: "Re-order items",
-    detail: "Drag or sort catalog rows for proposal defaults — Planned.",
+    detail:
+      "Catalog display reorder is live on All items (sort_order). Does not change pricing or customer documents.",
   },
   {
     id: "coverage_waste_tax",

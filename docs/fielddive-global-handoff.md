@@ -45,11 +45,11 @@
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** **pending this commit — feat(catalog): add bulk purchase tax action**
-- **Docs checkpoint:** **pending this commit — Catalog bulk purchase tax modal**
-- **Prior code checkpoint:** **`1d800d9` — feat(catalog): add bulk selection foundation**
-- **Next:** Reorder/drag-and-drop foundation → Catalog UX completion pass → integrated workflow pass (Catalog → Templates → Builder → Preview → future Material Ordering). Supplier **sync** remains planned. Do **not** enable Settings raw mode switch; adjusted mode unaffected. **Do not** expose a Settings waste-model control without approval. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
-- **Historical note:** Header language that still says “Slice 2 — Catalog P0 next” or “Coverage/Waste inactive / raw unwired” in older §6BO.13.4 rows is **superseded** by Phase 5–7 + Catalog P1 + coverage_basis + item tax + Columns/Manage shell + CSV v1 + supplier SKU storage + selection/bulk foundation + bulk purchase tax below.
+- **Code checkpoint:** **pending this commit — feat(catalog): add reorder foundation**
+- **Docs checkpoint:** **pending this commit — Catalog reorder foundation**
+- **Prior code checkpoint:** **`02f54a3` — feat(catalog): add bulk purchase tax action**
+- **Next:** Catalog UX completion pass → integrated workflow pass (Catalog → Templates → Builder → Preview → future Material Ordering). Supplier **sync** remains planned. Do **not** enable Settings raw mode switch; adjusted mode unaffected. **Do not** expose a Settings waste-model control without approval. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
+- **Historical note:** Header language that still says “Slice 2 — Catalog P0 next” or “Coverage/Waste inactive / raw unwired” in older §6BO.13.4 rows is **superseded** by Phase 5–7 + Catalog P1 + coverage_basis + item tax + Columns/Manage shell + CSV v1 + supplier SKU storage + selection/bulk foundation + bulk purchase tax + reorder foundation below.
 
 **Trust order:** Header/current checkpoint → **§6BO.13** (approved page-by-page UI flow roadmap + P0 implementation sequence — **supersedes separate Command Center language**) → **§6BM** / **§6BN** (R18 letter-phase roadmap + R18C–R18D3C implementation history) → **§6BO** / **§6BO.11** / **§6BO.12** (completed remediation side-track + **approved Stage C policy** + **operating-flow audit sequencing — complete; outcome in §6BO.13**) → **§6BL** → **§11 override**. Stage B browser smoke required local-only **`USE_PROPOSAL_SEND_FREEZE_RPC=1`** in `.env.local` (gitignored, not committed). **Do not proceed** to docs-only or next feature work unless working tree is clean. **Still do not** mutate `proposals.status = sent`, write sent `proposal_events`, move Jobs Board cards, add Job Card send activity, enable PDF/Sign/Payment, or add webhooks unless separately approved.
 
@@ -11318,19 +11318,30 @@ Order: **source → coverage → waste → exact**.
 - Selection/bulk foundation, CSV, supplier SKU storage preserved; no supplier sync / material ordering / proposal import
 - Local + live smoke PASS on **`rhquhnujjnzjhweypavd`** (`BULK-SMOKE-*`: set 7.25 → clear null; sales tax/SKU/visibility/active unchanged; proposals/policies/events/tokens unchanged; Preview clean)
 
+**Catalog reorder foundation — COMPLETE (2026-07-17):**
+
+- Uses existing durable `catalog_items.sort_order` (integer, nullable) — **no new migration**; store already reads/writes and lists by `sort_order`, then `name`
+- Pure helpers: `app/lib/catalogReorder.ts` — move up/down/top/bottom, sequential stride-10 assignments, diff-only writes via `updateCatalogItem({ sort_order })`
+- UI: live **Re-order items** toolbar control + Manage Catalog **Reorder items**; reorder mode bar with Save order / Cancel; row Order controls (Up/Down/Top/Bottom) — keyboard-accessible buttons (no DnD package)
+- Guard: reorder requires empty search and type filter = All; otherwise clear unavailable copy; search/filters disabled while reorder mode is active
+- Helper copy: display order only — does not change pricing, proposals, or customer documents
+- CSV decision: `sort_order` remains **out of CSV v1** (import preserves existing sort_order; export order stays deterministic via sort_order/name). CSV sort_order round-trip planned later
+- Bulk selection / purchase tax / SKU / tax capture unchanged; no supplier sync / material ordering / proposal import
+- Local + live smoke PASS on **`rhquhnujjnzjhweypavd`**: filter guard; cancel restores; save persists move; restore starter head order; null `sort_order` rows normalized on save; catalog 26 / proposals 23 / policies 1 / events 304 / tokens 22 unchanged; Preview clean
+
 **Still deferred:**
 
 - Raw mode switch (Settings waste-model control)
 - Whole rounding
 - Proposal line-tax engine (item sales tax → proposal totals)
 - Supplier integrations / price sync / authentication
-- Reorder behavior / drag-and-drop
+- CSV `sort_order` round-trip
 - Bulk supplier SKU edit / assign supplier
 - Export selected CSV
 - Add-to-template / add-to-proposal / material orders
 - Atomic CSV import RPC (if required later)
 
-**Next Catalog block:** reorder/drag-and-drop foundation → Catalog UX completion pass → integrated workflow pass — **not** raw mode switch.
+**Next Catalog block:** Catalog UX completion pass → integrated workflow pass — **not** raw mode switch.
 
 **P3 — polish**
 

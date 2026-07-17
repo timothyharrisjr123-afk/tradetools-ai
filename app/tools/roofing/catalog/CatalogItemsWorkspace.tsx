@@ -19,6 +19,7 @@ import CatalogCsvImportModal from "@/app/admin/catalog/components/CatalogCsvImpo
 import CatalogItemDetailPanel from "@/app/admin/catalog/components/CatalogItemDetailPanel";
 import CatalogItemTable from "@/app/admin/catalog/components/CatalogItemTable";
 import CatalogItemToolbar from "@/app/admin/catalog/components/CatalogItemToolbar";
+import CatalogReorderBar from "@/app/admin/catalog/components/CatalogReorderBar";
 import {
   CATALOG_SURFACE_CARD,
   PRIMARY_BUTTON,
@@ -28,6 +29,7 @@ import type {
   CatalogBulkLiveActionId,
   CatalogBulkPurchaseTaxMode,
 } from "@/app/lib/catalogBulkActions";
+import type { CatalogReorderDirection } from "@/app/lib/catalogReorder";
 import type { CatalogCsvAnalyzeResult } from "@/app/lib/catalogCsv";
 import CatalogInstallFeedback from "./CatalogInstallFeedback";
 import type {
@@ -85,6 +87,14 @@ type CatalogItemsWorkspaceProps = {
   onPurchaseTaxRateInputChange: (value: string) => void;
   onClosePurchaseTaxModal: () => void;
   onConfirmPurchaseTax: () => void;
+  reorderMode: boolean;
+  reorderAvailable: boolean;
+  reorderDirty: boolean;
+  reorderBusy: boolean;
+  onEnterReorder: () => void;
+  onCancelReorder: () => void;
+  onSaveReorder: () => void;
+  onReorderMove: (itemId: string, direction: CatalogReorderDirection) => void;
   onEditToggle: (item: CatalogItem) => void;
   onToggleActive: (item: CatalogItem) => void;
   onDraftChange: <K extends keyof CatalogItemEditDraft>(
@@ -165,6 +175,14 @@ export default function CatalogItemsWorkspace({
   onPurchaseTaxRateInputChange,
   onClosePurchaseTaxModal,
   onConfirmPurchaseTax,
+  reorderMode,
+  reorderAvailable,
+  reorderDirty,
+  reorderBusy,
+  onEnterReorder,
+  onCancelReorder,
+  onSaveReorder,
+  onReorderMove,
   onEditToggle,
   onToggleActive,
   onDraftChange,
@@ -256,7 +274,6 @@ export default function CatalogItemsWorkspace({
           filteredNeedsPriceCount={filteredNeedsPriceCount}
           compactStatusLine={compactStatusLine}
           onAddItem={onAddItem}
-          addDisabled={busy}
           columnVisibility={columnVisibility}
           columnPrefsReady={columnPrefsHydrated}
           onColumnVisibilityChange={handleColumnVisibilityChange}
@@ -264,15 +281,31 @@ export default function CatalogItemsWorkspace({
           onDownloadCsvTemplate={onDownloadCsvTemplate}
           onExportCsv={onExportCsv}
           onUploadCsv={onUploadCsv}
-          csvActionsDisabled={csvActionsDisabled || busy}
+          csvActionsDisabled={csvActionsDisabled || busy || reorderMode}
+          reorderMode={reorderMode}
+          reorderAvailable={reorderAvailable}
+          onEnterReorder={onEnterReorder}
+          addDisabled={busy || reorderMode}
         />
 
-        <CatalogBulkActionBar
-          selectedCount={selectedIds.size}
-          busy={busy || bulkBusy}
-          onClearSelection={onClearSelection}
-          onLiveAction={onBulkLiveAction}
+        <CatalogReorderBar
+          active={reorderMode}
+          available={reorderAvailable}
+          dirty={reorderDirty}
+          busy={reorderBusy || busy}
+          itemCount={filteredItemsCount}
+          onCancel={onCancelReorder}
+          onSave={onSaveReorder}
         />
+
+        {!reorderMode ? (
+          <CatalogBulkActionBar
+            selectedCount={selectedIds.size}
+            busy={busy || bulkBusy}
+            onClearSelection={onClearSelection}
+            onLiveAction={onBulkLiveAction}
+          />
+        ) : null}
 
         {loading ? (
           <div className="px-5 py-10 text-center text-sm text-slate-500">Loading catalog items…</div>
@@ -326,12 +359,14 @@ export default function CatalogItemsWorkspace({
             selectedIds={selectedIds}
             savingItemId={savingItemId}
             togglingActiveId={togglingActiveId}
-            busy={busy || bulkBusy}
+            busy={busy || bulkBusy || reorderBusy}
             columnVisibility={columnVisibility}
+            reorderMode={reorderMode}
             onEditToggle={onEditToggle}
             onToggleActive={onToggleActive}
             onToggleRowSelect={onToggleRowSelect}
             onToggleSelectAllVisible={onToggleSelectAllVisible}
+            onReorderMove={onReorderMove}
           />
         )}
       </div>

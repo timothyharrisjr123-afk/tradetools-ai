@@ -2,7 +2,6 @@
 
 import {
   CATALOG_COMING_SOON_LABEL,
-  CATALOG_COMMAND_BAR_PLANNED_CONTROLS,
   CATALOG_FILTERS_SORT_LABEL,
   CATALOG_MANAGE_MENU_ITEMS,
   CATALOG_PLANNED_LABEL,
@@ -12,6 +11,7 @@ import {
   type CatalogOptionalColumnId,
   type CatalogOptionalColumnVisibility,
 } from "@/app/lib/catalogColumnVisibility";
+import { CATALOG_REORDER_UNAVAILABLE_COPY } from "@/app/lib/catalogReorder";
 import {
   CATALOG_TYPE_FILTER_OPTIONS,
   COMMAND_CONTROL_ACTIVE,
@@ -51,6 +51,9 @@ type CatalogItemToolbarProps = {
   onExportCsv: () => void;
   onUploadCsv: () => void;
   csvActionsDisabled?: boolean;
+  reorderMode?: boolean;
+  reorderAvailable?: boolean;
+  onEnterReorder?: () => void;
 };
 
 export default function CatalogItemToolbar({
@@ -77,9 +80,13 @@ export default function CatalogItemToolbar({
   onExportCsv,
   onUploadCsv,
   csvActionsDisabled = false,
+  reorderMode = false,
+  reorderAvailable = true,
+  onEnterReorder,
 }: CatalogItemToolbarProps) {
   const activeFilterLabel =
     CATALOG_TYPE_FILTER_OPTIONS.find((option) => option.value === itemTypeFilter)?.label ?? "All";
+  const searchFiltersDisabled = reorderMode;
 
   return (
     <div
@@ -98,12 +105,13 @@ export default function CatalogItemToolbar({
               placeholder="Search catalog…"
               className={TOOLBAR_INPUT}
               aria-label="Search catalog"
+              disabled={searchFiltersDisabled}
             />
           </label>
 
           <details className="relative">
             <summary
-              className={`${FILTERS_SORT_TRIGGER} list-none [&::-webkit-details-marker]:hidden`}
+              className={`${FILTERS_SORT_TRIGGER} list-none [&::-webkit-details-marker]:hidden ${searchFiltersDisabled ? "pointer-events-none opacity-50" : ""}`}
             >
               <span>{CATALOG_FILTERS_SORT_LABEL}</span>
               <span className="font-medium text-slate-500">· {activeFilterLabel}</span>
@@ -178,18 +186,23 @@ export default function CatalogItemToolbar({
             role="group"
             aria-label="Catalog tools"
           >
-            {CATALOG_COMMAND_BAR_PLANNED_CONTROLS.map((control) => (
-              <span
-                key={control.id}
-                className={COMMAND_CONTROL_DISABLED}
-                aria-disabled="true"
-                title={`${control.label} — ${CATALOG_COMING_SOON_LABEL}`}
-                data-catalog-command={control.id}
-              >
-                <span>{control.label}</span>
-                <span className={COMMAND_CONTROL_SOON_BADGE}>{CATALOG_COMING_SOON_LABEL}</span>
-              </span>
-            ))}
+            <button
+              type="button"
+              className={COMMAND_CONTROL_ACTIVE}
+              title={
+                reorderMode
+                  ? "Reorder mode is active"
+                  : reorderAvailable
+                    ? "Reorder Catalog display order"
+                    : CATALOG_REORDER_UNAVAILABLE_COPY
+              }
+              data-catalog-command="reorder"
+              data-catalog-reorder-available={reorderAvailable ? "true" : "false"}
+              disabled={reorderMode || !onEnterReorder}
+              onClick={() => onEnterReorder?.()}
+            >
+              <span>Re-order items</span>
+            </button>
 
             <details className="relative" data-catalog-columns-menu>
               <summary className={COMMAND_CONTROL_ACTIVE} aria-label="Columns">
@@ -257,23 +270,35 @@ export default function CatalogItemToolbar({
                             ? onExportCsv
                             : item.id === "upload_csv"
                               ? onUploadCsv
-                              : undefined;
+                              : item.id === "reorder"
+                                ? onEnterReorder
+                                : undefined;
+                      const disabled =
+                        item.id === "reorder"
+                          ? reorderMode || !onClick
+                          : csvActionsDisabled || !onClick;
                       return (
                         <li key={item.id}>
                           <button
                             type="button"
                             className="flex w-full items-start justify-between gap-2 rounded-md px-1.5 py-1.5 text-left text-sm text-slate-800 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-                            title={item.detail}
+                            title={
+                              item.id === "reorder" && !reorderAvailable
+                                ? CATALOG_REORDER_UNAVAILABLE_COPY
+                                : item.detail
+                            }
                             role="menuitem"
                             data-catalog-manage-item={item.id}
                             data-catalog-manage-status="live"
-                            disabled={csvActionsDisabled || !onClick}
+                            disabled={disabled}
                             onClick={() => onClick?.()}
                           >
                             <span className="min-w-0">
                               <span className="block font-medium text-slate-900">{item.label}</span>
                               <span className="mt-0.5 block text-[11px] leading-snug text-slate-500">
-                                {item.detail}
+                                {item.id === "reorder" && !reorderAvailable
+                                  ? CATALOG_REORDER_UNAVAILABLE_COPY
+                                  : item.detail}
                               </span>
                             </span>
                           </button>
@@ -305,8 +330,8 @@ export default function CatalogItemToolbar({
                   })}
                 </ul>
                 <p className="mt-2 border-t border-slate-100 px-1.5 pt-2 text-[11px] leading-relaxed text-slate-500">
-                  CSV v1 template, export, and preview import are live (including supplier SKU
-                  fields). Supplier sync, Jumpstart, reorder, and bulk purchase tax remain planned.
+                  CSV v1 and Catalog reorder are live. Supplier sync, Jumpstart, and the Manage
+                  bulk-purchase-tax shortcut remain planned (use selection bulk bar for purchase tax).
                 </p>
               </div>
             </details>

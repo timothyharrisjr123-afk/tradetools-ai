@@ -8,6 +8,7 @@ import type { CatalogItem } from "./catalogTypes";
 import {
   CATALOG_CONTRACTOR_FILTER_OPTIONS,
   CATALOG_CONTRACTOR_LABELS,
+  CATALOG_COMMAND_BAR_ACTIVE_CONTROLS,
   CATALOG_COMMAND_BAR_PLANNED_CONTROLS,
   CATALOG_COMING_SOON_LABEL,
   CATALOG_FIELD_HELPERS,
@@ -119,11 +120,12 @@ describe("catalogContractorLabels", () => {
     assert.deepEqual(labels, ["All", "Materials", "Labor", "Fees & Other", "Needs price"]);
   });
 
-  test("command-bar planned reorder remains Coming soon; Columns/Manage are active menus", () => {
+  test("command-bar reorder is active with Columns/Manage; Settings reorder notes live path", () => {
     assert.equal(CATALOG_COMING_SOON_LABEL, "Coming soon");
+    assert.deepEqual(CATALOG_COMMAND_BAR_PLANNED_CONTROLS.map((c) => c.label), []);
     assert.deepEqual(
-      CATALOG_COMMAND_BAR_PLANNED_CONTROLS.map((c) => c.label),
-      ["Re-order items"]
+      CATALOG_COMMAND_BAR_ACTIVE_CONTROLS.map((c) => c.label),
+      ["Re-order items", "Columns", "Manage catalog"]
     );
     const titles = CATALOG_SETTINGS_PLANNED_TOOLS.map((t) => t.title);
     assert.ok(titles.some((t) => t.includes("Catalog defaults")));
@@ -135,6 +137,9 @@ describe("catalogContractorLabels", () => {
     assert.ok(columnsTool);
     assert.match(columnsTool!.detail, /live on All items/i);
     assert.match(columnsTool!.detail, /remain planned/i);
+    const reorderTool = CATALOG_SETTINGS_PLANNED_TOOLS.find((t) => t.id === "reorder");
+    assert.ok(reorderTool);
+    assert.match(reorderTool!.detail, /live on All items/i);
   });
 
   test("catalogItemMatchesContractorFilter handles fees_other and needs_price", () => {

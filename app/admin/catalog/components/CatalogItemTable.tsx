@@ -21,6 +21,7 @@ import {
   catalogSelectionHeaderState,
   type CatalogSelectionHeaderState,
 } from "@/app/lib/catalogSelection";
+import type { CatalogReorderDirection } from "@/app/lib/catalogReorder";
 import {
   countVisibleOptionalCatalogColumns,
   isCatalogOptionalColumnVisible,
@@ -50,6 +51,9 @@ import {
 } from "../catalogAdminConstants";
 import CatalogPriceTableCell from "./CatalogPriceTableCell";
 
+const REORDER_MOVE_BUTTON =
+  "rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40";
+
 export type CatalogItemTableSection = {
   key: string;
   label: string;
@@ -67,10 +71,13 @@ type CatalogItemTableProps = {
   togglingActiveId: string | null;
   busy: boolean;
   columnVisibility: CatalogOptionalColumnVisibility;
+  /** When true, selection is replaced by move controls; edits are disabled. */
+  reorderMode?: boolean;
   onEditToggle: (item: CatalogItem) => void;
   onToggleActive: (item: CatalogItem) => void;
   onToggleRowSelect: (itemId: string) => void;
   onToggleSelectAllVisible: () => void;
+  onReorderMove?: (itemId: string, direction: CatalogReorderDirection) => void;
 };
 
 function proposalPillClass(visibility: CatalogItem["customer_visibility"]): string {
@@ -157,10 +164,12 @@ export default function CatalogItemTable({
   togglingActiveId,
   busy,
   columnVisibility,
+  reorderMode = false,
   onEditToggle,
   onToggleActive,
   onToggleRowSelect,
   onToggleSelectAllVisible,
+  onReorderMove,
 }: CatalogItemTableProps) {
   const flatItems = groupedFilteredItems.flatMap((section) => section.items);
   const visibleIds = flatItems.map((item) => item.id);
@@ -174,8 +183,8 @@ export default function CatalogItemTable({
   const showStatus = isCatalogOptionalColumnVisible(columnVisibility, "status");
   const visibleOptional = countVisibleOptionalCatalogColumns(columnVisibility);
   // Required: select + name + actions (3). Optional count drives min width.
-  const minWidthRem = Math.max(28, 18 + visibleOptional * 5.5);
-  const selectionDisabled = busy || visibleIds.length === 0;
+  const minWidthRem = Math.max(28, 18 + visibleOptional * 5.5 + (reorderMode ? 4 : 0));
+  const selectionDisabled = busy || visibleIds.length === 0 || reorderMode;
 
   return (
     <div className="overflow-x-auto bg-white">
@@ -184,15 +193,25 @@ export default function CatalogItemTable({
         style={{ minWidth: `${minWidthRem}rem` }}
         data-catalog-table
         data-catalog-visible-optional={visibleOptional}
+        data-catalog-reorder-mode={reorderMode ? "true" : "false"}
       >
         <thead>
           <tr className="border-b border-slate-200 bg-slate-100/80 text-left">
-            <th className={TABLE_TH_SELECT} scope="col">
-              <SelectAllCheckbox
-                headerState={headerState}
-                disabled={selectionDisabled}
-                onToggle={onToggleSelectAllVisible}
-              />
+            <th
+              className={reorderMode ? `${TABLE_TH_SELECT} min-w-[7.5rem]` : TABLE_TH_SELECT}
+              scope="col"
+            >
+              {reorderMode ? (
+                <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-slate-600">
+                  Order
+                </span>
+              ) : (
+                <SelectAllCheckbox
+                  headerState={headerState}
+                  disabled={selectionDisabled}
+                  onToggle={onToggleSelectAllVisible}
+                />
+              )}
             </th>
             <th className={TABLE_TH_WIDE}>{CATALOG_CONTRACTOR_LABELS.name}</th>
             {showType ? <th className={TABLE_TH}>{CATALOG_CONTRACTOR_LABELS.type}</th> : null}
@@ -216,7 +235,7 @@ export default function CatalogItemTable({
           </tr>
         </thead>
         <tbody>
-          {flatItems.map((item) => {
+          {flatItems.map((item, index) => {
             const isEditing = selectedItemId === item.id;
             const isRowSelected = selectedIds.has(item.id);
             const isSaving = savingItemId === item.id;
@@ -225,20 +244,76 @@ export default function CatalogItemTable({
             const quantityDriversLine = formatCatalogQuantityDriversLine(item);
             const status = formatCatalogItemStatus(item);
             const proposalLabel = formatProposalVisibilityShort(item.customer_visibility);
+            const isFirst = index === 0;
+            const isLast = index === flatItems.length - 1;
 
             return (
               <Fragment key={item.id}>
                 <tr
-                  className={`group border-b border-slate-100 transition-colors hover:bg-slate-50/90 ${isEditing ? "bg-slate-50 ring-1 ring-inset ring-slate-200" : ""} ${isRowSelected && !isEditing ? "bg-sky-50/40" : ""} ${!item.active ? "opacity-70" : ""}`}
+                  className={`group border-b border-slate-100 transition-colors hover:bg-slate-50/90 ${isEditing ? "bg-slate-50 ring-1 ring-inset ring-slate-200" : ""} ${isRowSelected && !isEditing && !reorderMode ? "bg-sky-50/40" : ""} ${!item.active ? "opacity-70" : ""}`}
                   data-catalog-row-selected={isRowSelected ? "true" : "false"}
+                  data-catalog-reorder-index={reorderMode ? String(index) : undefined}
                 >
-                  <td className={TABLE_TD_SELECT}>
-                    <RowSelectCheckbox
-                      itemId={item.id}
-                      checked={isRowSelected}
-                      disabled={busy}
-                      onToggle={() => onToggleRowSelect(item.id)}
-                    />
+                  <td className={reorderMode ? `${TABLE_TD_SELECT} min-w-[7.5rem]` : TABLE_TD_SELECT}>
+                    {reorderMode ? (
+                      <div
+                        className="flex flex-col items-start gap-1"
+                        data-catalog-reorder-controls={item.id}
+                      >
+                        <span className="text-[11px] font-semibold text-slate-500">
+                          #{index + 1}
+                        </span>
+                        <div className="flex flex-wrap gap-0.5">
+                          <button
+                            type="button"
+                            className={REORDER_MOVE_BUTTON}
+                            disabled={busy || isFirst}
+                            onClick={() => onReorderMove?.(item.id, "up")}
+                            aria-label="Move up"
+                            data-catalog-reorder-move="up"
+                          >
+                            Up
+                          </button>
+                          <button
+                            type="button"
+                            className={REORDER_MOVE_BUTTON}
+                            disabled={busy || isLast}
+                            onClick={() => onReorderMove?.(item.id, "down")}
+                            aria-label="Move down"
+                            data-catalog-reorder-move="down"
+                          >
+                            Down
+                          </button>
+                          <button
+                            type="button"
+                            className={REORDER_MOVE_BUTTON}
+                            disabled={busy || isFirst}
+                            onClick={() => onReorderMove?.(item.id, "top")}
+                            aria-label="Move to top"
+                            data-catalog-reorder-move="top"
+                          >
+                            Top
+                          </button>
+                          <button
+                            type="button"
+                            className={REORDER_MOVE_BUTTON}
+                            disabled={busy || isLast}
+                            onClick={() => onReorderMove?.(item.id, "bottom")}
+                            aria-label="Move to bottom"
+                            data-catalog-reorder-move="bottom"
+                          >
+                            Bottom
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <RowSelectCheckbox
+                        itemId={item.id}
+                        checked={isRowSelected}
+                        disabled={busy}
+                        onToggle={() => onToggleRowSelect(item.id)}
+                      />
+                    )}
                   </td>
                   <td className={TABLE_TD_NAME}>
                     <span className="font-medium text-slate-900">{display.primary}</span>
@@ -295,27 +370,33 @@ export default function CatalogItemTable({
                     className={`${TABLE_TD_ACTION} ${isEditing ? "bg-slate-50" : "bg-white group-hover:bg-slate-50/90"}`}
                   >
                     <div className="flex items-center justify-end gap-3">
-                      <button
-                        type="button"
-                        onClick={() => onEditToggle(item)}
-                        disabled={
-                          isSaving ||
-                          isTogglingActive ||
-                          (savingItemId != null && !isSaving)
-                        }
-                        className="text-sm font-semibold text-slate-900 underline-offset-2 hover:underline disabled:cursor-not-allowed disabled:opacity-50 disabled:no-underline"
-                      >
-                        {isEditing ? "Close" : "Edit"}
-                      </button>
-                      <span className="h-3.5 w-px shrink-0 bg-slate-200" aria-hidden />
-                      <button
-                        type="button"
-                        onClick={() => onToggleActive(item)}
-                        disabled={busy && !isTogglingActive}
-                        className="text-xs font-medium text-slate-400 hover:text-slate-600 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        {isTogglingActive ? "…" : item.active ? "Deactivate" : "Reactivate"}
-                      </button>
+                      {reorderMode ? (
+                        <span className="text-xs text-slate-400">Use Order controls</span>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => onEditToggle(item)}
+                            disabled={
+                              isSaving ||
+                              isTogglingActive ||
+                              (savingItemId != null && !isSaving)
+                            }
+                            className="text-sm font-semibold text-slate-900 underline-offset-2 hover:underline disabled:cursor-not-allowed disabled:opacity-50 disabled:no-underline"
+                          >
+                            {isEditing ? "Close" : "Edit"}
+                          </button>
+                          <span className="h-3.5 w-px shrink-0 bg-slate-200" aria-hidden />
+                          <button
+                            type="button"
+                            onClick={() => onToggleActive(item)}
+                            disabled={busy && !isTogglingActive}
+                            className="text-xs font-medium text-slate-400 hover:text-slate-600 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {isTogglingActive ? "…" : item.active ? "Deactivate" : "Reactivate"}
+                          </button>
+                        </>
+                      )}
                     </div>
                   </td>
                 </tr>
