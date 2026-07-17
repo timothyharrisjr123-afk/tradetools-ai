@@ -1,4 +1,6 @@
-import { Fragment } from "react";
+"use client";
+
+import { Fragment, useEffect, useRef } from "react";
 import type { CatalogItem } from "@/app/lib/catalogTypes";
 import {
   catalogItemTypeLabel,
@@ -6,14 +8,19 @@ import {
   quantitySourceLabel,
 } from "@/app/lib/catalogTypes";
 import {
-  CATALOG_BULK_SELECTION_PLANNED_TITLE,
   CATALOG_CONTRACTOR_LABELS,
+  CATALOG_SELECT_ALL_ARIA,
+  CATALOG_SELECT_ROW_ARIA,
   catalogItemDisplayName,
   catalogStatusPillTone,
   formatCatalogItemStatus,
   formatProposalVisibilityShort,
   proposalVisibilityPillTone,
 } from "@/app/lib/catalogContractorLabels";
+import {
+  catalogSelectionHeaderState,
+  type CatalogSelectionHeaderState,
+} from "@/app/lib/catalogSelection";
 import {
   countVisibleOptionalCatalogColumns,
   isCatalogOptionalColumnVisible,
@@ -52,13 +59,18 @@ export type CatalogItemTableSection = {
 type CatalogItemTableProps = {
   /** Flat continuous list sections (P0D — no group divider rows). */
   groupedFilteredItems: CatalogItemTableSection[];
+  /** Edit-panel highlight (not multi-select). */
   selectedItemId: string | null;
+  /** Multi-select by catalog item id (in-memory only). */
+  selectedIds: ReadonlySet<string>;
   savingItemId: string | null;
   togglingActiveId: string | null;
   busy: boolean;
   columnVisibility: CatalogOptionalColumnVisibility;
   onEditToggle: (item: CatalogItem) => void;
   onToggleActive: (item: CatalogItem) => void;
+  onToggleRowSelect: (itemId: string) => void;
+  onToggleSelectAllVisible: () => void;
 };
 
 function proposalPillClass(visibility: CatalogItem["customer_visibility"]): string {
@@ -76,17 +88,63 @@ function statusPillClass(item: CatalogItem): string {
   return CATALOG_PILL_STATUS_ACTIVE;
 }
 
-function PlannedSelectCheckbox({ id }: { id: string }) {
+function SelectAllCheckbox({
+  headerState,
+  disabled,
+  onToggle,
+}: {
+  headerState: CatalogSelectionHeaderState;
+  disabled: boolean;
+  onToggle: () => void;
+}) {
+  const ref = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (ref.current) {
+      ref.current.indeterminate = headerState === "some";
+    }
+  }, [headerState]);
+
   return (
     <input
-      id={id}
+      ref={ref}
+      id="catalog-select-all"
       type="checkbox"
-      disabled
-      aria-disabled="true"
-      tabIndex={-1}
       className={CATALOG_SELECT_CHECKBOX}
-      title={CATALOG_BULK_SELECTION_PLANNED_TITLE}
-      aria-label={CATALOG_BULK_SELECTION_PLANNED_TITLE}
+      checked={headerState === "all"}
+      disabled={disabled}
+      onChange={onToggle}
+      aria-label={CATALOG_SELECT_ALL_ARIA}
+      title={CATALOG_SELECT_ALL_ARIA}
+      data-catalog-select-all
+      data-catalog-select-header={headerState}
+    />
+  );
+}
+
+function RowSelectCheckbox({
+  itemId,
+  checked,
+  disabled,
+  onToggle,
+}: {
+  itemId: string;
+  checked: boolean;
+  disabled: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <input
+      id={`catalog-select-${itemId}`}
+      type="checkbox"
+      className={CATALOG_SELECT_CHECKBOX}
+      checked={checked}
+      disabled={disabled}
+      onChange={onToggle}
+      onClick={(e) => e.stopPropagation()}
+      aria-label={CATALOG_SELECT_ROW_ARIA}
+      title={CATALOG_SELECT_ROW_ARIA}
+      data-catalog-select-row={itemId}
     />
   );
 }
@@ -94,14 +152,19 @@ function PlannedSelectCheckbox({ id }: { id: string }) {
 export default function CatalogItemTable({
   groupedFilteredItems,
   selectedItemId,
+  selectedIds,
   savingItemId,
   togglingActiveId,
   busy,
   columnVisibility,
   onEditToggle,
   onToggleActive,
+  onToggleRowSelect,
+  onToggleSelectAllVisible,
 }: CatalogItemTableProps) {
   const flatItems = groupedFilteredItems.flatMap((section) => section.items);
+  const visibleIds = flatItems.map((item) => item.id);
+  const headerState = catalogSelectionHeaderState(selectedIds, visibleIds);
   const showType = isCatalogOptionalColumnVisible(columnVisibility, "type");
   const showMeasurement = isCatalogOptionalColumnVisible(columnVisibility, "measurement");
   const showUnit = isCatalogOptionalColumnVisible(columnVisibility, "unit");
@@ -112,6 +175,7 @@ export default function CatalogItemTable({
   const visibleOptional = countVisibleOptionalCatalogColumns(columnVisibility);
   // Required: select + name + actions (3). Optional count drives min width.
   const minWidthRem = Math.max(28, 18 + visibleOptional * 5.5);
+  const selectionDisabled = busy || visibleIds.length === 0;
 
   return (
     <div className="overflow-x-auto bg-white">
@@ -124,7 +188,11 @@ export default function CatalogItemTable({
         <thead>
           <tr className="border-b border-slate-200 bg-slate-100/80 text-left">
             <th className={TABLE_TH_SELECT} scope="col">
-              <PlannedSelectCheckbox id="catalog-select-all-planned" />
+              <SelectAllCheckbox
+                headerState={headerState}
+                disabled={selectionDisabled}
+                onToggle={onToggleSelectAllVisible}
+              />
             </th>
             <th className={TABLE_TH_WIDE}>{CATALOG_CONTRACTOR_LABELS.name}</th>
             {showType ? <th className={TABLE_TH}>{CATALOG_CONTRACTOR_LABELS.type}</th> : null}
@@ -149,7 +217,8 @@ export default function CatalogItemTable({
         </thead>
         <tbody>
           {flatItems.map((item) => {
-            const isSelected = selectedItemId === item.id;
+            const isEditing = selectedItemId === item.id;
+            const isRowSelected = selectedIds.has(item.id);
             const isSaving = savingItemId === item.id;
             const isTogglingActive = togglingActiveId === item.id;
             const display = catalogItemDisplayName(item);
@@ -160,10 +229,16 @@ export default function CatalogItemTable({
             return (
               <Fragment key={item.id}>
                 <tr
-                  className={`group border-b border-slate-100 transition-colors hover:bg-slate-50/90 ${isSelected ? "bg-slate-50 ring-1 ring-inset ring-slate-200" : ""} ${!item.active ? "opacity-70" : ""}`}
+                  className={`group border-b border-slate-100 transition-colors hover:bg-slate-50/90 ${isEditing ? "bg-slate-50 ring-1 ring-inset ring-slate-200" : ""} ${isRowSelected && !isEditing ? "bg-sky-50/40" : ""} ${!item.active ? "opacity-70" : ""}`}
+                  data-catalog-row-selected={isRowSelected ? "true" : "false"}
                 >
                   <td className={TABLE_TD_SELECT}>
-                    <PlannedSelectCheckbox id={`catalog-select-${item.id}`} />
+                    <RowSelectCheckbox
+                      itemId={item.id}
+                      checked={isRowSelected}
+                      disabled={busy}
+                      onToggle={() => onToggleRowSelect(item.id)}
+                    />
                   </td>
                   <td className={TABLE_TD_NAME}>
                     <span className="font-medium text-slate-900">{display.primary}</span>
@@ -217,7 +292,7 @@ export default function CatalogItemTable({
                     </td>
                   ) : null}
                   <td
-                    className={`${TABLE_TD_ACTION} ${isSelected ? "bg-slate-50" : "bg-white group-hover:bg-slate-50/90"}`}
+                    className={`${TABLE_TD_ACTION} ${isEditing ? "bg-slate-50" : "bg-white group-hover:bg-slate-50/90"}`}
                   >
                     <div className="flex items-center justify-end gap-3">
                       <button
@@ -230,7 +305,7 @@ export default function CatalogItemTable({
                         }
                         className="text-sm font-semibold text-slate-900 underline-offset-2 hover:underline disabled:cursor-not-allowed disabled:opacity-50 disabled:no-underline"
                       >
-                        {isSelected ? "Close" : "Edit"}
+                        {isEditing ? "Close" : "Edit"}
                       </button>
                       <span className="h-3.5 w-px shrink-0 bg-slate-200" aria-hidden />
                       <button

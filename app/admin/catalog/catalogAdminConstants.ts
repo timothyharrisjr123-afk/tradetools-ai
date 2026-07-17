@@ -23,12 +23,12 @@ export const TABLE_TD_ACTION = `${TABLE_TD_COMPACT} sticky right-0 z-[1] bg-whit
 /** Contractor Catalog table column count (incl. reserved selection; Coverage/Waste in edit + name detail). */
 export const TABLE_COLUMN_COUNT = 10;
 
-/** Reserved bulk-selection checkbox (P0D — disabled layout parity only). */
+/** Bulk-selection checkbox column (live selection). */
 export const TABLE_TH_SELECT =
   "w-10 px-2.5 py-2.5 text-center align-middle";
 export const TABLE_TD_SELECT = "w-10 px-2.5 py-2 text-center align-middle";
 export const CATALOG_SELECT_CHECKBOX =
-  "h-3.5 w-3.5 cursor-not-allowed rounded border-slate-300 text-slate-400 opacity-60";
+  "h-3.5 w-3.5 cursor-pointer rounded border-slate-300 text-slate-900 focus:ring-slate-300 disabled:cursor-not-allowed disabled:opacity-50";
 
 export type CatalogItemTypeFilter = import("@/app/lib/catalogContractorLabels").CatalogContractorTypeFilter;
 

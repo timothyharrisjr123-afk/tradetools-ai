@@ -13,6 +13,7 @@ import {
   type CatalogOptionalColumnVisibility,
 } from "@/app/lib/catalogColumnVisibility";
 import AddCatalogItemModal from "@/app/admin/catalog/components/AddCatalogItemModal";
+import CatalogBulkActionBar from "@/app/admin/catalog/components/CatalogBulkActionBar";
 import CatalogCsvImportModal from "@/app/admin/catalog/components/CatalogCsvImportModal";
 import CatalogItemDetailPanel from "@/app/admin/catalog/components/CatalogItemDetailPanel";
 import CatalogItemTable from "@/app/admin/catalog/components/CatalogItemTable";
@@ -22,6 +23,7 @@ import {
   PRIMARY_BUTTON,
   type CatalogItemTypeFilter,
 } from "@/app/admin/catalog/catalogAdminConstants";
+import type { CatalogBulkLiveActionId } from "@/app/lib/catalogBulkActions";
 import type { CatalogCsvAnalyzeResult } from "@/app/lib/catalogCsv";
 import CatalogInstallFeedback from "./CatalogInstallFeedback";
 import type {
@@ -65,6 +67,12 @@ type CatalogItemsWorkspaceProps = {
   editError: string | null;
   savingItemId: string | null;
   togglingActiveId: string | null;
+  selectedIds: ReadonlySet<string>;
+  bulkBusy: boolean;
+  onToggleRowSelect: (itemId: string) => void;
+  onToggleSelectAllVisible: () => void;
+  onClearSelection: () => void;
+  onBulkLiveAction: (actionId: CatalogBulkLiveActionId) => void;
   onEditToggle: (item: CatalogItem) => void;
   onToggleActive: (item: CatalogItem) => void;
   onDraftChange: <K extends keyof CatalogItemEditDraft>(
@@ -131,6 +139,12 @@ export default function CatalogItemsWorkspace({
   editError,
   savingItemId,
   togglingActiveId,
+  selectedIds,
+  bulkBusy,
+  onToggleRowSelect,
+  onToggleSelectAllVisible,
+  onClearSelection,
+  onBulkLiveAction,
   onEditToggle,
   onToggleActive,
   onDraftChange,
@@ -233,6 +247,13 @@ export default function CatalogItemsWorkspace({
           csvActionsDisabled={csvActionsDisabled || busy}
         />
 
+        <CatalogBulkActionBar
+          selectedCount={selectedIds.size}
+          busy={busy || bulkBusy}
+          onClearSelection={onClearSelection}
+          onLiveAction={onBulkLiveAction}
+        />
+
         {loading ? (
           <div className="px-5 py-10 text-center text-sm text-slate-500">Loading catalog items…</div>
         ) : showEmptyInstall ? (
@@ -282,12 +303,15 @@ export default function CatalogItemsWorkspace({
           <CatalogItemTable
             groupedFilteredItems={groupedFilteredItems}
             selectedItemId={editingItemId}
+            selectedIds={selectedIds}
             savingItemId={savingItemId}
             togglingActiveId={togglingActiveId}
-            busy={busy}
+            busy={busy || bulkBusy}
             columnVisibility={columnVisibility}
             onEditToggle={onEditToggle}
             onToggleActive={onToggleActive}
+            onToggleRowSelect={onToggleRowSelect}
+            onToggleSelectAllVisible={onToggleSelectAllVisible}
           />
         )}
       </div>

@@ -10,7 +10,6 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, test } from "node:test";
 import {
-  CATALOG_BULK_SELECTION_PLANNED_TITLE,
   CATALOG_COMMAND_BAR_ACTIVE_CONTROLS,
   CATALOG_COMMAND_BAR_PLANNED_CONTROLS,
   CATALOG_COMING_SOON_LABEL,
@@ -19,9 +18,15 @@ import {
   CATALOG_MANAGE_MENU_ITEMS,
   CATALOG_PAGE_SUBTITLE,
   CATALOG_PLANNED_LABEL,
+  CATALOG_SELECT_ALL_ARIA,
+  CATALOG_SELECT_ROW_ARIA,
   CATALOG_SETTINGS_PLANNED_TOOLS,
   CATALOG_TABLE_HEADERS,
 } from "@/app/lib/catalogContractorLabels";
+import {
+  CATALOG_BULK_LIVE_ACTIONS,
+  CATALOG_BULK_PLANNED_ACTIONS,
+} from "@/app/lib/catalogBulkActions";
 import {
   CATALOG_OPTIONAL_COLUMNS,
   CATALOG_REQUIRED_COLUMN_IDS,
@@ -146,24 +151,64 @@ describe("Catalog P0B–P0D page shell", () => {
     assert.equal(/supplier is connected|bulk purchase tax is live/i.test(source), false);
   });
 
-  test("disabled selection column renders without bulk bar", () => {
-    const source = readAdminComponent("CatalogItemTable.tsx");
-    assert.ok(source.includes('type="checkbox"'));
-    assert.ok(source.includes("disabled"));
-    assert.ok(source.includes("aria-disabled"));
+  test("row selection and select-all controls are live", () => {
+    const table = readAdminComponent("CatalogItemTable.tsx");
+    assert.ok(table.includes('type="checkbox"'));
+    assert.ok(table.includes("data-catalog-select-all"));
+    assert.ok(table.includes("data-catalog-select-row"));
+    assert.ok(table.includes("onToggleRowSelect"));
+    assert.ok(table.includes("onToggleSelectAllVisible"));
+    assert.ok(table.includes("selectedIds"));
     assert.ok(
-      source.includes("CATALOG_BULK_SELECTION_PLANNED_TITLE") ||
-        source.includes(CATALOG_BULK_SELECTION_PLANNED_TITLE)
+      table.includes("CATALOG_SELECT_ROW_ARIA") || table.includes(CATALOG_SELECT_ROW_ARIA)
     );
-    assert.ok(!source.includes("selectedCount"));
-    assert.ok(!source.includes("bulk"));
-    assert.ok(!source.includes("Bulk actions"));
-    assert.ok(!source.includes("onSelect"));
-    assert.ok(!source.includes("Sales tax"));
-    assert.ok(!source.includes("Supplier"));
+    assert.ok(
+      table.includes("CATALOG_SELECT_ALL_ARIA") || table.includes(CATALOG_SELECT_ALL_ARIA)
+    );
+    assert.ok(table.includes("indeterminate"));
+    assert.ok(!table.includes("CATALOG_BULK_SELECTION_PLANNED_TITLE"));
+    assert.ok(!table.includes("Sales tax"));
+    assert.ok(!table.includes("Supplier"));
     // Coverage/Waste live on item edit + name secondary line — not table columns.
-    assert.ok(!source.includes("CATALOG_CONTRACTOR_LABELS.coverage"));
-    assert.ok(!source.includes("CATALOG_CONTRACTOR_LABELS.waste"));
+    assert.ok(!table.includes("CATALOG_CONTRACTOR_LABELS.coverage"));
+    assert.ok(!table.includes("CATALOG_CONTRACTOR_LABELS.waste"));
+  });
+
+  test("bulk action bar appears with selection; planned actions stay disabled", () => {
+    const bar = readAdminComponent("CatalogBulkActionBar.tsx");
+    const workspace = readCatalogFile("CatalogItemsWorkspace.tsx");
+    const setup = readCatalogFile("CatalogSetupClient.tsx");
+    assert.ok(workspace.includes("CatalogBulkActionBar"));
+    assert.ok(workspace.includes("selectedCount={selectedIds.size}"));
+    assert.ok(bar.includes("data-catalog-bulk-bar"));
+    assert.ok(bar.includes("data-catalog-selected-count"));
+    assert.ok(bar.includes("Clear selection"));
+    assert.ok(bar.includes('data-catalog-bulk-status="live"'));
+    assert.ok(bar.includes('data-catalog-bulk-status="planned"'));
+    assert.ok(bar.includes("CATALOG_BULK_LIVE_ACTIONS"));
+    assert.ok(bar.includes("CATALOG_BULK_PLANNED_ACTIONS"));
+    assert.ok(bar.includes(CATALOG_PLANNED_LABEL) || bar.includes("CATALOG_PLANNED_LABEL"));
+    assert.match(bar, /Supplier sync, material ordering/);
+    assert.ok(setup.includes("applyCatalogBulkAction"));
+    assert.ok(setup.includes("setCatalogItemActive"));
+    assert.ok(setup.includes("handleBulkLiveAction"));
+    const liveIds = CATALOG_BULK_LIVE_ACTIONS.map((a) => a.id);
+    assert.ok(liveIds.includes("mark_active"));
+    assert.ok(liveIds.includes("mark_inactive"));
+    assert.ok(liveIds.includes("proposal_visible"));
+    assert.ok(liveIds.includes("proposal_hidden"));
+    for (const planned of CATALOG_BULK_PLANNED_ACTIONS) {
+      assert.equal(planned.status, "planned");
+      assert.match(planned.detail, /Planned|not available/i);
+    }
+    assert.ok(CATALOG_BULK_PLANNED_ACTIONS.some((a) => a.id === "delete_items"));
+    assert.ok(CATALOG_BULK_PLANNED_ACTIONS.some((a) => a.id === "add_to_proposal_or_order"));
+    assert.equal(
+      /supplier is connected|material ordering is live|proposal import is live/i.test(
+        bar + setup
+      ),
+      false
+    );
   });
 
   test("Settings panel links to Pricing rules and Proposal templates without tax forms", () => {

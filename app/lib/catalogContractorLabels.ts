@@ -21,8 +21,12 @@ export const CATALOG_PAGE_SUBTITLE =
 export const CATALOG_COMING_SOON_LABEL = "Coming soon" as const;
 export const CATALOG_PLANNED_LABEL = "Planned" as const;
 
+/** @deprecated Selection is live — kept for transitional callers. */
 export const CATALOG_BULK_SELECTION_PLANNED_TITLE =
   "Bulk selection planned — Coming soon" as const;
+
+export const CATALOG_SELECT_ROW_ARIA = "Select catalog item" as const;
+export const CATALOG_SELECT_ALL_ARIA = "Select all visible catalog items" as const;
 
 /** Still planned-only in the command bar (no drag-reorder behavior yet). */
 export const CATALOG_COMMAND_BAR_PLANNED_CONTROLS = [

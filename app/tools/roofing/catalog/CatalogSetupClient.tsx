@@ -14,13 +14,24 @@ import {
   type CatalogCsvAnalyzeResult,
 } from "@/app/lib/catalogCsv";
 import {
+  applyCatalogBulkAction,
+  formatCatalogBulkResultMessage,
+  type CatalogBulkLiveActionId,
+} from "@/app/lib/catalogBulkActions";
+import {
   createCatalogItem,
   loadActiveCatalogItemsByCompany,
   loadCatalogItemsByCompany,
   setCatalogItemActive,
   updateCatalogItem,
 } from "@/app/lib/catalogStore";
-import type { CatalogItem } from "@/app/lib/catalogTypes";
+import {
+  catalogSelectionHeaderState,
+  pruneCatalogSelection,
+  setCatalogVisibleSelection,
+  toggleCatalogSelectionId,
+} from "@/app/lib/catalogSelection";
+import type { CatalogItem, CustomerVisibility } from "@/app/lib/catalogTypes";
 import {
   installDefaultRoofingCatalog,
   type InstallDefaultRoofingCatalogResult,
@@ -84,6 +95,8 @@ export default function CatalogSetupClient({ companyId }: { companyId: string })
   const [csvImportError, setCsvImportError] = useState<string | null>(null);
   const [csvImportSuccess, setCsvImportSuccess] = useState<string | null>(null);
   const [csvExistingItems, setCsvExistingItems] = useState<CatalogItem[]>([]);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   const fetchCatalogLoad = useCallback(async () => {
     if (showInactive) {
@@ -172,6 +185,34 @@ export default function CatalogSetupClient({ companyId }: { companyId: string })
     [filteredItems]
   );
 
+  const visibleFilteredIds = useMemo(
+    () => filteredItems.map((item) => item.id),
+    [filteredItems]
+  );
+
+  // Keep selection only for ids that still exist in the loaded catalog.
+  useEffect(() => {
+    const existing = new Set(items.map((item) => item.id));
+    setSelectedIds((prev) => {
+      const next = pruneCatalogSelection(prev, existing);
+      if (next.size === prev.size && [...next].every((id) => prev.has(id))) {
+        return prev;
+      }
+      return next;
+    });
+  }, [items]);
+
+  // Drop selections that are no longer visible under current filters/search.
+  useEffect(() => {
+    setSelectedIds((prev) => {
+      const next = pruneCatalogSelection(prev, visibleFilteredIds);
+      if (next.size === prev.size && [...next].every((id) => prev.has(id))) {
+        return prev;
+      }
+      return next;
+    });
+  }, [visibleFilteredIds]);
+
   const editingItem = useMemo(
     () => (editingItemId ? items.find((item) => item.id === editingItemId) : null),
     [editingItemId, items]
@@ -242,7 +283,7 @@ export default function CatalogSetupClient({ companyId }: { companyId: string })
   }
 
   async function handleToggleActive(item: CatalogItem) {
-    if (togglingActiveId || savingItemId || creatingItem) return;
+    if (togglingActiveId || savingItemId || creatingItem || bulkBusy) return;
 
     setTogglingActiveId(item.id);
     setLoadError(null);
@@ -269,6 +310,76 @@ export default function CatalogSetupClient({ companyId }: { companyId: string })
       setLoadError("Could not update catalog item status.");
     } finally {
       setTogglingActiveId(null);
+    }
+  }
+
+  function handleToggleRowSelect(itemId: string) {
+    if (bulkBusy) return;
+    setSelectedIds((prev) => toggleCatalogSelectionId(prev, itemId));
+  }
+
+  function handleToggleSelectAllVisible() {
+    if (bulkBusy || visibleFilteredIds.length === 0) return;
+    const headerState = catalogSelectionHeaderState(selectedIds, visibleFilteredIds);
+    const selectAll = headerState !== "all";
+    setSelectedIds((prev) => setCatalogVisibleSelection(prev, visibleFilteredIds, selectAll));
+  }
+
+  function handleClearSelection() {
+    setSelectedIds(new Set());
+  }
+
+  async function handleBulkLiveAction(actionId: CatalogBulkLiveActionId) {
+    if (
+      bulkBusy ||
+      selectedIds.size === 0 ||
+      savingItemId != null ||
+      creatingItem ||
+      togglingActiveId != null ||
+      csvImporting ||
+      installing
+    ) {
+      return;
+    }
+
+    const ids = [...selectedIds];
+    setBulkBusy(true);
+    setLoadError(null);
+    setMessage(null);
+
+    try {
+      const result = await applyCatalogBulkAction({
+        companyId,
+        actionId,
+        selectedIds: ids,
+        adapters: {
+          setActive: setCatalogItemActive,
+          updateVisibility: async (id, visibility, options) =>
+            updateCatalogItem(
+              id,
+              { customer_visibility: visibility as CustomerVisibility },
+              options
+            ),
+        },
+      });
+
+      const resultMessage = formatCatalogBulkResultMessage(actionId, result);
+      if (result.ok) {
+        setMessage(resultMessage);
+        setSelectedIds(new Set());
+      } else {
+        setLoadError(resultMessage);
+        if (result.successCount > 0) {
+          setSelectedIds(new Set());
+        }
+      }
+      await loadCatalog();
+    } catch (err) {
+      console.warn("[CatalogSetupClient] bulk action error:", err);
+      setLoadError("Bulk update failed unexpectedly. Reload Catalog before retrying.");
+      await loadCatalog();
+    } finally {
+      setBulkBusy(false);
     }
   }
 
@@ -527,7 +638,8 @@ export default function CatalogSetupClient({ companyId }: { companyId: string })
     savingItemId != null ||
     creatingItem ||
     togglingActiveId != null ||
-    csvImporting;
+    csvImporting ||
+    bulkBusy;
   const showEmptyInstall = !loading && !loadError && sortedItems.length === 0;
 
   return (
@@ -601,6 +713,12 @@ export default function CatalogSetupClient({ companyId }: { companyId: string })
             editError={editError}
             savingItemId={savingItemId}
             togglingActiveId={togglingActiveId}
+            selectedIds={selectedIds}
+            bulkBusy={bulkBusy}
+            onToggleRowSelect={handleToggleRowSelect}
+            onToggleSelectAllVisible={handleToggleSelectAllVisible}
+            onClearSelection={handleClearSelection}
+            onBulkLiveAction={(actionId) => void handleBulkLiveAction(actionId)}
             onEditToggle={handleEditToggle}
             onToggleActive={(item) => void handleToggleActive(item)}
             onDraftChange={handleDraftChange}
