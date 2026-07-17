@@ -45,12 +45,12 @@
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** **pending this commit — feat(proposals): add setup to builder trust flow**
-- **Docs checkpoint:** **pending this commit — Integrated Flow P1 setup-to-Builder trust**
+- **Code checkpoint:** **`c29ff33` — feat(proposals): add setup to builder trust flow**
+- **Docs checkpoint:** **pending this commit — Templates workspace redesign plan**
+- **Prior docs checkpoint:** Integrated Flow P1 trust flow docs (same era as `c29ff33`)
 - **Prior code checkpoint:** **`3e96db1` — feat(templates): add catalog item linking foundation**
-- **Prior docs checkpoint:** **`ba6030c` — docs: map integrated catalog to proposal workflow**
-- **Next:** Integrated Flow **P2** — job-card proposal start flow / guided proposal creation path (preferred), **or** CSV mapping assistant if import friction is higher priority (see **§6BO.13.4.6** / P1 research note). Do **not** start supplier sync, material ordering, proposal import, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
-- **Historical note:** Header language that still says “Slice 2 — Catalog P0 next” or “Coverage/Waste inactive / raw unwired” in older §6BO.13.4 rows is **superseded** by Phase 5–7 + Catalog management foundation + Catalog UX completion + **§6BO.13.4.6** integrated workflow research + Integrated Flow **P0** Template catalog linking + Integrated Flow **P1** setup-to-Builder trust below.
+- **Next:** **Templates Workspace Redesign P0** — overview-first progressive disclosure on `/tools/roofing/templates` (see **§6BO.13.4.7**). Do **not** start dedicated `/templates/[id]` route yet, supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. Integrated Flow P2 (Job Card proposal start) remains queued after Templates density fix unless product priority flips. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
+- **Historical note:** Header language that still says “Slice 2 — Catalog P0 next” or “Coverage/Waste inactive / raw unwired” in older §6BO.13.4 rows is **superseded** by Phase 5–7 + Catalog management foundation + Catalog UX completion + **§6BO.13.4.6** integrated workflow research + Integrated Flow **P0/P1** + **§6BO.13.4.7** Templates workspace redesign plan below.
 
 **Trust order:** Header/current checkpoint → **§6BO.13** (approved page-by-page UI flow roadmap + P0 implementation sequence — **supersedes separate Command Center language**) → **§6BM** / **§6BN** (R18 letter-phase roadmap + R18C–R18D3C implementation history) → **§6BO** / **§6BO.11** / **§6BO.12** (completed remediation side-track + **approved Stage C policy** + **operating-flow audit sequencing — complete; outcome in §6BO.13**) → **§6BL** → **§11 override**. Stage B browser smoke required local-only **`USE_PROPOSAL_SEND_FREEZE_RPC=1`** in `.env.local` (gitignored, not committed). **Do not proceed** to docs-only or next feature work unless working tree is clean. **Still do not** mutate `proposals.status = sent`, write sent `proposal_events`, move Jobs Board cards, add Job Card send activity, enable PDF/Sign/Payment, or add webhooks unless separately approved.
 
@@ -11398,7 +11398,107 @@ Order: **source → coverage → waste → exact**.
 - Local smoke PASS: Catalog next CTA → Templates readiness/Open Jobs (no Create Proposal) → Job Card setup `ready` → Builder frozen helper + Catalog stale banner + Refresh CTA → Preview clean.
 - Live smoke on **`rhquhnujjnzjhweypavd`** (read-only counts): proposals **23** / policies **1** / events **304** / tokens **22** unchanged; linked template items present (**47**); no starter mutation / no new draft created for P1 smoke.
 
-**Next coding block:** Integrated Flow **P2** — job-card proposal start / guided creation path (preferred), or CSV mapping assistant if import friction wins — **not** raw mode switch.
+**Next coding block (superseded for density):** see **§6BO.13.4.7** — Templates Workspace Redesign P0 is the immediate next coding block; Integrated Flow P2 remains queued after.
+
+#### 13.4.7 Templates workspace redesign research + plan — COMPLETE (2026-07-17)
+
+**Status:** Docs-only research + product design lock. **No app code, migrations, SQL, package, pricing, Preview, send/public/lifecycle, supplier API, material ordering, or proposal import changes in this block.**
+
+**Code checkpoint at plan start:** **`c29ff33`** — Integrated Flow P1 setup-to-Builder trust complete.
+
+##### A. Screenshot-driven issue (current FieldDive)
+
+Contractor screenshots + code review of `/tools/roofing/templates` show an admin-density page:
+
+- Extremely long single scroll: library → selected summary → next-actions → **all package options expanded** → **all sections** → **all linked Catalog items** → estimate toggles repeated per option → full content editor by option.
+- Template selection competes with deep editing chrome.
+- Estimate display settings buried below structure dump.
+- Readiness/checklist aside separated from the editing flow; trust/SoT copy repeated in header, locked banners, next-actions, section panels, and footnote.
+- First-load fails the contractor questions: which templates exist, which is ready, what needs fixing, how to use for a proposal, where advanced edit lives.
+
+##### B. Current page critique (code)
+
+| Area | Verdict |
+|------|---------|
+| **Overwhelming** | `TemplatesStructureSettingsShell` maps every option group fully open; each `TemplatesStructureSectionRow` always mounts `TemplatesSectionCatalogItems`; estimate toggles render template-wide **and** once per option; `TemplatesContentEditorShell` dumps all editable prose options below that |
+| **Necessary** | Template library select; selected-template identity; readiness + Catalog link health; Job Card next action (no fake Create Proposal); ability to add/re-link Catalog items; section reorder; estimate display toggles; content editor for terms/warranty/text |
+| **Move behind tabs / accordions / drawers** | Per-option structure + Catalog item lists; estimate display settings; content/prose editor; long SoT banners (collapse to one short trust line) |
+| **Visible on first load** | Compact header; template library; selected overview (options / sections / link health); readiness + next action; CTA into edit modes |
+| **Reduce / consolidate** | Merge checklist + next-actions into overview readiness; one Catalog-SoT sentence (drop repeated locked banners/footnote duplication); compact library rows with ready/needs-fix badge |
+| **Must remain protected** | `createProposalTemplateItem` / `updateProposalTemplateItem` / section reorder / estimate settings persistence; Catalog as economics SoT (no price edit on template); drafts freeze until Builder refresh; no Create Proposal without Job context; Builder/pricing formulas/Preview untouched |
+
+##### C. Roofr sources reviewed (targeted)
+
+| Source | URL | Used for |
+|--------|-----|----------|
+| Roofr Help — Create a Proposal Template | https://roofrhelp.zendesk.com/hc/en-us/articles/33413003649943-How-to-create-a-Roofr-Proposal-Template | Templates tab → New template → **Edit Option** → Add item from catalog → Save; estimate settings; left-menu pages |
+| Roofr Help — Create a Proposal | https://roofrhelp.zendesk.com/hc/en-us/articles/33558996111511-How-to-create-a-Roofr-Proposal | Job Card → measurement → Use this template; proposal-side estimate settings drawer |
+| Roofr Help — Profitability minimums | https://roofr.com/help/how-to-set-profitability-minimums-on-your-proposals | Templates list → select template → Edit option → Profitability Settings panel |
+| Roofr Help — Customize proposal (show/hide) | https://roofr.com/help/how-to-show-hide-line-items-totals-quantities-and-unit-pricing-on-a-proposal | Edit Option scoped work; upgrades; not a single flat dump |
+| Roofr Academy — Proposal Templates segment | https://academy.roofr.com/lesson-videos/proposal-templates | Templates under Proposals; left-side page nav; Estimate auto-added; multi-option via + under Estimate |
+| Roofr Masterclass — Game Changing Proposals | https://roofr.com/masterclass/game-changing-proposals | Estimate settings / multi-select; import option from another template; hide pages for reps |
+
+##### D. Confirmed Roofr template UX findings
+
+1. **Library separated from deep edit:** Proposals → Templates tab → New/select template; deep work happens inside the template editor, not as an endless first-scroll dump of every option’s items.
+2. **Option editing is scoped:** **Edit Option** is the primary path to add Catalog items; save finalizes that option — contractors are not asked to stare at every package’s line list at once.
+3. **Page / section navigation:** Left-hand menu for Cover / Estimate / additional pages (`+`); Estimate options added via `+` beside Estimate — progressive, not all-open.
+4. **Estimate settings are secondary chrome:** Documented as adjust after options (profitability type, show/hide line details, multi-select, financing) — panel/drawer-style placement (right/bottom-right in related docs), not inline under every expanded section.
+5. **Template → proposal is Job-driven:** Create proposal from Job Card (measurement → Use this template), not from deep template edit.
+6. **Catalog economics stay in Catalog:** “You can not edit catalog item details at the template level.”
+
+##### E. Unconfirmed Roofr behavior
+
+| Topic | Status |
+|-------|--------|
+| Exact pixel layout of Templates list vs editor (split vs full-screen) | **Unconfirmed** from public help alone |
+| Whether Templates list shows readiness badges | **Unconfirmed** |
+| Default collapse state of unused options in editor | **Unconfirmed** — Edit Option strongly implies focus mode |
+| Whether estimate settings open as modal vs persistent drawer | **Partially confirmed** — settings described as dedicated panel/drawer, not duplicated under every section |
+| Exact mobile Templates UX | **Unconfirmed** |
+
+##### F. Chosen FieldDive redesign model
+
+**Hybrid: A + D + E + F (stay on `/tools/roofing/templates` for P0)**
+
+- **A** — Template library first, selected overview second, advanced editor below (not auto-expanded).
+- **D** — Tabs inside selected template: **Overview** (default) · **Packages & Catalog** · **Estimate display** · **Content**.
+- **E** — In Packages & Catalog: options **collapsed by default**; expand **one option at a time**; sections show counts; expand a section to see/link Catalog items.
+- **F** — Split mental model: Overview = “Use / readiness”; other tabs = “Edit”.
+- **Defer C** — dedicated `/templates/[id]` editor route **later** (only if same-route tabs prove insufficient).
+- **Avoid G as primary** — sticky checklist already duplicates next-actions; fold readiness into Overview; keep aside optional/minimal or remove duplication.
+
+**Decision rule locked:** First view must **not** show every section and every linked item. It must answer: selected template, ready?, options summary, Catalog link health, next action.
+
+##### G. Proposed final page structure
+
+1. **Page header** — Title + one short line (“Company templates for job proposals”). No multi-paragraph SoT essay.
+2. **Template library** — Compact rows: name, option count, ready / needs fix badge; select sets overview. Default visible.
+3. **Selected template overview (default tab)** — Name/status; counts (options, sections, linked items); link-health summary; primary next action (Fix links / Open Jobs / Open Catalog). Trust: one sentence about Catalog SoT + Job Card create.
+4. **Readiness / next action** — Inside Overview only (merge checklist + `TemplatesSetupNextActions`). No Create Proposal button.
+5. **Editing model** — Tabs; deep editors idle until opened. Persist selected tab in component state (optional `?tab=` later).
+6. **Catalog linking** — Only under Packages & Catalog → expanded option → expanded line_items/upgrade section. Keep picker modal + re-link. Show problem badges on collapsed rows.
+7. **Estimate display** — Own tab: template-wide defaults first; per-option overrides in collapsed accordions.
+8. **Structure / sections** — Same Packages tab: reorder/add section controls when option expanded; no remove until safe delete approved.
+9. **Empty / blocked** — Catalog not ready → prerequisite + Open Catalog; no starter → install hero; link problems → Fix links jumps to Packages tab + problem section.
+10. **Narrow viewport** — Stack library → overview; tabs horizontal scroll; expand-one-option rule unchanged; aside checklist collapses into Overview.
+
+##### H. Implementation plan (no code in this block)
+
+| Item | Plan |
+|------|------|
+| **Likely files** | `TemplatesSetupClient.tsx`, `TemplatesStructureSettingsShell.tsx`, `TemplatesStructureSectionRow.tsx`, `TemplatesSectionCatalogItems.tsx`, `TemplatesContentEditorShell.tsx`, `TemplatesSetupNextActions.tsx`, `TemplatesSetupChecklist.tsx`, `TemplatesSelectedTemplatePanel.tsx`, `TemplatesPageHeader.tsx`, `TemplatesBuilderFootnote.tsx`, `TemplatesWorkspaceLayout.tsx`; possible new `TemplatesSelectedWorkspaceTabs.tsx`, `TemplatesOptionAccordion.tsx` |
+| **Split / refactor** | Extract overview card; tab shell; collapse structure shell so Catalog items mount only when section expanded; move estimate toggles out of structure shell into Estimate tab |
+| **State** | `activeWorkspaceTab`; `expandedOptionId` (single); `expandedSectionIds` Set or single; keep dirty-content guard on template switch |
+| **Tests** | Page-copy: default Overview; no full Catalog list mount markers when collapsed; Fix links opens Packages; no Create Proposal; existing catalog-link + readiness helpers unchanged |
+| **Smoke** | Library select → Overview ready/next → Packages expand one option → re-link → Estimate tab toggles → Content tab → Open Jobs; Preview/Builder untouched |
+| **Protected** | Pricing engine, snapshot builder, Customer Preview DTOs, send/public/lifecycle, Catalog economics, Job-only create, no migrations |
+| **Risks** | Accidental loss of structure actions; dirty-state across tabs; over-collapsing hiding link problems (mitigate badges + Fix links) |
+| **`/templates/[id]`** | **Later** — not in Redesign P0 |
+
+##### I. Next coding block
+
+**Templates Workspace Redesign P0** — overview-first progressive disclosure on existing route (tabs + collapsed options/sections + consolidated readiness). Then resume Integrated Flow **P2** (Job Card proposal start) or CSV mapping if import friction wins.
 
 #### 13.4.6 Integrated Catalog → Proposal workflow research + FieldDive flow design — COMPLETE (2026-07-17)
 
@@ -11585,7 +11685,9 @@ Roofr keeps this simple by: forcing Catalog-before-Template, automating qty from
 
 **Integrated Flow P1 — setup-to-proposal smoothness** — **COMPLETE** (see P1 section above this research block).
 
-**Integrated Flow P2 — job-card proposal start / guided creation path (preferred next)**
+**Templates Workspace Redesign P0 — overview-first progressive disclosure (immediate next)** — see **§6BO.13.4.7**.
+
+**Integrated Flow P2 — job-card proposal start / guided creation path (queued after Templates Redesign P0)**
 
 - **Goal:** Make Job Card → measurement → template → Create proposal the most obvious connected path when setup is ready; clarify blocked states with fix actions.
 - **Likely files:** Job Card proposals tab / launch helpers, optional guided create modal if needed (only if real route support).
@@ -12878,6 +12980,7 @@ Treat as **drift** if a session:
 
 ## Changelog (handoff doc only)
 
+- **2026-07-17:** **Templates workspace redesign research + plan** (docs only) — recorded **§6BO.13.4.7**: screenshot/code critique of dense all-expanded Templates page; targeted Roofr template UX research (confirmed vs unconfirmed); chosen hybrid model A+D+E+F (Overview-first tabs + collapsed options/sections; defer `/templates/[id]`); page structure + implementation plan. No app code/migrations/SQL/package/pricing/Preview/lifecycle changes. **Next coding block:** Templates Workspace Redesign **P0**.
 - **2026-07-17:** **Integrated Flow P0 — Template Add item from Catalog / re-link foundation** — existing `catalog_item_id` (no migration); Structure picker + link status + re-link; Catalog SoT / draft-refresh copy; Builder/Preview/pricing unchanged. Focused tests pass. Local + live smoke PASS on **`rhquhnujjnzjhweypavd`** (disposable item cleaned). **Next:** Integrated Flow P1 setup-to-proposal smoothness / Builder refresh trust guidance.
 - **2026-07-17:** **Integrated Catalog → Proposal workflow research + flow design** (docs only) — recorded **§6BO.13.4.6**: Roofr public research (confirmed vs unconfirmed), FieldDive spine map, target integrated flow (Catalog SoT → Template links → Builder snapshots → Preview filter → Material Orders later), CSV mapping assistant as P2 future requirement, gap table, staged roadmap P0–P2 + Future. No app code/migrations/SQL/package/pricing/Preview/lifecycle/supplier/ordering changes. **Next coding block:** Integrated Flow **P0** (template catalog linkage + honest setup→Builder copy/trust) — not CSV mapping, not supplier sync, not raw mode.
 - **2026-07-17:** **Catalog UX completion pass** — cohesion/usability polish only (Filters label, Add/Edit section hierarchy, quieter Manage/bulk copy, detail tax/SKU de-duplication, empty-state inactive hint fix, reorder active-state clarity). No new major systems; no pricing/Preview/supplier sync/material ordering/proposal import/raw mode/migrations/package changes. Focused tests **194 pass**. Local UI smoke PASS. **Next:** integrated workflow pass (Catalog → Templates → Builder → Preview → future Material Ordering).
