@@ -23,9 +23,6 @@ import {
 } from "@/app/lib/catalogCoverageCompatibility";
 import { FIELD_INPUT, PRIMARY_BUTTON, SECONDARY_BUTTON } from "../catalogAdminConstants";
 import {
-  formatCatalogSupplierSkuDisplay,
-  formatCatalogSupplierSkusSummary,
-  formatCatalogTaxRateDisplay,
   parseCoverageRateOrNull,
   type CatalogItemEditDraft,
 } from "../catalogAdminUtils";
@@ -119,9 +116,9 @@ export default function CatalogItemDetailPanel({
         </div>
       )}
 
-      <section className="mb-6">
+      <section className="mb-6" data-catalog-basics="edit">
         <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Item details
+          Basic item information
         </h4>
         <dl className="mt-3 grid grid-cols-1 gap-4 text-xs sm:grid-cols-2">
           <div>
@@ -396,25 +393,6 @@ export default function CatalogItemDetailPanel({
         <p className="mt-1.5 text-xs leading-relaxed text-slate-500">
           {CATALOG_FIELD_HELPERS.taxSection}
         </p>
-        <dl className="mt-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
-          <div>
-            <dt className="text-xs font-medium text-slate-500">
-              {CATALOG_CONTRACTOR_LABELS.salesTax}
-            </dt>
-            <dd className="mt-0.5 font-medium text-slate-900" data-catalog-sales-tax-display>
-              {formatCatalogTaxRateDisplay(item.sales_tax_rate_pct)}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs font-medium text-slate-500">
-              {CATALOG_CONTRACTOR_LABELS.purchaseTax}{" "}
-              <span className="font-normal">(internal)</span>
-            </dt>
-            <dd className="mt-0.5 font-medium text-slate-900" data-catalog-purchase-tax-display>
-              {formatCatalogTaxRateDisplay(item.purchase_tax_rate_pct)}
-            </dd>
-          </div>
-        </dl>
         <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <label className="block text-sm">
             <span className="mb-1.5 block text-xs font-medium text-slate-700">
@@ -464,38 +442,6 @@ export default function CatalogItemDetailPanel({
         <p className="mt-1.5 text-xs leading-relaxed text-slate-500">
           {CATALOG_FIELD_HELPERS.supplierSection}
         </p>
-        <p
-          className="mt-2 text-sm font-medium text-slate-800"
-          data-catalog-supplier-summary
-        >
-          {formatCatalogSupplierSkusSummary(item)}
-        </p>
-        <dl className="mt-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-3">
-          <div>
-            <dt className="text-xs font-medium text-slate-500">
-              {CATALOG_CONTRACTOR_LABELS.abcSku}
-            </dt>
-            <dd className="mt-0.5 font-medium text-slate-900" data-catalog-abc-sku-display>
-              {formatCatalogSupplierSkuDisplay(item.abc_sku)}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs font-medium text-slate-500">
-              {CATALOG_CONTRACTOR_LABELS.qxoSku}
-            </dt>
-            <dd className="mt-0.5 font-medium text-slate-900" data-catalog-qxo-sku-display>
-              {formatCatalogSupplierSkuDisplay(item.qxo_sku)}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs font-medium text-slate-500">
-              {CATALOG_CONTRACTOR_LABELS.srsSku}
-            </dt>
-            <dd className="mt-0.5 font-medium text-slate-900" data-catalog-srs-sku-display>
-              {formatCatalogSupplierSkuDisplay(item.srs_sku)}
-            </dd>
-          </div>
-        </dl>
         <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-3">
           <label className="block text-sm">
             <span className="mb-1.5 block text-xs font-medium text-slate-700">
@@ -568,14 +514,6 @@ export default function CatalogItemDetailPanel({
             : item.active
               ? "Deactivate item"
               : "Reactivate item"}
-        </button>
-        <button
-          type="button"
-          onClick={onClose}
-          disabled={isSaving || isTogglingActive}
-          className={SECONDARY_BUTTON}
-        >
-          Close
         </button>
       </div>
     </div>

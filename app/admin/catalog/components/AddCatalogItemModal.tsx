@@ -86,7 +86,8 @@ export default function AddCatalogItemModal({
           Add catalog item
         </h2>
         <p className="mt-1 text-xs leading-relaxed text-slate-500">
-          Manual lines use a fixed quantity source by default. No starter seed key is assigned.
+          Add a custom catalog line for proposals. Measurement defaults to a fixed quantity you set
+          on each proposal.
         </p>
 
         {error && (
@@ -95,152 +96,171 @@ export default function AddCatalogItemModal({
           </div>
         )}
 
-        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <label className="block text-sm sm:col-span-2">
-            <span className="mb-1.5 block text-xs font-medium text-slate-700">Name *</span>
-            <input
-              type="text"
-              className={FIELD_INPUT}
-              value={form.name}
-              onChange={(e) => onChange("name", e.target.value)}
-              disabled={creatingItem}
-            />
-          </label>
-          <label className="block text-sm">
-            <span className="mb-1.5 block text-xs font-medium text-slate-700">Item type *</span>
-            <select
-              className={FIELD_INPUT}
-              value={form.item_type}
-              onChange={(e) => onChange("item_type", e.target.value as CatalogItemType)}
-              disabled={creatingItem}
-            >
-              {CATALOG_ADD_ITEM_TYPE_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="block text-sm">
-            <span className="mb-1.5 block text-xs font-medium text-slate-700">Unit *</span>
-            <select
-              className={FIELD_INPUT}
-              value={form.unit}
-              onChange={(e) => onChange("unit", e.target.value as CatalogUnit)}
-              disabled={creatingItem}
-            >
-              {CATALOG_UNITS.map((unit) => (
-                <option key={unit} value={unit}>
-                  {catalogUnitLabel(unit)}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="block text-sm sm:col-span-2">
-            <span className="mb-1.5 block text-xs font-medium text-slate-700">
-              {CATALOG_CONTRACTOR_LABELS.measurement} *
-            </span>
-            <select
-              className={FIELD_INPUT}
-              value={form.quantity_source}
-              onChange={(e) => onChange("quantity_source", e.target.value as QuantitySource)}
-              disabled={creatingItem}
-            >
-              {QUANTITY_SOURCES.map((source) => (
-                <option key={source} value={source}>
-                  {quantitySourceLabel(source)}
-                </option>
-              ))}
-            </select>
-            <FieldHelper text={CATALOG_FIELD_HELPERS.measurement} />
-          </label>
-          <label className="block text-sm sm:col-span-2">
-            <span className="mb-1.5 block text-xs font-medium text-slate-700">
-              {CATALOG_CONTRACTOR_LABELS.customerName}
-            </span>
-            <input
-              type="text"
-              className={FIELD_INPUT}
-              value={form.customer_name}
-              onChange={(e) => onChange("customer_name", e.target.value)}
-              disabled={creatingItem}
-            />
-          </label>
-          <label className="block text-sm sm:col-span-2">
-            <span className="mb-1.5 block text-xs font-medium text-slate-700">
-              {CATALOG_CONTRACTOR_LABELS.customerDescription}
-            </span>
-            <textarea
-              rows={2}
-              className={`${FIELD_INPUT} resize-y`}
-              value={form.description}
-              onChange={(e) => onChange("description", e.target.value)}
-              disabled={creatingItem}
-            />
-          </label>
-          <label className="block text-sm">
-            <span className="mb-1.5 block text-xs font-medium text-slate-700">
-              {CATALOG_CONTRACTOR_LABELS.unitPrice}
-            </span>
-            <input
-              type="text"
-              inputMode="decimal"
-              placeholder="Optional"
-              className={`${FIELD_INPUT} tabular-nums`}
-              value={form.unit_price_dollars}
-              onChange={(e) => onChange("unit_price_dollars", e.target.value)}
-              disabled={creatingItem}
-            />
-          </label>
-          <label className="block text-sm">
-            <span className="mb-1.5 block text-xs font-medium text-slate-700">
-              {CATALOG_CONTRACTOR_LABELS.unitCost}
-            </span>
-            <input
-              type="text"
-              inputMode="decimal"
-              placeholder="Optional"
-              className={`${FIELD_INPUT} tabular-nums`}
-              value={form.unit_cost_dollars}
-              onChange={(e) => onChange("unit_cost_dollars", e.target.value)}
-              disabled={creatingItem}
-            />
-          </label>
-          <label className="block text-sm">
-            <span className="mb-1.5 block text-xs font-medium text-slate-700">Pricing basis</span>
-            <select
-              className={FIELD_INPUT}
-              value={form.pricing_basis}
-              onChange={(e) => onChange("pricing_basis", e.target.value as PricingBasis)}
-              disabled={creatingItem}
-            >
-              {PRICING_BASES.map((basis) => (
-                <option key={basis} value={basis}>
-                  {pricingBasisLabel(basis)}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="block text-sm">
-            <span className="mb-1.5 block text-xs font-medium text-slate-700">
-              {CATALOG_CONTRACTOR_LABELS.proposal}
-            </span>
-            <select
-              className={FIELD_INPUT}
-              value={form.customer_visibility}
-              onChange={(e) =>
-                onChange("customer_visibility", e.target.value as CustomerVisibility)
-              }
-              disabled={creatingItem}
-            >
-              {CUSTOMER_VISIBILITIES.map((visibility) => (
-                <option key={visibility} value={visibility}>
-                  {customerVisibilityLabel(visibility)}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
+        <section className="mt-4" data-catalog-basics="add">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Basic item information
+          </h3>
+          <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <label className="block text-sm sm:col-span-2">
+              <span className="mb-1.5 block text-xs font-medium text-slate-700">Name *</span>
+              <input
+                type="text"
+                className={FIELD_INPUT}
+                value={form.name}
+                onChange={(e) => onChange("name", e.target.value)}
+                disabled={creatingItem}
+              />
+            </label>
+            <label className="block text-sm">
+              <span className="mb-1.5 block text-xs font-medium text-slate-700">Item type *</span>
+              <select
+                className={FIELD_INPUT}
+                value={form.item_type}
+                onChange={(e) => onChange("item_type", e.target.value as CatalogItemType)}
+                disabled={creatingItem}
+              >
+                {CATALOG_ADD_ITEM_TYPE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block text-sm">
+              <span className="mb-1.5 block text-xs font-medium text-slate-700">Unit *</span>
+              <select
+                className={FIELD_INPUT}
+                value={form.unit}
+                onChange={(e) => onChange("unit", e.target.value as CatalogUnit)}
+                disabled={creatingItem}
+              >
+                {CATALOG_UNITS.map((unit) => (
+                  <option key={unit} value={unit}>
+                    {catalogUnitLabel(unit)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block text-sm sm:col-span-2">
+              <span className="mb-1.5 block text-xs font-medium text-slate-700">
+                {CATALOG_CONTRACTOR_LABELS.measurement} *
+              </span>
+              <select
+                className={FIELD_INPUT}
+                value={form.quantity_source}
+                onChange={(e) => onChange("quantity_source", e.target.value as QuantitySource)}
+                disabled={creatingItem}
+              >
+                {QUANTITY_SOURCES.map((source) => (
+                  <option key={source} value={source}>
+                    {quantitySourceLabel(source)}
+                  </option>
+                ))}
+              </select>
+              <FieldHelper text={CATALOG_FIELD_HELPERS.measurement} />
+            </label>
+          </div>
+        </section>
+
+        <section className="mt-5 border-t border-slate-200 pt-4" data-catalog-pricing="add">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Pricing</h3>
+          <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <label className="block text-sm">
+              <span className="mb-1.5 block text-xs font-medium text-slate-700">
+                {CATALOG_CONTRACTOR_LABELS.unitPrice}
+              </span>
+              <input
+                type="text"
+                inputMode="decimal"
+                placeholder="Optional"
+                className={`${FIELD_INPUT} tabular-nums`}
+                value={form.unit_price_dollars}
+                onChange={(e) => onChange("unit_price_dollars", e.target.value)}
+                disabled={creatingItem}
+              />
+            </label>
+            <label className="block text-sm">
+              <span className="mb-1.5 block text-xs font-medium text-slate-700">
+                {CATALOG_CONTRACTOR_LABELS.unitCost}
+              </span>
+              <input
+                type="text"
+                inputMode="decimal"
+                placeholder="Optional"
+                className={`${FIELD_INPUT} tabular-nums`}
+                value={form.unit_cost_dollars}
+                onChange={(e) => onChange("unit_cost_dollars", e.target.value)}
+                disabled={creatingItem}
+              />
+            </label>
+            <label className="block text-sm sm:col-span-2">
+              <span className="mb-1.5 block text-xs font-medium text-slate-700">Pricing basis</span>
+              <select
+                className={FIELD_INPUT}
+                value={form.pricing_basis}
+                onChange={(e) => onChange("pricing_basis", e.target.value as PricingBasis)}
+                disabled={creatingItem}
+              >
+                {PRICING_BASES.map((basis) => (
+                  <option key={basis} value={basis}>
+                    {pricingBasisLabel(basis)}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        </section>
+
+        <section className="mt-5 border-t border-slate-200 pt-4" data-catalog-proposal="add">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Proposal visibility
+          </h3>
+          <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <label className="block text-sm sm:col-span-2">
+              <span className="mb-1.5 block text-xs font-medium text-slate-700">
+                {CATALOG_CONTRACTOR_LABELS.customerName}
+              </span>
+              <input
+                type="text"
+                className={FIELD_INPUT}
+                value={form.customer_name}
+                onChange={(e) => onChange("customer_name", e.target.value)}
+                disabled={creatingItem}
+              />
+            </label>
+            <label className="block text-sm sm:col-span-2">
+              <span className="mb-1.5 block text-xs font-medium text-slate-700">
+                {CATALOG_CONTRACTOR_LABELS.customerDescription}
+              </span>
+              <textarea
+                rows={2}
+                className={`${FIELD_INPUT} resize-y`}
+                value={form.description}
+                onChange={(e) => onChange("description", e.target.value)}
+                disabled={creatingItem}
+              />
+            </label>
+            <label className="block text-sm sm:col-span-2">
+              <span className="mb-1.5 block text-xs font-medium text-slate-700">
+                {CATALOG_CONTRACTOR_LABELS.proposal}
+              </span>
+              <select
+                className={FIELD_INPUT}
+                value={form.customer_visibility}
+                onChange={(e) =>
+                  onChange("customer_visibility", e.target.value as CustomerVisibility)
+                }
+                disabled={creatingItem}
+              >
+                {CUSTOMER_VISIBILITIES.map((visibility) => (
+                  <option key={visibility} value={visibility}>
+                    {customerVisibilityLabel(visibility)}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        </section>
 
         <section className="mt-5 border-t border-slate-200 pt-4" data-catalog-quantity-drivers="add">
           <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">

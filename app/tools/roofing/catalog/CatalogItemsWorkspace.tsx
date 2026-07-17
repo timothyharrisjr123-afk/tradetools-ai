@@ -327,7 +327,7 @@ export default function CatalogItemsWorkspace({
                   ? "Recheck starter catalog"
                   : "Install starter catalog"}
             </button>
-            {showInactive ? (
+            {!showInactive ? (
               <p className="mt-3 text-xs text-slate-500">
                 Turn on Show inactive to see deactivated rows, or add a custom item.
               </p>

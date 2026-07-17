@@ -7,11 +7,7 @@ import {
 } from "@/app/lib/catalogBulkActions";
 import { formatCatalogSelectedCount } from "@/app/lib/catalogSelection";
 import { CATALOG_PLANNED_LABEL } from "@/app/lib/catalogContractorLabels";
-import {
-  COMMAND_CONTROL_SOON_BADGE,
-  PRIMARY_BUTTON,
-  SECONDARY_BUTTON,
-} from "../catalogAdminConstants";
+import { COMMAND_CONTROL_SOON_BADGE, SECONDARY_BUTTON } from "../catalogAdminConstants";
 
 type CatalogBulkActionBarProps = {
   selectedCount: number;
@@ -56,13 +52,7 @@ export default function CatalogBulkActionBar({
             <button
               key={action.id}
               type="button"
-              className={
-                action.id === "mark_inactive" ||
-                action.id === "proposal_hidden" ||
-                action.id === "bulk_purchase_tax"
-                  ? SECONDARY_BUTTON
-                  : PRIMARY_BUTTON
-              }
+              className={SECONDARY_BUTTON}
               title={action.detail}
               disabled={busy}
               onClick={() => onLiveAction(action.id as CatalogBulkLiveActionId)}
@@ -108,8 +98,8 @@ export default function CatalogBulkActionBar({
                 ))}
               </ul>
               <p className="mt-2 border-t border-slate-100 px-1.5 pt-2 text-[11px] leading-relaxed text-slate-500">
-                Supplier sync, material ordering, hard delete, and template/proposal import are not
-                live. Purchase tax remains internal contractor metadata.
+                Supplier sync, material ordering, and proposal import are not live. Purchase tax stays
+                internal.
               </p>
             </div>
           </details>

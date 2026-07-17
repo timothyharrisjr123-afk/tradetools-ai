@@ -371,7 +371,7 @@ export default function CatalogItemTable({
                   >
                     <div className="flex items-center justify-end gap-3">
                       {reorderMode ? (
-                        <span className="text-xs text-slate-400">Use Order controls</span>
+                        <span className="sr-only">Use Order column controls to move this row</span>
                       ) : (
                         <>
                           <button

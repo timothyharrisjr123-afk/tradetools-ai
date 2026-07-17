@@ -188,7 +188,11 @@ export default function CatalogItemToolbar({
           >
             <button
               type="button"
-              className={COMMAND_CONTROL_ACTIVE}
+              className={
+                reorderMode
+                  ? `${COMMAND_CONTROL_ACTIVE} ring-1 ring-amber-300/80 bg-amber-50`
+                  : COMMAND_CONTROL_ACTIVE
+              }
               title={
                 reorderMode
                   ? "Reorder mode is active"
@@ -200,8 +204,9 @@ export default function CatalogItemToolbar({
               data-catalog-reorder-available={reorderAvailable ? "true" : "false"}
               disabled={reorderMode || !onEnterReorder}
               onClick={() => onEnterReorder?.()}
+              aria-pressed={reorderMode}
             >
-              <span>Re-order items</span>
+              <span>{reorderMode ? "Reordering…" : "Re-order items"}</span>
             </button>
 
             <details className="relative" data-catalog-columns-menu>
@@ -330,8 +335,8 @@ export default function CatalogItemToolbar({
                   })}
                 </ul>
                 <p className="mt-2 border-t border-slate-100 px-1.5 pt-2 text-[11px] leading-relaxed text-slate-500">
-                  CSV v1 and Catalog reorder are live. Supplier sync, Jumpstart, and the Manage
-                  bulk-purchase-tax shortcut remain planned (use selection bulk bar for purchase tax).
+                  CSV and reorder are live. Supplier sync and supplier-priced starter remain planned.
+                  Purchase tax: select rows, then use the bulk bar.
                 </p>
               </div>
             </details>

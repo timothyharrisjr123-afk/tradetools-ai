@@ -43,8 +43,8 @@ export const CATALOG_COMMAND_BAR_ACTIVE_CONTROLS = [
 /**
  * Manage Catalog menu entries.
  * CSV download/export + upload preview/import are live (v1).
- * Reorder items is live (display order via sort_order).
- * Supplier, Jumpstart, and Manage bulk-purchase-tax shortcut remain planned.
+ * Reorder items is live (display order via sort_order); toolbar Re-order is primary.
+ * Connect supplier, supplier-priced starter, and Manage bulk-purchase-tax shortcut remain planned.
  */
 export const CATALOG_MANAGE_MENU_ITEMS = [
   {
@@ -68,25 +68,25 @@ export const CATALOG_MANAGE_MENU_ITEMS = [
   {
     id: "reorder",
     label: "Reorder items",
-    detail: "Change Catalog display order (sort_order)",
+    detail: "Same as toolbar Re-order — Catalog display order only",
     status: "live" as const,
   },
   {
     id: "connect_supplier",
     label: "Connect supplier",
-    detail: "ABC / QXO / SRS pricing — Planned",
+    detail: "ABC / QXO / SRS pricing sync (not active)",
     status: "planned" as const,
   },
   {
     id: "jumpstart",
-    label: "Jumpstart / import starter",
-    detail: "Curated import with supplier prices — Planned",
+    label: "Import supplier-priced starter",
+    detail: "Curated import with supplier prices — separate from Install starter catalog",
     status: "planned" as const,
   },
   {
     id: "bulk_purchase_tax",
     label: "Bulk edit purchase tax",
-    detail: "Select table rows, then use the bulk action bar — Manage shortcut Planned",
+    detail: "Use selection + bulk action bar on the table (Manage shortcut not wired)",
     status: "planned" as const,
   },
 ] as const;
@@ -136,7 +136,7 @@ export const CATALOG_SETTINGS_PLANNED_TOOLS = [
   },
 ] as const;
 
-export const CATALOG_FILTERS_SORT_LABEL = "Filters & sort" as const;
+export const CATALOG_FILTERS_SORT_LABEL = "Filters" as const;
 
 export const CATALOG_CONTRACTOR_LABELS = {
   pageSubtitle: CATALOG_PAGE_SUBTITLE,

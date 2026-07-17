@@ -77,10 +77,11 @@ describe("Catalog P0B–P0D page shell", () => {
     assert.ok(!table.includes("Grouped by type"));
   });
 
-  test("command bar has Search, Filters & sort, Reorder, Columns, Manage catalog, and Add", () => {
+  test("command bar has Search, Filters, Reorder, Columns, Manage catalog, and Add", () => {
     const source = readAdminComponent("CatalogItemToolbar.tsx");
     assert.ok(source.includes("Search catalog"));
     assert.ok(source.includes("CATALOG_FILTERS_SORT_LABEL") || source.includes(CATALOG_FILTERS_SORT_LABEL));
+    assert.equal(CATALOG_FILTERS_SORT_LABEL, "Filters");
     assert.ok(source.includes("Show inactive"));
     assert.ok(source.includes("Add catalog item"));
     assert.ok(source.includes('data-catalog-command="reorder"'));
@@ -135,7 +136,7 @@ describe("Catalog P0B–P0D page shell", () => {
     assert.ok(labels.includes("Upload CSV"));
     assert.ok(labels.includes("Connect supplier"));
     assert.ok(labels.includes("Bulk edit purchase tax"));
-    assert.ok(labels.includes("Jumpstart / import starter"));
+    assert.ok(labels.includes("Import supplier-priced starter"));
     assert.ok(labels.includes("Reorder items"));
     const liveIds = CATALOG_MANAGE_MENU_ITEMS.filter((i) => i.status === "live").map((i) => i.id);
     assert.deepEqual(liveIds, [
@@ -144,9 +145,19 @@ describe("Catalog P0B–P0D page shell", () => {
       "upload_csv",
       "reorder",
     ]);
-    for (const item of CATALOG_MANAGE_MENU_ITEMS.filter((i) => i.status === "planned")) {
-      assert.match(item.detail, /Planned/i);
-    }
+    const planned = CATALOG_MANAGE_MENU_ITEMS.filter((i) => i.status === "planned");
+    assert.deepEqual(
+      planned.map((i) => i.id),
+      ["connect_supplier", "jumpstart", "bulk_purchase_tax"]
+    );
+    assert.match(
+      planned.find((i) => i.id === "jumpstart")!.detail,
+      /separate from Install starter catalog/i
+    );
+    assert.match(
+      planned.find((i) => i.id === "connect_supplier")!.detail,
+      /not active/i
+    );
     assert.ok(setup.includes("analyzeCatalogCsv"));
     assert.ok(setup.includes("applyCatalogCsvImport"));
     assert.ok(setup.includes("buildCatalogCsvTemplate"));
@@ -332,6 +343,12 @@ describe("Catalog P0B–P0D page shell", () => {
     assert.ok(edit.includes("CATALOG_CONTRACTOR_LABELS.waste"));
     assert.ok(edit.includes("CATALOG_FIELD_HELPERS.quantityDriversSection"));
     assert.ok(add.includes("CATALOG_FIELD_HELPERS.quantityDriversSection"));
+    assert.match(add, /data-catalog-basics="add"/);
+    assert.match(add, /data-catalog-pricing="add"/);
+    assert.match(add, /data-catalog-proposal="add"/);
+    assert.match(edit, /data-catalog-basics="edit"/);
+    assert.ok(add.includes("Basic item information"));
+    assert.ok(!add.includes("starter seed key"));
   });
 
   test("item tax capture appears on add/edit; purchase tax marked internal; no active line-tax claim", () => {
@@ -426,5 +443,25 @@ describe("Catalog P0B–P0D page shell", () => {
     assert.ok(handoff.includes("Manage catalog CSV") || handoff.includes("CSV import/export"));
     assert.ok(handoff.includes("Re-order items"));
     assert.ok(handoff.includes("Columns / display"));
+  });
+
+  test("Catalog UX completion pass keeps live vs planned command surfaces clear", () => {
+    const workspace = readCatalogFile("CatalogItemsWorkspace.tsx");
+    const toolbar = readAdminComponent("CatalogItemToolbar.tsx");
+    const bar = readAdminComponent("CatalogBulkActionBar.tsx");
+    const add = readAdminComponent("AddCatalogItemModal.tsx");
+    assert.ok(workspace.includes("!showInactive"));
+    assert.ok(toolbar.includes("Re-order items"));
+    assert.ok(toolbar.includes("Reordering…"));
+    assert.match(bar, /Supplier sync, material ordering/);
+    assert.ok(!bar.includes("PRIMARY_BUTTON"));
+    assert.equal(
+      /supplier sync is active|material ordering is live|proposal import is live/i.test(
+        toolbar + bar + add
+      ),
+      false
+    );
+    assert.ok(CATALOG_MANAGE_MENU_ITEMS.every((i) => i.status === "live" || i.status === "planned"));
+    assert.ok(CATALOG_BULK_LIVE_ACTIONS.some((a) => a.id === "bulk_purchase_tax"));
   });
 });

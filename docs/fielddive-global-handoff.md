@@ -45,11 +45,11 @@
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** **pending this commit — feat(catalog): add reorder foundation**
-- **Docs checkpoint:** **pending this commit — Catalog reorder foundation**
-- **Prior code checkpoint:** **`02f54a3` — feat(catalog): add bulk purchase tax action**
-- **Next:** Catalog UX completion pass → integrated workflow pass (Catalog → Templates → Builder → Preview → future Material Ordering). Supplier **sync** remains planned. Do **not** enable Settings raw mode switch; adjusted mode unaffected. **Do not** expose a Settings waste-model control without approval. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
-- **Historical note:** Header language that still says “Slice 2 — Catalog P0 next” or “Coverage/Waste inactive / raw unwired” in older §6BO.13.4 rows is **superseded** by Phase 5–7 + Catalog P1 + coverage_basis + item tax + Columns/Manage shell + CSV v1 + supplier SKU storage + selection/bulk foundation + bulk purchase tax + reorder foundation below.
+- **Code checkpoint:** **pending this commit — polish(catalog): complete management workspace ux**
+- **Docs checkpoint:** **pending this commit — Catalog UX completion pass**
+- **Prior code checkpoint:** **`2a143f1` — feat(catalog): add reorder foundation**
+- **Next:** Integrated workflow pass across Catalog → Templates → Proposal Builder → Customer Preview → future Material Ordering. Supplier **sync** remains planned. Do **not** enable Settings raw mode switch; adjusted mode unaffected. **Do not** expose a Settings waste-model control without approval. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
+- **Historical note:** Header language that still says “Slice 2 — Catalog P0 next” or “Coverage/Waste inactive / raw unwired” in older §6BO.13.4 rows is **superseded** by Phase 5–7 + Catalog P1 + coverage_basis + item tax + Columns/Manage shell + CSV v1 + supplier SKU storage + selection/bulk foundation + bulk purchase tax + reorder foundation + Catalog UX completion pass below.
 
 **Trust order:** Header/current checkpoint → **§6BO.13** (approved page-by-page UI flow roadmap + P0 implementation sequence — **supersedes separate Command Center language**) → **§6BM** / **§6BN** (R18 letter-phase roadmap + R18C–R18D3C implementation history) → **§6BO** / **§6BO.11** / **§6BO.12** (completed remediation side-track + **approved Stage C policy** + **operating-flow audit sequencing — complete; outcome in §6BO.13**) → **§6BL** → **§11 override**. Stage B browser smoke required local-only **`USE_PROPOSAL_SEND_FREEZE_RPC=1`** in `.env.local` (gitignored, not committed). **Do not proceed** to docs-only or next feature work unless working tree is clean. **Still do not** mutate `proposals.status = sent`, write sent `proposal_events`, move Jobs Board cards, add Job Card send activity, enable PDF/Sign/Payment, or add webhooks unless separately approved.
 
@@ -11329,6 +11329,14 @@ Order: **source → coverage → waste → exact**.
 - Bulk selection / purchase tax / SKU / tax capture unchanged; no supplier sync / material ordering / proposal import
 - Local + live smoke PASS on **`rhquhnujjnzjhweypavd`**: filter guard; cancel restores; save persists move; restore starter head order; null `sort_order` rows normalized on save; catalog 26 / proposals 23 / policies 1 / events 304 / tokens 22 unchanged; Preview clean
 
+**Catalog UX completion pass — COMPLETE (2026-07-17):**
+
+- Cohesion / usability / readability polish across the Catalog management workspace — **no new major systems**
+- Polished: Filters label (was “Filters & sort”); toolbar Re-order active-state clarity; quieter Manage Catalog footer; Manage planned labels (supplier-priced starter vs Install starter catalog); Add item section hierarchy (Basics → Pricing → Proposal → Coverage/waste → Tax → Supplier); detail panel tax/SKU duplication removed; bulk bar secondary-only live actions; empty-state inactive hint corrected; reorder Actions column noise reduced
+- **Did not** change pricing engine, Customer Preview, send/public/lifecycle/PDF/sign/payment/webhooks, supplier sync, material ordering, proposal import, raw mode, whole rounding, schema/migrations, or package files
+- Current Catalog capability list remains: coverage/waste/coverage basis; item sales + purchase tax capture; supplier SKU storage; CSV template/export/import/preview; Columns; Manage Catalog; selection + bulk bar; bulk purchase tax; persisted reorder; polished command/table/modal UX
+- Local smoke: Catalog page readability, Columns, Manage live vs planned, Add/Edit sections, selection/bulk/reorder/CSV, ~390px wrap, Preview clean of purchase tax/SKUs
+
 **Still deferred:**
 
 - Raw mode switch (Settings waste-model control)
@@ -11341,7 +11349,7 @@ Order: **source → coverage → waste → exact**.
 - Add-to-template / add-to-proposal / material orders
 - Atomic CSV import RPC (if required later)
 
-**Next Catalog block:** Catalog UX completion pass → integrated workflow pass — **not** raw mode switch.
+**Next Catalog block:** Integrated workflow pass across Catalog → Templates → Proposal Builder → Customer Preview → future Material Ordering — **not** raw mode switch.
 
 **P3 — polish**
 
@@ -12606,6 +12614,7 @@ Treat as **drift** if a session:
 
 ## Changelog (handoff doc only)
 
+- **2026-07-17:** **Catalog UX completion pass** — cohesion/usability polish only (Filters label, Add/Edit section hierarchy, quieter Manage/bulk copy, detail tax/SKU de-duplication, empty-state inactive hint fix, reorder active-state clarity). No new major systems; no pricing/Preview/supplier sync/material ordering/proposal import/raw mode/migrations/package changes. Focused tests **194 pass**. Local UI smoke PASS. **Next:** integrated workflow pass (Catalog → Templates → Builder → Preview → future Material Ordering).
 - **2026-07-17:** **Catalog supplier SKU storage** — migration `20260717_026` applied on **`rhquhnujjnzjhweypavd`** (`abc_sku`/`qxo_sku`/`srs_sku` nullable text, CHECK 1..128, no default/backfill); types/store/Add/Edit/detail + CSV persist; no supplier sync/API/material order; proposal pricing + Customer Preview unchanged. Focused tests **170 pass**. Local UI smoke + live CRUD smoke PASS. **Next:** selection + bulk actions foundation → reorder → Catalog UX completion → integrated workflow pass.
 - **2026-07-17:** **Catalog CSV v1 foundation** — FieldDive-native template/export/preview-import; create (blank id) + company-scoped update-by-id; strict header/row validation; reserved supplier SKU columns (warn, not persisted); Manage Catalog live CSV actions; no package changes; no supplier sync/material order/proposal import; proposal pricing + Customer Preview unchanged. Focused tests **160 pass** (CSV + admin/store/labels/page-copy + pricing/snapshot unchanged). Local UI smoke + live CRUD smoke PASS on **`rhquhnujjnzjhweypavd`**. **Next:** supplier SKU schema, or bulk actions, or proposal/template integration.
 - **2026-07-17:** **Catalog Columns + Manage Catalog shell** — active Columns menu (optional column show/hide; required name/actions/select fixed; localStorage prefs); active Manage Catalog menu with Planned Download/Upload CSV, Reorder, Connect supplier, Jumpstart, Bulk edit purchase tax (no fake-active behavior); Re-order chip still Coming soon; item tax capture-only unchanged; no migrations/SQL/pricing/Preview/send. **Next:** CSV v1 planning/build.
