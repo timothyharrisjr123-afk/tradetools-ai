@@ -2,6 +2,7 @@ import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  buildJobCardHref,
   buildJobCardReturnTo,
   buildSetupRouteHref,
   parseInternalReturnTo,
@@ -64,6 +65,22 @@ describe("buildSetupRouteHref", () => {
     assert.equal(
       buildSetupRouteHref("/tools/roofing/catalog", "not-a-uuid"),
       "/tools/roofing/catalog"
+    );
+  });
+
+  test("appends returnLabel when provided", () => {
+    const href = buildSetupRouteHref("/tools/roofing/templates", JOB_ID, {
+      returnLabel: "Babby D",
+    });
+    assert.match(href, /returnLabel=Babby%20D/);
+  });
+});
+
+describe("buildJobCardHref", () => {
+  test("optional tab=proposals for Builder return", () => {
+    assert.equal(
+      buildJobCardHref(JOB_ID, { tab: "proposals" }),
+      `/tools/roofing?entry=job-card&job=${JOB_ID}&tab=proposals`
     );
   });
 });

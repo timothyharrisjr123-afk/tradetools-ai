@@ -58,7 +58,9 @@ export default function ProposalBuilderPageHeader({
 }: ProposalBuilderPageHeaderProps) {
   const title = resolveJobTitle(job);
   const subtitle = resolveJobSubtitle(job);
-  const backHref = jobId ? buildJobCardHref(jobId) : "/tools/roofing/saved";
+  const backHref = jobId
+    ? buildJobCardHref(jobId, { tab: "proposals" })
+    : "/tools/roofing/saved";
 
   const showSetupPill = shellReady && !showDraftSavedPill;
 

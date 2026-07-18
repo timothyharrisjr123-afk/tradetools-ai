@@ -131,19 +131,21 @@ describe("deriveProposalSetupChecklist", () => {
     assert.equal(result.activeBlockerId, "catalog");
   });
 
-  test("template not ready → Open Templates", () => {
+  test("template not ready → Fix template", () => {
     const result = deriveProposalSetupChecklist(
       baseInput({
         templateReady: false,
+        jobReturnLabel: "Babby D",
       })
     );
 
-    assert.equal(result.primaryAction.label, "Open Templates");
+    assert.equal(result.primaryAction.label, "Fix template");
     const templatesHref = result.primaryAction.href ?? "";
     assert.match(templatesHref, /^\/tools\/roofing\/templates\?/);
     assert.match(templatesHref, /returnTo=/);
     assert.match(templatesHref, new RegExp(`job=${JOB_ID}`));
     assert.match(templatesHref, /tab=proposals/);
+    assert.match(templatesHref, /returnLabel=Babby%20D/);
     assert.equal(result.activeBlockerId, "template");
   });
 
@@ -175,23 +177,24 @@ describe("deriveProposalSetupChecklist", () => {
     assert.equal(result.activeBlockerId, "pricing_policy");
   });
 
-  test("all ready + no draft → Create Proposal", () => {
+  test("all ready + no draft → Create proposal draft", () => {
     const result = deriveProposalSetupChecklist(baseInput());
 
-    assert.equal(result.primaryAction.label, "Create Proposal");
+    assert.equal(result.primaryAction.label, "Create proposal draft");
     assert.equal(result.primaryAction.actionType, "create_proposal");
+    assert.match(result.primaryAction.helperText ?? "", /Proposal Builder/i);
     assert.equal(result.activeBlockerId, "proposal_draft");
     assert.equal(result.quiet, true);
   });
 
-  test("existing draft → Open Proposal Builder", () => {
+  test("existing draft → Open proposal draft", () => {
     const result = deriveProposalSetupChecklist(
       baseInput({
         activeProposalId: PROPOSAL_ID,
       })
     );
 
-    assert.equal(result.primaryAction.label, "Open Proposal Builder");
+    assert.equal(result.primaryAction.label, "Open proposal draft");
     assert.equal(result.primaryAction.actionType, "open_builder");
     assert.match(result.primaryAction.href ?? "", new RegExp(PROPOSAL_ID));
     assert.equal(result.quiet, true);
@@ -259,13 +262,13 @@ describe("deriveProposalSetupChecklist", () => {
   test("header launch enabled for create and open_builder", () => {
     const createReady = deriveProposalSetupChecklist(baseInput());
     assert.equal(isProposalHeaderLaunchEnabled(createReady), true);
-    assert.equal(proposalHeaderButtonLabel(createReady), "Create proposal");
+    assert.equal(proposalHeaderButtonLabel(createReady), "Create proposal draft");
 
     const openExisting = deriveProposalSetupChecklist(
       baseInput({ activeProposalId: PROPOSAL_ID })
     );
     assert.equal(isProposalHeaderLaunchEnabled(openExisting), true);
-    assert.equal(proposalHeaderButtonLabel(openExisting), "Open proposal");
+    assert.equal(proposalHeaderButtonLabel(openExisting), "Open proposal draft");
   });
 
   test("header launch blocked for board-origin create without payload", () => {

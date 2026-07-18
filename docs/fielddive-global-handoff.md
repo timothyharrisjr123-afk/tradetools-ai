@@ -45,11 +45,11 @@
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** **pending this commit — polish(templates): tighten quote setup review** (Templates P2B)
-- **Docs checkpoint:** Templates P2B visual tightening (this header + **§6BO.13.4.9** J)
-- **Prior code:** **`920e25c`** Quote Setup Review P2
-- **Next:** **Integrated Flow P2** — Job Card proposal start / guided creation path. Do **not** start dedicated `/templates/[id]` unless Quote Setup Review proves insufficient; do **not** start supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
-- **Historical note:** **P2B** keeps Quote Setup Review; collapses installed setup to a strip; tightens library/hero so Package + Included items appear sooner.
+- **Code checkpoint:** **pending this commit — feat(proposals): add job card proposal setup flow** (Integrated Flow P2)
+- **Docs checkpoint:** Integrated Flow P2 Job Card Compact Proposal Setup Card (this header + **§6BO.13.4.6** / **§6BO.13.4.9** follow-on)
+- **Prior code:** **`4d13e1d`** Templates P2B visual tightening · **`920e25c`** Quote Setup Review P2
+- **Next:** Builder handoff polish if needed, or end-to-end proposal smoke/polish; then Customer Preview truth pass / Send readiness when approved. Do **not** start supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
+- **Historical note:** Job Card Proposals tab is now a compact job-specific proposal setup card (Measurement → Template → Package → Included → Create/Open). Templates page remains company setup; happy path no longer drops into Templates.
 
 **Trust order:** Header/current checkpoint → **§6BO.13** (approved page-by-page UI flow roadmap + P0 implementation sequence — **supersedes separate Command Center language**) → **§6BM** / **§6BN** (R18 letter-phase roadmap + R18C–R18D3C implementation history) → **§6BO** / **§6BO.11** / **§6BO.12** (completed remediation side-track + **approved Stage C policy** + **operating-flow audit sequencing — complete; outcome in §6BO.13**) → **§6BL** → **§11 override**. Stage B browser smoke required local-only **`USE_PROPOSAL_SEND_FREEZE_RPC=1`** in `.env.local` (gitignored, not committed). **Do not proceed** to docs-only or next feature work unless working tree is clean. **Still do not** mutate `proposals.status = sent`, write sent `proposal_events`, move Jobs Board cards, add Job Card send activity, enable PDF/Sign/Payment, or add webhooks unless separately approved.
 
@@ -11972,7 +11972,44 @@ Was: Templates Page Redesign P2. **P2 shipped — see I.** Next: Integrated Flow
 
 **Key files:** `TemplatesQuoteSetupReview.tsx`, `TemplatesIncludedItemsManager.tsx`, `TemplatesRemoveItemConfirmModal.tsx`, `TemplatesAddItemSectionChooser.tsx`, `TemplatesSelectedWorkspace.tsx`, `TemplatesSetupClient.tsx`, `proposalTemplateStore.ts` (`deleteProposalTemplateItem`), `proposalTemplateCatalogLink.ts` (labels).
 
-**Next recommended block:** **Integrated Flow P2 — Job Card proposal start / guided creation path.**
+**Next recommended block:** ~~Integrated Flow P2~~ → **DONE** (see **§6BO.13.4.9** K). Next: Builder handoff / e2e smoke polish, then Preview truth / Send readiness when approved.
+
+##### J. Templates Page P2B — visual tightening — IMPLEMENTED (2026-07-17)
+
+**Status:** Layout/copy polish only on Quote Setup Review. **No model change. No migrations/SQL/package/pricing/Preview/lifecycle/supplier changes.**
+
+| Change | Detail |
+|--------|--------|
+| **Setup** | When Catalog ready + starter installed → compact **Setup complete** strip with Recheck; full onboarding only when incomplete |
+| **Library** | Compact rows; shorter label “Templates”; less vertical weight |
+| **Hero + package** | Single card: name/status, compact includes, CTAs, package selector nested |
+| **Included items** | Immediately under hero/package card |
+| **Copy** | One trust note at bottom; CTA “Open Jobs to create a proposal”; Advanced quieter |
+| **Preserved** | Add / Replace / Remove; Advanced settings; readiness; Job Card create start |
+
+**Next:** Integrated Flow **P2** Job Card proposal start — **DONE** (see Integrated Flow P2 section below).
+
+##### K. Integrated Flow P2 — Job Card Compact Proposal Setup Card — IMPLEMENTED (2026-07-17)
+
+**Status:** Job Card Proposals tab is now a job-specific proposal setup flow. **No migrations/SQL/package/pricing formula/Preview redesign/lifecycle/supplier changes.**
+
+| Area | Detail |
+|------|--------|
+| **Primary UI** | Compact **Proposal setup** card: Measurement → Template → Package → Included summary → Create/Open |
+| **Create meaning** | Explainer: draft from this job’s measurements + selected template + Catalog pricing; review in Builder before sending |
+| **Happy path** | Stay on Job Card; do **not** route to Templates when ready |
+| **Package** | Simple package selector; selected option passed as `selected_template_option_id` on create |
+| **Included** | Compact summary + expand Review included items (read-only); Fix template with return context |
+| **Draft path** | Existing `resolveOrCreateProposalDraftEntry` / `createDraftProposal` reuse; no duplicate drafts |
+| **Builder** | Opens with job+proposal; **Back to Job Card** returns to `tab=proposals` |
+| **Fix escapes** | Templates/Catalog links use `returnTo` + optional `returnLabel` (“Return to {job} · Proposals”) |
+| **Demoted** | Status checklist console + Catalog setup “Review templates” happy-path links |
+
+**Key files:** `JobCardProposalSetupCard.tsx`, `JobCardProposalIncludedReview.tsx`, `jobCardProposalSetup.ts`, `JobCardProposalsSetupLinks.tsx`, `RoofingClient.tsx`, `proposalDraftEntry.ts`, `proposalSetupChecklist.ts`, `proposalBuilderReadiness.ts`, `ProposalBuilderPageHeader.tsx`, `TemplatesAppPage.tsx`, `CatalogAppPage.tsx`.
+
+**What remains unbuilt:** Job-side Add/Replace/Remove (deferred); full multi-draft list; deeper Builder handoff polish.
+
+**Next recommended block:** Builder handoff polish if needed, or end-to-end proposal smoke/polish; then Customer Preview truth pass / Send readiness when approved.
 
 #### 13.4.6 Integrated Catalog → Proposal workflow research + FieldDive flow design — COMPLETE (2026-07-17)
 
@@ -12165,14 +12202,15 @@ Roofr keeps this simple by: forcing Catalog-before-Template, automating qty from
 
 **Templates Page Redesign P2 — Quote Setup Review + Included manager** — **DONE** (see **§6BO.13.4.9** I).
 
-**Integrated Flow P2 — job-card proposal start / guided creation path — NEXT**
+**Integrated Flow P2 — job-card proposal start / Compact Proposal Setup Card** — **DONE** (see **§6BO.13.4.9** K).
 
-- **Goal:** Make Job Card → measurement → template → Create proposal the most obvious connected path when setup is ready; clarify blocked states with fix actions.
-- **Likely files:** Job Card proposals tab / launch helpers, optional guided create modal if needed (only if real route support).
-- **Protected:** same as P0/P1; no fake ordering; no Preview redesign.
-- **Alternate P2 if import friction is higher:** CSV mapping assistant (non-exact headers) — see below.
+**Next recommended coding block after Integrated Flow P2**
 
-**Integrated Flow P2 alternate — CSV mapping assistant / supplier-ready flow**
+- Builder handoff polish if needed, or end-to-end proposal smoke/polish.
+- Then Customer Preview truth pass / Send readiness when approved.
+- **Protected:** no supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode, whole rounding unless separately approved.
+
+**Integrated Flow P2 alternate — CSV mapping assistant / supplier-ready flow** (still deferred)
 
 - **Goal:** Accept non-exact CSVs via mapping while keeping strict FieldDive CSV as baseline; prepare SKU-centric imports without live sync.
 - **Likely files:** new `catalogCsvMapping*` pure module + Manage Catalog upload UX; saved mapping prefs.
@@ -13458,7 +13496,9 @@ Treat as **drift** if a session:
 
 ## Changelog (handoff doc only)
 
-- **2026-07-17:** **Templates Page P2 — Quote Setup Review** — default Templates IA: selected hero + package selector + Included items; Add / Replace / Remove from template (store delete; Catalog untouched); Advanced settings secondary; pricing/Preview/lifecycle unchanged. **Next:** Integrated Flow **P2** Job Card proposal start.
+- **2026-07-17:** **Integrated Flow P2 — Job Card Compact Proposal Setup Card** — Proposals tab Measurement → Template → Package → Included → Create/Open; create explainer; durable draft reuse; Builder back to Job Card proposals; Templates/Catalog return labels; happy path no Templates drop-off; pricing/Preview/lifecycle unchanged. **Next:** Builder handoff / e2e smoke polish, then Preview truth / Send readiness when approved.
+- **2026-07-17:** **Templates Page P2B — visual tightening** — Setup complete strip when installed; compact template library; hero+package combined; Included items earlier; one trust note; Add/Replace/Remove preserved. **Next:** Integrated Flow **P2** Job Card proposal start.
+- **2026-07-17:** **Templates Page P2 — Quote Setup Review** — default Templates IA: selected hero + package selector + Included items; Add / Replace / Remove from template (store delete; Catalog untouched); Advanced settings secondary; pricing/Preview/lifecycle unchanged.
 - **2026-07-17:** **Proposal Templates page contractor-first redesign plan** (docs only) — recorded **§6BO.13.4.9**: critique of `97c12e5`; Options A/B/C; chose **Option B Included-in-quote manager**; Add/Remove/Replace flow; final wireframe. No app code. **Next coding block:** Templates Page Redesign **P2**.
 - **2026-07-17:** **Templates Flow Redesign P1** — Use-first / Edit-mode on `/tools/roofing/templates`: default Use surface (readiness + what this creates + Open Jobs / Fix); Edit template mode for Packages & Catalog / Customer display / Content; no first-load edit tab strip; Catalog add/re-link + estimate/content preserved; pricing/Preview/lifecycle unchanged. Superseded as end-state by **§6BO.13.4.9** (still not contractor-simple).
 - **2026-07-17:** **Templates contractor-first flow redesign plan** (docs only) — recorded **§6BO.13.4.8**: honest critique of `e2df6ac` (tabs still editor-framed); Options A/B/C; chose **Option B Use-first + Edit mode**; text wireframe + implementation plan. No app code. **Next coding block:** Templates Flow Redesign **P1**.

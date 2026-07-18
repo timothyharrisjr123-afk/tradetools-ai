@@ -108,7 +108,6 @@ import {
 import {
   buildMeasurementProposalHandoff,
   deriveQuantityMapFromRecord,
-  formatProposalReadinessLabel,
   formatProposalSectionHeaderStatus,
   resolveProposalHandoffNextAction,
 } from "@/app/lib/measurementProposalHandoff";
@@ -117,11 +116,11 @@ import type { CatalogItem } from "@/app/lib/catalogTypes";
 import {
   deriveCatalogReadiness,
   formatCatalogReadinessLabel,
-  formatCatalogNextStepCopy,
 } from "@/app/lib/catalogReadiness";
 import { DEFAULT_ROOFING_CATALOG_DEFINITIONS } from "@/app/lib/defaultRoofingCatalog";
 import {
   buildProposalBuilderHref,
+  buildSetupRouteHref,
   deriveProposalBuilderReadiness,
   formatProposalBuilderDisabledButtonTitle,
   resolveJobCardProposalActivityLine,
@@ -149,7 +148,14 @@ import {
   getProposalTemplatesByCompany,
   type ProposalTemplateGraph,
 } from "@/app/lib/proposalTemplateStore";
+import type { ProposalTemplate } from "@/app/lib/proposalTemplateTypes";
 import { findStarterProposalTemplate } from "@/app/tools/roofing/templates/templatesSetupUtils";
+import {
+  buildJobCardPackageSetup,
+  resolveDefaultJobCardTemplateId,
+  resolveDefaultPackageOptionId,
+} from "@/app/tools/roofing/jobCard/jobCardProposalSetup";
+import JobCardProposalSetupCard from "@/app/tools/roofing/jobCard/JobCardProposalSetupCard";
 import type { JobDraft, JobAddress, JobRecord } from "@/app/lib/jobTypes";
 import { sendEstimateEmailWithPdf } from "@/app/lib/sendEstimateClient";
 import { getFavorite, setFavorite, setLocked, appendFeedback, getTierFeedbackBias, type TierLabel } from "@/app/lib/aiWordingPrefs";
@@ -166,7 +172,6 @@ import JobCardActivityPanel, { type JobCardActivityItem } from "@/app/tools/roof
 import JobCardOverviewSummary from "@/app/tools/roofing/jobCard/JobCardOverviewSummary";
 import { resolveJobCardIdentityFromRecord } from "@/app/tools/roofing/jobCard/jobCardIdentityUtils";
 import JobCardProposalsSetupLinks from "@/app/tools/roofing/jobCard/JobCardProposalsSetupLinks";
-import ProposalSetupChecklist from "@/app/tools/roofing/jobCard/ProposalSetupChecklist";
 import { loadCompanyVoiceProfile, saveCompanyVoiceProfile, type VoiceTone } from "@/app/lib/companyVoiceProfile";
 
 function safeUUID() {
@@ -1092,8 +1097,14 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
   const [catalogLoadError, setCatalogLoadError] = useState<string | null>(null);
   const catalogFetchInFlightRef = useRef<string | null>(null);
   const [starterTemplateGraph, setStarterTemplateGraph] = useState<ProposalTemplateGraph | null>(null);
+  const [companyProposalTemplates, setCompanyProposalTemplates] = useState<ProposalTemplate[]>([]);
+  const [selectedJobTemplateId, setSelectedJobTemplateId] = useState<string | null>(null);
+  const [jobCardSelectedPackageOptionId, setJobCardSelectedPackageOptionId] = useState<
+    string | null
+  >(null);
   const [templateSetupLoadComplete, setTemplateSetupLoadComplete] = useState(false);
   const templateSetupFetchInFlightRef = useRef<string | null>(null);
+  const templateGraphFetchInFlightRef = useRef<string | null>(null);
   const [pricingPolicyConfigured, setPricingPolicyConfigured] = useState<boolean | null>(null);
   const [pricingPolicyLoadComplete, setPricingPolicyLoadComplete] = useState(false);
   const pricingPolicyFetchInFlightRef = useRef<string | null>(null);
@@ -1823,7 +1834,10 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
 
   useEffect(() => {
     if (entryMode !== "job-card") {
+      setCompanyProposalTemplates([]);
+      setSelectedJobTemplateId(null);
       setStarterTemplateGraph(null);
+      setJobCardSelectedPackageOptionId(null);
       setTemplateSetupLoadComplete(false);
       templateSetupFetchInFlightRef.current = null;
       return;
@@ -1831,6 +1845,8 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
 
     const cid = (companyId ?? "").trim();
     if (!cid || !isUuidLike(cid)) {
+      setCompanyProposalTemplates([]);
+      setSelectedJobTemplateId(null);
       setStarterTemplateGraph(null);
       setTemplateSetupLoadComplete(true);
       templateSetupFetchInFlightRef.current = null;
@@ -1847,17 +1863,24 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
       try {
         const templates = await getProposalTemplatesByCompany(cid);
         if (templateSetupFetchInFlightRef.current !== cid) return;
+        setCompanyProposalTemplates(templates);
         const starter = findStarterProposalTemplate(templates);
-        if (!starter?.id) {
+        const defaultId = resolveDefaultJobCardTemplateId(
+          templates,
+          starter?.id ?? null
+        );
+        setSelectedJobTemplateId((prev) => {
+          if (prev && templates.some((row) => row.id === prev)) return prev;
+          return defaultId;
+        });
+        if (!defaultId) {
           setStarterTemplateGraph(null);
-          return;
         }
-        const graph = await getProposalTemplateGraph(starter.id, { companyId: cid });
-        if (templateSetupFetchInFlightRef.current !== cid) return;
-        setStarterTemplateGraph(graph);
       } catch (err) {
         console.warn("[RoofingClient] template setup fetch error:", err);
         if (templateSetupFetchInFlightRef.current !== cid) return;
+        setCompanyProposalTemplates([]);
+        setSelectedJobTemplateId(null);
         setStarterTemplateGraph(null);
       } finally {
         if (templateSetupFetchInFlightRef.current === cid) {
@@ -1867,6 +1890,40 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
       }
     })();
   }, [entryMode, companyId, loadSavedId, restoreTick]);
+
+  useEffect(() => {
+    if (entryMode !== "job-card") {
+      return;
+    }
+
+    const cid = (companyId ?? "").trim();
+    const templateId = (selectedJobTemplateId ?? "").trim();
+    if (!cid || !isUuidLike(cid) || !templateId || !isUuidLike(templateId)) {
+      setStarterTemplateGraph(null);
+      setJobCardSelectedPackageOptionId(null);
+      return;
+    }
+
+    if (isRestoringRef.current) return;
+    if (loadSavedId && !loadAppliedRef.current) return;
+
+    const fetchKey = `${cid}:${templateId}`;
+    templateGraphFetchInFlightRef.current = fetchKey;
+
+    void (async () => {
+      try {
+        const graph = await getProposalTemplateGraph(templateId, { companyId: cid });
+        if (templateGraphFetchInFlightRef.current !== fetchKey) return;
+        setStarterTemplateGraph(graph);
+        setJobCardSelectedPackageOptionId(resolveDefaultPackageOptionId(graph));
+      } catch (err) {
+        console.warn("[RoofingClient] template graph fetch error:", err);
+        if (templateGraphFetchInFlightRef.current !== fetchKey) return;
+        setStarterTemplateGraph(null);
+        setJobCardSelectedPackageOptionId(null);
+      }
+    })();
+  }, [entryMode, companyId, selectedJobTemplateId, loadSavedId, restoreTick]);
 
   useEffect(() => {
     if (entryMode !== "job-card") {
@@ -7224,11 +7281,6 @@ Thanks,`;
       persistedRecord: persistedSelectedMeasurement,
     });
     const proposalHandoffContext = { isPersistedNonManual: workspace.isPersistedNonManual };
-    const proposalReadinessDisplay = formatProposalReadinessLabel(
-      proposalHandoff.proposalReady,
-      proposalHandoff.blockers,
-      proposalHandoffContext
-    );
     const proposalSectionHeader = formatProposalSectionHeaderStatus(
       proposalHandoff,
       proposalHandoffContext
@@ -7243,8 +7295,6 @@ Thanks,`;
       DEFAULT_ROOFING_CATALOG_DEFINITIONS.length
     );
     const catalogReadinessLabel = formatCatalogReadinessLabel(catalogReadiness);
-    const catalogNextStep = formatCatalogNextStepCopy(catalogReadiness);
-    const catalogStatusDisplay = catalogLoadError ?? catalogReadinessLabel;
     const proposalTemplateReadiness = deriveProposalTemplateReadiness({
       catalogReadiness,
       activeCatalogItems,
@@ -7287,6 +7337,18 @@ Thanks,`;
       : "No proposal yet";
     const proposalDocumentStatusMuted = !jobCardActiveProposalId;
 
+    const jobCardReturnLabel =
+      (hydratedJobRecord?.job_name ?? "").trim() ||
+      (hydratedJobRecord?.contact?.customer_name ?? "").trim() ||
+      customerName.trim() ||
+      "Job";
+
+    const jobCardPackageSetup = buildJobCardPackageSetup(
+      starterTemplateGraph,
+      activeCatalogItems,
+      jobCardSelectedPackageOptionId
+    );
+
     const proposalDraftCreatePayload =
       identityFromJobRecord &&
       hydratedJobRecord &&
@@ -7304,6 +7366,7 @@ Thanks,`;
               measurementHandoff: proposalHandoff,
               quantityMap: deriveQuantityMapFromRecord(persistedSelectedMeasurement),
             },
+            selected_template_option_id: jobCardPackageSetup.selectedOptionId,
             title: starterTemplateGraph.template.name ?? null,
           }
         : null;
@@ -7326,7 +7389,21 @@ Thanks,`;
       activeProposalId: jobCardActiveProposalId,
       hasCreatePayload: proposalDraftCreatePayload != null,
       proposalLaunchReason,
+      jobReturnLabel: jobCardReturnLabel,
     });
+
+    const jobCardFixTemplateHref =
+      currentJobId && isUuidLike(currentJobId)
+        ? buildSetupRouteHref("/tools/roofing/templates", currentJobId, {
+            returnLabel: jobCardReturnLabel,
+          })
+        : null;
+    const jobCardFixCatalogHref =
+      currentJobId && isUuidLike(currentJobId)
+        ? buildSetupRouteHref("/tools/roofing/catalog", currentJobId, {
+            returnLabel: jobCardReturnLabel,
+          })
+        : null;
 
     const proposalHeaderLaunchEnabled = isProposalHeaderLaunchEnabled(
       proposalSetupChecklist,
@@ -7346,8 +7423,6 @@ Thanks,`;
       }
       return "Not selected";
     })();
-    const proposalTemplateStatusMuted =
-      proposalTemplateStatusLabel === "Not selected";
 
     const handleLaunchProposalDraft = () => {
       if (proposalLaunchInFlightRef.current) return;
@@ -8006,7 +8081,7 @@ Thanks,`;
                 tabId="proposals"
                 activeTab={jobCardTab}
                 title="Proposals"
-                subtitle="Proposal documents for this job"
+                subtitle="Create or open a proposal for this job"
                 statusChip={{
                   label: proposalSectionHeader.label,
                   className: proposalSectionHeader.ready
@@ -8035,76 +8110,59 @@ Thanks,`;
                 }
               >
                 <div className="space-y-4">
-                  <div className={wsBlock}>
-                    <WorkspaceHeading>Proposal status</WorkspaceHeading>
-                    <div className="mt-2 grid grid-cols-1 gap-0.5 sm:grid-cols-2">
-                      <StatusLine
-                        label="Selected measurement"
-                        value={proposalHandoff.selectedLabel}
-                        muted={
-                          proposalHandoff.selectedLabel === "Not saved" ||
-                          proposalHandoff.selectedLabel.startsWith("Local draft")
-                        }
-                      />
-                      <StatusLine
-                        label="Proposal readiness"
-                        value={proposalReadinessDisplay}
-                        muted={!proposalHandoff.proposalReady}
-                      />
-                      <StatusLine
-                        label="Template"
-                        value={proposalTemplateStatusLabel}
-                        muted={proposalTemplateStatusMuted}
-                      />
-                      <StatusLine
-                        label="Proposal document"
-                        value={proposalDocumentStatusLabel}
-                        muted={proposalDocumentStatusMuted}
-                      />
-                    </div>
-                    <ProposalSetupChecklist
-                      checklist={proposalSetupChecklist}
-                      onSelectTab={setJobCardTab}
-                      onNavigate={router.push}
-                      onNormalizeJobCard={handleNormalizeAndOpenJobCard}
-                      onCreateProposal={handleLaunchProposalDraft}
-                      onOpenBuilder={(href) => router.push(href)}
-                      launchError={proposalLaunchError}
-                      isLaunching={isLaunchingProposal}
-                    />
-                  </div>
-                  <div className={wsBlock}>
-                    <WorkspaceHeading>Catalog setup</WorkspaceHeading>
-                    <div className="mt-2 grid grid-cols-1 gap-0.5 sm:grid-cols-2">
-                      <StatusLine
-                        label="Catalog status"
-                        value={catalogStatusDisplay}
-                        muted={Boolean(catalogLoadError) || catalogReadiness.state !== "ready_for_templates"}
-                      />
-                      <StatusLine
-                        label="Active catalog items"
-                        value={catalogReadiness.activeItemCount}
-                        muted={catalogReadiness.activeItemCount === 0}
-                      />
-                      <StatusLine label="Next step" value={catalogNextStep} muted={catalogReadiness.state === "ready_for_templates"} />
-                    </div>
-                    <JobCardProposalsSetupLinks
-                      catalogState={catalogReadiness.state}
-                      templateReady={
-                        proposalTemplateReadiness.status === "ready_for_builder"
-                      }
-                    />
-                  </div>
+                  <JobCardProposalSetupCard
+                    jobLabel={jobCardReturnLabel}
+                    measurementReady={
+                      Boolean(persistedSelectedMeasurement?.id) &&
+                      proposalHandoff.proposalReady &&
+                      !hasUnsavedChanges
+                    }
+                    measurementLabel={proposalHandoff.selectedLabel}
+                    templateReady={
+                      proposalTemplateReadiness.status === "ready_for_builder"
+                    }
+                    templateName={
+                      (starterTemplateGraph?.template.name ?? "").trim() ||
+                      proposalTemplateStatusLabel
+                    }
+                    templates={companyProposalTemplates}
+                    selectedTemplateId={selectedJobTemplateId}
+                    onSelectTemplate={setSelectedJobTemplateId}
+                    packageSetup={jobCardPackageSetup}
+                    onSelectPackage={setJobCardSelectedPackageOptionId}
+                    checklist={proposalSetupChecklist}
+                    createEnabled={proposalHeaderLaunchEnabled}
+                    isLaunching={isLaunchingProposal}
+                    launchError={proposalLaunchError}
+                    hasExistingDraft={Boolean(jobCardActiveProposalId)}
+                    fixTemplateHref={jobCardFixTemplateHref}
+                    fixCatalogHref={jobCardFixCatalogHref}
+                    onSelectTab={setJobCardTab}
+                    onNavigate={router.push}
+                    onNormalizeJobCard={handleNormalizeAndOpenJobCard}
+                    onCreateOrOpen={handleLaunchProposalDraft}
+                    onOpenBuilder={(href) => router.push(href)}
+                  />
+                  <JobCardProposalsSetupLinks
+                    catalogState={catalogReadiness.state}
+                    templateReady={
+                      proposalTemplateReadiness.status === "ready_for_builder"
+                    }
+                    quietWhenReady
+                    fixCatalogHref={jobCardFixCatalogHref}
+                    fixTemplateHref={jobCardFixTemplateHref}
+                    onNavigate={router.push}
+                  />
                   <div>
-                    <WorkspaceHeading>Proposal list</WorkspaceHeading>
+                    <WorkspaceHeading>Proposals for this job</WorkspaceHeading>
                     {jobCardActiveProposalId ? (
                       <div className="rounded-lg border border-emerald-200 bg-emerald-50/60 px-3 py-2.5">
                         <p className="text-sm font-medium text-emerald-800">
                           Draft proposal connected
                         </p>
                         <p className="mt-0.5 text-xs text-slate-600">
-                          Continue editing in Proposal Builder. A full proposal list will come
-                          later.
+                          {proposalDocumentStatusLabel}. Continue in Proposal Builder for this
+                          job.
                         </p>
                         <button
                           type="button"
@@ -8112,14 +8170,14 @@ Thanks,`;
                           onClick={handleLaunchProposalDraft}
                           className="mt-2 inline-flex items-center text-xs font-semibold text-cyan-700 hover:text-cyan-900 disabled:cursor-not-allowed disabled:opacity-60"
                         >
-                          Open in Builder
+                          Open proposal draft
                         </button>
                       </div>
                     ) : (
                       <PlaceholderBox
                         lines={[
                           "No proposals created yet",
-                          "Draft proposals will appear here",
+                          "Create a draft above — it will appear here",
                         ]}
                       />
                     )}

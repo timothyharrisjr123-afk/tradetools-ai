@@ -70,6 +70,8 @@ export type ProposalDraftCreatePayload = {
   template_id: string;
   measurement_record_id: string;
   quantity_context: ProposalQuantityPreviewContext;
+  /** Template package option selected on the Job Card (optional). */
+  selected_template_option_id?: string | null;
   title?: string | null;
   created_by?: string | null;
   context?: CreateDraftProposalInput["context"];
@@ -596,6 +598,7 @@ export async function resolveOrCreateProposalDraftEntry(
       customer_id: payload.customer_id,
       measurement_record_id: payload.measurement_record_id,
       quantity_context: payload.quantity_context,
+      selected_template_option_id: payload.selected_template_option_id ?? null,
       title: payload.title ?? null,
       created_by: payload.created_by ?? null,
       context: payload.context,

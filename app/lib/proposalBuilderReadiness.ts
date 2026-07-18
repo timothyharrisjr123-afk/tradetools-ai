@@ -199,8 +199,15 @@ export function buildProposalBuilderHref(
   return `${base}&proposal=${encodeURIComponent(pid)}`;
 }
 
-export function buildJobCardHref(jobId: string): string {
-  return `/tools/roofing?entry=job-card&job=${encodeURIComponent(jobId)}`;
+export function buildJobCardHref(
+  jobId: string,
+  options?: { tab?: "overview" | "measurements" | "proposals" }
+): string {
+  const base = `/tools/roofing?entry=job-card&job=${encodeURIComponent(jobId)}`;
+  if (options?.tab) {
+    return `${base}&tab=${encodeURIComponent(options.tab)}`;
+  }
+  return base;
 }
 
 /**
@@ -239,11 +246,15 @@ export function parseInternalReturnTo(
 /**
  * Append return context (returnTo + job + tab) to a setup-route href
  * (Catalog / Templates / Pricing) so the user can return to the same Job Card.
+ * Optional returnLabel is a short display name for “Return to {label} · Proposals”.
  */
 export function buildSetupRouteHref(
   baseHref: string,
   jobId: string,
-  options?: { tab?: "overview" | "measurements" | "proposals" }
+  options?: {
+    tab?: "overview" | "measurements" | "proposals";
+    returnLabel?: string | null;
+  }
 ): string {
   const tab = options?.tab ?? "proposals";
   if (!jobId || !isUuidLike(jobId)) {
@@ -251,10 +262,14 @@ export function buildSetupRouteHref(
   }
   const returnTo = buildJobCardReturnTo(jobId, tab);
   const sep = baseHref.includes("?") ? "&" : "?";
-  return (
+  let href =
     `${baseHref}${sep}returnTo=${encodeURIComponent(returnTo)}` +
-    `&job=${encodeURIComponent(jobId)}&tab=${encodeURIComponent(tab)}`
-  );
+    `&job=${encodeURIComponent(jobId)}&tab=${encodeURIComponent(tab)}`;
+  const label = (options?.returnLabel ?? "").trim().replace(/\s+/g, " ").slice(0, 80);
+  if (label) {
+    href += `&returnLabel=${encodeURIComponent(label)}`;
+  }
+  return href;
 }
 
 export function resolveJobCardProposalActivityLine(

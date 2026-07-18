@@ -65,6 +65,8 @@ export type ProposalSetupChecklistInput = {
   activeProposalId: string | null | undefined;
   hasCreatePayload: boolean;
   proposalLaunchReason?: string | null;
+  /** Short job/customer label for Templates/Catalog return links. */
+  jobReturnLabel?: string | null;
 };
 
 export type ProposalSetupChecklistResult = {
@@ -162,41 +164,54 @@ function goToMeasurementsAction(label: string, helperText: string): ProposalSetu
   };
 }
 
-function openCatalogAction(jobId: string): ProposalSetupAction {
+function setupRouteOptions(input: ProposalSetupChecklistInput): {
+  returnLabel?: string | null;
+} {
+  return { returnLabel: input.jobReturnLabel ?? null };
+}
+
+function openCatalogAction(input: ProposalSetupChecklistInput, jobId: string): ProposalSetupAction {
   return {
     id: "open-catalog",
     label: "Open Catalog Setup",
     helperText: "Finish company catalog setup before creating proposal drafts.",
     actionType: "route",
-    href: buildSetupRouteHref(CATALOG_HREF, jobId),
+    href: buildSetupRouteHref(CATALOG_HREF, jobId, setupRouteOptions(input)),
   };
 }
 
-function openTemplatesAction(jobId: string): ProposalSetupAction {
+function openTemplatesAction(
+  input: ProposalSetupChecklistInput,
+  jobId: string
+): ProposalSetupAction {
   return {
     id: "open-templates",
-    label: "Open Templates",
-    helperText: "Install or select a proposal template.",
+    label: "Fix template",
+    helperText: "Install or fix the proposal template, then return to this job.",
     actionType: "route",
-    href: buildSetupRouteHref(TEMPLATES_HREF, jobId),
+    href: buildSetupRouteHref(TEMPLATES_HREF, jobId, setupRouteOptions(input)),
   };
 }
 
-function configurePricingPolicyAction(jobId: string): ProposalSetupAction {
+function configurePricingPolicyAction(
+  input: ProposalSetupChecklistInput,
+  jobId: string
+): ProposalSetupAction {
   return {
     id: "configure-pricing-policy",
     label: "Configure Pricing Policy",
     helperText: "Configure company pricing before creating proposal drafts.",
     actionType: "route",
-    href: buildSetupRouteHref(PRICING_SETTINGS_HREF, jobId),
+    href: buildSetupRouteHref(PRICING_SETTINGS_HREF, jobId, setupRouteOptions(input)),
   };
 }
 
 function createProposalAction(): ProposalSetupAction {
   return {
     id: "create-proposal",
-    label: "Create Proposal",
-    helperText: "Create a draft proposal for this job.",
+    label: "Create proposal draft",
+    helperText:
+      "Create a draft proposal from this job’s measurements, the selected template, and Catalog pricing. You’ll review it in Proposal Builder before sending.",
     actionType: "create_proposal",
   };
 }
@@ -204,8 +219,8 @@ function createProposalAction(): ProposalSetupAction {
 function openBuilderAction(jobId: string, proposalId: string): ProposalSetupAction {
   return {
     id: "open-builder",
-    label: "Open Proposal Builder",
-    helperText: "Continue editing the draft proposal.",
+    label: "Open proposal draft",
+    helperText: "Continue editing this job’s draft proposal in Proposal Builder.",
     actionType: "open_builder",
     href: `/tools/roofing/proposals/builder?job=${encodeURIComponent(jobId)}&proposal=${encodeURIComponent(proposalId)}`,
   };
@@ -274,7 +289,7 @@ function derivePrimaryAction(input: ProposalSetupChecklistInput): {
 
   if (!input.catalogReady) {
     return {
-      action: openCatalogAction(jobId),
+      action: openCatalogAction(input, jobId),
       blockerId: "catalog",
       secondaryActions: [],
     };
@@ -282,7 +297,7 @@ function derivePrimaryAction(input: ProposalSetupChecklistInput): {
 
   if (!input.templateReady) {
     return {
-      action: openTemplatesAction(jobId),
+      action: openTemplatesAction(input, jobId),
       blockerId: "template",
       secondaryActions: [],
     };
@@ -290,7 +305,7 @@ function derivePrimaryAction(input: ProposalSetupChecklistInput): {
 
   if (pricingNeedsAction(input)) {
     return {
-      action: configurePricingPolicyAction(jobId),
+      action: configurePricingPolicyAction(input, jobId),
       blockerId: "pricing_policy",
       secondaryActions: [],
     };
@@ -439,8 +454,8 @@ export function isProposalHeaderLaunchEnabled(
 /** Compact header label aligned with checklist primary action. */
 export function proposalHeaderButtonLabel(checklist: ProposalSetupChecklistResult): string {
   const { primaryAction } = checklist;
-  if (primaryAction.actionType === "open_builder") return "Open proposal";
-  if (primaryAction.actionType === "create_proposal") return "Create proposal";
+  if (primaryAction.actionType === "open_builder") return "Open proposal draft";
+  if (primaryAction.actionType === "create_proposal") return "Create proposal draft";
   return "Proposal";
 }
 
