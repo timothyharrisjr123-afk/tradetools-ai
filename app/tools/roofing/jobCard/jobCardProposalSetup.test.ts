@@ -7,6 +7,7 @@ import { describe, test } from "node:test";
 import {
   JOB_CARD_CREATE_PROPOSAL_EXPLAINER,
   JOB_CARD_DRAFT_FROZEN_NOTE,
+  JOB_CARD_DRAFT_PACKAGE_CHANGE_NOTE,
   JOB_CARD_INCLUDED_REVIEW_NOTE,
   JOB_CARD_OPEN_PROPOSAL_EXPLAINER,
   buildJobCardDraftOpenSummary,
@@ -31,6 +32,7 @@ describe("jobCardProposalSetup", () => {
     assert.match(JOB_CARD_OPEN_PROPOSAL_EXPLAINER, /existing proposal draft/i);
     assert.match(JOB_CARD_OPEN_PROPOSAL_EXPLAINER, /do not change it/i);
     assert.match(JOB_CARD_DRAFT_FROZEN_NOTE, /freezes/i);
+    assert.match(JOB_CARD_DRAFT_PACKAGE_CHANGE_NOTE, /Package changes happen in Builder/);
   });
 
   test("buildJobCardDraftOpenSummary requires proposal id", () => {

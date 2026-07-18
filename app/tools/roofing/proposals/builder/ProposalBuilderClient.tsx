@@ -32,6 +32,7 @@ import {
   type ProposalTemplateGraph,
 } from "@/app/lib/proposalTemplateStore";
 import { getDefaultSelectedOptionId } from "@/app/lib/proposalBuilderPreview";
+import { scopeTemplateGraphToDraftPackageOptions } from "@/app/lib/proposalBuilderDraftPackageOptions";
 import {
   buildProposalBuilderPricingPreview,
   type ProposalBuilderPricingPreview,
@@ -469,6 +470,14 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
     persistedTemplateOptionIdRef.current = null;
   }, [adapterResult?.selectedTemplateOptionId, starterGraph?.template.id]);
 
+  const packageSelectorGraph = useMemo(
+    () => scopeTemplateGraphToDraftPackageOptions(starterGraph, persistedGraph),
+    [starterGraph, persistedGraph]
+  );
+  const draftScopedPackagePicker = Boolean(
+    hasPersistedProposalParam && persistedGraph && !draftGraphError
+  );
+
   const handleSelectOption = useCallback(
     (templateOptionId: string) => {
       const nextTemplateOptionId = (templateOptionId ?? "").trim();
@@ -485,6 +494,7 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
       if (nextTemplateOptionId === previousTemplateOptionId) return;
       if (optionPersistInFlightRef.current) return;
 
+      // Persist only options that exist on this draft snapshot (not live-template-only).
       const runtimeOptionId = resolveRuntimeOptionIdFromTemplateOptionId(
         persistedGraph,
         nextTemplateOptionId
@@ -1756,6 +1766,8 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
           canvas={
             <ProposalBuilderCanvas
               starterGraph={starterGraph}
+              packageSelectorGraph={packageSelectorGraph}
+              draftScopedPackagePicker={draftScopedPackagePicker}
               selectedOptionId={selectedOptionId}
               onSelectOption={handleSelectOption}
               catalogItems={activeCatalogItems}

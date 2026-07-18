@@ -45,11 +45,11 @@
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** **`1f08c53`** — fix(proposals): make builder handoff draft aware (Builder Handoff Polish A)
-- **Docs checkpoint:** Builder Handoff Polish A (this header + **§6BO.13.4.9** M)
-- **Prior code:** **`27c82cf`** / **`0120b06`** Integrated Flow P2 correction; **`e028ee5`** / **`6588dab`** setup card
-- **Next:** Builder visual cohesion pass **or** Preview document-first truth pass (remaining gap after handoff trust). Do **not** start supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
-- **Historical note:** Job Card draft-open mode shows the draft that will open (not create selectors); shared identity uses customer name primary + address secondary across Job Card / Builder / Preview chrome.
+- **Code checkpoint:** **`(commit pending)`** — fix(proposals): scope builder package picker to draft options (Builder package selection truth)
+- **Docs checkpoint:** Builder package selection truth (this header + **§6BO.13.4.9** N)
+- **Prior code:** **`1f08c53`** / **`dccf72a`** Builder Handoff Polish A; **`27c82cf`** / **`0120b06`** Integrated Flow P2 correction
+- **Next:** Builder visual cohesion pass **or** Preview document-first truth pass. Do **not** start “Start new draft,” template rebuild/import of live options into existing drafts, supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
+- **Historical note:** Builder package picker is draft-option scoped; one-option drafts hide Change package; Job Card draft-open shows the draft package (not live selectors).
 
 **Trust order:** Header/current checkpoint → **§6BO.13** (approved page-by-page UI flow roadmap + P0 implementation sequence — **supersedes separate Command Center language**) → **§6BM** / **§6BN** (R18 letter-phase roadmap + R18C–R18D3C implementation history) → **§6BO** / **§6BO.11** / **§6BO.12** (completed remediation side-track + **approved Stage C policy** + **operating-flow audit sequencing — complete; outcome in §6BO.13**) → **§6BL** → **§11 override**. Stage B browser smoke required local-only **`USE_PROPOSAL_SEND_FREEZE_RPC=1`** in `.env.local` (gitignored, not committed). **Do not proceed** to docs-only or next feature work unless working tree is clean. **Still do not** mutate `proposals.status = sent`, write sent `proposal_events`, move Jobs Board cards, add Job Card send activity, enable PDF/Sign/Payment, or add webhooks unless separately approved.
 
@@ -12048,7 +12048,34 @@ Was: Templates Page Redesign P2. **P2 shipped — see I.** Next: Integrated Flow
 
 **Smoke (local + live via app on `rhquhnujjnzjhweypavd`):** Babby D `c9497cc1-…` / proposal `61356e56-…` — draft-open mode shows Complete-source smoke option (not Standard picker); Open → same proposal; Builder + Preview identity **Babby D** / address secondary; Back → Proposals; no false templates-not-ready; no send/public/lifecycle; draft left connected.
 
-**Next recommended block:** **Builder visual cohesion pass** (workbench density vs Job Card) **or** **Preview document-first truth pass**, depending on remaining gap after handoff trust.
+**Next recommended block:** ~~Builder package selection truth~~ → **DONE** (see **N**).
+
+##### N. Builder package selection truth / Change package UX — IMPLEMENTED (2026-07-17)
+
+**Status:** Draft-option scoped Builder package picker + one-option UX. **No migrations/SQL/package files/pricing formula/Customer Preview redesign/lifecycle/supplier/material/CSV/raw/whole-rounding. No “Start new draft.” No live-template option import into existing drafts.**
+
+**Product rule (locked):**
+- Pre-draft: package selection on Job Card Proposals tab
+- Post-draft: package changes in Builder among **saved draft options only**
+- Builder must not silently pull live Template options unless an explicit rebuild/refresh creates them
+
+**Root cause:** Package selector UI listed `starterGraph.options` (live template by draft `template_id`). Persist path already required draft runtime option via `resolveRuntimeOptionIdFromTemplateOptionId` → `updateDraftSelectedOption`, but the picker could advertise live-only packages and still offered **Change package** on one-option drafts.
+
+**Implementation:**
+- `proposalBuilderDraftPackageOptions` — `scopeTemplateGraphToDraftPackageOptions` intersects live labels with draft `proposal_options`; drops live-only; synthesizes draft-only rows when needed
+- Builder Client wires `packageSelectorGraph` + `draftScopedPackagePicker` into Canvas → EstimateDocument → PackageZone → PackageSelector
+- One option: hide **Change package**; show “Only one package exists on this draft.”; no one-option radio picker
+- Multi option: **Change package** shows draft options only; switch persists `selected_option_id`
+- Job Card draft-open: optional note “Package changes happen in Builder for this draft.”
+
+**Audit side effect:** R18D3B Email Smoke draft `368dcbf1-…` was left on **Enhanced** (acceptable for smoke; no revert).
+
+**Smoke (local app on `rhquhnujjnzjhweypavd`):**
+- Babby `c9497cc1-…` / `61356e56-…`: selected **Complete-source smoke option**; note “Only one package exists on this draft.”; **no** Change package; Job Card draft-open shows draft package + “Package changes happen in Builder for this draft.”; no create package selector
+- Multi-option `9cd2c4ac-…` / `368dcbf1-…`: Change package → Standard / Enhanced / Premium only; switched Standard → Preview showed Standard; **reverted to Enhanced** (audit leave-as)
+- No send/public/lifecycle/supplier/material/CSV actions
+
+**Next recommended block:** **Builder visual cohesion pass** (workbench density vs Job Card) **or** **Preview document-first truth pass**.
 
 #### 13.4.6 Integrated Catalog → Proposal workflow research + FieldDive flow design — COMPLETE (2026-07-17)
 
@@ -13535,7 +13562,8 @@ Treat as **drift** if a session:
 
 ## Changelog (handoff doc only)
 
-- **2026-07-17:** **Builder Handoff Polish A** — draft-aware Job Card (create vs draft-open); shared identity (customer primary / address secondary); Builder entry hierarchy + Preview next action; status vocabulary; Babby D smoke PASS (reuse `61356e56-…`). **Next:** Builder visual cohesion **or** Preview document-first truth.
+- **2026-07-17:** **Builder package selection truth** — draft-scoped Builder package picker; one-option drafts hide Change package; multi-option switches among saved draft options only; Job Card draft-open package-change note; no Start new draft / live-template import. **Next:** Builder visual cohesion **or** Preview document-first truth.
+- **2026-07-17:** **Builder Handoff Polish A** — draft-aware Job Card (create vs draft-open); shared identity (customer primary / address secondary); Builder entry hierarchy + Preview next action; status vocabulary; Babby D smoke PASS (reuse `61356e56-…`). **Next:** Builder package selection truth (now **N**).
 - **2026-07-17:** **Integrated Flow P2 correction** — waived false Builder “templates not ready” when valid draft loaded; removed duplicate Create CTA; listed-draft Open label; premium setup card polish; Babby D smoke PASS (reuse `61356e56-…`).
 - **2026-07-17:** **Integrated Flow P2 — Job Card Compact Proposal Setup Card** — Proposals tab Measurement → Template → Package → Included → Create/Open; create explainer; durable draft reuse; Builder back to Job Card proposals; Templates/Catalog return labels; happy path no Templates drop-off; pricing/Preview/lifecycle unchanged.
 - **2026-07-17:** **Templates Page P2B — visual tightening** — Setup complete strip when installed; compact template library; hero+package combined; Included items earlier; one trust note; Add/Replace/Remove preserved. **Next:** Integrated Flow **P2** Job Card proposal start.

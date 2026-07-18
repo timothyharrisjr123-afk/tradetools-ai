@@ -32,6 +32,9 @@ export const JOB_CARD_OPEN_PROPOSAL_EXPLAINER =
 export const JOB_CARD_DRAFT_FROZEN_NOTE =
   "This draft freezes Catalog pricing and template structure from create/refresh. Open Builder to review or refresh draft pricing." as const;
 
+/** Draft-open hint — package switches belong in Builder among saved draft options. */
+export { JOB_CARD_DRAFT_PACKAGE_CHANGE_NOTE } from "@/app/lib/proposalBuilderDraftPackageOptions";
+
 export const JOB_CARD_INCLUDED_REVIEW_NOTE =
   "Template changes affect future proposals. For this job, create the draft and make final review in Builder." as const;
 

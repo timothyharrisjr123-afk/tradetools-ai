@@ -13,6 +13,7 @@ import type {
 import {
   JOB_CARD_CREATE_PROPOSAL_EXPLAINER,
   JOB_CARD_DRAFT_FROZEN_NOTE,
+  JOB_CARD_DRAFT_PACKAGE_CHANGE_NOTE,
   JOB_CARD_OPEN_PROPOSAL_EXPLAINER,
   formatJobCardDraftUpdatedLabel,
 } from "./jobCardProposalSetup";
@@ -271,6 +272,12 @@ export default function JobCardProposalSetupCard({
             data-jobcard-draft-frozen-note
           >
             {JOB_CARD_DRAFT_FROZEN_NOTE}
+          </p>
+          <p
+            className="text-[11px] leading-snug text-slate-500"
+            data-jobcard-draft-package-change-note
+          >
+            {JOB_CARD_DRAFT_PACKAGE_CHANGE_NOTE}
           </p>
         </div>
       ) : (

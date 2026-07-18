@@ -43,6 +43,9 @@ import ProposalBuilderWorkbenchUpgradesZone from "./ProposalBuilderWorkbenchUpgr
 
 type ProposalBuilderWorkbenchEstimateDocumentProps = {
   graph: ProposalTemplateGraph;
+  /** Option list for package picker — draft-scoped when a persisted draft is loaded. */
+  packageSelectorGraph: ProposalTemplateGraph;
+  draftScopedPackagePicker?: boolean;
   sections: ProposalTemplateSection[];
   catalogItems: CatalogItem[];
   selectedOptionId: string | null;
@@ -93,6 +96,8 @@ function readEstimatePageSettingsFromPersisted(
 
 export default function ProposalBuilderWorkbenchEstimateDocument({
   graph,
+  packageSelectorGraph,
+  draftScopedPackagePicker = false,
   sections,
   catalogItems,
   selectedOptionId,
@@ -388,7 +393,8 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
       <div className={WORKBENCH_BODY}>
         <ProposalBuilderWorkbenchPackageZone
           packageZone={presentation.packageZone}
-          graph={graph}
+          packageSelectorGraph={packageSelectorGraph}
+          draftScopedPackagePicker={draftScopedPackagePicker}
           selectedOptionId={selectedOptionId}
           effectiveOptionId={effectiveOptionId}
           onSelectOption={onSelectOption}

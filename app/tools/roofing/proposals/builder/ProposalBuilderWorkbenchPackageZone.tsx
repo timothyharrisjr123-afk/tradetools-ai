@@ -15,7 +15,9 @@ import {
 
 type ProposalBuilderWorkbenchPackageZoneProps = {
   packageZone: WorkbenchPackageZone;
-  graph: ProposalTemplateGraph;
+  /** Draft-scoped option list for the package picker when a draft is loaded. */
+  packageSelectorGraph: ProposalTemplateGraph;
+  draftScopedPackagePicker?: boolean;
   selectedOptionId: string | null;
   effectiveOptionId: string | null;
   onSelectOption: (optionId: string) => void;
@@ -24,7 +26,8 @@ type ProposalBuilderWorkbenchPackageZoneProps = {
 
 export default function ProposalBuilderWorkbenchPackageZone({
   packageZone,
-  graph,
+  packageSelectorGraph,
+  draftScopedPackagePicker = false,
   selectedOptionId,
   effectiveOptionId,
   onSelectOption,
@@ -64,7 +67,8 @@ export default function ProposalBuilderWorkbenchPackageZone({
         </div>
 
         <ProposalBuilderPackageSelector
-          graph={graph}
+          graph={packageSelectorGraph}
+          draftScoped={draftScopedPackagePicker}
           selectedOptionId={selectedOptionId}
           effectiveOptionId={effectiveOptionId}
           onSelectOption={onSelectOption}

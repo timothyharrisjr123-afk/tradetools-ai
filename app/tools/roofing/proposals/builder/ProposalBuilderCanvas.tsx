@@ -49,6 +49,9 @@ import { STARTER_TEMPLATE_DISPLAY_NAME } from "@/app/tools/roofing/templates/tem
 
 type ProposalBuilderCanvasProps = {
   starterGraph: ProposalTemplateGraph | null;
+  /** Draft-scoped option list for package picker; falls back to starterGraph. */
+  packageSelectorGraph?: ProposalTemplateGraph | null;
+  draftScopedPackagePicker?: boolean;
   selectedOptionId: string | null;
   onSelectOption: (optionId: string) => void;
   catalogItems: CatalogItem[];
@@ -196,6 +199,8 @@ function CustomerPagePanel({
 
 export default function ProposalBuilderCanvas({
   starterGraph,
+  packageSelectorGraph = null,
+  draftScopedPackagePicker = false,
   selectedOptionId,
   onSelectOption,
   catalogItems,
@@ -240,8 +245,12 @@ export default function ProposalBuilderCanvas({
   onRestoreVisibility,
 }: ProposalBuilderCanvasProps) {
   const templateName = starterGraph?.template.name ?? STARTER_TEMPLATE_DISPLAY_NAME;
+  const optionGraphForSelection = packageSelectorGraph ?? starterGraph;
   const effectiveOptionId =
-    selectedOptionId ?? (starterGraph ? getDefaultSelectedOptionId(starterGraph) : null);
+    selectedOptionId ??
+    (optionGraphForSelection
+      ? getDefaultSelectedOptionId(optionGraphForSelection)
+      : null);
 
   const allSections =
     starterGraph && effectiveOptionId
@@ -391,6 +400,8 @@ export default function ProposalBuilderCanvas({
   return (
     <ProposalBuilderWorkbenchEstimateDocument
       graph={starterGraph}
+      packageSelectorGraph={optionGraphForSelection ?? starterGraph}
+      draftScopedPackagePicker={draftScopedPackagePicker}
       sections={sections}
       catalogItems={catalogItems}
       selectedOptionId={selectedOptionId}

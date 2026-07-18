@@ -58,6 +58,8 @@ describe("Job Card Compact Proposal Setup Card", () => {
     assert.match(card, /showTemplatePicker = !draftMode/);
     assert.match(card, /Source template/);
     assert.match(card, /Package \/ option/);
+    assert.match(card, /JOB_CARD_DRAFT_PACKAGE_CHANGE_NOTE/);
+    assert.match(card, /data-jobcard-draft-package-change-note/);
     assert.doesNotMatch(card, /Start new draft/);
   });
 
