@@ -45,7 +45,7 @@
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** **pending this commit — feat(proposals): add job card proposal setup flow** (Integrated Flow P2)
+- **Code checkpoint:** **`e028ee5`** — feat(proposals): add job card proposal setup flow (Integrated Flow P2)
 - **Docs checkpoint:** Integrated Flow P2 Job Card Compact Proposal Setup Card (this header + **§6BO.13.4.6** / **§6BO.13.4.9** follow-on)
 - **Prior code:** **`4d13e1d`** Templates P2B visual tightening · **`920e25c`** Quote Setup Review P2
 - **Next:** Builder handoff polish if needed, or end-to-end proposal smoke/polish; then Customer Preview truth pass / Send readiness when approved. Do **not** start supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
