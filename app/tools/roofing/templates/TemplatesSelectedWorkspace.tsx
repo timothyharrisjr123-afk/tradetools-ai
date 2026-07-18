@@ -122,7 +122,7 @@ export default function TemplatesSelectedWorkspace({
   if (mode === "review") {
     return (
       <div
-        className={`${TEMPLATES_WORKSPACE_ZONE} space-y-4 p-4 sm:p-5`}
+        className={`${TEMPLATES_WORKSPACE_ZONE} space-y-3 p-3 sm:p-4`}
         data-templates-selected-workspace
         data-templates-workspace-mode="review"
       >

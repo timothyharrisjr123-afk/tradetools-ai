@@ -46,7 +46,7 @@ export default function TemplatesIncludedItemsManager({
 
   return (
     <section
-      className={`${TEMPLATES_CARD} space-y-3`}
+      className={`${TEMPLATES_CARD} !px-4 !py-3 space-y-3`}
       aria-labelledby="templates-included-items-heading"
       data-templates-included-manager
     >

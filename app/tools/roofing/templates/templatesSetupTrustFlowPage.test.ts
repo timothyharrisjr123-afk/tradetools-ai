@@ -22,7 +22,10 @@ describe("Templates setup trust flow (Quote Setup Review P2)", () => {
     assert.ok(setup.includes("handleFixIssues"));
     assert.ok(review.includes("data-templates-fix-links"));
     assert.ok(review.includes("data-templates-open-jobs"));
-    assert.ok(review.includes("Use from Job Card"));
+    assert.ok(
+      review.includes("Use from Job Card") ||
+        review.includes("Open Jobs to create a proposal")
+    );
   });
 
   test("no fake Create Proposal action on Templates page", () => {

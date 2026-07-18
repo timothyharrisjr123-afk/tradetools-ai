@@ -45,11 +45,11 @@
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** **pending this commit — polish(templates): add quote setup review** (Templates Page P2)
-- **Docs checkpoint:** Templates Page P2 notes (this header + **§6BO.13.4.9** I)
-- **Prior code:** **`97c12e5`** Use-first P1; **`1a63aff`** docs plan §6BO.13.4.9
+- **Code checkpoint:** **pending this commit — polish(templates): tighten quote setup review** (Templates P2B)
+- **Docs checkpoint:** Templates P2B visual tightening (this header + **§6BO.13.4.9** J)
+- **Prior code:** **`920e25c`** Quote Setup Review P2
 - **Next:** **Integrated Flow P2** — Job Card proposal start / guided creation path. Do **not** start dedicated `/templates/[id]` unless Quote Setup Review proves insufficient; do **not** start supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
-- **Historical note:** **P2 Quote Setup Review** replaces P1 Use-surface as the default Templates IA — included items + Add/Remove/Replace on the main path; Advanced settings secondary.
+- **Historical note:** **P2B** keeps Quote Setup Review; collapses installed setup to a strip; tightens library/hero so Package + Included items appear sooner.
 
 **Trust order:** Header/current checkpoint → **§6BO.13** (approved page-by-page UI flow roadmap + P0 implementation sequence — **supersedes separate Command Center language**) → **§6BM** / **§6BN** (R18 letter-phase roadmap + R18C–R18D3C implementation history) → **§6BO** / **§6BO.11** / **§6BO.12** (completed remediation side-track + **approved Stage C policy** + **operating-flow audit sequencing — complete; outcome in §6BO.13**) → **§6BL** → **§11 override**. Stage B browser smoke required local-only **`USE_PROPOSAL_SEND_FREEZE_RPC=1`** in `.env.local` (gitignored, not committed). **Do not proceed** to docs-only or next feature work unless working tree is clean. **Still do not** mutate `proposals.status = sent`, write sent `proposal_events`, move Jobs Board cards, add Job Card send activity, enable PDF/Sign/Payment, or add webhooks unless separately approved.
 

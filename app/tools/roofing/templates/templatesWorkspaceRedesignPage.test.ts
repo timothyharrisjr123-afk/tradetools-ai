@@ -1,7 +1,7 @@
 /**
  * Run: npx tsx --test app/tools/roofing/templates/templatesWorkspaceRedesignPage.test.ts
  *
- * Source-level assertions for Templates Page P2 — Quote Setup Review.
+ * Source-level assertions for Templates Page P2 / P2B — Quote Setup Review.
  */
 
 import assert from "node:assert/strict";
@@ -38,7 +38,6 @@ describe("Templates Page P2 — Quote Setup Review", () => {
     assert.ok(review.includes("data-templates-what-this-creates"));
     assert.ok(included.includes("data-templates-included-manager"));
     assert.ok(included.includes("Included items"));
-    // Only selected package drives included list — not all packages expanded
     assert.ok(review.includes("selectedPackageOptionId"));
     assert.ok(review.includes("buildIncludedGroups"));
   });
@@ -74,7 +73,6 @@ describe("Templates Page P2 — Quote Setup Review", () => {
     assert.match(TEMPLATE_REMOVE_CONFIRM_COPY, /Catalog item will not be deleted/i);
     assert.ok(setup.includes("deleteProposalTemplateItem"));
     assert.ok(setup.includes("handleConfirmRemoveItem"));
-    // Remove deletes template item only — no Catalog store delete
     assert.ok(!setup.includes("deleteCatalogItem"));
     assert.ok(link.includes("Inactive in Catalog"));
     assert.ok(link.includes("Catalog item missing"));
@@ -88,17 +86,36 @@ describe("Templates Page P2 — Quote Setup Review", () => {
     assert.ok(review.includes("data-templates-open-advanced"));
     assert.ok(review.includes("Advanced settings"));
     assert.ok(workspace.includes('data-templates-workspace-mode="advanced"'));
-    assert.ok(workspace.includes("data-templates-advanced-tabs") || workspace.includes("data-templates-edit-tabs"));
+    assert.ok(
+      workspace.includes("data-templates-advanced-tabs") ||
+        workspace.includes("data-templates-edit-tabs")
+    );
     assert.ok(workspace.includes("Back to quote review"));
     assert.equal(setup.includes('href="/tools/roofing/proposals/builder"'), false);
     assert.equal(/data-templates-create-proposal/i.test(setup + review), false);
     assert.ok(review.includes("There is no Create proposal button"));
   });
 
-  test("15. trust note concise once on hero", () => {
+  test("setup collapses when complete; recheck remains", () => {
+    const zone = read("TemplatesOnboardingZone.tsx");
+    const setup = read("TemplatesSetupClient.tsx");
+    assert.ok(zone.includes("data-templates-setup-strip"));
+    assert.ok(zone.includes("Setup complete"));
+    assert.ok(zone.includes("data-templates-setup-recheck"));
+    assert.ok(setup.includes("setupComplete="));
+    assert.ok(setup.includes("onRecheck={handleInstallStarter}"));
+  });
+
+  test("trust note once; package selector follows hero before included items", () => {
     const review = read("TemplatesQuoteSetupReview.tsx");
     assert.ok(review.includes("data-templates-trust-note"));
     assert.ok(review.includes("TEMPLATES_WORKSPACE_TRUST_NOTE"));
     assert.match(TEMPLATES_WORKSPACE_TRUST_NOTE, /Catalog controls item pricing/i);
+    const heroIdx = review.indexOf("data-templates-quote-hero");
+    const pkgIdx = review.indexOf("data-templates-package-selector");
+    const trustIdx = review.indexOf("data-templates-trust-note");
+    assert.ok(heroIdx >= 0 && pkgIdx > heroIdx);
+    assert.ok(trustIdx > pkgIdx);
+    assert.ok(review.includes("<TemplatesIncludedItemsManager"));
   });
 });

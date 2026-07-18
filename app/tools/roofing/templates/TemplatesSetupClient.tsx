@@ -995,7 +995,7 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
   );
 
   return (
-    <div className="mx-auto w-full max-w-[92rem] space-y-6">
+    <div className="mx-auto w-full max-w-[92rem] space-y-4">
       <TemplatesPageHeader />
 
       <TemplatesPageAlerts
@@ -1006,11 +1006,18 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
 
       <TemplatesWorkspaceLayout
         main={
-          <div className="space-y-5">
+          <div className="space-y-3">
             <TemplatesOnboardingZone
               workspaceActive={workspaceActive}
+              setupComplete={
+                catalogReady && starterInstalled && !catalogLoading && !templatesLoading
+              }
               catalogPrerequisite={catalogPrerequisite}
               starterHero={starterHero}
+              recheckLabel={installButtonLabel}
+              recheckDisabled={installDisabled}
+              recheckDisabledTitle={installDisabledTitle}
+              onRecheck={handleInstallStarter}
             />
 
             <TemplatesLibrarySection
