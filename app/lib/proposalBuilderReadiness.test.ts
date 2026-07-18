@@ -5,10 +5,48 @@ import {
   buildJobCardHref,
   buildJobCardReturnTo,
   buildSetupRouteHref,
+  deriveProposalBuilderReadiness,
   parseInternalReturnTo,
 } from "./proposalBuilderReadiness";
+import type { CatalogReadinessSummary } from "./catalogReadiness";
+import type { ProposalTemplateReadiness } from "./proposalTemplateTypes";
+import type { MeasurementProposalHandoff } from "./measurementProposalHandoff";
+import type { JobRecord } from "./jobTypes";
 
 const JOB_ID = "11111111-1111-4111-8111-111111111111";
+
+function catalogReady(): CatalogReadinessSummary {
+  return {
+    state: "ready_for_templates",
+    activeItemCount: 20,
+    measurementMappedItemCount: 20,
+    pricedItemCount: 20,
+    starterDefinitionCount: 16,
+  };
+}
+
+function templateNotReady(): ProposalTemplateReadiness {
+  return {
+    status: "needs_items",
+    template_count: 1,
+    active_template_count: 1,
+    option_count: 1,
+    section_count: 1,
+    item_count: 2,
+    linked_catalog_item_count: 2,
+    missing_catalog_item_count: 0,
+    priced_catalog_item_count: 2,
+    missing_required_fields: ["options (need 3)", "linked line items (need 13)"],
+  };
+}
+
+function measurementReady(): MeasurementProposalHandoff {
+  return {
+    proposalReady: true,
+    blockers: [],
+    selectedLabel: "Saved manual",
+  } as MeasurementProposalHandoff;
+}
 
 describe("parseInternalReturnTo", () => {
   test("returns internal /tools/ path unchanged", () => {
@@ -94,5 +132,44 @@ describe("buildJobCardReturnTo", () => {
     );
     assert.doesNotMatch(href, /loadSaved/);
     assert.doesNotMatch(href, /from=board/);
+  });
+});
+
+describe("deriveProposalBuilderReadiness draft handoff", () => {
+  test("valid persisted draft does not false-block on company template readiness", () => {
+    const result = deriveProposalBuilderReadiness({
+      jobIdParam: JOB_ID,
+      job: { id: JOB_ID, company_id: "c" } as JobRecord,
+      jobLoadComplete: true,
+      measurementHandoff: measurementReady(),
+      measurementLoadComplete: true,
+      catalogReadiness: catalogReady(),
+      catalogLoadComplete: true,
+      templateReadiness: templateNotReady(),
+      templateLoadComplete: true,
+      hasValidPersistedDraft: true,
+    });
+
+    assert.equal(result.ready, true);
+    assert.equal(result.blockedGates.includes("template_not_ready"), false);
+    assert.equal(result.primaryGate, null);
+  });
+
+  test("setup preview without draft still blocks on template_not_ready", () => {
+    const result = deriveProposalBuilderReadiness({
+      jobIdParam: JOB_ID,
+      job: { id: JOB_ID, company_id: "c" } as JobRecord,
+      jobLoadComplete: true,
+      measurementHandoff: measurementReady(),
+      measurementLoadComplete: true,
+      catalogReadiness: catalogReady(),
+      catalogLoadComplete: true,
+      templateReadiness: templateNotReady(),
+      templateLoadComplete: true,
+      hasValidPersistedDraft: false,
+    });
+
+    assert.equal(result.ready, false);
+    assert.equal(result.primaryGate, "template_not_ready");
   });
 });

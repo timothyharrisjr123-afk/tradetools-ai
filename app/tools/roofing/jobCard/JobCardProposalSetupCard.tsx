@@ -35,40 +35,46 @@ type JobCardProposalSetupCardProps = {
   onOpenBuilder: (href: string) => void;
 };
 
-function SetupRow({
+function SetupStep({
   step,
   label,
+  ready,
+  detail,
+  action,
   children,
 }: {
   step: number;
   label: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className="space-y-1" data-jobcard-setup-step={step}>
-      <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-        {step}. {label}
-      </p>
-      {children}
-    </div>
-  );
-}
-
-function StatusBadge({ ready, readyLabel, blockedLabel }: {
   ready: boolean;
-  readyLabel: string;
-  blockedLabel: string;
+  detail: string;
+  action?: ReactNode;
+  children?: ReactNode;
 }) {
   return (
-    <span
-      className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ${
-        ready
-          ? "bg-emerald-50 text-emerald-800 ring-emerald-200"
-          : "bg-amber-50 text-amber-800 ring-amber-200"
-      }`}
+    <div
+      className="rounded-lg border border-slate-100 bg-slate-50/70 px-3 py-2.5"
+      data-jobcard-setup-step={step}
     >
-      {ready ? readyLabel : blockedLabel}
-    </span>
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+            {step}. {label}
+          </p>
+          <p className="mt-0.5 truncate text-[12px] font-medium text-slate-900">{detail}</p>
+        </div>
+        <span
+          className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ${
+            ready
+              ? "bg-emerald-50 text-emerald-800 ring-emerald-200"
+              : "bg-amber-50 text-amber-800 ring-amber-200"
+          }`}
+        >
+          {ready ? "Ready" : "Needs attention"}
+        </span>
+      </div>
+      {action ? <div className="mt-1.5">{action}</div> : null}
+      {children ? <div className="mt-2">{children}</div> : null}
+    </div>
   );
 }
 
@@ -145,39 +151,60 @@ export default function JobCardProposalSetupCard({
 
   const packageNeedsAttention =
     packageSetup.selected != null && packageSetup.selected.issueCount > 0;
-  const blockersIncomplete = checklist.items.filter(
-    (item) =>
-      item.isActiveBlocker ||
-      (item.status !== "complete" && item.status !== "optional")
-  );
+  const templateStepReady = templateReady && !packageNeedsAttention;
+  const setupReady = measurementReady && templateStepReady && isLaunchAction && createEnabled;
+
+  const headline = hasExistingDraft
+    ? "Draft ready to open"
+    : setupReady
+      ? "Ready to create proposal"
+      : "Needs attention";
 
   const showTemplatePicker = templates.length > 1;
+  const showBlockers = !isLaunchAction && !checklist.quiet;
 
   return (
     <div
-      className="rounded-lg border border-slate-200 bg-white px-3 py-3 shadow-sm"
+      className="overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-sm"
       data-jobcard-proposal-setup
     >
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div>
-          <p className="text-sm font-semibold text-slate-900">Proposal setup</p>
-          <p className="mt-0.5 text-[11px] text-slate-500">
-            For {jobLabel || "this job"} — confirm what goes on the quote, then create or open
-            the draft.
-          </p>
+      <div className="border-b border-slate-100 bg-gradient-to-br from-slate-50 via-white to-cyan-50/40 px-4 py-3.5">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+              Proposal setup
+            </p>
+            <p
+              className="mt-0.5 text-base font-semibold tracking-tight text-slate-950"
+              data-jobcard-setup-headline
+            >
+              {headline}
+            </p>
+            <p className="mt-0.5 text-[12px] text-slate-600">
+              For {jobLabel || "this job"} — confirm template and package, then create or open the
+              draft.
+            </p>
+          </div>
+          <span
+            className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ring-1 ${
+              setupReady || hasExistingDraft
+                ? "bg-emerald-50 text-emerald-800 ring-emerald-200"
+                : "bg-amber-50 text-amber-800 ring-amber-200"
+            }`}
+          >
+            {setupReady || hasExistingDraft ? "Ready" : "Blocked"}
+          </span>
         </div>
       </div>
 
-      <div className="mt-3 space-y-3">
-        <SetupRow step={1} label="Measurement">
-          <div className="flex flex-wrap items-center gap-2">
-            <StatusBadge
-              ready={measurementReady}
-              readyLabel="Ready"
-              blockedLabel="Missing"
-            />
-            <span className="text-[11px] text-slate-700">{measurementLabel}</span>
-            {!measurementReady ? (
+      <div className="space-y-2 px-4 py-3">
+        <SetupStep
+          step={1}
+          label="Measurement"
+          ready={measurementReady}
+          detail={measurementLabel || "No measurement selected"}
+          action={
+            !measurementReady ? (
               <button
                 type="button"
                 onClick={() => onSelectTab("measurements")}
@@ -185,40 +212,17 @@ export default function JobCardProposalSetupCard({
               >
                 Go to Measurements
               </button>
-            ) : null}
-          </div>
-        </SetupRow>
+            ) : null
+          }
+        />
 
-        <SetupRow step={2} label="Template">
-          <div className="space-y-1.5">
-            <div className="flex flex-wrap items-center gap-2">
-              <StatusBadge
-                ready={templateReady && !packageNeedsAttention}
-                readyLabel="Ready"
-                blockedLabel="Needs attention"
-              />
-              <span className="text-[11px] font-medium text-slate-800">
-                {templateName?.trim() || "No template selected"}
-              </span>
-            </div>
-            {showTemplatePicker ? (
-              <select
-                className="w-full max-w-sm rounded-md border border-slate-200 bg-white px-2 py-1.5 text-[11px] text-slate-800"
-                value={selectedTemplateId ?? ""}
-                onChange={(e) => {
-                  const next = e.target.value;
-                  if (next) onSelectTemplate(next);
-                }}
-                data-jobcard-template-select
-              >
-                {templates.map((row) => (
-                  <option key={row.id} value={row.id}>
-                    {row.name}
-                  </option>
-                ))}
-              </select>
-            ) : null}
-            {!templateReady && fixTemplateHref ? (
+        <SetupStep
+          step={2}
+          label="Template"
+          ready={templateStepReady}
+          detail={templateName?.trim() || "No template selected"}
+          action={
+            !templateReady && fixTemplateHref ? (
               <button
                 type="button"
                 onClick={() => onNavigate(fixTemplateHref)}
@@ -226,11 +230,34 @@ export default function JobCardProposalSetupCard({
               >
                 Fix template
               </button>
-            ) : null}
-          </div>
-        </SetupRow>
+            ) : null
+          }
+        >
+          {showTemplatePicker ? (
+            <select
+              className="w-full max-w-md rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-[12px] text-slate-800"
+              value={selectedTemplateId ?? ""}
+              onChange={(e) => {
+                const next = e.target.value;
+                if (next) onSelectTemplate(next);
+              }}
+              data-jobcard-template-select
+            >
+              {templates.map((row) => (
+                <option key={row.id} value={row.id}>
+                  {row.name}
+                </option>
+              ))}
+            </select>
+          ) : null}
+        </SetupStep>
 
-        <SetupRow step={3} label="Package">
+        <SetupStep
+          step={3}
+          label="Package"
+          ready={packageSetup.selected != null && !packageNeedsAttention}
+          detail={packageSetup.selected?.label ?? "Select a package"}
+        >
           {packageSetup.choices.length > 0 ? (
             <div
               className="flex flex-wrap gap-1.5"
@@ -245,9 +272,9 @@ export default function JobCardProposalSetupCard({
                     key={choice.optionId}
                     type="button"
                     onClick={() => onSelectPackage(choice.optionId)}
-                    className={`rounded-md border px-2.5 py-1 text-[11px] font-semibold ${
+                    className={`rounded-full border px-3 py-1 text-[11px] font-semibold transition ${
                       selected
-                        ? "border-cyan-700 bg-cyan-700 text-white"
+                        ? "border-slate-900 bg-slate-900 text-white"
                         : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
                     }`}
                   >
@@ -257,34 +284,39 @@ export default function JobCardProposalSetupCard({
               })}
             </div>
           ) : (
-            <p className="text-[11px] text-slate-500">
-              Packages appear after a template is ready.
-            </p>
+            <p className="text-[11px] text-slate-500">Packages appear after a template is ready.</p>
           )}
-        </SetupRow>
+        </SetupStep>
 
-        <SetupRow step={4} label="Included summary">
-          <div data-jobcard-included-summary>
-            <p className="text-[11px] text-slate-700">
-              {packageSetup.selected
-                ? `${packageSetup.includedItemCount} Catalog item${
-                    packageSetup.includedItemCount === 1 ? "" : "s"
-                  }`
-                : "No package selected"}
-              {packageSetup.customerFacingLine
-                ? ` · ${packageSetup.customerFacingLine}`
-                : ""}
-            </p>
-            {packageSetup.selected ? (
+        <SetupStep
+          step={4}
+          label="Included items"
+          ready={Boolean(packageSetup.selected) && packageSetup.includedItemCount > 0}
+          detail={
+            packageSetup.selected
+              ? `${packageSetup.includedItemCount} Catalog item${
+                  packageSetup.includedItemCount === 1 ? "" : "s"
+                }${
+                  packageSetup.customerFacingLine
+                    ? ` · ${packageSetup.customerFacingLine}`
+                    : ""
+                }`
+              : "No package selected"
+          }
+          action={
+            packageSetup.selected ? (
               <button
                 type="button"
                 onClick={() => setShowIncluded((v) => !v)}
-                className="mt-1 text-[11px] font-semibold text-cyan-700 hover:text-cyan-900"
+                className="text-[11px] font-semibold text-cyan-700 hover:text-cyan-900"
                 data-jobcard-review-included
               >
                 {showIncluded ? "Hide included items" : "Review included items"}
               </button>
-            ) : null}
+            ) : null
+          }
+        >
+          <div data-jobcard-included-summary>
             <JobCardProposalIncludedReview
               open={showIncluded}
               packageLabel={packageSetup.selected?.label ?? null}
@@ -294,119 +326,109 @@ export default function JobCardProposalSetupCard({
               onFixTemplate={onNavigate}
             />
           </div>
-        </SetupRow>
-
-        <SetupRow step={5} label="Create / open proposal">
-          <p className="text-[11px] leading-snug text-slate-600" data-jobcard-create-explainer>
-            {JOB_CARD_CREATE_PROPOSAL_EXPLAINER}
-          </p>
-          <div className="mt-2 flex flex-wrap items-start gap-2">
-            <button
-              type="button"
-              disabled={
-                showLaunching ||
-                primary.disabled ||
-                primary.actionType === "none" ||
-                (isLaunchAction && !createEnabled)
-              }
-              aria-busy={showLaunching || undefined}
-              onClick={() => {
-                if (isLaunchAction) {
-                  if (!createEnabled) return;
-                  onCreateOrOpen();
-                  return;
-                }
-                runSetupAction(primary, {
-                  onSelectTab,
-                  onNavigate,
-                  onNormalizeJobCard,
-                  onCreateOrOpen,
-                  onOpenBuilder,
-                });
-              }}
-              className={
-                !showLaunching &&
-                !primary.disabled &&
-                primary.actionType !== "none" &&
-                (!isLaunchAction || createEnabled)
-                  ? "inline-flex items-center rounded-md border border-cyan-700 bg-cyan-700 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-cyan-800"
-                  : "inline-flex cursor-not-allowed items-center rounded-md border border-slate-200 bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-400"
-              }
-              data-jobcard-create-cta
-            >
-              {isLaunchAction ? primaryLabel : primary.label}
-            </button>
-          </div>
-          {!isLaunchAction ? (
-            <p className="mt-1 text-[10px] text-slate-500">
-              {primary.helperText ?? checklist.statusText}
-            </p>
-          ) : null}
-          {launchError ? (
-            <p className="mt-1 text-[11px] text-red-600">{launchError}</p>
-          ) : null}
-        </SetupRow>
+        </SetupStep>
       </div>
 
-      {!checklist.quiet && blockersIncomplete.length > 0 ? (
-        <div
-          className="mt-3 rounded-md border border-amber-200 bg-amber-50/70 px-2.5 py-2"
-          data-jobcard-setup-blockers
-        >
-          <p className="text-[11px] font-semibold text-amber-900">Needs attention</p>
-          <ul className="mt-1 space-y-1">
-            {blockersIncomplete.slice(0, 4).map((item) => (
-              <li key={item.id} className="text-[10px] text-amber-900">
-                <span className="font-medium">{item.label}</span>
-                {item.detail ? ` — ${item.detail}` : ""}
-              </li>
-            ))}
-          </ul>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {primary.actionType !== "create_proposal" &&
-            primary.actionType !== "open_builder" ? (
-              <button
-                type="button"
-                disabled={primary.disabled}
-                onClick={() =>
-                  runSetupAction(primary, {
-                    onSelectTab,
-                    onNavigate,
-                    onNormalizeJobCard,
-                    onCreateOrOpen,
-                    onOpenBuilder,
-                  })
-                }
-                className="text-[11px] font-semibold text-cyan-700 hover:text-cyan-900"
-              >
-                {primary.label}
-              </button>
-            ) : null}
-            {fixCatalogHref && checklist.activeBlockerId === "catalog" ? (
-              <button
-                type="button"
-                onClick={() => onNavigate(fixCatalogHref)}
-                className="text-[11px] font-semibold text-cyan-700 hover:text-cyan-900"
-              >
-                Open Catalog
-              </button>
-            ) : null}
-            {fixTemplateHref && checklist.activeBlockerId === "template" ? (
-              <button
-                type="button"
-                onClick={() => onNavigate(fixTemplateHref)}
-                className="text-[11px] font-semibold text-cyan-700 hover:text-cyan-900"
-              >
-                Fix template
-              </button>
-            ) : null}
-          </div>
+      <div className="border-t border-slate-100 px-4 py-3.5" data-jobcard-setup-cta-zone>
+        <p className="text-[12px] leading-snug text-slate-600" data-jobcard-create-explainer>
+          {JOB_CARD_CREATE_PROPOSAL_EXPLAINER}
+        </p>
+        <div className="mt-2.5">
+          <button
+            type="button"
+            disabled={
+              showLaunching ||
+              primary.disabled ||
+              primary.actionType === "none" ||
+              (isLaunchAction && !createEnabled)
+            }
+            aria-busy={showLaunching || undefined}
+            onClick={() => {
+              if (isLaunchAction) {
+                if (!createEnabled) return;
+                onCreateOrOpen();
+                return;
+              }
+              runSetupAction(primary, {
+                onSelectTab,
+                onNavigate,
+                onNormalizeJobCard,
+                onCreateOrOpen,
+                onOpenBuilder,
+              });
+            }}
+            className={
+              !showLaunching &&
+              !primary.disabled &&
+              primary.actionType !== "none" &&
+              (!isLaunchAction || createEnabled)
+                ? "inline-flex items-center rounded-md border border-slate-900 bg-slate-900 px-3.5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-slate-800"
+                : "inline-flex cursor-not-allowed items-center rounded-md border border-slate-200 bg-slate-100 px-3.5 py-2 text-sm font-semibold text-slate-400"
+            }
+            data-jobcard-create-cta
+          >
+            {isLaunchAction ? primaryLabel : primary.label}
+          </button>
         </div>
-      ) : null}
+        {!isLaunchAction ? (
+          <p className="mt-1.5 text-[11px] text-slate-500">
+            {primary.helperText ?? checklist.statusText}
+          </p>
+        ) : null}
+        {launchError ? <p className="mt-1.5 text-[11px] text-red-600">{launchError}</p> : null}
 
-      <p className="mt-3 text-[10px] leading-snug text-slate-400">
-        Templates and Catalog are company setup. Stay on this job unless something needs fixing.
-      </p>
+        {showBlockers ? (
+          <div
+            className="mt-3 rounded-lg border border-amber-200 bg-amber-50/80 px-3 py-2"
+            data-jobcard-setup-blockers
+          >
+            <p className="text-[11px] font-semibold text-amber-900">Fix before creating</p>
+            <div className="mt-1.5 flex flex-wrap gap-2">
+              {primary.actionType !== "create_proposal" &&
+              primary.actionType !== "open_builder" ? (
+                <button
+                  type="button"
+                  disabled={primary.disabled}
+                  onClick={() =>
+                    runSetupAction(primary, {
+                      onSelectTab,
+                      onNavigate,
+                      onNormalizeJobCard,
+                      onCreateOrOpen,
+                      onOpenBuilder,
+                    })
+                  }
+                  className="text-[11px] font-semibold text-cyan-700 hover:text-cyan-900"
+                >
+                  {primary.label}
+                </button>
+              ) : null}
+              {fixCatalogHref && checklist.activeBlockerId === "catalog" ? (
+                <button
+                  type="button"
+                  onClick={() => onNavigate(fixCatalogHref)}
+                  className="text-[11px] font-semibold text-cyan-700 hover:text-cyan-900"
+                >
+                  Open Catalog
+                </button>
+              ) : null}
+              {fixTemplateHref && checklist.activeBlockerId === "template" ? (
+                <button
+                  type="button"
+                  onClick={() => onNavigate(fixTemplateHref)}
+                  className="text-[11px] font-semibold text-cyan-700 hover:text-cyan-900"
+                >
+                  Fix template
+                </button>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+
+        <p className="mt-3 text-[10px] leading-snug text-slate-400">
+          Templates and Catalog are company setup. Stay on this job unless something needs fixing.
+        </p>
+      </div>
     </div>
   );
 }

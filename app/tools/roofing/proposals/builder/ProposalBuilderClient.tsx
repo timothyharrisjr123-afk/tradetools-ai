@@ -1445,8 +1445,23 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
     [catalogReadiness, activeCatalogItems, starterGraph, companyTemplateCount]
   );
 
+  const hasValidPersistedDraft =
+    hasPersistedProposalParam &&
+    draftGraphLoadComplete &&
+    persistedGraph != null &&
+    !draftGraphError;
+
   const builderReadiness = useMemo(() => {
-    const base = deriveProposalBuilderReadiness({
+    if (hasPersistedProposalParam && !draftGraphLoadComplete) {
+      return {
+        ready: false,
+        loading: true,
+        blockedGates: [],
+        primaryGate: null,
+      };
+    }
+
+    return deriveProposalBuilderReadiness({
       jobIdParam,
       job,
       jobLoadComplete,
@@ -1456,13 +1471,8 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
       catalogLoadComplete,
       templateReadiness,
       templateLoadComplete,
+      hasValidPersistedDraft,
     });
-
-    if (hasPersistedProposalParam && !draftGraphLoadComplete) {
-      return { ...base, ready: false, loading: true };
-    }
-
-    return base;
   }, [
     jobIdParam,
     job,
@@ -1475,6 +1485,7 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
     templateLoadComplete,
     hasPersistedProposalParam,
     draftGraphLoadComplete,
+    hasValidPersistedDraft,
   ]);
 
   const loadError = catalogError ?? templateError;

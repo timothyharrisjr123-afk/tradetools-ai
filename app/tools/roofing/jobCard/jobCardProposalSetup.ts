@@ -23,7 +23,7 @@ import {
 
 /** Primary explainer — what Create proposal does (contractor-facing). */
 export const JOB_CARD_CREATE_PROPOSAL_EXPLAINER =
-  "Create a draft proposal from this job’s measurements, the selected template, and Catalog pricing. You’ll review it in Proposal Builder before sending." as const;
+  "Creates a draft from this job’s measurements, the selected template, and Catalog pricing. You’ll review it in Proposal Builder before sending." as const;
 
 export const JOB_CARD_INCLUDED_REVIEW_NOTE =
   "Template changes affect future proposals. For this job, create the draft and make final review in Builder." as const;

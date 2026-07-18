@@ -31,6 +31,12 @@ export type DeriveProposalBuilderReadinessInput = {
   catalogLoadComplete: boolean;
   templateReadiness: ProposalTemplateReadiness;
   templateLoadComplete: boolean;
+  /**
+   * When a valid job-scoped draft graph is already loaded, company Catalog/Template
+   * setup gates must not false-block the Builder shell. The draft is the source of
+   * truth for that open session; setup-preview (no draft) still uses live gates.
+   */
+  hasValidPersistedDraft?: boolean;
 };
 
 export type ProposalBuilderReadiness = {
@@ -65,11 +71,15 @@ export function deriveProposalBuilderReadiness(
   input: DeriveProposalBuilderReadinessInput
 ): ProposalBuilderReadiness {
   const jobIdParam = normalizeJobIdParam(input.jobIdParam);
+  const hasValidPersistedDraft = input.hasValidPersistedDraft === true;
+
+  // Draft sessions still need job + measurement context, but must not wait on
+  // company template install readiness after a draft graph has already loaded.
   const loading =
     (Boolean(jobIdParam) && !input.jobLoadComplete) ||
     (Boolean(jobIdParam) && input.job != null && !input.measurementLoadComplete) ||
     !input.catalogLoadComplete ||
-    !input.templateLoadComplete;
+    (!hasValidPersistedDraft && !input.templateLoadComplete);
 
   const blockedGates: ProposalBuilderGate[] = [];
 
@@ -93,11 +103,19 @@ export function deriveProposalBuilderReadiness(
     }
   }
 
-  if (input.catalogLoadComplete && input.catalogReadiness.state !== "ready_for_templates") {
+  if (
+    !hasValidPersistedDraft &&
+    input.catalogLoadComplete &&
+    input.catalogReadiness.state !== "ready_for_templates"
+  ) {
     blockedGates.push("catalog_not_ready");
   }
 
-  if (input.templateLoadComplete && input.templateReadiness.status !== "ready_for_builder") {
+  if (
+    !hasValidPersistedDraft &&
+    input.templateLoadComplete &&
+    input.templateReadiness.status !== "ready_for_builder"
+  ) {
     blockedGates.push("template_not_ready");
   }
 

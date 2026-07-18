@@ -122,7 +122,6 @@ import {
   buildProposalBuilderHref,
   buildSetupRouteHref,
   deriveProposalBuilderReadiness,
-  formatProposalBuilderDisabledButtonTitle,
   resolveJobCardProposalActivityLine,
 } from "@/app/lib/proposalBuilderReadiness";
 import {
@@ -133,8 +132,6 @@ import {
 import {
   deriveProposalSetupChecklist,
   isProposalHeaderLaunchEnabled,
-  proposalHeaderButtonLabel,
-  proposalHeaderButtonTitle,
 } from "@/app/lib/proposalSetupChecklist";
 import { getResolvedCompanyPricingPolicy } from "@/app/lib/companyPricingPolicyStore";
 import {
@@ -1121,6 +1118,9 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
   const [jobCardTab, setJobCardTab] = useState<JobCardTabId>("overview");
   const [jobCardBoardOrigin, setJobCardBoardOrigin] = useState(false);
   const [hydratedJobRecord, setHydratedJobRecord] = useState<JobRecord | null>(null);
+  /** Listed draft for this job when jobs.active_proposal_id is unset (reuse still finds it). */
+  const [listedJobDraftProposalId, setListedJobDraftProposalId] = useState<string | null>(null);
+  const listedDraftFetchInFlightRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (loadSavedId || isBoardOriginParam) {
@@ -1964,6 +1964,43 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
       }
     })();
   }, [entryMode, companyId, loadSavedId, restoreTick]);
+
+  useEffect(() => {
+    if (entryMode !== "job-card") {
+      setListedJobDraftProposalId(null);
+      listedDraftFetchInFlightRef.current = null;
+      return;
+    }
+
+    const cid = (companyId ?? "").trim();
+    const jid = (currentJobId ?? "").trim();
+    if (!cid || !isUuidLike(cid) || !jid || !isUuidLike(jid)) {
+      setListedJobDraftProposalId(null);
+      listedDraftFetchInFlightRef.current = null;
+      return;
+    }
+
+    if (isRestoringRef.current) return;
+    if (loadSavedId && !loadAppliedRef.current) return;
+
+    const fetchKey = `${cid}:${jid}`;
+    listedDraftFetchInFlightRef.current = fetchKey;
+
+    void (async () => {
+      try {
+        const summaries = await listProposalsForJob(cid, jid);
+        if (listedDraftFetchInFlightRef.current !== fetchKey) return;
+        const draft = summaries.find(
+          (row) => row.status === "draft" && isUuidLike(row.id)
+        );
+        setListedJobDraftProposalId(draft?.id ?? null);
+      } catch (err) {
+        console.warn("[RoofingClient] job draft list fetch error:", err);
+        if (listedDraftFetchInFlightRef.current !== fetchKey) return;
+        setListedJobDraftProposalId(null);
+      }
+    })();
+  }, [entryMode, companyId, currentJobId, loadSavedId, restoreTick]);
 
   const buildJobCardCustomerAddressLine = useCallback((): string => {
     return (
@@ -7302,6 +7339,19 @@ Thanks,`;
       templateCount: starterTemplateGraph ? 1 : 0,
       activeTemplateCount: starterTemplateGraph?.template.active ? 1 : starterTemplateGraph ? 1 : 0,
     });
+    const jobRecordActiveProposalId =
+      hydratedJobRecord?.active_proposal_id &&
+      isUuidLike(hydratedJobRecord.active_proposal_id)
+        ? hydratedJobRecord.active_proposal_id
+        : null;
+    const jobCardActiveProposalId =
+      jobRecordActiveProposalId ??
+      (listedJobDraftProposalId && isUuidLike(listedJobDraftProposalId)
+        ? listedJobDraftProposalId
+        : null);
+    const proposalDocumentStatusLabel = jobCardActiveProposalId
+      ? "Draft proposal available"
+      : "No proposal yet";
     const proposalBuilderReadiness = deriveProposalBuilderReadiness({
       jobIdParam: currentJobId,
       job:
@@ -7315,27 +7365,9 @@ Thanks,`;
       catalogLoadComplete: true,
       templateReadiness: proposalTemplateReadiness,
       templateLoadComplete: templateSetupLoadComplete,
+      // Connected draft means Builder should not false-block on company template install.
+      hasValidPersistedDraft: Boolean(jobCardActiveProposalId),
     });
-    const proposalBuilderButtonTitle = formatProposalBuilderDisabledButtonTitle(
-      proposalBuilderReadiness,
-      {
-        measurementHandoff: proposalHandoff,
-        catalogReadiness,
-        templateReadiness: proposalTemplateReadiness,
-      }
-    );
-    const proposalBuilderActionPrimary =
-      "inline-flex items-center gap-1.5 rounded-md border border-cyan-700 bg-cyan-700 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-cyan-800";
-
-    const jobCardActiveProposalId =
-      hydratedJobRecord?.active_proposal_id &&
-      isUuidLike(hydratedJobRecord.active_proposal_id)
-        ? hydratedJobRecord.active_proposal_id
-        : null;
-    const proposalDocumentStatusLabel = jobCardActiveProposalId
-      ? "Draft proposal available"
-      : "No proposal yet";
-    const proposalDocumentStatusMuted = !jobCardActiveProposalId;
 
     const jobCardReturnLabel =
       (hydratedJobRecord?.job_name ?? "").trim() ||
@@ -7409,11 +7441,6 @@ Thanks,`;
       proposalSetupChecklist,
       { createBlockedOnBoard: proposalCreateBlockedOnBoard }
     );
-    const proposalHeaderLabel = proposalHeaderButtonLabel(proposalSetupChecklist);
-    const effectiveProposalHeaderButtonTitle =
-      proposalCreateBlockedOnBoard && proposalHeaderLaunchEnabled
-        ? "Save Job Card before creating a proposal draft"
-        : proposalHeaderButtonTitle(proposalSetupChecklist, proposalBuilderButtonTitle);
 
     const proposalTemplateStatusLabel = (() => {
       const templateName = (starterTemplateGraph?.template.name ?? "").trim();
@@ -7458,6 +7485,7 @@ Thanks,`;
           );
 
           if (result.proposalId) {
+            setListedJobDraftProposalId(result.proposalId);
             await refreshHydratedJobRecord(currentJobId);
             router.push(buildProposalBuilderHref(currentJobId, result.proposalId));
             return;
@@ -7651,9 +7679,6 @@ Thanks,`;
       { ...activityMeasurementLine, when: activityWhen },
       { ...proposalActivityLine, when: activityWhen },
     ];
-    const passiveActionPrimary =
-      "inline-flex cursor-not-allowed items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-500 opacity-70 shadow-sm";
-
     const ATTACHMENT_CATEGORIES = [
       "Inspection photos",
       "Customer photos",
@@ -8088,26 +8113,6 @@ Thanks,`;
                     ? "bg-emerald-50 text-emerald-700"
                     : "bg-slate-100 text-slate-500",
                 }}
-                headerAction={
-                  <button
-                    type="button"
-                    disabled={!proposalHeaderLaunchEnabled || isLaunchingProposal}
-                    onClick={handleLaunchProposalDraft}
-                    className={
-                      proposalHeaderLaunchEnabled && !isLaunchingProposal
-                        ? proposalBuilderActionPrimary
-                        : passiveActionPrimary
-                    }
-                    title={effectiveProposalHeaderButtonTitle}
-                    aria-busy={isLaunchingProposal || undefined}
-                  >
-                    {isLaunchingProposal
-                      ? proposalSetupChecklist.primaryAction.actionType === "open_builder"
-                        ? "Opening…"
-                        : "Creating…"
-                      : proposalHeaderLabel}
-                  </button>
-                }
               >
                 <div className="space-y-4">
                   <JobCardProposalSetupCard
@@ -8153,25 +8158,17 @@ Thanks,`;
                     fixTemplateHref={jobCardFixTemplateHref}
                     onNavigate={router.push}
                   />
-                  <div>
+                  <div data-jobcard-proposal-list>
                     <WorkspaceHeading>Proposals for this job</WorkspaceHeading>
                     {jobCardActiveProposalId ? (
-                      <div className="rounded-lg border border-emerald-200 bg-emerald-50/60 px-3 py-2.5">
-                        <p className="text-sm font-medium text-emerald-800">
+                      <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2.5">
+                        <p className="text-sm font-medium text-slate-800">
                           Draft proposal connected
                         </p>
                         <p className="mt-0.5 text-xs text-slate-600">
-                          {proposalDocumentStatusLabel}. Continue in Proposal Builder for this
-                          job.
+                          {proposalDocumentStatusLabel}. Use Open proposal draft above to continue
+                          in Builder.
                         </p>
-                        <button
-                          type="button"
-                          disabled={!proposalHeaderLaunchEnabled || isLaunchingProposal}
-                          onClick={handleLaunchProposalDraft}
-                          className="mt-2 inline-flex items-center text-xs font-semibold text-cyan-700 hover:text-cyan-900 disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                          Open proposal draft
-                        </button>
                       </div>
                     ) : (
                       <PlaceholderBox

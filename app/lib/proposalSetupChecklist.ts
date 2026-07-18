@@ -211,7 +211,7 @@ function createProposalAction(): ProposalSetupAction {
     id: "create-proposal",
     label: "Create proposal draft",
     helperText:
-      "Create a draft proposal from this job’s measurements, the selected template, and Catalog pricing. You’ll review it in Proposal Builder before sending.",
+      "Creates a draft from this job’s measurements, the selected template, and Catalog pricing. You’ll review it in Proposal Builder before sending.",
     actionType: "create_proposal",
   };
 }
