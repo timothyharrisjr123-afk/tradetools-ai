@@ -45,7 +45,7 @@
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** **pending this commit — fix(proposals): make builder handoff draft aware** (Builder Handoff Polish A)
+- **Code checkpoint:** **`1f08c53`** — fix(proposals): make builder handoff draft aware (Builder Handoff Polish A)
 - **Docs checkpoint:** Builder Handoff Polish A (this header + **§6BO.13.4.9** M)
 - **Prior code:** **`27c82cf`** / **`0120b06`** Integrated Flow P2 correction; **`e028ee5`** / **`6588dab`** setup card
 - **Next:** Builder visual cohesion pass **or** Preview document-first truth pass (remaining gap after handoff trust). Do **not** start supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
