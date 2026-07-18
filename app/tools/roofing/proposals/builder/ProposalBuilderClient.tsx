@@ -79,6 +79,7 @@ import {
   type BuilderPageContextId,
 } from "@/app/lib/proposalBuilderNavigation";
 import {
+  BUILDER_SNAPSHOT_FROZEN_HELPER_CLASS,
   BUILDER_UNSAVED_PAGE_EDIT_CONFIRM,
   WORKBENCH_EXCLUDE_SUCCESS,
   WORKBENCH_HIDE_SUCCESS,
@@ -1691,7 +1692,7 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
       !draftGraphError &&
       persistedGraph != null ? (
         <p
-          className="text-xs leading-relaxed text-slate-500"
+          className={BUILDER_SNAPSHOT_FROZEN_HELPER_CLASS}
           data-builder-snapshot-frozen-helper
         >
           {PROPOSAL_SNAPSHOT_FROZEN_HELPER_COPY}

@@ -25,8 +25,87 @@ import {
 export const JOB_CARD_CREATE_PROPOSAL_EXPLAINER =
   "Creates a draft from this job’s measurements, the selected template, and Catalog pricing. You’ll review it in Proposal Builder before sending." as const;
 
+/** Explainer when a draft already exists — Open does not use create selectors. */
+export const JOB_CARD_OPEN_PROPOSAL_EXPLAINER =
+  "Opens this job’s existing proposal draft in Builder. Source details below describe the draft already created — they do not change it." as const;
+
+export const JOB_CARD_DRAFT_FROZEN_NOTE =
+  "This draft freezes Catalog pricing and template structure from create/refresh. Open Builder to review or refresh draft pricing." as const;
+
 export const JOB_CARD_INCLUDED_REVIEW_NOTE =
   "Template changes affect future proposals. For this job, create the draft and make final review in Builder." as const;
+
+export type JobCardProposalSetupMode = "create" | "draft_open";
+
+/** Draft facts shown in draft-open mode (Job Card Proposals). */
+export type JobCardDraftOpenSummary = {
+  proposalId: string;
+  title: string | null;
+  templateName: string | null;
+  packageLabel: string | null;
+  updatedAt: string | null;
+  statusLabel: "Draft saved";
+};
+
+export function buildJobCardDraftOpenSummary(input: {
+  proposalId: string;
+  title?: string | null;
+  templateName?: string | null;
+  packageLabel?: string | null;
+  updatedAt?: string | null;
+}): JobCardDraftOpenSummary | null {
+  const proposalId = (input.proposalId ?? "").trim();
+  if (!proposalId) return null;
+  return {
+    proposalId,
+    title: (input.title ?? "").trim() || null,
+    templateName: (input.templateName ?? "").trim() || null,
+    packageLabel: (input.packageLabel ?? "").trim() || null,
+    updatedAt: (input.updatedAt ?? "").trim() || null,
+    statusLabel: "Draft saved",
+  };
+}
+
+/** Proposals tab header chip — draft-open vs create-ready vocabulary. */
+export function formatJobCardProposalsTabStatus(input: {
+  hasExistingDraft: boolean;
+  createSetupReady: boolean;
+  measurementHeaderLabel: string;
+  measurementReady: boolean;
+}): { label: string; ready: boolean } {
+  if (input.hasExistingDraft) {
+    return { label: "Draft ready to open", ready: true };
+  }
+  if (input.createSetupReady) {
+    return { label: "Ready to create draft", ready: true };
+  }
+  if (!input.measurementReady) {
+    const label = (input.measurementHeaderLabel ?? "").trim() || "Needs attention";
+    return { label, ready: false };
+  }
+  return { label: "Needs attention", ready: false };
+}
+
+/** Short contractor-facing updated stamp for draft-open mode. */
+export function formatJobCardDraftUpdatedLabel(
+  updatedAt: string | null | undefined
+): string | null {
+  const raw = (updatedAt ?? "").trim();
+  if (!raw) return null;
+  const ms = Date.parse(raw);
+  if (!Number.isFinite(ms)) return null;
+  try {
+    return new Intl.DateTimeFormat(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(new Date(ms));
+  } catch {
+    return null;
+  }
+}
 
 export type JobCardPackageChoice = {
   optionId: string;

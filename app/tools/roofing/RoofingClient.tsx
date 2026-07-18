@@ -137,8 +137,11 @@ import { getResolvedCompanyPricingPolicy } from "@/app/lib/companyPricingPolicyS
 import {
   createDraftProposal,
   getProposalById,
+  getProposalOptionLabel,
   listProposalsForJob,
 } from "@/app/lib/proposalRecordStore";
+import type { ProposalRecordStatusSummary } from "@/app/lib/proposalRecordTypes";
+import { formatJobIdentityReturnLabel } from "@/app/lib/jobIdentityDisplay";
 import { deriveProposalTemplateReadiness } from "@/app/lib/proposalTemplateReadiness";
 import {
   getProposalTemplateGraph,
@@ -148,7 +151,9 @@ import {
 import type { ProposalTemplate } from "@/app/lib/proposalTemplateTypes";
 import { findStarterProposalTemplate } from "@/app/tools/roofing/templates/templatesSetupUtils";
 import {
+  buildJobCardDraftOpenSummary,
   buildJobCardPackageSetup,
+  formatJobCardProposalsTabStatus,
   resolveDefaultJobCardTemplateId,
   resolveDefaultPackageOptionId,
 } from "@/app/tools/roofing/jobCard/jobCardProposalSetup";
@@ -1120,6 +1125,11 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
   const [hydratedJobRecord, setHydratedJobRecord] = useState<JobRecord | null>(null);
   /** Listed draft for this job when jobs.active_proposal_id is unset (reuse still finds it). */
   const [listedJobDraftProposalId, setListedJobDraftProposalId] = useState<string | null>(null);
+  const [listedJobDraftSummary, setListedJobDraftSummary] =
+    useState<ProposalRecordStatusSummary | null>(null);
+  const [listedJobDraftPackageLabel, setListedJobDraftPackageLabel] = useState<string | null>(
+    null
+  );
   const listedDraftFetchInFlightRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -1968,6 +1978,8 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
   useEffect(() => {
     if (entryMode !== "job-card") {
       setListedJobDraftProposalId(null);
+      setListedJobDraftSummary(null);
+      setListedJobDraftPackageLabel(null);
       listedDraftFetchInFlightRef.current = null;
       return;
     }
@@ -1976,6 +1988,8 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
     const jid = (currentJobId ?? "").trim();
     if (!cid || !isUuidLike(cid) || !jid || !isUuidLike(jid)) {
       setListedJobDraftProposalId(null);
+      setListedJobDraftSummary(null);
+      setListedJobDraftPackageLabel(null);
       listedDraftFetchInFlightRef.current = null;
       return;
     }
@@ -1994,10 +2008,20 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
           (row) => row.status === "draft" && isUuidLike(row.id)
         );
         setListedJobDraftProposalId(draft?.id ?? null);
+        setListedJobDraftSummary(draft ?? null);
+        if (draft?.selected_option_id && isUuidLike(draft.selected_option_id)) {
+          const packageLabel = await getProposalOptionLabel(cid, draft.selected_option_id);
+          if (listedDraftFetchInFlightRef.current !== fetchKey) return;
+          setListedJobDraftPackageLabel(packageLabel);
+        } else {
+          setListedJobDraftPackageLabel(null);
+        }
       } catch (err) {
         console.warn("[RoofingClient] job draft list fetch error:", err);
         if (listedDraftFetchInFlightRef.current !== fetchKey) return;
         setListedJobDraftProposalId(null);
+        setListedJobDraftSummary(null);
+        setListedJobDraftPackageLabel(null);
       }
     })();
   }, [entryMode, companyId, currentJobId, loadSavedId, restoreTick]);
@@ -7318,7 +7342,7 @@ Thanks,`;
       persistedRecord: persistedSelectedMeasurement,
     });
     const proposalHandoffContext = { isPersistedNonManual: workspace.isPersistedNonManual };
-    const proposalSectionHeader = formatProposalSectionHeaderStatus(
+    const measurementProposalSectionHeader = formatProposalSectionHeaderStatus(
       proposalHandoff,
       proposalHandoffContext
     );
@@ -7350,7 +7374,7 @@ Thanks,`;
         ? listedJobDraftProposalId
         : null);
     const proposalDocumentStatusLabel = jobCardActiveProposalId
-      ? "Draft proposal available"
+      ? "Draft saved"
       : "No proposal yet";
     const proposalBuilderReadiness = deriveProposalBuilderReadiness({
       jobIdParam: currentJobId,
@@ -7370,16 +7394,56 @@ Thanks,`;
     });
 
     const jobCardReturnLabel =
-      (hydratedJobRecord?.job_name ?? "").trim() ||
-      (hydratedJobRecord?.contact?.customer_name ?? "").trim() ||
-      customerName.trim() ||
-      "Job";
+      formatJobIdentityReturnLabel(hydratedJobRecord, customerName.trim() || "Job");
 
     const jobCardPackageSetup = buildJobCardPackageSetup(
       starterTemplateGraph,
       activeCatalogItems,
       jobCardSelectedPackageOptionId
     );
+
+    const draftSourceTemplateName = (() => {
+      const templateId = (listedJobDraftSummary?.template_id ?? "").trim();
+      if (!templateId) return null;
+      const fromList = companyProposalTemplates.find((row) => row.id === templateId);
+      if (fromList?.name?.trim()) return fromList.name.trim();
+      if (starterTemplateGraph?.template.id === templateId) {
+        return (starterTemplateGraph.template.name ?? "").trim() || null;
+      }
+      return null;
+    })();
+
+    const matchingListedDraft =
+      listedJobDraftSummary &&
+      jobCardActiveProposalId &&
+      listedJobDraftSummary.id === jobCardActiveProposalId
+        ? listedJobDraftSummary
+        : null;
+
+    const jobCardDraftOpenSummary = jobCardActiveProposalId
+      ? buildJobCardDraftOpenSummary({
+          proposalId: jobCardActiveProposalId,
+          title: matchingListedDraft?.title ?? null,
+          templateName: matchingListedDraft ? draftSourceTemplateName : null,
+          packageLabel: matchingListedDraft ? listedJobDraftPackageLabel : null,
+          updatedAt: matchingListedDraft?.updated_at ?? null,
+        })
+      : null;
+
+    const createSetupReadyForHeader =
+      Boolean(persistedSelectedMeasurement?.id) &&
+      proposalHandoff.proposalReady &&
+      !hasUnsavedChanges &&
+      proposalTemplateReadiness.status === "ready_for_builder" &&
+      jobCardPackageSetup.selected != null &&
+      (jobCardPackageSetup.selected.issueCount ?? 0) === 0;
+
+    const proposalSectionHeader = formatJobCardProposalsTabStatus({
+      hasExistingDraft: Boolean(jobCardActiveProposalId),
+      createSetupReady: createSetupReadyForHeader,
+      measurementHeaderLabel: measurementProposalSectionHeader.label,
+      measurementReady: proposalHandoff.proposalReady,
+    });
 
     const proposalDraftCreatePayload =
       identityFromJobRecord &&
@@ -8140,6 +8204,7 @@ Thanks,`;
                     isLaunching={isLaunchingProposal}
                     launchError={proposalLaunchError}
                     hasExistingDraft={Boolean(jobCardActiveProposalId)}
+                    draftOpenSummary={jobCardDraftOpenSummary}
                     fixTemplateHref={jobCardFixTemplateHref}
                     fixCatalogHref={jobCardFixCatalogHref}
                     onSelectTab={setJobCardTab}
@@ -8163,11 +8228,11 @@ Thanks,`;
                     {jobCardActiveProposalId ? (
                       <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2.5">
                         <p className="text-sm font-medium text-slate-800">
-                          Draft proposal connected
+                          Draft saved
                         </p>
                         <p className="mt-0.5 text-xs text-slate-600">
-                          {proposalDocumentStatusLabel}. Use Open proposal draft above to continue
-                          in Builder.
+                          {proposalDocumentStatusLabel}. Use Open proposal draft above to review in
+                          Builder.
                         </p>
                       </div>
                     ) : (

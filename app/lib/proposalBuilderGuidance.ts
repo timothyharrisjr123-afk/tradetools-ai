@@ -87,6 +87,7 @@ export type ProposalBuilderNextActionId =
   | "resolve_pricing_blockers"
   | "review_profitability"
   | "review_proposal_pages"
+  | "open_customer_preview"
   | "ready_for_preview"
   | "review_proposal";
 
@@ -665,6 +666,21 @@ function deriveNextAction(input: ProposalBuilderGuidanceInput): ProposalBuilderN
     };
   }
 
+  if (input.previewEnabled) {
+    return {
+      id: "open_customer_preview",
+      title: "Preview customer view",
+      description: input.hasPlaceholderPages
+        ? "Review this draft as the customer will see it. Empty pages can be filled afterward. Send stays locked."
+        : "Review this draft as the customer will see it. Send stays locked.",
+      ctaLabel: "Open Preview",
+      target: "action:preview",
+      priority: 5,
+      disabled: false,
+      disabledReason: null,
+    };
+  }
+
   if (input.hasPlaceholderPages) {
     return {
       id: "review_proposal_pages",
@@ -672,7 +688,7 @@ function deriveNextAction(input: ProposalBuilderGuidanceInput): ProposalBuilderN
       description: "Some customer-facing pages are placeholders or need content.",
       ctaLabel: "Review pages",
       target: "page:terms",
-      priority: 5,
+      priority: 6,
       disabled: false,
       disabledReason: null,
     };
@@ -686,7 +702,7 @@ function deriveNextAction(input: ProposalBuilderGuidanceInput): ProposalBuilderN
         "Required Builder checks are complete. Preview remains locked in this roadmap phase.",
       ctaLabel: "Preview locked",
       target: "action:preview",
-      priority: 6,
+      priority: 7,
       disabled: true,
       disabledReason: PREVIEW_ROADMAP_LOCK_COPY,
     };
@@ -698,7 +714,7 @@ function deriveNextAction(input: ProposalBuilderGuidanceInput): ProposalBuilderN
     description: "Check the Builder details before continuing.",
     ctaLabel: "Open Overview",
     target: "workspace:overview",
-    priority: 7,
+    priority: 8,
     disabled: false,
     disabledReason: null,
   };

@@ -385,7 +385,7 @@ const PROPOSAL_SELECT =
   "id, company_id, job_id, customer_id, template_id, status, current_draft_version_id, latest_sent_version_id, signed_version_id, selected_option_id, measurement_record_id, pricing_policy_id, proposal_number, title, created_by, updated_by, created_at, updated_at, archived_at, deleted_at";
 
 const PROPOSAL_SUMMARY_SELECT =
-  "id, job_id, status, title, proposal_number, template_id, latest_sent_version_id, signed_version_id, updated_at";
+  "id, job_id, status, title, proposal_number, template_id, selected_option_id, latest_sent_version_id, signed_version_id, created_at, updated_at";
 
 const MARGIN_DB_MAX = 99.9999;
 
@@ -500,10 +500,40 @@ export function rowToProposalSummary(row: ProposalRow): ProposalRecordStatusSumm
     title: row.title,
     proposal_number: row.proposal_number,
     template_id: row.template_id ?? "",
+    selected_option_id: row.selected_option_id ?? null,
     latest_sent_version_id: row.latest_sent_version_id,
     signed_version_id: row.signed_version_id,
+    created_at: row.created_at ?? null,
     updated_at: row.updated_at,
   };
+}
+
+/**
+ * Light read for Job Card draft-open summary — package/option label only.
+ * Does not load graph, pricing, or pages.
+ */
+export async function getProposalOptionLabel(
+  companyId: string,
+  optionId: string,
+  deps?: ProposalRecordStoreDeps
+): Promise<string | null> {
+  const cid = normalizeCompanyId(companyId);
+  const oid = typeof optionId === "string" ? optionId.trim() : "";
+  if (!cid || !isUuidLike(oid)) return null;
+  const { getSupabase } = resolveDeps(deps);
+  const supabase = getSupabase();
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from("proposal_options")
+    .select("name, customer_label")
+    .eq("company_id", cid)
+    .eq("id", oid)
+    .maybeSingle();
+  if (error || !data) return null;
+  const customerLabel =
+    typeof data.customer_label === "string" ? data.customer_label.trim() : "";
+  const name = typeof data.name === "string" ? data.name.trim() : "";
+  return customerLabel || name || null;
 }
 
 /** Map source_template_section_id → runtime page id after pages insert. */

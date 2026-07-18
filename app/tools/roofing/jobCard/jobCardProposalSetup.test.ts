@@ -6,8 +6,12 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
   JOB_CARD_CREATE_PROPOSAL_EXPLAINER,
+  JOB_CARD_DRAFT_FROZEN_NOTE,
   JOB_CARD_INCLUDED_REVIEW_NOTE,
+  JOB_CARD_OPEN_PROPOSAL_EXPLAINER,
+  buildJobCardDraftOpenSummary,
   buildJobCardPackageSetup,
+  formatJobCardProposalsTabStatus,
   formatReturnToJobProposalsLabel,
   resolveDefaultJobCardTemplateId,
   resolveDefaultPackageOptionId,
@@ -21,6 +25,56 @@ describe("jobCardProposalSetup", () => {
     assert.match(JOB_CARD_CREATE_PROPOSAL_EXPLAINER, /Catalog/i);
     assert.match(JOB_CARD_CREATE_PROPOSAL_EXPLAINER, /Proposal Builder/i);
     assert.doesNotMatch(JOB_CARD_CREATE_PROPOSAL_EXPLAINER, /snapshot/i);
+  });
+
+  test("open explainer does not imply selectors mutate existing draft", () => {
+    assert.match(JOB_CARD_OPEN_PROPOSAL_EXPLAINER, /existing proposal draft/i);
+    assert.match(JOB_CARD_OPEN_PROPOSAL_EXPLAINER, /do not change it/i);
+    assert.match(JOB_CARD_DRAFT_FROZEN_NOTE, /freezes/i);
+  });
+
+  test("buildJobCardDraftOpenSummary requires proposal id", () => {
+    assert.equal(buildJobCardDraftOpenSummary({ proposalId: "" }), null);
+    const summary = buildJobCardDraftOpenSummary({
+      proposalId: "61356e56-8ef8-4fb6-85b4-672f18103b98",
+      title: "Coverage basis live smoke",
+      templateName: "RAW smoke",
+      packageLabel: "Complete-source smoke option",
+      updatedAt: "2026-07-17T12:00:00.000Z",
+    });
+    assert.ok(summary);
+    assert.equal(summary?.statusLabel, "Draft saved");
+    assert.equal(summary?.packageLabel, "Complete-source smoke option");
+  });
+
+  test("formatJobCardProposalsTabStatus uses draft-open vs create vocabulary", () => {
+    assert.deepEqual(
+      formatJobCardProposalsTabStatus({
+        hasExistingDraft: true,
+        createSetupReady: true,
+        measurementHeaderLabel: "Ready for template",
+        measurementReady: true,
+      }),
+      { label: "Draft ready to open", ready: true }
+    );
+    assert.deepEqual(
+      formatJobCardProposalsTabStatus({
+        hasExistingDraft: false,
+        createSetupReady: true,
+        measurementHeaderLabel: "Ready for template",
+        measurementReady: true,
+      }),
+      { label: "Ready to create draft", ready: true }
+    );
+    assert.equal(
+      formatJobCardProposalsTabStatus({
+        hasExistingDraft: false,
+        createSetupReady: false,
+        measurementHeaderLabel: "Ready for template",
+        measurementReady: true,
+      }).label,
+      "Needs attention"
+    );
   });
 
   test("included review note steers edits to Builder / future templates", () => {

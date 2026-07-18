@@ -1,6 +1,10 @@
-import { buildFormattedAddress } from "@/app/lib/jobStore";
+import {
+  resolveJobIdentityDisplay,
+  type JobIdentityDisplay,
+} from "@/app/lib/jobIdentityDisplay";
 import type { JobRecord } from "@/app/lib/jobTypes";
 
+/** @deprecated Prefer JobIdentityDisplay from jobIdentityDisplay — kept for Job Card call sites. */
 export type JobCardIdentityDisplay = {
   displayName: string;
   phone: string;
@@ -10,22 +14,12 @@ export type JobCardIdentityDisplay = {
 };
 
 export function resolveJobCardIdentityFromRecord(job: JobRecord): JobCardIdentityDisplay {
-  const displayName =
-    (job.contact?.customer_name ?? "").trim() ||
-    (job.job_name ?? "").trim() ||
-    "New roofing job";
-  const phone = (job.contact?.customer_phone ?? "").trim();
-  const email = (job.contact?.customer_email ?? "").trim();
-  const line1 = (job.address?.line1 ?? "").trim();
-  const hasAddress = line1.length > 0;
-  const formatted = buildFormattedAddress(job.address ?? undefined);
-  const addressLine = hasAddress
-    ? formatted?.trim() ||
-      [line1, [job.address?.city, job.address?.state].filter(Boolean).join(", "), job.address?.zip]
-        .map((part) => (part ?? "").trim())
-        .filter(Boolean)
-        .join(", ")
-    : "Property details not complete";
-
-  return { displayName, phone, email, hasAddress, addressLine };
+  const identity: JobIdentityDisplay = resolveJobIdentityDisplay(job);
+  return {
+    displayName: identity.primaryLabel,
+    phone: identity.phone,
+    email: identity.email,
+    hasAddress: identity.hasAddress,
+    addressLine: identity.secondaryAddress ?? "Property details not complete",
+  };
 }

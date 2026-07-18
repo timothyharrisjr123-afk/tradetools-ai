@@ -170,6 +170,19 @@ describe("deriveProposalBuilderGuidance", () => {
     assert.match(preview.unlockSummary, /Customer preview is ready/i);
     assert.equal(send.state, "locked");
     assert.equal(send.lockedReason, "Available after Preview.");
+    assert.equal(guidance.nextAction.id, "open_customer_preview");
+    assert.equal(guidance.nextAction.ctaLabel, "Open Preview");
+    assert.equal(guidance.nextAction.target, "action:preview");
+  });
+
+  test("preview enabled prefers Open Preview over placeholder-page review", () => {
+    const guidance = deriveProposalBuilderGuidance(
+      baseInput({ previewEnabled: true, hasPlaceholderPages: true })
+    );
+
+    assert.equal(guidance.nextAction.id, "open_customer_preview");
+    assert.equal(guidance.nextAction.target, "action:preview");
+    assert.match(guidance.nextAction.description, /Empty pages/i);
   });
 
   test("preview enabled with blockers uses contractor review attention state", () => {

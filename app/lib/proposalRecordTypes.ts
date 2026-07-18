@@ -64,8 +64,11 @@ export type ProposalRecordStatusSummary = {
   title: string | null;
   proposal_number: string | null;
   template_id: string;
+  /** Live draft package pointer — used for draft-open Job Card summary. */
+  selected_option_id: string | null;
   latest_sent_version_id: string | null;
   signed_version_id: string | null;
+  created_at: string | null;
   updated_at: string;
 };
 

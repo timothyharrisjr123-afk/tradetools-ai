@@ -26,7 +26,7 @@ export const BUILDER_HEADER_WORKSPACE_KICKER = "Proposal workspace";
 
 /** Subtle note under live job context in the header. */
 export const BUILDER_HEADER_WORKSPACE_CONTEXT_NOTE =
-  "Live job context — document pages use saved draft snapshot";
+  "Same job as the Job Card — draft pages use the saved proposal snapshot";
 
 /** Standard read-only footer on customer document body pages (view mode). */
 export const BUILDER_DOCUMENT_READ_ONLY_FOOTER =

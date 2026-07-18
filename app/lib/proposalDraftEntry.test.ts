@@ -68,8 +68,10 @@ function draftSummary(
     title: "Listed draft",
     proposal_number: null,
     template_id: TEMPLATE_ID,
+    selected_option_id: null,
     latest_sent_version_id: null,
     signed_version_id: null,
+    created_at: "2026-06-06T00:00:00.000Z",
     updated_at: "2026-06-06T00:00:00.000Z",
     ...overrides,
   };

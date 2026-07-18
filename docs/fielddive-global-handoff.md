@@ -45,11 +45,11 @@
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** **`27c82cf`** — fix(proposals): align job card setup with builder draft handoff (Integrated Flow P2 correction)
-- **Docs checkpoint:** Job Card → Builder readiness/CTA correction (this header + **§6BO.13.4.9** L)
-- **Prior code:** **`e028ee5`** / **`6588dab`** Integrated Flow P2 setup card
-- **Next:** End-to-end proposal smoke/polish if needed; then Customer Preview truth pass / Send readiness when approved. Do **not** start supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
-- **Historical note:** Builder no longer false-blocks valid drafts with company “templates not ready”; Job Card has one primary Create/Open CTA and a premium setup card.
+- **Code checkpoint:** **pending this commit — fix(proposals): make builder handoff draft aware** (Builder Handoff Polish A)
+- **Docs checkpoint:** Builder Handoff Polish A (this header + **§6BO.13.4.9** M)
+- **Prior code:** **`27c82cf`** / **`0120b06`** Integrated Flow P2 correction; **`e028ee5`** / **`6588dab`** setup card
+- **Next:** Builder visual cohesion pass **or** Preview document-first truth pass (remaining gap after handoff trust). Do **not** start supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
+- **Historical note:** Job Card draft-open mode shows the draft that will open (not create selectors); shared identity uses customer name primary + address secondary across Job Card / Builder / Preview chrome.
 
 **Trust order:** Header/current checkpoint → **§6BO.13** (approved page-by-page UI flow roadmap + P0 implementation sequence — **supersedes separate Command Center language**) → **§6BM** / **§6BN** (R18 letter-phase roadmap + R18C–R18D3C implementation history) → **§6BO** / **§6BO.11** / **§6BO.12** (completed remediation side-track + **approved Stage C policy** + **operating-flow audit sequencing — complete; outcome in §6BO.13**) → **§6BL** → **§11 override**. Stage B browser smoke required local-only **`USE_PROPOSAL_SEND_FREEZE_RPC=1`** in `.env.local` (gitignored, not committed). **Do not proceed** to docs-only or next feature work unless working tree is clean. **Still do not** mutate `proposals.status = sent`, write sent `proposal_events`, move Jobs Board cards, add Job Card send activity, enable PDF/Sign/Payment, or add webhooks unless separately approved.
 
@@ -12024,7 +12024,31 @@ Was: Templates Page Redesign P2. **P2 shipped — see I.** Next: Integrated Flow
 
 **Smoke (local + live via app on `rhquhnujjnzjhweypavd`):** Babby D job `c9497cc1-…` / proposal `61356e56-…` — Builder opens Draft • Saved without false template blocker; Back to Job Card → `tab=proposals`; reuse same proposal id (no duplicate); draft left connected.
 
-**Next recommended block:** End-to-end proposal smoke/polish if needed; then Customer Preview truth pass / Send readiness when approved.
+**Next recommended block:** ~~End-to-end smoke/polish~~ → **DONE as Builder Handoff Polish A** (see **M**).
+
+##### M. Builder Handoff Polish A — draft-aware Job Card + shared identity — IMPLEMENTED (2026-07-17)
+
+**Status:** Cognitive handoff fix after P2 correction. **No migrations/SQL/package/pricing formula/Customer Preview document redesign/lifecycle enablement/supplier/material/CSV/raw/whole-rounding.**
+
+**Root cause of mismatch:** Job Card create selectors showed the live company template/package (e.g. Roof replacement / Standard) while **Open** reused an existing frozen draft from a different source (Babby: title `Coverage basis live smoke…`, template RAW_PLUS_WASTE complete-source smoke, package **Complete-source smoke option**). Builder also led with `job_name`/address while Job Card led with customer name.
+
+**Draft-aware Job Card:**
+- **No draft:** create mode — Measurement → Template → Package → Included → **Create proposal draft**
+- **Draft exists:** draft-open mode — draft status/title/source template/package/updated; frozen note; **Open proposal draft**; **no** template/package selectors implying mutation; no “Start new draft” (not supported)
+
+**Shared identity decision:** `resolveJobIdentityDisplay` — **customer name primary**, **address secondary**. Applied to Job Card setup “For …”, Builder header, Preview chrome header, return labels.
+
+**Builder entry hierarchy (light):**
+- Compact status: “Next: use Preview…”
+- Frozen snapshot helper demoted (smaller/quieter)
+- Next action prefers **Open Preview** when Preview is available
+- Guardrail “Blocked” softens to “Needs review” / “Does not block Preview…” when Preview is ready
+
+**Status vocabulary:** Draft ready to open / Ready to create draft / Needs attention / Draft saved / Review in Builder (aligned Proposals tab chip + card + list).
+
+**Smoke (local + live via app on `rhquhnujjnzjhweypavd`):** Babby D `c9497cc1-…` / proposal `61356e56-…` — draft-open mode shows Complete-source smoke option (not Standard picker); Open → same proposal; Builder + Preview identity **Babby D** / address secondary; Back → Proposals; no false templates-not-ready; no send/public/lifecycle; draft left connected.
+
+**Next recommended block:** **Builder visual cohesion pass** (workbench density vs Job Card) **or** **Preview document-first truth pass**, depending on remaining gap after handoff trust.
 
 #### 13.4.6 Integrated Catalog → Proposal workflow research + FieldDive flow design — COMPLETE (2026-07-17)
 
@@ -12219,9 +12243,9 @@ Roofr keeps this simple by: forcing Catalog-before-Template, automating qty from
 
 **Integrated Flow P2 — job-card proposal start / Compact Proposal Setup Card** — **DONE** (see **§6BO.13.4.9** K).
 
-**Next recommended coding block after Integrated Flow P2**
+**Next recommended coding block after Integrated Flow P2 / Handoff A**
 
-- Builder handoff polish if needed, or end-to-end proposal smoke/polish.
+- Builder visual cohesion pass **or** Preview document-first truth pass.
 - Then Customer Preview truth pass / Send readiness when approved.
 - **Protected:** no supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode, whole rounding unless separately approved.
 
@@ -13511,7 +13535,8 @@ Treat as **drift** if a session:
 
 ## Changelog (handoff doc only)
 
-- **2026-07-17:** **Integrated Flow P2 correction** — waived false Builder “templates not ready” when valid draft loaded; removed duplicate Create CTA; listed-draft Open label; premium setup card polish; Babby D smoke PASS (reuse `61356e56-…`). **Next:** e2e smoke/polish or Preview truth / Send readiness when approved.
+- **2026-07-17:** **Builder Handoff Polish A** — draft-aware Job Card (create vs draft-open); shared identity (customer primary / address secondary); Builder entry hierarchy + Preview next action; status vocabulary; Babby D smoke PASS (reuse `61356e56-…`). **Next:** Builder visual cohesion **or** Preview document-first truth.
+- **2026-07-17:** **Integrated Flow P2 correction** — waived false Builder “templates not ready” when valid draft loaded; removed duplicate Create CTA; listed-draft Open label; premium setup card polish; Babby D smoke PASS (reuse `61356e56-…`).
 - **2026-07-17:** **Integrated Flow P2 — Job Card Compact Proposal Setup Card** — Proposals tab Measurement → Template → Package → Included → Create/Open; create explainer; durable draft reuse; Builder back to Job Card proposals; Templates/Catalog return labels; happy path no Templates drop-off; pricing/Preview/lifecycle unchanged.
 - **2026-07-17:** **Templates Page P2B — visual tightening** — Setup complete strip when installed; compact template library; hero+package combined; Included items earlier; one trust note; Add/Replace/Remove preserved. **Next:** Integrated Flow **P2** Job Card proposal start.
 - **2026-07-17:** **Templates Page P2 — Quote Setup Review** — default Templates IA: selected hero + package selector + Included items; Add / Replace / Remove from template (store delete; Catalog untouched); Advanced settings secondary; pricing/Preview/lifecycle unchanged.

@@ -264,9 +264,13 @@ export default function ProposalBuilderSummaryRail({
   const guardrailPillKey = guardrailChecking
     ? "checking"
     : guardrailOutcome ?? "checking";
-  const guardrailMessage = guardrailRailMessage(guardrailOutcome, guardrailChecking);
   const previewAvailable =
     guidance?.lifecycleLocks?.find((lock) => lock.actionId === "preview")?.state === "ready";
+  const guardrailMessage = guardrailRailMessage(
+    guardrailOutcome,
+    guardrailChecking,
+    previewAvailable
+  );
 
   return (
     <div className={`${BUILDER_RAIL_CARD} space-y-3`}>
@@ -307,7 +311,7 @@ export default function ProposalBuilderSummaryRail({
             {BUILDER_RAIL_GUARDRAIL_LABEL}
           </p>
           <span className={guardrailOutcomePillClass(guardrailPillKey)}>
-            {guardrailRailStatusLabel(guardrailOutcome, guardrailChecking)}
+            {guardrailRailStatusLabel(guardrailOutcome, guardrailChecking, previewAvailable)}
           </span>
         </div>
         {guardrailMessage ? (

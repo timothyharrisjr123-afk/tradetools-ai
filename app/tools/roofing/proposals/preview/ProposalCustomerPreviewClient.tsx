@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { getActiveCatalogItemsByCompany } from "@/app/lib/catalogStore";
 import type { CatalogItem } from "@/app/lib/catalogTypes";
+import { resolveJobIdentityDisplay } from "@/app/lib/jobIdentityDisplay";
 import { getJobById, isUuidLike } from "@/app/lib/jobStore";
 import type { JobRecord } from "@/app/lib/jobTypes";
 import { getSelectedMeasurementForJob } from "@/app/lib/measurementStore";
@@ -172,10 +173,7 @@ export default function ProposalCustomerPreviewClient({
 
   const builderHref = buildProposalBuilderHref(normalizedJobId, normalizedProposalId);
 
-  const jobTitle =
-    (job?.job_name ?? "").trim() ||
-    (job?.contact?.customer_name ?? "").trim() ||
-    "Proposal preview";
+  const jobIdentity = resolveJobIdentityDisplay(job, "Proposal preview");
 
   return (
     <div className="space-y-6 pb-12">
@@ -192,9 +190,17 @@ export default function ProposalCustomerPreviewClient({
             <p className="mt-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
               {CUSTOMER_PREVIEW_PAGE_TITLE}
             </p>
-            <h1 className="mt-1 text-[1.65rem] font-semibold leading-tight tracking-tight text-slate-950">
-              {jobTitle}
+            <h1
+              className="mt-1 text-[1.65rem] font-semibold leading-tight tracking-tight text-slate-950"
+              data-preview-job-primary-identity
+            >
+              {jobIdentity.primaryLabel}
             </h1>
+            {jobIdentity.secondaryAddress ? (
+              <p className="mt-1 text-sm text-slate-600" data-preview-job-secondary-identity>
+                {jobIdentity.secondaryAddress}
+              </p>
+            ) : null}
             <p className="mt-2 text-sm text-slate-600">{CUSTOMER_PREVIEW_DRAFT_NOTICE}</p>
           </div>
         </div>

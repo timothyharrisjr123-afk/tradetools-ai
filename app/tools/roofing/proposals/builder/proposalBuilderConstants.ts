@@ -30,11 +30,15 @@ export const BUILDER_READ_ONLY_ALERT_BODY =
 
 /** 3J4B tightening — condensed body for the compact read-only notice. */
 export const BUILDER_READ_ONLY_ALERT_COMPACT_BODY =
-  "Saved drafts: use Preview in the header for contractor customer preview. Send, Sign, Payment, PDF, and public customer sharing are not enabled.";
+  "Next: use Preview in the header to review the customer view. Send and sharing stay locked.";
 
 /** 3J4B tightening — setup path without a saved draft yet. */
 export const BUILDER_READ_ONLY_ALERT_COMPACT_BODY_SETUP =
-  "Setup preview only — save a draft proposal to open Customer Preview. Send, Sign, Payment, PDF, and public customer sharing are not enabled.";
+  "Setup preview only — save a draft to unlock Preview. Send and sharing stay locked.";
+
+/** Soft helper under entry chrome — demoted vs action banners. */
+export const BUILDER_SNAPSHOT_FROZEN_HELPER_CLASS =
+  "text-[11px] leading-snug text-slate-400";
 
 /** 3J4A — full-width page context strip shell (R16C1: no overflow — menu portals to body). */
 export const BUILDER_PAGE_STRIP =
@@ -455,6 +459,10 @@ export const BUILDER_GUARDRAIL_MESSAGE_WARN = "Review before send.";
 
 export const BUILDER_GUARDRAIL_MESSAGE_BLOCK = "Resolve blocking issues first.";
 
+/** When Preview is available, guardrail block must not feel louder than next action. */
+export const BUILDER_GUARDRAIL_MESSAGE_BLOCK_PREVIEW_OK =
+  "Does not block Preview. Resolve before send.";
+
 export const BUILDER_GUARDRAIL_MESSAGE_CHECKING = "Checking…";
 
 export const BUILDER_RAIL_ACTIONS_NOTE =
@@ -499,14 +507,17 @@ export function guardrailOutcomePillClass(
 /** Status-only guardrail helper copy — omitted on pass to keep the row compact (3I-3D1). */
 export function guardrailRailMessage(
   outcome: "pass" | "warn" | "block" | null,
-  checking: boolean
+  checking: boolean,
+  previewAvailable = false
 ): string | null {
   if (checking) return BUILDER_GUARDRAIL_MESSAGE_CHECKING;
   switch (outcome) {
     case "warn":
       return BUILDER_GUARDRAIL_MESSAGE_WARN;
     case "block":
-      return BUILDER_GUARDRAIL_MESSAGE_BLOCK;
+      return previewAvailable
+        ? BUILDER_GUARDRAIL_MESSAGE_BLOCK_PREVIEW_OK
+        : BUILDER_GUARDRAIL_MESSAGE_BLOCK;
     default:
       return null;
   }
@@ -514,10 +525,12 @@ export function guardrailRailMessage(
 
 export function guardrailRailStatusLabel(
   outcome: "pass" | "warn" | "block" | null,
-  checking: boolean
+  checking: boolean,
+  previewAvailable = false
 ): string {
   if (checking) return BUILDER_GUARDRAIL_STATUS_CHECKING;
   if (outcome == null) return BUILDER_GUARDRAIL_STATUS_CHECKING;
+  if (outcome === "block" && previewAvailable) return "Needs review";
   return formatGuardrailOutcomeLabel(outcome);
 }
 
