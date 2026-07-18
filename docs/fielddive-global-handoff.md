@@ -45,8 +45,8 @@
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** **`(commit pending)`** — fix(proposals): scope builder package picker to draft options (Builder package selection truth)
-- **Docs checkpoint:** Builder package selection truth (this header + **§6BO.13.4.9** N)
+- **Code checkpoint:** **`05131f6`** — fix(proposals): scope builder package picker to draft options (Builder package selection truth)
+- **Docs checkpoint:** Builder package selection truth pin (this header + **§6BO.13.4.9** N)
 - **Prior code:** **`1f08c53`** / **`dccf72a`** Builder Handoff Polish A; **`27c82cf`** / **`0120b06`** Integrated Flow P2 correction
 - **Next:** Builder visual cohesion pass **or** Preview document-first truth pass. Do **not** start “Start new draft,” template rebuild/import of live options into existing drafts, supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
 - **Historical note:** Builder package picker is draft-option scoped; one-option drafts hide Change package; Job Card draft-open shows the draft package (not live selectors).
