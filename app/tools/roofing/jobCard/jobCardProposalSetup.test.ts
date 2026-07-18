@@ -5,6 +5,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
+  JOB_CARD_CREATE_ANOTHER_EXPLAINER,
   JOB_CARD_CREATE_PROPOSAL_EXPLAINER,
   JOB_CARD_DRAFT_FROZEN_NOTE,
   JOB_CARD_DRAFT_PACKAGE_CHANGE_NOTE,
@@ -14,6 +15,7 @@ import {
   buildJobCardPackageSetup,
   formatJobCardProposalsTabStatus,
   formatReturnToJobProposalsLabel,
+  looksLikeInternalDraftTitle,
   resolveDefaultJobCardTemplateId,
   resolveDefaultPackageOptionId,
   sanitizeSetupReturnLabel,
@@ -33,6 +35,24 @@ describe("jobCardProposalSetup", () => {
     assert.match(JOB_CARD_OPEN_PROPOSAL_EXPLAINER, /do not change it/i);
     assert.match(JOB_CARD_DRAFT_FROZEN_NOTE, /freezes/i);
     assert.match(JOB_CARD_DRAFT_PACKAGE_CHANGE_NOTE, /Package changes happen in Builder/);
+    assert.match(JOB_CARD_CREATE_ANOTHER_EXPLAINER, /separate draft/i);
+    assert.match(JOB_CARD_CREATE_ANOTHER_EXPLAINER, /not changed/i);
+  });
+
+  test("looksLikeInternalDraftTitle flags smoke/test titles", () => {
+    assert.equal(looksLikeInternalDraftTitle("Coverage basis live smoke"), true);
+    assert.equal(looksLikeInternalDraftTitle("Roof replacement"), false);
+  });
+
+  test("formatJobCardProposalsTabStatus mentions create another when ready", () => {
+    const status = formatJobCardProposalsTabStatus({
+      hasExistingDraft: true,
+      createSetupReady: true,
+      measurementHeaderLabel: "Ready",
+      measurementReady: true,
+    });
+    assert.match(status.label, /create another/i);
+    assert.equal(status.ready, true);
   });
 
   test("buildJobCardDraftOpenSummary requires proposal id", () => {
@@ -54,6 +74,15 @@ describe("jobCardProposalSetup", () => {
       formatJobCardProposalsTabStatus({
         hasExistingDraft: true,
         createSetupReady: true,
+        measurementHeaderLabel: "Ready for template",
+        measurementReady: true,
+      }),
+      { label: "Draft ready · can create another", ready: true }
+    );
+    assert.deepEqual(
+      formatJobCardProposalsTabStatus({
+        hasExistingDraft: true,
+        createSetupReady: false,
         measurementHeaderLabel: "Ready for template",
         measurementReady: true,
       }),

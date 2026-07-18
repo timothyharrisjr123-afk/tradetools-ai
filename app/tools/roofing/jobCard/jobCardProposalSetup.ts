@@ -25,9 +25,15 @@ import {
 export const JOB_CARD_CREATE_PROPOSAL_EXPLAINER =
   "Creates a draft from this job’s measurements, the selected template, and Catalog pricing. You’ll review it in Proposal Builder before sending." as const;
 
-/** Explainer when a draft already exists — Open does not use create selectors. */
+/** Explainer when opening an existing draft — Open does not use create selectors. */
 export const JOB_CARD_OPEN_PROPOSAL_EXPLAINER =
-  "Opens this job’s existing proposal draft in Builder. Source details below describe the draft already created — they do not change it." as const;
+  "Opens this job’s existing proposal draft in Builder. Details below describe the draft already created — they do not change it." as const;
+
+/** Create-another explainer — selectors create a separate draft. */
+export const JOB_CARD_CREATE_ANOTHER_EXPLAINER =
+  "This creates a separate draft. Existing drafts are not changed." as const;
+
+export const JOB_CARD_CREATE_ANOTHER_HEADLINE = "Create another proposal" as const;
 
 export const JOB_CARD_DRAFT_FROZEN_NOTE =
   "This draft freezes Catalog pricing and template structure from create/refresh. Open Builder to review or refresh draft pricing." as const;
@@ -38,7 +44,26 @@ export { JOB_CARD_DRAFT_PACKAGE_CHANGE_NOTE } from "@/app/lib/proposalBuilderDra
 export const JOB_CARD_INCLUDED_REVIEW_NOTE =
   "Template changes affect future proposals. For this job, create the draft and make final review in Builder." as const;
 
-export type JobCardProposalSetupMode = "create" | "draft_open";
+export const JOB_CARD_EXISTING_DRAFT_INTERNAL_NOTE =
+  "Existing draft data — title may be from an earlier smoke or test run." as const;
+
+export type JobCardProposalSetupMode = "create" | "draft_open" | "open_and_create";
+
+/** True when a draft title looks like internal/smoke/test data (not a rename UI). */
+export function looksLikeInternalDraftTitle(
+  title: string | null | undefined
+): boolean {
+  const t = (title ?? "").trim().toLowerCase();
+  if (!t) return false;
+  return (
+    t.includes("smoke") ||
+    t.includes("test") ||
+    t.includes("dev ") ||
+    t.startsWith("dev") ||
+    t.includes("raw_plus_waste") ||
+    t.includes("complete-source")
+  );
+}
 
 /** Draft facts shown in draft-open mode (Job Card Proposals). */
 export type JobCardDraftOpenSummary = {
@@ -69,13 +94,16 @@ export function buildJobCardDraftOpenSummary(input: {
   };
 }
 
-/** Proposals tab header chip — draft-open vs create-ready vocabulary. */
+/** Proposals tab header chip — open / create-ready vocabulary. */
 export function formatJobCardProposalsTabStatus(input: {
   hasExistingDraft: boolean;
   createSetupReady: boolean;
   measurementHeaderLabel: string;
   measurementReady: boolean;
 }): { label: string; ready: boolean } {
+  if (input.hasExistingDraft && input.createSetupReady) {
+    return { label: "Draft ready · can create another", ready: true };
+  }
   if (input.hasExistingDraft) {
     return { label: "Draft ready to open", ready: true };
   }

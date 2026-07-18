@@ -125,14 +125,12 @@ import {
   resolveJobCardProposalActivityLine,
 } from "@/app/lib/proposalBuilderReadiness";
 import {
+  createNewProposalDraftEntry,
   resolveOrCreateProposalDraftEntry,
   isExpectedProposalDraftEntryFailure,
   type ResolveOrCreateProposalDraftEntryReason,
 } from "@/app/lib/proposalDraftEntry";
-import {
-  deriveProposalSetupChecklist,
-  isProposalHeaderLaunchEnabled,
-} from "@/app/lib/proposalSetupChecklist";
+import { deriveProposalSetupChecklist } from "@/app/lib/proposalSetupChecklist";
 import { getResolvedCompanyPricingPolicy } from "@/app/lib/companyPricingPolicyStore";
 import {
   createDraftProposal,
@@ -1117,6 +1115,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
   const [proposalLaunchReason, setProposalLaunchReason] =
     useState<ResolveOrCreateProposalDraftEntryReason | null>(null);
   const [isLaunchingProposal, setIsLaunchingProposal] = useState(false);
+  const [isCreatingNewProposal, setIsCreatingNewProposal] = useState(false);
   const proposalLaunchInFlightRef = useRef(false);
   const measurementSaveInFlightRef = useRef<string | null>(null);
   const measurementFormHydratedRef = useRef<string | null>(null);
@@ -1127,6 +1126,9 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
   const [listedJobDraftProposalId, setListedJobDraftProposalId] = useState<string | null>(null);
   const [listedJobDraftSummary, setListedJobDraftSummary] =
     useState<ProposalRecordStatusSummary | null>(null);
+  const [listedJobDraftSummaries, setListedJobDraftSummaries] = useState<
+    ProposalRecordStatusSummary[]
+  >([]);
   const [listedJobDraftPackageLabel, setListedJobDraftPackageLabel] = useState<string | null>(
     null
   );
@@ -1979,6 +1981,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
     if (entryMode !== "job-card") {
       setListedJobDraftProposalId(null);
       setListedJobDraftSummary(null);
+      setListedJobDraftSummaries([]);
       setListedJobDraftPackageLabel(null);
       listedDraftFetchInFlightRef.current = null;
       return;
@@ -1989,6 +1992,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
     if (!cid || !isUuidLike(cid) || !jid || !isUuidLike(jid)) {
       setListedJobDraftProposalId(null);
       setListedJobDraftSummary(null);
+      setListedJobDraftSummaries([]);
       setListedJobDraftPackageLabel(null);
       listedDraftFetchInFlightRef.current = null;
       return;
@@ -2004,9 +2008,21 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
       try {
         const summaries = await listProposalsForJob(cid, jid);
         if (listedDraftFetchInFlightRef.current !== fetchKey) return;
-        const draft = summaries.find(
+        const drafts = summaries.filter(
           (row) => row.status === "draft" && isUuidLike(row.id)
         );
+        setListedJobDraftSummaries(drafts);
+        const activeId =
+          hydratedJobRecord?.active_proposal_id &&
+          isUuidLike(hydratedJobRecord.active_proposal_id)
+            ? hydratedJobRecord.active_proposal_id
+            : null;
+        const draft =
+          (activeId
+            ? drafts.find((row) => row.id === activeId)
+            : null) ??
+          drafts[0] ??
+          null;
         setListedJobDraftProposalId(draft?.id ?? null);
         setListedJobDraftSummary(draft ?? null);
         if (draft?.selected_option_id && isUuidLike(draft.selected_option_id)) {
@@ -2021,10 +2037,18 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
         if (listedDraftFetchInFlightRef.current !== fetchKey) return;
         setListedJobDraftProposalId(null);
         setListedJobDraftSummary(null);
+        setListedJobDraftSummaries([]);
         setListedJobDraftPackageLabel(null);
       }
     })();
-  }, [entryMode, companyId, currentJobId, loadSavedId, restoreTick]);
+  }, [
+    entryMode,
+    companyId,
+    currentJobId,
+    loadSavedId,
+    restoreTick,
+    hydratedJobRecord?.active_proposal_id,
+  ]);
 
   const buildJobCardCustomerAddressLine = useCallback((): string => {
     return (
@@ -7373,9 +7397,6 @@ Thanks,`;
       (listedJobDraftProposalId && isUuidLike(listedJobDraftProposalId)
         ? listedJobDraftProposalId
         : null);
-    const proposalDocumentStatusLabel = jobCardActiveProposalId
-      ? "Draft saved"
-      : "No proposal yet";
     const proposalBuilderReadiness = deriveProposalBuilderReadiness({
       jobIdParam: currentJobId,
       job:
@@ -7501,11 +7522,6 @@ Thanks,`;
           })
         : null;
 
-    const proposalHeaderLaunchEnabled = isProposalHeaderLaunchEnabled(
-      proposalSetupChecklist,
-      { createBlockedOnBoard: proposalCreateBlockedOnBoard }
-    );
-
     const proposalTemplateStatusLabel = (() => {
       const templateName = (starterTemplateGraph?.template.name ?? "").trim();
       if (templateName) return templateName;
@@ -7515,14 +7531,95 @@ Thanks,`;
       return "Not selected";
     })();
 
-    const handleLaunchProposalDraft = () => {
+    const createNewDraftEnabled =
+      proposalDraftCreatePayload != null &&
+      !proposalCreateBlockedOnBoard &&
+      jobCardPackageSetup.selected != null &&
+      (jobCardPackageSetup.selected.issueCount ?? 0) === 0;
+
+    /** Always create a distinct draft — never reuses active/listed drafts. */
+    const handleCreateNewProposalDraft = () => {
       if (proposalLaunchInFlightRef.current) return;
-      if (!proposalHeaderLaunchEnabled) return;
+      if (!createNewDraftEnabled) return;
       void (async () => {
         if (!currentJobId) return;
         const cid = (companyId ?? "").trim();
         if (!cid) return;
         if (isBoardOrigin && proposalDraftCreatePayload == null) return;
+
+        proposalLaunchInFlightRef.current = true;
+        setIsCreatingNewProposal(true);
+        setIsLaunchingProposal(true);
+        setProposalLaunchError(null);
+        setProposalLaunchReason(null);
+
+        try {
+          const result = await createNewProposalDraftEntry(
+            {
+              companyId: cid,
+              jobId: currentJobId,
+              createPayload: proposalDraftCreatePayload,
+              routeHints: productSpineRouteHintsFromSearchParams(
+                "/tools/roofing",
+                searchParams
+              ),
+            },
+            { createDraftProposal }
+          );
+
+          if (result.proposalId && result.created) {
+            setListedJobDraftProposalId(result.proposalId);
+            await refreshHydratedJobRecord(currentJobId);
+            try {
+              const summaries = await listProposalsForJob(cid, currentJobId);
+              const drafts = summaries.filter(
+                (row) => row.status === "draft" && isUuidLike(row.id)
+              );
+              setListedJobDraftSummaries(drafts);
+              const active = drafts.find((row) => row.id === result.proposalId) ?? null;
+              setListedJobDraftSummary(active);
+              if (active?.selected_option_id && isUuidLike(active.selected_option_id)) {
+                setListedJobDraftPackageLabel(
+                  await getProposalOptionLabel(cid, active.selected_option_id)
+                );
+              }
+            } catch {
+              // list refresh is best-effort; navigation still proceeds
+            }
+            router.push(buildProposalBuilderHref(currentJobId, result.proposalId));
+            return;
+          }
+
+          if (result.errorMessage) {
+            setProposalLaunchError(result.errorMessage);
+            setProposalLaunchReason(result.reason);
+            if (!isExpectedProposalDraftEntryFailure(result.reason)) {
+              console.error(
+                "[RoofingClient] create new proposal draft failed:",
+                result.reason,
+                result.errorMessage
+              );
+            }
+          }
+        } finally {
+          proposalLaunchInFlightRef.current = false;
+          setIsCreatingNewProposal(false);
+          setIsLaunchingProposal(false);
+        }
+      })();
+    };
+
+    /** Open existing draft (reuse). Does not create when a draft exists. */
+    const handleLaunchProposalDraft = () => {
+      if (proposalLaunchInFlightRef.current) return;
+      if (!jobCardActiveProposalId) {
+        handleCreateNewProposalDraft();
+        return;
+      }
+      void (async () => {
+        if (!currentJobId) return;
+        const cid = (companyId ?? "").trim();
+        if (!cid) return;
 
         proposalLaunchInFlightRef.current = true;
         setIsLaunchingProposal(true);
@@ -7535,7 +7632,7 @@ Thanks,`;
               companyId: cid,
               jobId: currentJobId,
               activeProposalId: jobCardActiveProposalId,
-              createPayload: proposalDraftCreatePayload,
+              createPayload: null,
               routeHints: productSpineRouteHintsFromSearchParams(
                 "/tools/roofing",
                 searchParams
@@ -7560,7 +7657,7 @@ Thanks,`;
             setProposalLaunchReason(result.reason);
             if (!isExpectedProposalDraftEntryFailure(result.reason)) {
               console.error(
-                "[RoofingClient] proposal draft entry failed:",
+                "[RoofingClient] proposal draft open failed:",
                 result.reason,
                 result.errorMessage
               );
@@ -8200,8 +8297,9 @@ Thanks,`;
                     packageSetup={jobCardPackageSetup}
                     onSelectPackage={setJobCardSelectedPackageOptionId}
                     checklist={proposalSetupChecklist}
-                    createEnabled={proposalHeaderLaunchEnabled}
-                    isLaunching={isLaunchingProposal}
+                    createEnabled={createNewDraftEnabled}
+                    isLaunching={isLaunchingProposal && !isCreatingNewProposal}
+                    isCreatingNew={isCreatingNewProposal}
                     launchError={proposalLaunchError}
                     hasExistingDraft={Boolean(jobCardActiveProposalId)}
                     draftOpenSummary={jobCardDraftOpenSummary}
@@ -8211,6 +8309,7 @@ Thanks,`;
                     onNavigate={router.push}
                     onNormalizeJobCard={handleNormalizeAndOpenJobCard}
                     onCreateOrOpen={handleLaunchProposalDraft}
+                    onCreateNewDraft={handleCreateNewProposalDraft}
                     onOpenBuilder={(href) => router.push(href)}
                   />
                   <JobCardProposalsSetupLinks
@@ -8225,15 +8324,52 @@ Thanks,`;
                   />
                   <div data-jobcard-proposal-list>
                     <WorkspaceHeading>Proposals for this job</WorkspaceHeading>
-                    {jobCardActiveProposalId ? (
-                      <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2.5">
-                        <p className="text-sm font-medium text-slate-800">
-                          Draft saved
-                        </p>
-                        <p className="mt-0.5 text-xs text-slate-600">
-                          {proposalDocumentStatusLabel}. Use Open proposal draft above to review in
-                          Builder.
-                        </p>
+                    {listedJobDraftSummaries.length > 0 ? (
+                      <div className="space-y-2">
+                        {listedJobDraftSummaries.map((row) => {
+                          const isActive = row.id === jobCardActiveProposalId;
+                          const title =
+                            (row.title ?? "").trim() || "Untitled proposal draft";
+                          return (
+                            <div
+                              key={row.id}
+                              className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2.5"
+                              data-jobcard-proposal-list-row
+                              data-proposal-id={row.id}
+                              data-active-draft={isActive ? "true" : "false"}
+                            >
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-medium text-slate-800">
+                                  {title}
+                                  {isActive ? (
+                                    <span className="ml-1.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
+                                      Current
+                                    </span>
+                                  ) : null}
+                                </p>
+                                <p className="mt-0.5 text-xs text-slate-600">
+                                  Draft saved
+                                  {row.updated_at
+                                    ? ` · ${new Date(row.updated_at).toLocaleString()}`
+                                    : ""}
+                                </p>
+                              </div>
+                              {currentJobId ? (
+                                <button
+                                  type="button"
+                                  className="shrink-0 text-[11px] font-semibold text-cyan-700 hover:text-cyan-900"
+                                  onClick={() =>
+                                    router.push(
+                                      buildProposalBuilderHref(currentJobId, row.id)
+                                    )
+                                  }
+                                >
+                                  Open
+                                </button>
+                              ) : null}
+                            </div>
+                          );
+                        })}
                       </div>
                     ) : (
                       <PlaceholderBox

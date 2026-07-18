@@ -13,15 +13,18 @@ import type { ProposalRecord, ProposalRecordStatusSummary } from "./proposalReco
 import { ProposalSnapshotGuardError } from "./proposalSnapshotStatusMapper";
 import {
   PROPOSAL_DRAFT_UNCONFIGURED_POLICY_MESSAGE,
+  createNewProposalDraftEntry,
   isExpectedProposalDraftEntryFailure,
   resolveProposalLaunchBlockerActions,
   resolveOrCreateProposalDraftEntry,
   resolveProposalDraftEntry,
   validateProposalDraftCreatePayload,
+  type CreateNewProposalDraftEntryDeps,
   type ProposalDraftCreatePayload,
   type ProposalDraftEntryDeps,
   type ResolveOrCreateProposalDraftEntryDeps,
 } from "./proposalDraftEntry";
+const NEW_DRAFT_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 
 const COMPANY_ID = "11111111-1111-4111-8111-111111111111";
 const JOB_ID = "22222222-2222-4222-8222-222222222222";
@@ -624,5 +627,81 @@ describe("resolveOrCreateProposalDraftEntry", () => {
     );
     assert.equal(createCalls, 0);
     assert.equal(result.reason, "legacy_spine_blocked");
+  });
+});
+
+describe("createNewProposalDraftEntry", () => {
+  test("creates a distinct draft even when an active draft exists", async () => {
+    let createCalls = 0;
+    const deps: CreateNewProposalDraftEntryDeps = {
+      createDraftProposal: async (input) => {
+        createCalls += 1;
+        assert.equal(input.company_id, COMPANY_ID);
+        assert.equal(input.job_id, JOB_ID);
+        assert.equal(input.template_id, TEMPLATE_ID);
+        return {
+          proposal: draftProposal({ id: NEW_DRAFT_ID }),
+          versionId: "77777777-7777-4777-8777-777777777777",
+          selectedOptionId: null,
+          writeSteps: [],
+        };
+      },
+    };
+    const result = await createNewProposalDraftEntry(
+      {
+        companyId: COMPANY_ID,
+        jobId: JOB_ID,
+        createPayload: readyCreatePayload(),
+      },
+      deps
+    );
+    assert.equal(createCalls, 1);
+    assert.equal(result.created, true);
+    assert.equal(result.proposalId, NEW_DRAFT_ID);
+    assert.equal(result.reason, "created_draft");
+    assert.notEqual(result.proposalId, PROPOSAL_ID);
+  });
+
+  test("does not call list/reuse — create-only deps surface", async () => {
+    const deps: CreateNewProposalDraftEntryDeps = {
+      createDraftProposal: async () => ({
+        proposal: draftProposal({ id: NEW_DRAFT_ID }),
+        versionId: "77777777-7777-4777-8777-777777777777",
+        selectedOptionId: null,
+        writeSteps: [],
+      }),
+    };
+    assert.equal("listProposalsForJob" in deps, false);
+    assert.equal("getProposalById" in deps, false);
+    const result = await createNewProposalDraftEntry(
+      {
+        companyId: COMPANY_ID,
+        jobId: JOB_ID,
+        createPayload: readyCreatePayload(),
+      },
+      deps
+    );
+    assert.equal(result.created, true);
+  });
+
+  test("requires create payload", async () => {
+    let createCalls = 0;
+    const deps: CreateNewProposalDraftEntryDeps = {
+      createDraftProposal: async () => {
+        createCalls += 1;
+        throw new Error("must not create");
+      },
+    };
+    const result = await createNewProposalDraftEntry(
+      {
+        companyId: COMPANY_ID,
+        jobId: JOB_ID,
+        createPayload: null,
+      },
+      deps
+    );
+    assert.equal(createCalls, 0);
+    assert.equal(result.created, false);
+    assert.equal(result.reason, "db_identity_not_ready");
   });
 });

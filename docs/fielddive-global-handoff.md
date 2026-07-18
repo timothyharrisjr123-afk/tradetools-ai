@@ -45,11 +45,11 @@
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** **`05131f6`** — fix(proposals): scope builder package picker to draft options (Builder package selection truth)
-- **Docs checkpoint:** Builder package selection truth pin (this header + **§6BO.13.4.9** N)
-- **Prior code:** **`1f08c53`** / **`dccf72a`** Builder Handoff Polish A; **`27c82cf`** / **`0120b06`** Integrated Flow P2 correction
-- **Next:** Builder visual cohesion pass **or** Preview document-first truth pass. Do **not** start “Start new draft,” template rebuild/import of live options into existing drafts, supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
-- **Historical note:** Builder package picker is draft-option scoped; one-option drafts hide Change package; Job Card draft-open shows the draft package (not live selectors).
+- **Code checkpoint:** **`(commit pending)`** — feat(proposals): restore job card create flow with existing drafts
+- **Docs checkpoint:** Job Card open + create-new (this header + **§6BO.13.4.9** O)
+- **Prior code:** **`05131f6`** / **`2d9f8b1`** Builder package selection truth; **`1f08c53`** / **`dccf72a`** Builder Handoff Polish A
+- **Next:** Builder visual cohesion pass **or** Preview document-first truth pass. Do **not** add full proposal management, template rebuild/import of live options into existing drafts, supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
+- **Historical note:** Job Card Proposals shows existing draft **and** create-another (force-create distinct draft). Builder package picker remains draft-option scoped.
 
 **Trust order:** Header/current checkpoint → **§6BO.13** (approved page-by-page UI flow roadmap + P0 implementation sequence — **supersedes separate Command Center language**) → **§6BM** / **§6BN** (R18 letter-phase roadmap + R18C–R18D3C implementation history) → **§6BO** / **§6BO.11** / **§6BO.12** (completed remediation side-track + **approved Stage C policy** + **operating-flow audit sequencing — complete; outcome in §6BO.13**) → **§6BL** → **§11 override**. Stage B browser smoke required local-only **`USE_PROPOSAL_SEND_FREEZE_RPC=1`** in `.env.local` (gitignored, not committed). **Do not proceed** to docs-only or next feature work unless working tree is clean. **Still do not** mutate `proposals.status = sent`, write sent `proposal_events`, move Jobs Board cards, add Job Card send activity, enable PDF/Sign/Payment, or add webhooks unless separately approved.
 
@@ -12075,7 +12075,29 @@ Was: Templates Page Redesign P2. **P2 shipped — see I.** Next: Integrated Flow
 - Multi-option `9cd2c4ac-…` / `368dcbf1-…`: Change package → Standard / Enhanced / Premium only; switched Standard → Preview showed Standard; **reverted to Enhanced** (audit leave-as)
 - No send/public/lifecycle/supplier/material/CSV actions
 
-**Next recommended block:** **Builder visual cohesion pass** (workbench density vs Job Card) **or** **Preview document-first truth pass**.
+**Next recommended block:** ~~Job Card create flow restore~~ → **DONE** (see **O**).
+
+##### O. Job Card Proposals create flow restore + existing draft handling — IMPLEMENTED (2026-07-17)
+
+**Status:** Existing draft no longer blocks create-new. Force-create path adds a distinct draft. **No migrations/SQL/package files/pricing formula/Customer Preview redesign/lifecycle/supplier/material/CSV/raw/whole-rounding. No full proposal management system.**
+
+**Root cause:** Draft-aware Job Card overcorrected — `hasExistingDraft` hid create selectors; `resolveOrCreateProposalDraftEntry` always reused active/listed draft. Contractors with a wrong smoke draft (Babby) were trapped.
+
+**Architecture decision:**
+- Keep `resolveOrCreateProposalDraftEntry` for **Open existing** (reuse)
+- Add `createNewProposalDraftEntry` for **Create new** — always calls `createDraftProposal` (sets `jobs.active_proposal_id` to the new id; never reuses)
+- Store already supports many proposals per job; UI now exposes force-create
+
+**Job Card Proposals UI:**
+- **Existing draft** card — title, package, status, updated, Open in Builder (no live selectors mutating that draft)
+- **Create another proposal** card — template/package/included + “This creates a separate draft. Existing drafts are not changed.”
+- Bottom list can show multiple drafts with Open; Current marks active
+
+**Builder package rule preserved:** Job Card chooses package before create; Builder switches among draft options after; one-option drafts still hide Change package.
+
+**Smoke (Babby D on `rhquhnujjnzjhweypavd`):** Proposals tab `open_and_create` — existing smoke draft card + create-another with Roof replacement Standard/Enhanced/Premium; multi-draft list shows prior drafts including `61356e56-…` as Current; force-create API covered by unit tests. Live create click optional / deferred after UI verify; no send/lifecycle.
+
+**Next recommended block:** **Builder visual cohesion pass** **or** **Preview document-first truth pass**.
 
 #### 13.4.6 Integrated Catalog → Proposal workflow research + FieldDive flow design — COMPLETE (2026-07-17)
 
@@ -13562,7 +13584,8 @@ Treat as **drift** if a session:
 
 ## Changelog (handoff doc only)
 
-- **2026-07-17:** **Builder package selection truth** — draft-scoped Builder package picker; one-option drafts hide Change package; multi-option switches among saved draft options only; Job Card draft-open package-change note; no Start new draft / live-template import. **Next:** Builder visual cohesion **or** Preview document-first truth.
+- **2026-07-17:** **Job Card create flow restore** — existing draft + create-another; `createNewProposalDraftEntry` force-creates distinct draft; multi-draft list; Builder package truth preserved. **Next:** Builder visual cohesion **or** Preview document-first truth.
+- **2026-07-17:** **Builder package selection truth** — draft-scoped Builder package picker; one-option drafts hide Change package; multi-option switches among saved draft options only; Job Card draft-open package-change note; no live-template import. **Next:** Job Card create flow restore (now **O**).
 - **2026-07-17:** **Builder Handoff Polish A** — draft-aware Job Card (create vs draft-open); shared identity (customer primary / address secondary); Builder entry hierarchy + Preview next action; status vocabulary; Babby D smoke PASS (reuse `61356e56-…`). **Next:** Builder package selection truth (now **N**).
 - **2026-07-17:** **Integrated Flow P2 correction** — waived false Builder “templates not ready” when valid draft loaded; removed duplicate Create CTA; listed-draft Open label; premium setup card polish; Babby D smoke PASS (reuse `61356e56-…`).
 - **2026-07-17:** **Integrated Flow P2 — Job Card Compact Proposal Setup Card** — Proposals tab Measurement → Template → Package → Included → Create/Open; create explainer; durable draft reuse; Builder back to Job Card proposals; Templates/Catalog return labels; happy path no Templates drop-off; pricing/Preview/lifecycle unchanged.

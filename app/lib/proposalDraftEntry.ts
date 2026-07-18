@@ -3,6 +3,7 @@
  *
  * 3J3B: resolveProposalDraftEntry — read-only active draft validation.
  * 3J3C: resolveOrCreateProposalDraftEntry — reuse active/listed draft or create once.
+ * 3J3D: createNewProposalDraftEntry — always create a distinct draft (bypass reuse).
  */
 
 import { isUuidLike } from "@/app/lib/jobStore";
@@ -109,6 +110,21 @@ export type ResolveOrCreateProposalDraftEntryDeps = ProposalDraftEntryDeps & {
   createDraftProposal: (
     input: CreateDraftProposalInput
   ) => Promise<CreateDraftProposalResult>;
+};
+
+/** Force-create path — never lists or reuses existing drafts. */
+export type CreateNewProposalDraftEntryDeps = {
+  createDraftProposal: (
+    input: CreateDraftProposalInput
+  ) => Promise<CreateDraftProposalResult>;
+};
+
+export type CreateNewProposalDraftEntryInput = {
+  companyId: string;
+  jobId: string;
+  createPayload: ProposalDraftCreatePayload | null | undefined;
+  /** Explicit route/query hints for DB vs legacy spine guardrails. */
+  routeHints?: ProductSpineRouteHints | null;
 };
 
 export const PROPOSAL_DRAFT_UNCONFIGURED_POLICY_MESSAGE =
@@ -513,9 +529,119 @@ export async function resolveProposalDraftEntry(
   };
 }
 
+async function createDraftFromValidatedPayload(
+  companyId: string,
+  jobId: string,
+  payload: ProposalDraftCreatePayload,
+  createDraftProposal: CreateNewProposalDraftEntryDeps["createDraftProposal"],
+  logLabel: string
+): Promise<ResolveOrCreateProposalDraftEntryResult> {
+  try {
+    const created = await createDraftProposal({
+      company_id: companyId,
+      job_id: jobId,
+      template_id: payload.template_id,
+      customer_id: payload.customer_id,
+      measurement_record_id: payload.measurement_record_id,
+      quantity_context: payload.quantity_context,
+      selected_template_option_id: payload.selected_template_option_id ?? null,
+      title: payload.title ?? null,
+      created_by: payload.created_by ?? null,
+      context: payload.context,
+    });
+
+    const proposalId = normalizeId(created.proposal.id);
+    if (!proposalId) {
+      return {
+        proposalId: null,
+        created: false,
+        reason: "create_failed",
+        errorMessage: "Proposal draft was created but returned an invalid id.",
+      };
+    }
+
+    return {
+      proposalId,
+      created: true,
+      reason: "created_draft",
+      errorMessage: null,
+    };
+  } catch (error) {
+    const mapped = mapCreateFailureMessage(error);
+    if (!isExpectedProposalDraftEntryFailure(mapped.reason)) {
+      console.error(`[${logLabel}] create failed:`, error);
+    }
+    return {
+      proposalId: null,
+      created: false,
+      reason: mapped.reason,
+      errorMessage: mapped.message,
+    };
+  }
+}
+
+/**
+ * Always create a distinct proposal draft for the job.
+ * Does not reuse active_proposal_id or listed drafts.
+ * createDraftProposal updates jobs.active_proposal_id to the new draft.
+ */
+export async function createNewProposalDraftEntry(
+  input: CreateNewProposalDraftEntryInput,
+  deps: CreateNewProposalDraftEntryDeps
+): Promise<ResolveOrCreateProposalDraftEntryResult> {
+  const companyId = normalizeId(input.companyId);
+  const jobId = normalizeId(input.jobId);
+
+  if (!companyId || !jobId) {
+    return {
+      proposalId: null,
+      created: false,
+      reason: "invalid_company_or_job",
+      errorMessage: "A valid company and job are required to create a proposal draft.",
+    };
+  }
+
+  const spineLaunch = evaluateDbProposalLaunchSpine(input.routeHints ?? null);
+  if (!spineLaunch.allowed && input.routeHints) {
+    return {
+      proposalId: null,
+      created: false,
+      reason: spineLaunch.reason ?? "mixed_spine_context",
+      errorMessage: spineLaunch.errorMessage,
+    };
+  }
+
+  const validated = validateProposalDraftCreatePayload(input.createPayload);
+  if (!validated.valid) {
+    const reason =
+      input.createPayload == null
+        ? "db_identity_not_ready"
+        : validated.reason;
+    const errorMessage =
+      input.createPayload == null
+        ? "Save this job from the Job Card with a persisted customer and measurement before creating a proposal draft."
+        : validated.errorMessage;
+    return {
+      proposalId: null,
+      created: false,
+      reason,
+      errorMessage,
+    };
+  }
+
+  return createDraftFromValidatedPayload(
+    companyId,
+    jobId,
+    validated.payload,
+    deps.createDraftProposal,
+    "createNewProposalDraftEntry"
+  );
+}
+
 /**
  * Resolve an existing job draft or create one when no valid draft exists.
  * Never creates when an active or listed draft is found.
+ * For an explicit “create another” action, use createNewProposalDraftEntry.
  */
 export async function resolveOrCreateProposalDraftEntry(
   input: ResolveOrCreateProposalDraftEntryInput,
@@ -588,48 +714,11 @@ export async function resolveOrCreateProposalDraftEntry(
     };
   }
 
-  const payload = validated.payload;
-
-  try {
-    const created = await deps.createDraftProposal({
-      company_id: companyId,
-      job_id: jobId,
-      template_id: payload.template_id,
-      customer_id: payload.customer_id,
-      measurement_record_id: payload.measurement_record_id,
-      quantity_context: payload.quantity_context,
-      selected_template_option_id: payload.selected_template_option_id ?? null,
-      title: payload.title ?? null,
-      created_by: payload.created_by ?? null,
-      context: payload.context,
-    });
-
-    const proposalId = normalizeId(created.proposal.id);
-    if (!proposalId) {
-      return {
-        proposalId: null,
-        created: false,
-        reason: "create_failed",
-        errorMessage: "Proposal draft was created but returned an invalid id.",
-      };
-    }
-
-    return {
-      proposalId,
-      created: true,
-      reason: "created_draft",
-      errorMessage: null,
-    };
-  } catch (error) {
-    const mapped = mapCreateFailureMessage(error);
-    if (!isExpectedProposalDraftEntryFailure(mapped.reason)) {
-      console.error("[resolveOrCreateProposalDraftEntry] create failed:", error);
-    }
-    return {
-      proposalId: null,
-      created: false,
-      reason: mapped.reason,
-      errorMessage: mapped.message,
-    };
-  }
+  return createDraftFromValidatedPayload(
+    companyId,
+    jobId,
+    validated.payload,
+    deps.createDraftProposal,
+    "resolveOrCreateProposalDraftEntry"
+  );
 }
