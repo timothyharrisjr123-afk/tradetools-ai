@@ -45,7 +45,7 @@
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** **pending this commit — fix(proposals): align job card setup with builder draft handoff** (Integrated Flow P2 correction)
+- **Code checkpoint:** **`27c82cf`** — fix(proposals): align job card setup with builder draft handoff (Integrated Flow P2 correction)
 - **Docs checkpoint:** Job Card → Builder readiness/CTA correction (this header + **§6BO.13.4.9** L)
 - **Prior code:** **`e028ee5`** / **`6588dab`** Integrated Flow P2 setup card
 - **Next:** End-to-end proposal smoke/polish if needed; then Customer Preview truth pass / Send readiness when approved. Do **not** start supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
