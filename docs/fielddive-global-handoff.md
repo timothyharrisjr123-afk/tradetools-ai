@@ -45,7 +45,7 @@
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** Block 2 — polish(proposals): reset job card proposal surface (this commit; prior Block 1 **`aee0546`**)
+- **Code checkpoint:** **`c979e3a`** — polish(proposals): reset job card proposal surface (Block 2; prior Block 1 **`aee0546`**)
 - **Docs checkpoint:** **Block 2** — Proposals tab compact document/action surface (this header + **§6BO.13.4.9** R). Prior: Block 1 isolation (**Q** / **`aee0546`**); Block 0 Flow V1 lock (**`61d3bc5`**, **P**).
 - **Prior code:** **`aee0546`** smoke isolation; **`190ad66`** Job Card Proposals polish; **`40c1fe8`** create flow restore
 - **Next coding:** **Block 3** — + Proposal modal/step flow (measurement → template → package → Continue to Builder). Do **not** start Blocks 4–7 until Block 3 is approved. Do **not** add full proposal management, template rebuild/import of live options into existing drafts, supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
