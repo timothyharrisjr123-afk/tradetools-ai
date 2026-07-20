@@ -45,7 +45,7 @@
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** **`PENDING`** — `polish(proposals): refine preview document presentation` (Block 5B). Prior: **`7f1f272`** Roofr-first structure. Builder checkpoint **unchanged** at **`05c1edb`**.
+- **Code checkpoint:** **`4b9d71b`** — `polish(proposals): refine preview document presentation` (Block 5B). Prior: **`7f1f272`** Roofr-first structure. Builder checkpoint **unchanged** at **`05c1edb`**.
 - **Docs checkpoint:** **Block 5B Preview visual correction** (this header + **§6BO.13.4.9** T.6.3). Prior: T.6.2 Roofr-first (**`7f1f272`**); T.6.1 interim (**`12fcd4e`**); T.6 document-first (**`e90d135`**); 4G (**`05c1edb`**).
 - **Prior code:** **`7f1f272`** Roofr-first shell/drawer; **`12fcd4e`** interim strip; **`e90d135`** document-first; **`05c1edb`** 4G density
 - **Next coding:** **Block 6** — only after **Block 5B visual approval**. Do **not** start Blocks 6–7 until Preview presentation is approved. Do **not** add full proposal management, template rebuild/import of live options into existing drafts, supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
@@ -59,7 +59,7 @@
 
 | Commit | Summary |
 |--------|---------|
-| *(pending)* | **Block 5B** — refine Preview document presentation: wide continuous document, compact package band, Item/Qty/Price estimate; Builder **`05c1edb`** unchanged (§6BO.13.4.9 T.6.3) |
+| `4b9d71b` | **Block 5B** — refine Preview document presentation: wide continuous document, compact package band, Item/Qty/Price estimate; Builder **`05c1edb`** unchanged (§6BO.13.4.9 T.6.3) |
 | `7f1f272` | **Block 5 Roofr-first** — redesign Preview proposal experience: thin shell, compact readiness, centered document hero, Send/sharing drawer (Coming later hidden); **230/230** focused tests; Babby smoke PASS; Builder **`05c1edb`** unchanged (§6BO.13.4.9 T.6.2) |
 | `12fcd4e` | **Block 5 interim** — strip Preview cockpit / collapse Send/sharing (not visually approved) (§6BO.13.4.9 T.6.1) |
 | `e90d135` | **Block 5** — Preview document-first baseline (§6BO.13.4.9 T.6) |
@@ -12650,7 +12650,7 @@ Package rule from **N** remains law: pre-draft package on create modal; post-dra
 
 ###### T.6.3 Block 5B Preview visual correction — IMPLEMENTED (2026-07-20)
 
-**Code checkpoint:** **`PENDING`** — `polish(proposals): refine preview document presentation`. **Prior structure kept: `7f1f272` (not reverted). Builder unchanged at `05c1edb`.**
+**Code checkpoint:** **`4b9d71b`** — `polish(proposals): refine preview document presentation`. **Prior structure kept: `7f1f272` (not reverted). Builder unchanged at `05c1edb`.**
 
 **Status:** Visual correction only — Preview customer document is now a **wide continuous proposal surface** using Builder **Item / Qty / Price** density without edit controls. **Not** ready to call Block 6 until visual approval. **No pricing/math/resolver/snapshot changes. No SQL/migrations/packages. No send/public/lifecycle/PDF/sign/payment behavior change. No Builder redesign.**
 
