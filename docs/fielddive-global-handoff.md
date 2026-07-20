@@ -45,11 +45,11 @@
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** **`29dbc61`** — polish(proposals): refine builder estimate editing (Block 4E; prior **`40ea180`** / **`d8125ec`**)
-- **Docs checkpoint:** **Block 4E Builder inline editing + row action polish** (this header + **§6BO.13.4.9** T.4). Prior: T.3 (**`40ea180`**); T.2 (**`d8125ec`**); T.1 (**`ea39fa7`**).
-- **Prior code:** **`29dbc61`** inline editing; **`40ea180`** action clarity; **`d8125ec`** visual continuity
-- **Next coding:** **Block 5** — Preview document-first (only after Block 4E review). Do **not** start Blocks 6–7 until Block 5 is approved. Do **not** add full proposal management, template rebuild/import of live options into existing drafts, supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
-- **Historical note:** Block 4E: Set quantity inline; Review focuses Finish estimate; Edit package drawer advanced-only; portal row menus; optional upgrade include follow-up documented; compact success toast; protected systems unchanged.
+- **Code checkpoint:** pending — `polish(proposals): tune builder estimate density` (Block 4G; prior **`232e399`** / **`9274ed4`**)
+- **Docs checkpoint:** **Block 4G Builder shared itemized estimate grid** (this header + **§6BO.13.4.9** T.5). Prior: 4F visual polish (**`232e399`**); edit rules (**`9274ed4`**); 4E (**`29dbc61`**).
+- **Prior code:** **`232e399`** finish builder visual polish; **`9274ed4`** clarify builder edit rules
+- **Next coding:** **Block 5** — Preview document-first (**only after Builder final approval**). Do **not** start Blocks 6–7 until Block 5 is approved. Do **not** add full proposal management, template rebuild/import of live options into existing drafts, supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
+- **Historical note:** Block 4G: full-width shared Item / Qty / Price / ⋯ grid (no table max-width); quiet Edit quantity (no Manual qty badge); Finish estimate far-right Set quantity; protected systems unchanged.
 
 **Trust order:** Header/current checkpoint → **§6BO.13** (approved page-by-page UI flow roadmap + P0 implementation sequence — **supersedes separate Command Center language**) → **§6BM** / **§6BN** (R18 letter-phase roadmap + R18C–R18D3C implementation history) → **§6BO** / **§6BO.11** / **§6BO.12** (completed remediation side-track + **approved Stage C policy** + **operating-flow audit sequencing — complete; outcome in §6BO.13**) → **§6BL** → **§11 override**. Stage B browser smoke required local-only **`USE_PROPOSAL_SEND_FREEZE_RPC=1`** in `.env.local` (gitignored, not committed). **Do not proceed** to docs-only or next feature work unless working tree is clean. **Still do not** mutate `proposals.status = sent`, write sent `proposal_events`, move Jobs Board cards, add Job Card send activity, enable PDF/Sign/Payment, or add webhooks unless separately approved.
 
@@ -12561,7 +12561,29 @@ Package rule from **N** remains law: pre-draft package on create modal; post-dra
 
 **Smoke:** Babby **`466e393c-…`** — inline Set quantity; toast aligned; Edit Enhanced package; portal menu Escape closes; upgrades follow-up; no fake Add.
 
-**Next recommended block:** **Block 5 — Preview document-first** (only after this surface is approved).
+**Next recommended block:** see **T.5** estimate density, then **Block 5** after Builder approval.
+
+###### T.5 Block 4G — Builder shared itemized estimate grid — IMPLEMENTED (2026-07-20)
+
+**Code checkpoint:** pending commit — `polish(proposals): tune builder estimate density`
+
+**Status:** Wide Builder shell kept; Included estimate uses one **full-width** shared Item / Qty / Price / ⋯ grid for headers, rows, and inline editor. **No table max-width compression. No Preview redesign. No pricing/math/resolver/snapshot changes. No SQL/migrations/packages. No send/public/lifecycle/PDF/sign/payment.**
+
+**Root cause fixed:** header 4-col grid vs body nested flex + LineRow 3-col mismatch.
+
+**Fixes:**
+- Included: single `WORKBENCH_INCLUDED_ROW_GRID` (`1fr | 9rem | 8.5rem | 2.25rem`) — Qty/Price/menu siblings
+- Manual rows: quiet **Edit quantity** text link only — **no Manual qty badge**
+- Finish estimate: full-width `WORKBENCH_FINISH_ESTIMATE_ROW` with Set quantity far-right
+- Inline qty editor aligns to same 4-col grid; Enter/Escape; no side drawer
+- Removed from proposal wording preserved; optional upgrades + display settings remain off main path
+- Package summary / top section bar unchanged
+
+**Rejected failure mode recorded:** do not wrap estimate in `max-w-[46rem]` / `max-w-[40rem]`.
+
+**Smoke:** Babby **`466e393c-…`** — full-width itemized Included; quiet Edit quantity; far-right Set quantity; inline editor; package selector unclipped; upgrades/settings off path; Preview primary.
+
+**Next recommended block:** **Block 5 — Preview document-first** (only after Builder final approval).
 
 #### 13.4.6 Integrated Catalog → Proposal workflow research + FieldDive flow design — COMPLETE (2026-07-17)
 
@@ -14048,6 +14070,7 @@ Treat as **drift** if a session:
 
 ## Changelog (handoff doc only)
 
+- **2026-07-20:** **Block 4G — Builder shared itemized estimate grid** (**§6BO.13.4.9** T.5) — full-width Item / Qty / Price / ⋯ grid; quiet Edit quantity; Finish far-right Set quantity; no table max-width. Babby `466e393c-…`. **Next:** Block 5 Preview (only after Builder approval).
 - **2026-07-20:** **Block 4B — Builder document-led continuation** (**§6BO.13.4.9** T.1) — left section nav; centered Estimate canvas; rail removed from path; Preview primary; Display/snapshot collapsed; Included estimate anchor. Babby `466e393c-…`. **Next:** Block 5 Preview (after approval).
 - **2026-07-20:** **Block 4 — Builder estimate review simplification** (**§6BO.13.4.9** T) — Jobs nav; handoff identity; Included estimate anchor; compact quantity review; Proposal assistant Details collapsed; no Hide-from-customer / signing note on estimate path. Babby `466e393c-…`. **Next:** T.1 document-led, then Block 5.
 - **2026-07-20:** **Block 3 final copy/visual correction** (**§6BO.13.4.9** S.3) — contractor-facing template/review copy; package badge rows; soft selected package card; activity Proposal created confirmed. **Next:** Block 4 (now **T**).

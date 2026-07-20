@@ -307,4 +307,81 @@ describe("Builder action clarity (Block 4D / 4E)", () => {
     assert.doesNotMatch(sectionNav, />Active</);
     assert.doesNotMatch(sectionNav, /builderPageStripStatusChip/);
   });
+
+  test("25. Block 4G — full-width shared Included Item / Qty / Price grid", () => {
+    const ready = read(
+      "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchReadyScopeZone.tsx"
+    );
+    assert.match(ready, /data-builder-itemized-estimate/);
+    assert.match(ready, /WORKBENCH_INCLUDED_ROW_GRID/);
+    assert.match(ready, /data-builder-estimate-column-headers/);
+    assert.match(ready, /itemCellOnly/);
+    assert.doesNotMatch(ready, /max-w-\[46rem\]/);
+    assert.doesNotMatch(ready, /max-w-\[40rem\]/);
+    assert.doesNotMatch(ready, /flex items-start gap-1/);
+
+    const constants = read(
+      "app/tools/roofing/proposals/builder/proposalBuilderConstants.ts"
+    );
+    assert.match(constants, /minmax\(0,1fr\)_9rem_8\.5rem_2\.25rem/);
+    const includedSlice = constants.slice(
+      constants.indexOf("WORKBENCH_INCLUDED_ROW_GRID"),
+      constants.indexOf("WORKBENCH_INCLUDED_ROW_GRID") + 280
+    );
+    assert.doesNotMatch(includedSlice, /max-w-\[/);
+  });
+
+  test("26. Block 4G — quiet Edit quantity; no Manual qty badge", () => {
+    const lineRow = read(
+      "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchLineRow.tsx"
+    );
+    assert.match(lineRow, /WORKBENCH_EDIT_QUANTITY_LINK/);
+    assert.match(lineRow, /data-builder-edit-quantity/);
+    assert.doesNotMatch(lineRow, /Manual qty|WORKBENCH_MANUAL_QTY/);
+    assert.doesNotMatch(
+      lineRow,
+      /Not editable|Quantity locked|System calculated|From measurement|Source locked/
+    );
+
+    const ready = read(
+      "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchReadyScopeZone.tsx"
+    );
+    assert.match(ready, /manualQuantityActive && onEditQuantityForLine/);
+  });
+
+  test("27. Block 4G — Finish estimate full-width far-right Set quantity", () => {
+    const attention = read(
+      "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchAttentionZone.tsx"
+    );
+    assert.match(attention, /WORKBENCH_FINISH_ESTIMATE_ROW/);
+    assert.match(attention, /data-builder-finish-estimate/);
+    assert.match(attention, /WORKBENCH_SET_QUANTITY_ACTION/);
+    assert.doesNotMatch(attention, /max-w-\[40rem\]/);
+    assert.doesNotMatch(attention, /flex flex-wrap items-center justify-between/);
+
+    const constants = read(
+      "app/tools/roofing/proposals/builder/proposalBuilderConstants.ts"
+    );
+    assert.match(constants, /WORKBENCH_FINISH_ESTIMATE_ROW/);
+    assert.match(constants, /minmax\(0,1fr\)_auto/);
+  });
+
+  test("28. Block 4G — inline editor shared grid; no side drawer; upgrades off path", () => {
+    const inline = read(
+      "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchInlineQuantityEditor.tsx"
+    );
+    assert.match(inline, /WORKBENCH_INCLUDED_ROW_GRID/);
+    assert.match(inline, /alignToColumns/);
+    assert.match(inline, /event\.key === "Enter"/);
+    assert.match(inline, /Escape/);
+    assert.doesNotMatch(inline, /createPortal/);
+    assert.doesNotMatch(inline, /SetQuantityPanel/);
+
+    const estimate = read(
+      "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchEstimateDocument.tsx"
+    );
+    assert.doesNotMatch(estimate, /ProposalBuilderWorkbenchSettingsEntry/);
+    assert.doesNotMatch(estimate, /ProposalBuilderWorkbenchUpgradesZone/);
+    assert.doesNotMatch(estimate, /ProposalBuilderWorkbenchSetQuantityPanel/);
+  });
 });

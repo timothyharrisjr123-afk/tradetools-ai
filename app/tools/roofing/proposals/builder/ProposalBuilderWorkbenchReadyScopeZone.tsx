@@ -3,6 +3,12 @@
 import { useState } from "react";
 import type { WorkbenchScopeSection } from "@/app/lib/proposalBuilderWorkbenchEstimatePresenter";
 import {
+  WORKBENCH_INCLUDED_ROW_GRID,
+  WORKBENCH_LINE_AMOUNT,
+  WORKBENCH_LINE_AMOUNT_ATTENTION,
+  WORKBENCH_LINE_AMOUNT_INCLUDED,
+  WORKBENCH_LINE_QTY,
+  WORKBENCH_LINE_QTY_VALUE,
   WORKBENCH_MODULE,
   WORKBENCH_MODULE_INNER,
   WORKBENCH_REMOVE_FROM_OPTION_ACTION,
@@ -29,6 +35,14 @@ type ProposalBuilderWorkbenchReadyScopeZoneProps = {
   removeInFlight?: boolean;
 };
 
+function isIncludedAmount(label: string): boolean {
+  return label === "Included" || label === "In package";
+}
+
+/**
+ * Block 4G — full-width shared itemized Included estimate (Item / Qty / Price / ⋯).
+ * Spans the wide Builder canvas — do not compress with max-width.
+ */
 export default function ProposalBuilderWorkbenchReadyScopeZone({
   sections,
   onEditQuantityForLine,
@@ -52,8 +66,9 @@ export default function ProposalBuilderWorkbenchReadyScopeZone({
       aria-labelledby="workbench-ready-scope-heading"
       data-builder-included-estimate
       data-builder-included-estimate-table
+      data-builder-itemized-estimate="true"
     >
-      <header className="flex flex-wrap items-baseline justify-between gap-2 pb-1 pt-1">
+      <header className="flex flex-wrap items-baseline justify-between gap-2 pb-1.5 pt-1">
         <p
           className="text-base font-semibold tracking-tight text-slate-950"
           id="workbench-ready-scope-heading"
@@ -70,7 +85,7 @@ export default function ProposalBuilderWorkbenchReadyScopeZone({
         ) : (
           <div className="overflow-visible">
             <div
-              className="mb-1.5 hidden grid-cols-[minmax(0,1fr)_7rem_6.5rem_1.75rem] gap-x-3 border-b border-slate-200/90 pb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500 sm:grid"
+              className={`${WORKBENCH_INCLUDED_ROW_GRID} mb-1.5 hidden border-b border-slate-200/90 pb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500 sm:grid`}
               data-builder-estimate-column-headers
             >
               <span>Item</span>
@@ -83,12 +98,18 @@ export default function ProposalBuilderWorkbenchReadyScopeZone({
                 const showDetails = detailsLineId === line.templateItemId;
                 const canRemove = removeEnabled && Boolean(onRemoveFromProposal);
                 const isEditing = editingQuantityLineId === line.templateItemId;
+                const hasAttention = line.attentionReasons.length > 0;
+                const amountClass = hasAttention
+                  ? WORKBENCH_LINE_AMOUNT_ATTENTION
+                  : isIncludedAmount(line.amountLabel)
+                    ? WORKBENCH_LINE_AMOUNT_INCLUDED
+                    : WORKBENCH_LINE_AMOUNT;
 
                 return (
                   <li
                     key={line.templateItemId}
-                    className={`overflow-visible border-b border-slate-100 last:border-b-0 ${
-                      isEditing ? "bg-blue-50/30" : ""
+                    className={`overflow-visible border-b border-slate-200/70 last:border-b-0 ${
+                      isEditing ? "rounded-md bg-blue-50/40 ring-1 ring-blue-100" : ""
                     }`}
                     data-builder-included-estimate-row
                     data-builder-inline-editing={isEditing ? "true" : undefined}
@@ -109,21 +130,30 @@ export default function ProposalBuilderWorkbenchReadyScopeZone({
                         />
                       </div>
                     ) : (
-                      <div className="flex items-start gap-1">
-                        <div className="min-w-0 flex-1">
-                          <ProposalBuilderWorkbenchLineRow
-                            variant="scope"
-                            line={line}
-                            as="div"
-                            hideDetails
-                            onEditQuantity={
-                              line.manualQuantityActive && onEditQuantityForLine
-                                ? () => onEditQuantityForLine(line.templateItemId)
-                                : undefined
+                      <div className={`${WORKBENCH_INCLUDED_ROW_GRID} py-0.5`}>
+                        <ProposalBuilderWorkbenchLineRow
+                          variant="scope"
+                          line={line}
+                          as="div"
+                          hideDetails
+                          itemCellOnly
+                          onEditQuantity={
+                            line.manualQuantityActive && onEditQuantityForLine
+                              ? () => onEditQuantityForLine(line.templateItemId)
+                              : undefined
+                          }
+                        />
+                        <p className={`${WORKBENCH_LINE_QTY} hidden sm:block`}>
+                          <span
+                            className={
+                              line.qtyUnresolved ? "text-slate-400" : WORKBENCH_LINE_QTY_VALUE
                             }
-                          />
-                        </div>
-                        <div className="mt-1.5 shrink-0">
+                          >
+                            {line.qtyLabel}
+                          </span>
+                        </p>
+                        <p className={`hidden sm:block ${amountClass}`}>{line.amountLabel}</p>
+                        <div className="flex justify-end">
                           <ProposalBuilderWorkbenchRowMenu
                             rowId={line.templateItemId}
                             rowLabel={line.name}
@@ -154,6 +184,18 @@ export default function ProposalBuilderWorkbenchReadyScopeZone({
                             ]}
                           />
                         </div>
+                        <p className={`${WORKBENCH_LINE_QTY} sm:hidden`}>
+                          Qty{" "}
+                          <span
+                            className={
+                              line.qtyUnresolved ? "text-slate-400" : WORKBENCH_LINE_QTY_VALUE
+                            }
+                          >
+                            {line.qtyLabel}
+                          </span>
+                          <span className="mx-2 text-slate-300">·</span>
+                          <span className={amountClass}>{line.amountLabel}</span>
+                        </p>
                       </div>
                     )}
                     {showDetails && !isEditing ? (

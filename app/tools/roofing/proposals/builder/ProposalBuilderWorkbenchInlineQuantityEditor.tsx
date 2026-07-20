@@ -72,37 +72,41 @@ export default function ProposalBuilderWorkbenchInlineQuantityEditor({
     quantityDraft.trim().length === 0 ||
     !validateManualQuantityInput(quantityDraft).ok;
 
-  const qtyControls = (
-    <div className="flex flex-wrap items-center justify-end gap-2 sm:col-span-2">
-      <input
-        type="text"
-        inputMode="decimal"
-        autoFocus
-        value={quantityDraft}
-        onChange={(event) => {
-          setQuantityDraft(event.target.value);
-          setLocalValidationError(null);
-        }}
-        disabled={inFlight}
-        placeholder="Qty"
-        className="w-[5.5rem] rounded-md border border-slate-300 bg-white px-2 py-1.5 text-right text-[13px] tabular-nums text-slate-900 shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:bg-slate-50"
-        aria-label={`Quantity for ${line.name}`}
-        data-builder-set-quantity-input
-        onKeyDown={(event) => {
-          if (event.key === "Enter" && !saveDisabled) {
-            event.preventDefault();
-            void handleSave();
-          }
-        }}
-      />
-      {line.unitLabel ? (
-        <span
-          className="min-w-[4.5rem] text-[12px] font-medium text-slate-500 sm:text-left"
-          data-builder-inline-quantity-unit
-        >
-          {line.unitLabel}
-        </span>
-      ) : null}
+  const qtyInput = (
+    <input
+      type="text"
+      inputMode="decimal"
+      autoFocus
+      value={quantityDraft}
+      onChange={(event) => {
+        setQuantityDraft(event.target.value);
+        setLocalValidationError(null);
+      }}
+      disabled={inFlight}
+      placeholder="Qty"
+      className="w-full max-w-[7.5rem] rounded-md border border-slate-300 bg-white px-2 py-1.5 text-right text-[13px] tabular-nums text-slate-900 shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:bg-slate-50"
+      aria-label={`Quantity for ${line.name}`}
+      data-builder-set-quantity-input
+      onKeyDown={(event) => {
+        if (event.key === "Enter" && !saveDisabled) {
+          event.preventDefault();
+          void handleSave();
+        }
+      }}
+    />
+  );
+
+  const unitLabel = line.unitLabel ? (
+    <span
+      className="text-[12px] font-medium text-slate-500"
+      data-builder-inline-quantity-unit
+    >
+      {line.unitLabel}
+    </span>
+  ) : null;
+
+  const saveCancel = (
+    <>
       <button
         type="button"
         onClick={() => void handleSave()}
@@ -121,19 +125,23 @@ export default function ProposalBuilderWorkbenchInlineQuantityEditor({
       >
         Cancel
       </button>
-    </div>
+    </>
   );
 
   return (
     <div
-      className="rounded-md border border-blue-200 bg-blue-50/50 px-2.5 py-2 ring-1 ring-blue-100"
+      className="rounded-md border border-blue-200/80 bg-blue-50/40 px-2 py-2"
       data-builder-inline-quantity-editor
       data-builder-inline-quantity-line={line.templateItemId}
     >
       {alignToColumns ? (
         <div className={WORKBENCH_INCLUDED_ROW_GRID}>
           <p className="min-w-0 truncate text-[13px] font-medium text-slate-900">{line.name}</p>
-          {qtyControls}
+          <div className="flex flex-col items-end gap-0.5">
+            {qtyInput}
+            {unitLabel}
+          </div>
+          <div className="flex flex-wrap items-center justify-end gap-2">{saveCancel}</div>
           <span className="hidden sm:block" aria-hidden />
         </div>
       ) : (
@@ -141,7 +149,11 @@ export default function ProposalBuilderWorkbenchInlineQuantityEditor({
           <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-slate-900">
             {line.name}
           </span>
-          {qtyControls}
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {qtyInput}
+            {unitLabel}
+            {saveCancel}
+          </div>
         </div>
       )}
       {localValidationError || error ? (

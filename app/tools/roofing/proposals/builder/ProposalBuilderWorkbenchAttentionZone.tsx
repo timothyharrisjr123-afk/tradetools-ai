@@ -8,6 +8,7 @@ import {
   WORKBENCH_ATTENTION_ZONE,
   WORKBENCH_ATTENTION_ZONE_HEADER,
   WORKBENCH_EDIT_OPTION_CHIP_ENABLED,
+  WORKBENCH_FINISH_ESTIMATE_ROW,
   WORKBENCH_MODULE_DESC,
   WORKBENCH_MODULE_INNER,
   WORKBENCH_MODULE_KICKER,
@@ -163,26 +164,28 @@ function ScopeReviewSection({
                     onSave={onSaveQuantity!}
                   />
                 ) : (
-                  <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-                    <div className="min-w-0 flex-1">
+                  <div className={WORKBENCH_FINISH_ESTIMATE_ROW}>
+                    <div className="min-w-0">
                       <ProposalBuilderWorkbenchLineRow
                         variant="scope_review"
                         line={line}
                         compact
                       />
                     </div>
-                    <div className="flex shrink-0 items-center justify-end">
-                      {canSetQuantity ? (
+                    {canSetQuantity ? (
+                      <div className="flex justify-end">
                         <button
                           type="button"
-                          className={WORKBENCH_EDIT_OPTION_CHIP_ENABLED}
+                          className={`${WORKBENCH_EDIT_OPTION_CHIP_ENABLED} shrink-0`}
                           onClick={() => onStartSetQuantity!(line.templateItemId)}
                           data-builder-set-quantity
                         >
                           {WORKBENCH_SET_QUANTITY_ACTION}
                         </button>
-                      ) : null}
-                    </div>
+                      </div>
+                    ) : (
+                      <span className="hidden sm:block" aria-hidden />
+                    )}
                   </div>
                 )}
               </li>

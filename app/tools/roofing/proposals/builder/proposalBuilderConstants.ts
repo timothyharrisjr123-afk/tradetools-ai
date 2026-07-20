@@ -766,24 +766,35 @@ export const WORKBENCH_SCOPE_COUNT_CHIP =
   "inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold tabular-nums text-slate-500";
 
 export const WORKBENCH_LINE_ROW =
-  "border-b border-slate-200/80 py-2 last:border-b-0 transition-colors hover:bg-slate-50/60";
+  "border-b border-slate-200/70 py-1.5 last:border-b-0 transition-colors hover:bg-slate-50/50";
 
 export const WORKBENCH_LINE_GRID =
-  "grid grid-cols-1 gap-x-3 gap-y-0.5 sm:grid-cols-[minmax(0,1fr)_7rem_6.5rem] sm:items-center";
+  "grid w-full grid-cols-1 gap-x-4 gap-y-0.5 sm:grid-cols-[minmax(0,1fr)_9rem_8.5rem] sm:items-center";
 
-/** Included-estimate row + menu column (matches column headers). */
+/**
+ * Full-width Included estimate: Item | Qty | Price | Actions.
+ * Spans the wide Builder canvas — never add max-w compression.
+ */
 export const WORKBENCH_INCLUDED_ROW_GRID =
-  "grid grid-cols-1 gap-x-3 gap-y-1 sm:grid-cols-[minmax(0,1fr)_7rem_6.5rem_1.75rem] sm:items-center";
+  "grid w-full grid-cols-1 gap-x-4 gap-y-1 sm:grid-cols-[minmax(0,1fr)_9rem_8.5rem_2.25rem] sm:items-center";
+
+/** Finish estimate: item name | Set quantity (far-right action edge). */
+export const WORKBENCH_FINISH_ESTIMATE_ROW =
+  "grid w-full grid-cols-1 gap-x-4 gap-y-1 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center";
 
 export const WORKBENCH_LINE_NAME = "text-[13px] font-medium leading-snug text-slate-900";
 
 export const WORKBENCH_LINE_QTY =
   "text-[12px] tabular-nums text-slate-600 sm:text-right";
 
-export const WORKBENCH_LINE_QTY_VALUE = "font-medium text-slate-700";
+export const WORKBENCH_LINE_QTY_VALUE = "font-semibold tabular-nums text-slate-800";
 
 export const WORKBENCH_LINE_AMOUNT =
   "shrink-0 text-[13px] tabular-nums font-semibold text-slate-950 sm:text-right";
+
+/** Quiet text action for editing an existing manual quantity (no Manual qty badge). */
+export const WORKBENCH_EDIT_QUANTITY_LINK =
+  "inline-flex items-center text-[11px] font-medium text-blue-700/90 underline-offset-2 hover:text-blue-800 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600";
 
 export const WORKBENCH_LINE_AMOUNT_INCLUDED =
   "shrink-0 text-[11px] font-semibold uppercase tracking-wide text-slate-500 sm:pt-1 sm:text-right";

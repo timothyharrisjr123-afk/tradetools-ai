@@ -7,6 +7,7 @@ import {
   WORKBENCH_EDIT_OPTION_CHIP_ENABLED,
   WORKBENCH_EDIT_OPTION_CHIP_SECONDARY,
   WORKBENCH_EDIT_QUANTITY_ACTION,
+  WORKBENCH_EDIT_QUANTITY_LINK,
   WORKBENCH_REMOVE_FROM_OPTION_ACTION,
   WORKBENCH_SET_QUANTITY_ACTION,
   WORKBENCH_LINE_AMOUNT,
@@ -55,6 +56,11 @@ type ScopeLineRowProps = {
   hideDetails?: boolean;
   /** Hide attention reason chips on primary rows (details / drawer hold context). */
   hideAttentionBadges?: boolean;
+  /**
+   * When true, omit the row’s own 3-col grid — parent supplies Included-estimate columns.
+   * Renders name + quiet Edit quantity only in the item cell.
+   */
+  itemCellOnly?: boolean;
   onEditQuantity?: () => void;
   /** Defaults to Edit quantity; use Set quantity before a manual qty exists. */
   editQuantityLabel?: typeof WORKBENCH_SET_QUANTITY_ACTION | typeof WORKBENCH_EDIT_QUANTITY_ACTION;
@@ -99,7 +105,6 @@ function AttentionLineContent({
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
           <p className={WORKBENCH_LINE_NAME}>{line.name}</p>
-          {/* Finish-estimate rows stay clean — Set quantity is the action; hard blockers keep reason chips. */}
           {!reviewMode
             ? line.reasons.map((reason) => (
                 <HardBlockerReasonBadge key={reason} label={attentionReasonLabel(reason)} />
@@ -133,6 +138,65 @@ function AttentionLineContent({
   );
 }
 
+function ScopeItemMeta({
+  line,
+  hideAttentionBadges,
+  onEditQuantity,
+  quantityActionLabel,
+  onRemoveFromOption,
+}: {
+  line: WorkbenchScopeLine;
+  hideAttentionBadges: boolean;
+  onEditQuantity?: () => void;
+  quantityActionLabel: string;
+  onRemoveFromOption?: () => void;
+}) {
+  const hasAttention = line.attentionReasons.length > 0;
+  const quietEdit =
+    Boolean(onEditQuantity) && quantityActionLabel === WORKBENCH_EDIT_QUANTITY_ACTION;
+
+  return (
+    <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+      <p className={WORKBENCH_LINE_NAME}>{line.name}</p>
+      {hasAttention && !hideAttentionBadges
+        ? line.attentionReasons.map((reason) => (
+            <HardBlockerReasonBadge key={reason} label={attentionReasonLabel(reason)} />
+          ))
+        : null}
+      {onEditQuantity ? (
+        quietEdit ? (
+          <button
+            type="button"
+            onClick={onEditQuantity}
+            className={WORKBENCH_EDIT_QUANTITY_LINK}
+            data-builder-edit-quantity
+          >
+            {WORKBENCH_EDIT_QUANTITY_ACTION}
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={onEditQuantity}
+            className={WORKBENCH_EDIT_OPTION_CHIP_ENABLED}
+            data-builder-set-quantity
+          >
+            {quantityActionLabel}
+          </button>
+        )
+      ) : null}
+      {onRemoveFromOption ? (
+        <button
+          type="button"
+          onClick={onRemoveFromOption}
+          className={WORKBENCH_EDIT_OPTION_CHIP_SECONDARY}
+        >
+          {WORKBENCH_REMOVE_FROM_OPTION_ACTION}
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
 export default function ProposalBuilderWorkbenchLineRow(
   props: ProposalBuilderWorkbenchLineRowProps
 ) {
@@ -158,6 +222,7 @@ export default function ProposalBuilderWorkbenchLineRow(
   const Row = props.as === "div" ? "div" : "li";
   const hideDetails = props.hideDetails === true;
   const hideAttentionBadges = props.hideAttentionBadges === true;
+  const itemCellOnly = props.itemCellOnly === true;
   const hasAttention = line.attentionReasons.length > 0;
   const amountClass = hasAttention
     ? WORKBENCH_LINE_AMOUNT_ATTENTION
@@ -166,39 +231,34 @@ export default function ProposalBuilderWorkbenchLineRow(
       : WORKBENCH_LINE_AMOUNT;
   const quantityActionLabel = props.editQuantityLabel ?? WORKBENCH_EDIT_QUANTITY_ACTION;
 
+  if (itemCellOnly) {
+    return (
+      <div className="min-w-0" data-builder-estimate-item-cell>
+        <ScopeItemMeta
+          line={line}
+          hideAttentionBadges={hideAttentionBadges}
+          onEditQuantity={onEditQuantity}
+          quantityActionLabel={quantityActionLabel}
+          onRemoveFromOption={onRemoveFromOption}
+        />
+        {hideDetails ? null : (
+          <ProposalBuilderWorkbenchLineDetails detailMeta={line.detailMeta} />
+        )}
+      </div>
+    );
+  }
+
   return (
     <Row className={WORKBENCH_LINE_ROW}>
       <div className={WORKBENCH_LINE_GRID}>
         <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
-            <p className={WORKBENCH_LINE_NAME}>{line.name}</p>
-            {hasAttention && !hideAttentionBadges
-              ? line.attentionReasons.map((reason) => (
-                  <HardBlockerReasonBadge key={reason} label={attentionReasonLabel(reason)} />
-                ))
-              : null}
-            {onEditQuantity ? (
-              <button
-                type="button"
-                onClick={onEditQuantity}
-                className={WORKBENCH_EDIT_OPTION_CHIP_ENABLED}
-                data-builder-set-quantity={
-                  quantityActionLabel === WORKBENCH_SET_QUANTITY_ACTION ? true : undefined
-                }
-              >
-                {quantityActionLabel}
-              </button>
-            ) : null}
-            {onRemoveFromOption ? (
-              <button
-                type="button"
-                onClick={onRemoveFromOption}
-                className={WORKBENCH_EDIT_OPTION_CHIP_SECONDARY}
-              >
-                {WORKBENCH_REMOVE_FROM_OPTION_ACTION}
-              </button>
-            ) : null}
-          </div>
+          <ScopeItemMeta
+            line={line}
+            hideAttentionBadges={hideAttentionBadges}
+            onEditQuantity={onEditQuantity}
+            quantityActionLabel={quantityActionLabel}
+            onRemoveFromOption={onRemoveFromOption}
+          />
           <p className={`${WORKBENCH_LINE_QTY} mt-0.5 sm:hidden`}>
             Qty{" "}
             <span className={line.qtyUnresolved ? "text-slate-400" : WORKBENCH_LINE_QTY_VALUE}>
