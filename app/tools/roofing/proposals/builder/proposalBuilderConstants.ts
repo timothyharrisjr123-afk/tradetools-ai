@@ -12,8 +12,8 @@ export const BUILDER_BLOCKED_BANNER =
 export const BUILDER_SHELL_BANNER =
   "rounded-md border border-cyan-200/80 bg-cyan-50/60 px-4 py-3 text-sm text-cyan-950";
 
-/** Shared horizontal stage width — header, alert, page strip, and builder grid align to these edges. */
-export const BUILDER_STAGE = "w-full max-w-[1640px]";
+/** Shared horizontal stage — header + workspace share edges (Block 4C continuity). */
+export const BUILDER_STAGE = "mx-auto w-full max-w-[1180px]";
 
 /** 3J4A — read-only proposal stage alert. */
 export const BUILDER_READ_ONLY_ALERT =
@@ -196,9 +196,8 @@ export const BUILDER_TOKEN_PICKER_ITEM_DESCRIPTION = "truncate text-[11px] text-
 
 export const BUILDER_TOKEN_PICKER_ITEM_HINT = "truncate text-[11px] text-amber-700/90";
 
-/** Block 4B — document canvas shell (lighter than workbench card stack). */
-export const BUILDER_CANVAS =
-  "w-full overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-[0_4px_20px_rgba(15,23,42,0.05)]";
+/** Block 4C — canvas fills attached workspace shell (no nested floating card). */
+export const BUILDER_CANVAS = "w-full overflow-hidden bg-white";
 
 export const BUILDER_CANVAS_INNER = "px-7 py-6";
 
@@ -656,19 +655,18 @@ export const CUSTOMER_PREVIEW_ESTIMATE_TOTALS_PANEL =
   "rounded-xl border border-slate-200/80 bg-slate-50/50 px-5 py-5";
 
 /** R17C2 — Builder Estimate workbench surfaces (not customer Preview). */
-export const WORKBENCH_ESTIMATE_KICKER = "Estimate review";
+export const WORKBENCH_ESTIMATE_KICKER = "Estimate";
 
-/** Premium estimate workbench header band — aligns with BUILDER_RAIL_CARD depth. */
-export const WORKBENCH_HEADER =
-  "border-b border-slate-200/70 bg-gradient-to-b from-slate-50/90 via-white to-white px-5 pb-5 pt-5 sm:px-7";
+/** Estimate document intro — light, not a workbench hero band. */
+export const WORKBENCH_HEADER = "border-b border-slate-100 bg-white px-5 pb-3 pt-4 sm:px-6";
 
 export const WORKBENCH_HEADER_KICKER =
-  "text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-600/80";
+  "text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400";
 
 export const WORKBENCH_HEADER_TITLE =
-  "mt-1 text-[1.35rem] font-semibold leading-tight tracking-tight text-slate-950 sm:text-[1.45rem]";
+  "mt-0.5 text-[1.25rem] font-semibold leading-tight tracking-tight text-slate-950";
 
-export const WORKBENCH_HEADER_SUBTITLE = "mt-1 max-w-2xl text-[13px] leading-relaxed text-slate-600";
+export const WORKBENCH_HEADER_SUBTITLE = "mt-0.5 max-w-2xl text-[13px] leading-snug text-slate-600";
 
 export const WORKBENCH_HEADER_STAT =
   "inline-flex items-center gap-1.5 rounded-full border border-slate-200/90 bg-white/90 px-2.5 py-1 text-[11px] font-medium text-slate-600 shadow-sm";
@@ -681,16 +679,15 @@ export const WORKBENCH_HEADER_STAT_REVIEW = "font-semibold tabular-nums text-sla
 
 /** Document body — flat sections, not stacked workbench cards. */
 export const WORKBENCH_BODY =
-  "space-y-6 bg-white px-5 py-5 sm:px-7 sm:py-6";
+  "space-y-5 bg-white px-5 py-4 sm:px-6 sm:py-5";
 
 /** Shared module shell — quiet borders for document sections. */
-export const WORKBENCH_MODULE =
-  "overflow-hidden rounded-lg border border-slate-200/70 bg-white";
+export const WORKBENCH_MODULE = "overflow-hidden border-t border-slate-100 bg-white";
 
 export const WORKBENCH_MODULE_COMPACT =
-  "overflow-hidden rounded-lg border border-slate-200/60 bg-white";
+  "overflow-hidden border-t border-slate-100 bg-white";
 
-export const WORKBENCH_MODULE_INNER = "px-4 py-4 sm:px-5 sm:py-4";
+export const WORKBENCH_MODULE_INNER = "px-0 py-3";
 
 export const WORKBENCH_MODULE_KICKER =
   "text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400";
@@ -701,7 +698,7 @@ export const WORKBENCH_MODULE_DESC = "mt-0.5 text-[12px] leading-snug text-slate
 
 /** Compact package row — not a heavy command card. */
 export const WORKBENCH_PACKAGE_MODULE =
-  "overflow-hidden rounded-lg border border-slate-200/80 bg-slate-50/40";
+  "overflow-hidden border-t border-slate-100 bg-white";
 
 export const WORKBENCH_PACKAGE_ACCENT = "hidden";
 
@@ -711,7 +708,7 @@ export const WORKBENCH_PACKAGE_ACTIVE_CHIP =
 export const WORKBENCH_ZONE_PANEL = WORKBENCH_MODULE;
 
 export const WORKBENCH_ZONE_HEADER =
-  "flex flex-wrap items-start justify-between gap-2 border-b border-slate-100/90 bg-slate-50/40 px-4 py-3 sm:px-5";
+  "flex flex-wrap items-start justify-between gap-2 border-b border-slate-100/90 py-2";
 
 export const WORKBENCH_ZONE_BODY = WORKBENCH_MODULE_INNER;
 
@@ -730,12 +727,11 @@ export const WORKBENCH_ATTENTION_ITEM =
 export const WORKBENCH_ATTENTION_ITEM_INDEX =
   "flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber-100 text-[11px] font-bold text-amber-800";
 
-/** R17C2.5 — calmer scope review queue (not hard error treatment). */
+/** R17C2.5 / 4C — guided finish-estimate section (not a workbench module card). */
 export const WORKBENCH_SCOPE_REVIEW_ZONE =
-  "overflow-hidden rounded-lg border border-slate-200/70 bg-slate-50/30";
+  "overflow-hidden border-t border-slate-100 bg-white";
 
-export const WORKBENCH_SCOPE_REVIEW_ZONE_HEADER =
-  "border-b border-slate-100/80 px-3 py-2.5 sm:px-4";
+export const WORKBENCH_SCOPE_REVIEW_ZONE_HEADER = "border-b border-slate-100/80 py-2";
 
 export const WORKBENCH_SCOPE_REVIEW_COUNT_BADGE =
   "inline-flex min-w-[1.75rem] items-center justify-center rounded-full bg-slate-600 px-2 py-0.5 text-[11px] font-bold tabular-nums text-white shadow-sm";
@@ -753,35 +749,34 @@ export const WORKBENCH_FUTURE_ACTION_CHIP =
   "inline-flex cursor-not-allowed items-center rounded-md border border-slate-200/80 bg-slate-50 px-2 py-1 text-[10px] font-medium text-slate-400 opacity-80";
 
 export const WORKBENCH_UPGRADES_ZONE =
-  "overflow-hidden rounded-xl border border-slate-200/60 bg-slate-50/30";
+  "overflow-hidden border-t border-slate-100 bg-white";
 
 export const WORKBENCH_UPGRADES_EMPTY =
   "flex items-start gap-2.5 rounded-lg border border-slate-200/60 bg-white/70 px-3 py-2.5 text-[12px] leading-snug text-slate-500";
 
-export const WORKBENCH_SCOPE_SECTION =
-  "rounded-lg border border-slate-100/90 bg-slate-50/25 px-3 py-2 sm:px-3.5 sm:py-2.5";
+export const WORKBENCH_SCOPE_SECTION = "";
 
 export const WORKBENCH_SCOPE_SECTION_TITLE =
   "flex flex-wrap items-center justify-between gap-2 text-[13px] font-semibold text-slate-800";
 
 export const WORKBENCH_SCOPE_COUNT_CHIP =
-  "inline-flex items-center rounded-full bg-slate-200/60 px-2 py-0.5 text-[10px] font-semibold tabular-nums text-slate-600";
+  "inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold tabular-nums text-slate-500";
 
 export const WORKBENCH_LINE_ROW =
-  "border-b border-slate-100/80 py-2 last:border-b-0 last:pb-0 first:pt-0 transition-colors hover:bg-slate-50/40";
+  "border-b border-slate-100 py-1.5 last:border-b-0 transition-colors hover:bg-slate-50/50";
 
 export const WORKBENCH_LINE_GRID =
-  "grid grid-cols-1 gap-x-4 gap-y-1 sm:grid-cols-[minmax(0,1fr)_4.75rem_5.25rem] sm:items-start";
+  "grid grid-cols-1 gap-x-4 gap-y-0.5 sm:grid-cols-[minmax(0,1fr)_5.5rem_6rem] sm:items-center";
 
-export const WORKBENCH_LINE_NAME = "text-[14px] font-semibold leading-snug text-slate-900";
+export const WORKBENCH_LINE_NAME = "text-[13px] font-medium leading-snug text-slate-900";
 
 export const WORKBENCH_LINE_QTY =
-  "text-[12px] tabular-nums text-slate-500 sm:pt-0.5 sm:text-right";
+  "text-[12px] tabular-nums text-slate-600 sm:text-right";
 
-export const WORKBENCH_LINE_QTY_VALUE = "font-semibold text-slate-700";
+export const WORKBENCH_LINE_QTY_VALUE = "font-medium text-slate-700";
 
 export const WORKBENCH_LINE_AMOUNT =
-  "shrink-0 text-[13px] tabular-nums font-semibold text-slate-900 sm:pt-0.5 sm:text-right";
+  "shrink-0 text-[13px] tabular-nums font-medium text-slate-900 sm:text-right";
 
 export const WORKBENCH_LINE_AMOUNT_INCLUDED =
   "shrink-0 text-[11px] font-semibold uppercase tracking-wide text-slate-500 sm:pt-1 sm:text-right";
@@ -805,15 +800,14 @@ export const WORKBENCH_HINT_STRIP =
   "flex items-start gap-2 rounded-lg border border-slate-200/60 bg-white/80 px-3 py-2.5 text-[11px] leading-snug text-slate-600 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]";
 
 export const WORKBENCH_TOTALS_ZONE =
-  "overflow-hidden rounded-lg border border-slate-200/70 bg-white";
+  "overflow-hidden border-t border-slate-100 bg-white";
 
-export const WORKBENCH_TOTALS_HEADER =
-  "border-b border-slate-100/80 px-3 py-2.5 sm:px-4";
+export const WORKBENCH_TOTALS_HEADER = "border-b border-slate-100/80 py-2";
 
-export const WORKBENCH_TOTALS_BODY = "px-4 py-4 sm:px-5 sm:py-4";
+export const WORKBENCH_TOTALS_BODY = "py-3";
 
 export const WORKBENCH_TOTALS_INCOMPLETE_PANEL =
-  "rounded-lg border border-slate-200/70 bg-slate-50/60 px-3.5 py-3 text-[13px] leading-relaxed text-slate-600";
+  "rounded-md border border-slate-100 bg-slate-50/50 px-3 py-2.5 text-[13px] leading-relaxed text-slate-600";
 
 export const WORKBENCH_TOTALS_AMOUNT_STACK =
   "mt-3 space-y-1.5 rounded-lg border border-slate-100 bg-slate-50/30 px-3.5 py-3";

@@ -102,26 +102,9 @@ export default function ProposalBuilderPackageSelector({
               data-builder-change-package
             >
               <Pencil className="h-3.5 w-3.5" aria-hidden />
-              Change
+              Change package
             </button>
           )}
-          <button
-            type="button"
-            onClick={() => setShowDetails((open) => !open)}
-            aria-expanded={showDetails}
-            className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-slate-700"
-          >
-            {showDetails ? "Hide details" : "Details"}
-            <ChevronDown
-              className={`h-3.5 w-3.5 transition-transform ${showDetails ? "rotate-180" : ""}`}
-              aria-hidden
-            />
-          </button>
-          {showDetails ? (
-            <div className="w-full rounded-md border border-slate-200/70 bg-slate-50/50 px-3 py-3">
-              <ProposalBuilderOptionsPanel graph={graph} selectedOptionId={effectiveOptionId} />
-            </div>
-          ) : null}
         </div>
       );
     }

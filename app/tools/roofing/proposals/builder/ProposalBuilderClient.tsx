@@ -80,8 +80,6 @@ import {
   type BuilderPageContextId,
 } from "@/app/lib/proposalBuilderNavigation";
 import {
-  BUILDER_SNAPSHOT_FROZEN_HELPER_CLASS,
-  BUILDER_STAGE,
   BUILDER_UNSAVED_PAGE_EDIT_CONFIRM,
   WORKBENCH_EXCLUDE_SUCCESS,
   WORKBENCH_HIDE_SUCCESS,
@@ -1650,7 +1648,7 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
 
   return (
     <div
-      className="space-y-6"
+      className="space-y-4"
       data-builder-quantity-preflight={quantityPreflight?.status ?? "none"}
       data-builder-quantity-preflight-current={String(quantityPreflight?.currentCount ?? 0)}
       data-builder-quantity-preflight-stale={String(quantityPreflight?.staleCount ?? 0)}
@@ -1680,6 +1678,15 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
             return (fromTemplate?.name ?? "").trim() || null;
           })()
         }
+        savedPricingDetails={
+          !draftGraphError &&
+          shellReady &&
+          hasPersistedProposalParam &&
+          draftGraphLoadComplete &&
+          persistedGraph != null
+            ? PROPOSAL_SNAPSHOT_FROZEN_HELPER_COPY
+            : null
+        }
         guidance={builderGuidance}
         onLifecycleAction={handleLifecycleAction}
       />
@@ -1707,24 +1714,6 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
         <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
           {optionPersistError}
         </div>
-      ) : null}
-      {!draftGraphError &&
-      shellReady &&
-      hasPersistedProposalParam &&
-      draftGraphLoadComplete &&
-      !draftGraphError &&
-      persistedGraph != null ? (
-        <details className={`${BUILDER_STAGE} text-[12px] text-slate-500`}>
-          <summary className="cursor-pointer list-none text-slate-400 hover:text-slate-600 [&::-webkit-details-marker]:hidden">
-            Snapshot details
-          </summary>
-          <p
-            className={`mt-1.5 ${BUILDER_SNAPSHOT_FROZEN_HELPER_CLASS}`}
-            data-builder-snapshot-frozen-helper
-          >
-            {PROPOSAL_SNAPSHOT_FROZEN_HELPER_COPY}
-          </p>
-        </details>
       ) : null}
       {!draftGraphError && shellReady && showStaleBanner && staleBannerCopy ? (
         <div

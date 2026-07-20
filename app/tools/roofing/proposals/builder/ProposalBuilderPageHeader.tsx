@@ -5,13 +5,7 @@ import { buildJobCardHref } from "@/app/lib/proposalBuilderReadiness";
 import type { JobRecord } from "@/app/lib/jobTypes";
 import type { ProposalBuilderGuidance, ProposalBuilderLifecycleActionId } from "@/app/lib/proposalBuilderGuidance";
 import ProposalBuilderDisabledActions from "./ProposalBuilderDisabledActions";
-import {
-  BUILDER_HEADER_DRAFT_PILL,
-  BUILDER_HEADER_KICKER,
-  BUILDER_HEADER_SETUP_PILL,
-  BUILDER_HEADER_WORKSPACE_KICKER,
-  BUILDER_STAGE,
-} from "./proposalBuilderConstants";
+import { BUILDER_STAGE } from "./proposalBuilderConstants";
 
 type ProposalBuilderPageHeaderProps = {
   job: JobRecord | null;
@@ -22,6 +16,8 @@ type ProposalBuilderPageHeaderProps = {
   proposalTitle?: string | null;
   /** Selected package label (e.g. Enhanced). */
   selectedPackageLabel?: string | null;
+  /** Quiet pricing note under More (not a primary Snapshot link). */
+  savedPricingDetails?: string | null;
   guidance?: ProposalBuilderGuidance | null;
   onLifecycleAction?: (
     actionId: ProposalBuilderLifecycleActionId
@@ -35,80 +31,76 @@ export default function ProposalBuilderPageHeader({
   showDraftSavedPill = false,
   proposalTitle = null,
   selectedPackageLabel = null,
+  savedPricingDetails = null,
   guidance = null,
   onLifecycleAction,
 }: ProposalBuilderPageHeaderProps) {
   const identity = resolveJobIdentityDisplay(job, "Proposal Builder");
-  const title = identity.primaryLabel;
-  const subtitle = identity.secondaryAddress;
+  const jobLabel = identity.primaryLabel;
+  const address = identity.secondaryAddress;
   const backHref = jobId
     ? buildJobCardHref(jobId, { tab: "proposals" })
     : "/tools/roofing/saved";
 
-  const showSetupPill = shellReady && !showDraftSavedPill;
   const proposalLabel = (proposalTitle ?? "").trim() || "Proposal";
   const packageLabel = (selectedPackageLabel ?? "").trim();
-  const handoffMetaParts = [
-    `${proposalLabel} proposal`,
+  const jobLine = [jobLabel, address].filter(Boolean).join(" · ");
+  const statusParts = [
     packageLabel ? `${packageLabel} package` : null,
+    showDraftSavedPill ? "Draft" : shellReady ? "Setup preview" : null,
   ].filter(Boolean);
 
   return (
-    <header className={`${BUILDER_STAGE} border-b border-slate-200/80 pb-5 pt-5`}>
-      <div className="flex items-start justify-between gap-6">
+    <header
+      className={`${BUILDER_STAGE} border-b border-slate-200/70 pb-4 pt-4`}
+      data-builder-continuity-header
+    >
+      <Link
+        href={backHref}
+        className="inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-700"
+        data-builder-back-to-job-card
+      >
+        <ArrowLeft className="h-4 w-4" aria-hidden />
+        Back to Job Card
+      </Link>
+
+      <div className="mt-3 flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <Link
-            href={backHref}
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-700"
-            data-builder-back-to-job-card
+          <h1
+            className="text-[1.5rem] font-semibold leading-tight tracking-tight text-slate-950"
+            data-builder-proposal-primary-title
           >
-            <ArrowLeft className="h-4 w-4" aria-hidden />
-            Back to Job Card
-          </Link>
+            {proposalLabel} proposal
+          </h1>
 
-          <p className={`mt-3 ${BUILDER_HEADER_KICKER}`}>{BUILDER_HEADER_WORKSPACE_KICKER}</p>
-
-          <div className="mt-1 flex flex-wrap items-center gap-2.5">
-            <h1
-              className="text-[1.65rem] font-semibold leading-tight tracking-tight text-slate-950"
-              data-builder-job-primary-identity
+          {jobLine ? (
+            <p
+              className="mt-1 text-sm text-slate-600"
+              data-builder-job-secondary-identity
             >
-              {title}
-            </h1>
-            {showDraftSavedPill ? (
-              <span className={BUILDER_HEADER_DRAFT_PILL} data-builder-draft-status>
-                Draft
-              </span>
-            ) : showSetupPill ? (
-              <span className={BUILDER_HEADER_SETUP_PILL} title="No saved proposal yet — this is a setup preview.">
-                Setup preview
-              </span>
-            ) : null}
-          </div>
-
-          {subtitle ? (
-            <p className="mt-1.5 text-sm text-slate-600" data-builder-job-secondary-identity>
-              {subtitle}
+              {jobLine}
             </p>
           ) : (
-            <p className="mt-1.5 text-sm text-slate-500">Job-specific proposal</p>
+            <p className="mt-1 text-sm text-slate-500">Job-specific proposal</p>
           )}
 
-          {shellReady && handoffMetaParts.length > 0 ? (
+          {statusParts.length > 0 ? (
             <p
-              className="mt-1.5 text-sm font-medium text-slate-700"
+              className="mt-1 text-sm font-medium text-slate-700"
               data-builder-handoff-meta
+              data-builder-package-status-line
             >
-              {handoffMetaParts.join(" · ")}
+              {statusParts.join(" · ")}
             </p>
           ) : null}
         </div>
 
         {shellReady ? (
-          <div className="shrink-0 pt-6">
+          <div className="shrink-0 pt-0.5">
             <ProposalBuilderDisabledActions
               lifecycleLocks={guidance?.lifecycleLocks ?? null}
               onLifecycleAction={onLifecycleAction}
+              savedPricingDetails={savedPricingDetails}
             />
           </div>
         ) : null}

@@ -55,6 +55,8 @@ type ScopeLineRowProps = {
   compact?: boolean;
   /** Use `div` when the parent already provides the listitem wrapper. */
   as?: "li" | "div";
+  /** Hide contractor Details disclosure for document-like rows. */
+  hideDetails?: boolean;
   onEditQuantity?: () => void;
   onRemoveFromOption?: () => void;
 };
@@ -155,6 +157,7 @@ export default function ProposalBuilderWorkbenchLineRow(
 
   const { line, onEditQuantity, onRemoveFromOption } = props;
   const Row = props.as === "div" ? "div" : "li";
+  const hideDetails = props.hideDetails === true;
   const hasAttention = line.attentionReasons.length > 0;
   const amountClass = hasAttention
     ? WORKBENCH_LINE_AMOUNT_ATTENTION
@@ -198,11 +201,12 @@ export default function ProposalBuilderWorkbenchLineRow(
               {line.qtyLabel}
             </span>
           </p>
-          <ProposalBuilderWorkbenchLineDetails detailMeta={line.detailMeta} />
+          {hideDetails ? null : (
+            <ProposalBuilderWorkbenchLineDetails detailMeta={line.detailMeta} />
+          )}
         </div>
 
         <p className={`${WORKBENCH_LINE_QTY} hidden sm:block`}>
-          <span className="block text-[10px] uppercase tracking-wide text-slate-400">Qty</span>
           <span className={line.qtyUnresolved ? "text-slate-400" : WORKBENCH_LINE_QTY_VALUE}>
             {line.qtyLabel}
           </span>

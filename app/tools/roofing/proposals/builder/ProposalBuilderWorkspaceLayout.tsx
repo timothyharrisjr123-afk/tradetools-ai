@@ -11,6 +11,10 @@ type ProposalBuilderWorkspaceLayoutProps = {
   summaryRail?: ReactNode | null;
 };
 
+/**
+ * Block 4C — section rail + estimate canvas share one attached workspace shell
+ * so the editor does not float as a narrow island with dead gutters.
+ */
 export default function ProposalBuilderWorkspaceLayout({
   sectionNav,
   pageContextStrip,
@@ -22,34 +26,48 @@ export default function ProposalBuilderWorkspaceLayout({
 
   return (
     <div
-      className={`${BUILDER_STAGE} space-y-5`}
+      className={`${BUILDER_STAGE}`}
       data-builder-document-led="true"
+      data-builder-workspace-attached="true"
     >
-      <div
-        className={
-          leftNav
-            ? showRail
-              ? "grid grid-cols-1 gap-6 lg:grid-cols-[11.5rem_minmax(0,1fr)_300px] xl:grid-cols-[12.5rem_minmax(0,1fr)_310px]"
-              : "grid grid-cols-1 gap-6 lg:grid-cols-[11.5rem_minmax(0,1fr)] xl:grid-cols-[12.5rem_minmax(0,48rem)] xl:justify-center"
-            : showRail
-              ? "grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_330px]"
-              : "mx-auto w-full max-w-3xl"
-        }
-      >
-        {leftNav ? (
-          <aside className="min-w-0 lg:sticky lg:top-6 lg:self-start" data-builder-section-nav-slot>
+      {leftNav ? (
+        <div
+          className={
+            showRail
+              ? "grid grid-cols-1 overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-[0_2px_12px_rgba(15,23,42,0.04)] lg:grid-cols-[12.5rem_minmax(0,1fr)_280px]"
+              : "grid grid-cols-1 overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-[0_2px_12px_rgba(15,23,42,0.04)] lg:grid-cols-[12.5rem_minmax(0,1fr)]"
+          }
+          data-builder-workspace-shell
+        >
+          <aside
+            className="min-w-0 border-b border-slate-200/80 bg-slate-50/50 lg:border-b-0 lg:border-r lg:border-slate-200/80"
+            data-builder-section-nav-slot
+          >
             {leftNav}
           </aside>
-        ) : null}
 
+          <div className="min-w-0" data-builder-document-canvas>
+            {canvas}
+          </div>
+
+          {showRail ? (
+            <aside className="min-w-0 border-t border-slate-200/80 lg:border-l lg:border-t-0">
+              {summaryRail}
+            </aside>
+          ) : null}
+        </div>
+      ) : showRail ? (
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_330px]">
+          <div className="min-w-0" data-builder-document-canvas>
+            {canvas}
+          </div>
+          <aside className="min-w-0 xl:sticky xl:top-6 xl:self-start">{summaryRail}</aside>
+        </div>
+      ) : (
         <div className="min-w-0" data-builder-document-canvas>
           {canvas}
         </div>
-
-        {showRail ? (
-          <aside className="min-w-0 xl:sticky xl:top-6 xl:self-start">{summaryRail}</aside>
-        ) : null}
-      </div>
+      )}
     </div>
   );
 }

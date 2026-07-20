@@ -27,11 +27,12 @@ export default function ProposalBuilderWorkbenchPackageZone({
 
   return (
     <section
-      className={`${WORKBENCH_PACKAGE_MODULE} px-3.5 py-3`}
+      className={`${WORKBENCH_PACKAGE_MODULE} py-3`}
       aria-labelledby="workbench-package-zone-heading"
       data-builder-package-compact
+      data-builder-package-context
     >
-      <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1.5">
+      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
         <div className="min-w-0 flex-1">
           <p
             className="text-sm font-semibold text-slate-900"
@@ -40,12 +41,36 @@ export default function ProposalBuilderWorkbenchPackageZone({
           >
             {packageTitle}
           </p>
-          {packageZone.startingPackageHelper ? (
+          {packageZone.description ? (
+            <p
+              className="mt-0.5 text-[13px] leading-snug text-slate-600"
+              data-builder-package-description
+            >
+              {packageZone.description}
+            </p>
+          ) : packageZone.startingPackageHelper ? (
             <p
               className="mt-0.5 text-[12px] leading-snug text-slate-600"
               data-builder-package-helper
             >
               {packageZone.startingPackageHelper}
+            </p>
+          ) : null}
+          {packageZone.bullets.length > 0 ? (
+            <p
+              className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] text-slate-500"
+              data-builder-package-bullets
+            >
+              {packageZone.bullets.map((bullet, index) => (
+                <span key={bullet} className="inline-flex items-center gap-1.5">
+                  {index > 0 ? (
+                    <span className="text-slate-300" aria-hidden>
+                      ·
+                    </span>
+                  ) : null}
+                  {bullet}
+                </span>
+              ))}
             </p>
           ) : null}
         </div>

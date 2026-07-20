@@ -13,11 +13,14 @@ const HEADER_ACTION_ORDER = ["preview", "send", "sign", "payment"] as const;
 type ProposalBuilderDisabledActionsProps = {
   lifecycleLocks?: ProposalBuilderLifecycleLock[] | null;
   onLifecycleAction?: (actionId: ProposalBuilderLifecycleActionId) => void;
+  /** Quiet note under More — not a primary Snapshot link. */
+  savedPricingDetails?: string | null;
 };
 
 export default function ProposalBuilderDisabledActions({
   lifecycleLocks = null,
   onLifecycleAction,
+  savedPricingDetails = null,
 }: ProposalBuilderDisabledActionsProps) {
   const headerLocks = lifecycleLocks
     ? HEADER_ACTION_ORDER.map((id) =>
@@ -34,6 +37,9 @@ export default function ProposalBuilderDisabledActions({
     (previewLock.state === "ready" || previewLock.state === "attention");
   const previewReason =
     previewLock?.lockedReason ?? previewLock?.unlockSummary ?? "Preview";
+
+  const pricingNote = (savedPricingDetails ?? "").trim();
+  const showMore = futureLocks.length > 0 || pricingNote.length > 0;
 
   return (
     <div
@@ -68,16 +74,16 @@ export default function ProposalBuilderDisabledActions({
         Preview
       </button>
 
-      {futureLocks.length > 0 ? (
+      {showMore ? (
         <details className="relative" data-builder-future-actions>
           <summary
-            className="flex cursor-pointer list-none items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1.5 text-[11px] font-medium text-slate-500 hover:bg-slate-50 [&::-webkit-details-marker]:hidden"
-            title="Later proposal actions"
+            className="flex cursor-pointer list-none items-center gap-1 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-[12px] font-medium text-slate-500 hover:bg-slate-50 [&::-webkit-details-marker]:hidden"
+            title="More proposal actions"
           >
             <MoreHorizontal className="h-3.5 w-3.5" aria-hidden />
             More
           </summary>
-          <div className="absolute right-0 z-20 mt-1 min-w-[10rem] rounded-lg border border-slate-200 bg-white p-1.5 shadow-lg">
+          <div className="absolute right-0 z-20 mt-1 w-[16.5rem] rounded-lg border border-slate-200 bg-white p-1.5 shadow-lg">
             {futureLocks.map((lock) => (
               <button
                 key={lock.actionId}
@@ -90,6 +96,22 @@ export default function ProposalBuilderDisabledActions({
                 {lock.label}
               </button>
             ))}
+            {pricingNote ? (
+              <details
+                className="mt-0.5 border-t border-slate-100 px-2.5 py-1.5"
+                data-builder-saved-pricing-details
+              >
+                <summary className="cursor-pointer list-none text-[11px] font-medium text-slate-500 hover:text-slate-700 [&::-webkit-details-marker]:hidden">
+                  Saved pricing details
+                </summary>
+                <p
+                  className="mt-1.5 text-[11px] leading-snug text-slate-500"
+                  data-builder-snapshot-frozen-helper
+                >
+                  {pricingNote}
+                </p>
+              </details>
+            ) : null}
           </div>
         </details>
       ) : null}

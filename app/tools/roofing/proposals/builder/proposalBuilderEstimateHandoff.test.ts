@@ -1,5 +1,5 @@
 /**
- * Block 4 / 4B — Builder estimate handoff + document-led layout contracts.
+ * Block 4 / 4B / 4C — Builder handoff + document-led + visual continuity contracts.
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -12,7 +12,7 @@ function read(rel: string): string {
   return readFileSync(path.join(root, rel), "utf8");
 }
 
-describe("Builder estimate handoff (Block 4 / 4B)", () => {
+describe("Builder estimate handoff (Block 4 / 4B / 4C)", () => {
   test("1. Builder route does not highlight Proposal templates", () => {
     const appPage = read(
       "app/tools/roofing/proposals/builder/ProposalBuilderAppPage.tsx"
@@ -21,21 +21,29 @@ describe("Builder estimate handoff (Block 4 / 4B)", () => {
     assert.doesNotMatch(appPage, /activeNav="templates"/);
   });
 
-  test("2. Builder header shows job identity, proposal title, selected package", () => {
+  test("2. Header primary title is proposal title; package · Draft status line", () => {
     const header = read(
       "app/tools/roofing/proposals/builder/ProposalBuilderPageHeader.tsx"
     );
-    assert.match(header, /data-builder-job-primary-identity/);
+    assert.match(header, /data-builder-proposal-primary-title/);
+    assert.match(header, /data-builder-package-status-line/);
     assert.match(header, /data-builder-handoff-meta/);
     assert.match(header, /proposalTitle/);
     assert.match(header, /selectedPackageLabel/);
+    assert.match(header, /\$\{packageLabel\} package/);
+    assert.match(header, /Draft/);
+    assert.doesNotMatch(header, /Proposal Workspace/i);
+    assert.doesNotMatch(header, /BUILDER_HEADER_WORKSPACE_KICKER/);
+    assert.doesNotMatch(header, /data-builder-job-primary-identity/);
   });
 
-  test("3. Document-led layout: section nav + canvas; no primary horizontal strip / rail", () => {
+  test("3. Document-led attached workspace: section nav + canvas shell", () => {
     const layout = read(
       "app/tools/roofing/proposals/builder/ProposalBuilderWorkspaceLayout.tsx"
     );
     assert.match(layout, /data-builder-document-led/);
+    assert.match(layout, /data-builder-workspace-attached/);
+    assert.match(layout, /data-builder-workspace-shell/);
     assert.match(layout, /sectionNav/);
     assert.match(layout, /data-builder-document-canvas/);
 
@@ -52,16 +60,21 @@ describe("Builder estimate handoff (Block 4 / 4B)", () => {
     assert.match(sectionNav, /Active/);
   });
 
-  test("4. Right rail does not duplicate next-step; one next-step on Estimate", () => {
+  test("4. Compact needs-review strip; Finish estimate language", () => {
     const estimate = read(
       "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchEstimateDocument.tsx"
     );
     assert.match(estimate, /data-builder-estimate-next-step/);
+    assert.match(estimate, /data-builder-needs-review-strip/);
     assert.match(estimate, /data-builder-review-quantities/);
-    assert.match(estimate, /Needs review/);
+    assert.match(estimate, /Needs review:/);
 
-    const client = read("app/tools/roofing/proposals/builder/ProposalBuilderClient.tsx");
-    assert.doesNotMatch(client, /ProposalBuilderSummaryRail/);
+    const attentionSrc = read(
+      "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchAttentionZone.tsx"
+    );
+    assert.match(attentionSrc, /data-builder-finish-estimate/);
+    assert.match(attentionSrc, /Finish estimate/);
+    assert.doesNotMatch(attentionSrc, /Needs quantity review/);
   });
 
   test("5. No yellow warning banner as first primary visual for drafts", () => {
@@ -73,11 +86,19 @@ describe("Builder estimate handoff (Block 4 / 4B)", () => {
     assert.match(alerts, /hasPersistedDraft/);
   });
 
-  test("6. Snapshot note is collapsed/quiet", () => {
+  test("6. Snapshot details not primary; Saved pricing details under More", () => {
     const client = read("app/tools/roofing/proposals/builder/ProposalBuilderClient.tsx");
-    assert.match(client, /Snapshot details/);
-    assert.match(client, /data-builder-snapshot-frozen-helper/);
-    assert.match(client, /<details/);
+    assert.doesNotMatch(client, /Snapshot details/);
+    assert.match(client, /savedPricingDetails=/);
+    assert.match(client, /PROPOSAL_SNAPSHOT_FROZEN_HELPER_COPY/);
+
+    const actions = read(
+      "app/tools/roofing/proposals/builder/ProposalBuilderDisabledActions.tsx"
+    );
+    assert.match(actions, /Saved pricing details/);
+    assert.match(actions, /data-builder-saved-pricing-details/);
+    assert.match(actions, /data-builder-snapshot-frozen-helper/);
+    assert.doesNotMatch(actions, /Snapshot details/);
   });
 
   test("7. Display settings not a large card above included estimate", () => {
@@ -98,7 +119,16 @@ describe("Builder estimate handoff (Block 4 / 4B)", () => {
     assert.match(settings, /\bDisplay\b/);
   });
 
-  test("8. Included estimate before upgrades; quantity review compact", () => {
+  test("8. Included estimate table-like; no Roof replacement scope duplicate", () => {
+    const ready = read(
+      "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchReadyScopeZone.tsx"
+    );
+    assert.match(ready, /data-builder-included-estimate/);
+    assert.match(ready, /data-builder-included-estimate-table/);
+    assert.match(ready, /data-builder-estimate-column-headers/);
+    assert.match(ready, /hideDetails/);
+    assert.doesNotMatch(ready, /Roof replacement scope/);
+
     const estimate = read(
       "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchEstimateDocument.tsx"
     );
@@ -108,12 +138,6 @@ describe("Builder estimate handoff (Block 4 / 4B)", () => {
     const attention = body.indexOf("<ProposalBuilderWorkbenchAttentionZone");
     const upgrades = body.indexOf("<ProposalBuilderWorkbenchUpgradesZone");
     assert.ok(included > 0 && included < attention && attention < upgrades);
-
-    const attentionSrc = read(
-      "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchAttentionZone.tsx"
-    );
-    assert.match(attentionSrc, /data-builder-quantity-review/);
-    assert.match(attentionSrc, /data-builder-set-quantity/);
   });
 
   test("9. Remove from proposal not primary on included / quantity review", () => {
@@ -130,11 +154,7 @@ describe("Builder estimate handoff (Block 4 / 4B)", () => {
     const attention = read(
       "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchAttentionZone.tsx"
     );
-    // Disabled Remove chips must not compete with Set quantity.
-    assert.doesNotMatch(
-      attention,
-      /isSetQuantity \|\| isRemove/
-    );
+    assert.doesNotMatch(attention, /isSetQuantity \|\| isRemove/);
     assert.match(attention, /isRemove && canRemove/);
   });
 
@@ -164,12 +184,14 @@ describe("Builder estimate handoff (Block 4 / 4B)", () => {
     }
   });
 
-  test("12. Package helper uses proposal; package compact", () => {
+  test("12. Package context preserved; no signing language", () => {
     const pkg = read(
       "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchPackageZone.tsx"
     );
     assert.match(pkg, /data-builder-package-compact/);
-    assert.match(pkg, /startingPackageHelper/);
+    assert.match(pkg, /data-builder-package-context/);
+    assert.match(pkg, /data-builder-package-description/);
+    assert.match(pkg, /data-builder-package-bullets/);
     assert.match(pkg, /\bcompact\b/);
     assert.doesNotMatch(pkg, /signing/i);
 
@@ -177,6 +199,17 @@ describe("Builder estimate handoff (Block 4 / 4B)", () => {
       "app/tools/roofing/proposals/builder/ProposalBuilderPackageSelector.tsx"
     );
     assert.match(selector, /data-builder-package-compact-controls/);
+    assert.match(selector, /Change package/);
+
+    const upgrades = read(
+      "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchUpgradesZone.tsx"
+    );
+    assert.match(upgrades, /data-builder-optional-upgrades/);
+    assert.doesNotMatch(upgrades, /signing/i);
+    assert.doesNotMatch(upgrades, /customerSelectionHint/);
+    // No nested section title card repeating Optional upgrades.
+    assert.doesNotMatch(upgrades, /WORKBENCH_SCOPE_SECTION_TITLE/);
+    assert.doesNotMatch(upgrades, /section\.title/);
   });
 
   test("13. Builder package picker draft-option scoping preserved", () => {

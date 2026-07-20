@@ -124,6 +124,8 @@ describe("Phase 6 Builder quantity status UI wiring", () => {
     assert.match(client, /data-builder-quantity-trust-status=\{/);
     assert.equal(client.includes("quantityPreflightTrust={quantityPreflightTrust}"), false);
     assert.equal(client.includes("quantity_resolution_echo"), false);
+    // Block 4C: snapshot/pricing note is not a primary Snapshot details link.
+    assert.equal(client.includes("Snapshot details"), false);
   });
 
   test("8. customer preview / public surfaces omit quantity status modules", () => {

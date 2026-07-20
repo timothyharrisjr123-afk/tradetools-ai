@@ -23,7 +23,11 @@ describe("Builder trust flow (Integrated Flow P1)", () => {
     assert.ok(client.includes("deriveDraftCatalogEconomicsStale"));
     assert.ok(client.includes("formatDraftCatalogEconomicsStaleBanner"));
     assert.ok(client.includes("PROPOSAL_SNAPSHOT_FROZEN_HELPER_COPY"));
-    assert.ok(client.includes("data-builder-snapshot-frozen-helper"));
+    // Block 4C: frozen helper lives under More → Saved pricing details.
+    assert.ok(client.includes("savedPricingDetails="));
+    const actions = read("ProposalBuilderDisabledActions.tsx");
+    assert.ok(actions.includes("data-builder-snapshot-frozen-helper"));
+    assert.ok(actions.includes("Saved pricing details"));
     assert.ok(client.includes("data-builder-refresh-draft-pricing"));
     assert.ok(client.includes("handleRefreshDraftPricing"));
     assert.match(PROPOSAL_SNAPSHOT_FROZEN_HELPER_COPY, /frozen draft snapshot/i);

@@ -1,19 +1,14 @@
 import Link from "next/link";
-import { CircleDashed, Receipt } from "lucide-react";
 import type { WorkbenchTotalsZone } from "@/app/lib/proposalBuilderWorkbenchEstimatePresenter";
 import {
-  BUILDER_PRICING_CONFIGURED_BANNER,
   BUILDER_PRICING_PREVIEW_BANNER,
   BUILDER_TOTALS_FOOTNOTE_CONFIGURED_COPY,
   BUILDER_TOTALS_FOOTNOTE_PLACEHOLDER_COPY,
   PRICING_SETTINGS_HREF,
-  WORKBENCH_MODULE_KICKER,
-  WORKBENCH_MODULE_TITLE,
   WORKBENCH_TOTALS_AMOUNT_STACK,
   WORKBENCH_TOTALS_BODY,
   WORKBENCH_TOTALS_FOOTNOTE,
   WORKBENCH_TOTALS_HEADER,
-  WORKBENCH_TOTALS_INCOMPLETE_PANEL,
   WORKBENCH_TOTALS_ZONE,
 } from "./proposalBuilderConstants";
 
@@ -45,9 +40,6 @@ type ProposalBuilderWorkbenchTotalsZoneProps = {
 export default function ProposalBuilderWorkbenchTotalsZone({
   zone,
 }: ProposalBuilderWorkbenchTotalsZoneProps) {
-  const bannerClass = zone.policyBanner.configured
-    ? BUILDER_PRICING_CONFIGURED_BANNER
-    : BUILDER_PRICING_PREVIEW_BANNER;
   const footnoteCopy = zone.pricingPolicyConfigured
     ? BUILDER_TOTALS_FOOTNOTE_CONFIGURED_COPY
     : BUILDER_TOTALS_FOOTNOTE_PLACEHOLDER_COPY;
@@ -55,37 +47,26 @@ export default function ProposalBuilderWorkbenchTotalsZone({
   return (
     <section className={WORKBENCH_TOTALS_ZONE} aria-labelledby="workbench-totals-heading">
       <header className={WORKBENCH_TOTALS_HEADER}>
-        <div className="flex items-start gap-2.5">
-          {zone.showAmounts ? (
-            <Receipt className="mt-0.5 h-4 w-4 shrink-0 text-slate-600" aria-hidden />
-          ) : (
-            <CircleDashed className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" aria-hidden />
-          )}
-          <div>
-            <p className={WORKBENCH_MODULE_KICKER} id="workbench-totals-heading">
-              Totals
-            </p>
-            <p className={WORKBENCH_MODULE_TITLE}>
-              {zone.showAmounts ? "Totals ready" : "Totals pending review"}
-            </p>
-          </div>
-        </div>
+        <p
+          className="text-sm font-semibold text-slate-900"
+          id="workbench-totals-heading"
+        >
+          Totals
+        </p>
       </header>
 
       <div className={WORKBENCH_TOTALS_BODY}>
-        {zone.policyBanner.show ? (
-          <div className={bannerClass}>
+        {zone.policyBanner.show && !zone.pricingPolicyConfigured ? (
+          <div className={BUILDER_PRICING_PREVIEW_BANNER}>
             <p>{zone.policyBanner.copy}</p>
-            {!zone.pricingPolicyConfigured ? (
-              <p className="mt-1.5">
-                <Link
-                  href={PRICING_SETTINGS_HREF}
-                  className="font-medium underline underline-offset-2 hover:opacity-80"
-                >
-                  Set up company pricing
-                </Link>
-              </p>
-            ) : null}
+            <p className="mt-1.5">
+              <Link
+                href={PRICING_SETTINGS_HREF}
+                className="font-medium underline underline-offset-2 hover:opacity-80"
+              >
+                Set up company pricing
+              </Link>
+            </p>
           </div>
         ) : null}
 
@@ -101,12 +82,12 @@ export default function ProposalBuilderWorkbenchTotalsZone({
             </div>
           </div>
         ) : zone.incompleteCopy ? (
-          <div className={`mt-3 ${WORKBENCH_TOTALS_INCOMPLETE_PANEL}`}>
-            <p>{zone.incompleteCopy}</p>
-          </div>
+          <p className="text-[13px] text-slate-600">{zone.incompleteCopy}</p>
         ) : null}
 
-        <p className={WORKBENCH_TOTALS_FOOTNOTE}>{footnoteCopy}</p>
+        {zone.showAmounts ? (
+          <p className={WORKBENCH_TOTALS_FOOTNOTE}>{footnoteCopy}</p>
+        ) : null}
       </div>
     </section>
   );

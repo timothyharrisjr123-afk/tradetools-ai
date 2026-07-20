@@ -45,11 +45,11 @@
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** **`ea39fa7`** — polish(proposals): make builder document-led (Block 4B; prior **`2ae400b`** / **`5e07530`**)
-- **Docs checkpoint:** **Block 4B Builder document-led continuation** (this header + **§6BO.13.4.9** T.1). Prior: T (**`2ae400b`**); S.3 (**`5e07530`**); Block 3 (**S**).
+- **Code checkpoint:** **`(pending commit)`** — polish(proposals): refine builder visual continuity (Block 4C; prior **`ea39fa7`** / **`2ae400b`**)
+- **Docs checkpoint:** **Block 4C Builder visual continuity correction** (this header + **§6BO.13.4.9** T.2). Prior: T.1 (**`ea39fa7`**); T (**`2ae400b`**); S.3 (**`5e07530`**).
 - **Prior code:** **`ea39fa7`** document-led Builder; **`2ae400b`** Builder estimate review; **`5e07530`** proposal creation copy
-- **Next coding:** **Block 5** — Preview document-first (only after Block 4B review). Do **not** start Blocks 6–7 until Block 5 is approved. Do **not** add full proposal management, template rebuild/import of live options into existing drafts, supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
-- **Historical note:** Block 4B document-led Builder: left proposal section nav; centered Estimate canvas; no right-rail next-step duplicate; Preview primary; Display collapsed; Included estimate anchor; compact quantity review; protected systems unchanged.
+- **Next coding:** **Block 5** — Preview document-first (only after Block 4C review). Do **not** start Blocks 6–7 until Block 5 is approved. Do **not** add full proposal management, template rebuild/import of live options into existing drafts, supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
+- **Historical note:** Block 4C visual continuity: proposal title primary; attached section rail + canvas; compact Needs review strip; package modal context; Finish estimate; table-like Included estimate; Saved pricing details under More; protected systems unchanged.
 
 **Trust order:** Header/current checkpoint → **§6BO.13** (approved page-by-page UI flow roadmap + P0 implementation sequence — **supersedes separate Command Center language**) → **§6BM** / **§6BN** (R18 letter-phase roadmap + R18C–R18D3C implementation history) → **§6BO** / **§6BO.11** / **§6BO.12** (completed remediation side-track + **approved Stage C policy** + **operating-flow audit sequencing — complete; outcome in §6BO.13**) → **§6BL** → **§11 override**. Stage B browser smoke required local-only **`USE_PROPOSAL_SEND_FREEZE_RPC=1`** in `.env.local` (gitignored, not committed). **Do not proceed** to docs-only or next feature work unless working tree is clean. **Still do not** mutate `proposals.status = sent`, write sent `proposal_events`, move Jobs Board cards, add Job Card send activity, enable PDF/Sign/Payment, or add webhooks unless separately approved.
 
@@ -12488,6 +12488,24 @@ Package rule from **N** remains law: pre-draft package on create modal; post-dra
 - Remove-from-proposal not repeated as primary on included/quantity rows
 
 **Smoke:** Babby **`466e393c-…`** — section nav Estimate Active; one Needs review card; Included + Set quantity; no rail duplicate; Preview primary.
+
+**Next recommended block:** see **T.2** visual continuity correction, then **Block 5** after approval.
+
+###### T.2 Block 4C — Builder visual continuity correction — IMPLEMENTED (2026-07-20)
+
+**Code checkpoint:** set in header after commit (`polish(proposals): refine builder visual continuity`)
+
+**Status:** Builder feels continuous with Job Card → + Proposal → Continue to Builder — balanced width, attached rail/canvas, document-like Estimate. **No Preview redesign. No pricing/math/snapshot/send/lifecycle. No SQL/migrations/packages.**
+
+**Fixes:**
+- Header: **Roof replacement proposal** primary; Babby D · address; **Enhanced package · Draft**; removed Proposal Workspace; Preview/More aligned to stage
+- **Saved pricing details** under More (no primary Snapshot details)
+- Attached workspace shell (`data-builder-workspace-shell`) — section rail + Estimate canvas share one border
+- Compact **Needs review:** strip; package description + bullets + Change package
+- Included estimate table (Item / Qty / Price); no Roof replacement scope nesting; Details hidden
+- **Finish estimate** quantity section; Optional upgrades single heading; clean Totals copy
+
+**Smoke:** Babby **`466e393c-…`** — proposal title primary; attached shell; Included estimate anchor; Finish estimate + Set quantity; package context; Preview aligned.
 
 **Next recommended block:** **Block 5 — Preview document-first** (only after this surface is approved).
 

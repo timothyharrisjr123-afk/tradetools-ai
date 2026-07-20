@@ -16,9 +16,7 @@ import { useCallback, useMemo, useState } from "react";
 import {
   BUILDER_CANVAS,
   WORKBENCH_BODY,
-  WORKBENCH_ESTIMATE_KICKER,
   WORKBENCH_HEADER,
-  WORKBENCH_HEADER_KICKER,
   WORKBENCH_HEADER_SUBTITLE,
   WORKBENCH_HEADER_TITLE,
 } from "./proposalBuilderConstants";
@@ -346,9 +344,8 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
 
   return (
     <article className={BUILDER_CANVAS} data-builder-estimate-document>
-      <header className={`${WORKBENCH_HEADER} !bg-white !pb-4`}>
+      <header className={WORKBENCH_HEADER}>
         <div className="min-w-0">
-          <p className={WORKBENCH_HEADER_KICKER}>{WORKBENCH_ESTIMATE_KICKER}</p>
           <h2 className={WORKBENCH_HEADER_TITLE}>{presentation.page.title}</h2>
           <p className={WORKBENCH_HEADER_SUBTITLE}>
             Review the estimate before previewing.
@@ -359,18 +356,18 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
       <div className={WORKBENCH_BODY}>
         {qtyNeeded > 0 ? (
           <div
-            className="rounded-lg border border-slate-200 bg-slate-50/70 px-4 py-3"
+            className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 rounded-md border border-slate-200/80 bg-slate-50/60 px-3 py-2"
             data-builder-estimate-next-step
+            data-builder-needs-review-strip
           >
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">
-              Needs review
-            </p>
-            <p className="mt-1 text-sm font-semibold text-slate-900">
-              {qtyNeeded} quantit{qtyNeeded === 1 ? "y" : "ies"} needed before totals are final.
+            <p className="min-w-0 text-[13px] text-slate-700">
+              <span className="font-semibold text-slate-900">Needs review:</span>{" "}
+              {qtyNeeded} quantit{qtyNeeded === 1 ? "y" : "ies"} needed before totals are
+              final.
             </p>
             <button
               type="button"
-              className="mt-2 inline-flex items-center rounded-md border border-blue-300 bg-blue-600 px-3 py-1.5 text-[12px] font-semibold text-white shadow-sm transition hover:bg-blue-700"
+              className="inline-flex shrink-0 items-center rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[12px] font-semibold text-blue-700 transition hover:bg-blue-50"
               onClick={openEditOption}
               data-builder-review-quantities
             >
