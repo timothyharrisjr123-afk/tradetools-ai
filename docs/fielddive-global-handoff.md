@@ -12377,6 +12377,8 @@ Package rule from **N** remains law: pre-draft package on create modal; post-dra
 
 ###### S. Block 3 — + Proposal modal / Create proposal step flow — IMPLEMENTED (2026-07-20)
 
+**Code checkpoint:** **`ed8a140`**
+
 **Status:** Job Card **+ Proposal** opens a focused **Create proposal** modal/sheet: Measurement → Template → Package → Review → **Continue to Builder**. **No Proposals tab shell redesign. No Builder/Preview/Templates/Catalog redesign. No pricing/quantity/snapshot formula changes. No send/public/lifecycle/PDF/sign/payment. No migrations/SQL/package files. No supplier/material/CSV/raw/whole-rounding. No smoke deletes.**
 
 **Behavior:**
