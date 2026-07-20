@@ -45,9 +45,9 @@
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** **`(pending commit)`** — polish(proposals): refine builder visual continuity (Block 4C; prior **`ea39fa7`** / **`2ae400b`**)
+- **Code checkpoint:** **`d8125ec`** — polish(proposals): refine builder visual continuity (Block 4C; prior **`ea39fa7`** / **`2ae400b`**)
 - **Docs checkpoint:** **Block 4C Builder visual continuity correction** (this header + **§6BO.13.4.9** T.2). Prior: T.1 (**`ea39fa7`**); T (**`2ae400b`**); S.3 (**`5e07530`**).
-- **Prior code:** **`ea39fa7`** document-led Builder; **`2ae400b`** Builder estimate review; **`5e07530`** proposal creation copy
+- **Prior code:** **`d8125ec`** visual continuity; **`ea39fa7`** document-led Builder; **`2ae400b`** Builder estimate review
 - **Next coding:** **Block 5** — Preview document-first (only after Block 4C review). Do **not** start Blocks 6–7 until Block 5 is approved. Do **not** add full proposal management, template rebuild/import of live options into existing drafts, supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
 - **Historical note:** Block 4C visual continuity: proposal title primary; attached section rail + canvas; compact Needs review strip; package modal context; Finish estimate; table-like Included estimate; Saved pricing details under More; protected systems unchanged.
 
