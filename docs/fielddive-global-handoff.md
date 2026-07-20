@@ -12398,6 +12398,8 @@ Package rule from **N** remains law: pre-draft package on create modal; post-dra
 
 ###### S.1 Block 3 follow-up — + Proposal modal contractor clarity polish — IMPLEMENTED (2026-07-20)
 
+**Code checkpoint:** **`e8c6218`**
+
 **Status:** Modal copy/hierarchy refined into a premium contractor confirmation flow. **No Proposals tab shell redesign. No Builder/Preview/Templates/Catalog redesign. No pricing/quantity/snapshot/send/lifecycle/migrations/SQL/package changes. No smoke deletes.**
 
 **Multi-measurement finding:**
