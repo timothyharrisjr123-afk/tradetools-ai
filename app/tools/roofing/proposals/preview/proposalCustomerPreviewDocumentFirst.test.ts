@@ -1,5 +1,5 @@
 /**
- * Block 5 Roofr-first Preview — shell / document / drawer / readiness guards.
+ * Block 5B Preview visual correction — wide document / Item·Qty·Price / drawer guards.
  *
  * Run: npx tsx --test app/tools/roofing/proposals/preview/*.test.ts
  */
@@ -18,6 +18,13 @@ import {
 
 function readPreviewSource(rel: string): string {
   return readFileSync(path.join(process.cwd(), "app/tools/roofing/proposals/preview", rel), "utf8");
+}
+
+function readConstants(): string {
+  return readFileSync(
+    path.join(process.cwd(), "app/tools/roofing/proposals/builder/proposalBuilderConstants.ts"),
+    "utf8"
+  );
 }
 
 const COCKPIT_STRINGS = [
@@ -42,9 +49,10 @@ const ACTION_STRINGS = [
   /Remove from proposal/i,
   /\bRestore\b/,
   /Hide from customer/i,
+  /row menu/i,
 ];
 
-describe("Block 5 Roofr-first — Preview shell and document guards", () => {
+describe("Block 5B — Preview wide document visual correction", () => {
   test("page title and quiet draft status", () => {
     assert.equal(CUSTOMER_PREVIEW_PAGE_TITLE, "Customer proposal preview");
     assert.equal(CUSTOMER_PREVIEW_DRAFT_NOTICE, "Draft preview · Not sent");
@@ -56,7 +64,6 @@ describe("Block 5 Roofr-first — Preview shell and document guards", () => {
     assert.match(client, /setSendSharingOpen\] = useState\(false\)/);
     assert.match(client, /ProposalCustomerPreviewSendSharingDrawer/);
     assert.doesNotMatch(client, /CONTRACTOR_TOOLS_HEADING/);
-    // Drawer is a sibling overlay — panels are not stacked under the document in Client
     assert.doesNotMatch(client, /border-t border-slate-200\/80 pt-8[\s\S]*ProposalCustomerPreviewPublicAccessPanel/);
 
     const drawer = readPreviewSource("ProposalCustomerPreviewSendSharingDrawer.tsx");
@@ -78,13 +85,17 @@ describe("Block 5 Roofr-first — Preview shell and document guards", () => {
     assert.doesNotMatch(client, /pricing readiness|guardrail|money token|sent snapshot/i);
   });
 
-  test("customer document omits empty-state helpers and centers the proposal hero", () => {
+  test("customer document uses wide continuous shell, not narrow stacked cards", () => {
     const doc = readPreviewSource("ProposalCustomerPreviewDocument.tsx");
-    assert.doesNotMatch(doc, /will appear here/);
-    assert.doesNotMatch(doc, /BUILDER_CANVAS_PLACEHOLDER/);
-    assert.doesNotMatch(doc, /emptyStateForPageType/);
-    assert.match(doc, /max-w-3xl/);
+    const constants = readConstants();
+    assert.match(doc, /CUSTOMER_PREVIEW_DOCUMENT_SHELL/);
+    assert.match(doc, /data-preview-document-wide/);
     assert.match(doc, /data-preview-customer-document/);
+    assert.doesNotMatch(doc, /max-w-3xl/);
+    assert.doesNotMatch(doc, /max-w-2xl/);
+    assert.doesNotMatch(doc, /rounded-xl border border-slate-200\/90 bg-white shadow-sm ring-1/);
+    assert.match(constants, /CUSTOMER_PREVIEW_DOCUMENT_SHELL/);
+    assert.doesNotMatch(constants, /CUSTOMER_PREVIEW_DOCUMENT_SHELL[\s\S]{0,200}max-w-3xl/);
     for (const pattern of COCKPIT_STRINGS) {
       assert.doesNotMatch(doc, pattern);
     }
@@ -93,8 +104,15 @@ describe("Block 5 Roofr-first — Preview shell and document guards", () => {
     }
   });
 
-  test("estimate document omits upgrades, partial pricing, and contractor actions", () => {
+  test("selected package is a compact band, not a nested mega card", () => {
     const estimate = readPreviewSource("ProposalCustomerPreviewEstimateDocument.tsx");
+    const constants = readConstants();
+    assert.match(estimate, /CUSTOMER_PREVIEW_ESTIMATE_PACKAGE_BAND/);
+    assert.match(estimate, /data-preview-selected-package/);
+    assert.doesNotMatch(estimate, /from-blue-50/);
+    assert.doesNotMatch(estimate, /ring-4 ring-blue/);
+    assert.doesNotMatch(estimate, /<Check/);
+    assert.doesNotMatch(constants, /rounded-2xl border border-blue-200/);
     assert.doesNotMatch(estimate, /CUSTOMER_PREVIEW_ESTIMATE_UPGRADES/);
     assert.doesNotMatch(estimate, /CUSTOMER_PREVIEW_ESTIMATE_PARTIAL_PRICING_NOTE/);
     assert.doesNotMatch(estimate, /upgradeSections/);
@@ -107,13 +125,29 @@ describe("Block 5 Roofr-first — Preview shell and document guards", () => {
     assert.doesNotMatch(estimate, /Choose starting package/i);
   });
 
-  test("line list is itemized Item/Price without edit chrome", () => {
+  test("included estimate renders aligned Item / Qty / Price without edit chrome", () => {
     const lines = readPreviewSource("ProposalCustomerPreviewLineList.tsx");
     assert.match(lines, /\bItem\b/);
+    assert.match(lines, /\bQty\b/);
     assert.match(lines, /\bPrice\b/);
+    assert.match(lines, /CUSTOMER_PREVIEW_ESTIMATE_ROW_GRID/);
+    assert.match(lines, /qtyLabel/);
+    assert.doesNotMatch(lines, /rounded-lg border border-slate-200\/80/);
     for (const pattern of ACTION_STRINGS) {
       assert.doesNotMatch(lines, pattern);
     }
+
+    const estimate = readPreviewSource("ProposalCustomerPreviewEstimateDocument.tsx");
+    assert.match(estimate, /data-preview-included-estimate/);
+    assert.doesNotMatch(estimate, /overflow-hidden rounded-xl border/);
+  });
+
+  test("incomplete totals stay outside the document; readiness is outside document", () => {
+    const estimate = readPreviewSource("ProposalCustomerPreviewEstimateDocument.tsx");
+    const client = readPreviewSource("ProposalCustomerPreviewClient.tsx");
+    assert.doesNotMatch(estimate, /Pricing incomplete/i);
+    assert.match(client, /data-preview-compact-readiness/);
+    assert.match(client, /estimateIncomplete/);
   });
 
   test("Send / sharing panels hide Coming later when used from Preview drawer", () => {

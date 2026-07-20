@@ -10,6 +10,7 @@
  */
 
 import type { CatalogItem } from "@/app/lib/catalogTypes";
+import { formatContractorEstimateQtyLabel } from "@/app/lib/proposalBuilderWorkbenchEstimatePresenter";
 import type { ProposalBuilderOptionCustomerView } from "@/app/lib/proposalBuilderPricingPreview";
 import {
   buildCatalogItemById,
@@ -20,6 +21,7 @@ import {
   resolveCustomerPreviewEstimateDisplayPolicy,
   type ResolvedCustomerPreviewEstimateDisplayPolicy,
 } from "@/app/lib/proposalCustomerEstimateDisplayPolicy";
+import type { ProposalSnapshotLineQuantityView } from "@/app/lib/proposalDraftGraphAdapter";
 import type { ProposalPageSettings } from "@/app/lib/proposalPageTypes";
 import type { ProposalTemplateGraph } from "@/app/lib/proposalTemplateStore";
 import type { ProposalTemplateSection } from "@/app/lib/proposalTemplateTypes";
@@ -42,6 +44,12 @@ export type CustomerPreviewEstimateLine = {
   templateItemId: string;
   name: string;
   kind: CustomerPreviewEstimateLineKind;
+  /**
+   * Resolved quantity label for customer document (e.g. "27.5 SQ").
+   * Null when no resolved snapshot quantity is available.
+   * Manual quantities appear as normal values — never a "manual" badge.
+   */
+  qtyLabel: string | null;
   /**
    * Formatted price for priced lines; status label for included/grouped.
    * Null when display policy hides per-line dollar amounts.
@@ -91,7 +99,23 @@ export type BuildCustomerPreviewEstimatePresentationInput = {
   packageMeta?: CustomerPreviewPackageMetaInput | null;
   /** Estimate page settings from persisted `proposal_pages.settings_json`. */
   estimatePageSettings?: ProposalPageSettings | null;
+  /** Snapshot-resolved quantities for customer-safe Qty column (display only). */
+  snapshotQuantityByTemplateItemId?: Record<
+    string,
+    ProposalSnapshotLineQuantityView
+  > | null;
 };
+
+function resolveCustomerQtyLabel(
+  snapshotQty: ProposalSnapshotLineQuantityView | null | undefined
+): string | null {
+  const raw = snapshotQty?.quantityDisplayLabel?.trim();
+  if (!raw) return null;
+  // Customer document: show resolved qty as a normal value — never "manual".
+  const cleaned = raw.replace(/\bmanual\b/gi, "").replace(/\s{2,}/g, " ").trim();
+  if (!cleaned) return null;
+  return formatContractorEstimateQtyLabel(cleaned);
+}
 
 function sectionTitle(section: ProposalTemplateSection): string {
   return (section.customer_title ?? section.name).trim() || section.name;
@@ -100,7 +124,8 @@ function sectionTitle(section: ProposalTemplateSection): string {
 function mapDocumentLine(
   row: ProposalPreviewLineRow,
   optionCustomerView: ProposalBuilderOptionCustomerView | null,
-  showLinePrices: boolean
+  showLinePrices: boolean,
+  snapshotQty: ProposalSnapshotLineQuantityView | null | undefined
 ): { line: CustomerPreviewEstimateLine | null; suppressed: boolean } {
   if (row.missingCatalog) {
     return { line: null, suppressed: true };
@@ -116,6 +141,7 @@ function mapDocumentLine(
   }
 
   const { displayStatus, showPrice, customerLinePriceCents } = lineView;
+  const qtyLabel = resolveCustomerQtyLabel(snapshotQty);
 
   if (displayStatus === "omitted") {
     return { line: null, suppressed: false };
@@ -131,6 +157,7 @@ function mapDocumentLine(
         templateItemId: row.id,
         name: row.displayName,
         kind: "included",
+        qtyLabel,
         valueLabel: CUSTOMER_PREVIEW_LINE_INCLUDED_LABEL,
       },
       suppressed: false,
@@ -143,6 +170,7 @@ function mapDocumentLine(
         templateItemId: row.id,
         name: row.displayName,
         kind: "grouped",
+        qtyLabel,
         valueLabel: CUSTOMER_PREVIEW_LINE_IN_PACKAGE_LABEL,
       },
       suppressed: false,
@@ -160,6 +188,7 @@ function mapDocumentLine(
         templateItemId: row.id,
         name: row.displayName,
         kind: "priced",
+        qtyLabel,
         valueLabel: showLinePrices ? formatPriceCents(customerLinePriceCents) : null,
       },
       suppressed: false,
@@ -175,14 +204,23 @@ function buildSectionPresentation(
   catalogById: Map<string, CatalogItem>,
   optionCustomerView: ProposalBuilderOptionCustomerView | null,
   showLinePrices: boolean,
-  showSectionHeadings: boolean
+  showSectionHeadings: boolean,
+  snapshotQuantityByTemplateItemId:
+    | Record<string, ProposalSnapshotLineQuantityView>
+    | null
+    | undefined
 ): { section: CustomerPreviewEstimateSectionPresentation; suppressedCount: number } {
   const rows = buildLinePreviewRowsForSection(graph, section.id, catalogById, null);
   const lines: CustomerPreviewEstimateLine[] = [];
   let suppressedCount = 0;
 
   for (const row of rows) {
-    const mapped = mapDocumentLine(row, optionCustomerView, showLinePrices);
+    const mapped = mapDocumentLine(
+      row,
+      optionCustomerView,
+      showLinePrices,
+      snapshotQuantityByTemplateItemId?.[row.id]
+    );
     if (mapped.suppressed) {
       suppressedCount += 1;
     }
@@ -264,7 +302,8 @@ export function buildCustomerPreviewEstimatePresentation(
       catalogById,
       input.optionCustomerView,
       displayPolicy.showLinePrices,
-      displayPolicy.showSectionHeadings
+      displayPolicy.showSectionHeadings,
+      input.snapshotQuantityByTemplateItemId
     );
     suppressedBlockerCount += built.suppressedCount;
 

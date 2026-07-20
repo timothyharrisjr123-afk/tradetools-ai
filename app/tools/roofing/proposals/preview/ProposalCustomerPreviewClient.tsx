@@ -252,18 +252,20 @@ export default function ProposalCustomerPreviewClient({
           {/* Compact contractor readiness — outside the customer document. */}
           {estimateIncomplete ? (
             <div
-              className="flex flex-col gap-3 rounded-lg border border-amber-200/90 bg-amber-50/90 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+              className="flex flex-col gap-2.5 rounded-md border border-amber-200/70 bg-amber-50/50 px-3.5 py-2.5 sm:flex-row sm:items-center sm:justify-between"
               data-preview-contractor-warning
               data-preview-compact-readiness
             >
-              <p className="text-sm text-amber-950">{CUSTOMER_PREVIEW_COMPACT_READINESS_COPY}</p>
+              <p className="text-[13px] leading-snug text-amber-950/90">
+                {CUSTOMER_PREVIEW_COMPACT_READINESS_COPY}
+              </p>
               <Link href={builderHref} className={RETURN_TO_BUILDER_BUTTON}>
                 {CUSTOMER_PREVIEW_RETURN_TO_BUILDER_ACTION}
               </Link>
             </div>
           ) : null}
 
-          {/* Customer proposal document — centered hero. */}
+          {/* Customer proposal document — wide continuous surface. */}
           <ProposalCustomerPreviewDocumentView
             document={previewDocument}
             templateGraph={templateGraph}

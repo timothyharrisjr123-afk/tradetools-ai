@@ -184,6 +184,23 @@ describe("buildCustomerPreviewEstimatePresentation", () => {
     assert.equal(result.scopeSections[0]?.lines.length, 1);
     assert.equal(result.scopeSections[0]?.lines[0]?.kind, "priced");
     assert.equal(result.scopeSections[0]?.lines[0]?.valueLabel, "$125.00");
+    assert.equal(result.scopeSections[0]?.lines[0]?.qtyLabel, null);
+  });
+
+  test("Block 5B — snapshot quantity maps to customer qtyLabel without manual badge", () => {
+    const input = buildInput({
+      snapshotQuantityByTemplateItemId: {
+        "line-priced": {
+          templateItemId: "line-priced",
+          quantityDisplayLabel: "27.5 square",
+          quantitySourceLabel: "manual",
+          unitLabel: "square",
+        },
+      },
+    });
+    const line = buildCustomerPreviewEstimatePresentation(input).scopeSections[0]?.lines[0];
+    assert.equal(line?.qtyLabel, "27.5 SQ");
+    assert.doesNotMatch(`${line?.qtyLabel}`, /manual/i);
   });
 
   test("included line maps to Included", () => {
@@ -400,6 +417,14 @@ describe("buildCustomerPreviewEstimatePresentation", () => {
       buildInput({
         graph: templateGraph,
         sections: [scopeSection],
+        snapshotQuantityByTemplateItemId: {
+          "line-manual": {
+            templateItemId: "line-manual",
+            quantityDisplayLabel: "8 linear foot",
+            quantitySourceLabel: "manual",
+            unitLabel: "linear_foot",
+          },
+        },
         optionCustomerView: {
           optionId: OPTION_ID,
           pricingComplete: true,
@@ -421,8 +446,12 @@ describe("buildCustomerPreviewEstimatePresentation", () => {
     assert.ok(line);
     assert.equal(line?.kind, "priced");
     assert.equal(line?.valueLabel, "$6.00");
+    assert.equal(line?.qtyLabel, "8 linear ft");
     // No "manual" labeling in customer-visible display fields.
-    assert.doesNotMatch(`${line?.name} ${line?.valueLabel}`, /manual/i);
+    assert.doesNotMatch(
+      `${line?.name} ${line?.valueLabel} ${line?.qtyLabel}`,
+      /manual/i
+    );
   });
 
   test("Block 5 — selected package label is shown with no builder current/available chrome", () => {

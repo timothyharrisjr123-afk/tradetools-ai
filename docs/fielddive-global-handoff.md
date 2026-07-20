@@ -45,11 +45,11 @@
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** **`7f1f272`** — `polish(proposals): redesign preview proposal experience`. Prior/interim: **`12fcd4e`**, **`e90d135`**. Builder checkpoint **unchanged** at **`05c1edb`**.
-- **Docs checkpoint:** **Block 5 Roofr-first Preview redesign** (this header + **§6BO.13.4.9** T.6.2). Prior: T.6.1 interim cockpit strip (**`12fcd4e`**); T.6 document-first (**`e90d135`**); 4G (**`05c1edb`**).
-- **Prior code:** **`12fcd4e`** interim strip; **`e90d135`** document-first; **`05c1edb`** 4G density
-- **Next coding:** **Block 6** — only after **Block 5 visual approval**. Do **not** start Blocks 6–7 until Block 5 is approved. Do **not** add full proposal management, template rebuild/import of live options into existing drafts, supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
-- **Historical note:** Block 5 Roofr-first redesign: thin contractor shell; compact readiness; centered customer document hero (Item/Price itemized scope); **Send / sharing** as a right-side drawer (closed by default; Coming later hidden); unsupported GBB/upgrades/signature/PDF/payment/coming-later not rendered. Prior **`e90d135`** + interim **`12fcd4e`** kept in history (not reverted). Builder unchanged. Protected systems unchanged.
+- **Code checkpoint:** **`PENDING`** — `polish(proposals): refine preview document presentation` (Block 5B). Prior: **`7f1f272`** Roofr-first structure. Builder checkpoint **unchanged** at **`05c1edb`**.
+- **Docs checkpoint:** **Block 5B Preview visual correction** (this header + **§6BO.13.4.9** T.6.3). Prior: T.6.2 Roofr-first (**`7f1f272`**); T.6.1 interim (**`12fcd4e`**); T.6 document-first (**`e90d135`**); 4G (**`05c1edb`**).
+- **Prior code:** **`7f1f272`** Roofr-first shell/drawer; **`12fcd4e`** interim strip; **`e90d135`** document-first; **`05c1edb`** 4G density
+- **Next coding:** **Block 6** — only after **Block 5B visual approval**. Do **not** start Blocks 6–7 until Preview presentation is approved. Do **not** add full proposal management, template rebuild/import of live options into existing drafts, supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
+- **Historical note:** Block 5B corrects Preview visual execution: wide continuous proposal document (Builder stage width), compact selected-package band, Item/Qty/Price included estimate (Builder density, no edit controls). Keeps Roofr-first shell, compact readiness outside document, Send/sharing drawer. **`7f1f272`** structure retained; not a feature-hide pass. Builder unchanged. Protected systems unchanged.
 
 **Trust order:** Header/current checkpoint → **§6BO.13** (approved page-by-page UI flow roadmap + P0 implementation sequence — **supersedes separate Command Center language**) → **§6BM** / **§6BN** (R18 letter-phase roadmap + R18C–R18D3C implementation history) → **§6BO** / **§6BO.11** / **§6BO.12** (completed remediation side-track + **approved Stage C policy** + **operating-flow audit sequencing — complete; outcome in §6BO.13**) → **§6BL** → **§11 override**. Stage B browser smoke required local-only **`USE_PROPOSAL_SEND_FREEZE_RPC=1`** in `.env.local` (gitignored, not committed). **Do not proceed** to docs-only or next feature work unless working tree is clean. **Still do not** mutate `proposals.status = sent`, write sent `proposal_events`, move Jobs Board cards, add Job Card send activity, enable PDF/Sign/Payment, or add webhooks unless separately approved.
 
@@ -59,6 +59,7 @@
 
 | Commit | Summary |
 |--------|---------|
+| *(pending)* | **Block 5B** — refine Preview document presentation: wide continuous document, compact package band, Item/Qty/Price estimate; Builder **`05c1edb`** unchanged (§6BO.13.4.9 T.6.3) |
 | `7f1f272` | **Block 5 Roofr-first** — redesign Preview proposal experience: thin shell, compact readiness, centered document hero, Send/sharing drawer (Coming later hidden); **230/230** focused tests; Babby smoke PASS; Builder **`05c1edb`** unchanged (§6BO.13.4.9 T.6.2) |
 | `12fcd4e` | **Block 5 interim** — strip Preview cockpit / collapse Send/sharing (not visually approved) (§6BO.13.4.9 T.6.1) |
 | `e90d135` | **Block 5** — Preview document-first baseline (§6BO.13.4.9 T.6) |
@@ -12643,7 +12644,27 @@ Package rule from **N** remains law: pre-draft package on create modal; post-dra
 
 **Smoke:** Babby **`466e393c-…`** — Builder 4G intact + Preview CTA; Preview first paint = thin shell + compact readiness + document hero (no stacked admin tools); Item/Price scope; Investment summary Enhanced without Pricing incomplete; Send / sharing opens dialog drawer; no Coming later; Back to Builder works; **0 console errors**.
 
-**Next recommended block:** **Block 6** — only after **Block 5 visual approval**.
+**Status note:** T.6.2 structure approved as Roofr-first IA; **visual execution not approved** — superseded by **T.6.3** Block 5B.
+
+**Next recommended block:** see **T.6.3**.
+
+###### T.6.3 Block 5B Preview visual correction — IMPLEMENTED (2026-07-20)
+
+**Code checkpoint:** **`PENDING`** — `polish(proposals): refine preview document presentation`. **Prior structure kept: `7f1f272` (not reverted). Builder unchanged at `05c1edb`.**
+
+**Status:** Visual correction only — Preview customer document is now a **wide continuous proposal surface** using Builder **Item / Qty / Price** density without edit controls. **Not** ready to call Block 6 until visual approval. **No pricing/math/resolver/snapshot changes. No SQL/migrations/packages. No send/public/lifecycle/PDF/sign/payment behavior change. No Builder redesign.**
+
+**Layout corrections vs `7f1f272`:**
+- **Document width:** `CUSTOMER_PREVIEW_DOCUMENT_SHELL` full Builder-stage width (not `max-w-3xl` stacked cards)
+- **Selected package:** compact summary band (no blue mega card / checkmark hero)
+- **Included estimate:** flat Item / Qty / Price table from snapshot quantities; no nested scope card; no Edit/Set/Remove/Restore/Hide
+- **Continuity:** one proposal surface with section dividers; readiness still compact outside document; Send/sharing still drawer closed by default
+
+**Tests:** `proposalCustomerPreviewDocumentFirst.test.ts` Block 5B wide-document / Item·Qty·Price / package-band guards; presenter qtyLabel mapping; Builder 4G regression still pass.
+
+**Smoke:** Babby **`466e393c-…`** — Builder 4G intact + Preview CTA; Preview doc ~full stage width; compact Enhanced package band; 7 Item/Qty/Price lines; readiness outside; drawer open/close; no Coming later; **0 console errors** on fresh load.
+
+**Next recommended block:** **Block 6** — only after **Block 5B visual approval**.
 
 #### 13.4.6 Integrated Catalog → Proposal workflow research + FieldDive flow design — COMPLETE (2026-07-17)
 
