@@ -45,7 +45,7 @@
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** Block 2 follow-up — fix(proposals): align job card status with visible proposals (this commit; prior **`c979e3a`** Proposals tab reset; Block 1 **`aee0546`**)
+- **Code checkpoint:** **`fc65f9d`** — fix(proposals): align job card status with visible proposals (Block 2 follow-up; prior **`c979e3a`** tab reset; Block 1 **`aee0546`**)
 - **Docs checkpoint:** **Block 2 follow-up** — Job Card status/activity use visible proposals only (this header + **§6BO.13.4.9** R.1). Prior: Block 2 tab reset (**R** / **`c979e3a`**); Block 1 isolation (**Q**).
 - **Prior code:** **`c979e3a`** Proposals tab reset; **`aee0546`** smoke isolation
 - **Next coding:** **Block 3** — + Proposal modal/step flow (measurement → template → package → Continue to Builder). Do **not** start Blocks 4–7 until Block 3 is approved. Do **not** add full proposal management, template rebuild/import of live options into existing drafts, supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
