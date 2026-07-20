@@ -45,7 +45,7 @@
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** **Block 5 Preview corrective** — `polish(proposals): strip preview cockpit from document` (pending commit; baseline **`e90d135`**). Builder checkpoint **unchanged** at **`05c1edb`**.
+- **Code checkpoint:** **`12fcd4e`** — `polish(proposals): strip preview cockpit from document` (baseline **`e90d135`**). Builder checkpoint **unchanged** at **`05c1edb`**.
 - **Docs checkpoint:** **Block 5 Preview corrective** (this header + **§6BO.13.4.9** T.6.1). Prior: T.6 document-first (**`e90d135`**); 4G (**`05c1edb`**); 4F (**`232e399`**); edit rules (**`9274ed4`**).
 - **Prior code:** **`e90d135`** Preview document-first; **`05c1edb`** 4G density; **`232e399`** finish builder visual polish
 - **Next coding:** **Block 6** — only after **Block 5 visual approval**. Do **not** start Blocks 6–7 until Block 5 is approved. Do **not** add full proposal management, template rebuild/import of live options into existing drafts, supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
@@ -59,7 +59,7 @@
 
 | Commit | Summary |
 |--------|---------|
-| *(pending)* | **Block 5 corrective** — strip Preview cockpit from customer document: Send/sharing collapsed; stub/placeholder pages + optional upgrades + cover Pricing incomplete omitted; **227/227** focused tests; Babby smoke PASS; baseline **`e90d135` kept**; Builder **`05c1edb`** unchanged (§6BO.13.4.9 T.6.1) |
+| `12fcd4e` | **Block 5 corrective** — strip Preview cockpit from customer document: Send/sharing collapsed; stub/placeholder pages + optional upgrades + cover Pricing incomplete omitted; **227/227** focused tests; Babby smoke PASS; baseline **`e90d135` kept**; Builder **`05c1edb`** unchanged (§6BO.13.4.9 T.6.1) |
 | `e90d135` | **Block 5** — Preview document-first: customer document first; contractor tools below; readiness notes contractor-safe + Return-to-Builder; **220/220** tests (§6BO.13.4.9 T.6) |
 | `ae8e479` | **Docs** — Finish pinning Block 4G T.5 code checkpoint (`05c1edb`) |
 | *(pending)* | **Docs** — Catalog naming roadmap correction before Slice 2 (§6BO.13) |
@@ -12598,7 +12598,7 @@ Package rule from **N** remains law: pre-draft package on create modal; post-dra
 
 ###### T.6.1 Block 5 corrective — strip Preview cockpit from document — IMPLEMENTED (2026-07-20)
 
-**Code checkpoint:** pending commit — `polish(proposals): strip preview cockpit from document`. **Baseline kept: `e90d135` (not reverted). Builder unchanged at `05c1edb`.**
+**Code checkpoint:** **`12fcd4e`** — `polish(proposals): strip preview cockpit from document`. **Baseline kept: `e90d135` (not reverted). Builder unchanged at `05c1edb`.**
 
 **Status:** Preview answers **“What will the customer see?”** — polished customer document primary; send/public tooling collapsed behind **Send / sharing**; placeholders/stubs/optional upgrades/cover incomplete language removed from the document. **No pricing/math/resolver/snapshot changes. No SQL/migrations/packages. No send/public/lifecycle/PDF/sign/payment behavior change (collapse/placement only). No Builder redesign.**
 
