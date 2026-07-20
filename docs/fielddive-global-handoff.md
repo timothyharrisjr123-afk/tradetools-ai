@@ -45,9 +45,9 @@
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** pending — `polish(proposals): tune builder estimate density` (Block 4G; prior **`232e399`** / **`9274ed4`**)
+- **Code checkpoint:** **`05c1edb`** — polish(proposals): tune builder estimate density (Block 4G; prior **`232e399`** / **`9274ed4`**)
 - **Docs checkpoint:** **Block 4G Builder shared itemized estimate grid** (this header + **§6BO.13.4.9** T.5). Prior: 4F visual polish (**`232e399`**); edit rules (**`9274ed4`**); 4E (**`29dbc61`**).
-- **Prior code:** **`232e399`** finish builder visual polish; **`9274ed4`** clarify builder edit rules
+- **Prior code:** **`05c1edb`** 4G density; **`232e399`** finish builder visual polish; **`9274ed4`** clarify builder edit rules
 - **Next coding:** **Block 5** — Preview document-first (**only after Builder final approval**). Do **not** start Blocks 6–7 until Block 5 is approved. Do **not** add full proposal management, template rebuild/import of live options into existing drafts, supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
 - **Historical note:** Block 4G: full-width shared Item / Qty / Price / ⋯ grid (no table max-width); quiet Edit quantity (no Manual qty badge); Finish estimate far-right Set quantity; protected systems unchanged.
 
