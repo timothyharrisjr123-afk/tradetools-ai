@@ -12334,7 +12334,7 @@ Package rule from **N** remains law: pre-draft package on create modal; post-dra
 
 **Status:** Job Card Proposals tab reset to Flow V1 surface: compact proposal rows + blue **+ Proposal**. **No + Proposal modal/step flow (Block 3). No always-open measurement/template/package setup card. No Builder/Preview/Templates/Catalog redesign. No migrations/SQL/package/pricing/quantity/snapshot/send/public/lifecycle/PDF/sign/payment/supplier/material/CSV/raw/whole-rounding. No deletion of smoke records.**
 
-**Code checkpoint:** this commit (Block 2); prior Block 1 **`aee0546`**.
+**Code checkpoint:** **`c979e3a`** (Block 2); prior Block 1 **`aee0546`**.
 
 **What was removed as default UI:**
 - Always-open Current proposal / Start proposal setup cards
