@@ -45,11 +45,11 @@
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** **`(commit pending)`** — feat(proposals): restore job card create flow with existing drafts
-- **Docs checkpoint:** Job Card open + create-new (this header + **§6BO.13.4.9** O)
-- **Prior code:** **`05131f6`** / **`2d9f8b1`** Builder package selection truth; **`1f08c53`** / **`dccf72a`** Builder Handoff Polish A
-- **Next:** Builder visual cohesion pass **or** Preview document-first truth pass. Do **not** add full proposal management, template rebuild/import of live options into existing drafts, supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
-- **Historical note:** Job Card Proposals shows existing draft **and** create-another (force-create distinct draft). Builder package picker remains draft-option scoped.
+- **Code checkpoint:** **`190ad66`** — polish(proposals): simplify job card proposal start screen (prior: **`40c1fe8`** create flow restore; **`05131f6`** / **`2d9f8b1`** Builder package selection truth)
+- **Docs checkpoint:** **Block 0** — Proposal Flow V1 + Template Flow V1 + app surface standards locked (this header + **§6BO.13.4.9** P). Docs-only; **no app code in this block.**
+- **Prior docs:** Job Card open + create-new (**§6BO.13.4.9** O); Builder package truth (**N**)
+- **Next coding:** **Block 1** — smoke / internal proposal isolation (hide from normal contractor view; do not delete). Then **Block 2** Proposals tab reset. Do **not** start Blocks 2–7 until Block 1 is approved. Do **not** add full proposal management, template rebuild/import of live options into existing drafts, supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
+- **Historical note:** Current Job Card Proposals UI still shows always-open setup + draft list (pre–Flow V1). Target after Blocks 1–4: compact rows + **+ Proposal** modal → Builder. Builder package picker remains draft-option scoped.
 
 **Trust order:** Header/current checkpoint → **§6BO.13** (approved page-by-page UI flow roadmap + P0 implementation sequence — **supersedes separate Command Center language**) → **§6BM** / **§6BN** (R18 letter-phase roadmap + R18C–R18D3C implementation history) → **§6BO** / **§6BO.11** / **§6BO.12** (completed remediation side-track + **approved Stage C policy** + **operating-flow audit sequencing — complete; outcome in §6BO.13**) → **§6BL** → **§11 override**. Stage B browser smoke required local-only **`USE_PROPOSAL_SEND_FREEZE_RPC=1`** in `.env.local` (gitignored, not committed). **Do not proceed** to docs-only or next feature work unless working tree is clean. **Still do not** mutate `proposals.status = sent`, write sent `proposal_events`, move Jobs Board cards, add Job Card send activity, enable PDF/Sign/Payment, or add webhooks unless separately approved.
 
@@ -12097,7 +12097,196 @@ Was: Templates Page Redesign P2. **P2 shipped — see I.** Next: Integrated Flow
 
 **Smoke (Babby D on `rhquhnujjnzjhweypavd`):** Proposals tab `open_and_create` — existing smoke draft card + create-another with Roof replacement Standard/Enhanced/Premium; multi-draft list shows prior drafts including `61356e56-…` as Current; force-create API covered by unit tests. Live create click optional / deferred after UI verify; no send/lifecycle.
 
-**Next recommended block:** **Builder visual cohesion pass** **or** **Preview document-first truth pass**.
+**Follow-on polish (committed `190ad66`):** Compact Current proposal + Start proposal zones; softened smoke titles via `formatContractorProposalTitle` → “Saved proposal”; older drafts collapsed behind “Show older drafts (N)”. Still not Flow V1 end-state (see **P**).
+
+**Next recommended block:** ~~Builder visual cohesion / Preview truth~~ → **superseded** by locked Flow V1 roadmap (**P**). Next coding: **Block 1** smoke isolation.
+
+##### P. Proposal Flow V1 + Template Flow V1 + app surface standards — DOCS LOCKED (Block 0) (2026-07-20)
+
+**Status:** Docs-only product lock. **No app code, tests, migrations, SQL, package files, pricing formulas, Customer Preview redesign, send/public/lifecycle/PDF/sign/payment, supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding in this block.**
+
+**Code checkpoint at lock:** **`190ad66`** (Job Card Proposals polish). Prior capability: **`40c1fe8`** force-create; **`05131f6`** draft-scoped Builder packages.
+
+**Research / mapping basis:** Roofr-aligned contractor OS surface standards vs FieldDive current Proposals / Templates / Builder / Preview (Ask-mode mapping, 2026-07-20). Verdict: capability largely right; drift is **surface standards**, especially Proposals tab always-open setup/archive feel.
+
+---
+
+###### P.1 Product spine (unchanged)
+
+**Catalog → Templates → Job Card → Builder → Customer Preview**
+
+- **Catalog** = company item library (SoT for item economics)
+- **Templates** = company setup (reusable quote shapes; not job proposal start)
+- **Job Card → Proposals** = job-specific proposal start
+- **Builder** = estimate / package / document workbench for a draft
+- **Customer Preview** = contractor view of customer-facing document (authenticated; not public send)
+
+---
+
+###### P.2 Proposal Flow V1 (locked target)
+
+**Happy path:**
+
+1. Job Card → **Proposals** tab
+2. Blue **+ Proposal** (primary create CTA)
+3. Create modal / sheet: measurement (required gate) → template → package → included summary → **Continue to Builder**
+4. Builder: estimate workbench; package change among **draft options only** (rule from **N** preserved)
+5. **Preview** from Builder (dirty-edit guard preserved)
+6. **Send later** — not in Flow V1 coding scope unless separately approved
+
+**Proposals tab surface standard (locked):**
+
+| Element | Rule |
+|---------|------|
+| Default view | Compact proposal **rows** (current + recent), not always-open setup cards / archive admin |
+| Primary CTA | Blue **+ Proposal** |
+| Open existing | Row action → Builder (reuse `resolveOrCreate` / open existing) |
+| Create new | **+ Proposal** → modal → force-create (`createNewProposalDraftEntry`) → Builder |
+| Older drafts | Collapsed / secondary; not the first impression |
+| Smoke / internal | Hidden from normal contractor view (Block 1); **do not delete** |
+
+**Not Proposal Flow V1:** full proposal management system; always-visible dual setup cards as the long-term IA; Templates page as job proposal start; live-template option import into existing drafts.
+
+---
+
+###### P.3 Template Flow V1 (locked target)
+
+**Templates page = company setup**, not job proposal start.
+
+**Role boundary (locked):**
+- **Job Card → + Proposal** creates job-specific proposals.
+- **Templates → + Template** creates reusable company setup.
+- Templates should **not** feel like a giant admin workbook, raw database editor, or job-specific proposal creation page.
+
+| Element | Rule |
+|---------|------|
+| Primary CTA | Blue **+ Template** (create / guided setup) |
+| Default library | Compact template library **rows/cards** (not an always-expanded workbook) |
+| Row/card shows | Template name; package model summary; linked catalog item count; readiness status; last updated; **Edit** action |
+| Default use | Review readiness, packages, included items; open Jobs when ready to start a job proposal elsewhere |
+| Edit | Explicit edit / continue guided setup for structure, packages, catalog links, content, estimate display |
+| Proposal start | **Never** from Templates as the job create path — that stays Job Card → Proposals |
+
+**+ Template guided flow (locked target):**
+
+1. **Template basics**
+   - name
+   - trade/type
+   - short description if useful
+
+2. **Package model**
+   Contractor chooses:
+   - no packages / simple offer
+   - single package
+   - multiple packages
+
+   Roofing baseline may default to:
+   - Standard
+   - Enhanced
+   - Premium
+
+   **Do not** force packages for every template.
+
+3. **Define packages/options**
+   - package names
+   - customer-facing descriptions
+   - internal notes secondary only
+
+4. **Add included catalog items**
+   - searchable catalog item picker
+   - item name, type, measurement/quantity source, customer visibility
+   - **do not** expose supplier SKU / internal cost as primary setup
+
+5. **Proposal content/pages**
+   - cover/page defaults
+   - terms
+   - warranty
+   - customer estimate settings
+   - optional upgrades if supported
+
+6. **Review & save**
+   - template name
+   - package model
+   - package count
+   - linked item count
+   - page/content readiness
+   - **Save template**
+
+Templates Page P2 / Quote Setup Review work remains valid company-setup UX foundation; Flow V1 locks the guided setup target and role boundary vs Proposals.
+
+---
+
+###### P.4 App-wide contractor OS surface standards (locked)
+
+1. **One job per surface** — Proposals start proposals; Templates manage templates; Catalog manages items; Builder edits the draft document; Preview shows customer view.
+2. **Compact command rows over always-open admin cards** on job operational tabs (Proposals first).
+3. **Blue primary create** for the main “add” action on that surface (**+ Proposal**, **+ Template**, Catalog add patterns as already established).
+4. **Setup vs run** — company setup (Catalog/Templates/Settings) vs job run (Job Card → Builder → Preview).
+5. **Smoke / internal artifacts stay in DB** but must not dominate contractor UI (Block 1).
+6. **Do not fake lifecycle** — no sent status, board moves, public links, PDF/sign/payment unless separately approved.
+
+---
+
+###### P.5 Smoke / internal proposal policy (locked)
+
+- Keep smoke and internal proposals/templates in the database for engineering validation.
+- **Do not delete** smoke drafts (e.g. Babby `61356e56-…`, R18 email smoke `368dcbf1-…`) as part of UI cleanup.
+- **Hide** them from the normal contractor Proposals list / titles (Block 1 implementation).
+- Softened titles (“Saved proposal”) from `190ad66` are interim; isolation is the durable policy.
+
+---
+
+###### P.6 Builder and Preview roles (locked)
+
+| Surface | Role in Flow V1 |
+|---------|-----------------|
+| **Builder** | Estimate / package (draft options only) / document pages workbench. Entry from Job Card open or **+ Proposal** continue. Not a template editor. Not send orchestration. |
+| **Customer Preview** | Authenticated contractor preview of customer document. Document-first truth polish may follow after Flow V1 handoff (Block 5). **Not** public/tokenized access, PDF, Sign, Payment, or Send orchestration in Blocks 0–4. |
+
+Package rule from **N** remains law: pre-draft package on create modal; post-draft package changes in Builder among saved draft options only.
+
+---
+
+###### P.7 Implementation blocks (locked order)
+
+| Block | Name | Scope |
+|-------|------|--------|
+| **0** | Docs lock | This section (**P**). Done when committed after review. |
+| **1** | Smoke / internal isolation | Hide smoke/internal proposals (and titles) from normal contractor Proposals UI; do not delete. |
+| **2** | Proposals tab reset | Compact rows + blue **+ Proposal**; remove always-open setup/archive-first feel. |
+| **3** | + Proposal modal | Measurement → template → package → included → Continue to Builder; force-create path. |
+| **4** | Builder handoff | Open / create land cleanly in Builder; draft package truth preserved; back to Job Card Proposals. |
+| **5** | Preview truth | Document-first Preview polish only when Blocks 1–4 stable; no send/public/lifecycle. |
+| **6** | Template Flow V1 | Templates page setup clarity (**+ Template**); not job proposal start. |
+| **7** | App-wide polish | Remaining contractor OS surface consistency (Jobs/Catalog/Settings as needed). |
+
+**Do not skip Block 1.** **Do not start Block 5+ until Blocks 1–4 approved.**
+
+---
+
+###### P.8 Protected systems (still blocked unless separately approved)
+
+- Pricing formulas / engines
+- Customer Preview full redesign beyond Block 5 polish scope
+- Send / public route / lifecycle / PDF / Sign / Payment
+- Supplier sync / material ordering / proposal import
+- CSV mapping assistant / raw mode switch / whole rounding
+- Migrations / SQL / package file changes
+- Live-template option import / rebuild into existing drafts
+- Full proposal management / archive product
+
+**R18D3D** remains blocked per §6BO.11 / §6BO.13.
+
+---
+
+###### P.9 Explicitly out of Block 0
+
+- Any `app/` or test file edits
+- Any SQL / migration / package edits
+- Any UI implementation of Blocks 1–7
+- Commit of this docs lock until user reviews
+
+**Next recommended block:** **Block 1 — smoke / internal proposal isolation** (hide from normal contractor view; do not delete).
 
 #### 13.4.6 Integrated Catalog → Proposal workflow research + FieldDive flow design — COMPLETE (2026-07-17)
 
@@ -13584,7 +13773,9 @@ Treat as **drift** if a session:
 
 ## Changelog (handoff doc only)
 
-- **2026-07-17:** **Job Card create flow restore** — existing draft + create-another; `createNewProposalDraftEntry` force-creates distinct draft; multi-draft list; Builder package truth preserved. **Next:** Builder visual cohesion **or** Preview document-first truth.
+- **2026-07-20:** **Block 0 — Proposal Flow V1 + Template Flow V1 + app surface standards** (docs only, **§6BO.13.4.9** P) — locked happy path (Job Card → + Proposal → measurement/template/package → Builder → Preview; Send later); Proposals compact rows + blue + Proposal; Templates = company setup; smoke hide-not-delete; Builder/Preview roles; Blocks 0–7 order; protected systems restated. Code checkpoint **`190ad66`**. **No app code.** **Next coding:** Block 1 smoke isolation.
+- **2026-07-17:** **Job Card Proposals polish** (`190ad66`) — compact Current/Start zones; “Saved proposal” titles; collapsed older drafts. Still pre–Flow V1 end-state.
+- **2026-07-17:** **Job Card create flow restore** — existing draft + create-another; `createNewProposalDraftEntry` force-creates distinct draft; multi-draft list; Builder package truth preserved. **Next:** superseded by Flow V1 Block 0/1 (**P**).
 - **2026-07-17:** **Builder package selection truth** — draft-scoped Builder package picker; one-option drafts hide Change package; multi-option switches among saved draft options only; Job Card draft-open package-change note; no live-template import. **Next:** Job Card create flow restore (now **O**).
 - **2026-07-17:** **Builder Handoff Polish A** — draft-aware Job Card (create vs draft-open); shared identity (customer primary / address secondary); Builder entry hierarchy + Preview next action; status vocabulary; Babby D smoke PASS (reuse `61356e56-…`). **Next:** Builder package selection truth (now **N**).
 - **2026-07-17:** **Integrated Flow P2 correction** — waived false Builder “templates not ready” when valid draft loaded; removed duplicate Create CTA; listed-draft Open label; premium setup card polish; Babby D smoke PASS (reuse `61356e56-…`).
