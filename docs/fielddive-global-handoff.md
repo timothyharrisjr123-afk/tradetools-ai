@@ -45,7 +45,7 @@
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** **pending commit** — feat(proposals): add job card proposal creation flow (Block 3; prior **`fc65f9d`** status truth; **`c979e3a`** tab reset; Block 1 **`aee0546`**)
+- **Code checkpoint:** **`ed8a140`** — feat(proposals): add job card proposal creation flow (Block 3; prior **`fc65f9d`** status truth; **`c979e3a`** tab reset; Block 1 **`aee0546`**)
 - **Docs checkpoint:** **Block 3** — + Proposal modal/sheet flow (this header + **§6BO.13.4.9** S). Prior: Block 2 follow-up (**R.1** / **`fc65f9d`**); Block 2 tab reset (**R**); Block 1 isolation (**Q**).
 - **Prior code:** **`fc65f9d`** status/activity visible-proposal truth; **`c979e3a`** Proposals tab reset; **`aee0546`** smoke isolation
 - **Next coding:** **Block 4** — Builder handoff polish. Do **not** start Blocks 5–7 until Block 4 is approved. Do **not** add full proposal management, template rebuild/import of live options into existing drafts, supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
