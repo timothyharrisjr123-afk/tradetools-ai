@@ -45,9 +45,9 @@
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** **`(pending commit)`** — polish(proposals): make builder document-led (Block 4B; prior **`2ae400b`** / **`5e07530`**)
+- **Code checkpoint:** **`ea39fa7`** — polish(proposals): make builder document-led (Block 4B; prior **`2ae400b`** / **`5e07530`**)
 - **Docs checkpoint:** **Block 4B Builder document-led continuation** (this header + **§6BO.13.4.9** T.1). Prior: T (**`2ae400b`**); S.3 (**`5e07530`**); Block 3 (**S**).
-- **Prior code:** **`2ae400b`** Builder estimate review; **`5e07530`** proposal creation copy
+- **Prior code:** **`ea39fa7`** document-led Builder; **`2ae400b`** Builder estimate review; **`5e07530`** proposal creation copy
 - **Next coding:** **Block 5** — Preview document-first (only after Block 4B review). Do **not** start Blocks 6–7 until Block 5 is approved. Do **not** add full proposal management, template rebuild/import of live options into existing drafts, supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
 - **Historical note:** Block 4B document-led Builder: left proposal section nav; centered Estimate canvas; no right-rail next-step duplicate; Preview primary; Display collapsed; Included estimate anchor; compact quantity review; protected systems unchanged.
 
@@ -12475,7 +12475,7 @@ Package rule from **N** remains law: pre-draft package on create modal; post-dra
 
 ###### T.1 Block 4B — Builder document-led continuation — IMPLEMENTED (2026-07-20)
 
-**Code checkpoint:** set in header after commit (`polish(proposals): make builder document-led`)
+**Code checkpoint:** **`ea39fa7`** — `polish(proposals): make builder document-led`
 
 **Status:** Builder first experience is a proposal document editor (Estimate active), not a bulky workbench console. **No Preview redesign. No pricing/math/snapshot/send/lifecycle. No SQL/migrations/packages.**
 
