@@ -45,7 +45,7 @@
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** **`(pending commit)`** — polish(proposals): finalize proposal creation copy (Block 3 final copy/visual; prior **`287bca8`** / **`e8c6218`** / **`ed8a140`**)
+- **Code checkpoint:** **`5e07530`** — polish(proposals): finalize proposal creation copy (Block 3 final copy/visual; prior **`287bca8`** / **`e8c6218`** / **`ed8a140`**)
 - **Docs checkpoint:** **Block 3 final copy/visual correction** — contractor-facing modal + package badges (this header + **§6BO.13.4.9** S.3). Prior: S.2 final polish (**`287bca8`**); S.1 (**`e8c6218`**); Block 3 (**S**); Block 2 (**R** / **R.1**); Block 1 (**Q**).
 - **Prior code:** **`287bca8`** Proposals surface finish; **`e8c6218`** modal polish; **`ed8a140`** create flow
 - **Next coding:** **Block 4** — Builder handoff polish. Do **not** start Blocks 5–7 until Block 4 is approved. Do **not** add full proposal management, template rebuild/import of live options into existing drafts, supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
