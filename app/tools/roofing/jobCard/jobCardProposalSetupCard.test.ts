@@ -1,5 +1,5 @@
 /**
- * Static presence tests for Job Card Compact Proposal Setup Card.
+ * Static presence tests for Job Card Proposals tab (Block 2 surface).
  * Run: npx tsx --test app/tools/roofing/jobCard/jobCardProposalSetupCard.test.ts
  */
 
@@ -14,138 +14,115 @@ function read(rel: string): string {
   return readFileSync(join(ROOT, rel), "utf8");
 }
 
-describe("Job Card Compact Proposal Setup Card", () => {
-  test("1. Proposals tab mounts Create/Open CTAs in setup card", () => {
+describe("Job Card Proposals tab (Block 2)", () => {
+  test("1. Header wires blue + Proposal action", () => {
     const client = read("app/tools/roofing/RoofingClient.tsx");
-    const card = read("app/tools/roofing/jobCard/JobCardProposalSetupCard.tsx");
-    assert.match(client, /JobCardProposalSetupCard/);
-    assert.match(card, /data-jobcard-create-cta/);
-    assert.match(card, /data-jobcard-setup-cta-zone/);
-    assert.match(card, /data-jobcard-open-cta/);
+    const tab = read("app/tools/roofing/jobCard/JobCardProposalsTab.tsx");
+    const helpers = read("app/tools/roofing/jobCard/jobCardProposalsTabModel.ts");
+    assert.match(client, /JobCardProposalsTab/);
+    assert.match(client, /JobCardProposalsAddHeaderButton/);
+    assert.match(client, /headerAction=\{/);
+    assert.match(helpers, /\+ Proposal/);
+    assert.match(helpers, /bg-blue-600/);
+    assert.match(tab, /data-jobcard-add-proposal/);
+    assert.doesNotMatch(helpers, /bg-black|bg-slate-900/);
   });
 
-  test("2. Duplicate header Create Proposal button is removed", () => {
+  test("2. Empty state copy — no always-open setup card", () => {
+    const tab = read("app/tools/roofing/jobCard/JobCardProposalsTab.tsx");
+    const helpers = read("app/tools/roofing/jobCard/jobCardProposalsTabModel.ts");
     const client = read("app/tools/roofing/RoofingClient.tsx");
     const proposalsPanel = client.slice(
       client.indexOf('tabId="proposals"'),
       client.indexOf('tabId="material_orders"')
     );
-    assert.doesNotMatch(proposalsPanel, /headerAction=\{/);
-    assert.equal(
-      (proposalsPanel.match(/Create proposal draft/g) ?? []).length,
-      0,
-      "Create label lives in the setup card component, not duplicated in RoofingClient panel"
-    );
+    assert.match(helpers, /No proposals yet/);
+    assert.match(helpers, /measurement report/i);
+    assert.match(tab, /data-jobcard-proposals-empty/);
+    assert.doesNotMatch(proposalsPanel, /JobCardProposalSetupCard/);
+    assert.doesNotMatch(proposalsPanel, /data-jobcard-create-fields/);
+    assert.doesNotMatch(proposalsPanel, /data-jobcard-package-selector/);
   });
 
-  test("3. Compact Current proposal + Start proposal vocabulary", () => {
-    const helpers = read("app/tools/roofing/jobCard/jobCardProposalSetup.ts");
-    const card = read("app/tools/roofing/jobCard/JobCardProposalSetupCard.tsx");
-    assert.match(helpers, /JOB_CARD_CURRENT_PROPOSAL_LABEL/);
-    assert.match(helpers, /JOB_CARD_CREATE_ANOTHER_HEADLINE/);
-    assert.match(helpers, /Start proposal/);
-    assert.match(card, /Current proposal|JOB_CARD_CURRENT_PROPOSAL_LABEL/);
-    assert.match(card, /open_and_create/);
-    assert.match(card, /data-jobcard-draft-open-summary/);
-    assert.match(card, /Create proposal draft/);
-    assert.match(card, /Open in Builder/);
-    assert.match(card, /formatContractorProposalTitle/);
-  });
-
-  test("4. Existing draft does not hide create-new selectors", () => {
-    const card = read("app/tools/roofing/jobCard/JobCardProposalSetupCard.tsx");
-    assert.match(card, /data-jobcard-existing-draft-card/);
-    assert.match(card, /data-jobcard-create-new-card/);
-    assert.match(card, /data-jobcard-template-select/);
-    assert.match(card, /data-jobcard-package-selector/);
-    assert.match(card, /JOB_CARD_CREATE_ANOTHER_EXPLAINER/);
+  test("3. Smoke-only jobs use empty list path + Block 1 isolation", () => {
+    const client = read("app/tools/roofing/RoofingClient.tsx");
+    assert.match(client, /filterContractorVisibleProposals/);
+    assert.match(client, /buildJobCardProposalRowViews/);
     assert.match(
-      read("app/tools/roofing/jobCard/jobCardProposalSetup.ts"),
-      /Creates a separate draft/
+      read("app/lib/contractorFixtureIsolation.ts"),
+      /coverage basis live smoke/
     );
-    assert.doesNotMatch(card, /Start new draft/);
-    assert.match(card, /CreateProposalFields/);
   });
 
-  test("5. Create setup includes Template, Package, Included", () => {
-    const card = read("app/tools/roofing/jobCard/JobCardProposalSetupCard.tsx");
-    assert.match(card, /label="Template"|label:\s*"Template"/);
-    assert.match(card, /Package/);
-    assert.match(card, /Included/);
-    assert.match(card, /data-jobcard-package-selector/);
-    assert.match(card, /data-jobcard-included-summary/);
+  test("4. Compact rows + Open — no create-from-row", () => {
+    const tab = read("app/tools/roofing/jobCard/JobCardProposalsTab.tsx");
+    assert.match(tab, /data-jobcard-proposal-list-row/);
+    assert.match(tab, /data-jobcard-proposal-open/);
+    assert.match(tab, /JOB_CARD_PROPOSALS_OPEN_LABEL|Open/);
+    assert.doesNotMatch(tab, /Create proposal draft/);
+    assert.doesNotMatch(tab, /onCreateNewDraft/);
   });
 
-  test("6. RoofingClient wires open + force-create + collapsed older drafts", () => {
+  test("5. + Proposal opens Block 2 placeholder — does not create drafts", () => {
     const client = read("app/tools/roofing/RoofingClient.tsx");
-    assert.match(client, /draftOpenSummary=\{jobCardDraftOpenSummary\}/);
-    assert.match(client, /createNewProposalDraftEntry/);
-    assert.match(client, /onCreateNewDraft=\{handleCreateNewProposalDraft\}/);
-    assert.match(client, /onCreateOrOpen=\{handleLaunchProposalDraft\}/);
-    assert.match(client, /listedJobDraftSummaries/);
-    assert.match(client, /showOlderJobDrafts/);
-    assert.match(client, /data-jobcard-older-drafts-toggle/);
-    assert.match(client, /JOB_CARD_SHOW_OLDER_DRAFTS_LABEL/);
-    assert.match(client, /data-jobcard-proposal-list-row/);
-  });
-
-  test("7. Happy path does not force Review templates", () => {
-    const links = read("app/tools/roofing/jobCard/JobCardProposalsSetupLinks.tsx");
-    assert.match(links, /quietWhenReady/);
-    assert.doesNotMatch(links, /Review templates/);
-  });
-
-  test("8. Durable draft path + selected package option preserved", () => {
-    const client = read("app/tools/roofing/RoofingClient.tsx");
-    assert.match(client, /createNewProposalDraftEntry/);
-    assert.match(client, /resolveOrCreateProposalDraftEntry/);
-    assert.match(client, /selected_template_option_id/);
-    assert.match(client, /buildProposalBuilderHref\(currentJobId/);
-    assert.match(client, /listProposalsForJob/);
-  });
-
-  test("9. Builder shared identity + back link to proposals", () => {
-    const builder = read("app/tools/roofing/proposals/builder/ProposalBuilderClient.tsx");
-    const header = read(
-      "app/tools/roofing/proposals/builder/ProposalBuilderPageHeader.tsx"
+    const tab = read("app/tools/roofing/jobCard/JobCardProposalsTab.tsx");
+    const helpers = read("app/tools/roofing/jobCard/jobCardProposalsTabModel.ts");
+    assert.match(client, /setShowJobCardProposalEntry\(true\)/);
+    assert.match(tab, /data-jobcard-proposal-entry-placeholder/);
+    assert.match(helpers, /measurement → template → package/);
+    const proposalsPanel = client.slice(
+      client.indexOf('tabId="proposals"'),
+      client.indexOf('tabId="material_orders"')
     );
-    assert.match(builder, /hasValidPersistedDraft/);
-    assert.match(header, /Back to Job Card/);
-    assert.match(header, /resolveJobIdentityDisplay/);
+    assert.doesNotMatch(proposalsPanel, /handleCreateNewProposalDraft/);
+    assert.doesNotMatch(proposalsPanel, /createNewProposalDraftEntry/);
   });
 
-  test("10. Builder package picker remains draft-option scoped", () => {
-    const client = read(
+  test("6. Open uses Builder href with proposal id — not create", () => {
+    const client = read("app/tools/roofing/RoofingClient.tsx");
+    assert.match(client, /onOpenProposal/);
+    assert.match(client, /buildProposalBuilderHref\(currentJobId, proposalId\)/);
+  });
+
+  test("7. Old copy is absent from Proposals panel", () => {
+    const client = read("app/tools/roofing/RoofingClient.tsx");
+    const proposalsPanel = client.slice(
+      client.indexOf('tabId="proposals"'),
+      client.indexOf('tabId="material_orders"')
+    );
+    assert.doesNotMatch(proposalsPanel, /Create proposal draft/);
+    assert.doesNotMatch(proposalsPanel, /Create another proposal/);
+    assert.doesNotMatch(proposalsPanel, /Open saved proposal/);
+    assert.doesNotMatch(proposalsPanel, /Draft ready · can create another/);
+    assert.doesNotMatch(proposalsPanel, /Current proposal/);
+    assert.doesNotMatch(proposalsPanel, /Start proposal/);
+    assert.doesNotMatch(proposalsPanel, /Show older drafts/);
+    assert.doesNotMatch(proposalsPanel, /Source template/);
+  });
+
+  test("8. Builder package picker remains draft-option scoped", () => {
+    const builderClient = read(
       "app/tools/roofing/proposals/builder/ProposalBuilderClient.tsx"
     );
     const selector = read(
       "app/tools/roofing/proposals/builder/ProposalBuilderPackageSelector.tsx"
     );
-    assert.match(client, /scopeTemplateGraphToDraftPackageOptions/);
+    assert.match(builderClient, /scopeTemplateGraphToDraftPackageOptions/);
     assert.match(selector, /canChangeBuilderDraftPackage/);
     assert.match(selector, /BUILDER_ONLY_ONE_PACKAGE_NOTE/);
   });
 
-  test("11. Current proposal card stays compact — no source-template field stack", () => {
-    const card = read("app/tools/roofing/jobCard/JobCardProposalSetupCard.tsx");
-    assert.doesNotMatch(card, /Source template/);
-    assert.doesNotMatch(card, /JOB_CARD_EXISTING_DRAFT_INTERNAL_NOTE/);
-    assert.doesNotMatch(card, /JOB_CARD_DRAFT_PACKAGE_CHANGE_NOTE/);
-    assert.match(card, /formatContractorProposalTitle/);
-  });
-
-  test("12. Block 1 wires contractor fixture isolation on Job Card lists/pickers", () => {
-    const client = read("app/tools/roofing/RoofingClient.tsx");
-    assert.match(client, /filterContractorVisibleProposals/);
-    assert.match(client, /filterContractorVisibleTemplates/);
-    assert.match(client, /pickContractorVisibleJobDraft/);
-    assert.match(
-      read("app/lib/contractorFixtureIsolation.ts"),
-      /coverage basis live smoke/
-    );
-    assert.match(
-      read("app/lib/contractorFixtureIsolation.ts"),
-      /raw_plus_waste/
+  test("9. Primary button is FieldDive blue, not black", () => {
+    const helpers = read("app/tools/roofing/jobCard/jobCardProposalsTabModel.ts");
+    assert.match(helpers, /JOB_CARD_PROPOSALS_PRIMARY_BUTTON_CLASS/);
+    assert.match(helpers, /bg-blue-600/);
+    assert.match(helpers, /hover:bg-blue-700/);
+    assert.doesNotMatch(
+      helpers.slice(
+        helpers.indexOf("JOB_CARD_PROPOSALS_PRIMARY_BUTTON_CLASS"),
+        helpers.indexOf("JOB_CARD_PROPOSALS_SECONDARY_BUTTON_CLASS")
+      ),
+      /bg-black|bg-slate-900|bg-neutral-900/
     );
   });
 });

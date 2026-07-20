@@ -101,15 +101,19 @@ describe("Builder package selector draft-option truth", () => {
     assert.doesNotMatch(preview, /scopeTemplateGraphToDraftPackageOptions/);
   });
 
-  test("8. Job Card open+create stays honest + compact zones", () => {
-    const card = read("app/tools/roofing/jobCard/JobCardProposalSetupCard.tsx");
-    const helpers = read("app/tools/roofing/jobCard/jobCardProposalSetup.ts");
-    assert.match(card, /data-jobcard-draft-open-summary/);
-    assert.match(card, /data-jobcard-existing-draft-card/);
-    assert.match(card, /data-jobcard-create-new-card/);
-    assert.match(helpers, /JOB_CARD_CREATE_ANOTHER_EXPLAINER/);
-    assert.match(helpers, /JOB_CARD_CURRENT_PROPOSAL_LABEL/);
-    assert.match(helpers, /formatContractorProposalTitle/);
-    assert.doesNotMatch(card, /Start new draft/);
+  test("8. Job Card Proposals tab is Block 2 document surface (not setup card)", () => {
+    const tab = read("app/tools/roofing/jobCard/JobCardProposalsTab.tsx");
+    const helpers = read("app/tools/roofing/jobCard/jobCardProposalsTabModel.ts");
+    const client = read("app/tools/roofing/RoofingClient.tsx");
+    assert.match(tab, /data-jobcard-proposals-v1/);
+    assert.match(helpers, /\+ Proposal/);
+    assert.match(client, /JobCardProposalsTab/);
+    assert.doesNotMatch(
+      client.slice(
+        client.indexOf('tabId="proposals"'),
+        client.indexOf('tabId="material_orders"')
+      ),
+      /JobCardProposalSetupCard/
+    );
   });
 });

@@ -45,11 +45,11 @@
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** **`aee0546`** — fix(proposals): isolate internal smoke records from contractor views (Block 1; prior polish **`190ad66`**)
-- **Docs checkpoint:** **Block 1** — smoke/internal proposal + template isolation (this header + **§6BO.13.4.9** Q). Prior docs: **Block 0** Flow V1 lock (**`61d3bc5`**, **§6BO.13.4.9** P).
-- **Prior code:** **`190ad66`** Job Card Proposals polish; **`40c1fe8`** create flow restore; **`05131f6`** draft-scoped Builder packages
-- **Next coding:** **Block 2** — Proposals tab reset (compact rows + blue **+ Proposal**). Do **not** start Blocks 3–7 until Block 2 is approved. Do **not** add full proposal management, template rebuild/import of live options into existing drafts, supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
-- **Historical note:** Proposals tab still uses Current/Start setup zones (pre–Flow V1 layout). Smoke fixtures are hidden from normal contractor lists/pickers (hide-not-delete). Target after Blocks 2–4: compact rows + **+ Proposal** modal → Builder. Builder package picker remains draft-option scoped.
+- **Code checkpoint:** Block 2 — polish(proposals): reset job card proposal surface (this commit; prior Block 1 **`aee0546`**)
+- **Docs checkpoint:** **Block 2** — Proposals tab compact document/action surface (this header + **§6BO.13.4.9** R). Prior: Block 1 isolation (**Q** / **`aee0546`**); Block 0 Flow V1 lock (**`61d3bc5`**, **P**).
+- **Prior code:** **`aee0546`** smoke isolation; **`190ad66`** Job Card Proposals polish; **`40c1fe8`** create flow restore
+- **Next coding:** **Block 3** — + Proposal modal/step flow (measurement → template → package → Continue to Builder). Do **not** start Blocks 4–7 until Block 3 is approved. Do **not** add full proposal management, template rebuild/import of live options into existing drafts, supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
+- **Historical note:** Proposals tab is now compact rows + blue **+ Proposal** (Block 2). + Proposal shows Block 3 placeholder only (no create yet). Smoke fixtures remain hide-not-delete. Builder package picker remains draft-option scoped.
 
 **Trust order:** Header/current checkpoint → **§6BO.13** (approved page-by-page UI flow roadmap + P0 implementation sequence — **supersedes separate Command Center language**) → **§6BM** / **§6BN** (R18 letter-phase roadmap + R18C–R18D3C implementation history) → **§6BO** / **§6BO.11** / **§6BO.12** (completed remediation side-track + **approved Stage C policy** + **operating-flow audit sequencing — complete; outcome in §6BO.13**) → **§6BL** → **§11 override**. Stage B browser smoke required local-only **`USE_PROPOSAL_SEND_FREEZE_RPC=1`** in `.env.local` (gitignored, not committed). **Do not proceed** to docs-only or next feature work unless working tree is clean. **Still do not** mutate `proposals.status = sent`, write sent `proposal_events`, move Jobs Board cards, add Job Card send activity, enable PDF/Sign/Payment, or add webhooks unless separately approved.
 
@@ -12328,7 +12328,35 @@ Package rule from **N** remains law: pre-draft package on create modal; post-dra
 
 **Out of this block:** Proposals tab compact-row reset (**Block 2**); + Proposal modal (**Block 3**); Builder handoff polish (**Block 4**); Preview truth (**Block 5**); Template Flow V1 UI (**Block 6**).
 
-**Next recommended block:** **Block 2 — Proposals tab reset** (compact rows + blue **+ Proposal**).
+**Next recommended block:** ~~Block 2 Proposals tab reset~~ → **DONE** (see **R**).
+
+##### R. Block 2 — Proposals tab reset (compact document/action surface) — IMPLEMENTED (2026-07-20)
+
+**Status:** Job Card Proposals tab reset to Flow V1 surface: compact proposal rows + blue **+ Proposal**. **No + Proposal modal/step flow (Block 3). No always-open measurement/template/package setup card. No Builder/Preview/Templates/Catalog redesign. No migrations/SQL/package/pricing/quantity/snapshot/send/public/lifecycle/PDF/sign/payment/supplier/material/CSV/raw/whole-rounding. No deletion of smoke records.**
+
+**Code checkpoint:** this commit (Block 2); prior Block 1 **`aee0546`**.
+
+**What was removed as default UI:**
+- Always-open Current proposal / Start proposal setup cards
+- “Create proposal draft” / “Create another proposal” / “Open saved proposal”
+- “Draft ready · can create another” status chip
+- Older-drafts archive-first list
+- Source template / debug fields on the tab
+- Black primary create buttons
+
+**New surface:**
+- Header: **Proposals** + subtitle + blue **+ Proposal** (`bg-blue-600`)
+- Rows: title · package · status · updated · **Open** (Builder by id; does not create)
+- Empty (Babby smoke-only after Block 1): **No proposals yet** + measurement report copy + blue **Create proposal**
+- **+ Proposal** / Create proposal → Block 2 placeholder only (“measurement → template → package”); **does not create drafts**
+- Block 1 `filterContractorVisibleProposals` preserved — smoke-only → empty state
+- Direct Builder smoke URL still loads
+
+**Files:** `JobCardProposalsTab.tsx`, `jobCardProposalsTabModel.ts` (+ tests); `RoofingClient` Proposals panel rewired. Old `JobCardProposalSetupCard` retained in repo for Block 3 reuse, not mounted.
+
+**Smoke (Babby D on `rhquhnujjnzjhweypavd`):** empty state + blue + Proposal; placeholder on click; no setup card; no smoke titles; direct Builder `61356e56-…` still loads. No send/lifecycle.
+
+**Next recommended block:** **Block 3 — + Proposal modal flow** (measurement → template → package → Continue to Builder).
 
 #### 13.4.6 Integrated Catalog → Proposal workflow research + FieldDive flow design — COMPLETE (2026-07-17)
 
@@ -13815,7 +13843,8 @@ Treat as **drift** if a session:
 
 ## Changelog (handoff doc only)
 
-- **2026-07-20:** **Block 1 — smoke/internal proposal + template isolation** (**§6BO.13.4.9** Q) — centralized `contractorFixtureIsolation` known-fixture classifier; Job Card Proposals lists/current draft + create template picker hide fixtures (hide-not-delete); direct Builder smoke URL preserved; no Proposals tab reset / modal / pricing / lifecycle. **Next:** Block 2 Proposals tab reset.
+- **2026-07-20:** **Block 2 — Proposals tab reset** (**§6BO.13.4.9** R) — compact rows + blue **+ Proposal**; empty state when smoke-only; placeholder entry (no create); removed always-open setup/archive UI; Block 1 isolation preserved; no modal yet. **Next:** Block 3 + Proposal modal.
+- **2026-07-20:** **Block 1 — smoke/internal proposal + template isolation** (**§6BO.13.4.9** Q) — centralized `contractorFixtureIsolation` known-fixture classifier; Job Card Proposals lists/current draft + create template picker hide fixtures (hide-not-delete); direct Builder smoke URL preserved; no Proposals tab reset / modal / pricing / lifecycle. **Next:** Block 2 Proposals tab reset (now **R**).
 - **2026-07-20:** **Block 0 — Proposal Flow V1 + Template Flow V1 + app surface standards** (docs only, **§6BO.13.4.9** P) — locked happy path (Job Card → + Proposal → measurement/template/package → Builder → Preview; Send later); Proposals compact rows + blue + Proposal; Templates = company setup; smoke hide-not-delete; Builder/Preview roles; Blocks 0–7 order; protected systems restated. Code checkpoint **`190ad66`**. **No app code.** **Next coding:** Block 1 smoke isolation (now **Q**).
 - **2026-07-17:** **Job Card Proposals polish** (`190ad66`) — compact Current/Start zones; “Saved proposal” titles; collapsed older drafts. Still pre–Flow V1 end-state.
 - **2026-07-17:** **Job Card create flow restore** — existing draft + create-another; `createNewProposalDraftEntry` force-creates distinct draft; multi-draft list; Builder package truth preserved. **Next:** superseded by Flow V1 Block 0/1 (**P**).
