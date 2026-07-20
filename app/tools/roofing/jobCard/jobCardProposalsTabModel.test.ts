@@ -17,6 +17,7 @@ import {
   buildJobCardProposalRowViews,
   formatJobCardContractorProposalStatusLabel,
   formatJobCardProposalCreatedActivityNote,
+  formatJobCardProposalRowPackageBadge,
   formatJobCardProposalRowTitle,
   formatJobCardProposalStatusLabel,
   formatJobCardProposalUpdatedShort,
@@ -56,7 +57,7 @@ describe("jobCardProposalsTab helpers", () => {
     assert.doesNotMatch(JOB_CARD_PROPOSALS_CREATE_LABEL, /draft/i);
   });
 
-  test("row title prefers title then template; package strengthens distinction", () => {
+  test("row title prefers title then template; package is a badge not title text", () => {
     assert.equal(
       formatJobCardProposalRowTitle({ title: "Roof Replacement Proposal" }),
       "Roof Replacement Proposal"
@@ -70,12 +71,13 @@ describe("jobCardProposalsTab helpers", () => {
         title: "Roof replacement",
         packageLabel: "Enhanced",
       }),
-      "Roof replacement — Enhanced"
+      "Roof replacement"
     );
+    assert.equal(formatJobCardProposalRowPackageBadge("Enhanced package"), "Enhanced");
     assert.equal(formatJobCardProposalRowTitle({ title: "", templateName: null }), "Proposal");
     assert.doesNotMatch(
-      formatJobCardProposalRowTitle({ title: "Roof replacement" }),
-      /Saved proposal/
+      formatJobCardProposalRowTitle({ title: "Roof replacement", packageLabel: "Enhanced" }),
+      /—|Enhanced/
     );
   });
 
@@ -101,7 +103,7 @@ describe("jobCardProposalsTab helpers", () => {
         packageLabel: "Standard",
         statusLabel: "Draft",
         updatedLabel: "Jul 20",
-        packageInTitle: true,
+        packageAsBadge: true,
       }),
       /^Draft · Updated Jul 20$/
     );
@@ -126,11 +128,12 @@ describe("jobCardProposalsTab helpers", () => {
       packageLabel: "Standard",
       templateName: "Roof replacement",
     });
-    assert.equal(row.title, "Roof Replacement — Standard");
+    assert.equal(row.title, "Roof Replacement");
+    assert.equal(row.packageLabel, "Standard");
     assert.match(row.metaLine, /^Draft · Updated/);
     assert.doesNotMatch(row.metaLine, /source template/i);
     assert.doesNotMatch(row.metaLine, /real-1/);
-    assert.doesNotMatch(row.title, /smoke|RAW_PLUS/i);
+    assert.doesNotMatch(row.title, /smoke|RAW_PLUS|—/i);
   });
 
   test("job card status uses visible proposals only — smoke-only is create-ready", () => {

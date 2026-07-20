@@ -8,6 +8,7 @@ import {
   JOB_CARD_PROPOSALS_EMPTY_TITLE,
   JOB_CARD_PROPOSALS_OPEN_LABEL,
   JOB_CARD_PROPOSALS_PRIMARY_BUTTON_CLASS,
+  formatJobCardProposalRowPackageBadge,
 } from "./jobCardProposalsTabModel";
 
 type JobCardProposalsTabProps = {
@@ -61,14 +62,7 @@ export default function JobCardProposalsTab({
       {hasRows ? (
         <div className="space-y-2" data-jobcard-proposal-list>
           {rows.map((row) => {
-            const pkg = (row.packageLabel ?? "").replace(/\s+package$/i, "").trim();
-            const titleParts =
-              pkg && row.title.includes(` — ${pkg}`)
-                ? {
-                    base: row.title.slice(0, row.title.lastIndexOf(` — ${pkg}`)),
-                    packageName: pkg,
-                  }
-                : { base: row.title, packageName: null as string | null };
+            const packageBadge = formatJobCardProposalRowPackageBadge(row.packageLabel);
             return (
               <div
                 key={row.proposalId}
@@ -76,23 +70,23 @@ export default function JobCardProposalsTab({
                 data-jobcard-proposal-list-row
                 data-proposal-id={row.proposalId}
               >
-                <div className="min-w-0">
-                  <p
-                    className="truncate text-[14px] font-semibold text-slate-900"
-                    data-jobcard-proposal-row-title
-                  >
-                    {titleParts.packageName ? (
-                      <>
-                        {titleParts.base}
-                        <span className="font-normal text-slate-400"> — </span>
-                        <span className="font-semibold text-blue-700">
-                          {titleParts.packageName}
-                        </span>
-                      </>
-                    ) : (
-                      row.title
-                    )}
-                  </p>
+                <div className="min-w-0 flex-1">
+                  <div className="flex min-w-0 flex-wrap items-center gap-2">
+                    <p
+                      className="truncate text-[14px] font-semibold text-slate-900"
+                      data-jobcard-proposal-row-title
+                    >
+                      {row.title}
+                    </p>
+                    {packageBadge ? (
+                      <span
+                        className="inline-flex shrink-0 items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-semibold text-slate-700"
+                        data-jobcard-proposal-row-package
+                      >
+                        {packageBadge}
+                      </span>
+                    ) : null}
+                  </div>
                   <p
                     className="mt-0.5 truncate text-[12px] text-slate-500"
                     data-jobcard-proposal-row-meta
@@ -140,7 +134,5 @@ export function JobCardProposalsAddHeaderButton({
 }: {
   onClick: () => void;
 }) {
-  return (
-    <AddProposalButton onClick={onClick} compact />
-  );
+  return <AddProposalButton onClick={onClick} compact />;
 }

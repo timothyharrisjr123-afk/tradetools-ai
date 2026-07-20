@@ -151,8 +151,7 @@ export function formatJobCardProposalCreatedActivityNote(
 
 /**
  * Contractor row title. Prefer persisted title; else template name.
- * When a package label is present, append “ — {Package}” so duplicate
- * Roof replacement drafts are easy to distinguish.
+ * Package is shown as a separate badge — never appended as link-like text.
  */
 export function formatJobCardProposalRowTitle(input: {
   title?: string | null;
@@ -165,24 +164,32 @@ export function formatJobCardProposalRowTitle(input: {
   if (!base) {
     const templateName = (input.templateName ?? "").trim();
     if (templateName) {
-      base = /proposal$/i.test(templateName)
-        ? templateName
-        : templateName;
+      base = templateName;
     } else {
       base = "Proposal";
     }
   }
-  // Strip trailing " Proposal" when we will show package on the same line.
+  // Soften "… Proposal" when a package badge will distinguish the row.
   if (pkg && / proposal$/i.test(base)) {
     base = base.replace(/\s+proposal$/i, "").trim() || base;
   }
+  // Strip legacy “ — Package” suffix if present in stored titles.
   if (pkg) {
     const pkgBare = pkg.replace(/\s+package$/i, "").trim();
-    if (pkgBare && !new RegExp(`—\\s*${escapeRegExp(pkgBare)}$`, "i").test(base)) {
-      return `${base} — ${pkgBare}`;
+    if (pkgBare) {
+      base = base
+        .replace(new RegExp(`\\s*—\\s*${escapeRegExp(pkgBare)}$`, "i"), "")
+        .trim();
     }
   }
-  return base;
+  return base || "Proposal";
+}
+
+export function formatJobCardProposalRowPackageBadge(
+  packageLabel?: string | null
+): string | null {
+  const pkg = (packageLabel ?? "").trim().replace(/\s+package$/i, "").trim();
+  return pkg || null;
 }
 
 function escapeRegExp(value: string): string {
@@ -193,12 +200,12 @@ export function buildJobCardProposalRowMetaLine(input: {
   packageLabel?: string | null;
   statusLabel: string;
   updatedLabel?: string | null;
-  /** When true, package is already in the title — omit from meta. */
-  packageInTitle?: boolean;
+  /** When true, package is shown as a badge — omit from meta. */
+  packageAsBadge?: boolean;
 }): string {
   const parts: string[] = [];
   const pkg = (input.packageLabel ?? "").trim();
-  if (pkg && !input.packageInTitle) {
+  if (pkg && !input.packageAsBadge) {
     parts.push(/package$/i.test(pkg) ? pkg : `${pkg} package`);
   }
   parts.push(input.statusLabel);
@@ -224,13 +231,13 @@ export function buildJobCardProposalRowView(input: {
     proposalId: input.summary.id,
     title,
     statusLabel,
-    packageLabel,
+    packageLabel: formatJobCardProposalRowPackageBadge(packageLabel),
     updatedLabel,
     metaLine: buildJobCardProposalRowMetaLine({
       packageLabel,
       statusLabel,
       updatedLabel,
-      packageInTitle: Boolean(packageLabel),
+      packageAsBadge: Boolean(packageLabel),
     }),
   };
 }

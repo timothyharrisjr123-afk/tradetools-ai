@@ -117,6 +117,8 @@ describe("jobCardCreateProposalModalModel polish", () => {
   test("template step uses structure copy — not linked catalog admin text", () => {
     assert.match(CREATE_PROPOSAL_TEMPLATE_STRUCTURE, /estimate/i);
     assert.match(CREATE_PROPOSAL_TEMPLATE_STRUCTURE, /terms/i);
+    assert.match(CREATE_PROPOSAL_TEMPLATE_STRUCTURE, /customer-facing sections/i);
+    assert.doesNotMatch(CREATE_PROPOSAL_TEMPLATE_STRUCTURE, /customer proposal pages/i);
     assert.equal(CREATE_PROPOSAL_TEMPLATE_READY, "Ready to use");
     assert.equal(formatCreateProposalTemplateMetaLine({
       linkedItemCount: 13,
@@ -127,16 +129,18 @@ describe("jobCardCreateProposalModalModel polish", () => {
       linkedItemCount: 13,
       packageCount: 3,
     });
-    assert.equal(secondary, "13 pricing items ready · 3 package options");
-    assert.doesNotMatch(secondary, /linked catalog/i);
+    assert.equal(secondary, "13 pricing items · 3 packages");
+    assert.doesNotMatch(secondary, /linked catalog|pricing items ready/i);
     assert.doesNotMatch(CREATE_PROPOSAL_TEMPLATE_STRUCTURE, /linked catalog|source template/i);
   });
 
   test("review included content is contractor-facing", () => {
     assert.equal(
       CREATE_PROPOSAL_INCLUDED_PRIMARY,
-      "Estimate · Package options · Terms · Warranty · Customer proposal pages"
+      "Estimate · Package details · Terms · Warranty · Customer-facing sections"
     );
+    assert.doesNotMatch(CREATE_PROPOSAL_INCLUDED_PRIMARY, /customer proposal pages/i);
+    assert.doesNotMatch(CREATE_PROPOSAL_INCLUDED_PRIMARY, /Package options/i);
     assert.equal(
       formatCreateProposalIncludedPrimary("13 linked catalog items · Terms"),
       CREATE_PROPOSAL_INCLUDED_PRIMARY
@@ -182,13 +186,13 @@ describe("jobCardCreateProposalModalModel polish", () => {
     assert.equal(visible[0]?.name, "Roof replacement");
   });
 
-  test("proposal rows put package in title for distinction", () => {
+  test("proposal rows use package badge not title link text", () => {
     assert.equal(
       formatJobCardProposalRowTitle({
         title: "Roof replacement",
         packageLabel: "Enhanced",
       }),
-      "Roof replacement — Enhanced"
+      "Roof replacement"
     );
     const row = buildJobCardProposalRowView({
       summary: {
@@ -207,7 +211,8 @@ describe("jobCardCreateProposalModalModel polish", () => {
       packageLabel: "Standard",
       templateName: "Roof replacement",
     });
-    assert.equal(row.title, "Roof replacement — Standard");
+    assert.equal(row.title, "Roof replacement");
+    assert.equal(row.packageLabel, "Standard");
     assert.match(row.metaLine, /^Draft · Updated/);
     assert.doesNotMatch(row.metaLine, /Standard package/);
   });

@@ -33,7 +33,7 @@ export const CREATE_PROPOSAL_TEMPLATE_GUIDE =
   "Choose the proposal structure for this job." as const;
 
 export const CREATE_PROPOSAL_TEMPLATE_STRUCTURE =
-  "Includes estimate, package options, terms, warranty, and customer proposal pages." as const;
+  "Includes estimate, package options, terms, warranty, and customer-facing sections." as const;
 
 export const CREATE_PROPOSAL_TEMPLATE_READY = "Ready to use" as const;
 
@@ -49,7 +49,9 @@ export const CREATE_PROPOSAL_REVIEW_INTRO =
   "FieldDive will create a saved proposal for this job using the details below." as const;
 
 export const CREATE_PROPOSAL_INCLUDED_PRIMARY =
-  "Estimate · Package options · Terms · Warranty · Customer proposal pages" as const;
+  "Estimate · Package details · Terms · Warranty · Customer-facing sections" as const;
+
+export const CREATE_PROPOSAL_INCLUDED_LABEL = "Proposal includes" as const;
 
 export const CREATE_PROPOSAL_USE_MEASUREMENT = "Use this measurement" as const;
 export const CREATE_PROPOSAL_USE_TEMPLATE = "Use this template" as const;
@@ -196,12 +198,12 @@ export function formatCreateProposalTemplateSecondaryDetail(input: {
   const parts: string[] = [];
   if (input.linkedItemCount > 0) {
     parts.push(
-      `${input.linkedItemCount} pricing item${input.linkedItemCount === 1 ? "" : "s"} ready`
+      `${input.linkedItemCount} pricing item${input.linkedItemCount === 1 ? "" : "s"}`
     );
   }
   if (input.packageCount > 0) {
     parts.push(
-      `${input.packageCount} package option${input.packageCount === 1 ? "" : "s"}`
+      `${input.packageCount} package${input.packageCount === 1 ? "" : "s"}`
     );
   }
   return parts.join(" · ");
@@ -231,7 +233,9 @@ export function formatCreateProposalIncludedPrimary(
   if (extras.length > 120) return CREATE_PROPOSAL_INCLUDED_PRIMARY;
   return extras
     .replace(/Estimate packages/gi, "Estimate")
-    .replace(/Custom text pages/gi, "Customer proposal pages")
+    .replace(/Package options/gi, "Package details")
+    .replace(/Custom text pages/gi, "Customer-facing sections")
+    .replace(/customer\s+proposal\s+pages/gi, "Customer-facing sections")
     .replace(/\s*·\s*/g, " · ");
 }
 

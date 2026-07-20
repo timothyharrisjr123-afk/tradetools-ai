@@ -5,6 +5,7 @@ import {
   canContinueCreateProposal,
   CREATE_PROPOSAL_CONTINUE_TO_BUILDER,
   CREATE_PROPOSAL_HELPER,
+  CREATE_PROPOSAL_INCLUDED_LABEL,
   CREATE_PROPOSAL_INCLUDED_PRIMARY,
   CREATE_PROPOSAL_MEASUREMENT_BLOCKED,
   CREATE_PROPOSAL_MEASUREMENT_GUIDE,
@@ -456,7 +457,7 @@ export function JobCardCreateProposalModal({
                   </p>
                   {packageOptions.length > 0 ? (
                     <p
-                      className="mt-1 text-sm font-medium text-blue-700"
+                      className="mt-1 text-sm text-slate-600"
                       data-jobcard-create-proposal-review-package="true"
                     >
                       {(selectedPackageName?.trim() || "Selected") + " starting package"}
@@ -465,7 +466,7 @@ export function JobCardCreateProposalModal({
                 </div>
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Includes
+                    {CREATE_PROPOSAL_INCLUDED_LABEL}
                   </p>
                   <p
                     className="mt-1.5 text-sm leading-relaxed text-slate-700"
@@ -572,21 +573,22 @@ function PackageChoiceCard({
       data-selected={selected ? "true" : "false"}
       className={`mt-2 w-full rounded-xl border px-4 py-3.5 text-left transition ${
         selected
-          ? "border-blue-500 bg-blue-600 text-white shadow-sm"
+          ? "border-blue-400 bg-blue-50/80 ring-1 ring-blue-200 text-slate-900"
           : "border-slate-200 bg-white text-slate-800 hover:border-slate-300"
       }`}
       onClick={() => onSelect(option.id)}
       disabled={disabled}
     >
-      <p className="text-sm font-semibold">{option.name}</p>
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-sm font-semibold text-slate-900">{option.name}</p>
+        {selected ? (
+          <span className="shrink-0 rounded-full bg-blue-600 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+            Selected
+          </span>
+        ) : null}
+      </div>
       {description ? (
-        <p
-          className={`mt-1 text-xs leading-relaxed ${
-            selected ? "text-blue-50" : "text-slate-500"
-          }`}
-        >
-          {description}
-        </p>
+        <p className="mt-1 text-xs leading-relaxed text-slate-600">{description}</p>
       ) : null}
     </button>
   );
