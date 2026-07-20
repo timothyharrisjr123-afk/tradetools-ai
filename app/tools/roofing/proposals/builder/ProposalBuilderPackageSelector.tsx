@@ -33,6 +33,9 @@ type ProposalBuilderPackageSelectorProps = {
    * names the package. Does not change picker persistence behavior.
    */
   compact?: boolean;
+  /** When true, show the package card picker (parent-controlled open panel). */
+  forceOpen?: boolean;
+  onPickerOpenChange?: (open: boolean) => void;
 };
 
 /**
@@ -48,6 +51,8 @@ export default function ProposalBuilderPackageSelector({
   onSelectOption,
   draftScoped = false,
   compact = false,
+  forceOpen = false,
+  onPickerOpenChange,
 }: ProposalBuilderPackageSelectorProps) {
   const options = sortTemplateOptionsByOrder(graph.options);
   const optionCount = options.length;
@@ -56,17 +61,24 @@ export default function ProposalBuilderPackageSelector({
     : optionCount >= 2;
 
   const hasExplicitSelection = (selectedOptionId ?? "").trim().length > 0;
-  const [showAll, setShowAll] = useState(
-    !hasExplicitSelection && allowChangePackage
+  const [showAll, setShowAllState] = useState(
+    forceOpen || (!hasExplicitSelection && allowChangePackage)
   );
   const [showDetails, setShowDetails] = useState(false);
+
+  const setShowAll = (open: boolean) => {
+    setShowAllState(open);
+    onPickerOpenChange?.(open);
+  };
 
   const summaryOption =
     options.find((o) => o.id === effectiveOptionId) ?? options[0] ?? null;
 
+  const pickerVisible = forceOpen || showAll;
   const collapsed =
-    !allowChangePackage ||
-    (hasExplicitSelection && summaryOption != null && !showAll);
+    !pickerVisible &&
+    (!allowChangePackage ||
+      (hasExplicitSelection && summaryOption != null && !showAll));
 
   if (!summaryOption) {
     return (
@@ -185,7 +197,9 @@ export default function ProposalBuilderPackageSelector({
     >
       {hasExplicitSelection ? (
         <div className="flex items-center justify-between gap-2">
-          <p className="text-[12px] font-semibold text-slate-600">Choose package</p>
+          <p className="text-[12px] font-semibold text-slate-600">
+            Choose starting package.
+          </p>
           <button
             type="button"
             onClick={() => setShowAll(false)}

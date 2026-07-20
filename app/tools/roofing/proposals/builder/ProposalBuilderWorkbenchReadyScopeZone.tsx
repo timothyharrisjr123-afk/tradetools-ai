@@ -55,7 +55,7 @@ export default function ProposalBuilderWorkbenchReadyScopeZone({
     >
       <header className="flex flex-wrap items-baseline justify-between gap-2 pb-1 pt-1">
         <p
-          className="text-[15px] font-semibold tracking-tight text-slate-950"
+          className="text-base font-semibold tracking-tight text-slate-950"
           id="workbench-ready-scope-heading"
         >
           Included estimate
@@ -70,7 +70,7 @@ export default function ProposalBuilderWorkbenchReadyScopeZone({
         ) : (
           <div className="overflow-visible">
             <div
-              className="mb-1 hidden grid-cols-[minmax(0,1fr)_7rem_6.5rem_1.75rem] gap-x-3 border-b border-slate-100 pb-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-400 sm:grid"
+              className="mb-1.5 hidden grid-cols-[minmax(0,1fr)_7rem_6.5rem_1.75rem] gap-x-3 border-b border-slate-200/90 pb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500 sm:grid"
               data-builder-estimate-column-headers
             >
               <span>Item</span>

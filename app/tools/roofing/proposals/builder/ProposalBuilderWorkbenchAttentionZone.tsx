@@ -115,12 +115,12 @@ function ScopeReviewSection({
       <header className={WORKBENCH_SCOPE_REVIEW_ZONE_HEADER}>
         <div className="min-w-0">
           <p
-            className="text-sm font-semibold text-slate-900"
+            className="text-[15px] font-semibold tracking-tight text-slate-950"
             id="workbench-scope-review-heading"
           >
             Finish estimate
           </p>
-          <p className="mt-0.5 text-[13px] text-slate-600">
+          <p className="mt-0.5 text-[13px] leading-snug text-slate-600">
             {zone.count === 1
               ? "1 item needs a quantity before totals are final."
               : `${zone.count} items need quantities before totals are final.`}
@@ -128,7 +128,7 @@ function ScopeReviewSection({
         </div>
       </header>
 
-      <div className={`${WORKBENCH_MODULE_INNER} py-2`}>
+      <div className={`${WORKBENCH_MODULE_INNER} py-1`}>
         <ul className="divide-y divide-slate-100" data-builder-quantity-review-list>
           {zone.lines.map((line, index) => {
             const canSetQuantity =
@@ -141,7 +141,7 @@ function ScopeReviewSection({
             return (
               <li
                 key={line.templateItemId}
-                className="py-2"
+                className="py-1.5"
                 data-builder-quantity-review-row
                 data-builder-quantity-review-row-index={String(index)}
                 id={
@@ -163,7 +163,7 @@ function ScopeReviewSection({
                     onSave={onSaveQuantity!}
                   />
                 ) : (
-                  <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
                     <div className="min-w-0 flex-1">
                       <ProposalBuilderWorkbenchLineRow
                         variant="scope_review"
@@ -171,7 +171,7 @@ function ScopeReviewSection({
                         compact
                       />
                     </div>
-                    <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+                    <div className="flex shrink-0 items-center justify-end">
                       {canSetQuantity ? (
                         <button
                           type="button"

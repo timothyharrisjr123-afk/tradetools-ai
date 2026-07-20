@@ -58,7 +58,7 @@ export const WORKBENCH_PACKAGE_STARTING_HELPER =
 
 export const WORKBENCH_DECISION_TRACE_REMOVED_TITLE = "Removed from proposal";
 export const WORKBENCH_DECISION_TRACE_REMOVED_DESCRIPTION =
-  "Items removed from this package for this job. Restore to bring them back.";
+  "Items removed from this proposal.";
 export const WORKBENCH_DECISION_TRACE_REMOVED_STATUS = "Removed";
 
 export const WORKBENCH_SCOPE_REVIEW_FUTURE_ACTIONS = [

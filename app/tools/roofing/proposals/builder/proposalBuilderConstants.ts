@@ -734,7 +734,7 @@ export const WORKBENCH_ATTENTION_ITEM_INDEX =
 export const WORKBENCH_SCOPE_REVIEW_ZONE =
   "overflow-hidden border-t border-slate-100 bg-white";
 
-export const WORKBENCH_SCOPE_REVIEW_ZONE_HEADER = "border-b border-slate-100/80 py-2";
+export const WORKBENCH_SCOPE_REVIEW_ZONE_HEADER = "border-b border-slate-100/80 py-1.5";
 
 export const WORKBENCH_SCOPE_REVIEW_COUNT_BADGE =
   "inline-flex min-w-[1.75rem] items-center justify-center rounded-full bg-slate-600 px-2 py-0.5 text-[11px] font-bold tabular-nums text-white shadow-sm";
@@ -766,7 +766,7 @@ export const WORKBENCH_SCOPE_COUNT_CHIP =
   "inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold tabular-nums text-slate-500";
 
 export const WORKBENCH_LINE_ROW =
-  "border-b border-slate-100 py-1.5 last:border-b-0 transition-colors hover:bg-slate-50/50";
+  "border-b border-slate-200/80 py-2 last:border-b-0 transition-colors hover:bg-slate-50/60";
 
 export const WORKBENCH_LINE_GRID =
   "grid grid-cols-1 gap-x-3 gap-y-0.5 sm:grid-cols-[minmax(0,1fr)_7rem_6.5rem] sm:items-center";
@@ -783,7 +783,7 @@ export const WORKBENCH_LINE_QTY =
 export const WORKBENCH_LINE_QTY_VALUE = "font-medium text-slate-700";
 
 export const WORKBENCH_LINE_AMOUNT =
-  "shrink-0 text-[13px] tabular-nums font-medium text-slate-900 sm:text-right";
+  "shrink-0 text-[13px] tabular-nums font-semibold text-slate-950 sm:text-right";
 
 export const WORKBENCH_LINE_AMOUNT_INCLUDED =
   "shrink-0 text-[11px] font-semibold uppercase tracking-wide text-slate-500 sm:pt-1 sm:text-right";
@@ -946,7 +946,7 @@ export const WORKBENCH_EXCLUDE_IN_FLIGHT_LABEL = "Removing…";
 export const WORKBENCH_EXCLUDE_SUCCESS =
   "Line removed from this option and draft pricing refreshed.";
 
-export const WORKBENCH_RESTORE_EXCLUDED_ACTION = "Include in this option again";
+export const WORKBENCH_RESTORE_EXCLUDED_ACTION = "Restore";
 
 export const WORKBENCH_RESTORE_EXCLUDED_SUCCESS =
   "Line restored to this option and draft pricing refreshed.";

@@ -241,7 +241,7 @@ describe("Builder action clarity (Block 4D / 4E)", () => {
     assert.match(presenter, /"SQ"/);
   });
 
-  test("22. Package cards: Current / Available; no INCLUDED; Choose package", () => {
+  test("22. Package cards: Current / Available; Choose starting package.; summary card", () => {
     const cards = read(
       "app/tools/roofing/proposals/builder/ProposalBuilderPackageCards.tsx"
     );
@@ -253,19 +253,20 @@ describe("Builder action clarity (Block 4D / 4E)", () => {
     const selector = read(
       "app/tools/roofing/proposals/builder/ProposalBuilderPackageSelector.tsx"
     );
-    assert.match(selector, /Choose package/);
+    assert.match(selector, /Choose starting package\./);
     assert.doesNotMatch(selector, /customer-facing package/);
+    assert.match(selector, /forceOpen|onPickerOpenChange/);
 
     const pkg = read(
       "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchPackageZone.tsx"
     );
+    assert.match(pkg, /data-builder-package-summary/);
     assert.match(pkg, /WORKBENCH_EDIT_PACKAGE_TITLE/);
-    assert.doesNotMatch(pkg, /Edit \$\{|Edit \$\{packageZone/);
     assert.doesNotMatch(pkg, /Edit Enhanced package/);
     assert.match(pkg, /bullets\.join\(" · "\)/);
   });
 
-  test("23. Removed from proposal only when lines exist; Display settings off main path", () => {
+  test("23. Removed from proposal copy; Restore; no Package scope decisions", () => {
     const estimate = read(
       "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchEstimateDocument.tsx"
     );
@@ -273,9 +274,27 @@ describe("Builder action clarity (Block 4D / 4E)", () => {
     assert.match(estimate, /Removed from proposal/);
     assert.match(estimate, /decisionTraceZone\.show/);
     assert.doesNotMatch(estimate, /ProposalBuilderWorkbenchSettingsEntry/);
+    assert.doesNotMatch(estimate, /Package scope decisions/i);
+    assert.doesNotMatch(estimate, /include in this option again/i);
+
+    const trace = read(
+      "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchDecisionTraceZone.tsx"
+    );
+    assert.doesNotMatch(trace, /Package scope decisions/i);
+    assert.doesNotMatch(trace, /package for this job/i);
+    assert.doesNotMatch(trace, /Include in this option again/i);
+    assert.match(trace, /WORKBENCH_RESTORE_EXCLUDED_ACTION/);
+    assert.match(trace, /data-builder-restore-removed/);
+
+    const constants = read(
+      "app/tools/roofing/proposals/builder/proposalBuilderConstants.ts"
+    );
+    assert.match(constants, /WORKBENCH_RESTORE_EXCLUDED_ACTION = "Restore"/);
 
     const presenter = read("app/lib/proposalBuilderWorkbenchEstimatePresenter.ts");
     assert.match(presenter, /WORKBENCH_DECISION_TRACE_REMOVED_TITLE = "Removed from proposal"/);
+    assert.match(presenter, /Items removed from this proposal\./);
+    assert.doesNotMatch(presenter, /package for this job/i);
   });
 
   test("24. Top section bar polished container + active underline", () => {

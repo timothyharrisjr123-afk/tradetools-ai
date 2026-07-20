@@ -36,12 +36,12 @@ export default function ProposalBuilderSectionNav({
 
   return (
     <nav
-      className="border-b border-slate-200/80 bg-gradient-to-b from-slate-50/90 to-white"
+      className="border-b border-slate-200/80 bg-gradient-to-b from-slate-50 to-white/95"
       aria-label="Proposal sections"
       data-builder-document-section-nav
       data-builder-section-bar="top"
     >
-      <div className="flex items-stretch gap-0.5 overflow-x-auto px-3 sm:px-5 [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-200/70">
+      <div className="flex items-stretch gap-1 overflow-x-auto px-3 sm:px-5 [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-200/70">
         {sectionItems.map((item) => (
           <SectionTabButton
             key={item.id}
@@ -85,12 +85,12 @@ function SectionTabButton({
       data-builder-section-nav-item={item.id}
       data-active={isActive ? "true" : "false"}
       onClick={() => item.enabled && onSelect(item.id)}
-      className={`relative inline-flex shrink-0 items-center gap-1.5 rounded-t-md px-3.5 py-2.5 text-[13px] font-medium transition sm:px-4 ${
+      className={`relative inline-flex shrink-0 items-center gap-1.5 rounded-t-lg px-3.5 py-2.5 text-[13px] font-medium transition sm:px-4 ${
         isActive
-          ? "bg-white font-semibold text-slate-950 shadow-[0_-1px_0_rgba(15,23,42,0.04)] after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:rounded-full after:bg-blue-600"
+          ? "bg-white font-semibold text-slate-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_1px_2px_rgba(15,23,42,0.04)] after:absolute after:inset-x-2.5 after:bottom-0 after:h-[2px] after:rounded-full after:bg-blue-600"
           : disabled
             ? "cursor-not-allowed text-slate-400"
-            : "text-slate-600 hover:bg-white/70 hover:text-slate-900"
+            : "text-slate-600 hover:bg-white/80 hover:text-slate-900"
       }`}
     >
       <span className="whitespace-nowrap">{item.label}</span>
