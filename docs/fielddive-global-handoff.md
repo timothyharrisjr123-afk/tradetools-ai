@@ -12292,7 +12292,7 @@ Package rule from **N** remains law: pre-draft package on create modal; post-dra
 
 **Status:** Hide-not-delete isolation for known smoke/internal fixtures on normal contractor Job Card Proposals surfaces. **No migrations/SQL/package files/pricing formulas/quantity math/snapshot trust/Customer Preview redesign/send/public/lifecycle/PDF/sign/payment/supplier/material/CSV/raw/whole-rounding. No Proposals tab reset. No + Proposal modal. No Templates page layout redesign. No Builder/Preview layout changes. No deletion of live smoke records.**
 
-**Code checkpoint:** this commit (Block 1); prior polish **`190ad66`**; docs lock **`61d3bc5`**.
+**Code checkpoint:** **`aee0546`** (Block 1); prior polish **`190ad66`**; docs lock **`61d3bc5`**.
 
 **Root cause:** Job Card listed all job drafts and all company templates. Active job pointer often pointed at smoke drafts (Babby: “Coverage basis live smoke…”, template **RAW_PLUS_WASTE**, package **Complete-source smoke option**). Prior polish only softened titles to “Saved proposal” — records still dominated the contractor UI. No durable `is_internal` metadata on proposals/templates.
 
