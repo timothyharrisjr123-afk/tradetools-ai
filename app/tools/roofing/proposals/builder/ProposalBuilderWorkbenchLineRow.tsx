@@ -53,6 +53,8 @@ type ScopeLineRowProps = {
   variant: "scope";
   line: WorkbenchScopeLine;
   compact?: boolean;
+  /** Use `div` when the parent already provides the listitem wrapper. */
+  as?: "li" | "div";
   onEditQuantity?: () => void;
   onRemoveFromOption?: () => void;
 };
@@ -152,6 +154,7 @@ export default function ProposalBuilderWorkbenchLineRow(
   }
 
   const { line, onEditQuantity, onRemoveFromOption } = props;
+  const Row = props.as === "div" ? "div" : "li";
   const hasAttention = line.attentionReasons.length > 0;
   const amountClass = hasAttention
     ? WORKBENCH_LINE_AMOUNT_ATTENTION
@@ -160,7 +163,7 @@ export default function ProposalBuilderWorkbenchLineRow(
       : WORKBENCH_LINE_AMOUNT;
 
   return (
-    <li className={WORKBENCH_LINE_ROW}>
+    <Row className={WORKBENCH_LINE_ROW}>
       <div className={WORKBENCH_LINE_GRID}>
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
@@ -207,6 +210,6 @@ export default function ProposalBuilderWorkbenchLineRow(
 
         <p className={amountClass}>{line.amountLabel}</p>
       </div>
-    </li>
+    </Row>
   );
 }

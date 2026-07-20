@@ -1,4 +1,4 @@
-import { Lock } from "lucide-react";
+import { Lock, MoreHorizontal } from "lucide-react";
 import type {
   ProposalBuilderLifecycleActionId,
   ProposalBuilderLifecycleLock,
@@ -8,19 +8,10 @@ import {
   BUILDER_PREVIEW_ENABLED_ACTION,
 } from "./proposalBuilderConstants";
 
-const FALLBACK_ACTIONS = [
-  { id: "preview", label: "Preview" },
-  { id: "send", label: "Send" },
-  { id: "sign", label: "Sign" },
-  { id: "payment", label: "Payment" },
-] as const;
-
 const HEADER_ACTION_ORDER = ["preview", "send", "sign", "payment"] as const;
 
 type ProposalBuilderDisabledActionsProps = {
-  /** 3J4B7: lifecycle locks from the guidance model (single source of truth). */
   lifecycleLocks?: ProposalBuilderLifecycleLock[] | null;
-  /** R17B — invoked when an enabled lifecycle action is clicked. */
   onLifecycleAction?: (actionId: ProposalBuilderLifecycleActionId) => void;
 };
 
@@ -34,74 +25,74 @@ export default function ProposalBuilderDisabledActions({
       ).filter((lock): lock is ProposalBuilderLifecycleLock => Boolean(lock))
     : null;
 
-  if (!headerLocks || headerLocks.length === 0) {
-    return (
-      <div className="flex flex-wrap items-center gap-2" aria-label="Proposal actions (disabled)">
-        {FALLBACK_ACTIONS.map((action) => (
-          <button
-            key={action.id}
-            type="button"
-            disabled
-            className={BUILDER_DISABLED_ACTION}
-            title={`${action.label} — available in a later stage`}
-          >
-            {action.label}
-          </button>
-        ))}
-      </div>
-    );
-  }
+  const previewLock = headerLocks?.find((lock) => lock.actionId === "preview") ?? null;
+  const futureLocks =
+    headerLocks?.filter((lock) => lock.actionId !== "preview") ?? [];
+
+  const previewEnabled =
+    previewLock != null &&
+    (previewLock.state === "ready" || previewLock.state === "attention");
+  const previewReason =
+    previewLock?.lockedReason ?? previewLock?.unlockSummary ?? "Preview";
 
   return (
-    <div className="flex flex-wrap items-center gap-2" aria-label="Proposal lifecycle (staged, locked)">
-      {headerLocks.map((lock) => {
-        const isPreview = lock.actionId === "preview";
-        const enabled =
-          lock.state === "ready" || (isPreview && lock.state === "attention");
-        const reason = lock.lockedReason ?? lock.unlockSummary;
+    <div
+      className="flex flex-wrap items-center justify-end gap-2"
+      aria-label="Proposal actions"
+      data-builder-primary-actions
+    >
+      <button
+        type="button"
+        disabled={!previewEnabled}
+        aria-disabled={!previewEnabled}
+        data-builder-preview-action
+        className={
+          previewEnabled
+            ? previewLock?.state === "attention"
+              ? `${BUILDER_PREVIEW_ENABLED_ACTION} border-amber-300 bg-amber-50/80 text-amber-900 hover:bg-amber-100/80`
+              : BUILDER_PREVIEW_ENABLED_ACTION
+            : `${BUILDER_DISABLED_ACTION} border-blue-200 bg-blue-50/40 text-blue-400`
+        }
+        title={
+          previewEnabled
+            ? previewLock?.state === "attention"
+              ? `Contractor review preview — ${previewReason}`
+              : "Open customer preview"
+            : previewReason
+        }
+        onClick={() => {
+          if (previewEnabled) onLifecycleAction?.("preview");
+        }}
+      >
+        {!previewEnabled ? <Lock className="mr-1 h-3.5 w-3.5" aria-hidden /> : null}
+        Preview
+      </button>
 
-        return (
-          <button
-            key={lock.actionId}
-            type="button"
-            disabled={!enabled}
-            aria-disabled={!enabled}
-            aria-label={
-              enabled
-                ? lock.state === "attention" && isPreview
-                  ? `${lock.label} — contractor review only. ${reason}`
-                  : `${lock.label} — open customer preview`
-                : `${lock.label} — locked. ${reason}`
-            }
-            className={
-              enabled
-                ? isPreview
-                  ? lock.state === "attention"
-                    ? `${BUILDER_PREVIEW_ENABLED_ACTION} border-amber-300 bg-amber-50/80 text-amber-900 hover:bg-amber-100/80`
-                    : BUILDER_PREVIEW_ENABLED_ACTION
-                  : BUILDER_DISABLED_ACTION
-                : `${BUILDER_DISABLED_ACTION} ${
-                    isPreview ? "border-blue-200 bg-blue-50/40 text-blue-400" : ""
-                  }`
-            }
-            title={
-              enabled
-                ? lock.state === "attention" && isPreview
-                  ? `Contractor review preview — ${reason}`
-                  : "Open customer preview"
-                : reason
-            }
-            onClick={() => {
-              if (enabled) {
-                onLifecycleAction?.(lock.actionId);
-              }
-            }}
+      {futureLocks.length > 0 ? (
+        <details className="relative" data-builder-future-actions>
+          <summary
+            className="flex cursor-pointer list-none items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1.5 text-[11px] font-medium text-slate-500 hover:bg-slate-50 [&::-webkit-details-marker]:hidden"
+            title="Later proposal actions"
           >
-            {!enabled ? <Lock className="mr-1 h-3.5 w-3.5" aria-hidden /> : null}
-            {lock.label}
-          </button>
-        );
-      })}
+            <MoreHorizontal className="h-3.5 w-3.5" aria-hidden />
+            More
+          </summary>
+          <div className="absolute right-0 z-20 mt-1 min-w-[10rem] rounded-lg border border-slate-200 bg-white p-1.5 shadow-lg">
+            {futureLocks.map((lock) => (
+              <button
+                key={lock.actionId}
+                type="button"
+                disabled
+                className="flex w-full items-center gap-1.5 rounded-md px-2.5 py-1.5 text-left text-[12px] text-slate-400"
+                title={lock.lockedReason ?? lock.unlockSummary}
+              >
+                <Lock className="h-3 w-3 shrink-0" aria-hidden />
+                {lock.label}
+              </button>
+            ))}
+          </div>
+        </details>
+      ) : null}
     </div>
   );
 }

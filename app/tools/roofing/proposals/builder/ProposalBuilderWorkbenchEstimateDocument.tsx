@@ -15,14 +15,10 @@ import type { EstimateSettingsToggleKey } from "@/app/tools/roofing/templates/te
 import { useCallback, useMemo, useState } from "react";
 import {
   BUILDER_CANVAS,
-  BUILDER_PAGE_VISIBILITY_REQUIRED_NOTICE,
   WORKBENCH_BODY,
   WORKBENCH_ESTIMATE_KICKER,
   WORKBENCH_HEADER,
   WORKBENCH_HEADER_KICKER,
-  WORKBENCH_HEADER_STAT,
-  WORKBENCH_HEADER_STAT_READY,
-  WORKBENCH_HEADER_STAT_REVIEW,
   WORKBENCH_HEADER_SUBTITLE,
   WORKBENCH_HEADER_TITLE,
 } from "./proposalBuilderConstants";
@@ -346,34 +342,43 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
   const scopeReviewManualQuantityEnabled =
     quantityEditingEnabled && scopeReviewLines.length > 0;
 
+  const qtyNeeded = meta.scopeReviewLineCount;
+
   return (
-    <article className={BUILDER_CANVAS}>
-      <header className={WORKBENCH_HEADER}>
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-0 flex-1">
-            <p className={WORKBENCH_HEADER_KICKER}>{WORKBENCH_ESTIMATE_KICKER}</p>
-            <h2 className={WORKBENCH_HEADER_TITLE}>{presentation.page.title}</h2>
-            <p className={WORKBENCH_HEADER_SUBTITLE}>{presentation.page.subtitle}</p>
-
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <span className={WORKBENCH_HEADER_STAT}>
-                <span className={WORKBENCH_HEADER_STAT_READY}>{meta.readyLineCount}</span>
-                <span>included</span>
-              </span>
-              {meta.scopeReviewLineCount > 0 ? (
-                <span className={WORKBENCH_HEADER_STAT}>
-                  <span className={WORKBENCH_HEADER_STAT_REVIEW}>{meta.scopeReviewLineCount}</span>
-                  <span>need quantities</span>
-                </span>
-              ) : null}
-            </div>
-          </div>
-
-          <span className={BUILDER_PAGE_VISIBILITY_REQUIRED_NOTICE}>{estimateVisibilityNotice}</span>
+    <article className={BUILDER_CANVAS} data-builder-estimate-document>
+      <header className={`${WORKBENCH_HEADER} !bg-white !pb-4`}>
+        <div className="min-w-0">
+          <p className={WORKBENCH_HEADER_KICKER}>{WORKBENCH_ESTIMATE_KICKER}</p>
+          <h2 className={WORKBENCH_HEADER_TITLE}>{presentation.page.title}</h2>
+          <p className={WORKBENCH_HEADER_SUBTITLE}>
+            Review the estimate before previewing.
+          </p>
         </div>
       </header>
 
       <div className={WORKBENCH_BODY}>
+        {qtyNeeded > 0 ? (
+          <div
+            className="rounded-lg border border-slate-200 bg-slate-50/70 px-4 py-3"
+            data-builder-estimate-next-step
+          >
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+              Needs review
+            </p>
+            <p className="mt-1 text-sm font-semibold text-slate-900">
+              {qtyNeeded} quantit{qtyNeeded === 1 ? "y" : "ies"} needed before totals are final.
+            </p>
+            <button
+              type="button"
+              className="mt-2 inline-flex items-center rounded-md border border-blue-300 bg-blue-600 px-3 py-1.5 text-[12px] font-semibold text-white shadow-sm transition hover:bg-blue-700"
+              onClick={openEditOption}
+              data-builder-review-quantities
+            >
+              Review quantities
+            </button>
+          </div>
+        ) : null}
+
         <ProposalBuilderWorkbenchPackageZone
           packageZone={presentation.packageZone}
           packageSelectorGraph={packageSelectorGraph}
@@ -384,23 +389,11 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
           onOpenEditOption={openEditOption}
         />
 
-        <ProposalBuilderWorkbenchSettingsEntry
-          entry={presentation.displaySettingsEntry}
-          saving={estimateSettingsSaveInFlight}
-          error={estimateSettingsSaveError}
-          onToggleSetting={onToggleEstimateDisplaySetting}
-        />
-
         <ProposalBuilderWorkbenchReadyScopeZone
           sections={presentation.readyScope.sections}
           onEditQuantityForLine={
             quantityEditingEnabled
               ? (templateItemId) => openEditOptionForLine(templateItemId, "quantity")
-              : undefined
-          }
-          onRemoveFromOptionForLine={
-            excludeEnabled
-              ? (templateItemId) => openEditOptionForLine(templateItemId, "exclude")
               : undefined
           }
         />
@@ -413,19 +406,8 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
               ? (templateItemId) => openEditOptionForLine(templateItemId, "quantity")
               : undefined
           }
-          onRemoveFromOptionForLine={
-            excludeEnabled
-              ? (templateItemId) => openEditOptionForLine(templateItemId, "exclude")
-              : undefined
-          }
           manualQuantityEnabled={scopeReviewManualQuantityEnabled}
-          excludeEnabled={excludeEnabled}
-        />
-
-        <ProposalBuilderWorkbenchDecisionTraceZone
-          zone={presentation.decisionTraceZone}
-          onRestoreExcludedLine={excludeEnabled ? handleRestoreExcludedLine : undefined}
-          excludeInFlight={excludeInFlight}
+          excludeEnabled={false}
         />
 
         <ProposalBuilderWorkbenchUpgradesZone
@@ -440,16 +422,35 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
               ? (templateItemId) => openEditOptionForLine(templateItemId, "quantity")
               : undefined
           }
-          onRemoveFromOptionForLine={
-            excludeEnabled
-              ? (templateItemId) => openEditOptionForLine(templateItemId, "exclude")
-              : undefined
-          }
           manualQuantityEnabled={scopeReviewManualQuantityEnabled}
-          excludeEnabled={excludeEnabled}
+          excludeEnabled={false}
         />
 
         <ProposalBuilderWorkbenchTotalsZone zone={presentation.totalsZone} />
+
+        <ProposalBuilderWorkbenchSettingsEntry
+          entry={presentation.displaySettingsEntry}
+          saving={estimateSettingsSaveInFlight}
+          error={estimateSettingsSaveError}
+          onToggleSetting={onToggleEstimateDisplaySetting}
+        />
+
+        {presentation.decisionTraceZone.show ? (
+          <details className="rounded-lg border border-slate-200/70 bg-white text-[12px] text-slate-500">
+            <summary className="cursor-pointer list-none px-3 py-2 font-medium text-slate-500 hover:bg-slate-50 [&::-webkit-details-marker]:hidden">
+              Removed lines
+            </summary>
+            <div className="border-t border-slate-100 px-2 py-2">
+              <ProposalBuilderWorkbenchDecisionTraceZone
+                zone={presentation.decisionTraceZone}
+                onRestoreExcludedLine={
+                  excludeEnabled ? handleRestoreExcludedLine : undefined
+                }
+                excludeInFlight={excludeInFlight}
+              />
+            </div>
+          </details>
+        ) : null}
       </div>
 
       <ProposalBuilderWorkbenchEditOptionShell

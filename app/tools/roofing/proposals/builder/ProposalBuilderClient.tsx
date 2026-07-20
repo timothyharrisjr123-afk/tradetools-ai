@@ -81,6 +81,7 @@ import {
 } from "@/app/lib/proposalBuilderNavigation";
 import {
   BUILDER_SNAPSHOT_FROZEN_HELPER_CLASS,
+  BUILDER_STAGE,
   BUILDER_UNSAVED_PAGE_EDIT_CONFIRM,
   WORKBENCH_EXCLUDE_SUCCESS,
   WORKBENCH_HIDE_SUCCESS,
@@ -102,9 +103,8 @@ import {
 import ProposalBuilderBlockedState from "./ProposalBuilderBlockedState";
 import ProposalBuilderCanvas from "./ProposalBuilderCanvas";
 import ProposalBuilderPageAlerts from "./ProposalBuilderPageAlerts";
-import ProposalBuilderPageContextStrip from "./ProposalBuilderPageContextStrip";
 import ProposalBuilderPageHeader from "./ProposalBuilderPageHeader";
-import ProposalBuilderSummaryRail from "./ProposalBuilderSummaryRail";
+import ProposalBuilderSectionNav from "./ProposalBuilderSectionNav";
 import ProposalBuilderWorkspaceLayout from "./ProposalBuilderWorkspaceLayout";
 
 const CATALOG_STARTER_DEFINITION_COUNT = DEFAULT_ROOFING_CATALOG_DEFINITIONS.length;
@@ -1714,12 +1714,17 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
       draftGraphLoadComplete &&
       !draftGraphError &&
       persistedGraph != null ? (
-        <p
-          className={BUILDER_SNAPSHOT_FROZEN_HELPER_CLASS}
-          data-builder-snapshot-frozen-helper
-        >
-          {PROPOSAL_SNAPSHOT_FROZEN_HELPER_COPY}
-        </p>
+        <details className={`${BUILDER_STAGE} text-[12px] text-slate-500`}>
+          <summary className="cursor-pointer list-none text-slate-400 hover:text-slate-600 [&::-webkit-details-marker]:hidden">
+            Snapshot details
+          </summary>
+          <p
+            className={`mt-1.5 ${BUILDER_SNAPSHOT_FROZEN_HELPER_CLASS}`}
+            data-builder-snapshot-frozen-helper
+          >
+            {PROPOSAL_SNAPSHOT_FROZEN_HELPER_COPY}
+          </p>
+        </details>
       ) : null}
       {!draftGraphError && shellReady && showStaleBanner && staleBannerCopy ? (
         <div
@@ -1768,8 +1773,8 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
       ) : null}
       {!draftGraphError && shellReady ? (
         <ProposalBuilderWorkspaceLayout
-          pageContextStrip={
-            <ProposalBuilderPageContextStrip
+          sectionNav={
+            <ProposalBuilderSectionNav
               pages={persistedGraph?.pages}
               activePageContextId={activePageContextId}
               onSelectPageContext={handleSelectPageContext}
@@ -1852,34 +1857,6 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
                 hasPersistedProposalParam && persistedGraph && !draftGraphError
                   ? handleRestoreVisibility
                   : undefined
-              }
-            />
-          }
-          summaryRail={
-            <ProposalBuilderSummaryRail
-              guidance={builderGuidance}
-              onGuidanceNavigate={handleGuidanceNavigate}
-              measurementHandoff={measurementHandoff}
-              catalogReadiness={catalogReadiness}
-              templateReadiness={templateReadiness}
-              starterGraph={starterGraph}
-              selectedOptionPricingStatus={selectedOptionPricingStatus}
-              selectedOptionInternal={selectedOptionInternal}
-              pricingPolicyConfigured={pricingPolicyConfigured}
-              pricingPolicyLoadComplete={pricingPolicyLoadComplete}
-              isPersistedSnapshot={adapterResult != null}
-              snapshotMeasurementDisplay={adapterResult?.snapshotMeasurementDisplay ?? null}
-              proposalId={hasPersistedProposalParam ? proposalIdParam?.trim() ?? null : null}
-              quantityPreflightTrust={quantityPreflightTrust}
-              selectedPackageLabel={
-                (() => {
-                  const runtimeId = effectiveSelectedOptionId;
-                  if (!runtimeId) return null;
-                  const fromDraft = persistedGraph?.options.find((o) => o.id === runtimeId);
-                  if (fromDraft?.name?.trim()) return fromDraft.name.trim();
-                  const fromTemplate = starterGraph?.options.find((o) => o.id === runtimeId);
-                  return (fromTemplate?.name ?? "").trim() || null;
-                })()
               }
             />
           }

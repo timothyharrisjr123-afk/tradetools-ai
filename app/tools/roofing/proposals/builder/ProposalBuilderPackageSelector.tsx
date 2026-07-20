@@ -28,6 +28,11 @@ type ProposalBuilderPackageSelectorProps = {
    * Setup preview without a draft may still offer multi-option template choice.
    */
   draftScoped?: boolean;
+  /**
+   * Document-led Estimate: quiet Change control only — zone header already
+   * names the package. Does not change picker persistence behavior.
+   */
+  compact?: boolean;
 };
 
 /**
@@ -42,6 +47,7 @@ export default function ProposalBuilderPackageSelector({
   effectiveOptionId,
   onSelectOption,
   draftScoped = false,
+  compact = false,
 }: ProposalBuilderPackageSelectorProps) {
   const options = sortTemplateOptionsByOrder(graph.options);
   const optionCount = options.length;
@@ -72,6 +78,53 @@ export default function ProposalBuilderPackageSelector({
     const label =
       (summaryOption.customer_label ?? summaryOption.name).trim() || summaryOption.name;
     const meta = resolvePackageMeta(label);
+
+    if (compact) {
+      return (
+        <div
+          className="flex flex-wrap items-center gap-x-3 gap-y-1.5"
+          data-builder-package-selector
+          data-builder-package-count={optionCount}
+          data-builder-package-compact-controls
+        >
+          {!allowChangePackage ? (
+            <p
+              className="text-[11px] leading-snug text-slate-500"
+              data-builder-only-one-package-note
+            >
+              {BUILDER_ONLY_ONE_PACKAGE_NOTE}
+            </p>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowAll(true)}
+              className="inline-flex items-center gap-1 text-xs font-semibold text-blue-700 hover:text-blue-800"
+              data-builder-change-package
+            >
+              <Pencil className="h-3.5 w-3.5" aria-hidden />
+              Change
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setShowDetails((open) => !open)}
+            aria-expanded={showDetails}
+            className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-slate-700"
+          >
+            {showDetails ? "Hide details" : "Details"}
+            <ChevronDown
+              className={`h-3.5 w-3.5 transition-transform ${showDetails ? "rotate-180" : ""}`}
+              aria-hidden
+            />
+          </button>
+          {showDetails ? (
+            <div className="w-full rounded-md border border-slate-200/70 bg-slate-50/50 px-3 py-3">
+              <ProposalBuilderOptionsPanel graph={graph} selectedOptionId={effectiveOptionId} />
+            </div>
+          ) : null}
+        </div>
+      );
+    }
 
     return (
       <div className="space-y-3" data-builder-package-selector data-builder-package-count={optionCount}>

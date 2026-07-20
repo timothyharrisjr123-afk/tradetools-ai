@@ -123,7 +123,11 @@ export default function ProposalBuilderWorkbenchUpgradesZone({
 
                   return (
                     <li key={line.templateItemId} className="space-y-2">
-                      <ProposalBuilderWorkbenchLineRow variant="scope" line={line} />
+                      <ProposalBuilderWorkbenchLineRow
+                        variant="scope"
+                        line={line}
+                        as="div"
+                      />
                       {showActionRow ? (
                         <div className="flex flex-wrap gap-1.5 pl-0.5">
                           {WORKBENCH_SCOPE_REVIEW_FUTURE_ACTIONS.map((action) => {

@@ -1,8 +1,4 @@
-import { Info } from "lucide-react";
 import {
-  BUILDER_READ_ONLY_ALERT_COMPACT,
-  BUILDER_READ_ONLY_ALERT_COMPACT_BODY,
-  BUILDER_READ_ONLY_ALERT_COMPACT_BODY_SETUP,
   BUILDER_STAGE,
 } from "./proposalBuilderConstants";
 
@@ -13,6 +9,10 @@ type ProposalBuilderPageAlertsProps = {
   hasPersistedDraft?: boolean;
 };
 
+/**
+ * Block 4B: no yellow first-viewport status banner for normal draft editing.
+ * Load errors still surface. Quiet setup note only when there is no saved proposal.
+ */
 export default function ProposalBuilderPageAlerts({
   loadError,
   shellReady,
@@ -28,16 +28,15 @@ export default function ProposalBuilderPageAlerts({
           {loadError}
         </div>
       ) : null}
-      {shellReady ? (
+      {shellReady && !hasPersistedDraft ? (
         <div className={BUILDER_STAGE}>
-          <div className={BUILDER_READ_ONLY_ALERT_COMPACT} role="status">
-            <Info className="h-3.5 w-3.5 shrink-0 text-amber-700/80" aria-hidden />
-            <span>
-              {hasPersistedDraft
-                ? BUILDER_READ_ONLY_ALERT_COMPACT_BODY
-                : BUILDER_READ_ONLY_ALERT_COMPACT_BODY_SETUP}
-            </span>
-          </div>
+          <p
+            className="text-[12px] leading-snug text-slate-500"
+            role="status"
+            data-builder-setup-quiet-note
+          >
+            Setup preview — save a proposal from the Job Card to edit a draft document.
+          </p>
         </div>
       ) : null}
     </>

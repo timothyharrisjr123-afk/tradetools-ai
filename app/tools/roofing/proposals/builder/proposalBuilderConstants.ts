@@ -196,9 +196,9 @@ export const BUILDER_TOKEN_PICKER_ITEM_DESCRIPTION = "truncate text-[11px] text-
 
 export const BUILDER_TOKEN_PICKER_ITEM_HINT = "truncate text-[11px] text-amber-700/90";
 
-/** 3J4A — main proposal canvas shell (internal bands carry padding). */
+/** Block 4B — document canvas shell (lighter than workbench card stack). */
 export const BUILDER_CANVAS =
-  "w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_18px_50px_rgba(15,23,42,0.10),0_2px_8px_rgba(15,23,42,0.06)]";
+  "w-full overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-[0_4px_20px_rgba(15,23,42,0.05)]";
 
 export const BUILDER_CANVAS_INNER = "px-7 py-6";
 
@@ -679,16 +679,16 @@ export const WORKBENCH_HEADER_STAT_ATTENTION = "font-semibold tabular-nums text-
 
 export const WORKBENCH_HEADER_STAT_REVIEW = "font-semibold tabular-nums text-slate-700";
 
-/** Inset work surface — reduces stacked white-card feel inside BUILDER_CANVAS. */
+/** Document body — flat sections, not stacked workbench cards. */
 export const WORKBENCH_BODY =
-  "space-y-4 bg-gradient-to-b from-slate-100/35 to-slate-50/20 px-4 py-5 sm:space-y-5 sm:px-6 sm:py-6";
+  "space-y-6 bg-white px-5 py-5 sm:px-7 sm:py-6";
 
-/** Shared module shell — one elevation level, no nested card headers. */
+/** Shared module shell — quiet borders for document sections. */
 export const WORKBENCH_MODULE =
-  "overflow-hidden rounded-xl border border-slate-200/75 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.05),0_1px_2px_rgba(15,23,42,0.04)]";
+  "overflow-hidden rounded-lg border border-slate-200/70 bg-white";
 
 export const WORKBENCH_MODULE_COMPACT =
-  "overflow-hidden rounded-xl border border-slate-200/70 bg-white/95 shadow-[0_4px_16px_rgba(15,23,42,0.04)]";
+  "overflow-hidden rounded-lg border border-slate-200/60 bg-white";
 
 export const WORKBENCH_MODULE_INNER = "px-4 py-4 sm:px-5 sm:py-4";
 
@@ -699,14 +699,14 @@ export const WORKBENCH_MODULE_TITLE = "text-sm font-semibold text-slate-900";
 
 export const WORKBENCH_MODULE_DESC = "mt-0.5 text-[12px] leading-snug text-slate-500";
 
-/** Top command module for package / option selection. */
+/** Compact package row — not a heavy command card. */
 export const WORKBENCH_PACKAGE_MODULE =
-  "overflow-hidden rounded-xl border border-blue-200/70 bg-gradient-to-br from-blue-50/50 via-white to-white shadow-[0_10px_28px_rgba(37,99,235,0.10),0_1px_3px_rgba(37,99,235,0.06)] ring-1 ring-blue-100/80";
+  "overflow-hidden rounded-lg border border-slate-200/80 bg-slate-50/40";
 
-export const WORKBENCH_PACKAGE_ACCENT = "h-1 bg-gradient-to-r from-blue-600 via-blue-500 to-blue-400/80";
+export const WORKBENCH_PACKAGE_ACCENT = "hidden";
 
 export const WORKBENCH_PACKAGE_ACTIVE_CHIP =
-  "inline-flex items-center gap-1 rounded-full border border-blue-200/80 bg-blue-600 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm";
+  "inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600";
 
 export const WORKBENCH_ZONE_PANEL = WORKBENCH_MODULE;
 
@@ -732,10 +732,10 @@ export const WORKBENCH_ATTENTION_ITEM_INDEX =
 
 /** R17C2.5 — calmer scope review queue (not hard error treatment). */
 export const WORKBENCH_SCOPE_REVIEW_ZONE =
-  "overflow-hidden rounded-xl border border-slate-200/80 bg-gradient-to-br from-slate-50/90 via-white to-white shadow-[0_6px_18px_rgba(15,23,42,0.04)] ring-1 ring-slate-200/60";
+  "overflow-hidden rounded-lg border border-slate-200/70 bg-slate-50/30";
 
 export const WORKBENCH_SCOPE_REVIEW_ZONE_HEADER =
-  "border-b border-slate-100 bg-slate-50/60 px-4 py-3.5 sm:px-5";
+  "border-b border-slate-100/80 px-3 py-2.5 sm:px-4";
 
 export const WORKBENCH_SCOPE_REVIEW_COUNT_BADGE =
   "inline-flex min-w-[1.75rem] items-center justify-center rounded-full bg-slate-600 px-2 py-0.5 text-[11px] font-bold tabular-nums text-white shadow-sm";
@@ -805,10 +805,10 @@ export const WORKBENCH_HINT_STRIP =
   "flex items-start gap-2 rounded-lg border border-slate-200/60 bg-white/80 px-3 py-2.5 text-[11px] leading-snug text-slate-600 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]";
 
 export const WORKBENCH_TOTALS_ZONE =
-  "overflow-hidden rounded-xl border border-slate-200/75 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.05)]";
+  "overflow-hidden rounded-lg border border-slate-200/70 bg-white";
 
 export const WORKBENCH_TOTALS_HEADER =
-  "border-b border-slate-100/90 bg-slate-50/50 px-4 py-3.5 sm:px-5";
+  "border-b border-slate-100/80 px-3 py-2.5 sm:px-4";
 
 export const WORKBENCH_TOTALS_BODY = "px-4 py-4 sm:px-5 sm:py-4";
 

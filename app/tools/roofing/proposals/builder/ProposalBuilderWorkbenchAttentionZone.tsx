@@ -158,6 +158,8 @@ function ScopeReviewSection({
                       );
                     }
 
+                    // Keep Remove quiet: only when exclude is enabled — never as a
+                    // repeated disabled chip competing with Set quantity.
                     if (isRemove && canRemove) {
                       return (
                         <button
@@ -171,7 +173,7 @@ function ScopeReviewSection({
                       );
                     }
 
-                    if (isSetQuantity || isRemove) {
+                    if (isSetQuantity) {
                       return (
                         <button
                           key={action.id}
@@ -180,12 +182,12 @@ function ScopeReviewSection({
                           aria-disabled="true"
                           className={WORKBENCH_FUTURE_ACTION_CHIP}
                           title={
-                            isSetQuantity && manualQuantityEnabled
+                            manualQuantityEnabled
                               ? WORKBENCH_EDIT_OPTION_CHIP_HINT
                               : undefined
                           }
                         >
-                          {isRemove ? WORKBENCH_REMOVE_FROM_OPTION_ACTION : action.label}
+                          {action.label}
                         </button>
                       );
                     }

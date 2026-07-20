@@ -86,7 +86,7 @@ describe("presentBuilderQuantityStatus", () => {
 });
 
 describe("Phase 6 Builder quantity status UI wiring", () => {
-  test("6. Summary rail renders read-only quantity status from presenter", () => {
+  test("6. Summary rail keeps read-only presenter wiring (not mounted on Estimate path)", () => {
     const rail = readFileSync(
       path.join(
         process.cwd(),
@@ -101,9 +101,7 @@ describe("Phase 6 Builder quantity status UI wiring", () => {
     assert.equal(rail.includes("shouldAutoRefresh &&"), false);
     assert.equal(/onClick=\{[^}]*[Rr]efresh/.test(rail), false);
     assert.equal(rail.includes("quantity_resolution_echo"), false);
-  });
 
-  test("7. Client passes trust into Summary rail only", () => {
     const client = readFileSync(
       path.join(
         process.cwd(),
@@ -111,7 +109,20 @@ describe("Phase 6 Builder quantity status UI wiring", () => {
       ),
       "utf8"
     );
-    assert.match(client, /quantityPreflightTrust=\{quantityPreflightTrust\}/);
+    // Block 4B: document-led Estimate does not mount the right rail.
+    assert.equal(client.includes("ProposalBuilderSummaryRail"), false);
+  });
+
+  test("7. Client keeps quantity trust on quiet data attrs (no rail prop)", () => {
+    const client = readFileSync(
+      path.join(
+        process.cwd(),
+        "app/tools/roofing/proposals/builder/ProposalBuilderClient.tsx"
+      ),
+      "utf8"
+    );
+    assert.match(client, /data-builder-quantity-trust-status=\{/);
+    assert.equal(client.includes("quantityPreflightTrust={quantityPreflightTrust}"), false);
     assert.equal(client.includes("quantity_resolution_echo"), false);
   });
 

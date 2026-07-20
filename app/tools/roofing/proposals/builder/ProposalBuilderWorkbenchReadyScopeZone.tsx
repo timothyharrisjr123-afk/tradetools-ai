@@ -1,28 +1,21 @@
-import { CheckCircle2 } from "lucide-react";
 import type { WorkbenchScopeSection } from "@/app/lib/proposalBuilderWorkbenchEstimatePresenter";
 import {
   WORKBENCH_MODULE,
-  WORKBENCH_MODULE_DESC,
   WORKBENCH_MODULE_INNER,
-  WORKBENCH_MODULE_KICKER,
-  WORKBENCH_MODULE_TITLE,
   WORKBENCH_SCOPE_COUNT_CHIP,
   WORKBENCH_SCOPE_SECTION,
   WORKBENCH_SCOPE_SECTION_TITLE,
-  WORKBENCH_ZONE_HEADER,
 } from "./proposalBuilderConstants";
 import ProposalBuilderWorkbenchLineRow from "./ProposalBuilderWorkbenchLineRow";
 
 type ProposalBuilderWorkbenchReadyScopeZoneProps = {
   sections: readonly WorkbenchScopeSection[];
   onEditQuantityForLine?: (templateItemId: string) => void;
-  onRemoveFromOptionForLine?: (templateItemId: string) => void;
 };
 
 export default function ProposalBuilderWorkbenchReadyScopeZone({
   sections,
   onEditQuantityForLine,
-  onRemoveFromOptionForLine,
 }: ProposalBuilderWorkbenchReadyScopeZoneProps) {
   const lineCount = sections.reduce((sum, section) => sum + section.lines.length, 0);
 
@@ -32,20 +25,17 @@ export default function ProposalBuilderWorkbenchReadyScopeZone({
       aria-labelledby="workbench-ready-scope-heading"
       data-builder-included-estimate
     >
-      <header className={WORKBENCH_ZONE_HEADER}>
-        <div className="flex min-w-0 flex-1 items-start gap-2.5">
-          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-hidden />
-          <div>
-            <p className={WORKBENCH_MODULE_KICKER} id="workbench-ready-scope-heading">
-              Included estimate
-            </p>
-            <p className={WORKBENCH_MODULE_TITLE}>Roof replacement scope</p>
-            <p className={WORKBENCH_MODULE_DESC}>
-              Priced lines included on this proposal.
-            </p>
-          </div>
+      <header className="flex flex-wrap items-baseline justify-between gap-2 px-4 pb-1 pt-4 sm:px-5">
+        <div>
+          <p
+            className="text-[11px] font-semibold uppercase tracking-wide text-slate-500"
+            id="workbench-ready-scope-heading"
+          >
+            Included estimate
+          </p>
+          <p className="mt-0.5 text-sm font-semibold text-slate-900">Roof replacement scope</p>
         </div>
-        <span className={WORKBENCH_SCOPE_COUNT_CHIP}>{lineCount} lines</span>
+        <span className={WORKBENCH_SCOPE_COUNT_CHIP}>{lineCount}</span>
       </header>
 
       <div className={WORKBENCH_MODULE_INNER}>
@@ -70,11 +60,6 @@ export default function ProposalBuilderWorkbenchReadyScopeZone({
                       onEditQuantity={
                         line.manualQuantityActive && onEditQuantityForLine
                           ? () => onEditQuantityForLine(line.templateItemId)
-                          : undefined
-                      }
-                      onRemoveFromOption={
-                        onRemoveFromOptionForLine
-                          ? () => onRemoveFromOptionForLine(line.templateItemId)
                           : undefined
                       }
                     />
