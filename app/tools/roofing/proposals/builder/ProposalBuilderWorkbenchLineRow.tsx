@@ -3,13 +3,11 @@ import type {
   WorkbenchAttentionReason,
   WorkbenchScopeLine,
 } from "@/app/lib/proposalBuilderWorkbenchEstimatePresenter";
-import { WORKBENCH_HIDDEN_FROM_CUSTOMER_LABEL } from "@/app/lib/proposalBuilderWorkbenchEstimatePresenter";
 import {
   WORKBENCH_EDIT_OPTION_CHIP_ENABLED,
+  WORKBENCH_EDIT_OPTION_CHIP_SECONDARY,
   WORKBENCH_EDIT_QUANTITY_ACTION,
-  WORKBENCH_HIDE_FROM_CUSTOMER_ACTION,
   WORKBENCH_REMOVE_FROM_OPTION_ACTION,
-  WORKBENCH_RESTORE_VISIBILITY_ACTION,
   WORKBENCH_LINE_AMOUNT,
   WORKBENCH_LINE_AMOUNT_ATTENTION,
   WORKBENCH_LINE_AMOUNT_INCLUDED,
@@ -47,14 +45,6 @@ function ScopeReviewReasonBadge({ label }: { label: string }) {
   return <span className={WORKBENCH_SCOPE_REVIEW_PILL}>{label}</span>;
 }
 
-function HiddenFromCustomerBadge() {
-  return (
-    <span className="inline-flex shrink-0 items-center rounded-full border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-slate-600">
-      {WORKBENCH_HIDDEN_FROM_CUSTOMER_LABEL}
-    </span>
-  );
-}
-
 function isIncludedAmount(label: string): boolean {
   return label === "Included" || label === "In package";
 }
@@ -65,8 +55,6 @@ type ScopeLineRowProps = {
   compact?: boolean;
   onEditQuantity?: () => void;
   onRemoveFromOption?: () => void;
-  onHideFromCustomer?: () => void;
-  onRestoreVisibility?: () => void;
 };
 
 type HardBlockerLineRowProps = {
@@ -102,49 +90,41 @@ function AttentionLineContent({
   compact: boolean;
   reviewMode: boolean;
 }) {
-  const ReasonBadge = reviewMode ? ScopeReviewReasonBadge : HardBlockerReasonBadge;
-
   return (
-    <div className={compact ? "space-y-1" : WORKBENCH_LINE_GRID}>
+    <div className={compact ? "min-w-0" : WORKBENCH_LINE_GRID}>
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
           <p className={WORKBENCH_LINE_NAME}>{line.name}</p>
-          {line.reasons.map((reason) => (
-            <ReasonBadge key={reason} label={attentionReasonLabel(reason)} />
-          ))}
-          {line.hiddenFromCustomer ? <HiddenFromCustomerBadge /> : null}
+          {line.reasons.map((reason) =>
+            reviewMode ? (
+              <ScopeReviewReasonBadge key={reason} label={attentionReasonLabel(reason)} />
+            ) : (
+              <HardBlockerReasonBadge key={reason} label={attentionReasonLabel(reason)} />
+            )
+          )}
         </div>
-        {!compact && !reviewMode ? (
-          <p className={`${WORKBENCH_LINE_QTY} mt-0.5 sm:hidden`}>
-            Qty{" "}
+        {!compact ? (
+          <ProposalBuilderWorkbenchLineDetails detailMeta={line.detailMeta} />
+        ) : null}
+      </div>
+      {!compact ? (
+        <>
+          <p className={WORKBENCH_LINE_QTY}>
+            <span className="block text-[10px] uppercase tracking-wide text-slate-400">Qty</span>
             <span className={line.qtyUnresolved ? "text-slate-400" : WORKBENCH_LINE_QTY_VALUE}>
               {line.qtyLabel}
             </span>
           </p>
-        ) : null}
-        {line.suggestedAction ? (
           <p
-            className={`mt-1 text-[11px] leading-snug ${
-              reviewMode ? "text-slate-500" : "font-medium text-amber-800/90"
-            }`}
+            className={
+              isIncludedAmount(line.amountLabel)
+                ? WORKBENCH_LINE_AMOUNT_INCLUDED
+                : WORKBENCH_LINE_AMOUNT_ATTENTION
+            }
           >
-            {line.suggestedAction}
+            {line.amountLabel}
           </p>
-        ) : null}
-        <ProposalBuilderWorkbenchLineDetails detailMeta={line.detailMeta} />
-      </div>
-
-      {!compact && !reviewMode ? (
-        <p className={`${WORKBENCH_LINE_QTY} hidden sm:block`}>
-          <span className="block text-[10px] uppercase tracking-wide text-slate-400">Qty</span>
-          <span className={line.qtyUnresolved ? "text-slate-400" : WORKBENCH_LINE_QTY_VALUE}>
-            {line.qtyLabel}
-          </span>
-        </p>
-      ) : null}
-
-      {!reviewMode ? (
-        <p className={WORKBENCH_LINE_AMOUNT_ATTENTION}>{line.amountLabel}</p>
+        </>
       ) : null}
     </div>
   );
@@ -171,7 +151,7 @@ export default function ProposalBuilderWorkbenchLineRow(
     );
   }
 
-  const { line, onEditQuantity, onRemoveFromOption, onHideFromCustomer, onRestoreVisibility } = props;
+  const { line, onEditQuantity, onRemoveFromOption } = props;
   const hasAttention = line.attentionReasons.length > 0;
   const amountClass = hasAttention
     ? WORKBENCH_LINE_AMOUNT_ATTENTION
@@ -190,7 +170,6 @@ export default function ProposalBuilderWorkbenchLineRow(
                   <HardBlockerReasonBadge key={reason} label={attentionReasonLabel(reason)} />
                 ))
               : null}
-            {line.hiddenFromCustomer ? <HiddenFromCustomerBadge /> : null}
             {onEditQuantity ? (
               <button
                 type="button"
@@ -204,27 +183,9 @@ export default function ProposalBuilderWorkbenchLineRow(
               <button
                 type="button"
                 onClick={onRemoveFromOption}
-                className={WORKBENCH_EDIT_OPTION_CHIP_ENABLED}
+                className={WORKBENCH_EDIT_OPTION_CHIP_SECONDARY}
               >
                 {WORKBENCH_REMOVE_FROM_OPTION_ACTION}
-              </button>
-            ) : null}
-            {line.hiddenFromCustomer && onRestoreVisibility ? (
-              <button
-                type="button"
-                onClick={onRestoreVisibility}
-                className={WORKBENCH_EDIT_OPTION_CHIP_ENABLED}
-              >
-                {WORKBENCH_RESTORE_VISIBILITY_ACTION}
-              </button>
-            ) : null}
-            {!line.hiddenFromCustomer && onHideFromCustomer ? (
-              <button
-                type="button"
-                onClick={onHideFromCustomer}
-                className={WORKBENCH_EDIT_OPTION_CHIP_ENABLED}
-              >
-                {WORKBENCH_HIDE_FROM_CUSTOMER_ACTION}
               </button>
             ) : null}
           </div>

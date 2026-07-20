@@ -425,17 +425,17 @@ export function formatOptionPricingTabStatusLabel(pricingComplete: boolean): str
   return pricingComplete ? "Complete" : "Incomplete";
 }
 
-/** Guardrail outcome → display word (informational only). */
+/** Guardrail outcome → contractor-facing display word (informational only). */
 export function formatGuardrailOutcomeLabel(outcome: "pass" | "warn" | "block"): string {
   switch (outcome) {
     case "pass":
       return "Pass";
     case "warn":
-      return "Warning";
+      return "Needs review";
     case "block":
-      return "Blocked";
+      return "Needs review";
     default:
-      return "Blocked";
+      return "Needs review";
   }
 }
 
@@ -451,17 +451,17 @@ export const BUILDER_RAIL_PRICING_STATUS_LABEL = "Pricing status";
 
 export const BUILDER_RAIL_BLOCKING_LINES_LABEL = "Blocking";
 
-export const BUILDER_RAIL_GUARDRAIL_LABEL = "Guardrail";
+export const BUILDER_RAIL_GUARDRAIL_LABEL = "Estimate review";
 
 export const BUILDER_GUARDRAIL_STATUS_CHECKING = "Checking…";
 
-export const BUILDER_GUARDRAIL_MESSAGE_WARN = "Review before send.";
+export const BUILDER_GUARDRAIL_MESSAGE_WARN = "Needs review before preview.";
 
-export const BUILDER_GUARDRAIL_MESSAGE_BLOCK = "Resolve blocking issues first.";
+export const BUILDER_GUARDRAIL_MESSAGE_BLOCK = "Needs review before totals are final.";
 
-/** When Preview is available, guardrail block must not feel louder than next action. */
+/** When Preview is available, review status must not feel louder than next action. */
 export const BUILDER_GUARDRAIL_MESSAGE_BLOCK_PREVIEW_OK =
-  "Does not block Preview. Resolve before send.";
+  "Needs review. Preview remains available for contractor review.";
 
 export const BUILDER_GUARDRAIL_MESSAGE_CHECKING = "Checking…";
 
@@ -584,10 +584,10 @@ export const BUILDER_LINE_FOOTER_PLACEHOLDER_COPY =
 
 /** Document totals footnote, conditional on pricing policy configuration (3I-3B3c). */
 export const BUILDER_TOTALS_FOOTNOTE_CONFIGURED_COPY =
-  "Preview totals reflect your saved company pricing. Estimates only — not a sent quote.";
+  "Preview totals reflect your saved company pricing. Not a sent quote.";
 
 export const BUILDER_TOTALS_FOOTNOTE_PLACEHOLDER_COPY =
-  "Final pricing requires your company's saved pricing configuration. Preview totals are estimates only.";
+  "Totals appear after company pricing is configured. Not a sent quote.";
 
 /** Right-rail pricing-policy status word — no dollars, no policy detail (3I-3B3c). */
 export function formatPricingPolicyConfiguredLabel(configured: boolean): string {
@@ -656,7 +656,7 @@ export const CUSTOMER_PREVIEW_ESTIMATE_TOTALS_PANEL =
   "rounded-xl border border-slate-200/80 bg-slate-50/50 px-5 py-5";
 
 /** R17C2 — Builder Estimate workbench surfaces (not customer Preview). */
-export const WORKBENCH_ESTIMATE_KICKER = "Contractor estimate workbench";
+export const WORKBENCH_ESTIMATE_KICKER = "Estimate review";
 
 /** Premium estimate workbench header band — aligns with BUILDER_RAIL_CARD depth. */
 export const WORKBENCH_HEADER =
@@ -877,6 +877,10 @@ export const WORKBENCH_EDIT_OPTION_CHIP_HINT =
 export const WORKBENCH_EDIT_OPTION_CHIP_ENABLED =
   "inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-800 transition-colors hover:bg-blue-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:opacity-60";
 
+/** Quiet secondary line action (Remove) — not equal weight to Set quantity. */
+export const WORKBENCH_EDIT_OPTION_CHIP_SECONDARY =
+  "inline-flex items-center rounded-md border border-transparent px-1.5 py-0.5 text-[10px] font-medium text-slate-500 underline-offset-2 transition hover:text-slate-700 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-400";
+
 export const WORKBENCH_EDIT_OPTION_CONTROL_ENABLED =
   "mt-2.5 w-full rounded-md border border-slate-300 bg-white px-2.5 py-2 text-[13px] text-slate-900 shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400";
 
@@ -917,18 +921,18 @@ export const WORKBENCH_EDIT_OPTION_USE_MEASUREMENT_BTN =
 export const WORKBENCH_MANUAL_QUANTITY_ACTIVE_READOUT =
   "mt-2 rounded-md border border-blue-200/70 bg-white px-3 py-2.5 text-[13px] font-semibold tabular-nums text-slate-900";
 
-/** R17D Phase 3A — exclude/remove from proposal option. */
-export const WORKBENCH_REMOVE_FROM_OPTION_ACTION = "Remove from option";
+/** R17D Phase 3A — exclude/remove from proposal option (contractor estimate wording). */
+export const WORKBENCH_REMOVE_FROM_OPTION_ACTION = "Remove from proposal";
 
-export const WORKBENCH_EXCLUDE_SECTION_TITLE = "Remove from this option";
+export const WORKBENCH_EXCLUDE_SECTION_TITLE = "Remove from proposal";
 
 export const WORKBENCH_EXCLUDE_SECTION_DESC =
-  "Exclude this template line from the customer proposal for this package without changing the master template.";
+  "Exclude this line from the estimate for this package without changing the master template.";
 
 export const WORKBENCH_EXCLUDE_HELPER_COPY =
-  "This line won't appear on the customer proposal for this package. The template is unchanged.";
+  "This line won't appear on the estimate for this package. The template is unchanged.";
 
-export const WORKBENCH_EXCLUDE_ACTION_LABEL = "Remove from this option";
+export const WORKBENCH_EXCLUDE_ACTION_LABEL = "Remove from proposal";
 
 export const WORKBENCH_EXCLUDE_IN_FLIGHT_LABEL = "Removing…";
 
@@ -940,28 +944,31 @@ export const WORKBENCH_RESTORE_EXCLUDED_ACTION = "Include in this option again";
 export const WORKBENCH_RESTORE_EXCLUDED_SUCCESS =
   "Line restored to this option and draft pricing refreshed.";
 
-/** R17D Phase 4 — hide line from customer proposal (still priced). */
-export const WORKBENCH_HIDE_FROM_CUSTOMER_ACTION = "Hide from customer";
+/**
+ * R17D Phase 4 — visibility persistence labels (Block 4: not rendered on estimate review path).
+ * Keep APIs; do not surface these strings in Builder estimate UI.
+ */
+export const WORKBENCH_HIDE_FROM_CUSTOMER_ACTION = "Exclude from estimate display";
 
-export const WORKBENCH_HIDE_SECTION_TITLE = "Hide from customer";
+export const WORKBENCH_HIDE_SECTION_TITLE = "Estimate display";
 
 export const WORKBENCH_HIDE_SECTION_DESC =
-  "Keep this line priced in the package total but omit it from the customer-facing proposal document.";
+  "Keep this line priced in the package total but omit it from the proposal document.";
 
 export const WORKBENCH_HIDE_HELPER_COPY =
-  "Contractors still see this line in the Builder. The customer proposal and Preview will not show it. Option total is unchanged.";
+  "Option total is unchanged. Persistence remains available to future surfaces.";
 
-export const WORKBENCH_HIDE_ACTION_LABEL = "Hide from customer";
+export const WORKBENCH_HIDE_ACTION_LABEL = "Exclude from estimate display";
 
-export const WORKBENCH_HIDE_IN_FLIGHT_LABEL = "Hiding…";
+export const WORKBENCH_HIDE_IN_FLIGHT_LABEL = "Updating…";
 
 export const WORKBENCH_HIDE_SUCCESS =
-  "Line hidden from customer proposal and draft pricing refreshed.";
+  "Line display updated and proposal pricing refreshed.";
 
-export const WORKBENCH_RESTORE_VISIBILITY_ACTION = "Restore visibility";
+export const WORKBENCH_RESTORE_VISIBILITY_ACTION = "Restore in estimate";
 
 export const WORKBENCH_RESTORE_VISIBILITY_SUCCESS =
-  "Line visibility restored and draft pricing refreshed.";
+  "Line display restored and proposal pricing refreshed.";
 
 export const WORKBENCH_HIDE_ACTION_BTN =
   "inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-3 py-2 text-[12px] font-semibold text-slate-800 shadow-sm transition-colors hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:opacity-60";

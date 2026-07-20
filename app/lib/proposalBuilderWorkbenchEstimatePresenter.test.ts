@@ -9,7 +9,6 @@ import { describe, test } from "node:test";
 import type { CatalogItem } from "./catalogTypes";
 import type { ProposalBuilderLineCustomerView } from "./proposalBuilderPricingPreview";
 import {
-  WORKBENCH_CUSTOMER_PACKAGE_CHOICE_HINT,
   WORKBENCH_DISPLAY_SETTINGS_COMING_SOON_BADGE,
   WORKBENCH_DISPLAY_SETTINGS_ENTRY_LABEL,
   WORKBENCH_HIDDEN_FROM_CUSTOMER_LABEL,
@@ -663,13 +662,15 @@ describe("buildProposalWorkbenchEstimatePresentation", () => {
     assert.equal(result.packageZone.bullets.length, 2);
   });
 
-  test("packageZone exposes multi-option count and future signing hint", () => {
+  test("packageZone exposes multi-option count without signing hint", () => {
     const result = buildProposalWorkbenchEstimatePresentation(buildInput());
 
     assert.equal(result.packageZone.optionCount, 2);
     assert.equal(result.packageZone.allOptions.length, 2);
     assert.equal(result.packageZone.customerSelectionMode, "future_signing");
-    assert.equal(result.packageZone.customerSigningHint, WORKBENCH_CUSTOMER_PACKAGE_CHOICE_HINT);
+    assert.equal(result.packageZone.customerSigningHint, null);
+    assert.match(result.packageZone.startingPackageHelper ?? "", /this proposal/i);
+    assert.doesNotMatch(result.packageZone.startingPackageHelper ?? "", /\bdraft\b/i);
   });
 
   test("empty upgrades zone when template has upgrade section but no lines", () => {

@@ -358,31 +358,14 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <span className={WORKBENCH_HEADER_STAT}>
                 <span className={WORKBENCH_HEADER_STAT_READY}>{meta.readyLineCount}</span>
-                <span>customer-ready</span>
+                <span>included</span>
               </span>
               {meta.scopeReviewLineCount > 0 ? (
                 <span className={WORKBENCH_HEADER_STAT}>
                   <span className={WORKBENCH_HEADER_STAT_REVIEW}>{meta.scopeReviewLineCount}</span>
-                  <span>to review</span>
+                  <span>need quantities</span>
                 </span>
               ) : null}
-              {meta.hardBlockerLineCount > 0 ? (
-                <span className={WORKBENCH_HEADER_STAT}>
-                  <span className="font-semibold tabular-nums text-amber-700">
-                    {meta.hardBlockerLineCount}
-                  </span>
-                  <span>pricing blocker{meta.hardBlockerLineCount === 1 ? "" : "s"}</span>
-                </span>
-              ) : null}
-              {presentation.totalsZone.pricingComplete ? (
-                <span className={WORKBENCH_HEADER_STAT}>
-                  <span className="font-semibold text-emerald-700">Pricing complete</span>
-                </span>
-              ) : (
-                <span className={WORKBENCH_HEADER_STAT}>
-                  <span className="font-semibold text-amber-700">Pricing incomplete</span>
-                </span>
-              )}
             </div>
           </div>
 
@@ -419,14 +402,6 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
             excludeEnabled
               ? (templateItemId) => openEditOptionForLine(templateItemId, "exclude")
               : undefined
-          }
-          onHideFromCustomerForLine={
-            visibilityEnabled
-              ? (templateItemId) => openEditOptionForLine(templateItemId, "visibility")
-              : undefined
-          }
-          onRestoreVisibilityForLine={
-            visibilityEnabled ? handleRestoreVisibility : undefined
           }
         />
 

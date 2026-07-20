@@ -45,11 +45,11 @@
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** **`5e07530`** — polish(proposals): finalize proposal creation copy (Block 3 final copy/visual; prior **`287bca8`** / **`e8c6218`** / **`ed8a140`**)
-- **Docs checkpoint:** **Block 3 final copy/visual correction** — contractor-facing modal + package badges (this header + **§6BO.13.4.9** S.3). Prior: S.2 final polish (**`287bca8`**); S.1 (**`e8c6218`**); Block 3 (**S**); Block 2 (**R** / **R.1**); Block 1 (**Q**).
-- **Prior code:** **`287bca8`** Proposals surface finish; **`e8c6218`** modal polish; **`ed8a140`** create flow
-- **Next coding:** **Block 4** — Builder handoff polish. Do **not** start Blocks 5–7 until Block 4 is approved. Do **not** add full proposal management, template rebuild/import of live options into existing drafts, supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
-- **Historical note:** Block 3 copy/visual locked: template **customer-facing sections**; review **Package details** / **Customer-facing sections**; rows package as slate badge (not link-blue); package selected card soft blue; activity **Proposal created** / **Enhanced proposal ready to review**; smoke fixtures remain hide-not-delete.
+- **Code checkpoint:** **`(pending commit)`** — polish(proposals): simplify builder estimate review (Block 4; prior **`5e07530`** / **`287bca8`** / **`e8c6218`**)
+- **Docs checkpoint:** **Block 4 Builder estimate review** — handoff + Included estimate anchor (this header + **§6BO.13.4.9** T). Prior: S.3 (**`5e07530`**); S.2 (**`287bca8`**); Block 3 (**S**); Block 2 (**R** / **R.1**); Block 1 (**Q**).
+- **Prior code:** **`5e07530`** proposal creation copy; **`287bca8`** Proposals surface finish; **`e8c6218`** modal polish
+- **Next coding:** **Block 5** — Preview document-first (only after Block 4 review). Do **not** start Blocks 6–7 until Block 5 is approved. Do **not** add full proposal management, template rebuild/import of live options into existing drafts, supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
+- **Historical note:** Block 4 Builder first viewport: Jobs nav (not Proposal templates); handoff identity job + proposal + package + Draft badge; Included estimate anchor; compact quantity review; Proposal assistant with Details collapsed; no Hide-from-customer / signing package note on estimate path; protected systems unchanged.
 
 **Trust order:** Header/current checkpoint → **§6BO.13** (approved page-by-page UI flow roadmap + P0 implementation sequence — **supersedes separate Command Center language**) → **§6BM** / **§6BN** (R18 letter-phase roadmap + R18C–R18D3C implementation history) → **§6BO** / **§6BO.11** / **§6BO.12** (completed remediation side-track + **approved Stage C policy** + **operating-flow audit sequencing — complete; outcome in §6BO.13**) → **§6BL** → **§11 override**. Stage B browser smoke required local-only **`USE_PROPOSAL_SEND_FREEZE_RPC=1`** in `.env.local` (gitignored, not committed). **Do not proceed** to docs-only or next feature work unless working tree is clean. **Still do not** mutate `proposals.status = sent`, write sent `proposal_events`, move Jobs Board cards, add Job Card send activity, enable PDF/Sign/Payment, or add webhooks unless separately approved.
 
@@ -12451,7 +12451,27 @@ Package rule from **N** remains law: pre-draft package on create modal; post-dra
 
 **Smoke:** created **`466e393c-63cf-42b5-9c6c-88a7524f6145`** (Enhanced); Builder SELECTED PACKAGE Enhanced; strip Latest: Enhanced draft; activity Proposal created / Enhanced proposal ready to review; rows slate package badges.
 
-**Next recommended block:** **Block 4 — Builder handoff**.
+**Next recommended block:** see **T** Block 4, then **Block 5**.
+
+###### T. Block 4 — Builder estimate review simplification + handoff — IMPLEMENTED (2026-07-20)
+
+**Code checkpoint:** set in header after commit (`polish(proposals): simplify builder estimate review`)
+
+**Status:** Builder first Estimate viewport aligns with + Proposal → Continue to Builder. **No Preview redesign. No Templates/Catalog. No pricing/math/snapshot/send/lifecycle. No SQL/migrations/packages. No smoke deletion.**
+
+**Fixes:**
+- Left nav: Builder highlights **Jobs** (not Proposal templates). Preview may still use templates key — remaining shell note.
+- Handoff identity: job + address + `{title} proposal · {package} package` + quiet **Draft** badge; Back to Job Card; Preview forward
+- One primary next step: contractor **Next step** / quantities language (guidance ids unchanged)
+- Proposal assistant rail; **Details collapsed by default** (no table-first readiness chrome); Needs review (not Guardrail blocked)
+- Package: starting package for this **proposal**; no signing / customer-choice note
+- Included estimate visual anchor; compact secondary quantity review; **Set quantity** primary; quiet Remove from proposal
+- No **Hide from customer** on estimate review path / Edit Option visibility UI (persistence kept)
+- Optional upgrades / totals contractor copy
+
+**Smoke:** Babby Enhanced **`466e393c-…`** — Jobs active; handoff Roof replacement · Enhanced; Details closed; 7 Set quantity; no Hide/signing/Guardrail blocked; Back to Job Card.
+
+**Next recommended block:** **Block 5 — Preview document-first** (after review).
 
 #### 13.4.6 Integrated Catalog → Proposal workflow research + FieldDive flow design — COMPLETE (2026-07-17)
 
@@ -13938,7 +13958,8 @@ Treat as **drift** if a session:
 
 ## Changelog (handoff doc only)
 
-- **2026-07-20:** **Block 3 final copy/visual correction** (**§6BO.13.4.9** S.3) — contractor-facing template/review copy; package badge rows; soft selected package card; activity Proposal created confirmed. **Next:** Block 4 Builder handoff.
+- **2026-07-20:** **Block 4 — Builder estimate review simplification** (**§6BO.13.4.9** T) — Jobs nav; handoff identity; Included estimate anchor; compact quantity review; Proposal assistant Details collapsed; no Hide-from-customer / signing note on estimate path. Babby `466e393c-…`. **Next:** Block 5 Preview document-first (after review).
+- **2026-07-20:** **Block 3 final copy/visual correction** (**§6BO.13.4.9** S.3) — contractor-facing template/review copy; package badge rows; soft selected package card; activity Proposal created confirmed. **Next:** Block 4 (now **T**).
 - **2026-07-20:** **Block 3 final polish — Proposals surface finish** (**§6BO.13.4.9** S.2) — activity Proposal created; strip Draft proposal / Latest package draft; premium review confirmation; row package emphasis. Babby smoke `3c4fd16c-…` (Enhanced). **Next:** S.3 copy/visual, then Block 4.
 - **2026-07-20:** **Block 3 follow-up — + Proposal modal contractor clarity** (**§6BO.13.4.9** S.1) — guided confirmation copy; multi-measurement cards when ready records exist; template/package/review no longer admin-first; rows `Template — Package`. Babby smoke `4f409c73-…` (Enhanced). **Next:** S.2 final polish, then Block 4.
 - **2026-07-20:** **Block 3 — + Proposal Create proposal modal** (**§6BO.13.4.9** S) — measurement → template → package → Continue to Builder; force-create distinct draft (not smoke reuse); package carries into Builder; Block 2 rows + Block 1 isolation preserved. Babby smoke created `0fff78ea-…` (Enhanced). **Next:** Block 3 follow-up polish (now **S.1**), then Block 4.

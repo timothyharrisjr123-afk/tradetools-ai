@@ -11,19 +11,19 @@ import type {
   QuantityPreflightTrustStatus,
 } from "@/app/lib/proposalBuilderTrustSignals";
 
-export const BUILDER_QUANTITY_SOURCES_RAIL_LABEL = "Quantity sources" as const;
+export const BUILDER_QUANTITY_SOURCES_RAIL_LABEL = "Quantity status" as const;
 
-/** Short values — rail label already says "Quantity sources" (matches sibling stats). */
+/** Short values for Details disclosure only (not primary rail chrome). */
 export const BUILDER_QUANTITY_STATUS_LABEL = {
   current: "Current",
-  unknown: "Need review",
-  stale: "Changed",
+  unknown: "Needs review",
+  stale: "Needs review",
 } as const satisfies Record<QuantityPreflightTrustStatus, string>;
 
 export const BUILDER_QUANTITY_STATUS_HELPER = {
-  current: "Matches the saved draft.",
-  unknown: "Contractor review only.",
-  stale: "Contractor review only.",
+  current: "Matches the saved proposal.",
+  unknown: "Review quantities before preview.",
+  stale: "Review quantities before preview.",
 } as const satisfies Record<QuantityPreflightTrustStatus, string>;
 
 export type BuilderQuantityStatusView = {

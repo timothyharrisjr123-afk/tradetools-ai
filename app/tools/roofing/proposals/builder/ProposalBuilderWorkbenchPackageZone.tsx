@@ -1,11 +1,10 @@
-import { Info, SlidersHorizontal } from "lucide-react";
+import { SlidersHorizontal } from "lucide-react";
 import type { ProposalTemplateGraph } from "@/app/lib/proposalTemplateStore";
 import type { WorkbenchPackageZone } from "@/app/lib/proposalBuilderWorkbenchEstimatePresenter";
 import ProposalBuilderPackageSelector from "./ProposalBuilderPackageSelector";
 import {
   WORKBENCH_EDIT_OPTION_TITLE,
   WORKBENCH_EDIT_OPTION_TRIGGER_PRIMARY,
-  WORKBENCH_HINT_STRIP,
   WORKBENCH_MODULE_INNER,
   WORKBENCH_MODULE_KICKER,
   WORKBENCH_PACKAGE_ACCENT,
@@ -33,6 +32,10 @@ export default function ProposalBuilderWorkbenchPackageZone({
   onSelectOption,
   onOpenEditOption,
 }: ProposalBuilderWorkbenchPackageZoneProps) {
+  const packageTitle = packageZone.label
+    ? `${packageZone.label} package`
+    : "Package";
+
   return (
     <section className={WORKBENCH_PACKAGE_MODULE} aria-labelledby="workbench-package-zone-heading">
       <div className={WORKBENCH_PACKAGE_ACCENT} aria-hidden />
@@ -41,12 +44,20 @@ export default function ProposalBuilderWorkbenchPackageZone({
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <p className={WORKBENCH_MODULE_KICKER} id="workbench-package-zone-heading">
-              Package / option
+              Package
             </p>
-            {packageZone.label ? (
-              <p className="mt-1 text-sm font-semibold text-slate-900">
-                {packageZone.label}
-                <span className="ml-1.5 font-normal text-slate-500">· drives this estimate</span>
+            <p
+              className="mt-1 text-sm font-semibold text-slate-900"
+              data-builder-package-title
+            >
+              {packageTitle}
+            </p>
+            {packageZone.startingPackageHelper ? (
+              <p
+                className="mt-1 text-[13px] leading-snug text-slate-600"
+                data-builder-package-helper
+              >
+                {packageZone.startingPackageHelper}
               </p>
             ) : null}
           </div>
@@ -55,13 +66,13 @@ export default function ProposalBuilderWorkbenchPackageZone({
               type="button"
               onClick={onOpenEditOption}
               className={WORKBENCH_EDIT_OPTION_TRIGGER_PRIMARY}
-              title="Open Edit option — set manual quantity for scope review lines"
+              title="Open Edit option — set quantity for review lines"
             >
               <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden />
               {WORKBENCH_EDIT_OPTION_TITLE}
             </button>
             {packageZone.label ? (
-              <span className={WORKBENCH_PACKAGE_ACTIVE_CHIP}>Active option</span>
+              <span className={WORKBENCH_PACKAGE_ACTIVE_CHIP}>Selected</span>
             ) : null}
           </div>
         </div>
@@ -73,13 +84,6 @@ export default function ProposalBuilderWorkbenchPackageZone({
           effectiveOptionId={effectiveOptionId}
           onSelectOption={onSelectOption}
         />
-
-        {packageZone.customerSigningHint ? (
-          <p className={WORKBENCH_HINT_STRIP}>
-            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden />
-            <span>{packageZone.customerSigningHint}</span>
-          </p>
-        ) : null}
       </div>
     </section>
   );

@@ -641,11 +641,9 @@ function deriveNextAction(input: ProposalBuilderGuidanceInput): ProposalBuilderN
     const blockerCount = input.blockingLineCount > 0 ? input.blockingLineCount : count;
     return {
       id: "resolve_pricing_blockers",
-      title: "Resolve pricing blockers",
-      description: input.previewEnabled
-        ? `${blockerCount} line item${blockerCount === 1 ? "" : "s"} need pricing or quantity attention before this draft is customer-ready.`
-        : `${blockerCount} line item${blockerCount === 1 ? "" : "s"} need pricing or quantity attention before Preview can unlock.`,
-      ctaLabel: "Open Line Items",
+      title: "Next step",
+      description: `${blockerCount} item${blockerCount === 1 ? "" : "s"} need quantities before totals are final.`,
+      ctaLabel: "Review items",
       target: "workspace:line-items",
       priority: 3,
       disabled: false,

@@ -36,13 +36,9 @@ import {
   BUILDER_RAIL_GUIDED_PATH_TITLE,
 } from "./proposalBuilderConstants";
 import {
-  BUILDER_RAIL_BLOCKING_LINES_LABEL,
   BUILDER_RAIL_CARD,
   BUILDER_RAIL_GROUP_HEADING,
-  BUILDER_RAIL_GUARDRAIL_LABEL,
-  BUILDER_RAIL_PRICING_CONFIDENCE_TITLE,
   BUILDER_RAIL_PRICING_STATUS_LABEL,
-  BUILDER_RAIL_SETUP_READINESS_TITLE,
   BUILDER_RAIL_STAT,
   formatOptionPricingTabStatusLabel,
   formatPricingPolicyConfiguredLabel,
@@ -81,6 +77,8 @@ type ProposalBuilderSummaryRailProps = {
    * Non-blocking; no auto-refresh; not customer-facing.
    */
   quantityPreflightTrust?: QuantityPreflightTrustSignal | null;
+  /** Selected package label for compact Proposal line. */
+  selectedPackageLabel?: string | null;
 };
 
 function pricingPolicyRailStatusLabel(
@@ -146,7 +144,7 @@ function NextActionCard({
 
   return (
     <div className={BUILDER_NEXT_ACTION_CARD}>
-      <p className={BUILDER_NEXT_ACTION_KICKER}>Next action</p>
+      <p className={BUILDER_NEXT_ACTION_KICKER}>Next step</p>
       <p className={BUILDER_NEXT_ACTION_TITLE}>{action.title}</p>
       <p className={BUILDER_NEXT_ACTION_DESC}>{action.description}</p>
       {canClick ? (
@@ -241,6 +239,7 @@ export default function ProposalBuilderSummaryRail({
   snapshotMeasurementDisplay,
   proposalId,
   quantityPreflightTrust = null,
+  selectedPackageLabel = null,
 }: ProposalBuilderSummaryRailProps) {
   const quantitiesDisplay = isPersistedSnapshot
     ? (snapshotMeasurementDisplay ?? "").trim() || "—"
@@ -253,10 +252,14 @@ export default function ProposalBuilderSummaryRail({
   const templateName = starterGraph?.template.name ?? "Starter template";
   const aboutText =
     (starterGraph?.template.description ?? "").trim() ||
-    "Starter roof replacement template with Standard, Enhanced, and Premium customer-facing options.";
-  const draftStatusLine = proposalId
-    ? "Saved draft — building the job-specific proposal."
-    : "No saved draft yet — previewing this job's proposal setup.";
+    "Roof replacement template with Standard, Enhanced, and Premium packages.";
+  const packagePart = (selectedPackageLabel ?? "").trim();
+  const proposalStatusLine = [
+    proposalId ? "Draft" : "Setup",
+    packagePart ? `${packagePart} package` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
   const quantityStatus = presentBuilderQuantityStatus(quantityPreflightTrust);
 
   const guardrailChecking = selectedOptionPricingStatus == null;
@@ -271,74 +274,82 @@ export default function ProposalBuilderSummaryRail({
     guardrailChecking,
     previewAvailable
   );
+  const reviewStatusLabel = guardrailRailStatusLabel(
+    guardrailOutcome,
+    guardrailChecking,
+    previewAvailable
+  );
 
   return (
-    <div className={`${BUILDER_RAIL_CARD} space-y-3`}>
+    <div
+      className={`${BUILDER_RAIL_CARD} space-y-3`}
+      data-builder-proposal-assistant
+    >
       <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">
-        Proposal helper
+        Proposal assistant
       </p>
 
       {guidance ? (
         <NextActionCard guidance={guidance} onNavigate={onGuidanceNavigate} />
       ) : null}
 
-      {/* Pricing readiness stays visible — it explains inline blockers and draft readiness. */}
-      <div className="space-y-1 border-t border-slate-100 pt-2">
-        <RailGroupHeading title={BUILDER_RAIL_PRICING_CONFIDENCE_TITLE} />
-        <RailStat
-          label="Pricing policy"
-          value={pricingPolicyRailStatusLabel(
-            pricingPolicyLoadComplete,
-            pricingPolicyConfigured
-          )}
-        />
-        {selectedOptionPricingStatus ? (
-          <>
-            <RailStat
-              label={BUILDER_RAIL_PRICING_STATUS_LABEL}
-              value={formatOptionPricingTabStatusLabel(
-                selectedOptionPricingStatus.pricingComplete
-              )}
-            />
-            <RailStat
-              label={BUILDER_RAIL_BLOCKING_LINES_LABEL}
-              value={String(selectedOptionPricingStatus.blockingLineCount)}
-            />
-          </>
-        ) : null}
-        <div className={`${BUILDER_RAIL_STAT} flex items-center justify-between gap-2`}>
-          <p className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-slate-500">
-            {BUILDER_RAIL_GUARDRAIL_LABEL}
-          </p>
-          <span className={guardrailOutcomePillClass(guardrailPillKey)}>
-            {guardrailRailStatusLabel(guardrailOutcome, guardrailChecking, previewAvailable)}
-          </span>
-        </div>
-        {guardrailMessage ? (
-          <p className="px-0.5 text-[11px] leading-snug text-slate-600">{guardrailMessage}</p>
-        ) : null}
-        {/* Phase 6: contractor-only quantity trust — informational, non-blocking. */}
-        <div
-          className="space-y-0.5"
-          data-builder-quantity-status={quantityStatus.status}
-          data-builder-quantity-status-severity={quantityStatus.severity}
-          data-builder-quantity-status-block={String(quantityStatus.shouldBlock)}
-          data-builder-quantity-status-autorefresh={String(
-            quantityStatus.shouldAutoRefresh
-          )}
-        >
-          <RailStat label={quantityStatus.label} value={quantityStatus.statusLabel} />
-          <p className="px-0.5 text-[11px] leading-snug text-slate-500">
-            {quantityStatus.helperText}
-          </p>
-        </div>
+      <div className="border-t border-slate-100 pt-2" data-builder-rail-proposal-status>
+        <RailGroupHeading title="Proposal" />
+        <p className="mt-1 text-[13px] font-medium text-slate-800">{proposalStatusLine}</p>
       </div>
 
-      {/* Setup readiness facts and the guided path are ambient — collapsed by
-          default so the inspector helps without becoming a dashboard. */}
-      <InspectorDisclosure title={BUILDER_RAIL_SETUP_READINESS_TITLE}>
-        <div className="space-y-1">
+      {/* Readiness / debug facts stay collapsed — not table-first chrome. */}
+      <InspectorDisclosure title="Details" defaultOpen={false}>
+        <div className="space-y-1" data-builder-rail-details>
+          <RailGroupHeading title="Setup" />
+          <RailStat
+            label="Pricing policy"
+            value={pricingPolicyRailStatusLabel(
+              pricingPolicyLoadComplete,
+              pricingPolicyConfigured
+            )}
+          />
           <RailStat label="Measurement" value={measurementStatus} />
+          <RailStat label="Setup" value={templateLabel} />
+          {selectedOptionPricingStatus ? (
+            <>
+              <RailStat
+                label={BUILDER_RAIL_PRICING_STATUS_LABEL}
+                value={formatOptionPricingTabStatusLabel(
+                  selectedOptionPricingStatus.pricingComplete
+                )}
+              />
+              <RailStat
+                label="Quantities needed"
+                value={String(selectedOptionPricingStatus.blockingLineCount)}
+              />
+            </>
+          ) : null}
+          <div className={`${BUILDER_RAIL_STAT} flex items-center justify-between gap-2`}>
+            <p className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-slate-500">
+              Estimate review
+            </p>
+            <span className={guardrailOutcomePillClass(guardrailPillKey)}>
+              {reviewStatusLabel}
+            </span>
+          </div>
+          {guardrailMessage ? (
+            <p className="px-0.5 text-[11px] leading-snug text-slate-600">{guardrailMessage}</p>
+          ) : null}
+          <div
+            className="space-y-0.5"
+            data-builder-quantity-status={quantityStatus.status}
+            data-builder-quantity-status-severity={quantityStatus.severity}
+            data-builder-quantity-status-block={String(quantityStatus.shouldBlock)}
+            data-builder-quantity-status-autorefresh={String(
+              quantityStatus.shouldAutoRefresh
+            )}
+          >
+            <RailStat label={quantityStatus.label} value={quantityStatus.statusLabel} />
+            <p className="px-0.5 text-[11px] leading-snug text-slate-500">
+              {quantityStatus.helperText}
+            </p>
+          </div>
           <RailStat label="Quantities" value={quantitiesDisplay} />
           {measurementHandoff?.selectedLabel ? (
             <RailStat label="Record" value={measurementHandoff.selectedLabel} />
@@ -351,7 +362,9 @@ export default function ProposalBuilderSummaryRail({
               <span className={catalogReadinessStatusPillClass(catalogReadiness.state)}>
                 {catalogLabel}
               </span>
-              <span className="text-[11px] text-slate-600">{catalogReadiness.activeItemCount} active</span>
+              <span className="text-[11px] text-slate-600">
+                {catalogReadiness.activeItemCount} active
+              </span>
             </div>
           </div>
           <div className={`${BUILDER_RAIL_STAT} flex items-center justify-between gap-2`}>
@@ -369,9 +382,10 @@ export default function ProposalBuilderSummaryRail({
           </div>
           {isPersistedSnapshot ? (
             <p className="pt-0.5 text-[11px] leading-snug text-slate-500">
-              Quantities reflect the saved proposal snapshot, not the live job measurement.
+              Snapshot details: quantities reflect the saved proposal, not the live job measurement.
             </p>
           ) : null}
+          <p className="pt-1 text-xs text-slate-400">{aboutText}</p>
         </div>
       </InspectorDisclosure>
 
@@ -380,17 +394,6 @@ export default function ProposalBuilderSummaryRail({
           <GuidedPath guidance={guidance} onNavigate={onGuidanceNavigate} />
         </InspectorDisclosure>
       ) : null}
-
-      <InspectorDisclosure title="About this proposal">
-        <p className="text-xs text-slate-400">{draftStatusLine}</p>
-        <p className="mt-1.5 text-[13px] leading-relaxed text-slate-600">{aboutText}</p>
-        {proposalId ? (
-          <p className="mt-2 text-[10px] leading-snug text-slate-400">
-            <span className="font-medium uppercase tracking-wide">Draft ID</span>{" "}
-            <code className="break-all font-mono text-slate-500">{proposalId}</code>
-          </p>
-        ) : null}
-      </InspectorDisclosure>
 
       <p className="pt-0.5 text-[10px] leading-snug text-slate-400">
         {resolveBuilderRailActionsNote(Boolean(previewAvailable))}

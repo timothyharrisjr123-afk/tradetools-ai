@@ -103,9 +103,10 @@ describe("deriveProposalBuilderGuidance", () => {
 
     assert.equal(stepById(guidance, "pricing").state, "blocked");
     assert.equal(guidance.nextAction.id, "resolve_pricing_blockers");
-    assert.equal(guidance.nextAction.title, "Resolve pricing blockers");
+    assert.equal(guidance.nextAction.title, "Next step");
+    assert.equal(guidance.nextAction.ctaLabel, "Review items");
     assert.equal(guidance.nextAction.target, "workspace:line-items");
-    assert.match(guidance.nextAction.description, /2 line items/);
+    assert.match(guidance.nextAction.description, /2 items need quantities/);
 
     const previewLock = lifecycleById(guidance, "preview");
     assert.match(previewLock.lockedReason ?? "", /2 line items/);

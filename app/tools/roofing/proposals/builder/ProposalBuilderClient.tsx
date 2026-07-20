@@ -909,7 +909,7 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
     async (templateItemId: string) => {
       if (!hasPersistedProposalParam || !persistedGraph || !proposalIdParam) {
         throw new ProposalScopeDecisionActionError(
-          "Remove from option requires a saved proposal draft."
+          "Remove from proposal requires a saved proposal."
         );
       }
 
@@ -924,7 +924,7 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
       }
 
       if (excludeInFlightRef.current || manualQuantityInFlightRef.current || visibilityInFlightRef.current) {
-        throw new ProposalScopeDecisionActionError("Remove from option already in progress.");
+        throw new ProposalScopeDecisionActionError("Remove from proposal already in progress.");
       }
 
       excludeInFlightRef.current = true;
@@ -1069,7 +1069,7 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
     async (templateItemId: string) => {
       if (!hasPersistedProposalParam || !persistedGraph || !proposalIdParam) {
         throw new ProposalScopeDecisionActionError(
-          "Hide from customer requires a saved proposal draft."
+          "Line display update requires a saved proposal."
         );
       }
 
@@ -1088,7 +1088,7 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
         excludeInFlightRef.current ||
         manualQuantityInFlightRef.current
       ) {
-        throw new ProposalScopeDecisionActionError("Hide from customer already in progress.");
+        throw new ProposalScopeDecisionActionError("Line display update already in progress.");
       }
 
       visibilityInFlightRef.current = true;
@@ -1667,6 +1667,19 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
         jobId={normalizedJobId}
         shellReady={shellReady}
         showDraftSavedPill={hasPersistedProposalParam && draftGraphLoadComplete && !draftGraphError}
+        proposalTitle={
+          (persistedGraph?.proposal.title ?? starterGraph?.template.name ?? "").trim() || null
+        }
+        selectedPackageLabel={
+          (() => {
+            const runtimeId = effectiveSelectedOptionId;
+            if (!runtimeId) return null;
+            const fromDraft = persistedGraph?.options.find((o) => o.id === runtimeId);
+            if (fromDraft?.name?.trim()) return fromDraft.name.trim();
+            const fromTemplate = starterGraph?.options.find((o) => o.id === runtimeId);
+            return (fromTemplate?.name ?? "").trim() || null;
+          })()
+        }
         guidance={builderGuidance}
         onLifecycleAction={handleLifecycleAction}
       />
@@ -1858,6 +1871,16 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
               snapshotMeasurementDisplay={adapterResult?.snapshotMeasurementDisplay ?? null}
               proposalId={hasPersistedProposalParam ? proposalIdParam?.trim() ?? null : null}
               quantityPreflightTrust={quantityPreflightTrust}
+              selectedPackageLabel={
+                (() => {
+                  const runtimeId = effectiveSelectedOptionId;
+                  if (!runtimeId) return null;
+                  const fromDraft = persistedGraph?.options.find((o) => o.id === runtimeId);
+                  if (fromDraft?.name?.trim()) return fromDraft.name.trim();
+                  const fromTemplate = starterGraph?.options.find((o) => o.id === runtimeId);
+                  return (fromTemplate?.name ?? "").trim() || null;
+                })()
+              }
             />
           }
         />

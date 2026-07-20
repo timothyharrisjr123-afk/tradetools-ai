@@ -8,6 +8,7 @@ import {
 import {
   WORKBENCH_EDIT_OPTION_CHIP_ENABLED,
   WORKBENCH_EDIT_OPTION_CHIP_HINT,
+  WORKBENCH_EDIT_OPTION_CHIP_SECONDARY,
   WORKBENCH_EDIT_QUANTITY_ACTION,
   WORKBENCH_FUTURE_ACTION_CHIP,
   WORKBENCH_HINT_STRIP,
@@ -86,9 +87,9 @@ export default function ProposalBuilderWorkbenchUpgradesZone({
             <p className={WORKBENCH_MODULE_KICKER} id="workbench-upgrades-heading">
               Optional upgrades
             </p>
-            <p className={WORKBENCH_MODULE_TITLE}>Future customer selections</p>
+            <p className={WORKBENCH_MODULE_TITLE}>Available for this proposal</p>
             <p className={WORKBENCH_MODULE_DESC}>
-              Shown separately on the customer proposal when signing is enabled.
+              These can be reviewed before previewing.
             </p>
           </div>
         </div>
@@ -147,7 +148,7 @@ export default function ProposalBuilderWorkbenchUpgradesZone({
                                 <button
                                   key={action.id}
                                   type="button"
-                                  className={WORKBENCH_EDIT_OPTION_CHIP_ENABLED}
+                                  className={WORKBENCH_EDIT_OPTION_CHIP_SECONDARY}
                                   onClick={() => onRemoveFromOptionForLine!(line.templateItemId)}
                                 >
                                   {WORKBENCH_REMOVE_FROM_OPTION_ACTION}

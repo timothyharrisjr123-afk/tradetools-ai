@@ -5,7 +5,7 @@ import ProposalBuilderClient from "./ProposalBuilderClient";
 
 export default function ProposalBuilderAppPage({ companyId }: { companyId: string }) {
   return (
-    <FieldDiveAppShell activeNav="templates">
+    <FieldDiveAppShell activeNav="jobs">
       <ProposalBuilderClient companyId={companyId} />
     </FieldDiveAppShell>
   );

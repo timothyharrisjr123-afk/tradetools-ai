@@ -63,10 +63,10 @@ export default function ProposalBuilderWorkbenchTotalsZone({
           )}
           <div>
             <p className={WORKBENCH_MODULE_KICKER} id="workbench-totals-heading">
-              Totals / readiness
+              Totals
             </p>
             <p className={WORKBENCH_MODULE_TITLE}>
-              {zone.showAmounts ? "Estimate totals ready" : "Totals pending review"}
+              {zone.showAmounts ? "Totals ready" : "Totals pending review"}
             </p>
           </div>
         </div>

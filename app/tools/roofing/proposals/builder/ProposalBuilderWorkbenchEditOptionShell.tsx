@@ -40,12 +40,6 @@ import {
   WORKBENCH_EXCLUDE_IN_FLIGHT_LABEL,
   WORKBENCH_EXCLUDE_SECTION_DESC,
   WORKBENCH_EXCLUDE_SECTION_TITLE,
-  WORKBENCH_HIDE_ACTION_BTN,
-  WORKBENCH_HIDE_ACTION_LABEL,
-  WORKBENCH_HIDE_HELPER_COPY,
-  WORKBENCH_HIDE_IN_FLIGHT_LABEL,
-  WORKBENCH_HIDE_SECTION_DESC,
-  WORKBENCH_HIDE_SECTION_TITLE,
   WORKBENCH_MODULE_DESC,
   WORKBENCH_MODULE_KICKER,
   WORKBENCH_MODULE_TITLE,
@@ -102,7 +96,7 @@ const DISABLED_SHELL_SECTIONS: readonly EditOptionShellSection[] = [
   {
     id: "upgrade",
     title: "Move to optional upgrade",
-    description: "Reclassify a line as an optional upgrade for customer selection at signing.",
+    description: "Reclassify a line as an optional upgrade for this proposal.",
     controlLabel: "Move to upgrade",
     controlKind: "select",
   },
@@ -206,19 +200,18 @@ export default function ProposalBuilderWorkbenchEditOptionShell({
     return excludeEligibleLines.find((line) => line.templateItemId === focusedTemplateItemId) ?? null;
   }, [excludeEligibleLines, focusedTemplateItemId]);
 
-  const activeHideLine = useMemo(() => {
-    if (!focusedTemplateItemId) return null;
-    return hideEligibleLines.find((line) => line.templateItemId === focusedTemplateItemId) ?? null;
-  }, [hideEligibleLines, focusedTemplateItemId]);
-
   const editableLineCount =
-    scopeReviewLines.length + manualActiveLines.length + excludeEligibleLines.length + hideEligibleLines.length;
+    scopeReviewLines.length + manualActiveLines.length + excludeEligibleLines.length;
   const showLiveQuantity = persistedDraftEnabled && (scopeReviewLines.length > 0 || manualActiveLines.length > 0);
   const showLiveExclude = persistedDraftEnabled && excludeEligibleLines.length > 0;
-  const showLiveHide = persistedDraftEnabled && hideEligibleLines.length > 0;
+  // Block 4: hide/visibility UI is not surfaced on the estimate review path.
+  // Persistence handlers remain on the client for future surfaces.
+  const showLiveHide = false;
+  void hideEligibleLines;
+  void onHideLine;
+  void visibilityError;
   const manualActiveMode = Boolean(activeManualLine);
   const excludeMode = drawerIntent === "exclude" && Boolean(activeExcludeLine);
-  const visibilityMode = drawerIntent === "visibility" && Boolean(activeHideLine);
 
   const pickerLines = useMemo(() => {
     const seen = new Set<string>();
@@ -242,13 +235,8 @@ export default function ProposalBuilderWorkbenchEditOptionShell({
       seen.add(line.templateItemId);
       rows.push({ templateItemId: line.templateItemId, name: line.name, kind: "exclude_eligible" });
     }
-    for (const line of hideEligibleLines) {
-      if (seen.has(line.templateItemId)) continue;
-      seen.add(line.templateItemId);
-      rows.push({ templateItemId: line.templateItemId, name: line.name, kind: "hide_eligible" });
-    }
     return rows;
-  }, [excludeEligibleLines, hideEligibleLines, manualActiveLines, scopeReviewLines]);
+  }, [excludeEligibleLines, manualActiveLines, scopeReviewLines]);
 
   useEffect(() => {
     if (!open) {
@@ -306,11 +294,6 @@ export default function ProposalBuilderWorkbenchEditOptionShell({
     await onExcludeLine(activeExcludeLine.templateItemId);
   }, [activeExcludeLine, onExcludeLine, scopeEditInFlight]);
 
-  const handleHide = useCallback(async () => {
-    if (!activeHideLine || scopeEditInFlight) return;
-    await onHideLine(activeHideLine.templateItemId);
-  }, [activeHideLine, onHideLine, scopeEditInFlight]);
-
   const saveDisabled =
     !activeScopeReviewLine ||
     scopeEditInFlight ||
@@ -322,19 +305,15 @@ export default function ProposalBuilderWorkbenchEditOptionShell({
   }
 
   const scopeHint =
-    visibilityMode && activeHideLine
-      ? `Hide ${activeHideLine.name} from the customer proposal while keeping it in the package total.`
-      : excludeMode && activeExcludeLine
-      ? `Remove ${activeExcludeLine.name} from this package for this job.`
+    excludeMode && activeExcludeLine
+      ? `Remove ${activeExcludeLine.name} from this proposal for this job.`
       : scopeReviewCount > 0
-        ? `${scopeReviewCount} item${scopeReviewCount === 1 ? "" : "s"} in scope review — set manual quantity, hide from customer, or remove from this option below.`
+        ? `${scopeReviewCount} item${scopeReviewCount === 1 ? "" : "s"} need review — set quantity or remove from the proposal below.`
         : manualActiveLines.length > 0
           ? `${manualActiveLines.length} manual quantit${manualActiveLines.length === 1 ? "y" : "ies"} active on this package.`
-          : hideEligibleLines.length > 0
-            ? "Hide priced lines from the customer proposal without changing option totals."
-            : excludeEligibleLines.length > 0
-            ? "Remove template lines from this package without changing the master template."
-            : "No scope review lines need quantity on this package.";
+          : excludeEligibleLines.length > 0
+            ? "Remove template lines from this proposal without changing the master template."
+            : "No items need quantity review on this package.";
 
   return createPortal(
     <>
@@ -548,34 +527,7 @@ export default function ProposalBuilderWorkbenchEditOptionShell({
                   </div>
                 ) : (
                   <p className="mt-2.5 text-[12px] text-slate-500">
-                    Select a line to remove from this option.
-                  </p>
-                )}
-              </section>
-            ) : null}
-
-            {showLiveHide ? (
-              <section
-                className={WORKBENCH_EDIT_OPTION_SECTION}
-                aria-labelledby="edit-option-section-visibility"
-              >
-                <h4 className={WORKBENCH_EDIT_OPTION_SECTION_TITLE} id="edit-option-section-visibility">
-                  {WORKBENCH_HIDE_SECTION_TITLE}
-                </h4>
-                <p className={WORKBENCH_EDIT_OPTION_SECTION_DESC}>{WORKBENCH_HIDE_SECTION_DESC}</p>
-                {activeHideLine ? (
-                  <div className="mt-2.5 space-y-2">
-                    <p className="text-[12px] font-medium text-slate-700">{activeHideLine.name}</p>
-                    <p className="text-[12px] leading-snug text-slate-600">{WORKBENCH_HIDE_HELPER_COPY}</p>
-                    {visibilityError ? (
-                      <p className="text-[12px] text-red-600" role="alert">
-                        {visibilityError}
-                      </p>
-                    ) : null}
-                  </div>
-                ) : (
-                  <p className="mt-2.5 text-[12px] text-slate-500">
-                    Select a priced line to hide from the customer proposal.
+                    Select a line to remove from this proposal.
                   </p>
                 )}
               </section>
@@ -634,25 +586,6 @@ export default function ProposalBuilderWorkbenchEditOptionShell({
                 className={WORKBENCH_EXCLUDE_ACTION_BTN}
               >
                 {scopeEditInFlight ? WORKBENCH_EXCLUDE_IN_FLIGHT_LABEL : WORKBENCH_EXCLUDE_ACTION_LABEL}
-              </button>
-            </div>
-          ) : visibilityMode && showLiveHide && activeHideLine ? (
-            <div className="flex flex-wrap items-center justify-end gap-2">
-              <button
-                type="button"
-                onClick={onClose}
-                disabled={scopeEditInFlight}
-                className={WORKBENCH_EDIT_OPTION_CANCEL_BTN}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => void handleHide()}
-                disabled={scopeEditInFlight}
-                className={WORKBENCH_HIDE_ACTION_BTN}
-              >
-                {scopeEditInFlight ? WORKBENCH_HIDE_IN_FLIGHT_LABEL : WORKBENCH_HIDE_ACTION_LABEL}
               </button>
             </div>
           ) : showLiveQuantity && activeScopeReviewLine && drawerIntent === "quantity" ? (

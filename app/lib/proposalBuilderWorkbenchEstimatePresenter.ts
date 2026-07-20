@@ -36,22 +36,25 @@ import { formatPriceCents } from "@/app/tools/roofing/proposals/builder/proposal
 
 export const WORKBENCH_ESTIMATE_PAGE_TITLE = "Estimate";
 export const WORKBENCH_ESTIMATE_PAGE_SUBTITLE =
-  "Package options, line items, and totals for the customer proposal.";
+  "Review estimate lines, fix quantities if needed, then preview.";
 
 export const WORKBENCH_TOTALS_INCOMPLETE_COPY =
-  "Totals appear when quantity and pricing review is complete. Check scope review below or Pricing readiness in the rail.";
+  "Totals appear after required quantities are complete.";
 
-export const WORKBENCH_HARD_BLOCKERS_TITLE = "Pricing blockers";
+export const WORKBENCH_HARD_BLOCKERS_TITLE = "Needs setup";
 export const WORKBENCH_HARD_BLOCKERS_DESCRIPTION =
-  "Catalog or pricing setup must be resolved before these lines can appear on the customer proposal.";
+  "Finish catalog or pricing setup before these lines can be included on the proposal.";
 
-export const WORKBENCH_SCOPE_REVIEW_TITLE = "Scope review";
+export const WORKBENCH_SCOPE_REVIEW_TITLE = "Needs quantity review";
 export const WORKBENCH_SCOPE_REVIEW_SUBTITLE = "Items needing quantity review";
 export const WORKBENCH_SCOPE_REVIEW_DESCRIPTION =
-  "These template lines need quantity review before totals are final.";
+  "These items need quantities before totals are final.";
 
 export const WORKBENCH_SCOPE_REVIEW_ROW_HELPER =
-  "Set quantity in Edit option when line editing is enabled.";
+  "Set quantity when line editing is enabled.";
+
+export const WORKBENCH_PACKAGE_STARTING_HELPER =
+  "Starting package for this proposal. You can change it before previewing.";
 
 export const WORKBENCH_DECISION_TRACE_REMOVED_TITLE = "Removed from this option";
 export const WORKBENCH_DECISION_TRACE_REMOVED_DESCRIPTION =
@@ -70,17 +73,19 @@ export const WORKBENCH_DISPLAY_SETTINGS_LOCKED_COPY =
 export const WORKBENCH_DISPLAY_SETTINGS_HELP_COPY =
   "Controls what the customer sees in Preview. Contractor pricing and workbench detail stay unchanged.";
 
-export const WORKBENCH_CUSTOMER_PACKAGE_CHOICE_HINT =
-  "Customer package choice happens when the proposal is sent for signing — not in this editor.";
+/** @deprecated Block 4 — signing hint removed from Builder package UI. */
+export const WORKBENCH_CUSTOMER_PACKAGE_CHOICE_HINT = "" as const;
 
+/** Contractor-facing upgrades helper (no signing / customer-selection language). */
 export const WORKBENCH_CUSTOMER_UPGRADE_SELECTION_HINT =
-  "Optional upgrades appear on the customer proposal. Selection is enabled when signing — not in this editor.";
+  "These can be reviewed before previewing." as const;
 
 export const WORKBENCH_UPGRADES_EMPTY_COPY = "No upgrade lines in this package.";
 
 export const WORKBENCH_LINE_INCLUDED_LABEL = "Included";
 export const WORKBENCH_LINE_IN_PACKAGE_LABEL = "In package";
-export const WORKBENCH_HIDDEN_FROM_CUSTOMER_LABEL = "Hidden from customer";
+/** Internal label only — not rendered on Block 4 estimate review path. */
+export const WORKBENCH_HIDDEN_FROM_CUSTOMER_LABEL = "Excluded from estimate display";
 
 export const WORKBENCH_ATTENTION_AMOUNT_MISSING_CATALOG = "Missing catalog";
 export const WORKBENCH_ATTENTION_AMOUNT_NEEDS_QUANTITY = "Needs quantity";
@@ -124,6 +129,7 @@ export type WorkbenchPackageZone = {
   selectionMode: ProposalTemplateOptionSelectionMode;
   customerSelectionMode: WorkbenchCustomerSelectionMode;
   customerSigningHint: string | null;
+  startingPackageHelper: string | null;
 };
 
 export type WorkbenchDecisionTraceLine = {
@@ -789,8 +795,8 @@ function buildPackageZone(
     })),
     selectionMode,
     customerSelectionMode,
-    customerSigningHint:
-      customerSelectionMode === "future_signing" ? WORKBENCH_CUSTOMER_PACKAGE_CHOICE_HINT : null,
+    customerSigningHint: null,
+    startingPackageHelper: label ? WORKBENCH_PACKAGE_STARTING_HELPER : null,
   };
 }
 

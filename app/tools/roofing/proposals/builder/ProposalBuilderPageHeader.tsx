@@ -9,7 +9,6 @@ import {
   BUILDER_HEADER_DRAFT_PILL,
   BUILDER_HEADER_KICKER,
   BUILDER_HEADER_SETUP_PILL,
-  BUILDER_HEADER_WORKSPACE_CONTEXT_NOTE,
   BUILDER_HEADER_WORKSPACE_KICKER,
   BUILDER_STAGE,
 } from "./proposalBuilderConstants";
@@ -19,6 +18,10 @@ type ProposalBuilderPageHeaderProps = {
   jobId: string | null;
   shellReady: boolean;
   showDraftSavedPill?: boolean;
+  /** Proposal / template title for handoff identity (e.g. Roof replacement). */
+  proposalTitle?: string | null;
+  /** Selected package label (e.g. Enhanced). */
+  selectedPackageLabel?: string | null;
   guidance?: ProposalBuilderGuidance | null;
   onLifecycleAction?: (
     actionId: ProposalBuilderLifecycleActionId
@@ -30,6 +33,8 @@ export default function ProposalBuilderPageHeader({
   jobId,
   shellReady,
   showDraftSavedPill = false,
+  proposalTitle = null,
+  selectedPackageLabel = null,
   guidance = null,
   onLifecycleAction,
 }: ProposalBuilderPageHeaderProps) {
@@ -41,6 +46,12 @@ export default function ProposalBuilderPageHeader({
     : "/tools/roofing/saved";
 
   const showSetupPill = shellReady && !showDraftSavedPill;
+  const proposalLabel = (proposalTitle ?? "").trim() || "Proposal";
+  const packageLabel = (selectedPackageLabel ?? "").trim();
+  const handoffMetaParts = [
+    `${proposalLabel} proposal`,
+    packageLabel ? `${packageLabel} package` : null,
+  ].filter(Boolean);
 
   return (
     <header className={`${BUILDER_STAGE} border-b border-slate-200/80 pb-5 pt-5`}>
@@ -65,9 +76,11 @@ export default function ProposalBuilderPageHeader({
               {title}
             </h1>
             {showDraftSavedPill ? (
-              <span className={BUILDER_HEADER_DRAFT_PILL}>Draft • Saved</span>
+              <span className={BUILDER_HEADER_DRAFT_PILL} data-builder-draft-status>
+                Draft
+              </span>
             ) : showSetupPill ? (
-              <span className={BUILDER_HEADER_SETUP_PILL} title="No saved draft yet — this is a setup preview.">
+              <span className={BUILDER_HEADER_SETUP_PILL} title="No saved proposal yet — this is a setup preview.">
                 Setup preview
               </span>
             ) : null}
@@ -81,8 +94,13 @@ export default function ProposalBuilderPageHeader({
             <p className="mt-1.5 text-sm text-slate-500">Job-specific proposal</p>
           )}
 
-          {shellReady ? (
-            <p className="mt-1.5 text-xs text-slate-400">{BUILDER_HEADER_WORKSPACE_CONTEXT_NOTE}</p>
+          {shellReady && handoffMetaParts.length > 0 ? (
+            <p
+              className="mt-1.5 text-sm font-medium text-slate-700"
+              data-builder-handoff-meta
+            >
+              {handoffMetaParts.join(" · ")}
+            </p>
           ) : null}
         </div>
 

@@ -14,34 +14,34 @@ import {
 import ProposalBuilderWorkbenchLineRow from "./ProposalBuilderWorkbenchLineRow";
 
 type ProposalBuilderWorkbenchReadyScopeZoneProps = {
-  sections: WorkbenchScopeSection[];
+  sections: readonly WorkbenchScopeSection[];
   onEditQuantityForLine?: (templateItemId: string) => void;
   onRemoveFromOptionForLine?: (templateItemId: string) => void;
-  onHideFromCustomerForLine?: (templateItemId: string) => void;
-  onRestoreVisibilityForLine?: (templateItemId: string) => void;
 };
 
 export default function ProposalBuilderWorkbenchReadyScopeZone({
   sections,
   onEditQuantityForLine,
   onRemoveFromOptionForLine,
-  onHideFromCustomerForLine,
-  onRestoreVisibilityForLine,
 }: ProposalBuilderWorkbenchReadyScopeZoneProps) {
   const lineCount = sections.reduce((sum, section) => sum + section.lines.length, 0);
 
   return (
-    <section className={WORKBENCH_MODULE} aria-labelledby="workbench-ready-scope-heading">
+    <section
+      className={WORKBENCH_MODULE}
+      aria-labelledby="workbench-ready-scope-heading"
+      data-builder-included-estimate
+    >
       <header className={WORKBENCH_ZONE_HEADER}>
         <div className="flex min-w-0 flex-1 items-start gap-2.5">
           <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-hidden />
           <div>
             <p className={WORKBENCH_MODULE_KICKER} id="workbench-ready-scope-heading">
-              Customer-ready scope
+              Included estimate
             </p>
-            <p className={WORKBENCH_MODULE_TITLE}>Included on the customer proposal</p>
+            <p className={WORKBENCH_MODULE_TITLE}>Roof replacement scope</p>
             <p className={WORKBENCH_MODULE_DESC}>
-              Resolved, priced, and included lines — compact contractor view.
+              Priced lines included on this proposal.
             </p>
           </div>
         </div>
@@ -51,7 +51,7 @@ export default function ProposalBuilderWorkbenchReadyScopeZone({
       <div className={WORKBENCH_MODULE_INNER}>
         {lineCount === 0 ? (
           <p className="text-sm text-slate-500">
-            No customer-ready lines yet. Resolve items in Needs attention to populate this zone.
+            No included lines yet. Finish quantity review to populate this estimate.
           </p>
         ) : (
           <div className="space-y-3">
@@ -75,16 +75,6 @@ export default function ProposalBuilderWorkbenchReadyScopeZone({
                       onRemoveFromOption={
                         onRemoveFromOptionForLine
                           ? () => onRemoveFromOptionForLine(line.templateItemId)
-                          : undefined
-                      }
-                      onHideFromCustomer={
-                        !line.hiddenFromCustomer && onHideFromCustomerForLine
-                          ? () => onHideFromCustomerForLine(line.templateItemId)
-                          : undefined
-                      }
-                      onRestoreVisibility={
-                        line.hiddenFromCustomer && onRestoreVisibilityForLine
-                          ? () => onRestoreVisibilityForLine(line.templateItemId)
                           : undefined
                       }
                     />
