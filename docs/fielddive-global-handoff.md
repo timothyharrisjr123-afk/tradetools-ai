@@ -12438,7 +12438,7 @@ Package rule from **N** remains law: pre-draft package on create modal; post-dra
 
 ###### S.3 Block 3 final copy / visual correction — IMPLEMENTED (2026-07-20)
 
-**Code checkpoint:** set in header after commit (`polish(proposals): finalize proposal creation copy`)
+**Code checkpoint:** **`5e07530`**
 
 **Status:** Contractor-facing copy + package row/card polish before Block 4. **No Builder/Preview redesign. No Templates/Catalog. No pricing/math/snapshot/send/lifecycle. No SQL/migrations/packages. No smoke deletion.**
 
