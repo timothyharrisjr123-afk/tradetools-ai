@@ -27,7 +27,7 @@ import {
   WORKBENCH_EDIT_OPTION_SECTION,
   WORKBENCH_EDIT_OPTION_SECTION_DESC,
   WORKBENCH_EDIT_OPTION_SECTION_TITLE,
-  WORKBENCH_EDIT_OPTION_TITLE,
+  WORKBENCH_EDIT_PACKAGE_TITLE,
   WORKBENCH_EDIT_OPTION_TRUST_COPY,
   WORKBENCH_EDIT_OPTION_USE_MEASUREMENT_BTN,
   WORKBENCH_USE_MEASUREMENT_QUANTITY_LABEL,
@@ -336,6 +336,7 @@ export default function ProposalBuilderWorkbenchEditOptionShell({
         aria-modal="true"
         aria-labelledby="workbench-edit-option-title"
         aria-describedby="workbench-edit-option-desc"
+        data-builder-edit-package-drawer
       >
         <header className={WORKBENCH_EDIT_OPTION_DRAWER_HEADER}>
           <div className="flex items-start justify-between gap-3">
@@ -343,18 +344,17 @@ export default function ProposalBuilderWorkbenchEditOptionShell({
               <div className="flex flex-wrap items-center gap-2">
                 <SlidersHorizontal className="h-4 w-4 shrink-0 text-blue-600" aria-hidden />
                 <p className={WORKBENCH_MODULE_KICKER} id="workbench-edit-option-kicker">
-                  Package scope
+                  Advanced
                 </p>
                 {!showLiveQuantity && !showLiveExclude && !showLiveHide ? (
                   <span className={WORKBENCH_EDIT_OPTION_COMING_SOON_BADGE}>Coming soon</span>
                 ) : null}
               </div>
               <h3 className={WORKBENCH_MODULE_TITLE} id="workbench-edit-option-title">
-                {WORKBENCH_EDIT_OPTION_TITLE}
+                {optionLabel?.trim()
+                  ? `Edit ${optionLabel.trim()} package`
+                  : WORKBENCH_EDIT_PACKAGE_TITLE}
               </h3>
-              {optionLabel ? (
-                <p className="mt-0.5 truncate text-[13px] font-medium text-slate-700">{optionLabel}</p>
-              ) : null}
               <p className={`${WORKBENCH_MODULE_DESC} mt-2`} id="workbench-edit-option-desc">
                 {scopeHint}
               </p>
@@ -364,7 +364,7 @@ export default function ProposalBuilderWorkbenchEditOptionShell({
               onClick={onClose}
               disabled={scopeEditInFlight}
               className="inline-flex shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white p-1.5 text-slate-600 shadow-sm hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:opacity-60"
-              aria-label="Close Edit option"
+              aria-label="Close Edit package"
             >
               <X className="h-4 w-4" aria-hidden />
             </button>

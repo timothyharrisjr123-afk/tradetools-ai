@@ -1,7 +1,10 @@
 import type { ProposalTemplateGraph } from "@/app/lib/proposalTemplateStore";
 import type { WorkbenchPackageZone } from "@/app/lib/proposalBuilderWorkbenchEstimatePresenter";
 import ProposalBuilderPackageSelector from "./ProposalBuilderPackageSelector";
-import { WORKBENCH_PACKAGE_MODULE } from "./proposalBuilderConstants";
+import {
+  WORKBENCH_EDIT_PACKAGE_TITLE,
+  WORKBENCH_PACKAGE_MODULE,
+} from "./proposalBuilderConstants";
 
 type ProposalBuilderWorkbenchPackageZoneProps = {
   packageZone: WorkbenchPackageZone;
@@ -10,7 +13,7 @@ type ProposalBuilderWorkbenchPackageZoneProps = {
   selectedOptionId: string | null;
   effectiveOptionId: string | null;
   onSelectOption: (optionId: string) => void;
-  onOpenEditOption: () => void;
+  onOpenEditPackage: () => void;
 };
 
 export default function ProposalBuilderWorkbenchPackageZone({
@@ -20,6 +23,7 @@ export default function ProposalBuilderWorkbenchPackageZone({
   selectedOptionId,
   effectiveOptionId,
   onSelectOption,
+  onOpenEditPackage,
 }: ProposalBuilderWorkbenchPackageZoneProps) {
   const packageTitle = packageZone.label
     ? `${packageZone.label} package`
@@ -74,14 +78,25 @@ export default function ProposalBuilderWorkbenchPackageZone({
             </p>
           ) : null}
         </div>
-        <ProposalBuilderPackageSelector
-          graph={packageSelectorGraph}
-          draftScoped={draftScopedPackagePicker}
-          compact
-          selectedOptionId={selectedOptionId}
-          effectiveOptionId={effectiveOptionId}
-          onSelectOption={onSelectOption}
-        />
+        <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1.5">
+          <ProposalBuilderPackageSelector
+            graph={packageSelectorGraph}
+            draftScoped={draftScopedPackagePicker}
+            compact
+            selectedOptionId={selectedOptionId}
+            effectiveOptionId={effectiveOptionId}
+            onSelectOption={onSelectOption}
+          />
+          <button
+            type="button"
+            onClick={onOpenEditPackage}
+            className="text-xs font-medium text-slate-500 hover:text-slate-800"
+            data-builder-edit-package
+            title="Advanced package editing"
+          >
+            {WORKBENCH_EDIT_PACKAGE_TITLE}
+          </button>
+        </div>
       </div>
     </section>
   );

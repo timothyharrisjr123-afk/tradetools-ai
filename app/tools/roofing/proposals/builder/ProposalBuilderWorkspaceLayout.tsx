@@ -34,8 +34,8 @@ export default function ProposalBuilderWorkspaceLayout({
         <div
           className={
             showRail
-              ? "grid grid-cols-1 overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-[0_2px_12px_rgba(15,23,42,0.04)] lg:grid-cols-[12.5rem_minmax(0,1fr)_280px]"
-              : "grid grid-cols-1 overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-[0_2px_12px_rgba(15,23,42,0.04)] lg:grid-cols-[12.5rem_minmax(0,1fr)]"
+              ? "grid grid-cols-1 overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-[0_2px_12px_rgba(15,23,42,0.04)] lg:grid-cols-[10.75rem_minmax(0,1fr)_280px]"
+              : "grid grid-cols-1 overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-[0_2px_12px_rgba(15,23,42,0.04)] lg:grid-cols-[10.75rem_minmax(0,1fr)]"
           }
           data-builder-workspace-shell
         >

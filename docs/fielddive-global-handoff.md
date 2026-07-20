@@ -45,11 +45,11 @@
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** **`d8125ec`** — polish(proposals): refine builder visual continuity (Block 4C; prior **`ea39fa7`** / **`2ae400b`**)
-- **Docs checkpoint:** **Block 4C Builder visual continuity correction** (this header + **§6BO.13.4.9** T.2). Prior: T.1 (**`ea39fa7`**); T (**`2ae400b`**); S.3 (**`5e07530`**).
+- **Code checkpoint:** **`(pending commit)`** — polish(proposals): clarify builder estimate actions (Block 4D; prior **`d8125ec`** / **`ea39fa7`**)
+- **Docs checkpoint:** **Block 4D Builder action clarity + estimate editing** (this header + **§6BO.13.4.9** T.3). Prior: T.2 (**`d8125ec`**); T.1 (**`ea39fa7`**); T (**`2ae400b`**).
 - **Prior code:** **`d8125ec`** visual continuity; **`ea39fa7`** document-led Builder; **`2ae400b`** Builder estimate review
-- **Next coding:** **Block 5** — Preview document-first (only after Block 4C review). Do **not** start Blocks 6–7 until Block 5 is approved. Do **not** add full proposal management, template rebuild/import of live options into existing drafts, supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
-- **Historical note:** Block 4C visual continuity: proposal title primary; attached section rail + canvas; compact Needs review strip; package modal context; Finish estimate; table-like Included estimate; Saved pricing details under More; protected systems unchanged.
+- **Next coding:** **Block 5** — Preview document-first (only after Block 4D review). Do **not** start Blocks 6–7 until Block 5 is approved. Do **not** add full proposal management, template rebuild/import of live options into existing drafts, supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
+- **Historical note:** Block 4D action clarity: Review quantities → Finish estimate focus; Set quantity → item panel; Edit package → advanced drawer; optional upgrades collapsed; included row More → Remove; protected systems unchanged.
 
 **Trust order:** Header/current checkpoint → **§6BO.13** (approved page-by-page UI flow roadmap + P0 implementation sequence — **supersedes separate Command Center language**) → **§6BM** / **§6BN** (R18 letter-phase roadmap + R18C–R18D3C implementation history) → **§6BO** / **§6BO.11** / **§6BO.12** (completed remediation side-track + **approved Stage C policy** + **operating-flow audit sequencing — complete; outcome in §6BO.13**) → **§6BL** → **§11 override**. Stage B browser smoke required local-only **`USE_PROPOSAL_SEND_FREEZE_RPC=1`** in `.env.local` (gitignored, not committed). **Do not proceed** to docs-only or next feature work unless working tree is clean. **Still do not** mutate `proposals.status = sent`, write sent `proposal_events`, move Jobs Board cards, add Job Card send activity, enable PDF/Sign/Payment, or add webhooks unless separately approved.
 
@@ -12493,7 +12493,7 @@ Package rule from **N** remains law: pre-draft package on create modal; post-dra
 
 ###### T.2 Block 4C — Builder visual continuity correction — IMPLEMENTED (2026-07-20)
 
-**Code checkpoint:** set in header after commit (`polish(proposals): refine builder visual continuity`)
+**Code checkpoint:** **`d8125ec`** — `polish(proposals): refine builder visual continuity`
 
 **Status:** Builder feels continuous with Job Card → + Proposal → Continue to Builder — balanced width, attached rail/canvas, document-like Estimate. **No Preview redesign. No pricing/math/snapshot/send/lifecycle. No SQL/migrations/packages.**
 
@@ -12506,6 +12506,34 @@ Package rule from **N** remains law: pre-draft package on create modal; post-dra
 - **Finish estimate** quantity section; Optional upgrades single heading; clean Totals copy
 
 **Smoke:** Babby **`466e393c-…`** — proposal title primary; attached shell; Included estimate anchor; Finish estimate + Set quantity; package context; Preview aligned.
+
+**Next recommended block:** see **T.3** action clarity, then **Block 5** after approval.
+
+###### T.3 Block 4D — Builder action clarity + estimate editing — IMPLEMENTED (2026-07-20)
+
+**Code checkpoint:** set in header after commit (`polish(proposals): clarify builder estimate actions`)
+
+**Status:** Builder actions match contractor intent — Review / Set quantity / Edit package separated. **No Preview redesign. No pricing/math/snapshot/send/lifecycle. No SQL/migrations/packages.**
+
+**Phase 1 trace (handlers):**
+1. Review quantities → `focusFinishEstimate` (scroll `#builder-finish-estimate`) — **not** Edit package drawer
+2. Set quantity → `openSetQuantityForLine` → `ProposalBuilderWorkbenchSetQuantityPanel`
+3. Edit package → `openEditPackage` → `ProposalBuilderWorkbenchEditOptionShell`
+4. Manual quantity persistence: `handleApplyManualQuantity` → `applyManualQuantityScopeDecision` (reusable from item panel)
+5. Remove: existing `excludeLineFromProposalOption` via included-row More menu
+6. Optional upgrade include/replace: **not supported** in current scope decisions — collapsed UI only; Set quantity when needs_quantity
+
+**Fixes:**
+- Review quantities guides to **Finish estimate**
+- Set quantity = focused item panel (no package-scope list); same save path + refresh
+- **Edit package** opens advanced drawer titled **Edit Enhanced package** (no Package Scope / Edit option primary copy)
+- Included estimate **⋯** menu: Remove from proposal + View details
+- Optional upgrades **collapsed by default** (3 available)
+- Slight rail width tighten (10.75rem)
+
+**Follow-up (not this block):** optional upgrade Add to proposal / include-replace when scope-decision support exists.
+
+**Smoke:** Babby **`466e393c-…`** — Review scrolls Finish estimate; Set quantity Starter panel only; save 12 LF → 6 remaining; Edit Enhanced package drawer; More → Remove; upgrades collapsed.
 
 **Next recommended block:** **Block 5 — Preview document-first** (only after this surface is approved).
 

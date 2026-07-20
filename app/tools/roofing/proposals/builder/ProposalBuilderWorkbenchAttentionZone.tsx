@@ -9,7 +9,7 @@ import {
   WORKBENCH_EDIT_OPTION_CHIP_ENABLED,
   WORKBENCH_EDIT_OPTION_CHIP_HINT,
   WORKBENCH_EDIT_OPTION_CHIP_SECONDARY,
-  WORKBENCH_EDIT_OPTION_TITLE,
+  WORKBENCH_EDIT_PACKAGE_TITLE,
   WORKBENCH_EDIT_OPTION_TRIGGER_SECONDARY,
   WORKBENCH_FUTURE_ACTION_CHIP,
   WORKBENCH_MODULE_DESC,
@@ -24,7 +24,7 @@ import ProposalBuilderWorkbenchLineRow from "./ProposalBuilderWorkbenchLineRow";
 
 type ProposalBuilderWorkbenchAttentionZoneProps = {
   zone: WorkbenchNeedsAttentionZone;
-  onOpenEditOption: () => void;
+  onOpenEditPackage: () => void;
   onSetQuantityForLine?: (templateItemId: string) => void;
   onRemoveFromOptionForLine?: (templateItemId: string) => void;
   manualQuantityEnabled?: boolean;
@@ -55,7 +55,10 @@ function HardBlockersSection({ zone }: { zone: WorkbenchNeedsAttentionZone["hard
       <div className={`${WORKBENCH_MODULE_INNER} space-y-1`}>
         <ul className="divide-y divide-slate-100">
           {zone.lines.map((line) => (
-            <li key={line.templateItemId} className={`${WORKBENCH_ATTENTION_ITEM} !border-0 !shadow-none !bg-transparent px-0 py-2`}>
+            <li
+              key={line.templateItemId}
+              className={`${WORKBENCH_ATTENTION_ITEM} !border-0 !bg-transparent !shadow-none px-0 py-2`}
+            >
               <ProposalBuilderWorkbenchLineRow variant="hard_blocker" line={line} compact />
             </li>
           ))}
@@ -67,14 +70,14 @@ function HardBlockersSection({ zone }: { zone: WorkbenchNeedsAttentionZone["hard
 
 function ScopeReviewSection({
   zone,
-  onOpenEditOption,
+  onOpenEditPackage,
   onSetQuantityForLine,
   manualQuantityEnabled = false,
   onRemoveFromOptionForLine,
   excludeEnabled = false,
 }: {
   zone: WorkbenchNeedsAttentionZone["scopeReview"];
-  onOpenEditOption: () => void;
+  onOpenEditPackage: () => void;
   onSetQuantityForLine?: (templateItemId: string) => void;
   manualQuantityEnabled?: boolean;
   onRemoveFromOptionForLine?: (templateItemId: string) => void;
@@ -88,6 +91,7 @@ function ScopeReviewSection({
       aria-labelledby="workbench-scope-review-heading"
       data-builder-quantity-review
       data-builder-finish-estimate
+      id="builder-finish-estimate"
     >
       <header className={WORKBENCH_SCOPE_REVIEW_ZONE_HEADER}>
         <div className="flex flex-wrap items-start justify-between gap-2">
@@ -106,11 +110,12 @@ function ScopeReviewSection({
           </div>
           <button
             type="button"
-            onClick={onOpenEditOption}
+            onClick={onOpenEditPackage}
             className={WORKBENCH_EDIT_OPTION_TRIGGER_SECONDARY}
-            title="Open Edit option — set quantity for review lines"
+            title="Open advanced package editing"
+            data-builder-edit-package
           >
-            {WORKBENCH_EDIT_OPTION_TITLE}
+            {WORKBENCH_EDIT_PACKAGE_TITLE}
           </button>
         </div>
       </header>
@@ -152,8 +157,6 @@ function ScopeReviewSection({
                       );
                     }
 
-                    // Keep Remove quiet: only when exclude is enabled — never as a
-                    // repeated disabled chip competing with Set quantity.
                     if (isRemove && canRemove) {
                       return (
                         <button
@@ -200,7 +203,7 @@ function ScopeReviewSection({
 
 export default function ProposalBuilderWorkbenchAttentionZone({
   zone,
-  onOpenEditOption,
+  onOpenEditPackage,
   onSetQuantityForLine,
   manualQuantityEnabled = false,
   onRemoveFromOptionForLine,
@@ -213,7 +216,7 @@ export default function ProposalBuilderWorkbenchAttentionZone({
       <HardBlockersSection zone={zone.hardBlockers} />
       <ScopeReviewSection
         zone={zone.scopeReview}
-        onOpenEditOption={onOpenEditOption}
+        onOpenEditPackage={onOpenEditPackage}
         onSetQuantityForLine={onSetQuantityForLine}
         manualQuantityEnabled={manualQuantityEnabled}
         onRemoveFromOptionForLine={onRemoveFromOptionForLine}

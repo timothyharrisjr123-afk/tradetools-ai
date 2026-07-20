@@ -68,6 +68,7 @@ describe("Builder estimate handoff (Block 4 / 4B / 4C)", () => {
     assert.match(estimate, /data-builder-needs-review-strip/);
     assert.match(estimate, /data-builder-review-quantities/);
     assert.match(estimate, /Needs review:/);
+    assert.match(estimate, /focusFinishEstimate/);
 
     const attentionSrc = read(
       "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchAttentionZone.tsx"
@@ -140,22 +141,28 @@ describe("Builder estimate handoff (Block 4 / 4B / 4C)", () => {
     assert.ok(included > 0 && included < attention && attention < upgrades);
   });
 
-  test("9. Remove from proposal not primary on included / quantity review", () => {
+  test("9. Remove from proposal not primary; quiet More on included rows", () => {
     const ready = read(
       "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchReadyScopeZone.tsx"
     );
-    assert.doesNotMatch(ready, /onRemoveFromOption/);
-
-    const estimate = read(
-      "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchEstimateDocument.tsx"
-    );
-    assert.match(estimate, /excludeEnabled=\{false\}/);
+    assert.match(ready, /data-builder-included-row-menu/);
+    assert.match(ready, /data-builder-remove-from-proposal/);
+    // Not a repeated primary chip next to every Set quantity.
+    assert.doesNotMatch(ready, /WORKBENCH_EDIT_OPTION_CHIP/);
 
     const attention = read(
       "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchAttentionZone.tsx"
     );
     assert.doesNotMatch(attention, /isSetQuantity \|\| isRemove/);
     assert.match(attention, /isRemove && canRemove/);
+    // Finish estimate path keeps remove off by default.
+    const estimate = read(
+      "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchEstimateDocument.tsx"
+    );
+    assert.match(
+      estimate,
+      /ProposalBuilderWorkbenchAttentionZone[\s\S]*?excludeEnabled=\{false\}/
+    );
   });
 
   test("10. Preview is primary forward action; Back to Job Card retained", () => {

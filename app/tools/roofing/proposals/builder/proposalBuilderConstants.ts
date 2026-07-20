@@ -815,7 +815,11 @@ export const WORKBENCH_TOTALS_AMOUNT_STACK =
 export const WORKBENCH_TOTALS_FOOTNOTE = "mt-3 text-[11px] leading-snug text-slate-400";
 
 /** R17C2 Phase 2.6 — Edit Option shell (UI only; no backend). */
-export const WORKBENCH_EDIT_OPTION_TITLE = "Edit option";
+/** @deprecated Block 4D — use WORKBENCH_EDIT_PACKAGE_TITLE in contractor UI. */
+export const WORKBENCH_EDIT_OPTION_TITLE = "Edit package";
+
+/** Block 4D — advanced package drawer / Finish estimate action. */
+export const WORKBENCH_EDIT_PACKAGE_TITLE = "Edit package";
 
 export const WORKBENCH_EDIT_OPTION_COMING_SOON_BADGE =
   "inline-flex items-center rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-500";
