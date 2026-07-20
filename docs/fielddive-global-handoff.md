@@ -45,7 +45,7 @@
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** **pending** — polish(proposals): finish proposal creation surface (Block 3 final polish; prior **`e8c6218`** / **`ed8a140`**)
+- **Code checkpoint:** **`287bca8`** — polish(proposals): finish proposal creation surface (Block 3 final polish; prior **`e8c6218`** / **`ed8a140`**)
 - **Docs checkpoint:** **Block 3 final polish** — status/activity/review/rows finished (this header + **§6BO.13.4.9** S.2). Prior: S.1 modal polish (**`e8c6218`**); Block 3 (**S**); Block 2 (**R** / **R.1**); Block 1 (**Q**).
 - **Prior code:** **`e8c6218`** modal contractor polish; **`ed8a140`** create flow
 - **Next coding:** **Block 4** — Builder handoff polish. Do **not** start Blocks 5–7 until Block 4 is approved. Do **not** add full proposal management, template rebuild/import of live options into existing drafts, supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
