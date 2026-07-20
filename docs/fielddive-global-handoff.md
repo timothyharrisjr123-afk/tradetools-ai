@@ -45,7 +45,7 @@
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** **`(pending commit)`** — polish(proposals): simplify builder estimate review (Block 4; prior **`5e07530`** / **`287bca8`** / **`e8c6218`**)
+- **Code checkpoint:** **`2ae400b`** — polish(proposals): simplify builder estimate review (Block 4; prior **`5e07530`** / **`287bca8`** / **`e8c6218`**)
 - **Docs checkpoint:** **Block 4 Builder estimate review** — handoff + Included estimate anchor (this header + **§6BO.13.4.9** T). Prior: S.3 (**`5e07530`**); S.2 (**`287bca8`**); Block 3 (**S**); Block 2 (**R** / **R.1**); Block 1 (**Q**).
 - **Prior code:** **`5e07530`** proposal creation copy; **`287bca8`** Proposals surface finish; **`e8c6218`** modal polish
 - **Next coding:** **Block 5** — Preview document-first (only after Block 4 review). Do **not** start Blocks 6–7 until Block 5 is approved. Do **not** add full proposal management, template rebuild/import of live options into existing drafts, supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
