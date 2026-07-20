@@ -12455,7 +12455,7 @@ Package rule from **N** remains law: pre-draft package on create modal; post-dra
 
 ###### T. Block 4 — Builder estimate review simplification + handoff — IMPLEMENTED (2026-07-20)
 
-**Code checkpoint:** set in header after commit (`polish(proposals): simplify builder estimate review`)
+**Code checkpoint:** **`2ae400b`**
 
 **Status:** Builder first Estimate viewport aligns with + Proposal → Continue to Builder. **No Preview redesign. No Templates/Catalog. No pricing/math/snapshot/send/lifecycle. No SQL/migrations/packages. No smoke deletion.**
 
