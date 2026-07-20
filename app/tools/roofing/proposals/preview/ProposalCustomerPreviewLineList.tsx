@@ -4,47 +4,57 @@ import type { CustomerPreviewEstimateLine } from "@/app/lib/proposalCustomerEsti
 
 type ProposalCustomerPreviewLineListProps = {
   lines: CustomerPreviewEstimateLine[];
-  /** Softer row treatment for optional upgrades. */
+  /** Softer row treatment for optional upgrades (unsupported in Preview — kept for type compat). */
   variant?: "scope" | "upgrade";
 };
 
-function valueClassName(kind: CustomerPreviewEstimateLine["kind"]): string {
-  if (kind === "priced") {
-    return "text-[15px] font-semibold tabular-nums text-slate-950";
-  }
-  return "inline-flex items-center rounded-full border border-slate-200 bg-white px-2.5 py-0.5 text-[12px] font-medium text-slate-600";
-}
-
+/**
+ * Block 5 Roofr-first — itemized customer-safe estimate rows.
+ * Item + value only. No edit actions, menus, or contractor labels.
+ */
 export default function ProposalCustomerPreviewLineList({
   lines,
-  variant = "scope",
 }: ProposalCustomerPreviewLineListProps) {
   if (lines.length === 0) {
     return null;
   }
 
-  const rowShell =
-    variant === "upgrade"
-      ? "rounded-lg border border-slate-200/70 bg-white px-4 py-3.5"
-      : "rounded-lg border border-slate-100 bg-slate-50/40 px-4 py-3.5";
-
   return (
-    <ul className="space-y-2.5">
-      {lines.map((line) => (
-        <li
-          key={line.templateItemId}
-          className={`${rowShell} flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-6`}
-        >
-          <p className="min-w-0 text-[15px] font-medium leading-snug text-slate-900">
-            {line.name}
-          </p>
-          {line.valueLabel != null ? (
-            <p className={`shrink-0 sm:text-right ${valueClassName(line.kind)}`}>
-              {line.valueLabel}
+    <div className="overflow-hidden rounded-lg border border-slate-200/80">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 border-b border-slate-200/80 bg-slate-50/80 px-4 py-2.5">
+        <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+          Item
+        </span>
+        <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+          Price
+        </span>
+      </div>
+      <ul className="divide-y divide-slate-100 bg-white">
+        {lines.map((line) => (
+          <li
+            key={line.templateItemId}
+            className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 px-4 py-3"
+            data-preview-estimate-line
+          >
+            <p className="min-w-0 text-[15px] font-medium leading-snug text-slate-900">
+              {line.name}
             </p>
-          ) : null}
-        </li>
-      ))}
-    </ul>
+            {line.valueLabel != null ? (
+              <p
+                className={
+                  line.kind === "priced"
+                    ? "shrink-0 text-right text-[15px] font-semibold tabular-nums text-slate-950"
+                    : "shrink-0 text-right text-[13px] font-medium text-slate-600"
+                }
+              >
+                {line.valueLabel}
+              </p>
+            ) : (
+              <span className="shrink-0" aria-hidden />
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

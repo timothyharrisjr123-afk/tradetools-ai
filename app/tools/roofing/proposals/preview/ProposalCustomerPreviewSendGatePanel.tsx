@@ -49,6 +49,8 @@ type ProposalCustomerPreviewSendGatePanelProps = {
   pricingStale?: boolean;
   loading: boolean;
   emailDeliveryConfigured: boolean;
+  /** Block 5 Roofr-first Preview — hide Signature/PDF/Payment staging rows. */
+  hideDeferredActions?: boolean;
 };
 
 const SEND_PRIMARY_ACTION =
@@ -82,6 +84,7 @@ export default function ProposalCustomerPreviewSendGatePanel({
   pricingStale = false,
   loading,
   emailDeliveryConfigured,
+  hideDeferredActions = false,
 }: ProposalCustomerPreviewSendGatePanelProps) {
   const [sessionCustomerLink, setSessionCustomerLink] = useState<SendPrepSessionLink | null>(null);
   const [prepPending, setPrepPending] = useState(false);
@@ -484,24 +487,26 @@ export default function ProposalCustomerPreviewSendGatePanel({
         refreshKey={deliveryHistoryRefreshKey}
       />
 
-      <div className="space-y-2 border-t border-slate-200/80 pt-4">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Coming later
-        </p>
-        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-          {readiness.deferredActions.map((action) => (
-            <button
-              key={action.id}
-              type="button"
-              disabled
-              aria-disabled="true"
-              className={`${BUILDER_DISABLED_ACTION} w-full sm:w-auto`}
-            >
-              {action.label}
-            </button>
-          ))}
+      {!hideDeferredActions ? (
+        <div className="space-y-2 border-t border-slate-200/80 pt-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Coming later
+          </p>
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+            {readiness.deferredActions.map((action) => (
+              <button
+                key={action.id}
+                type="button"
+                disabled
+                aria-disabled="true"
+                className={`${BUILDER_DISABLED_ACTION} w-full sm:w-auto`}
+              >
+                {action.label}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      ) : null}
     </section>
   );
 }

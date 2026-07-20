@@ -76,10 +76,12 @@ export const BUILDER_COVER_DRAFT_NOTE = "Draft proposal — not sent to customer
 
 /** R17B — contractor Preview chrome (authenticated, not sent). */
 export const CUSTOMER_PREVIEW_PAGE_TITLE = "Customer proposal preview";
-export const CUSTOMER_PREVIEW_DRAFT_NOTICE =
-  "Draft preview — not sent to customer.";
+export const CUSTOMER_PREVIEW_DRAFT_NOTICE = "Draft preview · Not sent";
 export const CUSTOMER_PREVIEW_BACK_TO_BUILDER_LABEL = "Back to Builder";
 export const CUSTOMER_PREVIEW_SEND_SHARING_LABEL = "Send / sharing";
+export const CUSTOMER_PREVIEW_COMPACT_READINESS_COPY =
+  "Some estimate items still need quantities before totals are final.";
+export const CUSTOMER_PREVIEW_RETURN_TO_BUILDER_ACTION = "Return to Builder";
 
 /** Lifecycle actions remain disabled in R16A and later roadmap phases until explicitly enabled. */
 export const BUILDER_LIFECYCLE_ACTIONS_LOCKED = true;

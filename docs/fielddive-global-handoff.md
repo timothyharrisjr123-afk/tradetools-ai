@@ -45,11 +45,11 @@
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** **`12fcd4e`** — `polish(proposals): strip preview cockpit from document` (baseline **`e90d135`**). Builder checkpoint **unchanged** at **`05c1edb`**.
-- **Docs checkpoint:** **Block 5 Preview corrective** (this header + **§6BO.13.4.9** T.6.1). Prior: T.6 document-first (**`e90d135`**); 4G (**`05c1edb`**); 4F (**`232e399`**); edit rules (**`9274ed4`**).
-- **Prior code:** **`e90d135`** Preview document-first; **`05c1edb`** 4G density; **`232e399`** finish builder visual polish
+- **Code checkpoint:** **Block 5 Roofr-first Preview redesign** — `polish(proposals): redesign preview proposal experience` (pending commit). Prior/interim: **`12fcd4e`**, **`e90d135`**. Builder checkpoint **unchanged** at **`05c1edb`**.
+- **Docs checkpoint:** **Block 5 Roofr-first Preview redesign** (this header + **§6BO.13.4.9** T.6.2). Prior: T.6.1 interim cockpit strip (**`12fcd4e`**); T.6 document-first (**`e90d135`**); 4G (**`05c1edb`**).
+- **Prior code:** **`12fcd4e`** interim strip; **`e90d135`** document-first; **`05c1edb`** 4G density
 - **Next coding:** **Block 6** — only after **Block 5 visual approval**. Do **not** start Blocks 6–7 until Block 5 is approved. Do **not** add full proposal management, template rebuild/import of live options into existing drafts, supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
-- **Historical note:** Block 5 corrective: Preview answers “What will the customer see?” — customer document primary; send/public collapsed behind **Send / sharing**; stub/placeholder pages + optional upgrades + cover “Pricing incomplete” removed from the document; incomplete totals stay as contractor amber warning above the document. Baseline **`e90d135` kept** (not reverted). Builder unchanged at **`05c1edb`**. Protected systems unchanged.
+- **Historical note:** Block 5 Roofr-first redesign: thin contractor shell; compact readiness; centered customer document hero (Item/Price itemized scope); **Send / sharing** as a right-side drawer (closed by default; Coming later hidden); unsupported GBB/upgrades/signature/PDF/payment/coming-later not rendered. Prior **`e90d135`** + interim **`12fcd4e`** kept in history (not reverted). Builder unchanged. Protected systems unchanged.
 
 **Trust order:** Header/current checkpoint → **§6BO.13** (approved page-by-page UI flow roadmap + P0 implementation sequence — **supersedes separate Command Center language**) → **§6BM** / **§6BN** (R18 letter-phase roadmap + R18C–R18D3C implementation history) → **§6BO** / **§6BO.11** / **§6BO.12** (completed remediation side-track + **approved Stage C policy** + **operating-flow audit sequencing — complete; outcome in §6BO.13**) → **§6BL** → **§11 override**. Stage B browser smoke required local-only **`USE_PROPOSAL_SEND_FREEZE_RPC=1`** in `.env.local` (gitignored, not committed). **Do not proceed** to docs-only or next feature work unless working tree is clean. **Still do not** mutate `proposals.status = sent`, write sent `proposal_events`, move Jobs Board cards, add Job Card send activity, enable PDF/Sign/Payment, or add webhooks unless separately approved.
 
@@ -59,8 +59,9 @@
 
 | Commit | Summary |
 |--------|---------|
-| `12fcd4e` | **Block 5 corrective** — strip Preview cockpit from customer document: Send/sharing collapsed; stub/placeholder pages + optional upgrades + cover Pricing incomplete omitted; **227/227** focused tests; Babby smoke PASS; baseline **`e90d135` kept**; Builder **`05c1edb`** unchanged (§6BO.13.4.9 T.6.1) |
-| `e90d135` | **Block 5** — Preview document-first: customer document first; contractor tools below; readiness notes contractor-safe + Return-to-Builder; **220/220** tests (§6BO.13.4.9 T.6) |
+| *(pending)* | **Block 5 Roofr-first** — redesign Preview proposal experience: thin shell, compact readiness, centered document hero, Send/sharing drawer (Coming later hidden); **230/230** focused tests; Babby smoke PASS; Builder **`05c1edb`** unchanged (§6BO.13.4.9 T.6.2) |
+| `12fcd4e` | **Block 5 interim** — strip Preview cockpit / collapse Send/sharing (not visually approved) (§6BO.13.4.9 T.6.1) |
+| `e90d135` | **Block 5** — Preview document-first baseline (§6BO.13.4.9 T.6) |
 | `ae8e479` | **Docs** — Finish pinning Block 4G T.5 code checkpoint (`05c1edb`) |
 | *(pending)* | **Docs** — Catalog naming roadmap correction before Slice 2 (§6BO.13) |
 | `36a0b55` | **Slice 1** — Jobs command surface P0: default route → Job Board; Jobs/Setup/Advanced nav; setup guidance; legacy de-emphasis; Roofr-style job card snapshots; **no lifecycle/status movement** |
@@ -12618,7 +12619,29 @@ Package rule from **N** remains law: pre-draft package on create modal; post-dra
 
 **Smoke:** Babby **`466e393c-…`** — Customer proposal preview; Send / sharing collapsed (no checklist on first paint); amber “6 estimate items…” + Return to Builder; cover Investment summary shows Enhanced without Pricing incomplete; Selected package + Included scope 7 lines; no Optional upgrades; Project overview polished packet copy only; no Warranty/Terms/Scope-notes stubs; **0 console errors**.
 
-**Follow-ups (not this block):** Builder vs Preview blocking-line count (5 vs 6); Item/Qty/Price columns on customer estimate; enable optional upgrades only when customer selection is supported.
+**Follow-ups (not this block):** Builder vs Preview blocking-line count (5 vs 6); enable optional upgrades / GBB customer choice only when supported.
+
+**Status note:** T.6.1 was **interim / not visually approved**. Superseded by Roofr-first redesign **T.6.2**.
+
+**Next recommended block:** see **T.6.2**.
+
+###### T.6.2 Block 5 Roofr-first Preview redesign — IMPLEMENTED (2026-07-20)
+
+**Code checkpoint:** pending commit — `polish(proposals): redesign preview proposal experience`. **Prior/interim kept: `e90d135`, `12fcd4e` (not reverted). Builder unchanged at `05c1edb`.**
+
+**Status:** Premium Roofr-first Preview — answers **“What will the customer see?”** with a thin contractor shell, compact readiness, centered document hero, and Send / sharing as a **right-side drawer** (closed by default). **No pricing/math/resolver/snapshot changes. No SQL/migrations/packages. No send/public/lifecycle/PDF/sign/payment behavior change (UI placement + Coming later hidden only). No Builder redesign.**
+
+**Layout:**
+- **Shell:** Back to Builder · Customer proposal preview · `Babby D · address` · Draft preview · Not sent · primary **Send / sharing**
+- **Readiness:** compact strip — “Some estimate items still need quantities…” + **Return to Builder** (outside document; no cockpit checklist on main page)
+- **Document hero:** centered `max-w-3xl` cards — company/cover, selected package, Item/Price itemized included scope, totals only when complete, meaningful text pages only
+- **Send / sharing drawer:** Public Access + Send Gate + delivery history; **Coming later** (Signature/PDF/Payment) hidden via `hideDeferredActions`
+
+**Hidden until supported:** GBB customer picker, optional upgrade selection, fake discount chrome, e-sign/co-signer, PDF, payments, opened/signed activity, Coming later rows, photos/PDF placeholders, contractor stub copy.
+
+**Tests:** `proposalCustomerPreviewDocumentFirst.test.ts` Roofr-first shell/drawer/readiness/document guards; focused suite **230/230** pass.
+
+**Smoke:** Babby **`466e393c-…`** — Builder 4G intact + Preview CTA; Preview first paint = thin shell + compact readiness + document hero (no stacked admin tools); Item/Price scope; Investment summary Enhanced without Pricing incomplete; Send / sharing opens dialog drawer; no Coming later; Back to Builder works; **0 console errors**.
 
 **Next recommended block:** **Block 6** — only after **Block 5 visual approval**.
 

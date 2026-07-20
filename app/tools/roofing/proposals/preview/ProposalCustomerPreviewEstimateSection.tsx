@@ -54,9 +54,9 @@ export default function ProposalCustomerPreviewEstimateSection({
   const pricingComplete = optionCustomerView?.pricingComplete ?? false;
 
   return (
-    <article className={BUILDER_CANVAS}>
+    <article className={BUILDER_CANVAS} data-preview-estimate-section>
       <header className={BUILDER_CANVAS_HERO_DIVIDER}>
-        <div className="space-y-2 px-7 pb-5 pt-5">
+        <div className="space-y-1 px-7 pb-4 pt-5">
           <p className={BUILDER_CANVAS_KICKER}>{CUSTOMER_PREVIEW_ESTIMATE_CHAPTER_KICKER}</p>
           <h2 className="text-xl font-semibold leading-tight tracking-tight text-slate-950">
             {chapterTitle}
@@ -67,7 +67,7 @@ export default function ProposalCustomerPreviewEstimateSection({
         </div>
       </header>
 
-      <div className={`${BUILDER_CANVAS_INNER} px-7 pb-7 pt-6`}>
+      <div className={`${BUILDER_CANVAS_INNER} px-7 pb-7 pt-5`}>
         <ProposalCustomerPreviewEstimateDocument
           presentation={presentation}
           chapterTitle={chapterTitle}

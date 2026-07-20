@@ -18,6 +18,8 @@ type ProposalCustomerPreviewPublicAccessPanelProps = {
   proposalId: string;
   proposal: ProposalRecord | null;
   loading: boolean;
+  /** Block 5 Roofr-first Preview — hide Signature/PDF/Payment staging rows. */
+  hideDeferredActions?: boolean;
 };
 
 const PRIMARY_ACTION =
@@ -46,6 +48,7 @@ export default function ProposalCustomerPreviewPublicAccessPanel({
   proposalId,
   proposal,
   loading,
+  hideDeferredActions = false,
 }: ProposalCustomerPreviewPublicAccessPanelProps) {
   const [sessionLink, setSessionLink] = useState<PublicReviewSessionLink | null>(null);
   const [mintPending, setMintPending] = useState(false);
@@ -205,24 +208,26 @@ export default function ProposalCustomerPreviewPublicAccessPanel({
         </button>
       </div>
 
-      <div className="space-y-2 border-t border-slate-200/80 pt-4">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Coming later
-        </p>
-        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-          {readiness.deferredActions.map((action) => (
-            <button
-              key={action.id}
-              type="button"
-              disabled
-              aria-disabled="true"
-              className={`${BUILDER_DISABLED_ACTION} w-full sm:w-auto`}
-            >
-              {action.label}
-            </button>
-          ))}
+      {!hideDeferredActions ? (
+        <div className="space-y-2 border-t border-slate-200/80 pt-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Coming later
+          </p>
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+            {readiness.deferredActions.map((action) => (
+              <button
+                key={action.id}
+                type="button"
+                disabled
+                aria-disabled="true"
+                className={`${BUILDER_DISABLED_ACTION} w-full sm:w-auto`}
+              >
+                {action.label}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      ) : null}
     </section>
   );
 }
