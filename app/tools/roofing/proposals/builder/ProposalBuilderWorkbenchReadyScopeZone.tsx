@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { MoreHorizontal } from "lucide-react";
 import type { WorkbenchScopeSection } from "@/app/lib/proposalBuilderWorkbenchEstimatePresenter";
 import {
   WORKBENCH_MODULE,
@@ -10,10 +9,21 @@ import {
 } from "./proposalBuilderConstants";
 import ProposalBuilderWorkbenchLineRow from "./ProposalBuilderWorkbenchLineRow";
 import ProposalBuilderWorkbenchLineDetails from "./ProposalBuilderWorkbenchLineDetails";
+import ProposalBuilderWorkbenchRowMenu from "./ProposalBuilderWorkbenchRowMenu";
+import ProposalBuilderWorkbenchInlineQuantityEditor from "./ProposalBuilderWorkbenchInlineQuantityEditor";
 
 type ProposalBuilderWorkbenchReadyScopeZoneProps = {
   sections: readonly WorkbenchScopeSection[];
   onEditQuantityForLine?: (templateItemId: string) => void;
+  editingQuantityLineId?: string | null;
+  onCancelSetQuantity?: () => void;
+  onSaveQuantity?: (
+    templateItemId: string,
+    quantity: string,
+    quantityDisplayLabel?: string | null
+  ) => Promise<void>;
+  quantitySaveInFlight?: boolean;
+  quantitySaveError?: string | null;
   onRemoveFromProposal?: (templateItemId: string) => void;
   removeEnabled?: boolean;
   removeInFlight?: boolean;
@@ -22,6 +32,11 @@ type ProposalBuilderWorkbenchReadyScopeZoneProps = {
 export default function ProposalBuilderWorkbenchReadyScopeZone({
   sections,
   onEditQuantityForLine,
+  editingQuantityLineId = null,
+  onCancelSetQuantity,
+  onSaveQuantity,
+  quantitySaveInFlight = false,
+  quantitySaveError = null,
   onRemoveFromProposal,
   removeEnabled = false,
   removeInFlight = false,
@@ -29,6 +44,7 @@ export default function ProposalBuilderWorkbenchReadyScopeZone({
   const lines = sections.flatMap((section) => section.lines);
   const lineCount = lines.length;
   const [detailsLineId, setDetailsLineId] = useState<string | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   return (
     <section
@@ -46,13 +62,13 @@ export default function ProposalBuilderWorkbenchReadyScopeZone({
         </p>
       </header>
 
-      <div className={WORKBENCH_MODULE_INNER}>
+      <div className={`${WORKBENCH_MODULE_INNER} overflow-visible`}>
         {lineCount === 0 ? (
           <p className="text-sm text-slate-500">
             No included lines yet. Finish the estimate to populate this section.
           </p>
         ) : (
-          <div>
+          <div className="overflow-visible">
             <div
               className="mb-1 hidden grid-cols-[minmax(0,1fr)_5.5rem_6rem_1.5rem] gap-x-3 border-b border-slate-100 pb-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-400 sm:grid"
               data-builder-estimate-column-headers
@@ -62,70 +78,81 @@ export default function ProposalBuilderWorkbenchReadyScopeZone({
               <span className="text-right">Price</span>
               <span />
             </div>
-            <ul>
+            <ul className="overflow-visible">
               {lines.map((line) => {
                 const showDetails = detailsLineId === line.templateItemId;
                 const canRemove = removeEnabled && Boolean(onRemoveFromProposal);
+                const isEditing = editingQuantityLineId === line.templateItemId;
 
                 return (
                   <li
                     key={line.templateItemId}
-                    className="border-b border-slate-100 last:border-b-0"
+                    className="overflow-visible border-b border-slate-100 last:border-b-0"
                     data-builder-included-estimate-row
                   >
-                    <div className="flex items-start gap-1">
-                      <div className="min-w-0 flex-1">
-                        <ProposalBuilderWorkbenchLineRow
-                          variant="scope"
-                          line={line}
-                          as="div"
-                          hideDetails
-                          onEditQuantity={
-                            line.manualQuantityActive && onEditQuantityForLine
-                              ? () => onEditQuantityForLine(line.templateItemId)
-                              : undefined
-                          }
+                    {isEditing && onSaveQuantity ? (
+                      <div className="py-1.5">
+                        <ProposalBuilderWorkbenchInlineQuantityEditor
+                          line={{
+                            templateItemId: line.templateItemId,
+                            name: line.name,
+                            unitLabel: line.detailMeta.unit?.trim() || null,
+                          }}
+                          inFlight={quantitySaveInFlight}
+                          error={quantitySaveError}
+                          onCancel={() => onCancelSetQuantity?.()}
+                          onSave={onSaveQuantity}
                         />
                       </div>
-                      <details
-                        className="relative mt-1.5 shrink-0"
-                        data-builder-included-row-menu
-                        data-builder-included-row-menu-for={line.templateItemId}
-                      >
-                        <summary
-                          className="flex cursor-pointer list-none items-center justify-center rounded-md p-1 text-slate-400 hover:bg-slate-50 hover:text-slate-600 [&::-webkit-details-marker]:hidden"
-                          aria-label={`More actions for ${line.name}`}
-                        >
-                          <MoreHorizontal className="h-4 w-4" aria-hidden />
-                        </summary>
-                        <div className="absolute right-0 z-20 mt-1 min-w-[11rem] rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
-                          {canRemove ? (
-                            <button
-                              type="button"
-                              disabled={removeInFlight}
-                              className="block w-full px-3 py-1.5 text-left text-[12px] font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
-                              data-builder-remove-from-proposal
-                              onClick={() => onRemoveFromProposal!(line.templateItemId)}
-                            >
-                              {WORKBENCH_REMOVE_FROM_OPTION_ACTION}
-                            </button>
-                          ) : null}
-                          <button
-                            type="button"
-                            className="block w-full px-3 py-1.5 text-left text-[12px] font-medium text-slate-700 hover:bg-slate-50"
-                            data-builder-view-line-details
-                            onClick={() =>
-                              setDetailsLineId((current) =>
-                                current === line.templateItemId ? null : line.templateItemId
-                              )
+                    ) : (
+                      <div className="flex items-start gap-1">
+                        <div className="min-w-0 flex-1">
+                          <ProposalBuilderWorkbenchLineRow
+                            variant="scope"
+                            line={line}
+                            as="div"
+                            hideDetails
+                            onEditQuantity={
+                              line.manualQuantityActive && onEditQuantityForLine
+                                ? () => onEditQuantityForLine(line.templateItemId)
+                                : undefined
                             }
-                          >
-                            {showDetails ? "Hide details" : "View details"}
-                          </button>
+                          />
                         </div>
-                      </details>
-                    </div>
-                    {showDetails ? (
+                        <div className="mt-1.5 shrink-0">
+                          <ProposalBuilderWorkbenchRowMenu
+                            rowId={line.templateItemId}
+                            rowLabel={line.name}
+                            openMenuId={openMenuId}
+                            onOpenMenuIdChange={setOpenMenuId}
+                            actions={[
+                              ...(canRemove
+                                ? [
+                                    {
+                                      id: "remove",
+                                      label: WORKBENCH_REMOVE_FROM_OPTION_ACTION,
+                                      disabled: removeInFlight,
+                                      onSelect: () =>
+                                        onRemoveFromProposal!(line.templateItemId),
+                                    },
+                                  ]
+                                : []),
+                              {
+                                id: "details",
+                                label: showDetails ? "Hide details" : "View details",
+                                onSelect: () =>
+                                  setDetailsLineId((current) =>
+                                    current === line.templateItemId
+                                      ? null
+                                      : line.templateItemId
+                                  ),
+                              },
+                            ]}
+                          />
+                        </div>
+                      </div>
+                    )}
+                    {showDetails && !isEditing ? (
                       <div className="pb-2" data-builder-included-line-details>
                         <ProposalBuilderWorkbenchLineDetails detailMeta={line.detailMeta} />
                       </div>

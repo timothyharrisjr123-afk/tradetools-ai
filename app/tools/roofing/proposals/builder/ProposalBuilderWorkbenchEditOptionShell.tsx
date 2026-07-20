@@ -355,9 +355,10 @@ export default function ProposalBuilderWorkbenchEditOptionShell({
                   ? `Edit ${optionLabel.trim()} package`
                   : WORKBENCH_EDIT_PACKAGE_TITLE}
               </h3>
-              <p className={`${WORKBENCH_MODULE_DESC} mt-2`} id="workbench-edit-option-desc">
-                {scopeHint}
+              <p className={`${WORKBENCH_MODULE_DESC} mt-1`} id="workbench-edit-option-desc">
+                Advanced package settings for this proposal.
               </p>
+              <p className="mt-1.5 text-[12px] leading-snug text-slate-500">{scopeHint}</p>
             </div>
             <button
               type="button"

@@ -1,46 +1,48 @@
 "use client";
 
 import {
-  isUpgradeLineExcludeEligible,
   isUpgradeLineScopeReviewEligible,
-  WORKBENCH_SCOPE_REVIEW_FUTURE_ACTIONS,
   type WorkbenchUpgradesZone,
 } from "@/app/lib/proposalBuilderWorkbenchEstimatePresenter";
 import {
   WORKBENCH_EDIT_OPTION_CHIP_ENABLED,
-  WORKBENCH_EDIT_OPTION_CHIP_HINT,
-  WORKBENCH_EDIT_OPTION_CHIP_SECONDARY,
-  WORKBENCH_EDIT_QUANTITY_ACTION,
-  WORKBENCH_FUTURE_ACTION_CHIP,
   WORKBENCH_MODULE_COMPACT,
   WORKBENCH_MODULE_INNER,
-  WORKBENCH_REMOVE_FROM_OPTION_ACTION,
   WORKBENCH_UPGRADES_EMPTY,
   WORKBENCH_UPGRADES_ZONE,
 } from "./proposalBuilderConstants";
 import ProposalBuilderWorkbenchLineRow from "./ProposalBuilderWorkbenchLineRow";
+import ProposalBuilderWorkbenchInlineQuantityEditor from "./ProposalBuilderWorkbenchInlineQuantityEditor";
 
 type ProposalBuilderWorkbenchUpgradesZoneProps = {
   zone: WorkbenchUpgradesZone;
-  onSetQuantityForLine?: (templateItemId: string) => void;
-  onEditQuantityForLine?: (templateItemId: string) => void;
-  onRemoveFromOptionForLine?: (templateItemId: string) => void;
+  editingQuantityLineId?: string | null;
+  onStartSetQuantity?: (templateItemId: string) => void;
+  onCancelSetQuantity?: () => void;
+  onSaveQuantity?: (
+    templateItemId: string,
+    quantity: string,
+    quantityDisplayLabel?: string | null
+  ) => Promise<void>;
+  quantitySaveInFlight?: boolean;
+  quantitySaveError?: string | null;
   manualQuantityEnabled?: boolean;
-  excludeEnabled?: boolean;
 };
 
 /**
- * Block 4D — optional upgrades collapsed by default.
- * Add/include/replace is not wired: no existing scope-decision “add upgrade to
- * proposal” path in this block — Set quantity only when needs_quantity.
+ * Block 4E — optional upgrades collapsed by default.
+ * Include/replace is not supported by current scope decisions
+ * (manual_quantity | excluded | visibility_override only) — no fake Add buttons.
  */
 export default function ProposalBuilderWorkbenchUpgradesZone({
   zone,
-  onSetQuantityForLine,
-  onEditQuantityForLine,
-  onRemoveFromOptionForLine,
+  editingQuantityLineId = null,
+  onStartSetQuantity,
+  onCancelSetQuantity,
+  onSaveQuantity,
+  quantitySaveInFlight = false,
+  quantitySaveError = null,
   manualQuantityEnabled = false,
-  excludeEnabled = false,
 }: ProposalBuilderWorkbenchUpgradesZoneProps) {
   if (!zone.show) return null;
 
@@ -97,8 +99,12 @@ export default function ProposalBuilderWorkbenchUpgradesZone({
         </summary>
 
         <div className={WORKBENCH_MODULE_INNER}>
-          <p className="mb-2 text-[12px] text-slate-500">
-            Available for this proposal.
+          <p
+            className="mb-2 rounded-md border border-slate-100 bg-slate-50/70 px-2.5 py-2 text-[12px] leading-snug text-slate-600"
+            data-builder-upgrade-selection-follow-up
+          >
+            Upgrade selection follow-up needed. Adding or replacing upgrades on
+            this proposal is not available yet.
           </p>
           <ul>
             {lines.map((line) => {
@@ -106,94 +112,56 @@ export default function ProposalBuilderWorkbenchUpgradesZone({
               const canSetQuantity =
                 manualQuantityEnabled &&
                 needsQuantity &&
-                Boolean(onSetQuantityForLine);
-              const canEditQuantity =
-                line.manualQuantityActive && Boolean(onEditQuantityForLine);
-              const canRemove =
-                excludeEnabled &&
-                isUpgradeLineExcludeEligible(line) &&
-                Boolean(onRemoveFromOptionForLine);
-              const showActionRow =
-                canSetQuantity ||
-                canEditQuantity ||
-                (canRemove && line.attentionReasons.length > 0);
+                Boolean(onStartSetQuantity) &&
+                Boolean(onSaveQuantity);
+              const isEditing = editingQuantityLineId === line.templateItemId;
 
               return (
-                <li key={line.templateItemId} className="space-y-1">
-                  <ProposalBuilderWorkbenchLineRow
-                    variant="scope"
-                    line={line}
-                    as="div"
-                    hideDetails
-                  />
-                  {needsQuantity ? null : (
-                    <p className="pb-1 text-[11px] font-medium text-slate-500">
-                      Optional · priced for review
-                    </p>
-                  )}
-                  {showActionRow ? (
-                    <div className="flex flex-wrap gap-1.5 pb-1.5">
-                      {WORKBENCH_SCOPE_REVIEW_FUTURE_ACTIONS.map((action) => {
-                        const isSetQuantity = action.id === "set_quantity";
-                        const isRemove = action.id === "remove";
-
-                        if (isSetQuantity && canSetQuantity) {
-                          return (
+                <li key={line.templateItemId} className="space-y-1 py-1">
+                  {isEditing ? (
+                    <ProposalBuilderWorkbenchInlineQuantityEditor
+                      line={{
+                        templateItemId: line.templateItemId,
+                        name: line.name,
+                        unitLabel: line.detailMeta.unit?.trim() || null,
+                      }}
+                      inFlight={quantitySaveInFlight}
+                      error={quantitySaveError}
+                      onCancel={() => onCancelSetQuantity?.()}
+                      onSave={onSaveQuantity!}
+                    />
+                  ) : (
+                    <>
+                      <ProposalBuilderWorkbenchLineRow
+                        variant="scope"
+                        line={line}
+                        as="div"
+                        hideDetails
+                      />
+                      <div className="flex flex-wrap items-center gap-2 pb-1">
+                        {needsQuantity ? (
+                          canSetQuantity ? (
                             <button
-                              key={action.id}
                               type="button"
                               className={WORKBENCH_EDIT_OPTION_CHIP_ENABLED}
-                              onClick={() => onSetQuantityForLine!(line.templateItemId)}
+                              onClick={() => onStartSetQuantity!(line.templateItemId)}
                               data-builder-set-quantity
                             >
-                              {action.label}
+                              Set quantity
                             </button>
-                          );
-                        }
-
-                        if (isRemove && canRemove) {
-                          return (
-                            <button
-                              key={action.id}
-                              type="button"
-                              className={WORKBENCH_EDIT_OPTION_CHIP_SECONDARY}
-                              onClick={() =>
-                                onRemoveFromOptionForLine!(line.templateItemId)
-                              }
-                            >
-                              {WORKBENCH_REMOVE_FROM_OPTION_ACTION}
-                            </button>
-                          );
-                        }
-
-                        if (isSetQuantity && manualQuantityEnabled) {
-                          return (
-                            <button
-                              key={action.id}
-                              type="button"
-                              disabled
-                              aria-disabled="true"
-                              className={WORKBENCH_FUTURE_ACTION_CHIP}
-                              title={WORKBENCH_EDIT_OPTION_CHIP_HINT}
-                            >
-                              {action.label}
-                            </button>
-                          );
-                        }
-
-                        return null;
-                      })}
-                      {canEditQuantity ? (
-                        <button
-                          type="button"
-                          className={WORKBENCH_EDIT_OPTION_CHIP_ENABLED}
-                          onClick={() => onEditQuantityForLine!(line.templateItemId)}
-                        >
-                          {WORKBENCH_EDIT_QUANTITY_ACTION}
-                        </button>
-                      ) : null}
-                    </div>
-                  ) : null}
+                          ) : (
+                            <span className="text-[11px] font-medium text-slate-500">
+                              Needs quantity
+                            </span>
+                          )
+                        ) : (
+                          <span className="text-[11px] font-medium text-slate-500">
+                            Optional · priced for review
+                          </span>
+                        )}
+                      </div>
+                    </>
+                  )}
                 </li>
               );
             })}

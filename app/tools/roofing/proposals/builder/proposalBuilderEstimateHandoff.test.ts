@@ -145,24 +145,20 @@ describe("Builder estimate handoff (Block 4 / 4B / 4C)", () => {
     const ready = read(
       "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchReadyScopeZone.tsx"
     );
-    assert.match(ready, /data-builder-included-row-menu/);
-    assert.match(ready, /data-builder-remove-from-proposal/);
+    assert.match(ready, /ProposalBuilderWorkbenchRowMenu/);
     // Not a repeated primary chip next to every Set quantity.
     assert.doesNotMatch(ready, /WORKBENCH_EDIT_OPTION_CHIP/);
+
+    const menu = read(
+      "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchRowMenu.tsx"
+    );
+    assert.match(menu, /data-builder-included-row-menu/);
+    assert.match(menu, /data-builder-remove-from-proposal/);
 
     const attention = read(
       "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchAttentionZone.tsx"
     );
-    assert.doesNotMatch(attention, /isSetQuantity \|\| isRemove/);
-    assert.match(attention, /isRemove && canRemove/);
-    // Finish estimate path keeps remove off by default.
-    const estimate = read(
-      "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchEstimateDocument.tsx"
-    );
-    assert.match(
-      estimate,
-      /ProposalBuilderWorkbenchAttentionZone[\s\S]*?excludeEnabled=\{false\}/
-    );
+    assert.doesNotMatch(attention, /Remove from proposal/);
   });
 
   test("10. Preview is primary forward action; Back to Job Card retained", () => {
@@ -212,9 +208,9 @@ describe("Builder estimate handoff (Block 4 / 4B / 4C)", () => {
       "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchUpgradesZone.tsx"
     );
     assert.match(upgrades, /data-builder-optional-upgrades/);
+    assert.match(upgrades, /data-builder-optional-upgrades-collapsed/);
     assert.doesNotMatch(upgrades, /signing/i);
     assert.doesNotMatch(upgrades, /customerSelectionHint/);
-    // No nested section title card repeating Optional upgrades.
     assert.doesNotMatch(upgrades, /WORKBENCH_SCOPE_SECTION_TITLE/);
     assert.doesNotMatch(upgrades, /section\.title/);
   });

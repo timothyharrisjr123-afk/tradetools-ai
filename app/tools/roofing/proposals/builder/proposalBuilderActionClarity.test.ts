@@ -1,9 +1,9 @@
 /**
- * Block 4D — Builder action clarity contracts.
+ * Block 4D / 4E — Builder action clarity + inline editing contracts.
  * Run: npx tsx --test app/tools/roofing/proposals/builder/proposalBuilderActionClarity.test.ts
  */
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { describe, test } from "node:test";
 import path from "node:path";
 
@@ -13,111 +13,107 @@ function read(rel: string): string {
   return readFileSync(path.join(root, rel), "utf8");
 }
 
-describe("Builder action clarity (Block 4D)", () => {
-  test("1. Review quantities does not open full package drawer", () => {
+describe("Builder action clarity (Block 4D / 4E)", () => {
+  test("1–2. Set quantity is inline editor, not side panel", () => {
     const estimate = read(
       "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchEstimateDocument.tsx"
     );
-    assert.match(estimate, /data-builder-review-quantities/);
-    assert.match(estimate, /onClick=\{focusFinishEstimate\}/);
-    assert.doesNotMatch(
-      estimate,
-      /data-builder-review-quantities[\s\S]{0,80}openEditPackage/
-    );
-    // Review button must not call openEditPackage.
-    const reviewIdx = estimate.indexOf("data-builder-review-quantities");
-    const reviewBlock = estimate.slice(Math.max(0, reviewIdx - 200), reviewIdx + 80);
-    assert.match(reviewBlock, /focusFinishEstimate/);
-    assert.doesNotMatch(reviewBlock, /openEditPackage/);
-  });
+    assert.doesNotMatch(estimate, /ProposalBuilderWorkbenchSetQuantityPanel/);
+    assert.match(estimate, /ProposalBuilderWorkbenchInlineQuantityEditor|onStartSetQuantity|editingQuantityLineId/);
 
-  test("2. Review quantities focuses Finish estimate section", () => {
-    const estimate = read(
-      "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchEstimateDocument.tsx"
+    assert.equal(
+      existsSync(
+        path.join(
+          root,
+          "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchSetQuantityPanel.tsx"
+        )
+      ),
+      false,
+      "side panel file must be removed"
     );
-    assert.match(estimate, /focusFinishEstimate/);
-    assert.match(estimate, /builder-finish-estimate/);
-    assert.match(estimate, /scrollIntoView/);
+
+    const inline = read(
+      "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchInlineQuantityEditor.tsx"
+    );
+    assert.match(inline, /data-builder-inline-quantity-editor/);
+    assert.match(inline, /validateManualQuantityInput/);
+    assert.doesNotMatch(inline, /createPortal/);
+    assert.doesNotMatch(inline, /WORKBENCH_EDIT_OPTION_DRAWER/);
 
     const attention = read(
       "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchAttentionZone.tsx"
     );
-    assert.match(attention, /id="builder-finish-estimate"/);
-    assert.match(attention, /data-builder-finish-estimate/);
+    assert.match(attention, /ProposalBuilderWorkbenchInlineQuantityEditor/);
+    assert.match(attention, /data-builder-set-quantity/);
   });
 
-  test("3–5. Set quantity opens item-level panel using manual quantity path", () => {
+  test("3. Inline quantity save uses existing manual quantity handler", () => {
     const estimate = read(
       "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchEstimateDocument.tsx"
     );
-    assert.match(estimate, /openSetQuantityForLine/);
-    assert.match(estimate, /ProposalBuilderWorkbenchSetQuantityPanel/);
-    assert.match(estimate, /onSave=\{handleApplyManualQuantity\}/);
-
-    const panel = read(
-      "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchSetQuantityPanel.tsx"
-    );
-    assert.match(panel, /data-builder-set-quantity-panel/);
-    assert.match(panel, /Set quantity/);
-    assert.match(panel, /applyManualQuantity|onSave/);
-    assert.match(panel, /validateManualQuantityInput/);
-    assert.doesNotMatch(panel, /pickerLines|Editable scope lines|Package scope/i);
-    assert.doesNotMatch(panel, /scopeReviewLines\.map/);
+    assert.match(estimate, /onSaveQuantity=\{\s*quantityEditingEnabled \? handleApplyManualQuantity/);
   });
 
-  test("6–8. Edit package opens advanced drawer; copy is Edit package", () => {
+  test("5. Review quantities focuses Finish estimate; no drawer/panel", () => {
+    const estimate = read(
+      "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchEstimateDocument.tsx"
+    );
+    assert.match(estimate, /focusFinishEstimate/);
+    assert.match(estimate, /setHighlightFinishEstimate/);
+    assert.match(estimate, /builder-finish-estimate-first-row/);
+    const reviewIdx = estimate.indexOf("data-builder-review-quantities");
+    const reviewBlock = estimate.slice(Math.max(0, reviewIdx - 220), reviewIdx + 80);
+    assert.match(reviewBlock, /focusFinishEstimate/);
+    assert.doesNotMatch(reviewBlock, /openEditPackage|openSetQuantity/);
+  });
+
+  test("6. Edit package opens advanced drawer", () => {
     const estimate = read(
       "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchEstimateDocument.tsx"
     );
     assert.match(estimate, /openEditPackage/);
     assert.match(estimate, /editPackageOpen/);
-    assert.match(estimate, /ProposalBuilderWorkbenchEditOptionShell/);
 
     const shell = read(
       "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchEditOptionShell.tsx"
     );
     assert.match(shell, /data-builder-edit-package-drawer/);
-    assert.match(shell, /Edit \$\{optionLabel\.trim\(\)\} package/);
+    assert.match(shell, /Advanced package settings for this proposal/);
     assert.doesNotMatch(shell, /Package scope/i);
-    assert.doesNotMatch(shell, />Edit option</);
-
-    const attention = read(
-      "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchAttentionZone.tsx"
-    );
-    assert.match(attention, /WORKBENCH_EDIT_PACKAGE_TITLE/);
-    assert.match(attention, /data-builder-edit-package/);
-    assert.doesNotMatch(attention, />Edit option</);
-
-    const constants = read(
-      "app/tools/roofing/proposals/builder/proposalBuilderConstants.ts"
-    );
-    assert.match(constants, /WORKBENCH_EDIT_PACKAGE_TITLE = "Edit package"/);
   });
 
-  test("9–10. Included estimate quiet More menu; Remove uses exclude path", () => {
+  test("7–10. Row menu portal polish; Remove uses exclude path", () => {
+    const menu = read(
+      "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchRowMenu.tsx"
+    );
+    assert.match(menu, /createPortal/);
+    assert.match(menu, /data-builder-row-menu-portal/);
+    assert.match(menu, /Escape/);
+    assert.match(menu, /mousedown/);
+    assert.match(menu, /onOpenMenuIdChange\(null\)/);
+
     const ready = read(
       "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchReadyScopeZone.tsx"
     );
-    assert.match(ready, /data-builder-included-row-menu/);
-    assert.match(ready, /data-builder-remove-from-proposal/);
-    assert.match(ready, /onRemoveFromProposal/);
-    assert.match(ready, /View details/);
+    assert.match(ready, /ProposalBuilderWorkbenchRowMenu/);
+    assert.match(ready, /openMenuId/);
 
     const estimate = read(
       "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchEstimateDocument.tsx"
     );
     assert.match(estimate, /onRemoveFromProposal=\{excludeEnabled \? handleExcludeLine/);
-    assert.match(estimate, /removeEnabled=\{excludeEnabled\}/);
   });
 
-  test("11–12. Optional upgrades collapsed by default; no signing language", () => {
+  test("11–12. Optional upgrades collapsed; no fake include/replace", () => {
     const upgrades = read(
       "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchUpgradesZone.tsx"
     );
     assert.match(upgrades, /data-builder-optional-upgrades-collapsed/);
-    assert.match(upgrades, /<details/);
+    assert.match(upgrades, /data-builder-upgrade-selection-follow-up/);
+    assert.match(upgrades, /Upgrade selection follow-up needed/);
+    assert.doesNotMatch(upgrades, /Add to proposal/);
+    assert.doesNotMatch(upgrades, /Replace base/);
     assert.doesNotMatch(upgrades, /signing/i);
-    assert.doesNotMatch(upgrades, /customerSelectionHint/);
     assert.doesNotMatch(upgrades, /customer selection/i);
   });
 
@@ -125,7 +121,8 @@ describe("Builder action clarity (Block 4D)", () => {
     const files = [
       "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchReadyScopeZone.tsx",
       "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchAttentionZone.tsx",
-      "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchSetQuantityPanel.tsx",
+      "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchInlineQuantityEditor.tsx",
+      "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchRowMenu.tsx",
       "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchEstimateDocument.tsx",
     ];
     for (const file of files) {
@@ -133,7 +130,16 @@ describe("Builder action clarity (Block 4D)", () => {
     }
   });
 
-  test("14. Package picker draft scoping still present", () => {
+  test("14. Compact success feedback aligned to Builder stage", () => {
+    const client = read(
+      "app/tools/roofing/proposals/builder/ProposalBuilderClient.tsx"
+    );
+    assert.match(client, /Quantity saved\. Pricing refreshed\./);
+    assert.match(client, /data-builder-refresh-feedback/);
+    assert.match(client, /BUILDER_STAGE/);
+  });
+
+  test("15. Package picker draft scoping still present", () => {
     const picker = read(
       "app/tools/roofing/proposals/builder/proposalBuilderPackageSelector.test.ts"
     );

@@ -80,6 +80,7 @@ import {
   type BuilderPageContextId,
 } from "@/app/lib/proposalBuilderNavigation";
 import {
+  BUILDER_STAGE,
   BUILDER_UNSAVED_PAGE_EDIT_CONFIRM,
   WORKBENCH_EXCLUDE_SUCCESS,
   WORKBENCH_HIDE_SUCCESS,
@@ -793,7 +794,7 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
         setPersistedGraph(graph);
         setRefreshFeedback({
           kind: "success",
-          message: "Manual quantity saved and draft pricing refreshed.",
+          message: "Quantity saved. Pricing refreshed.",
         });
       } catch (err) {
         const message =
@@ -1740,14 +1741,17 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
         </div>
       ) : null}
       {!draftGraphError && shellReady && refreshFeedback ? (
-        <div
-          className={`rounded-md border px-4 py-3 text-sm ${
-            refreshFeedback.kind === "success"
-              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-              : "border-red-200 bg-red-50 text-red-800"
-          }`}
-        >
-          {refreshFeedback.message}
+        <div className={`${BUILDER_STAGE}`} data-builder-refresh-feedback>
+          <div
+            className={`inline-flex max-w-full items-center rounded-md border px-3 py-1.5 text-[13px] font-medium shadow-sm ${
+              refreshFeedback.kind === "success"
+                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                : "border-red-200 bg-red-50 text-red-800"
+            }`}
+            role="status"
+          >
+            {refreshFeedback.message}
+          </div>
         </div>
       ) : null}
       {!draftGraphError && shellReady && pageVisibilityToggleError ? (

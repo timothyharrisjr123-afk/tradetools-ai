@@ -31,9 +31,6 @@ import ProposalBuilderWorkbenchEditOptionShell, {
 } from "./ProposalBuilderWorkbenchEditOptionShell";
 import ProposalBuilderWorkbenchPackageZone from "./ProposalBuilderWorkbenchPackageZone";
 import ProposalBuilderWorkbenchReadyScopeZone from "./ProposalBuilderWorkbenchReadyScopeZone";
-import ProposalBuilderWorkbenchSetQuantityPanel, {
-  type SetQuantityLine,
-} from "./ProposalBuilderWorkbenchSetQuantityPanel";
 import ProposalBuilderWorkbenchSettingsEntry from "./ProposalBuilderWorkbenchSettingsEntry";
 import ProposalBuilderWorkbenchTotalsZone from "./ProposalBuilderWorkbenchTotalsZone";
 import ProposalBuilderWorkbenchUpgradesZone from "./ProposalBuilderWorkbenchUpgradesZone";
@@ -157,6 +154,7 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
   const [focusedTemplateItemId, setFocusedTemplateItemId] = useState<string | null>(null);
   const [drawerIntent, setDrawerIntent] = useState<EditOptionDrawerIntent>("quantity");
   const [setQuantityLineId, setSetQuantityLineId] = useState<string | null>(null);
+  const [highlightFinishEstimate, setHighlightFinishEstimate] = useState(false);
   const finishEstimateRef = useRef<HTMLDivElement | null>(null);
 
   const scopeReviewLines = useMemo((): ManualQuantityEditorLine[] => {
@@ -262,19 +260,17 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
   const hasEditableScopeLines =
     hasEditableQuantityLines || excludeEligibleLines.length > 0 || hideEligibleLines.length > 0;
 
-  /** Block 4D — Review quantities guides to Finish estimate; does not open Edit package. */
+  /** Block 4E — Review quantities focuses Finish estimate only (no panel/drawer). */
   const focusFinishEstimate = useCallback(() => {
     setSetQuantityLineId(null);
     const node =
       finishEstimateRef.current ??
       document.getElementById("builder-finish-estimate");
     node?.scrollIntoView({ behavior: "smooth", block: "start" });
-    if (node instanceof HTMLElement) {
-      node.setAttribute("data-builder-finish-estimate-focus", "true");
-      window.setTimeout(() => {
-        node.removeAttribute("data-builder-finish-estimate-focus");
-      }, 1600);
-    }
+    setHighlightFinishEstimate(true);
+    window.setTimeout(() => setHighlightFinishEstimate(false), 1600);
+    const firstRow = document.getElementById("builder-finish-estimate-first-row");
+    firstRow?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, []);
 
   const openEditPackage = useCallback(() => {
@@ -367,25 +363,6 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
 
   const qtyNeeded = meta.scopeReviewLineCount;
 
-  const setQuantityLine: SetQuantityLine | null = useMemo(() => {
-    if (!setQuantityLineId) return null;
-    const fromReview = scopeReviewLines.find(
-      (line) => line.templateItemId === setQuantityLineId
-    );
-    if (fromReview) return fromReview;
-    const fromManual = manualActiveLines.find(
-      (line) => line.templateItemId === setQuantityLineId
-    );
-    if (fromManual) {
-      return {
-        templateItemId: fromManual.templateItemId,
-        name: fromManual.name,
-        unitLabel: fromManual.unitLabel,
-      };
-    }
-    return null;
-  }, [manualActiveLines, scopeReviewLines, setQuantityLineId]);
-
   return (
     <article className={BUILDER_CANVAS} data-builder-estimate-document>
       <header className={WORKBENCH_HEADER}>
@@ -435,6 +412,13 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
           onEditQuantityForLine={
             quantityEditingEnabled ? openSetQuantityForLine : undefined
           }
+          editingQuantityLineId={setQuantityLineId}
+          onCancelSetQuantity={closeSetQuantity}
+          onSaveQuantity={
+            quantityEditingEnabled ? handleApplyManualQuantity : undefined
+          }
+          quantitySaveInFlight={manualQuantityInFlight}
+          quantitySaveError={manualQuantityError}
           onRemoveFromProposal={excludeEnabled ? handleExcludeLine : undefined}
           removeEnabled={excludeEnabled}
           removeInFlight={excludeInFlight}
@@ -444,24 +428,34 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
           <ProposalBuilderWorkbenchAttentionZone
             zone={presentation.needsAttention}
             onOpenEditPackage={openEditPackage}
-            onSetQuantityForLine={
+            editingQuantityLineId={setQuantityLineId}
+            onStartSetQuantity={
               quantityEditingEnabled ? openSetQuantityForLine : undefined
             }
+            onCancelSetQuantity={closeSetQuantity}
+            onSaveQuantity={
+              quantityEditingEnabled ? handleApplyManualQuantity : undefined
+            }
+            quantitySaveInFlight={manualQuantityInFlight}
+            quantitySaveError={manualQuantityError}
             manualQuantityEnabled={scopeReviewManualQuantityEnabled}
-            excludeEnabled={false}
+            highlightFinishEstimate={highlightFinishEstimate}
           />
         </div>
 
         <ProposalBuilderWorkbenchUpgradesZone
           zone={presentation.upgradesZone}
-          onSetQuantityForLine={
+          editingQuantityLineId={setQuantityLineId}
+          onStartSetQuantity={
             quantityEditingEnabled ? openSetQuantityForLine : undefined
           }
-          onEditQuantityForLine={
-            quantityEditingEnabled ? openSetQuantityForLine : undefined
+          onCancelSetQuantity={closeSetQuantity}
+          onSaveQuantity={
+            quantityEditingEnabled ? handleApplyManualQuantity : undefined
           }
+          quantitySaveInFlight={manualQuantityInFlight}
+          quantitySaveError={manualQuantityError}
           manualQuantityEnabled={scopeReviewManualQuantityEnabled}
-          excludeEnabled={false}
         />
 
         <ProposalBuilderWorkbenchTotalsZone zone={presentation.totalsZone} />
@@ -513,16 +507,6 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
         onExcludeLine={handleExcludeLine}
         onHideLine={handleHideLine}
       />
-
-      {setQuantityLine ? (
-        <ProposalBuilderWorkbenchSetQuantityPanel
-          line={setQuantityLine}
-          inFlight={manualQuantityInFlight}
-          error={manualQuantityError}
-          onClose={closeSetQuantity}
-          onSave={handleApplyManualQuantity}
-        />
-      ) : null}
     </article>
   );
 }

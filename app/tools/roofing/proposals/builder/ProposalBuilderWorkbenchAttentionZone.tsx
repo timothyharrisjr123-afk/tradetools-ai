@@ -1,6 +1,7 @@
+"use client";
+
 import { AlertTriangle } from "lucide-react";
 import type { WorkbenchNeedsAttentionZone } from "@/app/lib/proposalBuilderWorkbenchEstimatePresenter";
-import { WORKBENCH_SCOPE_REVIEW_FUTURE_ACTIONS } from "@/app/lib/proposalBuilderWorkbenchEstimatePresenter";
 import {
   WORKBENCH_ATTENTION_COUNT_BADGE,
   WORKBENCH_ATTENTION_ITEM,
@@ -8,7 +9,6 @@ import {
   WORKBENCH_ATTENTION_ZONE_HEADER,
   WORKBENCH_EDIT_OPTION_CHIP_ENABLED,
   WORKBENCH_EDIT_OPTION_CHIP_HINT,
-  WORKBENCH_EDIT_OPTION_CHIP_SECONDARY,
   WORKBENCH_EDIT_PACKAGE_TITLE,
   WORKBENCH_EDIT_OPTION_TRIGGER_SECONDARY,
   WORKBENCH_FUTURE_ACTION_CHIP,
@@ -16,19 +16,27 @@ import {
   WORKBENCH_MODULE_INNER,
   WORKBENCH_MODULE_KICKER,
   WORKBENCH_MODULE_TITLE,
-  WORKBENCH_REMOVE_FROM_OPTION_ACTION,
   WORKBENCH_SCOPE_REVIEW_ZONE,
   WORKBENCH_SCOPE_REVIEW_ZONE_HEADER,
 } from "./proposalBuilderConstants";
 import ProposalBuilderWorkbenchLineRow from "./ProposalBuilderWorkbenchLineRow";
+import ProposalBuilderWorkbenchInlineQuantityEditor from "./ProposalBuilderWorkbenchInlineQuantityEditor";
 
 type ProposalBuilderWorkbenchAttentionZoneProps = {
   zone: WorkbenchNeedsAttentionZone;
   onOpenEditPackage: () => void;
-  onSetQuantityForLine?: (templateItemId: string) => void;
-  onRemoveFromOptionForLine?: (templateItemId: string) => void;
+  editingQuantityLineId?: string | null;
+  onStartSetQuantity?: (templateItemId: string) => void;
+  onCancelSetQuantity?: () => void;
+  onSaveQuantity?: (
+    templateItemId: string,
+    quantity: string,
+    quantityDisplayLabel?: string | null
+  ) => Promise<void>;
+  quantitySaveInFlight?: boolean;
+  quantitySaveError?: string | null;
   manualQuantityEnabled?: boolean;
-  excludeEnabled?: boolean;
+  highlightFinishEstimate?: boolean;
 };
 
 function HardBlockersSection({ zone }: { zone: WorkbenchNeedsAttentionZone["hardBlockers"] }) {
@@ -71,26 +79,43 @@ function HardBlockersSection({ zone }: { zone: WorkbenchNeedsAttentionZone["hard
 function ScopeReviewSection({
   zone,
   onOpenEditPackage,
-  onSetQuantityForLine,
+  editingQuantityLineId = null,
+  onStartSetQuantity,
+  onCancelSetQuantity,
+  onSaveQuantity,
+  quantitySaveInFlight = false,
+  quantitySaveError = null,
   manualQuantityEnabled = false,
-  onRemoveFromOptionForLine,
-  excludeEnabled = false,
+  highlightFinishEstimate = false,
 }: {
   zone: WorkbenchNeedsAttentionZone["scopeReview"];
   onOpenEditPackage: () => void;
-  onSetQuantityForLine?: (templateItemId: string) => void;
+  editingQuantityLineId?: string | null;
+  onStartSetQuantity?: (templateItemId: string) => void;
+  onCancelSetQuantity?: () => void;
+  onSaveQuantity?: (
+    templateItemId: string,
+    quantity: string,
+    quantityDisplayLabel?: string | null
+  ) => Promise<void>;
+  quantitySaveInFlight?: boolean;
+  quantitySaveError?: string | null;
   manualQuantityEnabled?: boolean;
-  onRemoveFromOptionForLine?: (templateItemId: string) => void;
-  excludeEnabled?: boolean;
+  highlightFinishEstimate?: boolean;
 }) {
   if (!zone.show) return null;
 
   return (
     <section
-      className={WORKBENCH_SCOPE_REVIEW_ZONE}
+      className={`${WORKBENCH_SCOPE_REVIEW_ZONE} transition-shadow duration-500 ${
+        highlightFinishEstimate
+          ? "rounded-md ring-2 ring-blue-300/80 ring-offset-2"
+          : ""
+      }`}
       aria-labelledby="workbench-scope-review-heading"
       data-builder-quantity-review
       data-builder-finish-estimate
+      data-builder-finish-estimate-focus={highlightFinishEstimate ? "true" : undefined}
       id="builder-finish-estimate"
     >
       <header className={WORKBENCH_SCOPE_REVIEW_ZONE_HEADER}>
@@ -122,58 +147,59 @@ function ScopeReviewSection({
 
       <div className={`${WORKBENCH_MODULE_INNER} py-2`}>
         <ul className="divide-y divide-slate-100" data-builder-quantity-review-list>
-          {zone.lines.map((line) => {
+          {zone.lines.map((line, index) => {
             const canSetQuantity =
               manualQuantityEnabled &&
               line.reasons.includes("needs_quantity") &&
-              Boolean(onSetQuantityForLine);
-            const canRemove = excludeEnabled && Boolean(onRemoveFromOptionForLine);
+              Boolean(onStartSetQuantity) &&
+              Boolean(onSaveQuantity);
+            const isEditing = editingQuantityLineId === line.templateItemId;
 
             return (
               <li
                 key={line.templateItemId}
-                className="flex flex-wrap items-center justify-between gap-2 py-2"
+                className="py-2"
                 data-builder-quantity-review-row
+                data-builder-quantity-review-row-index={String(index)}
+                id={
+                  index === 0
+                    ? "builder-finish-estimate-first-row"
+                    : undefined
+                }
               >
-                <div className="min-w-0 flex-1">
-                  <ProposalBuilderWorkbenchLineRow variant="scope_review" line={line} compact />
-                </div>
-                <div className="flex shrink-0 flex-wrap items-center gap-1.5">
-                  {WORKBENCH_SCOPE_REVIEW_FUTURE_ACTIONS.map((action) => {
-                    const isSetQuantity = action.id === "set_quantity";
-                    const isRemove = action.id === "remove";
-
-                    if (isSetQuantity && canSetQuantity) {
-                      return (
+                {isEditing ? (
+                  <ProposalBuilderWorkbenchInlineQuantityEditor
+                    line={{
+                      templateItemId: line.templateItemId,
+                      name: line.name,
+                      unitLabel: line.detailMeta.unit?.trim() || null,
+                    }}
+                    inFlight={quantitySaveInFlight}
+                    error={quantitySaveError}
+                    onCancel={() => onCancelSetQuantity?.()}
+                    onSave={onSaveQuantity!}
+                  />
+                ) : (
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <ProposalBuilderWorkbenchLineRow
+                        variant="scope_review"
+                        line={line}
+                        compact
+                      />
+                    </div>
+                    <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+                      {canSetQuantity ? (
                         <button
-                          key={action.id}
                           type="button"
                           className={WORKBENCH_EDIT_OPTION_CHIP_ENABLED}
-                          onClick={() => onSetQuantityForLine!(line.templateItemId)}
+                          onClick={() => onStartSetQuantity!(line.templateItemId)}
                           data-builder-set-quantity
                         >
-                          {action.label}
+                          Set quantity
                         </button>
-                      );
-                    }
-
-                    if (isRemove && canRemove) {
-                      return (
+                      ) : line.reasons.includes("needs_quantity") ? (
                         <button
-                          key={action.id}
-                          type="button"
-                          className={WORKBENCH_EDIT_OPTION_CHIP_SECONDARY}
-                          onClick={() => onRemoveFromOptionForLine!(line.templateItemId)}
-                        >
-                          {WORKBENCH_REMOVE_FROM_OPTION_ACTION}
-                        </button>
-                      );
-                    }
-
-                    if (isSetQuantity) {
-                      return (
-                        <button
-                          key={action.id}
                           type="button"
                           disabled
                           aria-disabled="true"
@@ -184,14 +210,12 @@ function ScopeReviewSection({
                               : undefined
                           }
                         >
-                          {action.label}
+                          Set quantity
                         </button>
-                      );
-                    }
-
-                    return null;
-                  })}
-                </div>
+                      ) : null}
+                    </div>
+                  </div>
+                )}
               </li>
             );
           })}
@@ -204,10 +228,14 @@ function ScopeReviewSection({
 export default function ProposalBuilderWorkbenchAttentionZone({
   zone,
   onOpenEditPackage,
-  onSetQuantityForLine,
+  editingQuantityLineId = null,
+  onStartSetQuantity,
+  onCancelSetQuantity,
+  onSaveQuantity,
+  quantitySaveInFlight = false,
+  quantitySaveError = null,
   manualQuantityEnabled = false,
-  onRemoveFromOptionForLine,
-  excludeEnabled = false,
+  highlightFinishEstimate = false,
 }: ProposalBuilderWorkbenchAttentionZoneProps) {
   if (!zone.show) return null;
 
@@ -217,10 +245,14 @@ export default function ProposalBuilderWorkbenchAttentionZone({
       <ScopeReviewSection
         zone={zone.scopeReview}
         onOpenEditPackage={onOpenEditPackage}
-        onSetQuantityForLine={onSetQuantityForLine}
+        editingQuantityLineId={editingQuantityLineId}
+        onStartSetQuantity={onStartSetQuantity}
+        onCancelSetQuantity={onCancelSetQuantity}
+        onSaveQuantity={onSaveQuantity}
+        quantitySaveInFlight={quantitySaveInFlight}
+        quantitySaveError={quantitySaveError}
         manualQuantityEnabled={manualQuantityEnabled}
-        onRemoveFromOptionForLine={onRemoveFromOptionForLine}
-        excludeEnabled={excludeEnabled}
+        highlightFinishEstimate={highlightFinishEstimate}
       />
     </div>
   );

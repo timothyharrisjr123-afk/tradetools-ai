@@ -45,11 +45,11 @@
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** **`40ea180`** — polish(proposals): clarify builder estimate actions (Block 4D; prior **`d8125ec`** / **`ea39fa7`**)
-- **Docs checkpoint:** **Block 4D Builder action clarity + estimate editing** (this header + **§6BO.13.4.9** T.3). Prior: T.2 (**`d8125ec`**); T.1 (**`ea39fa7`**); T (**`2ae400b`**).
+- **Code checkpoint:** **`(pending commit)`** — polish(proposals): refine builder estimate editing (Block 4E; prior **`40ea180`** / **`d8125ec`**)
+- **Docs checkpoint:** **Block 4E Builder inline editing + row action polish** (this header + **§6BO.13.4.9** T.4). Prior: T.3 (**`40ea180`**); T.2 (**`d8125ec`**); T.1 (**`ea39fa7`**).
 - **Prior code:** **`40ea180`** action clarity; **`d8125ec`** visual continuity; **`ea39fa7`** document-led Builder
-- **Next coding:** **Block 5** — Preview document-first (only after Block 4D review). Do **not** start Blocks 6–7 until Block 5 is approved. Do **not** add full proposal management, template rebuild/import of live options into existing drafts, supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
-- **Historical note:** Block 4D action clarity: Review quantities → Finish estimate focus; Set quantity → item panel; Edit package → advanced drawer; optional upgrades collapsed; included row More → Remove; protected systems unchanged.
+- **Next coding:** **Block 5** — Preview document-first (only after Block 4E review). Do **not** start Blocks 6–7 until Block 5 is approved. Do **not** add full proposal management, template rebuild/import of live options into existing drafts, supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
+- **Historical note:** Block 4E: Set quantity inline; Review focuses Finish estimate; Edit package drawer advanced-only; portal row menus; optional upgrade include follow-up documented; compact success toast; protected systems unchanged.
 
 **Trust order:** Header/current checkpoint → **§6BO.13** (approved page-by-page UI flow roadmap + P0 implementation sequence — **supersedes separate Command Center language**) → **§6BM** / **§6BN** (R18 letter-phase roadmap + R18C–R18D3C implementation history) → **§6BO** / **§6BO.11** / **§6BO.12** (completed remediation side-track + **approved Stage C policy** + **operating-flow audit sequencing — complete; outcome in §6BO.13**) → **§6BL** → **§11 override**. Stage B browser smoke required local-only **`USE_PROPOSAL_SEND_FREEZE_RPC=1`** in `.env.local` (gitignored, not committed). **Do not proceed** to docs-only or next feature work unless working tree is clean. **Still do not** mutate `proposals.status = sent`, write sent `proposal_events`, move Jobs Board cards, add Job Card send activity, enable PDF/Sign/Payment, or add webhooks unless separately approved.
 
@@ -12511,7 +12511,7 @@ Package rule from **N** remains law: pre-draft package on create modal; post-dra
 
 ###### T.3 Block 4D — Builder action clarity + estimate editing — IMPLEMENTED (2026-07-20)
 
-**Code checkpoint:** set in header after commit (`polish(proposals): clarify builder estimate actions`)
+**Code checkpoint:** **`40ea180`** — `polish(proposals): clarify builder estimate actions`
 
 **Status:** Builder actions match contractor intent — Review / Set quantity / Edit package separated. **No Preview redesign. No pricing/math/snapshot/send/lifecycle. No SQL/migrations/packages.**
 
@@ -12534,6 +12534,32 @@ Package rule from **N** remains law: pre-draft package on create modal; post-dra
 **Follow-up (not this block):** optional upgrade Add to proposal / include-replace when scope-decision support exists.
 
 **Smoke:** Babby **`466e393c-…`** — Review scrolls Finish estimate; Set quantity Starter panel only; save 12 LF → 6 remaining; Edit Enhanced package drawer; More → Remove; upgrades collapsed.
+
+**Next recommended block:** see **T.4** inline editing polish, then **Block 5** after approval.
+
+###### T.4 Block 4E — Builder inline editing + row action polish — IMPLEMENTED (2026-07-20)
+
+**Code checkpoint:** set in header after commit (`polish(proposals): refine builder estimate editing`)
+
+**Status:** Simple estimate edits are inline/fast; advanced Edit package drawer is for package scope only. **No Preview redesign. No pricing/math/snapshot/send/lifecycle. No SQL/migrations/packages.**
+
+**Side drawer research:**
+- Introduced in **R17C2** as gated Edit Option shell; **R17D** wired live `manual_quantity`, `excluded`, `visibility_override`
+- Still stubbed (coming soon): add from catalog, add custom line, move to optional upgrade, quantity source / measurement mapping
+- **Simple review actions:** Set quantity, Remove — must not require the drawer
+- **Advanced:** Edit package drawer only
+- Manual quantity + exclude both callable outside the drawer via existing action APIs
+- **Optional upgrade include/replace:** **does not exist** in scope decisions today — follow-up slice required (no fake Add buttons)
+
+**Fixes:**
+- Set quantity → **inline row editor** (`ProposalBuilderWorkbenchInlineQuantityEditor`); side panel removed
+- Review quantities → scroll + highlight Finish estimate (+ first row); no panel/drawer
+- Edit package drawer subtitle: **Advanced package settings for this proposal.**
+- Included row **⋯** menus via **portal** (viewport-safe; close on outside / Esc / action / other menu)
+- Optional upgrades collapsed; open shows **Upgrade selection follow-up needed**
+- Success: compact Builder-stage toast — **Quantity saved. Pricing refreshed.**
+
+**Smoke:** Babby **`466e393c-…`** — inline Set quantity; toast aligned; Edit Enhanced package; portal menu Escape closes; upgrades follow-up; no fake Add.
 
 **Next recommended block:** **Block 5 — Preview document-first** (only after this surface is approved).
 
