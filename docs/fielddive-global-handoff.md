@@ -45,9 +45,9 @@
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** **`(pending commit)`** — polish(proposals): clarify builder estimate actions (Block 4D; prior **`d8125ec`** / **`ea39fa7`**)
+- **Code checkpoint:** **`40ea180`** — polish(proposals): clarify builder estimate actions (Block 4D; prior **`d8125ec`** / **`ea39fa7`**)
 - **Docs checkpoint:** **Block 4D Builder action clarity + estimate editing** (this header + **§6BO.13.4.9** T.3). Prior: T.2 (**`d8125ec`**); T.1 (**`ea39fa7`**); T (**`2ae400b`**).
-- **Prior code:** **`d8125ec`** visual continuity; **`ea39fa7`** document-led Builder; **`2ae400b`** Builder estimate review
+- **Prior code:** **`40ea180`** action clarity; **`d8125ec`** visual continuity; **`ea39fa7`** document-led Builder
 - **Next coding:** **Block 5** — Preview document-first (only after Block 4D review). Do **not** start Blocks 6–7 until Block 5 is approved. Do **not** add full proposal management, template rebuild/import of live options into existing drafts, supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
 - **Historical note:** Block 4D action clarity: Review quantities → Finish estimate focus; Set quantity → item panel; Edit package → advanced drawer; optional upgrades collapsed; included row More → Remove; protected systems unchanged.
 
