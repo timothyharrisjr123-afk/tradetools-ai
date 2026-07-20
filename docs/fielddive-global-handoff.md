@@ -45,7 +45,7 @@
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** Block 1 — fix(proposals): isolate internal smoke records from contractor views (this commit; prior polish **`190ad66`**)
+- **Code checkpoint:** **`aee0546`** — fix(proposals): isolate internal smoke records from contractor views (Block 1; prior polish **`190ad66`**)
 - **Docs checkpoint:** **Block 1** — smoke/internal proposal + template isolation (this header + **§6BO.13.4.9** Q). Prior docs: **Block 0** Flow V1 lock (**`61d3bc5`**, **§6BO.13.4.9** P).
 - **Prior code:** **`190ad66`** Job Card Proposals polish; **`40c1fe8`** create flow restore; **`05131f6`** draft-scoped Builder packages
 - **Next coding:** **Block 2** — Proposals tab reset (compact rows + blue **+ Proposal**). Do **not** start Blocks 3–7 until Block 2 is approved. Do **not** add full proposal management, template rebuild/import of live options into existing drafts, supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
@@ -12292,7 +12292,7 @@ Package rule from **N** remains law: pre-draft package on create modal; post-dra
 
 **Status:** Hide-not-delete isolation for known smoke/internal fixtures on normal contractor Job Card Proposals surfaces. **No migrations/SQL/package files/pricing formulas/quantity math/snapshot trust/Customer Preview redesign/send/public/lifecycle/PDF/sign/payment/supplier/material/CSV/raw/whole-rounding. No Proposals tab reset. No + Proposal modal. No Templates page layout redesign. No Builder/Preview layout changes. No deletion of live smoke records.**
 
-**Code checkpoint:** pending commit after this docs pin; prior polish **`190ad66`**; docs lock **`61d3bc5`**.
+**Code checkpoint:** this commit (Block 1); prior polish **`190ad66`**; docs lock **`61d3bc5`**.
 
 **Root cause:** Job Card listed all job drafts and all company templates. Active job pointer often pointed at smoke drafts (Babby: “Coverage basis live smoke…”, template **RAW_PLUS_WASTE**, package **Complete-source smoke option**). Prior polish only softened titles to “Saved proposal” — records still dominated the contractor UI. No durable `is_internal` metadata on proposals/templates.
 
