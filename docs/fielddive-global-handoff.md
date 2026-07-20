@@ -12421,6 +12421,8 @@ Package rule from **N** remains law: pre-draft package on create modal; post-dra
 
 ###### S.2 Block 3 final polish — status, activity, review, rows — IMPLEMENTED (2026-07-20)
 
+**Code checkpoint:** **`287bca8`**
+
 **Status:** Finished Proposals tab + + Proposal modal to contractor-premium standard before Block 4. **No Builder/Preview redesign. No pricing/math/snapshot/send/lifecycle. No SQL/migrations/packages.**
 
 **Fixes:**
