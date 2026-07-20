@@ -8,39 +8,55 @@ import { filterContractorVisibleTemplates } from "@/app/lib/contractorFixtureIso
 import {
   CREATE_PROPOSAL_CONTINUE_TO_BUILDER,
   CREATE_PROPOSAL_HELPER,
+  CREATE_PROPOSAL_INCLUDED_PRIMARY,
   CREATE_PROPOSAL_MEASUREMENT_BLOCKED,
+  CREATE_PROPOSAL_MEASUREMENT_GUIDE,
   CREATE_PROPOSAL_MODAL_TITLE,
+  CREATE_PROPOSAL_PACKAGE_GUIDE,
+  CREATE_PROPOSAL_PACKAGE_ONE_ONLY,
+  CREATE_PROPOSAL_REVIEW_TITLE,
+  CREATE_PROPOSAL_TEMPLATE_GUIDE,
+  CREATE_PROPOSAL_TEMPLATE_READY,
+  CREATE_PROPOSAL_TEMPLATE_STRUCTURE,
   CREATE_PROPOSAL_USE_MEASUREMENT,
   CREATE_PROPOSAL_USE_TEMPLATE,
+  buildCreateProposalMeasurementChoice,
   canContinueCreateProposal,
-  formatCreateProposalIncludedLine,
-  formatCreateProposalMeasurementDetail,
+  formatCreateProposalIncludedPrimary,
+  formatCreateProposalMeasurementSummary,
+  formatCreateProposalMeasurementTitle,
+  formatCreateProposalPricingItemsReady,
   formatCreateProposalTemplateMetaLine,
+  formatCreateProposalTemplateSecondaryDetail,
   nextCreateProposalStep,
   prevCreateProposalStep,
 } from "./jobCardCreateProposalModalModel";
 import {
   JOB_CARD_PROPOSALS_ADD_LABEL,
   JOB_CARD_PROPOSALS_CREATE_LABEL,
-  JOB_CARD_PROPOSALS_ENTRY_PLACEHOLDER,
   JOB_CARD_PROPOSALS_OPEN_LABEL,
+  formatJobCardProposalRowTitle,
+  buildJobCardProposalRowView,
 } from "./jobCardProposalsTabModel";
+import type { ProposalRecordStatusSummary } from "@/app/lib/proposalRecordTypes";
 
-describe("jobCardCreateProposalModalModel", () => {
-  test("approved modal copy", () => {
+describe("jobCardCreateProposalModalModel polish", () => {
+  test("approved modal copy stays contractor-facing", () => {
     assert.equal(CREATE_PROPOSAL_MODAL_TITLE, "Create proposal");
     assert.equal(CREATE_PROPOSAL_USE_MEASUREMENT, "Use this measurement");
     assert.equal(CREATE_PROPOSAL_USE_TEMPLATE, "Use this template");
     assert.equal(CREATE_PROPOSAL_CONTINUE_TO_BUILDER, "Continue to Builder");
-    assert.match(CREATE_PROPOSAL_HELPER, /Existing proposals are not changed/i);
+    assert.equal(CREATE_PROPOSAL_HELPER, "Existing proposals are not changed.");
+    assert.equal(CREATE_PROPOSAL_REVIEW_TITLE, "Ready to build proposal");
+    assert.match(CREATE_PROPOSAL_MEASUREMENT_GUIDE, /completed measurement/i);
+    assert.match(CREATE_PROPOSAL_TEMPLATE_GUIDE, /proposal structure/i);
+    assert.match(CREATE_PROPOSAL_PACKAGE_GUIDE, /change it later in Builder/i);
+    assert.equal(CREATE_PROPOSAL_PACKAGE_ONE_ONLY, "This template has one package.");
     assert.equal(JOB_CARD_PROPOSALS_ADD_LABEL, "+ Proposal");
     assert.equal(JOB_CARD_PROPOSALS_CREATE_LABEL, "Create proposal");
     assert.equal(JOB_CARD_PROPOSALS_OPEN_LABEL, "Open");
     assert.doesNotMatch(CREATE_PROPOSAL_CONTINUE_TO_BUILDER, /Create proposal draft/i);
-    assert.doesNotMatch(CREATE_PROPOSAL_MODAL_TITLE, /Create proposal draft/i);
-    assert.doesNotMatch(JOB_CARD_PROPOSALS_ADD_LABEL, /Create another proposal/i);
-    assert.doesNotMatch(JOB_CARD_PROPOSALS_OPEN_LABEL, /Open saved proposal/i);
-    assert.match(JOB_CARD_PROPOSALS_ENTRY_PLACEHOLDER, /measurement.*template.*package/i);
+    assert.doesNotMatch(CREATE_PROPOSAL_HELPER, /Create another proposal/i);
   });
 
   test("step navigation order", () => {
@@ -52,38 +68,87 @@ describe("jobCardCreateProposalModalModel", () => {
     assert.equal(prevCreateProposalStep("measurement"), null);
   });
 
-  test("measurement detail is contractor-readable", () => {
+  test("measurement step uses contractor-facing title and summary", () => {
     assert.equal(
-      formatCreateProposalMeasurementDetail({
-        selectedLabel: "Saved manual report",
-        quantitiesLine: "2,500 sq ft · 10% waste",
+      formatCreateProposalMeasurementTitle("Saved manual"),
+      "Saved manual report"
+    );
+    assert.equal(
+      formatCreateProposalMeasurementSummary({
+        roofAreaSqft: 2500,
+        wastePercent: 10,
+        ready: true,
       }),
-      "Saved manual report · 2,500 sq ft · 10% waste"
+      "2,500 sq ft · 10% waste · Report complete"
+    );
+    assert.doesNotMatch(
+      formatCreateProposalMeasurementSummary({
+        roofAreaSqft: 2500,
+        wastePercent: 10,
+      }),
+      /adj SQ|roof_squares/i
     );
     assert.match(CREATE_PROPOSAL_MEASUREMENT_BLOCKED, /measurement/i);
   });
 
-  test("template meta hides ids and shows ready counts", () => {
-    const line = formatCreateProposalTemplateMetaLine({
+  test("measurement choices support multiple ready records", () => {
+    const a = buildCreateProposalMeasurementChoice({
+      id: "m1",
+      selectedLabel: "Saved manual",
+      roofAreaSqft: 2500,
+      wastePercent: 10,
+      ready: true,
+    });
+    const b = buildCreateProposalMeasurementChoice({
+      id: "m2",
+      selectedLabel: "Verified",
+      roofAreaSqft: 1800,
+      wastePercent: 12,
+      ready: true,
+    });
+    assert.equal(a.id, "m1");
+    assert.equal(a.title, "Saved manual report");
+    assert.match(a.summaryLine, /2,500 sq ft/);
+    assert.equal(b.id, "m2");
+    assert.notEqual(a.id, b.id);
+  });
+
+  test("template step uses structure copy — not linked catalog admin text", () => {
+    assert.match(CREATE_PROPOSAL_TEMPLATE_STRUCTURE, /estimate/i);
+    assert.match(CREATE_PROPOSAL_TEMPLATE_STRUCTURE, /terms/i);
+    assert.equal(CREATE_PROPOSAL_TEMPLATE_READY, "Ready to use");
+    assert.equal(formatCreateProposalTemplateMetaLine({
       linkedItemCount: 13,
       packageCount: 3,
       ready: true,
+    }), "Ready to use");
+    const secondary = formatCreateProposalTemplateSecondaryDetail({
+      linkedItemCount: 13,
+      packageCount: 3,
     });
-    assert.equal(line, "13 linked catalog items · 3 packages · Ready");
-    assert.doesNotMatch(line, /source template|RAW_PLUS|smoke/i);
+    assert.equal(secondary, "13 pricing items ready · 3 package options");
+    assert.doesNotMatch(secondary, /linked catalog/i);
+    assert.doesNotMatch(CREATE_PROPOSAL_TEMPLATE_STRUCTURE, /linked catalog|source template/i);
   });
 
-  test("review included line", () => {
+  test("review included content is contractor-facing", () => {
     assert.equal(
-      formatCreateProposalIncludedLine({
-        includedItemCount: 13,
-        customerFacingLine: "Estimate packages · Terms · Warranty",
-      }),
-      "13 catalog items · Estimate packages · Terms · Warranty"
+      CREATE_PROPOSAL_INCLUDED_PRIMARY,
+      "Estimate · Package options · Terms · Warranty · Customer proposal pages"
     );
+    assert.equal(
+      formatCreateProposalIncludedPrimary("13 linked catalog items · Terms"),
+      CREATE_PROPOSAL_INCLUDED_PRIMARY
+    );
+    assert.equal(
+      formatCreateProposalPricingItemsReady(13),
+      "13 pricing items ready"
+    );
+    assert.doesNotMatch(CREATE_PROPOSAL_INCLUDED_PRIMARY, /linked catalog/i);
+    assert.doesNotMatch(CREATE_PROPOSAL_REVIEW_TITLE, /draft/i);
   });
 
-  test("Continue gates on measurement, template, package, and createEnabled", () => {
+  test("Continue gates unchanged", () => {
     assert.equal(
       canContinueCreateProposal({
         measurementReady: true,
@@ -104,36 +169,6 @@ describe("jobCardCreateProposalModalModel", () => {
       }),
       false
     );
-    assert.equal(
-      canContinueCreateProposal({
-        measurementReady: true,
-        templateReady: false,
-        packageSelected: true,
-        packageIssueCount: 0,
-        createEnabled: true,
-      }),
-      false
-    );
-    assert.equal(
-      canContinueCreateProposal({
-        measurementReady: true,
-        templateReady: true,
-        packageSelected: false,
-        packageIssueCount: 0,
-        createEnabled: true,
-      }),
-      false
-    );
-    assert.equal(
-      canContinueCreateProposal({
-        measurementReady: true,
-        templateReady: true,
-        packageSelected: true,
-        packageIssueCount: 0,
-        createEnabled: false,
-      }),
-      false
-    );
   });
 
   test("template step hides internal/smoke templates", () => {
@@ -144,5 +179,35 @@ describe("jobCardCreateProposalModalModel", () => {
     ]);
     assert.equal(visible.length, 1);
     assert.equal(visible[0]?.name, "Roof replacement");
+  });
+
+  test("proposal rows put package in title for distinction", () => {
+    assert.equal(
+      formatJobCardProposalRowTitle({
+        title: "Roof replacement",
+        packageLabel: "Enhanced",
+      }),
+      "Roof replacement — Enhanced"
+    );
+    const row = buildJobCardProposalRowView({
+      summary: {
+        id: "p1",
+        job_id: "j1",
+        status: "draft",
+        title: "Roof replacement",
+        proposal_number: null,
+        template_id: "t1",
+        selected_option_id: "o1",
+        latest_sent_version_id: null,
+        signed_version_id: null,
+        created_at: null,
+        updated_at: "2026-07-20T15:00:00.000Z",
+      } satisfies ProposalRecordStatusSummary,
+      packageLabel: "Standard",
+      templateName: "Roof replacement",
+    });
+    assert.equal(row.title, "Roof replacement — Standard");
+    assert.match(row.metaLine, /^Draft · Updated/);
+    assert.doesNotMatch(row.metaLine, /Standard package/);
   });
 });

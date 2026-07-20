@@ -101,32 +101,55 @@ export function formatJobCardContractorProposalStatusLabel(input: {
 }
 
 /**
- * Contractor row title. Prefer persisted title; else template name + " Proposal".
- * Does not soften to "Saved proposal" (Block 2 — hide fixtures instead).
+ * Contractor row title. Prefer persisted title; else template name.
+ * When a package label is present, append “ — {Package}” so duplicate
+ * Roof replacement drafts are easy to distinguish.
  */
 export function formatJobCardProposalRowTitle(input: {
   title?: string | null;
   templateName?: string | null;
+  packageLabel?: string | null;
 }): string {
+  const pkg = (input.packageLabel ?? "").trim();
   const title = (input.title ?? "").trim();
-  if (title) return title;
-  const templateName = (input.templateName ?? "").trim();
-  if (templateName) {
-    return /proposal$/i.test(templateName)
-      ? templateName
-      : `${templateName} Proposal`;
+  let base = title;
+  if (!base) {
+    const templateName = (input.templateName ?? "").trim();
+    if (templateName) {
+      base = /proposal$/i.test(templateName)
+        ? templateName
+        : templateName;
+    } else {
+      base = "Proposal";
+    }
   }
-  return "Proposal";
+  // Strip trailing " Proposal" when we will show package on the same line.
+  if (pkg && / proposal$/i.test(base)) {
+    base = base.replace(/\s+proposal$/i, "").trim() || base;
+  }
+  if (pkg) {
+    const pkgBare = pkg.replace(/\s+package$/i, "").trim();
+    if (pkgBare && !new RegExp(`—\\s*${escapeRegExp(pkgBare)}$`, "i").test(base)) {
+      return `${base} — ${pkgBare}`;
+    }
+  }
+  return base;
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 export function buildJobCardProposalRowMetaLine(input: {
   packageLabel?: string | null;
   statusLabel: string;
   updatedLabel?: string | null;
+  /** When true, package is already in the title — omit from meta. */
+  packageInTitle?: boolean;
 }): string {
   const parts: string[] = [];
   const pkg = (input.packageLabel ?? "").trim();
-  if (pkg) {
+  if (pkg && !input.packageInTitle) {
     parts.push(/package$/i.test(pkg) ? pkg : `${pkg} package`);
   }
   parts.push(input.statusLabel);
@@ -143,12 +166,14 @@ export function buildJobCardProposalRowView(input: {
   const statusLabel = formatJobCardProposalStatusLabel(input.summary.status);
   const updatedLabel = formatJobCardProposalUpdatedShort(input.summary.updated_at);
   const packageLabel = (input.packageLabel ?? "").trim() || null;
+  const title = formatJobCardProposalRowTitle({
+    title: input.summary.title,
+    templateName: input.templateName,
+    packageLabel,
+  });
   return {
     proposalId: input.summary.id,
-    title: formatJobCardProposalRowTitle({
-      title: input.summary.title,
-      templateName: input.templateName,
-    }),
+    title,
     statusLabel,
     packageLabel,
     updatedLabel,
@@ -156,6 +181,7 @@ export function buildJobCardProposalRowView(input: {
       packageLabel,
       statusLabel,
       updatedLabel,
+      packageInTitle: Boolean(packageLabel),
     }),
   };
 }

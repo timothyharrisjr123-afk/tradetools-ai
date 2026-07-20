@@ -53,14 +53,21 @@ describe("jobCardProposalsTab helpers", () => {
     assert.doesNotMatch(JOB_CARD_PROPOSALS_CREATE_LABEL, /draft/i);
   });
 
-  test("row title prefers title then template Proposal", () => {
+  test("row title prefers title then template; package strengthens distinction", () => {
     assert.equal(
       formatJobCardProposalRowTitle({ title: "Roof Replacement Proposal" }),
       "Roof Replacement Proposal"
     );
     assert.equal(
       formatJobCardProposalRowTitle({ title: null, templateName: "Roof replacement" }),
-      "Roof replacement Proposal"
+      "Roof replacement"
+    );
+    assert.equal(
+      formatJobCardProposalRowTitle({
+        title: "Roof replacement",
+        packageLabel: "Enhanced",
+      }),
+      "Roof replacement — Enhanced"
     );
     assert.equal(formatJobCardProposalRowTitle({ title: "", templateName: null }), "Proposal");
     assert.doesNotMatch(
@@ -86,6 +93,15 @@ describe("jobCardProposalsTab helpers", () => {
       }),
       /Standard package · Draft · Updated Jul 20/
     );
+    assert.match(
+      buildJobCardProposalRowMetaLine({
+        packageLabel: "Standard",
+        statusLabel: "Draft",
+        updatedLabel: "Jul 20",
+        packageInTitle: true,
+      }),
+      /^Draft · Updated Jul 20$/
+    );
   });
 
   test("smoke-only proposals yield empty contractor row list", () => {
@@ -107,9 +123,8 @@ describe("jobCardProposalsTab helpers", () => {
       packageLabel: "Standard",
       templateName: "Roof replacement",
     });
-    assert.equal(row.title, "Roof Replacement Proposal");
-    assert.match(row.metaLine, /Standard package/);
-    assert.match(row.metaLine, /Draft/);
+    assert.equal(row.title, "Roof Replacement — Standard");
+    assert.match(row.metaLine, /^Draft · Updated/);
     assert.doesNotMatch(row.metaLine, /source template/i);
     assert.doesNotMatch(row.metaLine, /real-1/);
     assert.doesNotMatch(row.title, /smoke|RAW_PLUS/i);

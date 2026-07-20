@@ -69,10 +69,16 @@ export default function JobCardProposalsTab({
               data-proposal-id={row.proposalId}
             >
               <div className="min-w-0">
-                <p className="truncate text-[14px] font-semibold text-slate-900">
+                <p
+                  className="truncate text-[14px] font-semibold text-slate-900"
+                  data-jobcard-proposal-row-title
+                >
                   {row.title}
                 </p>
-                <p className="mt-0.5 truncate text-[12px] text-slate-500">
+                <p
+                  className="mt-0.5 truncate text-[12px] text-slate-500"
+                  data-jobcard-proposal-row-meta
+                >
                   {row.metaLine}
                 </p>
               </div>

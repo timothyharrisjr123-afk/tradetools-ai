@@ -172,6 +172,10 @@ describe("Job Card Proposals tab (Block 2 + Block 3 modal)", () => {
     assert.match(modal, /data-jobcard-create-proposal-panel-package/);
     assert.match(modal, /data-jobcard-create-proposal-panel-review/);
     assert.match(modal, /data-jobcard-create-proposal-continue/);
+    assert.match(model, /Ready to build proposal/);
+    assert.match(model, /change it later in Builder/i);
+    assert.match(model, /Includes estimate, package options/);
+    assert.doesNotMatch(model, /13 linked catalog items/);
     assert.match(model, /"measurement"/);
     assert.match(model, /"template"/);
     assert.match(model, /"package"/);

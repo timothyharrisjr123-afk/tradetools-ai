@@ -81,11 +81,13 @@ import { productSpineRouteHintsFromSearchParams } from "@/app/lib/productSpine";
 import { getSupabaseClient } from "@/app/lib/supabaseClient";
 import {
   getSelectedMeasurementForJob,
+  getMeasurementsForJob,
   createMeasurementRecord,
   updateMeasurementRecord,
   selectMeasurementRecord,
   type MeasurementRecordDraft,
 } from "@/app/lib/measurementStore";
+import type { MeasurementRecord } from "@/app/lib/measurementTypes";
 import {
   deriveEstimateReadiness,
   deriveProductionReadiness,
@@ -108,7 +110,6 @@ import {
 import {
   buildMeasurementProposalHandoff,
   deriveQuantityMapFromRecord,
-  formatProposalQuantitiesDisplay,
   resolveProposalHandoffNextAction,
 } from "@/app/lib/measurementProposalHandoff";
 import { getActiveCatalogItemsByCompany } from "@/app/lib/catalogStore";
@@ -157,7 +158,11 @@ import JobCardProposalsTab, {
   JobCardProposalsAddHeaderButton,
 } from "@/app/tools/roofing/jobCard/JobCardProposalsTab";
 import { JobCardCreateProposalModal } from "@/app/tools/roofing/jobCard/JobCardCreateProposalModal";
-import type { CreateProposalModalStep } from "@/app/tools/roofing/jobCard/jobCardCreateProposalModalModel";
+import {
+  buildCreateProposalMeasurementChoice,
+  type CreateProposalMeasurementChoice,
+  type CreateProposalModalStep,
+} from "@/app/tools/roofing/jobCard/jobCardCreateProposalModalModel";
 import {
   JOB_CARD_PROPOSAL_ACTIVITY_READY_LABEL,
   JOB_CARD_PROPOSAL_ACTIVITY_READY_NOTE,
@@ -1129,6 +1134,9 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
   const [createProposalModalOpen, setCreateProposalModalOpen] = useState(false);
   const [createProposalModalStep, setCreateProposalModalStep] =
     useState<CreateProposalModalStep>("measurement");
+  const [createProposalModalMeasurements, setCreateProposalModalMeasurements] =
+    useState<CreateProposalMeasurementChoice[]>([]);
+  const createProposalMeasurementRecordsRef = useRef<MeasurementRecord[]>([]);
   const proposalLaunchInFlightRef = useRef(false);
   const measurementSaveInFlightRef = useRef<string | null>(null);
   const measurementFormHydratedRef = useRef<string | null>(null);
@@ -2005,6 +2013,8 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
       setListedJobDraftPackageLabels({});
       setCreateProposalModalOpen(false);
       setCreateProposalModalStep("measurement");
+      setCreateProposalModalMeasurements([]);
+      createProposalMeasurementRecordsRef.current = [];
       listedDraftFetchInFlightRef.current = null;
       return;
     }
@@ -7489,6 +7499,52 @@ Thanks,`;
       setProposalLaunchReason(null);
       setCreateProposalModalStep("measurement");
       setCreateProposalModalOpen(true);
+
+      // Load ready measurements for modal cards (multi-record ready when present).
+      const jobIdForModal = (currentJobId ?? "").trim();
+      if (jobIdForModal && isUuidLike(jobIdForModal)) {
+        void (async () => {
+          try {
+            const rows = await getMeasurementsForJob(jobIdForModal);
+            createProposalMeasurementRecordsRef.current = rows;
+            const choices = rows
+              .filter(
+                (row) =>
+                  row.status !== "stale" &&
+                  row.status !== "rejected" &&
+                  deriveEstimateReadiness(row).ready
+              )
+              .map((row) =>
+                buildCreateProposalMeasurementChoice({
+                  id: row.id,
+                  selectedLabel:
+                    row.source_type === "manual"
+                      ? "Saved manual"
+                      : formatSourceTypeLabel(row.source_type) || "Measurement report",
+                  roofAreaSqft: row.roof_area_sqft,
+                  wastePercent: row.waste_percent,
+                  ready: true,
+                })
+              );
+            setCreateProposalModalMeasurements(choices);
+            if (
+              choices.length > 0 &&
+              persistedSelectedMeasurement &&
+              !choices.some((c) => c.id === persistedSelectedMeasurement.id)
+            ) {
+              const first = rows.find((r) => r.id === choices[0]!.id);
+              if (first) setPersistedSelectedMeasurement(first);
+            }
+          } catch (err) {
+            console.warn("[RoofingClient] create-proposal measurements fetch:", err);
+            setCreateProposalModalMeasurements([]);
+            createProposalMeasurementRecordsRef.current = [];
+          }
+        })();
+      } else {
+        setCreateProposalModalMeasurements([]);
+        createProposalMeasurementRecordsRef.current = [];
+      }
     };
 
     const closeCreateProposalModal = () => {
@@ -7497,6 +7553,8 @@ Thanks,`;
       setCreateProposalModalStep("measurement");
       setProposalLaunchError(null);
       setProposalLaunchReason(null);
+      setCreateProposalModalMeasurements([]);
+      createProposalMeasurementRecordsRef.current = [];
     };
 
     const visibleCreateProposalTemplates =
@@ -8253,11 +8311,22 @@ Thanks,`;
                   step={createProposalModalStep}
                   onStepChange={setCreateProposalModalStep}
                   onClose={closeCreateProposalModal}
+                  measurements={createProposalModalMeasurements}
+                  selectedMeasurementId={persistedSelectedMeasurement?.id ?? null}
+                  onSelectMeasurement={(measurementId) => {
+                    const next = createProposalMeasurementRecordsRef.current.find(
+                      (row) => row.id === measurementId
+                    );
+                    if (next) setPersistedSelectedMeasurement(next);
+                  }}
                   measurementReady={proposalHandoff.proposalReady}
                   measurementLabel={proposalHandoff.selectedLabel}
-                  measurementQuantitiesLine={formatProposalQuantitiesDisplay(
-                    proposalHandoff.quantities
-                  )}
+                  measurementRoofAreaSqft={
+                    proposalHandoff.quantities.roof_area_sqft ?? null
+                  }
+                  measurementWastePercent={
+                    proposalHandoff.quantities.waste_percent ?? null
+                  }
                   templates={createProposalModalTemplates}
                   selectedTemplateId={selectedJobTemplateId}
                   onSelectTemplate={(templateId) => {
@@ -8285,9 +8354,6 @@ Thanks,`;
                     jobCardPackageSetup.selected?.label ?? null
                   }
                   includedItemCount={jobCardPackageSetup.includedItemCount}
-                  customerFacingLine={
-                    jobCardPackageSetup.customerFacingLine || null
-                  }
                   createEnabled={createNewDraftEnabled}
                   creating={isCreatingNewProposal}
                   createError={proposalLaunchError}

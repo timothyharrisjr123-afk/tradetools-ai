@@ -1,5 +1,5 @@
 /**
- * Job Card + Proposal modal — Block 3 step-flow helpers.
+ * Job Card + Proposal modal — Block 3 step-flow helpers (contractor-facing polish).
  * Pure view-model + copy. No React, Supabase, or store writes.
  */
 
@@ -9,24 +9,55 @@ export type CreateProposalModalStep =
   | "package"
   | "review";
 
+export type CreateProposalMeasurementChoice = {
+  id: string;
+  title: string;
+  summaryLine: string;
+  ready: boolean;
+};
+
 export const CREATE_PROPOSAL_MODAL_TITLE = "Create proposal" as const;
 
 export const CREATE_PROPOSAL_MODAL_SUBTITLE =
-  "Use this job’s measurement report and a proposal template to build a customer-ready proposal." as const;
+  "Confirm the measurement, template, and starting package FieldDive will use for this job." as const;
 
 export const CREATE_PROPOSAL_STEP_MEASUREMENT = "Measurement" as const;
 export const CREATE_PROPOSAL_STEP_TEMPLATE = "Template" as const;
 export const CREATE_PROPOSAL_STEP_PACKAGE = "Package" as const;
 export const CREATE_PROPOSAL_STEP_REVIEW = "Review" as const;
 
+export const CREATE_PROPOSAL_MEASUREMENT_GUIDE =
+  "Use a completed measurement report for this proposal." as const;
+
+export const CREATE_PROPOSAL_TEMPLATE_GUIDE =
+  "Choose the proposal structure for this job." as const;
+
+export const CREATE_PROPOSAL_TEMPLATE_STRUCTURE =
+  "Includes estimate, package options, terms, warranty, and customer proposal pages." as const;
+
+export const CREATE_PROPOSAL_TEMPLATE_READY = "Ready to use" as const;
+
+export const CREATE_PROPOSAL_PACKAGE_GUIDE =
+  "Choose the starting package for this proposal. You can change it later in Builder." as const;
+
+export const CREATE_PROPOSAL_PACKAGE_ONE_ONLY =
+  "This template has one package." as const;
+
+export const CREATE_PROPOSAL_REVIEW_TITLE = "Ready to build proposal" as const;
+
+export const CREATE_PROPOSAL_REVIEW_INTRO =
+  "FieldDive will create a saved proposal for this job using the details below." as const;
+
+export const CREATE_PROPOSAL_INCLUDED_PRIMARY =
+  "Estimate · Package options · Terms · Warranty · Customer proposal pages" as const;
+
 export const CREATE_PROPOSAL_USE_MEASUREMENT = "Use this measurement" as const;
 export const CREATE_PROPOSAL_USE_TEMPLATE = "Use this template" as const;
 export const CREATE_PROPOSAL_CONTINUE_TO_BUILDER = "Continue to Builder" as const;
 
-export const CREATE_PROPOSAL_HELPER =
-  "FieldDive creates a saved proposal for this job. Existing proposals are not changed." as const;
+export const CREATE_PROPOSAL_HELPER = "Existing proposals are not changed." as const;
 
-export const CREATE_PROPOSAL_MEASUREMENT_READY = "Report Complete" as const;
+export const CREATE_PROPOSAL_MEASUREMENT_READY = "Report complete" as const;
 export const CREATE_PROPOSAL_MEASUREMENT_BLOCKED =
   "Complete and save a measurement report before creating a proposal." as const;
 
@@ -72,59 +103,152 @@ export function prevCreateProposalStep(
   return CREATE_PROPOSAL_STEPS[idx - 1] ?? null;
 }
 
+/** Contractor title — prefer “Saved manual report” over short internal label. */
+export function formatCreateProposalMeasurementTitle(
+  selectedLabel: string | null | undefined
+): string {
+  const raw = (selectedLabel ?? "").trim();
+  if (!raw) return "Measurement report";
+  if (/^saved manual$/i.test(raw)) return "Saved manual report";
+  if (/^saved manual \(unsaved edits\)$/i.test(raw)) {
+    return "Saved manual report (unsaved edits)";
+  }
+  return raw;
+}
+
+/**
+ * Compact contractor summary — area + waste + ready stamp.
+ * Avoids SQ / adj SQ / resolver-style packing in the modal card.
+ */
+export function formatCreateProposalMeasurementSummary(input: {
+  roofAreaSqft?: number | null;
+  wastePercent?: number | null;
+  ready?: boolean;
+}): string {
+  const parts: string[] = [];
+  if (input.roofAreaSqft != null && Number.isFinite(input.roofAreaSqft)) {
+    parts.push(`${Math.round(input.roofAreaSqft).toLocaleString()} sq ft`);
+  }
+  if (input.wastePercent != null && Number.isFinite(input.wastePercent)) {
+    parts.push(`${input.wastePercent}% waste`);
+  }
+  if (input.ready !== false) {
+    parts.push(CREATE_PROPOSAL_MEASUREMENT_READY);
+  }
+  return parts.length > 0 ? parts.join(" · ") : CREATE_PROPOSAL_MEASUREMENT_READY;
+}
+
+/** @deprecated Prefer title + summaryLine card layout. Kept for review one-liners. */
 export function formatCreateProposalMeasurementDetail(input: {
   selectedLabel: string | null | undefined;
   quantitiesLine: string | null | undefined;
 }): string {
-  const label = (input.selectedLabel ?? "").trim() || "Measurement report";
+  const title = formatCreateProposalMeasurementTitle(input.selectedLabel);
   const qty = (input.quantitiesLine ?? "").trim();
-  return qty ? `${label} · ${qty}` : label;
+  return qty ? `${title} · ${qty}` : title;
 }
 
-export function formatCreateProposalTemplateDetail(input: {
-  templateName: string | null | undefined;
+export function formatCreateProposalMeasurementReviewLine(input: {
+  selectedLabel: string | null | undefined;
+  roofAreaSqft?: number | null;
+  wastePercent?: number | null;
+}): string {
+  const title = formatCreateProposalMeasurementTitle(input.selectedLabel);
+  const parts: string[] = [title];
+  if (input.roofAreaSqft != null && Number.isFinite(input.roofAreaSqft)) {
+    parts.push(`${Math.round(input.roofAreaSqft).toLocaleString()} sq ft`);
+  }
+  if (input.wastePercent != null && Number.isFinite(input.wastePercent)) {
+    parts.push(`${input.wastePercent}% waste`);
+  }
+  return parts.join(" · ");
+}
+
+export function buildCreateProposalMeasurementChoice(input: {
+  id: string;
+  selectedLabel: string | null | undefined;
+  roofAreaSqft?: number | null;
+  wastePercent?: number | null;
+  ready: boolean;
+}): CreateProposalMeasurementChoice {
+  return {
+    id: input.id,
+    title: formatCreateProposalMeasurementTitle(input.selectedLabel),
+    summaryLine: formatCreateProposalMeasurementSummary({
+      roofAreaSqft: input.roofAreaSqft,
+      wastePercent: input.wastePercent,
+      ready: input.ready,
+    }),
+    ready: input.ready,
+  };
+}
+
+/** Primary template body — structure, not admin link counts. */
+export function formatCreateProposalTemplatePrimaryBody(): string {
+  return CREATE_PROPOSAL_TEMPLATE_STRUCTURE;
+}
+
+/** Quiet secondary detail only — never the hero line. */
+export function formatCreateProposalTemplateSecondaryDetail(input: {
   linkedItemCount: number;
   packageCount: number;
-  ready: boolean;
 }): string {
-  const name = (input.templateName ?? "").trim() || "Template";
-  const parts = [
-    `${input.linkedItemCount} linked catalog item${input.linkedItemCount === 1 ? "" : "s"}`,
-  ];
-  if (input.packageCount > 0) {
+  const parts: string[] = [];
+  if (input.linkedItemCount > 0) {
     parts.push(
-      `${input.packageCount} package${input.packageCount === 1 ? "" : "s"}`
+      `${input.linkedItemCount} pricing item${input.linkedItemCount === 1 ? "" : "s"} ready`
     );
   }
-  parts.push(input.ready ? "Ready" : "Needs attention");
-  return `${name}\n${parts.join(" · ")}`;
+  if (input.packageCount > 0) {
+    parts.push(
+      `${input.packageCount} package option${input.packageCount === 1 ? "" : "s"}`
+    );
+  }
+  return parts.join(" · ");
 }
 
+/**
+ * @deprecated Admin-style meta. Prefer primary body + Ready to use + secondary detail.
+ */
 export function formatCreateProposalTemplateMetaLine(input: {
   linkedItemCount: number;
   packageCount: number;
   ready: boolean;
 }): string {
-  const parts = [
-    `${input.linkedItemCount} linked catalog item${input.linkedItemCount === 1 ? "" : "s"}`,
-  ];
-  if (input.packageCount > 0) {
-    parts.push(
-      `${input.packageCount} package${input.packageCount === 1 ? "" : "s"}`
-    );
-  }
-  parts.push(input.ready ? "Ready" : "Needs attention");
-  return parts.join(" · ");
+  if (input.ready) return CREATE_PROPOSAL_TEMPLATE_READY;
+  return "Needs attention";
 }
 
+export function formatCreateProposalIncludedPrimary(
+  customerFacingLine?: string | null
+): string {
+  const extras = (customerFacingLine ?? "").trim();
+  if (!extras) return CREATE_PROPOSAL_INCLUDED_PRIMARY;
+  // Prefer short area lists; fall back to approved default when dense/admin-like.
+  if (/linked catalog|catalog item/i.test(extras)) {
+    return CREATE_PROPOSAL_INCLUDED_PRIMARY;
+  }
+  if (extras.length > 120) return CREATE_PROPOSAL_INCLUDED_PRIMARY;
+  return extras
+    .replace(/Estimate packages/gi, "Estimate")
+    .replace(/Custom text pages/gi, "Customer proposal pages")
+    .replace(/\s*·\s*/g, " · ");
+}
+
+export function formatCreateProposalPricingItemsReady(
+  includedItemCount: number
+): string {
+  const count = Math.max(0, includedItemCount);
+  if (count <= 0) return "Pricing items and proposal pages are ready";
+  return `${count} pricing item${count === 1 ? "" : "s"} ready`;
+}
+
+/** @deprecated Prefer formatCreateProposalIncludedPrimary + quiet secondary. */
 export function formatCreateProposalIncludedLine(input: {
   includedItemCount: number;
   customerFacingLine: string | null | undefined;
 }): string {
-  const count = Math.max(0, input.includedItemCount);
-  const base = `${count} catalog item${count === 1 ? "" : "s"}`;
-  const extras = (input.customerFacingLine ?? "").trim();
-  return extras ? `${base} · ${extras}` : base;
+  return formatCreateProposalIncludedPrimary(input.customerFacingLine);
 }
 
 export function canContinueCreateProposal(input: {
