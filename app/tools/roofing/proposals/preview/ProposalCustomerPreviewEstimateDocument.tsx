@@ -2,14 +2,10 @@
 
 import { Check } from "lucide-react";
 import type { CustomerPreviewEstimatePresentation } from "@/app/lib/proposalCustomerEstimatePresenter";
-import { CUSTOMER_PREVIEW_ESTIMATE_FINALIZING_COPY } from "@/app/lib/proposalCustomerEstimatePresenter";
 import {
   CUSTOMER_PREVIEW_ESTIMATE_PACKAGE_HERO,
-  CUSTOMER_PREVIEW_ESTIMATE_PARTIAL_PRICING_NOTE,
   CUSTOMER_PREVIEW_ESTIMATE_SCOPE_PANEL,
   CUSTOMER_PREVIEW_ESTIMATE_SCOPE_PANEL_HEADER,
-  CUSTOMER_PREVIEW_ESTIMATE_UPGRADES_HEADING,
-  CUSTOMER_PREVIEW_ESTIMATE_UPGRADES_PANEL,
   CUSTOMER_PREVIEW_SCOPE_SECTION_HEADING,
   CUSTOMER_PREVIEW_SELECTED_PACKAGE_LABEL,
 } from "../builder/proposalBuilderConstants";
@@ -20,6 +16,7 @@ type ProposalCustomerPreviewEstimateDocumentProps = {
   presentation: CustomerPreviewEstimatePresentation;
   /** Page/chapter title from the estimate page header — used to avoid duplicate section headings. */
   chapterTitle: string;
+  /** Kept for call-site compatibility; incomplete totals use the contractor warning above the document. */
   pricingComplete: boolean;
 };
 
@@ -35,16 +32,13 @@ function resolveScopeSectionHeading(sectionTitle: string, chapterTitle: string):
 export default function ProposalCustomerPreviewEstimateDocument({
   presentation,
   chapterTitle,
-  pricingComplete,
 }: ProposalCustomerPreviewEstimateDocumentProps) {
-  const { packageHero, scopeSections, upgradeSections, totals, showFinalizingMessage } =
-    presentation;
+  const { packageHero, scopeSections, totals } = presentation;
 
   const hasScopeContent = scopeSections.length > 0;
-  const showPartialPricingNote = hasScopeContent && !pricingComplete && !totals.show;
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-10" data-preview-estimate-document>
       {packageHero.label ? (
         <section className={CUSTOMER_PREVIEW_ESTIMATE_PACKAGE_HERO}>
           <div className="flex items-start gap-4">
@@ -116,41 +110,11 @@ export default function ProposalCustomerPreviewEstimateDocument({
               </section>
             );
           })}
-          {showPartialPricingNote ? (
-            <p className="text-[13px] leading-relaxed text-slate-500">
-              {CUSTOMER_PREVIEW_ESTIMATE_PARTIAL_PRICING_NOTE}
-            </p>
-          ) : null}
         </div>
-      ) : showFinalizingMessage ? (
-        <p className="max-w-prose rounded-xl border border-slate-200/80 bg-slate-50/50 px-5 py-4 text-[15px] leading-relaxed text-slate-600">
-          {CUSTOMER_PREVIEW_ESTIMATE_FINALIZING_COPY}
-        </p>
       ) : null}
 
-      {upgradeSections.length > 0 ? (
-        <section className={CUSTOMER_PREVIEW_ESTIMATE_UPGRADES_PANEL}>
-          <h3 className="text-lg font-semibold tracking-tight text-slate-900">
-            {CUSTOMER_PREVIEW_ESTIMATE_UPGRADES_HEADING}
-          </h3>
-          <p className="mt-1 text-[13px] text-slate-500">
-            Optional add-ons shown separately from the base scope.
-          </p>
-          <div className="mt-5 space-y-5">
-            {upgradeSections.map((section) => (
-              <div key={section.sectionId}>
-                {section.showHeading ? (
-                  <h4 className="text-[15px] font-medium text-slate-800">{section.title}</h4>
-                ) : null}
-                <div className={section.showHeading ? "mt-3" : undefined}>
-                  <ProposalCustomerPreviewLineList lines={section.lines} variant="upgrade" />
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      ) : null}
-
+      {/* Upgrade selection is not supported yet — do not render upgrade_group sections.
+          Incomplete pricing copy stays outside the document (contractor warning). */}
       <ProposalCustomerPreviewTotals totals={totals} />
     </div>
   );

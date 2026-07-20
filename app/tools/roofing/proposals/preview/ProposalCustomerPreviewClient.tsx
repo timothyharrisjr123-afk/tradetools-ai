@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ChevronDown, Share2 } from "lucide-react";
 import { getActiveCatalogItemsByCompany } from "@/app/lib/catalogStore";
 import type { CatalogItem } from "@/app/lib/catalogTypes";
 import { resolveJobIdentityDisplay } from "@/app/lib/jobIdentityDisplay";
@@ -26,6 +26,7 @@ import {
   CUSTOMER_PREVIEW_BACK_TO_BUILDER_LABEL,
   CUSTOMER_PREVIEW_DRAFT_NOTICE,
   CUSTOMER_PREVIEW_PAGE_TITLE,
+  CUSTOMER_PREVIEW_SEND_SHARING_LABEL,
 } from "@/app/lib/proposalBuilderDocumentIa";
 import {
   getDraftGraph,
@@ -42,9 +43,8 @@ import ProposalCustomerPreviewDocumentView from "./ProposalCustomerPreviewDocume
 import ProposalCustomerPreviewPublicAccessPanel from "./ProposalCustomerPreviewPublicAccessPanel";
 import ProposalCustomerPreviewSendGatePanel from "./ProposalCustomerPreviewSendGatePanel";
 
-const CONTRACTOR_TOOLS_HEADING = "Contractor tools";
-const CONTRACTOR_TOOLS_SUBTEXT =
-  "Sharing and sending controls. These are not part of what the customer sees.";
+const SEND_SHARING_BUTTON =
+  "inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50";
 
 export default function ProposalCustomerPreviewClient({
   companyId,
@@ -83,6 +83,7 @@ export default function ProposalCustomerPreviewClient({
   const [selectedMeasurementUpdatedAt, setSelectedMeasurementUpdatedAt] = useState<string | null>(
     null
   );
+  const [sendSharingOpen, setSendSharingOpen] = useState(false);
 
   const loadPreview = useCallback(async () => {
     setLoadComplete(false);
@@ -90,6 +91,7 @@ export default function ProposalCustomerPreviewClient({
     setPersistedGraph(null);
     setTemplateGraph(null);
     setJob(null);
+    setSendSharingOpen(false);
 
     if (!routeSpineLaunch.allowed) {
       setLoadError(
@@ -207,6 +209,25 @@ export default function ProposalCustomerPreviewClient({
             ) : null}
             <p className="mt-2 text-sm text-slate-600">{CUSTOMER_PREVIEW_DRAFT_NOTICE}</p>
           </div>
+          {loadComplete && previewDocument && persistedGraph ? (
+            <div className="shrink-0">
+              <button
+                type="button"
+                className={SEND_SHARING_BUTTON}
+                aria-expanded={sendSharingOpen}
+                aria-controls="preview-send-sharing-panel"
+                data-preview-send-sharing-toggle
+                onClick={() => setSendSharingOpen((open) => !open)}
+              >
+                <Share2 className="h-4 w-4" aria-hidden />
+                {CUSTOMER_PREVIEW_SEND_SHARING_LABEL}
+                <ChevronDown
+                  className={`h-4 w-4 transition ${sendSharingOpen ? "rotate-180" : ""}`}
+                  aria-hidden
+                />
+              </button>
+            </div>
+          ) : null}
         </div>
       </header>
 
@@ -222,11 +243,12 @@ export default function ProposalCustomerPreviewClient({
         </div>
       ) : previewDocument && persistedGraph ? (
         <div className={`${BUILDER_STAGE} space-y-8`}>
-          {/* Block 5: contractor readiness note — quiet, plain-language, guides back to
-              Builder. Not customer-facing final language. Kept above the document so the
-              contractor knows the estimate isn't finished before reviewing it. */}
+          {/* Contractor-only readiness — above the document, never inside it. */}
           {previewDocument.readiness.warnings.length > 0 ? (
-            <div className="space-y-2 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+            <div
+              className="space-y-2 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950"
+              data-preview-contractor-warning
+            >
               {previewDocument.readiness.warnings.map((warning) => (
                 <p key={warning}>{warning}</p>
               ))}
@@ -234,41 +256,44 @@ export default function ProposalCustomerPreviewClient({
             </div>
           ) : null}
 
-          {/* Document-first: the customer-facing proposal document is the primary content. */}
+          {/* Customer proposal document — primary content. */}
           <ProposalCustomerPreviewDocumentView
             document={previewDocument}
             templateGraph={templateGraph}
             catalogItems={catalogItems}
           />
 
-          {/* Contractor tools live below the document and are clearly not part of what the
-              customer sees. Send/public behavior is unchanged — only its placement. */}
-          <section className="space-y-4 border-t border-slate-200/80 pt-8" aria-label="Contractor tools">
-            <div className="space-y-1">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                {CONTRACTOR_TOOLS_HEADING}
+          {/* Contractor send/sharing tools — collapsed by default; not part of the document. */}
+          {sendSharingOpen ? (
+            <section
+              id="preview-send-sharing-panel"
+              className="space-y-4 border-t border-slate-200/80 pt-8"
+              aria-label={CUSTOMER_PREVIEW_SEND_SHARING_LABEL}
+              data-preview-send-sharing-panel
+            >
+              <p className="text-sm text-slate-500">
+                Sharing and sending controls. These are not part of what the customer sees.
               </p>
-              <p className="text-sm text-slate-500">{CONTRACTOR_TOOLS_SUBTEXT}</p>
-            </div>
 
-            <ProposalCustomerPreviewPublicAccessPanel
-              jobId={normalizedJobId}
-              proposalId={normalizedProposalId}
-              proposal={persistedGraph.proposal}
-              loading={false}
-            />
+              <ProposalCustomerPreviewPublicAccessPanel
+                jobId={normalizedJobId}
+                proposalId={normalizedProposalId}
+                proposal={persistedGraph.proposal}
+                loading={false}
+              />
 
-            <ProposalCustomerPreviewSendGatePanel
-              jobId={normalizedJobId}
-              proposalId={normalizedProposalId}
-              graph={persistedGraph}
-              job={job}
-              previewReadiness={previewDocument.readiness}
-              pricingStale={pricingStale.stale}
-              loading={false}
-              emailDeliveryConfigured={emailDeliveryConfigured}
-            />
-          </section>
+              <ProposalCustomerPreviewSendGatePanel
+                jobId={normalizedJobId}
+                proposalId={normalizedProposalId}
+                graph={persistedGraph}
+                job={job}
+                previewReadiness={previewDocument.readiness}
+                pricingStale={pricingStale.stale}
+                loading={false}
+                emailDeliveryConfigured={emailDeliveryConfigured}
+              />
+            </section>
+          ) : null}
         </div>
       ) : null}
     </div>

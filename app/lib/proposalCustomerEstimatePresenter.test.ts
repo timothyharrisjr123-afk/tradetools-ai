@@ -5,6 +5,8 @@
  */
 
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { describe, test } from "node:test";
 import type { CatalogItem } from "./catalogTypes";
 import type { ProposalBuilderLineCustomerView } from "./proposalBuilderPricingPreview";
@@ -430,6 +432,22 @@ describe("buildCustomerPreviewEstimatePresentation", () => {
     assert.doesNotMatch(json, /\bCurrent\b/);
     assert.doesNotMatch(json, /\bAvailable\b/);
     assert.doesNotMatch(json, /Choose starting package/i);
+  });
+
+  test("Block 5 corrective — Preview UI must not surface optional-upgrade chrome while unsupported", () => {
+    // Presenter may still map upgrade_group lines for future use; Preview document UI
+    // must not render upgrade sections until customer upgrade selection is supported.
+    const estimateDoc = readFileSync(
+      path.join(
+        process.cwd(),
+        "app/tools/roofing/proposals/preview/ProposalCustomerPreviewEstimateDocument.tsx"
+      ),
+      "utf8"
+    );
+    assert.doesNotMatch(estimateDoc, /CUSTOMER_PREVIEW_ESTIMATE_UPGRADES/);
+    assert.doesNotMatch(estimateDoc, /CUSTOMER_PREVIEW_ESTIMATE_PARTIAL_PRICING_NOTE/);
+    assert.doesNotMatch(estimateDoc, /Additional line items may appear/);
+    assert.doesNotMatch(estimateDoc, /upgradeSections/);
   });
 
   test("missing catalog row excluded and counted", () => {

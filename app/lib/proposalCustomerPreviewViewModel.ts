@@ -19,7 +19,11 @@ import {
 } from "@/app/lib/proposalDocumentBodyRenderer";
 import { readProposalPageBodyMarkdown } from "@/app/lib/proposalPageContentEditing";
 import { readEstimatePageSettingsFromProposalPage } from "@/app/lib/proposalCustomerEstimateDisplayPolicy";
-import type { ProposalPageSettings, ProposalPageType } from "@/app/lib/proposalPageTypes";
+import {
+  finalizeCustomerPacketDetailBody,
+  isCustomerPacketMeaningfulDetailBody,
+} from "@/app/lib/proposalCustomerPacketDetailContent";
+import type { ProposalPageSettings } from "@/app/lib/proposalPageTypes";
 import {
   getCustomerPreviewPages,
   resolveProposalPageDisplayTitle,
@@ -147,17 +151,6 @@ function resolveSelectedOptionLabel(
   return name || null;
 }
 
-function placeholderMessageForPageType(pageType: ProposalPageType): string {
-  switch (pageType) {
-    case "photos":
-      return CUSTOMER_PREVIEW_PHOTOS_PLACEHOLDER;
-    case "pdf_attachment":
-      return CUSTOMER_PREVIEW_PDF_PLACEHOLDER;
-    default:
-      return "Content for this page is not available yet.";
-  }
-}
-
 /**
  * Block 5 — contractor-facing Preview readiness notes.
  *
@@ -260,27 +253,29 @@ function mapVisibleDbPage(
           },
         };
 
+    // Block 5 corrective: omit empty / contractor-stub bodies from the customer document.
+    // Reuses the public-packet placeholder guard so Preview and /p/[token] stay aligned.
+    const displayText = finalizeCustomerPacketDetailBody(pageType, rendered.displayText);
+    if (!isCustomerPacketMeaningfulDetailBody(displayText)) {
+      return null;
+    }
+
     return {
       kind: "text",
       id: page.id,
       pageType: pageType as ProposalCustomerPreviewTextPage["pageType"],
       title,
       sortOrder: page.sort_order,
-      displayText: rendered.displayText,
-      isEmpty: rendered.displayText.trim().length === 0,
+      displayText,
+      isEmpty: false,
       diagnostics: rendered.diagnostics,
     };
   }
 
+  // Block 5 corrective: photos / PDF are unsupported — never render placeholder pages
+  // inside the customer proposal document.
   if (PLACEHOLDER_PAGE_TYPES.has(pageType)) {
-    return {
-      kind: "placeholder",
-      id: page.id,
-      pageType: pageType as ProposalCustomerPreviewPlaceholderPage["pageType"],
-      title,
-      sortOrder: page.sort_order,
-      message: placeholderMessageForPageType(pageType),
-    };
+    return null;
   }
 
   return null;
@@ -314,9 +309,21 @@ export function buildProposalCustomerPreviewDocument(
 
   const pricingStale = options?.pricingStale?.stale === true;
 
-  const coverViewModel = buildProposalCoverViewModel(adapter.proposalDocumentContext, {
+  const coverViewModelRaw = buildProposalCoverViewModel(adapter.proposalDocumentContext, {
     pricingComplete,
   });
+
+  // Customer document must not show contractor incomplete/identity language.
+  // Incomplete totals surface only as the amber contractor warning above the document.
+  const coverViewModel: ProposalCoverViewModel = {
+    ...coverViewModelRaw,
+    packageSummary: {
+      ...coverViewModelRaw.packageSummary,
+      pricingIncompleteMessage: null,
+    },
+    documentIdentityIncomplete: false,
+    documentIdentityIncompleteMessage: null,
+  };
 
   const pages: ProposalCustomerPreviewPage[] = [
     {

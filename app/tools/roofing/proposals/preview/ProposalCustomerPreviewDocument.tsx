@@ -8,7 +8,6 @@ import ProposalBuilderCustomerPage from "../builder/ProposalBuilderCustomerPage"
 import {
   BUILDER_CANVAS,
   BUILDER_CANVAS_INNER,
-  BUILDER_CANVAS_PLACEHOLDER,
 } from "../builder/proposalBuilderConstants";
 import ProposalCustomerPreviewEstimateSection from "./ProposalCustomerPreviewEstimateSection";
 
@@ -18,26 +17,13 @@ type ProposalCustomerPreviewDocumentProps = {
   catalogItems: CatalogItem[];
 };
 
-function emptyStateForPageType(pageType: string): string {
-  switch (pageType) {
-    case "project_overview":
-      return "Project overview content will appear here.";
-    case "terms":
-      return "Terms will appear here.";
-    case "warranty":
-      return "Warranty details will appear here.";
-    default:
-      return "Page content will appear here.";
-  }
-}
-
 export default function ProposalCustomerPreviewDocumentView({
   document,
   templateGraph,
   catalogItems,
 }: ProposalCustomerPreviewDocumentProps) {
   return (
-    <div className="space-y-8">
+    <div className="space-y-8" data-preview-customer-document>
       {document.pages.map((page) => {
         if (page.kind === "cover") {
           return (
@@ -50,13 +36,19 @@ export default function ProposalCustomerPreviewDocumentView({
         }
 
         if (page.kind === "text") {
+          // Stub / empty text pages are already omitted by the view model.
+          // Never render empty-state placeholder copy inside the customer document.
+          if (page.isEmpty) {
+            return null;
+          }
+
           return (
             <ProposalBuilderCustomerPage
               key={page.id}
               pageType={page.pageType}
               title={page.title}
-              bodyMarkdown={page.isEmpty ? null : page.displayText}
-              emptyStateText={emptyStateForPageType(page.pageType)}
+              bodyMarkdown={page.displayText}
+              emptyStateText=""
               showEditHint={false}
               showReadOnlyFooter={false}
             />
@@ -84,16 +76,8 @@ export default function ProposalCustomerPreviewDocumentView({
           );
         }
 
-        return (
-          <article key={page.id} className={BUILDER_CANVAS}>
-            <div className={`${BUILDER_CANVAS_INNER} space-y-4 px-7 py-8`}>
-              <h2 className="text-xl font-semibold text-slate-950">{page.title}</h2>
-              <div className={`${BUILDER_CANVAS_PLACEHOLDER} min-h-[12rem]`}>
-                <p className="text-sm text-slate-600">{page.message}</p>
-              </div>
-            </div>
-          </article>
-        );
+        // photos / pdf placeholders — unsupported; never render in customer document
+        return null;
       })}
     </div>
   );

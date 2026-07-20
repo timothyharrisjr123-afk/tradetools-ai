@@ -248,9 +248,10 @@ describe("buildProposalCustomerPreviewDocument", () => {
   test("visible pages follow sort_order after Cover", () => {
     const doc = buildProposalCustomerPreviewDocument(minimalGraph());
     const afterCover = doc.pages.slice(1);
+    // photos / pdf placeholders are omitted from the customer document
     assert.deepEqual(
       afterCover.map((page) => page.sortOrder),
-      [10, 15, 30]
+      [10, 15]
     );
   });
 
@@ -323,10 +324,57 @@ describe("buildProposalCustomerPreviewDocument", () => {
     }
   });
 
-  test("photos page becomes placeholder when visible", () => {
+  test("Block 5 corrective — photos / pdf placeholders are omitted from customer document", () => {
     const doc = buildProposalCustomerPreviewDocument(minimalGraph());
-    const photos = doc.pages.find((page) => page.id === PAGE_PHOTOS);
-    assert.equal(photos?.kind, "placeholder");
+    assert.ok(!doc.pages.some((page) => page.id === PAGE_PHOTOS));
+    assert.ok(!doc.pages.some((page) => page.kind === "placeholder"));
+    assert.ok(!doc.pages.some((page) => page.pageType === "photos"));
+    assert.ok(!doc.pages.some((page) => page.pageType === "pdf_attachment"));
+  });
+
+  test("Block 5 corrective — contractor-stub text pages are omitted", () => {
+    const doc = buildProposalCustomerPreviewDocument(
+      minimalGraph({
+        pages: [
+          ...minimalGraph().pages.filter((page) => page.page_type !== "photos"),
+          pageRow({
+            id: "ffffffff-ffff-4fff-8fff-ffffffffffff",
+            page_type: "warranty",
+            sort_order: 25,
+            title: "Warranty",
+            visible_to_customer: true,
+            content_json: {
+              body_markdown:
+                "Warranty details should be reviewed and completed by the contractor before sending the proposal.",
+            },
+          }),
+        ],
+      })
+    );
+    assert.ok(!doc.pages.some((page) => page.pageType === "warranty"));
+  });
+
+  test("Block 5 corrective — cover omits Pricing incomplete from customer document", () => {
+    const doc = buildProposalCustomerPreviewDocument(
+      minimalGraph({
+        options: [
+          {
+            ...minimalGraph().options[0]!,
+            pricing_complete: false,
+            blocking_line_count: 2,
+            customer_total_cents: null,
+          },
+        ],
+      })
+    );
+    const cover = doc.pages.find((page) => page.kind === "cover");
+    assert.equal(cover?.kind, "cover");
+    if (cover?.kind === "cover") {
+      assert.equal(cover.viewModel.packageSummary.pricingIncompleteMessage, null);
+      assert.equal(cover.viewModel.documentIdentityIncomplete, false);
+      assert.equal(cover.viewModel.documentIdentityIncompleteMessage, null);
+    }
+    assert.match(doc.readiness.warnings.join(" "), /quantity before totals are final/i);
   });
 
   test("pricing incomplete adds readiness warning", () => {
