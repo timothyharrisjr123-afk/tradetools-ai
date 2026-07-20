@@ -6,8 +6,6 @@ import {
   JOB_CARD_PROPOSALS_CREATE_LABEL,
   JOB_CARD_PROPOSALS_EMPTY_BODY,
   JOB_CARD_PROPOSALS_EMPTY_TITLE,
-  JOB_CARD_PROPOSALS_ENTRY_PLACEHOLDER,
-  JOB_CARD_PROPOSALS_ENTRY_PLACEHOLDER_HINT,
   JOB_CARD_PROPOSALS_OPEN_LABEL,
   JOB_CARD_PROPOSALS_PRIMARY_BUTTON_CLASS,
   JOB_CARD_PROPOSALS_SECONDARY_BUTTON_CLASS,
@@ -15,11 +13,9 @@ import {
 
 type JobCardProposalsTabProps = {
   rows: readonly JobCardProposalRowView[];
-  showEntryPlaceholder: boolean;
-  /** Block 3 gate signal only — Block 2 does not create from + Proposal. */
+  /** Gate for Block 3 Continue — measurement/template/package ready. */
   createReadyForBlock3?: boolean;
   onAddProposal: () => void;
-  onDismissEntryPlaceholder: () => void;
   onOpenProposal: (proposalId: string) => void;
 };
 
@@ -50,10 +46,8 @@ function AddProposalButton({
 
 export default function JobCardProposalsTab({
   rows,
-  showEntryPlaceholder,
   createReadyForBlock3 = false,
   onAddProposal,
-  onDismissEntryPlaceholder,
   onOpenProposal,
 }: JobCardProposalsTabProps) {
   const hasRows = rows.length > 0;
@@ -65,29 +59,6 @@ export default function JobCardProposalsTab({
       data-jobcard-proposals-v1
       data-jobcard-create-ready-for-block3={createReadyForBlock3 ? "true" : "false"}
     >
-      {showEntryPlaceholder ? (
-        <div
-          className="rounded-lg border border-blue-100 bg-blue-50/50 px-4 py-3"
-          data-jobcard-proposal-entry-placeholder
-          role="status"
-        >
-          <p className="text-[13px] font-medium text-slate-900">
-            {JOB_CARD_PROPOSALS_ENTRY_PLACEHOLDER_HINT}
-          </p>
-          <p className="mt-1 text-[12px] text-slate-600">
-            {JOB_CARD_PROPOSALS_ENTRY_PLACEHOLDER}
-          </p>
-          <button
-            type="button"
-            className={`mt-3 ${JOB_CARD_PROPOSALS_SECONDARY_BUTTON_CLASS}`}
-            onClick={onDismissEntryPlaceholder}
-            data-jobcard-proposal-entry-dismiss
-          >
-            Not now
-          </button>
-        </div>
-      ) : null}
-
       {hasRows ? (
         <div className="space-y-2" data-jobcard-proposal-list>
           {rows.map((row) => (

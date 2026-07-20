@@ -45,11 +45,11 @@
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** **`fc65f9d`** — fix(proposals): align job card status with visible proposals (Block 2 follow-up; prior **`c979e3a`** tab reset; Block 1 **`aee0546`**)
-- **Docs checkpoint:** **Block 2 follow-up** — Job Card status/activity use visible proposals only (this header + **§6BO.13.4.9** R.1). Prior: Block 2 tab reset (**R** / **`c979e3a`**); Block 1 isolation (**Q**).
-- **Prior code:** **`c979e3a`** Proposals tab reset; **`aee0546`** smoke isolation
-- **Next coding:** **Block 3** — + Proposal modal/step flow (measurement → template → package → Continue to Builder). Do **not** start Blocks 4–7 until Block 3 is approved. Do **not** add full proposal management, template rebuild/import of live options into existing drafts, supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
-- **Historical note:** Proposals tab compact + blue **+ Proposal** (Block 2). Status strip/activity no longer say Proposal Draft / Builder ready for smoke-only jobs. + Proposal placeholder only until Block 3. Smoke fixtures remain hide-not-delete.
+- **Code checkpoint:** **pending commit** — feat(proposals): add job card proposal creation flow (Block 3; prior **`fc65f9d`** status truth; **`c979e3a`** tab reset; Block 1 **`aee0546`**)
+- **Docs checkpoint:** **Block 3** — + Proposal modal/sheet flow (this header + **§6BO.13.4.9** S). Prior: Block 2 follow-up (**R.1** / **`fc65f9d`**); Block 2 tab reset (**R**); Block 1 isolation (**Q**).
+- **Prior code:** **`fc65f9d`** status/activity visible-proposal truth; **`c979e3a`** Proposals tab reset; **`aee0546`** smoke isolation
+- **Next coding:** **Block 4** — Builder handoff polish. Do **not** start Blocks 5–7 until Block 4 is approved. Do **not** add full proposal management, template rebuild/import of live options into existing drafts, supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
+- **Historical note:** + Proposal opens Create proposal modal (measurement → template → package → Continue to Builder); force-creates distinct draft; selected package carries into Builder; Block 2 compact rows preserved; smoke fixtures remain hide-not-delete.
 
 **Trust order:** Header/current checkpoint → **§6BO.13** (approved page-by-page UI flow roadmap + P0 implementation sequence — **supersedes separate Command Center language**) → **§6BM** / **§6BN** (R18 letter-phase roadmap + R18C–R18D3C implementation history) → **§6BO** / **§6BO.11** / **§6BO.12** (completed remediation side-track + **approved Stage C policy** + **operating-flow audit sequencing — complete; outcome in §6BO.13**) → **§6BL** → **§11 override**. Stage B browser smoke required local-only **`USE_PROPOSAL_SEND_FREEZE_RPC=1`** in `.env.local` (gitignored, not committed). **Do not proceed** to docs-only or next feature work unless working tree is clean. **Still do not** mutate `proposals.status = sent`, write sent `proposal_events`, move Jobs Board cards, add Job Card send activity, enable PDF/Sign/Payment, or add webhooks unless separately approved.
 
@@ -12375,6 +12375,25 @@ Package rule from **N** remains law: pre-draft package on create modal; post-dra
 
 **Next recommended block:** **Block 3 — + Proposal modal flow** (measurement → template → package → Continue to Builder).
 
+###### S. Block 3 — + Proposal modal / Create proposal step flow — IMPLEMENTED (2026-07-20)
+
+**Status:** Job Card **+ Proposal** opens a focused **Create proposal** modal/sheet: Measurement → Template → Package → Review → **Continue to Builder**. **No Proposals tab shell redesign. No Builder/Preview/Templates/Catalog redesign. No pricing/quantity/snapshot formula changes. No send/public/lifecycle/PDF/sign/payment. No migrations/SQL/package files. No supplier/material/CSV/raw/whole-rounding. No smoke deletes.**
+
+**Behavior:**
+- Modal title **Create proposal**; steps Use this measurement → Use this template → choose package → **Continue to Builder**
+- Ready measurement shown contractor-readable; no ready measurement blocks Continue
+- Contractor-visible templates only (Block 1 isolation); Roof replacement shown; RAW_PLUS_WASTE / smoke templates hidden
+- Package step shows Standard / Enhanced / Premium for Roof replacement; selection preserved into create payload
+- Continue uses **`createNewProposalDraftEntry`** (force-create distinct draft) — does **not** reuse hidden smoke via `resolveOrCreate`
+- Navigates to Builder `job=<id>&proposal=<new id>`; selected package matches modal; Back to Job Card → Proposals tab shows new compact row
+- Closing modal / changing package before Continue does **not** create
+
+**Files:** `JobCardCreateProposalModal.tsx`, `jobCardCreateProposalModalModel.ts` (+ tests); `JobCardProposalsTab.tsx` (placeholder removed); `RoofingClient` Proposals panel wires modal + force-create.
+
+**Smoke (Babby D on `rhquhnujjnzjhweypavd`):** created proposal **`0fff78ea-b482-4d2d-8363-edfd5f4fe0c4`** (Enhanced); Builder selected package Enhanced; Change package present; return shows Enhanced package · Draft row; smoke id **`61356e56-…`** still loads by direct URL; smoke/internal rows remain hidden.
+
+**Next recommended block:** **Block 4 — Builder handoff**.
+
 #### 13.4.6 Integrated Catalog → Proposal workflow research + FieldDive flow design — COMPLETE (2026-07-17)
 
 **Status:** Docs-only research + design lock. **No app code, migrations, SQL, package, pricing, Preview, send/public/lifecycle, supplier API, material ordering, or proposal import changes in this block.**
@@ -13860,7 +13879,8 @@ Treat as **drift** if a session:
 
 ## Changelog (handoff doc only)
 
-- **2026-07-20:** **Block 2 follow-up — Job Card status/activity visible-proposal truth** (**§6BO.13.4.9** R.1) — smoke-only jobs show Ready to create proposal / Ready for proposal (not Proposal Draft / Builder ready); left nav Jobs on job-card entry; Proposals tab reset preserved. **Next:** Block 3 + Proposal modal.
+- **2026-07-20:** **Block 3 — + Proposal Create proposal modal** (**§6BO.13.4.9** S) — measurement → template → package → Continue to Builder; force-create distinct draft (not smoke reuse); package carries into Builder; Block 2 rows + Block 1 isolation preserved. Babby smoke created `0fff78ea-…` (Enhanced). **Next:** Block 4 Builder handoff.
+- **2026-07-20:** **Block 2 follow-up — Job Card status/activity visible-proposal truth** (**§6BO.13.4.9** R.1) — smoke-only jobs show Ready to create proposal / Ready for proposal (not Proposal Draft / Builder ready); left nav Jobs on job-card entry; Proposals tab reset preserved. **Next:** Block 3 + Proposal modal (now **S**).
 - **2026-07-20:** **Block 2 — Proposals tab reset** (**§6BO.13.4.9** R) — compact rows + blue **+ Proposal**; empty state when smoke-only; placeholder entry (no create); removed always-open setup/archive UI; Block 1 isolation preserved; no modal yet. **Next:** Block 3 + Proposal modal.
 - **2026-07-20:** **Block 1 — smoke/internal proposal + template isolation** (**§6BO.13.4.9** Q) — centralized `contractorFixtureIsolation` known-fixture classifier; Job Card Proposals lists/current draft + create template picker hide fixtures (hide-not-delete); direct Builder smoke URL preserved; no Proposals tab reset / modal / pricing / lifecycle. **Next:** Block 2 Proposals tab reset (now **R**).
 - **2026-07-20:** **Block 0 — Proposal Flow V1 + Template Flow V1 + app surface standards** (docs only, **§6BO.13.4.9** P) — locked happy path (Job Card → + Proposal → measurement/template/package → Builder → Preview; Send later); Proposals compact rows + blue + Proposal; Templates = company setup; smoke hide-not-delete; Builder/Preview roles; Blocks 0–7 order; protected systems restated. Code checkpoint **`190ad66`**. **No app code.** **Next coding:** Block 1 smoke isolation (now **Q**).

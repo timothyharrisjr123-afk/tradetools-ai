@@ -108,6 +108,7 @@ import {
 import {
   buildMeasurementProposalHandoff,
   deriveQuantityMapFromRecord,
+  formatProposalQuantitiesDisplay,
   resolveProposalHandoffNextAction,
 } from "@/app/lib/measurementProposalHandoff";
 import { getActiveCatalogItemsByCompany } from "@/app/lib/catalogStore";
@@ -155,6 +156,8 @@ import {
 import JobCardProposalsTab, {
   JobCardProposalsAddHeaderButton,
 } from "@/app/tools/roofing/jobCard/JobCardProposalsTab";
+import { JobCardCreateProposalModal } from "@/app/tools/roofing/jobCard/JobCardCreateProposalModal";
+import type { CreateProposalModalStep } from "@/app/tools/roofing/jobCard/jobCardCreateProposalModalModel";
 import {
   JOB_CARD_PROPOSAL_ACTIVITY_READY_LABEL,
   JOB_CARD_PROPOSAL_ACTIVITY_READY_NOTE,
@@ -162,6 +165,7 @@ import {
   buildJobCardProposalRowViews,
   formatJobCardContractorProposalStatusLabel,
 } from "@/app/tools/roofing/jobCard/jobCardProposalsTabModel";
+import { sortTemplateOptionsByOrder } from "@/app/tools/roofing/templates/templatesSetupUtils";
 import type { JobDraft, JobAddress, JobRecord } from "@/app/lib/jobTypes";
 import { sendEstimateEmailWithPdf } from "@/app/lib/sendEstimateClient";
 import { getFavorite, setFavorite, setLocked, appendFeedback, getTierFeedbackBias, type TierLabel } from "@/app/lib/aiWordingPrefs";
@@ -1121,8 +1125,10 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
     useState<ResolveOrCreateProposalDraftEntryReason | null>(null);
   const [isLaunchingProposal, setIsLaunchingProposal] = useState(false);
   const [isCreatingNewProposal, setIsCreatingNewProposal] = useState(false);
-  /** Block 2: + Proposal shows placeholder until Block 3 modal. */
-  const [showJobCardProposalEntry, setShowJobCardProposalEntry] = useState(false);
+  /** Block 3: + Proposal opens measurement → template → package modal. */
+  const [createProposalModalOpen, setCreateProposalModalOpen] = useState(false);
+  const [createProposalModalStep, setCreateProposalModalStep] =
+    useState<CreateProposalModalStep>("measurement");
   const proposalLaunchInFlightRef = useRef(false);
   const measurementSaveInFlightRef = useRef<string | null>(null);
   const measurementFormHydratedRef = useRef<string | null>(null);
@@ -1997,7 +2003,8 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
       setListedJobDraftSummaries([]);
       setListedJobDraftPackageLabel(null);
       setListedJobDraftPackageLabels({});
-      setShowJobCardProposalEntry(false);
+      setCreateProposalModalOpen(false);
+      setCreateProposalModalStep("measurement");
       listedDraftFetchInFlightRef.current = null;
       return;
     }
@@ -7473,8 +7480,55 @@ Thanks,`;
     const createNewDraftEnabled =
       proposalDraftCreatePayload != null &&
       !proposalCreateBlockedOnBoard &&
-      jobCardPackageSetup.selected != null &&
-      (jobCardPackageSetup.selected.issueCount ?? 0) === 0;
+      (jobCardPackageSetup.choices.length === 0 ||
+        (jobCardPackageSetup.selected != null &&
+          (jobCardPackageSetup.selected.issueCount ?? 0) === 0));
+
+    const openCreateProposalModal = () => {
+      setProposalLaunchError(null);
+      setProposalLaunchReason(null);
+      setCreateProposalModalStep("measurement");
+      setCreateProposalModalOpen(true);
+    };
+
+    const closeCreateProposalModal = () => {
+      if (proposalLaunchInFlightRef.current || isCreatingNewProposal) return;
+      setCreateProposalModalOpen(false);
+      setCreateProposalModalStep("measurement");
+      setProposalLaunchError(null);
+      setProposalLaunchReason(null);
+    };
+
+    const visibleCreateProposalTemplates =
+      filterContractorVisibleTemplates(companyProposalTemplates);
+
+    const createProposalModalTemplates = visibleCreateProposalTemplates.map(
+      (row) => {
+        const selected = row.id === selectedJobTemplateId;
+        const packageCount = selected
+          ? jobCardPackageSetup.choices.length
+          : 0;
+        const linkedItemCount = selected
+          ? jobCardPackageSetup.includedItemCount
+          : 0;
+        const ready = selected
+          ? proposalTemplateReadiness.status === "ready_for_builder" &&
+            (jobCardPackageSetup.selected == null ||
+              (jobCardPackageSetup.selected.issueCount ?? 0) === 0)
+          : row.active !== false;
+        return {
+          id: row.id,
+          name: (row.name ?? "").trim() || "Template",
+          ready,
+          linkedItemCount,
+          packageCount,
+        };
+      }
+    );
+
+    const createProposalPackageOptions = starterTemplateGraph
+      ? sortTemplateOptionsByOrder(starterTemplateGraph.options)
+      : [];
 
     /** Always create a distinct draft — never reuses active/listed drafts. */
     const handleCreateNewProposalDraft = () => {
@@ -7540,6 +7594,8 @@ Thanks,`;
             } catch {
               // list refresh is best-effort; navigation still proceeds
             }
+            setCreateProposalModalOpen(false);
+            setCreateProposalModalStep("measurement");
             router.push(buildProposalBuilderHref(currentJobId, result.proposalId));
             return;
           }
@@ -7562,9 +7618,6 @@ Thanks,`;
         }
       })();
     };
-
-    // Block 3 wires + Proposal → create modal; retain force-create handler above.
-    void handleCreateNewProposalDraft;
 
     // Board-origin identity normalization: clear sticky overlay state and open the
     // clean DB job= path (no from=board, no loadSaved). Does NOT create a proposal.
@@ -8179,18 +8232,14 @@ Thanks,`;
                 subtitle={JOB_CARD_PROPOSALS_TAB_SUBTITLE}
                 headerAction={
                   <JobCardProposalsAddHeaderButton
-                    onClick={() => setShowJobCardProposalEntry(true)}
+                    onClick={openCreateProposalModal}
                   />
                 }
               >
                 <JobCardProposalsTab
                   rows={jobCardProposalRows}
-                  showEntryPlaceholder={showJobCardProposalEntry}
                   createReadyForBlock3={createNewDraftEnabled}
-                  onAddProposal={() => setShowJobCardProposalEntry(true)}
-                  onDismissEntryPlaceholder={() =>
-                    setShowJobCardProposalEntry(false)
-                  }
+                  onAddProposal={openCreateProposalModal}
                   onOpenProposal={(proposalId) => {
                     if (!currentJobId || !isUuidLike(currentJobId)) return;
                     if (!isUuidLike(proposalId)) return;
@@ -8198,6 +8247,51 @@ Thanks,`;
                       buildProposalBuilderHref(currentJobId, proposalId)
                     );
                   }}
+                />
+                <JobCardCreateProposalModal
+                  open={createProposalModalOpen}
+                  step={createProposalModalStep}
+                  onStepChange={setCreateProposalModalStep}
+                  onClose={closeCreateProposalModal}
+                  measurementReady={proposalHandoff.proposalReady}
+                  measurementLabel={proposalHandoff.selectedLabel}
+                  measurementQuantitiesLine={formatProposalQuantitiesDisplay(
+                    proposalHandoff.quantities
+                  )}
+                  templates={createProposalModalTemplates}
+                  selectedTemplateId={selectedJobTemplateId}
+                  onSelectTemplate={(templateId) => {
+                    setSelectedJobTemplateId(templateId);
+                    setJobCardSelectedPackageOptionId(null);
+                  }}
+                  templateReady={
+                    Boolean(selectedJobTemplateId) &&
+                    proposalTemplateReadiness.status === "ready_for_builder"
+                  }
+                  selectedTemplateName={
+                    starterTemplateGraph?.template.name ??
+                    visibleCreateProposalTemplates.find(
+                      (row) => row.id === selectedJobTemplateId
+                    )?.name ??
+                    null
+                  }
+                  packageOptions={createProposalPackageOptions}
+                  selectedPackageOptionId={jobCardPackageSetup.selectedOptionId}
+                  onSelectPackage={setJobCardSelectedPackageOptionId}
+                  packageIssueCount={
+                    jobCardPackageSetup.selected?.issueCount ?? 0
+                  }
+                  selectedPackageName={
+                    jobCardPackageSetup.selected?.label ?? null
+                  }
+                  includedItemCount={jobCardPackageSetup.includedItemCount}
+                  customerFacingLine={
+                    jobCardPackageSetup.customerFacingLine || null
+                  }
+                  createEnabled={createNewDraftEnabled}
+                  creating={isCreatingNewProposal}
+                  createError={proposalLaunchError}
+                  onContinueToBuilder={handleCreateNewProposalDraft}
                 />
               </JobCardSectionPanel>
 

@@ -1,5 +1,5 @@
 /**
- * Static presence tests for Job Card Proposals tab (Block 2 surface).
+ * Static presence tests for Job Card Proposals tab + Block 3 create modal.
  * Run: npx tsx --test app/tools/roofing/jobCard/jobCardProposalSetupCard.test.ts
  */
 
@@ -14,7 +14,7 @@ function read(rel: string): string {
   return readFileSync(join(ROOT, rel), "utf8");
 }
 
-describe("Job Card Proposals tab (Block 2)", () => {
+describe("Job Card Proposals tab (Block 2 + Block 3 modal)", () => {
   test("1. Header wires blue + Proposal action", () => {
     const client = read("app/tools/roofing/RoofingClient.tsx");
     const tab = read("app/tools/roofing/jobCard/JobCardProposalsTab.tsx");
@@ -63,19 +63,43 @@ describe("Job Card Proposals tab (Block 2)", () => {
     assert.doesNotMatch(tab, /onCreateNewDraft/);
   });
 
-  test("5. + Proposal opens Block 2 placeholder — does not create drafts", () => {
+  test("5. + Proposal opens Block 3 modal — create only on Continue to Builder", () => {
     const client = read("app/tools/roofing/RoofingClient.tsx");
     const tab = read("app/tools/roofing/jobCard/JobCardProposalsTab.tsx");
-    const helpers = read("app/tools/roofing/jobCard/jobCardProposalsTabModel.ts");
-    assert.match(client, /setShowJobCardProposalEntry\(true\)/);
-    assert.match(tab, /data-jobcard-proposal-entry-placeholder/);
-    assert.match(helpers, /measurement → template → package/);
+    const modal = read("app/tools/roofing/jobCard/JobCardCreateProposalModal.tsx");
+    const modalModel = read(
+      "app/tools/roofing/jobCard/jobCardCreateProposalModalModel.ts"
+    );
+    assert.match(client, /openCreateProposalModal/);
+    assert.match(client, /JobCardCreateProposalModal/);
+    assert.match(client, /createProposalModalOpen/);
+    assert.match(modal, /data-jobcard-create-proposal-modal/);
+    assert.match(modalModel, /Continue to Builder/);
+    assert.match(modalModel, /Use this measurement/);
+    assert.match(modalModel, /Use this template/);
+    assert.doesNotMatch(tab, /data-jobcard-proposal-entry-placeholder/);
     const proposalsPanel = client.slice(
       client.indexOf('tabId="proposals"'),
       client.indexOf('tabId="material_orders"')
     );
-    assert.doesNotMatch(proposalsPanel, /handleCreateNewProposalDraft/);
-    assert.doesNotMatch(proposalsPanel, /createNewProposalDraftEntry/);
+    assert.match(proposalsPanel, /onContinueToBuilder=\{handleCreateNewProposalDraft\}/);
+    assert.match(client, /createNewProposalDraftEntry/);
+    assert.doesNotMatch(proposalsPanel, /resolveOrCreateProposalDraftEntry/);
+    assert.match(client, /closeCreateProposalModal/);
+    assert.match(
+      client.slice(
+        client.indexOf("const closeCreateProposalModal"),
+        client.indexOf("const visibleCreateProposalTemplates")
+      ),
+      /setCreateProposalModalOpen\(false\)/
+    );
+    assert.doesNotMatch(
+      client.slice(
+        client.indexOf("const closeCreateProposalModal"),
+        client.indexOf("const visibleCreateProposalTemplates")
+      ),
+      /createNewProposalDraftEntry/
+    );
   });
 
   test("6. Open uses Builder href with proposal id — not create", () => {
@@ -136,5 +160,45 @@ describe("Job Card Proposals tab (Block 2)", () => {
     assert.match(helpers, /Ready for proposal/);
     assert.match(readiness, /hasVisibleContractorProposal/);
     assert.match(client, /activeNav=\{entryMode === "job-card" \? "jobs" : "newJob"\}/);
+  });
+
+  test("11. Modal steps cover measurement, template, package, review", () => {
+    const modal = read("app/tools/roofing/jobCard/JobCardCreateProposalModal.tsx");
+    const model = read(
+      "app/tools/roofing/jobCard/jobCardCreateProposalModalModel.ts"
+    );
+    assert.match(modal, /data-jobcard-create-proposal-panel-measurement/);
+    assert.match(modal, /data-jobcard-create-proposal-panel-template/);
+    assert.match(modal, /data-jobcard-create-proposal-panel-package/);
+    assert.match(modal, /data-jobcard-create-proposal-panel-review/);
+    assert.match(modal, /data-jobcard-create-proposal-continue/);
+    assert.match(model, /"measurement"/);
+    assert.match(model, /"template"/);
+    assert.match(model, /"package"/);
+    assert.match(model, /"review"/);
+  });
+
+  test("12. Continue uses force-create path with selected package option", () => {
+    const client = read("app/tools/roofing/RoofingClient.tsx");
+    assert.match(client, /createNewProposalDraftEntry/);
+    assert.match(client, /selected_template_option_id: jobCardPackageSetup\.selectedOptionId/);
+    assert.match(client, /onSelectPackage=\{setJobCardSelectedPackageOptionId\}/);
+    assert.match(
+      client,
+      /router\.push\(buildProposalBuilderHref\(currentJobId, result\.proposalId\)\)/
+    );
+    assert.doesNotMatch(
+      client.slice(
+        client.indexOf("const handleCreateNewProposalDraft"),
+        client.indexOf("const handleNormalizeAndOpenJobCard")
+      ),
+      /resolveOrCreateProposalDraftEntry/
+    );
+  });
+
+  test("13. Template picker uses contractor-visible filter", () => {
+    const client = read("app/tools/roofing/RoofingClient.tsx");
+    assert.match(client, /filterContractorVisibleTemplates\(companyProposalTemplates\)/);
+    assert.match(client, /visibleCreateProposalTemplates/);
   });
 });
