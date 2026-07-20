@@ -48,6 +48,7 @@ describe("jobCardCreateProposalModalModel polish", () => {
     assert.equal(CREATE_PROPOSAL_CONTINUE_TO_BUILDER, "Continue to Builder");
     assert.equal(CREATE_PROPOSAL_HELPER, "Existing proposals are not changed.");
     assert.equal(CREATE_PROPOSAL_REVIEW_TITLE, "Ready to build proposal");
+    assert.doesNotMatch(CREATE_PROPOSAL_REVIEW_TITLE, /field|admin|draft/i);
     assert.match(CREATE_PROPOSAL_MEASUREMENT_GUIDE, /completed measurement/i);
     assert.match(CREATE_PROPOSAL_TEMPLATE_GUIDE, /proposal structure/i);
     assert.match(CREATE_PROPOSAL_PACKAGE_GUIDE, /change it later in Builder/i);

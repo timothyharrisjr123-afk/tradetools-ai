@@ -8,7 +8,6 @@ import {
   JOB_CARD_PROPOSALS_EMPTY_TITLE,
   JOB_CARD_PROPOSALS_OPEN_LABEL,
   JOB_CARD_PROPOSALS_PRIMARY_BUTTON_CLASS,
-  JOB_CARD_PROPOSALS_SECONDARY_BUTTON_CLASS,
 } from "./jobCardProposalsTabModel";
 
 type JobCardProposalsTabProps = {
@@ -61,37 +60,57 @@ export default function JobCardProposalsTab({
     >
       {hasRows ? (
         <div className="space-y-2" data-jobcard-proposal-list>
-          {rows.map((row) => (
-            <div
-              key={row.proposalId}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-3.5 py-3"
-              data-jobcard-proposal-list-row
-              data-proposal-id={row.proposalId}
-            >
-              <div className="min-w-0">
-                <p
-                  className="truncate text-[14px] font-semibold text-slate-900"
-                  data-jobcard-proposal-row-title
-                >
-                  {row.title}
-                </p>
-                <p
-                  className="mt-0.5 truncate text-[12px] text-slate-500"
-                  data-jobcard-proposal-row-meta
-                >
-                  {row.metaLine}
-                </p>
-              </div>
-              <button
-                type="button"
-                className={JOB_CARD_PROPOSALS_SECONDARY_BUTTON_CLASS}
-                onClick={() => onOpenProposal(row.proposalId)}
-                data-jobcard-proposal-open
+          {rows.map((row) => {
+            const pkg = (row.packageLabel ?? "").replace(/\s+package$/i, "").trim();
+            const titleParts =
+              pkg && row.title.includes(` — ${pkg}`)
+                ? {
+                    base: row.title.slice(0, row.title.lastIndexOf(` — ${pkg}`)),
+                    packageName: pkg,
+                  }
+                : { base: row.title, packageName: null as string | null };
+            return (
+              <div
+                key={row.proposalId}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3.5"
+                data-jobcard-proposal-list-row
+                data-proposal-id={row.proposalId}
               >
-                {JOB_CARD_PROPOSALS_OPEN_LABEL}
-              </button>
-            </div>
-          ))}
+                <div className="min-w-0">
+                  <p
+                    className="truncate text-[14px] font-semibold text-slate-900"
+                    data-jobcard-proposal-row-title
+                  >
+                    {titleParts.packageName ? (
+                      <>
+                        {titleParts.base}
+                        <span className="font-normal text-slate-400"> — </span>
+                        <span className="font-semibold text-blue-700">
+                          {titleParts.packageName}
+                        </span>
+                      </>
+                    ) : (
+                      row.title
+                    )}
+                  </p>
+                  <p
+                    className="mt-0.5 truncate text-[12px] text-slate-500"
+                    data-jobcard-proposal-row-meta
+                  >
+                    {row.metaLine}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="shrink-0 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+                  onClick={() => onOpenProposal(row.proposalId)}
+                  data-jobcard-proposal-open
+                >
+                  {JOB_CARD_PROPOSALS_OPEN_LABEL}
+                </button>
+              </div>
+            );
+          })}
         </div>
       ) : (
         <div

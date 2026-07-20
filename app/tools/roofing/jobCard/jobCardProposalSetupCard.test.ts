@@ -158,7 +158,13 @@ describe("Job Card Proposals tab (Block 2 + Block 3 modal)", () => {
     assert.match(client, /hasVisibleContractorProposal/);
     assert.match(helpers, /Ready to create proposal/);
     assert.match(helpers, /Ready for proposal/);
+    assert.match(helpers, /Proposal created/);
+    assert.match(helpers, /Draft proposal/);
+    assert.match(helpers, /Latest:.*draft/);
+    assert.doesNotMatch(helpers, /Proposal Draft/);
+    assert.doesNotMatch(readiness, /Proposal Builder ready/);
     assert.match(readiness, /hasVisibleContractorProposal/);
+    assert.match(client, /formatJobCardProposalCreatedActivityNote/);
     assert.match(client, /activeNav=\{entryMode === "job-card" \? "jobs" : "newJob"\}/);
   });
 
@@ -172,6 +178,9 @@ describe("Job Card Proposals tab (Block 2 + Block 3 modal)", () => {
     assert.match(modal, /data-jobcard-create-proposal-panel-package/);
     assert.match(modal, /data-jobcard-create-proposal-panel-review/);
     assert.match(modal, /data-jobcard-create-proposal-continue/);
+    assert.match(modal, /starting package/);
+    assert.match(modal, /Includes/);
+    assert.doesNotMatch(modal, /CREATE_PROPOSAL_REVIEW_INTRO/);
     assert.match(model, /Ready to build proposal/);
     assert.match(model, /change it later in Builder/i);
     assert.match(model, /Includes estimate, package options/);

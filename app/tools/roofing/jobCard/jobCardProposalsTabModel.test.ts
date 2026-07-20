@@ -16,9 +16,12 @@ import {
   buildJobCardProposalRowView,
   buildJobCardProposalRowViews,
   formatJobCardContractorProposalStatusLabel,
+  formatJobCardProposalCreatedActivityNote,
   formatJobCardProposalRowTitle,
   formatJobCardProposalStatusLabel,
   formatJobCardProposalUpdatedShort,
+  JOB_CARD_PROPOSAL_ACTIVITY_CREATED_LABEL,
+  JOB_CARD_PROPOSAL_ACTIVITY_CREATED_NOTE,
 } from "./jobCardProposalsTabModel";
 import { filterContractorVisibleProposals } from "@/app/lib/contractorFixtureIsolation";
 import type { ProposalRecordStatusSummary } from "@/app/lib/proposalRecordTypes";
@@ -147,7 +150,43 @@ describe("jobCardProposalsTab helpers", () => {
       formatJobCardContractorProposalStatusLabel({
         visibleSummaries: [summary({ id: "real", title: "Roof replacement", status: "draft" })],
       }),
-      "Proposal Draft"
+      "Draft proposal"
+    );
+    assert.equal(
+      formatJobCardContractorProposalStatusLabel({
+        visibleSummaries: [
+          summary({
+            id: "a",
+            title: "Roof replacement",
+            status: "draft",
+            updated_at: "2026-07-20T10:00:00.000Z",
+          }),
+          summary({
+            id: "b",
+            title: "Roof replacement",
+            status: "draft",
+            updated_at: "2026-07-20T16:00:00.000Z",
+          }),
+        ],
+        packageLabelsByProposalId: { a: "Standard", b: "Enhanced" },
+      }),
+      "Latest: Enhanced draft"
+    );
+  });
+
+  test("created activity copy is contractor-facing", () => {
+    assert.equal(JOB_CARD_PROPOSAL_ACTIVITY_CREATED_LABEL, "Proposal created");
+    assert.equal(
+      JOB_CARD_PROPOSAL_ACTIVITY_CREATED_NOTE,
+      "Open Builder to review this proposal."
+    );
+    assert.equal(
+      formatJobCardProposalCreatedActivityNote("Enhanced"),
+      "Enhanced proposal ready to review"
+    );
+    assert.doesNotMatch(
+      formatJobCardProposalCreatedActivityNote("Enhanced"),
+      /Proposal Builder ready/i
     );
   });
 });

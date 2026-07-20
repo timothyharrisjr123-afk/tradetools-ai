@@ -215,10 +215,15 @@ describe("resolveJobCardProposalActivityLine visible-proposal truth", () => {
     assert.doesNotMatch(line.label, /Proposal Builder ready/);
   });
 
-  test("setup ready + visible proposal → Proposal Builder ready", () => {
+  test("setup ready + visible proposal → Proposal created (not Builder ready)", () => {
     const line = resolveJobCardProposalActivityLine(readyReadiness(), {
       hasVisibleContractorProposal: true,
+      createdProposalLabel: "Proposal created",
+      createdProposalNote: "Enhanced proposal ready to review",
     });
-    assert.equal(line.label, "Proposal Builder ready");
+    assert.equal(line.label, "Proposal created");
+    assert.equal(line.note, "Enhanced proposal ready to review");
+    assert.doesNotMatch(line.label, /Proposal Builder ready|Builder ready/i);
+    assert.doesNotMatch(line.note, /Proposal Builder|module|Send and pricing/i);
   });
 });

@@ -164,11 +164,13 @@ import {
   type CreateProposalModalStep,
 } from "@/app/tools/roofing/jobCard/jobCardCreateProposalModalModel";
 import {
+  JOB_CARD_PROPOSAL_ACTIVITY_CREATED_LABEL,
   JOB_CARD_PROPOSAL_ACTIVITY_READY_LABEL,
   JOB_CARD_PROPOSAL_ACTIVITY_READY_NOTE,
   JOB_CARD_PROPOSALS_TAB_SUBTITLE,
   buildJobCardProposalRowViews,
   formatJobCardContractorProposalStatusLabel,
+  formatJobCardProposalCreatedActivityNote,
 } from "@/app/tools/roofing/jobCard/jobCardProposalsTabModel";
 import { sortTemplateOptionsByOrder } from "@/app/tools/roofing/templates/templatesSetupUtils";
 import type { JobDraft, JobAddress, JobRecord } from "@/app/lib/jobTypes";
@@ -7836,11 +7838,22 @@ Thanks,`;
         roofAreaSqFt: Number(area || 0),
       }
     );
-    // Block 1/2: contractor status must follow visible proposals, not hidden smoke drafts.
+    // Block 1/2/3: contractor status must follow visible proposals, not hidden smoke drafts.
+    const latestVisibleProposalForStatus = [...listedJobDraftSummaries].sort((a, b) => {
+      const am = Date.parse(a.updated_at ?? "") || 0;
+      const bm = Date.parse(b.updated_at ?? "") || 0;
+      return bm - am;
+    })[0];
+    const latestVisiblePackageLabel =
+      (latestVisibleProposalForStatus &&
+        listedJobDraftPackageLabels[latestVisibleProposalForStatus.id]) ||
+      listedJobDraftPackageLabel ||
+      null;
     const jobCardDisplay = {
       ...jobCardDisplayBase,
       proposalLabel: formatJobCardContractorProposalStatusLabel({
         visibleSummaries: listedJobDraftSummaries,
+        packageLabelsByProposalId: listedJobDraftPackageLabels,
       }),
     };
     const activityWhen = jobCardDisplay.lastUpdatedDisplay?.replace(/^Updated /, "") ?? "Just now";
@@ -7852,6 +7865,10 @@ Thanks,`;
       hasVisibleContractorProposal: listedJobDraftSummaries.length > 0,
       readyForProposalLabel: JOB_CARD_PROPOSAL_ACTIVITY_READY_LABEL,
       readyForProposalNote: JOB_CARD_PROPOSAL_ACTIVITY_READY_NOTE,
+      createdProposalLabel: JOB_CARD_PROPOSAL_ACTIVITY_CREATED_LABEL,
+      createdProposalNote: formatJobCardProposalCreatedActivityNote(
+        latestVisiblePackageLabel
+      ),
     });
     const jobCardActivityItems: JobCardActivityItem[] = [
       isBoardOrigin && currentSaved

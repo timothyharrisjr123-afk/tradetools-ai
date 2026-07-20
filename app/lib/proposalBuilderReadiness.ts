@@ -305,6 +305,9 @@ export function resolveJobCardProposalActivityLine(
     /** Create-ready activity copy when setup is ready but no visible proposal. */
     readyForProposalLabel?: string;
     readyForProposalNote?: string;
+    /** When a visible proposal exists — contractor event language (not module names). */
+    createdProposalLabel?: string;
+    createdProposalNote?: string;
   }
 ): { label: string; note: string } {
   if (readiness.loading) {
@@ -316,8 +319,10 @@ export function resolveJobCardProposalActivityLine(
   if (readiness.ready) {
     if (context?.hasVisibleContractorProposal === true) {
       return {
-        label: "Proposal Builder ready",
-        note: "Open Proposal Builder to preview this job setup. Send and pricing are later.",
+        label: context?.createdProposalLabel?.trim() || "Proposal created",
+        note:
+          context?.createdProposalNote?.trim() ||
+          "Open Builder to review this proposal.",
       };
     }
     return {

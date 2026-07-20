@@ -45,11 +45,11 @@
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** **`e8c6218`** — polish(proposals): refine proposal creation modal (Block 3 follow-up; prior **`ed8a140`** Block 3; **`fc65f9d`** status truth)
-- **Docs checkpoint:** **Block 3 follow-up** — contractor-facing modal polish (this header + **§6BO.13.4.9** S.1). Prior: Block 3 modal (**S** / **`ed8a140`**); Block 2 (**R** / **R.1**); Block 1 (**Q**).
-- **Prior code:** **`ed8a140`** + Proposal modal create flow; **`fc65f9d`** status/activity visible-proposal truth
+- **Code checkpoint:** **pending** — polish(proposals): finish proposal creation surface (Block 3 final polish; prior **`e8c6218`** / **`ed8a140`**)
+- **Docs checkpoint:** **Block 3 final polish** — status/activity/review/rows finished (this header + **§6BO.13.4.9** S.2). Prior: S.1 modal polish (**`e8c6218`**); Block 3 (**S**); Block 2 (**R** / **R.1**); Block 1 (**Q**).
+- **Prior code:** **`e8c6218`** modal contractor polish; **`ed8a140`** create flow
 - **Next coding:** **Block 4** — Builder handoff polish. Do **not** start Blocks 5–7 until Block 4 is approved. Do **not** add full proposal management, template rebuild/import of live options into existing drafts, supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
-- **Historical note:** + Proposal modal is a guided confirmation flow (measurement → template → starting package → Ready to build → Continue to Builder); contractor-facing copy; rows show `Template — Package`; smoke fixtures remain hide-not-delete.
+- **Historical note:** Proposals surface finished: activity **Proposal created** / package-ready note; strip **Draft proposal** / **Latest: {Package} draft**; premium review confirmation; rows `Template — Package` with blue package emphasis; smoke fixtures remain hide-not-delete.
 
 **Trust order:** Header/current checkpoint → **§6BO.13** (approved page-by-page UI flow roadmap + P0 implementation sequence — **supersedes separate Command Center language**) → **§6BM** / **§6BN** (R18 letter-phase roadmap + R18C–R18D3C implementation history) → **§6BO** / **§6BO.11** / **§6BO.12** (completed remediation side-track + **approved Stage C policy** + **operating-flow audit sequencing — complete; outcome in §6BO.13**) → **§6BL** → **§11 override**. Stage B browser smoke required local-only **`USE_PROPOSAL_SEND_FREEZE_RPC=1`** in `.env.local` (gitignored, not committed). **Do not proceed** to docs-only or next feature work unless working tree is clean. **Still do not** mutate `proposals.status = sent`, write sent `proposal_events`, move Jobs Board cards, add Job Card send activity, enable PDF/Sign/Payment, or add webhooks unless separately approved.
 
@@ -12417,6 +12417,21 @@ Package rule from **N** remains law: pre-draft package on create modal; post-dra
 
 **Smoke:** created **`4f409c73-d4fc-4190-a056-ee2b659ca046`** (Enhanced); Builder package Enhanced; return rows package-distinguished; no protected systems touched.
 
+**Next recommended block:** see **S.2** final polish, then **Block 4**.
+
+###### S.2 Block 3 final polish — status, activity, review, rows — IMPLEMENTED (2026-07-20)
+
+**Status:** Finished Proposals tab + + Proposal modal to contractor-premium standard before Block 4. **No Builder/Preview redesign. No pricing/math/snapshot/send/lifecycle. No SQL/migrations/packages.**
+
+**Fixes:**
+- Activity: **Proposal created** + `{Package} proposal ready to review` (not “Proposal Builder ready”)
+- Status strip: **Draft proposal** / **Latest: Enhanced draft** (not generic “Proposal Draft”)
+- Review: narrative confirmation (measurement → proposal → starting package → Includes) — not field list
+- Rows: package emphasized in blue after em dash; quiet bordered Open
+- Template/package modal copy retained from S.1
+
+**Smoke:** created **`3c4fd16c-eb34-42e7-9f70-7366455eceb8`** (Enhanced); strip Latest: Enhanced draft; activity Proposal created; Builder Enhanced.
+
 **Next recommended block:** **Block 4 — Builder handoff**.
 
 #### 13.4.6 Integrated Catalog → Proposal workflow research + FieldDive flow design — COMPLETE (2026-07-17)
@@ -13904,7 +13919,8 @@ Treat as **drift** if a session:
 
 ## Changelog (handoff doc only)
 
-- **2026-07-20:** **Block 3 follow-up — + Proposal modal contractor clarity** (**§6BO.13.4.9** S.1) — guided confirmation copy; multi-measurement cards when ready records exist; template/package/review no longer admin-first; rows `Template — Package`. Babby smoke `4f409c73-…` (Enhanced). **Next:** Block 4 Builder handoff.
+- **2026-07-20:** **Block 3 final polish — Proposals surface finish** (**§6BO.13.4.9** S.2) — activity Proposal created; strip Draft proposal / Latest package draft; premium review confirmation; row package emphasis. Babby smoke `3c4fd16c-…` (Enhanced). **Next:** Block 4 Builder handoff.
+- **2026-07-20:** **Block 3 follow-up — + Proposal modal contractor clarity** (**§6BO.13.4.9** S.1) — guided confirmation copy; multi-measurement cards when ready records exist; template/package/review no longer admin-first; rows `Template — Package`. Babby smoke `4f409c73-…` (Enhanced). **Next:** S.2 final polish, then Block 4.
 - **2026-07-20:** **Block 3 — + Proposal Create proposal modal** (**§6BO.13.4.9** S) — measurement → template → package → Continue to Builder; force-create distinct draft (not smoke reuse); package carries into Builder; Block 2 rows + Block 1 isolation preserved. Babby smoke created `0fff78ea-…` (Enhanced). **Next:** Block 3 follow-up polish (now **S.1**), then Block 4.
 - **2026-07-20:** **Block 2 follow-up — Job Card status/activity visible-proposal truth** (**§6BO.13.4.9** R.1) — smoke-only jobs show Ready to create proposal / Ready for proposal (not Proposal Draft / Builder ready); left nav Jobs on job-card entry; Proposals tab reset preserved. **Next:** Block 3 + Proposal modal (now **S**).
 - **2026-07-20:** **Block 2 — Proposals tab reset** (**§6BO.13.4.9** R) — compact rows + blue **+ Proposal**; empty state when smoke-only; placeholder entry (no create); removed always-open setup/archive UI; Block 1 isolation preserved; no modal yet. **Next:** Block 3 + Proposal modal.

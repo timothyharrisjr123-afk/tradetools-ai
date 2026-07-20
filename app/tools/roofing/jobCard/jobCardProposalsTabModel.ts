@@ -31,6 +31,12 @@ export const JOB_CARD_PROPOSAL_ACTIVITY_READY_LABEL = "Ready for proposal" as co
 export const JOB_CARD_PROPOSAL_ACTIVITY_READY_NOTE =
   "Create a proposal from this job’s completed measurement report." as const;
 
+/** Activity rail — at least one visible contractor proposal exists. */
+export const JOB_CARD_PROPOSAL_ACTIVITY_CREATED_LABEL = "Proposal created" as const;
+
+export const JOB_CARD_PROPOSAL_ACTIVITY_CREATED_NOTE =
+  "Open Builder to review this proposal." as const;
+
 /** Block 2 placeholder — Block 3 owns measurement → template → package modal. */
 export const JOB_CARD_PROPOSALS_ENTRY_PLACEHOLDER =
   "Next: choose measurement, template, and package to continue to Builder." as const;
@@ -92,12 +98,55 @@ export function formatJobCardProposalStatusLabel(
  */
 export function formatJobCardContractorProposalStatusLabel(input: {
   visibleSummaries: readonly ProposalRecordStatusSummary[];
+  packageLabelsByProposalId?: Readonly<Record<string, string | null | undefined>>;
 }): string {
   const visible = input.visibleSummaries;
   if (visible.length === 0) return JOB_CARD_PROPOSAL_STATUS_READY_TO_CREATE;
+
+  const drafts = visible.filter(
+    (row) => formatJobCardProposalStatusLabel(row.status) === "Draft"
+  );
+  if (drafts.length === 1 && visible.length === 1) {
+    return "Draft proposal";
+  }
+  if (drafts.length > 1 || visible.length > 1) {
+    const latest = pickLatestVisibleProposal(visible);
+    const pkgRaw =
+      (latest && input.packageLabelsByProposalId?.[latest.id])?.trim() || "";
+    const pkg = pkgRaw.replace(/\s+package$/i, "").trim();
+    if (pkg) return `Latest: ${pkg} draft`;
+    const draftCount = drafts.length > 0 ? drafts.length : visible.length;
+    return `${draftCount} Draft proposal${draftCount === 1 ? "" : "s"}`;
+  }
+
   const status = formatJobCardProposalStatusLabel(visible[0]?.status);
-  if (status === "Draft") return "Proposal Draft";
-  return `Proposal ${status}`;
+  if (status === "Draft") return "Draft proposal";
+  return `${status} proposal`;
+}
+
+function pickLatestVisibleProposal(
+  rows: readonly ProposalRecordStatusSummary[]
+): ProposalRecordStatusSummary | null {
+  if (rows.length === 0) return null;
+  let best = rows[0]!;
+  let bestMs = Date.parse(best.updated_at ?? "") || 0;
+  for (const row of rows.slice(1)) {
+    const ms = Date.parse(row.updated_at ?? "") || 0;
+    if (ms >= bestMs) {
+      best = row;
+      bestMs = ms;
+    }
+  }
+  return best;
+}
+
+/** Activity note when a visible proposal exists — prefer package-named readiness. */
+export function formatJobCardProposalCreatedActivityNote(
+  packageLabel?: string | null
+): string {
+  const pkg = (packageLabel ?? "").trim().replace(/\s+package$/i, "").trim();
+  if (pkg) return `${pkg} proposal ready to review`;
+  return JOB_CARD_PROPOSAL_ACTIVITY_CREATED_NOTE;
 }
 
 /**

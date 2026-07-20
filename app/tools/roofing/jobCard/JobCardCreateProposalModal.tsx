@@ -13,7 +13,6 @@ import {
   CREATE_PROPOSAL_PACKAGE_BLOCKED,
   CREATE_PROPOSAL_PACKAGE_GUIDE,
   CREATE_PROPOSAL_PACKAGE_ONE_ONLY,
-  CREATE_PROPOSAL_REVIEW_INTRO,
   CREATE_PROPOSAL_REVIEW_TITLE,
   CREATE_PROPOSAL_STEPS,
   CREATE_PROPOSAL_TEMPLATE_BLOCKED,
@@ -23,10 +22,8 @@ import {
   CREATE_PROPOSAL_USE_MEASUREMENT,
   CREATE_PROPOSAL_USE_TEMPLATE,
   createProposalStepLabel,
-  formatCreateProposalMeasurementReviewLine,
   formatCreateProposalMeasurementSummary,
   formatCreateProposalMeasurementTitle,
-  formatCreateProposalPricingItemsReady,
   formatCreateProposalTemplateSecondaryDetail,
   nextCreateProposalStep,
   prevCreateProposalStep,
@@ -102,12 +99,13 @@ export function JobCardCreateProposalModal({
   onSelectPackage,
   packageIssueCount,
   selectedPackageName,
-  includedItemCount,
+  includedItemCount: _includedItemCount,
   createEnabled,
   creating,
   createError,
   onContinueToBuilder,
 }: JobCardCreateProposalModalProps) {
+  void _includedItemCount;
   if (!open) return null;
 
   const packageSelected =
@@ -119,13 +117,6 @@ export function JobCardCreateProposalModal({
     packageIssueCount,
     createEnabled,
   });
-
-  const reviewMeasurementLine = formatCreateProposalMeasurementReviewLine({
-    selectedLabel: measurementLabel,
-    roofAreaSqft: measurementRoofAreaSqft,
-    wastePercent: measurementWastePercent,
-  });
-  const pricingReadyLine = formatCreateProposalPricingItemsReady(includedItemCount);
 
   const goNext = () => {
     const next = nextCreateProposalStep(step);
@@ -440,42 +431,51 @@ export function JobCardCreateProposalModal({
 
           {step === "review" ? (
             <section data-jobcard-create-proposal-panel-review="true">
-              <h3 className="text-base font-semibold text-slate-900">
+              <h3 className="text-lg font-semibold tracking-tight text-slate-900">
                 {CREATE_PROPOSAL_REVIEW_TITLE}
               </h3>
-              <p className="mt-1 text-sm text-slate-600">{CREATE_PROPOSAL_REVIEW_INTRO}</p>
-              <div className="mt-5 space-y-4">
-                <ReviewBlock
-                  label="Measurement"
-                  value={reviewMeasurementLine}
-                  dataAttr="data-jobcard-create-proposal-review-measurement"
-                />
-                <ReviewBlock
-                  label="Proposal"
-                  value={selectedTemplateName?.trim() || "—"}
-                  dataAttr="data-jobcard-create-proposal-review-template"
-                />
-                {packageOptions.length > 0 ? (
-                  <ReviewBlock
-                    label="Starting package"
-                    value={selectedPackageName?.trim() || "—"}
-                    dataAttr="data-jobcard-create-proposal-review-package"
-                  />
-                ) : null}
+              <div className="mt-6 space-y-6">
+                <div data-jobcard-create-proposal-review-measurement="true">
+                  <p className="text-sm font-semibold text-slate-900">
+                    {formatCreateProposalMeasurementTitle(measurementLabel)}
+                  </p>
+                  <p className="mt-1 text-sm text-slate-600">
+                    {formatCreateProposalMeasurementSummary({
+                      roofAreaSqft: measurementRoofAreaSqft,
+                      wastePercent: measurementWastePercent,
+                      ready: true,
+                    }).replace(/\s·\sReport complete$/i, "")}
+                  </p>
+                </div>
                 <div>
-                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                    Included in proposal
+                  <p
+                    className="text-sm font-semibold text-slate-900"
+                    data-jobcard-create-proposal-review-template="true"
+                  >
+                    {selectedTemplateName?.trim() || "Proposal"}
+                  </p>
+                  {packageOptions.length > 0 ? (
+                    <p
+                      className="mt-1 text-sm font-medium text-blue-700"
+                      data-jobcard-create-proposal-review-package="true"
+                    >
+                      {(selectedPackageName?.trim() || "Selected") + " starting package"}
+                    </p>
+                  ) : null}
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Includes
                   </p>
                   <p
-                    className="mt-1 text-sm font-medium text-slate-900"
+                    className="mt-1.5 text-sm leading-relaxed text-slate-700"
                     data-jobcard-create-proposal-review-included="true"
                   >
                     {CREATE_PROPOSAL_INCLUDED_PRIMARY}
                   </p>
-                  <p className="mt-1 text-xs text-slate-400">{pricingReadyLine}</p>
                 </div>
               </div>
-              <p className="mt-5 text-sm text-slate-500">{CREATE_PROPOSAL_HELPER}</p>
+              <p className="mt-8 text-sm text-slate-500">{CREATE_PROPOSAL_HELPER}</p>
               {createError ? (
                 <p
                   className="mt-3 text-sm text-red-700"
@@ -589,36 +589,6 @@ function PackageChoiceCard({
         </p>
       ) : null}
     </button>
-  );
-}
-
-function ReviewBlock({
-  label,
-  value,
-  dataAttr,
-}: {
-  label: string;
-  value: string;
-  dataAttr:
-    | "data-jobcard-create-proposal-review-measurement"
-    | "data-jobcard-create-proposal-review-template"
-    | "data-jobcard-create-proposal-review-package";
-}) {
-  const dataProps =
-    dataAttr === "data-jobcard-create-proposal-review-measurement"
-      ? { "data-jobcard-create-proposal-review-measurement": "true" as const }
-      : dataAttr === "data-jobcard-create-proposal-review-template"
-        ? { "data-jobcard-create-proposal-review-template": "true" as const }
-        : { "data-jobcard-create-proposal-review-package": "true" as const };
-  return (
-    <div>
-      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-        {label}
-      </p>
-      <p className="mt-1 text-sm font-medium text-slate-900" {...dataProps}>
-        {value}
-      </p>
-    </div>
   );
 }
 
