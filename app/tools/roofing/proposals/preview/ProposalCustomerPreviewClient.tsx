@@ -38,7 +38,7 @@ import {
   getProposalTemplateGraph,
   type ProposalTemplateGraph,
 } from "@/app/lib/proposalTemplateStore";
-import { BUILDER_STAGE } from "../builder/proposalBuilderConstants";
+import { PACKET_PAGE_BACKGROUND, PACKET_STAGE } from "./proposalCustomerPacketStyles";
 import ProposalCustomerPreviewDocumentView from "./ProposalCustomerPreviewDocument";
 import ProposalCustomerPreviewSendSharingDrawer from "./ProposalCustomerPreviewSendSharingDrawer";
 
@@ -195,8 +195,8 @@ export default function ProposalCustomerPreviewClient({
     .join(" · ");
 
   return (
-    <div className="min-h-full bg-gradient-to-b from-slate-100/80 via-slate-50 to-slate-100/60 pb-16">
-      <header className={`${BUILDER_STAGE} border-b border-slate-200/80 bg-white/90 pb-4 pt-5 backdrop-blur`}>
+    <div className={`min-h-full pb-16 ${PACKET_PAGE_BACKGROUND}`}>
+      <header className={`${PACKET_STAGE} border-b border-slate-200/80 bg-white/90 pb-4 pt-5 backdrop-blur`}>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
             <Link
@@ -238,17 +238,17 @@ export default function ProposalCustomerPreviewClient({
       </header>
 
       {!loadComplete ? (
-        <div className={`${BUILDER_STAGE} pt-8`}>
+        <div className={`${PACKET_STAGE} pt-8`}>
           <div className="text-sm text-slate-500">Loading preview…</div>
         </div>
       ) : loadError ? (
-        <div className={`${BUILDER_STAGE} pt-8`}>
+        <div className={`${PACKET_STAGE} pt-8`}>
           <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
             {loadError}
           </div>
         </div>
       ) : previewDocument && persistedGraph ? (
-        <div className={`${BUILDER_STAGE} space-y-5 pt-6`}>
+        <div className={`${PACKET_STAGE} space-y-6 pt-8`}>
           {/* Compact contractor readiness — outside the customer document. */}
           {estimateIncomplete ? (
             <div
@@ -265,7 +265,7 @@ export default function ProposalCustomerPreviewClient({
             </div>
           ) : null}
 
-          {/* Customer proposal document — wide continuous surface. */}
+          {/* Customer proposal packet — single continuous paper surface. */}
           <ProposalCustomerPreviewDocumentView
             document={previewDocument}
             templateGraph={templateGraph}

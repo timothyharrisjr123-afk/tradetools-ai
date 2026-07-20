@@ -469,7 +469,7 @@ describe("buildCustomerPreviewEstimatePresentation", () => {
     const estimateDoc = readFileSync(
       path.join(
         process.cwd(),
-        "app/tools/roofing/proposals/preview/ProposalCustomerPreviewEstimateDocument.tsx"
+        "app/tools/roofing/proposals/preview/ProposalCustomerPreviewDocument.tsx"
       ),
       "utf8"
     );

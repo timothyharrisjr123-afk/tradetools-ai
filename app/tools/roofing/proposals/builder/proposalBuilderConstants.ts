@@ -625,58 +625,11 @@ export const BUILDER_LINE_PRICE_VALUE =
 /** Per-line: status badge (Included / In package / Needs quantity / Not priced). */
 export const BUILDER_LINE_PRICE_STATUS = "text-xs font-medium text-slate-500";
 
-/** R17C1 — customer Preview estimate document copy (not Builder workbench). */
-export const CUSTOMER_PREVIEW_ESTIMATE_UPGRADES_HEADING = "Optional upgrades";
-
-export const CUSTOMER_PREVIEW_ESTIMATE_CHAPTER_KICKER = "Proposal estimate";
-
-export const CUSTOMER_PREVIEW_ESTIMATE_CHAPTER_SUBTITLE =
-  "Selected package and included estimate for this proposal.";
-
-export const CUSTOMER_PREVIEW_SELECTED_PACKAGE_LABEL = "Selected package";
-
-export const CUSTOMER_PREVIEW_SCOPE_SECTION_HEADING = "Included estimate";
-
-/** Shown inside scope panel when pricing is incomplete but safe lines exist. */
-export const CUSTOMER_PREVIEW_ESTIMATE_PARTIAL_PRICING_NOTE =
-  "Additional line items may appear once pricing is finalized.";
-
 /**
- * Block 5B — continuous wide customer proposal document surface.
- * Matches Builder stage confidence; never compress to a narrow card column.
+ * Block 5C — customer Preview visual chrome now lives entirely in
+ * `app/tools/roofing/proposals/preview/proposalCustomerPacketStyles.ts`.
+ * Preview must not import Builder/workbench visual tokens.
  */
-export const CUSTOMER_PREVIEW_DOCUMENT_SHELL =
-  "w-full overflow-hidden rounded-lg border border-slate-200/80 bg-white shadow-[0_2px_20px_rgba(15,23,42,0.06)]";
-
-export const CUSTOMER_PREVIEW_DOCUMENT_SECTION =
-  "border-b border-slate-100 last:border-b-0";
-
-/** Compact selected-package band — not a mega card / package selector residue. */
-export const CUSTOMER_PREVIEW_ESTIMATE_PACKAGE_BAND =
-  "border-b border-slate-100 pb-5";
-
-/** @deprecated Block 5B — use CUSTOMER_PREVIEW_ESTIMATE_PACKAGE_BAND */
-export const CUSTOMER_PREVIEW_ESTIMATE_PACKAGE_HERO =
-  CUSTOMER_PREVIEW_ESTIMATE_PACKAGE_BAND;
-
-/** Flat estimate section — no nested card around the itemized table. */
-export const CUSTOMER_PREVIEW_ESTIMATE_SCOPE_PANEL = "space-y-3";
-
-export const CUSTOMER_PREVIEW_ESTIMATE_SCOPE_PANEL_HEADER = "space-y-0.5";
-
-export const CUSTOMER_PREVIEW_ESTIMATE_UPGRADES_PANEL =
-  "overflow-hidden border-t border-dashed border-slate-200/90 pt-5";
-
-/** Quiet totals band — part of the continuous document, not a nested card. */
-export const CUSTOMER_PREVIEW_ESTIMATE_TOTALS_PANEL =
-  "border-t border-slate-200/80 pt-5";
-
-/**
- * Customer Preview estimate rows: Item | Qty | Price.
- * Same horizontal rhythm as Builder Included density, without the actions column.
- */
-export const CUSTOMER_PREVIEW_ESTIMATE_ROW_GRID =
-  "grid w-full grid-cols-1 gap-x-4 gap-y-0.5 sm:grid-cols-[minmax(0,1fr)_9rem_8.5rem] sm:items-center";
 
 /** R17C2 — Builder Estimate workbench surfaces (not customer Preview). */
 export const WORKBENCH_ESTIMATE_KICKER = "Estimate";
