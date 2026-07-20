@@ -45,9 +45,9 @@
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** **`(pending commit)`** — polish(proposals): refine builder estimate editing (Block 4E; prior **`40ea180`** / **`d8125ec`**)
+- **Code checkpoint:** **`29dbc61`** — polish(proposals): refine builder estimate editing (Block 4E; prior **`40ea180`** / **`d8125ec`**)
 - **Docs checkpoint:** **Block 4E Builder inline editing + row action polish** (this header + **§6BO.13.4.9** T.4). Prior: T.3 (**`40ea180`**); T.2 (**`d8125ec`**); T.1 (**`ea39fa7`**).
-- **Prior code:** **`40ea180`** action clarity; **`d8125ec`** visual continuity; **`ea39fa7`** document-led Builder
+- **Prior code:** **`29dbc61`** inline editing; **`40ea180`** action clarity; **`d8125ec`** visual continuity
 - **Next coding:** **Block 5** — Preview document-first (only after Block 4E review). Do **not** start Blocks 6–7 until Block 5 is approved. Do **not** add full proposal management, template rebuild/import of live options into existing drafts, supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
 - **Historical note:** Block 4E: Set quantity inline; Review focuses Finish estimate; Edit package drawer advanced-only; portal row menus; optional upgrade include follow-up documented; compact success toast; protected systems unchanged.
 
