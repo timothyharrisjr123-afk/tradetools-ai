@@ -12565,7 +12565,7 @@ Package rule from **N** remains law: pre-draft package on create modal; post-dra
 
 ###### T.5 Block 4G — Builder shared itemized estimate grid — IMPLEMENTED (2026-07-20)
 
-**Code checkpoint:** pending commit — `polish(proposals): tune builder estimate density`
+**Code checkpoint:** **`05c1edb`** — `polish(proposals): tune builder estimate density`
 
 **Status:** Wide Builder shell kept; Included estimate uses one **full-width** shared Item / Qty / Price / ⋯ grid for headers, rows, and inline editor. **No table max-width compression. No Preview redesign. No pricing/math/resolver/snapshot changes. No SQL/migrations/packages. No send/public/lifecycle/PDF/sign/payment.**
 
