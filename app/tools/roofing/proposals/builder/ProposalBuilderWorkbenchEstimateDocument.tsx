@@ -31,9 +31,7 @@ import ProposalBuilderWorkbenchEditOptionShell, {
 } from "./ProposalBuilderWorkbenchEditOptionShell";
 import ProposalBuilderWorkbenchPackageZone from "./ProposalBuilderWorkbenchPackageZone";
 import ProposalBuilderWorkbenchReadyScopeZone from "./ProposalBuilderWorkbenchReadyScopeZone";
-import ProposalBuilderWorkbenchSettingsEntry from "./ProposalBuilderWorkbenchSettingsEntry";
 import ProposalBuilderWorkbenchTotalsZone from "./ProposalBuilderWorkbenchTotalsZone";
-import ProposalBuilderWorkbenchUpgradesZone from "./ProposalBuilderWorkbenchUpgradesZone";
 
 type ProposalBuilderWorkbenchEstimateDocumentProps = {
   graph: ProposalTemplateGraph;
@@ -427,7 +425,6 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
         <div ref={finishEstimateRef}>
           <ProposalBuilderWorkbenchAttentionZone
             zone={presentation.needsAttention}
-            onOpenEditPackage={openEditPackage}
             editingQuantityLineId={setQuantityLineId}
             onStartSetQuantity={
               quantityEditingEnabled ? openSetQuantityForLine : undefined
@@ -443,34 +440,24 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
           />
         </div>
 
-        <ProposalBuilderWorkbenchUpgradesZone
-          zone={presentation.upgradesZone}
-          editingQuantityLineId={setQuantityLineId}
-          onStartSetQuantity={
-            quantityEditingEnabled ? openSetQuantityForLine : undefined
-          }
-          onCancelSetQuantity={closeSetQuantity}
-          onSaveQuantity={
-            quantityEditingEnabled ? handleApplyManualQuantity : undefined
-          }
-          quantitySaveInFlight={manualQuantityInFlight}
-          quantitySaveError={manualQuantityError}
-          manualQuantityEnabled={scopeReviewManualQuantityEnabled}
-        />
+        {/*
+          Optional upgrades include/replace is unsupported — section hidden from main Builder path.
+          Upgrade quantity blockers merge into Finish estimate via the presenter.
+          Follow-up: additive upgrades add to included estimate; replacement upgrades replace base items.
+        */}
 
         <ProposalBuilderWorkbenchTotalsZone zone={presentation.totalsZone} />
 
-        <ProposalBuilderWorkbenchSettingsEntry
-          entry={presentation.displaySettingsEntry}
-          saving={estimateSettingsSaveInFlight}
-          error={estimateSettingsSaveError}
-          onToggleSetting={onToggleEstimateDisplaySetting}
-        />
-
         {presentation.decisionTraceZone.show ? (
-          <details className="rounded-lg border border-slate-200/70 bg-white text-[12px] text-slate-500">
-            <summary className="cursor-pointer list-none px-3 py-2 font-medium text-slate-500 hover:bg-slate-50 [&::-webkit-details-marker]:hidden">
-              Removed lines
+          <details
+            className="rounded-lg border border-slate-200/70 bg-white text-[13px] text-slate-500"
+            data-builder-removed-from-proposal
+          >
+            <summary className="cursor-pointer list-none px-3 py-2.5 font-medium text-slate-600 hover:bg-slate-50 [&::-webkit-details-marker]:hidden">
+              Removed from proposal
+              {presentation.decisionTraceZone.excluded.count > 0
+                ? ` (${presentation.decisionTraceZone.excluded.count})`
+                : ""}
             </summary>
             <div className="border-t border-slate-100 px-2 py-2">
               <ProposalBuilderWorkbenchDecisionTraceZone

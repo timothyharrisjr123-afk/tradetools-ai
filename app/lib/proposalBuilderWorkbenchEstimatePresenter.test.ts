@@ -15,8 +15,9 @@ import {
   WORKBENCH_LINE_INCLUDED_LABEL,
   WORKBENCH_SCOPE_REVIEW_ROW_HELPER,
   WORKBENCH_TOTALS_INCOMPLETE_COPY,
-  WORKBENCH_UPGRADES_EMPTY_COPY,
   buildProposalWorkbenchEstimatePresentation,
+  formatContractorEstimateQtyLabel,
+  formatContractorEstimateUnitLabel,
   isUpgradeLineExcludeEligible,
   isUpgradeLineScopeReviewEligible,
   type BuildProposalWorkbenchEstimatePresentationInput,
@@ -283,7 +284,7 @@ describe("buildProposalWorkbenchEstimatePresentation", () => {
 
     assert.equal(result.needsAttention.scopeReview.count, 0);
     assert.equal(result.readyScope.sections[0]?.lines[0]?.templateItemId, "line-blocked");
-    assert.equal(result.readyScope.sections[0]?.lines[0]?.qtyLabel, "18 square");
+    assert.equal(result.readyScope.sections[0]?.lines[0]?.qtyLabel, "18 SQ");
     assert.equal(result.meta.scopeReviewLineCount, 0);
     assert.equal(result.meta.readyLineCount, 1);
   });
@@ -318,7 +319,8 @@ describe("buildProposalWorkbenchEstimatePresentation", () => {
 
     const line = result.readyScope.sections[0]?.lines[0];
     assert.equal(line?.manualQuantityActive, true);
-    assert.equal(line?.qtyLabel, "18 Linear foot");
+    assert.equal(line?.qtyLabel, "18 linear ft");
+    assert.equal(line?.detailMeta.unit, "linear ft");
   });
 
   test("R17D Phase 2.5: cleared unresolved snapshot returns line to scopeReview", () => {
@@ -483,10 +485,11 @@ describe("buildProposalWorkbenchEstimatePresentation", () => {
     assert.equal(result.meta.attentionLineCount, 2);
   });
 
-  test("upgrade_group sections isolated into upgradesZone", () => {
+  test("upgrade_group sections isolated into upgradesZone data (UI show=false)", () => {
     const result = buildProposalWorkbenchEstimatePresentation(buildInput());
 
-    assert.equal(result.upgradesZone.show, true);
+    assert.equal(result.upgradesZone.show, false);
+    assert.equal(result.upgradesZone.hasTemplateUpgradeSections, true);
     assert.equal(result.upgradesZone.sections.length, 1);
     assert.equal(result.upgradesZone.sections[0]?.title, "Premium upgrades");
     assert.equal(result.upgradesZone.sections[0]?.lines[0]?.amountLabel, "$25.00");
@@ -689,9 +692,10 @@ describe("buildProposalWorkbenchEstimatePresentation", () => {
       })
     );
 
-    assert.equal(result.upgradesZone.show, true);
+    assert.equal(result.upgradesZone.show, false);
+    assert.equal(result.upgradesZone.hasTemplateUpgradeSections, true);
     assert.equal(result.upgradesZone.isEmpty, true);
-    assert.equal(result.upgradesZone.emptyCopy, WORKBENCH_UPGRADES_EMPTY_COPY);
+    assert.equal(result.upgradesZone.emptyCopy, null);
     assert.equal(result.upgradesZone.sections[0]?.lines.length, 0);
   });
 
@@ -763,7 +767,7 @@ describe("buildProposalWorkbenchEstimatePresentation", () => {
     }
   });
 
-  test("blocked upgrade lines stay in upgradesZone with attentionReasons", () => {
+  test("blocked upgrade quantity lines merge into Finish estimate scope review", () => {
     const result = buildProposalWorkbenchEstimatePresentation(
       buildInput({
         optionCustomerView: optionCustomerView({
@@ -773,11 +777,12 @@ describe("buildProposalWorkbenchEstimatePresentation", () => {
       })
     );
 
+    assert.equal(result.upgradesZone.show, false);
     assert.equal(result.upgradesZone.sections[0]?.lines[0]?.attentionReasons.includes("needs_quantity"), true);
-    assert.equal(result.needsAttention.lines.length, 0);
-    assert.equal(result.upgradesZone.scopeReview.show, true);
     assert.equal(result.upgradesZone.scopeReview.count, 1);
-    assert.equal(result.upgradesZone.scopeReview.lines[0]?.templateItemId, "line-upgrade");
+    assert.equal(result.needsAttention.scopeReview.show, true);
+    assert.equal(result.needsAttention.scopeReview.count, 1);
+    assert.equal(result.needsAttention.scopeReview.lines[0]?.templateItemId, "line-upgrade");
     assert.equal(result.meta.upgradeScopeReviewLineCount, 1);
   });
 
@@ -822,6 +827,7 @@ describe("buildProposalWorkbenchEstimatePresentation", () => {
     assert.equal(result.upgradesZone.scopeReview.count, 0);
     assert.equal(result.meta.upgradeScopeReviewLineCount, 0);
     assert.equal(result.upgradesZone.sections[0]?.lines[0]?.attentionReasons.length, 0);
+    assert.equal(result.upgradesZone.sections[0]?.lines[0]?.qtyLabel, "2 each");
   });
 
   test("presenter does not mutate input", () => {
@@ -831,5 +837,19 @@ describe("buildProposalWorkbenchEstimatePresentation", () => {
     buildProposalWorkbenchEstimatePresentation(input);
 
     assert.deepEqual(input, snapshot);
+  });
+
+  test("contractor estimate unit/qty labels prefer readable units", () => {
+    assert.equal(formatContractorEstimateUnitLabel("LF"), "linear ft");
+    assert.equal(formatContractorEstimateUnitLabel("Linear foot"), "linear ft");
+    assert.equal(formatContractorEstimateUnitLabel("linear_foot"), "linear ft");
+    assert.equal(formatContractorEstimateUnitLabel("ea"), "each");
+    assert.equal(formatContractorEstimateUnitLabel("square"), "SQ");
+    assert.equal(formatContractorEstimateQtyLabel("12 LF"), "12 linear ft");
+    assert.equal(formatContractorEstimateQtyLabel("18 Linear foot"), "18 linear ft");
+    assert.equal(formatContractorEstimateQtyLabel("12 linear_foot"), "12 linear ft");
+    assert.equal(formatContractorEstimateQtyLabel("3 ea"), "3 each");
+    assert.equal(formatContractorEstimateQtyLabel("27.5 SQ"), "27.5 SQ");
+    assert.equal(formatContractorEstimateQtyLabel("18 square"), "18 SQ");
   });
 });

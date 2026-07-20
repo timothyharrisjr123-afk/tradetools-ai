@@ -60,13 +60,16 @@ export default function ProposalBuilderPackageCards({
   const cardBase = compact ? BUILDER_PACKAGE_CARD_COMPACT : BUILDER_PACKAGE_CARD;
 
   if (options.length === 0) {
-    return (
-      <p className="text-sm text-slate-500">No customer-facing options are installed on this template.</p>
-    );
+    return <p className="text-sm text-slate-500">No packages on this template.</p>;
   }
 
   return (
-    <div className="grid gap-5 min-[1180px]:grid-cols-3" role="radiogroup" aria-label="Proposal packages">
+    <div
+      className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3"
+      role="radiogroup"
+      aria-label="Proposal packages"
+      data-builder-package-cards
+    >
       {options.map((option) => {
         const label = (option.customer_label ?? option.name).trim() || option.name;
         const meta = resolvePackageMeta(label);
@@ -104,12 +107,16 @@ export default function ProposalBuilderPackageCards({
                 </div>
 
                 <div className="min-w-0 flex-1 pt-1">
-                  <p className="text-base font-semibold leading-tight text-slate-950">{label}</p>
-                  <p className="mt-1.5 text-sm leading-5 text-slate-600">{meta.description}</p>
+                  <p className="text-[15px] font-semibold leading-snug text-slate-950">{label}</p>
+                  <p className="mt-1.5 text-[13px] leading-relaxed text-slate-600">
+                    {meta.description}
+                  </p>
                 </div>
               </div>
 
-              <div className={`${compact ? "mt-2.5 space-y-1.5" : "mt-4 space-y-2"} text-sm text-slate-700`}>
+              <div
+                className={`${compact ? "mt-3" : "mt-4"} space-y-1.5 text-[13px] leading-snug text-slate-700`}
+              >
                 {meta.bullets.map((bullet) => (
                   <div key={bullet} className="flex items-start gap-2">
                     <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" aria-hidden />
@@ -133,13 +140,17 @@ export default function ProposalBuilderPackageCards({
                   View details
                 </button>
               ) : null}
-              <span
-                className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${
-                  selected ? "bg-blue-600 text-white" : accent.chip
-                }`}
-              >
-                {selected ? "Current" : "Included"}
-              </span>
+              {selected ? (
+                <span className="rounded-full bg-blue-600 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
+                  Current
+                </span>
+              ) : (
+                <span
+                  className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ${accent.chip}`}
+                >
+                  Available
+                </span>
+              )}
             </div>
           </div>
         );

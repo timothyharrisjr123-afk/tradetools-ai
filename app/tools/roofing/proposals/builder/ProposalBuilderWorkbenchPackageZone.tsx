@@ -28,18 +28,20 @@ export default function ProposalBuilderWorkbenchPackageZone({
   const packageTitle = packageZone.label
     ? `${packageZone.label} package`
     : "Package";
+  const bulletsLine =
+    packageZone.bullets.length > 0 ? packageZone.bullets.join(" · ") : null;
 
   return (
     <section
-      className={`${WORKBENCH_PACKAGE_MODULE} py-3`}
+      className={`${WORKBENCH_PACKAGE_MODULE} overflow-visible py-4`}
       aria-labelledby="workbench-package-zone-heading"
       data-builder-package-compact
       data-builder-package-context
     >
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 max-w-3xl flex-1">
           <p
-            className="text-sm font-semibold text-slate-900"
+            className="text-base font-semibold tracking-tight text-slate-950"
             id="workbench-package-zone-heading"
             data-builder-package-title
           >
@@ -47,56 +49,48 @@ export default function ProposalBuilderWorkbenchPackageZone({
           </p>
           {packageZone.description ? (
             <p
-              className="mt-0.5 text-[13px] leading-snug text-slate-600"
+              className="mt-1 text-[14px] leading-relaxed text-slate-600"
               data-builder-package-description
             >
               {packageZone.description}
             </p>
           ) : packageZone.startingPackageHelper ? (
             <p
-              className="mt-0.5 text-[12px] leading-snug text-slate-600"
+              className="mt-1 text-[13px] leading-relaxed text-slate-600"
               data-builder-package-helper
             >
               {packageZone.startingPackageHelper}
             </p>
           ) : null}
-          {packageZone.bullets.length > 0 ? (
+          {bulletsLine ? (
             <p
-              className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] text-slate-500"
+              className="mt-1.5 text-[13px] leading-relaxed text-slate-500"
               data-builder-package-bullets
             >
-              {packageZone.bullets.map((bullet, index) => (
-                <span key={bullet} className="inline-flex items-center gap-1.5">
-                  {index > 0 ? (
-                    <span className="text-slate-300" aria-hidden>
-                      ·
-                    </span>
-                  ) : null}
-                  {bullet}
-                </span>
-              ))}
+              {bulletsLine}
             </p>
           ) : null}
         </div>
-        <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1.5">
-          <ProposalBuilderPackageSelector
-            graph={packageSelectorGraph}
-            draftScoped={draftScopedPackagePicker}
-            compact
-            selectedOptionId={selectedOptionId}
-            effectiveOptionId={effectiveOptionId}
-            onSelectOption={onSelectOption}
-          />
-          <button
-            type="button"
-            onClick={onOpenEditPackage}
-            className="text-xs font-medium text-slate-500 hover:text-slate-800"
-            data-builder-edit-package
-            title="Advanced package editing"
-          >
-            {WORKBENCH_EDIT_PACKAGE_TITLE}
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={onOpenEditPackage}
+          className="shrink-0 text-[13px] font-medium text-slate-500 hover:text-slate-700"
+          data-builder-edit-package
+          title="Advanced package settings for this proposal"
+        >
+          {WORKBENCH_EDIT_PACKAGE_TITLE}
+        </button>
+      </div>
+
+      <div className="mt-3 w-full min-w-0 overflow-visible">
+        <ProposalBuilderPackageSelector
+          graph={packageSelectorGraph}
+          draftScoped={draftScopedPackagePicker}
+          compact
+          selectedOptionId={selectedOptionId}
+          effectiveOptionId={effectiveOptionId}
+          onSelectOption={onSelectOption}
+        />
       </div>
     </section>
   );

@@ -351,9 +351,7 @@ export default function ProposalBuilderWorkbenchEditOptionShell({
                 ) : null}
               </div>
               <h3 className={WORKBENCH_MODULE_TITLE} id="workbench-edit-option-title">
-                {optionLabel?.trim()
-                  ? `Edit ${optionLabel.trim()} package`
-                  : WORKBENCH_EDIT_PACKAGE_TITLE}
+                {WORKBENCH_EDIT_PACKAGE_TITLE}
               </h3>
               <p className={`${WORKBENCH_MODULE_DESC} mt-1`} id="workbench-edit-option-desc">
                 Advanced package settings for this proposal.

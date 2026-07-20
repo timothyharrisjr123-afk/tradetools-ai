@@ -12,8 +12,11 @@ export const BUILDER_BLOCKED_BANNER =
 export const BUILDER_SHELL_BANNER =
   "rounded-md border border-cyan-200/80 bg-cyan-50/60 px-4 py-3 text-sm text-cyan-950";
 
-/** Shared horizontal stage — header + workspace share edges (Block 4C continuity). */
-export const BUILDER_STAGE = "mx-auto w-full max-w-[1180px]";
+/**
+ * Shared horizontal stage — header, Preview/More, section bar, and canvas
+ * share one container. Wider than early Builder so Job Card continuity holds.
+ */
+export const BUILDER_STAGE = "mx-auto w-full max-w-[96rem]";
 
 /** 3J4A — read-only proposal stage alert. */
 export const BUILDER_READ_ONLY_ALERT =
@@ -197,7 +200,7 @@ export const BUILDER_TOKEN_PICKER_ITEM_DESCRIPTION = "truncate text-[11px] text-
 export const BUILDER_TOKEN_PICKER_ITEM_HINT = "truncate text-[11px] text-amber-700/90";
 
 /** Block 4C — canvas fills attached workspace shell (no nested floating card). */
-export const BUILDER_CANVAS = "w-full overflow-hidden bg-white";
+export const BUILDER_CANVAS = "w-full overflow-visible bg-white";
 
 export const BUILDER_CANVAS_INNER = "px-7 py-6";
 
@@ -664,9 +667,9 @@ export const WORKBENCH_HEADER_KICKER =
   "text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400";
 
 export const WORKBENCH_HEADER_TITLE =
-  "mt-0.5 text-[1.25rem] font-semibold leading-tight tracking-tight text-slate-950";
+  "mt-0.5 text-[1.35rem] font-semibold leading-tight tracking-tight text-slate-950";
 
-export const WORKBENCH_HEADER_SUBTITLE = "mt-0.5 max-w-2xl text-[13px] leading-snug text-slate-600";
+export const WORKBENCH_HEADER_SUBTITLE = "mt-1 max-w-2xl text-[14px] leading-relaxed text-slate-600";
 
 export const WORKBENCH_HEADER_STAT =
   "inline-flex items-center gap-1.5 rounded-full border border-slate-200/90 bg-white/90 px-2.5 py-1 text-[11px] font-medium text-slate-600 shadow-sm";
@@ -692,9 +695,9 @@ export const WORKBENCH_MODULE_INNER = "px-0 py-3";
 export const WORKBENCH_MODULE_KICKER =
   "text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400";
 
-export const WORKBENCH_MODULE_TITLE = "text-sm font-semibold text-slate-900";
+export const WORKBENCH_MODULE_TITLE = "text-[15px] font-semibold tracking-tight text-slate-950";
 
-export const WORKBENCH_MODULE_DESC = "mt-0.5 text-[12px] leading-snug text-slate-500";
+export const WORKBENCH_MODULE_DESC = "mt-0.5 text-[13px] leading-relaxed text-slate-600";
 
 /** Compact package row — not a heavy command card. */
 export const WORKBENCH_PACKAGE_MODULE =
@@ -766,7 +769,11 @@ export const WORKBENCH_LINE_ROW =
   "border-b border-slate-100 py-1.5 last:border-b-0 transition-colors hover:bg-slate-50/50";
 
 export const WORKBENCH_LINE_GRID =
-  "grid grid-cols-1 gap-x-4 gap-y-0.5 sm:grid-cols-[minmax(0,1fr)_5.5rem_6rem] sm:items-center";
+  "grid grid-cols-1 gap-x-3 gap-y-0.5 sm:grid-cols-[minmax(0,1fr)_7rem_6.5rem] sm:items-center";
+
+/** Included-estimate row + menu column (matches column headers). */
+export const WORKBENCH_INCLUDED_ROW_GRID =
+  "grid grid-cols-1 gap-x-3 gap-y-1 sm:grid-cols-[minmax(0,1fr)_7rem_6.5rem_1.75rem] sm:items-center";
 
 export const WORKBENCH_LINE_NAME = "text-[13px] font-medium leading-snug text-slate-900";
 
@@ -902,6 +909,8 @@ export const WORKBENCH_EDIT_OPTION_FOOTER_COPY_LIVE =
 
 /** R17D Phase 2.5 — manual quantity active state in Edit Option drawer. */
 export const WORKBENCH_MANUAL_QUANTITY_ACTIVE_BADGE = "Manual quantity";
+
+export const WORKBENCH_SET_QUANTITY_ACTION = "Set quantity";
 
 export const WORKBENCH_EDIT_QUANTITY_ACTION = "Edit quantity";
 

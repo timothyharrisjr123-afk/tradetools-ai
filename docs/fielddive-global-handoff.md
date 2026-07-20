@@ -12539,7 +12539,7 @@ Package rule from **N** remains law: pre-draft package on create modal; post-dra
 
 ###### T.4 Block 4E — Builder inline editing + row action polish — IMPLEMENTED (2026-07-20)
 
-**Code checkpoint:** set in header after commit (`polish(proposals): refine builder estimate editing`)
+**Code checkpoint:** **`29dbc61`** — `polish(proposals): refine builder estimate editing`
 
 **Status:** Simple estimate edits are inline/fast; advanced Edit package drawer is for package scope only. **No Preview redesign. No pricing/math/snapshot/send/lifecycle. No SQL/migrations/packages.**
 

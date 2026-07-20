@@ -8,23 +8,19 @@ import {
   WORKBENCH_ATTENTION_ZONE,
   WORKBENCH_ATTENTION_ZONE_HEADER,
   WORKBENCH_EDIT_OPTION_CHIP_ENABLED,
-  WORKBENCH_EDIT_OPTION_CHIP_HINT,
-  WORKBENCH_EDIT_PACKAGE_TITLE,
-  WORKBENCH_EDIT_OPTION_TRIGGER_SECONDARY,
-  WORKBENCH_FUTURE_ACTION_CHIP,
   WORKBENCH_MODULE_DESC,
   WORKBENCH_MODULE_INNER,
   WORKBENCH_MODULE_KICKER,
   WORKBENCH_MODULE_TITLE,
   WORKBENCH_SCOPE_REVIEW_ZONE,
   WORKBENCH_SCOPE_REVIEW_ZONE_HEADER,
+  WORKBENCH_SET_QUANTITY_ACTION,
 } from "./proposalBuilderConstants";
 import ProposalBuilderWorkbenchLineRow from "./ProposalBuilderWorkbenchLineRow";
 import ProposalBuilderWorkbenchInlineQuantityEditor from "./ProposalBuilderWorkbenchInlineQuantityEditor";
 
 type ProposalBuilderWorkbenchAttentionZoneProps = {
   zone: WorkbenchNeedsAttentionZone;
-  onOpenEditPackage: () => void;
   editingQuantityLineId?: string | null;
   onStartSetQuantity?: (templateItemId: string) => void;
   onCancelSetQuantity?: () => void;
@@ -78,7 +74,6 @@ function HardBlockersSection({ zone }: { zone: WorkbenchNeedsAttentionZone["hard
 
 function ScopeReviewSection({
   zone,
-  onOpenEditPackage,
   editingQuantityLineId = null,
   onStartSetQuantity,
   onCancelSetQuantity,
@@ -89,7 +84,6 @@ function ScopeReviewSection({
   highlightFinishEstimate = false,
 }: {
   zone: WorkbenchNeedsAttentionZone["scopeReview"];
-  onOpenEditPackage: () => void;
   editingQuantityLineId?: string | null;
   onStartSetQuantity?: (templateItemId: string) => void;
   onCancelSetQuantity?: () => void;
@@ -119,29 +113,18 @@ function ScopeReviewSection({
       id="builder-finish-estimate"
     >
       <header className={WORKBENCH_SCOPE_REVIEW_ZONE_HEADER}>
-        <div className="flex flex-wrap items-start justify-between gap-2">
-          <div className="min-w-0">
-            <p
-              className="text-sm font-semibold text-slate-900"
-              id="workbench-scope-review-heading"
-            >
-              Finish estimate
-            </p>
-            <p className="mt-0.5 text-[13px] text-slate-600">
-              {zone.count === 1
-                ? "1 item needs a quantity before totals are final."
-                : `${zone.count} items need quantities before totals are final.`}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onOpenEditPackage}
-            className={WORKBENCH_EDIT_OPTION_TRIGGER_SECONDARY}
-            title="Open advanced package editing"
-            data-builder-edit-package
+        <div className="min-w-0">
+          <p
+            className="text-sm font-semibold text-slate-900"
+            id="workbench-scope-review-heading"
           >
-            {WORKBENCH_EDIT_PACKAGE_TITLE}
-          </button>
+            Finish estimate
+          </p>
+          <p className="mt-0.5 text-[13px] text-slate-600">
+            {zone.count === 1
+              ? "1 item needs a quantity before totals are final."
+              : `${zone.count} items need quantities before totals are final.`}
+          </p>
         </div>
       </header>
 
@@ -196,21 +179,7 @@ function ScopeReviewSection({
                           onClick={() => onStartSetQuantity!(line.templateItemId)}
                           data-builder-set-quantity
                         >
-                          Set quantity
-                        </button>
-                      ) : line.reasons.includes("needs_quantity") ? (
-                        <button
-                          type="button"
-                          disabled
-                          aria-disabled="true"
-                          className={WORKBENCH_FUTURE_ACTION_CHIP}
-                          title={
-                            manualQuantityEnabled
-                              ? WORKBENCH_EDIT_OPTION_CHIP_HINT
-                              : undefined
-                          }
-                        >
-                          Set quantity
+                          {WORKBENCH_SET_QUANTITY_ACTION}
                         </button>
                       ) : null}
                     </div>
@@ -227,7 +196,6 @@ function ScopeReviewSection({
 
 export default function ProposalBuilderWorkbenchAttentionZone({
   zone,
-  onOpenEditPackage,
   editingQuantityLineId = null,
   onStartSetQuantity,
   onCancelSetQuantity,
@@ -244,7 +212,6 @@ export default function ProposalBuilderWorkbenchAttentionZone({
       <HardBlockersSection zone={zone.hardBlockers} />
       <ScopeReviewSection
         zone={zone.scopeReview}
-        onOpenEditPackage={onOpenEditPackage}
         editingQuantityLineId={editingQuantityLineId}
         onStartSetQuantity={onStartSetQuantity}
         onCancelSetQuantity={onCancelSetQuantity}

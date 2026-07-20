@@ -98,7 +98,7 @@ export default function ProposalBuilderPackageSelector({
             <button
               type="button"
               onClick={() => setShowAll(true)}
-              className="inline-flex items-center gap-1 text-xs font-semibold text-blue-700 hover:text-blue-800"
+              className="inline-flex items-center gap-1 text-[13px] font-semibold text-blue-700 hover:text-blue-800"
               data-builder-change-package
             >
               <Pencil className="h-3.5 w-3.5" aria-hidden />
@@ -178,16 +178,14 @@ export default function ProposalBuilderPackageSelector({
 
   return (
     <div
-      className="space-y-2.5"
+      className="w-full space-y-2.5 overflow-visible"
       data-builder-package-selector
       data-builder-package-count={optionCount}
       data-builder-package-picker="open"
     >
       {hasExplicitSelection ? (
         <div className="flex items-center justify-between gap-2">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">
-            Choose the customer-facing package
-          </p>
+          <p className="text-[12px] font-semibold text-slate-600">Choose package</p>
           <button
             type="button"
             onClick={() => setShowAll(false)}

@@ -8,8 +8,6 @@ import {
   BUILDER_PREVIEW_ENABLED_ACTION,
 } from "./proposalBuilderConstants";
 
-const HEADER_ACTION_ORDER = ["preview", "send", "sign", "payment"] as const;
-
 type ProposalBuilderDisabledActionsProps = {
   lifecycleLocks?: ProposalBuilderLifecycleLock[] | null;
   onLifecycleAction?: (actionId: ProposalBuilderLifecycleActionId) => void;
@@ -17,20 +15,16 @@ type ProposalBuilderDisabledActionsProps = {
   savedPricingDetails?: string | null;
 };
 
+/**
+ * Preview primary. More stays quiet — saved pricing only (no locked lifecycle clutter).
+ */
 export default function ProposalBuilderDisabledActions({
   lifecycleLocks = null,
   onLifecycleAction,
   savedPricingDetails = null,
 }: ProposalBuilderDisabledActionsProps) {
-  const headerLocks = lifecycleLocks
-    ? HEADER_ACTION_ORDER.map((id) =>
-        lifecycleLocks.find((lock) => lock.actionId === id)
-      ).filter((lock): lock is ProposalBuilderLifecycleLock => Boolean(lock))
-    : null;
-
-  const previewLock = headerLocks?.find((lock) => lock.actionId === "preview") ?? null;
-  const futureLocks =
-    headerLocks?.filter((lock) => lock.actionId !== "preview") ?? [];
+  const previewLock =
+    lifecycleLocks?.find((lock) => lock.actionId === "preview") ?? null;
 
   const previewEnabled =
     previewLock != null &&
@@ -39,7 +33,7 @@ export default function ProposalBuilderDisabledActions({
     previewLock?.lockedReason ?? previewLock?.unlockSummary ?? "Preview";
 
   const pricingNote = (savedPricingDetails ?? "").trim();
-  const showMore = futureLocks.length > 0 || pricingNote.length > 0;
+  const showMore = pricingNote.length > 0;
 
   return (
     <div
@@ -77,41 +71,27 @@ export default function ProposalBuilderDisabledActions({
       {showMore ? (
         <details className="relative" data-builder-future-actions>
           <summary
-            className="flex cursor-pointer list-none items-center gap-1 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-[12px] font-medium text-slate-500 hover:bg-slate-50 [&::-webkit-details-marker]:hidden"
-            title="More proposal actions"
+            className="flex cursor-pointer list-none items-center gap-1 rounded-md border border-transparent px-2 py-1.5 text-[12px] font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-700 [&::-webkit-details-marker]:hidden"
+            title="More"
           >
             <MoreHorizontal className="h-3.5 w-3.5" aria-hidden />
             More
           </summary>
-          <div className="absolute right-0 z-20 mt-1 w-[16.5rem] rounded-lg border border-slate-200 bg-white p-1.5 shadow-lg">
-            {futureLocks.map((lock) => (
-              <button
-                key={lock.actionId}
-                type="button"
-                disabled
-                className="flex w-full items-center gap-1.5 rounded-md px-2.5 py-1.5 text-left text-[12px] text-slate-400"
-                title={lock.lockedReason ?? lock.unlockSummary}
+          <div className="absolute right-0 z-20 mt-1 w-[15rem] rounded-lg border border-slate-200 bg-white p-1.5 shadow-lg">
+            <details
+              className="px-2.5 py-1.5"
+              data-builder-saved-pricing-details
+            >
+              <summary className="cursor-pointer list-none text-[11px] font-medium text-slate-500 hover:text-slate-700 [&::-webkit-details-marker]:hidden">
+                Saved pricing details
+              </summary>
+              <p
+                className="mt-1.5 text-[11px] leading-snug text-slate-500"
+                data-builder-snapshot-frozen-helper
               >
-                <Lock className="h-3 w-3 shrink-0" aria-hidden />
-                {lock.label}
-              </button>
-            ))}
-            {pricingNote ? (
-              <details
-                className="mt-0.5 border-t border-slate-100 px-2.5 py-1.5"
-                data-builder-saved-pricing-details
-              >
-                <summary className="cursor-pointer list-none text-[11px] font-medium text-slate-500 hover:text-slate-700 [&::-webkit-details-marker]:hidden">
-                  Saved pricing details
-                </summary>
-                <p
-                  className="mt-1.5 text-[11px] leading-snug text-slate-500"
-                  data-builder-snapshot-frozen-helper
-                >
-                  {pricingNote}
-                </p>
-              </details>
-            ) : null}
+                {pricingNote}
+              </p>
+            </details>
           </div>
         </details>
       ) : null}

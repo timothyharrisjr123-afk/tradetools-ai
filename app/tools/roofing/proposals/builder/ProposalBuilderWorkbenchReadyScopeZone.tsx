@@ -55,7 +55,7 @@ export default function ProposalBuilderWorkbenchReadyScopeZone({
     >
       <header className="flex flex-wrap items-baseline justify-between gap-2 pb-1 pt-1">
         <p
-          className="text-sm font-semibold text-slate-900"
+          className="text-[15px] font-semibold tracking-tight text-slate-950"
           id="workbench-ready-scope-heading"
         >
           Included estimate
@@ -70,7 +70,7 @@ export default function ProposalBuilderWorkbenchReadyScopeZone({
         ) : (
           <div className="overflow-visible">
             <div
-              className="mb-1 hidden grid-cols-[minmax(0,1fr)_5.5rem_6rem_1.5rem] gap-x-3 border-b border-slate-100 pb-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-400 sm:grid"
+              className="mb-1 hidden grid-cols-[minmax(0,1fr)_7rem_6.5rem_1.75rem] gap-x-3 border-b border-slate-100 pb-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-400 sm:grid"
               data-builder-estimate-column-headers
             >
               <span>Item</span>
@@ -87,8 +87,11 @@ export default function ProposalBuilderWorkbenchReadyScopeZone({
                 return (
                   <li
                     key={line.templateItemId}
-                    className="overflow-visible border-b border-slate-100 last:border-b-0"
+                    className={`overflow-visible border-b border-slate-100 last:border-b-0 ${
+                      isEditing ? "bg-blue-50/30" : ""
+                    }`}
                     data-builder-included-estimate-row
+                    data-builder-inline-editing={isEditing ? "true" : undefined}
                   >
                     {isEditing && onSaveQuantity ? (
                       <div className="py-1.5">
@@ -102,6 +105,7 @@ export default function ProposalBuilderWorkbenchReadyScopeZone({
                           error={quantitySaveError}
                           onCancel={() => onCancelSetQuantity?.()}
                           onSave={onSaveQuantity}
+                          alignToColumns
                         />
                       </div>
                     ) : (
@@ -126,6 +130,16 @@ export default function ProposalBuilderWorkbenchReadyScopeZone({
                             openMenuId={openMenuId}
                             onOpenMenuIdChange={setOpenMenuId}
                             actions={[
+                              {
+                                id: "details",
+                                label: showDetails ? "Hide details" : "View details",
+                                onSelect: () =>
+                                  setDetailsLineId((current) =>
+                                    current === line.templateItemId
+                                      ? null
+                                      : line.templateItemId
+                                  ),
+                              },
                               ...(canRemove
                                 ? [
                                     {
@@ -137,16 +151,6 @@ export default function ProposalBuilderWorkbenchReadyScopeZone({
                                     },
                                   ]
                                 : []),
-                              {
-                                id: "details",
-                                label: showDetails ? "Hide details" : "View details",
-                                onSelect: () =>
-                                  setDetailsLineId((current) =>
-                                    current === line.templateItemId
-                                      ? null
-                                      : line.templateItemId
-                                  ),
-                              },
                             ]}
                           />
                         </div>

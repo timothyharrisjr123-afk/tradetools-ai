@@ -16,6 +16,10 @@ type ProposalBuilderSectionNavProps = {
   persistedProposalDocument?: boolean;
 };
 
+/**
+ * Polished top proposal section bar — Job Card tab continuity.
+ * No left rail. No TEMPLATE / EMPTY / ACTIVE badge strip.
+ */
 export default function ProposalBuilderSectionNav({
   pages,
   activePageContextId,
@@ -32,38 +36,35 @@ export default function ProposalBuilderSectionNav({
 
   return (
     <nav
-      className="px-2 py-3"
+      className="border-b border-slate-200/80 bg-gradient-to-b from-slate-50/90 to-white"
       aria-label="Proposal sections"
       data-builder-document-section-nav
+      data-builder-section-bar="top"
     >
-      <p className="px-2.5 pb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">
-        Proposal sections
-      </p>
-      <ul className="space-y-0.5">
+      <div className="flex items-stretch gap-0.5 overflow-x-auto px-3 sm:px-5 [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-200/70">
         {sectionItems.map((item) => (
-          <li key={item.id}>
-            <SectionNavButton
-              item={item}
-              isActive={item.id === activePageContextId}
-              onSelect={onSelectPageContext}
-            />
-          </li>
-        ))}
-      </ul>
-      {overflowPages.length > 0 ? (
-        <div className="mt-2 border-t border-slate-200/70 px-1 pt-2">
-          <ProposalBuilderOverflowMenu
-            overflowPages={overflowPages}
-            activePageContextId={activePageContextId}
-            onSelectPageContext={onSelectPageContext}
+          <SectionTabButton
+            key={item.id}
+            item={item}
+            isActive={item.id === activePageContextId}
+            onSelect={onSelectPageContext}
           />
-        </div>
-      ) : null}
+        ))}
+        {overflowPages.length > 0 ? (
+          <div className="flex shrink-0 items-center px-1 py-1.5">
+            <ProposalBuilderOverflowMenu
+              overflowPages={overflowPages}
+              activePageContextId={activePageContextId}
+              onSelectPageContext={onSelectPageContext}
+            />
+          </div>
+        ) : null}
+      </div>
     </nav>
   );
 }
 
-function SectionNavButton({
+function SectionTabButton({
   item,
   isActive,
   onSelect,
@@ -77,30 +78,25 @@ function SectionNavButton({
   return (
     <button
       type="button"
+      role="tab"
       disabled={disabled}
+      aria-selected={isActive}
       aria-current={isActive ? "page" : undefined}
       data-builder-section-nav-item={item.id}
       data-active={isActive ? "true" : "false"}
       onClick={() => item.enabled && onSelect(item.id)}
-      className={`flex w-full items-center justify-between gap-2 rounded-md px-2.5 py-1.5 text-left text-[13px] transition ${
+      className={`relative inline-flex shrink-0 items-center gap-1.5 rounded-t-md px-3.5 py-2.5 text-[13px] font-medium transition sm:px-4 ${
         isActive
-          ? "bg-white font-semibold text-slate-900 shadow-sm ring-1 ring-slate-200/80"
+          ? "bg-white font-semibold text-slate-950 shadow-[0_-1px_0_rgba(15,23,42,0.04)] after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:rounded-full after:bg-blue-600"
           : disabled
             ? "cursor-not-allowed text-slate-400"
-            : "font-medium text-slate-600 hover:bg-white/70 hover:text-slate-900"
+            : "text-slate-600 hover:bg-white/70 hover:text-slate-900"
       }`}
     >
-      <span className="min-w-0 truncate">{item.label}</span>
-      <span className="flex shrink-0 items-center gap-1">
-        {item.fromDb && item.customerVisible === false ? (
-          <EyeOff className="h-3.5 w-3.5 text-slate-400" aria-hidden />
-        ) : null}
-        {isActive ? (
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-blue-700">
-            Active
-          </span>
-        ) : null}
-      </span>
+      <span className="whitespace-nowrap">{item.label}</span>
+      {item.fromDb && item.customerVisible === false ? (
+        <EyeOff className="h-3.5 w-3.5 text-slate-400" aria-hidden />
+      ) : null}
     </button>
   );
 }

@@ -56,9 +56,9 @@ export const WORKBENCH_SCOPE_REVIEW_ROW_HELPER =
 export const WORKBENCH_PACKAGE_STARTING_HELPER =
   "Starting package for this proposal. You can change it before previewing.";
 
-export const WORKBENCH_DECISION_TRACE_REMOVED_TITLE = "Removed from this option";
+export const WORKBENCH_DECISION_TRACE_REMOVED_TITLE = "Removed from proposal";
 export const WORKBENCH_DECISION_TRACE_REMOVED_DESCRIPTION =
-  "Template lines excluded from this package for this job. Restore to return them to scope review or customer-ready scope.";
+  "Items removed from this package for this job. Restore to bring them back.";
 export const WORKBENCH_DECISION_TRACE_REMOVED_STATUS = "Removed";
 
 export const WORKBENCH_SCOPE_REVIEW_FUTURE_ACTIONS = [
@@ -90,6 +90,47 @@ export const WORKBENCH_HIDDEN_FROM_CUSTOMER_LABEL = "Excluded from estimate disp
 export const WORKBENCH_ATTENTION_AMOUNT_MISSING_CATALOG = "Missing catalog";
 export const WORKBENCH_ATTENTION_AMOUNT_NEEDS_QUANTITY = "Needs quantity";
 export const WORKBENCH_ATTENTION_AMOUNT_NOT_PRICED = "Not priced";
+
+/**
+ * Contractor estimate primary-row unit labels (presentation only).
+ * Prefer readable units over abbreviations when space allows; keep SQ.
+ */
+export function formatContractorEstimateUnitLabel(
+  unit: string | null | undefined
+): string | null {
+  if (unit == null) return null;
+  const trimmed = unit.trim();
+  if (!trimmed) return null;
+  const lower = trimmed.toLowerCase().replace(/_/g, " ");
+  if (
+    lower === "lf" ||
+    lower === "linear foot" ||
+    lower === "linear feet" ||
+    lower === "linear ft"
+  ) {
+    return "linear ft";
+  }
+  if (lower === "ea" || lower === "each") {
+    return "each";
+  }
+  if (lower === "sq" || lower === "square" || lower === "squares") {
+    return "SQ";
+  }
+  return trimmed;
+}
+
+/** Contractor estimate primary-row qty labels (presentation only). */
+export function formatContractorEstimateQtyLabel(qtyLabel: string): string {
+  return qtyLabel
+    .replace(/\blinear_foot\b/gi, "linear ft")
+    .replace(/\blinear_feet\b/gi, "linear ft")
+    .replace(/\bLinear feet\b/gi, "linear ft")
+    .replace(/\bLinear foot\b/gi, "linear ft")
+    .replace(/\bLF\b/g, "linear ft")
+    .replace(/\bea\b/gi, "each")
+    .replace(/\bsquares\b/gi, "SQ")
+    .replace(/\bsquare\b/gi, "SQ");
+}
 
 export type WorkbenchAttentionReason =
   | "missing_catalog"
@@ -367,12 +408,14 @@ function resolveCustomerSelectionMode(
 
 function buildDetailMeta(
   row: ProposalPreviewLineRow,
-  quantityStatusLabel: string | null
+  quantityStatusLabel: string | null,
+  snapshotUnitLabel?: string | null
 ): WorkbenchLineDetailMeta {
+  const rawUnit = snapshotUnitLabel?.trim() || row.unitLabel;
   return {
     source: row.quantitySourceLabel,
     rule: row.quantityRuleLabel,
-    unit: row.unitLabel,
+    unit: formatContractorEstimateUnitLabel(rawUnit) ?? rawUnit,
     role: row.roleLabel,
     resolvedStatus: quantityStatusLabel,
   };
@@ -383,16 +426,16 @@ function resolveQtyState(
   snapshotQty: ProposalSnapshotLineQuantityView | undefined
 ): { qtyLabel: string; qtyUnresolved: boolean; quantityStatusLabel: string | null } {
   if (snapshotQty) {
-    const qtyLabel = snapshotQty.quantityDisplayLabel ?? "—";
+    const rawLabel = snapshotQty.quantityDisplayLabel ?? "—";
     return {
-      qtyLabel,
+      qtyLabel: formatContractorEstimateQtyLabel(rawLabel),
       qtyUnresolved: snapshotQty.quantityDisplayLabel == null,
       quantityStatusLabel: null,
     };
   }
 
   return {
-    qtyLabel: row.quantityDisplayLabel,
+    qtyLabel: formatContractorEstimateQtyLabel(row.quantityDisplayLabel),
     qtyUnresolved: row.quantityUnresolved,
     quantityStatusLabel: row.quantityStatusLabel || null,
   };
@@ -437,7 +480,7 @@ function buildDecisionTraceLine(
     name: row.displayName,
     qtyLabel,
     statusLabel: WORKBENCH_DECISION_TRACE_REMOVED_STATUS,
-    detailMeta: buildDetailMeta(row, qtyState.quantityStatusLabel),
+    detailMeta: buildDetailMeta(row, qtyState.quantityStatusLabel, snapshotQty?.unitLabel),
   };
 }
 
@@ -599,7 +642,7 @@ function buildScopeLine(
     amountLabel: readyAmountLabel(classification.statusKind, lineView!),
     statusKind: classification.statusKind,
     hiddenFromCustomer,
-    detailMeta: buildDetailMeta(row, qtyState.quantityStatusLabel),
+    detailMeta: buildDetailMeta(row, qtyState.quantityStatusLabel, snapshotQty?.unitLabel),
     attentionReasons: [],
     manualQuantityActive: snapshotQty?.quantitySourceLabel === "Manual",
   };
@@ -623,7 +666,7 @@ function buildAttentionLine(
     qtyUnresolved: qtyState.qtyUnresolved,
     amountLabel: attentionAmountLabel(classification.reasons),
     hiddenFromCustomer: isHiddenFromCustomer(lineView),
-    detailMeta: buildDetailMeta(row, qtyState.quantityStatusLabel),
+    detailMeta: buildDetailMeta(row, qtyState.quantityStatusLabel, snapshotQty?.unitLabel),
     suggestedAction: suggestedActionForReasons(classification.reasons, attentionKind),
   };
 }
@@ -662,7 +705,7 @@ function buildUpgradeScopeLine(
       amountLabel: readyAmountLabel(classification.statusKind, lineView!),
       statusKind: classification.statusKind,
       hiddenFromCustomer,
-      detailMeta: buildDetailMeta(row, qtyState.quantityStatusLabel),
+      detailMeta: buildDetailMeta(row, qtyState.quantityStatusLabel, snapshotQty?.unitLabel),
       attentionReasons: [],
       manualQuantityActive: snapshotQty?.quantitySourceLabel === "Manual",
     };
@@ -676,7 +719,7 @@ function buildUpgradeScopeLine(
     amountLabel: attentionAmountLabel(classification.reasons),
     statusKind: "priced",
     hiddenFromCustomer,
-    detailMeta: buildDetailMeta(row, qtyState.quantityStatusLabel),
+    detailMeta: buildDetailMeta(row, qtyState.quantityStatusLabel, snapshotQty?.unitLabel),
     attentionReasons: classification.reasons,
     manualQuantityActive: snapshotQty?.quantitySourceLabel === "Manual",
   };
@@ -941,8 +984,13 @@ export function buildProposalWorkbenchEstimatePresentation(
 
   const hardBlockerLines = attentionLines.filter((line) => line.attentionKind === "hard_blocker");
   const scopeReviewLines = attentionLines.filter((line) => line.attentionKind === "scope_review");
+  /** Upgrade quantity blockers surface in Finish estimate — include/replace UI is follow-up only. */
+  const finishScopeReviewLines = [...scopeReviewLines, ...upgradeScopeReviewLines];
+  const finishAttentionLines = [...hardBlockerLines, ...finishScopeReviewLines];
   const attentionRailHint =
-    attentionLines.length > 0 ? "See Pricing readiness in the rail for setup guidance." : null;
+    finishAttentionLines.length > 0
+      ? "See Pricing readiness in the rail for setup guidance."
+      : null;
 
   return {
     page: {
@@ -954,9 +1002,9 @@ export function buildProposalWorkbenchEstimatePresentation(
       sections: readySections,
     },
     needsAttention: {
-      show: attentionLines.length > 0,
-      blockingCount: attentionLines.length,
-      lines: attentionLines,
+      show: finishAttentionLines.length > 0,
+      blockingCount: finishAttentionLines.length,
+      lines: finishAttentionLines,
       railHint: attentionRailHint,
       hardBlockers: buildAttentionBucket(
         hardBlockerLines,
@@ -965,14 +1013,19 @@ export function buildProposalWorkbenchEstimatePresentation(
         attentionRailHint
       ),
       scopeReview: buildAttentionBucket(
-        scopeReviewLines,
+        finishScopeReviewLines,
         WORKBENCH_SCOPE_REVIEW_TITLE,
         WORKBENCH_SCOPE_REVIEW_DESCRIPTION,
         attentionRailHint
       ),
     },
     upgradesZone: {
-      show: hasTemplateUpgradeSections,
+      /**
+       * Block 4F — include/replace unsupported; hide Optional upgrades from main Builder path.
+       * Quantity blockers for upgrade lines are merged into needsAttention.scopeReview above.
+       * Follow-up: additive upgrades add to included estimate; replacement upgrades replace base items.
+       */
+      show: false,
       hasTemplateUpgradeSections,
       isEmpty: hasTemplateUpgradeSections && upgradeLineTotal === 0,
       sections: upgradeSections,
@@ -983,13 +1036,8 @@ export function buildProposalWorkbenchEstimatePresentation(
         upgradeScopeReviewLines.length > 0 ? attentionRailHint : null
       ),
       customerSelectionEnabled: false,
-      customerSelectionHint: hasTemplateUpgradeSections
-        ? WORKBENCH_CUSTOMER_UPGRADE_SELECTION_HINT
-        : null,
-      emptyCopy:
-        hasTemplateUpgradeSections && upgradeLineTotal === 0
-          ? WORKBENCH_UPGRADES_EMPTY_COPY
-          : null,
+      customerSelectionHint: null,
+      emptyCopy: null,
     },
     totalsZone: buildTotalsZone(input.optionCustomerView, pricingPolicyConfigured),
     displaySettingsEntry: {

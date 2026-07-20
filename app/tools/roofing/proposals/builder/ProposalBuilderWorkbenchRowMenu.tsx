@@ -89,7 +89,9 @@ export default function ProposalBuilderWorkbenchRowMenu({
       <button
         ref={buttonRef}
         type="button"
-        className="flex items-center justify-center rounded-md p-1 text-slate-400 hover:bg-slate-50 hover:text-slate-600"
+        className={`flex h-7 w-7 items-center justify-center rounded-md text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 ${
+          open ? "bg-slate-100 text-slate-700" : ""
+        }`}
         aria-label={`More actions for ${rowLabel}`}
         aria-haspopup="menu"
         aria-expanded={open}
@@ -106,7 +108,7 @@ export default function ProposalBuilderWorkbenchRowMenu({
               ref={menuRef}
               id={menuId}
               role="menu"
-              className="fixed z-[90] min-w-[11rem] rounded-lg border border-slate-200 bg-white py-1 shadow-lg"
+              className="fixed z-[90] min-w-[10.5rem] overflow-hidden rounded-lg border border-slate-200/90 bg-white py-1 shadow-[0_8px_24px_rgba(15,23,42,0.12)]"
               style={{ top: coords.top, left: coords.left }}
               data-builder-row-menu-portal
               data-builder-row-menu-for={rowId}
@@ -117,7 +119,11 @@ export default function ProposalBuilderWorkbenchRowMenu({
                   type="button"
                   role="menuitem"
                   disabled={action.disabled}
-                  className="block w-full px-3 py-1.5 text-left text-[12px] font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+                  className={`block w-full px-3 py-2 text-left text-[12px] font-medium transition hover:bg-slate-50 disabled:opacity-60 ${
+                    action.id === "remove"
+                      ? "text-slate-600"
+                      : "text-slate-800"
+                  }`}
                   data-builder-remove-from-proposal={
                     action.id === "remove" ? "true" : undefined
                   }

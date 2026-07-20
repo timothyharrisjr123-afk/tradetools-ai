@@ -365,6 +365,12 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
   }, [companyId, hasPersistedProposalParam, jobIdParam, proposalIdParam]);
 
   useEffect(() => {
+    if (!refreshFeedback || refreshFeedback.kind !== "success") return;
+    const timer = window.setTimeout(() => setRefreshFeedback(null), 3200);
+    return () => window.clearTimeout(timer);
+  }, [refreshFeedback]);
+
+  useEffect(() => {
     void loadJobContext();
   }, [loadJobContext]);
 
@@ -1741,9 +1747,9 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
         </div>
       ) : null}
       {!draftGraphError && shellReady && refreshFeedback ? (
-        <div className={`${BUILDER_STAGE}`} data-builder-refresh-feedback>
+        <div className={BUILDER_STAGE} data-builder-refresh-feedback>
           <div
-            className={`inline-flex max-w-full items-center rounded-md border px-3 py-1.5 text-[13px] font-medium shadow-sm ${
+            className={`inline-flex max-w-md items-center rounded-md border px-3 py-1.5 text-[13px] font-medium shadow-sm ${
               refreshFeedback.kind === "success"
                 ? "border-emerald-200 bg-emerald-50 text-emerald-800"
                 : "border-red-200 bg-red-50 text-red-800"

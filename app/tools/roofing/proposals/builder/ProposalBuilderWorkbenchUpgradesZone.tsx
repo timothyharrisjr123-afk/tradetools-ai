@@ -5,9 +5,10 @@ import {
   type WorkbenchUpgradesZone,
 } from "@/app/lib/proposalBuilderWorkbenchEstimatePresenter";
 import {
-  WORKBENCH_EDIT_OPTION_CHIP_ENABLED,
+  WORKBENCH_EDIT_QUANTITY_ACTION,
   WORKBENCH_MODULE_COMPACT,
   WORKBENCH_MODULE_INNER,
+  WORKBENCH_SET_QUANTITY_ACTION,
   WORKBENCH_UPGRADES_EMPTY,
   WORKBENCH_UPGRADES_ZONE,
 } from "./proposalBuilderConstants";
@@ -30,9 +31,12 @@ type ProposalBuilderWorkbenchUpgradesZoneProps = {
 };
 
 /**
- * Block 4E — optional upgrades collapsed by default.
+ * Optional upgrades — collapsed by default; quiet follow-up copy.
  * Include/replace is not supported by current scope decisions
  * (manual_quantity | excluded | visibility_override only) — no fake Add buttons.
+ *
+ * Follow-up (document only): additive upgrades should add to the included
+ * estimate; replacement upgrades should replace equivalent base items.
  */
 export default function ProposalBuilderWorkbenchUpgradesZone({
   zone,
@@ -100,11 +104,10 @@ export default function ProposalBuilderWorkbenchUpgradesZone({
 
         <div className={WORKBENCH_MODULE_INNER}>
           <p
-            className="mb-2 rounded-md border border-slate-100 bg-slate-50/70 px-2.5 py-2 text-[12px] leading-snug text-slate-600"
+            className="mb-2 text-[12px] leading-snug text-slate-500"
             data-builder-upgrade-selection-follow-up
           >
-            Upgrade selection follow-up needed. Adding or replacing upgrades on
-            this proposal is not available yet.
+            Upgrade selection will be handled in a later proposal editing pass.
           </p>
           <ul>
             {lines.map((line) => {
@@ -114,7 +117,24 @@ export default function ProposalBuilderWorkbenchUpgradesZone({
                 needsQuantity &&
                 Boolean(onStartSetQuantity) &&
                 Boolean(onSaveQuantity);
+              const canEditQuantity =
+                manualQuantityEnabled &&
+                line.manualQuantityActive &&
+                Boolean(onStartSetQuantity) &&
+                Boolean(onSaveQuantity);
               const isEditing = editingQuantityLineId === line.templateItemId;
+              const quantityAction =
+                canSetQuantity
+                  ? {
+                      label: WORKBENCH_SET_QUANTITY_ACTION as typeof WORKBENCH_SET_QUANTITY_ACTION,
+                      onEdit: () => onStartSetQuantity!(line.templateItemId),
+                    }
+                  : canEditQuantity
+                    ? {
+                        label: WORKBENCH_EDIT_QUANTITY_ACTION as typeof WORKBENCH_EDIT_QUANTITY_ACTION,
+                        onEdit: () => onStartSetQuantity!(line.templateItemId),
+                      }
+                    : null;
 
               return (
                 <li key={line.templateItemId} className="space-y-1 py-1">
@@ -131,36 +151,15 @@ export default function ProposalBuilderWorkbenchUpgradesZone({
                       onSave={onSaveQuantity!}
                     />
                   ) : (
-                    <>
-                      <ProposalBuilderWorkbenchLineRow
-                        variant="scope"
-                        line={line}
-                        as="div"
-                        hideDetails
-                      />
-                      <div className="flex flex-wrap items-center gap-2 pb-1">
-                        {needsQuantity ? (
-                          canSetQuantity ? (
-                            <button
-                              type="button"
-                              className={WORKBENCH_EDIT_OPTION_CHIP_ENABLED}
-                              onClick={() => onStartSetQuantity!(line.templateItemId)}
-                              data-builder-set-quantity
-                            >
-                              Set quantity
-                            </button>
-                          ) : (
-                            <span className="text-[11px] font-medium text-slate-500">
-                              Needs quantity
-                            </span>
-                          )
-                        ) : (
-                          <span className="text-[11px] font-medium text-slate-500">
-                            Optional · priced for review
-                          </span>
-                        )}
-                      </div>
-                    </>
+                    <ProposalBuilderWorkbenchLineRow
+                      variant="scope"
+                      line={line}
+                      as="div"
+                      hideDetails
+                      hideAttentionBadges
+                      onEditQuantity={quantityAction?.onEdit}
+                      editQuantityLabel={quantityAction?.label}
+                    />
                   )}
                 </li>
               );

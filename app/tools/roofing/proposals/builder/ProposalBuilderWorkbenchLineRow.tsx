@@ -8,6 +8,7 @@ import {
   WORKBENCH_EDIT_OPTION_CHIP_SECONDARY,
   WORKBENCH_EDIT_QUANTITY_ACTION,
   WORKBENCH_REMOVE_FROM_OPTION_ACTION,
+  WORKBENCH_SET_QUANTITY_ACTION,
   WORKBENCH_LINE_AMOUNT,
   WORKBENCH_LINE_AMOUNT_ATTENTION,
   WORKBENCH_LINE_AMOUNT_INCLUDED,
@@ -16,7 +17,6 @@ import {
   WORKBENCH_LINE_QTY,
   WORKBENCH_LINE_QTY_VALUE,
   WORKBENCH_LINE_ROW,
-  WORKBENCH_SCOPE_REVIEW_PILL,
 } from "./proposalBuilderConstants";
 import ProposalBuilderWorkbenchLineDetails from "./ProposalBuilderWorkbenchLineDetails";
 
@@ -41,10 +41,6 @@ function HardBlockerReasonBadge({ label }: { label: string }) {
   );
 }
 
-function ScopeReviewReasonBadge({ label }: { label: string }) {
-  return <span className={WORKBENCH_SCOPE_REVIEW_PILL}>{label}</span>;
-}
-
 function isIncludedAmount(label: string): boolean {
   return label === "Included" || label === "In package";
 }
@@ -57,7 +53,11 @@ type ScopeLineRowProps = {
   as?: "li" | "div";
   /** Hide contractor Details disclosure for document-like rows. */
   hideDetails?: boolean;
+  /** Hide attention reason chips on primary rows (details / drawer hold context). */
+  hideAttentionBadges?: boolean;
   onEditQuantity?: () => void;
+  /** Defaults to Edit quantity; use Set quantity before a manual qty exists. */
+  editQuantityLabel?: typeof WORKBENCH_SET_QUANTITY_ACTION | typeof WORKBENCH_EDIT_QUANTITY_ACTION;
   onRemoveFromOption?: () => void;
 };
 
@@ -99,13 +99,12 @@ function AttentionLineContent({
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
           <p className={WORKBENCH_LINE_NAME}>{line.name}</p>
-          {line.reasons.map((reason) =>
-            reviewMode ? (
-              <ScopeReviewReasonBadge key={reason} label={attentionReasonLabel(reason)} />
-            ) : (
-              <HardBlockerReasonBadge key={reason} label={attentionReasonLabel(reason)} />
-            )
-          )}
+          {/* Finish-estimate rows stay clean — Set quantity is the action; hard blockers keep reason chips. */}
+          {!reviewMode
+            ? line.reasons.map((reason) => (
+                <HardBlockerReasonBadge key={reason} label={attentionReasonLabel(reason)} />
+              ))
+            : null}
         </div>
         {!compact ? (
           <ProposalBuilderWorkbenchLineDetails detailMeta={line.detailMeta} />
@@ -158,12 +157,14 @@ export default function ProposalBuilderWorkbenchLineRow(
   const { line, onEditQuantity, onRemoveFromOption } = props;
   const Row = props.as === "div" ? "div" : "li";
   const hideDetails = props.hideDetails === true;
+  const hideAttentionBadges = props.hideAttentionBadges === true;
   const hasAttention = line.attentionReasons.length > 0;
   const amountClass = hasAttention
     ? WORKBENCH_LINE_AMOUNT_ATTENTION
     : isIncludedAmount(line.amountLabel)
       ? WORKBENCH_LINE_AMOUNT_INCLUDED
       : WORKBENCH_LINE_AMOUNT;
+  const quantityActionLabel = props.editQuantityLabel ?? WORKBENCH_EDIT_QUANTITY_ACTION;
 
   return (
     <Row className={WORKBENCH_LINE_ROW}>
@@ -171,7 +172,7 @@ export default function ProposalBuilderWorkbenchLineRow(
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
             <p className={WORKBENCH_LINE_NAME}>{line.name}</p>
-            {hasAttention
+            {hasAttention && !hideAttentionBadges
               ? line.attentionReasons.map((reason) => (
                   <HardBlockerReasonBadge key={reason} label={attentionReasonLabel(reason)} />
                 ))
@@ -181,8 +182,11 @@ export default function ProposalBuilderWorkbenchLineRow(
                 type="button"
                 onClick={onEditQuantity}
                 className={WORKBENCH_EDIT_OPTION_CHIP_ENABLED}
+                data-builder-set-quantity={
+                  quantityActionLabel === WORKBENCH_SET_QUANTITY_ACTION ? true : undefined
+                }
               >
-                {WORKBENCH_EDIT_QUANTITY_ACTION}
+                {quantityActionLabel}
               </button>
             ) : null}
             {onRemoveFromOption ? (
