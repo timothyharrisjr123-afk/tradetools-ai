@@ -45,11 +45,11 @@
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** **`190ad66`** — polish(proposals): simplify job card proposal start screen (prior: **`40c1fe8`** create flow restore; **`05131f6`** / **`2d9f8b1`** Builder package selection truth)
-- **Docs checkpoint:** **Block 0** — Proposal Flow V1 + Template Flow V1 + app surface standards locked (this header + **§6BO.13.4.9** P). Docs-only; **no app code in this block.**
-- **Prior docs:** Job Card open + create-new (**§6BO.13.4.9** O); Builder package truth (**N**)
-- **Next coding:** **Block 1** — smoke / internal proposal isolation (hide from normal contractor view; do not delete). Then **Block 2** Proposals tab reset. Do **not** start Blocks 2–7 until Block 1 is approved. Do **not** add full proposal management, template rebuild/import of live options into existing drafts, supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
-- **Historical note:** Current Job Card Proposals UI still shows always-open setup + draft list (pre–Flow V1). Target after Blocks 1–4: compact rows + **+ Proposal** modal → Builder. Builder package picker remains draft-option scoped.
+- **Code checkpoint:** Block 1 — fix(proposals): isolate internal smoke records from contractor views (this commit; prior polish **`190ad66`**)
+- **Docs checkpoint:** **Block 1** — smoke/internal proposal + template isolation (this header + **§6BO.13.4.9** Q). Prior docs: **Block 0** Flow V1 lock (**`61d3bc5`**, **§6BO.13.4.9** P).
+- **Prior code:** **`190ad66`** Job Card Proposals polish; **`40c1fe8`** create flow restore; **`05131f6`** draft-scoped Builder packages
+- **Next coding:** **Block 2** — Proposals tab reset (compact rows + blue **+ Proposal**). Do **not** start Blocks 3–7 until Block 2 is approved. Do **not** add full proposal management, template rebuild/import of live options into existing drafts, supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
+- **Historical note:** Proposals tab still uses Current/Start setup zones (pre–Flow V1 layout). Smoke fixtures are hidden from normal contractor lists/pickers (hide-not-delete). Target after Blocks 2–4: compact rows + **+ Proposal** modal → Builder. Builder package picker remains draft-option scoped.
 
 **Trust order:** Header/current checkpoint → **§6BO.13** (approved page-by-page UI flow roadmap + P0 implementation sequence — **supersedes separate Command Center language**) → **§6BM** / **§6BN** (R18 letter-phase roadmap + R18C–R18D3C implementation history) → **§6BO** / **§6BO.11** / **§6BO.12** (completed remediation side-track + **approved Stage C policy** + **operating-flow audit sequencing — complete; outcome in §6BO.13**) → **§6BL** → **§11 override**. Stage B browser smoke required local-only **`USE_PROPOSAL_SEND_FREEZE_RPC=1`** in `.env.local` (gitignored, not committed). **Do not proceed** to docs-only or next feature work unless working tree is clean. **Still do not** mutate `proposals.status = sent`, write sent `proposal_events`, move Jobs Board cards, add Job Card send activity, enable PDF/Sign/Payment, or add webhooks unless separately approved.
 
@@ -12286,7 +12286,49 @@ Package rule from **N** remains law: pre-draft package on create modal; post-dra
 - Any UI implementation of Blocks 1–7
 - Commit of this docs lock until user reviews
 
-**Next recommended block:** **Block 1 — smoke / internal proposal isolation** (hide from normal contractor view; do not delete).
+**Next recommended block:** ~~Block 1 smoke isolation~~ → **DONE** (see **Q**).
+
+##### Q. Block 1 — smoke / internal proposal + template isolation — IMPLEMENTED (2026-07-20)
+
+**Status:** Hide-not-delete isolation for known smoke/internal fixtures on normal contractor Job Card Proposals surfaces. **No migrations/SQL/package files/pricing formulas/quantity math/snapshot trust/Customer Preview redesign/send/public/lifecycle/PDF/sign/payment/supplier/material/CSV/raw/whole-rounding. No Proposals tab reset. No + Proposal modal. No Templates page layout redesign. No Builder/Preview layout changes. No deletion of live smoke records.**
+
+**Code checkpoint:** pending commit after this docs pin; prior polish **`190ad66`**; docs lock **`61d3bc5`**.
+
+**Root cause:** Job Card listed all job drafts and all company templates. Active job pointer often pointed at smoke drafts (Babby: “Coverage basis live smoke…”, template **RAW_PLUS_WASTE**, package **Complete-source smoke option**). Prior polish only softened titles to “Saved proposal” — records still dominated the contractor UI. No durable `is_internal` metadata on proposals/templates.
+
+**Helper (centralized):** `app/lib/contractorFixtureIsolation.ts`
+- Conservative known-fixture text markers only (case-insensitive): `coverage basis live smoke`, `raw_plus_waste` / `raw plus waste`, `complete-source smoke`, `s3d13`, `smoke 2026`, `controlled live smoke`, `minimal complete-source live smoke`
+- **Does not** broad-match bare `test` / `sample` / `demo` / `smoke`
+- `classifyContractorFixtureText` → `{ isInternalFixture, reason }`
+- `filterContractorVisibleProposals` / `filterContractorVisibleTemplates` / `pickContractorVisibleJobDraft`
+- No DB mutate; classification only
+
+**Proposal view isolation (Job Card):**
+- `listProposalsForJob` results filtered before `listedJobDraftSummaries` / current draft / older drafts
+- Current proposal never driven by an internal fixture when only smoke exists (UI shows create-ready instead)
+- If active_proposal_id is smoke but a real draft exists, prefer the real draft for contractor current surface
+- Soft title fallback retained but unused on main path when fixtures are hidden
+
+**Template picker isolation (Job Card create):**
+- Create/start template picker + default template id use contractor-visible templates only
+- **Roof replacement** remains selectable; **RAW_PLUS_WASTE** and matching fixture names excluded from picker
+- Full company template list still loaded for draft template-name lookup; Templates page library not redesigned (Block 6 / Template Flow V1)
+
+**Direct engineering smoke access preserved:**
+- Direct Builder URL with smoke `proposal=` still loads (Babby `61356e56-…` verified)
+- Direct Preview URL unchanged
+- Store/list APIs unchanged — filtering is UI-layer for normal Job Card contractor views
+- Test fixtures remain usable
+
+**Smoke (local app on `rhquhnujjnzjhweypavd`, Babby D `c9497cc1-…`):**
+- Proposals tab: no Coverage basis / RAW_PLUS_WASTE / Complete-source as normal contractor current draft; status **Ready to create draft**; template **Roof replacement**; packages Standard / Enhanced / Premium
+- Direct Builder `proposal=61356e56-…`: still loads; package **Complete-source smoke option**; one-option note; no fake Change package
+- No send/public/lifecycle/supplier/material/CSV actions
+- Live project = same approved ref (no SQL; no record deletes)
+
+**Out of this block:** Proposals tab compact-row reset (**Block 2**); + Proposal modal (**Block 3**); Builder handoff polish (**Block 4**); Preview truth (**Block 5**); Template Flow V1 UI (**Block 6**).
+
+**Next recommended block:** **Block 2 — Proposals tab reset** (compact rows + blue **+ Proposal**).
 
 #### 13.4.6 Integrated Catalog → Proposal workflow research + FieldDive flow design — COMPLETE (2026-07-17)
 
@@ -13773,7 +13815,8 @@ Treat as **drift** if a session:
 
 ## Changelog (handoff doc only)
 
-- **2026-07-20:** **Block 0 — Proposal Flow V1 + Template Flow V1 + app surface standards** (docs only, **§6BO.13.4.9** P) — locked happy path (Job Card → + Proposal → measurement/template/package → Builder → Preview; Send later); Proposals compact rows + blue + Proposal; Templates = company setup; smoke hide-not-delete; Builder/Preview roles; Blocks 0–7 order; protected systems restated. Code checkpoint **`190ad66`**. **No app code.** **Next coding:** Block 1 smoke isolation.
+- **2026-07-20:** **Block 1 — smoke/internal proposal + template isolation** (**§6BO.13.4.9** Q) — centralized `contractorFixtureIsolation` known-fixture classifier; Job Card Proposals lists/current draft + create template picker hide fixtures (hide-not-delete); direct Builder smoke URL preserved; no Proposals tab reset / modal / pricing / lifecycle. **Next:** Block 2 Proposals tab reset.
+- **2026-07-20:** **Block 0 — Proposal Flow V1 + Template Flow V1 + app surface standards** (docs only, **§6BO.13.4.9** P) — locked happy path (Job Card → + Proposal → measurement/template/package → Builder → Preview; Send later); Proposals compact rows + blue + Proposal; Templates = company setup; smoke hide-not-delete; Builder/Preview roles; Blocks 0–7 order; protected systems restated. Code checkpoint **`190ad66`**. **No app code.** **Next coding:** Block 1 smoke isolation (now **Q**).
 - **2026-07-17:** **Job Card Proposals polish** (`190ad66`) — compact Current/Start zones; “Saved proposal” titles; collapsed older drafts. Still pre–Flow V1 end-state.
 - **2026-07-17:** **Job Card create flow restore** — existing draft + create-another; `createNewProposalDraftEntry` force-creates distinct draft; multi-draft list; Builder package truth preserved. **Next:** superseded by Flow V1 Block 0/1 (**P**).
 - **2026-07-17:** **Builder package selection truth** — draft-scoped Builder package picker; one-option drafts hide Change package; multi-option switches among saved draft options only; Job Card draft-open package-change note; no live-template import. **Next:** Job Card create flow restore (now **O**).

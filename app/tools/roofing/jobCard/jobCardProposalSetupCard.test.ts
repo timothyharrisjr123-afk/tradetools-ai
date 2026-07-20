@@ -133,4 +133,19 @@ describe("Job Card Compact Proposal Setup Card", () => {
     assert.doesNotMatch(card, /JOB_CARD_DRAFT_PACKAGE_CHANGE_NOTE/);
     assert.match(card, /formatContractorProposalTitle/);
   });
+
+  test("12. Block 1 wires contractor fixture isolation on Job Card lists/pickers", () => {
+    const client = read("app/tools/roofing/RoofingClient.tsx");
+    assert.match(client, /filterContractorVisibleProposals/);
+    assert.match(client, /filterContractorVisibleTemplates/);
+    assert.match(client, /pickContractorVisibleJobDraft/);
+    assert.match(
+      read("app/lib/contractorFixtureIsolation.ts"),
+      /coverage basis live smoke/
+    );
+    assert.match(
+      read("app/lib/contractorFixtureIsolation.ts"),
+      /raw_plus_waste/
+    );
+  });
 });

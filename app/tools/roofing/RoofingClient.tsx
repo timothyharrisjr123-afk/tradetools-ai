@@ -139,6 +139,11 @@ import {
   listProposalsForJob,
 } from "@/app/lib/proposalRecordStore";
 import type { ProposalRecordStatusSummary } from "@/app/lib/proposalRecordTypes";
+import {
+  filterContractorVisibleProposals,
+  filterContractorVisibleTemplates,
+  pickContractorVisibleJobDraft,
+} from "@/app/lib/contractorFixtureIsolation";
 import { formatJobIdentityReturnLabel } from "@/app/lib/jobIdentityDisplay";
 import { deriveProposalTemplateReadiness } from "@/app/lib/proposalTemplateReadiness";
 import {
@@ -1879,14 +1884,17 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
       try {
         const templates = await getProposalTemplatesByCompany(cid);
         if (templateSetupFetchInFlightRef.current !== cid) return;
+        // Keep full company list in state for draft template-name lookup; Job Card
+        // create picker uses contractor-visible filter (Block 1 smoke isolation).
         setCompanyProposalTemplates(templates);
+        const visibleTemplates = filterContractorVisibleTemplates(templates);
         const starter = findStarterProposalTemplate(templates);
         const defaultId = resolveDefaultJobCardTemplateId(
-          templates,
+          visibleTemplates,
           starter?.id ?? null
         );
         setSelectedJobTemplateId((prev) => {
-          if (prev && templates.some((row) => row.id === prev)) return prev;
+          if (prev && visibleTemplates.some((row) => row.id === prev)) return prev;
           return defaultId;
         });
         if (!defaultId) {
@@ -2015,18 +2023,16 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
         const drafts = summaries.filter(
           (row) => row.status === "draft" && isUuidLike(row.id)
         );
-        setListedJobDraftSummaries(drafts);
+        // Block 1: hide known smoke/internal fixtures from normal contractor lists.
+        // Records stay in DB; direct Builder URL by id still loads.
+        const contractorDrafts = filterContractorVisibleProposals(drafts);
+        setListedJobDraftSummaries(contractorDrafts);
         const activeId =
           hydratedJobRecord?.active_proposal_id &&
           isUuidLike(hydratedJobRecord.active_proposal_id)
             ? hydratedJobRecord.active_proposal_id
             : null;
-        const draft =
-          (activeId
-            ? drafts.find((row) => row.id === activeId)
-            : null) ??
-          drafts[0] ??
-          null;
+        const draft = pickContractorVisibleJobDraft(contractorDrafts, activeId);
         setListedJobDraftProposalId(draft?.id ?? null);
         setListedJobDraftSummary(draft ?? null);
         if (draft?.selected_option_id && isUuidLike(draft.selected_option_id)) {
@@ -7391,16 +7397,12 @@ Thanks,`;
       templateCount: starterTemplateGraph ? 1 : 0,
       activeTemplateCount: starterTemplateGraph?.template.active ? 1 : starterTemplateGraph ? 1 : 0,
     });
-    const jobRecordActiveProposalId =
-      hydratedJobRecord?.active_proposal_id &&
-      isUuidLike(hydratedJobRecord.active_proposal_id)
-        ? hydratedJobRecord.active_proposal_id
-        : null;
+    // Contractor "current proposal" uses visible drafts only (Block 1). If the
+    // job's active_proposal_id points at a smoke fixture, do not surface it here.
     const jobCardActiveProposalId =
-      jobRecordActiveProposalId ??
-      (listedJobDraftProposalId && isUuidLike(listedJobDraftProposalId)
+      listedJobDraftProposalId && isUuidLike(listedJobDraftProposalId)
         ? listedJobDraftProposalId
-        : null);
+        : null;
     const proposalBuilderReadiness = deriveProposalBuilderReadiness({
       jobIdParam: currentJobId,
       job:
@@ -7576,11 +7578,15 @@ Thanks,`;
             await refreshHydratedJobRecord(currentJobId);
             try {
               const summaries = await listProposalsForJob(cid, currentJobId);
-              const drafts = summaries.filter(
-                (row) => row.status === "draft" && isUuidLike(row.id)
+              const drafts = filterContractorVisibleProposals(
+                summaries.filter(
+                  (row) => row.status === "draft" && isUuidLike(row.id)
+                )
               );
               setListedJobDraftSummaries(drafts);
-              const active = drafts.find((row) => row.id === result.proposalId) ?? null;
+              const active =
+                drafts.find((row) => row.id === result.proposalId) ??
+                pickContractorVisibleJobDraft(drafts, result.proposalId);
               setListedJobDraftSummary(active);
               if (active?.selected_option_id && isUuidLike(active.selected_option_id)) {
                 setListedJobDraftPackageLabel(
@@ -8295,7 +8301,9 @@ Thanks,`;
                       (starterTemplateGraph?.template.name ?? "").trim() ||
                       proposalTemplateStatusLabel
                     }
-                    templates={companyProposalTemplates}
+                    templates={filterContractorVisibleTemplates(
+                      companyProposalTemplates
+                    )}
                     selectedTemplateId={selectedJobTemplateId}
                     onSelectTemplate={setSelectedJobTemplateId}
                     packageSetup={jobCardPackageSetup}

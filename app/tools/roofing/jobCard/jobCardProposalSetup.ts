@@ -6,6 +6,10 @@
 
 import type { CatalogItem } from "@/app/lib/catalogTypes";
 import {
+  classifyContractorFixtureText,
+  filterContractorVisibleTemplates,
+} from "@/app/lib/contractorFixtureIsolation";
+import {
   buildCatalogByIdMap,
   buildTemplateCatalogLinkView,
   type TemplateCatalogLinkStatus,
@@ -55,25 +59,19 @@ export const JOB_CARD_EXISTING_DRAFT_INTERNAL_NOTE =
 
 export type JobCardProposalSetupMode = "create" | "draft_open" | "open_and_create";
 
-/** True when a draft title looks like internal/smoke/test data (not a rename UI). */
+/**
+ * True when a draft title matches known internal/smoke fixtures (Block 1).
+ * Delegates to centralized conservative classifier — not broad "test"/"smoke".
+ */
 export function looksLikeInternalDraftTitle(
   title: string | null | undefined
 ): boolean {
-  const t = (title ?? "").trim().toLowerCase();
-  if (!t) return false;
-  return (
-    t.includes("smoke") ||
-    t.includes("test") ||
-    t.includes("dev ") ||
-    t.startsWith("dev") ||
-    t.includes("raw_plus_waste") ||
-    t.includes("complete-source")
-  );
+  return classifyContractorFixtureText(title).isInternalFixture;
 }
 
 /**
- * Contractor-facing title for the main Current proposal zone.
- * Internal/smoke titles are softened so they do not dominate the screen.
+ * Contractor-facing title fallback. Preferred path: hide fixture drafts from the
+ * normal list entirely (Block 1). Softening remains for edge/dev display only.
  */
 export function formatContractorProposalTitle(
   title: string | null | undefined
@@ -309,13 +307,17 @@ export function sanitizeSetupReturnLabel(
   return trimmed.length > 0 ? trimmed : null;
 }
 
-/** Prefer starter, else first active template, else first listed. */
+/**
+ * Prefer starter, else first active template, else first listed.
+ * Callers should pass contractor-visible templates (smoke fixtures filtered).
+ */
 export function resolveDefaultJobCardTemplateId(
   templates: readonly ProposalTemplate[],
   starterId: string | null
 ): string | null {
-  if (starterId && templates.some((t) => t.id === starterId)) return starterId;
-  const active = templates.find((t) => t.active !== false);
+  const visible = filterContractorVisibleTemplates(templates);
+  if (starterId && visible.some((t) => t.id === starterId)) return starterId;
+  const active = visible.find((t) => t.active !== false);
   if (active?.id) return active.id;
-  return templates[0]?.id ?? null;
+  return visible[0]?.id ?? null;
 }

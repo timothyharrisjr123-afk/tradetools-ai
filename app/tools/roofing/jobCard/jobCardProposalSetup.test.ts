@@ -46,18 +46,31 @@ describe("jobCardProposalSetup", () => {
     assert.match(JOB_CARD_SHOW_OLDER_DRAFTS_LABEL, /older drafts/i);
   });
 
-  test("looksLikeInternalDraftTitle flags smoke/test titles", () => {
+  test("looksLikeInternalDraftTitle uses conservative fixture markers only", () => {
     assert.equal(looksLikeInternalDraftTitle("Coverage basis live smoke"), true);
+    assert.equal(looksLikeInternalDraftTitle("RAW_PLUS_WASTE"), true);
     assert.equal(looksLikeInternalDraftTitle("Roof replacement"), false);
+    assert.equal(looksLikeInternalDraftTitle("test"), false);
+    assert.equal(looksLikeInternalDraftTitle("smoke"), false);
   });
 
-  test("formatContractorProposalTitle softens smoke titles on main surface", () => {
+  test("formatContractorProposalTitle softens known fixture titles as fallback", () => {
     assert.equal(
       formatContractorProposalTitle("Coverage basis live smoke"),
       "Saved proposal"
     );
     assert.equal(formatContractorProposalTitle("Roof replacement"), "Roof replacement");
     assert.equal(formatContractorProposalTitle(""), "Saved proposal");
+  });
+
+  test("resolveDefaultJobCardTemplateId skips internal smoke templates", () => {
+    const templates = [
+      { id: "smoke", name: "RAW_PLUS_WASTE", active: true },
+      { id: "roof", name: "Roof replacement", active: true },
+    ] as never;
+    assert.equal(resolveDefaultJobCardTemplateId(templates, null), "roof");
+    assert.equal(resolveDefaultJobCardTemplateId(templates, "smoke"), "roof");
+    assert.equal(resolveDefaultJobCardTemplateId(templates, "roof"), "roof");
   });
 
   test("formatJobCardProposalsTabStatus mentions create another when ready", () => {
