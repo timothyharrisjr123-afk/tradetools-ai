@@ -14,11 +14,9 @@ import {
   JOB_CARD_CREATE_ANOTHER_EXPLAINER,
   JOB_CARD_CREATE_ANOTHER_HEADLINE,
   JOB_CARD_CREATE_PROPOSAL_EXPLAINER,
-  JOB_CARD_DRAFT_PACKAGE_CHANGE_NOTE,
-  JOB_CARD_EXISTING_DRAFT_INTERNAL_NOTE,
-  JOB_CARD_OPEN_PROPOSAL_EXPLAINER,
+  JOB_CARD_CURRENT_PROPOSAL_LABEL,
+  formatContractorProposalTitle,
   formatJobCardDraftUpdatedLabel,
-  looksLikeInternalDraftTitle,
 } from "./jobCardProposalSetup";
 import JobCardProposalIncludedReview from "./JobCardProposalIncludedReview";
 
@@ -41,7 +39,7 @@ type JobCardProposalSetupCardProps = {
   isCreatingNew?: boolean;
   launchError?: string | null;
   hasExistingDraft: boolean;
-  /** When set with hasExistingDraft, shows the existing-draft summary. */
+  /** When set with hasExistingDraft, shows the current-proposal summary. */
   draftOpenSummary?: JobCardDraftOpenSummary | null;
   fixTemplateHref: string | null;
   fixCatalogHref: string | null;
@@ -58,45 +56,38 @@ type JobCardProposalSetupCardProps = {
   onOpenBuilder: (href: string) => void;
 };
 
-function SetupStep({
-  step,
+function CompactRow({
   label,
-  ready,
   detail,
   action,
   children,
+  ready,
 }: {
-  step: number;
   label: string;
-  ready: boolean;
   detail: string;
   action?: ReactNode;
   children?: ReactNode;
+  ready?: boolean;
 }) {
   return (
-    <div
-      className="rounded-lg border border-slate-100 bg-slate-50/70 px-3 py-2.5"
-      data-jobcard-setup-step={step}
-    >
-      <div className="flex items-start justify-between gap-2">
+    <div className="space-y-1.5" data-jobcard-compact-row={label}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-            {step}. {label}
-          </p>
-          <p className="mt-0.5 truncate text-[12px] font-medium text-slate-900">{detail}</p>
+          <p className="text-[11px] font-semibold text-slate-500">{label}</p>
+          <p className="truncate text-[13px] font-medium text-slate-900">{detail}</p>
         </div>
-        <span
-          className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ${
-            ready
-              ? "bg-emerald-50 text-emerald-800 ring-emerald-200"
-              : "bg-amber-50 text-amber-800 ring-amber-200"
-          }`}
-        >
-          {ready ? "Ready" : "Needs attention"}
-        </span>
+        {ready != null ? (
+          <span
+            className={`shrink-0 text-[10px] font-semibold ${
+              ready ? "text-emerald-700" : "text-amber-700"
+            }`}
+          >
+            {ready ? "Ready" : "Needs attention"}
+          </span>
+        ) : null}
       </div>
-      {action ? <div className="mt-1.5">{action}</div> : null}
-      {children ? <div className="mt-2">{children}</div> : null}
+      {action ? <div>{action}</div> : null}
+      {children}
     </div>
   );
 }
@@ -149,6 +140,7 @@ function CreateProposalFields({
   onSelectTab,
   onNavigate,
   showTemplatePicker,
+  compact,
 }: {
   measurementReady: boolean;
   measurementLabel: string;
@@ -163,37 +155,51 @@ function CreateProposalFields({
   onSelectTab: (tab: "overview" | "measurements" | "proposals") => void;
   onNavigate: (href: string) => void;
   showTemplatePicker: boolean;
+  compact: boolean;
 }) {
   const [showIncluded, setShowIncluded] = useState(false);
   const packageNeedsAttention =
     packageSetup.selected != null && packageSetup.selected.issueCount > 0;
   const templateStepReady = templateReady && !packageNeedsAttention;
+  const includedDetail = packageSetup.selected
+    ? `${packageSetup.includedItemCount} item${
+        packageSetup.includedItemCount === 1 ? "" : "s"
+      }${
+        packageSetup.customerFacingLine
+          ? ` · ${packageSetup.customerFacingLine}`
+          : ""
+      }`
+    : "Select a package";
 
   return (
-    <div className="space-y-2" data-jobcard-create-fields>
-      <SetupStep
-        step={1}
-        label="Measurement"
-        ready={measurementReady}
-        detail={measurementLabel || "No measurement selected"}
-        action={
-          !measurementReady ? (
-            <button
-              type="button"
-              onClick={() => onSelectTab("measurements")}
-              className="text-[11px] font-semibold text-cyan-700 hover:text-cyan-900"
-            >
-              Go to Measurements
-            </button>
-          ) : null
-        }
-      />
+    <div className="space-y-3" data-jobcard-create-fields>
+      {!compact || !measurementReady ? (
+        <CompactRow
+          label="Measurement"
+          detail={measurementLabel || "No measurement selected"}
+          ready={measurementReady}
+          action={
+            !measurementReady ? (
+              <button
+                type="button"
+                onClick={() => onSelectTab("measurements")}
+                className="text-[11px] font-semibold text-cyan-700 hover:text-cyan-900"
+              >
+                Go to Measurements
+              </button>
+            ) : null
+          }
+        />
+      ) : (
+        <p className="text-[11px] text-slate-500" data-jobcard-measurement-ready-line>
+          Measurement ready · {measurementLabel}
+        </p>
+      )}
 
-      <SetupStep
-        step={2}
+      <CompactRow
         label="Template"
-        ready={templateStepReady}
         detail={templateName?.trim() || "No template selected"}
+        ready={templateStepReady}
         action={
           !templateReady && fixTemplateHref ? (
             <button
@@ -208,7 +214,7 @@ function CreateProposalFields({
       >
         {showTemplatePicker ? (
           <select
-            className="w-full max-w-md rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-[12px] text-slate-800"
+            className="mt-1 w-full max-w-md rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-[12px] text-slate-800"
             value={selectedTemplateId ?? ""}
             onChange={(e) => {
               const next = e.target.value;
@@ -223,17 +229,13 @@ function CreateProposalFields({
             ))}
           </select>
         ) : null}
-      </SetupStep>
+      </CompactRow>
 
-      <SetupStep
-        step={3}
-        label="Package"
-        ready={packageSetup.selected != null && !packageNeedsAttention}
-        detail={packageSetup.selected?.label ?? "Select a package"}
-      >
+      <div data-jobcard-setup-step={3}>
+        <p className="text-[11px] font-semibold text-slate-500">Package</p>
         {packageSetup.choices.length > 0 ? (
           <div
-            className="flex flex-wrap gap-1.5"
+            className="mt-1.5 flex flex-wrap gap-1.5"
             role="group"
             aria-label="Package options"
             data-jobcard-package-selector
@@ -257,40 +259,29 @@ function CreateProposalFields({
             })}
           </div>
         ) : (
-          <p className="text-[11px] text-slate-500">
+          <p className="mt-1 text-[11px] text-slate-500">
             Packages appear after a template is ready.
           </p>
         )}
-      </SetupStep>
+      </div>
 
-      <SetupStep
-        step={4}
-        label="Included items"
-        ready={Boolean(packageSetup.selected) && packageSetup.includedItemCount > 0}
-        detail={
-          packageSetup.selected
-            ? `${packageSetup.includedItemCount} Catalog item${
-                packageSetup.includedItemCount === 1 ? "" : "s"
-              }${
-                packageSetup.customerFacingLine
-                  ? ` · ${packageSetup.customerFacingLine}`
-                  : ""
-              }`
-            : "No package selected"
-        }
-        action={
-          packageSetup.selected ? (
+      <div data-jobcard-setup-step={4}>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <p className="text-[11px] font-semibold text-slate-500">Included</p>
+            <p className="text-[13px] font-medium text-slate-900">{includedDetail}</p>
+          </div>
+          {packageSetup.selected ? (
             <button
               type="button"
               onClick={() => setShowIncluded((v) => !v)}
               className="text-[11px] font-semibold text-cyan-700 hover:text-cyan-900"
               data-jobcard-review-included
             >
-              {showIncluded ? "Hide included items" : "Review included items"}
+              {showIncluded ? "Hide" : "Review"}
             </button>
-          ) : null
-        }
-      >
+          ) : null}
+        </div>
         <div data-jobcard-included-summary>
           <JobCardProposalIncludedReview
             open={showIncluded}
@@ -301,7 +292,7 @@ function CreateProposalFields({
             onFixTemplate={onNavigate}
           />
         </div>
-      </SetupStep>
+      </div>
     </div>
   );
 }
@@ -347,26 +338,14 @@ export default function JobCardProposalSetupCard({
   const createSetupReady =
     measurementReady && templateStepReady && createEnabled && packageSetup.selected != null;
 
-  const headline = hasDraftSummary
-    ? "Proposals for this job"
-    : createSetupReady
-      ? "Ready to create draft"
-      : "Needs attention";
-
-  const statusPillLabel = hasDraftSummary
-    ? "Draft saved"
-    : createSetupReady
-      ? "Ready to create draft"
-      : "Needs attention";
-
   const showTemplatePicker = templates.length > 1;
   const showBlockers = !hasDraftSummary && !isLaunchAction && !checklist.quiet;
   const updatedLabel = hasDraftSummary
     ? formatJobCardDraftUpdatedLabel(draftOpenSummary.updatedAt)
     : null;
-  const internalTitle = hasDraftSummary
-    ? looksLikeInternalDraftTitle(draftOpenSummary.title)
-    : false;
+  const displayTitle = hasDraftSummary
+    ? formatContractorProposalTitle(draftOpenSummary.title)
+    : null;
 
   const openEnabled = hasDraftSummary && !showOpening && !showCreating;
   const createCtaEnabled =
@@ -378,11 +357,7 @@ export default function JobCardProposalSetupCard({
         primary.actionType !== "none" &&
         (primary.actionType !== "create_proposal" || createEnabled));
 
-  const createCtaLabel = showCreating
-    ? "Creating proposal…"
-    : hasDraftSummary
-      ? "Create new proposal draft"
-      : "Create proposal draft";
+  const createCtaLabel = showCreating ? "Creating proposal…" : "Create proposal draft";
 
   return (
     <div
@@ -391,176 +366,122 @@ export default function JobCardProposalSetupCard({
       data-jobcard-setup-mode={setupMode}
     >
       {hasDraftSummary ? (
-        <div
-          className="overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-sm"
+        <section
+          className="rounded-xl border border-slate-200/90 bg-white px-4 py-3 shadow-sm"
           data-jobcard-existing-draft-card
+          aria-labelledby="jobcard-current-proposal-heading"
         >
-          <div className="border-b border-slate-100 bg-gradient-to-br from-slate-50 via-white to-emerald-50/30 px-4 py-3.5">
-            <div className="flex flex-wrap items-start justify-between gap-2">
-              <div className="min-w-0">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                  Existing draft
-                </p>
-                <p
-                  className="mt-0.5 text-base font-semibold tracking-tight text-slate-950"
-                  data-jobcard-setup-headline
-                >
-                  {draftOpenSummary.title?.trim() || "Untitled proposal draft"}
-                </p>
-                <p className="mt-0.5 text-[12px] text-slate-600">
-                  For {jobLabel || "this job"} — open in Builder to continue this draft.
-                </p>
-              </div>
-              <span
-                className="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold text-emerald-800 ring-1 ring-emerald-200"
-                data-jobcard-setup-status-pill
-              >
-                {statusPillLabel}
-              </span>
-            </div>
-          </div>
-
-          <div className="space-y-2 px-4 py-3" data-jobcard-draft-open-summary>
-            <div className="grid gap-2 sm:grid-cols-2">
-              <div className="rounded-lg border border-slate-100 bg-slate-50/70 px-3 py-2.5">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-                  Package
-                </p>
-                <p className="mt-0.5 truncate text-[12px] font-medium text-slate-900">
-                  {draftOpenSummary.packageLabel ?? "Package on file"}
-                </p>
-              </div>
-              <div className="rounded-lg border border-slate-100 bg-slate-50/70 px-3 py-2.5">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-                  Status
-                </p>
-                <p className="mt-0.5 truncate text-[12px] font-medium text-slate-900">
-                  {draftOpenSummary.statusLabel}
-                </p>
-              </div>
-              {updatedLabel ? (
-                <div className="rounded-lg border border-slate-100 bg-slate-50/70 px-3 py-2.5 sm:col-span-2">
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-                    Last updated
-                  </p>
-                  <p className="mt-0.5 truncate text-[12px] font-medium text-slate-900">
-                    {updatedLabel}
-                  </p>
-                </div>
-              ) : null}
-            </div>
-            {draftOpenSummary.templateName ? (
-              <p className="text-[11px] text-slate-500">
-                Source template:{" "}
-                <span className="font-medium text-slate-700">
-                  {draftOpenSummary.templateName}
-                </span>
+          <div
+            className="flex flex-wrap items-start justify-between gap-3"
+            data-jobcard-draft-open-summary
+          >
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                {JOB_CARD_CURRENT_PROPOSAL_LABEL}
               </p>
-            ) : null}
-            {internalTitle ? (
               <p
-                className="text-[11px] leading-snug text-amber-800/90"
-                data-jobcard-existing-draft-internal-note
+                id="jobcard-current-proposal-heading"
+                className="mt-0.5 truncate text-[15px] font-semibold text-slate-950"
+                data-jobcard-setup-headline
+                title={draftOpenSummary.title ?? undefined}
               >
-                {JOB_CARD_EXISTING_DRAFT_INTERNAL_NOTE}
+                {displayTitle}
               </p>
-            ) : null}
-            <p
-              className="text-[11px] leading-snug text-slate-500"
-              data-jobcard-draft-package-change-note
-            >
-              {JOB_CARD_DRAFT_PACKAGE_CHANGE_NOTE}
-            </p>
-          </div>
-
-          <div className="border-t border-slate-100 px-4 py-3.5" data-jobcard-open-cta-zone>
-            <p className="text-[12px] leading-snug text-slate-600" data-jobcard-open-explainer>
-              {JOB_CARD_OPEN_PROPOSAL_EXPLAINER}
-            </p>
-            <div className="mt-2.5">
-              <button
-                type="button"
-                disabled={!openEnabled}
-                aria-busy={showOpening || undefined}
-                onClick={onCreateOrOpen}
-                className={
-                  openEnabled
-                    ? "inline-flex items-center rounded-md border border-slate-900 bg-slate-900 px-3.5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-slate-800"
-                    : "inline-flex cursor-not-allowed items-center rounded-md border border-slate-200 bg-slate-100 px-3.5 py-2 text-sm font-semibold text-slate-400"
-                }
-                data-jobcard-open-cta
-              >
-                {showOpening ? "Opening proposal…" : "Open in Builder"}
-              </button>
+              <p className="mt-1 text-[12px] text-slate-600">
+                <span className="font-medium text-slate-800">
+                  {draftOpenSummary.packageLabel ?? "Package on file"}
+                </span>
+                <span className="text-slate-300"> · </span>
+                <span data-jobcard-setup-status-pill>{draftOpenSummary.statusLabel}</span>
+                {updatedLabel ? (
+                  <>
+                    <span className="text-slate-300"> · </span>
+                    <span>{updatedLabel}</span>
+                  </>
+                ) : null}
+              </p>
             </div>
+            <button
+              type="button"
+              disabled={!openEnabled}
+              aria-busy={showOpening || undefined}
+              onClick={onCreateOrOpen}
+              className={
+                openEnabled
+                  ? "inline-flex shrink-0 items-center rounded-md border border-slate-900 bg-slate-900 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-800"
+                  : "inline-flex shrink-0 cursor-not-allowed items-center rounded-md border border-slate-200 bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-400"
+              }
+              data-jobcard-open-cta
+            >
+              {showOpening ? "Opening…" : "Open in Builder"}
+            </button>
           </div>
-        </div>
+        </section>
       ) : null}
 
-      <div
-        className="overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-sm"
+      <section
+        className="rounded-xl border border-slate-200/90 bg-white px-4 py-3 shadow-sm"
         data-jobcard-create-new-card
+        aria-labelledby="jobcard-start-proposal-heading"
       >
-        <div className="border-b border-slate-100 bg-gradient-to-br from-slate-50 via-white to-cyan-50/40 px-4 py-3.5">
-          <div className="flex flex-wrap items-start justify-between gap-2">
-            <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                {hasDraftSummary ? "New proposal" : "Proposal setup"}
-              </p>
-              <p
-                className="mt-0.5 text-base font-semibold tracking-tight text-slate-950"
-                data-jobcard-create-headline
-              >
-                {hasDraftSummary
-                  ? JOB_CARD_CREATE_ANOTHER_HEADLINE
-                  : headline}
-              </p>
-              <p className="mt-0.5 text-[12px] text-slate-600">
-                {hasDraftSummary
-                  ? `For ${jobLabel || "this job"} — choose template and package for a new draft.`
-                  : `For ${jobLabel || "this job"} — confirm template and package, then create the draft.`}
-              </p>
-            </div>
+        <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p
+              id="jobcard-start-proposal-heading"
+              className="text-[11px] font-semibold uppercase tracking-wide text-slate-500"
+              data-jobcard-create-headline
+            >
+              {hasDraftSummary ? JOB_CARD_CREATE_ANOTHER_HEADLINE : "Start proposal"}
+            </p>
             {!hasDraftSummary ? (
-              <span
-                className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ring-1 ${
-                  createSetupReady
-                    ? "bg-emerald-50 text-emerald-800 ring-emerald-200"
-                    : "bg-amber-50 text-amber-800 ring-amber-200"
-                }`}
-                data-jobcard-setup-status-pill
-              >
-                {statusPillLabel}
-              </span>
+              <p className="mt-0.5 text-[13px] font-semibold text-slate-950">
+                {createSetupReady ? "Ready to create draft" : "Needs attention"}
+              </p>
             ) : null}
+            <p className="mt-0.5 text-[12px] text-slate-600">
+              {hasDraftSummary
+                ? `For ${jobLabel || "this job"} — choose template and package.`
+                : `For ${jobLabel || "this job"} — confirm template and package.`}
+            </p>
           </div>
+          {!hasDraftSummary ? (
+            <span
+              className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ${
+                createSetupReady
+                  ? "bg-emerald-50 text-emerald-800 ring-emerald-200"
+                  : "bg-amber-50 text-amber-800 ring-amber-200"
+              }`}
+              data-jobcard-setup-status-pill
+            >
+              {createSetupReady ? "Ready" : "Needs attention"}
+            </span>
+          ) : null}
         </div>
 
-        <div className="px-4 py-3">
-          <CreateProposalFields
-            measurementReady={measurementReady}
-            measurementLabel={measurementLabel}
-            templateReady={templateReady}
-            templateName={templateName}
-            templates={templates}
-            selectedTemplateId={selectedTemplateId}
-            onSelectTemplate={onSelectTemplate}
-            packageSetup={packageSetup}
-            onSelectPackage={onSelectPackage}
-            fixTemplateHref={fixTemplateHref}
-            onSelectTab={onSelectTab}
-            onNavigate={onNavigate}
-            showTemplatePicker={showTemplatePicker}
-          />
-        </div>
+        <CreateProposalFields
+          measurementReady={measurementReady}
+          measurementLabel={measurementLabel}
+          templateReady={templateReady}
+          templateName={templateName}
+          templates={templates}
+          selectedTemplateId={selectedTemplateId}
+          onSelectTemplate={onSelectTemplate}
+          packageSetup={packageSetup}
+          onSelectPackage={onSelectPackage}
+          fixTemplateHref={fixTemplateHref}
+          onSelectTab={onSelectTab}
+          onNavigate={onNavigate}
+          showTemplatePicker={showTemplatePicker}
+          compact={hasDraftSummary || measurementReady}
+        />
 
-        <div className="border-t border-slate-100 px-4 py-3.5" data-jobcard-setup-cta-zone>
-          <p className="text-[12px] leading-snug text-slate-600" data-jobcard-create-explainer>
+        <div className="mt-3 border-t border-slate-100 pt-3" data-jobcard-setup-cta-zone>
+          <p className="text-[11px] leading-snug text-slate-500" data-jobcard-create-explainer>
             {hasDraftSummary
               ? JOB_CARD_CREATE_ANOTHER_EXPLAINER
               : JOB_CARD_CREATE_PROPOSAL_EXPLAINER}
           </p>
-          <div className="mt-2.5">
+          <div className="mt-2">
             <button
               type="button"
               disabled={!createCtaEnabled}
@@ -587,7 +508,7 @@ export default function JobCardProposalSetupCard({
               }}
               className={
                 createCtaEnabled
-                  ? "inline-flex items-center rounded-md border border-slate-900 bg-slate-900 px-3.5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-slate-800"
+                  ? "inline-flex items-center rounded-md border border-slate-900 bg-slate-900 px-3.5 py-2 text-sm font-semibold text-white hover:bg-slate-800"
                   : "inline-flex cursor-not-allowed items-center rounded-md border border-slate-200 bg-slate-100 px-3.5 py-2 text-sm font-semibold text-slate-400"
               }
               data-jobcard-create-cta
@@ -606,7 +527,7 @@ export default function JobCardProposalSetupCard({
 
           {showBlockers ? (
             <div
-              className="mt-3 rounded-lg border border-amber-200 bg-amber-50/80 px-3 py-2"
+              className="mt-2.5 rounded-lg border border-amber-200 bg-amber-50/80 px-3 py-2"
               data-jobcard-setup-blockers
             >
               <p className="text-[11px] font-semibold text-amber-900">Fix before creating</p>
@@ -652,12 +573,8 @@ export default function JobCardProposalSetupCard({
               </div>
             </div>
           ) : null}
-
-          <p className="mt-3 text-[10px] leading-snug text-slate-400">
-            Templates and Catalog are company setup. Stay on this job unless something needs fixing.
-          </p>
         </div>
-      </div>
+      </section>
     </div>
   );
 }

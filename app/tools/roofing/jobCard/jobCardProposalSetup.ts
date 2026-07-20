@@ -31,9 +31,15 @@ export const JOB_CARD_OPEN_PROPOSAL_EXPLAINER =
 
 /** Create-another explainer — selectors create a separate draft. */
 export const JOB_CARD_CREATE_ANOTHER_EXPLAINER =
-  "This creates a separate draft. Existing drafts are not changed." as const;
+  "Creates a separate draft. Your current proposal is not changed." as const;
 
-export const JOB_CARD_CREATE_ANOTHER_HEADLINE = "Create another proposal" as const;
+export const JOB_CARD_CREATE_ANOTHER_HEADLINE = "Start proposal" as const;
+
+export const JOB_CARD_CURRENT_PROPOSAL_LABEL = "Current proposal" as const;
+
+export const JOB_CARD_SHOW_OLDER_DRAFTS_LABEL = "Show older drafts" as const;
+
+export const JOB_CARD_HIDE_OLDER_DRAFTS_LABEL = "Hide older drafts" as const;
 
 export const JOB_CARD_DRAFT_FROZEN_NOTE =
   "This draft freezes Catalog pricing and template structure from create/refresh. Open Builder to review or refresh draft pricing." as const;
@@ -63,6 +69,19 @@ export function looksLikeInternalDraftTitle(
     t.includes("raw_plus_waste") ||
     t.includes("complete-source")
   );
+}
+
+/**
+ * Contractor-facing title for the main Current proposal zone.
+ * Internal/smoke titles are softened so they do not dominate the screen.
+ */
+export function formatContractorProposalTitle(
+  title: string | null | undefined
+): string {
+  const raw = (title ?? "").trim();
+  if (!raw) return "Saved proposal";
+  if (looksLikeInternalDraftTitle(raw)) return "Saved proposal";
+  return raw;
 }
 
 /** Draft facts shown in draft-open mode (Job Card Proposals). */

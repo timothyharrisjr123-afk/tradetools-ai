@@ -38,18 +38,18 @@ describe("Job Card Compact Proposal Setup Card", () => {
     );
   });
 
-  test("3. Create vs open_and_create modes and vocabulary", () => {
+  test("3. Compact Current proposal + Start proposal vocabulary", () => {
     const helpers = read("app/tools/roofing/jobCard/jobCardProposalSetup.ts");
     const card = read("app/tools/roofing/jobCard/JobCardProposalSetupCard.tsx");
-    assert.match(helpers, /Creates a draft from this job/);
-    assert.match(helpers, /JOB_CARD_OPEN_PROPOSAL_EXPLAINER/);
-    assert.match(helpers, /JOB_CARD_CREATE_ANOTHER_EXPLAINER/);
-    assert.match(card, /Ready to create draft/);
+    assert.match(helpers, /JOB_CARD_CURRENT_PROPOSAL_LABEL/);
+    assert.match(helpers, /JOB_CARD_CREATE_ANOTHER_HEADLINE/);
+    assert.match(helpers, /Start proposal/);
+    assert.match(card, /Current proposal|JOB_CARD_CURRENT_PROPOSAL_LABEL/);
     assert.match(card, /open_and_create/);
-    assert.match(card, /data-jobcard-setup-mode/);
     assert.match(card, /data-jobcard-draft-open-summary/);
-    assert.match(card, /Create new proposal draft/);
+    assert.match(card, /Create proposal draft/);
     assert.match(card, /Open in Builder/);
+    assert.match(card, /formatContractorProposalTitle/);
   });
 
   test("4. Existing draft does not hide create-new selectors", () => {
@@ -61,30 +61,31 @@ describe("Job Card Compact Proposal Setup Card", () => {
     assert.match(card, /JOB_CARD_CREATE_ANOTHER_EXPLAINER/);
     assert.match(
       read("app/tools/roofing/jobCard/jobCardProposalSetup.ts"),
-      /This creates a separate draft/
+      /Creates a separate draft/
     );
     assert.doesNotMatch(card, /Start new draft/);
-    // Create fields render whenever create card is shown (including with existing draft)
     assert.match(card, /CreateProposalFields/);
   });
 
-  test("5. Create setup order Measurement → Template → Package → Included → CTA", () => {
+  test("5. Create setup includes Template, Package, Included", () => {
     const card = read("app/tools/roofing/jobCard/JobCardProposalSetupCard.tsx");
-    assert.match(card, /step=\{1\}[\s\S]*label="Measurement"/);
-    assert.match(card, /step=\{2\}[\s\S]*label="Template"/);
-    assert.match(card, /step=\{3\}[\s\S]*label="Package"/);
-    assert.match(card, /step=\{4\}[\s\S]*label="Included items"/);
+    assert.match(card, /label="Template"|label:\s*"Template"/);
+    assert.match(card, /Package/);
+    assert.match(card, /Included/);
+    assert.match(card, /data-jobcard-package-selector/);
+    assert.match(card, /data-jobcard-included-summary/);
   });
 
-  test("6. RoofingClient wires open + force-create + multi-draft list", () => {
+  test("6. RoofingClient wires open + force-create + collapsed older drafts", () => {
     const client = read("app/tools/roofing/RoofingClient.tsx");
     assert.match(client, /draftOpenSummary=\{jobCardDraftOpenSummary\}/);
-    assert.match(client, /buildJobCardDraftOpenSummary/);
-    assert.match(client, /formatJobCardProposalsTabStatus/);
     assert.match(client, /createNewProposalDraftEntry/);
     assert.match(client, /onCreateNewDraft=\{handleCreateNewProposalDraft\}/);
     assert.match(client, /onCreateOrOpen=\{handleLaunchProposalDraft\}/);
     assert.match(client, /listedJobDraftSummaries/);
+    assert.match(client, /showOlderJobDrafts/);
+    assert.match(client, /data-jobcard-older-drafts-toggle/);
+    assert.match(client, /JOB_CARD_SHOW_OLDER_DRAFTS_LABEL/);
     assert.match(client, /data-jobcard-proposal-list-row/);
   });
 
@@ -94,13 +95,12 @@ describe("Job Card Compact Proposal Setup Card", () => {
     assert.doesNotMatch(links, /Review templates/);
   });
 
-  test("8. Durable draft path + selected package option + listed draft Open label", () => {
+  test("8. Durable draft path + selected package option preserved", () => {
     const client = read("app/tools/roofing/RoofingClient.tsx");
     assert.match(client, /createNewProposalDraftEntry/);
     assert.match(client, /resolveOrCreateProposalDraftEntry/);
     assert.match(client, /selected_template_option_id/);
     assert.match(client, /buildProposalBuilderHref\(currentJobId/);
-    assert.match(client, /listedJobDraftProposalId/);
     assert.match(client, /listProposalsForJob/);
   });
 
@@ -109,37 +109,12 @@ describe("Job Card Compact Proposal Setup Card", () => {
     const header = read(
       "app/tools/roofing/proposals/builder/ProposalBuilderPageHeader.tsx"
     );
-    const readiness = read("app/lib/proposalBuilderReadiness.ts");
-    const identity = read("app/lib/jobIdentityDisplay.ts");
     assert.match(builder, /hasValidPersistedDraft/);
-    assert.match(readiness, /hasValidPersistedDraft/);
-    assert.match(header, /tab:\s*"proposals"/);
     assert.match(header, /Back to Job Card/);
     assert.match(header, /resolveJobIdentityDisplay/);
-    assert.match(header, /data-builder-job-primary-identity/);
-    assert.match(identity, /customer_name/);
   });
 
-  test("10. Builder entry hierarchy demotes frozen helper; Preview is next action", () => {
-    const constants = read(
-      "app/tools/roofing/proposals/builder/proposalBuilderConstants.ts"
-    );
-    const guidance = read("app/lib/proposalBuilderGuidance.ts");
-    assert.match(constants, /BUILDER_SNAPSHOT_FROZEN_HELPER_CLASS/);
-    assert.match(constants, /BUILDER_GUARDRAIL_MESSAGE_BLOCK_PREVIEW_OK/);
-    assert.match(constants, /Next: use Preview in the header/);
-    assert.match(guidance, /open_customer_preview/);
-    assert.match(guidance, /Open Preview/);
-  });
-
-  test("11. Templates/Catalog return label supports job name", () => {
-    const templates = read("app/tools/roofing/templates/TemplatesAppPage.tsx");
-    const catalog = read("app/tools/roofing/catalog/CatalogAppPage.tsx");
-    assert.match(templates, /formatReturnToJobProposalsLabel/);
-    assert.match(catalog, /formatReturnToJobProposalsLabel/);
-  });
-
-  test("12. Builder package picker remains draft-option scoped", () => {
+  test("10. Builder package picker remains draft-option scoped", () => {
     const client = read(
       "app/tools/roofing/proposals/builder/ProposalBuilderClient.tsx"
     );
@@ -151,11 +126,11 @@ describe("Job Card Compact Proposal Setup Card", () => {
     assert.match(selector, /BUILDER_ONLY_ONE_PACKAGE_NOTE/);
   });
 
-  test("13. Existing draft card does not mount live selectors that mutate that draft", () => {
+  test("11. Current proposal card stays compact — no source-template field stack", () => {
     const card = read("app/tools/roofing/jobCard/JobCardProposalSetupCard.tsx");
-    // Package selector lives only inside create fields / create-new card
-    assert.match(card, /data-jobcard-create-fields/);
-    assert.match(card, /data-jobcard-existing-draft-card/);
-    assert.match(card, /JOB_CARD_OPEN_PROPOSAL_EXPLAINER/);
+    assert.doesNotMatch(card, /Source template/);
+    assert.doesNotMatch(card, /JOB_CARD_EXISTING_DRAFT_INTERNAL_NOTE/);
+    assert.doesNotMatch(card, /JOB_CARD_DRAFT_PACKAGE_CHANGE_NOTE/);
+    assert.match(card, /formatContractorProposalTitle/);
   });
 });

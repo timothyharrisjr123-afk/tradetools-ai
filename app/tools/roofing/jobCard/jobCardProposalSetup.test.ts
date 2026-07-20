@@ -6,13 +6,17 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
   JOB_CARD_CREATE_ANOTHER_EXPLAINER,
+  JOB_CARD_CREATE_ANOTHER_HEADLINE,
   JOB_CARD_CREATE_PROPOSAL_EXPLAINER,
+  JOB_CARD_CURRENT_PROPOSAL_LABEL,
   JOB_CARD_DRAFT_FROZEN_NOTE,
   JOB_CARD_DRAFT_PACKAGE_CHANGE_NOTE,
   JOB_CARD_INCLUDED_REVIEW_NOTE,
   JOB_CARD_OPEN_PROPOSAL_EXPLAINER,
+  JOB_CARD_SHOW_OLDER_DRAFTS_LABEL,
   buildJobCardDraftOpenSummary,
   buildJobCardPackageSetup,
+  formatContractorProposalTitle,
   formatJobCardProposalsTabStatus,
   formatReturnToJobProposalsLabel,
   looksLikeInternalDraftTitle,
@@ -37,11 +41,23 @@ describe("jobCardProposalSetup", () => {
     assert.match(JOB_CARD_DRAFT_PACKAGE_CHANGE_NOTE, /Package changes happen in Builder/);
     assert.match(JOB_CARD_CREATE_ANOTHER_EXPLAINER, /separate draft/i);
     assert.match(JOB_CARD_CREATE_ANOTHER_EXPLAINER, /not changed/i);
+    assert.equal(JOB_CARD_CREATE_ANOTHER_HEADLINE, "Start proposal");
+    assert.equal(JOB_CARD_CURRENT_PROPOSAL_LABEL, "Current proposal");
+    assert.match(JOB_CARD_SHOW_OLDER_DRAFTS_LABEL, /older drafts/i);
   });
 
   test("looksLikeInternalDraftTitle flags smoke/test titles", () => {
     assert.equal(looksLikeInternalDraftTitle("Coverage basis live smoke"), true);
     assert.equal(looksLikeInternalDraftTitle("Roof replacement"), false);
+  });
+
+  test("formatContractorProposalTitle softens smoke titles on main surface", () => {
+    assert.equal(
+      formatContractorProposalTitle("Coverage basis live smoke"),
+      "Saved proposal"
+    );
+    assert.equal(formatContractorProposalTitle("Roof replacement"), "Roof replacement");
+    assert.equal(formatContractorProposalTitle(""), "Saved proposal");
   });
 
   test("formatJobCardProposalsTabStatus mentions create another when ready", () => {

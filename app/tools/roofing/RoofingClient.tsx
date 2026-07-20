@@ -149,8 +149,11 @@ import {
 import type { ProposalTemplate } from "@/app/lib/proposalTemplateTypes";
 import { findStarterProposalTemplate } from "@/app/tools/roofing/templates/templatesSetupUtils";
 import {
+  JOB_CARD_HIDE_OLDER_DRAFTS_LABEL,
+  JOB_CARD_SHOW_OLDER_DRAFTS_LABEL,
   buildJobCardDraftOpenSummary,
   buildJobCardPackageSetup,
+  formatContractorProposalTitle,
   formatJobCardProposalsTabStatus,
   resolveDefaultJobCardTemplateId,
   resolveDefaultPackageOptionId,
@@ -1116,6 +1119,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
     useState<ResolveOrCreateProposalDraftEntryReason | null>(null);
   const [isLaunchingProposal, setIsLaunchingProposal] = useState(false);
   const [isCreatingNewProposal, setIsCreatingNewProposal] = useState(false);
+  const [showOlderJobDrafts, setShowOlderJobDrafts] = useState(false);
   const proposalLaunchInFlightRef = useRef(false);
   const measurementSaveInFlightRef = useRef<string | null>(null);
   const measurementFormHydratedRef = useRef<string | null>(null);
@@ -8322,64 +8326,71 @@ Thanks,`;
                     fixTemplateHref={jobCardFixTemplateHref}
                     onNavigate={router.push}
                   />
-                  <div data-jobcard-proposal-list>
-                    <WorkspaceHeading>Proposals for this job</WorkspaceHeading>
-                    {listedJobDraftSummaries.length > 0 ? (
-                      <div className="space-y-2">
-                        {listedJobDraftSummaries.map((row) => {
-                          const isActive = row.id === jobCardActiveProposalId;
-                          const title =
-                            (row.title ?? "").trim() || "Untitled proposal draft";
-                          return (
-                            <div
-                              key={row.id}
-                              className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2.5"
-                              data-jobcard-proposal-list-row
-                              data-proposal-id={row.id}
-                              data-active-draft={isActive ? "true" : "false"}
-                            >
-                              <div className="min-w-0">
-                                <p className="truncate text-sm font-medium text-slate-800">
-                                  {title}
-                                  {isActive ? (
-                                    <span className="ml-1.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
-                                      Current
-                                    </span>
-                                  ) : null}
-                                </p>
-                                <p className="mt-0.5 text-xs text-slate-600">
-                                  Draft saved
-                                  {row.updated_at
-                                    ? ` · ${new Date(row.updated_at).toLocaleString()}`
-                                    : ""}
-                                </p>
-                              </div>
-                              {currentJobId ? (
-                                <button
-                                  type="button"
-                                  className="shrink-0 text-[11px] font-semibold text-cyan-700 hover:text-cyan-900"
-                                  onClick={() =>
-                                    router.push(
-                                      buildProposalBuilderHref(currentJobId, row.id)
-                                    )
-                                  }
+                  {(() => {
+                    const olderDrafts = listedJobDraftSummaries.filter(
+                      (row) => row.id !== jobCardActiveProposalId
+                    );
+                    if (olderDrafts.length === 0) return null;
+                    return (
+                      <div data-jobcard-proposal-list data-jobcard-older-drafts>
+                        <button
+                          type="button"
+                          className="text-[12px] font-semibold text-slate-600 hover:text-slate-900"
+                          aria-expanded={showOlderJobDrafts}
+                          data-jobcard-older-drafts-toggle
+                          onClick={() => setShowOlderJobDrafts((open) => !open)}
+                        >
+                          {showOlderJobDrafts
+                            ? JOB_CARD_HIDE_OLDER_DRAFTS_LABEL
+                            : `${JOB_CARD_SHOW_OLDER_DRAFTS_LABEL} (${olderDrafts.length})`}
+                        </button>
+                        {showOlderJobDrafts ? (
+                          <div className="mt-2 space-y-1.5" data-jobcard-older-drafts-panel>
+                            {olderDrafts.map((row) => {
+                              const title = formatContractorProposalTitle(row.title);
+                              return (
+                                <div
+                                  key={row.id}
+                                  className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-100 bg-slate-50/60 px-3 py-2"
+                                  data-jobcard-proposal-list-row
+                                  data-proposal-id={row.id}
+                                  data-active-draft="false"
                                 >
-                                  Open
-                                </button>
-                              ) : null}
-                            </div>
-                          );
-                        })}
+                                  <div className="min-w-0">
+                                    <p
+                                      className="truncate text-[13px] font-medium text-slate-700"
+                                      title={(row.title ?? "").trim() || undefined}
+                                    >
+                                      {title}
+                                    </p>
+                                    <p className="mt-0.5 text-[11px] text-slate-500">
+                                      Draft saved
+                                      {row.updated_at
+                                        ? ` · ${new Date(row.updated_at).toLocaleDateString()}`
+                                        : ""}
+                                    </p>
+                                  </div>
+                                  {currentJobId ? (
+                                    <button
+                                      type="button"
+                                      className="shrink-0 text-[11px] font-semibold text-cyan-700 hover:text-cyan-900"
+                                      onClick={() =>
+                                        router.push(
+                                          buildProposalBuilderHref(currentJobId, row.id)
+                                        )
+                                      }
+                                    >
+                                      Open
+                                    </button>
+                                  ) : null}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : null}
                       </div>
-                    ) : (
-                      <PlaceholderBox
-                        lines={[
-                          "No proposals created yet",
-                          "Create a draft above — it will appear here",
-                        ]}
-                      />
-                    )}
-                  </div>
+                    );
+                  })()}
                 </div>
               </JobCardSectionPanel>
 

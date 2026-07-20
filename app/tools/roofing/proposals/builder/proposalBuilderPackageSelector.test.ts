@@ -101,16 +101,15 @@ describe("Builder package selector draft-option truth", () => {
     assert.doesNotMatch(preview, /scopeTemplateGraphToDraftPackageOptions/);
   });
 
-  test("8. Job Card open+create stays honest + package-change note", () => {
+  test("8. Job Card open+create stays honest + compact zones", () => {
     const card = read("app/tools/roofing/jobCard/JobCardProposalSetupCard.tsx");
     const helpers = read("app/tools/roofing/jobCard/jobCardProposalSetup.ts");
     assert.match(card, /data-jobcard-draft-open-summary/);
     assert.match(card, /data-jobcard-existing-draft-card/);
     assert.match(card, /data-jobcard-create-new-card/);
-    assert.match(card, /JOB_CARD_DRAFT_PACKAGE_CHANGE_NOTE/);
-    assert.match(card, /data-jobcard-draft-package-change-note/);
-    assert.match(helpers, /JOB_CARD_DRAFT_PACKAGE_CHANGE_NOTE/);
     assert.match(helpers, /JOB_CARD_CREATE_ANOTHER_EXPLAINER/);
+    assert.match(helpers, /JOB_CARD_CURRENT_PROPOSAL_LABEL/);
+    assert.match(helpers, /formatContractorProposalTitle/);
     assert.doesNotMatch(card, /Start new draft/);
   });
 });
