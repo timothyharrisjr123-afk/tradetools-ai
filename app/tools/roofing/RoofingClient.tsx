@@ -156,8 +156,11 @@ import JobCardProposalsTab, {
   JobCardProposalsAddHeaderButton,
 } from "@/app/tools/roofing/jobCard/JobCardProposalsTab";
 import {
+  JOB_CARD_PROPOSAL_ACTIVITY_READY_LABEL,
+  JOB_CARD_PROPOSAL_ACTIVITY_READY_NOTE,
   JOB_CARD_PROPOSALS_TAB_SUBTITLE,
   buildJobCardProposalRowViews,
+  formatJobCardContractorProposalStatusLabel,
 } from "@/app/tools/roofing/jobCard/jobCardProposalsTabModel";
 import type { JobDraft, JobAddress, JobRecord } from "@/app/lib/jobTypes";
 import { sendEstimateEmailWithPdf } from "@/app/lib/sendEstimateClient";
@@ -7714,17 +7717,30 @@ Thanks,`;
 
     const wsHelper = "mt-1.5 text-[11px] leading-snug text-slate-500";
 
-    const jobCardDisplay = buildJobCardDisplayModel(isBoardOrigin ? (currentSaved ?? null) : null, {
-      customerName: displayName,
-      address: addressLine !== "Property details not complete" ? addressLine : undefined,
-      roofAreaSqFt: Number(area || 0),
-    });
+    const jobCardDisplayBase = buildJobCardDisplayModel(
+      isBoardOrigin ? (currentSaved ?? null) : null,
+      {
+        customerName: displayName,
+        address: addressLine !== "Property details not complete" ? addressLine : undefined,
+        roofAreaSqFt: Number(area || 0),
+      }
+    );
+    // Block 1/2: contractor status must follow visible proposals, not hidden smoke drafts.
+    const jobCardDisplay = {
+      ...jobCardDisplayBase,
+      proposalLabel: formatJobCardContractorProposalStatusLabel({
+        visibleSummaries: listedJobDraftSummaries,
+      }),
+    };
     const activityWhen = jobCardDisplay.lastUpdatedDisplay?.replace(/^Updated /, "") ?? "Just now";
     const proposalActivityLine = resolveJobCardProposalActivityLine(proposalBuilderReadiness, {
       measurementHandoff: proposalHandoff,
       catalogReadiness,
       templateReadiness: proposalTemplateReadiness,
       proposalNotStartedSubtitle: proposalHandoffNextAction.subtitle,
+      hasVisibleContractorProposal: listedJobDraftSummaries.length > 0,
+      readyForProposalLabel: JOB_CARD_PROPOSAL_ACTIVITY_READY_LABEL,
+      readyForProposalNote: JOB_CARD_PROPOSAL_ACTIVITY_READY_NOTE,
     });
     const jobCardActivityItems: JobCardActivityItem[] = [
       isBoardOrigin && currentSaved
@@ -9462,7 +9478,7 @@ Thanks,`;
       )}
 
       <FieldDiveAppShell
-        activeNav={entryMode === "job-card" && isJobCardBoardContext ? "jobs" : "newJob"}
+        activeNav={entryMode === "job-card" ? "jobs" : "newJob"}
         activeSubId={
           entryMode === "job-card"
             ? "job-card"

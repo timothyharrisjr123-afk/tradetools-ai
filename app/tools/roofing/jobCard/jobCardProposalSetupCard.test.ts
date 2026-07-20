@@ -125,4 +125,16 @@ describe("Job Card Proposals tab (Block 2)", () => {
       /bg-black|bg-slate-900|bg-neutral-900/
     );
   });
+
+  test("10. Job Card status/activity follow visible proposals (Block 2 follow-up)", () => {
+    const client = read("app/tools/roofing/RoofingClient.tsx");
+    const helpers = read("app/tools/roofing/jobCard/jobCardProposalsTabModel.ts");
+    const readiness = read("app/lib/proposalBuilderReadiness.ts");
+    assert.match(client, /formatJobCardContractorProposalStatusLabel/);
+    assert.match(client, /hasVisibleContractorProposal/);
+    assert.match(helpers, /Ready to create proposal/);
+    assert.match(helpers, /Ready for proposal/);
+    assert.match(readiness, /hasVisibleContractorProposal/);
+    assert.match(client, /activeNav=\{entryMode === "job-card" \? "jobs" : "newJob"\}/);
+  });
 });

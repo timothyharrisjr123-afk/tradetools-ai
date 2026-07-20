@@ -21,6 +21,16 @@ export const JOB_CARD_PROPOSALS_EMPTY_TITLE = "No proposals yet" as const;
 export const JOB_CARD_PROPOSALS_EMPTY_BODY =
   "Create a proposal from this job’s completed measurement report." as const;
 
+/** Job Card metadata strip — no visible contractor proposals. */
+export const JOB_CARD_PROPOSAL_STATUS_READY_TO_CREATE =
+  "Ready to create proposal" as const;
+
+/** Activity rail — setup ready, no visible contractor proposal. */
+export const JOB_CARD_PROPOSAL_ACTIVITY_READY_LABEL = "Ready for proposal" as const;
+
+export const JOB_CARD_PROPOSAL_ACTIVITY_READY_NOTE =
+  "Create a proposal from this job’s completed measurement report." as const;
+
 /** Block 2 placeholder — Block 3 owns measurement → template → package modal. */
 export const JOB_CARD_PROPOSALS_ENTRY_PLACEHOLDER =
   "Next: choose measurement, template, and package to continue to Builder." as const;
@@ -74,6 +84,20 @@ export function formatJobCardProposalStatusLabel(
   if (s === "lost") return "Lost";
   if (!s) return "Draft";
   return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+/**
+ * Contractor-facing Job Card proposal status strip label.
+ * Uses visible (non-fixture) proposals only — never hidden smoke drafts.
+ */
+export function formatJobCardContractorProposalStatusLabel(input: {
+  visibleSummaries: readonly ProposalRecordStatusSummary[];
+}): string {
+  const visible = input.visibleSummaries;
+  if (visible.length === 0) return JOB_CARD_PROPOSAL_STATUS_READY_TO_CREATE;
+  const status = formatJobCardProposalStatusLabel(visible[0]?.status);
+  if (status === "Draft") return "Proposal Draft";
+  return `Proposal ${status}`;
 }
 
 /**

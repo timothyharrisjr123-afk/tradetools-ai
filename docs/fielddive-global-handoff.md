@@ -45,11 +45,11 @@
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** **`c979e3a`** — polish(proposals): reset job card proposal surface (Block 2; prior Block 1 **`aee0546`**)
-- **Docs checkpoint:** **Block 2** — Proposals tab compact document/action surface (this header + **§6BO.13.4.9** R). Prior: Block 1 isolation (**Q** / **`aee0546`**); Block 0 Flow V1 lock (**`61d3bc5`**, **P**).
-- **Prior code:** **`aee0546`** smoke isolation; **`190ad66`** Job Card Proposals polish; **`40c1fe8`** create flow restore
+- **Code checkpoint:** Block 2 follow-up — fix(proposals): align job card status with visible proposals (this commit; prior **`c979e3a`** Proposals tab reset; Block 1 **`aee0546`**)
+- **Docs checkpoint:** **Block 2 follow-up** — Job Card status/activity use visible proposals only (this header + **§6BO.13.4.9** R.1). Prior: Block 2 tab reset (**R** / **`c979e3a`**); Block 1 isolation (**Q**).
+- **Prior code:** **`c979e3a`** Proposals tab reset; **`aee0546`** smoke isolation
 - **Next coding:** **Block 3** — + Proposal modal/step flow (measurement → template → package → Continue to Builder). Do **not** start Blocks 4–7 until Block 3 is approved. Do **not** add full proposal management, template rebuild/import of live options into existing drafts, supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
-- **Historical note:** Proposals tab is now compact rows + blue **+ Proposal** (Block 2). + Proposal shows Block 3 placeholder only (no create yet). Smoke fixtures remain hide-not-delete. Builder package picker remains draft-option scoped.
+- **Historical note:** Proposals tab compact + blue **+ Proposal** (Block 2). Status strip/activity no longer say Proposal Draft / Builder ready for smoke-only jobs. + Proposal placeholder only until Block 3. Smoke fixtures remain hide-not-delete.
 
 **Trust order:** Header/current checkpoint → **§6BO.13** (approved page-by-page UI flow roadmap + P0 implementation sequence — **supersedes separate Command Center language**) → **§6BM** / **§6BN** (R18 letter-phase roadmap + R18C–R18D3C implementation history) → **§6BO** / **§6BO.11** / **§6BO.12** (completed remediation side-track + **approved Stage C policy** + **operating-flow audit sequencing — complete; outcome in §6BO.13**) → **§6BL** → **§11 override**. Stage B browser smoke required local-only **`USE_PROPOSAL_SEND_FREEZE_RPC=1`** in `.env.local` (gitignored, not committed). **Do not proceed** to docs-only or next feature work unless working tree is clean. **Still do not** mutate `proposals.status = sent`, write sent `proposal_events`, move Jobs Board cards, add Job Card send activity, enable PDF/Sign/Payment, or add webhooks unless separately approved.
 
@@ -12356,6 +12356,23 @@ Package rule from **N** remains law: pre-draft package on create modal; post-dra
 
 **Smoke (Babby D on `rhquhnujjnzjhweypavd`):** empty state + blue + Proposal; placeholder on click; no setup card; no smoke titles; direct Builder `61356e56-…` still loads. No send/lifecycle.
 
+**Next recommended block:** see **R.1** follow-up, then **Block 3**.
+
+###### R.1 Block 2 follow-up — Job Card status/activity visible-proposal truth — IMPLEMENTED (2026-07-20)
+
+**Status:** Hidden smoke/internal drafts no longer drive Job Card metadata strip or activity rail. **No + Proposal modal. No Proposals tab redesign. No Builder/Preview/Templates/Catalog changes. No migrations/SQL/package/pricing/quantity/snapshot/send/public/lifecycle. No smoke deletes.**
+
+**Root cause:**
+1. `buildJobCardDisplayModel` hardcoding `proposalLabel: "Proposal Draft"` for DB Job Card (null estimate path)
+2. `resolveJobCardProposalActivityLine` treating setup-ready (`readiness.ready`) as “Proposal Builder ready” without checking contractor-visible proposal count
+
+**Fix:**
+- `formatJobCardContractorProposalStatusLabel` — 0 visible → **Ready to create proposal**; visible draft → **Proposal Draft**
+- Activity: `hasVisibleContractorProposal` — false → **Ready for proposal** + measurement-report note; true → **Proposal Builder ready**
+- Left nav: `entryMode === "job-card"` → `activeNav="jobs"` (was only board-context jobs; DB job cards wrongly highlighted New job)
+
+**Smoke (Babby D):** strip Ready to create proposal; activity Ready for proposal; Proposals empty + blue + Proposal; direct Builder smoke URL unchanged.
+
 **Next recommended block:** **Block 3 — + Proposal modal flow** (measurement → template → package → Continue to Builder).
 
 #### 13.4.6 Integrated Catalog → Proposal workflow research + FieldDive flow design — COMPLETE (2026-07-17)
@@ -13843,6 +13860,7 @@ Treat as **drift** if a session:
 
 ## Changelog (handoff doc only)
 
+- **2026-07-20:** **Block 2 follow-up — Job Card status/activity visible-proposal truth** (**§6BO.13.4.9** R.1) — smoke-only jobs show Ready to create proposal / Ready for proposal (not Proposal Draft / Builder ready); left nav Jobs on job-card entry; Proposals tab reset preserved. **Next:** Block 3 + Proposal modal.
 - **2026-07-20:** **Block 2 — Proposals tab reset** (**§6BO.13.4.9** R) — compact rows + blue **+ Proposal**; empty state when smoke-only; placeholder entry (no create); removed always-open setup/archive UI; Block 1 isolation preserved; no modal yet. **Next:** Block 3 + Proposal modal.
 - **2026-07-20:** **Block 1 — smoke/internal proposal + template isolation** (**§6BO.13.4.9** Q) — centralized `contractorFixtureIsolation` known-fixture classifier; Job Card Proposals lists/current draft + create template picker hide fixtures (hide-not-delete); direct Builder smoke URL preserved; no Proposals tab reset / modal / pricing / lifecycle. **Next:** Block 2 Proposals tab reset (now **R**).
 - **2026-07-20:** **Block 0 — Proposal Flow V1 + Template Flow V1 + app surface standards** (docs only, **§6BO.13.4.9** P) — locked happy path (Job Card → + Proposal → measurement/template/package → Builder → Preview; Send later); Proposals compact rows + blue + Proposal; Templates = company setup; smoke hide-not-delete; Builder/Preview roles; Blocks 0–7 order; protected systems restated. Code checkpoint **`190ad66`**. **No app code.** **Next coding:** Block 1 smoke isolation (now **Q**).

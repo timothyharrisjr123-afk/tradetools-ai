@@ -297,6 +297,14 @@ export function resolveJobCardProposalActivityLine(
     catalogReadiness?: CatalogReadinessSummary;
     templateReadiness?: ProposalTemplateReadiness;
     proposalNotStartedSubtitle?: string;
+    /**
+     * True when the Job Card lists at least one contractor-visible proposal
+     * (Block 1 isolation). Hidden smoke/internal drafts must not count.
+     */
+    hasVisibleContractorProposal?: boolean;
+    /** Create-ready activity copy when setup is ready but no visible proposal. */
+    readyForProposalLabel?: string;
+    readyForProposalNote?: string;
   }
 ): { label: string; note: string } {
   if (readiness.loading) {
@@ -306,9 +314,17 @@ export function resolveJobCardProposalActivityLine(
     };
   }
   if (readiness.ready) {
+    if (context?.hasVisibleContractorProposal === true) {
+      return {
+        label: "Proposal Builder ready",
+        note: "Open Proposal Builder to preview this job setup. Send and pricing are later.",
+      };
+    }
     return {
-      label: "Proposal Builder ready",
-      note: "Open Proposal Builder to preview this job setup. Send and pricing are later.",
+      label: context?.readyForProposalLabel?.trim() || "Ready for proposal",
+      note:
+        context?.readyForProposalNote?.trim() ||
+        "Create a proposal from this job’s completed measurement report.",
     };
   }
   if (

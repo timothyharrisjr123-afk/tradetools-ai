@@ -5,6 +5,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
+  JOB_CARD_PROPOSAL_STATUS_READY_TO_CREATE,
   JOB_CARD_PROPOSALS_ADD_LABEL,
   JOB_CARD_PROPOSALS_CREATE_LABEL,
   JOB_CARD_PROPOSALS_EMPTY_BODY,
@@ -14,6 +15,7 @@ import {
   buildJobCardProposalRowMetaLine,
   buildJobCardProposalRowView,
   buildJobCardProposalRowViews,
+  formatJobCardContractorProposalStatusLabel,
   formatJobCardProposalRowTitle,
   formatJobCardProposalStatusLabel,
   formatJobCardProposalUpdatedShort,
@@ -111,5 +113,26 @@ describe("jobCardProposalsTab helpers", () => {
     assert.doesNotMatch(row.metaLine, /source template/i);
     assert.doesNotMatch(row.metaLine, /real-1/);
     assert.doesNotMatch(row.title, /smoke|RAW_PLUS/i);
+  });
+
+  test("job card status uses visible proposals only — smoke-only is create-ready", () => {
+    const smokeOnly = filterContractorVisibleProposals([
+      summary({ id: "1", title: "Coverage basis live smoke" }),
+    ]);
+    assert.equal(smokeOnly.length, 0);
+    assert.equal(
+      formatJobCardContractorProposalStatusLabel({ visibleSummaries: smokeOnly }),
+      JOB_CARD_PROPOSAL_STATUS_READY_TO_CREATE
+    );
+    assert.doesNotMatch(
+      formatJobCardContractorProposalStatusLabel({ visibleSummaries: smokeOnly }),
+      /Proposal Draft/
+    );
+    assert.equal(
+      formatJobCardContractorProposalStatusLabel({
+        visibleSummaries: [summary({ id: "real", title: "Roof replacement", status: "draft" })],
+      }),
+      "Proposal Draft"
+    );
   });
 });

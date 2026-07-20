@@ -7,6 +7,7 @@ import {
   buildSetupRouteHref,
   deriveProposalBuilderReadiness,
   parseInternalReturnTo,
+  resolveJobCardProposalActivityLine,
 } from "./proposalBuilderReadiness";
 import type { CatalogReadinessSummary } from "./catalogReadiness";
 import type { ProposalTemplateReadiness } from "./proposalTemplateTypes";
@@ -37,6 +38,21 @@ function templateNotReady(): ProposalTemplateReadiness {
     missing_catalog_item_count: 0,
     priced_catalog_item_count: 2,
     missing_required_fields: ["options (need 3)", "linked line items (need 13)"],
+  };
+}
+
+function templateReady(): ProposalTemplateReadiness {
+  return {
+    status: "ready_for_builder",
+    template_count: 1,
+    active_template_count: 1,
+    option_count: 3,
+    section_count: 12,
+    item_count: 13,
+    linked_catalog_item_count: 13,
+    missing_catalog_item_count: 0,
+    priced_catalog_item_count: 13,
+    missing_required_fields: [],
   };
 }
 
@@ -171,5 +187,38 @@ describe("deriveProposalBuilderReadiness draft handoff", () => {
 
     assert.equal(result.ready, false);
     assert.equal(result.primaryGate, "template_not_ready");
+  });
+});
+
+describe("resolveJobCardProposalActivityLine visible-proposal truth", () => {
+  function readyReadiness() {
+    return deriveProposalBuilderReadiness({
+      jobIdParam: JOB_ID,
+      job: { id: JOB_ID, company_id: "c" } as JobRecord,
+      jobLoadComplete: true,
+      measurementHandoff: measurementReady(),
+      measurementLoadComplete: true,
+      catalogReadiness: catalogReady(),
+      catalogLoadComplete: true,
+      templateReadiness: templateReady(),
+      templateLoadComplete: true,
+      hasValidPersistedDraft: false,
+    });
+  }
+
+  test("setup ready + no visible proposal → Ready for proposal (not Builder ready)", () => {
+    const line = resolveJobCardProposalActivityLine(readyReadiness(), {
+      hasVisibleContractorProposal: false,
+    });
+    assert.equal(line.label, "Ready for proposal");
+    assert.match(line.note, /measurement report/i);
+    assert.doesNotMatch(line.label, /Proposal Builder ready/);
+  });
+
+  test("setup ready + visible proposal → Proposal Builder ready", () => {
+    const line = resolveJobCardProposalActivityLine(readyReadiness(), {
+      hasVisibleContractorProposal: true,
+    });
+    assert.equal(line.label, "Proposal Builder ready");
   });
 });
