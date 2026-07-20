@@ -10,6 +10,7 @@ import {
   buildProposalCustomerPreviewDocument,
   buildProposalCustomerPreviewHref,
   CUSTOMER_PREVIEW_COVER_TITLE,
+  CUSTOMER_PREVIEW_RETURN_TO_BUILDER_HINT,
 } from "./proposalCustomerPreviewViewModel";
 import type {
   ProposalDraftGraph,
@@ -240,7 +241,8 @@ describe("buildProposalCustomerPreviewDocument", () => {
     const doc = buildProposalCustomerPreviewDocument(minimalGraph());
     assert.ok(!doc.pages.some((page) => page.id === PAGE_TERMS));
     assert.equal(doc.readiness.hiddenPageCount, 1);
-    assert.match(doc.readiness.warnings.join(" "), /1 page hidden/i);
+    assert.match(doc.readiness.warnings.join(" "), /1 page/i);
+    assert.match(doc.readiness.warnings.join(" "), /customer document/i);
   });
 
   test("visible pages follow sort_order after Cover", () => {
@@ -342,8 +344,27 @@ describe("buildProposalCustomerPreviewDocument", () => {
     );
     assert.equal(doc.readiness.pricingComplete, false);
     assert.equal(doc.readiness.blockingLineCount, 2);
-    assert.match(doc.readiness.warnings.join(" "), /Pricing is incomplete/i);
-    assert.match(doc.readiness.warnings.join(" "), /2 line items/i);
+    assert.match(doc.readiness.warnings.join(" "), /2 estimate items/i);
+    assert.match(doc.readiness.warnings.join(" "), /need a quantity before totals are final/i);
+  });
+
+  test("pricing incomplete without a blocking count uses generic quantity copy", () => {
+    const doc = buildProposalCustomerPreviewDocument(
+      minimalGraph({
+        options: [
+          {
+            ...minimalGraph().options[0]!,
+            pricing_complete: false,
+            blocking_line_count: 0,
+            customer_total_cents: null,
+          },
+        ],
+      })
+    );
+    assert.match(
+      doc.readiness.warnings.join(" "),
+      /Some estimate items still need quantities before totals are final/i
+    );
   });
 
   test("pricing stale flag surfaces warning", () => {
@@ -351,7 +372,35 @@ describe("buildProposalCustomerPreviewDocument", () => {
       pricingStale: { stale: true, reason: "measurement_changed" },
     });
     assert.equal(doc.readiness.pricingStale, true);
-    assert.match(doc.readiness.warnings.join(" "), /stale/i);
+    assert.match(doc.readiness.warnings.join(" "), /older measurement/i);
+  });
+
+  test("Block 5 — readiness warnings never expose backend/debug terms", () => {
+    const doc = buildProposalCustomerPreviewDocument(
+      minimalGraph({
+        options: [
+          {
+            ...minimalGraph().options[0]!,
+            pricing_complete: false,
+            blocking_line_count: 3,
+            customer_total_cents: null,
+          },
+        ],
+        pages: minimalGraph().pages.filter((page) => page.page_type !== "estimate"),
+      }),
+      { pricingStale: { stale: true, reason: "measurement_changed" } }
+    );
+    const joined = doc.readiness.warnings.join(" ");
+    assert.doesNotMatch(joined, /money token/i);
+    assert.doesNotMatch(joined, /snapshot/i);
+    assert.doesNotMatch(joined, /guardrail/i);
+    assert.doesNotMatch(joined, /pricing readiness/i);
+    assert.doesNotMatch(joined, /hidden from customer view/i);
+  });
+
+  test("Block 5 — return-to-Builder hint is contractor-safe", () => {
+    assert.match(CUSTOMER_PREVIEW_RETURN_TO_BUILDER_HINT, /Return to Builder/i);
+    assert.doesNotMatch(CUSTOMER_PREVIEW_RETURN_TO_BUILDER_HINT, /snapshot|guardrail|token/i);
   });
 
   test("does not mutate input graph", () => {
@@ -368,6 +417,6 @@ describe("buildProposalCustomerPreviewDocument", () => {
       })
     );
     assert.equal(doc.readiness.estimatePagePresent, false);
-    assert.match(doc.readiness.warnings.join(" "), /Estimate page is missing/i);
+    assert.match(doc.readiness.warnings.join(" "), /estimate isn't part of the customer document/i);
   });
 });

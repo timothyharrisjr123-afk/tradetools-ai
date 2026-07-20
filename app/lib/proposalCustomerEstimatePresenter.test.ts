@@ -362,6 +362,76 @@ describe("buildCustomerPreviewEstimatePresentation", () => {
     assert.doesNotMatch(json, /Line details/i);
   });
 
+  test("Block 5 — output never contains contractor-only actions", () => {
+    const json = presentationJson(buildInput());
+    assert.doesNotMatch(json, /Edit quantity/i);
+    assert.doesNotMatch(json, /Set quantity/i);
+    assert.doesNotMatch(json, /Remove from proposal/i);
+    assert.doesNotMatch(json, /\bRestore\b/i);
+    assert.doesNotMatch(json, /Hide from customer/i);
+    assert.doesNotMatch(json, /Manual qty/i);
+  });
+
+  test("Block 5 — output never contains send/sign/payment or backend wording", () => {
+    const json = presentationJson(buildInput());
+    assert.doesNotMatch(json, /guardrail/i);
+    assert.doesNotMatch(json, /snapshot/i);
+    assert.doesNotMatch(json, /money token/i);
+    assert.doesNotMatch(json, /workbench/i);
+    assert.doesNotMatch(json, /not editable/i);
+    assert.doesNotMatch(json, /\blocked\b/i);
+  });
+
+  test("Block 5 — manual quantity line renders as a plain priced line with resolved price only", () => {
+    // A manual-quantity override still resolves to a normal priced customer line;
+    // the customer document shows its resolved price with no "manual" labeling.
+    const scopeSection = section("sec-scope", "line_items", {
+      name: "Roofing materials",
+      customer_title: "Roofing materials",
+    });
+    const templateGraph = graph(
+      [scopeSection],
+      [item({ id: "line-manual", section_id: "sec-scope" })]
+    );
+
+    const result = buildCustomerPreviewEstimatePresentation(
+      buildInput({
+        graph: templateGraph,
+        sections: [scopeSection],
+        optionCustomerView: {
+          optionId: OPTION_ID,
+          pricingComplete: true,
+          customerSubtotalCents: 600,
+          discountCents: 0,
+          salesTaxCents: 0,
+          customerTotalCents: 600,
+          lines: [],
+          lineByTemplateItemId: {
+            "line-manual": lineView("line-manual", "priced", {
+              customerLinePriceCents: 600,
+            }),
+          },
+        },
+      })
+    );
+
+    const line = result.scopeSections[0]?.lines[0];
+    assert.ok(line);
+    assert.equal(line?.kind, "priced");
+    assert.equal(line?.valueLabel, "$6.00");
+    // No "manual" labeling in customer-visible display fields.
+    assert.doesNotMatch(`${line?.name} ${line?.valueLabel}`, /manual/i);
+  });
+
+  test("Block 5 — selected package label is shown with no builder current/available chrome", () => {
+    const result = buildCustomerPreviewEstimatePresentation(buildInput());
+    assert.equal(result.packageHero.label, "Standard");
+    const json = JSON.stringify(result.packageHero);
+    assert.doesNotMatch(json, /\bCurrent\b/);
+    assert.doesNotMatch(json, /\bAvailable\b/);
+    assert.doesNotMatch(json, /Choose starting package/i);
+  });
+
   test("missing catalog row excluded and counted", () => {
     const scopeSection = section("sec-scope", "line_items");
     const templateGraph = graph([scopeSection], [

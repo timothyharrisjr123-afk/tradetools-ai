@@ -10,7 +10,10 @@ import { resolveJobIdentityDisplay } from "@/app/lib/jobIdentityDisplay";
 import { getJobById, isUuidLike } from "@/app/lib/jobStore";
 import type { JobRecord } from "@/app/lib/jobTypes";
 import { getSelectedMeasurementForJob } from "@/app/lib/measurementStore";
-import { buildProposalCustomerPreviewDocument } from "@/app/lib/proposalCustomerPreviewViewModel";
+import {
+  buildProposalCustomerPreviewDocument,
+  CUSTOMER_PREVIEW_RETURN_TO_BUILDER_HINT,
+} from "@/app/lib/proposalCustomerPreviewViewModel";
 import { adaptProposalDraftGraphToBuilderPreview, validateProposalDraftGraphForJob } from "@/app/lib/proposalDraftGraphAdapter";
 import {
   buildProposalBuilderHref,
@@ -29,10 +32,7 @@ import {
   ProposalRecordStoreError,
   type ProposalDraftGraph,
 } from "@/app/lib/proposalRecordStore";
-import {
-  deriveProposalPricingStale,
-  PROPOSAL_PRICING_STALE_BANNER_COPY,
-} from "@/app/lib/proposalStaleness";
+import { deriveProposalPricingStale } from "@/app/lib/proposalStaleness";
 import {
   getProposalTemplateGraph,
   type ProposalTemplateGraph,
@@ -41,6 +41,10 @@ import { BUILDER_STAGE } from "../builder/proposalBuilderConstants";
 import ProposalCustomerPreviewDocumentView from "./ProposalCustomerPreviewDocument";
 import ProposalCustomerPreviewPublicAccessPanel from "./ProposalCustomerPreviewPublicAccessPanel";
 import ProposalCustomerPreviewSendGatePanel from "./ProposalCustomerPreviewSendGatePanel";
+
+const CONTRACTOR_TOOLS_HEADING = "Contractor tools";
+const CONTRACTOR_TOOLS_SUBTEXT =
+  "Sharing and sending controls. These are not part of what the customer sees.";
 
 export default function ProposalCustomerPreviewClient({
   companyId,
@@ -208,26 +212,6 @@ export default function ProposalCustomerPreviewClient({
 
       {!loadComplete ? (
         <div className={`${BUILDER_STAGE} space-y-4`}>
-          {hasValidParams && routeSpineLaunch.allowed ? (
-            <>
-              <ProposalCustomerPreviewPublicAccessPanel
-                jobId={normalizedJobId}
-                proposalId={normalizedProposalId}
-                proposal={persistedGraph?.proposal ?? null}
-                loading
-              />
-              <ProposalCustomerPreviewSendGatePanel
-                jobId={normalizedJobId}
-                proposalId={normalizedProposalId}
-                graph={persistedGraph}
-                job={job}
-                previewReadiness={null}
-                pricingStale={pricingStale.stale}
-                loading
-                emailDeliveryConfigured={emailDeliveryConfigured}
-              />
-            </>
-          ) : null}
           <div className="text-sm text-slate-500">Loading preview…</div>
         </div>
       ) : loadError ? (
@@ -237,39 +221,54 @@ export default function ProposalCustomerPreviewClient({
           {loadError}
         </div>
       ) : previewDocument && persistedGraph ? (
-        <div className={`${BUILDER_STAGE} space-y-4`}>
-          <ProposalCustomerPreviewPublicAccessPanel
-            jobId={normalizedJobId}
-            proposalId={normalizedProposalId}
-            proposal={persistedGraph.proposal}
-            loading={false}
-          />
-
-          <ProposalCustomerPreviewSendGatePanel
-            jobId={normalizedJobId}
-            proposalId={normalizedProposalId}
-            graph={persistedGraph}
-            job={job}
-            previewReadiness={previewDocument.readiness}
-            pricingStale={pricingStale.stale}
-            loading={false}
-            emailDeliveryConfigured={emailDeliveryConfigured}
-          />
-
-          {previewDocument.readiness.warnings.length > 0 || pricingStale.stale ? (
+        <div className={`${BUILDER_STAGE} space-y-8`}>
+          {/* Block 5: contractor readiness note — quiet, plain-language, guides back to
+              Builder. Not customer-facing final language. Kept above the document so the
+              contractor knows the estimate isn't finished before reviewing it. */}
+          {previewDocument.readiness.warnings.length > 0 ? (
             <div className="space-y-2 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
-              {pricingStale.stale ? <p>{PROPOSAL_PRICING_STALE_BANNER_COPY}</p> : null}
               {previewDocument.readiness.warnings.map((warning) => (
                 <p key={warning}>{warning}</p>
               ))}
+              <p className="text-amber-900/80">{CUSTOMER_PREVIEW_RETURN_TO_BUILDER_HINT}</p>
             </div>
           ) : null}
 
+          {/* Document-first: the customer-facing proposal document is the primary content. */}
           <ProposalCustomerPreviewDocumentView
             document={previewDocument}
             templateGraph={templateGraph}
             catalogItems={catalogItems}
           />
+
+          {/* Contractor tools live below the document and are clearly not part of what the
+              customer sees. Send/public behavior is unchanged — only its placement. */}
+          <section className="space-y-4 border-t border-slate-200/80 pt-8" aria-label="Contractor tools">
+            <div className="space-y-1">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                {CONTRACTOR_TOOLS_HEADING}
+              </p>
+              <p className="text-sm text-slate-500">{CONTRACTOR_TOOLS_SUBTEXT}</p>
+            </div>
+
+            <ProposalCustomerPreviewPublicAccessPanel
+              jobId={normalizedJobId}
+              proposalId={normalizedProposalId}
+              proposal={persistedGraph.proposal}
+              loading={false}
+            />
+
+            <ProposalCustomerPreviewSendGatePanel
+              jobId={normalizedJobId}
+              proposalId={normalizedProposalId}
+              graph={persistedGraph}
+              job={job}
+              previewReadiness={previewDocument.readiness}
+              pricingStale={pricingStale.stale}
+              loading={false}
+              emailDeliveryConfigured={emailDeliveryConfigured}
+            />
+          </section>
         </div>
       ) : null}
     </div>

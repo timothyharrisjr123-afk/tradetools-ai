@@ -158,6 +158,14 @@ function placeholderMessageForPageType(pageType: ProposalPageType): string {
   }
 }
 
+/**
+ * Block 5 — contractor-facing Preview readiness notes.
+ *
+ * Copy is deliberately contractor-safe and plain-language: it guides the
+ * contractor back to Builder to finish the estimate. It must NOT expose
+ * backend/debug terms (money tokens, snapshot, guardrail, pricing readiness)
+ * and it is never presented as customer-facing final document language.
+ */
 function buildReadinessWarnings(input: {
   hiddenPageCount: number;
   pricingComplete: boolean;
@@ -169,32 +177,34 @@ function buildReadinessWarnings(input: {
 
   if (input.hiddenPageCount > 0) {
     warnings.push(
-      `${input.hiddenPageCount} page${input.hiddenPageCount === 1 ? "" : "s"} hidden from customer view.`
+      `${input.hiddenPageCount} page${input.hiddenPageCount === 1 ? "" : "s"} won't be shown in the customer document.`
     );
   }
 
   if (input.pricingStale) {
     warnings.push(
-      "Draft pricing snapshot may be stale relative to the current job measurement."
+      "Pricing is based on an older measurement — refresh draft pricing in Builder."
     );
-  }
-
-  if (!input.pricingComplete) {
-    warnings.push("Pricing is incomplete — totals and money tokens may be suppressed.");
   }
 
   if (input.blockingLineCount > 0) {
     warnings.push(
-      `${input.blockingLineCount} line item${input.blockingLineCount === 1 ? "" : "s"} need pricing attention.`
+      `${input.blockingLineCount} estimate item${input.blockingLineCount === 1 ? "" : "s"} still need${input.blockingLineCount === 1 ? "s" : ""} a quantity before totals are final.`
     );
+  } else if (!input.pricingComplete) {
+    warnings.push("Some estimate items still need quantities before totals are final.");
   }
 
   if (!input.estimatePagePresent) {
-    warnings.push("Estimate page is missing from the customer-visible page list.");
+    warnings.push("The estimate isn't part of the customer document yet.");
   }
 
   return warnings;
 }
+
+/** Contractor guidance shown alongside Preview readiness notes. */
+export const CUSTOMER_PREVIEW_RETURN_TO_BUILDER_HINT =
+  "Return to Builder to finish the estimate.";
 
 function mapVisibleDbPage(
   page: ProposalPageRow,

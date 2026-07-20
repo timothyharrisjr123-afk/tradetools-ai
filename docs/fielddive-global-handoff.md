@@ -45,11 +45,11 @@
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** **`05c1edb`** — polish(proposals): tune builder estimate density (Block 4G; prior **`232e399`** / **`9274ed4`**)
-- **Docs checkpoint:** **Block 4G Builder shared itemized estimate grid** (this header + **§6BO.13.4.9** T.5). Prior: 4F visual polish (**`232e399`**); edit rules (**`9274ed4`**); 4E (**`29dbc61`**).
+- **Code checkpoint:** **Block 5 Preview document-first** — `polish(proposals): make preview document first` (pending commit). Builder checkpoint **unchanged** at **`05c1edb`** (Block 4G; prior **`232e399`** / **`9274ed4`**).
+- **Docs checkpoint:** **Block 5 Preview document-first** (this header + **§6BO.13.4.9** T.6). Prior: 4G shared itemized estimate grid (**`05c1edb`**); 4F visual polish (**`232e399`**); edit rules (**`9274ed4`**); 4E (**`29dbc61`**).
 - **Prior code:** **`05c1edb`** 4G density; **`232e399`** finish builder visual polish; **`9274ed4`** clarify builder edit rules
-- **Next coding:** **Block 5** — Preview document-first (**only after Builder final approval**). Do **not** start Blocks 6–7 until Block 5 is approved. Do **not** add full proposal management, template rebuild/import of live options into existing drafts, supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
-- **Historical note:** Block 4G: full-width shared Item / Qty / Price / ⋯ grid (no table max-width); quiet Edit quantity (no Manual qty badge); Finish estimate far-right Set quantity; protected systems unchanged.
+- **Next coding:** **Block 6** — only after **Block 5 visual approval**. Do **not** start Blocks 6–7 until Block 5 is approved. Do **not** add full proposal management, template rebuild/import of live options into existing drafts, supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
+- **Historical note:** Block 5: Preview is **document-first** — customer document renders first; contractor send/public tools moved **below** the document under a **Contractor tools** divider (send/public **behavior unchanged**, placement only); readiness notes reworded contractor-safe (no money-token/snapshot/guardrail/pricing-readiness wording) + **Return to Builder** hint. Block 4G (Builder, unchanged): full-width shared Item / Qty / Price / ⋯ grid (no table max-width); quiet Edit quantity (no Manual qty badge); Finish estimate far-right Set quantity. Protected systems unchanged.
 
 **Trust order:** Header/current checkpoint → **§6BO.13** (approved page-by-page UI flow roadmap + P0 implementation sequence — **supersedes separate Command Center language**) → **§6BM** / **§6BN** (R18 letter-phase roadmap + R18C–R18D3C implementation history) → **§6BO** / **§6BO.11** / **§6BO.12** (completed remediation side-track + **approved Stage C policy** + **operating-flow audit sequencing — complete; outcome in §6BO.13**) → **§6BL** → **§11 override**. Stage B browser smoke required local-only **`USE_PROPOSAL_SEND_FREEZE_RPC=1`** in `.env.local` (gitignored, not committed). **Do not proceed** to docs-only or next feature work unless working tree is clean. **Still do not** mutate `proposals.status = sent`, write sent `proposal_events`, move Jobs Board cards, add Job Card send activity, enable PDF/Sign/Payment, or add webhooks unless separately approved.
 
@@ -59,6 +59,8 @@
 
 | Commit | Summary |
 |--------|---------|
+| *(pending)* | **Block 5** — Preview document-first: customer document renders first, contractor send/public tools moved below a **Contractor tools** divider (placement only); readiness notes reworded contractor-safe + Return-to-Builder hint; **220/220** focused tests; Babby smoke PASS; **no Builder/pricing/snapshot/lifecycle/send/public behavior change** (§6BO.13.4.9 T.6) |
+| `ae8e479` | **Docs** — Finish pinning Block 4G T.5 code checkpoint (`05c1edb`) |
 | *(pending)* | **Docs** — Catalog naming roadmap correction before Slice 2 (§6BO.13) |
 | `36a0b55` | **Slice 1** — Jobs command surface P0: default route → Job Board; Jobs/Setup/Advanced nav; setup guidance; legacy de-emphasis; Roofr-style job card snapshots; **no lifecycle/status movement** |
 | `fc86123` | **Docs** — Record approved page-by-page UI flow roadmap + P0 implementation sequence (§6BO.13) |
@@ -12584,6 +12586,36 @@ Package rule from **N** remains law: pre-draft package on create modal; post-dra
 **Smoke:** Babby **`466e393c-…`** — full-width itemized Included; quiet Edit quantity; far-right Set quantity; inline editor; package selector unclipped; upgrades/settings off path; Preview primary.
 
 **Next recommended block:** **Block 5 — Preview document-first** (only after Builder final approval).
+
+###### T.6 Block 5 — Preview document-first review — IMPLEMENTED (2026-07-20)
+
+**Code checkpoint:** pending commit — `polish(proposals): make preview document first`. **Builder checkpoint unchanged at `05c1edb`.**
+
+**Status:** Preview now reads as the customer-facing continuation of the Builder estimate — the customer document is the primary content, contractor send/public tooling is demoted below it. **No pricing/math/resolver/snapshot changes. No SQL/migrations/packages. No send/public/lifecycle/PDF/sign/payment behavior change (placement only). No Builder redesign — Builder untouched this block.**
+
+**Phase 1 trace (files):**
+- Route/UI: `preview/page.tsx` → `ProposalCustomerPreviewAppPage` → `ProposalCustomerPreviewClient` → `ProposalCustomerPreviewDocument` → `…EstimateSection` → `…EstimateDocument` → `…LineList` / `…Totals`. Contractor tooling: `…PublicAccessPanel`, `…SendGatePanel`, `…DeliveryHistorySection`.
+- View model / presenter: `proposalCustomerPreviewViewModel` (pages + readiness), `proposalCustomerEstimatePresenter` (lines/package/totals), `proposalCustomerEstimateDisplayPolicy`.
+- Shared Builder/Preview language: reuses `ProposalBuilderCoverPage`, `ProposalBuilderCustomerPage`, `BUILDER_CANVAS*`/`CUSTOMER_PREVIEW_*` constants, `proposalBuilderPreview`, `resolvePackageMeta`.
+- Snapshot data: `buildProposalCustomerPreviewDocument(persistedGraph)` via `adaptProposalDraftGraphToBuilderPreview` — frozen draft-graph truth only; no pricing re-run.
+
+**Trace findings:** document estimate already omits contractor actions (no Edit/Set/Remove/Restore/Hide) and shows resolved qty with no "manual qty" label; removed/hidden/omitted/needs-quantity lines already suppressed; totals only when `pricingComplete`; selected package shown alone (no selector). **Two problems fixed:** (1) page **led** with the contractor Public-access + Send-gate cockpit panels, burying the document → felt like a lifecycle cockpit; (2) readiness warning copy exposed backend/debug terms ("money tokens", "snapshot", "line items need pricing attention").
+
+**Changes:**
+- `ProposalCustomerPreviewClient` — **document-first reorder**: thin contractor readiness note → customer document → **Contractor tools** section (`border-t` divider, "not part of what the customer sees") holding the unchanged Public-access + Send-gate panels. Dropped duplicate stale banner (stale now surfaces once via readiness note).
+- `proposalCustomerPreviewViewModel.buildReadinessWarnings` — contractor-safe copy: "N page(s) won't be shown in the customer document."; "Pricing is based on an older measurement — refresh draft pricing in Builder."; "N estimate item(s) still need a quantity before totals are final." / generic fallback; "The estimate isn't part of the customer document yet." + new `CUSTOMER_PREVIEW_RETURN_TO_BUILDER_HINT`.
+
+**Builder changes:** none.
+
+**Customer-safe Preview rules (locked):** document renders first; no Edit/Set/Remove/Restore/Hide/row-menu/package-edit in the customer document; manual qty shows resolved value only; selected package shown alone (no current/available/selector); totals only when ready; readiness notes are contractor-facing, plain-language, and never backend/debug; send/public controls live under the Contractor tools divider, unchanged.
+
+**Tests:** `proposalCustomerPreviewViewModel.test.ts` reworded warning assertions + backend-term guard + return-to-Builder hint; `proposalCustomerEstimatePresenter.test.ts` Block 5 guards (no contractor actions, no send/sign/payment/backend wording, manual qty = plain priced line, selected package only). Focused suite **220/220** pass.
+
+**Smoke:** Babby **`466e393c-…`** — Builder top bar + itemized estimate intact; Preview button routes correctly; Preview document-first (cover → Enhanced package + Included scope 7 lines → text pages) above Contractor tools; readiness note "6 estimate items still need a quantity…" + Return to Builder; manual-qty lines (Ridge cap $6.00, Drip edge $24.00) show resolved value only; no edit/set/remove/restore/hide in document; Back to Builder works; **0 console errors**.
+
+**Follow-ups (not this block):** Builder "N quantities needed" vs Preview blocking-line count differ (5 vs 6) — separate readiness/pricing reconciliation, protected math; optional Item/Qty/Price column in customer estimate (currently Item + price); cover "Investment summary — Pricing incomplete" wording review (shared cover VM).
+
+**Next recommended block:** **Block 6** — only after **Block 5 visual approval**.
 
 #### 13.4.6 Integrated Catalog → Proposal workflow research + FieldDive flow design — COMPLETE (2026-07-17)
 
