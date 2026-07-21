@@ -92,6 +92,8 @@ type ProposalBuilderCanvasProps = {
   excludeError?: string | null;
   visibilityInFlight?: boolean;
   visibilityError?: string | null;
+  upgradeSelectionInFlight?: boolean;
+  upgradeSelectionError?: string | null;
   onApplyManualQuantity?: (
     templateItemId: string,
     quantity: string,
@@ -102,6 +104,7 @@ type ProposalBuilderCanvasProps = {
   onRestoreExcludedLine?: (templateItemId: string) => Promise<void>;
   onHideLine?: (templateItemId: string) => Promise<void>;
   onRestoreVisibility?: (templateItemId: string) => Promise<void>;
+  onSetUpgradeSelected?: (templateItemId: string, selected: boolean) => Promise<void>;
 };
 
 /** 3J4F — text page types that render as read-only customer document pages. */
@@ -237,12 +240,15 @@ export default function ProposalBuilderCanvas({
   excludeError = null,
   visibilityInFlight = false,
   visibilityError = null,
+  upgradeSelectionInFlight = false,
+  upgradeSelectionError = null,
   onApplyManualQuantity,
   onClearManualQuantity,
   onExcludeLine,
   onRestoreExcludedLine,
   onHideLine,
   onRestoreVisibility,
+  onSetUpgradeSelected,
 }: ProposalBuilderCanvasProps) {
   const templateName = starterGraph?.template.name ?? STARTER_TEMPLATE_DISPLAY_NAME;
   const optionGraphForSelection = packageSelectorGraph ?? starterGraph;
@@ -422,12 +428,15 @@ export default function ProposalBuilderCanvas({
       excludeError={excludeError}
       visibilityInFlight={visibilityInFlight}
       visibilityError={visibilityError}
+      upgradeSelectionInFlight={upgradeSelectionInFlight}
+      upgradeSelectionError={upgradeSelectionError}
       onApplyManualQuantity={onApplyManualQuantity}
       onClearManualQuantity={onClearManualQuantity}
       onExcludeLine={onExcludeLine}
       onRestoreExcludedLine={onRestoreExcludedLine}
       onHideLine={onHideLine}
       onRestoreVisibility={onRestoreVisibility}
+      onSetUpgradeSelected={onSetUpgradeSelected}
       estimateSettingsSaveInFlight={estimateSettingsSaveInFlight}
       estimateSettingsSaveError={estimateSettingsSaveError}
       onToggleEstimateDisplaySetting={onToggleEstimateDisplaySetting}

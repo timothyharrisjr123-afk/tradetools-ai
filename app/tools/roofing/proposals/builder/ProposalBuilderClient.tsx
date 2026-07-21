@@ -61,6 +61,7 @@ import {
   updateDraftSelectedOption,
   type ProposalDraftGraph,
 } from "@/app/lib/proposalRecordStore";
+import { upsertUpgradeChoiceSelection } from "@/app/lib/proposalUpgradeChoiceStore";
 import {
   bodyMarkdownChanged,
 } from "@/app/lib/proposalPageContentEditing";
@@ -209,6 +210,9 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
   const [visibilityInFlight, setVisibilityInFlight] = useState(false);
   const [visibilityError, setVisibilityError] = useState<string | null>(null);
   const visibilityInFlightRef = useRef(false);
+  const [upgradeSelectionInFlight, setUpgradeSelectionInFlight] = useState(false);
+  const [upgradeSelectionError, setUpgradeSelectionError] = useState<string | null>(null);
+  const upgradeSelectionInFlightRef = useRef(false);
   const pageVisibilityToggleInFlightRef = useRef(false);
   const [estimateSettingsSaveInFlight, setEstimateSettingsSaveInFlight] = useState(false);
   const [estimateSettingsSaveError, setEstimateSettingsSaveError] = useState<string | null>(null);
@@ -1250,6 +1254,88 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
     ]
   );
 
+  const handleSetUpgradeSelected = useCallback(
+    async (templateItemId: string, selected: boolean) => {
+      if (!hasPersistedProposalParam || !persistedGraph || !proposalIdParam) {
+        throw new ProposalRecordStoreError(
+          "Upgrade selection requires a saved proposal draft."
+        );
+      }
+      const runtimeOptionId = resolveRuntimeOptionIdFromTemplateOptionId(
+        persistedGraph,
+        effectiveSelectedOptionId
+      );
+      if (!runtimeOptionId) {
+        throw new ProposalRecordStoreError(
+          "Selected option is not available on this proposal draft."
+        );
+      }
+      if (
+        upgradeSelectionInFlightRef.current ||
+        manualQuantityInFlightRef.current ||
+        excludeInFlightRef.current ||
+        visibilityInFlightRef.current
+      ) {
+        throw new ProposalRecordStoreError("Upgrade selection already in progress.");
+      }
+
+      upgradeSelectionInFlightRef.current = true;
+      setUpgradeSelectionInFlight(true);
+      setUpgradeSelectionError(null);
+      const measurementDisplay = measurementHandoff
+        ? formatProposalQuantitiesDisplay(measurementHandoff.quantities)
+        : null;
+
+      try {
+        await upsertUpgradeChoiceSelection(
+          companyId,
+          runtimeOptionId,
+          templateItemId,
+          selected ? "selected" : "not_selected"
+        );
+        const graph = await refreshDraftPricing(companyId, proposalIdParam.trim(), {
+          quantity_context: {
+            measurementHandoff,
+            quantityMap: measurementQuantityMap,
+          },
+          measurement_record_id: selectedMeasurementId,
+          measurement_quantities_display:
+            measurementDisplay && measurementDisplay !== "—" ? measurementDisplay : null,
+        });
+        if (!graph) throw new Error("Could not refresh draft pricing.");
+        setPersistedGraph(graph);
+        setRefreshFeedback({
+          kind: "success",
+          message: selected
+            ? "Upgrade added. Pricing refreshed."
+            : "Upgrade removed. Pricing refreshed.",
+        });
+      } catch (err) {
+        const message =
+          err instanceof ProposalRecordStoreError
+            ? err.message
+            : err instanceof Error
+              ? err.message
+              : "Could not update upgrade selection.";
+        setUpgradeSelectionError(message);
+        throw err;
+      } finally {
+        upgradeSelectionInFlightRef.current = false;
+        setUpgradeSelectionInFlight(false);
+      }
+    },
+    [
+      companyId,
+      effectiveSelectedOptionId,
+      hasPersistedProposalParam,
+      measurementHandoff,
+      measurementQuantityMap,
+      persistedGraph,
+      proposalIdParam,
+      selectedMeasurementId,
+    ]
+  );
+
   const showStaleBanner =
     Boolean(adapterResult) &&
     (proposalPricingStale.stale || draftCatalogEconomicsStale.stale);
@@ -1850,6 +1936,8 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
               excludeError={excludeError}
               visibilityInFlight={visibilityInFlight}
               visibilityError={visibilityError}
+              upgradeSelectionInFlight={upgradeSelectionInFlight}
+              upgradeSelectionError={upgradeSelectionError}
               onApplyManualQuantity={
                 hasPersistedProposalParam && persistedGraph && !draftGraphError
                   ? handleApplyManualQuantity
@@ -1878,6 +1966,11 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
               onRestoreVisibility={
                 hasPersistedProposalParam && persistedGraph && !draftGraphError
                   ? handleRestoreVisibility
+                  : undefined
+              }
+              onSetUpgradeSelected={
+                hasPersistedProposalParam && persistedGraph && !draftGraphError
+                  ? handleSetUpgradeSelected
                   : undefined
               }
             />

@@ -143,9 +143,10 @@ describe("Builder estimate handoff (Block 4 / 4B / 4C)", () => {
     const included = body.indexOf("<ProposalBuilderWorkbenchReadyScopeZone");
     const totals = body.indexOf("<ProposalBuilderWorkbenchTotalsZone");
     const attention = body.indexOf("<ProposalBuilderWorkbenchAttentionZone");
+    const upgrades = body.indexOf("<ProposalBuilderWorkbenchUpgradesZone");
     assert.ok(surface > 0 && included > surface && totals > included);
     assert.ok(included > 0 && included < attention);
-    assert.doesNotMatch(body, /ProposalBuilderWorkbenchUpgradesZone/);
+    assert.ok(upgrades > attention);
   });
 
   test("9. Remove from proposal not primary; quiet More on included rows", () => {
@@ -216,10 +217,9 @@ describe("Builder estimate handoff (Block 4 / 4B / 4C)", () => {
     const estimate = read(
       "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchEstimateDocument.tsx"
     );
-    assert.doesNotMatch(estimate, /ProposalBuilderWorkbenchUpgradesZone/);
+    assert.match(estimate, /ProposalBuilderWorkbenchUpgradesZone/);
     assert.doesNotMatch(estimate, /later proposal editing pass/i);
     assert.doesNotMatch(estimate, /signing/i);
-    assert.match(estimate, /additive upgrades add to included estimate/i);
   });
 
   test("13. Builder package picker draft-option scoping preserved", () => {

@@ -58,6 +58,7 @@ type TemplatesSelectedWorkspaceProps = {
   savingSectionId: string | null;
   sectionSaveError: SectionSaveError | null;
   onAddItem: () => void;
+  onAddUpgradeItem: () => void;
   onReplaceItem: (templateItemId: string) => void;
   onRemoveItem: (templateItemId: string) => void;
   onFixIssues: () => void;
@@ -104,6 +105,7 @@ export default function TemplatesSelectedWorkspace({
   savingSectionId,
   sectionSaveError,
   onAddItem,
+  onAddUpgradeItem,
   onReplaceItem,
   onRemoveItem,
   onFixIssues,
@@ -137,6 +139,7 @@ export default function TemplatesSelectedWorkspace({
           onSelectPackage={onSelectPackage}
           busy={managerBusy}
           onAddItem={onAddItem}
+          onAddUpgradeItem={onAddUpgradeItem}
           onReplaceItem={onReplaceItem}
           onRemoveItem={onRemoveItem}
           onFixIssues={onFixIssues}

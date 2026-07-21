@@ -34,6 +34,7 @@ import ProposalBuilderWorkbenchEditOptionShell, {
 import ProposalBuilderWorkbenchPackageZone from "./ProposalBuilderWorkbenchPackageZone";
 import ProposalBuilderWorkbenchReadyScopeZone from "./ProposalBuilderWorkbenchReadyScopeZone";
 import ProposalBuilderWorkbenchTotalsZone from "./ProposalBuilderWorkbenchTotalsZone";
+import ProposalBuilderWorkbenchUpgradesZone from "./ProposalBuilderWorkbenchUpgradesZone";
 
 type ProposalBuilderWorkbenchEstimateDocumentProps = {
   graph: ProposalTemplateGraph;
@@ -51,7 +52,7 @@ type ProposalBuilderWorkbenchEstimateDocumentProps = {
   snapshotQuantityByTemplateItemId?: Record<string, ProposalSnapshotLineQuantityView> | null;
   pricingPolicyConfigured?: boolean;
   persistedPages?: ProposalPageRow[] | null;
-  estimateVisibilityNotice: string;
+  estimateVisibilityNotice: string | null;
   persistedDraftEnabled?: boolean;
   activeScopeDecisionsForOption?: ProposalScopeDecision[];
   manualQuantityInFlight?: boolean;
@@ -60,6 +61,8 @@ type ProposalBuilderWorkbenchEstimateDocumentProps = {
   excludeError?: string | null;
   visibilityInFlight?: boolean;
   visibilityError?: string | null;
+  upgradeSelectionInFlight?: boolean;
+  upgradeSelectionError?: string | null;
   onApplyManualQuantity?: (
     templateItemId: string,
     quantity: string,
@@ -70,6 +73,7 @@ type ProposalBuilderWorkbenchEstimateDocumentProps = {
   onRestoreExcludedLine?: (templateItemId: string) => Promise<void>;
   onHideLine?: (templateItemId: string) => Promise<void>;
   onRestoreVisibility?: (templateItemId: string) => Promise<void>;
+  onSetUpgradeSelected?: (templateItemId: string, selected: boolean) => Promise<void>;
   estimateSettingsSaveInFlight?: boolean;
   estimateSettingsSaveError?: string | null;
   onToggleEstimateDisplaySetting?: (
@@ -112,12 +116,15 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
   excludeError = null,
   visibilityInFlight = false,
   visibilityError = null,
+  upgradeSelectionInFlight = false,
+  upgradeSelectionError = null,
   onApplyManualQuantity,
   onClearManualQuantity,
   onExcludeLine,
   onRestoreExcludedLine,
   onHideLine,
   onRestoreVisibility,
+  onSetUpgradeSelected,
   estimateSettingsSaveInFlight = false,
   estimateSettingsSaveError = null,
   onToggleEstimateDisplaySetting,
@@ -148,7 +155,8 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
   });
 
   const { meta } = presentation;
-  const scopeEditInFlight = manualQuantityInFlight || excludeInFlight || visibilityInFlight;
+  const scopeEditInFlight =
+    manualQuantityInFlight || excludeInFlight || visibilityInFlight || upgradeSelectionInFlight;
 
   const [editPackageOpen, setEditPackageOpen] = useState(false);
   const [focusedTemplateItemId, setFocusedTemplateItemId] = useState<string | null>(null);
@@ -495,11 +503,21 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
           />
         </div>
 
-        {/*
-          Optional upgrades include/replace is unsupported — section hidden from main Builder path.
-          Upgrade quantity blockers merge into Finish estimate via the presenter.
-          Follow-up: additive upgrades add to included estimate; replacement upgrades replace base items.
-        */}
+        <ProposalBuilderWorkbenchUpgradesZone
+          zone={presentation.upgradesZone}
+          editingQuantityLineId={setQuantityLineId}
+          onStartSetQuantity={quantityEditingEnabled ? openSetQuantityForLine : undefined}
+          onCancelSetQuantity={closeSetQuantity}
+          onSaveQuantity={quantityEditingEnabled ? handleApplyManualQuantity : undefined}
+          quantitySaveInFlight={manualQuantityInFlight}
+          quantitySaveError={manualQuantityError}
+          manualQuantityEnabled={quantityEditingEnabled}
+          onSetUpgradeSelected={
+            persistedDraftEnabled ? onSetUpgradeSelected : undefined
+          }
+          selectionInFlight={upgradeSelectionInFlight}
+          selectionError={upgradeSelectionError}
+        />
       </div>
 
       <ProposalBuilderWorkbenchEditOptionShell

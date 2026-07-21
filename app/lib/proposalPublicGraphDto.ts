@@ -50,6 +50,10 @@ export type ProposalPublicGraphPageDto = {
 
 export type ProposalPublicLinePresentationGroup = "included" | "upgrade";
 
+export type ProposalPublicUpgradeSelectionState = "selected" | "not_selected";
+
+export type ProposalPublicUpgradeEffect = "additive" | "replacement";
+
 export type ProposalPublicGraphLineDto = {
   source_template_item_id: string | null;
   customer_name: string;
@@ -62,6 +66,10 @@ export type ProposalPublicGraphLineDto = {
   pricing_status: string;
   visible_to_customer: true;
   line_presentation_group: ProposalPublicLinePresentationGroup;
+  /** Customer-safe Upgrade Truth selection echo; null for non-upgrade lines. */
+  upgrade_selection_state: ProposalPublicUpgradeSelectionState | null;
+  /** Customer-safe upgrade effect when known; never includes internal costs. */
+  upgrade_effect: ProposalPublicUpgradeEffect | null;
 };
 
 export type ProposalPublicGraphOptionDto = {
@@ -122,16 +130,47 @@ function assertNoBuilderLabels(text: string | null | undefined): void {
   }
 }
 
+function isUpgradeRole(role: string | null | undefined): boolean {
+  const normalized = (role ?? "").trim().toLowerCase();
+  return normalized === "upgrade" || normalized === "optional_addon";
+}
+
+function normalizeUpgradeSelectionState(
+  value: string | null | undefined
+): ProposalPublicUpgradeSelectionState | null {
+  if (value === "selected" || value === "not_selected") return value;
+  return null;
+}
+
+function normalizeUpgradeEffect(
+  value: string | null | undefined
+): ProposalPublicUpgradeEffect | null {
+  if (value === "additive" || value === "replacement") return value;
+  return null;
+}
+
 function isPublicCustomerLine(line: {
   visible_to_customer: boolean;
   pricing_status: string;
+  role?: string | null;
+  upgrade_selection_state?: string | null;
 }): boolean {
-  return line.visible_to_customer === true && line.pricing_status !== "omitted";
+  if (line.visible_to_customer !== true || line.pricing_status === "omitted") {
+    return false;
+  }
+
+  const selection = normalizeUpgradeSelectionState(line.upgrade_selection_state);
+  // Upgrade-role lines appear only when selected — unselected must not surface
+  // as optional charged items on customer DTOs.
+  if (isUpgradeRole(line.role) || selection === "not_selected") {
+    return selection === "selected";
+  }
+
+  return true;
 }
 
 function resolveLinePresentationGroup(role: string | null | undefined): ProposalPublicLinePresentationGroup {
-  const normalized = (role ?? "").trim().toLowerCase();
-  if (normalized === "upgrade" || normalized === "optional_addon") {
+  if (isUpgradeRole(role)) {
     return "upgrade";
   }
   return "included";
@@ -141,6 +180,10 @@ function mapPublicLine(
   line: ProposalLineItemRow | ProposalSendFreezeOptionPersistPayload["line_items"][number]
 ): ProposalPublicGraphLineDto | null {
   if (!isPublicCustomerLine(line)) return null;
+
+  const presentationGroup = resolveLinePresentationGroup(line.role);
+  const selection = normalizeUpgradeSelectionState(line.upgrade_selection_state);
+  const effect = normalizeUpgradeEffect(line.upgrade_effect);
 
   const dto: ProposalPublicGraphLineDto = {
     source_template_item_id: line.source_template_item_id,
@@ -153,7 +196,10 @@ function mapPublicLine(
     customer_line_total_cents: line.customer_line_total_cents,
     pricing_status: line.pricing_status,
     visible_to_customer: true,
-    line_presentation_group: resolveLinePresentationGroup(line.role),
+    line_presentation_group: presentationGroup,
+    upgrade_selection_state:
+      presentationGroup === "upgrade" ? selection ?? "selected" : null,
+    upgrade_effect: presentationGroup === "upgrade" ? effect : null,
   };
 
   assertNoForbiddenKeys(dto as unknown as Record<string, unknown>, "line");

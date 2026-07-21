@@ -172,20 +172,33 @@ describe("Builder action clarity (Block 4D / 4E)", () => {
     assert.match(estimate, /onRemoveFromProposal=\{excludeEnabled \? handleExcludeLine/);
   });
 
-  test("11–12. Optional upgrades hidden from main Builder path; follow-up documented", () => {
+  test("11–12. Optional upgrades use additive selection chrome", () => {
     const estimate = read(
       "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchEstimateDocument.tsx"
     );
-    assert.doesNotMatch(estimate, /ProposalBuilderWorkbenchUpgradesZone/);
-    assert.doesNotMatch(estimate, /later proposal editing pass/i);
-    assert.doesNotMatch(estimate, /Add to proposal/);
-    assert.doesNotMatch(estimate, /Replace base/);
-    assert.match(estimate, /additive upgrades add to included estimate/i);
-    assert.match(estimate, /replacement upgrades replace base items/i);
+    assert.match(estimate, /ProposalBuilderWorkbenchUpgradesZone/);
 
     const presenter = read("app/lib/proposalBuilderWorkbenchEstimatePresenter.ts");
-    assert.match(presenter, /show: false/);
-    assert.match(presenter, /include\/replace unsupported/i);
+    assert.match(presenter, /show: hasTemplateUpgradeSections/);
+
+    const upgrades = read(
+      "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchUpgradesZone.tsx"
+    );
+    assert.match(upgrades, /Add to proposal/);
+    assert.match(upgrades, /Remove/);
+    assert.match(upgrades, /Replaces .* when selected/);
+    assert.doesNotMatch(upgrades, /Replace base/);
+
+    const client = read(
+      "app/tools/roofing/proposals/builder/ProposalBuilderClient.tsx"
+    );
+    const selectionHandler = client.slice(
+      client.indexOf("const handleSetUpgradeSelected"),
+      client.indexOf("const showStaleBanner")
+    );
+    assert.match(selectionHandler, /upsertUpgradeChoiceSelection/);
+    assert.match(selectionHandler, /refreshDraftPricing/);
+    assert.match(selectionHandler, /setPersistedGraph\(graph\)/);
   });
 
   test("13. No Hide from customer on estimate action path", () => {
@@ -447,7 +460,7 @@ describe("Builder action clarity (Block 4D / 4E)", () => {
     assert.match(constants, /minmax\(0,1fr\)_auto/);
   });
 
-  test("28. Block 4G — inline editor shared grid; no side drawer; upgrades off path", () => {
+  test("28. Block 4G — inline editor shared grid; no side drawer", () => {
     const inline = read(
       "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchInlineQuantityEditor.tsx"
     );
@@ -462,7 +475,7 @@ describe("Builder action clarity (Block 4D / 4E)", () => {
       "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchEstimateDocument.tsx"
     );
     assert.doesNotMatch(estimate, /ProposalBuilderWorkbenchSettingsEntry/);
-    assert.doesNotMatch(estimate, /ProposalBuilderWorkbenchUpgradesZone/);
+    assert.match(estimate, /ProposalBuilderWorkbenchUpgradesZone/);
     assert.doesNotMatch(estimate, /ProposalBuilderWorkbenchSetQuantityPanel/);
   });
 

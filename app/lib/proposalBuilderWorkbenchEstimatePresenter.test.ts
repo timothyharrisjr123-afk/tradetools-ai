@@ -15,6 +15,7 @@ import {
   WORKBENCH_LINE_INCLUDED_LABEL,
   WORKBENCH_SCOPE_REVIEW_ROW_HELPER,
   WORKBENCH_TOTALS_INCOMPLETE_COPY,
+  WORKBENCH_UPGRADES_EMPTY_COPY,
   buildProposalWorkbenchEstimatePresentation,
   formatContractorEstimateQtyLabel,
   formatContractorEstimateUnitLabel,
@@ -485,14 +486,20 @@ describe("buildProposalWorkbenchEstimatePresentation", () => {
     assert.equal(result.meta.attentionLineCount, 2);
   });
 
-  test("upgrade_group sections isolated into upgradesZone data (UI show=false)", () => {
+  test("upgrade_group sections split available upgrade truth into visible zone", () => {
     const result = buildProposalWorkbenchEstimatePresentation(buildInput());
 
-    assert.equal(result.upgradesZone.show, false);
+    assert.equal(result.upgradesZone.show, true);
     assert.equal(result.upgradesZone.hasTemplateUpgradeSections, true);
     assert.equal(result.upgradesZone.sections.length, 1);
     assert.equal(result.upgradesZone.sections[0]?.title, "Premium upgrades");
     assert.equal(result.upgradesZone.sections[0]?.lines[0]?.amountLabel, "$25.00");
+    assert.equal(
+      result.upgradesZone.availableSections[0]?.lines[0]?.upgradeSelectionState,
+      "not_selected"
+    );
+    assert.equal(result.upgradesZone.availableCount, 1);
+    assert.equal(result.upgradesZone.selectedCount, 0);
     assert.equal(
       result.readyScope.sections.every((sec) =>
         sec.lines.every((line) => line.templateItemId !== "line-upgrade")
@@ -500,6 +507,31 @@ describe("buildProposalWorkbenchEstimatePresentation", () => {
       true
     );
     assert.equal(result.meta.upgradeLineCount, 1);
+  });
+
+  test("persisted upgrade selection echo wins over live scope fallback", () => {
+    const input = buildInput();
+    input.optionCustomerView = optionCustomerView({
+      "line-priced": lineView("line-priced", "priced"),
+      "line-upgrade": lineView("line-upgrade", "priced", {
+        customerLinePriceCents: 2_500,
+        upgradeSelectionStateEcho: "selected",
+        upgradeScope: {
+          selectionState: "not_selected",
+          effect: "additive",
+          replacesTemplateItemId: null,
+        },
+      }),
+    });
+
+    const result = buildProposalWorkbenchEstimatePresentation(input);
+
+    assert.equal(result.upgradesZone.selectedCount, 1);
+    assert.equal(result.upgradesZone.availableCount, 0);
+    assert.equal(
+      result.upgradesZone.selectedSections[0]?.lines[0]?.upgradeSelectionState,
+      "selected"
+    );
   });
 
   test("no blockers mixed into readyScope", () => {
@@ -692,10 +724,10 @@ describe("buildProposalWorkbenchEstimatePresentation", () => {
       })
     );
 
-    assert.equal(result.upgradesZone.show, false);
+    assert.equal(result.upgradesZone.show, true);
     assert.equal(result.upgradesZone.hasTemplateUpgradeSections, true);
     assert.equal(result.upgradesZone.isEmpty, true);
-    assert.equal(result.upgradesZone.emptyCopy, null);
+    assert.equal(result.upgradesZone.emptyCopy, WORKBENCH_UPGRADES_EMPTY_COPY);
     assert.equal(result.upgradesZone.sections[0]?.lines.length, 0);
   });
 
@@ -777,7 +809,7 @@ describe("buildProposalWorkbenchEstimatePresentation", () => {
       })
     );
 
-    assert.equal(result.upgradesZone.show, false);
+    assert.equal(result.upgradesZone.show, true);
     assert.equal(result.upgradesZone.sections[0]?.lines[0]?.attentionReasons.includes("needs_quantity"), true);
     assert.equal(result.upgradesZone.scopeReview.count, 1);
     assert.equal(result.needsAttention.scopeReview.show, true);

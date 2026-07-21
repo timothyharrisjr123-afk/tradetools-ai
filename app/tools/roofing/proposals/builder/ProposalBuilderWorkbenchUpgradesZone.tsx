@@ -28,15 +28,17 @@ type ProposalBuilderWorkbenchUpgradesZoneProps = {
   quantitySaveInFlight?: boolean;
   quantitySaveError?: string | null;
   manualQuantityEnabled?: boolean;
+  onSetUpgradeSelected?: (
+    templateItemId: string,
+    selected: boolean
+  ) => Promise<void>;
+  selectionInFlight?: boolean;
+  selectionError?: string | null;
 };
 
 /**
- * Optional upgrades — collapsed by default; quiet follow-up copy.
- * Include/replace is not supported by current scope decisions
- * (manual_quantity | excluded | visibility_override only) — no fake Add buttons.
- *
- * Follow-up (document only): additive upgrades should add to the included
- * estimate; replacement upgrades should replace equivalent base items.
+ * Optional upgrades — additive selection chrome for both additive and
+ * replacement effects. Replacement behavior is explained quietly per row.
  */
 export default function ProposalBuilderWorkbenchUpgradesZone({
   zone,
@@ -47,11 +49,11 @@ export default function ProposalBuilderWorkbenchUpgradesZone({
   quantitySaveInFlight = false,
   quantitySaveError = null,
   manualQuantityEnabled = false,
+  onSetUpgradeSelected,
+  selectionInFlight = false,
+  selectionError = null,
 }: ProposalBuilderWorkbenchUpgradesZoneProps) {
   if (!zone.show) return null;
-
-  const lines = zone.sections.flatMap((section) => section.lines);
-  const availableCount = lines.length;
 
   if (zone.isEmpty) {
     return (
@@ -91,7 +93,8 @@ export default function ProposalBuilderWorkbenchUpgradesZone({
               Optional upgrades
             </p>
             <p className="mt-0.5 text-[13px] text-slate-600">
-              {availableCount} available
+              {zone.selectedCount > 0 ? `${zone.selectedCount} selected · ` : ""}
+              {zone.availableCount} available
             </p>
           </div>
           <span className="shrink-0 text-[12px] font-medium text-blue-700 group-open:hidden">
@@ -103,14 +106,22 @@ export default function ProposalBuilderWorkbenchUpgradesZone({
         </summary>
 
         <div className={WORKBENCH_MODULE_INNER}>
-          <p
-            className="mb-2 text-[12px] leading-snug text-slate-500"
-            data-builder-upgrade-selection-follow-up
-          >
-            Upgrade selection will be handled in a later proposal editing pass.
-          </p>
-          <ul>
-            {lines.map((line) => {
+          {selectionError ? (
+            <p className="mb-3 text-[12px] font-medium text-red-700" role="alert">
+              {selectionError}
+            </p>
+          ) : null}
+          {[
+            { title: "Selected upgrades", sections: zone.selectedSections, selected: true },
+            { title: "Available upgrades", sections: zone.availableSections, selected: false },
+          ].map((group) =>
+            group.sections.length > 0 ? (
+              <div key={group.title} className="mb-4 last:mb-0">
+                <p className="mb-1 text-[12px] font-semibold uppercase tracking-wide text-slate-500">
+                  {group.title}
+                </p>
+                <ul>
+                  {group.sections.flatMap((section) => section.lines).map((line) => {
               const needsQuantity = isUpgradeLineScopeReviewEligible(line);
               const canSetQuantity =
                 manualQuantityEnabled &&
@@ -151,20 +162,48 @@ export default function ProposalBuilderWorkbenchUpgradesZone({
                       onSave={onSaveQuantity!}
                     />
                   ) : (
-                    <ProposalBuilderWorkbenchLineRow
-                      variant="scope"
-                      line={line}
-                      as="div"
-                      hideDetails
-                      hideAttentionBadges
-                      onEditQuantity={quantityAction?.onEdit}
-                      editQuantityLabel={quantityAction?.label}
-                    />
+                    <div className="flex items-center gap-3">
+                      <div className="min-w-0 flex-1">
+                        <ProposalBuilderWorkbenchLineRow
+                          variant="scope"
+                          line={line}
+                          as="div"
+                          hideDetails
+                          hideAttentionBadges
+                          onEditQuantity={quantityAction?.onEdit}
+                          editQuantityLabel={quantityAction?.label}
+                        />
+                        {line.upgradeEffect === "replacement" ? (
+                          <p className="px-3 pb-1 text-[11.5px] text-slate-500">
+                            Replaces {line.replacesLineName ?? "included item"} when selected.
+                          </p>
+                        ) : null}
+                      </div>
+                      {onSetUpgradeSelected ? (
+                        <button
+                          type="button"
+                          className="shrink-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-[12px] font-semibold text-blue-700 shadow-sm transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60"
+                          disabled={selectionInFlight}
+                          onClick={() =>
+                            void onSetUpgradeSelected(
+                              line.templateItemId,
+                              !group.selected
+                            ).catch(() => undefined)
+                          }
+                          data-builder-upgrade-selection-action
+                        >
+                          {group.selected ? "Remove" : "Add to proposal"}
+                        </button>
+                      ) : null}
+                    </div>
                   )}
                 </li>
               );
-            })}
-          </ul>
+                  })}
+                </ul>
+              </div>
+            ) : null
+          )}
         </div>
       </details>
     </section>

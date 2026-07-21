@@ -71,6 +71,8 @@ function baseDto(): ProposalPublicGraphDto {
             pricing_status: "priced",
             visible_to_customer: true,
             line_presentation_group: "included",
+            upgrade_selection_state: null,
+            upgrade_effect: null,
           },
         ],
       },

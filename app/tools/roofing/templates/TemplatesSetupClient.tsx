@@ -808,25 +808,44 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
     setSelectedPackageOptionId(optionId);
   }, []);
 
+  const openQuoteAddForKind = useCallback(
+    (preferredKind: "line_items" | "upgrade_group") => {
+      if (!selectedGraph || !selectedPackageOptionId || structureBusy || savingSectionId) return;
+      const choices = listCatalogTargetSectionsForOption(
+        selectedGraph,
+        selectedPackageOptionId,
+        preferredKind
+      );
+      if (choices.length === 0) {
+        setStructureError(
+          preferredKind === "upgrade_group"
+            ? "This package has no available-upgrades section yet."
+            : "This package has no included-work section that accepts Catalog items yet."
+        );
+        return;
+      }
+      if (choices.length === 1) {
+        handleOpenAddCatalogItem(choices[0].optionId, choices[0].sectionId);
+        return;
+      }
+      setAddSectionChoices(choices);
+    },
+    [
+      handleOpenAddCatalogItem,
+      savingSectionId,
+      selectedGraph,
+      selectedPackageOptionId,
+      structureBusy,
+    ]
+  );
+
   const handleQuoteAddItem = useCallback(() => {
-    if (!selectedGraph || !selectedPackageOptionId || structureBusy || savingSectionId) return;
-    const choices = listCatalogTargetSectionsForOption(selectedGraph, selectedPackageOptionId);
-    if (choices.length === 0) {
-      setStructureError("This package has no section that accepts Catalog items yet.");
-      return;
-    }
-    if (choices.length === 1) {
-      handleOpenAddCatalogItem(choices[0].optionId, choices[0].sectionId);
-      return;
-    }
-    setAddSectionChoices(choices);
-  }, [
-    handleOpenAddCatalogItem,
-    savingSectionId,
-    selectedGraph,
-    selectedPackageOptionId,
-    structureBusy,
-  ]);
+    openQuoteAddForKind("line_items");
+  }, [openQuoteAddForKind]);
+
+  const handleQuoteAddUpgradeItem = useCallback(() => {
+    openQuoteAddForKind("upgrade_group");
+  }, [openQuoteAddForKind]);
 
   const handleChooseAddSection = useCallback(
     (sectionId: string) => {
@@ -1132,6 +1151,7 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
                 savingSectionId={savingSectionId}
                 sectionSaveError={sectionSaveError}
                 onAddItem={handleQuoteAddItem}
+                onAddUpgradeItem={handleQuoteAddUpgradeItem}
                 onReplaceItem={handleOpenRelinkCatalogItem}
                 onRemoveItem={handleRequestRemoveItem}
                 onFixIssues={handleFixIssues}

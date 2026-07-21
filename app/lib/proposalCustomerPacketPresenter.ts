@@ -230,7 +230,10 @@ function splitSelectedOptionLines(option: ProposalPublicGraphOptionDto): {
 
   for (const line of option.line_items) {
     if (line.line_presentation_group === "upgrade") {
-      upgradeLines.push(line);
+      // Selected upgrades only — never surface available-but-unselected lines.
+      if (line.upgrade_selection_state === "selected") {
+        upgradeLines.push(line);
+      }
     } else {
       includedLines.push(line);
     }

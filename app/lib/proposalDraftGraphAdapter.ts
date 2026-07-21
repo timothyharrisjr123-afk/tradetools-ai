@@ -15,6 +15,10 @@ import { BUILDER_PREVIEW_ACTOR_ROLE, BUILDER_PREVIEW_PRICING_POLICY } from "@/ap
 import type { CustomerVisibility } from "@/app/lib/catalogTypes";
 import { PROPOSAL_LINE_CUSTOMER_FORBIDDEN_KEYS } from "@/app/lib/proposalLineSnapshotTypes";
 import type { GuardrailOutcome } from "@/app/lib/proposalPricingTypes";
+import {
+  isProposalUpgradeEffect,
+  isProposalUpgradeSelectionState,
+} from "@/app/lib/proposalUpgradeTruthTypes";
 import { PROPOSAL_SNAPSHOT_PRICING_STATUSES } from "@/app/lib/proposalSnapshotStatusMapper";
 import { buildProposalDocumentContextFromDraftGraph } from "@/app/lib/proposalDocumentContext";
 import type { ProposalDocumentContext } from "@/app/lib/proposalDocumentTokenTypes";
@@ -152,7 +156,21 @@ export function showOnCustomerDocumentForSnapshotLine(
   displayStatus: BuilderLineDisplayStatus
 ): boolean {
   if (displayStatus === "omitted") return false;
-  return line.visible_to_customer !== false;
+  if (line.visible_to_customer === false) return false;
+
+  const role = (line.role ?? "").trim().toLowerCase();
+  const isUpgradeRole = role === "upgrade" || role === "optional_addon";
+  const selection = line.upgrade_selection_state;
+  const hasUpgradeSelection =
+    selection === "selected" || selection === "not_selected";
+
+  // Unselected (or legacy-unknown) upgrade-role lines must not appear on
+  // customer Preview documents — totals already exclude them from pricing.
+  if (isUpgradeRole || hasUpgradeSelection) {
+    return selection === "selected";
+  }
+
+  return true;
 }
 
 function trimOrNull(value: string | null | undefined): string | null {
@@ -240,6 +258,13 @@ function buildLineCustomerView(line: ProposalLineItemRow): ProposalBuilderLineCu
     customerLinePriceCents,
     customerVisibility,
     showOnCustomerDocument,
+    upgradeSelectionStateEcho: isProposalUpgradeSelectionState(line.upgrade_selection_state)
+      ? line.upgrade_selection_state
+      : null,
+    upgradeEffectEcho: isProposalUpgradeEffect(line.upgrade_effect)
+      ? line.upgrade_effect
+      : null,
+    replacesTemplateItemIdEcho: trimOrNull(line.replaces_source_template_item_id),
   };
 }
 

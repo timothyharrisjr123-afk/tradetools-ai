@@ -45,7 +45,9 @@ describe("Templates Page — Reusable proposal setup landing", () => {
     assert.ok(!review.includes("Quote Setup Review"));
     assert.ok(!review.includes("data-templates-what-this-creates"));
     assert.ok(review.includes("selectedPackageOptionId"));
-    assert.ok(review.includes("buildIncludedGroups"));
+    assert.ok(review.includes("buildPreparedPackageScopePresentation"));
+    assert.ok(review.includes("scopeLabel={includedScopeLabel}"));
+    assert.ok(review.includes("TemplatesAvailableUpgradesManager"));
   });
 
   test("6–8. Add item discoverable; uses active Catalog picker; duplicates blocked", () => {
@@ -75,6 +77,11 @@ describe("Templates Page — Reusable proposal setup landing", () => {
     assert.ok(!included.includes("Change catalog link"));
     assert.ok(included.includes("data-templates-replace-item"));
     assert.ok(included.includes("data-templates-remove-from-template"));
+    assert.ok(included.includes("data-templates-included-mode"));
+    assert.ok(included.includes("Adjust included work"));
+    assert.ok(included.includes("Done adjusting"));
+    assert.ok(included.includes("data-templates-included-prepared-view"));
+    assert.ok(included.includes("data-templates-included-adjust-view"));
     assert.ok(included.includes("Adjust only if needed") || included.includes("TEMPLATES_INCLUDED_WORK_HINT"));
     assert.ok(removeModal.includes("TEMPLATE_REMOVE_CONFIRM_COPY"));
     assert.match(TEMPLATE_REMOVE_CONFIRM_COPY, /Catalog item will not be deleted/i);

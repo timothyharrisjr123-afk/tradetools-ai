@@ -10,6 +10,7 @@
 
 import { PROPOSAL_LINE_CUSTOMER_FORBIDDEN_KEYS } from "@/app/lib/proposalLineSnapshotTypes";
 import type { PricingPolicy } from "@/app/lib/proposalPricingTypes";
+import type { ProposalOptionUpgradeChoicePersistRow } from "@/app/lib/proposalUpgradeTruthTypes";
 import {
   buildInternalPolicyEchoJson,
   buildLineItemSnapshots,
@@ -89,6 +90,10 @@ export type DraftPricingRefreshLinePersistRow = {
   measurement_quantity_key: string | null;
   /** Internal adjusted-mode audit echo; draft persist only. */
   quantity_resolution_echo?: Record<string, unknown> | null;
+  /** Upgrade Truth line echoes (display convenience; choices table is truth). */
+  upgrade_selection_state?: "selected" | "not_selected" | null;
+  upgrade_effect?: "additive" | "replacement" | null;
+  replaces_source_template_item_id?: string | null;
 };
 
 export type DraftPricingRefreshOptionPricingFields = {
@@ -115,6 +120,12 @@ export type DraftPricingRefreshOptionPersistPayload = {
   pricing: DraftPricingRefreshOptionPricingFields;
   line_items: DraftPricingRefreshLinePersistRow[];
   internal_summary: DraftPricingRefreshInternalSummaryPersist | null;
+  /**
+   * Optional Upgrade Truth selections to upsert for this option.
+   * Refresh never deletes choices — it updates selection/effect for existing
+   * rows and inserts missing ones (initialized from template defaults upstream).
+   */
+  upgrade_choices: ProposalOptionUpgradeChoicePersistRow[];
 };
 
 export type DraftPricingRefreshMeasurementStamp = {
@@ -365,6 +376,9 @@ export function buildDraftPricingRefreshPersistPayload(
         visible_to_customer: built.visible_to_customer,
         measurement_quantity_key: built.measurement_quantity_key,
         quantity_resolution_echo: sourceLine?.quantity_resolution_echo ?? null,
+        upgrade_selection_state: built.upgrade_selection_state,
+        upgrade_effect: built.upgrade_effect,
+        replaces_source_template_item_id: built.replaces_source_template_item_id,
       };
       assertPersistLineRowCustomerSafe(row as unknown as Record<string, unknown>);
       return row;
@@ -403,6 +417,10 @@ export function buildDraftPricingRefreshPersistPayload(
       },
       line_items,
       internal_summary,
+      upgrade_choices:
+        instantiateInput.upgradeChoicesByTemplateOptionId?.[
+          optionPayload.source_template_option_id
+        ]?.map((choice) => ({ ...choice })) ?? [],
     });
   }
 
@@ -518,6 +536,31 @@ export async function persistDraftPricingRefreshSequential(
       if (summaryInsertError) {
         throw new ProposalDraftPricingRefreshPersistenceError(
           summaryInsertError.message ?? "Failed to insert internal summary."
+        );
+      }
+    }
+
+    // Upgrade choices are upserted, never deleted, by pricing refresh.
+    if ((option.upgrade_choices ?? []).length > 0) {
+      const { error: choicesUpsertError } = await supabase
+        .from("proposal_option_upgrade_choices")
+        .upsert(
+          (option.upgrade_choices ?? []).map((choice) => ({
+            company_id: companyId,
+            proposal_id: payload.proposal_id,
+            proposal_version_id: payload.proposal_version_id,
+            proposal_option_id: option.proposal_option_id,
+            source_template_item_id: choice.source_template_item_id,
+            selection_state: choice.selection_state,
+            upgrade_effect: choice.upgrade_effect,
+            replaces_source_template_item_id: choice.replaces_source_template_item_id,
+          })),
+          { onConflict: "company_id,proposal_option_id,source_template_item_id" }
+        );
+
+      if (choicesUpsertError) {
+        throw new ProposalDraftPricingRefreshPersistenceError(
+          choicesUpsertError.message ?? "Failed to upsert upgrade choices."
         );
       }
     }

@@ -463,9 +463,7 @@ describe("buildCustomerPreviewEstimatePresentation", () => {
     assert.doesNotMatch(json, /Choose starting package/i);
   });
 
-  test("Block 5 corrective — Preview UI must not surface optional-upgrade chrome while unsupported", () => {
-    // Presenter may still map upgrade_group lines for future use; Preview document UI
-    // must not render upgrade sections until customer upgrade selection is supported.
+  test("Block 5 corrective — Preview UI renders selected upgrades in estimate; no optional-choice chrome", () => {
     const estimateDoc = readFileSync(
       path.join(
         process.cwd(),
@@ -473,10 +471,30 @@ describe("buildCustomerPreviewEstimatePresentation", () => {
       ),
       "utf8"
     );
+    assert.match(estimateDoc, /upgradeSections/);
     assert.doesNotMatch(estimateDoc, /CUSTOMER_PREVIEW_ESTIMATE_UPGRADES/);
     assert.doesNotMatch(estimateDoc, /CUSTOMER_PREVIEW_ESTIMATE_PARTIAL_PRICING_NOTE/);
     assert.doesNotMatch(estimateDoc, /Additional line items may appear/);
-    assert.doesNotMatch(estimateDoc, /upgradeSections/);
+    assert.doesNotMatch(estimateDoc, /available during the approval/i);
+    assert.doesNotMatch(estimateDoc, /Optional add-ons/i);
+  });
+
+  test("unselected upgrades (showOnCustomerDocument false) are excluded from upgradeSections", () => {
+    const input = buildInput({
+      optionCustomerView: {
+        ...buildInput().optionCustomerView!,
+        lineByTemplateItemId: {
+          "line-priced": lineView("line-priced", "priced"),
+          "line-upgrade": lineView("line-upgrade", "priced", {
+            customerLinePriceCents: 2_500,
+            showOnCustomerDocument: false,
+          }),
+        },
+      },
+    });
+    const result = buildCustomerPreviewEstimatePresentation(input);
+    assert.equal(result.upgradeSections.length, 0);
+    assert.equal(result.scopeSections.length, 1);
   });
 
   test("missing catalog row excluded and counted", () => {

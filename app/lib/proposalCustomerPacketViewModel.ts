@@ -146,7 +146,7 @@ export const PROPOSAL_CUSTOMER_PACKET_CURRENT_TOTAL_SUMMARY =
   "Based on the current package shown above.";
 
 export const PROPOSAL_CUSTOMER_PACKET_TOTAL_FOOTNOTE =
-  "Package and add-on selection will be available in a later approval step.";
+  "Based on the package and any selected upgrades shown above.";
 
 export const PROPOSAL_CUSTOMER_PACKET_INCLUDES_LABEL = "Includes";
 
@@ -189,14 +189,16 @@ export const PROPOSAL_CUSTOMER_PACKET_COMPARE_INTRO =
 
 export const PROPOSAL_CUSTOMER_PACKET_CURRENT_BADGE = "Current";
 
+export const PROPOSAL_CUSTOMER_PACKET_UPGRADES_HEADING = "Selected upgrades";
+
 export const PROPOSAL_CUSTOMER_PACKET_UPGRADES_INTRO_LINE1 =
-  "Available upgrades your contractor included for review.";
+  "Upgrades selected for this proposal.";
 
 export const PROPOSAL_CUSTOMER_PACKET_UPGRADES_INTRO_LINE2 =
-  "These are optional and not required for the current package.";
+  "These are included in the current proposal total.";
 
 export const PROPOSAL_CUSTOMER_PACKET_UPGRADES_FOOTNOTE =
-  "Add-ons will be available during the approval step.";
+  "Selected upgrades are part of this proposal as shown.";
 
 export const PROPOSAL_CUSTOMER_PACKET_DETAILS_HEADING = "Proposal details";
 

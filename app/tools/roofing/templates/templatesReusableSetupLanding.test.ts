@@ -7,7 +7,10 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, test } from "node:test";
 import {
+  TEMPLATES_AVAILABLE_UPGRADES_HEADING,
+  TEMPLATES_AVAILABLE_UPGRADES_HINT,
   TEMPLATES_INCLUDED_WORK_HEADING,
+  TEMPLATES_INCLUDED_WORK_HINT,
   TEMPLATES_NEXT_USE_COPY,
   TEMPLATES_PROPOSAL_CONTENT_HEADING,
   TEMPLATES_REUSABLE_SETUP_EYEBROW,
@@ -42,15 +45,41 @@ describe("Template Flow V1 — reusable setup landing", () => {
 
   test("included work is prepared summary with secondary adjust actions", () => {
     const included = read("TemplatesIncludedItemsManager.tsx");
+    const presenter = read("templatesIncludedWorkPresentation.ts");
     assert.equal(TEMPLATES_INCLUDED_WORK_HEADING, "Included work");
+    assert.match(TEMPLATES_INCLUDED_WORK_HINT, /Prepared scope/i);
+    assert.doesNotMatch(TEMPLATES_INCLUDED_WORK_HINT, /Catalog link|measurement source/i);
     assert.ok(included.includes("data-templates-included-work"));
     assert.ok(
       included.includes("TEMPLATES_INCLUDED_WORK_HINT") ||
         included.includes("Adjust only if needed")
     );
+    assert.ok(included.includes("data-templates-included-prepared-view"));
+    assert.ok(included.includes("Adjust included work"));
+    assert.ok(included.includes("Done adjusting"));
+    assert.ok(included.includes("data-templates-included-adjust-view"));
     assert.ok(included.includes("data-templates-add-item"));
     assert.ok(included.includes("data-templates-replace-item"));
-    assert.ok(included.includes("group-hover:opacity-100"));
+    assert.ok(included.includes("data-templates-remove-from-template"));
+    assert.ok(presenter.includes("buildPreparedIncludedWorkPresentation"));
+    assert.ok(presenter.includes("buildPreparedAvailableUpgradesPresentation"));
+    assert.ok(!presenter.includes('"optional_upgrades"'));
+    assert.equal(included.includes("catalogUnitLabel"), false);
+    assert.equal(included.includes("measurementLabel"), false);
+    assert.equal(included.includes("proposalVisibility"), false);
+  });
+
+  test("available upgrades are a separate surface from included work", () => {
+    const review = read("TemplatesQuoteSetupReview.tsx");
+    const upgrades = read("TemplatesAvailableUpgradesManager.tsx");
+    assert.equal(TEMPLATES_AVAILABLE_UPGRADES_HEADING, "Available upgrades");
+    assert.match(TEMPLATES_AVAILABLE_UPGRADES_HINT, /Available for selection on proposals/i);
+    assert.ok(review.includes("TemplatesAvailableUpgradesManager"));
+    assert.ok(review.includes("onAddUpgradeItem"));
+    assert.ok(upgrades.includes("data-templates-available-upgrades"));
+    assert.ok(upgrades.includes("Available for selection on proposals"));
+    assert.doesNotMatch(upgrades, /Included in \$\{|Included in \{/);
+    assert.ok(!upgrades.includes("Included in "));
   });
 
   test("proposal content summary is on the main landing", () => {

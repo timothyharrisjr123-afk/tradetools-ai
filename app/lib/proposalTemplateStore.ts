@@ -29,6 +29,10 @@ import type {
   TemplateQuantityRule,
 } from "@/app/lib/proposalTemplateTypes";
 import { TEMPLATE_QUANTITY_MODES } from "@/app/lib/proposalTemplateTypes";
+import {
+  isProposalUpgradeEffect,
+  type ProposalUpgradeEffect,
+} from "@/app/lib/proposalUpgradeTruthTypes";
 
 // ---------------------------------------------------------------------------
 // Graph (store-only)
@@ -107,6 +111,9 @@ export type ProposalTemplateItemRow = {
   description_override?: string | null;
   customer_visibility: string;
   quantity_rule?: JsonObject | null;
+  upgrade_effect?: string | null;
+  replaces_template_item_id?: string | null;
+  default_selected?: boolean | null;
   sort_order?: number | null;
   metadata: JsonObject;
   created_at: string;
@@ -132,7 +139,7 @@ export const PROPOSAL_TEMPLATE_SECTION_SELECT_COLUMNS =
   "id, company_id, template_id, option_id, kind, name, customer_title, customer_visibility, sort_order, content, metadata, created_at, updated_at";
 
 export const PROPOSAL_TEMPLATE_ITEM_SELECT_COLUMNS =
-  "id, company_id, template_id, option_id, section_id, catalog_item_id, catalog_seed_key, item_role, customer_name_override, description_override, customer_visibility, quantity_rule, sort_order, metadata, created_at, updated_at";
+  "id, company_id, template_id, option_id, section_id, catalog_item_id, catalog_seed_key, item_role, customer_name_override, description_override, customer_visibility, quantity_rule, upgrade_effect, replaces_template_item_id, default_selected, sort_order, metadata, created_at, updated_at";
 
 const TEMPLATE_QUANTITY_MODE_SET = new Set<string>(TEMPLATE_QUANTITY_MODES);
 
@@ -246,6 +253,10 @@ function normalizeTemplateQuantityRule(value: unknown): TemplateQuantityRule | n
     rule.allow_manual_override = normalizeBoolean(obj.allow_manual_override, false);
   }
   return rule;
+}
+
+function normalizeUpgradeEffect(value: unknown): ProposalUpgradeEffect | null {
+  return isProposalUpgradeEffect(value) ? value : null;
 }
 
 function hasCatalogReference(
@@ -367,6 +378,12 @@ export function rowToProposalTemplateItem(row: ProposalTemplateItemRow): Proposa
     customer_visibility:
       row.customer_visibility as ProposalTemplateItemCustomerVisibility,
     quantity_rule: normalizeTemplateQuantityRule(row.quantity_rule),
+    upgrade_effect: normalizeUpgradeEffect(row.upgrade_effect),
+    replaces_template_item_id:
+      row.replaces_template_item_id && isUuidLike(row.replaces_template_item_id)
+        ? row.replaces_template_item_id
+        : null,
+    default_selected: row.default_selected === true,
     sort_order: normalizeNullableInteger(row.sort_order),
     metadata: normalizeJsonObject(row.metadata) ?? {},
     created_at: row.created_at,
@@ -559,6 +576,20 @@ function proposalTemplateItemDraftToRowFields(
     customer_visibility:
       draft.customer_visibility ?? (mode === "insert" ? "inherit_catalog" : undefined),
     quantity_rule: draft.quantity_rule !== undefined ? quantityRuleValue : undefined,
+    upgrade_effect:
+      draft.upgrade_effect !== undefined
+        ? normalizeUpgradeEffect(draft.upgrade_effect)
+        : undefined,
+    replaces_template_item_id:
+      draft.replaces_template_item_id !== undefined
+        ? draft.replaces_template_item_id && isUuidLike(draft.replaces_template_item_id)
+          ? draft.replaces_template_item_id
+          : null
+        : undefined,
+    default_selected:
+      draft.default_selected !== undefined
+        ? draft.default_selected === true
+        : undefined,
     sort_order:
       draft.sort_order !== undefined
         ? normalizeNullableInteger(draft.sort_order)

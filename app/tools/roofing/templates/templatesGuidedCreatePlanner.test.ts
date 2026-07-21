@@ -69,6 +69,29 @@ describe("templatesGuidedCreatePlanner", () => {
       ["Standard", "Enhanced", "Premium"]
     );
     assert.ok(plan.contentAreas.some((row) => /upgrade/i.test(row.label)));
+
+    const upgradesFor = (name: string) => {
+      const option = plan.definition.options?.find((row) => row.name === name);
+      return (
+        option?.sections?.find((section) => section.kind === "upgrade_group")?.items ?? []
+      );
+    };
+    assert.deepEqual(upgradesFor("Standard"), []);
+    assert.equal(upgradesFor("Enhanced").length, 1);
+    assert.equal(upgradesFor("Enhanced")[0]?.catalog_seed_key, "roofing.roof_vent");
+    assert.equal(upgradesFor("Enhanced")[0]?.upgrade_effect, "additive");
+    assert.equal(upgradesFor("Premium").length, 1);
+    assert.equal(upgradesFor("Premium")[0]?.catalog_seed_key, "roofing.roof_vent");
+
+    const enhancedLines =
+      plan.definition.options
+        ?.find((row) => row.name === "Enhanced")
+        ?.sections?.find((section) => section.kind === "line_items")?.items ?? [];
+    assert.equal(
+      enhancedLines.find((item) => item.catalog_seed_key === "roofing.synthetic_underlayment")
+        ?.customer_name_override,
+      "Enhanced underlayment"
+    );
   });
 
   test("package model choice copy stays contractor-facing", () => {

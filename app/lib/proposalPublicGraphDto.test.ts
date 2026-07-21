@@ -292,6 +292,8 @@ describe("buildProposalPublicGraphDto", () => {
             source_template_item_id: "21212121-2121-4212-8212-212121212121",
             customer_name: "Optional vent",
             role: "optional_addon",
+            upgrade_selection_state: "selected",
+            upgrade_effect: "additive",
             sort_order: 3,
           },
         ],
@@ -301,6 +303,62 @@ describe("buildProposalPublicGraphDto", () => {
 
     const groups = dto.options[0]!.line_items.map((line) => line.line_presentation_group);
     assert.deepEqual(groups, ["included", "upgrade"]);
+    assert.equal(dto.options[0]!.line_items[0]!.upgrade_selection_state, null);
+    assert.equal(dto.options[0]!.line_items[1]!.upgrade_selection_state, "selected");
+    assert.equal(dto.options[0]!.line_items[1]!.upgrade_effect, "additive");
+  });
+
+  test("public DTO excludes unselected upgrade-role lines", () => {
+    const graph = draftGraph();
+    const dto = buildProposalPublicGraphDto(
+      {
+        ...graph,
+        lineItems: [
+          {
+            ...graph.lineItems[0]!,
+            customer_name: "Included item",
+            role: null,
+          },
+          {
+            ...graph.lineItems[0]!,
+            id: "20202020-2020-4202-8202-202020202020",
+            source_template_item_id: "21212121-2121-4212-8212-212121212121",
+            customer_name: "Unselected vent",
+            role: "upgrade",
+            upgrade_selection_state: "not_selected",
+            upgrade_effect: "additive",
+            sort_order: 3,
+          },
+        ],
+      },
+      TEMPLATE_OPT_A
+    );
+
+    const names = dto.options[0]!.line_items.map((line) => line.customer_name);
+    assert.deepEqual(names, ["Included item"]);
+  });
+
+  test("public DTO excludes upgrade-role lines with null selection", () => {
+    const graph = draftGraph();
+    const dto = buildProposalPublicGraphDto(
+      {
+        ...graph,
+        lineItems: [
+          {
+            ...graph.lineItems[0]!,
+            id: "20202020-2020-4202-8202-202020202020",
+            source_template_item_id: "21212121-2121-4212-8212-212121212121",
+            customer_name: "Legacy upgrade",
+            role: "upgrade",
+            upgrade_selection_state: null,
+            sort_order: 3,
+          },
+        ],
+      },
+      TEMPLATE_OPT_A
+    );
+
+    assert.equal(dto.options[0]!.line_items.length, 0);
   });
 
   test("works from send-freeze graph-like payload", () => {

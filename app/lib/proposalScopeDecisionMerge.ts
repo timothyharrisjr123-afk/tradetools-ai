@@ -32,6 +32,11 @@ import {
   type ProposalScopeDecision,
   type ProposalScopeDecisionType,
 } from "@/app/lib/proposalScopeDecisionTypes";
+import {
+  resolveOptionUpgradeChoiceRows,
+  upgradeLineEchoesFromPricingLine,
+} from "@/app/lib/proposalUpgradeTruth";
+import type { ProposalOptionUpgradeChoicePersistRow } from "@/app/lib/proposalUpgradeTruthTypes";
 
 // ---------------------------------------------------------------------------
 // Merge report
@@ -394,6 +399,11 @@ export type BuildDraftInstantiateInputWithScopeDecisionsParams = {
   selectedTemplateOptionId?: string | null;
   computedAt?: string;
   scopeDecisionsByTemplateOptionId: Record<string, ProposalScopeDecision[]>;
+  /** Explicit persisted upgrade selections keyed by template option id (refresh path). */
+  upgradeChoicesByTemplateOptionId?: Record<
+    string,
+    ProposalOptionUpgradeChoicePersistRow[]
+  > | null;
 };
 
 export function buildDraftInstantiateInputWithScopeDecisions(
@@ -411,6 +421,10 @@ export function buildDraftInstantiateInputWithScopeDecisions(
   const actorRole = params.preview.actorRole;
   const optionPricing: OptionPricingSnapshotInput[] = [];
   const lineItemsByTemplateOptionId: Record<string, LineItemSnapshotInput[]> = {};
+  const upgradeChoicesByTemplateOptionId: Record<
+    string,
+    ProposalOptionUpgradeChoicePersistRow[]
+  > = {};
   const internalSummaryByTemplateOptionId: Record<
     string,
     {
@@ -428,24 +442,15 @@ export function buildDraftInstantiateInputWithScopeDecisions(
     const optionDecisions = params.scopeDecisionsByTemplateOptionId[optionId] ?? [];
     const optionHasActiveDecisions = optionDecisions.some((d) => d.active);
 
-    if (!optionHasActiveDecisions) {
-      optionPricing.push({
-        source_template_option_id: optionId,
-        name: templateOption.name,
-        customer_label: templateOption.customer_label ?? null,
-        sort_order: templateOption.sort_order ?? 0,
-        is_default: templateOption.is_default ?? false,
-        visible_to_customer: templateOption.visible_to_customer ?? true,
-        customer_subtotal_cents: optionPreview.customer.customerSubtotalCents,
-        discount_cents: optionPreview.customer.discountCents,
-        sales_tax_cents: optionPreview.customer.salesTaxCents,
-        customer_total_cents: optionPreview.customer.customerTotalCents,
-        pricing_complete: optionPreview.customer.pricingComplete,
-        blocking_line_count: optionPreview.status.blockingLineCount,
-        guardrail_outcome: optionPreview.status.guardrailOutcome,
-        is_selected: params.preview.selectedOptionId === optionId,
-      });
+    const explicitUpgradeChoices = params.upgradeChoicesByTemplateOptionId?.[optionId] ?? null;
+    const resolvedUpgrades = resolveOptionUpgradeChoiceRows({
+      graph: params.graph,
+      optionId,
+      explicit: explicitUpgradeChoices,
+    });
+    upgradeChoicesByTemplateOptionId[optionId] = resolvedUpgrades.rows;
 
+    if (!optionHasActiveDecisions) {
       const mappedInput = mapProposalPricingInput({
         optionId,
         policy: params.policy,
@@ -453,11 +458,22 @@ export function buildDraftInstantiateInputWithScopeDecisions(
         graph: params.graph,
         catalogItems: catalogById,
         quantityContext: params.quantityContext,
+        upgradeChoicesByTemplateItemId: resolvedUpgrades.choicesByTemplateItemId,
       });
 
+      // Preview totals assume template-default selections; explicit persisted
+      // choices require a reprice so totals honor the stored selections.
+      const repricedOption = explicitUpgradeChoices
+        ? resolveProposalPricing(mappedInput).options[0]
+        : null;
+
+      let blockingLineCount = 0;
       const lineInputs: LineItemSnapshotInput[] = [];
       for (const line of mappedInput.lines) {
         const priced = priceProposalLine(line, params.policy);
+        if (isBlockingLineStatus(priced.status)) {
+          blockingLineCount += 1;
+        }
         const templateItem = params.graph.items.find((item) => item.id === line.templateItemId);
         if (!templateItem) continue;
 
@@ -479,6 +495,7 @@ export function buildDraftInstantiateInputWithScopeDecisions(
 
         const previewLine = optionPreview.customer.lineByTemplateItemId[line.templateItemId];
         const showPrice = previewLine?.displayStatus === "priced";
+        const upgradeEchoes = upgradeLineEchoesFromPricingLine(line);
 
         lineInputs.push(
           templateItemToLineInput(templateItem, {
@@ -493,15 +510,55 @@ export function buildDraftInstantiateInputWithScopeDecisions(
             customerLineTotalCents: showPrice ? priced.linePriceCents : null,
             hiddenButInCalc: line.hiddenButInCalc === true,
             quantityResolutionEcho,
+            upgradeSelectionState: upgradeEchoes.upgradeSelectionState,
+            upgradeEffect: upgradeEchoes.upgradeEffect,
+            replacesSourceTemplateItemId: upgradeEchoes.replacesSourceTemplateItemId,
           })
         );
       }
       lineItemsByTemplateOptionId[optionId] = lineInputs;
-      internalSummaryByTemplateOptionId[optionId] = {
-        internal_cost_cents: optionPreview.internal.internalCostCents,
-        internal_profit_cents: optionPreview.internal.internalProfitCents,
-        effective_margin_pct: optionPreview.internal.effectiveMarginPct,
-      };
+      internalSummaryByTemplateOptionId[optionId] = repricedOption
+        ? {
+            internal_cost_cents: repricedOption.internalCostCents,
+            internal_profit_cents: repricedOption.internalProfitCents,
+            effective_margin_pct: repricedOption.effectiveMarginPct,
+          }
+        : {
+            internal_cost_cents: optionPreview.internal.internalCostCents,
+            internal_profit_cents: optionPreview.internal.internalProfitCents,
+            effective_margin_pct: optionPreview.internal.effectiveMarginPct,
+          };
+
+      optionPricing.push({
+        source_template_option_id: optionId,
+        name: templateOption.name,
+        customer_label: templateOption.customer_label ?? null,
+        sort_order: templateOption.sort_order ?? 0,
+        is_default: templateOption.is_default ?? false,
+        visible_to_customer: templateOption.visible_to_customer ?? true,
+        customer_subtotal_cents: repricedOption
+          ? repricedOption.customerSubtotalCents
+          : optionPreview.customer.customerSubtotalCents,
+        discount_cents: repricedOption
+          ? repricedOption.discountCents
+          : optionPreview.customer.discountCents,
+        sales_tax_cents: repricedOption
+          ? repricedOption.salesTaxCents
+          : optionPreview.customer.salesTaxCents,
+        customer_total_cents: repricedOption
+          ? repricedOption.customerTotalCents
+          : optionPreview.customer.customerTotalCents,
+        pricing_complete: repricedOption
+          ? !repricedOption.hasBlockingIssues
+          : optionPreview.customer.pricingComplete,
+        blocking_line_count: repricedOption
+          ? blockingLineCount
+          : optionPreview.status.blockingLineCount,
+        guardrail_outcome: repricedOption
+          ? repricedOption.guardrail.outcome
+          : optionPreview.status.guardrailOutcome,
+        is_selected: params.preview.selectedOptionId === optionId,
+      });
       continue;
     }
 
@@ -512,6 +569,7 @@ export function buildDraftInstantiateInputWithScopeDecisions(
       graph: params.graph,
       catalogItems: catalogById,
       quantityContext: params.quantityContext,
+      upgradeChoicesByTemplateItemId: resolvedUpgrades.choicesByTemplateItemId,
     });
 
     const mergedLines = mergeScopeDecisionsIntoPricingLines({
@@ -571,6 +629,7 @@ export function buildDraftInstantiateInputWithScopeDecisions(
         catalogItemMissing: isMissingCatalogLine(line),
       });
       const showPrice = displayStatus === "priced";
+      const upgradeEchoes = upgradeLineEchoesFromPricingLine(line);
 
       lineInputs.push(
         templateItemToLineInput(templateItem, {
@@ -586,6 +645,9 @@ export function buildDraftInstantiateInputWithScopeDecisions(
           customerLineTotalCents: showPrice ? priced.linePriceCents : null,
           hiddenButInCalc: line.hiddenButInCalc === true,
           quantityResolutionEcho,
+          upgradeSelectionState: upgradeEchoes.upgradeSelectionState,
+          upgradeEffect: upgradeEchoes.upgradeEffect,
+          replacesSourceTemplateItemId: upgradeEchoes.replacesSourceTemplateItemId,
         })
       );
     }
@@ -631,6 +693,7 @@ export function buildDraftInstantiateInputWithScopeDecisions(
       optionPricing,
       lineItemsByTemplateOptionId,
       internalSummaryByTemplateOptionId,
+      upgradeChoicesByTemplateOptionId,
       selectedTemplateOptionId: params.selectedTemplateOptionId ?? params.preview.selectedOptionId,
       computedAt: params.computedAt,
     },

@@ -18,6 +18,7 @@ import {
   type DraftInstantiateInput,
   type DraftInstantiatePayload,
 } from "@/app/lib/proposalSnapshotBuilder";
+import type { ProposalOptionUpgradeChoicePersistRow } from "@/app/lib/proposalUpgradeTruthTypes";
 import type { getSupabaseClient } from "@/app/lib/supabaseClient";
 
 // ---------------------------------------------------------------------------
@@ -107,6 +108,10 @@ export type DraftProposalCreateLinePersistRow = {
   measurement_quantity_key: string | null;
   /** Internal adjusted-mode audit echo; draft persist only. */
   quantity_resolution_echo?: Record<string, unknown> | null;
+  /** Upgrade Truth line echoes (display convenience; choices table is truth). */
+  upgrade_selection_state?: "selected" | "not_selected" | null;
+  upgrade_effect?: "additive" | "replacement" | null;
+  replaces_source_template_item_id?: string | null;
 };
 
 export type DraftProposalCreateInternalSummaryPersist = {
@@ -134,6 +139,8 @@ export type DraftProposalCreateOptionPersistPayload = {
   selected_at: string | null;
   line_items: DraftProposalCreateLinePersistRow[];
   internal_summary: DraftProposalCreateInternalSummaryPersist | null;
+  /** Optional Upgrade Truth selections to insert for this option. */
+  upgrade_choices: ProposalOptionUpgradeChoicePersistRow[];
 };
 
 export type DraftProposalCreateEventPersist = {
@@ -744,6 +751,9 @@ export function buildDraftProposalCreatePersistPayload(
         visible_to_customer: built.visible_to_customer,
         measurement_quantity_key: built.measurement_quantity_key,
         quantity_resolution_echo: sourceLine?.quantity_resolution_echo ?? null,
+        upgrade_selection_state: built.upgrade_selection_state,
+        upgrade_effect: built.upgrade_effect,
+        replaces_source_template_item_id: built.replaces_source_template_item_id,
       };
       assertCreatePersistLineRowCustomerSafe(row as unknown as Record<string, unknown>);
       return row;
@@ -785,6 +795,10 @@ export function buildDraftProposalCreatePersistPayload(
       selected_at: optionPayload.selected_at,
       line_items,
       internal_summary,
+      upgrade_choices:
+        instantiateInput.upgradeChoicesByTemplateOptionId?.[
+          optionPayload.source_template_option_id
+        ]?.map((choice) => ({ ...choice })) ?? [],
     });
   }
 
@@ -993,11 +1007,39 @@ export async function persistDraftProposalCreateSequential(
         visible_to_customer: line.visible_to_customer,
         measurement_quantity_key: line.measurement_quantity_key,
         quantity_resolution_echo: line.quantity_resolution_echo ?? null,
+        upgrade_selection_state: line.upgrade_selection_state ?? null,
+        upgrade_effect: line.upgrade_effect ?? null,
+        replaces_source_template_item_id: line.replaces_source_template_item_id ?? null,
       });
 
       if (lineError) {
         throw new ProposalDraftCreatePersistenceError(
           lineError.message ?? "Failed to insert line item."
+        );
+      }
+    }
+
+    if ((option.upgrade_choices ?? []).length > 0) {
+      const { error: choicesError } = await supabase
+        .from("proposal_option_upgrade_choices")
+        .insert(
+          (option.upgrade_choices ?? []).map((choice) => ({
+            company_id: companyId,
+            proposal_id: proposalId,
+            proposal_version_id: versionId,
+            proposal_option_id: runtimeOptionId,
+            source_template_item_id: choice.source_template_item_id,
+            selection_state: choice.selection_state,
+            upgrade_effect: choice.upgrade_effect,
+            replaces_source_template_item_id: choice.replaces_source_template_item_id,
+            created_by: payload.created_by,
+            updated_by: payload.created_by,
+          }))
+        );
+
+      if (choicesError) {
+        throw new ProposalDraftCreatePersistenceError(
+          choicesError.message ?? "Failed to insert upgrade choices."
         );
       }
     }

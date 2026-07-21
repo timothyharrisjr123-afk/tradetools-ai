@@ -128,10 +128,14 @@ export type PricingTaxInput = {
 
 /**
  * Upgrades scoped to a parent option (Roofr: upgrade associated with option, not global).
+ * Selection and effect are first-class; absence of selection means do not contribute.
  */
 export type UpgradeScopeRef = {
   parentOptionId: string;
   isSelectedByDefault?: boolean;
+  selectionState?: "selected" | "not_selected" | "legacy_unknown" | null;
+  effect?: "additive" | "replacement" | null;
+  replacesTemplateItemId?: string | null;
 };
 
 /** Visibility for pricing display — extends catalog CustomerVisibility with calc-but-hidden flag. */
@@ -168,6 +172,8 @@ export type PricingLineInput = {
   tax?: PricingTaxInput | null;
   upgradeScope?: UpgradeScopeRef | null;
   hiddenButInCalc?: boolean;
+  /** True when a selected replacement upgrade suppresses this base line's contribution. */
+  suppressedByReplacement?: boolean;
 };
 
 /** Full pricing request for one template option. */

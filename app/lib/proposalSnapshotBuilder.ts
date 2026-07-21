@@ -31,6 +31,10 @@ import type {
   ProposalTemplateOption,
   ProposalTemplateSection,
 } from "@/app/lib/proposalTemplateTypes";
+import type {
+  ProposalOptionUpgradeChoicePersistRow,
+  ProposalUpgradeEffect,
+} from "@/app/lib/proposalUpgradeTruthTypes";
 import {
   assertConfiguredPolicyForPersistence,
   assertCustomerSafeLineRow,
@@ -106,6 +110,10 @@ export type ProposalLineItemSnapshotPayload = {
   pricing_status: ProposalPricingStatusSnapshot;
   visible_to_customer: boolean;
   measurement_quantity_key: string | null;
+  /** Upgrade Truth echoes — display convenience only; choices table is selection truth. */
+  upgrade_selection_state: "selected" | "not_selected" | null;
+  upgrade_effect: ProposalUpgradeEffect | null;
+  replaces_source_template_item_id: string | null;
 };
 
 export type ProposalInternalSummarySnapshotPayload = {
@@ -239,6 +247,10 @@ export type LineItemSnapshotInput = {
    * ProposalLineItemSnapshotPayload by buildLineItemSnapshots.
    */
   quantity_resolution_echo?: Record<string, unknown> | null;
+  /** Upgrade Truth echoes stamped from line.upgradeScope at snapshot-build time. */
+  upgrade_selection_state?: "selected" | "not_selected" | null;
+  upgrade_effect?: ProposalUpgradeEffect | null;
+  replaces_source_template_item_id?: string | null;
 };
 
 export type BuildLineItemSnapshotsInput = {
@@ -274,6 +286,10 @@ export type DraftInstantiateInput = {
   lineItemsByTemplateOptionId: Readonly<Record<string, readonly LineItemSnapshotInput[]>>;
   internalSummaryByTemplateOptionId: Readonly<
     Record<string, InternalSummarySnapshotInput | undefined>
+  >;
+  /** Upgrade Truth selection rows per template option (persisted to choices table). */
+  upgradeChoicesByTemplateOptionId?: Readonly<
+    Record<string, readonly ProposalOptionUpgradeChoicePersistRow[]>
   >;
   selectedTemplateOptionId?: string | null;
   spineOptionId?: string | null;
@@ -607,6 +623,9 @@ export function buildLineItemSnapshots(
       pricing_status,
       visible_to_customer,
       measurement_quantity_key: line.measurement_quantity_key ?? null,
+      upgrade_selection_state: line.upgrade_selection_state ?? null,
+      upgrade_effect: line.upgrade_effect ?? null,
+      replaces_source_template_item_id: line.replaces_source_template_item_id ?? null,
     };
 
     assertCustomerSafeLineRow(payload as unknown as Record<string, unknown>);
@@ -856,6 +875,10 @@ export function templateItemToLineInput(
     customerLineTotalCents?: number | null;
     hiddenButInCalc?: boolean;
     quantityResolutionEcho?: Record<string, unknown> | null;
+    /** Upgrade Truth line echoes stamped from line.upgradeScope. */
+    upgradeSelectionState?: "selected" | "not_selected" | null;
+    upgradeEffect?: ProposalUpgradeEffect | null;
+    replacesSourceTemplateItemId?: string | null;
   }
 ): LineItemSnapshotInput {
   return {
@@ -884,5 +907,8 @@ export function templateItemToLineInput(
       pricing.quantityResolutionEcho !== undefined
         ? pricing.quantityResolutionEcho
         : undefined,
+    upgrade_selection_state: pricing.upgradeSelectionState ?? null,
+    upgrade_effect: pricing.upgradeEffect ?? null,
+    replaces_source_template_item_id: pricing.replacesSourceTemplateItemId ?? null,
   };
 }

@@ -45,6 +45,8 @@ function baseDto(overrides: Partial<ProposalPublicGraphDto> = {}): ProposalPubli
             pricing_status: "priced",
             visible_to_customer: true,
             line_presentation_group: "included",
+            upgrade_selection_state: null,
+            upgrade_effect: null,
           },
         ],
       },
@@ -71,6 +73,8 @@ function baseDto(overrides: Partial<ProposalPublicGraphDto> = {}): ProposalPubli
             pricing_status: "priced",
             visible_to_customer: true,
             line_presentation_group: "included",
+            upgrade_selection_state: null,
+            upgrade_effect: null,
           },
           {
             source_template_item_id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
@@ -84,6 +88,8 @@ function baseDto(overrides: Partial<ProposalPublicGraphDto> = {}): ProposalPubli
             pricing_status: "priced",
             visible_to_customer: true,
             line_presentation_group: "upgrade",
+            upgrade_selection_state: "selected",
+            upgrade_effect: "additive",
           },
         ],
       },
@@ -131,11 +137,30 @@ describe("buildProposalPublicEstimateLayout", () => {
     assert.equal(layout.alternateOptions[1]?.totalInvestmentLabel, "$162.00");
   });
 
-  test("optional upgrades come from upgrade line_presentation_group on selected option only", () => {
+  test("selected upgrades come from upgrade line_presentation_group on selected option only", () => {
     const layout = buildProposalPublicEstimateLayout(baseDto());
 
     assert.equal(layout.optionalUpgrades.length, 1);
     assert.equal(layout.optionalUpgrades[0]?.name, "Ridge Vent");
+  });
+
+  test("unselected upgrades are omitted from public estimate layout", () => {
+    const dto = baseDto({
+      options: baseDto().options.map((option) =>
+        option.source_template_option_id === TEMPLATE_OPT_B
+          ? {
+              ...option,
+              line_items: option.line_items.map((line) =>
+                line.line_presentation_group === "upgrade"
+                  ? { ...line, upgrade_selection_state: "not_selected" as const }
+                  : line
+              ),
+            }
+          : option
+      ),
+    });
+    const layout = buildProposalPublicEstimateLayout(dto);
+    assert.equal(layout.optionalUpgrades.length, 0);
   });
 
   test("raw catalog keys are transformed in customer-facing line names", () => {

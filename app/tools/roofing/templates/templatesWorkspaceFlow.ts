@@ -64,7 +64,10 @@ export const TEMPLATES_REUSABLE_SETUP_SUBCOPY =
 export const TEMPLATES_PACKAGES_SECTION_HEADING = "Packages" as const;
 export const TEMPLATES_INCLUDED_WORK_HEADING = "Included work" as const;
 export const TEMPLATES_INCLUDED_WORK_HINT =
-  "Prepared Catalog items for this setup. Adjust only if needed." as const;
+  "Prepared scope for future proposals. Adjust only if needed." as const;
+export const TEMPLATES_AVAILABLE_UPGRADES_HEADING = "Available upgrades" as const;
+export const TEMPLATES_AVAILABLE_UPGRADES_HINT =
+  "Available for selection on proposals. Not included until selected." as const;
 export const TEMPLATES_PROPOSAL_CONTENT_HEADING = "Proposal content" as const;
 export const TEMPLATES_NEXT_USE_HEADING = "Next use" as const;
 export const TEMPLATES_NEXT_USE_COPY =
@@ -381,10 +384,12 @@ export type CatalogTargetSectionChoice = {
 /** Catalog-capable sections for a package — used when Add item has multiple targets. */
 export function listCatalogTargetSectionsForOption(
   graph: ProposalTemplateGraph,
-  optionId: string
+  optionId: string,
+  preferredKind?: ProposalTemplateSectionKind
 ): CatalogTargetSectionChoice[] {
   const sections = graph.sections
     .filter((row) => row.option_id === optionId && sectionAcceptsCatalogItems(row.kind))
+    .filter((row) => (preferredKind ? row.kind === preferredKind : true))
     .slice()
     .sort((a, b) => a.sort_order - b.sort_order);
 

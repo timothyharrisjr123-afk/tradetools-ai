@@ -495,4 +495,97 @@ describe("proposalPricingEngine", () => {
     assert.equal(mysteryWaste.options[0]?.hasBlockingIssues, true);
     assert.equal(mysteryWaste.options[0]?.customerTotalCents, null);
   });
+
+  test("optional upgrade truth — unselected additive does not contribute to totals or internal cost", () => {
+    const result = resolveProposalPricing(
+      baseInput({
+        lines: [
+          baseLine({
+            templateItemId: "base",
+            pricingBasis: "unit_price",
+            unitPriceCents: 10_000,
+            unitCostCents: 5_000,
+            quantity: 1,
+          }),
+          baseLine({
+            templateItemId: "upgrade-a",
+            pricingBasis: "unit_price",
+            unitPriceCents: 4_000,
+            unitCostCents: 2_000,
+            quantity: 1,
+            upgradeScope: {
+              parentOptionId: "opt-1",
+              selectionState: "not_selected",
+              effect: "additive",
+            },
+          }),
+        ],
+      })
+    );
+    assert.equal(result.options[0]?.customerSubtotalCents, 10_000);
+    assert.equal(result.options[0]?.internalCostCents, 5_000);
+    assert.deepEqual(result.options[0]?.upgradeLineIds, ["upgrade-a"]);
+  });
+
+  test("optional upgrade truth — selected additive contributes once", () => {
+    const result = resolveProposalPricing(
+      baseInput({
+        lines: [
+          baseLine({
+            templateItemId: "base",
+            pricingBasis: "unit_price",
+            unitPriceCents: 10_000,
+            unitCostCents: 5_000,
+            quantity: 1,
+          }),
+          baseLine({
+            templateItemId: "upgrade-a",
+            pricingBasis: "unit_price",
+            unitPriceCents: 4_000,
+            unitCostCents: 2_000,
+            quantity: 1,
+            upgradeScope: {
+              parentOptionId: "opt-1",
+              selectionState: "selected",
+              effect: "additive",
+            },
+          }),
+        ],
+      })
+    );
+    assert.equal(result.options[0]?.customerSubtotalCents, 14_000);
+    assert.equal(result.options[0]?.internalCostCents, 7_000);
+  });
+
+  test("optional upgrade truth — selected replacement suppresses base contribution", () => {
+    const result = resolveProposalPricing(
+      baseInput({
+        lines: [
+          baseLine({
+            templateItemId: "base",
+            pricingBasis: "unit_price",
+            unitPriceCents: 10_000,
+            unitCostCents: 5_000,
+            quantity: 1,
+            suppressedByReplacement: true,
+          }),
+          baseLine({
+            templateItemId: "upgrade-r",
+            pricingBasis: "unit_price",
+            unitPriceCents: 12_000,
+            unitCostCents: 6_000,
+            quantity: 1,
+            upgradeScope: {
+              parentOptionId: "opt-1",
+              selectionState: "selected",
+              effect: "replacement",
+              replacesTemplateItemId: "base",
+            },
+          }),
+        ],
+      })
+    );
+    assert.equal(result.options[0]?.customerSubtotalCents, 12_000);
+    assert.equal(result.options[0]?.internalCostCents, 6_000);
+  });
 });

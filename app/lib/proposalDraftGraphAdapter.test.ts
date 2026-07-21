@@ -451,6 +451,46 @@ describe("adaptProposalDraftGraphToBuilderPreview", () => {
     assert.equal(line.showOnCustomerDocument, false);
   });
 
+  test("unselected upgrade lines are hidden from customer document", () => {
+    const selected = lineRow({
+      role: "upgrade",
+      upgrade_selection_state: "selected",
+      customer_name: "Selected vent",
+      customer_line_total_cents: 5000,
+    });
+    const unselected = lineRow({
+      id: "14141414-1414-4414-8414-141414141414",
+      source_template_item_id: "15151515-1515-4515-8515-151515151515",
+      role: "upgrade",
+      upgrade_selection_state: "not_selected",
+      customer_name: "Unselected vent",
+      customer_line_total_cents: 5000,
+      sort_order: 1,
+    });
+
+    assert.equal(
+      showOnCustomerDocumentForSnapshotLine(
+        selected,
+        mapSnapshotPricingStatusToBuilderDisplayStatus(selected.pricing_status)
+      ),
+      true
+    );
+    assert.equal(
+      showOnCustomerDocumentForSnapshotLine(
+        unselected,
+        mapSnapshotPricingStatusToBuilderDisplayStatus(unselected.pricing_status)
+      ),
+      false
+    );
+
+    const adapted = adaptProposalDraftGraphToBuilderPreview(
+      draftGraph({ lineItems: [selected, unselected] })
+    );
+    const lines = adapted.pricingPreview.byOptionId[TEMPLATE_OPT_A]!.customer.lines;
+    assert.equal(lines.find((l) => l.templateItemId === selected.source_template_item_id)?.showOnCustomerDocument, true);
+    assert.equal(lines.find((l) => l.templateItemId === unselected.source_template_item_id)?.showOnCustomerDocument, false);
+  });
+
   test("priced hidden-from-customer snapshot line keeps customer_visible semantics", () => {
     const row = lineRow({
       pricing_status: "priced",

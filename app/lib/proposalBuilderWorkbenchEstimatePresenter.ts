@@ -28,8 +28,12 @@ import type { ProposalScopeDecision } from "@/app/lib/proposalScopeDecisionTypes
 import type {
   ProposalTemplateOption,
   ProposalTemplateOptionSelectionMode,
+  ProposalTemplateItem,
   ProposalTemplateSection,
 } from "@/app/lib/proposalTemplateTypes";
+import type {
+  ProposalUpgradeEffect,
+} from "@/app/lib/proposalUpgradeTruthTypes";
 import { parseEstimatePageSettings } from "@/app/lib/proposalTemplateEstimateSettings";
 import { sortTemplateOptionsByOrder } from "@/app/tools/roofing/templates/templatesSetupUtils";
 import { formatPriceCents } from "@/app/tools/roofing/proposals/builder/proposalBuilderConstants";
@@ -206,6 +210,10 @@ export type WorkbenchScopeLine = {
   attentionReasons: WorkbenchAttentionReason[];
   /** R17D Phase 2.5 — snapshot shows an active manual quantity override. */
   manualQuantityActive: boolean;
+  /** Present only for true optional-upgrade rows. */
+  upgradeSelectionState?: "selected" | "not_selected";
+  upgradeEffect?: ProposalUpgradeEffect;
+  replacesLineName?: string | null;
 };
 
 export type WorkbenchScopeSection = {
@@ -258,6 +266,10 @@ export type WorkbenchUpgradesZone = {
   hasTemplateUpgradeSections: boolean;
   isEmpty: boolean;
   sections: WorkbenchUpgradeSection[];
+  selectedSections: WorkbenchUpgradeSection[];
+  availableSections: WorkbenchUpgradeSection[];
+  selectedCount: number;
+  availableCount: number;
   /** Optional-upgrade lines needing quantity review — same scope-review semantics as main scope. */
   scopeReview: WorkbenchAttentionBucket;
   customerSelectionEnabled: false;
@@ -691,7 +703,12 @@ function buildUpgradeScopeLine(
   row: ProposalPreviewLineRow,
   lineView: ProposalBuilderLineCustomerView | undefined,
   classification: LineClassification,
-  snapshotQty: ProposalSnapshotLineQuantityView | undefined
+  snapshotQty: ProposalSnapshotLineQuantityView | undefined,
+  upgrade: {
+    selectionState: "selected" | "not_selected";
+    effect: ProposalUpgradeEffect;
+    replacesLineName: string | null;
+  }
 ): WorkbenchScopeLine {
   const qtyState = resolveQtyState(row, snapshotQty);
   const hiddenFromCustomer = isHiddenFromCustomer(lineView);
@@ -708,6 +725,9 @@ function buildUpgradeScopeLine(
       detailMeta: buildDetailMeta(row, qtyState.quantityStatusLabel, snapshotQty?.unitLabel),
       attentionReasons: [],
       manualQuantityActive: snapshotQty?.quantitySourceLabel === "Manual",
+      upgradeSelectionState: upgrade.selectionState,
+      upgradeEffect: upgrade.effect,
+      replacesLineName: upgrade.replacesLineName,
     };
   }
 
@@ -722,7 +742,63 @@ function buildUpgradeScopeLine(
     detailMeta: buildDetailMeta(row, qtyState.quantityStatusLabel, snapshotQty?.unitLabel),
     attentionReasons: classification.reasons,
     manualQuantityActive: snapshotQty?.quantitySourceLabel === "Manual",
+    upgradeSelectionState: upgrade.selectionState,
+    upgradeEffect: upgrade.effect,
+    replacesLineName: upgrade.replacesLineName,
   };
+}
+
+function isUpgradeRole(item: ProposalTemplateItem | undefined): boolean {
+  return item?.item_role === "upgrade" || item?.item_role === "optional_addon";
+}
+
+function resolveUpgradeMetadata(
+  item: ProposalTemplateItem | undefined,
+  lineView: ProposalBuilderLineCustomerView | undefined,
+  itemById: Map<string, ProposalTemplateItem>,
+  catalogById: Map<string, CatalogItem>
+): {
+  selectionState: "selected" | "not_selected";
+  effect: ProposalUpgradeEffect;
+  replacesLineName: string | null;
+} {
+  const echoedSelection = lineView?.upgradeSelectionStateEcho;
+  const scopedSelection = lineView?.upgradeScope?.selectionState;
+  const selectionState =
+    echoedSelection === "selected"
+      ? "selected"
+      : echoedSelection === "not_selected"
+        ? "not_selected"
+        : scopedSelection === "selected"
+          ? "selected"
+          : "not_selected";
+  const effect =
+    lineView?.upgradeEffectEcho ??
+    lineView?.upgradeScope?.effect ??
+    item?.upgrade_effect ??
+    "additive";
+  const replacesTemplateItemId =
+    lineView?.replacesTemplateItemIdEcho ??
+    lineView?.upgradeScope?.replacesTemplateItemId ??
+    item?.replaces_template_item_id ??
+    null;
+  const replacedItem = replacesTemplateItemId
+    ? itemById.get(replacesTemplateItemId)
+    : undefined;
+  const replacedCatalog = replacedItem?.catalog_item_id
+    ? catalogById.get(replacedItem.catalog_item_id)
+    : undefined;
+  const replacesLineName =
+    effect === "replacement"
+      ? (
+          replacedItem?.customer_name_override ??
+          replacedCatalog?.customer_name ??
+          replacedCatalog?.name ??
+          ""
+        ).trim() || "included item"
+      : null;
+
+  return { selectionState, effect, replacesLineName };
 }
 
 function formatSettingsSummary(settings: ProposalPageSettings | null): string | null {
@@ -850,6 +926,7 @@ export function buildProposalWorkbenchEstimatePresentation(
   input: BuildProposalWorkbenchEstimatePresentationInput
 ): ProposalWorkbenchEstimatePresentation {
   const catalogById = buildCatalogItemById(input.catalogItems);
+  const itemById = new Map(input.graph.items.map((item) => [item.id, item]));
   const effectiveOptionId = resolveEffectiveOptionId(
     input.graph,
     input.selectedOptionId,
@@ -872,9 +949,12 @@ export function buildProposalWorkbenchEstimatePresentation(
   let upgradeLineCount = 0;
   let sourceLineCount = 0;
 
-  const hasTemplateUpgradeSections = input.sections.some(
-    (section) => section.kind === "upgrade_group"
-  );
+  const visibleSectionIds = new Set(input.sections.map((section) => section.id));
+  const hasTemplateUpgradeSections =
+    input.sections.some((section) => section.kind === "upgrade_group") ||
+    input.graph.items.some(
+      (item) => visibleSectionIds.has(item.section_id) && isUpgradeRole(item)
+    );
 
   for (const section of input.sections) {
     const rows = buildLinePreviewRowsForSection(
@@ -884,10 +964,14 @@ export function buildProposalWorkbenchEstimatePresentation(
       input.quantityContext ?? null
     );
 
-    if (section.kind === "upgrade_group") {
+    const upgradeRows = rows.filter(
+      (row) => section.kind === "upgrade_group" || isUpgradeRole(itemById.get(row.id))
+    );
+
+    if (section.kind === "upgrade_group" || upgradeRows.length > 0) {
       const lines: WorkbenchScopeLine[] = [];
 
-      for (const row of rows) {
+      for (const row of upgradeRows) {
         sourceLineCount += 1;
         const snapshotQty = input.snapshotQuantityByTemplateItemId?.[row.id];
         if (excludedTemplateItemIds.has(row.id)) {
@@ -903,7 +987,13 @@ export function buildProposalWorkbenchEstimatePresentation(
           suppressedDocumentBlockerCount += 1;
         }
 
-        const upgradeLine = buildUpgradeScopeLine(row, lineView, classification, snapshotQty);
+        const upgradeLine = buildUpgradeScopeLine(
+          row,
+          lineView,
+          classification,
+          snapshotQty,
+          resolveUpgradeMetadata(itemById.get(row.id), lineView, itemById, catalogById)
+        );
         lines.push(upgradeLine);
         upgradeLineCount += 1;
 
@@ -922,7 +1012,7 @@ export function buildProposalWorkbenchEstimatePresentation(
         title: sectionTitle(section),
         lines,
       });
-      continue;
+      if (section.kind === "upgrade_group") continue;
     }
 
     if (section.kind !== "line_items") {
@@ -931,7 +1021,7 @@ export function buildProposalWorkbenchEstimatePresentation(
 
     const readyLines: WorkbenchScopeLine[] = [];
 
-    for (const row of rows) {
+    for (const row of rows.filter((candidate) => !isUpgradeRole(itemById.get(candidate.id)))) {
       sourceLineCount += 1;
       const snapshotQty = input.snapshotQuantityByTemplateItemId?.[row.id];
       if (excludedTemplateItemIds.has(row.id)) {
@@ -976,6 +1066,20 @@ export function buildProposalWorkbenchEstimatePresentation(
     (sum, section) => sum + section.lines.length,
     0
   );
+  const selectedSections = upgradeSections
+    .map((section) => ({
+      ...section,
+      lines: section.lines.filter((line) => line.upgradeSelectionState === "selected"),
+    }))
+    .filter((section) => section.lines.length > 0);
+  const availableSections = upgradeSections
+    .map((section) => ({
+      ...section,
+      lines: section.lines.filter((line) => line.upgradeSelectionState !== "selected"),
+    }))
+    .filter((section) => section.lines.length > 0);
+  const selectedCount = selectedSections.reduce((sum, section) => sum + section.lines.length, 0);
+  const availableCount = availableSections.reduce((sum, section) => sum + section.lines.length, 0);
   const parsedSettings = input.estimatePageSettings
     ? parseEstimatePageSettings(input.estimatePageSettings)
     : null;
@@ -1020,15 +1124,14 @@ export function buildProposalWorkbenchEstimatePresentation(
       ),
     },
     upgradesZone: {
-      /**
-       * Block 4F — include/replace unsupported; hide Optional upgrades from main Builder path.
-       * Quantity blockers for upgrade lines are merged into needsAttention.scopeReview above.
-       * Follow-up: additive upgrades add to included estimate; replacement upgrades replace base items.
-       */
-      show: false,
+      show: hasTemplateUpgradeSections,
       hasTemplateUpgradeSections,
       isEmpty: hasTemplateUpgradeSections && upgradeLineTotal === 0,
       sections: upgradeSections,
+      selectedSections,
+      availableSections,
+      selectedCount,
+      availableCount,
       scopeReview: buildAttentionBucket(
         upgradeScopeReviewLines,
         WORKBENCH_SCOPE_REVIEW_TITLE,
@@ -1037,7 +1140,9 @@ export function buildProposalWorkbenchEstimatePresentation(
       ),
       customerSelectionEnabled: false,
       customerSelectionHint: null,
-      emptyCopy: null,
+      emptyCopy: hasTemplateUpgradeSections && upgradeLineTotal === 0
+        ? WORKBENCH_UPGRADES_EMPTY_COPY
+        : null,
     },
     totalsZone: buildTotalsZone(input.optionCustomerView, pricingPolicyConfigured),
     displaySettingsEntry: {

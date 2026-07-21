@@ -16,6 +16,10 @@ import type {
   ProposalPageRow,
 } from "@/app/lib/proposalRecordStore";
 import type {
+  ProposalOptionUpgradeChoice,
+  ProposalOptionUpgradeChoicePersistRow,
+} from "@/app/lib/proposalUpgradeTruthTypes";
+import type {
   ProposalVersionContextEcho,
   ProposalVersionPolicyEcho,
 } from "@/app/lib/proposalVersionTypes";
@@ -84,6 +88,10 @@ export type ProposalSendFreezeLinePersistRow = {
   pricing_status: string;
   visible_to_customer: boolean;
   measurement_quantity_key: string | null;
+  /** Upgrade Truth line echoes copied from the draft line rows. */
+  upgrade_selection_state: string | null;
+  upgrade_effect: string | null;
+  replaces_source_template_item_id: string | null;
 };
 
 export type ProposalSendFreezeInternalSummaryPersist = {
@@ -113,6 +121,8 @@ export type ProposalSendFreezeOptionPersistPayload = {
   selected_at: string | null;
   line_items: ProposalSendFreezeLinePersistRow[];
   internal_summary: ProposalSendFreezeInternalSummaryPersist | null;
+  /** Upgrade Truth selections copied onto the frozen sent version. */
+  upgrade_choices: ProposalOptionUpgradeChoicePersistRow[];
 };
 
 export type ProposalSendFreezeEventPersist = {
@@ -235,6 +245,9 @@ function copyLineRow(
     pricing_status: line.pricing_status,
     visible_to_customer: line.visible_to_customer,
     measurement_quantity_key: line.measurement_quantity_key,
+    upgrade_selection_state: line.upgrade_selection_state ?? null,
+    upgrade_effect: line.upgrade_effect ?? null,
+    replaces_source_template_item_id: line.replaces_source_template_item_id ?? null,
   };
   assertLineRowCustomerSafe(row as unknown as Record<string, unknown>);
   return row;
@@ -253,10 +266,22 @@ function copyInternalSummary(
   };
 }
 
+function copyUpgradeChoiceRow(
+  choice: ProposalOptionUpgradeChoice
+): ProposalOptionUpgradeChoicePersistRow {
+  return {
+    source_template_item_id: choice.sourceTemplateItemId,
+    selection_state: choice.selectionState,
+    upgrade_effect: choice.upgradeEffect,
+    replaces_source_template_item_id: choice.replacesSourceTemplateItemId,
+  };
+}
+
 function copyOptionPayload(
   option: ProposalOptionRow,
   lines: ProposalLineItemRow[],
   summary: ProposalInternalSummaryRow | undefined,
+  upgradeChoices: readonly ProposalOptionUpgradeChoice[],
   draftToSentPageIds: Map<string, string>
 ): ProposalSendFreezeOptionPersistPayload {
   const templateOptionId = (option.source_template_option_id ?? "").trim();
@@ -286,6 +311,9 @@ function copyOptionPayload(
       .sort((a, b) => a.sort_order - b.sort_order)
       .map((line) => copyLineRow(line, draftToSentPageIds)),
     internal_summary: summary ? copyInternalSummary(summary) : null,
+    upgrade_choices: upgradeChoices
+      .filter((choice) => choice.proposalOptionId === option.id)
+      .map(copyUpgradeChoiceRow),
   };
 }
 
@@ -335,6 +363,7 @@ export function buildProposalSendFreezePersistPayload(
         option,
         graph.lineItems,
         summaryByOptionId.get(option.id),
+        graph.upgradeChoices ?? [],
         draftToSentPageIds
       )
     );

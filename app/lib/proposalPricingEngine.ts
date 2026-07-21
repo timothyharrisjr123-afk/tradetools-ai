@@ -30,6 +30,7 @@ import {
   type ProposalPricingTotals,
   type ProposalSectionPricing,
 } from "@/app/lib/proposalPricingTypes";
+import { upgradeLineContributesToTotals } from "@/app/lib/proposalUpgradeTruthTypes";
 
 // ---------------------------------------------------------------------------
 // Money helpers (integer cents, round half-up)
@@ -60,9 +61,21 @@ function isBlockingStatus(status: LinePricingStatus): boolean {
 // ---------------------------------------------------------------------------
 
 function contributesToCustomerSubtotal(line: PricingLineInput, linePriceCents: number | null): boolean {
+  if (line.suppressedByReplacement === true) return false;
   if (line.pricingBasis === "included") return false;
   if (line.customerVisibility === "internal_only") return false;
   if (linePriceCents == null) return false;
+
+  const isUpgradeLine = line.upgradeScope != null;
+  if (
+    !upgradeLineContributesToTotals({
+      isUpgradeLine,
+      selectionState: line.upgradeScope?.selectionState,
+    })
+  ) {
+    return false;
+  }
+
   return (
     line.customerVisibility === "customer_visible" ||
     line.customerVisibility === "grouped" ||
@@ -416,7 +429,17 @@ function buildSectionRollups(
       section.unresolvedLineCount += 1;
     }
 
-    if (lineOut.lineCostCents != null) {
+    if (
+      lineOut.lineCostCents != null &&
+      lineIn.suppressedByReplacement !== true &&
+      !(
+        lineIn.upgradeScope != null &&
+        !upgradeLineContributesToTotals({
+          isUpgradeLine: true,
+          selectionState: lineIn.upgradeScope.selectionState,
+        })
+      )
+    ) {
       section.internalCostCents = (section.internalCostCents ?? 0) + lineOut.lineCostCents;
     }
 
@@ -554,10 +577,19 @@ function buildOptionPricing(
   }
 
   let internalCostCents = 0;
-  for (const { output: lineOut } of pricedLines) {
-    if (lineOut.lineCostCents != null) {
-      internalCostCents += lineOut.lineCostCents;
+  for (const { input: lineIn, output: lineOut } of pricedLines) {
+    if (lineOut.lineCostCents == null) continue;
+    if (lineIn.suppressedByReplacement === true) continue;
+    if (
+      lineIn.upgradeScope != null &&
+      !upgradeLineContributesToTotals({
+        isUpgradeLine: true,
+        selectionState: lineIn.upgradeScope.selectionState,
+      })
+    ) {
+      continue;
     }
+    internalCostCents += lineOut.lineCostCents;
   }
 
   const sections = buildSectionRollups(pricedLines, hasBlockingIssues);

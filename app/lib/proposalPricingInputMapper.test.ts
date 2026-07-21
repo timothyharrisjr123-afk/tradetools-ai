@@ -360,7 +360,13 @@ describe("proposalPricingInputMapper", () => {
       item_role: "standard",
     });
 
-    assert.deepEqual(mapOne(upgrade, cat).upgradeScope, { parentOptionId: OPTION_ID });
+    assert.deepEqual(mapOne(upgrade, cat).upgradeScope, {
+      parentOptionId: OPTION_ID,
+      isSelectedByDefault: false,
+      selectionState: "not_selected",
+      effect: "additive",
+      replacesTemplateItemId: null,
+    });
     assert.equal(mapOne(standard, cat).upgradeScope, null);
   });
 

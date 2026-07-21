@@ -47,9 +47,14 @@ import type { ProposalStatus, ProposalVersionKind } from "@/app/lib/proposalLife
 import type { ProposalEventType } from "@/app/lib/proposalLifecycleTypes";
 import type { ProposalPageType } from "@/app/lib/proposalPageTypes";
 import { PROPOSAL_LINE_CUSTOMER_FORBIDDEN_KEYS } from "@/app/lib/proposalLineSnapshotTypes";
-import { priceProposalLine } from "@/app/lib/proposalPricingEngine";
+import { priceProposalLine, resolveProposalPricing } from "@/app/lib/proposalPricingEngine";
 import { mapProposalPricingInput } from "@/app/lib/proposalPricingInputMapper";
-import type { PricingActorRole, PricingPolicy } from "@/app/lib/proposalPricingTypes";
+import type {
+  LinePricingStatus,
+  PricingActorRole,
+  PricingLineInput,
+  PricingPolicy,
+} from "@/app/lib/proposalPricingTypes";
 import {
   buildDraftInstantiatePayload,
   buildInternalPolicyEchoJson,
@@ -88,6 +93,18 @@ import {
 } from "@/app/lib/proposalScopeDecisionMerge";
 import type { ProposalScopeDecision } from "@/app/lib/proposalScopeDecisionTypes";
 import { getScopeDecisionsForDraftGraph } from "@/app/lib/proposalScopeDecisionStore";
+import {
+  resolveOptionUpgradeChoiceRows,
+  upgradeLineEchoesFromPricingLine,
+} from "@/app/lib/proposalUpgradeTruth";
+import type {
+  ProposalOptionUpgradeChoice,
+  ProposalOptionUpgradeChoicePersistRow,
+} from "@/app/lib/proposalUpgradeTruthTypes";
+import {
+  getUpgradeChoicesForDraftGraph,
+  groupUpgradeChoicePersistRowsByTemplateOptionId,
+} from "@/app/lib/proposalUpgradeChoiceStore";
 import {
   buildDraftPricingRefreshPersistPayload,
   isRefreshDraftPricingSequentialEnabled,
@@ -281,6 +298,13 @@ export type ProposalLineItemRow = {
    * Not customer-facing; customer/public DTOs omit this field.
    */
   quantity_resolution_echo?: Record<string, unknown> | null;
+  /**
+   * Optional Upgrade Truth line echoes (display convenience only).
+   * Selection truth lives in proposal_option_upgrade_choices.
+   */
+  upgrade_selection_state?: string | null;
+  upgrade_effect?: string | null;
+  replaces_source_template_item_id?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -322,6 +346,8 @@ export type ProposalDraftGraph = {
   internalSummaries: ProposalInternalSummaryRow[];
   /** Active scope decisions for the current draft version (R17D Phase 3A+). */
   scopeDecisions: ProposalScopeDecision[];
+  /** Optional Upgrade Truth selections for the current draft version. */
+  upgradeChoices?: ProposalOptionUpgradeChoice[];
 };
 
 /** Explicit-version graph read shape (R18C1) — no scope decisions on sent/signed snapshots. */
@@ -581,6 +607,10 @@ function isMissingCatalogLine(itemType: unknown): boolean {
   return itemType == null;
 }
 
+function isBlockingLineStatus(status: LinePricingStatus): boolean {
+  return status === "unpriced" || status === "unsupported" || status === "unresolved_quantity";
+}
+
 async function fetchCompanyPricingPolicyId(
   supabase: NonNullable<ReturnType<typeof getSupabaseClient>>,
   companyId: string
@@ -702,11 +732,23 @@ export function buildDraftInstantiateInputFromPreview(params: {
   context: BuildContextEchoInput;
   selectedTemplateOptionId?: string | null;
   computedAt?: string;
+  /**
+   * Explicit persisted upgrade selections keyed by template option id (refresh path).
+   * When absent, template-default choices are derived for every option (create path).
+   */
+  upgradeChoicesByTemplateOptionId?: Record<
+    string,
+    ProposalOptionUpgradeChoicePersistRow[]
+  > | null;
 }): DraftInstantiateInput {
   const catalogById = buildCatalogItemById(params.catalogItems);
   const actorRole = params.preview.actorRole;
   const optionPricing: OptionPricingSnapshotInput[] = [];
   const lineItemsByTemplateOptionId: Record<string, LineItemSnapshotInput[]> = {};
+  const upgradeChoicesByTemplateOptionId: Record<
+    string,
+    ProposalOptionUpgradeChoicePersistRow[]
+  > = {};
   const internalSummaryByTemplateOptionId: Record<
     string,
     {
@@ -721,22 +763,13 @@ export function buildDraftInstantiateInputFromPreview(params: {
     const optionPreview = params.preview.byOptionId[optionId];
     if (!optionPreview) continue;
 
-    optionPricing.push({
-      source_template_option_id: optionId,
-      name: templateOption.name,
-      customer_label: templateOption.customer_label ?? null,
-      sort_order: templateOption.sort_order ?? 0,
-      is_default: templateOption.is_default ?? false,
-      visible_to_customer: templateOption.visible_to_customer ?? true,
-      customer_subtotal_cents: optionPreview.customer.customerSubtotalCents,
-      discount_cents: optionPreview.customer.discountCents,
-      sales_tax_cents: optionPreview.customer.salesTaxCents,
-      customer_total_cents: optionPreview.customer.customerTotalCents,
-      pricing_complete: optionPreview.customer.pricingComplete,
-      blocking_line_count: optionPreview.status.blockingLineCount,
-      guardrail_outcome: optionPreview.status.guardrailOutcome,
-      is_selected: params.preview.selectedOptionId === optionId,
+    const explicitChoices = params.upgradeChoicesByTemplateOptionId?.[optionId] ?? null;
+    const resolvedUpgrades = resolveOptionUpgradeChoiceRows({
+      graph: params.graph,
+      optionId,
+      explicit: explicitChoices,
     });
+    upgradeChoicesByTemplateOptionId[optionId] = resolvedUpgrades.rows;
 
     const mappedInput = mapProposalPricingInput({
       optionId,
@@ -745,11 +778,23 @@ export function buildDraftInstantiateInputFromPreview(params: {
       graph: params.graph,
       catalogItems: catalogById,
       quantityContext: params.quantityContext,
+      upgradeChoicesByTemplateItemId: resolvedUpgrades.choicesByTemplateItemId,
     });
 
+    // Preview totals are computed with template-default selections. When explicit
+    // persisted choices exist (refresh path), reprice this option so totals honor
+    // the persisted upgrade selections.
+    const repricedOption = explicitChoices
+      ? resolveProposalPricing(mappedInput).options[0]
+      : null;
+
+    let blockingLineCount = 0;
     const lineInputs: LineItemSnapshotInput[] = [];
     for (const line of mappedInput.lines) {
       const priced = priceProposalLine(line, params.policy);
+      if (isBlockingLineStatus(priced.status)) {
+        blockingLineCount += 1;
+      }
       const templateItem = params.graph.items.find((item) => item.id === line.templateItemId);
       if (!templateItem) continue;
 
@@ -771,6 +816,7 @@ export function buildDraftInstantiateInputFromPreview(params: {
 
       const previewLine = optionPreview.customer.lineByTemplateItemId[line.templateItemId];
       const showPrice = previewLine?.displayStatus === "priced";
+      const upgradeEchoes = upgradeLineEchoesFromPricingLine(line);
 
       lineInputs.push(
         templateItemToLineInput(templateItem, {
@@ -784,16 +830,56 @@ export function buildDraftInstantiateInputFromPreview(params: {
           customerUnitPriceCents: showPrice ? priced.unitPriceCents : null,
           customerLineTotalCents: showPrice ? priced.linePriceCents : null,
           quantityResolutionEcho,
+          upgradeSelectionState: upgradeEchoes.upgradeSelectionState,
+          upgradeEffect: upgradeEchoes.upgradeEffect,
+          replacesSourceTemplateItemId: upgradeEchoes.replacesSourceTemplateItemId,
         })
       );
     }
     lineItemsByTemplateOptionId[optionId] = lineInputs;
 
-    internalSummaryByTemplateOptionId[optionId] = {
-      internal_cost_cents: optionPreview.internal.internalCostCents,
-      internal_profit_cents: optionPreview.internal.internalProfitCents,
-      effective_margin_pct: optionPreview.internal.effectiveMarginPct,
-    };
+    optionPricing.push({
+      source_template_option_id: optionId,
+      name: templateOption.name,
+      customer_label: templateOption.customer_label ?? null,
+      sort_order: templateOption.sort_order ?? 0,
+      is_default: templateOption.is_default ?? false,
+      visible_to_customer: templateOption.visible_to_customer ?? true,
+      customer_subtotal_cents: repricedOption
+        ? repricedOption.customerSubtotalCents
+        : optionPreview.customer.customerSubtotalCents,
+      discount_cents: repricedOption
+        ? repricedOption.discountCents
+        : optionPreview.customer.discountCents,
+      sales_tax_cents: repricedOption
+        ? repricedOption.salesTaxCents
+        : optionPreview.customer.salesTaxCents,
+      customer_total_cents: repricedOption
+        ? repricedOption.customerTotalCents
+        : optionPreview.customer.customerTotalCents,
+      pricing_complete: repricedOption
+        ? !repricedOption.hasBlockingIssues
+        : optionPreview.customer.pricingComplete,
+      blocking_line_count: repricedOption
+        ? blockingLineCount
+        : optionPreview.status.blockingLineCount,
+      guardrail_outcome: repricedOption
+        ? repricedOption.guardrail.outcome
+        : optionPreview.status.guardrailOutcome,
+      is_selected: params.preview.selectedOptionId === optionId,
+    });
+
+    internalSummaryByTemplateOptionId[optionId] = repricedOption
+      ? {
+          internal_cost_cents: repricedOption.internalCostCents,
+          internal_profit_cents: repricedOption.internalProfitCents,
+          effective_margin_pct: repricedOption.effectiveMarginPct,
+        }
+      : {
+          internal_cost_cents: optionPreview.internal.internalCostCents,
+          internal_profit_cents: optionPreview.internal.internalProfitCents,
+          effective_margin_pct: optionPreview.internal.effectiveMarginPct,
+        };
   }
 
   return {
@@ -811,6 +897,7 @@ export function buildDraftInstantiateInputFromPreview(params: {
     optionPricing,
     lineItemsByTemplateOptionId,
     internalSummaryByTemplateOptionId,
+    upgradeChoicesByTemplateOptionId,
     selectedTemplateOptionId: params.selectedTemplateOptionId ?? params.preview.selectedOptionId,
     computedAt: params.computedAt,
   };
@@ -1094,6 +1181,7 @@ export async function getDraftGraph(
     );
 
     const scopeDecisions = await getScopeDecisionsForDraftGraph(cid, versionId, deps);
+    const upgradeChoices = await getUpgradeChoicesForDraftGraph(cid, versionId, deps);
 
     return {
       proposal: rowToProposalRecord(proposal),
@@ -1103,6 +1191,7 @@ export async function getDraftGraph(
       lineItems,
       internalSummaries,
       scopeDecisions,
+      upgradeChoices,
     };
   } catch {
     return null;
@@ -1471,6 +1560,12 @@ export async function refreshDraftPricing(
     proposalOptionById
   );
 
+  const upgradeChoiceRows = await getUpgradeChoicesForDraftGraph(cid, version.id, deps);
+  const upgradeChoicesByTemplateOptionId = groupUpgradeChoicePersistRowsByTemplateOptionId(
+    upgradeChoiceRows,
+    proposalOptionById
+  );
+
   const instantiateInput = hasAnyActiveScopeDecisions(scopeDecisionsByTemplateOptionId)
     ? buildDraftInstantiateInputWithScopeDecisions({
         companyId: cid,
@@ -1486,6 +1581,7 @@ export async function refreshDraftPricing(
         },
         selectedTemplateOptionId,
         scopeDecisionsByTemplateOptionId,
+        upgradeChoicesByTemplateOptionId,
       }).input
     : buildDraftInstantiateInputFromPreview({
         companyId: cid,
@@ -1500,6 +1596,7 @@ export async function refreshDraftPricing(
           template_id: templateId,
         },
         selectedTemplateOptionId,
+        upgradeChoicesByTemplateOptionId,
       });
 
   const payload = buildDraftInstantiatePayload(instantiateInput);

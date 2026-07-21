@@ -3,17 +3,13 @@
 import Link from "next/link";
 import type { ProposalTemplateReadiness } from "@/app/lib/proposalTemplateTypes";
 import type { TemplateCatalogLinkReadiness } from "@/app/lib/proposalTemplateCatalogLink";
-import {
-  buildCatalogByIdMap,
-  buildTemplateCatalogLinkView,
-} from "@/app/lib/proposalTemplateCatalogLink";
 import type { CatalogItem } from "@/app/lib/catalogTypes";
 import type { ProposalTemplateGraph } from "@/app/lib/proposalTemplateStore";
 import { proposalTemplateStatusLabel } from "@/app/lib/proposalTemplateTypes";
 import { TEMPLATES_CARD } from "./templatesConstants";
-import TemplatesIncludedItemsManager, {
-  type IncludedItemGroup,
-} from "./TemplatesIncludedItemsManager";
+import TemplatesAvailableUpgradesManager from "./TemplatesAvailableUpgradesManager";
+import TemplatesIncludedItemsManager from "./TemplatesIncludedItemsManager";
+import { buildPreparedPackageScopePresentation } from "./templatesIncludedWorkPresentation";
 import {
   TEMPLATES_ADVANCED_EDITING_ACTION,
   TEMPLATES_INCLUDED_WORK_HEADING,
@@ -41,44 +37,12 @@ type TemplatesQuoteSetupReviewProps = {
   onSelectPackage: (optionId: string) => void;
   busy: boolean;
   onAddItem: () => void;
+  onAddUpgradeItem: () => void;
   onReplaceItem: (templateItemId: string) => void;
   onRemoveItem: (templateItemId: string) => void;
   onFixIssues: () => void;
   onOpenAdvanced: () => void;
 };
-
-function buildIncludedGroups(
-  graph: ProposalTemplateGraph,
-  optionId: string,
-  catalogItems: readonly CatalogItem[]
-): IncludedItemGroup[] {
-  const catalogById = buildCatalogByIdMap(catalogItems);
-  const sections = graph.sections
-    .filter((row) => row.option_id === optionId)
-    .slice()
-    .sort((a, b) => a.sort_order - b.sort_order);
-
-  const groups: IncludedItemGroup[] = [];
-  for (const section of sections) {
-    const items = graph.items
-      .filter((item) => item.section_id === section.id)
-      .slice()
-      .sort((a, b) => a.sort_order - b.sort_order);
-    if (items.length === 0) continue;
-    const label =
-      section.kind === "upgrade_group"
-        ? section.name?.trim() || "Optional upgrades"
-        : section.kind === "line_items"
-          ? section.name?.trim() || "Estimate items"
-          : section.name?.trim() || "Items";
-    groups.push({
-      sectionId: section.id,
-      sectionLabel: label,
-      items: items.map((item) => buildTemplateCatalogLinkView(item, catalogById)),
-    });
-  }
-  return groups;
-}
 
 export default function TemplatesQuoteSetupReview({
   graph,
@@ -91,6 +55,7 @@ export default function TemplatesQuoteSetupReview({
   onSelectPackage,
   busy,
   onAddItem,
+  onAddUpgradeItem,
   onReplaceItem,
   onRemoveItem,
   onFixIssues,
@@ -114,10 +79,22 @@ export default function TemplatesQuoteSetupReview({
     packageSummaries.find((row) => row.optionId === selectedPackageOptionId) ??
     packageSummaries[0] ??
     null;
-  const includedGroups =
+  const packageScope =
     selectedPackageOptionId != null
-      ? buildIncludedGroups(graph, selectedPackageOptionId, catalogItems)
-      : [];
+      ? buildPreparedPackageScopePresentation({
+          graph,
+          optionId: selectedPackageOptionId,
+          catalogItems,
+        })
+      : null;
+  const includedWork = packageScope?.includedWork ?? null;
+  const availableUpgrades = packageScope?.availableUpgrades ?? null;
+  const includedScopeLabel =
+    packagePresentation.mode === "simple"
+      ? "Included in this estimate"
+      : selectedSummary
+        ? `Included in ${selectedSummary.optionLabel}`
+        : "Included in this package";
   const contentAreas = buildProposalContentLandingAreas(graph);
   const description = template.description?.trim() || null;
 
@@ -299,12 +276,23 @@ export default function TemplatesQuoteSetupReview({
       </section>
 
       <TemplatesIncludedItemsManager
-        groups={includedGroups}
+        key={`included-${selectedPackageOptionId ?? "no-package"}`}
+        scopeLabel={includedScopeLabel}
+        groups={includedWork?.groups ?? []}
         busy={busy}
         onAddItem={onAddItem}
         onReplaceItem={onReplaceItem}
         onRemoveItem={onRemoveItem}
         heading={TEMPLATES_INCLUDED_WORK_HEADING}
+      />
+
+      <TemplatesAvailableUpgradesManager
+        key={`upgrades-${selectedPackageOptionId ?? "no-package"}`}
+        items={availableUpgrades?.items ?? []}
+        busy={busy}
+        onAddItem={onAddUpgradeItem}
+        onReplaceItem={onReplaceItem}
+        onRemoveItem={onRemoveItem}
       />
 
       <section

@@ -7,6 +7,10 @@
  * Roofr-style structure: one internal template, customer-facing options (packages),
  * sections (line items, upgrades, text/warranty/terms), catalog-backed items via seed_key.
  * No pricing, totals, legal terms, or Proposal Builder behavior in this file.
+ *
+ * Optional Upgrade Truth (v2):
+ * - Package-included enhancements live on line_items via customer overrides.
+ * - upgrade_group holds only true elective add-ons (additive, default unselected).
  */
 
 import type { CustomerVisibility } from "@/app/lib/catalogTypes";
@@ -20,10 +24,20 @@ import type {
 
 export const DEFAULT_ROOF_REPLACEMENT_TEMPLATE_SEED_KEY = "proposal.roof_replacement";
 
+/** Metadata stamp for Optional Upgrade Truth starter semantics. */
+export const OPTIONAL_UPGRADE_TRUTH_VERSION = 2 as const;
+
 const CUSTOMER_VISIBLE: CustomerVisibility = "customer_visible";
 
 const INHERIT_CATALOG_QUANTITY: TemplateQuantityRule = {
   mode: "inherit_catalog",
+};
+
+/** Incremental elective unit — not a reprice of the package measurement driver. */
+const ADDITIONAL_VENT_QUANTITY: TemplateQuantityRule = {
+  mode: "fixed",
+  fixed_quantity: 1,
+  allow_manual_override: true,
 };
 
 type CoreLineSeed = {
@@ -50,6 +64,7 @@ const CORE_LINE_SEEDS: readonly CoreLineSeed[] = [
 
 /**
  * Shared core replacement line items (13 catalog seeds) for reuse across options and 3G5 install.
+ * Callers that need per-option overrides must map/copy — do not mutate this constant.
  */
 export const ROOF_REPLACEMENT_CORE_LINE_ITEMS: readonly DefaultProposalTemplateItemDefinition[] =
   CORE_LINE_SEEDS.map(({ catalog_seed_key, sort_order }) => ({
@@ -60,55 +75,75 @@ export const ROOF_REPLACEMENT_CORE_LINE_ITEMS: readonly DefaultProposalTemplateI
     sort_order,
   }));
 
-const ENHANCED_OPTIONAL_UPGRADES: readonly DefaultProposalTemplateItemDefinition[] = [
-  {
-    catalog_seed_key: "roofing.synthetic_underlayment",
-    item_role: "optional_addon",
+type LineItemOverride = {
+  customer_name_override: string;
+  description_override: string;
+};
+
+const ENHANCED_LINE_OVERRIDES: Readonly<Record<string, LineItemOverride>> = {
+  "roofing.synthetic_underlayment": {
     customer_name_override: "Enhanced underlayment",
     description_override:
-      "Optional upgraded underlayment selection. Details to be confirmed by the contractor.",
-    customer_visibility: "inherit_catalog",
-    quantity_rule: INHERIT_CATALOG_QUANTITY,
-    sort_order: 10,
+      "Enhanced underlayment protection included in this package. Product details confirmed by the contractor.",
   },
-  {
-    catalog_seed_key: "roofing.ice_water_valley",
-    item_role: "optional_addon",
+  "roofing.ice_water_valley": {
     customer_name_override: "Enhanced ice and water protection",
     description_override:
-      "Optional enhanced ice and water protection. Scope to be confirmed on site.",
-    customer_visibility: "inherit_catalog",
-    quantity_rule: INHERIT_CATALOG_QUANTITY,
-    sort_order: 20,
+      "Enhanced ice and water protection included in this package. Scope confirmed on site.",
   },
-  {
-    catalog_seed_key: "roofing.roof_vent",
-    item_role: "optional_addon",
-    customer_name_override: "Additional roof ventilation",
-    description_override:
-      "Optional additional ventilation units based on field conditions.",
-    customer_visibility: "inherit_catalog",
-    quantity_rule: INHERIT_CATALOG_QUANTITY,
-    sort_order: 30,
-  },
-];
+};
 
-const PREMIUM_OPTIONAL_UPGRADES: readonly DefaultProposalTemplateItemDefinition[] = [
-  {
-    catalog_seed_key: "roofing.architectural_shingles",
-    item_role: "optional_addon",
+const PREMIUM_LINE_OVERRIDES: Readonly<Record<string, LineItemOverride>> = {
+  "roofing.architectural_shingles": {
     customer_name_override: "Premium shingle package",
     description_override:
-      "Optional upgraded shingle selection. Product and scope to be confirmed by the contractor.",
-    customer_visibility: "inherit_catalog",
-    quantity_rule: INHERIT_CATALOG_QUANTITY,
-    sort_order: 10,
+      "Premium shingle selection included in this package. Product and scope confirmed by the contractor.",
   },
-  ...ENHANCED_OPTIONAL_UPGRADES.map((item, index) => ({
-    ...item,
-    sort_order: 20 + index * 10,
-  })),
-];
+  "roofing.synthetic_underlayment": {
+    customer_name_override: "Enhanced underlayment",
+    description_override:
+      "Enhanced underlayment protection included in this package. Product details confirmed by the contractor.",
+  },
+  "roofing.ice_water_valley": {
+    customer_name_override: "Enhanced ice and water protection",
+    description_override:
+      "Enhanced ice and water protection included in this package. Scope confirmed on site.",
+  },
+};
+
+/**
+ * True optional add-on shared by Enhanced and Premium.
+ * Same catalog family as included roof vents, but incremental fixed quantity (not inherit_catalog).
+ */
+const ADDITIONAL_ROOF_VENTILATION_UPGRADE: DefaultProposalTemplateItemDefinition = {
+  catalog_seed_key: "roofing.roof_vent",
+  item_role: "optional_addon",
+  customer_name_override: "Additional roof ventilation",
+  description_override:
+    "Optional additional ventilation beyond the package’s included vents. Select only when extra units are needed.",
+  customer_visibility: "inherit_catalog",
+  quantity_rule: ADDITIONAL_VENT_QUANTITY,
+  upgrade_effect: "additive",
+  default_selected: false,
+  sort_order: 10,
+};
+
+function cloneCoreLineItemsWithOverrides(
+  overrides: Readonly<Record<string, LineItemOverride>>
+): DefaultProposalTemplateItemDefinition[] {
+  return ROOF_REPLACEMENT_CORE_LINE_ITEMS.map((item) => {
+    const override = overrides[item.catalog_seed_key];
+    if (!override) {
+      return { ...item, quantity_rule: item.quantity_rule ? { ...item.quantity_rule } : undefined };
+    }
+    return {
+      ...item,
+      quantity_rule: item.quantity_rule ? { ...item.quantity_rule } : undefined,
+      customer_name_override: override.customer_name_override,
+      description_override: override.description_override,
+    };
+  });
+}
 
 const PROJECT_OVERVIEW_BODY = `This proposal outlines the recommended roofing work for your property based on the current job information, selected package, and contractor review.
 
@@ -138,6 +173,7 @@ function sectionSeedKey(optionSeedKey: string, suffix: string): string {
 
 function buildOptionSections(
   optionSeedKey: string,
+  lineItems: readonly DefaultProposalTemplateItemDefinition[],
   upgradeItems: readonly DefaultProposalTemplateItemDefinition[]
 ): readonly DefaultProposalTemplateSectionDefinition[] {
   return [
@@ -160,7 +196,7 @@ function buildOptionSections(
       customer_visibility: CUSTOMER_VISIBLE,
       sort_order: 20,
       seed_key: sectionSeedKey(optionSeedKey, ".line_items"),
-      items: ROOF_REPLACEMENT_CORE_LINE_ITEMS,
+      items: lineItems,
     },
     {
       kind: "upgrade_group",
@@ -218,6 +254,7 @@ function buildOptionDefinition(
     description: string;
     isDefault: boolean;
     sortOrder: number;
+    lineItems: readonly DefaultProposalTemplateItemDefinition[];
     upgradeItems: readonly DefaultProposalTemplateItemDefinition[];
   }
 ): DefaultProposalTemplateOptionDefinition {
@@ -230,9 +267,21 @@ function buildOptionDefinition(
     is_default: config.isDefault,
     visible_to_customer: true,
     sort_order: config.sortOrder,
-    sections: buildOptionSections(config.seedKey, config.upgradeItems),
+    sections: buildOptionSections(config.seedKey, config.lineItems, config.upgradeItems),
   };
 }
+
+const STANDARD_LINE_ITEMS = cloneCoreLineItemsWithOverrides({});
+const ENHANCED_LINE_ITEMS = cloneCoreLineItemsWithOverrides(ENHANCED_LINE_OVERRIDES);
+const PREMIUM_LINE_ITEMS = cloneCoreLineItemsWithOverrides(PREMIUM_LINE_OVERRIDES);
+
+const ENHANCED_OPTIONAL_UPGRADES: readonly DefaultProposalTemplateItemDefinition[] = [
+  { ...ADDITIONAL_ROOF_VENTILATION_UPGRADE },
+];
+
+const PREMIUM_OPTIONAL_UPGRADES: readonly DefaultProposalTemplateItemDefinition[] = [
+  { ...ADDITIONAL_ROOF_VENTILATION_UPGRADE },
+];
 
 const ROOF_REPLACEMENT_OPTIONS: readonly DefaultProposalTemplateOptionDefinition[] = [
   buildOptionDefinition({
@@ -243,6 +292,7 @@ const ROOF_REPLACEMENT_OPTIONS: readonly DefaultProposalTemplateOptionDefinition
       "Standard roof replacement package with core materials, labor, disposal, and permit line items.",
     isDefault: true,
     sortOrder: 10,
+    lineItems: STANDARD_LINE_ITEMS,
     upgradeItems: [],
   }),
   buildOptionDefinition({
@@ -250,9 +300,10 @@ const ROOF_REPLACEMENT_OPTIONS: readonly DefaultProposalTemplateOptionDefinition
     seedKey: "proposal.roof_replacement.enhanced",
     customerLabel: "Enhanced",
     description:
-      "Enhanced package with the same core scope plus optional upgrades for underlayment, ice and water, and ventilation.",
+      "Enhanced package with upgraded underlayment and ice and water protection included, plus optional additional ventilation.",
     isDefault: false,
     sortOrder: 20,
+    lineItems: ENHANCED_LINE_ITEMS,
     upgradeItems: ENHANCED_OPTIONAL_UPGRADES,
   }),
   buildOptionDefinition({
@@ -260,9 +311,10 @@ const ROOF_REPLACEMENT_OPTIONS: readonly DefaultProposalTemplateOptionDefinition
     seedKey: "proposal.roof_replacement.premium",
     customerLabel: "Premium",
     description:
-      "Premium package with the same core scope plus optional upgrades including a premium shingle selection.",
+      "Premium package with premium shingles, enhanced underlayment, and ice and water protection included, plus optional additional ventilation.",
     isDefault: false,
     sortOrder: 30,
+    lineItems: PREMIUM_LINE_ITEMS,
     upgradeItems: PREMIUM_OPTIONAL_UPGRADES,
   }),
 ];
@@ -273,7 +325,10 @@ const ROOF_REPLACEMENT_TEMPLATE: DefaultProposalTemplateDefinition = {
     "Starter roof replacement template with Standard, Enhanced, and Premium customer-facing options. Install catalog items before use.",
   status: "draft",
   sort_order: 10,
-  metadata: { seed_key: DEFAULT_ROOF_REPLACEMENT_TEMPLATE_SEED_KEY },
+  metadata: {
+    seed_key: DEFAULT_ROOF_REPLACEMENT_TEMPLATE_SEED_KEY,
+    optional_upgrade_truth_version: OPTIONAL_UPGRADE_TRUTH_VERSION,
+  },
   options: ROOF_REPLACEMENT_OPTIONS,
 };
 

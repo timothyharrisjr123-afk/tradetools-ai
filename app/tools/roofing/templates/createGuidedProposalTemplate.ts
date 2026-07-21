@@ -387,6 +387,9 @@ async function createItemRow(params: {
     description_override: itemDef.description_override ?? null,
     customer_visibility: itemDef.customer_visibility ?? "inherit_catalog",
     quantity_rule: itemDef.quantity_rule ?? null,
+    upgrade_effect: itemDef.upgrade_effect ?? null,
+    replaces_template_item_id: null,
+    default_selected: itemDef.default_selected === true,
     sort_order: itemDef.sort_order ?? null,
     metadata: mergeMetadataWithSeedKey(itemSeedKey, {
       ...(itemDef.metadata ?? {}),

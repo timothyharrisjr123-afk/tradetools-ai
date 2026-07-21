@@ -31,6 +31,11 @@ import type {
   ProposalTemplateItem,
   ProposalTemplateItemCustomerVisibility,
 } from "@/app/lib/proposalTemplateTypes";
+import {
+  applyUpgradeTruthToPricingLines,
+  buildUpgradeScopeRef,
+  type UpgradeChoiceByTemplateItemId,
+} from "@/app/lib/proposalUpgradeTruth";
 
 /** Missing-catalog structural placeholder — not a pricing default. Engine blocks without catalog economics. */
 const MISSING_CATALOG_UNIT: PricingLineInput["unit"] = "fixed";
@@ -42,6 +47,8 @@ export type MapProposalPricingInputParams = {
   graph: ProposalTemplateGraph;
   catalogItems: CatalogItem[] | Map<string, CatalogItem>;
   quantityContext: ProposalQuantityPreviewContext | null;
+  /** Optional job-draft upgrade selections keyed by template item id. */
+  upgradeChoicesByTemplateItemId?: UpgradeChoiceByTemplateItemId | null;
 };
 
 function resolveCatalogMap(catalogItems: CatalogItem[] | Map<string, CatalogItem>): Map<string, CatalogItem> {
@@ -75,26 +82,23 @@ function resolveHiddenButInCalc(templateItem: ProposalTemplateItem): boolean | u
   return undefined;
 }
 
-/**
- * Upgrade scope: template item role upgrade/optional_addon scoped to its parent option.
- * No upgrade selection state in 3I-1B — parentOptionId only.
- */
 function resolveUpgradeScope(
   templateItem: ProposalTemplateItem,
-  optionId: string
+  optionId: string,
+  choicesByTemplateItemId?: UpgradeChoiceByTemplateItemId | null
 ): UpgradeScopeRef | null {
-  if (templateItem.item_role !== "upgrade" && templateItem.item_role !== "optional_addon") {
-    return null;
-  }
-  if (templateItem.option_id !== optionId) {
-    return null;
-  }
-  return { parentOptionId: optionId };
+  const choice = choicesByTemplateItemId?.get(templateItem.id);
+  return buildUpgradeScopeRef({
+    templateItem,
+    optionId,
+    selectionState: choice?.selectionState ?? null,
+  });
 }
 
 function mapMissingCatalogLine(
   templateItem: ProposalTemplateItem,
-  optionId: string
+  optionId: string,
+  choicesByTemplateItemId?: UpgradeChoiceByTemplateItemId | null
 ): PricingLineInput {
   const catalogId = (templateItem.catalog_item_id ?? "").trim() || null;
   return {
@@ -112,7 +116,7 @@ function mapMissingCatalogLine(
     unitPriceCents: null,
     laborUnitCostCents: null,
     tax: null,
-    upgradeScope: resolveUpgradeScope(templateItem, optionId),
+    upgradeScope: resolveUpgradeScope(templateItem, optionId, choicesByTemplateItemId),
     hiddenButInCalc: resolveHiddenButInCalc(templateItem),
   };
 }
@@ -125,17 +129,18 @@ export function mapTemplateItemToPricingLineInput(
   catalog: CatalogItem | null | undefined,
   quantityContext: ProposalQuantityPreviewContext | null,
   optionId: string,
-  wasteModel?: PricingPolicy["wasteModel"] | null
+  wasteModel?: PricingPolicy["wasteModel"] | null,
+  choicesByTemplateItemId?: UpgradeChoiceByTemplateItemId | null
 ): PricingLineInput {
   const catalogId = (templateItem.catalog_item_id ?? "").trim();
   const hasCatalogId = Boolean(catalogId);
 
   if (hasCatalogId && !catalog) {
-    return mapMissingCatalogLine(templateItem, optionId);
+    return mapMissingCatalogLine(templateItem, optionId, choicesByTemplateItemId);
   }
 
   if (!catalog) {
-    return mapMissingCatalogLine(templateItem, optionId);
+    return mapMissingCatalogLine(templateItem, optionId, choicesByTemplateItemId);
   }
 
   const quantityPreview = resolveProposalLineQuantityViaAdapter(
@@ -163,7 +168,7 @@ export function mapTemplateItemToPricingLineInput(
     unitPriceCents: catalog.unit_price_cents ?? null,
     laborUnitCostCents: catalog.labor_unit_cost_cents ?? null,
     tax: null,
-    upgradeScope: resolveUpgradeScope(templateItem, optionId),
+    upgradeScope: resolveUpgradeScope(templateItem, optionId, choicesByTemplateItemId),
     hiddenButInCalc: resolveHiddenButInCalc(templateItem),
   };
 }
@@ -176,7 +181,8 @@ export function mapPricingLineInputsForOption(
   optionId: string,
   catalogById: Map<string, CatalogItem>,
   quantityContext: ProposalQuantityPreviewContext | null,
-  wasteModel?: PricingPolicy["wasteModel"] | null
+  wasteModel?: PricingPolicy["wasteModel"] | null,
+  choicesByTemplateItemId?: UpgradeChoiceByTemplateItemId | null
 ): PricingLineInput[] {
   const sections = getSectionsForOption(graph, optionId).filter((section) =>
     isLineItemsSectionKind(section.kind)
@@ -193,12 +199,19 @@ export function mapPricingLineInputsForOption(
           catalog,
           quantityContext,
           optionId,
-          wasteModel
+          wasteModel,
+          choicesByTemplateItemId
         )
       );
     }
   }
-  return lines;
+
+  return applyUpgradeTruthToPricingLines({
+    optionId,
+    lines,
+    graph,
+    choicesByTemplateItemId,
+  }).lines;
 }
 
 /**
@@ -211,7 +224,8 @@ export function mapProposalPricingInput(params: MapProposalPricingInputParams): 
     params.optionId,
     catalogById,
     params.quantityContext,
-    params.policy.wasteModel
+    params.policy.wasteModel,
+    params.upgradeChoicesByTemplateItemId
   );
 
   return {

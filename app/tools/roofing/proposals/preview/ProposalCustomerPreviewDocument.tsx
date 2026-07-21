@@ -89,7 +89,10 @@ export default function ProposalCustomerPreviewDocumentView({
             companyName={companyName}
           />
           <ProposalCustomerPreviewEstimateTable
-            sections={estimatePresentation.scopeSections}
+            sections={[
+              ...estimatePresentation.scopeSections,
+              ...estimatePresentation.upgradeSections,
+            ]}
             totals={estimatePresentation.totals}
           />
         </>

@@ -31,6 +31,10 @@ import {
   type PricingPolicy,
 } from "@/app/lib/proposalPricingTypes";
 import type { ProposalTemplateGraph } from "@/app/lib/proposalTemplateStore";
+import type {
+  ProposalUpgradeEffect,
+  ProposalUpgradeSelectionState,
+} from "@/app/lib/proposalUpgradeTruthTypes";
 import { mapEngineLineStatusToSnapshot } from "@/app/lib/proposalSnapshotStatusMapper";
 import { sortTemplateOptionsByOrder } from "@/app/tools/roofing/templates/templatesSetupUtils";
 
@@ -80,6 +84,16 @@ export type ProposalBuilderLineCustomerView = {
    * authoritative — hidden-but-in-calc lines keep customerVisibility customer_visible.
    */
   showOnCustomerDocument: boolean;
+  /** Persisted snapshot echo wins when present. */
+  upgradeSelectionStateEcho?: ProposalUpgradeSelectionState | null;
+  upgradeEffectEcho?: ProposalUpgradeEffect | null;
+  replacesTemplateItemIdEcho?: string | null;
+  /** Live pricing-input Upgrade Truth fallback. */
+  upgradeScope?: {
+    selectionState: ProposalUpgradeSelectionState | null;
+    effect: ProposalUpgradeEffect;
+    replacesTemplateItemId: string | null;
+  } | null;
 };
 
 /** Customer-safe option view. Customer totals only — null when blocked. */
@@ -202,6 +216,13 @@ function buildOptionPreview(
       customerLinePriceCents: showPrice ? priced.linePriceCents : null,
       customerVisibility: line.customerVisibility,
       showOnCustomerDocument,
+      upgradeScope: line.upgradeScope
+        ? {
+            selectionState: line.upgradeScope.selectionState ?? null,
+            effect: line.upgradeScope.effect ?? "additive",
+            replacesTemplateItemId: line.upgradeScope.replacesTemplateItemId ?? null,
+          }
+        : null,
     };
     lines.push(view);
     lineByTemplateItemId[line.templateItemId] = view;

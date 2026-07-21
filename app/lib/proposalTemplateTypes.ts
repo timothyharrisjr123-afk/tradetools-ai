@@ -26,6 +26,7 @@
  */
 
 import type { CustomerVisibility, QuantitySource } from "@/app/lib/catalogTypes";
+import type { ProposalUpgradeEffect } from "@/app/lib/proposalUpgradeTruthTypes";
 
 // ---------------------------------------------------------------------------
 // Enums / unions
@@ -192,6 +193,15 @@ export type ProposalTemplateItem = {
   description_override?: string | null;
   customer_visibility?: ProposalTemplateItemCustomerVisibility;
   quantity_rule?: TemplateQuantityRule | null;
+  /**
+   * True optional add-on behavior. Only valid for upgrade/optional_addon roles.
+   * Package-included enhancements belong in line_items, not here.
+   */
+  upgrade_effect?: ProposalUpgradeEffect | null;
+  /** Required when upgrade_effect is replacement; same-option included/standard target. */
+  replaces_template_item_id?: string | null;
+  /** V1 product default is false / unset → not selected on draft create. */
+  default_selected?: boolean | null;
   sort_order?: number | null;
   metadata?: Record<string, unknown> | null;
   created_at?: string | null;
@@ -279,6 +289,10 @@ export type DefaultProposalTemplateItemDefinition = {
   description_override?: string | null;
   customer_visibility?: ProposalTemplateItemCustomerVisibility;
   quantity_rule?: TemplateQuantityRule | null;
+  upgrade_effect?: ProposalUpgradeEffect | null;
+  /** Seed-key of the same-option included line this upgrade replaces, when replacement. */
+  replaces_catalog_seed_key?: string | null;
+  default_selected?: boolean | null;
   sort_order?: number | null;
   metadata?: Record<string, unknown> | null;
 };

@@ -76,6 +76,8 @@ function baseDto(overrides: Partial<ProposalPublicGraphDto> = {}): ProposalPubli
             pricing_status: "priced",
             visible_to_customer: true,
             line_presentation_group: "included",
+            upgrade_selection_state: null,
+            upgrade_effect: null,
           },
         ],
       },
@@ -102,6 +104,8 @@ function baseDto(overrides: Partial<ProposalPublicGraphDto> = {}): ProposalPubli
             pricing_status: "priced",
             visible_to_customer: true,
             line_presentation_group: "included",
+            upgrade_selection_state: null,
+            upgrade_effect: null,
           },
           {
             source_template_item_id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
@@ -115,6 +119,8 @@ function baseDto(overrides: Partial<ProposalPublicGraphDto> = {}): ProposalPubli
             pricing_status: "priced",
             visible_to_customer: true,
             line_presentation_group: "upgrade",
+            upgrade_selection_state: "selected",
+            upgrade_effect: "additive",
           },
         ],
       },
@@ -141,6 +147,8 @@ function baseDto(overrides: Partial<ProposalPublicGraphDto> = {}): ProposalPubli
             pricing_status: "priced",
             visible_to_customer: true,
             line_presentation_group: "included",
+            upgrade_selection_state: null,
+            upgrade_effect: null,
           },
         ],
       },
@@ -208,10 +216,29 @@ describe("buildCustomerPacketFromPublicDto", () => {
     assert.equal(current?.optionKey, TEMPLATE_OPT_C);
   });
 
-  test("optional upgrades render only when present", () => {
+  test("selected upgrades render only when present", () => {
     const packet = buildCustomerPacketFromPublicDto(baseDto());
     assert.equal(packet.upgrades?.items.length, 1);
     assert.equal(packet.upgrades?.items[0]?.name, "Ridge Vent");
+  });
+
+  test("unselected upgrades are omitted from packet upgrades", () => {
+    const dto = baseDto({
+      options: baseDto().options.map((option) =>
+        option.source_template_option_id === TEMPLATE_OPT_B
+          ? {
+              ...option,
+              line_items: option.line_items.map((line) =>
+                line.line_presentation_group === "upgrade"
+                  ? { ...line, upgrade_selection_state: "not_selected" as const }
+                  : line
+              ),
+            }
+          : option
+      ),
+    });
+    const packet = buildCustomerPacketFromPublicDto(dto);
+    assert.equal(packet.upgrades, null);
   });
 
   test("missing upgrades are omitted", () => {
