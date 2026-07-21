@@ -1,5 +1,5 @@
 /**
- * Block 5C elevate — "Roofing Proposal Sales Packet".
+ * Contractor-facing Proposal Preview — product rules for the review-and-send workspace.
  *
  * Run: npx tsx --test app/tools/roofing/proposals/preview/*.test.ts
  */
@@ -9,8 +9,8 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, test } from "node:test";
 import {
-  CUSTOMER_PREVIEW_COMPACT_READINESS_COPY,
   CUSTOMER_PREVIEW_DRAFT_NOTICE,
+  CUSTOMER_PREVIEW_NEEDS_REVIEW_HEADING,
   CUSTOMER_PREVIEW_PAGE_TITLE,
   CUSTOMER_PREVIEW_RETURN_TO_BUILDER_ACTION,
   CUSTOMER_PREVIEW_SEND_SHARING_LABEL,
@@ -20,229 +20,272 @@ function readPreviewSource(rel: string): string {
   return readFileSync(path.join(process.cwd(), "app/tools/roofing/proposals/preview", rel), "utf8");
 }
 
-const PACKET_SOURCE_FILES = [
+const CUSTOMER_DOCUMENT_FILES = [
+  "ProposalCustomerPreviewDocument.tsx",
+  "ProposalCustomerPreviewPacket.tsx",
+  "ProposalCustomerPreviewPacketCover.tsx",
+  "ProposalCustomerPreviewPackageStrip.tsx",
+  "ProposalCustomerPreviewTrustBridge.tsx",
+  "ProposalCustomerPreviewEstimateTable.tsx",
+  "ProposalCustomerPreviewPacketSection.tsx",
+  "proposalCustomerPacketStyles.ts",
+];
+
+const DEFAULT_PAGE_FILES = [
   "ProposalCustomerPreviewClient.tsx",
-  "ProposalCustomerPreviewDocument.tsx",
-  "ProposalCustomerPreviewPacket.tsx",
-  "ProposalCustomerPreviewPacketCover.tsx",
-  "ProposalCustomerPreviewPackageStrip.tsx",
-  "ProposalCustomerPreviewTrustBridge.tsx",
-  "ProposalCustomerPreviewEstimateTable.tsx",
-  "ProposalCustomerPreviewPacketSection.tsx",
-  "proposalCustomerPacketStyles.ts",
-];
-
-const COCKPIT_STRINGS = [
-  /readiness checklist/i,
-  /sent snapshot/i,
-  /needs sent snapshot/i,
-  /email delivery is not configured/i,
-  /company logo is missing/i,
-  /coming later/i,
-  /custom text page/i,
-  /should be reviewed/i,
-  /pricing readiness/i,
-  /scope decisions/i,
-  /guardrail/i,
-  /workbench/i,
-  /pricing policy/i,
-];
-
-/** Customer-visible packet UI only (excludes Client data-loading imports). */
-const CUSTOMER_PACKET_UI_FILES = [
-  "ProposalCustomerPreviewPacket.tsx",
-  "ProposalCustomerPreviewPacketCover.tsx",
-  "ProposalCustomerPreviewPackageStrip.tsx",
-  "ProposalCustomerPreviewTrustBridge.tsx",
-  "ProposalCustomerPreviewEstimateTable.tsx",
-  "ProposalCustomerPreviewPacketSection.tsx",
-  "ProposalCustomerPreviewDocument.tsx",
-  "proposalCustomerPacketStyles.ts",
+  "ProposalPreviewHeader.tsx",
+  "ProposalPreviewActionGroup.tsx",
+  "ProposalPreviewReadinessSummary.tsx",
+  "ProposalPreviewReviewSurface.tsx",
 ];
 
 const ACTION_STRINGS = [
   /Edit quantity/i,
   /Set quantity/i,
   /Remove from proposal/i,
-  /\bRestore\b/,
   /Hide from customer/i,
   /row menu/i,
 ];
 
-const SELECTOR_STRINGS = [
-  /\bCurrent\b/,
-  /\bAvailable\b/,
-  /Choose starting package/i,
-  /Choose package/i,
-  /Change package/i,
-  /Edit package/i,
-];
-
-describe("Block 5C elevate — roofing proposal sales packet", () => {
-  test("page title and quiet draft status", () => {
-    assert.equal(CUSTOMER_PREVIEW_PAGE_TITLE, "Customer proposal preview");
-    assert.equal(CUSTOMER_PREVIEW_DRAFT_NOTICE, "Draft preview · Not sent");
-    assert.equal(CUSTOMER_PREVIEW_SEND_SHARING_LABEL, "Send / sharing");
+describe("Contractor-facing Proposal Preview workspace", () => {
+  test("1. default page is contractor-facing Proposal Preview", () => {
+    assert.equal(CUSTOMER_PREVIEW_PAGE_TITLE, "Proposal Preview");
+    assert.equal(CUSTOMER_PREVIEW_DRAFT_NOTICE, "Draft · Not sent");
+    const client = readPreviewSource("ProposalCustomerPreviewClient.tsx");
+    assert.match(client, /data-preview-contractor-workspace/);
+    assert.match(client, /ProposalPreviewHeader/);
+    assert.match(client, /ProposalPreviewReviewSurface/);
+    assert.match(client, /PREVIEW_UNIFIED_SURFACE/);
+    assert.match(client, /data-preview-unified-surface/);
+    assert.doesNotMatch(client, /Roof replacement proposal/);
+    assert.doesNotMatch(client, /ProposalPreviewCanvas/);
+    assert.doesNotMatch(client, /ProposalPreviewReviewPanel/);
+    const appPage = readPreviewSource("ProposalCustomerPreviewAppPage.tsx");
+    assert.match(appPage, /activeNav="jobs"/);
+    assert.doesNotMatch(appPage, /activeNav="templates"/);
   });
 
-  test("premium proposal sales packet root exists", () => {
-    const packet = readPreviewSource("ProposalCustomerPreviewPacket.tsx");
-    assert.match(packet, /data-preview-customer-document/);
-    assert.match(packet, /data-preview-sales-packet/);
-    assert.match(packet, /PACKET_PAPER/);
+  test("2. app page title is Proposal Preview", () => {
+    const header = readPreviewSource("ProposalPreviewHeader.tsx");
+    assert.match(header, /data-preview-page-title/);
+    assert.match(header, /CUSTOMER_PREVIEW_PAGE_TITLE/);
+    assert.match(header, /data-preview-header-package/);
+    assert.match(header, /data-preview-header-last-saved/);
+    assert.doesNotMatch(header, /Roof replacement proposal/);
   });
 
-  test("Preview-facing source does not use Builder/workbench visual chrome", () => {
-    for (const file of PACKET_SOURCE_FILES) {
+  test("3. customer proposal title appears only inside customer preview", () => {
+    const cover = readPreviewSource("ProposalCustomerPreviewPacketCover.tsx");
+    assert.match(cover, /data-preview-document-title/);
+    for (const file of DEFAULT_PAGE_FILES) {
       const source = readPreviewSource(file);
-      assert.doesNotMatch(source, /WORKBENCH_/, `${file} must not reference WORKBENCH_*`);
-      assert.doesNotMatch(source, /BUILDER_CANVAS/, `${file} must not reference BUILDER_CANVAS*`);
-      assert.doesNotMatch(source, /BUILDER_STAGE/, `${file} must not reference BUILDER_STAGE`);
-      assert.doesNotMatch(
-        source,
-        /from ["']\.\.\/builder\/proposalBuilderConstants["']/,
-        `${file} must not import Builder visual constants`
-      );
+      assert.doesNotMatch(source, /data-preview-document-title/);
     }
   });
 
-  test("strong proposal hero and brand band render", () => {
+  test("3b. customer and project details render as a balanced proposal snapshot", () => {
     const cover = readPreviewSource("ProposalCustomerPreviewPacketCover.tsx");
-    assert.match(cover, /data-preview-proposal-hero/);
-    assert.match(cover, /data-preview-brand-band/);
-    assert.match(cover, /PACKET_BRAND_BAND/);
-    assert.match(cover, /PACKET_HERO_TITLE/);
-    assert.match(cover, /resolveProposalHeroTitle|proposal/);
-    assert.match(cover, /Prepared by/);
-  });
-
-  test("company identity renders in brand band", () => {
-    const cover = readPreviewSource("ProposalCustomerPreviewPacketCover.tsx");
-    assert.match(cover, /companyName/);
-    assert.match(cover, /logoMonogram|logoUrl/);
-    assert.match(cover, /company\.phone/);
-  });
-
-  test("prepared-for / project info tiles render", () => {
-    const cover = readPreviewSource("ProposalCustomerPreviewPacketCover.tsx");
-    assert.match(cover, /Prepared for/);
-    assert.match(cover, />Project</);
+    assert.match(cover, /data-preview-project-snapshot/);
     assert.match(cover, /data-preview-prepared-for/);
     assert.match(cover, /data-preview-project-info/);
-    assert.match(cover, /PACKET_INFO_TILE/);
+    assert.match(cover, /data-preview-project-scope/);
+    assert.match(cover, /data-preview-project-package/);
+    assert.match(cover, />Customer</);
+    assert.match(cover, />Property</);
+    assert.match(cover, />Project</);
+    assert.match(cover, />Package</);
   });
 
-  test("selected package recommendation renders with includes highlights", () => {
-    const strip = readPreviewSource("ProposalCustomerPreviewPackageStrip.tsx");
-    assert.match(strip, /Selected for your home/);
-    assert.match(strip, /data-preview-package-recommendation/);
-    assert.match(strip, /packageHero\.label/);
-    assert.match(strip, /packageHero\.description/);
-    assert.match(strip, /Includes/);
-    assert.match(strip, /packageHero\.bullets/);
-    assert.match(strip, /PACKET_PACKAGE_CHECK/);
-  });
-
-  test("package section has no selector / edit chrome", () => {
-    const strip = readPreviewSource("ProposalCustomerPreviewPackageStrip.tsx");
-    for (const pattern of SELECTOR_STRINGS) {
-      assert.doesNotMatch(strip, pattern);
-    }
-    assert.doesNotMatch(strip, /ring-4 ring-blue/);
-    assert.doesNotMatch(strip, /from-blue-50\/90/);
-  });
-
-  test("trust bridge explains the offer without backend language", () => {
-    const bridge = readPreviewSource("ProposalCustomerPreviewTrustBridge.tsx");
-    assert.match(bridge, /data-preview-trust-bridge/);
-    assert.match(bridge, /measurement report/);
-    assert.match(bridge, /itemized estimate/);
-    // Assert against rendered copy string, not source comments.
-    const copyMatch = bridge.match(/const copy = `([^`]+)`/);
-    assert.ok(copyMatch?.[1]);
-    for (const pattern of [/snapshot/i, /catalog/i, /pricing policy/i, /scope decision/i]) {
-      assert.doesNotMatch(copyMatch![1], pattern);
+  test("4. readiness summary appears outside customer preview", () => {
+    assert.equal(CUSTOMER_PREVIEW_NEEDS_REVIEW_HEADING, "Needs review before sending");
+    assert.equal(CUSTOMER_PREVIEW_RETURN_TO_BUILDER_ACTION, "Review in Builder");
+    const summary = readPreviewSource("ProposalPreviewReadinessSummary.tsx");
+    assert.match(summary, /data-preview-compact-readiness/);
+    const client = readPreviewSource("ProposalCustomerPreviewClient.tsx");
+    assert.match(client, /ProposalPreviewReadinessSummary/);
+    for (const file of CUSTOMER_DOCUMENT_FILES) {
+      assert.doesNotMatch(readPreviewSource(file), /data-preview-compact-readiness/);
     }
   });
 
-  test("estimate table renders Item / Qty / Price with sales header treatment", () => {
-    const table = readPreviewSource("ProposalCustomerPreviewEstimateTable.tsx");
-    assert.match(table, />Item</);
-    assert.match(table, />Qty</);
-    assert.match(table, />Price</);
-    assert.match(table, /data-preview-estimate-table/);
-    assert.match(table, /PACKET_ESTIMATE_HEADER_ROW/);
-    assert.match(table, /PACKET_ESTIMATE_TABLE_SHELL/);
-  });
-
-  test("estimate table has no customer-document actions", () => {
-    const table = readPreviewSource("ProposalCustomerPreviewEstimateTable.tsx");
-    for (const pattern of ACTION_STRINGS) {
-      assert.doesNotMatch(table, pattern);
-    }
-  });
-
-  test("no backend / manual / needs-quantity labels in customer document", () => {
-    for (const file of PACKET_SOURCE_FILES) {
+  test("5. full readiness checklist is not shown by default", () => {
+    for (const file of DEFAULT_PAGE_FILES) {
       const source = readPreviewSource(file);
-      assert.doesNotMatch(source, /\bmanual quantity\b/i, `${file}`);
-      assert.doesNotMatch(source, /needs quantity/i, `${file}`);
-      assert.doesNotMatch(source, /Pricing incomplete/i, `${file}`);
+      assert.doesNotMatch(source, /Readiness checklist/);
+      assert.doesNotMatch(source, /Needs sent snapshot/);
+      assert.doesNotMatch(source, /sent proposal snapshot/i);
+    }
+    const drawer = readPreviewSource("ProposalCustomerPreviewSendSharingDrawer.tsx");
+    const sendPanel = readPreviewSource("ProposalCustomerPreviewSendGatePanel.tsx");
+    assert.match(drawer, /ProposalCustomerPreviewSendGatePanel/);
+    assert.match(sendPanel, /data-preview-delivery-blocker/);
+    assert.doesNotMatch(sendPanel, /data-preview-send-checklist/);
+    assert.doesNotMatch(sendPanel, />Readiness checklist</);
+  });
+
+  test("6. full email / message form is not shown by default", () => {
+    for (const file of DEFAULT_PAGE_FILES) {
+      const source = readPreviewSource(file);
+      assert.doesNotMatch(source, /Message preview/);
+      assert.doesNotMatch(source, /Send proposal by email/);
+      assert.doesNotMatch(source, /ProposalCustomerPreviewSendGatePanel/);
     }
   });
 
-  test("totals only when complete", () => {
-    const table = readPreviewSource("ProposalCustomerPreviewEstimateTable.tsx");
-    assert.match(table, /totals\.show \?/);
-    const strip = readPreviewSource("ProposalCustomerPreviewPackageStrip.tsx");
-    assert.match(strip, /showTotal/);
+  test("7. Send / share details open only through Send / sharing", () => {
+    assert.equal(CUSTOMER_PREVIEW_SEND_SHARING_LABEL, "Send / sharing");
+    const client = readPreviewSource("ProposalCustomerPreviewClient.tsx");
+    assert.match(client, /ProposalCustomerPreviewSendSharingDrawer/);
+    assert.match(client, /sendSharingOpen/);
+    const header = readPreviewSource("ProposalPreviewHeader.tsx");
+    assert.match(header, /ProposalPreviewActionGroup/);
+    const actionGroup = readPreviewSource("ProposalPreviewActionGroup.tsx");
+    assert.match(actionGroup, /data-preview-send-sharing-toggle/);
+    const drawer = readPreviewSource("ProposalCustomerPreviewSendSharingDrawer.tsx");
+    assert.match(drawer, /data-preview-send-sharing-drawer/);
+    assert.match(drawer, /ProposalCustomerPreviewSendGatePanel/);
   });
 
-  test("placeholder / cockpit copy absent from customer packet UI", () => {
-    for (const file of CUSTOMER_PACKET_UI_FILES) {
+  test("7b. Preview + Send actions distinguish active and future workflows", () => {
+    const actions = readPreviewSource("ProposalPreviewActionGroup.tsx");
+    assert.match(actions, /data-preview-action-group/);
+    assert.match(actions, /Sign in person/);
+    assert.match(actions, /Download PDF/);
+    assert.match(actions, /data-preview-future-action="sign-in-person"/);
+    assert.match(actions, /data-preview-future-action="download-pdf"/);
+    assert.match(actions, /disabled/);
+    assert.match(actions, /aria-disabled="true"/);
+    assert.match(actions, /CUSTOMER_PREVIEW_SEND_SHARING_LABEL/);
+    assert.doesNotMatch(actions, /onClick=.*sign|onClick=.*pdf/i);
+  });
+
+  test("7c. Send opens a premium delivery composer without backend-facing copy", () => {
+    const drawer = readPreviewSource("ProposalCustomerPreviewSendSharingDrawer.tsx");
+    const sendPanel = readPreviewSource("ProposalCustomerPreviewSendGatePanel.tsx");
+    assert.match(drawer, /Send proposal/);
+    assert.match(drawer, /Draft/);
+    assert.match(drawer, /Not sent/);
+    assert.match(sendPanel, /data-preview-delivery-composer/);
+    assert.match(sendPanel, /data-preview-delivery-recipient/);
+    assert.match(sendPanel, /data-preview-email-composer/);
+    assert.match(sendPanel, /data-preview-email-subject/);
+    assert.match(sendPanel, /data-preview-email-message/);
+    assert.match(sendPanel, /A secure proposal link will be included when sent/);
+    assert.match(sendPanel, /disabled=\{!canSendProposalEmail\}/);
+    assert.match(sendPanel, /Review required before sending/);
+    assert.doesNotMatch(sendPanel, />Sent snapshot</);
+    assert.doesNotMatch(sendPanel, />Customer view</);
+    assert.doesNotMatch(sendPanel, />Pricing & scope</);
+    assert.doesNotMatch(sendPanel, /Email sending is not configured/);
+  });
+
+  test("7d. Link and Activity stay truthful and lightweight", () => {
+    const linkPanel = readPreviewSource("ProposalCustomerPreviewPublicAccessPanel.tsx");
+    const drawer = readPreviewSource("ProposalCustomerPreviewSendSharingDrawer.tsx");
+    const history = readPreviewSource("ProposalCustomerPreviewDeliveryHistorySection.tsx");
+    assert.match(linkPanel, /Customer proposal link/);
+    assert.match(linkPanel, /Not created yet/);
+    assert.match(linkPanel, /Create proposal link/);
+    assert.match(linkPanel, /Copy link/);
+    assert.match(linkPanel, /Open proposal/);
+    assert.doesNotMatch(linkPanel, />Sent snapshot</);
+    for (const source of [drawer, history]) {
+      assert.doesNotMatch(source, /\bViewed\b/);
+      assert.doesNotMatch(source, /\bOpened\b/);
+      assert.doesNotMatch(source, /\bSigned\b/);
+      assert.doesNotMatch(source, /\bWon\b/);
+    }
+  });
+
+  test("8. Link / Activity details available in drawer, not dumped on default page", () => {
+    const drawer = readPreviewSource("ProposalCustomerPreviewSendSharingDrawer.tsx");
+    assert.match(drawer, /data-preview-review-tabs/);
+    assert.match(drawer, /\["link", "Link", Link2\]/);
+    assert.match(drawer, /\["activity", "Activity", Clock3\]/);
+    assert.match(drawer, /ProposalCustomerPreviewPublicAccessPanel/);
+    assert.match(drawer, /ProposalCustomerPreviewDeliveryHistorySection/);
+    for (const file of DEFAULT_PAGE_FILES) {
       const source = readPreviewSource(file);
-      for (const pattern of COCKPIT_STRINGS) {
-        assert.doesNotMatch(source, pattern, `${file} must not surface ${pattern}`);
+      assert.doesNotMatch(source, /ProposalCustomerPreviewPublicAccessPanel/);
+      assert.doesNotMatch(source, /ProposalCustomerPreviewDeliveryHistorySection/);
+      assert.doesNotMatch(source, /data-preview-review-tabs/);
+    }
+  });
+
+  test("9. no document viewer chrome — no Desktop/Mobile or zoom", () => {
+    for (const file of DEFAULT_PAGE_FILES) {
+      const source = readPreviewSource(file);
+      assert.doesNotMatch(source, /Desktop/);
+      assert.doesNotMatch(source, /Mobile/);
+      assert.doesNotMatch(source, /data-preview-mode-controls/);
+      assert.doesNotMatch(source, /zoom/i);
+      assert.doesNotMatch(source, /100%/);
+    }
+    const surface = readPreviewSource("ProposalPreviewReviewSurface.tsx");
+    assert.match(surface, /data-preview-review-surface/);
+    assert.match(surface, /Customer proposal preview/);
+    assert.match(surface, /What the customer will receive/);
+    assert.doesNotMatch(surface, /Customer-safe preview/);
+  });
+
+  test("10. customer preview has no internal controls or backend words", () => {
+    for (const file of CUSTOMER_DOCUMENT_FILES) {
+      const source = readPreviewSource(file);
+      assert.doesNotMatch(source, /Back to Builder/);
+      assert.doesNotMatch(source, /Review in Builder/);
+      assert.doesNotMatch(source, /data-preview-status-strip/);
+      assert.doesNotMatch(source, /Review & send/);
+      assert.doesNotMatch(source, /delivery history/i);
+      assert.doesNotMatch(source, /sent snapshot/i);
+      assert.doesNotMatch(source, /Needs sent snapshot/);
+      assert.doesNotMatch(source, /\bmanual quantity\b/i);
+      assert.doesNotMatch(source, /needs quantity/i);
+      assert.doesNotMatch(source, /Sign in person/);
+      assert.doesNotMatch(source, /Download PDF/);
+      for (const pattern of ACTION_STRINGS) {
+        assert.doesNotMatch(source, pattern);
       }
     }
   });
 
-  test("Send / sharing closed by default; drawer not under document", () => {
-    const client = readPreviewSource("ProposalCustomerPreviewClient.tsx");
-    assert.match(client, /setSendSharingOpen\] = useState\(false\)/);
-    assert.match(client, /ProposalCustomerPreviewSendSharingDrawer/);
-    const drawer = readPreviewSource("ProposalCustomerPreviewSendSharingDrawer.tsx");
-    assert.match(drawer, /data-preview-send-sharing-drawer/);
-    assert.match(drawer, /hideDeferredActions/);
+  test("11. selected package and estimate still render; totals gated", () => {
+    const packageStrip = readPreviewSource("ProposalCustomerPreviewPackageStrip.tsx");
+    assert.match(packageStrip, /Selected package|package/i);
+    const table = readPreviewSource("ProposalCustomerPreviewEstimateTable.tsx");
+    assert.match(table, />Item</);
+    assert.match(table, />Qty</);
+    assert.match(table, />Price</);
+    assert.match(table, /totals\.show \?/);
+    assert.match(table, /totals\.discountLabel \?/);
   });
 
-  test("coming-later Signature/PDF/Payment affordances hidden from packet", () => {
-    for (const file of PACKET_SOURCE_FILES) {
+  test("12. no fake unsupported features on default or document", () => {
+    const files = [
+      ...DEFAULT_PAGE_FILES,
+      ...CUSTOMER_DOCUMENT_FILES,
+      "ProposalCustomerPreviewSendSharingDrawer.tsx",
+      "proposalPreviewWorkspaceStyles.ts",
+    ];
+    for (const file of files) {
       const source = readPreviewSource(file);
-      assert.doesNotMatch(source, /Signature/i, `${file}`);
-      assert.doesNotMatch(source, /Payment schedule/i, `${file}`);
-      assert.doesNotMatch(source, /PDF attachment/i, `${file}`);
+      assert.doesNotMatch(source, /\bQR\b/, file);
+      assert.doesNotMatch(source, /Payment schedule/i, file);
+      assert.doesNotMatch(source, /e-signature/i, file);
+      assert.doesNotMatch(source, /Viewed\/signed/i, file);
+      assert.doesNotMatch(source, /co-signer/i, file);
+      assert.doesNotMatch(source, /Choose package/i, file);
+      assert.doesNotMatch(source, /Optional upgrades/i, file);
+      assert.doesNotMatch(source, /Customer selected/i, file);
     }
   });
 
-  test("readiness strip stays outside customer document", () => {
-    assert.match(CUSTOMER_PREVIEW_COMPACT_READINESS_COPY, /quantities before totals are final/i);
-    assert.equal(CUSTOMER_PREVIEW_RETURN_TO_BUILDER_ACTION, "Return to Builder");
-    const client = readPreviewSource("ProposalCustomerPreviewClient.tsx");
-    assert.match(client, /data-preview-compact-readiness/);
-    assert.doesNotMatch(client, /data-preview-customer-document/);
-  });
-
-  test("packet order: brand hero → package → trust → estimate → content", () => {
-    const document = readPreviewSource("ProposalCustomerPreviewDocument.tsx");
-    const coverIdx = document.indexOf("ProposalCustomerPreviewPacketCover");
-    const packageIdx = document.indexOf("ProposalCustomerPreviewPackageStrip");
-    const trustIdx = document.indexOf("ProposalCustomerPreviewTrustBridge");
-    const estimateIdx = document.indexOf("ProposalCustomerPreviewEstimateTable");
-    const sectionIdx = document.indexOf("ProposalCustomerPreviewPacketSection");
-    assert.ok(coverIdx >= 0 && packageIdx > coverIdx);
-    assert.ok(trustIdx > packageIdx);
-    assert.ok(estimateIdx > trustIdx);
-    assert.ok(sectionIdx > estimateIdx);
+  test("Preview customer document does not import Builder visual chrome", () => {
+    for (const file of CUSTOMER_DOCUMENT_FILES) {
+      const source = readPreviewSource(file);
+      assert.doesNotMatch(
+        source,
+        /from ["']\.\.\/builder\/proposalBuilderConstants["']/
+      );
+    }
   });
 });

@@ -1,9 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { ArrowLeft, Share2 } from "lucide-react";
 import { getActiveCatalogItemsByCompany } from "@/app/lib/catalogStore";
 import type { CatalogItem } from "@/app/lib/catalogTypes";
 import { resolveJobIdentityDisplay } from "@/app/lib/jobIdentityDisplay";
@@ -21,33 +19,56 @@ import {
   productSpineRouteHintsFromSearchParams,
 } from "@/app/lib/productSpine";
 import {
-  CUSTOMER_PREVIEW_BACK_TO_BUILDER_LABEL,
-  CUSTOMER_PREVIEW_COMPACT_READINESS_COPY,
-  CUSTOMER_PREVIEW_DRAFT_NOTICE,
-  CUSTOMER_PREVIEW_PAGE_TITLE,
-  CUSTOMER_PREVIEW_RETURN_TO_BUILDER_ACTION,
-  CUSTOMER_PREVIEW_SEND_SHARING_LABEL,
-} from "@/app/lib/proposalBuilderDocumentIa";
-import {
   getDraftGraph,
   ProposalRecordStoreError,
   type ProposalDraftGraph,
 } from "@/app/lib/proposalRecordStore";
+import { resolveSendGateRecipientEmail } from "@/app/lib/proposalSendGateReadiness";
 import { deriveProposalPricingStale } from "@/app/lib/proposalStaleness";
 import {
   getProposalTemplateGraph,
   type ProposalTemplateGraph,
 } from "@/app/lib/proposalTemplateStore";
-import { PACKET_PAGE_BACKGROUND, PACKET_STAGE } from "./proposalCustomerPacketStyles";
 import ProposalCustomerPreviewDocumentView from "./ProposalCustomerPreviewDocument";
 import ProposalCustomerPreviewSendSharingDrawer from "./ProposalCustomerPreviewSendSharingDrawer";
+import ProposalPreviewHeader from "./ProposalPreviewHeader";
+import ProposalPreviewReadinessSummary from "./ProposalPreviewReadinessSummary";
+import ProposalPreviewReviewSurface from "./ProposalPreviewReviewSurface";
+import {
+  PREVIEW_COMMAND_SURFACE,
+  PREVIEW_UNIFIED_SURFACE,
+  PREVIEW_WORKSPACE_BG,
+  PREVIEW_WORKSPACE_STAGE,
+} from "./proposalPreviewWorkspaceStyles";
 
-const SEND_SHARING_BUTTON =
-  "inline-flex items-center gap-2 rounded-md border border-slate-900 bg-slate-900 px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800";
+function formatLastSavedLabel(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "—";
+  const now = new Date();
+  const sameDay =
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate();
+  const time = date.toLocaleTimeString(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  if (sameDay) return `Today at ${time}`;
+  return date.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
 
-const RETURN_TO_BUILDER_BUTTON =
-  "inline-flex shrink-0 items-center justify-center rounded-md border border-amber-300 bg-white px-3 py-1.5 text-sm font-semibold text-amber-950 shadow-sm transition hover:bg-amber-50";
-
+/**
+ * FieldDive Proposal Preview — contractor review-and-send workspace.
+ *
+ * Default: operational header + readiness cue + integrated proposal review surface.
+ * Send / link / activity open only via Send / sharing.
+ */
 export default function ProposalCustomerPreviewClient({
   companyId,
   emailDeliveryConfigured,
@@ -86,6 +107,7 @@ export default function ProposalCustomerPreviewClient({
     null
   );
   const [sendSharingOpen, setSendSharingOpen] = useState(false);
+  const [sendSharingTab, setSendSharingTab] = useState<"send" | "link" | "activity">("send");
 
   const loadPreview = useCallback(async () => {
     setLoadComplete(false);
@@ -93,7 +115,6 @@ export default function ProposalCustomerPreviewClient({
     setPersistedGraph(null);
     setTemplateGraph(null);
     setJob(null);
-    setSendSharingOpen(false);
 
     if (!routeSpineLaunch.allowed) {
       setLoadError(
@@ -182,95 +203,70 @@ export default function ProposalCustomerPreviewClient({
   const builderHref = buildProposalBuilderHref(normalizedJobId, normalizedProposalId);
   const jobIdentity = resolveJobIdentityDisplay(job, "Proposal preview");
 
-  const estimateIncomplete =
-    previewDocument != null &&
-    (!previewDocument.readiness.pricingComplete ||
-      previewDocument.readiness.blockingLineCount > 0);
+  const estimatePage = previewDocument?.pages.find((page) => page.kind === "estimate");
+  const selectedPackageLabel =
+    estimatePage?.kind === "estimate" ? estimatePage.selectedOptionLabel : null;
+  const lastSavedLabel = formatLastSavedLabel(persistedGraph?.proposal.updated_at);
+  const hasRecipientEmail = Boolean(
+    persistedGraph && resolveSendGateRecipientEmail({ graph: persistedGraph, job }).trim()
+  );
+  const coverPage = previewDocument?.pages.find((page) => page.kind === "cover");
+  const companyLogoMissing =
+    coverPage?.kind === "cover" &&
+    coverPage.viewModel.company.hasAnyField &&
+    !coverPage.viewModel.company.logoUrl;
 
-  const identityLine = [
-    jobIdentity.primaryLabel,
-    jobIdentity.secondaryAddress,
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  const openSendSharing = (tab: "send" | "link" | "activity" = "send") => {
+    setSendSharingTab(tab);
+    setSendSharingOpen(true);
+  };
 
   return (
-    <div className={`min-h-full pb-16 ${PACKET_PAGE_BACKGROUND}`}>
-      <header className={`${PACKET_STAGE} border-b border-slate-200/80 bg-white/90 pb-4 pt-5 backdrop-blur`}>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div className="min-w-0">
-            <Link
-              href={builderHref}
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-700"
-            >
-              <ArrowLeft className="h-4 w-4" aria-hidden />
-              {CUSTOMER_PREVIEW_BACK_TO_BUILDER_LABEL}
-            </Link>
-            <div className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                {CUSTOMER_PREVIEW_PAGE_TITLE}
-              </p>
-              <p className="text-sm text-slate-500">{CUSTOMER_PREVIEW_DRAFT_NOTICE}</p>
-            </div>
-            <h1
-              className="mt-1 text-[1.35rem] font-semibold leading-tight tracking-tight text-slate-950 sm:text-[1.5rem]"
-              data-preview-job-primary-identity
-            >
-              {identityLine || jobIdentity.primaryLabel}
-            </h1>
-          </div>
-          {loadComplete && previewDocument && persistedGraph ? (
-            <div className="shrink-0 sm:pt-7">
-              <button
-                type="button"
-                className={SEND_SHARING_BUTTON}
-                aria-expanded={sendSharingOpen}
-                aria-controls="preview-send-sharing-panel"
-                data-preview-send-sharing-toggle
-                onClick={() => setSendSharingOpen(true)}
-              >
-                <Share2 className="h-4 w-4" aria-hidden />
-                {CUSTOMER_PREVIEW_SEND_SHARING_LABEL}
-              </button>
-            </div>
-          ) : null}
-        </div>
-      </header>
-
+    <div className={PREVIEW_WORKSPACE_BG} data-preview-contractor-workspace>
       {!loadComplete ? (
-        <div className={`${PACKET_STAGE} pt-8`}>
+        <div className={`${PREVIEW_WORKSPACE_STAGE} pt-10`}>
           <div className="text-sm text-slate-500">Loading preview…</div>
         </div>
       ) : loadError ? (
-        <div className={`${PACKET_STAGE} pt-8`}>
-          <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+        <div className={`${PREVIEW_WORKSPACE_STAGE} pt-10`}>
+          <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-800 ring-1 ring-red-200/70">
             {loadError}
           </div>
         </div>
       ) : previewDocument && persistedGraph ? (
-        <div className={`${PACKET_STAGE} space-y-6 pt-8`}>
-          {/* Compact contractor readiness — outside the customer document. */}
-          {estimateIncomplete ? (
-            <div
-              className="flex flex-col gap-2.5 rounded-md border border-amber-200/70 bg-amber-50/50 px-3.5 py-2.5 sm:flex-row sm:items-center sm:justify-between"
-              data-preview-contractor-warning
-              data-preview-compact-readiness
-            >
-              <p className="text-[13px] leading-snug text-amber-950/90">
-                {CUSTOMER_PREVIEW_COMPACT_READINESS_COPY}
-              </p>
-              <Link href={builderHref} className={RETURN_TO_BUILDER_BUTTON}>
-                {CUSTOMER_PREVIEW_RETURN_TO_BUILDER_ACTION}
-              </Link>
+        <div
+          className={`${PREVIEW_WORKSPACE_STAGE} space-y-4 pt-5`}
+          data-preview-workspace-layout
+          data-preview-review-desk
+        >
+          <section className={PREVIEW_UNIFIED_SURFACE} data-preview-unified-surface>
+            <div className={PREVIEW_COMMAND_SURFACE} data-preview-command-surface>
+              <ProposalPreviewHeader
+                builderHref={builderHref}
+                customerName={jobIdentity.primaryLabel}
+                projectAddress={jobIdentity.secondaryAddress}
+                selectedPackageLabel={selectedPackageLabel}
+                lastSavedLabel={lastSavedLabel}
+                onSendSharing={() => openSendSharing("send")}
+                showSendSharing
+              />
+              <ProposalPreviewReadinessSummary
+                blockingLineCount={previewDocument.readiness.blockingLineCount}
+                pricingComplete={previewDocument.readiness.pricingComplete}
+                hasRecipientEmail={hasRecipientEmail}
+                builderHref={builderHref}
+                extraHints={companyLogoMissing ? ["Company logo missing"] : []}
+              />
             </div>
-          ) : null}
 
-          {/* Customer proposal packet — single continuous paper surface. */}
-          <ProposalCustomerPreviewDocumentView
-            document={previewDocument}
-            templateGraph={templateGraph}
-            catalogItems={catalogItems}
-          />
+            <ProposalPreviewReviewSurface>
+              <ProposalCustomerPreviewDocumentView
+                document={previewDocument}
+                templateGraph={templateGraph}
+                catalogItems={catalogItems}
+              />
+            </ProposalPreviewReviewSurface>
+          </section>
 
           <ProposalCustomerPreviewSendSharingDrawer
             open={sendSharingOpen}
@@ -282,6 +278,9 @@ export default function ProposalCustomerPreviewClient({
             previewReadiness={previewDocument.readiness}
             pricingStale={pricingStale.stale}
             emailDeliveryConfigured={emailDeliveryConfigured}
+            companyLogoMissing={companyLogoMissing}
+            builderHref={builderHref}
+            initialTab={sendSharingTab}
           />
         </div>
       ) : null}

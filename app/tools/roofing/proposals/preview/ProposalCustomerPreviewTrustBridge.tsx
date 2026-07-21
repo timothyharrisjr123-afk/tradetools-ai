@@ -1,6 +1,10 @@
 "use client";
 
-import { PACKET_TRUST_COPY, PACKET_TRUST_PANEL } from "./proposalCustomerPacketStyles";
+import {
+  PACKET_INFO_LABEL,
+  PACKET_TRUST_COPY,
+  PACKET_TRUST_PANEL,
+} from "./proposalCustomerPacketStyles";
 
 type ProposalCustomerPreviewTrustBridgeProps = {
   packageLabel: string | null;
@@ -8,23 +12,22 @@ type ProposalCustomerPreviewTrustBridgeProps = {
 };
 
 /**
- * Customer-safe trust / scope bridge between package and estimate.
- * Polished sales copy — no contractor-internal or debug language.
+ * Short customer-safe “why this package” copy.
  */
 export default function ProposalCustomerPreviewTrustBridge({
   packageLabel,
-  companyName,
 }: ProposalCustomerPreviewTrustBridgeProps) {
   const packagePart = packageLabel
-    ? `the selected ${/\bpackage\b/i.test(packageLabel) ? packageLabel : `${packageLabel} package`}`
-    : "the selected package";
+    ? /\bpackage\b/i.test(packageLabel)
+      ? packageLabel
+      : `${packageLabel} package`
+    : "selected package";
 
-  const companyPart = companyName ? ` from ${companyName}` : "";
-
-  const copy = `This roof replacement proposal${companyPart} is based on your property’s measurement report and ${packagePart}. The itemized estimate below covers the materials, labor, tear-off, and disposal included in that scope.`;
+  const copy = `This package includes the measured roof scope, selected materials, installation labor, tear-off, disposal, and cleanup shown below for the ${packagePart}.`;
 
   return (
     <div className={PACKET_TRUST_PANEL} data-preview-trust-bridge>
+      <p className={PACKET_INFO_LABEL}>Why this package</p>
       <p className={PACKET_TRUST_COPY}>{copy}</p>
     </div>
   );

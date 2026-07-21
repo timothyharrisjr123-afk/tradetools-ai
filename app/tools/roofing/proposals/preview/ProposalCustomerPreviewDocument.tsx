@@ -25,10 +25,8 @@ type ProposalCustomerPreviewDocumentProps = {
 };
 
 /**
- * Roofing Proposal Sales Packet composer.
- *
- * cover (brand band + hero) → featured package → trust bridge →
- * included estimate → meaningful content → quiet footer.
+ * Customer-safe proposal content for the contractor review surface.
+ * Identity → title → package → why → estimate → content.
  */
 export default function ProposalCustomerPreviewDocumentView({
   document,
@@ -73,6 +71,9 @@ export default function ProposalCustomerPreviewDocumentView({
         <ProposalCustomerPreviewPacketCover
           viewModel={coverPage.viewModel}
           accentColor={accentColor}
+          selectedPackageLabel={
+            estimatePresentation?.packageHero.label ?? estimatePage?.selectedOptionLabel ?? null
+          }
         />
       ) : null}
 

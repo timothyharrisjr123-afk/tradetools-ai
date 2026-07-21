@@ -1,17 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ExternalLink, Link2, Loader2 } from "lucide-react";
+import { ExternalLink, Link2, Loader2, ShieldCheck } from "lucide-react";
 import {
   buildPublicReviewReadinessViewModel,
   hasPublicProposalSentSnapshot,
-  PUBLIC_REVIEW_PANEL_INTRO,
-  PUBLIC_REVIEW_PANEL_TITLE,
-  PUBLIC_REVIEW_REVIEW_LINK_DISCLAIMER,
   type PublicReviewSessionLink,
 } from "@/app/lib/proposalPublicReviewReadiness";
 import type { ProposalRecord } from "@/app/lib/proposalRecordTypes";
-import { BUILDER_CARD, BUILDER_DISABLED_ACTION } from "../builder/proposalBuilderConstants";
 
 type ProposalCustomerPreviewPublicAccessPanelProps = {
   jobId: string;
@@ -20,17 +16,15 @@ type ProposalCustomerPreviewPublicAccessPanelProps = {
   loading: boolean;
   /** Block 5 Roofr-first Preview — hide Signature/PDF/Payment staging rows. */
   hideDeferredActions?: boolean;
+  /** Flatten outer card when mounted inside the Preview command surface. */
+  embedded?: boolean;
 };
 
 const PRIMARY_ACTION =
-  "inline-flex w-full items-center justify-center gap-2 rounded-md border border-blue-300 bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400 sm:w-auto";
+  "inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-[13px] font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 sm:w-auto";
 
 const SECONDARY_ACTION =
-  "inline-flex w-full items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-400 sm:w-auto";
-
-function formatSentSnapshotLabel(ready: boolean): string {
-  return ready ? "Ready" : "Not created yet";
-}
+  "inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400 sm:w-auto";
 
 function formatReviewLinkLabel(
   loading: boolean,
@@ -49,6 +43,7 @@ export default function ProposalCustomerPreviewPublicAccessPanel({
   proposal,
   loading,
   hideDeferredActions = false,
+  embedded = false,
 }: ProposalCustomerPreviewPublicAccessPanelProps) {
   const [sessionLink, setSessionLink] = useState<PublicReviewSessionLink | null>(null);
   const [mintPending, setMintPending] = useState(false);
@@ -131,48 +126,49 @@ export default function ProposalCustomerPreviewPublicAccessPanel({
   }
 
   const panelBusy = loading || mintPending;
+  const shellClass = embedded
+    ? "space-y-5"
+    : "space-y-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm";
+  const linkStatus = formatReviewLinkLabel(loading, sessionLink != null, hasSentSnapshot);
 
   return (
-    <section
-      className={`${BUILDER_CARD} space-y-5 border-slate-200/90 bg-gradient-to-b from-slate-50/80 to-white`}
-      aria-label="Customer view readiness"
-    >
-      <div className="space-y-2">
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-          {PUBLIC_REVIEW_PANEL_TITLE}
+    <section className={shellClass} aria-label="Customer proposal link" data-preview-link-panel>
+      <div>
+        <h3 className="text-[15px] font-semibold text-slate-900">Customer proposal link</h3>
+        <p className="mt-1 text-[13px] leading-relaxed text-slate-500">
+          Create a private link when you are ready to share the proposal directly.
         </p>
-        <p className="text-sm text-slate-700">{PUBLIC_REVIEW_PANEL_INTRO}</p>
-        <p className="text-sm text-slate-500">{PUBLIC_REVIEW_REVIEW_LINK_DISCLAIMER}</p>
       </div>
 
-      <dl className="grid gap-3 sm:grid-cols-2">
-        <div className="rounded-md border border-slate-200/80 bg-white px-4 py-3">
-          <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
-            Sent snapshot
-          </dt>
-          <dd className="mt-1 text-sm font-semibold text-slate-900">
-            {formatSentSnapshotLabel(hasSentSnapshot)}
-          </dd>
+      <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_10px_28px_-24px_rgba(15,23,42,0.6)]">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-600">
+              <Link2 className="h-4 w-4" aria-hidden />
+            </span>
+            <div className="min-w-0">
+              <p className="text-[13px] font-semibold text-slate-900">Proposal link</p>
+              <p className="mt-0.5 text-[12.5px] text-slate-500">
+                {sessionLink ? "Ready to share" : "Not created yet"}
+              </p>
+            </div>
+          </div>
+          <span
+            className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+              sessionLink ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"
+            }`}
+            data-preview-link-status
+          >
+            {linkStatus}
+          </span>
         </div>
-        <div className="rounded-md border border-slate-200/80 bg-white px-4 py-3">
-          <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
-            Review link
-          </dt>
-          <dd className="mt-1 text-sm font-semibold text-slate-900">
-            {formatReviewLinkLabel(loading, sessionLink != null, hasSentSnapshot)}
-          </dd>
-        </div>
-      </dl>
 
-      <div className="space-y-2">
-        <h3 className="text-sm font-semibold text-slate-900">{readiness.title}</h3>
-        <p className="text-sm text-slate-600">{readiness.body}</p>
         {readiness.mintErrorMessage ? (
-          <p className="text-sm text-red-700" role="alert">
-            {readiness.mintErrorMessage}
+          <p className="mt-3 text-[13px] text-red-700" role="alert">
+            The proposal link could not be created. Review the proposal and try again.
           </p>
         ) : null}
-        {copyMessage ? <p className="text-sm text-emerald-700">{copyMessage}</p> : null}
+        {copyMessage ? <p className="mt-3 text-[13px] text-emerald-700">{copyMessage}</p> : null}
       </div>
 
       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
@@ -184,7 +180,7 @@ export default function ProposalCustomerPreviewPublicAccessPanel({
           onClick={() => void handleCreateReviewLink()}
         >
           {mintPending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
-          Create review link
+          Create proposal link
         </button>
         <button
           type="button"
@@ -194,7 +190,7 @@ export default function ProposalCustomerPreviewPublicAccessPanel({
           onClick={handleOpenCustomerView}
         >
           <ExternalLink className="h-4 w-4" aria-hidden />
-          Open customer view
+          Open proposal
         </button>
         <button
           type="button"
@@ -204,29 +200,21 @@ export default function ProposalCustomerPreviewPublicAccessPanel({
           onClick={() => void handleCopyReviewLink()}
         >
           <Link2 className="h-4 w-4" aria-hidden />
-          Copy review link
+          Copy link
         </button>
       </div>
 
+      <div className="flex items-start gap-2.5 rounded-xl bg-slate-100/70 px-3.5 py-3">
+        <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" aria-hidden />
+        <p className="text-[12.5px] leading-relaxed text-slate-500">
+          This link is private. Share it only with the customer and intended recipients.
+        </p>
+      </div>
+
       {!hideDeferredActions ? (
-        <div className="space-y-2 border-t border-slate-200/80 pt-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Coming later
-          </p>
-          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-            {readiness.deferredActions.map((action) => (
-              <button
-                key={action.id}
-                type="button"
-                disabled
-                aria-disabled="true"
-                className={`${BUILDER_DISABLED_ACTION} w-full sm:w-auto`}
-              >
-                {action.label}
-              </button>
-            ))}
-          </div>
-        </div>
+        <p className="sr-only">
+          {readiness.deferredActions.map((action) => action.label).join(", ")}
+        </p>
       ) : null}
     </section>
   );

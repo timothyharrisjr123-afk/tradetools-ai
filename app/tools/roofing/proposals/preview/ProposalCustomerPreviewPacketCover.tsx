@@ -1,29 +1,29 @@
 "use client";
 
 import { useState } from "react";
+import { Home, MapPin, Ruler, ShieldCheck } from "lucide-react";
 import type { ProposalCoverViewModel } from "@/app/lib/proposalCoverViewModel";
 import { PROPOSAL_COVER_DEFAULT_BRAND_ACCENT } from "@/app/lib/proposalCoverViewModel";
 import {
-  PACKET_BRAND_BAND,
-  PACKET_BRAND_BAND_INNER,
-  PACKET_BRAND_CONTACT,
-  PACKET_BRAND_MONOGRAM,
-  PACKET_BRAND_NAME,
+  PACKET_ACCENT_RULE,
   PACKET_HERO_EYEBROW,
   PACKET_HERO_META,
   PACKET_HERO_PANEL,
-  PACKET_HERO_PREPARED_BY,
   PACKET_HERO_TITLE,
+  PACKET_IDENTITY_CONTACT,
+  PACKET_IDENTITY_NAME,
+  PACKET_IDENTITY_ROW,
+  PACKET_INFO_CELL,
   PACKET_INFO_DETAIL,
   PACKET_INFO_GRID,
   PACKET_INFO_LABEL,
-  PACKET_INFO_TILE,
   PACKET_INFO_VALUE,
 } from "./proposalCustomerPacketStyles";
 
 type ProposalCustomerPreviewPacketCoverProps = {
   viewModel: ProposalCoverViewModel;
   accentColor: string;
+  selectedPackageLabel: string | null;
 };
 
 function resolveProposalHeroTitle(headline: string): string {
@@ -34,12 +34,13 @@ function resolveProposalHeroTitle(headline: string): string {
 }
 
 /**
- * Branded proposal cover: solid brand band + hero + premium info tiles.
- * This is the sales document's opening composition — not plain text on white.
+ * Customer-safe proposal opening — company identity, title, prepared-for / project.
+ * No FieldDive controls. No oversized marketing hero.
  */
 export default function ProposalCustomerPreviewPacketCover({
   viewModel,
   accentColor,
+  selectedPackageLabel,
 }: ProposalCustomerPreviewPacketCoverProps) {
   const [logoFailed, setLogoFailed] = useState(false);
   const { company, customer, project, meta, measurementSummary, headline } = viewModel;
@@ -47,37 +48,29 @@ export default function ProposalCustomerPreviewPacketCover({
   const showLogo = Boolean(company.logoUrl) && !logoFailed;
   const showMonogram = !showLogo && Boolean(company.logoMonogram);
   const heroTitle = resolveProposalHeroTitle(headline);
+  const projectLabel = headline.trim().replace(/\s+proposal$/i, "") || "Roof replacement";
 
-  const metaLine = [meta.proposalCreatedDate, measurementSummary]
-    .filter((part): part is string => Boolean(part))
-    .join("  ·  ");
+  const metaLine = meta.proposalCreatedDate;
 
   return (
     <div data-preview-packet-cover data-preview-proposal-hero>
-      {/* Solid brand cover band — company identity with real visual weight */}
-      <div className={PACKET_BRAND_BAND} style={{ backgroundColor: brand }} data-preview-brand-band>
-        <div
-          className="pointer-events-none absolute inset-0 opacity-[0.12]"
-          style={{
-            backgroundImage:
-              "radial-gradient(ellipse 80% 120% at 100% 0%, #fff 0%, transparent 55%)",
-          }}
-          aria-hidden
-        />
-        <div className={PACKET_BRAND_BAND_INNER}>
-          <div className="relative flex min-w-0 items-center gap-3.5">
+      <div className={PACKET_ACCENT_RULE} style={{ backgroundColor: brand }} aria-hidden />
+
+      {company.hasAnyField ? (
+        <div className={`${PACKET_IDENTITY_ROW} mt-5`} data-preview-compact-identity>
+          <div className="flex min-w-0 items-center gap-3">
             {showLogo ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={company.logoUrl!}
                 alt=""
-                className="h-12 w-auto shrink-0 rounded-lg bg-white/95 object-contain p-1"
+                className="h-9 w-auto shrink-0 object-contain"
                 onError={() => setLogoFailed(true)}
               />
             ) : showMonogram ? (
               <span
-                className={PACKET_BRAND_MONOGRAM}
-                style={{ backgroundColor: "#ffffff", color: brand }}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-[11px] font-bold text-white"
+                style={{ backgroundColor: brand }}
                 aria-hidden
               >
                 {company.logoMonogram}
@@ -85,39 +78,38 @@ export default function ProposalCustomerPreviewPacketCover({
             ) : null}
             <div className="min-w-0">
               {company.companyName ? (
-                <p className={PACKET_BRAND_NAME}>{company.companyName}</p>
+                <p className={PACKET_IDENTITY_NAME}>{company.companyName}</p>
               ) : null}
               {company.license ? (
-                <p className={`${PACKET_BRAND_CONTACT} mt-0.5`}>License {company.license}</p>
+                <p className={PACKET_IDENTITY_CONTACT}>License {company.license}</p>
               ) : null}
             </div>
           </div>
-          <div className={`relative space-y-0.5 sm:text-right ${PACKET_BRAND_CONTACT}`}>
+          <div className={`space-y-0.5 sm:text-right ${PACKET_IDENTITY_CONTACT}`}>
             {company.phone ? <p>{company.phone}</p> : null}
             {company.email ? <p>{company.email}</p> : null}
             {company.website ? <p>{company.website}</p> : null}
           </div>
         </div>
-      </div>
+      ) : null}
 
-      {/* Hero + prepared-for / project tiles */}
       <div className={PACKET_HERO_PANEL}>
-        <p className={PACKET_HERO_EYEBROW}>Customer proposal</p>
-        <h1 className={PACKET_HERO_TITLE}>{heroTitle}</h1>
+        <p className={PACKET_HERO_EYEBROW} data-preview-document-eyebrow>
+          Proposal
+        </p>
+        <h2 className={PACKET_HERO_TITLE} data-preview-document-title>
+          {heroTitle}
+        </h2>
         {metaLine ? <p className={PACKET_HERO_META}>{metaLine}</p> : null}
-        {company.companyName ? (
-          <p className={PACKET_HERO_PREPARED_BY}>Prepared by {company.companyName}</p>
-        ) : null}
 
-        {customer.hasAnyField || project.hasAnyField ? (
-          <div className={PACKET_INFO_GRID}>
+        {customer.hasAnyField || project.hasAnyField || selectedPackageLabel ? (
+          <div className={PACKET_INFO_GRID} data-preview-project-snapshot>
             {customer.hasAnyField ? (
-              <div
-                className={PACKET_INFO_TILE}
-                style={{ borderLeftColor: brand }}
-                data-preview-prepared-for
-              >
-                <p className={PACKET_INFO_LABEL}>Prepared for</p>
+              <div className={PACKET_INFO_CELL} data-preview-prepared-for>
+                <div className="flex items-center gap-2">
+                  <Home className="h-3.5 w-3.5 text-blue-500" aria-hidden />
+                  <p className={PACKET_INFO_LABEL}>Customer</p>
+                </div>
                 {customer.customerName ? (
                   <p className={PACKET_INFO_VALUE}>{customer.customerName}</p>
                 ) : null}
@@ -127,26 +119,39 @@ export default function ProposalCustomerPreviewPacketCover({
                 {customer.customerPhone ? (
                   <p className={PACKET_INFO_DETAIL}>{customer.customerPhone}</p>
                 ) : null}
-                {customer.customerAddress ? (
-                  <p className={PACKET_INFO_DETAIL}>{customer.customerAddress}</p>
-                ) : null}
               </div>
             ) : null}
-            {project.hasAnyField ? (
-              <div
-                className={PACKET_INFO_TILE}
-                style={{ borderLeftColor: brand }}
-                data-preview-project-info
-              >
+
+            {project.hasAnyField || customer.customerAddress ? (
+              <div className={PACKET_INFO_CELL} data-preview-project-info>
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-3.5 w-3.5 text-blue-500" aria-hidden />
+                  <p className={PACKET_INFO_LABEL}>Property</p>
+                </div>
+                <p className={PACKET_INFO_VALUE}>
+                  {project.jobAddress ?? customer.customerAddress ?? project.jobName}
+                </p>
+              </div>
+            ) : null}
+
+            <div className={PACKET_INFO_CELL} data-preview-project-scope>
+              <div className="flex items-center gap-2">
+                <Ruler className="h-3.5 w-3.5 text-blue-500" aria-hidden />
                 <p className={PACKET_INFO_LABEL}>Project</p>
-                {project.jobAddress ? (
-                  <p className={PACKET_INFO_VALUE}>{project.jobAddress}</p>
-                ) : project.jobName ? (
-                  <p className={PACKET_INFO_VALUE}>{project.jobName}</p>
-                ) : null}
-                {project.jobName && project.jobAddress ? (
-                  <p className={PACKET_INFO_DETAIL}>{project.jobName}</p>
-                ) : null}
+              </div>
+              <p className={PACKET_INFO_VALUE}>{projectLabel}</p>
+              {measurementSummary ? (
+                <p className={PACKET_INFO_DETAIL}>{measurementSummary}</p>
+              ) : null}
+            </div>
+
+            {selectedPackageLabel ? (
+              <div className={PACKET_INFO_CELL} data-preview-project-package>
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="h-3.5 w-3.5 text-blue-500" aria-hidden />
+                  <p className={PACKET_INFO_LABEL}>Package</p>
+                </div>
+                <p className={PACKET_INFO_VALUE}>{selectedPackageLabel}</p>
               </div>
             ) : null}
           </div>

@@ -11,7 +11,7 @@ export default function ProposalCustomerPreviewAppPage({
   emailDeliveryConfigured: boolean;
 }) {
   return (
-    <FieldDiveAppShell activeNav="templates">
+    <FieldDiveAppShell activeNav="jobs">
       <ProposalCustomerPreviewClient
         companyId={companyId}
         emailDeliveryConfigured={emailDeliveryConfigured}

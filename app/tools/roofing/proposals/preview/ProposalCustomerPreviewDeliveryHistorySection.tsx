@@ -136,8 +136,8 @@ export default function ProposalCustomerPreviewDeliveryHistorySection({
   const earlierAttempts = history ? getProposalDeliveryHistoryEarlierAttempts(history) : [];
 
   return (
-    <div className="space-y-3 border-t border-slate-200/80 pt-4">
-      <h3 className="text-sm font-semibold text-slate-900">
+    <div className="space-y-3 border-t border-slate-200/70 pt-5">
+      <h3 className="text-[13px] font-semibold text-slate-700">
         {SEND_GATE_DELIVERY_HISTORY_SECTION_TITLE}
       </h3>
 
@@ -155,9 +155,11 @@ export default function ProposalCustomerPreviewDeliveryHistorySection({
       ) : null}
 
       {!loading && !errorMessage && history?.isEmpty ? (
-        <div className="space-y-1 rounded-md border border-slate-200/80 bg-white px-4 py-3">
-          <p className="text-sm font-medium text-slate-900">{history.emptyStateTitle}</p>
-          <p className="text-sm text-slate-600">{history.emptyStateExplanation}</p>
+        <div className="space-y-1 rounded-xl bg-slate-100/70 px-4 py-3.5">
+          <p className="text-[13px] font-medium text-slate-700">{history.emptyStateTitle}</p>
+          <p className="text-[12.5px] leading-relaxed text-slate-500">
+            {history.emptyStateExplanation}
+          </p>
         </div>
       ) : null}
 

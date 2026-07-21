@@ -395,6 +395,13 @@ describe("R18D1 send gate guardrails", () => {
       ),
       "utf8"
     );
+    const sendDrawer = readFileSync(
+      new URL(
+        "../tools/roofing/proposals/preview/ProposalCustomerPreviewSendSharingDrawer.tsx",
+        import.meta.url
+      ),
+      "utf8"
+    );
     const panel = readFileSync(
       new URL(
         "../tools/roofing/proposals/preview/ProposalCustomerPreviewSendGatePanel.tsx",
@@ -410,16 +417,17 @@ describe("R18D1 send gate guardrails", () => {
       "utf8"
     );
 
-    assert.match(previewClient, /ProposalCustomerPreviewSendGatePanel/);
+    assert.match(previewClient, /ProposalCustomerPreviewSendSharingDrawer/);
+    assert.match(sendDrawer, /ProposalCustomerPreviewSendGatePanel/);
     assert.match(panel, /Send proposal/);
-    assert.match(panel, /SEND_GATE_DELIVERY_DISABLED_MESSAGE/);
-    assert.match(panel, /SEND_GATE_CUSTOMER_LINK_PLACEHOLDER|linkLabel/);
+    assert.match(panel, /A secure proposal link will be included when sent/);
+    assert.match(panel, /handlePrepareCustomerLink/);
     assert.match(panel, /\/api\/proposals\/send-prep/);
     assert.match(panel, /\/api\/proposals\/send/);
     assert.match(panel, /ProposalCustomerPreviewDeliveryHistorySection/);
     assert.match(panel, /deliveryHistoryRefreshKey/);
-    assert.match(panel, /SEND_GATE_SEND_PROPOSAL_BY_EMAIL_LABEL/);
-    assert.match(panel, /SEND_GATE_EMAIL_SEND_DISCLAIMER|emailSendDisclaimer/);
+    assert.match(panel, /handleSendProposalByEmail/);
+    assert.match(panel, /data-preview-email-composer/);
     assert.doesNotMatch(builderClient, /ProposalCustomerPreviewSendGatePanel/);
   });
 });

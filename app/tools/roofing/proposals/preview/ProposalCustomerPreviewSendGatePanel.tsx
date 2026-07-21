@@ -1,7 +1,17 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ExternalLink, Link2, Loader2, Mail } from "lucide-react";
+import Link from "next/link";
+import {
+  AlertCircle,
+  CheckCircle2,
+  ExternalLink,
+  Link2,
+  Loader2,
+  Mail,
+  ShieldCheck,
+  UserRound,
+} from "lucide-react";
 import { deriveProposalSendFreezeReadiness } from "@/app/lib/proposalSendFreezeReadiness";
 import type { ProposalCustomerPreviewReadiness } from "@/app/lib/proposalCustomerPreviewViewModel";
 import type { JobRecord } from "@/app/lib/jobTypes";
@@ -14,19 +24,11 @@ import {
   resolveSendGateCustomerName,
   resolveSendGateProjectAddress,
   resolveSendGateRecipientEmail,
-  SEND_GATE_CUSTOMER_LINK_READY_BODY,
-  SEND_GATE_CUSTOMER_LINK_READY_LABEL,
-  SEND_GATE_CUSTOMER_LINK_READY_TITLE,
-  SEND_GATE_DELIVERY_DISABLED_MESSAGE,
   SEND_GATE_EMAIL_PROVIDER_ACCEPTED_TITLE,
-  SEND_GATE_PANEL_TITLE,
   SEND_GATE_PREPARE_CUSTOMER_LINK_LABEL,
   SEND_GATE_PREPARING_CUSTOMER_LINK_MESSAGE,
-  SEND_GATE_SEND_PROPOSAL_BY_EMAIL_LABEL,
   SEND_GATE_SENDING_PROPOSAL_EMAIL_MESSAGE,
-  type SendGateChecklistStatus,
 } from "@/app/lib/proposalSendGateReadiness";
-import { BUILDER_CARD, BUILDER_DISABLED_ACTION } from "../builder/proposalBuilderConstants";
 import ProposalCustomerPreviewDeliveryHistorySection from "./ProposalCustomerPreviewDeliveryHistorySection";
 
 type SendPrepSessionLink = {
@@ -49,31 +51,19 @@ type ProposalCustomerPreviewSendGatePanelProps = {
   pricingStale?: boolean;
   loading: boolean;
   emailDeliveryConfigured: boolean;
+  companyLogoMissing?: boolean;
+  builderHref: string;
   /** Block 5 Roofr-first Preview — hide Signature/PDF/Payment staging rows. */
   hideDeferredActions?: boolean;
+  /** Flatten outer card when mounted inside the Preview command surface. */
+  embedded?: boolean;
 };
 
 const SEND_PRIMARY_ACTION =
-  "inline-flex w-full items-center justify-center gap-2 rounded-md border border-blue-300 bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400 sm:w-auto";
+  "inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 text-[14px] font-semibold text-white shadow-[0_8px_18px_-10px_rgba(37,99,235,0.8)] transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:shadow-none";
 
 const SEND_SECONDARY_ACTION =
-  "inline-flex w-full items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-400 sm:w-auto";
-
-function checklistStatusClass(status: SendGateChecklistStatus): string {
-  switch (status) {
-    case "ready":
-      return "text-emerald-700";
-    case "missing":
-    case "needs_sent_snapshot":
-      return "text-amber-800";
-    case "needs_review":
-      return "text-amber-900";
-    case "loading":
-      return "text-slate-500";
-    default:
-      return "text-slate-700";
-  }
-}
+  "inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400";
 
 export default function ProposalCustomerPreviewSendGatePanel({
   jobId,
@@ -84,7 +74,10 @@ export default function ProposalCustomerPreviewSendGatePanel({
   pricingStale = false,
   loading,
   emailDeliveryConfigured,
+  companyLogoMissing = false,
+  builderHref,
   hideDeferredActions = false,
+  embedded = false,
 }: ProposalCustomerPreviewSendGatePanelProps) {
   const [sessionCustomerLink, setSessionCustomerLink] = useState<SendPrepSessionLink | null>(null);
   const [prepPending, setPrepPending] = useState(false);
@@ -157,9 +150,6 @@ export default function ProposalCustomerPreviewSendGatePanel({
 
   const subjectValue = subjectDraft ?? readiness.messagePreview.subject;
   const bodyValue = bodyDraft ?? readiness.messagePreview.body;
-  const linkLabel = sessionCustomerLink
-    ? SEND_GATE_CUSTOMER_LINK_READY_LABEL
-    : readiness.messagePreview.linkLabel;
 
   async function handlePrepareCustomerLink() {
     if (!canPrepareCustomerLink || !recipientEmail) {
@@ -304,103 +294,143 @@ export default function ProposalCustomerPreviewSendGatePanel({
     }
   }
 
+  const shellClass = embedded
+    ? "space-y-5"
+    : "space-y-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm";
+  const blockerHints = [
+    previewReadiness && previewReadiness.blockingLineCount > 0
+      ? `${previewReadiness.blockingLineCount} estimate item${
+          previewReadiness.blockingLineCount === 1 ? "" : "s"
+        } need quantities`
+      : null,
+    companyLogoMissing ? "Company logo missing" : null,
+    readiness.messagePreview.toMissing ? "Recipient email missing" : null,
+    pricingStale ? "Proposal pricing needs review" : null,
+  ].filter((hint): hint is string => Boolean(hint));
+  const sendBlocked = !readiness.canSend && !sendSuccess;
+  const sendBlockedReason = readiness.messagePreview.toMissing
+    ? "Add a recipient email before sending"
+    : "Review required before sending";
+
   return (
-    <section
-      className={`${BUILDER_CARD} space-y-5 border-slate-200/90 bg-gradient-to-b from-white to-slate-50/80`}
-      aria-label="Send proposal readiness"
-    >
-      <div className="space-y-2">
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-          {SEND_GATE_PANEL_TITLE}
-        </p>
-        {readiness.phase === "loading" ? (
-          <p className="text-sm text-slate-500">{readiness.summary}</p>
-        ) : sendSuccess ? (
-          <>
-            <p className="text-sm font-medium text-slate-900">{SEND_GATE_EMAIL_PROVIDER_ACCEPTED_TITLE}</p>
-            <p className="text-sm text-slate-600">
-              To: <span className="font-medium text-slate-800">{sendSuccess.recipientDisplay}</span>
-            </p>
-            <p className="text-sm text-slate-600">
-              Subject: <span className="font-medium text-slate-800">{sendSuccess.subject}</span>
-            </p>
-          </>
-        ) : sessionCustomerLink ? (
-          <>
-            <p className="text-sm font-medium text-slate-900">{SEND_GATE_CUSTOMER_LINK_READY_TITLE}</p>
-            <p className="text-sm text-slate-600">{SEND_GATE_CUSTOMER_LINK_READY_BODY}</p>
-            {!readiness.deliveryEnabled ? (
-              <p className="text-sm text-slate-500">{SEND_GATE_DELIVERY_DISABLED_MESSAGE}</p>
-            ) : null}
-          </>
-        ) : (
-          <>
-            <p className="text-sm text-slate-700">{readiness.summary}</p>
-            {readiness.body ? <p className="text-sm text-slate-600">{readiness.body}</p> : null}
-            {!readiness.deliveryEnabled ? (
-              <p className="text-sm text-slate-500">{SEND_GATE_DELIVERY_DISABLED_MESSAGE}</p>
-            ) : (
-              <p className="text-sm text-slate-500">{readiness.emailSendDisclaimer}</p>
-            )}
-          </>
-        )}
-      </div>
+    <section className={shellClass} aria-label="Send proposal readiness" data-preview-delivery-composer>
+      {readiness.phase === "loading" ? (
+        <div className="flex items-center gap-2 rounded-xl bg-white px-4 py-4 text-sm text-slate-500">
+          <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+          Preparing delivery details…
+        </div>
+      ) : null}
 
-      <div className="space-y-3">
-        <h3 className="text-sm font-semibold text-slate-900">Readiness checklist</h3>
-        <ul className="space-y-2">
-          {readiness.checklist.map((item) => (
-            <li
-              key={item.id}
-              className="flex flex-col gap-1 rounded-md border border-slate-200/80 bg-white px-4 py-3 sm:flex-row sm:items-start sm:justify-between"
-            >
-              <span className="text-sm font-medium text-slate-900">{item.label}</span>
-              <span className={`text-sm ${checklistStatusClass(item.status)}`}>{item.detail}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      <div className="space-y-3">
-        <h3 className="text-sm font-semibold text-slate-900">Message preview</h3>
-        <div className="space-y-3 rounded-md border border-slate-200/80 bg-white px-4 py-4">
-          <label className="block space-y-1">
-            <span className="text-xs font-medium uppercase tracking-wide text-slate-500">To</span>
-            <input
-              type="text"
-              readOnly
-              value={
-                readiness.messagePreview.toMissing
-                  ? "Missing recipient email"
-                  : readiness.messagePreview.to
-              }
-              className="w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800"
-              aria-readonly="true"
-            />
-          </label>
-          <label className="block space-y-1">
-            <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-              Subject
+      {sendSuccess ? (
+        <div className="flex gap-3 rounded-2xl border border-emerald-200/80 bg-emerald-50/80 px-4 py-4">
+          <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-700" aria-hidden />
+          <div>
+            <p className="text-[14px] font-semibold text-emerald-950">
+              {SEND_GATE_EMAIL_PROVIDER_ACCEPTED_TITLE}
+            </p>
+            <p className="mt-1 text-[13px] leading-relaxed text-emerald-800">
+              Sent to {sendSuccess.recipientDisplay} · {sendSuccess.subject}
+            </p>
+          </div>
+        </div>
+      ) : sendBlocked ? (
+        <div
+          className="rounded-2xl border border-amber-200/70 bg-[linear-gradient(135deg,#fffbeb_0%,#fff_100%)] px-4 py-4"
+          data-preview-delivery-blocker
+        >
+          <div className="flex items-start gap-3">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+              <AlertCircle className="h-4 w-4" aria-hidden />
             </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-[14px] font-semibold text-slate-900">
+                Needs review before sending
+              </p>
+              <p className="mt-1 text-[13px] leading-relaxed text-slate-600">
+                {blockerHints.length > 0
+                  ? blockerHints.join(" · ")
+                  : "Complete the proposal review before delivery."}
+              </p>
+              <Link
+                href={builderHref}
+                className="mt-2.5 inline-flex text-[13px] font-semibold text-blue-600 transition hover:text-blue-700"
+              >
+                Review in Builder
+              </Link>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="flex items-start gap-3 rounded-2xl border border-emerald-200/70 bg-emerald-50/70 px-4 py-4">
+          <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-700" aria-hidden />
+          <div>
+            <p className="text-[14px] font-semibold text-slate-900">Ready to send</p>
+            <p className="mt-1 text-[13px] text-slate-600">
+              Recipient and proposal details are ready for delivery.
+            </p>
+          </div>
+        </div>
+      )}
+
+      <div data-preview-delivery-recipient>
+        <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.13em] text-slate-500">
+          Recipient
+        </p>
+        <div className="flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-white px-4 py-3.5 shadow-[0_8px_24px_-22px_rgba(15,23,42,0.55)]">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-600">
+            <UserRound className="h-4 w-4" aria-hidden />
+          </span>
+          <div className="min-w-0">
+            <p className="truncate text-[14px] font-semibold text-slate-900">
+              {customerName ?? "Customer"}
+            </p>
+            <p className="mt-0.5 truncate text-[13px] text-slate-500">
+              {readiness.messagePreview.toMissing
+                ? "Recipient email needed"
+                : readiness.messagePreview.to}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div data-preview-email-composer>
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.13em] text-slate-500">
+            Email message
+          </p>
+          <span className="text-[12px] text-slate-400">Proposal delivery</span>
+        </div>
+        <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_12px_32px_-26px_rgba(15,23,42,0.6)]">
+          <label className="grid grid-cols-[4.5rem_minmax(0,1fr)] items-center border-b border-slate-100 px-4">
+            <span className="text-[12px] font-semibold text-slate-500">Subject</span>
             <input
               type="text"
               value={subjectValue}
               onChange={(event) => setSubjectDraft(event.target.value)}
               disabled={actionsLocked || Boolean(sendSuccess)}
-              className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 disabled:bg-slate-50 disabled:text-slate-500"
+              className="min-w-0 border-0 bg-transparent px-0 py-3.5 text-[14px] font-medium text-slate-900 outline-none placeholder:text-slate-400 disabled:text-slate-500"
+              data-preview-email-subject
             />
           </label>
-          <label className="block space-y-1">
-            <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Body</span>
+          <label className="block">
+            <span className="sr-only">Message</span>
             <textarea
               value={bodyValue}
               onChange={(event) => setBodyDraft(event.target.value)}
               rows={8}
               disabled={actionsLocked || Boolean(sendSuccess)}
-              className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 disabled:bg-slate-50 disabled:text-slate-500"
+              className="block w-full resize-none border-0 bg-white px-4 py-4 text-[14px] leading-6 text-slate-700 outline-none placeholder:text-slate-400 disabled:bg-slate-50 disabled:text-slate-500"
+              data-preview-email-message
             />
           </label>
-          <p className="text-xs text-slate-500">{linkLabel}</p>
+          <div className="flex items-start gap-2.5 border-t border-slate-100 bg-slate-50/70 px-4 py-3">
+            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" aria-hidden />
+            <p className="text-[12.5px] leading-relaxed text-slate-500">
+              {sessionCustomerLink
+                ? "Your secure proposal link is ready and will be included."
+                : "A secure proposal link will be included when sent."}
+            </p>
+          </div>
         </div>
       </div>
 
@@ -418,12 +448,12 @@ export default function ProposalCustomerPreviewSendGatePanel({
 
       {copyMessage ? <p className="text-sm text-emerald-700">{copyMessage}</p> : null}
 
-      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+      <div className="space-y-2" data-preview-delivery-actions>
         {sessionCustomerLink ? (
-          <>
+          <div className="flex flex-wrap gap-2">
             <button
               type="button"
-              className={SEND_PRIMARY_ACTION}
+              className={SEND_SECONDARY_ACTION}
               disabled={actionsLocked}
               onClick={handleOpenCustomerProposal}
             >
@@ -439,11 +469,11 @@ export default function ProposalCustomerPreviewSendGatePanel({
               <Link2 className="h-4 w-4" aria-hidden />
               Copy customer send link
             </button>
-          </>
-        ) : (
+          </div>
+        ) : canPrepareCustomerLink || prepPending ? (
           <button
             type="button"
-            className={SEND_PRIMARY_ACTION}
+            className={SEND_SECONDARY_ACTION}
             disabled={!canPrepareCustomerLink}
             aria-disabled={!canPrepareCustomerLink}
             onClick={() => void handlePrepareCustomerLink()}
@@ -457,7 +487,7 @@ export default function ProposalCustomerPreviewSendGatePanel({
               SEND_GATE_PREPARE_CUSTOMER_LINK_LABEL
             )}
           </button>
-        )}
+        ) : null}
 
         <button
           type="button"
@@ -475,37 +505,27 @@ export default function ProposalCustomerPreviewSendGatePanel({
           ) : (
             <>
               <Mail className="h-4 w-4" aria-hidden />
-              {SEND_GATE_SEND_PROPOSAL_BY_EMAIL_LABEL}
+              Send proposal
             </>
           )}
         </button>
+        {sendBlocked ? (
+          <p className="text-center text-[12.5px] text-slate-500">
+            {sendBlockedReason}
+          </p>
+        ) : null}
       </div>
 
-      <ProposalCustomerPreviewDeliveryHistorySection
-        proposalId={proposalId}
-        jobId={jobId}
-        refreshKey={deliveryHistoryRefreshKey}
-      />
+      <div className="pt-1" data-preview-delivery-history-quiet>
+        <ProposalCustomerPreviewDeliveryHistorySection
+          proposalId={proposalId}
+          jobId={jobId}
+          refreshKey={deliveryHistoryRefreshKey}
+        />
+      </div>
 
       {!hideDeferredActions ? (
-        <div className="space-y-2 border-t border-slate-200/80 pt-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Coming later
-          </p>
-          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-            {readiness.deferredActions.map((action) => (
-              <button
-                key={action.id}
-                type="button"
-                disabled
-                aria-disabled="true"
-                className={`${BUILDER_DISABLED_ACTION} w-full sm:w-auto`}
-              >
-                {action.label}
-              </button>
-            ))}
-          </div>
-        </div>
+        <p className="sr-only">{readiness.deferredActions.map((action) => action.label).join(", ")}</p>
       ) : null}
     </section>
   );
