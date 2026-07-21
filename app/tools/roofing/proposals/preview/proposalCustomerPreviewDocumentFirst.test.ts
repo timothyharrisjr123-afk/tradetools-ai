@@ -261,8 +261,12 @@ describe("Contractor-facing Proposal Preview workspace", () => {
     }
     const surface = readPreviewSource("ProposalPreviewReviewSurface.tsx");
     assert.match(surface, /data-preview-review-surface/);
-    assert.match(surface, /Customer proposal preview/);
-    assert.match(surface, /What the customer will receive/);
+    assert.match(surface, /Proposal packet/);
+    assert.match(surface, /Review the proposal content before sending\./);
+    assert.doesNotMatch(surface, /Customer proposal preview/);
+    assert.doesNotMatch(surface, /What the customer will receive/);
+    assert.doesNotMatch(surface, /This is what the customer will see/);
+    assert.doesNotMatch(surface, /Customer view preview/);
     assert.doesNotMatch(surface, /Customer-safe preview/);
   });
 

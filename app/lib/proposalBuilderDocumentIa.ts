@@ -82,9 +82,9 @@ export const CUSTOMER_PREVIEW_SEND_SHARING_LABEL = "Send / sharing";
 export const CUSTOMER_PREVIEW_COMPACT_READINESS_COPY =
   "Some estimate items need quantities before this proposal can be sent.";
 export const CUSTOMER_PREVIEW_RETURN_TO_BUILDER_ACTION = "Review in Builder";
-export const CUSTOMER_PREVIEW_CANVAS_LABEL = "Customer preview";
+export const CUSTOMER_PREVIEW_CANVAS_LABEL = "Proposal packet";
 export const CUSTOMER_PREVIEW_CANVAS_SUBCOPY =
-  "This is what the customer will see after you send.";
+  "Review the proposal content before sending.";
 export const CUSTOMER_PREVIEW_REVIEW_PANEL_TITLE = "Review & send";
 export const CUSTOMER_PREVIEW_CHANGE_IN_BUILDER_HINT =
   "To change proposal content, return to Builder.";
