@@ -10,7 +10,6 @@ import {
   WORKBENCH_EDIT_OPTION_CHIP_ENABLED,
   WORKBENCH_FINISH_ESTIMATE_ROW,
   WORKBENCH_MODULE_DESC,
-  WORKBENCH_MODULE_INNER,
   WORKBENCH_MODULE_KICKER,
   WORKBENCH_MODULE_TITLE,
   WORKBENCH_SCOPE_REVIEW_ZONE,
@@ -57,7 +56,7 @@ function HardBlockersSection({ zone }: { zone: WorkbenchNeedsAttentionZone["hard
         </div>
       </header>
 
-      <div className={`${WORKBENCH_MODULE_INNER} space-y-1`}>
+      <div className="space-y-1 px-4 py-3 sm:px-5">
         <ul className="divide-y divide-slate-100">
           {zone.lines.map((line) => (
             <li
@@ -129,7 +128,7 @@ function ScopeReviewSection({
         </div>
       </header>
 
-      <div className={`${WORKBENCH_MODULE_INNER} py-1`}>
+      <div className="px-4 py-2 sm:px-5">
         <ul className="divide-y divide-slate-100" data-builder-quantity-review-list>
           {zone.lines.map((line, index) => {
             const canSetQuantity =
@@ -142,7 +141,7 @@ function ScopeReviewSection({
             return (
               <li
                 key={line.templateItemId}
-                className="py-1.5"
+                className="py-2.5"
                 data-builder-quantity-review-row
                 data-builder-quantity-review-row-index={String(index)}
                 id={

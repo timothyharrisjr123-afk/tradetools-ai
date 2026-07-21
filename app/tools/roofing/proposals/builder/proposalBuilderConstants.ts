@@ -16,7 +16,7 @@ export const BUILDER_SHELL_BANNER =
  * Shared horizontal stage — header, Preview/More, section bar, and canvas
  * share one container. Wider than early Builder so Job Card continuity holds.
  */
-export const BUILDER_STAGE = "mx-auto w-full max-w-[96rem]";
+export const BUILDER_STAGE = "mx-auto w-full max-w-[88rem]";
 
 /** 3J4A — read-only proposal stage alert. */
 export const BUILDER_READ_ONLY_ALERT =
@@ -398,7 +398,7 @@ export const BUILDER_DISABLED_ACTION =
 
 /** R17B — enabled Preview lifecycle action in Builder header. */
 export const BUILDER_PREVIEW_ENABLED_ACTION =
-  "inline-flex items-center justify-center rounded-md border border-blue-300 bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700";
+  "inline-flex h-10 items-center justify-center rounded-lg bg-blue-600 px-4 text-[13px] font-semibold text-white shadow-sm transition hover:bg-blue-700";
 
 export const BUILDER_OPTION_TAB =
   "rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50";
@@ -635,13 +635,14 @@ export const BUILDER_LINE_PRICE_STATUS = "text-xs font-medium text-slate-500";
 export const WORKBENCH_ESTIMATE_KICKER = "Estimate";
 
 /** Estimate document intro — light, not a workbench hero band. */
-export const WORKBENCH_HEADER = "border-b border-slate-100 bg-white px-5 pb-3 pt-4 sm:px-6";
+export const WORKBENCH_HEADER =
+  "border-b border-slate-100 bg-white px-6 pb-4 pt-5 sm:px-8 sm:pt-6 lg:px-10";
 
 export const WORKBENCH_HEADER_KICKER =
   "text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400";
 
 export const WORKBENCH_HEADER_TITLE =
-  "mt-0.5 text-[1.35rem] font-semibold leading-tight tracking-tight text-slate-950";
+  "mt-1 text-[1.45rem] font-semibold leading-tight tracking-[-0.02em] text-slate-950";
 
 export const WORKBENCH_HEADER_SUBTITLE = "mt-1 max-w-2xl text-[14px] leading-relaxed text-slate-600";
 
@@ -656,10 +657,11 @@ export const WORKBENCH_HEADER_STAT_REVIEW = "font-semibold tabular-nums text-sla
 
 /** Document body — flat sections, not stacked workbench cards. */
 export const WORKBENCH_BODY =
-  "space-y-5 bg-white px-5 py-4 sm:px-6 sm:py-5";
+  "space-y-7 bg-white px-6 py-5 sm:px-8 sm:py-7 lg:px-10";
 
 /** Shared module shell — quiet borders for document sections. */
-export const WORKBENCH_MODULE = "overflow-hidden border-t border-slate-100 bg-white";
+export const WORKBENCH_MODULE =
+  "overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_10px_28px_-22px_rgba(15,23,42,0.5)]";
 
 export const WORKBENCH_MODULE_COMPACT =
   "overflow-hidden border-t border-slate-100 bg-white";
@@ -675,7 +677,7 @@ export const WORKBENCH_MODULE_DESC = "mt-0.5 text-[13px] leading-relaxed text-sl
 
 /** Compact package row — not a heavy command card. */
 export const WORKBENCH_PACKAGE_MODULE =
-  "overflow-hidden border-t border-slate-100 bg-white";
+  "overflow-hidden bg-white";
 
 export const WORKBENCH_PACKAGE_ACCENT = "hidden";
 
@@ -690,10 +692,10 @@ export const WORKBENCH_ZONE_HEADER =
 export const WORKBENCH_ZONE_BODY = WORKBENCH_MODULE_INNER;
 
 export const WORKBENCH_ATTENTION_ZONE =
-  "overflow-hidden rounded-xl border border-amber-300/70 bg-gradient-to-br from-amber-50/80 via-amber-50/40 to-white shadow-[0_10px_26px_rgba(245,158,11,0.12),0_1px_3px_rgba(245,158,11,0.08)] ring-1 ring-amber-200/60";
+  "overflow-hidden rounded-xl border border-amber-200/70 bg-gradient-to-br from-amber-50/70 to-white";
 
 export const WORKBENCH_ATTENTION_ZONE_HEADER =
-  "border-b border-amber-200/60 bg-amber-50/70 px-4 py-3.5 sm:px-5";
+  "border-b border-amber-200/50 bg-amber-50/60 px-4 py-3.5 sm:px-5";
 
 export const WORKBENCH_ATTENTION_COUNT_BADGE =
   "inline-flex min-w-[1.75rem] items-center justify-center rounded-full bg-amber-600 px-2 py-0.5 text-[11px] font-bold tabular-nums text-white shadow-sm";
@@ -706,9 +708,10 @@ export const WORKBENCH_ATTENTION_ITEM_INDEX =
 
 /** R17C2.5 / 4C — guided finish-estimate section (not a workbench module card). */
 export const WORKBENCH_SCOPE_REVIEW_ZONE =
-  "overflow-hidden border-t border-slate-100 bg-white";
+  "overflow-hidden rounded-xl border border-slate-200/80 bg-white";
 
-export const WORKBENCH_SCOPE_REVIEW_ZONE_HEADER = "border-b border-slate-100/80 py-1.5";
+export const WORKBENCH_SCOPE_REVIEW_ZONE_HEADER =
+  "border-b border-slate-200/70 bg-slate-50/70 px-4 py-3.5 sm:px-5";
 
 export const WORKBENCH_SCOPE_REVIEW_COUNT_BADGE =
   "inline-flex min-w-[1.75rem] items-center justify-center rounded-full bg-slate-600 px-2 py-0.5 text-[11px] font-bold tabular-nums text-white shadow-sm";
@@ -750,21 +753,21 @@ export const WORKBENCH_LINE_GRID =
  * Spans the wide Builder canvas — never add max-w compression.
  */
 export const WORKBENCH_INCLUDED_ROW_GRID =
-  "grid w-full grid-cols-1 gap-x-4 gap-y-1 sm:grid-cols-[minmax(0,1fr)_9rem_8.5rem_2.25rem] sm:items-center";
+  "grid w-full grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-[minmax(0,1fr)_6rem_8.5rem_6rem] sm:items-center";
 
 /** Finish estimate: item name | Set quantity (far-right action edge). */
 export const WORKBENCH_FINISH_ESTIMATE_ROW =
   "grid w-full grid-cols-1 gap-x-4 gap-y-1 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center";
 
-export const WORKBENCH_LINE_NAME = "text-[13px] font-medium leading-snug text-slate-900";
+export const WORKBENCH_LINE_NAME = "text-[14px] font-medium leading-snug text-slate-900";
 
 export const WORKBENCH_LINE_QTY =
-  "text-[12px] tabular-nums text-slate-600 sm:text-right";
+  "text-[13px] tabular-nums text-slate-500 sm:text-right";
 
 export const WORKBENCH_LINE_QTY_VALUE = "font-semibold tabular-nums text-slate-800";
 
 export const WORKBENCH_LINE_AMOUNT =
-  "shrink-0 text-[13px] tabular-nums font-semibold text-slate-950 sm:text-right";
+  "shrink-0 text-[14px] tabular-nums font-semibold tracking-tight text-slate-950 sm:text-right";
 
 /** Quiet text action for editing an existing manual quantity (no Manual qty badge). */
 export const WORKBENCH_EDIT_QUANTITY_LINK =
@@ -791,27 +794,35 @@ export const WORKBENCH_SETTINGS_TOGGLE_STUB_ON =
 export const WORKBENCH_HINT_STRIP =
   "flex items-start gap-2 rounded-lg border border-slate-200/60 bg-white/80 px-3 py-2.5 text-[11px] leading-snug text-slate-600 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]";
 
+/** Totals attach to the estimate frame — not a separate card. */
 export const WORKBENCH_TOTALS_ZONE =
-  "overflow-hidden border-t border-slate-100 bg-white";
+  "border-t border-slate-200/80 bg-slate-50/70";
 
-export const WORKBENCH_TOTALS_HEADER = "border-b border-slate-100/80 py-2";
+export const WORKBENCH_TOTALS_HEADER = "sr-only";
 
-export const WORKBENCH_TOTALS_BODY = "py-3";
+export const WORKBENCH_TOTALS_BODY = "px-5 py-4 sm:px-6";
 
 export const WORKBENCH_TOTALS_INCOMPLETE_PANEL =
-  "rounded-md border border-slate-100 bg-slate-50/50 px-3 py-2.5 text-[13px] leading-relaxed text-slate-600";
+  "rounded-md bg-white/70 px-3 py-2.5 text-[13px] leading-relaxed text-slate-600";
 
 export const WORKBENCH_TOTALS_AMOUNT_STACK =
-  "mt-3 space-y-1.5 rounded-lg border border-slate-100 bg-slate-50/30 px-3.5 py-3";
+  "ml-auto w-full max-w-sm space-y-1";
 
-export const WORKBENCH_TOTALS_FOOTNOTE = "mt-3 text-[11px] leading-snug text-slate-400";
+export const WORKBENCH_TOTALS_FOOTNOTE =
+  "mt-3 text-right text-[11.5px] leading-snug text-slate-400";
 
 /** R17C2 Phase 2.6 — Edit Option shell (UI only; no backend). */
 /** @deprecated Block 4D — use WORKBENCH_EDIT_PACKAGE_TITLE in contractor UI. */
-export const WORKBENCH_EDIT_OPTION_TITLE = "Edit package";
+export const WORKBENCH_EDIT_OPTION_TITLE = "Edit scope";
 
-/** Block 4D — advanced package drawer / Finish estimate action. */
-export const WORKBENCH_EDIT_PACKAGE_TITLE = "Edit package";
+/** Contractor package-scope editor (quantities / remove lines for this draft). */
+export const WORKBENCH_EDIT_PACKAGE_TITLE = "Edit scope";
+
+/** Change package = switch selected package option. */
+export const WORKBENCH_CHANGE_PACKAGE_TITLE = "Change package";
+export const WORKBENCH_CHANGE_PACKAGE_HINT = "Switch between available packages.";
+export const WORKBENCH_EDIT_SCOPE_HINT =
+  "Adjust quantities or remove scope lines for this proposal.";
 
 export const WORKBENCH_EDIT_OPTION_COMING_SOON_BADGE =
   "inline-flex items-center rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-500";
@@ -853,13 +864,13 @@ export const WORKBENCH_EDIT_OPTION_CONTROL_BTN =
   "mt-2.5 inline-flex w-full items-center justify-center rounded-md border border-slate-200 bg-white px-2.5 py-2 text-[12px] font-medium text-slate-400 opacity-60 cursor-not-allowed";
 
 export const WORKBENCH_EDIT_OPTION_INTRO_COPY =
-  "Scope editing is coming next. Soon you’ll be able to set quantities, remove lines from this proposal, add catalog items, and move items to upgrades.";
+  "Quantity and scope tools for this package will unlock once the proposal draft is ready.";
 
 export const WORKBENCH_EDIT_OPTION_TRUST_COPY =
-  "These actions require the scope decision layer so pricing stays trustworthy after refresh.";
+  "Changes apply only to this proposal draft.";
 
 export const WORKBENCH_EDIT_OPTION_FOOTER_COPY =
-  "Line editing is not enabled yet — preview only. No changes are saved.";
+  "Select a line to review quantities or remove it from this proposal.";
 
 export const WORKBENCH_EDIT_OPTION_CHIP_HINT =
   "Available in Edit option (coming soon)";
@@ -887,22 +898,22 @@ export const WORKBENCH_EDIT_OPTION_LINE_PICKER_ACTIVE =
   "w-full rounded-md border border-blue-300 bg-blue-50/60 px-2.5 py-2 text-left text-[12px] font-semibold text-blue-900";
 
 export const WORKBENCH_EDIT_OPTION_INTRO_COPY_LIVE =
-  "Set manual quantities for scope review lines. Saved quantities persist through pricing refresh and appear on the customer proposal when priced.";
+  "Review quantities that still need attention, then adjust this proposal only.";
 
 export const WORKBENCH_EDIT_OPTION_FOOTER_COPY_LIVE =
-  "Manual quantity saves a scope decision and refreshes draft pricing. Other line actions are still coming soon.";
+  "Select a line to edit quantity or remove it from this proposal.";
 
 /** R17D Phase 2.5 — manual quantity active state in Edit Option drawer. */
-export const WORKBENCH_MANUAL_QUANTITY_ACTIVE_BADGE = "Manual quantity";
+export const WORKBENCH_MANUAL_QUANTITY_ACTIVE_BADGE = "Custom qty";
 
 export const WORKBENCH_SET_QUANTITY_ACTION = "Set quantity";
 
 export const WORKBENCH_EDIT_QUANTITY_ACTION = "Edit quantity";
 
-export const WORKBENCH_USE_MEASUREMENT_QUANTITY_LABEL = "Use measurement quantity";
+export const WORKBENCH_USE_MEASUREMENT_QUANTITY_LABEL = "Use measured quantity";
 
 export const WORKBENCH_MANUAL_QUANTITY_RESET_HELPER =
-  "Return this line to measurement-driven quantity for this package.";
+  "Return this line to the measured quantity for this package.";
 
 export const WORKBENCH_MANUAL_QUANTITY_CLEAR_SUCCESS =
   "Manual quantity cleared and draft pricing refreshed.";

@@ -110,8 +110,9 @@ export default function ProposalBuilderPackageSelector({
             <button
               type="button"
               onClick={() => setShowAll(true)}
-              className="inline-flex items-center gap-1 text-[13px] font-semibold text-blue-700 hover:text-blue-800"
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-blue-200/80 bg-blue-50/70 px-3 text-[12.5px] font-semibold text-blue-800 transition hover:bg-blue-50"
               data-builder-change-package
+              title="Switch between available packages."
             >
               <Pencil className="h-3.5 w-3.5" aria-hidden />
               Change package

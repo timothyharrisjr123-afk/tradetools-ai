@@ -25,7 +25,7 @@ function TotalsRow({ label, valueLabel, bold = false }: TotalsRowProps) {
         {label}
       </span>
       <span
-        className={`tabular-nums ${bold ? "text-base font-semibold text-slate-900" : "text-sm text-slate-700"}`}
+        className={`tabular-nums ${bold ? "text-lg font-semibold tracking-tight text-slate-950" : "text-sm text-slate-700"}`}
       >
         {valueLabel}
       </span>
@@ -37,6 +37,7 @@ type ProposalBuilderWorkbenchTotalsZoneProps = {
   zone: WorkbenchTotalsZone;
 };
 
+/** Pricing footer for the included estimate surface — not a standalone card. */
 export default function ProposalBuilderWorkbenchTotalsZone({
   zone,
 }: ProposalBuilderWorkbenchTotalsZoneProps) {
@@ -45,19 +46,18 @@ export default function ProposalBuilderWorkbenchTotalsZone({
     : BUILDER_TOTALS_FOOTNOTE_PLACEHOLDER_COPY;
 
   return (
-    <section className={WORKBENCH_TOTALS_ZONE} aria-labelledby="workbench-totals-heading">
+    <section
+      className={WORKBENCH_TOTALS_ZONE}
+      aria-labelledby="workbench-totals-heading"
+      data-builder-estimate-totals
+    >
       <header className={WORKBENCH_TOTALS_HEADER}>
-        <p
-          className="text-sm font-semibold text-slate-900"
-          id="workbench-totals-heading"
-        >
-          Totals
-        </p>
+        <p id="workbench-totals-heading">Totals</p>
       </header>
 
       <div className={WORKBENCH_TOTALS_BODY}>
         {zone.policyBanner.show && !zone.pricingPolicyConfigured ? (
-          <div className={BUILDER_PRICING_PREVIEW_BANNER}>
+          <div className={`${BUILDER_PRICING_PREVIEW_BANNER} mb-3`}>
             <p>{zone.policyBanner.copy}</p>
             <p className="mt-1.5">
               <Link
@@ -77,7 +77,7 @@ export default function ProposalBuilderWorkbenchTotalsZone({
               <TotalsRow label="Discount" valueLabel={zone.discountLabel} />
             ) : null}
             {zone.taxLabel ? <TotalsRow label="Sales tax" valueLabel={zone.taxLabel} /> : null}
-            <div className="border-t border-slate-200/60 pt-1.5">
+            <div className="border-t border-slate-200/70 pt-2">
               <TotalsRow label="Total" valueLabel={zone.totalLabel} bold />
             </div>
           </div>

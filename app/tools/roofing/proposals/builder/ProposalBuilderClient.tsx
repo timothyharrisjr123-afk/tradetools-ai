@@ -108,6 +108,18 @@ import ProposalBuilderWorkspaceLayout from "./ProposalBuilderWorkspaceLayout";
 
 const CATALOG_STARTER_DEFINITION_COUNT = DEFAULT_ROOFING_CATALOG_DEFINITIONS.length;
 
+function formatBuilderLastSavedLabel(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "—";
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date);
+}
+
 export default function ProposalBuilderClient({ companyId }: { companyId: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -1507,6 +1519,14 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
   const loadError = catalogError ?? templateError;
   const shellReady = builderReadiness.ready && !draftGraphError && !spineRouteError;
   const normalizedJobId = (jobIdParam ?? "").trim() || null;
+  const lastSavedLabel = formatBuilderLastSavedLabel(persistedGraph?.proposal.updated_at);
+  const pricingStateLabel = proposalPricingStale.stale
+    ? "Pricing review needed"
+    : selectedOptionPricingStatus?.pricingComplete
+      ? "Pricing ready"
+      : (selectedOptionPricingStatus?.blockingLineCount ?? 0) > 0
+        ? `${selectedOptionPricingStatus?.blockingLineCount} items need review`
+        : "Pricing review";
 
   // 3J4B3: single guided-flow source of truth. Preview enablement is R17B-only;
   // Send/Sign/Payment/Production remain disabled.
@@ -1655,7 +1675,8 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
 
   return (
     <div
-      className="space-y-4"
+      className="space-y-4 pb-16 pt-5"
+      data-builder-contractor-workspace
       data-builder-quantity-preflight={quantityPreflight?.status ?? "none"}
       data-builder-quantity-preflight-current={String(quantityPreflight?.currentCount ?? 0)}
       data-builder-quantity-preflight-stale={String(quantityPreflight?.staleCount ?? 0)}
@@ -1694,6 +1715,8 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
             ? PROPOSAL_SNAPSHOT_FROZEN_HELPER_COPY
             : null
         }
+        lastSavedLabel={lastSavedLabel}
+        pricingStateLabel={pricingStateLabel}
         guidance={builderGuidance}
         onLifecycleAction={handleLifecycleAction}
       />

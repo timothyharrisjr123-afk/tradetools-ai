@@ -10,7 +10,6 @@ import {
   WORKBENCH_LINE_QTY,
   WORKBENCH_LINE_QTY_VALUE,
   WORKBENCH_MODULE,
-  WORKBENCH_MODULE_INNER,
   WORKBENCH_REMOVE_FROM_OPTION_ACTION,
 } from "./proposalBuilderConstants";
 import ProposalBuilderWorkbenchLineRow from "./ProposalBuilderWorkbenchLineRow";
@@ -20,6 +19,8 @@ import ProposalBuilderWorkbenchInlineQuantityEditor from "./ProposalBuilderWorkb
 
 type ProposalBuilderWorkbenchReadyScopeZoneProps = {
   sections: readonly WorkbenchScopeSection[];
+  /** When true, omit outer card shell — parent provides the estimate surface. */
+  embedded?: boolean;
   onEditQuantityForLine?: (templateItemId: string) => void;
   editingQuantityLineId?: string | null;
   onCancelSetQuantity?: () => void;
@@ -45,6 +46,7 @@ function isIncludedAmount(label: string): boolean {
  */
 export default function ProposalBuilderWorkbenchReadyScopeZone({
   sections,
+  embedded = false,
   onEditQuantityForLine,
   editingQuantityLineId = null,
   onCancelSetQuantity,
@@ -62,42 +64,55 @@ export default function ProposalBuilderWorkbenchReadyScopeZone({
 
   return (
     <section
-      className={WORKBENCH_MODULE}
+      className={embedded ? undefined : WORKBENCH_MODULE}
       aria-labelledby="workbench-ready-scope-heading"
       data-builder-included-estimate
       data-builder-included-estimate-table
       data-builder-itemized-estimate="true"
     >
-      <header className="flex flex-wrap items-baseline justify-between gap-2 pb-1.5 pt-1">
-        <p
-          className="text-base font-semibold tracking-tight text-slate-950"
-          id="workbench-ready-scope-heading"
-        >
-          Included estimate
-        </p>
+      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200/70 bg-gradient-to-b from-slate-50/90 to-white px-5 py-4 sm:px-6">
+        <div>
+          <p className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+            Investment detail
+          </p>
+          <p
+            className="mt-1 text-[1.2rem] font-semibold tracking-tight text-slate-950"
+            id="workbench-ready-scope-heading"
+          >
+            Included estimate
+          </p>
+          <p className="mt-1 text-[12.5px] leading-snug text-slate-500">
+            Contractor-editable pricing for this proposal draft.
+          </p>
+        </div>
+        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold tabular-nums text-slate-500">
+          {lineCount} item{lineCount === 1 ? "" : "s"}
+        </span>
       </header>
 
-      <div className={`${WORKBENCH_MODULE_INNER} overflow-visible`}>
+      <div className="overflow-visible">
         {lineCount === 0 ? (
-          <p className="text-sm text-slate-500">
+          <p className="px-5 py-5 text-sm text-slate-500 sm:px-6">
             No included lines yet. Finish the estimate to populate this section.
           </p>
         ) : (
           <div className="overflow-visible">
             <div
-              className={`${WORKBENCH_INCLUDED_ROW_GRID} mb-1.5 hidden border-b border-slate-200/90 pb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500 sm:grid`}
+              className={`${WORKBENCH_INCLUDED_ROW_GRID} hidden border-b border-slate-200/60 bg-white/80 px-5 py-2.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400 sm:grid sm:px-6`}
               data-builder-estimate-column-headers
             >
               <span>Item</span>
               <span className="text-right">Qty</span>
               <span className="text-right">Price</span>
-              <span />
+              <span className="sr-only">Actions</span>
             </div>
-            <ul className="overflow-visible">
-              {lines.map((line) => {
+            <ul className="overflow-visible divide-y divide-slate-100/90">
+              {lines.map((line, index) => {
                 const showDetails = detailsLineId === line.templateItemId;
                 const canRemove = removeEnabled && Boolean(onRemoveFromProposal);
                 const isEditing = editingQuantityLineId === line.templateItemId;
+                const canEditQty =
+                  Boolean(line.manualQuantityActive && onEditQuantityForLine);
                 const hasAttention = line.attentionReasons.length > 0;
                 const amountClass = hasAttention
                   ? WORKBENCH_LINE_AMOUNT_ATTENTION
@@ -108,14 +123,18 @@ export default function ProposalBuilderWorkbenchReadyScopeZone({
                 return (
                   <li
                     key={line.templateItemId}
-                    className={`overflow-visible border-b border-slate-200/70 last:border-b-0 ${
-                      isEditing ? "rounded-md bg-blue-50/40 ring-1 ring-blue-100" : ""
+                    className={`group/estimate-row overflow-visible transition-colors ${
+                      isEditing
+                        ? "bg-blue-50/55 ring-1 ring-inset ring-blue-100"
+                        : index % 2 === 1
+                          ? "bg-slate-50/30 hover:bg-blue-50/20"
+                          : "bg-white hover:bg-blue-50/20"
                     }`}
                     data-builder-included-estimate-row
                     data-builder-inline-editing={isEditing ? "true" : undefined}
                   >
                     {isEditing && onSaveQuantity ? (
-                      <div className="py-1.5">
+                      <div className="px-5 py-3 sm:px-6">
                         <ProposalBuilderWorkbenchInlineQuantityEditor
                           line={{
                             templateItemId: line.templateItemId,
@@ -130,30 +149,37 @@ export default function ProposalBuilderWorkbenchReadyScopeZone({
                         />
                       </div>
                     ) : (
-                      <div className={`${WORKBENCH_INCLUDED_ROW_GRID} py-0.5`}>
+                      <div className={`${WORKBENCH_INCLUDED_ROW_GRID} px-5 py-4 sm:px-6`}>
                         <ProposalBuilderWorkbenchLineRow
                           variant="scope"
                           line={line}
                           as="div"
                           hideDetails
                           itemCellOnly
-                          onEditQuantity={
-                            line.manualQuantityActive && onEditQuantityForLine
-                              ? () => onEditQuantityForLine(line.templateItemId)
-                              : undefined
-                          }
                         />
-                        <p className={`${WORKBENCH_LINE_QTY} hidden sm:block`}>
+                        <div className="hidden sm:block sm:text-right">
                           <span
-                            className={
-                              line.qtyUnresolved ? "text-slate-400" : WORKBENCH_LINE_QTY_VALUE
-                            }
+                            className={`inline-flex min-w-[3.25rem] justify-end rounded-md px-2 py-1 text-[13px] tabular-nums ${
+                              line.qtyUnresolved
+                                ? "bg-slate-50 text-slate-400"
+                                : "bg-slate-50/90 font-semibold text-slate-800"
+                            }`}
                           >
                             {line.qtyLabel}
                           </span>
-                        </p>
+                        </div>
                         <p className={`hidden sm:block ${amountClass}`}>{line.amountLabel}</p>
-                        <div className="flex justify-end">
+                        <div className="flex items-center justify-end gap-2">
+                          {canEditQty ? (
+                            <button
+                              type="button"
+                              onClick={() => onEditQuantityForLine!(line.templateItemId)}
+                              className="hidden rounded-md px-2 py-1 text-[11.5px] font-semibold text-blue-700 opacity-0 transition hover:bg-blue-100/70 group-hover/estimate-row:opacity-100 group-focus-within/estimate-row:opacity-100 sm:inline-flex"
+                              data-builder-edit-quantity
+                            >
+                              Edit qty
+                            </button>
+                          ) : null}
                           <ProposalBuilderWorkbenchRowMenu
                             rowId={line.templateItemId}
                             rowLabel={line.name}
@@ -170,6 +196,16 @@ export default function ProposalBuilderWorkbenchReadyScopeZone({
                                       : line.templateItemId
                                   ),
                               },
+                              ...(canEditQty
+                                ? [
+                                    {
+                                      id: "edit_qty",
+                                      label: "Edit quantity",
+                                      onSelect: () =>
+                                        onEditQuantityForLine!(line.templateItemId),
+                                    },
+                                  ]
+                                : []),
                               ...(canRemove
                                 ? [
                                     {
@@ -184,22 +220,34 @@ export default function ProposalBuilderWorkbenchReadyScopeZone({
                             ]}
                           />
                         </div>
-                        <p className={`${WORKBENCH_LINE_QTY} sm:hidden`}>
-                          Qty{" "}
-                          <span
-                            className={
-                              line.qtyUnresolved ? "text-slate-400" : WORKBENCH_LINE_QTY_VALUE
-                            }
-                          >
-                            {line.qtyLabel}
-                          </span>
-                          <span className="mx-2 text-slate-300">·</span>
-                          <span className={amountClass}>{line.amountLabel}</span>
-                        </p>
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 sm:hidden">
+                          <p className={WORKBENCH_LINE_QTY}>
+                            Qty{" "}
+                            <span
+                              className={
+                                line.qtyUnresolved ? "text-slate-400" : WORKBENCH_LINE_QTY_VALUE
+                              }
+                            >
+                              {line.qtyLabel}
+                            </span>
+                            <span className="mx-2 text-slate-300">·</span>
+                            <span className={amountClass}>{line.amountLabel}</span>
+                          </p>
+                          {canEditQty ? (
+                            <button
+                              type="button"
+                              onClick={() => onEditQuantityForLine!(line.templateItemId)}
+                              className="text-[11.5px] font-semibold text-blue-700"
+                              data-builder-edit-quantity
+                            >
+                              Edit qty
+                            </button>
+                          ) : null}
+                        </div>
                       </div>
                     )}
                     {showDetails && !isEditing ? (
-                      <div className="pb-2" data-builder-included-line-details>
+                      <div className="px-5 pb-3.5 sm:px-6" data-builder-included-line-details>
                         <ProposalBuilderWorkbenchLineDetails detailMeta={line.detailMeta} />
                       </div>
                     ) : null}

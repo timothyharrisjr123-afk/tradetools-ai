@@ -21,7 +21,7 @@ describe("Builder estimate handoff (Block 4 / 4B / 4C)", () => {
     assert.doesNotMatch(appPage, /activeNav="templates"/);
   });
 
-  test("2. Header primary title is proposal title; package · Draft status line", () => {
+  test("2. Header identifies contractor Builder with proposal continuity metadata", () => {
     const header = read(
       "app/tools/roofing/proposals/builder/ProposalBuilderPageHeader.tsx"
     );
@@ -30,7 +30,10 @@ describe("Builder estimate handoff (Block 4 / 4B / 4C)", () => {
     assert.match(header, /data-builder-handoff-meta/);
     assert.match(header, /proposalTitle/);
     assert.match(header, /selectedPackageLabel/);
-    assert.match(header, /\$\{packageLabel\} package/);
+    assert.match(header, /Proposal Builder/);
+    assert.match(header, /lastSavedLabel/);
+    assert.match(header, /pricingStateLabel/);
+    assert.match(header, /data-builder-contractor-edit-mode/);
     assert.match(header, /Draft/);
     assert.doesNotMatch(header, /Proposal Workspace/i);
     assert.doesNotMatch(header, /BUILDER_HEADER_WORKSPACE_KICKER/);
@@ -68,7 +71,7 @@ describe("Builder estimate handoff (Block 4 / 4B / 4C)", () => {
     const constants = read(
       "app/tools/roofing/proposals/builder/proposalBuilderConstants.ts"
     );
-    assert.match(constants, /max-w-\[96rem\]/);
+    assert.match(constants, /max-w-\[88rem\]/);
   });
 
   test("4. Compact needs-review strip; Finish estimate language", () => {
@@ -78,7 +81,7 @@ describe("Builder estimate handoff (Block 4 / 4B / 4C)", () => {
     assert.match(estimate, /data-builder-estimate-next-step/);
     assert.match(estimate, /data-builder-needs-review-strip/);
     assert.match(estimate, /data-builder-review-quantities/);
-    assert.match(estimate, /Needs review:/);
+    assert.match(estimate, /Needs review before Preview \+ Send/);
     assert.match(estimate, /focusFinishEstimate/);
 
     const attentionSrc = read(
@@ -136,8 +139,11 @@ describe("Builder estimate handoff (Block 4 / 4B / 4C)", () => {
     );
     const bodyStart = estimate.indexOf("data-builder-estimate-document");
     const body = estimate.slice(bodyStart);
+    const surface = body.indexOf("data-builder-estimate-surface");
     const included = body.indexOf("<ProposalBuilderWorkbenchReadyScopeZone");
+    const totals = body.indexOf("<ProposalBuilderWorkbenchTotalsZone");
     const attention = body.indexOf("<ProposalBuilderWorkbenchAttentionZone");
+    assert.ok(surface > 0 && included > surface && totals > included);
     assert.ok(included > 0 && included < attention);
     assert.doesNotMatch(body, /ProposalBuilderWorkbenchUpgradesZone/);
   });
@@ -167,6 +173,8 @@ describe("Builder estimate handoff (Block 4 / 4B / 4C)", () => {
       "app/tools/roofing/proposals/builder/ProposalBuilderDisabledActions.tsx"
     );
     assert.match(actions, /data-builder-preview-action/);
+    assert.match(actions, /data-builder-preview-handoff/);
+    assert.match(actions, /Preview the customer version before sending/);
     assert.match(actions, /data-builder-future-actions/);
     assert.match(actions, /\bPreview\b/);
 

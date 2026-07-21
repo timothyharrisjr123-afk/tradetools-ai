@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Clock3, PackageCheck } from "lucide-react";
 import { resolveJobIdentityDisplay } from "@/app/lib/jobIdentityDisplay";
 import { buildJobCardHref } from "@/app/lib/proposalBuilderReadiness";
 import type { JobRecord } from "@/app/lib/jobTypes";
@@ -18,6 +18,10 @@ type ProposalBuilderPageHeaderProps = {
   selectedPackageLabel?: string | null;
   /** Quiet pricing note under More (not a primary Snapshot link). */
   savedPricingDetails?: string | null;
+  /** Saved timestamp for contractor continuity with Preview. */
+  lastSavedLabel?: string | null;
+  /** Contractor-friendly pricing review state. */
+  pricingStateLabel?: string | null;
   guidance?: ProposalBuilderGuidance | null;
   onLifecycleAction?: (
     actionId: ProposalBuilderLifecycleActionId
@@ -32,6 +36,8 @@ export default function ProposalBuilderPageHeader({
   proposalTitle = null,
   selectedPackageLabel = null,
   savedPricingDetails = null,
+  lastSavedLabel = null,
+  pricingStateLabel = null,
   guidance = null,
   onLifecycleAction,
 }: ProposalBuilderPageHeaderProps) {
@@ -45,58 +51,72 @@ export default function ProposalBuilderPageHeader({
   const proposalLabel = (proposalTitle ?? "").trim() || "Proposal";
   const packageLabel = (selectedPackageLabel ?? "").trim();
   const jobLine = [jobLabel, address].filter(Boolean).join(" · ");
-  const statusParts = [
-    packageLabel ? `${packageLabel} package` : null,
-    showDraftSavedPill ? "Draft" : shellReady ? "Setup preview" : null,
-  ].filter(Boolean);
+  const proposalDisplay = /\bproposal\b/i.test(proposalLabel)
+    ? proposalLabel
+    : `${proposalLabel} proposal`;
 
   return (
     <header
-      className={`${BUILDER_STAGE} border-b border-slate-200/70 pb-4 pt-4`}
+      className={`${BUILDER_STAGE} overflow-hidden rounded-xl border border-slate-200/70 bg-white shadow-[0_10px_30px_rgba(15,23,42,0.055)]`}
       data-builder-continuity-header
+      data-builder-contractor-edit-mode
     >
-      <Link
-        href={backHref}
-        className="inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-700"
-        data-builder-back-to-job-card
-      >
-        <ArrowLeft className="h-4 w-4" aria-hidden />
-        Back to Job Card
-      </Link>
-
-      <div className="mt-3 flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <h1
-            className="text-[1.5rem] font-semibold leading-tight tracking-tight text-slate-950"
-            data-builder-proposal-primary-title
+      <div className="flex flex-col gap-5 px-6 py-5 sm:px-8 lg:flex-row lg:items-center lg:justify-between lg:px-9">
+        <div className="min-w-0 flex-1">
+          <Link
+            href={backHref}
+            className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-blue-600 transition hover:text-blue-700"
+            data-builder-back-to-job-card
           >
-            {proposalLabel} proposal
-          </h1>
+            <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
+            Back to Job Card
+          </Link>
 
-          {jobLine ? (
+          <div className="mt-2.5">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+              <h1
+                className="text-[1.5rem] font-semibold tracking-[-0.025em] text-slate-950 sm:text-[1.6rem]"
+                data-builder-proposal-primary-title
+              >
+                Proposal Builder
+              </h1>
+              <span className="inline-flex items-center rounded-md bg-slate-100/90 px-2 py-0.5 text-[12px] font-semibold text-slate-600">
+                {showDraftSavedPill ? "Draft" : shellReady ? "Setup preview" : "Loading"}
+              </span>
+            </div>
+
             <p
-              className="mt-1 text-sm text-slate-600"
+              className="mt-1.5 truncate text-[14px] text-slate-600"
               data-builder-job-secondary-identity
             >
-              {jobLine}
+              {jobLine || "Job-specific proposal"}
             </p>
-          ) : (
-            <p className="mt-1 text-sm text-slate-500">Job-specific proposal</p>
-          )}
 
-          {statusParts.length > 0 ? (
-            <p
-              className="mt-1 text-sm font-medium text-slate-700"
+            <div
+              className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12.5px] text-slate-500"
               data-builder-handoff-meta
               data-builder-package-status-line
             >
-              {statusParts.join(" · ")}
-            </p>
-          ) : null}
+              {packageLabel ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <PackageCheck className="h-3.5 w-3.5 text-blue-500" aria-hidden />
+                  Package <strong className="font-semibold text-slate-700">{packageLabel}</strong>
+                </span>
+              ) : null}
+              {lastSavedLabel ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <Clock3 className="h-3.5 w-3.5 text-slate-400" aria-hidden />
+                  Saved <span className="font-medium text-slate-700">{lastSavedLabel}</span>
+                </span>
+              ) : null}
+              {pricingStateLabel ? <span>{pricingStateLabel}</span> : null}
+              <span className="text-slate-400">Editing {proposalDisplay}</span>
+            </div>
+          </div>
         </div>
 
         {shellReady ? (
-          <div className="shrink-0 pt-0.5">
+          <div className="shrink-0 self-start lg:self-center">
             <ProposalBuilderDisabledActions
               lifecycleLocks={guidance?.lifecycleLocks ?? null}
               onLifecycleAction={onLifecycleAction}

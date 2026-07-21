@@ -13,12 +13,14 @@ import type { ProposalPageSettings } from "@/app/lib/proposalPageTypes";
 import type { ProposalPageRow } from "@/app/lib/proposalRecordStore";
 import type { EstimateSettingsToggleKey } from "@/app/tools/roofing/templates/templatesStructureEditorUtils";
 import { useCallback, useMemo, useRef, useState } from "react";
+import { CircleAlert } from "lucide-react";
 import {
   BUILDER_CANVAS,
   WORKBENCH_BODY,
   WORKBENCH_HEADER,
   WORKBENCH_HEADER_SUBTITLE,
   WORKBENCH_HEADER_TITLE,
+  WORKBENCH_MODULE,
 } from "./proposalBuilderConstants";
 import ProposalBuilderWorkbenchAttentionZone from "./ProposalBuilderWorkbenchAttentionZone";
 import ProposalBuilderWorkbenchDecisionTraceZone from "./ProposalBuilderWorkbenchDecisionTraceZone";
@@ -365,9 +367,12 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
     <article className={BUILDER_CANVAS} data-builder-estimate-document>
       <header className={WORKBENCH_HEADER}>
         <div className="min-w-0">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-600">
+            Proposal estimate
+          </p>
           <h2 className={WORKBENCH_HEADER_TITLE}>{presentation.page.title}</h2>
           <p className={WORKBENCH_HEADER_SUBTITLE}>
-            Review the estimate before previewing.
+            Build and review the customer estimate before opening Preview + Send.
           </p>
         </div>
       </header>
@@ -375,18 +380,27 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
       <div className={WORKBENCH_BODY}>
         {qtyNeeded > 0 ? (
           <div
-            className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 rounded-md border border-slate-200/80 bg-slate-50/60 px-3 py-2"
+            className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 rounded-xl border border-amber-200/70 bg-amber-50/60 px-4 py-3.5"
             data-builder-estimate-next-step
             data-builder-needs-review-strip
           >
-            <p className="min-w-0 text-[13px] text-slate-700">
-              <span className="font-semibold text-slate-900">Needs review:</span>{" "}
-              {qtyNeeded} quantit{qtyNeeded === 1 ? "y" : "ies"} needed before totals are
-              final.
-            </p>
+            <div className="flex min-w-0 items-start gap-3">
+              <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+                <CircleAlert className="h-3.5 w-3.5" aria-hidden />
+              </span>
+              <div>
+                <p className="text-[13.5px] font-semibold text-slate-900">
+                  Needs review before Preview + Send
+                </p>
+                <p className="mt-0.5 text-[12.5px] text-slate-600">
+                  {qtyNeeded} estimate item{qtyNeeded === 1 ? "" : "s"} need quantities
+                  before totals are final.
+                </p>
+              </div>
+            </div>
             <button
               type="button"
-              className="inline-flex shrink-0 items-center rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[12px] font-semibold text-blue-700 transition hover:bg-blue-50"
+              className="inline-flex shrink-0 items-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-[12.5px] font-semibold text-blue-700 shadow-sm transition hover:bg-blue-50"
               onClick={focusFinishEstimate}
               data-builder-review-quantities
             >
@@ -405,22 +419,63 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
           onOpenEditPackage={openEditPackage}
         />
 
-        <ProposalBuilderWorkbenchReadyScopeZone
-          sections={presentation.readyScope.sections}
-          onEditQuantityForLine={
-            quantityEditingEnabled ? openSetQuantityForLine : undefined
-          }
-          editingQuantityLineId={setQuantityLineId}
-          onCancelSetQuantity={closeSetQuantity}
-          onSaveQuantity={
-            quantityEditingEnabled ? handleApplyManualQuantity : undefined
-          }
-          quantitySaveInFlight={manualQuantityInFlight}
-          quantitySaveError={manualQuantityError}
-          onRemoveFromProposal={excludeEnabled ? handleExcludeLine : undefined}
-          removeEnabled={excludeEnabled}
-          removeInFlight={excludeInFlight}
-        />
+        <section
+          className={WORKBENCH_MODULE}
+          data-builder-estimate-surface
+          aria-label="Included estimate and totals"
+        >
+          <ProposalBuilderWorkbenchReadyScopeZone
+            embedded
+            sections={presentation.readyScope.sections}
+            onEditQuantityForLine={
+              quantityEditingEnabled ? openSetQuantityForLine : undefined
+            }
+            editingQuantityLineId={setQuantityLineId}
+            onCancelSetQuantity={closeSetQuantity}
+            onSaveQuantity={
+              quantityEditingEnabled ? handleApplyManualQuantity : undefined
+            }
+            quantitySaveInFlight={manualQuantityInFlight}
+            quantitySaveError={manualQuantityError}
+            onRemoveFromProposal={excludeEnabled ? handleExcludeLine : undefined}
+            removeEnabled={excludeEnabled}
+            removeInFlight={excludeInFlight}
+          />
+
+          <ProposalBuilderWorkbenchTotalsZone zone={presentation.totalsZone} />
+
+          {presentation.decisionTraceZone.show ? (
+            <details
+              className="border-t border-slate-200/70 bg-white text-[13px] text-slate-500"
+              data-builder-removed-from-proposal
+            >
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-3.5 hover:bg-slate-50/80 sm:px-6 [&::-webkit-details-marker]:hidden">
+                <span className="min-w-0">
+                  <span className="block text-[13px] font-semibold text-slate-700">
+                    Removed from proposal
+                  </span>
+                  <span className="mt-0.5 block text-[12px] font-normal text-slate-500">
+                    {presentation.decisionTraceZone.excluded.count === 1
+                      ? "1 line hidden from this package"
+                      : `${presentation.decisionTraceZone.excluded.count} lines hidden from this package`}
+                  </span>
+                </span>
+                <span className="shrink-0 text-[12px] font-semibold text-blue-700">
+                  Show
+                </span>
+              </summary>
+              <div className="border-t border-slate-100 px-3 py-2.5 sm:px-4">
+                <ProposalBuilderWorkbenchDecisionTraceZone
+                  zone={presentation.decisionTraceZone}
+                  onRestoreExcludedLine={
+                    excludeEnabled ? handleRestoreExcludedLine : undefined
+                  }
+                  excludeInFlight={excludeInFlight}
+                />
+              </div>
+            </details>
+          ) : null}
+        </section>
 
         <div ref={finishEstimateRef}>
           <ProposalBuilderWorkbenchAttentionZone
@@ -445,31 +500,6 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
           Upgrade quantity blockers merge into Finish estimate via the presenter.
           Follow-up: additive upgrades add to included estimate; replacement upgrades replace base items.
         */}
-
-        <ProposalBuilderWorkbenchTotalsZone zone={presentation.totalsZone} />
-
-        {presentation.decisionTraceZone.show ? (
-          <details
-            className="rounded-lg border border-slate-200/70 bg-white text-[13px] text-slate-500"
-            data-builder-removed-from-proposal
-          >
-            <summary className="cursor-pointer list-none px-3 py-2.5 font-medium text-slate-600 hover:bg-slate-50 [&::-webkit-details-marker]:hidden">
-              Removed from proposal
-              {presentation.decisionTraceZone.excluded.count > 0
-                ? ` (${presentation.decisionTraceZone.excluded.count})`
-                : ""}
-            </summary>
-            <div className="border-t border-slate-100 px-2 py-2">
-              <ProposalBuilderWorkbenchDecisionTraceZone
-                zone={presentation.decisionTraceZone}
-                onRestoreExcludedLine={
-                  excludeEnabled ? handleRestoreExcludedLine : undefined
-                }
-                excludeInFlight={excludeInFlight}
-              />
-            </div>
-          </details>
-        ) : null}
       </div>
 
       <ProposalBuilderWorkbenchEditOptionShell
