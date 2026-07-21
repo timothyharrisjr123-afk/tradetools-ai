@@ -45,11 +45,11 @@
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** **`a275d91`** — `polish(proposals): build premium preview packet` (Block 5C). Prior: **`4b9d71b`** Block 5B (**not approved** — superseded). Builder checkpoint **unchanged** at **`05c1edb`**.
-- **Docs checkpoint:** **Block 5C premium preview packet** (this header + **§6BO.13.4.9** T.6.4). Prior: T.6.3 Block 5B (**`4b9d71b`**, not approved); T.6.2 Roofr-first (**`7f1f272`**); T.6.1 interim (**`12fcd4e`**); T.6 document-first (**`e90d135`**); 4G (**`05c1edb`**).
-- **Prior code:** **`4b9d71b`** Block 5B wide document (not approved); **`7f1f272`** Roofr-first shell/drawer; **`12fcd4e`** interim strip; **`e90d135`** document-first; **`05c1edb`** 4G density
-- **Next coding:** **Block 6** — only after **Block 5C visual approval**. Do **not** start Blocks 6–7 until Preview presentation is approved. Do **not** add full proposal management, template rebuild/import of live options into existing drafts, supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
-- **Historical note:** Block 5C is a from-scratch Preview visual reset — a single continuous "Premium Roofing Proposal Packet" (paper surface, one shadow, brand accent rule) replaces the Block 5B wide document-shell approach, which the user rejected as still looking like a cleaned-up Builder page. New packet-only components + style tokens; Builder unchanged; protected systems unchanged.
+- **Code checkpoint:** **`7cb1c31`** — `polish(proposals): elevate preview sales packet` (Block 5C elevate). Prior: **`a275d91`** plain packet (**not approved**). Builder checkpoint **unchanged** at **`05c1edb`**.
+- **Docs checkpoint:** **Block 5C elevate — sales packet** (this header + **§6BO.13.4.9** T.6.4.1). Prior: T.6.4 plain packet (**`a275d91`**, not approved); T.6.3 Block 5B (**`4b9d71b`**, not approved); 4G (**`05c1edb`**).
+- **Prior code:** **`a275d91`** plain premium packet (not approved); **`4b9d71b`** Block 5B; **`7f1f272`** Roofr-first shell/drawer; **`05c1edb`** 4G density
+- **Next coding:** **Block 6** — only after **Block 5C elevate visual approval**. Do **not** start Blocks 6–7 until Preview presentation is approved. Do **not** add full proposal management, template rebuild/import of live options into existing drafts, supplier sync, material ordering, proposal import, CSV mapping assistant, raw mode switch, or whole rounding. **R18D3D remains blocked** until at least **Stage C4** is live and smoke-validated **plus P0 trust fixes**, then explicitly approved (§6BO.11, §6BO.13).
+- **Historical note:** Block 5C elevate replaces the plain white estimate packet (`a275d91`) with a sales-oriented proposal composition: solid brand cover band, proposal hero + info tiles, featured package recommendation with includes checkmarks, trust/scope bridge, and a dark-header itemized sales table. Still no fake unsupported features. Builder unchanged; protected systems unchanged.
 
 **Trust order:** Header/current checkpoint → **§6BO.13** (approved page-by-page UI flow roadmap + P0 implementation sequence — **supersedes separate Command Center language**) → **§6BM** / **§6BN** (R18 letter-phase roadmap + R18C–R18D3C implementation history) → **§6BO** / **§6BO.11** / **§6BO.12** (completed remediation side-track + **approved Stage C policy** + **operating-flow audit sequencing — complete; outcome in §6BO.13**) → **§6BL** → **§11 override**. Stage B browser smoke required local-only **`USE_PROPOSAL_SEND_FREEZE_RPC=1`** in `.env.local` (gitignored, not committed). **Do not proceed** to docs-only or next feature work unless working tree is clean. **Still do not** mutate `proposals.status = sent`, write sent `proposal_events`, move Jobs Board cards, add Job Card send activity, enable PDF/Sign/Payment, or add webhooks unless separately approved.
 
@@ -59,7 +59,8 @@
 
 | Commit | Summary |
 |--------|---------|
-| `a275d91` | **Block 5C** — build premium preview packet: from-scratch "Premium Roofing Proposal Packet" (single paper surface, brand accent rule, no nested cards) supersedes Block 5B; Builder **`05c1edb`** unchanged (§6BO.13.4.9 T.6.4) |
+| `7cb1c31` | **Block 5C elevate** — elevate preview sales packet: brand cover band, proposal hero + info tiles, featured package recommendation, trust bridge, dark-header sales table; supersedes plain packet **`a275d91`**; Builder **`05c1edb`** unchanged (§6BO.13.4.9 T.6.4.1) |
+| `a275d91` | **Block 5C** — build premium preview packet (plain estimate-sheet composition; **not visually approved**); Builder **`05c1edb`** unchanged (§6BO.13.4.9 T.6.4) |
 | `4b9d71b` | **Block 5B** — refine Preview document presentation: wide continuous document, compact package band, Item/Qty/Price estimate; **not visually approved**; Builder **`05c1edb`** unchanged (§6BO.13.4.9 T.6.3) |
 | `7f1f272` | **Block 5 Roofr-first** — redesign Preview proposal experience: thin shell, compact readiness, centered document hero, Send/sharing drawer (Coming later hidden); **230/230** focused tests; Babby smoke PASS; Builder **`05c1edb`** unchanged (§6BO.13.4.9 T.6.2) |
 | `12fcd4e` | **Block 5 interim** — strip Preview cockpit / collapse Send/sharing (not visually approved) (§6BO.13.4.9 T.6.1) |
@@ -12669,7 +12670,7 @@ Package rule from **N** remains law: pre-draft package on create modal; post-dra
 
 **Next recommended block:** see **T.6.4**.
 
-###### T.6.4 Block 5C "Premium Roofing Proposal Packet" — IMPLEMENTED (2026-07-20)
+###### T.6.4 Block 5C "Premium Roofing Proposal Packet" — IMPLEMENTED (2026-07-20) — NOT APPROVED
 
 **Code checkpoint:** **`a275d91`** — `polish(proposals): build premium preview packet`. **Prior structure superseded: `4b9d71b`, `7f1f272` (not reverted, replaced). Builder unchanged at `05c1edb`.**
 
@@ -12693,7 +12694,29 @@ Package rule from **N** remains law: pre-draft package on create modal; post-dra
 
 **Known pre-existing gap (not introduced by this block):** `proposalSendGateReadiness.test.ts` → "send gate panel mounts on contractor preview only" already failed before this session (predates the Send/sharing drawer refactor at `7f1f272`) because `ProposalCustomerPreviewClient.tsx` no longer references `ProposalCustomerPreviewSendGatePanel` by name directly (it is rendered inside the drawer). Left unchanged per "pricing/quantity/snapshot/send/public suites unchanged."
 
-**Next recommended block:** **Block 6** — only after **Block 5C visual approval**.
+**Status note:** T.6.4 plain packet was **rejected** — too plain / estimate-sheet, not a sales proposal. Superseded by **T.6.4.1**.
+
+**Next recommended block:** see **T.6.4.1**.
+
+###### T.6.4.1 Block 5C elevate — "Roofing Proposal Sales Packet" — IMPLEMENTED (2026-07-20)
+
+**Code checkpoint:** **`7cb1c31`** — `polish(proposals): elevate preview sales packet`. **Prior plain packet superseded: `a275d91` (not reverted). Builder unchanged at `05c1edb`.**
+
+**Status:** Sales-composition elevate of Preview — answers who / what / why / what’s included with real visual weight, without faking unsupported features. **No pricing/math/resolver/snapshot changes. No SQL/migrations/packages. No send/public/lifecycle/PDF/sign/payment behavior change. No Builder redesign.**
+
+**Composition vs `a275d91`:**
+- **Brand cover band:** solid brand-color header with logo/monogram + company contact (not a thin accent rule)
+- **Proposal hero:** large “Roof replacement proposal” title, measurement meta, Prepared by, Prepared for / Project info tiles with brand accent
+- **Featured package:** “Selected for your home” recommendation with Includes checkmarks (no selector chrome)
+- **Trust bridge:** customer-safe measurement/package explanation between package and estimate
+- **Sales estimate table:** dark header bar, denser Item/Qty/Price rows, alternating wash; totals only when complete
+- **Content + footer:** meaningful pages styled as proposal details; quiet prepared-by footer
+
+**Tests:** `proposalCustomerPreviewDocumentFirst.test.ts` 18/18; presenter 27/27; Builder action clarity 22/22.
+
+**Smoke:** Babby **`466e393c-…`** — first viewport shows brand band + hero + info tiles + package start; readiness outside; Send/sharing drawer open/close; 0 console errors.
+
+**Next recommended block:** **Block 6** — only after **Block 5C elevate visual approval**.
 
 #### 13.4.6 Integrated Catalog → Proposal workflow research + FieldDive flow design — COMPLETE (2026-07-17)
 
