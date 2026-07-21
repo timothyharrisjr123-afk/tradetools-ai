@@ -1,27 +1,16 @@
--- Optional Upgrade Truth — schema foundation
--- REVIEW ONLY — DO NOT APPLY WITHOUT EXPLICIT APPROVAL.
+-- Optional Upgrade Truth - schema foundation
+-- REVIEW ONLY - DO NOT APPLY WITHOUT EXPLICIT APPROVAL.
 --
 -- Adds:
 --   1) proposal_template_items upgrade definition columns
 --   2) proposal_option_upgrade_choices (first-class selection truth)
 --   3) proposal_line_items upgrade echo columns (display convenience only)
 --
--- TypeScript sequential persistence (USE_CREATE_DRAFT_PROPOSAL_SEQUENTIAL=1 /
--- USE_REFRESH_DRAFT_PRICING_SEQUENTIAL=1) writes the new line columns and
--- upgrade_choices rows. App payloads already include upgrade_choices on options
--- and upgrade_* echoes on line rows.
---
--- RPC FOLLOW-UP (not in this migration — bodies are large; prefer a dedicated
--- CREATE OR REPLACE after schema is applied and reviewed):
---   - persist_draft_proposal_create_v1: INSERT line upgrade_* echoes; INSERT
---     opt->'upgrade_choices' into proposal_option_upgrade_choices after option insert
---   - persist_draft_pricing_refresh_v1: INSERT line upgrade_* echoes; UPSERT
---     opt->'upgrade_choices' (insert missing / update effect+selection; never DELETE)
---   - persist_proposal_send_freeze_v1: INSERT line upgrade_* echoes; INSERT
---     opt->'upgrade_choices' onto the new sent version option ids
--- Until those RPC bodies are extended, use sequential escape hatches for local
--- verification, or accept that RPC path ignores unknown JSONB keys and will not
--- persist upgrade columns/choices.
+-- RPC persistence is NOT in this file. Apply together with:
+--   20260721_028_optional_upgrade_truth_rpc_alignment.sql
+-- which replaces persist_draft_proposal_create_v1,
+-- persist_draft_pricing_refresh_v1, and persist_proposal_send_freeze_v1
+-- to match TypeScript sequential upgrade-truth writes.
 --
 -- Depends on proposal_template_items (004), proposal_records (006),
 -- and mirrors proposal_option_scope_decisions (009) company/FK/RLS patterns.
@@ -103,7 +92,7 @@ comment on column public.proposal_template_items.default_selected is
   'Initial selection when a draft instantiates this upgrade. V1 product default is false (not_selected).';
 
 -- ---------------------------------------------------------------------------
--- 2. proposal_option_upgrade_choices — selection truth
+-- 2. proposal_option_upgrade_choices Ã¢â‚¬â€ selection truth
 -- ---------------------------------------------------------------------------
 
 create table if not exists public.proposal_option_upgrade_choices (
