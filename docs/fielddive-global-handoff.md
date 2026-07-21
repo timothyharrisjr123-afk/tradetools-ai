@@ -45,15 +45,17 @@
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** **`d877df6`** — `feat(proposals): add guided template creation flow` (Template Flow V1 foundation + reusable proposal setup landing + Job Card selected-template eligibility correction).
+- **Code checkpoint:** **`a28224c`** — `chore(proposals): align optional upgrade truth RPCs`.
+- **Previous feature checkpoint:** **`32964d6`** — `feat(proposals): implement optional upgrade truth`.
 - **Docs checkpoint:** **Pending this docs commit.**
 - **Working tree:** Expected clean before this docs edit; verified clean at the start of the checkpoint update.
-- **Next:** Template Flow V1 visual/product follow-up or the next roadmap decision after this docs checkpoint. Do **not** frame the choice as the “smallest/easiest”; choose the best durable product direction and control scope around it. Later Stage D Preview/Public parity test lock remains parked and is not blocking.
+- **Accepted:** Optional Upgrade Truth after live schema/RPC, installed-template repair, Builder persistence, Preview, freeze, and public proposal smoke on approved Supabase project **`rhquhnujjnzjhweypavd`** (§6BO.13.4.9 T.8).
+- **Next:** Return to Template Flow V1 **Prepared Included Work / Available Upgrades** presentation review using corrected upgrade truth (§6BO.13.4.9 T.8). Do **not** frame the choice as the “smallest/easiest”; choose the best durable product direction and control scope around it. Later Stage D Preview/Public parity test lock remains parked and is not blocking.
 - **Product model (locked):** **Templates** = reusable company proposal setup only. **Job Card** = normal job-specific proposal creation path. Correct flow: **Job Card → Proposals → + Proposal → Measurement → Template → Package → Review → Builder → Preview → Send/share**. Builder remains contractor edit/review; Preview remains contractor review/send; customer-facing public proposal behavior is unchanged by this checkpoint.
 - **Historical note (Preview + Send):** Checkpoint **`8bb19b4`** / docs **`86739d0`** unify the contractor Preview header, readiness, actions, and customer proposal into one surface; elevate the customer packet; and rework Send/sharing into a premium delivery composer. Send/link/delivery APIs, readiness view-model, and unsupported (Sign/PDF/payment/QR/tracking) behavior unchanged.
 - **Historical note (Builder continuity):** Checkpoint **`a49b346`** aligns Builder with that Preview direction as contractor edit/review mode: premium command header; integrated section navigation (not a boxed tray); selected Enhanced package card with Change package vs Edit scope clarified; estimate + totals on one surface; cleaned row actions + preserved inline Edit qty; Edit scope drawer as contractor quantity review with accordion open/switch/collapse; intentional removed-lines collapsible. Protected systems untouched.
 
-**Trust order:** Header/current checkpoint → **§6BO.13.4.9 T.7** (Template Flow V1 foundation + Job Card selected-template eligibility) → **§6BO.13** (approved page-by-page UI flow roadmap + P0 implementation sequence — **supersedes separate Command Center language**) → **§6BM** / **§6BN** (R18 letter-phase roadmap + R18C–R18D3C implementation history) → **§6BO** / **§6BO.11** / **§6BO.12** (completed remediation side-track + **approved Stage C policy** + **operating-flow audit sequencing — complete; outcome in §6BO.13**) → **§6BL** → **§11 override**. Stage B browser smoke required local-only **`USE_PROPOSAL_SEND_FREEZE_RPC=1`** in `.env.local` (gitignored, not committed). **Do not proceed** to docs-only or next feature work unless working tree is clean. **Still do not** mutate `proposals.status = sent`, write sent `proposal_events`, move Jobs Board cards, add Job Card send activity, enable PDF/Sign/Payment, or add webhooks unless separately approved.
+**Trust order:** Header/current checkpoint → **§6BO.13.4.9 T.8** (accepted Optional Upgrade Truth + live repair/freeze/public proof + Template Flow continuation) → **§6BO.13.4.9 T.7** (Template Flow V1 foundation + Job Card selected-template eligibility) → **§6BO.13** (approved page-by-page UI flow roadmap + P0 implementation sequence — **supersedes separate Command Center language**) → **§6BM** / **§6BN** (R18 letter-phase roadmap + R18C–R18D3C implementation history) → **§6BO** / **§6BO.11** / **§6BO.12** (completed remediation side-track + **approved Stage C policy** + **operating-flow audit sequencing — complete; outcome in §6BO.13**) → **§6BL** → **§11 override**. Final Optional Upgrade Truth freeze/public smoke used local-only **`USE_PROPOSAL_SEND_FREEZE_RPC=1`** in `.env.local` (gitignored, not committed). **Do not proceed** to docs-only or next feature work unless working tree is clean. **Still do not** mutate existing sent/signed/superseded snapshots, move Jobs Board cards, add Job Card send activity, enable PDF/Sign/Payment, or add webhooks unless separately approved.
 
 **DB-first foundation is live** (§6AD). **3J3E option selection persists** (§6AE). **Pricing trust hardening complete** (§6AF). **3J4C document-first Builder complete** (§6AG) — Estimate page renders the actual proposal document inline (package selector, sections, line items, totals); right rail is a contextual **Proposal Helper** inspector; old workspace tabs and Overview panel **removed**. **R16A** (§6AX) removed the amber **Preview-unlock blocker banner** from the Estimate **canvas**; pricing/blocking guidance remains in the rail. **3J4D** refined Estimate line readability (§6AH). **3J4E** refined package/options surface inside Estimate (§6AI). **3J4F** extended Builder to customer-facing text pages — Terms, Warranty, Project Overview, custom_text render persisted `body_markdown` when present (§6AJ). **R14** adds display-time `{{token_name}}` merge on those text pages from frozen `proposalDocumentContext` + R13 resolver (`f359ad4`, §6AW) — stored `body_markdown` unchanged; no write-back. **R4–R6** template content editor on `/tools/roofing/templates` **complete** (`9db2030`–`3c6214c`). **R7** light global IA nav **complete** (`05b9c54`). **R8** light Jobs Board identity **complete** (`1191ddd`). **R9** Job Card create/open draft flow **satisfied** (`1915b2d` + pre-R10 P1 at `d0ba188`). **R10** template structure + estimate settings **complete** (`bc42b1e`–`b3dd904`, §6AQ). **R11** company branding Settings **complete** (`0146dac`–`139e8a3`, §6AR). **R11c** stamps company core + branding into `proposal_versions.context_echo` at new draft create only (`29722a0`, §6AS) — **no Builder cover UI**. **R12** stamps DB-truth customer identity into `proposal_versions.context_echo` at new draft create only (`31059e3`, §6AT) — **no Job Card UI changes, no Builder customer display**. **R13** adds pure frozen document token foundation (`e40db30`, §6AU) — registry, `ProposalDocumentContext`, resolver. **R15** adds read-only branded **Cover** tab in Proposal Builder (`ab5a400`, §6AV) — consumes `proposalDocumentContext` + resolver; **not** Preview/PDF/send/sign/payment. **R14** wires body text pages to the same frozen context at display time (`f359ad4`, §6AW). **R16A** separates contractor workspace chrome from customer document IA (`18cebca`, §6AX) — customer-logical page strip order, workspace header, simplified body shell; **not** Preview/PDF/lifecycle/hub. **R16B** adds per-proposal draft body authoring for text pages (`589f5a0`, §6AY) — raw `body_markdown` persist, R14 display merge only, Estimate line-items-only de-duplication on persisted path; **not** token picker, page visibility, media, Preview, or lifecycle. **R16C1** adds Builder strip overflow page navigation (`967f0de`, §6BA) — More pages menu for persisted overflow pages by `page.id`, dirty-edit guard preserved, portal menu fix; **not** page visibility, Preview, or lifecycle. **R16C2** adds registry-driven document token picker in the R16B editor (`0cf76d2`, §6BB) — Insert field menu inserts raw `{{token_name}}` only; R14 display-time merge unchanged; save persists raw `body_markdown` only; **not** page visibility, Preview, or lifecycle. **R16C3** adds DB-backed proposal page visibility hide-show foundation (`25f1375`, §6BC) — toggles existing `proposal_pages.visible_to_customer` via `updateDraftProposalPageVisibility`; hidden pages remain contractor-visible and editable in Builder; Cover/Estimate required; `getCustomerPreviewPages` R17 contract helper only; **not** Preview, customer route, PDF, or lifecycle. **R17A/R17B** adds authenticated contractor Customer Preview foundation (`8ac2bcb`, §6BE) — pure `proposalCustomerPreviewViewModel` + `/tools/roofing/proposals/preview?job=&proposal=` route; header Preview enabled when persisted draft loads; dirty-edit guard before Preview navigation; **not** public/tokenized customer access, PDF, Send, Sign, Payment, or lifecycle. **R17C1** adds Preview Estimate document presentation layer (`9c2244a`, §6BF) — pure `proposalCustomerEstimatePresenter` + Preview-only estimate UI; shared `proposalPackagePresentation`; Preview Estimate no longer imports Builder workbench table components; **not** R17C2 Builder workbench hierarchy (now complete at `3e65774`, §6BG), R17C3 typography polish, R18, PDF, Send, Sign, Payment, or lifecycle. **R17C2 Phase 1** adds pure Builder workbench estimate presenter (`3c04322`, §6BG) — `proposalBuilderWorkbenchEstimatePresenter` DTO only; no UI. **R17C2 Phase 2** adds zoned Builder Estimate workbench UI + scope review / hard blocker split + gated Edit Option shell (`3e65774`, §6BG) — **not** R17D scope decision backend, R17C3 typography, R18, PDF, Send, Sign, Payment, or lifecycle. **R17D Phase 1** adds persisted scope decision overlay + merge-on-refresh foundation (`43c83a2`, §6BH) — `proposal_option_scope_decisions` migration (`20260618_009`); **`manual_quantity` proven in tests**; zero-decision refresh unchanged; migration **appears applied** on configured project per §6BI. **R17D Phase 2** adds manual quantity UI/API — first real Edit Option action wired in Builder (`f5712ff`, §6BI); **`manual_quantity` only**; other Edit Option actions remain disabled; **full post-Phase-2 audit passed** (§6BI); **not** R17C3 typography, R18, PDF, Send, Sign, Payment, or lifecycle. Main workflow: **Job Board → DB job card (`job=`) → Create proposal / Open proposal → create/reuse DB proposal draft → Builder (`job=` + `proposal=`) → package selection persists to DB; refresh draft pricing when measurement changes**. Legacy `loadSaved=` / `currentSaved` / board-origin paths are **preserved but separated** — they **cannot create DB proposals directly**. **DB proposal math uses the new spine only** (`measurement_records` → `proposalQuantityResolver` → `proposalPricingEngine` → snapshots) — **not** legacy saved-estimate / Core-Enhanced-Premium estimator math. **`createDraftProposal`** runs from Job Card **Create proposal** only when checklist + pricing gates pass; **Builder reads** persisted drafts via **`getDraftGraph`** + **`proposalDraftGraphAdapter`** when `?proposal=` is present — **no Builder create path**, **no silent fallback** on invalid `proposal=`. **Do not** persist placeholder/unconfigured pricing policy. **Catalog custom delete/deactivate** is **not implemented** and remains a **separate later scope**.
 
@@ -61,7 +63,10 @@
 
 | Commit | Summary |
 |--------|---------|
-| *(this docs commit)* | **Docs** — Record Template Flow V1 foundation + reusable setup landing + Job Card selected-template eligibility checkpoint (§6BO.13.4.9 T.7) |
+| *(this docs commit)* | **Docs** — Record accepted Optional Upgrade Truth, live Path B starter repair, freeze/public proof, and Template Flow V1 presentation continuation (§6BO.13.4.9 T.8) |
+| `a28224c` | **Optional Upgrade Truth RPC alignment** — migration `20260721_028_optional_upgrade_truth_rpc_alignment.sql`; create/refresh/freeze RPCs aligned with selection truth; applied with `027` to approved project `rhquhnujjnzjhweypavd`; live freeze/public smoke PASS |
+| `32964d6` | **Optional Upgrade Truth feature** — app/model/UI/tests; package-included enhancements remain normal line items; true optional add-ons are selected-only upgrade truth; schema migration `20260721_027_optional_upgrade_truth.sql` |
+| `5014ec7` | **Docs** — Record Template Flow V1 foundation checkpoint |
 | `d877df6` | **Template Flow V1 foundation** — guided **+ Template** creation; reusable proposal setup landing; selected-template Job Card eligibility based on usable graph rather than starter-install readiness; **66/66** focused tests; starter + guided Template → Package smoke PASS; protected systems untouched |
 | `dedb664` | **Preview copy correction** — clarify preview packet copy; no Template Flow behavior |
 | `f217e63` | **Preview readiness messaging correction** — align Preview readiness messaging; no Template Flow behavior |
@@ -12805,7 +12810,106 @@ Package rule from **N** remains law: pre-draft package on create modal; post-dra
 - Future Template Flow V1 slices: package rename/edit polish; content/pages guided step; included-work grouping/presentation polish; advanced-editing containment; future return-to-job context if template setup is launched from proposal flow.
 - Later **Stage D Preview/Public parity test lock** remains parked and does not block current Template Flow decisions.
 
-**Next recommended decision:** Template Flow V1 visual/product follow-up or the next roadmap decision after this docs checkpoint.
+**Next recommended decision (superseded):** Optional Upgrade Truth is now accepted at **T.8**. Continue with the Template Flow V1 Prepared Included Work / Available Upgrades presentation review recorded there.
+
+###### T.8 Optional Upgrade Truth — ACCEPTED (2026-07-21)
+
+**Checkpoints:**
+- **Code:** **`a28224c`** — `chore(proposals): align optional upgrade truth RPCs`.
+- **Previous feature:** **`32964d6`** — `feat(proposals): implement optional upgrade truth`.
+- **Docs:** pending this docs commit.
+- **Working tree:** clean before this docs-only edit.
+
+**Acceptance:** Optional Upgrade Truth is accepted after live schema/RPC, installed-template repair, Builder create/select/refresh/reload, Preview, send-freeze, and public proposal verification on approved Supabase project **`rhquhnujjnzjhweypavd`**.
+
+**Locked product model:**
+- Package-included enhancements belong in normal **`line_items`** scope.
+- True optional add-ons belong in **`upgrade_group`** and are default unselected.
+- Unselected upgrades do not affect subtotal, sales tax, internal cost, profit, or total.
+- A selected additive upgrade contributes to totals exactly once.
+- Selected upgrade truth persists at proposal-version/option scope and freezes into immutable sent truth.
+- Builder, contractor Preview, and public proposal presentation expose selected-only upgrade truth.
+
+**App, schema, and RPC checkpoints:**
+- **`32964d6`** implemented Optional Upgrade Truth across app model, pricing gates, persistence adapters, Builder controls, Preview/public presentation, starter v2 defaults, and focused tests.
+- Migration **`20260721_027_optional_upgrade_truth.sql`** added schema support.
+- **`a28224c`** committed RPC alignment through **`20260721_028_optional_upgrade_truth_rpc_alignment.sql`**.
+- Migrations **027 + 028 were applied** to **`rhquhnujjnzjhweypavd`**.
+- Aligned RPCs:
+  - **`persist_draft_proposal_create_v1`**
+  - **`persist_draft_pricing_refresh_v1`**
+  - **`persist_proposal_send_freeze_v1`**
+- **`proposal_option_upgrade_choices`** exists with RLS.
+- **`proposal_template_items`** has upgrade definition fields.
+- **`proposal_line_items`** has upgrade echo fields.
+- Sent/signed/superseded immutability protection covers **`proposal_option_upgrade_choices`**.
+
+**Installed starter repair — Path B live:**
+- Ran **clone-corrected + archive pre-truth template**; no Path C.
+- Corrected active starter:
+  - name: **Roof replacement**
+  - template id: **`7e1948a8-e60e-4e0d-a854-10447cadc8a3`**
+  - metadata: **`optional_upgrade_truth_version: 2`**
+  - graph: **3 options · 18 sections · 41 items**
+  - Enhanced/Premium package promises are normal line items; only **Additional roof ventilation** remains a true optional additive upgrade (fixed quantity 1, default unselected).
+- Archived pre-truth template:
+  - template id: **`3aea218a-5df8-430b-80dd-3ef236aae928`**
+  - renamed **Roof replacement (legacy pre-upgrade-truth)**
+  - status **archived**, inactive
+  - seed rekeyed to **`proposal.roof_replacement.legacy_pre_upgrade_truth`**
+  - graph preserved
+- No archived pre-truth template options, sections, items, or other graph rows were deleted.
+- Existing drafts were not auto-rewritten.
+- Existing sent/signed/superseded snapshots were not mutated.
+- New Job Card proposal creation resolves to the corrected active starter.
+
+**Final live smoke proof:**
+- Corrected draft **`145d910c-8c52-4a1d-b04a-41e9b130fc09`** used corrected template **`7e1948a8-…`**, Enhanced package.
+- Company logo readiness was resolved through the proper **Settings → Company branding** path; no readiness bypass or gate weakening.
+- Missing quantities were completed through Builder **Set quantity**, not direct line-row database edits.
+- Standard, Enhanced, and Premium blockers were completed because send-freeze correctly gates all customer-visible options.
+- Enhanced **Additional roof ventilation** was selected: additive quantity **1**, price **$75.00**.
+- Builder reload: **1 selected · 0 available**; selected Enhanced total **$18,757.50**.
+- Preview visible priced lines plus selected ventilation reconcile to **$18,757.50**.
+- Send/freeze passed through real **`/api/proposals/send-prep`** with local **`USE_PROPOSAL_SEND_FREEZE_RPC=1`**.
+- Latest sent version **`ab087ef0-…`** was created as a new frozen version without mutating prior sent version **`1e49b49d-…`**.
+- Public **`/p/[token]`** passed.
+- Public proposal shows **Additional roof ventilation — $75.00** as selected.
+- Public current proposal total **$18,757.50 = $18,682.50 + $75.00**.
+- Enhanced underlayment remains package-included and is not shown as an optional upgrade.
+- Browser console: **0 errors**.
+
+**Remaining trust-sync note (follow-up polish, not an acceptance blocker):**
+- Contractor Preview can still show **“Company logo missing”** until identity restamp/send-prep refreshes the draft context.
+- Freeze/public used the correctly restamped logo, so this does not block accepted Optional Upgrade Truth.
+- Future work may align Preview readiness with the latest company-branding context before send-prep.
+
+**Verification:**
+- Focused optional-upgrade/proposal/template tests passed earlier: **281/281**.
+- Live DB/RPC smoke passed for corrected-template create, selected-upgrade persistence, pricing refresh, Builder reload, Preview reconciliation, freeze, and public proposal rendering after Path B repair.
+- Repo-wide `tsc`/lint retain known pre-existing unrelated failures; none were introduced by this docs checkpoint.
+
+**Protected systems:**
+- SQL/RPC changes were explicitly reviewed, applied, and accepted before this docs checkpoint.
+- Final smoke did not change pricing formulas.
+- Existing sent snapshots were not mutated; refreeze created a new sent version.
+- Archived pre-truth template and its graph remain preserved.
+- No PDF, signature, or payment behavior changed.
+- No push.
+
+**Template Flow V1 continuation — next:**
+- Return to **Prepared Included Work / Available Upgrades** presentation review.
+- Re-review the Templates page using corrected upgrade truth:
+  - **Included Work** = package-included scope.
+  - **Available Upgrades** = true optional add-ons.
+  - Only selected upgrades affect totals.
+  - Default view presents prepared scope.
+  - **Adjust** mode exposes **Add / Replace / Remove** secondarily.
+- Package naming/customization remains later work:
+  - Standard / Enhanced / Premium are defaults only.
+  - Future package rename/edit UI is needed.
+  - A shared option display-label helper is needed.
+- Simple-estimate internal option-container cleanup remains a follow-up.
 
 #### 13.4.6 Integrated Catalog → Proposal workflow research + FieldDive flow design — COMPLETE (2026-07-17)
 
