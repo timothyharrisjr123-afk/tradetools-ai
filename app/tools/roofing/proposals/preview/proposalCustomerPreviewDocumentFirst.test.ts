@@ -9,9 +9,11 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, test } from "node:test";
 import {
+  CUSTOMER_PREVIEW_COMPANY_LOGO_MISSING_HINT,
   CUSTOMER_PREVIEW_DRAFT_NOTICE,
   CUSTOMER_PREVIEW_NEEDS_REVIEW_HEADING,
   CUSTOMER_PREVIEW_PAGE_TITLE,
+  CUSTOMER_PREVIEW_READY_HEADING,
   CUSTOMER_PREVIEW_RETURN_TO_BUILDER_ACTION,
   CUSTOMER_PREVIEW_SEND_SHARING_LABEL,
 } from "@/app/lib/proposalBuilderDocumentIa";
@@ -98,13 +100,49 @@ describe("Contractor-facing Proposal Preview workspace", () => {
 
   test("4. readiness summary appears outside customer preview", () => {
     assert.equal(CUSTOMER_PREVIEW_NEEDS_REVIEW_HEADING, "Needs review before sending");
+    assert.equal(CUSTOMER_PREVIEW_READY_HEADING, "Ready to send");
     assert.equal(CUSTOMER_PREVIEW_RETURN_TO_BUILDER_ACTION, "Review in Builder");
+    assert.equal(CUSTOMER_PREVIEW_COMPANY_LOGO_MISSING_HINT, "Company logo missing");
     const summary = readPreviewSource("ProposalPreviewReadinessSummary.tsx");
     assert.match(summary, /data-preview-compact-readiness/);
+    assert.doesNotMatch(summary, /Ready to review and send/);
     const client = readPreviewSource("ProposalCustomerPreviewClient.tsx");
     assert.match(client, /ProposalPreviewReadinessSummary/);
     for (const file of CUSTOMER_DOCUMENT_FILES) {
       assert.doesNotMatch(readPreviewSource(file), /data-preview-compact-readiness/);
+    }
+  });
+
+  test("4b. Preview readiness matches Send/sharing blocked vs ready copy", () => {
+    const summary = readPreviewSource("ProposalPreviewReadinessSummary.tsx");
+    const sendPanel = readPreviewSource("ProposalCustomerPreviewSendGatePanel.tsx");
+    const client = readPreviewSource("ProposalCustomerPreviewClient.tsx");
+
+    // Blocked: logo / recipient / pricing blockers flip needsReview — never ready copy.
+    assert.match(summary, /companyLogoMissing/);
+    assert.match(summary, /!hasRecipientEmail/);
+    assert.match(summary, /CUSTOMER_PREVIEW_NEEDS_REVIEW_HEADING/);
+    assert.match(summary, /CUSTOMER_PREVIEW_READY_HEADING/);
+    assert.match(summary, /CUSTOMER_PREVIEW_COMPANY_LOGO_MISSING_HINT/);
+    assert.match(client, /companyLogoMissing=\{companyLogoMissing\}/);
+
+    // Send/sharing uses the same shared headings.
+    assert.match(sendPanel, /CUSTOMER_PREVIEW_NEEDS_REVIEW_HEADING/);
+    assert.match(sendPanel, /CUSTOMER_PREVIEW_READY_HEADING/);
+    assert.match(sendPanel, /CUSTOMER_PREVIEW_COMPANY_LOGO_MISSING_HINT/);
+    assert.match(sendPanel, /disabled=\{!canSendProposalEmail\}/);
+
+    // Ready copy only when send blockers are clear; contradictory phrase removed.
+    assert.doesNotMatch(summary, /Ready to review and send/);
+    assert.doesNotMatch(sendPanel, /Ready to review and send/);
+    assert.equal(CUSTOMER_PREVIEW_READY_HEADING, "Ready to send");
+
+    // No backend wording in contractor-facing readiness surfaces.
+    for (const source of [summary, sendPanel]) {
+      assert.doesNotMatch(source, /sent snapshot/i);
+      assert.doesNotMatch(source, /customer view gate/i);
+      assert.doesNotMatch(source, /pricing scope/i);
+      assert.doesNotMatch(source, /internal readiness/i);
     }
   });
 

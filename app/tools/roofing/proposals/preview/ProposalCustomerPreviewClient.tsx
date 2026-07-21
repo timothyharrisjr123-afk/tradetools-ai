@@ -255,7 +255,7 @@ export default function ProposalCustomerPreviewClient({
                 pricingComplete={previewDocument.readiness.pricingComplete}
                 hasRecipientEmail={hasRecipientEmail}
                 builderHref={builderHref}
-                extraHints={companyLogoMissing ? ["Company logo missing"] : []}
+                companyLogoMissing={companyLogoMissing}
               />
             </div>
 

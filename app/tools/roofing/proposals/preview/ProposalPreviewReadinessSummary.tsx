@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { CircleAlert, CircleCheck, Mail } from "lucide-react";
 import {
+  CUSTOMER_PREVIEW_COMPANY_LOGO_MISSING_HINT,
   CUSTOMER_PREVIEW_NEEDS_REVIEW_HEADING,
   CUSTOMER_PREVIEW_READY_HEADING,
   CUSTOMER_PREVIEW_RETURN_TO_BUILDER_ACTION,
@@ -17,6 +18,8 @@ type ProposalPreviewReadinessSummaryProps = {
   pricingComplete: boolean;
   hasRecipientEmail: boolean;
   builderHref: string;
+  /** When true, Send is blocked — must not show ready-to-send copy. */
+  companyLogoMissing?: boolean;
   extraHints?: string[];
 };
 
@@ -25,15 +28,21 @@ const REVIEW_BUTTON =
 
 /**
  * Compact readiness checkpoint — calm review cue, not an error banner.
+ * Ready heading only when real send blockers are clear (aligns with Send/sharing).
  */
 export default function ProposalPreviewReadinessSummary({
   blockingLineCount,
   pricingComplete,
   hasRecipientEmail,
   builderHref,
+  companyLogoMissing = false,
   extraHints = [],
 }: ProposalPreviewReadinessSummaryProps) {
-  const needsReview = !pricingComplete || blockingLineCount > 0;
+  const needsReview =
+    !pricingComplete ||
+    blockingLineCount > 0 ||
+    companyLogoMissing ||
+    !hasRecipientEmail;
   const hintParts: string[] = [];
   if (blockingLineCount > 0) {
     hintParts.push(
@@ -41,6 +50,9 @@ export default function ProposalPreviewReadinessSummary({
     );
   } else if (!pricingComplete) {
     hintParts.push("Estimate pricing needs review");
+  }
+  if (companyLogoMissing) {
+    hintParts.push(CUSTOMER_PREVIEW_COMPANY_LOGO_MISSING_HINT);
   }
   for (const hint of extraHints) {
     if (hint && !hintParts.includes(hint)) hintParts.push(hint);

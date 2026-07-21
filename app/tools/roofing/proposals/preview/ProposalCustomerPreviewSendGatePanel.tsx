@@ -17,6 +17,12 @@ import type { ProposalCustomerPreviewReadiness } from "@/app/lib/proposalCustome
 import type { JobRecord } from "@/app/lib/jobTypes";
 import type { ProposalDraftGraph } from "@/app/lib/proposalRecordStore";
 import {
+  CUSTOMER_PREVIEW_COMPANY_LOGO_MISSING_HINT,
+  CUSTOMER_PREVIEW_NEEDS_REVIEW_HEADING,
+  CUSTOMER_PREVIEW_READY_HEADING,
+  CUSTOMER_PREVIEW_RETURN_TO_BUILDER_ACTION,
+} from "@/app/lib/proposalBuilderDocumentIa";
+import {
   buildProposalSendGateReadinessViewModel,
   hasProposalSendSnapshot,
   resolveSendGateCompanyName,
@@ -303,7 +309,7 @@ export default function ProposalCustomerPreviewSendGatePanel({
           previewReadiness.blockingLineCount === 1 ? "" : "s"
         } need quantities`
       : null,
-    companyLogoMissing ? "Company logo missing" : null,
+    companyLogoMissing ? CUSTOMER_PREVIEW_COMPANY_LOGO_MISSING_HINT : null,
     readiness.messagePreview.toMissing ? "Recipient email missing" : null,
     pricingStale ? "Proposal pricing needs review" : null,
   ].filter((hint): hint is string => Boolean(hint));
@@ -344,7 +350,7 @@ export default function ProposalCustomerPreviewSendGatePanel({
             </span>
             <div className="min-w-0 flex-1">
               <p className="text-[14px] font-semibold text-slate-900">
-                Needs review before sending
+                {CUSTOMER_PREVIEW_NEEDS_REVIEW_HEADING}
               </p>
               <p className="mt-1 text-[13px] leading-relaxed text-slate-600">
                 {blockerHints.length > 0
@@ -355,7 +361,7 @@ export default function ProposalCustomerPreviewSendGatePanel({
                 href={builderHref}
                 className="mt-2.5 inline-flex text-[13px] font-semibold text-blue-600 transition hover:text-blue-700"
               >
-                Review in Builder
+                {CUSTOMER_PREVIEW_RETURN_TO_BUILDER_ACTION}
               </Link>
             </div>
           </div>
@@ -364,7 +370,9 @@ export default function ProposalCustomerPreviewSendGatePanel({
         <div className="flex items-start gap-3 rounded-2xl border border-emerald-200/70 bg-emerald-50/70 px-4 py-4">
           <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-700" aria-hidden />
           <div>
-            <p className="text-[14px] font-semibold text-slate-900">Ready to send</p>
+            <p className="text-[14px] font-semibold text-slate-900">
+              {CUSTOMER_PREVIEW_READY_HEADING}
+            </p>
             <p className="mt-1 text-[13px] text-slate-600">
               Recipient and proposal details are ready for delivery.
             </p>

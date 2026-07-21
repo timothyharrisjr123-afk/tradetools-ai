@@ -91,7 +91,8 @@ export const CUSTOMER_PREVIEW_CHANGE_IN_BUILDER_HINT =
 export const CUSTOMER_PREVIEW_OPEN_SEND_PANEL_LABEL = "Open send panel";
 export const CUSTOMER_PREVIEW_ACTIVITY_EMPTY = "No delivery events yet";
 export const CUSTOMER_PREVIEW_NEEDS_REVIEW_HEADING = "Needs review before sending";
-export const CUSTOMER_PREVIEW_READY_HEADING = "Ready to review and send";
+export const CUSTOMER_PREVIEW_READY_HEADING = "Ready to send";
+export const CUSTOMER_PREVIEW_COMPANY_LOGO_MISSING_HINT = "Company logo missing";
 
 /** Lifecycle actions remain disabled in R16A and later roadmap phases until explicitly enabled. */
 export const BUILDER_LIFECYCLE_ACTIONS_LOCKED = true;
