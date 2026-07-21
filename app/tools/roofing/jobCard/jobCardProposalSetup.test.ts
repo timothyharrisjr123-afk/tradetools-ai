@@ -16,6 +16,7 @@ import {
   JOB_CARD_SHOW_OLDER_DRAFTS_LABEL,
   buildJobCardDraftOpenSummary,
   buildJobCardPackageSetup,
+  deriveJobCardSelectedTemplateEligibility,
   formatContractorProposalTitle,
   formatJobCardProposalsTabStatus,
   formatReturnToJobProposalsLabel,
@@ -24,6 +25,8 @@ import {
   resolveDefaultPackageOptionId,
   sanitizeSetupReturnLabel,
 } from "./jobCardProposalSetup";
+import { deriveProposalTemplateReadiness } from "@/app/lib/proposalTemplateReadiness";
+import type { CatalogReadinessSummary } from "@/app/lib/catalogReadiness";
 
 describe("jobCardProposalSetup", () => {
   test("create explainer mentions measurements, template, Catalog, Builder", () => {
@@ -245,5 +248,220 @@ describe("jobCardProposalSetup", () => {
     assert.equal(setup.includedItemCount, 1);
     assert.equal(setup.includedItems[0]?.label, "Architectural shingles");
     assert.ok(setup.customerFacingLine.length > 0);
+  });
+});
+
+describe("deriveJobCardSelectedTemplateEligibility", () => {
+  const catalogId = "11111111-1111-4111-8111-111111111111";
+  const catalogItems = [
+    {
+      id: catalogId,
+      name: "Architectural shingles",
+      active: true,
+      unit_price_cents: 1000,
+    },
+  ] as never;
+
+  function singlePackageGraph(templateId: string) {
+    return {
+      template: { id: templateId, name: "Guided Test", metadata: {}, active: true },
+      options: [
+        {
+          id: "opt-one",
+          name: "Standard",
+          customer_label: "Standard",
+          sort_order: 0,
+          is_default: true,
+        },
+      ],
+      sections: [
+        {
+          id: "sec-1",
+          option_id: "opt-one",
+          kind: "line_items",
+          name: "Estimate",
+          sort_order: 0,
+        },
+      ],
+      items: [
+        {
+          id: "item-1",
+          section_id: "sec-1",
+          option_id: "opt-one",
+          catalog_item_id: catalogId,
+          sort_order: 0,
+          customer_name_override: null,
+          item_role: "material",
+        },
+      ],
+    } as never;
+  }
+
+  function starterShapedGraph(templateId: string) {
+    const options = ["opt-std", "opt-enh", "opt-prem"].map((id, i) => ({
+      id,
+      name: ["Standard", "Enhanced", "Premium"][i],
+      customer_label: ["Standard", "Enhanced", "Premium"][i],
+      sort_order: i,
+      is_default: i === 0,
+    }));
+    const sections = options.map((opt, i) => ({
+      id: `sec-${i}`,
+      option_id: opt.id,
+      kind: "line_items",
+      name: "Estimate",
+      sort_order: 0,
+    }));
+    const items = Array.from({ length: 13 }, (_, i) => ({
+      id: `item-${i}`,
+      section_id: "sec-0",
+      option_id: "opt-std",
+      catalog_item_id: catalogId,
+      sort_order: i,
+      customer_name_override: null,
+      item_role: "material",
+    }));
+    return {
+      template: {
+        id: templateId,
+        name: "Roof replacement",
+        metadata: {},
+        active: true,
+      },
+      options,
+      sections,
+      items,
+    } as never;
+  }
+
+  test("starter-shaped template is usable and advances past template gate", () => {
+    const graph = starterShapedGraph("starter-t");
+    const eligibility = deriveJobCardSelectedTemplateEligibility({
+      selectedTemplateId: "starter-t",
+      graph,
+      catalogItems,
+    });
+    assert.equal(eligibility.usable, true);
+    assert.equal(eligibility.graphMatchesSelection, true);
+    assert.equal(eligibility.reason, null);
+  });
+
+  test("single-package guided template is usable without company starter readiness", () => {
+    const graph = singlePackageGraph("guided-t");
+    const eligibility = deriveJobCardSelectedTemplateEligibility({
+      selectedTemplateId: "guided-t",
+      graph,
+      catalogItems,
+    });
+    assert.equal(eligibility.usable, true);
+
+    const catalogReadiness = {
+      status: "ready",
+      active_item_count: 20,
+      priced_item_count: 20,
+      unpriced_item_count: 0,
+      missing_seed_key_count: 0,
+    } as CatalogReadinessSummary;
+    const companyReadiness = deriveProposalTemplateReadiness({
+      catalogReadiness,
+      activeCatalogItems: catalogItems,
+      starterGraph: graph,
+      templateCount: 1,
+      activeTemplateCount: 1,
+    });
+    assert.notEqual(companyReadiness.status, "ready_for_builder");
+  });
+
+  test("not-ready selected template does not imply every template is blocked", () => {
+    const emptyGraph = {
+      template: { id: "empty-t", name: "Empty", metadata: {}, active: true },
+      options: [
+        {
+          id: "opt-one",
+          name: "Standard",
+          customer_label: "Standard",
+          sort_order: 0,
+          is_default: true,
+        },
+      ],
+      sections: [
+        {
+          id: "sec-1",
+          option_id: "opt-one",
+          kind: "line_items",
+          name: "Estimate",
+          sort_order: 0,
+        },
+      ],
+      items: [],
+    } as never;
+
+    const emptyEligibility = deriveJobCardSelectedTemplateEligibility({
+      selectedTemplateId: "empty-t",
+      graph: emptyGraph,
+      catalogItems,
+    });
+    assert.equal(emptyEligibility.usable, false);
+    assert.match(emptyEligibility.reason ?? "", /Catalog items/i);
+
+    const readyEligibility = deriveJobCardSelectedTemplateEligibility({
+      selectedTemplateId: "guided-t",
+      graph: singlePackageGraph("guided-t"),
+      catalogItems,
+    });
+    assert.equal(readyEligibility.usable, true);
+  });
+
+  test("stale graph for a different template id is not usable yet", () => {
+    const eligibility = deriveJobCardSelectedTemplateEligibility({
+      selectedTemplateId: "next-t",
+      graph: singlePackageGraph("prev-t"),
+      catalogItems,
+    });
+    assert.equal(eligibility.usable, false);
+    assert.equal(eligibility.graphMatchesSelection, false);
+    assert.equal(eligibility.reason, null);
+  });
+
+  test("template with missing catalog links is not usable", () => {
+    const graph = {
+      template: { id: "bad-t", name: "Broken", metadata: {}, active: true },
+      options: [
+        {
+          id: "opt-one",
+          name: "Standard",
+          customer_label: "Standard",
+          sort_order: 0,
+          is_default: true,
+        },
+      ],
+      sections: [
+        {
+          id: "sec-1",
+          option_id: "opt-one",
+          kind: "line_items",
+          name: "Estimate",
+          sort_order: 0,
+        },
+      ],
+      items: [
+        {
+          id: "item-1",
+          section_id: "sec-1",
+          option_id: "opt-one",
+          catalog_item_id: null,
+          sort_order: 0,
+          customer_name_override: null,
+          item_role: "material",
+        },
+      ],
+    } as never;
+    const eligibility = deriveJobCardSelectedTemplateEligibility({
+      selectedTemplateId: "bad-t",
+      graph,
+      catalogItems,
+    });
+    assert.equal(eligibility.usable, false);
+    assert.ok(eligibility.reason);
   });
 });

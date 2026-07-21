@@ -15,6 +15,7 @@ import {
   CREATE_PROPOSAL_PACKAGE_GUIDE,
   CREATE_PROPOSAL_PACKAGE_ONE_ONLY,
   CREATE_PROPOSAL_REVIEW_TITLE,
+  CREATE_PROPOSAL_TEMPLATE_BLOCKED,
   CREATE_PROPOSAL_TEMPLATE_GUIDE,
   CREATE_PROPOSAL_TEMPLATE_READY,
   CREATE_PROPOSAL_TEMPLATE_STRUCTURE,
@@ -30,6 +31,7 @@ import {
   formatCreateProposalTemplateSecondaryDetail,
   nextCreateProposalStep,
   prevCreateProposalStep,
+  resolveCreateProposalTemplateStepMessage,
 } from "./jobCardCreateProposalModalModel";
 import {
   JOB_CARD_PROPOSALS_ADD_LABEL,
@@ -174,6 +176,64 @@ describe("jobCardCreateProposalModalModel polish", () => {
       }),
       false
     );
+  });
+
+  test("orange template blocker only when no templates or selected is truly unusable", () => {
+    assert.equal(
+      resolveCreateProposalTemplateStepMessage({
+        templatesLength: 0,
+        selectedTemplateId: null,
+        templateReady: false,
+        selectedUnusableReason: null,
+      }),
+      CREATE_PROPOSAL_TEMPLATE_BLOCKED
+    );
+    assert.match(CREATE_PROPOSAL_TEMPLATE_BLOCKED, /Create or finish/i);
+
+    // Templates exist; nothing selected / still loading → no global orange block
+    assert.equal(
+      resolveCreateProposalTemplateStepMessage({
+        templatesLength: 2,
+        selectedTemplateId: "t1",
+        templateReady: false,
+        selectedUnusableReason: null,
+      }),
+      null
+    );
+    assert.equal(
+      resolveCreateProposalTemplateStepMessage({
+        templatesLength: 2,
+        selectedTemplateId: "t1",
+        templateReady: true,
+        selectedUnusableReason: null,
+      }),
+      null
+    );
+
+    // Selected template loaded and unusable → quiet reason only
+    assert.equal(
+      resolveCreateProposalTemplateStepMessage({
+        templatesLength: 2,
+        selectedTemplateId: "t-bad",
+        templateReady: false,
+        selectedUnusableReason:
+          "This template needs included Catalog items before it can start a proposal.",
+      }),
+      "This template needs included Catalog items before it can start a proposal."
+    );
+  });
+
+  test("Job Card create flow remains Measurement → Template → Package → Review → Builder", () => {
+    assert.deepEqual(
+      [
+        nextCreateProposalStep("measurement"),
+        nextCreateProposalStep("template"),
+        nextCreateProposalStep("package"),
+        nextCreateProposalStep("review"),
+      ],
+      ["template", "package", "review", null]
+    );
+    assert.equal(CREATE_PROPOSAL_CONTINUE_TO_BUILDER, "Continue to Builder");
   });
 
   test("template step hides internal/smoke templates", () => {

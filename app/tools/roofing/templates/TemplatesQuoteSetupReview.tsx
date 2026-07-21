@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import type { ProposalTemplateReadiness } from "@/app/lib/proposalTemplateTypes";
-import { formatProposalTemplateReadinessLabel } from "@/app/lib/proposalTemplateReadiness";
 import type { TemplateCatalogLinkReadiness } from "@/app/lib/proposalTemplateCatalogLink";
 import {
   buildCatalogByIdMap,
@@ -16,7 +15,17 @@ import TemplatesIncludedItemsManager, {
   type IncludedItemGroup,
 } from "./TemplatesIncludedItemsManager";
 import {
-  TEMPLATES_WORKSPACE_TRUST_NOTE,
+  TEMPLATES_ADVANCED_EDITING_ACTION,
+  TEMPLATES_INCLUDED_WORK_HEADING,
+  TEMPLATES_NEXT_USE_COPY,
+  TEMPLATES_NEXT_USE_HEADING,
+  TEMPLATES_OPEN_JOBS_ACTION,
+  TEMPLATES_PROPOSAL_CONTENT_HEADING,
+  TEMPLATES_REUSABLE_SETUP_EYEBROW,
+  TEMPLATES_REUSABLE_SETUP_SUBCOPY,
+  TEMPLATES_SIMPLE_ESTIMATE_LABEL,
+  buildProposalContentLandingAreas,
+  resolvePackagePresentation,
   type PackageOptionSummary,
   type TemplateCreatesSummary,
 } from "./templatesWorkspaceFlow";
@@ -94,6 +103,12 @@ export default function TemplatesQuoteSetupReview({
   const needsFix =
     linkReadiness.nextAction === "fix_links" || linkReadiness.nextAction === "add_items";
   const readyToUse = companyReady && linksReady;
+  const needsCatalog = !companyReady && proposalReadiness.status === "needs_catalog";
+
+  const packagePresentation = resolvePackagePresentation({
+    graph,
+    packageSummaries,
+  });
 
   const selectedSummary =
     packageSummaries.find((row) => row.optionId === selectedPackageOptionId) ??
@@ -103,136 +118,159 @@ export default function TemplatesQuoteSetupReview({
     selectedPackageOptionId != null
       ? buildIncludedGroups(graph, selectedPackageOptionId, catalogItems)
       : [];
+  const contentAreas = buildProposalContentLandingAreas(graph);
+  const description = template.description?.trim() || null;
 
-  const includesLine = [
-    createsSummary.packageLabels.length > 0
-      ? `Packages: ${createsSummary.packageLabels.join(" · ")}`
-      : null,
-    createsSummary.customerFacingAreas.length > 0
-      ? `Pages: ${createsSummary.customerFacingAreas.join(" · ")}`
-      : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  const countLine = [
+    packagePresentation.mode === "simple"
+      ? TEMPLATES_SIMPLE_ESTIMATE_LABEL
+      : packagePresentation.mode === "single"
+        ? "1 package"
+        : `${packageSummaries.length} packages`,
+    `${createsSummary.linkedCatalogCount} included item${
+      createsSummary.linkedCatalogCount === 1 ? "" : "s"
+    }`,
+  ].join(" · ");
 
   return (
-    <div className="space-y-3" data-templates-quote-setup data-templates-workspace-mode="review">
+    <div
+      className="space-y-3"
+      data-templates-quote-setup
+      data-templates-reusable-setup
+      data-templates-workspace-mode="review"
+    >
       <section
-        className={`${TEMPLATES_CARD} !px-4 !py-3.5 space-y-3`}
-        aria-labelledby="templates-quote-hero-heading"
+        className={`${TEMPLATES_CARD} !px-4 !py-4 space-y-3`}
+        aria-labelledby="templates-reusable-setup-heading"
         data-templates-quote-hero
+        data-templates-reusable-setup-hero
       >
-        <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+              {TEMPLATES_REUSABLE_SETUP_EYEBROW}
+            </p>
             <h2
-              id="templates-quote-hero-heading"
-              className="text-lg font-semibold text-slate-900"
+              id="templates-reusable-setup-heading"
+              className="mt-1 text-lg font-semibold text-slate-900"
             >
               {template.name}
             </h2>
-            <p className="mt-0.5 text-xs text-slate-500" data-templates-hero-counts>
-              {packageSummaries.length} packages · {createsSummary.linkedCatalogCount} items
-              linked
-              {createsSummary.issueCount > 0
-                ? ` · ${createsSummary.issueCount} need attention`
-                : ""}
+            <p className="mt-1 text-sm text-slate-600">{TEMPLATES_REUSABLE_SETUP_SUBCOPY}</p>
+            <p className="mt-1.5 text-xs text-slate-500" data-templates-hero-counts>
+              {countLine}
             </p>
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-700 ring-1 ring-slate-200">
-              {statusLabel}
-            </span>
-            <span
-              className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ${
-                readyToUse
-                  ? "bg-emerald-50 text-emerald-800 ring-emerald-200"
-                  : "bg-amber-50 text-amber-800 ring-amber-200"
-              }`}
-              data-templates-use-status
-            >
-              {readyToUse
-                ? "Ready to use"
-                : needsFix
-                  ? "Needs attention"
-                  : formatProposalTemplateReadinessLabel(proposalReadiness)}
-            </span>
-          </div>
-        </div>
-
-        <div data-templates-what-this-creates>
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-            What this includes
-          </p>
-          <p className="mt-0.5 text-xs leading-snug text-slate-700">
-            {includesLine || "Template structure still incomplete"}
-          </p>
-          <p className="mt-0.5 text-xs text-slate-500" data-templates-customer-sees>
-            {createsSummary.customerDisplayLine}
-          </p>
-        </div>
-
-        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-          {readyToUse ? (
-            <Link
-              href="/tools/roofing/saved"
-              className="inline-flex items-center justify-center rounded-md bg-slate-900 px-3.5 py-2 text-sm font-semibold text-white hover:bg-slate-800"
-              data-templates-open-jobs
-              data-templates-primary-cta="open_jobs"
-            >
-              Open Jobs to create a proposal
-            </Link>
-          ) : null}
-          {needsFix ? (
-            <button
-              type="button"
-              onClick={onFixIssues}
-              className="inline-flex items-center justify-center rounded-md bg-slate-900 px-3.5 py-2 text-sm font-semibold text-white hover:bg-slate-800"
-              data-templates-fix-links
-              data-templates-primary-cta="fix_links"
-            >
-              Fix issues
-            </button>
-          ) : null}
-          {!companyReady && proposalReadiness.status === "needs_catalog" ? (
-            <Link
-              href="/tools/roofing/catalog"
-              className="inline-flex items-center justify-center rounded-md bg-slate-900 px-3.5 py-2 text-sm font-semibold text-white hover:bg-slate-800"
-              data-templates-primary-cta="open_catalog"
-            >
-              Open Catalog setup
-            </Link>
-          ) : null}
-          <button
-            type="button"
-            onClick={onOpenAdvanced}
-            className="inline-flex items-center justify-center rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50"
-            data-templates-open-advanced
-          >
-            Advanced settings
-          </button>
-        </div>
-
-        <div
-          className="border-t border-slate-100 pt-3"
-          data-templates-package-selector
-        >
-          <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
-            <h3
-              id="templates-package-selector-heading"
-              className="text-xs font-semibold uppercase tracking-wide text-slate-500"
-            >
-              Package
-            </h3>
-            {selectedSummary ? (
-              <p className="text-[11px] text-slate-500" data-templates-selected-package-label>
-                Viewing {selectedSummary.optionLabel}
-                {selectedSummary.status === "needs_attention" ? " · Needs attention" : ""}
+            {description ? (
+              <p className="mt-1 text-xs text-slate-500" data-templates-setup-description>
+                {description}
               </p>
             ) : null}
           </div>
-          <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="Package options">
+          <div className="flex flex-wrap items-center gap-2">
+            <span
+              className="rounded-full bg-slate-50 px-2 py-0.5 text-[10px] font-medium text-slate-500 ring-1 ring-slate-200/80"
+              data-templates-quiet-status
+            >
+              {statusLabel}
+            </span>
+            <button
+              type="button"
+              onClick={onOpenAdvanced}
+              className="text-xs font-medium text-slate-500 underline-offset-2 hover:text-slate-800 hover:underline"
+              data-templates-open-advanced
+            >
+              {TEMPLATES_ADVANCED_EDITING_ACTION}
+            </button>
+          </div>
+        </div>
+
+        {needsFix ? (
+          <p className="text-xs text-slate-600" role="status" data-templates-quiet-link-hint>
+            A few Catalog links need a quick adjust.{" "}
+            <button
+              type="button"
+              onClick={onFixIssues}
+              className="font-semibold text-slate-800 underline-offset-2 hover:underline"
+              data-templates-fix-links
+            >
+              Review links
+            </button>
+          </p>
+        ) : null}
+        {needsCatalog ? (
+          <p className="text-xs text-slate-600" role="status">
+            Finish{" "}
+            <Link
+              href="/tools/roofing/catalog"
+              className="font-semibold text-slate-800 underline-offset-2 hover:underline"
+              data-templates-primary-cta="open_catalog"
+            >
+              Catalog setup
+            </Link>{" "}
+            so this template can use your company pricing.
+          </p>
+        ) : null}
+      </section>
+
+      <section
+        className={`${TEMPLATES_CARD} !px-4 !py-4 space-y-3`}
+        aria-labelledby="templates-packages-landing-heading"
+        data-templates-package-selector
+        data-templates-packages-landing
+      >
+        <div>
+          <h3
+            id="templates-packages-landing-heading"
+            className="text-sm font-semibold text-slate-900"
+          >
+            {packagePresentation.heading}
+          </h3>
+          <p
+            className="mt-0.5 text-xs text-slate-500"
+            data-templates-selected-package-label
+            data-templates-package-summary
+          >
+            {packagePresentation.summaryLine}
+          </p>
+        </div>
+
+        {packagePresentation.mode === "simple" ? (
+          <div
+            className="rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-3.5"
+            data-templates-package-simple
+          >
+            <p className="text-sm font-semibold text-slate-900">
+              {TEMPLATES_SIMPLE_ESTIMATE_LABEL}
+            </p>
+            <p className="mt-1 text-sm text-slate-600">{packagePresentation.summaryLine}</p>
+          </div>
+        ) : null}
+
+        {packagePresentation.mode === "single" && selectedSummary ? (
+          <div
+            className="rounded-xl border border-slate-200 bg-white px-4 py-3.5"
+            data-templates-package-single
+            data-templates-package-option={selectedSummary.optionId}
+          >
+            <p className="text-sm font-semibold text-slate-900">
+              {selectedSummary.optionLabel}
+            </p>
+            <p className="mt-1 text-xs text-slate-500">
+              {selectedSummary.linkedItemCount + selectedSummary.issueCount} included item
+              {selectedSummary.linkedItemCount + selectedSummary.issueCount === 1 ? "" : "s"}
+            </p>
+          </div>
+        ) : null}
+
+        {packagePresentation.mode === "multi" ? (
+          <div
+            className="grid gap-2 sm:grid-cols-3"
+            role="tablist"
+            aria-label="Prepared packages"
+          >
             {packageSummaries.map((row) => {
               const selected = row.optionId === selectedPackageOptionId;
+              const itemCount = row.linkedItemCount + row.issueCount;
               return (
                 <button
                   key={row.optionId}
@@ -240,25 +278,24 @@ export default function TemplatesQuoteSetupReview({
                   role="tab"
                   aria-selected={selected}
                   onClick={() => onSelectPackage(row.optionId)}
-                  className={`rounded-md px-2.5 py-1.5 text-left text-xs font-semibold transition ${
+                  className={`rounded-xl border px-3.5 py-3 text-left transition ${
                     selected
-                      ? "bg-slate-900 text-white"
-                      : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                      ? "border-blue-300 bg-blue-50/60 ring-1 ring-blue-200"
+                      : "border-slate-200 bg-white hover:border-slate-300"
                   }`}
                   data-templates-package-option={row.optionId}
                 >
-                  {row.optionLabel}
-                  <span
-                    className={`ml-1.5 font-normal ${selected ? "text-slate-300" : "text-slate-500"}`}
+                  <p className="text-sm font-semibold text-slate-900">{row.optionLabel}</p>
+                  <p
+                    className={`mt-1 text-xs ${selected ? "text-slate-600" : "text-slate-500"}`}
                   >
-                    {row.linkedItemCount + row.issueCount}
-                    {row.issueCount > 0 ? ` · ${row.issueCount} issues` : ""}
-                  </span>
+                    {itemCount} included item{itemCount === 1 ? "" : "s"}
+                  </p>
                 </button>
               );
             })}
           </div>
-        </div>
+        ) : null}
       </section>
 
       <TemplatesIncludedItemsManager
@@ -267,11 +304,74 @@ export default function TemplatesQuoteSetupReview({
         onAddItem={onAddItem}
         onReplaceItem={onReplaceItem}
         onRemoveItem={onRemoveItem}
+        heading={TEMPLATES_INCLUDED_WORK_HEADING}
       />
 
-      <p className="px-1 text-[11px] leading-relaxed text-slate-500" data-templates-trust-note>
-        {TEMPLATES_WORKSPACE_TRUST_NOTE} There is no Create proposal button on this page.
-      </p>
+      <section
+        className={`${TEMPLATES_CARD} !px-4 !py-4 space-y-3`}
+        aria-labelledby="templates-proposal-content-heading"
+        data-templates-proposal-content
+      >
+        <div>
+          <h3
+            id="templates-proposal-content-heading"
+            className="text-sm font-semibold text-slate-900"
+          >
+            {TEMPLATES_PROPOSAL_CONTENT_HEADING}
+          </h3>
+          <p className="mt-0.5 text-xs text-slate-500">
+            Prepared pages customers can review on proposals from this template.
+          </p>
+        </div>
+        {contentAreas.length === 0 ? (
+          <p className="text-sm text-slate-500">No proposal pages prepared yet.</p>
+        ) : (
+          <ul className="space-y-2" data-templates-proposal-content-list>
+            {contentAreas.map((area) => (
+              <li
+                key={area.label}
+                className="flex flex-wrap items-baseline justify-between gap-2 rounded-lg border border-slate-100 bg-slate-50/60 px-3 py-2.5"
+                data-templates-proposal-content-area={area.label}
+              >
+                <span className="text-sm font-semibold text-slate-900">{area.label}</span>
+                <span className="text-xs text-slate-500">{area.detail}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+        <button
+          type="button"
+          onClick={onOpenAdvanced}
+          className="text-xs font-medium text-slate-500 underline-offset-2 hover:text-slate-800 hover:underline"
+          data-templates-edit-content-quiet
+        >
+          Edit wording in advanced editing
+        </button>
+      </section>
+
+      <section
+        className={`${TEMPLATES_CARD} !px-4 !py-3.5`}
+        aria-labelledby="templates-next-use-heading"
+        data-templates-next-use
+      >
+        <p
+          id="templates-next-use-heading"
+          className="text-[11px] font-semibold uppercase tracking-wide text-slate-500"
+        >
+          {TEMPLATES_NEXT_USE_HEADING}
+        </p>
+        <p className="mt-1 text-sm text-slate-600">{TEMPLATES_NEXT_USE_COPY}</p>
+        {readyToUse || linksReady ? (
+          <Link
+            href="/tools/roofing/saved"
+            className="mt-2 inline-flex text-sm font-semibold text-slate-800 underline-offset-2 hover:underline"
+            data-templates-open-jobs
+            data-templates-primary-cta="open_jobs"
+          >
+            {TEMPLATES_OPEN_JOBS_ACTION}
+          </Link>
+        ) : null}
+      </section>
     </div>
   );
 }

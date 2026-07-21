@@ -156,7 +156,7 @@ export default function TemplatesSelectedWorkspace({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-            Advanced settings
+            Advanced editing
           </p>
           <h2
             className="mt-1 text-base font-semibold text-slate-900"
@@ -165,7 +165,8 @@ export default function TemplatesSelectedWorkspace({
             {graph.template.name}
           </h2>
           <p className="mt-0.5 text-xs text-slate-500">
-            Sections, customer display, and content. Daily item changes stay on the quote review.
+            Sections, customer display, and content. Everyday included-work changes stay on the
+            proposal setup.
           </p>
         </div>
         <button
@@ -175,7 +176,7 @@ export default function TemplatesSelectedWorkspace({
           data-templates-back-to-summary
           data-templates-back-to-review
         >
-          Back to quote review
+          Back to proposal setup
         </button>
       </div>
 

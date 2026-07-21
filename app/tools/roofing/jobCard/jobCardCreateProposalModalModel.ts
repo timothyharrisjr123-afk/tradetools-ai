@@ -64,7 +64,36 @@ export const CREATE_PROPOSAL_MEASUREMENT_BLOCKED =
   "Complete and save a measurement report before creating a proposal." as const;
 
 export const CREATE_PROPOSAL_TEMPLATE_BLOCKED =
-  "Set up a proposal template before creating a proposal." as const;
+  "Create or finish a proposal template before creating a proposal." as const;
+
+export const CREATE_PROPOSAL_TEMPLATE_SELECTED_UNUSABLE =
+  "This template needs a bit more setup. Choose another ready template, or finish it under Proposal templates." as const;
+
+/**
+ * Orange / amber template-step message. Only when there are no templates, or the
+ * selected template is loaded and truly unusable — never a global block just
+ * because company starter readiness failed.
+ */
+export function resolveCreateProposalTemplateStepMessage(input: {
+  templatesLength: number;
+  selectedTemplateId: string | null | undefined;
+  templateReady: boolean;
+  selectedUnusableReason: string | null | undefined;
+}): string | null {
+  if (input.templatesLength <= 0) {
+    return CREATE_PROPOSAL_TEMPLATE_BLOCKED;
+  }
+  const selectedId = (input.selectedTemplateId ?? "").trim();
+  if (!selectedId || input.templateReady) {
+    return null;
+  }
+  const reason = (input.selectedUnusableReason ?? "").trim();
+  if (reason) {
+    return reason;
+  }
+  return null;
+}
+
 
 export const CREATE_PROPOSAL_PACKAGE_BLOCKED =
   "Choose a package to continue." as const;

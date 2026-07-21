@@ -7,9 +7,11 @@ import { describe, test } from "node:test";
 import {
   TEMPLATES_EDIT_TABS,
   TEMPLATES_WORKSPACE_TRUST_NOTE,
+  buildProposalContentLandingAreas,
   buildTemplateCreatesSummary,
   defaultExpandedPackageOptionId,
   formatCustomerDisplaySummary,
+  resolvePackagePresentation,
   summarizePackageOptionsForWorkspace,
 } from "./templatesWorkspaceFlow";
 
@@ -177,5 +179,75 @@ describe("templatesWorkspaceFlow", () => {
     assert.equal(rows[0].linkedItemCount, 1);
     assert.equal(rows[0].issueCount, 1);
     assert.equal(rows[0].status, "needs_attention");
+  });
+
+  test("resolvePackagePresentation hides simple estimate option container", () => {
+    const simple = resolvePackagePresentation({
+      graph: {
+        template: { id: "t", name: "Simple", metadata: { package_model: "simple" } },
+        options: [
+          {
+            id: "o1",
+            name: "Estimate",
+            selection_mode: "included",
+          },
+        ],
+        sections: [],
+        items: [],
+      } as never,
+      packageSummaries: [
+        {
+          optionId: "o1",
+          optionLabel: "Estimate",
+          sectionCount: 1,
+          catalogSectionCount: 1,
+          linkedItemCount: 3,
+          issueCount: 0,
+          status: "ready",
+        },
+      ],
+    });
+    assert.equal(simple.mode, "simple");
+    assert.equal(simple.hidePackageSwitcher, true);
+    assert.match(simple.summaryLine, /no package choices/i);
+  });
+
+  test("buildProposalContentLandingAreas lists contractor-facing pages", () => {
+    const areas = buildProposalContentLandingAreas({
+      template: { id: "t", name: "Roof" },
+      options: [],
+      sections: [
+        {
+          id: "s1",
+          kind: "text",
+          name: "Project overview",
+          customer_title: "Project overview",
+          sort_order: 10,
+        },
+        {
+          id: "s2",
+          kind: "line_items",
+          name: "Roof replacement scope",
+          sort_order: 20,
+        },
+        {
+          id: "s3",
+          kind: "warranty",
+          name: "Warranty",
+          sort_order: 30,
+        },
+        {
+          id: "s4",
+          kind: "terms",
+          name: "Terms",
+          sort_order: 40,
+        },
+      ],
+      items: [],
+    } as never);
+    assert.ok(areas.some((row) => row.label === "Overview"));
+    assert.ok(areas.some((row) => row.label === "Estimate"));
+    assert.ok(areas.some((row) => row.label === "Warranty"));
+    assert.ok(areas.some((row) => row.label === "Terms"));
   });
 });

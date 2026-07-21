@@ -42,11 +42,13 @@ import {
   planReorderSections,
 } from "@/app/lib/proposalTemplateStructureMutations";
 import TemplatesAddItemSectionChooser from "./TemplatesAddItemSectionChooser";
+import { createGuidedProposalTemplate } from "./createGuidedProposalTemplate";
 import TemplatesBuilderFootnote from "./TemplatesBuilderFootnote";
 import TemplatesCatalogItemPickerModal, {
   type TemplatesCatalogPickerMode,
 } from "./TemplatesCatalogItemPickerModal";
 import TemplatesCatalogPrerequisite from "./TemplatesCatalogPrerequisite";
+import TemplatesGuidedCreateOverlay from "./TemplatesGuidedCreateOverlay";
 import TemplatesLibrarySection from "./TemplatesLibrarySection";
 import TemplatesOnboardingZone from "./TemplatesOnboardingZone";
 import TemplatesPageAlerts from "./TemplatesPageAlerts";
@@ -67,6 +69,7 @@ import {
   computeReorderedSectionIds,
   getOrderedSectionIdsForOption,
 } from "./templatesStructureEditorUtils";
+import type { GuidedTemplateCreatePlan } from "./templatesGuidedCreatePlanner";
 import {
   buildTemplateCreatesSummary,
   defaultSelectedPackageOptionId,
@@ -142,6 +145,9 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
     null
   );
   const [removeConfirmItemId, setRemoveConfirmItemId] = useState<string | null>(null);
+  const [guidedCreateOpen, setGuidedCreateOpen] = useState(false);
+  const [guidedCreating, setGuidedCreating] = useState(false);
+  const [guidedCreateError, setGuidedCreateError] = useState<string | null>(null);
 
   const loadCatalog = useCallback(async () => {
     setCatalogLoading(true);
@@ -916,6 +922,63 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
     return buildTemplateCatalogLinkView(item, catalogById).displayName;
   }, [catalogItems, removeConfirmItemId, selectedGraph]);
 
+  const handleOpenGuidedCreate = useCallback(() => {
+    if (dirtySectionCount > 0) return;
+    setGuidedCreateError(null);
+    setGuidedCreateOpen(true);
+  }, [dirtySectionCount]);
+
+  const handleCloseGuidedCreate = useCallback(() => {
+    if (guidedCreating) return;
+    setGuidedCreateOpen(false);
+    setGuidedCreateError(null);
+  }, [guidedCreating]);
+
+  const handleGuidedCreate = useCallback(
+    (plan: GuidedTemplateCreatePlan) => {
+      void (async () => {
+        if (guidedCreating) return;
+        setGuidedCreating(true);
+        setGuidedCreateError(null);
+        try {
+          const result = await createGuidedProposalTemplate({
+            companyId,
+            plan,
+          });
+          if (!result.ok || !result.templateId) {
+            setGuidedCreateError(
+              result.errors[0] ?? "Could not create the template. Try again."
+            );
+            return;
+          }
+
+          setGuidedCreateOpen(false);
+          setWorkspaceMode("review");
+          setEditTab("packages");
+          setSelectedPackageOptionId(null);
+          setFocusSectionId(null);
+          setRemoveConfirmItemId(null);
+          setAddSectionChoices(null);
+
+          await loadTemplates(result.templateId);
+          setSelectedTemplateId(result.templateId);
+          if (result.graph) {
+            setSelectedGraph(result.graph);
+          } else {
+            const graph = await getProposalTemplateGraph(result.templateId, { companyId });
+            setSelectedGraph(graph);
+          }
+        } catch (err) {
+          console.warn("[TemplatesSetupClient] guided create error:", err);
+          setGuidedCreateError("Could not create the template. Try again.");
+        } finally {
+          setGuidedCreating(false);
+        }
+      })();
+    },
+    [companyId, guidedCreating, loadTemplates]
+  );
+
   const handleInstallStarter = useCallback(() => {
     void (async () => {
       if (catalogLoading || templatesLoading || installing || !catalogReady) return;
@@ -994,9 +1057,23 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
     />
   );
 
+  const addTemplateDisabled = dirtySectionCount > 0 || guidedCreating || installing;
+  const addTemplateDisabledTitle =
+    dirtySectionCount > 0
+      ? "Save or revert unsaved content changes before creating a template."
+      : guidedCreating
+        ? "Creating template…"
+        : installing
+          ? "Starter install in progress…"
+          : undefined;
+
   return (
     <div className="mx-auto w-full max-w-[92rem] space-y-4">
-      <TemplatesPageHeader />
+      <TemplatesPageHeader
+        onAddTemplate={handleOpenGuidedCreate}
+        addTemplateDisabled={addTemplateDisabled}
+        addTemplateDisabledTitle={addTemplateDisabledTitle}
+      />
 
       <TemplatesPageAlerts
         loadError={loadError}
@@ -1126,6 +1203,14 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
           setRemoveConfirmItemId(null);
         }}
         onConfirm={handleConfirmRemoveItem}
+      />
+
+      <TemplatesGuidedCreateOverlay
+        open={guidedCreateOpen}
+        creating={guidedCreating}
+        createError={guidedCreateError}
+        onClose={handleCloseGuidedCreate}
+        onCreate={handleGuidedCreate}
       />
     </div>
   );

@@ -44,14 +44,16 @@ describe("Templates catalog link page (Integrated Flow P0 + Redesign P0)", () =>
     assert.ok(picker.includes("active Catalog") || picker.includes("Inactive Catalog"));
   });
 
-  test("Catalog SoT constant retained; Quote review holds the single trust note", () => {
+  test("Catalog SoT constant retained; reusable setup keeps Job Card boundary", () => {
     const review = read("TemplatesQuoteSetupReview.tsx");
+    const flow = read("templatesWorkspaceFlow.ts");
     const footnote = read("TemplatesBuilderFootnote.tsx");
     const header = read("TemplatesPageHeader.tsx");
 
     assert.match(TEMPLATE_CATALOG_SOT_COPY, /Catalog is the source of truth/i);
     assert.match(TEMPLATE_CATALOG_DRAFT_REFRESH_COPY, /snapshotted|refresh draft pricing/i);
-    assert.ok(review.includes("TEMPLATES_WORKSPACE_TRUST_NOTE"));
+    assert.ok(flow.includes("TEMPLATES_WORKSPACE_TRUST_NOTE"));
+    assert.ok(review.includes("TEMPLATES_NEXT_USE_COPY") || review.includes("data-templates-next-use"));
     assert.ok(footnote.includes("Job Card"));
     assert.ok(!footnote.includes("later stage"));
     assert.ok(header.includes("Job Card"));

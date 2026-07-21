@@ -151,6 +151,7 @@ import type { ProposalTemplate } from "@/app/lib/proposalTemplateTypes";
 import { findStarterProposalTemplate } from "@/app/tools/roofing/templates/templatesSetupUtils";
 import {
   buildJobCardPackageSetup,
+  deriveJobCardSelectedTemplateEligibility,
   resolveDefaultJobCardTemplateId,
   resolveDefaultPackageOptionId,
 } from "@/app/tools/roofing/jobCard/jobCardProposalSetup";
@@ -7455,6 +7456,16 @@ Thanks,`;
       jobCardSelectedPackageOptionId
     );
 
+    // Job Card template step eligibility — per selected template graph, not company
+    // starter install readiness (3 packages / 13 core lines).
+    const jobCardSelectedTemplateEligibility =
+      deriveJobCardSelectedTemplateEligibility({
+        selectedTemplateId: selectedJobTemplateId,
+        graph: starterTemplateGraph,
+        catalogItems: activeCatalogItems,
+        selectedOptionId: jobCardSelectedPackageOptionId,
+      });
+
     const templateNameByTemplateId: Record<string, string | null> = {};
     for (const row of companyProposalTemplates) {
       templateNameByTemplateId[row.id] = (row.name ?? "").trim() || null;
@@ -7470,7 +7481,9 @@ Thanks,`;
       persistedSelectedMeasurement &&
       !hasUnsavedChanges &&
       proposalHandoff.proposalReady &&
+      jobCardSelectedTemplateEligibility.usable &&
       starterTemplateGraph?.template.id &&
+      starterTemplateGraph.template.id === selectedJobTemplateId &&
       isUuidLike(hydratedJobRecord.customer_id ?? "") &&
       isUuidLike(persistedSelectedMeasurement.id)
         ? {
@@ -7565,17 +7578,18 @@ Thanks,`;
     const createProposalModalTemplates = visibleCreateProposalTemplates.map(
       (row) => {
         const selected = row.id === selectedJobTemplateId;
-        const packageCount = selected
-          ? jobCardPackageSetup.choices.length
-          : 0;
-        const linkedItemCount = selected
-          ? jobCardPackageSetup.includedItemCount
-          : 0;
-        const ready = selected
-          ? proposalTemplateReadiness.status === "ready_for_builder" &&
-            (jobCardPackageSetup.selected == null ||
-              (jobCardPackageSetup.selected.issueCount ?? 0) === 0)
-          : row.active !== false;
+        const graphReady = jobCardSelectedTemplateEligibility.usable;
+        const packageCount =
+          selected && jobCardSelectedTemplateEligibility.graphMatchesSelection
+            ? jobCardPackageSetup.choices.length
+            : 0;
+        const linkedItemCount =
+          selected && jobCardSelectedTemplateEligibility.graphMatchesSelection
+            ? jobCardPackageSetup.includedItemCount
+            : 0;
+        // Selected: real eligibility from loaded graph. Others: available to pick
+        // (do not apply company starter readiness to every row).
+        const ready = selected ? graphReady : row.active !== false;
         return {
           id: row.id,
           name: (row.name ?? "").trim() || "Template",
@@ -7586,9 +7600,11 @@ Thanks,`;
       }
     );
 
-    const createProposalPackageOptions = starterTemplateGraph
-      ? sortTemplateOptionsByOrder(starterTemplateGraph.options)
-      : [];
+    const createProposalPackageOptions =
+      jobCardSelectedTemplateEligibility.graphMatchesSelection &&
+      starterTemplateGraph
+        ? sortTemplateOptionsByOrder(starterTemplateGraph.options)
+        : [];
 
     /** Always create a distinct draft — never reuses active/listed drafts. */
     const handleCreateNewProposalDraft = () => {
@@ -8350,12 +8366,17 @@ Thanks,`;
                     setSelectedJobTemplateId(templateId);
                     setJobCardSelectedPackageOptionId(null);
                   }}
-                  templateReady={
-                    Boolean(selectedJobTemplateId) &&
-                    proposalTemplateReadiness.status === "ready_for_builder"
+                  templateReady={jobCardSelectedTemplateEligibility.usable}
+                  selectedTemplateUnusableReason={
+                    jobCardSelectedTemplateEligibility.graphMatchesSelection &&
+                    !jobCardSelectedTemplateEligibility.usable
+                      ? jobCardSelectedTemplateEligibility.reason
+                      : null
                   }
                   selectedTemplateName={
-                    starterTemplateGraph?.template.name ??
+                    (jobCardSelectedTemplateEligibility.graphMatchesSelection
+                      ? starterTemplateGraph?.template.name
+                      : null) ??
                     visibleCreateProposalTemplates.find(
                       (row) => row.id === selectedJobTemplateId
                     )?.name ??

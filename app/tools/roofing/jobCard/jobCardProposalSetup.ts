@@ -194,6 +194,110 @@ export function resolveDefaultPackageOptionId(
   return defaultSelectedPackageOptionId(summaries);
 }
 
+/**
+ * Job Card + Proposal template eligibility for the *selected* template graph.
+ *
+ * Unlike company starter readiness (`deriveProposalTemplateReadiness`), this does
+ * **not** require Standard/Enhanced/Premium (3 packages) or starter seed shape.
+ * Single-package and simple-estimate guided templates are usable when they have
+ * linked Catalog items on the starting package.
+ */
+export type JobCardSelectedTemplateEligibility = {
+  usable: boolean;
+  /** Quiet contractor-facing reason when not usable; null when usable or no graph yet. */
+  reason: string | null;
+  graphMatchesSelection: boolean;
+};
+
+export function deriveJobCardSelectedTemplateEligibility(input: {
+  selectedTemplateId: string | null | undefined;
+  graph: ProposalTemplateGraph | null;
+  catalogItems: readonly CatalogItem[];
+  selectedOptionId?: string | null;
+}): JobCardSelectedTemplateEligibility {
+  const selectedTemplateId = (input.selectedTemplateId ?? "").trim();
+  if (!selectedTemplateId) {
+    return {
+      usable: false,
+      reason: null,
+      graphMatchesSelection: false,
+    };
+  }
+
+  const graph = input.graph;
+  if (!graph?.template?.id) {
+    return {
+      usable: false,
+      reason: null,
+      graphMatchesSelection: false,
+    };
+  }
+
+  if (graph.template.id !== selectedTemplateId) {
+    // Stale graph from a previous selection — do not treat as ready/blocked yet.
+    return {
+      usable: false,
+      reason: null,
+      graphMatchesSelection: false,
+    };
+  }
+
+  if (!graph.options.length) {
+    return {
+      usable: false,
+      reason: "This template has no package structure yet.",
+      graphMatchesSelection: true,
+    };
+  }
+
+  const packageSetup = buildJobCardPackageSetup(
+    graph,
+    input.catalogItems,
+    input.selectedOptionId ?? null
+  );
+
+  if (packageSetup.choices.length === 0) {
+    return {
+      usable: false,
+      reason: "This template has no package structure yet.",
+      graphMatchesSelection: true,
+    };
+  }
+
+  const selected = packageSetup.selected;
+  if (!selected) {
+    return {
+      usable: false,
+      reason: "Choose a package to continue.",
+      graphMatchesSelection: true,
+    };
+  }
+
+  if (selected.linkedItemCount <= 0) {
+    return {
+      usable: false,
+      reason:
+        "This template needs included Catalog items before it can start a proposal.",
+      graphMatchesSelection: true,
+    };
+  }
+
+  if ((selected.issueCount ?? 0) > 0) {
+    return {
+      usable: false,
+      reason:
+        "Some included items need a Catalog link fixed before this template can be used.",
+      graphMatchesSelection: true,
+    };
+  }
+
+  return {
+    usable: true,
+    reason: null,
+    graphMatchesSelection: true,
+  };
+}
+
 export function buildJobCardPackageSetup(
   graph: ProposalTemplateGraph | null,
   catalogItems: readonly CatalogItem[],

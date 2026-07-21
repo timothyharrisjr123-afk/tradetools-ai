@@ -28,6 +28,7 @@ import {
   formatCreateProposalTemplateSecondaryDetail,
   nextCreateProposalStep,
   prevCreateProposalStep,
+  resolveCreateProposalTemplateStepMessage,
   type CreateProposalMeasurementChoice,
   type CreateProposalModalStep,
 } from "@/app/tools/roofing/jobCard/jobCardCreateProposalModalModel";
@@ -62,6 +63,8 @@ export type JobCardCreateProposalModalProps = {
   selectedTemplateId: string | null;
   onSelectTemplate: (templateId: string) => void;
   templateReady: boolean;
+  /** Quiet reason when selected template graph is loaded but not usable. */
+  selectedTemplateUnusableReason?: string | null;
   selectedTemplateName: string | null;
 
   packageOptions: ProposalTemplateOption[];
@@ -94,6 +97,7 @@ export function JobCardCreateProposalModal({
   selectedTemplateId,
   onSelectTemplate,
   templateReady,
+  selectedTemplateUnusableReason = null,
   selectedTemplateName,
   packageOptions,
   selectedPackageOptionId,
@@ -117,6 +121,12 @@ export function JobCardCreateProposalModal({
     packageSelected,
     packageIssueCount,
     createEnabled,
+  });
+  const templateStepMessage = resolveCreateProposalTemplateStepMessage({
+    templatesLength: templates.length,
+    selectedTemplateId,
+    templateReady,
+    selectedUnusableReason: selectedTemplateUnusableReason,
   });
 
   const goNext = () => {
@@ -316,61 +326,69 @@ export function JobCardCreateProposalModal({
                 <p
                   className="mt-4 text-sm text-amber-800"
                   data-jobcard-create-proposal-template-blocked="true"
+                  data-jobcard-create-proposal-template-message="none"
                 >
                   {CREATE_PROPOSAL_TEMPLATE_BLOCKED}
                 </p>
               ) : (
-                <ul className="mt-4 space-y-2">
-                  {templates.map((t) => {
-                    const selected = t.id === selectedTemplateId;
-                    const secondary = formatCreateProposalTemplateSecondaryDetail({
-                      linkedItemCount: t.linkedItemCount,
-                      packageCount: t.packageCount,
-                    });
-                    return (
-                      <li key={t.id}>
-                        <button
-                          type="button"
-                          data-jobcard-create-proposal-template={t.id}
-                          data-selected={selected ? "true" : "false"}
-                          className={`w-full rounded-xl border px-4 py-3.5 text-left transition ${
-                            selected
-                              ? "border-blue-400 bg-blue-50/70 ring-1 ring-blue-200"
-                              : "border-slate-200 bg-white hover:border-slate-300"
-                          }`}
-                          onClick={() => onSelectTemplate(t.id)}
-                          disabled={creating}
-                        >
-                          <p className="text-sm font-semibold text-slate-900">
-                            {t.name}
-                          </p>
-                          <p className="mt-1 text-sm leading-relaxed text-slate-600">
-                            {CREATE_PROPOSAL_TEMPLATE_STRUCTURE}
-                          </p>
-                          <p
-                            className={`mt-2 text-xs font-medium ${
-                              t.ready ? "text-emerald-700" : "text-amber-700"
+                <>
+                  <ul className="mt-4 space-y-2">
+                    {templates.map((t) => {
+                      const selected = t.id === selectedTemplateId;
+                      const secondary = formatCreateProposalTemplateSecondaryDetail({
+                        linkedItemCount: t.linkedItemCount,
+                        packageCount: t.packageCount,
+                      });
+                      return (
+                        <li key={t.id}>
+                          <button
+                            type="button"
+                            data-jobcard-create-proposal-template={t.id}
+                            data-selected={selected ? "true" : "false"}
+                            className={`w-full rounded-xl border px-4 py-3.5 text-left transition ${
+                              selected
+                                ? "border-blue-400 bg-blue-50/70 ring-1 ring-blue-200"
+                                : "border-slate-200 bg-white hover:border-slate-300"
                             }`}
+                            onClick={() => onSelectTemplate(t.id)}
+                            disabled={creating}
                           >
-                            {t.ready ? CREATE_PROPOSAL_TEMPLATE_READY : "Needs attention"}
-                          </p>
-                          {secondary ? (
-                            <p className="mt-1 text-xs text-slate-400">{secondary}</p>
-                          ) : null}
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
+                            <p className="text-sm font-semibold text-slate-900">
+                              {t.name}
+                            </p>
+                            <p className="mt-1 text-sm leading-relaxed text-slate-600">
+                              {CREATE_PROPOSAL_TEMPLATE_STRUCTURE}
+                            </p>
+                            <p
+                              className={`mt-2 text-xs font-medium ${
+                                t.ready ? "text-emerald-700" : "text-amber-700"
+                              }`}
+                            >
+                              {t.ready
+                                ? CREATE_PROPOSAL_TEMPLATE_READY
+                                : "Needs attention"}
+                            </p>
+                            {secondary ? (
+                              <p className="mt-1 text-xs text-slate-400">
+                                {secondary}
+                              </p>
+                            ) : null}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  {templateStepMessage ? (
+                    <p
+                      className="mt-4 text-sm text-amber-800"
+                      data-jobcard-create-proposal-template-blocked="true"
+                      data-jobcard-create-proposal-template-message="selected-unusable"
+                    >
+                      {templateStepMessage}
+                    </p>
+                  ) : null}
+                </>
               )}
-              {!templateReady && templates.length > 0 ? (
-                <p
-                  className="mt-4 text-sm text-amber-800"
-                  data-jobcard-create-proposal-template-blocked="true"
-                >
-                  {CREATE_PROPOSAL_TEMPLATE_BLOCKED}
-                </p>
-              ) : null}
             </section>
           ) : null}
 
