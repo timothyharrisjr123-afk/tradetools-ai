@@ -3,8 +3,9 @@
 import {
   PACKET_CONTENT_BODY,
   PACKET_CONTENT_LABEL,
+  PACKET_CONTENT_PANEL,
+  PACKET_CONTENT_TITLE,
   PACKET_DIVIDER,
-  PACKET_SECTION_PAD,
 } from "./proposalCustomerPacketStyles";
 
 type ProposalCustomerPreviewPacketSectionProps = {
@@ -14,10 +15,6 @@ type ProposalCustomerPreviewPacketSectionProps = {
 
 type TextBlock = { kind: "paragraph"; lines: string[] } | { kind: "bullets"; items: string[] };
 
-/**
- * Safe, dependency-free text splitter for packet content sections.
- * Plain text only — no markdown package, no raw HTML.
- */
 function parsePacketTextBlocks(body: string): TextBlock[] {
   const normalized = body.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
   const chunks = normalized.split(/\n{2,}/);
@@ -41,9 +38,8 @@ function parsePacketTextBlocks(body: string): TextBlock[] {
 }
 
 /**
- * Block 5C — meaningful content section (Project overview / Warranty / Terms /
- * Scope notes). Only rendered by the caller when content is real; placeholder
- * / stub filtering happens upstream in the view model.
+ * Premium content section (Project overview / Warranty / Terms / Scope notes).
+ * Only rendered when content is real; placeholder filtering is upstream.
  */
 export default function ProposalCustomerPreviewPacketSection({
   title,
@@ -57,16 +53,17 @@ export default function ProposalCustomerPreviewPacketSection({
   return (
     <div data-preview-packet-content-section>
       <div className={PACKET_DIVIDER} />
-      <div className={`${PACKET_SECTION_PAD} space-y-4 pb-8 pt-8`}>
-        <p className={PACKET_CONTENT_LABEL}>{title}</p>
+      <div className={PACKET_CONTENT_PANEL}>
+        <p className={PACKET_CONTENT_LABEL}>Proposal details</p>
+        <h2 className={PACKET_CONTENT_TITLE}>{title}</h2>
         <div className={`space-y-4 ${PACKET_CONTENT_BODY}`}>
           {blocks.map((block, index) =>
             block.kind === "bullets" ? (
-              <ul key={index} className="space-y-1.5 pl-1">
+              <ul key={index} className="space-y-2 pl-0.5">
                 {block.items.map((item, itemIndex) => (
                   <li key={itemIndex} className="flex gap-2.5">
                     <span
-                      className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-slate-300"
+                      className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500/70"
                       aria-hidden
                     />
                     <span>{item}</span>

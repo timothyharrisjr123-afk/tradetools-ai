@@ -13,8 +13,10 @@ import { resolvePackageMeta } from "@/app/lib/proposalPackagePresentation";
 import ProposalCustomerPreviewPacket from "./ProposalCustomerPreviewPacket";
 import ProposalCustomerPreviewPacketCover from "./ProposalCustomerPreviewPacketCover";
 import ProposalCustomerPreviewPackageStrip from "./ProposalCustomerPreviewPackageStrip";
+import ProposalCustomerPreviewTrustBridge from "./ProposalCustomerPreviewTrustBridge";
 import ProposalCustomerPreviewEstimateTable from "./ProposalCustomerPreviewEstimateTable";
 import ProposalCustomerPreviewPacketSection from "./ProposalCustomerPreviewPacketSection";
+import { PACKET_FOOTER } from "./proposalCustomerPacketStyles";
 
 type ProposalCustomerPreviewDocumentProps = {
   document: ProposalCustomerPreviewDocument;
@@ -23,11 +25,10 @@ type ProposalCustomerPreviewDocumentProps = {
 };
 
 /**
- * Block 5C — "Premium Roofing Proposal Packet" composer.
+ * Roofing Proposal Sales Packet composer.
  *
- * Assembles the single continuous customer packet from view-model pages:
- * cover → proposed package → included estimate → totals → meaningful content.
- * Thin composer only — all visual language lives in the packet components.
+ * cover (brand band + hero) → featured package → trust bridge →
+ * included estimate → meaningful content → quiet footer.
  */
 export default function ProposalCustomerPreviewDocumentView({
   document,
@@ -36,14 +37,15 @@ export default function ProposalCustomerPreviewDocumentView({
 }: ProposalCustomerPreviewDocumentProps) {
   const coverPage = document.pages.find((page) => page.kind === "cover");
   const estimatePage = document.pages.find((page) => page.kind === "estimate");
-  const textPages = document.pages.filter(
-    (page) => page.kind === "text" && !page.isEmpty
-  );
+  const textPages = document.pages.filter((page) => page.kind === "text" && !page.isEmpty);
 
   const accentColor =
     coverPage?.kind === "cover"
       ? coverPage.viewModel.company.brandPrimaryColor ?? PROPOSAL_COVER_DEFAULT_BRAND_ACCENT
       : PROPOSAL_COVER_DEFAULT_BRAND_ACCENT;
+
+  const companyName =
+    coverPage?.kind === "cover" ? coverPage.viewModel.company.companyName : null;
 
   const estimatePresentation =
     estimatePage?.kind === "estimate" && templateGraph
@@ -66,9 +68,12 @@ export default function ProposalCustomerPreviewDocumentView({
       : null;
 
   return (
-    <ProposalCustomerPreviewPacket accentColor={accentColor}>
+    <ProposalCustomerPreviewPacket>
       {coverPage?.kind === "cover" ? (
-        <ProposalCustomerPreviewPacketCover viewModel={coverPage.viewModel} />
+        <ProposalCustomerPreviewPacketCover
+          viewModel={coverPage.viewModel}
+          accentColor={accentColor}
+        />
       ) : null}
 
       {estimatePresentation ? (
@@ -76,6 +81,11 @@ export default function ProposalCustomerPreviewDocumentView({
           <ProposalCustomerPreviewPackageStrip
             packageHero={estimatePresentation.packageHero}
             totals={estimatePresentation.totals}
+            accentColor={accentColor}
+          />
+          <ProposalCustomerPreviewTrustBridge
+            packageLabel={estimatePresentation.packageHero.label}
+            companyName={companyName}
           />
           <ProposalCustomerPreviewEstimateTable
             sections={estimatePresentation.scopeSections}
@@ -93,6 +103,13 @@ export default function ProposalCustomerPreviewDocumentView({
           />
         ) : null
       )}
+
+      {companyName ? (
+        <footer className={PACKET_FOOTER} data-preview-packet-footer>
+          Prepared by {companyName}. This proposal is for review and is not a final contract until
+          accepted.
+        </footer>
+      ) : null}
     </ProposalCustomerPreviewPacket>
   );
 }

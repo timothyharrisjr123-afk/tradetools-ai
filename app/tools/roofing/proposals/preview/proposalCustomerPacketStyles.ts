@@ -1,102 +1,173 @@
 /**
- * Block 5C — "Premium Roofing Proposal Packet" design tokens.
+ * Block 5C elevate — "Roofing Proposal Sales Packet" design tokens.
  *
- * Preview-only visual language for the customer-facing proposal packet.
- * Deliberately does NOT import from `proposalBuilderConstants.ts` — Preview
- * must not borrow Builder's contractor-workspace visual chrome (cards, grids, kickers).
+ * Preview-only visual language for a customer-facing sales proposal.
+ * Deliberately does NOT import from `proposalBuilderConstants.ts`.
  * Pure string tokens — no React, DB, or pricing logic.
  */
 
-/** Soft neutral wash behind the packet — reads as "paper on a desk". */
+/** Soft desk wash behind the packet. */
 export const PACKET_PAGE_BACKGROUND =
-  "bg-gradient-to-b from-slate-100 via-slate-50 to-slate-100/70";
+  "bg-gradient-to-b from-slate-200/70 via-slate-100 to-slate-200/50";
 
-/** Centered reading width — a contained proposal packet, not a wide app stage. */
+/** Centered proposal reading width. */
 export const PACKET_STAGE = "mx-auto w-full max-w-5xl px-4 sm:px-6";
 
-/** The single outer elevation in the whole customer document. */
+/** Single outer elevation — the one paper surface. */
 export const PACKET_PAPER =
-  "overflow-hidden rounded-2xl bg-white shadow-[0_24px_64px_rgba(15,23,42,0.10),0_2px_8px_rgba(15,23,42,0.05)] ring-1 ring-slate-900/[0.04]";
+  "overflow-hidden rounded-2xl bg-white shadow-[0_28px_70px_rgba(15,23,42,0.12),0_4px_14px_rgba(15,23,42,0.06)] ring-1 ring-slate-900/[0.05]";
 
-/** Shared horizontal padding for every packet zone — creates one aligned margin. */
-export const PACKET_SECTION_PAD = "px-6 sm:px-10 lg:px-14";
+/** Shared horizontal padding for packet zones. */
+export const PACKET_SECTION_PAD = "px-6 sm:px-10 lg:px-12";
 
-/** Quiet structural separators between packet zones — never a card border. */
-export const PACKET_DIVIDER = "border-t border-slate-200/70";
+/** Quiet hairline between major zones (used sparingly). */
+export const PACKET_DIVIDER = "border-t border-slate-200/80";
 
-/** Company identity row (logo/monogram + name + quiet contact). */
-export const PACKET_IDENTITY_NAME = "text-[15px] font-semibold tracking-tight text-slate-900";
+/* ── Brand cover band (solid brand color, white type) ── */
 
-export const PACKET_IDENTITY_CONTACT = "text-[13px] leading-relaxed text-slate-500";
+export const PACKET_BRAND_BAND = "relative overflow-hidden";
 
-/** The one unmistakable hero moment — largest, boldest text in the document. */
+export const PACKET_BRAND_BAND_INNER =
+  `${PACKET_SECTION_PAD} flex flex-col gap-4 pb-7 pt-7 sm:flex-row sm:items-center sm:justify-between sm:gap-8`;
+
+export const PACKET_BRAND_NAME =
+  "text-[1.05rem] font-semibold tracking-tight text-white sm:text-[1.15rem]";
+
+export const PACKET_BRAND_CONTACT = "text-[13px] leading-relaxed text-white/80";
+
+export const PACKET_BRAND_MONOGRAM =
+  "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-[14px] font-bold tracking-wide shadow-sm";
+
+/* ── Proposal hero (below brand band) ── */
+
+export const PACKET_HERO_PANEL = `${PACKET_SECTION_PAD} bg-slate-50/90 pb-9 pt-8 sm:pb-10 sm:pt-9`;
+
+export const PACKET_HERO_EYEBROW =
+  "text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500";
+
 export const PACKET_HERO_TITLE =
-  "text-[2rem] sm:text-[2.35rem] font-semibold leading-[1.1] tracking-tight text-slate-950";
+  "mt-2 text-[2.1rem] font-semibold leading-[1.08] tracking-tight text-slate-950 sm:text-[2.55rem]";
 
-export const PACKET_HERO_META = "text-[13px] text-slate-500";
+export const PACKET_HERO_META = "mt-3 text-[13.5px] leading-relaxed text-slate-500";
 
-/** Prepared for / Project quiet field labels. */
+export const PACKET_HERO_PREPARED_BY = "mt-1.5 text-[13px] text-slate-500";
+
+/* ── Prepared for / Project info tiles ── */
+
+export const PACKET_INFO_GRID = "mt-7 grid gap-3 sm:grid-cols-2 sm:gap-4";
+
+export const PACKET_INFO_TILE =
+  "rounded-xl border border-slate-200/80 border-l-[3px] bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(15,23,42,0.03)]";
+
 export const PACKET_INFO_LABEL =
-  "text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400";
+  "text-[10.5px] font-semibold uppercase tracking-[0.14em] text-slate-400";
 
-export const PACKET_INFO_VALUE = "mt-1 text-[15px] font-medium leading-snug text-slate-800";
+export const PACKET_INFO_VALUE = "mt-1.5 text-[15px] font-semibold leading-snug text-slate-900";
 
-export const PACKET_INFO_DETAIL = "text-[13px] leading-relaxed text-slate-500";
+export const PACKET_INFO_DETAIL = "mt-0.5 text-[13px] leading-relaxed text-slate-500";
 
-/** Proposed package strip — a typographic band, not a card. */
+/* ── Featured package recommendation ── */
+
+export const PACKET_PACKAGE_PANEL =
+  `${PACKET_SECTION_PAD} relative border-y border-slate-200/70 bg-gradient-to-br from-slate-50 via-white to-blue-50/50 py-8 sm:py-9`;
+
 export const PACKET_PACKAGE_KICKER =
-  "text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400";
+  "text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-700/80";
 
-export const PACKET_PACKAGE_NAME = "text-xl font-semibold tracking-tight text-slate-950";
+export const PACKET_PACKAGE_NAME =
+  "mt-2 text-[1.55rem] font-semibold tracking-tight text-slate-950 sm:text-[1.75rem]";
 
-export const PACKET_PACKAGE_DESCRIPTION = "text-[14px] leading-relaxed text-slate-600";
+export const PACKET_PACKAGE_DESCRIPTION =
+  "mt-2 max-w-xl text-[15px] leading-relaxed text-slate-600";
 
-export const PACKET_PACKAGE_HIGHLIGHTS = "text-[13px] leading-snug text-slate-500";
+export const PACKET_PACKAGE_INCLUDES_LABEL =
+  "mt-5 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400";
+
+export const PACKET_PACKAGE_INCLUDE_ITEM =
+  "flex items-start gap-2.5 text-[14.5px] font-medium leading-snug text-slate-800";
+
+export const PACKET_PACKAGE_CHECK =
+  "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white";
 
 export const PACKET_TOTAL_LABEL =
-  "text-[11px] font-medium uppercase tracking-wide text-slate-400";
+  "text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400";
 
 export const PACKET_TOTAL_VALUE =
-  "text-2xl font-semibold tabular-nums tracking-tight text-slate-950";
+  "mt-1 text-[1.85rem] font-semibold tabular-nums tracking-tight text-slate-950";
 
-/** Included estimate — quiet section label, never a builder-style kicker/chip. */
+/* ── Trust / scope bridge ── */
+
+export const PACKET_TRUST_PANEL = `${PACKET_SECTION_PAD} py-6`;
+
+export const PACKET_TRUST_COPY =
+  "rounded-xl border border-slate-200/80 bg-slate-50/80 px-5 py-4 text-[14.5px] leading-relaxed text-slate-600";
+
+/* ── Included estimate (sales table) ── */
+
+export const PACKET_ESTIMATE_PANEL = `${PACKET_SECTION_PAD} pb-9 pt-2`;
+
 export const PACKET_ESTIMATE_LABEL =
-  "text-[13px] font-semibold uppercase tracking-wide text-slate-500";
+  "text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500";
 
-/** Estimate header/row grid — Item | Qty | Price, no action column. */
+export const PACKET_ESTIMATE_HEADING =
+  "mt-1.5 text-[1.25rem] font-semibold tracking-tight text-slate-950";
+
 export const PACKET_ESTIMATE_GRID =
-  "grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-6 sm:grid-cols-[minmax(0,1fr)_7rem_8rem]";
+  "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 sm:grid-cols-[minmax(0,1.4fr)_5.5rem_7rem] sm:gap-x-4";
+
+export const PACKET_ESTIMATE_HEADER_ROW =
+  `${PACKET_ESTIMATE_GRID} rounded-t-lg bg-slate-900 px-4 py-2.5 text-white`;
 
 export const PACKET_ESTIMATE_HEADER_CELL =
-  "text-[11px] font-semibold uppercase tracking-wide text-slate-400";
+  "text-[11px] font-semibold uppercase tracking-[0.12em] text-white/75";
 
-export const PACKET_ESTIMATE_ITEM_NAME = "text-[15px] font-medium leading-snug text-slate-900";
+export const PACKET_ESTIMATE_ROW =
+  `${PACKET_ESTIMATE_GRID} border-b border-slate-100 px-4 py-3 last:border-b-0`;
 
-export const PACKET_ESTIMATE_QTY = "text-[13px] tabular-nums text-slate-500 sm:text-right";
+export const PACKET_ESTIMATE_ROW_ALT = "bg-slate-50/70";
+
+export const PACKET_ESTIMATE_ITEM_NAME =
+  "text-[15px] font-semibold leading-snug text-slate-900";
+
+export const PACKET_ESTIMATE_QTY =
+  "text-[13.5px] tabular-nums text-slate-500 sm:text-right";
 
 export const PACKET_ESTIMATE_PRICE =
-  "text-[15px] font-semibold tabular-nums text-slate-950 sm:text-right";
+  "text-[15.5px] font-semibold tabular-nums tracking-tight text-slate-950 sm:text-right";
 
 export const PACKET_ESTIMATE_STATUS =
-  "text-[12px] font-medium text-slate-500 sm:text-right";
+  "text-[13px] font-medium text-slate-500 sm:text-right";
 
-/** Totals footer — reads as the estimate table's own footer, not a new card. */
+export const PACKET_ESTIMATE_TABLE_SHELL =
+  "mt-5 overflow-hidden rounded-xl border border-slate-200/90 shadow-[0_1px_3px_rgba(15,23,42,0.04)]";
+
+/* ── Totals footer ── */
+
+export const PACKET_TOTALS_BAND =
+  "mt-0 border-t border-slate-200 bg-slate-50/90 px-4 py-4";
+
 export const PACKET_TOTALS_ROW = "flex items-baseline justify-between gap-4 py-0.5";
 
-export const PACKET_TOTALS_LABEL = "text-[13px] text-slate-500";
+export const PACKET_TOTALS_LABEL = "text-[13.5px] text-slate-500";
 
-export const PACKET_TOTALS_VALUE = "text-[13px] tabular-nums text-slate-700";
+export const PACKET_TOTALS_VALUE = "text-[13.5px] tabular-nums text-slate-700";
 
-export const PACKET_TOTALS_GRAND_LABEL = "text-[16px] font-semibold text-slate-900";
+export const PACKET_TOTALS_GRAND_LABEL = "text-[15px] font-semibold text-slate-900";
 
 export const PACKET_TOTALS_GRAND_VALUE =
-  "text-[1.65rem] font-semibold tabular-nums tracking-tight text-slate-950";
+  "text-[1.55rem] font-semibold tabular-nums tracking-tight text-slate-950";
 
-/** Meaningful content sections (Project overview / Warranty / Terms / Scope notes). */
+/* ── Content sections ── */
+
+export const PACKET_CONTENT_PANEL = `${PACKET_SECTION_PAD} pb-9 pt-8`;
+
 export const PACKET_CONTENT_LABEL =
-  "text-[13px] font-semibold uppercase tracking-wide text-slate-500";
+  "text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500";
 
-export const PACKET_CONTENT_BODY = "text-[15px] leading-relaxed text-slate-700";
+export const PACKET_CONTENT_TITLE =
+  "mt-1.5 text-[1.2rem] font-semibold tracking-tight text-slate-950";
 
-/** Quiet packet footer — signals the end of the document. */
-export const PACKET_FOOTER = "text-[12px] leading-relaxed text-slate-400";
+export const PACKET_CONTENT_BODY = "mt-4 text-[15px] leading-relaxed text-slate-600";
+
+export const PACKET_FOOTER =
+  `${PACKET_SECTION_PAD} border-t border-slate-100 pb-7 pt-5 text-[12px] leading-relaxed text-slate-400`;
