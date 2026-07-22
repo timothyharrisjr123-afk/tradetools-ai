@@ -485,14 +485,20 @@ export function sanitizeSetupReturnLabel(
 /**
  * Prefer starter, else first active template, else first listed.
  * Callers should pass contractor-visible templates (smoke fixtures filtered).
+ *
+ * R2A — archived templates (`status === "archived"`) are never the Job
+ * Card default/initial selection, even as starter or fallback. Archive is a
+ * template-level lifecycle state, separate from R1's package-option
+ * `removed_at` soft-remove.
  */
 export function resolveDefaultJobCardTemplateId(
   templates: readonly ProposalTemplate[],
   starterId: string | null
 ): string | null {
   const visible = filterContractorVisibleTemplates(templates);
-  if (starterId && visible.some((t) => t.id === starterId)) return starterId;
-  const active = visible.find((t) => t.active !== false);
+  const eligible = visible.filter((t) => t.status !== "archived");
+  if (starterId && eligible.some((t) => t.id === starterId)) return starterId;
+  const active = eligible.find((t) => t.active !== false);
   if (active?.id) return active.id;
-  return visible[0]?.id ?? null;
+  return eligible[0]?.id ?? null;
 }

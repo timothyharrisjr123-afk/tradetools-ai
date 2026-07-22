@@ -61,6 +61,23 @@ export const TEMPLATES_QUOTE_SETUP_OUTCOME =
 
 export const TEMPLATES_LIBRARY_HEADING = "Reusable setups" as const;
 export const TEMPLATES_LIBRARY_HINT = "Choose a setup to review." as const;
+
+/**
+ * R2A — Template library lifecycle (archive/restore).
+ *
+ * Archive hides a reusable setup from normal future proposal creation; it
+ * never deletes the template, its package options, sections, or items, and
+ * never touches existing proposal drafts/sent proposals. Restore returns it
+ * to active use. This is a template-level lifecycle, separate from R1's
+ * package-option `removed_at` soft-remove.
+ */
+export const TEMPLATES_ARCHIVE_ACTION_LABEL = "Archive" as const;
+export const TEMPLATES_RESTORE_ACTION_LABEL = "Restore" as const;
+export const TEMPLATES_ARCHIVE_CONFIRM_TITLE = "Archive this setup?" as const;
+export const TEMPLATES_ARCHIVE_CONFIRM_COPY =
+  "This setup will be hidden from future proposals. Existing proposals are not changed." as const;
+export const TEMPLATES_ACTIVE_FILTER_LABEL = "Active" as const;
+export const TEMPLATES_ARCHIVED_FILTER_LABEL = "Archived" as const;
 export const TEMPLATES_REUSABLE_SETUP_EYEBROW = "Reusable proposal setup" as const;
 export const TEMPLATES_REUSABLE_SETUP_SUBCOPY =
   "Review what this template prepares for future proposals." as const;

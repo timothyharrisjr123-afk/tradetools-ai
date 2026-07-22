@@ -15,6 +15,10 @@ import {
   countCatalogLinkedTemplateItems,
   sortTemplateOptionsByOrder,
 } from "./templatesSetupUtils";
+import {
+  TEMPLATES_ARCHIVE_ACTION_LABEL,
+  TEMPLATES_RESTORE_ACTION_LABEL,
+} from "./templatesWorkspaceFlow";
 
 type TemplatesTemplateLibraryRowProps = {
   template: ProposalTemplate;
@@ -25,6 +29,10 @@ type TemplatesTemplateLibraryRowProps = {
   selectDisabled?: boolean;
   selectDisabledTitle?: string;
   compact?: boolean;
+  /** R2A — archive/restore row actions. Omitted callbacks hide the action. */
+  onArchive?: () => void;
+  onRestore?: () => void;
+  lifecycleBusy?: boolean;
 };
 
 export default function TemplatesTemplateLibraryRow({
@@ -36,6 +44,9 @@ export default function TemplatesTemplateLibraryRow({
   selectDisabled = false,
   selectDisabledTitle,
   compact = false,
+  onArchive,
+  onRestore,
+  lifecycleBusy = false,
 }: TemplatesTemplateLibraryRowProps) {
   const statusLabel = proposalTemplateStatusLabel(template.status);
   const archived = template.status === "archived";
@@ -74,6 +85,8 @@ export default function TemplatesTemplateLibraryRow({
           .filter(Boolean)
           .join(" · ");
 
+  const showLifecycleActions = Boolean(onArchive || onRestore);
+
   return (
     <article
       className={rowClass}
@@ -82,17 +95,17 @@ export default function TemplatesTemplateLibraryRow({
       data-templates-setup-row={template.id}
       data-templates-setup-row-selected={selected ? "true" : "false"}
     >
-      <button
-        type="button"
-        onClick={onSelect}
-        disabled={selectDisabled}
-        title={selectDisabled ? selectDisabledTitle : undefined}
-        className={`flex w-full flex-wrap items-start justify-between gap-2 text-left ${
-          selectDisabled ? "cursor-not-allowed opacity-60" : ""
-        }`}
-        aria-pressed={selected}
-      >
-        <div className="min-w-0 flex-1">
+      <div className="flex w-full flex-wrap items-start justify-between gap-2">
+        <button
+          type="button"
+          onClick={onSelect}
+          disabled={selectDisabled}
+          title={selectDisabled ? selectDisabledTitle : undefined}
+          className={`min-w-0 flex-1 text-left ${
+            selectDisabled ? "cursor-not-allowed opacity-60" : ""
+          }`}
+          aria-pressed={selected}
+        >
           <div className="flex flex-wrap items-center gap-2">
             <h3
               className={`text-sm font-semibold ${
@@ -120,7 +133,7 @@ export default function TemplatesTemplateLibraryRow({
           ) : archived && !selected ? (
             <p className="mt-1 text-[11px] text-slate-500">Archived · not used by default</p>
           ) : null}
-        </div>
+        </button>
 
         <div className="flex shrink-0 flex-wrap items-center gap-1.5">
           <span
@@ -145,7 +158,38 @@ export default function TemplatesTemplateLibraryRow({
             </span>
           ) : null}
         </div>
-      </button>
+      </div>
+
+      {showLifecycleActions ? (
+        <div
+          className="mt-2 flex justify-end gap-1.5 border-t border-slate-100 pt-2"
+          data-templates-library-row-actions={template.id}
+        >
+          {archived ? (
+            onRestore ? (
+              <button
+                type="button"
+                onClick={onRestore}
+                disabled={lifecycleBusy}
+                className="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                data-templates-library-restore={template.id}
+              >
+                {lifecycleBusy ? "Restoring…" : TEMPLATES_RESTORE_ACTION_LABEL}
+              </button>
+            ) : null
+          ) : onArchive ? (
+            <button
+              type="button"
+              onClick={onArchive}
+              disabled={lifecycleBusy}
+              className="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+              data-templates-library-archive={template.id}
+            >
+              {lifecycleBusy ? "Archiving…" : TEMPLATES_ARCHIVE_ACTION_LABEL}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
     </article>
   );
 }

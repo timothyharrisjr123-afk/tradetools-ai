@@ -21,11 +21,13 @@ import {
 } from "@/app/lib/proposalTemplateCatalogLink";
 import { deriveProposalTemplateReadiness } from "@/app/lib/proposalTemplateReadiness";
 import {
+  archiveProposalTemplate,
   createProposalTemplateItem,
   createProposalTemplateSection,
   deleteProposalTemplateItem,
   getProposalTemplateGraph,
   getProposalTemplatesByCompany,
+  restoreProposalTemplate,
   updateProposalTemplate,
   updateProposalTemplateItem,
   updateProposalTemplateOption,
@@ -161,6 +163,12 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
   const [guidedCreating, setGuidedCreating] = useState(false);
   const [guidedCreateError, setGuidedCreateError] = useState<string | null>(null);
 
+  // R2A — template library lifecycle (archive/restore). Separate from R1
+  // package-option removed_at soft-remove; never touches package options,
+  // sections, items, or proposal history.
+  const [lifecycleBusyTemplateId, setLifecycleBusyTemplateId] = useState<string | null>(null);
+  const [lifecycleError, setLifecycleError] = useState<string | null>(null);
+
   const loadCatalog = useCallback(async () => {
     setCatalogLoading(true);
     setCatalogError(null);
@@ -249,6 +257,50 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
       cancelled = true;
     };
   }, [loadTemplates]);
+
+  const handleArchiveTemplate = useCallback(
+    async (templateId: string) => {
+      if (!companyId) return;
+      setLifecycleBusyTemplateId(templateId);
+      setLifecycleError(null);
+      try {
+        const updated = await archiveProposalTemplate(templateId, { companyId });
+        if (!updated) {
+          setLifecycleError("Could not archive this setup. Try again.");
+          return;
+        }
+        await loadTemplates(selectedTemplateId ?? undefined);
+      } catch (err) {
+        console.warn("[TemplatesSetupClient] archive template error:", err);
+        setLifecycleError("Could not archive this setup. Try again.");
+      } finally {
+        setLifecycleBusyTemplateId(null);
+      }
+    },
+    [companyId, loadTemplates, selectedTemplateId]
+  );
+
+  const handleRestoreTemplate = useCallback(
+    async (templateId: string) => {
+      if (!companyId) return;
+      setLifecycleBusyTemplateId(templateId);
+      setLifecycleError(null);
+      try {
+        const updated = await restoreProposalTemplate(templateId, { companyId });
+        if (!updated) {
+          setLifecycleError("Could not restore this setup. Try again.");
+          return;
+        }
+        await loadTemplates(selectedTemplateId ?? undefined);
+      } catch (err) {
+        console.warn("[TemplatesSetupClient] restore template error:", err);
+        setLifecycleError("Could not restore this setup. Try again.");
+      } finally {
+        setLifecycleBusyTemplateId(null);
+      }
+    },
+    [companyId, loadTemplates, selectedTemplateId]
+  );
 
   const handleSelectTemplate = useCallback(
     (templateId: string) => {
@@ -1406,6 +1458,10 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
               onSelectTemplate={handleSelectTemplate}
               templateSwitchDisabled={dirtySectionCount > 0}
               templateSwitchDisabledReason="Save or revert unsaved content changes before switching templates."
+              onArchiveTemplate={handleArchiveTemplate}
+              onRestoreTemplate={handleRestoreTemplate}
+              lifecycleBusyTemplateId={lifecycleBusyTemplateId}
+              lifecycleError={lifecycleError}
             />
 
             {workspaceActive && selectedGraph && contentViewModel && structureViewModel ? (

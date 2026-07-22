@@ -1,17 +1,23 @@
 "use client";
 
+import { useState } from "react";
 import { filterContractorVisibleTemplates } from "@/app/lib/contractorFixtureIsolation";
 import type { ProposalTemplateReadiness } from "@/app/lib/proposalTemplateTypes";
 import type { ProposalTemplate } from "@/app/lib/proposalTemplateTypes";
 import type { ProposalTemplateGraph } from "@/app/lib/proposalTemplateStore";
 import { TEMPLATES_LIBRARY_SHELL } from "./templatesConstants";
 import {
+  TEMPLATES_ACTIVE_FILTER_LABEL,
+  TEMPLATES_ARCHIVED_FILTER_LABEL,
   TEMPLATES_LIBRARY_HEADING,
   TEMPLATES_LIBRARY_HINT,
 } from "./templatesWorkspaceFlow";
 import { sortTemplatesByOrder } from "./templatesWorkspaceUtils";
+import TemplatesArchiveTemplateConfirmModal from "./TemplatesArchiveTemplateConfirmModal";
 import TemplatesLibraryEmptyState from "./TemplatesLibraryEmptyState";
 import TemplatesTemplateLibraryRow from "./TemplatesTemplateLibraryRow";
+
+type TemplatesLibraryFilter = "active" | "archived";
 
 type TemplatesLibrarySectionProps = {
   loading: boolean;
@@ -23,6 +29,11 @@ type TemplatesLibrarySectionProps = {
   onSelectTemplate: (templateId: string) => void;
   templateSwitchDisabled?: boolean;
   templateSwitchDisabledReason?: string;
+  /** R2A — archive/restore. Omit both to hide lifecycle actions entirely. */
+  onArchiveTemplate?: (templateId: string) => void;
+  onRestoreTemplate?: (templateId: string) => void;
+  lifecycleBusyTemplateId?: string | null;
+  lifecycleError?: string | null;
 };
 
 export default function TemplatesLibrarySection({
@@ -35,7 +46,14 @@ export default function TemplatesLibrarySection({
   onSelectTemplate,
   templateSwitchDisabled = false,
   templateSwitchDisabledReason,
+  onArchiveTemplate,
+  onRestoreTemplate,
+  lifecycleBusyTemplateId = null,
+  lifecycleError = null,
 }: TemplatesLibrarySectionProps) {
+  const [libraryFilter, setLibraryFilter] = useState<TemplatesLibraryFilter>("active");
+  const [confirmArchiveId, setConfirmArchiveId] = useState<string | null>(null);
+
   const visibleTemplates = filterContractorVisibleTemplates(templates);
   // Keep a selected fixture visible if opened directly; do not advertise smoke rows.
   const libraryTemplates =
@@ -49,11 +67,32 @@ export default function TemplatesLibrarySection({
   const ordered = sortTemplatesByOrder(libraryTemplates);
   const primaryTemplates = ordered.filter((row) => row.status !== "archived");
   const archivedTemplates = ordered.filter((row) => row.status === "archived");
-  const sortedTemplates = [...primaryTemplates, ...archivedTemplates];
+  const hasArchived = archivedTemplates.length > 0;
+  const activeFilter = hasArchived ? libraryFilter : "active";
+  const filteredTemplates =
+    activeFilter === "archived" ? archivedTemplates : primaryTemplates;
+  // Keep the selected setup visible even if it moved to the other lifecycle
+  // filter (e.g. archived a setup while still reviewing it).
+  const selectedTemplateRow = ordered.find((row) => row.id === selectedTemplateId) ?? null;
+  const sortedTemplates =
+    selectedTemplateRow &&
+    !filteredTemplates.some((row) => row.id === selectedTemplateRow.id)
+      ? [...filteredTemplates, selectedTemplateRow]
+      : filteredTemplates;
   const setupCountLabel =
     primaryTemplates.length === 1
       ? "1 setup"
       : `${primaryTemplates.length} setups`;
+  const confirmArchiveTemplate = confirmArchiveId
+    ? ordered.find((row) => row.id === confirmArchiveId) ?? null
+    : null;
+
+  const handleRequestArchive = (templateId: string) => setConfirmArchiveId(templateId);
+  const handleCancelArchive = () => setConfirmArchiveId(null);
+  const handleConfirmArchive = () => {
+    if (confirmArchiveId) onArchiveTemplate?.(confirmArchiveId);
+    setConfirmArchiveId(null);
+  };
 
   return (
     <section
@@ -86,6 +125,50 @@ export default function TemplatesLibrarySection({
         </p>
       ) : null}
 
+      {hasArchived ? (
+        <div
+          className="mt-3 inline-flex items-center gap-1 rounded-lg bg-slate-100 p-0.5"
+          role="tablist"
+          aria-label="Reusable setup lifecycle filter"
+          data-templates-library-filter
+        >
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeFilter === "active"}
+            onClick={() => setLibraryFilter("active")}
+            className={`rounded-md px-2.5 py-1 text-xs font-semibold transition ${
+              activeFilter === "active"
+                ? "bg-white text-slate-900 shadow-sm"
+                : "text-slate-500 hover:text-slate-700"
+            }`}
+            data-templates-library-filter-active
+          >
+            {TEMPLATES_ACTIVE_FILTER_LABEL}
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeFilter === "archived"}
+            onClick={() => setLibraryFilter("archived")}
+            className={`rounded-md px-2.5 py-1 text-xs font-semibold transition ${
+              activeFilter === "archived"
+                ? "bg-white text-slate-900 shadow-sm"
+                : "text-slate-500 hover:text-slate-700"
+            }`}
+            data-templates-library-filter-archived
+          >
+            {TEMPLATES_ARCHIVED_FILTER_LABEL} ({archivedTemplates.length})
+          </button>
+        </div>
+      ) : null}
+
+      {lifecycleError ? (
+        <p className="mt-2 text-xs text-red-700" role="alert" data-templates-library-lifecycle-error>
+          {lifecycleError}
+        </p>
+      ) : null}
+
       <div className="mt-3 space-y-2" data-templates-setup-selector-list>
         {loading ? (
           <p className="text-sm text-slate-500">Loading…</p>
@@ -105,12 +188,33 @@ export default function TemplatesLibrarySection({
               }
               selectDisabledTitle={templateSwitchDisabledReason}
               compact
+              onArchive={
+                onArchiveTemplate && template.status !== "archived"
+                  ? () => handleRequestArchive(template.id)
+                  : undefined
+              }
+              onRestore={
+                onRestoreTemplate && template.status === "archived"
+                  ? () => onRestoreTemplate(template.id)
+                  : undefined
+              }
+              lifecycleBusy={lifecycleBusyTemplateId === template.id}
             />
           ))
+        ) : activeFilter === "archived" ? (
+          <p className="text-sm text-slate-500">No archived setups.</p>
         ) : (
           <TemplatesLibraryEmptyState catalogReady={catalogReady} />
         )}
       </div>
+
+      <TemplatesArchiveTemplateConfirmModal
+        open={confirmArchiveTemplate != null}
+        templateName={confirmArchiveTemplate?.name ?? ""}
+        busy={lifecycleBusyTemplateId === confirmArchiveId}
+        onCancel={handleCancelArchive}
+        onConfirm={handleConfirmArchive}
+      />
     </section>
   );
 }

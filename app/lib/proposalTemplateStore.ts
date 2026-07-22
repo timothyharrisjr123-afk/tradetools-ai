@@ -1139,6 +1139,37 @@ export async function updateProposalTemplateStatus(
   return updateProposalTemplate(id, { status }, options);
 }
 
+/**
+ * R2A — Archive a reusable setup (template) for future use.
+ *
+ * Sets `status: "archived"` AND `active: false` together so the two lifecycle
+ * flags never drift. Archive hides the template from the active Templates
+ * library and the Job Card create picker (and stops it from ever being the
+ * Job Card default/initial selection). It never touches package options,
+ * sections, items, or `removed_at` — those are R1's soft-remove and are
+ * unrelated. Existing proposal drafts/sent proposals are untouched because
+ * they load by id and do not depend on live template status.
+ */
+export async function archiveProposalTemplate(
+  id: string,
+  options: { companyId: string }
+): Promise<ProposalTemplate | null> {
+  return updateProposalTemplate(id, { status: "archived", active: false }, options);
+}
+
+/**
+ * R2A — Restore an archived reusable setup back to active use.
+ *
+ * Sets `status: "active"` AND `active: true` together, returning the
+ * template to the active Templates library and Job Card create picker.
+ */
+export async function restoreProposalTemplate(
+  id: string,
+  options: { companyId: string }
+): Promise<ProposalTemplate | null> {
+  return updateProposalTemplate(id, { status: "active", active: true }, options);
+}
+
 // ---------------------------------------------------------------------------
 // Writes — options
 // ---------------------------------------------------------------------------

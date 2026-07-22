@@ -1912,7 +1912,14 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
           starter?.id ?? null
         );
         setSelectedJobTemplateId((prev) => {
-          if (prev && visibleTemplates.some((row) => row.id === prev)) return prev;
+          // R2A — do not keep a previously-sticky selection once its template
+          // has been archived; fall back to the current eligible default.
+          if (
+            prev &&
+            visibleTemplates.some((row) => row.id === prev && row.status !== "archived")
+          ) {
+            return prev;
+          }
           return defaultId;
         });
         if (!defaultId) {
