@@ -3,15 +3,14 @@ import ProposalPacketComparison from "./ProposalPacketComparison";
 import ProposalPacketDetailsContact from "./ProposalPacketDetailsContact";
 import ProposalPacketFooter from "./ProposalPacketFooter";
 import ProposalPacketHero from "./ProposalPacketHero";
+import ProposalPacketScope from "./ProposalPacketScope";
 import ProposalPacketTopBar from "./ProposalPacketTopBar";
-import ProposalPacketTotalSummary from "./ProposalPacketTotalSummary";
-import ProposalPacketTrustBand from "./ProposalPacketTrustBand";
 import ProposalPacketUpgrades from "./ProposalPacketUpgrades";
 import {
-  PROPOSAL_PACKET_DECISION_SECTION,
-  PROPOSAL_PACKET_DECISION_ROW,
   PROPOSAL_PACKET_PAGE,
   PROPOSAL_PACKET_SHELL,
+  PROPOSAL_PACKET_STORY_SECTION,
+  PROPOSAL_PACKET_STORY_SECTION_MUTED,
 } from "./proposalPacketStyles";
 
 export type ProposalPacketMode = "public" | "preview";
@@ -21,39 +20,57 @@ type ProposalPacketProps = {
   mode?: ProposalPacketMode;
 };
 
+/**
+ * Approved FieldDive customer proposal page.
+ *
+ * Navy brand bar → hero + recommend/invest card → compare → included →
+ * upgrades → accordion details → closeout → footer.
+ */
 export default function ProposalPacket({ packet, mode = "public" }: ProposalPacketProps) {
-  const showComparison = packet.comparison != null && packet.comparison.options.length > 0;
+  const showComparison = packet.comparison != null && packet.comparison.options.length > 1;
   const showUpgrades = packet.upgrades != null && packet.upgrades.items.length > 0;
-  const showTotalSummary =
-    packet.estimate?.totalInvestmentLabel != null && (showComparison || showUpgrades);
+  const showIncludedScope =
+    packet.estimate != null &&
+    (packet.estimate.scopeGroupSummaries.length > 0 ||
+      packet.estimate.includedDetails.length > 0);
 
   return (
     <main className={PROPOSAL_PACKET_PAGE} data-proposal-packet-mode={mode}>
-      <article className={PROPOSAL_PACKET_SHELL}>
+      <article className={PROPOSAL_PACKET_SHELL} aria-label="Customer proposal">
         <ProposalPacketTopBar cover={packet.cover} />
-        <ProposalPacketHero cover={packet.cover} />
-        <ProposalPacketTrustBand />
+        <ProposalPacketHero
+          cover={packet.cover}
+          estimate={packet.estimate}
+          upgrades={packet.upgrades}
+          contact={packet.contact}
+        />
 
-        {(showComparison || showUpgrades || showTotalSummary) ? (
-          <section className={PROPOSAL_PACKET_DECISION_SECTION} aria-label="Package decision area">
-            {showComparison ? <ProposalPacketComparison comparison={packet.comparison!} /> : null}
-
-            {(showUpgrades || showTotalSummary) ? (
-              <div className={PROPOSAL_PACKET_DECISION_ROW}>
-                <div className="min-w-0">
-                  {showUpgrades ? <ProposalPacketUpgrades upgrades={packet.upgrades!} /> : null}
-                </div>
-                <div className="min-w-0 lg:pt-[2.65rem]">
-                  {showTotalSummary && packet.estimate ? (
-                    <ProposalPacketTotalSummary estimate={packet.estimate} />
-                  ) : null}
-                </div>
-              </div>
-            ) : null}
+        {showComparison ? (
+          <section className={PROPOSAL_PACKET_STORY_SECTION} aria-label="Compare packages">
+            <ProposalPacketComparison comparison={packet.comparison!} contact={packet.contact} />
           </section>
         ) : null}
 
-        <ProposalPacketDetailsContact details={packet.details} contact={packet.contact} />
+        {showIncludedScope && packet.estimate ? (
+          <section
+            className={showComparison ? PROPOSAL_PACKET_STORY_SECTION_MUTED : PROPOSAL_PACKET_STORY_SECTION}
+            aria-label="What is included"
+          >
+            <ProposalPacketScope estimate={packet.estimate} />
+          </section>
+        ) : null}
+
+        {showUpgrades ? (
+          <section className={PROPOSAL_PACKET_STORY_SECTION} aria-label="Selected upgrades">
+            <ProposalPacketUpgrades upgrades={packet.upgrades!} />
+          </section>
+        ) : null}
+
+        <ProposalPacketDetailsContact
+          details={packet.details}
+          contact={packet.contact}
+          recommendedPackageLabel={packet.estimate?.label ?? null}
+        />
 
         <ProposalPacketFooter contact={packet.contact} footerMetadata={packet.footerMetadata} />
       </article>

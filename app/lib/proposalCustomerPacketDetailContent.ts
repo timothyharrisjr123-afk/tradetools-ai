@@ -1,6 +1,12 @@
 /**
  * Customer packet detail tab content guards — omit contractor-review boilerplate.
+ * R3A0: polish known weak starter bodies at display time without mutating rows.
  */
+
+import {
+  DEFAULT_PACKET_OVERVIEW_BODY,
+  resolveCustomerFacingPacketBodyMarkdown,
+} from "@/app/lib/proposalCustomerPacketDefaultContent";
 
 const CONTRACTOR_REVIEW_DETAIL_PATTERNS = [
   /should be reviewed and completed by the contractor before sending/i,
@@ -17,18 +23,49 @@ export function normalizeCustomerPacketDetailBody(body: string): string {
   return body.replace(TRAILING_ARTIFACT_PATTERN, "").trim();
 }
 
+/**
+ * Soften empty R14 token merges so homeowner copy stays readable.
+ */
+export function cleanupCustomerPacketDisplayArtifacts(body: string): string {
+  let next = body;
+  // Leading empty company_name → "We prepared…"
+  next = next.replace(/^\s*prepared this roofing proposal/i, "We prepared this roofing proposal");
+  // Empty **{{selected_package_name}}** or bare empties → "your selected"
+  next = next.replace(
+    /around the\s+\*\*\s*\*\*\s+package/gi,
+    "around your selected package"
+  );
+  next = next.replace(/around the\s+package\b/gi, "around your selected package");
+  next = next.replace(/\bfrom\s+\./g, "from our team.");
+  next = next.replace(/\bfrom\s+$/gm, "from our team.");
+  next = next.replace(/\*\*\s*\*\*/g, "").replace(/[ \t]{2,}/g, " ");
+  return next.replace(/\n{3,}/g, "\n\n").trim();
+}
+
 const GENERIC_OVERVIEW_PATTERN =
   /outlines a roof replacement scope based on field measurements/i;
 
+/** Display fallback when overview is still known-generic (tokens already merged). */
 export const PROPOSAL_CUSTOMER_PACKET_OVERVIEW_COPY =
-  "This proposal summarizes the roof replacement package, included scope, and available options for your home.";
+  "We prepared this roofing proposal for your home. Review the recommended package, what is included, your investment, and any available upgrades — then ask questions or confirm details when you are ready.";
 
 export function finalizeCustomerPacketDetailBody(pageType: string, body: string): string {
   const normalized = normalizeCustomerPacketDetailBody(body);
   if (pageType === "project_overview" && GENERIC_OVERVIEW_PATTERN.test(normalized)) {
     return PROPOSAL_CUSTOMER_PACKET_OVERVIEW_COPY;
   }
-  return normalized;
+  return cleanupCustomerPacketDisplayArtifacts(normalized);
+}
+
+/**
+ * Prefer R3A0 seed when persisted markdown still matches known weak starter boilerplate.
+ * Call before R14 token merge.
+ */
+export function prepareCustomerPacketDetailRawBody(
+  pageType: string,
+  rawBody: string | null | undefined
+): string | null {
+  return resolveCustomerFacingPacketBodyMarkdown(pageType, rawBody);
 }
 
 export function isCustomerPacketPlaceholderDetailBody(body: string): boolean {
@@ -49,3 +86,6 @@ export function isCustomerPacketPlaceholderDetailBody(body: string): boolean {
 export function isCustomerPacketMeaningfulDetailBody(body: string): boolean {
   return !isCustomerPacketPlaceholderDetailBody(body);
 }
+
+// Re-export for tests that assert seed upgrade path.
+export { DEFAULT_PACKET_OVERVIEW_BODY };

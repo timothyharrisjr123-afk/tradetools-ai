@@ -9,6 +9,7 @@ import {
   installDefaultRoofingProposalTemplates,
   type InstallDefaultRoofingProposalTemplatesResult,
 } from "@/app/lib/defaultRoofingProposalTemplateInstall";
+import { repairCompanyStarterPacketContent } from "@/app/lib/proposalCustomerPacketContentRepair";
 import {
   buildCatalogByIdMap,
   buildTemplateCatalogLinkView,
@@ -210,6 +211,10 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
       setTemplatesLoading(true);
       setTemplatesError(null);
       try {
+        // Refresh reusable starter packet bodies when they still match known
+        // pre-R3A0 boilerplate. Never mutates proposal_pages / sent snapshots.
+        await repairCompanyStarterPacketContent(companyId);
+
         const [templates, preferredId] = await Promise.all([
           getProposalTemplatesByCompany(companyId),
           getPreferredSetupTemplateId(companyId),

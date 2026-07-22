@@ -136,7 +136,7 @@ export default function ProposalCustomerPreviewPublicAccessPanel({
       <div>
         <h3 className="text-[15px] font-semibold text-slate-900">Customer proposal link</h3>
         <p className="mt-1 text-[13px] leading-relaxed text-slate-500">
-          Create a private link when you are ready to share the proposal directly.
+          Create a private link when you are ready to preview or share this proposal.
         </p>
       </div>
 
@@ -172,25 +172,29 @@ export default function ProposalCustomerPreviewPublicAccessPanel({
       </div>
 
       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+        {!sessionLink ? (
+          <button
+            type="button"
+            className={PRIMARY_ACTION}
+            disabled={!readiness.canCreateReviewLink || panelBusy}
+            aria-disabled={!readiness.canCreateReviewLink || panelBusy}
+            onClick={() => void handleCreateReviewLink()}
+            data-preview-create-secure-link
+          >
+            {mintPending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
+            Create secure link
+          </button>
+        ) : null}
         <button
           type="button"
-          className={PRIMARY_ACTION}
-          disabled={!readiness.canCreateReviewLink || panelBusy}
-          aria-disabled={!readiness.canCreateReviewLink || panelBusy}
-          onClick={() => void handleCreateReviewLink()}
-        >
-          {mintPending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
-          Create proposal link
-        </button>
-        <button
-          type="button"
-          className={SECONDARY_ACTION}
+          className={sessionLink ? PRIMARY_ACTION : SECONDARY_ACTION}
           disabled={!readiness.canOpenCustomerView || panelBusy}
           aria-disabled={!readiness.canOpenCustomerView || panelBusy}
           onClick={handleOpenCustomerView}
+          data-preview-open-customer-proposal
         >
           <ExternalLink className="h-4 w-4" aria-hidden />
-          Open proposal
+          Open customer proposal
         </button>
         <button
           type="button"

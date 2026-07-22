@@ -9,47 +9,26 @@ import type {
 
 import { PROPOSAL_CUSTOMER_PACKET_DETAILS_HEADING } from "@/app/lib/proposalCustomerPacketViewModel";
 
-import { IconHome, IconInfo, IconShield, IconStar, IconTool } from "./ProposalPacketIcons";
+import { IconHome, IconInfo, IconShield } from "./ProposalPacketIcons";
 
 import {
   PROPOSAL_PACKET_BODY,
-  PROPOSAL_PACKET_DETAILS_CARD,
-  PROPOSAL_PACKET_DETAILS_CARD_ACCENT,
-  PROPOSAL_PACKET_DETAILS_CHIP,
-  PROPOSAL_PACKET_DETAILS_CHIP_DISABLED,
   PROPOSAL_PACKET_DETAILS_ICON_TILE,
-  PROPOSAL_PACKET_DETAILS_SECTION_LABEL,
-  PROPOSAL_PACKET_DETAILS_TAB_ROW,
-  PROPOSAL_PACKET_DISCLOSURE,
-  PROPOSAL_PACKET_SECTION_INTRO,
   PROPOSAL_PACKET_SECTION_TITLE,
 } from "./proposalPacketStyles";
 
 export type DetailSectionKey = "overview" | "scope" | "materials" | "warranty" | "terms";
 
-const DETAIL_SECTIONS: { key: DetailSectionKey; label: string }[] = [
-  { key: "overview", label: "Overview" },
-  { key: "scope", label: "Scope" },
-  { key: "materials", label: "Materials" },
-  { key: "warranty", label: "Warranty" },
-  { key: "terms", label: "Terms" },
+/** Approved accordion set — Project overview, Warranty, Terms. */
+const DETAIL_SECTIONS: {
+  key: DetailSectionKey;
+  fallbackLabel: string;
+  Icon: typeof IconHome;
+}[] = [
+  { key: "overview", fallbackLabel: "Project overview", Icon: IconHome },
+  { key: "warranty", fallbackLabel: "Warranty", Icon: IconShield },
+  { key: "terms", fallbackLabel: "Terms", Icon: IconInfo },
 ];
-
-const SECTION_DISPLAY_LABELS: Record<DetailSectionKey, string> = {
-  overview: "Project overview",
-  scope: "Scope of work",
-  materials: "Materials",
-  warranty: "Warranty",
-  terms: "Terms",
-};
-
-const SECTION_ICONS: Record<DetailSectionKey, typeof IconHome> = {
-  overview: IconHome,
-  scope: IconTool,
-  materials: IconStar,
-  warranty: IconShield,
-  terms: IconInfo,
-};
 
 function pageTypeFromTabId(id: string): string {
   return id.split(":")[0] ?? "";
@@ -63,9 +42,18 @@ export function resolveDetailSectionKey(
 
   if (pageType === "project_overview" || /\boverview\b/.test(title)) return "overview";
   if (pageType === "warranty" || /\bwarrant/.test(title)) return "warranty";
-  if (pageType === "terms" || /\bterms?\b/.test(title)) return "terms";
+  if (
+    pageType === "terms" ||
+    /\bterms?\b/.test(title) ||
+    /\bnext steps?\b/.test(title) ||
+    /\bwhat happens next\b/.test(title)
+  ) {
+    return "terms";
+  }
   if (/\bmaterial/.test(title)) return "materials";
-  if (/\bscope\b/.test(title)) return "scope";
+  if (/\bscope\b/.test(title) || /\bproject notes?\b/.test(title) || /\bnotes?\b/.test(title)) {
+    return "scope";
+  }
 
   return null;
 }
@@ -101,96 +89,50 @@ type ProposalPacketDetailsProps = {
 
 export default function ProposalPacketDetails({
   details,
-  activeSection: controlledSection,
-  onSectionChange,
   embedded = false,
 }: ProposalPacketDetailsProps) {
   const sectionMap = useMemo(() => buildDetailSectionMap(details.tabs), [details.tabs]);
-  const defaultSection = useMemo(() => firstAvailableDetailSection(sectionMap), [sectionMap]);
-  const activeSection = controlledSection ?? defaultSection;
-  const activeTab = sectionMap.get(activeSection) ?? null;
-  const ActiveIcon = SECTION_ICONS[activeSection];
-  const sectionLabel = SECTION_DISPLAY_LABELS[activeSection];
+  const ordered = DETAIL_SECTIONS.filter((section) => sectionMap.has(section.key));
 
-  const handleSectionChange = (key: DetailSectionKey) => {
-    if (!sectionMap.has(key)) return;
-    onSectionChange?.(key);
-  };
+  if (ordered.length === 0) return null;
 
   return (
-    <section className={`${embedded ? "min-w-0" : ""} flex flex-col`} aria-label="Proposal details">
-      <div className="mb-4">
-        <h2 className={PROPOSAL_PACKET_SECTION_TITLE}>{PROPOSAL_CUSTOMER_PACKET_DETAILS_HEADING}</h2>
-        <p className={PROPOSAL_PACKET_SECTION_INTRO}>Additional information about your project.</p>
-      </div>
+    <section className={embedded ? "min-w-0" : undefined} aria-label="Warranty, notes and terms">
+      <h2 className={`${PROPOSAL_PACKET_SECTION_TITLE} mb-4`}>
+        {PROPOSAL_CUSTOMER_PACKET_DETAILS_HEADING}
+      </h2>
 
-      <div className={PROPOSAL_PACKET_DETAILS_TAB_ROW} role="tablist" aria-label="Proposal detail sections">
-        {DETAIL_SECTIONS.map((section) => {
-          const isAvailable = sectionMap.has(section.key);
-          const isActive = activeSection === section.key && isAvailable;
-
-          if (!isAvailable) {
-            return (
-              <span
-                key={section.key}
-                role="tab"
-                aria-selected={false}
-                aria-disabled="true"
-                title="Not included in this proposal yet"
-                className={PROPOSAL_PACKET_DETAILS_CHIP_DISABLED}
-              >
-                {section.label}
-              </span>
-            );
-          }
+      <div className="overflow-hidden rounded-2xl border border-[#e2e8f0] bg-white">
+        {ordered.map((section, index) => {
+          const tab = sectionMap.get(section.key)!;
+          const title = section.fallbackLabel;
+          const Icon = section.Icon;
 
           return (
-            <button
+            <details
               key={section.key}
-              type="button"
-              role="tab"
-              aria-selected={isActive}
-              onClick={() => handleSectionChange(section.key)}
-              className={[
-                PROPOSAL_PACKET_DETAILS_CHIP,
-                isActive
-                  ? "bg-white text-[#061a33] shadow-sm ring-1 ring-[#dbe4ef]"
-                  : "text-[#64748b] hover:bg-white/60 hover:text-[#334155]",
-              ].join(" ")}
+              className={["group", index > 0 ? "border-t border-[#eef2f6]" : ""].join(" ")}
             >
-              {section.label}
-            </button>
+              <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-3.5 hover:bg-[#f8fafc] [&::-webkit-details-marker]:hidden">
+                <span className={PROPOSAL_PACKET_DETAILS_ICON_TILE}>
+                  <Icon className="h-4 w-4" aria-hidden />
+                </span>
+                <span className="min-w-0 flex-1 text-[14px] font-semibold text-[#0b1f33]">
+                  {title}
+                </span>
+                <span
+                  className="text-[#94a3b8] transition-transform group-open:rotate-180"
+                  aria-hidden
+                >
+                  ˅
+                </span>
+              </summary>
+              <div className={`${PROPOSAL_PACKET_BODY} border-t border-[#eef2f6] bg-[#f8fafc] px-4 py-3.5`}>
+                {tab.body}
+              </div>
+            </details>
           );
         })}
-      </div>
-
-      <div
-        role="tabpanel"
-        className={`${PROPOSAL_PACKET_DETAILS_CARD} ${PROPOSAL_PACKET_DETAILS_CARD_ACCENT} mt-3`}
-      >
-        {activeTab ? (
-          <>
-            <div className="flex gap-3.5 p-4 sm:gap-4 sm:p-5">
-              <span className={PROPOSAL_PACKET_DETAILS_ICON_TILE}>
-                <ActiveIcon className="h-[17px] w-[17px]" aria-hidden />
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className={PROPOSAL_PACKET_DETAILS_SECTION_LABEL}>{sectionLabel}</p>
-                <div className={`${PROPOSAL_PACKET_BODY} mt-2.5 text-[14px] leading-[1.65] text-[#334155]`}>
-                  {activeTab.body}
-                </div>
-              </div>
-            </div>
-            <div className="border-t border-[#e8edf3] bg-[#fafbfd] px-4 py-2.5 sm:px-5 sm:py-3">
-              <p className={PROPOSAL_PACKET_DISCLOSURE} aria-hidden="true">
-                <span>View full proposal details</span>
-                <span className="text-[#2563eb]/80">›</span>
-              </p>
-            </div>
-          </>
-        ) : (
-          <div className="p-5 text-[13px] leading-relaxed text-[#94a3b8]">Select an available section above.</div>
-        )}
       </div>
     </section>
   );

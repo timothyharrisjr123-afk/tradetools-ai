@@ -4,17 +4,17 @@ import { PROPOSAL_PACKET_TRUST_BAND } from "./proposalPacketStyles";
 const TRUST_ITEMS = [
   {
     title: "Quality materials",
-    body: "Premium products, built to last",
+    body: "Products chosen for lasting protection",
     icon: IconShield,
   },
   {
     title: "Expert installation",
-    body: "Experienced local professionals",
+    body: "Installed by experienced local crews",
     icon: IconTool,
   },
   {
     title: "Clear process",
-    body: "Honest communication every step",
+    body: "Straightforward communication throughout",
     icon: IconChat,
   },
 ] as const;

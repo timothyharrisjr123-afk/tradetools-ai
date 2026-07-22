@@ -164,8 +164,9 @@ function buildInput(
     },
     selectedOptionLabel: "Standard",
     packageMeta: {
-      description: "Reliable protection with quality materials.",
-      bullets: ["25 Year Shingles", "Standard Underlayment"],
+      description:
+        "Solid, complete roof replacement with quality materials and professional installation.",
+      bullets: ["Architectural shingles", "Full install & cleanup"],
     },
     ...overrides,
   };
@@ -352,7 +353,10 @@ describe("buildCustomerPreviewEstimatePresentation", () => {
     });
     const result = buildCustomerPreviewEstimatePresentation(input);
     assert.equal(result.packageHero.label, "Standard");
-    assert.equal(result.packageHero.description, "Reliable protection with quality materials.");
+    assert.equal(
+      result.packageHero.description,
+      "Solid, complete roof replacement with quality materials and professional installation."
+    );
     assert.equal(result.showFinalizingMessage, true);
     assert.equal(result.scopeSections.length, 0);
     assert.equal(result.upgradeSections.length, 0);

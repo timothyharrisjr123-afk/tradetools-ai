@@ -1,73 +1,51 @@
 import type { ProposalCustomerPacketCoverViewModel } from "@/app/lib/proposalCustomerPacketViewModel";
-import {
-  PROPOSAL_CUSTOMER_PACKET_HEADER_SAVE_PDF_LABEL,
-  PROPOSAL_CUSTOMER_PACKET_HEADER_SHARE_LABEL,
-  PROPOSAL_CUSTOMER_PACKET_HEADER_TAGLINE,
-} from "@/app/lib/proposalCustomerPacketViewModel";
-import { IconDownload, IconShare } from "./ProposalPacketIcons";
-import {
-  PROPOSAL_PACKET_TOP_BAR,
-  PROPOSAL_PACKET_TOP_BAR_ACTION,
-  PROPOSAL_PACKET_TOP_BAR_MARK,
-} from "./proposalPacketStyles";
+import { PROPOSAL_PACKET_TOP_BAR, PROPOSAL_PACKET_TOP_BAR_MARK } from "./proposalPacketStyles";
 
 type ProposalPacketTopBarProps = {
   cover: ProposalCustomerPacketCoverViewModel;
 };
 
-function FutureAction({
-  icon: Icon,
-  label,
-}: {
-  icon: typeof IconDownload;
-  label: string;
-}) {
-  return (
-    <span className={PROPOSAL_PACKET_TOP_BAR_ACTION} aria-disabled="true" title="Coming soon">
-      <Icon className="h-4 w-4" />
-      <span>{label}</span>
-    </span>
-  );
-}
+const BRAND_TRUST_LINE = "Trusted. Local. Built to Protect.";
 
-function TopBarMark({ cover }: { cover: ProposalCustomerPacketCoverViewModel }) {
-  const monogram = (cover.company.logoMonogram ?? "AR").slice(0, 2).toUpperCase();
+function BrandMark({ cover }: { cover: ProposalCustomerPacketCoverViewModel }) {
+  const monogram = (cover.company.logoMonogram ?? "FD").slice(0, 2).toUpperCase();
 
   if (cover.company.logoUrl) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
-      <img src={cover.company.logoUrl} alt="" className={`${PROPOSAL_PACKET_TOP_BAR_MARK} object-contain p-1.5`} />
+      <img
+        src={cover.company.logoUrl}
+        alt=""
+        className={`${PROPOSAL_PACKET_TOP_BAR_MARK} bg-white object-contain p-1.5`}
+      />
     );
   }
 
-  return (
-    <div className={`${PROPOSAL_PACKET_TOP_BAR_MARK} bg-[#061a33] text-lg font-bold text-white`}>
-      {monogram}
-    </div>
-  );
+  return <div className={PROPOSAL_PACKET_TOP_BAR_MARK}>{monogram}</div>;
 }
 
+/** Dark navy contractor brand bar — approved target. */
 export default function ProposalPacketTopBar({ cover }: ProposalPacketTopBarProps) {
-  return (
-    <div className={PROPOSAL_PACKET_TOP_BAR} aria-label="Proposal utility bar">
-      <div className="flex min-w-0 items-center gap-4">
-        <TopBarMark cover={cover} />
-        <div className="min-w-0">
-          {cover.company.companyName ? (
-            <p className="truncate text-[1.2rem] font-bold leading-tight tracking-tight text-[#0f172a] sm:text-[1.28rem]">
-              {cover.company.companyName}
-            </p>
-          ) : null}
-          <p className="mt-0.5 text-[12px] leading-snug text-[#64748b] sm:text-[13px]">
-            {PROPOSAL_CUSTOMER_PACKET_HEADER_TAGLINE}
-          </p>
-        </div>
-      </div>
+  const companyName = (cover.company.companyName ?? "").trim();
 
-      <div className="flex shrink-0 items-center gap-6">
-        <FutureAction icon={IconDownload} label={PROPOSAL_CUSTOMER_PACKET_HEADER_SAVE_PDF_LABEL} />
-        <FutureAction icon={IconShare} label={PROPOSAL_CUSTOMER_PACKET_HEADER_SHARE_LABEL} />
+  return (
+    <div className={PROPOSAL_PACKET_TOP_BAR} aria-label="Company brand">
+      <div className="flex min-w-0 items-center gap-3.5">
+        <BrandMark cover={cover} />
+        {companyName ? (
+          <div className="min-w-0">
+            <p className="truncate text-[15px] font-semibold tracking-[0.08em] text-white sm:text-[16px]">
+              {companyName.toUpperCase()}
+            </p>
+            <p className="mt-0.5 hidden text-[11px] font-medium tracking-[0.04em] text-white/55 sm:block">
+              Roofing proposal
+            </p>
+          </div>
+        ) : null}
       </div>
+      <p className="text-[11px] font-medium tracking-[0.06em] text-white/65 sm:text-right sm:text-[12px]">
+        {BRAND_TRUST_LINE}
+      </p>
     </div>
   );
 }

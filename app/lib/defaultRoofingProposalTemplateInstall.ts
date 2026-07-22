@@ -12,6 +12,7 @@
 
 import { getCatalogItemsByCompany } from "@/app/lib/catalogStore";
 import type { CatalogItem } from "@/app/lib/catalogTypes";
+import { repairCompanyStarterPacketContent } from "@/app/lib/proposalCustomerPacketContentRepair";
 import {
   DEFAULT_ROOFING_PROPOSAL_TEMPLATE_DEFINITIONS,
   DEFAULT_ROOF_REPLACEMENT_TEMPLATE_SEED_KEY,
@@ -368,6 +369,13 @@ export async function installDefaultRoofingProposalTemplates(
       "[defaultRoofingProposalTemplateInstall] installDefaultRoofingProposalTemplates: install produced no template graph",
       { companyId: scopedCompanyId, failedCount, errors }
     );
+  }
+
+  // Insert-only install cannot refresh legacy starter bodies. Repair exact-match
+  // pre-R3A0 boilerplate on the reusable starter template only (never proposals).
+  const packetRepair = await repairCompanyStarterPacketContent(scopedCompanyId);
+  if (!packetRepair.ok && packetRepair.errors.length > 0) {
+    result.errors = [...(result.errors ?? []), ...packetRepair.errors];
   }
 
   return result;

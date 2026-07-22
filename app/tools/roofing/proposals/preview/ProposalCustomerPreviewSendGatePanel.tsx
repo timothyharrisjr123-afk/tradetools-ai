@@ -30,6 +30,7 @@ import {
   resolveSendGateCustomerName,
   resolveSendGateProjectAddress,
   resolveSendGateRecipientEmail,
+  SEND_GATE_CUSTOMER_LINK_HELPER,
   SEND_GATE_EMAIL_PROVIDER_ACCEPTED_TITLE,
   SEND_GATE_PREPARE_CUSTOMER_LINK_LABEL,
   SEND_GATE_PREPARING_CUSTOMER_LINK_MESSAGE,
@@ -458,43 +459,55 @@ export default function ProposalCustomerPreviewSendGatePanel({
 
       <div className="space-y-2" data-preview-delivery-actions>
         {sessionCustomerLink ? (
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              className={SEND_SECONDARY_ACTION}
-              disabled={actionsLocked}
-              onClick={handleOpenCustomerProposal}
-            >
-              <ExternalLink className="h-4 w-4" aria-hidden />
-              Open customer proposal
-            </button>
-            <button
-              type="button"
-              className={SEND_SECONDARY_ACTION}
-              disabled={actionsLocked}
-              onClick={() => void handleCopyCustomerSendLink()}
-            >
-              <Link2 className="h-4 w-4" aria-hidden />
-              Copy customer send link
-            </button>
+          <div className="space-y-2" data-preview-customer-link-ready>
+            <p className="text-[12.5px] leading-relaxed text-emerald-800">
+              Secure link ready — open the customer proposal or copy the link.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                className={`${SEND_PRIMARY_ACTION} h-10 text-[13px] shadow-sm`}
+                disabled={actionsLocked}
+                onClick={handleOpenCustomerProposal}
+                data-preview-open-customer-proposal
+              >
+                <ExternalLink className="h-4 w-4" aria-hidden />
+                Open customer proposal
+              </button>
+              <button
+                type="button"
+                className={SEND_SECONDARY_ACTION}
+                disabled={actionsLocked}
+                onClick={() => void handleCopyCustomerSendLink()}
+              >
+                <Link2 className="h-4 w-4" aria-hidden />
+                Copy link
+              </button>
+            </div>
           </div>
         ) : canPrepareCustomerLink || prepPending ? (
-          <button
-            type="button"
-            className={SEND_SECONDARY_ACTION}
-            disabled={!canPrepareCustomerLink}
-            aria-disabled={!canPrepareCustomerLink}
-            onClick={() => void handlePrepareCustomerLink()}
-          >
-            {prepPending ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                {SEND_GATE_PREPARING_CUSTOMER_LINK_MESSAGE}
-              </>
-            ) : (
-              SEND_GATE_PREPARE_CUSTOMER_LINK_LABEL
-            )}
-          </button>
+          <div className="space-y-2">
+            <p className="text-[12.5px] leading-relaxed text-slate-500">
+              {SEND_GATE_CUSTOMER_LINK_HELPER}
+            </p>
+            <button
+              type="button"
+              className={SEND_SECONDARY_ACTION}
+              disabled={!canPrepareCustomerLink}
+              aria-disabled={!canPrepareCustomerLink}
+              onClick={() => void handlePrepareCustomerLink()}
+              data-preview-create-secure-link
+            >
+              {prepPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                  {SEND_GATE_PREPARING_CUSTOMER_LINK_MESSAGE}
+                </>
+              ) : (
+                SEND_GATE_PREPARE_CUSTOMER_LINK_LABEL
+              )}
+            </button>
+          </div>
         ) : null}
 
         <button

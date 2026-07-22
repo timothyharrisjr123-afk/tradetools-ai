@@ -166,7 +166,7 @@ describe("buildProposalSendGateReadinessViewModel", () => {
   });
 
   test("R18D2 copy constants are present", () => {
-    assert.equal(SEND_GATE_PREPARE_CUSTOMER_LINK_LABEL, "Prepare customer link");
+    assert.equal(SEND_GATE_PREPARE_CUSTOMER_LINK_LABEL, "Create secure link");
     assert.equal(SEND_GATE_CUSTOMER_LINK_READY_LABEL, "Customer link ready");
   });
 

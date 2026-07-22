@@ -84,6 +84,41 @@ export function IconTool({ className = "h-5 w-5" }: IconProps) {
   );
 }
 
+/** Roofing materials — layered protection. */
+export function IconLayers({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
+      <path d="M12 3 3 8l9 5 9-5-9-5z" />
+      <path d="m3 12 9 5 9-5" />
+      <path d="m3 16 9 5 9-5" />
+    </svg>
+  );
+}
+
+/** Ventilation & flashing. */
+export function IconVent({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
+      <path d="M4 12h4M16 12h4" />
+      <path d="M8 8c2 0 3 1.5 4 4s2 4 4 4" />
+      <path d="M8 16c2 0 3-1.5 4-4s2-4 4-4" />
+    </svg>
+  );
+}
+
+/** Cleanup & disposal. */
+export function IconCleanup({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
+      <path d="M9 5h6" />
+      <path d="M10 5V4h4v1" />
+      <path d="M6 7h12" />
+      <path d="M8 7v11a1.5 1.5 0 0 0 1.5 1.5h5A1.5 1.5 0 0 0 16 18V7" />
+      <path d="M10.5 11v4.5M13.5 11v4.5" />
+    </svg>
+  );
+}
+
 export function IconChat({ className = "h-5 w-5" }: IconProps) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
@@ -134,9 +169,9 @@ export function packageAccentIconClass(accent: string): string {
 }
 
 export function scopeGroupIcon(title: string) {
-  if (/material/i.test(title)) return IconShield;
-  if (/ventilation|flashing/i.test(title)) return IconTool;
+  if (/material/i.test(title)) return IconLayers;
+  if (/ventilation|flashing/i.test(title)) return IconVent;
   if (/labor|install/i.test(title)) return IconTool;
-  if (/cleanup|disposal/i.test(title)) return IconHome;
+  if (/cleanup|disposal/i.test(title)) return IconCleanup;
   return IconShield;
 }

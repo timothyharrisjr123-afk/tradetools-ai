@@ -14,6 +14,16 @@
  */
 
 import type { CustomerVisibility } from "@/app/lib/catalogTypes";
+import {
+  DEFAULT_PACKET_OVERVIEW_BODY,
+  DEFAULT_PACKET_OVERVIEW_TITLE,
+  DEFAULT_PACKET_SCOPE_NOTES_BODY,
+  DEFAULT_PACKET_SCOPE_NOTES_TITLE,
+  DEFAULT_PACKET_TERMS_BODY,
+  DEFAULT_PACKET_TERMS_TITLE,
+  DEFAULT_PACKET_WARRANTY_BODY,
+  DEFAULT_PACKET_WARRANTY_TITLE,
+} from "@/app/lib/proposalCustomerPacketDefaultContent";
 import type {
   DefaultProposalTemplateDefinition,
   DefaultProposalTemplateItemDefinition,
@@ -84,12 +94,12 @@ const ENHANCED_LINE_OVERRIDES: Readonly<Record<string, LineItemOverride>> = {
   "roofing.synthetic_underlayment": {
     customer_name_override: "Enhanced underlayment",
     description_override:
-      "Enhanced underlayment protection included in this package. Product details confirmed by the contractor.",
+      "Upgraded underlayment protection included with this package for added weather resistance.",
   },
   "roofing.ice_water_valley": {
     customer_name_override: "Enhanced ice and water protection",
     description_override:
-      "Enhanced ice and water protection included in this package. Scope confirmed on site.",
+      "Enhanced ice and water protection included with this package in valleys and key weather areas.",
   },
 };
 
@@ -97,17 +107,17 @@ const PREMIUM_LINE_OVERRIDES: Readonly<Record<string, LineItemOverride>> = {
   "roofing.architectural_shingles": {
     customer_name_override: "Premium shingle package",
     description_override:
-      "Premium shingle selection included in this package. Product and scope confirmed by the contractor.",
+      "Premium shingle selection included with this package for a longer-lasting, higher-end finish.",
   },
   "roofing.synthetic_underlayment": {
     customer_name_override: "Enhanced underlayment",
     description_override:
-      "Enhanced underlayment protection included in this package. Product details confirmed by the contractor.",
+      "Upgraded underlayment protection included with this package for added weather resistance.",
   },
   "roofing.ice_water_valley": {
     customer_name_override: "Enhanced ice and water protection",
     description_override:
-      "Enhanced ice and water protection included in this package. Scope confirmed on site.",
+      "Enhanced ice and water protection included with this package in valleys and key weather areas.",
   },
 };
 
@@ -120,7 +130,7 @@ const ADDITIONAL_ROOF_VENTILATION_UPGRADE: DefaultProposalTemplateItemDefinition
   item_role: "optional_addon",
   customer_name_override: "Additional roof ventilation",
   description_override:
-    "Optional additional ventilation beyond the package’s included vents. Select only when extra units are needed.",
+    "Optional extra roof ventilation beyond what this package already includes. Choose only if your project needs additional vents.",
   customer_visibility: "inherit_catalog",
   quantity_rule: ADDITIONAL_VENT_QUANTITY,
   upgrade_effect: "additive",
@@ -145,27 +155,10 @@ function cloneCoreLineItemsWithOverrides(
   });
 }
 
-const PROJECT_OVERVIEW_BODY = `This proposal outlines the recommended roofing work for your property based on the current job information, selected package, and contractor review.
-
-The Estimate page shows the selected option, itemized roofing scope, quantities, and pricing. Supporting pages provide warranty, terms, and project notes so you can review the work clearly before approval.
-
-Final scope details, site conditions, and any open items are confirmed by your contractor before work begins.`;
-
-const SCOPE_NOTES_BODY = `Scope notes help clarify what is included, what may need confirmation, and any assumptions behind the proposal. Your final scope is based on the selected package, resolved line items, and contractor review.
-
-If additional work is discovered or requested, your contractor will review the change before it is added to the project.`;
-
-const WARRANTY_BODY = `Roofing warranties typically include two parts: manufacturer coverage for eligible material defects and workmanship coverage for installation-related issues.
-
-Manufacturer coverage depends on the selected products and manufacturer terms. Workmanship coverage is provided by the contractor and should be reviewed with your final proposal documents.
-
-Your contractor will confirm the applicable warranty details for the selected package before approval.`;
-
-const TERMS_BODY = `Terms and conditions outline how the proposal is reviewed, approved, and completed. Final terms should be confirmed by the contractor before acceptance.
-
-Items such as payment schedule, project timing, exclusions, change requests, site conditions, and warranty references may be completed or updated before the proposal is sent.
-
-Any changes to the approved scope should be reviewed and confirmed in writing before being added to the project.`;
+const PROJECT_OVERVIEW_BODY = DEFAULT_PACKET_OVERVIEW_BODY;
+const SCOPE_NOTES_BODY = DEFAULT_PACKET_SCOPE_NOTES_BODY;
+const WARRANTY_BODY = DEFAULT_PACKET_WARRANTY_BODY;
+const TERMS_BODY = DEFAULT_PACKET_TERMS_BODY;
 
 function sectionSeedKey(optionSeedKey: string, suffix: string): string {
   return `${optionSeedKey}${suffix}`;
@@ -179,13 +172,13 @@ function buildOptionSections(
   return [
     {
       kind: "text",
-      name: "Project overview",
-      customer_title: "Project overview",
+      name: "Overview",
+      customer_title: DEFAULT_PACKET_OVERVIEW_TITLE,
       customer_visibility: CUSTOMER_VISIBLE,
       sort_order: 10,
       seed_key: sectionSeedKey(optionSeedKey, ".overview"),
       content: {
-        title: "Project overview",
+        title: DEFAULT_PACKET_OVERVIEW_TITLE,
         body_markdown: PROJECT_OVERVIEW_BODY,
       },
     },
@@ -209,37 +202,37 @@ function buildOptionSections(
     },
     {
       kind: "text",
-      name: "Scope notes",
-      customer_title: "Scope notes",
+      name: "Project notes",
+      customer_title: DEFAULT_PACKET_SCOPE_NOTES_TITLE,
       customer_visibility: CUSTOMER_VISIBLE,
       sort_order: 40,
       seed_key: sectionSeedKey(optionSeedKey, ".scope_notes"),
       content: {
-        title: "Scope notes",
+        title: DEFAULT_PACKET_SCOPE_NOTES_TITLE,
         body_markdown: SCOPE_NOTES_BODY,
       },
     },
     {
       kind: "warranty",
-      name: "Warranty",
-      customer_title: "Warranty",
+      name: "Warranty and protection",
+      customer_title: DEFAULT_PACKET_WARRANTY_TITLE,
       customer_visibility: CUSTOMER_VISIBLE,
       sort_order: 50,
       seed_key: sectionSeedKey(optionSeedKey, ".warranty"),
       content: {
-        title: "Warranty",
+        title: DEFAULT_PACKET_WARRANTY_TITLE,
         body_markdown: WARRANTY_BODY,
       },
     },
     {
       kind: "terms",
-      name: "Terms",
-      customer_title: "Terms",
+      name: "Next steps",
+      customer_title: DEFAULT_PACKET_TERMS_TITLE,
       customer_visibility: CUSTOMER_VISIBLE,
       sort_order: 60,
       seed_key: sectionSeedKey(optionSeedKey, ".terms"),
       content: {
-        title: "Terms",
+        title: DEFAULT_PACKET_TERMS_TITLE,
         body_markdown: TERMS_BODY,
       },
     },
@@ -289,7 +282,7 @@ const ROOF_REPLACEMENT_OPTIONS: readonly DefaultProposalTemplateOptionDefinition
     seedKey: "proposal.roof_replacement.standard",
     customerLabel: "Standard",
     description:
-      "Standard roof replacement package with core materials, labor, disposal, and permit line items.",
+      "Solid, complete roof replacement with quality materials, professional installation, cleanup, and permit handling.",
     isDefault: true,
     sortOrder: 10,
     lineItems: STANDARD_LINE_ITEMS,
@@ -300,7 +293,7 @@ const ROOF_REPLACEMENT_OPTIONS: readonly DefaultProposalTemplateOptionDefinition
     seedKey: "proposal.roof_replacement.enhanced",
     customerLabel: "Enhanced",
     description:
-      "Enhanced package with upgraded underlayment and ice and water protection included, plus optional additional ventilation.",
+      "Stronger weather protection with upgraded underlayment and ice and water shield included — plus optional extra ventilation if you need it.",
     isDefault: false,
     sortOrder: 20,
     lineItems: ENHANCED_LINE_ITEMS,
@@ -311,7 +304,7 @@ const ROOF_REPLACEMENT_OPTIONS: readonly DefaultProposalTemplateOptionDefinition
     seedKey: "proposal.roof_replacement.premium",
     customerLabel: "Premium",
     description:
-      "Premium package with premium shingles, enhanced underlayment, and ice and water protection included, plus optional additional ventilation.",
+      "Our highest-protection package with premium shingles, upgraded underlayment, and ice and water shield — plus optional extra ventilation if you need it.",
     isDefault: false,
     sortOrder: 30,
     lineItems: PREMIUM_LINE_ITEMS,

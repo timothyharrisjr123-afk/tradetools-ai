@@ -363,9 +363,9 @@ export function buildProposalContentLandingAreas(
         if (/overview/i.test(name)) {
           label = "Overview";
           detail = "Opening page customers see first";
-        } else if (/scope/i.test(name)) {
-          label = "Scope notes";
-          detail = "Clarifies assumptions and confirmations";
+        } else if (/scope|project notes/i.test(name)) {
+          label = "Project notes";
+          detail = "Assumptions and how changes are handled";
         } else {
           label = name || "Custom page";
           detail = "Customer-facing page";
@@ -383,12 +383,12 @@ export function buildProposalContentLandingAreas(
         break;
       }
       case "warranty":
-        label = "Warranty";
-        detail = "Customer-facing warranty language";
+        label = "Warranty and protection";
+        detail = "Manufacturer and workmanship coverage";
         break;
       case "terms":
-        label = "Terms";
-        detail = "Customer-facing terms language";
+        label = "Next steps";
+        detail = "How to review and confirm this proposal";
         break;
       case "image":
         label = "Photos";

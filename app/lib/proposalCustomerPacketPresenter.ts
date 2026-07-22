@@ -17,6 +17,7 @@ import {
   finalizeCustomerPacketDetailBody,
   isCustomerPacketMeaningfulDetailBody,
   normalizeCustomerPacketDetailBody,
+  prepareCustomerPacketDetailRawBody,
 } from "@/app/lib/proposalCustomerPacketDetailContent";
 import type {
   ProposalCustomerPacketComparisonViewModel,
@@ -444,7 +445,10 @@ function buildDetailsFromPublicDto(dto: ProposalPublicGraphDto): ProposalCustome
     .sort((a, b) => a.sort_order - b.sort_order)
     .filter((page) => TEXT_DETAIL_PAGE_TYPES.has(page.page_type))
     .map((page) => {
-      const rawBody = readProposalPageBodyMarkdown(page.content_json);
+      const rawBody = prepareCustomerPacketDetailRawBody(
+        page.page_type,
+        readProposalPageBodyMarkdown(page.content_json)
+      );
       const rendered = rawBody
         ? renderProposalDocumentPageBody(rawBody, documentContext, { pricingComplete })
         : { displayText: "" };

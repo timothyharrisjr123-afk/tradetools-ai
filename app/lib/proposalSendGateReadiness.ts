@@ -39,11 +39,13 @@ export const SEND_GATE_EMAIL_LINK_NOTE =
   "A secure proposal link is added automatically when the email is sent.";
 export const SEND_GATE_CUSTOMER_LINK_READY_LABEL = "Customer link ready";
 
-export const SEND_GATE_PREPARE_CUSTOMER_LINK_LABEL = "Prepare customer link";
-export const SEND_GATE_PREPARING_CUSTOMER_LINK_MESSAGE = "Preparing customer link…";
-export const SEND_GATE_CUSTOMER_LINK_READY_TITLE = "Customer send link ready.";
+export const SEND_GATE_PREPARE_CUSTOMER_LINK_LABEL = "Create secure link";
+export const SEND_GATE_PREPARING_CUSTOMER_LINK_MESSAGE = "Creating secure link…";
+export const SEND_GATE_CUSTOMER_LINK_READY_TITLE = "Secure link ready";
 export const SEND_GATE_CUSTOMER_LINK_READY_BODY =
-  "This creates the customer proposal link but does not email the customer.";
+  "Create a private link when you are ready to preview or share this proposal.";
+export const SEND_GATE_CUSTOMER_LINK_HELPER =
+  "Create a private link when you are ready to preview or share this proposal.";
 export const SEND_GATE_SNAPSHOT_PREPARED_LABEL = "Snapshot prepared";
 
 export const SEND_GATE_DEFERRED_SIGNATURE = "Signature — coming later";

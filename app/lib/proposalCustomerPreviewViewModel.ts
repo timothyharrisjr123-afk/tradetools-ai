@@ -22,6 +22,7 @@ import { readEstimatePageSettingsFromProposalPage } from "@/app/lib/proposalCust
 import {
   finalizeCustomerPacketDetailBody,
   isCustomerPacketMeaningfulDetailBody,
+  prepareCustomerPacketDetailRawBody,
 } from "@/app/lib/proposalCustomerPacketDetailContent";
 import type { ProposalPageSettings } from "@/app/lib/proposalPageTypes";
 import {
@@ -238,7 +239,10 @@ function mapVisibleDbPage(
   }
 
   if (TEXT_PAGE_TYPES.has(pageType)) {
-    const rawBody = readProposalPageBodyMarkdown(page.content_json);
+    const rawBody = prepareCustomerPacketDetailRawBody(
+      pageType,
+      readProposalPageBodyMarkdown(page.content_json)
+    );
     const rendered = rawBody
       ? renderProposalDocumentPageBody(rawBody, adapter.proposalDocumentContext, {
           pricingComplete,

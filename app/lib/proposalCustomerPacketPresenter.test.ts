@@ -195,7 +195,7 @@ describe("buildCustomerPacketFromPublicDto", () => {
     const standard = packet.comparison?.options.find(
       (option) => option.optionKey === TEMPLATE_OPT_A
     );
-    assert.equal(standard?.description, "Reliable protection with quality materials.");
+    assert.equal(standard?.description, "Solid, complete roof replacement with quality materials and professional installation.");
   });
 
   test("current proposal total uses frozen package total", () => {
@@ -387,24 +387,23 @@ describe("buildCustomerPacketFromPublicDto", () => {
     assert.doesNotMatch(serialized, /download pdf/);
   });
 
-  test("customer-facing copy uses neutral current package language", () => {
-    assert.equal(PROPOSAL_CUSTOMER_PACKET_CURRENT_PACKAGE_LABEL, "Current package");
+  test("customer-facing copy uses recommended package language", () => {
+    assert.equal(PROPOSAL_CUSTOMER_PACKET_CURRENT_PACKAGE_LABEL, "Recommended roofing package");
     assert.equal(PROPOSAL_CUSTOMER_PACKET_COMPARE_HEADING, "Compare packages");
-    assert.equal(PROPOSAL_CUSTOMER_PACKET_CURRENT_BADGE, "Current");
-    assert.equal(PROPOSAL_CUSTOMER_PACKET_CURRENT_TOTAL_LABEL, "Current proposal total");
-    assert.match(PROPOSAL_CUSTOMER_PACKET_CURRENT_TOTAL_SUMMARY, /current package shown above/i);
+    assert.equal(PROPOSAL_CUSTOMER_PACKET_CURRENT_BADGE, "Recommended");
+    assert.equal(PROPOSAL_CUSTOMER_PACKET_CURRENT_TOTAL_LABEL, "Your investment");
+    assert.match(PROPOSAL_CUSTOMER_PACKET_CURRENT_TOTAL_SUMMARY, /recommended package shown above/i);
   });
 
-  test("serialized packet avoids recommendation and selection action language", () => {
+  test("serialized packet avoids selection/payment action language", () => {
     const packet = buildCustomerPacketFromPublicDto(baseDto());
     const serialized = JSON.stringify(packet).toLowerCase();
-    assert.doesNotMatch(serialized, /recommended/);
     assert.doesNotMatch(serialized, /selected package/);
     assert.doesNotMatch(serialized, /\bchoose\b/);
     assert.doesNotMatch(serialized, /update total/);
-    assert.doesNotMatch(serialized, /\bapprove\b/);
     assert.doesNotMatch(serialized, /pay deposit/);
     assert.doesNotMatch(serialized, /sign \/ accept/);
+    assert.doesNotMatch(serialized, /page_type|content_json/);
   });
 
   test("maps contractor company contact fields from context_echo", () => {
@@ -464,6 +463,45 @@ describe("buildCustomerPacketFromPublicDto", () => {
     );
     assert.equal(packet.cover.coverMediaUrl, "https://cdn.example.com/job-front.jpg");
     assert.doesNotMatch(JSON.stringify(packet.cover), /placeholder/i);
+  });
+
+  test("permit/admin fee lines stay in totals and full scope truth", () => {
+    const dto = baseDto();
+    const premium = dto.options.find((option) => option.source_template_option_id === TEMPLATE_OPT_B)!;
+    premium.line_items = [
+      ...premium.line_items,
+      {
+        source_template_item_id: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+        customer_name: "Permit & admin fees",
+        description: null,
+        quantity: 1,
+        quantity_display_label: "1",
+        unit: "EA",
+        customer_unit_price_cents: 25000,
+        customer_line_total_cents: 25000,
+        pricing_status: "priced",
+        visible_to_customer: true,
+        line_presentation_group: "included",
+        upgrade_selection_state: null,
+        upgrade_effect: null,
+      },
+    ];
+    // Frozen total already includes the fee — do not recompute; keep snapshot truth.
+    premium.customer_subtotal_cents = 50000;
+    premium.sales_tax_cents = 2028;
+    premium.customer_total_cents = 52028;
+
+    const packet = buildCustomerPacketFromPublicDto(dto);
+    assert.equal(packet.estimate?.totalInvestmentLabel, "$520.28");
+    assert.ok(
+      packet.estimate?.includedDetails.some((group) => group.title === "Permits & fees"),
+      "full scope keeps Permits & fees"
+    );
+    assert.ok(
+      packet.estimate?.scopeGroupSummaries.some((group) => group.title === "Permits & fees"),
+      "presenter still emits Permits & fees summary (UI hides from main cards)"
+    );
+    assert.ok(packet.upgrades?.items.length === 1, "optional upgrades remain truthful");
   });
 
   test("cover media falls back to null without real urls", () => {

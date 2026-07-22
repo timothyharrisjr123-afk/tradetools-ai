@@ -1,24 +1,17 @@
 import type { ProposalCustomerPacketContactViewModel } from "@/app/lib/proposalCustomerPacketViewModel";
-
 import {
-  PROPOSAL_CUSTOMER_PACKET_CONTACT_HEADING,
-  PROPOSAL_CUSTOMER_PACKET_NEXT_STEPS_FOOTNOTE,
   PROPOSAL_CUSTOMER_PACKET_NEXT_STEPS_HEADING,
   PROPOSAL_CUSTOMER_PACKET_NEXT_STEPS_ITEMS,
   PROPOSAL_CUSTOMER_PACKET_SUPPORT_MESSAGE,
+  proposalCustomerPacketReadyWithPackageHeading,
 } from "@/app/lib/proposalCustomerPacketViewModel";
-
-import { IconGlobe, IconHome, IconMail, IconPhone } from "./ProposalPacketIcons";
-
+import { PROPOSAL_CUSTOMER_PACKET_READY_ANCHOR } from "@/app/lib/proposalCustomerPacketInterestAction";
+import ProposalPacketPackageInterestActions from "./ProposalPacketPackageInterestActions";
+import { IconGlobe, IconHome, IconMail, IconPhone, IconShield } from "./ProposalPacketIcons";
 import {
-  PROPOSAL_PACKET_CLOSEOUT_COMBO,
-  PROPOSAL_PACKET_CLOSEOUT_COMBO_GRID,
-  PROPOSAL_PACKET_CLOSEOUT_COMBO_PANEL,
-  PROPOSAL_PACKET_CLOSEOUT_CONTACT_BODY,
-  PROPOSAL_PACKET_CLOSEOUT_CONTACT_BODY_COMPACT,
-  PROPOSAL_PACKET_CLOSEOUT_NEXT_BODY,
-  PROPOSAL_PACKET_CLOSEOUT_PANEL_HEADER,
-  PROPOSAL_PACKET_CLOSEOUT_PANEL_TITLE,
+  PROPOSAL_PACKET_CLOSEOUT_GRID,
+  PROPOSAL_PACKET_CLOSEOUT_CARD,
+  PROPOSAL_PACKET_CLOSEOUT_TRUST,
   PROPOSAL_PACKET_CONTACT_COMPANY,
   PROPOSAL_PACKET_CONTACT_ICON,
   PROPOSAL_PACKET_CONTACT_ROW,
@@ -27,11 +20,6 @@ import {
   PROPOSAL_PACKET_CONTACT_VALUE,
   PROPOSAL_PACKET_CONTACT_VALUE_LINK,
   PROPOSAL_PACKET_FIELD_LABEL,
-  PROPOSAL_PACKET_NEXT_STEP_BADGE,
-  PROPOSAL_PACKET_NEXT_STEP_FOOTNOTE,
-  PROPOSAL_PACKET_NEXT_STEP_LINE,
-  PROPOSAL_PACKET_NEXT_STEP_TEXT,
-  PROPOSAL_PACKET_NEXT_STEPS_TIMELINE,
   PROPOSAL_PACKET_SECTION_INTRO,
 } from "./proposalPacketStyles";
 
@@ -93,100 +81,89 @@ function buildContactRows(contact: ProposalCustomerPacketContactViewModel): Cont
   ].filter(Boolean) as ContactRowData[];
 }
 
-function ContactPanel({ contact }: { contact: ProposalCustomerPacketContactViewModel }) {
-  const rows = buildContactRows(contact);
-  const companyName = (contact.companyName ?? "").trim();
-  const bodyClass =
-    rows.length <= 1 ? PROPOSAL_PACKET_CLOSEOUT_CONTACT_BODY_COMPACT : PROPOSAL_PACKET_CLOSEOUT_CONTACT_BODY;
-
-  if (rows.length === 0 && !companyName) {
-    return null;
-  }
-
-  return (
-    <div className={PROPOSAL_PACKET_CLOSEOUT_COMBO_PANEL} aria-label="Contact information">
-      <div className={PROPOSAL_PACKET_CLOSEOUT_PANEL_HEADER}>
-        <p className={PROPOSAL_PACKET_CLOSEOUT_PANEL_TITLE}>Contact information</p>
-      </div>
-      <div className={bodyClass}>
-        {companyName ? (
-          <p className={`${PROPOSAL_PACKET_CONTACT_COMPANY} ${rows.length ? "mb-2" : ""}`}>{companyName}</p>
-        ) : null}
-        {rows.length ? (
-          <div className={PROPOSAL_PACKET_CONTACT_ROWS}>
-            {rows.map((row) => (
-              <ContactRow key={row.label} {...row} />
-            ))}
-          </div>
-        ) : (
-          <p className="text-[13px] font-medium text-[#334155]">{companyName}</p>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function NextStepsPanel() {
-  return (
-    <div className={PROPOSAL_PACKET_CLOSEOUT_COMBO_PANEL} aria-label="What happens next">
-      <div className={PROPOSAL_PACKET_CLOSEOUT_PANEL_HEADER}>
-        <p className={PROPOSAL_PACKET_CLOSEOUT_PANEL_TITLE}>{PROPOSAL_CUSTOMER_PACKET_NEXT_STEPS_HEADING}</p>
-      </div>
-      <div className={PROPOSAL_PACKET_CLOSEOUT_NEXT_BODY}>
-        <ol className={PROPOSAL_PACKET_NEXT_STEPS_TIMELINE}>
-          {PROPOSAL_CUSTOMER_PACKET_NEXT_STEPS_ITEMS.map((item, index) => {
-            const isLast = index === PROPOSAL_CUSTOMER_PACKET_NEXT_STEPS_ITEMS.length - 1;
-            return (
-              <li key={item} className="relative flex gap-2.5 pb-3 last:pb-0">
-                {!isLast ? <span className={PROPOSAL_PACKET_NEXT_STEP_LINE} aria-hidden /> : null}
-                <span className={PROPOSAL_PACKET_NEXT_STEP_BADGE}>{index + 1}</span>
-                <span className={PROPOSAL_PACKET_NEXT_STEP_TEXT}>{item}</span>
-              </li>
-            );
-          })}
-        </ol>
-        <p className={PROPOSAL_PACKET_NEXT_STEP_FOOTNOTE}>{PROPOSAL_CUSTOMER_PACKET_NEXT_STEPS_FOOTNOTE}</p>
-      </div>
-    </div>
-  );
-}
-
-function SplitCloseoutCard({ contact }: { contact: ProposalCustomerPacketContactViewModel | null }) {
-  const hasContactPanel =
-    contact != null &&
-    (buildContactRows(contact).length > 0 || (contact.companyName ?? "").trim().length > 0);
-
-  const gridClass = hasContactPanel
-    ? PROPOSAL_PACKET_CLOSEOUT_COMBO_GRID
-    : "grid grid-cols-1";
-
-  return (
-    <div className={PROPOSAL_PACKET_CLOSEOUT_COMBO}>
-      <div className={gridClass}>
-        {hasContactPanel && contact ? <ContactPanel contact={contact} /> : null}
-        <NextStepsPanel />
-      </div>
-    </div>
-  );
-}
-
 type ProposalPacketCloseoutAsideProps = {
   contact: ProposalCustomerPacketContactViewModel | null;
+  recommendedPackageLabel?: string | null;
 };
 
-export function ProposalPacketCloseoutAside({ contact }: ProposalPacketCloseoutAsideProps) {
+/** Closeout: CTA first, then contact + next steps, trust as supportive band. */
+export function ProposalPacketCloseoutAside({
+  contact,
+  recommendedPackageLabel = null,
+}: ProposalPacketCloseoutAsideProps) {
+  const companyName = (contact?.companyName ?? "").trim();
+  const packageLabel = (recommendedPackageLabel ?? "").trim();
+  const rows = contact ? buildContactRows(contact) : [];
+  const hasContact = Boolean(companyName) || rows.length > 0;
+  const heading = proposalCustomerPacketReadyWithPackageHeading(packageLabel);
+
   return (
-    <aside className="flex min-w-0 flex-col lg:self-start" aria-label="Contact and next steps">
-      <div className="mb-4">
-        <h2 className="text-[1.25rem] font-bold leading-tight tracking-[-0.02em] text-[#0f172a] sm:text-[1.4rem]">
-          {PROPOSAL_CUSTOMER_PACKET_CONTACT_HEADING}
+    <aside id={PROPOSAL_CUSTOMER_PACKET_READY_ANCHOR} aria-label="Ready to move forward">
+      <div className="mb-4 border-l-2 border-[#2563eb]/40 pl-4">
+        <h2 className="text-[1.35rem] font-semibold tracking-[-0.03em] text-[#0b1f33] sm:text-[1.45rem]">
+          {heading}
         </h2>
-        <p className={`${PROPOSAL_PACKET_SECTION_INTRO} max-w-none`}>
+        <p className={PROPOSAL_PACKET_SECTION_INTRO}>
           {contact?.supportMessage || PROPOSAL_CUSTOMER_PACKET_SUPPORT_MESSAGE}
         </p>
+        {packageLabel ? (
+          <ProposalPacketPackageInterestActions
+            packageLabel={packageLabel}
+            contact={contact}
+            layout="row"
+            secondary="contact"
+            compact
+          />
+        ) : null}
       </div>
 
-      <SplitCloseoutCard contact={contact} />
+      <div className={PROPOSAL_PACKET_CLOSEOUT_GRID}>
+        <div className={PROPOSAL_PACKET_CLOSEOUT_CARD}>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#64748b]">
+            {companyName ? `Contact ${companyName}` : "Contact"}
+          </p>
+          {companyName ? <p className={`${PROPOSAL_PACKET_CONTACT_COMPANY} mt-1.5`}>{companyName}</p> : null}
+          {hasContact ? (
+            <div className={`${PROPOSAL_PACKET_CONTACT_ROWS} mt-1.5`}>
+              {rows.map((row) => (
+                <ContactRow key={row.label} {...row} />
+              ))}
+            </div>
+          ) : (
+            <p className="mt-1.5 text-[13px] text-[#64748b]">Contact details will appear here.</p>
+          )}
+        </div>
+
+        <div className={PROPOSAL_PACKET_CLOSEOUT_CARD}>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#64748b]">
+            {PROPOSAL_CUSTOMER_PACKET_NEXT_STEPS_HEADING}
+          </p>
+          <ol className="mt-2.5 space-y-2">
+            {PROPOSAL_CUSTOMER_PACKET_NEXT_STEPS_ITEMS.map((item, index) => (
+              <li key={item} className="flex gap-2.5 text-[13px] leading-snug text-[#475569]">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#0b1f33] text-[10px] font-semibold text-white shadow-[0_1px_0_rgba(255,255,255,0.15)_inset]">
+                  {index + 1}
+                </span>
+                <span className="pt-0.5">{item}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </div>
+
+      <div className={PROPOSAL_PACKET_CLOSEOUT_TRUST}>
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] border border-[#2563eb]/15 bg-white text-[#2563eb]">
+          <IconShield className="h-4 w-4" aria-hidden />
+        </span>
+        <div className="min-w-0">
+          <p className="text-[14px] font-semibold tracking-[-0.01em] text-[#0b1f33]">
+            We stand behind our work.
+          </p>
+          <p className="mt-0.5 text-[13px] leading-snug text-[#64748b]">
+            Quality materials. Professional installation. Peace of mind.
+          </p>
+        </div>
+      </div>
     </aside>
   );
 }
@@ -206,7 +183,7 @@ export default function ProposalPacketContact({
   );
 }
 
-/** @deprecated Use ProposalPacketCloseoutAside */
+/** @deprecated */
 export function ProposalPacketNextSteps() {
-  return <NextStepsPanel />;
+  return null;
 }

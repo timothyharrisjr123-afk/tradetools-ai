@@ -131,78 +131,106 @@ export type ProposalCustomerPacketViewModel = {
 export const PROPOSAL_CUSTOMER_PACKET_PROPOSAL_LABEL = "Your roofing proposal";
 
 export const PROPOSAL_CUSTOMER_PACKET_COVER_CONFIDENCE =
-  "A clear roof replacement proposal prepared for your home. Review the current package, compare available options, and see optional add-ons included for review.";
+  "Prepared for your home.";
 
 export const PROPOSAL_CUSTOMER_PACKET_ESTIMATE_CONFIDENCE =
-  "This proposal was prepared to give your home reliable protection with quality materials, professional installation, and a clear project scope.";
+  "Here is the roofing package we recommend for your home.";
 
-export const PROPOSAL_CUSTOMER_PACKET_CURRENT_PACKAGE_LABEL = "Current package";
+export const PROPOSAL_CUSTOMER_PACKET_CURRENT_PACKAGE_LABEL = "Recommended roofing package";
 
-export const PROPOSAL_CUSTOMER_PACKET_KEY_HIGHLIGHTS_LABEL = "Key highlights";
+export const PROPOSAL_CUSTOMER_PACKET_KEY_HIGHLIGHTS_LABEL = "Package highlights";
 
-export const PROPOSAL_CUSTOMER_PACKET_CURRENT_TOTAL_LABEL = "Current proposal total";
+export const PROPOSAL_CUSTOMER_PACKET_CURRENT_TOTAL_LABEL = "Your investment";
 
 export const PROPOSAL_CUSTOMER_PACKET_CURRENT_TOTAL_SUMMARY =
-  "Based on the current package shown above.";
+  "Based on the recommended package shown above.";
 
 export const PROPOSAL_CUSTOMER_PACKET_TOTAL_FOOTNOTE =
-  "Based on the package and any selected upgrades shown above.";
+  "Includes the recommended package and any selected upgrades.";
 
-export const PROPOSAL_CUSTOMER_PACKET_INCLUDES_LABEL = "Includes";
+export const PROPOSAL_CUSTOMER_PACKET_INCLUDES_LABEL = "What is included";
 
-export const PROPOSAL_CUSTOMER_PACKET_TOTAL_INVESTMENT_LABEL = "Total investment";
+export const PROPOSAL_CUSTOMER_PACKET_TOTAL_INVESTMENT_LABEL = "Your investment";
 
-export const PROPOSAL_CUSTOMER_PACKET_ABOUT_PACKAGES_HEADING = "About the packages";
+export const PROPOSAL_CUSTOMER_PACKET_ABOUT_PACKAGES_HEADING = "About these packages";
 
 export const PROPOSAL_CUSTOMER_PACKET_ABOUT_PACKAGES_LINES = [
-  "All packages include professional installation, cleanup, and disposal.",
-  "All materials are backed by manufacturer warranties.",
-  "Permit fees are included in all packages.",
+  "Every package includes professional installation, cleanup, and disposal.",
+  "Materials carry manufacturer coverage; we confirm workmanship coverage with you.",
+  "Permit and administrative fees are included where shown in your package.",
 ] as const;
 
 export const PROPOSAL_CUSTOMER_PACKET_ABOUT_PACKAGES_PRICING_FALLBACK =
-  "Pricing details are based on the proposal shown.";
+  "Package prices reflect the scope shown for your home.";
 
 export const PROPOSAL_CUSTOMER_PACKET_HEADER_TAGLINE =
-  "Built on integrity. Backed by quality.";
+  "Trusted. Local. Built to Protect.";
 
 export const PROPOSAL_CUSTOMER_PACKET_HEADER_SAVE_PDF_LABEL = "Save PDF";
 
 export const PROPOSAL_CUSTOMER_PACKET_HEADER_SHARE_LABEL = "Share proposal";
 
-export const PROPOSAL_CUSTOMER_PACKET_NEXT_STEPS_HEADING = "What happens next?";
+export const PROPOSAL_CUSTOMER_PACKET_NEXT_STEPS_HEADING = "What happens next";
 
 export const PROPOSAL_CUSTOMER_PACKET_NEXT_STEPS_ITEMS = [
   "Review your proposal",
   "Ask any questions",
-  "Confirm details when enabled",
+  "Confirm details when you are ready",
   "We get to work",
 ] as const;
 
 export const PROPOSAL_CUSTOMER_PACKET_NEXT_STEPS_FOOTNOTE =
-  "Final approval options will appear when enabled.";
+  "We will walk you through confirmation when you are ready.";
 
 export const PROPOSAL_CUSTOMER_PACKET_COMPARE_HEADING = "Compare packages";
 
 export const PROPOSAL_CUSTOMER_PACKET_COMPARE_INTRO =
-  "Your contractor's current package is highlighted. Other packages are shown for comparison.";
+  "Choose the right level of protection for your home.";
 
-export const PROPOSAL_CUSTOMER_PACKET_CURRENT_BADGE = "Current";
+export const PROPOSAL_CUSTOMER_PACKET_CURRENT_BADGE = "Recommended";
 
 export const PROPOSAL_CUSTOMER_PACKET_UPGRADES_HEADING = "Selected upgrades";
 
 export const PROPOSAL_CUSTOMER_PACKET_UPGRADES_INTRO_LINE1 =
-  "Upgrades selected for this proposal.";
+  "Included in your investment total.";
 
 export const PROPOSAL_CUSTOMER_PACKET_UPGRADES_INTRO_LINE2 =
-  "These are included in the current proposal total.";
+  "Other available upgrades stay optional unless selected.";
 
 export const PROPOSAL_CUSTOMER_PACKET_UPGRADES_FOOTNOTE =
-  "Selected upgrades are part of this proposal as shown.";
+  "Only selected upgrades are part of this proposal.";
 
-export const PROPOSAL_CUSTOMER_PACKET_DETAILS_HEADING = "Proposal details";
+export const PROPOSAL_CUSTOMER_PACKET_DETAILS_HEADING = "Warranty, notes & terms";
 
-export const PROPOSAL_CUSTOMER_PACKET_CONTACT_HEADING = "Questions or ready to move forward?";
+export const PROPOSAL_CUSTOMER_PACKET_DETAILS_INTRO =
+  "Warranty, notes, and related details.";
+
+export const PROPOSAL_CUSTOMER_PACKET_CONTACT_HEADING = "Ready to move forward?";
 
 export const PROPOSAL_CUSTOMER_PACKET_SUPPORT_MESSAGE =
-  "We're here to help. Reach out anytime.";
+  "Review the proposal, ask questions, and confirm details when you're ready.";
+
+/** Soft, non-binding customer package interest — not accept / approve / sign / pay. */
+export const PROPOSAL_CUSTOMER_PACKET_REQUEST_PACKAGE_CTA = "Request this package";
+
+export const PROPOSAL_CUSTOMER_PACKET_ASK_QUESTION_CTA = "Ask a question";
+
+export const PROPOSAL_CUSTOMER_PACKET_DISCUSS_OPTIONS_CTA = "Discuss package options";
+
+export const PROPOSAL_CUSTOMER_PACKET_CONFIRM_DETAILS_NOTE =
+  "We'll confirm details before work begins.";
+
+export function proposalCustomerPacketAskAboutPackageCta(packageLabel: string): string {
+  const label = packageLabel.trim();
+  return label ? `Ask about ${label}` : "Ask about this package";
+}
+
+export function proposalCustomerPacketReadyWithPackageHeading(packageLabel: string): string {
+  const label = packageLabel.trim();
+  return label ? `Ready to move forward with ${label}?` : PROPOSAL_CUSTOMER_PACKET_CONTACT_HEADING;
+}
+
+export function proposalCustomerPacketContactCompanyCta(companyName: string | null | undefined): string {
+  const name = (companyName ?? "").trim();
+  return name ? `Contact ${name}` : "Contact contractor";
+}

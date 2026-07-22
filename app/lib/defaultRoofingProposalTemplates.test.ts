@@ -74,7 +74,7 @@ describe("default roofing proposal templates — Optional Upgrade Truth v2", () 
     const iceWater = lines.find((item) => item.catalog_seed_key === "roofing.ice_water_valley");
     assert.equal(underlayment?.customer_name_override, "Enhanced underlayment");
     assert.equal(iceWater?.customer_name_override, "Enhanced ice and water protection");
-    assert.match(underlayment?.description_override ?? "", /included in this package/i);
+    assert.match(underlayment?.description_override ?? "", /included with this package/i);
     assert.doesNotMatch(underlayment?.description_override ?? "", /^Optional/i);
 
     const upgrades = sectionItems("Enhanced", "upgrade_group");

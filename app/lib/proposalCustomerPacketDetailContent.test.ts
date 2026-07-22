@@ -7,6 +7,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
+  finalizeCustomerPacketDetailBody,
   isCustomerPacketMeaningfulDetailBody,
   normalizeCustomerPacketDetailBody,
 } from "./proposalCustomerPacketDetailContent";
@@ -20,6 +21,14 @@ describe("proposalCustomerPacketDetailContent", () => {
       "This proposal outlines a roof replacement scope based on field measurements, selected options, and the contractor's catalog setup."
     );
     assert.equal(isCustomerPacketMeaningfulDetailBody(body), true);
+  });
+
+  test("upgrades known weak overview boilerplate at finalize", () => {
+    const body =
+      "This proposal outlines a roof replacement scope based on field measurements, selected options, and the contractor's catalog setup.";
+    const finalized = finalizeCustomerPacketDetailBody("project_overview", body);
+    assert.match(finalized, /prepared this roofing proposal for your home/i);
+    assert.doesNotMatch(finalized, /this proposal outlines/i);
   });
 
   test("omits contractor-review warranty boilerplate", () => {

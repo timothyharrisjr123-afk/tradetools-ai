@@ -1,246 +1,216 @@
 /**
- * Premium proposal packet design tokens.
+ * Approved FieldDive customer proposal — premium document tokens.
+ * Final detail pass: richer finish without changing structure or length.
  */
-export const PACKET_NAVY = "#061a33";
+export const PACKET_NAVY = "#0b1f33";
 export const PACKET_BLUE = "#2563eb";
-export const PACKET_GOLD = "#b8873b";
-export const PACKET_PAGE_BG = "#eef3f8";
+export const PACKET_PAGE_BG = "#e6edf5";
 
 export const PROPOSAL_PACKET_PAGE =
-  "mx-auto w-full bg-[#eef3f8] px-3 py-4 sm:px-6 sm:py-7 lg:px-8 lg:py-8";
+  "mx-auto w-full bg-[linear-gradient(180deg,#e4ecf5_0%,#e9eef5_48%,#e6ebf2_100%)] px-3 py-4 sm:px-5 sm:py-6 lg:px-6 lg:py-7";
 
 export const PROPOSAL_PACKET_SHELL =
-  "mx-auto w-full max-w-[1220px] overflow-hidden rounded-[20px] border border-slate-200/70 bg-white shadow-[0_22px_64px_rgba(6,26,51,0.11),0_4px_12px_rgba(6,26,51,0.05)]";
+  "mx-auto w-full max-w-[1120px] overflow-hidden rounded-[16px] border border-[#cfd9e6]/95 bg-white shadow-[0_1px_0_rgba(255,255,255,0.7)_inset,0_20px_50px_rgba(11,31,51,0.10)]";
 
 export const PROPOSAL_PACKET_TOP_BAR =
-  "flex min-h-[76px] flex-col gap-3 border-b border-[#e2e8f0] bg-white px-8 py-3 sm:flex-row sm:items-center sm:justify-between lg:px-10";
+  "relative flex flex-col gap-2 bg-[#0b1f33] px-5 py-4 text-white sm:flex-row sm:items-center sm:justify-between sm:px-7 lg:px-9 after:absolute after:inset-x-0 after:bottom-0 after:h-px after:bg-gradient-to-r after:from-transparent after:via-[#2563eb]/55 after:to-transparent";
 
 export const PROPOSAL_PACKET_TOP_BAR_MARK =
-  "flex h-[50px] w-[50px] shrink-0 items-center justify-center rounded-[10px]";
+  "flex h-10 w-10 shrink-0 items-center justify-center rounded-[11px] border border-white/15 bg-gradient-to-b from-white/15 to-white/[0.06] text-[13px] font-semibold tracking-[0.04em] text-white shadow-[0_1px_0_rgba(255,255,255,0.12)_inset]";
 
 export const PROPOSAL_PACKET_TOP_BAR_ACTION =
-  "inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#334155]";
+  "inline-flex items-center gap-1.5 text-[13px] font-semibold text-white/80";
 
+/** Hero: intro left, decision card right — compact, premium. */
 export const PROPOSAL_PACKET_HERO_GRID =
-  "grid bg-white lg:min-h-[380px] lg:grid-cols-[55%_45%]";
+  "grid items-start gap-5 px-5 py-5 sm:px-7 sm:py-6 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.18fr)] lg:gap-7 lg:px-9 lg:py-6";
 
 export const PROPOSAL_PACKET_HERO_LEFT =
-  "relative z-10 flex flex-col justify-center bg-white px-8 py-8 sm:px-9 lg:px-10 lg:py-9";
-
-export const PROPOSAL_PACKET_HERO_MEDIA_COLUMN =
-  "relative min-h-[220px] bg-[#061a33] lg:min-h-full";
-
-export const PROPOSAL_PACKET_HERO_MEDIA_CLIP =
-  "relative h-full overflow-hidden lg:[clip-path:polygon(11%_0,100%_0,100%_100%,0_100%)]";
-
-export const PROPOSAL_PACKET_HERO_VISUAL =
-  "relative h-full min-h-[220px] bg-[#061a33] lg:min-h-full";
+  "relative flex min-w-0 flex-col justify-start border-l-2 border-[#2563eb]/35 pl-4 sm:pl-5";
+export const PROPOSAL_PACKET_HERO_MEDIA_COLUMN = "hidden";
+export const PROPOSAL_PACKET_HERO_MEDIA_CLIP = "hidden";
+export const PROPOSAL_PACKET_HERO_VISUAL = "hidden";
 
 export const PROPOSAL_PACKET_EYEBROW =
-  "text-[11px] font-bold uppercase tracking-[0.16em] text-[#2563eb]";
+  "text-[11px] font-semibold uppercase tracking-[0.18em] text-[#2563eb]";
 
 export const PROPOSAL_PACKET_HERO_TITLE =
-  "mt-2.5 text-[2.25rem] font-bold leading-[1.05] tracking-[-0.035em] text-[#0f172a] sm:text-[2.65rem] lg:text-[2.85rem]";
+  "mt-1.5 text-[1.9rem] font-semibold leading-[1.1] tracking-[-0.038em] text-[#0b1f33] sm:text-[2.2rem]";
 
 export const PROPOSAL_PACKET_HERO_LEAD =
-  "mt-3 max-w-[29rem] text-[14px] leading-[1.65] text-[#475569] sm:text-[15px]";
+  "mt-3 max-w-[26.5rem] text-[14px] leading-[1.58] text-[#546274]";
 
-export const PROPOSAL_PACKET_TRUST_BAND =
-  "bg-[#061a33] px-8 py-5 text-white lg:px-10";
+export const PROPOSAL_PACKET_TRUST_BAND = "hidden";
 
-export const PROPOSAL_PACKET_DECISION_SECTION =
-  "px-8 py-7 lg:px-10 lg:py-8";
+export const PROPOSAL_PACKET_STORY_SECTION =
+  "border-t border-[#e6ebf1] px-5 py-5 sm:px-7 lg:px-9 lg:py-6";
 
-export const PROPOSAL_PACKET_DECISION_ROW =
-  "mt-6 grid gap-5 lg:grid-cols-[minmax(0,1.12fr)_minmax(300px,0.88fr)] lg:items-start";
+export const PROPOSAL_PACKET_STORY_SECTION_MUTED =
+  "border-t border-[#e6ebf1] bg-[#f5f8fb] px-5 py-5 sm:px-7 lg:px-9 lg:py-6";
+
+export const PROPOSAL_PACKET_DECISION_SECTION = PROPOSAL_PACKET_STORY_SECTION;
+export const PROPOSAL_PACKET_DECISION_ROW = "mt-3 grid gap-3";
 
 export const PROPOSAL_PACKET_COMPARE_ROW =
-  "grid gap-3.5 sm:grid-cols-2 lg:grid-cols-[repeat(3,minmax(0,1fr))_minmax(252px,0.9fr)] lg:items-stretch";
+  "grid items-stretch gap-3 sm:grid-cols-2 lg:grid-cols-3";
 
-export const PROPOSAL_PACKET_SECTION =
-  "px-8 py-7 lg:px-10";
-
+export const PROPOSAL_PACKET_SECTION = PROPOSAL_PACKET_STORY_SECTION;
 export const PROPOSAL_PACKET_SECTION_COMPACT =
-  "px-8 py-6 lg:px-10";
+  "border-t border-[#e6ebf1] px-5 py-5 sm:px-7 lg:px-9";
 
 export const PROPOSAL_PACKET_DETAILS_SECTION =
-  "border-t border-[#e2e8f0] bg-[#f4f7fb] px-8 pb-9 pt-8 lg:px-10 lg:pb-10 lg:pt-9";
+  "border-t border-[#e6ebf1] px-5 py-5 sm:px-7 lg:px-9";
 
-export const PROPOSAL_PACKET_CLOSEOUT_GRID =
-  "grid gap-7 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:gap-8 lg:items-start";
+export const PROPOSAL_PACKET_CLOSEOUT_GRID = "grid gap-3 lg:grid-cols-2";
 
 export const PROPOSAL_PACKET_CLOSEOUT_CARD =
-  "flex h-full flex-col overflow-hidden rounded-[16px] border border-[#e2e8f0]/90 bg-white shadow-[0_6px_24px_rgba(6,26,51,0.05)]";
+  "rounded-[14px] border border-[#e2e8f0] bg-[#fbfcfe] px-4 py-3.5 shadow-[0_1px_0_rgba(255,255,255,0.9)_inset,0_4px_14px_rgba(11,31,51,0.035)]";
 
-/** Split closeout shell — contact + next steps share one card */
+export const PROPOSAL_PACKET_CLOSEOUT_TRUST =
+  "mt-3 flex items-start gap-3 rounded-[14px] border border-[#cfe0f8] bg-[linear-gradient(135deg,#f7faff_0%,#eef5ff_100%)] px-4 py-3 shadow-[0_1px_0_rgba(255,255,255,0.85)_inset]";
+
 export const PROPOSAL_PACKET_CLOSEOUT_COMBO =
-  "overflow-hidden rounded-[16px] border border-[#e2e8f0]/90 bg-white shadow-[0_8px_32px_rgba(6,26,51,0.06)]";
+  "overflow-hidden rounded-[14px] border border-[#e2e8f0] bg-white";
 
 export const PROPOSAL_PACKET_CLOSEOUT_COMBO_GRID =
   "grid divide-y divide-[#eef2f6] md:grid-cols-2 md:divide-x md:divide-y-0";
 
-export const PROPOSAL_PACKET_CLOSEOUT_COMBO_PANEL =
-  "flex min-w-0 flex-col";
-
+export const PROPOSAL_PACKET_CLOSEOUT_COMBO_PANEL = "flex min-w-0 flex-col";
 export const PROPOSAL_PACKET_CLOSEOUT_PANEL_HEADER =
-  "border-b border-[#eef2f6] bg-[#fafbfd] px-5 py-2.5";
-
+  "border-b border-[#eef2f6] bg-[#f8fafc] px-4 py-2.5";
 export const PROPOSAL_PACKET_CLOSEOUT_PANEL_TITLE =
-  "text-[10px] font-bold uppercase tracking-[0.14em] text-[#64748b]";
-
-/** Standalone closeout card (legacy fallback) */
+  "text-[10px] font-semibold uppercase tracking-[0.14em] text-[#64748b]";
 export const PROPOSAL_PACKET_CLOSEOUT_STANDALONE_CARD =
-  "w-full overflow-hidden rounded-[16px] border border-[#e2e8f0]/90 bg-white shadow-[0_6px_24px_rgba(6,26,51,0.05)]";
-
-export const PROPOSAL_PACKET_CLOSEOUT_CONTACT_BODY =
-  "px-5 py-4 sm:px-5 sm:py-4";
-
-export const PROPOSAL_PACKET_CLOSEOUT_CONTACT_BODY_COMPACT =
-  "px-5 py-3.5 sm:px-5 sm:py-4";
-
-export const PROPOSAL_PACKET_CLOSEOUT_NEXT_BODY =
-  "px-5 py-4 sm:px-5 sm:py-4";
-
-/** @deprecated Use PROPOSAL_PACKET_CLOSEOUT_COMBO */
-export const PROPOSAL_PACKET_CLOSEOUT_PAIR_GRID =
-  "flex w-full flex-col gap-3.5";
-
-/** @deprecated Use PROPOSAL_PACKET_CLOSEOUT_STANDALONE_CARD */
+  "w-full overflow-hidden rounded-[14px] border border-[#e2e8f0] bg-white";
+export const PROPOSAL_PACKET_CLOSEOUT_CONTACT_BODY = "px-4 py-3.5";
+export const PROPOSAL_PACKET_CLOSEOUT_CONTACT_BODY_COMPACT = "px-4 py-3";
+export const PROPOSAL_PACKET_CLOSEOUT_NEXT_BODY = "px-4 py-3.5";
+export const PROPOSAL_PACKET_CLOSEOUT_PAIR_GRID = "flex w-full flex-col gap-3";
 export const PROPOSAL_PACKET_CLOSEOUT_PANEL = PROPOSAL_PACKET_CLOSEOUT_STANDALONE_CARD;
 
-export const PROPOSAL_PACKET_DETAILS_TAB_ROW =
-  "flex gap-1 overflow-x-auto rounded-xl bg-[#eef2f6] p-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden";
-
+export const PROPOSAL_PACKET_DETAILS_TAB_ROW = "flex flex-col gap-0";
 export const PROPOSAL_PACKET_DETAILS_CARD =
-  "flex flex-col overflow-hidden rounded-[16px] border border-[#e2e8f0]/90 bg-white shadow-[0_6px_24px_rgba(6,26,51,0.05)]";
-
-export const PROPOSAL_PACKET_DETAILS_CARD_ACCENT =
-  "border-l-[3px] border-l-[#061a33]";
-
+  "overflow-hidden rounded-[14px] border border-[#e2e8f0] bg-white shadow-[0_2px_10px_rgba(11,31,51,0.03)]";
+export const PROPOSAL_PACKET_DETAILS_CARD_ACCENT = "";
 export const PROPOSAL_PACKET_DETAILS_ICON_TILE =
-  "flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#061a33]/[0.06] text-[#061a33]";
-
+  "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#0b1f33]/[0.06] text-[#0b1f33]";
 export const PROPOSAL_PACKET_DETAILS_CHIP =
-  "shrink-0 rounded-lg px-2.5 py-1.5 text-[11px] font-semibold transition-all duration-150 sm:px-3 sm:text-[12px]";
-
+  "shrink-0 rounded-md px-2 py-1 text-[11px] font-semibold";
 export const PROPOSAL_PACKET_DETAILS_CHIP_DISABLED =
-  "shrink-0 cursor-default rounded-lg bg-[#eef2f6]/55 px-2.5 py-1.5 text-[11px] font-semibold text-[#94a3b8]/80 ring-1 ring-[#e8edf3]/70 sm:px-3 sm:text-[12px]";
-
+  "shrink-0 rounded-md px-2 py-1 text-[11px] font-semibold text-[#94a3b8]";
 export const PROPOSAL_PACKET_DETAILS_SECTION_LABEL =
-  "text-[11px] font-bold uppercase tracking-[0.14em] text-[#64748b]";
+  "text-[11px] font-semibold uppercase tracking-[0.12em] text-[#64748b]";
 
-export const PROPOSAL_PACKET_CONTACT_ROW =
-  "group flex items-start gap-3 py-2.5 sm:gap-3.5";
-
+export const PROPOSAL_PACKET_CONTACT_ROW = "flex items-start gap-2.5 py-1";
 export const PROPOSAL_PACKET_CONTACT_ROW_LINK =
-  "group flex items-start gap-3 py-2.5 transition-colors hover:bg-[#fafbfd] sm:gap-3.5";
-
-export const PROPOSAL_PACKET_CONTACT_ROWS =
-  "flex flex-col gap-1";
-
+  "flex items-start gap-2.5 py-1 transition-colors hover:text-[#2563eb]";
+export const PROPOSAL_PACKET_CONTACT_ROWS = "flex flex-col";
 export const PROPOSAL_PACKET_CONTACT_ICON =
-  "flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-[#061a33] text-white shadow-[0_2px_6px_rgba(6,26,51,0.12)]";
-
+  "flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#0b1f33] text-white shadow-[0_1px_0_rgba(255,255,255,0.12)_inset]";
 export const PROPOSAL_PACKET_CONTACT_VALUE =
-  "mt-0.5 block text-[13px] font-semibold leading-snug text-[#0f172a] [overflow-wrap:anywhere]";
-
+  "mt-0.5 block text-[13px] font-medium leading-snug text-[#0b1f33] [overflow-wrap:anywhere]";
 export const PROPOSAL_PACKET_CONTACT_VALUE_LINK =
-  "mt-0.5 block text-[13px] font-semibold leading-snug text-[#0f172a] [overflow-wrap:anywhere] group-hover:text-[#2563eb]";
-
+  "mt-0.5 block text-[13px] font-medium leading-snug text-[#0b1f33] [overflow-wrap:anywhere] hover:text-[#2563eb]";
 export const PROPOSAL_PACKET_CONTACT_COMPANY =
-  "text-[15px] font-bold leading-snug tracking-[-0.01em] text-[#0f172a]";
-
+  "text-[14px] font-semibold tracking-[-0.01em] text-[#0b1f33]";
 export const PROPOSAL_PACKET_CLOSEOUT_PANEL_HEADING =
-  "text-[13px] font-bold tracking-tight text-[#0f172a]";
+  "text-[13px] font-semibold text-[#0b1f33]";
+export const PROPOSAL_PACKET_CLOSEOUT_DIVIDER = "my-2.5 h-px bg-[#e8edf3]";
 
-export const PROPOSAL_PACKET_CLOSEOUT_DIVIDER =
-  "my-5 h-px bg-gradient-to-r from-transparent via-[#e2e8f0] to-transparent";
-
-export const PROPOSAL_PACKET_NEXT_STEPS_TIMELINE =
-  "relative space-y-0";
-
+export const PROPOSAL_PACKET_NEXT_STEPS_TIMELINE = "space-y-2";
 export const PROPOSAL_PACKET_NEXT_STEP_BADGE =
-  "relative z-[1] flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full bg-[#061a33] text-[10px] font-bold text-white";
-
-export const PROPOSAL_PACKET_NEXT_STEP_LINE =
-  "absolute left-[8px] top-[18px] h-[calc(100%-6px)] w-px bg-[#e2e8f0]";
-
+  "flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#0b1f33] text-[10px] font-semibold text-white";
+export const PROPOSAL_PACKET_NEXT_STEP_LINE = "hidden";
 export const PROPOSAL_PACKET_NEXT_STEP_TEXT =
-  "pt-0.5 text-[12px] leading-snug text-[#475569] [overflow-wrap:break-word]";
-
+  "text-[13px] leading-snug text-[#475569]";
 export const PROPOSAL_PACKET_NEXT_STEP_FOOTNOTE =
-  "mt-3 rounded-lg bg-[#f4f7fb] px-3 py-2 text-[11px] leading-relaxed text-[#64748b]";
+  "mt-3 text-[12px] leading-relaxed text-[#64748b]";
 
 export const PROPOSAL_PACKET_SECTION_TITLE =
-  "text-[1.3rem] font-bold tracking-[-0.02em] text-[#0f172a] sm:text-[1.45rem]";
+  "text-[1.22rem] font-semibold tracking-[-0.028em] text-[#0b1f33] sm:text-[1.32rem]";
 
 export const PROPOSAL_PACKET_SECTION_INTRO =
-  "mt-1 max-w-xl text-[13px] leading-relaxed text-[#64748b]";
+  "mt-1 max-w-2xl text-[13px] leading-relaxed text-[#64748b]";
 
 export const PROPOSAL_PACKET_FIELD_LABEL =
-  "block text-[10px] font-bold uppercase tracking-[0.12em] text-[#64748b]";
+  "block text-[10px] font-semibold uppercase tracking-[0.15em] text-[#64748b]";
 
 export const PROPOSAL_PACKET_CURRENT_BADGE =
-  "inline-flex items-center rounded-full border border-[#2563eb] bg-[#eff6ff] px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-[#2563eb]";
+  "inline-flex items-center rounded-full bg-[#2563eb] px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-white shadow-[0_1px_0_rgba(255,255,255,0.2)_inset]";
 
 export const PROPOSAL_PACKET_OPTION_CARD =
-  "relative flex min-h-[288px] min-w-0 flex-col rounded-[14px] border border-[#e2e8f0] bg-white px-4 py-4 shadow-sm sm:px-[18px] sm:py-[18px]";
+  "relative flex h-full min-w-0 flex-col rounded-[14px] border border-[#e2e8f0] bg-white px-4 py-4 shadow-[0_1px_0_rgba(255,255,255,0.9)_inset,0_4px_16px_rgba(11,31,51,0.04)]";
 
 export const PROPOSAL_PACKET_OPTION_CARD_CURRENT =
-  "relative flex min-h-[288px] min-w-0 flex-col rounded-[14px] border-2 border-[#2563eb] bg-gradient-to-b from-[#f8fbff] to-white px-4 py-4 shadow-[0_6px_20px_rgba(37,99,235,0.1)] sm:px-[18px] sm:py-[18px]";
+  "relative flex h-full min-w-0 flex-col rounded-[14px] border-2 border-[#2563eb] bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)] px-4 py-4 shadow-[0_1px_0_rgba(255,255,255,0.95)_inset,0_10px_28px_rgba(37,99,235,0.12)]";
 
 export const PROPOSAL_PACKET_ABOUT_CARD =
-  "flex min-h-[288px] min-w-0 flex-col rounded-[14px] border border-[#e2e8f0] bg-[#f1f5f9] px-4 py-4 shadow-sm sm:col-span-2 sm:px-[18px] sm:py-[18px] lg:col-span-1";
+  "mt-3 text-[12px] leading-relaxed text-[#64748b]";
 
 export const PROPOSAL_PACKET_UPGRADE_GROUP =
-  "overflow-hidden rounded-[10px] border border-[#e2e8f0] bg-[#fafbfc] shadow-sm";
+  "overflow-hidden rounded-[14px] border border-[#e2e8f0] bg-white shadow-[0_2px_10px_rgba(11,31,51,0.03)]";
 
 export const PROPOSAL_PACKET_UPGRADE_ROW =
-  "flex min-h-[40px] items-center gap-2.5 px-3.5 py-2";
+  "flex min-h-[44px] items-center gap-3 px-3.5 py-2.5";
 
 export const PROPOSAL_PACKET_TOTAL_SUMMARY =
-  "rounded-[16px] border border-[#bfdbfe]/75 bg-gradient-to-br from-[#eff6ff] via-[#f7faff] to-white px-5 py-4 shadow-sm";
+  "rounded-[14px] bg-[#0b1f33] px-5 py-5 text-white";
 
 export const PROPOSAL_PACKET_INFO_CARD =
-  "rounded-[12px] border border-[#e2e8f0] bg-white px-4 py-3.5 shadow-sm";
+  "rounded-[14px] border border-[#e2e8f0] bg-white px-4 py-3";
 
 export const PROPOSAL_PACKET_FOOTER =
-  "relative border-t-[3px] border-t-[#f2c879]/35 bg-[#061a33] px-8 py-5 text-white lg:px-10 lg:py-6";
+  "flex flex-col gap-2 border-t border-[#e6ebf1] bg-[#f4f7fb] px-5 py-4 sm:flex-row sm:items-end sm:justify-between sm:px-7 lg:px-9";
 
 export const PROPOSAL_PACKET_FOOTER_METADATA =
-  "border-t border-[#e2e8f0] bg-[#eef2f6] px-8 py-2.5 text-[12px] text-[#64748b] lg:px-10";
+  "border-t border-[#e6ebf1] bg-[#eef2f6] px-5 py-2 text-[12px] text-[#64748b] sm:px-7 lg:px-9";
 
 export const PROPOSAL_PACKET_CARD =
-  "rounded-[20px] border border-slate-200/80 bg-white shadow-[0_18px_44px_rgba(7,31,58,0.12)]";
+  "rounded-[14px] border border-[#e2e8f0] bg-white";
 
 export const PROPOSAL_PACKET_COVER_CARD =
-  "rounded-[20px] border border-slate-200/60 bg-white shadow-[0_24px_60px_rgba(6,26,51,0.22),0_8px_22px_rgba(6,26,51,0.12)]";
+  "rounded-[14px] border border-[#e2e8f0] bg-white";
 
 export const PROPOSAL_PACKET_COVER_INVESTMENT =
-  "text-[2.15rem] font-bold tabular-nums tracking-[-0.035em] text-[#0f172a] sm:text-[2.45rem]";
+  "text-[1.85rem] font-semibold tabular-nums tracking-[-0.035em] text-[#0b1f33]";
 
 export const PROPOSAL_PACKET_INVESTMENT =
-  "text-[2.35rem] font-bold tabular-nums tracking-[-0.035em] text-[#0f172a] sm:text-[2.75rem]";
+  "text-[2rem] font-semibold tabular-nums tracking-[-0.042em] text-[#0b1f33] sm:text-[2.2rem]";
 
 export const PROPOSAL_PACKET_SECONDARY_PRICE =
-  "shrink-0 font-bold tabular-nums text-[#0f172a]";
+  "shrink-0 font-semibold tabular-nums tracking-[-0.02em] text-[#0b1f33]";
 
 export const PROPOSAL_PACKET_BODY =
-  "whitespace-pre-wrap text-[14px] leading-[1.6] text-[#475569]";
+  "whitespace-pre-wrap text-[13px] leading-relaxed text-[#475569]";
 
 export const PROPOSAL_PACKET_DISCLOSURE =
-  "inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#2563eb]";
+  "inline-flex cursor-pointer list-none items-center gap-1.5 text-[13px] font-semibold text-[#2563eb] [&::-webkit-details-marker]:hidden";
 
+/** Roofing scope summaries — intentional, not generic tiles. */
 export const PROPOSAL_PACKET_SCOPE_TILE =
-  "flex h-full min-h-[168px] flex-col items-center rounded-[18px] border border-[#e2e8f0] bg-gradient-to-b from-slate-50/90 to-white px-4 py-5 text-center shadow-sm";
+  "flex h-full flex-col items-start rounded-[14px] border border-[#e2e8f0] bg-[linear-gradient(180deg,#ffffff_0%,#f9fbfd_100%)] px-3.5 py-3.5 text-left shadow-[0_1px_0_rgba(255,255,255,0.9)_inset,0_3px_12px_rgba(11,31,51,0.04)]";
+
+export const PROPOSAL_PACKET_SCOPE_ICON =
+  "flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] border border-[#0b1f33]/10 bg-[#0b1f33]/[0.06] text-[#0b1f33]";
 
 export const PROPOSAL_PACKET_SCOPE_COUNT =
-  "mt-2 inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-[#071f3a]/10 px-2 text-[11px] font-semibold tabular-nums text-[#071f3a]";
+  "inline-flex h-5 min-w-5 items-center justify-center rounded-full border border-[#0b1f33]/8 bg-white px-1.5 text-[10px] font-semibold tabular-nums text-[#0b1f33]";
 
-/** @deprecated Legacy header — use PROPOSAL_PACKET_TOP_BAR */
+export const PROPOSAL_PACKET_CTA_PRIMARY =
+  "inline-flex items-center justify-center rounded-[10px] bg-[#2563eb] px-3.5 py-2 text-[13px] font-semibold text-white shadow-[0_1px_0_rgba(255,255,255,0.22)_inset,0_6px_16px_rgba(37,99,235,0.28)] transition-colors hover:bg-[#1d4ed8]";
+
+export const PROPOSAL_PACKET_CTA_SECONDARY =
+  "inline-flex items-center justify-center rounded-[10px] border border-[#d5dee8] bg-white px-3.5 py-2 text-[13px] font-semibold text-[#0b1f33] shadow-[0_1px_0_rgba(255,255,255,0.9)_inset] transition-colors hover:border-[#bfdbfe] hover:bg-[#f8fbff]";
+
+export const PROPOSAL_PACKET_CTA_QUIET =
+  "mt-3 inline-flex text-[12px] font-semibold text-[#2563eb] underline-offset-2 hover:underline";
+
 export const PROPOSAL_PACKET_HEADER =
-  "flex flex-col gap-4 border-b border-[#e2e8f0] bg-gradient-to-r from-white via-white to-slate-50/80 px-6 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-10 lg:px-12";
+  "flex flex-col gap-3 border-b border-[#e6ebf1] px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-7";
 
-/** @deprecated Legacy header action — use PROPOSAL_PACKET_TOP_BAR_ACTION */
 export const PROPOSAL_PACKET_HEADER_ACTION =
-  "inline-flex items-center gap-2 rounded-xl border border-[#dbe4ef] bg-white px-4 py-2.5 text-sm font-semibold text-[#94a3b8] shadow-sm";
+  "inline-flex items-center gap-2 text-sm font-semibold text-[#94a3b8]";
+
+/** Decision card shell — main proposal moment. */
+export const PROPOSAL_PACKET_DECISION_CARD =
+  "overflow-hidden rounded-[14px] border border-[#0b1f33]/18 shadow-[0_1px_0_rgba(255,255,255,0.35)_inset,0_14px_36px_rgba(11,31,51,0.14)] ring-1 ring-[#0b1f33]/[0.04]";

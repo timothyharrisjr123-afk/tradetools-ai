@@ -10,7 +10,7 @@ export default function PublicProposalRouteLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-[#eef3f8] text-slate-900 antialiased">
+    <div className="min-h-screen bg-[#e8eef5] text-slate-900 antialiased">
       {children}
     </div>
   );

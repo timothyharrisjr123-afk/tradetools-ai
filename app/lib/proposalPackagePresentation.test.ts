@@ -10,20 +10,20 @@ describe("resolvePackageMeta", () => {
   test("maps known package labels case-insensitively", () => {
     const meta = resolvePackageMeta("  Standard  ");
     assert.equal(meta.accent, "standard");
-    assert.equal(meta.bullets[0], "25 Year Shingles");
+    assert.equal(meta.bullets[0], "Architectural shingles");
   });
 
   test("returns default meta for unknown labels", () => {
     const meta = resolvePackageMeta("Custom Package");
     assert.equal(meta.accent, "default");
-    assert.equal(meta.description, "Customer-facing package option.");
+    assert.match(meta.description, /complete roofing package/i);
   });
 
   test("authored description beats known-label fallback", () => {
     const meta = resolvePackageMeta("Standard", "  Contractor-authored Standard copy.  ");
     assert.equal(meta.description, "Contractor-authored Standard copy.");
     assert.equal(meta.accent, "standard");
-    assert.equal(meta.bullets[0], "25 Year Shingles");
+    assert.equal(meta.bullets[0], "Architectural shingles");
   });
 
   test("authored description beats default fallback for unknown labels", () => {
@@ -34,7 +34,7 @@ describe("resolvePackageMeta", () => {
 
   test("blank authored description keeps fallback", () => {
     const meta = resolvePackageMeta("Premium", "   ");
-    assert.equal(meta.description, "Best performance and maximum protection.");
+    assert.match(meta.description, /Highest-protection|premium shingles/i);
     assert.equal(meta.accent, "premium");
   });
 });

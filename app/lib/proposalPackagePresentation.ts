@@ -15,18 +15,21 @@ export type PackageMeta = {
 
 const PACKAGE_META_BY_LABEL: Record<string, PackageMeta> = {
   standard: {
-    description: "Reliable protection with quality materials.",
-    bullets: ["25 Year Shingles", "Standard Underlayment"],
+    description:
+      "Solid, complete roof replacement with quality materials and professional installation.",
+    bullets: ["Architectural shingles", "Full install & cleanup"],
     accent: "standard",
   },
   enhanced: {
-    description: "Better materials and added peace of mind.",
-    bullets: ["30 Year Shingles", "Upgraded Underlayment"],
+    description:
+      "Stronger weather protection with upgraded underlayment and ice and water shield.",
+    bullets: ["Upgraded underlayment", "Ice & water protection"],
     accent: "enhanced",
   },
   premium: {
-    description: "Best performance and maximum protection.",
-    bullets: ["50 Year Shingles", "Premium Underlayment"],
+    description:
+      "Highest-protection package with premium shingles and upgraded weather layers.",
+    bullets: ["Premium shingles", "Maximum weather protection"],
     accent: "premium",
   },
 };
@@ -43,7 +46,7 @@ export function resolvePackageMeta(
   const key = label.trim().toLowerCase();
   const fallback =
     PACKAGE_META_BY_LABEL[key] ?? {
-      description: "Customer-facing package option.",
+      description: "A complete roofing package with quality materials and professional installation.",
       bullets: ["Quality materials", "Professional installation"],
       accent: "default" as const,
     };
