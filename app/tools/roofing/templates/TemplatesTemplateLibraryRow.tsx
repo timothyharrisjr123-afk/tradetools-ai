@@ -17,6 +17,8 @@ import {
 } from "./templatesSetupUtils";
 import {
   TEMPLATES_ARCHIVE_ACTION_LABEL,
+  TEMPLATES_MAKE_PREFERRED_ACTION_LABEL,
+  TEMPLATES_PREFERRED_BADGE_LABEL,
   TEMPLATES_RESTORE_ACTION_LABEL,
 } from "./templatesWorkspaceFlow";
 
@@ -33,6 +35,10 @@ type TemplatesTemplateLibraryRowProps = {
   onArchive?: () => void;
   onRestore?: () => void;
   lifecycleBusy?: boolean;
+  /** R2B — preferred setup for roofing proposals (not package-option default). */
+  isPreferred?: boolean;
+  onMakePreferred?: () => void;
+  preferenceBusy?: boolean;
 };
 
 export default function TemplatesTemplateLibraryRow({
@@ -47,6 +53,9 @@ export default function TemplatesTemplateLibraryRow({
   onArchive,
   onRestore,
   lifecycleBusy = false,
+  isPreferred = false,
+  onMakePreferred,
+  preferenceBusy = false,
 }: TemplatesTemplateLibraryRowProps) {
   const statusLabel = proposalTemplateStatusLabel(template.status);
   const archived = template.status === "archived";
@@ -86,12 +95,16 @@ export default function TemplatesTemplateLibraryRow({
           .join(" · ");
 
   const showLifecycleActions = Boolean(onArchive || onRestore);
+  const showPreferredAction =
+    !archived && Boolean(onMakePreferred) && !isPreferred;
+  const showRowActions = showLifecycleActions || showPreferredAction || (isPreferred && !archived);
 
   return (
     <article
       className={rowClass}
       data-templates-library-row={template.id}
       data-templates-library-archived={archived ? "true" : "false"}
+      data-templates-library-preferred={isPreferred && !archived ? "true" : "false"}
       data-templates-setup-row={template.id}
       data-templates-setup-row-selected={selected ? "true" : "false"}
     >
@@ -117,6 +130,14 @@ export default function TemplatesTemplateLibraryRow({
             {selected ? (
               <span className="rounded-full bg-blue-600 px-1.5 py-0.5 text-[10px] font-semibold text-white">
                 Selected
+              </span>
+            ) : null}
+            {isPreferred && !archived ? (
+              <span
+                className="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-800 ring-1 ring-emerald-200/80"
+                data-templates-library-preferred-badge={template.id}
+              >
+                {TEMPLATES_PREFERRED_BADGE_LABEL}
               </span>
             ) : null}
           </div>
@@ -160,11 +181,22 @@ export default function TemplatesTemplateLibraryRow({
         </div>
       </div>
 
-      {showLifecycleActions ? (
+      {showRowActions ? (
         <div
           className="mt-2 flex justify-end gap-1.5 border-t border-slate-100 pt-2"
           data-templates-library-row-actions={template.id}
         >
+          {showPreferredAction ? (
+            <button
+              type="button"
+              onClick={onMakePreferred}
+              disabled={preferenceBusy || lifecycleBusy}
+              className="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              data-templates-library-make-preferred={template.id}
+            >
+              {preferenceBusy ? "Saving…" : TEMPLATES_MAKE_PREFERRED_ACTION_LABEL}
+            </button>
+          ) : null}
           {archived ? (
             onRestore ? (
               <button

@@ -116,11 +116,12 @@ describe("R2A — Job Card never selects an archived template", () => {
 });
 
 describe("R2A — RoofingClient clears sticky Job Card selection on archive", () => {
-  test("selection preservation check excludes archived rows", () => {
+  test("selection preservation check excludes archived and inactive rows", () => {
     const client = readFileSync(ROOFING_CLIENT, "utf8");
+    // Sticky Job Card selection must clear when template is archived or inactive.
     assert.match(
       client,
-      /visibleTemplates\.some\(\(row\) => row\.id === prev && row\.status !== "archived"\)/
+      /visibleTemplates\.some\(\s*\(row\) =>\s*row\.id === prev &&\s*row\.status !== "archived" &&\s*row\.active !== false\s*\)/
     );
   });
 });

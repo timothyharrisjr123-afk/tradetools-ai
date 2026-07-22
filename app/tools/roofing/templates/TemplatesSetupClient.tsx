@@ -21,6 +21,11 @@ import {
 } from "@/app/lib/proposalTemplateCatalogLink";
 import { deriveProposalTemplateReadiness } from "@/app/lib/proposalTemplateReadiness";
 import {
+  clearPreferredSetup,
+  getPreferredSetupTemplateId,
+  setPreferredSetup,
+} from "@/app/lib/companyTemplatePreferenceStore";
+import {
   archiveProposalTemplate,
   createProposalTemplateItem,
   createProposalTemplateSection,
@@ -169,6 +174,11 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
   const [lifecycleBusyTemplateId, setLifecycleBusyTemplateId] = useState<string | null>(null);
   const [lifecycleError, setLifecycleError] = useState<string | null>(null);
 
+  // R2B — preferred setup for roofing proposal creation (not package-option default).
+  const [preferredTemplateId, setPreferredTemplateId] = useState<string | null>(null);
+  const [preferenceBusy, setPreferenceBusy] = useState(false);
+  const [preferenceError, setPreferenceError] = useState<string | null>(null);
+
   const loadCatalog = useCallback(async () => {
     setCatalogLoading(true);
     setCatalogError(null);
@@ -200,8 +210,12 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
       setTemplatesLoading(true);
       setTemplatesError(null);
       try {
-        const templates = await getProposalTemplatesByCompany(companyId);
+        const [templates, preferredId] = await Promise.all([
+          getProposalTemplatesByCompany(companyId),
+          getPreferredSetupTemplateId(companyId),
+        ]);
         setCompanyTemplates(templates);
+        setPreferredTemplateId(preferredId);
 
         const starter = findStarterProposalTemplate(templates);
         let nextStarterGraph: ProposalTemplateGraph | null = null;
@@ -229,6 +243,7 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
         setStarterGraph(null);
         setSelectedTemplateId(null);
         setSelectedGraph(null);
+        setPreferredTemplateId(null);
       } finally {
         setTemplatesLoading(false);
       }
@@ -301,6 +316,47 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
     },
     [companyId, loadTemplates, selectedTemplateId]
   );
+
+  const handleMakePreferred = useCallback(
+    async (templateId: string) => {
+      if (!companyId) return;
+      setPreferenceBusy(true);
+      setPreferenceError(null);
+      try {
+        const updated = await setPreferredSetup(companyId, templateId);
+        if (!updated) {
+          setPreferenceError("Could not mark this as the preferred setup. Try again.");
+          return;
+        }
+        setPreferredTemplateId(updated.template_id);
+      } catch (err) {
+        console.warn("[TemplatesSetupClient] make preferred error:", err);
+        setPreferenceError("Could not mark this as the preferred setup. Try again.");
+      } finally {
+        setPreferenceBusy(false);
+      }
+    },
+    [companyId]
+  );
+
+  const handleClearPreferred = useCallback(async () => {
+    if (!companyId) return;
+    setPreferenceBusy(true);
+    setPreferenceError(null);
+    try {
+      const cleared = await clearPreferredSetup(companyId);
+      if (!cleared) {
+        setPreferenceError("Could not clear the preferred setup. Try again.");
+        return;
+      }
+      setPreferredTemplateId(null);
+    } catch (err) {
+      console.warn("[TemplatesSetupClient] clear preferred error:", err);
+      setPreferenceError("Could not clear the preferred setup. Try again.");
+    } finally {
+      setPreferenceBusy(false);
+    }
+  }, [companyId]);
 
   const handleSelectTemplate = useCallback(
     (templateId: string) => {
@@ -1462,6 +1518,10 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
               onRestoreTemplate={handleRestoreTemplate}
               lifecycleBusyTemplateId={lifecycleBusyTemplateId}
               lifecycleError={lifecycleError}
+              preferredTemplateId={preferredTemplateId}
+              onMakePreferred={handleMakePreferred}
+              preferenceBusy={preferenceBusy}
+              preferenceError={preferenceError}
             />
 
             {workspaceActive && selectedGraph && contentViewModel && structureViewModel ? (
@@ -1505,6 +1565,24 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
                 onRelinkTemplateItem={handleOpenRelinkCatalogItem}
                 onSaveSection={handleSaveSection}
                 onDirtySectionCountChange={handleDirtySectionCountChange}
+                isPreferred={
+                  preferredTemplateId != null &&
+                  selectedTemplateId != null &&
+                  preferredTemplateId === selectedTemplateId
+                }
+                onMakePreferred={
+                  selectedTemplateId
+                    ? () => handleMakePreferred(selectedTemplateId)
+                    : undefined
+                }
+                onClearPreferred={
+                  preferredTemplateId != null &&
+                  selectedTemplateId != null &&
+                  preferredTemplateId === selectedTemplateId
+                    ? handleClearPreferred
+                    : undefined
+                }
+                preferenceBusy={preferenceBusy}
               />
             ) : null}
           </div>

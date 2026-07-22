@@ -34,6 +34,11 @@ type TemplatesLibrarySectionProps = {
   onRestoreTemplate?: (templateId: string) => void;
   lifecycleBusyTemplateId?: string | null;
   lifecycleError?: string | null;
+  /** R2B — preferred setup for roofing proposals. */
+  preferredTemplateId?: string | null;
+  onMakePreferred?: (templateId: string) => void;
+  preferenceBusy?: boolean;
+  preferenceError?: string | null;
 };
 
 export default function TemplatesLibrarySection({
@@ -50,6 +55,10 @@ export default function TemplatesLibrarySection({
   onRestoreTemplate,
   lifecycleBusyTemplateId = null,
   lifecycleError = null,
+  preferredTemplateId = null,
+  onMakePreferred,
+  preferenceBusy = false,
+  preferenceError = null,
 }: TemplatesLibrarySectionProps) {
   const [libraryFilter, setLibraryFilter] = useState<TemplatesLibraryFilter>("active");
   const [confirmArchiveId, setConfirmArchiveId] = useState<string | null>(null);
@@ -169,6 +178,12 @@ export default function TemplatesLibrarySection({
         </p>
       ) : null}
 
+      {preferenceError ? (
+        <p className="mt-2 text-xs text-red-700" role="alert" data-templates-library-preference-error>
+          {preferenceError}
+        </p>
+      ) : null}
+
       <div className="mt-3 space-y-2" data-templates-setup-selector-list>
         {loading ? (
           <p className="text-sm text-slate-500">Loading…</p>
@@ -199,6 +214,15 @@ export default function TemplatesLibrarySection({
                   : undefined
               }
               lifecycleBusy={lifecycleBusyTemplateId === template.id}
+              isPreferred={preferredTemplateId === template.id}
+              onMakePreferred={
+                onMakePreferred &&
+                template.status !== "archived" &&
+                preferredTemplateId !== template.id
+                  ? () => onMakePreferred(template.id)
+                  : undefined
+              }
+              preferenceBusy={preferenceBusy}
             />
           ))
         ) : activeFilter === "archived" ? (

@@ -483,20 +483,32 @@ export function sanitizeSetupReturnLabel(
 }
 
 /**
- * Prefer starter, else first active template, else first listed.
+ * Prefer company preferred setup (R2B), else starter, else first active, else first listed.
  * Callers should pass contractor-visible templates (smoke fixtures filtered).
  *
  * R2A — archived templates (`status === "archived"`) are never the Job
  * Card default/initial selection, even as starter or fallback. Archive is a
  * template-level lifecycle state, separate from R1's package-option
  * `removed_at` soft-remove.
+ *
+ * R2B — `preferredTemplateId` is the company preferred setup for the roofing
+ * proposal workflow. It is separate from package-option `is_default`.
  */
 export function resolveDefaultJobCardTemplateId(
   templates: readonly ProposalTemplate[],
-  starterId: string | null
+  starterId: string | null,
+  preferredTemplateId: string | null = null
 ): string | null {
   const visible = filterContractorVisibleTemplates(templates);
-  const eligible = visible.filter((t) => t.status !== "archived");
+  const eligible = visible.filter(
+    (t) => t.status !== "archived" && t.active !== false
+  );
+  if (
+    preferredTemplateId &&
+    eligible.some((t) => t.id === preferredTemplateId)
+  ) {
+    return preferredTemplateId;
+  }
   if (starterId && eligible.some((t) => t.id === starterId)) return starterId;
   const active = eligible.find((t) => t.active !== false);
   if (active?.id) return active.id;

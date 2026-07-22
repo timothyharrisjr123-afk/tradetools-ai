@@ -1154,7 +1154,28 @@ export async function archiveProposalTemplate(
   id: string,
   options: { companyId: string }
 ): Promise<ProposalTemplate | null> {
-  return updateProposalTemplate(id, { status: "archived", active: false }, options);
+  const updated = await updateProposalTemplate(
+    id,
+    { status: "archived", active: false },
+    options
+  );
+  if (updated) {
+    // R2B — clear preferred-setup preference if this template held it.
+    // Lazy import keeps preference store optional until migration is applied
+    // and avoids circular imports with preference → getProposalTemplateById.
+    try {
+      const { clearPreferredSetupIfTemplate } = await import(
+        "@/app/lib/companyTemplatePreferenceStore"
+      );
+      await clearPreferredSetupIfTemplate(options.companyId, id);
+    } catch (err) {
+      console.warn(
+        "[proposalTemplateStore] archiveProposalTemplate: preferred clear skipped:",
+        err
+      );
+    }
+  }
+  return updated;
 }
 
 /**

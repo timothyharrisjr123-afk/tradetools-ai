@@ -78,6 +78,21 @@ export const TEMPLATES_ARCHIVE_CONFIRM_COPY =
   "This setup will be hidden from future proposals. Existing proposals are not changed." as const;
 export const TEMPLATES_ACTIVE_FILTER_LABEL = "Active" as const;
 export const TEMPLATES_ARCHIVED_FILTER_LABEL = "Archived" as const;
+
+/**
+ * R2B — Preferred setup for roofing proposal creation.
+ *
+ * Company + workflow preference for which reusable setup Job Card suggests
+ * first. Separate from R1 package-option is_default (which package inside a
+ * setup) and R2A archive/restore (template lifecycle).
+ */
+export const TEMPLATES_PREFERRED_BADGE_LABEL = "Preferred" as const;
+export const TEMPLATES_MAKE_PREFERRED_ACTION_LABEL = "Make preferred" as const;
+export const TEMPLATES_CLEAR_PREFERRED_ACTION_LABEL = "Clear preferred" as const;
+export const TEMPLATES_PREFERRED_HELPER_COPY =
+  "Used first when starting a proposal from a Job Card." as const;
+export const TEMPLATES_PREFERRED_FOR_ROOFING_COPY =
+  "Preferred for new roofing proposals" as const;
 export const TEMPLATES_REUSABLE_SETUP_EYEBROW = "Reusable proposal setup" as const;
 export const TEMPLATES_REUSABLE_SETUP_SUBCOPY =
   "Review what this template prepares for future proposals." as const;

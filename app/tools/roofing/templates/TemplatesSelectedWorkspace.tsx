@@ -98,6 +98,11 @@ type TemplatesSelectedWorkspaceProps = {
     draftBody: string;
   }) => void;
   onDirtySectionCountChange: (count: number) => void;
+  /** R2B — preferred setup for roofing proposals (not package-option default). */
+  isPreferred?: boolean;
+  onMakePreferred?: () => void;
+  onClearPreferred?: () => void;
+  preferenceBusy?: boolean;
 };
 
 export default function TemplatesSelectedWorkspace({
@@ -140,6 +145,10 @@ export default function TemplatesSelectedWorkspace({
   onRelinkTemplateItem,
   onSaveSection,
   onDirtySectionCountChange,
+  isPreferred = false,
+  onMakePreferred,
+  onClearPreferred,
+  preferenceBusy = false,
 }: TemplatesSelectedWorkspaceProps) {
   const contentSaveBlocked = savingSectionId != null;
   const managerBusy = structureBusy != null || contentSaveBlocked;
@@ -173,6 +182,10 @@ export default function TemplatesSelectedWorkspace({
           onCreateBlankPackage={onCreateBlankPackage}
           onReorderPackage={onReorderPackage}
           onRemovePackage={onRemovePackage}
+          isPreferred={isPreferred}
+          onMakePreferred={onMakePreferred}
+          onClearPreferred={onClearPreferred}
+          preferenceBusy={preferenceBusy}
         />
       </div>
     );

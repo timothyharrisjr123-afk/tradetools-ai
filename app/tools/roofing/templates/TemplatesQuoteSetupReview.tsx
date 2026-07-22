@@ -24,11 +24,16 @@ import TemplatesIncludedItemsManager from "./TemplatesIncludedItemsManager";
 import { buildPreparedPackageScopePresentation } from "./templatesIncludedWorkPresentation";
 import {
   TEMPLATES_ADVANCED_EDITING_ACTION,
+  TEMPLATES_CLEAR_PREFERRED_ACTION_LABEL,
   TEMPLATES_INCLUDED_WORK_HEADING,
   TEMPLATES_JOB_CARD_USE_NOTE,
+  TEMPLATES_MAKE_PREFERRED_ACTION_LABEL,
   TEMPLATES_NEXT_USE_COPY,
   TEMPLATES_OPEN_JOBS_ACTION,
   TEMPLATES_PACKAGES_SECTION_HINT,
+  TEMPLATES_PREFERRED_BADGE_LABEL,
+  TEMPLATES_PREFERRED_FOR_ROOFING_COPY,
+  TEMPLATES_PREFERRED_HELPER_COPY,
   TEMPLATES_PROPOSAL_CONTENT_HEADING,
   TEMPLATES_PROPOSAL_CONTENT_HINT,
   TEMPLATES_REUSABLE_SETUP_EYEBROW,
@@ -75,6 +80,11 @@ type TemplatesQuoteSetupReviewProps = {
     removeOptionId: string;
     replacementDefaultOptionId?: string | null;
   }) => Promise<boolean>;
+  /** R2B — preferred setup for roofing proposals (not package-option default). */
+  isPreferred?: boolean;
+  onMakePreferred?: () => void;
+  onClearPreferred?: () => void;
+  preferenceBusy?: boolean;
 };
 
 export default function TemplatesQuoteSetupReview({
@@ -99,6 +109,10 @@ export default function TemplatesQuoteSetupReview({
   onCreateBlankPackage,
   onReorderPackage,
   onRemovePackage,
+  isPreferred = false,
+  onMakePreferred,
+  onClearPreferred,
+  preferenceBusy = false,
 }: TemplatesQuoteSetupReviewProps) {
   const [packagesAdjustOpen, setPackagesAdjustOpen] = useState(false);
   const { template } = graph;
@@ -188,6 +202,14 @@ export default function TemplatesQuoteSetupReview({
               <p className="mt-1 text-xs text-slate-500" data-templates-job-card-use-note>
                 {TEMPLATES_JOB_CARD_USE_NOTE}
               </p>
+              {isPreferred && template.status !== "archived" ? (
+                <p
+                  className="mt-1 text-xs text-emerald-800"
+                  data-templates-preferred-helper
+                >
+                  {TEMPLATES_PREFERRED_FOR_ROOFING_COPY}. {TEMPLATES_PREFERRED_HELPER_COPY}
+                </p>
+              ) : null}
               <div className="mt-2">
                 <TemplatesIdentityEditor
                   name={template.name}
@@ -198,12 +220,42 @@ export default function TemplatesQuoteSetupReview({
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              {isPreferred && template.status !== "archived" ? (
+                <span
+                  className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-800 ring-1 ring-emerald-200/80"
+                  data-templates-preferred-badge
+                >
+                  {TEMPLATES_PREFERRED_BADGE_LABEL}
+                </span>
+              ) : null}
               <span
                 className="rounded-full bg-slate-50 px-2 py-0.5 text-[10px] font-medium text-slate-500 ring-1 ring-slate-200/80"
                 data-templates-quiet-status
               >
                 {statusLabel}
               </span>
+              {template.status !== "archived" && !isPreferred && onMakePreferred ? (
+                <button
+                  type="button"
+                  onClick={onMakePreferred}
+                  disabled={busy || preferenceBusy}
+                  className="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                  data-templates-make-preferred
+                >
+                  {preferenceBusy ? "Saving…" : TEMPLATES_MAKE_PREFERRED_ACTION_LABEL}
+                </button>
+              ) : null}
+              {template.status !== "archived" && isPreferred && onClearPreferred ? (
+                <button
+                  type="button"
+                  onClick={onClearPreferred}
+                  disabled={busy || preferenceBusy}
+                  className="text-xs font-medium text-slate-500 underline-offset-2 hover:text-slate-800 hover:underline disabled:opacity-50"
+                  data-templates-clear-preferred
+                >
+                  {preferenceBusy ? "Saving…" : TEMPLATES_CLEAR_PREFERRED_ACTION_LABEL}
+                </button>
+              ) : null}
               <button
                 type="button"
                 onClick={() => onOpenAdvanced("packages")}

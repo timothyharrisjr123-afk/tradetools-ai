@@ -147,6 +147,7 @@ import {
   getProposalTemplatesByCompany,
   type ProposalTemplateGraph,
 } from "@/app/lib/proposalTemplateStore";
+import { getPreferredSetupTemplateId } from "@/app/lib/companyTemplatePreferenceStore";
 import type { ProposalTemplate } from "@/app/lib/proposalTemplateTypes";
 import { findStarterProposalTemplate } from "@/app/tools/roofing/templates/templatesSetupUtils";
 import {
@@ -1907,16 +1908,26 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
         setCompanyProposalTemplates(templates);
         const visibleTemplates = filterContractorVisibleTemplates(templates);
         const starter = findStarterProposalTemplate(templates);
+        // R2B — preferred setup for roofing proposal workflow (separate from
+        // package-option is_default). Missing table / no row → null fallback.
+        const preferredTemplateId = await getPreferredSetupTemplateId(cid);
+        if (templateSetupFetchInFlightRef.current !== cid) return;
         const defaultId = resolveDefaultJobCardTemplateId(
           visibleTemplates,
-          starter?.id ?? null
+          starter?.id ?? null,
+          preferredTemplateId
         );
         setSelectedJobTemplateId((prev) => {
           // R2A — do not keep a previously-sticky selection once its template
           // has been archived; fall back to the current eligible default.
           if (
             prev &&
-            visibleTemplates.some((row) => row.id === prev && row.status !== "archived")
+            visibleTemplates.some(
+              (row) =>
+                row.id === prev &&
+                row.status !== "archived" &&
+                row.active !== false
+            )
           ) {
             return prev;
           }
