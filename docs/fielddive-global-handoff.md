@@ -45,17 +45,18 @@
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** **`6e1253f`** — `feat(proposals): add R1 package-option structure authorship`.
-- **Previous feature checkpoint:** **`ab3a776`** — `feat(proposals): add guided template package authorship` (Template Setup Authorship V1).
+- **Code checkpoint:** **`c93a843`** — `feat(proposals): add R2A template archive restore lifecycle`.
+- **Previous feature checkpoint:** **`6e1253f`** — `feat(proposals): add R1 package-option structure authorship`.
 - **Docs checkpoint:** **Pending this docs commit.**
-- **Working tree:** Clean before this docs edit (code at **`6e1253f`** committed; no app/test/migration changes in this docs pass).
-- **Accepted:** **R1 package-option structure authorship** after focused tests + live soft-remove / 4-option smoke on approved Supabase project **`rhquhnujjnzjhweypavd`** (§6BO.13.4.9 T.9 R1). Prior **Template Setup Authorship V1** remains accepted at **`ab3a776`** / docs **`82573e0`**.
-- **Next:** Continue the **Templates roadmap** after R1 — likely **R2 Library lifecycle** (archive/restore/default template controls) or the next accepted **T.9** follow-up ordering (proposal packet/content editor, estimate display editor, package model conversion after create, safe section delete, library hygiene, mobile polish). Do **not** reopen Optional Upgrade Truth, package-description SoT, or R1 soft-remove / one-template→many-options model. Later Stage D Preview/Public parity test lock remains parked and is not blocking.
-- **Product model (locked):** **Templates** = manage reusable setup and package options. **+ Template** = guided create-time starter (**One / Two / Three / Custom**). **Templates → Adjust packages** = post-create package-option management (Copy existing default, Start blank shell, reorder, remove from setup, set default) — **does not create new templates**. **Job Card** = select template, then select one package option only when 2+ active options. **Builder** = draft `proposal_options` truth after create (not live template options). **Preview/Public** = frozen `proposal_options` snapshot truth. Correct flow: **Job Card → Proposals → + Proposal → Measurement → Template → Package → Review → Builder → Preview → Send/share**.
+- **Prior docs checkpoint:** **`51fc3c9`** — `docs: record R1 package-option structure authorship checkpoint`.
+- **Working tree:** Clean before this docs edit (code at **`c93a843`** committed; no app/test/migration changes in this docs pass).
+- **Accepted:** **R2A template archive/restore lifecycle** after focused tests + live archive → restore → Job Card exclusion smoke (§6BO.13.4.9 T.9 R2A). Prior **R1 package-option structure authorship** remains accepted at **`6e1253f`** / docs **`51fc3c9`**. Prior **Template Setup Authorship V1** remains accepted at **`ab3a776`** / docs **`82573e0`**.
+- **Next:** **R2B company default template** planning (or reorder remaining **T.9** follow-ups if product decides otherwise: proposal packet/content editor, estimate display editor, package model conversion after create, safe section delete, library hygiene, mobile polish). Do **not** reopen Optional Upgrade Truth, package-description SoT, R1 soft-remove / one-template→many-options model, or R2A archive/restore semantics. Later Stage D Preview/Public parity test lock remains parked and is not blocking.
+- **Product model (locked):** **Templates** = manage reusable setup and package options. **+ Template** = guided create-time starter (**One / Two / Three / Custom**). **Templates → Adjust packages** = post-create package-option management (Copy existing default, Start blank shell, reorder, remove from setup, set default) — **does not create new templates**. **Templates library lifecycle (R2A)** = archive/restore reusable setups (`proposal_templates.status` + synced `active`); **not** package-option soft-remove. **Job Card** = select **non-archived** template, then select one package option only when 2+ active options. **Builder** = draft `proposal_options` truth after create (not live template options). **Preview/Public** = frozen `proposal_options` snapshot truth (not gated by live template status). Correct flow: **Job Card → Proposals → + Proposal → Measurement → Template → Package → Review → Builder → Preview → Send/share**.
 - **Historical note (Preview + Send):** Checkpoint **`8bb19b4`** / docs **`86739d0`** unify the contractor Preview header, readiness, actions, and customer proposal into one surface; elevate the customer packet; and rework Send/sharing into a premium delivery composer. Send/link/delivery APIs, readiness view-model, and unsupported (Sign/PDF/payment/QR/tracking) behavior unchanged.
 - **Historical note (Builder continuity):** Checkpoint **`a49b346`** aligns Builder with that Preview direction as contractor edit/review mode: premium command header; integrated section navigation (not a boxed tray); selected Enhanced package card with Change package vs Edit scope clarified; estimate + totals on one surface; cleaned row actions + preserved inline Edit qty; Edit scope drawer as contractor quantity review with accordion open/switch/collapse; intentional removed-lines collapsible. Protected systems untouched.
 
-**Trust order:** Header/current checkpoint → **§6BO.13.4.9 T.9 R1** (accepted R1 package-option structure authorship + soft-remove) → **§6BO.13.4.9 T.9** (accepted Template Setup Authorship V1 + package description SoT through freeze/public + remaining Templates roadmap follow-ups) → **§6BO.13.4.9 T.8** (accepted Optional Upgrade Truth + live repair/freeze/public proof) → **§6BO.13.4.9 T.7** (Template Flow V1 foundation + Job Card selected-template eligibility) → **§6BO.13** (approved page-by-page UI flow roadmap + P0 implementation sequence — **supersedes separate Command Center language**) → **§6BM** / **§6BN** (R18 letter-phase roadmap + R18C–R18D3C implementation history) → **§6BO** / **§6BO.11** / **§6BO.12** (completed remediation side-track + **approved Stage C policy** + **operating-flow audit sequencing — complete; outcome in §6BO.13**) → **§6BL** → **§11 override**. Authorship V1 send/freeze smoke used real **`/api/proposals/send-prep`**; Optional Upgrade Truth freeze/public smoke used local-only **`USE_PROPOSAL_SEND_FREEZE_RPC=1`** in `.env.local` (gitignored, not committed). **Do not proceed** to docs-only or next feature work unless working tree is clean. **Still do not** mutate existing sent/signed/superseded snapshots, move Jobs Board cards, add Job Card send activity, enable PDF/Sign/Payment, or add webhooks unless separately approved.
+**Trust order:** Header/current checkpoint → **§6BO.13.4.9 T.9 R2A** (accepted R2A template archive/restore) → **§6BO.13.4.9 T.9 R1** (accepted R1 package-option structure authorship + soft-remove) → **§6BO.13.4.9 T.9** (accepted Template Setup Authorship V1 + package description SoT through freeze/public + remaining Templates roadmap follow-ups) → **§6BO.13.4.9 T.8** (accepted Optional Upgrade Truth + live repair/freeze/public proof) → **§6BO.13.4.9 T.7** (Template Flow V1 foundation + Job Card selected-template eligibility) → **§6BO.13** (approved page-by-page UI flow roadmap + P0 implementation sequence — **supersedes separate Command Center language**) → **§6BM** / **§6BN** (R18 letter-phase roadmap + R18C–R18D3C implementation history) → **§6BO** / **§6BO.11** / **§6BO.12** (completed remediation side-track + **approved Stage C policy** + **operating-flow audit sequencing — complete; outcome in §6BO.13**) → **§6BL** → **§11 override**. Authorship V1 send/freeze smoke used real **`/api/proposals/send-prep`**; Optional Upgrade Truth freeze/public smoke used local-only **`USE_PROPOSAL_SEND_FREEZE_RPC=1`** in `.env.local` (gitignored, not committed). **Do not proceed** to docs-only or next feature work unless working tree is clean. **Still do not** mutate existing sent/signed/superseded snapshots, move Jobs Board cards, add Job Card send activity, enable PDF/Sign/Payment, or add webhooks unless separately approved.
 
 **DB-first foundation is live** (§6AD). **3J3E option selection persists** (§6AE). **Pricing trust hardening complete** (§6AF). **3J4C document-first Builder complete** (§6AG) — Estimate page renders the actual proposal document inline (package selector, sections, line items, totals); right rail is a contextual **Proposal Helper** inspector; old workspace tabs and Overview panel **removed**. **R16A** (§6AX) removed the amber **Preview-unlock blocker banner** from the Estimate **canvas**; pricing/blocking guidance remains in the rail. **3J4D** refined Estimate line readability (§6AH). **3J4E** refined package/options surface inside Estimate (§6AI). **3J4F** extended Builder to customer-facing text pages — Terms, Warranty, Project Overview, custom_text render persisted `body_markdown` when present (§6AJ). **R14** adds display-time `{{token_name}}` merge on those text pages from frozen `proposalDocumentContext` + R13 resolver (`f359ad4`, §6AW) — stored `body_markdown` unchanged; no write-back. **R4–R6** template content editor on `/tools/roofing/templates` **complete** (`9db2030`–`3c6214c`). **R7** light global IA nav **complete** (`05b9c54`). **R8** light Jobs Board identity **complete** (`1191ddd`). **R9** Job Card create/open draft flow **satisfied** (`1915b2d` + pre-R10 P1 at `d0ba188`). **R10** template structure + estimate settings **complete** (`bc42b1e`–`b3dd904`, §6AQ). **R11** company branding Settings **complete** (`0146dac`–`139e8a3`, §6AR). **R11c** stamps company core + branding into `proposal_versions.context_echo` at new draft create only (`29722a0`, §6AS) — **no Builder cover UI**. **R12** stamps DB-truth customer identity into `proposal_versions.context_echo` at new draft create only (`31059e3`, §6AT) — **no Job Card UI changes, no Builder customer display**. **R13** adds pure frozen document token foundation (`e40db30`, §6AU) — registry, `ProposalDocumentContext`, resolver. **R15** adds read-only branded **Cover** tab in Proposal Builder (`ab5a400`, §6AV) — consumes `proposalDocumentContext` + resolver; **not** Preview/PDF/send/sign/payment. **R14** wires body text pages to the same frozen context at display time (`f359ad4`, §6AW). **R16A** separates contractor workspace chrome from customer document IA (`18cebca`, §6AX) — customer-logical page strip order, workspace header, simplified body shell; **not** Preview/PDF/lifecycle/hub. **R16B** adds per-proposal draft body authoring for text pages (`589f5a0`, §6AY) — raw `body_markdown` persist, R14 display merge only, Estimate line-items-only de-duplication on persisted path; **not** token picker, page visibility, media, Preview, or lifecycle. **R16C1** adds Builder strip overflow page navigation (`967f0de`, §6BA) — More pages menu for persisted overflow pages by `page.id`, dirty-edit guard preserved, portal menu fix; **not** page visibility, Preview, or lifecycle. **R16C2** adds registry-driven document token picker in the R16B editor (`0cf76d2`, §6BB) — Insert field menu inserts raw `{{token_name}}` only; R14 display-time merge unchanged; save persists raw `body_markdown` only; **not** page visibility, Preview, or lifecycle. **R16C3** adds DB-backed proposal page visibility hide-show foundation (`25f1375`, §6BC) — toggles existing `proposal_pages.visible_to_customer` via `updateDraftProposalPageVisibility`; hidden pages remain contractor-visible and editable in Builder; Cover/Estimate required; `getCustomerPreviewPages` R17 contract helper only; **not** Preview, customer route, PDF, or lifecycle. **R17A/R17B** adds authenticated contractor Customer Preview foundation (`8ac2bcb`, §6BE) — pure `proposalCustomerPreviewViewModel` + `/tools/roofing/proposals/preview?job=&proposal=` route; header Preview enabled when persisted draft loads; dirty-edit guard before Preview navigation; **not** public/tokenized customer access, PDF, Send, Sign, Payment, or lifecycle. **R17C1** adds Preview Estimate document presentation layer (`9c2244a`, §6BF) — pure `proposalCustomerEstimatePresenter` + Preview-only estimate UI; shared `proposalPackagePresentation`; Preview Estimate no longer imports Builder workbench table components; **not** R17C2 Builder workbench hierarchy (now complete at `3e65774`, §6BG), R17C3 typography polish, R18, PDF, Send, Sign, Payment, or lifecycle. **R17C2 Phase 1** adds pure Builder workbench estimate presenter (`3c04322`, §6BG) — `proposalBuilderWorkbenchEstimatePresenter` DTO only; no UI. **R17C2 Phase 2** adds zoned Builder Estimate workbench UI + scope review / hard blocker split + gated Edit Option shell (`3e65774`, §6BG) — **not** R17D scope decision backend, R17C3 typography, R18, PDF, Send, Sign, Payment, or lifecycle. **R17D Phase 1** adds persisted scope decision overlay + merge-on-refresh foundation (`43c83a2`, §6BH) — `proposal_option_scope_decisions` migration (`20260618_009`); **`manual_quantity` proven in tests**; zero-decision refresh unchanged; migration **appears applied** on configured project per §6BI. **R17D Phase 2** adds manual quantity UI/API — first real Edit Option action wired in Builder (`f5712ff`, §6BI); **`manual_quantity` only**; other Edit Option actions remain disabled; **full post-Phase-2 audit passed** (§6BI); **not** R17C3 typography, R18, PDF, Send, Sign, Payment, or lifecycle. Main workflow: **Job Board → DB job card (`job=`) → Create proposal / Open proposal → create/reuse DB proposal draft → Builder (`job=` + `proposal=`) → package selection persists to DB; refresh draft pricing when measurement changes**. Legacy `loadSaved=` / `currentSaved` / board-origin paths are **preserved but separated** — they **cannot create DB proposals directly**. **DB proposal math uses the new spine only** (`measurement_records` → `proposalQuantityResolver` → `proposalPricingEngine` → snapshots) — **not** legacy saved-estimate / Core-Enhanced-Premium estimator math. **`createDraftProposal`** runs from Job Card **Create proposal** only when checklist + pricing gates pass; **Builder reads** persisted drafts via **`getDraftGraph`** + **`proposalDraftGraphAdapter`** when `?proposal=` is present — **no Builder create path**, **no silent fallback** on invalid `proposal=`. **Do not** persist placeholder/unconfigured pricing policy. **Catalog custom delete/deactivate** is **not implemented** and remains a **separate later scope**.
 
@@ -63,7 +64,9 @@
 
 | Commit | Summary |
 |--------|---------|
-| *(this docs commit)* | **Docs** — Record accepted R1 package-option structure authorship, soft-remove migration, dynamic active package-option count, smoke/tests, and remaining T.9 follow-ups (§6BO.13.4.9 T.9 R1) |
+| *(this docs commit)* | **Docs** — Record accepted R2A template archive/restore lifecycle, Active/Archived library UI, Job Card archived exclusion, smoke/tests, and remaining T.9 follow-ups (§6BO.13.4.9 T.9 R2A) |
+| `c93a843` | **R2A template archive/restore lifecycle** — `archiveProposalTemplate` / `restoreProposalTemplate` sync `status` + `active`; Templates Active/Archived filter + calm archive confirm + Restore; Job Card picker + default resolver exclude archived; sticky archived selection cleared; **no SQL/migration**; **95/95** focused tests; live archive→restore→Job Card exclusion smoke PASS; protected systems untouched |
+| `51fc3c9` | **Docs** — Record R1 package-option structure authorship checkpoint (§6BO.13.4.9 T.9 R1) |
 | `6e1253f` | **R1 package-option structure authorship** — one template → many package options; Adjust packages add/copy/blank/reorder/default/soft-remove; Copy existing guided default; Start blank guided shell; + Template One/Two/Three/Custom clarity; dynamic active package-option count for Templates/Job Card; Builder draft `proposal_options` chooser + 4-option layout polish; migration `20260722_031` live-applied on `rhquhnujjnzjhweypavd`; **101/101** focused R1 tests; soft-remove + 4-option smoke PASS; protected systems untouched |
 | `82573e0` | **Docs** — Record Template Setup Authorship V1 acceptance checkpoint (§6BO.13.4.9 T.9) |
 | `ab3a776` | **Template Setup Authorship V1** — enhanced **+ Template** guided authorship; template name/purpose; package names/customer labels/descriptions/default; contextual **Adjust packages**; Job Card selection-only custom package display/default; authored description SoT through Builder/Preview/send-freeze/Public; migrations `20260722_029` + `20260722_030` (live-applied on `rhquhnujjnzjhweypavd`); **138/138** focused tests; Good/Better/Best smoke PASS; operator apply script removed before commit; protected systems untouched |
@@ -12814,7 +12817,7 @@ Package rule from **N** remains law: pre-draft package on create modal; post-dra
 - Future Template Flow V1 slices: package rename/edit polish; content/pages guided step; included-work grouping/presentation polish; advanced-editing containment; future return-to-job context if template setup is launched from proposal flow.
 - Later **Stage D Preview/Public parity test lock** remains parked and does not block current Template Flow decisions.
 
-**Next recommended decision (superseded):** Optional Upgrade Truth is accepted at **T.8**. Template Setup Authorship V1 is accepted at **T.9**. R1 package-option structure authorship is accepted at **T.9 R1**. Continue Templates roadmap from remaining **T.9** follow-ups (likely **R2 Library lifecycle**).
+**Next recommended decision (superseded):** Optional Upgrade Truth is accepted at **T.8**. Template Setup Authorship V1 is accepted at **T.9**. R1 package-option structure authorship is accepted at **T.9 R1**. R2A template archive/restore is accepted at **T.9 R2A**. Continue Templates roadmap from remaining **T.9** follow-ups (likely **R2B company default template**).
 
 ###### T.8 Optional Upgrade Truth — ACCEPTED (2026-07-21)
 
@@ -12901,7 +12904,7 @@ Package rule from **N** remains law: pre-draft package on create modal; post-dra
 - No PDF, signature, or payment behavior changed.
 - No push.
 
-**Template Flow V1 continuation — next (superseded):** Optional Upgrade Truth and package-description SoT are accepted at **T.8** and **T.9**. R1 package-option structure authorship is accepted at **T.9 R1**. Continue Templates roadmap from remaining **§6BO.13.4.9 T.9** follow-ups — not from reopening upgrade truth, description persistence, or R1 soft-remove / package-option model.
+**Template Flow V1 continuation — next (superseded):** Optional Upgrade Truth and package-description SoT are accepted at **T.8** and **T.9**. R1 package-option structure authorship is accepted at **T.9 R1**. R2A template archive/restore is accepted at **T.9 R2A**. Continue Templates roadmap from remaining **§6BO.13.4.9 T.9** follow-ups — not from reopening upgrade truth, description persistence, R1 soft-remove / package-option model, or R2A archive/restore semantics.
 
 ###### T.9 Template Setup Authorship V1 — ACCEPTED (2026-07-22)
 
@@ -12909,7 +12912,7 @@ Package rule from **N** remains law: pre-draft package on create modal; post-dra
 - **Code:** **`ab3a776`** — `feat(proposals): add guided template package authorship`.
 - **Previous docs:** **`4b9e711`** — `docs: record optional upgrade truth acceptance checkpoint`.
 - **Docs:** **`82573e0`** — `docs: record Template Setup Authorship V1 acceptance checkpoint`.
-- **Working tree:** was clean at Authorship V1 docs commit; superseded for current resume by **T.9 R1** at **`6e1253f`**.
+- **Working tree:** was clean at Authorship V1 docs commit; superseded for current resume by **T.9 R2A** at **`c93a843`**.
 
 **Acceptance boundary:** **Template Setup Authorship V1 accepted.** This is **not** full Templates completion, **not** complete package CRUD (R1 later adds structure authorship soft-remove), **not** complete content editor, and **not** complete library controls (archive/restore/default template).
 
@@ -12987,10 +12990,11 @@ Package rule from **N** remains law: pre-draft package on create modal; post-dra
 - Prior sent snapshots not mutated; new sent version appended.
 - One-time operator migration apply script **`scripts/apply-proposal-option-description-migrations.mts`** was **removed before commit**; migrations are the durable artifact.
 
-**Remaining follow-ups after Authorship V1 (updated by R1):**
+**Remaining follow-ups after Authorship V1 (updated by R1 / R2A):**
 - ~~Package add/remove/reorder post-create~~ — **accepted in T.9 R1** (`6e1253f`).
 - Change simple/single/multi package model after create (if still desired).
-- Archive/restore/default template library controls (**likely R2 Library lifecycle**).
+- ~~Archive/restore template library controls~~ — **accepted in T.9 R2A** (`c93a843`).
+- **R2B** company default template (remaining library lifecycle slice).
 - Proposal packet / content editor (main path still outline + Advanced escape).
 - Estimate display editor.
 - Library smoke/test hygiene.
@@ -12999,15 +13003,15 @@ Package rule from **N** remains law: pre-draft package on create modal; post-dra
 - Broader page rhythm/premium polish if needed.
 - Measurement blocker specificity / Job Card setup escape links (if not already completed elsewhere).
 
-**Next recommended work (superseded by T.9 R1 for package structure):** See **T.9 R1** for current resume. Remaining Templates roadmap continues from R2 / other follow-ups above without reopening Optional Upgrade Truth, package-description SoT, or R1.
+**Next recommended work (superseded by T.9 R2A for archive/restore):** See **T.9 R2A** for current resume. Remaining Templates roadmap continues from **R2B** / other follow-ups above without reopening Optional Upgrade Truth, package-description SoT, R1, or R2A archive/restore semantics.
 
 ###### T.9 R1 Package-option structure authorship — ACCEPTED (2026-07-22)
 
 **Checkpoints:**
 - **Code:** **`6e1253f`** — `feat(proposals): add R1 package-option structure authorship`.
 - **Previous docs:** **`82573e0`** — `docs: record Template Setup Authorship V1 acceptance checkpoint`.
-- **Docs:** pending this docs commit.
-- **Working tree:** clean before this docs-only edit (code committed at **`6e1253f`**; no app/test/migration changes in this docs pass).
+- **Docs:** **`51fc3c9`** — `docs: record R1 package-option structure authorship checkpoint`.
+- **Working tree:** was clean at R1 docs commit; superseded for current resume by **T.9 R2A** at **`c93a843`**.
 
 **Acceptance boundary:** **R1 accepted as package-option structure authorship.** It does **not** complete:
 - full Templates lifecycle
@@ -13081,8 +13085,9 @@ Package rule from **N** remains law: pre-draft package on create modal; post-dra
 - Sent immutability guards
 - PDF / sign / payment
 
-**Remaining likely T.9 follow-ups (Templates not complete):**
-- **R2 Library lifecycle:** archive/restore/default template controls
+**Remaining likely T.9 follow-ups after R1 (updated by R2A; Templates not complete):**
+- ~~**R2A** archive/restore~~ — **accepted in T.9 R2A** (`c93a843`).
+- **R2B** company default template
 - Proposal packet/content editor
 - Estimate display editor
 - Package model conversion simple/single/multi after create, if still desired
@@ -13090,7 +13095,95 @@ Package rule from **N** remains law: pre-draft package on create modal; post-dra
 - Library hygiene
 - Mobile polish
 
-**Next recommended work:** Continue Templates roadmap after R1 — prefer **R2 Library lifecycle** or the next accepted T.9 follow-up ordering. Do **not** reopen Optional Upgrade Truth, package-description SoT, or R1 package-option / soft-remove model.
+**Next recommended work (superseded by T.9 R2A for archive/restore):** See **T.9 R2A** for current resume. Do **not** reopen Optional Upgrade Truth, package-description SoT, or R1 package-option / soft-remove model.
+
+###### T.9 R2A Template archive / restore lifecycle — ACCEPTED (2026-07-22)
+
+**Checkpoints:**
+- **Code:** **`c93a843`** — `feat(proposals): add R2A template archive restore lifecycle`.
+- **Previous docs:** **`51fc3c9`** — `docs: record R1 package-option structure authorship checkpoint`.
+- **Docs:** pending this docs commit.
+- **Working tree:** clean before this docs-only edit (code committed at **`c93a843`**; no app/test/migration changes in this docs pass).
+
+**Acceptance boundary:** **R2A is accepted as template archive/restore lifecycle only.** It does **not** include:
+- company default template (**R2B**)
+- template delete
+- package-option remove (R1 soft-remove remains separate)
+- content editor
+- estimate display editor
+- package model conversion
+- mobile polish
+
+**R2A accepted scope:**
+- Template archive
+- Template restore
+- Templates **Active / Archived** lifecycle UI
+- Calm archive confirmation modal
+- Archived templates hidden from future Job Card proposal creation
+- Job Card default resolver never selects archived templates
+- Sticky selected archived template is cleared/replaced
+- Archive/restore writes template **`status` + `active` together**
+
+**Data model:**
+- **No SQL/migration required.**
+- Uses existing **`proposal_templates.status`** and **`proposal_templates.active`**.
+- Archive sets **`status='archived'`** and **`active=false`**.
+- Restore sets **`status='active'`** and **`active=true`**.
+- **`status`** is the lifecycle source of truth; **`active`** is kept synced to prevent drift.
+
+**Product rule — Archive template means:**
+- Hide reusable setup from future proposal creation
+- Move/hide it from the active Templates library
+- Keep the template row
+- Keep package options, sections, and items
+- Keep existing drafts/sent proposals unchanged
+- Allow restore later
+
+**Archive does NOT mean:**
+- Delete the template
+- Delete package options
+- Set **`proposal_template_options.removed_at`**
+- Mutate **`proposal_versions`**
+- Mutate **`proposal_options`**
+- Mutate **`proposal_line_items`**
+- Hide old sent proposals
+- Break Builder/Preview/Public for existing proposals
+
+**Surface behavior:**
+
+| Surface | Behavior |
+|---------|----------|
+| **Templates** | Active / Archived filter; **Archive** on active rows; **Restore** on archived rows; **no Delete** in R2A |
+| **Job Card** | Archived templates excluded from template picker; cannot be initial/default selection; restored templates return to picker |
+| **Builder / Preview / Public** | Existing proposals created from archived templates still open and use proposal snapshot truth; **no** filtering by live template status |
+
+**Tests and smoke:**
+- **95/95** focused tests passed (**0** fail) — R2A lifecycle + R1 / Job Card / Builder regression.
+- Live archive → restore → Job Card exclusion smoke **PASS**.
+- Browser console: **0** errors.
+
+**Protected systems (untouched by R2A):**
+- R1 package-option add / copy / blank / reorder / remove
+- **`proposal_template_options.removed_at`**
+- Optional-upgrade truth
+- Package-description SoT
+- Builder draft **`proposal_options`** truth
+- Preview/Public frozen proposal snapshot truth
+- Pricing / math / quantity
+- Send / freeze / public
+- Sent immutability guards
+- PDF / sign / payment
+
+**Remaining likely T.9 follow-ups (Templates not complete):**
+- **R2B** company default template
+- Proposal packet/content editor
+- Estimate display editor
+- Package model conversion simple/single/multi after create, if still desired
+- Safe section delete
+- Library hygiene if still needed
+- Mobile polish
+
+**Next recommended work:** Prefer **R2B company default template** planning, unless product reorders remaining T.9 follow-ups. Do **not** reopen Optional Upgrade Truth, package-description SoT, R1 soft-remove / package-option model, or R2A archive/restore semantics.
 
 #### 13.4.6 Integrated Catalog → Proposal workflow research + FieldDive flow design — COMPLETE (2026-07-17)
 
@@ -14577,7 +14670,8 @@ Treat as **drift** if a session:
 
 ## Changelog (handoff doc only)
 
-- **2026-07-22:** **R1 package-option structure authorship acceptance checkpoint** (**§6BO.13.4.9 T.9 R1**) — code **`6e1253f`**; one template → many package options; Adjust packages Copy existing / Start blank / reorder / default / soft-remove; + Template One/Two/Three/Custom; dynamic active package-option count; Job Card + Builder 4-option truth; migration **`20260722_031`** live-applied on **`rhquhnujjnzjhweypavd`**; **101/101** focused tests; soft-remove + 4-option smoke PASS; protected systems untouched. **Not** full Templates lifecycle / content editor / estimate display editor / archive-default management / model conversion / mobile polish. **Next:** R2 Library lifecycle or next accepted T.9 follow-up — not Optional Upgrade Truth, package-description SoT, or R1 model reopen.
+- **2026-07-22:** **R2A template archive/restore lifecycle acceptance checkpoint** (**§6BO.13.4.9 T.9 R2A**) — code **`c93a843`**; archive/restore sync `proposal_templates.status` + `active`; Templates Active/Archived UI + calm confirm + Restore; Job Card picker + default resolver exclude archived; sticky archived selection cleared; **no SQL/migration**; **95/95** focused tests; live archive→restore→Job Card exclusion smoke PASS; protected systems untouched. **Not** company default template / template delete / package-option remove / content editor / estimate display editor / model conversion / mobile polish. **Next:** R2B company default template planning (or reorder remaining T.9 follow-ups) — not Optional Upgrade Truth, package-description SoT, R1, or R2A reopen.
+- **2026-07-22:** **R1 package-option structure authorship acceptance checkpoint** (**§6BO.13.4.9 T.9 R1**) — docs **`51fc3c9`**; code **`6e1253f`**; one template → many package options; Adjust packages Copy existing / Start blank / reorder / default / soft-remove; + Template One/Two/Three/Custom; dynamic active package-option count; Job Card + Builder 4-option truth; migration **`20260722_031`** live-applied on **`rhquhnujjnzjhweypavd`**; **101/101** focused tests; soft-remove + 4-option smoke PASS; protected systems untouched. **Not** full Templates lifecycle / content editor / estimate display editor / archive-default management / model conversion / mobile polish. **Next at that time:** R2 Library lifecycle — **superseded for archive/restore by T.9 R2A**.
 - **2026-07-22:** **Template Setup Authorship V1 acceptance checkpoint** (**§6BO.13.4.9 T.9**) — docs **`82573e0`**; code **`ab3a776`**; enhanced **+ Template** guided authorship; template name/purpose; package names/labels/descriptions/default; contextual **Adjust packages**; Job Card selection-only custom package display; authored description SoT through Builder/Preview/send-freeze/Public; migrations **`20260722_029`** + **`20260722_030`** live-applied on **`rhquhnujjnzjhweypavd`**; **138/138** focused tests; Good/Better/Best smoke PASS; operator apply script removed before code commit; protected systems untouched. **Not** full Templates completion / package CRUD / content editor / library controls. **Next at that time:** Templates roadmap follow-ups in T.9 — **superseded for package structure by T.9 R1**.
 - **2026-07-21:** **Optional Upgrade Truth acceptance checkpoint** (**§6BO.13.4.9 T.8**) — docs **`4b9e711`**; code **`a28224c`** / **`32964d6`**; live Path B starter repair; freeze/public smoke PASS on **`rhquhnujjnzjhweypavd`**. **Next at that time:** Template Flow presentation — **superseded by T.9**.
 - **2026-07-21:** **Template Flow V1 foundation + Job Card selected-template eligibility checkpoint** (**§6BO.13.4.9 T.7**) — code **`d877df6`**; guided blue **+ Template** path (Basics → Package model → Prepared structure → Create); simple/single/triple package models; existing ProposalTemplate graph materialization; reusable proposal setup landing; Job Card eligibility based on the selected usable graph rather than company starter readiness; starter and guided templates advance Template → Package; **66/66** focused tests; Templates setup-only / Job Card create-path lock; protected systems untouched. **Next:** Template Flow V1 visual/product follow-up or next roadmap decision; Stage D Preview/Public parity lock remains parked.
