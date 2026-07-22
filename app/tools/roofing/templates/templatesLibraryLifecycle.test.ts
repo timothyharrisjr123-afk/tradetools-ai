@@ -138,12 +138,16 @@ describe("R2A — Templates library UI is integrated, not destructive", () => {
     assert.ok(library.includes("archivedTemplates"));
   });
 
-  test("row exposes Archive on active rows and Restore only on archived rows", () => {
+  test("row exposes Archive/Restore as quiet selected-row actions", () => {
     const row = readTemplates("TemplatesTemplateLibraryRow.tsx");
     assert.ok(row.includes("onArchive"));
     assert.ok(row.includes("onRestore"));
     assert.ok(row.includes("TEMPLATES_ARCHIVE_ACTION_LABEL"));
     assert.ok(row.includes("TEMPLATES_RESTORE_ACTION_LABEL"));
+    // No bordered admin action strip; Make preferred action lives in the header.
+    assert.doesNotMatch(row, /border-t border-slate-100 pt-2/);
+    assert.doesNotMatch(row, /TEMPLATES_MAKE_PREFERRED_ACTION_LABEL/);
+    assert.doesNotMatch(row, /onMakePreferred/);
     // No nested <button> inside the select control (invalid HTML / a11y risk).
     assert.ok(!/<button[^>]*onClick=\{onSelect\}[\s\S]{0,400}<button/.test(row));
   });

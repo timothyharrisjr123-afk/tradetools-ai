@@ -34,6 +34,11 @@ describe("contractorFixtureIsolation", () => {
         text: "minimal complete-source live smoke",
         reason: "minimal_complete_source_live_smoke",
       },
+      { text: "Guided smoke roof template", reason: "guided_smoke_roof" },
+      {
+        text: "Roof Replacement Packages Authorship Smoke",
+        reason: "packages_authorship_smoke",
+      },
     ];
     for (const { text, reason } of cases) {
       const result = classifyContractorFixtureText(text);
@@ -50,6 +55,7 @@ describe("contractorFixtureIsolation", () => {
       "Sample board material quote",
       "Demo day walkthrough",
       "Standard package estimate",
+      "Test",
       "",
       null,
       undefined,
@@ -61,6 +67,23 @@ describe("contractorFixtureIsolation", () => {
         String(text)
       );
     }
+  });
+
+  test("hides templates flagged with metadata.smoke_test", () => {
+    assert.equal(
+      isInternalFixtureTemplate({
+        name: "Legitimate looking name",
+        metadata: { smoke_test: true },
+      }),
+      true
+    );
+    assert.equal(
+      isInternalFixtureTemplate({
+        name: "Roof replacement",
+        metadata: { seed_key: "proposal.roof_replacement" },
+      }),
+      false
+    );
   });
 
   test("does not broad-match bare test/sample/demo/smoke alone", () => {

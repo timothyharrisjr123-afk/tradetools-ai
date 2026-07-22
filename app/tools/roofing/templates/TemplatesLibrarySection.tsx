@@ -56,12 +56,16 @@ export default function TemplatesLibrarySection({
   lifecycleBusyTemplateId = null,
   lifecycleError = null,
   preferredTemplateId = null,
-  onMakePreferred,
-  preferenceBusy = false,
+  onMakePreferred: _onMakePreferred,
+  preferenceBusy: _preferenceBusy = false,
   preferenceError = null,
 }: TemplatesLibrarySectionProps) {
   const [libraryFilter, setLibraryFilter] = useState<TemplatesLibraryFilter>("active");
   const [confirmArchiveId, setConfirmArchiveId] = useState<string | null>(null);
+
+  // Make preferred lives on the selected setup header (R2B primary control).
+  void _onMakePreferred;
+  void _preferenceBusy;
 
   const visibleTemplates = filterContractorVisibleTemplates(templates);
   // Keep a selected fixture visible if opened directly; do not advertise smoke rows.
@@ -215,14 +219,6 @@ export default function TemplatesLibrarySection({
               }
               lifecycleBusy={lifecycleBusyTemplateId === template.id}
               isPreferred={preferredTemplateId === template.id}
-              onMakePreferred={
-                onMakePreferred &&
-                template.status !== "archived" &&
-                preferredTemplateId !== template.id
-                  ? () => onMakePreferred(template.id)
-                  : undefined
-              }
-              preferenceBusy={preferenceBusy}
             />
           ))
         ) : activeFilter === "archived" ? (

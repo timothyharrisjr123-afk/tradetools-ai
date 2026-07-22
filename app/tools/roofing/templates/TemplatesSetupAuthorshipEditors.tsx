@@ -239,7 +239,7 @@ export function TemplatesPackagesAdjustPanel({
         type="button"
         onClick={() => setOpen(true)}
         disabled={busy}
-        className="inline-flex items-center justify-center rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+        className="inline-flex items-center justify-center rounded-lg border border-slate-200/90 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
         data-templates-adjust-packages
       >
         Adjust packages
@@ -267,7 +267,7 @@ export function TemplatesPackagesAdjustPanel({
       }
     }
     if (!drafts.some((draft) => draft.isDefault)) {
-      setError("Choose a default package.");
+      setError("Choose a starting package.");
       return;
     }
     setError(null);
@@ -343,7 +343,7 @@ export function TemplatesPackagesAdjustPanel({
 
   return (
     <div
-      className="w-full space-y-3 rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm"
+      className="w-full space-y-3 rounded-xl bg-slate-50/50 p-3.5 ring-1 ring-slate-200/60"
       data-templates-packages-adjust
       data-templates-packages-adjust-mode={mode}
     >
@@ -353,7 +353,7 @@ export function TemplatesPackagesAdjustPanel({
             <div className="min-w-0 max-w-2xl">
               <p className="text-sm font-semibold text-slate-900">Adjust packages</p>
               <p className="mt-0.5 text-xs leading-snug text-slate-500">
-                Rename, reorder, add, or remove package options in this setup.
+                Rename, reorder, or add package options in this setup.
               </p>
             </div>
             <div className="flex shrink-0 flex-wrap items-center gap-2">
@@ -361,7 +361,7 @@ export function TemplatesPackagesAdjustPanel({
                 type="button"
                 disabled={busy}
                 onClick={startAdd}
-                className="rounded-md border border-blue-300 bg-blue-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                className="rounded-lg bg-slate-900 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
                 data-templates-add-package
               >
                 Add package
@@ -370,7 +370,7 @@ export function TemplatesPackagesAdjustPanel({
                 type="button"
                 disabled={busy}
                 onClick={() => setOpen(false)}
-                className="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                className="text-xs font-medium text-slate-500 underline-offset-2 hover:text-slate-800 hover:underline disabled:opacity-50"
                 data-templates-packages-adjust-done
               >
                 Done
@@ -378,11 +378,11 @@ export function TemplatesPackagesAdjustPanel({
             </div>
           </div>
 
-          <div className="space-y-2.5">
+          <div className="space-y-2">
             {drafts.map((draft, index) => (
               <div
                 key={draft.optionId}
-                className="rounded-xl border border-slate-200 bg-slate-50/40 px-3.5 py-3"
+                className="rounded-xl bg-white px-3.5 py-3 ring-1 ring-slate-200/70"
                 data-templates-package-authorship={draft.optionId}
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
@@ -395,14 +395,14 @@ export function TemplatesPackagesAdjustPanel({
                       onChange={() => updateDraft(draft.optionId, { isDefault: true })}
                       data-templates-package-default={draft.optionId}
                     />
-                    Default
+                    Starting package
                   </label>
-                  <div className="flex flex-wrap gap-1.5">
+                  <div className="flex flex-wrap items-center gap-2.5">
                     <button
                       type="button"
                       disabled={busy || index === 0}
                       onClick={() => void onReorderPackage(draft.optionId, "up")}
-                      className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+                      className="text-[11px] font-medium text-slate-500 underline-offset-2 hover:text-slate-800 hover:underline disabled:opacity-40"
                       data-templates-package-move-up={draft.optionId}
                     >
                       Move up
@@ -411,7 +411,7 @@ export function TemplatesPackagesAdjustPanel({
                       type="button"
                       disabled={busy || index === drafts.length - 1}
                       onClick={() => void onReorderPackage(draft.optionId, "down")}
-                      className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+                      className="text-[11px] font-medium text-slate-500 underline-offset-2 hover:text-slate-800 hover:underline disabled:opacity-40"
                       data-templates-package-move-down={draft.optionId}
                     >
                       Move down
@@ -420,7 +420,7 @@ export function TemplatesPackagesAdjustPanel({
                       type="button"
                       disabled={busy || drafts.length <= 1}
                       onClick={() => startRemove(draft.optionId)}
-                      className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+                      className="text-[11px] font-medium text-slate-400 underline-offset-2 hover:text-slate-700 hover:underline disabled:opacity-40"
                       data-templates-package-remove={draft.optionId}
                     >
                       Remove from setup

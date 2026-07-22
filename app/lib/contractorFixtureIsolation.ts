@@ -24,6 +24,10 @@ const KNOWN_FIXTURE_MARKERS: ReadonlyArray<{ marker: string; reason: string }> =
   { marker: "coverage basis live smoke", reason: "coverage_basis_live_smoke" },
   { marker: "controlled live smoke", reason: "controlled_live_smoke" },
   { marker: "complete-source smoke", reason: "complete_source_smoke" },
+  { marker: "packages authorship smoke", reason: "packages_authorship_smoke" },
+  { marker: "authorship smoke", reason: "authorship_smoke" },
+  { marker: "guided smoke roof", reason: "guided_smoke_roof" },
+  { marker: "guided smoke", reason: "guided_smoke" },
   { marker: "raw_plus_waste", reason: "raw_plus_waste" },
   { marker: "raw plus waste", reason: "raw_plus_waste" },
   { marker: "smoke 2026", reason: "smoke_2026" },
@@ -61,7 +65,12 @@ export function isInternalFixtureProposal(input: {
 
 export function isInternalFixtureTemplate(input: {
   name?: string | null;
+  metadata?: Record<string, unknown> | null;
 }): boolean {
+  // Durable metadata flag when present (hide-not-delete; never deletes rows).
+  if (input.metadata && input.metadata.smoke_test === true) {
+    return true;
+  }
   return classifyContractorFixtureText(input.name).isInternalFixture;
 }
 
@@ -72,7 +81,7 @@ export function filterContractorVisibleProposals<
 }
 
 export function filterContractorVisibleTemplates<
-  T extends { name?: string | null },
+  T extends { name?: string | null; metadata?: Record<string, unknown> | null },
 >(rows: readonly T[]): T[] {
   return rows.filter((row) => !isInternalFixtureTemplate(row));
 }

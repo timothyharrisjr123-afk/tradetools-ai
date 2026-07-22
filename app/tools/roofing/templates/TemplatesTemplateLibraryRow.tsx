@@ -1,10 +1,7 @@
 "use client";
 
-import {
-  proposalTemplateStatusLabel,
-  type ProposalTemplate,
-  type ProposalTemplateReadiness,
-} from "@/app/lib/proposalTemplateTypes";
+import type { ProposalTemplateReadiness } from "@/app/lib/proposalTemplateTypes";
+import type { ProposalTemplate } from "@/app/lib/proposalTemplateTypes";
 import type { ProposalTemplateGraph } from "@/app/lib/proposalTemplateStore";
 import {
   TEMPLATES_LIBRARY_ROW,
@@ -17,7 +14,6 @@ import {
 } from "./templatesSetupUtils";
 import {
   TEMPLATES_ARCHIVE_ACTION_LABEL,
-  TEMPLATES_MAKE_PREFERRED_ACTION_LABEL,
   TEMPLATES_PREFERRED_BADGE_LABEL,
   TEMPLATES_RESTORE_ACTION_LABEL,
 } from "./templatesWorkspaceFlow";
@@ -31,14 +27,12 @@ type TemplatesTemplateLibraryRowProps = {
   selectDisabled?: boolean;
   selectDisabledTitle?: string;
   compact?: boolean;
-  /** R2A — archive/restore row actions. Omitted callbacks hide the action. */
+  /** Quiet selected-row lifecycle only — not a bordered admin action strip. */
   onArchive?: () => void;
   onRestore?: () => void;
   lifecycleBusy?: boolean;
-  /** R2B — preferred setup for roofing proposals (not package-option default). */
+  /** R2B — Preferred is a calm state badge here; Make preferred lives in the header. */
   isPreferred?: boolean;
-  onMakePreferred?: () => void;
-  preferenceBusy?: boolean;
 };
 
 export default function TemplatesTemplateLibraryRow({
@@ -54,23 +48,22 @@ export default function TemplatesTemplateLibraryRow({
   onRestore,
   lifecycleBusy = false,
   isPreferred = false,
-  onMakePreferred,
-  preferenceBusy = false,
 }: TemplatesTemplateLibraryRowProps) {
-  const statusLabel = proposalTemplateStatusLabel(template.status);
   const archived = template.status === "archived";
   const rowClass = `${selected ? TEMPLATES_LIBRARY_ROW_SELECTED : TEMPLATES_LIBRARY_ROW}${
-    archived && !selected ? " bg-slate-50/70 opacity-60" : ""
+    archived && !selected ? " opacity-90" : ""
   }`;
   const sortedOptions = graph ? sortTemplateOptionsByOrder(graph.options) : [];
   const includedLinkedCount = graph ? countCatalogLinkedTemplateItems(graph) : null;
   const availableUpgradeCount = graph
     ? countCatalogLinkedAvailableUpgradeItems(graph)
     : null;
-  const ready =
+  const needsAttention =
     selected &&
-    proposalReadiness?.status === "ready_for_builder" &&
-    (proposalReadiness.missing_catalog_item_count ?? 0) === 0;
+    !archived &&
+    proposalReadiness != null &&
+    (proposalReadiness.status !== "ready_for_builder" ||
+      (proposalReadiness.missing_catalog_item_count ?? 0) > 0);
 
   const description = template.description?.trim() ?? "";
   const shortDescription =
@@ -94,10 +87,9 @@ export default function TemplatesTemplateLibraryRow({
           .filter(Boolean)
           .join(" · ");
 
-  const showLifecycleActions = Boolean(onArchive || onRestore);
-  const showPreferredAction =
-    !archived && Boolean(onMakePreferred) && !isPreferred;
-  const showRowActions = showLifecycleActions || showPreferredAction || (isPreferred && !archived);
+  // Lifecycle actions only on the selected row (or archived rows in Archived view).
+  const showLifecycleAction =
+    (selected || archived) && Boolean(onArchive || onRestore);
 
   return (
     <article
@@ -108,7 +100,7 @@ export default function TemplatesTemplateLibraryRow({
       data-templates-setup-row={template.id}
       data-templates-setup-row-selected={selected ? "true" : "false"}
     >
-      <div className="flex w-full flex-wrap items-start justify-between gap-2">
+      <div className="flex w-full items-start justify-between gap-3">
         <button
           type="button"
           onClick={onSelect}
@@ -121,24 +113,30 @@ export default function TemplatesTemplateLibraryRow({
         >
           <div className="flex flex-wrap items-center gap-2">
             <h3
-              className={`text-sm font-semibold ${
+              className={`text-sm font-semibold tracking-tight ${
                 archived ? "text-slate-600" : "text-slate-900"
               }`}
             >
               {template.name}
             </h3>
-            {selected ? (
-              <span className="rounded-full bg-blue-600 px-1.5 py-0.5 text-[10px] font-semibold text-white">
-                Selected
-              </span>
-            ) : null}
             {isPreferred && !archived ? (
               <span
-                className="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-800 ring-1 ring-emerald-200/80"
+                className="rounded-full bg-emerald-50/90 px-1.5 py-0.5 text-[10px] font-medium text-emerald-800 ring-1 ring-emerald-200/70"
                 data-templates-library-preferred-badge={template.id}
               >
                 {TEMPLATES_PREFERRED_BADGE_LABEL}
               </span>
+            ) : null}
+            {needsAttention ? (
+              <span
+                className="rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-800 ring-1 ring-amber-200/80"
+                data-templates-library-ready="false"
+              >
+                Needs attention
+              </span>
+            ) : null}
+            {archived ? (
+              <span className="text-[11px] font-medium text-slate-400">Archived</span>
             ) : null}
           </div>
           {!compact && shortDescription ? (
@@ -146,82 +144,47 @@ export default function TemplatesTemplateLibraryRow({
           ) : null}
           {selected && summaryLine ? (
             <p
-              className="mt-1.5 text-xs font-medium text-slate-600"
+              className="mt-1 text-xs text-slate-500"
               data-templates-library-summary
             >
               {summaryLine}
             </p>
           ) : archived && !selected ? (
-            <p className="mt-1 text-[11px] text-slate-500">Archived · not used by default</p>
+            <p className="mt-1 text-[11px] text-slate-400">Not used for new proposals</p>
           ) : null}
         </button>
 
-        <div className="flex shrink-0 flex-wrap items-center gap-1.5">
-          <span
-            className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ${
-              archived
-                ? "bg-slate-100 text-slate-500 ring-slate-200/80"
-                : "bg-slate-50 text-slate-600 ring-slate-200/80"
-            }`}
+        {showLifecycleAction ? (
+          <div
+            className="flex shrink-0 items-center gap-2 pt-0.5"
+            data-templates-library-row-actions={template.id}
           >
-            {statusLabel}
-          </span>
-          {selected && proposalReadiness && !archived ? (
-            <span
-              className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ${
-                ready
-                  ? "bg-emerald-50 text-emerald-800 ring-emerald-200"
-                  : "bg-amber-50 text-amber-800 ring-amber-200"
-              }`}
-              data-templates-library-ready={ready ? "true" : "false"}
-            >
-              {ready ? "Ready" : "Needs attention"}
-            </span>
-          ) : null}
-        </div>
-      </div>
-
-      {showRowActions ? (
-        <div
-          className="mt-2 flex justify-end gap-1.5 border-t border-slate-100 pt-2"
-          data-templates-library-row-actions={template.id}
-        >
-          {showPreferredAction ? (
-            <button
-              type="button"
-              onClick={onMakePreferred}
-              disabled={preferenceBusy || lifecycleBusy}
-              className="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-              data-templates-library-make-preferred={template.id}
-            >
-              {preferenceBusy ? "Saving…" : TEMPLATES_MAKE_PREFERRED_ACTION_LABEL}
-            </button>
-          ) : null}
-          {archived ? (
-            onRestore ? (
+            {archived ? (
+              onRestore ? (
+                <button
+                  type="button"
+                  onClick={onRestore}
+                  disabled={lifecycleBusy}
+                  className="text-xs font-medium text-slate-500 underline-offset-2 hover:text-slate-800 hover:underline disabled:opacity-50"
+                  data-templates-library-restore={template.id}
+                >
+                  {lifecycleBusy ? "Restoring…" : TEMPLATES_RESTORE_ACTION_LABEL}
+                </button>
+              ) : null
+            ) : onArchive ? (
               <button
                 type="button"
-                onClick={onRestore}
+                onClick={onArchive}
                 disabled={lifecycleBusy}
-                className="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-                data-templates-library-restore={template.id}
+                className="text-xs font-medium text-slate-400 underline-offset-2 hover:text-slate-700 hover:underline disabled:opacity-50"
+                data-templates-library-archive={template.id}
               >
-                {lifecycleBusy ? "Restoring…" : TEMPLATES_RESTORE_ACTION_LABEL}
+                {lifecycleBusy ? "Archiving…" : TEMPLATES_ARCHIVE_ACTION_LABEL}
               </button>
-            ) : null
-          ) : onArchive ? (
-            <button
-              type="button"
-              onClick={onArchive}
-              disabled={lifecycleBusy}
-              className="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
-              data-templates-library-archive={template.id}
-            >
-              {lifecycleBusy ? "Archiving…" : TEMPLATES_ARCHIVE_ACTION_LABEL}
-            </button>
-          ) : null}
-        </div>
-      ) : null}
+            ) : null}
+          </div>
+        ) : null}
+      </div>
     </article>
   );
 }

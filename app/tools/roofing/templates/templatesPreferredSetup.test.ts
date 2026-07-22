@@ -187,18 +187,20 @@ describe("R2B — Templates UI preferred setup", () => {
     assert.ok(flow.includes("TEMPLATES_PREFERRED_HELPER_COPY"));
     assert.match(flow, /Preferred for new roofing proposals/);
     assert.match(flow, /Used first when starting a proposal from a Job Card/);
-    assert.ok(row.includes("onMakePreferred"));
+    // Preferred badge in library; Make preferred primary on selected header.
     assert.ok(row.includes("TEMPLATES_PREFERRED_BADGE_LABEL"));
-    assert.ok(row.includes("data-templates-library-make-preferred"));
+    assert.ok(row.includes("data-templates-library-preferred-badge"));
+    assert.doesNotMatch(row, /data-templates-library-make-preferred/);
     assert.ok(review.includes("data-templates-make-preferred"));
     assert.ok(review.includes("data-templates-preferred-badge"));
     assert.doesNotMatch(row, /system default|database default|is_default/i);
     assert.doesNotMatch(review, /system default|database default/i);
   });
 
-  test("archived rows do not expose Make preferred", () => {
+  test("library rows do not expose Make preferred action strip", () => {
     const row = readTemplates("TemplatesTemplateLibraryRow.tsx");
-    assert.ok(row.includes("!archived && Boolean(onMakePreferred)"));
+    assert.doesNotMatch(row, /onMakePreferred/);
+    assert.doesNotMatch(row, /TEMPLATES_MAKE_PREFERRED_ACTION_LABEL/);
   });
 
   test("TemplatesSetupClient wires preference store helpers", () => {
@@ -208,6 +210,25 @@ describe("R2B — Templates UI preferred setup", () => {
     assert.ok(setup.includes("getPreferredSetupTemplateId"));
     assert.ok(setup.includes("handleMakePreferred"));
     assert.ok(setup.includes("onMakePreferred={handleMakePreferred}"));
+  });
+
+  test("Adjust packages uses Starting package language for R1 is_default", () => {
+    const editors = readTemplates("TemplatesSetupAuthorshipEditors.tsx");
+    assert.ok(editors.includes("Starting package"));
+    assert.ok(editors.includes("data-templates-package-default"));
+    assert.ok(editors.includes("isDefault"));
+  });
+
+  test("contractor library filter hides guided/authorship smoke fixtures", () => {
+    const isolation = readFileSync(
+      join(process.cwd(), "app/lib/contractorFixtureIsolation.ts"),
+      "utf8"
+    );
+    assert.ok(isolation.includes("guided smoke"));
+    assert.ok(isolation.includes("authorship smoke"));
+    assert.ok(isolation.includes("smoke_test"));
+    const library = readTemplates("TemplatesLibrarySection.tsx");
+    assert.ok(library.includes("filterContractorVisibleTemplates"));
   });
 });
 

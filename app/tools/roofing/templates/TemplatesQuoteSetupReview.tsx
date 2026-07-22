@@ -25,6 +25,7 @@ import { buildPreparedPackageScopePresentation } from "./templatesIncludedWorkPr
 import {
   TEMPLATES_ADVANCED_EDITING_ACTION,
   TEMPLATES_CLEAR_PREFERRED_ACTION_LABEL,
+  TEMPLATES_ESTIMATE_DISPLAY_ADVANCED_ACTION,
   TEMPLATES_INCLUDED_WORK_HEADING,
   TEMPLATES_JOB_CARD_USE_NOTE,
   TEMPLATES_MAKE_PREFERRED_ACTION_LABEL,
@@ -32,8 +33,8 @@ import {
   TEMPLATES_OPEN_JOBS_ACTION,
   TEMPLATES_PACKAGES_SECTION_HINT,
   TEMPLATES_PREFERRED_BADGE_LABEL,
-  TEMPLATES_PREFERRED_FOR_ROOFING_COPY,
   TEMPLATES_PREFERRED_HELPER_COPY,
+  TEMPLATES_PROPOSAL_CONTENT_ADVANCED_ACTION,
   TEMPLATES_PROPOSAL_CONTENT_HEADING,
   TEMPLATES_PROPOSAL_CONTENT_HINT,
   TEMPLATES_REUSABLE_SETUP_EYEBROW,
@@ -183,33 +184,43 @@ export default function TemplatesQuoteSetupReview({
           data-templates-reusable-setup-hero
         >
           <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                {TEMPLATES_REUSABLE_SETUP_EYEBROW}
-              </p>
+            <div className="min-w-0 max-w-2xl">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-[11px] font-medium tracking-wide text-slate-500">
+                  {TEMPLATES_REUSABLE_SETUP_EYEBROW}
+                </p>
+                {isPreferred && template.status !== "archived" ? (
+                  <span
+                    className="rounded-full bg-emerald-50/90 px-1.5 py-0.5 text-[10px] font-medium text-emerald-800 ring-1 ring-emerald-200/70"
+                    data-templates-preferred-badge
+                  >
+                    {TEMPLATES_PREFERRED_BADGE_LABEL}
+                  </span>
+                ) : null}
+                {template.status === "archived" ? (
+                  <span
+                    className="text-[11px] font-medium text-slate-400"
+                    data-templates-quiet-status
+                  >
+                    {statusLabel}
+                  </span>
+                ) : null}
+              </div>
               <h2
                 id="templates-reusable-setup-heading"
                 className="mt-1 text-lg font-semibold tracking-tight text-slate-900"
               >
                 {template.name}
               </h2>
-              <p className="mt-1 max-w-2xl text-sm text-slate-600">
+              <p className="mt-1 text-sm text-slate-600">
                 {description ?? TEMPLATES_REUSABLE_SETUP_SUBCOPY}
               </p>
-              <p className="mt-1.5 text-xs text-slate-500" data-templates-hero-counts>
+              <p className="mt-1 text-xs text-slate-500" data-templates-hero-counts>
                 {countLine}
+                {isPreferred && template.status !== "archived"
+                  ? ` · ${TEMPLATES_PREFERRED_HELPER_COPY}`
+                  : ` · ${TEMPLATES_JOB_CARD_USE_NOTE}`}
               </p>
-              <p className="mt-1 text-xs text-slate-500" data-templates-job-card-use-note>
-                {TEMPLATES_JOB_CARD_USE_NOTE}
-              </p>
-              {isPreferred && template.status !== "archived" ? (
-                <p
-                  className="mt-1 text-xs text-emerald-800"
-                  data-templates-preferred-helper
-                >
-                  {TEMPLATES_PREFERRED_FOR_ROOFING_COPY}. {TEMPLATES_PREFERRED_HELPER_COPY}
-                </p>
-              ) : null}
               <div className="mt-2">
                 <TemplatesIdentityEditor
                   name={template.name}
@@ -219,27 +230,13 @@ export default function TemplatesQuoteSetupReview({
                 />
               </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              {isPreferred && template.status !== "archived" ? (
-                <span
-                  className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-800 ring-1 ring-emerald-200/80"
-                  data-templates-preferred-badge
-                >
-                  {TEMPLATES_PREFERRED_BADGE_LABEL}
-                </span>
-              ) : null}
-              <span
-                className="rounded-full bg-slate-50 px-2 py-0.5 text-[10px] font-medium text-slate-500 ring-1 ring-slate-200/80"
-                data-templates-quiet-status
-              >
-                {statusLabel}
-              </span>
+            <div className="flex flex-wrap items-center gap-2.5">
               {template.status !== "archived" && !isPreferred && onMakePreferred ? (
                 <button
                   type="button"
                   onClick={onMakePreferred}
                   disabled={busy || preferenceBusy}
-                  className="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                  className="rounded-lg border border-slate-200/90 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
                   data-templates-make-preferred
                 >
                   {preferenceBusy ? "Saving…" : TEMPLATES_MAKE_PREFERRED_ACTION_LABEL}
@@ -410,14 +407,14 @@ export default function TemplatesQuoteSetupReview({
                       <p className="text-sm font-semibold text-slate-900">{row.optionLabel}</p>
                       {row.isDefault ? (
                         <span
-                          className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600 ring-1 ring-slate-200/80"
+                          className="rounded-full bg-slate-100/90 px-1.5 py-0.5 text-[10px] font-medium text-slate-600 ring-1 ring-slate-200/70"
                           data-templates-package-default-badge={row.optionId}
                         >
-                          Default
+                          Starting
                         </span>
                       ) : null}
                       {selected ? (
-                        <span className="rounded-full bg-blue-600 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                        <span className="text-[10px] font-medium text-blue-700">
                           Reviewing
                         </span>
                       ) : null}
@@ -478,14 +475,24 @@ export default function TemplatesQuoteSetupReview({
               </h3>
               <p className="mt-0.5 text-xs text-slate-500">{TEMPLATES_PROPOSAL_CONTENT_HINT}</p>
             </div>
-            <button
-              type="button"
-              onClick={() => onOpenAdvanced("content")}
-              className="text-xs font-medium text-slate-500 underline-offset-2 hover:text-slate-800 hover:underline"
-              data-templates-edit-content-quiet
-            >
-              Edit wording in Advanced editing
-            </button>
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() => onOpenAdvanced("estimate")}
+                className="text-xs font-medium text-slate-500 underline-offset-2 hover:text-slate-800 hover:underline"
+                data-templates-open-estimate-display
+              >
+                {TEMPLATES_ESTIMATE_DISPLAY_ADVANCED_ACTION}
+              </button>
+              <button
+                type="button"
+                onClick={() => onOpenAdvanced("content")}
+                className="text-xs font-medium text-slate-500 underline-offset-2 hover:text-slate-800 hover:underline"
+                data-templates-edit-content-quiet
+              >
+                {TEMPLATES_PROPOSAL_CONTENT_ADVANCED_ACTION}
+              </button>
+            </div>
           </div>
           {contentAreas.length === 0 ? (
             <p className="mt-3 text-sm text-slate-500">No proposal pages prepared yet.</p>

@@ -200,8 +200,8 @@ export default function TemplatesSelectedWorkspace({
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-            Advanced editing
+          <p className="text-[11px] font-medium tracking-wide text-slate-500">
+            Advanced
           </p>
           <h2
             className="mt-1 text-base font-semibold text-slate-900"

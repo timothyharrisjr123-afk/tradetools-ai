@@ -26,7 +26,7 @@ describe("Template Flow V1 — reusable setup landing", () => {
   test("landing uses Reusable proposal setup framing", () => {
     const review = read("TemplatesQuoteSetupReview.tsx");
     const library = read("TemplatesLibrarySection.tsx");
-    assert.equal(TEMPLATES_REUSABLE_SETUP_EYEBROW, "Reusable proposal setup");
+    assert.equal(TEMPLATES_REUSABLE_SETUP_EYEBROW, "Selected setup");
     assert.ok(review.includes("TEMPLATES_REUSABLE_SETUP_EYEBROW"));
     assert.ok(review.includes("TEMPLATES_REUSABLE_SETUP_SUBCOPY"));
     assert.ok(library.includes("TEMPLATES_LIBRARY_HEADING"));
@@ -107,7 +107,6 @@ describe("Template Flow V1 — reusable setup landing", () => {
     const review = read("TemplatesQuoteSetupReview.tsx");
     const setup = read("TemplatesSetupClient.tsx");
     assert.match(TEMPLATES_NEXT_USE_COPY, /Job Card/i);
-    assert.match(TEMPLATES_NEXT_USE_COPY, /Builder/i);
     assert.ok(review.includes("data-templates-next-use"));
     assert.ok(review.includes("TEMPLATES_OPEN_JOBS_ACTION") || review.includes("Open Jobs"));
     assert.ok(review.includes("TEMPLATES_NEXT_USE_COPY"));

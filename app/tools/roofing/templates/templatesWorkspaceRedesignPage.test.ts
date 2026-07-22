@@ -148,7 +148,7 @@ describe("Templates Page — Reusable proposal setup landing", () => {
   test("packages and content follow hero before next use; no trust footnote hero", () => {
     const review = read("TemplatesQuoteSetupReview.tsx");
     assert.ok(!review.includes("data-templates-trust-note"));
-    assert.equal(TEMPLATES_REUSABLE_SETUP_EYEBROW, "Reusable proposal setup");
+    assert.equal(TEMPLATES_REUSABLE_SETUP_EYEBROW, "Selected setup");
     const heroIdx = review.indexOf("data-templates-quote-hero");
     const pkgIdx = review.indexOf("data-templates-package-selector");
     const contentIdx = review.indexOf("data-templates-proposal-content");

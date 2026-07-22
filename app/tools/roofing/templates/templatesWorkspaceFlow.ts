@@ -93,12 +93,14 @@ export const TEMPLATES_PREFERRED_HELPER_COPY =
   "Used first when starting a proposal from a Job Card." as const;
 export const TEMPLATES_PREFERRED_FOR_ROOFING_COPY =
   "Preferred for new roofing proposals" as const;
-export const TEMPLATES_REUSABLE_SETUP_EYEBROW = "Reusable proposal setup" as const;
+export const TEMPLATES_REUSABLE_SETUP_EYEBROW = "Selected setup" as const;
 export const TEMPLATES_REUSABLE_SETUP_SUBCOPY =
   "Review what this template prepares for future proposals." as const;
 export const TEMPLATES_PACKAGES_SECTION_HEADING = "Packages" as const;
 export const TEMPLATES_PACKAGES_SECTION_HINT =
   "Switch packages to review what each one includes. Package selection happens later from a Job Card." as const;
+/** R1 package-option default — distinct from R2B Preferred setup. */
+export const TEMPLATES_PACKAGE_STARTING_LABEL = "Starting package" as const;
 
 /**
  * Live active package-option count inside one template.
@@ -150,19 +152,23 @@ export const TEMPLATES_AVAILABLE_UPGRADES_EMPTY =
   "No optional upgrades prepared for this package." as const;
 export const TEMPLATES_PROPOSAL_CONTENT_HEADING = "Proposal packet" as const;
 export const TEMPLATES_PROPOSAL_CONTENT_HINT =
-  "Customer-facing pages in this setup." as const;
+  "Prepared customer-facing sections for this setup." as const;
+export const TEMPLATES_PROPOSAL_CONTENT_ADVANCED_ACTION =
+  "Open packet pages" as const;
+export const TEMPLATES_ESTIMATE_DISPLAY_ADVANCED_ACTION =
+  "Estimate display" as const;
 export const TEMPLATES_NEXT_USE_HEADING = "Used from a Job Card" as const;
 export const TEMPLATES_NEXT_USE_COPY =
-  "Use this template from a Job Card: choose measurement → choose template → choose package → continue to Builder." as const;
+  "Start a proposal from a Job Card to use this setup." as const;
 export const TEMPLATES_OPEN_JOBS_ACTION = "Open Jobs" as const;
 export const TEMPLATES_ADJUST_INCLUDED_ACTION = "Adjust included work" as const;
-export const TEMPLATES_ADVANCED_EDITING_ACTION = "Advanced editing" as const;
+export const TEMPLATES_ADVANCED_EDITING_ACTION = "Advanced" as const;
 export const TEMPLATES_BACK_TO_SETUP_ACTION = "Back to proposal setup" as const;
 export const TEMPLATES_SIMPLE_ESTIMATE_LABEL = "Simple estimate" as const;
 export const TEMPLATES_SIMPLE_ESTIMATE_DETAIL =
   "One prepared estimate — no package choices for the customer." as const;
 export const TEMPLATES_JOB_CARD_USE_NOTE =
-  "Used from a Job Card when creating a proposal." as const;
+  "Starts from Job Card when creating a proposal." as const;
 /** Short contractor-facing blurb for a package choice card. */
 export function resolvePackageChoiceDescription(input: {
   optionLabel: string;
