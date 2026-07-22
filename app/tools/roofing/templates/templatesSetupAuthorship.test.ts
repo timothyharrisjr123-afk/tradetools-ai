@@ -29,6 +29,10 @@ describe("Template Setup Authorship V1", () => {
     assert.ok(setup.includes("updateProposalTemplateOption"));
     assert.ok(setup.includes("handleSaveTemplateIdentity"));
     assert.ok(setup.includes("handleSavePackageAuthorship"));
+    assert.ok(setup.includes("handleCopyPackage"));
+    assert.ok(setup.includes("handleCreateBlankPackage"));
+    assert.ok(setup.includes("handleReorderPackage"));
+    assert.ok(setup.includes("handleRemovePackage"));
   });
 
   test("package summary includes isDefault for default badge + Job Card default", () => {

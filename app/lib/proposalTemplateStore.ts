@@ -77,6 +77,7 @@ export type ProposalTemplateOptionRow = {
   is_default: boolean;
   visible_to_customer: boolean;
   sort_order?: number | null;
+  removed_at?: string | null;
   metadata: JsonObject;
   created_at: string;
   updated_at: string;
@@ -133,7 +134,7 @@ export const PROPOSAL_TEMPLATE_SELECT_COLUMNS =
   "id, company_id, name, description, status, active, sort_order, metadata, created_by, updated_by, created_at, updated_at";
 
 export const PROPOSAL_TEMPLATE_OPTION_SELECT_COLUMNS =
-  "id, company_id, template_id, name, customer_label, description, selection_mode, is_default, visible_to_customer, sort_order, metadata, created_at, updated_at";
+  "id, company_id, template_id, name, customer_label, description, selection_mode, is_default, visible_to_customer, sort_order, removed_at, metadata, created_at, updated_at";
 
 export const PROPOSAL_TEMPLATE_SECTION_SELECT_COLUMNS =
   "id, company_id, template_id, option_id, kind, name, customer_title, customer_visibility, sort_order, content, metadata, created_at, updated_at";
@@ -338,6 +339,7 @@ export function rowToProposalTemplateOption(
     is_default: Boolean(row.is_default),
     visible_to_customer: Boolean(row.visible_to_customer),
     sort_order: normalizeNullableInteger(row.sort_order),
+    removed_at: normalizeNullableString(row.removed_at),
     metadata: normalizeJsonObject(row.metadata) ?? {},
     created_at: row.created_at,
     updated_at: row.updated_at,
@@ -462,6 +464,10 @@ function proposalTemplateOptionDraftToRowFields(
     sort_order:
       draft.sort_order !== undefined
         ? normalizeNullableInteger(draft.sort_order)
+        : undefined,
+    removed_at:
+      draft.removed_at !== undefined
+        ? normalizeNullableString(draft.removed_at)
         : undefined,
     metadata:
       draft.metadata !== undefined ? (normalizeJsonObject(draft.metadata) ?? {}) : undefined,
@@ -780,7 +786,7 @@ export async function getActiveProposalTemplatesByCompany(
 
 export async function getProposalTemplateOptions(
   templateId: string,
-  options: { companyId: string }
+  options: { companyId: string; includeRemoved?: boolean }
 ): Promise<ProposalTemplateOption[]> {
   const supabase = getSupabaseClient();
   if (!supabase) {
@@ -800,13 +806,17 @@ export async function getProposalTemplateOptions(
   }
 
   try {
-    const query = applyOptionListOrder(
+    let query = applyOptionListOrder(
       supabase
         .from("proposal_template_options")
         .select(PROPOSAL_TEMPLATE_OPTION_SELECT_COLUMNS)
         .eq("template_id", scopedTemplateId)
         .eq("company_id", companyId)
     );
+
+    if (!options.includeRemoved) {
+      query = query.is("removed_at", null);
+    }
 
     const { data, error } = await query;
 
@@ -972,7 +982,7 @@ export async function getProposalTemplateItemsBySection(
 
 export async function getProposalTemplateGraph(
   templateId: string,
-  options: { companyId: string }
+  options: { companyId: string; includeRemoved?: boolean }
 ): Promise<ProposalTemplateGraph | null> {
   const template = await getProposalTemplateById(templateId, options);
   if (!template) return null;
@@ -982,16 +992,27 @@ export async function getProposalTemplateGraph(
 
   try {
     const [optionRows, sectionRows, itemRows] = await Promise.all([
-      getProposalTemplateOptions(scopedTemplateId, { companyId }),
+      getProposalTemplateOptions(scopedTemplateId, {
+        companyId,
+        includeRemoved: options.includeRemoved === true,
+      }),
       getProposalTemplateSections(scopedTemplateId, { companyId }),
       getProposalTemplateItems(scopedTemplateId, { companyId }),
     ]);
 
+    const activeOptionIds = new Set(optionRows.map((row) => row.id));
+    const sections = options.includeRemoved
+      ? sectionRows
+      : sectionRows.filter((row) => activeOptionIds.has(row.option_id));
+    const items = options.includeRemoved
+      ? itemRows
+      : itemRows.filter((row) => activeOptionIds.has(row.option_id));
+
     return {
       template,
       options: optionRows,
-      sections: sectionRows,
-      items: itemRows,
+      sections,
+      items,
     };
   } catch (err) {
     console.error("[proposalTemplateStore] getProposalTemplateGraph error:", err);
@@ -1729,6 +1750,39 @@ export async function deleteProposalTemplateItem(
     console.error("[proposalTemplateStore] deleteProposalTemplateItem error:", err);
     return false;
   }
+}
+
+/**
+ * Soft-remove a template package option for future proposal creation.
+ * Preserves the row (and FK traceability for sent proposal_options.source_template_option_id).
+ * Always clears is_default so the one-default-per-template unique index stays usable.
+ * Does not mutate proposal drafts or sent snapshots.
+ */
+export async function softRemoveProposalTemplateOption(
+  id: string,
+  options: { companyId: string; templateId: string }
+): Promise<ProposalTemplateOption | null> {
+  const removedAt = new Date().toISOString();
+  return updateProposalTemplateOption(
+    id,
+    {
+      removed_at: removedAt,
+      is_default: false,
+    },
+    options
+  );
+}
+
+/**
+ * @deprecated Prefer softRemoveProposalTemplateOption — UI remove uses soft-remove only.
+ * Kept as a thin alias so existing call sites keep working.
+ */
+export async function deleteProposalTemplateOption(
+  id: string,
+  options: { companyId: string; templateId: string }
+): Promise<boolean> {
+  const removed = await softRemoveProposalTemplateOption(id, options);
+  return removed != null;
 }
 
 async function fetchItemById(

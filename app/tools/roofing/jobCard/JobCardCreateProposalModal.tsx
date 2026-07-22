@@ -12,7 +12,6 @@ import {
   CREATE_PROPOSAL_MODAL_TITLE,
   CREATE_PROPOSAL_PACKAGE_BLOCKED,
   CREATE_PROPOSAL_PACKAGE_BUILDER_NOTE,
-  CREATE_PROPOSAL_PACKAGE_GUIDE,
   CREATE_PROPOSAL_REVIEW_INTRO,
   CREATE_PROPOSAL_REVIEW_NEXT,
   CREATE_PROPOSAL_REVIEW_NEXT_LABEL,
@@ -34,6 +33,7 @@ import {
   nextCreateProposalStep,
   prevCreateProposalStep,
   resolveCreateProposalPackageStepEyebrow,
+  resolveCreateProposalPackageStepGuide,
   resolveCreateProposalTemplateStepMessage,
   type CreateProposalMeasurementChoice,
   type CreateProposalModalStep,
@@ -44,7 +44,10 @@ import {
   JOB_CARD_PROPOSALS_SECONDARY_BUTTON_CLASS,
 } from "@/app/tools/roofing/jobCard/jobCardProposalsTabModel";
 import type { PackagePresentationMode } from "@/app/tools/roofing/templates/templatesWorkspaceFlow";
-import { TEMPLATES_SIMPLE_ESTIMATE_LABEL } from "@/app/tools/roofing/templates/templatesWorkspaceFlow";
+import {
+  packageChoiceGridClass,
+  TEMPLATES_SIMPLE_ESTIMATE_LABEL,
+} from "@/app/tools/roofing/templates/templatesWorkspaceFlow";
 
 export type JobCardCreateProposalModalTemplateChoice = {
   id: string;
@@ -173,8 +176,19 @@ export function JobCardCreateProposalModal({
         : [];
 
   const packageEyebrow = resolveCreateProposalPackageStepEyebrow(
-    packagePresentationMode
+    packagePresentationMode,
+    packageChoices.length
   );
+  const modalMaxWidthClass =
+    step === "package" && packageChoices.length >= 4
+      ? "max-w-3xl"
+      : step === "package" && packageChoices.length >= 2
+        ? "max-w-2xl"
+        : "max-w-xl";
+  const packageGridClass =
+    packageChoices.length >= 4
+      ? "grid w-full grid-cols-1 gap-2.5 sm:grid-cols-2"
+      : packageChoiceGridClass(packageChoices.length);
 
   return (
     <div
@@ -193,8 +207,15 @@ export function JobCardCreateProposalModal({
         disabled={creating}
       />
       <div
-        className="relative z-10 flex max-h-[92vh] w-full max-w-xl flex-col overflow-hidden rounded-t-2xl border border-slate-200 bg-white shadow-xl sm:rounded-2xl"
+        className={`relative z-10 flex max-h-[92vh] w-full ${modalMaxWidthClass} flex-col overflow-hidden rounded-t-2xl border border-slate-200 bg-white shadow-xl sm:rounded-2xl`}
         data-jobcard-create-proposal-panel="true"
+        data-jobcard-create-proposal-panel-width={
+          step === "package" && packageChoices.length >= 4
+            ? "wide"
+            : step === "package" && packageChoices.length >= 2
+              ? "medium"
+              : "default"
+        }
       >
         <header className="border-b border-slate-100 px-5 py-4 sm:px-6 sm:py-5">
           <div className="flex items-start justify-between gap-3">
@@ -443,7 +464,10 @@ export function JobCardCreateProposalModal({
                 {createProposalStepLabel("package")}
               </h3>
               <p className="mt-1 text-sm text-slate-600">
-                {CREATE_PROPOSAL_PACKAGE_GUIDE}
+                {resolveCreateProposalPackageStepGuide(
+                  packagePresentationMode,
+                  packageChoices.length
+                )}
               </p>
               {packageChoices.length === 0 ? (
                 <p className="mt-4 text-sm text-slate-600">
@@ -484,11 +508,9 @@ export function JobCardCreateProposalModal({
                     </div>
                   ) : (
                     <div
-                      className={
-                        packageChoices.length >= 3
-                          ? "grid gap-2 sm:grid-cols-1"
-                          : "space-y-2"
-                      }
+                      className={packageGridClass}
+                      data-jobcard-create-proposal-package-cards
+                      data-jobcard-package-count={packageChoices.length}
                     >
                       {packageChoices.map((choice) => (
                         <PackageChoiceCard
@@ -497,6 +519,7 @@ export function JobCardCreateProposalModal({
                           selected={choice.optionId === selectedPackageOptionId}
                           onSelect={onSelectPackage}
                           disabled={creating}
+                          compact={packageChoices.length >= 4}
                         />
                       ))}
                     </div>
@@ -693,17 +716,20 @@ function PackageChoiceCard({
   selected,
   onSelect,
   disabled,
+  compact = false,
 }: {
   choice: JobCardPackageChoice;
   selected: boolean;
   onSelect: (optionId: string) => void;
   disabled: boolean;
+  compact?: boolean;
 }) {
   const countLine = formatCreateProposalPackageCountLine({
     linkedItemCount: choice.linkedItemCount,
     availableUpgradeCount: choice.availableUpgradeCount,
     issueCount: choice.issueCount,
   });
+  const shortHighlights = choice.highlightLabels.slice(0, 2);
   return (
     <button
       type="button"
@@ -712,7 +738,7 @@ function PackageChoiceCard({
       data-package-included={choice.linkedItemCount}
       data-package-upgrades={choice.availableUpgradeCount}
       data-selected={selected ? "true" : "false"}
-      className={`w-full rounded-xl border px-4 py-3.5 text-left transition ${
+      className={`h-full w-full rounded-xl border px-3.5 py-3 text-left transition ${
         selected
           ? "border-blue-400 bg-white shadow-sm ring-2 ring-blue-100 text-slate-900"
           : "border-slate-200 bg-white text-slate-800 hover:border-slate-300"
@@ -720,8 +746,8 @@ function PackageChoiceCard({
       onClick={() => onSelect(choice.optionId)}
       disabled={disabled}
     >
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-sm font-semibold text-slate-900">{choice.label}</p>
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-sm font-semibold leading-snug text-slate-900">{choice.label}</p>
         {selected ? (
           <span className="shrink-0 rounded-full bg-blue-600 px-2 py-0.5 text-[10px] font-semibold text-white">
             Selected
@@ -729,23 +755,27 @@ function PackageChoiceCard({
         ) : null}
       </div>
       <p
-        className="mt-1.5 text-xs font-medium text-slate-600"
+        className="mt-1 text-xs font-medium text-slate-600"
         data-jobcard-create-proposal-package-counts
       >
         {countLine}
       </p>
       {choice.description ? (
-        <p className="mt-1.5 text-xs leading-relaxed text-slate-500">
+        <p
+          className={`mt-1.5 text-xs leading-snug text-slate-500 ${
+            compact ? "line-clamp-2" : ""
+          }`}
+        >
           {choice.description}
         </p>
       ) : null}
-      {choice.highlightLabels.length > 0 ? (
+      {!compact && shortHighlights.length > 0 ? (
         <p
-          className="mt-2 border-t border-slate-100 pt-2 text-[11px] leading-relaxed text-slate-400"
+          className="mt-2 border-t border-slate-100 pt-2 text-[11px] leading-snug text-slate-400"
           data-jobcard-create-proposal-package-highlights
         >
-          Includes {choice.highlightLabels.join(", ")}
-          {choice.linkedItemCount > choice.highlightLabels.length ? "…" : ""}
+          Includes {shortHighlights.join(", ")}
+          {choice.linkedItemCount > shortHighlights.length ? "…" : ""}
         </p>
       ) : null}
     </button>

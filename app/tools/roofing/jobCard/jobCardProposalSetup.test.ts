@@ -184,6 +184,150 @@ describe("jobCardProposalSetup", () => {
     assert.equal(resolveDefaultPackageOptionId(graph), "o2");
   });
 
+  test("Job Card package setup only sees active packages from filtered graph", () => {
+    // Soft-removed options are excluded by getProposalTemplateGraph before Job Card.
+    const catalogId = "11111111-1111-4111-8111-111111111111";
+    const graph = {
+      template: { id: "t1", name: "Roof", metadata: {} },
+      options: [
+        {
+          id: "opt-plus",
+          name: "Best Plus",
+          customer_label: "Best Plus",
+          sort_order: 10,
+          is_default: true,
+        },
+        {
+          id: "opt-best",
+          name: "Best",
+          customer_label: "Best",
+          sort_order: 20,
+          is_default: false,
+        },
+      ],
+      sections: [
+        {
+          id: "sec-plus",
+          option_id: "opt-plus",
+          kind: "line_items",
+          name: "Estimate",
+          sort_order: 0,
+        },
+        {
+          id: "sec-best",
+          option_id: "opt-best",
+          kind: "line_items",
+          name: "Estimate",
+          sort_order: 0,
+        },
+      ],
+      items: [
+        {
+          id: "item-1",
+          option_id: "opt-plus",
+          section_id: "sec-plus",
+          catalog_item_id: catalogId,
+          sort_order: 0,
+        },
+      ],
+    } as never;
+    const catalogItems = [
+      {
+        id: catalogId,
+        name: "Shingles",
+        active: true,
+        unit_price_cents: 1000,
+      },
+    ] as never;
+    const setup = buildJobCardPackageSetup(graph, catalogItems, null);
+    assert.deepEqual(
+      setup.choices.map((row) => row.optionId),
+      ["opt-plus", "opt-best"]
+    );
+    assert.equal(setup.choices.some((row) => row.optionId === "opt-good"), false);
+    assert.equal(setup.selectedOptionId, "opt-plus");
+  });
+
+  test("package cards follow sort_order for Job Card selection order", () => {
+    const catalogId = "11111111-1111-4111-8111-111111111111";
+    const graph = {
+      template: { id: "t1", name: "Roof", metadata: {} },
+      options: [
+        {
+          id: "opt-good",
+          name: "Good",
+          customer_label: "Good",
+          sort_order: 30,
+          is_default: false,
+        },
+        {
+          id: "opt-plus",
+          name: "Best Plus",
+          customer_label: "Best Plus",
+          sort_order: 10,
+          is_default: true,
+        },
+        {
+          id: "opt-best",
+          name: "Best",
+          customer_label: "Best",
+          sort_order: 20,
+          is_default: false,
+        },
+      ],
+      sections: [
+        {
+          id: "sec-plus",
+          option_id: "opt-plus",
+          kind: "line_items",
+          name: "Estimate",
+          sort_order: 0,
+        },
+        {
+          id: "sec-best",
+          option_id: "opt-best",
+          kind: "line_items",
+          name: "Estimate",
+          sort_order: 0,
+        },
+        {
+          id: "sec-good",
+          option_id: "opt-good",
+          kind: "line_items",
+          name: "Estimate",
+          sort_order: 0,
+        },
+      ],
+      items: [
+        {
+          id: "item-1",
+          option_id: "opt-plus",
+          section_id: "sec-plus",
+          catalog_item_id: catalogId,
+          sort_order: 0,
+        },
+      ],
+    } as never;
+    const catalogItems = [
+      {
+        id: catalogId,
+        name: "Shingles",
+        active: true,
+        unit_price_cents: 1000,
+      },
+    ] as never;
+    const setup = buildJobCardPackageSetup(
+      graph,
+      catalogItems,
+      resolveDefaultPackageOptionId(graph)
+    );
+    assert.deepEqual(
+      setup.choices.map((row) => row.optionId),
+      ["opt-plus", "opt-best", "opt-good"]
+    );
+    assert.equal(setup.selectedOptionId, "opt-plus");
+  });
+
   test("buildJobCardPackageSetup lists packages and included items", () => {
     const catalogId = "11111111-1111-4111-8111-111111111111";
     const graph = {

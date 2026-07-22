@@ -152,9 +152,21 @@ export default function TemplatesIncludedItemsManager({
       </div>
 
       {totalItems === 0 ? (
-        <p className="mt-3 text-xs text-slate-500" data-templates-included-empty>
-          No included work prepared yet.
-        </p>
+        <div className="mt-3 space-y-2" data-templates-included-empty>
+          <p className="text-xs text-slate-500">No included work yet.</p>
+          <button
+            type="button"
+            onClick={() => {
+              setAdjusting(true);
+              onAddItem();
+            }}
+            disabled={busy}
+            className="inline-flex items-center justify-center rounded-md border border-blue-300 bg-blue-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+            data-templates-add-included-work-empty
+          >
+            Add included work
+          </button>
+        </div>
       ) : adjusting ? (
         <div className="mt-3 space-y-2.5" data-templates-included-adjust-view>
           <p className="text-xs leading-relaxed text-slate-500">

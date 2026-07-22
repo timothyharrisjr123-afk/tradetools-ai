@@ -17,7 +17,17 @@ import type {
   ProposalTemplateSectionKind,
 } from "@/app/lib/proposalTemplateTypes";
 
-export type GuidedPackageModelId = "simple" | "single" | "triple";
+/**
+ * Guided create package models.
+ * - Primary create choices: single | double | triple | custom
+ * - Legacy `simple` remains supported for existing templates/metadata only
+ */
+export type GuidedPackageModelId =
+  | "simple"
+  | "single"
+  | "double"
+  | "triple"
+  | "custom";
 
 export type GuidedCreateStepId =
   | "basics"
@@ -44,11 +54,13 @@ export const GUIDED_CREATE_STEP_LABELS: Record<GuidedCreateStepId, string> = {
 
 export const GUIDED_CREATE_OVERLAY_TITLE = "New proposal template";
 export const GUIDED_CREATE_OVERLAY_SUBTITLE =
-  "Set up a reusable proposal for your company. Name packages the way you sell — starter labels are only defaults.";
+  "Set up a reusable proposal for your company. Choose the package setup first, then name packages the way you sell.";
 export const GUIDED_CREATE_STARTING_POINT_LABEL = "Starting point";
 export const GUIDED_CREATE_STARTING_POINT_VALUE = "Prepared roofing proposal structure";
 export const GUIDED_CREATE_STARTING_POINT_HINT =
   "Includes a roof replacement estimate layout with customer-facing pages you can edit later.";
+export const GUIDED_CREATE_PACKAGE_SETUP_HINT =
+  "Choose how many packages this setup should use. You can rename them next, then adjust after creation.";
 export const GUIDED_CREATE_PRIMARY_ACTION = "Create template";
 export const GUIDED_CREATE_CANCEL_ACTION = "Cancel";
 export const GUIDED_CREATE_BACK_ACTION = "Back";
@@ -77,30 +89,47 @@ export type GuidedPackageModelChoice = {
   presentsPackages: boolean;
 };
 
+/** Primary + Template package-model choices (create-time). */
 export const GUIDED_PACKAGE_MODEL_CHOICES: readonly GuidedPackageModelChoice[] = [
   {
-    id: "simple",
-    title: "Simple estimate",
-    description: "One prepared estimate — no package choices for the customer.",
-    packageLabels: [],
-    presentsPackages: false,
+    id: "single",
+    title: "One package",
+    description:
+      "Use one recommended scope when you do not need the customer to compare packages.",
+    packageLabels: ["Standard"],
+    presentsPackages: true,
   },
   {
-    id: "single",
-    title: "Single package",
-    description: "One named package the customer can review and accept.",
-    packageLabels: ["Standard"],
+    id: "double",
+    title: "Two packages",
+    description: "Offer a simple choice between two scopes, like Standard and Premium.",
+    packageLabels: ["Standard", "Premium"],
     presentsPackages: true,
   },
   {
     id: "triple",
     title: "Three packages",
-    description:
-      "Three prepared packages customers can compare. Starter names are Standard / Enhanced / Premium — rename them to match how you sell.",
-    packageLabels: ["Standard", "Enhanced", "Premium"],
+    description: "Offer a Good / Better / Best comparison.",
+    packageLabels: ["Good", "Better", "Best"],
+    presentsPackages: true,
+  },
+  {
+    id: "custom",
+    title: "Custom package setup",
+    description: "Start with a guided setup and adjust packages after creation.",
+    packageLabels: ["Standard"],
     presentsPackages: true,
   },
 ] as const;
+
+/** Legacy simple-estimate model — still materializes existing templates. */
+export const GUIDED_PACKAGE_MODEL_SIMPLE_LEGACY: GuidedPackageModelChoice = {
+  id: "simple",
+  title: "Simple estimate",
+  description: "One prepared estimate — no package choices for the customer.",
+  packageLabels: [],
+  presentsPackages: false,
+};
 
 export type GuidedCreateBasicsInput = {
   name: string;
@@ -216,6 +245,7 @@ export function validateGuidedCreateBasics(
 export function getGuidedPackageModelChoice(
   id: GuidedPackageModelId
 ): GuidedPackageModelChoice {
+  if (id === "simple") return GUIDED_PACKAGE_MODEL_SIMPLE_LEGACY;
   const found = GUIDED_PACKAGE_MODEL_CHOICES.find((row) => row.id === id);
   if (!found) {
     throw new Error(`Unknown guided package model: ${id}`);
@@ -305,7 +335,7 @@ function buildOptionsForPackageModel(
     return [buildSimpleEstimateOption(findNamedOption(sourceOptions, "Standard"))];
   }
 
-  if (packageModel === "single") {
+  if (packageModel === "single" || packageModel === "custom") {
     const standard = findNamedOption(sourceOptions, "Standard");
     return [
       {
@@ -316,15 +346,29 @@ function buildOptionsForPackageModel(
     ];
   }
 
-  return ["Standard", "Enhanced", "Premium"].map((name, index) => {
+  if (packageModel === "double") {
+    return (["Standard", "Premium"] as const).map((name, index) => {
+      const option = findNamedOption(sourceOptions, name);
+      return {
+        ...option,
+        is_default: index === 0,
+        selection_mode: "single" as const,
+      };
+    });
+  }
+
+  // triple — structure from Standard / Enhanced / Premium
+  return (["Standard", "Enhanced", "Premium"] as const).map((name, index) => {
     const option = findNamedOption(sourceOptions, name);
     return {
       ...option,
       is_default: index === 0,
-      selection_mode: "single",
+      selection_mode: "single" as const,
     };
   });
 }
+
+const TRIPLE_STARTER_LABELS = ["Good", "Better", "Best"] as const;
 
 /** Starter package drafts for the Package setup step (editable before create). */
 export function buildDefaultGuidedPackageDrafts(
@@ -338,10 +382,13 @@ export function buildDefaultGuidedPackageDrafts(
       option.name === "Enhanced" || option.name === "Premium" || option.name === "Standard"
         ? option.name
         : ("Standard" as const);
+    const tripleLabel =
+      packageModel === "triple" ? TRIPLE_STARTER_LABELS[index] ?? option.name : null;
+    const name = tripleLabel ?? option.name;
     return {
       key: option.seed_key ?? `pkg-${index}`,
-      name: option.name,
-      customerLabel: option.customer_label ?? option.name,
+      name,
+      customerLabel: tripleLabel ?? option.customer_label ?? option.name,
       description: option.description ?? "",
       isDefault: option.is_default === true || index === 0,
       sourceName,
@@ -444,6 +491,7 @@ function collectContentAreas(
 }
 
 function buildStructureNotes(plan: {
+  packageModel: GuidedPackageModelId;
   presentsPackages: boolean;
   packageLabels: readonly string[];
 }): string[] {
@@ -452,6 +500,11 @@ function buildStructureNotes(plan: {
     "You can add, replace, or remove items after the template is created.",
     "Overview, warranty, and terms wording can be edited after creation.",
   ];
+  if (plan.packageModel === "custom") {
+    notes.unshift(
+      "After creation, use Adjust packages to add, remove, reorder, or set the default."
+    );
+  }
   if (!plan.presentsPackages) {
     notes.unshift("Customers see one estimate — not a package comparison.");
   } else if (plan.packageLabels.length === 1) {
@@ -534,6 +587,7 @@ export function buildGuidedTemplateCreatePlan(
     presentsPackages: choice.presentsPackages,
     contentAreas: collectContentAreas(options),
     structureNotes: buildStructureNotes({
+      packageModel: input.packageModel,
       presentsPackages: choice.presentsPackages,
       packageLabels,
     }),
@@ -547,7 +601,9 @@ export function formatGuidedPackageSummary(plan: GuidedTemplateCreatePlan): stri
     return "Simple estimate — no package choices";
   }
   if (plan.packageLabels.length === 1) {
-    return `Single package: ${plan.packageLabels[0]}`;
+    const prefix =
+      plan.packageModel === "custom" ? "Custom setup starts with" : "One package";
+    return `${prefix}: ${plan.packageLabels[0]}`;
   }
   return `Packages: ${plan.packageLabels.join(" · ")}`;
 }

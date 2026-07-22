@@ -4,6 +4,8 @@
  */
 
 import {
+  formatActivePackageChoiceGuide,
+  formatActivePackageSetupSummary,
   formatPackageScopeCountLine,
   formatTemplateScopeCountLine,
   TEMPLATES_SIMPLE_ESTIMATE_LABEL,
@@ -26,7 +28,7 @@ export type CreateProposalMeasurementChoice = {
 export const CREATE_PROPOSAL_MODAL_TITLE = "Create proposal" as const;
 
 export const CREATE_PROPOSAL_MODAL_SUBTITLE =
-  "Use a reusable proposal setup for this job: measurement, template, starting package, then Builder." as const;
+  "Use a reusable proposal setup for this job: measurement, template, package, then Builder." as const;
 
 export const CREATE_PROPOSAL_STEP_MEASUREMENT = "Measurement" as const;
 export const CREATE_PROPOSAL_STEP_TEMPLATE = "Template" as const;
@@ -45,7 +47,13 @@ export const CREATE_PROPOSAL_TEMPLATE_STRUCTURE =
 export const CREATE_PROPOSAL_TEMPLATE_READY = "Ready to use" as const;
 
 export const CREATE_PROPOSAL_PACKAGE_GUIDE =
-  "Choose the starting package for this job. You can adjust quantities and optional upgrades later in Builder." as const;
+  "Select the package for this proposal. You can adjust quantities and optional upgrades later in Builder." as const;
+
+export const CREATE_PROPOSAL_PACKAGE_GUIDE_ONE =
+  "This setup uses one package. Continue when you are ready — you can adjust quantities and optional upgrades later in Builder." as const;
+
+export const CREATE_PROPOSAL_PACKAGE_GUIDE_SIMPLE =
+  "This setup uses one estimate with no package comparison. Continue when you are ready." as const;
 
 export const CREATE_PROPOSAL_PACKAGE_BUILDER_NOTE =
   "You can adjust quantities and optional upgrades later in Builder." as const;
@@ -55,13 +63,14 @@ export const CREATE_PROPOSAL_PACKAGE_ONE_ONLY =
   "This template has one prepared package." as const;
 
 export const CREATE_PROPOSAL_PACKAGE_SIMPLE =
-  "This template uses a simple estimate — no customer package choices." as const;
+  "This template uses one estimate — no customer package choices." as const;
 
 export const CREATE_PROPOSAL_PACKAGE_SINGLE =
-  "This template has one prepared package." as const;
+  "This setup uses one package for this job." as const;
 
+/** Fallback multi copy when count is unknown — prefer count-aware guide helpers. */
 export const CREATE_PROPOSAL_PACKAGE_MULTI =
-  "Compare packages, then choose the starting option for this job." as const;
+  "Compare packages, then choose the package for this job." as const;
 
 export const CREATE_PROPOSAL_REVIEW_TITLE = "Ready to continue" as const;
 
@@ -329,11 +338,28 @@ export function formatCreateProposalPackageCountLine(input: {
 }
 
 export function resolveCreateProposalPackageStepEyebrow(
-  mode: PackagePresentationMode
+  mode: PackagePresentationMode,
+  activePackageCount = 0
 ): string {
   if (mode === "simple") return CREATE_PROPOSAL_PACKAGE_SIMPLE;
   if (mode === "single") return CREATE_PROPOSAL_PACKAGE_SINGLE;
+  if (activePackageCount >= 2) {
+    return formatActivePackageSetupSummary(activePackageCount);
+  }
   return CREATE_PROPOSAL_PACKAGE_MULTI;
+}
+
+/** Top guide copy for the Job Card package step — mode + live active package count. */
+export function resolveCreateProposalPackageStepGuide(
+  mode: PackagePresentationMode,
+  activePackageCount = 0
+): string {
+  if (mode === "simple") return CREATE_PROPOSAL_PACKAGE_GUIDE_SIMPLE;
+  if (mode === "single") return CREATE_PROPOSAL_PACKAGE_GUIDE_ONE;
+  if (activePackageCount >= 2) {
+    return `${formatActivePackageChoiceGuide(activePackageCount)} ${CREATE_PROPOSAL_PACKAGE_BUILDER_NOTE}`;
+  }
+  return CREATE_PROPOSAL_PACKAGE_GUIDE;
 }
 
 export function formatCreateProposalPackageReviewLine(input: {
@@ -344,8 +370,9 @@ export function formatCreateProposalPackageReviewLine(input: {
   if (input.packageMode === "simple") {
     return TEMPLATES_SIMPLE_ESTIMATE_LABEL;
   }
-  if (!name) return "Starting package selected";
-  return `${name} starting package`;
+  if (!name) return "Package selected";
+  if (input.packageMode === "single") return `${name} package`;
+  return `${name} package`;
 }
 
 export function formatCreateProposalReviewScopeLine(input: {

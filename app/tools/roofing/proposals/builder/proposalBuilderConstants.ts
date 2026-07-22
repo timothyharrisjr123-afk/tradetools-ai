@@ -242,17 +242,17 @@ export const BUILDER_PROJECT_IMAGE =
   "relative h-[17.25rem] w-full overflow-hidden rounded-xl border border-slate-300/80 bg-slate-100 shadow-[0_16px_38px_rgba(15,23,42,0.20)] xl:w-[390px] 2xl:w-[410px]";
 
 export const BUILDER_PACKAGE_CARD =
-  "relative flex min-h-[11.75rem] flex-col rounded-lg border px-5 py-4 text-left transition duration-200";
+  "relative flex min-h-[10.5rem] flex-col rounded-xl border px-4 py-3.5 text-left transition duration-200";
 
 /** 3J4B flow-focus: lower-dominance package card once a package is selected and pricing is blocked. */
 export const BUILDER_PACKAGE_CARD_COMPACT =
-  "relative flex min-h-[8.25rem] flex-col rounded-lg border px-4 py-3 text-left transition duration-200";
+  "relative flex min-h-[9rem] flex-col rounded-xl border px-4 py-3.5 text-left transition duration-200";
 
 export const BUILDER_PACKAGE_CARD_IDLE =
-  "border-slate-200/90 bg-white shadow-[0_8px_22px_rgba(15,23,42,0.055),0_1px_3px_rgba(15,23,42,0.05)] hover:border-slate-300 hover:shadow-[0_12px_28px_rgba(15,23,42,0.08)]";
+  "border-slate-200/90 bg-white shadow-[0_4px_14px_rgba(15,23,42,0.04)] hover:border-slate-300 hover:bg-slate-50/40";
 
 export const BUILDER_PACKAGE_CARD_SELECTED =
-  "border-2 border-blue-500 bg-gradient-to-b from-blue-50/80 to-white shadow-[0_14px_30px_rgba(37,99,235,0.16),0_2px_6px_rgba(37,99,235,0.10)] ring-1 ring-blue-200/80";
+  "border-blue-400 bg-blue-50/40 shadow-[0_6px_18px_rgba(37,99,235,0.10)] ring-1 ring-blue-200/70";
 
 export const BUILDER_OVERVIEW_CARD =
   "flex min-h-[5.75rem] items-start gap-3 rounded-xl border border-slate-200/90 bg-white px-4 py-4 shadow-[0_8px_22px_rgba(15,23,42,0.055),0_1px_3px_rgba(15,23,42,0.04)]";

@@ -16,6 +16,8 @@ import {
   CREATE_PROPOSAL_MEASUREMENT_GUIDE,
   CREATE_PROPOSAL_MODAL_TITLE,
   CREATE_PROPOSAL_PACKAGE_GUIDE,
+  CREATE_PROPOSAL_PACKAGE_GUIDE_ONE,
+  CREATE_PROPOSAL_PACKAGE_GUIDE_SIMPLE,
   CREATE_PROPOSAL_PACKAGE_MULTI,
   CREATE_PROPOSAL_PACKAGE_ONE_ONLY,
   CREATE_PROPOSAL_PACKAGE_SIMPLE,
@@ -42,6 +44,7 @@ import {
   nextCreateProposalStep,
   prevCreateProposalStep,
   resolveCreateProposalPackageStepEyebrow,
+  resolveCreateProposalPackageStepGuide,
   resolveCreateProposalTemplateStepMessage,
 } from "./jobCardCreateProposalModalModel";
 import { filterJobCardCreateProposalTemplates } from "./jobCardProposalSetup";
@@ -172,7 +175,38 @@ describe("jobCardCreateProposalModalModel polish", () => {
       resolveCreateProposalPackageStepEyebrow("multi"),
       CREATE_PROPOSAL_PACKAGE_MULTI
     );
+    assert.equal(
+      resolveCreateProposalPackageStepEyebrow("multi", 4),
+      "This setup has 4 package options."
+    );
     assert.doesNotMatch(CREATE_PROPOSAL_PACKAGE_SIMPLE, /one package/i);
+    assert.equal(
+      resolveCreateProposalPackageStepGuide("simple"),
+      CREATE_PROPOSAL_PACKAGE_GUIDE_SIMPLE
+    );
+    assert.equal(
+      resolveCreateProposalPackageStepGuide("single"),
+      CREATE_PROPOSAL_PACKAGE_GUIDE_ONE
+    );
+    assert.equal(
+      resolveCreateProposalPackageStepGuide("multi"),
+      CREATE_PROPOSAL_PACKAGE_GUIDE
+    );
+    assert.match(
+      resolveCreateProposalPackageStepGuide("multi", 4),
+      /Choose from 4 package options/i
+    );
+    assert.match(
+      resolveCreateProposalPackageStepGuide("multi", 3),
+      /Choose from 3 package options/i
+    );
+    assert.match(
+      resolveCreateProposalPackageStepGuide("multi", 2),
+      /Choose between 2 package options/i
+    );
+    assert.doesNotMatch(CREATE_PROPOSAL_PACKAGE_GUIDE_ONE, /choose the package/i);
+    assert.doesNotMatch(CREATE_PROPOSAL_PACKAGE_GUIDE_SIMPLE, /choose the package/i);
+    assert.match(CREATE_PROPOSAL_PACKAGE_GUIDE, /Select the package for this proposal/i);
     assert.equal(
       formatCreateProposalPackageCountLine({
         linkedItemCount: 13,
@@ -185,7 +219,7 @@ describe("jobCardCreateProposalModalModel polish", () => {
         packageMode: "multi",
         packageName: "Enhanced",
       }),
-      "Enhanced starting package"
+      "Enhanced package"
     );
     assert.equal(
       formatCreateProposalPackageReviewLine({

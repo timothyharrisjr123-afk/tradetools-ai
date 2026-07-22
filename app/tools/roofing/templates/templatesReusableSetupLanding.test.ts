@@ -44,7 +44,9 @@ describe("Template Flow V1 — reusable setup landing", () => {
     assert.ok(flow.includes('mode: "simple"'));
     assert.ok(flow.includes("TEMPLATES_SIMPLE_ESTIMATE_DETAIL"));
     assert.ok(review.includes("data-templates-package-simple"));
-    assert.ok(review.includes("sm:grid-cols-3"));
+    assert.ok(review.includes("packageChoiceGridClass"));
+    assert.ok(flow.includes("formatActivePackageSetupSummary"));
+    assert.ok(flow.includes("packageChoiceGridClass"));
   });
 
   test("included work is prepared summary with secondary adjust actions", () => {

@@ -27,6 +27,7 @@ import {
   type PackagePresentationMode,
   type TemplateCreatesSummary,
 } from "@/app/tools/roofing/templates/templatesWorkspaceFlow";
+import { filterActiveTemplateGraph } from "@/app/tools/roofing/templates/templatesPackageStructurePlanner";
 
 /** Primary explainer — what Create proposal does (contractor-facing). */
 export const JOB_CARD_CREATE_PROPOSAL_EXPLAINER =
@@ -349,28 +350,36 @@ export function buildJobCardPackageSetup(
     };
   }
 
-  const structureVm = buildTemplateStructureEditorViewModel(graph);
+  const activeParts = filterActiveTemplateGraph(graph);
+  const activeGraph: ProposalTemplateGraph = {
+    ...graph,
+    options: activeParts.options,
+    sections: activeParts.sections,
+    items: activeParts.items,
+  };
+
+  const structureVm = buildTemplateStructureEditorViewModel(activeGraph);
   const packageSummaries = summarizePackageOptionsForWorkspace(
-    graph,
+    activeGraph,
     structureVm,
     catalogItems
   );
   const createsSummary = buildTemplateCreatesSummary({
-    graph,
+    graph: activeGraph,
     packageSummaries,
     editableProseCount: 0,
   });
   const packagePresentation = resolvePackagePresentation({
-    graph,
+    graph: activeGraph,
     packageSummaries,
   });
 
-  const optionById = new Map(graph.options.map((row) => [row.id, row]));
+  const optionById = new Map(activeGraph.options.map((row) => [row.id, row]));
 
   const choices: JobCardPackageChoice[] = packageSummaries.map((row) => {
     const option = optionById.get(row.optionId);
     const includedForOption = listIncludedItemsForPackage(
-      graph,
+      activeGraph,
       row.optionId,
       catalogItems
     );
@@ -396,14 +405,14 @@ export function buildJobCardPackageSetup(
   const resolvedSelectedId =
     selectedOptionId && choices.some((c) => c.optionId === selectedOptionId)
       ? selectedOptionId
-      : resolveDefaultPackageOptionId(graph);
+      : resolveDefaultPackageOptionId(activeGraph);
 
   const selected =
     choices.find((c) => c.optionId === resolvedSelectedId) ?? choices[0] ?? null;
 
   const includedItems =
     selected != null
-      ? listIncludedItemsForPackage(graph, selected.optionId, catalogItems)
+      ? listIncludedItemsForPackage(activeGraph, selected.optionId, catalogItems)
       : [];
 
   const customerFacingParts = [

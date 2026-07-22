@@ -58,8 +58,15 @@ import TemplatesRemoveItemConfirmModal from "./TemplatesRemoveItemConfirmModal";
 import TemplatesSelectedWorkspace from "./TemplatesSelectedWorkspace";
 import type {
   PackageAuthorshipDraft,
+  PackageStructureCreateDraft,
   TemplateIdentityDraft,
 } from "./TemplatesSetupAuthorshipEditors";
+import {
+  copyExistingTemplatePackage,
+  createBlankTemplatePackageShell,
+  removeTemplatePackage,
+  reorderTemplatePackages,
+} from "./templatesPackageStructureActions";
 import TemplatesStarterHeroCard from "./TemplatesStarterHeroCard";
 import TemplatesWorkspaceLayout from "./TemplatesWorkspaceLayout";
 import { deriveInstallFeedback, findStarterProposalTemplate } from "./templatesSetupUtils";
@@ -941,16 +948,27 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
 
   const handleSavePackageAuthorship = useCallback(
     async (drafts: readonly PackageAuthorshipDraft[]) => {
-      if (!selectedTemplateId || !selectedGraph || structureBusy || savingSectionId) return;
+      if (
+        !companyId ||
+        !selectedTemplateId ||
+        !selectedGraph ||
+        structureBusy ||
+        savingSectionId
+      ) {
+        return;
+      }
       setStructureBusy({ kind: "settings-template" });
       setStructureError(null);
+      const scope = { companyId, templateId: selectedTemplateId };
       try {
         // Clear defaults first so unique one-default-per-template index stays valid.
         for (const option of selectedGraph.options) {
           if (option.is_default) {
-            const cleared = await updateProposalTemplateOption(option.id, {
-              is_default: false,
-            });
+            const cleared = await updateProposalTemplateOption(
+              option.id,
+              { is_default: false },
+              scope
+            );
             if (!cleared) {
               setStructureError("Could not update default package.");
               return;
@@ -962,12 +980,16 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
           const name = draft.name.trim();
           const customerLabel = draft.customerLabel.trim() || name;
           const description = draft.description.trim() ? draft.description.trim() : null;
-          const updated = await updateProposalTemplateOption(draft.optionId, {
-            name,
-            customer_label: customerLabel,
-            description,
-            is_default: draft.isDefault,
-          });
+          const updated = await updateProposalTemplateOption(
+            draft.optionId,
+            {
+              name,
+              customer_label: customerLabel,
+              description,
+              is_default: draft.isDefault,
+            },
+            scope
+          );
           if (!updated) {
             setStructureError("Could not save package details.");
             return;
@@ -983,6 +1005,178 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
       }
     },
     [
+      companyId,
+      reloadSelectedGraph,
+      savingSectionId,
+      selectedGraph,
+      selectedTemplateId,
+      structureBusy,
+    ]
+  );
+
+  const handleCopyPackage = useCallback(
+    async (input: {
+      sourceOptionId: string;
+      draft: PackageStructureCreateDraft;
+    }): Promise<boolean> => {
+      if (!companyId || !selectedTemplateId || !selectedGraph || structureBusy || savingSectionId) {
+        return false;
+      }
+      setStructureBusy({ kind: "settings-template" });
+      setStructureError(null);
+      try {
+        const result = await copyExistingTemplatePackage({
+          companyId,
+          templateId: selectedTemplateId,
+          graph: selectedGraph,
+          sourceOptionId: input.sourceOptionId,
+          draft: input.draft,
+        });
+        if (!result.ok) {
+          setStructureError(result.error);
+          return false;
+        }
+        await reloadSelectedGraph(selectedTemplateId);
+        setSelectedPackageOptionId(result.optionId);
+        return true;
+      } catch (err) {
+        setStructureError(
+          err instanceof Error ? err.message : "Could not copy package."
+        );
+        return false;
+      } finally {
+        setStructureBusy(null);
+      }
+    },
+    [
+      companyId,
+      reloadSelectedGraph,
+      savingSectionId,
+      selectedGraph,
+      selectedTemplateId,
+      structureBusy,
+    ]
+  );
+
+  const handleCreateBlankPackage = useCallback(
+    async (draft: PackageStructureCreateDraft): Promise<boolean> => {
+      if (!companyId || !selectedTemplateId || !selectedGraph || structureBusy || savingSectionId) {
+        return false;
+      }
+      setStructureBusy({ kind: "settings-template" });
+      setStructureError(null);
+      try {
+        const result = await createBlankTemplatePackageShell({
+          companyId,
+          templateId: selectedTemplateId,
+          graph: selectedGraph,
+          draft,
+        });
+        if (!result.ok) {
+          setStructureError(result.error);
+          return false;
+        }
+        await reloadSelectedGraph(selectedTemplateId);
+        setSelectedPackageOptionId(result.optionId);
+        return true;
+      } catch (err) {
+        setStructureError(
+          err instanceof Error ? err.message : "Could not create package shell."
+        );
+        return false;
+      } finally {
+        setStructureBusy(null);
+      }
+    },
+    [
+      companyId,
+      reloadSelectedGraph,
+      savingSectionId,
+      selectedGraph,
+      selectedTemplateId,
+      structureBusy,
+    ]
+  );
+
+  const handleReorderPackage = useCallback(
+    async (optionId: string, direction: "up" | "down"): Promise<boolean> => {
+      if (!companyId || !selectedTemplateId || !selectedGraph || structureBusy || savingSectionId) {
+        return false;
+      }
+      setStructureBusy({ kind: "settings-template" });
+      setStructureError(null);
+      try {
+        const result = await reorderTemplatePackages({
+          companyId,
+          templateId: selectedTemplateId,
+          graph: selectedGraph,
+          optionId,
+          direction,
+        });
+        if (!result.ok) {
+          setStructureError(result.error);
+          return false;
+        }
+        await reloadSelectedGraph(selectedTemplateId);
+        return true;
+      } catch (err) {
+        setStructureError(
+          err instanceof Error ? err.message : "Could not reorder packages."
+        );
+        return false;
+      } finally {
+        setStructureBusy(null);
+      }
+    },
+    [
+      companyId,
+      reloadSelectedGraph,
+      savingSectionId,
+      selectedGraph,
+      selectedTemplateId,
+      structureBusy,
+    ]
+  );
+
+  const handleRemovePackage = useCallback(
+    async (input: {
+      removeOptionId: string;
+      replacementDefaultOptionId?: string | null;
+    }): Promise<boolean> => {
+      if (!companyId || !selectedTemplateId || !selectedGraph || structureBusy || savingSectionId) {
+        return false;
+      }
+      setStructureBusy({ kind: "settings-template" });
+      setStructureError(null);
+      try {
+        const result = await removeTemplatePackage({
+          companyId,
+          templateId: selectedTemplateId,
+          graph: selectedGraph,
+          removeOptionId: input.removeOptionId,
+          replacementDefaultOptionId: input.replacementDefaultOptionId,
+        });
+        if (!result.ok) {
+          setStructureError(result.error);
+          return false;
+        }
+        await reloadSelectedGraph(selectedTemplateId);
+        setSelectedPackageOptionId((current) => {
+          if (current === input.removeOptionId) return result.optionId;
+          return current;
+        });
+        return true;
+      } catch (err) {
+        setStructureError(
+          err instanceof Error ? err.message : "Could not remove package."
+        );
+        return false;
+      } finally {
+        setStructureBusy(null);
+      }
+    },
+    [
+      companyId,
       reloadSelectedGraph,
       savingSectionId,
       selectedGraph,
@@ -1243,6 +1437,10 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
                 onFixIssues={handleFixIssues}
                 onSaveIdentity={handleSaveTemplateIdentity}
                 onSavePackages={handleSavePackageAuthorship}
+                onCopyPackage={handleCopyPackage}
+                onCreateBlankPackage={handleCreateBlankPackage}
+                onReorderPackage={handleReorderPackage}
+                onRemovePackage={handleRemovePackage}
                 onAddSection={handleAddSection}
                 onMoveSection={handleMoveSection}
                 onSaveTemplateEstimateSettings={handleSaveTemplateEstimateSettings}

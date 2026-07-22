@@ -15,6 +15,7 @@ import TemplatesPackagesCatalogTab from "./TemplatesPackagesCatalogTab";
 import TemplatesQuoteSetupReview from "./TemplatesQuoteSetupReview";
 import type {
   PackageAuthorshipDraft,
+  PackageStructureCreateDraft,
   TemplateIdentityDraft,
 } from "./TemplatesSetupAuthorshipEditors";
 import {
@@ -68,6 +69,16 @@ type TemplatesSelectedWorkspaceProps = {
   onFixIssues: () => void;
   onSaveIdentity: (draft: TemplateIdentityDraft) => Promise<void> | void;
   onSavePackages: (drafts: readonly PackageAuthorshipDraft[]) => Promise<void> | void;
+  onCopyPackage: (input: {
+    sourceOptionId: string;
+    draft: PackageStructureCreateDraft;
+  }) => Promise<boolean>;
+  onCreateBlankPackage: (draft: PackageStructureCreateDraft) => Promise<boolean>;
+  onReorderPackage: (optionId: string, direction: "up" | "down") => Promise<boolean>;
+  onRemovePackage: (input: {
+    removeOptionId: string;
+    replacementDefaultOptionId?: string | null;
+  }) => Promise<boolean>;
   onAddSection: (optionId: string, kind: ProposalTemplateSectionKind) => void;
   onMoveSection: (
     optionId: string,
@@ -117,6 +128,10 @@ export default function TemplatesSelectedWorkspace({
   onFixIssues,
   onSaveIdentity,
   onSavePackages,
+  onCopyPackage,
+  onCreateBlankPackage,
+  onReorderPackage,
+  onRemovePackage,
   onAddSection,
   onMoveSection,
   onSaveTemplateEstimateSettings,
@@ -154,6 +169,10 @@ export default function TemplatesSelectedWorkspace({
           onOpenAdvanced={onOpenAdvanced}
           onSaveIdentity={onSaveIdentity}
           onSavePackages={onSavePackages}
+          onCopyPackage={onCopyPackage}
+          onCreateBlankPackage={onCreateBlankPackage}
+          onReorderPackage={onReorderPackage}
+          onRemovePackage={onRemovePackage}
         />
       </div>
     );

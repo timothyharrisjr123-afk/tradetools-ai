@@ -38,13 +38,17 @@ describe("Template Flow V1 — guided + Template create", () => {
     assert.ok(overlay.includes("data-templates-guided-create-panel-confirm"));
     assert.ok(overlay.includes("data-templates-guided-create-submit"));
     assert.ok(overlay.includes("GUIDED_PACKAGE_MODEL_CHOICES"));
-    assert.ok(planner.includes('"simple"'));
     assert.ok(planner.includes('"single"'));
+    assert.ok(planner.includes('"double"'));
     assert.ok(planner.includes('"triple"'));
+    assert.ok(planner.includes('"custom"'));
     assert.ok(planner.includes("buildDefaultGuidedPackageDrafts"));
     assert.ok(planner.includes("package_setup"));
-    assert.ok(planner.includes("Simple estimate"));
+    assert.ok(planner.includes("One package"));
+    assert.ok(planner.includes("Two packages"));
     assert.ok(planner.includes("Three packages"));
+    assert.ok(planner.includes("Custom package setup"));
+    assert.ok(planner.includes("GUIDED_CREATE_PACKAGE_SETUP_HINT"));
   });
 
   test("create lands in quote review via guided helper, not draft proposal create", () => {

@@ -8,6 +8,7 @@ import {
   GUIDED_CREATE_CONTINUE_ACTION,
   GUIDED_CREATE_OVERLAY_SUBTITLE,
   GUIDED_CREATE_OVERLAY_TITLE,
+  GUIDED_CREATE_PACKAGE_SETUP_HINT,
   GUIDED_CREATE_PRIMARY_ACTION,
   GUIDED_CREATE_STARTING_POINT_HINT,
   GUIDED_CREATE_STARTING_POINT_LABEL,
@@ -289,7 +290,7 @@ export default function TemplatesGuidedCreateOverlay({
                   {GUIDED_CREATE_STEP_LABELS.package_setup}
                 </h3>
                 <p className="mt-1 text-sm text-slate-600">
-                  Choose a package model, then name packages the way you sell them.
+                  {GUIDED_CREATE_PACKAGE_SETUP_HINT}
                 </p>
               </div>
               <ul className="space-y-2">
@@ -319,7 +320,11 @@ export default function TemplatesGuidedCreateOverlay({
 
               {packageModel !== "simple" ? (
                 <div className="space-y-3" data-templates-guided-create-package-drafts>
-                  <p className="text-sm font-medium text-slate-800">Package names & descriptions</p>
+                  <p className="text-sm font-medium text-slate-800">
+                    {packageModel === "custom"
+                      ? "Starting package — adjust more after creation"
+                      : "Package names & descriptions"}
+                  </p>
                   {packageDrafts.map((draft) => (
                     <div
                       key={draft.key}

@@ -43,7 +43,7 @@ describe("templatesGuidedCreatePlanner", () => {
     assert.ok(!plan.contentAreas.some((row) => /upgrade/i.test(row.label)));
   });
 
-  test("single package plan creates Standard package label", () => {
+  test("one package plan creates Standard package label", () => {
     const plan = buildGuidedTemplateCreatePlan({
       name: "Single package roof",
       packageModel: "single",
@@ -51,23 +51,38 @@ describe("templatesGuidedCreatePlanner", () => {
 
     assert.equal(plan.presentsPackages, true);
     assert.deepEqual(plan.packageLabels, ["Standard"]);
-    assert.match(formatGuidedPackageSummary(plan), /Single package: Standard/i);
+    assert.match(formatGuidedPackageSummary(plan), /One package: Standard/i);
     assert.equal(plan.definition.options?.length, 1);
     assert.equal(plan.definition.options?.[0]?.name, "Standard");
   });
 
-  test("triple package plan creates Standard / Enhanced / Premium", () => {
+  test("two package plan creates Standard / Premium", () => {
+    const plan = buildGuidedTemplateCreatePlan({
+      name: "Two package roof",
+      packageModel: "double",
+    });
+
+    assert.deepEqual(plan.packageLabels, ["Standard", "Premium"]);
+    assert.equal(plan.definition.options?.length, 2);
+    assert.deepEqual(
+      plan.definition.options?.map((row) => row.name),
+      ["Standard", "Premium"]
+    );
+    assert.equal(plan.definition.options?.[0]?.is_default, true);
+  });
+
+  test("three package plan creates Good / Better / Best starters", () => {
     const plan = buildGuidedTemplateCreatePlan({
       name: "Compare packages",
       packageModel: "triple",
     });
 
-    assert.deepEqual(plan.packageLabels, ["Standard", "Enhanced", "Premium"]);
-    assert.match(formatGuidedPackageSummary(plan), /Standard · Enhanced · Premium/);
+    assert.deepEqual(plan.packageLabels, ["Good", "Better", "Best"]);
+    assert.match(formatGuidedPackageSummary(plan), /Good · Better · Best/);
     assert.equal(plan.definition.options?.length, 3);
     assert.deepEqual(
       plan.definition.options?.map((row) => row.name),
-      ["Standard", "Enhanced", "Premium"]
+      ["Good", "Better", "Best"]
     );
     assert.ok(plan.contentAreas.some((row) => /upgrade/i.test(row.label)));
 
@@ -77,21 +92,36 @@ describe("templatesGuidedCreatePlanner", () => {
         option?.sections?.find((section) => section.kind === "upgrade_group")?.items ?? []
       );
     };
-    assert.deepEqual(upgradesFor("Standard"), []);
-    assert.equal(upgradesFor("Enhanced").length, 1);
-    assert.equal(upgradesFor("Enhanced")[0]?.catalog_seed_key, "roofing.roof_vent");
-    assert.equal(upgradesFor("Enhanced")[0]?.upgrade_effect, "additive");
-    assert.equal(upgradesFor("Premium").length, 1);
-    assert.equal(upgradesFor("Premium")[0]?.catalog_seed_key, "roofing.roof_vent");
+    assert.deepEqual(upgradesFor("Good"), []);
+    assert.equal(upgradesFor("Better").length, 1);
+    assert.equal(upgradesFor("Better")[0]?.catalog_seed_key, "roofing.roof_vent");
+    assert.equal(upgradesFor("Better")[0]?.upgrade_effect, "additive");
+    assert.equal(upgradesFor("Best").length, 1);
+    assert.equal(upgradesFor("Best")[0]?.catalog_seed_key, "roofing.roof_vent");
 
-    const enhancedLines =
+    const betterLines =
       plan.definition.options
-        ?.find((row) => row.name === "Enhanced")
+        ?.find((row) => row.name === "Better")
         ?.sections?.find((section) => section.kind === "line_items")?.items ?? [];
     assert.equal(
-      enhancedLines.find((item) => item.catalog_seed_key === "roofing.synthetic_underlayment")
+      betterLines.find((item) => item.catalog_seed_key === "roofing.synthetic_underlayment")
         ?.customer_name_override,
       "Enhanced underlayment"
+    );
+  });
+
+  test("custom package setup starts with one package and points to Adjust packages", () => {
+    const plan = buildGuidedTemplateCreatePlan({
+      name: "Custom roof setup",
+      packageModel: "custom",
+    });
+
+    assert.equal(plan.presentsPackages, true);
+    assert.deepEqual(plan.packageLabels, ["Standard"]);
+    assert.match(formatGuidedPackageSummary(plan), /Custom setup starts with: Standard/i);
+    assert.ok(
+      plan.structureNotes.some((note) => /Adjust packages/i.test(note)),
+      "custom setup should mention Adjust packages"
     );
   });
 
@@ -142,6 +172,11 @@ describe("templatesGuidedCreatePlanner", () => {
   });
 
   test("package model choice copy stays contractor-facing", () => {
+    assert.equal(GUIDED_PACKAGE_MODEL_CHOICES.length, 4);
+    assert.deepEqual(
+      GUIDED_PACKAGE_MODEL_CHOICES.map((row) => row.title),
+      ["One package", "Two packages", "Three packages", "Custom package setup"]
+    );
     for (const choice of GUIDED_PACKAGE_MODEL_CHOICES) {
       assert.equal(guidedPlanCopyExposesInternalLanguage(choice.title), false);
       assert.equal(guidedPlanCopyExposesInternalLanguage(choice.description), false);

@@ -22,6 +22,7 @@ import {
   proposalTemplateSectionKindLabel,
   type ProposalTemplateSectionKind,
 } from "@/app/lib/proposalTemplateTypes";
+import { filterActiveTemplateOptions } from "./templatesPackageStructurePlanner";
 
 /** Page mode — default is reusable setup summary, not advanced editor. */
 export type TemplatesWorkspaceMode = "review" | "advanced";
@@ -66,6 +67,45 @@ export const TEMPLATES_REUSABLE_SETUP_SUBCOPY =
 export const TEMPLATES_PACKAGES_SECTION_HEADING = "Packages" as const;
 export const TEMPLATES_PACKAGES_SECTION_HINT =
   "Switch packages to review what each one includes. Package selection happens later from a Job Card." as const;
+
+/**
+ * Live active package-option count inside one template.
+ * After R1, never hardcode “3 packages” from create-time model.
+ * `count` must be active package options (removed_at is null) on the selected template.
+ */
+export function formatActivePackageSetupSummary(count: number): string {
+  const n = Math.max(0, Math.floor(count));
+  if (n <= 0) return "No active package options.";
+  if (n === 1) return "This setup has 1 package option.";
+  return `This setup has ${n} package options.`;
+}
+
+/** Job Card / chooser guide — count-aware package-option choice language. */
+export function formatActivePackageChoiceGuide(count: number): string {
+  const n = Math.max(0, Math.floor(count));
+  if (n <= 1) return "Select the package for this proposal.";
+  if (n === 2) return "Choose between 2 package options.";
+  return `Choose from ${n} package options.`;
+}
+
+/** Compact adaptive grid for package cards (Templates / Job Card / Builder). */
+export function packageChoiceGridClass(count: number): string {
+  const n = Math.max(0, Math.floor(count));
+  if (n >= 5) {
+    return "grid w-full grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3";
+  }
+  if (n === 4) {
+    return "grid w-full grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4";
+  }
+  if (n === 3) {
+    return "grid w-full grid-cols-1 gap-3 md:grid-cols-3";
+  }
+  if (n === 2) {
+    return "grid w-full grid-cols-1 gap-3 sm:grid-cols-2";
+  }
+  return "grid w-full grid-cols-1 gap-3";
+}
+
 export const TEMPLATES_INCLUDED_WORK_HEADING = "Included work" as const;
 export const TEMPLATES_INCLUDED_WORK_HINT =
   "Prepared scope for this package." as const;
@@ -257,7 +297,7 @@ export function resolvePackagePresentation(input: {
     mode: "multi",
     heading: TEMPLATES_PACKAGES_SECTION_HEADING,
     hidePackageSwitcher: false,
-    summaryLine: TEMPLATES_PACKAGES_SECTION_HINT,
+    summaryLine: formatActivePackageSetupSummary(packageSummaries.length),
   };
 }
 
@@ -424,8 +464,17 @@ export function summarizePackageOptionsForWorkspace(
   catalogItems: readonly CatalogItem[]
 ): PackageOptionSummary[] {
   const catalogById = buildCatalogByIdMap(catalogItems);
+  const activeOptions = filterActiveTemplateOptions(graph.options);
+  // When the graph includes option rows, hide soft-removed packages.
+  // Empty options (partial fixtures) keep optionGroups as-is.
+  const activeOptionIds =
+    graph.options.length === 0
+      ? null
+      : new Set(activeOptions.map((option) => option.id));
 
-  return structureViewModel.optionGroups.map((group) => {
+  return structureViewModel.optionGroups
+    .filter((group) => activeOptionIds == null || activeOptionIds.has(group.optionId))
+    .map((group) => {
     let linkedItemCount = 0;
     let issueCount = 0;
     let availableUpgradeCount = 0;

@@ -2,6 +2,7 @@
 
 import { Check, Crown, Shield, Sparkles } from "lucide-react";
 import { sortTemplateOptionsByOrder } from "@/app/tools/roofing/templates/templatesSetupUtils";
+import { packageChoiceGridClass } from "@/app/tools/roofing/templates/templatesWorkspaceFlow";
 import type { ProposalTemplateGraph } from "@/app/lib/proposalTemplateStore";
 import {
   BUILDER_PACKAGE_CARD,
@@ -12,6 +13,7 @@ import {
 
 import type { PackageMeta } from "@/app/lib/proposalPackagePresentation";
 import { resolvePackageMeta } from "@/app/lib/proposalPackagePresentation";
+import { filterActiveTemplateOptions } from "@/app/tools/roofing/templates/templatesPackageStructurePlanner";
 
 const ACCENT_STYLES: Record<
   PackageMeta["accent"],
@@ -56,19 +58,23 @@ export default function ProposalBuilderPackageCards({
   onViewDetails,
   compact = false,
 }: ProposalBuilderPackageCardsProps) {
-  const options = sortTemplateOptionsByOrder(graph.options);
+  const options = sortTemplateOptionsByOrder(
+    filterActiveTemplateOptions(graph.options)
+  );
   const cardBase = compact ? BUILDER_PACKAGE_CARD_COMPACT : BUILDER_PACKAGE_CARD;
 
   if (options.length === 0) {
     return <p className="text-sm text-slate-500">No packages on this template.</p>;
   }
 
+  const gridClass = packageChoiceGridClass(options.length);
   return (
     <div
-      className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3"
+      className={gridClass}
       role="radiogroup"
       aria-label="Proposal packages"
       data-builder-package-cards
+      data-builder-package-card-count={options.length}
     >
       {options.map((option) => {
         const label = (option.customer_label ?? option.name).trim() || option.name;
@@ -80,16 +86,10 @@ export default function ProposalBuilderPackageCards({
         return (
           <div
             key={option.id}
-            className={`${cardBase} ${
+            className={`${cardBase} h-full w-full ${
               selected ? BUILDER_PACKAGE_CARD_SELECTED : BUILDER_PACKAGE_CARD_IDLE
             }`}
           >
-            {selected ? (
-              <span className="absolute left-4 top-4 flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-white ring-2 ring-white">
-                <Check className="h-3.5 w-3.5" aria-hidden />
-              </span>
-            ) : null}
-
             <button
               type="button"
               role="radio"
@@ -99,23 +99,37 @@ export default function ProposalBuilderPackageCards({
             >
               <div className="flex items-start gap-3">
                 <div
-                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${accent.iconBg} ${
-                    selected ? "ml-3" : ""
-                  }`}
+                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${accent.iconBg}`}
                 >
-                  <Icon className="h-5 w-5" aria-hidden />
+                  <Icon className="h-4.5 w-4.5 h-[18px] w-[18px]" aria-hidden />
                 </div>
 
-                <div className="min-w-0 flex-1 pt-1">
-                  <p className="text-[15px] font-semibold leading-snug text-slate-950">{label}</p>
-                  <p className="mt-1.5 text-[13px] leading-relaxed text-slate-600">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-[14.5px] font-semibold leading-snug text-slate-950">
+                      {label}
+                    </p>
+                    {selected ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-blue-600/90 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+                        <Check className="h-2.5 w-2.5" aria-hidden />
+                        Current
+                      </span>
+                    ) : (
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${accent.chip}`}
+                      >
+                        Available
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-1.5 text-[12.5px] leading-relaxed text-slate-600">
                     {meta.description}
                   </p>
                 </div>
               </div>
 
               <div
-                className={`${compact ? "mt-3" : "mt-4"} space-y-1.5 text-[13px] leading-snug text-slate-700`}
+                className={`${compact ? "mt-3" : "mt-3.5"} space-y-1 text-[12.5px] leading-snug text-slate-700`}
               >
                 {meta.bullets.map((bullet) => (
                   <div key={bullet} className="flex items-start gap-2">
@@ -126,32 +140,17 @@ export default function ProposalBuilderPackageCards({
               </div>
             </button>
 
-            <div
-              className={`mt-auto flex items-center gap-3 ${
-                onViewDetails ? "justify-between" : "justify-end"
-              } ${compact ? "pt-3" : "pt-4"}`}
-            >
-              {onViewDetails ? (
+            {onViewDetails ? (
+              <div className={`mt-auto ${compact ? "pt-3" : "pt-3.5"}`}>
                 <button
                   type="button"
                   onClick={() => onViewDetails(option.id)}
-                  className="text-sm font-semibold text-blue-700 hover:text-blue-800"
+                  className="text-[12.5px] font-semibold text-blue-700 hover:text-blue-800"
                 >
                   View details
                 </button>
-              ) : null}
-              {selected ? (
-                <span className="rounded-full bg-blue-600 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
-                  Current
-                </span>
-              ) : (
-                <span
-                  className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ${accent.chip}`}
-                >
-                  Available
-                </span>
-              )}
-            </div>
+              </div>
+            ) : null}
           </div>
         );
       })}

@@ -12,8 +12,11 @@ import {
   buildTemplateCreatesSummary,
   defaultExpandedPackageOptionId,
   formatCustomerDisplaySummary,
+  formatActivePackageChoiceGuide,
+  formatActivePackageSetupSummary,
   formatPackageScopeCountLine,
   formatTemplateScopeCountLine,
+  packageChoiceGridClass,
   resolvePackagePresentation,
   resolveTemplatePurposeDescription,
   summarizePackageOptionsForWorkspace,
@@ -254,6 +257,23 @@ describe("templatesWorkspaceFlow", () => {
       }),
       "3 packages · 39 included · 2 available upgrades"
     );
+    assert.equal(
+      formatTemplateScopeCountLine({
+        packageCount: 4,
+        packageMode: "multi",
+        linkedCatalogCount: 52,
+        issueCount: 0,
+        availableUpgradeCount: 3,
+      }),
+      "4 packages · 52 included · 3 available upgrades"
+    );
+    assert.equal(formatActivePackageSetupSummary(4), "This setup has 4 package options.");
+    assert.equal(formatActivePackageChoiceGuide(4), "Choose from 4 package options.");
+    assert.equal(formatActivePackageChoiceGuide(3), "Choose from 3 package options.");
+    assert.equal(formatActivePackageChoiceGuide(2), "Choose between 2 package options.");
+    assert.match(packageChoiceGridClass(4), /xl:grid-cols-4/);
+    assert.match(packageChoiceGridClass(3), /md:grid-cols-3/);
+    assert.doesNotMatch(packageChoiceGridClass(4), /md:grid-cols-3/);
   });
 
   test("resolveTemplatePurposeDescription replaces stale starter install copy", () => {

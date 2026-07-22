@@ -191,26 +191,12 @@ export default function ProposalBuilderPackageSelector({
 
   return (
     <div
-      className="w-full space-y-2.5 overflow-visible"
+      className="w-full overflow-visible"
       data-builder-package-selector
       data-builder-package-count={optionCount}
       data-builder-package-picker="open"
     >
-      {hasExplicitSelection ? (
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-[12px] font-semibold text-slate-600">
-            Choose starting package.
-          </p>
-          <button
-            type="button"
-            onClick={() => setShowAll(false)}
-            className="inline-flex items-center rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
-          >
-            Done
-          </button>
-        </div>
-      ) : null}
-
+      {/* Done lives in the package zone header when used from Estimate workbench. */}
       <ProposalBuilderPackageCards
         graph={graph}
         selectedOptionId={effectiveOptionId}

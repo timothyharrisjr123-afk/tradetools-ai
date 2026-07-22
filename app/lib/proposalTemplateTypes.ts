@@ -152,6 +152,8 @@ export type ProposalTemplateOption = {
   is_default?: boolean;
   visible_to_customer?: boolean;
   sort_order?: number | null;
+  /** Soft-remove timestamp. Null/undefined = active for future proposal creation. */
+  removed_at?: string | null;
   metadata?: Record<string, unknown> | null;
   created_at?: string | null;
   updated_at?: string | null;

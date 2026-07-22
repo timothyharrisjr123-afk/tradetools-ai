@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import type { ProposalTemplateReadiness } from "@/app/lib/proposalTemplateTypes";
 import type { TemplateCatalogLinkReadiness } from "@/app/lib/proposalTemplateCatalogLink";
@@ -15,6 +16,7 @@ import {
   TemplatesIdentityEditor,
   TemplatesPackagesAdjustPanel,
   type PackageAuthorshipDraft,
+  type PackageStructureCreateDraft,
   type TemplateIdentityDraft,
 } from "./TemplatesSetupAuthorshipEditors";
 import TemplatesAvailableUpgradesManager from "./TemplatesAvailableUpgradesManager";
@@ -33,8 +35,10 @@ import {
   TEMPLATES_REUSABLE_SETUP_SUBCOPY,
   TEMPLATES_SIMPLE_ESTIMATE_LABEL,
   buildProposalContentLandingAreas,
+  formatActivePackageSetupSummary,
   formatPackageScopeCountLine,
   formatTemplateScopeCountLine,
+  packageChoiceGridClass,
   resolvePackageChoiceDescription,
   resolvePackagePresentation,
   resolveTemplatePurposeDescription,
@@ -61,6 +65,16 @@ type TemplatesQuoteSetupReviewProps = {
   onOpenAdvanced: (tab?: TemplatesEditTabId) => void;
   onSaveIdentity: (draft: TemplateIdentityDraft) => Promise<void> | void;
   onSavePackages: (drafts: readonly PackageAuthorshipDraft[]) => Promise<void> | void;
+  onCopyPackage: (input: {
+    sourceOptionId: string;
+    draft: PackageStructureCreateDraft;
+  }) => Promise<boolean>;
+  onCreateBlankPackage: (draft: PackageStructureCreateDraft) => Promise<boolean>;
+  onReorderPackage: (optionId: string, direction: "up" | "down") => Promise<boolean>;
+  onRemovePackage: (input: {
+    removeOptionId: string;
+    replacementDefaultOptionId?: string | null;
+  }) => Promise<boolean>;
 };
 
 export default function TemplatesQuoteSetupReview({
@@ -81,7 +95,12 @@ export default function TemplatesQuoteSetupReview({
   onOpenAdvanced,
   onSaveIdentity,
   onSavePackages,
+  onCopyPackage,
+  onCreateBlankPackage,
+  onReorderPackage,
+  onRemovePackage,
 }: TemplatesQuoteSetupReviewProps) {
+  const [packagesAdjustOpen, setPackagesAdjustOpen] = useState(false);
   const { template } = graph;
   const statusLabel = proposalTemplateStatusLabel(template.status);
   const companyReady = proposalReadiness.status === "ready_for_builder";
@@ -230,8 +249,14 @@ export default function TemplatesQuoteSetupReview({
           data-templates-package-selector
           data-templates-packages-landing
         >
-          <div className="flex flex-wrap items-end justify-between gap-2">
-            <div>
+          <div
+            className={
+              packagesAdjustOpen
+                ? "flex flex-col gap-3"
+                : "flex flex-wrap items-start justify-between gap-2"
+            }
+          >
+            <div className="min-w-0">
               <h3
                 id="templates-packages-landing-heading"
                 className="text-sm font-semibold text-slate-900"
@@ -244,24 +269,34 @@ export default function TemplatesQuoteSetupReview({
                 data-templates-package-summary
               >
                 {packagePresentation.mode === "multi"
-                  ? TEMPLATES_PACKAGES_SECTION_HINT
+                  ? `${formatActivePackageSetupSummary(packageSummaries.length)} ${TEMPLATES_PACKAGES_SECTION_HINT}`
                   : packagePresentation.summaryLine}
               </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              {packagePresentation.mode === "multi" && selectedSummary ? (
-                <p className="text-[11px] font-medium text-blue-800" data-templates-reviewing-package>
+              {packagePresentation.mode === "multi" &&
+              selectedSummary &&
+              !packagesAdjustOpen ? (
+                <p
+                  className="mt-1 text-[11px] font-medium text-blue-800"
+                  data-templates-reviewing-package
+                >
                   Reviewing {selectedSummary.optionLabel} below
                 </p>
               ) : null}
-              {packagePresentation.mode !== "simple" ? (
-                <TemplatesPackagesAdjustPanel
-                  options={graph.options}
-                  busy={busy}
-                  onSave={onSavePackages}
-                />
-              ) : null}
             </div>
+            {packagePresentation.mode !== "simple" ? (
+              <div className={packagesAdjustOpen ? "w-full" : "shrink-0"}>
+                <TemplatesPackagesAdjustPanel
+                  graph={graph}
+                  busy={busy}
+                  onOpenChange={setPackagesAdjustOpen}
+                  onSaveAuthorship={onSavePackages}
+                  onCopyPackage={onCopyPackage}
+                  onCreateBlankPackage={onCreateBlankPackage}
+                  onReorderPackage={onReorderPackage}
+                  onRemovePackage={onRemovePackage}
+                />
+              </div>
+            ) : null}
           </div>
 
           {packagePresentation.mode === "simple" ? (
@@ -293,9 +328,11 @@ export default function TemplatesQuoteSetupReview({
 
           {packagePresentation.mode === "multi" ? (
             <div
-              className="mt-3 grid gap-2.5 sm:grid-cols-3"
+              className={`mt-3 ${packageChoiceGridClass(packageSummaries.length)}`}
               role="tablist"
               aria-label="Prepared packages"
+              data-templates-package-cards
+              data-templates-package-count={packageSummaries.length}
             >
               {packageSummaries.map((row) => {
                 const selected = row.optionId === selectedPackageOptionId;
