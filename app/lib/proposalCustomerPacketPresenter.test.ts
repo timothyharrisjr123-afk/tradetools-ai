@@ -57,6 +57,7 @@ function baseDto(overrides: Partial<ProposalPublicGraphDto> = {}): ProposalPubli
         source_template_option_id: TEMPLATE_OPT_A,
         name: "Standard",
         customer_label: "Standard",
+        description: null,
         sort_order: 0,
         visible_to_customer: true,
         customer_subtotal_cents: 10000,
@@ -85,6 +86,7 @@ function baseDto(overrides: Partial<ProposalPublicGraphDto> = {}): ProposalPubli
         source_template_option_id: TEMPLATE_OPT_B,
         name: "Premium",
         customer_label: "Premium",
+        description: null,
         sort_order: 2,
         visible_to_customer: true,
         customer_subtotal_cents: 25000,
@@ -128,6 +130,7 @@ function baseDto(overrides: Partial<ProposalPublicGraphDto> = {}): ProposalPubli
         source_template_option_id: TEMPLATE_OPT_C,
         name: "Enhanced",
         customer_label: "Enhanced",
+        description: null,
         sort_order: 1,
         visible_to_customer: true,
         customer_subtotal_cents: 19000,
@@ -173,6 +176,26 @@ describe("buildCustomerPacketFromPublicDto", () => {
     const packet = buildCustomerPacketFromPublicDto(baseDto());
     assert.equal(packet.estimate?.optionKey, TEMPLATE_OPT_B);
     assert.equal(packet.estimate?.label, "Premium");
+  });
+
+  test("authored option description beats package label fallback", () => {
+    const authored = "Contractor-authored Premium package story.";
+    const packet = buildCustomerPacketFromPublicDto(
+      baseDto({
+        options: baseDto().options.map((option) =>
+          option.source_template_option_id === TEMPLATE_OPT_B
+            ? { ...option, description: authored }
+            : { ...option, description: null }
+        ),
+      })
+    );
+    assert.equal(packet.estimate?.description, authored);
+    const current = packet.comparison?.options.find((option) => option.isCurrent);
+    assert.equal(current?.description, authored);
+    const standard = packet.comparison?.options.find(
+      (option) => option.optionKey === TEMPLATE_OPT_A
+    );
+    assert.equal(standard?.description, "Reliable protection with quality materials.");
   });
 
   test("current proposal total uses frozen package total", () => {

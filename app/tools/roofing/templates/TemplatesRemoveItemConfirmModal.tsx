@@ -59,7 +59,7 @@ export default function TemplatesRemoveItemConfirmModal({
             className="rounded-md bg-slate-900 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
             data-templates-remove-confirm-submit
           >
-            {busy ? "Removing…" : "Remove from template"}
+            {busy ? "Removing…" : TEMPLATE_REMOVE_FROM_TEMPLATE_LABEL}
           </button>
         </div>
       </div>

@@ -3,6 +3,13 @@
  * Pure view-model + copy. No React, Supabase, or store writes.
  */
 
+import {
+  formatPackageScopeCountLine,
+  formatTemplateScopeCountLine,
+  TEMPLATES_SIMPLE_ESTIMATE_LABEL,
+  type PackagePresentationMode,
+} from "@/app/tools/roofing/templates/templatesWorkspaceFlow";
+
 export type CreateProposalModalStep =
   | "measurement"
   | "template"
@@ -19,7 +26,7 @@ export type CreateProposalMeasurementChoice = {
 export const CREATE_PROPOSAL_MODAL_TITLE = "Create proposal" as const;
 
 export const CREATE_PROPOSAL_MODAL_SUBTITLE =
-  "Confirm the measurement, template, and starting package FieldDive will use for this job." as const;
+  "Use a reusable proposal setup for this job: measurement, template, starting package, then Builder." as const;
 
 export const CREATE_PROPOSAL_STEP_MEASUREMENT = "Measurement" as const;
 export const CREATE_PROPOSAL_STEP_TEMPLATE = "Template" as const;
@@ -27,37 +34,56 @@ export const CREATE_PROPOSAL_STEP_PACKAGE = "Package" as const;
 export const CREATE_PROPOSAL_STEP_REVIEW = "Review" as const;
 
 export const CREATE_PROPOSAL_MEASUREMENT_GUIDE =
-  "Use a completed measurement report for this proposal." as const;
+  "Choose the measurement FieldDive will use for quantities on this proposal." as const;
 
 export const CREATE_PROPOSAL_TEMPLATE_GUIDE =
-  "Choose the proposal structure for this job." as const;
+  "Choose the reusable proposal setup for this job. Manage templates under Proposal templates." as const;
 
 export const CREATE_PROPOSAL_TEMPLATE_STRUCTURE =
-  "Includes estimate, package options, terms, warranty, and customer-facing sections." as const;
+  "Prepared packages, included work, available upgrades, and customer-facing proposal pages." as const;
 
 export const CREATE_PROPOSAL_TEMPLATE_READY = "Ready to use" as const;
 
 export const CREATE_PROPOSAL_PACKAGE_GUIDE =
-  "Choose the starting package for this proposal. You can change it later in Builder." as const;
+  "Choose the starting package for this job. You can adjust quantities and optional upgrades later in Builder." as const;
 
+export const CREATE_PROPOSAL_PACKAGE_BUILDER_NOTE =
+  "You can adjust quantities and optional upgrades later in Builder." as const;
+
+/** @deprecated Prefer resolveCreateProposalPackageStepEyebrow — avoids false “one package” for simple estimates. */
 export const CREATE_PROPOSAL_PACKAGE_ONE_ONLY =
-  "This template has one package." as const;
+  "This template has one prepared package." as const;
 
-export const CREATE_PROPOSAL_REVIEW_TITLE = "Ready to build proposal" as const;
+export const CREATE_PROPOSAL_PACKAGE_SIMPLE =
+  "This template uses a simple estimate — no customer package choices." as const;
+
+export const CREATE_PROPOSAL_PACKAGE_SINGLE =
+  "This template has one prepared package." as const;
+
+export const CREATE_PROPOSAL_PACKAGE_MULTI =
+  "Compare packages, then choose the starting option for this job." as const;
+
+export const CREATE_PROPOSAL_REVIEW_TITLE = "Ready to continue" as const;
 
 export const CREATE_PROPOSAL_REVIEW_INTRO =
-  "FieldDive will create a saved proposal for this job using the details below." as const;
+  "Confirm what FieldDive will use, then continue to Builder for this job." as const;
+
+export const CREATE_PROPOSAL_REVIEW_NEXT_LABEL = "In Builder next" as const;
+
+export const CREATE_PROPOSAL_REVIEW_NEXT =
+  "Apply this job’s quantities, adjust optional upgrades if needed, then review the proposal before sending." as const;
 
 export const CREATE_PROPOSAL_INCLUDED_PRIMARY =
   "Estimate · Package details · Terms · Warranty · Customer-facing sections" as const;
 
-export const CREATE_PROPOSAL_INCLUDED_LABEL = "Proposal includes" as const;
+export const CREATE_PROPOSAL_INCLUDED_LABEL = "Proposal packet includes" as const;
 
 export const CREATE_PROPOSAL_USE_MEASUREMENT = "Use this measurement" as const;
 export const CREATE_PROPOSAL_USE_TEMPLATE = "Use this template" as const;
 export const CREATE_PROPOSAL_CONTINUE_TO_BUILDER = "Continue to Builder" as const;
 
-export const CREATE_PROPOSAL_HELPER = "Existing proposals are not changed." as const;
+export const CREATE_PROPOSAL_HELPER =
+  "Existing proposals on this job are not changed." as const;
 
 export const CREATE_PROPOSAL_MEASUREMENT_READY = "Report complete" as const;
 export const CREATE_PROPOSAL_MEASUREMENT_BLOCKED =
@@ -93,7 +119,6 @@ export function resolveCreateProposalTemplateStepMessage(input: {
   }
   return null;
 }
-
 
 export const CREATE_PROPOSAL_PACKAGE_BLOCKED =
   "Choose a package to continue." as const;
@@ -219,23 +244,31 @@ export function formatCreateProposalTemplatePrimaryBody(): string {
   return CREATE_PROPOSAL_TEMPLATE_STRUCTURE;
 }
 
-/** Quiet secondary detail only — never the hero line. */
+/**
+ * Quiet secondary detail — truthful included / package / upgrade counts.
+ * Avoids “pricing items” admin language.
+ */
 export function formatCreateProposalTemplateSecondaryDetail(input: {
   linkedItemCount: number;
   packageCount: number;
+  availableUpgradeCount?: number;
+  packageMode?: PackagePresentationMode;
 }): string {
-  const parts: string[] = [];
-  if (input.linkedItemCount > 0) {
-    parts.push(
-      `${input.linkedItemCount} pricing item${input.linkedItemCount === 1 ? "" : "s"}`
-    );
-  }
-  if (input.packageCount > 0) {
-    parts.push(
-      `${input.packageCount} package${input.packageCount === 1 ? "" : "s"}`
-    );
-  }
-  return parts.join(" · ");
+  const packageMode =
+    input.packageMode ??
+    (input.packageCount <= 0
+      ? "simple"
+      : input.packageCount === 1
+        ? "single"
+        : "multi");
+  if (input.linkedItemCount <= 0 && input.packageCount <= 0) return "";
+  return formatTemplateScopeCountLine({
+    packageCount: Math.max(0, input.packageCount),
+    packageMode,
+    linkedCatalogCount: Math.max(0, input.linkedItemCount),
+    issueCount: 0,
+    availableUpgradeCount: Math.max(0, input.availableUpgradeCount ?? 0),
+  });
 }
 
 /**
@@ -274,6 +307,55 @@ export function formatCreateProposalPricingItemsReady(
   const count = Math.max(0, includedItemCount);
   if (count <= 0) return "Pricing items and proposal pages are ready";
   return `${count} pricing item${count === 1 ? "" : "s"} ready`;
+}
+
+/** Package card count line — reuses Templates truthful formatter. */
+export function formatCreateProposalPackageCountLine(input: {
+  linkedItemCount: number;
+  availableUpgradeCount: number;
+  issueCount?: number;
+}): string {
+  return formatPackageScopeCountLine({
+    optionId: "",
+    optionLabel: "",
+    sectionCount: 0,
+    catalogSectionCount: 0,
+    linkedItemCount: Math.max(0, input.linkedItemCount),
+    issueCount: Math.max(0, input.issueCount ?? 0),
+    availableUpgradeCount: Math.max(0, input.availableUpgradeCount),
+    availableUpgradeIssueCount: 0,
+    status: "ready",
+  });
+}
+
+export function resolveCreateProposalPackageStepEyebrow(
+  mode: PackagePresentationMode
+): string {
+  if (mode === "simple") return CREATE_PROPOSAL_PACKAGE_SIMPLE;
+  if (mode === "single") return CREATE_PROPOSAL_PACKAGE_SINGLE;
+  return CREATE_PROPOSAL_PACKAGE_MULTI;
+}
+
+export function formatCreateProposalPackageReviewLine(input: {
+  packageMode: PackagePresentationMode;
+  packageName: string | null | undefined;
+}): string {
+  const name = (input.packageName ?? "").trim();
+  if (input.packageMode === "simple") {
+    return TEMPLATES_SIMPLE_ESTIMATE_LABEL;
+  }
+  if (!name) return "Starting package selected";
+  return `${name} starting package`;
+}
+
+export function formatCreateProposalReviewScopeLine(input: {
+  includedItemCount: number;
+  availableUpgradeCount: number;
+}): string {
+  return formatCreateProposalPackageCountLine({
+    linkedItemCount: input.includedItemCount,
+    availableUpgradeCount: input.availableUpgradeCount,
+  });
 }
 
 /** @deprecated Prefer formatCreateProposalIncludedPrimary + quiet secondary. */

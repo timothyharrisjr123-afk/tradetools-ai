@@ -6,14 +6,35 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
   TEMPLATES_EDIT_TABS,
+  TEMPLATES_STARTER_PURPOSE_COPY,
   TEMPLATES_WORKSPACE_TRUST_NOTE,
   buildProposalContentLandingAreas,
   buildTemplateCreatesSummary,
   defaultExpandedPackageOptionId,
   formatCustomerDisplaySummary,
+  formatPackageScopeCountLine,
+  formatTemplateScopeCountLine,
   resolvePackagePresentation,
+  resolveTemplatePurposeDescription,
   summarizePackageOptionsForWorkspace,
+  type PackageOptionSummary,
 } from "./templatesWorkspaceFlow";
+
+function packageSummary(
+  partial: Partial<PackageOptionSummary> &
+    Pick<PackageOptionSummary, "optionId" | "optionLabel">
+): PackageOptionSummary {
+  return {
+    sectionCount: 1,
+    catalogSectionCount: 1,
+    linkedItemCount: 0,
+    issueCount: 0,
+    availableUpgradeCount: 0,
+    availableUpgradeIssueCount: 0,
+    status: "ready",
+    ...partial,
+  };
+}
 
 describe("templatesWorkspaceFlow", () => {
   test("edit tabs are packages / estimate / content — advanced only", () => {
@@ -55,24 +76,22 @@ describe("templatesWorkspaceFlow", () => {
     const summary = buildTemplateCreatesSummary({
       graph,
       packageSummaries: [
-        {
+        packageSummary({
           optionId: "o1",
           optionLabel: "Standard",
           sectionCount: 3,
-          catalogSectionCount: 1,
           linkedItemCount: 4,
-          issueCount: 0,
-          status: "ready",
-        },
-        {
+          availableUpgradeCount: 1,
+        }),
+        packageSummary({
           optionId: "o2",
           optionLabel: "Premium",
           sectionCount: 2,
-          catalogSectionCount: 1,
           linkedItemCount: 2,
           issueCount: 1,
           status: "needs_attention",
-        },
+          availableUpgradeCount: 1,
+        }),
       ],
       editableProseCount: 2,
     });
@@ -80,6 +99,7 @@ describe("templatesWorkspaceFlow", () => {
     assert.deepEqual(summary.packageLabels, ["Standard", "Premium"]);
     assert.equal(summary.linkedCatalogCount, 6);
     assert.equal(summary.issueCount, 1);
+    assert.equal(summary.availableUpgradeCount, 2);
     assert.ok(summary.customerFacingAreas.includes("Estimate packages"));
     assert.ok(summary.customerFacingAreas.includes("Terms"));
     assert.ok(summary.customerFacingAreas.includes("Warranty"));
@@ -90,30 +110,24 @@ describe("templatesWorkspaceFlow", () => {
   test("defaultExpandedPackageOptionId prefers needs_attention", () => {
     assert.equal(
       defaultExpandedPackageOptionId([
-        {
+        packageSummary({
           optionId: "a",
           optionLabel: "A",
-          sectionCount: 1,
-          catalogSectionCount: 1,
           linkedItemCount: 2,
-          issueCount: 0,
-          status: "ready",
-        },
-        {
+        }),
+        packageSummary({
           optionId: "b",
           optionLabel: "B",
-          sectionCount: 1,
-          catalogSectionCount: 1,
           linkedItemCount: 1,
           issueCount: 1,
           status: "needs_attention",
-        },
+        }),
       ]),
       "b"
     );
   });
 
-  test("summarizePackageOptionsForWorkspace counts links and issues", () => {
+  test("summarizePackageOptionsForWorkspace excludes upgrade_group from included counts", () => {
     const graph = {
       template: { id: "t1", name: "Starter" },
       options: [],
@@ -133,6 +147,13 @@ describe("templatesWorkspaceFlow", () => {
           catalog_item_id: null,
           sort_order: 20,
         },
+        {
+          id: "i3",
+          section_id: "s-upgrade",
+          option_id: "o1",
+          catalog_item_id: "c-upgrade",
+          sort_order: 30,
+        },
       ],
     } as never;
 
@@ -141,7 +162,7 @@ describe("templatesWorkspaceFlow", () => {
       optionGroups: [
         {
           optionId: "o1",
-          optionLabel: "Standard",
+          optionLabel: "Enhanced",
           sections: [
             {
               sectionId: "s1",
@@ -151,6 +172,18 @@ describe("templatesWorkspaceFlow", () => {
               displayTitle: "Line items",
               itemCount: 2,
               sortOrder: 10,
+              isReorderable: true,
+              isRemovable: false,
+              protectionReason: null,
+            },
+            {
+              sectionId: "s-upgrade",
+              optionId: "o1",
+              kind: "upgrade_group",
+              name: "Optional upgrades",
+              displayTitle: "Optional upgrades",
+              itemCount: 1,
+              sortOrder: 20,
               isReorderable: true,
               isRemovable: false,
               protectionReason: null,
@@ -168,6 +201,12 @@ describe("templatesWorkspaceFlow", () => {
         active: true,
         company_id: "co",
       },
+      {
+        id: "c-upgrade",
+        name: "Additional roof ventilation",
+        active: true,
+        company_id: "co",
+      },
     ] as never;
 
     const rows = summarizePackageOptionsForWorkspace(
@@ -178,7 +217,59 @@ describe("templatesWorkspaceFlow", () => {
     assert.equal(rows.length, 1);
     assert.equal(rows[0].linkedItemCount, 1);
     assert.equal(rows[0].issueCount, 1);
+    assert.equal(rows[0].availableUpgradeCount, 1);
+    assert.equal(rows[0].availableUpgradeIssueCount, 0);
     assert.equal(rows[0].status, "needs_attention");
+    assert.equal(
+      formatPackageScopeCountLine(rows[0]),
+      "2 included · 1 available upgrade"
+    );
+  });
+
+  test("package and hero count lines keep upgrades separate from included", () => {
+    const enhanced = packageSummary({
+      optionId: "enhanced",
+      optionLabel: "Enhanced",
+      linkedItemCount: 13,
+      availableUpgradeCount: 1,
+    });
+    assert.equal(formatPackageScopeCountLine(enhanced), "13 included · 1 available upgrade");
+    assert.equal(
+      formatPackageScopeCountLine(
+        packageSummary({
+          optionId: "standard",
+          optionLabel: "Standard",
+          linkedItemCount: 13,
+        })
+      ),
+      "13 included"
+    );
+    assert.equal(
+      formatTemplateScopeCountLine({
+        packageCount: 3,
+        packageMode: "multi",
+        linkedCatalogCount: 39,
+        issueCount: 0,
+        availableUpgradeCount: 2,
+      }),
+      "3 packages · 39 included · 2 available upgrades"
+    );
+  });
+
+  test("resolveTemplatePurposeDescription replaces stale starter install copy", () => {
+    assert.equal(
+      resolveTemplatePurposeDescription({
+        description:
+          "Starter roof replacement template with Standard, Enhanced, and Premium customer-facing options. Install catalog items before use.",
+      }),
+      TEMPLATES_STARTER_PURPOSE_COPY
+    );
+    assert.equal(
+      resolveTemplatePurposeDescription({
+        description: "Company custom roofing proposal setup.",
+      }),
+      "Company custom roofing proposal setup."
+    );
   });
 
   test("resolvePackagePresentation hides simple estimate option container", () => {
@@ -196,15 +287,11 @@ describe("templatesWorkspaceFlow", () => {
         items: [],
       } as never,
       packageSummaries: [
-        {
+        packageSummary({
           optionId: "o1",
           optionLabel: "Estimate",
-          sectionCount: 1,
-          catalogSectionCount: 1,
           linkedItemCount: 3,
-          issueCount: 0,
-          status: "ready",
-        },
+        }),
       ],
     });
     assert.equal(simple.mode, "simple");

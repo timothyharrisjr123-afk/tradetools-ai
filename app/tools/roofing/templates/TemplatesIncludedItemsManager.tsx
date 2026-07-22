@@ -1,13 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   TEMPLATE_ADD_FROM_CATALOG_LABEL,
   TEMPLATE_REMOVE_FROM_TEMPLATE_LABEL,
   TEMPLATE_RELINK_CATALOG_LABEL,
 } from "@/app/lib/proposalTemplateCatalogLink";
-import { TEMPLATES_CARD } from "./templatesConstants";
 import {
+  TEMPLATES_CARD,
+  TEMPLATES_WORKSPACE_SECTION,
+} from "./templatesConstants";
+import {
+  TEMPLATES_ADJUST_INCLUDED_ACTION,
+  TEMPLATES_INCLUDED_WORK_ADJUST_HINT,
   TEMPLATES_INCLUDED_WORK_HEADING,
   TEMPLATES_INCLUDED_WORK_HINT,
 } from "./templatesWorkspaceFlow";
@@ -24,6 +29,10 @@ type TemplatesIncludedItemsManagerProps = {
   onReplaceItem: (templateItemId: string) => void;
   onRemoveItem: (templateItemId: string) => void;
   heading?: string;
+  adjusting?: boolean;
+  onAdjustingChange?: (next: boolean) => void;
+  /** When true, renders as a band inside the connected workspace (no outer card). */
+  embedded?: boolean;
 };
 
 function LocalIssue({
@@ -65,17 +74,44 @@ export default function TemplatesIncludedItemsManager({
   onReplaceItem,
   onRemoveItem,
   heading = TEMPLATES_INCLUDED_WORK_HEADING,
+  adjusting: adjustingProp,
+  onAdjustingChange,
+  embedded = false,
 }: TemplatesIncludedItemsManagerProps) {
-  const [adjusting, setAdjusting] = useState(false);
+  const [internalAdjusting, setInternalAdjusting] = useState(false);
+  const controlled = typeof adjustingProp === "boolean";
+  const adjusting = controlled ? adjustingProp : internalAdjusting;
+
+  useEffect(() => {
+    if (!controlled) return;
+    if (!adjustingProp) return;
+    document
+      .getElementById("templates-included-items-heading")
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [controlled, adjustingProp]);
+
+  const setAdjusting = (next: boolean) => {
+    if (controlled) {
+      onAdjustingChange?.(next);
+      return;
+    }
+    setInternalAdjusting(next);
+  };
+
   const totalItems = groups.reduce((sum, group) => sum + group.itemCount, 0);
+  const shellClass = embedded
+    ? TEMPLATES_WORKSPACE_SECTION
+    : `${TEMPLATES_CARD} !px-4 !py-4 space-y-3`;
 
   return (
     <section
-      className={`${TEMPLATES_CARD} !px-4 !py-4 space-y-3`}
+      className={shellClass}
       aria-labelledby="templates-included-items-heading"
       data-templates-included-manager
       data-templates-included-work
       data-templates-included-mode={adjusting ? "adjust" : "prepared"}
+      data-templates-section-embedded={embedded ? "true" : "false"}
+      data-templates-prepared-scope
     >
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
@@ -88,9 +124,7 @@ export default function TemplatesIncludedItemsManager({
           <p className="mt-0.5 text-xs text-slate-500">
             {totalItems === 0
               ? TEMPLATES_INCLUDED_WORK_HINT
-              : `${scopeLabel} · ${totalItems} prepared item${
-                  totalItems === 1 ? "" : "s"
-                }. ${TEMPLATES_INCLUDED_WORK_HINT}`}
+              : `${scopeLabel} · ${totalItems} included`}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -107,39 +141,35 @@ export default function TemplatesIncludedItemsManager({
           ) : null}
           <button
             type="button"
-            onClick={() => setAdjusting((current) => !current)}
+            onClick={() => setAdjusting(!adjusting)}
             disabled={busy}
             className="inline-flex items-center justify-center rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
             data-templates-adjust-included-work
           >
-            {adjusting ? "Done adjusting" : "Adjust included work"}
+            {adjusting ? "Done adjusting" : TEMPLATES_ADJUST_INCLUDED_ACTION}
           </button>
         </div>
       </div>
 
       {totalItems === 0 ? (
-        <p
-          className="rounded-md border border-dashed border-slate-200 bg-slate-50 px-3 py-6 text-center text-sm text-slate-600"
-          data-templates-included-empty
-        >
-          No included work prepared yet. Choose Adjust included work to add scope.
+        <p className="mt-3 text-xs text-slate-500" data-templates-included-empty>
+          No included work prepared yet.
         </p>
       ) : adjusting ? (
-        <div className="space-y-3" data-templates-included-adjust-view>
-          <p className="text-xs text-slate-500">
-            Add, replace, or remove work for this package. Catalog pricing and quantity rules stay
-            unchanged.
+        <div className="mt-3 space-y-2.5" data-templates-included-adjust-view>
+          <p className="text-xs leading-relaxed text-slate-500">
+            {TEMPLATES_INCLUDED_WORK_ADJUST_HINT}
           </p>
           {groups.map((group) => (
             <div
               key={group.id}
-              className="overflow-hidden rounded-xl border border-slate-200 bg-white"
+              className="overflow-hidden rounded-xl border border-slate-200/90 bg-white"
               data-templates-included-adjust-group={group.id}
             >
               <div className="flex items-center justify-between gap-2 border-b border-slate-100 bg-slate-50/70 px-3.5 py-2.5">
                 <p className="text-sm font-semibold text-slate-900">{group.label}</p>
-                <span className="text-xs text-slate-500">
-                  {group.itemCount} item{group.itemCount === 1 ? "" : "s"}
+                <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-medium tabular-nums text-slate-600 ring-1 ring-slate-200/80">
+                  {group.itemCount}
                 </span>
               </div>
               <ul className="divide-y divide-slate-100">
@@ -188,41 +218,37 @@ export default function TemplatesIncludedItemsManager({
           ))}
         </div>
       ) : (
-        <div className="space-y-3" data-templates-included-prepared-view>
+        <div
+          className="mt-3 space-y-2.5"
+          data-templates-included-prepared-view
+          data-templates-prepared-scope-groups
+        >
           {groups.map((group) => (
             <div
               key={group.id}
-              className="rounded-xl border border-slate-200 bg-slate-50/45 px-3.5 py-3"
+              className="rounded-xl bg-slate-50/80 ring-1 ring-slate-200/70"
               data-templates-included-group={group.id}
             >
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <p className="text-sm font-semibold text-slate-900">{group.label}</p>
-                <p className="text-xs text-slate-500">
-                  {group.itemCount} item{group.itemCount === 1 ? "" : "s"}
-                </p>
+              <div className="flex flex-wrap items-center justify-between gap-2 px-3.5 py-2">
+                <p className="text-sm font-semibold text-slate-800">{group.label}</p>
+                <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold tabular-nums text-slate-600 ring-1 ring-slate-200/80">
+                  {group.itemCount} included
+                </span>
               </div>
-              <ul className="mt-2 grid gap-x-6 gap-y-2 sm:grid-cols-2">
+              <ul className="grid gap-1.5 border-t border-slate-200/60 px-2.5 py-2.5 sm:grid-cols-2">
                 {group.items.map((item) => (
                   <li
                     key={item.templateItemId}
-                    className="min-w-0"
+                    className="rounded-lg bg-white px-3 py-2 ring-1 ring-slate-100"
                     data-templates-included-summary-item={item.templateItemId}
                     data-templates-catalog-link-status={item.status}
                   >
-                    <div className="flex min-w-0 items-start gap-2">
-                      <span
-                        aria-hidden="true"
-                        className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500"
-                      />
-                      <p className="min-w-0 text-sm text-slate-800">{item.name}</p>
-                    </div>
-                    <div className="ml-3.5">
-                      <LocalIssue
-                        item={item}
-                        busy={busy}
-                        onReplaceItem={onReplaceItem}
-                      />
-                    </div>
+                    <p className="text-sm leading-snug text-slate-800">{item.name}</p>
+                    <LocalIssue
+                      item={item}
+                      busy={busy}
+                      onReplaceItem={onReplaceItem}
+                    />
                   </li>
                 ))}
               </ul>

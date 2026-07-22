@@ -9,14 +9,29 @@ export const TEMPLATES_HERO_CARD =
 export const TEMPLATES_PREREQ_BANNER =
   "rounded-lg border border-amber-200/90 bg-amber-50/70 px-4 py-4";
 
+/** Lightweight setup picker shell — same radius/border language as the workspace. */
+export const TEMPLATES_LIBRARY_SHELL =
+  "rounded-xl border border-slate-200/90 bg-white px-4 py-4 shadow-[0_1px_3px_rgba(15,23,42,0.05)]";
+
+/** Selectable setup row — matches package choice cards (soft blue selected). */
 export const TEMPLATES_LIBRARY_ROW =
-  "rounded-lg border border-slate-200 bg-white px-4 py-4 shadow-sm";
+  "rounded-xl border border-slate-200/90 bg-white/80 px-3.5 py-3 transition hover:border-slate-300 hover:bg-white";
 
 export const TEMPLATES_LIBRARY_ROW_SELECTED =
-  "rounded-lg border border-cyan-300 bg-cyan-50/40 px-4 py-4 shadow-sm ring-1 ring-cyan-200";
+  "rounded-xl border border-blue-400 bg-white px-3.5 py-3 shadow-sm ring-2 ring-blue-100";
 
 export const TEMPLATES_WORKSPACE_ZONE =
   "rounded-lg border border-slate-200/90 bg-white shadow-[0_1px_3px_rgba(15,23,42,0.05)]";
+
+/** Connected selected-template surface — one shell, internal section bands. */
+export const TEMPLATES_CONNECTED_WORKSPACE =
+  "overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-[0_1px_3px_rgba(15,23,42,0.05)]";
+
+export const TEMPLATES_WORKSPACE_SECTION =
+  "border-b border-slate-100 px-4 py-4 last:border-b-0 sm:px-5";
+
+export const TEMPLATES_WORKSPACE_SECTION_MUTED =
+  "border-b border-slate-100 bg-slate-50/40 px-4 py-4 last:border-b-0 sm:px-5";
 
 export const TEMPLATES_LOCKED_BANNER =
   "mt-4 rounded-md border border-slate-200 bg-slate-50 px-4 py-3";

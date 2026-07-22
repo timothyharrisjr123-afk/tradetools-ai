@@ -72,7 +72,7 @@ export default function ProposalBuilderPackageCards({
     >
       {options.map((option) => {
         const label = (option.customer_label ?? option.name).trim() || option.name;
-        const meta = resolvePackageMeta(label);
+        const meta = resolvePackageMeta(label, option.description);
         const accent = ACCENT_STYLES[meta.accent];
         const selected = option.id === selectedOptionId;
         const { Icon } = accent;

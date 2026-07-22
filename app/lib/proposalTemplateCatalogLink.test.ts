@@ -162,9 +162,9 @@ describe("proposalTemplateCatalogLink", () => {
     );
     assert.equal(extractCatalogSeedKey(catalog({ id: "2", name: "Y", metadata: null })), null);
     assert.match(TEMPLATE_CATALOG_SOT_COPY, /Catalog is the source of truth/i);
-    assert.equal(TEMPLATE_ADD_FROM_CATALOG_LABEL, "Add item");
+    assert.equal(TEMPLATE_ADD_FROM_CATALOG_LABEL, "Add work item");
     assert.equal(TEMPLATE_RELINK_CATALOG_LABEL, "Replace item");
-    assert.equal(TEMPLATE_REMOVE_FROM_TEMPLATE_LABEL, "Remove from template");
+    assert.equal(TEMPLATE_REMOVE_FROM_TEMPLATE_LABEL, "Remove from this setup");
     assert.match(TEMPLATE_REMOVE_CONFIRM_COPY, /Catalog item will not be deleted/i);
     assert.equal(
       /supplier sync is active|material ordering is live|proposal import is live/i.test(

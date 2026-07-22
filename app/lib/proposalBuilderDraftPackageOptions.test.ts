@@ -56,6 +56,7 @@ function draftOption(
     company_id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
     proposal_version_id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
     customer_label: overrides.name,
+    description: null,
     sort_order: 0,
     is_default: false,
     visible_to_customer: true,
@@ -263,6 +264,7 @@ describe("proposalBuilderDraftPackageOptions", () => {
         source_template_option_id: OPT_SMOKE,
         name: "Complete-source smoke option",
         customer_label: "Smoke package",
+        description: null,
         sort_order: 1,
       }),
     ]);

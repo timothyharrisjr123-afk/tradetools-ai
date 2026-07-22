@@ -13,8 +13,7 @@ export const STARTER_TEMPLATE_DISPLAY_NAME =
   DEFAULT_ROOFING_PROPOSAL_TEMPLATE_DEFINITIONS[0]?.name ?? "Roof replacement";
 
 export const STARTER_TEMPLATE_DISPLAY_DESCRIPTION =
-  DEFAULT_ROOFING_PROPOSAL_TEMPLATE_DEFINITIONS[0]?.description ??
-  "Starter roof replacement template with Standard, Enhanced, and Premium options.";
+  "Reusable roof replacement setup for future proposals.";
 
 export function extractTemplateSeedKey(
   metadata: Record<string, unknown> | null | undefined
@@ -45,10 +44,36 @@ export function getPassiveStarterOptionLabels(): string[] {
   return def.options.map((opt) => opt.customer_label ?? opt.name);
 }
 
+/** Included-scope Catalog links only — excludes upgrade_group available upgrades. */
 export function countCatalogLinkedTemplateItems(graph: ProposalTemplateGraph): number {
-  return graph.items.filter(
-    (item) => item.catalog_item_id != null && String(item.catalog_item_id).trim().length > 0
-  ).length;
+  const upgradeSectionIds = new Set(
+    graph.sections
+      .filter((section) => section.kind === "upgrade_group")
+      .map((section) => section.id)
+  );
+  return graph.items.filter((item) => {
+    if (item.catalog_item_id == null || String(item.catalog_item_id).trim().length === 0) {
+      return false;
+    }
+    return !upgradeSectionIds.has(item.section_id);
+  }).length;
+}
+
+/** Available-upgrade Catalog links only (upgrade_group). */
+export function countCatalogLinkedAvailableUpgradeItems(
+  graph: ProposalTemplateGraph
+): number {
+  const upgradeSectionIds = new Set(
+    graph.sections
+      .filter((section) => section.kind === "upgrade_group")
+      .map((section) => section.id)
+  );
+  return graph.items.filter((item) => {
+    if (item.catalog_item_id == null || String(item.catalog_item_id).trim().length === 0) {
+      return false;
+    }
+    return upgradeSectionIds.has(item.section_id);
+  }).length;
 }
 
 export function sortTemplateOptionsByOrder<T extends { sort_order?: number | null }>(

@@ -188,6 +188,7 @@ describe("proposalDocumentTokenResolver", () => {
           source_template_option_id: "77777777-7777-4777-8777-777777777777",
           name: "Opt",
           customer_label: "Good",
+          description: null,
           sort_order: 0,
           is_default: true,
           visible_to_customer: true,

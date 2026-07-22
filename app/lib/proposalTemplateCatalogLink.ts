@@ -48,11 +48,11 @@ export const TEMPLATE_CATALOG_SOT_COPY =
 export const TEMPLATE_CATALOG_DRAFT_REFRESH_COPY =
   "Existing proposal drafts keep snapshotted prices until you refresh draft pricing from Job Card / Builder. Linking or re-linking here does not change drafts automatically." as const;
 
-export const TEMPLATE_ADD_FROM_CATALOG_LABEL = "Add item" as const;
+export const TEMPLATE_ADD_FROM_CATALOG_LABEL = "Add work item" as const;
 export const TEMPLATE_RELINK_CATALOG_LABEL = "Replace item" as const;
-export const TEMPLATE_REMOVE_FROM_TEMPLATE_LABEL = "Remove from template" as const;
+export const TEMPLATE_REMOVE_FROM_TEMPLATE_LABEL = "Remove from this setup" as const;
 export const TEMPLATE_REMOVE_CONFIRM_COPY =
-  "Remove this item from the template? The Catalog item will not be deleted." as const;
+  "Remove this work from the reusable setup? The Catalog item will not be deleted." as const;
 
 export function defaultItemRoleForSectionKind(
   kind: ProposalTemplateSectionKind

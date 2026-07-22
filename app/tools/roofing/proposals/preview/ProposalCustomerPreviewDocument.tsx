@@ -45,6 +45,15 @@ export default function ProposalCustomerPreviewDocumentView({
   const companyName =
     coverPage?.kind === "cover" ? coverPage.viewModel.company.companyName : null;
 
+  const selectedTemplateOption =
+    estimatePage?.kind === "estimate" &&
+    estimatePage.selectedTemplateOptionId &&
+    templateGraph
+      ? (templateGraph.options.find(
+          (option) => option.id === estimatePage.selectedTemplateOptionId
+        ) ?? null)
+      : null;
+
   const estimatePresentation =
     estimatePage?.kind === "estimate" && templateGraph
       ? buildCustomerPreviewEstimatePresentation({
@@ -58,7 +67,10 @@ export default function ProposalCustomerPreviewDocumentView({
           optionCustomerView: estimatePage.optionPreview?.customer ?? null,
           selectedOptionLabel: estimatePage.selectedOptionLabel,
           packageMeta: estimatePage.selectedOptionLabel
-            ? resolvePackageMeta(estimatePage.selectedOptionLabel)
+            ? resolvePackageMeta(
+                estimatePage.selectedOptionLabel,
+                selectedTemplateOption?.description
+              )
             : null,
           estimatePageSettings: estimatePage.estimatePageSettings,
           snapshotQuantityByTemplateItemId: estimatePage.snapshotQuantityByTemplateItemId,

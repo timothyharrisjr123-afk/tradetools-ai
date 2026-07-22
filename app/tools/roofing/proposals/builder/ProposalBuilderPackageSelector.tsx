@@ -89,7 +89,7 @@ export default function ProposalBuilderPackageSelector({
   if (collapsed) {
     const label =
       (summaryOption.customer_label ?? summaryOption.name).trim() || summaryOption.name;
-    const meta = resolvePackageMeta(label);
+    const meta = resolvePackageMeta(label, summaryOption.description);
 
     if (compact) {
       return (

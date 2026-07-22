@@ -114,6 +114,7 @@ function draftGraph(overrides: Partial<ProposalDraftGraph> = {}): ProposalDraftG
         source_template_option_id: TEMPLATE_OPT_A,
         name: "Option A",
         customer_label: "Good",
+        description: null,
         sort_order: 0,
         is_default: true,
         visible_to_customer: true,
@@ -299,6 +300,7 @@ describe("buildProposalSendFreezePersistPayload", () => {
     assert.equal(payload.options[0]!.customer_subtotal_cents, 10000);
     assert.equal(payload.options[0]!.customer_total_cents, 10800);
     assert.equal(payload.options[0]!.sales_tax_cents, 800);
+    assert.equal(payload.options[0]!.description, null);
   });
 
   test("lines copied with visible_to_customer and omitted state preserved", () => {

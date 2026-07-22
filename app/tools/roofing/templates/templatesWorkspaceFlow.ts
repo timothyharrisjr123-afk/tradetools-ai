@@ -58,26 +58,52 @@ export const TEMPLATES_USE_OUTCOME_SUMMARY =
 export const TEMPLATES_QUOTE_SETUP_OUTCOME =
   "Review what this template prepares for future proposals." as const;
 
+export const TEMPLATES_LIBRARY_HEADING = "Reusable setups" as const;
+export const TEMPLATES_LIBRARY_HINT = "Choose a setup to review." as const;
 export const TEMPLATES_REUSABLE_SETUP_EYEBROW = "Reusable proposal setup" as const;
 export const TEMPLATES_REUSABLE_SETUP_SUBCOPY =
   "Review what this template prepares for future proposals." as const;
 export const TEMPLATES_PACKAGES_SECTION_HEADING = "Packages" as const;
+export const TEMPLATES_PACKAGES_SECTION_HINT =
+  "Switch packages to review what each one includes. Package selection happens later from a Job Card." as const;
 export const TEMPLATES_INCLUDED_WORK_HEADING = "Included work" as const;
 export const TEMPLATES_INCLUDED_WORK_HINT =
-  "Prepared scope for future proposals. Adjust only if needed." as const;
+  "Prepared scope for this package." as const;
+export const TEMPLATES_INCLUDED_WORK_ADJUST_HINT =
+  "Adjust prepared scope for this package. Catalog still owns price and unit." as const;
 export const TEMPLATES_AVAILABLE_UPGRADES_HEADING = "Available upgrades" as const;
 export const TEMPLATES_AVAILABLE_UPGRADES_HINT =
-  "Available for selection on proposals. Not included until selected." as const;
-export const TEMPLATES_PROPOSAL_CONTENT_HEADING = "Proposal content" as const;
-export const TEMPLATES_NEXT_USE_HEADING = "Next use" as const;
+  "Optional add-ons. Not included by default — selected later in Builder." as const;
+export const TEMPLATES_AVAILABLE_UPGRADES_EMPTY =
+  "No optional upgrades prepared for this package." as const;
+export const TEMPLATES_PROPOSAL_CONTENT_HEADING = "Proposal packet" as const;
+export const TEMPLATES_PROPOSAL_CONTENT_HINT =
+  "Customer-facing pages in this setup." as const;
+export const TEMPLATES_NEXT_USE_HEADING = "Used from a Job Card" as const;
 export const TEMPLATES_NEXT_USE_COPY =
-  "Use this template from a Job Card when creating a proposal." as const;
+  "Use this template from a Job Card: choose measurement → choose template → choose package → continue to Builder." as const;
 export const TEMPLATES_OPEN_JOBS_ACTION = "Open Jobs" as const;
+export const TEMPLATES_ADJUST_INCLUDED_ACTION = "Adjust included work" as const;
 export const TEMPLATES_ADVANCED_EDITING_ACTION = "Advanced editing" as const;
 export const TEMPLATES_BACK_TO_SETUP_ACTION = "Back to proposal setup" as const;
 export const TEMPLATES_SIMPLE_ESTIMATE_LABEL = "Simple estimate" as const;
 export const TEMPLATES_SIMPLE_ESTIMATE_DETAIL =
   "One prepared estimate — no package choices for the customer." as const;
+export const TEMPLATES_JOB_CARD_USE_NOTE =
+  "Used from a Job Card when creating a proposal." as const;
+/** Short contractor-facing blurb for a package choice card. */
+export function resolvePackageChoiceDescription(input: {
+  optionLabel: string;
+  optionDescription?: string | null;
+}): string | null {
+  const fromOption = input.optionDescription?.trim() || null;
+  if (fromOption) return fromOption;
+  const label = input.optionLabel.trim().toLowerCase();
+  if (label === "standard") return "Core included scope for this proposal choice.";
+  if (label === "enhanced") return "Upgraded included materials with optional add-ons available.";
+  if (label === "premium") return "Highest included package with optional add-ons available.";
+  return null;
+}
 
 export type PackageOptionSummaryStatus = "ready" | "needs_attention";
 
@@ -86,21 +112,88 @@ export type PackageOptionSummary = {
   optionLabel: string;
   sectionCount: number;
   catalogSectionCount: number;
+  /** Package-included scope only — never upgrade_group / available upgrades. */
   linkedItemCount: number;
+  /** Included-scope catalog issues only. */
   issueCount: number;
+  /** True optional add-ons in upgrade_group (linked). */
+  availableUpgradeCount: number;
+  /** Available-upgrade catalog issues only. */
+  availableUpgradeIssueCount: number;
+  /** Template option marked is_default. */
+  isDefault: boolean;
   status: PackageOptionSummaryStatus;
 };
 
 export type TemplateCreatesSummary = {
   packageLabels: string[];
+  /** Included-scope linked catalog items across packages (excludes available upgrades). */
   linkedCatalogCount: number;
   issueCount: number;
+  /** Available upgrades across packages (linked + issue rows). */
+  availableUpgradeCount: number;
   customerFacingAreas: string[];
   customerDisplayLine: string;
   editableProseCount: number;
 };
 
 export type PackagePresentationMode = "simple" | "single" | "multi";
+
+/** Replaces stale starter install copy on the prepared landing. */
+export const TEMPLATES_STARTER_PURPOSE_COPY =
+  "Reusable roof replacement setup for future proposals." as const;
+
+const STALE_STARTER_PURPOSE_PATTERN =
+  /Install catalog items before use|Starter roof replacement template/i;
+
+/** Contractor-facing purpose line for the reusable-setup hero. */
+export function resolveTemplatePurposeDescription(input: {
+  description?: string | null;
+  metadata?: Record<string, unknown> | null;
+}): string | null {
+  const raw = input.description?.trim() || null;
+  if (!raw) return null;
+  if (STALE_STARTER_PURPOSE_PATTERN.test(raw)) {
+    return TEMPLATES_STARTER_PURPOSE_COPY;
+  }
+  return raw;
+}
+
+/** Package card / single-package count line — included separate from available upgrades. */
+export function formatPackageScopeCountLine(summary: PackageOptionSummary): string {
+  const included = summary.linkedItemCount + summary.issueCount;
+  const upgrades =
+    summary.availableUpgradeCount + summary.availableUpgradeIssueCount;
+  const includedPart = `${included} included`;
+  if (upgrades <= 0) return includedPart;
+  return `${includedPart} · ${upgrades} available upgrade${upgrades === 1 ? "" : "s"}`;
+}
+
+/** Hero / library rollup — included totals exclude available upgrades. */
+export function formatTemplateScopeCountLine(input: {
+  packageCount: number;
+  packageMode: PackagePresentationMode;
+  linkedCatalogCount: number;
+  issueCount: number;
+  availableUpgradeCount: number;
+}): string {
+  const included = input.linkedCatalogCount + input.issueCount;
+  const packagesPart =
+    input.packageMode === "simple"
+      ? TEMPLATES_SIMPLE_ESTIMATE_LABEL
+      : input.packageMode === "single"
+        ? "1 package"
+        : `${input.packageCount} packages`;
+  const parts = [packagesPart, `${included} included`];
+  if (input.availableUpgradeCount > 0) {
+    parts.push(
+      `${input.availableUpgradeCount} available upgrade${
+        input.availableUpgradeCount === 1 ? "" : "s"
+      }`
+    );
+  }
+  return parts.join(" · ");
+}
 
 export type PackagePresentation = {
   mode: PackagePresentationMode;
@@ -164,7 +257,7 @@ export function resolvePackagePresentation(input: {
     mode: "multi",
     heading: TEMPLATES_PACKAGES_SECTION_HEADING,
     hidePackageSwitcher: false,
-    summaryLine: `Packages: ${packageSummaries.map((row) => row.optionLabel).join(" · ")}`,
+    summaryLine: TEMPLATES_PACKAGES_SECTION_HINT,
   };
 }
 
@@ -295,6 +388,11 @@ export function buildTemplateCreatesSummary(input: {
     0
   );
   const issueCount = packageSummaries.reduce((sum, row) => sum + row.issueCount, 0);
+  const availableUpgradeCount = packageSummaries.reduce(
+    (sum, row) =>
+      sum + row.availableUpgradeCount + row.availableUpgradeIssueCount,
+    0
+  );
 
   const kindsPresent = new Set<ProposalTemplateSectionKind>();
   for (const section of graph.sections) {
@@ -313,6 +411,7 @@ export function buildTemplateCreatesSummary(input: {
     packageLabels,
     linkedCatalogCount,
     issueCount,
+    availableUpgradeCount,
     customerFacingAreas,
     customerDisplayLine: formatCustomerDisplaySummary(estimateSettings),
     editableProseCount,
@@ -329,15 +428,26 @@ export function summarizePackageOptionsForWorkspace(
   return structureViewModel.optionGroups.map((group) => {
     let linkedItemCount = 0;
     let issueCount = 0;
+    let availableUpgradeCount = 0;
+    let availableUpgradeIssueCount = 0;
     let catalogSectionCount = 0;
 
     for (const section of group.sections) {
       if (sectionAcceptsCatalogItems(section.kind)) {
         catalogSectionCount += 1;
       }
+      const isAvailableUpgrade = section.kind === "upgrade_group";
       const sectionItems = graph.items.filter((item) => item.section_id === section.sectionId);
       for (const item of sectionItems) {
         const status = resolveTemplateCatalogLinkStatus(item, catalogById);
+        if (isAvailableUpgrade) {
+          if (status === "linked") {
+            availableUpgradeCount += 1;
+          } else {
+            availableUpgradeIssueCount += 1;
+          }
+          continue;
+        }
         if (status === "linked") {
           linkedItemCount += 1;
         } else {
@@ -353,7 +463,14 @@ export function summarizePackageOptionsForWorkspace(
       catalogSectionCount,
       linkedItemCount,
       issueCount,
-      status: issueCount > 0 ? "needs_attention" : "ready",
+      availableUpgradeCount,
+      availableUpgradeIssueCount,
+      isDefault:
+        graph.options.find((option) => option.id === group.optionId)?.is_default === true,
+      status:
+        issueCount > 0 || availableUpgradeIssueCount > 0
+          ? "needs_attention"
+          : "ready",
     };
   });
 }
@@ -367,10 +484,13 @@ export function defaultExpandedPackageOptionId(
   return summaries[0]?.optionId ?? null;
 }
 
-/** Default package for quote review — first option, preferring needs_attention. */
+/** Default package for quote review — prefer template is_default, else needs_attention, else first. */
 export function defaultSelectedPackageOptionId(
   summaries: readonly PackageOptionSummary[]
 ): string | null {
+  if (summaries.length === 0) return null;
+  const markedDefault = summaries.find((row) => row.isDefault);
+  if (markedDefault) return markedDefault.optionId;
   return defaultExpandedPackageOptionId(summaries);
 }
 

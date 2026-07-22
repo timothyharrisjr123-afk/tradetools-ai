@@ -56,7 +56,7 @@ describe("Templates Page — Reusable proposal setup landing", () => {
     const picker = read("TemplatesCatalogItemPickerModal.tsx");
 
     assert.ok(included.includes("data-templates-add-item"));
-    assert.equal(TEMPLATE_ADD_FROM_CATALOG_LABEL, "Add item");
+    assert.equal(TEMPLATE_ADD_FROM_CATALOG_LABEL, "Add work item");
     assert.ok(setup.includes("handleQuoteAddItem"));
     assert.ok(setup.includes("TemplatesCatalogItemPickerModal"));
     assert.ok(setup.includes("alreadyLinked.has(catalogItem.id)"));
@@ -73,16 +73,19 @@ describe("Templates Page — Reusable proposal setup landing", () => {
     );
 
     assert.equal(TEMPLATE_RELINK_CATALOG_LABEL, "Replace item");
-    assert.equal(TEMPLATE_REMOVE_FROM_TEMPLATE_LABEL, "Remove from template");
+    assert.equal(TEMPLATE_REMOVE_FROM_TEMPLATE_LABEL, "Remove from this setup");
     assert.ok(!included.includes("Change catalog link"));
     assert.ok(included.includes("data-templates-replace-item"));
     assert.ok(included.includes("data-templates-remove-from-template"));
     assert.ok(included.includes("data-templates-included-mode"));
-    assert.ok(included.includes("Adjust included work"));
+    assert.ok(included.includes("Adjust included work") || included.includes("TEMPLATES_ADJUST_INCLUDED_ACTION"));
     assert.ok(included.includes("Done adjusting"));
     assert.ok(included.includes("data-templates-included-prepared-view"));
     assert.ok(included.includes("data-templates-included-adjust-view"));
-    assert.ok(included.includes("Adjust only if needed") || included.includes("TEMPLATES_INCLUDED_WORK_HINT"));
+    assert.ok(
+      included.includes("TEMPLATES_INCLUDED_WORK_HINT") ||
+        included.includes("TEMPLATES_INCLUDED_WORK_ADJUST_HINT")
+    );
     assert.ok(removeModal.includes("TEMPLATE_REMOVE_CONFIRM_COPY"));
     assert.match(TEMPLATE_REMOVE_CONFIRM_COPY, /Catalog item will not be deleted/i);
     assert.ok(setup.includes("deleteProposalTemplateItem"));
@@ -119,14 +122,27 @@ describe("Templates Page — Reusable proposal setup landing", () => {
     assert.ok(!review.includes("There is no Create proposal button"));
   });
 
-  test("setup collapses when complete; recheck remains", () => {
+  test("setup collapses when complete; recheck stays in quiet diagnostics", () => {
     const zone = read("TemplatesOnboardingZone.tsx");
     const setup = read("TemplatesSetupClient.tsx");
-    assert.ok(zone.includes("data-templates-setup-strip"));
-    assert.ok(zone.includes("Setup complete"));
+    assert.ok(zone.includes("data-templates-setup-diagnostics"));
+    assert.ok(zone.includes("Setup diagnostics"));
+    assert.ok(!zone.includes("Setup complete · Catalog ready · Starter installed"));
     assert.ok(zone.includes("data-templates-setup-recheck"));
     assert.ok(setup.includes("setupComplete="));
     assert.ok(setup.includes("onRecheck={handleInstallStarter}"));
+  });
+
+  test("presentation truth uses included counts separate from available upgrades", () => {
+    const review = read("TemplatesQuoteSetupReview.tsx");
+    const flow = read("templatesWorkspaceFlow.ts");
+    assert.ok(review.includes("formatPackageScopeCountLine"));
+    assert.ok(review.includes("formatTemplateScopeCountLine"));
+    assert.ok(review.includes("resolveTemplatePurposeDescription"));
+    assert.ok(flow.includes("availableUpgradeCount"));
+    assert.ok(flow.includes('section.kind === "upgrade_group"'));
+    assert.ok(!review.includes("included item${"));
+    assert.ok(!review.includes("included items"));
   });
 
   test("packages and content follow hero before next use; no trust footnote hero", () => {
@@ -141,5 +157,21 @@ describe("Templates Page — Reusable proposal setup landing", () => {
     assert.ok(contentIdx > pkgIdx);
     assert.ok(nextIdx > contentIdx);
     assert.ok(review.includes("<TemplatesIncludedItemsManager"));
+  });
+
+  test("integrated setup keeps section actions and light package selection", () => {
+    const review = read("TemplatesQuoteSetupReview.tsx");
+    assert.ok(review.includes("TEMPLATES_REUSABLE_SETUP_EYEBROW"));
+    assert.ok(review.includes("data-templates-hero-counts"));
+    assert.ok(review.includes("TEMPLATES_JOB_CARD_USE_NOTE"));
+    assert.ok(review.includes("TEMPLATES_PACKAGES_SECTION_HINT"));
+    assert.ok(review.includes("data-templates-connected-workspace"));
+    assert.ok(review.includes("ring-2 ring-blue-100"));
+    assert.ok(!review.includes("data-templates-command-surface"));
+    assert.ok(!review.includes("data-templates-hero-adjust-included"));
+    assert.ok(!review.includes("bg-slate-900"));
+    assert.ok(review.includes("onOpenAdvanced(\"content\")") || review.includes('onOpenAdvanced("content")'));
+    assert.ok(review.includes("TEMPLATES_NEXT_USE_COPY"));
+    assert.ok(review.includes("<footer"));
   });
 });

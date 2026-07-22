@@ -76,6 +76,8 @@ export type ProposalPublicGraphOptionDto = {
   source_template_option_id: string;
   name: string;
   customer_label: string | null;
+  /** Authored package description; null → presenter fallback copy. */
+  description: string | null;
   sort_order: number;
   visible_to_customer: boolean;
   customer_subtotal_cents: number | null;
@@ -232,6 +234,7 @@ function mapPublicOptionFromDraft(
     source_template_option_id: templateId,
     name: option.name,
     customer_label: option.customer_label,
+    description: option.description ?? null,
     sort_order: option.sort_order,
     visible_to_customer: option.visible_to_customer,
     customer_subtotal_cents: option.customer_subtotal_cents,
@@ -250,6 +253,7 @@ function mapPublicOptionFromFreeze(option: ProposalSendFreezeOptionPersistPayloa
     source_template_option_id: option.source_template_option_id,
     name: option.name,
     customer_label: option.customer_label,
+    description: option.description ?? null,
     sort_order: option.sort_order,
     visible_to_customer: option.visible_to_customer,
     customer_subtotal_cents: option.customer_subtotal_cents,

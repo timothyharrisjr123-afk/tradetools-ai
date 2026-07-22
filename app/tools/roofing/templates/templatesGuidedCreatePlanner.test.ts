@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
   GUIDED_PACKAGE_MODEL_CHOICES,
+  buildDefaultGuidedPackageDrafts,
   buildGuidedTemplateCreatePlan,
   formatGuidedPackageSummary,
   guidedPlanCopyExposesInternalLanguage,
@@ -92,6 +93,52 @@ describe("templatesGuidedCreatePlanner", () => {
         ?.customer_name_override,
       "Enhanced underlayment"
     );
+  });
+
+  test("custom package drafts persist names, descriptions, and default", () => {
+    const drafts = buildDefaultGuidedPackageDrafts("triple").map((draft, index) => {
+      const names = ["Good", "Better", "Best"] as const;
+      const descriptions = [
+        "Essential roof replacement scope",
+        "Upgraded protection package",
+        "Premium protection package",
+      ] as const;
+      return {
+        ...draft,
+        name: names[index]!,
+        customerLabel: names[index]!,
+        description: descriptions[index]!,
+        isDefault: index === 1,
+      };
+    });
+
+    const plan = buildGuidedTemplateCreatePlan({
+      name: "Roof Replacement Packages",
+      packageModel: "triple",
+      packageDrafts: drafts,
+    });
+
+    assert.deepEqual(plan.packageLabels, ["Good", "Better", "Best"]);
+    assert.equal(plan.defaultPackageLabel, "Better");
+    assert.deepEqual(
+      plan.definition.options?.map((row) => row.name),
+      ["Good", "Better", "Best"]
+    );
+    assert.deepEqual(
+      plan.definition.options?.map((row) => row.description),
+      [
+        "Essential roof replacement scope",
+        "Upgraded protection package",
+        "Premium protection package",
+      ]
+    );
+    assert.equal(plan.definition.options?.[1]?.is_default, true);
+    assert.equal(plan.definition.options?.[0]?.is_default, false);
+    // Structure still clones Enhanced upgrades onto middle package.
+    const betterUpgrades =
+      plan.definition.options?.[1]?.sections?.find((section) => section.kind === "upgrade_group")
+        ?.items ?? [];
+    assert.equal(betterUpgrades.length, 1);
   });
 
   test("package model choice copy stays contractor-facing", () => {

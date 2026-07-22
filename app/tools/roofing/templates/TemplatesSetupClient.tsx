@@ -28,6 +28,7 @@ import {
   getProposalTemplatesByCompany,
   updateProposalTemplate,
   updateProposalTemplateItem,
+  updateProposalTemplateOption,
   updateProposalTemplateSection,
   type ProposalTemplateGraph,
 } from "@/app/lib/proposalTemplateStore";
@@ -55,6 +56,10 @@ import TemplatesPageAlerts from "./TemplatesPageAlerts";
 import TemplatesPageHeader from "./TemplatesPageHeader";
 import TemplatesRemoveItemConfirmModal from "./TemplatesRemoveItemConfirmModal";
 import TemplatesSelectedWorkspace from "./TemplatesSelectedWorkspace";
+import type {
+  PackageAuthorshipDraft,
+  TemplateIdentityDraft,
+} from "./TemplatesSetupAuthorshipEditors";
 import TemplatesStarterHeroCard from "./TemplatesStarterHeroCard";
 import TemplatesWorkspaceLayout from "./TemplatesWorkspaceLayout";
 import { deriveInstallFeedback, findStarterProposalTemplate } from "./templatesSetupUtils";
@@ -905,6 +910,87 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
     structureBusy,
   ]);
 
+  const handleSaveTemplateIdentity = useCallback(
+    async (draft: TemplateIdentityDraft) => {
+      if (!selectedTemplateId || structureBusy || savingSectionId) return;
+      setStructureBusy({ kind: "settings-template" });
+      setStructureError(null);
+      try {
+        const updated = await updateProposalTemplate(selectedTemplateId, {
+          name: draft.name,
+          description: draft.description.trim() ? draft.description.trim() : null,
+        });
+        if (!updated) {
+          setStructureError("Could not save template name and purpose.");
+          return;
+        }
+        setCompanyTemplates((current) =>
+          current.map((row) => (row.id === updated.id ? updated : row))
+        );
+        await reloadSelectedGraph(selectedTemplateId);
+      } catch (err) {
+        setStructureError(
+          err instanceof Error ? err.message : "Could not save template name and purpose."
+        );
+      } finally {
+        setStructureBusy(null);
+      }
+    },
+    [reloadSelectedGraph, savingSectionId, selectedTemplateId, structureBusy]
+  );
+
+  const handleSavePackageAuthorship = useCallback(
+    async (drafts: readonly PackageAuthorshipDraft[]) => {
+      if (!selectedTemplateId || !selectedGraph || structureBusy || savingSectionId) return;
+      setStructureBusy({ kind: "settings-template" });
+      setStructureError(null);
+      try {
+        // Clear defaults first so unique one-default-per-template index stays valid.
+        for (const option of selectedGraph.options) {
+          if (option.is_default) {
+            const cleared = await updateProposalTemplateOption(option.id, {
+              is_default: false,
+            });
+            if (!cleared) {
+              setStructureError("Could not update default package.");
+              return;
+            }
+          }
+        }
+
+        for (const draft of drafts) {
+          const name = draft.name.trim();
+          const customerLabel = draft.customerLabel.trim() || name;
+          const description = draft.description.trim() ? draft.description.trim() : null;
+          const updated = await updateProposalTemplateOption(draft.optionId, {
+            name,
+            customer_label: customerLabel,
+            description,
+            is_default: draft.isDefault,
+          });
+          if (!updated) {
+            setStructureError("Could not save package details.");
+            return;
+          }
+        }
+        await reloadSelectedGraph(selectedTemplateId);
+      } catch (err) {
+        setStructureError(
+          err instanceof Error ? err.message : "Could not save package details."
+        );
+      } finally {
+        setStructureBusy(null);
+      }
+    },
+    [
+      reloadSelectedGraph,
+      savingSectionId,
+      selectedGraph,
+      selectedTemplateId,
+      structureBusy,
+    ]
+  );
+
   const handleFixIssues = useCallback(() => {
     const problemId = selectedLinkReadiness.firstProblemItemId;
     if (problemId) {
@@ -1155,6 +1241,8 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
                 onReplaceItem={handleOpenRelinkCatalogItem}
                 onRemoveItem={handleRequestRemoveItem}
                 onFixIssues={handleFixIssues}
+                onSaveIdentity={handleSaveTemplateIdentity}
+                onSavePackages={handleSavePackageAuthorship}
                 onAddSection={handleAddSection}
                 onMoveSection={handleMoveSection}
                 onSaveTemplateEstimateSettings={handleSaveTemplateEstimateSettings}

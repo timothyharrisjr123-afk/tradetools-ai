@@ -288,7 +288,7 @@ export function buildCustomerPacketEstimateFromPublicDto(
 
   const selectedOption = visibleOptions.find((option) => option.source_template_option_id === selectedKey)!;
   const selectedLabel = optionLabel(selectedOption);
-  const selectedMeta = resolvePackageMeta(selectedLabel);
+  const selectedMeta = resolvePackageMeta(selectedLabel, selectedOption.description);
   const { includedLines, upgradeLines } = splitSelectedOptionLines(selectedOption);
   const mappedIncluded = includedLines.map((line) => mapLine(line, displayPolicy));
   const scopeGroups = buildScopeGroups(mappedIncluded);
@@ -310,7 +310,7 @@ export function buildCustomerPacketEstimateFromPublicDto(
       ? {
           options: visibleOptions.map((option) => {
             const label = optionLabel(option);
-            const meta = resolvePackageMeta(label);
+            const meta = resolvePackageMeta(label, option.description);
             return {
               optionKey: option.source_template_option_id,
               label,

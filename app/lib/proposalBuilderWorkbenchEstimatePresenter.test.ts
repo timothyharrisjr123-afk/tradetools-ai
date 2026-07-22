@@ -697,6 +697,24 @@ describe("buildProposalWorkbenchEstimatePresentation", () => {
     assert.equal(result.packageZone.bullets.length, 2);
   });
 
+  test("packageZone prefers authored option description over label fallback", () => {
+    const scopeSection = section("sec-scope", "line_items", OPTION_STANDARD);
+    const authored = "Contractor-authored Standard package story.";
+    const templateGraph = graph(
+      [option(OPTION_STANDARD, { description: authored })],
+      [scopeSection],
+      [item({ id: "line-priced", section_id: "sec-scope" })]
+    );
+    const result = buildProposalWorkbenchEstimatePresentation(
+      buildInput({
+        graph: templateGraph,
+        sections: [scopeSection],
+      })
+    );
+
+    assert.equal(result.packageZone.description, authored);
+  });
+
   test("packageZone exposes multi-option count without signing hint", () => {
     const result = buildProposalWorkbenchEstimatePresentation(buildInput());
 

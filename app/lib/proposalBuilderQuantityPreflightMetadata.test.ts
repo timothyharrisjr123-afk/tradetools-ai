@@ -170,6 +170,7 @@ function draftGraph(overrides: Partial<ProposalDraftGraph> = {}): ProposalDraftG
     source_template_option_id: TEMPLATE_OPT,
     name: "Standard",
     customer_label: "Standard",
+    description: null,
     sort_order: 0,
     is_default: true,
     visible_to_customer: true,

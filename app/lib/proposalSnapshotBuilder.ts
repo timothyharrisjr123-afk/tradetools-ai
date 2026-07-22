@@ -76,6 +76,8 @@ export type ProposalOptionSnapshotPayload = {
   source_template_option_id: string;
   name: string;
   customer_label: string | null;
+  /** Authored package description from template option; null → presenter fallback. */
+  description: string | null;
   sort_order: number;
   is_default: boolean;
   visible_to_customer: boolean;
@@ -197,6 +199,8 @@ export type OptionPricingSnapshotInput = {
   source_template_option_id: string;
   name: string;
   customer_label?: string | null;
+  /** Authored package description from template option; null → presenter fallback. */
+  description?: string | null;
   sort_order: number;
   is_default: boolean;
   visible_to_customer: boolean;
@@ -550,6 +554,7 @@ export function buildOptionSnapshots(input: BuildOptionSnapshotsInput): Proposal
       source_template_option_id: option.source_template_option_id,
       name: option.name,
       customer_label: option.customer_label ?? null,
+      description: option.description ?? null,
       sort_order: option.sort_order,
       is_default: option.is_default,
       visible_to_customer: option.visible_to_customer,

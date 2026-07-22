@@ -10,7 +10,11 @@ import {
   TEMPLATES_LIBRARY_ROW,
   TEMPLATES_LIBRARY_ROW_SELECTED,
 } from "./templatesConstants";
-import { countCatalogLinkedTemplateItems, sortTemplateOptionsByOrder } from "./templatesSetupUtils";
+import {
+  countCatalogLinkedAvailableUpgradeItems,
+  countCatalogLinkedTemplateItems,
+  sortTemplateOptionsByOrder,
+} from "./templatesSetupUtils";
 
 type TemplatesTemplateLibraryRowProps = {
   template: ProposalTemplate;
@@ -34,11 +38,15 @@ export default function TemplatesTemplateLibraryRow({
   compact = false,
 }: TemplatesTemplateLibraryRowProps) {
   const statusLabel = proposalTemplateStatusLabel(template.status);
+  const archived = template.status === "archived";
   const rowClass = `${selected ? TEMPLATES_LIBRARY_ROW_SELECTED : TEMPLATES_LIBRARY_ROW}${
-    compact ? " !px-3 !py-2" : ""
+    archived && !selected ? " bg-slate-50/70 opacity-60" : ""
   }`;
   const sortedOptions = graph ? sortTemplateOptionsByOrder(graph.options) : [];
-  const catalogLinkedCount = graph ? countCatalogLinkedTemplateItems(graph) : null;
+  const includedLinkedCount = graph ? countCatalogLinkedTemplateItems(graph) : null;
+  const availableUpgradeCount = graph
+    ? countCatalogLinkedAvailableUpgradeItems(graph)
+    : null;
   const ready =
     selected &&
     proposalReadiness?.status === "ready_for_builder" &&
@@ -48,23 +56,53 @@ export default function TemplatesTemplateLibraryRow({
   const shortDescription =
     description.length > 90 ? `${description.slice(0, 87).trimEnd()}…` : description;
 
+  const summaryLine =
+    includedLinkedCount == null
+      ? null
+      : [
+          `${sortedOptions.length} package${sortedOptions.length === 1 ? "" : "s"}`,
+          `${includedLinkedCount} included`,
+          availableUpgradeCount && availableUpgradeCount > 0
+            ? `${availableUpgradeCount} available upgrade${
+                availableUpgradeCount === 1 ? "" : "s"
+              }`
+            : null,
+          proposalReadiness && proposalReadiness.missing_catalog_item_count > 0
+            ? `${proposalReadiness.missing_catalog_item_count} missing`
+            : null,
+        ]
+          .filter(Boolean)
+          .join(" · ");
+
   return (
-    <article className={rowClass} data-templates-library-row={template.id}>
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <button
-          type="button"
-          onClick={onSelect}
-          disabled={selectDisabled}
-          title={selectDisabled ? selectDisabledTitle : undefined}
-          className={`min-w-0 flex-1 text-left ${
-            selectDisabled ? "cursor-not-allowed opacity-60" : ""
-          }`}
-          aria-pressed={selected}
-        >
+    <article
+      className={rowClass}
+      data-templates-library-row={template.id}
+      data-templates-library-archived={archived ? "true" : "false"}
+      data-templates-setup-row={template.id}
+      data-templates-setup-row-selected={selected ? "true" : "false"}
+    >
+      <button
+        type="button"
+        onClick={onSelect}
+        disabled={selectDisabled}
+        title={selectDisabled ? selectDisabledTitle : undefined}
+        className={`flex w-full flex-wrap items-start justify-between gap-2 text-left ${
+          selectDisabled ? "cursor-not-allowed opacity-60" : ""
+        }`}
+        aria-pressed={selected}
+      >
+        <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h3 className="text-sm font-semibold text-slate-900">{template.name}</h3>
+            <h3
+              className={`text-sm font-semibold ${
+                archived ? "text-slate-600" : "text-slate-900"
+              }`}
+            >
+              {template.name}
+            </h3>
             {selected ? (
-              <span className="rounded-full bg-cyan-100 px-2 py-0.5 text-[10px] font-semibold text-cyan-800 ring-1 ring-cyan-200">
+              <span className="rounded-full bg-blue-600 px-1.5 py-0.5 text-[10px] font-semibold text-white">
                 Selected
               </span>
             ) : null}
@@ -72,21 +110,29 @@ export default function TemplatesTemplateLibraryRow({
           {!compact && shortDescription ? (
             <p className="mt-0.5 text-xs leading-snug text-slate-500">{shortDescription}</p>
           ) : null}
-          {compact && selected && graph ? (
-            <p className="mt-0.5 text-[11px] text-slate-500" data-templates-library-summary>
-              {sortedOptions.length} packages · {catalogLinkedCount ?? 0} items
-              {proposalReadiness && proposalReadiness.missing_catalog_item_count > 0
-                ? ` · ${proposalReadiness.missing_catalog_item_count} missing`
-                : ""}
+          {selected && summaryLine ? (
+            <p
+              className="mt-1.5 text-xs font-medium text-slate-600"
+              data-templates-library-summary
+            >
+              {summaryLine}
             </p>
+          ) : archived && !selected ? (
+            <p className="mt-1 text-[11px] text-slate-500">Archived · not used by default</p>
           ) : null}
-        </button>
+        </div>
 
-        <div className="flex flex-wrap gap-1.5">
-          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-700 ring-1 ring-slate-200">
+        <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+          <span
+            className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ${
+              archived
+                ? "bg-slate-100 text-slate-500 ring-slate-200/80"
+                : "bg-slate-50 text-slate-600 ring-slate-200/80"
+            }`}
+          >
             {statusLabel}
           </span>
-          {selected && proposalReadiness ? (
+          {selected && proposalReadiness && !archived ? (
             <span
               className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ${
                 ready
@@ -99,16 +145,7 @@ export default function TemplatesTemplateLibraryRow({
             </span>
           ) : null}
         </div>
-      </div>
-
-      {!compact && selected && graph ? (
-        <p className="mt-1.5 text-xs text-slate-600" data-templates-library-summary>
-          {sortedOptions.length} packages · {catalogLinkedCount ?? 0} Catalog links
-          {proposalReadiness && proposalReadiness.missing_catalog_item_count > 0
-            ? ` · ${proposalReadiness.missing_catalog_item_count} missing`
-            : ""}
-        </p>
-      ) : null}
+      </button>
     </article>
   );
 }

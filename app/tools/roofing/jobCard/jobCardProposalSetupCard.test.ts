@@ -178,16 +178,18 @@ describe("Job Card Proposals tab (Block 2 + Block 3 modal)", () => {
     assert.match(modal, /data-jobcard-create-proposal-panel-package/);
     assert.match(modal, /data-jobcard-create-proposal-panel-review/);
     assert.match(modal, /data-jobcard-create-proposal-continue/);
-    assert.match(modal, /starting package/);
-    assert.match(modal, /Proposal includes|CREATE_PROPOSAL_INCLUDED_LABEL/);
+    assert.match(modal, /data-jobcard-create-proposal-review-next/);
+    assert.match(modal, /CREATE_PROPOSAL_INCLUDED_LABEL/);
     assert.match(modal, /bg-blue-50/);
-    assert.doesNotMatch(modal, /CREATE_PROPOSAL_REVIEW_INTRO/);
-    assert.match(model, /Ready to build proposal/);
-    assert.match(model, /change it later in Builder/i);
+    assert.match(modal, /CREATE_PROPOSAL_REVIEW_INTRO/);
+    assert.match(model, /Ready to continue/);
+    assert.match(model, /starting package/);
+    assert.match(model, /optional upgrades later in Builder/i);
     assert.match(model, /customer-facing sections/i);
     assert.match(model, /Package details/);
     assert.doesNotMatch(model, /customer proposal pages/i);
     assert.doesNotMatch(model, /13 linked catalog items/);
+    assert.doesNotMatch(model, /This template has one package\./);
     const tab = read("app/tools/roofing/jobCard/JobCardProposalsTab.tsx");
     assert.match(tab, /data-jobcard-proposal-row-package/);
     assert.doesNotMatch(tab, /text-blue-700|text-blue-600/);
@@ -215,9 +217,13 @@ describe("Job Card Proposals tab (Block 2 + Block 3 modal)", () => {
     );
   });
 
-  test("13. Template picker uses contractor-visible filter", () => {
+  test("13. Template picker uses create-modal filter (smoke + archived)", () => {
     const client = read("app/tools/roofing/RoofingClient.tsx");
-    assert.match(client, /filterContractorVisibleTemplates\(companyProposalTemplates\)/);
+    assert.match(client, /filterJobCardCreateProposalTemplates\(/);
     assert.match(client, /visibleCreateProposalTemplates/);
+    assert.match(client, /packageChoices=\{/);
+    const modal = read("app/tools/roofing/jobCard/JobCardCreateProposalModal.tsx");
+    assert.match(modal, /data-jobcard-create-proposal-package-counts/);
+    assert.match(modal, /data-jobcard-create-proposal-review-next/);
   });
 });

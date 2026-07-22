@@ -255,6 +255,8 @@ export type ProposalOptionRow = {
   source_template_option_id: string | null;
   name: string;
   customer_label: string | null;
+  /** Authored package description snapshotted from template option. */
+  description: string | null;
   sort_order: number;
   is_default: boolean;
   visible_to_customer: boolean;
@@ -842,6 +844,7 @@ export function buildDraftInstantiateInputFromPreview(params: {
       source_template_option_id: optionId,
       name: templateOption.name,
       customer_label: templateOption.customer_label ?? null,
+      description: templateOption.description ?? null,
       sort_order: templateOption.sort_order ?? 0,
       is_default: templateOption.is_default ?? false,
       visible_to_customer: templateOption.visible_to_customer ?? true,

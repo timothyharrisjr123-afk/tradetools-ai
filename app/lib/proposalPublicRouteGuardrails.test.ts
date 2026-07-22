@@ -52,6 +52,7 @@ function baseDto(): ProposalPublicGraphDto {
         source_template_option_id: TEMPLATE_OPT_A,
         name: "Standard",
         customer_label: "Standard",
+        description: null,
         sort_order: 0,
         visible_to_customer: true,
         customer_subtotal_cents: 10000,

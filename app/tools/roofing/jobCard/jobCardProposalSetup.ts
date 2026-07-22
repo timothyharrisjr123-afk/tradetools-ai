@@ -21,7 +21,10 @@ import { sortTemplateOptionsByOrder } from "@/app/tools/roofing/templates/templa
 import {
   buildTemplateCreatesSummary,
   defaultSelectedPackageOptionId,
+  resolvePackageChoiceDescription,
+  resolvePackagePresentation,
   summarizePackageOptionsForWorkspace,
+  type PackagePresentationMode,
   type TemplateCreatesSummary,
 } from "@/app/tools/roofing/templates/templatesWorkspaceFlow";
 
@@ -158,9 +161,15 @@ export function formatJobCardDraftUpdatedLabel(
 export type JobCardPackageChoice = {
   optionId: string;
   label: string;
+  /** Included catalog scope only — excludes available upgrades. */
   linkedItemCount: number;
+  /** Optional add-ons for this package (not included by default). */
+  availableUpgradeCount: number;
   issueCount: number;
   status: "ready" | "needs_attention";
+  description: string | null;
+  /** Top included item names for package comparison (not upgrades). */
+  highlightLabels: readonly string[];
 };
 
 export type JobCardIncludedItemSummary = {
@@ -174,10 +183,33 @@ export type JobCardProposalSetupPackages = {
   selectedOptionId: string | null;
   selected: JobCardPackageChoice | null;
   includedItemCount: number;
+  availableUpgradeCount: number;
+  packagePresentationMode: PackagePresentationMode;
   createsSummary: TemplateCreatesSummary | null;
   includedItems: JobCardIncludedItemSummary[];
   customerFacingLine: string;
 };
+
+/**
+ * Contractor-facing create-modal template list: hide smoke fixtures and archived
+ * rows. Keep a selected archived/fixture id visible if already chosen.
+ */
+export function filterJobCardCreateProposalTemplates<
+  T extends { id: string; name?: string | null; status?: string | null },
+>(templates: readonly T[], selectedTemplateId?: string | null): T[] {
+  const visible = filterContractorVisibleTemplates(templates).filter(
+    (row) => row.status !== "archived"
+  );
+  const selectedId = (selectedTemplateId ?? "").trim();
+  if (
+    selectedId &&
+    !visible.some((row) => row.id === selectedId)
+  ) {
+    const selected = templates.find((row) => row.id === selectedId);
+    if (selected) return [...visible, selected];
+  }
+  return visible;
+}
 
 /**
  * Prefer template `is_default`, else first by sort_order (workspace default).
@@ -309,6 +341,8 @@ export function buildJobCardPackageSetup(
       selectedOptionId: null,
       selected: null,
       includedItemCount: 0,
+      availableUpgradeCount: 0,
+      packagePresentationMode: "simple",
       createsSummary: null,
       includedItems: [],
       customerFacingLine: "",
@@ -326,14 +360,38 @@ export function buildJobCardPackageSetup(
     packageSummaries,
     editableProseCount: 0,
   });
+  const packagePresentation = resolvePackagePresentation({
+    graph,
+    packageSummaries,
+  });
 
-  const choices: JobCardPackageChoice[] = packageSummaries.map((row) => ({
-    optionId: row.optionId,
-    label: row.optionLabel,
-    linkedItemCount: row.linkedItemCount,
-    issueCount: row.issueCount,
-    status: row.status,
-  }));
+  const optionById = new Map(graph.options.map((row) => [row.id, row]));
+
+  const choices: JobCardPackageChoice[] = packageSummaries.map((row) => {
+    const option = optionById.get(row.optionId);
+    const includedForOption = listIncludedItemsForPackage(
+      graph,
+      row.optionId,
+      catalogItems
+    );
+    return {
+      optionId: row.optionId,
+      label: row.optionLabel,
+      linkedItemCount: row.linkedItemCount,
+      availableUpgradeCount:
+        row.availableUpgradeCount + row.availableUpgradeIssueCount,
+      issueCount: row.issueCount,
+      status: row.status,
+      description: resolvePackageChoiceDescription({
+        optionLabel: row.optionLabel,
+        optionDescription: option?.description ?? null,
+      }),
+      highlightLabels: includedForOption
+        .slice(0, 4)
+        .map((item) => item.label)
+        .filter(Boolean),
+    };
+  });
 
   const resolvedSelectedId =
     selectedOptionId && choices.some((c) => c.optionId === selectedOptionId)
@@ -360,6 +418,8 @@ export function buildJobCardPackageSetup(
     selectedOptionId: selected?.optionId ?? null,
     selected,
     includedItemCount: selected?.linkedItemCount ?? includedItems.length,
+    availableUpgradeCount: selected?.availableUpgradeCount ?? 0,
+    packagePresentationMode: packagePresentation.mode,
     createsSummary,
     includedItems,
     customerFacingLine: customerFacingParts.join(" · "),
@@ -373,7 +433,9 @@ export function listIncludedItemsForPackage(
 ): JobCardIncludedItemSummary[] {
   const catalogById = buildCatalogByIdMap(catalogItems);
   const sections = graph.sections
-    .filter((row) => row.option_id === optionId)
+    .filter(
+      (row) => row.option_id === optionId && row.kind !== "upgrade_group"
+    )
     .slice()
     .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
 

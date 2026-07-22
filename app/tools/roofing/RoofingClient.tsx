@@ -152,6 +152,7 @@ import { findStarterProposalTemplate } from "@/app/tools/roofing/templates/templ
 import {
   buildJobCardPackageSetup,
   deriveJobCardSelectedTemplateEligibility,
+  filterJobCardCreateProposalTemplates,
   resolveDefaultJobCardTemplateId,
   resolveDefaultPackageOptionId,
 } from "@/app/tools/roofing/jobCard/jobCardProposalSetup";
@@ -173,7 +174,6 @@ import {
   formatJobCardContractorProposalStatusLabel,
   formatJobCardProposalCreatedActivityNote,
 } from "@/app/tools/roofing/jobCard/jobCardProposalsTabModel";
-import { sortTemplateOptionsByOrder } from "@/app/tools/roofing/templates/templatesSetupUtils";
 import type { JobDraft, JobAddress, JobRecord } from "@/app/lib/jobTypes";
 import { sendEstimateEmailWithPdf } from "@/app/lib/sendEstimateClient";
 import { getFavorite, setFavorite, setLocked, appendFeedback, getTierFeedbackBias, type TierLabel } from "@/app/lib/aiWordingPrefs";
@@ -7572,21 +7572,35 @@ Thanks,`;
       createProposalMeasurementRecordsRef.current = [];
     };
 
-    const visibleCreateProposalTemplates =
-      filterContractorVisibleTemplates(companyProposalTemplates);
+    const visibleCreateProposalTemplates = filterJobCardCreateProposalTemplates(
+      companyProposalTemplates,
+      selectedJobTemplateId
+    );
 
     const createProposalModalTemplates = visibleCreateProposalTemplates.map(
       (row) => {
         const selected = row.id === selectedJobTemplateId;
         const graphReady = jobCardSelectedTemplateEligibility.usable;
-        const packageCount =
-          selected && jobCardSelectedTemplateEligibility.graphMatchesSelection
-            ? jobCardPackageSetup.choices.length
-            : 0;
-        const linkedItemCount =
-          selected && jobCardSelectedTemplateEligibility.graphMatchesSelection
-            ? jobCardPackageSetup.includedItemCount
-            : 0;
+        const graphMatched =
+          selected && jobCardSelectedTemplateEligibility.graphMatchesSelection;
+        const packageCount = graphMatched
+          ? jobCardPackageSetup.choices.length
+          : 0;
+        const linkedItemCount = graphMatched
+          ? jobCardPackageSetup.createsSummary?.linkedCatalogCount ??
+            jobCardPackageSetup.includedItemCount
+          : 0;
+        const availableUpgradeCount = graphMatched
+          ? jobCardPackageSetup.createsSummary?.availableUpgradeCount ??
+            jobCardPackageSetup.availableUpgradeCount
+          : 0;
+        const packageMode = graphMatched
+          ? jobCardPackageSetup.packagePresentationMode
+          : packageCount > 1
+            ? "multi"
+            : packageCount === 1
+              ? "single"
+              : "simple";
         // Selected: real eligibility from loaded graph. Others: available to pick
         // (do not apply company starter readiness to every row).
         const ready = selected ? graphReady : row.active !== false;
@@ -7596,15 +7610,12 @@ Thanks,`;
           ready,
           linkedItemCount,
           packageCount,
+          availableUpgradeCount,
+          packageMode,
+          archived: row.status === "archived",
         };
       }
     );
-
-    const createProposalPackageOptions =
-      jobCardSelectedTemplateEligibility.graphMatchesSelection &&
-      starterTemplateGraph
-        ? sortTemplateOptionsByOrder(starterTemplateGraph.options)
-        : [];
 
     /** Always create a distinct draft — never reuses active/listed drafts. */
     const handleCreateNewProposalDraft = () => {
@@ -8382,7 +8393,14 @@ Thanks,`;
                     )?.name ??
                     null
                   }
-                  packageOptions={createProposalPackageOptions}
+                  packageChoices={
+                    jobCardSelectedTemplateEligibility.graphMatchesSelection
+                      ? jobCardPackageSetup.choices
+                      : []
+                  }
+                  packagePresentationMode={
+                    jobCardPackageSetup.packagePresentationMode
+                  }
                   selectedPackageOptionId={jobCardPackageSetup.selectedOptionId}
                   onSelectPackage={setJobCardSelectedPackageOptionId}
                   packageIssueCount={
@@ -8392,6 +8410,9 @@ Thanks,`;
                     jobCardPackageSetup.selected?.label ?? null
                   }
                   includedItemCount={jobCardPackageSetup.includedItemCount}
+                  availableUpgradeCount={
+                    jobCardPackageSetup.availableUpgradeCount
+                  }
                   createEnabled={createNewDraftEnabled}
                   creating={isCreatingNewProposal}
                   createError={proposalLaunchError}

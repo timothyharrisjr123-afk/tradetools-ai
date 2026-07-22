@@ -19,25 +19,32 @@ import type {
 
 export type GuidedPackageModelId = "simple" | "single" | "triple";
 
-export type GuidedCreateStepId = "basics" | "package_model" | "structure" | "confirm";
+export type GuidedCreateStepId =
+  | "basics"
+  | "package_setup"
+  | "structure"
+  | "packet"
+  | "confirm";
 
 export const GUIDED_CREATE_STEPS: readonly GuidedCreateStepId[] = [
   "basics",
-  "package_model",
+  "package_setup",
   "structure",
+  "packet",
   "confirm",
 ] as const;
 
 export const GUIDED_CREATE_STEP_LABELS: Record<GuidedCreateStepId, string> = {
   basics: "Basics",
-  package_model: "Package model",
+  package_setup: "Package setup",
   structure: "Prepared structure",
-  confirm: "Create",
+  packet: "Proposal packet",
+  confirm: "Review & create",
 };
 
 export const GUIDED_CREATE_OVERLAY_TITLE = "New proposal template";
 export const GUIDED_CREATE_OVERLAY_SUBTITLE =
-  "Set up a reusable proposal for your company. You’ll adjust included items and wording after it’s created.";
+  "Set up a reusable proposal for your company. Name packages the way you sell — starter labels are only defaults.";
 export const GUIDED_CREATE_STARTING_POINT_LABEL = "Starting point";
 export const GUIDED_CREATE_STARTING_POINT_VALUE = "Prepared roofing proposal structure";
 export const GUIDED_CREATE_STARTING_POINT_HINT =
@@ -46,6 +53,20 @@ export const GUIDED_CREATE_PRIMARY_ACTION = "Create template";
 export const GUIDED_CREATE_CANCEL_ACTION = "Cancel";
 export const GUIDED_CREATE_BACK_ACTION = "Back";
 export const GUIDED_CREATE_CONTINUE_ACTION = "Continue";
+
+/** Contractor-editable package identity during guided create. */
+export type GuidedPackageDraft = {
+  /** Stable key within the create session (source seed package). */
+  key: string;
+  /** Internal / display name stored on the option. */
+  name: string;
+  /** Customer-facing label; empty means use name. */
+  customerLabel: string;
+  description: string;
+  isDefault: boolean;
+  /** Source starter package used for structure cloning. */
+  sourceName: "Standard" | "Enhanced" | "Premium" | "Estimate";
+};
 
 export type GuidedPackageModelChoice = {
   id: GuidedPackageModelId;
@@ -73,8 +94,9 @@ export const GUIDED_PACKAGE_MODEL_CHOICES: readonly GuidedPackageModelChoice[] =
   },
   {
     id: "triple",
-    title: "Standard / Enhanced / Premium",
-    description: "Three prepared packages so customers can compare options.",
+    title: "Three packages",
+    description:
+      "Three prepared packages customers can compare. Starter names are Standard / Enhanced / Premium — rename them to match how you sell.",
     packageLabels: ["Standard", "Enhanced", "Premium"],
     presentsPackages: true,
   },
@@ -87,6 +109,8 @@ export type GuidedCreateBasicsInput = {
 
 export type GuidedCreatePlanInput = GuidedCreateBasicsInput & {
   packageModel: GuidedPackageModelId;
+  /** When omitted, starter package labels/descriptions from defaults are used. */
+  packageDrafts?: readonly GuidedPackageDraft[];
 };
 
 export type GuidedStructureContentArea = {
@@ -101,6 +125,9 @@ export type GuidedTemplateCreatePlan = {
   packageModelTitle: string;
   /** Customer-facing package labels (empty for simple estimate). */
   packageLabels: string[];
+  /** Editable drafts that were applied (empty for simple). */
+  packageDrafts: GuidedPackageDraft[];
+  defaultPackageLabel: string | null;
   /** True when the contractor chose a package model that presents packages. */
   presentsPackages: boolean;
   contentAreas: GuidedStructureContentArea[];
@@ -299,6 +326,72 @@ function buildOptionsForPackageModel(
   });
 }
 
+/** Starter package drafts for the Package setup step (editable before create). */
+export function buildDefaultGuidedPackageDrafts(
+  packageModel: GuidedPackageModelId
+): GuidedPackageDraft[] {
+  if (packageModel === "simple") return [];
+
+  const options = buildOptionsForPackageModel(packageModel);
+  return options.map((option, index) => {
+    const sourceName =
+      option.name === "Enhanced" || option.name === "Premium" || option.name === "Standard"
+        ? option.name
+        : ("Standard" as const);
+    return {
+      key: option.seed_key ?? `pkg-${index}`,
+      name: option.name,
+      customerLabel: option.customer_label ?? option.name,
+      description: option.description ?? "",
+      isDefault: option.is_default === true || index === 0,
+      sourceName,
+    };
+  });
+}
+
+export function validateGuidedPackageDrafts(
+  packageModel: GuidedPackageModelId,
+  drafts: readonly GuidedPackageDraft[]
+): { ok: true } | { ok: false; error: string } {
+  if (packageModel === "simple") return { ok: true };
+  if (drafts.length === 0) {
+    return { ok: false, error: "Add at least one package name to continue." };
+  }
+  for (const draft of drafts) {
+    if (!normalizeName(draft.name)) {
+      return { ok: false, error: "Every package needs a display name." };
+    }
+    if (draft.name.length > 80) {
+      return { ok: false, error: "Keep package names under 80 characters." };
+    }
+  }
+  if (!drafts.some((draft) => draft.isDefault)) {
+    return { ok: false, error: "Choose a default package." };
+  }
+  return { ok: true };
+}
+
+function applyGuidedPackageDrafts(
+  options: DefaultProposalTemplateOptionDefinition[],
+  drafts: readonly GuidedPackageDraft[]
+): DefaultProposalTemplateOptionDefinition[] {
+  if (drafts.length === 0) return options;
+  return options.map((option, index) => {
+    const draft = drafts[index];
+    if (!draft) return option;
+    const name = normalizeName(draft.name) || option.name;
+    const customerLabel = normalizeName(draft.customerLabel) || name;
+    const description = normalizeDescription(draft.description) ?? option.description ?? null;
+    return {
+      ...option,
+      name,
+      customer_label: customerLabel,
+      description,
+      is_default: draft.isDefault === true,
+    };
+  });
+}
+
 function collectContentAreas(
   options: readonly DefaultProposalTemplateOptionDefinition[]
 ): GuidedStructureContentArea[] {
@@ -384,8 +477,32 @@ export function buildGuidedTemplateCreatePlan(
   }
 
   const choice = getGuidedPackageModelChoice(input.packageModel);
-  const options = buildOptionsForPackageModel(input.packageModel);
-  const packageLabels = choice.presentsPackages ? [...choice.packageLabels] : [];
+  const baseOptions = buildOptionsForPackageModel(input.packageModel);
+  const packageDrafts =
+    input.packageDrafts != null
+      ? [...input.packageDrafts]
+      : buildDefaultGuidedPackageDrafts(input.packageModel);
+
+  if (choice.presentsPackages) {
+    const draftCheck = validateGuidedPackageDrafts(input.packageModel, packageDrafts);
+    if (!draftCheck.ok) {
+      throw new Error(draftCheck.error);
+    }
+  }
+
+  const options = choice.presentsPackages
+    ? applyGuidedPackageDrafts(baseOptions, packageDrafts)
+    : baseOptions;
+
+  const packageLabels = choice.presentsPackages
+    ? options.map((row) => row.customer_label ?? row.name)
+    : [];
+  const defaultOption = options.find((row) => row.is_default) ?? options[0] ?? null;
+  const defaultPackageLabel = choice.presentsPackages
+    ? defaultOption
+      ? defaultOption.customer_label ?? defaultOption.name
+      : null
+    : null;
 
   // Template metadata omits company-level seed_key so guided creates never
   // collide with the idempotent starter install unique index.
@@ -412,6 +529,8 @@ export function buildGuidedTemplateCreatePlan(
     packageModel: input.packageModel,
     packageModelTitle: choice.title,
     packageLabels,
+    packageDrafts: choice.presentsPackages ? packageDrafts : [],
+    defaultPackageLabel,
     presentsPackages: choice.presentsPackages,
     contentAreas: collectContentAreas(options),
     structureNotes: buildStructureNotes({

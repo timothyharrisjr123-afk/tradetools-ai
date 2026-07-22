@@ -892,7 +892,9 @@ function buildPackageZone(
   const options = sortTemplateOptionsByOrder(graph.options);
   const selected = options.find((option) => option.id === effectiveOptionId) ?? null;
   const label = selected ? optionLabel(selected) : null;
-  const packageMeta = label ? resolvePackageMeta(label) : null;
+  const packageMeta = label
+    ? resolvePackageMeta(label, selected?.description ?? null)
+    : null;
   const selectionMode = resolveSelectionMode(graph, effectiveOptionId);
   const optionCount = options.length;
   const customerSelectionMode = resolveCustomerSelectionMode(optionCount, selectionMode);

@@ -6,8 +6,12 @@ import {
   TEMPLATE_REMOVE_FROM_TEMPLATE_LABEL,
   TEMPLATE_RELINK_CATALOG_LABEL,
 } from "@/app/lib/proposalTemplateCatalogLink";
-import { TEMPLATES_CARD } from "./templatesConstants";
 import {
+  TEMPLATES_CARD,
+  TEMPLATES_WORKSPACE_SECTION,
+} from "./templatesConstants";
+import {
+  TEMPLATES_AVAILABLE_UPGRADES_EMPTY,
   TEMPLATES_AVAILABLE_UPGRADES_HEADING,
   TEMPLATES_AVAILABLE_UPGRADES_HINT,
 } from "./templatesWorkspaceFlow";
@@ -19,6 +23,8 @@ type TemplatesAvailableUpgradesManagerProps = {
   onAddItem: () => void;
   onReplaceItem: (templateItemId: string) => void;
   onRemoveItem: (templateItemId: string) => void;
+  /** When true, renders as a band inside the connected workspace (no outer card). */
+  embedded?: boolean;
 };
 
 export default function TemplatesAvailableUpgradesManager({
@@ -27,16 +33,21 @@ export default function TemplatesAvailableUpgradesManager({
   onAddItem,
   onReplaceItem,
   onRemoveItem,
+  embedded = false,
 }: TemplatesAvailableUpgradesManagerProps) {
   const [adjusting, setAdjusting] = useState(false);
   const totalItems = items.length;
+  const shellClass = embedded
+    ? TEMPLATES_WORKSPACE_SECTION
+    : `${TEMPLATES_CARD} !px-4 !py-4 space-y-3`;
 
   return (
     <section
-      className={`${TEMPLATES_CARD} !px-4 !py-4 space-y-3`}
+      className={shellClass}
       aria-labelledby="templates-available-upgrades-heading"
       data-templates-available-upgrades
       data-templates-available-upgrades-mode={adjusting ? "adjust" : "prepared"}
+      data-templates-section-embedded={embedded ? "true" : "false"}
     >
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
@@ -46,11 +57,11 @@ export default function TemplatesAvailableUpgradesManager({
           >
             {TEMPLATES_AVAILABLE_UPGRADES_HEADING}
           </h3>
-          <p className="mt-0.5 text-xs text-slate-500">
-            {totalItems === 0
-              ? TEMPLATES_AVAILABLE_UPGRADES_HINT
-              : `${totalItems} available upgrade${totalItems === 1 ? "" : "s"}. ${TEMPLATES_AVAILABLE_UPGRADES_HINT}`}
-          </p>
+          {totalItems > 0 ? (
+            <p className="mt-0.5 text-xs text-slate-500">
+              {totalItems} optional · {TEMPLATES_AVAILABLE_UPGRADES_HINT}
+            </p>
+          ) : null}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {adjusting ? (
@@ -77,20 +88,15 @@ export default function TemplatesAvailableUpgradesManager({
       </div>
 
       {totalItems === 0 ? (
-        <p
-          className="rounded-md border border-dashed border-slate-200 bg-slate-50 px-3 py-6 text-center text-sm text-slate-600"
+        <div
+          className="mt-2.5 rounded-lg bg-slate-50/90 px-3 py-2.5 ring-1 ring-slate-200/60"
           data-templates-available-upgrades-empty
         >
-          No available upgrades prepared yet. Choose Adjust available upgrades to add elective
-          add-ons.
-        </p>
+          <p className="text-xs text-slate-500">{TEMPLATES_AVAILABLE_UPGRADES_EMPTY}</p>
+        </div>
       ) : adjusting ? (
-        <div className="space-y-3" data-templates-available-upgrades-adjust-view>
-          <p className="text-xs text-slate-500">
-            Add, replace, or remove upgrades available for selection on proposals. These are not
-            included package scope.
-          </p>
-          <ul className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-white">
+        <div className="mt-3 space-y-2" data-templates-available-upgrades-adjust-view>
+          <ul className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200/90 bg-white">
             {items.map((item) => (
               <li
                 key={item.templateItemId}
@@ -133,37 +139,32 @@ export default function TemplatesAvailableUpgradesManager({
           </ul>
         </div>
       ) : (
-        <div
-          className="rounded-xl border border-slate-200 bg-slate-50/45 px-3.5 py-3"
+        <ul
+          className="mt-2.5 space-y-1.5"
           data-templates-available-upgrades-prepared-view
         >
-          <ul className="grid gap-x-6 gap-y-2 sm:grid-cols-2">
-            {items.map((item) => (
-              <li
-                key={item.templateItemId}
-                className="min-w-0"
-                data-templates-available-upgrade-summary={item.templateItemId}
-              >
-                <div className="flex min-w-0 items-start gap-2">
-                  <span
-                    aria-hidden="true"
-                    className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-slate-400"
-                  />
-                  <div className="min-w-0">
-                    <p className="text-sm text-slate-800">{item.name}</p>
-                    {item.issueLabel ? (
-                      <p className="mt-0.5 text-[11px] text-amber-800">{item.issueLabel}</p>
-                    ) : (
-                      <p className="mt-0.5 text-[11px] text-slate-500">
-                        Available for selection on proposals
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
+          {items.map((item) => (
+            <li
+              key={item.templateItemId}
+              className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-white px-3.5 py-2.5 ring-1 ring-slate-200/80"
+              data-templates-available-upgrade-summary={item.templateItemId}
+            >
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-slate-800">{item.name}</p>
+                {item.issueLabel ? (
+                  <p className="mt-0.5 text-[11px] text-amber-800">{item.issueLabel}</p>
+                ) : (
+                  <p className="mt-0.5 text-[11px] text-slate-500">
+                    Optional upgrade · selected later in Builder
+                  </p>
+                )}
+              </div>
+              <span className="shrink-0 rounded-full bg-slate-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500 ring-1 ring-slate-200/80">
+                Optional
+              </span>
+            </li>
+          ))}
+        </ul>
       )}
     </section>
   );

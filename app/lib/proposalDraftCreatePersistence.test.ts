@@ -74,6 +74,7 @@ function minimalInstantiatePayload(): DraftInstantiatePayload {
         source_template_option_id: TEMPLATE_OPT,
         name: "Standard",
         customer_label: "Standard",
+        description: null,
         sort_order: 0,
         is_default: true,
         visible_to_customer: true,
@@ -230,6 +231,7 @@ describe("draft proposal create persistence contract", () => {
     assert.equal(option.line_items.length, 1);
     assert.equal(option.line_items[0]!.section_id, SECTION_ID);
     assert.equal(option.line_items[0]!.page_id, undefined);
+    assert.equal(option.description, null);
     assert.ok(option.internal_summary);
 
     assert.doesNotThrow(() => assertDraftProposalCreateGraphInvariants(payload));

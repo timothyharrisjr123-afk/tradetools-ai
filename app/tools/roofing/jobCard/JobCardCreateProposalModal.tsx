@@ -1,6 +1,5 @@
 "use client";
 
-import type { ProposalTemplateOption } from "@/app/lib/proposalTemplateTypes";
 import {
   canContinueCreateProposal,
   CREATE_PROPOSAL_CONTINUE_TO_BUILDER,
@@ -12,8 +11,11 @@ import {
   CREATE_PROPOSAL_MODAL_SUBTITLE,
   CREATE_PROPOSAL_MODAL_TITLE,
   CREATE_PROPOSAL_PACKAGE_BLOCKED,
+  CREATE_PROPOSAL_PACKAGE_BUILDER_NOTE,
   CREATE_PROPOSAL_PACKAGE_GUIDE,
-  CREATE_PROPOSAL_PACKAGE_ONE_ONLY,
+  CREATE_PROPOSAL_REVIEW_INTRO,
+  CREATE_PROPOSAL_REVIEW_NEXT,
+  CREATE_PROPOSAL_REVIEW_NEXT_LABEL,
   CREATE_PROPOSAL_REVIEW_TITLE,
   CREATE_PROPOSAL_STEPS,
   CREATE_PROPOSAL_TEMPLATE_BLOCKED,
@@ -25,17 +27,24 @@ import {
   createProposalStepLabel,
   formatCreateProposalMeasurementSummary,
   formatCreateProposalMeasurementTitle,
+  formatCreateProposalPackageCountLine,
+  formatCreateProposalPackageReviewLine,
+  formatCreateProposalReviewScopeLine,
   formatCreateProposalTemplateSecondaryDetail,
   nextCreateProposalStep,
   prevCreateProposalStep,
+  resolveCreateProposalPackageStepEyebrow,
   resolveCreateProposalTemplateStepMessage,
   type CreateProposalMeasurementChoice,
   type CreateProposalModalStep,
 } from "@/app/tools/roofing/jobCard/jobCardCreateProposalModalModel";
+import type { JobCardPackageChoice } from "@/app/tools/roofing/jobCard/jobCardProposalSetup";
 import {
   JOB_CARD_PROPOSALS_PRIMARY_BUTTON_CLASS,
   JOB_CARD_PROPOSALS_SECONDARY_BUTTON_CLASS,
 } from "@/app/tools/roofing/jobCard/jobCardProposalsTabModel";
+import type { PackagePresentationMode } from "@/app/tools/roofing/templates/templatesWorkspaceFlow";
+import { TEMPLATES_SIMPLE_ESTIMATE_LABEL } from "@/app/tools/roofing/templates/templatesWorkspaceFlow";
 
 export type JobCardCreateProposalModalTemplateChoice = {
   id: string;
@@ -43,6 +52,9 @@ export type JobCardCreateProposalModalTemplateChoice = {
   ready: boolean;
   linkedItemCount: number;
   packageCount: number;
+  availableUpgradeCount: number;
+  packageMode: PackagePresentationMode;
+  archived?: boolean;
 };
 
 export type JobCardCreateProposalModalProps = {
@@ -67,13 +79,15 @@ export type JobCardCreateProposalModalProps = {
   selectedTemplateUnusableReason?: string | null;
   selectedTemplateName: string | null;
 
-  packageOptions: ProposalTemplateOption[];
+  packageChoices: readonly JobCardPackageChoice[];
+  packagePresentationMode: PackagePresentationMode;
   selectedPackageOptionId: string | null;
   onSelectPackage: (optionId: string) => void;
   packageIssueCount: number;
   selectedPackageName: string | null;
 
   includedItemCount: number;
+  availableUpgradeCount: number;
 
   createEnabled: boolean;
   creating: boolean;
@@ -99,22 +113,23 @@ export function JobCardCreateProposalModal({
   templateReady,
   selectedTemplateUnusableReason = null,
   selectedTemplateName,
-  packageOptions,
+  packageChoices,
+  packagePresentationMode,
   selectedPackageOptionId,
   onSelectPackage,
   packageIssueCount,
   selectedPackageName,
-  includedItemCount: _includedItemCount,
+  includedItemCount,
+  availableUpgradeCount,
   createEnabled,
   creating,
   createError,
   onContinueToBuilder,
 }: JobCardCreateProposalModalProps) {
-  void _includedItemCount;
   if (!open) return null;
 
   const packageSelected =
-    packageOptions.length === 0 || Boolean(selectedPackageOptionId);
+    packageChoices.length === 0 || Boolean(selectedPackageOptionId);
   const canContinue = canContinueCreateProposal({
     measurementReady,
     templateReady,
@@ -157,6 +172,10 @@ export function JobCardCreateProposalModal({
           ]
         : [];
 
+  const packageEyebrow = resolveCreateProposalPackageStepEyebrow(
+    packagePresentationMode
+  );
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 p-0 sm:items-center sm:p-5"
@@ -177,16 +196,16 @@ export function JobCardCreateProposalModal({
         className="relative z-10 flex max-h-[92vh] w-full max-w-xl flex-col overflow-hidden rounded-t-2xl border border-slate-200 bg-white shadow-xl sm:rounded-2xl"
         data-jobcard-create-proposal-panel="true"
       >
-        <header className="border-b border-slate-100 px-6 py-5">
+        <header className="border-b border-slate-100 px-5 py-4 sm:px-6 sm:py-5">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <h2
                 id="jobcard-create-proposal-title"
-                className="text-xl font-semibold tracking-tight text-slate-900"
+                className="text-lg font-semibold tracking-tight text-slate-900 sm:text-xl"
               >
                 {CREATE_PROPOSAL_MODAL_TITLE}
               </h2>
-              <p className="mt-1.5 text-sm leading-relaxed text-slate-600">
+              <p className="mt-1 text-sm leading-relaxed text-slate-600">
                 {CREATE_PROPOSAL_MODAL_SUBTITLE}
               </p>
             </div>
@@ -201,7 +220,7 @@ export function JobCardCreateProposalModal({
             </button>
           </div>
           <nav
-            className="mt-5 flex flex-wrap gap-2"
+            className="mt-4 flex flex-wrap gap-1.5"
             aria-label="Create proposal steps"
             data-jobcard-create-proposal-steps="true"
           >
@@ -215,7 +234,7 @@ export function JobCardCreateProposalModal({
                   disabled={creating}
                   data-jobcard-create-proposal-step={s}
                   data-active={active ? "true" : "false"}
-                  className={`rounded-full px-3 py-1 text-xs font-medium transition ${
+                  className={`rounded-full px-2.5 py-1 text-xs font-medium transition ${
                     active
                       ? "bg-blue-600 text-white"
                       : done
@@ -244,7 +263,7 @@ export function JobCardCreateProposalModal({
           </nav>
         </header>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6 sm:py-6">
           {step === "measurement" ? (
             <section data-jobcard-create-proposal-panel-measurement="true">
               <h3 className="text-base font-semibold text-slate-900">
@@ -255,7 +274,10 @@ export function JobCardCreateProposalModal({
               </p>
               {measurementReady && measurementCards.length > 0 ? (
                 measurementCards.length > 1 ? (
-                  <ul className="mt-4 space-y-2" data-jobcard-create-proposal-measurement-list>
+                  <ul
+                    className="mt-4 space-y-2"
+                    data-jobcard-create-proposal-measurement-list
+                  >
                     {measurementCards.map((m) => {
                       const selected = m.id === selectedMeasurementId;
                       return (
@@ -266,7 +288,7 @@ export function JobCardCreateProposalModal({
                             data-selected={selected ? "true" : "false"}
                             className={`w-full rounded-xl border px-4 py-3.5 text-left transition ${
                               selected
-                                ? "border-blue-400 bg-blue-50/70 ring-1 ring-blue-200"
+                                ? "border-blue-300 bg-blue-50/60 ring-1 ring-blue-200"
                                 : "border-slate-200 bg-white hover:border-slate-300"
                             }`}
                             onClick={() => onSelectMeasurement(m.id)}
@@ -288,18 +310,26 @@ export function JobCardCreateProposalModal({
                   </ul>
                 ) : (
                   <div
-                    className="mt-4 rounded-xl border border-blue-200 bg-blue-50/40 px-4 py-3.5"
+                    className="mt-4 rounded-xl border border-blue-300 bg-gradient-to-b from-blue-50/80 to-white px-4 py-4 ring-1 ring-blue-100"
                     data-jobcard-create-proposal-measurement-ready="true"
                     data-selected="true"
                   >
-                    <p className="text-sm font-semibold text-slate-900">
-                      {measurementCards[0]!.title}
-                    </p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-semibold text-slate-900">
+                        {measurementCards[0]!.title}
+                      </p>
+                      <span className="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-800 ring-1 ring-emerald-200/80">
+                        Ready
+                      </span>
+                    </div>
                     <p
-                      className="mt-1 text-sm text-slate-600"
+                      className="mt-1.5 text-sm text-slate-600"
                       data-jobcard-create-proposal-measurement-detail="true"
                     >
                       {measurementCards[0]!.summaryLine}
+                    </p>
+                    <p className="mt-2.5 text-xs text-slate-500">
+                      Next: choose a reusable proposal setup for this job.
                     </p>
                   </div>
                 )
@@ -338,6 +368,8 @@ export function JobCardCreateProposalModal({
                       const secondary = formatCreateProposalTemplateSecondaryDetail({
                         linkedItemCount: t.linkedItemCount,
                         packageCount: t.packageCount,
+                        availableUpgradeCount: t.availableUpgradeCount,
+                        packageMode: t.packageMode,
                       });
                       return (
                         <li key={t.id}>
@@ -345,17 +377,27 @@ export function JobCardCreateProposalModal({
                             type="button"
                             data-jobcard-create-proposal-template={t.id}
                             data-selected={selected ? "true" : "false"}
+                            data-archived={t.archived ? "true" : "false"}
                             className={`w-full rounded-xl border px-4 py-3.5 text-left transition ${
+                              t.archived ? "opacity-60" : ""
+                            } ${
                               selected
-                                ? "border-blue-400 bg-blue-50/70 ring-1 ring-blue-200"
+                                ? "border-blue-300 bg-blue-50/60 ring-1 ring-blue-200"
                                 : "border-slate-200 bg-white hover:border-slate-300"
                             }`}
                             onClick={() => onSelectTemplate(t.id)}
                             disabled={creating}
                           >
-                            <p className="text-sm font-semibold text-slate-900">
-                              {t.name}
-                            </p>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="text-sm font-semibold text-slate-900">
+                                {t.name}
+                              </p>
+                              {t.archived ? (
+                                <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">
+                                  Archived
+                                </span>
+                              ) : null}
+                            </div>
                             <p className="mt-1 text-sm leading-relaxed text-slate-600">
                               {CREATE_PROPOSAL_TEMPLATE_STRUCTURE}
                             </p>
@@ -369,7 +411,10 @@ export function JobCardCreateProposalModal({
                                 : "Needs attention"}
                             </p>
                             {secondary ? (
-                              <p className="mt-1 text-xs text-slate-400">
+                              <p
+                                className="mt-1 text-xs text-slate-500"
+                                data-jobcard-create-proposal-template-counts
+                              >
                                 {secondary}
                               </p>
                             ) : null}
@@ -400,36 +445,73 @@ export function JobCardCreateProposalModal({
               <p className="mt-1 text-sm text-slate-600">
                 {CREATE_PROPOSAL_PACKAGE_GUIDE}
               </p>
-              {packageOptions.length === 0 ? (
+              {packageChoices.length === 0 ? (
                 <p className="mt-4 text-sm text-slate-600">
-                  This template does not use packages.
+                  This template does not use packages yet.
                 </p>
-              ) : packageOptions.length === 1 ? (
-                <div className="mt-4">
-                  <p className="text-xs font-medium text-slate-500">
-                    {CREATE_PROPOSAL_PACKAGE_ONE_ONLY}
-                  </p>
-                  <PackageChoiceCard
-                    option={packageOptions[0]!}
-                    selected
-                    onSelect={onSelectPackage}
-                    disabled={creating}
-                  />
-                </div>
               ) : (
                 <div className="mt-4 space-y-2">
-                  {packageOptions.map((opt) => (
-                    <PackageChoiceCard
-                      key={opt.id}
-                      option={opt}
-                      selected={opt.id === selectedPackageOptionId}
-                      onSelect={onSelectPackage}
-                      disabled={creating}
-                    />
-                  ))}
+                  <p
+                    className="text-xs font-medium text-slate-500"
+                    data-jobcard-create-proposal-package-eyebrow
+                    data-package-mode={packagePresentationMode}
+                  >
+                    {packageEyebrow}
+                  </p>
+                  {packagePresentationMode === "simple" ? (
+                    <div
+                      className="rounded-xl border border-blue-300 bg-blue-50/60 px-4 py-3.5 ring-1 ring-blue-200"
+                      data-jobcard-create-proposal-package-simple="true"
+                      data-selected="true"
+                    >
+                      <p className="text-sm font-semibold text-slate-900">
+                        {TEMPLATES_SIMPLE_ESTIMATE_LABEL}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-600">
+                        {formatCreateProposalPackageCountLine({
+                          linkedItemCount:
+                            packageChoices[0]?.linkedItemCount ??
+                            includedItemCount,
+                          availableUpgradeCount:
+                            packageChoices[0]?.availableUpgradeCount ?? 0,
+                        })}
+                      </p>
+                      {packageChoices[0]?.description ? (
+                        <p className="mt-1.5 text-xs leading-relaxed text-slate-500">
+                          {packageChoices[0].description}
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <div
+                      className={
+                        packageChoices.length >= 3
+                          ? "grid gap-2 sm:grid-cols-1"
+                          : "space-y-2"
+                      }
+                    >
+                      {packageChoices.map((choice) => (
+                        <PackageChoiceCard
+                          key={choice.optionId}
+                          choice={choice}
+                          selected={choice.optionId === selectedPackageOptionId}
+                          onSelect={onSelectPackage}
+                          disabled={creating}
+                        />
+                      ))}
+                    </div>
+                  )}
+                  <p
+                    className="pt-1 text-xs text-slate-500"
+                    data-jobcard-create-proposal-package-builder-note
+                  >
+                    {CREATE_PROPOSAL_PACKAGE_BUILDER_NOTE}
+                  </p>
                 </div>
               )}
-              {packageOptions.length > 0 && !selectedPackageOptionId ? (
+              {packagePresentationMode !== "simple" &&
+              packageChoices.length > 0 &&
+              !selectedPackageOptionId ? (
                 <p
                   className="mt-3 text-sm text-amber-800"
                   data-jobcard-create-proposal-package-blocked="true"
@@ -453,48 +535,81 @@ export function JobCardCreateProposalModal({
               <h3 className="text-lg font-semibold tracking-tight text-slate-900">
                 {CREATE_PROPOSAL_REVIEW_TITLE}
               </h3>
-              <div className="mt-6 space-y-6">
-                <div data-jobcard-create-proposal-review-measurement="true">
-                  <p className="text-sm font-semibold text-slate-900">
+              <p className="mt-1 text-sm text-slate-600">
+                {CREATE_PROPOSAL_REVIEW_INTRO}
+              </p>
+              <div className="mt-5 space-y-4">
+                <div
+                  className="rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-3"
+                  data-jobcard-create-proposal-review-measurement="true"
+                >
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                    Measurement
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-slate-900">
                     {formatCreateProposalMeasurementTitle(measurementLabel)}
                   </p>
-                  <p className="mt-1 text-sm text-slate-600">
+                  <p className="mt-0.5 text-sm text-slate-600">
                     {formatCreateProposalMeasurementSummary({
                       roofAreaSqft: measurementRoofAreaSqft,
                       wastePercent: measurementWastePercent,
                       ready: true,
-                    }).replace(/\s·\sReport complete$/i, "")}
+                    })}
                   </p>
                 </div>
-                <div>
+                <div className="rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                    Reusable setup
+                  </p>
                   <p
-                    className="text-sm font-semibold text-slate-900"
+                    className="mt-1 text-sm font-semibold text-slate-900"
                     data-jobcard-create-proposal-review-template="true"
                   >
-                    {selectedTemplateName?.trim() || "Proposal"}
+                    {selectedTemplateName?.trim() || "Proposal template"}
                   </p>
-                  {packageOptions.length > 0 ? (
-                    <p
-                      className="mt-1 text-sm text-slate-600"
-                      data-jobcard-create-proposal-review-package="true"
-                    >
-                      {(selectedPackageName?.trim() || "Selected") + " starting package"}
-                    </p>
-                  ) : null}
+                  <p
+                    className="mt-0.5 text-sm text-slate-600"
+                    data-jobcard-create-proposal-review-package="true"
+                  >
+                    {formatCreateProposalPackageReviewLine({
+                      packageMode: packagePresentationMode,
+                      packageName: selectedPackageName,
+                    })}
+                  </p>
+                  <p
+                    className="mt-1 text-xs text-slate-500"
+                    data-jobcard-create-proposal-review-scope="true"
+                  >
+                    {formatCreateProposalReviewScopeLine({
+                      includedItemCount,
+                      availableUpgradeCount,
+                    })}
+                  </p>
                 </div>
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                     {CREATE_PROPOSAL_INCLUDED_LABEL}
                   </p>
                   <p
-                    className="mt-1.5 text-sm leading-relaxed text-slate-700"
+                    className="mt-1 text-sm leading-relaxed text-slate-700"
                     data-jobcard-create-proposal-review-included="true"
                   >
                     {CREATE_PROPOSAL_INCLUDED_PRIMARY}
                   </p>
                 </div>
+                <div
+                  className="rounded-xl border border-blue-200 bg-blue-50/40 px-4 py-3"
+                  data-jobcard-create-proposal-review-next="true"
+                >
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-blue-800/80">
+                    {CREATE_PROPOSAL_REVIEW_NEXT_LABEL}
+                  </p>
+                  <p className="mt-1 text-sm leading-relaxed text-slate-700">
+                    {CREATE_PROPOSAL_REVIEW_NEXT}
+                  </p>
+                </div>
               </div>
-              <p className="mt-8 text-sm text-slate-500">{CREATE_PROPOSAL_HELPER}</p>
+              <p className="mt-5 text-sm text-slate-500">{CREATE_PROPOSAL_HELPER}</p>
               {createError ? (
                 <p
                   className="mt-3 text-sm text-red-700"
@@ -507,7 +622,7 @@ export function JobCardCreateProposalModal({
           ) : null}
         </div>
 
-        <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 px-6 py-4">
+        <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 px-5 py-4 sm:px-6">
           <button
             type="button"
             className={JOB_CARD_PROPOSALS_SECONDARY_BUTTON_CLASS}
@@ -546,7 +661,9 @@ export function JobCardCreateProposalModal({
               disabled={
                 creating ||
                 packageIssueCount > 0 ||
-                (packageOptions.length > 0 && !selectedPackageOptionId)
+                (packagePresentationMode !== "simple" &&
+                  packageChoices.length > 0 &&
+                  !selectedPackageOptionId)
               }
               onClick={goNext}
               data-jobcard-create-proposal-use-package="true"
@@ -572,41 +689,64 @@ export function JobCardCreateProposalModal({
 }
 
 function PackageChoiceCard({
-  option,
+  choice,
   selected,
   onSelect,
   disabled,
 }: {
-  option: ProposalTemplateOption;
+  choice: JobCardPackageChoice;
   selected: boolean;
   onSelect: (optionId: string) => void;
   disabled: boolean;
 }) {
-  const description = (option.description ?? option.customer_label ?? "").trim();
+  const countLine = formatCreateProposalPackageCountLine({
+    linkedItemCount: choice.linkedItemCount,
+    availableUpgradeCount: choice.availableUpgradeCount,
+    issueCount: choice.issueCount,
+  });
   return (
     <button
       type="button"
-      data-jobcard-create-proposal-package={option.id}
-      data-package-name={option.name}
+      data-jobcard-create-proposal-package={choice.optionId}
+      data-package-name={choice.label}
+      data-package-included={choice.linkedItemCount}
+      data-package-upgrades={choice.availableUpgradeCount}
       data-selected={selected ? "true" : "false"}
-      className={`mt-2 w-full rounded-xl border px-4 py-3.5 text-left transition ${
+      className={`w-full rounded-xl border px-4 py-3.5 text-left transition ${
         selected
-          ? "border-blue-400 bg-blue-50/80 ring-1 ring-blue-200 text-slate-900"
+          ? "border-blue-400 bg-white shadow-sm ring-2 ring-blue-100 text-slate-900"
           : "border-slate-200 bg-white text-slate-800 hover:border-slate-300"
       }`}
-      onClick={() => onSelect(option.id)}
+      onClick={() => onSelect(choice.optionId)}
       disabled={disabled}
     >
       <div className="flex items-center justify-between gap-2">
-        <p className="text-sm font-semibold text-slate-900">{option.name}</p>
+        <p className="text-sm font-semibold text-slate-900">{choice.label}</p>
         {selected ? (
-          <span className="shrink-0 rounded-full bg-blue-600 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+          <span className="shrink-0 rounded-full bg-blue-600 px-2 py-0.5 text-[10px] font-semibold text-white">
             Selected
           </span>
         ) : null}
       </div>
-      {description ? (
-        <p className="mt-1 text-xs leading-relaxed text-slate-600">{description}</p>
+      <p
+        className="mt-1.5 text-xs font-medium text-slate-600"
+        data-jobcard-create-proposal-package-counts
+      >
+        {countLine}
+      </p>
+      {choice.description ? (
+        <p className="mt-1.5 text-xs leading-relaxed text-slate-500">
+          {choice.description}
+        </p>
+      ) : null}
+      {choice.highlightLabels.length > 0 ? (
+        <p
+          className="mt-2 border-t border-slate-100 pt-2 text-[11px] leading-relaxed text-slate-400"
+          data-jobcard-create-proposal-package-highlights
+        >
+          Includes {choice.highlightLabels.join(", ")}
+          {choice.linkedItemCount > choice.highlightLabels.length ? "…" : ""}
+        </p>
       ) : null}
     </button>
   );

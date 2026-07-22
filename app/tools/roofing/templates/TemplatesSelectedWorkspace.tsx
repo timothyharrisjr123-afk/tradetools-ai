@@ -13,6 +13,10 @@ import TemplatesContentEditorShell from "./TemplatesContentEditorShell";
 import TemplatesEstimateDisplayTab from "./TemplatesEstimateDisplayTab";
 import TemplatesPackagesCatalogTab from "./TemplatesPackagesCatalogTab";
 import TemplatesQuoteSetupReview from "./TemplatesQuoteSetupReview";
+import type {
+  PackageAuthorshipDraft,
+  TemplateIdentityDraft,
+} from "./TemplatesSetupAuthorshipEditors";
 import {
   TEMPLATES_EDIT_TABS,
   type PackageOptionSummary,
@@ -62,6 +66,8 @@ type TemplatesSelectedWorkspaceProps = {
   onReplaceItem: (templateItemId: string) => void;
   onRemoveItem: (templateItemId: string) => void;
   onFixIssues: () => void;
+  onSaveIdentity: (draft: TemplateIdentityDraft) => Promise<void> | void;
+  onSavePackages: (drafts: readonly PackageAuthorshipDraft[]) => Promise<void> | void;
   onAddSection: (optionId: string, kind: ProposalTemplateSectionKind) => void;
   onMoveSection: (
     optionId: string,
@@ -109,6 +115,8 @@ export default function TemplatesSelectedWorkspace({
   onReplaceItem,
   onRemoveItem,
   onFixIssues,
+  onSaveIdentity,
+  onSavePackages,
   onAddSection,
   onMoveSection,
   onSaveTemplateEstimateSettings,
@@ -124,7 +132,7 @@ export default function TemplatesSelectedWorkspace({
   if (mode === "review") {
     return (
       <div
-        className={`${TEMPLATES_WORKSPACE_ZONE} space-y-3 p-3 sm:p-4`}
+        className={`${TEMPLATES_WORKSPACE_ZONE} space-y-3 border-0 bg-transparent p-0 shadow-none sm:p-0`}
         data-templates-selected-workspace
         data-templates-workspace-mode="review"
       >
@@ -143,7 +151,9 @@ export default function TemplatesSelectedWorkspace({
           onReplaceItem={onReplaceItem}
           onRemoveItem={onRemoveItem}
           onFixIssues={onFixIssues}
-          onOpenAdvanced={() => onOpenAdvanced("packages")}
+          onOpenAdvanced={onOpenAdvanced}
+          onSaveIdentity={onSaveIdentity}
+          onSavePackages={onSavePackages}
         />
       </div>
     );

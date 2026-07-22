@@ -126,6 +126,8 @@ export type DraftProposalCreateOptionPersistPayload = {
   source_template_option_id: string;
   name: string;
   customer_label: string | null;
+  /** Authored package description from template option snapshot. */
+  description: string | null;
   sort_order: number;
   is_default: boolean;
   visible_to_customer: boolean;
@@ -782,6 +784,7 @@ export function buildDraftProposalCreatePersistPayload(
       source_template_option_id: optionPayload.source_template_option_id,
       name: optionPayload.name,
       customer_label: optionPayload.customer_label,
+      description: optionPayload.description ?? null,
       sort_order: optionPayload.sort_order,
       is_default: optionPayload.is_default,
       visible_to_customer: optionPayload.visible_to_customer,
@@ -949,6 +952,7 @@ export async function persistDraftProposalCreateSequential(
         source_template_option_id: option.source_template_option_id,
         name: option.name,
         customer_label: option.customer_label,
+        description: option.description,
         sort_order: option.sort_order,
         is_default: option.is_default,
         visible_to_customer: option.visible_to_customer,

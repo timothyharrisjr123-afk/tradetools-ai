@@ -546,6 +546,51 @@ describe("buildOptionSnapshots", () => {
     assert.equal(options[0]!.customer_total_cents, 102_600);
   });
 
+  test("passes through authored package description (null when omitted)", () => {
+    const [withAuthored] = buildOptionSnapshots({
+      company_id: COMPANY_ID,
+      options: [
+        {
+          source_template_option_id: "opt-1",
+          name: "Standard",
+          description: "  Authored package story.  ",
+          sort_order: 0,
+          is_default: true,
+          visible_to_customer: true,
+          customer_subtotal_cents: 1,
+          discount_cents: null,
+          sales_tax_cents: null,
+          customer_total_cents: 1,
+          pricing_complete: true,
+          blocking_line_count: 0,
+          guardrail_outcome: "pass",
+        },
+      ],
+    });
+    assert.equal(withAuthored!.description, "  Authored package story.  ");
+
+    const [omitted] = buildOptionSnapshots({
+      company_id: COMPANY_ID,
+      options: [
+        {
+          source_template_option_id: "opt-1",
+          name: "Standard",
+          sort_order: 0,
+          is_default: true,
+          visible_to_customer: true,
+          customer_subtotal_cents: 1,
+          discount_cents: null,
+          sales_tax_cents: null,
+          customer_total_cents: 1,
+          pricing_complete: true,
+          blocking_line_count: 0,
+          guardrail_outcome: "pass",
+        },
+      ],
+    });
+    assert.equal(omitted!.description, null);
+  });
+
   test("never returns legacy subtotal_cents / tax_cents / total_cents keys", () => {
     const options = buildOptionSnapshots({
       company_id: COMPANY_ID,

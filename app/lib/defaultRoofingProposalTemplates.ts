@@ -321,8 +321,8 @@ const ROOF_REPLACEMENT_OPTIONS: readonly DefaultProposalTemplateOptionDefinition
 
 const ROOF_REPLACEMENT_TEMPLATE: DefaultProposalTemplateDefinition = {
   name: "Roof replacement",
-  description:
-    "Starter roof replacement template with Standard, Enhanced, and Premium customer-facing options. Install catalog items before use.",
+    description:
+    "Reusable roof replacement setup for future proposals.",
   status: "draft",
   sort_order: 10,
   metadata: {

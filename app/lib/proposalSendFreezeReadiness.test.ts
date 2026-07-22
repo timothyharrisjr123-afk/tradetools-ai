@@ -99,6 +99,7 @@ function readyGraph(overrides: Partial<ProposalDraftGraph> = {}): ProposalDraftG
         source_template_option_id: TEMPLATE_OPT_A,
         name: "Option A",
         customer_label: "Good",
+        description: null,
         sort_order: 0,
         is_default: true,
         visible_to_customer: true,

@@ -66,7 +66,7 @@ export default function JobCardProposalsTab({
             return (
               <div
                 key={row.proposalId}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3.5"
+                className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-1 py-3 last:border-b-0"
                 data-jobcard-proposal-list-row
                 data-proposal-id={row.proposalId}
               >
@@ -80,7 +80,7 @@ export default function JobCardProposalsTab({
                     </p>
                     {packageBadge ? (
                       <span
-                        className="inline-flex shrink-0 items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-semibold text-slate-700"
+                        className="inline-flex shrink-0 items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600"
                         data-jobcard-proposal-row-package
                       >
                         {packageBadge}
@@ -88,7 +88,7 @@ export default function JobCardProposalsTab({
                     ) : null}
                   </div>
                   <p
-                    className="mt-0.5 truncate text-[12px] text-slate-500"
+                    className="mt-0.5 truncate text-[12px] text-slate-400"
                     data-jobcard-proposal-row-meta
                   >
                     {row.metaLine}

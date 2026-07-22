@@ -31,14 +31,26 @@ const PACKAGE_META_BY_LABEL: Record<string, PackageMeta> = {
   },
 };
 
-export function resolvePackageMeta(label: string): PackageMeta {
+/**
+ * Resolve customer-facing package presentation.
+ * Authored template/snapshot description is source of truth when present.
+ * Hardcoded Standard/Enhanced/Premium (and generic) copy is fallback only.
+ */
+export function resolvePackageMeta(
+  label: string,
+  authoredDescription?: string | null
+): PackageMeta {
   const key = label.trim().toLowerCase();
-
-  return (
+  const fallback =
     PACKAGE_META_BY_LABEL[key] ?? {
       description: "Customer-facing package option.",
       bullets: ["Quality materials", "Professional installation"],
       accent: "default" as const,
-    }
-  );
+    };
+  const authored = String(authoredDescription ?? "").trim();
+  if (!authored) return fallback;
+  return {
+    ...fallback,
+    description: authored,
+  };
 }

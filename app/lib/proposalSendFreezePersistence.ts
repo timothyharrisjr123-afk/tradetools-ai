@@ -108,6 +108,8 @@ export type ProposalSendFreezeOptionPersistPayload = {
   source_template_option_id: string;
   name: string;
   customer_label: string | null;
+  /** Authored package description copied from draft option. */
+  description: string | null;
   sort_order: number;
   is_default: boolean;
   visible_to_customer: boolean;
@@ -295,6 +297,7 @@ function copyOptionPayload(
     source_template_option_id: templateOptionId,
     name: option.name,
     customer_label: option.customer_label,
+    description: option.description ?? null,
     sort_order: option.sort_order,
     is_default: option.is_default,
     visible_to_customer: option.visible_to_customer,

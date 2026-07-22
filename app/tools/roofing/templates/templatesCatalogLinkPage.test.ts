@@ -58,7 +58,7 @@ describe("Templates catalog link page (Integrated Flow P0 + Redesign P0)", () =>
     assert.ok(!footnote.includes("later stage"));
     assert.ok(header.includes("Job Card"));
     assert.ok(!header.includes("later stages"));
-    assert.equal(TEMPLATE_ADD_FROM_CATALOG_LABEL, "Add item");
+    assert.equal(TEMPLATE_ADD_FROM_CATALOG_LABEL, "Add work item");
     assert.equal(TEMPLATE_RELINK_CATALOG_LABEL, "Replace item");
   });
 

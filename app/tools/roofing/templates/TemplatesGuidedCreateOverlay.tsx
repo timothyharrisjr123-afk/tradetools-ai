@@ -15,12 +15,15 @@ import {
   GUIDED_CREATE_STEP_LABELS,
   GUIDED_CREATE_STEPS,
   GUIDED_PACKAGE_MODEL_CHOICES,
+  buildDefaultGuidedPackageDrafts,
   buildGuidedTemplateCreatePlan,
   formatGuidedPackageSummary,
   nextGuidedCreateStep,
   prevGuidedCreateStep,
   validateGuidedCreateBasics,
+  validateGuidedPackageDrafts,
   type GuidedCreateStepId,
+  type GuidedPackageDraft,
   type GuidedPackageModelId,
 } from "./templatesGuidedCreatePlanner";
 
@@ -43,7 +46,11 @@ export default function TemplatesGuidedCreateOverlay({
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [packageModel, setPackageModel] = useState<GuidedPackageModelId>("triple");
+  const [packageDrafts, setPackageDrafts] = useState<GuidedPackageDraft[]>(() =>
+    buildDefaultGuidedPackageDrafts("triple")
+  );
   const [basicsError, setBasicsError] = useState<string | null>(null);
+  const [packageError, setPackageError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -51,26 +58,51 @@ export default function TemplatesGuidedCreateOverlay({
     setName("");
     setDescription("");
     setPackageModel("triple");
+    setPackageDrafts(buildDefaultGuidedPackageDrafts("triple"));
     setBasicsError(null);
+    setPackageError(null);
   }, [open]);
 
   const plan = useMemo(() => {
     const basics = validateGuidedCreateBasics({ name, description });
     if (!basics.ok) return null;
+    const drafts =
+      packageModel === "simple" ? [] : packageDrafts.length > 0 ? packageDrafts : buildDefaultGuidedPackageDrafts(packageModel);
     try {
       return buildGuidedTemplateCreatePlan({
         name: basics.name,
         description: basics.description,
         packageModel,
+        packageDrafts: drafts,
       });
     } catch {
       return null;
     }
-  }, [name, description, packageModel]);
+  }, [name, description, packageModel, packageDrafts]);
 
   if (!open) return null;
 
   const stepIndex = GUIDED_CREATE_STEPS.indexOf(step);
+
+  const selectPackageModel = (nextModel: GuidedPackageModelId) => {
+    setPackageModel(nextModel);
+    setPackageDrafts(buildDefaultGuidedPackageDrafts(nextModel));
+    setPackageError(null);
+  };
+
+  const updateDraft = (key: string, patch: Partial<GuidedPackageDraft>) => {
+    setPackageDrafts((current) =>
+      current.map((draft) => {
+        if (draft.key !== key) {
+          if (patch.isDefault === true) {
+            return { ...draft, isDefault: false };
+          }
+          return draft;
+        }
+        return { ...draft, ...patch };
+      })
+    );
+  };
 
   const goNextFromBasics = () => {
     const basics = validateGuidedCreateBasics({ name, description });
@@ -83,9 +115,24 @@ export default function TemplatesGuidedCreateOverlay({
     if (next) setStep(next);
   };
 
+  const goNextFromPackageSetup = () => {
+    const check = validateGuidedPackageDrafts(packageModel, packageDrafts);
+    if (!check.ok) {
+      setPackageError(check.error);
+      return;
+    }
+    setPackageError(null);
+    const next = nextGuidedCreateStep("package_setup");
+    if (next) setStep(next);
+  };
+
   const goNext = () => {
     if (step === "basics") {
       goNextFromBasics();
+      return;
+    }
+    if (step === "package_setup") {
+      goNextFromPackageSetup();
       return;
     }
     const next = nextGuidedCreateStep(step);
@@ -192,7 +239,7 @@ export default function TemplatesGuidedCreateOverlay({
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   disabled={creating}
-                  placeholder="e.g. Roof replacement"
+                  placeholder="e.g. Roof Replacement Packages"
                   className="mt-1.5 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-900 outline-none ring-blue-200 placeholder:text-slate-400 focus:border-blue-300 focus:ring-2"
                   data-templates-guided-create-name="true"
                   autoFocus
@@ -235,14 +282,14 @@ export default function TemplatesGuidedCreateOverlay({
             </section>
           ) : null}
 
-          {step === "package_model" ? (
-            <section data-templates-guided-create-panel-package-model="true" className="space-y-5">
+          {step === "package_setup" ? (
+            <section data-templates-guided-create-panel-package-setup="true" className="space-y-5">
               <div>
                 <h3 className="text-base font-semibold text-slate-900">
-                  {GUIDED_CREATE_STEP_LABELS.package_model}
+                  {GUIDED_CREATE_STEP_LABELS.package_setup}
                 </h3>
                 <p className="mt-1 text-sm text-slate-600">
-                  Choose how customers will see packages on proposals from this template.
+                  Choose a package model, then name packages the way you sell them.
                 </p>
               </div>
               <ul className="space-y-2">
@@ -255,7 +302,7 @@ export default function TemplatesGuidedCreateOverlay({
                         disabled={creating}
                         data-templates-guided-create-package-model={choice.id}
                         data-selected={selected ? "true" : "false"}
-                        onClick={() => setPackageModel(choice.id)}
+                        onClick={() => selectPackageModel(choice.id)}
                         className={`w-full rounded-xl border px-4 py-3.5 text-left transition ${
                           selected
                             ? "border-blue-400 bg-blue-50/70 ring-1 ring-blue-200"
@@ -264,33 +311,167 @@ export default function TemplatesGuidedCreateOverlay({
                       >
                         <p className="text-sm font-semibold text-slate-900">{choice.title}</p>
                         <p className="mt-1 text-sm text-slate-600">{choice.description}</p>
-                        {choice.packageLabels.length > 0 ? (
-                          <p className="mt-2 text-xs font-medium text-slate-500">
-                            {choice.packageLabels.join(" · ")}
-                          </p>
-                        ) : null}
                       </button>
                     </li>
                   );
                 })}
               </ul>
+
+              {packageModel !== "simple" ? (
+                <div className="space-y-3" data-templates-guided-create-package-drafts>
+                  <p className="text-sm font-medium text-slate-800">Package names & descriptions</p>
+                  {packageDrafts.map((draft) => (
+                    <div
+                      key={draft.key}
+                      className="rounded-xl border border-slate-200 bg-white px-4 py-3.5 space-y-3"
+                      data-templates-guided-create-package-draft={draft.key}
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <label className="inline-flex items-center gap-2 text-xs font-medium text-slate-600">
+                          <input
+                            type="radio"
+                            name="guided-default-package"
+                            checked={draft.isDefault}
+                            disabled={creating}
+                            onChange={() => updateDraft(draft.key, { isDefault: true })}
+                            data-templates-guided-create-default-package={draft.key}
+                          />
+                          Default package
+                        </label>
+                        <span className="text-[11px] text-slate-400">
+                          Starter: {draft.sourceName}
+                        </span>
+                      </div>
+                      <label className="block">
+                        <span className="text-xs font-medium text-slate-700">Display name</span>
+                        <input
+                          type="text"
+                          value={draft.name}
+                          disabled={creating}
+                          onChange={(e) => updateDraft(draft.key, { name: e.target.value })}
+                          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-200"
+                          data-templates-guided-create-package-name={draft.key}
+                        />
+                      </label>
+                      <label className="block">
+                        <span className="text-xs font-medium text-slate-700">
+                          Customer label{" "}
+                          <span className="font-normal text-slate-500">(optional)</span>
+                        </span>
+                        <input
+                          type="text"
+                          value={draft.customerLabel}
+                          disabled={creating}
+                          onChange={(e) =>
+                            updateDraft(draft.key, { customerLabel: e.target.value })
+                          }
+                          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-200"
+                          data-templates-guided-create-package-customer-label={draft.key}
+                        />
+                      </label>
+                      <label className="block">
+                        <span className="text-xs font-medium text-slate-700">Description</span>
+                        <textarea
+                          value={draft.description}
+                          disabled={creating}
+                          rows={2}
+                          onChange={(e) =>
+                            updateDraft(draft.key, { description: e.target.value })
+                          }
+                          className="mt-1 w-full resize-none rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-200"
+                          data-templates-guided-create-package-description={draft.key}
+                        />
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-slate-600">
+                  Simple estimate uses one prepared estimate — no customer package choices.
+                </p>
+              )}
+
+              {packageError ? (
+                <p className="text-sm text-amber-800" role="status" data-templates-guided-create-package-error>
+                  {packageError}
+                </p>
+              ) : null}
             </section>
           ) : null}
 
-          {step === "structure" || step === "confirm" ? (
-            <section
-              data-templates-guided-create-panel-structure="true"
-              className="space-y-5"
-            >
+          {step === "structure" ? (
+            <section data-templates-guided-create-panel-structure="true" className="space-y-5">
               <div>
                 <h3 className="text-base font-semibold text-slate-900">
-                  {step === "confirm"
-                    ? "Review and create"
-                    : GUIDED_CREATE_STEP_LABELS.structure}
+                  {GUIDED_CREATE_STEP_LABELS.structure}
                 </h3>
                 <p className="mt-1 text-sm text-slate-600">
-                  FieldDive will prepare this structure. You can adjust items and wording after
-                  creating the template.
+                  Included work and optional upgrades will be prepared from your Catalog links.
+                  Adjust items after create.
+                </p>
+              </div>
+              {plan ? (
+                <div className="rounded-xl border border-slate-200 bg-white px-4 py-3.5 space-y-2">
+                  <p className="text-sm font-semibold text-slate-900" data-templates-guided-create-package-summary>
+                    {formatGuidedPackageSummary(plan)}
+                  </p>
+                  {plan.defaultPackageLabel ? (
+                    <p className="text-xs text-slate-500">
+                      Default: {plan.defaultPackageLabel}
+                    </p>
+                  ) : null}
+                  <ul className="mt-2 space-y-1.5">
+                    {plan.structureNotes.map((note) => (
+                      <li key={note} className="text-sm text-slate-600">
+                        {note}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </section>
+          ) : null}
+
+          {step === "packet" ? (
+            <section data-templates-guided-create-panel-packet="true" className="space-y-5">
+              <div>
+                <h3 className="text-base font-semibold text-slate-900">
+                  {GUIDED_CREATE_STEP_LABELS.packet}
+                </h3>
+                <p className="mt-1 text-sm text-slate-600">
+                  Customer-facing pages prepared with this setup. Edit wording after create in
+                  Advanced editing.
+                </p>
+              </div>
+              {plan ? (
+                <ol className="overflow-hidden rounded-xl ring-1 ring-slate-200/70">
+                  {plan.contentAreas.map((area, index) => (
+                    <li
+                      key={area.label}
+                      className="flex gap-3 border-b border-slate-100 bg-slate-50/40 px-3.5 py-2.5 last:border-b-0"
+                    >
+                      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-white text-[10px] font-semibold tabular-nums text-slate-500 ring-1 ring-slate-200/80">
+                        {String(index + 1).padStart(2, "0")}
+                      </span>
+                      <div>
+                        <p className="text-sm font-medium text-slate-900">{area.label}</p>
+                        <p className="mt-0.5 text-xs text-slate-500">{area.detail}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              ) : null}
+            </section>
+          ) : null}
+
+          {step === "confirm" ? (
+            <section data-templates-guided-create-panel-confirm="true" className="space-y-5">
+              <div>
+                <h3 className="text-base font-semibold text-slate-900">
+                  {GUIDED_CREATE_STEP_LABELS.confirm}
+                </h3>
+                <p className="mt-1 text-sm text-slate-600">
+                  Confirm this reusable setup, then create it.
                 </p>
               </div>
 
@@ -308,7 +489,7 @@ export default function TemplatesGuidedCreateOverlay({
 
                   <div className="rounded-xl border border-slate-200 bg-white px-4 py-3.5">
                     <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                      Package model
+                      Packages
                     </p>
                     <p
                       className="mt-1 text-sm font-semibold text-slate-900"
@@ -316,13 +497,29 @@ export default function TemplatesGuidedCreateOverlay({
                     >
                       {formatGuidedPackageSummary(plan)}
                     </p>
+                    {plan.defaultPackageLabel ? (
+                      <p className="mt-1 text-xs text-slate-500">
+                        Default package: {plan.defaultPackageLabel}
+                      </p>
+                    ) : null}
+                    {plan.packageDrafts.length > 0 ? (
+                      <ul className="mt-2 space-y-1.5">
+                        {plan.packageDrafts.map((draft) => (
+                          <li key={draft.key} className="text-sm text-slate-600">
+                            <span className="font-medium text-slate-800">{draft.name}</span>
+                            {draft.description ? ` — ${draft.description}` : ""}
+                            {draft.isDefault ? " · Default" : ""}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
                   </div>
 
                   <div className="rounded-xl border border-slate-200 bg-white px-4 py-3.5">
                     <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                      What will be prepared
+                      Proposal packet
                     </p>
-                    <ul className="mt-2 space-y-2">
+                    <ul className="mt-2 space-y-1.5">
                       {plan.contentAreas.map((area) => (
                         <li key={area.label} className="text-sm text-slate-700">
                           <span className="font-semibold text-slate-900">{area.label}</span>
@@ -331,18 +528,10 @@ export default function TemplatesGuidedCreateOverlay({
                       ))}
                     </ul>
                   </div>
-
-                  <ul className="space-y-1.5 px-1">
-                    {plan.structureNotes.map((note) => (
-                      <li key={note} className="text-sm text-slate-600">
-                        {note}
-                      </li>
-                    ))}
-                  </ul>
                 </div>
               ) : (
                 <p className="text-sm text-amber-800">
-                  Complete the template name before reviewing the prepared structure.
+                  Complete template name and package setup before creating.
                 </p>
               )}
 
@@ -384,7 +573,7 @@ export default function TemplatesGuidedCreateOverlay({
             <button
               type="button"
               className="inline-flex items-center justify-center rounded-md border border-blue-300 bg-blue-600 px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
-              disabled={creating || (step === "structure" && !plan)}
+              disabled={creating || ((step === "structure" || step === "packet") && !plan)}
               onClick={goNext}
               data-templates-guided-create-continue="true"
             >
