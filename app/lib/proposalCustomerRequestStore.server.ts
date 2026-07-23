@@ -26,6 +26,7 @@ export {
   PROPOSAL_CUSTOMER_REQUEST_REVIEW_STATUSES,
   PROPOSAL_CUSTOMER_REQUEST_STATUSES,
   ProposalCustomerRequestStoreError,
+  ProposalCustomerRequestValidationError,
   RECORD_PROPOSAL_CUSTOMER_REQUEST_RPC_V1,
   UPDATE_PROPOSAL_CUSTOMER_REQUEST_STATUS_RPC_V1,
   normalizeCustomerRequestSubmitInput,

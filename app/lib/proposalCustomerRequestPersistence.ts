@@ -60,6 +60,8 @@ export const PROPOSAL_CUSTOMER_REQUEST_FAILURE_CODES = [
   "invalid_customer_phone",
   "invalid_payload",
   "forbidden_payload_keys",
+  "invalid_submission_key",
+  "idempotency_conflict",
   "option_required",
   "option_not_on_version",
 ] as const;
@@ -70,8 +72,10 @@ export type ProposalCustomerRequestFailureCode =
 export type ProposalCustomerRequestRecordSuccess = {
   ok: true;
   request_id: string;
+  attention_id: string;
   intent: ProposalCustomerRequestIntent;
-  status: "new";
+  status: ProposalCustomerRequestStatus;
+  idempotent_replay: boolean;
   token_id: string;
   proposal_id: string;
   proposal_version_id: string;
@@ -79,6 +83,7 @@ export type ProposalCustomerRequestRecordSuccess = {
   requested_option_label: string | null;
   proposal_status_unchanged: string | null;
   selected_option_id_unchanged: string | null;
+  job_stage_unchanged: string | null;
 };
 
 export type ProposalCustomerRequestFailure = {
@@ -91,6 +96,7 @@ export type ProposalCustomerRequestRecordResult =
   | ProposalCustomerRequestFailure;
 
 export type ProposalCustomerRequestSubmitInput = {
+  submissionKey: string;
   intent: ProposalCustomerRequestIntent;
   requestedOptionId?: string | null;
   message?: string | null;
@@ -104,6 +110,13 @@ export class ProposalCustomerRequestStoreError extends Error {
   constructor(message: string) {
     super(message);
     this.name = "ProposalCustomerRequestStoreError";
+  }
+}
+
+export class ProposalCustomerRequestValidationError extends ProposalCustomerRequestStoreError {
+  constructor(message: string) {
+    super(message);
+    this.name = "ProposalCustomerRequestValidationError";
   }
 }
 
@@ -152,7 +165,7 @@ function trimOrNull(value: string | null | undefined, max: number): string | nul
   const trimmed = (value ?? "").trim();
   if (!trimmed) return null;
   if (trimmed.length > max) {
-    throw new ProposalCustomerRequestStoreError(
+    throw new ProposalCustomerRequestValidationError(
       `Customer request field exceeds max length (${max}).`
     );
   }
@@ -164,7 +177,7 @@ function tokenHashFromRaw(rawToken: string): string {
     return hashProposalPublicAccessToken(rawToken);
   } catch (error) {
     if (error instanceof ProposalPublicAccessTokenHashError) {
-      throw new ProposalCustomerRequestStoreError(error.message);
+      throw new ProposalCustomerRequestValidationError(error.message);
     }
     throw error;
   }
@@ -203,9 +216,15 @@ export function parseProposalCustomerRequestRpcResult(
     );
   }
 
-  if (String(result.status ?? "").trim() !== "new") {
+  if (!isRequestStatus(result.status)) {
     throw new ProposalCustomerRequestStoreError(
       `${RECORD_PROPOSAL_CUSTOMER_REQUEST_RPC_V1} RPC returned unexpected status.`
+    );
+  }
+
+  if (typeof result.idempotent_replay !== "boolean") {
+    throw new ProposalCustomerRequestStoreError(
+      `${RECORD_PROPOSAL_CUSTOMER_REQUEST_RPC_V1} RPC returned invalid replay state.`
     );
   }
 
@@ -216,8 +235,10 @@ export function parseProposalCustomerRequestRpcResult(
   return {
     ok: true,
     request_id: parseUuidField(result.request_id, "request_id"),
+    attention_id: parseUuidField(result.attention_id, "attention_id"),
     intent: result.intent,
-    status: "new",
+    status: result.status,
+    idempotent_replay: result.idempotent_replay,
     token_id: parseUuidField(result.token_id, "token_id"),
     proposal_id: parseUuidField(result.proposal_id, "proposal_id"),
     proposal_version_id: parseUuidField(
@@ -237,6 +258,10 @@ export function parseProposalCustomerRequestRpcResult(
       result.selected_option_id_unchanged,
       "selected_option_id_unchanged"
     ),
+    job_stage_unchanged:
+      result.job_stage_unchanged == null
+        ? null
+        : String(result.job_stage_unchanged),
   };
 }
 
@@ -244,6 +269,7 @@ export function parseProposalCustomerRequestRpcResult(
 export function normalizeCustomerRequestSubmitInput(
   input: ProposalCustomerRequestSubmitInput
 ): {
+  submissionKey: string;
   intent: ProposalCustomerRequestIntent;
   requestedOptionId: string | null;
   message: string | null;
@@ -253,7 +279,14 @@ export function normalizeCustomerRequestSubmitInput(
   payloadJson: Record<string, unknown>;
 } {
   if (!isIntent(input.intent)) {
-    throw new ProposalCustomerRequestStoreError("Invalid customer request intent.");
+    throw new ProposalCustomerRequestValidationError("Invalid customer request intent.");
+  }
+
+  const submissionKey = input.submissionKey.trim();
+  if (!isUuidLike(submissionKey)) {
+    throw new ProposalCustomerRequestValidationError(
+      "submissionKey must be a UUID."
+    );
   }
 
   const requestedOptionIdRaw = (input.requestedOptionId ?? "").trim();
@@ -265,13 +298,13 @@ export function normalizeCustomerRequestSubmitInput(
     (input.intent === "request_package" || input.intent === "ask_about_package") &&
     (!requestedOptionId || !isUuidLike(requestedOptionId))
   ) {
-    throw new ProposalCustomerRequestStoreError(
+    throw new ProposalCustomerRequestValidationError(
       "requestedOptionId is required for package requests."
     );
   }
 
   if (requestedOptionId && !isUuidLike(requestedOptionId)) {
-    throw new ProposalCustomerRequestStoreError("requestedOptionId must be a UUID.");
+    throw new ProposalCustomerRequestValidationError("requestedOptionId must be a UUID.");
   }
 
   const payloadJson =
@@ -290,6 +323,7 @@ export function normalizeCustomerRequestSubmitInput(
   delete payloadJson.token_hash;
 
   return {
+    submissionKey,
     intent: input.intent,
     requestedOptionId,
     message: trimOrNull(input.message, PROPOSAL_CUSTOMER_REQUEST_MESSAGE_MAX),
@@ -317,6 +351,7 @@ export async function recordProposalCustomerRequestViaRpc(
     p_customer_email: normalized.customerEmail,
     p_customer_phone: normalized.customerPhone,
     p_payload_json: normalized.payloadJson,
+    p_submission_key: normalized.submissionKey,
   });
 
   if (error) {
@@ -493,7 +528,7 @@ export async function listProposalCustomerRequestsForProposalWithClient(
   }
 
   return (data ?? []).map((row) =>
-    parseContractorRequestRow(row as Record<string, unknown>)
+    parseContractorRequestRow(row as unknown as Record<string, unknown>)
   );
 }
 

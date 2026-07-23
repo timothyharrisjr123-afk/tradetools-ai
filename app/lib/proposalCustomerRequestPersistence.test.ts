@@ -13,6 +13,7 @@ import {
   normalizeCustomerRequestSubmitInput,
   parseProposalCustomerRequestRpcResult,
   ProposalCustomerRequestStoreError,
+  ProposalCustomerRequestValidationError,
   RECORD_PROPOSAL_CUSTOMER_REQUEST_RPC_V1,
   recordProposalCustomerRequestViaRpc,
 } from "./proposalCustomerRequestPersistence";
@@ -27,6 +28,8 @@ import {
 const RAW_TOKEN = "fielddive-r3b1-customer-request-token";
 const TOKEN_HASH = hashProposalPublicAccessToken(RAW_TOKEN);
 const REQUEST_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+const ATTENTION_ID = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+const SUBMISSION_KEY = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
 const TOKEN_ID = "11111111-1111-4111-8111-111111111111";
 const COMPANY_ID = "22222222-2222-4222-8222-222222222222";
 const PROPOSAL_ID = "33333333-3333-4333-8333-333333333333";
@@ -43,8 +46,10 @@ function successRpcData() {
   return {
     ok: true,
     request_id: REQUEST_ID,
+    attention_id: ATTENTION_ID,
     intent: "request_package",
     status: "new",
+    idempotent_replay: false,
     token_id: TOKEN_ID,
     proposal_id: PROPOSAL_ID,
     proposal_version_id: VERSION_ID,
@@ -52,6 +57,7 @@ function successRpcData() {
     requested_option_label: "Standard",
     proposal_status_unchanged: "sent",
     selected_option_id_unchanged: SELECTED_OPTION_ID,
+    job_stage_unchanged: "proposal",
   };
 }
 
@@ -61,11 +67,29 @@ describe("parseProposalCustomerRequestRpcResult", () => {
     assert.equal(parsed.ok, true);
     if (parsed.ok) {
       assert.equal(parsed.request_id, REQUEST_ID);
+      assert.equal(parsed.attention_id, ATTENTION_ID);
       assert.equal(parsed.intent, "request_package");
       assert.equal(parsed.status, "new");
+      assert.equal(parsed.idempotent_replay, false);
       assert.equal(parsed.requested_option_label, "Standard");
       assert.equal(parsed.proposal_status_unchanged, "sent");
       assert.equal(parsed.selected_option_id_unchanged, SELECTED_OPTION_ID);
+      assert.equal(parsed.job_stage_unchanged, "proposal");
+    }
+  });
+
+  test("preserves seen and dismissed status on idempotent replay", () => {
+    for (const status of ["seen", "dismissed"] as const) {
+      const parsed = parseProposalCustomerRequestRpcResult({
+        ...successRpcData(),
+        status,
+        idempotent_replay: true,
+      });
+      assert.equal(parsed.ok, true);
+      if (parsed.ok) {
+        assert.equal(parsed.status, status);
+        assert.equal(parsed.idempotent_replay, true);
+      }
     }
   });
 
@@ -80,6 +104,7 @@ describe("parseProposalCustomerRequestRpcResult", () => {
 describe("normalizeCustomerRequestSubmitInput", () => {
   test("strips client company/proposal/version overrides from payload", () => {
     const normalized = normalizeCustomerRequestSubmitInput({
+      submissionKey: SUBMISSION_KEY,
       intent: "request_package",
       requestedOptionId: OPTION_ID,
       message: "Please call me",
@@ -93,6 +118,7 @@ describe("normalizeCustomerRequestSubmitInput", () => {
     });
 
     assert.equal(normalized.intent, "request_package");
+    assert.equal(normalized.submissionKey, SUBMISSION_KEY);
     assert.equal(normalized.requestedOptionId, OPTION_ID);
     assert.equal(normalized.message, "Please call me");
     assert.deepEqual(normalized.payloadJson, { source: "public_packet" });
@@ -104,10 +130,40 @@ describe("normalizeCustomerRequestSubmitInput", () => {
     assert.throws(
       () =>
         normalizeCustomerRequestSubmitInput({
+          submissionKey: SUBMISSION_KEY,
           intent: "request_package",
           requestedOptionId: null,
         }),
       ProposalCustomerRequestStoreError
+    );
+  });
+
+  test("requires a UUID submission key", () => {
+    assert.throws(
+      () =>
+        normalizeCustomerRequestSubmitInput({
+          submissionKey: "not-a-uuid",
+          intent: "request_package",
+          requestedOptionId: OPTION_ID,
+        }),
+      ProposalCustomerRequestStoreError
+    );
+  });
+
+  test("classifies client validation separately from RPC/store failures", () => {
+    assert.throws(
+      () =>
+        normalizeCustomerRequestSubmitInput({
+          submissionKey: "not-a-uuid",
+          intent: "request_package",
+          requestedOptionId: OPTION_ID,
+        }),
+      ProposalCustomerRequestValidationError
+    );
+    assert.equal(
+      new ProposalCustomerRequestStoreError("database failed") instanceof
+        ProposalCustomerRequestValidationError,
+      false
     );
   });
 });
@@ -125,6 +181,7 @@ describe("recordProposalCustomerRequestViaRpc", () => {
     };
 
     const result = await recordProposalCustomerRequestViaRpc(supabase as never, RAW_TOKEN, {
+      submissionKey: SUBMISSION_KEY,
       intent: "request_package",
       requestedOptionId: OPTION_ID,
       message: "R3B smoke message",
@@ -132,12 +189,14 @@ describe("recordProposalCustomerRequestViaRpc", () => {
     });
 
     assert.equal(rpcName, RECORD_PROPOSAL_CUSTOMER_REQUEST_RPC_V1);
-    assert.ok(rpcArgs);
-    assert.equal(rpcArgs!.p_token_hash, TOKEN_HASH);
-    assert.notEqual(rpcArgs!.p_token_hash, RAW_TOKEN);
-    assert.equal(JSON.stringify(rpcArgs).includes(RAW_TOKEN), false);
-    assert.equal(rpcArgs!.p_intent, "request_package");
-    assert.equal(rpcArgs!.p_requested_option_id, OPTION_ID);
+    const capturedArgs = rpcArgs as Record<string, unknown> | null;
+    assert.ok(capturedArgs);
+    assert.equal(capturedArgs.p_token_hash, TOKEN_HASH);
+    assert.notEqual(capturedArgs.p_token_hash, RAW_TOKEN);
+    assert.equal(JSON.stringify(capturedArgs).includes(RAW_TOKEN), false);
+    assert.equal(capturedArgs.p_intent, "request_package");
+    assert.equal(capturedArgs.p_submission_key, SUBMISSION_KEY);
+    assert.equal(capturedArgs.p_requested_option_id, OPTION_ID);
     assert.equal(result.ok, true);
     if (result.ok) {
       assert.equal(result.request_id, REQUEST_ID);
@@ -155,6 +214,7 @@ describe("recordProposalCustomerRequestViaRpc", () => {
     };
 
     const result = await recordProposalCustomerRequestViaRpc(supabase as never, RAW_TOKEN, {
+      submissionKey: SUBMISSION_KEY,
       intent: "request_package",
       requestedOptionId: OPTION_ID,
     });
@@ -168,6 +228,7 @@ describe("recordProposalCustomerRequestViaRpc", () => {
         rpc: async () => ({ data: { ok: false, code }, error: null }),
       };
       const result = await recordProposalCustomerRequestViaRpc(supabase as never, RAW_TOKEN, {
+        submissionKey: SUBMISSION_KEY,
         intent: "request_package",
         requestedOptionId: OPTION_ID,
       });
@@ -264,6 +325,11 @@ describe("R3B2 non-binding copy", () => {
       /Request received\. The contractor will review the package and contact you about next steps\./
     );
     assert.match(api, /recordProposalCustomerRequest/);
+    assert.match(api, /ProposalCustomerRequestValidationError/);
+    assert.match(
+      api,
+      /ProposalCustomerRequestStoreError[\s\S]*code: "internal_error"[\s\S]*status: 500/
+    );
     assert.match(
       api,
       /Request received\. The contractor will review the package and contact you about next steps\./

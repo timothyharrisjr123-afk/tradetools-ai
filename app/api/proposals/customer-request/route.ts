@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   PROPOSAL_CUSTOMER_REQUEST_INTENTS,
   ProposalCustomerRequestStoreError,
+  ProposalCustomerRequestValidationError,
   type ProposalCustomerRequestFailureCode,
   type ProposalCustomerRequestIntent,
 } from "@/app/lib/proposalCustomerRequestPersistence";
@@ -32,6 +33,7 @@ function isIntent(value: unknown): value is ProposalCustomerRequestIntent {
 
 function statusForFailure(code: ProposalCustomerRequestFailureCode): number {
   if (TOKEN_FAILURE_CODES.has(code)) return 404;
+  if (code === "idempotency_conflict") return 409;
   if (code === "option_not_on_version" || code === "option_required") return 400;
   return 400;
 }
@@ -44,6 +46,8 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}));
     const token = typeof body?.token === "string" ? body.token : "";
+    const submissionKey =
+      typeof body?.submissionKey === "string" ? body.submissionKey : "";
 
     if (!token.trim()) {
       return NextResponse.json(
@@ -59,8 +63,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (!submissionKey.trim()) {
+      return NextResponse.json(
+        { ok: false, message: SAFE_ERROR_MESSAGE, code: "invalid_submission_key" },
+        { status: 400 }
+      );
+    }
+
     // Explicitly ignore any client-supplied binding overrides.
     const result = await recordProposalCustomerRequest(token, {
+      submissionKey,
       intent: body.intent,
       requestedOptionId:
         typeof body?.requestedOptionId === "string" ? body.requestedOptionId : null,
@@ -91,10 +103,17 @@ export async function POST(req: NextRequest) {
         "Request received. The contractor will review the package and contact you about next steps.",
     });
   } catch (error) {
-    if (error instanceof ProposalCustomerRequestStoreError) {
+    if (error instanceof ProposalCustomerRequestValidationError) {
       return NextResponse.json(
         { ok: false, message: SAFE_ERROR_MESSAGE, code: "invalid_request" },
         { status: 400 }
+      );
+    }
+
+    if (error instanceof ProposalCustomerRequestStoreError) {
+      return NextResponse.json(
+        { ok: false, message: SAFE_ERROR_MESSAGE, code: "internal_error" },
+        { status: 500 }
       );
     }
 

@@ -48,6 +48,7 @@ export default function ProposalPacketRequestModal({
   const titleId = useId();
   const messageId = useId();
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const submissionKeyRef = useRef<string | null>(null);
   const [message, setMessage] = useState("");
   const [customerName, setCustomerName] = useState(
     (contactPrefill?.name ?? "").trim()
@@ -67,12 +68,16 @@ export default function ProposalPacketRequestModal({
 
     if (open && !dialog.open) {
       dialog.showModal();
-      setSubmitState("idle");
-      setErrorMessage(null);
-      setMessage("");
-      setCustomerName((contactPrefill?.name ?? "").trim());
-      setCustomerEmail((contactPrefill?.email ?? "").trim());
-      setCustomerPhone((contactPrefill?.phone ?? "").trim());
+      queueMicrotask(() => {
+        if (!dialog.open) return;
+        setSubmitState("idle");
+        setErrorMessage(null);
+        submissionKeyRef.current = null;
+        setMessage("");
+        setCustomerName((contactPrefill?.name ?? "").trim());
+        setCustomerEmail((contactPrefill?.email ?? "").trim());
+        setCustomerPhone((contactPrefill?.phone ?? "").trim());
+      });
     } else if (!open && dialog.open) {
       dialog.close();
     }
@@ -86,11 +91,16 @@ export default function ProposalPacketRequestModal({
     setErrorMessage(null);
 
     try {
+      const submissionKey =
+        submissionKeyRef.current ?? globalThis.crypto.randomUUID();
+      submissionKeyRef.current = submissionKey;
+
       const response = await fetch("/api/proposals/customer-request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           token: publicAccessToken,
+          submissionKey,
           intent: "request_package",
           requestedOptionId: optionKey,
           message,
