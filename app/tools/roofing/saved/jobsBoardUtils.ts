@@ -1,4 +1,5 @@
 import type { RoofingEstimate } from "@/app/lib/estimateStore";
+import type { JobAttentionSummary } from "@/app/lib/jobAttentionReadModel";
 
 export type BoardColumnKey =
   | "estimate"
@@ -657,6 +658,8 @@ export type JobsBoardCardModel = {
   timeInStageTone: TimeInStageTone;
   /** Shown on legacy saved-estimate cards only. */
   sourceBadge?: string | null;
+  /** Operational attention is separate from tasks, activity, and stage. */
+  attention?: JobAttentionSummary | null;
 };
 
 export function buildJobsBoardCardModel(

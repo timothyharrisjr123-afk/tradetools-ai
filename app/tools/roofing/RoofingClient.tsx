@@ -125,6 +125,12 @@ import {
   resolveJobCardProposalActivityLine,
 } from "@/app/lib/proposalBuilderReadiness";
 import {
+  buildJobCardProposalAttentionHref,
+  type JobAttentionSafeItem,
+} from "@/app/lib/jobAttentionReadModel";
+import { useJobAttentionDetail } from "@/app/lib/useJobAttention";
+import { updateProposalCustomerRequestStatus } from "@/app/lib/proposalCustomerRequestReviewClient";
+import {
   createNewProposalDraftEntry,
   isExpectedProposalDraftEntryFailure,
   type ResolveOrCreateProposalDraftEntryReason,
@@ -184,6 +190,7 @@ import FieldDiveAppShell from "@/app/tools/roofing/FieldDiveAppShell";
 import { buildJobCardDisplayModel } from "@/app/tools/roofing/saved/jobsBoardUtils";
 import JobCardHeader from "@/app/tools/roofing/jobCard/JobCardHeader";
 import JobCardMetadataStrip from "@/app/tools/roofing/jobCard/JobCardMetadataStrip";
+import JobCardNextActionPanel from "@/app/tools/roofing/jobCard/JobCardNextActionPanel";
 import JobCardTabs, { type JobCardTabId } from "@/app/tools/roofing/jobCard/JobCardTabs";
 import { JOB_CARD_TABS } from "@/app/tools/roofing/jobCard/jobCardTypes";
 import JobCardSectionPanel from "@/app/tools/roofing/jobCard/JobCardSectionPanel";
@@ -1080,6 +1087,8 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
   const fromParam = searchParams.get("from");
   const isBoardOriginParam = fromParam === "board";
   const jobParam = searchParams.get("job");
+  const attentionParam = searchParams.get("attention");
+  const focusedRequestParam = searchParams.get("request");
   const legacyManual = searchParams.get("legacy") === "1";
   const entryMode: "packet" | "manual" | "instant" | "job-card" = loadSavedId
     ? "job-card"
@@ -1107,6 +1116,16 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
   const restoreTimerRef = useRef<number | null>(null);
   const autoSendFiredRef = useRef(false);
   const [currentJobId, setCurrentJobId] = useState<string | null>(null);
+  const [pendingAttentionId, setPendingAttentionId] = useState<string | null>(
+    null
+  );
+  const requestedAttentionId =
+    attentionParam && isUuidLike(attentionParam) ? attentionParam : null;
+  const jobAttention = useJobAttentionDetail({
+    jobId: currentJobId,
+    requestedAttentionId,
+    enabled: entryMode === "job-card",
+  });
   const [isCreatingJob, setIsCreatingJob] = useState(false);
   const [jobCreationError, setJobCreationError] = useState<string | null>(null);
   const [persistedSelectedMeasurement, setPersistedSelectedMeasurement] =
@@ -7933,6 +7952,27 @@ Thanks,`;
       "Other files",
       "Post-production photos",
     ] as const;
+    const attentionFocusRequested =
+      requestedAttentionId != null &&
+      jobAttention.selectedAttentionId === requestedAttentionId;
+
+    const updateAttentionRequestStatus = async (
+      item: JobAttentionSafeItem,
+      status: "seen" | "dismissed"
+    ) => {
+      if (!currentJobId || pendingAttentionId) return;
+      setPendingAttentionId(item.id);
+      try {
+        await updateProposalCustomerRequestStatus({
+          requestId: item.request.requestId,
+          proposalId: item.destination.proposalId,
+          jobId: currentJobId,
+          status,
+        });
+      } finally {
+        setPendingAttentionId(null);
+      }
+    };
 
     return (
       <div className="min-h-0 w-full pb-8 pt-1 pl-3 pr-4 sm:pl-4 sm:pr-5 lg:pl-5 lg:pr-6">
@@ -7945,6 +7985,28 @@ Thanks,`;
               email={headerEmail}
             />
             <JobCardMetadataStrip display={jobCardDisplay} />
+            <JobCardNextActionPanel
+              items={jobAttention.items}
+              selectedItem={jobAttention.selectedItem}
+              focusRequested={attentionFocusRequested}
+              fallbackPhone={headerPhone}
+              fallbackEmail={headerEmail}
+              pendingAttentionId={pendingAttentionId}
+              onSelect={jobAttention.selectItem}
+              onMarkRead={jobAttention.markRead}
+              onMarkSeen={(item) =>
+                updateAttentionRequestStatus(item, "seen")
+              }
+              onDismiss={(item) =>
+                updateAttentionRequestStatus(item, "dismissed")
+              }
+              onReviewProposal={(item) => {
+                if (!currentJobId) return;
+                router.push(
+                  buildJobCardProposalAttentionHref(currentJobId, item)
+                );
+              }}
+            />
             <JobCardTabs activeTab={jobCardTab} onTabChange={setJobCardTab} />
 
             <div className="grid min-h-[min(520px,calc(100vh-14rem))] grid-cols-1 xl:grid-cols-[minmax(0,1fr)_300px]">
@@ -8362,6 +8424,7 @@ Thanks,`;
                   jobId={currentJobId}
                   createReadyForBlock3={createNewDraftEnabled}
                   onAddProposal={openCreateProposalModal}
+                  focusedRequestId={focusedRequestParam}
                   onOpenProposal={(proposalId) => {
                     if (!currentJobId || !isUuidLike(currentJobId)) return;
                     if (!isUuidLike(proposalId)) return;

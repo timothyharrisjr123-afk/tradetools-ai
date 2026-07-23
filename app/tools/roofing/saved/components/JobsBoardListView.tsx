@@ -1,35 +1,42 @@
 "use client";
 
 import type { RoofingEstimate } from "@/app/lib/estimateStore";
+import { CircleAlert } from "lucide-react";
 import {
-  buildJobsBoardCardModel,
   formatCentsToCurrency,
   getBoardColumnKeyForJob,
   getBoardStageLabelForJob,
   timeInStageToneClass,
   toEstimateTotalCents,
+  type BoardColumnKey,
+  type JobsBoardCardModel,
 } from "../jobsBoardUtils";
 
 type JobsBoardListViewProps = {
   jobs: RoofingEstimate[];
-  batchStatuses: Record<string, { status: string; viewedAt?: string | null; approvedAt?: string | null }>;
+  buildCardModel: (
+    job: RoofingEstimate,
+    columnKey: BoardColumnKey
+  ) => JobsBoardCardModel;
   onOpenJob: (job: RoofingEstimate) => void;
   /** When set, shown on every row (legacy section). */
   sourceBadge?: string | null;
 };
 
 function statusParts(
-  job: RoofingEstimate,
-  columnKey: ReturnType<typeof getBoardColumnKeyForJob>,
-  batchStatuses: JobsBoardListViewProps["batchStatuses"]
+  model: JobsBoardCardModel | null
 ): string {
-  if (!columnKey) return "—";
-  const model = buildJobsBoardCardModel(job, batchStatuses, { columnKey });
+  if (!model) return "—";
   const parts = [model.reportStatus.label, model.proposalStatus.label].filter(Boolean);
   return parts.length > 0 ? parts.join(" · ") : "—";
 }
 
-export default function JobsBoardListView({ jobs, batchStatuses, onOpenJob, sourceBadge }: JobsBoardListViewProps) {
+export default function JobsBoardListView({
+  jobs,
+  buildCardModel,
+  onOpenJob,
+  sourceBadge,
+}: JobsBoardListViewProps) {
   if (jobs.length === 0) {
     return (
       <p className="rounded-lg border border-slate-200/60 bg-white px-4 py-10 text-center text-sm text-slate-500">
@@ -58,10 +65,10 @@ export default function JobsBoardListView({ jobs, batchStatuses, onOpenJob, sour
               const columnKey = getBoardColumnKeyForJob(job);
               const model =
                 columnKey !== null
-                  ? buildJobsBoardCardModel(job, batchStatuses, { columnKey })
+                  ? buildCardModel(job, columnKey)
                   : null;
               const valueCents = toEstimateTotalCents(job);
-              const summary = statusParts(job, columnKey, batchStatuses);
+              const summary = statusParts(model);
 
               return (
                 <tr
@@ -91,6 +98,19 @@ export default function JobsBoardListView({ jobs, batchStatuses, onOpenJob, sour
                         </span>
                       ) : null}
                     </div>
+                    {model?.attention ? (
+                      <span
+                        className="mt-1 inline-flex max-w-full items-center gap-1.5 text-[11px] font-semibold text-amber-800"
+                        aria-label={model.attention.accessibleLabel}
+                        data-jobs-list-attention
+                      >
+                        <CircleAlert className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                        <span className="truncate">{model.attention.label}</span>
+                        <span className="shrink-0 rounded-full bg-amber-100 px-1.5 py-0.5 tabular-nums">
+                          {model.attention.activeCount}
+                        </span>
+                      </span>
+                    ) : null}
                   </td>
                   <td className="max-w-[200px] truncate px-4 py-3 text-slate-600">
                     {(job.address || "").trim() || "—"}

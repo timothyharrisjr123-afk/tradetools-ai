@@ -4,6 +4,7 @@
 
 import type { CustomerRequestReviewItemView } from "@/app/lib/proposalCustomerRequestReviewViewModel";
 import type { ProposalCustomerRequestReviewStatus } from "@/app/lib/proposalCustomerRequestPersistence";
+import { notifyJobAttentionChanged } from "@/app/lib/jobAttentionReadClient";
 
 export const PROPOSAL_CUSTOMER_REQUESTS_API_PATH =
   "/api/proposals/customer-requests";
@@ -118,6 +119,7 @@ export async function updateProposalCustomerRequestStatus(
         proposalId: input.proposalId,
         jobId: input.jobId,
       });
+      notifyJobAttentionChanged({ jobId: input.jobId });
       return {
         ok: true,
         request: record.request as CustomerRequestReviewItemView,

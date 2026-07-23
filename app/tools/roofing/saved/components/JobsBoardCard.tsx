@@ -2,6 +2,7 @@
 
 import {
   CalendarClock,
+  CircleAlert,
   Clock,
   FileSignature,
   FileText,
@@ -90,6 +91,24 @@ export default function JobsBoardCard({ model, onOpen, subdued = false }: JobsBo
             </span>
           ) : null}
         </div>
+        {model.attention ? (
+          <div
+            className="mt-1.5 flex min-w-0 items-center gap-1.5 text-[11px] font-semibold text-amber-800"
+            aria-label={model.attention.accessibleLabel}
+            data-jobs-board-attention
+            data-attention-count={model.attention.activeCount}
+          >
+            <CircleAlert
+              className="h-3.5 w-3.5 shrink-0"
+              strokeWidth={ICON_STROKE}
+              aria-hidden
+            />
+            <span className="truncate">{model.attention.label}</span>
+            <span className="shrink-0 rounded-full bg-amber-100 px-1.5 py-0.5 tabular-nums">
+              {model.attention.activeCount}
+            </span>
+          </div>
+        ) : null}
         <div className="mt-1.5 flex min-w-0 items-start gap-2">
           <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400/90" strokeWidth={ICON_STROKE} aria-hidden />
           {model.address ? (

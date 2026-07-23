@@ -12,6 +12,7 @@ import {
   JOB_CARD_PROPOSALS_PRIMARY_BUTTON_CLASS,
   formatJobCardProposalRowPackageBadge,
 } from "./jobCardProposalsTabModel";
+import { useEffect } from "react";
 
 type JobCardProposalsTabProps = {
   rows: readonly JobCardProposalRowView[];
@@ -20,6 +21,7 @@ type JobCardProposalsTabProps = {
   createReadyForBlock3?: boolean;
   onAddProposal: () => void;
   onOpenProposal: (proposalId: string) => void;
+  focusedRequestId?: string | null;
 };
 
 function AddProposalButton({
@@ -53,19 +55,28 @@ export default function JobCardProposalsTab({
   createReadyForBlock3 = false,
   onAddProposal,
   onOpenProposal,
+  focusedRequestId = null,
 }: JobCardProposalsTabProps) {
   const hasRows = rows.length > 0;
   const proposalIds = rows.map((row) => row.proposalId);
-  const {
-    requests,
-    pendingRequestId,
-    markSeen,
-    dismiss,
-  } = useJobProposalCustomerRequests({
+  const { requests } = useJobProposalCustomerRequests({
     proposalIds,
     jobId,
     enabled: hasRows,
   });
+
+  useEffect(() => {
+    const requestId = focusedRequestId?.trim();
+    if (!requestId) return;
+    const frame = window.requestAnimationFrame(() => {
+      const target = document.querySelector<HTMLElement>(
+        `[data-jobcard-customer-request][data-customer-request-id="${requestId}"]`
+      );
+      target?.scrollIntoView({ behavior: "smooth", block: "center" });
+      target?.focus({ preventScroll: true });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [focusedRequestId, requests]);
 
   return (
     <div
@@ -83,7 +94,11 @@ export default function JobCardProposalsTab({
                 request.proposalId === row.proposalId &&
                 request.status !== "dismissed"
             );
-            const primaryRequest = rowRequests[0] ?? null;
+            const primaryRequest =
+              rowRequests.find((request) => request.id === focusedRequestId) ??
+              rowRequests[0] ??
+              null;
+            const additionalActiveCount = Math.max(0, rowRequests.length - 1);
 
             return (
               <div
@@ -127,18 +142,26 @@ export default function JobCardProposalsTab({
                   </button>
                 </div>
                 {primaryRequest ? (
-                  <div data-jobcard-customer-request>
+                  <div
+                    tabIndex={-1}
+                    className="outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+                    data-jobcard-customer-request
+                    data-customer-request-id={primaryRequest.id}
+                  >
                     <CustomerRequestReviewCard
                       request={primaryRequest}
-                      pending={pendingRequestId === primaryRequest.id}
-                      onMarkSeen={(id) => {
-                        void markSeen(id);
-                      }}
-                      onDismiss={(id) => {
-                        void dismiss(id);
-                      }}
                       compact
                     />
+                    {additionalActiveCount > 0 ? (
+                      <p
+                        className="mt-1 text-[11px] text-slate-500"
+                        data-jobcard-additional-active-requests
+                      >
+                        {additionalActiveCount} additional active{" "}
+                        {additionalActiveCount === 1 ? "request" : "requests"}{" "}
+                        available in the Job Card attention area above.
+                      </p>
+                    ) : null}
                   </div>
                 ) : null}
               </div>

@@ -71,6 +71,8 @@ import {
 } from "@/app/lib/jobBoardAdapter";
 import { getJobsByCompany } from "@/app/lib/jobStore";
 import type { JobSummary } from "@/app/lib/jobTypes";
+import { buildJobCardAttentionHref } from "@/app/lib/jobAttentionReadModel";
+import { useJobAttentionSummaries } from "@/app/lib/useJobAttention";
 
 function pad2(n: number) {
   return String(n).padStart(2, "0");
@@ -2829,6 +2831,9 @@ function SavedEstimateCard({
 export default function SavedClient({ companyId }: { companyId?: string }) {
   setEstimateStoreCompanyScope(companyId ?? null);
   const companySetupReadiness = useCompanySetupReadiness(companyId);
+  const { summaries: attentionByJobId } = useJobAttentionSummaries(
+    Boolean(companyId)
+  );
   const buildSha = (process.env.NEXT_PUBLIC_BUILD_SHA || "local").toString().slice(0, 7);
   useEffect(() => {
     console.log("[BUILD]", buildSha);
@@ -3201,8 +3206,19 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
     setActiveId(null);
   };
 
+  const resolveJobOpenHref = useCallback(
+    (estimate: RoofingEstimate) => {
+      const jobId = getDbJobIdFromBoardEntry(estimate);
+      const attention = jobId ? attentionByJobId[jobId] : null;
+      return jobId && attention
+        ? buildJobCardAttentionHref(jobId, attention.primaryAttentionId)
+        : resolveBoardEntryOpenHref(estimate);
+    },
+    [attentionByJobId]
+  );
+
   const handleViewDetails = (estimate: RoofingEstimate) => {
-    const href = resolveBoardEntryOpenHref(estimate);
+    const href = resolveJobOpenHref(estimate);
     if (href.includes("loadSaved=")) {
       setCurrentLoadedSavedId(estimate.id);
     } else {
@@ -3319,7 +3335,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
     if (!id) return;
 
     if (action === "load") {
-      const href = resolveBoardEntryOpenHref(est);
+      const href = resolveJobOpenHref(est);
       if (href.includes("loadSaved=")) {
         setCurrentLoadedSavedId(id);
       } else {
@@ -4032,11 +4048,15 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
   });
 
   const buildBoardCardModel = useCallback(
-    (job: RoofingEstimate, columnKey: BoardColumnKey) => ({
-      ...buildJobsBoardCardModel(job, batchStatuses, { columnKey }),
-      sourceBadge: isLegacyBoardEstimateEntry(job) ? "Legacy" : null,
-    }),
-    [batchStatuses]
+    (job: RoofingEstimate, columnKey: BoardColumnKey) => {
+      const jobId = getDbJobIdFromBoardEntry(job);
+      return {
+        ...buildJobsBoardCardModel(job, batchStatuses, { columnKey }),
+        sourceBadge: isLegacyBoardEstimateEntry(job) ? "Legacy" : null,
+        attention: jobId ? attentionByJobId[jobId] ?? null : null,
+      };
+    },
+    [attentionByJobId, batchStatuses]
   );
 
   const boardVisibleJobs = useMemo(
@@ -4325,7 +4345,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                 {boardViewMode === "list" ? (
                   <JobsBoardListView
                     jobs={boardListJobs}
-                    batchStatuses={batchStatuses}
+                    buildCardModel={buildBoardCardModel}
                     onOpenJob={(job) => handleAction(job, "load")}
                   />
                 ) : (
