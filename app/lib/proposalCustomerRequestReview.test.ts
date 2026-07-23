@@ -22,13 +22,18 @@ import {
 import {
   CUSTOMER_REQUEST_BUILDER_BANNER_HINT,
   CUSTOMER_REQUEST_DISMISS_LABEL,
+  CUSTOMER_REQUEST_HISTORY_TITLE,
   CUSTOMER_REQUEST_MARK_SEEN_LABEL,
+  CUSTOMER_REQUEST_NONE_ACTIVE_LABEL,
+  CUSTOMER_REQUEST_NONE_EVER_LABEL,
   CUSTOMER_REQUEST_REVIEW_FORBIDDEN_COPY,
   CUSTOMER_REQUEST_REVIEW_SECTION_SUBTITLE,
   CUSTOMER_REQUEST_REVIEW_SECTION_TITLE,
   assertCustomerRequestReviewCopySafe,
   buildCustomerRequestReviewItemView,
   formatCustomerRequestedHeadline,
+  partitionCustomerRequestReviewItems,
+  pickPrimaryCustomerRequestForProposal,
 } from "./proposalCustomerRequestReviewViewModel";
 
 const COMPANY_ID = "22222222-2222-4222-8222-222222222222";
@@ -352,6 +357,77 @@ describe("updateProposalCustomerRequestStatusForContractor", () => {
 });
 
 describe("R3B3 contractor copy", () => {
+  test("partitions active requests from durable dismissed history", () => {
+    const rows = [
+      buildCustomerRequestReviewItemView(sampleRow({ id: "new", status: "new" })),
+      buildCustomerRequestReviewItemView(sampleRow({ id: "seen", status: "seen" })),
+      buildCustomerRequestReviewItemView(
+        sampleRow({ id: "dismissed", status: "dismissed" })
+      ),
+    ];
+
+    const result = partitionCustomerRequestReviewItems(rows);
+    assert.deepEqual(
+      result.active.map((row) => row.id),
+      ["new", "seen"]
+    );
+    assert.deepEqual(
+      result.history.map((row) => row.id),
+      ["dismissed"]
+    );
+    assert.equal(
+      pickPrimaryCustomerRequestForProposal(
+        [sampleRow({ status: "dismissed" })],
+        PROPOSAL_ID
+      ),
+      null
+    );
+  });
+
+  test("defines distinct never-requested and no-active-request states", () => {
+    assert.equal(CUSTOMER_REQUEST_NONE_EVER_LABEL, "No customer package requests yet.");
+    assert.equal(CUSTOMER_REQUEST_NONE_ACTIVE_LABEL, "No active customer requests.");
+    assert.equal(CUSTOMER_REQUEST_HISTORY_TITLE, "Request history");
+  });
+
+  test("surface hierarchy keeps active actions separate from full history", () => {
+    const proposals = readFileSync(
+      join(process.cwd(), "app/tools/roofing/jobCard/JobCardProposalsTab.tsx"),
+      "utf8"
+    );
+    const activity = readFileSync(
+      join(
+        process.cwd(),
+        "app/tools/roofing/jobCard/JobCardActivityPanelWithCustomerRequests.tsx"
+      ),
+      "utf8"
+    );
+    const preview = readFileSync(
+      join(
+        process.cwd(),
+        "app/tools/roofing/proposals/preview/ProposalCustomerPreviewCustomerRequestsSection.tsx"
+      ),
+      "utf8"
+    );
+    const builder = readFileSync(
+      join(
+        process.cwd(),
+        "app/tools/roofing/proposals/builder/ProposalBuilderCustomerRequestBanner.tsx"
+      ),
+      "utf8"
+    );
+
+    assert.match(proposals, /request\.status !== "dismissed"/);
+    assert.doesNotMatch(activity, /status !== "dismissed"/);
+    assert.match(activity, /requests[\s\S]*\.map\(\(request\)/);
+    assert.match(preview, /partitionCustomerRequestReviewItems\(requests\)/);
+    assert.match(preview, /data-preview-customer-request-history/);
+    assert.match(preview, /data-preview-customer-requests-none-active/);
+    assert.match(builder, /row\.status === "new"/);
+    assert.match(builder, /row\.status === "seen"/);
+    assert.doesNotMatch(builder, /row\.status === "dismissed"/);
+  });
+
   test("Job Card / Preview / Builder use request language only", () => {
     const blobs = [
       formatCustomerRequestedHeadline("Standard"),
@@ -396,11 +472,16 @@ describe("R3B3 contractor copy", () => {
       /data-jobcard-customer-request|CustomerRequestReviewCard/
     );
     assert.match(uiSources[2]!, /data-preview-customer-requests/);
+    assert.match(uiSources[2]!, /data-preview-customer-request-history/);
+    assert.match(uiSources[2]!, /data-preview-customer-requests-none-active/);
     assert.match(uiSources[3]!, /data-builder-customer-request-banner/);
     assert.match(
       uiSources[3]!,
       /CUSTOMER_REQUEST_BUILDER_BANNER_HINT/
     );
+    assert.doesNotMatch(uiSources[1]!, /status !== "dismissed"/);
+    assert.match(uiSources[3]!, /row\.status === "new"/);
+    assert.match(uiSources[3]!, /row\.status === "seen"/);
   });
 
   test("status update path does not touch Jobs Board or package selector", () => {

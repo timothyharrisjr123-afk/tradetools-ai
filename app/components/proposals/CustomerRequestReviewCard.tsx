@@ -27,9 +27,15 @@ export default function CustomerRequestReviewCard({
   onDismiss,
   compact = false,
 }: CustomerRequestReviewCardProps) {
+  const historical = request.status === "dismissed";
+
   return (
     <div
-      className={`rounded-md border border-amber-200/80 bg-amber-50/50 ${
+      className={`rounded-md border ${
+        historical
+          ? "border-slate-200 bg-slate-50/70"
+          : "border-amber-200/80 bg-amber-50/50"
+      } ${
         compact ? "px-3 py-2" : "px-3 py-2.5"
       }`}
       data-customer-request-review-card

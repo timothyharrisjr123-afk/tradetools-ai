@@ -13,6 +13,14 @@ export const CUSTOMER_REQUEST_REVIEW_SECTION_TITLE = "Customer requests";
 export const CUSTOMER_REQUEST_REVIEW_SECTION_SUBTITLE =
   "Non-binding package interest from the customer. Review and confirm details.";
 
+export const CUSTOMER_REQUEST_NONE_EVER_LABEL =
+  "No customer package requests yet.";
+
+export const CUSTOMER_REQUEST_NONE_ACTIVE_LABEL =
+  "No active customer requests.";
+
+export const CUSTOMER_REQUEST_HISTORY_TITLE = "Request history";
+
 export const CUSTOMER_REQUEST_MARK_SEEN_LABEL = "Mark seen";
 
 export const CUSTOMER_REQUEST_DISMISS_LABEL = "Dismiss";
@@ -112,6 +120,24 @@ export type CustomerRequestReviewItemView = {
   canDismiss: boolean;
 };
 
+export function isActiveCustomerRequestStatus(
+  status: ProposalCustomerRequestStatus
+): boolean {
+  return status === "new" || status === "seen";
+}
+
+export function partitionCustomerRequestReviewItems(
+  rows: readonly CustomerRequestReviewItemView[]
+): {
+  active: CustomerRequestReviewItemView[];
+  history: CustomerRequestReviewItemView[];
+} {
+  return {
+    active: rows.filter((row) => isActiveCustomerRequestStatus(row.status)),
+    history: rows.filter((row) => row.status === "dismissed"),
+  };
+}
+
 export function buildCustomerRequestReviewItemView(
   row: ProposalCustomerRequestContractorRow
 ): CustomerRequestReviewItemView {
@@ -145,7 +171,7 @@ export function buildCustomerRequestReviewItemView(
   };
 }
 
-/** Prefer newest non-dismissed request; else newest overall. */
+/** Prefer the newest active request; dismissed rows are history only. */
 export function pickPrimaryCustomerRequestForProposal(
   rows: readonly ProposalCustomerRequestContractorRow[],
   proposalId: string
@@ -156,7 +182,7 @@ export function pickPrimaryCustomerRequestForProposal(
   if (open) return open;
   const seen = forProposal.find((row) => row.status === "seen");
   if (seen) return seen;
-  return forProposal[0] ?? null;
+  return null;
 }
 
 export function assertCustomerRequestReviewCopySafe(source: string): boolean {

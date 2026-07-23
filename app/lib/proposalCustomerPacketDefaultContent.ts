@@ -37,6 +37,27 @@ Items such as payment schedule, project timing, exclusions, change requests, sit
 
 Any changes to the approved scope should be reviewed and confirmed in writing before being added to the project.`;
 
+const PRE_R3B3_PACKET_WARRANTY_BODY = `Warranty and protection
+
+Your roof is protected in two ways:
+
+• Manufacturer coverage — for eligible material defects on the products used in your package
+• Workmanship coverage — for the quality of the installation itself
+
+These are different protections. The exact coverage depends on the products and package selected for your home.
+
+We will confirm the final warranty details with you before you approve the work.`;
+
+const PRE_R3B3_PACKET_TERMS_BODY = `What happens next
+
+1. Review this proposal and ask any questions.
+2. Confirm the package, scope, and details when you are ready.
+3. After confirmation, we schedule the work and get started.
+
+Until then, treat this as your clear written proposal from {{company_name}}.
+
+If anything in the approved scope needs to change, we will review it with you in writing before the change is added.`;
+
 export const DEFAULT_PACKET_OVERVIEW_BODY = `{{company_name}} prepared this roofing proposal for your home.
 
 This proposal is built around the {{selected_package_name}} package — the recommended path for your roof based on the measured scope and the materials selected for this project.
@@ -60,17 +81,17 @@ Your roof is protected in two ways:
 
 These are different protections. The exact coverage depends on the products and package selected for your home.
 
-We will confirm the final warranty details with you before you approve the work.`;
+The contractor will review the final warranty details with you and answer any questions before work begins.`;
 
 export const DEFAULT_PACKET_TERMS_BODY = `What happens next
 
 1. Review this proposal and ask any questions.
-2. Confirm the package, scope, and details when you are ready.
-3. After confirmation, we schedule the work and get started.
+2. Request a package or send a question when you are ready.
+3. The contractor will review your request and contact you about next steps.
 
-Until then, treat this as your clear written proposal from {{company_name}}.
+Sending a package request does not change this proposal or create a binding agreement.
 
-If anything in the approved scope needs to change, we will review it with you in writing before the change is added.`;
+If the scope needs to change, the contractor will review it with you in writing before anything is added.`;
 
 export const DEFAULT_PACKET_OVERVIEW_TITLE = "Overview";
 export const DEFAULT_PACKET_SCOPE_NOTES_TITLE = "Project notes";
@@ -95,6 +116,11 @@ const DEFAULT_BY_PAGE_TYPE: Readonly<Record<string, string>> = {
   terms: DEFAULT_PACKET_TERMS_BODY,
 };
 
+const PRE_R3B3_BY_PAGE_TYPE: Readonly<Record<string, string>> = {
+  warranty: PRE_R3B3_PACKET_WARRANTY_BODY,
+  terms: PRE_R3B3_PACKET_TERMS_BODY,
+};
+
 /**
  * When persisted page markdown still matches known weak starter boilerplate,
  * return the R3A0 default (with tokens) so display merge can personalize it.
@@ -110,6 +136,11 @@ export function resolveCustomerFacingPacketBodyMarkdown(
 
   const legacy = LEGACY_BY_PAGE_TYPE[pageType];
   if (legacy && normalized === normalizePacketBodyFingerprint(legacy)) {
+    return DEFAULT_BY_PAGE_TYPE[pageType] ?? normalized;
+  }
+
+  const preR3B3 = PRE_R3B3_BY_PAGE_TYPE[pageType];
+  if (preR3B3 && normalized === normalizePacketBodyFingerprint(preR3B3)) {
     return DEFAULT_BY_PAGE_TYPE[pageType] ?? normalized;
   }
 

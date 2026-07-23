@@ -225,13 +225,13 @@ export const PROPOSAL_CUSTOMER_PACKET_REQUEST_MODAL_TITLE = "Request this packag
 
 export const PROPOSAL_CUSTOMER_PACKET_REQUEST_SUBMIT_CTA = "Send request";
 
-export const PROPOSAL_CUSTOMER_PACKET_REQUEST_SUCCESS_TITLE = "Request sent";
+export const PROPOSAL_CUSTOMER_PACKET_REQUEST_SUCCESS_TITLE = "Request received";
 
 export const PROPOSAL_CUSTOMER_PACKET_REQUEST_SUCCESS_BODY =
-  "Request sent. The contractor will review and confirm details.";
+  "Request received. The contractor will review the package and contact you about next steps.";
 
 export const PROPOSAL_CUSTOMER_PACKET_REQUEST_SUCCESS_NEXT =
-  "The contractor will reach out to schedule next steps after confirmation.";
+  "This request is non-binding.";
 
 export const PROPOSAL_CUSTOMER_PACKET_REQUEST_MESSAGE_LABEL = "Message (optional)";
 

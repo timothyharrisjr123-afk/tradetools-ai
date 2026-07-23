@@ -43,8 +43,21 @@ describe("R3A0 default customer-facing packet content", () => {
     assert.doesNotMatch(DEFAULT_PACKET_WARRANTY_BODY, /final proposal documents/i);
 
     assert.match(DEFAULT_PACKET_TERMS_BODY, /What happens next/);
+    assert.match(DEFAULT_PACKET_TERMS_BODY, /contact you about next steps/i);
+    assert.match(DEFAULT_PACKET_TERMS_BODY, /does not change this proposal/i);
     assert.doesNotMatch(DEFAULT_PACKET_TERMS_BODY, /Terms and conditions outline/i);
     assert.doesNotMatch(DEFAULT_PACKET_TERMS_BODY, /\*\*|##/);
+
+    const publicDefaults = [
+      DEFAULT_PACKET_OVERVIEW_BODY,
+      DEFAULT_PACKET_SCOPE_NOTES_BODY,
+      DEFAULT_PACKET_WARRANTY_BODY,
+      DEFAULT_PACKET_TERMS_BODY,
+    ].join("\n");
+    assert.doesNotMatch(
+      publicDefaults,
+      /\bapprove(?:d|s|al)?\b|\baccept(?:ed|ance)?\b|\bsign(?:ed|ature)?\b|\bpay(?:ment|ments|ing|s|ed)?\b|\bschedul(?:e|ed|ing)\b/i
+    );
   });
 
   test("default roofing template definitions use the new packet bodies", () => {

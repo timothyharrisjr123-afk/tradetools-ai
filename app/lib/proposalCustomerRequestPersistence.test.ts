@@ -21,6 +21,7 @@ import {
   PROPOSAL_CUSTOMER_PACKET_REQUEST_SUBMIT_CTA,
   PROPOSAL_CUSTOMER_PACKET_REQUEST_SUCCESS_BODY,
   PROPOSAL_CUSTOMER_PACKET_REQUEST_SUCCESS_NEXT,
+  PROPOSAL_CUSTOMER_PACKET_REQUEST_SUCCESS_TITLE,
 } from "./proposalCustomerPacketViewModel";
 
 const RAW_TOKEN = "fielddive-r3b1-customer-request-token";
@@ -213,14 +214,23 @@ describe("R3B2 non-binding copy", () => {
     const blobs = [
       PROPOSAL_CUSTOMER_PACKET_REQUEST_PACKAGE_CTA,
       PROPOSAL_CUSTOMER_PACKET_REQUEST_SUBMIT_CTA,
+      PROPOSAL_CUSTOMER_PACKET_REQUEST_SUCCESS_TITLE,
       PROPOSAL_CUSTOMER_PACKET_REQUEST_SUCCESS_BODY,
       PROPOSAL_CUSTOMER_PACKET_REQUEST_SUCCESS_NEXT,
     ].join("\n");
 
     assert.match(blobs, /Request this package/);
     assert.match(blobs, /Send request/);
-    assert.match(blobs, /review and confirm details/i);
-    assert.doesNotMatch(blobs, /\bAccept\b|\bApprove\b|\bSign\b|\bPay\b/i);
+    assert.match(blobs, /Request received/);
+    assert.match(
+      blobs,
+      /The contractor will review the package and contact you about next steps\./
+    );
+    assert.match(blobs, /non-binding/i);
+    assert.doesNotMatch(
+      blobs,
+      /\bAccept(?:ed)?\b|\bApprove(?:d)?\b|\bSign(?:ed)?\b|\bPay\b|\bPaid\b|\bSchedule(?:d)?\b/i
+    );
     assert.doesNotMatch(blobs, /Package confirmed|Proposal approved|Contract accepted/i);
   });
 
@@ -251,10 +261,13 @@ describe("R3B2 non-binding copy", () => {
         join(process.cwd(), "app/lib/proposalCustomerPacketViewModel.ts"),
         "utf8"
       ),
-      /Request sent\. The contractor will review and confirm details\./
+      /Request received\. The contractor will review the package and contact you about next steps\./
     );
     assert.match(api, /recordProposalCustomerRequest/);
-    assert.match(api, /Request sent\. The contractor will review and confirm details\./);
+    assert.match(
+      api,
+      /Request received\. The contractor will review the package and contact you about next steps\./
+    );
     assert.match(modal, /PROPOSAL_CUSTOMER_PACKET_REQUEST_SUCCESS_BODY/);
     assert.match(modal, /\/api\/proposals\/customer-request/);
   });

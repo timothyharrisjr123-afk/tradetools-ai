@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
       status: result.status,
       requestedOptionLabel: result.requested_option_label,
       message:
-        "Request sent. The contractor will review and confirm details.",
+        "Request received. The contractor will review the package and contact you about next steps.",
     });
   } catch (error) {
     if (error instanceof ProposalCustomerRequestStoreError) {

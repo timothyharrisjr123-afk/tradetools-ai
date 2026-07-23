@@ -26,8 +26,6 @@ export default function JobCardActivityPanelWithCustomerRequests({
 
   const items = useMemo(() => {
     const requestItems: JobCardActivityItem[] = requests
-      .filter((request) => request.status !== "dismissed")
-      .slice(0, 3)
       .map((request) => ({
         when: request.createdAtLabel ?? undefined,
         label: request.headline,
