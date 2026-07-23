@@ -24,6 +24,7 @@ import { getSelectedMeasurementForJob } from "@/app/lib/measurementStore";
 import type { MeasurementQuantityMap, MeasurementRecord } from "@/app/lib/measurementTypes";
 import { resolveProposalBuilderQuantityPreflightMetadata } from "@/app/lib/proposalBuilderQuantityPreflightMetadata";
 import { composeProposalBuilderInternalTrustSignals } from "@/app/lib/proposalBuilderTrustSignals";
+import ProposalBuilderCustomerRequestBanner from "@/app/tools/roofing/proposals/builder/ProposalBuilderCustomerRequestBanner";
 import { deriveProposalBuilderReadiness } from "@/app/lib/proposalBuilderReadiness";
 import { deriveProposalTemplateReadiness } from "@/app/lib/proposalTemplateReadiness";
 import {
@@ -1816,6 +1817,12 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
           persistedGraph != null
         }
       />
+      {shellReady && hasPersistedProposalParam ? (
+        <ProposalBuilderCustomerRequestBanner
+          proposalId={proposalIdParam}
+          jobId={jobIdParam}
+        />
+      ) : null}
       {spineRouteError ? (
         <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
           {spineRouteError}

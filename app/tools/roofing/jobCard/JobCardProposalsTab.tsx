@@ -1,5 +1,7 @@
 "use client";
 
+import CustomerRequestReviewCard from "@/app/components/proposals/CustomerRequestReviewCard";
+import { useJobProposalCustomerRequests } from "@/app/lib/useProposalCustomerRequests";
 import type { JobCardProposalRowView } from "./jobCardProposalsTabModel";
 import {
   JOB_CARD_PROPOSALS_ADD_LABEL,
@@ -13,6 +15,7 @@ import {
 
 type JobCardProposalsTabProps = {
   rows: readonly JobCardProposalRowView[];
+  jobId?: string | null;
   /** Gate for Block 3 Continue — measurement/template/package ready. */
   createReadyForBlock3?: boolean;
   onAddProposal: () => void;
@@ -46,11 +49,23 @@ function AddProposalButton({
 
 export default function JobCardProposalsTab({
   rows,
+  jobId = null,
   createReadyForBlock3 = false,
   onAddProposal,
   onOpenProposal,
 }: JobCardProposalsTabProps) {
   const hasRows = rows.length > 0;
+  const proposalIds = rows.map((row) => row.proposalId);
+  const {
+    requests,
+    pendingRequestId,
+    markSeen,
+    dismiss,
+  } = useJobProposalCustomerRequests({
+    proposalIds,
+    jobId,
+    enabled: hasRows,
+  });
 
   return (
     <div
@@ -63,45 +78,69 @@ export default function JobCardProposalsTab({
         <div className="space-y-2" data-jobcard-proposal-list>
           {rows.map((row) => {
             const packageBadge = formatJobCardProposalRowPackageBadge(row.packageLabel);
+            const rowRequests = requests.filter(
+              (request) =>
+                request.proposalId === row.proposalId &&
+                request.status !== "dismissed"
+            );
+            const primaryRequest = rowRequests[0] ?? null;
+
             return (
               <div
                 key={row.proposalId}
-                className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-1 py-3 last:border-b-0"
+                className="space-y-2 border-b border-slate-100 px-1 py-3 last:border-b-0"
                 data-jobcard-proposal-list-row
                 data-proposal-id={row.proposalId}
               >
-                <div className="min-w-0 flex-1">
-                  <div className="flex min-w-0 flex-wrap items-center gap-2">
-                    <p
-                      className="truncate text-[14px] font-semibold text-slate-900"
-                      data-jobcard-proposal-row-title
-                    >
-                      {row.title}
-                    </p>
-                    {packageBadge ? (
-                      <span
-                        className="inline-flex shrink-0 items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600"
-                        data-jobcard-proposal-row-package
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex min-w-0 flex-wrap items-center gap-2">
+                      <p
+                        className="truncate text-[14px] font-semibold text-slate-900"
+                        data-jobcard-proposal-row-title
                       >
-                        {packageBadge}
-                      </span>
-                    ) : null}
+                        {row.title}
+                      </p>
+                      {packageBadge ? (
+                        <span
+                          className="inline-flex shrink-0 items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600"
+                          data-jobcard-proposal-row-package
+                        >
+                          {packageBadge}
+                        </span>
+                      ) : null}
+                    </div>
+                    <p
+                      className="mt-0.5 truncate text-[12px] text-slate-400"
+                      data-jobcard-proposal-row-meta
+                    >
+                      {row.metaLine}
+                    </p>
                   </div>
-                  <p
-                    className="mt-0.5 truncate text-[12px] text-slate-400"
-                    data-jobcard-proposal-row-meta
+                  <button
+                    type="button"
+                    className="shrink-0 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+                    onClick={() => onOpenProposal(row.proposalId)}
+                    data-jobcard-proposal-open
                   >
-                    {row.metaLine}
-                  </p>
+                    {JOB_CARD_PROPOSALS_OPEN_LABEL}
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  className="shrink-0 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
-                  onClick={() => onOpenProposal(row.proposalId)}
-                  data-jobcard-proposal-open
-                >
-                  {JOB_CARD_PROPOSALS_OPEN_LABEL}
-                </button>
+                {primaryRequest ? (
+                  <div data-jobcard-customer-request>
+                    <CustomerRequestReviewCard
+                      request={primaryRequest}
+                      pending={pendingRequestId === primaryRequest.id}
+                      onMarkSeen={(id) => {
+                        void markSeen(id);
+                      }}
+                      onDismiss={(id) => {
+                        void dismiss(id);
+                      }}
+                      compact
+                    />
+                  </div>
+                ) : null}
               </div>
             );
           })}

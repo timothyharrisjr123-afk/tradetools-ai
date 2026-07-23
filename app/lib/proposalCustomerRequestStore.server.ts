@@ -23,10 +23,14 @@ export type {
 export {
   PROPOSAL_CUSTOMER_REQUEST_FAILURE_CODES,
   PROPOSAL_CUSTOMER_REQUEST_INTENTS,
+  PROPOSAL_CUSTOMER_REQUEST_REVIEW_STATUSES,
+  PROPOSAL_CUSTOMER_REQUEST_STATUSES,
   ProposalCustomerRequestStoreError,
   RECORD_PROPOSAL_CUSTOMER_REQUEST_RPC_V1,
+  UPDATE_PROPOSAL_CUSTOMER_REQUEST_STATUS_RPC_V1,
   normalizeCustomerRequestSubmitInput,
   parseProposalCustomerRequestRpcResult,
+  parseProposalCustomerRequestStatusUpdateRpcResult,
 } from "@/app/lib/proposalCustomerRequestPersistence";
 
 export async function recordProposalCustomerRequest(

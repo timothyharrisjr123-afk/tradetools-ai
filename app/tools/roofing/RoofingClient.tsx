@@ -188,6 +188,7 @@ import JobCardTabs, { type JobCardTabId } from "@/app/tools/roofing/jobCard/JobC
 import { JOB_CARD_TABS } from "@/app/tools/roofing/jobCard/jobCardTypes";
 import JobCardSectionPanel from "@/app/tools/roofing/jobCard/JobCardSectionPanel";
 import JobCardActivityPanel, { type JobCardActivityItem } from "@/app/tools/roofing/jobCard/JobCardActivityPanel";
+import JobCardActivityPanelWithCustomerRequests from "@/app/tools/roofing/jobCard/JobCardActivityPanelWithCustomerRequests";
 import JobCardOverviewSummary from "@/app/tools/roofing/jobCard/JobCardOverviewSummary";
 import { resolveJobCardIdentityFromRecord } from "@/app/tools/roofing/jobCard/jobCardIdentityUtils";
 import { loadCompanyVoiceProfile, saveCompanyVoiceProfile, type VoiceTone } from "@/app/lib/companyVoiceProfile";
@@ -8358,6 +8359,7 @@ Thanks,`;
               >
                 <JobCardProposalsTab
                   rows={jobCardProposalRows}
+                  jobId={currentJobId}
                   createReadyForBlock3={createNewDraftEnabled}
                   onAddProposal={openCreateProposalModal}
                   onOpenProposal={(proposalId) => {
@@ -8611,7 +8613,15 @@ Thanks,`;
 
               </main>
 
-              <JobCardActivityPanel items={jobCardActivityItems} />
+              {jobCardProposalRows.length > 0 && currentJobId ? (
+                <JobCardActivityPanelWithCustomerRequests
+                  jobId={currentJobId}
+                  proposalIds={jobCardProposalRows.map((row) => row.proposalId)}
+                  baseItems={jobCardActivityItems}
+                />
+              ) : (
+                <JobCardActivityPanel items={jobCardActivityItems} />
+              )}
 
             </div>
           </div>

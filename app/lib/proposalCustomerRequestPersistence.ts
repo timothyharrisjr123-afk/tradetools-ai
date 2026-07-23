@@ -15,6 +15,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 export const RECORD_PROPOSAL_CUSTOMER_REQUEST_RPC_V1 =
   "record_proposal_customer_request_v1";
 
+export const UPDATE_PROPOSAL_CUSTOMER_REQUEST_STATUS_RPC_V1 =
+  "update_proposal_customer_request_status_v1";
+
 export const PROPOSAL_CUSTOMER_REQUEST_INTENTS = [
   "request_package",
   "ask_question",
@@ -23,6 +26,23 @@ export const PROPOSAL_CUSTOMER_REQUEST_INTENTS = [
 
 export type ProposalCustomerRequestIntent =
   (typeof PROPOSAL_CUSTOMER_REQUEST_INTENTS)[number];
+
+export const PROPOSAL_CUSTOMER_REQUEST_STATUSES = [
+  "new",
+  "seen",
+  "dismissed",
+] as const;
+
+export type ProposalCustomerRequestStatus =
+  (typeof PROPOSAL_CUSTOMER_REQUEST_STATUSES)[number];
+
+export const PROPOSAL_CUSTOMER_REQUEST_REVIEW_STATUSES = [
+  "seen",
+  "dismissed",
+] as const;
+
+export type ProposalCustomerRequestReviewStatus =
+  (typeof PROPOSAL_CUSTOMER_REQUEST_REVIEW_STATUSES)[number];
 
 export const PROPOSAL_CUSTOMER_REQUEST_FAILURE_CODES = [
   "invalid_hash",
@@ -306,4 +326,266 @@ export async function recordProposalCustomerRequestViaRpc(
   }
 
   return parseProposalCustomerRequestRpcResult(data);
+}
+
+export type ProposalCustomerRequestContractorRow = {
+  id: string;
+  intent: ProposalCustomerRequestIntent;
+  status: ProposalCustomerRequestStatus;
+  requested_option_id: string | null;
+  requested_option_label: string | null;
+  message: string | null;
+  customer_name: string | null;
+  customer_email: string | null;
+  customer_phone: string | null;
+  created_at: string;
+  proposal_id: string;
+  proposal_version_id: string;
+};
+
+export const PROPOSAL_CUSTOMER_REQUEST_STATUS_UPDATE_FAILURE_CODES = [
+  "unauthorized",
+  "forbidden",
+  "not_found",
+  "invalid_request_id",
+  "invalid_status",
+  "invalid_transition",
+  "proposal_unavailable",
+] as const;
+
+export type ProposalCustomerRequestStatusUpdateFailureCode =
+  (typeof PROPOSAL_CUSTOMER_REQUEST_STATUS_UPDATE_FAILURE_CODES)[number];
+
+export type ProposalCustomerRequestStatusUpdateSuccess = {
+  ok: true;
+  request_id: string;
+  status: ProposalCustomerRequestReviewStatus;
+  previous_status: ProposalCustomerRequestStatus;
+  proposal_id: string;
+  proposal_version_id: string;
+  proposal_status_unchanged: string | null;
+  selected_option_id_unchanged: string | null;
+  job_stage_unchanged: string | null;
+};
+
+export type ProposalCustomerRequestStatusUpdateFailure = {
+  ok: false;
+  code: ProposalCustomerRequestStatusUpdateFailureCode;
+};
+
+export type ProposalCustomerRequestStatusUpdateResult =
+  | ProposalCustomerRequestStatusUpdateSuccess
+  | ProposalCustomerRequestStatusUpdateFailure;
+
+function isRequestStatus(value: unknown): value is ProposalCustomerRequestStatus {
+  return (
+    typeof value === "string" &&
+    (PROPOSAL_CUSTOMER_REQUEST_STATUSES as readonly string[]).includes(value)
+  );
+}
+
+function isReviewStatus(value: unknown): value is ProposalCustomerRequestReviewStatus {
+  return (
+    typeof value === "string" &&
+    (PROPOSAL_CUSTOMER_REQUEST_REVIEW_STATUSES as readonly string[]).includes(value)
+  );
+}
+
+function isStatusUpdateFailureCode(
+  value: unknown
+): value is ProposalCustomerRequestStatusUpdateFailureCode {
+  return (
+    typeof value === "string" &&
+    (PROPOSAL_CUSTOMER_REQUEST_STATUS_UPDATE_FAILURE_CODES as readonly string[]).includes(
+      value
+    )
+  );
+}
+
+function parseContractorRequestRow(
+  row: Record<string, unknown>
+): ProposalCustomerRequestContractorRow {
+  if (!isIntent(row.intent)) {
+    throw new ProposalCustomerRequestStoreError(
+      "proposal_customer_requests row has invalid intent."
+    );
+  }
+  if (!isRequestStatus(row.status)) {
+    throw new ProposalCustomerRequestStoreError(
+      "proposal_customer_requests row has invalid status."
+    );
+  }
+
+  const createdAt = String(row.created_at ?? "").trim();
+  if (!createdAt) {
+    throw new ProposalCustomerRequestStoreError(
+      "proposal_customer_requests row missing created_at."
+    );
+  }
+
+  return {
+    id: parseUuidField(row.id, "id"),
+    intent: row.intent,
+    status: row.status,
+    requested_option_id: parseOptionalUuidField(
+      row.requested_option_id,
+      "requested_option_id"
+    ),
+    requested_option_label:
+      row.requested_option_label == null
+        ? null
+        : String(row.requested_option_label).trim() || null,
+    message: row.message == null ? null : String(row.message).trim() || null,
+    customer_name:
+      row.customer_name == null ? null : String(row.customer_name).trim() || null,
+    customer_email:
+      row.customer_email == null ? null : String(row.customer_email).trim() || null,
+    customer_phone:
+      row.customer_phone == null ? null : String(row.customer_phone).trim() || null,
+    created_at: createdAt,
+    proposal_id: parseUuidField(row.proposal_id, "proposal_id"),
+    proposal_version_id: parseUuidField(
+      row.proposal_version_id,
+      "proposal_version_id"
+    ),
+  };
+}
+
+/** Authenticated SELECT via RLS — never returns public token fields. */
+export async function listProposalCustomerRequestsForProposalWithClient(
+  supabase: SupabaseClient,
+  input: { company_id: string; proposal_id: string }
+): Promise<ProposalCustomerRequestContractorRow[]> {
+  const companyId = input.company_id.trim();
+  const proposalId = input.proposal_id.trim();
+  if (!isUuidLike(companyId) || !isUuidLike(proposalId)) {
+    throw new ProposalCustomerRequestStoreError(
+      "company_id and proposal_id must be UUIDs."
+    );
+  }
+
+  const { data, error } = await supabase
+    .from("proposal_customer_requests")
+    .select(
+      [
+        "id",
+        "intent",
+        "status",
+        "requested_option_id",
+        "requested_option_label",
+        "message",
+        "customer_name",
+        "customer_email",
+        "customer_phone",
+        "created_at",
+        "proposal_id",
+        "proposal_version_id",
+      ].join(", ")
+    )
+    .eq("company_id", companyId)
+    .eq("proposal_id", proposalId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw new ProposalCustomerRequestStoreError(
+      error.message ?? "Failed to list proposal_customer_requests."
+    );
+  }
+
+  return (data ?? []).map((row) =>
+    parseContractorRequestRow(row as Record<string, unknown>)
+  );
+}
+
+export function parseProposalCustomerRequestStatusUpdateRpcResult(
+  data: unknown
+): ProposalCustomerRequestStatusUpdateResult {
+  if (!data || typeof data !== "object") {
+    throw new ProposalCustomerRequestStoreError(
+      `${UPDATE_PROPOSAL_CUSTOMER_REQUEST_STATUS_RPC_V1} RPC returned no result.`
+    );
+  }
+
+  const result = data as Record<string, unknown>;
+
+  if (result.ok === false) {
+    if (!isStatusUpdateFailureCode(result.code)) {
+      throw new ProposalCustomerRequestStoreError(
+        `${UPDATE_PROPOSAL_CUSTOMER_REQUEST_STATUS_RPC_V1} RPC returned unknown failure code.`
+      );
+    }
+    return { ok: false, code: result.code };
+  }
+
+  if (result.ok !== true) {
+    throw new ProposalCustomerRequestStoreError(
+      `${UPDATE_PROPOSAL_CUSTOMER_REQUEST_STATUS_RPC_V1} RPC returned unexpected ok value.`
+    );
+  }
+
+  if (!isReviewStatus(result.status)) {
+    throw new ProposalCustomerRequestStoreError(
+      `${UPDATE_PROPOSAL_CUSTOMER_REQUEST_STATUS_RPC_V1} RPC returned invalid status.`
+    );
+  }
+
+  if (!isRequestStatus(result.previous_status)) {
+    throw new ProposalCustomerRequestStoreError(
+      `${UPDATE_PROPOSAL_CUSTOMER_REQUEST_STATUS_RPC_V1} RPC returned invalid previous_status.`
+    );
+  }
+
+  return {
+    ok: true,
+    request_id: parseUuidField(result.request_id, "request_id"),
+    status: result.status,
+    previous_status: result.previous_status,
+    proposal_id: parseUuidField(result.proposal_id, "proposal_id"),
+    proposal_version_id: parseUuidField(
+      result.proposal_version_id,
+      "proposal_version_id"
+    ),
+    proposal_status_unchanged:
+      result.proposal_status_unchanged == null
+        ? null
+        : String(result.proposal_status_unchanged),
+    selected_option_id_unchanged: parseOptionalUuidField(
+      result.selected_option_id_unchanged,
+      "selected_option_id_unchanged"
+    ),
+    job_stage_unchanged:
+      result.job_stage_unchanged == null
+        ? null
+        : String(result.job_stage_unchanged),
+  };
+}
+
+export async function updateProposalCustomerRequestStatusViaRpc(
+  supabase: SupabaseClient,
+  input: { requestId: string; status: ProposalCustomerRequestReviewStatus }
+): Promise<ProposalCustomerRequestStatusUpdateResult> {
+  const requestId = input.requestId.trim();
+  if (!isUuidLike(requestId)) {
+    throw new ProposalCustomerRequestStoreError("requestId must be a UUID.");
+  }
+  if (!isReviewStatus(input.status)) {
+    throw new ProposalCustomerRequestStoreError("Invalid review status.");
+  }
+
+  const { data, error } = await supabase.rpc(
+    UPDATE_PROPOSAL_CUSTOMER_REQUEST_STATUS_RPC_V1,
+    {
+      p_request_id: requestId,
+      p_status: input.status,
+    }
+  );
+
+  if (error) {
+    throw new ProposalCustomerRequestStoreError(
+      error.message ??
+        `${UPDATE_PROPOSAL_CUSTOMER_REQUEST_STATUS_RPC_V1} RPC failed.`
+    );
+  }
+
+  return parseProposalCustomerRequestStatusUpdateRpcResult(data);
 }

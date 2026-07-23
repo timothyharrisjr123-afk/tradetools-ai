@@ -6,6 +6,7 @@ import type { JobRecord } from "@/app/lib/jobTypes";
 import type { ProposalCustomerPreviewReadiness } from "@/app/lib/proposalCustomerPreviewViewModel";
 import type { ProposalDraftGraph } from "@/app/lib/proposalRecordStore";
 import { resolveSendGateCustomerName } from "@/app/lib/proposalSendGateReadiness";
+import ProposalCustomerPreviewCustomerRequestsSection from "./ProposalCustomerPreviewCustomerRequestsSection";
 import ProposalCustomerPreviewDeliveryHistorySection from "./ProposalCustomerPreviewDeliveryHistorySection";
 import ProposalCustomerPreviewPublicAccessPanel from "./ProposalCustomerPreviewPublicAccessPanel";
 import ProposalCustomerPreviewSendGatePanel from "./ProposalCustomerPreviewSendGatePanel";
@@ -197,20 +198,26 @@ export default function ProposalCustomerPreviewSendSharingDrawer({
           ) : null}
 
           {tab === "activity" ? (
-            <div data-preview-tab-activity className="space-y-4">
-              <div>
-                <p className="text-[15px] font-semibold text-slate-900">
-                  Recent delivery activity
-                </p>
-                <p className="mt-1 text-[13px] leading-relaxed text-slate-500">
-                  Email delivery history for this proposal.
-                </p>
-              </div>
-              <ProposalCustomerPreviewDeliveryHistorySection
+            <div data-preview-tab-activity className="space-y-6">
+              <ProposalCustomerPreviewCustomerRequestsSection
                 jobId={jobId}
                 proposalId={proposalId}
-                refreshKey={0}
               />
+              <div className="space-y-4 border-t border-slate-100 pt-5">
+                <div>
+                  <p className="text-[15px] font-semibold text-slate-900">
+                    Recent delivery activity
+                  </p>
+                  <p className="mt-1 text-[13px] leading-relaxed text-slate-500">
+                    Email delivery history for this proposal.
+                  </p>
+                </div>
+                <ProposalCustomerPreviewDeliveryHistorySection
+                  jobId={jobId}
+                  proposalId={proposalId}
+                  refreshKey={0}
+                />
+              </div>
             </div>
           ) : null}
         </div>
