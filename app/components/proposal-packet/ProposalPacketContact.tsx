@@ -7,6 +7,7 @@ import {
 } from "@/app/lib/proposalCustomerPacketViewModel";
 import { PROPOSAL_CUSTOMER_PACKET_READY_ANCHOR } from "@/app/lib/proposalCustomerPacketInterestAction";
 import ProposalPacketPackageInterestActions from "./ProposalPacketPackageInterestActions";
+import type { ProposalPacketRequestModalContactPrefill } from "./ProposalPacketRequestModal";
 import { IconGlobe, IconHome, IconMail, IconPhone, IconShield } from "./ProposalPacketIcons";
 import {
   PROPOSAL_PACKET_CLOSEOUT_GRID,
@@ -84,12 +85,18 @@ function buildContactRows(contact: ProposalCustomerPacketContactViewModel): Cont
 type ProposalPacketCloseoutAsideProps = {
   contact: ProposalCustomerPacketContactViewModel | null;
   recommendedPackageLabel?: string | null;
+  recommendedOptionKey?: string | null;
+  publicAccessToken?: string | null;
+  contactPrefill?: ProposalPacketRequestModalContactPrefill | null;
 };
 
 /** Closeout: CTA first, then contact + next steps, trust as supportive band. */
 export function ProposalPacketCloseoutAside({
   contact,
   recommendedPackageLabel = null,
+  recommendedOptionKey = null,
+  publicAccessToken = null,
+  contactPrefill = null,
 }: ProposalPacketCloseoutAsideProps) {
   const companyName = (contact?.companyName ?? "").trim();
   const packageLabel = (recommendedPackageLabel ?? "").trim();
@@ -113,6 +120,9 @@ export function ProposalPacketCloseoutAside({
             layout="row"
             secondary="contact"
             compact
+            publicAccessToken={publicAccessToken}
+            optionKey={recommendedOptionKey}
+            contactPrefill={contactPrefill}
           />
         ) : null}
       </div>

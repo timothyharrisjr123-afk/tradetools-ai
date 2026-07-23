@@ -220,6 +220,26 @@ export const PROPOSAL_CUSTOMER_PACKET_DISCUSS_OPTIONS_CTA = "Discuss package opt
 export const PROPOSAL_CUSTOMER_PACKET_CONFIRM_DETAILS_NOTE =
   "We'll confirm details before work begins.";
 
+/** R3B2 — non-binding package request modal copy. */
+export const PROPOSAL_CUSTOMER_PACKET_REQUEST_MODAL_TITLE = "Request this package";
+
+export const PROPOSAL_CUSTOMER_PACKET_REQUEST_SUBMIT_CTA = "Send request";
+
+export const PROPOSAL_CUSTOMER_PACKET_REQUEST_SUCCESS_TITLE = "Request sent";
+
+export const PROPOSAL_CUSTOMER_PACKET_REQUEST_SUCCESS_BODY =
+  "Request sent. The contractor will review and confirm details.";
+
+export const PROPOSAL_CUSTOMER_PACKET_REQUEST_SUCCESS_NEXT =
+  "The contractor will reach out to schedule next steps after confirmation.";
+
+export const PROPOSAL_CUSTOMER_PACKET_REQUEST_MESSAGE_LABEL = "Message (optional)";
+
+export const PROPOSAL_CUSTOMER_PACKET_REQUEST_MESSAGE_PLACEHOLDER =
+  "Anything the contractor should know before confirming details?";
+
+export const PROPOSAL_CUSTOMER_PACKET_REQUEST_MESSAGE_MAX = 2000;
+
 export function proposalCustomerPacketAskAboutPackageCta(packageLabel: string): string {
   const label = packageLabel.trim();
   return label ? `Ask about ${label}` : "Ask about this package";

@@ -755,6 +755,7 @@ describe("forbidden exposure guardrails", () => {
     );
     assert.match(source, /loadPublicProposalByToken/);
     assert.match(source, /PublicProposalPage document=\{result\.document\}/);
+    assert.match(source, /publicAccessToken=\{token\}/);
     assert.doesNotMatch(source, /result\.tracking/);
     assert.doesNotMatch(source, /searchParams/);
     assert.doesNotMatch(source, /getDraftGraph\(/);

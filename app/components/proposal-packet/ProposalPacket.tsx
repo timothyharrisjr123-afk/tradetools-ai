@@ -18,6 +18,8 @@ export type ProposalPacketMode = "public" | "preview";
 type ProposalPacketProps = {
   packet: ProposalCustomerPacketViewModel;
   mode?: ProposalPacketMode;
+  /** Raw public access token from /p/[token] — enables durable package request submit. */
+  publicAccessToken?: string | null;
 };
 
 /**
@@ -26,13 +28,23 @@ type ProposalPacketProps = {
  * Navy brand bar → hero + recommend/invest card → compare → included →
  * upgrades → accordion details → closeout → footer.
  */
-export default function ProposalPacket({ packet, mode = "public" }: ProposalPacketProps) {
+export default function ProposalPacket({
+  packet,
+  mode = "public",
+  publicAccessToken = null,
+}: ProposalPacketProps) {
   const showComparison = packet.comparison != null && packet.comparison.options.length > 1;
   const showUpgrades = packet.upgrades != null && packet.upgrades.items.length > 0;
   const showIncludedScope =
     packet.estimate != null &&
     (packet.estimate.scopeGroupSummaries.length > 0 ||
       packet.estimate.includedDetails.length > 0);
+  const requestToken = mode === "public" ? publicAccessToken : null;
+  const contactPrefill = {
+    name: packet.cover.preparedFor.customerName,
+    email: packet.cover.preparedFor.customerEmail,
+    phone: packet.cover.preparedFor.customerPhone,
+  };
 
   return (
     <main className={PROPOSAL_PACKET_PAGE} data-proposal-packet-mode={mode}>
@@ -43,6 +55,8 @@ export default function ProposalPacket({ packet, mode = "public" }: ProposalPack
           estimate={packet.estimate}
           upgrades={packet.upgrades}
           contact={packet.contact}
+          publicAccessToken={requestToken}
+          contactPrefill={contactPrefill}
         />
 
         {showComparison ? (
@@ -70,6 +84,9 @@ export default function ProposalPacket({ packet, mode = "public" }: ProposalPack
           details={packet.details}
           contact={packet.contact}
           recommendedPackageLabel={packet.estimate?.label ?? null}
+          recommendedOptionKey={packet.estimate?.optionKey ?? null}
+          publicAccessToken={requestToken}
+          contactPrefill={contactPrefill}
         />
 
         <ProposalPacketFooter contact={packet.contact} footerMetadata={packet.footerMetadata} />

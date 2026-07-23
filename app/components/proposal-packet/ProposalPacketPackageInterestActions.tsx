@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import type { ProposalCustomerPacketContactViewModel } from "@/app/lib/proposalCustomerPacketViewModel";
 import {
   PROPOSAL_CUSTOMER_PACKET_ASK_QUESTION_CTA,
@@ -10,6 +13,9 @@ import {
   buildPackageInterestHref,
   PROPOSAL_CUSTOMER_PACKET_READY_ANCHOR,
 } from "@/app/lib/proposalCustomerPacketInterestAction";
+import ProposalPacketRequestModal, {
+  type ProposalPacketRequestModalContactPrefill,
+} from "./ProposalPacketRequestModal";
 import {
   PROPOSAL_PACKET_CTA_PRIMARY,
   PROPOSAL_PACKET_CTA_SECONDARY,
@@ -24,10 +30,18 @@ type ProposalPacketPackageInterestActionsProps = {
   secondary?: "ask" | "contact" | "none";
   /** Tighter CTA spacing inside the investment panel. */
   compact?: boolean;
+  /**
+   * When set with optionKey (public /p/[token]), Request opens the durable
+   * package-request modal instead of mailto.
+   */
+  publicAccessToken?: string | null;
+  optionKey?: string | null;
+  contactPrefill?: ProposalPacketRequestModalContactPrefill | null;
 };
 
 /**
- * Soft package interest CTAs — contact only; no accept/approve/sign/pay truth.
+ * Soft package interest CTAs — non-binding request / contact only.
+ * No formal commitment, signature, or payment truth.
  */
 export default function ProposalPacketPackageInterestActions({
   packageLabel,
@@ -35,7 +49,14 @@ export default function ProposalPacketPackageInterestActions({
   layout = "stack",
   secondary = "ask",
   compact = false,
+  publicAccessToken = null,
+  optionKey = null,
+  contactPrefill = null,
 }: ProposalPacketPackageInterestActionsProps) {
+  const [requestOpen, setRequestOpen] = useState(false);
+  const canSubmitRequest =
+    Boolean((publicAccessToken ?? "").trim()) && Boolean((optionKey ?? "").trim());
+
   const requestHref = buildPackageInterestHref(contact, packageLabel, "request");
   const askHref = buildAskQuestionHref(contact);
   const contactHref =
@@ -57,13 +78,24 @@ export default function ProposalPacketPackageInterestActions({
   return (
     <div>
       <div className={actionsClass}>
-        <a
-          href={requestHref}
-          className={PROPOSAL_PACKET_CTA_PRIMARY}
-          data-proposal-cta="request-package"
-        >
-          {PROPOSAL_CUSTOMER_PACKET_REQUEST_PACKAGE_CTA}
-        </a>
+        {canSubmitRequest ? (
+          <button
+            type="button"
+            className={PROPOSAL_PACKET_CTA_PRIMARY}
+            data-proposal-cta="request-package"
+            onClick={() => setRequestOpen(true)}
+          >
+            {PROPOSAL_CUSTOMER_PACKET_REQUEST_PACKAGE_CTA}
+          </button>
+        ) : (
+          <a
+            href={requestHref}
+            className={PROPOSAL_PACKET_CTA_PRIMARY}
+            data-proposal-cta="request-package"
+          >
+            {PROPOSAL_CUSTOMER_PACKET_REQUEST_PACKAGE_CTA}
+          </a>
+        )}
         {secondary !== "none" ? (
           <a
             href={secondaryHref}
@@ -77,6 +109,17 @@ export default function ProposalPacketPackageInterestActions({
       <p className={`${compact ? "mt-2" : "mt-2.5"} text-[11px] leading-snug text-[#64748b]`}>
         {PROPOSAL_CUSTOMER_PACKET_CONFIRM_DETAILS_NOTE}
       </p>
+
+      {canSubmitRequest ? (
+        <ProposalPacketRequestModal
+          open={requestOpen}
+          onClose={() => setRequestOpen(false)}
+          packageLabel={packageLabel}
+          optionKey={(optionKey ?? "").trim()}
+          publicAccessToken={(publicAccessToken ?? "").trim()}
+          contactPrefill={contactPrefill}
+        />
+      ) : null}
     </div>
   );
 }

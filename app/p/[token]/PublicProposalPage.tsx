@@ -3,8 +3,18 @@ import type { ProposalPublicProposalDocumentViewModel } from "@/app/lib/proposal
 
 type PublicProposalPageProps = {
   document: ProposalPublicProposalDocumentViewModel;
+  publicAccessToken: string;
 };
 
-export default function PublicProposalPage({ document }: PublicProposalPageProps) {
-  return <ProposalPacket packet={document.packet} mode="public" />;
+export default function PublicProposalPage({
+  document,
+  publicAccessToken,
+}: PublicProposalPageProps) {
+  return (
+    <ProposalPacket
+      packet={document.packet}
+      mode="public"
+      publicAccessToken={publicAccessToken}
+    />
+  );
 }

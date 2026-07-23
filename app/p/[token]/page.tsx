@@ -26,5 +26,5 @@ export default async function PublicProposalRoutePage({ params }: PublicProposal
   }
 
   // Server-only view envelope stays on the server; only document is rendered.
-  return <PublicProposalPage document={result.document} />;
+  return <PublicProposalPage document={result.document} publicAccessToken={token} />;
 }

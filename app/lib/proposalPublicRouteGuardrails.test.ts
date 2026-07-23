@@ -99,6 +99,7 @@ describe("public proposal route source guardrails", () => {
   test("page passes document or error only — view envelope stays server-side", () => {
     const source = readPublicRouteSource("page.tsx");
     assert.match(source, /<PublicProposalPage document=\{result\.document\}/);
+    assert.match(source, /publicAccessToken=\{token\}/);
     assert.match(source, /<PublicProposalErrorPage error=\{result\.error\}/);
     assert.doesNotMatch(source, /result\.tracking/);
   });
@@ -107,6 +108,7 @@ describe("public proposal route source guardrails", () => {
     const source = readPublicRouteSource("PublicProposalPage.tsx");
     assert.match(source, /ProposalPacket/);
     assert.match(source, /document\.packet/);
+    assert.match(source, /publicAccessToken/);
     assert.doesNotMatch(source, /PublicProposalEstimateSection/);
   });
 

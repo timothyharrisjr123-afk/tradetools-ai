@@ -6,18 +6,25 @@ import type {
 } from "@/app/lib/proposalCustomerPacketViewModel";
 import { ProposalPacketCloseoutAside } from "./ProposalPacketContact";
 import ProposalPacketDetails from "./ProposalPacketDetails";
+import type { ProposalPacketRequestModalContactPrefill } from "./ProposalPacketRequestModal";
 import { PROPOSAL_PACKET_DETAILS_SECTION } from "./proposalPacketStyles";
 
 type ProposalPacketDetailsContactProps = {
   details: ProposalCustomerPacketDetailsViewModel | null;
   contact: ProposalCustomerPacketContactViewModel | null;
   recommendedPackageLabel?: string | null;
+  recommendedOptionKey?: string | null;
+  publicAccessToken?: string | null;
+  contactPrefill?: ProposalPacketRequestModalContactPrefill | null;
 };
 
 export default function ProposalPacketDetailsContact({
   details,
   contact,
   recommendedPackageLabel = null,
+  recommendedOptionKey = null,
+  publicAccessToken = null,
+  contactPrefill = null,
 }: ProposalPacketDetailsContactProps) {
   const hasDetails = details != null && details.tabs.length > 0;
   const hasContact = contact != null;
@@ -36,6 +43,9 @@ export default function ProposalPacketDetailsContact({
           <ProposalPacketCloseoutAside
             contact={contact}
             recommendedPackageLabel={recommendedPackageLabel}
+            recommendedOptionKey={recommendedOptionKey}
+            publicAccessToken={publicAccessToken}
+            contactPrefill={contactPrefill}
           />
         </section>
       ) : null}

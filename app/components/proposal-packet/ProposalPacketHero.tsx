@@ -10,6 +10,7 @@ import {
   PROPOSAL_CUSTOMER_PACKET_PROPOSAL_LABEL,
 } from "@/app/lib/proposalCustomerPacketViewModel";
 import ProposalPacketPackageInterestActions from "./ProposalPacketPackageInterestActions";
+import type { ProposalPacketRequestModalContactPrefill } from "./ProposalPacketRequestModal";
 import { IconCheck, IconShield } from "./ProposalPacketIcons";
 import {
   PROPOSAL_PACKET_CURRENT_BADGE,
@@ -28,6 +29,8 @@ type ProposalPacketHeroProps = {
   estimate?: ProposalCustomerPacketEstimateViewModel | null;
   upgrades?: ProposalCustomerPacketUpgradesViewModel | null;
   contact?: ProposalCustomerPacketContactViewModel | null;
+  publicAccessToken?: string | null;
+  contactPrefill?: ProposalPacketRequestModalContactPrefill | null;
 };
 
 const HERO_INTRO =
@@ -41,6 +44,8 @@ export default function ProposalPacketHero({
   estimate = null,
   upgrades = null,
   contact = null,
+  publicAccessToken = null,
+  contactPrefill = null,
 }: ProposalPacketHeroProps) {
   const headline =
     (cover.headline ?? "").trim() ||
@@ -50,6 +55,7 @@ export default function ProposalPacketHero({
   const benefits = (estimate?.bullets ?? []).slice(0, 2);
   const upgradeCount = upgrades?.items.length ?? 0;
   const packageLabel = estimate?.label ?? "Recommended package";
+  const optionKey = estimate?.optionKey ?? null;
 
   return (
     <header
@@ -123,6 +129,9 @@ export default function ProposalPacketHero({
                     layout="stack"
                     secondary="ask"
                     compact
+                    publicAccessToken={publicAccessToken}
+                    optionKey={optionKey}
+                    contactPrefill={contactPrefill}
                   />
                 </div>
               </div>
