@@ -21,6 +21,7 @@ import { readProposalPageBodyMarkdown } from "@/app/lib/proposalPageContentEditi
 import { readEstimatePageSettingsFromProposalPage } from "@/app/lib/proposalCustomerEstimateDisplayPolicy";
 import {
   finalizeCustomerPacketDetailBody,
+  isCustomerFacingTextPageType,
   isCustomerPacketMeaningfulDetailBody,
   prepareCustomerPacketDetailRawBody,
 } from "@/app/lib/proposalCustomerPacketDetailContent";
@@ -238,7 +239,10 @@ function mapVisibleDbPage(
     };
   }
 
-  if (TEXT_PAGE_TYPES.has(pageType)) {
+  if (
+    TEXT_PAGE_TYPES.has(pageType) &&
+    isCustomerFacingTextPageType(pageType, page.customer_title, page.title)
+  ) {
     const rawBody = prepareCustomerPacketDetailRawBody(
       pageType,
       readProposalPageBodyMarkdown(page.content_json)

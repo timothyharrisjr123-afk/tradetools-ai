@@ -100,7 +100,9 @@ describe("Template Flow V1 — reusable setup landing", () => {
     const review = read("TemplatesQuoteSetupReview.tsx");
     assert.equal(TEMPLATES_PROPOSAL_CONTENT_HEADING, "Proposal packet");
     assert.ok(review.includes("data-templates-proposal-content"));
-    assert.ok(review.includes("buildProposalContentLandingAreas"));
+    assert.ok(review.includes("TemplatesPacketWordingEditor"));
+    assert.ok(review.includes("onSavePacketWording"));
+    assert.ok(!review.includes("Open packet pages"));
   });
 
   test("next use is quiet Job Card guidance; boundaries hold", () => {

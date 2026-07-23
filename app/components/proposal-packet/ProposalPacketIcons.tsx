@@ -146,6 +146,16 @@ export function IconShare({ className = "h-4 w-4" }: IconProps) {
   );
 }
 
+/** Project notes — brief clarifying text. */
+export function IconNotes({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
+      <rect x="5" y="3.5" width="14" height="17" rx="1.5" />
+      <path d="M8.5 8.5h7M8.5 12h7M8.5 15.5h4.5" />
+    </svg>
+  );
+}
+
 export function IconInfo({ className = "h-4 w-4" }: IconProps) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>

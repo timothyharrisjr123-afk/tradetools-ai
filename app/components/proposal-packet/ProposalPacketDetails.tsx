@@ -9,7 +9,7 @@ import type {
 
 import { PROPOSAL_CUSTOMER_PACKET_DETAILS_HEADING } from "@/app/lib/proposalCustomerPacketViewModel";
 
-import { IconHome, IconInfo, IconShield } from "./ProposalPacketIcons";
+import { IconHome, IconInfo, IconNotes, IconShield } from "./ProposalPacketIcons";
 
 import {
   PROPOSAL_PACKET_BODY,
@@ -19,13 +19,14 @@ import {
 
 export type DetailSectionKey = "overview" | "scope" | "materials" | "warranty" | "terms";
 
-/** Approved accordion set — Project overview, Warranty, Terms. */
-const DETAIL_SECTIONS: {
+/** Approved accordion set — Project overview, Project notes, Warranty, Terms. */
+export const DETAIL_SECTIONS: {
   key: DetailSectionKey;
   fallbackLabel: string;
   Icon: typeof IconHome;
 }[] = [
   { key: "overview", fallbackLabel: "Project overview", Icon: IconHome },
+  { key: "scope", fallbackLabel: "Project notes", Icon: IconNotes },
   { key: "warranty", fallbackLabel: "Warranty", Icon: IconShield },
   { key: "terms", fallbackLabel: "Terms", Icon: IconInfo },
 ];

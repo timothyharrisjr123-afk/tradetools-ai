@@ -15,6 +15,7 @@ import { renderProposalDocumentPageBody } from "@/app/lib/proposalDocumentBodyRe
 import { readProposalPageBodyMarkdown } from "@/app/lib/proposalPageContentEditing";
 import {
   finalizeCustomerPacketDetailBody,
+  isCustomerFacingTextPageType,
   isCustomerPacketMeaningfulDetailBody,
   normalizeCustomerPacketDetailBody,
   prepareCustomerPacketDetailRawBody,
@@ -61,13 +62,6 @@ const SCOPE_GROUP_RULES: ReadonlyArray<{ title: string; pattern: RegExp }> = [
     pattern: /shingle|underlayment|starter|drip|ice|shield|felt|nail|cap|edge/i,
   },
 ];
-
-const TEXT_DETAIL_PAGE_TYPES = new Set<string>([
-  "project_overview",
-  "terms",
-  "warranty",
-  "custom_text",
-]);
 
 const HTTP_URL_PATTERN = /^https?:\/\//i;
 
@@ -443,7 +437,7 @@ function buildDetailsFromPublicDto(dto: ProposalPublicGraphDto): ProposalCustome
   const tabs = dto.pages
     .slice()
     .sort((a, b) => a.sort_order - b.sort_order)
-    .filter((page) => TEXT_DETAIL_PAGE_TYPES.has(page.page_type))
+    .filter((page) => isCustomerFacingTextPageType(page.page_type, page.customer_title, page.title))
     .map((page) => {
       const rawBody = prepareCustomerPacketDetailRawBody(
         page.page_type,

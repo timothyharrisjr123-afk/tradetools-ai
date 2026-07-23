@@ -352,9 +352,9 @@ describe("templatesWorkspaceFlow", () => {
       ],
       items: [],
     } as never);
-    assert.ok(areas.some((row) => row.label === "Overview"));
+    assert.ok(areas.some((row) => row.label === "Project overview"));
     assert.ok(areas.some((row) => row.label === "Estimate"));
-    assert.ok(areas.some((row) => row.label === "Warranty"));
-    assert.ok(areas.some((row) => row.label === "Terms"));
+    assert.ok(areas.some((row) => row.label === "Warranty and protection"));
+    assert.ok(areas.some((row) => row.label === "Terms / next steps"));
   });
 });

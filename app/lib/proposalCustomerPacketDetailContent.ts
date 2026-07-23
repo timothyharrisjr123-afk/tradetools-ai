@@ -87,5 +87,42 @@ export function isCustomerPacketMeaningfulDetailBody(body: string): boolean {
   return !isCustomerPacketPlaceholderDetailBody(body);
 }
 
+// ---------------------------------------------------------------------------
+// R3A — customer-facing text page allowlist (shared by Preview and Public)
+// ---------------------------------------------------------------------------
+
+const PROJECT_NOTES_TITLE_PATTERN = /\bnotes?\b/i;
+const OVERVIEW_TITLE_PATTERN = /\boverview\b/i;
+
+/**
+ * Tight match for the setup packet "Project notes" slot once it is copied
+ * into a custom_text page. Title-based: the public/preview page rows do not
+ * carry template-section linkage after copy-on-create, so title is the only
+ * safe signal available without adding new schema.
+ */
+export function isProjectNotesCustomTextTitle(title: string | null | undefined): boolean {
+  const normalized = (title ?? "").trim();
+  if (!normalized) return false;
+  if (OVERVIEW_TITLE_PATTERN.test(normalized)) return false;
+  return PROJECT_NOTES_TITLE_PATTERN.test(normalized);
+}
+
+const CORE_CUSTOMER_TEXT_PAGE_TYPES = new Set(["project_overview", "warranty", "terms"]);
+
+/**
+ * Customer-facing text page allowlist shared by Preview and Public so both
+ * surfaces agree on what the customer will see. `custom_text` only qualifies
+ * when it matches the Project notes packet slot — arbitrary custom pages are
+ * not let through.
+ */
+export function isCustomerFacingTextPageType(
+  pageType: string,
+  ...titleCandidates: Array<string | null | undefined>
+): boolean {
+  if (CORE_CUSTOMER_TEXT_PAGE_TYPES.has(pageType)) return true;
+  if (pageType !== "custom_text") return false;
+  return titleCandidates.some((title) => isProjectNotesCustomTextTitle(title));
+}
+
 // Re-export for tests that assert seed upgrade path.
 export { DEFAULT_PACKET_OVERVIEW_BODY };

@@ -21,7 +21,9 @@ import {
 } from "./TemplatesSetupAuthorshipEditors";
 import TemplatesAvailableUpgradesManager from "./TemplatesAvailableUpgradesManager";
 import TemplatesIncludedItemsManager from "./TemplatesIncludedItemsManager";
+import TemplatesPacketWordingEditor from "./TemplatesPacketWordingEditor";
 import { buildPreparedPackageScopePresentation } from "./templatesIncludedWorkPresentation";
+import type { PacketWordingSavePlan } from "./templatesSetupPacketWording";
 import {
   TEMPLATES_ADVANCED_EDITING_ACTION,
   TEMPLATES_CLEAR_PREFERRED_ACTION_LABEL,
@@ -34,13 +36,11 @@ import {
   TEMPLATES_PACKAGES_SECTION_HINT,
   TEMPLATES_PREFERRED_BADGE_LABEL,
   TEMPLATES_PREFERRED_HELPER_COPY,
-  TEMPLATES_PROPOSAL_CONTENT_ADVANCED_ACTION,
   TEMPLATES_PROPOSAL_CONTENT_HEADING,
   TEMPLATES_PROPOSAL_CONTENT_HINT,
   TEMPLATES_REUSABLE_SETUP_EYEBROW,
   TEMPLATES_REUSABLE_SETUP_SUBCOPY,
   TEMPLATES_SIMPLE_ESTIMATE_LABEL,
-  buildProposalContentLandingAreas,
   formatActivePackageSetupSummary,
   formatPackageScopeCountLine,
   formatTemplateScopeCountLine,
@@ -69,6 +69,7 @@ type TemplatesQuoteSetupReviewProps = {
   onRemoveItem: (templateItemId: string) => void;
   onFixIssues: () => void;
   onOpenAdvanced: (tab?: TemplatesEditTabId) => void;
+  onSavePacketWording: (plan: PacketWordingSavePlan) => Promise<boolean>;
   onSaveIdentity: (draft: TemplateIdentityDraft) => Promise<void> | void;
   onSavePackages: (drafts: readonly PackageAuthorshipDraft[]) => Promise<void> | void;
   onCopyPackage: (input: {
@@ -104,6 +105,7 @@ export default function TemplatesQuoteSetupReview({
   onRemoveItem,
   onFixIssues,
   onOpenAdvanced,
+  onSavePacketWording,
   onSaveIdentity,
   onSavePackages,
   onCopyPackage,
@@ -150,7 +152,6 @@ export default function TemplatesQuoteSetupReview({
       : selectedSummary
         ? `Included in ${selectedSummary.optionLabel}`
         : "Included in this package";
-  const contentAreas = buildProposalContentLandingAreas(graph);
   const description = resolveTemplatePurposeDescription({
     description: template.description,
     metadata: template.metadata ?? null,
@@ -475,49 +476,20 @@ export default function TemplatesQuoteSetupReview({
               </h3>
               <p className="mt-0.5 text-xs text-slate-500">{TEMPLATES_PROPOSAL_CONTENT_HINT}</p>
             </div>
-            <div className="flex flex-wrap items-center gap-3">
-              <button
-                type="button"
-                onClick={() => onOpenAdvanced("estimate")}
-                className="text-xs font-medium text-slate-500 underline-offset-2 hover:text-slate-800 hover:underline"
-                data-templates-open-estimate-display
-              >
-                {TEMPLATES_ESTIMATE_DISPLAY_ADVANCED_ACTION}
-              </button>
-              <button
-                type="button"
-                onClick={() => onOpenAdvanced("content")}
-                className="text-xs font-medium text-slate-500 underline-offset-2 hover:text-slate-800 hover:underline"
-                data-templates-edit-content-quiet
-              >
-                {TEMPLATES_PROPOSAL_CONTENT_ADVANCED_ACTION}
-              </button>
-            </div>
-          </div>
-          {contentAreas.length === 0 ? (
-            <p className="mt-3 text-sm text-slate-500">No proposal pages prepared yet.</p>
-          ) : (
-            <ol
-              className="mt-2.5 overflow-hidden rounded-xl ring-1 ring-slate-200/70"
-              data-templates-proposal-content-list
+            <button
+              type="button"
+              onClick={() => onOpenAdvanced("estimate")}
+              className="text-xs font-medium text-slate-500 underline-offset-2 hover:text-slate-800 hover:underline"
+              data-templates-open-estimate-display
             >
-              {contentAreas.map((area, index) => (
-                <li
-                  key={area.label}
-                  className="flex gap-3 border-b border-slate-100 bg-slate-50/40 px-3.5 py-2.5 last:border-b-0"
-                  data-templates-proposal-content-area={area.label}
-                >
-                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-white text-[10px] font-semibold tabular-nums text-slate-500 ring-1 ring-slate-200/80">
-                    {String(index + 1).padStart(2, "0")}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-slate-900">{area.label}</p>
-                    <p className="mt-0.5 text-xs leading-snug text-slate-500">{area.detail}</p>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          )}
+              {TEMPLATES_ESTIMATE_DISPLAY_ADVANCED_ACTION}
+            </button>
+          </div>
+          <TemplatesPacketWordingEditor
+            graph={graph}
+            busy={busy}
+            onSave={onSavePacketWording}
+          />
         </section>
       </div>
 

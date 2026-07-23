@@ -75,6 +75,7 @@ import {
   removeTemplatePackage,
   reorderTemplatePackages,
 } from "./templatesPackageStructureActions";
+import type { PacketWordingSavePlan } from "./templatesSetupPacketWording";
 import TemplatesStarterHeroCard from "./TemplatesStarterHeroCard";
 import TemplatesWorkspaceLayout from "./TemplatesWorkspaceLayout";
 import { deriveInstallFeedback, findStarterProposalTemplate } from "./templatesSetupUtils";
@@ -464,6 +465,50 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
       selectedGraph,
       selectedTemplateId,
     ]
+  );
+
+  /** R3A — save setup-owned packet wording to template sections (mirrors siblings). */
+  const handleSavePacketWording = useCallback(
+    async (plan: PacketWordingSavePlan): Promise<boolean> => {
+      if (!selectedTemplateId || plan.isNoop) return true;
+      if (savingSectionId) return false;
+
+      setSavingSectionId("packet-wording");
+      setSectionSaveError(null);
+
+      try {
+        for (const item of plan.items) {
+          const updated = await updateProposalTemplateSection(
+            item.sectionId,
+            { content: item.content },
+            {
+              companyId,
+              templateId: selectedTemplateId,
+              optionId: item.optionId,
+            }
+          );
+          if (!updated) {
+            setSectionSaveError({
+              sectionId: item.sectionId,
+              message: "Could not save customer wording. Try again.",
+            });
+            return false;
+          }
+        }
+        await reloadSelectedGraph(selectedTemplateId);
+        return true;
+      } catch (err) {
+        console.warn("[TemplatesSetupClient] packet wording save error:", err);
+        setSectionSaveError({
+          sectionId: plan.items[0]?.sectionId ?? "packet-wording",
+          message: "Could not save customer wording. Try again.",
+        });
+        return false;
+      } finally {
+        setSavingSectionId(null);
+      }
+    },
+    [companyId, reloadSelectedGraph, savingSectionId, selectedTemplateId]
   );
 
   const handleDirtySectionCountChange = useCallback((count: number) => {
@@ -1557,6 +1602,7 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
                 onRemoveItem={handleRequestRemoveItem}
                 onFixIssues={handleFixIssues}
                 onSaveIdentity={handleSaveTemplateIdentity}
+                onSavePacketWording={handleSavePacketWording}
                 onSavePackages={handleSavePackageAuthorship}
                 onCopyPackage={handleCopyPackage}
                 onCreateBlankPackage={handleCreateBlankPackage}

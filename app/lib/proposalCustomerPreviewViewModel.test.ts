@@ -469,3 +469,56 @@ describe("buildProposalCustomerPreviewDocument", () => {
     assert.match(doc.readiness.warnings.join(" "), /estimate isn't part of the customer document/i);
   });
 });
+
+describe("R3A — Preview/Public agreement on Project notes", () => {
+  const PAGE_PROJECT_NOTES = "18181818-1818-4818-8818-181818181818";
+  const PAGE_UNRELATED_CUSTOM = "19191919-1919-4919-8919-191919191919";
+
+  test("shows the Project notes custom_text page (matches what Public now renders)", () => {
+    const doc = buildProposalCustomerPreviewDocument(
+      minimalGraph({
+        pages: [
+          ...minimalGraph().pages,
+          pageRow({
+            id: PAGE_PROJECT_NOTES,
+            page_type: "custom_text",
+            sort_order: 40,
+            title: "Project notes",
+            customer_title: "Project notes",
+            visible_to_customer: true,
+            content_json: { body_markdown: "Debris removal is scheduled within 48 hours of completion." },
+          }),
+        ],
+      })
+    );
+    const notes = doc.pages.find((page) => page.id === PAGE_PROJECT_NOTES);
+    assert.ok(notes, "Project notes page is present in the Preview document");
+    assert.equal(notes?.kind, "text");
+    if (notes?.kind === "text") {
+      assert.match(notes.displayText, /Debris removal is scheduled/);
+    }
+  });
+
+  test("drops an arbitrary unrelated custom_text page (agrees with Public's tight rule)", () => {
+    const doc = buildProposalCustomerPreviewDocument(
+      minimalGraph({
+        pages: [
+          ...minimalGraph().pages,
+          pageRow({
+            id: PAGE_UNRELATED_CUSTOM,
+            page_type: "custom_text",
+            sort_order: 45,
+            title: "Special promotion",
+            customer_title: "Special promotion",
+            visible_to_customer: true,
+            content_json: { body_markdown: "Ask about our referral discount." },
+          }),
+        ],
+      })
+    );
+    assert.ok(
+      !doc.pages.some((page) => page.id === PAGE_UNRELATED_CUSTOM),
+      "unrelated custom_text pages are excluded from Preview just like Public"
+    );
+  });
+});

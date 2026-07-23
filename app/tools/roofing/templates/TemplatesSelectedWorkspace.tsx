@@ -18,6 +18,7 @@ import type {
   PackageStructureCreateDraft,
   TemplateIdentityDraft,
 } from "./TemplatesSetupAuthorshipEditors";
+import type { PacketWordingSavePlan } from "./templatesSetupPacketWording";
 import {
   TEMPLATES_EDIT_TABS,
   type PackageOptionSummary,
@@ -68,6 +69,7 @@ type TemplatesSelectedWorkspaceProps = {
   onRemoveItem: (templateItemId: string) => void;
   onFixIssues: () => void;
   onSaveIdentity: (draft: TemplateIdentityDraft) => Promise<void> | void;
+  onSavePacketWording: (plan: PacketWordingSavePlan) => Promise<boolean>;
   onSavePackages: (drafts: readonly PackageAuthorshipDraft[]) => Promise<void> | void;
   onCopyPackage: (input: {
     sourceOptionId: string;
@@ -132,6 +134,7 @@ export default function TemplatesSelectedWorkspace({
   onRemoveItem,
   onFixIssues,
   onSaveIdentity,
+  onSavePacketWording,
   onSavePackages,
   onCopyPackage,
   onCreateBlankPackage,
@@ -176,6 +179,7 @@ export default function TemplatesSelectedWorkspace({
           onRemoveItem={onRemoveItem}
           onFixIssues={onFixIssues}
           onOpenAdvanced={onOpenAdvanced}
+          onSavePacketWording={onSavePacketWording}
           onSaveIdentity={onSaveIdentity}
           onSavePackages={onSavePackages}
           onCopyPackage={onCopyPackage}

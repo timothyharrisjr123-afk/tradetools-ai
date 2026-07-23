@@ -8,7 +8,9 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
   finalizeCustomerPacketDetailBody,
+  isCustomerFacingTextPageType,
   isCustomerPacketMeaningfulDetailBody,
+  isProjectNotesCustomTextTitle,
   normalizeCustomerPacketDetailBody,
 } from "./proposalCustomerPacketDetailContent";
 
@@ -45,5 +47,40 @@ describe("proposalCustomerPacketDetailContent", () => {
 
   test("keeps meaningful custom detail copy", () => {
     assert.equal(isCustomerPacketMeaningfulDetailBody("Manufacturer limited lifetime warranty applies."), true);
+  });
+});
+
+describe("isProjectNotesCustomTextTitle (R3A public loop)", () => {
+  test("matches the setup packet Project notes title", () => {
+    assert.equal(isProjectNotesCustomTextTitle("Project notes"), true);
+    assert.equal(isProjectNotesCustomTextTitle("Scope notes"), true);
+    assert.equal(isProjectNotesCustomTextTitle("Additional notes"), true);
+  });
+
+  test("does not match overview or unrelated custom pages", () => {
+    assert.equal(isProjectNotesCustomTextTitle("Project overview"), false);
+    assert.equal(isProjectNotesCustomTextTitle("Special promotion"), false);
+    assert.equal(isProjectNotesCustomTextTitle(null), false);
+    assert.equal(isProjectNotesCustomTextTitle(""), false);
+  });
+});
+
+describe("isCustomerFacingTextPageType (Preview/Public shared allowlist)", () => {
+  test("always allows the three core packet page types", () => {
+    assert.equal(isCustomerFacingTextPageType("project_overview"), true);
+    assert.equal(isCustomerFacingTextPageType("warranty"), true);
+    assert.equal(isCustomerFacingTextPageType("terms"), true);
+  });
+
+  test("allows custom_text only when title matches the Project notes slot", () => {
+    assert.equal(isCustomerFacingTextPageType("custom_text", "Project notes"), true);
+    assert.equal(isCustomerFacingTextPageType("custom_text", null, "Scope notes"), true);
+    assert.equal(isCustomerFacingTextPageType("custom_text", "Special promotion"), false);
+    assert.equal(isCustomerFacingTextPageType("custom_text"), false);
+  });
+
+  test("rejects other internal/lifecycle page types", () => {
+    assert.equal(isCustomerFacingTextPageType("signature", "Project notes"), false);
+    assert.equal(isCustomerFacingTextPageType("photos", "Project notes"), false);
   });
 });

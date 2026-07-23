@@ -154,7 +154,7 @@ export const TEMPLATES_PROPOSAL_CONTENT_HEADING = "Proposal packet" as const;
 export const TEMPLATES_PROPOSAL_CONTENT_HINT =
   "Prepared customer-facing sections for this setup." as const;
 export const TEMPLATES_PROPOSAL_CONTENT_ADVANCED_ACTION =
-  "Open packet pages" as const;
+  "Edit customer wording" as const;
 export const TEMPLATES_ESTIMATE_DISPLAY_ADVANCED_ACTION =
   "Estimate display" as const;
 export const TEMPLATES_NEXT_USE_HEADING = "Used from a Job Card" as const;
@@ -361,7 +361,7 @@ export function buildProposalContentLandingAreas(
     switch (section.kind) {
       case "text":
         if (/overview/i.test(name)) {
-          label = "Overview";
+          label = "Project overview";
           detail = "Opening page customers see first";
         } else if (/scope|project notes/i.test(name)) {
           label = "Project notes";
@@ -387,7 +387,7 @@ export function buildProposalContentLandingAreas(
         detail = "Manufacturer and workmanship coverage";
         break;
       case "terms":
-        label = "Next steps";
+        label = "Terms / next steps";
         detail = "How to review and confirm this proposal";
         break;
       case "image":

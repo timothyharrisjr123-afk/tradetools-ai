@@ -509,3 +509,61 @@ describe("buildCustomerPacketFromPublicDto", () => {
     assert.equal(packet.cover.coverMediaUrl, null);
   });
 });
+
+describe("R3A — Project notes reaches the public detail tabs", () => {
+  test("includes the Project notes custom_text page as a details tab", () => {
+    const dto = baseDto({
+      pages: [
+        ...baseDto().pages,
+        {
+          page_type: "warranty",
+          sort_order: 25,
+          title: "Warranty and protection",
+          customer_title: null,
+          visible_to_customer: true,
+          content_json: { body_markdown: "Warranty content." },
+          settings_json: {},
+        },
+        {
+          page_type: "custom_text",
+          sort_order: 40,
+          title: "Project notes",
+          customer_title: "Project notes",
+          visible_to_customer: true,
+          content_json: { body_markdown: "Debris removal is scheduled within 48 hours of completion." },
+          settings_json: {},
+        },
+      ],
+    });
+
+    const packet = buildCustomerPacketFromPublicDto(dto);
+    const titles = packet.details?.tabs.map((tab) => tab.title) ?? [];
+    assert.ok(titles.includes("Project notes"), "Project notes tab reaches the public packet");
+    assert.ok(titles.includes("Project overview"), "Project overview still renders");
+    assert.ok(titles.includes("Warranty and protection"), "Warranty still renders");
+    assert.ok(titles.includes("Terms"), "Terms still renders");
+    const notesTab = packet.details?.tabs.find((tab) => tab.title === "Project notes");
+    assert.match(notesTab?.body ?? "", /Debris removal is scheduled/);
+  });
+
+  test("does not expose an arbitrary unrelated custom_text page", () => {
+    const dto = baseDto({
+      pages: [
+        ...baseDto().pages,
+        {
+          page_type: "custom_text",
+          sort_order: 45,
+          title: "Special promotion",
+          customer_title: "Special promotion",
+          visible_to_customer: true,
+          content_json: { body_markdown: "Ask about our referral discount." },
+          settings_json: {},
+        },
+      ],
+    });
+
+    const packet = buildCustomerPacketFromPublicDto(dto);
+    const titles = packet.details?.tabs.map((tab) => tab.title) ?? [];
+    assert.ok(!titles.includes("Special promotion"), "unrelated custom_text pages stay out of the public packet");
+  });
+});
