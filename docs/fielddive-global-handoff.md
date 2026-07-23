@@ -42,21 +42,22 @@
 - Read **§6BM** before any R18 implementation — **R18A public proposal architecture plan** (immutable sent snapshot first; Send/PDF/Sign/Payment remain phased/disabled; **read-only public route exists** at §6BN.11). **R18B4D send-freeze smoke PASS** documented at **§6BM.13**.
 - Read **§6BN** before R18 public proposal work — **R18D3C contractor delivery status/history UI complete + browser smoke PASS** at **`e17eab5`** (§6BN.20); **R18D3B proposal send email template polish complete + Gmail-approved** at **`20a239d`** (§6BN.19); **R18D3B real proposal email send orchestration complete + live-smoked** at **`e7cdc51`** (§6BN.18); **optional-upgrade Builder readiness fix** at **`79e4c4f`** (§6BN.18.8); **R18D3A delivery attempt foundation complete** at **`57786ca`** (§6BN.17); **R18D2 contractor Preview customer send link prep complete** at **`845e8d5`** (§6BN.15); **R18D1 contractor Preview Send gate readiness complete** at **`304ed0f`** (§6BN.13); **R18C4C contractor Preview public review link panel complete** at **`bab25c8`** (§6BN.12); **R18C4B public proposal route + customer shell complete** at **`265d8f6`** (§6BN.11); **R18C4A orchestrator + view model complete** at **`8523812`** (§6BN.10).
 - Read **§6BO** for **completed** public proposal packet + Stage A/B truth-pipeline **remediation side-track** (`4402821`, `99de56b`, `d3e2d13`, `10a1971`, `ee643d0`, §6BO.7 smoke PASS), **§6BO.11** for **approved Stage C token supersession / stale-link policy**, **§6BO.12** for **operating-flow audit sequencing** (complete — outcome recorded in **§6BO.13**), and **§6BO.13** for **approved page-by-page UI flow roadmap + P0 implementation sequence** — **§6BO.13 supersedes** any earlier separate Command Center language; recover next step from **§6BO.13** / **§11 override** (§6BO.0 for R18 letter-phase history only).
+- Read **§6BO.13.4.9 R3** before any customer proposal packet, package-request, contractor request-review, accept/pay/schedule, or Jobs Board attention work after R3A0/R3A/R3B — customer request is attention-only, not lifecycle.
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** **`f042ab2`** — `polish(proposals): refine templates command surface`.
-- **Previous feature checkpoint:** **`928a21d`** — `feat(proposals): add R2B preferred setup workflow`.
+- **Code checkpoint:** **`ed50768`** — `feat(proposals): add contractor customer request review`.
+- **Prior code checkpoints (locked):** **`de61b35`** — `feat(proposals): add customer package request flow` (R3B1/R3B2); **`4ef778d`** — `feat(proposals): add R3A setup-owned packet wording editor`; **`7eeed34`** — `feat(proposals): add R3A0 customer proposal base template`.
 - **Docs checkpoint:** **Pending this docs commit.**
-- **Prior docs checkpoint:** **`8c5bac4`** — `docs: record R2B preferred setup workflow checkpoint`.
-- **Working tree:** Clean before this docs edit (code at **`f042ab2`** committed; no app/test/migration changes in this docs pass).
-- **Accepted:** **T.9 Visual Polish V1** — Templates page as a FieldDive **prepared-setup command surface** (sleek / clean / aligned with Builder · Job Card · FieldDive visual language; prepared setup first; guided creation when needed; contextual adjust second; Advanced third) after product screenshot review of **`f042ab2`** (§6BO.13.4.9 T.9 Visual Polish V1). Prior **R2B preferred setup workflow** remains accepted at **`928a21d`** / docs **`8c5bac4`**. Prior **R2A template archive/restore** remains accepted at **`c93a843`** / docs **`6d53906`**. Prior **R1 package-option structure authorship** remains accepted at **`6e1253f`** / docs **`51fc3c9`**. Prior **Template Setup Authorship V1** remains accepted at **`ab3a776`** / docs **`82573e0`**.
-- **Next:** **R3 proposal packet / content editor planning** from the now-polished Templates command surface, then remaining **T.9** follow-ups (estimate display editor, package model conversion after create if still desired, safe section delete, library hygiene, mobile polish). Do **not** reopen T.9 Visual Polish V1, Optional Upgrade Truth, package-description SoT, R1 soft-remove / one-template→many-options model, R2A archive/restore semantics, or R2B preferred-setup vs package-option-default distinction. Later Stage D Preview/Public parity test lock remains parked and is not blocking.
-- **Product model (locked):** **Templates** = FieldDive **prepared-setup command surface** for reusable setups and package options — **not** an admin table, stacked setup console, or bolted-on CRUD panel. Hierarchy: **prepared setup first** → **guided creation when needed** → **contextual adjust second** → **Advanced third**. **+ Template** = guided create-time starter (**One / Two / Three / Custom**). **Templates → Adjust packages** = post-create package-option management (Copy existing default, Start blank shell, reorder, remove from setup, set starting package / R1 `is_default`) — **does not create new templates**. **Templates library lifecycle (R2A)** = archive/restore reusable setups (`proposal_templates.status` + synced `active`); **not** package-option soft-remove. **Preferred setup (R2B)** = which reusable setup FieldDive suggests first for a company workflow (`company_template_preferences`; initial scope `roofing` / `proposal` / `preferred_setup`); **separate from** package-option `is_default` (UI may say **Starting package**). **Job Card** = select **preferred** eligible setup first when set, else starter / first active eligible; then select one package option only when 2+ active options (R1 default/sort). **Builder** = draft `proposal_options` truth after create (not live template options). **Preview/Public** = frozen `proposal_options` snapshot truth (not gated by live template status). Correct flow: **Job Card → Proposals → + Proposal → Measurement → Template → Package → Review → Builder → Preview → Send/share**.
+- **Prior docs checkpoint:** **`ed07955`** — `docs: record T.9 visual polish V1 checkpoint`.
+- **Working tree:** Clean before this docs edit (code at **`ed50768`** committed; no app/test/migration changes in this docs pass).
+- **Accepted:** **R3A0 / R3A / R3B customer proposal + request system** — public customer proposal base template (R3A0); setup-owned packet wording editor with Project notes public-loop fix (R3A); non-binding customer package request write path (R3B1/R3B2); contractor request review on Job Card / Activity / Preview / Builder (R3B3). See **§6BO.13.4.9 R3**. Prior **T.9 Visual Polish V1** remains accepted at **`f042ab2`** / docs **`ed07955`**. Prior **R2B / R2A / R1 / Template Setup Authorship V1 / Optional Upgrade Truth** remain accepted and must not be reopened.
+- **Next:** Product-review **R3B3** in the app, then plan **R3C formal accept / pay / schedule lifecycle** or **R3B4** contractor email/notification on new request. Do **not** treat customer request as acceptance, package selection, job won, ready-to-schedule, or Jobs Board movement. Do **not** reopen T.9 Visual Polish V1, Optional Upgrade Truth, package-description SoT, R1/R2A/R2B, R3A0/R3A wording ownership, or R3B1–R3B3 request semantics.
+- **Product model (locked):** **Templates** = FieldDive **prepared-setup command surface** for reusable setups and package options — **not** an admin table, stacked setup console, or bolted-on CRUD panel. Hierarchy: **prepared setup first** → **guided creation when needed** → **contextual adjust second** → **Advanced third**. **+ Template** = guided create-time starter (**One / Two / Three / Custom**). **Templates → Adjust packages** = post-create package-option management (Copy existing default, Start blank shell, reorder, remove from setup, set starting package / R1 `is_default`) — **does not create new templates**. **Templates library lifecycle (R2A)** = archive/restore reusable setups (`proposal_templates.status` + synced `active`); **not** package-option soft-remove. **Preferred setup (R2B)** = which reusable setup FieldDive suggests first for a company workflow (`company_template_preferences`; initial scope `roofing` / `proposal` / `preferred_setup`); **separate from** package-option `is_default` (UI may say **Starting package**). **Templates Proposal packet wording (R3A)** = setup-owned reusable defaults copied into proposal pages; **Builder** owns proposal-specific wording after create; **Preview/Public** render copied/frozen proposal truth (no template save-back). **Public packet (R3A0)** = FieldDive customer-facing proposal structure with request/ask CTAs (base template accepted, not final design). **Customer package request (R3B)** = non-binding contractor-attention signal (`proposal_customer_requests`); **not** accept / approve / sign / pay / schedule / Jobs Board stage move. **Job Card** = select **preferred** eligible setup first when set, else starter / first active eligible; then select one package option only when 2+ active options (R1 default/sort); Proposals tab + Activity rail surface open customer requests. **Builder** = draft `proposal_options` truth after create (not live template options) + compact request banner. **Preview/Public** = frozen `proposal_options` snapshot truth (not gated by live template status); Preview Activity shows customer requests separately from delivery history. Correct flow: **Job Card → Proposals → + Proposal → Measurement → Template → Package → Review → Builder → Preview → Send/share**; customer may **Request this package** (non-binding) → contractor **review / mark seen / dismiss**.
 - **Historical note (Preview + Send):** Checkpoint **`8bb19b4`** / docs **`86739d0`** unify the contractor Preview header, readiness, actions, and customer proposal into one surface; elevate the customer packet; and rework Send/sharing into a premium delivery composer. Send/link/delivery APIs, readiness view-model, and unsupported (Sign/PDF/payment/QR/tracking) behavior unchanged.
 - **Historical note (Builder continuity):** Checkpoint **`a49b346`** aligns Builder with that Preview direction as contractor edit/review mode: premium command header; integrated section navigation (not a boxed tray); selected Enhanced package card with Change package vs Edit scope clarified; estimate + totals on one surface; cleaned row actions + preserved inline Edit qty; Edit scope drawer as contractor quantity review with accordion open/switch/collapse; intentional removed-lines collapsible. Protected systems untouched.
 
-**Trust order:** Header/current checkpoint → **§6BO.13.4.9 T.9 Visual Polish V1** (accepted Templates prepared-setup command surface polish) → **§6BO.13.4.9 T.9 R2B** (accepted R2B preferred setup workflow) → **§6BO.13.4.9 T.9 R2A** (accepted R2A template archive/restore) → **§6BO.13.4.9 T.9 R1** (accepted R1 package-option structure authorship + soft-remove) → **§6BO.13.4.9 T.9** (accepted Template Setup Authorship V1 + package description SoT through freeze/public + remaining Templates roadmap follow-ups) → **§6BO.13.4.9 T.8** (accepted Optional Upgrade Truth + live repair/freeze/public proof) → **§6BO.13.4.9 T.7** (Template Flow V1 foundation + Job Card selected-template eligibility) → **§6BO.13** (approved page-by-page UI flow roadmap + P0 implementation sequence — **supersedes separate Command Center language**) → **§6BM** / **§6BN** (R18 letter-phase roadmap + R18C–R18D3C implementation history) → **§6BO** / **§6BO.11** / **§6BO.12** (completed remediation side-track + **approved Stage C policy** + **operating-flow audit sequencing — complete; outcome in §6BO.13**) → **§6BL** → **§11 override**. Authorship V1 send/freeze smoke used real **`/api/proposals/send-prep`**; Optional Upgrade Truth freeze/public smoke used local-only **`USE_PROPOSAL_SEND_FREEZE_RPC=1`** in `.env.local` (gitignored, not committed). **Do not proceed** to docs-only or next feature work unless working tree is clean. **Still do not** mutate existing sent/signed/superseded snapshots, move Jobs Board cards, add Job Card send activity, enable PDF/Sign/Payment, or add webhooks unless separately approved.
+**Trust order:** Header/current checkpoint → **§6BO.13.4.9 R3** (accepted R3A0/R3A/R3B customer proposal + request system) → **§6BO.13.4.9 T.9 Visual Polish V1** (accepted Templates prepared-setup command surface polish) → **§6BO.13.4.9 T.9 R2B** (accepted R2B preferred setup workflow) → **§6BO.13.4.9 T.9 R2A** (accepted R2A template archive/restore) → **§6BO.13.4.9 T.9 R1** (accepted R1 package-option structure authorship + soft-remove) → **§6BO.13.4.9 T.9** (accepted Template Setup Authorship V1 + package description SoT through freeze/public + remaining Templates roadmap follow-ups) → **§6BO.13.4.9 T.8** (accepted Optional Upgrade Truth + live repair/freeze/public proof) → **§6BO.13.4.9 T.7** (Template Flow V1 foundation + Job Card selected-template eligibility) → **§6BO.13** (approved page-by-page UI flow roadmap + P0 implementation sequence — **supersedes separate Command Center language**) → **§6BM** / **§6BN** (R18 letter-phase roadmap + R18C–R18D3C implementation history) → **§6BO** / **§6BO.11** / **§6BO.12** (completed remediation side-track + **approved Stage C policy** + **operating-flow audit sequencing — complete; outcome in §6BO.13**) → **§6BL** → **§11 override**. Authorship V1 send/freeze smoke used real **`/api/proposals/send-prep`**; Optional Upgrade Truth freeze/public smoke used local-only **`USE_PROPOSAL_SEND_FREEZE_RPC=1`** in `.env.local` (gitignored, not committed). **Do not proceed** to docs-only or next feature work unless working tree is clean. **Still do not** mutate existing sent/signed/superseded snapshots, move Jobs Board cards from customer request/view, treat request as acceptance, enable PDF/Sign/Payment, or add webhooks unless separately approved.
 
 **DB-first foundation is live** (§6AD). **3J3E option selection persists** (§6AE). **Pricing trust hardening complete** (§6AF). **3J4C document-first Builder complete** (§6AG) — Estimate page renders the actual proposal document inline (package selector, sections, line items, totals); right rail is a contextual **Proposal Helper** inspector; old workspace tabs and Overview panel **removed**. **R16A** (§6AX) removed the amber **Preview-unlock blocker banner** from the Estimate **canvas**; pricing/blocking guidance remains in the rail. **3J4D** refined Estimate line readability (§6AH). **3J4E** refined package/options surface inside Estimate (§6AI). **3J4F** extended Builder to customer-facing text pages — Terms, Warranty, Project Overview, custom_text render persisted `body_markdown` when present (§6AJ). **R14** adds display-time `{{token_name}}` merge on those text pages from frozen `proposalDocumentContext` + R13 resolver (`f359ad4`, §6AW) — stored `body_markdown` unchanged; no write-back. **R4–R6** template content editor on `/tools/roofing/templates` **complete** (`9db2030`–`3c6214c`). **R7** light global IA nav **complete** (`05b9c54`). **R8** light Jobs Board identity **complete** (`1191ddd`). **R9** Job Card create/open draft flow **satisfied** (`1915b2d` + pre-R10 P1 at `d0ba188`). **R10** template structure + estimate settings **complete** (`bc42b1e`–`b3dd904`, §6AQ). **R11** company branding Settings **complete** (`0146dac`–`139e8a3`, §6AR). **R11c** stamps company core + branding into `proposal_versions.context_echo` at new draft create only (`29722a0`, §6AS) — **no Builder cover UI**. **R12** stamps DB-truth customer identity into `proposal_versions.context_echo` at new draft create only (`31059e3`, §6AT) — **no Job Card UI changes, no Builder customer display**. **R13** adds pure frozen document token foundation (`e40db30`, §6AU) — registry, `ProposalDocumentContext`, resolver. **R15** adds read-only branded **Cover** tab in Proposal Builder (`ab5a400`, §6AV) — consumes `proposalDocumentContext` + resolver; **not** Preview/PDF/send/sign/payment. **R14** wires body text pages to the same frozen context at display time (`f359ad4`, §6AW). **R16A** separates contractor workspace chrome from customer document IA (`18cebca`, §6AX) — customer-logical page strip order, workspace header, simplified body shell; **not** Preview/PDF/lifecycle/hub. **R16B** adds per-proposal draft body authoring for text pages (`589f5a0`, §6AY) — raw `body_markdown` persist, R14 display merge only, Estimate line-items-only de-duplication on persisted path; **not** token picker, page visibility, media, Preview, or lifecycle. **R16C1** adds Builder strip overflow page navigation (`967f0de`, §6BA) — More pages menu for persisted overflow pages by `page.id`, dirty-edit guard preserved, portal menu fix; **not** page visibility, Preview, or lifecycle. **R16C2** adds registry-driven document token picker in the R16B editor (`0cf76d2`, §6BB) — Insert field menu inserts raw `{{token_name}}` only; R14 display-time merge unchanged; save persists raw `body_markdown` only; **not** page visibility, Preview, or lifecycle. **R16C3** adds DB-backed proposal page visibility hide-show foundation (`25f1375`, §6BC) — toggles existing `proposal_pages.visible_to_customer` via `updateDraftProposalPageVisibility`; hidden pages remain contractor-visible and editable in Builder; Cover/Estimate required; `getCustomerPreviewPages` R17 contract helper only; **not** Preview, customer route, PDF, or lifecycle. **R17A/R17B** adds authenticated contractor Customer Preview foundation (`8ac2bcb`, §6BE) — pure `proposalCustomerPreviewViewModel` + `/tools/roofing/proposals/preview?job=&proposal=` route; header Preview enabled when persisted draft loads; dirty-edit guard before Preview navigation; **not** public/tokenized customer access, PDF, Send, Sign, Payment, or lifecycle. **R17C1** adds Preview Estimate document presentation layer (`9c2244a`, §6BF) — pure `proposalCustomerEstimatePresenter` + Preview-only estimate UI; shared `proposalPackagePresentation`; Preview Estimate no longer imports Builder workbench table components; **not** R17C2 Builder workbench hierarchy (now complete at `3e65774`, §6BG), R17C3 typography polish, R18, PDF, Send, Sign, Payment, or lifecycle. **R17C2 Phase 1** adds pure Builder workbench estimate presenter (`3c04322`, §6BG) — `proposalBuilderWorkbenchEstimatePresenter` DTO only; no UI. **R17C2 Phase 2** adds zoned Builder Estimate workbench UI + scope review / hard blocker split + gated Edit Option shell (`3e65774`, §6BG) — **not** R17D scope decision backend, R17C3 typography, R18, PDF, Send, Sign, Payment, or lifecycle. **R17D Phase 1** adds persisted scope decision overlay + merge-on-refresh foundation (`43c83a2`, §6BH) — `proposal_option_scope_decisions` migration (`20260618_009`); **`manual_quantity` proven in tests**; zero-decision refresh unchanged; migration **appears applied** on configured project per §6BI. **R17D Phase 2** adds manual quantity UI/API — first real Edit Option action wired in Builder (`f5712ff`, §6BI); **`manual_quantity` only**; other Edit Option actions remain disabled; **full post-Phase-2 audit passed** (§6BI); **not** R17C3 typography, R18, PDF, Send, Sign, Payment, or lifecycle. Main workflow: **Job Board → DB job card (`job=`) → Create proposal / Open proposal → create/reuse DB proposal draft → Builder (`job=` + `proposal=`) → package selection persists to DB; refresh draft pricing when measurement changes**. Legacy `loadSaved=` / `currentSaved` / board-origin paths are **preserved but separated** — they **cannot create DB proposals directly**. **DB proposal math uses the new spine only** (`measurement_records` → `proposalQuantityResolver` → `proposalPricingEngine` → snapshots) — **not** legacy saved-estimate / Core-Enhanced-Premium estimator math. **`createDraftProposal`** runs from Job Card **Create proposal** only when checklist + pricing gates pass; **Builder reads** persisted drafts via **`getDraftGraph`** + **`proposalDraftGraphAdapter`** when `?proposal=` is present — **no Builder create path**, **no silent fallback** on invalid `proposal=`. **Do not** persist placeholder/unconfigured pricing policy. **Catalog custom delete/deactivate** is **not implemented** and remains a **separate later scope**.
 
@@ -64,7 +65,12 @@
 
 | Commit | Summary |
 |--------|---------|
-| *(this docs commit)* | **Docs** — Record accepted T.9 Visual Polish V1 (`f042ab2`): Templates prepared-setup command surface; quieter library picker; Preferred in selected header; Starting package copy; smoke fixture hide; packet landing pad; remaining non-blockers; next = R3 content editor planning (§6BO.13.4.9 T.9 Visual Polish V1) |
+| *(this docs commit)* | **Docs** — Record accepted R3A0/R3A/R3B customer proposal + request system (`ed50768` / `de61b35` / `4ef778d` / `7eeed34`): public base template; setup-owned packet wording; non-binding customer request; contractor review; site-wide request≠accept decision (§6BO.13.4.9 R3) |
+| `ed50768` | **R3B3** — contractor customer request review: Job Card Proposals + Activity, Preview Activity, Builder banner; mark seen/dismiss via `update_proposal_customer_request_status_v1`; migration `20260723_034` live-applied on `rhquhnujjnzjhweypavd`; **30/30** focused tests; live smoke seen→dismissed; no proposal/job/package/board mutation |
+| `de61b35` | **R3B1/R3B2** — customer package request flow: `proposal_customer_requests` + `record_proposal_customer_request_v1`; public modal/API; non-binding intent only; migration `20260723_033` live-applied on `rhquhnujjnzjhweypavd`; live row `5aa13589-…` |
+| `4ef778d` | **R3A** — setup-owned packet wording editor: Templates defaults → Builder proposal pages → Preview/Public; Project notes public-loop fix; no save-back-to-template; existing drafts/sent not mutated by template edits |
+| `7eeed34` | **R3A0** — customer proposal base template: brand bar, compact hero, recommendation/investment, request/ask CTAs, included scope, upgrades, warranty/project notes/terms accordion; no Permit/Admin Fees main card; no Accept/Approve/Sign/Pay |
+| `ed07955` | **Docs** — Record accepted T.9 Visual Polish V1 (`f042ab2`) (§6BO.13.4.9 T.9 Visual Polish V1) |
 | `f042ab2` | **T.9 Visual Polish V1** — refine Templates command surface: library as prepared-setup picker; reduced badge/action clutter; Preferred consolidated into selected header; calmer Adjust packages + **Starting package** presentation (R1 `is_default` preserved); prepared packet landing; smoke/fixture hide via `contractorFixtureIsolation` (hide-not-delete); **79/79** focused tests; UI/presentation only; protected systems untouched |
 | `8c5bac4` | **Docs** — Record R2B preferred setup workflow checkpoint (§6BO.13.4.9 T.9 R2B) |
 | `928a21d` | **R2B preferred setup workflow** — `company_template_preferences` + preference store; Templates Make preferred / Clear preferred / Preferred badge; Job Card preferred-first template resolution; archive preferred clears preference; restore does not auto-prefer; migration `20260722_032` live-applied on `rhquhnujjnzjhweypavd`; **55/55** focused tests; live preferred/archive/restore smoke PASS; protected systems untouched |
@@ -12821,7 +12827,7 @@ Package rule from **N** remains law: pre-draft package on create modal; post-dra
 - Future Template Flow V1 slices: package rename/edit polish; content/pages guided step; included-work grouping/presentation polish; advanced-editing containment; future return-to-job context if template setup is launched from proposal flow.
 - Later **Stage D Preview/Public parity test lock** remains parked and does not block current Template Flow decisions.
 
-**Next recommended decision (superseded):** Optional Upgrade Truth is accepted at **T.8**. Template Setup Authorship V1 is accepted at **T.9**. R1 package-option structure authorship is accepted at **T.9 R1**. R2A template archive/restore is accepted at **T.9 R2A**. R2B preferred setup is accepted at **T.9 R2B**. T.9 Visual Polish V1 is accepted at **`f042ab2`**. Continue Templates roadmap from **R3 proposal packet/content editor** and remaining **T.9** follow-ups.
+**Next recommended decision (superseded):** Optional Upgrade Truth is accepted at **T.8**. Template Setup Authorship V1 is accepted at **T.9**. R1 package-option structure authorship is accepted at **T.9 R1**. R2A template archive/restore is accepted at **T.9 R2A**. R2B preferred setup is accepted at **T.9 R2B**. T.9 Visual Polish V1 is accepted at **`f042ab2`** / docs **`ed07955`**. R3A0/R3A/R3B are accepted at **§6BO.13.4.9 R3**. Continue from **R3C lifecycle planning** or **R3B4 notifications** after product-review of R3B3 — not from reopening R3 request semantics or Templates Visual Polish V1.
 
 ###### T.8 Optional Upgrade Truth — ACCEPTED (2026-07-21)
 
@@ -12908,7 +12914,7 @@ Package rule from **N** remains law: pre-draft package on create modal; post-dra
 - No PDF, signature, or payment behavior changed.
 - No push.
 
-**Template Flow V1 continuation — next (superseded):** Optional Upgrade Truth and package-description SoT are accepted at **T.8** and **T.9**. R1 package-option structure authorship is accepted at **T.9 R1**. R2A template archive/restore is accepted at **T.9 R2A**. R2B preferred setup is accepted at **T.9 R2B**. T.9 Visual Polish V1 is accepted at **`f042ab2`**. Continue Templates roadmap from **R3** and remaining **§6BO.13.4.9 T.9** follow-ups — not from reopening upgrade truth, description persistence, R1 soft-remove / package-option model, R2A archive/restore semantics, R2B preferred-setup vs package-option-default distinction, or Visual Polish V1.
+**Template Flow V1 continuation — next (superseded):** Optional Upgrade Truth and package-description SoT are accepted at **T.8** and **T.9**. R1 package-option structure authorship is accepted at **T.9 R1**. R2A template archive/restore is accepted at **T.9 R2A**. R2B preferred setup is accepted at **T.9 R2B**. T.9 Visual Polish V1 is accepted at **`f042ab2`** / docs **`ed07955`**. R3A0/R3A/R3B are accepted at **§6BO.13.4.9 R3**. Continue from **R3C / R3B4** after R3B3 product review — not from reopening upgrade truth, description persistence, R1 soft-remove / package-option model, R2A archive/restore semantics, R2B preferred-setup vs package-option-default distinction, Visual Polish V1, or R3 request≠accept semantics.
 
 ###### T.9 Template Setup Authorship V1 — ACCEPTED (2026-07-22)
 
@@ -12916,7 +12922,7 @@ Package rule from **N** remains law: pre-draft package on create modal; post-dra
 - **Code:** **`ab3a776`** — `feat(proposals): add guided template package authorship`.
 - **Previous docs:** **`4b9e711`** — `docs: record optional upgrade truth acceptance checkpoint`.
 - **Docs:** **`82573e0`** — `docs: record Template Setup Authorship V1 acceptance checkpoint`.
-- **Working tree:** was clean at Authorship V1 docs commit; superseded for current resume by **T.9 Visual Polish V1** at **`f042ab2`**.
+- **Working tree:** was clean at Authorship V1 docs commit; superseded for current resume by **§6BO.13.4.9 R3**.
 
 **Acceptance boundary:** **Template Setup Authorship V1 accepted.** This is **not** full Templates completion, **not** complete package CRUD (R1 later adds structure authorship soft-remove), **not** complete content editor, and **not** complete library controls (archive/restore later R2A; preferred setup later R2B).
 
@@ -13007,7 +13013,7 @@ Package rule from **N** remains law: pre-draft package on create modal; post-dra
 - Broader page rhythm/premium polish if needed.
 - Measurement blocker specificity / Job Card setup escape links (if not already completed elsewhere).
 
-**Next recommended work (superseded by T.9 Visual Polish V1):** See **T.9 Visual Polish V1** for current resume. Remaining Templates roadmap continues from **R3** without reopening Optional Upgrade Truth, package-description SoT, R1, R2A archive/restore, R2B preferred-setup semantics, or Visual Polish V1.
+**Next recommended work (superseded by §6BO.13.4.9 R3):** See **§6BO.13.4.9 R3** for current resume. Remaining Templates roadmap continues from **R3C / R3B4** and remaining **T.9** follow-ups without reopening Optional Upgrade Truth, package-description SoT, R1, R2A archive/restore, R2B preferred-setup semantics, Visual Polish V1, or R3 request≠accept.
 
 ###### T.9 R1 Package-option structure authorship — ACCEPTED (2026-07-22)
 
@@ -13015,7 +13021,7 @@ Package rule from **N** remains law: pre-draft package on create modal; post-dra
 - **Code:** **`6e1253f`** — `feat(proposals): add R1 package-option structure authorship`.
 - **Previous docs:** **`82573e0`** — `docs: record Template Setup Authorship V1 acceptance checkpoint`.
 - **Docs:** **`51fc3c9`** — `docs: record R1 package-option structure authorship checkpoint`.
-- **Working tree:** was clean at R1 docs commit; superseded for current resume by **T.9 Visual Polish V1** at **`f042ab2`**.
+- **Working tree:** was clean at R1 docs commit; superseded for current resume by **§6BO.13.4.9 R3**.
 
 **Acceptance boundary:** **R1 accepted as package-option structure authorship.** It does **not** complete:
 - full Templates lifecycle
@@ -13100,7 +13106,7 @@ Package rule from **N** remains law: pre-draft package on create modal; post-dra
 - Library hygiene
 - Mobile polish
 
-**Next recommended work (superseded by T.9 Visual Polish V1):** See **T.9 Visual Polish V1** for current resume. Do **not** reopen Optional Upgrade Truth, package-description SoT, R1 package-option / soft-remove model, R2A archive/restore, R2B preferred-setup semantics, or Visual Polish V1.
+**Next recommended work (superseded by §6BO.13.4.9 R3):** See **§6BO.13.4.9 R3** for current resume. Do **not** reopen Optional Upgrade Truth, package-description SoT, R1 package-option / soft-remove model, R2A archive/restore, R2B preferred-setup semantics, Visual Polish V1, or R3 request≠accept.
 
 ###### T.9 R2A Template archive / restore lifecycle — ACCEPTED (2026-07-22)
 
@@ -13108,7 +13114,7 @@ Package rule from **N** remains law: pre-draft package on create modal; post-dra
 - **Code:** **`c93a843`** — `feat(proposals): add R2A template archive restore lifecycle`.
 - **Docs:** **`6d53906`** — `docs: record R2A template archive restore checkpoint`.
 - **Previous docs:** **`51fc3c9`** — `docs: record R1 package-option structure authorship checkpoint`.
-- **Working tree:** was clean at R2A docs commit; superseded for current resume by **T.9 Visual Polish V1** at **`f042ab2`**.
+- **Working tree:** was clean at R2A docs commit; superseded for current resume by **§6BO.13.4.9 R3**.
 
 **Acceptance boundary:** **R2A is accepted as template archive/restore lifecycle only.** It does **not** include:
 - preferred setup / company default template (**R2B** — now accepted separately)
@@ -13189,7 +13195,7 @@ Package rule from **N** remains law: pre-draft package on create modal; post-dra
 - Library hygiene if still needed
 - Mobile polish
 
-**Next recommended work (superseded by T.9 Visual Polish V1):** See **T.9 Visual Polish V1** for current resume. Do **not** reopen Optional Upgrade Truth, package-description SoT, R1 soft-remove / package-option model, R2A archive/restore semantics, R2B preferred-setup semantics, or Visual Polish V1.
+**Next recommended work (superseded by §6BO.13.4.9 R3):** See **§6BO.13.4.9 R3** for current resume. Do **not** reopen Optional Upgrade Truth, package-description SoT, R1 soft-remove / package-option model, R2A archive/restore semantics, R2B preferred-setup semantics, Visual Polish V1, or R3 request≠accept.
 
 ###### T.9 R2B Preferred setup workflow — ACCEPTED (2026-07-22)
 
@@ -13197,7 +13203,7 @@ Package rule from **N** remains law: pre-draft package on create modal; post-dra
 - **Code:** **`928a21d`** — `feat(proposals): add R2B preferred setup workflow`.
 - **Docs:** **`8c5bac4`** — `docs: record R2B preferred setup workflow checkpoint`.
 - **Previous docs:** **`6d53906`** — `docs: record R2A template archive restore checkpoint`.
-- **Working tree:** was clean at R2B docs commit; superseded for current resume by **T.9 Visual Polish V1** at **`f042ab2`**.
+- **Working tree:** was clean at R2B docs commit; superseded for current resume by **§6BO.13.4.9 R3**.
 
 **Acceptance boundary:** **R2B is accepted as Preferred setup workflow for roofing proposals.** It does **not** include:
 - duplicate template
@@ -13283,18 +13289,18 @@ Incorrect: using package-option `is_default` for preferred setup, or adding `pro
 - Library hygiene if still needed
 - Mobile polish
 
-**Next recommended work (superseded by T.9 Visual Polish V1):** See **T.9 Visual Polish V1** for current resume. Do **not** reopen Optional Upgrade Truth, package-description SoT, R1 soft-remove / package-option model, R2A archive/restore semantics, or R2B preferred-setup vs package-option-default distinction.
+**Next recommended work (superseded by §6BO.13.4.9 R3):** See **§6BO.13.4.9 R3** for current resume. Do **not** reopen Optional Upgrade Truth, package-description SoT, R1 soft-remove / package-option model, R2A archive/restore semantics, or R2B preferred-setup vs package-option-default distinction.
 
 ###### T.9 Visual Polish V1 — Templates prepared-setup command surface — ACCEPTED (2026-07-22)
 
 **Checkpoints:**
 - **Code:** **`f042ab2`** — `polish(proposals): refine templates command surface`.
 - **Previous docs:** **`8c5bac4`** — `docs: record R2B preferred setup workflow checkpoint`.
-- **Docs:** pending this docs commit.
-- **Working tree:** clean before this docs-only edit (code committed at **`f042ab2`**; no app/test/migration changes in this docs pass).
+- **Docs:** **`ed07955`** — `docs: record T.9 visual polish V1 checkpoint`.
+- **Working tree:** was clean at T.9 Visual Polish V1 docs commit; superseded for current resume by **§6BO.13.4.9 R3**.
 
 **Acceptance boundary:** **T.9 Visual Polish V1 is accepted as product-surface polish only** for the Templates command surface. It does **not** include:
-- R3 proposal packet / content editor
+- ~~R3 proposal packet / content editor~~ — **accepted later in §6BO.13.4.9 R3** (R3A0/R3A/R3B)
 - R5 estimate display editor
 - package model conversion
 - duplicate template
@@ -13362,7 +13368,7 @@ Not:
 
 **Remaining non-blockers (do not reopen T.9 Visual Polish V1):**
 - Adjust packages can still feel dense with 4+ packages
-- Packet remains landing pad until **R3**
+- ~~Packet remains landing pad until **R3**~~ — **R3A0/R3A accepted** (§6BO.13.4.9 R3); further packet visual polish may continue without reopening Visual Polish V1
 - Archived filter sticky selected active row remains existing behavior
 - Page title **“Proposal templates”** may be revisited later for stronger FieldDive language
 - Included work list can receive future polish if it starts feeling too table-like
@@ -13370,22 +13376,122 @@ Not:
 These are **non-blockers**. Do **not** reopen Visual Polish V1 for them.
 
 **Remaining likely T.9 follow-ups (Templates not complete):**
-- **R3** Proposal packet / content editor
+- ~~**R3** Proposal packet / content editor~~ — **accepted in §6BO.13.4.9 R3**
 - Estimate display editor
 - Package model conversion simple/single/multi after create, if still desired
 - Safe section delete
 - Library hygiene if still needed
 - Mobile polish
 
-**Next recommended work:** **R3 Proposal Packet / Content Editor** planning and implementation from the polished command surface:
-- Customer-facing packet/content editor
-- Prepared section editing
-- Overview / Estimate / Optional upgrades / Scope notes / Warranty / Terms
-- No buried “Edit wording in Advanced” as the primary path
-- Maintain Builder draft truth and Preview/Public frozen truth
-- No pricing / math / send / public / truth-system reopen
+**Next recommended work (superseded by §6BO.13.4.9 R3):** See **R3** for current resume (product-review R3B3, then R3C lifecycle or R3B4 notifications). Do **not** reopen T.9 Visual Polish V1, Optional Upgrade Truth, package-description SoT, R1 soft-remove / package-option model, R2A archive/restore semantics, or R2B preferred-setup vs package-option-default distinction.
 
-Do **not** reopen T.9 Visual Polish V1, Optional Upgrade Truth, package-description SoT, R1 soft-remove / package-option model, R2A archive/restore semantics, or R2B preferred-setup vs package-option-default distinction.
+###### R3 — Customer proposal base template + setup-owned wording + package request system — ACCEPTED (2026-07-22)
+
+**Checkpoints:**
+- **Code (latest):** **`ed50768`** — `feat(proposals): add contractor customer request review` (R3B3).
+- **Prior locked code:** **`de61b35`** (R3B1/R3B2), **`4ef778d`** (R3A), **`7eeed34`** (R3A0).
+- **Prior docs:** **`ed07955`** — `docs: record T.9 visual polish V1 checkpoint`.
+- **Docs:** pending this docs commit.
+- **Working tree:** clean before this docs-only edit (code committed at **`ed50768`**; no app/test/migration changes in this docs pass).
+
+**Acceptance boundary:** R3A0/R3A/R3B are accepted as the customer proposal presentation + non-binding request/review loop. This does **not** include formal accept, signature, payment, scheduling, Jobs Board stage movement, package apply from request, alternate-package request expansion, optional-upgrade request, or contractor email notify (those are follow-ups).
+
+##### R3A0 — Customer proposal base template (`7eeed34`)
+
+Public `/p/[token]` now uses a FieldDive customer-facing proposal structure:
+- Contractor brand bar
+- Compact hero
+- Recommendation / investment card
+- Request this package / Ask a question CTAs
+- Included scope cards
+- Selected upgrades
+- Warranty / Project notes / Terms accordion
+- **No** Permit/Admin Fees as a main included-scope card
+- **No** Accept / Approve / Sign / Pay language or affordances
+- Base template **accepted**, not final design
+
+##### R3A — Setup-owned packet wording editor (`4ef778d`)
+
+Ownership model (locked):
+- **Templates** Proposal packet editor = reusable setup defaults
+- **Builder** = copied proposal-specific wording after create
+- **Preview / Public** = render copied (and later frozen) proposal truth
+- Wired slots: Project overview, Project notes, Warranty, Terms
+- Project notes public-loop gap closed (presenter allowlist + public accordion row)
+- Preview and Public agree on customer-facing wording surfaces
+- **No** Builder save-back-to-template
+- Template edits do **not** mutate existing drafts / sent proposals
+
+##### R3B1 / R3B2 — Customer package request (`de61b35`)
+
+Meaning (locked): **“Request this package”** = non-binding customer intent (“please review/confirm”), **not** acceptance.
+
+Shipped:
+- Durable table `proposal_customer_requests`
+- RPC `record_proposal_customer_request_v1` (service_role; token-hashed)
+- Public `POST /api/proposals/customer-request`
+- Public request modal + success copy (“Request sent. The contractor will review and confirm details.”)
+- Request row created from public token; company/proposal/version resolved server-side
+- Does **not** mutate `proposals.status`, selected package, frozen options, upgrades, payment, signature, `proposal_events`, or Jobs Board
+- Migration **`20260723_033`** live-applied on **`rhquhnujjnzjhweypavd`**
+- Live request row proof: **`5aa13589-cb2a-4a1d-aa30-426b0805e196`** (Standard; later reviewed in R3B3)
+
+##### R3B3 — Contractor customer request review (`ed50768`)
+
+Shipped:
+- Migration **`20260723_034`** live-applied on **`rhquhnujjnzjhweypavd`**
+- RPC `update_proposal_customer_request_status_v1` (authenticated + company membership; transitions `new→seen|dismissed`, `seen→dismissed`; rejects accepted/approved/etc.)
+- Surfaces: Job Card Proposals row; Job Card Activity rail; Preview Send drawer Activity; Builder compact banner
+- Contractor actions: Mark seen / Dismiss
+- Request status changes **only** on `proposal_customer_requests.status`
+- Does **not** change proposal status, job stage, selected package, optional upgrades, or Jobs Board column
+- No accept / sign / pay / schedule
+- Live smoke: request **`5aa13589-…`** moved **seen → dismissed**; proposal **`0bb17a11-…`** stayed **`draft`**; selected_option_id unchanged; job **`9cd2c4ac-…`** stayed stage **`intake`**; console **0** errors
+- Tests: **30/30** (`proposalCustomerRequestReview` + `proposalCustomerRequestPersistence`)
+
+##### Site-wide workflow decision (locked)
+
+| Statement | Rule |
+|-----------|------|
+| Customer request | Contractor **attention / activity** signal |
+| Customer request ≠ | Proposal accepted |
+| Customer request ≠ | Package selected / applied |
+| Customer request ≠ | Job won |
+| Customer request ≠ | Ready to schedule |
+| Customer request ≠ | Jobs Board stage move |
+| Jobs Board movement | Deferred until formal lifecycle / accept / pay / schedule model is approved |
+
+Staged model retained for later planning:
+1. Customer Request (R3B) — record + attention
+2. Contractor Review (R3B3) — seen / dismiss / contact / revise manually
+3. Formal Acceptance (future R3C+)
+4. Deposit / Payment (future)
+5. Scheduling / Production (future)
+
+##### Follow-ups (do not reopen R3A0/R3A/R3B1–R3B3)
+
+- **R3B4** contractor email / notification on new request
+- Ask-question durable capture (schema intent reserved; UI still mailto)
+- Alternate-package request from comparison cards
+- Jobs Board attention badge **only after** site-wide board model is approved (badge ≠ column move)
+- Formal accept / pay / schedule path later as its **own lifecycle system**
+- Fresh public request may be needed for demos — live smoke row **`5aa13589-…`** is now **dismissed**
+- Remaining T.9 Templates follow-ups (estimate display editor, model conversion, safe section delete, library hygiene, mobile polish)
+
+##### Protected systems (untouched by R3A0/R3A/R3B)
+
+- Pricing / math / quantity / totals
+- Optional Upgrade Truth
+- R1 package-option truth
+- R2A archive / restore
+- R2B preferred setup
+- Builder package chooser / selected package mutation from request
+- Freeze / send / resolve behavior (except additive request validation on public token)
+- Public token / security model except additive request path
+- PDF / sign / payment
+- Jobs Board stage / column movement
+
+**Next recommended work:** Product-review **R3B3** in the app, then plan **R3C** formal accept/pay/schedule lifecycle **or** **R3B4** notifications. Do **not** reopen R3A0/R3A wording ownership, R3B request≠accept semantics, T.9 Visual Polish V1, Optional Upgrade Truth, package-description SoT, R1/R2A/R2B.
 
 #### 13.4.6 Integrated Catalog → Proposal workflow research + FieldDive flow design — COMPLETE (2026-07-17)
 
@@ -14872,7 +14978,8 @@ Treat as **drift** if a session:
 
 ## Changelog (handoff doc only)
 
-- **2026-07-22:** **T.9 Visual Polish V1 acceptance checkpoint** (**§6BO.13.4.9 T.9 Visual Polish V1**) — code **`f042ab2`**; Templates prepared-setup command surface polish; quieter library picker; Preferred consolidated into selected header; Starting package presentation (R1 `is_default` preserved); prepared packet landing; smoke/fixture hide via `contractorFixtureIsolation` (hide-not-delete); **79/79** focused tests; product screenshot review accepted; protected systems untouched. **Non-blockers:** Adjust packages density with 4+ packages; packet landing until R3; archived sticky selected row; page title revisit; included-work polish later — **do not reopen Visual Polish V1**. **Next:** **R3 Proposal Packet / Content Editor** planning from polished surface — not Optional Upgrade Truth, package-description SoT, R1, R2A, R2B, or Visual Polish reopen.
+- **2026-07-22:** **R3A0 / R3A / R3B customer proposal + request system acceptance checkpoint** (**§6BO.13.4.9 R3**) — code **`ed50768`** / **`de61b35`** / **`4ef778d`** / **`7eeed34`**; prior docs **`ed07955`**. Public customer proposal base template; setup-owned packet wording + Project notes public-loop fix; non-binding `proposal_customer_requests` + public modal; contractor review (Job Card / Activity / Preview / Builder) with seen/dismiss; migrations **`20260723_033`** + **`20260723_034`** live-applied on **`rhquhnujjnzjhweypavd`**; live request **`5aa13589-…`** seen→dismissed; proposal stayed draft; job stayed intake; **30/30** focused R3B tests. **Locked:** request = attention ≠ accept / package select / job won / ready-to-schedule / Jobs Board move. **Next:** product-review R3B3, then R3C lifecycle or R3B4 notify — not reopen R3A/R3B, Visual Polish V1, Optional Upgrade Truth, R1/R2A/R2B.
+- **2026-07-22:** **T.9 Visual Polish V1 acceptance checkpoint** (**§6BO.13.4.9 T.9 Visual Polish V1**) — docs **`ed07955`**; code **`f042ab2`**; Templates prepared-setup command surface polish; quieter library picker; Preferred consolidated into selected header; Starting package presentation (R1 `is_default` preserved); prepared packet landing; smoke/fixture hide via `contractorFixtureIsolation` (hide-not-delete); **79/79** focused tests; product screenshot review accepted; protected systems untouched. **Non-blockers:** Adjust packages density with 4+ packages; packet landing until R3; archived sticky selected row; page title revisit; included-work polish later — **do not reopen Visual Polish V1**. **Next at that time:** **R3 Proposal Packet / Content Editor** — **superseded by §6BO.13.4.9 R3**.
 - **2026-07-22:** **R2B preferred setup workflow acceptance checkpoint** (**§6BO.13.4.9 T.9 R2B**) — docs **`8c5bac4`**; code **`928a21d`**; `company_template_preferences` + preference store; Templates Make preferred / Clear preferred / Preferred badge; Job Card preferred-first resolver; archive preferred clears preference; restore does not auto-prefer; migration **`20260722_032`** live-applied on **`rhquhnujjnzjhweypavd`**; **55/55** focused tests; live preferred/archive/restore smoke PASS; protected systems untouched. Preferred setup ≠ package-option default. **Not** duplicate/delete template / content editor / estimate display editor / model conversion / multi-trade UI / user-specific preference. **Next at that time:** product/visual review — **superseded by T.9 Visual Polish V1**.
 - **2026-07-22:** **R2A template archive/restore lifecycle acceptance checkpoint** (**§6BO.13.4.9 T.9 R2A**) — docs **`6d53906`**; code **`c93a843`**; archive/restore sync `proposal_templates.status` + `active`; Templates Active/Archived UI + calm confirm + Restore; Job Card picker + default resolver exclude archived; sticky archived selection cleared; **no SQL/migration**; **95/95** focused tests; live archive→restore→Job Card exclusion smoke PASS; protected systems untouched. **Not** preferred setup / template delete / package-option remove / content editor / estimate display editor / model conversion / mobile polish. **Next at that time:** R2B preferred setup — **superseded by T.9 R2B**.
 - **2026-07-22:** **R1 package-option structure authorship acceptance checkpoint** (**§6BO.13.4.9 T.9 R1**) — docs **`51fc3c9`**; code **`6e1253f`**; one template → many package options; Adjust packages Copy existing / Start blank / reorder / default / soft-remove; + Template One/Two/Three/Custom; dynamic active package-option count; Job Card + Builder 4-option truth; migration **`20260722_031`** live-applied on **`rhquhnujjnzjhweypavd`**; **101/101** focused tests; soft-remove + 4-option smoke PASS; protected systems untouched. **Not** full Templates lifecycle / content editor / estimate display editor / archive-default management / model conversion / mobile polish. **Next at that time:** R2 Library lifecycle — **superseded for archive/restore by T.9 R2A**.
