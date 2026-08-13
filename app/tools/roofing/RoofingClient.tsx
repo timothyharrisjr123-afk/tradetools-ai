@@ -169,8 +169,9 @@ import JobCardProposalsTab, {
 import { JobCardCreateProposalModal } from "@/app/tools/roofing/jobCard/JobCardCreateProposalModal";
 import {
   buildCreateProposalMeasurementChoice,
+  resolvePrepareProposalMeasurement,
+  resolvePrepareProposalSetup,
   type CreateProposalMeasurementChoice,
-  type CreateProposalModalStep,
 } from "@/app/tools/roofing/jobCard/jobCardCreateProposalModalModel";
 import {
   JOB_CARD_PROPOSAL_ACTIVITY_CREATED_LABEL,
@@ -1154,12 +1155,13 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
     useState<ResolveOrCreateProposalDraftEntryReason | null>(null);
   const [isLaunchingProposal, setIsLaunchingProposal] = useState(false);
   const [isCreatingNewProposal, setIsCreatingNewProposal] = useState(false);
-  /** Block 3: + Proposal opens measurement → template → package modal. */
+  /** V2A: + Proposal opens Prepare proposal. Create only on Create proposal. */
   const [createProposalModalOpen, setCreateProposalModalOpen] = useState(false);
-  const [createProposalModalStep, setCreateProposalModalStep] =
-    useState<CreateProposalModalStep>("measurement");
   const [createProposalModalMeasurements, setCreateProposalModalMeasurements] =
     useState<CreateProposalMeasurementChoice[]>([]);
+  const [preferredSetupTemplateId, setPreferredSetupTemplateId] = useState<
+    string | null
+  >(null);
   const createProposalMeasurementRecordsRef = useRef<MeasurementRecord[]>([]);
   const proposalLaunchInFlightRef = useRef(false);
   const measurementSaveInFlightRef = useRef<string | null>(null);
@@ -1896,6 +1898,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
     if (entryMode !== "job-card") {
       setCompanyProposalTemplates([]);
       setSelectedJobTemplateId(null);
+      setPreferredSetupTemplateId(null);
       setStarterTemplateGraph(null);
       setJobCardSelectedPackageOptionId(null);
       setTemplateSetupLoadComplete(false);
@@ -1907,6 +1910,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
     if (!cid || !isUuidLike(cid)) {
       setCompanyProposalTemplates([]);
       setSelectedJobTemplateId(null);
+      setPreferredSetupTemplateId(null);
       setStarterTemplateGraph(null);
       setTemplateSetupLoadComplete(true);
       templateSetupFetchInFlightRef.current = null;
@@ -1932,6 +1936,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
         // package-option is_default). Missing table / no row → null fallback.
         const preferredTemplateId = await getPreferredSetupTemplateId(cid);
         if (templateSetupFetchInFlightRef.current !== cid) return;
+        setPreferredSetupTemplateId(preferredTemplateId);
         const defaultId = resolveDefaultJobCardTemplateId(
           visibleTemplates,
           starter?.id ?? null,
@@ -1961,6 +1966,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
         if (templateSetupFetchInFlightRef.current !== cid) return;
         setCompanyProposalTemplates([]);
         setSelectedJobTemplateId(null);
+        setPreferredSetupTemplateId(null);
         setStarterTemplateGraph(null);
       } finally {
         if (templateSetupFetchInFlightRef.current === cid) {
@@ -2053,7 +2059,6 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
       setListedJobDraftPackageLabel(null);
       setListedJobDraftPackageLabels({});
       setCreateProposalModalOpen(false);
-      setCreateProposalModalStep("measurement");
       setCreateProposalModalMeasurements([]);
       createProposalMeasurementRecordsRef.current = [];
       listedDraftFetchInFlightRef.current = null;
@@ -7550,10 +7555,40 @@ Thanks,`;
     const openCreateProposalModal = () => {
       setProposalLaunchError(null);
       setProposalLaunchReason(null);
-      setCreateProposalModalStep("measurement");
       setCreateProposalModalOpen(true);
 
-      // Load ready measurements for modal cards (multi-record ready when present).
+      const starterId =
+        findStarterProposalTemplate(companyProposalTemplates)?.id ?? null;
+      const setupChoices = filterJobCardCreateProposalTemplates(
+        companyProposalTemplates,
+        selectedJobTemplateId
+      ).map((row) => ({
+        id: row.id,
+        name: (row.name ?? "").trim() || "Template",
+        ready: row.active !== false,
+        archived: row.status === "archived",
+      }));
+      const preparedSetup = resolvePrepareProposalSetup({
+        setups: setupChoices,
+        preferredId: preferredSetupTemplateId,
+        starterId,
+        explicitId: null,
+        selectedId: selectedJobTemplateId,
+        selectedUnusableReason:
+          jobCardSelectedTemplateEligibility.graphMatchesSelection &&
+          !jobCardSelectedTemplateEligibility.usable
+            ? jobCardSelectedTemplateEligibility.reason
+            : null,
+      });
+      if (
+        preparedSetup.preparedId &&
+        preparedSetup.preparedId !== selectedJobTemplateId
+      ) {
+        setSelectedJobTemplateId(preparedSetup.preparedId);
+        setJobCardSelectedPackageOptionId(null);
+      }
+
+      // Load eligible saved measurements. Opening does not create a proposal.
       const jobIdForModal = (currentJobId ?? "").trim();
       if (jobIdForModal && isUuidLike(jobIdForModal)) {
         void (async () => {
@@ -7580,13 +7615,18 @@ Thanks,`;
                 })
               );
             setCreateProposalModalMeasurements(choices);
+            const preparedMeasurement = resolvePrepareProposalMeasurement({
+              eligible: choices,
+              selectedId: persistedSelectedMeasurement?.id ?? null,
+            });
             if (
-              choices.length > 0 &&
-              persistedSelectedMeasurement &&
-              !choices.some((c) => c.id === persistedSelectedMeasurement.id)
+              preparedMeasurement.preparedId &&
+              preparedMeasurement.preparedId !== persistedSelectedMeasurement?.id
             ) {
-              const first = rows.find((r) => r.id === choices[0]!.id);
-              if (first) setPersistedSelectedMeasurement(first);
+              const next = rows.find(
+                (row) => row.id === preparedMeasurement.preparedId
+              );
+              if (next) setPersistedSelectedMeasurement(next);
             }
           } catch (err) {
             console.warn("[RoofingClient] create-proposal measurements fetch:", err);
@@ -7603,7 +7643,6 @@ Thanks,`;
     const closeCreateProposalModal = () => {
       if (proposalLaunchInFlightRef.current || isCreatingNewProposal) return;
       setCreateProposalModalOpen(false);
-      setCreateProposalModalStep("measurement");
       setProposalLaunchError(null);
       setProposalLaunchReason(null);
       setCreateProposalModalMeasurements([]);
@@ -7720,7 +7759,6 @@ Thanks,`;
               // list refresh is best-effort; navigation still proceeds
             }
             setCreateProposalModalOpen(false);
-            setCreateProposalModalStep("measurement");
             router.push(buildProposalBuilderHref(currentJobId, result.proposalId));
             return;
           }
@@ -8433,10 +8471,9 @@ Thanks,`;
                     );
                   }}
                 />
+                {createProposalModalOpen ? (
                 <JobCardCreateProposalModal
                   open={createProposalModalOpen}
-                  step={createProposalModalStep}
-                  onStepChange={setCreateProposalModalStep}
                   onClose={closeCreateProposalModal}
                   measurements={createProposalModalMeasurements}
                   selectedMeasurementId={persistedSelectedMeasurement?.id ?? null}
@@ -8467,13 +8504,9 @@ Thanks,`;
                       ? jobCardSelectedTemplateEligibility.reason
                       : null
                   }
-                  selectedTemplateName={
-                    (jobCardSelectedTemplateEligibility.graphMatchesSelection
-                      ? starterTemplateGraph?.template.name
-                      : null) ??
-                    visibleCreateProposalTemplates.find(
-                      (row) => row.id === selectedJobTemplateId
-                    )?.name ??
+                  preferredTemplateId={preferredSetupTemplateId}
+                  starterTemplateId={
+                    findStarterProposalTemplate(companyProposalTemplates)?.id ??
                     null
                   }
                   packageChoices={
@@ -8485,22 +8518,21 @@ Thanks,`;
                     jobCardPackageSetup.packagePresentationMode
                   }
                   selectedPackageOptionId={jobCardPackageSetup.selectedOptionId}
+                  startingPackageOptionId={resolveDefaultPackageOptionId(
+                    jobCardSelectedTemplateEligibility.graphMatchesSelection
+                      ? starterTemplateGraph
+                      : null
+                  )}
                   onSelectPackage={setJobCardSelectedPackageOptionId}
-                  packageIssueCount={
-                    jobCardPackageSetup.selected?.issueCount ?? 0
-                  }
-                  selectedPackageName={
-                    jobCardPackageSetup.selected?.label ?? null
-                  }
-                  includedItemCount={jobCardPackageSetup.includedItemCount}
-                  availableUpgradeCount={
-                    jobCardPackageSetup.availableUpgradeCount
+                  packageGraphReady={
+                    jobCardSelectedTemplateEligibility.graphMatchesSelection
                   }
                   createEnabled={createNewDraftEnabled}
                   creating={isCreatingNewProposal}
                   createError={proposalLaunchError}
-                  onContinueToBuilder={handleCreateNewProposalDraft}
+                  onCreateProposal={handleCreateNewProposalDraft}
                 />
+                ) : null}
               </JobCardSectionPanel>
 
               <JobCardSectionPanel

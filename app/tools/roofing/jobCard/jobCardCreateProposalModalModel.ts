@@ -1,6 +1,6 @@
 /**
- * Job Card + Proposal modal — Block 3 step-flow helpers (contractor-facing polish).
- * Pure view-model + copy. No React, Supabase, or store writes.
+ * Job Card Prepare proposal (V2A) — pure view-model + copy.
+ * No React, Supabase, or store writes.
  */
 
 import {
@@ -12,11 +12,13 @@ import {
   type PackagePresentationMode,
 } from "@/app/tools/roofing/templates/templatesWorkspaceFlow";
 
-export type CreateProposalModalStep =
-  | "measurement"
-  | "template"
-  | "package"
-  | "review";
+export type PrepareProposalFieldId = "measurement" | "setup" | "package";
+
+export type PrepareProposalFieldState =
+  | "prepared"
+  | "alternative_available"
+  | "choice_required"
+  | "blocked";
 
 export type CreateProposalMeasurementChoice = {
   id: string;
@@ -25,26 +27,84 @@ export type CreateProposalMeasurementChoice = {
   ready: boolean;
 };
 
-export const CREATE_PROPOSAL_MODAL_TITLE = "Create proposal" as const;
+export type PrepareProposalSetupChoice = {
+  id: string;
+  name: string;
+  ready: boolean;
+  archived?: boolean;
+};
 
-export const CREATE_PROPOSAL_MODAL_SUBTITLE =
-  "Use a reusable proposal setup for this job: measurement, template, package, then Builder." as const;
+export type PrepareProposalPackageChoice = {
+  optionId: string;
+  label: string;
+  linkedItemCount: number;
+  availableUpgradeCount?: number;
+  issueCount: number;
+  status: "ready" | "needs_attention";
+  description?: string | null;
+};
 
-export const CREATE_PROPOSAL_STEP_MEASUREMENT = "Measurement" as const;
-export const CREATE_PROPOSAL_STEP_TEMPLATE = "Template" as const;
-export const CREATE_PROPOSAL_STEP_PACKAGE = "Package" as const;
-export const CREATE_PROPOSAL_STEP_REVIEW = "Review" as const;
+export type PrepareProposalFieldView = {
+  field: PrepareProposalFieldId;
+  state: PrepareProposalFieldState;
+  preparedId: string | null;
+  valueLabel: string | null;
+  valueDetail: string | null;
+  fixPath: string | null;
+  showChange: boolean;
+  showSelector: boolean;
+};
 
-export const CREATE_PROPOSAL_MEASUREMENT_GUIDE =
-  "Choose the measurement FieldDive will use for quantities on this proposal." as const;
+export const PREPARE_PROPOSAL_TITLE = "Prepare proposal" as const;
+export const PREPARE_PROPOSAL_MEASUREMENT_LABEL = "Measurement" as const;
+export const PREPARE_PROPOSAL_SETUP_LABEL = "Reusable setup" as const;
+export const PREPARE_PROPOSAL_PACKAGE_LABEL = "Recommended package" as const;
+export const PREPARE_PROPOSAL_CHANGE_LABEL = "Change" as const;
+export const PREPARE_PROPOSAL_CREATE_LABEL = "Create proposal" as const;
+export const PREPARE_PROPOSAL_CANCEL_LABEL = "Cancel" as const;
+export const PREPARE_PROPOSAL_FOOTER =
+  "Creates a job-specific copy. Your reusable setup stays unchanged." as const;
 
-export const CREATE_PROPOSAL_TEMPLATE_GUIDE =
-  "Choose the reusable proposal setup for this job. Manage templates under Proposal templates." as const;
+export const PREPARE_PROPOSAL_MEASUREMENT_REQUIRED = "Measurement required" as const;
+
+export const PREPARE_PROPOSAL_MEASUREMENT_CHOOSE = "Choose a measurement." as const;
+export const PREPARE_PROPOSAL_SETUP_CHOOSE = "Choose a reusable setup." as const;
+export const PREPARE_PROPOSAL_PACKAGE_CHOOSE = "Choose a recommended package." as const;
+export const PREPARE_PROPOSAL_PACKAGE_NEEDS_SETUP =
+  "Choose a reusable setup first." as const;
+export const PREPARE_PROPOSAL_PACKAGE_NONE =
+  "This setup has no valid package. Add a package under Proposal templates." as const;
+export const PREPARE_PROPOSAL_SETUP_NONE =
+  "Create or finish a proposal template before creating a proposal." as const;
+export const PREPARE_PROPOSAL_CREATING_LABEL = "Creating…" as const;
+
+/** @deprecated V2A uses PREPARE_PROPOSAL_TITLE. Kept for residual copy checks. */
+export const CREATE_PROPOSAL_MODAL_TITLE = PREPARE_PROPOSAL_CREATE_LABEL;
+
+export const CREATE_PROPOSAL_MEASUREMENT_READY = "Report complete" as const;
+export const CREATE_PROPOSAL_MEASUREMENT_BLOCKED =
+  "Complete and save a measurement report before creating a proposal." as const;
+
+export const CREATE_PROPOSAL_TEMPLATE_BLOCKED = PREPARE_PROPOSAL_SETUP_NONE;
 
 export const CREATE_PROPOSAL_TEMPLATE_STRUCTURE =
   "Prepared packages, included work, available upgrades, and customer-facing proposal pages." as const;
 
 export const CREATE_PROPOSAL_TEMPLATE_READY = "Ready to use" as const;
+
+export const CREATE_PROPOSAL_PACKAGE_SIMPLE =
+  "This template uses one estimate — no customer package choices." as const;
+
+export const CREATE_PROPOSAL_PACKAGE_SINGLE =
+  "This setup uses one package for this job." as const;
+
+/** Fallback multi copy when count is unknown — prefer count-aware guide helpers. */
+export const CREATE_PROPOSAL_PACKAGE_MULTI =
+  "Compare packages, then choose the package for this job." as const;
+
+/** @deprecated Prefer resolveCreateProposalPackageStepEyebrow — avoids false “one package” for simple estimates. */
+export const CREATE_PROPOSAL_PACKAGE_ONE_ONLY =
+  "This template has one prepared package." as const;
 
 export const CREATE_PROPOSAL_PACKAGE_GUIDE =
   "Select the package for this proposal. You can adjust quantities and optional upgrades later in Builder." as const;
@@ -57,49 +117,6 @@ export const CREATE_PROPOSAL_PACKAGE_GUIDE_SIMPLE =
 
 export const CREATE_PROPOSAL_PACKAGE_BUILDER_NOTE =
   "You can adjust quantities and optional upgrades later in Builder." as const;
-
-/** @deprecated Prefer resolveCreateProposalPackageStepEyebrow — avoids false “one package” for simple estimates. */
-export const CREATE_PROPOSAL_PACKAGE_ONE_ONLY =
-  "This template has one prepared package." as const;
-
-export const CREATE_PROPOSAL_PACKAGE_SIMPLE =
-  "This template uses one estimate — no customer package choices." as const;
-
-export const CREATE_PROPOSAL_PACKAGE_SINGLE =
-  "This setup uses one package for this job." as const;
-
-/** Fallback multi copy when count is unknown — prefer count-aware guide helpers. */
-export const CREATE_PROPOSAL_PACKAGE_MULTI =
-  "Compare packages, then choose the package for this job." as const;
-
-export const CREATE_PROPOSAL_REVIEW_TITLE = "Ready to continue" as const;
-
-export const CREATE_PROPOSAL_REVIEW_INTRO =
-  "Confirm what FieldDive will use, then continue to Builder for this job." as const;
-
-export const CREATE_PROPOSAL_REVIEW_NEXT_LABEL = "In Builder next" as const;
-
-export const CREATE_PROPOSAL_REVIEW_NEXT =
-  "Apply this job’s quantities, adjust optional upgrades if needed, then review the proposal before sending." as const;
-
-export const CREATE_PROPOSAL_INCLUDED_PRIMARY =
-  "Estimate · Package details · Terms · Warranty · Customer-facing sections" as const;
-
-export const CREATE_PROPOSAL_INCLUDED_LABEL = "Proposal packet includes" as const;
-
-export const CREATE_PROPOSAL_USE_MEASUREMENT = "Use this measurement" as const;
-export const CREATE_PROPOSAL_USE_TEMPLATE = "Use this template" as const;
-export const CREATE_PROPOSAL_CONTINUE_TO_BUILDER = "Continue to Builder" as const;
-
-export const CREATE_PROPOSAL_HELPER =
-  "Existing proposals on this job are not changed." as const;
-
-export const CREATE_PROPOSAL_MEASUREMENT_READY = "Report complete" as const;
-export const CREATE_PROPOSAL_MEASUREMENT_BLOCKED =
-  "Complete and save a measurement report before creating a proposal." as const;
-
-export const CREATE_PROPOSAL_TEMPLATE_BLOCKED =
-  "Create or finish a proposal template before creating a proposal." as const;
 
 export const CREATE_PROPOSAL_TEMPLATE_SELECTED_UNUSABLE =
   "This template needs a bit more setup. Choose another ready template, or finish it under Proposal templates." as const;
@@ -127,45 +144,6 @@ export function resolveCreateProposalTemplateStepMessage(input: {
     return reason;
   }
   return null;
-}
-
-export const CREATE_PROPOSAL_PACKAGE_BLOCKED =
-  "Choose a package to continue." as const;
-
-export const CREATE_PROPOSAL_STEPS: readonly CreateProposalModalStep[] = [
-  "measurement",
-  "template",
-  "package",
-  "review",
-] as const;
-
-export function createProposalStepLabel(step: CreateProposalModalStep): string {
-  switch (step) {
-    case "measurement":
-      return CREATE_PROPOSAL_STEP_MEASUREMENT;
-    case "template":
-      return CREATE_PROPOSAL_STEP_TEMPLATE;
-    case "package":
-      return CREATE_PROPOSAL_STEP_PACKAGE;
-    case "review":
-      return CREATE_PROPOSAL_STEP_REVIEW;
-  }
-}
-
-export function nextCreateProposalStep(
-  step: CreateProposalModalStep
-): CreateProposalModalStep | null {
-  const idx = CREATE_PROPOSAL_STEPS.indexOf(step);
-  if (idx < 0 || idx >= CREATE_PROPOSAL_STEPS.length - 1) return null;
-  return CREATE_PROPOSAL_STEPS[idx + 1] ?? null;
-}
-
-export function prevCreateProposalStep(
-  step: CreateProposalModalStep
-): CreateProposalModalStep | null {
-  const idx = CREATE_PROPOSAL_STEPS.indexOf(step);
-  if (idx <= 0) return null;
-  return CREATE_PROPOSAL_STEPS[idx - 1] ?? null;
 }
 
 /** Contractor title — prefer “Saved manual report” over short internal label. */
@@ -203,32 +181,6 @@ export function formatCreateProposalMeasurementSummary(input: {
   return parts.length > 0 ? parts.join(" · ") : CREATE_PROPOSAL_MEASUREMENT_READY;
 }
 
-/** @deprecated Prefer title + summaryLine card layout. Kept for review one-liners. */
-export function formatCreateProposalMeasurementDetail(input: {
-  selectedLabel: string | null | undefined;
-  quantitiesLine: string | null | undefined;
-}): string {
-  const title = formatCreateProposalMeasurementTitle(input.selectedLabel);
-  const qty = (input.quantitiesLine ?? "").trim();
-  return qty ? `${title} · ${qty}` : title;
-}
-
-export function formatCreateProposalMeasurementReviewLine(input: {
-  selectedLabel: string | null | undefined;
-  roofAreaSqft?: number | null;
-  wastePercent?: number | null;
-}): string {
-  const title = formatCreateProposalMeasurementTitle(input.selectedLabel);
-  const parts: string[] = [title];
-  if (input.roofAreaSqft != null && Number.isFinite(input.roofAreaSqft)) {
-    parts.push(`${Math.round(input.roofAreaSqft).toLocaleString()} sq ft`);
-  }
-  if (input.wastePercent != null && Number.isFinite(input.wastePercent)) {
-    parts.push(`${input.wastePercent}% waste`);
-  }
-  return parts.join(" · ");
-}
-
 export function buildCreateProposalMeasurementChoice(input: {
   id: string;
   selectedLabel: string | null | undefined;
@@ -246,11 +198,6 @@ export function buildCreateProposalMeasurementChoice(input: {
     }),
     ready: input.ready,
   };
-}
-
-/** Primary template body — structure, not admin link counts. */
-export function formatCreateProposalTemplatePrimaryBody(): string {
-  return CREATE_PROPOSAL_TEMPLATE_STRUCTURE;
 }
 
 /**
@@ -278,44 +225,6 @@ export function formatCreateProposalTemplateSecondaryDetail(input: {
     issueCount: 0,
     availableUpgradeCount: Math.max(0, input.availableUpgradeCount ?? 0),
   });
-}
-
-/**
- * @deprecated Admin-style meta. Prefer primary body + Ready to use + secondary detail.
- */
-export function formatCreateProposalTemplateMetaLine(input: {
-  linkedItemCount: number;
-  packageCount: number;
-  ready: boolean;
-}): string {
-  if (input.ready) return CREATE_PROPOSAL_TEMPLATE_READY;
-  return "Needs attention";
-}
-
-export function formatCreateProposalIncludedPrimary(
-  customerFacingLine?: string | null
-): string {
-  const extras = (customerFacingLine ?? "").trim();
-  if (!extras) return CREATE_PROPOSAL_INCLUDED_PRIMARY;
-  // Prefer short area lists; fall back to approved default when dense/admin-like.
-  if (/linked catalog|catalog item/i.test(extras)) {
-    return CREATE_PROPOSAL_INCLUDED_PRIMARY;
-  }
-  if (extras.length > 120) return CREATE_PROPOSAL_INCLUDED_PRIMARY;
-  return extras
-    .replace(/Estimate packages/gi, "Estimate")
-    .replace(/Package options/gi, "Package details")
-    .replace(/Custom text pages/gi, "Customer-facing sections")
-    .replace(/customer\s+proposal\s+pages/gi, "Customer-facing sections")
-    .replace(/\s*·\s*/g, " · ");
-}
-
-export function formatCreateProposalPricingItemsReady(
-  includedItemCount: number
-): string {
-  const count = Math.max(0, includedItemCount);
-  if (count <= 0) return "Pricing items and proposal pages are ready";
-  return `${count} pricing item${count === 1 ? "" : "s"} ready`;
 }
 
 /** Package card count line — reuses Templates truthful formatter. */
@@ -349,7 +258,7 @@ export function resolveCreateProposalPackageStepEyebrow(
   return CREATE_PROPOSAL_PACKAGE_MULTI;
 }
 
-/** Top guide copy for the Job Card package step — mode + live active package count. */
+/** Top guide copy for package counts — mode + live active package count. */
 export function resolveCreateProposalPackageStepGuide(
   mode: PackagePresentationMode,
   activePackageCount = 0
@@ -371,40 +280,338 @@ export function formatCreateProposalPackageReviewLine(input: {
     return TEMPLATES_SIMPLE_ESTIMATE_LABEL;
   }
   if (!name) return "Package selected";
-  if (input.packageMode === "single") return `${name} package`;
   return `${name} package`;
 }
 
-export function formatCreateProposalReviewScopeLine(input: {
-  includedItemCount: number;
-  availableUpgradeCount: number;
-}): string {
-  return formatCreateProposalPackageCountLine({
-    linkedItemCount: input.includedItemCount,
-    availableUpgradeCount: input.availableUpgradeCount,
+export function isValidPrepareProposalPackage(
+  choice: PrepareProposalPackageChoice
+): boolean {
+  return (
+    choice.status === "ready" &&
+    choice.linkedItemCount > 0 &&
+    (choice.issueCount ?? 0) === 0
+  );
+}
+
+function listEligibleSetups(
+  setups: readonly PrepareProposalSetupChoice[]
+): PrepareProposalSetupChoice[] {
+  return setups.filter((row) => !row.archived);
+}
+
+function fieldView(input: {
+  field: PrepareProposalFieldId;
+  state: PrepareProposalFieldState;
+  preparedId?: string | null;
+  valueLabel?: string | null;
+  valueDetail?: string | null;
+  fixPath?: string | null;
+  showChange?: boolean;
+  showSelector?: boolean;
+}): PrepareProposalFieldView {
+  const state = input.state;
+  const showSelector =
+    input.showSelector ??
+    (state === "choice_required" || state === "alternative_available");
+  const showChange =
+    input.showChange ??
+    (state === "alternative_available" || state === "choice_required");
+  return {
+    field: input.field,
+    state,
+    preparedId: input.preparedId ?? null,
+    valueLabel: input.valueLabel ?? null,
+    valueDetail: input.valueDetail ?? null,
+    fixPath: input.fixPath ?? null,
+    showChange,
+    showSelector,
+  };
+}
+
+/**
+ * Measurement prepare:
+ * - canonical eligible selected measurement when that id is valid
+ * - unique eligible measurement may be prepared
+ * - multiple eligible without a valid selected id → choice required
+ * - never first-of-many
+ */
+export function resolvePrepareProposalMeasurement(input: {
+  eligible: readonly CreateProposalMeasurementChoice[];
+  selectedId: string | null | undefined;
+}): PrepareProposalFieldView {
+  const eligible = input.eligible.filter((row) => row.ready !== false);
+  if (eligible.length === 0) {
+    return fieldView({
+      field: "measurement",
+      state: "blocked",
+      valueLabel: PREPARE_PROPOSAL_MEASUREMENT_REQUIRED,
+      fixPath: CREATE_PROPOSAL_MEASUREMENT_BLOCKED,
+      showChange: false,
+      showSelector: false,
+    });
+  }
+
+  const selectedId = (input.selectedId ?? "").trim();
+  const selected = selectedId
+    ? eligible.find((row) => row.id === selectedId)
+    : undefined;
+
+  if (selected) {
+    return fieldView({
+      field: "measurement",
+      state: eligible.length > 1 ? "alternative_available" : "prepared",
+      preparedId: selected.id,
+      valueLabel: selected.title,
+      valueDetail: selected.summaryLine,
+      showChange: eligible.length > 1,
+      showSelector: eligible.length > 1,
+    });
+  }
+
+  if (eligible.length === 1) {
+    const only = eligible[0]!;
+    return fieldView({
+      field: "measurement",
+      state: "prepared",
+      preparedId: only.id,
+      valueLabel: only.title,
+      valueDetail: only.summaryLine,
+      showChange: false,
+      showSelector: false,
+    });
+  }
+
+  return fieldView({
+    field: "measurement",
+    state: "choice_required",
+    valueLabel: PREPARE_PROPOSAL_MEASUREMENT_CHOOSE,
+    showChange: true,
+    showSelector: true,
   });
 }
 
-/** @deprecated Prefer formatCreateProposalIncludedPrimary + quiet secondary. */
-export function formatCreateProposalIncludedLine(input: {
-  includedItemCount: number;
-  customerFacingLine: string | null | undefined;
-}): string {
-  return formatCreateProposalIncludedPrimary(input.customerFacingLine);
+/**
+ * Reusable setup prepare:
+ * 1. eligible preferred setup
+ * 2. eligible company starter (existing named Job Card rule)
+ * 3. unique eligible setup
+ * 4. contractor explicit eligible choice
+ * Never first-listed among many. Archived rows cannot be prepared.
+ */
+export function resolvePrepareProposalSetup(input: {
+  setups: readonly PrepareProposalSetupChoice[];
+  preferredId: string | null | undefined;
+  starterId: string | null | undefined;
+  explicitId: string | null | undefined;
+  selectedId?: string | null;
+  selectedUnusableReason?: string | null;
+}): PrepareProposalFieldView {
+  const eligible = listEligibleSetups(input.setups);
+  if (eligible.length === 0) {
+    return fieldView({
+      field: "setup",
+      state: "blocked",
+      fixPath: PREPARE_PROPOSAL_SETUP_NONE,
+      showChange: false,
+      showSelector: false,
+    });
+  }
+
+  const unusableReason = (input.selectedUnusableReason ?? "").trim();
+  const knownUnusableId = unusableReason
+    ? (input.selectedId ?? input.explicitId ?? "").trim()
+    : "";
+  const explicitId = (input.explicitId ?? "").trim();
+  if (explicitId && explicitId === knownUnusableId && unusableReason) {
+    const selected = eligible.find((row) => row.id === explicitId);
+    return fieldView({
+      field: "setup",
+      state: "blocked",
+      valueLabel: selected?.name ?? null,
+      fixPath: unusableReason,
+      showChange: eligible.some((row) => row.id !== explicitId),
+      showSelector: eligible.some((row) => row.id !== explicitId),
+    });
+  }
+  const preparable = knownUnusableId
+    ? eligible.filter((row) => row.id !== knownUnusableId)
+    : eligible;
+
+  if (preparable.length === 0) {
+    const blockedName =
+      eligible.find((row) => row.id === knownUnusableId)?.name ?? null;
+    return fieldView({
+      field: "setup",
+      state: "blocked",
+      valueLabel: blockedName,
+      fixPath: unusableReason || PREPARE_PROPOSAL_SETUP_NONE,
+      showChange: false,
+      showSelector: false,
+    });
+  }
+
+  const byId = (id: string | null | undefined) => {
+    const trimmed = (id ?? "").trim();
+    if (!trimmed) return undefined;
+    return preparable.find((row) => row.id === trimmed);
+  };
+
+  const explicit = byId(input.explicitId);
+  const preferred = byId(input.preferredId);
+  const starter = byId(input.starterId);
+  const unique = preparable.length === 1 ? preparable[0] : undefined;
+  const prepared = explicit ?? preferred ?? starter ?? unique;
+
+  if (!prepared) {
+    return fieldView({
+      field: "setup",
+      state: "choice_required",
+      valueLabel: PREPARE_PROPOSAL_SETUP_CHOOSE,
+      showChange: true,
+      showSelector: true,
+    });
+  }
+
+  return fieldView({
+    field: "setup",
+    state: eligible.length > 1 ? "alternative_available" : "prepared",
+    preparedId: prepared.id,
+    valueLabel: prepared.name,
+    showChange: eligible.length > 1,
+    showSelector: eligible.length > 1,
+  });
 }
 
-export function canContinueCreateProposal(input: {
-  measurementReady: boolean;
-  templateReady: boolean;
-  packageSelected: boolean;
-  packageIssueCount: number;
-  createEnabled: boolean;
+/**
+ * Recommended package prepare:
+ * - selected setup’s valid starting/default package
+ * - unique valid package may be prepared (no selector)
+ * - invalid/missing starting package with multiple valids → choice required
+ * - never array-order among many
+ */
+export function resolvePrepareProposalPackage(input: {
+  setupState: PrepareProposalFieldState;
+  choices: readonly PrepareProposalPackageChoice[];
+  startingOptionId: string | null | undefined;
+  explicitId: string | null | undefined;
+  packagePresentationMode: PackagePresentationMode;
+  graphReady?: boolean;
+}): PrepareProposalFieldView {
+  if (input.setupState === "choice_required") {
+    return fieldView({
+      field: "package",
+      state: "blocked",
+      fixPath: PREPARE_PROPOSAL_PACKAGE_NEEDS_SETUP,
+      showChange: false,
+      showSelector: false,
+    });
+  }
+  if (input.setupState === "blocked") {
+    return fieldView({
+      field: "package",
+      state: "blocked",
+      fixPath: PREPARE_PROPOSAL_PACKAGE_NEEDS_SETUP,
+      showChange: false,
+      showSelector: false,
+    });
+  }
+  if (input.graphReady === false) {
+    return fieldView({
+      field: "package",
+      state: "choice_required",
+      valueLabel: null,
+      showChange: false,
+      showSelector: false,
+    });
+  }
+
+  const valid = input.choices.filter(isValidPrepareProposalPackage);
+  if (valid.length === 0) {
+    return fieldView({
+      field: "package",
+      state: "blocked",
+      fixPath: PREPARE_PROPOSAL_PACKAGE_NONE,
+      showChange: false,
+      showSelector: false,
+    });
+  }
+
+  const byId = (id: string | null | undefined) => {
+    const trimmed = (id ?? "").trim();
+    if (!trimmed) return undefined;
+    return valid.find((row) => row.optionId === trimmed);
+  };
+
+  const explicit = byId(input.explicitId);
+  const starting = byId(input.startingOptionId);
+  const unique = valid.length === 1 ? valid[0] : undefined;
+  const prepared = explicit ?? starting ?? unique;
+
+  if (!prepared) {
+    return fieldView({
+      field: "package",
+      state: "choice_required",
+      valueLabel: PREPARE_PROPOSAL_PACKAGE_CHOOSE,
+      showChange: true,
+      showSelector: true,
+    });
+  }
+
+  const simpleOne =
+    input.packagePresentationMode === "simple" || valid.length === 1;
+  const label =
+    input.packagePresentationMode === "simple"
+      ? TEMPLATES_SIMPLE_ESTIMATE_LABEL
+      : prepared.label;
+
+  return fieldView({
+    field: "package",
+    state: simpleOne ? "prepared" : "alternative_available",
+    preparedId: prepared.optionId,
+    valueLabel: label,
+    valueDetail: formatCreateProposalPackageCountLine({
+      linkedItemCount: prepared.linkedItemCount,
+      availableUpgradeCount: prepared.availableUpgradeCount ?? 0,
+      issueCount: prepared.issueCount,
+    }),
+    showChange: !simpleOne,
+    showSelector: !simpleOne,
+  });
+}
+
+export function canCreatePrepareProposal(input: {
+  measurement: PrepareProposalFieldState;
+  setup: PrepareProposalFieldState;
+  package: PrepareProposalFieldState;
 }): boolean {
-  return (
-    input.measurementReady &&
-    input.templateReady &&
-    input.packageSelected &&
-    input.packageIssueCount === 0 &&
-    input.createEnabled
-  );
+  const ok = (state: PrepareProposalFieldState) =>
+    state === "prepared" || state === "alternative_available";
+  return ok(input.measurement) && ok(input.setup) && ok(input.package);
+}
+
+export function resolvePrepareProposalExpandedField(input: {
+  measurement: PrepareProposalFieldView;
+  setup: PrepareProposalFieldView;
+  package: PrepareProposalFieldView;
+  contractorExpanded: PrepareProposalFieldId | null;
+}): PrepareProposalFieldId | null {
+  if (input.contractorExpanded) {
+    const field =
+      input.contractorExpanded === "measurement"
+        ? input.measurement
+        : input.contractorExpanded === "setup"
+          ? input.setup
+          : input.package;
+    return field.showSelector ? input.contractorExpanded : null;
+  }
+  if (input.measurement.state === "choice_required" && input.measurement.showSelector) {
+    return "measurement";
+  }
+  if (input.setup.state === "choice_required" && input.setup.showSelector) {
+    return "setup";
+  }
+  if (input.package.state === "choice_required" && input.package.showSelector) {
+    return "package";
+  }
+  return null;
 }

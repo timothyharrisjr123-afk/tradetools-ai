@@ -9,43 +9,31 @@ import { join } from "node:path";
 import { filterContractorVisibleTemplates } from "@/app/lib/contractorFixtureIsolation";
 import type { ProposalRecordStatusSummary } from "@/app/lib/proposalRecordTypes";
 import {
-  CREATE_PROPOSAL_CONTINUE_TO_BUILDER,
-  CREATE_PROPOSAL_HELPER,
-  CREATE_PROPOSAL_INCLUDED_PRIMARY,
   CREATE_PROPOSAL_MEASUREMENT_BLOCKED,
-  CREATE_PROPOSAL_MEASUREMENT_GUIDE,
-  CREATE_PROPOSAL_MODAL_TITLE,
-  CREATE_PROPOSAL_PACKAGE_GUIDE,
-  CREATE_PROPOSAL_PACKAGE_GUIDE_ONE,
-  CREATE_PROPOSAL_PACKAGE_GUIDE_SIMPLE,
-  CREATE_PROPOSAL_PACKAGE_MULTI,
-  CREATE_PROPOSAL_PACKAGE_ONE_ONLY,
-  CREATE_PROPOSAL_PACKAGE_SIMPLE,
-  CREATE_PROPOSAL_PACKAGE_SINGLE,
-  CREATE_PROPOSAL_REVIEW_NEXT,
-  CREATE_PROPOSAL_REVIEW_TITLE,
-  CREATE_PROPOSAL_TEMPLATE_BLOCKED,
-  CREATE_PROPOSAL_TEMPLATE_GUIDE,
-  CREATE_PROPOSAL_TEMPLATE_READY,
-  CREATE_PROPOSAL_TEMPLATE_STRUCTURE,
-  CREATE_PROPOSAL_USE_MEASUREMENT,
-  CREATE_PROPOSAL_USE_TEMPLATE,
+  PREPARE_PROPOSAL_CHANGE_LABEL,
+  PREPARE_PROPOSAL_CREATE_LABEL,
+  PREPARE_PROPOSAL_FOOTER,
+  PREPARE_PROPOSAL_MEASUREMENT_REQUIRED,
+  PREPARE_PROPOSAL_MEASUREMENT_CHOOSE,
+  PREPARE_PROPOSAL_MEASUREMENT_LABEL,
+  PREPARE_PROPOSAL_PACKAGE_CHOOSE,
+  PREPARE_PROPOSAL_PACKAGE_LABEL,
+  PREPARE_PROPOSAL_PACKAGE_NONE,
+  PREPARE_PROPOSAL_SETUP_CHOOSE,
+  PREPARE_PROPOSAL_SETUP_LABEL,
+  PREPARE_PROPOSAL_SETUP_NONE,
+  PREPARE_PROPOSAL_TITLE,
   buildCreateProposalMeasurementChoice,
-  canContinueCreateProposal,
-  formatCreateProposalIncludedPrimary,
+  canCreatePrepareProposal,
   formatCreateProposalMeasurementSummary,
   formatCreateProposalMeasurementTitle,
   formatCreateProposalPackageCountLine,
-  formatCreateProposalPackageReviewLine,
-  formatCreateProposalPricingItemsReady,
-  formatCreateProposalReviewScopeLine,
-  formatCreateProposalTemplateMetaLine,
-  formatCreateProposalTemplateSecondaryDetail,
-  nextCreateProposalStep,
-  prevCreateProposalStep,
   resolveCreateProposalPackageStepEyebrow,
   resolveCreateProposalPackageStepGuide,
-  resolveCreateProposalTemplateStepMessage,
+  resolvePrepareProposalExpandedField,
+  resolvePrepareProposalMeasurement,
+  resolvePrepareProposalPackage,
+  resolvePrepareProposalSetup,
 } from "./jobCardCreateProposalModalModel";
 import { filterJobCardCreateProposalTemplates } from "./jobCardProposalSetup";
 import {
@@ -56,329 +44,523 @@ import {
   buildJobCardProposalRowView,
 } from "./jobCardProposalsTabModel";
 
-describe("jobCardCreateProposalModalModel polish", () => {
-  test("approved modal copy stays contractor-facing", () => {
-    assert.equal(CREATE_PROPOSAL_MODAL_TITLE, "Create proposal");
-    assert.equal(CREATE_PROPOSAL_USE_MEASUREMENT, "Use this measurement");
-    assert.equal(CREATE_PROPOSAL_USE_TEMPLATE, "Use this template");
-    assert.equal(CREATE_PROPOSAL_CONTINUE_TO_BUILDER, "Continue to Builder");
-    assert.match(CREATE_PROPOSAL_HELPER, /Existing proposals/);
-    assert.equal(CREATE_PROPOSAL_REVIEW_TITLE, "Ready to continue");
-    assert.doesNotMatch(CREATE_PROPOSAL_REVIEW_TITLE, /field|admin|draft/i);
-    assert.match(CREATE_PROPOSAL_MEASUREMENT_GUIDE, /measurement/i);
-    assert.match(CREATE_PROPOSAL_TEMPLATE_GUIDE, /reusable proposal setup/i);
-    assert.match(CREATE_PROPOSAL_PACKAGE_GUIDE, /optional upgrades later in Builder/i);
+const ROOT = process.cwd();
+
+function read(rel: string): string {
+  return readFileSync(join(ROOT, rel), "utf8");
+}
+
+function measurement(id: string, title: string) {
+  return buildCreateProposalMeasurementChoice({
+    id,
+    selectedLabel: title,
+    roofAreaSqft: 2500,
+    wastePercent: 10,
+    ready: true,
+  });
+}
+
+describe("Prepare proposal V2A inference", () => {
+  test("copy is restrained and contractor-facing", () => {
+    assert.equal(PREPARE_PROPOSAL_TITLE, "Prepare proposal");
+    assert.equal(PREPARE_PROPOSAL_MEASUREMENT_LABEL, "Measurement");
+    assert.equal(PREPARE_PROPOSAL_SETUP_LABEL, "Reusable setup");
+    assert.equal(PREPARE_PROPOSAL_PACKAGE_LABEL, "Recommended package");
+    assert.equal(PREPARE_PROPOSAL_CHANGE_LABEL, "Change");
+    assert.equal(PREPARE_PROPOSAL_CREATE_LABEL, "Create proposal");
     assert.equal(
-      CREATE_PROPOSAL_PACKAGE_ONE_ONLY,
-      "This template has one prepared package."
+      PREPARE_PROPOSAL_FOOTER,
+      "Creates a job-specific copy. Your reusable setup stays unchanged."
     );
-    assert.match(CREATE_PROPOSAL_REVIEW_NEXT, /optional upgrades/i);
+    assert.doesNotMatch(PREPARE_PROPOSAL_FOOTER, /accept|signature|payment|schedule/i);
+    assert.doesNotMatch(PREPARE_PROPOSAL_FOOTER, /existing proposals will not change/i);
+    assert.doesNotMatch(PREPARE_PROPOSAL_PACKAGE_LABEL, /customer/i);
     assert.equal(JOB_CARD_PROPOSALS_ADD_LABEL, "+ Proposal");
     assert.equal(JOB_CARD_PROPOSALS_CREATE_LABEL, "Create proposal");
     assert.equal(JOB_CARD_PROPOSALS_OPEN_LABEL, "Open");
-    assert.doesNotMatch(CREATE_PROPOSAL_CONTINUE_TO_BUILDER, /Create proposal draft/i);
-    assert.doesNotMatch(CREATE_PROPOSAL_HELPER, /Create another proposal/i);
   });
 
-  test("step navigation order", () => {
-    assert.equal(nextCreateProposalStep("measurement"), "template");
-    assert.equal(nextCreateProposalStep("template"), "package");
-    assert.equal(nextCreateProposalStep("package"), "review");
-    assert.equal(nextCreateProposalStep("review"), null);
-    assert.equal(prevCreateProposalStep("review"), "package");
-    assert.equal(prevCreateProposalStep("measurement"), null);
-  });
-
-  test("measurement step uses contractor-facing title and summary", () => {
-    assert.equal(
-      formatCreateProposalMeasurementTitle("Saved manual"),
-      "Saved manual report"
-    );
-    assert.equal(
-      formatCreateProposalMeasurementSummary({
-        roofAreaSqft: 2500,
-        wastePercent: 10,
-        ready: true,
-      }),
-      "2,500 sq ft · 10% waste · Report complete"
-    );
-    assert.doesNotMatch(
-      formatCreateProposalMeasurementSummary({
-        roofAreaSqft: 2500,
-        wastePercent: 10,
-      }),
-      /adj SQ|roof_squares/i
-    );
-    assert.match(CREATE_PROPOSAL_MEASUREMENT_BLOCKED, /measurement/i);
-  });
-
-  test("measurement choices support multiple ready records", () => {
-    const a = buildCreateProposalMeasurementChoice({
-      id: "m1",
-      selectedLabel: "Saved manual",
-      roofAreaSqft: 2500,
-      wastePercent: 10,
-      ready: true,
+  test("single valid measurement is prepared", () => {
+    const field = resolvePrepareProposalMeasurement({
+      eligible: [measurement("m1", "Saved manual")],
+      selectedId: null,
     });
-    const b = buildCreateProposalMeasurementChoice({
-      id: "m2",
-      selectedLabel: "Verified",
-      roofAreaSqft: 1800,
-      wastePercent: 12,
-      ready: true,
+    assert.equal(field.state, "prepared");
+    assert.equal(field.preparedId, "m1");
+    assert.equal(field.valueLabel, "Saved manual report");
+    assert.equal(field.showChange, false);
+    assert.equal(field.showSelector, false);
+  });
+
+  test("canonical selected measurement is prepared among alternatives", () => {
+    const field = resolvePrepareProposalMeasurement({
+      eligible: [measurement("m1", "Saved manual"), measurement("m2", "Verified")],
+      selectedId: "m2",
     });
-    assert.equal(a.id, "m1");
-    assert.equal(a.title, "Saved manual report");
-    assert.match(a.summaryLine, /2,500 sq ft/);
-    assert.equal(b.id, "m2");
-    assert.notEqual(a.id, b.id);
+    assert.equal(field.state, "alternative_available");
+    assert.equal(field.preparedId, "m2");
+    assert.equal(field.showChange, true);
   });
 
-  test("template step uses structure copy — not linked catalog admin text", () => {
-    assert.match(CREATE_PROPOSAL_TEMPLATE_STRUCTURE, /included work/i);
-    assert.match(CREATE_PROPOSAL_TEMPLATE_STRUCTURE, /available upgrades/i);
-    assert.match(CREATE_PROPOSAL_TEMPLATE_STRUCTURE, /customer-facing proposal pages/i);
-    assert.doesNotMatch(CREATE_PROPOSAL_TEMPLATE_STRUCTURE, /customer proposal pages/i);
-    assert.equal(CREATE_PROPOSAL_TEMPLATE_READY, "Ready to use");
-    assert.equal(
-      formatCreateProposalTemplateMetaLine({
-        linkedItemCount: 13,
-        packageCount: 3,
-        ready: true,
-      }),
-      "Ready to use"
-    );
-    const secondary = formatCreateProposalTemplateSecondaryDetail({
-      linkedItemCount: 13,
-      packageCount: 3,
-      availableUpgradeCount: 2,
-      packageMode: "multi",
+  test("multiple measurements without canonical truth require choice", () => {
+    const field = resolvePrepareProposalMeasurement({
+      eligible: [measurement("m1", "Saved manual"), measurement("m2", "Verified")],
+      selectedId: null,
     });
-    assert.equal(secondary, "3 packages · 13 included · 2 available upgrades");
-    assert.doesNotMatch(secondary, /linked catalog|pricing items/i);
-    assert.doesNotMatch(
-      CREATE_PROPOSAL_TEMPLATE_STRUCTURE,
-      /linked catalog|source template/i
-    );
+    assert.equal(field.state, "choice_required");
+    assert.equal(field.preparedId, null);
+    assert.equal(field.valueLabel, PREPARE_PROPOSAL_MEASUREMENT_CHOOSE);
+    assert.notEqual(field.preparedId, "m1");
   });
 
-  test("package step avoids false one-package copy for simple estimates", () => {
+  test("no measurement blocks Create with exact fix path", () => {
+    const field = resolvePrepareProposalMeasurement({
+      eligible: [],
+      selectedId: null,
+    });
+    assert.equal(field.state, "blocked");
+    assert.equal(field.valueLabel, "Measurement required");
+    assert.equal(field.fixPath, CREATE_PROPOSAL_MEASUREMENT_BLOCKED);
+    assert.match(field.fixPath ?? "", /measurement report/i);
+    assert.equal(field.showChange, false);
     assert.equal(
-      resolveCreateProposalPackageStepEyebrow("simple"),
-      CREATE_PROPOSAL_PACKAGE_SIMPLE
-    );
-    assert.equal(
-      resolveCreateProposalPackageStepEyebrow("single"),
-      CREATE_PROPOSAL_PACKAGE_SINGLE
-    );
-    assert.equal(
-      resolveCreateProposalPackageStepEyebrow("multi"),
-      CREATE_PROPOSAL_PACKAGE_MULTI
-    );
-    assert.equal(
-      resolveCreateProposalPackageStepEyebrow("multi", 4),
-      "This setup has 4 package options."
-    );
-    assert.doesNotMatch(CREATE_PROPOSAL_PACKAGE_SIMPLE, /one package/i);
-    assert.equal(
-      resolveCreateProposalPackageStepGuide("simple"),
-      CREATE_PROPOSAL_PACKAGE_GUIDE_SIMPLE
-    );
-    assert.equal(
-      resolveCreateProposalPackageStepGuide("single"),
-      CREATE_PROPOSAL_PACKAGE_GUIDE_ONE
-    );
-    assert.equal(
-      resolveCreateProposalPackageStepGuide("multi"),
-      CREATE_PROPOSAL_PACKAGE_GUIDE
-    );
-    assert.match(
-      resolveCreateProposalPackageStepGuide("multi", 4),
-      /Choose from 4 package options/i
-    );
-    assert.match(
-      resolveCreateProposalPackageStepGuide("multi", 3),
-      /Choose from 3 package options/i
-    );
-    assert.match(
-      resolveCreateProposalPackageStepGuide("multi", 2),
-      /Choose between 2 package options/i
-    );
-    assert.doesNotMatch(CREATE_PROPOSAL_PACKAGE_GUIDE_ONE, /choose the package/i);
-    assert.doesNotMatch(CREATE_PROPOSAL_PACKAGE_GUIDE_SIMPLE, /choose the package/i);
-    assert.match(CREATE_PROPOSAL_PACKAGE_GUIDE, /Select the package for this proposal/i);
-    assert.equal(
-      formatCreateProposalPackageCountLine({
-        linkedItemCount: 13,
-        availableUpgradeCount: 1,
-      }),
-      "13 included · 1 available upgrade"
-    );
-    assert.equal(
-      formatCreateProposalPackageReviewLine({
-        packageMode: "multi",
-        packageName: "Enhanced",
-      }),
-      "Enhanced package"
-    );
-    assert.equal(
-      formatCreateProposalPackageReviewLine({
-        packageMode: "simple",
-        packageName: "Estimate",
-      }),
-      "Simple estimate"
-    );
-  });
-
-  test("review included content is contractor-facing", () => {
-    assert.equal(
-      CREATE_PROPOSAL_INCLUDED_PRIMARY,
-      "Estimate · Package details · Terms · Warranty · Customer-facing sections"
-    );
-    assert.doesNotMatch(CREATE_PROPOSAL_INCLUDED_PRIMARY, /customer proposal pages/i);
-    assert.doesNotMatch(CREATE_PROPOSAL_INCLUDED_PRIMARY, /Package options/i);
-    assert.equal(
-      formatCreateProposalIncludedPrimary("13 linked catalog items · Terms"),
-      CREATE_PROPOSAL_INCLUDED_PRIMARY
-    );
-    assert.equal(
-      formatCreateProposalPricingItemsReady(13),
-      "13 pricing items ready"
-    );
-    assert.equal(
-      formatCreateProposalReviewScopeLine({
-        includedItemCount: 13,
-        availableUpgradeCount: 1,
-      }),
-      "13 included · 1 available upgrade"
-    );
-    assert.doesNotMatch(CREATE_PROPOSAL_INCLUDED_PRIMARY, /linked catalog/i);
-    assert.doesNotMatch(CREATE_PROPOSAL_REVIEW_TITLE, /draft/i);
-  });
-
-  test("Continue gates unchanged", () => {
-    assert.equal(
-      canContinueCreateProposal({
-        measurementReady: true,
-        templateReady: true,
-        packageSelected: true,
-        packageIssueCount: 0,
-        createEnabled: true,
-      }),
-      true
-    );
-    assert.equal(
-      canContinueCreateProposal({
-        measurementReady: false,
-        templateReady: true,
-        packageSelected: true,
-        packageIssueCount: 0,
-        createEnabled: true,
+      canCreatePrepareProposal({
+        measurement: "blocked",
+        setup: "prepared",
+        package: "prepared",
       }),
       false
     );
   });
 
-  test("orange template blocker only when no templates or selected is truly unusable", () => {
-    assert.equal(
-      resolveCreateProposalTemplateStepMessage({
-        templatesLength: 0,
-        selectedTemplateId: null,
-        templateReady: false,
-        selectedUnusableReason: null,
-      }),
-      CREATE_PROPOSAL_TEMPLATE_BLOCKED
-    );
-    assert.match(CREATE_PROPOSAL_TEMPLATE_BLOCKED, /Create or finish/i);
-
-    assert.equal(
-      resolveCreateProposalTemplateStepMessage({
-        templatesLength: 2,
-        selectedTemplateId: "t1",
-        templateReady: false,
-        selectedUnusableReason: null,
-      }),
-      null
-    );
-    assert.equal(
-      resolveCreateProposalTemplateStepMessage({
-        templatesLength: 2,
-        selectedTemplateId: "t1",
-        templateReady: true,
-        selectedUnusableReason: null,
-      }),
-      null
-    );
-
-    assert.equal(
-      resolveCreateProposalTemplateStepMessage({
-        templatesLength: 2,
-        selectedTemplateId: "t-bad",
-        templateReady: false,
-        selectedUnusableReason:
-          "This template needs included Catalog items before it can start a proposal.",
-      }),
-      "This template needs included Catalog items before it can start a proposal."
-    );
-  });
-
-  test("Job Card create flow remains Measurement → Template → Package → Review → Builder", () => {
-    assert.deepEqual(
-      [
-        nextCreateProposalStep("measurement"),
-        nextCreateProposalStep("template"),
-        nextCreateProposalStep("package"),
-        nextCreateProposalStep("review"),
+  test("valid preferred setup is prepared", () => {
+    const field = resolvePrepareProposalSetup({
+      setups: [
+        { id: "roof", name: "Roof Replacement", ready: true },
+        { id: "repair", name: "Repair", ready: true },
       ],
-      ["template", "package", "review", null]
-    );
-    assert.equal(CREATE_PROPOSAL_CONTINUE_TO_BUILDER, "Continue to Builder");
+      preferredId: "roof",
+      starterId: "repair",
+      explicitId: null,
+    });
+    assert.equal(field.state, "alternative_available");
+    assert.equal(field.preparedId, "roof");
+    assert.equal(field.valueLabel, "Roof Replacement");
+    assert.equal(field.showChange, true);
   });
 
-  test("template step hides internal/smoke templates and archived by default", () => {
-    const visible = filterContractorVisibleTemplates([
-      { id: "roof", name: "Roof replacement" },
-      { id: "raw", name: "RAW_PLUS_WASTE live smoke" },
-      { id: "cov", name: "Coverage basis live smoke" },
-    ]);
-    assert.equal(visible.length, 1);
-    assert.equal(visible[0]?.name, "Roof replacement");
-
-    const createList = filterJobCardCreateProposalTemplates([
-      { id: "roof", name: "Roof replacement", status: "active" },
-      {
-        id: "arch",
-        name: "Roof replacement (legacy pre-upgrade-truth)",
-        status: "archived",
-      },
-      { id: "raw", name: "RAW_PLUS_WASTE live smoke", status: "active" },
-    ]);
-    assert.equal(createList.length, 1);
-    assert.equal(createList[0]?.id, "roof");
+  test("one eligible setup fallback is prepared", () => {
+    const field = resolvePrepareProposalSetup({
+      setups: [{ id: "roof", name: "Roof Replacement", ready: true }],
+      preferredId: null,
+      starterId: null,
+      explicitId: null,
+    });
+    assert.equal(field.state, "prepared");
+    assert.equal(field.preparedId, "roof");
+    assert.equal(field.showChange, false);
   });
 
-  test("modal UI shows package counts and review Builder next", () => {
-    const modal = readFileSync(
-      join(process.cwd(), "app/tools/roofing/jobCard/JobCardCreateProposalModal.tsx"),
-      "utf8"
-    );
-    assert.ok(modal.includes("packageChoices"));
-    assert.ok(modal.includes("formatCreateProposalPackageCountLine"));
-    assert.ok(modal.includes("data-jobcard-create-proposal-package-counts"));
-    assert.ok(modal.includes("data-jobcard-create-proposal-review-next"));
-    assert.ok(modal.includes("CREATE_PROPOSAL_REVIEW_NEXT"));
-    assert.ok(!modal.includes("This template has one package."));
-    assert.ok(modal.includes("resolveCreateProposalPackageStepEyebrow"));
+  test("eligible company starter remains a named prepare rule", () => {
+    const field = resolvePrepareProposalSetup({
+      setups: [
+        { id: "a", name: "A", ready: true },
+        { id: "starter", name: "Roof Replacement", ready: true },
+      ],
+      preferredId: null,
+      starterId: "starter",
+      explicitId: null,
+    });
+    assert.equal(field.preparedId, "starter");
+    assert.notEqual(field.preparedId, "a");
   });
 
-  test("proposal rows use package badge not title link text", () => {
+  test("multiple setups without preference require choice", () => {
+    const field = resolvePrepareProposalSetup({
+      setups: [
+        { id: "a", name: "A", ready: true },
+        { id: "b", name: "B", ready: true },
+      ],
+      preferredId: null,
+      starterId: null,
+      explicitId: null,
+    });
+    assert.equal(field.state, "choice_required");
+    assert.equal(field.preparedId, null);
+    assert.equal(field.valueLabel, PREPARE_PROPOSAL_SETUP_CHOOSE);
+  });
+
+  test("archived setup cannot be prepared", () => {
+    const field = resolvePrepareProposalSetup({
+      setups: [
+        { id: "arch", name: "Legacy", ready: true, archived: true },
+        { id: "roof", name: "Roof Replacement", ready: true },
+      ],
+      preferredId: "arch",
+      starterId: null,
+      explicitId: null,
+    });
+    assert.equal(field.preparedId, "roof");
+    assert.notEqual(field.preparedId, "arch");
+  });
+
+  test("no eligible setup blocks Create", () => {
+    const field = resolvePrepareProposalSetup({
+      setups: [{ id: "arch", name: "Legacy", ready: true, archived: true }],
+      preferredId: "arch",
+      starterId: null,
+      explicitId: null,
+    });
+    assert.equal(field.state, "blocked");
+    assert.equal(field.fixPath, PREPARE_PROPOSAL_SETUP_NONE);
     assert.equal(
-      formatJobCardProposalRowTitle({
-        title: "Roof replacement",
-        packageLabel: "Enhanced",
+      canCreatePrepareProposal({
+        measurement: "prepared",
+        setup: "blocked",
+        package: "prepared",
       }),
-      "Roof replacement"
+      false
     );
+  });
+
+  test("starting package is prepared and alternatives expose Change", () => {
+    const field = resolvePrepareProposalPackage({
+      setupState: "prepared",
+      choices: [
+        {
+          optionId: "std",
+          label: "Standard",
+          linkedItemCount: 8,
+          availableUpgradeCount: 1,
+          issueCount: 0,
+          status: "ready",
+        },
+        {
+          optionId: "enh",
+          label: "Enhanced",
+          linkedItemCount: 13,
+          availableUpgradeCount: 2,
+          issueCount: 0,
+          status: "ready",
+        },
+      ],
+      startingOptionId: "enh",
+      explicitId: null,
+      packagePresentationMode: "multi",
+      graphReady: true,
+    });
+    assert.equal(field.state, "alternative_available");
+    assert.equal(field.preparedId, "enh");
+    assert.equal(field.valueLabel, "Enhanced");
+    assert.equal(field.showChange, true);
+  });
+
+  test("one-package setup shows no unnecessary selector", () => {
+    const field = resolvePrepareProposalPackage({
+      setupState: "prepared",
+      choices: [
+        {
+          optionId: "only",
+          label: "Standard",
+          linkedItemCount: 8,
+          issueCount: 0,
+          status: "ready",
+        },
+      ],
+      startingOptionId: "only",
+      explicitId: null,
+      packagePresentationMode: "single",
+      graphReady: true,
+    });
+    assert.equal(field.state, "prepared");
+    assert.equal(field.preparedId, "only");
+    assert.equal(field.showChange, false);
+    assert.equal(field.showSelector, false);
+  });
+
+  test("invalid starting package requires package choice", () => {
+    const field = resolvePrepareProposalPackage({
+      setupState: "prepared",
+      choices: [
+        {
+          optionId: "bad",
+          label: "Broken",
+          linkedItemCount: 0,
+          issueCount: 2,
+          status: "needs_attention",
+        },
+        {
+          optionId: "good",
+          label: "Enhanced",
+          linkedItemCount: 13,
+          issueCount: 0,
+          status: "ready",
+        },
+        {
+          optionId: "ok",
+          label: "Premium",
+          linkedItemCount: 16,
+          issueCount: 0,
+          status: "ready",
+        },
+      ],
+      startingOptionId: "bad",
+      explicitId: null,
+      packagePresentationMode: "multi",
+      graphReady: true,
+    });
+    assert.equal(field.state, "choice_required");
+    assert.equal(field.preparedId, null);
+    assert.equal(field.valueLabel, PREPARE_PROPOSAL_PACKAGE_CHOOSE);
+    assert.notEqual(field.preparedId, "good");
+  });
+
+  test("invalid or removed package cannot be prepared", () => {
+    const field = resolvePrepareProposalPackage({
+      setupState: "prepared",
+      choices: [
+        {
+          optionId: "bad",
+          label: "Broken",
+          linkedItemCount: 0,
+          issueCount: 1,
+          status: "needs_attention",
+        },
+      ],
+      startingOptionId: "bad",
+      explicitId: "bad",
+      packagePresentationMode: "single",
+      graphReady: true,
+    });
+    assert.equal(field.state, "blocked");
+    assert.equal(field.preparedId, null);
+    assert.equal(field.fixPath, PREPARE_PROPOSAL_PACKAGE_NONE);
+  });
+
+  test("changing setup recomputes package validity without first-item fallback", () => {
+    const before = resolvePrepareProposalPackage({
+      setupState: "prepared",
+      choices: [
+        {
+          optionId: "enh",
+          label: "Enhanced",
+          linkedItemCount: 13,
+          issueCount: 0,
+          status: "ready",
+        },
+      ],
+      startingOptionId: "enh",
+      explicitId: "enh",
+      packagePresentationMode: "single",
+      graphReady: true,
+    });
+    assert.equal(before.preparedId, "enh");
+
+    const after = resolvePrepareProposalPackage({
+      setupState: "prepared",
+      choices: [
+        {
+          optionId: "a",
+          label: "A",
+          linkedItemCount: 4,
+          issueCount: 0,
+          status: "ready",
+        },
+        {
+          optionId: "b",
+          label: "B",
+          linkedItemCount: 8,
+          issueCount: 0,
+          status: "ready",
+        },
+      ],
+      startingOptionId: null,
+      explicitId: "enh",
+      packagePresentationMode: "multi",
+      graphReady: true,
+    });
+    assert.equal(after.state, "choice_required");
+    assert.equal(after.preparedId, null);
+    assert.notEqual(after.preparedId, "a");
+  });
+
+  test("setup with no valid package blocks Create", () => {
+    const field = resolvePrepareProposalPackage({
+      setupState: "prepared",
+      choices: [],
+      startingOptionId: null,
+      explicitId: null,
+      packagePresentationMode: "simple",
+      graphReady: true,
+    });
+    assert.equal(field.state, "blocked");
+    assert.equal(field.fixPath, PREPARE_PROPOSAL_PACKAGE_NONE);
+    assert.equal(
+      canCreatePrepareProposal({
+        measurement: "prepared",
+        setup: "prepared",
+        package: "blocked",
+      }),
+      false
+    );
+  });
+
+  test("choice required expands only that field", () => {
+    const measurement = resolvePrepareProposalMeasurement({
+      eligible: [
+        buildCreateProposalMeasurementChoice({
+          id: "m1",
+          selectedLabel: "Saved manual",
+          ready: true,
+        }),
+        buildCreateProposalMeasurementChoice({
+          id: "m2",
+          selectedLabel: "Verified",
+          ready: true,
+        }),
+      ],
+      selectedId: null,
+    });
+    const setup = resolvePrepareProposalSetup({
+      setups: [{ id: "roof", name: "Roof Replacement", ready: true }],
+      preferredId: "roof",
+      starterId: null,
+      explicitId: null,
+    });
+    const pkg = resolvePrepareProposalPackage({
+      setupState: setup.state,
+      choices: [
+        {
+          optionId: "enh",
+          label: "Enhanced",
+          linkedItemCount: 13,
+          issueCount: 0,
+          status: "ready",
+        },
+      ],
+      startingOptionId: "enh",
+      explicitId: null,
+      packagePresentationMode: "single",
+      graphReady: true,
+    });
+    assert.equal(
+      resolvePrepareProposalExpandedField({
+        measurement,
+        setup,
+        package: pkg,
+        contractorExpanded: null,
+      }),
+      "measurement"
+    );
+    assert.equal(
+      resolvePrepareProposalExpandedField({
+        measurement,
+        setup,
+        package: pkg,
+        contractorExpanded: "setup",
+      }),
+      null
+    );
+  });
+
+  test("Create stays disabled until every field is prepared", () => {
+    assert.equal(
+      canCreatePrepareProposal({
+        measurement: "prepared",
+        setup: "alternative_available",
+        package: "prepared",
+      }),
+      true
+    );
+    assert.equal(
+      canCreatePrepareProposal({
+        measurement: "choice_required",
+        setup: "prepared",
+        package: "prepared",
+      }),
+      false
+    );
+  });
+});
+
+describe("Prepare proposal V2A write boundary and wiring", () => {
+  test("old four-step wizard is removed from the Job Card modal", () => {
+    const modal = read("app/tools/roofing/jobCard/JobCardCreateProposalModal.tsx");
+    const model = read(
+      "app/tools/roofing/jobCard/jobCardCreateProposalModalModel.ts"
+    );
+    const client = read("app/tools/roofing/RoofingClient.tsx");
+    assert.match(modal, /PREPARE_PROPOSAL_TITLE/);
+    assert.match(modal, /data-jobcard-prepare-proposal/);
+    assert.match(model, /Prepare proposal/);
+    assert.doesNotMatch(modal, /Create proposal steps/);
+    assert.doesNotMatch(modal, /data-jobcard-create-proposal-steps/);
+    assert.doesNotMatch(modal, /data-jobcard-create-proposal-panel-review/);
+    assert.doesNotMatch(modal, /Use this measurement/);
+    assert.doesNotMatch(modal, /Continue to Builder/);
+    assert.doesNotMatch(model, /CREATE_PROPOSAL_STEPS/);
+    assert.doesNotMatch(client, /createProposalModalStep/);
+    assert.match(client, /onCreateProposal=\{handleCreateNewProposalDraft\}/);
+    assert.match(client, /createNewProposalDraftEntry/);
+    assert.doesNotMatch(modal, /useEffect/);
+    assert.match(client, /createProposalModalOpen \? \(/);
+  });
+
+  test("expanded selector uses radio semantics and no loose Selected label", () => {
+    const modal = read("app/tools/roofing/jobCard/JobCardCreateProposalModal.tsx");
+    assert.match(modal, /role="radiogroup"/);
+    assert.match(modal, /role="radio"/);
+    assert.match(modal, /aria-checked/);
+    assert.match(modal, /data-jobcard-prepare-radio/);
+    assert.match(modal, /onSelectorKeyDown/);
+    assert.doesNotMatch(modal, />\s*Selected\s*</);
+    assert.equal(PREPARE_PROPOSAL_MEASUREMENT_REQUIRED, "Measurement required");
+  });
+
+  test("opening, changing, and cancel do not create; only Create proposal does", () => {
+    const client = read("app/tools/roofing/RoofingClient.tsx");
+    const openBlock = client.slice(
+      client.indexOf("const openCreateProposalModal"),
+      client.indexOf("const closeCreateProposalModal")
+    );
+    const closeBlock = client.slice(
+      client.indexOf("const closeCreateProposalModal"),
+      client.indexOf("const visibleCreateProposalTemplates")
+    );
+    const createBlock = client.slice(
+      client.indexOf("const handleCreateNewProposalDraft"),
+      client.indexOf("const handleNormalizeAndOpenJobCard")
+    );
+    assert.doesNotMatch(openBlock, /createNewProposalDraftEntry/);
+    assert.doesNotMatch(closeBlock, /createNewProposalDraftEntry/);
+    assert.match(createBlock, /createNewProposalDraftEntry/);
+    assert.match(createBlock, /proposalLaunchInFlightRef\.current/);
+    assert.match(createBlock, /setProposalLaunchError/);
+    assert.match(
+      createBlock,
+      /router\.push\(buildProposalBuilderHref\(currentJobId, result\.proposalId\)\)/
+    );
+    assert.doesNotMatch(createBlock, /resolveOrCreateProposalDraftEntry/);
+    assert.match(
+      client,
+      /selected_template_option_id: jobCardPackageSetup\.selectedOptionId/
+    );
+  });
+
+  test("measurement first-item fallback is gone", () => {
+    const client = read("app/tools/roofing/RoofingClient.tsx");
+    const openBlock = client.slice(
+      client.indexOf("const openCreateProposalModal"),
+      client.indexOf("const closeCreateProposalModal")
+    );
+    assert.match(openBlock, /resolvePrepareProposalMeasurement/);
+    assert.doesNotMatch(openBlock, /choices\[0\]/);
+  });
+
+  test("existing proposal rows still open Builder with job + proposal ids", () => {
+    const client = read("app/tools/roofing/RoofingClient.tsx");
+    assert.match(client, /onOpenProposal/);
+    assert.match(client, /buildProposalBuilderHref\(currentJobId, proposalId\)/);
     const row = buildJobCardProposalRowView({
       summary: {
         id: "p1",
@@ -396,9 +578,61 @@ describe("jobCardCreateProposalModalModel polish", () => {
       packageLabel: "Standard",
       templateName: "Roof replacement",
     });
-    assert.equal(row.title, "Roof replacement");
+    assert.equal(formatJobCardProposalRowTitle({
+      title: "Roof replacement",
+      packageLabel: "Enhanced",
+    }), "Roof replacement");
     assert.equal(row.packageLabel, "Standard");
-    assert.match(row.metaLine, /^Draft · Updated/);
-    assert.doesNotMatch(row.metaLine, /Standard package/);
+  });
+
+  test("preferred setup and create-modal template filter stay in place", () => {
+    const visible = filterContractorVisibleTemplates([
+      { id: "roof", name: "Roof replacement" },
+      { id: "raw", name: "RAW_PLUS_WASTE live smoke" },
+    ]);
+    assert.equal(visible.length, 1);
+    const createList = filterJobCardCreateProposalTemplates([
+      { id: "roof", name: "Roof replacement", status: "active" },
+      {
+        id: "arch",
+        name: "Roof replacement (legacy pre-upgrade-truth)",
+        status: "archived",
+      },
+    ]);
+    assert.equal(createList.length, 1);
+    assert.equal(createList[0]?.id, "roof");
+    const client = read("app/tools/roofing/RoofingClient.tsx");
+    assert.match(client, /getPreferredSetupTemplateId/);
+    assert.match(client, /preferredSetupTemplateId/);
+  });
+
+  test("measurement formatters stay contractor-facing", () => {
+    assert.equal(
+      formatCreateProposalMeasurementTitle("Saved manual"),
+      "Saved manual report"
+    );
+    assert.equal(
+      formatCreateProposalMeasurementSummary({
+        roofAreaSqft: 2500,
+        wastePercent: 10,
+        ready: true,
+      }),
+      "2,500 sq ft · 10% waste · Report complete"
+    );
+    assert.equal(
+      formatCreateProposalPackageCountLine({
+        linkedItemCount: 13,
+        availableUpgradeCount: 1,
+      }),
+      "13 included · 1 available upgrade"
+    );
+    assert.match(
+      resolveCreateProposalPackageStepEyebrow("multi", 4),
+      /4 package options/i
+    );
+    assert.match(
+      resolveCreateProposalPackageStepGuide("multi", 4),
+      /Choose from 4 package options/i
+    );
   });
 });

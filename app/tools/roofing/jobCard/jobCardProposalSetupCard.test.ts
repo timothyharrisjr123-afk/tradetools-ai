@@ -63,7 +63,7 @@ describe("Job Card Proposals tab (Block 2 + Block 3 modal)", () => {
     assert.doesNotMatch(tab, /onCreateNewDraft/);
   });
 
-  test("5. + Proposal opens Block 3 modal — create only on Continue to Builder", () => {
+  test("5. + Proposal opens Prepare proposal — create only on Create proposal", () => {
     const client = read("app/tools/roofing/RoofingClient.tsx");
     const tab = read("app/tools/roofing/jobCard/JobCardProposalsTab.tsx");
     const modal = read("app/tools/roofing/jobCard/JobCardCreateProposalModal.tsx");
@@ -74,15 +74,16 @@ describe("Job Card Proposals tab (Block 2 + Block 3 modal)", () => {
     assert.match(client, /JobCardCreateProposalModal/);
     assert.match(client, /createProposalModalOpen/);
     assert.match(modal, /data-jobcard-create-proposal-modal/);
-    assert.match(modalModel, /Continue to Builder/);
-    assert.match(modalModel, /Use this measurement/);
-    assert.match(modalModel, /Use this template/);
+    assert.match(modal, /data-jobcard-prepare-proposal/);
+    assert.match(modalModel, /Prepare proposal/);
+    assert.match(modalModel, /Create proposal/);
+    assert.match(modalModel, /Reusable setup/);
     assert.doesNotMatch(tab, /data-jobcard-proposal-entry-placeholder/);
     const proposalsPanel = client.slice(
       client.indexOf('tabId="proposals"'),
       client.indexOf('tabId="material_orders"')
     );
-    assert.match(proposalsPanel, /onContinueToBuilder=\{handleCreateNewProposalDraft\}/);
+    assert.match(proposalsPanel, /onCreateProposal=\{handleCreateNewProposalDraft\}/);
     assert.match(client, /createNewProposalDraftEntry/);
     assert.doesNotMatch(proposalsPanel, /resolveOrCreateProposalDraftEntry/);
     assert.match(client, /closeCreateProposalModal/);
@@ -168,35 +169,27 @@ describe("Job Card Proposals tab (Block 2 + Block 3 modal)", () => {
     assert.match(client, /activeNav=\{entryMode === "job-card" \? "jobs" : "newJob"\}/);
   });
 
-  test("11. Modal steps cover measurement, template, package, review", () => {
+  test("11. Prepare proposal is one surface: measurement, setup, package", () => {
     const modal = read("app/tools/roofing/jobCard/JobCardCreateProposalModal.tsx");
     const model = read(
       "app/tools/roofing/jobCard/jobCardCreateProposalModalModel.ts"
     );
-    assert.match(modal, /data-jobcard-create-proposal-panel-measurement/);
-    assert.match(modal, /data-jobcard-create-proposal-panel-template/);
-    assert.match(modal, /data-jobcard-create-proposal-panel-package/);
-    assert.match(modal, /data-jobcard-create-proposal-panel-review/);
+    assert.match(modal, /data-jobcard-prepare-field="measurement"|data-jobcard-prepare-field=\{field.field\}/);
+    assert.match(modal, /data-jobcard-prepare-change/);
+    assert.match(modal, /data-jobcard-prepare-create/);
     assert.match(modal, /data-jobcard-create-proposal-continue/);
-    assert.match(modal, /data-jobcard-create-proposal-review-next/);
-    assert.match(modal, /CREATE_PROPOSAL_INCLUDED_LABEL/);
-    assert.match(modal, /bg-blue-50/);
-    assert.match(modal, /CREATE_PROPOSAL_REVIEW_INTRO/);
-    assert.match(model, /Ready to continue/);
-    assert.match(model, /starting package/);
-    assert.match(model, /optional upgrades later in Builder/i);
-    assert.match(model, /customer-facing sections/i);
-    assert.match(model, /Package details/);
+    assert.doesNotMatch(modal, /data-jobcard-create-proposal-panel-review/);
+    assert.doesNotMatch(modal, /CREATE_PROPOSAL_REVIEW_INTRO/);
+    assert.match(model, /Prepare proposal/);
+    assert.match(model, /Recommended package/);
+    assert.match(model, /starting\/default package|starting package/i);
     assert.doesNotMatch(model, /customer proposal pages/i);
     assert.doesNotMatch(model, /13 linked catalog items/);
     assert.doesNotMatch(model, /This template has one package\./);
     const tab = read("app/tools/roofing/jobCard/JobCardProposalsTab.tsx");
     assert.match(tab, /data-jobcard-proposal-row-package/);
     assert.doesNotMatch(tab, /text-blue-700|text-blue-600/);
-    assert.match(model, /"measurement"/);
-    assert.match(model, /"template"/);
-    assert.match(model, /"package"/);
-    assert.match(model, /"review"/);
+    assert.doesNotMatch(model, /"review"/);
   });
 
   test("12. Continue uses force-create path with selected package option", () => {
@@ -224,6 +217,6 @@ describe("Job Card Proposals tab (Block 2 + Block 3 modal)", () => {
     assert.match(client, /packageChoices=\{/);
     const modal = read("app/tools/roofing/jobCard/JobCardCreateProposalModal.tsx");
     assert.match(modal, /data-jobcard-create-proposal-package-counts/);
-    assert.match(modal, /data-jobcard-create-proposal-review-next/);
+    assert.match(modal, /data-jobcard-prepare-selector/);
   });
 });

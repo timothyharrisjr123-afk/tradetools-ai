@@ -99,8 +99,8 @@ describe("R1 active package count truth", () => {
     const cards = read("proposals/builder/ProposalBuilderPackageCards.tsx");
     assert.ok(review.includes("packageChoiceGridClass"));
     assert.ok(review.includes("formatActivePackageSetupSummary"));
-    assert.ok(modal.includes("packageChoiceGridClass"));
     assert.ok(modal.includes("packageChoices.length"));
+    assert.ok(modal.includes("data-jobcard-prepare-selector"));
     assert.ok(cards.includes("packageChoiceGridClass"));
     assert.match(packageChoiceGridClass(4), /xl:grid-cols-4/);
     assert.doesNotMatch(packageChoiceGridClass(4), /md:grid-cols-3/);
