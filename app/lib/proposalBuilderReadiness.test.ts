@@ -152,6 +152,26 @@ describe("buildJobCardReturnTo", () => {
 });
 
 describe("deriveProposalBuilderReadiness draft handoff", () => {
+  test("missing job is immediately blocked without waiting on catalog or template", () => {
+    const result = deriveProposalBuilderReadiness({
+      jobIdParam: null,
+      job: null,
+      jobLoadComplete: false,
+      measurementHandoff: null,
+      measurementLoadComplete: false,
+      catalogReadiness: catalogReady(),
+      catalogLoadComplete: false,
+      templateReadiness: templateNotReady(),
+      templateLoadComplete: false,
+      hasValidPersistedDraft: false,
+    });
+
+    assert.equal(result.loading, false);
+    assert.equal(result.ready, false);
+    assert.equal(result.primaryGate, "missing_job");
+    assert.deepEqual(result.blockedGates, ["missing_job"]);
+  });
+
   test("valid persisted draft does not false-block on company template readiness", () => {
     const result = deriveProposalBuilderReadiness({
       jobIdParam: JOB_ID,

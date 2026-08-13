@@ -7,32 +7,14 @@ import {
   WORKBENCH_ATTENTION_ITEM,
   WORKBENCH_ATTENTION_ZONE,
   WORKBENCH_ATTENTION_ZONE_HEADER,
-  WORKBENCH_EDIT_OPTION_CHIP_ENABLED,
-  WORKBENCH_FINISH_ESTIMATE_ROW,
   WORKBENCH_MODULE_DESC,
   WORKBENCH_MODULE_KICKER,
   WORKBENCH_MODULE_TITLE,
-  WORKBENCH_SCOPE_REVIEW_ZONE,
-  WORKBENCH_SCOPE_REVIEW_ZONE_HEADER,
-  WORKBENCH_SET_QUANTITY_ACTION,
 } from "./proposalBuilderConstants";
 import ProposalBuilderWorkbenchLineRow from "./ProposalBuilderWorkbenchLineRow";
-import ProposalBuilderWorkbenchInlineQuantityEditor from "./ProposalBuilderWorkbenchInlineQuantityEditor";
 
 type ProposalBuilderWorkbenchAttentionZoneProps = {
   zone: WorkbenchNeedsAttentionZone;
-  editingQuantityLineId?: string | null;
-  onStartSetQuantity?: (templateItemId: string) => void;
-  onCancelSetQuantity?: () => void;
-  onSaveQuantity?: (
-    templateItemId: string,
-    quantity: string,
-    quantityDisplayLabel?: string | null
-  ) => Promise<void>;
-  quantitySaveInFlight?: boolean;
-  quantitySaveError?: string | null;
-  manualQuantityEnabled?: boolean;
-  highlightFinishEstimate?: boolean;
 };
 
 function HardBlockersSection({ zone }: { zone: WorkbenchNeedsAttentionZone["hardBlockers"] }) {
@@ -72,157 +54,14 @@ function HardBlockersSection({ zone }: { zone: WorkbenchNeedsAttentionZone["hard
   );
 }
 
-function ScopeReviewSection({
-  zone,
-  editingQuantityLineId = null,
-  onStartSetQuantity,
-  onCancelSetQuantity,
-  onSaveQuantity,
-  quantitySaveInFlight = false,
-  quantitySaveError = null,
-  manualQuantityEnabled = false,
-  highlightFinishEstimate = false,
-}: {
-  zone: WorkbenchNeedsAttentionZone["scopeReview"];
-  editingQuantityLineId?: string | null;
-  onStartSetQuantity?: (templateItemId: string) => void;
-  onCancelSetQuantity?: () => void;
-  onSaveQuantity?: (
-    templateItemId: string,
-    quantity: string,
-    quantityDisplayLabel?: string | null
-  ) => Promise<void>;
-  quantitySaveInFlight?: boolean;
-  quantitySaveError?: string | null;
-  manualQuantityEnabled?: boolean;
-  highlightFinishEstimate?: boolean;
-}) {
-  if (!zone.show) return null;
-
-  return (
-    <section
-      className={`${WORKBENCH_SCOPE_REVIEW_ZONE} transition-shadow duration-500 ${
-        highlightFinishEstimate
-          ? "rounded-md ring-2 ring-blue-300/80 ring-offset-2"
-          : ""
-      }`}
-      aria-labelledby="workbench-scope-review-heading"
-      data-builder-quantity-review
-      data-builder-finish-estimate
-      data-builder-finish-estimate-focus={highlightFinishEstimate ? "true" : undefined}
-      id="builder-finish-estimate"
-    >
-      <header className={WORKBENCH_SCOPE_REVIEW_ZONE_HEADER}>
-        <div className="min-w-0">
-          <p
-            className="text-[15px] font-semibold tracking-tight text-slate-950"
-            id="workbench-scope-review-heading"
-          >
-            Finish estimate
-          </p>
-          <p className="mt-0.5 text-[13px] leading-snug text-slate-600">
-            {zone.count === 1
-              ? "1 item needs a quantity before totals are final."
-              : `${zone.count} items need quantities before totals are final.`}
-          </p>
-        </div>
-      </header>
-
-      <div className="px-4 py-2 sm:px-5">
-        <ul className="divide-y divide-slate-100" data-builder-quantity-review-list>
-          {zone.lines.map((line, index) => {
-            const canSetQuantity =
-              manualQuantityEnabled &&
-              line.reasons.includes("needs_quantity") &&
-              Boolean(onStartSetQuantity) &&
-              Boolean(onSaveQuantity);
-            const isEditing = editingQuantityLineId === line.templateItemId;
-
-            return (
-              <li
-                key={line.templateItemId}
-                className="py-2.5"
-                data-builder-quantity-review-row
-                data-builder-quantity-review-row-index={String(index)}
-                id={
-                  index === 0
-                    ? "builder-finish-estimate-first-row"
-                    : undefined
-                }
-              >
-                {isEditing ? (
-                  <ProposalBuilderWorkbenchInlineQuantityEditor
-                    line={{
-                      templateItemId: line.templateItemId,
-                      name: line.name,
-                      unitLabel: line.detailMeta.unit?.trim() || null,
-                    }}
-                    inFlight={quantitySaveInFlight}
-                    error={quantitySaveError}
-                    onCancel={() => onCancelSetQuantity?.()}
-                    onSave={onSaveQuantity!}
-                  />
-                ) : (
-                  <div className={WORKBENCH_FINISH_ESTIMATE_ROW}>
-                    <div className="min-w-0">
-                      <ProposalBuilderWorkbenchLineRow
-                        variant="scope_review"
-                        line={line}
-                        compact
-                      />
-                    </div>
-                    {canSetQuantity ? (
-                      <div className="flex justify-end">
-                        <button
-                          type="button"
-                          className={`${WORKBENCH_EDIT_OPTION_CHIP_ENABLED} shrink-0`}
-                          onClick={() => onStartSetQuantity!(line.templateItemId)}
-                          data-builder-set-quantity
-                        >
-                          {WORKBENCH_SET_QUANTITY_ACTION}
-                        </button>
-                      </div>
-                    ) : (
-                      <span className="hidden sm:block" aria-hidden />
-                    )}
-                  </div>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      </div>
-    </section>
-  );
-}
-
 export default function ProposalBuilderWorkbenchAttentionZone({
   zone,
-  editingQuantityLineId = null,
-  onStartSetQuantity,
-  onCancelSetQuantity,
-  onSaveQuantity,
-  quantitySaveInFlight = false,
-  quantitySaveError = null,
-  manualQuantityEnabled = false,
-  highlightFinishEstimate = false,
 }: ProposalBuilderWorkbenchAttentionZoneProps) {
-  if (!zone.show) return null;
+  if (!zone.hardBlockers.show) return null;
 
   return (
     <div className="space-y-3">
       <HardBlockersSection zone={zone.hardBlockers} />
-      <ScopeReviewSection
-        zone={zone.scopeReview}
-        editingQuantityLineId={editingQuantityLineId}
-        onStartSetQuantity={onStartSetQuantity}
-        onCancelSetQuantity={onCancelSetQuantity}
-        onSaveQuantity={onSaveQuantity}
-        quantitySaveInFlight={quantitySaveInFlight}
-        quantitySaveError={quantitySaveError}
-        manualQuantityEnabled={manualQuantityEnabled}
-        highlightFinishEstimate={highlightFinishEstimate}
-      />
     </div>
   );
 }

@@ -3,7 +3,7 @@
  */
 
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, test } from "node:test";
 import {
@@ -86,22 +86,7 @@ describe("presentBuilderQuantityStatus", () => {
 });
 
 describe("Phase 6 Builder quantity status UI wiring", () => {
-  test("6. Summary rail keeps read-only presenter wiring (not mounted on Estimate path)", () => {
-    const rail = readFileSync(
-      path.join(
-        process.cwd(),
-        "app/tools/roofing/proposals/builder/ProposalBuilderSummaryRail.tsx"
-      ),
-      "utf8"
-    );
-    assert.match(rail, /presentBuilderQuantityStatus/);
-    assert.match(rail, /quantityStatus\.label|quantityStatus\.statusLabel/);
-    assert.match(rail, /data-builder-quantity-status/);
-    assert.match(rail, /quantityPreflightTrust/);
-    assert.equal(rail.includes("shouldAutoRefresh &&"), false);
-    assert.equal(/onClick=\{[^}]*[Rr]efresh/.test(rail), false);
-    assert.equal(rail.includes("quantity_resolution_echo"), false);
-
+  test("6. Summary rail is deleted; Client does not remount it", () => {
     const client = readFileSync(
       path.join(
         process.cwd(),
@@ -109,8 +94,16 @@ describe("Phase 6 Builder quantity status UI wiring", () => {
       ),
       "utf8"
     );
-    // Block 4B: document-led Estimate does not mount the right rail.
     assert.equal(client.includes("ProposalBuilderSummaryRail"), false);
+    assert.equal(
+      existsSync(
+        path.join(
+          process.cwd(),
+          "app/tools/roofing/proposals/builder/ProposalBuilderSummaryRail.tsx"
+        )
+      ),
+      false
+    );
   });
 
   test("7. Client keeps quantity trust on quiet data attrs (no rail prop)", () => {
@@ -133,8 +126,6 @@ describe("Phase 6 Builder quantity status UI wiring", () => {
       "app/lib/proposalCustomerPreviewViewModel.ts",
       "app/lib/proposalPublicGraphDto.ts",
       "app/tools/roofing/proposals/builder/ProposalBuilderCustomerPage.tsx",
-      "app/tools/roofing/proposals/builder/ProposalBuilderLinePreviewTable.tsx",
-      "app/tools/roofing/proposals/builder/ProposalBuilderSectionPreview.tsx",
     ];
     for (const rel of roots) {
       const src = readFileSync(path.join(process.cwd(), rel), "utf8");

@@ -200,10 +200,10 @@ describe("resolveProposalLaunchBlockerActions", () => {
 });
 
 describe("buildProposalBuilderHref", () => {
-  test("job-only route unchanged when proposalId omitted", () => {
+  test("job-only route returns Job Card proposals, not setup-preview Builder", () => {
     assert.equal(
       buildProposalBuilderHref(JOB_ID),
-      `/tools/roofing/proposals/builder?job=${encodeURIComponent(JOB_ID)}`
+      `/tools/roofing?entry=job-card&job=${encodeURIComponent(JOB_ID)}&tab=proposals`
     );
   });
 

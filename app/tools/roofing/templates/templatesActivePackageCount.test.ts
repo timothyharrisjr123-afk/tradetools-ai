@@ -93,15 +93,15 @@ describe("R1 active package count truth", () => {
     );
   });
 
-  test("Templates + Job Card + Builder use shared adaptive grid helper", () => {
+  test("Templates + Job Card use shared adaptive grid helper", () => {
     const review = read("templates/TemplatesQuoteSetupReview.tsx");
     const modal = read("jobCard/JobCardCreateProposalModal.tsx");
-    const cards = read("proposals/builder/ProposalBuilderPackageCards.tsx");
+    const builderList = read("proposals/builder/ProposalBuilderPackageChoiceList.tsx");
     assert.ok(review.includes("packageChoiceGridClass"));
     assert.ok(review.includes("formatActivePackageSetupSummary"));
     assert.ok(modal.includes("packageChoices.length"));
     assert.ok(modal.includes("data-jobcard-prepare-selector"));
-    assert.ok(cards.includes("packageChoiceGridClass"));
+    assert.equal(builderList.includes("packageChoiceGridClass"), false);
     assert.match(packageChoiceGridClass(4), /xl:grid-cols-4/);
     assert.doesNotMatch(packageChoiceGridClass(4), /md:grid-cols-3/);
   });

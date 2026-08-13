@@ -25,11 +25,13 @@ import type { MeasurementQuantityMap, MeasurementRecord } from "@/app/lib/measur
 import { resolveProposalBuilderQuantityPreflightMetadata } from "@/app/lib/proposalBuilderQuantityPreflightMetadata";
 import { composeProposalBuilderInternalTrustSignals } from "@/app/lib/proposalBuilderTrustSignals";
 import ProposalBuilderCustomerRequestBanner from "@/app/tools/roofing/proposals/builder/ProposalBuilderCustomerRequestBanner";
-import { deriveProposalBuilderReadiness } from "@/app/lib/proposalBuilderReadiness";
+import {
+  buildJobCardHref,
+  deriveProposalBuilderReadiness,
+} from "@/app/lib/proposalBuilderReadiness";
 import { deriveProposalTemplateReadiness } from "@/app/lib/proposalTemplateReadiness";
 import {
   getProposalTemplateGraph,
-  getProposalTemplatesByCompany,
   type ProposalTemplateGraph,
 } from "@/app/lib/proposalTemplateStore";
 import { getDefaultSelectedOptionId } from "@/app/lib/proposalBuilderPreview";
@@ -57,7 +59,6 @@ import {
   ProposalRecordStoreError,
   refreshDraftPricing,
   updateDraftProposalPageContent,
-  updateDraftProposalPageSettings,
   updateDraftProposalPageVisibility,
   updateDraftSelectedOption,
   type ProposalDraftGraph,
@@ -73,8 +74,6 @@ import {
 import { getResolvedCompanyPricingPolicy } from "@/app/lib/companyPricingPolicyStore";
 import type { CompanyPricingPolicyResolution } from "@/app/lib/companyPricingPolicy";
 import type { PricingPolicy } from "@/app/lib/proposalPricingTypes";
-import { findStarterProposalTemplate } from "@/app/tools/roofing/templates/templatesSetupUtils";
-import type { EstimateSettingsToggleKey } from "@/app/tools/roofing/templates/templatesStructureEditorUtils";
 import {
   BUILDER_DEFAULT_PAGE_CONTEXT,
   buildPageContextStripItems,
@@ -94,7 +93,6 @@ import { buildProposalCoverViewModel } from "@/app/lib/proposalCoverViewModel";
 import {
   deriveProposalBuilderGuidance,
   type ProposalBuilderGuardrailStatus,
-  type ProposalBuilderGuidanceTarget,
   type ProposalBuilderLifecycleActionId,
 } from "@/app/lib/proposalBuilderGuidance";
 import { buildProposalCustomerPreviewHref } from "@/app/lib/proposalCustomerPreviewViewModel";
@@ -130,6 +128,8 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
   const proposalIdParam = searchParams.get("proposal");
   const hasPersistedProposalParam =
     proposalIdParam != null && isUuidLike(proposalIdParam.trim());
+  const hasJobUuid = jobIdParam != null && isUuidLike(jobIdParam.trim());
+  const setupPreviewRetired = hasJobUuid && !hasPersistedProposalParam;
 
   const routeSpineLaunch = useMemo(
     () =>
@@ -208,17 +208,16 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
   const manualQuantityInFlightRef = useRef(false);
   const [excludeInFlight, setExcludeInFlight] = useState(false);
   const [excludeError, setExcludeError] = useState<string | null>(null);
+  const [excludeErrorLineId, setExcludeErrorLineId] = useState<string | null>(null);
   const excludeInFlightRef = useRef(false);
   const [visibilityInFlight, setVisibilityInFlight] = useState(false);
   const [visibilityError, setVisibilityError] = useState<string | null>(null);
+  const [visibilityErrorLineId, setVisibilityErrorLineId] = useState<string | null>(null);
   const visibilityInFlightRef = useRef(false);
   const [upgradeSelectionInFlight, setUpgradeSelectionInFlight] = useState(false);
   const [upgradeSelectionError, setUpgradeSelectionError] = useState<string | null>(null);
   const upgradeSelectionInFlightRef = useRef(false);
   const pageVisibilityToggleInFlightRef = useRef(false);
-  const [estimateSettingsSaveInFlight, setEstimateSettingsSaveInFlight] = useState(false);
-  const [estimateSettingsSaveError, setEstimateSettingsSaveError] = useState<string | null>(null);
-  const estimateSettingsSaveInFlightRef = useRef(false);
 
   const loadJobContext = useCallback(async () => {
     setJobLoadComplete(false);
@@ -317,29 +316,6 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
     }
   }, [companyId]);
 
-  const loadTemplates = useCallback(async () => {
-    setTemplateLoadComplete(false);
-    setTemplateError(null);
-    try {
-      const templates = await getProposalTemplatesByCompany(companyId);
-      setCompanyTemplateCount(templates.length);
-      const starter = findStarterProposalTemplate(templates);
-      if (!starter?.id) {
-        setStarterGraph(null);
-        return;
-      }
-      const graph = await getProposalTemplateGraph(starter.id, { companyId });
-      setStarterGraph(graph);
-    } catch (err) {
-      console.warn("[ProposalBuilderClient] template fetch error:", err);
-      setTemplateError("Could not load proposal templates.");
-      setStarterGraph(null);
-      setCompanyTemplateCount(0);
-    } finally {
-      setTemplateLoadComplete(true);
-    }
-  }, [companyId]);
-
   const loadPricingPolicy = useCallback(async () => {
     setPricingPolicyLoadComplete(false);
     try {
@@ -389,6 +365,11 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
   }, [refreshFeedback]);
 
   useEffect(() => {
+    if (!setupPreviewRetired || !jobIdParam) return;
+    router.replace(buildJobCardHref(jobIdParam.trim(), { tab: "proposals" }));
+  }, [setupPreviewRetired, jobIdParam, router]);
+
+  useEffect(() => {
     void loadJobContext();
   }, [loadJobContext]);
 
@@ -399,11 +380,6 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
   useEffect(() => {
     void loadCatalog();
   }, [loadCatalog]);
-
-  useEffect(() => {
-    if (hasPersistedProposalParam) return;
-    void loadTemplates();
-  }, [loadTemplates, hasPersistedProposalParam]);
 
   useEffect(() => {
     if (!persistedGraph?.proposal.template_id) return;
@@ -953,6 +929,7 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
       excludeInFlightRef.current = true;
       setExcludeInFlight(true);
       setExcludeError(null);
+      setExcludeErrorLineId(null);
 
       const measurementDisplay = measurementHandoff
         ? formatProposalQuantitiesDisplay(measurementHandoff.quantities)
@@ -990,6 +967,7 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
                 ? err.message
                 : "Could not remove line from this option.";
         setExcludeError(message);
+        setExcludeErrorLineId(templateItemId);
         throw err;
       } finally {
         excludeInFlightRef.current = false;
@@ -1033,6 +1011,7 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
       excludeInFlightRef.current = true;
       setExcludeInFlight(true);
       setExcludeError(null);
+      setExcludeErrorLineId(null);
 
       const measurementDisplay = measurementHandoff
         ? formatProposalQuantitiesDisplay(measurementHandoff.quantities)
@@ -1070,6 +1049,7 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
                 ? err.message
                 : "Could not restore line to this option.";
         setExcludeError(message);
+        setExcludeErrorLineId(templateItemId);
         throw err;
       } finally {
         excludeInFlightRef.current = false;
@@ -1117,6 +1097,7 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
       visibilityInFlightRef.current = true;
       setVisibilityInFlight(true);
       setVisibilityError(null);
+      setVisibilityErrorLineId(null);
 
       const measurementDisplay = measurementHandoff
         ? formatProposalQuantitiesDisplay(measurementHandoff.quantities)
@@ -1154,6 +1135,7 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
                 ? err.message
                 : "Could not hide line from customer proposal.";
         setVisibilityError(message);
+        setVisibilityErrorLineId(templateItemId);
         throw err;
       } finally {
         visibilityInFlightRef.current = false;
@@ -1201,6 +1183,7 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
       visibilityInFlightRef.current = true;
       setVisibilityInFlight(true);
       setVisibilityError(null);
+      setVisibilityErrorLineId(null);
 
       const measurementDisplay = measurementHandoff
         ? formatProposalQuantitiesDisplay(measurementHandoff.quantities)
@@ -1238,6 +1221,7 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
                 ? err.message
                 : "Could not restore line visibility.";
         setVisibilityError(message);
+        setVisibilityErrorLineId(templateItemId);
         throw err;
       } finally {
         visibilityInFlightRef.current = false;
@@ -1487,53 +1471,6 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
     [hasPersistedProposalParam, proposalIdParam, companyId]
   );
 
-  const handleToggleEstimateDisplaySetting = useCallback(
-    (key: EstimateSettingsToggleKey, nextValue: boolean) => {
-      if (!hasPersistedProposalParam || !persistedGraph || !proposalIdParam) return;
-      if (estimateSettingsSaveInFlightRef.current) return;
-
-      const estimatePage = persistedGraph.pages.find((page) => page.page_type === "estimate");
-      if (!estimatePage?.id) {
-        setEstimateSettingsSaveError("Could not find the estimate page for this draft.");
-        return;
-      }
-
-      estimateSettingsSaveInFlightRef.current = true;
-      setEstimateSettingsSaveInFlight(true);
-      setEstimateSettingsSaveError(null);
-
-      void (async () => {
-        try {
-          const updated = await updateDraftProposalPageSettings(
-            companyId,
-            proposalIdParam.trim(),
-            estimatePage.id,
-            { [key]: nextValue }
-          );
-          if (!updated) {
-            throw new Error("Could not save estimate display settings.");
-          }
-          setPersistedGraph(updated);
-        } catch (err) {
-          const message =
-            err instanceof ProposalRecordStoreError
-              ? err.message
-              : err instanceof Error
-                ? err.message
-                : "Could not save estimate display settings.";
-          setEstimateSettingsSaveError(message);
-          if (!(err instanceof ProposalRecordStoreError)) {
-            console.warn("[ProposalBuilderClient] estimate settings save error:", err);
-          }
-        } finally {
-          estimateSettingsSaveInFlightRef.current = false;
-          setEstimateSettingsSaveInFlight(false);
-        }
-      })();
-    },
-    [hasPersistedProposalParam, persistedGraph, proposalIdParam, companyId]
-  );
-
   const selectedOptionPricingStatus = useMemo(() => {
     if (!pricingPreview || !effectiveSelectedOptionId) return null;
     return pricingPreview.byOptionId[effectiveSelectedOptionId]?.status ?? null;
@@ -1714,55 +1651,24 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
     ]
   );
 
-  // 3J4C4: the Estimate document now holds sections, line items, totals, package
-  // options, and details inline, so the former workspace-tab targets all resolve
-  // to the Estimate document page. Lifecycle (action:preview/send/sign/payment/
-  // production) intentionally no-ops — nothing is enabled here.
-  const handleGuidanceNavigate = useCallback(
-    (target: ProposalBuilderGuidanceTarget) => {
-      switch (target) {
-        case "workspace:overview":
-        case "workspace:options":
-        case "workspace:sections":
-        case "workspace:line-items":
-        case "workspace:quantities":
-          handleSelectPageContext("estimate");
-          return;
-        case "page:cover":
-          handleSelectPageContext("cover");
-          return;
-        case "page:estimate":
-          handleSelectPageContext("estimate");
-          return;
-        case "page:terms":
-          handleSelectPageContext("placeholder:terms");
-          return;
-        case "page:warranty":
-          handleSelectPageContext("placeholder:warranty");
-          return;
-        case "page:project-overview":
-          handleSelectPageContext("placeholder:about");
-          return;
-        case "page:project-photos":
-          handleSelectPageContext("placeholder:photos");
-          return;
-        case "action:refresh-pricing":
-          handleRefreshDraftPricing();
-          return;
-        case "action:preview":
-          handleLifecycleAction("preview");
-          return;
-        case "action:send":
-        case "action:sign":
-        case "action:payment":
-        case "action:production":
-        case "none":
-        default:
-          return;
-      }
-    },
-    [handleRefreshDraftPricing, handleSelectPageContext, handleLifecycleAction]
-  );
+  if (setupPreviewRetired) {
+    return (
+      <div
+        className="space-y-3 pb-12 pt-2"
+        data-builder-contractor-workspace
+        data-builder-setup-preview-retired
+      >
+        <ProposalBuilderPageHeader
+          job={null}
+          jobId={(jobIdParam ?? "").trim() || null}
+          shellReady={false}
+        />
+        <p className="px-5 text-[14px] text-slate-500" role="status">
+          Opening Job Card…
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -1818,23 +1724,14 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
         guidance={builderGuidance}
         onLifecycleAction={handleLifecycleAction}
       />
-      <ProposalBuilderPageAlerts
-        loadError={loadError}
-        shellReady={shellReady}
-        hasPersistedDraft={
-          hasPersistedProposalParam &&
-          draftGraphLoadComplete &&
-          !draftGraphError &&
-          persistedGraph != null
-        }
-      />
+      <ProposalBuilderPageAlerts loadError={loadError} />
       {shellReady && hasPersistedProposalParam ? (
         <ProposalBuilderCustomerRequestBanner
           proposalId={proposalIdParam}
           jobId={jobIdParam}
         />
       ) : null}
-      {spineRouteError ? (
+      {spineRouteError && builderReadiness.primaryGate !== "missing_job" ? (
         <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
           {spineRouteError}
         </div>
@@ -1866,7 +1763,7 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
             type="button"
             onClick={handleRefreshDraftPricing}
             disabled={refreshInFlight || persistedGraph?.proposal.status !== "draft"}
-            className="inline-flex shrink-0 items-center justify-center rounded-md border border-amber-400 bg-white px-3 py-1.5 text-xs font-semibold text-amber-900 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-md border border-amber-400 bg-white px-3 py-1.5 text-xs font-semibold text-amber-900 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60 sm:min-h-0"
             data-builder-refresh-draft-pricing
           >
             {refreshInFlight ? "Refreshing…" : "Refresh draft pricing"}
@@ -1890,11 +1787,6 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
       {!draftGraphError && shellReady && pageVisibilityToggleError ? (
         <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
           {pageVisibilityToggleError}
-        </div>
-      ) : null}
-      {!draftGraphError && shellReady && estimateSettingsSaveError ? (
-        <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-          {estimateSettingsSaveError}
         </div>
       ) : null}
       {!draftGraphError && shellReady ? (
@@ -1937,13 +1829,6 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
               pageEditSaveError={pageEditSaveError}
               onTogglePageVisibility={handleTogglePageVisibility}
               pageVisibilityToggleInFlight={pageVisibilityToggleInFlight}
-              onToggleEstimateDisplaySetting={
-                hasPersistedProposalParam && persistedGraph && !draftGraphError
-                  ? handleToggleEstimateDisplaySetting
-                  : undefined
-              }
-              estimateSettingsSaveInFlight={estimateSettingsSaveInFlight}
-              estimateSettingsSaveError={estimateSettingsSaveError}
               persistedDraftEnabled={Boolean(
                 hasPersistedProposalParam && persistedGraph && !draftGraphError
               )}
@@ -1952,8 +1837,10 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
               activeScopeDecisionsForOption={activeScopeDecisionsForOption}
               excludeInFlight={excludeInFlight}
               excludeError={excludeError}
+              excludeErrorLineId={excludeErrorLineId}
               visibilityInFlight={visibilityInFlight}
               visibilityError={visibilityError}
+              visibilityErrorLineId={visibilityErrorLineId}
               upgradeSelectionInFlight={upgradeSelectionInFlight}
               upgradeSelectionError={upgradeSelectionError}
               onApplyManualQuantity={

@@ -75,7 +75,7 @@ describe("Builder estimate handoff (Block 4 / 4B / 4C)", () => {
     assert.match(constants, /max-w-\[88rem\]/);
   });
 
-  test("4. Compact needs-review strip; Finish estimate language", () => {
+  test("4. Compact needs-review strip; Finish estimate is gone", () => {
     const estimate = read(
       "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchEstimateDocument.tsx"
     );
@@ -88,9 +88,8 @@ describe("Builder estimate handoff (Block 4 / 4B / 4C)", () => {
     const attentionSrc = read(
       "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchAttentionZone.tsx"
     );
-    assert.match(attentionSrc, /data-builder-finish-estimate/);
-    assert.match(attentionSrc, /Finish estimate/);
-    assert.doesNotMatch(attentionSrc, /Needs quantity review/);
+    assert.doesNotMatch(attentionSrc, /data-builder-finish-estimate/);
+    assert.doesNotMatch(attentionSrc, /Finish estimate/);
   });
 
   test("5. No yellow warning banner as first primary visual for drafts", () => {
@@ -99,7 +98,8 @@ describe("Builder estimate handoff (Block 4 / 4B / 4C)", () => {
     );
     assert.doesNotMatch(alerts, /BUILDER_READ_ONLY_ALERT_COMPACT/);
     assert.doesNotMatch(alerts, /bg-amber-50/);
-    assert.match(alerts, /hasPersistedDraft/);
+    assert.doesNotMatch(alerts, /data-builder-setup-quiet-note/);
+    assert.doesNotMatch(alerts, /Setup preview/);
   });
 
   test("6. Snapshot details not primary; Saved pricing details under More", () => {
@@ -146,8 +146,9 @@ describe("Builder estimate handoff (Block 4 / 4B / 4C)", () => {
     const attention = body.indexOf("<ProposalBuilderWorkbenchAttentionZone");
     const upgrades = body.indexOf("<ProposalBuilderWorkbenchUpgradesZone");
     assert.ok(surface > 0 && included > surface && totals > included);
-    assert.ok(included > 0 && included < attention);
-    assert.ok(upgrades > attention);
+    assert.ok(included > 0 && included < upgrades);
+    assert.ok(upgrades > totals);
+    assert.ok(attention > upgrades);
   });
 
   test("9. Remove from proposal not primary; quiet More on included rows", () => {

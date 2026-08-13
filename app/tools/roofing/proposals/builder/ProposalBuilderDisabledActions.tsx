@@ -65,6 +65,14 @@ export default function ProposalBuilderDisabledActions({
           ) : null}
           {BUILDER_CUSTOMER_REVIEW_LABEL}
         </button>
+        {!previewEnabled ? (
+          <p
+            className="basis-full text-right text-[12px] leading-snug text-slate-500"
+            data-builder-customer-review-lock-reason
+          >
+            {previewReason}
+          </p>
+        ) : null}
 
         {showMore ? (
           <details className="relative" data-builder-future-actions>

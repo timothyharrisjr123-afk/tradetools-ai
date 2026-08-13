@@ -7,7 +7,7 @@ export const BUILDER_HERO_CARD =
   "rounded-lg border border-slate-200/90 bg-white px-5 py-5 shadow-[0_1px_3px_rgba(15,23,42,0.06)]";
 
 export const BUILDER_BLOCKED_BANNER =
-  "rounded-lg border border-amber-200/90 bg-amber-50/70 px-5 py-5";
+  "mx-auto w-full max-w-lg px-5 py-10 sm:px-8";
 
 export const BUILDER_SHELL_BANNER =
   "rounded-md border border-cyan-200/80 bg-cyan-50/60 px-4 py-3 text-sm text-cyan-950";

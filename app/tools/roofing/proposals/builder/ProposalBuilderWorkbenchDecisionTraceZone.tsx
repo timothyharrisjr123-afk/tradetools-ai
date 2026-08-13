@@ -13,6 +13,8 @@ type ProposalBuilderWorkbenchDecisionTraceZoneProps = {
   zone: WorkbenchDecisionTraceZone;
   onRestoreExcludedLine?: (templateItemId: string) => void;
   excludeInFlight?: boolean;
+  excludeError?: string | null;
+  excludeErrorLineId?: string | null;
 };
 
 /**
@@ -22,6 +24,8 @@ export default function ProposalBuilderWorkbenchDecisionTraceZone({
   zone,
   onRestoreExcludedLine,
   excludeInFlight = false,
+  excludeError = null,
+  excludeErrorLineId = null,
 }: ProposalBuilderWorkbenchDecisionTraceZoneProps) {
   if (!zone.show || !zone.excluded.show) {
     return null;
@@ -61,6 +65,15 @@ export default function ProposalBuilderWorkbenchDecisionTraceZone({
                 </button>
               ) : null}
             </div>
+            {excludeError && excludeErrorLineId === line.templateItemId ? (
+              <p
+                className="px-1 pb-1 text-[12px] leading-snug text-red-700"
+                role="alert"
+                data-builder-row-exclude-error
+              >
+                {excludeError}
+              </p>
+            ) : null}
           </li>
         ))}
       </ul>

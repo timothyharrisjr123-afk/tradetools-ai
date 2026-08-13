@@ -116,6 +116,34 @@ describe("V2B2 canonical estimate row editing", () => {
     assert.match(client, /clearCustomerVisibilityHide/);
   });
 
+  test("hide/remove failures surface on the affected row and clear on retry", () => {
+    const ready = read(
+      "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchReadyScopeZone.tsx"
+    );
+    const removed = read(
+      "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchDecisionTraceZone.tsx"
+    );
+    const client = read(
+      "app/tools/roofing/proposals/builder/ProposalBuilderClient.tsx"
+    );
+    const estimate = read(
+      "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchEstimateDocument.tsx"
+    );
+    assert.match(ready, /data-builder-row-exclude-error/);
+    assert.match(ready, /data-builder-row-visibility-error/);
+    assert.match(ready, /excludeErrorLineId === line\.templateItemId/);
+    assert.match(ready, /visibilityErrorLineId === line\.templateItemId/);
+    assert.match(removed, /data-builder-row-exclude-error/);
+    assert.match(client, /setExcludeErrorLineId\(templateItemId\)/);
+    assert.match(client, /setVisibilityErrorLineId\(templateItemId\)/);
+    assert.match(client, /setExcludeError\(null\)/);
+    assert.match(client, /setVisibilityError\(null\)/);
+    assert.match(estimate, /excludeErrorLineId=\{excludeErrorLineId\}/);
+    assert.match(estimate, /visibilityErrorLineId=\{visibilityErrorLineId\}/);
+    assert.doesNotMatch(client, /data-builder-row-exclude-error/);
+    assert.doesNotMatch(estimate, /ProposalBuilderWorkbenchEditOptionShell/);
+  });
+
   test("restore excluded remains in Removed scope, not mixed into active rows", () => {
     const estimate = read(
       "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchEstimateDocument.tsx"

@@ -11,7 +11,6 @@ import type { ProposalTemplateGraph } from "@/app/lib/proposalTemplateStore";
 import type { ProposalTemplateSection } from "@/app/lib/proposalTemplateTypes";
 import type { ProposalPageSettings } from "@/app/lib/proposalPageTypes";
 import type { ProposalPageRow } from "@/app/lib/proposalRecordStore";
-import type { EstimateSettingsToggleKey } from "@/app/tools/roofing/templates/templatesStructureEditorUtils";
 import { useCallback, useState } from "react";
 import { CircleAlert } from "lucide-react";
 import {
@@ -49,8 +48,10 @@ type ProposalBuilderWorkbenchEstimateDocumentProps = {
   manualQuantityError?: string | null;
   excludeInFlight?: boolean;
   excludeError?: string | null;
+  excludeErrorLineId?: string | null;
   visibilityInFlight?: boolean;
   visibilityError?: string | null;
+  visibilityErrorLineId?: string | null;
   upgradeSelectionInFlight?: boolean;
   upgradeSelectionError?: string | null;
   onApplyManualQuantity?: (
@@ -64,12 +65,6 @@ type ProposalBuilderWorkbenchEstimateDocumentProps = {
   onHideLine?: (templateItemId: string) => Promise<void>;
   onRestoreVisibility?: (templateItemId: string) => Promise<void>;
   onSetUpgradeSelected?: (templateItemId: string, selected: boolean) => Promise<void>;
-  estimateSettingsSaveInFlight?: boolean;
-  estimateSettingsSaveError?: string | null;
-  onToggleEstimateDisplaySetting?: (
-    key: EstimateSettingsToggleKey,
-    nextValue: boolean
-  ) => void;
 };
 
 function readEstimatePageSettingsFromPersisted(
@@ -104,8 +99,10 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
   manualQuantityError = null,
   excludeInFlight = false,
   excludeError = null,
+  excludeErrorLineId = null,
   visibilityInFlight = false,
   visibilityError = null,
+  visibilityErrorLineId = null,
   upgradeSelectionInFlight = false,
   upgradeSelectionError = null,
   onApplyManualQuantity,
@@ -115,9 +112,6 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
   onHideLine,
   onRestoreVisibility,
   onSetUpgradeSelected,
-  estimateSettingsSaveInFlight = false,
-  estimateSettingsSaveError = null,
-  onToggleEstimateDisplaySetting,
 }: ProposalBuilderWorkbenchEstimateDocumentProps) {
   const quantityContext =
     measurementHandoff || measurementQuantityMap
@@ -204,8 +198,12 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
   const handleExcludeLine = useCallback(
     async (templateItemId: string) => {
       if (!onExcludeLine) return;
-      await onExcludeLine(templateItemId);
-      setSetQuantityLineId(null);
+      try {
+        await onExcludeLine(templateItemId);
+        setSetQuantityLineId(null);
+      } catch {
+        /* Client records excludeError for this row. */
+      }
     },
     [onExcludeLine]
   );
@@ -213,7 +211,11 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
   const handleHideLine = useCallback(
     async (templateItemId: string) => {
       if (!onHideLine) return;
-      await onHideLine(templateItemId);
+      try {
+        await onHideLine(templateItemId);
+      } catch {
+        /* Client records visibilityError for this row. */
+      }
     },
     [onHideLine]
   );
@@ -221,7 +223,11 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
   const handleRestoreVisibility = useCallback(
     async (templateItemId: string) => {
       if (!onRestoreVisibility) return;
-      await onRestoreVisibility(templateItemId);
+      try {
+        await onRestoreVisibility(templateItemId);
+      } catch {
+        /* Client records visibilityError for this row. */
+      }
     },
     [onRestoreVisibility]
   );
@@ -229,7 +235,11 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
   const handleRestoreExcludedLine = useCallback(
     async (templateItemId: string) => {
       if (!onRestoreExcludedLine) return;
-      await onRestoreExcludedLine(templateItemId);
+      try {
+        await onRestoreExcludedLine(templateItemId);
+      } catch {
+        /* Client records excludeError for this row. */
+      }
     },
     [onRestoreExcludedLine]
   );
@@ -346,6 +356,10 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
               visibilityEnabled ? handleRestoreVisibility : undefined
             }
             visibilityInFlight={visibilityInFlight}
+            excludeError={excludeError}
+            excludeErrorLineId={excludeErrorLineId}
+            visibilityError={visibilityError}
+            visibilityErrorLineId={visibilityErrorLineId}
           />
 
           <ProposalBuilderWorkbenchTotalsZone zone={presentation.totalsZone} />
@@ -396,6 +410,8 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
                     excludeEnabled ? handleRestoreExcludedLine : undefined
                   }
                   excludeInFlight={excludeInFlight}
+                  excludeError={excludeError}
+                  excludeErrorLineId={excludeErrorLineId}
                 />
               </div>
             </details>

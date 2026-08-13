@@ -15,7 +15,7 @@ export default function ProposalBuilderCustomerRequestBanner({
   proposalId,
   jobId,
 }: ProposalBuilderCustomerRequestBannerProps) {
-  const { requests, pendingRequestId, markSeen } = useProposalCustomerRequests({
+  const { requests, pendingRequestId, markSeen, actionError } = useProposalCustomerRequests({
     proposalId,
     jobId,
   });
@@ -49,11 +49,20 @@ export default function ProposalBuilderCustomerRequestBanner({
           onClick={() => {
             void markSeen(openRequest.id);
           }}
-          className="inline-flex shrink-0 items-center justify-center rounded-md border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-950 transition hover:bg-amber-100 disabled:opacity-60"
+          className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-md border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-950 transition hover:bg-amber-100 disabled:opacity-60 sm:min-h-0"
           data-builder-customer-request-mark-seen
         >
           {CUSTOMER_REQUEST_MARK_SEEN_LABEL}
         </button>
+      ) : null}
+      {actionError ? (
+        <p
+          className="basis-full text-[12px] leading-snug text-red-700"
+          role="alert"
+          data-builder-customer-request-action-error
+        >
+          {actionError}
+        </p>
       ) : null}
     </div>
   );

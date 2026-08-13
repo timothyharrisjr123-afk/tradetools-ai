@@ -40,6 +40,10 @@ type ProposalBuilderWorkbenchReadyScopeZoneProps = {
   onHideFromCustomer?: (templateItemId: string) => void;
   onShowToCustomer?: (templateItemId: string) => void;
   visibilityInFlight?: boolean;
+  excludeError?: string | null;
+  excludeErrorLineId?: string | null;
+  visibilityError?: string | null;
+  visibilityErrorLineId?: string | null;
 };
 
 function isIncludedAmount(label: string): boolean {
@@ -78,6 +82,10 @@ export default function ProposalBuilderWorkbenchReadyScopeZone({
   onHideFromCustomer,
   onShowToCustomer,
   visibilityInFlight = false,
+  excludeError = null,
+  excludeErrorLineId = null,
+  visibilityError = null,
+  visibilityErrorLineId = null,
 }: ProposalBuilderWorkbenchReadyScopeZoneProps) {
   const lines = sections.flatMap((section) => section.lines);
   const lineCount = lines.length;
@@ -330,6 +338,24 @@ export default function ProposalBuilderWorkbenchReadyScopeZone({
                         </div>
                       </div>
                     )}
+                    {excludeError && excludeErrorLineId === line.templateItemId ? (
+                      <p
+                        className="px-5 pb-2 text-[12px] leading-snug text-red-700 sm:px-6"
+                        role="alert"
+                        data-builder-row-exclude-error
+                      >
+                        {excludeError}
+                      </p>
+                    ) : null}
+                    {visibilityError && visibilityErrorLineId === line.templateItemId ? (
+                      <p
+                        className="px-5 pb-2 text-[12px] leading-snug text-red-700 sm:px-6"
+                        role="alert"
+                        data-builder-row-visibility-error
+                      >
+                        {visibilityError}
+                      </p>
+                    ) : null}
                     {showDetails && !isEditing ? (
                       <div className="px-5 pb-3.5 sm:px-6" data-builder-included-line-details>
                         <ProposalBuilderWorkbenchLineDetails detailMeta={line.detailMeta} />

@@ -75,20 +75,16 @@ type ProposalBuilderCanvasProps = {
   pageEditSaveError?: string | null;
   onTogglePageVisibility?: (pageId: string, visibleToCustomer: boolean) => void;
   pageVisibilityToggleInFlight?: boolean;
-  onToggleEstimateDisplaySetting?: (
-    key: import("@/app/tools/roofing/templates/templatesStructureEditorUtils").EstimateSettingsToggleKey,
-    nextValue: boolean
-  ) => void;
-  estimateSettingsSaveInFlight?: boolean;
-  estimateSettingsSaveError?: string | null;
   persistedDraftEnabled?: boolean;
   activeScopeDecisionsForOption?: import("@/app/lib/proposalScopeDecisionTypes").ProposalScopeDecision[];
   manualQuantityInFlight?: boolean;
   manualQuantityError?: string | null;
   excludeInFlight?: boolean;
   excludeError?: string | null;
+  excludeErrorLineId?: string | null;
   visibilityInFlight?: boolean;
   visibilityError?: string | null;
+  visibilityErrorLineId?: string | null;
   upgradeSelectionInFlight?: boolean;
   upgradeSelectionError?: string | null;
   onApplyManualQuantity?: (
@@ -219,17 +215,16 @@ export default function ProposalBuilderCanvas({
   pageEditSaveError = null,
   onTogglePageVisibility,
   pageVisibilityToggleInFlight = false,
-  onToggleEstimateDisplaySetting,
-  estimateSettingsSaveInFlight = false,
-  estimateSettingsSaveError = null,
   persistedDraftEnabled = false,
   activeScopeDecisionsForOption = [],
   manualQuantityInFlight = false,
   manualQuantityError = null,
   excludeInFlight = false,
   excludeError = null,
+  excludeErrorLineId = null,
   visibilityInFlight = false,
   visibilityError = null,
+  visibilityErrorLineId = null,
   upgradeSelectionInFlight = false,
   upgradeSelectionError = null,
   onApplyManualQuantity,
@@ -399,8 +394,10 @@ export default function ProposalBuilderCanvas({
       manualQuantityError={manualQuantityError}
       excludeInFlight={excludeInFlight}
       excludeError={excludeError}
+      excludeErrorLineId={excludeErrorLineId}
       visibilityInFlight={visibilityInFlight}
       visibilityError={visibilityError}
+      visibilityErrorLineId={visibilityErrorLineId}
       upgradeSelectionInFlight={upgradeSelectionInFlight}
       upgradeSelectionError={upgradeSelectionError}
       onApplyManualQuantity={onApplyManualQuantity}
@@ -410,9 +407,6 @@ export default function ProposalBuilderCanvas({
       onHideLine={onHideLine}
       onRestoreVisibility={onRestoreVisibility}
       onSetUpgradeSelected={onSetUpgradeSelected}
-      estimateSettingsSaveInFlight={estimateSettingsSaveInFlight}
-      estimateSettingsSaveError={estimateSettingsSaveError}
-      onToggleEstimateDisplaySetting={onToggleEstimateDisplaySetting}
     />
   );
 }

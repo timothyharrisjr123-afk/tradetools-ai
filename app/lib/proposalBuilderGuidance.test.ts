@@ -59,14 +59,14 @@ describe("deriveProposalBuilderGuidance", () => {
 
     const preview = stepById(guidance, "preview");
     assert.equal(preview.state, "locked");
-    assert.match(preview.lockedReason ?? "", /roadmap phase/i);
+    assert.match(preview.lockedReason ?? "", /saved proposal draft/i);
 
     const production = stepById(guidance, "production");
     assert.equal(production.state, "future");
 
     const previewLock = lifecycleById(guidance, "preview");
     assert.equal(previewLock.state, "locked");
-    assert.match(previewLock.lockedReason ?? "", /roadmap phase/i);
+    assert.match(previewLock.lockedReason ?? "", /saved proposal draft/i);
   });
 
   test("stale measurement prioritizes refresh next action", () => {
@@ -224,7 +224,7 @@ describe("deriveProposalBuilderGuidance", () => {
     const production = lifecycleById(guidance, "production");
 
     assert.equal(preview.state, "locked");
-    assert.match(preview.unlockSummary, /roadmap phase/i);
+    assert.match(preview.unlockSummary, /saved proposal draft/i);
 
     assert.equal(send.state, "locked");
     assert.equal(send.lockedReason, "Available after Preview.");

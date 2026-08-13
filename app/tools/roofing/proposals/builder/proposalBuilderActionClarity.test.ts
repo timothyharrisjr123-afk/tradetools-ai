@@ -40,11 +40,11 @@ describe("Builder action clarity (Block 4D / 4E)", () => {
     assert.doesNotMatch(inline, /createPortal/);
     assert.doesNotMatch(inline, /WORKBENCH_EDIT_OPTION_DRAWER/);
 
-    const attention = read(
-      "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchAttentionZone.tsx"
+    const ready = read(
+      "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchReadyScopeZone.tsx"
     );
-    assert.match(attention, /ProposalBuilderWorkbenchInlineQuantityEditor/);
-    assert.match(attention, /data-builder-set-quantity/);
+    assert.match(ready, /ProposalBuilderWorkbenchInlineQuantityEditor/);
+    assert.match(estimate, /data-builder-qty-edit-trigger|focusFirstQuantityIssue/);
   });
 
   test("3. Inline quantity save uses existing manual quantity handler", () => {
@@ -67,86 +67,32 @@ describe("Builder action clarity (Block 4D / 4E)", () => {
     assert.doesNotMatch(reviewBlock, /openEditPackage|openSetQuantity/);
   });
 
-  test("6. Edit scope is demoted from the primary Estimate surface", () => {
+  test("6. Edit scope drawer is deleted and unreachable", () => {
     const estimate = read(
       "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchEstimateDocument.tsx"
     );
     assert.doesNotMatch(estimate, /openEditPackage/);
     assert.doesNotMatch(estimate, /editPackageOpen/);
     assert.doesNotMatch(estimate, /ProposalBuilderWorkbenchEditOptionShell/);
-
-    const shell = read(
-      "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchEditOptionShell.tsx"
+    assert.equal(
+      existsSync(
+        path.join(
+          process.cwd(),
+          "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchEditOptionShell.tsx"
+        )
+      ),
+      false
     );
-    assert.match(shell, /data-builder-edit-package-drawer/);
-    assert.match(shell, /Contractor-only changes for this proposal draft/);
-    assert.match(shell, /Quantity review/);
-    assert.match(shell, /Future package tools/);
-    assert.match(shell, /data-builder-future-package-tools/);
-    assert.match(shell, /WORKBENCH_EDIT_PACKAGE_TITLE/);
-    assert.match(shell, /WORKBENCH_USE_MEASUREMENT_QUANTITY_LABEL/);
-    assert.match(shell, /data-builder-quantity-review-line/);
-    assert.match(shell, /data-selected=\{isActive/);
-    assert.match(shell, /data-builder-quantity-review-toggle/);
-    assert.match(shell, /isActive \? null : line\.templateItemId/);
-    assert.match(shell, /aria-expanded=\{isActive\}/);
-    assert.match(shell, /Collapse \$\{line\.name\}/);
-    assert.match(shell, /Expand \$\{line\.name\}/);
-    assert.match(shell, /data-builder-selected-quantity-editor/);
-    assert.match(shell, /Current custom quantity/);
-    assert.match(shell, /Change custom quantity/);
-    assert.match(shell, /Save quantity/);
-    assert.match(shell, /for \$\{activeManualLine\.name\}/);
-    assert.match(
-      shell,
-      /onClearManualQuantity\(activeManualLine\.templateItemId\)/
-    );
-    assert.match(
-      shell,
-      /onFocusTemplateItemId: \(templateItemId: string \| null\) => void/
-    );
-    assert.doesNotMatch(shell, /Advanced package settings/);
-    assert.doesNotMatch(shell, /scope decision layer/i);
-    assert.doesNotMatch(shell, /pricing stays trustworthy/i);
-    assert.doesNotMatch(shell, /Edit \$\{optionLabel/);
-    assert.doesNotMatch(shell, /Package scope/i);
-    // Future tools stay collapsed — not large disabled primary sections.
-    assert.doesNotMatch(shell, /WORKBENCH_EDIT_OPTION_SECTION/);
-    assert.doesNotMatch(shell, /Browse catalog/);
-    const footer = shell.slice(shell.indexOf("<footer"));
-    assert.doesNotMatch(footer, /WORKBENCH_USE_MEASUREMENT_QUANTITY_LABEL|handleClear/);
-    assert.match(footer, /Saved changes apply immediately/);
-    assert.match(footer, />\s*Done\s*</);
-
-    // Accordion: measured quantity only inside open selected row editor.
-    const editorIdx = shell.indexOf("data-builder-selected-quantity-editor");
-    assert.ok(editorIdx > 0);
-    const editorBlock = shell.slice(editorIdx, editorIdx + 4200);
-    assert.match(editorBlock, /WORKBENCH_USE_MEASUREMENT_QUANTITY_LABEL/);
-    assert.match(editorBlock, /Save quantity/);
   });
 
-  test("6b. Quantity review accordion opens, switches, and collapses", () => {
-    const shell = read(
-      "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchEditOptionShell.tsx"
-    );
-    assert.match(shell, /isActive \? null : line\.templateItemId/);
-    assert.match(shell, /data-builder-quantity-review-toggle/);
-    assert.match(shell, /aria-expanded=\{isActive\}/);
-    // Collapsing clears focus without closing the drawer (drawer close is separate).
-    assert.match(shell, /onFocusTemplateItemId:\s*\(templateItemId: string \| null\)/);
-    const toggleIdx = shell.indexOf("data-builder-quantity-review-toggle");
-    assert.ok(toggleIdx > 0);
-    const toggleBlock = shell.slice(Math.max(0, toggleIdx - 280), toggleIdx + 120);
-    assert.match(toggleBlock, /isActive \? null : line\.templateItemId/);
-    assert.doesNotMatch(toggleBlock, /onClose\(/);
-
+  test("6b. Quantity review lives on estimate rows, not an Edit scope accordion", () => {
     const estimate = read(
       "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchEstimateDocument.tsx"
     );
     assert.doesNotMatch(estimate, /onFocusTemplateItemId=\{setFocusedTemplateItemId\}/);
     assert.doesNotMatch(estimate, /editPackageOpen/);
     assert.doesNotMatch(estimate, /ProposalBuilderWorkbenchEditOptionShell/);
+    assert.match(estimate, /data-builder-qty-edit-trigger|focusFirstQuantityIssue/);
   });
 
   test("7–10. Row menu portal polish; Remove uses exclude path", () => {
@@ -242,7 +188,7 @@ describe("Builder action clarity (Block 4D / 4E)", () => {
     );
     assert.doesNotMatch(attention, /WORKBENCH_FUTURE_ACTION_CHIP/);
     assert.doesNotMatch(attention, /aria-disabled/);
-    assert.match(attention, /WORKBENCH_SET_QUANTITY_ACTION|Set quantity/);
+    assert.doesNotMatch(attention, /WORKBENCH_SET_QUANTITY_ACTION|Set quantity/);
     assert.doesNotMatch(attention, /data-builder-edit-package/);
     assert.doesNotMatch(attention, /WORKBENCH_EDIT_PACKAGE_TITLE/);
 

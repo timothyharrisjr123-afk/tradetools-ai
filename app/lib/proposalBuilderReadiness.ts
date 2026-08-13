@@ -73,13 +73,15 @@ export function deriveProposalBuilderReadiness(
   const jobIdParam = normalizeJobIdParam(input.jobIdParam);
   const hasValidPersistedDraft = input.hasValidPersistedDraft === true;
 
+  // Missing job is known immediately — do not wait on catalog/template.
   // Draft sessions still need job + measurement context, but must not wait on
   // company template install readiness after a draft graph has already loaded.
-  const loading =
-    (Boolean(jobIdParam) && !input.jobLoadComplete) ||
-    (Boolean(jobIdParam) && input.job != null && !input.measurementLoadComplete) ||
-    !input.catalogLoadComplete ||
-    (!hasValidPersistedDraft && !input.templateLoadComplete);
+  const loading = jobIdParam
+    ? (!input.jobLoadComplete) ||
+      (input.job != null && !input.measurementLoadComplete) ||
+      !input.catalogLoadComplete ||
+      (!hasValidPersistedDraft && !input.templateLoadComplete)
+    : false;
 
   const blockedGates: ProposalBuilderGate[] = [];
 
@@ -104,6 +106,7 @@ export function deriveProposalBuilderReadiness(
   }
 
   if (
+    Boolean(jobIdParam) &&
     !hasValidPersistedDraft &&
     input.catalogLoadComplete &&
     input.catalogReadiness.state !== "ready_for_templates"
@@ -112,6 +115,7 @@ export function deriveProposalBuilderReadiness(
   }
 
   if (
+    Boolean(jobIdParam) &&
     !hasValidPersistedDraft &&
     input.templateLoadComplete &&
     input.templateReadiness.status !== "ready_for_builder"
@@ -157,7 +161,7 @@ export function formatProposalBuilderGateMessage(
 ): string {
   switch (gate) {
     case "missing_job":
-      return "Open Proposal Builder from a Job Card with a saved job, or add ?job=<uuid> to the URL.";
+      return "Open this Builder from a saved Job Card.";
     case "invalid_job":
       return "This job id is invalid or you do not have access to it. Return to the Job Board and open the job again.";
     case "measurement_not_ready": {
@@ -209,12 +213,11 @@ export function buildProposalBuilderHref(
   jobId: string,
   proposalId?: string | null
 ): string {
-  const base = `/tools/roofing/proposals/builder?job=${encodeURIComponent(jobId)}`;
   const pid = proposalId == null ? "" : String(proposalId).trim();
   if (!pid || !isUuidLike(pid)) {
-    return base;
+    return buildJobCardHref(jobId, { tab: "proposals" });
   }
-  return `${base}&proposal=${encodeURIComponent(pid)}`;
+  return `/tools/roofing/proposals/builder?job=${encodeURIComponent(jobId)}&proposal=${encodeURIComponent(pid)}`;
 }
 
 export function buildJobCardHref(

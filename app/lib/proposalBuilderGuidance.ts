@@ -148,8 +148,9 @@ const LIFECYCLE_LABELS: Record<ProposalBuilderLifecycleActionId, string> = {
   production: "Production",
 };
 
-const PREVIEW_ROADMAP_LOCK_COPY =
-  "Preview is locked in this roadmap phase until customer preview is enabled.";
+/** Client enables Customer review only after a saved draft graph has loaded. */
+export const CUSTOMER_REVIEW_NEEDS_DRAFT_COPY =
+  "Customer review needs a saved proposal draft.";
 
 export const CUSTOMER_PREVIEW_READY_COPY = "Customer preview is ready.";
 export const CONTRACTOR_PREVIEW_REVIEW_COPY =
@@ -226,7 +227,7 @@ function derivePreviewUnlockSummary(input: ProposalBuilderGuidanceInput): string
   }
 
   if (blockers.length === 0) {
-    return PREVIEW_ROADMAP_LOCK_COPY;
+    return CUSTOMER_REVIEW_NEEDS_DRAFT_COPY;
   }
 
   return `Preview unlocks when you ${blockers.join(", ")}.`;
@@ -244,7 +245,7 @@ function derivePreviewLockedReason(input: ProposalBuilderGuidanceInput): string 
     return `${input.blockingLineCount} line item${input.blockingLineCount === 1 ? "" : "s"} need pricing or quantity attention before Preview can unlock.`;
   }
 
-  return PREVIEW_ROADMAP_LOCK_COPY;
+  return CUSTOMER_REVIEW_NEEDS_DRAFT_COPY;
 }
 
 function deriveMeasurementStep(input: ProposalBuilderGuidanceInput): ProposalBuilderGuidanceStep {
@@ -696,13 +697,12 @@ function deriveNextAction(input: ProposalBuilderGuidanceInput): ProposalBuilderN
     return {
       id: "ready_for_preview",
       title: "Ready for Preview",
-      description:
-        "Required Builder checks are complete. Preview remains locked in this roadmap phase.",
+      description: CUSTOMER_REVIEW_NEEDS_DRAFT_COPY,
       ctaLabel: "Preview locked",
       target: "action:preview",
       priority: 7,
       disabled: true,
-      disabledReason: PREVIEW_ROADMAP_LOCK_COPY,
+      disabledReason: CUSTOMER_REVIEW_NEEDS_DRAFT_COPY,
     };
   }
 
