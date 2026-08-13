@@ -267,26 +267,22 @@ describe("Builder action clarity (Block 4D / 4E)", () => {
     assert.doesNotMatch(inline, /SetQuantityPanel/);
   });
 
-  test("18. Package cards wrap; balanced columns for 3–4 packages", () => {
-    const cards = read(
-      "app/tools/roofing/proposals/builder/ProposalBuilderPackageCards.tsx"
+  test("18. Builder package chooser is a compact list, not a card grid", () => {
+    const list = read(
+      "app/tools/roofing/proposals/builder/ProposalBuilderPackageChoiceList.tsx"
     );
-    assert.match(cards, /data-builder-package-cards/);
-    assert.match(cards, /packageChoiceGridClass/);
-    assert.doesNotMatch(cards, /min-\[1180px\]:grid-cols-3/);
-
-    const flow = read(
-      "app/tools/roofing/templates/templatesWorkspaceFlow.ts"
-    );
-    assert.match(flow, /xl:grid-cols-4/);
-    assert.match(flow, /md:grid-cols-3/);
-    assert.match(flow, /sm:grid-cols-2/);
+    assert.match(list, /data-builder-package-choice-list/);
+    assert.match(list, /role="radiogroup"/);
+    assert.doesNotMatch(list, /packageChoiceGridClass/);
+    assert.doesNotMatch(list, /\bCURRENT\b/);
+    assert.doesNotMatch(list, /\bAVAILABLE\b/);
 
     const packageZone = read(
       "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchPackageZone.tsx"
     );
     assert.match(packageZone, /data-builder-edit-package/);
     assert.match(packageZone, /overflow-visible/);
+    assert.match(packageZone, /data-builder-package-sheet/);
   });
 
   test("19. Row menu portal close behavior; View details then Remove", () => {
@@ -326,15 +322,15 @@ describe("Builder action clarity (Block 4D / 4E)", () => {
     assert.match(presenter, /"SQ"/);
   });
 
-  test("22. Package cards: Current / Available; Choose package; compact healthy band", () => {
-    const cards = read(
-      "app/tools/roofing/proposals/builder/ProposalBuilderPackageCards.tsx"
+  test("22. Compact healthy band; Change package opens a decision list", () => {
+    const list = read(
+      "app/tools/roofing/proposals/builder/ProposalBuilderPackageChoiceList.tsx"
     );
-    assert.match(cards, /Current/);
-    assert.match(cards, /Available/);
-    assert.doesNotMatch(cards, /Included/);
-    assert.doesNotMatch(cards, /customer-facing options/);
-    assert.match(cards, /packageChoiceGridClass/);
+    assert.match(list, /Selected/);
+    assert.match(list, /data-builder-package-choice-select/);
+    assert.doesNotMatch(list, /\bCurrent\b/);
+    assert.doesNotMatch(list, /\bAvailable\b/);
+    assert.doesNotMatch(list, /customer-facing options/);
 
     const selector = read(
       "app/tools/roofing/proposals/builder/ProposalBuilderPackageSelector.tsx"
@@ -343,6 +339,7 @@ describe("Builder action clarity (Block 4D / 4E)", () => {
     assert.doesNotMatch(selector, /customer-facing package/);
     assert.match(selector, /forceOpen|onPickerOpenChange/);
     assert.match(selector, /Change package/);
+    assert.match(selector, /ProposalBuilderPackageChoiceList/);
 
     const pkg = read(
       "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchPackageZone.tsx"
@@ -353,13 +350,13 @@ describe("Builder action clarity (Block 4D / 4E)", () => {
     assert.match(pkg, /packageZone\.bullets/);
     assert.match(pkg, /highlights\.join/);
     assert.match(pkg, /data-builder-package-selected-summary/);
-    assert.match(pkg, /Choose package/);
     assert.match(pkg, /WORKBENCH_EDIT_PACKAGE_TITLE/);
     assert.match(pkg, /data-builder-package-done/);
     assert.match(pkg, /data-builder-edit-package/);
     assert.doesNotMatch(pkg, /Selected package/);
     assert.doesNotMatch(pkg, />Current</);
     assert.doesNotMatch(pkg, /Choose starting package/);
+    assert.doesNotMatch(pkg, /Choose package/);
   });
 
   test("23. Removed from proposal copy; Restore; no Package scope decisions", () => {
@@ -525,7 +522,7 @@ describe("Builder action clarity (Block 4D / 4E)", () => {
     const pkg = read(
       "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchPackageZone.tsx"
     );
-    assert.match(pkg, /Choose package/);
+    assert.match(pkg, /Change package/);
     assert.match(pkg, /WORKBENCH_EDIT_PACKAGE_TITLE/);
     assert.match(pkg, /data-builder-edit-package/);
     assert.doesNotMatch(pkg, /Advanced package settings/);

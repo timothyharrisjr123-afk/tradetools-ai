@@ -49,17 +49,20 @@ describe("Builder package selector draft-option truth", () => {
     assert.match(zone, /draftScoped=\{draftScopedPackagePicker\}/);
   });
 
-  test("3. One-option drafts hide Change package and show static note", () => {
+  test("3. One-option drafts hide Change package; compact path stays quiet", () => {
     const selector = read(
       "app/tools/roofing/proposals/builder/ProposalBuilderPackageSelector.tsx"
     );
+    const zone = read(
+      "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchPackageZone.tsx"
+    );
     const helpers = read("app/lib/proposalBuilderDraftPackageOptions.ts");
     assert.match(selector, /canChangeBuilderDraftPackage/);
-    assert.match(selector, /BUILDER_ONLY_ONE_PACKAGE_NOTE/);
-    assert.match(selector, /data-builder-only-one-package-note/);
     assert.match(selector, /data-builder-change-package/);
     assert.match(selector, /allowChangePackage \? \(/);
     assert.match(helpers, /Only one package exists on this draft/);
+    assert.doesNotMatch(zone, /This proposal has one package/);
+    assert.doesNotMatch(zone, /data-builder-only-one-package-note/);
   });
 
   test("4. Multi-option drafts keep Change package control", () => {
@@ -67,7 +70,8 @@ describe("Builder package selector draft-option truth", () => {
       "app/tools/roofing/proposals/builder/ProposalBuilderPackageSelector.tsx"
     );
     assert.match(selector, /Change package/);
-    assert.match(selector, /ProposalBuilderPackageCards/);
+    assert.match(selector, /ProposalBuilderPackageChoiceList/);
+    assert.doesNotMatch(selector, /ProposalBuilderPackageCards/);
     assert.match(selector, /draftScoped/);
   });
 

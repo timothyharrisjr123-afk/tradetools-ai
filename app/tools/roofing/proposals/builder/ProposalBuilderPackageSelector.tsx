@@ -9,7 +9,7 @@ import {
 import { sortTemplateOptionsByOrder } from "@/app/tools/roofing/templates/templatesSetupUtils";
 import type { ProposalTemplateGraph } from "@/app/lib/proposalTemplateStore";
 import ProposalBuilderOptionsPanel from "./ProposalBuilderOptionsPanel";
-import ProposalBuilderPackageCards from "./ProposalBuilderPackageCards";
+import ProposalBuilderPackageChoiceList from "./ProposalBuilderPackageChoiceList";
 import { resolvePackageMeta } from "@/app/lib/proposalPackagePresentation";
 
 type ProposalBuilderPackageSelectorProps = {
@@ -33,9 +33,11 @@ type ProposalBuilderPackageSelectorProps = {
    * names the package. Does not change picker persistence behavior.
    */
   compact?: boolean;
-  /** When true, show the package card picker (parent-controlled open panel). */
+  /** When true, show the compact package choice list (parent-controlled open panel). */
   forceOpen?: boolean;
   onPickerOpenChange?: (open: boolean) => void;
+  /** Authoritative total for the currently selected package only. */
+  selectedPackageTotalLabel?: string | null;
 };
 
 /**
@@ -53,6 +55,7 @@ export default function ProposalBuilderPackageSelector({
   compact = false,
   forceOpen = false,
   onPickerOpenChange,
+  selectedPackageTotalLabel = null,
 }: ProposalBuilderPackageSelectorProps) {
   const options = sortTemplateOptionsByOrder(graph.options);
   const optionCount = options.length;
@@ -99,25 +102,20 @@ export default function ProposalBuilderPackageSelector({
           data-builder-package-count={optionCount}
           data-builder-package-compact-controls
         >
-          {!allowChangePackage ? (
-            <p
-              className="text-[11px] leading-snug text-slate-500"
-              data-builder-only-one-package-note
-            >
-              {BUILDER_ONLY_ONE_PACKAGE_NOTE}
-            </p>
-          ) : (
+          {allowChangePackage ? (
             <button
               type="button"
               onClick={() => setShowAll(true)}
               className="inline-flex min-h-[44px] items-center gap-1.5 rounded-lg border border-blue-200/80 bg-blue-50/70 px-3 text-[12.5px] font-semibold text-blue-800 transition hover:bg-blue-50"
               data-builder-change-package
+              aria-expanded={false}
+              aria-haspopup="dialog"
               title="Switch between available packages."
             >
               <Pencil className="h-3.5 w-3.5" aria-hidden />
               Change package
             </button>
-          )}
+          ) : null}
         </div>
       );
     }
@@ -196,10 +194,10 @@ export default function ProposalBuilderPackageSelector({
       data-builder-package-count={optionCount}
       data-builder-package-picker="open"
     >
-      {/* Done lives in the package zone header when used from Estimate workbench. */}
-      <ProposalBuilderPackageCards
+      <ProposalBuilderPackageChoiceList
         graph={graph}
         selectedOptionId={effectiveOptionId}
+        selectedPackageTotalLabel={selectedPackageTotalLabel}
         onSelectOption={(optionId) => {
           onSelectOption(optionId);
           setShowAll(false);
