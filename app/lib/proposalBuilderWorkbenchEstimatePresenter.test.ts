@@ -838,10 +838,148 @@ describe("buildProposalWorkbenchEstimatePresentation", () => {
 
     assert.equal(result.upgradesZone.show, true);
     assert.equal(result.upgradesZone.sections[0]?.lines[0]?.attentionReasons.includes("needs_quantity"), true);
-    assert.equal(result.upgradesZone.scopeReview.count, 1);
+    assert.equal(result.upgradesZone.scopeReview.count, 0);
     assert.equal(result.needsAttention.scopeReview.show, false);
     assert.equal(result.needsAttention.scopeReview.count, 0);
+    assert.equal(result.meta.upgradeScopeReviewLineCount, 0);
+  });
+
+  test("selected upgrade with unresolved quantity owns the upgrade scope review count", () => {
+    const result = buildProposalWorkbenchEstimatePresentation(
+      buildInput({
+        optionCustomerView: optionCustomerView({
+          "line-priced": lineView("line-priced", "priced"),
+          "line-upgrade": lineView("line-upgrade", "needs_quantity", {
+            upgradeSelectionStateEcho: "selected",
+          }),
+        }, { pricingComplete: false, customerSubtotalCents: null, customerTotalCents: null }),
+      })
+    );
+
+    assert.equal(result.upgradesZone.selectedCount, 1);
+    assert.equal(result.upgradesZone.scopeReview.count, 1);
     assert.equal(result.meta.upgradeScopeReviewLineCount, 1);
+    assert.equal(result.meta.scopeReviewLineCount, 0);
+    assert.equal(result.needsAttention.scopeReview.show, false);
+  });
+
+  test("estimate and selected-upgrade quantity issues stay in separate meta counts", () => {
+    const scopeSection = section("sec-scope", "line_items", OPTION_STANDARD, {
+      name: "Roofing materials",
+      customer_title: "Roofing materials",
+    });
+    const upgradeSection = section("sec-upgrades", "upgrade_group", OPTION_STANDARD, {
+      name: "Premium upgrades",
+      customer_title: "Premium upgrades",
+    });
+    const templateGraph = graph(
+      [option(OPTION_STANDARD)],
+      [scopeSection, upgradeSection],
+      [
+        item({ id: "line-blocked", section_id: "sec-scope" }),
+        item({ id: "line-upgrade", section_id: "sec-upgrades" }),
+      ]
+    );
+
+    const result = buildProposalWorkbenchEstimatePresentation(
+      buildInput({
+        graph: templateGraph,
+        sections: [scopeSection, upgradeSection],
+        snapshotQuantityByTemplateItemId: {
+          ...snapshotQty("line-blocked", "24 sq"),
+          ...snapshotQty("line-upgrade", "1 ea"),
+        },
+        optionCustomerView: optionCustomerView(
+          {
+            "line-blocked": lineView("line-blocked", "needs_quantity"),
+            "line-upgrade": lineView("line-upgrade", "needs_quantity", {
+              upgradeSelectionStateEcho: "selected",
+            }),
+          },
+          { pricingComplete: false, customerSubtotalCents: null, customerTotalCents: null }
+        ),
+      })
+    );
+
+    assert.equal(result.meta.scopeReviewLineCount, 1);
+    assert.equal(result.meta.upgradeScopeReviewLineCount, 1);
+    assert.equal(result.readyScope.sections[0]?.lines[0]?.templateItemId, "line-blocked");
+    assert.equal(result.upgradesZone.selectedSections[0]?.lines[0]?.templateItemId, "line-upgrade");
+    assert.equal(result.needsAttention.scopeReview.show, false);
+  });
+
+  test("upgrade description prefers template override then catalog wording", () => {
+    const scopeSection = section("sec-scope", "line_items", OPTION_STANDARD, {
+      name: "Roofing materials",
+      customer_title: "Roofing materials",
+    });
+    const upgradeSection = section("sec-upgrades", "upgrade_group", OPTION_STANDARD, {
+      name: "Premium upgrades",
+      customer_title: "Premium upgrades",
+    });
+    const templateGraph = graph(
+      [option(OPTION_STANDARD)],
+      [scopeSection, upgradeSection],
+      [
+        item({ id: "line-priced", section_id: "sec-scope" }),
+        item({
+          id: "line-upgrade",
+          section_id: "sec-upgrades",
+          catalog_item_id: "cat-upgrade",
+          description_override: "Template wording.",
+        }),
+      ]
+    );
+
+    const withOverride = buildProposalWorkbenchEstimatePresentation(
+      buildInput({
+        graph: templateGraph,
+        sections: [scopeSection, upgradeSection],
+        catalogItems: [
+          catalog({ id: "cat-1", name: "Shingles" }),
+          catalog({
+            id: "cat-upgrade",
+            name: "Premium ventilation",
+            description: "Catalog wording.",
+          }),
+        ],
+      })
+    );
+    assert.equal(
+      withOverride.upgradesZone.sections[0]?.lines[0]?.description,
+      "Template wording."
+    );
+
+    const catalogOnlyGraph = graph(
+      [option(OPTION_STANDARD)],
+      [scopeSection, upgradeSection],
+      [
+        item({ id: "line-priced", section_id: "sec-scope" }),
+        item({
+          id: "line-upgrade",
+          section_id: "sec-upgrades",
+          catalog_item_id: "cat-upgrade",
+        }),
+      ]
+    );
+    const catalogOnly = buildProposalWorkbenchEstimatePresentation(
+      buildInput({
+        graph: catalogOnlyGraph,
+        sections: [scopeSection, upgradeSection],
+        catalogItems: [
+          catalog({ id: "cat-1", name: "Shingles" }),
+          catalog({
+            id: "cat-upgrade",
+            name: "Premium ventilation",
+            description: "Catalog wording.",
+          }),
+        ],
+      })
+    );
+    assert.equal(
+      catalogOnly.upgradesZone.sections[0]?.lines[0]?.description,
+      "Catalog wording."
+    );
   });
 
   test("upgrade scope review eligibility helpers", () => {

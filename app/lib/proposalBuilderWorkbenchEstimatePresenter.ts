@@ -210,6 +210,8 @@ export type WorkbenchScopeLine = {
   attentionReasons: WorkbenchAttentionReason[];
   /** R17D Phase 2.5 — snapshot shows an active manual quantity override. */
   manualQuantityActive: boolean;
+  /** Reusable customer-facing wording from template override or catalog. */
+  description?: string | null;
   /** Present only for true optional-upgrade rows. */
   upgradeSelectionState?: "selected" | "not_selected";
   upgradeEffect?: ProposalUpgradeEffect;
@@ -721,6 +723,16 @@ function buildAttentionBucket(
   };
 }
 
+function resolveUpgradeDescription(
+  item: ProposalTemplateItem | undefined,
+  catalogItem: CatalogItem | undefined
+): string | null {
+  const override = item?.description_override?.trim();
+  if (override) return override;
+  const catalogDescription = catalogItem?.description?.trim();
+  return catalogDescription || null;
+}
+
 function buildUpgradeScopeLine(
   row: ProposalPreviewLineRow,
   lineView: ProposalBuilderLineCustomerView | undefined,
@@ -730,6 +742,7 @@ function buildUpgradeScopeLine(
     selectionState: "selected" | "not_selected";
     effect: ProposalUpgradeEffect;
     replacesLineName: string | null;
+    description: string | null;
   }
 ): WorkbenchScopeLine {
   const qtyState = resolveQtyState(row, snapshotQty);
@@ -747,6 +760,7 @@ function buildUpgradeScopeLine(
       detailMeta: buildDetailMeta(row, qtyState.quantityStatusLabel, snapshotQty?.unitLabel),
       attentionReasons: [],
       manualQuantityActive: snapshotQty?.quantitySourceLabel === "Manual",
+      description: upgrade.description,
       upgradeSelectionState: upgrade.selectionState,
       upgradeEffect: upgrade.effect,
       replacesLineName: upgrade.replacesLineName,
@@ -764,6 +778,7 @@ function buildUpgradeScopeLine(
     detailMeta: buildDetailMeta(row, qtyState.quantityStatusLabel, snapshotQty?.unitLabel),
     attentionReasons: classification.reasons,
     manualQuantityActive: snapshotQty?.quantitySourceLabel === "Manual",
+    description: upgrade.description,
     upgradeSelectionState: upgrade.selectionState,
     upgradeEffect: upgrade.effect,
     replacesLineName: upgrade.replacesLineName,
@@ -1011,17 +1026,31 @@ export function buildProposalWorkbenchEstimatePresentation(
           suppressedDocumentBlockerCount += 1;
         }
 
+        const templateItem = itemById.get(row.id);
+        const catalogItem = templateItem?.catalog_item_id
+          ? catalogById.get(templateItem.catalog_item_id)
+          : undefined;
+        const upgradeMeta = resolveUpgradeMetadata(
+          templateItem,
+          lineView,
+          itemById,
+          catalogById
+        );
         const upgradeLine = buildUpgradeScopeLine(
           row,
           lineView,
           classification,
           snapshotQty,
-          resolveUpgradeMetadata(itemById.get(row.id), lineView, itemById, catalogById)
+          {
+            ...upgradeMeta,
+            description: resolveUpgradeDescription(templateItem, catalogItem),
+          }
         );
         lines.push(upgradeLine);
         upgradeLineCount += 1;
 
         if (
+          upgradeMeta.selectionState === "selected" &&
           classification.zone === "attention" &&
           attentionKindForReasons(classification.reasons) === "scope_review"
         ) {

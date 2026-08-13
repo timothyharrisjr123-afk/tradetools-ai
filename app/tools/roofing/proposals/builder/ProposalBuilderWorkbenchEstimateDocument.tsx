@@ -163,6 +163,17 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
     trigger?.focus();
   }, []);
 
+  const focusFirstUpgradeQuantityIssue = useCallback(() => {
+    const row = document.querySelector<HTMLElement>(
+      "[data-builder-upgrade-quantity-issue]"
+    );
+    row?.scrollIntoView({ behavior: "smooth", block: "center" });
+    const trigger = row?.querySelector<HTMLElement>(
+      "[data-builder-upgrade-qty-edit-trigger]"
+    );
+    trigger?.focus();
+  }, []);
+
   const openSetQuantityForLine = useCallback((templateItemId: string) => {
     setSetQuantityLineId(templateItemId);
   }, []);
@@ -223,7 +234,8 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
     [onRestoreExcludedLine]
   );
 
-  const qtyNeeded = meta.scopeReviewLineCount + meta.upgradeScopeReviewLineCount;
+  const estimateQtyNeeded = meta.scopeReviewLineCount;
+  const upgradeQtyNeeded = meta.upgradeScopeReviewLineCount;
 
   return (
     <article className={BUILDER_CANVAS} data-builder-estimate-document>
@@ -242,30 +254,66 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
           }
         />
 
-        {qtyNeeded > 0 ? (
+        {estimateQtyNeeded > 0 || upgradeQtyNeeded > 0 ? (
           <div
-            className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 border-b border-amber-200/70 bg-amber-50/50 px-0 py-3"
+            className="space-y-2 border-b border-amber-200/70 bg-amber-50/50 px-0 py-3"
             data-builder-estimate-next-step
             data-builder-needs-review-strip
           >
-            <div className="flex min-w-0 items-start gap-3">
-              <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700">
-                <CircleAlert className="h-3.5 w-3.5" aria-hidden />
-              </span>
-              <p className="text-[13.5px] font-semibold text-slate-900">
-                {qtyNeeded === 1
-                  ? "1 quantity needs review"
-                  : `${qtyNeeded} quantities need review`}
-              </p>
-            </div>
-            <button
-              type="button"
-              className="inline-flex min-h-[44px] shrink-0 items-center rounded-lg border border-slate-200 bg-white px-3 text-[12.5px] font-semibold text-blue-700 shadow-sm transition hover:bg-blue-50"
-              onClick={focusFirstQuantityIssue}
-              data-builder-review-quantities
-            >
-              Review quantities
-            </button>
+            {estimateQtyNeeded > 0 ? (
+              <div
+                className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2"
+                data-builder-estimate-quantity-review
+              >
+                <div className="flex min-w-0 items-start gap-3">
+                  <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+                    <CircleAlert className="h-3.5 w-3.5" aria-hidden />
+                  </span>
+                  <p className="text-[13.5px] font-semibold text-slate-900">
+                    {estimateQtyNeeded === 1
+                      ? "1 estimate quantity needs review"
+                      : `${estimateQtyNeeded} estimate quantities need review`}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="inline-flex min-h-[44px] shrink-0 items-center rounded-lg border border-slate-200 bg-white px-3 text-[12.5px] font-semibold text-blue-700 shadow-sm transition hover:bg-blue-50"
+                  onClick={focusFirstQuantityIssue}
+                  data-builder-review-quantities
+                >
+                  Review estimate
+                </button>
+              </div>
+            ) : null}
+            {upgradeQtyNeeded > 0 ? (
+              <div
+                className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2"
+                data-builder-upgrade-quantity-review
+              >
+                <div className="flex min-w-0 items-start gap-3">
+                  {estimateQtyNeeded === 0 ? (
+                    <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+                      <CircleAlert className="h-3.5 w-3.5" aria-hidden />
+                    </span>
+                  ) : (
+                    <span className="mt-0.5 h-7 w-7 shrink-0" aria-hidden />
+                  )}
+                  <p className="text-[13.5px] font-semibold text-slate-900">
+                    {upgradeQtyNeeded === 1
+                      ? "1 upgrade quantity needs review"
+                      : `${upgradeQtyNeeded} upgrade quantities need review`}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="inline-flex min-h-[44px] shrink-0 items-center rounded-lg border border-slate-200 bg-white px-3 text-[12.5px] font-semibold text-blue-700 shadow-sm transition hover:bg-blue-50"
+                  onClick={focusFirstUpgradeQuantityIssue}
+                  data-builder-review-upgrades
+                >
+                  Review upgrades
+                </button>
+              </div>
+            ) : null}
           </div>
         ) : null}
 
@@ -302,6 +350,25 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
 
           <ProposalBuilderWorkbenchTotalsZone zone={presentation.totalsZone} />
 
+          <ProposalBuilderWorkbenchUpgradesZone
+            zone={presentation.upgradesZone}
+            editingQuantityLineId={setQuantityLineId}
+            onStartSetQuantity={quantityEditingEnabled ? openSetQuantityForLine : undefined}
+            onCancelSetQuantity={closeSetQuantity}
+            onSaveQuantity={quantityEditingEnabled ? handleApplyManualQuantity : undefined}
+            onClearManualQuantity={
+              quantityEditingEnabled ? handleClearManualQuantity : undefined
+            }
+            quantitySaveInFlight={manualQuantityInFlight}
+            quantitySaveError={manualQuantityError}
+            manualQuantityEnabled={quantityEditingEnabled}
+            onSetUpgradeSelected={
+              persistedDraftEnabled ? onSetUpgradeSelected : undefined
+            }
+            selectionInFlight={upgradeSelectionInFlight}
+            selectionError={upgradeSelectionError}
+          />
+
           {presentation.decisionTraceZone.show ? (
             <details
               className="border-t border-slate-200/70 bg-white text-[13px] text-slate-500"
@@ -337,22 +404,6 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
 
         <ProposalBuilderWorkbenchAttentionZone
           zone={presentation.needsAttention}
-        />
-
-        <ProposalBuilderWorkbenchUpgradesZone
-          zone={presentation.upgradesZone}
-          editingQuantityLineId={setQuantityLineId}
-          onStartSetQuantity={quantityEditingEnabled ? openSetQuantityForLine : undefined}
-          onCancelSetQuantity={closeSetQuantity}
-          onSaveQuantity={quantityEditingEnabled ? handleApplyManualQuantity : undefined}
-          quantitySaveInFlight={manualQuantityInFlight}
-          quantitySaveError={manualQuantityError}
-          manualQuantityEnabled={quantityEditingEnabled}
-          onSetUpgradeSelected={
-            persistedDraftEnabled ? onSetUpgradeSelected : undefined
-          }
-          selectionInFlight={upgradeSelectionInFlight}
-          selectionError={upgradeSelectionError}
         />
       </div>
     </article>

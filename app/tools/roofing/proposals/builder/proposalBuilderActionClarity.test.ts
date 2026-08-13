@@ -183,10 +183,14 @@ describe("Builder action clarity (Block 4D / 4E)", () => {
     const upgrades = read(
       "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchUpgradesZone.tsx"
     );
-    assert.match(upgrades, /Add to proposal/);
-    assert.match(upgrades, /Remove/);
+    assert.match(upgrades, /type="checkbox"/);
+    assert.match(upgrades, /Add \$\{line\.name\} to proposal/);
+    assert.match(upgrades, /Remove \$\{line\.name\} from proposal/);
+    assert.match(upgrades, /data-builder-upgrade-selection-action/);
     assert.match(upgrades, /Replaces .* when selected/);
     assert.doesNotMatch(upgrades, /Replace base/);
+    assert.doesNotMatch(upgrades, /<details/);
+    assert.doesNotMatch(upgrades, /AVAILABLE|CURRENT/);
 
     const client = read(
       "app/tools/roofing/proposals/builder/ProposalBuilderClient.tsx"
@@ -198,6 +202,7 @@ describe("Builder action clarity (Block 4D / 4E)", () => {
     assert.match(selectionHandler, /upsertUpgradeChoiceSelection/);
     assert.match(selectionHandler, /refreshDraftPricing/);
     assert.match(selectionHandler, /setPersistedGraph\(graph\)/);
+    assert.match(selectionHandler, /upgradeSelectionInFlightRef\.current/);
   });
 
   test("13. Hide from customer is a row overflow action distinct from exclude", () => {
