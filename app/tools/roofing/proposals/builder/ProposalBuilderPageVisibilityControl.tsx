@@ -59,7 +59,7 @@ export default function ProposalBuilderPageVisibilityControl({
       } ${toggleInFlight ? BUILDER_PAGE_VISIBILITY_CONTROL_ACTIVE : ""}`}
     >
       <Icon className="h-4 w-4 shrink-0" aria-hidden />
-      <span className="hidden sm:inline">{label}</span>
+      <span>{label}</span>
     </button>
   );
 }

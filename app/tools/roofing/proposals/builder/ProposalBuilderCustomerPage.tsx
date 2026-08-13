@@ -1,12 +1,4 @@
-import { FileText } from "lucide-react";
-import {
-  formatProposalPageTypeLabel,
-  type ProposalPageType,
-} from "@/app/lib/proposalPageTypes";
-import {
-  BUILDER_CANVAS_HERO_DIVIDER,
-  BUILDER_DOCUMENT_READ_ONLY_FOOTER,
-} from "./proposalBuilderConstants";
+import type { ProposalPageType } from "@/app/lib/proposalPageTypes";
 
 type ProposalBuilderCustomerPageProps = {
   pageType: ProposalPageType;
@@ -17,10 +9,6 @@ type ProposalBuilderCustomerPageProps = {
   emptyStateText: string;
   /** Builder-only muted note when token merge suppressed or removed placeholders. */
   contractorNotice?: string | null;
-  /** R16B — show hint to use workspace Edit control when page is editable. */
-  showEditHint?: boolean;
-  /** R17B — hide Builder read-only footer on customer Preview surface. */
-  showReadOnlyFooter?: boolean;
 };
 
 type TextBlock =
@@ -28,7 +16,7 @@ type TextBlock =
   | { kind: "bullets"; items: string[] };
 
 /**
- * 3J4F — safe, dependency-free renderer for customer-facing text pages.
+ * Safe, dependency-free renderer for customer-facing text pages.
  *
  * Splits persisted body text into paragraphs (blank-line separated) and simple
  * bullet groups ("- " / "* " prefixed lines). Plain text only — no markdown
@@ -65,13 +53,13 @@ function SafeBodyText({ body }: { body: string }) {
   if (blocks.length === 0) return null;
 
   return (
-    <div className="space-y-4 text-[15px] leading-relaxed text-slate-700">
+    <div className="space-y-5 text-[15.5px] leading-[1.7] text-slate-800">
       {blocks.map((block, index) =>
         block.kind === "bullets" ? (
-          <ul key={index} className="space-y-1.5 pl-1">
+          <ul key={index} className="space-y-2 pl-1">
             {block.items.map((item, itemIndex) => (
               <li key={itemIndex} className="flex gap-2.5">
-                <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-slate-300" aria-hidden />
+                <span className="mt-2.5 h-1.5 w-1.5 shrink-0 rounded-full bg-slate-300" aria-hidden />
                 <span>{item}</span>
               </li>
             ))}
@@ -92,52 +80,27 @@ export default function ProposalBuilderCustomerPage({
   bodyMarkdown,
   emptyStateText,
   contractorNotice,
-  showEditHint = false,
-  showReadOnlyFooter = true,
 }: ProposalBuilderCustomerPageProps) {
   const body = (bodyMarkdown ?? "").trim();
   const hasBody = body.length > 0;
-  const typeLabel = formatProposalPageTypeLabel(pageType);
-  const showTypeLabel = typeLabel.toLowerCase() !== title.trim().toLowerCase();
 
   return (
-    <>
-      <header className={BUILDER_CANVAS_HERO_DIVIDER}>
-        <div className="space-y-1 px-7 pb-5 pt-5">
-          <h2 className="text-xl font-semibold leading-tight tracking-tight text-slate-950">
-            {title}
-          </h2>
-          {showTypeLabel ? (
-            <p className="text-[13px] text-slate-500">{typeLabel} page</p>
+    <div
+      className="mx-auto max-w-[42rem] px-5 pb-10 pt-1 sm:px-8"
+      data-builder-page-read-body
+      data-builder-page-type={pageType}
+      aria-label={title}
+    >
+      {hasBody ? (
+        <>
+          <SafeBodyText body={body} />
+          {contractorNotice ? (
+            <p className="mt-6 text-[12px] leading-snug text-slate-400">{contractorNotice}</p>
           ) : null}
-        </div>
-      </header>
-
-      <div className="px-7 pb-7 pt-6">
-        {hasBody ? (
-          <>
-            <SafeBodyText body={body} />
-            {showReadOnlyFooter ? (
-              <p className="mt-6 border-t border-slate-100 pt-3 text-[11px] leading-snug text-slate-400">
-                {BUILDER_DOCUMENT_READ_ONLY_FOOTER}
-              </p>
-            ) : null}
-            {contractorNotice ? (
-              <p className="mt-2 text-[11px] leading-snug text-slate-400">{contractorNotice}</p>
-            ) : null}
-          </>
-        ) : (
-          <div className="flex min-h-[16rem] flex-col items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50/50 px-6 py-12 text-center">
-            <FileText className="h-6 w-6 text-slate-300" aria-hidden />
-            <p className="mt-3 text-sm font-medium text-slate-600">{emptyStateText}</p>
-            <p className="mt-1.5 text-xs text-slate-400">
-              {showEditHint
-                ? "Select Edit above to add or change content for this proposal."
-                : "Page content is added in a later editing phase."}
-            </p>
-          </div>
-        )}
-      </div>
-    </>
+        </>
+      ) : (
+        <p className="text-[15px] leading-relaxed text-slate-500">{emptyStateText}</p>
+      )}
+    </div>
   );
 }

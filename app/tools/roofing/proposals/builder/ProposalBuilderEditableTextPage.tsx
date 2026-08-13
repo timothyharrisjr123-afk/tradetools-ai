@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import type { ProposalPageType } from "@/app/lib/proposalPageTypes";
 import type { ProposalDocumentContext } from "@/app/lib/proposalDocumentTokenTypes";
 import type { ProposalPageVisibilityState } from "@/app/lib/proposalPageVisibilityEditing";
@@ -10,11 +11,7 @@ import {
 import ProposalBuilderCustomerPage from "./ProposalBuilderCustomerPage";
 import ProposalBuilderPageEditor from "./ProposalBuilderPageEditor";
 import ProposalBuilderPageVisibilityControl from "./ProposalBuilderPageVisibilityControl";
-import {
-  BUILDER_CANVAS,
-  BUILDER_CANVAS_HERO_DIVIDER,
-  BUILDER_PAGE_HIDDEN_BANNER,
-} from "./proposalBuilderConstants";
+import { BUILDER_CANVAS } from "./proposalBuilderConstants";
 
 type ProposalBuilderEditableTextPageProps = {
   pageType: ProposalPageType;
@@ -59,6 +56,16 @@ export default function ProposalBuilderEditableTextPage({
   onToggleVisibility,
   visibilityToggleInFlight = false,
 }: ProposalBuilderEditableTextPageProps) {
+  const editButtonRef = useRef<HTMLButtonElement>(null);
+  const wasEditingRef = useRef(isEditing);
+
+  useEffect(() => {
+    if (wasEditingRef.current && !isEditing) {
+      editButtonRef.current?.focus();
+    }
+    wasEditingRef.current = isEditing;
+  }, [isEditing]);
+
   let displayBody = rawBodyMarkdown;
   let contractorNotice: string | null = null;
 
@@ -73,66 +80,59 @@ export default function ProposalBuilderEditableTextPage({
   const showVisibilityControl =
     pageVisibility != null &&
     (pageVisibility.canToggle || pageVisibility.requiredNotice != null);
+  const hiddenFromCustomer = pageVisibility?.visibleToCustomer === false;
 
   return (
-    <article className={BUILDER_CANVAS}>
-      <div className={`${BUILDER_CANVAS_HERO_DIVIDER} border-b border-slate-200/80 bg-slate-50/60`}>
-        <div className="flex flex-wrap items-center justify-between gap-3 px-7 py-3">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
-            Proposal page workspace
-          </p>
-          <div className="flex flex-wrap items-center gap-2">
-            {showVisibilityControl ? (
-              <ProposalBuilderPageVisibilityControl
-                pageTitle={title}
-                visibleToCustomer={pageVisibility!.visibleToCustomer}
-                canToggle={pageVisibility!.canToggle}
-                requiredNotice={pageVisibility!.requiredNotice}
-                onToggle={onToggleVisibility}
-                toggleInFlight={visibilityToggleInFlight}
-              />
-            ) : null}
-            {canEdit && !isEditing ? (
-              <button
-                type="button"
-                onClick={onStartEdit}
-                className="inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-              >
-                Edit
-              </button>
-            ) : null}
-          </div>
+    <article
+      className={BUILDER_CANVAS}
+      data-builder-document-page
+      data-builder-page-editing={isEditing ? "true" : "false"}
+      data-builder-page-hidden={hiddenFromCustomer ? "true" : undefined}
+    >
+      <header className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2 px-5 py-4 sm:px-8">
+        <div className="min-w-0">
+          <h2 className="text-[1.35rem] font-semibold leading-tight tracking-tight text-slate-950">
+            {title}
+          </h2>
         </div>
-      </div>
-
-      {pageVisibility?.bannerText ? (
-        <div className={BUILDER_PAGE_HIDDEN_BANNER} role="status">
-          {pageVisibility.bannerText}
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+          {showVisibilityControl ? (
+            <ProposalBuilderPageVisibilityControl
+              pageTitle={title}
+              visibleToCustomer={pageVisibility!.visibleToCustomer}
+              canToggle={pageVisibility!.canToggle}
+              requiredNotice={pageVisibility!.requiredNotice}
+              onToggle={onToggleVisibility}
+              toggleInFlight={visibilityToggleInFlight}
+            />
+          ) : null}
+          {canEdit && !isEditing ? (
+            <button
+              ref={editButtonRef}
+              type="button"
+              onClick={onStartEdit}
+              className="inline-flex min-h-[44px] items-center justify-center rounded-md px-3 text-[13px] font-semibold text-blue-700 transition hover:bg-blue-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 sm:min-h-0 sm:h-9"
+              data-builder-page-edit-trigger
+            >
+              Edit
+            </button>
+          ) : null}
         </div>
-      ) : null}
+      </header>
 
       {isEditing ? (
-        <>
-          <header className={BUILDER_CANVAS_HERO_DIVIDER}>
-            <div className="space-y-1 px-7 pb-5 pt-5">
-              <h2 className="text-xl font-semibold leading-tight tracking-tight text-slate-950">
-                {title}
-              </h2>
-              <p className="text-[13px] text-slate-500">Editing draft page content</p>
-            </div>
-          </header>
-          <ProposalBuilderPageEditor
-            draftBody={editDraftBody}
-            onDraftBodyChange={onEditDraftBodyChange}
-            onSave={onSaveEdit}
-            onCancel={onCancelEdit}
-            saveDisabled={saveDisabled}
-            saveInFlight={saveInFlight}
-            saveError={saveError}
-            proposalDocumentContext={proposalDocumentContext}
-            pricingComplete={pricingComplete}
-          />
-        </>
+        <ProposalBuilderPageEditor
+          pageTitle={title}
+          draftBody={editDraftBody}
+          onDraftBodyChange={onEditDraftBodyChange}
+          onSave={onSaveEdit}
+          onCancel={onCancelEdit}
+          saveDisabled={saveDisabled}
+          saveInFlight={saveInFlight}
+          saveError={saveError}
+          proposalDocumentContext={proposalDocumentContext}
+          pricingComplete={pricingComplete}
+        />
       ) : (
         <ProposalBuilderCustomerPage
           pageType={pageType}
@@ -140,7 +140,6 @@ export default function ProposalBuilderEditableTextPage({
           bodyMarkdown={displayBody}
           emptyStateText={emptyStateText}
           contractorNotice={contractorNotice}
-          showEditHint={canEdit}
         />
       )}
     </article>

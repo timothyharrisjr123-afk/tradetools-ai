@@ -36,14 +36,11 @@ import ProposalBuilderPageVisibilityControl from "./ProposalBuilderPageVisibilit
 import ProposalBuilderWorkbenchEstimateDocument from "./ProposalBuilderWorkbenchEstimateDocument";
 import {
   BUILDER_CANVAS,
-  BUILDER_CANVAS_HERO_DIVIDER,
   BUILDER_CANVAS_INNER,
   BUILDER_CANVAS_KICKER,
   BUILDER_CANVAS_PLACEHOLDER,
   BUILDER_CANVAS_SUBTITLE,
   BUILDER_CANVAS_TITLE,
-  BUILDER_PAGE_HIDDEN_BANNER,
-  BUILDER_PAGE_VISIBILITY_REQUIRED_NOTICE,
 } from "./proposalBuilderConstants";
 import { STARTER_TEMPLATE_DISPLAY_NAME } from "@/app/tools/roofing/templates/templatesSetupUtils";
 
@@ -159,41 +156,34 @@ function CustomerPagePanel({
     (pageVisibility.canToggle || pageVisibility.requiredNotice != null);
 
   return (
-    <article className={BUILDER_CANVAS}>
-      {showVisibilityControl ? (
-        <>
-          <div className={`${BUILDER_CANVAS_HERO_DIVIDER} border-b border-slate-200/80 bg-slate-50/60`}>
-            <div className="flex flex-wrap items-center justify-between gap-3 px-7 py-3">
-              <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
-                Proposal page workspace
-              </p>
-              <ProposalBuilderPageVisibilityControl
-                pageTitle={title}
-                visibleToCustomer={pageVisibility!.visibleToCustomer}
-                canToggle={pageVisibility!.canToggle}
-                requiredNotice={pageVisibility!.requiredNotice}
-                onToggle={onToggleVisibility}
-                toggleInFlight={visibilityToggleInFlight}
-              />
-            </div>
-          </div>
-          {pageVisibility?.bannerText ? (
-            <div className={BUILDER_PAGE_HIDDEN_BANNER} role="status">
-              {pageVisibility.bannerText}
-            </div>
-          ) : null}
-        </>
-      ) : null}
-      <div className={`${BUILDER_CANVAS_INNER} space-y-4`}>
-        <div>
-          <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
-          <p className="mt-2 text-sm leading-relaxed text-slate-600">{body}</p>
+    <article
+      className={BUILDER_CANVAS}
+      data-builder-readonly-page
+      data-builder-page-hidden={pageVisibility?.visibleToCustomer === false ? "true" : undefined}
+    >
+      <header className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2 px-5 py-4 sm:px-8">
+        <div className="min-w-0">
+          <h2 className="text-[1.35rem] font-semibold leading-tight tracking-tight text-slate-950">
+            {title}
+          </h2>
         </div>
+        {showVisibilityControl ? (
+          <ProposalBuilderPageVisibilityControl
+            pageTitle={title}
+            visibleToCustomer={pageVisibility!.visibleToCustomer}
+            canToggle={pageVisibility!.canToggle}
+            requiredNotice={pageVisibility!.requiredNotice}
+            onToggle={onToggleVisibility}
+            toggleInFlight={visibilityToggleInFlight}
+          />
+        ) : null}
+      </header>
+      <div className="mx-auto max-w-[42rem] px-5 pb-10 pt-1 sm:px-8">
+        <p className="text-[15.5px] leading-[1.7] text-slate-700">{body}</p>
         {placeholder ? (
-          <div className={`${BUILDER_CANVAS_PLACEHOLDER} min-h-[16rem]`}>
-            <p className="text-sm font-medium text-slate-700">Page content comes in a later editing phase.</p>
-            <p className="mt-2 text-xs text-slate-500">This page slot is reserved on the final proposal surface.</p>
-          </div>
+          <p className="mt-4 text-[13px] leading-relaxed text-slate-500">
+            Page content comes in a later editing phase.
+          </p>
         ) : null}
       </div>
     </article>
@@ -302,27 +292,10 @@ export default function ProposalBuilderCanvas({
 
   if (!isEstimatePageContext(activePageContextId)) {
     if (isCoverPageContext(activePageContextId) && coverViewModel) {
-      const coverVisibility = getProposalPageVisibilityState({
-        page_type: "cover",
-        visible_to_customer: true,
-        title: "Cover",
-      });
       return (
-        <>
-          <div className={`${BUILDER_CANVAS} border-b-0`}>
-            <div className={`${BUILDER_CANVAS_HERO_DIVIDER} border-b border-slate-200/80 bg-slate-50/60`}>
-              <div className="flex flex-wrap items-center justify-between gap-3 px-7 py-3">
-                <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
-                  Proposal page workspace
-                </p>
-                <span className={BUILDER_PAGE_VISIBILITY_REQUIRED_NOTICE}>
-                  {coverVisibility.requiredNotice}
-                </span>
-              </div>
-            </div>
-          </div>
+        <div data-builder-readonly-page="cover">
           <ProposalBuilderCoverPage viewModel={coverViewModel} />
-        </>
+        </div>
       );
     }
 

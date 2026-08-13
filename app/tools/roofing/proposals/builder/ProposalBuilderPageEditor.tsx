@@ -1,11 +1,7 @@
 "use client";
 
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useEffect, useId, useRef } from "react";
 import type { ProposalDocumentContext } from "@/app/lib/proposalDocumentTokenTypes";
-import {
-  proposalDocumentBodyContractorNotice,
-  renderProposalDocumentPageBody,
-} from "@/app/lib/proposalDocumentBodyRenderer";
 import {
   assertInsertableDocumentToken,
   formatProposalDocumentTokenPlaceholder,
@@ -13,10 +9,6 @@ import {
   resolveTextareaInsertionSelection,
 } from "@/app/lib/proposalDocumentTokenPicker";
 import ProposalBuilderTokenPickerMenu from "./ProposalBuilderTokenPickerMenu";
-import {
-  BUILDER_PAGE_EDIT_HELPER_COPY,
-  BUILDER_PAGE_EDIT_MERGE_PREVIEW_LABEL,
-} from "./proposalBuilderConstants";
 
 type ProposalBuilderPageEditorProps = {
   draftBody: string;
@@ -28,6 +20,7 @@ type ProposalBuilderPageEditorProps = {
   saveError?: string | null;
   proposalDocumentContext?: ProposalDocumentContext | null;
   pricingComplete?: boolean;
+  pageTitle: string;
 };
 
 export default function ProposalBuilderPageEditor({
@@ -38,24 +31,40 @@ export default function ProposalBuilderPageEditor({
   saveDisabled = false,
   saveInFlight = false,
   saveError = null,
-  proposalDocumentContext = null,
   pricingComplete = false,
+  pageTitle,
 }: ProposalBuilderPageEditorProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const errorId = useId();
 
-  const mergePreview = useMemo(() => {
-    if (!proposalDocumentContext) return null;
-    const trimmed = draftBody.trim();
-    if (!trimmed) return null;
-    return renderProposalDocumentPageBody(trimmed, proposalDocumentContext, {
-      pricingComplete,
-    });
-  }, [draftBody, proposalDocumentContext, pricingComplete]);
+  const syncTextareaHeight = useCallback(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, []);
 
-  const contractorNotice =
-    mergePreview != null
-      ? proposalDocumentBodyContractorNotice(mergePreview.diagnostics)
-      : null;
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.focus();
+    syncTextareaHeight();
+  }, [syncTextareaHeight]);
+
+  useEffect(() => {
+    syncTextareaHeight();
+  }, [draftBody, syncTextareaHeight]);
+
+  useEffect(() => {
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key !== "Escape" || saveInFlight || event.defaultPrevented) return;
+      if (document.querySelector('[role="menu"]')) return;
+      event.preventDefault();
+      onCancel();
+    }
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [onCancel, saveInFlight]);
 
   const handleInsertToken = useCallback(
     (tokenName: string) => {
@@ -92,63 +101,54 @@ export default function ProposalBuilderPageEditor({
   );
 
   return (
-    <div className="space-y-4 px-7 pb-7 pt-2">
-      <p className="text-xs text-slate-500">{BUILDER_PAGE_EDIT_HELPER_COPY}</p>
-
-      <div className="flex flex-wrap items-center gap-2">
-        <ProposalBuilderTokenPickerMenu
-          pricingComplete={pricingComplete}
-          onInsertToken={handleInsertToken}
-        />
-      </div>
-
+    <div
+      className="mx-auto max-w-[42rem] px-5 pb-10 pt-1 sm:px-8"
+      data-builder-page-editor
+    >
       <textarea
         ref={textareaRef}
         value={draftBody}
         onChange={(event) => onDraftBodyChange(event.target.value)}
-        rows={14}
-        className="w-full resize-y rounded-md border border-slate-300 bg-white px-3 py-2.5 font-mono text-sm leading-relaxed text-slate-800 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-        aria-label="Proposal page body text"
+        rows={8}
+        className="max-h-[min(18rem,calc(100dvh-22rem))] w-full resize-none overflow-y-auto border-0 bg-transparent p-0 text-[15.5px] leading-[1.7] text-slate-800 placeholder:text-slate-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600 sm:max-h-none sm:overflow-hidden"
+        aria-label={`Edit ${pageTitle}`}
+        aria-invalid={saveError ? true : undefined}
+        aria-describedby={saveError ? errorId : undefined}
         spellCheck
+        data-builder-page-editor-input
       />
 
-      {mergePreview ? (
-        <div className="rounded-md border border-slate-200 bg-slate-50/80 px-4 py-3">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
-            {BUILDER_PAGE_EDIT_MERGE_PREVIEW_LABEL}
-          </p>
-          <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-slate-700">
-            {mergePreview.displayText}
-          </p>
-          {contractorNotice ? (
-            <p className="mt-2 text-[11px] leading-snug text-slate-400">{contractorNotice}</p>
-          ) : null}
-        </div>
-      ) : null}
-
       {saveError ? (
-        <p className="text-sm text-red-700" role="alert">
+        <p id={errorId} className="mt-3 text-[13px] font-medium text-red-700" role="alert">
           {saveError}
         </p>
       ) : null}
 
-      <div className="flex flex-wrap items-center gap-2 border-t border-slate-100 pt-4">
-        <button
-          type="button"
-          onClick={onSave}
-          disabled={saveDisabled || saveInFlight}
-          className="inline-flex items-center justify-center rounded-md bg-blue-600 px-3.5 py-1.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {saveInFlight ? "Saving…" : "Save"}
-        </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          disabled={saveInFlight}
-          className="inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-3.5 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          Cancel
-        </button>
+      <div className="sticky bottom-0 z-10 mt-6 flex flex-wrap items-center gap-2 border-t border-slate-100 bg-white/95 py-3 backdrop-blur-sm sm:static sm:bg-transparent sm:py-4 sm:backdrop-blur-none">
+        <ProposalBuilderTokenPickerMenu
+          pricingComplete={pricingComplete}
+          onInsertToken={handleInsertToken}
+        />
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={onSave}
+            disabled={saveDisabled || saveInFlight}
+            className="inline-flex min-h-[44px] items-center justify-center rounded-md bg-blue-600 px-3.5 text-[13px] font-semibold text-white transition hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:opacity-60 sm:min-h-0 sm:h-9"
+            data-builder-page-save
+          >
+            {saveInFlight ? "Saving…" : "Save"}
+          </button>
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={saveInFlight}
+            className="inline-flex min-h-[44px] items-center justify-center rounded-md px-3.5 text-[13px] font-medium text-slate-600 transition hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:opacity-60 sm:min-h-0 sm:h-9"
+            data-builder-page-cancel
+          >
+            Cancel
+          </button>
+        </div>
       </div>
     </div>
   );

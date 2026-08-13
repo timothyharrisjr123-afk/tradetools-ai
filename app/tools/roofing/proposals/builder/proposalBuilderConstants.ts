@@ -159,13 +159,13 @@ export const BUILDER_PAGE_HIDDEN_BANNER =
 
 /** R16C3 — page workspace visibility toggle control. */
 export const BUILDER_PAGE_VISIBILITY_CONTROL =
-  "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md border px-3 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60";
+  "inline-flex min-h-[44px] shrink-0 items-center gap-1.5 rounded-md px-2.5 text-[12.5px] font-medium transition disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 sm:min-h-0 sm:h-9";
 
 export const BUILDER_PAGE_VISIBILITY_CONTROL_IDLE =
-  "border-slate-300 bg-white text-slate-700 hover:bg-slate-50";
+  "text-slate-500 hover:bg-slate-50 hover:text-slate-700";
 
 export const BUILDER_PAGE_VISIBILITY_CONTROL_HIDDEN =
-  "border-amber-300/80 bg-amber-50/60 text-amber-900 hover:bg-amber-50";
+  "text-slate-600 hover:bg-slate-50";
 
 export const BUILDER_PAGE_VISIBILITY_CONTROL_ACTIVE = "opacity-70";
 
@@ -174,7 +174,7 @@ export const BUILDER_PAGE_VISIBILITY_REQUIRED_NOTICE =
 
 /** R16C2 — token picker trigger in page editor toolbar. */
 export const BUILDER_TOKEN_PICKER_TRIGGER =
-  "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50";
+  "inline-flex min-h-[44px] shrink-0 items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 text-[13px] font-medium text-slate-700 transition hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 sm:min-h-0 sm:h-9";
 
 export const BUILDER_TOKEN_PICKER_TRIGGER_TEXT = "truncate";
 

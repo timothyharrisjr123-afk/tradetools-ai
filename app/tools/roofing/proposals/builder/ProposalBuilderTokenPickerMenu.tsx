@@ -31,6 +31,7 @@ type ProposalBuilderTokenPickerMenuProps = {
 type MenuPosition = {
   top: number;
   left: number;
+  maxHeight: number;
 };
 
 function TokenPickerMenuItem({
@@ -81,18 +82,30 @@ export default function ProposalBuilderTokenPickerMenu({
     const trigger = triggerRef.current;
     if (!trigger) return;
     const rect = trigger.getBoundingClientRect();
-    setMenuPosition({
-      top: rect.bottom + 8,
-      left: rect.left,
-    });
+    const gap = 8;
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const spaceBelow = viewportHeight - rect.bottom - gap;
+    const spaceAbove = rect.top - gap;
+    const openUpward = spaceBelow < 220 && spaceAbove > spaceBelow;
+    const available = Math.max(120, openUpward ? spaceAbove : spaceBelow);
+    const maxHeight = Math.min(384, available);
+    const menu = menuPanelRef.current;
+    const menuWidth = Math.min(menu?.offsetWidth ?? 256, viewportWidth - 16);
+    const menuHeight = Math.min(menu?.offsetHeight ?? maxHeight, maxHeight);
+    const left = Math.max(8, Math.min(rect.left, viewportWidth - menuWidth - 8));
+    const top = openUpward
+      ? Math.max(8, rect.top - gap - menuHeight)
+      : rect.bottom + gap;
+    setMenuPosition({ top, left, maxHeight });
   }, []);
 
   useLayoutEffect(() => {
-    if (!menuOpen) {
-      setMenuPosition(null);
-      return;
-    }
-    updateMenuPosition();
+    if (!menuOpen) return;
+    const frame = requestAnimationFrame(() => {
+      updateMenuPosition();
+    });
+    return () => cancelAnimationFrame(frame);
   }, [menuOpen, updateMenuPosition, groups.length]);
 
   useEffect(() => {
@@ -156,7 +169,7 @@ export default function ProposalBuilderTokenPickerMenu({
     menuOpen && menuPosition != null ? (
       <div
         ref={menuPanelRef}
-        className={BUILDER_TOKEN_PICKER_MENU}
+        className={`${BUILDER_TOKEN_PICKER_MENU} flex flex-col`}
         role="menu"
         aria-label={BUILDER_TOKEN_PICKER_HEADING}
         style={{
@@ -164,10 +177,11 @@ export default function ProposalBuilderTokenPickerMenu({
           top: menuPosition.top,
           left: menuPosition.left,
           zIndex: 60,
+          maxHeight: menuPosition.maxHeight,
         }}
       >
         <div className={BUILDER_TOKEN_PICKER_MENU_GROUP_HEADING}>{BUILDER_TOKEN_PICKER_HEADING}</div>
-        <div className="max-h-[min(24rem,calc(100vh-8rem))] overflow-y-auto">
+        <div className="min-h-0 flex-1 overflow-y-auto">
           {groups.map((group) => (
             <div key={group.domain} className={BUILDER_TOKEN_PICKER_MENU_GROUP}>
               <div className={BUILDER_TOKEN_PICKER_MENU_GROUP_HEADING}>{group.label}</div>
@@ -188,7 +202,14 @@ export default function ProposalBuilderTokenPickerMenu({
         aria-haspopup="menu"
         aria-expanded={menuOpen}
         aria-label={BUILDER_TOKEN_PICKER_ARIA_LABEL}
-        onClick={() => setMenuOpen((open) => !open)}
+        onClick={() => {
+          if (menuOpen) {
+            setMenuOpen(false);
+            return;
+          }
+          setMenuOpen(true);
+          updateMenuPosition();
+        }}
         className={BUILDER_TOKEN_PICKER_TRIGGER}
       >
         <span className={BUILDER_TOKEN_PICKER_TRIGGER_TEXT}>{BUILDER_TOKEN_PICKER_TRIGGER_LABEL}</span>
