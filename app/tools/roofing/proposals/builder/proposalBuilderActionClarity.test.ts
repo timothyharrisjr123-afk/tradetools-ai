@@ -326,7 +326,7 @@ describe("Builder action clarity (Block 4D / 4E)", () => {
     assert.match(presenter, /"SQ"/);
   });
 
-  test("22. Package cards: Current / Available; Choose package; summary card", () => {
+  test("22. Package cards: Current / Available; Choose package; compact healthy band", () => {
     const cards = read(
       "app/tools/roofing/proposals/builder/ProposalBuilderPackageCards.tsx"
     );
@@ -350,13 +350,15 @@ describe("Builder action clarity (Block 4D / 4E)", () => {
     assert.match(pkg, /data-builder-package-summary/);
     assert.match(pkg, /WORKBENCH_EDIT_PACKAGE_TITLE/);
     assert.doesNotMatch(pkg, /Edit Enhanced package/);
-    assert.match(pkg, /packageZone\.bullets\.map/);
-    assert.match(pkg, /Selected package/);
-    assert.match(pkg, /Current/);
+    assert.match(pkg, /packageZone\.bullets/);
+    assert.match(pkg, /highlights\.join/);
+    assert.match(pkg, /data-builder-package-selected-summary/);
     assert.match(pkg, /Choose package/);
     assert.match(pkg, /WORKBENCH_EDIT_PACKAGE_TITLE/);
     assert.match(pkg, /data-builder-package-done/);
     assert.match(pkg, /data-builder-edit-package/);
+    assert.doesNotMatch(pkg, /Selected package/);
+    assert.doesNotMatch(pkg, />Current</);
     assert.doesNotMatch(pkg, /Choose starting package/);
   });
 
@@ -398,8 +400,10 @@ describe("Builder action clarity (Block 4D / 4E)", () => {
       "app/tools/roofing/proposals/builder/ProposalBuilderSectionNav.tsx"
     );
     assert.match(sectionNav, /data-builder-section-bar="top"/);
-    assert.match(sectionNav, /border-blue-600 bg-blue-50\/45/);
-    assert.match(sectionNav, /rounded-t-lg border-b-2/);
+    assert.match(sectionNav, /border-b-2/);
+    assert.match(sectionNav, /border-blue-600 font-semibold/);
+    assert.match(sectionNav, /role="tablist"/);
+    assert.match(sectionNav, /data-builder-page-switcher-compact/);
     assert.doesNotMatch(sectionNav, /rounded-xl border border-slate-200\/80 bg-slate-50/);
     assert.doesNotMatch(sectionNav, /ring-1 ring-slate-200/);
     assert.doesNotMatch(sectionNav, />Active</);

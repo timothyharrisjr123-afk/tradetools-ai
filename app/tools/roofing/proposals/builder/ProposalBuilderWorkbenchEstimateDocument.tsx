@@ -17,10 +17,7 @@ import { CircleAlert } from "lucide-react";
 import {
   BUILDER_CANVAS,
   WORKBENCH_BODY,
-  WORKBENCH_HEADER,
-  WORKBENCH_HEADER_SUBTITLE,
-  WORKBENCH_HEADER_TITLE,
-  WORKBENCH_MODULE,
+  WORKBENCH_MODULE_COMPACT,
 } from "./proposalBuilderConstants";
 import ProposalBuilderWorkbenchAttentionZone from "./ProposalBuilderWorkbenchAttentionZone";
 import ProposalBuilderWorkbenchDecisionTraceZone from "./ProposalBuilderWorkbenchDecisionTraceZone";
@@ -373,22 +370,25 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
 
   return (
     <article className={BUILDER_CANVAS} data-builder-estimate-document>
-      <header className={WORKBENCH_HEADER}>
-        <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-600">
-            Proposal estimate
-          </p>
-          <h2 className={WORKBENCH_HEADER_TITLE}>{presentation.page.title}</h2>
-          <p className={WORKBENCH_HEADER_SUBTITLE}>
-            Build and review the customer estimate before opening Preview + Send.
-          </p>
-        </div>
-      </header>
-
       <div className={WORKBENCH_BODY}>
+        <ProposalBuilderWorkbenchPackageZone
+          packageZone={presentation.packageZone}
+          packageSelectorGraph={packageSelectorGraph}
+          draftScopedPackagePicker={draftScopedPackagePicker}
+          selectedOptionId={selectedOptionId}
+          effectiveOptionId={effectiveOptionId}
+          onSelectOption={onSelectOption}
+          onOpenEditPackage={openEditPackage}
+          packageTotalLabel={
+            presentation.totalsZone.showAmounts
+              ? presentation.totalsZone.totalLabel
+              : null
+          }
+        />
+
         {qtyNeeded > 0 ? (
           <div
-            className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 rounded-xl border border-amber-200/70 bg-amber-50/60 px-4 py-3.5"
+            className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 border-b border-amber-200/70 bg-amber-50/50 px-0 py-3"
             data-builder-estimate-next-step
             data-builder-needs-review-strip
           >
@@ -398,7 +398,7 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
               </span>
               <div>
                 <p className="text-[13.5px] font-semibold text-slate-900">
-                  Needs review before Preview + Send
+                  Needs review before Customer review
                 </p>
                 <p className="mt-0.5 text-[12.5px] text-slate-600">
                   {qtyNeeded} estimate item{qtyNeeded === 1 ? "" : "s"} need quantities
@@ -408,7 +408,7 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
             </div>
             <button
               type="button"
-              className="inline-flex shrink-0 items-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-[12.5px] font-semibold text-blue-700 shadow-sm transition hover:bg-blue-50"
+              className="inline-flex min-h-[44px] shrink-0 items-center rounded-lg border border-slate-200 bg-white px-3 text-[12.5px] font-semibold text-blue-700 shadow-sm transition hover:bg-blue-50"
               onClick={focusFinishEstimate}
               data-builder-review-quantities
             >
@@ -417,18 +417,8 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
           </div>
         ) : null}
 
-        <ProposalBuilderWorkbenchPackageZone
-          packageZone={presentation.packageZone}
-          packageSelectorGraph={packageSelectorGraph}
-          draftScopedPackagePicker={draftScopedPackagePicker}
-          selectedOptionId={selectedOptionId}
-          effectiveOptionId={effectiveOptionId}
-          onSelectOption={onSelectOption}
-          onOpenEditPackage={openEditPackage}
-        />
-
         <section
-          className={WORKBENCH_MODULE}
+          className={WORKBENCH_MODULE_COMPACT}
           data-builder-estimate-surface
           aria-label="Included estimate and totals"
         >

@@ -3,7 +3,7 @@ import { BUILDER_STAGE } from "./proposalBuilderConstants";
 
 type ProposalBuilderWorkspaceLayoutProps = {
   /**
-   * Top proposal section bar (Cover | Estimate | …).
+   * Document-attached page switcher (Cover | Estimate | …).
    * Not a left rail — Job Card tab continuity.
    */
   sectionNav?: ReactNode;
@@ -15,8 +15,8 @@ type ProposalBuilderWorkspaceLayoutProps = {
 };
 
 /**
- * Shared Builder workspace: header/stage width + attached shell.
- * Section bar sits above the canvas (no forced left sidebar).
+ * Shared Builder workspace: command-bar width + one continuous document surface.
+ * Page switcher sits on the document; no dashboard card shell.
  */
 export default function ProposalBuilderWorkspaceLayout({
   sectionNav,
@@ -37,7 +37,7 @@ export default function ProposalBuilderWorkspaceLayout({
       {showRail ? (
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_330px]">
           <div
-            className="min-w-0 overflow-visible rounded-xl border border-slate-200/70 bg-white shadow-[0_10px_30px_rgba(15,23,42,0.055)]"
+            className="min-w-0 overflow-visible border-t border-slate-200/80 bg-white"
             data-builder-workspace-shell
           >
             {topBar}
@@ -49,7 +49,7 @@ export default function ProposalBuilderWorkspaceLayout({
         </div>
       ) : (
         <div
-          className="min-w-0 overflow-visible rounded-xl border border-slate-200/70 bg-white shadow-[0_10px_30px_rgba(15,23,42,0.055)]"
+          className="min-w-0 overflow-visible border-t border-slate-200/80 bg-white"
           data-builder-workspace-shell
         >
           {topBar}

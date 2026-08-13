@@ -1,9 +1,10 @@
-import { Eye, Lock, MoreHorizontal } from "lucide-react";
+import { Lock, MoreHorizontal } from "lucide-react";
 import type {
   ProposalBuilderLifecycleActionId,
   ProposalBuilderLifecycleLock,
 } from "@/app/lib/proposalBuilderGuidance";
 import {
+  BUILDER_CUSTOMER_REVIEW_LABEL,
   BUILDER_DISABLED_ACTION,
   BUILDER_PREVIEW_ENABLED_ACTION,
 } from "./proposalBuilderConstants";
@@ -16,7 +17,8 @@ type ProposalBuilderDisabledActionsProps = {
 };
 
 /**
- * Preview primary. More stays quiet — saved pricing only (no locked lifecycle clutter).
+ * Customer review is the only primary Builder action. More stays quiet —
+ * saved pricing only (no locked lifecycle clutter, no Send).
  */
 export default function ProposalBuilderDisabledActions({
   lifecycleLocks = null,
@@ -30,13 +32,13 @@ export default function ProposalBuilderDisabledActions({
     previewLock != null &&
     (previewLock.state === "ready" || previewLock.state === "attention");
   const previewReason =
-    previewLock?.lockedReason ?? previewLock?.unlockSummary ?? "Preview";
+    previewLock?.lockedReason ?? previewLock?.unlockSummary ?? BUILDER_CUSTOMER_REVIEW_LABEL;
 
   const pricingNote = (savedPricingDetails ?? "").trim();
   const showMore = pricingNote.length > 0;
 
   return (
-    <div className="space-y-1.5" data-builder-preview-handoff>
+    <div data-builder-preview-handoff>
       <div
         className="flex flex-wrap items-center justify-end gap-2"
         aria-label="Proposal actions"
@@ -47,31 +49,30 @@ export default function ProposalBuilderDisabledActions({
           disabled={!previewEnabled}
           aria-disabled={!previewEnabled}
           data-builder-preview-action
+          data-builder-customer-review-action
           className={
             previewEnabled
               ? BUILDER_PREVIEW_ENABLED_ACTION
-              : `${BUILDER_DISABLED_ACTION} border-blue-200 bg-blue-50/40 text-blue-400`
+              : `${BUILDER_DISABLED_ACTION} min-h-[44px] border-blue-200 bg-blue-50/40 px-4 text-blue-400`
           }
-          title={previewEnabled ? "Preview customer version before sending" : previewReason}
+          title={previewEnabled ? BUILDER_CUSTOMER_REVIEW_LABEL : previewReason}
           onClick={() => {
             if (previewEnabled) onLifecycleAction?.("preview");
           }}
         >
           {!previewEnabled ? (
             <Lock className="mr-1 h-3.5 w-3.5" aria-hidden />
-          ) : (
-            <Eye className="mr-1.5 h-4 w-4" aria-hidden />
-          )}
-          Preview proposal
+          ) : null}
+          {BUILDER_CUSTOMER_REVIEW_LABEL}
         </button>
 
         {showMore ? (
           <details className="relative" data-builder-future-actions>
             <summary
-              className="flex h-10 cursor-pointer list-none items-center gap-1 rounded-lg border border-transparent px-2.5 text-[12px] font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-700 [&::-webkit-details-marker]:hidden"
+              className="flex min-h-[44px] min-w-[44px] cursor-pointer list-none items-center justify-center gap-1 rounded-lg border border-transparent px-2.5 text-[13px] font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-700 [&::-webkit-details-marker]:hidden"
               title="More"
             >
-              <MoreHorizontal className="h-3.5 w-3.5" aria-hidden />
+              <MoreHorizontal className="h-4 w-4" aria-hidden />
               More
             </summary>
             <div className="absolute right-0 z-20 mt-1 w-[15rem] rounded-lg border border-slate-200 bg-white p-1.5 shadow-lg">
@@ -93,9 +94,6 @@ export default function ProposalBuilderDisabledActions({
           </details>
         ) : null}
       </div>
-      <p className="text-right text-[11.5px] text-slate-400">
-        Preview the customer version before sending
-      </p>
     </div>
   );
 }

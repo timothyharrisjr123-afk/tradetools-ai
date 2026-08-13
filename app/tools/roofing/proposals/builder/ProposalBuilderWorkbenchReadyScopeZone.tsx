@@ -70,22 +70,14 @@ export default function ProposalBuilderWorkbenchReadyScopeZone({
       data-builder-included-estimate-table
       data-builder-itemized-estimate="true"
     >
-      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200/70 bg-gradient-to-b from-slate-50/90 to-white px-5 py-4 sm:px-6">
-        <div>
-          <p className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-slate-500">
-            Investment detail
-          </p>
-          <p
-            className="mt-1 text-[1.2rem] font-semibold tracking-tight text-slate-950"
-            id="workbench-ready-scope-heading"
-          >
-            Included estimate
-          </p>
-          <p className="mt-1 text-[12.5px] leading-snug text-slate-500">
-            Contractor-editable pricing for this proposal draft.
-          </p>
-        </div>
-        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold tabular-nums text-slate-500">
+      <header className="flex flex-wrap items-baseline justify-between gap-2 border-b border-slate-200/70 px-5 py-2.5 sm:px-6">
+        <p
+          className="text-[13px] font-semibold text-slate-900"
+          id="workbench-ready-scope-heading"
+        >
+          Included estimate
+        </p>
+        <span className="text-[11px] font-medium tabular-nums text-slate-400">
           {lineCount} item{lineCount === 1 ? "" : "s"}
         </span>
       </header>

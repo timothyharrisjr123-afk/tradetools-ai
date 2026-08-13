@@ -88,6 +88,7 @@ import {
   WORKBENCH_HIDE_SUCCESS,
   WORKBENCH_RESTORE_EXCLUDED_SUCCESS,
   WORKBENCH_RESTORE_VISIBILITY_SUCCESS,
+  formatPriceCents,
 } from "./proposalBuilderConstants";
 import { buildProposalCoverViewModel } from "@/app/lib/proposalCoverViewModel";
 import {
@@ -110,10 +111,10 @@ import ProposalBuilderWorkspaceLayout from "./ProposalBuilderWorkspaceLayout";
 
 const CATALOG_STARTER_DEFINITION_COUNT = DEFAULT_ROOFING_CATALOG_DEFINITIONS.length;
 
-function formatBuilderLastSavedLabel(iso: string | null | undefined): string {
-  if (!iso) return "—";
+function formatBuilderLastSavedLabel(iso: string | null | undefined): string | null {
+  if (!iso) return null;
   const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "—";
+  if (Number.isNaN(date.getTime())) return null;
   return new Intl.DateTimeFormat("en-US", {
     month: "short",
     day: "numeric",
@@ -1607,13 +1608,16 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
   const shellReady = builderReadiness.ready && !draftGraphError && !spineRouteError;
   const normalizedJobId = (jobIdParam ?? "").trim() || null;
   const lastSavedLabel = formatBuilderLastSavedLabel(persistedGraph?.proposal.updated_at);
-  const pricingStateLabel = proposalPricingStale.stale
-    ? "Pricing review needed"
-    : selectedOptionPricingStatus?.pricingComplete
-      ? "Pricing ready"
-      : (selectedOptionPricingStatus?.blockingLineCount ?? 0) > 0
-        ? `${selectedOptionPricingStatus?.blockingLineCount} items need review`
-        : "Pricing review";
+  const selectedOptionCustomerView =
+    pricingPreview && effectiveSelectedOptionId
+      ? pricingPreview.byOptionId[effectiveSelectedOptionId]?.customer ?? null
+      : null;
+  const proposalTotalLabel =
+    shellReady &&
+    selectedOptionCustomerView?.pricingComplete &&
+    typeof selectedOptionCustomerView.customerTotalCents === "number"
+      ? formatPriceCents(selectedOptionCustomerView.customerTotalCents)
+      : null;
 
   // 3J4B3: single guided-flow source of truth. Preview enablement is R17B-only;
   // Send/Sign/Payment/Production remain disabled.
@@ -1762,7 +1766,7 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
 
   return (
     <div
-      className="space-y-4 pb-16 pt-5"
+      className="space-y-3 pb-12 pt-2"
       data-builder-contractor-workspace
       data-builder-quantity-preflight={quantityPreflight?.status ?? "none"}
       data-builder-quantity-preflight-current={String(quantityPreflight?.currentCount ?? 0)}
@@ -1779,19 +1783,26 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
         job={job}
         jobId={normalizedJobId}
         shellReady={shellReady}
-        showDraftSavedPill={hasPersistedProposalParam && draftGraphLoadComplete && !draftGraphError}
-        proposalTitle={
-          (persistedGraph?.proposal.title ?? starterGraph?.template.name ?? "").trim() || null
+        showDraftSavedPill={
+          Boolean(
+            shellReady &&
+              hasPersistedProposalParam &&
+              draftGraphLoadComplete &&
+              !draftGraphError &&
+              persistedGraph != null
+          )
         }
         selectedPackageLabel={
-          (() => {
-            const runtimeId = effectiveSelectedOptionId;
-            if (!runtimeId) return null;
-            const fromDraft = persistedGraph?.options.find((o) => o.id === runtimeId);
-            if (fromDraft?.name?.trim()) return fromDraft.name.trim();
-            const fromTemplate = starterGraph?.options.find((o) => o.id === runtimeId);
-            return (fromTemplate?.name ?? "").trim() || null;
-          })()
+          shellReady
+            ? (() => {
+                const runtimeId = effectiveSelectedOptionId;
+                if (!runtimeId) return null;
+                const fromDraft = persistedGraph?.options.find((o) => o.id === runtimeId);
+                if (fromDraft?.name?.trim()) return fromDraft.name.trim();
+                const fromTemplate = starterGraph?.options.find((o) => o.id === runtimeId);
+                return (fromTemplate?.name ?? "").trim() || null;
+              })()
+            : null
         }
         savedPricingDetails={
           !draftGraphError &&
@@ -1802,8 +1813,8 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
             ? PROPOSAL_SNAPSHOT_FROZEN_HELPER_COPY
             : null
         }
-        lastSavedLabel={lastSavedLabel}
-        pricingStateLabel={pricingStateLabel}
+        lastSavedLabel={shellReady ? lastSavedLabel : null}
+        proposalTotalLabel={proposalTotalLabel}
         guidance={builderGuidance}
         onLifecycleAction={handleLifecycleAction}
       />

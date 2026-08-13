@@ -25,19 +25,20 @@ describe("Builder estimate handoff (Block 4 / 4B / 4C)", () => {
     const header = read(
       "app/tools/roofing/proposals/builder/ProposalBuilderPageHeader.tsx"
     );
+    assert.match(header, /data-builder-command-bar/);
     assert.match(header, /data-builder-proposal-primary-title/);
     assert.match(header, /data-builder-package-status-line/);
     assert.match(header, /data-builder-handoff-meta/);
-    assert.match(header, /proposalTitle/);
+    assert.match(header, /data-builder-job-primary-identity/);
     assert.match(header, /selectedPackageLabel/);
-    assert.match(header, /Proposal Builder/);
     assert.match(header, /lastSavedLabel/);
-    assert.match(header, /pricingStateLabel/);
+    assert.match(header, /proposalTotalLabel/);
     assert.match(header, /data-builder-contractor-edit-mode/);
     assert.match(header, /Draft/);
     assert.doesNotMatch(header, /Proposal Workspace/i);
     assert.doesNotMatch(header, /BUILDER_HEADER_WORKSPACE_KICKER/);
-    assert.doesNotMatch(header, /data-builder-job-primary-identity/);
+    assert.doesNotMatch(header, /pricingStateLabel/);
+    assert.doesNotMatch(header, />Proposal Builder</);
   });
 
   test("3. Top section bar replaces left rail; shared wide workspace", () => {
@@ -81,7 +82,7 @@ describe("Builder estimate handoff (Block 4 / 4B / 4C)", () => {
     assert.match(estimate, /data-builder-estimate-next-step/);
     assert.match(estimate, /data-builder-needs-review-strip/);
     assert.match(estimate, /data-builder-review-quantities/);
-    assert.match(estimate, /Needs review before Preview \+ Send/);
+    assert.match(estimate, /Needs review before Customer review/);
     assert.match(estimate, /focusFinishEstimate/);
 
     const attentionSrc = read(
@@ -169,15 +170,17 @@ describe("Builder estimate handoff (Block 4 / 4B / 4C)", () => {
     assert.doesNotMatch(attention, /Remove from proposal/);
   });
 
-  test("10. Preview is primary forward action; Back to Job Card retained", () => {
+  test("10. Customer review is primary forward action; Back to Job Card retained", () => {
     const actions = read(
       "app/tools/roofing/proposals/builder/ProposalBuilderDisabledActions.tsx"
     );
     assert.match(actions, /data-builder-preview-action/);
+    assert.match(actions, /data-builder-customer-review-action/);
     assert.match(actions, /data-builder-preview-handoff/);
-    assert.match(actions, /Preview the customer version before sending/);
+    assert.match(actions, /BUILDER_CUSTOMER_REVIEW_LABEL/);
     assert.match(actions, /data-builder-future-actions/);
-    assert.match(actions, /\bPreview\b/);
+    assert.doesNotMatch(actions, /Preview proposal/);
+    assert.doesNotMatch(actions, /Preview the customer version before sending/);
 
     const header = read(
       "app/tools/roofing/proposals/builder/ProposalBuilderPageHeader.tsx"

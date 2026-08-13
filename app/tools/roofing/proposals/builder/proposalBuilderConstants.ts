@@ -396,9 +396,12 @@ export const BUILDER_RAIL_CARD =
 export const BUILDER_DISABLED_ACTION =
   "inline-flex items-center justify-center rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-400 cursor-not-allowed";
 
-/** R17B — enabled Preview lifecycle action in Builder header. */
+/** Primary Builder CTA — opens existing Preview route. */
+export const BUILDER_CUSTOMER_REVIEW_LABEL = "Customer review";
+
+/** R17B — enabled Customer review lifecycle action in Builder command bar. */
 export const BUILDER_PREVIEW_ENABLED_ACTION =
-  "inline-flex h-10 items-center justify-center rounded-lg bg-blue-600 px-4 text-[13px] font-semibold text-white shadow-sm transition hover:bg-blue-700";
+  "inline-flex min-h-[44px] items-center justify-center rounded-lg bg-blue-600 px-4 text-[13px] font-semibold text-white shadow-sm transition hover:bg-blue-700";
 
 export const BUILDER_OPTION_TAB =
   "rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50";
@@ -634,7 +637,7 @@ export const BUILDER_LINE_PRICE_STATUS = "text-xs font-medium text-slate-500";
 /** R17C2 — Builder Estimate workbench surfaces (not customer Preview). */
 export const WORKBENCH_ESTIMATE_KICKER = "Estimate";
 
-/** Estimate document intro — light, not a workbench hero band. */
+/** Estimate document intro — unused on the V2B1 document-led path. */
 export const WORKBENCH_HEADER =
   "border-b border-slate-100 bg-white px-6 pb-4 pt-5 sm:px-8 sm:pt-6 lg:px-10";
 
@@ -657,7 +660,7 @@ export const WORKBENCH_HEADER_STAT_REVIEW = "font-semibold tabular-nums text-sla
 
 /** Document body — flat sections, not stacked workbench cards. */
 export const WORKBENCH_BODY =
-  "space-y-7 bg-white px-6 py-5 sm:px-8 sm:py-7 lg:px-10";
+  "space-y-5 bg-white px-5 py-3 sm:px-8 sm:py-4 lg:px-10";
 
 /** Shared module shell — quiet borders for document sections. */
 export const WORKBENCH_MODULE =
