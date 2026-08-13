@@ -36,6 +36,7 @@ export default function ProposalBuilderWorkbenchRowMenu({
   const menuId = useId();
   const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
 
+  /* eslint-disable react-hooks/set-state-in-effect -- portal position is measured from the trigger */
   useLayoutEffect(() => {
     if (!open || !buttonRef.current) {
       setCoords(null);
@@ -53,6 +54,7 @@ export default function ProposalBuilderWorkbenchRowMenu({
     }
     setCoords({ top, left });
   }, [open]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
     if (!open) return;
@@ -89,7 +91,7 @@ export default function ProposalBuilderWorkbenchRowMenu({
       <button
         ref={buttonRef}
         type="button"
-        className={`flex h-7 w-7 items-center justify-center rounded-md text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 ${
+        className={`flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 sm:min-h-8 sm:min-w-8 ${
           open ? "bg-slate-100 text-slate-700" : ""
         }`}
         aria-label={`More actions for ${rowLabel}`}
@@ -119,7 +121,7 @@ export default function ProposalBuilderWorkbenchRowMenu({
                   type="button"
                   role="menuitem"
                   disabled={action.disabled}
-                  className={`block w-full px-3 py-2 text-left text-[12px] font-medium transition hover:bg-slate-50 disabled:opacity-60 ${
+                  className={`block min-h-[44px] w-full px-3 text-left text-[13px] font-medium transition hover:bg-slate-50 disabled:opacity-60 sm:min-h-0 sm:py-2 sm:text-[12px] ${
                     action.id === "remove"
                       ? "text-slate-600"
                       : "text-slate-800"
@@ -129,6 +131,15 @@ export default function ProposalBuilderWorkbenchRowMenu({
                   }
                   data-builder-view-line-details={
                     action.id === "details" ? "true" : undefined
+                  }
+                  data-builder-hide-from-customer={
+                    action.id === "hide" ? "true" : undefined
+                  }
+                  data-builder-show-to-customer={
+                    action.id === "show" ? "true" : undefined
+                  }
+                  data-builder-use-measured-quantity={
+                    action.id === "use_measured" ? "true" : undefined
                   }
                   onClick={() => {
                     if (action.disabled) return;

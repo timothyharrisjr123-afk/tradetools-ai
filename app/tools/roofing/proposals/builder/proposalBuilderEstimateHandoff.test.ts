@@ -82,8 +82,8 @@ describe("Builder estimate handoff (Block 4 / 4B / 4C)", () => {
     assert.match(estimate, /data-builder-estimate-next-step/);
     assert.match(estimate, /data-builder-needs-review-strip/);
     assert.match(estimate, /data-builder-review-quantities/);
-    assert.match(estimate, /Needs review before Customer review/);
-    assert.match(estimate, /focusFinishEstimate/);
+    assert.match(estimate, /quantit(?:y|ies) need(?:s)? review/);
+    assert.match(estimate, /focusFirstQuantityIssue/);
 
     const attentionSrc = read(
       "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchAttentionZone.tsx"
@@ -132,7 +132,7 @@ describe("Builder estimate handoff (Block 4 / 4B / 4C)", () => {
     assert.match(ready, /data-builder-included-estimate/);
     assert.match(ready, /data-builder-included-estimate-table/);
     assert.match(ready, /data-builder-estimate-column-headers/);
-    assert.match(ready, /hideDetails/);
+    assert.match(ready, /View details/);
     assert.doesNotMatch(ready, /Roof replacement scope/);
 
     const estimate = read(
@@ -188,16 +188,17 @@ describe("Builder estimate handoff (Block 4 / 4B / 4C)", () => {
     assert.match(header, /data-builder-back-to-job-card/);
   });
 
-  test("11. Hide from customer absent from estimate review path", () => {
-    const files = [
-      "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchLineRow.tsx",
-      "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchReadyScopeZone.tsx",
-      "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchAttentionZone.tsx",
-      "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchEstimateDocument.tsx",
-    ];
-    for (const file of files) {
-      assert.doesNotMatch(read(file), /Hide from customer/i, file);
-    }
+  test("11. Hide from customer is available on included rows and distinct from exclude", () => {
+    const ready = read(
+      "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchReadyScopeZone.tsx"
+    );
+    assert.match(ready, /Hide from customer/);
+    assert.match(ready, /WORKBENCH_REMOVE_FROM_OPTION_ACTION/);
+    const estimate = read(
+      "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchEstimateDocument.tsx"
+    );
+    assert.match(estimate, /onHideFromCustomer=\{visibilityEnabled \? handleHideLine/);
+    assert.match(estimate, /onRemoveFromProposal=\{excludeEnabled \? handleExcludeLine/);
   });
 
   test("12. Package context preserved; no signing language", () => {

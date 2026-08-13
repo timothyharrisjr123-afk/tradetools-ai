@@ -161,7 +161,6 @@ describe("V2B1 Builder shell", () => {
     assert.match(estimate, /onExcludeLine/);
     assert.match(estimate, /onRestoreExcludedLine/);
     assert.match(estimate, /onSetUpgradeSelected/);
-    assert.match(estimate, /focusFinishEstimate/);
-    assert.match(estimate, /openEditPackage/);
+    assert.match(estimate, /handleApplyManualQuantity/);
   });
 });

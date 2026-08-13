@@ -13,7 +13,6 @@ import {
   WORKBENCH_DISPLAY_SETTINGS_ENTRY_LABEL,
   WORKBENCH_HIDDEN_FROM_CUSTOMER_LABEL,
   WORKBENCH_LINE_INCLUDED_LABEL,
-  WORKBENCH_SCOPE_REVIEW_ROW_HELPER,
   WORKBENCH_TOTALS_INCOMPLETE_COPY,
   WORKBENCH_UPGRADES_EMPTY_COPY,
   buildProposalWorkbenchEstimatePresentation,
@@ -224,7 +223,7 @@ describe("buildProposalWorkbenchEstimatePresentation", () => {
     assert.equal(result.meta.readyLineCount, 1);
   });
 
-  test("quantity blocker lines classified into scopeReview bucket", () => {
+  test("quantity blocker lines classified onto estimate rows, not a separate Finish estimate bucket", () => {
     const scopeSection = section("sec-scope", "line_items", OPTION_STANDARD);
     const templateGraph = graph(
       [option(OPTION_STANDARD)],
@@ -244,17 +243,15 @@ describe("buildProposalWorkbenchEstimatePresentation", () => {
       })
     );
 
-    assert.equal(result.readyScope.sections.length, 0);
-    assert.equal(result.needsAttention.show, true);
-    assert.equal(result.needsAttention.lines.length, 1);
-    assert.deepEqual(result.needsAttention.lines[0]?.reasons, ["needs_quantity"]);
-    assert.equal(result.needsAttention.lines[0]?.attentionKind, "scope_review");
-    assert.equal(result.needsAttention.lines[0]?.amountLabel, "Needs quantity");
-    assert.equal(result.needsAttention.lines[0]?.suggestedAction, WORKBENCH_SCOPE_REVIEW_ROW_HELPER);
-    assert.equal(result.needsAttention.scopeReview.show, true);
-    assert.equal(result.needsAttention.scopeReview.count, 1);
+    const issueLine = result.readyScope.sections[0]?.lines[0];
+    assert.equal(result.readyScope.sections.length, 1);
+    assert.equal(issueLine?.templateItemId, "line-blocked");
+    assert.deepEqual(issueLine?.attentionReasons, ["needs_quantity"]);
+    assert.equal(issueLine?.amountLabel, "Needs quantity");
+    assert.equal(result.needsAttention.scopeReview.show, false);
     assert.equal(result.needsAttention.hardBlockers.show, false);
-    assert.equal(result.meta.attentionLineCount, 1);
+    assert.equal(result.needsAttention.show, false);
+    assert.equal(result.meta.attentionLineCount, 0);
     assert.equal(result.meta.scopeReviewLineCount, 1);
     assert.equal(result.meta.hardBlockerLineCount, 0);
   });
@@ -324,7 +321,7 @@ describe("buildProposalWorkbenchEstimatePresentation", () => {
     assert.equal(line?.detailMeta.unit, "linear ft");
   });
 
-  test("R17D Phase 2.5: cleared unresolved snapshot returns line to scopeReview", () => {
+  test("R17D Phase 2.5: cleared unresolved snapshot returns line to estimate quantity issue", () => {
     const scopeSection = section("sec-scope", "line_items", OPTION_STANDARD);
     const templateGraph = graph(
       [option(OPTION_STANDARD)],
@@ -344,9 +341,13 @@ describe("buildProposalWorkbenchEstimatePresentation", () => {
       })
     );
 
-    assert.equal(result.needsAttention.scopeReview.count, 1);
-    assert.equal(result.readyScope.sections.length, 0);
-    assert.equal(result.needsAttention.scopeReview.lines[0]?.reasons.includes("needs_quantity"), true);
+    assert.equal(result.needsAttention.scopeReview.count, 0);
+    assert.equal(result.readyScope.sections.length, 1);
+    assert.equal(
+      result.readyScope.sections[0]?.lines[0]?.attentionReasons.includes("needs_quantity"),
+      true
+    );
+    assert.equal(result.meta.scopeReviewLineCount, 1);
   });
 
   test("R17D Phase 3A: excluded line moves to decision trace zone", () => {
@@ -478,12 +479,15 @@ describe("buildProposalWorkbenchEstimatePresentation", () => {
     );
 
     assert.equal(result.needsAttention.hardBlockers.count, 1);
-    assert.equal(result.needsAttention.scopeReview.count, 1);
+    assert.equal(result.needsAttention.scopeReview.count, 0);
     assert.equal(result.needsAttention.hardBlockers.lines[0]?.templateItemId, "line-missing");
-    assert.equal(result.needsAttention.scopeReview.lines[0]?.templateItemId, "line-blocked");
+    assert.equal(
+      result.readyScope.sections[0]?.lines.some((line) => line.templateItemId === "line-blocked"),
+      true
+    );
     assert.equal(result.meta.hardBlockerLineCount, 1);
     assert.equal(result.meta.scopeReviewLineCount, 1);
-    assert.equal(result.meta.attentionLineCount, 2);
+    assert.equal(result.meta.attentionLineCount, 1);
   });
 
   test("upgrade_group sections split available upgrade truth into visible zone", () => {
@@ -560,10 +564,15 @@ describe("buildProposalWorkbenchEstimatePresentation", () => {
       })
     );
 
-    assert.equal(result.readyScope.sections[0]?.lines.length, 1);
-    assert.equal(result.readyScope.sections[0]?.lines[0]?.templateItemId, "line-ready");
-    assert.equal(result.needsAttention.lines.length, 1);
-    assert.equal(result.needsAttention.lines[0]?.templateItemId, "line-blocked");
+    const ids = result.readyScope.sections[0]?.lines.map((line) => line.templateItemId) ?? [];
+    assert.equal(ids.length, 2);
+    assert.equal(ids.includes("line-ready"), true);
+    assert.equal(ids.includes("line-blocked"), true);
+    const blocked = result.readyScope.sections[0]?.lines.find(
+      (line) => line.templateItemId === "line-blocked"
+    );
+    assert.deepEqual(blocked?.attentionReasons, ["needs_quantity"]);
+    assert.equal(result.needsAttention.hardBlockers.show, false);
   });
 
   test("hidden-from-customer lines remain visible in workbench with hidden flag", () => {
@@ -817,7 +826,7 @@ describe("buildProposalWorkbenchEstimatePresentation", () => {
     }
   });
 
-  test("blocked upgrade quantity lines merge into Finish estimate scope review", () => {
+  test("blocked upgrade quantity lines stay in upgrades zone, not Finish estimate", () => {
     const result = buildProposalWorkbenchEstimatePresentation(
       buildInput({
         optionCustomerView: optionCustomerView({
@@ -830,9 +839,8 @@ describe("buildProposalWorkbenchEstimatePresentation", () => {
     assert.equal(result.upgradesZone.show, true);
     assert.equal(result.upgradesZone.sections[0]?.lines[0]?.attentionReasons.includes("needs_quantity"), true);
     assert.equal(result.upgradesZone.scopeReview.count, 1);
-    assert.equal(result.needsAttention.scopeReview.show, true);
-    assert.equal(result.needsAttention.scopeReview.count, 1);
-    assert.equal(result.needsAttention.scopeReview.lines[0]?.templateItemId, "line-upgrade");
+    assert.equal(result.needsAttention.scopeReview.show, false);
+    assert.equal(result.needsAttention.scopeReview.count, 0);
     assert.equal(result.meta.upgradeScopeReviewLineCount, 1);
   });
 

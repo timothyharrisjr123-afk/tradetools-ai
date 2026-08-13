@@ -660,6 +660,28 @@ function buildScopeLine(
   };
 }
 
+/** Quantity-only issues stay on the estimate table as problem rows — not a second editor. */
+function buildQuantityIssueScopeLine(
+  row: ProposalPreviewLineRow,
+  lineView: ProposalBuilderLineCustomerView | undefined,
+  snapshotQty: ProposalSnapshotLineQuantityView | undefined
+): WorkbenchScopeLine {
+  const qtyState = resolveQtyState(row, snapshotQty);
+
+  return {
+    templateItemId: row.id,
+    name: row.displayName,
+    qtyLabel: qtyState.qtyLabel,
+    qtyUnresolved: qtyState.qtyUnresolved,
+    amountLabel: attentionAmountLabel(["needs_quantity"]),
+    statusKind: "priced",
+    hiddenFromCustomer: isHiddenFromCustomer(lineView),
+    detailMeta: buildDetailMeta(row, qtyState.quantityStatusLabel, snapshotQty?.unitLabel),
+    attentionReasons: ["needs_quantity"],
+    manualQuantityActive: snapshotQty?.quantitySourceLabel === "Manual",
+  };
+}
+
 function buildAttentionLine(
   row: ProposalPreviewLineRow,
   lineView: ProposalBuilderLineCustomerView | undefined,
@@ -1040,14 +1062,16 @@ export function buildProposalWorkbenchEstimatePresentation(
       }
 
       if (classification.zone === "attention") {
+        if (attentionKindForReasons(classification.reasons) === "scope_review") {
+          readyLines.push(buildQuantityIssueScopeLine(row, lineView, snapshotQty));
+          readyLineCount += 1;
+          scopeReviewLineCount += 1;
+          continue;
+        }
         const attentionLine = buildAttentionLine(row, lineView, classification, snapshotQty);
         attentionLines.push(attentionLine);
         attentionLineCount += 1;
-        if (attentionLine.attentionKind === "hard_blocker") {
-          hardBlockerLineCount += 1;
-        } else {
-          scopeReviewLineCount += 1;
-        }
+        hardBlockerLineCount += 1;
         continue;
       }
 
@@ -1089,10 +1113,8 @@ export function buildProposalWorkbenchEstimatePresentation(
     input.estimateSettingsEditingEnabled === true && parsedSettings != null;
 
   const hardBlockerLines = attentionLines.filter((line) => line.attentionKind === "hard_blocker");
-  const scopeReviewLines = attentionLines.filter((line) => line.attentionKind === "scope_review");
-  /** Upgrade quantity blockers surface in Finish estimate — include/replace UI is follow-up only. */
-  const finishScopeReviewLines = [...scopeReviewLines, ...upgradeScopeReviewLines];
-  const finishAttentionLines = [...hardBlockerLines, ...finishScopeReviewLines];
+  /** Quantity issues live on estimate rows. Hard blockers remain a setup surface. */
+  const finishAttentionLines = [...hardBlockerLines];
   const attentionRailHint =
     finishAttentionLines.length > 0
       ? "See Pricing readiness in the rail for setup guidance."
@@ -1119,7 +1141,7 @@ export function buildProposalWorkbenchEstimatePresentation(
         attentionRailHint
       ),
       scopeReview: buildAttentionBucket(
-        finishScopeReviewLines,
+        [],
         WORKBENCH_SCOPE_REVIEW_TITLE,
         WORKBENCH_SCOPE_REVIEW_DESCRIPTION,
         attentionRailHint

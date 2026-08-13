@@ -54,25 +54,26 @@ describe("Builder action clarity (Block 4D / 4E)", () => {
     assert.match(estimate, /onSaveQuantity=\{\s*quantityEditingEnabled \? handleApplyManualQuantity/);
   });
 
-  test("5. Review quantities focuses Finish estimate; no drawer/panel", () => {
+  test("5. Review quantities focuses the first unresolved estimate row", () => {
     const estimate = read(
       "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchEstimateDocument.tsx"
     );
-    assert.match(estimate, /focusFinishEstimate/);
-    assert.match(estimate, /setHighlightFinishEstimate/);
-    assert.match(estimate, /builder-finish-estimate-first-row/);
+    assert.match(estimate, /focusFirstQuantityIssue/);
+    assert.match(estimate, /data-builder-quantity-issue-row/);
+    assert.doesNotMatch(estimate, /focusFinishEstimate/);
     const reviewIdx = estimate.indexOf("data-builder-review-quantities");
     const reviewBlock = estimate.slice(Math.max(0, reviewIdx - 220), reviewIdx + 80);
-    assert.match(reviewBlock, /focusFinishEstimate/);
+    assert.match(reviewBlock, /focusFirstQuantityIssue/);
     assert.doesNotMatch(reviewBlock, /openEditPackage|openSetQuantity/);
   });
 
-  test("6. Edit scope opens contractor package drawer", () => {
+  test("6. Edit scope is demoted from the primary Estimate surface", () => {
     const estimate = read(
       "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchEstimateDocument.tsx"
     );
-    assert.match(estimate, /openEditPackage/);
-    assert.match(estimate, /editPackageOpen/);
+    assert.doesNotMatch(estimate, /openEditPackage/);
+    assert.doesNotMatch(estimate, /editPackageOpen/);
+    assert.doesNotMatch(estimate, /ProposalBuilderWorkbenchEditOptionShell/);
 
     const shell = read(
       "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchEditOptionShell.tsx"
@@ -143,11 +144,9 @@ describe("Builder action clarity (Block 4D / 4E)", () => {
     const estimate = read(
       "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchEstimateDocument.tsx"
     );
-    assert.match(estimate, /onFocusTemplateItemId=\{setFocusedTemplateItemId\}/);
-    assert.match(estimate, /focusedTemplateItemId=\{focusedTemplateItemId\}/);
-    // Drawer stays open independently of focused row.
-    assert.match(estimate, /editPackageOpen/);
-    assert.match(estimate, /closeEditPackage/);
+    assert.doesNotMatch(estimate, /onFocusTemplateItemId=\{setFocusedTemplateItemId\}/);
+    assert.doesNotMatch(estimate, /editPackageOpen/);
+    assert.doesNotMatch(estimate, /ProposalBuilderWorkbenchEditOptionShell/);
   });
 
   test("7–10. Row menu portal polish; Remove uses exclude path", () => {
@@ -201,17 +200,19 @@ describe("Builder action clarity (Block 4D / 4E)", () => {
     assert.match(selectionHandler, /setPersistedGraph\(graph\)/);
   });
 
-  test("13. No Hide from customer on estimate action path", () => {
-    const files = [
-      "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchReadyScopeZone.tsx",
-      "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchAttentionZone.tsx",
-      "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchInlineQuantityEditor.tsx",
-      "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchRowMenu.tsx",
-      "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchEstimateDocument.tsx",
-    ];
-    for (const file of files) {
-      assert.doesNotMatch(read(file), /Hide from customer/i, file);
-    }
+  test("13. Hide from customer is a row overflow action distinct from exclude", () => {
+    const ready = read(
+      "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchReadyScopeZone.tsx"
+    );
+    assert.match(ready, /Hide from customer/);
+    assert.match(ready, /Show to customer/);
+    assert.match(ready, /onHideFromCustomer/);
+    assert.match(ready, /WORKBENCH_REMOVE_FROM_OPTION_ACTION/);
+    const estimate = read(
+      "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchEstimateDocument.tsx"
+    );
+    assert.match(estimate, /handleHideLine/);
+    assert.match(estimate, /handleRestoreVisibility/);
   });
 
   test("14. Compact success feedback aligned to Builder stage", () => {
@@ -243,7 +244,7 @@ describe("Builder action clarity (Block 4D / 4E)", () => {
     const ready = read(
       "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchReadyScopeZone.tsx"
     );
-    assert.match(ready, /manualQuantityActive && onEditQuantityForLine/);
+    assert.match(ready, /canEditQty = Boolean\(onEditQuantityForLine\)/);
     assert.doesNotMatch(ready, /Not editable|Quantity locked|System calculated|From measurement|Source locked/);
 
     const lineRow = read(
@@ -300,10 +301,9 @@ describe("Builder action clarity (Block 4D / 4E)", () => {
     const ready = read(
       "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchReadyScopeZone.tsx"
     );
-    const detailsIdx = ready.indexOf('id: "details"');
-    const removeIdx = ready.indexOf('id: "remove"');
-    assert.ok(detailsIdx > 0 && removeIdx > detailsIdx, "View details before Remove");
-    assert.doesNotMatch(ready, /Hide from customer/i);
+    assert.match(ready, /id: "details"/);
+    assert.match(ready, /id: "remove"/);
+    assert.match(ready, /Hide from customer/);
   });
 
   test("20. More menu quiet — no locked Send/Sign/Payment clutter", () => {
@@ -368,7 +368,7 @@ describe("Builder action clarity (Block 4D / 4E)", () => {
     );
     assert.match(estimate, /data-builder-removed-from-proposal/);
     assert.match(estimate, /Removed from proposal/);
-    assert.match(estimate, /line hidden from this package|lines hidden from this package/);
+    assert.match(estimate, /line removed from this package|lines removed from this package/);
     assert.match(estimate, /data-builder-estimate-surface/);
     assert.match(estimate, /decisionTraceZone\.show/);
     assert.doesNotMatch(estimate, /ProposalBuilderWorkbenchSettingsEntry/);
@@ -417,7 +417,7 @@ describe("Builder action clarity (Block 4D / 4E)", () => {
     assert.match(ready, /data-builder-itemized-estimate/);
     assert.match(ready, /WORKBENCH_INCLUDED_ROW_GRID/);
     assert.match(ready, /data-builder-estimate-column-headers/);
-    assert.match(ready, /itemCellOnly/);
+    assert.match(ready, /data-builder-qty-edit-trigger/);
     assert.doesNotMatch(ready, /max-w-\[46rem\]/);
     assert.doesNotMatch(ready, /max-w-\[40rem\]/);
     assert.doesNotMatch(ready, /flex items-start gap-1/);
@@ -448,28 +448,24 @@ describe("Builder action clarity (Block 4D / 4E)", () => {
     const ready = read(
       "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchReadyScopeZone.tsx"
     );
-    assert.match(ready, /manualQuantityActive && onEditQuantityForLine/);
+    assert.match(ready, /canEditQty = Boolean\(onEditQuantityForLine\)/);
     assert.match(ready, /data-builder-edit-quantity/);
-    assert.match(ready, /Edit qty/);
-    assert.match(ready, /group-hover\/estimate-row:opacity-100/);
-    assert.match(ready, /group-focus-within\/estimate-row:opacity-100/);
+    assert.match(ready, /data-builder-qty-edit-trigger/);
+    assert.doesNotMatch(ready, /group-hover\/estimate-row:opacity-100/);
   });
 
-  test("27. Block 4G — Finish estimate full-width far-right Set quantity", () => {
-    const attention = read(
-      "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchAttentionZone.tsx"
+  test("27. Finish estimate is not the canonical quantity editor", () => {
+    const estimate = read(
+      "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchEstimateDocument.tsx"
     );
-    assert.match(attention, /WORKBENCH_FINISH_ESTIMATE_ROW/);
-    assert.match(attention, /data-builder-finish-estimate/);
-    assert.match(attention, /WORKBENCH_SET_QUANTITY_ACTION/);
-    assert.doesNotMatch(attention, /max-w-\[40rem\]/);
-    assert.doesNotMatch(attention, /flex flex-wrap items-center justify-between/);
+    assert.doesNotMatch(estimate, /manualQuantityEnabled=\{scopeReviewManualQuantityEnabled\}/);
+    assert.doesNotMatch(estimate, /highlightFinishEstimate/);
+    assert.match(estimate, /data-builder-qty-edit-trigger|focusFirstQuantityIssue/);
 
-    const constants = read(
-      "app/tools/roofing/proposals/builder/proposalBuilderConstants.ts"
+    const ready = read(
+      "app/tools/roofing/proposals/builder/ProposalBuilderWorkbenchReadyScopeZone.tsx"
     );
-    assert.match(constants, /WORKBENCH_FINISH_ESTIMATE_ROW/);
-    assert.match(constants, /minmax\(0,1fr\)_auto/);
+    assert.match(ready, /data-builder-quantity-issue-row/);
   });
 
   test("28. Block 4G — inline editor shared grid; no side drawer", () => {

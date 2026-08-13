@@ -1,18 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import type { WorkbenchScopeSection } from "@/app/lib/proposalBuilderWorkbenchEstimatePresenter";
+import type {
+  WorkbenchScopeLine,
+  WorkbenchScopeSection,
+} from "@/app/lib/proposalBuilderWorkbenchEstimatePresenter";
 import {
   WORKBENCH_INCLUDED_ROW_GRID,
   WORKBENCH_LINE_AMOUNT,
   WORKBENCH_LINE_AMOUNT_ATTENTION,
   WORKBENCH_LINE_AMOUNT_INCLUDED,
-  WORKBENCH_LINE_QTY,
-  WORKBENCH_LINE_QTY_VALUE,
+  WORKBENCH_LINE_NAME,
   WORKBENCH_MODULE,
   WORKBENCH_REMOVE_FROM_OPTION_ACTION,
+  WORKBENCH_USE_MEASUREMENT_QUANTITY_LABEL,
 } from "./proposalBuilderConstants";
-import ProposalBuilderWorkbenchLineRow from "./ProposalBuilderWorkbenchLineRow";
 import ProposalBuilderWorkbenchLineDetails from "./ProposalBuilderWorkbenchLineDetails";
 import ProposalBuilderWorkbenchRowMenu from "./ProposalBuilderWorkbenchRowMenu";
 import ProposalBuilderWorkbenchInlineQuantityEditor from "./ProposalBuilderWorkbenchInlineQuantityEditor";
@@ -31,18 +33,34 @@ type ProposalBuilderWorkbenchReadyScopeZoneProps = {
   ) => Promise<void>;
   quantitySaveInFlight?: boolean;
   quantitySaveError?: string | null;
+  onClearManualQuantity?: (templateItemId: string) => Promise<void>;
   onRemoveFromProposal?: (templateItemId: string) => void;
   removeEnabled?: boolean;
   removeInFlight?: boolean;
+  onHideFromCustomer?: (templateItemId: string) => void;
+  onShowToCustomer?: (templateItemId: string) => void;
+  visibilityInFlight?: boolean;
 };
 
 function isIncludedAmount(label: string): boolean {
   return label === "Included" || label === "In package";
 }
 
+function parseQtyDraft(qtyLabel: string): string {
+  const match = qtyLabel.trim().match(/^(\d+(?:\.\d+)?)/);
+  return match?.[1] ?? "";
+}
+
+function lineNeedsQuantity(line: WorkbenchScopeLine): boolean {
+  return (
+    line.qtyUnresolved ||
+    line.attentionReasons.includes("needs_quantity")
+  );
+}
+
 /**
- * Block 4G — full-width shared itemized Included estimate (Item / Qty / Price / ⋯).
- * Spans the wide Builder canvas — do not compress with max-width.
+ * Canonical estimate table: Item / Qty / Price / ⋯
+ * Quantity edits happen on the row. No nested editor card.
  */
 export default function ProposalBuilderWorkbenchReadyScopeZone({
   sections,
@@ -53,9 +71,13 @@ export default function ProposalBuilderWorkbenchReadyScopeZone({
   onSaveQuantity,
   quantitySaveInFlight = false,
   quantitySaveError = null,
+  onClearManualQuantity,
   onRemoveFromProposal,
   removeEnabled = false,
   removeInFlight = false,
+  onHideFromCustomer,
+  onShowToCustomer,
+  visibilityInFlight = false,
 }: ProposalBuilderWorkbenchReadyScopeZoneProps) {
   const lines = sections.flatMap((section) => section.lines);
   const lineCount = lines.length;
@@ -85,7 +107,7 @@ export default function ProposalBuilderWorkbenchReadyScopeZone({
       <div className="overflow-visible">
         {lineCount === 0 ? (
           <p className="px-5 py-5 text-sm text-slate-500 sm:px-6">
-            No included lines yet. Finish the estimate to populate this section.
+            No included lines yet.
           </p>
         ) : (
           <div className="overflow-visible">
@@ -103,138 +125,208 @@ export default function ProposalBuilderWorkbenchReadyScopeZone({
                 const showDetails = detailsLineId === line.templateItemId;
                 const canRemove = removeEnabled && Boolean(onRemoveFromProposal);
                 const isEditing = editingQuantityLineId === line.templateItemId;
-                const canEditQty =
-                  Boolean(line.manualQuantityActive && onEditQuantityForLine);
+                const canEditQty = Boolean(onEditQuantityForLine);
+                const needsQty = lineNeedsQuantity(line);
                 const hasAttention = line.attentionReasons.length > 0;
                 const amountClass = hasAttention
                   ? WORKBENCH_LINE_AMOUNT_ATTENTION
                   : isIncludedAmount(line.amountLabel)
                     ? WORKBENCH_LINE_AMOUNT_INCLUDED
                     : WORKBENCH_LINE_AMOUNT;
+                const canUseMeasured =
+                  Boolean(onClearManualQuantity) && line.manualQuantityActive;
+                const canHide =
+                  Boolean(onHideFromCustomer) && !line.hiddenFromCustomer;
+                const canShow =
+                  Boolean(onShowToCustomer) && line.hiddenFromCustomer;
 
                 return (
                   <li
                     key={line.templateItemId}
-                    className={`group/estimate-row overflow-visible transition-colors ${
+                    className={`overflow-visible ${
                       isEditing
-                        ? "bg-blue-50/55 ring-1 ring-inset ring-blue-100"
-                        : index % 2 === 1
-                          ? "bg-slate-50/30 hover:bg-blue-50/20"
-                          : "bg-white hover:bg-blue-50/20"
+                        ? "bg-slate-50/80"
+                        : needsQty
+                          ? "bg-amber-50/40"
+                          : index % 2 === 1
+                            ? "bg-slate-50/30"
+                            : "bg-white"
                     }`}
                     data-builder-included-estimate-row
                     data-builder-inline-editing={isEditing ? "true" : undefined}
+                    data-builder-quantity-issue-row={needsQty ? "true" : undefined}
                   >
                     {isEditing && onSaveQuantity ? (
                       <div className="px-5 py-3 sm:px-6">
                         <ProposalBuilderWorkbenchInlineQuantityEditor
+                          key={line.templateItemId}
                           line={{
                             templateItemId: line.templateItemId,
                             name: line.name,
                             unitLabel: line.detailMeta.unit?.trim() || null,
                           }}
+                          initialQuantity={parseQtyDraft(line.qtyLabel)}
                           inFlight={quantitySaveInFlight}
                           error={quantitySaveError}
                           onCancel={() => onCancelSetQuantity?.()}
                           onSave={onSaveQuantity}
                           alignToColumns
+                          onUseMeasuredQuantity={
+                            canUseMeasured
+                              ? () => onClearManualQuantity!(line.templateItemId)
+                              : undefined
+                          }
                         />
                       </div>
                     ) : (
-                      <div className={`${WORKBENCH_INCLUDED_ROW_GRID} px-5 py-4 sm:px-6`}>
-                        <ProposalBuilderWorkbenchLineRow
-                          variant="scope"
-                          line={line}
-                          as="div"
-                          hideDetails
-                          itemCellOnly
-                        />
-                        <div className="hidden sm:block sm:text-right">
-                          <span
-                            className={`inline-flex min-w-[3.25rem] justify-end rounded-md px-2 py-1 text-[13px] tabular-nums ${
-                              line.qtyUnresolved
-                                ? "bg-slate-50 text-slate-400"
-                                : "bg-slate-50/90 font-semibold text-slate-800"
-                            }`}
-                          >
-                            {line.qtyLabel}
-                          </span>
-                        </div>
-                        <p className={`hidden sm:block ${amountClass}`}>{line.amountLabel}</p>
-                        <div className="flex items-center justify-end gap-2">
-                          {canEditQty ? (
-                            <button
-                              type="button"
-                              onClick={() => onEditQuantityForLine!(line.templateItemId)}
-                              className="hidden rounded-md px-2 py-1 text-[11.5px] font-semibold text-blue-700 opacity-0 transition hover:bg-blue-100/70 group-hover/estimate-row:opacity-100 group-focus-within/estimate-row:opacity-100 sm:inline-flex"
-                              data-builder-edit-quantity
-                            >
-                              Edit qty
-                            </button>
-                          ) : null}
-                          <ProposalBuilderWorkbenchRowMenu
-                            rowId={line.templateItemId}
-                            rowLabel={line.name}
-                            openMenuId={openMenuId}
-                            onOpenMenuIdChange={setOpenMenuId}
-                            actions={[
-                              {
-                                id: "details",
-                                label: showDetails ? "Hide details" : "View details",
-                                onSelect: () =>
-                                  setDetailsLineId((current) =>
-                                    current === line.templateItemId
-                                      ? null
-                                      : line.templateItemId
-                                  ),
-                              },
-                              ...(canEditQty
-                                ? [
-                                    {
-                                      id: "edit_qty",
-                                      label: "Edit quantity",
-                                      onSelect: () =>
-                                        onEditQuantityForLine!(line.templateItemId),
-                                    },
-                                  ]
-                                : []),
-                              ...(canRemove
-                                ? [
-                                    {
-                                      id: "remove",
-                                      label: WORKBENCH_REMOVE_FROM_OPTION_ACTION,
-                                      disabled: removeInFlight,
-                                      onSelect: () =>
-                                        onRemoveFromProposal!(line.templateItemId),
-                                    },
-                                  ]
-                                : []),
-                            ]}
-                          />
-                        </div>
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 sm:hidden">
-                          <p className={WORKBENCH_LINE_QTY}>
-                            Qty{" "}
-                            <span
-                              className={
-                                line.qtyUnresolved ? "text-slate-400" : WORKBENCH_LINE_QTY_VALUE
-                              }
-                            >
-                              {line.qtyLabel}
-                            </span>
-                            <span className="mx-2 text-slate-300">·</span>
-                            <span className={amountClass}>{line.amountLabel}</span>
-                          </p>
-                          {canEditQty ? (
-                            <button
-                              type="button"
-                              onClick={() => onEditQuantityForLine!(line.templateItemId)}
-                              className="text-[11.5px] font-semibold text-blue-700"
-                              data-builder-edit-quantity
-                            >
-                              Edit qty
-                            </button>
-                          ) : null}
+                      <div className="px-5 py-3 sm:px-6">
+                        <div
+                          className={`${WORKBENCH_INCLUDED_ROW_GRID} grid-cols-[minmax(0,1fr)_2.75rem] [grid-template-areas:'name_menu'_'qty_price'] sm:[grid-template-areas:'name_qty_price_menu']`}
+                          data-builder-mobile-estimate-row
+                        >
+                          <div className="min-w-0 [grid-area:name]">
+                            <p className={WORKBENCH_LINE_NAME}>{line.name}</p>
+                            {needsQty ? (
+                              <p
+                                className="mt-0.5 text-[12px] font-medium text-amber-800"
+                                data-builder-row-quantity-issue
+                              >
+                                Needs quantity
+                              </p>
+                            ) : null}
+                            {line.hiddenFromCustomer ? (
+                              <p
+                                className="mt-0.5 text-[12px] text-slate-500"
+                                data-builder-row-hidden-from-customer
+                              >
+                                Hidden from customer
+                              </p>
+                            ) : null}
+                          </div>
+                          <div className="[grid-area:qty] sm:text-right">
+                            {canEditQty ? (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  onEditQuantityForLine!(line.templateItemId)
+                                }
+                                className={`inline-flex min-h-[44px] min-w-[3.25rem] items-center rounded-md px-2 text-[13px] tabular-nums sm:min-h-0 sm:h-8 sm:w-full sm:justify-end ${
+                                  needsQty
+                                    ? "font-medium text-amber-800 underline decoration-amber-300 underline-offset-2"
+                                    : "font-semibold text-slate-800 hover:bg-slate-100"
+                                }`}
+                                data-builder-qty-edit-trigger
+                                data-builder-edit-quantity
+                                aria-label={`Edit quantity for ${line.name}`}
+                              >
+                                <span className="sm:hidden">Qty </span>
+                                {line.qtyLabel}
+                              </button>
+                            ) : (
+                              <span
+                                className={`inline-flex min-h-[44px] min-w-[3.25rem] items-center px-2 text-[13px] tabular-nums sm:min-h-0 sm:w-full sm:justify-end ${
+                                  needsQty ? "text-slate-400" : "font-semibold text-slate-800"
+                                }`}
+                              >
+                                <span className="sm:hidden">Qty </span>
+                                {line.qtyLabel}
+                              </span>
+                            )}
+                          </div>
+                          <p className={`${amountClass} [grid-area:price]`}>{line.amountLabel}</p>
+                          <div className="flex items-start justify-end [grid-area:menu] sm:items-center">
+                            <ProposalBuilderWorkbenchRowMenu
+                              rowId={line.templateItemId}
+                              rowLabel={line.name}
+                              openMenuId={openMenuId}
+                              onOpenMenuIdChange={setOpenMenuId}
+                              actions={[
+                                ...(canEditQty
+                                  ? [
+                                      {
+                                        id: "edit_qty",
+                                        label: needsQty
+                                          ? "Set quantity"
+                                          : "Edit quantity",
+                                        onSelect: () =>
+                                          onEditQuantityForLine!(
+                                            line.templateItemId
+                                          ),
+                                      },
+                                    ]
+                                  : []),
+                                ...(canUseMeasured
+                                  ? [
+                                      {
+                                        id: "use_measured",
+                                        label:
+                                          WORKBENCH_USE_MEASUREMENT_QUANTITY_LABEL,
+                                        dataAttr: "data-builder-use-measured-quantity",
+                                        onSelect: () =>
+                                          void onClearManualQuantity!(
+                                            line.templateItemId
+                                          ),
+                                      },
+                                    ]
+                                  : []),
+                                ...(canHide
+                                  ? [
+                                      {
+                                        id: "hide",
+                                        label: "Hide from customer",
+                                        disabled: visibilityInFlight,
+                                        dataAttr:
+                                          "data-builder-hide-from-customer",
+                                        onSelect: () =>
+                                          onHideFromCustomer!(
+                                            line.templateItemId
+                                          ),
+                                      },
+                                    ]
+                                  : []),
+                                ...(canShow
+                                  ? [
+                                      {
+                                        id: "show",
+                                        label: "Show to customer",
+                                        disabled: visibilityInFlight,
+                                        dataAttr:
+                                          "data-builder-show-to-customer",
+                                        onSelect: () =>
+                                          onShowToCustomer!(
+                                            line.templateItemId
+                                          ),
+                                      },
+                                    ]
+                                  : []),
+                                ...(canRemove
+                                  ? [
+                                      {
+                                        id: "remove",
+                                        label: WORKBENCH_REMOVE_FROM_OPTION_ACTION,
+                                        disabled: removeInFlight,
+                                        onSelect: () =>
+                                          onRemoveFromProposal!(
+                                            line.templateItemId
+                                          ),
+                                      },
+                                    ]
+                                  : []),
+                                {
+                                  id: "details",
+                                  label: showDetails
+                                    ? "Hide details"
+                                    : "View details",
+                                  onSelect: () =>
+                                    setDetailsLineId((current) =>
+                                      current === line.templateItemId
+                                        ? null
+                                        : line.templateItemId
+                                    ),
+                                },
+                              ]}
+                            />
+                          </div>
                         </div>
                       </div>
                     )}

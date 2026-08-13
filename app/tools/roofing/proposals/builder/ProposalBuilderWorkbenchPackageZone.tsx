@@ -20,7 +20,8 @@ type ProposalBuilderWorkbenchPackageZoneProps = {
   selectedOptionId: string | null;
   effectiveOptionId: string | null;
   onSelectOption: (optionId: string) => void;
-  onOpenEditPackage: () => void;
+  /** Advanced scope drawer — omitted when ordinary row editing is canonical. */
+  onOpenEditPackage?: () => void;
   /** Customer total from existing estimate presenter truth. */
   packageTotalLabel?: string | null;
 };
@@ -161,17 +162,19 @@ export default function ProposalBuilderWorkbenchPackageZone({
                   onPickerOpenChange={setPickerOpen}
                 />
               ) : null}
-              <button
-                type="button"
-                onClick={onOpenEditPackage}
-                className="inline-flex min-h-[44px] items-center gap-1.5 rounded-lg px-2.5 text-[13px] font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-slate-800"
-                data-builder-edit-package
-                title={WORKBENCH_EDIT_SCOPE_HINT}
-                aria-label={`${WORKBENCH_EDIT_PACKAGE_TITLE}. ${WORKBENCH_EDIT_SCOPE_HINT}`}
-              >
-                <Settings2 className="h-3.5 w-3.5" aria-hidden />
-                {WORKBENCH_EDIT_PACKAGE_TITLE}
-              </button>
+              {onOpenEditPackage ? (
+                <button
+                  type="button"
+                  onClick={onOpenEditPackage}
+                  className="inline-flex min-h-[44px] items-center gap-1.5 rounded-lg px-2.5 text-[13px] font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-slate-800"
+                  data-builder-edit-package
+                  title={WORKBENCH_EDIT_SCOPE_HINT}
+                  aria-label={`${WORKBENCH_EDIT_PACKAGE_TITLE}. ${WORKBENCH_EDIT_SCOPE_HINT}`}
+                >
+                  <Settings2 className="h-3.5 w-3.5" aria-hidden />
+                  {WORKBENCH_EDIT_PACKAGE_TITLE}
+                </button>
+              ) : null}
             </div>
           </div>
         </div>
