@@ -21,6 +21,7 @@ import {
   resolveCustomerPreviewEstimateDisplayPolicy,
   type ResolvedCustomerPreviewEstimateDisplayPolicy,
 } from "@/app/lib/proposalCustomerEstimateDisplayPolicy";
+import { resolveDraftOwnedLineCustomerLabel } from "@/app/lib/proposalDraftLinePresentation";
 import type { ProposalSnapshotLineQuantityView } from "@/app/lib/proposalDraftGraphAdapter";
 import type { ProposalPageSettings } from "@/app/lib/proposalPageTypes";
 import type { ProposalTemplateGraph } from "@/app/lib/proposalTemplateStore";
@@ -322,6 +323,128 @@ export function buildCustomerPreviewEstimatePresentation(
     scopeSections.reduce((sum, section) => sum + section.lines.length, 0) +
     upgradeSections.reduce((sum, section) => sum + section.lines.length, 0);
 
+  const packageMeta = input.packageMeta ?? null;
+
+  return {
+    packageHero: {
+      label: input.selectedOptionLabel,
+      description: packageMeta?.description ?? null,
+      bullets: packageMeta?.bullets ?? [],
+    },
+    scopeSections,
+    upgradeSections,
+    totals: buildTotals(input.optionCustomerView, displayPolicy.showOptionTotals),
+    displayPolicy,
+    suppressedBlockerCount,
+    showFinalizingMessage: documentLineCount === 0,
+  };
+}
+
+export type DraftPreviewEstimateLineInput = {
+  sourceTemplateItemId: string;
+  customerName: string;
+  catalogSeedKey?: string | null;
+  catalogItemId?: string | null;
+  role: string | null;
+  sortOrder: number;
+};
+
+export type BuildCustomerPreviewEstimatePresentationFromDraftInput = {
+  draftLines: DraftPreviewEstimateLineInput[];
+  catalogItems?: CatalogItem[];
+  optionCustomerView: ProposalBuilderOptionCustomerView | null;
+  selectedOptionLabel: string | null;
+  packageMeta?: CustomerPreviewPackageMetaInput | null;
+  estimatePageSettings?: ProposalPageSettings | null;
+  snapshotQuantityByTemplateItemId?: Record<
+    string,
+    ProposalSnapshotLineQuantityView
+  > | null;
+};
+
+/**
+ * V2E1 — Preview estimate from persisted draft lines (no live Template composition).
+ */
+export function buildCustomerPreviewEstimatePresentationFromDraft(
+  input: BuildCustomerPreviewEstimatePresentationFromDraftInput
+): CustomerPreviewEstimatePresentation {
+  const displayPolicy = resolveCustomerPreviewEstimateDisplayPolicy(input.estimatePageSettings);
+  const showLinePrices = displayPolicy.showLinePrices;
+  const showSectionHeadings = displayPolicy.showSectionHeadings;
+  const catalogById = buildCatalogItemById(input.catalogItems ?? []);
+
+  const scopeLines: CustomerPreviewEstimateLine[] = [];
+  const upgradeLines: CustomerPreviewEstimateLine[] = [];
+  let suppressedBlockerCount = 0;
+
+  const sorted = [...input.draftLines].sort((a, b) => {
+    if (a.sortOrder !== b.sortOrder) return a.sortOrder - b.sortOrder;
+    return a.sourceTemplateItemId.localeCompare(b.sourceTemplateItemId);
+  });
+
+  for (const draftLine of sorted) {
+    const catalogId = (draftLine.catalogItemId ?? "").trim();
+    const catalog = catalogId ? catalogById.get(catalogId) : undefined;
+    const displayName = resolveDraftOwnedLineCustomerLabel({
+      customerName: draftLine.customerName,
+      catalogSeedKey: draftLine.catalogSeedKey,
+      catalogItem: catalog ?? null,
+    });
+    const row: ProposalPreviewLineRow = {
+      id: draftLine.sourceTemplateItemId,
+      displayName,
+      itemTypeLabel: "",
+      unitLabel: "",
+      quantitySourceLabel: "",
+      quantityRuleLabel: "",
+      quantityDisplayLabel: "",
+      quantityStatusLabel: "",
+      quantityUnresolved: false,
+      catalogSetupPriceLabel: "",
+      roleLabel: draftLine.role ?? "",
+      missingCatalog: false,
+    };
+    const mapped = mapDocumentLine(
+      row,
+      input.optionCustomerView,
+      showLinePrices,
+      input.snapshotQuantityByTemplateItemId?.[draftLine.sourceTemplateItemId]
+    );
+    if (mapped.suppressed) suppressedBlockerCount += 1;
+    if (!mapped.line) continue;
+
+    const role = (draftLine.role ?? "").trim().toLowerCase();
+    if (role === "upgrade" || role === "optional_addon") {
+      upgradeLines.push(mapped.line);
+    } else {
+      scopeLines.push(mapped.line);
+    }
+  }
+
+  const scopeSections: CustomerPreviewEstimateSectionPresentation[] =
+    scopeLines.length > 0
+      ? [
+          {
+            sectionId: "draft-scope",
+            title: "Included work",
+            showHeading: showSectionHeadings,
+            lines: scopeLines,
+          },
+        ]
+      : [];
+  const upgradeSections: CustomerPreviewEstimateSectionPresentation[] =
+    upgradeLines.length > 0
+      ? [
+          {
+            sectionId: "draft-upgrades",
+            title: "Available upgrades",
+            showHeading: showSectionHeadings,
+            lines: upgradeLines,
+          },
+        ]
+      : [];
+
+  const documentLineCount = scopeLines.length + upgradeLines.length;
   const packageMeta = input.packageMeta ?? null;
 
   return {

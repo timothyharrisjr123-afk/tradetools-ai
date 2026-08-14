@@ -51,7 +51,7 @@ function synthesizeTemplateOptionFromDraft(
     template_id: templateId,
     name: (draftOption.name ?? "").trim() || "Package",
     customer_label: draftOption.customer_label,
-    description: null,
+    description: draftOption.description ?? null,
     selection_mode: "single",
     is_default: Boolean(draftOption.is_default),
     visible_to_customer: draftOption.visible_to_customer !== false,
@@ -61,13 +61,33 @@ function synthesizeTemplateOptionFromDraft(
 }
 
 /**
+ * Overlay draft presentation onto a live option row while keeping provenance id.
+ * Draft copied fields always win once a proposal draft exists (V2E1 isolation).
+ */
+export function overlayDraftPresentationOntoTemplateOption(
+  live: ProposalTemplateOption,
+  draftOption: ProposalOptionRow
+): ProposalTemplateOption {
+  const name = (draftOption.name ?? "").trim() || live.name;
+  return {
+    ...live,
+    name,
+    customer_label: draftOption.customer_label ?? live.customer_label,
+    description: draftOption.description ?? null,
+    is_default: Boolean(draftOption.is_default),
+    visible_to_customer: draftOption.visible_to_customer !== false,
+    sort_order: draftOption.sort_order ?? live.sort_order ?? 0,
+  };
+}
+
+/**
  * Scope a live template graph's options to those present on the draft.
  *
  * - No draft (setup preview): return the live template graph unchanged.
- * - With draft: options list is draft-driven; live template supplies matching
- *   option rows for labels/details only. Live-only options are dropped.
- * - Draft options missing from the live template are synthesized from draft rows
- *   so the picker stays truthful without importing new live packages.
+ * - With draft: options list is draft-driven. Live Template supplies provenance
+ *   ids only; name/label/description/order/default/visibility come from draft.
+ * - Live-only options are dropped.
+ * - Draft options missing from the live template are synthesized from draft rows.
  */
 export function scopeTemplateGraphToDraftPackageOptions(
   templateGraph: ProposalTemplateGraph | null,
@@ -95,7 +115,7 @@ export function scopeTemplateGraphToDraftPackageOptions(
 
     const live = templateById.get(sourceId);
     if (live) {
-      scoped.push(live);
+      scoped.push(overlayDraftPresentationOntoTemplateOption(live, draftOption));
       continue;
     }
 

@@ -30,10 +30,6 @@ import {
 } from "@/app/lib/proposalPreviewSentFrozenChrome";
 import { resolveSendGateRecipientEmail } from "@/app/lib/proposalSendGateReadiness";
 import { deriveProposalPricingStale } from "@/app/lib/proposalStaleness";
-import {
-  getProposalTemplateGraph,
-  type ProposalTemplateGraph,
-} from "@/app/lib/proposalTemplateStore";
 import { formatPriceCents } from "@/app/tools/roofing/proposals/builder/proposalBuilderConstants";
 import ProposalCustomerPreviewDocumentView from "./ProposalCustomerPreviewDocument";
 import ProposalCustomerPreviewSendSharingDrawer from "./ProposalCustomerPreviewSendSharingDrawer";
@@ -92,7 +88,6 @@ export default function ProposalCustomerPreviewClient({
 
   const [job, setJob] = useState<JobRecord | null>(null);
   const [persistedGraph, setPersistedGraph] = useState<ProposalDraftGraph | null>(null);
-  const [templateGraph, setTemplateGraph] = useState<ProposalTemplateGraph | null>(null);
   const [catalogItems, setCatalogItems] = useState<CatalogItem[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loadComplete, setLoadComplete] = useState(false);
@@ -107,7 +102,7 @@ export default function ProposalCustomerPreviewClient({
     setLoadComplete(false);
     setLoadError(null);
     setPersistedGraph(null);
-    setTemplateGraph(null);
+    setCatalogItems([]);
     setJob(null);
     setLastSentFrozenAt(null);
 
@@ -137,8 +132,8 @@ export default function ProposalCustomerPreviewClient({
       setCatalogItems(catalog);
 
       const validation = validateProposalDraftGraphForJob(graph, normalizedJobId);
-      if (!validation.valid) {
-        setLoadError(validation.message);
+      if (!validation.valid || !graph) {
+        setLoadError(validation.valid ? "Could not load persisted proposal draft." : validation.message);
         return;
       }
 
@@ -157,9 +152,6 @@ export default function ProposalCustomerPreviewClient({
       const measurement = await getSelectedMeasurementForJob(normalizedJobId);
       setSelectedMeasurementId(measurement?.id ?? null);
       setSelectedMeasurementUpdatedAt(measurement?.updated_at ?? null);
-
-      const template = await getProposalTemplateGraph(graph.proposal.template_id, { companyId });
-      setTemplateGraph(template);
     } catch (err) {
       const message =
         err instanceof ProposalRecordStoreError
@@ -300,7 +292,7 @@ export default function ProposalCustomerPreviewClient({
           <ProposalPreviewReviewSurface>
             <ProposalCustomerPreviewDocumentView
               document={previewDocument}
-              templateGraph={templateGraph}
+              draftGraph={persistedGraph}
               catalogItems={catalogItems}
             />
           </ProposalPreviewReviewSurface>

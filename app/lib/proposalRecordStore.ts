@@ -41,7 +41,7 @@ import {
   type ProposalBuilderPricingPreview,
 } from "@/app/lib/proposalBuilderPricingPreview";
 import type { ProposalQuantityPreviewContext } from "@/app/lib/proposalBuilderPreview";
-import { buildCatalogItemById, getDefaultSelectedOptionId } from "@/app/lib/proposalBuilderPreview";
+import { buildCatalogItemById } from "@/app/lib/proposalBuilderPreview";
 import type { ProposalRecord, ProposalRecordStatusSummary } from "@/app/lib/proposalRecordTypes";
 import type { ProposalStatus, ProposalVersionKind } from "@/app/lib/proposalLifecycleTypes";
 import type { ProposalEventType } from "@/app/lib/proposalLifecycleTypes";
@@ -52,13 +52,10 @@ import { mapProposalPricingInput } from "@/app/lib/proposalPricingInputMapper";
 import type {
   LinePricingStatus,
   PricingActorRole,
-  PricingLineInput,
   PricingPolicy,
 } from "@/app/lib/proposalPricingTypes";
 import {
   buildDraftInstantiatePayload,
-  buildInternalPolicyEchoJson,
-  buildLineItemSnapshots,
   templateItemToLineInput,
   type BuildContextEchoInput,
   type DraftInstantiateInput,
@@ -86,11 +83,8 @@ import {
   alignQuantityResolutionEchoToPersistedQuantity,
   resolveProposalLineQuantityViaAdapter,
 } from "@/app/lib/proposalQuantityResolutionAdapter";
-import {
-  buildDraftInstantiateInputWithScopeDecisions,
-  groupScopeDecisionsByTemplateOptionId,
-  hasAnyActiveScopeDecisions,
-} from "@/app/lib/proposalScopeDecisionMerge";
+import { groupScopeDecisionsByTemplateOptionId } from "@/app/lib/proposalScopeDecisionMerge";
+import { buildDraftInstantiateInputFromDraftStructure } from "@/app/lib/proposalDraftStructurePricing";
 import type { ProposalScopeDecision } from "@/app/lib/proposalScopeDecisionTypes";
 import { getScopeDecisionsForDraftGraph } from "@/app/lib/proposalScopeDecisionStore";
 import {
@@ -1480,6 +1474,11 @@ export async function createDraftProposal(
 // Refresh draft pricing (options/lines/summaries only)
 // ---------------------------------------------------------------------------
 
+/**
+ * V2E1 — Refresh economics on the EXISTING draft structure.
+ * Does not rebuild membership/presentation/upgrades from the live Template.
+ * Does not read live Template quantity_rule — quantity uses draft-owned + Catalog synthesis.
+ */
 export async function refreshDraftPricing(
   companyId: string,
   proposalId: string,
@@ -1518,44 +1517,23 @@ export async function refreshDraftPricing(
     throw new ProposalRecordStoreError("Proposal has no template_id.");
   }
 
-  const graph = await d.getTemplateGraph(templateId, { companyId: cid });
-  if (!graph) {
-    throw new ProposalRecordStoreError("Template graph not found.");
-  }
-
   const catalogItems = await d.getCatalogItems(cid);
   const actorRole = input.actor_role ?? BUILDER_PREVIEW_ACTOR_ROLE;
   const quantityContext = input.quantity_context ?? null;
 
-  const selectedTemplateOptionId = await resolveSelectedTemplateOptionId(
-    supabase,
-    cid,
-    proposal,
-    graph
-  );
-  const preview = buildProposalBuilderPricingPreview({
-    graph,
-    catalogItems,
-    quantityContext,
-    selectedOptionId: selectedTemplateOptionId,
-    policy,
-    actorRole,
-  });
+  const draftGraph = await getDraftGraph(cid, pid, deps);
+  if (!draftGraph) {
+    throw new ProposalRecordStoreError("Draft graph not found for pricing refresh.");
+  }
+
+  const selectedTemplateOptionId = resolveSelectedTemplateOptionIdFromDraft(proposal, draftGraph);
 
   const scopeDecisionRows = await getScopeDecisionsForDraftGraph(cid, version.id, deps);
-  const { data: optionPointerRows } = await supabase
-    .from("proposal_options")
-    .select("id, source_template_option_id")
-    .eq("company_id", cid)
-    .eq("proposal_version_id", version.id);
-
   const proposalOptionById = new Map(
-    (
-      (optionPointerRows ?? []) as Array<{
-        id: string;
-        source_template_option_id: string | null;
-      }>
-    ).map((row) => [row.id, row] as const)
+    draftGraph.options.map((row) => [
+      row.id,
+      { id: row.id, source_template_option_id: row.source_template_option_id },
+    ] as const)
   );
 
   const scopeDecisionsByTemplateOptionId = groupScopeDecisionsByTemplateOptionId(
@@ -1569,38 +1547,22 @@ export async function refreshDraftPricing(
     proposalOptionById
   );
 
-  const instantiateInput = hasAnyActiveScopeDecisions(scopeDecisionsByTemplateOptionId)
-    ? buildDraftInstantiateInputWithScopeDecisions({
-        companyId: cid,
-        graph,
-        catalogItems,
-        quantityContext,
-        preview,
-        policy,
-        pricingPolicyId: proposal.pricing_policy_id!,
-        context: {
-          job_id: proposal.job_id ?? "",
-          template_id: templateId,
-        },
-        selectedTemplateOptionId,
-        scopeDecisionsByTemplateOptionId,
-        upgradeChoicesByTemplateOptionId,
-      }).input
-    : buildDraftInstantiateInputFromPreview({
-        companyId: cid,
-        graph,
-        catalogItems,
-        quantityContext,
-        preview,
-        policy,
-        pricingPolicyId: proposal.pricing_policy_id!,
-        context: {
-          job_id: proposal.job_id ?? "",
-          template_id: templateId,
-        },
-        selectedTemplateOptionId,
-        upgradeChoicesByTemplateOptionId,
-      });
+  const { input: instantiateInput } = buildDraftInstantiateInputFromDraftStructure({
+    companyId: cid,
+    draftGraph,
+    catalogItems,
+    quantityContext,
+    policy,
+    pricingPolicyId: proposal.pricing_policy_id!,
+    actorRole,
+    context: {
+      job_id: proposal.job_id ?? "",
+      template_id: templateId,
+    },
+    selectedTemplateOptionId,
+    scopeDecisionsByTemplateOptionId,
+    upgradeChoicesByTemplateOptionId,
+  });
 
   const payload = buildDraftInstantiatePayload(instantiateInput);
 
@@ -1681,24 +1643,19 @@ export async function refreshDraftPricing(
   return getDraftGraph(cid, pid, deps);
 }
 
-async function resolveSelectedTemplateOptionId(
-  supabase: NonNullable<ReturnType<typeof getSupabaseClient>>,
-  companyId: string,
+function resolveSelectedTemplateOptionIdFromDraft(
   proposal: ProposalRow,
-  graph: ProposalTemplateGraph
-): Promise<string | null> {
+  draftGraph: ProposalDraftGraph
+): string | null {
   if (proposal.selected_option_id) {
-    const { data } = await supabase
-      .from("proposal_options")
-      .select("source_template_option_id")
-      .eq("id", proposal.selected_option_id)
-      .eq("company_id", companyId)
-      .maybeSingle();
-
-    const templateOptionId = (data?.source_template_option_id as string | null) ?? null;
+    const selected = draftGraph.options.find((option) => option.id === proposal.selected_option_id);
+    const templateOptionId = (selected?.source_template_option_id ?? "").trim();
     if (templateOptionId) return templateOptionId;
   }
-  return getDefaultSelectedOptionId(graph);
+  const defaultOption =
+    draftGraph.options.find((option) => option.is_default) ?? draftGraph.options[0] ?? null;
+  const fallback = (defaultOption?.source_template_option_id ?? "").trim();
+  return fallback || null;
 }
 
 // ---------------------------------------------------------------------------

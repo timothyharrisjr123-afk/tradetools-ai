@@ -254,6 +254,39 @@ describe("proposalBuilderDraftPackageOptions", () => {
     assert.equal(canChangeBuilderDraftPackage(scoped.options.length), true);
   });
 
+  test("V2E1 draft presentation wins over later live Template rename/description", () => {
+    const live = templateGraph([
+      templateOption({
+        id: OPT_STD,
+        name: "Essential",
+        customer_label: "Essential",
+        description: "Live template description after edit",
+        sort_order: 99,
+        is_default: false,
+      }),
+    ]);
+    const draft = draftGraph([
+      draftOption({
+        id: RUNTIME_STD,
+        source_template_option_id: OPT_STD,
+        name: "Standard",
+        customer_label: "Standard",
+        description: "Copied draft description",
+        sort_order: 1,
+        is_default: true,
+      }),
+    ]);
+    const scoped = scopeTemplateGraphToDraftPackageOptions(live, draft);
+    assert.ok(scoped);
+    assert.equal(scoped.options.length, 1);
+    assert.equal(scoped.options[0]?.id, OPT_STD);
+    assert.equal(scoped.options[0]?.name, "Standard");
+    assert.equal(scoped.options[0]?.customer_label, "Standard");
+    assert.equal(scoped.options[0]?.description, "Copied draft description");
+    assert.equal(scoped.options[0]?.sort_order, 1);
+    assert.equal(scoped.options[0]?.is_default, true);
+  });
+
   test("draft option missing from live template is synthesized from draft row", () => {
     const live = templateGraph([
       templateOption({ id: OPT_STD, name: "Standard", sort_order: 1 }),
@@ -264,7 +297,7 @@ describe("proposalBuilderDraftPackageOptions", () => {
         source_template_option_id: OPT_SMOKE,
         name: "Complete-source smoke option",
         customer_label: "Smoke package",
-        description: null,
+        description: "Smoke description",
         sort_order: 1,
       }),
     ]);
@@ -274,5 +307,6 @@ describe("proposalBuilderDraftPackageOptions", () => {
     assert.equal(scoped.options[0]?.id, OPT_SMOKE);
     assert.equal(scoped.options[0]?.name, "Complete-source smoke option");
     assert.equal(scoped.options[0]?.customer_label, "Smoke package");
+    assert.equal(scoped.options[0]?.description, "Smoke description");
   });
 });

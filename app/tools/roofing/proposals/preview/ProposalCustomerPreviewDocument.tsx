@@ -1,13 +1,9 @@
 "use client";
 
-import type { ProposalCustomerPreviewDocument } from "@/app/lib/proposalCustomerPreviewViewModel";
-import type { ProposalTemplateGraph } from "@/app/lib/proposalTemplateStore";
 import type { CatalogItem } from "@/app/lib/catalogTypes";
-import { buildCustomerPreviewEstimatePresentation } from "@/app/lib/proposalCustomerEstimatePresenter";
-import {
-  filterSectionsForEstimateCanvas,
-  getSectionsForOption,
-} from "@/app/lib/proposalBuilderPreview";
+import type { ProposalCustomerPreviewDocument } from "@/app/lib/proposalCustomerPreviewViewModel";
+import type { ProposalDraftGraph } from "@/app/lib/proposalRecordStore";
+import { buildCustomerPreviewEstimatePresentationFromDraft } from "@/app/lib/proposalCustomerEstimatePresenter";
 import { PROPOSAL_COVER_DEFAULT_BRAND_ACCENT } from "@/app/lib/proposalCoverViewModel";
 import { resolvePackageMeta } from "@/app/lib/proposalPackagePresentation";
 import ProposalCustomerPreviewPacket from "./ProposalCustomerPreviewPacket";
@@ -20,18 +16,24 @@ import { PACKET_FOOTER } from "./proposalCustomerPacketStyles";
 
 type ProposalCustomerPreviewDocumentProps = {
   document: ProposalCustomerPreviewDocument;
-  templateGraph: ProposalTemplateGraph | null;
-  catalogItems: CatalogItem[];
+  /** Persisted draft — authoritative for Preview package/estimate presentation (V2E1). */
+  draftGraph: ProposalDraftGraph | null;
+  /**
+   * Catalog rows for draft-owned label fallback via catalog_item_id only.
+   * Never used to import Template presentation.
+   */
+  catalogItems?: CatalogItem[];
 };
 
 /**
  * Customer-safe proposal content for the contractor review surface.
  * Identity → title → package → why → estimate → content.
+ * V2E1: draft options/lines are authoritative; live Template is not used for presentation.
  */
 export default function ProposalCustomerPreviewDocumentView({
   document,
-  templateGraph,
-  catalogItems,
+  draftGraph,
+  catalogItems = [],
 }: ProposalCustomerPreviewDocumentProps) {
   const coverPage = document.pages.find((page) => page.kind === "cover");
   const estimatePage = document.pages.find((page) => page.kind === "estimate");
@@ -45,31 +47,44 @@ export default function ProposalCustomerPreviewDocumentView({
   const companyName =
     coverPage?.kind === "cover" ? coverPage.viewModel.company.companyName : null;
 
-  const selectedTemplateOption =
+  const selectedDraftOption =
     estimatePage?.kind === "estimate" &&
     estimatePage.selectedTemplateOptionId &&
-    templateGraph
-      ? (templateGraph.options.find(
-          (option) => option.id === estimatePage.selectedTemplateOptionId
+    draftGraph
+      ? (draftGraph.options.find(
+          (option) =>
+            (option.source_template_option_id ?? "").trim() ===
+            estimatePage.selectedTemplateOptionId
         ) ?? null)
       : null;
 
+  const selectedOptionRuntimeId = selectedDraftOption?.id ?? null;
+  const draftLinesForEstimate =
+    draftGraph && selectedOptionRuntimeId
+      ? draftGraph.lineItems
+          .filter((line) => line.proposal_option_id === selectedOptionRuntimeId)
+          .map((line) => ({
+            sourceTemplateItemId: (line.source_template_item_id ?? "").trim(),
+            customerName: line.customer_name,
+            catalogSeedKey: line.catalog_seed_key,
+            catalogItemId: line.catalog_item_id,
+            role: line.role,
+            sortOrder: line.sort_order,
+          }))
+          .filter((line) => line.sourceTemplateItemId.length > 0)
+      : [];
+
   const estimatePresentation =
-    estimatePage?.kind === "estimate" && templateGraph
-      ? buildCustomerPreviewEstimatePresentation({
-          graph: templateGraph,
-          sections: filterSectionsForEstimateCanvas(
-            estimatePage.selectedTemplateOptionId != null
-              ? getSectionsForOption(templateGraph, estimatePage.selectedTemplateOptionId)
-              : []
-          ),
+    estimatePage?.kind === "estimate"
+      ? buildCustomerPreviewEstimatePresentationFromDraft({
+          draftLines: draftLinesForEstimate,
           catalogItems,
           optionCustomerView: estimatePage.optionPreview?.customer ?? null,
           selectedOptionLabel: estimatePage.selectedOptionLabel,
           packageMeta: estimatePage.selectedOptionLabel
             ? resolvePackageMeta(
                 estimatePage.selectedOptionLabel,
-                selectedTemplateOption?.description
+                selectedDraftOption?.description
               )
             : null,
           estimatePageSettings: estimatePage.estimatePageSettings,
