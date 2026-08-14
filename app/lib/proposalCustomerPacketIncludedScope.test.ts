@@ -12,7 +12,6 @@ import {
 } from "./proposalCustomerPacketIncludedScope";
 import {
   PROPOSAL_CUSTOMER_PACKET_ASK_QUESTION_CTA,
-  PROPOSAL_CUSTOMER_PACKET_CONFIRM_DETAILS_NOTE,
   PROPOSAL_CUSTOMER_PACKET_REQUEST_PACKAGE_CTA,
   proposalCustomerPacketAskAboutPackageCta,
   proposalCustomerPacketReadyWithPackageHeading,
@@ -59,11 +58,10 @@ describe("proposalCustomerPacketIncludedScope", () => {
 });
 
 describe("customer package interest copy", () => {
-  test("CTA copy is soft and non-binding", () => {
+  test("CTA copy is soft interest language without acceptance verbs", () => {
     const copy = [
       PROPOSAL_CUSTOMER_PACKET_REQUEST_PACKAGE_CTA,
       PROPOSAL_CUSTOMER_PACKET_ASK_QUESTION_CTA,
-      PROPOSAL_CUSTOMER_PACKET_CONFIRM_DETAILS_NOTE,
       proposalCustomerPacketAskAboutPackageCta("Standard"),
       proposalCustomerPacketReadyWithPackageHeading("Enhanced"),
     ].join(" ");

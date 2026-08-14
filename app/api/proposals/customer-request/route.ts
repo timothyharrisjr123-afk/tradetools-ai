@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { PROPOSAL_CUSTOMER_PACKET_REQUEST_API_SUCCESS_MESSAGE } from "@/app/lib/proposalCustomerPacketViewModel";
 import {
   PROPOSAL_CUSTOMER_REQUEST_INTENTS,
   ProposalCustomerRequestStoreError,
@@ -99,8 +100,7 @@ export async function POST(req: NextRequest) {
       intent: result.intent,
       status: result.status,
       requestedOptionLabel: result.requested_option_label,
-      message:
-        "Request received. The contractor will review the package and contact you about next steps.",
+      message: PROPOSAL_CUSTOMER_PACKET_REQUEST_API_SUCCESS_MESSAGE,
     });
   } catch (error) {
     if (error instanceof ProposalCustomerRequestValidationError) {

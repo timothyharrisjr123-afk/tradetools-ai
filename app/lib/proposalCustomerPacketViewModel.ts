@@ -210,35 +210,55 @@ export const PROPOSAL_CUSTOMER_PACKET_CONTACT_HEADING = "Ready to move forward?"
 export const PROPOSAL_CUSTOMER_PACKET_SUPPORT_MESSAGE =
   "Review the proposal, ask questions, and confirm details when you're ready.";
 
-/** Soft, non-binding customer package interest — not accept / approve / sign / pay. */
+/**
+ * Soft customer package interest CTAs.
+ * Architecture remains interest-only (not accept / approve / sign / pay).
+ */
 export const PROPOSAL_CUSTOMER_PACKET_REQUEST_PACKAGE_CTA = "Request this package";
 
 export const PROPOSAL_CUSTOMER_PACKET_ASK_QUESTION_CTA = "Ask a question";
 
 export const PROPOSAL_CUSTOMER_PACKET_DISCUSS_OPTIONS_CTA = "Discuss package options";
 
-export const PROPOSAL_CUSTOMER_PACKET_CONFIRM_DETAILS_NOTE =
-  "We'll confirm details before work begins.";
+/** @deprecated Hero/closeout helper removed in V2D3 — confirmation lives on request success. */
+export const PROPOSAL_CUSTOMER_PACKET_CONFIRM_DETAILS_NOTE = "";
 
-/** R3B2 — non-binding package request modal copy. */
+/** V2D3 — professional package request modal copy (interest, not acceptance). */
 export const PROPOSAL_CUSTOMER_PACKET_REQUEST_MODAL_TITLE = "Request this package";
+
+export const PROPOSAL_CUSTOMER_PACKET_REQUEST_MODAL_INTRO =
+  "Tell the contractor you're interested in this package.";
 
 export const PROPOSAL_CUSTOMER_PACKET_REQUEST_SUBMIT_CTA = "Send request";
 
-export const PROPOSAL_CUSTOMER_PACKET_REQUEST_SUCCESS_TITLE = "Request received";
-
-export const PROPOSAL_CUSTOMER_PACKET_REQUEST_SUCCESS_BODY =
-  "Request received. The contractor will review the package and contact you about next steps.";
+export const PROPOSAL_CUSTOMER_PACKET_REQUEST_SUCCESS_TITLE = "Request sent";
 
 export const PROPOSAL_CUSTOMER_PACKET_REQUEST_SUCCESS_NEXT =
-  "This request is non-binding.";
+  "They'll follow up to confirm details.";
+
+/** API/JSON success message — short, professional, no legal caveat. */
+export const PROPOSAL_CUSTOMER_PACKET_REQUEST_API_SUCCESS_MESSAGE =
+  "Request sent. They'll follow up to confirm details.";
 
 export const PROPOSAL_CUSTOMER_PACKET_REQUEST_MESSAGE_LABEL = "Message (optional)";
 
 export const PROPOSAL_CUSTOMER_PACKET_REQUEST_MESSAGE_PLACEHOLDER =
-  "Anything the contractor should know before confirming details?";
+  "Anything you'd like them to know?";
 
 export const PROPOSAL_CUSTOMER_PACKET_REQUEST_MESSAGE_MAX = 2000;
+
+/** Success body: company received interest in the named package. */
+export function proposalCustomerPacketRequestSuccessBody(
+  companyName: string | null | undefined,
+  packageLabel: string | null | undefined
+): string {
+  const company = (companyName ?? "").trim() || "The contractor";
+  const pkg = (packageLabel ?? "").trim();
+  if (!pkg) {
+    return `${company} received your interest.`;
+  }
+  return `${company} received your interest in the ${pkg} package.`;
+}
 
 export function proposalCustomerPacketAskAboutPackageCta(packageLabel: string): string {
   const label = packageLabel.trim();

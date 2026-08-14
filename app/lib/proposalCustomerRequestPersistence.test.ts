@@ -18,11 +18,12 @@ import {
   recordProposalCustomerRequestViaRpc,
 } from "./proposalCustomerRequestPersistence";
 import {
+  PROPOSAL_CUSTOMER_PACKET_REQUEST_API_SUCCESS_MESSAGE,
   PROPOSAL_CUSTOMER_PACKET_REQUEST_PACKAGE_CTA,
   PROPOSAL_CUSTOMER_PACKET_REQUEST_SUBMIT_CTA,
-  PROPOSAL_CUSTOMER_PACKET_REQUEST_SUCCESS_BODY,
   PROPOSAL_CUSTOMER_PACKET_REQUEST_SUCCESS_NEXT,
   PROPOSAL_CUSTOMER_PACKET_REQUEST_SUCCESS_TITLE,
+  proposalCustomerPacketRequestSuccessBody,
 } from "./proposalCustomerPacketViewModel";
 
 const RAW_TOKEN = "fielddive-r3b1-customer-request-token";
@@ -270,24 +271,26 @@ describe("R3B1 migration contract", () => {
   });
 });
 
-describe("R3B2 non-binding copy", () => {
-  test("uses request language without Accept/Approve/Sign/Pay", () => {
+describe("R3B2 / V2D3 request interest copy", () => {
+  test("uses professional request language without Accept/Approve/Sign/Pay", () => {
     const blobs = [
       PROPOSAL_CUSTOMER_PACKET_REQUEST_PACKAGE_CTA,
       PROPOSAL_CUSTOMER_PACKET_REQUEST_SUBMIT_CTA,
       PROPOSAL_CUSTOMER_PACKET_REQUEST_SUCCESS_TITLE,
-      PROPOSAL_CUSTOMER_PACKET_REQUEST_SUCCESS_BODY,
+      proposalCustomerPacketRequestSuccessBody("Anderson Roofing", "Enhanced"),
       PROPOSAL_CUSTOMER_PACKET_REQUEST_SUCCESS_NEXT,
+      PROPOSAL_CUSTOMER_PACKET_REQUEST_API_SUCCESS_MESSAGE,
     ].join("\n");
 
     assert.match(blobs, /Request this package/);
     assert.match(blobs, /Send request/);
-    assert.match(blobs, /Request received/);
+    assert.match(blobs, /Request sent/);
     assert.match(
       blobs,
-      /The contractor will review the package and contact you about next steps\./
+      /Anderson Roofing received your interest in the Enhanced package\./
     );
-    assert.match(blobs, /non-binding/i);
+    assert.match(blobs, /They'll follow up to confirm details\./);
+    assert.doesNotMatch(blobs, /non-binding/i);
     assert.doesNotMatch(
       blobs,
       /\bAccept(?:ed)?\b|\bApprove(?:d)?\b|\bSign(?:ed)?\b|\bPay\b|\bPaid\b|\bSchedule(?:d)?\b/i
@@ -322,7 +325,7 @@ describe("R3B2 non-binding copy", () => {
         join(process.cwd(), "app/lib/proposalCustomerPacketViewModel.ts"),
         "utf8"
       ),
-      /Request received\. The contractor will review the package and contact you about next steps\./
+      /proposalCustomerPacketRequestSuccessBody/
     );
     assert.match(api, /recordProposalCustomerRequest/);
     assert.match(api, /ProposalCustomerRequestValidationError/);
@@ -330,11 +333,10 @@ describe("R3B2 non-binding copy", () => {
       api,
       /ProposalCustomerRequestStoreError[\s\S]*code: "internal_error"[\s\S]*status: 500/
     );
-    assert.match(
-      api,
-      /Request received\. The contractor will review the package and contact you about next steps\./
-    );
-    assert.match(modal, /PROPOSAL_CUSTOMER_PACKET_REQUEST_SUCCESS_BODY/);
+    assert.match(api, /PROPOSAL_CUSTOMER_PACKET_REQUEST_API_SUCCESS_MESSAGE/);
+    assert.match(modal, /proposalCustomerPacketRequestSuccessBody/);
     assert.match(modal, /\/api\/proposals\/customer-request/);
+    assert.doesNotMatch(modal, /non-binding/i);
+    assert.doesNotMatch(modal, /request for review only/i);
   });
 });

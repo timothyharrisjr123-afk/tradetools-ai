@@ -5,11 +5,12 @@ import {
   PROPOSAL_CUSTOMER_PACKET_REQUEST_MESSAGE_LABEL,
   PROPOSAL_CUSTOMER_PACKET_REQUEST_MESSAGE_MAX,
   PROPOSAL_CUSTOMER_PACKET_REQUEST_MESSAGE_PLACEHOLDER,
+  PROPOSAL_CUSTOMER_PACKET_REQUEST_MODAL_INTRO,
   PROPOSAL_CUSTOMER_PACKET_REQUEST_MODAL_TITLE,
   PROPOSAL_CUSTOMER_PACKET_REQUEST_SUBMIT_CTA,
-  PROPOSAL_CUSTOMER_PACKET_REQUEST_SUCCESS_BODY,
   PROPOSAL_CUSTOMER_PACKET_REQUEST_SUCCESS_NEXT,
   PROPOSAL_CUSTOMER_PACKET_REQUEST_SUCCESS_TITLE,
+  proposalCustomerPacketRequestSuccessBody,
 } from "@/app/lib/proposalCustomerPacketViewModel";
 import {
   PROPOSAL_PACKET_CTA_PRIMARY,
@@ -28,13 +29,15 @@ type ProposalPacketRequestModalProps = {
   packageLabel: string;
   optionKey: string;
   publicAccessToken: string;
+  /** Contractor brand for success confirmation. */
+  companyName?: string | null;
   contactPrefill?: ProposalPacketRequestModalContactPrefill | null;
 };
 
 type SubmitState = "idle" | "submitting" | "success" | "error";
 
 /**
- * R3B2 — Compact non-binding package request modal for the public proposal.
+ * Public package request modal — interest only.
  * Does not change proposal status, package selection, or upgrades.
  */
 export default function ProposalPacketRequestModal({
@@ -43,6 +46,7 @@ export default function ProposalPacketRequestModal({
   packageLabel,
   optionKey,
   publicAccessToken,
+  companyName = null,
   contactPrefill = null,
 }: ProposalPacketRequestModalProps) {
   const titleId = useId();
@@ -133,6 +137,8 @@ export default function ProposalPacketRequestModal({
     }
   }
 
+  const resolvedPackageLabel = (packageLabel || "Recommended package").trim();
+
   return (
     <dialog
       ref={dialogRef}
@@ -151,7 +157,7 @@ export default function ProposalPacketRequestModal({
               {PROPOSAL_CUSTOMER_PACKET_REQUEST_SUCCESS_TITLE}
             </h2>
             <p className="mt-2 text-[14px] leading-relaxed text-[#334155]">
-              {PROPOSAL_CUSTOMER_PACKET_REQUEST_SUCCESS_BODY}
+              {proposalCustomerPacketRequestSuccessBody(companyName, resolvedPackageLabel)}
             </p>
             <p className="mt-2 text-[13px] leading-relaxed text-[#64748b]">
               {PROPOSAL_CUSTOMER_PACKET_REQUEST_SUCCESS_NEXT}
@@ -168,7 +174,7 @@ export default function ProposalPacketRequestModal({
               {PROPOSAL_CUSTOMER_PACKET_REQUEST_MODAL_TITLE}
             </h2>
             <p className="mt-1.5 text-[13px] text-[#64748b]">
-              Tell the contractor you are interested. They will review and confirm details.
+              {PROPOSAL_CUSTOMER_PACKET_REQUEST_MODAL_INTRO}
             </p>
 
             <div className="mt-3 rounded-[10px] border border-[#e2e8f0] bg-[#f8fafc] px-3 py-2.5">
@@ -176,7 +182,7 @@ export default function ProposalPacketRequestModal({
                 Package
               </p>
               <p className="mt-0.5 text-[15px] font-semibold text-[#0b1f33]">
-                {(packageLabel || "Recommended package").trim()}
+                {resolvedPackageLabel}
               </p>
             </div>
 
@@ -197,7 +203,7 @@ export default function ProposalPacketRequestModal({
 
             <div className="mt-3 grid gap-2.5">
               <label className="block">
-                <span className="text-[12px] font-semibold text-[#475569]">Your name</span>
+                <span className="text-[12px] font-semibold text-[#475569]">Name</span>
                 <input
                   type="text"
                   value={customerName}
@@ -236,11 +242,6 @@ export default function ProposalPacketRequestModal({
                 {errorMessage}
               </p>
             ) : null}
-
-            <p className="mt-3 text-[12px] leading-snug text-[#64748b]">
-              This is a request for review only. The contractor will confirm details before
-              work begins.
-            </p>
 
             <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
               <button

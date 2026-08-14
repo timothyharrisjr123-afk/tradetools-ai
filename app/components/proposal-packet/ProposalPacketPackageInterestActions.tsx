@@ -4,7 +4,6 @@ import { useState } from "react";
 import type { ProposalCustomerPacketContactViewModel } from "@/app/lib/proposalCustomerPacketViewModel";
 import {
   PROPOSAL_CUSTOMER_PACKET_ASK_QUESTION_CTA,
-  PROPOSAL_CUSTOMER_PACKET_CONFIRM_DETAILS_NOTE,
   PROPOSAL_CUSTOMER_PACKET_REQUEST_PACKAGE_CTA,
   proposalCustomerPacketContactCompanyCta,
 } from "@/app/lib/proposalCustomerPacketViewModel";
@@ -46,8 +45,7 @@ type ProposalPacketPackageInterestActionsProps = {
 };
 
 /**
- * Soft package interest CTAs — non-binding request / contact only.
- * No formal commitment, signature, or payment truth.
+ * Soft package interest CTAs — request / contact only (not acceptance).
  */
 export default function ProposalPacketPackageInterestActions({
   packageLabel,
@@ -120,9 +118,6 @@ export default function ProposalPacketPackageInterestActions({
           </a>
         ) : null}
       </div>
-      <p className={`${compact ? "mt-2" : "mt-2.5"} text-[11px] leading-snug text-[#64748b]`}>
-        {PROPOSAL_CUSTOMER_PACKET_CONFIRM_DETAILS_NOTE}
-      </p>
 
       {canSubmitRequest ? (
         <ProposalPacketRequestModal
@@ -131,6 +126,7 @@ export default function ProposalPacketPackageInterestActions({
           packageLabel={packageLabel}
           optionKey={(optionKey ?? "").trim()}
           publicAccessToken={(publicAccessToken ?? "").trim()}
+          companyName={contact?.companyName ?? null}
           contactPrefill={contactPrefill}
         />
       ) : null}
