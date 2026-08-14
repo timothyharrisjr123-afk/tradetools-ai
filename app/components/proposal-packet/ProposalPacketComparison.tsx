@@ -100,7 +100,7 @@ export default function ProposalPacketComparison({
                 {proposalCustomerPacketAskAboutPackageCta(option.label)}
               </a>
             ) : (
-              <span className="mt-3 block h-[1.25rem]" aria-hidden />
+              <span className="mt-3 block min-h-[44px]" aria-hidden />
             )}
           </div>
         ))}

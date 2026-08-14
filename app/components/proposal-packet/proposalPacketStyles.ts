@@ -196,14 +196,31 @@ export const PROPOSAL_PACKET_SCOPE_ICON =
 export const PROPOSAL_PACKET_SCOPE_COUNT =
   "inline-flex h-5 min-w-5 items-center justify-center rounded-full border border-[#0b1f33]/8 bg-white px-1.5 text-[10px] font-semibold tabular-nums text-[#0b1f33]";
 
+/** Shared focus ring for customer actions (keyboard visible). */
+export const PROPOSAL_PACKET_CTA_FOCUS =
+  "outline-none focus-visible:ring-2 focus-visible:ring-[#2563eb] focus-visible:ring-offset-2";
+
+/** Primary customer action — min 44px usable target. */
 export const PROPOSAL_PACKET_CTA_PRIMARY =
-  "inline-flex items-center justify-center rounded-[10px] bg-[#2563eb] px-3.5 py-2 text-[13px] font-semibold text-white shadow-[0_1px_0_rgba(255,255,255,0.22)_inset,0_6px_16px_rgba(37,99,235,0.28)] transition-colors hover:bg-[#1d4ed8]";
+  `inline-flex min-h-[44px] items-center justify-center rounded-[10px] bg-[#2563eb] px-3.5 py-2.5 text-[13px] font-semibold text-white shadow-[0_1px_0_rgba(255,255,255,0.22)_inset,0_6px_16px_rgba(37,99,235,0.28)] transition-colors hover:bg-[#1d4ed8] ${PROPOSAL_PACKET_CTA_FOCUS}`;
 
+/** Secondary customer action — min 44px usable target. */
 export const PROPOSAL_PACKET_CTA_SECONDARY =
-  "inline-flex items-center justify-center rounded-[10px] border border-[#d5dee8] bg-white px-3.5 py-2 text-[13px] font-semibold text-[#0b1f33] shadow-[0_1px_0_rgba(255,255,255,0.9)_inset] transition-colors hover:border-[#bfdbfe] hover:bg-[#f8fbff]";
+  `inline-flex min-h-[44px] items-center justify-center rounded-[10px] border border-[#d5dee8] bg-white px-3.5 py-2.5 text-[13px] font-semibold text-[#0b1f33] shadow-[0_1px_0_rgba(255,255,255,0.9)_inset] transition-colors hover:border-[#bfdbfe] hover:bg-[#f8fbff] ${PROPOSAL_PACKET_CTA_FOCUS}`;
 
+/**
+ * Quiet continuation request (closeout) — same label semantics as primary request,
+ * but not visually equal to the hero primary. Still ≥44px.
+ */
+export const PROPOSAL_PACKET_CTA_CONTINUATION =
+  `inline-flex min-h-[44px] items-center justify-center rounded-[10px] border border-[#bfdbfe] bg-[#f8fbff] px-3.5 py-2.5 text-[13px] font-semibold text-[#2563eb] shadow-[0_1px_0_rgba(255,255,255,0.9)_inset] transition-colors hover:border-[#93c5fd] hover:bg-[#eff6ff] ${PROPOSAL_PACKET_CTA_FOCUS}`;
+
+/**
+ * Compare-card ask-about — proper tap target (not a tiny text link).
+ * Keeps quieter hierarchy under package totals.
+ */
 export const PROPOSAL_PACKET_CTA_QUIET =
-  "mt-3 inline-flex text-[12px] font-semibold text-[#2563eb] underline-offset-2 hover:underline";
+  `mt-3 inline-flex min-h-[44px] w-full items-center justify-center rounded-[10px] border border-[#e2e8f0] bg-white px-3 text-[13px] font-semibold text-[#2563eb] transition-colors hover:border-[#bfdbfe] hover:bg-[#f8fbff] ${PROPOSAL_PACKET_CTA_FOCUS}`;
 
 export const PROPOSAL_PACKET_HEADER =
   "flex flex-col gap-3 border-b border-[#e6ebf1] px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-7";

@@ -119,6 +119,7 @@ export function ProposalPacketCloseoutAside({
             contact={contact}
             layout="row"
             secondary="contact"
+            requestProminence="continuation"
             compact
             publicAccessToken={publicAccessToken}
             optionKey={recommendedOptionKey}

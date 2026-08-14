@@ -17,6 +17,7 @@ import ProposalPacketRequestModal, {
   type ProposalPacketRequestModalContactPrefill,
 } from "./ProposalPacketRequestModal";
 import {
+  PROPOSAL_PACKET_CTA_CONTINUATION,
   PROPOSAL_PACKET_CTA_PRIMARY,
   PROPOSAL_PACKET_CTA_SECONDARY,
 } from "./proposalPacketStyles";
@@ -28,6 +29,11 @@ type ProposalPacketPackageInterestActionsProps = {
   layout?: "stack" | "row";
   /** Hero uses ask; closeout prefers contact company. */
   secondary?: "ask" | "contact" | "none";
+  /**
+   * Hero owns the dominant Request CTA (`primary`).
+   * Closeout uses `continuation` so it is not equally dominant.
+   */
+  requestProminence?: "primary" | "continuation";
   /** Tighter CTA spacing inside the investment panel. */
   compact?: boolean;
   /**
@@ -48,6 +54,7 @@ export default function ProposalPacketPackageInterestActions({
   contact,
   layout = "stack",
   secondary = "ask",
+  requestProminence = "primary",
   compact = false,
   publicAccessToken = null,
   optionKey = null,
@@ -70,6 +77,11 @@ export default function ProposalPacketPackageInterestActions({
       ? proposalCustomerPacketContactCompanyCta(contact?.companyName)
       : PROPOSAL_CUSTOMER_PACKET_ASK_QUESTION_CTA;
 
+  const requestClass =
+    requestProminence === "continuation"
+      ? PROPOSAL_PACKET_CTA_CONTINUATION
+      : PROPOSAL_PACKET_CTA_PRIMARY;
+
   const actionsClass =
     layout === "row"
       ? `${compact ? "mt-2.5" : "mt-3.5"} flex flex-wrap items-center gap-2`
@@ -81,8 +93,9 @@ export default function ProposalPacketPackageInterestActions({
         {canSubmitRequest ? (
           <button
             type="button"
-            className={PROPOSAL_PACKET_CTA_PRIMARY}
+            className={requestClass}
             data-proposal-cta="request-package"
+            data-proposal-cta-prominence={requestProminence}
             onClick={() => setRequestOpen(true)}
           >
             {PROPOSAL_CUSTOMER_PACKET_REQUEST_PACKAGE_CTA}
@@ -90,8 +103,9 @@ export default function ProposalPacketPackageInterestActions({
         ) : (
           <a
             href={requestHref}
-            className={PROPOSAL_PACKET_CTA_PRIMARY}
+            className={requestClass}
             data-proposal-cta="request-package"
+            data-proposal-cta-prominence={requestProminence}
           >
             {PROPOSAL_CUSTOMER_PACKET_REQUEST_PACKAGE_CTA}
           </a>

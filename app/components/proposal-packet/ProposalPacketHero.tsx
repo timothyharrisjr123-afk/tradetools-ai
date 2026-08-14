@@ -128,6 +128,7 @@ export default function ProposalPacketHero({
                     contact={contact}
                     layout="stack"
                     secondary="ask"
+                    requestProminence="primary"
                     compact
                     publicAccessToken={publicAccessToken}
                     optionKey={optionKey}
