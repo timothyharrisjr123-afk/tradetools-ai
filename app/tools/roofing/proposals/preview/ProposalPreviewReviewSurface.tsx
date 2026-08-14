@@ -11,8 +11,7 @@ type ProposalPreviewReviewSurfaceProps = {
 };
 
 /**
- * Contractor review surface for customer proposal content.
- * Integrated FieldDive packet — not a document viewer or public page takeover.
+ * V2C1 — Customer document canvas with no admin packet framing.
  */
 export default function ProposalPreviewReviewSurface({
   children,
@@ -22,19 +21,11 @@ export default function ProposalPreviewReviewSurface({
       className={PREVIEW_REVIEW_SURFACE}
       data-preview-customer-canvas
       data-preview-review-surface
-      aria-label="Proposal packet"
+      aria-label="Customer proposal"
     >
-      <div className="flex items-center justify-between gap-4 border-b border-slate-100 px-6 py-3.5 sm:px-10 lg:px-12">
-        <div>
-          <h2 className="text-[14px] font-semibold text-slate-900">Proposal packet</h2>
-          <p className="mt-0.5 text-[12.5px] text-slate-500">
-            Review the proposal content before sending.
-          </p>
-        </div>
-      </div>
       <div className={PREVIEW_REVIEW_SURFACE_PAD}>
         <p className="sr-only" data-preview-review-surface-label>
-          Review the proposal content before sending.
+          Customer proposal document
         </p>
         <div data-preview-customer-document data-preview-packet>
           {children}

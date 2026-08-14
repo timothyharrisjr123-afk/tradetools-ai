@@ -76,13 +76,19 @@ export const BUILDER_COVER_DRAFT_NOTE = "Draft proposal — not sent to customer
 
 /** R17B / contractor Preview workspace (authenticated, not sent). */
 export const CUSTOMER_PREVIEW_PAGE_TITLE = "Proposal Preview";
-export const CUSTOMER_PREVIEW_DRAFT_NOTICE = "Draft · Not sent";
+/** Quiet draft chip for V2C1 shell. Sent/frozen honesty is V2C4. */
+export const CUSTOMER_PREVIEW_DRAFT_STATUS = "Draft";
+/** @deprecated Prefer CUSTOMER_PREVIEW_DRAFT_STATUS — kept for older copy references. */
+export const CUSTOMER_PREVIEW_DRAFT_NOTICE = CUSTOMER_PREVIEW_DRAFT_STATUS;
 export const CUSTOMER_PREVIEW_BACK_TO_BUILDER_LABEL = "Back to Builder";
-export const CUSTOMER_PREVIEW_SEND_SHARING_LABEL = "Send / sharing";
+/** V2C1 primary CTA label. */
+export const CUSTOMER_PREVIEW_SEND_LABEL = "Send";
+/** @deprecated Prefer CUSTOMER_PREVIEW_SEND_LABEL. */
+export const CUSTOMER_PREVIEW_SEND_SHARING_LABEL = CUSTOMER_PREVIEW_SEND_LABEL;
 export const CUSTOMER_PREVIEW_COMPACT_READINESS_COPY =
   "Some estimate items need quantities before this proposal can be sent.";
 export const CUSTOMER_PREVIEW_RETURN_TO_BUILDER_ACTION = "Review in Builder";
-export const CUSTOMER_PREVIEW_CANVAS_LABEL = "Proposal packet";
+export const CUSTOMER_PREVIEW_CANVAS_LABEL = "Customer proposal";
 export const CUSTOMER_PREVIEW_CANVAS_SUBCOPY =
   "Review the proposal content before sending.";
 export const CUSTOMER_PREVIEW_REVIEW_PANEL_TITLE = "Review & send";
@@ -91,6 +97,7 @@ export const CUSTOMER_PREVIEW_CHANGE_IN_BUILDER_HINT =
 export const CUSTOMER_PREVIEW_OPEN_SEND_PANEL_LABEL = "Open send panel";
 export const CUSTOMER_PREVIEW_ACTIVITY_EMPTY = "No delivery events yet";
 export const CUSTOMER_PREVIEW_NEEDS_REVIEW_HEADING = "Needs review before sending";
+/** Still used by Send drawer readiness until V2C2; healthy Preview shell stays quiet. */
 export const CUSTOMER_PREVIEW_READY_HEADING = "Ready to send";
 export const CUSTOMER_PREVIEW_COMPANY_LOGO_MISSING_HINT = "Company logo missing";
 

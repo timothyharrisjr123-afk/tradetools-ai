@@ -29,6 +29,7 @@ import {
   getProposalTemplateGraph,
   type ProposalTemplateGraph,
 } from "@/app/lib/proposalTemplateStore";
+import { formatPriceCents } from "@/app/tools/roofing/proposals/builder/proposalBuilderConstants";
 import ProposalCustomerPreviewDocumentView from "./ProposalCustomerPreviewDocument";
 import ProposalCustomerPreviewSendSharingDrawer from "./ProposalCustomerPreviewSendSharingDrawer";
 import ProposalPreviewHeader from "./ProposalPreviewHeader";
@@ -36,38 +37,23 @@ import ProposalPreviewReadinessSummary from "./ProposalPreviewReadinessSummary";
 import ProposalPreviewReviewSurface from "./ProposalPreviewReviewSurface";
 import {
   PREVIEW_COMMAND_SURFACE,
-  PREVIEW_UNIFIED_SURFACE,
   PREVIEW_WORKSPACE_BG,
   PREVIEW_WORKSPACE_STAGE,
 } from "./proposalPreviewWorkspaceStyles";
 
-function formatLastSavedLabel(iso: string | null | undefined): string {
-  if (!iso) return "—";
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "—";
-  const now = new Date();
-  const sameDay =
-    date.getFullYear() === now.getFullYear() &&
-    date.getMonth() === now.getMonth() &&
-    date.getDate() === now.getDate();
-  const time = date.toLocaleTimeString(undefined, {
-    hour: "numeric",
-    minute: "2-digit",
-  });
-  if (sameDay) return `Today at ${time}`;
-  return date.toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
+function resolveAuthoritativeTotalLabel(graph: ProposalDraftGraph): string | null {
+  const selectedOptionId = (graph.proposal.selected_option_id ?? "").trim();
+  if (!selectedOptionId) return null;
+  const selected = graph.options.find((option) => option.id === selectedOptionId);
+  if (selected?.customer_total_cents == null) return null;
+  return formatPriceCents(selected.customer_total_cents);
 }
 
 /**
  * FieldDive Proposal Preview — contractor review-and-send workspace.
  *
- * Default: operational header + readiness cue + integrated proposal review surface.
- * Send / link / activity open only via Send / sharing.
+ * V2C1: compact command context + customer document first.
+ * Send / link / activity still open via Send (drawer redesign is V2C2).
  */
 export default function ProposalCustomerPreviewClient({
   companyId,
@@ -206,7 +192,7 @@ export default function ProposalCustomerPreviewClient({
   const estimatePage = previewDocument?.pages.find((page) => page.kind === "estimate");
   const selectedPackageLabel =
     estimatePage?.kind === "estimate" ? estimatePage.selectedOptionLabel : null;
-  const lastSavedLabel = formatLastSavedLabel(persistedGraph?.proposal.updated_at);
+  const totalLabel = persistedGraph ? resolveAuthoritativeTotalLabel(persistedGraph) : null;
   const hasRecipientEmail = Boolean(
     persistedGraph && resolveSendGateRecipientEmail({ graph: persistedGraph, job }).trim()
   );
@@ -224,49 +210,48 @@ export default function ProposalCustomerPreviewClient({
   return (
     <div className={PREVIEW_WORKSPACE_BG} data-preview-contractor-workspace>
       {!loadComplete ? (
-        <div className={`${PREVIEW_WORKSPACE_STAGE} pt-10`}>
+        <div className={`${PREVIEW_WORKSPACE_STAGE} pt-6`}>
           <div className="text-sm text-slate-500">Loading preview…</div>
         </div>
       ) : loadError ? (
-        <div className={`${PREVIEW_WORKSPACE_STAGE} pt-10`}>
+        <div className={`${PREVIEW_WORKSPACE_STAGE} pt-6`}>
           <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-800 ring-1 ring-red-200/70">
             {loadError}
           </div>
         </div>
       ) : previewDocument && persistedGraph ? (
         <div
-          className={`${PREVIEW_WORKSPACE_STAGE} space-y-4 pt-5`}
+          className={`${PREVIEW_WORKSPACE_STAGE} space-y-3 pt-3 sm:pt-4`}
           data-preview-workspace-layout
           data-preview-review-desk
+          data-preview-shell-v2c1
         >
-          <section className={PREVIEW_UNIFIED_SURFACE} data-preview-unified-surface>
-            <div className={PREVIEW_COMMAND_SURFACE} data-preview-command-surface>
-              <ProposalPreviewHeader
-                builderHref={builderHref}
-                customerName={jobIdentity.primaryLabel}
-                projectAddress={jobIdentity.secondaryAddress}
-                selectedPackageLabel={selectedPackageLabel}
-                lastSavedLabel={lastSavedLabel}
-                onSendSharing={() => openSendSharing("send")}
-                showSendSharing
-              />
-              <ProposalPreviewReadinessSummary
-                blockingLineCount={previewDocument.readiness.blockingLineCount}
-                pricingComplete={previewDocument.readiness.pricingComplete}
-                hasRecipientEmail={hasRecipientEmail}
-                builderHref={builderHref}
-                companyLogoMissing={companyLogoMissing}
-              />
-            </div>
+          <div className={PREVIEW_COMMAND_SURFACE} data-preview-command-surface>
+            <ProposalPreviewHeader
+              builderHref={builderHref}
+              customerName={jobIdentity.primaryLabel}
+              projectAddress={jobIdentity.secondaryAddress}
+              selectedPackageLabel={selectedPackageLabel}
+              totalLabel={totalLabel}
+              onSendSharing={() => openSendSharing("send")}
+              showSendSharing
+            />
+            <ProposalPreviewReadinessSummary
+              blockingLineCount={previewDocument.readiness.blockingLineCount}
+              pricingComplete={previewDocument.readiness.pricingComplete}
+              hasRecipientEmail={hasRecipientEmail}
+              builderHref={builderHref}
+              companyLogoMissing={companyLogoMissing}
+            />
+          </div>
 
-            <ProposalPreviewReviewSurface>
-              <ProposalCustomerPreviewDocumentView
-                document={previewDocument}
-                templateGraph={templateGraph}
-                catalogItems={catalogItems}
-              />
-            </ProposalPreviewReviewSurface>
-          </section>
+          <ProposalPreviewReviewSurface>
+            <ProposalCustomerPreviewDocumentView
+              document={previewDocument}
+              templateGraph={templateGraph}
+              catalogItems={catalogItems}
+            />
+          </ProposalPreviewReviewSurface>
 
           <ProposalCustomerPreviewSendSharingDrawer
             open={sendSharingOpen}
