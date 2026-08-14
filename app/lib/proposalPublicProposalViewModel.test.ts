@@ -258,8 +258,9 @@ describe("buildProposalPublicProposalDocumentViewModel", () => {
     const error = buildProposalPublicProposalErrorViewModel("expired_token");
     assert.equal(error.kind, "error");
     assert.equal(error.code, "expired_token");
-    assert.ok(error.title.length > 0);
+    assert.equal(error.title, "Proposal link no longer available");
     assert.ok(error.message.length > 0);
+    assert.equal(error.header, null);
     assertPublicProposalDocumentViewModelSafe(error);
   });
 

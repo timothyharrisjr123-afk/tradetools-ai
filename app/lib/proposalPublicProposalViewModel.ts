@@ -432,33 +432,44 @@ const ERROR_COPY: Record<
   ProposalPublicProposalErrorCode,
   { title: string; message: string }
 > = {
+  // Group: invalid / unknown
   invalid_token: {
-    title: "Proposal link not found",
-    message: "This proposal link is invalid or may have been typed incorrectly.",
+    title: "Proposal link not available",
+    message:
+      "This link isn't available. Please use the latest proposal link from your contractor.",
   },
+  // Group: expired / revoked (same customer presentation; codes stay distinct)
   expired_token: {
-    title: "Proposal link expired",
-    message: "This proposal link has expired. Contact your contractor for a new link.",
+    title: "Proposal link no longer available",
+    message:
+      "This proposal link is no longer active. Please ask your contractor for a new link.",
   },
   revoked_token: {
-    title: "Proposal link unavailable",
-    message: "This proposal link is no longer active. Contact your contractor for assistance.",
+    title: "Proposal link no longer available",
+    message:
+      "This proposal link is no longer active. Please ask your contractor for a new link.",
   },
+  // Group: superseded — remains customer-visible and distinct
   superseded_token: {
-    title: "Proposal link replaced",
-    message: "A newer version of this proposal may be available. Contact your contractor for the latest link.",
+    title: "A newer proposal is available",
+    message:
+      "This proposal has been replaced by a newer version. Please use the latest link from your contractor.",
   },
+  // Group: proposal/graph unavailable + internal
   proposal_unavailable: {
-    title: "Proposal unavailable",
-    message: "This proposal is not available to view right now. Contact your contractor for assistance.",
+    title: "Proposal temporarily unavailable",
+    message:
+      "We couldn't open this proposal right now. Please try again later or contact your contractor.",
   },
   graph_unavailable: {
-    title: "Proposal unavailable",
-    message: "We could not load this proposal document. Contact your contractor for assistance.",
+    title: "Proposal temporarily unavailable",
+    message:
+      "We couldn't open this proposal right now. Please try again later or contact your contractor.",
   },
   internal_error: {
-    title: "Something went wrong",
-    message: "We could not open this proposal right now. Please try again later or contact your contractor.",
+    title: "Proposal temporarily unavailable",
+    message:
+      "We couldn't open this proposal right now. Please try again later or contact your contractor.",
   },
 };
 
