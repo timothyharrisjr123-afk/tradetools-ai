@@ -65,6 +65,8 @@ type ProposalCustomerPreviewSendGatePanelProps = {
   hideDeferredActions?: boolean;
   /** Flatten outer card when mounted inside the Preview send sheet. */
   embedded?: boolean;
+  /** V2C4 — Refresh Preview sent/frozen chrome after send (freeze may precede delivery). */
+  onSendCompleted?: () => void;
 };
 
 const SEND_PRIMARY_ACTION =
@@ -117,6 +119,7 @@ export default function ProposalCustomerPreviewSendGatePanel({
   builderHref,
   hideDeferredActions = false,
   embedded = false,
+  onSendCompleted,
 }: ProposalCustomerPreviewSendGatePanelProps) {
   const [sessionCustomerLink, setSessionCustomerLink] = useState<SendPrepSessionLink | null>(null);
   const [prepPending, setPrepPending] = useState(false);
@@ -295,6 +298,8 @@ export default function ProposalCustomerPreviewSendGatePanel({
             ? payload.message
             : "We couldn't send the proposal email yet. Check the proposal and try again."
         );
+        // Freeze may have committed before delivery failure — refresh chrome truth.
+        onSendCompleted?.();
         return;
       }
 
@@ -304,10 +309,12 @@ export default function ProposalCustomerPreviewSendGatePanel({
       });
       setSendErrorMessage(null);
       setDeliveryHistoryRefreshKey((key) => key + 1);
+      onSendCompleted?.();
     } catch {
       setSendErrorMessage(
         "We couldn't send the proposal email yet. Check the proposal and try again."
       );
+      onSendCompleted?.();
     } finally {
       setSendPending(false);
     }

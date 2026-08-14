@@ -80,6 +80,10 @@ export const CUSTOMER_PREVIEW_PAGE_TITLE = "Proposal Preview";
 export const CUSTOMER_PREVIEW_DRAFT_STATUS = "Draft";
 /** @deprecated Prefer CUSTOMER_PREVIEW_DRAFT_STATUS — kept for older copy references. */
 export const CUSTOMER_PREVIEW_DRAFT_NOTICE = CUSTOMER_PREVIEW_DRAFT_STATUS;
+/** V2C4 — Prefix for last-sent freeze timestamp on draft-after-sent chrome. */
+export const CUSTOMER_PREVIEW_LAST_SENT_PREFIX = "last sent";
+/** V2C4 — Reserved for true frozen-document viewing (not wired in Preview). */
+export const CUSTOMER_PREVIEW_SENT_VERSION_STATUS = "Sent version";
 export const CUSTOMER_PREVIEW_BACK_TO_BUILDER_LABEL = "Back to Builder";
 /** V2C1 primary CTA label. */
 export const CUSTOMER_PREVIEW_SEND_LABEL = "Send";

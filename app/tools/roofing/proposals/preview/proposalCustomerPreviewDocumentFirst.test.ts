@@ -77,7 +77,8 @@ describe("Contractor-facing Proposal Preview workspace", () => {
     assert.match(header, /data-preview-header-package/);
     assert.match(header, /data-preview-header-total/);
     assert.match(header, /data-preview-draft-status/);
-    assert.match(header, /CUSTOMER_PREVIEW_DRAFT_STATUS/);
+    assert.match(header, /sentFrozenChrome\.statusLabel/);
+    assert.match(header, /data-preview-sent-frozen-kind/);
     assert.doesNotMatch(header, /Not sent yet/);
     assert.doesNotMatch(header, /lastSavedLabel/);
     assert.doesNotMatch(header, /Clock3/);
@@ -210,7 +211,7 @@ describe("Contractor-facing Proposal Preview workspace", () => {
     const sendPanel = readPreviewSource("ProposalCustomerPreviewSendGatePanel.tsx");
     assert.match(drawer, /data-preview-send-sheet-v2c2/);
     assert.match(drawer, /Send proposal/);
-    assert.match(drawer, /CUSTOMER_PREVIEW_DRAFT_STATUS/);
+    assert.match(drawer, /sentFrozenChrome\.statusLabel/);
     assert.match(drawer, /Customer:/);
     assert.doesNotMatch(drawer, /data-preview-review-tabs/);
     assert.doesNotMatch(drawer, /\["link", "Link"/);

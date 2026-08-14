@@ -4,9 +4,9 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import {
   CUSTOMER_PREVIEW_BACK_TO_BUILDER_LABEL,
-  CUSTOMER_PREVIEW_DRAFT_STATUS,
   CUSTOMER_PREVIEW_PAGE_TITLE,
 } from "@/app/lib/proposalBuilderDocumentIa";
+import type { ProposalPreviewSentFrozenChrome } from "@/app/lib/proposalPreviewSentFrozenChrome";
 import ProposalPreviewActionGroup from "./ProposalPreviewActionGroup";
 import { PREVIEW_HEADER, PREVIEW_HEADER_INNER } from "./proposalPreviewWorkspaceStyles";
 
@@ -16,6 +16,7 @@ type ProposalPreviewHeaderProps = {
   projectAddress: string | null;
   selectedPackageLabel: string | null;
   totalLabel: string | null;
+  sentFrozenChrome: ProposalPreviewSentFrozenChrome;
   onSendSharing: () => void;
   showSendSharing: boolean;
 };
@@ -28,8 +29,9 @@ function compactPackageLabel(label: string | null): string | null {
 }
 
 /**
- * V2C1 — Compact contractor review command bar.
- * Customer document title stays inside the packet; this bar is review context only.
+ * V2C1/V2C4 — Compact contractor review command bar.
+ * Status chrome distinguishes unsent draft vs draft-after-sent using latest_sent_version_id.
+ * Document remains the editable draft; frozen viewing is not wired here.
  */
 export default function ProposalPreviewHeader({
   builderHref,
@@ -37,6 +39,7 @@ export default function ProposalPreviewHeader({
   projectAddress,
   selectedPackageLabel,
   totalLabel,
+  sentFrozenChrome,
   onSendSharing,
   showSendSharing,
 }: ProposalPreviewHeaderProps) {
@@ -94,8 +97,15 @@ export default function ProposalPreviewHeader({
                 ·
               </span>
             ) : null}
-            <span className="font-medium text-slate-600" data-preview-draft-status>
-              {CUSTOMER_PREVIEW_DRAFT_STATUS}
+            <span
+              className="font-medium text-slate-600"
+              data-preview-draft-status
+              data-preview-sent-frozen-kind={sentFrozenChrome.kind}
+              data-preview-has-latest-sent={
+                sentFrozenChrome.hasLatestSentVersion ? "true" : "false"
+              }
+            >
+              {sentFrozenChrome.statusLabel}
             </span>
           </p>
         </div>

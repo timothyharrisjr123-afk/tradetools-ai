@@ -5,8 +5,8 @@ import { Send, X } from "lucide-react";
 import type { JobRecord } from "@/app/lib/jobTypes";
 import type { ProposalCustomerPreviewReadiness } from "@/app/lib/proposalCustomerPreviewViewModel";
 import type { ProposalDraftGraph } from "@/app/lib/proposalRecordStore";
+import type { ProposalPreviewSentFrozenChrome } from "@/app/lib/proposalPreviewSentFrozenChrome";
 import { resolveSendGateCustomerName } from "@/app/lib/proposalSendGateReadiness";
-import { CUSTOMER_PREVIEW_DRAFT_STATUS } from "@/app/lib/proposalBuilderDocumentIa";
 import ProposalCustomerPreviewSendGatePanel from "./ProposalCustomerPreviewSendGatePanel";
 
 type ProposalCustomerPreviewSendSharingDrawerProps = {
@@ -21,14 +21,15 @@ type ProposalCustomerPreviewSendSharingDrawerProps = {
   emailDeliveryConfigured: boolean;
   companyLogoMissing?: boolean;
   builderHref: string;
+  sentFrozenChrome: ProposalPreviewSentFrozenChrome;
+  onSendCompleted?: () => void;
   /** @deprecated V2C2 — focused Send sheet has no peer tabs. Kept for call-site compat. */
   initialTab?: "send" | "link" | "activity";
 };
 
 /**
- * V2C2 — Focused Send sheet.
- * One delivery action surface. Link/Activity peer tabs removed from primary Send.
- * Delivery history / request ownership cleanup remains V2C3.
+ * V2C2/V2C4 — Focused Send sheet.
+ * Context line mirrors Preview sent/frozen chrome (draft document + last-sent awareness).
  */
 export default function ProposalCustomerPreviewSendSharingDrawer({
   open,
@@ -42,6 +43,8 @@ export default function ProposalCustomerPreviewSendSharingDrawer({
   emailDeliveryConfigured,
   companyLogoMissing = false,
   builderHref,
+  sentFrozenChrome,
+  onSendCompleted,
 }: ProposalCustomerPreviewSendSharingDrawerProps) {
   const customerName = resolveSendGateCustomerName(graph, job) ?? "Customer";
 
@@ -98,9 +101,10 @@ export default function ProposalCustomerPreviewSendSharingDrawer({
                 <p
                   className="mt-1 truncate text-[13px] text-slate-500"
                   data-preview-send-sheet-context
+                  data-preview-sent-frozen-kind={sentFrozenChrome.kind}
                 >
-                  <span className="font-medium text-slate-700">
-                    {CUSTOMER_PREVIEW_DRAFT_STATUS}
+                  <span className="font-medium text-slate-700" data-preview-draft-status>
+                    {sentFrozenChrome.statusLabel}
                   </span>
                   <span className="text-slate-300" aria-hidden>
                     {" "}
@@ -139,6 +143,7 @@ export default function ProposalCustomerPreviewSendSharingDrawer({
             builderHref={builderHref}
             hideDeferredActions
             embedded
+            onSendCompleted={onSendCompleted}
           />
         </div>
       </aside>

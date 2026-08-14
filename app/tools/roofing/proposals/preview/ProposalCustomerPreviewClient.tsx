@@ -20,9 +20,14 @@ import {
 } from "@/app/lib/productSpine";
 import {
   getDraftGraph,
+  getLatestSentProposalVersionGraph,
   ProposalRecordStoreError,
   type ProposalDraftGraph,
 } from "@/app/lib/proposalRecordStore";
+import {
+  buildProposalPreviewSentFrozenChrome,
+  hasLatestSentProposalVersionId,
+} from "@/app/lib/proposalPreviewSentFrozenChrome";
 import { resolveSendGateRecipientEmail } from "@/app/lib/proposalSendGateReadiness";
 import { deriveProposalPricingStale } from "@/app/lib/proposalStaleness";
 import {
@@ -56,6 +61,7 @@ function resolveAuthoritativeTotalLabel(graph: ProposalDraftGraph): string | nul
  * V2C1: compact command context + customer document first.
  * V2C2: focused Send sheet.
  * V2C3: delivery activity stays secondary in Send; request awareness is read-only.
+ * V2C4: sent/frozen chrome from latest_sent_version_id; document remains draft.
  */
 export default function ProposalCustomerPreviewClient({
   companyId,
@@ -95,6 +101,7 @@ export default function ProposalCustomerPreviewClient({
     null
   );
   const [sendSharingOpen, setSendSharingOpen] = useState(false);
+  const [lastSentFrozenAt, setLastSentFrozenAt] = useState<string | null>(null);
 
   const loadPreview = useCallback(async () => {
     setLoadComplete(false);
@@ -102,6 +109,7 @@ export default function ProposalCustomerPreviewClient({
     setPersistedGraph(null);
     setTemplateGraph(null);
     setJob(null);
+    setLastSentFrozenAt(null);
 
     if (!routeSpineLaunch.allowed) {
       setLoadError(
@@ -136,6 +144,16 @@ export default function ProposalCustomerPreviewClient({
 
       setPersistedGraph(graph);
 
+      if (hasLatestSentProposalVersionId(graph.proposal.latest_sent_version_id)) {
+        const sentGraph = await getLatestSentProposalVersionGraph(
+          companyId,
+          normalizedProposalId
+        );
+        setLastSentFrozenAt(sentGraph?.version.frozen_at ?? null);
+      } else {
+        setLastSentFrozenAt(null);
+      }
+
       const measurement = await getSelectedMeasurementForJob(normalizedJobId);
       setSelectedMeasurementId(measurement?.id ?? null);
       setSelectedMeasurementUpdatedAt(measurement?.updated_at ?? null);
@@ -164,6 +182,26 @@ export default function ProposalCustomerPreviewClient({
     routeSpineLaunch.allowed,
     routeSpineLaunch.errorMessage,
   ]);
+
+  const refreshSentFrozenChrome = useCallback(async () => {
+    if (!hasValidParams) return;
+    try {
+      const graph = await getDraftGraph(companyId, normalizedProposalId);
+      if (!graph) return;
+      setPersistedGraph(graph);
+      if (hasLatestSentProposalVersionId(graph.proposal.latest_sent_version_id)) {
+        const sentGraph = await getLatestSentProposalVersionGraph(
+          companyId,
+          normalizedProposalId
+        );
+        setLastSentFrozenAt(sentGraph?.version.frozen_at ?? null);
+      } else {
+        setLastSentFrozenAt(null);
+      }
+    } catch (err) {
+      console.warn("[ProposalCustomerPreviewClient] sent chrome refresh error:", err);
+    }
+  }, [companyId, hasValidParams, normalizedProposalId]);
 
   useEffect(() => {
     void loadPreview();
@@ -203,6 +241,15 @@ export default function ProposalCustomerPreviewClient({
     coverPage.viewModel.company.hasAnyField &&
     !coverPage.viewModel.company.logoUrl;
 
+  const sentFrozenChrome = useMemo(
+    () =>
+      buildProposalPreviewSentFrozenChrome({
+        latestSentVersionId: persistedGraph?.proposal.latest_sent_version_id ?? null,
+        lastSentFrozenAt,
+      }),
+    [lastSentFrozenAt, persistedGraph?.proposal.latest_sent_version_id]
+  );
+
   const openSendSharing = () => {
     setSendSharingOpen(true);
   };
@@ -233,6 +280,7 @@ export default function ProposalCustomerPreviewClient({
               projectAddress={jobIdentity.secondaryAddress}
               selectedPackageLabel={selectedPackageLabel}
               totalLabel={totalLabel}
+              sentFrozenChrome={sentFrozenChrome}
               onSendSharing={() => openSendSharing()}
               showSendSharing
             />
@@ -269,6 +317,10 @@ export default function ProposalCustomerPreviewClient({
             emailDeliveryConfigured={emailDeliveryConfigured}
             companyLogoMissing={companyLogoMissing}
             builderHref={builderHref}
+            sentFrozenChrome={sentFrozenChrome}
+            onSendCompleted={() => {
+              void refreshSentFrozenChrome();
+            }}
           />
         </div>
       ) : null}
