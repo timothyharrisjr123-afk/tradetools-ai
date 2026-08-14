@@ -45,6 +45,30 @@ describe("V2C4 Preview sent/frozen chrome", () => {
     assert.doesNotMatch(header, /CUSTOMER_PREVIEW_SENT_VERSION_STATUS/);
   });
 
+  test("V2C5 Send sheet keeps status and customer as separate readable lines", () => {
+    const drawer = readPreviewSource("ProposalCustomerPreviewSendSharingDrawer.tsx");
+    assert.match(drawer, /data-preview-send-sheet-context/);
+    assert.match(drawer, /data-preview-draft-status/);
+    assert.match(drawer, /data-preview-send-sheet-customer/);
+    assert.match(drawer, /sentFrozenChrome\.statusLabel/);
+    assert.match(drawer, /Customer:/);
+    // Authoritative status must not live under a truncate class.
+    assert.doesNotMatch(
+      drawer,
+      /className="[^"]*truncate[^"]*"[\s\S]{0,120}data-preview-draft-status/
+    );
+    assert.doesNotMatch(
+      drawer,
+      /data-preview-draft-status[\s\S]{0,120}className="[^"]*truncate/
+    );
+    // Status + customer must not share one truncated context line.
+    assert.doesNotMatch(
+      drawer,
+      /data-preview-send-sheet-context[\s\S]{0,80}truncate[\s\S]{0,200}data-preview-draft-status[\s\S]{0,200}Customer:/
+    );
+    assert.doesNotMatch(drawer, /CUSTOMER_PREVIEW_SENT_VERSION_STATUS|\bResend\b/);
+  });
+
   test("Send action semantics stay Send — not Resend — and chrome refreshes after send", () => {
     const panel = readPreviewSource("ProposalCustomerPreviewSendGatePanel.tsx");
     const actions = readPreviewSource("ProposalPreviewActionGroup.tsx");

@@ -94,26 +94,23 @@ export default function ProposalCustomerPreviewSendSharingDrawer({
               >
                 <Send className="h-4 w-4" />
               </span>
-              <div className="min-w-0">
+              <div className="min-w-0" data-preview-send-sheet-context>
                 <h2 className="text-[1.125rem] font-semibold tracking-[-0.02em] text-slate-950">
                   Send proposal
                 </h2>
                 <p
-                  className="mt-1 truncate text-[13px] text-slate-500"
-                  data-preview-send-sheet-context
+                  className="mt-1 text-[13px] font-medium leading-snug text-slate-700"
+                  data-preview-draft-status
                   data-preview-sent-frozen-kind={sentFrozenChrome.kind}
                 >
-                  <span className="font-medium text-slate-700" data-preview-draft-status>
-                    {sentFrozenChrome.statusLabel}
-                  </span>
-                  <span className="text-slate-300" aria-hidden>
-                    {" "}
-                    ·{" "}
-                  </span>
-                  <span>
-                    Customer:{" "}
-                    <strong className="font-semibold text-slate-700">{customerName}</strong>
-                  </span>
+                  {sentFrozenChrome.statusLabel}
+                </p>
+                <p
+                  className="mt-0.5 truncate text-[13px] leading-snug text-slate-500"
+                  data-preview-send-sheet-customer
+                >
+                  Customer:{" "}
+                  <strong className="font-semibold text-slate-700">{customerName}</strong>
                 </p>
               </div>
             </div>
