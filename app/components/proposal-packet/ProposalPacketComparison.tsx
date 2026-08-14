@@ -10,7 +10,6 @@ import {
 import { buildPackageInterestHref } from "@/app/lib/proposalCustomerPacketInterestAction";
 import { IconCheck } from "./ProposalPacketIcons";
 import {
-  PROPOSAL_PACKET_COMPARE_ROW,
   PROPOSAL_PACKET_CTA_QUIET,
   PROPOSAL_PACKET_CURRENT_BADGE,
   PROPOSAL_PACKET_OPTION_CARD,
@@ -18,6 +17,7 @@ import {
   PROPOSAL_PACKET_SECONDARY_PRICE,
   PROPOSAL_PACKET_SECTION_INTRO,
   PROPOSAL_PACKET_SECTION_TITLE,
+  resolveProposalPacketCompareRowClass,
 } from "./proposalPacketStyles";
 
 type ProposalPacketComparisonProps = {
@@ -31,6 +31,8 @@ export default function ProposalPacketComparison({
 }: ProposalPacketComparisonProps) {
   if (comparison.options.length < 2) return null;
 
+  const compareRowClass = resolveProposalPacketCompareRowClass(comparison.options.length);
+
   return (
     <div>
       <div className="mb-3.5">
@@ -40,7 +42,12 @@ export default function ProposalPacketComparison({
         </p>
       </div>
 
-      <div className={PROPOSAL_PACKET_COMPARE_ROW} role="list" aria-readonly="true">
+      <div
+        className={compareRowClass}
+        role="list"
+        aria-readonly="true"
+        data-proposal-compare-count={comparison.options.length}
+      >
         {comparison.options.map((option) => (
           <div
             key={option.optionKey}

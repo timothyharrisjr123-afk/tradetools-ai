@@ -51,8 +51,34 @@ export const PROPOSAL_PACKET_STORY_SECTION_MUTED =
 export const PROPOSAL_PACKET_DECISION_SECTION = PROPOSAL_PACKET_STORY_SECTION;
 export const PROPOSAL_PACKET_DECISION_ROW = "mt-3 grid gap-3";
 
-export const PROPOSAL_PACKET_COMPARE_ROW =
-  "grid items-stretch gap-3 sm:grid-cols-2 lg:grid-cols-3";
+/** Base compare grid — always single column below `sm`. */
+export const PROPOSAL_PACKET_COMPARE_ROW_BASE = "grid items-stretch gap-3";
+
+/** 2 options, or 4 options (2×2): two columns from `sm` up. */
+export const PROPOSAL_PACKET_COMPARE_ROW_TWO =
+  `${PROPOSAL_PACKET_COMPARE_ROW_BASE} sm:grid-cols-2`;
+
+/** 3 options, or 5+ wrapping: two columns from `sm`, three from `lg`. */
+export const PROPOSAL_PACKET_COMPARE_ROW_THREE =
+  `${PROPOSAL_PACKET_COMPARE_ROW_BASE} sm:grid-cols-2 lg:grid-cols-3`;
+
+/** @deprecated Prefer resolveProposalPacketCompareRowClass(optionCount). */
+export const PROPOSAL_PACKET_COMPARE_ROW = PROPOSAL_PACKET_COMPARE_ROW_THREE;
+
+/**
+ * Count-aware comparison grid.
+ * 1 → unused (comparison omitted upstream)
+ * 2 → intentional 2-column
+ * 3 → 3-column desktop
+ * 4 → intentional 2×2
+ * 5+ → durable 3-column wrap
+ */
+export function resolveProposalPacketCompareRowClass(optionCount: number): string {
+  if (optionCount <= 2 || optionCount === 4) {
+    return PROPOSAL_PACKET_COMPARE_ROW_TWO;
+  }
+  return PROPOSAL_PACKET_COMPARE_ROW_THREE;
+}
 
 export const PROPOSAL_PACKET_SECTION = PROPOSAL_PACKET_STORY_SECTION;
 export const PROPOSAL_PACKET_SECTION_COMPACT =
