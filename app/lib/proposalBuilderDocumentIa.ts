@@ -100,6 +100,10 @@ export const CUSTOMER_PREVIEW_NEEDS_REVIEW_HEADING = "Needs review before sendin
 /** Still used by Send drawer readiness until V2C2; healthy Preview shell stays quiet. */
 export const CUSTOMER_PREVIEW_READY_HEADING = "Ready to send";
 export const CUSTOMER_PREVIEW_COMPANY_LOGO_MISSING_HINT = "Company logo missing";
+/** V2C3 — Preview request awareness CTA; mutate stays on Job Card. */
+export const CUSTOMER_PREVIEW_REQUEST_AWARENESS_ACTION = "Review on Job Card";
+/** V2C3 — Quiet secondary label inside Send sheet. */
+export const CUSTOMER_PREVIEW_DELIVERY_ACTIVITY_LABEL = "Delivery activity";
 
 /** Lifecycle actions remain disabled in R16A and later roadmap phases until explicitly enabled. */
 export const BUILDER_LIFECYCLE_ACTIONS_LOCKED = true;

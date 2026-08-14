@@ -34,6 +34,7 @@ import ProposalCustomerPreviewDocumentView from "./ProposalCustomerPreviewDocume
 import ProposalCustomerPreviewSendSharingDrawer from "./ProposalCustomerPreviewSendSharingDrawer";
 import ProposalPreviewHeader from "./ProposalPreviewHeader";
 import ProposalPreviewReadinessSummary from "./ProposalPreviewReadinessSummary";
+import ProposalPreviewRequestAwareness from "./ProposalPreviewRequestAwareness";
 import ProposalPreviewReviewSurface from "./ProposalPreviewReviewSurface";
 import {
   PREVIEW_COMMAND_SURFACE,
@@ -53,7 +54,8 @@ function resolveAuthoritativeTotalLabel(graph: ProposalDraftGraph): string | nul
  * FieldDive Proposal Preview — contractor review-and-send workspace.
  *
  * V2C1: compact command context + customer document first.
- * Send / link / activity still open via Send (drawer redesign is V2C2).
+ * V2C2: focused Send sheet.
+ * V2C3: delivery activity stays secondary in Send; request awareness is read-only.
  */
 export default function ProposalCustomerPreviewClient({
   companyId,
@@ -240,6 +242,10 @@ export default function ProposalCustomerPreviewClient({
               hasRecipientEmail={hasRecipientEmail}
               builderHref={builderHref}
               companyLogoMissing={companyLogoMissing}
+            />
+            <ProposalPreviewRequestAwareness
+              proposalId={normalizedProposalId}
+              jobId={normalizedJobId}
             />
           </div>
 

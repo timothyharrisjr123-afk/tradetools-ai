@@ -18,6 +18,7 @@ import type { JobRecord } from "@/app/lib/jobTypes";
 import type { ProposalDraftGraph } from "@/app/lib/proposalRecordStore";
 import {
   CUSTOMER_PREVIEW_COMPANY_LOGO_MISSING_HINT,
+  CUSTOMER_PREVIEW_DELIVERY_ACTIVITY_LABEL,
   CUSTOMER_PREVIEW_NEEDS_REVIEW_HEADING,
   CUSTOMER_PREVIEW_RETURN_TO_BUILDER_ACTION,
 } from "@/app/lib/proposalBuilderDocumentIa";
@@ -125,6 +126,7 @@ export default function ProposalCustomerPreviewSendGatePanel({
   const [sendErrorMessage, setSendErrorMessage] = useState<string | null>(null);
   const [sendSuccess, setSendSuccess] = useState<EmailSendSuccess | null>(null);
   const [deliveryHistoryRefreshKey, setDeliveryHistoryRefreshKey] = useState(0);
+  const [deliveryActivitySummary, setDeliveryActivitySummary] = useState<string | null>(null);
 
   const sendFreezeReadiness = useMemo(() => {
     if (!graph || loading) return null;
@@ -566,15 +568,28 @@ export default function ProposalCustomerPreviewSendGatePanel({
       <details
         className="rounded-lg border border-slate-200/70 bg-white/80"
         data-preview-delivery-history-quiet
+        data-preview-delivery-activity-v2c3
       >
         <summary className="cursor-pointer list-none px-3.5 py-2.5 text-[12.5px] font-semibold text-slate-500 marker:content-none [&::-webkit-details-marker]:hidden">
-          Delivery activity
+          <span data-preview-delivery-activity-label>
+            {CUSTOMER_PREVIEW_DELIVERY_ACTIVITY_LABEL}
+          </span>
+          {deliveryActivitySummary ? (
+            <span
+              className="mt-0.5 block text-[12px] font-normal text-slate-400"
+              data-preview-delivery-activity-summary
+            >
+              {deliveryActivitySummary}
+            </span>
+          ) : null}
         </summary>
         <div className="border-t border-slate-100 px-3.5 py-3">
           <ProposalCustomerPreviewDeliveryHistorySection
             proposalId={proposalId}
             jobId={jobId}
             refreshKey={deliveryHistoryRefreshKey}
+            embedded
+            onSummaryChange={setDeliveryActivitySummary}
           />
         </div>
       </details>

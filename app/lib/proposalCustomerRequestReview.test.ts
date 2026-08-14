@@ -402,10 +402,17 @@ describe("R3B3 contractor copy", () => {
       ),
       "utf8"
     );
-    const preview = readFileSync(
+    const previewAwareness = readFileSync(
       join(
         process.cwd(),
-        "app/tools/roofing/proposals/preview/ProposalCustomerPreviewCustomerRequestsSection.tsx"
+        "app/tools/roofing/proposals/preview/ProposalPreviewRequestAwareness.tsx"
+      ),
+      "utf8"
+    );
+    const previewClient = readFileSync(
+      join(
+        process.cwd(),
+        "app/tools/roofing/proposals/preview/ProposalCustomerPreviewClient.tsx"
       ),
       "utf8"
     );
@@ -420,9 +427,15 @@ describe("R3B3 contractor copy", () => {
     assert.match(proposals, /request\.status !== "dismissed"/);
     assert.doesNotMatch(activity, /status !== "dismissed"/);
     assert.match(activity, /requests[\s\S]*\.map\(\(request\)/);
-    assert.match(preview, /partitionCustomerRequestReviewItems\(requests\)/);
-    assert.match(preview, /data-preview-customer-request-history/);
-    assert.match(preview, /data-preview-customer-requests-none-active/);
+    // V2C3 — Preview is awareness-only; Job Card owns history + Mark seen/Dismiss.
+    assert.match(previewAwareness, /partitionCustomerRequestReviewItems\(requests\)/);
+    assert.match(previewAwareness, /data-preview-request-awareness/);
+    assert.match(previewAwareness, /CUSTOMER_PREVIEW_REQUEST_AWARENESS_ACTION/);
+    assert.match(previewAwareness, /buildJobCardHref/);
+    assert.doesNotMatch(previewAwareness, /markSeen|onMarkSeen|onDismiss|dismiss\(/);
+    assert.doesNotMatch(previewAwareness, /data-preview-customer-request-history/);
+    assert.match(previewClient, /ProposalPreviewRequestAwareness/);
+    assert.doesNotMatch(previewClient, /onMarkSeen|onDismiss/);
     assert.match(builder, /row\.status === "new"/);
     assert.match(builder, /row\.status === "seen"/);
     assert.doesNotMatch(builder, /row\.status === "dismissed"/);
@@ -453,7 +466,7 @@ describe("R3B3 contractor copy", () => {
     const uiSources = [
       "app/tools/roofing/jobCard/JobCardProposalsTab.tsx",
       "app/tools/roofing/jobCard/JobCardActivityPanelWithCustomerRequests.tsx",
-      "app/tools/roofing/proposals/preview/ProposalCustomerPreviewCustomerRequestsSection.tsx",
+      "app/tools/roofing/proposals/preview/ProposalPreviewRequestAwareness.tsx",
       "app/tools/roofing/proposals/builder/ProposalBuilderCustomerRequestBanner.tsx",
       "app/components/proposals/CustomerRequestReviewCard.tsx",
       "app/api/proposals/customer-requests/route.ts",
@@ -471,9 +484,9 @@ describe("R3B3 contractor copy", () => {
       uiSources[0]!,
       /data-jobcard-customer-request|CustomerRequestReviewCard/
     );
-    assert.match(uiSources[2]!, /data-preview-customer-requests/);
-    assert.match(uiSources[2]!, /data-preview-customer-request-history/);
-    assert.match(uiSources[2]!, /data-preview-customer-requests-none-active/);
+    assert.match(uiSources[2]!, /data-preview-request-awareness/);
+    assert.match(uiSources[2]!, /data-preview-request-review-on-job-card/);
+    assert.doesNotMatch(uiSources[2]!, /onMarkSeen|onDismiss|markSeen\(/);
     assert.match(uiSources[3]!, /data-builder-customer-request-banner/);
     assert.match(
       uiSources[3]!,
