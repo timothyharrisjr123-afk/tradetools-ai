@@ -137,11 +137,13 @@ describe("Contractor-facing Proposal Preview workspace", () => {
     assert.match(summary, /CUSTOMER_PREVIEW_COMPANY_LOGO_MISSING_HINT/);
     assert.match(client, /companyLogoMissing=\{companyLogoMissing\}/);
 
-    // Send drawer still owns ready copy until V2C2.
+    // V2C2 — Send owns blocker surface only when blocked (no permanent Ready card).
     assert.match(sendPanel, /CUSTOMER_PREVIEW_NEEDS_REVIEW_HEADING/);
-    assert.match(sendPanel, /CUSTOMER_PREVIEW_READY_HEADING/);
+    assert.doesNotMatch(sendPanel, /CUSTOMER_PREVIEW_READY_HEADING/);
     assert.match(sendPanel, /CUSTOMER_PREVIEW_COMPANY_LOGO_MISSING_HINT/);
     assert.match(sendPanel, /disabled=\{!canSendProposalEmail\}/);
+    assert.match(sendPanel, /data-preview-send-blocker/);
+    assert.match(sendPanel, /data-preview-send-return-to-builder/);
     assert.equal(CUSTOMER_PREVIEW_READY_HEADING, "Ready to send");
 
     for (const source of [summary, sendPanel]) {
@@ -203,29 +205,36 @@ describe("Contractor-facing Proposal Preview workspace", () => {
     assert.match(actions, /min-h-\[44px\]/);
   });
 
-  test("7c. Send opens a premium delivery composer without backend-facing copy", () => {
+  test("7c. Send opens a focused delivery composer without backend-facing copy", () => {
     const drawer = readPreviewSource("ProposalCustomerPreviewSendSharingDrawer.tsx");
     const sendPanel = readPreviewSource("ProposalCustomerPreviewSendGatePanel.tsx");
+    assert.match(drawer, /data-preview-send-sheet-v2c2/);
     assert.match(drawer, /Send proposal/);
-    assert.match(drawer, /Draft/);
-    assert.match(drawer, /Not sent/);
+    assert.match(drawer, /CUSTOMER_PREVIEW_DRAFT_STATUS/);
+    assert.match(drawer, /Customer:/);
+    assert.doesNotMatch(drawer, /data-preview-review-tabs/);
+    assert.doesNotMatch(drawer, /\["link", "Link"/);
+    assert.doesNotMatch(drawer, /\["activity", "Activity"/);
+    assert.match(sendPanel, /data-preview-send-gate-v2c2/);
     assert.match(sendPanel, /data-preview-delivery-composer/);
     assert.match(sendPanel, /data-preview-delivery-recipient/);
     assert.match(sendPanel, /data-preview-email-composer/);
     assert.match(sendPanel, /data-preview-email-subject/);
     assert.match(sendPanel, /data-preview-email-message/);
+    assert.match(sendPanel, /data-preview-send-proposal/);
     assert.match(sendPanel, /A secure proposal link will be included when sent/);
     assert.match(sendPanel, /disabled=\{!canSendProposalEmail\}/);
-    assert.match(sendPanel, /Review required before sending/);
+    assert.match(sendPanel, /CUSTOMER_PREVIEW_NEEDS_REVIEW_HEADING/);
     assert.doesNotMatch(sendPanel, />Sent snapshot</);
     assert.doesNotMatch(sendPanel, />Customer view</);
     assert.doesNotMatch(sendPanel, />Pricing & scope</);
     assert.doesNotMatch(sendPanel, /Email sending is not configured/);
   });
 
-  test("7d. Link and Activity stay truthful and lightweight", () => {
+  test("7d. Link and Activity panels remain available for later slices, not peer tabs", () => {
     const linkPanel = readPreviewSource("ProposalCustomerPreviewPublicAccessPanel.tsx");
     const drawer = readPreviewSource("ProposalCustomerPreviewSendSharingDrawer.tsx");
+    const sendPanel = readPreviewSource("ProposalCustomerPreviewSendGatePanel.tsx");
     const history = readPreviewSource("ProposalCustomerPreviewDeliveryHistorySection.tsx");
     assert.match(linkPanel, /Customer proposal link/);
     assert.match(linkPanel, /Not created yet/);
@@ -233,6 +242,9 @@ describe("Contractor-facing Proposal Preview workspace", () => {
     assert.match(linkPanel, /Copy link/);
     assert.match(linkPanel, /Open customer proposal/);
     assert.doesNotMatch(linkPanel, />Sent snapshot</);
+    assert.doesNotMatch(drawer, /ProposalCustomerPreviewPublicAccessPanel/);
+    assert.match(sendPanel, /data-preview-create-secure-link|data-preview-send-link-optional/);
+    assert.match(sendPanel, /ProposalCustomerPreviewDeliveryHistorySection/);
     for (const source of [drawer, history]) {
       assert.doesNotMatch(source, /\bViewed\b/);
       assert.doesNotMatch(source, /\bOpened\b/);
@@ -241,13 +253,16 @@ describe("Contractor-facing Proposal Preview workspace", () => {
     }
   });
 
-  test("8. Link / Activity details available in drawer, not dumped on default page", () => {
+  test("8. Send sheet has no peer tabs; delivery history stays demoted inside Send", () => {
     const drawer = readPreviewSource("ProposalCustomerPreviewSendSharingDrawer.tsx");
-    assert.match(drawer, /data-preview-review-tabs/);
-    assert.match(drawer, /\["link", "Link", Link2\]/);
-    assert.match(drawer, /\["activity", "Activity", Clock3\]/);
-    assert.match(drawer, /ProposalCustomerPreviewPublicAccessPanel/);
-    assert.match(drawer, /ProposalCustomerPreviewDeliveryHistorySection/);
+    const sendPanel = readPreviewSource("ProposalCustomerPreviewSendGatePanel.tsx");
+    assert.doesNotMatch(drawer, /data-preview-review-tabs/);
+    assert.doesNotMatch(drawer, /\["link", "Link", Link2\]/);
+    assert.doesNotMatch(drawer, /\["activity", "Activity", Clock3\]/);
+    assert.doesNotMatch(drawer, /ProposalCustomerPreviewPublicAccessPanel/);
+    assert.match(drawer, /ProposalCustomerPreviewSendGatePanel/);
+    assert.match(sendPanel, /data-preview-delivery-history-quiet/);
+    assert.match(sendPanel, /ProposalCustomerPreviewDeliveryHistorySection/);
     for (const file of DEFAULT_PAGE_FILES) {
       const source = readPreviewSource(file);
       assert.doesNotMatch(source, /ProposalCustomerPreviewPublicAccessPanel/);

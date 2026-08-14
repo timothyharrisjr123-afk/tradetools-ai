@@ -93,7 +93,6 @@ export default function ProposalCustomerPreviewClient({
     null
   );
   const [sendSharingOpen, setSendSharingOpen] = useState(false);
-  const [sendSharingTab, setSendSharingTab] = useState<"send" | "link" | "activity">("send");
 
   const loadPreview = useCallback(async () => {
     setLoadComplete(false);
@@ -202,8 +201,7 @@ export default function ProposalCustomerPreviewClient({
     coverPage.viewModel.company.hasAnyField &&
     !coverPage.viewModel.company.logoUrl;
 
-  const openSendSharing = (tab: "send" | "link" | "activity" = "send") => {
-    setSendSharingTab(tab);
+  const openSendSharing = () => {
     setSendSharingOpen(true);
   };
 
@@ -233,7 +231,7 @@ export default function ProposalCustomerPreviewClient({
               projectAddress={jobIdentity.secondaryAddress}
               selectedPackageLabel={selectedPackageLabel}
               totalLabel={totalLabel}
-              onSendSharing={() => openSendSharing("send")}
+              onSendSharing={() => openSendSharing()}
               showSendSharing
             />
             <ProposalPreviewReadinessSummary
@@ -265,7 +263,6 @@ export default function ProposalCustomerPreviewClient({
             emailDeliveryConfigured={emailDeliveryConfigured}
             companyLogoMissing={companyLogoMissing}
             builderHref={builderHref}
-            initialTab={sendSharingTab}
           />
         </div>
       ) : null}

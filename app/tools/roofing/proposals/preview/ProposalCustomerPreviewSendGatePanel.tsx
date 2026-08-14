@@ -19,7 +19,6 @@ import type { ProposalDraftGraph } from "@/app/lib/proposalRecordStore";
 import {
   CUSTOMER_PREVIEW_COMPANY_LOGO_MISSING_HINT,
   CUSTOMER_PREVIEW_NEEDS_REVIEW_HEADING,
-  CUSTOMER_PREVIEW_READY_HEADING,
   CUSTOMER_PREVIEW_RETURN_TO_BUILDER_ACTION,
 } from "@/app/lib/proposalBuilderDocumentIa";
 import {
@@ -31,6 +30,7 @@ import {
   resolveSendGateProjectAddress,
   resolveSendGateRecipientEmail,
   SEND_GATE_CUSTOMER_LINK_HELPER,
+  SEND_GATE_DELIVERY_DISABLED_MESSAGE,
   SEND_GATE_EMAIL_PROVIDER_ACCEPTED_TITLE,
   SEND_GATE_PREPARE_CUSTOMER_LINK_LABEL,
   SEND_GATE_PREPARING_CUSTOMER_LINK_MESSAGE,
@@ -62,15 +62,46 @@ type ProposalCustomerPreviewSendGatePanelProps = {
   builderHref: string;
   /** Block 5 Roofr-first Preview — hide Signature/PDF/Payment staging rows. */
   hideDeferredActions?: boolean;
-  /** Flatten outer card when mounted inside the Preview command surface. */
+  /** Flatten outer card when mounted inside the Preview send sheet. */
   embedded?: boolean;
 };
 
 const SEND_PRIMARY_ACTION =
-  "inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 text-[14px] font-semibold text-white shadow-[0_8px_18px_-10px_rgba(37,99,235,0.8)] transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:shadow-none";
+  "inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 text-[14px] font-semibold text-white shadow-[0_8px_18px_-10px_rgba(37,99,235,0.8)] transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:shadow-none";
 
 const SEND_SECONDARY_ACTION =
-  "inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400";
+  "inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400 sm:min-h-10";
+
+function buildSendBlockerHints(input: {
+  previewReadiness: ProposalCustomerPreviewReadiness | null;
+  companyLogoMissing: boolean;
+  recipientMissing: boolean;
+  pricingStale: boolean;
+  emailDeliveryConfigured: boolean;
+}): string[] {
+  const hints: string[] = [];
+  const blockingLineCount = input.previewReadiness?.blockingLineCount ?? 0;
+  if (blockingLineCount > 0) {
+    hints.push(
+      `${blockingLineCount} estimate item${blockingLineCount === 1 ? "" : "s"} need quantities`
+    );
+  } else if (input.previewReadiness?.pricingComplete === false) {
+    hints.push("Estimate pricing needs review");
+  }
+  if (input.companyLogoMissing) {
+    hints.push(CUSTOMER_PREVIEW_COMPANY_LOGO_MISSING_HINT);
+  }
+  if (input.recipientMissing) {
+    hints.push("Recipient email missing");
+  }
+  if (input.pricingStale) {
+    hints.push("Proposal pricing needs review");
+  }
+  if (!input.emailDeliveryConfigured) {
+    hints.push(SEND_GATE_DELIVERY_DISABLED_MESSAGE);
+  }
+  return hints;
+}
 
 export default function ProposalCustomerPreviewSendGatePanel({
   jobId,
@@ -301,35 +332,35 @@ export default function ProposalCustomerPreviewSendGatePanel({
     }
   }
 
-  const shellClass = embedded
-    ? "space-y-5"
-    : "space-y-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm";
-  const blockerHints = [
-    previewReadiness && previewReadiness.blockingLineCount > 0
-      ? `${previewReadiness.blockingLineCount} estimate item${
-          previewReadiness.blockingLineCount === 1 ? "" : "s"
-        } need quantities`
-      : null,
-    companyLogoMissing ? CUSTOMER_PREVIEW_COMPANY_LOGO_MISSING_HINT : null,
-    readiness.messagePreview.toMissing ? "Recipient email missing" : null,
-    pricingStale ? "Proposal pricing needs review" : null,
-  ].filter((hint): hint is string => Boolean(hint));
+  const shellClass = embedded ? "space-y-4" : "space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm";
+  const blockerHints = buildSendBlockerHints({
+    previewReadiness,
+    companyLogoMissing,
+    recipientMissing: readiness.messagePreview.toMissing,
+    pricingStale,
+    emailDeliveryConfigured,
+  });
   const sendBlocked = !readiness.canSend && !sendSuccess;
-  const sendBlockedReason = readiness.messagePreview.toMissing
-    ? "Add a recipient email before sending"
-    : "Review required before sending";
 
   return (
-    <section className={shellClass} aria-label="Send proposal readiness" data-preview-delivery-composer>
+    <section
+      className={shellClass}
+      aria-label="Send proposal"
+      data-preview-delivery-composer
+      data-preview-send-gate-v2c2
+    >
       {readiness.phase === "loading" ? (
-        <div className="flex items-center gap-2 rounded-xl bg-white px-4 py-4 text-sm text-slate-500">
+        <div className="flex items-center gap-2 rounded-xl bg-white px-4 py-3 text-sm text-slate-500">
           <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
           Preparing delivery details…
         </div>
       ) : null}
 
       {sendSuccess ? (
-        <div className="flex gap-3 rounded-2xl border border-emerald-200/80 bg-emerald-50/80 px-4 py-4">
+        <div
+          className="flex gap-3 rounded-xl border border-emerald-200/80 bg-emerald-50/80 px-4 py-3.5"
+          data-preview-send-success
+        >
           <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-700" aria-hidden />
           <div>
             <p className="text-[14px] font-semibold text-emerald-950">
@@ -340,15 +371,16 @@ export default function ProposalCustomerPreviewSendGatePanel({
             </p>
           </div>
         </div>
-      ) : sendBlocked ? (
+      ) : null}
+
+      {sendBlocked ? (
         <div
-          className="rounded-2xl border border-amber-200/70 bg-[linear-gradient(135deg,#fffbeb_0%,#fff_100%)] px-4 py-4"
+          className="rounded-xl border border-amber-200/80 bg-amber-50/70 px-4 py-3.5"
           data-preview-delivery-blocker
+          data-preview-send-blocker
         >
           <div className="flex items-start gap-3">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700">
-              <AlertCircle className="h-4 w-4" aria-hidden />
-            </span>
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-700" aria-hidden />
             <div className="min-w-0 flex-1">
               <p className="text-[14px] font-semibold text-slate-900">
                 {CUSTOMER_PREVIEW_NEEDS_REVIEW_HEADING}
@@ -356,36 +388,25 @@ export default function ProposalCustomerPreviewSendGatePanel({
               <p className="mt-1 text-[13px] leading-relaxed text-slate-600">
                 {blockerHints.length > 0
                   ? blockerHints.join(" · ")
-                  : "Complete the proposal review before delivery."}
+                  : readiness.disabledReason || "Complete the proposal review before delivery."}
               </p>
               <Link
                 href={builderHref}
-                className="mt-2.5 inline-flex text-[13px] font-semibold text-blue-600 transition hover:text-blue-700"
+                className="mt-2.5 inline-flex min-h-[44px] items-center text-[13px] font-semibold text-blue-600 transition hover:text-blue-700 sm:min-h-0"
+                data-preview-send-return-to-builder
               >
                 {CUSTOMER_PREVIEW_RETURN_TO_BUILDER_ACTION}
               </Link>
             </div>
           </div>
         </div>
-      ) : (
-        <div className="flex items-start gap-3 rounded-2xl border border-emerald-200/70 bg-emerald-50/70 px-4 py-4">
-          <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-700" aria-hidden />
-          <div>
-            <p className="text-[14px] font-semibold text-slate-900">
-              {CUSTOMER_PREVIEW_READY_HEADING}
-            </p>
-            <p className="mt-1 text-[13px] text-slate-600">
-              Recipient and proposal details are ready for delivery.
-            </p>
-          </div>
-        </div>
-      )}
+      ) : null}
 
       <div data-preview-delivery-recipient>
-        <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.13em] text-slate-500">
+        <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
           Recipient
         </p>
-        <div className="flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-white px-4 py-3.5 shadow-[0_8px_24px_-22px_rgba(15,23,42,0.55)]">
+        <div className="flex items-center gap-3 rounded-xl border border-slate-200/80 bg-white px-3.5 py-3">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-600">
             <UserRound className="h-4 w-4" aria-hidden />
           </span>
@@ -403,21 +424,18 @@ export default function ProposalCustomerPreviewSendGatePanel({
       </div>
 
       <div data-preview-email-composer>
-        <div className="mb-2 flex items-center justify-between gap-3">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.13em] text-slate-500">
-            Email message
-          </p>
-          <span className="text-[12px] text-slate-400">Proposal delivery</span>
-        </div>
-        <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_12px_32px_-26px_rgba(15,23,42,0.6)]">
-          <label className="grid grid-cols-[4.5rem_minmax(0,1fr)] items-center border-b border-slate-100 px-4">
+        <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+          Email message
+        </p>
+        <div className="overflow-hidden rounded-xl border border-slate-200/80 bg-white">
+          <label className="grid grid-cols-[4.25rem_minmax(0,1fr)] items-center border-b border-slate-100 px-3.5">
             <span className="text-[12px] font-semibold text-slate-500">Subject</span>
             <input
               type="text"
               value={subjectValue}
               onChange={(event) => setSubjectDraft(event.target.value)}
               disabled={actionsLocked || Boolean(sendSuccess)}
-              className="min-w-0 border-0 bg-transparent px-0 py-3.5 text-[14px] font-medium text-slate-900 outline-none placeholder:text-slate-400 disabled:text-slate-500"
+              className="min-w-0 border-0 bg-transparent px-0 py-3 text-[14px] font-medium text-slate-900 outline-none placeholder:text-slate-400 disabled:text-slate-500"
               data-preview-email-subject
             />
           </label>
@@ -426,15 +444,15 @@ export default function ProposalCustomerPreviewSendGatePanel({
             <textarea
               value={bodyValue}
               onChange={(event) => setBodyDraft(event.target.value)}
-              rows={8}
+              rows={6}
               disabled={actionsLocked || Boolean(sendSuccess)}
-              className="block w-full resize-none border-0 bg-white px-4 py-4 text-[14px] leading-6 text-slate-700 outline-none placeholder:text-slate-400 disabled:bg-slate-50 disabled:text-slate-500"
+              className="block w-full resize-none border-0 bg-white px-3.5 py-3 text-[14px] leading-6 text-slate-700 outline-none placeholder:text-slate-400 disabled:bg-slate-50 disabled:text-slate-500"
               data-preview-email-message
             />
           </label>
-          <div className="flex items-start gap-2.5 border-t border-slate-100 bg-slate-50/70 px-4 py-3">
+          <div className="flex items-start gap-2 border-t border-slate-100 bg-slate-50/70 px-3.5 py-2.5">
             <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" aria-hidden />
-            <p className="text-[12.5px] leading-relaxed text-slate-500">
+              <p className="text-[12.5px] leading-relaxed text-slate-500">
               {sessionCustomerLink
                 ? "Your secure proposal link is ready and will be included."
                 : "A secure proposal link will be included when sent."}
@@ -444,72 +462,28 @@ export default function ProposalCustomerPreviewSendGatePanel({
       </div>
 
       {prepErrorMessage ? (
-        <p className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+        <p
+          className="rounded-lg border border-red-200 bg-red-50 px-3.5 py-3 text-sm text-red-800"
+          data-preview-send-prep-error
+          role="alert"
+        >
           {prepErrorMessage}
         </p>
       ) : null}
 
       {sendErrorMessage ? (
-        <p className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+        <p
+          className="rounded-lg border border-red-200 bg-red-50 px-3.5 py-3 text-sm text-red-800"
+          data-preview-send-error
+          role="alert"
+        >
           {sendErrorMessage}
         </p>
       ) : null}
 
       {copyMessage ? <p className="text-sm text-emerald-700">{copyMessage}</p> : null}
 
-      <div className="space-y-2" data-preview-delivery-actions>
-        {sessionCustomerLink ? (
-          <div className="space-y-2" data-preview-customer-link-ready>
-            <p className="text-[12.5px] leading-relaxed text-emerald-800">
-              Secure link ready — open the customer proposal or copy the link.
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                className={`${SEND_PRIMARY_ACTION} h-10 text-[13px] shadow-sm`}
-                disabled={actionsLocked}
-                onClick={handleOpenCustomerProposal}
-                data-preview-open-customer-proposal
-              >
-                <ExternalLink className="h-4 w-4" aria-hidden />
-                Open customer proposal
-              </button>
-              <button
-                type="button"
-                className={SEND_SECONDARY_ACTION}
-                disabled={actionsLocked}
-                onClick={() => void handleCopyCustomerSendLink()}
-              >
-                <Link2 className="h-4 w-4" aria-hidden />
-                Copy link
-              </button>
-            </div>
-          </div>
-        ) : canPrepareCustomerLink || prepPending ? (
-          <div className="space-y-2">
-            <p className="text-[12.5px] leading-relaxed text-slate-500">
-              {SEND_GATE_CUSTOMER_LINK_HELPER}
-            </p>
-            <button
-              type="button"
-              className={SEND_SECONDARY_ACTION}
-              disabled={!canPrepareCustomerLink}
-              aria-disabled={!canPrepareCustomerLink}
-              onClick={() => void handlePrepareCustomerLink()}
-              data-preview-create-secure-link
-            >
-              {prepPending ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                  {SEND_GATE_PREPARING_CUSTOMER_LINK_MESSAGE}
-                </>
-              ) : (
-                SEND_GATE_PREPARE_CUSTOMER_LINK_LABEL
-              )}
-            </button>
-          </div>
-        ) : null}
-
+      <div className="space-y-2.5" data-preview-delivery-actions>
         <button
           type="button"
           className={SEND_PRIMARY_ACTION}
@@ -517,6 +491,7 @@ export default function ProposalCustomerPreviewSendGatePanel({
           aria-disabled={!canSendProposalEmail}
           title={!readiness.canSend ? readiness.disabledReason : undefined}
           onClick={() => void handleSendProposalByEmail()}
+          data-preview-send-proposal
         >
           {sendPending ? (
             <>
@@ -530,20 +505,79 @@ export default function ProposalCustomerPreviewSendGatePanel({
             </>
           )}
         </button>
-        {sendBlocked ? (
-          <p className="text-center text-[12.5px] text-slate-500">
-            {sendBlockedReason}
-          </p>
+
+        {!sendSuccess ? (
+          <details className="rounded-lg border border-slate-200/80 bg-white" data-preview-send-link-optional>
+            <summary className="cursor-pointer list-none px-3.5 py-2.5 text-[12.5px] font-semibold text-slate-600 marker:content-none [&::-webkit-details-marker]:hidden">
+              Optional: preview or share link first
+            </summary>
+            <div className="space-y-2 border-t border-slate-100 px-3.5 py-3">
+              <p className="text-[12.5px] leading-relaxed text-slate-500">
+                {sessionCustomerLink
+                  ? "Secure link ready — open or copy before sending."
+                  : SEND_GATE_CUSTOMER_LINK_HELPER}
+              </p>
+              {sessionCustomerLink ? (
+                <div className="flex flex-wrap gap-2" data-preview-customer-link-ready>
+                  <button
+                    type="button"
+                    className={SEND_SECONDARY_ACTION}
+                    disabled={actionsLocked}
+                    onClick={handleOpenCustomerProposal}
+                    data-preview-open-customer-proposal
+                  >
+                    <ExternalLink className="h-4 w-4" aria-hidden />
+                    Open customer proposal
+                  </button>
+                  <button
+                    type="button"
+                    className={SEND_SECONDARY_ACTION}
+                    disabled={actionsLocked}
+                    onClick={() => void handleCopyCustomerSendLink()}
+                  >
+                    <Link2 className="h-4 w-4" aria-hidden />
+                    Copy link
+                  </button>
+                </div>
+              ) : canPrepareCustomerLink || prepPending ? (
+                <button
+                  type="button"
+                  className={SEND_SECONDARY_ACTION}
+                  disabled={!canPrepareCustomerLink}
+                  aria-disabled={!canPrepareCustomerLink}
+                  onClick={() => void handlePrepareCustomerLink()}
+                  data-preview-create-secure-link
+                >
+                  {prepPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                      {SEND_GATE_PREPARING_CUSTOMER_LINK_MESSAGE}
+                    </>
+                  ) : (
+                    SEND_GATE_PREPARE_CUSTOMER_LINK_LABEL
+                  )}
+                </button>
+              ) : null}
+            </div>
+          </details>
         ) : null}
       </div>
 
-      <div className="pt-1" data-preview-delivery-history-quiet>
-        <ProposalCustomerPreviewDeliveryHistorySection
-          proposalId={proposalId}
-          jobId={jobId}
-          refreshKey={deliveryHistoryRefreshKey}
-        />
-      </div>
+      <details
+        className="rounded-lg border border-slate-200/70 bg-white/80"
+        data-preview-delivery-history-quiet
+      >
+        <summary className="cursor-pointer list-none px-3.5 py-2.5 text-[12.5px] font-semibold text-slate-500 marker:content-none [&::-webkit-details-marker]:hidden">
+          Delivery activity
+        </summary>
+        <div className="border-t border-slate-100 px-3.5 py-3">
+          <ProposalCustomerPreviewDeliveryHistorySection
+            proposalId={proposalId}
+            jobId={jobId}
+            refreshKey={deliveryHistoryRefreshKey}
+          />
+        </div>
+      </details>
 
       {!hideDeferredActions ? (
         <p className="sr-only">{readiness.deferredActions.map((action) => action.label).join(", ")}</p>
