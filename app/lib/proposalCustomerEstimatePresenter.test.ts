@@ -403,6 +403,9 @@ describe("buildCustomerPreviewEstimatePresentation", () => {
     assert.doesNotMatch(json, /workbench/i);
     assert.doesNotMatch(json, /not editable/i);
     assert.doesNotMatch(json, /\blocked\b/i);
+    assert.doesNotMatch(json, /composition_role/);
+    assert.doesNotMatch(json, /composition_slot_key/);
+    assert.doesNotMatch(json, /roof_covering/);
   });
 
   test("Block 5 — manual quantity line renders as a plain priced line with resolved price only", () => {

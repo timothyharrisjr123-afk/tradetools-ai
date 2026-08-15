@@ -67,6 +67,11 @@ type TemplatesSelectedWorkspaceProps = {
   onAddUpgradeItem: () => void;
   onReplaceItem: (templateItemId: string) => void;
   onRemoveItem: (templateItemId: string) => void;
+  onSaveItemQuantity?: (
+    templateItemId: string,
+    mode: "inherit_catalog" | "fixed",
+    fixedQuantity?: number | null
+  ) => void;
   onFixIssues: () => void;
   onSaveIdentity: (draft: TemplateIdentityDraft) => Promise<void> | void;
   onSavePacketWording: (plan: PacketWordingSavePlan) => Promise<boolean>;
@@ -132,6 +137,7 @@ export default function TemplatesSelectedWorkspace({
   onAddUpgradeItem,
   onReplaceItem,
   onRemoveItem,
+  onSaveItemQuantity,
   onFixIssues,
   onSaveIdentity,
   onSavePacketWording,
@@ -177,6 +183,7 @@ export default function TemplatesSelectedWorkspace({
           onAddUpgradeItem={onAddUpgradeItem}
           onReplaceItem={onReplaceItem}
           onRemoveItem={onRemoveItem}
+          onSaveItemQuantity={onSaveItemQuantity}
           onFixIssues={onFixIssues}
           onOpenAdvanced={onOpenAdvanced}
           onSavePacketWording={onSavePacketWording}

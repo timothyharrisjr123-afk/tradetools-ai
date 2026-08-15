@@ -393,6 +393,51 @@ describe("V2E1 Template → draft isolation", () => {
     assert.ok(report.draftOwnedQuantityResolves >= 1);
   });
 
+  test("composition role/slot survive refresh and ignore live Template + Catalog role", () => {
+    const draft = baseDraftGraph([
+      draftLine({
+        id: "line-a",
+        source_template_item_id: ITEM_A,
+        composition_role: "roof_covering",
+        composition_slot_key: "roof_covering",
+        catalog_seed_key: "roofing.architectural_shingles",
+      }),
+    ]);
+    const live = liveGraph([
+      {
+        id: ITEM_A,
+        template_id: TEMPLATE_ID,
+        option_id: OPT_ID,
+        section_id: SEC_ID,
+        catalog_item_id: CAT_A,
+        item_role: "standard",
+        sort_order: 0,
+        composition_role: "underlayment",
+        composition_slot_key: "underlayment",
+        customer_name_override: "Live template covering",
+      },
+    ]);
+    const { input } = buildDraftInstantiateInputFromDraftStructure({
+      companyId: COMPANY_ID,
+      draftGraph: draft,
+      catalogItems: [
+        catalog(CAT_A, { composition_role: "ice_water" }),
+      ],
+      quantityContext: null,
+      policy: policy(),
+      pricingPolicyId: POLICY_ID,
+      actorRole: "contractor",
+      context: { job_id: JOB_ID, template_id: TEMPLATE_ID },
+      selectedTemplateOptionId: OPT_ID,
+      liveTemplateGraph: live,
+    });
+    const line = input.lineItemsByTemplateOptionId[OPT_ID]?.[0];
+    assert.equal(line?.composition_role, "roof_covering");
+    assert.equal(line?.composition_slot_key, "roof_covering");
+    assert.notEqual(line?.composition_role, "underlayment");
+    assert.notEqual(line?.composition_role, "ice_water");
+  });
+
   test("quantity R1→R2: later Template quantity_rule must not affect existing draft refresh", () => {
     const draft = baseDraftGraph([
       draftLine({

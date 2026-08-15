@@ -11,12 +11,16 @@ import {
 } from "@/app/lib/defaultRoofingProposalTemplateInstall";
 import { repairCompanyStarterPacketContent } from "@/app/lib/proposalCustomerPacketContentRepair";
 import {
+  planAddIncludedProduct,
+  planQuantityRule,
+  planReplaceProduct,
+} from "@/app/lib/proposalTemplateCompositionAuthoring";
+import {
   buildCatalogByIdMap,
   buildTemplateCatalogLinkView,
   catalogItemIdsAlreadyInSection,
   defaultItemRoleForSectionKind,
   deriveTemplateCatalogLinkReadiness,
-  extractCatalogSeedKey,
   nextTemplateItemSortOrder,
   sectionAcceptsCatalogItems,
 } from "@/app/lib/proposalTemplateCatalogLink";
@@ -791,22 +795,22 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
           return;
         }
 
-        const seedKey = extractCatalogSeedKey(catalogItem);
-
         if (catalogPicker.mode === "add") {
           setStructureBusy({ kind: "add-item", sectionId: catalogPicker.sectionId });
           setStructureError(null);
           try {
+            const planned = planAddIncludedProduct({
+              catalogItem,
+              optionId: catalogPicker.optionId,
+              sectionId: catalogPicker.sectionId,
+              itemRole: defaultItemRoleForSectionKind(section.kind),
+              existingItems: selectedGraph.items,
+              sortOrder: nextTemplateItemSortOrder(sectionItems),
+            });
             const created = await createProposalTemplateItem(
               {
                 template_id: selectedTemplateId,
-                option_id: catalogPicker.optionId,
-                section_id: catalogPicker.sectionId,
-                catalog_item_id: catalogItem.id,
-                catalog_seed_key: seedKey,
-                item_role: defaultItemRoleForSectionKind(section.kind),
-                customer_visibility: "inherit_catalog",
-                sort_order: nextTemplateItemSortOrder(sectionItems),
+                ...planned,
               },
               {
                 companyId,
@@ -830,15 +834,24 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
           return;
         }
 
+        const existingItem = selectedGraph.items.find(
+          (row) => row.id === catalogPicker.templateItemId
+        );
+        if (!existingItem) {
+          setStructureError("Template item not found.");
+          return;
+        }
+        const planned = planReplaceProduct({
+          existingItem,
+          catalogItem,
+        });
+
         setStructureBusy({ kind: "relink-item", itemId: catalogPicker.templateItemId });
         setStructureError(null);
         try {
           const updated = await updateProposalTemplateItem(
             catalogPicker.templateItemId,
-            {
-              catalog_item_id: catalogItem.id,
-              catalog_seed_key: seedKey,
-            },
+            planned.patch,
             {
               companyId,
               templateId: selectedTemplateId,
@@ -867,6 +880,41 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
       selectedGraph,
       selectedTemplateId,
     ]
+  );
+
+  const handleSaveItemQuantity = useCallback(
+    (templateItemId: string, mode: "inherit_catalog" | "fixed", fixedQuantity?: number | null) => {
+      void (async () => {
+        if (!selectedGraph || !selectedTemplateId) return;
+        const item = selectedGraph.items.find((row) => row.id === templateItemId);
+        if (!item) return;
+        setStructureBusy({ kind: "relink-item", itemId: templateItemId });
+        setStructureError(null);
+        try {
+          const updated = await updateProposalTemplateItem(
+            templateItemId,
+            { quantity_rule: planQuantityRule({ mode, fixedQuantity }) },
+            {
+              companyId,
+              templateId: selectedTemplateId,
+              optionId: item.option_id,
+              sectionId: item.section_id,
+            }
+          );
+          if (!updated) {
+            setStructureError("Could not update quantity. Try again.");
+            return;
+          }
+          await reloadSelectedGraph(selectedTemplateId);
+        } catch (err) {
+          console.warn("[TemplatesSetupClient] quantity update error:", err);
+          setStructureError("Updating quantity failed unexpectedly.");
+        } finally {
+          setStructureBusy(null);
+        }
+      })();
+    },
+    [companyId, reloadSelectedGraph, selectedGraph, selectedTemplateId]
   );
 
   const activeItems = useMemo(() => catalogItems.filter((item) => item.active), [catalogItems]);
@@ -1600,6 +1648,7 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
                 onAddUpgradeItem={handleQuoteAddUpgradeItem}
                 onReplaceItem={handleOpenRelinkCatalogItem}
                 onRemoveItem={handleRequestRemoveItem}
+                onSaveItemQuantity={handleSaveItemQuantity}
                 onFixIssues={handleFixIssues}
                 onSaveIdentity={handleSaveTemplateIdentity}
                 onSavePacketWording={handleSavePacketWording}
@@ -1644,6 +1693,13 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
       <TemplatesBuilderFootnote />
 
       <TemplatesCatalogItemPickerModal
+        key={
+          catalogPicker
+            ? `${catalogPicker.mode}:${catalogPicker.sectionId}:${
+                catalogPicker.mode === "relink" ? catalogPicker.templateItemId : "add"
+              }`
+            : "closed"
+        }
         open={catalogPicker != null}
         mode={(catalogPicker?.mode ?? "add") as TemplatesCatalogPickerMode}
         catalogItems={catalogItems}
@@ -1668,6 +1724,12 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
         }
         busy={
           structureBusy?.kind === "add-item" || structureBusy?.kind === "relink-item"
+        }
+        preferredCompositionRole={
+          catalogPicker?.mode === "relink"
+            ? selectedGraph?.items.find((row) => row.id === catalogPicker.templateItemId)
+                ?.composition_role ?? null
+            : null
         }
         onClose={() => {
           if (structureBusy?.kind === "add-item" || structureBusy?.kind === "relink-item") {

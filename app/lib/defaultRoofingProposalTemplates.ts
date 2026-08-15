@@ -9,11 +9,13 @@
  * No pricing, totals, legal terms, or Proposal Builder behavior in this file.
  *
  * Optional Upgrade Truth (v2):
- * - Package-included enhancements live on line_items via customer overrides.
+ * - Package-included material upgrades live on line_items as different Catalog products
+ *   in the same composition slot (not label-only claims).
  * - upgrade_group holds only true elective add-ons (additive, default unselected).
  */
 
 import type { CustomerVisibility } from "@/app/lib/catalogTypes";
+import { resolveStarterCompositionIdentity } from "@/app/lib/packageCompositionIdentity";
 import {
   DEFAULT_PACKET_OVERVIEW_BODY,
   DEFAULT_PACKET_OVERVIEW_TITLE,
@@ -77,48 +79,55 @@ const CORE_LINE_SEEDS: readonly CoreLineSeed[] = [
  * Callers that need per-option overrides must map/copy — do not mutate this constant.
  */
 export const ROOF_REPLACEMENT_CORE_LINE_ITEMS: readonly DefaultProposalTemplateItemDefinition[] =
-  CORE_LINE_SEEDS.map(({ catalog_seed_key, sort_order }) => ({
-    catalog_seed_key,
-    item_role: "standard",
-    customer_visibility: "inherit_catalog",
-    quantity_rule: INHERIT_CATALOG_QUANTITY,
-    sort_order,
-  }));
+  CORE_LINE_SEEDS.map(({ catalog_seed_key, sort_order }) => {
+    const identity = resolveStarterCompositionIdentity(catalog_seed_key, "included");
+    return {
+      catalog_seed_key,
+      composition_role: identity?.compositionRole ?? null,
+      composition_slot_key: identity?.compositionSlotKey ?? null,
+      item_role: "standard",
+      customer_visibility: "inherit_catalog",
+      quantity_rule: INHERIT_CATALOG_QUANTITY,
+      sort_order,
+    };
+  });
 
 type LineItemOverride = {
-  customer_name_override: string;
-  description_override: string;
+  catalog_seed_key?: string;
+  customer_name_override?: string;
+  description_override?: string;
 };
 
 const ENHANCED_LINE_OVERRIDES: Readonly<Record<string, LineItemOverride>> = {
   "roofing.synthetic_underlayment": {
-    customer_name_override: "Enhanced underlayment",
+    catalog_seed_key: "roofing.premium_synthetic_underlayment",
+    customer_name_override: "Upgraded underlayment",
     description_override:
-      "Upgraded underlayment protection included with this package for added weather resistance.",
-  },
-  "roofing.ice_water_valley": {
-    customer_name_override: "Enhanced ice and water protection",
-    description_override:
-      "Enhanced ice and water protection included with this package in valleys and key weather areas.",
+      "Heavier synthetic underlayment included with this package for added weather resistance.",
   },
 };
 
 const PREMIUM_LINE_OVERRIDES: Readonly<Record<string, LineItemOverride>> = {
+  ...ENHANCED_LINE_OVERRIDES,
   "roofing.architectural_shingles": {
-    customer_name_override: "Premium shingle package",
+    catalog_seed_key: "roofing.designer_shingles",
+    customer_name_override: "Designer shingle package",
     description_override:
-      "Premium shingle selection included with this package for a longer-lasting, higher-end finish.",
+      "Designer architectural shingles included with this package for a longer-lasting, higher-end finish.",
   },
-  "roofing.synthetic_underlayment": {
-    customer_name_override: "Enhanced underlayment",
-    description_override:
-      "Upgraded underlayment protection included with this package for added weather resistance.",
-  },
-  "roofing.ice_water_valley": {
-    customer_name_override: "Enhanced ice and water protection",
-    description_override:
-      "Enhanced ice and water protection included with this package in valleys and key weather areas.",
-  },
+};
+
+const ICE_WATER_EAVES_INCLUDED: DefaultProposalTemplateItemDefinition = {
+  catalog_seed_key: "roofing.ice_water_eaves",
+  composition_role: "ice_water",
+  composition_slot_key: "ice_water.eaves",
+  item_role: "standard",
+  customer_name_override: "Ice and water protection at eaves",
+  description_override:
+    "Ice and water protection at the eaves included with this package, in addition to valley protection.",
+  customer_visibility: "inherit_catalog",
+  quantity_rule: INHERIT_CATALOG_QUANTITY,
+  sort_order: 65,
 };
 
 /**
@@ -127,6 +136,8 @@ const PREMIUM_LINE_OVERRIDES: Readonly<Record<string, LineItemOverride>> = {
  */
 const ADDITIONAL_ROOF_VENTILATION_UPGRADE: DefaultProposalTemplateItemDefinition = {
   catalog_seed_key: "roofing.roof_vent",
+  composition_role: "ventilation",
+  composition_slot_key: "ventilation.additional",
   item_role: "optional_addon",
   customer_name_override: "Additional roof ventilation",
   description_override:
@@ -146,13 +157,37 @@ function cloneCoreLineItemsWithOverrides(
     if (!override) {
       return { ...item, quantity_rule: item.quantity_rule ? { ...item.quantity_rule } : undefined };
     }
+    const nextSeed = override.catalog_seed_key ?? item.catalog_seed_key;
+    const identity = resolveStarterCompositionIdentity(nextSeed, "included");
     return {
       ...item,
+      catalog_seed_key: nextSeed,
+      composition_role: identity?.compositionRole ?? item.composition_role ?? null,
+      composition_slot_key: identity?.compositionSlotKey ?? item.composition_slot_key ?? null,
       quantity_rule: item.quantity_rule ? { ...item.quantity_rule } : undefined,
-      customer_name_override: override.customer_name_override,
-      description_override: override.description_override,
+      customer_name_override: override.customer_name_override ?? item.customer_name_override,
+      description_override: override.description_override ?? item.description_override,
     };
   });
+}
+
+function withEavesIceWater(
+  items: readonly DefaultProposalTemplateItemDefinition[]
+): DefaultProposalTemplateItemDefinition[] {
+  const copied = items.map((item) => ({
+    ...item,
+    quantity_rule: item.quantity_rule ? { ...item.quantity_rule } : undefined,
+  }));
+  const insertAt = copied.findIndex((item) => item.catalog_seed_key === "roofing.ice_water_valley");
+  const eaves = {
+    ...ICE_WATER_EAVES_INCLUDED,
+    quantity_rule: ICE_WATER_EAVES_INCLUDED.quantity_rule
+      ? { ...ICE_WATER_EAVES_INCLUDED.quantity_rule }
+      : undefined,
+  };
+  if (insertAt < 0) return [...copied, eaves];
+  copied.splice(insertAt + 1, 0, eaves);
+  return copied;
 }
 
 const PROJECT_OVERVIEW_BODY = DEFAULT_PACKET_OVERVIEW_BODY;
@@ -265,8 +300,12 @@ function buildOptionDefinition(
 }
 
 const STANDARD_LINE_ITEMS = cloneCoreLineItemsWithOverrides({});
-const ENHANCED_LINE_ITEMS = cloneCoreLineItemsWithOverrides(ENHANCED_LINE_OVERRIDES);
-const PREMIUM_LINE_ITEMS = cloneCoreLineItemsWithOverrides(PREMIUM_LINE_OVERRIDES);
+const ENHANCED_LINE_ITEMS = withEavesIceWater(
+  cloneCoreLineItemsWithOverrides(ENHANCED_LINE_OVERRIDES)
+);
+const PREMIUM_LINE_ITEMS = withEavesIceWater(
+  cloneCoreLineItemsWithOverrides(PREMIUM_LINE_OVERRIDES)
+);
 
 const ENHANCED_OPTIONAL_UPGRADES: readonly DefaultProposalTemplateItemDefinition[] = [
   { ...ADDITIONAL_ROOF_VENTILATION_UPGRADE },
@@ -293,7 +332,7 @@ const ROOF_REPLACEMENT_OPTIONS: readonly DefaultProposalTemplateOptionDefinition
     seedKey: "proposal.roof_replacement.enhanced",
     customerLabel: "Enhanced",
     description:
-      "Stronger weather protection with upgraded underlayment and ice and water shield included — plus optional extra ventilation if you need it.",
+      "Stronger weather protection with upgraded underlayment and ice and water at the eaves included — plus optional extra ventilation if you need it.",
     isDefault: false,
     sortOrder: 20,
     lineItems: ENHANCED_LINE_ITEMS,
@@ -304,7 +343,7 @@ const ROOF_REPLACEMENT_OPTIONS: readonly DefaultProposalTemplateOptionDefinition
     seedKey: "proposal.roof_replacement.premium",
     customerLabel: "Premium",
     description:
-      "Our highest-protection package with premium shingles, upgraded underlayment, and ice and water shield — plus optional extra ventilation if you need it.",
+      "Our highest-protection package with designer shingles, upgraded underlayment, and ice and water at the eaves — plus optional extra ventilation if you need it.",
     isDefault: false,
     sortOrder: 30,
     lineItems: PREMIUM_LINE_ITEMS,

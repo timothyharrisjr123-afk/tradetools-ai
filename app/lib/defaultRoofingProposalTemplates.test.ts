@@ -44,9 +44,9 @@ describe("default roofing proposal templates — Optional Upgrade Truth v2", () 
 
     const enhancedLines = sectionItems("Enhanced", "line_items");
     const underlayment = enhancedLines.find(
-      (item) => item.catalog_seed_key === "roofing.synthetic_underlayment"
+      (item) => item.catalog_seed_key === "roofing.premium_synthetic_underlayment"
     );
-    assert.equal(underlayment?.customer_name_override, "Enhanced underlayment");
+    assert.equal(underlayment?.customer_name_override, "Upgraded underlayment");
 
     const after = ROOF_REPLACEMENT_CORE_LINE_ITEMS.map((item) => ({
       catalog_seed_key: item.catalog_seed_key,
@@ -66,16 +66,17 @@ describe("default roofing proposal templates — Optional Upgrade Truth v2", () 
     assert.deepEqual(sectionItems("Standard", "upgrade_group"), []);
   });
 
-  test("Enhanced package enhancements live on line_items; only vent is optional", () => {
+  test("Enhanced package upgrades underlayment and adds eaves ice-water; only vent is optional", () => {
     const lines = sectionItems("Enhanced", "line_items");
     const underlayment = lines.find(
-      (item) => item.catalog_seed_key === "roofing.synthetic_underlayment"
+      (item) => item.catalog_seed_key === "roofing.premium_synthetic_underlayment"
     );
-    const iceWater = lines.find((item) => item.catalog_seed_key === "roofing.ice_water_valley");
-    assert.equal(underlayment?.customer_name_override, "Enhanced underlayment");
-    assert.equal(iceWater?.customer_name_override, "Enhanced ice and water protection");
-    assert.match(underlayment?.description_override ?? "", /included with this package/i);
-    assert.doesNotMatch(underlayment?.description_override ?? "", /^Optional/i);
+    const eaves = lines.find((item) => item.catalog_seed_key === "roofing.ice_water_eaves");
+    const valleys = lines.find((item) => item.catalog_seed_key === "roofing.ice_water_valley");
+    assert.equal(underlayment?.composition_slot_key, "underlayment");
+    assert.equal(eaves?.composition_slot_key, "ice_water.eaves");
+    assert.equal(valleys?.composition_slot_key, "ice_water.valleys");
+    assert.ok(!lines.some((item) => item.catalog_seed_key === "roofing.synthetic_underlayment"));
 
     const upgrades = sectionItems("Enhanced", "upgrade_group");
     assert.equal(upgrades.length, 1);
@@ -90,28 +91,24 @@ describe("default roofing proposal templates — Optional Upgrade Truth v2", () 
       allow_manual_override: true,
     });
     assert.ok(
-      !upgrades.some((item) => item.catalog_seed_key === "roofing.synthetic_underlayment")
+      !upgrades.some((item) => item.catalog_seed_key === "roofing.premium_synthetic_underlayment")
     );
-    assert.ok(!upgrades.some((item) => item.catalog_seed_key === "roofing.ice_water_valley"));
   });
 
-  test("Premium includes shingle + Enhanced overrides on line_items; only vent upgrade", () => {
+  test("Premium replaces roof covering and keeps Enhanced protection upgrades", () => {
     const lines = sectionItems("Premium", "line_items");
     assert.equal(
-      lines.find((item) => item.catalog_seed_key === "roofing.architectural_shingles")
-        ?.customer_name_override,
-      "Premium shingle package"
+      lines.find((item) => item.catalog_seed_key === "roofing.designer_shingles")
+        ?.composition_slot_key,
+      "roof_covering"
     );
+    assert.ok(!lines.some((item) => item.catalog_seed_key === "roofing.architectural_shingles"));
     assert.equal(
-      lines.find((item) => item.catalog_seed_key === "roofing.synthetic_underlayment")
-        ?.customer_name_override,
-      "Enhanced underlayment"
+      lines.find((item) => item.catalog_seed_key === "roofing.premium_synthetic_underlayment")
+        ?.composition_slot_key,
+      "underlayment"
     );
-    assert.equal(
-      lines.find((item) => item.catalog_seed_key === "roofing.ice_water_valley")
-        ?.customer_name_override,
-      "Enhanced ice and water protection"
-    );
+    assert.ok(lines.some((item) => item.catalog_seed_key === "roofing.ice_water_eaves"));
 
     const upgrades = sectionItems("Premium", "upgrade_group");
     assert.equal(upgrades.length, 1);

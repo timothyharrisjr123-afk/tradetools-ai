@@ -237,6 +237,73 @@ describe("draft proposal create persistence contract", () => {
     assert.doesNotThrow(() => assertDraftProposalCreateGraphInvariants(payload));
   });
 
+  test("create persist copies Template composition_role and composition_slot_key", () => {
+    const input = minimalInstantiateInput();
+    input.lineItemsByTemplateOptionId[TEMPLATE_OPT] = [
+      templateItemToLineInput(
+        {
+          id: "99999999-9999-4999-8999-999999999999",
+          template_id: TEMPLATE_ID,
+          option_id: TEMPLATE_OPT,
+          section_id: SECTION_ID,
+          catalog_item_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+          catalog_seed_key: "roofing.architectural_shingles",
+          composition_role: "roof_covering",
+          composition_slot_key: "roof_covering",
+          item_role: "standard",
+          sort_order: 0,
+        },
+        {
+          engineStatus: "priced",
+          customerVisibility: "customer_visible",
+          customerName: "Shingles",
+          quantity: 22,
+          quantityDisplayLabel: "22 SQ",
+          customerUnitPriceCents: 500,
+          customerLineTotalCents: 10_000,
+        }
+      ),
+    ];
+    const payload = buildDraftProposalCreatePersistPayload({
+      companyId: COMPANY_ID,
+      jobId: JOB_ID,
+      customerId: CUSTOMER_ID,
+      templateId: TEMPLATE_ID,
+      measurementRecordId: null,
+      pricingPolicyId: POLICY_ID,
+      title: "Roof Proposal",
+      createdBy: null,
+      instantiatePayload: minimalInstantiatePayload(),
+      instantiateInput: input,
+      policy: TEST_POLICY,
+    });
+    const line = payload.options[0]!.line_items[0]!;
+    assert.equal(line.composition_role, "roof_covering");
+    assert.equal(line.composition_slot_key, "roof_covering");
+  });
+
+  test("create persist normalizes blank composition identity to null", () => {
+    const input = minimalInstantiateInput();
+    input.lineItemsByTemplateOptionId[TEMPLATE_OPT]![0]!.composition_role = "   ";
+    input.lineItemsByTemplateOptionId[TEMPLATE_OPT]![0]!.composition_slot_key = "";
+    const payload = buildDraftProposalCreatePersistPayload({
+      companyId: COMPANY_ID,
+      jobId: JOB_ID,
+      customerId: CUSTOMER_ID,
+      templateId: TEMPLATE_ID,
+      measurementRecordId: null,
+      pricingPolicyId: POLICY_ID,
+      title: "Roof Proposal",
+      createdBy: null,
+      instantiatePayload: minimalInstantiatePayload(),
+      instantiateInput: input,
+      policy: TEST_POLICY,
+    });
+    const line = payload.options[0]!.line_items[0]!;
+    assert.equal(line.composition_role, null);
+    assert.equal(line.composition_slot_key, null);
+  });
+
   test("S3D3 draft create persist rows include adjusted quantity_resolution_echo without changing qty/totals", () => {
     const payload = buildHappyPayload();
     const line = payload.options[0]!.line_items[0]!;

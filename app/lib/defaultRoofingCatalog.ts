@@ -11,6 +11,7 @@ import type {
   CustomerVisibility,
   PricingBasis,
 } from "@/app/lib/catalogTypes";
+import { STARTER_CATALOG_COMPOSITION_ROLES } from "@/app/lib/packageCompositionIdentity";
 
 /** Starter catalog row without company scope — cloned per company at seed time. */
 export type DefaultRoofingCatalogDefinition = Omit<
@@ -24,7 +25,7 @@ const UNIT_PRICE: PricingBasis = "unit_price";
 const FIXED_PRICE: PricingBasis = "fixed_price";
 const CUSTOMER_VISIBLE: CustomerVisibility = "customer_visible";
 
-export const DEFAULT_ROOFING_CATALOG_DEFINITIONS: readonly DefaultRoofingCatalogDefinition[] =
+const RAW_DEFAULT_ROOFING_CATALOG_DEFINITIONS: readonly DefaultRoofingCatalogDefinition[] =
   [
     {
       name: "Architectural shingles",
@@ -43,6 +44,22 @@ export const DEFAULT_ROOFING_CATALOG_DEFINITIONS: readonly DefaultRoofingCatalog
       sort_order: 10,
     },
     {
+      name: "Designer architectural shingles",
+      customer_name: "Designer shingles",
+      description: null,
+      item_type: "material",
+      unit: "square",
+      quantity_source: "adjusted_roof_squares",
+      waste_applies: true,
+      pricing_basis: UNIT_PRICE,
+      customer_visibility: CUSTOMER_VISIBLE,
+      unit_cost_cents: null,
+      unit_price_cents: null,
+      labor_unit_cost_cents: null,
+      metadata: { seed_key: "roofing.designer_shingles" },
+      sort_order: 15,
+    },
+    {
       name: "Synthetic underlayment",
       customer_name: "Underlayment",
       description: null,
@@ -57,6 +74,22 @@ export const DEFAULT_ROOFING_CATALOG_DEFINITIONS: readonly DefaultRoofingCatalog
       labor_unit_cost_cents: null,
       metadata: { seed_key: "roofing.synthetic_underlayment" },
       sort_order: 20,
+    },
+    {
+      name: "Premium synthetic underlayment",
+      customer_name: "Underlayment",
+      description: null,
+      item_type: "material",
+      unit: "square",
+      quantity_source: "adjusted_roof_squares",
+      waste_applies: true,
+      pricing_basis: UNIT_PRICE,
+      customer_visibility: CUSTOMER_VISIBLE,
+      unit_cost_cents: null,
+      unit_price_cents: null,
+      labor_unit_cost_cents: null,
+      metadata: { seed_key: "roofing.premium_synthetic_underlayment" },
+      sort_order: 25,
     },
     {
       name: "Starter strip",
@@ -121,6 +154,22 @@ export const DEFAULT_ROOFING_CATALOG_DEFINITIONS: readonly DefaultRoofingCatalog
       labor_unit_cost_cents: null,
       metadata: { seed_key: "roofing.ice_water_valley" },
       sort_order: 60,
+    },
+    {
+      name: "Ice & water shield (eaves)",
+      customer_name: "Ice & water shield",
+      description: null,
+      item_type: "material",
+      unit: "linear_foot",
+      quantity_source: "eaves_lf",
+      waste_applies: false,
+      pricing_basis: UNIT_PRICE,
+      customer_visibility: CUSTOMER_VISIBLE,
+      unit_cost_cents: null,
+      unit_price_cents: null,
+      labor_unit_cost_cents: null,
+      metadata: { seed_key: "roofing.ice_water_eaves" },
+      sort_order: 65,
     },
     {
       name: "Pipe boot",
@@ -237,6 +286,13 @@ export const DEFAULT_ROOFING_CATALOG_DEFINITIONS: readonly DefaultRoofingCatalog
     },
   ];
 
+export const DEFAULT_ROOFING_CATALOG_DEFINITIONS: readonly DefaultRoofingCatalogDefinition[] =
+  RAW_DEFAULT_ROOFING_CATALOG_DEFINITIONS.map((definition) => ({
+    ...definition,
+    composition_role:
+      STARTER_CATALOG_COMPOSITION_ROLES[definition.metadata.seed_key] ?? null,
+  }));
+
 /**
  * Build company-scoped catalog drafts from passive defaults (no DB writes).
  */
@@ -260,6 +316,7 @@ export function buildDefaultRoofingCatalogDrafts(companyId: string): CatalogItem
     customer_visibility: definition.customer_visibility,
     active: true,
     sort_order: definition.sort_order ?? null,
+    composition_role: definition.composition_role ?? null,
     metadata: { ...definition.metadata },
   }));
 }

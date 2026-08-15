@@ -273,6 +273,10 @@ export type ProposalLineItemRow = {
   source_template_item_id: string | null;
   catalog_item_id: string | null;
   catalog_seed_key: string | null;
+  /** Proposal-owned composition family. Copied at create; refresh must preserve. */
+  composition_role?: string | null;
+  /** Proposal-owned composition slot. Copied at create; refresh must preserve. */
+  composition_slot_key?: string | null;
   section_id: string | null;
   page_id: string | null;
   sort_order: number;

@@ -8,6 +8,10 @@
  */
 
 import type { CustomerVisibility } from "@/app/lib/catalogTypes";
+import {
+  normalizeCompositionRole,
+  normalizeCompositionSlotKey,
+} from "@/app/lib/packageCompositionIdentity";
 import type { ProposalPageContent, ProposalPageSettings, ProposalPageType } from "@/app/lib/proposalPageTypes";
 import { formatProposalPageTypeLabel } from "@/app/lib/proposalPageTypes";
 import type {
@@ -97,6 +101,8 @@ export type ProposalLineItemSnapshotPayload = {
   source_template_item_id: string | null;
   catalog_item_id: string | null;
   catalog_seed_key: string | null;
+  composition_role: string | null;
+  composition_slot_key: string | null;
   section_id: string | null;
   page_id: string | null;
   sort_order: number;
@@ -227,6 +233,8 @@ export type LineItemSnapshotInput = {
   source_template_item_id: string;
   catalog_item_id?: string | null;
   catalog_seed_key?: string | null;
+  composition_role?: string | null;
+  composition_slot_key?: string | null;
   section_id?: string | null;
   page_id?: string | null;
   sort_order: number;
@@ -613,6 +621,8 @@ export function buildLineItemSnapshots(
       source_template_item_id: line.source_template_item_id,
       catalog_item_id: line.catalog_item_id ?? null,
       catalog_seed_key: line.catalog_seed_key ?? null,
+      composition_role: normalizeCompositionRole(line.composition_role),
+      composition_slot_key: normalizeCompositionSlotKey(line.composition_slot_key),
       section_id: line.section_id ?? null,
       page_id: line.page_id ?? null,
       sort_order: line.sort_order,
@@ -890,6 +900,8 @@ export function templateItemToLineInput(
     source_template_item_id: item.id,
     catalog_item_id: item.catalog_item_id ?? null,
     catalog_seed_key: item.catalog_seed_key ?? null,
+    composition_role: normalizeCompositionRole(item.composition_role),
+    composition_slot_key: normalizeCompositionSlotKey(item.composition_slot_key),
     section_id: item.section_id,
     sort_order: item.sort_order ?? 0,
     customer_name:

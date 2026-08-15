@@ -16,6 +16,9 @@ import {
   buildTemplateCatalogLinkView,
   type TemplateCatalogLinkStatus,
 } from "@/app/lib/proposalTemplateCatalogLink";
+import { summarizeQuantityRule } from "@/app/lib/proposalTemplateCompositionAuthoring";
+import { resolveTemplateItemDualIdentity } from "@/app/lib/proposalTemplatePackageCompositionDiff";
+import type { TemplateQuantityRule } from "@/app/lib/proposalTemplateTypes";
 import type { ProposalTemplateGraph } from "@/app/lib/proposalTemplateStore";
 
 export type PreparedIncludedWorkGroupId =
@@ -27,10 +30,16 @@ export type PreparedIncludedWorkGroupId =
 export type PreparedIncludedWorkItem = {
   templateItemId: string;
   name: string;
+  /** Catalog product name when customer label differs (V2E2A dual identity). */
+  catalogProductName: string | null;
+  showCatalogProduct: boolean;
   status: TemplateCatalogLinkStatus;
   issueLabel: string | null;
   issueDetail: string | null;
   canReplace: boolean;
+  quantityMode: "inherit_catalog" | "fixed" | "other";
+  quantitySummary: string;
+  quantityFixed: number | null;
 };
 
 export type PreparedIncludedWorkGroup = {
@@ -146,13 +155,31 @@ function toPreparedItem(
 ): PreparedIncludedWorkItem {
   const view = buildTemplateCatalogLinkView(item, catalogById);
   const issue = issueCopy(view.status);
+  const catalogId = (item.catalog_item_id ?? "").trim();
+  const catalog = catalogId ? catalogById.get(catalogId) : undefined;
+  const dual = resolveTemplateItemDualIdentity(item, catalog ?? null);
+  const quantityRule = item.quantity_rule as TemplateQuantityRule | null | undefined;
+  const quantityMode =
+    !quantityRule || quantityRule.mode === "inherit_catalog"
+      ? "inherit_catalog"
+      : quantityRule.mode === "fixed"
+        ? "fixed"
+        : "other";
   return {
     templateItemId: view.templateItemId,
-    name: view.displayName,
+    name: dual.customerLabel || view.displayName,
+    catalogProductName: dual.catalogProductName,
+    showCatalogProduct: dual.showCatalogProduct,
     status: view.status,
     issueLabel: issue.label,
     issueDetail: issue.detail,
     canReplace: view.canRelink,
+    quantityMode,
+    quantitySummary: summarizeQuantityRule(quantityRule),
+    quantityFixed:
+      quantityMode === "fixed" && quantityRule?.fixed_quantity != null
+        ? quantityRule.fixed_quantity
+        : null,
   };
 }
 

@@ -92,6 +92,8 @@ export type DraftProposalCreateLinePersistRow = {
   source_template_item_id: string | null;
   catalog_item_id: string | null;
   catalog_seed_key: string | null;
+  composition_role: string | null;
+  composition_slot_key: string | null;
   section_id: string | null;
   sort_order: number;
   customer_name: string;
@@ -738,6 +740,8 @@ export function buildDraftProposalCreatePersistPayload(
         source_template_item_id: built.source_template_item_id,
         catalog_item_id: built.catalog_item_id,
         catalog_seed_key: built.catalog_seed_key,
+        composition_role: built.composition_role ?? null,
+        composition_slot_key: built.composition_slot_key ?? null,
         section_id: built.section_id,
         sort_order: built.sort_order,
         customer_name: built.customer_name,
@@ -995,6 +999,8 @@ export async function persistDraftProposalCreateSequential(
         source_template_item_id: line.source_template_item_id,
         catalog_item_id: line.catalog_item_id,
         catalog_seed_key: line.catalog_seed_key,
+        composition_role: line.composition_role ?? null,
+        composition_slot_key: line.composition_slot_key ?? null,
         section_id: line.section_id,
         page_id: line.section_id ? pageIdBySection.get(line.section_id) ?? null : null,
         sort_order: line.sort_order,

@@ -1,11 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import {
-  TEMPLATE_ADD_FROM_CATALOG_LABEL,
-  TEMPLATE_REMOVE_FROM_TEMPLATE_LABEL,
-  TEMPLATE_RELINK_CATALOG_LABEL,
-} from "@/app/lib/proposalTemplateCatalogLink";
+import { TEMPLATE_ADD_FROM_CATALOG_LABEL } from "@/app/lib/proposalTemplateCatalogLink";
 import {
   TEMPLATES_CARD,
   TEMPLATES_WORKSPACE_SECTION,
@@ -122,7 +118,7 @@ export default function TemplatesAvailableUpgradesManager({
                     className="text-xs font-medium text-slate-500 underline-offset-2 hover:text-slate-800 hover:underline disabled:cursor-not-allowed disabled:opacity-40"
                     data-templates-replace-upgrade={item.templateItemId}
                   >
-                    {TEMPLATE_RELINK_CATALOG_LABEL}
+                    Replace
                   </button>
                   <button
                     type="button"
@@ -131,7 +127,7 @@ export default function TemplatesAvailableUpgradesManager({
                     className="text-xs font-medium text-slate-500 underline-offset-2 hover:text-slate-800 hover:underline disabled:cursor-not-allowed disabled:opacity-40"
                     data-templates-remove-upgrade={item.templateItemId}
                   >
-                    {TEMPLATE_REMOVE_FROM_TEMPLATE_LABEL}
+                    Remove
                   </button>
                 </div>
               </li>

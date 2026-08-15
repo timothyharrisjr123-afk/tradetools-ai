@@ -151,6 +151,11 @@ export type CatalogItem = {
   customer_visibility: CustomerVisibility;
   active: boolean;
   sort_order?: number | null;
+  /**
+   * Default functional family for this product (internal composition identity).
+   * Not a package slot. Not customer-facing.
+   */
+  composition_role?: string | null;
   metadata?: Record<string, unknown> | null;
   created_at?: string | null;
   updated_at?: string | null;

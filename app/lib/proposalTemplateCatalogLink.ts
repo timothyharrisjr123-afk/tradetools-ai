@@ -153,14 +153,24 @@ export function buildCatalogByIdMap(
 
 export function listActiveCatalogItemsForPicker(
   catalogItems: readonly CatalogItem[],
-  options?: { searchQuery?: string; excludeCatalogItemIds?: ReadonlySet<string> }
+  options?: {
+    searchQuery?: string;
+    excludeCatalogItemIds?: ReadonlySet<string>;
+    preferredCompositionRole?: string | null;
+    matchingRoleOnly?: boolean;
+  }
 ): CatalogItem[] {
   const q = (options?.searchQuery ?? "").trim().toLowerCase();
   const exclude = options?.excludeCatalogItemIds;
+  const preferred = String(options?.preferredCompositionRole ?? "").trim();
   return catalogItems
     .filter((item) => item.active)
     .filter((item) => !exclude?.has(item.id))
     .filter((item) => {
+      if (options?.matchingRoleOnly && preferred) {
+        const role = String(item.composition_role ?? "").trim();
+        if (role !== preferred) return false;
+      }
       if (!q) return true;
       const hay = [
         item.name,
@@ -178,6 +188,11 @@ export function listActiveCatalogItemsForPicker(
     })
     .slice()
     .sort((a, b) => {
+      if (preferred) {
+        const aMatch = String(a.composition_role ?? "").trim() === preferred ? 0 : 1;
+        const bMatch = String(b.composition_role ?? "").trim() === preferred ? 0 : 1;
+        if (aMatch !== bMatch) return aMatch - bMatch;
+      }
       const byOrder = (a.sort_order ?? Number.POSITIVE_INFINITY) - (b.sort_order ?? Number.POSITIVE_INFINITY);
       if (byOrder !== 0) return byOrder;
       return a.name.localeCompare(b.name);

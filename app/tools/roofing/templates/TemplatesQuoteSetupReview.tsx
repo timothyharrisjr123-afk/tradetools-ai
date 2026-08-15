@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { ProposalTemplateReadiness } from "@/app/lib/proposalTemplateTypes";
 import type { TemplateCatalogLinkReadiness } from "@/app/lib/proposalTemplateCatalogLink";
 import type { CatalogItem } from "@/app/lib/catalogTypes";
 import type { ProposalTemplateGraph } from "@/app/lib/proposalTemplateStore";
 import { proposalTemplateStatusLabel } from "@/app/lib/proposalTemplateTypes";
+import { buildTemplatePackageStepUpChain } from "@/app/lib/proposalTemplatePackageCompositionDiff";
 import {
   TEMPLATES_CONNECTED_WORKSPACE,
   TEMPLATES_WORKSPACE_SECTION,
@@ -22,6 +23,9 @@ import {
 import TemplatesAvailableUpgradesManager from "./TemplatesAvailableUpgradesManager";
 import TemplatesIncludedItemsManager from "./TemplatesIncludedItemsManager";
 import TemplatesPacketWordingEditor from "./TemplatesPacketWordingEditor";
+import TemplatesPackageCompositionDiffDetail, {
+  TemplatesPackageStepUpSummary,
+} from "./TemplatesPackageCompositionDiff";
 import { buildPreparedPackageScopePresentation } from "./templatesIncludedWorkPresentation";
 import type { PacketWordingSavePlan } from "./templatesSetupPacketWording";
 import {
@@ -67,6 +71,11 @@ type TemplatesQuoteSetupReviewProps = {
   onAddUpgradeItem: () => void;
   onReplaceItem: (templateItemId: string) => void;
   onRemoveItem: (templateItemId: string) => void;
+  onSaveItemQuantity?: (
+    templateItemId: string,
+    mode: "inherit_catalog" | "fixed",
+    fixedQuantity?: number | null
+  ) => void;
   onFixIssues: () => void;
   onOpenAdvanced: (tab?: TemplatesEditTabId) => void;
   onSavePacketWording: (plan: PacketWordingSavePlan) => Promise<boolean>;
@@ -103,6 +112,7 @@ export default function TemplatesQuoteSetupReview({
   onAddUpgradeItem,
   onReplaceItem,
   onRemoveItem,
+  onSaveItemQuantity,
   onFixIssues,
   onOpenAdvanced,
   onSavePacketWording,
@@ -118,6 +128,9 @@ export default function TemplatesQuoteSetupReview({
   preferenceBusy = false,
 }: TemplatesQuoteSetupReviewProps) {
   const [packagesAdjustOpen, setPackagesAdjustOpen] = useState(false);
+  const [expandedStepUpOptionId, setExpandedStepUpOptionId] = useState<string | null>(
+    null
+  );
   const { template } = graph;
   const statusLabel = proposalTemplateStatusLabel(template.status);
   const companyReady = proposalReadiness.status === "ready_for_builder";
@@ -156,6 +169,16 @@ export default function TemplatesQuoteSetupReview({
     description: template.description,
     metadata: template.metadata ?? null,
   });
+
+  const stepUpByOptionId = useMemo(() => {
+    const map = new Map(
+      buildTemplatePackageStepUpChain({ graph, catalogItems }).map((item) => [
+        item.package.packageId,
+        item,
+      ])
+    );
+    return map;
+  }, [graph, catalogItems]);
 
   const countLine = formatTemplateScopeCountLine({
     packageCount: packageSummaries.length,
@@ -391,13 +414,19 @@ export default function TemplatesQuoteSetupReview({
                   optionDescription: optionDescriptionById.get(row.optionId),
                 });
                 return (
-                  <button
+                  <div
                     key={row.optionId}
-                    type="button"
                     role="tab"
+                    tabIndex={0}
                     aria-selected={selected}
                     onClick={() => onSelectPackage(row.optionId)}
-                    className={`rounded-xl border px-3.5 py-3.5 text-left transition ${
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        onSelectPackage(row.optionId);
+                      }
+                    }}
+                    className={`min-w-0 rounded-xl border px-3.5 py-3.5 text-left transition ${
                       selected
                         ? "border-blue-400 bg-white shadow-sm ring-2 ring-blue-100"
                         : "border-slate-200/90 bg-white/80 hover:border-slate-300 hover:bg-white"
@@ -432,7 +461,26 @@ export default function TemplatesQuoteSetupReview({
                         {packageDescription}
                       </p>
                     ) : null}
-                  </button>
+                    {(() => {
+                      const stepUp = stepUpByOptionId.get(row.optionId);
+                      if (!stepUp) return null;
+                      const expanded = expandedStepUpOptionId === row.optionId;
+                      return (
+                        <>
+                          <TemplatesPackageStepUpSummary
+                            diff={stepUp.diff}
+                            expanded={expanded}
+                            onToggle={() =>
+                              setExpandedStepUpOptionId(expanded ? null : row.optionId)
+                            }
+                          />
+                          {expanded ? (
+                            <TemplatesPackageCompositionDiffDetail diff={stepUp.diff} />
+                          ) : null}
+                        </>
+                      );
+                    })()}
+                  </div>
                 );
               })}
             </div>
@@ -447,6 +495,7 @@ export default function TemplatesQuoteSetupReview({
           onAddItem={onAddItem}
           onReplaceItem={onReplaceItem}
           onRemoveItem={onRemoveItem}
+          onSaveItemQuantity={onSaveItemQuantity}
           heading={TEMPLATES_INCLUDED_WORK_HEADING}
           embedded
         />

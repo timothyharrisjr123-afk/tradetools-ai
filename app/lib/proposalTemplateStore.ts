@@ -107,6 +107,8 @@ export type ProposalTemplateItemRow = {
   section_id: string;
   catalog_item_id?: string | null;
   catalog_seed_key?: string | null;
+  composition_role?: string | null;
+  composition_slot_key?: string | null;
   item_role: string;
   customer_name_override?: string | null;
   description_override?: string | null;
@@ -140,7 +142,7 @@ export const PROPOSAL_TEMPLATE_SECTION_SELECT_COLUMNS =
   "id, company_id, template_id, option_id, kind, name, customer_title, customer_visibility, sort_order, content, metadata, created_at, updated_at";
 
 export const PROPOSAL_TEMPLATE_ITEM_SELECT_COLUMNS =
-  "id, company_id, template_id, option_id, section_id, catalog_item_id, catalog_seed_key, item_role, customer_name_override, description_override, customer_visibility, quantity_rule, upgrade_effect, replaces_template_item_id, default_selected, sort_order, metadata, created_at, updated_at";
+  "id, company_id, template_id, option_id, section_id, catalog_item_id, catalog_seed_key, composition_role, composition_slot_key, item_role, customer_name_override, description_override, customer_visibility, quantity_rule, upgrade_effect, replaces_template_item_id, default_selected, sort_order, metadata, created_at, updated_at";
 
 const TEMPLATE_QUANTITY_MODE_SET = new Set<string>(TEMPLATE_QUANTITY_MODES);
 
@@ -374,6 +376,8 @@ export function rowToProposalTemplateItem(row: ProposalTemplateItemRow): Proposa
     section_id: row.section_id,
     catalog_item_id: row.catalog_item_id && isUuidLike(row.catalog_item_id) ? row.catalog_item_id : null,
     catalog_seed_key: normalizeNullableString(row.catalog_seed_key),
+    composition_role: normalizeNullableString(row.composition_role),
+    composition_slot_key: normalizeNullableString(row.composition_slot_key),
     item_role: row.item_role as ProposalTemplateItemRole,
     customer_name_override: normalizeNullableString(row.customer_name_override),
     description_override: normalizeNullableString(row.description_override),
@@ -569,6 +573,14 @@ function proposalTemplateItemDraftToRowFields(
     catalog_seed_key:
       draft.catalog_seed_key !== undefined
         ? normalizeNullableString(draft.catalog_seed_key)
+        : undefined,
+    composition_role:
+      draft.composition_role !== undefined
+        ? normalizeNullableString(draft.composition_role)
+        : undefined,
+    composition_slot_key:
+      draft.composition_slot_key !== undefined
+        ? normalizeNullableString(draft.composition_slot_key)
         : undefined,
     item_role: draft.item_role ?? (mode === "insert" ? "standard" : undefined),
     customer_name_override:

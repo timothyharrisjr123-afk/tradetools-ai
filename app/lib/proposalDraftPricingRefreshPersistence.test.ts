@@ -323,6 +323,29 @@ describe("draft pricing refresh persistence contract", () => {
     assert.equal(payload.event.event_type, "draft_saved");
   });
 
+  test("refresh persist copies draft composition identity through delete/reinsert payload", () => {
+    const instantiateInput = minimalInstantiateInput();
+    instantiateInput.lineItemsByTemplateOptionId[TEMPLATE_OPT]![0]!.composition_role =
+      "roof_covering";
+    instantiateInput.lineItemsByTemplateOptionId[TEMPLATE_OPT]![0]!.composition_slot_key =
+      "roof_covering";
+    const payload = buildDraftPricingRefreshPersistPayload({
+      companyId: COMPANY_ID,
+      proposalId: PROPOSAL_ID,
+      proposalVersionId: VERSION_ID,
+      instantiatePayload: minimalInstantiatePayload(),
+      instantiateInput,
+      existingOptions: [{ id: OPTION_ID, source_template_option_id: TEMPLATE_OPT }],
+      pageIdBySection: new Map([["sec-1", "page-1"]]),
+      policy: TEST_POLICY,
+      pricingPolicyId: "policy-1",
+      measurementStamp: null,
+    });
+    const line = payload.options[0]!.line_items[0]!;
+    assert.equal(line.composition_role, "roof_covering");
+    assert.equal(line.composition_slot_key, "roof_covering");
+  });
+
   test("S3D3 draft refresh persist rows include adjusted quantity_resolution_echo without changing qty/totals", () => {
     const payload = buildDraftPricingRefreshPersistPayload({
       companyId: COMPANY_ID,

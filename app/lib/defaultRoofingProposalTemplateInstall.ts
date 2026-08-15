@@ -18,7 +18,6 @@ import {
   DEFAULT_ROOF_REPLACEMENT_TEMPLATE_SEED_KEY,
 } from "@/app/lib/defaultRoofingProposalTemplates";
 import type {
-  DefaultProposalTemplateDefinition,
   DefaultProposalTemplateItemDefinition,
   DefaultProposalTemplateOptionDefinition,
   DefaultProposalTemplateSectionDefinition,
@@ -622,6 +621,8 @@ async function installItem(params: {
     section_id: sectionId,
     catalog_item_id: catalogItemId,
     catalog_seed_key: catalogSeedKey,
+    composition_role: itemDef.composition_role ?? null,
+    composition_slot_key: itemDef.composition_slot_key ?? null,
     item_role: itemDef.item_role,
     customer_name_override: itemDef.customer_name_override ?? null,
     description_override: itemDef.description_override ?? null,

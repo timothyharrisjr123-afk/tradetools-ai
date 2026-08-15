@@ -8,6 +8,10 @@
 import { resolveSelectedTemplateOptionIdFromGraph } from "@/app/lib/proposalDraftGraphAdapter";
 import { isUuidLike } from "@/app/lib/jobStore";
 import { PROPOSAL_LINE_CUSTOMER_FORBIDDEN_KEYS } from "@/app/lib/proposalLineSnapshotTypes";
+import {
+  normalizeCompositionRole,
+  normalizeCompositionSlotKey,
+} from "@/app/lib/packageCompositionIdentity";
 import type {
   ProposalDraftGraph,
   ProposalInternalSummaryRow,
@@ -73,6 +77,8 @@ export type ProposalSendFreezeLinePersistRow = {
   source_template_item_id: string | null;
   catalog_item_id: string | null;
   catalog_seed_key: string | null;
+  composition_role: string | null;
+  composition_slot_key: string | null;
   section_id: string | null;
   page_id: string | null;
   sort_order: number;
@@ -229,6 +235,8 @@ function copyLineRow(
     source_template_item_id: line.source_template_item_id,
     catalog_item_id: line.catalog_item_id,
     catalog_seed_key: line.catalog_seed_key,
+    composition_role: normalizeCompositionRole(line.composition_role),
+    composition_slot_key: normalizeCompositionSlotKey(line.composition_slot_key),
     section_id: line.section_id,
     page_id:
       line.page_id != null && draftToSentPageIds.has(line.page_id)

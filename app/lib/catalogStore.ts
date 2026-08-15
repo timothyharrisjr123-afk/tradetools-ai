@@ -61,6 +61,7 @@ export type CatalogItemRow = {
   customer_visibility: string;
   active: boolean;
   sort_order?: number | null;
+  composition_role?: string | null;
   metadata?: JsonObject | null;
   created_by?: string | null;
   updated_by?: string | null;
@@ -72,7 +73,7 @@ export type CatalogItemInsertRow = Partial<CatalogItemRow>;
 export type CatalogItemUpdateRow = Partial<CatalogItemRow>;
 
 const CATALOG_ITEM_SELECT_COLUMNS =
-  "id, company_id, name, customer_name, description, item_type, unit, quantity_source, default_quantity, coverage_rate, coverage_basis, waste_applies, waste_pct, sales_tax_rate_pct, purchase_tax_rate_pct, abc_sku, qxo_sku, srs_sku, unit_cost_cents, unit_price_cents, labor_unit_cost_cents, pricing_basis, customer_visibility, active, sort_order, metadata, created_by, updated_by, created_at, updated_at";
+  "id, company_id, name, customer_name, description, item_type, unit, quantity_source, default_quantity, coverage_rate, coverage_basis, waste_applies, waste_pct, sales_tax_rate_pct, purchase_tax_rate_pct, abc_sku, qxo_sku, srs_sku, unit_cost_cents, unit_price_cents, labor_unit_cost_cents, pricing_basis, customer_visibility, active, sort_order, composition_role, metadata, created_by, updated_by, created_at, updated_at";
 
 function normalizeCoverageBasis(value: unknown): CoverageBasis | null {
   if (value == null || value === "") return null;
@@ -173,6 +174,7 @@ export function rowToCatalogItem(row: CatalogItemRow): CatalogItem {
     customer_visibility: row.customer_visibility as CustomerVisibility,
     active: Boolean(row.active),
     sort_order: normalizeNullableInteger(row.sort_order),
+    composition_role: normalizeNullableString(row.composition_role),
     metadata: normalizeJsonObject(row.metadata),
     created_at: row.created_at,
     updated_at: row.updated_at,
@@ -273,6 +275,10 @@ function draftToRowFields(
     sort_order:
       draft.sort_order !== undefined
         ? normalizeNullableInteger(draft.sort_order)
+        : undefined,
+    composition_role:
+      draft.composition_role !== undefined
+        ? normalizeNullableString(draft.composition_role)
         : undefined,
     metadata: draft.metadata !== undefined ? (draft.metadata ?? null) : undefined,
   };

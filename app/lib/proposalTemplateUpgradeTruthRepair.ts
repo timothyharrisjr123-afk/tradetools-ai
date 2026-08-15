@@ -100,8 +100,11 @@ function recommendAction(collision: SameOptionCatalogCollision): UpgradeTruthRep
   // Heuristic: package-promise names / known seeds → move to included overrides.
   const packageEnhancementSeeds = new Set([
     "roofing.synthetic_underlayment",
+    "roofing.premium_synthetic_underlayment",
     "roofing.ice_water_valley",
+    "roofing.ice_water_eaves",
     "roofing.architectural_shingles",
+    "roofing.designer_shingles",
   ]);
 
   if (packageEnhancementSeeds.has(collision.catalogKey)) {

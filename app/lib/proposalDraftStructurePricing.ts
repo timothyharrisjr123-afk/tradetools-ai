@@ -5,6 +5,10 @@
  * Does NOT rebuild line membership, package presentation, or upgrade defs
  * from the live Template graph.
  *
+ * Composition identity (V2E2A1):
+ * Refresh preserves draft-owned composition_role / composition_slot_key.
+ * Live Template composition fields and Catalog composition_role are never read.
+ *
  * Quantity ownership (V2E1 completion):
  * Refresh may re-resolve measurement quantities using ONLY draft-owned + Catalog
  * provenance (synthesized quantity rule). Live Template quantity_rule is never read.
@@ -12,6 +16,10 @@
 
 import type { CatalogItem, CatalogUnit, CustomerVisibility, PricingBasis, QuantitySource } from "@/app/lib/catalogTypes";
 import { QUANTITY_SOURCES } from "@/app/lib/catalogTypes";
+import {
+  normalizeCompositionRole,
+  normalizeCompositionSlotKey,
+} from "@/app/lib/packageCompositionIdentity";
 import type { ProposalQuantityPreviewContext } from "@/app/lib/proposalBuilderPreview";
 import { buildCatalogItemById } from "@/app/lib/proposalBuilderPreview";
 import { priceProposalLine, resolveProposalPricing } from "@/app/lib/proposalPricingEngine";
@@ -169,6 +177,8 @@ export function buildSyntheticTemplateItemForDraftQuantity(
     section_id: (draftLine.section_id ?? "").trim() || id,
     catalog_item_id: draftLine.catalog_item_id,
     catalog_seed_key: draftLine.catalog_seed_key,
+    composition_role: normalizeCompositionRole(draftLine.composition_role),
+    composition_slot_key: normalizeCompositionSlotKey(draftLine.composition_slot_key),
     item_role: asItemRole(draftLine.role),
     quantity_rule: synthesizeDraftOwnedQuantityRule(draftLine, catalog),
     sort_order: draftLine.sort_order,
@@ -688,6 +698,8 @@ function draftLineToSnapshotInput(params: {
     source_template_item_id: (draftLine.source_template_item_id ?? "").trim(),
     catalog_item_id: draftLine.catalog_item_id,
     catalog_seed_key: draftLine.catalog_seed_key,
+    composition_role: normalizeCompositionRole(draftLine.composition_role),
+    composition_slot_key: normalizeCompositionSlotKey(draftLine.composition_slot_key),
     section_id: draftLine.section_id,
     sort_order: draftLine.sort_order,
     customer_name: draftLine.customer_name,

@@ -430,6 +430,26 @@ describe("buildProposalPublicGraphDto", () => {
     assert.ok(!("scopeDecisions" in dto));
     assert.doesNotThrow(() => assertPublicDtoShape(dto));
   });
+
+  test("public DTO omits composition_role and composition_slot_key", () => {
+    const graph = {
+      ...draftGraph(),
+      lineItems: draftGraph().lineItems.map((line) => ({
+        ...line,
+        composition_role: "roof_covering",
+        composition_slot_key: "roof_covering",
+      })),
+    };
+    const dto = buildProposalPublicGraphDto(graph, TEMPLATE_OPT_A);
+    const json = JSON.stringify(dto);
+    assert.doesNotMatch(json, /composition_role/);
+    assert.doesNotMatch(json, /composition_slot_key/);
+    assert.doesNotMatch(json, /roof_covering/);
+    for (const line of dto.options[0]!.line_items) {
+      assert.ok(!("composition_role" in line));
+      assert.ok(!("composition_slot_key" in line));
+    }
+  });
 });
 
 describe("R18B1 public DTO guardrails", () => {

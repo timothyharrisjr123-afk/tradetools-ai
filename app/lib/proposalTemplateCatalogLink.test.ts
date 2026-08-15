@@ -128,6 +128,44 @@ describe("proposalTemplateCatalogLink", () => {
     );
   });
 
+  test("picker prefers matching composition role and can filter to it", () => {
+    const items = [
+      catalog({
+        id: "cover",
+        name: "Designer shingles",
+        composition_role: "roof_covering",
+        sort_order: 20,
+      }),
+      catalog({
+        id: "under",
+        name: "Underlayment",
+        composition_role: "underlayment",
+        sort_order: 10,
+      }),
+      catalog({
+        id: "legacy",
+        name: "Unclassified material",
+        composition_role: null,
+        sort_order: 5,
+      }),
+    ];
+    const preferred = listActiveCatalogItemsForPicker(items, {
+      preferredCompositionRole: "roof_covering",
+    });
+    assert.deepEqual(
+      preferred.map((row) => row.id),
+      ["cover", "legacy", "under"]
+    );
+    const matchingOnly = listActiveCatalogItemsForPicker(items, {
+      preferredCompositionRole: "roof_covering",
+      matchingRoleOnly: true,
+    });
+    assert.deepEqual(
+      matchingOnly.map((row) => row.id),
+      ["cover"]
+    );
+  });
+
   test("picker search filters by name", () => {
     const items = [
       catalog({ id: "a", name: "Architectural shingles", active: true }),

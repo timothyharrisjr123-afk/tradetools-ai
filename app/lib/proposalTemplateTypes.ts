@@ -190,6 +190,16 @@ export type ProposalTemplateItem = {
   section_id: string;
   catalog_item_id?: string | null;
   catalog_seed_key?: string | null;
+  /**
+   * Functional family copied from Catalog at add-item (internal).
+   * Survives Replace product. Not customer-facing.
+   */
+  composition_role?: string | null;
+  /**
+   * Authoritative package slot instance of composition_role within this
+   * option's included vs optional group. Not customer-facing.
+   */
+  composition_slot_key?: string | null;
   item_role: ProposalTemplateItemRole;
   customer_name_override?: string | null;
   description_override?: string | null;
@@ -286,6 +296,8 @@ export type ProposalTemplateReadiness = {
 
 export type DefaultProposalTemplateItemDefinition = {
   catalog_seed_key: string;
+  composition_role?: string | null;
+  composition_slot_key?: string | null;
   item_role: ProposalTemplateItemRole;
   customer_name_override?: string | null;
   description_override?: string | null;

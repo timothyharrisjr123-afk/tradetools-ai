@@ -316,6 +316,31 @@ describe("buildProposalSendFreezePersistPayload", () => {
     assert.equal(excluded?.pricing_status, "omitted");
   });
 
+  test("freeze copies draft composition_role and composition_slot_key onto sent lines", () => {
+    const graph = draftGraph();
+    graph.lineItems = graph.lineItems.map((line, index) =>
+      index === 0
+        ? {
+            ...line,
+            composition_role: "roof_covering",
+            composition_slot_key: "roof_covering",
+          }
+        : line
+    );
+    const payload = buildProposalSendFreezePersistPayload(graph, {
+      frozenAt: FROZEN_AT,
+      sentVersionId: SENT_VERSION_ID,
+    });
+    const copied = payload.options[0]!.line_items.find((line) => line.customer_name === "Visible");
+    assert.equal(copied?.composition_role, "roof_covering");
+    assert.equal(copied?.composition_slot_key, "roof_covering");
+    const historicalNull = payload.options[0]!.line_items.find(
+      (line) => line.customer_name === "Hidden"
+    );
+    assert.equal(historicalNull?.composition_role, null);
+    assert.equal(historicalNull?.composition_slot_key, null);
+  });
+
   test("internal summaries copied as contractor-only", () => {
     const payload = buildProposalSendFreezePersistPayload(draftGraph(), {
       frozenAt: FROZEN_AT,
