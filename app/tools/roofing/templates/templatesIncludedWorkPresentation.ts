@@ -131,13 +131,13 @@ function availableUpgradeIssueCopy(status: TemplateCatalogLinkStatus): {
     case "inactive":
       return {
         label: "Catalog item unavailable",
-        detail: "Choose an active Catalog item for this available upgrade.",
+        detail: "Choose an active Catalog item for this optional upgrade.",
       };
     case "missing_catalog":
     case "missing_id":
       return {
         label: "Needs Catalog attention",
-        detail: "Choose a Catalog item for this available upgrade.",
+        detail: "Choose a Catalog item for this optional upgrade.",
       };
     case "linked":
     default:

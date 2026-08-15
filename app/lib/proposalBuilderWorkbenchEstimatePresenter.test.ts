@@ -702,8 +702,8 @@ describe("buildProposalWorkbenchEstimatePresentation", () => {
     assert.equal(result.packageZone.effectiveOptionId, OPTION_STANDARD);
     assert.equal(result.packageZone.label, "Standard");
     assert.equal(result.packageZone.hasExplicitSelection, true);
-    assert.ok(result.packageZone.description);
-    assert.equal(result.packageZone.bullets.length, 2);
+    assert.equal(result.packageZone.description, null);
+    assert.equal(result.packageZone.bullets.length, 0);
   });
 
   test("packageZone prefers authored option description over label fallback", () => {

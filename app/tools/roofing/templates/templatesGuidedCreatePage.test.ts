@@ -26,7 +26,7 @@ describe("Template Flow V1 — guided + Template create", () => {
     assert.ok(setup.includes("TemplatesGuidedCreateOverlay"));
   });
 
-  test("overlay covers basics, package setup, structure, packet, review", () => {
+  test("overlay covers basics, packages, and concise review", () => {
     const overlay = read("TemplatesGuidedCreateOverlay.tsx");
     const planner = read("templatesGuidedCreatePlanner.ts");
 
@@ -34,9 +34,12 @@ describe("Template Flow V1 — guided + Template create", () => {
     assert.ok(overlay.includes("data-templates-guided-create-panel-basics"));
     assert.ok(overlay.includes("data-templates-guided-create-panel-package-setup"));
     assert.ok(overlay.includes("data-templates-guided-create-package-drafts"));
-    assert.ok(overlay.includes("data-templates-guided-create-panel-packet"));
     assert.ok(overlay.includes("data-templates-guided-create-panel-confirm"));
+    assert.ok(overlay.includes("data-templates-guided-create-review-structure"));
+    assert.ok(overlay.includes("data-templates-guided-create-review-packet"));
     assert.ok(overlay.includes("data-templates-guided-create-submit"));
+    assert.equal(overlay.includes("data-templates-guided-create-panel-structure"), false);
+    assert.equal(overlay.includes("data-templates-guided-create-panel-packet"), false);
     assert.ok(overlay.includes("GUIDED_PACKAGE_MODEL_CHOICES"));
     assert.ok(planner.includes('"single"'));
     assert.ok(planner.includes('"double"'));

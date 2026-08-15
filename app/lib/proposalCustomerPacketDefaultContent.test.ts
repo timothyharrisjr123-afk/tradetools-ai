@@ -14,6 +14,7 @@ import {
   LEGACY_PACKET_SCOPE_NOTES_BODY,
   LEGACY_PACKET_TERMS_BODY,
   LEGACY_PACKET_WARRANTY_BODY,
+  PRE_V2E5_PACKET_OVERVIEW_BODY,
   resolveCustomerFacingPacketBodyMarkdown,
 } from "./proposalCustomerPacketDefaultContent";
 import { DEFAULT_ROOFING_PROPOSAL_TEMPLATE_DEFINITIONS } from "./defaultRoofingProposalTemplates";
@@ -30,6 +31,7 @@ describe("R3A0 default customer-facing packet content", () => {
     assert.match(DEFAULT_PACKET_OVERVIEW_BODY, /prepared this roofing proposal for your home/i);
     assert.match(DEFAULT_PACKET_OVERVIEW_BODY, /\{\{company_name\}\}/);
     assert.match(DEFAULT_PACKET_OVERVIEW_BODY, /\{\{selected_package_name\}\}/);
+    assert.doesNotMatch(DEFAULT_PACKET_OVERVIEW_BODY, /recommended path/i);
     assert.doesNotMatch(DEFAULT_PACKET_OVERVIEW_BODY, /this proposal outlines/i);
     assert.doesNotMatch(DEFAULT_PACKET_OVERVIEW_BODY, /supporting pages/i);
     assert.doesNotMatch(DEFAULT_PACKET_OVERVIEW_BODY, /current job information/i);
@@ -99,18 +101,35 @@ describe("R3A0 default customer-facing packet content", () => {
     assert.equal(resolveCustomerFacingPacketBodyMarkdown("warranty", custom), custom);
   });
 
-  test("packet chrome uses recommended-package language without schema terms", () => {
-    assert.equal(PROPOSAL_CUSTOMER_PACKET_CURRENT_PACKAGE_LABEL, "Recommended roofing package");
-    assert.equal(PROPOSAL_CUSTOMER_PACKET_CURRENT_BADGE, "Recommended");
+  test("pre-V2E5 recommended-path overview resolves to current default", () => {
+    assert.equal(
+      resolveCustomerFacingPacketBodyMarkdown("project_overview", PRE_V2E5_PACKET_OVERVIEW_BODY),
+      DEFAULT_PACKET_OVERVIEW_BODY
+    );
+  });
+
+  test("R3A smoke-test project notes resolve to production starter notes", () => {
+    assert.equal(
+      resolveCustomerFacingPacketBodyMarkdown(
+        "custom_text",
+        "R3A SMOKE TEST - Project notes: debris removal is scheduled within 48 hours of completion."
+      ),
+      DEFAULT_PACKET_SCOPE_NOTES_BODY
+    );
+  });
+
+  test("packet chrome uses selected-package language without schema terms", () => {
+    assert.equal(PROPOSAL_CUSTOMER_PACKET_CURRENT_PACKAGE_LABEL, "Selected package");
+    assert.equal(PROPOSAL_CUSTOMER_PACKET_CURRENT_BADGE, "Selected");
     assert.match(PROPOSAL_CUSTOMER_PACKET_COVER_CONFIDENCE, /Prepared for your home/i);
     assert.match(PROPOSAL_CUSTOMER_PACKET_UPGRADES_INTRO_LINE2, /optional/i);
     assert.doesNotMatch(PROPOSAL_CUSTOMER_PACKET_COVER_CONFIDENCE, /page_type|content_json|template section/i);
   });
 
-  test("package meta fallback avoids invented warranty-year claims", () => {
+  test("package meta does not invent Standard marketing copy", () => {
     const standard = resolvePackageMeta("Standard");
-    assert.match(standard.description, /quality materials/i);
-    assert.doesNotMatch(standard.bullets.join(" "), /25 Year|30 Year|50 Year/i);
+    assert.equal(standard.description, null);
+    assert.deepEqual(standard.bullets, []);
     const authored = resolvePackageMeta("Standard", "Contractor-authored Standard story.");
     assert.equal(authored.description, "Contractor-authored Standard story.");
   });

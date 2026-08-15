@@ -45,7 +45,7 @@ import type {
   ProposalPublicGraphOptionDto,
   ProposalPublicGraphPageDto,
 } from "@/app/lib/proposalPublicGraphDto";
-import { resolvePackageMeta, type PackageMeta } from "@/app/lib/proposalPackagePresentation";
+import { resolvePackageMeta } from "@/app/lib/proposalPackagePresentation";
 import {
   buildProposalDocumentContextFromPublicDto,
   isPublicProposalPricingComplete,
@@ -283,7 +283,11 @@ export function buildCustomerPacketEstimateFromPublicDto(
 
   const selectedOption = visibleOptions.find((option) => option.source_template_option_id === selectedKey)!;
   const selectedLabel = optionLabel(selectedOption);
-  const selectedMeta = resolvePackageMeta(selectedLabel, selectedOption.description);
+  const selectedMeta = resolvePackageMeta(
+    selectedLabel,
+    selectedOption.description,
+    selectedOption.customer_fact_lines ?? []
+  );
   const { includedLines, upgradeLines } = splitSelectedOptionLines(selectedOption);
   const mappedIncluded = includedLines.map((line) => mapLine(line, displayPolicy));
   const scopeGroups = buildScopeGroups(mappedIncluded);
@@ -291,7 +295,7 @@ export function buildCustomerPacketEstimateFromPublicDto(
   const estimate: ProposalCustomerPacketEstimateViewModel = {
     optionKey: selectedKey,
     label: selectedLabel,
-    description: selectedMeta.description,
+    description: selectedMeta.description ?? "",
     bullets: [...selectedMeta.bullets],
     accent: selectedMeta.accent,
     totalInvestmentLabel: formatTotalInvestment(selectedOption, displayPolicy),
@@ -305,11 +309,15 @@ export function buildCustomerPacketEstimateFromPublicDto(
       ? {
           options: visibleOptions.map((option) => {
             const label = optionLabel(option);
-            const meta = resolvePackageMeta(label, option.description);
+            const meta = resolvePackageMeta(
+              label,
+              option.description,
+              option.customer_fact_lines ?? []
+            );
             return {
               optionKey: option.source_template_option_id,
               label,
-              description: meta.description,
+              description: meta.description ?? "",
               bullets: [...meta.bullets],
               totalInvestmentLabel: formatTotalInvestment(option, displayPolicy),
               accent: meta.accent,

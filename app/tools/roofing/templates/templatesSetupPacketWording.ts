@@ -43,7 +43,7 @@ export const TEMPLATES_PACKET_SAVE_ACTION = "Save changes" as const;
 export const TEMPLATES_PACKET_CANCEL_ACTION = "Cancel" as const;
 export const TEMPLATES_PACKET_EDITOR_HEADING = "Customer wording" as const;
 export const TEMPLATES_PACKET_EDITOR_HINT =
-  "This setup’s wording appears on new proposals. Existing drafts and sent proposals keep their copied text." as const;
+  "This wording appears on new proposals. Existing drafts keep their copied text." as const;
 
 export type PacketWordingSlotView = {
   slotId: PacketWordingSlotId;
@@ -188,11 +188,19 @@ function normalizeBody(body: string): string {
   return body.replace(/\r\n/g, "\n").trim();
 }
 
-/** Preview snippet for read mode — no schema language. */
+/** Preview snippet for read mode — readable example copy, not raw tokens. */
 export function packetWordingPreview(body: string, maxLength = 140): string {
-  const compact = body.replace(/\s+/g, " ").trim();
-  if (compact.length <= maxLength) return compact;
-  return `${compact.slice(0, maxLength - 1).trimEnd()}…`;
+  const readable = body
+    .replace(/\{\{selected_package_name\}\}\s+package/gi, "selected package")
+    .replace(/\{\{selected_package_name\}\}/g, "selected package")
+    .replace(/\{\{company_name\}\}/g, "Your company")
+    .replace(/\{\{[a-z][a-z0-9_]*\}\}/g, "")
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!readable) return "";
+  if (readable.length <= maxLength) return readable;
+  return `${readable.slice(0, maxLength - 1).trimEnd()}…`;
 }
 
 export function packetWordingUiHasForbiddenTerms(source: string): boolean {

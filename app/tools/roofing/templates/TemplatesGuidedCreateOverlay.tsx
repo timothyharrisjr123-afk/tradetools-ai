@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { GuidedTemplateCreatePlan } from "./templatesGuidedCreatePlanner";
 import {
   GUIDED_CREATE_BACK_ACTION,
@@ -10,6 +10,8 @@ import {
   GUIDED_CREATE_OVERLAY_TITLE,
   GUIDED_CREATE_PACKAGE_SETUP_HINT,
   GUIDED_CREATE_PRIMARY_ACTION,
+  GUIDED_CREATE_REVIEW_PACKET_LABEL,
+  GUIDED_CREATE_REVIEW_STRUCTURE_LABEL,
   GUIDED_CREATE_STARTING_POINT_HINT,
   GUIDED_CREATE_STARTING_POINT_LABEL,
   GUIDED_CREATE_STARTING_POINT_VALUE,
@@ -27,6 +29,7 @@ import {
   type GuidedPackageDraft,
   type GuidedPackageModelId,
 } from "./templatesGuidedCreatePlanner";
+import { customerLabelDiffersFromPackageName } from "./templatesWorkspaceFlow";
 
 type TemplatesGuidedCreateOverlayProps = {
   open: boolean;
@@ -52,17 +55,22 @@ export default function TemplatesGuidedCreateOverlay({
   );
   const [basicsError, setBasicsError] = useState<string | null>(null);
   const [packageError, setPackageError] = useState<string | null>(null);
+  const [revealCustomerLabelKeys, setRevealCustomerLabelKeys] = useState<string[]>([]);
+  const [wasOpen, setWasOpen] = useState(open);
 
-  useEffect(() => {
-    if (!open) return;
-    setStep("basics");
-    setName("");
-    setDescription("");
-    setPackageModel("triple");
-    setPackageDrafts(buildDefaultGuidedPackageDrafts("triple"));
-    setBasicsError(null);
-    setPackageError(null);
-  }, [open]);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) {
+      setStep("basics");
+      setName("");
+      setDescription("");
+      setPackageModel("triple");
+      setPackageDrafts(buildDefaultGuidedPackageDrafts("triple"));
+      setRevealCustomerLabelKeys([]);
+      setBasicsError(null);
+      setPackageError(null);
+    }
+  }
 
   const plan = useMemo(() => {
     const basics = validateGuidedCreateBasics({ name, description });
@@ -88,6 +96,7 @@ export default function TemplatesGuidedCreateOverlay({
   const selectPackageModel = (nextModel: GuidedPackageModelId) => {
     setPackageModel(nextModel);
     setPackageDrafts(buildDefaultGuidedPackageDrafts(nextModel));
+    setRevealCustomerLabelKeys([]);
     setPackageError(null);
   };
 
@@ -100,7 +109,15 @@ export default function TemplatesGuidedCreateOverlay({
           }
           return draft;
         }
-        return { ...draft, ...patch };
+        const nextPatch = { ...patch };
+        if (
+          nextPatch.name !== undefined &&
+          nextPatch.customerLabel === undefined &&
+          !customerLabelDiffersFromPackageName(draft.name, draft.customerLabel)
+        ) {
+          nextPatch.customerLabel = nextPatch.name;
+        }
+        return { ...draft, ...nextPatch };
       })
     );
   };
@@ -341,14 +358,14 @@ export default function TemplatesGuidedCreateOverlay({
                             onChange={() => updateDraft(draft.key, { isDefault: true })}
                             data-templates-guided-create-default-package={draft.key}
                           />
-                          Default package
+                          Starting package
                         </label>
                         <span className="text-[11px] text-slate-400">
                           Starter: {draft.sourceName}
                         </span>
                       </div>
                       <label className="block">
-                        <span className="text-xs font-medium text-slate-700">Display name</span>
+                        <span className="text-xs font-medium text-slate-700">Package name</span>
                         <input
                           type="text"
                           value={draft.name}
@@ -359,23 +376,7 @@ export default function TemplatesGuidedCreateOverlay({
                         />
                       </label>
                       <label className="block">
-                        <span className="text-xs font-medium text-slate-700">
-                          Customer label{" "}
-                          <span className="font-normal text-slate-500">(optional)</span>
-                        </span>
-                        <input
-                          type="text"
-                          value={draft.customerLabel}
-                          disabled={creating}
-                          onChange={(e) =>
-                            updateDraft(draft.key, { customerLabel: e.target.value })
-                          }
-                          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-200"
-                          data-templates-guided-create-package-customer-label={draft.key}
-                        />
-                      </label>
-                      <label className="block">
-                        <span className="text-xs font-medium text-slate-700">Description</span>
+                        <span className="text-xs font-medium text-slate-700">Short customer description</span>
                         <textarea
                           value={draft.description}
                           disabled={creating}
@@ -387,6 +388,36 @@ export default function TemplatesGuidedCreateOverlay({
                           data-templates-guided-create-package-description={draft.key}
                         />
                       </label>
+                      {revealCustomerLabelKeys.includes(draft.key) ||
+                      customerLabelDiffersFromPackageName(draft.name, draft.customerLabel) ? (
+                        <label className="block">
+                          <span className="text-xs font-medium text-slate-700">Customer label</span>
+                          <input
+                            type="text"
+                            value={draft.customerLabel}
+                            disabled={creating}
+                            onChange={(e) =>
+                              updateDraft(draft.key, { customerLabel: e.target.value })
+                            }
+                            className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-200"
+                            data-templates-guided-create-package-customer-label={draft.key}
+                          />
+                        </label>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled={creating}
+                          onClick={() =>
+                            setRevealCustomerLabelKeys((current) =>
+                              current.includes(draft.key) ? current : [...current, draft.key]
+                            )
+                          }
+                          className="text-[11px] font-medium text-slate-500 underline-offset-2 hover:text-slate-800 hover:underline disabled:opacity-50"
+                          data-templates-guided-create-package-customer-label-reveal={draft.key}
+                        >
+                          Use a different customer label
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -404,71 +435,6 @@ export default function TemplatesGuidedCreateOverlay({
             </section>
           ) : null}
 
-          {step === "structure" ? (
-            <section data-templates-guided-create-panel-structure="true" className="space-y-5">
-              <div>
-                <h3 className="text-base font-semibold text-slate-900">
-                  {GUIDED_CREATE_STEP_LABELS.structure}
-                </h3>
-                <p className="mt-1 text-sm text-slate-600">
-                  Included work and optional upgrades will be prepared from your Catalog links.
-                  Adjust items after create.
-                </p>
-              </div>
-              {plan ? (
-                <div className="rounded-xl border border-slate-200 bg-white px-4 py-3.5 space-y-2">
-                  <p className="text-sm font-semibold text-slate-900" data-templates-guided-create-package-summary>
-                    {formatGuidedPackageSummary(plan)}
-                  </p>
-                  {plan.defaultPackageLabel ? (
-                    <p className="text-xs text-slate-500">
-                      Default: {plan.defaultPackageLabel}
-                    </p>
-                  ) : null}
-                  <ul className="mt-2 space-y-1.5">
-                    {plan.structureNotes.map((note) => (
-                      <li key={note} className="text-sm text-slate-600">
-                        {note}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ) : null}
-            </section>
-          ) : null}
-
-          {step === "packet" ? (
-            <section data-templates-guided-create-panel-packet="true" className="space-y-5">
-              <div>
-                <h3 className="text-base font-semibold text-slate-900">
-                  {GUIDED_CREATE_STEP_LABELS.packet}
-                </h3>
-                <p className="mt-1 text-sm text-slate-600">
-                  Customer-facing pages prepared with this setup. Edit wording after create in
-                  Advanced editing.
-                </p>
-              </div>
-              {plan ? (
-                <ol className="overflow-hidden rounded-xl ring-1 ring-slate-200/70">
-                  {plan.contentAreas.map((area, index) => (
-                    <li
-                      key={area.label}
-                      className="flex gap-3 border-b border-slate-100 bg-slate-50/40 px-3.5 py-2.5 last:border-b-0"
-                    >
-                      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-white text-[10px] font-semibold tabular-nums text-slate-500 ring-1 ring-slate-200/80">
-                        {String(index + 1).padStart(2, "0")}
-                      </span>
-                      <div>
-                        <p className="text-sm font-medium text-slate-900">{area.label}</p>
-                        <p className="mt-0.5 text-xs text-slate-500">{area.detail}</p>
-                      </div>
-                    </li>
-                  ))}
-                </ol>
-              ) : null}
-            </section>
-          ) : null}
-
           {step === "confirm" ? (
             <section data-templates-guided-create-panel-confirm="true" className="space-y-5">
               <div>
@@ -476,13 +442,16 @@ export default function TemplatesGuidedCreateOverlay({
                   {GUIDED_CREATE_STEP_LABELS.confirm}
                 </h3>
                 <p className="mt-1 text-sm text-slate-600">
-                  Confirm this reusable setup, then create it.
+                  Confirm this reusable setup, then create it. You can edit anything after.
                 </p>
               </div>
 
               {plan ? (
-                <div className="space-y-4" data-templates-guided-create-structure-summary="true">
-                  <div className="rounded-xl border border-slate-200 bg-white px-4 py-3.5">
+                <div
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-3.5 space-y-3"
+                  data-templates-guided-create-structure-summary="true"
+                >
+                  <div>
                     <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                       Template
                     </p>
@@ -491,8 +460,7 @@ export default function TemplatesGuidedCreateOverlay({
                       <p className="mt-1 text-sm text-slate-600">{plan.description}</p>
                     ) : null}
                   </div>
-
-                  <div className="rounded-xl border border-slate-200 bg-white px-4 py-3.5">
+                  <div>
                     <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                       Packages
                     </p>
@@ -504,35 +472,22 @@ export default function TemplatesGuidedCreateOverlay({
                     </p>
                     {plan.defaultPackageLabel ? (
                       <p className="mt-1 text-xs text-slate-500">
-                        Default package: {plan.defaultPackageLabel}
+                        Starting package: {plan.defaultPackageLabel}
                       </p>
                     ) : null}
-                    {plan.packageDrafts.length > 0 ? (
-                      <ul className="mt-2 space-y-1.5">
-                        {plan.packageDrafts.map((draft) => (
-                          <li key={draft.key} className="text-sm text-slate-600">
-                            <span className="font-medium text-slate-800">{draft.name}</span>
-                            {draft.description ? ` — ${draft.description}` : ""}
-                            {draft.isDefault ? " · Default" : ""}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : null}
                   </div>
-
-                  <div className="rounded-xl border border-slate-200 bg-white px-4 py-3.5">
-                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                      Proposal packet
-                    </p>
-                    <ul className="mt-2 space-y-1.5">
-                      {plan.contentAreas.map((area) => (
-                        <li key={area.label} className="text-sm text-slate-700">
-                          <span className="font-semibold text-slate-900">{area.label}</span>
-                          <span className="text-slate-500"> — {area.detail}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+                  <p
+                    className="text-sm text-slate-700"
+                    data-templates-guided-create-review-structure
+                  >
+                    {GUIDED_CREATE_REVIEW_STRUCTURE_LABEL}
+                  </p>
+                  <p
+                    className="text-sm text-slate-700"
+                    data-templates-guided-create-review-packet
+                  >
+                    {GUIDED_CREATE_REVIEW_PACKET_LABEL}
+                  </p>
                 </div>
               ) : (
                 <p className="text-sm text-amber-800">
@@ -578,7 +533,7 @@ export default function TemplatesGuidedCreateOverlay({
             <button
               type="button"
               className="inline-flex items-center justify-center rounded-md border border-blue-300 bg-blue-600 px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
-              disabled={creating || ((step === "structure" || step === "packet") && !plan)}
+              disabled={creating}
               onClick={goNext}
               data-templates-guided-create-continue="true"
             >

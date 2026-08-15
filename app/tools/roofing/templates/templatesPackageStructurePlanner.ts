@@ -49,8 +49,8 @@ export const BLANK_PACKAGE_SHELL_SECTIONS: readonly BlankPackageShellSection[] =
   },
   {
     kind: "text",
-    name: "Scope notes",
-    customer_title: "Scope notes",
+    name: "Project notes",
+    customer_title: "Project notes",
     sort_order: 40,
   },
   {
@@ -268,6 +268,6 @@ export function buildCopiedPackageSummary(input: {
   return {
     title: `Copied from ${input.sourceLabel}`,
     detail:
-      "Included work and available upgrades will be copied so you can adjust from a working package.",
+      "Included work and optional upgrades will be copied so you can adjust from a working package.",
   };
 }

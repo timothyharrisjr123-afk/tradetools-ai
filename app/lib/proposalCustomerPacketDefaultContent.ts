@@ -58,11 +58,18 @@ Until then, treat this as your clear written proposal from {{company_name}}.
 
 If anything in the approved scope needs to change, we will review it with you in writing before the change is added.`;
 
-export const DEFAULT_PACKET_OVERVIEW_BODY = `{{company_name}} prepared this roofing proposal for your home.
+/** Pre-V2E5 overview — FieldDive recommendation language, not customer truth. */
+export const PRE_V2E5_PACKET_OVERVIEW_BODY = `{{company_name}} prepared this roofing proposal for your home.
 
 This proposal is built around the {{selected_package_name}} package — the recommended path for your roof based on the measured scope and the materials selected for this project.
 
 Review what is included, your investment, and any available upgrades. When you are ready, ask questions or confirm the details with our team.`;
+
+export const DEFAULT_PACKET_OVERVIEW_BODY = `{{company_name}} prepared this roofing proposal for your home.
+
+This proposal is built around the {{selected_package_name}} package, based on the measured scope and materials for this project.
+
+Review what is included, your investment, and any optional upgrades. When you are ready, ask questions or confirm the details with our team.`;
 
 export const DEFAULT_PACKET_SCOPE_NOTES_BODY = `Project notes
 
@@ -144,12 +151,26 @@ export function resolveCustomerFacingPacketBodyMarkdown(
     return DEFAULT_BY_PAGE_TYPE[pageType] ?? normalized;
   }
 
+  if (
+    pageType === "project_overview" &&
+    normalized === normalizePacketBodyFingerprint(PRE_V2E5_PACKET_OVERVIEW_BODY)
+  ) {
+    return DEFAULT_PACKET_OVERVIEW_BODY;
+  }
+
   // Older overview variant still seen in some fixtures / drafts.
   if (
     pageType === "project_overview" &&
     /this proposal outlines a roof replacement scope based on field measurements/i.test(normalized)
   ) {
     return DEFAULT_PACKET_OVERVIEW_BODY;
+  }
+
+  if (
+    (pageType === "custom_text" || pageType === "project_notes") &&
+    /^R3A SMOKE TEST/i.test(normalized)
+  ) {
+    return DEFAULT_PACKET_SCOPE_NOTES_BODY;
   }
 
   return normalized;

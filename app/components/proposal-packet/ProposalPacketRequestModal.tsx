@@ -137,7 +137,7 @@ export default function ProposalPacketRequestModal({
     }
   }
 
-  const resolvedPackageLabel = (packageLabel || "Recommended package").trim();
+  const resolvedPackageLabel = (packageLabel || "Selected package").trim();
 
   return (
     <dialog

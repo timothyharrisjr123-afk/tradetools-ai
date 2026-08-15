@@ -4,12 +4,10 @@ import type { CatalogItem } from "@/app/lib/catalogTypes";
 import type { ProposalTemplateReadiness } from "@/app/lib/proposalTemplateTypes";
 import type { TemplateCatalogLinkReadiness } from "@/app/lib/proposalTemplateCatalogLink";
 import type { ProposalPageSettings } from "@/app/lib/proposalPageTypes";
-import type { TemplateContentEditorViewModel } from "@/app/lib/proposalTemplateContentEditorView";
 import type { TemplateStructureEditorViewModel } from "@/app/lib/proposalTemplateStructureEditorView";
 import type { ProposalTemplateSectionKind } from "@/app/lib/proposalTemplateTypes";
 import type { ProposalTemplateGraph } from "@/app/lib/proposalTemplateStore";
 import { TEMPLATES_WORKSPACE_ZONE } from "./templatesConstants";
-import TemplatesContentEditorShell from "./TemplatesContentEditorShell";
 import TemplatesEstimateDisplayTab from "./TemplatesEstimateDisplayTab";
 import TemplatesPackagesCatalogTab from "./TemplatesPackagesCatalogTab";
 import TemplatesQuoteSetupReview from "./TemplatesQuoteSetupReview";
@@ -37,11 +35,6 @@ type StructureSettingsBusy =
   | { kind: "remove-item"; itemId: string }
   | null;
 
-type SectionSaveError = {
-  sectionId: string;
-  message: string;
-};
-
 type TemplatesSelectedWorkspaceProps = {
   mode: TemplatesWorkspaceMode;
   editTab: TemplatesEditTabId;
@@ -53,7 +46,6 @@ type TemplatesSelectedWorkspaceProps = {
   linkReadiness: TemplateCatalogLinkReadiness;
   packageSummaries: readonly PackageOptionSummary[];
   createsSummary: TemplateCreatesSummary;
-  contentViewModel: TemplateContentEditorViewModel;
   structureViewModel: TemplateStructureEditorViewModel;
   structureBusy: StructureSettingsBusy;
   structureError: string | null;
@@ -62,7 +54,6 @@ type TemplatesSelectedWorkspaceProps = {
   onSelectPackage: (optionId: string) => void;
   focusSectionId: string | null;
   savingSectionId: string | null;
-  sectionSaveError: SectionSaveError | null;
   onAddItem: () => void;
   onAddUpgradeItem: () => void;
   onReplaceItem: (templateItemId: string) => void;
@@ -99,12 +90,6 @@ type TemplatesSelectedWorkspaceProps = {
   ) => void;
   onAddCatalogItemToSection: (optionId: string, sectionId: string) => void;
   onRelinkTemplateItem: (templateItemId: string) => void;
-  onSaveSection: (args: {
-    sectionId: string;
-    optionId: string;
-    draftBody: string;
-  }) => void;
-  onDirtySectionCountChange: (count: number) => void;
   /** R2B — preferred setup for roofing proposals (not package-option default). */
   isPreferred?: boolean;
   onMakePreferred?: () => void;
@@ -123,7 +108,6 @@ export default function TemplatesSelectedWorkspace({
   linkReadiness,
   packageSummaries,
   createsSummary,
-  contentViewModel,
   structureViewModel,
   structureBusy,
   structureError,
@@ -132,7 +116,6 @@ export default function TemplatesSelectedWorkspace({
   onSelectPackage,
   focusSectionId,
   savingSectionId,
-  sectionSaveError,
   onAddItem,
   onAddUpgradeItem,
   onReplaceItem,
@@ -152,8 +135,6 @@ export default function TemplatesSelectedWorkspace({
   onSaveOptionEstimateSettings,
   onAddCatalogItemToSection,
   onRelinkTemplateItem,
-  onSaveSection,
-  onDirtySectionCountChange,
   isPreferred = false,
   onMakePreferred,
   onClearPreferred,
@@ -221,7 +202,7 @@ export default function TemplatesSelectedWorkspace({
             {graph.template.name}
           </h2>
           <p className="mt-0.5 text-xs text-slate-500">
-            Sections, customer display, and content. Everyday included-work changes stay on the
+            Sections and customer display. Everyday included-work and wording changes stay on the
             proposal setup.
           </p>
         </div>
@@ -291,18 +272,6 @@ export default function TemplatesSelectedWorkspace({
             contentSaveBlocked={contentSaveBlocked}
             onSaveTemplateEstimateSettings={onSaveTemplateEstimateSettings}
             onSaveOptionEstimateSettings={onSaveOptionEstimateSettings}
-          />
-        ) : null}
-
-        {editTab === "content" ? (
-          <TemplatesContentEditorShell
-            viewModel={contentViewModel}
-            graph={graph}
-            savingSectionId={savingSectionId}
-            sectionSaveError={sectionSaveError}
-            contentSaveBlocked={structureBusy != null}
-            onSaveSection={onSaveSection}
-            onDirtySectionCountChange={onDirtySectionCountChange}
           />
         ) : null}
       </div>

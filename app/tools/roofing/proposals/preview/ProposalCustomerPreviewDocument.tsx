@@ -6,6 +6,10 @@ import type { ProposalDraftGraph } from "@/app/lib/proposalRecordStore";
 import { buildCustomerPreviewEstimatePresentationFromDraft } from "@/app/lib/proposalCustomerEstimatePresenter";
 import { PROPOSAL_COVER_DEFAULT_BRAND_ACCENT } from "@/app/lib/proposalCoverViewModel";
 import { resolvePackageMeta } from "@/app/lib/proposalPackagePresentation";
+import {
+  buildProposalOwnedCustomerFactLinesFromDraft,
+  lookupProposalOwnedCustomerFactLines,
+} from "@/app/lib/proposalOwnedPackageComposition";
 import ProposalCustomerPreviewPacket from "./ProposalCustomerPreviewPacket";
 import ProposalCustomerPreviewPacketCover from "./ProposalCustomerPreviewPacketCover";
 import ProposalCustomerPreviewPackageStrip from "./ProposalCustomerPreviewPackageStrip";
@@ -59,6 +63,13 @@ export default function ProposalCustomerPreviewDocumentView({
       : null;
 
   const selectedOptionRuntimeId = selectedDraftOption?.id ?? null;
+  const draftFactsByPackageId = draftGraph
+    ? buildProposalOwnedCustomerFactLinesFromDraft(draftGraph)
+    : null;
+  const selectedFactLines =
+    selectedDraftOption && draftFactsByPackageId
+      ? lookupProposalOwnedCustomerFactLines(draftFactsByPackageId, selectedDraftOption)
+      : [];
   const draftLinesForEstimate =
     draftGraph && selectedOptionRuntimeId
       ? draftGraph.lineItems
@@ -84,7 +95,8 @@ export default function ProposalCustomerPreviewDocumentView({
           packageMeta: estimatePage.selectedOptionLabel
             ? resolvePackageMeta(
                 estimatePage.selectedOptionLabel,
-                selectedDraftOption?.description
+                selectedDraftOption?.description,
+                selectedFactLines
               )
             : null,
           estimatePageSettings: estimatePage.estimatePageSettings,
@@ -137,8 +149,7 @@ export default function ProposalCustomerPreviewDocumentView({
 
       {companyName ? (
         <footer className={PACKET_FOOTER} data-preview-packet-footer>
-          Prepared by {companyName}. This proposal is for review and is not a final contract until
-          accepted.
+          Prepared by {companyName}. This proposal is for review.
         </footer>
       ) : null}
     </ProposalCustomerPreviewPacket>

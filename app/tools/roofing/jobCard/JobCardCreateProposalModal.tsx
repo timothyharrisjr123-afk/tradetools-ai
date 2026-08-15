@@ -367,7 +367,7 @@ export function JobCardCreateProposalModal({
                     (packageField.preparedId ?? selectedPackageOptionId);
                   const detail = `${choice.linkedItemCount} included${
                     choice.availableUpgradeCount
-                      ? ` · ${choice.availableUpgradeCount} available upgrade${
+                      ? ` · ${choice.availableUpgradeCount} optional upgrade${
                           choice.availableUpgradeCount === 1 ? "" : "s"
                         }`
                       : ""

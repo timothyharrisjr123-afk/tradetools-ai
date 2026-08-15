@@ -49,7 +49,7 @@ export type ProposalPublicPrimaryPackageViewModel = {
   optionKey: string;
   label: string;
   description: string;
-  bullets: [string, string];
+  bullets: string[];
   accent: PackageAccent;
   totalInvestmentLabel: string | null;
   scopeGroups: ProposalPublicScopeGroupViewModel[];
@@ -93,7 +93,6 @@ export type ProposalPublicOptionCardViewModel = {
   sortOrder: number;
   accent: PackageAccent;
   isSelected: boolean;
-  isRecommended: boolean;
   totals: ProposalPublicOptionTotalsViewModel;
   scopeSections: ProposalPublicEstimateScopeSectionViewModel[];
   upgradeSections: ProposalPublicEstimateScopeSectionViewModel[];
@@ -133,7 +132,7 @@ export function buildProposalPublicEstimateLayout(
         optionKey: estimate.optionKey,
         label: estimate.label,
         description: estimate.description,
-        bullets: [estimate.bullets[0] ?? "", estimate.bullets[1] ?? ""] as [string, string],
+        bullets: [...estimate.bullets],
         accent: estimate.accent,
         totalInvestmentLabel: estimate.totalInvestmentLabel,
         scopeGroups: mapScopeGroups(estimate.includedDetails),
@@ -194,7 +193,6 @@ export function buildProposalPublicOptionCards(
         sortOrder: selectedOption.sort_order,
         accent: layout.primaryPackage.accent,
         isSelected: true,
-        isRecommended: true,
         totals: {
           showTotals: displayPolicy.showOptionTotals,
           subtotalLabel: null,
@@ -226,7 +224,6 @@ export function buildProposalPublicOptionCards(
       sortOrder: option.sort_order,
       accent: alternate.accent,
       isSelected: false,
-      isRecommended: false,
       totals: {
         showTotals: displayPolicy.showOptionTotals,
         subtotalLabel: null,

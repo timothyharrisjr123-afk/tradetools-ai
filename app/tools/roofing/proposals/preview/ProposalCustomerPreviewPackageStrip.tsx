@@ -10,7 +10,6 @@ import {
   PACKET_PACKAGE_CHECK,
   PACKET_PACKAGE_DESCRIPTION,
   PACKET_PACKAGE_INCLUDE_ITEM,
-  PACKET_PACKAGE_INCLUDES_LABEL,
   PACKET_PACKAGE_KICKER,
   PACKET_PACKAGE_NAME,
   PACKET_PACKAGE_PANEL,
@@ -26,7 +25,7 @@ type ProposalCustomerPreviewPackageStripProps = {
 };
 
 /**
- * Selected package recommendation — premium, intentional, not a selector.
+ * Selected package — premium, intentional, not a selector.
  */
 export default function ProposalCustomerPreviewPackageStrip({
   packageHero,
@@ -46,7 +45,7 @@ export default function ProposalCustomerPreviewPackageStrip({
     <div
       className={PACKET_PACKAGE_PANEL}
       data-preview-package-strip
-      data-preview-package-recommendation
+      data-preview-package-selected
     >
       <div className={PACKET_PACKAGE_SURFACE}>
         <span
@@ -60,7 +59,7 @@ export default function ProposalCustomerPreviewPackageStrip({
               <p className={PACKET_PACKAGE_KICKER}>Selected package</p>
               <span className={PACKET_PACKAGE_BADGE} data-preview-package-badge>
                 <Sparkles className="h-3 w-3" aria-hidden />
-                Recommended
+                Selected
               </span>
             </div>
             <p className={PACKET_PACKAGE_NAME}>{packageDisplayName}</p>
@@ -77,8 +76,7 @@ export default function ProposalCustomerPreviewPackageStrip({
 
           {packageHero.bullets.length > 0 ? (
             <div className="border-t border-slate-200/80 pt-4 sm:border-l sm:border-t-0 sm:pl-7 sm:pt-0.5">
-              <p className={PACKET_PACKAGE_INCLUDES_LABEL}>Package highlights</p>
-              <ul className="mt-2.5 space-y-2">
+              <ul className="space-y-2">
                 {packageHero.bullets.map((bullet) => (
                   <li key={bullet} className={PACKET_PACKAGE_INCLUDE_ITEM}>
                     <span className={PACKET_PACKAGE_CHECK} aria-hidden>

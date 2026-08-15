@@ -56,7 +56,6 @@ import {
 } from "@/app/lib/proposalTemplateStructureMutations";
 import TemplatesAddItemSectionChooser from "./TemplatesAddItemSectionChooser";
 import { createGuidedProposalTemplate } from "./createGuidedProposalTemplate";
-import TemplatesBuilderFootnote from "./TemplatesBuilderFootnote";
 import TemplatesCatalogItemPickerModal, {
   type TemplatesCatalogPickerMode,
 } from "./TemplatesCatalogItemPickerModal";
@@ -88,7 +87,6 @@ import {
   isTemplateWorkspaceActive,
   resolveDefaultSelectedTemplateId,
 } from "./templatesWorkspaceUtils";
-import { buildSectionContentSavePatch } from "./templatesContentEditorUtils";
 import {
   buildWorkspaceStructureViewModel,
   computeReorderedSectionIds,
@@ -156,8 +154,8 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
   const [installError, setInstallError] = useState<string | null>(null);
 
   const [savingSectionId, setSavingSectionId] = useState<string | null>(null);
-  const [sectionSaveError, setSectionSaveError] = useState<SectionSaveError | null>(null);
-  const [dirtySectionCount, setDirtySectionCount] = useState(0);
+  const [, setSectionSaveError] = useState<SectionSaveError | null>(null);
+  const [dirtySectionCount] = useState(0);
 
   const [structureBusy, setStructureBusy] = useState<StructureSettingsBusy>(null);
   const [structureError, setStructureError] = useState<string | null>(null);
@@ -413,64 +411,6 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
     [companyId]
   );
 
-  const handleSaveSection = useCallback(
-    (args: { sectionId: string; optionId: string; draftBody: string }) => {
-      void (async () => {
-        if (!selectedGraph || !selectedTemplateId || savingSectionId) return;
-
-        const section = selectedGraph.sections.find((row) => row.id === args.sectionId);
-        if (!section) {
-          setSectionSaveError({
-            sectionId: args.sectionId,
-            message: "Could not find the section to save.",
-          });
-          return;
-        }
-
-        setSavingSectionId(args.sectionId);
-        setSectionSaveError(null);
-
-        try {
-          const content = buildSectionContentSavePatch(section.content, args.draftBody);
-          const updated = await updateProposalTemplateSection(
-            args.sectionId,
-            { content },
-            {
-              companyId,
-              templateId: selectedTemplateId,
-              optionId: args.optionId,
-            }
-          );
-
-          if (!updated) {
-            setSectionSaveError({
-              sectionId: args.sectionId,
-              message: "Could not save this section. Try again.",
-            });
-            return;
-          }
-
-          await reloadSelectedGraph(selectedTemplateId);
-        } catch (err) {
-          console.warn("[TemplatesSetupClient] section save error:", err);
-          setSectionSaveError({
-            sectionId: args.sectionId,
-            message: "Save failed unexpectedly.",
-          });
-        } finally {
-          setSavingSectionId(null);
-        }
-      })();
-    },
-    [
-      companyId,
-      reloadSelectedGraph,
-      savingSectionId,
-      selectedGraph,
-      selectedTemplateId,
-    ]
-  );
-
   /** R3A — save setup-owned packet wording to template sections (mirrors siblings). */
   const handleSavePacketWording = useCallback(
     async (plan: PacketWordingSavePlan): Promise<boolean> => {
@@ -514,10 +454,6 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
     },
     [companyId, reloadSelectedGraph, savingSectionId, selectedTemplateId]
   );
-
-  const handleDirtySectionCountChange = useCallback((count: number) => {
-    setDirtySectionCount(count);
-  }, []);
 
   const handleAddSection = useCallback(
     (optionId: string, kind: ProposalTemplateSectionKind) => {
@@ -1634,7 +1570,6 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
                 linkReadiness={selectedLinkReadiness}
                 packageSummaries={packageSummaries}
                 createsSummary={createsSummary}
-                contentViewModel={contentViewModel}
                 structureViewModel={structureViewModel}
                 structureBusy={structureBusy}
                 structureError={structureError}
@@ -1643,7 +1578,6 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
                 onSelectPackage={handleSelectPackage}
                 focusSectionId={focusSectionId}
                 savingSectionId={savingSectionId}
-                sectionSaveError={sectionSaveError}
                 onAddItem={handleQuoteAddItem}
                 onAddUpgradeItem={handleQuoteAddUpgradeItem}
                 onReplaceItem={handleOpenRelinkCatalogItem}
@@ -1663,8 +1597,6 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
                 onSaveOptionEstimateSettings={handleSaveOptionEstimateSettings}
                 onAddCatalogItemToSection={handleOpenAddCatalogItem}
                 onRelinkTemplateItem={handleOpenRelinkCatalogItem}
-                onSaveSection={handleSaveSection}
-                onDirtySectionCountChange={handleDirtySectionCountChange}
                 isPreferred={
                   preferredTemplateId != null &&
                   selectedTemplateId != null &&
@@ -1689,8 +1621,6 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
         }
         aside={null}
       />
-
-      <TemplatesBuilderFootnote />
 
       <TemplatesCatalogItemPickerModal
         key={

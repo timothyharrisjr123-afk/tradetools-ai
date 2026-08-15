@@ -11,6 +11,11 @@ import {
   type ResolvedCustomerPreviewEstimateDisplayPolicy,
 } from "@/app/lib/proposalCustomerEstimateDisplayPolicy";
 import { getCustomerPreviewPages } from "@/app/lib/proposalPageVisibilityEditing";
+import {
+  buildProposalOwnedCustomerFactLinesFromDraft,
+  buildProposalOwnedCustomerFactLinesFromFreeze,
+} from "@/app/lib/proposalOwnedPackageComposition";
+import { assertCustomerFactLineSafe } from "@/app/lib/packageCompositionCustomerFacts";
 import { PROPOSAL_LINE_CUSTOMER_FORBIDDEN_KEYS } from "@/app/lib/proposalLineSnapshotTypes";
 import { PROPOSAL_SNAPSHOT_INTERNAL_ONLY_FIELDS } from "@/app/lib/proposalSnapshotTypes";
 import type { ProposalScopeDecision } from "@/app/lib/proposalScopeDecisionTypes";
@@ -76,8 +81,13 @@ export type ProposalPublicGraphOptionDto = {
   source_template_option_id: string;
   name: string;
   customer_label: string | null;
-  /** Authored package description; null → presenter fallback copy. */
+  /** Authored package description; null omits narrative copy. */
   description: string | null;
+  /**
+   * Customer-safe composition facts derived from this frozen/draft graph.
+   * Never includes composition_role / composition_slot_key.
+   */
+  customer_fact_lines?: string[];
   sort_order: number;
   visible_to_customer: boolean;
   customer_subtotal_cents: number | null;
@@ -225,9 +235,20 @@ function mapPublicPage(page: ProposalPageRow | ProposalSendFreezePagePersistRow)
   };
 }
 
+function sanitizeCustomerFactLines(lines: readonly string[] | undefined): string[] {
+  const next = (lines ?? [])
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+  for (const line of next) {
+    assertCustomerFactLineSafe(line);
+  }
+  return next;
+}
+
 function mapPublicOptionFromDraft(
   option: ProposalOptionRow,
-  lines: ProposalLineItemRow[]
+  lines: ProposalLineItemRow[],
+  factLines: readonly string[]
 ): ProposalPublicGraphOptionDto {
   const templateId = (option.source_template_option_id ?? "").trim();
   return {
@@ -235,6 +256,7 @@ function mapPublicOptionFromDraft(
     name: option.name,
     customer_label: option.customer_label,
     description: option.description ?? null,
+    customer_fact_lines: sanitizeCustomerFactLines(factLines),
     sort_order: option.sort_order,
     visible_to_customer: option.visible_to_customer,
     customer_subtotal_cents: option.customer_subtotal_cents,
@@ -248,12 +270,16 @@ function mapPublicOptionFromDraft(
   };
 }
 
-function mapPublicOptionFromFreeze(option: ProposalSendFreezeOptionPersistPayload): ProposalPublicGraphOptionDto {
+function mapPublicOptionFromFreeze(
+  option: ProposalSendFreezeOptionPersistPayload,
+  factLines: readonly string[]
+): ProposalPublicGraphOptionDto {
   return {
     source_template_option_id: option.source_template_option_id,
     name: option.name,
     customer_label: option.customer_label,
     description: option.description ?? null,
+    customer_fact_lines: sanitizeCustomerFactLines(factLines),
     sort_order: option.sort_order,
     visible_to_customer: option.visible_to_customer,
     customer_subtotal_cents: option.customer_subtotal_cents,
@@ -305,8 +331,14 @@ export function buildProposalPublicGraphDto(
       .map((page) => mapPublicPage(page))
       .filter((page): page is ProposalPublicGraphPageDto => page != null);
 
+    const factsByPackageId = buildProposalOwnedCustomerFactLinesFromDraft(input);
     const options = input.options.map((option) =>
-      mapPublicOptionFromDraft(option, input.lineItems)
+      mapPublicOptionFromDraft(
+        option,
+        input.lineItems,
+        factsByPackageId.get((option.source_template_option_id ?? "").trim() || option.id) ??
+          []
+      )
     );
 
     const dto: ProposalPublicGraphDto = {
@@ -329,7 +361,13 @@ export function buildProposalPublicGraphDto(
     .map((page) => mapPublicPage(page))
     .filter((page): page is ProposalPublicGraphPageDto => page != null);
 
-  const options = input.options.map((option) => mapPublicOptionFromFreeze(option));
+  const factsByPackageId = buildProposalOwnedCustomerFactLinesFromFreeze(input.options);
+  const options = input.options.map((option) =>
+    mapPublicOptionFromFreeze(
+      option,
+      factsByPackageId.get(option.source_template_option_id) ?? []
+    )
+  );
 
   const dto: ProposalPublicGraphDto = {
     version_kind: "sent",
@@ -367,12 +405,25 @@ export function assertPublicDtoShape(dto: ProposalPublicGraphDto): void {
   assertNoForbiddenKeys(record, "root");
 
   for (const option of dto.options) {
-    assertNoForbiddenKeys(option as unknown as Record<string, unknown>, "option");
-    if ("blocking_line_count" in (option as unknown as Record<string, unknown>)) {
+    const optionRecord = option as unknown as Record<string, unknown>;
+    assertNoForbiddenKeys(optionRecord, "option");
+    if ("blocking_line_count" in optionRecord) {
       throw new Error("Public DTO option must not include blocking_line_count.");
     }
-    if ("guardrail_outcome" in (option as unknown as Record<string, unknown>)) {
+    if ("guardrail_outcome" in optionRecord) {
       throw new Error("Public DTO option must not include guardrail_outcome.");
+    }
+    if ("composition_role" in optionRecord || "composition_slot_key" in optionRecord) {
+      throw new Error("Public DTO option must not include composition identity.");
+    }
+    for (const line of option.customer_fact_lines ?? []) {
+      assertCustomerFactLineSafe(line);
+    }
+    for (const line of option.line_items) {
+      const lineRecord = line as unknown as Record<string, unknown>;
+      if ("composition_role" in lineRecord || "composition_slot_key" in lineRecord) {
+        throw new Error("Public DTO line must not include composition identity.");
+      }
     }
   }
 }

@@ -54,7 +54,7 @@ export default function ProposalPacketHero({
   const customerName = (cover.preparedFor.customerName ?? "").trim();
   const benefits = (estimate?.bullets ?? []).slice(0, 2);
   const upgradeCount = upgrades?.items.length ?? 0;
-  const packageLabel = estimate?.label ?? "Recommended package";
+  const packageLabel = estimate?.label ?? "Selected package";
   const optionKey = estimate?.optionKey ?? null;
 
   return (
@@ -75,10 +75,10 @@ export default function ProposalPacketHero({
         </div>
 
         {estimate ? (
-          <div className={PROPOSAL_PACKET_DECISION_CARD} aria-label="Recommended package and investment">
+          <div className={PROPOSAL_PACKET_DECISION_CARD} aria-label="Selected package and investment">
             <div className="grid sm:grid-cols-[1.08fr_0.92fr]">
               <div className="bg-[linear-gradient(165deg,#0b1f33_0%,#122a42_100%)] px-4 py-4 text-white sm:px-5">
-                <p className={`${PROPOSAL_PACKET_FIELD_LABEL} text-white/45`}>Recommended package</p>
+                <p className={`${PROPOSAL_PACKET_FIELD_LABEL} text-white/45`}>Selected package</p>
                 <div className="mt-1.5 flex flex-wrap items-center gap-2">
                   <p className="text-[1.35rem] font-semibold tracking-[-0.02em] text-white">
                     {packageLabel}

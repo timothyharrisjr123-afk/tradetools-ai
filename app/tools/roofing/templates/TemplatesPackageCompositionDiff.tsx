@@ -89,7 +89,7 @@ export default function TemplatesPackageCompositionDiffDetail({
           data-templates-composition-diff-group={group.id}
         >
           <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-            {group.label}
+            {group.id === "optional" ? "Optional upgrades" : group.label}
           </p>
           {group.note ? (
             <p className="text-[11px] leading-snug text-slate-500">{group.note}</p>

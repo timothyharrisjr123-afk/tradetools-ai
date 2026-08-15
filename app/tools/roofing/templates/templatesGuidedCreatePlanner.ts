@@ -29,26 +29,17 @@ export type GuidedPackageModelId =
   | "triple"
   | "custom";
 
-export type GuidedCreateStepId =
-  | "basics"
-  | "package_setup"
-  | "structure"
-  | "packet"
-  | "confirm";
+export type GuidedCreateStepId = "basics" | "package_setup" | "confirm";
 
 export const GUIDED_CREATE_STEPS: readonly GuidedCreateStepId[] = [
   "basics",
   "package_setup",
-  "structure",
-  "packet",
   "confirm",
 ] as const;
 
 export const GUIDED_CREATE_STEP_LABELS: Record<GuidedCreateStepId, string> = {
   basics: "Basics",
-  package_setup: "Package setup",
-  structure: "Prepared structure",
-  packet: "Proposal packet",
+  package_setup: "Packages",
   confirm: "Review & create",
 };
 
@@ -65,6 +56,8 @@ export const GUIDED_CREATE_PRIMARY_ACTION = "Create template";
 export const GUIDED_CREATE_CANCEL_ACTION = "Cancel";
 export const GUIDED_CREATE_BACK_ACTION = "Back";
 export const GUIDED_CREATE_CONTINUE_ACTION = "Continue";
+export const GUIDED_CREATE_REVIEW_STRUCTURE_LABEL = "Prepared proposal structure";
+export const GUIDED_CREATE_REVIEW_PACKET_LABEL = "Customer packet ready";
 
 /** Contractor-editable package identity during guided create. */
 export type GuidedPackageDraft = {
@@ -95,7 +88,7 @@ export const GUIDED_PACKAGE_MODEL_CHOICES: readonly GuidedPackageModelChoice[] =
     id: "single",
     title: "One package",
     description:
-      "Use one recommended scope when you do not need the customer to compare packages.",
+      "Use one package when you do not need the customer to compare options.",
     packageLabels: ["Standard"],
     presentsPackages: true,
   },
@@ -194,8 +187,8 @@ const CONTENT_AREA_ORDER: readonly {
   },
   {
     kind: "text",
-    label: "Scope notes",
-    detail: "Clarifies assumptions and what may need confirmation",
+    label: "Project notes",
+    detail: "Assumptions and how changes are handled",
   },
   {
     kind: "warranty",
@@ -464,7 +457,7 @@ function collectContentAreas(
   for (const area of CONTENT_AREA_ORDER) {
     if (!kindsPresent.has(area.kind)) continue;
     if (area.kind === "upgrade_group" && !hasUpgradeItems) continue;
-    if (area.label === "Scope notes" && !hasMultipleText && area.kind === "text") {
+    if (area.label === "Project notes" && !hasMultipleText && area.kind === "text") {
       // Still include scope notes when text sections exist beyond overview naming —
       // defaults always include overview + scope notes, so always show both labels
       // when text kind is present by checking section names below.
@@ -472,7 +465,7 @@ function collectContentAreas(
     if (seenLabels.has(area.label)) continue;
 
     // Prefer showing overview + scope notes from default names when present.
-    if (area.label === "Project overview" || area.label === "Scope notes") {
+    if (area.label === "Project overview" || area.label === "Project notes") {
       const hasNamed = options.some((option) =>
         (option.sections ?? []).some(
           (section) =>

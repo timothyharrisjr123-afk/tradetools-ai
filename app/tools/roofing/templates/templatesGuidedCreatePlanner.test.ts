@@ -5,15 +5,53 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
+  GUIDED_CREATE_STEPS,
+  GUIDED_CREATE_STEP_LABELS,
   GUIDED_PACKAGE_MODEL_CHOICES,
   buildDefaultGuidedPackageDrafts,
   buildGuidedTemplateCreatePlan,
   formatGuidedPackageSummary,
   guidedPlanCopyExposesInternalLanguage,
+  nextGuidedCreateStep,
+  prevGuidedCreateStep,
   validateGuidedCreateBasics,
 } from "./templatesGuidedCreatePlanner";
 
 describe("templatesGuidedCreatePlanner", () => {
+  test("manual create is exactly three steps: Basics → Packages → Review & create", () => {
+    assert.deepEqual([...GUIDED_CREATE_STEPS], ["basics", "package_setup", "confirm"]);
+    assert.equal(GUIDED_CREATE_STEP_LABELS.basics, "Basics");
+    assert.equal(GUIDED_CREATE_STEP_LABELS.package_setup, "Packages");
+    assert.equal(GUIDED_CREATE_STEP_LABELS.confirm, "Review & create");
+    assert.equal(nextGuidedCreateStep("basics"), "package_setup");
+    assert.equal(nextGuidedCreateStep("package_setup"), "confirm");
+    assert.equal(nextGuidedCreateStep("confirm"), null);
+    assert.equal(prevGuidedCreateStep("confirm"), "package_setup");
+    assert.equal(prevGuidedCreateStep("package_setup"), "basics");
+    assert.equal(prevGuidedCreateStep("basics"), null);
+  });
+
+  test("collapsing UI steps does not drop prepared structure or packet truth", () => {
+    const plan = buildGuidedTemplateCreatePlan({
+      name: "Roof replacement packages",
+      packageModel: "triple",
+    });
+    assert.equal(plan.definition.options?.length, 3);
+    const better = plan.definition.options?.find((row) => row.name === "Better");
+    const kinds = (better?.sections ?? []).map((section) => section.kind);
+    assert.ok(kinds.includes("line_items"));
+    assert.ok(kinds.includes("upgrade_group"));
+    assert.ok(kinds.includes("warranty"));
+    assert.ok(kinds.includes("terms"));
+    assert.ok(plan.contentAreas.some((row) => row.label === "Warranty"));
+    assert.ok(plan.contentAreas.some((row) => /upgrade/i.test(row.label)));
+    assert.ok(plan.structureNotes.length > 0);
+    const overview = better?.sections?.find((section) =>
+      (section.seed_key ?? "").endsWith(".overview")
+    );
+    assert.ok((overview?.content?.body_markdown ?? "").length > 0);
+  });
+
   test("validates template name", () => {
     assert.equal(validateGuidedCreateBasics({ name: "" }).ok, false);
     assert.equal(validateGuidedCreateBasics({ name: "   " }).ok, false);
@@ -104,9 +142,13 @@ describe("templatesGuidedCreatePlanner", () => {
         ?.find((row) => row.name === "Better")
         ?.sections?.find((section) => section.kind === "line_items")?.items ?? [];
     assert.equal(
-      betterLines.find((item) => item.catalog_seed_key === "roofing.synthetic_underlayment")
-        ?.customer_name_override,
-      "Enhanced underlayment"
+      betterLines.find(
+        (item) => item.catalog_seed_key === "roofing.premium_synthetic_underlayment"
+      )?.customer_name_override,
+      "Upgraded underlayment"
+    );
+    assert.ok(
+      !betterLines.some((item) => item.catalog_seed_key === "roofing.synthetic_underlayment")
     );
   });
 

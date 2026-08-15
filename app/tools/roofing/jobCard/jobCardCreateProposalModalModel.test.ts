@@ -65,7 +65,7 @@ describe("Prepare proposal V2A inference", () => {
     assert.equal(PREPARE_PROPOSAL_TITLE, "Prepare proposal");
     assert.equal(PREPARE_PROPOSAL_MEASUREMENT_LABEL, "Measurement");
     assert.equal(PREPARE_PROPOSAL_SETUP_LABEL, "Reusable setup");
-    assert.equal(PREPARE_PROPOSAL_PACKAGE_LABEL, "Recommended package");
+    assert.equal(PREPARE_PROPOSAL_PACKAGE_LABEL, "Starting package");
     assert.equal(PREPARE_PROPOSAL_CHANGE_LABEL, "Change");
     assert.equal(PREPARE_PROPOSAL_CREATE_LABEL, "Create proposal");
     assert.equal(
@@ -624,7 +624,7 @@ describe("Prepare proposal V2A write boundary and wiring", () => {
         linkedItemCount: 13,
         availableUpgradeCount: 1,
       }),
-      "13 included · 1 available upgrade"
+      "13 included · 1 optional upgrade"
     );
     assert.match(
       resolveCreateProposalPackageStepEyebrow("multi", 4),

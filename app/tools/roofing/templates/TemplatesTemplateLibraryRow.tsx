@@ -76,7 +76,7 @@ export default function TemplatesTemplateLibraryRow({
           `${sortedOptions.length} package${sortedOptions.length === 1 ? "" : "s"}`,
           `${includedLinkedCount} included`,
           availableUpgradeCount && availableUpgradeCount > 0
-            ? `${availableUpgradeCount} available upgrade${
+            ? `${availableUpgradeCount} optional upgrade${
                 availableUpgradeCount === 1 ? "" : "s"
               }`
             : null,

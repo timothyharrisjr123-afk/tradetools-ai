@@ -68,7 +68,7 @@ export default function ProposalPacket({
         {showIncludedScope && packet.estimate ? (
           <section
             className={showComparison ? PROPOSAL_PACKET_STORY_SECTION_MUTED : PROPOSAL_PACKET_STORY_SECTION}
-            aria-label="What is included"
+            aria-label="Included work"
           >
             <ProposalPacketScope estimate={packet.estimate} />
           </section>

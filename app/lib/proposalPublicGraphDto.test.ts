@@ -449,6 +449,25 @@ describe("buildProposalPublicGraphDto", () => {
       assert.ok(!("composition_role" in line));
       assert.ok(!("composition_slot_key" in line));
     }
+    assert.ok(Array.isArray(dto.options[0]?.customer_fact_lines));
+  });
+
+  test("Public uses frozen authored description and presentation labels only", () => {
+    const graph = draftGraph();
+    graph.options[0] = {
+      ...graph.options[0]!,
+      description: "Frozen Standard authored description",
+      customer_label: "Standard",
+    };
+    const dto = buildProposalPublicGraphDto(graph, TEMPLATE_OPT_A);
+    assert.equal(dto.options[0]?.description, "Frozen Standard authored description");
+    assert.equal(dto.options[0]?.customer_label, "Standard");
+    const facts = dto.options[0]?.customer_fact_lines ?? [];
+    for (const line of facts) {
+      assert.doesNotMatch(line, /composition_role|composition_slot_key|PRODUCT_REPLACEMENT|catalog_seed/);
+    }
+    const json = JSON.stringify(dto);
+    assert.doesNotMatch(json, /composition_role|composition_slot_key/);
   });
 });
 

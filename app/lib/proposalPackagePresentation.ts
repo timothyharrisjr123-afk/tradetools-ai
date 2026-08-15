@@ -1,59 +1,51 @@
 /**
- * Pure package label → customer-facing presentation metadata.
+ * Authored package sales-language presentation.
  *
- * Shared by Builder package cards/selector and customer Preview estimate hero.
+ * Description comes only from persisted template/draft/frozen wording.
+ * Factual bullets are supplied by the composition presentation adapter.
+ * No Standard / Enhanced / Premium marketing fallbacks.
  * No React, DB, or pricing logic.
  */
 
 export type PackageAccent = "standard" | "enhanced" | "premium" | "default";
 
 export type PackageMeta = {
-  description: string;
-  bullets: [string, string];
+  /** Authored customer description; null when blank — never invented. */
+  description: string | null;
+  /** Customer-safe composition facts. Empty when none apply (including base). */
+  bullets: string[];
+  /**
+   * Visual tint only. Matching starter names is display fallback, not
+   * customer/business truth and not a recommendation.
+   */
   accent: PackageAccent;
 };
 
-const PACKAGE_META_BY_LABEL: Record<string, PackageMeta> = {
-  standard: {
-    description:
-      "Solid, complete roof replacement with quality materials and professional installation.",
-    bullets: ["Architectural shingles", "Full install & cleanup"],
-    accent: "standard",
-  },
-  enhanced: {
-    description:
-      "Stronger weather protection with upgraded underlayment and ice and water shield.",
-    bullets: ["Upgraded underlayment", "Ice & water protection"],
-    accent: "enhanced",
-  },
-  premium: {
-    description:
-      "Highest-protection package with premium shingles and upgraded weather layers.",
-    bullets: ["Premium shingles", "Maximum weather protection"],
-    accent: "premium",
-  },
-};
+function resolvePackageAccent(label: string): PackageAccent {
+  const key = label.trim().toLowerCase();
+  if (key === "standard") return "standard";
+  if (key === "enhanced") return "enhanced";
+  if (key === "premium") return "premium";
+  return "default";
+}
 
 /**
  * Resolve customer-facing package presentation.
- * Authored template/snapshot description is source of truth when present.
- * Hardcoded Standard/Enhanced/Premium (and generic) copy is fallback only.
+ * Authored description is the narrative source of truth when present.
+ * Blank description omits copy rather than inventing a package-name story.
+ * Fact lines must already be customer-safe; this helper does not derive them.
  */
 export function resolvePackageMeta(
   label: string,
-  authoredDescription?: string | null
+  authoredDescription?: string | null,
+  factLines?: readonly string[] | null
 ): PackageMeta {
-  const key = label.trim().toLowerCase();
-  const fallback =
-    PACKAGE_META_BY_LABEL[key] ?? {
-      description: "A complete roofing package with quality materials and professional installation.",
-      bullets: ["Quality materials", "Professional installation"],
-      accent: "default" as const,
-    };
   const authored = String(authoredDescription ?? "").trim();
-  if (!authored) return fallback;
   return {
-    ...fallback,
-    description: authored,
+    description: authored.length > 0 ? authored : null,
+    bullets: (factLines ?? [])
+      .map((line) => String(line ?? "").trim())
+      .filter((line) => line.length > 0),
+    accent: resolvePackageAccent(label),
   };
 }

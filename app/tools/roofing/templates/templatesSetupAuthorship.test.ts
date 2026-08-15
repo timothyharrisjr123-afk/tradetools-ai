@@ -26,6 +26,7 @@ describe("Template Setup Authorship V1", () => {
     assert.ok(editors.includes("data-templates-adjust-packages"));
     assert.ok(editors.includes("data-templates-package-name"));
     assert.ok(editors.includes("data-templates-package-description"));
+    assert.ok(editors.includes("data-templates-package-customer-label-reveal"));
     assert.ok(setup.includes("updateProposalTemplateOption"));
     assert.ok(setup.includes("handleSaveTemplateIdentity"));
     assert.ok(setup.includes("handleSavePackageAuthorship"));

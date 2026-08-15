@@ -856,6 +856,7 @@ describe("V2E1 Template → draft isolation", () => {
       path.join(root, "app/lib/proposalPackagePresentation.ts"),
       "utf8"
     );
-    assert.match(packagePresentation, /PACKAGE_META_BY_LABEL/);
+    assert.doesNotMatch(packagePresentation, /PACKAGE_META_BY_LABEL/);
+    assert.doesNotMatch(packagePresentation, /Architectural shingles/);
   });
 });

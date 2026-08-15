@@ -33,7 +33,6 @@ import {
   TEMPLATES_CLEAR_PREFERRED_ACTION_LABEL,
   TEMPLATES_ESTIMATE_DISPLAY_ADVANCED_ACTION,
   TEMPLATES_INCLUDED_WORK_HEADING,
-  TEMPLATES_JOB_CARD_USE_NOTE,
   TEMPLATES_MAKE_PREFERRED_ACTION_LABEL,
   TEMPLATES_NEXT_USE_COPY,
   TEMPLATES_OPEN_JOBS_ACTION,
@@ -243,7 +242,7 @@ export default function TemplatesQuoteSetupReview({
                 {countLine}
                 {isPreferred && template.status !== "archived"
                   ? ` · ${TEMPLATES_PREFERRED_HELPER_COPY}`
-                  : ` · ${TEMPLATES_JOB_CARD_USE_NOTE}`}
+                  : null}
               </p>
               <div className="mt-2">
                 <TemplatesIdentityEditor

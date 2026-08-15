@@ -195,7 +195,25 @@ describe("buildCustomerPacketFromPublicDto", () => {
     const standard = packet.comparison?.options.find(
       (option) => option.optionKey === TEMPLATE_OPT_A
     );
-    assert.equal(standard?.description, "Solid, complete roof replacement with quality materials and professional installation.");
+    assert.equal(standard?.description, "");
+  });
+
+  test("blank description does not invent Standard/Enhanced/Premium copy", () => {
+    const packet = buildCustomerPacketFromPublicDto(
+      baseDto({
+        options: baseDto().options.map((option) => ({
+          ...option,
+          description: null,
+          customer_fact_lines:
+            option.source_template_option_id === TEMPLATE_OPT_B
+              ? ["Designer architectural shingles"]
+              : [],
+        })),
+      })
+    );
+    assert.equal(packet.estimate?.description, "");
+    assert.deepEqual(packet.estimate?.bullets, ["Designer architectural shingles"]);
+    assert.doesNotMatch(JSON.stringify(packet.estimate), /Highest-protection|quality materials/i);
   });
 
   test("current proposal total uses frozen package total", () => {
@@ -387,23 +405,23 @@ describe("buildCustomerPacketFromPublicDto", () => {
     assert.doesNotMatch(serialized, /download pdf/);
   });
 
-  test("customer-facing copy uses recommended package language", () => {
-    assert.equal(PROPOSAL_CUSTOMER_PACKET_CURRENT_PACKAGE_LABEL, "Recommended roofing package");
+  test("customer-facing copy uses selected package language", () => {
+    assert.equal(PROPOSAL_CUSTOMER_PACKET_CURRENT_PACKAGE_LABEL, "Selected package");
     assert.equal(PROPOSAL_CUSTOMER_PACKET_COMPARE_HEADING, "Compare packages");
-    assert.equal(PROPOSAL_CUSTOMER_PACKET_CURRENT_BADGE, "Recommended");
+    assert.equal(PROPOSAL_CUSTOMER_PACKET_CURRENT_BADGE, "Selected");
     assert.equal(PROPOSAL_CUSTOMER_PACKET_CURRENT_TOTAL_LABEL, "Your investment");
-    assert.match(PROPOSAL_CUSTOMER_PACKET_CURRENT_TOTAL_SUMMARY, /recommended package shown above/i);
+    assert.match(PROPOSAL_CUSTOMER_PACKET_CURRENT_TOTAL_SUMMARY, /selected package shown above/i);
   });
 
-  test("serialized packet avoids selection/payment action language", () => {
+  test("serialized packet avoids payment/sign action language", () => {
     const packet = buildCustomerPacketFromPublicDto(baseDto());
     const serialized = JSON.stringify(packet).toLowerCase();
-    assert.doesNotMatch(serialized, /selected package/);
     assert.doesNotMatch(serialized, /\bchoose\b/);
     assert.doesNotMatch(serialized, /update total/);
     assert.doesNotMatch(serialized, /pay deposit/);
     assert.doesNotMatch(serialized, /sign \/ accept/);
     assert.doesNotMatch(serialized, /page_type|content_json/);
+    assert.doesNotMatch(serialized, /recommended roofing package/);
   });
 
   test("maps contractor company contact fields from context_echo", () => {

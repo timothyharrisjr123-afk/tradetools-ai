@@ -14,7 +14,7 @@ type ProposalPacketCurrentPackageProps = {
   estimate: ProposalCustomerPacketEstimateViewModel;
 };
 
-/** Why this package — narrative recommendation, not a duplicate price card. */
+/** Selected package narrative — authored description plus derived facts. */
 export default function ProposalPacketCurrentPackage({ estimate }: ProposalPacketCurrentPackageProps) {
   return (
     <div className="max-w-3xl">
@@ -27,8 +27,10 @@ export default function ProposalPacketCurrentPackage({ estimate }: ProposalPacke
 
       {estimate.bullets.length > 0 ? (
         <div className="mt-8">
-          <p className={PROPOSAL_PACKET_FIELD_LABEL}>{PROPOSAL_CUSTOMER_PACKET_KEY_HIGHLIGHTS_LABEL}</p>
-          <ul className="mt-3 grid gap-2.5 sm:grid-cols-2">
+          {estimate.bullets.length > 1 ? (
+            <p className={PROPOSAL_PACKET_FIELD_LABEL}>{PROPOSAL_CUSTOMER_PACKET_KEY_HIGHLIGHTS_LABEL}</p>
+          ) : null}
+          <ul className={estimate.bullets.length > 1 ? "mt-3 grid gap-2.5 sm:grid-cols-2" : "grid gap-2.5 sm:grid-cols-2"}>
             {estimate.bullets.slice(0, 4).map((bullet) => (
               <li key={bullet} className="flex items-start gap-2.5 text-[14px] text-[#334155]">
                 <IconCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#1d4ed8]" />

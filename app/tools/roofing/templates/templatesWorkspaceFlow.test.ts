@@ -18,6 +18,8 @@ import {
   formatTemplateScopeCountLine,
   packageChoiceGridClass,
   resolvePackagePresentation,
+  resolvePackageChoiceDescription,
+  customerLabelDiffersFromPackageName,
   resolveTemplatePurposeDescription,
   summarizePackageOptionsForWorkspace,
   type PackageOptionSummary,
@@ -40,10 +42,10 @@ function packageSummary(
 }
 
 describe("templatesWorkspaceFlow", () => {
-  test("edit tabs are packages / estimate / content — advanced only", () => {
+  test("edit tabs are packages / estimate — advanced only", () => {
     assert.deepEqual(
       TEMPLATES_EDIT_TABS.map((t) => t.id),
-      ["packages", "estimate", "content"]
+      ["packages", "estimate"]
     );
     assert.match(TEMPLATES_WORKSPACE_TRUST_NOTE, /Catalog controls item pricing/i);
     assert.match(TEMPLATES_WORKSPACE_TRUST_NOTE, /frozen prices/i);
@@ -225,7 +227,7 @@ describe("templatesWorkspaceFlow", () => {
     assert.equal(rows[0].status, "needs_attention");
     assert.equal(
       formatPackageScopeCountLine(rows[0]),
-      "2 included · 1 available upgrade"
+      "2 included · 1 optional upgrade"
     );
   });
 
@@ -236,7 +238,7 @@ describe("templatesWorkspaceFlow", () => {
       linkedItemCount: 13,
       availableUpgradeCount: 1,
     });
-    assert.equal(formatPackageScopeCountLine(enhanced), "13 included · 1 available upgrade");
+    assert.equal(formatPackageScopeCountLine(enhanced), "13 included · 1 optional upgrade");
     assert.equal(
       formatPackageScopeCountLine(
         packageSummary({
@@ -255,7 +257,7 @@ describe("templatesWorkspaceFlow", () => {
         issueCount: 0,
         availableUpgradeCount: 2,
       }),
-      "3 packages · 39 included · 2 available upgrades"
+      "3 packages · 39 included · 2 optional upgrades"
     );
     assert.equal(
       formatTemplateScopeCountLine({
@@ -265,7 +267,7 @@ describe("templatesWorkspaceFlow", () => {
         issueCount: 0,
         availableUpgradeCount: 3,
       }),
-      "4 packages · 52 included · 3 available upgrades"
+      "4 packages · 52 included · 3 optional upgrades"
     );
     assert.equal(formatActivePackageSetupSummary(4), "This setup has 4 package options.");
     assert.equal(formatActivePackageChoiceGuide(4), "Choose from 4 package options.");
@@ -356,5 +358,29 @@ describe("templatesWorkspaceFlow", () => {
     assert.ok(areas.some((row) => row.label === "Estimate"));
     assert.ok(areas.some((row) => row.label === "Warranty and protection"));
     assert.ok(areas.some((row) => row.label === "Terms / next steps"));
+  });
+
+  test("package choice description uses authored copy only", () => {
+    assert.equal(
+      resolvePackageChoiceDescription({
+        optionLabel: "Standard",
+        optionDescription: "Authored Standard story.",
+      }),
+      "Authored Standard story."
+    );
+    assert.equal(
+      resolvePackageChoiceDescription({ optionLabel: "Standard", optionDescription: "  " }),
+      null
+    );
+    assert.equal(
+      resolvePackageChoiceDescription({ optionLabel: "Custom Choice", optionDescription: null }),
+      null
+    );
+  });
+
+  test("customer label differs from package name only when distinct", () => {
+    assert.equal(customerLabelDiffersFromPackageName("Standard", "Standard"), false);
+    assert.equal(customerLabelDiffersFromPackageName("Standard", "Good"), true);
+    assert.equal(customerLabelDiffersFromPackageName("Standard", "  "), false);
   });
 });

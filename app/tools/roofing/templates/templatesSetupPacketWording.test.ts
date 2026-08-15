@@ -14,6 +14,7 @@ import {
   buildPacketWordingEditorViewModel,
   buildPacketWordingSavePlan,
   PACKET_WORDING_SLOT_LABELS,
+  packetWordingPreview,
   packetWordingUiHasForbiddenTerms,
   resolvePacketWordingSlotId,
   TEMPLATES_PACKET_CANCEL_ACTION,
@@ -438,6 +439,15 @@ describe("R3A packet wording UI copy", () => {
     assert.match(copy, /Project notes/);
     assert.match(copy, /Warranty and protection/);
     assert.match(copy, /Terms \/ next steps/);
+  });
+
+  test("read-mode preview shows example-readable copy instead of raw tokens", () => {
+    const preview = packetWordingPreview(
+      "{{company_name}} prepared this roofing proposal for your home.\n\nThis proposal is built around the {{selected_package_name}} package, based on the measured scope."
+    );
+    assert.match(preview, /Your company prepared this roofing proposal/);
+    assert.match(preview, /selected package/);
+    assert.doesNotMatch(preview, /\{\{/);
   });
 
   test("review surface wires packet wording editor instead of Advanced-only path", () => {

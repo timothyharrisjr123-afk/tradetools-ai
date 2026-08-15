@@ -31,7 +31,7 @@ export type TemplatesWorkspaceMode = "review" | "advanced";
 export type TemplatesLegacyUseEditMode = "use" | "edit";
 
 /** Advanced tools only — never the first-load IA. */
-export type TemplatesEditTabId = "packages" | "estimate" | "content";
+export type TemplatesEditTabId = "packages" | "estimate";
 
 /** @deprecated Prefer TemplatesEditTabId — kept for gradual rename in tests. */
 export type TemplatesWorkspaceTabId = TemplatesEditTabId | "overview";
@@ -42,7 +42,6 @@ export const TEMPLATES_EDIT_TABS: ReadonlyArray<{
 }> = [
   { id: "packages", label: "Edit sections" },
   { id: "estimate", label: "Customer display" },
-  { id: "content", label: "Content, warranty & terms" },
 ] as const;
 
 /** @deprecated Use TEMPLATES_EDIT_TABS */
@@ -145,11 +144,9 @@ export const TEMPLATES_INCLUDED_WORK_HINT =
   "Prepared scope for this package." as const;
 export const TEMPLATES_INCLUDED_WORK_ADJUST_HINT =
   "Adjust prepared scope for this package. Catalog still owns price and unit." as const;
-export const TEMPLATES_AVAILABLE_UPGRADES_HEADING = "Available upgrades" as const;
-export const TEMPLATES_AVAILABLE_UPGRADES_HINT =
-  "Optional add-ons. Not included by default — selected later in Builder." as const;
-export const TEMPLATES_AVAILABLE_UPGRADES_EMPTY =
-  "No optional upgrades prepared for this package." as const;
+export const TEMPLATES_AVAILABLE_UPGRADES_HEADING = "Optional upgrades" as const;
+export const TEMPLATES_ADD_OPTIONAL_UPGRADE_ACTION = "Add optional upgrade" as const;
+export const TEMPLATES_ADJUST_OPTIONAL_UPGRADES_ACTION = "Adjust optional upgrades" as const;
 export const TEMPLATES_PROPOSAL_CONTENT_HEADING = "Proposal packet" as const;
 export const TEMPLATES_PROPOSAL_CONTENT_HINT =
   "Prepared customer-facing sections for this setup." as const;
@@ -167,20 +164,22 @@ export const TEMPLATES_BACK_TO_SETUP_ACTION = "Back to proposal setup" as const;
 export const TEMPLATES_SIMPLE_ESTIMATE_LABEL = "Simple estimate" as const;
 export const TEMPLATES_SIMPLE_ESTIMATE_DETAIL =
   "One prepared estimate — no package choices for the customer." as const;
-export const TEMPLATES_JOB_CARD_USE_NOTE =
-  "Starts from Job Card when creating a proposal." as const;
-/** Short contractor-facing blurb for a package choice card. */
+/** Authored customer description, or null when blank. Never invents package-name copy. */
 export function resolvePackageChoiceDescription(input: {
   optionLabel: string;
   optionDescription?: string | null;
 }): string | null {
   const fromOption = input.optionDescription?.trim() || null;
   if (fromOption) return fromOption;
-  const label = input.optionLabel.trim().toLowerCase();
-  if (label === "standard") return "Core included scope for this proposal choice.";
-  if (label === "enhanced") return "Upgraded included materials with optional add-ons available.";
-  if (label === "premium") return "Highest included package with optional add-ons available.";
   return null;
+}
+
+/** True when the contractor authored a customer-facing label distinct from the package name. */
+export function customerLabelDiffersFromPackageName(
+  name: string,
+  customerLabel: string
+): boolean {
+  return customerLabel.trim().length > 0 && customerLabel.trim() !== name.trim();
 }
 
 export type PackageOptionSummaryStatus = "ready" | "needs_attention";
@@ -244,7 +243,7 @@ export function formatPackageScopeCountLine(summary: PackageOptionSummary): stri
     summary.availableUpgradeCount + summary.availableUpgradeIssueCount;
   const includedPart = `${included} included`;
   if (upgrades <= 0) return includedPart;
-  return `${includedPart} · ${upgrades} available upgrade${upgrades === 1 ? "" : "s"}`;
+  return `${includedPart} · ${upgrades} optional upgrade${upgrades === 1 ? "" : "s"}`;
 }
 
 /** Hero / library rollup — included totals exclude available upgrades. */
@@ -265,7 +264,7 @@ export function formatTemplateScopeCountLine(input: {
   const parts = [packagesPart, `${included} included`];
   if (input.availableUpgradeCount > 0) {
     parts.push(
-      `${input.availableUpgradeCount} available upgrade${
+      `${input.availableUpgradeCount} optional upgrade${
         input.availableUpgradeCount === 1 ? "" : "s"
       }`
     );

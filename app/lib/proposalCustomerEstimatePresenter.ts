@@ -35,7 +35,7 @@ export const CUSTOMER_PREVIEW_LINE_INCLUDED_LABEL = "Included";
 export const CUSTOMER_PREVIEW_LINE_IN_PACKAGE_LABEL = "In package";
 
 export type CustomerPreviewPackageMetaInput = {
-  description: string;
+  description: string | null;
   bullets: string[];
 };
 
@@ -437,7 +437,7 @@ export function buildCustomerPreviewEstimatePresentationFromDraft(
       ? [
           {
             sectionId: "draft-upgrades",
-            title: "Available upgrades",
+            title: "Optional upgrades",
             showHeading: showSectionHeadings,
             lines: upgradeLines,
           },

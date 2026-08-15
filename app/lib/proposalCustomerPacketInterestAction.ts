@@ -21,7 +21,7 @@ function trimOrEmpty(value: string | null | undefined): string {
 
 function packagePhrase(packageLabel: string): string {
   const label = trimOrEmpty(packageLabel);
-  return label || "recommended package";
+  return label || "selected package";
 }
 
 /**

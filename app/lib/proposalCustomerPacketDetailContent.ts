@@ -47,7 +47,7 @@ const GENERIC_OVERVIEW_PATTERN =
 
 /** Display fallback when overview is still known-generic (tokens already merged). */
 export const PROPOSAL_CUSTOMER_PACKET_OVERVIEW_COPY =
-  "We prepared this roofing proposal for your home. Review the recommended package, what is included, your investment, and any available upgrades — then ask questions or confirm details when you are ready.";
+  "We prepared this roofing proposal for your home. Review the selected package, what is included, your investment, and any optional upgrades — then ask questions or confirm details when you are ready.";
 
 export function finalizeCustomerPacketDetailBody(pageType: string, body: string): string {
   const normalized = normalizeCustomerPacketDetailBody(body);

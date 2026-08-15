@@ -19,6 +19,7 @@ import {
   LEGACY_PACKET_SCOPE_NOTES_BODY,
   LEGACY_PACKET_TERMS_BODY,
   LEGACY_PACKET_WARRANTY_BODY,
+  PRE_V2E5_PACKET_OVERVIEW_BODY,
 } from "@/app/lib/proposalCustomerPacketDefaultContent";
 import { DEFAULT_ROOF_REPLACEMENT_TEMPLATE_SEED_KEY } from "@/app/lib/defaultRoofingProposalTemplates";
 import type { ProposalTemplateGraph } from "@/app/lib/proposalTemplateStore";
@@ -32,37 +33,37 @@ import type { ProposalTemplateSectionContent } from "@/app/lib/proposalTemplateT
 
 export const PACKET_CONTENT_REPAIR_SENT_SNAPSHOT_GUARD =
   "Packet content repair updates reusable proposal_template_sections only. " +
-  "Existing draft and sent proposal_pages are never rewritten." as const;
+  "Existing draft and sent proposal_pages are never rewritten.";
 
 type PacketSuffix = ".overview" | ".scope_notes" | ".warranty" | ".terms";
 
 const PACKET_TARGETS: ReadonlyArray<{
   suffix: PacketSuffix;
-  legacyBody: string;
+  matchBodies: readonly string[];
   nextBody: string;
   nextTitle: string;
 }> = [
   {
     suffix: ".overview",
-    legacyBody: LEGACY_PACKET_OVERVIEW_BODY,
+    matchBodies: [LEGACY_PACKET_OVERVIEW_BODY, PRE_V2E5_PACKET_OVERVIEW_BODY],
     nextBody: DEFAULT_PACKET_OVERVIEW_BODY,
     nextTitle: DEFAULT_PACKET_OVERVIEW_TITLE,
   },
   {
     suffix: ".scope_notes",
-    legacyBody: LEGACY_PACKET_SCOPE_NOTES_BODY,
+    matchBodies: [LEGACY_PACKET_SCOPE_NOTES_BODY],
     nextBody: DEFAULT_PACKET_SCOPE_NOTES_BODY,
     nextTitle: DEFAULT_PACKET_SCOPE_NOTES_TITLE,
   },
   {
     suffix: ".warranty",
-    legacyBody: LEGACY_PACKET_WARRANTY_BODY,
+    matchBodies: [LEGACY_PACKET_WARRANTY_BODY],
     nextBody: DEFAULT_PACKET_WARRANTY_BODY,
     nextTitle: DEFAULT_PACKET_WARRANTY_TITLE,
   },
   {
     suffix: ".terms",
-    legacyBody: LEGACY_PACKET_TERMS_BODY,
+    matchBodies: [LEGACY_PACKET_TERMS_BODY],
     nextBody: DEFAULT_PACKET_TERMS_BODY,
     nextTitle: DEFAULT_PACKET_TERMS_TITLE,
   },
@@ -157,7 +158,12 @@ export function buildDefaultPacketContentRepairPlan(
     const target = PACKET_TARGETS.find((row) => seedKey.endsWith(row.suffix));
     if (!target) continue;
     const currentBody = normalizeBody(section.content?.body_markdown);
-    if (currentBody !== normalizeBody(target.legacyBody)) continue;
+    const matchesKnownBody = target.matchBodies.some(
+      (body) => currentBody === normalizeBody(body)
+    );
+    const matchesSmokeNotes =
+      target.suffix === ".scope_notes" && /^R3A SMOKE TEST/i.test(currentBody);
+    if (!matchesKnownBody && !matchesSmokeNotes) continue;
     sectionRepairs.push({
       sectionId: section.id,
       optionId: section.option_id,

@@ -51,7 +51,7 @@ export default function ProposalCustomerPreviewEstimateTable({
       <div className="flex items-end justify-between gap-4">
         <div>
           <p className={PACKET_ESTIMATE_LABEL}>Investment detail</p>
-          <h2 className={PACKET_ESTIMATE_HEADING}>Included estimate</h2>
+          <h2 className={PACKET_ESTIMATE_HEADING}>Estimate</h2>
         </div>
         <p className="pb-0.5 text-[12px] font-medium text-slate-400" data-preview-estimate-count>
           {allLines.length} item{allLines.length === 1 ? "" : "s"}

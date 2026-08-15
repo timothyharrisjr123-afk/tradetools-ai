@@ -52,7 +52,7 @@ describe("Template Flow V1 — presentation truth + quiet infrastructure", () =>
         availableUpgradeIssueCount: 0,
         status: "ready",
       }),
-      "13 included · 1 available upgrade"
+      "13 included · 1 optional upgrade"
     );
   });
 
@@ -88,13 +88,13 @@ describe("Template Flow V1 — presentation truth + quiet infrastructure", () =>
     assert.ok(library.includes("TEMPLATES_LIBRARY_HEADING"));
     assert.ok(library.includes("data-templates-setup-selector"));
     assert.ok(row.includes('data-templates-library-archived'));
-    assert.ok(row.includes("opacity-60"));
+    assert.ok(row.includes("opacity-90"));
     assert.ok(row.includes("countCatalogLinkedAvailableUpgradeItems"));
-    assert.ok(row.includes("bg-blue-600"));
-    assert.ok(row.includes("Selected"));
+    assert.ok(row.includes("TEMPLATES_LIBRARY_ROW_SELECTED"));
+    assert.ok(row.includes("data-templates-setup-row-selected"));
     assert.ok(constants.includes("TEMPLATES_LIBRARY_SHELL"));
-    assert.ok(constants.includes("border-blue-400"));
-    assert.ok(constants.includes("ring-2 ring-blue-100"));
+    assert.ok(constants.includes("border-blue-300"));
+    assert.ok(constants.includes("ring-1 ring-blue-100"));
     assert.ok(!constants.includes("ring-cyan-200"));
   });
 
@@ -113,8 +113,7 @@ describe("Template Flow V1 — presentation truth + quiet infrastructure", () =>
     assert.ok(review.includes("data-templates-next-use"));
     assert.ok(review.includes("data-templates-open-advanced"));
     assert.ok(review.includes("data-templates-hero-counts"));
-    assert.ok(review.includes("data-templates-job-card-use-note"));
-    assert.ok(review.includes("TEMPLATES_JOB_CARD_USE_NOTE"));
+    assert.ok(review.includes("TEMPLATES_NEXT_USE_COPY"));
     assert.ok(!review.includes("data-templates-command-surface"));
     assert.ok(!review.includes("data-templates-here-vs-later"));
     assert.ok(!review.includes("data-templates-hero-adjust-included"));
@@ -124,10 +123,10 @@ describe("Template Flow V1 — presentation truth + quiet infrastructure", () =>
     assert.ok(included.includes("data-templates-prepared-scope-groups"));
     assert.ok(included.includes("ring-1 ring-slate-200/70"));
     assert.ok(upgrades.includes("data-templates-adjust-available-upgrades"));
-    assert.ok(upgrades.includes("TEMPLATES_AVAILABLE_UPGRADES_EMPTY"));
-    assert.ok(upgrades.includes("rounded-lg bg-slate-50/90"));
-    assert.ok(review.includes("data-templates-edit-content-quiet"));
+    assert.ok(upgrades.includes("data-templates-available-upgrades-empty"));
+    assert.ok(upgrades.includes("TEMPLATES_ADD_OPTIONAL_UPGRADE_ACTION"));
+    assert.ok(!upgrades.includes("TEMPLATES_AVAILABLE_UPGRADES_EMPTY"));
     assert.ok(review.includes("ring-2 ring-blue-100"));
-    assert.ok(review.includes("overflow-hidden rounded-xl ring-1 ring-slate-200/70"));
+    assert.ok(review.includes("data-templates-proposal-content"));
   });
 });

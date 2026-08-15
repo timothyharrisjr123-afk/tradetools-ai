@@ -8,7 +8,6 @@ import { join } from "node:path";
 import { describe, test } from "node:test";
 import {
   TEMPLATES_AVAILABLE_UPGRADES_HEADING,
-  TEMPLATES_AVAILABLE_UPGRADES_HINT,
   TEMPLATES_INCLUDED_WORK_HEADING,
   TEMPLATES_INCLUDED_WORK_HINT,
   TEMPLATES_NEXT_USE_COPY,
@@ -79,18 +78,16 @@ describe("Template Flow V1 — reusable setup landing", () => {
     assert.equal(included.includes("proposalVisibility"), false);
   });
 
-  test("available upgrades are a separate surface from included work", () => {
+  test("optional upgrades are a separate surface from included work", () => {
     const review = read("TemplatesQuoteSetupReview.tsx");
     const upgrades = read("TemplatesAvailableUpgradesManager.tsx");
-    assert.equal(TEMPLATES_AVAILABLE_UPGRADES_HEADING, "Available upgrades");
-    assert.match(TEMPLATES_AVAILABLE_UPGRADES_HINT, /not charged until selected|Not included by default/i);
+    assert.equal(TEMPLATES_AVAILABLE_UPGRADES_HEADING, "Optional upgrades");
     assert.ok(review.includes("TemplatesAvailableUpgradesManager"));
     assert.ok(review.includes("onAddUpgradeItem"));
     assert.ok(upgrades.includes("data-templates-available-upgrades"));
-    assert.ok(
-      upgrades.includes("Optional later") ||
-        upgrades.includes("TEMPLATES_AVAILABLE_UPGRADES_HINT")
-    );
+    assert.ok(upgrades.includes("data-templates-available-upgrades-empty"));
+    assert.ok(upgrades.includes("TEMPLATES_ADD_OPTIONAL_UPGRADE_ACTION"));
+    assert.ok(upgrades.includes("TEMPLATES_ADJUST_OPTIONAL_UPGRADES_ACTION"));
     assert.doesNotMatch(upgrades, /Included in \$\{|Included in \{/);
     assert.ok(!upgrades.includes("Included in "));
     assert.ok(review.includes("formatPackageScopeCountLine"));

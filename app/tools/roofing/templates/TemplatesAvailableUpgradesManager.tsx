@@ -7,9 +7,9 @@ import {
   TEMPLATES_WORKSPACE_SECTION,
 } from "./templatesConstants";
 import {
-  TEMPLATES_AVAILABLE_UPGRADES_EMPTY,
+  TEMPLATES_ADD_OPTIONAL_UPGRADE_ACTION,
+  TEMPLATES_ADJUST_OPTIONAL_UPGRADES_ACTION,
   TEMPLATES_AVAILABLE_UPGRADES_HEADING,
-  TEMPLATES_AVAILABLE_UPGRADES_HINT,
 } from "./templatesWorkspaceFlow";
 import type { PreparedAvailableUpgradeItem } from "./templatesIncludedWorkPresentation";
 
@@ -37,6 +37,37 @@ export default function TemplatesAvailableUpgradesManager({
     ? TEMPLATES_WORKSPACE_SECTION
     : `${TEMPLATES_CARD} !px-4 !py-4 space-y-3`;
 
+  if (totalItems === 0) {
+    return (
+      <section
+        className={shellClass}
+        aria-labelledby="templates-available-upgrades-heading"
+        data-templates-available-upgrades
+        data-templates-available-upgrades-mode="empty"
+        data-templates-available-upgrades-empty
+        data-templates-section-embedded={embedded ? "true" : "false"}
+      >
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3
+            id="templates-available-upgrades-heading"
+            className="text-sm font-semibold text-slate-900"
+          >
+            {TEMPLATES_AVAILABLE_UPGRADES_HEADING}
+          </h3>
+          <button
+            type="button"
+            onClick={onAddItem}
+            disabled={busy}
+            className="text-xs font-medium text-slate-500 underline-offset-2 hover:text-slate-800 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+            data-templates-add-upgrade
+          >
+            {TEMPLATES_ADD_OPTIONAL_UPGRADE_ACTION}
+          </button>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section
       className={shellClass}
@@ -53,11 +84,9 @@ export default function TemplatesAvailableUpgradesManager({
           >
             {TEMPLATES_AVAILABLE_UPGRADES_HEADING}
           </h3>
-          {totalItems > 0 ? (
-            <p className="mt-0.5 text-xs text-slate-500">
-              {totalItems} optional · {TEMPLATES_AVAILABLE_UPGRADES_HINT}
-            </p>
-          ) : null}
+          <p className="mt-0.5 text-xs text-slate-500">
+            {totalItems} optional
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {adjusting ? (
@@ -78,19 +107,12 @@ export default function TemplatesAvailableUpgradesManager({
             className="inline-flex items-center justify-center rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
             data-templates-adjust-available-upgrades
           >
-            {adjusting ? "Done adjusting" : "Adjust available upgrades"}
+            {adjusting ? "Done" : TEMPLATES_ADJUST_OPTIONAL_UPGRADES_ACTION}
           </button>
         </div>
       </div>
 
-      {totalItems === 0 ? (
-        <div
-          className="mt-2.5 rounded-lg bg-slate-50/90 px-3 py-2.5 ring-1 ring-slate-200/60"
-          data-templates-available-upgrades-empty
-        >
-          <p className="text-xs text-slate-500">{TEMPLATES_AVAILABLE_UPGRADES_EMPTY}</p>
-        </div>
-      ) : adjusting ? (
+      {adjusting ? (
         <div className="mt-3 space-y-2" data-templates-available-upgrades-adjust-view>
           <ul className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200/90 bg-white">
             {items.map((item) => (
@@ -142,22 +164,13 @@ export default function TemplatesAvailableUpgradesManager({
           {items.map((item) => (
             <li
               key={item.templateItemId}
-              className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-white px-3.5 py-2.5 ring-1 ring-slate-200/80"
+              className="rounded-xl bg-white px-3.5 py-2.5 ring-1 ring-slate-200/80"
               data-templates-available-upgrade-summary={item.templateItemId}
             >
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-slate-800">{item.name}</p>
-                {item.issueLabel ? (
-                  <p className="mt-0.5 text-[11px] text-amber-800">{item.issueLabel}</p>
-                ) : (
-                  <p className="mt-0.5 text-[11px] text-slate-500">
-                    Optional upgrade · selected later in Builder
-                  </p>
-                )}
-              </div>
-              <span className="shrink-0 rounded-full bg-slate-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500 ring-1 ring-slate-200/80">
-                Optional
-              </span>
+              <p className="text-sm font-medium text-slate-800">{item.name}</p>
+              {item.issueLabel ? (
+                <p className="mt-0.5 text-[11px] text-amber-800">{item.issueLabel}</p>
+              ) : null}
             </li>
           ))}
         </ul>

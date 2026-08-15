@@ -181,7 +181,7 @@ describe("Job Card Proposals tab (Block 2 + Block 3 modal)", () => {
     assert.doesNotMatch(modal, /data-jobcard-create-proposal-panel-review/);
     assert.doesNotMatch(modal, /CREATE_PROPOSAL_REVIEW_INTRO/);
     assert.match(model, /Prepare proposal/);
-    assert.match(model, /Recommended package/);
+    assert.match(model, /Starting package/);
     assert.match(model, /starting\/default package|starting package/i);
     assert.doesNotMatch(model, /customer proposal pages/i);
     assert.doesNotMatch(model, /13 linked catalog items/);

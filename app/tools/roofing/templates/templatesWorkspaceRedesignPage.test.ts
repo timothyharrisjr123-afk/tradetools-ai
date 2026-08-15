@@ -117,6 +117,9 @@ describe("Templates Page — Reusable proposal setup landing", () => {
         workspace.includes("data-templates-edit-tabs")
     );
     assert.ok(workspace.includes("Back to proposal setup"));
+    assert.doesNotMatch(workspace, /Content, warranty & terms/);
+    assert.doesNotMatch(workspace, /TemplatesContentEditorShell/);
+    assert.doesNotMatch(workspace, /editTab === "content"/);
     assert.equal(setup.includes('href="/tools/roofing/proposals/builder"'), false);
     assert.equal(/data-templates-create-proposal/i.test(setup + review), false);
     assert.ok(!review.includes("There is no Create proposal button"));
@@ -163,14 +166,15 @@ describe("Templates Page — Reusable proposal setup landing", () => {
     const review = read("TemplatesQuoteSetupReview.tsx");
     assert.ok(review.includes("TEMPLATES_REUSABLE_SETUP_EYEBROW"));
     assert.ok(review.includes("data-templates-hero-counts"));
-    assert.ok(review.includes("TEMPLATES_JOB_CARD_USE_NOTE"));
+    assert.ok(review.includes("TEMPLATES_NEXT_USE_COPY"));
     assert.ok(review.includes("TEMPLATES_PACKAGES_SECTION_HINT"));
     assert.ok(review.includes("data-templates-connected-workspace"));
     assert.ok(review.includes("ring-2 ring-blue-100"));
     assert.ok(!review.includes("data-templates-command-surface"));
     assert.ok(!review.includes("data-templates-hero-adjust-included"));
     assert.ok(!review.includes("bg-slate-900"));
-    assert.ok(review.includes("onOpenAdvanced(\"content\")") || review.includes('onOpenAdvanced("content")'));
+    assert.ok(review.includes("TemplatesPacketWordingEditor"));
+    assert.ok(review.includes('onOpenAdvanced("packages")') || review.includes("onOpenAdvanced(\"packages\")"));
     assert.ok(review.includes("TEMPLATES_NEXT_USE_COPY"));
     assert.ok(review.includes("<footer"));
   });

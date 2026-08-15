@@ -158,7 +158,7 @@ describe("templatesPackageStructurePlanner", () => {
       availableUpgradeCount: 2,
     });
     assert.equal(summary.title, "Copied from Better");
-    assert.match(summary.detail, /Included work and available upgrades will be copied/i);
+    assert.match(summary.detail, /Included work and optional upgrades will be copied/i);
     assert.doesNotMatch(summary.detail, /clone|cascade|database/i);
   });
 });

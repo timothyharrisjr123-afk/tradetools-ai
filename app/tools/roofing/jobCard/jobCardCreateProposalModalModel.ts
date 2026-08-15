@@ -58,7 +58,7 @@ export type PrepareProposalFieldView = {
 export const PREPARE_PROPOSAL_TITLE = "Prepare proposal" as const;
 export const PREPARE_PROPOSAL_MEASUREMENT_LABEL = "Measurement" as const;
 export const PREPARE_PROPOSAL_SETUP_LABEL = "Reusable setup" as const;
-export const PREPARE_PROPOSAL_PACKAGE_LABEL = "Recommended package" as const;
+export const PREPARE_PROPOSAL_PACKAGE_LABEL = "Starting package" as const;
 export const PREPARE_PROPOSAL_CHANGE_LABEL = "Change" as const;
 export const PREPARE_PROPOSAL_CREATE_LABEL = "Create proposal" as const;
 export const PREPARE_PROPOSAL_CANCEL_LABEL = "Cancel" as const;
@@ -69,7 +69,7 @@ export const PREPARE_PROPOSAL_MEASUREMENT_REQUIRED = "Measurement required" as c
 
 export const PREPARE_PROPOSAL_MEASUREMENT_CHOOSE = "Choose a measurement." as const;
 export const PREPARE_PROPOSAL_SETUP_CHOOSE = "Choose a reusable setup." as const;
-export const PREPARE_PROPOSAL_PACKAGE_CHOOSE = "Choose a recommended package." as const;
+export const PREPARE_PROPOSAL_PACKAGE_CHOOSE = "Choose a starting package." as const;
 export const PREPARE_PROPOSAL_PACKAGE_NEEDS_SETUP =
   "Choose a reusable setup first." as const;
 export const PREPARE_PROPOSAL_PACKAGE_NONE =
@@ -88,7 +88,7 @@ export const CREATE_PROPOSAL_MEASUREMENT_BLOCKED =
 export const CREATE_PROPOSAL_TEMPLATE_BLOCKED = PREPARE_PROPOSAL_SETUP_NONE;
 
 export const CREATE_PROPOSAL_TEMPLATE_STRUCTURE =
-  "Prepared packages, included work, available upgrades, and customer-facing proposal pages." as const;
+  "Prepared packages, included work, optional upgrades, and customer-facing proposal pages." as const;
 
 export const CREATE_PROPOSAL_TEMPLATE_READY = "Ready to use" as const;
 
@@ -483,7 +483,7 @@ export function resolvePrepareProposalSetup(input: {
 }
 
 /**
- * Recommended package prepare:
+ * Starting package prepare:
  * - selected setup’s valid starting/default package
  * - unique valid package may be prepared (no selector)
  * - invalid/missing starting package with multiple valids → choice required

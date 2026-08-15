@@ -9,6 +9,7 @@ import {
   countIncludedAndUpgradeItems,
   type PackageAddMode,
 } from "./templatesPackageStructurePlanner";
+import { customerLabelDiffersFromPackageName } from "./templatesWorkspaceFlow";
 
 export type TemplateIdentityDraft = {
   name: string;
@@ -30,6 +31,28 @@ export type PackageStructureCreateDraft = {
   isDefault: boolean;
 };
 
+function buildPackageAuthorshipDrafts(
+  options: readonly ProposalTemplateOption[]
+): PackageAuthorshipDraft[] {
+  return sortTemplateOptionsByOrder([...options]).map((option) => ({
+    optionId: option.id,
+    name: option.name,
+    customerLabel: option.customer_label ?? option.name,
+    description: option.description ?? "",
+    isDefault: option.is_default === true,
+  }));
+}
+
+function packageAuthorshipHydrateKey(
+  open: boolean,
+  options: readonly ProposalTemplateOption[]
+): string {
+  if (!open) return "";
+  return sortTemplateOptionsByOrder([...options])
+    .map((option) => option.id)
+    .join("|");
+}
+
 type TemplatesIdentityEditorProps = {
   name: string;
   description: string | null;
@@ -47,14 +70,6 @@ export function TemplatesIdentityEditor({
   const [draftName, setDraftName] = useState(name);
   const [draftDescription, setDraftDescription] = useState(description ?? "");
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!open) {
-      setDraftName(name);
-      setDraftDescription(description ?? "");
-      setError(null);
-    }
-  }, [open, name, description]);
 
   const handleSave = async () => {
     const trimmed = draftName.trim();
@@ -74,7 +89,12 @@ export function TemplatesIdentityEditor({
     return (
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setDraftName(name);
+          setDraftDescription(description ?? "");
+          setError(null);
+          setOpen(true);
+        }}
         disabled={busy}
         className="text-xs font-medium text-slate-500 underline-offset-2 hover:text-slate-800 hover:underline disabled:opacity-50"
         data-templates-edit-identity
@@ -183,27 +203,33 @@ export function TemplatesPackagesAdjustPanel({
 
   const [removeOptionId, setRemoveOptionId] = useState<string>("");
   const [replacementDefaultId, setReplacementDefaultId] = useState<string>("");
+  const [revealCustomerLabelIds, setRevealCustomerLabelIds] = useState<string[]>([]);
+  const [revealCreateCustomerLabel, setRevealCreateCustomerLabel] = useState(false);
+  const [hydrateKey, setHydrateKey] = useState("");
 
   useEffect(() => {
     onOpenChange?.(open);
   }, [open, onOpenChange]);
 
-  useEffect(() => {
-    if (!open) return;
-    const next = sortTemplateOptionsByOrder(graph.options).map((option) => ({
-      optionId: option.id,
-      name: option.name,
-      customerLabel: option.customer_label ?? option.name,
-      description: option.description ?? "",
-      isDefault: option.is_default === true,
-    }));
-    setDrafts(next);
-    setError(null);
-    setMode("list");
-    setAddMode("copy_existing");
-    setAddStep("path");
-    setSourceOptionId(next.find((row) => row.isDefault)?.optionId ?? next[0]?.optionId ?? "");
-  }, [open, graph.options]);
+  const nextHydrateKey = packageAuthorshipHydrateKey(open, graph.options);
+  if (nextHydrateKey !== hydrateKey) {
+    setHydrateKey(nextHydrateKey);
+    if (open) {
+      const next = buildPackageAuthorshipDrafts(graph.options);
+      setDrafts(next);
+      setRevealCustomerLabelIds(
+        next
+          .filter((row) => customerLabelDiffersFromPackageName(row.name, row.customerLabel))
+          .map((row) => row.optionId)
+      );
+      setRevealCreateCustomerLabel(false);
+      setError(null);
+      setMode("list");
+      setAddMode("copy_existing");
+      setAddStep("path");
+      setSourceOptionId(next.find((row) => row.isDefault)?.optionId ?? next[0]?.optionId ?? "");
+    }
+  }
 
   const sourceSummaries = useMemo(() => {
     return ordered.map((option) => {
@@ -254,7 +280,15 @@ export function TemplatesPackagesAdjustPanel({
           if (patch.isDefault === true) return { ...draft, isDefault: false };
           return draft;
         }
-        return { ...draft, ...patch };
+        const nextPatch = { ...patch };
+        if (
+          nextPatch.name !== undefined &&
+          nextPatch.customerLabel === undefined &&
+          !customerLabelDiffersFromPackageName(draft.name, draft.customerLabel)
+        ) {
+          nextPatch.customerLabel = nextPatch.name;
+        }
+        return { ...draft, ...nextPatch };
       })
     );
   };
@@ -290,6 +324,7 @@ export function TemplatesPackagesAdjustPanel({
       description: "",
       isDefault: false,
     });
+    setRevealCreateCustomerLabel(false);
   };
 
   const handleCreatePackage = async () => {
@@ -427,7 +462,7 @@ export function TemplatesPackagesAdjustPanel({
                     </button>
                   </div>
                 </div>
-                <div className="mt-2.5 grid gap-2.5 sm:grid-cols-2">
+                <div className="mt-2.5 space-y-2.5">
                   <label className="block">
                     <span className="text-xs font-medium text-slate-700">Package name</span>
                     <input
@@ -440,32 +475,51 @@ export function TemplatesPackagesAdjustPanel({
                     />
                   </label>
                   <label className="block">
-                    <span className="text-xs font-medium text-slate-700">Customer label</span>
-                    <input
-                      type="text"
-                      value={draft.customerLabel}
+                    <span className="text-xs font-medium text-slate-700">Short customer description</span>
+                    <textarea
+                      value={draft.description}
                       disabled={busy}
+                      rows={2}
                       onChange={(e) =>
-                        updateDraft(draft.optionId, { customerLabel: e.target.value })
+                        updateDraft(draft.optionId, { description: e.target.value })
                       }
-                      className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-200"
-                      data-templates-package-customer-label={draft.optionId}
+                      className="mt-1 w-full resize-none rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-200"
+                      data-templates-package-description={draft.optionId}
                     />
                   </label>
+                  {revealCustomerLabelIds.includes(draft.optionId) ||
+                  customerLabelDiffersFromPackageName(draft.name, draft.customerLabel) ? (
+                    <label className="block">
+                      <span className="text-xs font-medium text-slate-700">Customer label</span>
+                      <input
+                        type="text"
+                        value={draft.customerLabel}
+                        disabled={busy}
+                        onChange={(e) =>
+                          updateDraft(draft.optionId, { customerLabel: e.target.value })
+                        }
+                        className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-200"
+                        data-templates-package-customer-label={draft.optionId}
+                      />
+                    </label>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() =>
+                        setRevealCustomerLabelIds((current) =>
+                          current.includes(draft.optionId)
+                            ? current
+                            : [...current, draft.optionId]
+                        )
+                      }
+                      className="text-[11px] font-medium text-slate-500 underline-offset-2 hover:text-slate-800 hover:underline disabled:opacity-50"
+                      data-templates-package-customer-label-reveal={draft.optionId}
+                    >
+                      Use a different customer label
+                    </button>
+                  )}
                 </div>
-                <label className="mt-2.5 block">
-                  <span className="text-xs font-medium text-slate-700">Description</span>
-                  <textarea
-                    value={draft.description}
-                    disabled={busy}
-                    rows={1}
-                    onChange={(e) =>
-                      updateDraft(draft.optionId, { description: e.target.value })
-                    }
-                    className="mt-1 w-full resize-none rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-200"
-                    data-templates-package-description={draft.optionId}
-                  />
-                </label>
               </div>
             ))}
           </div>
@@ -600,7 +654,7 @@ export function TemplatesPackagesAdjustPanel({
                           <p className="mt-1 text-[11px] text-slate-600">
                             {row.includedCount} included
                             {row.availableUpgradeCount > 0
-                              ? ` · ${row.availableUpgradeCount} available upgrade${
+                              ? ` · ${row.availableUpgradeCount} optional upgrade${
                                   row.availableUpgradeCount === 1 ? "" : "s"
                                 }`
                               : ""}
@@ -619,7 +673,7 @@ export function TemplatesPackagesAdjustPanel({
                       {selectedSource ? (
                         <p className="mt-1 text-[11px] text-slate-500">
                           {selectedSource.includedCount} included ·{" "}
-                          {selectedSource.availableUpgradeCount} available upgrades
+                          {selectedSource.availableUpgradeCount} optional upgrades
                         </p>
                       ) : null}
                     </div>
@@ -639,31 +693,23 @@ export function TemplatesPackagesAdjustPanel({
                   value={createDraft.name}
                   disabled={busy}
                   onChange={(e) =>
-                    setCreateDraft((current) => ({ ...current, name: e.target.value }))
+                    setCreateDraft((current) => ({
+                      ...current,
+                      name: e.target.value,
+                      customerLabel: customerLabelDiffersFromPackageName(
+                        current.name,
+                        current.customerLabel
+                      )
+                        ? current.customerLabel
+                        : e.target.value,
+                    }))
                   }
                   className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-200"
                   data-templates-add-package-name
                 />
               </label>
               <label className="block">
-                <span className="text-xs font-medium text-slate-700">Customer label</span>
-                <input
-                  type="text"
-                  value={createDraft.customerLabel}
-                  disabled={busy}
-                  placeholder="Optional — defaults to package name"
-                  onChange={(e) =>
-                    setCreateDraft((current) => ({
-                      ...current,
-                      customerLabel: e.target.value,
-                    }))
-                  }
-                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-200"
-                  data-templates-add-package-customer-label
-                />
-              </label>
-              <label className="block">
-                <span className="text-xs font-medium text-slate-700">Description</span>
+                <span className="text-xs font-medium text-slate-700">Short customer description</span>
                 <textarea
                   value={createDraft.description}
                   disabled={busy}
@@ -678,6 +724,36 @@ export function TemplatesPackagesAdjustPanel({
                   data-templates-add-package-description
                 />
               </label>
+              {revealCreateCustomerLabel ||
+              customerLabelDiffersFromPackageName(createDraft.name, createDraft.customerLabel) ? (
+                <label className="block">
+                  <span className="text-xs font-medium text-slate-700">Customer label</span>
+                  <input
+                    type="text"
+                    value={createDraft.customerLabel}
+                    disabled={busy}
+                    placeholder="Optional — defaults to package name"
+                    onChange={(e) =>
+                      setCreateDraft((current) => ({
+                        ...current,
+                        customerLabel: e.target.value,
+                      }))
+                    }
+                    className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-200"
+                    data-templates-add-package-customer-label
+                  />
+                </label>
+              ) : (
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => setRevealCreateCustomerLabel(true)}
+                  className="text-[11px] font-medium text-slate-500 underline-offset-2 hover:text-slate-800 hover:underline disabled:opacity-50"
+                  data-templates-add-package-customer-label-reveal
+                >
+                  Use a different customer label
+                </button>
+              )}
               <label className="inline-flex items-center gap-2 text-xs font-medium text-slate-600">
                 <input
                   type="checkbox"
@@ -691,7 +767,7 @@ export function TemplatesPackagesAdjustPanel({
                   }
                   data-templates-add-package-default
                 />
-                Default package
+                Starting package
               </label>
 
               {error ? <p className="text-xs text-amber-800">{error}</p> : null}

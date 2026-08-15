@@ -133,22 +133,21 @@ export const PROPOSAL_CUSTOMER_PACKET_PROPOSAL_LABEL = "Your roofing proposal";
 export const PROPOSAL_CUSTOMER_PACKET_COVER_CONFIDENCE =
   "Prepared for your home.";
 
-export const PROPOSAL_CUSTOMER_PACKET_ESTIMATE_CONFIDENCE =
-  "Here is the roofing package we recommend for your home.";
+export const PROPOSAL_CUSTOMER_PACKET_ESTIMATE_CONFIDENCE = "";
 
-export const PROPOSAL_CUSTOMER_PACKET_CURRENT_PACKAGE_LABEL = "Recommended roofing package";
+export const PROPOSAL_CUSTOMER_PACKET_CURRENT_PACKAGE_LABEL = "Selected package";
 
 export const PROPOSAL_CUSTOMER_PACKET_KEY_HIGHLIGHTS_LABEL = "Package highlights";
 
 export const PROPOSAL_CUSTOMER_PACKET_CURRENT_TOTAL_LABEL = "Your investment";
 
 export const PROPOSAL_CUSTOMER_PACKET_CURRENT_TOTAL_SUMMARY =
-  "Based on the recommended package shown above.";
+  "Based on the selected package shown above.";
 
 export const PROPOSAL_CUSTOMER_PACKET_TOTAL_FOOTNOTE =
-  "Includes the recommended package and any selected upgrades.";
+  "Includes the selected package and any selected upgrades.";
 
-export const PROPOSAL_CUSTOMER_PACKET_INCLUDES_LABEL = "What is included";
+export const PROPOSAL_CUSTOMER_PACKET_INCLUDES_LABEL = "Included work";
 
 export const PROPOSAL_CUSTOMER_PACKET_TOTAL_INVESTMENT_LABEL = "Your investment";
 
@@ -187,7 +186,7 @@ export const PROPOSAL_CUSTOMER_PACKET_COMPARE_HEADING = "Compare packages";
 export const PROPOSAL_CUSTOMER_PACKET_COMPARE_INTRO =
   "Choose the right level of protection for your home.";
 
-export const PROPOSAL_CUSTOMER_PACKET_CURRENT_BADGE = "Recommended";
+export const PROPOSAL_CUSTOMER_PACKET_CURRENT_BADGE = "Selected";
 
 export const PROPOSAL_CUSTOMER_PACKET_UPGRADES_HEADING = "Selected upgrades";
 
@@ -195,7 +194,7 @@ export const PROPOSAL_CUSTOMER_PACKET_UPGRADES_INTRO_LINE1 =
   "Included in your investment total.";
 
 export const PROPOSAL_CUSTOMER_PACKET_UPGRADES_INTRO_LINE2 =
-  "Other available upgrades stay optional unless selected.";
+  "Other optional upgrades stay optional unless selected.";
 
 export const PROPOSAL_CUSTOMER_PACKET_UPGRADES_FOOTNOTE =
   "Only selected upgrades are part of this proposal.";
