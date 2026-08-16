@@ -11,6 +11,12 @@ type AcceptanceRow = {
   guard_result: string | null;
 };
 
+/** Job Card Activity item for one immutable proposal_acceptances row. */
+export type ProposalAcceptanceActivityItem = JobCardActivityItem & {
+  acceptanceId: string;
+  acceptedAt: string;
+};
+
 function parseTs(iso: string | null | undefined): number {
   const ts = Date.parse(String(iso ?? ""));
   return Number.isFinite(ts) ? ts : 0;
@@ -24,14 +30,16 @@ function formatWhen(iso: string | null | undefined): string | undefined {
 
 export function composeProposalAcceptanceActivityItems(
   rows: readonly AcceptanceRow[]
-): JobCardActivityItem[] {
-  const items: JobCardActivityItem[] = [];
+): ProposalAcceptanceActivityItem[] {
+  const items: ProposalAcceptanceActivityItem[] = [];
   for (const row of rows) {
     const pkg = (row.accepted_option_label ?? "").trim();
     items.push({
       label: "Proposal accepted",
       note: pkg ? `${pkg} package` : "Customer accepted this proposal",
       when: formatWhen(row.accepted_at),
+      acceptanceId: row.id,
+      acceptedAt: row.accepted_at,
     });
   }
   return items;

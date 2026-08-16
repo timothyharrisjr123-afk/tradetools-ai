@@ -5,8 +5,10 @@
  *   1. job_activity_events (job-native)
  *   2. allowlisted proposal facts already loaded on the Job Card
  *   3. proposal_customer_requests (composed by the panel)
+ *   4. proposal_acceptances (composed by the panel; chronology owner is accepted_at)
  *
- * Never surfaces Job Card opened, autosave, previewed, or snapshot_frozen.
+ * Never surfaces Job Card opened, autosave, previewed, snapshot_frozen,
+ * Acceptance confirmed, or Acknowledge.
  */
 
 import type { JobCardActivityItem } from "@/app/tools/roofing/jobCard/JobCardActivityPanel";
@@ -19,9 +21,10 @@ import type { CanonicalJobStage } from "@/app/lib/jobLifecycleTypes";
 import type { ProposalRecordStatusSummary } from "@/app/lib/proposalRecordTypes";
 import type { JobCardProposalSentFactsById } from "@/app/lib/proposalJobCardLifecycleRead";
 import { deriveContractorProposalLifecycle } from "@/app/lib/proposalContractorLifecycle";
+import type { ProposalAcceptanceActivityItem } from "@/app/lib/proposalAcceptanceActivity";
 
 const FORBIDDEN_ACTIVITY_LABEL =
-  /\b(Job card opened|Estimate loaded|autosave|previewed|snapshot_frozen|Builder opened|Preview opened)\b/i;
+  /\b(Job card opened|Estimate loaded|autosave|previewed|snapshot_frozen|Builder opened|Preview opened|Acceptance confirmed)\b/i;
 
 export type ComposedProposalActivityFact = {
   proposal_id: string;
@@ -36,7 +39,7 @@ export type ComposeJobActivityInput = {
   proposals?: readonly ProposalRecordStatusSummary[];
   sentFactsByProposalId?: JobCardProposalSentFactsById;
   customerRequestItems?: readonly JobCardActivityItem[];
-  acceptanceItems?: readonly JobCardActivityItem[];
+  acceptanceItems?: readonly ProposalAcceptanceActivityItem[];
 };
 
 function parseTs(iso: string | null | undefined): number {
@@ -77,11 +80,17 @@ export function composeJobActivityItems(
   const items: Array<JobCardActivityItem & { sortTs: number }> = [];
   const seen = new Set<string>();
 
-  const push = (item: JobCardActivityItem, iso: string | null | undefined) => {
+  const push = (
+    item: JobCardActivityItem,
+    iso: string | null | undefined,
+    identity?: string | null
+  ) => {
     if (FORBIDDEN_ACTIVITY_LABEL.test(item.label) || FORBIDDEN_ACTIVITY_LABEL.test(item.note)) {
       return;
     }
-    const key = `${item.label}|${iso ?? ""}|${item.note}`;
+    const key = identity
+      ? `id:${identity}`
+      : `${item.label}|${iso ?? ""}|${item.note}`;
     if (seen.has(key)) return;
     seen.add(key);
     items.push({
@@ -201,7 +210,9 @@ export function composeJobActivityItems(
   }
 
   for (const acceptance of input.acceptanceItems ?? []) {
-    push(acceptance, null);
+    const acceptedAt = (acceptance.acceptedAt ?? "").trim() || null;
+    const acceptanceId = (acceptance.acceptanceId ?? "").trim() || null;
+    push(acceptance, acceptedAt, acceptanceId ? `acceptance:${acceptanceId}` : null);
   }
 
   return items

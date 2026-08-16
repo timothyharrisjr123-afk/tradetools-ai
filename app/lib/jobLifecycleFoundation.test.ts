@@ -355,6 +355,122 @@ describe("activity composer", () => {
     });
     assert.equal(items.length, 0);
   });
+
+  test("acceptance uses accepted_at so it sorts between Job created and Approved", () => {
+    const items = composeJobActivityItems({
+      jobCreatedAt: "2026-08-16T14:25:14.000Z",
+      jobActivityEvents: [
+        {
+          id: JOB_ID,
+          company_id: COMPANY_ID,
+          job_id: JOB_ID,
+          event_type: "stage_changed",
+          occurred_at: "2026-08-16T14:32:46.000Z",
+          payload_json: {
+            from_stage: "proposal",
+            to_stage: "approved",
+            reason: "contractor_approved",
+          },
+        },
+      ],
+      acceptanceItems: [
+        {
+          label: "Proposal accepted",
+          note: "Premium package",
+          acceptanceId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa01",
+          acceptedAt: "2026-08-16T14:31:20.000Z",
+        },
+      ],
+    });
+    assert.deepEqual(
+      items.map((item) => item.label),
+      ["Moved to Approved", "Proposal accepted", "Job created"]
+    );
+  });
+
+  test("two same-package acceptances stay separate and order by accepted_at", () => {
+    const items = composeJobActivityItems({
+      jobCreatedAt: "2026-08-16T14:25:14.000Z",
+      jobActivityEvents: [
+        {
+          id: JOB_ID,
+          company_id: COMPANY_ID,
+          job_id: JOB_ID,
+          event_type: "stage_changed",
+          occurred_at: "2026-08-16T14:25:16.000Z",
+          payload_json: {
+            from_stage: "proposal",
+            to_stage: "approved",
+            reason: "contractor_approved",
+          },
+        },
+      ],
+      acceptanceItems: [
+        {
+          label: "Proposal accepted",
+          note: "Premium package",
+          acceptanceId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa01",
+          acceptedAt: "2026-08-16T14:25:15.000Z",
+        },
+        {
+          label: "Proposal accepted",
+          note: "Premium package",
+          acceptanceId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa02",
+          acceptedAt: "2026-08-16T14:28:45.000Z",
+        },
+      ],
+    });
+    const accepted = items.filter((item) => item.label === "Proposal accepted");
+    assert.equal(accepted.length, 2);
+    assert.deepEqual(
+      items.map((item) => item.label),
+      [
+        "Proposal accepted",
+        "Moved to Approved",
+        "Proposal accepted",
+        "Job created",
+      ]
+    );
+  });
+
+  test("same logical acceptance id remains one Activity item", () => {
+    const row = {
+      label: "Proposal accepted",
+      note: "Premium package",
+      acceptanceId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa01",
+      acceptedAt: "2026-08-16T14:31:20.000Z",
+    };
+    const items = composeJobActivityItems({
+      acceptanceItems: [row, { ...row }],
+    });
+    assert.equal(items.length, 1);
+    assert.equal(items[0]?.label, "Proposal accepted");
+  });
+
+  test("does not emit Acceptance confirmed or Acknowledge as Activity", () => {
+    const items = composeJobActivityItems({
+      acceptanceItems: [
+        {
+          label: "Acceptance confirmed",
+          note: "Contractor confirmed",
+          acceptanceId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa01",
+          acceptedAt: "2026-08-16T14:32:46.000Z",
+        },
+        {
+          label: "Proposal accepted",
+          note: "Premium package",
+          acceptanceId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa02",
+          acceptedAt: "2026-08-16T14:31:20.000Z",
+        },
+      ],
+    });
+    assert.equal(items.length, 1);
+    assert.equal(items[0]?.label, "Proposal accepted");
+    assert.equal(
+      items.some((item) => /acknowledge|acceptance confirmed/i.test(item.label)),
+      false
+    );
+  });
 });
 
 describe("RPC payload guards", () => {

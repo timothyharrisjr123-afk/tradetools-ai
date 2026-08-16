@@ -10,6 +10,7 @@ import { formatCustomerRequestActivityNote } from "@/app/lib/proposalCustomerReq
 import {
   composeProposalAcceptanceActivityItems,
   listJobProposalAcceptances,
+  type ProposalAcceptanceActivityItem,
 } from "@/app/lib/proposalAcceptanceActivity";
 import { useJobProposalCustomerRequests } from "@/app/lib/useProposalCustomerRequests";
 import JobCardActivityPanel, {
@@ -39,9 +40,9 @@ export default function JobCardActivityPanelWithCustomerRequests({
     enabled: proposalIds.length > 0,
   });
   const [jobEvents, setJobEvents] = useState<JobActivityEvent[]>([]);
-  const [acceptanceItems, setAcceptanceItems] = useState<JobCardActivityItem[]>(
-    []
-  );
+  const [acceptanceItems, setAcceptanceItems] = useState<
+    ProposalAcceptanceActivityItem[]
+  >([]);
 
   useEffect(() => {
     const id = (jobId ?? "").trim();
