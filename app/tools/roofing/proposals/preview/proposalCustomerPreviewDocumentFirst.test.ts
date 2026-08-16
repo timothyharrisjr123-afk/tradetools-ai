@@ -210,7 +210,7 @@ describe("Contractor-facing Proposal Preview workspace", () => {
     const drawer = readPreviewSource("ProposalCustomerPreviewSendSharingDrawer.tsx");
     const sendPanel = readPreviewSource("ProposalCustomerPreviewSendGatePanel.tsx");
     assert.match(drawer, /data-preview-send-sheet-v2c2/);
-    assert.match(drawer, /Send proposal/);
+    assert.match(drawer, /resolveSendGateSheetTitle/);
     assert.match(drawer, /sentFrozenChrome\.statusLabel/);
     assert.match(drawer, /Customer:/);
     assert.doesNotMatch(drawer, /data-preview-review-tabs/);
@@ -323,8 +323,12 @@ describe("Contractor-facing Proposal Preview workspace", () => {
     assert.match(table, /totals\.show \?/);
     assert.match(table, /totals\.discountLabel \?/);
     const client = readPreviewSource("ProposalCustomerPreviewClient.tsx");
-    assert.match(client, /resolveAuthoritativeTotalLabel/);
-    assert.match(client, /customer_total_cents/);
+    const totalsOwner = readFileSync(
+      path.join(process.cwd(), "app/lib/proposalCustomerPreviewViewModel.ts"),
+      "utf8"
+    );
+    assert.match(client, /resolveProposalCustomerPreviewSelectedTotalLabel/);
+    assert.match(totalsOwner, /customer_total_cents/);
     assert.match(client, /ProposalCustomerPreviewDocumentView/);
     assert.match(client, /PacketCover|ProposalCustomerPreviewDocumentView/);
   });

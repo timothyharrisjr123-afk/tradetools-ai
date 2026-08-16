@@ -32,6 +32,7 @@ import {
 } from "@/app/lib/proposalPageVisibilityEditing";
 import type { ProposalDraftGraph, ProposalPageRow } from "@/app/lib/proposalRecordStore";
 import type { ProposalPricingStaleResult } from "@/app/lib/proposalStaleness";
+import { formatPriceCents } from "@/app/tools/roofing/proposals/builder/proposalBuilderConstants";
 
 /** Lifecycle page types excluded from R17 customer Preview. */
 export const CUSTOMER_PREVIEW_DEFERRED_PAGE_TYPES = [
@@ -126,6 +127,17 @@ export type ProposalCustomerPreviewDocument = {
 export type BuildProposalCustomerPreviewOptions = {
   pricingStale?: ProposalPricingStaleResult | null;
 };
+
+/** Header total for Preview/sent-record — selected option cents, not a parallel fixture. */
+export function resolveProposalCustomerPreviewSelectedTotalLabel(
+  graph: Pick<ProposalDraftGraph, "proposal" | "options">
+): string | null {
+  const selectedOptionId = (graph.proposal.selected_option_id ?? "").trim();
+  if (!selectedOptionId) return null;
+  const selected = graph.options.find((option) => option.id === selectedOptionId);
+  if (selected?.customer_total_cents == null) return null;
+  return formatPriceCents(selected.customer_total_cents);
+}
 
 export function buildProposalCustomerPreviewHref(
   jobId: string,

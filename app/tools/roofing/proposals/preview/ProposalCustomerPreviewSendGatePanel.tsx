@@ -36,6 +36,9 @@ import {
   SEND_GATE_PREPARE_CUSTOMER_LINK_LABEL,
   SEND_GATE_PREPARING_CUSTOMER_LINK_MESSAGE,
   SEND_GATE_SENDING_PROPOSAL_EMAIL_MESSAGE,
+  SEND_GATE_SEND_PROPOSAL_LABEL,
+  SEND_GATE_SEND_REVISION_LABEL,
+  resolveSendGateSheetTitle,
 } from "@/app/lib/proposalSendGateReadiness";
 import ProposalCustomerPreviewDeliveryHistorySection from "./ProposalCustomerPreviewDeliveryHistorySection";
 
@@ -67,6 +70,8 @@ type ProposalCustomerPreviewSendGatePanelProps = {
   embedded?: boolean;
   /** V2C4 — Refresh Preview sent/frozen chrome after send (freeze may precede delivery). */
   onSendCompleted?: () => void;
+  /** Dirty draft after a prior sent version — same send engine, revision copy. */
+  isRevisionSend?: boolean;
 };
 
 const SEND_PRIMARY_ACTION =
@@ -120,6 +125,7 @@ export default function ProposalCustomerPreviewSendGatePanel({
   hideDeferredActions = false,
   embedded = false,
   onSendCompleted,
+  isRevisionSend = false,
 }: ProposalCustomerPreviewSendGatePanelProps) {
   const [sessionCustomerLink, setSessionCustomerLink] = useState<SendPrepSessionLink | null>(null);
   const [prepPending, setPrepPending] = useState(false);
@@ -354,7 +360,7 @@ export default function ProposalCustomerPreviewSendGatePanel({
   return (
     <section
       className={shellClass}
-      aria-label="Send proposal"
+      aria-label={resolveSendGateSheetTitle(isRevisionSend)}
       data-preview-delivery-composer
       data-preview-send-gate-v2c2
     >
@@ -510,7 +516,7 @@ export default function ProposalCustomerPreviewSendGatePanel({
           ) : (
             <>
               <Mail className="h-4 w-4" aria-hidden />
-              Send proposal
+              {isRevisionSend ? SEND_GATE_SEND_REVISION_LABEL : SEND_GATE_SEND_PROPOSAL_LABEL}
             </>
           )}
         </button>

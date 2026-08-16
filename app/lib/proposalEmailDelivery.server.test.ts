@@ -43,7 +43,8 @@ describe("R18D3B server wiring guardrails", () => {
     assert.match(source, /findProposalDeliveryAttemptByIdempotencyKey/);
     assert.match(source, /Idempotency-Key/);
     assert.match(source, /api\.resend\.com\/emails/);
-    assert.match(source, /mintProposalPublicAccessToken/);
+    assert.match(source, /mintAndSupersedeProposalPublicAccessToken/);
+    assert.doesNotMatch(source, /mintProposalPublicAccessToken\(/);
     assert.match(source, /EMAIL_SEND_MINT_METADATA|proposalEmailDelivery/);
     assert.match(source, /process\.env\.RESEND_API_KEY/);
     assert.doesNotMatch(source, /\/api\/estimate\/send|sendEstimateClient|\/approve\//);

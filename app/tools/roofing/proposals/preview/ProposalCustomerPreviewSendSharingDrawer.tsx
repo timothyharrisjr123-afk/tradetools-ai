@@ -6,7 +6,10 @@ import type { JobRecord } from "@/app/lib/jobTypes";
 import type { ProposalCustomerPreviewReadiness } from "@/app/lib/proposalCustomerPreviewViewModel";
 import type { ProposalDraftGraph } from "@/app/lib/proposalRecordStore";
 import type { ProposalPreviewSentFrozenChrome } from "@/app/lib/proposalPreviewSentFrozenChrome";
-import { resolveSendGateCustomerName } from "@/app/lib/proposalSendGateReadiness";
+import {
+  resolveSendGateCustomerName,
+  resolveSendGateSheetTitle,
+} from "@/app/lib/proposalSendGateReadiness";
 import ProposalCustomerPreviewSendGatePanel from "./ProposalCustomerPreviewSendGatePanel";
 
 type ProposalCustomerPreviewSendSharingDrawerProps = {
@@ -23,6 +26,7 @@ type ProposalCustomerPreviewSendSharingDrawerProps = {
   builderHref: string;
   sentFrozenChrome: ProposalPreviewSentFrozenChrome;
   onSendCompleted?: () => void;
+  isRevisionSend?: boolean;
   /** @deprecated V2C2 — focused Send sheet has no peer tabs. Kept for call-site compat. */
   initialTab?: "send" | "link" | "activity";
 };
@@ -45,8 +49,10 @@ export default function ProposalCustomerPreviewSendSharingDrawer({
   builderHref,
   sentFrozenChrome,
   onSendCompleted,
+  isRevisionSend = false,
 }: ProposalCustomerPreviewSendSharingDrawerProps) {
   const customerName = resolveSendGateCustomerName(graph, job) ?? "Customer";
+  const sheetTitle = resolveSendGateSheetTitle(isRevisionSend);
 
   useEffect(() => {
     if (!open) return;
@@ -81,7 +87,7 @@ export default function ProposalCustomerPreviewSendSharingDrawer({
         id="preview-send-sharing-panel"
         role="dialog"
         aria-modal="true"
-        aria-label="Send proposal"
+        aria-label={sheetTitle}
         className="absolute inset-x-0 bottom-0 flex max-h-[92vh] w-full flex-col rounded-t-2xl border border-slate-200/80 bg-[#f8fafc] shadow-[0_-18px_48px_rgba(15,23,42,0.18)] sm:inset-y-0 sm:bottom-auto sm:right-0 sm:left-auto sm:max-h-none sm:max-w-[28rem] sm:rounded-none sm:border-l sm:shadow-[-18px_0_48px_rgba(15,23,42,0.16)]"
         data-preview-send-sharing-panel
       >
@@ -96,7 +102,7 @@ export default function ProposalCustomerPreviewSendSharingDrawer({
               </span>
               <div className="min-w-0" data-preview-send-sheet-context>
                 <h2 className="text-[1.125rem] font-semibold tracking-[-0.02em] text-slate-950">
-                  Send proposal
+                  {sheetTitle}
                 </h2>
                 <p
                   className="mt-1 text-[13px] font-medium leading-snug text-slate-700"
@@ -141,6 +147,7 @@ export default function ProposalCustomerPreviewSendSharingDrawer({
             hideDeferredActions
             embedded
             onSendCompleted={onSendCompleted}
+            isRevisionSend={isRevisionSend}
           />
         </div>
       </aside>

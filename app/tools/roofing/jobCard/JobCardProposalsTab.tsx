@@ -28,6 +28,7 @@ type JobCardProposalsTabProps = {
   onAddProposal: () => void;
   onProposalAction: (action: JobCardProposalActionView, proposalId: string) => void;
   focusedRequestId?: string | null;
+  sentHistoryDefaultOpen?: boolean;
 };
 
 function AddProposalButton({
@@ -103,6 +104,7 @@ export default function JobCardProposalsTab({
   onAddProposal,
   onProposalAction,
   focusedRequestId = null,
+  sentHistoryDefaultOpen = false,
 }: JobCardProposalsTabProps) {
   const hasRows = rows.length > 0;
   const proposalIds = rows.map((row) => row.proposalId);
@@ -219,6 +221,7 @@ export default function JobCardProposalsTab({
                   <details
                     className="pt-0.5"
                     data-jobcard-sent-history
+                    open={sentHistoryDefaultOpen || undefined}
                   >
                     <summary
                       className="cursor-pointer text-[12px] font-medium text-slate-500"

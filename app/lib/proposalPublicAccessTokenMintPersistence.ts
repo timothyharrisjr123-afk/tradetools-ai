@@ -22,6 +22,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 export const MINT_PROPOSAL_PUBLIC_ACCESS_TOKEN_RPC_V1 =
   "mint_proposal_public_access_token_v1";
 
+export const MINT_AND_SUPERSEDE_PROPOSAL_PUBLIC_ACCESS_TOKEN_RPC_V1 =
+  "mint_and_supersede_proposal_public_access_token_v1";
+
 export const PROPOSAL_PUBLIC_ACCESS_MINT_FAILURE_CODES = [
   "invalid_hash",
   "invalid_prefix",
@@ -40,8 +43,18 @@ export const PROPOSAL_PUBLIC_ACCESS_MINT_FAILURE_CODES = [
   "duplicate_token_hash",
 ] as const;
 
+export const PROPOSAL_PUBLIC_ACCESS_EMAIL_SEND_MINT_FAILURE_CODES = [
+  ...PROPOSAL_PUBLIC_ACCESS_MINT_FAILURE_CODES,
+  "latest_sent_version_missing",
+  "not_latest_sent_version",
+  "sent_version_not_frozen",
+] as const;
+
 export type ProposalPublicAccessMintFailureCode =
   (typeof PROPOSAL_PUBLIC_ACCESS_MINT_FAILURE_CODES)[number];
+
+export type ProposalPublicAccessEmailSendMintFailureCode =
+  (typeof PROPOSAL_PUBLIC_ACCESS_EMAIL_SEND_MINT_FAILURE_CODES)[number];
 
 export type ProposalPublicAccessMintRequest = {
   company_id: string;
@@ -66,14 +79,28 @@ export type ProposalPublicAccessMintRpcSuccess = {
   created_at: string;
 };
 
+export type ProposalPublicAccessEmailSendMintRpcSuccess =
+  ProposalPublicAccessMintRpcSuccess & {
+    superseded_count: number;
+  };
+
 export type ProposalPublicAccessMintFailure = {
   ok: false;
   code: ProposalPublicAccessMintFailureCode;
 };
 
+export type ProposalPublicAccessEmailSendMintFailure = {
+  ok: false;
+  code: ProposalPublicAccessEmailSendMintFailureCode;
+};
+
 export type ProposalPublicAccessMintRpcResult =
   | ProposalPublicAccessMintRpcSuccess
   | ProposalPublicAccessMintFailure;
+
+export type ProposalPublicAccessEmailSendMintRpcResult =
+  | ProposalPublicAccessEmailSendMintRpcSuccess
+  | ProposalPublicAccessEmailSendMintFailure;
 
 // ---------------------------------------------------------------------------
 // Errors
@@ -90,11 +117,21 @@ export class ProposalPublicAccessTokenMintPersistenceError extends Error {
 // Parsing (exported for tests)
 // ---------------------------------------------------------------------------
 
+function isListedFailureCode<T extends string>(
+  value: unknown,
+  codes: readonly T[]
+): value is T {
+  return typeof value === "string" && (codes as readonly string[]).includes(value);
+}
+
 function isMintFailureCode(value: unknown): value is ProposalPublicAccessMintFailureCode {
-  return (
-    typeof value === "string" &&
-    (PROPOSAL_PUBLIC_ACCESS_MINT_FAILURE_CODES as readonly string[]).includes(value)
-  );
+  return isListedFailureCode(value, PROPOSAL_PUBLIC_ACCESS_MINT_FAILURE_CODES);
+}
+
+function isEmailSendMintFailureCode(
+  value: unknown
+): value is ProposalPublicAccessEmailSendMintFailureCode {
+  return isListedFailureCode(value, PROPOSAL_PUBLIC_ACCESS_EMAIL_SEND_MINT_FAILURE_CODES);
 }
 
 function parseUuidField(
@@ -125,7 +162,11 @@ function parseNonEmptyStringField(
   return text;
 }
 
-function parseFailureResult(data: unknown, rpcName: string): ProposalPublicAccessMintFailure {
+function parseFailureResult<T extends string>(
+  data: unknown,
+  rpcName: string,
+  isCode: (value: unknown) => value is T
+): { ok: false; code: T } {
   if (!data || typeof data !== "object") {
     throw new ProposalPublicAccessTokenMintPersistenceError(`${rpcName} RPC returned no result.`);
   }
@@ -136,7 +177,7 @@ function parseFailureResult(data: unknown, rpcName: string): ProposalPublicAcces
     );
   }
   const code = result.code;
-  if (!isMintFailureCode(code)) {
+  if (!isCode(code)) {
     throw new ProposalPublicAccessTokenMintPersistenceError(
       `${rpcName} RPC returned invalid failure code.`
     );
@@ -156,7 +197,11 @@ export function parseProposalPublicAccessMintRpcResult(
   const result = data as Record<string, unknown>;
 
   if (result.ok === false) {
-    return parseFailureResult(result, MINT_PROPOSAL_PUBLIC_ACCESS_TOKEN_RPC_V1);
+    return parseFailureResult(
+      result,
+      MINT_PROPOSAL_PUBLIC_ACCESS_TOKEN_RPC_V1,
+      isMintFailureCode
+    );
   }
 
   if (result.ok !== true) {
@@ -216,6 +261,61 @@ export function parseProposalPublicAccessMintRpcResult(
   }
 
   return parsed;
+}
+
+export function parseMintAndSupersedeProposalPublicAccessTokenRpcResult(
+  data: unknown
+): ProposalPublicAccessEmailSendMintRpcResult {
+  if (!data || typeof data !== "object") {
+    throw new ProposalPublicAccessTokenMintPersistenceError(
+      "mint_and_supersede_proposal_public_access_token_v1 RPC returned no result."
+    );
+  }
+
+  const result = data as Record<string, unknown>;
+
+  if (result.ok === false) {
+    return parseFailureResult(
+      result,
+      MINT_AND_SUPERSEDE_PROPOSAL_PUBLIC_ACCESS_TOKEN_RPC_V1,
+      isEmailSendMintFailureCode
+    );
+  }
+
+  if (result.ok !== true) {
+    throw new ProposalPublicAccessTokenMintPersistenceError(
+      "mint_and_supersede_proposal_public_access_token_v1 RPC returned unexpected ok value."
+    );
+  }
+
+  const generic = parseProposalPublicAccessMintRpcResult({
+    ...result,
+  });
+  if (!generic.ok) {
+    return generic;
+  }
+
+  const supersededCount = result.superseded_count;
+  if (
+    typeof supersededCount !== "number" ||
+    !Number.isInteger(supersededCount) ||
+    supersededCount < 0
+  ) {
+    throw new ProposalPublicAccessTokenMintPersistenceError(
+      "mint_and_supersede_proposal_public_access_token_v1 RPC returned invalid superseded_count."
+    );
+  }
+
+  if ("token_hash" in result) {
+    throw new ProposalPublicAccessTokenMintPersistenceError(
+      "mint_and_supersede_proposal_public_access_token_v1 RPC must not return token_hash."
+    );
+  }
+
+  return {
+    ...generic,
+    superseded_count: supersededCount,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -327,4 +427,30 @@ export async function mintProposalPublicAccessTokenViaRpc(
   }
 
   return parseProposalPublicAccessMintRpcResult(data);
+}
+
+export async function mintAndSupersedeProposalPublicAccessTokenViaRpc(
+  supabase: SupabaseClient,
+  rawToken: string,
+  input: ProposalPublicAccessMintRequest
+): Promise<ProposalPublicAccessEmailSendMintRpcResult> {
+  assertValidMintRequest(input);
+
+  const rpcArgs = buildMintRpcArgs(rawToken, input);
+  if ("__invalid_recipient_hash" in rpcArgs) {
+    return { ok: false, code: "invalid_recipient_hash" };
+  }
+
+  const { data, error } = await supabase.rpc(
+    MINT_AND_SUPERSEDE_PROPOSAL_PUBLIC_ACCESS_TOKEN_RPC_V1,
+    rpcArgs
+  );
+
+  if (error) {
+    throw new ProposalPublicAccessTokenMintPersistenceError(
+      error.message ?? "mint_and_supersede_proposal_public_access_token_v1 RPC failed."
+    );
+  }
+
+  return parseMintAndSupersedeProposalPublicAccessTokenRpcResult(data);
 }

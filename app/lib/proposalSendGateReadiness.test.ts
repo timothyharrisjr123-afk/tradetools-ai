@@ -10,7 +10,6 @@ import { describe, test } from "node:test";
 import type { ProposalSendFreezeReadiness } from "./proposalSendFreezeReadiness";
 import {
   buildProposalSendGateReadinessViewModel,
-  canPrepareCustomerSendLink,
   SEND_GATE_EMAIL_LINK_NOTE,
   SEND_GATE_CUSTOMER_LINK_READY_LABEL,
   SEND_GATE_DEFERRED_ACTIONS,
@@ -419,7 +418,9 @@ describe("R18D1 send gate guardrails", () => {
 
     assert.match(previewClient, /ProposalCustomerPreviewSendSharingDrawer/);
     assert.match(sendDrawer, /ProposalCustomerPreviewSendGatePanel/);
-    assert.match(panel, /Send proposal/);
+    assert.match(panel, /SEND_GATE_SEND_PROPOSAL_LABEL/);
+    assert.match(panel, /SEND_GATE_SEND_REVISION_LABEL/);
+    assert.match(panel, /resolveSendGateSheetTitle/);
     assert.match(panel, /A secure proposal link will be included when sent/);
     assert.match(panel, /handlePrepareCustomerLink/);
     assert.match(panel, /\/api\/proposals\/send-prep/);

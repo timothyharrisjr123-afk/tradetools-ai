@@ -24,7 +24,7 @@ import {
   type SendProposalEmailResult,
 } from "@/app/lib/proposalEmailDelivery";
 import { buildProposalSendSnapshotServerDeps } from "@/app/lib/proposalIdentityEcho.server";
-import { mintProposalPublicAccessToken } from "@/app/lib/proposalPublicAccessTokenMintStore.server";
+import { mintAndSupersedeProposalPublicAccessToken } from "@/app/lib/proposalPublicAccessTokenMintStore.server";
 import { getDraftGraph } from "@/app/lib/proposalRecordStore";
 import { deriveProposalPricingStale } from "@/app/lib/proposalStaleness";
 import { createClient } from "@/app/lib/supabase/server";
@@ -136,7 +136,7 @@ export async function sendProposalEmailForContractor(
     {
       ...buildProposalSendSnapshotServerDeps(supabase),
       mintToken: async (mintInput) => {
-        const mintResult = await mintProposalPublicAccessToken(mintInput);
+        const mintResult = await mintAndSupersedeProposalPublicAccessToken(mintInput);
         if (!mintResult.ok) {
           return mintResult;
         }

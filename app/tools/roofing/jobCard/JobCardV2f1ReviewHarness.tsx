@@ -3,7 +3,18 @@
 import { useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import type { JobAttentionSafeItem } from "@/app/lib/jobAttentionReadModel";
+import { buildJobCardSentHistoryView } from "@/app/lib/proposalJobCardSentHistory";
 import type { ProposalRecordStatusSummary } from "@/app/lib/proposalRecordTypes";
+import {
+  V2F_REVIEW_DRAFT_UPDATED_AT,
+  V2F_REVIEW_JOB_ID,
+  V2F_REVIEW_PROPOSAL_ID,
+  V2F_REVIEW_SENT_A,
+  V2F_REVIEW_SENT_A_FROZEN_AT,
+  V2F_REVIEW_SENT_B,
+  V2F_REVIEW_SENT_B_FROZEN_AT,
+  v2fReviewJobCardSentVersions,
+} from "@/app/lib/proposalV2fCompleteReviewFixtures";
 import FieldDiveAppShell from "@/app/tools/roofing/FieldDiveAppShell";
 import JobCardActivityPanel, {
   type JobCardActivityItem,
@@ -26,13 +37,12 @@ import {
 } from "@/app/tools/roofing/jobCard/jobCardProposalsTabModel";
 import type { JobCardDisplayModel } from "@/app/tools/roofing/saved/jobsBoardUtils";
 
-const SENT_A = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
-const SENT_B = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
-const PROPOSAL = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
-const JOB = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
+const SENT_A = V2F_REVIEW_SENT_A;
+const SENT_B = V2F_REVIEW_SENT_B;
+const PROPOSAL = V2F_REVIEW_PROPOSAL_ID;
+const JOB = V2F_REVIEW_JOB_ID;
 const REQUEST = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
 const ATTENTION = "ffffffff-ffff-4fff-8fff-ffffffffffff";
-const FROZEN = "2026-07-22T16:31:00.000Z";
 
 const HARNESS_CASES = [
   "sent",
@@ -44,6 +54,9 @@ const HARNESS_CASES = [
   "revision-activity",
   "history-expanded-activity",
   "attention-activity",
+  "post-resend",
+  "delivery-failed",
+  "attention-revision",
 ] as const;
 
 type HarnessCase = (typeof HARNESS_CASES)[number];
@@ -66,7 +79,7 @@ function summary(
     latest_sent_version_id: partial.latest_sent_version_id ?? null,
     signed_version_id: partial.signed_version_id ?? null,
     created_at: null,
-    updated_at: partial.updated_at ?? FROZEN,
+    updated_at: partial.updated_at ?? V2F_REVIEW_SENT_B_FROZEN_AT,
   };
 }
 
@@ -81,8 +94,8 @@ function sentSummary(): ProposalRecordStatusSummary {
   return summary({
     id: PROPOSAL,
     title: "Roof replacement",
-    latest_sent_version_id: SENT_A,
-    updated_at: FROZEN,
+    latest_sent_version_id: SENT_B,
+    updated_at: V2F_REVIEW_SENT_B_FROZEN_AT,
   });
 }
 
@@ -91,7 +104,7 @@ function revisionSummary(): ProposalRecordStatusSummary {
     id: PROPOSAL,
     title: "Roof replacement",
     latest_sent_version_id: SENT_A,
-    updated_at: "2026-07-23T12:00:00.000Z",
+    updated_at: V2F_REVIEW_DRAFT_UPDATED_AT,
   });
 }
 
@@ -100,31 +113,57 @@ function multiSentSummary(): ProposalRecordStatusSummary {
     id: PROPOSAL,
     title: "Roof replacement",
     latest_sent_version_id: SENT_B,
-    updated_at: FROZEN,
+    updated_at: V2F_REVIEW_SENT_B_FROZEN_AT,
   });
 }
 
-const SENT_FACTS = { latestSentFrozenAt: FROZEN };
+function sentFactsFromVersions(input: {
+  latestSentVersionId: string;
+  versions: ReturnType<typeof v2fReviewJobCardSentVersions>;
+}) {
+  const history = buildJobCardSentHistoryView({
+    latestSentVersionId: input.latestSentVersionId,
+    versions: input.versions,
+  });
+  return {
+    latestSentFrozenAt: history.latestSentFrozenAt,
+    history: history.rows,
+  };
+}
 
-const MULTI_SENT_FACTS = {
-  latestSentFrozenAt: FROZEN,
-  history: [
+const SENT_FACTS = sentFactsFromVersions({
+  latestSentVersionId: SENT_B,
+  versions: [
     {
       versionId: SENT_B,
-      sentAtLabel: "Jul 22, 4:31 PM",
+      frozenAt: V2F_REVIEW_SENT_B_FROZEN_AT,
       packageLabel: "Enhanced",
-      deliveryStatusLabel: "Emailed",
-      isCurrent: true,
-    },
-    {
-      versionId: SENT_A,
-      sentAtLabel: "Jul 1, 12:00 PM",
-      packageLabel: "Standard",
-      deliveryStatusLabel: "Delivered",
-      isCurrent: false,
+      deliveryStatus: "provider_accepted",
     },
   ],
-};
+});
+
+const REVISION_SENT_FACTS = sentFactsFromVersions({
+  latestSentVersionId: SENT_A,
+  versions: [
+    {
+      versionId: SENT_A,
+      frozenAt: V2F_REVIEW_SENT_A_FROZEN_AT,
+      packageLabel: "Standard",
+      deliveryStatus: "delivered",
+    },
+  ],
+});
+
+const MULTI_SENT_FACTS = sentFactsFromVersions({
+  latestSentVersionId: SENT_B,
+  versions: v2fReviewJobCardSentVersions(),
+});
+
+const FAILED_SENT_FACTS = sentFactsFromVersions({
+  latestSentVersionId: SENT_B,
+  versions: v2fReviewJobCardSentVersions({ currentDeliveryStatus: "failed" }),
+});
 
 function sentRow(): JobCardProposalRowView {
   return buildJobCardProposalRowView({
@@ -139,7 +178,7 @@ function revisionRow(): JobCardProposalRowView {
   return buildJobCardProposalRowView({
     summary: revisionSummary(),
     packageLabel: "Enhanced",
-    sentFacts: SENT_FACTS,
+    sentFacts: REVISION_SENT_FACTS,
     hrefs,
   });
 }
@@ -219,7 +258,11 @@ function resolveCase(raw: string | null): HarnessCase {
 function caseConfig(caseId: HarnessCase): {
   row: JobCardProposalRowView;
   summary: ProposalRecordStatusSummary;
-  sentFacts: typeof SENT_FACTS | typeof MULTI_SENT_FACTS;
+  sentFacts:
+    | typeof SENT_FACTS
+    | typeof REVISION_SENT_FACTS
+    | typeof MULTI_SENT_FACTS
+    | typeof FAILED_SENT_FACTS;
   showAttention: boolean;
   forceOpenHistory: boolean;
 } {
@@ -229,7 +272,7 @@ function caseConfig(caseId: HarnessCase): {
       return {
         row: revisionRow(),
         summary: revisionSummary(),
-        sentFacts: SENT_FACTS,
+        sentFacts: REVISION_SENT_FACTS,
         showAttention: false,
         forceOpenHistory: false,
       };
@@ -258,6 +301,35 @@ function caseConfig(caseId: HarnessCase): {
         sentFacts: SENT_FACTS,
         showAttention: true,
         forceOpenHistory: false,
+      };
+    case "attention-revision":
+      return {
+        row: revisionRow(),
+        summary: revisionSummary(),
+        sentFacts: REVISION_SENT_FACTS,
+        showAttention: true,
+        forceOpenHistory: false,
+      };
+    case "post-resend":
+      return {
+        row: multiSentRow(),
+        summary: multiSentSummary(),
+        sentFacts: MULTI_SENT_FACTS,
+        showAttention: false,
+        forceOpenHistory: false,
+      };
+    case "delivery-failed":
+      return {
+        row: buildJobCardProposalRowView({
+          summary: multiSentSummary(),
+          packageLabel: "Enhanced",
+          sentFacts: FAILED_SENT_FACTS,
+          hrefs,
+        }),
+        summary: multiSentSummary(),
+        sentFacts: FAILED_SENT_FACTS,
+        showAttention: false,
+        forceOpenHistory: true,
       };
     default:
       return {
@@ -368,6 +440,7 @@ export default function JobCardV2f1ReviewHarness() {
                     rows={[config.row]}
                     onAddProposal={() => undefined}
                     onProposalAction={() => undefined}
+                    sentHistoryDefaultOpen={config.forceOpenHistory}
                   />
                 </JobCardSectionPanel>
               </main>

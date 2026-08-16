@@ -8,7 +8,10 @@ import { resolveJobIdentityDisplay } from "@/app/lib/jobIdentityDisplay";
 import { getJobById, isUuidLike } from "@/app/lib/jobStore";
 import type { JobRecord } from "@/app/lib/jobTypes";
 import { getSelectedMeasurementForJob } from "@/app/lib/measurementStore";
-import { buildProposalCustomerPreviewDocument } from "@/app/lib/proposalCustomerPreviewViewModel";
+import {
+  buildProposalCustomerPreviewDocument,
+  resolveProposalCustomerPreviewSelectedTotalLabel,
+} from "@/app/lib/proposalCustomerPreviewViewModel";
 import {
   adaptProposalDraftGraphToBuilderPreview,
   validateProposalDraftGraphForJob,
@@ -25,9 +28,13 @@ import {
   getDraftGraph,
   getLatestSentProposalVersionGraph,
   getProposalVersionGraph,
+  listSentProposalVersionLineage,
   ProposalRecordStoreError,
   type ProposalDraftGraph,
+  type ProposalVersionGraph,
 } from "@/app/lib/proposalRecordStore";
+import { buildRevisionChangeSummary } from "@/app/lib/proposalRevisionChangeSummary";
+import { resolvePreviousSentVersionId } from "@/app/lib/proposalSentVersionLineage";
 import {
   buildProposalPreviewSentFrozenChrome,
   hasLatestSentProposalVersionId,
@@ -38,11 +45,12 @@ import {
   parseProposalPreviewSentRecordRequest,
   validateProposalSentRecordGraph,
 } from "@/app/lib/proposalPreviewSentRecord";
+import { isMutableDraftDirtyAfterSentFreeze } from "@/app/lib/proposalContractorLifecycle";
 import { resolveSendGateRecipientEmail } from "@/app/lib/proposalSendGateReadiness";
 import { deriveProposalPricingStale } from "@/app/lib/proposalStaleness";
-import { formatPriceCents } from "@/app/tools/roofing/proposals/builder/proposalBuilderConstants";
 import ProposalCustomerPreviewDocumentView from "./ProposalCustomerPreviewDocument";
 import ProposalCustomerPreviewSendSharingDrawer from "./ProposalCustomerPreviewSendSharingDrawer";
+import ProposalPreviewChangeSummary from "./ProposalPreviewChangeSummary";
 import ProposalPreviewHeader from "./ProposalPreviewHeader";
 import ProposalPreviewReadinessSummary from "./ProposalPreviewReadinessSummary";
 import ProposalPreviewRequestAwareness from "./ProposalPreviewRequestAwareness";
@@ -52,14 +60,6 @@ import {
   PREVIEW_WORKSPACE_BG,
   PREVIEW_WORKSPACE_STAGE,
 } from "./proposalPreviewWorkspaceStyles";
-
-function resolveAuthoritativeTotalLabel(graph: ProposalDraftGraph): string | null {
-  const selectedOptionId = (graph.proposal.selected_option_id ?? "").trim();
-  if (!selectedOptionId) return null;
-  const selected = graph.options.find((option) => option.id === selectedOptionId);
-  if (selected?.customer_total_cents == null) return null;
-  return formatPriceCents(selected.customer_total_cents);
-}
 
 /**
  * FieldDive Proposal Preview — contractor review-and-send workspace.
@@ -116,6 +116,7 @@ export default function ProposalCustomerPreviewClient({
   );
   const [sendSharingOpen, setSendSharingOpen] = useState(false);
   const [lastSentFrozenAt, setLastSentFrozenAt] = useState<string | null>(null);
+  const [comparisonGraph, setComparisonGraph] = useState<ProposalVersionGraph | null>(null);
 
   const loadPreview = useCallback(async () => {
     setLoadComplete(false);
@@ -124,6 +125,7 @@ export default function ProposalCustomerPreviewClient({
     setCatalogItems([]);
     setJob(null);
     setLastSentFrozenAt(null);
+    setComparisonGraph(null);
 
     if (!routeSpineLaunch.allowed) {
       setLoadError(
@@ -172,6 +174,28 @@ export default function ProposalCustomerPreviewClient({
         }
         setPersistedGraph(asCustomerPreviewGraphFromSentRecord(validated.graph));
         setLastSentFrozenAt(validated.graph.version.frozen_at ?? null);
+        const lineage = await listSentProposalVersionLineage(
+          companyId,
+          normalizedProposalId
+        );
+        const previousId = resolvePreviousSentVersionId({
+          currentSentVersionId: sentRequest.versionId,
+          sentVersions: lineage.map((row) => ({
+            id: row.id,
+            versionNumber: row.version_number,
+            frozenAt: row.frozen_at,
+            createdAt: row.created_at,
+          })),
+        });
+        if (previousId) {
+          const previousGraph = await getProposalVersionGraph(
+            companyId,
+            normalizedProposalId,
+            previousId,
+            { requireSentVersion: true }
+          );
+          setComparisonGraph(previousGraph);
+        }
         return;
       }
 
@@ -198,8 +222,10 @@ export default function ProposalCustomerPreviewClient({
           normalizedProposalId
         );
         setLastSentFrozenAt(sentGraph?.version.frozen_at ?? null);
+        setComparisonGraph(sentGraph);
       } else {
         setLastSentFrozenAt(null);
+        setComparisonGraph(null);
       }
 
       const measurement = await getSelectedMeasurementForJob(normalizedJobId);
@@ -241,8 +267,10 @@ export default function ProposalCustomerPreviewClient({
           normalizedProposalId
         );
         setLastSentFrozenAt(sentGraph?.version.frozen_at ?? null);
+        setComparisonGraph(sentGraph);
       } else {
         setLastSentFrozenAt(null);
+        setComparisonGraph(null);
       }
     } catch (err) {
       console.warn("[ProposalCustomerPreviewClient] sent chrome refresh error:", err);
@@ -294,7 +322,9 @@ export default function ProposalCustomerPreviewClient({
   const estimatePage = previewDocument?.pages.find((page) => page.kind === "estimate");
   const selectedPackageLabel =
     estimatePage?.kind === "estimate" ? estimatePage.selectedOptionLabel : null;
-  const totalLabel = persistedGraph ? resolveAuthoritativeTotalLabel(persistedGraph) : null;
+  const totalLabel = persistedGraph
+    ? resolveProposalCustomerPreviewSelectedTotalLabel(persistedGraph)
+    : null;
   const hasRecipientEmail = Boolean(
     persistedGraph &&
       (resolveSendGateRecipientEmail({ graph: persistedGraph, job }) ?? "").trim()
@@ -312,6 +342,18 @@ export default function ProposalCustomerPreviewClient({
         lastSentFrozenAt,
       }),
     [lastSentFrozenAt, persistedGraph?.proposal.latest_sent_version_id]
+  );
+
+  const changeSummary = useMemo(
+    () =>
+      persistedGraph
+        ? buildRevisionChangeSummary({
+            mode: isSentRecord ? "sent_record" : "revision_preview",
+            current: persistedGraph,
+            previous: comparisonGraph,
+          })
+        : null,
+    [comparisonGraph, isSentRecord, persistedGraph]
   );
 
   const openSendSharing = () => {
@@ -366,6 +408,9 @@ export default function ProposalCustomerPreviewClient({
                 />
               </>
             )}
+            {changeSummary ? (
+              <ProposalPreviewChangeSummary summary={changeSummary} />
+            ) : null}
           </div>
 
           <ProposalPreviewReviewSurface>
@@ -390,6 +435,12 @@ export default function ProposalCustomerPreviewClient({
             companyLogoMissing={companyLogoMissing}
             builderHref={builderHref}
             sentFrozenChrome={sentFrozenChrome}
+            isRevisionSend={
+              isMutableDraftDirtyAfterSentFreeze({
+                draftUpdatedAt: persistedGraph.proposal.updated_at,
+                latestSentFrozenAt: lastSentFrozenAt,
+              })
+            }
             onSendCompleted={() => {
               void refreshSentFrozenChrome();
             }}

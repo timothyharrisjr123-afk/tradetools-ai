@@ -87,7 +87,8 @@ describe("V2C2 focused Send action", () => {
     assert.match(panel, /const canSendProposalEmail =\s*readiness\.canSend && !actionsLocked && !sendSuccess && Boolean\(recipientEmail\)/);
     assert.match(panel, /disabled=\{!canSendProposalEmail\}/);
     assert.match(panel, /data-preview-send-proposal/);
-    assert.match(panel, /Send proposal/);
+    assert.match(panel, /SEND_GATE_SEND_PROPOSAL_LABEL/);
+    assert.match(panel, /SEND_GATE_SEND_REVISION_LABEL/);
     assert.doesNotMatch(panel, /Send proposal by email/);
     assert.match(panel, /min-h-\[44px\]/);
     assert.match(panel, /\/api\/proposals\/send/);

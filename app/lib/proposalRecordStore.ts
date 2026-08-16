@@ -1285,6 +1285,35 @@ export async function getLatestSentProposalVersionGraph(
   return getProposalVersionGraph(companyId, proposalId, sentVersionId, options, deps);
 }
 
+export type SentProposalVersionLineageRow = {
+  id: string;
+  version_number: number;
+  frozen_at: string | null;
+  created_at: string;
+};
+
+export async function listSentProposalVersionLineage(
+  companyId: string,
+  proposalId: string,
+  deps?: ProposalRecordStoreDeps
+): Promise<SentProposalVersionLineageRow[]> {
+  const { getSupabase } = resolveDeps(deps);
+  const supabase = getSupabase();
+  const cid = normalizeCompanyId(companyId);
+  const pid = (proposalId ?? "").trim();
+  if (!supabase || !cid || !isUuidLike(pid)) return [];
+
+  const { data, error } = await supabase
+    .from("proposal_versions")
+    .select("id, version_number, frozen_at, created_at")
+    .eq("company_id", cid)
+    .eq("proposal_id", pid)
+    .eq("version_kind", "sent");
+
+  if (error || !data) return [];
+  return (data as SentProposalVersionLineageRow[]).filter((row) => isUuidLike(row.id));
+}
+
 // ---------------------------------------------------------------------------
 // Events (insert-only)
 // ---------------------------------------------------------------------------

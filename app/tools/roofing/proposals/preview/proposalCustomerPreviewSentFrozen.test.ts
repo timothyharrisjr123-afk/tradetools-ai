@@ -75,7 +75,7 @@ describe("V2C4 Preview sent/frozen chrome", () => {
   test("Send action semantics stay Send — not Resend — and chrome refreshes after send", () => {
     const panel = readPreviewSource("ProposalCustomerPreviewSendGatePanel.tsx");
     const actions = readPreviewSource("ProposalPreviewActionGroup.tsx");
-    assert.match(panel, /Send proposal/);
+    assert.match(panel, /SEND_GATE_SEND_PROPOSAL_LABEL/);
     assert.doesNotMatch(panel, /\bResend\b/);
     assert.doesNotMatch(actions, /\bResend\b/);
     assert.match(panel, /onSendCompleted\?\.\(\)/);

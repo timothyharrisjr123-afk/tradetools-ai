@@ -15,7 +15,9 @@ import {
   hashRawProposalPublicAccessTokenForMint,
 } from "./proposalPublicAccessTokenMint";
 import {
+  mintAndSupersedeProposalPublicAccessTokenViaRpc,
   mintProposalPublicAccessTokenViaRpc,
+  MINT_AND_SUPERSEDE_PROPOSAL_PUBLIC_ACCESS_TOKEN_RPC_V1,
   MINT_PROPOSAL_PUBLIC_ACCESS_TOKEN_RPC_V1,
 } from "./proposalPublicAccessTokenMintPersistence";
 
@@ -105,6 +107,44 @@ describe("mint server wrapper composition", () => {
     assert.equal(rpcArgs?.p_token_hash, expectedHash);
     assert.ok(!Object.values(rpcArgs ?? {}).includes(rawToken));
   });
+
+  test("dedicated C4 wrapper calls combined RPC and never generic mint", async () => {
+    const rawToken = generateProposalPublicAccessToken();
+    let rpcName = "";
+    const supabase = {
+      rpc: async (name: string) => {
+        rpcName = name;
+        return {
+          data: {
+            ok: true,
+            token_id: "11111111-1111-4111-8111-111111111111",
+            company_id: COMPANY_ID,
+            proposal_id: PROPOSAL_ID,
+            proposal_version_id: VERSION_ID,
+            token_prefix: deriveProposalPublicAccessTokenPrefix(rawToken),
+            status: "active",
+            expires_at: EXPIRES_AT,
+            created_at: "2026-06-25T12:00:00.000Z",
+            superseded_count: 1,
+          },
+          error: null,
+        };
+      },
+    };
+
+    const result = await mintAndSupersedeProposalPublicAccessTokenViaRpc(
+      supabase as never,
+      rawToken,
+      mintRequest()
+    );
+    assert.equal(rpcName, MINT_AND_SUPERSEDE_PROPOSAL_PUBLIC_ACCESS_TOKEN_RPC_V1);
+    assert.notEqual(rpcName, MINT_PROPOSAL_PUBLIC_ACCESS_TOKEN_RPC_V1);
+    assert.equal(result.ok, true);
+    if (result.ok) {
+      assert.equal(result.superseded_count, 1);
+      assert.ok(!("token_hash" in result));
+    }
+  });
 });
 
 describe("R18C3B server entry guardrails", () => {
@@ -117,6 +157,7 @@ describe("R18C3B server entry guardrails", () => {
     assert.match(source, /createAdminClient/);
     assert.match(source, /generateProposalPublicAccessToken/);
     assert.match(source, /raw_token: rawToken/);
+    assert.match(source, /mintAndSupersedeProposalPublicAccessToken/);
     assert.doesNotMatch(source, /\/p\/\[|app\/p\//);
     assert.doesNotMatch(source, /send_email|payment|sign_|lifecycle/);
   });

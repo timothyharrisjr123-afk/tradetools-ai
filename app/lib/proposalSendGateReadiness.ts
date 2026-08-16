@@ -13,6 +13,12 @@ import type { ProposalDraftGraph } from "@/app/lib/proposalRecordStore";
 import type { ProposalCustomerPreviewReadiness } from "@/app/lib/proposalCustomerPreviewViewModel";
 
 export const SEND_GATE_PANEL_TITLE = "Send proposal";
+export const SEND_GATE_SEND_PROPOSAL_LABEL = "Send proposal";
+export const SEND_GATE_SEND_REVISION_LABEL = "Send revision";
+
+export function resolveSendGateSheetTitle(isRevisionSend: boolean): string {
+  return isRevisionSend ? SEND_GATE_SEND_REVISION_LABEL : SEND_GATE_SEND_PROPOSAL_LABEL;
+}
 
 export const SEND_GATE_PANEL_INTRO = "Review before sending to your customer.";
 
