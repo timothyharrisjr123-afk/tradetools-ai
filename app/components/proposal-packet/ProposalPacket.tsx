@@ -9,6 +9,7 @@ import ProposalPacketHero from "./ProposalPacketHero";
 import ProposalPacketScope from "./ProposalPacketScope";
 import ProposalPacketTopBar from "./ProposalPacketTopBar";
 import ProposalPacketUpgrades from "./ProposalPacketUpgrades";
+import type { ProposalPacketSignedResult } from "./ProposalPacketSignModal";
 import {
   PROPOSAL_PACKET_PAGE,
   PROPOSAL_PACKET_SHELL,
@@ -48,15 +49,27 @@ export default function ProposalPacket({
     email: packet.cover.preparedFor.customerEmail,
     phone: packet.cover.preparedFor.customerPhone,
   };
-  const initialAccepted = packet.acceptance?.status === "accepted";
-  const [accepted, setAccepted] = useState(initialAccepted);
+  const initialStatus = packet.acceptance?.status ?? "open";
+  const [accepted, setAccepted] = useState(
+    initialStatus === "accepted" || initialStatus === "signed"
+  );
+  const [signed, setSigned] = useState(initialStatus === "signed");
   const [acceptedOnLabel, setAcceptedOnLabel] = useState(
     packet.acceptance?.acceptedOnLabel ?? null
   );
+  const [signedOnLabel, setSignedOnLabel] = useState(
+    packet.acceptance?.signedOnLabel ?? null
+  );
+  const [signerDisplayName, setSignerDisplayName] = useState(
+    packet.acceptance?.signerDisplayName ?? null
+  );
 
-  const onAccepted = (label: string) => {
+  const onSigned = (result: ProposalPacketSignedResult) => {
     setAccepted(true);
-    setAcceptedOnLabel(label);
+    setSigned(true);
+    setAcceptedOnLabel(result.acceptedOnLabel);
+    setSignedOnLabel(result.signedOnLabel);
+    setSignerDisplayName(result.signerPrintedName);
   };
 
   return (
@@ -72,7 +85,10 @@ export default function ProposalPacket({
           contactPrefill={contactPrefill}
           accepted={accepted}
           acceptedOnLabel={acceptedOnLabel}
-          onAccepted={onAccepted}
+          signed={signed}
+          signedOnLabel={signedOnLabel}
+          signerDisplayName={signerDisplayName}
+          onSigned={onSigned}
         />
 
         {showComparison ? (
@@ -106,7 +122,10 @@ export default function ProposalPacket({
           totalLabel={packet.estimate?.totalInvestmentLabel ?? null}
           accepted={accepted}
           acceptedOnLabel={acceptedOnLabel}
-          onAccepted={onAccepted}
+          signed={signed}
+          signedOnLabel={signedOnLabel}
+          signerDisplayName={signerDisplayName}
+          onSigned={onSigned}
         />
 
         <ProposalPacketFooter contact={packet.contact} footerMetadata={packet.footerMetadata} />

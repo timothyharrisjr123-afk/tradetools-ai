@@ -11,6 +11,7 @@ import {
 } from "@/app/lib/proposalCustomerPacketViewModel";
 import ProposalPacketPackageInterestActions from "./ProposalPacketPackageInterestActions";
 import type { ProposalPacketRequestModalContactPrefill } from "./ProposalPacketRequestModal";
+import type { ProposalPacketSignedResult } from "./ProposalPacketSignModal";
 import { IconCheck, IconShield } from "./ProposalPacketIcons";
 import {
   PROPOSAL_PACKET_CURRENT_BADGE,
@@ -33,7 +34,10 @@ type ProposalPacketHeroProps = {
   contactPrefill?: ProposalPacketRequestModalContactPrefill | null;
   accepted?: boolean;
   acceptedOnLabel?: string | null;
-  onAccepted?: (acceptedOnLabel: string) => void;
+  signed?: boolean;
+  signedOnLabel?: string | null;
+  signerDisplayName?: string | null;
+  onSigned?: (result: ProposalPacketSignedResult) => void;
 };
 
 const HERO_INTRO =
@@ -51,7 +55,10 @@ export default function ProposalPacketHero({
   contactPrefill = null,
   accepted = false,
   acceptedOnLabel = null,
-  onAccepted,
+  signed = false,
+  signedOnLabel = null,
+  signerDisplayName = null,
+  onSigned,
 }: ProposalPacketHeroProps) {
   const headline =
     (cover.headline ?? "").trim() ||
@@ -142,7 +149,10 @@ export default function ProposalPacketHero({
                     totalLabel={estimate.totalInvestmentLabel ?? null}
                     accepted={accepted}
                     acceptedOnLabel={acceptedOnLabel}
-                    onAccepted={onAccepted}
+                    signed={signed}
+                    signedOnLabel={signedOnLabel}
+                    signerDisplayName={signerDisplayName}
+                    onSigned={onSigned}
                   />
                 </div>
               </div>

@@ -7,6 +7,7 @@ import type {
 import { ProposalPacketCloseoutAside } from "./ProposalPacketContact";
 import ProposalPacketDetails from "./ProposalPacketDetails";
 import type { ProposalPacketRequestModalContactPrefill } from "./ProposalPacketRequestModal";
+import type { ProposalPacketSignedResult } from "./ProposalPacketSignModal";
 import { PROPOSAL_PACKET_DETAILS_SECTION } from "./proposalPacketStyles";
 
 type ProposalPacketDetailsContactProps = {
@@ -19,7 +20,10 @@ type ProposalPacketDetailsContactProps = {
   totalLabel?: string | null;
   accepted?: boolean;
   acceptedOnLabel?: string | null;
-  onAccepted?: (acceptedOnLabel: string) => void;
+  signed?: boolean;
+  signedOnLabel?: string | null;
+  signerDisplayName?: string | null;
+  onSigned?: (result: ProposalPacketSignedResult) => void;
 };
 
 export default function ProposalPacketDetailsContact({
@@ -32,7 +36,10 @@ export default function ProposalPacketDetailsContact({
   totalLabel = null,
   accepted = false,
   acceptedOnLabel = null,
-  onAccepted,
+  signed = false,
+  signedOnLabel = null,
+  signerDisplayName = null,
+  onSigned,
 }: ProposalPacketDetailsContactProps) {
   const hasDetails = details != null && details.tabs.length > 0;
   const hasContact = contact != null;
@@ -57,7 +64,10 @@ export default function ProposalPacketDetailsContact({
             totalLabel={totalLabel}
             accepted={accepted}
             acceptedOnLabel={acceptedOnLabel}
-            onAccepted={onAccepted}
+            signed={signed}
+            signedOnLabel={signedOnLabel}
+            signerDisplayName={signerDisplayName}
+            onSigned={onSigned}
           />
         </section>
       ) : null}

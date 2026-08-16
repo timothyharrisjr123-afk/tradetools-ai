@@ -202,6 +202,7 @@ import JobCardSectionPanel from "@/app/tools/roofing/jobCard/JobCardSectionPanel
 import JobCardActivityPanel, { type JobCardActivityItem } from "@/app/tools/roofing/jobCard/JobCardActivityPanel";
 import JobCardActivityPanelWithCustomerRequests from "@/app/tools/roofing/jobCard/JobCardActivityPanelWithCustomerRequests";
 import { listJobProposalAcceptances } from "@/app/lib/proposalAcceptanceActivity";
+import { listJobProposalSignatures } from "@/app/lib/proposalSignatureActivity";
 import JobCardOverviewSummary from "@/app/tools/roofing/jobCard/JobCardOverviewSummary";
 import { resolveJobCardIdentityFromRecord } from "@/app/tools/roofing/jobCard/jobCardIdentityUtils";
 import { loadCompanyVoiceProfile, saveCompanyVoiceProfile, type VoiceTone } from "@/app/lib/companyVoiceProfile";
@@ -1174,7 +1175,12 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
   const [jobCardTab, setJobCardTab] = useState<JobCardTabId>("overview");
   const [jobCardBoardOrigin, setJobCardBoardOrigin] = useState(false);
   const [hydratedJobRecord, setHydratedJobRecord] = useState<JobRecord | null>(null);
-  const [jobHasCustomerAcceptance, setJobHasCustomerAcceptance] = useState(false);
+  const [jobAcceptedProposalIds, setJobAcceptedProposalIds] = useState<
+    Record<string, boolean>
+  >({});
+  const [jobSignedProposalIds, setJobSignedProposalIds] = useState<
+    Record<string, boolean>
+  >({});
   /** Listed draft for this job when jobs.active_proposal_id is unset (reuse still finds it). */
   const [listedJobDraftProposalId, setListedJobDraftProposalId] = useState<string | null>(null);
   const [listedJobDraftSummary, setListedJobDraftSummary] =
@@ -2182,12 +2188,28 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
 
   useEffect(() => {
     if (entryMode !== "job-card" || !currentJobId || !isUuidLike(currentJobId)) {
-      setJobHasCustomerAcceptance(false);
+      setJobAcceptedProposalIds({});
+      setJobSignedProposalIds({});
       return;
     }
     let cancelled = false;
-    void listJobProposalAcceptances(currentJobId).then((rows) => {
-      if (!cancelled) setJobHasCustomerAcceptance(rows.length > 0);
+    void Promise.all([
+      listJobProposalAcceptances(currentJobId),
+      listJobProposalSignatures(currentJobId),
+    ]).then(([acceptances, signatures]) => {
+      if (cancelled) return;
+      const acceptedIds: Record<string, boolean> = {};
+      for (const row of acceptances) {
+        const proposalId = (row.proposal_id ?? "").trim();
+        if (proposalId) acceptedIds[proposalId] = true;
+      }
+      const signedIds: Record<string, boolean> = {};
+      for (const row of signatures) {
+        const proposalId = (row.proposal_id ?? "").trim();
+        if (proposalId) signedIds[proposalId] = true;
+      }
+      setJobAcceptedProposalIds(acceptedIds);
+      setJobSignedProposalIds(signedIds);
     });
     return () => {
       cancelled = true;
@@ -7545,6 +7567,8 @@ Thanks,`;
       packageLabelsByProposalId: listedJobDraftPackageLabels,
       templateNameByTemplateId,
       sentFactsByProposalId: listedJobSentFacts,
+      acceptedProposalIds: jobAcceptedProposalIds,
+      signedProposalIds: jobSignedProposalIds,
       hrefs: currentJobId
         ? {
             builderHref: (proposalId) =>
@@ -7999,7 +8023,8 @@ Thanks,`;
         visibleSummaries: listedJobDraftSummaries,
         packageLabelsByProposalId: listedJobDraftPackageLabels,
         sentFactsByProposalId: listedJobSentFacts,
-        customerAccepted: jobHasCustomerAcceptance,
+        acceptedProposalIds: jobAcceptedProposalIds,
+        signedProposalIds: jobSignedProposalIds,
       }),
     };
     const jobCardActivityItems: JobCardActivityItem[] = [];
@@ -8054,7 +8079,6 @@ Thanks,`;
           jobAttention.reload(),
           refreshHydratedJobRecord(currentJobId),
         ]);
-        setJobHasCustomerAcceptance(true);
         notifyJobAttentionChanged({ jobId: currentJobId });
       } finally {
         setPendingAttentionId(null);

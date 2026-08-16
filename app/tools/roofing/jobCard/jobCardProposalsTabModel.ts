@@ -8,6 +8,7 @@
 
 import {
   deriveContractorProposalLifecycle,
+  type ContractorProposalLifecycle,
   type ContractorProposalLifecycleKind,
 } from "@/app/lib/proposalContractorLifecycle";
 import type { JobCardSentHistoryRowView } from "@/app/lib/proposalJobCardSentHistory";
@@ -254,11 +255,34 @@ export function buildJobCardProposalActions(input: {
  * Contractor-facing Job Card proposal status strip label.
  * Uses visible (non-fixture) proposals only — never hidden smoke drafts.
  */
+/**
+ * Shared contractor proposal-state label.
+ * Signed/Accepted come from proposal_signatures / proposal_acceptances,
+ * not proposals.signed_version_id. Signed is not a Job stage.
+ */
+export function formatJobCardProposalCustomerStateLabel(input: {
+  lifecycle: ContractorProposalLifecycle;
+  customerAccepted?: boolean;
+  customerSigned?: boolean;
+}): string {
+  const revising = input.lifecycle.kind === "revision_in_progress";
+  if (input.customerSigned === true) {
+    return revising ? "Signed · Revision in progress" : "Signed";
+  }
+  if (input.customerAccepted === true) {
+    return revising ? "Accepted · Revision in progress" : "Accepted";
+  }
+  return input.lifecycle.statusLabel;
+}
+
 export function formatJobCardContractorProposalStatusLabel(input: {
   visibleSummaries: readonly ProposalRecordStatusSummary[];
   packageLabelsByProposalId?: Readonly<Record<string, string | null | undefined>>;
   sentFactsByProposalId?: Readonly<Record<string, JobCardProposalSentFactsInput | undefined>>;
   customerAccepted?: boolean;
+  customerSigned?: boolean;
+  acceptedProposalIds?: Readonly<Record<string, boolean | undefined>>;
+  signedProposalIds?: Readonly<Record<string, boolean | undefined>>;
 }): string {
   const visible = input.visibleSummaries;
   if (visible.length === 0) return JOB_CARD_PROPOSAL_STATUS_READY_TO_CREATE;
@@ -272,33 +296,38 @@ export function formatJobCardContractorProposalStatusLabel(input: {
       latestSentFrozenAt: facts?.latestSentFrozenAt ?? null,
       headerStatus: summary.status,
     });
-    return { summary, lifecycle };
+    const accepted =
+      input.acceptedProposalIds?.[summary.id] === true ||
+      (input.acceptedProposalIds == null && input.customerAccepted === true);
+    const signed =
+      input.signedProposalIds?.[summary.id] === true ||
+      (input.signedProposalIds == null && input.customerSigned === true);
+    return {
+      summary,
+      lifecycle,
+      statusLabel: formatJobCardProposalCustomerStateLabel({
+        lifecycle,
+        customerAccepted: accepted,
+        customerSigned: signed,
+      }),
+    };
   });
 
-  if (input.customerAccepted === true && derivedRows.length === 1) {
-    const only = derivedRows[0]!;
-    if (only.lifecycle.kind === "revision_in_progress") {
-      return "Accepted · Revision in progress";
-    }
-    return "Accepted";
-  }
-
   if (derivedRows.length === 1) {
-    const only = derivedRows[0]!;
-    if (only.lifecycle.kind === "draft") return "Draft proposal";
-    if (only.lifecycle.kind === "revision_in_progress") return "Revision in progress";
-    return "Sent proposal";
+    const label = derivedRows[0]!.statusLabel;
+    if (label === "Sent") return "Sent proposal";
+    if (label === "Draft") return "Draft proposal";
+    return label;
   }
 
   const latest = pickLatestVisibleProposal(visible);
-  const latestDerived = derivedRows.find((row) => row.summary.id === latest?.id) ?? derivedRows[0]!;
+  const latestDerived =
+    derivedRows.find((row) => row.summary.id === latest?.id) ?? derivedRows[0]!;
   const pkgRaw =
     (latest && input.packageLabelsByProposalId?.[latest.id])?.trim() || "";
   const pkg = pkgRaw.replace(/\s+package$/i, "").trim();
-  const latestLabel =
-    input.customerAccepted === true ? "Accepted" : latestDerived.lifecycle.statusLabel;
-  if (pkg) return `Latest: ${pkg} · ${latestLabel}`;
-  return `Latest: ${latestLabel}`;
+  if (pkg) return `Latest: ${pkg} · ${latestDerived.statusLabel}`;
+  return `Latest: ${latestDerived.statusLabel}`;
 }
 
 function pickLatestVisibleProposal(
@@ -403,6 +432,8 @@ export function buildJobCardProposalRowView(input: {
   templateName?: string | null;
   sentFacts?: JobCardProposalSentFactsInput | null;
   hrefs?: JobCardProposalHrefBuilders;
+  customerAccepted?: boolean;
+  customerSigned?: boolean;
 }): JobCardProposalRowView {
   const packageLabel = (input.packageLabel ?? "").trim() || null;
   const title = formatJobCardProposalRowTitle({
@@ -416,6 +447,11 @@ export function buildJobCardProposalRowView(input: {
     draftContentChangedAt: input.summary.draft_content_changed_at,
     latestSentFrozenAt: input.sentFacts?.latestSentFrozenAt ?? null,
     headerStatus: input.summary.status,
+  });
+  const statusLabel = formatJobCardProposalCustomerStateLabel({
+    lifecycle,
+    customerAccepted: input.customerAccepted === true,
+    customerSigned: input.customerSigned === true,
   });
   const lastSentAtLabel = formatJobCardSentAtLabel(input.sentFacts?.latestSentFrozenAt ?? null);
   const updatedLabel = formatJobCardProposalUpdatedShort(input.summary.updated_at);
@@ -446,7 +482,7 @@ export function buildJobCardProposalRowView(input: {
   return {
     proposalId: input.summary.id,
     title,
-    statusLabel: lifecycle.statusLabel,
+    statusLabel,
     lifecycleKind: lifecycle.kind,
     packageLabel: formatJobCardProposalRowPackageBadge(packageLabel),
     updatedLabel,
@@ -456,7 +492,7 @@ export function buildJobCardProposalRowView(input: {
     sentHistory,
     metaLine: buildJobCardProposalRowMetaLine({
       packageLabel,
-      statusLabel: lifecycle.statusLabel,
+      statusLabel,
       updatedLabel,
       lastSentAtLabel,
       packageAsBadge: Boolean(packageLabel),
@@ -470,6 +506,8 @@ export function buildJobCardProposalRowViews(input: {
   templateNameByTemplateId?: Readonly<Record<string, string | null | undefined>>;
   sentFactsByProposalId?: Readonly<Record<string, JobCardProposalSentFactsInput | undefined>>;
   hrefs?: JobCardProposalHrefBuilders;
+  acceptedProposalIds?: Readonly<Record<string, boolean | undefined>>;
+  signedProposalIds?: Readonly<Record<string, boolean | undefined>>;
 }): JobCardProposalRowView[] {
   return input.summaries.map((summary) =>
     buildJobCardProposalRowView({
@@ -478,6 +516,8 @@ export function buildJobCardProposalRowViews(input: {
       templateName: input.templateNameByTemplateId?.[summary.template_id] ?? null,
       sentFacts: input.sentFactsByProposalId?.[summary.id] ?? null,
       hrefs: input.hrefs,
+      customerAccepted: input.acceptedProposalIds?.[summary.id] === true,
+      customerSigned: input.signedProposalIds?.[summary.id] === true,
     })
   );
 }

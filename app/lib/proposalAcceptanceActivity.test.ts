@@ -12,6 +12,7 @@ import { describe, test } from "node:test";
 
 import { composeJobActivityItems } from "./jobActivityComposer";
 import { composeProposalAcceptanceActivityItems } from "./proposalAcceptanceActivity";
+import { composeProposalSignatureActivityItems } from "./proposalSignatureActivity";
 
 const ROOT = process.cwd();
 const ACCEPTANCE_A = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa01";
@@ -136,6 +137,38 @@ describe("acceptance Activity through Job Card composer", () => {
   });
 });
 
+describe("signature Activity through Job Card composer", () => {
+  test("Proposal signed sorts by signed_at and dedupes by signature id", () => {
+    const SIGNATURE_A = "cccccccc-cccc-4ccc-8ccc-cccccccccc01";
+    const SIGNATURE_B = "cccccccc-cccc-4ccc-8ccc-cccccccccc02";
+    const signatureItems = composeProposalSignatureActivityItems([
+      {
+        id: SIGNATURE_A,
+        proposal_id: "22222222-2222-4222-8222-222222222222",
+        proposal_version_id: "55555555-5555-4555-8555-555555555555",
+        signed_at: "2026-08-16T14:26:00.000Z",
+        signer_printed_name: "Jane Homeowner",
+      },
+      {
+        id: SIGNATURE_B,
+        proposal_id: "22222222-2222-4222-8222-222222222222",
+        proposal_version_id: "66666666-6666-4666-8666-666666666666",
+        signed_at: "2026-08-16T14:29:00.000Z",
+        signer_printed_name: "Jane Homeowner",
+      },
+    ]);
+    const items = composeJobActivityItems({
+      jobCreatedAt: "2026-08-16T14:25:14.000Z",
+      signatureItems: [...signatureItems, ...signatureItems],
+    });
+    assert.deepEqual(
+      items.map((item) => item.label),
+      ["Proposal signed", "Proposal signed", "Job created"]
+    );
+    assert.equal(items[0]?.note, "Jane Homeowner");
+  });
+});
+
 describe("Job Card Activity wiring", () => {
   test("panel composes acceptances into Job Card Activity without Acknowledge events", () => {
     const panel = readFileSync(
@@ -144,6 +177,8 @@ describe("Job Card Activity wiring", () => {
     );
     assert.match(panel, /composeProposalAcceptanceActivityItems/);
     assert.match(panel, /acceptanceItems/);
+    assert.match(panel, /composeProposalSignatureActivityItems/);
+    assert.match(panel, /signatureItems/);
     assert.match(panel, /composeJobActivityItems/);
     assert.doesNotMatch(panel, /Acceptance confirmed/);
     assert.doesNotMatch(panel, /label:\s*"Acknowledge"/);

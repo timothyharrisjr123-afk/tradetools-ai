@@ -70,7 +70,11 @@ export type ProposalPublicAccessOrchestratorDeps = {
     tokenId: string;
     proposalId: string;
     proposalVersionId: string;
-  }) => Promise<{ acceptedAt: string } | null>;
+  }) => Promise<{
+    acceptedAt: string;
+    signedAt?: string | null;
+    signerPrintedName?: string | null;
+  } | null>;
 };
 
 function isSentOrSignedVersionKind(kind: string): kind is "sent" | "signed" {
@@ -182,15 +186,21 @@ export async function loadPublicProposalByToken(
         })
       : null;
     if (acceptance?.acceptedAt) {
+      const signedAt = (acceptance.signedAt ?? "").trim();
+      const signerDisplayName = (acceptance.signerPrintedName ?? "").trim() || null;
       document = {
         ...document,
         packet: {
           ...document.packet,
           acceptance: {
-            status: "accepted",
+            status: signedAt ? "signed" : "accepted",
             acceptedOnLabel: formatProposalCustomerAcceptedOnLabel(
               acceptance.acceptedAt
             ),
+            signedOnLabel: signedAt
+              ? formatProposalCustomerAcceptedOnLabel(signedAt)
+              : null,
+            signerDisplayName,
           },
         },
       };

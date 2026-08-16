@@ -8,6 +8,7 @@ import {
 import { PROPOSAL_CUSTOMER_PACKET_READY_ANCHOR } from "@/app/lib/proposalCustomerPacketInterestAction";
 import ProposalPacketPackageInterestActions from "./ProposalPacketPackageInterestActions";
 import type { ProposalPacketRequestModalContactPrefill } from "./ProposalPacketRequestModal";
+import type { ProposalPacketSignedResult } from "./ProposalPacketSignModal";
 import { IconGlobe, IconHome, IconMail, IconPhone, IconShield } from "./ProposalPacketIcons";
 import {
   PROPOSAL_PACKET_CLOSEOUT_GRID,
@@ -91,7 +92,10 @@ type ProposalPacketCloseoutAsideProps = {
   totalLabel?: string | null;
   accepted?: boolean;
   acceptedOnLabel?: string | null;
-  onAccepted?: (acceptedOnLabel: string) => void;
+  signed?: boolean;
+  signedOnLabel?: string | null;
+  signerDisplayName?: string | null;
+  onSigned?: (result: ProposalPacketSignedResult) => void;
 };
 
 /** Closeout: CTA first, then contact + next steps, trust as supportive band. */
@@ -104,7 +108,10 @@ export function ProposalPacketCloseoutAside({
   totalLabel = null,
   accepted = false,
   acceptedOnLabel = null,
-  onAccepted,
+  signed = false,
+  signedOnLabel = null,
+  signerDisplayName = null,
+  onSigned,
 }: ProposalPacketCloseoutAsideProps) {
   const companyName = (contact?.companyName ?? "").trim();
   const packageLabel = (recommendedPackageLabel ?? "").trim();
@@ -135,7 +142,10 @@ export function ProposalPacketCloseoutAside({
             totalLabel={totalLabel}
             accepted={accepted}
             acceptedOnLabel={acceptedOnLabel}
-            onAccepted={onAccepted}
+            signed={signed}
+            signedOnLabel={signedOnLabel}
+            signerDisplayName={signerDisplayName}
+            onSigned={onSigned}
           />
         ) : null}
       </div>

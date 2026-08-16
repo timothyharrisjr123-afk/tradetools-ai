@@ -549,7 +549,12 @@ export function buildCustomerPacketFromPublicDto(
     details: buildDetailsFromPublicDto(dto),
     contact,
     footerMetadata: buildFooterMetadataFromPublicDto(dto, contact?.license ?? null),
-    acceptance: { status: "open", acceptedOnLabel: null },
+    acceptance: {
+      status: "open",
+      acceptedOnLabel: null,
+      signedOnLabel: null,
+      signerDisplayName: null,
+    },
   };
 }
 

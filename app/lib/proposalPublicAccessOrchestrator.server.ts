@@ -27,12 +27,16 @@ async function getAcceptanceForToken(input: {
   tokenId: string;
   proposalId: string;
   proposalVersionId: string;
-}): Promise<{ acceptedAt: string } | null> {
+}): Promise<{
+  acceptedAt: string;
+  signedAt?: string | null;
+  signerPrintedName?: string | null;
+} | null> {
   try {
     const supabase = createAdminClient();
     const { data, error } = await supabase
       .from("proposal_acceptances")
-      .select("accepted_at")
+      .select("id,accepted_at")
       .eq("company_id", input.companyId)
       .eq("proposal_id", input.proposalId)
       .eq("proposal_version_id", input.proposalVersionId)
@@ -40,7 +44,26 @@ async function getAcceptanceForToken(input: {
       .limit(1)
       .maybeSingle();
     if (error || !data?.accepted_at) return null;
-    return { acceptedAt: String(data.accepted_at) };
+    const acceptedAt = String(data.accepted_at);
+    const acceptanceId = String(data.id ?? "").trim();
+    if (!acceptanceId) return { acceptedAt };
+    const { data: signature, error: signatureError } = await supabase
+      .from("proposal_signatures")
+      .select("signed_at,signer_printed_name")
+      .eq("company_id", input.companyId)
+      .eq("proposal_acceptance_id", acceptanceId)
+      .eq("signer_slot", "customer_primary")
+      .maybeSingle();
+    if (signatureError || !signature?.signed_at) {
+      return { acceptedAt };
+    }
+    return {
+      acceptedAt,
+      signedAt: String(signature.signed_at),
+      signerPrintedName: signature.signer_printed_name
+        ? String(signature.signer_printed_name)
+        : null,
+    };
   } catch {
     return null;
   }

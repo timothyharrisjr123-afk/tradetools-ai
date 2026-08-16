@@ -12,6 +12,11 @@ import {
   listJobProposalAcceptances,
   type ProposalAcceptanceActivityItem,
 } from "@/app/lib/proposalAcceptanceActivity";
+import {
+  composeProposalSignatureActivityItems,
+  listJobProposalSignatures,
+  type ProposalSignatureActivityItem,
+} from "@/app/lib/proposalSignatureActivity";
 import { useJobProposalCustomerRequests } from "@/app/lib/useProposalCustomerRequests";
 import JobCardActivityPanel, {
   type JobCardActivityItem,
@@ -43,6 +48,9 @@ export default function JobCardActivityPanelWithCustomerRequests({
   const [acceptanceItems, setAcceptanceItems] = useState<
     ProposalAcceptanceActivityItem[]
   >([]);
+  const [signatureItems, setSignatureItems] = useState<
+    ProposalSignatureActivityItem[]
+  >([]);
 
   useEffect(() => {
     const id = (jobId ?? "").trim();
@@ -51,10 +59,12 @@ export default function JobCardActivityPanelWithCustomerRequests({
     void Promise.all([
       listJobActivityEventsForJob(id),
       listJobProposalAcceptances(id),
-    ]).then(([events, acceptances]) => {
+      listJobProposalSignatures(id),
+    ]).then(([events, acceptances, signatures]) => {
       if (cancelled) return;
       setJobEvents(events);
       setAcceptanceItems(composeProposalAcceptanceActivityItems(acceptances));
+      setSignatureItems(composeProposalSignatureActivityItems(signatures));
     });
     return () => {
       cancelled = true;
@@ -79,9 +89,11 @@ export default function JobCardActivityPanelWithCustomerRequests({
       sentFactsByProposalId,
       customerRequestItems: [...requestItems, ...baseItems],
       acceptanceItems,
+      signatureItems,
     });
   }, [
     acceptanceItems,
+    signatureItems,
     baseItems,
     jobCreatedAt,
     jobEvents,

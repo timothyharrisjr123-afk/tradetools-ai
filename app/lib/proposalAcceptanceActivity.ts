@@ -4,6 +4,7 @@ import type { JobCardActivityItem } from "@/app/tools/roofing/jobCard/JobCardAct
 
 type AcceptanceRow = {
   id: string;
+  proposal_id?: string | null;
   accepted_at: string;
   accepted_option_label: string | null;
   confirmed_at: string | null;
@@ -53,7 +54,7 @@ export async function listJobProposalAcceptances(jobId: string): Promise<Accepta
   const { data, error } = await supabase
     .from("proposal_acceptances")
     .select(
-      "id,accepted_at,accepted_option_label,confirmed_at,confirmed_by_user_id,guard_result"
+      "id,proposal_id,accepted_at,accepted_option_label,confirmed_at,confirmed_by_user_id,guard_result"
     )
     .eq("job_id", id)
     .order("accepted_at", { ascending: true });

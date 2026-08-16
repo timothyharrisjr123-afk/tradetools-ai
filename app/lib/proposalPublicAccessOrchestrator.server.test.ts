@@ -762,3 +762,140 @@ describe("forbidden exposure guardrails", () => {
     assert.doesNotMatch(source, /getDraftGraph\(/);
   });
 });
+
+describe("R3D signed/accepted overlay", () => {
+  function documentVm() {
+    return {
+      kind: "document" as const,
+      packet: minimalPacketStub(),
+      meta: {
+        statusLabel: "Review proposal" as const,
+        versionKind: "sent" as const,
+        frozenAt: "2026-06-26T12:00:00.000Z",
+        proposalTitle: "Roof Replacement",
+      },
+      header: {
+        company: {
+          companyName: "Summit Roofing",
+          logoUrl: null,
+          logoMonogram: "SR",
+          brandPrimaryColor: null,
+          brandSecondaryColor: null,
+          hasAnyField: true,
+        },
+        statusLabel: "Review proposal" as const,
+        identity: {
+          customerName: "Jane Homeowner",
+          propertyAddress: "123 Main St",
+          proposalNumber: null,
+          hasAnyField: true,
+        },
+      },
+      cover: {
+        headline: "Roof Replacement",
+        company: {
+          companyName: "Summit Roofing",
+          phone: null,
+          email: null,
+          website: null,
+          license: null,
+          address: null,
+          hasAnyField: true,
+        },
+        customer: {
+          customerName: "Jane Homeowner",
+          customerEmail: null,
+          customerPhone: null,
+          hasAnyField: true,
+        },
+        project: {
+          jobName: null,
+          propertyAddress: "123 Main St",
+          hasAnyField: true,
+        },
+        packageSummary: {
+          packageName: "Standard",
+          totalDisplay: "$100.00",
+          hasTotal: true,
+        },
+        heroContent: null,
+      },
+      pages: [],
+      estimate: {
+        layout: "selected_primary" as const,
+        primaryPackage: null,
+        alternateOptions: [],
+        optionalUpgrades: [],
+        selectedOption: null,
+        displayPolicy: publicDto().displayPolicy,
+      },
+      futureActions: [],
+      footer: {
+        company: {
+          companyName: "Summit Roofing",
+          phone: null,
+          email: null,
+          website: null,
+          license: null,
+          address: null,
+          hasAnyField: true,
+        },
+        supportMessage: "Contact your contractor with any questions about this proposal.",
+      },
+    };
+  }
+
+  function overlayDeps(
+    acceptance: {
+      acceptedAt: string;
+      signedAt?: string | null;
+      signerPrintedName?: string | null;
+    } | null
+  ) {
+    return {
+      resolveToken: async () => resolveSuccess(),
+      getVersionGraph: async () => versionGraph(),
+      buildDto: () => publicDto(),
+      buildDocumentViewModel: () => documentVm(),
+      recordView: async () => ({
+        ok: true as const,
+        event_type: "view" as const,
+        token_id: TOKEN_ID,
+        proposal_id: PROPOSAL_ID,
+        proposal_version_id: VERSION_ID,
+      }),
+      getAcceptanceForToken: async () => acceptance,
+    };
+  }
+
+  test("accepted unsigned overlay does not leak ids", async () => {
+    const result = await loadPublicProposalByToken(
+      RAW_TOKEN,
+      {},
+      overlayDeps({ acceptedAt: "2026-08-16T18:00:00.000Z" })
+    );
+    assert.equal(result.ok, true);
+    if (!result.ok) return;
+    assert.equal(result.document.packet.acceptance.status, "accepted");
+    assert.equal(result.document.packet.acceptance.signedOnLabel ?? null, null);
+    assert.doesNotMatch(JSON.stringify(result.document.packet.acceptance), /token_id|acceptance_id|signature_id/);
+  });
+
+  test("signed overlay is Proposal signed customer state", async () => {
+    const result = await loadPublicProposalByToken(
+      RAW_TOKEN,
+      {},
+      overlayDeps({
+        acceptedAt: "2026-08-16T18:00:00.000Z",
+        signedAt: "2026-08-16T18:01:00.000Z",
+        signerPrintedName: "Jane Homeowner",
+      })
+    );
+    assert.equal(result.ok, true);
+    if (!result.ok) return;
+    assert.equal(result.document.packet.acceptance.status, "signed");
+    assert.equal(result.document.packet.acceptance.signerDisplayName, "Jane Homeowner");
+    assert.equal(typeof result.document.packet.acceptance.signedOnLabel, "string");
+    assert.doesNotMatch(JSON.stringify(result.document), /customer_primary|signer_slot/);
+  });
+});

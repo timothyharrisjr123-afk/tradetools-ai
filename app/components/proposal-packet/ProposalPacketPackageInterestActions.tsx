@@ -3,7 +3,6 @@
 import { useState } from "react";
 import type { ProposalCustomerPacketContactViewModel } from "@/app/lib/proposalCustomerPacketViewModel";
 import {
-  PROPOSAL_CUSTOMER_PACKET_ACCEPT_PROPOSAL_CTA,
   PROPOSAL_CUSTOMER_PACKET_ACCEPT_SUCCESS_TITLE,
   PROPOSAL_CUSTOMER_PACKET_ASK_QUESTION_CTA,
   PROPOSAL_CUSTOMER_PACKET_REQUEST_PACKAGE_CTA,
@@ -15,10 +14,18 @@ import {
   buildPackageInterestHref,
   PROPOSAL_CUSTOMER_PACKET_READY_ANCHOR,
 } from "@/app/lib/proposalCustomerPacketInterestAction";
-import ProposalPacketAcceptModal from "./ProposalPacketAcceptModal";
+import {
+  PROPOSAL_CUSTOMER_PACKET_ACCEPT_AND_SIGN_CTA,
+  PROPOSAL_CUSTOMER_PACKET_SIGNED_TITLE,
+  PROPOSAL_CUSTOMER_PACKET_SIGN_PROPOSAL_CTA,
+  formatProposalCustomerSignedOnSentence,
+} from "@/app/lib/proposalSignatureTypes";
 import ProposalPacketRequestModal, {
   type ProposalPacketRequestModalContactPrefill,
 } from "./ProposalPacketRequestModal";
+import ProposalPacketSignModal, {
+  type ProposalPacketSignedResult,
+} from "./ProposalPacketSignModal";
 import {
   PROPOSAL_PACKET_CTA_CONTINUATION,
   PROPOSAL_PACKET_CTA_PRIMARY,
@@ -38,12 +45,19 @@ type ProposalPacketPackageInterestActionsProps = {
   totalLabel?: string | null;
   accepted?: boolean;
   acceptedOnLabel?: string | null;
-  onAccepted?: (acceptedOnLabel: string) => void;
+  signed?: boolean;
+  signedOnLabel?: string | null;
+  signerDisplayName?: string | null;
+  onSigned?: (result: ProposalPacketSignedResult) => void;
   showAccept?: boolean;
 };
 
 /**
- * Public CTAs: Accept proposal (commitment) is distinct from Request this package (interest).
+ * Public CTAs:
+ * unsigned → Accept & sign
+ * accepted unsigned → Sign proposal
+ * signed → Proposal signed
+ * Request this package remains interest-only.
  */
 export default function ProposalPacketPackageInterestActions({
   packageLabel,
@@ -58,14 +72,19 @@ export default function ProposalPacketPackageInterestActions({
   totalLabel = null,
   accepted = false,
   acceptedOnLabel = null,
-  onAccepted,
+  signed = false,
+  signedOnLabel = null,
+  signerDisplayName = null,
+  onSigned,
   showAccept = true,
 }: ProposalPacketPackageInterestActionsProps) {
   const [requestOpen, setRequestOpen] = useState(false);
-  const [acceptOpen, setAcceptOpen] = useState(false);
+  const [signOpen, setSignOpen] = useState(false);
   const token = (publicAccessToken ?? "").trim();
   const canSubmitRequest = Boolean(token) && Boolean((optionKey ?? "").trim());
-  const canAccept = showAccept && Boolean(token) && !accepted;
+  const canAcceptAndSign = showAccept && Boolean(token) && !accepted && !signed;
+  const canSignOnly = showAccept && Boolean(token) && accepted && !signed;
+  const primarySignOpen = canAcceptAndSign || canSignOnly;
 
   const requestHref = buildPackageInterestHref(contact, packageLabel, "request");
   const askHref = buildAskQuestionHref(contact);
@@ -81,7 +100,7 @@ export default function ProposalPacketPackageInterestActions({
       : PROPOSAL_CUSTOMER_PACKET_ASK_QUESTION_CTA;
 
   const requestClass =
-    canAccept || requestProminence === "continuation"
+    primarySignOpen || requestProminence === "continuation"
       ? PROPOSAL_PACKET_CTA_CONTINUATION
       : PROPOSAL_PACKET_CTA_PRIMARY;
 
@@ -89,6 +108,87 @@ export default function ProposalPacketPackageInterestActions({
     layout === "row"
       ? `${compact ? "mt-2.5" : "mt-3.5"} flex flex-wrap items-center gap-2`
       : `${compact ? "mt-0" : "mt-3.5"} flex flex-col gap-2`;
+
+  const requestAndAsk = (
+    <>
+      {canSubmitRequest ? (
+        <button
+          type="button"
+          className={requestClass}
+          data-proposal-cta="request-package"
+          data-proposal-cta-prominence={primarySignOpen ? "continuation" : requestProminence}
+          onClick={() => setRequestOpen(true)}
+        >
+          {PROPOSAL_CUSTOMER_PACKET_REQUEST_PACKAGE_CTA}
+        </button>
+      ) : (
+        <a
+          href={requestHref}
+          className={requestClass}
+          data-proposal-cta="request-package"
+          data-proposal-cta-prominence={primarySignOpen ? "continuation" : requestProminence}
+        >
+          {PROPOSAL_CUSTOMER_PACKET_REQUEST_PACKAGE_CTA}
+        </a>
+      )}
+      {secondary !== "none" ? (
+        <a
+          href={secondaryHref}
+          className={PROPOSAL_PACKET_CTA_SECONDARY}
+          data-proposal-cta={secondary === "contact" ? "contact-contractor" : "ask-question"}
+        >
+          {secondaryLabel}
+        </a>
+      ) : null}
+    </>
+  );
+
+  const requestModal = canSubmitRequest ? (
+    <ProposalPacketRequestModal
+      open={requestOpen}
+      onClose={() => setRequestOpen(false)}
+      packageLabel={packageLabel}
+      optionKey={(optionKey ?? "").trim()}
+      publicAccessToken={token}
+      companyName={contact?.companyName ?? null}
+      contactPrefill={contactPrefill}
+    />
+  ) : null;
+
+  const signModal = primarySignOpen ? (
+    <ProposalPacketSignModal
+      open={signOpen}
+      mode={canSignOnly ? "sign_only" : "accept_and_sign"}
+      onClose={() => setSignOpen(false)}
+      onSigned={(result) => {
+        setSignOpen(false);
+        onSigned?.(result);
+      }}
+      publicAccessToken={token}
+      companyName={contact?.companyName ?? null}
+      packageLabel={packageLabel}
+      totalLabel={totalLabel}
+      customerName={contactPrefill?.name ?? null}
+      customerEmail={contactPrefill?.email ?? null}
+    />
+  ) : null;
+
+  if (signed) {
+    const signer = (signerDisplayName ?? "").trim();
+    return (
+      <div className={actionsClass} data-proposal-signed-state>
+        <p className="text-[15px] font-semibold text-[#0b1f33]">
+          {PROPOSAL_CUSTOMER_PACKET_SIGNED_TITLE}
+        </p>
+        <p className="text-[13px] text-[#475569]">
+          {formatProposalCustomerSignedOnSentence(signedOnLabel)}
+          {signer ? ` · ${signer}` : ""}
+        </p>
+        {requestAndAsk}
+        {requestModal}
+      </div>
+    );
+  }
 
   if (accepted) {
     return (
@@ -99,6 +199,19 @@ export default function ProposalPacketPackageInterestActions({
         <p className="text-[13px] text-[#475569]">
           {formatProposalCustomerAcceptedOnSentence(acceptedOnLabel)}
         </p>
+        {canSignOnly ? (
+          <button
+            type="button"
+            className={PROPOSAL_PACKET_CTA_PRIMARY}
+            data-proposal-cta="sign-proposal"
+            onClick={() => setSignOpen(true)}
+          >
+            {PROPOSAL_CUSTOMER_PACKET_SIGN_PROPOSAL_CTA}
+          </button>
+        ) : null}
+        {requestAndAsk}
+        {requestModal}
+        {signModal}
       </div>
     );
   }
@@ -106,75 +219,20 @@ export default function ProposalPacketPackageInterestActions({
   return (
     <div>
       <div className={actionsClass}>
-        {canAccept ? (
+        {canAcceptAndSign ? (
           <button
             type="button"
             className={PROPOSAL_PACKET_CTA_PRIMARY}
-            data-proposal-cta="accept-proposal"
-            onClick={() => setAcceptOpen(true)}
+            data-proposal-cta="accept-and-sign"
+            onClick={() => setSignOpen(true)}
           >
-            {PROPOSAL_CUSTOMER_PACKET_ACCEPT_PROPOSAL_CTA}
+            {PROPOSAL_CUSTOMER_PACKET_ACCEPT_AND_SIGN_CTA}
           </button>
         ) : null}
-        {canSubmitRequest ? (
-          <button
-            type="button"
-            className={requestClass}
-            data-proposal-cta="request-package"
-            data-proposal-cta-prominence={canAccept ? "continuation" : requestProminence}
-            onClick={() => setRequestOpen(true)}
-          >
-            {PROPOSAL_CUSTOMER_PACKET_REQUEST_PACKAGE_CTA}
-          </button>
-        ) : (
-          <a
-            href={requestHref}
-            className={requestClass}
-            data-proposal-cta="request-package"
-            data-proposal-cta-prominence={canAccept ? "continuation" : requestProminence}
-          >
-            {PROPOSAL_CUSTOMER_PACKET_REQUEST_PACKAGE_CTA}
-          </a>
-        )}
-        {secondary !== "none" ? (
-          <a
-            href={secondaryHref}
-            className={PROPOSAL_PACKET_CTA_SECONDARY}
-            data-proposal-cta={secondary === "contact" ? "contact-contractor" : "ask-question"}
-          >
-            {secondaryLabel}
-          </a>
-        ) : null}
+        {requestAndAsk}
       </div>
-
-      {canSubmitRequest ? (
-        <ProposalPacketRequestModal
-          open={requestOpen}
-          onClose={() => setRequestOpen(false)}
-          packageLabel={packageLabel}
-          optionKey={(optionKey ?? "").trim()}
-          publicAccessToken={token}
-          companyName={contact?.companyName ?? null}
-          contactPrefill={contactPrefill}
-        />
-      ) : null}
-
-      {canAccept ? (
-        <ProposalPacketAcceptModal
-          open={acceptOpen}
-          onClose={() => setAcceptOpen(false)}
-          onAccepted={(label) => {
-            setAcceptOpen(false);
-            onAccepted?.(label);
-          }}
-          publicAccessToken={token}
-          companyName={contact?.companyName ?? null}
-          packageLabel={packageLabel}
-          totalLabel={totalLabel}
-          customerName={contactPrefill?.name ?? null}
-          customerEmail={contactPrefill?.email ?? null}
-        />
-      ) : null}
+      {requestModal}
+      {signModal}
     </div>
   );
 }

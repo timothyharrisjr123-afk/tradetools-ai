@@ -17,6 +17,7 @@ import {
   buildJobCardProposalRowViews,
   formatJobCardContractorProposalStatusLabel,
   formatJobCardProposalCreatedActivityNote,
+  formatJobCardProposalCustomerStateLabel,
   formatJobCardProposalRowPackageBadge,
   formatJobCardProposalRowTitle,
   formatJobCardProposalStatusLabel,
@@ -178,6 +179,64 @@ describe("jobCardProposalsTab helpers", () => {
         packageLabelsByProposalId: { a: "Standard", b: "Enhanced" },
       }),
       "Latest: Enhanced · Draft"
+    );
+  });
+
+  test("Accepted and Signed share one status owner for strip and row", () => {
+    const sent = summary({
+      id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+      title: "Roof replacement",
+      status: "draft",
+      latest_sent_version_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      updated_at: "2026-08-16T12:00:00.000Z",
+    });
+    const facts = {
+      latestSentFrozenAt: "2026-08-16T12:00:00.000Z",
+      history: [],
+    };
+    const acceptedRow = buildJobCardProposalRowView({
+      summary: sent,
+      sentFacts: facts,
+      customerAccepted: true,
+    });
+    const signedRow = buildJobCardProposalRowView({
+      summary: sent,
+      sentFacts: facts,
+      customerAccepted: true,
+      customerSigned: true,
+    });
+    assert.equal(acceptedRow.statusLabel, "Accepted");
+    assert.equal(signedRow.statusLabel, "Signed");
+    assert.equal(
+      formatJobCardContractorProposalStatusLabel({
+        visibleSummaries: [sent],
+        sentFactsByProposalId: { [sent.id]: facts },
+        acceptedProposalIds: { [sent.id]: true },
+      }),
+      "Accepted"
+    );
+    assert.equal(
+      formatJobCardContractorProposalStatusLabel({
+        visibleSummaries: [sent],
+        sentFactsByProposalId: { [sent.id]: facts },
+        acceptedProposalIds: { [sent.id]: true },
+        signedProposalIds: { [sent.id]: true },
+      }),
+      "Signed"
+    );
+    assert.notEqual(acceptedRow.statusLabel, "Sent");
+    assert.equal(
+      formatJobCardProposalCustomerStateLabel({
+        lifecycle: {
+          kind: "sent",
+          statusLabel: "Sent",
+          editingAllowed: false,
+          hasLatestSentVersion: true,
+          isDraftDirtyAfterLatestSent: false,
+        },
+        customerAccepted: true,
+      }),
+      "Accepted"
     );
   });
 

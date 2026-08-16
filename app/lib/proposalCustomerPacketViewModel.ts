@@ -132,8 +132,10 @@ export type ProposalCustomerPacketContactViewModel = {
 };
 
 export type ProposalCustomerPacketAcceptanceViewModel = {
-  status: "open" | "accepted";
+  status: "open" | "accepted" | "signed";
   acceptedOnLabel: string | null;
+  signedOnLabel?: string | null;
+  signerDisplayName?: string | null;
 };
 
 export type ProposalCustomerPacketViewModel = {

@@ -6,6 +6,7 @@
  *   2. allowlisted proposal facts already loaded on the Job Card
  *   3. proposal_customer_requests (composed by the panel)
  *   4. proposal_acceptances (composed by the panel; chronology owner is accepted_at)
+ *   5. proposal_signatures (composed by the panel; chronology owner is signed_at)
  *
  * Never surfaces Job Card opened, autosave, previewed, snapshot_frozen,
  * Acceptance confirmed, or Acknowledge.
@@ -22,6 +23,7 @@ import type { ProposalRecordStatusSummary } from "@/app/lib/proposalRecordTypes"
 import type { JobCardProposalSentFactsById } from "@/app/lib/proposalJobCardLifecycleRead";
 import { deriveContractorProposalLifecycle } from "@/app/lib/proposalContractorLifecycle";
 import type { ProposalAcceptanceActivityItem } from "@/app/lib/proposalAcceptanceActivity";
+import type { ProposalSignatureActivityItem } from "@/app/lib/proposalSignatureActivity";
 
 const FORBIDDEN_ACTIVITY_LABEL =
   /\b(Job card opened|Estimate loaded|autosave|previewed|snapshot_frozen|Builder opened|Preview opened|Acceptance confirmed)\b/i;
@@ -40,6 +42,7 @@ export type ComposeJobActivityInput = {
   sentFactsByProposalId?: JobCardProposalSentFactsById;
   customerRequestItems?: readonly JobCardActivityItem[];
   acceptanceItems?: readonly ProposalAcceptanceActivityItem[];
+  signatureItems?: readonly ProposalSignatureActivityItem[];
 };
 
 function parseTs(iso: string | null | undefined): number {
@@ -213,6 +216,12 @@ export function composeJobActivityItems(
     const acceptedAt = (acceptance.acceptedAt ?? "").trim() || null;
     const acceptanceId = (acceptance.acceptanceId ?? "").trim() || null;
     push(acceptance, acceptedAt, acceptanceId ? `acceptance:${acceptanceId}` : null);
+  }
+
+  for (const signature of input.signatureItems ?? []) {
+    const signedAt = (signature.signedAt ?? "").trim() || null;
+    const signatureId = (signature.signatureId ?? "").trim() || null;
+    push(signature, signedAt, signatureId ? `signature:${signatureId}` : null);
   }
 
   return items
