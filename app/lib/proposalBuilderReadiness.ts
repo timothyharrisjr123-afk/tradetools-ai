@@ -220,6 +220,19 @@ export function buildProposalBuilderHref(
   return `/tools/roofing/proposals/builder?job=${encodeURIComponent(jobId)}&proposal=${encodeURIComponent(pid)}`;
 }
 
+export function buildProposalPreviewHref(
+  jobId: string,
+  proposalId?: string | null
+): string {
+  const pid = proposalId == null ? "" : String(proposalId).trim();
+  if (!pid || !isUuidLike(pid)) {
+    return buildJobCardHref(jobId, { tab: "proposals" });
+  }
+  return `/tools/roofing/proposals/preview?job=${encodeURIComponent(jobId)}&proposal=${encodeURIComponent(pid)}`;
+}
+
+export { buildProposalPreviewSentHref } from "@/app/lib/proposalPreviewSentRecord";
+
 export function buildJobCardHref(
   jobId: string,
   options?: { tab?: "overview" | "measurements" | "proposals" }

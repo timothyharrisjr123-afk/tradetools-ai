@@ -4,13 +4,7 @@ import {
   attentionHeadline,
   type JobAttentionSafeItem,
 } from "@/app/lib/jobAttentionReadModel";
-import {
-  ChevronDown,
-  CircleAlert,
-  ExternalLink,
-  Mail,
-  Phone,
-} from "lucide-react";
+import { ChevronDown, Mail, Phone } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 type JobCardNextActionPanelProps = {
@@ -28,20 +22,11 @@ type JobCardNextActionPanelProps = {
 };
 
 const PRIMARY_BUTTON =
-  "inline-flex min-h-10 items-center justify-center rounded-md bg-slate-900 px-3 py-2 text-xs font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60";
-const SECONDARY_BUTTON =
-  "inline-flex min-h-10 items-center justify-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60";
-
-function relativeAge(iso: string): string {
-  const elapsed = Math.max(0, Date.now() - Date.parse(iso));
-  const minutes = Math.floor(elapsed / 60_000);
-  if (minutes < 1) return "Just now";
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
-}
+  "inline-flex min-h-9 items-center justify-center rounded-md bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60";
+const QUIET_BUTTON =
+  "inline-flex min-h-9 items-center justify-center px-1 text-xs font-semibold text-slate-500 transition hover:text-slate-800 disabled:opacity-60";
+const CONTACT_LINK =
+  "inline-flex min-h-8 items-center gap-1.5 px-1 text-xs font-semibold text-slate-600 hover:text-slate-900";
 
 function normalizedContactHref(
   kind: "phone" | "email",
@@ -115,121 +100,103 @@ export default function JobCardNextActionPanel({
     window.location.href = href;
   };
 
+  const reviewProposal = () => {
+    void settleReadWithoutBlocking(onMarkRead(selectedItem.id))
+      .then(() => onMarkSeen(selectedItem).catch(() => undefined))
+      .then(() => onReviewProposal(selectedItem))
+      .catch(() => undefined);
+  };
+
   return (
     <section
       ref={panelRef}
       tabIndex={-1}
       aria-labelledby="job-card-next-action-heading"
-      className="border-b border-amber-200/80 bg-amber-50/70 px-4 py-3 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-amber-400 sm:px-6"
+      className="border-b border-amber-200/80 bg-amber-50/70 px-4 py-2.5 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-amber-400 sm:px-6"
       data-jobcard-next-action
+      data-jobcard-next-action-compact
       data-attention-id={selectedItem.id}
       data-attention-status={selectedItem.status}
     >
-      <div className="mx-auto flex max-w-[96rem] flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      <h2 id="job-card-next-action-heading" className="sr-only">
+        Needs attention
+      </h2>
+      <div className="mx-auto flex max-w-[96rem] flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <CircleAlert
-              className="h-4 w-4 shrink-0 text-amber-700"
-              aria-hidden
-            />
-            <p
-              id="job-card-next-action-heading"
-              className="text-[11px] font-semibold uppercase tracking-[0.1em] text-amber-800"
-            >
-              Needs attention
-            </p>
-            <span className="rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-semibold text-slate-700">
-              {selectedItem.severity}
-            </span>
-            <span className="rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-semibold text-slate-700">
-              {selectedItem.status === "open" ? "New" : "Seen"}
-            </span>
-            <span className="text-[11px] text-slate-500">
-              {relativeAge(selectedItem.openedAt)}
-            </span>
-          </div>
-          <p className="mt-1 text-sm font-semibold text-slate-950">
+          <p className="text-sm font-semibold text-slate-950">
             {attentionHeadline(selectedItem)}
           </p>
           {selectedItem.request.messagePreview ? (
             <p
-              className="mt-1 max-w-3xl text-xs leading-relaxed text-slate-700"
+              className="mt-0.5 max-w-3xl text-xs leading-relaxed text-slate-700"
               data-attention-message-preview
             >
               {selectedItem.request.messagePreview}
             </p>
           ) : null}
-          <p className="mt-1 text-[11px] text-slate-500">
-            Dismissal removes this active action. Request history is retained.
-          </p>
         </div>
 
         <div
-          className="flex w-full flex-wrap items-center gap-2 lg:w-auto lg:justify-end"
+          className="flex w-full flex-wrap items-center gap-x-3 gap-y-1 sm:w-auto sm:justify-end"
           aria-busy={pending}
         >
-          {phoneHref ? (
-            <button
-              type="button"
-              className={SECONDARY_BUTTON}
-              onClick={() => {
-                void openContact(phoneHref);
-              }}
-            >
-              <Phone className="h-3.5 w-3.5" aria-hidden />
-              Call customer
-            </button>
-          ) : null}
-          {emailHref ? (
-            <button
-              type="button"
-              className={SECONDARY_BUTTON}
-              onClick={() => {
-                void openContact(emailHref);
-              }}
-            >
-              <Mail className="h-3.5 w-3.5" aria-hidden />
-              Email customer
-            </button>
-          ) : null}
           <button
             type="button"
-            className={SECONDARY_BUTTON}
-            onClick={() => {
-              void settleReadWithoutBlocking(onMarkRead(selectedItem.id))
-                .then(() => onReviewProposal(selectedItem))
-                .catch(() => undefined);
-            }}
+            className={PRIMARY_BUTTON}
+            data-attention-review
+            onClick={reviewProposal}
           >
-            <ExternalLink className="h-3.5 w-3.5" aria-hidden />
             Review proposal
           </button>
-          {selectedItem.status === "open" ? (
+          {phoneHref && emailHref ? (
+            <details className="relative" data-attention-contact>
+              <summary className={`${QUIET_BUTTON} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}>
+                Contact customer
+              </summary>
+              <div className="absolute right-0 z-10 mt-1 min-w-[9.5rem] rounded-md border border-slate-200 bg-white p-1.5 shadow-sm">
+                <button
+                  type="button"
+                  className={CONTACT_LINK}
+                  onClick={() => {
+                    void openContact(phoneHref);
+                  }}
+                >
+                  <Phone className="h-3.5 w-3.5" aria-hidden />
+                  Call
+                </button>
+                <button
+                  type="button"
+                  className={CONTACT_LINK}
+                  onClick={() => {
+                    void openContact(emailHref);
+                  }}
+                >
+                  <Mail className="h-3.5 w-3.5" aria-hidden />
+                  Email
+                </button>
+              </div>
+            </details>
+          ) : phoneHref || emailHref ? (
             <button
               type="button"
-              className={PRIMARY_BUTTON}
-              disabled={pending}
+              className={QUIET_BUTTON}
+              data-attention-contact
               onClick={() => {
-                void settleReadWithoutBlocking(
-                  onMarkRead(selectedItem.id)
-                )
-                  .then(() => onMarkSeen(selectedItem))
-                  .catch(() => undefined);
+                void openContact((phoneHref ?? emailHref)!);
               }}
             >
-              Mark seen
+              Contact customer
             </button>
           ) : null}
           <button
             type="button"
-            className={SECONDARY_BUTTON}
+            className={QUIET_BUTTON}
             disabled={pending}
+            data-attention-dismiss
             onClick={() => {
-              void settleReadWithoutBlocking(
-                onMarkRead(selectedItem.id)
-                )
-                  .then(() => onDismiss(selectedItem))
-                  .catch(() => undefined);
+              void settleReadWithoutBlocking(onMarkRead(selectedItem.id))
+                .then(() => onDismiss(selectedItem))
+                .catch(() => undefined);
             }}
           >
             Dismiss
@@ -238,10 +205,10 @@ export default function JobCardNextActionPanel({
       </div>
 
       {others.length > 0 ? (
-        <div className="mx-auto mt-2 max-w-[96rem]">
+        <div className="mx-auto mt-1.5 max-w-[96rem]">
           <button
             type="button"
-            className="inline-flex min-h-9 items-center gap-1 rounded-md px-2 text-xs font-semibold text-amber-900 hover:bg-amber-100"
+            className="inline-flex min-h-8 items-center gap-1 rounded-md px-1 text-xs font-semibold text-amber-900 hover:bg-amber-100"
             aria-expanded={showMore}
             onClick={() => setShowMore((value) => !value)}
           >
@@ -260,7 +227,7 @@ export default function JobCardNextActionPanel({
                 <button
                   key={item.id}
                   type="button"
-                  className="min-w-0 rounded-md border border-amber-200/80 bg-white px-3 py-2 text-left hover:border-amber-300"
+                  className="min-w-0 rounded-md px-2 py-1.5 text-left hover:bg-amber-100/80"
                   onClick={() => {
                     onSelect(item.id);
                     window.requestAnimationFrame(() => {
@@ -272,10 +239,6 @@ export default function JobCardNextActionPanel({
                 >
                   <span className="block truncate text-xs font-semibold text-slate-900">
                     {attentionHeadline(item)}
-                  </span>
-                  <span className="mt-0.5 block text-[11px] text-slate-500">
-                    {item.status === "open" ? "New" : "Seen"} ·{" "}
-                    {relativeAge(item.openedAt)}
                   </span>
                 </button>
               ))}

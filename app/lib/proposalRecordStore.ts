@@ -107,6 +107,10 @@ import {
   ProposalDraftPricingRefreshPersistenceError,
 } from "@/app/lib/proposalDraftPricingRefreshPersistence";
 import {
+  mutableDraftTouchFailureMessage,
+  touchMutableDraftProposalUpdatedAt,
+} from "@/app/lib/proposalMutableDraftTouch";
+import {
   assertDraftProposalCreateGraphInvariants,
   buildDraftProposalCreatePersistPayload,
   isCreateDraftProposalSequentialEnabled,
@@ -476,6 +480,23 @@ export function normalizeCompanyId(companyId: string): string | null {
   const id = companyId.trim();
   if (!id || !isUuidLike(id)) return null;
   return id;
+}
+
+async function touchMutableDraftHeader(
+  supabase: NonNullable<ReturnType<typeof getSupabaseClient>>,
+  companyId: string,
+  proposalId: string,
+  touchedAt?: string
+): Promise<string> {
+  try {
+    return await touchMutableDraftProposalUpdatedAt(supabase, {
+      companyId,
+      proposalId,
+      touchedAt,
+    });
+  } catch (error) {
+    throw new ProposalRecordStoreError(mutableDraftTouchFailureMessage(error));
+  }
 }
 
 /**
@@ -1819,6 +1840,8 @@ export async function updateDraftProposalPageContent(
     );
   }
 
+  await touchMutableDraftHeader(supabase, cid, pid);
+
   await appendProposalEvent(
     {
       company_id: cid,
@@ -1909,6 +1932,8 @@ export async function updateDraftProposalPageVisibility(
       updateError.message ?? "Failed to update proposal page visibility."
     );
   }
+
+  await touchMutableDraftHeader(supabase, cid, pid);
 
   await appendProposalEvent(
     {
@@ -2009,6 +2034,8 @@ export async function updateDraftProposalPageSettings(
       updateError.message ?? "Failed to update proposal page settings."
     );
   }
+
+  await touchMutableDraftHeader(supabase, cid, pid);
 
   await appendProposalEvent(
     {
@@ -2212,17 +2239,7 @@ export async function restampDraftProposalIdentityEcho(
     );
   }
 
-  const { error: proposalUpdateError } = await supabase
-    .from("proposals")
-    .update({ updated_at: restampedAt })
-    .eq("id", pid)
-    .eq("company_id", cid);
-
-  if (proposalUpdateError) {
-    throw new ProposalRecordStoreError(
-      proposalUpdateError.message ?? "Failed to touch proposal updated_at after identity restamp."
-    );
-  }
+  await touchMutableDraftHeader(supabase, cid, pid, restampedAt);
 
   return {
     restamped: true,

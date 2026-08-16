@@ -121,9 +121,13 @@ import {
 import { DEFAULT_ROOFING_CATALOG_DEFINITIONS } from "@/app/lib/defaultRoofingCatalog";
 import {
   buildProposalBuilderHref,
+  buildProposalPreviewHref,
+  buildProposalPreviewSentHref,
   deriveProposalBuilderReadiness,
   resolveJobCardProposalActivityLine,
 } from "@/app/lib/proposalBuilderReadiness";
+import { loadJobCardProposalSentFacts } from "@/app/lib/proposalJobCardLifecycleRead";
+import type { JobCardProposalSentFactsById } from "@/app/lib/proposalJobCardLifecycleRead";
 import {
   buildJobCardProposalAttentionHref,
   type JobAttentionSafeItem,
@@ -1182,6 +1186,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
   const [listedJobDraftPackageLabels, setListedJobDraftPackageLabels] = useState<
     Record<string, string | null>
   >({});
+  const [listedJobSentFacts, setListedJobSentFacts] = useState<JobCardProposalSentFactsById>({});
   const listedDraftFetchInFlightRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -2058,6 +2063,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
       setListedJobDraftSummaries([]);
       setListedJobDraftPackageLabel(null);
       setListedJobDraftPackageLabels({});
+      setListedJobSentFacts({});
       setCreateProposalModalOpen(false);
       setCreateProposalModalMeasurements([]);
       createProposalMeasurementRecordsRef.current = [];
@@ -2073,6 +2079,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
       setListedJobDraftSummaries([]);
       setListedJobDraftPackageLabel(null);
       setListedJobDraftPackageLabels({});
+      setListedJobSentFacts({});
       listedDraftFetchInFlightRef.current = null;
       return;
     }
@@ -2119,6 +2126,17 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
         setListedJobDraftPackageLabel(
           draft?.id ? labels[draft.id] ?? null : null
         );
+        const latestSentByProposal: Record<string, string | null> = {};
+        for (const row of contractorRows) {
+          latestSentByProposal[row.id] = row.latest_sent_version_id;
+        }
+        const sentFacts = await loadJobCardProposalSentFacts({
+          companyId: cid,
+          proposalIds: contractorRows.map((row) => row.id),
+          latestSentVersionIdByProposalId: latestSentByProposal,
+        });
+        if (listedDraftFetchInFlightRef.current !== fetchKey) return;
+        setListedJobSentFacts(sentFacts);
       } catch (err) {
         console.warn("[RoofingClient] job draft list fetch error:", err);
         if (listedDraftFetchInFlightRef.current !== fetchKey) return;
@@ -2127,6 +2145,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
         setListedJobDraftSummaries([]);
         setListedJobDraftPackageLabel(null);
         setListedJobDraftPackageLabels({});
+        setListedJobSentFacts({});
       }
     })();
   }, [
@@ -7517,6 +7536,17 @@ Thanks,`;
       summaries: listedJobDraftSummaries,
       packageLabelsByProposalId: listedJobDraftPackageLabels,
       templateNameByTemplateId,
+      sentFactsByProposalId: listedJobSentFacts,
+      hrefs: currentJobId
+        ? {
+            builderHref: (proposalId) =>
+              buildProposalBuilderHref(currentJobId, proposalId),
+            previewHref: (proposalId) =>
+              buildProposalPreviewHref(currentJobId, proposalId),
+            sentRecordHref: (proposalId, versionId) =>
+              buildProposalPreviewSentHref(currentJobId, proposalId, versionId),
+          }
+        : undefined,
     });
     const proposalDraftCreatePayload =
       identityFromJobRecord &&
@@ -7957,6 +7987,7 @@ Thanks,`;
       proposalLabel: formatJobCardContractorProposalStatusLabel({
         visibleSummaries: listedJobDraftSummaries,
         packageLabelsByProposalId: listedJobDraftPackageLabels,
+        sentFactsByProposalId: listedJobSentFacts,
       }),
     };
     const activityWhen = jobCardDisplay.lastUpdatedDisplay?.replace(/^Updated /, "") ?? "Just now";
@@ -8463,12 +8494,13 @@ Thanks,`;
                   createReadyForBlock3={createNewDraftEnabled}
                   onAddProposal={openCreateProposalModal}
                   focusedRequestId={focusedRequestParam}
-                  onOpenProposal={(proposalId) => {
+                  onProposalAction={(action, proposalId) => {
+                    if (!action.enabled) return;
                     if (!currentJobId || !isUuidLike(currentJobId)) return;
                     if (!isUuidLike(proposalId)) return;
-                    router.push(
-                      buildProposalBuilderHref(currentJobId, proposalId)
-                    );
+                    const href = (action.href ?? "").trim();
+                    if (!href) return;
+                    router.push(href);
                   }}
                 />
                 {createProposalModalOpen ? (

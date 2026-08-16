@@ -54,11 +54,12 @@ describe("Job Card Proposals tab (Block 2 + Block 3 modal)", () => {
     );
   });
 
-  test("4. Compact rows + Open — no create-from-row", () => {
+  test("4. Compact rows + explicit actions — no create-from-row", () => {
     const tab = read("app/tools/roofing/jobCard/JobCardProposalsTab.tsx");
     assert.match(tab, /data-jobcard-proposal-list-row/);
-    assert.match(tab, /data-jobcard-proposal-open/);
-    assert.match(tab, /JOB_CARD_PROPOSALS_OPEN_LABEL|Open/);
+    assert.match(tab, /data-jobcard-proposal-action/);
+    assert.match(tab, /onProposalAction/);
+    assert.doesNotMatch(tab, /data-jobcard-proposal-open/);
     assert.doesNotMatch(tab, /Create proposal draft/);
     assert.doesNotMatch(tab, /onCreateNewDraft/);
   });
@@ -103,10 +104,12 @@ describe("Job Card Proposals tab (Block 2 + Block 3 modal)", () => {
     );
   });
 
-  test("6. Open uses Builder href with proposal id — not create", () => {
+  test("6. Enabled actions navigate by href — not create", () => {
     const client = read("app/tools/roofing/RoofingClient.tsx");
-    assert.match(client, /onOpenProposal/);
+    assert.match(client, /onProposalAction/);
     assert.match(client, /buildProposalBuilderHref\(currentJobId, proposalId\)/);
+    assert.match(client, /buildProposalPreviewHref\(currentJobId, proposalId\)/);
+    assert.doesNotMatch(client, /onOpenProposal=\{/);
   });
 
   test("7. Old copy is absent from Proposals panel", () => {
@@ -161,7 +164,7 @@ describe("Job Card Proposals tab (Block 2 + Block 3 modal)", () => {
     assert.match(helpers, /Ready for proposal/);
     assert.match(helpers, /Proposal created/);
     assert.match(helpers, /Draft proposal/);
-    assert.match(helpers, /Latest:.*draft/);
+    assert.match(helpers, /Latest:/);
     assert.doesNotMatch(helpers, /Proposal Draft/);
     assert.doesNotMatch(readiness, /Proposal Builder ready/);
     assert.match(readiness, /hasVisibleContractorProposal/);

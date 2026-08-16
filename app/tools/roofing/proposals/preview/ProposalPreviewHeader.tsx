@@ -7,6 +7,10 @@ import {
   CUSTOMER_PREVIEW_PAGE_TITLE,
 } from "@/app/lib/proposalBuilderDocumentIa";
 import type { ProposalPreviewSentFrozenChrome } from "@/app/lib/proposalPreviewSentFrozenChrome";
+import type { ProposalPreviewSentRecordChrome } from "@/app/lib/proposalPreviewSentRecord";
+import {
+  PREVIEW_SENT_RECORD_BACK_LABEL,
+} from "@/app/lib/proposalPreviewSentRecord";
 import ProposalPreviewActionGroup from "./ProposalPreviewActionGroup";
 import { PREVIEW_HEADER, PREVIEW_HEADER_INNER } from "./proposalPreviewWorkspaceStyles";
 
@@ -19,6 +23,8 @@ type ProposalPreviewHeaderProps = {
   sentFrozenChrome: ProposalPreviewSentFrozenChrome;
   onSendSharing: () => void;
   showSendSharing: boolean;
+  backHref?: string;
+  sentRecordChrome?: ProposalPreviewSentRecordChrome | null;
 };
 
 function compactPackageLabel(label: string | null): string | null {
@@ -31,7 +37,7 @@ function compactPackageLabel(label: string | null): string | null {
 /**
  * V2C1/V2C4 — Compact contractor review command bar.
  * Status chrome distinguishes unsent draft vs draft-after-sent using latest_sent_version_id.
- * Document remains the editable draft; frozen viewing is not wired here.
+ * Sent-record mode (`sentRecordChrome`) is an explicit read-only frozen view.
  */
 export default function ProposalPreviewHeader({
   builderHref,
@@ -42,21 +48,33 @@ export default function ProposalPreviewHeader({
   sentFrozenChrome,
   onSendSharing,
   showSendSharing,
+  backHref,
+  sentRecordChrome = null,
 }: ProposalPreviewHeaderProps) {
   const packageLabel = compactPackageLabel(selectedPackageLabel);
+  const isSentRecord = Boolean(sentRecordChrome);
+  const statusLabel = sentRecordChrome?.statusLabel ?? sentFrozenChrome.statusLabel;
 
   return (
-    <header className={PREVIEW_HEADER} data-preview-contractor-header data-preview-command-bar>
+    <header
+      className={PREVIEW_HEADER}
+      data-preview-contractor-header
+      data-preview-command-bar
+      data-preview-sent-record={isSentRecord ? "true" : "false"}
+    >
       <div className={PREVIEW_HEADER_INNER}>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <Link
-              href={builderHref}
+              href={backHref ?? builderHref}
               className="inline-flex min-h-[44px] items-center gap-1.5 text-[13px] font-semibold text-blue-600 transition hover:text-blue-700 sm:min-h-0"
-              data-preview-back-to-builder
+              data-preview-back-to-builder={isSentRecord ? undefined : "true"}
+              data-preview-back-to-job-card={isSentRecord ? "true" : undefined}
             >
               <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
-              {CUSTOMER_PREVIEW_BACK_TO_BUILDER_LABEL}
+              {isSentRecord
+                ? PREVIEW_SENT_RECORD_BACK_LABEL
+                : CUSTOMER_PREVIEW_BACK_TO_BUILDER_LABEL}
             </Link>
             <h1 className="sr-only" data-preview-page-title>
               {CUSTOMER_PREVIEW_PAGE_TITLE}
@@ -99,18 +117,39 @@ export default function ProposalPreviewHeader({
             ) : null}
             <span
               className="font-medium text-slate-600"
-              data-preview-draft-status
-              data-preview-sent-frozen-kind={sentFrozenChrome.kind}
+              data-preview-draft-status={isSentRecord ? undefined : "true"}
+              data-preview-sent-record-status={isSentRecord ? "true" : undefined}
+              data-preview-sent-frozen-kind={
+                isSentRecord ? "sent_record" : sentFrozenChrome.kind
+              }
               data-preview-has-latest-sent={
                 sentFrozenChrome.hasLatestSentVersion ? "true" : "false"
               }
             >
-              {sentFrozenChrome.statusLabel}
+              {statusLabel}
             </span>
+            {sentRecordChrome?.sentAtLabel ? (
+              <>
+                <span className="text-slate-300" aria-hidden>
+                  ·
+                </span>
+                <span data-preview-sent-record-at>{sentRecordChrome.sentAtLabel}</span>
+              </>
+            ) : null}
+            {sentRecordChrome?.deliveryLabel ? (
+              <>
+                <span className="text-slate-300" aria-hidden>
+                  ·
+                </span>
+                <span data-preview-sent-record-delivery>
+                  {sentRecordChrome.deliveryLabel}
+                </span>
+              </>
+            ) : null}
           </p>
         </div>
 
-        {showSendSharing ? (
+        {showSendSharing && !isSentRecord ? (
           <ProposalPreviewActionGroup
             onSendSharing={onSendSharing}
             showSendSharing={showSendSharing}

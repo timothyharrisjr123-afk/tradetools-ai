@@ -6,7 +6,7 @@
 
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { buildProposalBuilderHref } from "./proposalBuilderReadiness";
+import { buildProposalBuilderHref, buildProposalPreviewHref } from "./proposalBuilderReadiness";
 import type { MeasurementProposalHandoff } from "./measurementProposalHandoff";
 import type { MeasurementQuantityMap } from "./measurementTypes";
 import type { ProposalRecord, ProposalRecordStatusSummary } from "./proposalRecordTypes";
@@ -219,6 +219,15 @@ describe("buildProposalBuilderHref", () => {
     assert.equal(buildProposalBuilderHref(JOB_ID, "not-a-uuid"), buildProposalBuilderHref(JOB_ID));
     assert.equal(buildProposalBuilderHref(JOB_ID, ""), buildProposalBuilderHref(JOB_ID));
     assert.equal(buildProposalBuilderHref(JOB_ID, null), buildProposalBuilderHref(JOB_ID));
+  });
+});
+
+describe("buildProposalPreviewHref", () => {
+  test("includes job and proposal params when proposalId valid", () => {
+    assert.equal(
+      buildProposalPreviewHref(JOB_ID, PROPOSAL_ID),
+      `/tools/roofing/proposals/preview?job=${encodeURIComponent(JOB_ID)}&proposal=${encodeURIComponent(PROPOSAL_ID)}`
+    );
   });
 });
 

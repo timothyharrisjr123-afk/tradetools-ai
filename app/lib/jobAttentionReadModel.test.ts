@@ -285,4 +285,21 @@ describe("R3B4B integration guardrails", () => {
     assert.equal(proposals.includes("onDismiss={(id)"), false);
     assert.match(proposals, /additional active/);
   });
+
+  test("Job Card Attention is a compact actionable notice", () => {
+    assert.match(nextAction, /data-jobcard-next-action-compact/);
+    assert.match(nextAction, /Review proposal/);
+    assert.match(nextAction, /Contact customer/);
+    assert.match(nextAction, />\s*Dismiss\s*</);
+    assert.match(nextAction, /onMarkSeen\(selectedItem\)/);
+    assert.match(nextAction, /onReviewProposal\(selectedItem\)/);
+    assert.match(nextAction, /onDismiss\(selectedItem\)/);
+    assert.doesNotMatch(nextAction, />Mark seen</);
+    assert.doesNotMatch(nextAction, /Dismissal removes this active action/);
+    assert.doesNotMatch(nextAction, /NEEDS ATTENTION/);
+    assert.doesNotMatch(nextAction, /data-attention-severity/);
+    assert.doesNotMatch(nextAction, />New</);
+    assert.doesNotMatch(nextAction, />Call customer</);
+    assert.doesNotMatch(nextAction, />Email customer</);
+  });
 });

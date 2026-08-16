@@ -559,7 +559,7 @@ describe("Prepare proposal V2A write boundary and wiring", () => {
 
   test("existing proposal rows still open Builder with job + proposal ids", () => {
     const client = read("app/tools/roofing/RoofingClient.tsx");
-    assert.match(client, /onOpenProposal/);
+    assert.match(client, /onProposalAction/);
     assert.match(client, /buildProposalBuilderHref\(currentJobId, proposalId\)/);
     const row = buildJobCardProposalRowView({
       summary: {

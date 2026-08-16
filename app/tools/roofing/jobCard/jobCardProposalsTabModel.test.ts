@@ -38,8 +38,8 @@ function summary(
     proposal_number: null,
     template_id: partial.template_id ?? "tmpl-roof",
     selected_option_id: partial.selected_option_id ?? null,
-    latest_sent_version_id: null,
-    signed_version_id: null,
+    latest_sent_version_id: partial.latest_sent_version_id ?? null,
+    signed_version_id: partial.signed_version_id ?? null,
     created_at: null,
     updated_at: partial.updated_at ?? "2026-07-20T15:00:00.000Z",
   };
@@ -173,7 +173,7 @@ describe("jobCardProposalsTab helpers", () => {
         ],
         packageLabelsByProposalId: { a: "Standard", b: "Enhanced" },
       }),
-      "Latest: Enhanced draft"
+      "Latest: Enhanced · Draft"
     );
   });
 

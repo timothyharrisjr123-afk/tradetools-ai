@@ -7,6 +7,10 @@
 
 import { getSupabaseClient } from "@/app/lib/supabaseClient";
 import {
+  mutableDraftTouchFailureMessage,
+  touchMutableDraftProposalUpdatedAt,
+} from "@/app/lib/proposalMutableDraftTouch";
+import {
   appendProposalEvent,
   isUuidLike,
   normalizeCompanyId,
@@ -112,6 +116,18 @@ async function loadMutableDraftContext(
   }
 
   return { supabase, proposal, version };
+}
+
+async function touchMutableDraftHeader(
+  supabase: NonNullable<ReturnType<typeof getSupabaseClient>>,
+  companyId: string,
+  proposalId: string
+): Promise<void> {
+  try {
+    await touchMutableDraftProposalUpdatedAt(supabase, { companyId, proposalId });
+  } catch (error) {
+    throw new ProposalRecordStoreError(mutableDraftTouchFailureMessage(error));
+  }
 }
 
 async function assertProposalOptionOnDraft(
@@ -419,6 +435,8 @@ export async function upsertDraftScopeDecision(
     row = data as ProposalScopeDecisionRow;
   }
 
+  await touchMutableDraftHeader(supabase, cid, pid);
+
   await appendProposalEvent(
     {
       company_id: cid,
@@ -494,6 +512,8 @@ export async function clearDraftScopeDecision(
   if (error || !data) {
     throw new ProposalRecordStoreError(error?.message ?? "Failed to clear scope decision.");
   }
+
+  await touchMutableDraftHeader(supabase, cid, pid);
 
   await appendProposalEvent(
     {
@@ -594,6 +614,8 @@ export async function clearDraftScopeDecisionByTarget(
   if (error || !data) {
     throw new ProposalRecordStoreError(error?.message ?? "Failed to clear scope decision.");
   }
+
+  await touchMutableDraftHeader(supabase, cid, pid);
 
   await appendProposalEvent(
     {

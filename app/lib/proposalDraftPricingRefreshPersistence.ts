@@ -19,6 +19,10 @@ import {
   type DraftInstantiatePayload,
 } from "@/app/lib/proposalSnapshotBuilder";
 import type { getSupabaseClient } from "@/app/lib/supabaseClient";
+import {
+  mutableDraftTouchFailureMessage,
+  touchMutableDraftProposalUpdatedAt,
+} from "@/app/lib/proposalMutableDraftTouch";
 
 // ---------------------------------------------------------------------------
 // RPC contract
@@ -465,6 +469,17 @@ export async function persistDraftPricingRefreshViaRpc(
       error.message ?? "persist_draft_pricing_refresh_v1 RPC failed."
     );
   }
+
+  try {
+    await touchMutableDraftProposalUpdatedAt(supabase, {
+      companyId: payload.company_id,
+      proposalId: payload.proposal_id,
+    });
+  } catch (touchError) {
+    throw new ProposalDraftPricingRefreshPersistenceError(
+      mutableDraftTouchFailureMessage(touchError)
+    );
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -597,6 +612,17 @@ export async function persistDraftPricingRefreshSequential(
         );
       }
     }
+  }
+
+  try {
+    await touchMutableDraftProposalUpdatedAt(supabase, {
+      companyId,
+      proposalId: payload.proposal_id,
+    });
+  } catch (touchError) {
+    throw new ProposalDraftPricingRefreshPersistenceError(
+      mutableDraftTouchFailureMessage(touchError)
+    );
   }
 
   const { error: eventError } = await supabase.from("proposal_events").insert({

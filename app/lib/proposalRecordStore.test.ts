@@ -60,6 +60,8 @@ import {
   updateDraftSelectedOption,
   type ProposalRecordStoreDeps,
 } from "./proposalRecordStore";
+import { isMutableDraftDirtyAfterSentFreeze } from "./proposalContractorLifecycle";
+import { needsSendPrepRefreeze } from "./proposalSendPrep";
 import { buildProposalBuilderPricingPreview } from "./proposalBuilderPricingPreview";
 import { deriveProposalPricingStale } from "./proposalStaleness";
 import { buildFullProposalIdentityEchoSnapshot } from "./proposalIdentityEcho";
@@ -1908,6 +1910,25 @@ describe("updateDraftProposalPageContent", () => {
     assert.equal(
       (updated?.content_json as { body_markdown?: string }).body_markdown,
       "Updated terms for this job only."
+    );
+    const proposalRow = mock.state.tables.proposals[0] as Record<string, unknown>;
+    assert.notEqual(proposalRow.updated_at, "2026-06-06T00:00:00Z");
+    assert.equal(
+      isMutableDraftDirtyAfterSentFreeze({
+        draftUpdatedAt: String(proposalRow.updated_at),
+        latestSentFrozenAt: "2026-06-06T00:00:00Z",
+      }),
+      true
+    );
+    assert.equal(
+      needsSendPrepRefreeze({
+        hasSentSnapshot: true,
+        hasSignedSnapshot: false,
+        draftUpdatedAt: String(proposalRow.updated_at),
+        sentVersionFrozenAt: "2026-06-06T00:00:00Z",
+        pricingStale: false,
+      }),
+      true
     );
   });
 

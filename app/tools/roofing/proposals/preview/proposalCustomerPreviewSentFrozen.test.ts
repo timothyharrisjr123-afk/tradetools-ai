@@ -19,13 +19,15 @@ function readPreviewSource(rel: string): string {
 }
 
 describe("V2C4 Preview sent/frozen chrome", () => {
-  test("Preview still loads draft graph only — no frozen document render path", () => {
+  test("default Preview still loads draft graph; sent-record is an explicit branch", () => {
     const client = readPreviewSource("ProposalCustomerPreviewClient.tsx");
     assert.match(client, /getDraftGraph\(companyId, normalizedProposalId\)/);
     assert.match(client, /buildProposalCustomerPreviewDocument\(persistedGraph/);
     assert.match(client, /getLatestSentProposalVersionGraph/);
+    assert.match(client, /sentRequest\.mode === "sent_record"/);
+    assert.match(client, /getProposalVersionGraph/);
+    assert.match(client, /requireSentVersion:\s*true/);
     assert.doesNotMatch(client, /buildProposalPublicGraphDto|loadPublicProposalByToken/);
-    assert.doesNotMatch(client, /requireSentVersion:\s*true/);
   });
 
   test("command bar uses sent/frozen chrome from latest_sent_version_id", () => {
@@ -40,7 +42,8 @@ describe("V2C4 Preview sent/frozen chrome", () => {
     assert.match(client, /lastSentFrozenAt/);
     assert.match(client, /sentFrozenChrome=\{sentFrozenChrome\}/);
     assert.match(header, /sentFrozenChrome\.statusLabel/);
-    assert.match(header, /data-preview-sent-frozen-kind=\{sentFrozenChrome\.kind\}/);
+    assert.match(header, /data-preview-sent-frozen-kind=/);
+    assert.match(header, /sentFrozenChrome\.kind/);
     assert.match(drawer, /sentFrozenChrome\.statusLabel/);
     assert.doesNotMatch(header, /CUSTOMER_PREVIEW_SENT_VERSION_STATUS/);
   });

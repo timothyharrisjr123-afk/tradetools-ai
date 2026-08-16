@@ -20,6 +20,7 @@ import { buildPublicReviewLinkExpiresAt } from "@/app/lib/proposalPublicReviewLi
 import { deriveProposalSendFreezeReadiness } from "@/app/lib/proposalSendFreezeReadiness";
 import { isSendPrepReadinessBlocking } from "@/app/lib/proposalSendGateReadiness";
 import type { ProposalIdentityEchoDiff } from "@/app/lib/proposalIdentityEcho";
+import { isMutableDraftDirtyAfterSentFreeze } from "@/app/lib/proposalContractorLifecycle";
 
 export const SEND_PREP_MINT_METADATA = {
   source: "contractor_send_prep",
@@ -192,7 +193,10 @@ export function needsSendPrepRefreeze(input: {
   if (!Number.isFinite(draftMs) || !Number.isFinite(frozenMs)) {
     return true;
   }
-  return draftMs > frozenMs;
+  return isMutableDraftDirtyAfterSentFreeze({
+    draftUpdatedAt: input.draftUpdatedAt,
+    latestSentFrozenAt: input.sentVersionFrozenAt,
+  });
 }
 
 export async function resolveProposalSendSnapshotVersion(
@@ -337,7 +341,7 @@ export async function prepareProposalCustomerSendLink(
     return failure(SEND_PREP_MISSING_RECIPIENT_MESSAGE, "missing_recipient");
   }
 
-  let proposal = await deps.getProposal(companyId, proposalId);
+  const proposal = await deps.getProposal(companyId, proposalId);
   if (!proposal) {
     return failure(SEND_PREP_ERROR_MESSAGE, "proposal_not_found");
   }

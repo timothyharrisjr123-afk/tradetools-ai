@@ -13,7 +13,10 @@ import {
   adaptProposalDraftGraphToBuilderPreview,
   validateProposalDraftGraphForJob,
 } from "@/app/lib/proposalDraftGraphAdapter";
-import { buildProposalBuilderHref } from "@/app/lib/proposalBuilderReadiness";
+import {
+  buildJobCardHref,
+  buildProposalBuilderHref,
+} from "@/app/lib/proposalBuilderReadiness";
 import {
   evaluateDbProposalLaunchSpine,
   productSpineRouteHintsFromSearchParams,
@@ -21,6 +24,7 @@ import {
 import {
   getDraftGraph,
   getLatestSentProposalVersionGraph,
+  getProposalVersionGraph,
   ProposalRecordStoreError,
   type ProposalDraftGraph,
 } from "@/app/lib/proposalRecordStore";
@@ -28,6 +32,12 @@ import {
   buildProposalPreviewSentFrozenChrome,
   hasLatestSentProposalVersionId,
 } from "@/app/lib/proposalPreviewSentFrozenChrome";
+import {
+  asCustomerPreviewGraphFromSentRecord,
+  buildProposalPreviewSentRecordChrome,
+  parseProposalPreviewSentRecordRequest,
+  validateProposalSentRecordGraph,
+} from "@/app/lib/proposalPreviewSentRecord";
 import { resolveSendGateRecipientEmail } from "@/app/lib/proposalSendGateReadiness";
 import { deriveProposalPricingStale } from "@/app/lib/proposalStaleness";
 import { formatPriceCents } from "@/app/tools/roofing/proposals/builder/proposalBuilderConstants";
@@ -69,6 +79,15 @@ export default function ProposalCustomerPreviewClient({
   const searchParams = useSearchParams();
   const jobIdParam = searchParams.get("job");
   const proposalIdParam = searchParams.get("proposal");
+  const sentRequest = useMemo(
+    () =>
+      parseProposalPreviewSentRecordRequest({
+        view: searchParams.get("view"),
+        version: searchParams.get("version"),
+      }),
+    [searchParams]
+  );
+  const isSentRecord = sentRequest.mode === "sent_record";
 
   const normalizedJobId = (jobIdParam ?? "").trim();
   const normalizedProposalId = (proposalIdParam ?? "").trim();
@@ -121,7 +140,41 @@ export default function ProposalCustomerPreviewClient({
       return;
     }
 
+    if (sentRequest.mode === "sent_record_invalid") {
+      setLoadError(sentRequest.reason);
+      setLoadComplete(true);
+      return;
+    }
+
     try {
+      if (sentRequest.mode === "sent_record") {
+        const [jobRecord, versionGraph, catalog] = await Promise.all([
+          getJobById(normalizedJobId),
+          getProposalVersionGraph(
+            companyId,
+            normalizedProposalId,
+            sentRequest.versionId,
+            { requireSentVersion: true }
+          ),
+          getActiveCatalogItemsByCompany(companyId),
+        ]);
+        setJob(jobRecord);
+        setCatalogItems(catalog);
+        const validated = validateProposalSentRecordGraph({
+          graph: versionGraph,
+          jobId: normalizedJobId,
+          proposalId: normalizedProposalId,
+          versionId: sentRequest.versionId,
+        });
+        if (!validated.ok) {
+          setLoadError(validated.reason);
+          return;
+        }
+        setPersistedGraph(asCustomerPreviewGraphFromSentRecord(validated.graph));
+        setLastSentFrozenAt(validated.graph.version.frozen_at ?? null);
+        return;
+      }
+
       const [jobRecord, graph, catalog] = await Promise.all([
         getJobById(normalizedJobId),
         getDraftGraph(companyId, normalizedProposalId),
@@ -173,10 +226,11 @@ export default function ProposalCustomerPreviewClient({
     normalizedProposalId,
     routeSpineLaunch.allowed,
     routeSpineLaunch.errorMessage,
+    sentRequest,
   ]);
 
   const refreshSentFrozenChrome = useCallback(async () => {
-    if (!hasValidParams) return;
+    if (isSentRecord || !hasValidParams) return;
     try {
       const graph = await getDraftGraph(companyId, normalizedProposalId);
       if (!graph) return;
@@ -193,14 +247,16 @@ export default function ProposalCustomerPreviewClient({
     } catch (err) {
       console.warn("[ProposalCustomerPreviewClient] sent chrome refresh error:", err);
     }
-  }, [companyId, hasValidParams, normalizedProposalId]);
+  }, [companyId, hasValidParams, isSentRecord, normalizedProposalId]);
 
   useEffect(() => {
     void loadPreview();
   }, [loadPreview]);
 
   const pricingStale = useMemo(() => {
-    if (!persistedGraph) return { stale: false, reason: null as string | null };
+    if (isSentRecord || !persistedGraph) {
+      return { stale: false, reason: null };
+    }
     const adapter = adaptProposalDraftGraphToBuilderPreview(persistedGraph);
     return deriveProposalPricingStale({
       snapshotMeasurementId: adapter.snapshotMeasurementRecordId,
@@ -208,7 +264,12 @@ export default function ProposalCustomerPreviewClient({
       snapshotUpdatedAt: persistedGraph.proposal.updated_at,
       measurementUpdatedAt: selectedMeasurementUpdatedAt,
     });
-  }, [persistedGraph, selectedMeasurementId, selectedMeasurementUpdatedAt]);
+  }, [
+    isSentRecord,
+    persistedGraph,
+    selectedMeasurementId,
+    selectedMeasurementUpdatedAt,
+  ]);
 
   const previewDocument = useMemo(() => {
     if (!persistedGraph) return null;
@@ -218,14 +279,25 @@ export default function ProposalCustomerPreviewClient({
   }, [persistedGraph, pricingStale]);
 
   const builderHref = buildProposalBuilderHref(normalizedJobId, normalizedProposalId);
+  const jobCardHref = buildJobCardHref(normalizedJobId, { tab: "proposals" });
   const jobIdentity = resolveJobIdentityDisplay(job, "Proposal preview");
+  const sentRecordChrome = useMemo(
+    () =>
+      isSentRecord
+        ? buildProposalPreviewSentRecordChrome({
+            frozenAt: lastSentFrozenAt,
+          })
+        : null,
+    [isSentRecord, lastSentFrozenAt]
+  );
 
   const estimatePage = previewDocument?.pages.find((page) => page.kind === "estimate");
   const selectedPackageLabel =
     estimatePage?.kind === "estimate" ? estimatePage.selectedOptionLabel : null;
   const totalLabel = persistedGraph ? resolveAuthoritativeTotalLabel(persistedGraph) : null;
   const hasRecipientEmail = Boolean(
-    persistedGraph && resolveSendGateRecipientEmail({ graph: persistedGraph, job }).trim()
+    persistedGraph &&
+      (resolveSendGateRecipientEmail({ graph: persistedGraph, job }) ?? "").trim()
   );
   const coverPage = previewDocument?.pages.find((page) => page.kind === "cover");
   const companyLogoMissing =
@@ -264,29 +336,36 @@ export default function ProposalCustomerPreviewClient({
           data-preview-workspace-layout
           data-preview-review-desk
           data-preview-shell-v2c1
+          data-preview-sent-record={isSentRecord ? "true" : "false"}
         >
           <div className={PREVIEW_COMMAND_SURFACE} data-preview-command-surface>
             <ProposalPreviewHeader
               builderHref={builderHref}
+              backHref={isSentRecord ? jobCardHref : undefined}
               customerName={jobIdentity.primaryLabel}
               projectAddress={jobIdentity.secondaryAddress}
               selectedPackageLabel={selectedPackageLabel}
               totalLabel={totalLabel}
               sentFrozenChrome={sentFrozenChrome}
+              sentRecordChrome={sentRecordChrome}
               onSendSharing={() => openSendSharing()}
-              showSendSharing
+              showSendSharing={!isSentRecord}
             />
-            <ProposalPreviewReadinessSummary
-              blockingLineCount={previewDocument.readiness.blockingLineCount}
-              pricingComplete={previewDocument.readiness.pricingComplete}
-              hasRecipientEmail={hasRecipientEmail}
-              builderHref={builderHref}
-              companyLogoMissing={companyLogoMissing}
-            />
-            <ProposalPreviewRequestAwareness
-              proposalId={normalizedProposalId}
-              jobId={normalizedJobId}
-            />
+            {isSentRecord ? null : (
+              <>
+                <ProposalPreviewReadinessSummary
+                  blockingLineCount={previewDocument.readiness.blockingLineCount}
+                  pricingComplete={previewDocument.readiness.pricingComplete}
+                  hasRecipientEmail={hasRecipientEmail}
+                  builderHref={builderHref}
+                  companyLogoMissing={companyLogoMissing}
+                />
+                <ProposalPreviewRequestAwareness
+                  proposalId={normalizedProposalId}
+                  jobId={normalizedJobId}
+                />
+              </>
+            )}
           </div>
 
           <ProposalPreviewReviewSurface>
@@ -297,6 +376,7 @@ export default function ProposalCustomerPreviewClient({
             />
           </ProposalPreviewReviewSurface>
 
+          {isSentRecord ? null : (
           <ProposalCustomerPreviewSendSharingDrawer
             open={sendSharingOpen}
             onClose={() => setSendSharingOpen(false)}
@@ -314,6 +394,7 @@ export default function ProposalCustomerPreviewClient({
               void refreshSentFrozenChrome();
             }}
           />
+          )}
         </div>
       ) : null}
     </div>
