@@ -6,11 +6,13 @@
 import type { RoofingEstimate } from "@/app/lib/estimateStore";
 import { isUuidLike } from "@/app/lib/jobStore";
 import type { JobSummary } from "@/app/lib/jobTypes";
-import type { BoardColumnKey } from "@/app/tools/roofing/saved/jobsBoardUtils";
 import {
-  getBoardColumnByKey,
-  normalizeStatusValue,
-} from "@/app/tools/roofing/saved/jobsBoardUtils";
+  resolveCanonicalJobStage,
+  resolveCanonicalJobStageLabel,
+} from "@/app/lib/jobLifecycleMapper";
+import type { CanonicalJobStage } from "@/app/lib/jobLifecycleTypes";
+import type { BoardColumnKey } from "@/app/tools/roofing/saved/jobsBoardUtils";
+import { normalizeStatusValue } from "@/app/tools/roofing/saved/jobsBoardUtils";
 
 /** Lane quick-filter values used by Job Board dark views and column headers. */
 export type BoardLaneStatusFilter =
@@ -99,44 +101,52 @@ function resolveCustomerName(job: JobSummary): string {
   );
 }
 
-/**
- * Map DB job workflow stage to a board column key compatible with existing lanes.
- */
-export function mapDbJobStageToBoardColumnKey(job: JobSummary): BoardColumnKey {
-  switch (job.stage) {
+export function mapCanonicalStageToBoardColumnKey(
+  stage: CanonicalJobStage
+): BoardColumnKey {
+  switch (stage) {
+    case "proposal":
+      return "leads";
     case "approved":
       return "approved";
+    case "scheduled":
+      return "scheduled";
     case "production":
       return "in_progress";
     case "complete":
       return "paid";
-    case "proposal":
-      return job.active_proposal_id ? "leads" : "estimate";
-    case "archived":
-      return "paid";
     case "intake":
-    case "measurement":
-    case "estimating":
     default:
       return "estimate";
   }
 }
 
 /**
+ * Map DB job workflow stage to a board column key.
+ * Lane membership is canonical job stage only — never proposal/payment/attention.
+ */
+export function mapDbJobStageToBoardColumnKey(job: JobSummary): BoardColumnKey {
+  return mapCanonicalStageToBoardColumnKey(resolveCanonicalJobStage(job));
+}
+
+/**
  * Map DB job stage to RoofingEstimate status for existing board column helpers.
+ * Must not imply Proposal Sent from active_proposal_id.
  */
 export function mapDbJobToEstimateStatus(
   job: JobSummary
 ): NonNullable<RoofingEstimate["status"]> {
-  switch (job.stage) {
+  switch (resolveCanonicalJobStage(job)) {
     case "approved":
       return "approved";
+    case "scheduled":
+      return "scheduled";
     case "production":
       return "in_progress";
     case "complete":
       return "paid";
     case "proposal":
-      return job.active_proposal_id ? "sent_pending" : "estimate";
+      return "estimate";
     default:
       return "estimate";
   }
@@ -148,7 +158,7 @@ export function mapDbJobToBoardCard(job: JobSummary): DbBoardJobCard {
     jobId: job.id,
     customerName: resolveCustomerName(job),
     address: formatJobAddress(job) || "—",
-    stageLabel: getBoardColumnByKey(boardColumnKey).label,
+    stageLabel: resolveCanonicalJobStageLabel(job),
     boardColumnKey,
     href: buildDbJobCardHref(job.id),
     lastUpdatedIso:
@@ -167,6 +177,7 @@ export function mapDbJobToBoardCard(job: JobSummary): DbBoardJobCard {
 export function mapDbJobToBoardEstimate(job: JobSummary): RoofingEstimate {
   const card = mapDbJobToBoardCard(job);
   const addr = job.address;
+  const canonicalLane = mapDbJobStageToBoardColumnKey(job);
   return {
     id: `${DB_BOARD_JOB_ID_PREFIX}${job.id}`,
     jobId: job.id,
@@ -188,9 +199,18 @@ export function mapDbJobToBoardEstimate(job: JobSummary): RoofingEstimate {
     supabaseBacked: true,
     assigned_to: job.assigned_to ?? undefined,
     selected_measurement_id: job.selected_measurement_id ?? undefined,
+    canonicalBoardLane: canonicalLane,
+    stageEnteredAt: job.stage_entered_at ?? null,
+    jobHasProposal: Boolean(
+      String(job.active_proposal_id ?? "").trim() ||
+        String(job.latest_proposal_id ?? "").trim()
+    ),
   } as RoofingEstimate & {
     assigned_to?: string | null;
     selected_measurement_id?: string | null;
+    canonicalBoardLane?: BoardColumnKey;
+    stageEnteredAt?: string | null;
+    jobHasProposal?: boolean;
   };
 }
 
@@ -232,6 +252,18 @@ export function entryMatchesLaneStatusFilter(
   hasSchedule: (entry: RoofingEstimate) => boolean = () => false
 ): boolean {
   if (statusFilter === "all") return true;
+
+  const canonical = (entry as { canonicalBoardLane?: BoardColumnKey }).canonicalBoardLane;
+  if (canonical) {
+    if (statusFilter === "sent_pending") return canonical === "leads";
+    if (statusFilter === "deposit_paid") return false;
+    if (statusFilter === "scheduled") return canonical === "scheduled";
+    if (statusFilter === "estimate") return canonical === "estimate";
+    if (statusFilter === "approved") return canonical === "approved";
+    if (statusFilter === "in_progress") return canonical === "in_progress";
+    if (statusFilter === "paid") return canonical === "paid";
+    return false;
+  }
 
   if (statusFilter === "scheduled") {
     const norm = normalizeStatusValue(entry.status || "estimate");

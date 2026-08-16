@@ -28,11 +28,9 @@ import JobCardProposalsTab, {
 import JobCardSectionPanel from "@/app/tools/roofing/jobCard/JobCardSectionPanel";
 import JobCardTabs from "@/app/tools/roofing/jobCard/JobCardTabs";
 import {
-  JOB_CARD_PROPOSAL_ACTIVITY_CREATED_LABEL,
   JOB_CARD_PROPOSALS_TAB_SUBTITLE,
   buildJobCardProposalRowView,
   formatJobCardContractorProposalStatusLabel,
-  formatJobCardProposalCreatedActivityNote,
   type JobCardProposalRowView,
 } from "@/app/tools/roofing/jobCard/jobCardProposalsTabModel";
 import type { JobCardDisplayModel } from "@/app/tools/roofing/saved/jobsBoardUtils";
@@ -195,18 +193,13 @@ function multiSentRow(): JobCardProposalRowView {
 const BASE_ACTIVITY: JobCardActivityItem[] = [
   {
     when: "Jul 22",
-    label: "Job card opened",
-    note: "New job / intake path",
+    label: "Job created",
+    note: "Job entered Intake",
   },
   {
     when: "Jul 22",
-    label: "Measurement complete",
-    note: "Roof report ready",
-  },
-  {
-    when: "Jul 22",
-    label: JOB_CARD_PROPOSAL_ACTIVITY_CREATED_LABEL,
-    note: formatJobCardProposalCreatedActivityNote("Enhanced"),
+    label: "Proposal created",
+    note: "Enhanced",
   },
 ];
 
@@ -347,6 +340,7 @@ function buildDisplay(proposalLabel: string): JobCardDisplayModel {
     customerName: "Jordan Hale",
     address: "1842 E 31st St, Tulsa, OK",
     stageLabel: "Proposal",
+    dispositionLabel: null,
     valueLabel: null,
     lastUpdatedDisplay: "Updated Jul 22",
     timeInStage: "3d in stage",

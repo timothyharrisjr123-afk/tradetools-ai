@@ -7,6 +7,7 @@ import {
   getAllBoardColumnKeys,
   getDefaultVisibleColumnKeys,
   JOBS_BOARD_COLUMNS,
+  JOBS_BOARD_WORKING_COLUMN_KEYS,
   type BoardColumnKey,
   type BoardSortKey,
 } from "../jobsBoardUtils";
@@ -116,7 +117,10 @@ export default function JobsBoardFiltersSort({
           <section className="space-y-2">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Stages</h3>
             <div className="space-y-1">
-              {JOBS_BOARD_COLUMNS.map((col) => (
+              {JOBS_BOARD_WORKING_COLUMN_KEYS.map((key) => {
+                const col = JOBS_BOARD_COLUMNS.find((c) => c.key === key);
+                if (!col) return null;
+                return (
                 <label
                   key={col.key}
                   className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
@@ -129,7 +133,8 @@ export default function JobsBoardFiltersSort({
                   />
                   {col.label}
                 </label>
-              ))}
+                );
+              })}
             </div>
           </section>
 

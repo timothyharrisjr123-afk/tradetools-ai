@@ -73,6 +73,12 @@ import {
   buildFormattedAddress,
   updateJob,
 } from "@/app/lib/jobStore";
+import {
+  resolveCanonicalJobStageLabel,
+  resolveStageEnteredAtIso,
+} from "@/app/lib/jobLifecycleMapper";
+import { OPERATIONAL_JOB_DISPOSITION_LABELS } from "@/app/lib/jobLifecycleTypes";
+import type { OperationalJobDisposition } from "@/app/lib/jobLifecycleTypes";
 import { findOrCreateCustomer } from "@/app/lib/customerStore";
 import { ensureJobCustomerPersisted } from "@/app/lib/jobCardCustomerPersist";
 import { LAST_DB_JOB_ID_STORAGE_KEY } from "@/app/lib/jobBoardAdapter";
@@ -87,7 +93,6 @@ import {
   selectMeasurementRecord,
   type MeasurementRecordDraft,
 } from "@/app/lib/measurementStore";
-import type { MeasurementRecord } from "@/app/lib/measurementTypes";
 import {
   deriveEstimateReadiness,
   deriveProductionReadiness,
@@ -97,7 +102,6 @@ import {
   deriveMeasurementReadinessScore,
   measurementRecordsDiffer,
   resolveMeasurementWorkspaceState,
-  resolveActivityMeasurementLine,
   formatSourceTypeLabel,
   formatReportStatusLabel,
   formatReportLastUpdatedLabel,
@@ -124,7 +128,6 @@ import {
   buildProposalPreviewHref,
   buildProposalPreviewSentHref,
   deriveProposalBuilderReadiness,
-  resolveJobCardProposalActivityLine,
 } from "@/app/lib/proposalBuilderReadiness";
 import { loadJobCardProposalSentFacts } from "@/app/lib/proposalJobCardLifecycleRead";
 import type { JobCardProposalSentFactsById } from "@/app/lib/proposalJobCardLifecycleRead";
@@ -178,13 +181,9 @@ import {
   type CreateProposalMeasurementChoice,
 } from "@/app/tools/roofing/jobCard/jobCardCreateProposalModalModel";
 import {
-  JOB_CARD_PROPOSAL_ACTIVITY_CREATED_LABEL,
-  JOB_CARD_PROPOSAL_ACTIVITY_READY_LABEL,
-  JOB_CARD_PROPOSAL_ACTIVITY_READY_NOTE,
   JOB_CARD_PROPOSALS_TAB_SUBTITLE,
   buildJobCardProposalRowViews,
   formatJobCardContractorProposalStatusLabel,
-  formatJobCardProposalCreatedActivityNote,
 } from "@/app/tools/roofing/jobCard/jobCardProposalsTabModel";
 import type { JobDraft, JobAddress, JobRecord } from "@/app/lib/jobTypes";
 import { sendEstimateEmailWithPdf } from "@/app/lib/sendEstimateClient";
@@ -5150,8 +5149,6 @@ Thanks,`;
     };
 
     const name = (customerName || "").trim() || null;
-    const roofAreaSqft = parseFloat(area) || 0;
-    const stage = roofAreaSqft > 0 ? "measurement" : "intake";
     const jobName = name
       ? `${name} — roofing`
       : line1
@@ -5161,7 +5158,7 @@ Thanks,`;
     return {
       company_id: cid,
       job_name: jobName,
-      stage,
+      stage: "intake",
       status: "active",
       source: "intake",
       priority: "normal",
@@ -5183,7 +5180,6 @@ Thanks,`;
     jobCity,
     jobState,
     jobZip,
-    area,
   ]);
 
   const handleContinueToJobCard = useCallback(async () => {
@@ -7455,11 +7451,6 @@ Thanks,`;
     const lineMeasurementRecord = isPersistedNonManual
       ? persistedSelectedMeasurement!
       : localRecord;
-    const activityMeasurementLine = resolveActivityMeasurementLine({
-      persistedRecord: persistedSelectedMeasurement,
-      isPersistedManual,
-      isPersistedNonManual,
-    });
     const reportPathRecord = lineMeasurementRecord;
     const reportPathHelperText = formatReportPathHelperText({
       workspace,
@@ -7969,19 +7960,22 @@ Thanks,`;
         customerName: displayName,
         address: addressLine !== "Property details not complete" ? addressLine : undefined,
         roofAreaSqFt: Number(area || 0),
+        canonicalStageLabel: hydratedJobRecord
+          ? resolveCanonicalJobStageLabel(hydratedJobRecord)
+          : "Intake",
+        dispositionLabel:
+          hydratedJobRecord &&
+          hydratedJobRecord.status !== "active" &&
+          hydratedJobRecord.status in OPERATIONAL_JOB_DISPOSITION_LABELS
+            ? OPERATIONAL_JOB_DISPOSITION_LABELS[
+                hydratedJobRecord.status as OperationalJobDisposition
+              ]
+            : null,
+        stageEnteredAt: hydratedJobRecord
+          ? resolveStageEnteredAtIso(hydratedJobRecord.stage_entered_at)
+          : null,
       }
     );
-    // Block 1/2/3: contractor status must follow visible proposals, not hidden smoke drafts.
-    const latestVisibleProposalForStatus = [...listedJobDraftSummaries].sort((a, b) => {
-      const am = Date.parse(a.updated_at ?? "") || 0;
-      const bm = Date.parse(b.updated_at ?? "") || 0;
-      return bm - am;
-    })[0];
-    const latestVisiblePackageLabel =
-      (latestVisibleProposalForStatus &&
-        listedJobDraftPackageLabels[latestVisibleProposalForStatus.id]) ||
-      listedJobDraftPackageLabel ||
-      null;
     const jobCardDisplay = {
       ...jobCardDisplayBase,
       proposalLabel: formatJobCardContractorProposalStatusLabel({
@@ -7990,27 +7984,7 @@ Thanks,`;
         sentFactsByProposalId: listedJobSentFacts,
       }),
     };
-    const activityWhen = jobCardDisplay.lastUpdatedDisplay?.replace(/^Updated /, "") ?? "Just now";
-    const proposalActivityLine = resolveJobCardProposalActivityLine(proposalBuilderReadiness, {
-      measurementHandoff: proposalHandoff,
-      catalogReadiness,
-      templateReadiness: proposalTemplateReadiness,
-      proposalNotStartedSubtitle: proposalHandoffNextAction.subtitle,
-      hasVisibleContractorProposal: listedJobDraftSummaries.length > 0,
-      readyForProposalLabel: JOB_CARD_PROPOSAL_ACTIVITY_READY_LABEL,
-      readyForProposalNote: JOB_CARD_PROPOSAL_ACTIVITY_READY_NOTE,
-      createdProposalLabel: JOB_CARD_PROPOSAL_ACTIVITY_CREATED_LABEL,
-      createdProposalNote: formatJobCardProposalCreatedActivityNote(
-        latestVisiblePackageLabel
-      ),
-    });
-    const jobCardActivityItems: JobCardActivityItem[] = [
-      isBoardOrigin && currentSaved
-        ? { when: activityWhen, label: "Estimate loaded", note: "Opened from Job Board" }
-        : { when: "Just now", label: "Job card opened", note: "New job / intake path" },
-      { ...activityMeasurementLine, when: activityWhen },
-      { ...proposalActivityLine, when: activityWhen },
-    ];
+    const jobCardActivityItems: JobCardActivityItem[] = [];
     const ATTACHMENT_CATEGORIES = [
       "Inspection photos",
       "Customer photos",
@@ -8740,11 +8714,13 @@ Thanks,`;
 
               </main>
 
-              {jobCardProposalRows.length > 0 && currentJobId ? (
+              {currentJobId ? (
                 <JobCardActivityPanelWithCustomerRequests
                   jobId={currentJobId}
                   proposalIds={jobCardProposalRows.map((row) => row.proposalId)}
-                  baseItems={jobCardActivityItems}
+                  jobCreatedAt={hydratedJobRecord?.created_at ?? null}
+                  proposals={listedJobDraftSummaries}
+                  sentFactsByProposalId={listedJobSentFacts}
                 />
               ) : (
                 <JobCardActivityPanel items={jobCardActivityItems} />

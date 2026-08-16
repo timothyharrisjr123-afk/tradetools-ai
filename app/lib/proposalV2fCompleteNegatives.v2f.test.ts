@@ -1,5 +1,5 @@
 /**
- * V2F complete negatives — no lifecycle foundation, no 038, no persisted diff.
+ * V2F complete negatives — no C4 038 hardening, no persisted diff.
  * Run: npx tsx --test app/lib/proposalV2fCompleteNegatives.v2f.test.ts
  */
 
@@ -15,12 +15,15 @@ function read(rel: string): string {
 }
 
 describe("V2F complete negatives", () => {
-  test("no migration 038 exists", () => {
+  test("migration 038 is job lifecycle foundation, not C4 mint hardening", () => {
     const migrations = readdirSync(join(ROOT, "supabase/migrations"));
-    assert.equal(
-      migrations.some((name) => /038/.test(name)),
-      false
-    );
+    const files038 = migrations.filter((name) => /038/.test(name));
+    assert.deepEqual(files038, ["20260816_038_job_lifecycle_foundation.sql"]);
+    const sql = read(`supabase/migrations/${files038[0]}`);
+    assert.match(sql, /Job Lifecycle Foundation/);
+    assert.doesNotMatch(sql, /contractor_email_send/);
+    assert.doesNotMatch(sql, /email_send_not_allowed/);
+    assert.doesNotMatch(sql, /persist_proposal_public_access_mint/);
   });
 
   test("change summary is runtime-only", () => {

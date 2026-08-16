@@ -24,13 +24,27 @@ export type BoardColumnDef = {
 };
 
 export const JOBS_BOARD_COLUMNS: BoardColumnDef[] = [
-  { key: "estimate", label: "New Lead", listFilter: "estimate" },
-  { key: "leads", label: "Proposal Sent", listFilter: "sent_pending" },
-  { key: "approved", label: "Proposal Signed", listFilter: "approved" },
+  { key: "estimate", label: "Intake", listFilter: "estimate" },
+  { key: "leads", label: "Proposal", listFilter: "sent_pending" },
+  { key: "approved", label: "Approved", listFilter: "approved" },
   { key: "deposit_paid", label: "Ready to Schedule", listFilter: "deposit_paid" },
   { key: "scheduled", label: "Scheduled", listFilter: "scheduled" },
   { key: "in_progress", label: "Production", listFilter: "in_progress" },
-  { key: "paid", label: "Completed", listFilter: "paid" },
+  { key: "paid", label: "Complete", listFilter: "paid" },
+];
+
+/** Hidden until R3F owns production appointments. */
+export const JOBS_BOARD_SCHEDULED_LANE_KEY: BoardColumnKey = "scheduled";
+
+/** Retired false lane — not a canonical job stage. */
+export const JOBS_BOARD_RETIRED_LANE_KEYS: BoardColumnKey[] = ["deposit_paid"];
+
+export const JOBS_BOARD_WORKING_COLUMN_KEYS: BoardColumnKey[] = [
+  "estimate",
+  "leads",
+  "approved",
+  "in_progress",
+  "paid",
 ];
 
 export type BoardCategoryGroup = {
@@ -41,10 +55,10 @@ export type BoardCategoryGroup = {
 
 /** Visual-only Roofr category bands — no status logic. */
 export const JOBS_BOARD_CATEGORY_GROUPS: BoardCategoryGroup[] = [
-  { id: "incoming", label: "New Incoming Leads", columnKeys: ["estimate"] },
-  { id: "qualified", label: "Qualified Leads", columnKeys: ["leads", "approved"] },
-  { id: "won", label: "Won Jobs", columnKeys: ["deposit_paid", "scheduled", "in_progress"] },
-  { id: "completed", label: "Completed", columnKeys: ["paid"] },
+  { id: "incoming", label: "Incoming", columnKeys: ["estimate"] },
+  { id: "qualified", label: "Proposal", columnKeys: ["leads", "approved"] },
+  { id: "won", label: "Work", columnKeys: ["in_progress"] },
+  { id: "completed", label: "Complete", columnKeys: ["paid"] },
 ];
 
 export function getBoardColumnByKey(key: BoardColumnKey): BoardColumnDef {
@@ -97,6 +111,9 @@ export function getJobsForBoardColumn(jobs: RoofingEstimate[], columnKey: BoardC
 }
 
 export function getBoardColumnKeyForJob(job: RoofingEstimate): BoardColumnKey | null {
+  const canonical = (job as { canonicalBoardLane?: BoardColumnKey }).canonicalBoardLane;
+  if (canonical) return canonical;
+
   const raw = String(job.status || "").toLowerCase();
   const norm = normalizeStatusValue(job.status || "estimate");
   if (norm === "estimate") return "estimate";
@@ -248,6 +265,13 @@ function getReportStatusBadge(est: RoofingEstimate): CardStatusBadge {
 }
 
 function getProposalStatusBadge(est: RoofingEstimate): CardStatusBadge {
+  if ((est as { canonicalBoardLane?: BoardColumnKey }).canonicalBoardLane) {
+    if ((est as { jobHasProposal?: boolean }).jobHasProposal) {
+      return { label: "Proposal", tone: "proposal_draft" };
+    }
+    return { label: "No Proposal", tone: "proposal_none" };
+  }
+
   const norm = normalizeStatusValue(est.status || "estimate");
   const raw = String(est.status || "").toLowerCase();
   const isSent = raw === "sent" || raw === "viewed" || norm === "sent" || norm === "pending";
@@ -286,53 +310,10 @@ export function getStageAnchorIso(
   estimate: RoofingEstimate,
   batchStatuses?: Record<string, { status: string; viewedAt?: string | null; approvedAt?: string | null }>
 ): string | null {
-  const status = normalizeStatusValue(getStage(estimate));
-  const raw = String(estimate.status || "").toLowerCase();
-  const isSent = raw === "sent" || raw === "viewed" || status === "sent" || status === "pending";
-  const viewedAt = getEffectiveViewedAt(estimate, batchStatuses);
-  const createdAt = estimate?.createdAt ?? (estimate as { created_at?: string }).created_at ?? null;
-  const sentAt =
-    estimate?.sentAt ??
-    (estimate as { sent_at?: string }).sent_at ??
-    (estimate as { sentDate?: string }).sentDate ??
-    createdAt ??
-    null;
-  const approvedAt = estimate?.approvedAt ?? (estimate as { approved_at?: string }).approved_at ?? null;
-  const depositPaidAt =
-    (estimate as { depositPaidAt?: string }).depositPaidAt ??
-    (estimate as { deposit_paid_at?: string }).deposit_paid_at ??
-    (estimate as { paidAt?: string }).paidAt ??
-    null;
-  const scheduledAt =
-    (estimate as { scheduledAt?: string }).scheduledAt ??
-    (estimate as { scheduled_at?: string }).scheduled_at ??
-    (estimate as { scheduledStartDate?: string }).scheduledStartDate ??
-    null;
-  const completedAt =
-    (estimate as { completedAt?: string }).completedAt ??
-    (estimate as { completed_at?: string }).completed_at ??
-    (estimate as { paidAt?: string }).paidAt ??
-    null;
-
-  if (status === "paid") {
-    return firstValidIsoDate(completedAt, depositPaidAt, scheduledAt, approvedAt, sentAt, createdAt);
-  }
-  if (status === "scheduled" || status === "in_progress") {
-    return firstValidIsoDate(scheduledAt, depositPaidAt, approvedAt, sentAt, createdAt);
-  }
-  if (status === "deposit_paid") {
-    return firstValidIsoDate(depositPaidAt, approvedAt, sentAt, createdAt);
-  }
-  if (status === "approved") {
-    return firstValidIsoDate(approvedAt, viewedAt, sentAt, createdAt);
-  }
-  if (isSent && viewedAt) {
-    return firstValidIsoDate(viewedAt, sentAt, createdAt);
-  }
-  if (isSent) {
-    return firstValidIsoDate(sentAt, createdAt);
-  }
-  return firstValidIsoDate(createdAt);
+  void batchStatuses;
+  return firstValidIsoDate(
+    (estimate as { stageEnteredAt?: string | null }).stageEnteredAt ?? null
+  );
 }
 
 function daysSinceIso(iso: string | null): number | null {
@@ -453,13 +434,13 @@ export type JobsBoardCommandSummary = {
 
 /** Stage-specific empty-column guidance (visual only). */
 export const BOARD_STAGE_EMPTY_HINTS: Partial<Record<BoardColumnKey, string>> = {
-  estimate: "New leads start here when you create a job.",
-  leads: "Jobs land here after a proposal is sent to the customer.",
-  approved: "Signed proposals appear here while deposit or scheduling is pending.",
-  deposit_paid: "Deposit-collected jobs ready for scheduling show here.",
-  scheduled: "Scheduled install dates appear in this column.",
+  estimate: "New jobs start here in Intake.",
+  leads: "Jobs land here when the first proposal is created.",
+  approved: "Accepted jobs appear here. Scheduling is not enabled yet.",
+  deposit_paid: "Retired lane — not a canonical job stage.",
+  scheduled: "Hidden until production scheduling exists.",
   in_progress: "Jobs currently in production appear here.",
-  paid: "Completed jobs are archived in this stage.",
+  paid: "Operationally complete jobs appear here. Payment is separate.",
 };
 
 export type JobsBoardTaskDisplay = {
@@ -691,6 +672,7 @@ export type JobCardDisplayModel = {
   customerName: string;
   address: string;
   stageLabel: string;
+  dispositionLabel: string | null;
   valueLabel: string | null;
   lastUpdatedDisplay: string | null;
   timeInStage: string | null;
@@ -706,15 +688,32 @@ export function buildJobCardDisplayModel(
     customerName?: string;
     address?: string;
     roofAreaSqFt?: number;
+    canonicalStageLabel?: string | null;
+    dispositionLabel?: string | null;
+    stageEnteredAt?: string | null;
   }
 ): JobCardDisplayModel {
+  const dispositionLabel = fallback?.dispositionLabel?.trim() || null;
+  const canonicalStageLabel = fallback?.canonicalStageLabel?.trim() || null;
+  const stageEnteredAt = fallback?.stageEnteredAt ?? null;
+
   if (estimate) {
     const columnKey = getBoardColumnKeyForJob(estimate) ?? "estimate";
-    const board = buildJobsBoardCardModel(estimate, undefined, { columnKey });
+    const board = buildJobsBoardCardModel(
+      {
+        ...estimate,
+        stageEnteredAt:
+          (estimate as { stageEnteredAt?: string | null }).stageEnteredAt ??
+          stageEnteredAt,
+      } as RoofingEstimate,
+      undefined,
+      { columnKey }
+    );
     return {
       customerName: board.customerName,
       address: board.address || "—",
-      stageLabel: getBoardStageLabelForJob(estimate),
+      stageLabel: canonicalStageLabel || getBoardStageLabelForJob(estimate),
+      dispositionLabel,
       valueLabel: null,
       lastUpdatedDisplay: board.lastUpdatedDisplay,
       timeInStage: board.timeInStage,
@@ -728,15 +727,17 @@ export function buildJobCardDisplayModel(
   const hasMeasurement = (fallback?.roofAreaSqFt ?? 0) > 0;
   const customerName = (fallback?.customerName || "").trim() || "New roofing job";
   const address = (fallback?.address || "").trim() || "—";
+  const timeInStage = buildTimeInStageLabel(stageEnteredAt);
 
   return {
     customerName,
     address,
-    stageLabel: "New Lead",
+    stageLabel: canonicalStageLabel || "Intake",
+    dispositionLabel,
     valueLabel: null,
     lastUpdatedDisplay: null,
-    timeInStage: null,
-    timeInStageTone: "neutral",
+    timeInStage,
+    timeInStageTone: timeInStageTone(stageEnteredAt),
     reportLabel: hasMeasurement ? "Report Complete" : "Report Missing",
     proposalLabel: "Proposal Draft",
     tasksLabel: "Tasks 0/0",
@@ -812,7 +813,7 @@ export function getAllBoardColumnKeys(): BoardColumnKey[] {
 }
 
 export function getDefaultVisibleColumnKeys(): BoardColumnKey[] {
-  return getAllBoardColumnKeys();
+  return [...JOBS_BOARD_WORKING_COLUMN_KEYS];
 }
 
 export type BoardViewState = {
@@ -834,10 +835,11 @@ export function loadBoardViewState(): BoardViewState {
     const raw = sessionStorage.getItem(JOBS_BOARD_VIEW_STATE_STORAGE_KEY);
     if (!raw) return fallback;
     const parsed = JSON.parse(raw) as Partial<BoardViewState>;
-    const all = getAllBoardColumnKeys();
+    const working = getDefaultVisibleColumnKeys();
     const validKeys = Array.isArray(parsed.visibleColumnKeys)
       ? parsed.visibleColumnKeys.filter(
-          (k): k is BoardColumnKey => typeof k === "string" && all.includes(k as BoardColumnKey)
+          (k): k is BoardColumnKey =>
+            typeof k === "string" && working.includes(k as BoardColumnKey)
         )
       : fallback.visibleColumnKeys;
     const sortKey = BOARD_SORT_OPTIONS.some((o) => o.id === parsed.sortKey)

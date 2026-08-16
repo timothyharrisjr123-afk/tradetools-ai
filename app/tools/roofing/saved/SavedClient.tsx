@@ -4430,22 +4430,22 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
             {(() => {
               type LaneFilter = Exclude<typeof statusFilter, "all">;
               const pageTitle: Record<LaneFilter, string> = {
-                estimate: "New Leads",
-                sent_pending: "Proposal Sent",
-                approved: "Proposal Signed",
+                estimate: "Intake",
+                sent_pending: "Proposal",
+                approved: "Approved",
                 deposit_paid: "Ready to Schedule",
                 scheduled: "Scheduled",
                 in_progress: "Production",
-                paid: "Completed",
+                paid: "Complete",
               };
               const pageSubtitle: Record<LaneFilter, string> = {
-                estimate: "Incoming leads — qualify, measure, and prepare proposals.",
-                sent_pending: "Proposals sent — awaiting customer response and follow-up.",
-                approved: "Proposals signed — collect deposit and confirm next steps.",
-                deposit_paid: "Deposit received — confirm install dates and schedule production.",
-                scheduled: "Jobs scheduled — review dates and prep for production.",
-                in_progress: "Jobs in production — monitor crew progress through completion.",
-                paid: "Completed jobs — closed and paid.",
+                estimate: "Jobs in Intake — capture the job and create a proposal.",
+                sent_pending: "Jobs in Proposal — draft, sent, or revision in progress.",
+                approved: "Approved jobs — scheduling is not enabled yet.",
+                deposit_paid: "Retired lane — not a canonical job stage.",
+                scheduled: "Hidden until production scheduling exists.",
+                in_progress: "Jobs in production.",
+                paid: "Operationally complete jobs. Payment is separate.",
               };
               return (
                 <>

@@ -31,16 +31,11 @@
 // ---------------------------------------------------------------------------
 
 /**
- * Where the job is in the Roofr-style workflow.
+ * Stored jobs.stage values.
  *
- * - intake: customer/property info captured or being captured
- * - measurement: roof data, report, or photo measurement work
- * - estimating: estimate/proposal calculation in progress
- * - proposal: proposal created, sent, or under customer review
- * - approved: customer approved a proposal
- * - production: scheduled, in progress, or production workflow
- * - complete: job finished
- * - archived: hidden or closed out
+ * Canonical writes: intake → proposal → approved → scheduled → production → complete.
+ * Legacy readable only: measurement, estimating, archived.
+ * Display/board membership must go through resolveCanonicalJobStage().
  */
 export type JobStage =
   | "intake"
@@ -48,6 +43,7 @@ export type JobStage =
   | "estimating"
   | "proposal"
   | "approved"
+  | "scheduled"
   | "production"
   | "complete"
   | "archived";
@@ -75,7 +71,8 @@ export type JobPriority = "low" | "normal" | "high" | "urgent";
  * Broad job-card disposition (separate from workflow stage).
  *
  * Stage = where the job is in the workflow.
- * Status = whether the job is active, on hold, won, lost, closed, or archived.
+ * Status = disposition. Future writes: active / on_hold / lost / closed.
+ * won and archived remain legacy-readable only.
  */
 export type JobCardStatus =
   | "active"
@@ -198,6 +195,7 @@ export type JobRecord = {
 
   // Activity / timestamps
   last_activity_at?: string | null;
+  stage_entered_at?: string | null;
   created_at: string;
   updated_at: string;
 
@@ -251,6 +249,7 @@ export type JobSummary = {
   linked_counts?: JobLinkedCounts | null;
   readiness?: JobReadiness | null;
   last_activity_at?: string | null;
+  stage_entered_at?: string | null;
   created_at: string;
   updated_at: string;
 };

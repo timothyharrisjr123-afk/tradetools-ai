@@ -102,6 +102,10 @@ describe("jobBoardAdapter", () => {
       mapDbJobStageToBoardColumnKey(baseDbJob({ stage: "proposal", active_proposal_id: JOB_ID })),
       "leads"
     );
+    assert.equal(
+      mapDbJobStageToBoardColumnKey(baseDbJob({ stage: "proposal", active_proposal_id: null })),
+      "leads"
+    );
   });
 
   test("saved estimate open path is unchanged — non-db entries are not db board rows", () => {

@@ -59,6 +59,7 @@ export type JobRow = {
   custom_fields?: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
+  stage_entered_at?: string | null;
 };
 
 /** Minimal estimate shape for lazy job linking — avoids estimateStore import. */
@@ -85,7 +86,7 @@ export type EstimateSnapshotForJob = {
 };
 
 const JOB_SELECT_COLUMNS =
-  "id, company_id, customer_id, job_name, stage, status, source, priority, customer_name, customer_email, customer_phone, address_line1, address_line2, address_city, address_state, address_zip, address_country, address_formatted, assigned_to, created_by, updated_by, notes, summary, last_activity_at, archived, deleted_at, selected_measurement_id, active_proposal_id, latest_estimate_id, latest_proposal_id, source_metadata, custom_fields, created_at, updated_at";
+  "id, company_id, customer_id, job_name, stage, status, source, priority, customer_name, customer_email, customer_phone, address_line1, address_line2, address_city, address_state, address_zip, address_country, address_formatted, assigned_to, created_by, updated_by, notes, summary, last_activity_at, stage_entered_at, archived, deleted_at, selected_measurement_id, active_proposal_id, latest_estimate_id, latest_proposal_id, source_metadata, custom_fields, created_at, updated_at";
 
 // ---------------------------------------------------------------------------
 // Pure helpers
@@ -176,6 +177,7 @@ export function rowToJobRecord(row: JobRow): JobRecord {
     notes: row.notes ?? null,
     summary: row.summary ?? null,
     last_activity_at: row.last_activity_at ?? null,
+    stage_entered_at: row.stage_entered_at ?? null,
     created_at: row.created_at,
     updated_at: row.updated_at,
     archived: row.archived ?? false,
@@ -210,6 +212,7 @@ export function rowToJobSummary(row: JobRow): JobSummary {
     latest_estimate_id: record.latest_estimate_id ?? null,
     latest_proposal_id: record.latest_proposal_id ?? null,
     last_activity_at: record.last_activity_at ?? null,
+    stage_entered_at: record.stage_entered_at ?? null,
     created_at: record.created_at,
     updated_at: record.updated_at,
   };
@@ -261,6 +264,7 @@ export function jobDraftToInsertRow(draft: JobDraft | Partial<JobDraft>): Partia
   if (draft.notes !== undefined) row.notes = normalizeNullableString(draft.notes);
   if (draft.summary !== undefined) row.summary = normalizeNullableString(draft.summary);
   if (draft.last_activity_at !== undefined) row.last_activity_at = draft.last_activity_at ?? null;
+  if (draft.stage_entered_at !== undefined) row.stage_entered_at = draft.stage_entered_at ?? null;
   if (draft.archived !== undefined) row.archived = draft.archived ?? false;
   if (draft.deleted_at !== undefined) row.deleted_at = draft.deleted_at ?? null;
   if (draft.selected_measurement_id !== undefined) {
@@ -305,10 +309,6 @@ export function estimateSnapshotToJobDraft(
   };
 
   const customerName = normalizeNullableString(estimate.customerName);
-  const roofArea = Number(estimate.roofAreaSqFt) || 0;
-  const areaNum = parseFloat(String(estimate.area ?? ""));
-  const hasMeasurement = roofArea > 0 || (Number.isFinite(areaNum) && areaNum > 0);
-
   const jobName =
     line1 ??
     (customerName ? `${customerName} — roofing` : null) ??
@@ -318,7 +318,7 @@ export function estimateSnapshotToJobDraft(
     company_id: companyId,
     customer_id: estimate.customer_id ?? null,
     job_name: jobName,
-    stage: hasMeasurement ? "measurement" : "intake",
+    stage: "intake",
     status: "active",
     source: "intake",
     priority: "normal",
@@ -356,6 +356,11 @@ export async function createJob(draft: JobDraft): Promise<JobRecord | null> {
   const nowIso = new Date().toISOString();
   const row = jobDraftToInsertRow({
     ...draft,
+    stage: "intake",
+    status: draft.status === "active" || draft.status === "on_hold" || draft.status === "lost" || draft.status === "closed"
+      ? draft.status
+      : "active",
+    stage_entered_at: draft.stage_entered_at ?? nowIso,
     last_activity_at: draft.last_activity_at ?? nowIso,
     updated_at: draft.updated_at ?? nowIso,
     created_at: draft.created_at ?? nowIso,
@@ -433,6 +438,9 @@ export async function updateJob(
   });
   delete (row as { id?: string }).id;
   delete (row as { created_at?: string }).created_at;
+  delete (row as { stage?: string }).stage;
+  delete (row as { status?: string }).status;
+  delete (row as { stage_entered_at?: string | null }).stage_entered_at;
 
   if (Object.keys(row).length === 0) {
     return getJobById(id);

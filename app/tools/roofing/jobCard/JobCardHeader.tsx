@@ -60,6 +60,11 @@ export default function JobCardHeader({ display, isBoardOrigin, phone = "", emai
             <span className="inline-flex items-center rounded-md bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-800">
               {display.stageLabel}
             </span>
+            {display.dispositionLabel ? (
+              <span className="inline-flex items-center rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600">
+                {display.dispositionLabel}
+              </span>
+            ) : null}
             {display.valueLabel ? (
               <span className="text-base font-semibold tabular-nums text-slate-900">{display.valueLabel}</span>
             ) : null}
