@@ -1,15 +1,16 @@
 "use client";
 
+import { useMemo } from "react";
 import type { CatalogItem } from "@/app/lib/catalogTypes";
 import type { ProposalCustomerPreviewDocument } from "@/app/lib/proposalCustomerPreviewViewModel";
 import type { ProposalDraftGraph } from "@/app/lib/proposalRecordStore";
 import { buildCustomerPreviewEstimatePresentationFromDraft } from "@/app/lib/proposalCustomerEstimatePresenter";
+import { buildCustomerPacketEstimateFromPublicDto } from "@/app/lib/proposalCustomerPacketPresenter";
+import { buildProposalPublicGraphDto } from "@/app/lib/proposalPublicGraphDto";
+import { resolveSelectedTemplateOptionIdFromGraph } from "@/app/lib/proposalDraftGraphAdapter";
 import { PROPOSAL_COVER_DEFAULT_BRAND_ACCENT } from "@/app/lib/proposalCoverViewModel";
 import { resolvePackageMeta } from "@/app/lib/proposalPackagePresentation";
-import {
-  buildProposalOwnedCustomerFactLinesFromDraft,
-  lookupProposalOwnedCustomerFactLines,
-} from "@/app/lib/proposalOwnedPackageComposition";
+import ProposalCustomerPreviewPackageComparison from "./ProposalCustomerPreviewPackageComparison";
 import ProposalCustomerPreviewPacket from "./ProposalCustomerPreviewPacket";
 import ProposalCustomerPreviewPacketCover from "./ProposalCustomerPreviewPacketCover";
 import ProposalCustomerPreviewPackageStrip from "./ProposalCustomerPreviewPackageStrip";
@@ -63,13 +64,6 @@ export default function ProposalCustomerPreviewDocumentView({
       : null;
 
   const selectedOptionRuntimeId = selectedDraftOption?.id ?? null;
-  const draftFactsByPackageId = draftGraph
-    ? buildProposalOwnedCustomerFactLinesFromDraft(draftGraph)
-    : null;
-  const selectedFactLines =
-    selectedDraftOption && draftFactsByPackageId
-      ? lookupProposalOwnedCustomerFactLines(draftFactsByPackageId, selectedDraftOption)
-      : [];
   const draftLinesForEstimate =
     draftGraph && selectedOptionRuntimeId
       ? draftGraph.lineItems
@@ -85,6 +79,16 @@ export default function ProposalCustomerPreviewDocumentView({
           .filter((line) => line.sourceTemplateItemId.length > 0)
       : [];
 
+  const publicPacketEstimate = useMemo(() => {
+    if (!draftGraph) {
+      return { comparison: null, selectedIncludedFacts: [] as string[] };
+    }
+    const selectedTemplateOptionId = resolveSelectedTemplateOptionIdFromGraph(draftGraph);
+    const dto = buildProposalPublicGraphDto(draftGraph, selectedTemplateOptionId);
+    const { comparison, estimate } = buildCustomerPacketEstimateFromPublicDto(dto, dto.displayPolicy);
+    return { comparison, selectedIncludedFacts: estimate?.bullets ?? [] };
+  }, [draftGraph]);
+
   const estimatePresentation =
     estimatePage?.kind === "estimate"
       ? buildCustomerPreviewEstimatePresentationFromDraft({
@@ -96,7 +100,7 @@ export default function ProposalCustomerPreviewDocumentView({
             ? resolvePackageMeta(
                 estimatePage.selectedOptionLabel,
                 selectedDraftOption?.description,
-                selectedFactLines
+                publicPacketEstimate.selectedIncludedFacts
               )
             : null,
           estimatePageSettings: estimatePage.estimatePageSettings,
@@ -123,6 +127,9 @@ export default function ProposalCustomerPreviewDocumentView({
             totals={estimatePresentation.totals}
             accentColor={accentColor}
           />
+          {publicPacketEstimate.comparison && publicPacketEstimate.comparison.options.length > 1 ? (
+            <ProposalCustomerPreviewPackageComparison comparison={publicPacketEstimate.comparison} />
+          ) : null}
           <ProposalCustomerPreviewTrustBridge
             packageLabel={estimatePresentation.packageHero.label}
             companyName={companyName}

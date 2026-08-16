@@ -28,6 +28,11 @@ export const ESTIMATE_SETTINGS_TOGGLE_LABELS: Record<
     label: "Show section headings",
     description: "Display headings above estimate sections.",
   },
+  show_customer_package_comparison: {
+    label: "Show package comparison",
+    description:
+      "Let customers compare meaningful differences between package options on the public proposal.",
+  },
 };
 
 export function buildWorkspaceStructureViewModel(

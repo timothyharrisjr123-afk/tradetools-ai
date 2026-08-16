@@ -63,6 +63,8 @@ export type ProposalPageSettings = {
   show_line_prices?: boolean;
   show_option_totals?: boolean;
   show_section_headings?: boolean;
+  /** When true, customer Public may show package comparison derived from frozen composition. */
+  show_customer_package_comparison?: boolean;
 };
 
 // ---------------------------------------------------------------------------

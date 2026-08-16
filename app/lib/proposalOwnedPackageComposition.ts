@@ -15,6 +15,12 @@ import {
   type PackageStepUpItem,
 } from "@/app/lib/packageComposition";
 import { buildCustomerFactLinesByPackageId } from "@/app/lib/packageCompositionCustomerFacts";
+import {
+  buildCustomerPackageComparisonMatrix,
+  comparisonAttributesForPackage,
+  type CustomerComparisonAttribute,
+  type CustomerPackageComparisonMatrix,
+} from "@/app/lib/proposalCustomerPackageComparison";
 import type {
   ProposalDraftGraph,
   ProposalOptionRow,
@@ -254,4 +260,31 @@ export function lookupProposalOwnedCustomerFactLines(
   }
   const runtimeId = norm(option.id);
   return factsByPackageId.get(runtimeId) ?? [];
+}
+
+export function buildProposalOwnedCustomerComparisonFromDraft(
+  graph: Pick<ProposalDraftGraph | ProposalVersionGraph, "options" | "lineItems">
+): CustomerPackageComparisonMatrix {
+  return buildCustomerPackageComparisonMatrix(adaptDraftGraphToPackageCompositions(graph));
+}
+
+export function buildProposalOwnedCustomerComparisonFromFreeze(
+  options: readonly ProposalSendFreezeOptionPersistPayload[]
+): CustomerPackageComparisonMatrix {
+  return buildCustomerPackageComparisonMatrix(adaptFreezeOptionsToPackageCompositions(options));
+}
+
+export function lookupProposalOwnedComparisonAttributes(
+  matrix: CustomerPackageComparisonMatrix,
+  option: { id?: string | null; source_template_option_id?: string | null }
+): CustomerComparisonAttribute[] {
+  const sourceId = norm(option.source_template_option_id);
+  if (sourceId && matrix.cellsByPackageId[sourceId]) {
+    return comparisonAttributesForPackage(matrix, sourceId);
+  }
+  const runtimeId = norm(option.id);
+  if (runtimeId && matrix.cellsByPackageId[runtimeId]) {
+    return comparisonAttributesForPackage(matrix, runtimeId);
+  }
+  return [];
 }

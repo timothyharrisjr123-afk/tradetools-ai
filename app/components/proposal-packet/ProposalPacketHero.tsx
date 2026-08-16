@@ -52,7 +52,7 @@ export default function ProposalPacketHero({
     (cover.project.propertyAddress ?? "").trim() ||
     PROPOSAL_CUSTOMER_PACKET_PROPOSAL_LABEL;
   const customerName = (cover.preparedFor.customerName ?? "").trim();
-  const benefits = (estimate?.bullets ?? []).slice(0, 2);
+  const benefits = (estimate?.bullets ?? []).slice(0, 3);
   const upgradeCount = upgrades?.items.length ?? 0;
   const packageLabel = estimate?.label ?? "Selected package";
   const optionKey = estimate?.optionKey ?? null;

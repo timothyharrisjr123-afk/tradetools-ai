@@ -10,7 +10,10 @@ import {
   formatCustomerFacingLineLabel,
   formatCustomerFacingUnit,
 } from "@/app/lib/proposalCustomerFacingLabel";
-import type { ResolvedCustomerPreviewEstimateDisplayPolicy } from "@/app/lib/proposalCustomerEstimateDisplayPolicy";
+import {
+  resolveCustomerPackageComparisonVisible,
+  type ResolvedCustomerPreviewEstimateDisplayPolicy,
+} from "@/app/lib/proposalCustomerEstimateDisplayPolicy";
 import { renderProposalDocumentPageBody } from "@/app/lib/proposalDocumentBodyRenderer";
 import { readProposalPageBodyMarkdown } from "@/app/lib/proposalPageContentEditing";
 import {
@@ -45,6 +48,7 @@ import type {
   ProposalPublicGraphOptionDto,
   ProposalPublicGraphPageDto,
 } from "@/app/lib/proposalPublicGraphDto";
+import { includedComparisonValueLabels } from "@/app/lib/proposalCustomerPackageComparison";
 import { resolvePackageMeta } from "@/app/lib/proposalPackagePresentation";
 import {
   buildProposalDocumentContextFromPublicDto,
@@ -237,6 +241,28 @@ function splitSelectedOptionLines(option: ProposalPublicGraphOptionDto): {
   return { includedLines, upgradeLines };
 }
 
+function optionFactLines(
+  option: ProposalPublicGraphOptionDto,
+  excludedLabels: ReadonlySet<string> = new Set()
+): string[] {
+  const attributes = option.comparison_attributes ?? [];
+  if (attributes.length > 0) {
+    return includedComparisonValueLabels(attributes).filter(
+      (label) => !excludedLabels.has(label.trim().toLowerCase())
+    );
+  }
+  return (option.customer_fact_lines ?? []).filter(
+    (line) => !excludedLabels.has(line.trim().toLowerCase())
+  );
+}
+
+function optionComparisonCells(option: ProposalPublicGraphOptionDto) {
+  return (option.comparison_attributes ?? []).map((attribute) => ({
+    valueLabel: attribute.value_label,
+    availability: attribute.availability,
+  }));
+}
+
 function resolveSelectedOptionKey(
   dto: ProposalPublicGraphDto,
   visibleOptions: ProposalPublicGraphOptionDto[]
@@ -283,12 +309,16 @@ export function buildCustomerPacketEstimateFromPublicDto(
 
   const selectedOption = visibleOptions.find((option) => option.source_template_option_id === selectedKey)!;
   const selectedLabel = optionLabel(selectedOption);
+  const { includedLines, upgradeLines } = splitSelectedOptionLines(selectedOption);
+  const upgradeNames = new Set(
+    upgradeLines.map((line) => formatCustomerFacingLineLabel(line.customer_name).trim().toLowerCase())
+  );
+  const selectedFactLines = optionFactLines(selectedOption, upgradeNames);
   const selectedMeta = resolvePackageMeta(
     selectedLabel,
     selectedOption.description,
-    selectedOption.customer_fact_lines ?? []
+    selectedFactLines
   );
-  const { includedLines, upgradeLines } = splitSelectedOptionLines(selectedOption);
   const mappedIncluded = includedLines.map((line) => mapLine(line, displayPolicy));
   const scopeGroups = buildScopeGroups(mappedIncluded);
 
@@ -304,21 +334,27 @@ export function buildCustomerPacketEstimateFromPublicDto(
     includedDetails: scopeGroups,
   };
 
+  const comparisonDimensions =
+    visibleOptions.find((option) => (option.comparison_attributes?.length ?? 0) > 0)
+      ?.comparison_attributes?.map((attribute) => ({ label: attribute.dimension_label })) ?? [];
+
   const comparison: ProposalCustomerPacketComparisonViewModel | null =
-    visibleOptions.length >= 2
+    resolveCustomerPackageComparisonVisible(displayPolicy, visibleOptions.length)
       ? {
+          dimensions: comparisonDimensions,
           options: visibleOptions.map((option) => {
             const label = optionLabel(option);
             const meta = resolvePackageMeta(
               label,
               option.description,
-              option.customer_fact_lines ?? []
+              optionFactLines(option)
             );
             return {
               optionKey: option.source_template_option_id,
               label,
               description: meta.description ?? "",
               bullets: [...meta.bullets],
+              cells: optionComparisonCells(option),
               totalInvestmentLabel: formatTotalInvestment(option, displayPolicy),
               accent: meta.accent,
               isCurrent: option.source_template_option_id === selectedKey,

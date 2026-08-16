@@ -16,12 +16,14 @@ export const DEFAULT_ESTIMATE_PAGE_SETTINGS: Readonly<Required<ProposalPageSetti
   show_line_prices: true,
   show_option_totals: true,
   show_section_headings: true,
+  show_customer_package_comparison: false,
 };
 
 const SETTINGS_KEYS: (keyof ProposalPageSettings)[] = [
   "show_line_prices",
   "show_option_totals",
   "show_section_headings",
+  "show_customer_package_comparison",
 ];
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {

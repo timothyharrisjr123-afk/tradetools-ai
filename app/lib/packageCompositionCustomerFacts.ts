@@ -72,11 +72,23 @@ export function formatCustomerCompositionFact(
       }
       return null;
     }
+    case "REMOVED_INCLUDED_SCOPE": {
+      const label = customerEntryLabel(entry.base) ?? customerEntryLabel(entry.target);
+      return label ? `Removed ${label}` : null;
+    }
+    case "OPTIONAL_UPGRADE_REMOVED": {
+      const label = customerEntryLabel(entry.base) ?? customerEntryLabel(entry.target);
+      return label ? `Optional removed: ${label}` : null;
+    }
+    case "OPTIONAL_UPGRADE_CHANGED": {
+      const label = customerEntryLabel(entry.target) ?? customerEntryLabel(entry.base);
+      return label ? `Optional changed: ${label}` : null;
+    }
+    case "LABEL_ONLY": {
+      const label = customerEntryLabel(entry.target) ?? customerEntryLabel(entry.base);
+      return label && !/^line item$/i.test(label) ? label : null;
+    }
     case "UNCHANGED":
-    case "LABEL_ONLY":
-    case "REMOVED_INCLUDED_SCOPE":
-    case "OPTIONAL_UPGRADE_REMOVED":
-    case "OPTIONAL_UPGRADE_CHANGED":
       return null;
     default:
       return null;

@@ -66,11 +66,23 @@ export type ProposalCustomerPacketEstimateViewModel = {
   includedDetails: ProposalCustomerPacketScopeGroupViewModel[];
 };
 
+export type ProposalCustomerPacketComparisonAvailability = "included" | "available" | "not_included";
+
+export type ProposalCustomerPacketComparisonDimensionViewModel = {
+  label: string;
+};
+
+export type ProposalCustomerPacketComparisonCellViewModel = {
+  valueLabel: string;
+  availability: ProposalCustomerPacketComparisonAvailability;
+};
+
 export type ProposalCustomerPacketComparisonOptionViewModel = {
   optionKey: string;
   label: string;
   description: string;
   bullets: string[];
+  cells: ProposalCustomerPacketComparisonCellViewModel[];
   totalInvestmentLabel: string | null;
   accent: PackageAccent;
   isCurrent: boolean;
@@ -85,6 +97,7 @@ export type ProposalCustomerPacketFooterMetadataViewModel = {
 };
 
 export type ProposalCustomerPacketComparisonViewModel = {
+  dimensions: ProposalCustomerPacketComparisonDimensionViewModel[];
   options: ProposalCustomerPacketComparisonOptionViewModel[];
 };
 
@@ -184,7 +197,7 @@ export const PROPOSAL_CUSTOMER_PACKET_NEXT_STEPS_FOOTNOTE =
 export const PROPOSAL_CUSTOMER_PACKET_COMPARE_HEADING = "Compare packages";
 
 export const PROPOSAL_CUSTOMER_PACKET_COMPARE_INTRO =
-  "Choose the right level of protection for your home.";
+  "See what you get as protection increases."
 
 export const PROPOSAL_CUSTOMER_PACKET_CURRENT_BADGE = "Selected";
 

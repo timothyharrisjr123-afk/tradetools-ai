@@ -363,6 +363,7 @@ describe("mapTemplateSectionsToProposalPages", () => {
       show_line_prices: false,
       show_option_totals: true,
       show_section_headings: false,
+      show_customer_package_comparison: false,
     });
   });
 
@@ -398,6 +399,7 @@ describe("mapTemplateSectionsToProposalPages", () => {
       show_line_prices: false,
       show_option_totals: true,
       show_section_headings: false,
+      show_customer_package_comparison: false,
     });
   });
 
@@ -489,6 +491,7 @@ describe("mapTemplateSectionsToProposalPages", () => {
       show_line_prices: false,
       show_option_totals: true,
       show_section_headings: true,
+      show_customer_package_comparison: false,
     });
     assert.deepEqual(pages.find((page) => page.page_type === "terms")!.settings_json, {});
     assert.equal(
@@ -997,6 +1000,7 @@ describe("buildDraftInstantiatePayload", () => {
       show_line_prices: false,
       show_option_totals: true,
       show_section_headings: true,
+      show_customer_package_comparison: false,
     });
     assert.deepEqual(
       payload.pages.find((page) => page.page_type === "terms")?.settings_json,

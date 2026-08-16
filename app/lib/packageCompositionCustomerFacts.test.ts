@@ -100,7 +100,7 @@ describe("packageCompositionCustomerFacts", () => {
     assert.equal(line, "Optional: Additional roof ventilation");
   });
 
-  test("LABEL_ONLY does not become an improvement bullet", () => {
+  test("LABEL_ONLY may surface a customer-safe label when useful", () => {
     assert.equal(
       formatCustomerCompositionFact(
         diff(
@@ -109,7 +109,7 @@ describe("packageCompositionCustomerFacts", () => {
           entry({ entryId: "b", packageId: "p1", customerLabel: "Roof shingles", productId: "prod-a" })
         )
       ),
-      null
+      "Shingles"
     );
   });
 

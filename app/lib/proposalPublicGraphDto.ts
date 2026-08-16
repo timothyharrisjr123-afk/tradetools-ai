@@ -12,10 +12,14 @@ import {
 } from "@/app/lib/proposalCustomerEstimateDisplayPolicy";
 import { getCustomerPreviewPages } from "@/app/lib/proposalPageVisibilityEditing";
 import {
+  buildProposalOwnedCustomerComparisonFromDraft,
+  buildProposalOwnedCustomerComparisonFromFreeze,
   buildProposalOwnedCustomerFactLinesFromDraft,
   buildProposalOwnedCustomerFactLinesFromFreeze,
+  lookupProposalOwnedComparisonAttributes,
 } from "@/app/lib/proposalOwnedPackageComposition";
 import { assertCustomerFactLineSafe } from "@/app/lib/packageCompositionCustomerFacts";
+import type { CustomerComparisonAttribute } from "@/app/lib/proposalCustomerPackageComparison";
 import { PROPOSAL_LINE_CUSTOMER_FORBIDDEN_KEYS } from "@/app/lib/proposalLineSnapshotTypes";
 import { PROPOSAL_SNAPSHOT_INTERNAL_ONLY_FIELDS } from "@/app/lib/proposalSnapshotTypes";
 import type { ProposalScopeDecision } from "@/app/lib/proposalScopeDecisionTypes";
@@ -88,6 +92,11 @@ export type ProposalPublicGraphOptionDto = {
    * Never includes composition_role / composition_slot_key.
    */
   customer_fact_lines?: string[];
+  /**
+   * Aligned customer comparison attributes derived from frozen/draft composition.
+   * Same dimension labels across packages; never includes slot/role/IDs.
+   */
+  comparison_attributes?: CustomerComparisonAttribute[];
   sort_order: number;
   visible_to_customer: boolean;
   customer_subtotal_cents: number | null;
@@ -245,10 +254,33 @@ function sanitizeCustomerFactLines(lines: readonly string[] | undefined): string
   return next;
 }
 
+function sanitizeComparisonAttributes(
+  attributes: readonly CustomerComparisonAttribute[] | undefined
+): CustomerComparisonAttribute[] {
+  const next = (attributes ?? []).map((attribute) => ({
+    dimension_label: attribute.dimension_label.trim(),
+    value_label: attribute.value_label.trim(),
+    availability: attribute.availability,
+  }));
+  for (const attribute of next) {
+    assertCustomerFactLineSafe(attribute.dimension_label);
+    assertCustomerFactLineSafe(attribute.value_label);
+    if (
+      /composition_role|composition_slot_key|catalog_seed|catalog_item/i.test(
+        `${attribute.dimension_label} ${attribute.value_label}`
+      )
+    ) {
+      throw new Error("Public DTO comparison attribute exposes internal identity.");
+    }
+  }
+  return next;
+}
+
 function mapPublicOptionFromDraft(
   option: ProposalOptionRow,
   lines: ProposalLineItemRow[],
-  factLines: readonly string[]
+  factLines: readonly string[],
+  comparisonAttributes: readonly CustomerComparisonAttribute[]
 ): ProposalPublicGraphOptionDto {
   const templateId = (option.source_template_option_id ?? "").trim();
   return {
@@ -257,6 +289,7 @@ function mapPublicOptionFromDraft(
     customer_label: option.customer_label,
     description: option.description ?? null,
     customer_fact_lines: sanitizeCustomerFactLines(factLines),
+    comparison_attributes: sanitizeComparisonAttributes(comparisonAttributes),
     sort_order: option.sort_order,
     visible_to_customer: option.visible_to_customer,
     customer_subtotal_cents: option.customer_subtotal_cents,
@@ -272,7 +305,8 @@ function mapPublicOptionFromDraft(
 
 function mapPublicOptionFromFreeze(
   option: ProposalSendFreezeOptionPersistPayload,
-  factLines: readonly string[]
+  factLines: readonly string[],
+  comparisonAttributes: readonly CustomerComparisonAttribute[]
 ): ProposalPublicGraphOptionDto {
   return {
     source_template_option_id: option.source_template_option_id,
@@ -280,6 +314,7 @@ function mapPublicOptionFromFreeze(
     customer_label: option.customer_label,
     description: option.description ?? null,
     customer_fact_lines: sanitizeCustomerFactLines(factLines),
+    comparison_attributes: sanitizeComparisonAttributes(comparisonAttributes),
     sort_order: option.sort_order,
     visible_to_customer: option.visible_to_customer,
     customer_subtotal_cents: option.customer_subtotal_cents,
@@ -332,12 +367,14 @@ export function buildProposalPublicGraphDto(
       .filter((page): page is ProposalPublicGraphPageDto => page != null);
 
     const factsByPackageId = buildProposalOwnedCustomerFactLinesFromDraft(input);
+    const comparisonMatrix = buildProposalOwnedCustomerComparisonFromDraft(input);
     const options = input.options.map((option) =>
       mapPublicOptionFromDraft(
         option,
         input.lineItems,
         factsByPackageId.get((option.source_template_option_id ?? "").trim() || option.id) ??
-          []
+          [],
+        lookupProposalOwnedComparisonAttributes(comparisonMatrix, option)
       )
     );
 
@@ -362,10 +399,12 @@ export function buildProposalPublicGraphDto(
     .filter((page): page is ProposalPublicGraphPageDto => page != null);
 
   const factsByPackageId = buildProposalOwnedCustomerFactLinesFromFreeze(input.options);
+  const comparisonMatrix = buildProposalOwnedCustomerComparisonFromFreeze(input.options);
   const options = input.options.map((option) =>
     mapPublicOptionFromFreeze(
       option,
-      factsByPackageId.get(option.source_template_option_id) ?? []
+      factsByPackageId.get(option.source_template_option_id) ?? [],
+      lookupProposalOwnedComparisonAttributes(comparisonMatrix, option)
     )
   );
 
@@ -418,6 +457,10 @@ export function assertPublicDtoShape(dto: ProposalPublicGraphDto): void {
     }
     for (const line of option.customer_fact_lines ?? []) {
       assertCustomerFactLineSafe(line);
+    }
+    for (const attribute of option.comparison_attributes ?? []) {
+      assertCustomerFactLineSafe(attribute.dimension_label);
+      assertCustomerFactLineSafe(attribute.value_label);
     }
     for (const line of option.line_items) {
       const lineRecord = line as unknown as Record<string, unknown>;
