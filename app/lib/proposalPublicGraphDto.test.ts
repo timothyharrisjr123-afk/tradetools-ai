@@ -45,6 +45,7 @@ function draftGraph(): ProposalDraftGraph {
       updated_by: null,
       created_at: "2026-06-06T00:00:00.000Z",
       updated_at: "2026-06-06T00:00:00.000Z",
+      draft_content_changed_at: "2026-06-06T00:00:00.000Z",
       archived_at: null,
       deleted_at: null,
     },
@@ -364,10 +365,9 @@ describe("buildProposalPublicGraphDto", () => {
 
   test("works from send-freeze graph-like payload", () => {
     const payload = buildProposalSendFreezePersistPayload(draftGraph(), {
-      frozenAt: "2026-06-18T12:00:00.000Z",
       sentVersionId: "aaaaaaa1-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
     });
-    const like = buildSendFreezeGraphLikeFromPayload(payload);
+    const like = buildSendFreezeGraphLikeFromPayload(payload, "2026-06-18T12:00:00.000Z");
     const dto = buildProposalPublicGraphDto(like, TEMPLATE_OPT_A);
     assert.equal(dto.version_kind, "sent");
     assert.equal(dto.frozen_at, "2026-06-18T12:00:00.000Z");

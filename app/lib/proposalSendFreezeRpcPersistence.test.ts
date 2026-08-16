@@ -26,7 +26,6 @@ const TEMPLATE_ID = "66666666-6666-4666-8666-666666666666";
 const TEMPLATE_OPT_A = "77777777-7777-4777-8777-777777777777";
 const RUNTIME_OPT_A = "99999999-9999-4999-8999-999999999999";
 const PAGE_ESTIMATE = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
-const FROZEN_AT = "2026-06-18T12:00:00.000Z";
 
 function draftGraph(): ProposalDraftGraph {
   return {
@@ -49,6 +48,7 @@ function draftGraph(): ProposalDraftGraph {
       updated_by: null,
       created_at: "2026-06-06T00:00:00.000Z",
       updated_at: "2026-06-06T00:00:00.000Z",
+      draft_content_changed_at: "2026-06-06T00:00:00.000Z",
       archived_at: null,
       deleted_at: null,
     },
@@ -175,7 +175,6 @@ describe("isProposalSendFreezeRpcEnabled", () => {
 describe("parseProposalSendFreezeRpcResult", () => {
   test("parses valid response matching payload", () => {
     const payload = buildProposalSendFreezePersistPayload(draftGraph(), {
-      frozenAt: FROZEN_AT,
       sentVersionId: SENT_VERSION_ID,
     });
     const parsed = parseProposalSendFreezeRpcResult(rpcSuccessData(payload), payload);
@@ -183,9 +182,36 @@ describe("parseProposalSendFreezeRpcResult", () => {
     assert.equal(parsed.version_number, payload.version_number);
   });
 
+  test("keeps DB frozen_at even when payload carries a stale caller timestamp", () => {
+    const payload = buildProposalSendFreezePersistPayload(draftGraph(), {
+      sentVersionId: SENT_VERSION_ID,
+    });
+    payload.frozen_at = "2026-08-16T20:00:00.000Z";
+    const dbFrozenAt = "2026-08-16T20:00:00.400Z";
+    const parsed = parseProposalSendFreezeRpcResult(
+      { ...rpcSuccessData(payload), frozen_at: dbFrozenAt },
+      payload
+    );
+    assert.equal(parsed.frozen_at, dbFrozenAt);
+    assert.notEqual(parsed.frozen_at, payload.frozen_at);
+  });
+
+  test("keeps DB frozen_at even when payload carries a future caller timestamp", () => {
+    const payload = buildProposalSendFreezePersistPayload(draftGraph(), {
+      sentVersionId: SENT_VERSION_ID,
+    });
+    payload.frozen_at = "2099-01-01T00:00:00.000Z";
+    const dbFrozenAt = "2026-08-16T20:00:00.400Z";
+    const parsed = parseProposalSendFreezeRpcResult(
+      { ...rpcSuccessData(payload), frozen_at: dbFrozenAt },
+      payload
+    );
+    assert.equal(parsed.frozen_at, dbFrozenAt);
+    assert.notEqual(parsed.frozen_at, payload.frozen_at);
+  });
+
   test("rejects missing data", () => {
     const payload = buildProposalSendFreezePersistPayload(draftGraph(), {
-      frozenAt: FROZEN_AT,
       sentVersionId: SENT_VERSION_ID,
     });
     assert.throws(
@@ -196,7 +222,6 @@ describe("parseProposalSendFreezeRpcResult", () => {
 
   test("rejects ok !== true", () => {
     const payload = buildProposalSendFreezePersistPayload(draftGraph(), {
-      frozenAt: FROZEN_AT,
       sentVersionId: SENT_VERSION_ID,
     });
     assert.throws(
@@ -207,7 +232,6 @@ describe("parseProposalSendFreezeRpcResult", () => {
 
   test("rejects mismatched sent_version_id", () => {
     const payload = buildProposalSendFreezePersistPayload(draftGraph(), {
-      frozenAt: FROZEN_AT,
       sentVersionId: SENT_VERSION_ID,
     });
     const data = rpcSuccessData(payload);
@@ -224,7 +248,6 @@ describe("persistProposalSendFreezeViaRpc", () => {
     let rpcName = "";
     let rpcArgs: Record<string, unknown> | undefined;
     const payload = buildProposalSendFreezePersistPayload(draftGraph(), {
-      frozenAt: FROZEN_AT,
       sentVersionId: SENT_VERSION_ID,
     });
 
@@ -244,11 +267,11 @@ describe("persistProposalSendFreezeViaRpc", () => {
     );
     assert.ok(!("scope_decisions" in (rpcArgs?.p_payload as object)));
     assert.ok(!("public_token" in (rpcArgs?.p_payload as object)));
+    assert.ok(!("frozen_at" in (rpcArgs?.p_payload as object)));
   });
 
   test("surfaces RPC failure as persistence error", async () => {
     const payload = buildProposalSendFreezePersistPayload(draftGraph(), {
-      frozenAt: FROZEN_AT,
       sentVersionId: SENT_VERSION_ID,
     });
     const supabase = {
@@ -263,7 +286,6 @@ describe("persistProposalSendFreezeViaRpc", () => {
 
   test("rejects malformed RPC response", async () => {
     const payload = buildProposalSendFreezePersistPayload(draftGraph(), {
-      frozenAt: FROZEN_AT,
       sentVersionId: SENT_VERSION_ID,
     });
     const supabase = {

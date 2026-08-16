@@ -57,6 +57,7 @@ function proposalRecord(overrides: Partial<ProposalRecord> = {}): ProposalRecord
     updated_by: null,
     created_at: "2026-06-26T12:00:00.000Z",
     updated_at: "2026-06-26T12:00:00.000Z",
+    draft_content_changed_at: "2026-06-26T12:00:00.000Z",
     archived_at: null,
     deleted_at: null,
     ...overrides,
@@ -166,7 +167,7 @@ describe("needsSendPrepRefreeze", () => {
       needsSendPrepRefreeze({
         hasSentSnapshot: false,
         hasSignedSnapshot: false,
-        draftUpdatedAt: "2026-06-26T12:00:00.000Z",
+        draftContentChangedAt: "2026-06-26T12:00:00.000Z",
         sentVersionFrozenAt: null,
         pricingStale: false,
       }),
@@ -179,7 +180,7 @@ describe("needsSendPrepRefreeze", () => {
       needsSendPrepRefreeze({
         hasSentSnapshot: true,
         hasSignedSnapshot: true,
-        draftUpdatedAt: "2026-06-27T12:00:00.000Z",
+        draftContentChangedAt: "2026-06-27T12:00:00.000Z",
         sentVersionFrozenAt: "2026-06-26T12:00:00.000Z",
         pricingStale: true,
       }),
@@ -192,7 +193,7 @@ describe("needsSendPrepRefreeze", () => {
       needsSendPrepRefreeze({
         hasSentSnapshot: true,
         hasSignedSnapshot: false,
-        draftUpdatedAt: "2026-06-27T12:00:00.000Z",
+        draftContentChangedAt: "2026-06-27T12:00:00.000Z",
         sentVersionFrozenAt: "2026-06-26T12:00:00.000Z",
         pricingStale: false,
       }),
@@ -205,7 +206,7 @@ describe("needsSendPrepRefreeze", () => {
       needsSendPrepRefreeze({
         hasSentSnapshot: true,
         hasSignedSnapshot: false,
-        draftUpdatedAt: "2026-06-26T12:00:00.000Z",
+        draftContentChangedAt: "2026-06-26T12:00:00.000Z",
         sentVersionFrozenAt: "2026-06-26T12:00:00.000Z",
         pricingStale: true,
       }),
@@ -317,6 +318,7 @@ describe("prepareProposalCustomerSendLink", () => {
     let proposal = proposalRecord({
       latest_sent_version_id: SENT_VERSION_ID,
       updated_at: "2026-06-27T12:00:00.000Z",
+      draft_content_changed_at: "2026-06-27T12:00:00.000Z",
     });
 
     const result = await prepareProposalCustomerSendLink(baseInput(), {
@@ -601,6 +603,7 @@ describe("resolveProposalSendSnapshotVersion", () => {
           proposal = proposalRecord({
             latest_sent_version_id: SENT_VERSION_ID,
             updated_at: "2026-06-27T13:00:00.000Z",
+            draft_content_changed_at: "2026-06-27T13:00:00.000Z",
           });
           return {
             identityRestamped: true,

@@ -73,6 +73,7 @@ export function sentRecordGraph(input: {
       updated_by: null,
       created_at: "2026-07-01T00:00:00.000Z",
       updated_at: V2F_REVIEW_DRAFT_UPDATED_AT,
+      draft_content_changed_at: V2F_REVIEW_DRAFT_UPDATED_AT,
       archived_at: null,
       deleted_at: null,
     },
@@ -216,14 +217,15 @@ export function asRevisionPreviewDraftGraph(
   current: ProposalDraftGraph,
   input: {
     latestSentVersionId: string;
-    draftUpdatedAt: string;
+    draftContentChangedAt: string;
   }
 ): ProposalDraftGraph {
   return {
     ...current,
     proposal: {
       ...current.proposal,
-      updated_at: input.draftUpdatedAt,
+      updated_at: input.draftContentChangedAt,
+      draft_content_changed_at: input.draftContentChangedAt,
       latest_sent_version_id: input.latestSentVersionId,
       current_draft_version_id: current.version.id,
     },

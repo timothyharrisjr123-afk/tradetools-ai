@@ -437,7 +437,7 @@ export default function ProposalCustomerPreviewClient({
             sentFrozenChrome={sentFrozenChrome}
             isRevisionSend={
               isMutableDraftDirtyAfterSentFreeze({
-                draftUpdatedAt: persistedGraph.proposal.updated_at,
+                draftContentChangedAt: persistedGraph.proposal.draft_content_changed_at,
                 latestSentFrozenAt: lastSentFrozenAt,
               })
             }

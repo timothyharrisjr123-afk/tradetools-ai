@@ -333,6 +333,7 @@ describe("activity composer", () => {
           signed_version_id: null,
           created_at: "2026-08-02T00:00:00.000Z",
           updated_at: "2026-08-03T00:00:00.000Z",
+          draft_content_changed_at: "2026-08-03T00:00:00.000Z",
         },
       ],
       sentFactsByProposalId: {

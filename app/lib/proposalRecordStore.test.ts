@@ -60,8 +60,6 @@ import {
   updateDraftSelectedOption,
   type ProposalRecordStoreDeps,
 } from "./proposalRecordStore";
-import { isMutableDraftDirtyAfterSentFreeze } from "./proposalContractorLifecycle";
-import { needsSendPrepRefreeze } from "./proposalSendPrep";
 import { buildProposalBuilderPricingPreview } from "./proposalBuilderPricingPreview";
 import { deriveProposalPricingStale } from "./proposalStaleness";
 import { buildFullProposalIdentityEchoSnapshot } from "./proposalIdentityEcho";
@@ -280,6 +278,9 @@ function executeQuery(
       updated_at: "2026-06-06T00:00:00Z",
       ...base,
     };
+    if (table === "proposals" && row.draft_content_changed_at == null) {
+      row.draft_content_changed_at = row.created_at;
+    }
     if (table === "proposal_versions" && options?.versionKind) {
       row.version_kind = options.versionKind;
     }
@@ -1912,24 +1913,8 @@ describe("updateDraftProposalPageContent", () => {
       "Updated terms for this job only."
     );
     const proposalRow = mock.state.tables.proposals[0] as Record<string, unknown>;
-    assert.notEqual(proposalRow.updated_at, "2026-06-06T00:00:00Z");
-    assert.equal(
-      isMutableDraftDirtyAfterSentFreeze({
-        draftUpdatedAt: String(proposalRow.updated_at),
-        latestSentFrozenAt: "2026-06-06T00:00:00Z",
-      }),
-      true
-    );
-    assert.equal(
-      needsSendPrepRefreeze({
-        hasSentSnapshot: true,
-        hasSignedSnapshot: false,
-        draftUpdatedAt: String(proposalRow.updated_at),
-        sentVersionFrozenAt: "2026-06-06T00:00:00Z",
-        pricingStale: false,
-      }),
-      true
-    );
+    assert.equal(proposalRow.updated_at, "2026-06-06T00:00:00Z");
+    assert.equal(proposalRow.draft_content_changed_at, "2026-06-06T00:00:00Z");
   });
 
   test("rejects non-draft proposal", async () => {
@@ -3135,7 +3120,11 @@ describe("restampDraftProposalIdentityEcho", () => {
 
       const updatedAtAfter = (mock.state.tables.proposals[0] as Record<string, unknown>)
         .updated_at as string;
-      assert.notEqual(updatedAtAfter, updatedAtBefore);
+      assert.equal(updatedAtAfter, updatedAtBefore);
+      assert.equal(
+        (mock.state.tables.proposals[0] as Record<string, unknown>).draft_content_changed_at,
+        "2026-06-06T00:00:00Z"
+      );
     });
   });
 
@@ -3337,6 +3326,7 @@ describe("freezeDraftToSentSnapshot", () => {
       assert.ok(payload.pages.every((page) => page.client_page_id));
       assert.ok(!("scope_decisions" in (payload as object)));
       assert.ok(!("public_token" in (payload as object)));
+      assert.ok(!("frozen_at" in (payload as object)));
 
       assert.deepEqual(result.writeSteps, [PROPOSAL_SEND_FREEZE_RPC_PERSIST_STEP]);
       assert.equal(result.proposalId, created.proposal.id);

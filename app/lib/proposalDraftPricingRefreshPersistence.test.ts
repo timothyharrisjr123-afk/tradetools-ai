@@ -428,32 +428,14 @@ describe("draft pricing refresh persistence contract", () => {
 describe("persistDraftPricingRefreshViaRpc", () => {
   test("calls rpc with payload and throws on error", async () => {
     let rpcPayload: unknown;
-    let touchedProposalId: string | null = null;
     const supabase = {
       rpc: async (name: string, args: { p_payload: unknown }) => {
         assert.equal(name, PERSIST_DRAFT_PRICING_REFRESH_RPC_V1);
         rpcPayload = args.p_payload;
         return { error: null };
       },
-      from(table: string) {
-        assert.equal(table, "proposals");
-        return {
-          update() {
-            return {
-              eq(column: string, value: string) {
-                assert.equal(column, "id");
-                assert.equal(value, PROPOSAL_ID);
-                return {
-                  eq(column2: string, value2: string) {
-                    assert.equal(column2, "company_id");
-                    touchedProposalId = value2;
-                    return Promise.resolve({ error: null });
-                  },
-                };
-              },
-            };
-          },
-        };
+      from() {
+        throw new Error("pricing refresh RPC must not client-stamp proposals");
       },
     };
 
@@ -472,7 +454,6 @@ describe("persistDraftPricingRefreshViaRpc", () => {
 
     await persistDraftPricingRefreshViaRpc(supabase as never, payload);
     assert.ok(rpcPayload);
-    assert.equal(touchedProposalId, COMPANY_ID);
   });
 
   test("surfaces RPC failure as persistence error", async () => {

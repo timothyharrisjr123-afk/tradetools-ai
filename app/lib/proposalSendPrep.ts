@@ -169,7 +169,7 @@ export function hasSignedProposalSnapshot(
 export function needsSendPrepRefreeze(input: {
   hasSentSnapshot: boolean;
   hasSignedSnapshot: boolean;
-  draftUpdatedAt: string | null;
+  draftContentChangedAt: string | null;
   sentVersionFrozenAt: string | null;
   pricingStale: boolean;
 }): boolean {
@@ -185,16 +185,16 @@ export function needsSendPrepRefreeze(input: {
   if (!input.sentVersionFrozenAt) {
     return true;
   }
-  if (!input.draftUpdatedAt) {
+  if (!input.draftContentChangedAt) {
     return false;
   }
-  const draftMs = Date.parse(input.draftUpdatedAt);
+  const draftMs = Date.parse(input.draftContentChangedAt);
   const frozenMs = Date.parse(input.sentVersionFrozenAt);
   if (!Number.isFinite(draftMs) || !Number.isFinite(frozenMs)) {
     return true;
   }
   return isMutableDraftDirtyAfterSentFreeze({
-    draftUpdatedAt: input.draftUpdatedAt,
+    draftContentChangedAt: input.draftContentChangedAt,
     latestSentFrozenAt: input.sentVersionFrozenAt,
   });
 }
@@ -258,7 +258,8 @@ export async function resolveProposalSendSnapshotVersion(
   const shouldRefreeze = needsSendPrepRefreeze({
     hasSentSnapshot,
     hasSignedSnapshot,
-    draftUpdatedAt: proposal.updated_at ?? graph.proposal.updated_at ?? null,
+    draftContentChangedAt:
+      proposal.draft_content_changed_at ?? graph.proposal.draft_content_changed_at ?? null,
     sentVersionFrozenAt: targetVersionId
       ? await deps.getSentVersionFrozenAt(companyId, proposalId, targetVersionId)
       : null,

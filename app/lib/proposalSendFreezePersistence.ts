@@ -1,7 +1,8 @@
 /**
  * R18B1 — Pure send-freeze payload builder and validators.
  *
- * Prepares immutable sent snapshot persist shape for future RPC `persist_proposal_send_freeze_v1`.
+ * Prepares immutable sent snapshot persist shape for `persist_proposal_send_freeze_v1`.
+ * Does not manufacture authoritative frozen_at — the freeze RPC owns that timestamp.
  * No Supabase, RPC, routes, tokens, or DB writes.
  */
 
@@ -145,7 +146,11 @@ export type ProposalSendFreezePersistPayload = {
   sent_version_id: string;
   version_number: number;
   version_kind: "sent";
-  frozen_at: string;
+  /**
+   * Ignored by persist_proposal_send_freeze_v1. Freeze time is DB-owned
+   * transaction now(). Production builder omits this field.
+   */
+  frozen_at?: string;
   parent_version_id: string;
   context_echo: ProposalVersionContextEcho | Record<string, unknown>;
   policy_echo: ProposalVersionPolicyEcho | Record<string, unknown>;
@@ -158,7 +163,6 @@ export type ProposalSendFreezePersistPayload = {
 export type BuildProposalSendFreezePersistPayloadOptions = {
   /** Prior version numbers on the proposal (sent/signed/draft) for monotonic increment. */
   existingVersionNumbers?: readonly number[];
-  frozenAt?: string;
   sentVersionId?: string;
   idFactory?: () => string;
 };
@@ -341,7 +345,6 @@ export function buildProposalSendFreezePersistPayload(
   options: BuildProposalSendFreezePersistPayloadOptions = {}
 ): ProposalSendFreezePersistPayload {
   const idFactory = options.idFactory ?? defaultIdFactory;
-  const frozenAt = options.frozenAt ?? new Date().toISOString();
   const sentVersionId = options.sentVersionId ?? idFactory();
   const draftVersionId = graph.version.id;
 
@@ -388,7 +391,6 @@ export function buildProposalSendFreezePersistPayload(
     sent_version_id: sentVersionId,
     version_number: resolveNextVersionNumber(graph, options.existingVersionNumbers),
     version_kind: "sent",
-    frozen_at: frozenAt,
     parent_version_id: draftVersionId,
     context_echo: structuredClone(graph.version.context_echo ?? {}),
     policy_echo: structuredClone(graph.version.policy_echo ?? {}),
@@ -438,9 +440,6 @@ export function validateProposalSendFreezePersistPayload(
   }
   if (payload.version_kind !== "sent") {
     throw new ProposalSendFreezePersistenceError('version_kind must be "sent".');
-  }
-  if (!(payload.frozen_at ?? "").trim()) {
-    throw new ProposalSendFreezePersistenceError("frozen_at is required.");
   }
   if (payload.parent_version_id !== payload.draft_version_id) {
     throw new ProposalSendFreezePersistenceError(
@@ -517,14 +516,6 @@ export function validateSendFreezeGraphIntegrity(
     });
   }
 
-  if (!(payload.frozen_at ?? "").trim()) {
-    violations.push({
-      code: "sent_version_not_frozen",
-      source_template_option_id: "*",
-      message: "Sent version missing frozen_at.",
-    });
-  }
-
   for (const option of payload.options) {
     const subtotal = option.customer_subtotal_cents ?? 0;
     const lineCount = option.line_items.length;
@@ -572,7 +563,8 @@ export type ProposalSendFreezeGraphLike = {
 };
 
 export function buildSendFreezeGraphLikeFromPayload(
-  payload: ProposalSendFreezePersistPayload
+  payload: ProposalSendFreezePersistPayload,
+  frozenAt: string
 ): ProposalSendFreezeGraphLike {
   return {
     version: {
@@ -582,7 +574,7 @@ export function buildSendFreezeGraphLikeFromPayload(
       version_number: payload.version_number,
       version_kind: "sent",
       parent_version_id: payload.parent_version_id,
-      frozen_at: payload.frozen_at,
+      frozen_at: frozenAt,
       context_echo: payload.context_echo,
       policy_echo: payload.policy_echo,
     },

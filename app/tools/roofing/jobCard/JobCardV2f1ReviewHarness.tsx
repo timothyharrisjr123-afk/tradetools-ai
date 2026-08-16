@@ -78,6 +78,10 @@ function summary(
     signed_version_id: partial.signed_version_id ?? null,
     created_at: null,
     updated_at: partial.updated_at ?? V2F_REVIEW_SENT_B_FROZEN_AT,
+    draft_content_changed_at:
+      partial.draft_content_changed_at ??
+      partial.updated_at ??
+      V2F_REVIEW_SENT_B_FROZEN_AT,
   };
 }
 

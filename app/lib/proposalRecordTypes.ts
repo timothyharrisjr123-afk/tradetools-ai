@@ -52,6 +52,8 @@ export type ProposalRecord = {
   updated_by: string | null;
   created_at: string;
   updated_at: string;
+  /** Authoritative mutable customer-facing draft-content change clock (041). */
+  draft_content_changed_at: string;
   archived_at: string | null;
   deleted_at: string | null;
 };
@@ -70,6 +72,8 @@ export type ProposalRecordStatusSummary = {
   signed_version_id: string | null;
   created_at: string | null;
   updated_at: string;
+  /** Dirty-revision owner. Generic recency display still uses updated_at. */
+  draft_content_changed_at: string;
 };
 
 // ---------------------------------------------------------------------------

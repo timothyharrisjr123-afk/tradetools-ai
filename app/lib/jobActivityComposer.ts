@@ -175,7 +175,7 @@ export function composeJobActivityItems(
     const lifecycle = deriveContractorProposalLifecycle({
       latestSentVersionId: proposal.latest_sent_version_id,
       signedVersionId: proposal.signed_version_id,
-      draftUpdatedAt: proposal.updated_at,
+      draftContentChangedAt: proposal.draft_content_changed_at,
       latestSentFrozenAt: facts?.latestSentFrozenAt ?? null,
       headerStatus: proposal.status,
     });

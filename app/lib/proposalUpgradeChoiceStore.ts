@@ -8,10 +8,6 @@
 
 import { getSupabaseClient } from "@/app/lib/supabaseClient";
 import {
-  mutableDraftTouchFailureMessage,
-  touchMutableDraftProposalUpdatedAt,
-} from "@/app/lib/proposalMutableDraftTouch";
-import {
   appendProposalEvent,
   isUuidLike,
   normalizeCompanyId,
@@ -209,18 +205,6 @@ async function loadMutableDraftContextForOption(
   return { supabase, proposal, version, option };
 }
 
-async function touchMutableDraftHeader(
-  supabase: NonNullable<ReturnType<typeof getSupabaseClient>>,
-  companyId: string,
-  proposalId: string
-): Promise<void> {
-  try {
-    await touchMutableDraftProposalUpdatedAt(supabase, { companyId, proposalId });
-  } catch (error) {
-    throw new ProposalRecordStoreError(mutableDraftTouchFailureMessage(error));
-  }
-}
-
 export async function upsertUpgradeChoiceSelection(
   companyId: string,
   proposalOptionId: string,
@@ -342,8 +326,6 @@ export async function upsertUpgradeChoiceSelection(
     }
     row = data as ProposalOptionUpgradeChoiceRow;
   }
-
-  await touchMutableDraftHeader(supabase, cid, proposal.id);
 
   await appendProposalEvent(
     {

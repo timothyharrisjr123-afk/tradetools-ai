@@ -574,6 +574,7 @@ describe("Prepare proposal V2A write boundary and wiring", () => {
         signed_version_id: null,
         created_at: null,
         updated_at: "2026-07-20T15:00:00.000Z",
+        draft_content_changed_at: "2026-07-20T15:00:00.000Z",
       } satisfies ProposalRecordStatusSummary,
       packageLabel: "Standard",
       templateName: "Roof replacement",

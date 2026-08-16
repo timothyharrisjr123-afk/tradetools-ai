@@ -39,7 +39,7 @@ const ROOT = process.cwd();
 function revisionDraftGraph() {
   return asRevisionPreviewDraftGraph(v2fReviewSentVersionGraph(V2F_REVIEW_SENT_B), {
     latestSentVersionId: V2F_REVIEW_SENT_A,
-    draftUpdatedAt: V2F_REVIEW_DRAFT_UPDATED_AT,
+    draftContentChangedAt: V2F_REVIEW_DRAFT_UPDATED_AT,
   });
 }
 
@@ -56,6 +56,7 @@ function summary(latestSentVersionId: string, updatedAt: string): ProposalRecord
     signed_version_id: null,
     created_at: null,
     updated_at: updatedAt,
+    draft_content_changed_at: updatedAt,
   };
 }
 

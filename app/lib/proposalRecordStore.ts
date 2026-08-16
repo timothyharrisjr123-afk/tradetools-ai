@@ -107,10 +107,6 @@ import {
   ProposalDraftPricingRefreshPersistenceError,
 } from "@/app/lib/proposalDraftPricingRefreshPersistence";
 import {
-  mutableDraftTouchFailureMessage,
-  touchMutableDraftProposalUpdatedAt,
-} from "@/app/lib/proposalMutableDraftTouch";
-import {
   assertDraftProposalCreateGraphInvariants,
   buildDraftProposalCreatePersistPayload,
   isCreateDraftProposalSequentialEnabled,
@@ -212,6 +208,7 @@ export type ProposalRow = {
   updated_by: string | null;
   created_at: string;
   updated_at: string;
+  draft_content_changed_at: string;
   archived_at: string | null;
   deleted_at: string | null;
 };
@@ -412,10 +409,10 @@ export type AppendProposalEventInput = {
 };
 
 const PROPOSAL_SELECT =
-  "id, company_id, job_id, customer_id, template_id, status, current_draft_version_id, latest_sent_version_id, signed_version_id, selected_option_id, measurement_record_id, pricing_policy_id, proposal_number, title, created_by, updated_by, created_at, updated_at, archived_at, deleted_at";
+  "id, company_id, job_id, customer_id, template_id, status, current_draft_version_id, latest_sent_version_id, signed_version_id, selected_option_id, measurement_record_id, pricing_policy_id, proposal_number, title, created_by, updated_by, created_at, updated_at, draft_content_changed_at, archived_at, deleted_at";
 
 const PROPOSAL_SUMMARY_SELECT =
-  "id, job_id, status, title, proposal_number, template_id, selected_option_id, latest_sent_version_id, signed_version_id, created_at, updated_at";
+  "id, job_id, status, title, proposal_number, template_id, selected_option_id, latest_sent_version_id, signed_version_id, created_at, updated_at, draft_content_changed_at";
 
 const MARGIN_DB_MAX = 99.9999;
 
@@ -482,23 +479,6 @@ export function normalizeCompanyId(companyId: string): string | null {
   return id;
 }
 
-async function touchMutableDraftHeader(
-  supabase: NonNullable<ReturnType<typeof getSupabaseClient>>,
-  companyId: string,
-  proposalId: string,
-  touchedAt?: string
-): Promise<string> {
-  try {
-    return await touchMutableDraftProposalUpdatedAt(supabase, {
-      companyId,
-      proposalId,
-      touchedAt,
-    });
-  } catch (error) {
-    throw new ProposalRecordStoreError(mutableDraftTouchFailureMessage(error));
-  }
-}
-
 /**
  * DB CHECK: effective_margin_pct >= 0 AND < 100.
  * Engine may return exactly 100 when cost is zero — clamp to 99.9999.
@@ -534,6 +514,7 @@ export function rowToProposalRecord(row: ProposalRow): ProposalRecord {
     updated_by: row.updated_by,
     created_at: row.created_at,
     updated_at: row.updated_at,
+    draft_content_changed_at: row.draft_content_changed_at,
     archived_at: row.archived_at,
     deleted_at: row.deleted_at,
   };
@@ -552,6 +533,7 @@ export function rowToProposalSummary(row: ProposalRow): ProposalRecordStatusSumm
     signed_version_id: row.signed_version_id,
     created_at: row.created_at ?? null,
     updated_at: row.updated_at,
+    draft_content_changed_at: row.draft_content_changed_at,
   };
 }
 
@@ -1869,8 +1851,6 @@ export async function updateDraftProposalPageContent(
     );
   }
 
-  await touchMutableDraftHeader(supabase, cid, pid);
-
   await appendProposalEvent(
     {
       company_id: cid,
@@ -1961,8 +1941,6 @@ export async function updateDraftProposalPageVisibility(
       updateError.message ?? "Failed to update proposal page visibility."
     );
   }
-
-  await touchMutableDraftHeader(supabase, cid, pid);
 
   await appendProposalEvent(
     {
@@ -2063,8 +2041,6 @@ export async function updateDraftProposalPageSettings(
       updateError.message ?? "Failed to update proposal page settings."
     );
   }
-
-  await touchMutableDraftHeader(supabase, cid, pid);
 
   await appendProposalEvent(
     {
@@ -2268,15 +2244,13 @@ export async function restampDraftProposalIdentityEcho(
     );
   }
 
-  await touchMutableDraftHeader(supabase, cid, pid, restampedAt);
-
   return {
     restamped: true,
     skipped: false,
     changedFields: staleness.changedFields,
     before,
     after,
-    proposalUpdatedAt: restampedAt,
+    proposalUpdatedAt: proposal.updated_at ?? restampedAt,
   };
 }
 
@@ -2287,7 +2261,6 @@ export async function restampDraftProposalIdentityEcho(
 export type FreezeDraftToSentSnapshotInput = {
   /** When true, adds readiness warning only (does not block). */
   pricingStale?: boolean;
-  frozenAt?: string;
   sentVersionId?: string;
 };
 
@@ -2374,7 +2347,6 @@ export async function freezeDraftToSentSnapshot(
 
   const payload = buildProposalSendFreezePersistPayload(graph, {
     existingVersionNumbers,
-    frozenAt: input.frozenAt,
     sentVersionId: input.sentVersionId,
   });
 

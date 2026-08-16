@@ -96,7 +96,7 @@ function cleanInput(
     companyId: IDS.company,
     proposalCompanyId: IDS.company,
     jobCompanyId: IDS.company,
-    draftUpdatedAt: "2026-08-16T12:00:00.000Z",
+    draftContentChangedAt: "2026-08-16T12:00:00.000Z",
     canonicalJobStage: "proposal",
     jobDisposition: "active",
     hasConflictingAcceptance: false,
@@ -114,13 +114,13 @@ describe("R3C classifier", () => {
 
   test("DIRTY revision is VALID_REVIEW_REQUIRED", () => {
     const frozenAt = "2026-08-16T12:00:00.000Z";
-    const draftUpdatedAt = "2026-08-16T13:00:00.000Z";
+    const draftContentChangedAt = "2026-08-16T13:00:00.000Z";
     assert.equal(
-      isMutableDraftDirtyAfterSentFreeze({ draftUpdatedAt, latestSentFrozenAt: frozenAt }),
+      isMutableDraftDirtyAfterSentFreeze({ draftContentChangedAt, latestSentFrozenAt: frozenAt }),
       true
     );
     assert.deepEqual(
-      classifyProposalAcceptanceGuard(cleanInput({ draftUpdatedAt })),
+      classifyProposalAcceptanceGuard(cleanInput({ draftContentChangedAt })),
       { result: "valid_review_required", reason: "dirty_revision" }
     );
   });

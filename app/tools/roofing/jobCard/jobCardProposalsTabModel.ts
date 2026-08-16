@@ -268,7 +268,7 @@ export function formatJobCardContractorProposalStatusLabel(input: {
     const lifecycle = deriveContractorProposalLifecycle({
       latestSentVersionId: summary.latest_sent_version_id,
       signedVersionId: summary.signed_version_id,
-      draftUpdatedAt: summary.updated_at,
+      draftContentChangedAt: summary.draft_content_changed_at,
       latestSentFrozenAt: facts?.latestSentFrozenAt ?? null,
       headerStatus: summary.status,
     });
@@ -413,7 +413,7 @@ export function buildJobCardProposalRowView(input: {
   const lifecycle = deriveContractorProposalLifecycle({
     latestSentVersionId: input.summary.latest_sent_version_id,
     signedVersionId: input.summary.signed_version_id,
-    draftUpdatedAt: input.summary.updated_at,
+    draftContentChangedAt: input.summary.draft_content_changed_at,
     latestSentFrozenAt: input.sentFacts?.latestSentFrozenAt ?? null,
     headerStatus: input.summary.status,
   });

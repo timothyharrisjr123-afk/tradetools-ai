@@ -22,7 +22,7 @@ describe("proposalContractorLifecycle", () => {
     const derived = deriveContractorProposalLifecycle({
       latestSentVersionId: null,
       signedVersionId: null,
-      draftUpdatedAt: "2026-08-01T12:00:00.000Z",
+      draftContentChangedAt: "2026-08-01T12:00:00.000Z",
       headerStatus: "sent",
     });
     assert.equal(derived.kind, "draft");
@@ -35,7 +35,7 @@ describe("proposalContractorLifecycle", () => {
     const derived = deriveContractorProposalLifecycle({
       latestSentVersionId: SENT_ID,
       signedVersionId: null,
-      draftUpdatedAt: FROZEN_AT,
+      draftContentChangedAt: FROZEN_AT,
       latestSentFrozenAt: FROZEN_AT,
       headerStatus: "draft",
     });
@@ -48,7 +48,7 @@ describe("proposalContractorLifecycle", () => {
     const derived = deriveContractorProposalLifecycle({
       latestSentVersionId: SENT_ID,
       signedVersionId: null,
-      draftUpdatedAt: "2026-07-22T17:00:00.000Z",
+      draftContentChangedAt: "2026-07-22T17:00:00.000Z",
       latestSentFrozenAt: FROZEN_AT,
       headerStatus: "draft",
     });
@@ -61,7 +61,7 @@ describe("proposalContractorLifecycle", () => {
     const derived = deriveContractorProposalLifecycle({
       latestSentVersionId: SENT_ID,
       signedVersionId: null,
-      draftUpdatedAt: FROZEN_AT,
+      draftContentChangedAt: FROZEN_AT,
       latestSentFrozenAt: FROZEN_AT,
       headerStatus: "draft",
     });
@@ -73,7 +73,7 @@ describe("proposalContractorLifecycle", () => {
     const derived = deriveContractorProposalLifecycle({
       latestSentVersionId: SENT_ID,
       signedVersionId: null,
-      draftUpdatedAt: "2026-07-21T12:00:00.000Z",
+      draftContentChangedAt: "2026-07-21T12:00:00.000Z",
       latestSentFrozenAt: FROZEN_AT,
       headerStatus: "revised",
     });
@@ -86,7 +86,7 @@ describe("proposalContractorLifecycle", () => {
     const derived = deriveContractorProposalLifecycle({
       latestSentVersionId: SENT_ID,
       signedVersionId: SIGNED_ID,
-      draftUpdatedAt: "2026-08-01T12:00:00.000Z",
+      draftContentChangedAt: "2026-08-01T12:00:00.000Z",
       latestSentFrozenAt: FROZEN_AT,
       headerStatus: "signed",
     });
@@ -100,7 +100,7 @@ describe("proposalContractorLifecycle", () => {
   test("same-transaction freeze equality is not dirty", () => {
     assert.equal(
       isMutableDraftDirtyAfterSentFreeze({
-        draftUpdatedAt: FROZEN_AT,
+        draftContentChangedAt: FROZEN_AT,
         latestSentFrozenAt: FROZEN_AT,
       }),
       false
@@ -110,14 +110,14 @@ describe("proposalContractorLifecycle", () => {
   test("missing frozen_at does not invent revision-in-progress", () => {
     assert.equal(
       isMutableDraftDirtyAfterSentFreeze({
-        draftUpdatedAt: "2026-08-01T12:00:00.000Z",
+        draftContentChangedAt: "2026-08-01T12:00:00.000Z",
         latestSentFrozenAt: null,
       }),
       false
     );
     const derived = deriveContractorProposalLifecycle({
       latestSentVersionId: SENT_ID,
-      draftUpdatedAt: "2026-08-01T12:00:00.000Z",
+      draftContentChangedAt: "2026-08-01T12:00:00.000Z",
       latestSentFrozenAt: null,
     });
     assert.equal(derived.kind, "sent");

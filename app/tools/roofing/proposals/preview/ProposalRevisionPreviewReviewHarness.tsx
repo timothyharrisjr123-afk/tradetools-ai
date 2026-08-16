@@ -46,11 +46,11 @@ export default function ProposalRevisionPreviewReviewHarness() {
     caseId === "unchanged"
       ? previous
       : v2fReviewSentVersionGraph(V2F_REVIEW_SENT_B);
-  const draftUpdatedAt =
+  const draftContentChangedAt =
     caseId === "unchanged" ? V2F_REVIEW_SENT_A_FROZEN_AT : V2F_REVIEW_DRAFT_UPDATED_AT;
   const graph = asRevisionPreviewDraftGraph(current, {
     latestSentVersionId: V2F_REVIEW_SENT_A,
-    draftUpdatedAt,
+    draftContentChangedAt,
   });
   const document = buildProposalCustomerPreviewDocument(graph, {
     pricingStale: { stale: false, reason: null },
@@ -70,7 +70,7 @@ export default function ProposalRevisionPreviewReviewHarness() {
     previous,
   });
   const isRevisionSend = isMutableDraftDirtyAfterSentFreeze({
-    draftUpdatedAt,
+    draftContentChangedAt,
     latestSentFrozenAt: lastSentFrozenAt,
   });
 

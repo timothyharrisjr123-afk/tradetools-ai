@@ -4,9 +4,9 @@
  * Pointer/timestamp truth only. Not persisted. Header status is ignored.
  * Job stage is not consumed or written.
  *
- * Dirty-revision signal is proposals.updated_at > latest sent frozen_at.
- * Persist ownership lives in proposalMutableDraftTouch — Job Card only reads
- * the header timestamp. Send-prep uses the same comparison via
+ * Dirty-revision signal is proposals.draft_content_changed_at > latest sent
+ * frozen_at. Persist ownership is draft-scoped DB triggers / RPCs — Job Card
+ * only reads the header clock. Send-prep uses the same comparison via
  * isMutableDraftDirtyAfterSentFreeze (excluding pricingStale / missing
  * snapshot, which remain send-prep-only freeze reasons).
  */
@@ -42,8 +42,8 @@ export type ContractorProposalLifecycle = {
 export type DeriveContractorProposalLifecycleInput = {
   latestSentVersionId?: string | null;
   signedVersionId?: string | null;
-  /** proposals.updated_at — header touch time, not child-row max. */
-  draftUpdatedAt?: string | null;
+  /** proposals.draft_content_changed_at — not generic updated_at. */
+  draftContentChangedAt?: string | null;
   /** proposal_versions.frozen_at for latest_sent_version_id. */
   latestSentFrozenAt?: string | null;
   /**
@@ -58,21 +58,20 @@ function hasVersionPointer(id: string | null | undefined): boolean {
 }
 
 /**
- * True when the mutable draft header was touched after the latest sent freeze.
+ * True when authoritative mutable draft content changed after the latest sent freeze.
  *
- * Uses strict `>` so a same-transaction freeze (PostgreSQL `now()` is stable
- * for the transaction that writes frozen_at and bumps proposals.updated_at)
- * does not look like a contractor revision.
+ * Uses strict `>` so a freeze that does not advance draft_content_changed_at
+ * does not look like a contractor revision (even though generic updated_at moves).
  *
  * Missing frozen_at → not dirty (Job Card must not invent Revision in progress).
  */
 export function isMutableDraftDirtyAfterSentFreeze(input: {
-  draftUpdatedAt?: string | null;
+  draftContentChangedAt?: string | null;
   latestSentFrozenAt?: string | null;
 }): boolean {
   const frozenRaw = (input.latestSentFrozenAt ?? "").trim();
   if (!frozenRaw) return false;
-  const draftRaw = (input.draftUpdatedAt ?? "").trim();
+  const draftRaw = (input.draftContentChangedAt ?? "").trim();
   if (!draftRaw) return false;
   const draftMs = Date.parse(draftRaw);
   const frozenMs = Date.parse(frozenRaw);
@@ -102,7 +101,7 @@ export function deriveContractorProposalLifecycle(
   const isDraftDirtyAfterLatestSent =
     hasLatestSentVersion &&
     isMutableDraftDirtyAfterSentFreeze({
-      draftUpdatedAt: input.draftUpdatedAt,
+      draftContentChangedAt: input.draftContentChangedAt,
       latestSentFrozenAt: input.latestSentFrozenAt,
     });
 

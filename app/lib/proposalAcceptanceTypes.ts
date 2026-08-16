@@ -208,7 +208,7 @@ export type ProposalAcceptanceGuardInput = {
   companyId: string | null | undefined;
   proposalCompanyId: string | null | undefined;
   jobCompanyId: string | null | undefined;
-  draftUpdatedAt: string | null | undefined;
+  draftContentChangedAt: string | null | undefined;
   canonicalJobStage: string | null | undefined;
   jobDisposition: string | null | undefined;
   hasConflictingAcceptance?: boolean;

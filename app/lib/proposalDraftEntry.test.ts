@@ -55,6 +55,7 @@ function draftProposal(overrides: Partial<ProposalRecord> = {}): ProposalRecord 
     updated_by: null,
     created_at: "2026-06-06T00:00:00.000Z",
     updated_at: "2026-06-06T00:00:00.000Z",
+    draft_content_changed_at: "2026-06-06T00:00:00.000Z",
     archived_at: null,
     deleted_at: null,
     ...overrides,
@@ -76,6 +77,7 @@ function draftSummary(
     signed_version_id: null,
     created_at: "2026-06-06T00:00:00.000Z",
     updated_at: "2026-06-06T00:00:00.000Z",
+    draft_content_changed_at: "2026-06-06T00:00:00.000Z",
     ...overrides,
   };
 }

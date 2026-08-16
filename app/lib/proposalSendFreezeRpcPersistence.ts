@@ -24,6 +24,8 @@ export type ProposalSendFreezeRpcResult = {
   page_count: number;
   option_count: number;
   latest_sent_version_id: string;
+  /** DB-owned freeze instant when persist_proposal_send_freeze_v1 returns it. */
+  frozen_at?: string;
 };
 
 // ---------------------------------------------------------------------------
@@ -126,6 +128,8 @@ export function parseProposalSendFreezeRpcResult(
     );
   }
 
+  const frozenAtRaw = String(result.frozen_at ?? "").trim();
+
   return {
     ok: true,
     proposal_id: proposalId,
@@ -135,6 +139,7 @@ export function parseProposalSendFreezeRpcResult(
     page_count: parsePositiveInt(result.page_count, "page_count"),
     option_count: parsePositiveInt(result.option_count, "option_count"),
     latest_sent_version_id: latestSentVersionId,
+    ...(frozenAtRaw ? { frozen_at: frozenAtRaw } : {}),
   };
 }
 

@@ -104,7 +104,7 @@ export function classifyProposalAcceptanceGuard(
 
   if (
     isMutableDraftDirtyAfterSentFreeze({
-      draftUpdatedAt: input.draftUpdatedAt,
+      draftContentChangedAt: input.draftContentChangedAt,
       latestSentFrozenAt: frozenAt,
     })
   ) {

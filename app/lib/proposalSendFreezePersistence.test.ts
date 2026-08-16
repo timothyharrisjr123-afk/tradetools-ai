@@ -58,6 +58,7 @@ function draftGraph(overrides: Partial<ProposalDraftGraph> = {}): ProposalDraftG
       updated_by: null,
       created_at: "2026-06-06T00:00:00.000Z",
       updated_at: "2026-06-06T00:00:00.000Z",
+      draft_content_changed_at: "2026-06-06T00:00:00.000Z",
       archived_at: null,
       deleted_at: null,
     },
@@ -248,7 +249,6 @@ describe("buildProposalSendFreezePersistPayload", () => {
     const graph = draftGraph();
     const snapshot = structuredClone(graph);
     const payload = buildProposalSendFreezePersistPayload(graph, {
-      frozenAt: FROZEN_AT,
       sentVersionId: SENT_VERSION_ID,
       idFactory: sentPageIdFactory(),
     });
@@ -261,26 +261,33 @@ describe("buildProposalSendFreezePersistPayload", () => {
   test("version number increments from existing versions", () => {
     const payload = buildProposalSendFreezePersistPayload(draftGraph(), {
       existingVersionNumbers: [1, 3, 5],
-      frozenAt: FROZEN_AT,
       sentVersionId: SENT_VERSION_ID,
     });
     assert.equal(payload.version_number, 6);
   });
 
-  test("sent version uses sent kind and frozen_at", () => {
+  test("sent version uses sent kind and omits frozen_at", () => {
     const payload = buildProposalSendFreezePersistPayload(draftGraph(), {
-      frozenAt: FROZEN_AT,
       sentVersionId: SENT_VERSION_ID,
     });
     assert.equal(payload.version_kind, "sent");
-    assert.equal(payload.frozen_at, FROZEN_AT);
+    assert.equal(payload.frozen_at, undefined);
+    assert.equal("frozen_at" in payload, false);
     assert.equal(payload.parent_version_id, VERSION_ID);
     assert.equal(payload.draft_version_id, VERSION_ID);
   });
 
+  test("leftover caller frozen_at is still accepted and not required", () => {
+    const payload = buildProposalSendFreezePersistPayload(draftGraph(), {
+      sentVersionId: SENT_VERSION_ID,
+    });
+    payload.frozen_at = FROZEN_AT;
+    assert.doesNotThrow(() => validateProposalSendFreezePersistPayload(payload));
+    assert.equal(validateSendFreezeGraphIntegrity(payload).length, 0);
+  });
+
   test("pages copied with settings_json and visibility", () => {
     const payload = buildProposalSendFreezePersistPayload(draftGraph(), {
-      frozenAt: FROZEN_AT,
       sentVersionId: SENT_VERSION_ID,
     });
     const estimate = payload.pages.find((page) => page.page_type === "estimate");
@@ -294,7 +301,6 @@ describe("buildProposalSendFreezePersistPayload", () => {
 
   test("options copied with totals exactly", () => {
     const payload = buildProposalSendFreezePersistPayload(draftGraph(), {
-      frozenAt: FROZEN_AT,
       sentVersionId: SENT_VERSION_ID,
     });
     assert.equal(payload.options[0]!.customer_subtotal_cents, 10000);
@@ -305,7 +311,6 @@ describe("buildProposalSendFreezePersistPayload", () => {
 
   test("lines copied with visible_to_customer and omitted state preserved", () => {
     const payload = buildProposalSendFreezePersistPayload(draftGraph(), {
-      frozenAt: FROZEN_AT,
       sentVersionId: SENT_VERSION_ID,
     });
     const lines = payload.options[0]!.line_items;
@@ -328,7 +333,6 @@ describe("buildProposalSendFreezePersistPayload", () => {
         : line
     );
     const payload = buildProposalSendFreezePersistPayload(graph, {
-      frozenAt: FROZEN_AT,
       sentVersionId: SENT_VERSION_ID,
     });
     const copied = payload.options[0]!.line_items.find((line) => line.customer_name === "Visible");
@@ -343,7 +347,6 @@ describe("buildProposalSendFreezePersistPayload", () => {
 
   test("internal summaries copied as contractor-only", () => {
     const payload = buildProposalSendFreezePersistPayload(draftGraph(), {
-      frozenAt: FROZEN_AT,
       sentVersionId: SENT_VERSION_ID,
     });
     assert.equal(payload.options[0]!.internal_summary?.contractor_only, true);
@@ -352,7 +355,6 @@ describe("buildProposalSendFreezePersistPayload", () => {
 
   test("scope decision rows are not copied to payload", () => {
     const payload = buildProposalSendFreezePersistPayload(draftGraph(), {
-      frozenAt: FROZEN_AT,
       sentVersionId: SENT_VERSION_ID,
     });
     assert.ok(!("scope_decisions" in payload));
@@ -361,7 +363,6 @@ describe("buildProposalSendFreezePersistPayload", () => {
 
   test("selected_template_option_id preserved", () => {
     const payload = buildProposalSendFreezePersistPayload(draftGraph(), {
-      frozenAt: FROZEN_AT,
       sentVersionId: SENT_VERSION_ID,
     });
     assert.equal(payload.selected_template_option_id, TEMPLATE_OPT_A);
@@ -370,7 +371,6 @@ describe("buildProposalSendFreezePersistPayload", () => {
 
   test("event payload prepared for snapshot_frozen", () => {
     const payload = buildProposalSendFreezePersistPayload(draftGraph(), {
-      frozenAt: FROZEN_AT,
       sentVersionId: SENT_VERSION_ID,
     });
     assert.equal(payload.event.event_type, PROPOSAL_SEND_FREEZE_PLANNED_EVENT_TYPE);
@@ -380,7 +380,6 @@ describe("buildProposalSendFreezePersistPayload", () => {
 
   test("validateProposalSendFreezePersistPayload accepts valid payload", () => {
     const payload = buildProposalSendFreezePersistPayload(draftGraph(), {
-      frozenAt: FROZEN_AT,
       sentVersionId: SENT_VERSION_ID,
     });
     assert.doesNotThrow(() => validateProposalSendFreezePersistPayload(payload));
@@ -389,11 +388,10 @@ describe("buildProposalSendFreezePersistPayload", () => {
 
   test("buildSendFreezeGraphLikeFromPayload preserves sent metadata", () => {
     const payload = buildProposalSendFreezePersistPayload(draftGraph(), {
-      frozenAt: FROZEN_AT,
       sentVersionId: SENT_VERSION_ID,
       idFactory: sentPageIdFactory(),
     });
-    const like = buildSendFreezeGraphLikeFromPayload(payload);
+    const like = buildSendFreezeGraphLikeFromPayload(payload, FROZEN_AT);
     assert.equal(like.version.version_kind, "sent");
     assert.equal(like.version.frozen_at, FROZEN_AT);
     assert.equal(like.options.length, 1);
@@ -405,7 +403,6 @@ describe("buildProposalSendFreezePersistPayload", () => {
 describe("R18B3 client_page_id payload alignment", () => {
   test("page rows include client_page_id", () => {
     const payload = buildProposalSendFreezePersistPayload(draftGraph(), {
-      frozenAt: FROZEN_AT,
       sentVersionId: SENT_VERSION_ID,
       idFactory: sentPageIdFactory(),
     });
@@ -419,7 +416,6 @@ describe("R18B3 client_page_id payload alignment", () => {
 
   test("client_page_id values match remapped line page_id references", () => {
     const payload = buildProposalSendFreezePersistPayload(draftGraph(), {
-      frozenAt: FROZEN_AT,
       sentVersionId: SENT_VERSION_ID,
       idFactory: sentPageIdFactory(),
     });
@@ -473,7 +469,6 @@ describe("R18B3 client_page_id payload alignment", () => {
     });
 
     const payload = buildProposalSendFreezePersistPayload(graph, {
-      frozenAt: FROZEN_AT,
       sentVersionId: SENT_VERSION_ID,
       idFactory: sentPageIdFactory(),
     });
@@ -481,7 +476,7 @@ describe("R18B3 client_page_id payload alignment", () => {
     assert.ok(overviewPage);
     assert.equal(payload.options[0]!.line_items[0]!.page_id, overviewPage!.client_page_id);
 
-    const like = buildSendFreezeGraphLikeFromPayload(payload);
+    const like = buildSendFreezeGraphLikeFromPayload(payload, FROZEN_AT);
     const likeOverview = like.pages.find((page) => page.page_type === "project_overview");
     assert.ok(likeOverview);
     assert.equal(likeOverview!.id, overviewPage!.client_page_id);
@@ -490,7 +485,6 @@ describe("R18B3 client_page_id payload alignment", () => {
 
   test("missing client_page_id is rejected", () => {
     const payload = buildProposalSendFreezePersistPayload(draftGraph(), {
-      frozenAt: FROZEN_AT,
       sentVersionId: SENT_VERSION_ID,
       idFactory: sentPageIdFactory(),
     });
@@ -504,7 +498,6 @@ describe("R18B3 client_page_id payload alignment", () => {
 
   test("duplicate client_page_id is rejected", () => {
     const payload = buildProposalSendFreezePersistPayload(draftGraph(), {
-      frozenAt: FROZEN_AT,
       sentVersionId: SENT_VERSION_ID,
       idFactory: sentPageIdFactory(),
     });
@@ -518,7 +511,6 @@ describe("R18B3 client_page_id payload alignment", () => {
 
   test("line page_id referencing unknown client_page_id is rejected", () => {
     const payload = buildProposalSendFreezePersistPayload(draftGraph(), {
-      frozenAt: FROZEN_AT,
       sentVersionId: SENT_VERSION_ID,
       idFactory: sentPageIdFactory(),
     });

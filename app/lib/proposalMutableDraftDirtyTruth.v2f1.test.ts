@@ -1,6 +1,7 @@
 /**
  * V2F1 — Full-draft dirty truth goldens.
- * Job Card lifecycle and send-prep must share proposals.updated_at > frozen_at.
+ * Job Card lifecycle and send-prep must share
+ * proposals.draft_content_changed_at > frozen_at.
  *
  * Run: npx tsx --test app/lib/proposalMutableDraftDirtyTruth.v2f1.test.ts
  */
@@ -22,6 +23,7 @@ const SENT_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const PROPOSAL_ID = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
 const FROZEN = "2026-07-22T16:31:00.000Z";
 const AFTER = "2026-07-23T12:00:00.000Z";
+const HEADER_AFTER_FREEZE = "2026-07-22T16:31:00.400Z";
 
 function read(rel: string): string {
   return readFileSync(join(ROOT, rel), "utf8");
@@ -42,34 +44,35 @@ function summary(
     signed_version_id: partial.signed_version_id ?? null,
     created_at: null,
     updated_at: partial.updated_at ?? FROZEN,
+    draft_content_changed_at: partial.draft_content_changed_at ?? FROZEN,
   };
 }
 
-function jobCardKind(draftUpdatedAt: string, frozenAt: string | null) {
+function jobCardKind(draftContentChangedAt: string, frozenAt: string | null) {
   return deriveContractorProposalLifecycle({
     latestSentVersionId: SENT_ID,
-    draftUpdatedAt,
+    draftContentChangedAt,
     latestSentFrozenAt: frozenAt,
   }).kind;
 }
 
-function sendPrepDirty(draftUpdatedAt: string, frozenAt: string | null) {
+function sendPrepDirty(draftContentChangedAt: string, frozenAt: string | null) {
   return needsSendPrepRefreeze({
     hasSentSnapshot: true,
     hasSignedSnapshot: false,
-    draftUpdatedAt,
+    draftContentChangedAt,
     sentVersionFrozenAt: frozenAt,
     pricingStale: false,
   });
 }
 
-function assertJobCardAndSendPrepAgree(draftUpdatedAt: string, frozenAt: string) {
+function assertJobCardAndSendPrepAgree(draftContentChangedAt: string, frozenAt: string) {
   const dirty = isMutableDraftDirtyAfterSentFreeze({
-    draftUpdatedAt,
+    draftContentChangedAt,
     latestSentFrozenAt: frozenAt,
   });
-  const kind = jobCardKind(draftUpdatedAt, frozenAt);
-  const refreeze = sendPrepDirty(draftUpdatedAt, frozenAt);
+  const kind = jobCardKind(draftContentChangedAt, frozenAt);
+  const refreeze = sendPrepDirty(draftContentChangedAt, frozenAt);
   assert.equal(refreeze, dirty);
   if (dirty) {
     assert.equal(kind, "revision_in_progress");
@@ -79,13 +82,14 @@ function assertJobCardAndSendPrepAgree(draftUpdatedAt: string, frozenAt: string)
 }
 
 describe("V2F1 full-draft dirty truth — baseline", () => {
-  test("just-frozen equal timestamps = Sent and no send-prep refreeze", () => {
+  test("just-frozen equal clocks = Sent and no send-prep refreeze", () => {
     assertJobCardAndSendPrepAgree(FROZEN, FROZEN);
     const row = buildJobCardProposalRowView({
       summary: summary({
         id: PROPOSAL_ID,
         latest_sent_version_id: SENT_ID,
-        updated_at: FROZEN,
+        updated_at: HEADER_AFTER_FREEZE,
+        draft_content_changed_at: FROZEN,
       }),
       sentFacts: { latestSentFrozenAt: FROZEN },
     });
@@ -93,19 +97,27 @@ describe("V2F1 full-draft dirty truth — baseline", () => {
     assert.equal(row.statusLabel, "Sent");
   });
 
-  test("no mutation after freeze stays Sent", () => {
+  test("generic updated_at after freeze does not invent Revision in progress", () => {
     assertJobCardAndSendPrepAgree(FROZEN, FROZEN);
+    assert.equal(
+      isMutableDraftDirtyAfterSentFreeze({
+        draftContentChangedAt: FROZEN,
+        latestSentFrozenAt: FROZEN,
+      }),
+      false
+    );
   });
 });
 
-describe("V2F1 full-draft dirty truth — header / option / pages / lines", () => {
-  test("selected package / page / line / pricing header bump => Revision in progress", () => {
+describe("V2F1 full-draft dirty truth — content clock", () => {
+  test("draft_content_changed_at after frozen_at => Revision in progress", () => {
     assertJobCardAndSendPrepAgree(AFTER, FROZEN);
     const row = buildJobCardProposalRowView({
       summary: summary({
         id: PROPOSAL_ID,
         latest_sent_version_id: SENT_ID,
         updated_at: AFTER,
+        draft_content_changed_at: AFTER,
       }),
       sentFacts: { latestSentFrozenAt: FROZEN },
     });
@@ -113,9 +125,8 @@ describe("V2F1 full-draft dirty truth — header / option / pages / lines", () =
     assert.equal(row.statusLabel, "Revision in progress");
   });
 
-  test("persist ownership touches proposals.updated_at for customer-visible draft writes", () => {
+  test("page/scope/upgrade stores do not client-stamp the dirty clock", () => {
     const pageStore = read("app/lib/proposalRecordStore.ts");
-    assert.match(pageStore, /async function updateDraftProposalPageContent/);
     const contentFn = pageStore.slice(
       pageStore.indexOf("export async function updateDraftProposalPageContent")
     );
@@ -128,39 +139,26 @@ describe("V2F1 full-draft dirty truth — header / option / pages / lines", () =
     const selectedFn = pageStore.slice(
       pageStore.indexOf("export async function updateDraftSelectedOption")
     );
-    assert.match(contentFn.slice(0, 2500), /touchMutableDraftHeader/);
-    assert.match(visibilityFn.slice(0, 2800), /touchMutableDraftHeader/);
-    assert.match(settingsFn.slice(0, 2800), /touchMutableDraftHeader/);
+    assert.doesNotMatch(contentFn.slice(0, 2500), /draft_content_changed_at/);
+    assert.doesNotMatch(visibilityFn.slice(0, 2800), /draft_content_changed_at/);
+    assert.doesNotMatch(settingsFn.slice(0, 2800), /draft_content_changed_at/);
+    assert.doesNotMatch(selectedFn.slice(0, 2200), /draft_content_changed_at/);
     assert.match(selectedFn.slice(0, 2200), /from\("proposals"\)[\s\S]*selected_option_id/);
 
     const pricing = read("app/lib/proposalDraftPricingRefreshPersistence.ts");
-    assert.match(pricing, /touchMutableDraftProposalUpdatedAt/);
-    const viaRpc = pricing.slice(pricing.indexOf("export async function persistDraftPricingRefreshViaRpc"));
-    const sequential = pricing.slice(
-      pricing.indexOf("export async function persistDraftPricingRefreshSequential")
-    );
-    assert.match(viaRpc.slice(0, 1200), /touchMutableDraftProposalUpdatedAt/);
-    assert.match(sequential.slice(0, 9000), /touchMutableDraftProposalUpdatedAt/);
+    assert.doesNotMatch(pricing, /draft_content_changed_at/);
+    assert.doesNotMatch(pricing, /touchMutableDraftProposalUpdatedAt/);
 
     const scope = read("app/lib/proposalScopeDecisionStore.ts");
-    assert.match(scope, /touchMutableDraftHeader/);
-    const upsert = scope.slice(scope.indexOf("export async function upsertDraftScopeDecision"));
-    const clear = scope.slice(scope.indexOf("export async function clearDraftScopeDecision("));
-    const clearTarget = scope.slice(
-      scope.indexOf("export async function clearDraftScopeDecisionByTarget(")
-    );
-    assert.match(upsert.slice(0, 4500), /touchMutableDraftHeader/);
-    assert.match(clear.slice(0, 2500), /touchMutableDraftHeader/);
-    assert.match(clearTarget.slice(0, 3500), /touchMutableDraftHeader/);
+    assert.doesNotMatch(scope, /draft_content_changed_at/);
+    assert.doesNotMatch(scope, /touchMutableDraftHeader/);
 
     const upgrades = read("app/lib/proposalUpgradeChoiceStore.ts");
-    const upgradeUpsert = upgrades.slice(
-      upgrades.indexOf("export async function upsertUpgradeChoiceSelection")
-    );
-    assert.match(upgradeUpsert.slice(0, 4500), /touchMutableDraftHeader/);
+    assert.doesNotMatch(upgrades, /draft_content_changed_at/);
+    assert.doesNotMatch(upgrades, /touchMutableDraftHeader/);
   });
 
-  test("no draft page-order persist path exists; if added it must touch the header", () => {
+  test("no draft page-order persist path exists; if added it must be draft-scoped trigger owned", () => {
     const store = read("app/lib/proposalRecordStore.ts");
     assert.doesNotMatch(store, /updateDraftProposalPageOrder|reorderDraftProposalPages/);
     const builder = read("app/tools/roofing/proposals/builder/ProposalBuilderClient.tsx");
@@ -172,7 +170,7 @@ describe("V2F1 full-draft dirty truth — header / option / pages / lines", () =
     assert.doesNotMatch(store, /updateDraftProposalOption|updateDraftOptionLabel|updateDraftOptionDescription/);
     const templates = read("app/lib/proposalTemplateStore.ts");
     assert.doesNotMatch(templates, /from\("proposals"\)/);
-    assert.doesNotMatch(templates, /touchMutableDraftProposalUpdatedAt/);
+    assert.doesNotMatch(templates, /draft_content_changed_at/);
   });
 });
 
@@ -181,6 +179,11 @@ describe("V2F1 full-draft dirty truth — send-prep agreement", () => {
     const sendPrep = read("app/lib/proposalSendPrep.ts");
     assert.match(sendPrep, /isMutableDraftDirtyAfterSentFreeze/);
     assert.match(sendPrep, /from "@\/app\/lib\/proposalContractorLifecycle"/);
+    assert.match(sendPrep, /draft_content_changed_at/);
+    assert.doesNotMatch(
+      sendPrep.slice(sendPrep.indexOf("export function needsSendPrepRefreeze")),
+      /proposal\.updated_at/
+    );
   });
 
   test("pricingStale still refreezes without inventing Job Card revision", () => {
@@ -188,7 +191,7 @@ describe("V2F1 full-draft dirty truth — send-prep agreement", () => {
       needsSendPrepRefreeze({
         hasSentSnapshot: true,
         hasSignedSnapshot: false,
-        draftUpdatedAt: FROZEN,
+        draftContentChangedAt: FROZEN,
         sentVersionFrozenAt: FROZEN,
         pricingStale: true,
       }),
@@ -214,33 +217,34 @@ describe("V2F1 full-draft dirty truth — negatives do not touch header", () => 
     }
   });
 
-  test("Builder/Preview clients do not own the dirty-touch write", () => {
+  test("Builder/Preview clients do not own the dirty clock", () => {
     const builder = read("app/tools/roofing/proposals/builder/ProposalBuilderClient.tsx");
-    assert.doesNotMatch(builder, /touchMutableDraftProposalUpdatedAt/);
+    assert.doesNotMatch(builder, /draft_content_changed_at/);
     const preview = read(
       "app/tools/roofing/proposals/preview/ProposalCustomerPreviewClient.tsx"
     );
-    assert.doesNotMatch(preview, /touchMutableDraftProposalUpdatedAt/);
+    assert.doesNotMatch(preview, /from\("proposals"\)\s*\.update/);
     assert.doesNotMatch(preview, /updateDraftProposalPageContent/);
     assert.doesNotMatch(preview, /refreshDraftPricing\(/);
+    assert.match(preview, /draft_content_changed_at/);
   });
 
   test("delivery, attention, events, and customer requests do not dirty draft", () => {
     const delivery = read("app/lib/proposalDeliveryAttemptPersistence.ts");
-    assert.doesNotMatch(delivery, /touchMutableDraftProposalUpdatedAt/);
+    assert.doesNotMatch(delivery, /draft_content_changed_at/);
     assert.doesNotMatch(delivery, /from\("proposals"\)/);
 
     const events = read("app/lib/proposalRecordStore.ts");
     const append = events.slice(events.indexOf("export async function appendProposalEvent"));
-    assert.doesNotMatch(append.slice(0, 1200), /touchMutableDraftHeader/);
+    assert.doesNotMatch(append.slice(0, 1200), /draft_content_changed_at/);
     assert.doesNotMatch(append.slice(0, 1200), /from\("proposals"\)/);
 
     const requests = read("app/lib/proposalCustomerRequestPersistence.ts");
-    assert.doesNotMatch(requests, /touchMutableDraftProposalUpdatedAt/);
+    assert.doesNotMatch(requests, /draft_content_changed_at/);
     assert.doesNotMatch(requests, /from\("proposals"\)/);
 
     const attention = read("app/lib/jobAttentionReadModel.ts");
-    assert.doesNotMatch(attention, /touchMutableDraftProposalUpdatedAt/);
+    assert.doesNotMatch(attention, /draft_content_changed_at/);
     assert.doesNotMatch(attention, /from\("proposals"\)/);
   });
 
@@ -260,12 +264,20 @@ describe("V2F1 full-draft dirty truth — negatives do not touch header", () => 
   test("one authoritative helper; Job Card does not scan child rows", () => {
     const lifecycle = read("app/lib/proposalContractorLifecycle.ts");
     assert.match(lifecycle, /isMutableDraftDirtyAfterSentFreeze/);
+    assert.match(lifecycle, /draft_content_changed_at/);
     assert.doesNotMatch(lifecycle, /proposal_pages|proposal_line_items|proposal_options/);
     const tab = read("app/tools/roofing/jobCard/JobCardProposalsTab.tsx");
     assert.doesNotMatch(tab, /bg-slate-50\/70/);
     assert.match(tab, /shouldRenderProposalAction/);
-    const touch = read("app/lib/proposalMutableDraftTouch.ts");
-    assert.match(touch, /from\("proposals"\)/);
-    assert.match(touch, /updated_at: touchedAt/);
+    assert.equal(fsExists("app/lib/proposalMutableDraftTouch.ts"), false);
   });
 });
+
+function fsExists(rel: string): boolean {
+  try {
+    read(rel);
+    return true;
+  } catch {
+    return false;
+  }
+}
