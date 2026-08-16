@@ -258,6 +258,7 @@ export function formatJobCardContractorProposalStatusLabel(input: {
   visibleSummaries: readonly ProposalRecordStatusSummary[];
   packageLabelsByProposalId?: Readonly<Record<string, string | null | undefined>>;
   sentFactsByProposalId?: Readonly<Record<string, JobCardProposalSentFactsInput | undefined>>;
+  customerAccepted?: boolean;
 }): string {
   const visible = input.visibleSummaries;
   if (visible.length === 0) return JOB_CARD_PROPOSAL_STATUS_READY_TO_CREATE;
@@ -274,6 +275,14 @@ export function formatJobCardContractorProposalStatusLabel(input: {
     return { summary, lifecycle };
   });
 
+  if (input.customerAccepted === true && derivedRows.length === 1) {
+    const only = derivedRows[0]!;
+    if (only.lifecycle.kind === "revision_in_progress") {
+      return "Accepted · Revision in progress";
+    }
+    return "Accepted";
+  }
+
   if (derivedRows.length === 1) {
     const only = derivedRows[0]!;
     if (only.lifecycle.kind === "draft") return "Draft proposal";
@@ -286,7 +295,8 @@ export function formatJobCardContractorProposalStatusLabel(input: {
   const pkgRaw =
     (latest && input.packageLabelsByProposalId?.[latest.id])?.trim() || "";
   const pkg = pkgRaw.replace(/\s+package$/i, "").trim();
-  const latestLabel = latestDerived.lifecycle.statusLabel;
+  const latestLabel =
+    input.customerAccepted === true ? "Accepted" : latestDerived.lifecycle.statusLabel;
   if (pkg) return `Latest: ${pkg} · ${latestLabel}`;
   return `Latest: ${latestLabel}`;
 }

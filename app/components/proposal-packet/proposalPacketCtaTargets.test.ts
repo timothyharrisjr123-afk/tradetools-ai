@@ -24,7 +24,7 @@ describe("proposal packet V2D1 customer CTA targets", () => {
     assert.match(PROPOSAL_PACKET_CTA_FOCUS, /focus-visible:ring-2/);
   });
 
-  test("hero owns primary request; closeout uses continuation prominence", () => {
+  test("hero owns Accept proposal primary; request is continuation", () => {
     const hero = readFileSync(
       join(process.cwd(), "app/components/proposal-packet/ProposalPacketHero.tsx"),
       "utf8"
@@ -38,10 +38,12 @@ describe("proposal packet V2D1 customer CTA targets", () => {
       "utf8"
     );
 
-    assert.match(hero, /requestProminence="primary"/);
+    assert.match(hero, /requestProminence="continuation"/);
     assert.match(closeout, /requestProminence="continuation"/);
+    assert.match(interest, /data-proposal-cta="accept-proposal"/);
+    assert.match(interest, /PROPOSAL_CUSTOMER_PACKET_ACCEPT_PROPOSAL_CTA/);
     assert.match(interest, /PROPOSAL_PACKET_CTA_CONTINUATION/);
-    assert.match(interest, /data-proposal-cta-prominence=\{requestProminence\}/);
+    assert.match(interest, /data-proposal-cta="request-package"/);
   });
 
   test("compare ask-about uses quiet CTA with full-width 44px target", () => {

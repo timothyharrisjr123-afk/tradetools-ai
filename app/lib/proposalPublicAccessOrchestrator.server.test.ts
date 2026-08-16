@@ -54,6 +54,7 @@ function minimalPacketStub() {
     details: null,
     contact: null,
     footerMetadata: null,
+    acceptance: { status: "open" as const, acceptedOnLabel: null },
   };
 }
 

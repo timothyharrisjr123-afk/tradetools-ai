@@ -11,6 +11,7 @@ import {
   sortMainIncludedScopeSummaries,
 } from "./proposalCustomerPacketIncludedScope";
 import {
+  PROPOSAL_CUSTOMER_PACKET_ACCEPT_PROPOSAL_CTA,
   PROPOSAL_CUSTOMER_PACKET_ASK_QUESTION_CTA,
   PROPOSAL_CUSTOMER_PACKET_REQUEST_PACKAGE_CTA,
   proposalCustomerPacketAskAboutPackageCta,
@@ -69,6 +70,15 @@ describe("customer package interest copy", () => {
     assert.match(copy, /Request this package/);
     assert.match(copy, /Ready to move forward with Enhanced/);
     assert.match(copy, /Ask about Standard/);
-    assert.doesNotMatch(copy, /\bAccept\b|\bApprove\b|\bSign\b|\bPay\b|\bSubmit\b|\bLifecycle\b/i);
+    assert.doesNotMatch(copy, /\bApprove\b|\bSign\b|\bPay\b|\bSubmit\b|\bLifecycle\b/i);
+  });
+
+  test("Accept proposal CTA is distinct from Request this package", () => {
+    assert.equal(PROPOSAL_CUSTOMER_PACKET_ACCEPT_PROPOSAL_CTA, "Accept proposal");
+    assert.notEqual(
+      PROPOSAL_CUSTOMER_PACKET_ACCEPT_PROPOSAL_CTA,
+      PROPOSAL_CUSTOMER_PACKET_REQUEST_PACKAGE_CTA
+    );
+    assert.doesNotMatch(PROPOSAL_CUSTOMER_PACKET_REQUEST_PACKAGE_CTA, /Accept/i);
   });
 });

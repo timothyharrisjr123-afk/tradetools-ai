@@ -88,6 +88,10 @@ type ProposalPacketCloseoutAsideProps = {
   recommendedOptionKey?: string | null;
   publicAccessToken?: string | null;
   contactPrefill?: ProposalPacketRequestModalContactPrefill | null;
+  totalLabel?: string | null;
+  accepted?: boolean;
+  acceptedOnLabel?: string | null;
+  onAccepted?: (acceptedOnLabel: string) => void;
 };
 
 /** Closeout: CTA first, then contact + next steps, trust as supportive band. */
@@ -97,6 +101,10 @@ export function ProposalPacketCloseoutAside({
   recommendedOptionKey = null,
   publicAccessToken = null,
   contactPrefill = null,
+  totalLabel = null,
+  accepted = false,
+  acceptedOnLabel = null,
+  onAccepted,
 }: ProposalPacketCloseoutAsideProps) {
   const companyName = (contact?.companyName ?? "").trim();
   const packageLabel = (recommendedPackageLabel ?? "").trim();
@@ -124,6 +132,10 @@ export function ProposalPacketCloseoutAside({
             publicAccessToken={publicAccessToken}
             optionKey={recommendedOptionKey}
             contactPrefill={contactPrefill}
+            totalLabel={totalLabel}
+            accepted={accepted}
+            acceptedOnLabel={acceptedOnLabel}
+            onAccepted={onAccepted}
           />
         ) : null}
       </div>

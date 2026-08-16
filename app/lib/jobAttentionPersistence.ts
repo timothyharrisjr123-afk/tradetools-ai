@@ -14,6 +14,7 @@ export const MARK_JOB_ATTENTION_READ_RPC_V1 =
 export const JOB_ATTENTION_TYPES = [
   "customer_package_request",
   "customer_question",
+  "acceptance_confirmation_required",
 ] as const;
 
 export type JobAttentionType = (typeof JOB_ATTENTION_TYPES)[number];
@@ -50,7 +51,7 @@ export type MarkJobAttentionReadResult =
       read_at: string;
       last_viewed_at: string;
       attention_status_unchanged: JobAttentionStatus;
-      request_status_unchanged: "new" | "seen" | "dismissed";
+      request_status_unchanged: "new" | "seen" | "dismissed" | null;
     }
   | {
       ok: false;
@@ -147,7 +148,10 @@ export function parseMarkJobAttentionReadResult(
     );
   }
 
-  if (!isRequestStatus(result.request_status_unchanged)) {
+  if (
+    result.request_status_unchanged != null &&
+    !isRequestStatus(result.request_status_unchanged)
+  ) {
     throw new JobAttentionPersistenceError(
       `${MARK_JOB_ATTENTION_READ_RPC_V1} returned invalid request status.`
     );
@@ -163,7 +167,9 @@ export function parseMarkJobAttentionReadResult(
       "last_viewed_at"
     ),
     attention_status_unchanged: result.attention_status_unchanged,
-    request_status_unchanged: result.request_status_unchanged,
+    request_status_unchanged: isRequestStatus(result.request_status_unchanged)
+      ? result.request_status_unchanged
+      : null,
   };
 }
 

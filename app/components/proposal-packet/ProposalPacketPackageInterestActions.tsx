@@ -3,8 +3,11 @@
 import { useState } from "react";
 import type { ProposalCustomerPacketContactViewModel } from "@/app/lib/proposalCustomerPacketViewModel";
 import {
+  PROPOSAL_CUSTOMER_PACKET_ACCEPT_PROPOSAL_CTA,
+  PROPOSAL_CUSTOMER_PACKET_ACCEPT_SUCCESS_TITLE,
   PROPOSAL_CUSTOMER_PACKET_ASK_QUESTION_CTA,
   PROPOSAL_CUSTOMER_PACKET_REQUEST_PACKAGE_CTA,
+  formatProposalCustomerAcceptedOnSentence,
   proposalCustomerPacketContactCompanyCta,
 } from "@/app/lib/proposalCustomerPacketViewModel";
 import {
@@ -12,6 +15,7 @@ import {
   buildPackageInterestHref,
   PROPOSAL_CUSTOMER_PACKET_READY_ANCHOR,
 } from "@/app/lib/proposalCustomerPacketInterestAction";
+import ProposalPacketAcceptModal from "./ProposalPacketAcceptModal";
 import ProposalPacketRequestModal, {
   type ProposalPacketRequestModalContactPrefill,
 } from "./ProposalPacketRequestModal";
@@ -24,43 +28,44 @@ import {
 type ProposalPacketPackageInterestActionsProps = {
   packageLabel: string;
   contact: ProposalCustomerPacketContactViewModel | null;
-  /** Compact stack for the recommend/invest card; row for closeout. */
   layout?: "stack" | "row";
-  /** Hero uses ask; closeout prefers contact company. */
   secondary?: "ask" | "contact" | "none";
-  /**
-   * Hero owns the dominant Request CTA (`primary`).
-   * Closeout uses `continuation` so it is not equally dominant.
-   */
   requestProminence?: "primary" | "continuation";
-  /** Tighter CTA spacing inside the investment panel. */
   compact?: boolean;
-  /**
-   * When set with optionKey (public /p/[token]), Request opens the durable
-   * package-request modal instead of mailto.
-   */
   publicAccessToken?: string | null;
   optionKey?: string | null;
   contactPrefill?: ProposalPacketRequestModalContactPrefill | null;
+  totalLabel?: string | null;
+  accepted?: boolean;
+  acceptedOnLabel?: string | null;
+  onAccepted?: (acceptedOnLabel: string) => void;
+  showAccept?: boolean;
 };
 
 /**
- * Soft package interest CTAs — request / contact only (not acceptance).
+ * Public CTAs: Accept proposal (commitment) is distinct from Request this package (interest).
  */
 export default function ProposalPacketPackageInterestActions({
   packageLabel,
   contact,
   layout = "stack",
   secondary = "ask",
-  requestProminence = "primary",
+  requestProminence = "continuation",
   compact = false,
   publicAccessToken = null,
   optionKey = null,
   contactPrefill = null,
+  totalLabel = null,
+  accepted = false,
+  acceptedOnLabel = null,
+  onAccepted,
+  showAccept = true,
 }: ProposalPacketPackageInterestActionsProps) {
   const [requestOpen, setRequestOpen] = useState(false);
-  const canSubmitRequest =
-    Boolean((publicAccessToken ?? "").trim()) && Boolean((optionKey ?? "").trim());
+  const [acceptOpen, setAcceptOpen] = useState(false);
+  const token = (publicAccessToken ?? "").trim();
+  const canSubmitRequest = Boolean(token) && Boolean((optionKey ?? "").trim());
+  const canAccept = showAccept && Boolean(token) && !accepted;
 
   const requestHref = buildPackageInterestHref(contact, packageLabel, "request");
   const askHref = buildAskQuestionHref(contact);
@@ -76,7 +81,7 @@ export default function ProposalPacketPackageInterestActions({
       : PROPOSAL_CUSTOMER_PACKET_ASK_QUESTION_CTA;
 
   const requestClass =
-    requestProminence === "continuation"
+    canAccept || requestProminence === "continuation"
       ? PROPOSAL_PACKET_CTA_CONTINUATION
       : PROPOSAL_PACKET_CTA_PRIMARY;
 
@@ -85,15 +90,38 @@ export default function ProposalPacketPackageInterestActions({
       ? `${compact ? "mt-2.5" : "mt-3.5"} flex flex-wrap items-center gap-2`
       : `${compact ? "mt-0" : "mt-3.5"} flex flex-col gap-2`;
 
+  if (accepted) {
+    return (
+      <div className={actionsClass} data-proposal-accepted-state>
+        <p className="text-[15px] font-semibold text-[#0b1f33]">
+          {PROPOSAL_CUSTOMER_PACKET_ACCEPT_SUCCESS_TITLE}
+        </p>
+        <p className="text-[13px] text-[#475569]">
+          {formatProposalCustomerAcceptedOnSentence(acceptedOnLabel)}
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className={actionsClass}>
+        {canAccept ? (
+          <button
+            type="button"
+            className={PROPOSAL_PACKET_CTA_PRIMARY}
+            data-proposal-cta="accept-proposal"
+            onClick={() => setAcceptOpen(true)}
+          >
+            {PROPOSAL_CUSTOMER_PACKET_ACCEPT_PROPOSAL_CTA}
+          </button>
+        ) : null}
         {canSubmitRequest ? (
           <button
             type="button"
             className={requestClass}
             data-proposal-cta="request-package"
-            data-proposal-cta-prominence={requestProminence}
+            data-proposal-cta-prominence={canAccept ? "continuation" : requestProminence}
             onClick={() => setRequestOpen(true)}
           >
             {PROPOSAL_CUSTOMER_PACKET_REQUEST_PACKAGE_CTA}
@@ -103,7 +131,7 @@ export default function ProposalPacketPackageInterestActions({
             href={requestHref}
             className={requestClass}
             data-proposal-cta="request-package"
-            data-proposal-cta-prominence={requestProminence}
+            data-proposal-cta-prominence={canAccept ? "continuation" : requestProminence}
           >
             {PROPOSAL_CUSTOMER_PACKET_REQUEST_PACKAGE_CTA}
           </a>
@@ -125,9 +153,26 @@ export default function ProposalPacketPackageInterestActions({
           onClose={() => setRequestOpen(false)}
           packageLabel={packageLabel}
           optionKey={(optionKey ?? "").trim()}
-          publicAccessToken={(publicAccessToken ?? "").trim()}
+          publicAccessToken={token}
           companyName={contact?.companyName ?? null}
           contactPrefill={contactPrefill}
+        />
+      ) : null}
+
+      {canAccept ? (
+        <ProposalPacketAcceptModal
+          open={acceptOpen}
+          onClose={() => setAcceptOpen(false)}
+          onAccepted={(label) => {
+            setAcceptOpen(false);
+            onAccepted?.(label);
+          }}
+          publicAccessToken={token}
+          companyName={contact?.companyName ?? null}
+          packageLabel={packageLabel}
+          totalLabel={totalLabel}
+          customerName={contactPrefill?.name ?? null}
+          customerEmail={contactPrefill?.email ?? null}
         />
       ) : null}
     </div>

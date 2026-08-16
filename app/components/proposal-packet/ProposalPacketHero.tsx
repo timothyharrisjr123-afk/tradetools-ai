@@ -31,6 +31,9 @@ type ProposalPacketHeroProps = {
   contact?: ProposalCustomerPacketContactViewModel | null;
   publicAccessToken?: string | null;
   contactPrefill?: ProposalPacketRequestModalContactPrefill | null;
+  accepted?: boolean;
+  acceptedOnLabel?: string | null;
+  onAccepted?: (acceptedOnLabel: string) => void;
 };
 
 const HERO_INTRO =
@@ -46,6 +49,9 @@ export default function ProposalPacketHero({
   contact = null,
   publicAccessToken = null,
   contactPrefill = null,
+  accepted = false,
+  acceptedOnLabel = null,
+  onAccepted,
 }: ProposalPacketHeroProps) {
   const headline =
     (cover.headline ?? "").trim() ||
@@ -128,11 +134,15 @@ export default function ProposalPacketHero({
                     contact={contact}
                     layout="stack"
                     secondary="ask"
-                    requestProminence="primary"
+                    requestProminence="continuation"
                     compact
                     publicAccessToken={publicAccessToken}
                     optionKey={optionKey}
                     contactPrefill={contactPrefill}
+                    totalLabel={estimate.totalInvestmentLabel ?? null}
+                    accepted={accepted}
+                    acceptedOnLabel={acceptedOnLabel}
+                    onAccepted={onAccepted}
                   />
                 </div>
               </div>

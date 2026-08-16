@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import type { ProposalCustomerPacketViewModel } from "@/app/lib/proposalCustomerPacketViewModel";
 import ProposalPacketComparison from "./ProposalPacketComparison";
 import ProposalPacketDetailsContact from "./ProposalPacketDetailsContact";
@@ -18,7 +21,7 @@ export type ProposalPacketMode = "public" | "preview";
 type ProposalPacketProps = {
   packet: ProposalCustomerPacketViewModel;
   mode?: ProposalPacketMode;
-  /** Raw public access token from /p/[token] — enables durable package request submit. */
+  /** Raw public access token from /p/[token] — enables durable public actions. */
   publicAccessToken?: string | null;
 };
 
@@ -45,6 +48,16 @@ export default function ProposalPacket({
     email: packet.cover.preparedFor.customerEmail,
     phone: packet.cover.preparedFor.customerPhone,
   };
+  const initialAccepted = packet.acceptance?.status === "accepted";
+  const [accepted, setAccepted] = useState(initialAccepted);
+  const [acceptedOnLabel, setAcceptedOnLabel] = useState(
+    packet.acceptance?.acceptedOnLabel ?? null
+  );
+
+  const onAccepted = (label: string) => {
+    setAccepted(true);
+    setAcceptedOnLabel(label);
+  };
 
   return (
     <main className={PROPOSAL_PACKET_PAGE} data-proposal-packet-mode={mode}>
@@ -57,6 +70,9 @@ export default function ProposalPacket({
           contact={packet.contact}
           publicAccessToken={requestToken}
           contactPrefill={contactPrefill}
+          accepted={accepted}
+          acceptedOnLabel={acceptedOnLabel}
+          onAccepted={onAccepted}
         />
 
         {showComparison ? (
@@ -87,6 +103,10 @@ export default function ProposalPacket({
           recommendedOptionKey={packet.estimate?.optionKey ?? null}
           publicAccessToken={requestToken}
           contactPrefill={contactPrefill}
+          totalLabel={packet.estimate?.totalInvestmentLabel ?? null}
+          accepted={accepted}
+          acceptedOnLabel={acceptedOnLabel}
+          onAccepted={onAccepted}
         />
 
         <ProposalPacketFooter contact={packet.contact} footerMetadata={packet.footerMetadata} />

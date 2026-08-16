@@ -19,6 +19,7 @@ import {
   type ProposalPublicProposalErrorCode,
   type ProposalPublicProposalErrorViewModel,
 } from "@/app/lib/proposalPublicProposalViewModel";
+import { formatProposalCustomerAcceptedOnLabel } from "@/app/lib/proposalCustomerPacketViewModel";
 import { resolveSelectedTemplateOptionIdFromGraph } from "@/app/lib/proposalDraftGraphAdapter";
 import {
   ProposalRecordStoreError,
@@ -64,6 +65,12 @@ export type ProposalPublicAccessOrchestratorDeps = {
     rawToken: string,
     metadata?: ProposalPublicAccessCustomerViewMetadata
   ) => Promise<ProposalPublicAccessRecordViewResult>;
+  getAcceptanceForToken?: (input: {
+    companyId: string;
+    tokenId: string;
+    proposalId: string;
+    proposalVersionId: string;
+  }) => Promise<{ acceptedAt: string } | null>;
 };
 
 function isSentOrSignedVersionKind(kind: string): kind is "sent" | "signed" {
@@ -163,6 +170,33 @@ export async function loadPublicProposalByToken(
   const recordResult = await deps.recordView(rawToken, viewMetadata);
   if (!recordResult.ok) {
     return failure("internal_error");
+  }
+
+  try {
+    const acceptance = deps.getAcceptanceForToken
+      ? await deps.getAcceptanceForToken({
+          companyId: resolveResult.company_id,
+          tokenId: resolveResult.token_id,
+          proposalId: resolveResult.proposal_id,
+          proposalVersionId: resolveResult.proposal_version_id,
+        })
+      : null;
+    if (acceptance?.acceptedAt) {
+      document = {
+        ...document,
+        packet: {
+          ...document.packet,
+          acceptance: {
+            status: "accepted",
+            acceptedOnLabel: formatProposalCustomerAcceptedOnLabel(
+              acceptance.acceptedAt
+            ),
+          },
+        },
+      };
+    }
+  } catch {
+    // Public document still renders if acceptance lookup fails.
   }
 
   return {

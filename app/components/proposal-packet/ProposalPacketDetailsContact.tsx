@@ -16,6 +16,10 @@ type ProposalPacketDetailsContactProps = {
   recommendedOptionKey?: string | null;
   publicAccessToken?: string | null;
   contactPrefill?: ProposalPacketRequestModalContactPrefill | null;
+  totalLabel?: string | null;
+  accepted?: boolean;
+  acceptedOnLabel?: string | null;
+  onAccepted?: (acceptedOnLabel: string) => void;
 };
 
 export default function ProposalPacketDetailsContact({
@@ -25,6 +29,10 @@ export default function ProposalPacketDetailsContact({
   recommendedOptionKey = null,
   publicAccessToken = null,
   contactPrefill = null,
+  totalLabel = null,
+  accepted = false,
+  acceptedOnLabel = null,
+  onAccepted,
 }: ProposalPacketDetailsContactProps) {
   const hasDetails = details != null && details.tabs.length > 0;
   const hasContact = contact != null;
@@ -46,6 +54,10 @@ export default function ProposalPacketDetailsContact({
             recommendedOptionKey={recommendedOptionKey}
             publicAccessToken={publicAccessToken}
             contactPrefill={contactPrefill}
+            totalLabel={totalLabel}
+            accepted={accepted}
+            acceptedOnLabel={acceptedOnLabel}
+            onAccepted={onAccepted}
           />
         </section>
       ) : null}

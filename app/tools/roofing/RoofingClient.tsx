@@ -136,6 +136,7 @@ import {
   type JobAttentionSafeItem,
 } from "@/app/lib/jobAttentionReadModel";
 import { useJobAttentionDetail } from "@/app/lib/useJobAttention";
+import { notifyJobAttentionChanged } from "@/app/lib/jobAttentionReadClient";
 import { updateProposalCustomerRequestStatus } from "@/app/lib/proposalCustomerRequestReviewClient";
 import {
   createNewProposalDraftEntry,
@@ -200,6 +201,7 @@ import { JOB_CARD_TABS } from "@/app/tools/roofing/jobCard/jobCardTypes";
 import JobCardSectionPanel from "@/app/tools/roofing/jobCard/JobCardSectionPanel";
 import JobCardActivityPanel, { type JobCardActivityItem } from "@/app/tools/roofing/jobCard/JobCardActivityPanel";
 import JobCardActivityPanelWithCustomerRequests from "@/app/tools/roofing/jobCard/JobCardActivityPanelWithCustomerRequests";
+import { listJobProposalAcceptances } from "@/app/lib/proposalAcceptanceActivity";
 import JobCardOverviewSummary from "@/app/tools/roofing/jobCard/JobCardOverviewSummary";
 import { resolveJobCardIdentityFromRecord } from "@/app/tools/roofing/jobCard/jobCardIdentityUtils";
 import { loadCompanyVoiceProfile, saveCompanyVoiceProfile, type VoiceTone } from "@/app/lib/companyVoiceProfile";
@@ -1172,6 +1174,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
   const [jobCardTab, setJobCardTab] = useState<JobCardTabId>("overview");
   const [jobCardBoardOrigin, setJobCardBoardOrigin] = useState(false);
   const [hydratedJobRecord, setHydratedJobRecord] = useState<JobRecord | null>(null);
+  const [jobHasCustomerAcceptance, setJobHasCustomerAcceptance] = useState(false);
   /** Listed draft for this job when jobs.active_proposal_id is unset (reuse still finds it). */
   const [listedJobDraftProposalId, setListedJobDraftProposalId] = useState<string | null>(null);
   const [listedJobDraftSummary, setListedJobDraftSummary] =
@@ -2176,6 +2179,20 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
     hydrateJobDisplayFromRecord(refreshed, { fillEmptyOnly: false });
     return refreshed;
   }, [hydrateJobDisplayFromRecord]);
+
+  useEffect(() => {
+    if (entryMode !== "job-card" || !currentJobId || !isUuidLike(currentJobId)) {
+      setJobHasCustomerAcceptance(false);
+      return;
+    }
+    let cancelled = false;
+    void listJobProposalAcceptances(currentJobId).then((rows) => {
+      if (!cancelled) setJobHasCustomerAcceptance(rows.length > 0);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [entryMode, currentJobId]);
 
   const persistJobCardCustomerForJob = useCallback(
     async (job: JobRecord) => {
@@ -7982,6 +7999,7 @@ Thanks,`;
         visibleSummaries: listedJobDraftSummaries,
         packageLabelsByProposalId: listedJobDraftPackageLabels,
         sentFactsByProposalId: listedJobSentFacts,
+        customerAccepted: jobHasCustomerAcceptance,
       }),
     };
     const jobCardActivityItems: JobCardActivityItem[] = [];
@@ -8004,6 +8022,7 @@ Thanks,`;
       status: "seen" | "dismissed"
     ) => {
       if (!currentJobId || pendingAttentionId) return;
+      if (item.sourceType !== "proposal_customer_requests" || !item.request) return;
       setPendingAttentionId(item.id);
       try {
         await updateProposalCustomerRequestStatus({
@@ -8012,6 +8031,52 @@ Thanks,`;
           jobId: currentJobId,
           status,
         });
+      } finally {
+        setPendingAttentionId(null);
+      }
+    };
+
+    const confirmAcceptance = async (item: JobAttentionSafeItem) => {
+      if (!currentJobId || pendingAttentionId) return;
+      if (item.sourceType !== "proposal_acceptances" || !item.acceptance) return;
+      setPendingAttentionId(item.id);
+      try {
+        const response = await fetch("/api/jobs/confirm-acceptance", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            jobId: currentJobId,
+            acceptanceId: item.acceptance.acceptanceId,
+          }),
+        });
+        if (!response.ok) return;
+        await Promise.all([
+          jobAttention.reload(),
+          refreshHydratedJobRecord(currentJobId),
+        ]);
+        setJobHasCustomerAcceptance(true);
+        notifyJobAttentionChanged({ jobId: currentJobId });
+      } finally {
+        setPendingAttentionId(null);
+      }
+    };
+
+    const acknowledgeAcceptance = async (item: JobAttentionSafeItem) => {
+      if (!currentJobId || pendingAttentionId) return;
+      if (item.sourceType !== "proposal_acceptances" || !item.acceptance) return;
+      setPendingAttentionId(item.id);
+      try {
+        const response = await fetch("/api/jobs/acknowledge-acceptance", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            jobId: currentJobId,
+            acceptanceId: item.acceptance.acceptanceId,
+          }),
+        });
+        if (!response.ok) return;
+        await jobAttention.reload();
+        notifyJobAttentionChanged({ jobId: currentJobId });
       } finally {
         setPendingAttentionId(null);
       }
@@ -8049,6 +8114,8 @@ Thanks,`;
                   buildJobCardProposalAttentionHref(currentJobId, item)
                 );
               }}
+              onConfirmAcceptance={confirmAcceptance}
+              onAcknowledgeAcceptance={acknowledgeAcceptance}
             />
             <JobCardTabs activeTab={jobCardTab} onTabChange={setJobCardTab} />
 

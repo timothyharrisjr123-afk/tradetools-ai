@@ -5,6 +5,7 @@ import type {
   JobAttentionStatus,
   JobAttentionType,
 } from "@/app/lib/jobAttentionPersistence";
+import type { ProposalAcceptanceAttentionAction } from "@/app/lib/proposalAcceptanceTypes";
 
 export const ACTIVE_JOB_ATTENTION_STATUSES = [
   "open",
@@ -17,9 +18,10 @@ export type JobAttentionDestination = {
   kind: JobAttentionDestinationKind;
   proposalId: string;
   proposalVersionId: string;
-  requestId: string;
+  requestId: string | null;
+  acceptanceId: string | null;
   tab: "proposals";
-  anchor: "customer_request";
+  anchor: "customer_request" | "acceptance_confirmation";
 };
 
 export type JobAttentionRequestContext = {
@@ -34,20 +36,34 @@ export type JobAttentionRequestContext = {
   customerPhone: string | null;
 };
 
+export type JobAttentionAcceptanceContext = {
+  acceptanceId: string;
+  packageLabel: string | null;
+  acceptedTotalCents: number | null;
+  ambiguityReason: string | null;
+  contractorReason: string | null;
+  reviewRequired: boolean;
+  attentionAction: ProposalAcceptanceAttentionAction;
+  acceptedAt: string | null;
+  acceptedByName: string | null;
+  acceptedByEmail: string | null;
+};
+
 export type JobAttentionSafeItem = {
   id: string;
   jobId: string;
   proposalId: string | null;
   proposalVersionId: string | null;
   attentionType: JobAttentionType;
-  sourceType: "proposal_customer_requests";
+  sourceType: "proposal_customer_requests" | "proposal_acceptances";
   sourceId: string;
   status: Extract<JobAttentionStatus, "open" | "acknowledged">;
   severity: JobAttentionSeverity;
   openedAt: string;
   acknowledgedAt: string | null;
   destination: JobAttentionDestination;
-  request: JobAttentionRequestContext;
+  request: JobAttentionRequestContext | null;
+  acceptance: JobAttentionAcceptanceContext | null;
   personalReadAt: string | null;
   personalLastViewedAt: string | null;
 };
@@ -120,14 +136,27 @@ export function compareJobAttentionPriority(
 }
 
 export function attentionTypeLabel(type: JobAttentionType): string {
-  return type === "customer_question" ? "Customer question" : "Customer request";
+  if (type === "customer_question") return "Customer question";
+  if (type === "acceptance_confirmation_required") {
+    return "Customer accepted proposal";
+  }
+  return "Customer request";
 }
 
 export function attentionHeadline(item: JobAttentionSafeItem): string {
+  if (item.attentionType === "acceptance_confirmation_required") {
+    if (
+      item.acceptance?.attentionAction === "acknowledge" ||
+      item.acceptance?.ambiguityReason === "job_already_approved"
+    ) {
+      return "Customer accepted another proposal version";
+    }
+    return "Customer accepted proposal";
+  }
   if (item.attentionType === "customer_question") {
     return "Customer asked a question";
   }
-  return `Customer requested ${item.request.packageLabel || "a package"}`;
+  return `Customer requested ${item.request?.packageLabel || "a package"}`;
 }
 
 export function summarizeActiveAttentionByJob(
@@ -190,23 +219,33 @@ export function parseJobAttentionDestination(
   const proposalId = String(record.proposal_id ?? "").trim();
   const proposalVersionId = String(record.proposal_version_id ?? "").trim();
   const requestId = String(record.request_id ?? "").trim();
-  if (
-    !isUuidLike(proposalId) ||
-    !isUuidLike(proposalVersionId) ||
-    !isUuidLike(requestId) ||
-    record.tab !== "proposals" ||
-    record.anchor !== "customer_request"
-  ) {
+  const acceptanceId = String(record.acceptance_id ?? "").trim();
+  if (!isUuidLike(proposalId) || !isUuidLike(proposalVersionId) || record.tab !== "proposals") {
     return null;
   }
-  return {
-    kind,
-    proposalId,
-    proposalVersionId,
-    requestId,
-    tab: "proposals",
-    anchor: "customer_request",
-  };
+  if (record.anchor === "customer_request" && isUuidLike(requestId)) {
+    return {
+      kind,
+      proposalId,
+      proposalVersionId,
+      requestId,
+      acceptanceId: null,
+      tab: "proposals",
+      anchor: "customer_request",
+    };
+  }
+  if (record.anchor === "acceptance_confirmation" && isUuidLike(acceptanceId)) {
+    return {
+      kind,
+      proposalId,
+      proposalVersionId,
+      requestId: null,
+      acceptanceId,
+      tab: "proposals",
+      anchor: "acceptance_confirmation",
+    };
+  }
+  return null;
 }
 
 export function buildJobCardAttentionHref(
@@ -230,8 +269,13 @@ export function buildJobCardProposalAttentionHref(
     job: jobId,
     tab: item.destination.tab,
     anchor: item.destination.anchor,
-    request: item.destination.requestId,
     proposal: item.destination.proposalId,
   });
+  if (item.destination.requestId) {
+    params.set("request", item.destination.requestId);
+  }
+  if (item.destination.acceptanceId) {
+    params.set("acceptance", item.destination.acceptanceId);
+  }
   return `/tools/roofing?${params.toString()}`;
 }

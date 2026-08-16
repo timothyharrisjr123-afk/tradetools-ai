@@ -19,6 +19,8 @@ type JobCardNextActionPanelProps = {
   onMarkSeen: (item: JobAttentionSafeItem) => Promise<void>;
   onDismiss: (item: JobAttentionSafeItem) => Promise<void>;
   onReviewProposal: (item: JobAttentionSafeItem) => void;
+  onConfirmAcceptance?: (item: JobAttentionSafeItem) => Promise<void>;
+  onAcknowledgeAcceptance?: (item: JobAttentionSafeItem) => Promise<void>;
 };
 
 const PRIMARY_BUTTON =
@@ -62,6 +64,8 @@ export default function JobCardNextActionPanel({
   onMarkSeen,
   onDismiss,
   onReviewProposal,
+  onConfirmAcceptance,
+  onAcknowledgeAcceptance,
 }: JobCardNextActionPanelProps) {
   const panelRef = useRef<HTMLElement>(null);
   const focusedAttentionRef = useRef<string | null>(null);
@@ -83,17 +87,30 @@ export default function JobCardNextActionPanel({
   if (!selectedItem) return null;
 
   const phone =
-    selectedItem.request.customerPhone?.trim() ||
+    selectedItem.request?.customerPhone?.trim() ||
     fallbackPhone?.trim() ||
     null;
   const email =
-    selectedItem.request.customerEmail?.trim() ||
+    selectedItem.request?.customerEmail?.trim() ||
+    selectedItem.acceptance?.acceptedByEmail?.trim() ||
     fallbackEmail?.trim() ||
     null;
   const phoneHref = normalizedContactHref("phone", phone);
   const emailHref = normalizedContactHref("email", email);
   const others = items.filter((item) => item.id !== selectedItem.id);
   const pending = pendingAttentionId === selectedItem.id;
+  const acceptanceAction = selectedItem.acceptance?.attentionAction ?? null;
+  const showApproveJob =
+    selectedItem.attentionType === "acceptance_confirmation_required" &&
+    acceptanceAction === "approve_job" &&
+    Boolean(onConfirmAcceptance);
+  const showAcknowledge =
+    selectedItem.attentionType === "acceptance_confirmation_required" &&
+    acceptanceAction === "acknowledge" &&
+    Boolean(onAcknowledgeAcceptance);
+  const showReviewAcceptedVersion =
+    selectedItem.attentionType === "acceptance_confirmation_required" &&
+    (showAcknowledge || selectedItem.acceptance?.reviewRequired === true);
 
   const openContact = async (href: string) => {
     await settleReadWithoutBlocking(onMarkRead(selectedItem.id));
@@ -126,28 +143,74 @@ export default function JobCardNextActionPanel({
           <p className="text-sm font-semibold text-slate-950">
             {attentionHeadline(selectedItem)}
           </p>
-          {selectedItem.request.messagePreview ? (
-            <p
-              className="mt-0.5 max-w-3xl text-xs leading-relaxed text-slate-700"
-              data-attention-message-preview
-            >
-              {selectedItem.request.messagePreview}
-            </p>
-          ) : null}
+          {(() => {
+            const preview =
+              selectedItem.attentionType === "acceptance_confirmation_required"
+                ? selectedItem.acceptance?.contractorReason
+                : selectedItem.request?.messagePreview;
+            return preview ? (
+              <p
+                className="mt-0.5 max-w-3xl text-xs leading-relaxed text-slate-700"
+                data-attention-message-preview
+              >
+                {preview}
+              </p>
+            ) : null;
+          })()}
         </div>
 
         <div
           className="flex w-full flex-wrap items-center gap-x-3 gap-y-1 sm:w-auto sm:justify-end"
           aria-busy={pending}
         >
-          <button
-            type="button"
-            className={PRIMARY_BUTTON}
-            data-attention-review
-            onClick={reviewProposal}
-          >
-            Review proposal
-          </button>
+          {showApproveJob ? (
+            <button
+              type="button"
+              className={PRIMARY_BUTTON}
+              data-attention-confirm-acceptance
+              disabled={pending}
+              onClick={() => {
+                void settleReadWithoutBlocking(onMarkRead(selectedItem.id))
+                  .then(() => onConfirmAcceptance?.(selectedItem))
+                  .catch(() => undefined);
+              }}
+            >
+              Approve job
+            </button>
+          ) : showAcknowledge ? (
+            <button
+              type="button"
+              className={PRIMARY_BUTTON}
+              data-attention-acknowledge-acceptance
+              disabled={pending}
+              onClick={() => {
+                void settleReadWithoutBlocking(onMarkRead(selectedItem.id))
+                  .then(() => onAcknowledgeAcceptance?.(selectedItem))
+                  .catch(() => undefined);
+              }}
+            >
+              Acknowledge
+            </button>
+          ) : (
+            <button
+              type="button"
+              className={PRIMARY_BUTTON}
+              data-attention-review
+              onClick={reviewProposal}
+            >
+              Review proposal
+            </button>
+          )}
+          {showReviewAcceptedVersion ? (
+            <button
+              type="button"
+              className={QUIET_BUTTON}
+              data-attention-review
+              onClick={reviewProposal}
+            >
+              Review accepted version
+            </button>
+          ) : null}
           {phoneHref && emailHref ? (
             <details className="relative" data-attention-contact>
               <summary className={`${QUIET_BUTTON} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}>
@@ -188,19 +251,21 @@ export default function JobCardNextActionPanel({
               Contact customer
             </button>
           ) : null}
-          <button
-            type="button"
-            className={QUIET_BUTTON}
-            disabled={pending}
-            data-attention-dismiss
-            onClick={() => {
-              void settleReadWithoutBlocking(onMarkRead(selectedItem.id))
-                .then(() => onDismiss(selectedItem))
-                .catch(() => undefined);
-            }}
-          >
-            Dismiss
-          </button>
+          {selectedItem.attentionType === "acceptance_confirmation_required" ? null : (
+            <button
+              type="button"
+              className={QUIET_BUTTON}
+              disabled={pending}
+              data-attention-dismiss
+              onClick={() => {
+                void settleReadWithoutBlocking(onMarkRead(selectedItem.id))
+                  .then(() => onDismiss(selectedItem))
+                  .catch(() => undefined);
+              }}
+            >
+              Dismiss
+            </button>
+          )}
         </div>
       </div>
 

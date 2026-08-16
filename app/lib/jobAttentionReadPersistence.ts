@@ -14,6 +14,11 @@ import {
   type JobAttentionPriorityItem,
   type JobAttentionSafeItem,
 } from "@/app/lib/jobAttentionReadModel";
+import {
+  formatProposalAcceptanceAttentionDetail,
+  resolveProposalAcceptanceAttentionAction,
+} from "@/app/lib/proposalAcceptanceTypes";
+import { resolveCanonicalJobStage } from "@/app/lib/jobLifecycleMapper";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export const JOB_ATTENTION_SUMMARY_PAGE_SIZE = 500;
@@ -26,6 +31,8 @@ const DETAIL_COLUMNS =
   "id,job_id,proposal_id,proposal_version_id,attention_type,source_type,source_id,status,base_severity,opened_at,acknowledged_at,destination_kind,destination_json";
 const REQUEST_COLUMNS =
   "id,intent,status,requested_option_label,message,customer_name,customer_email,customer_phone,proposal_id,proposal_version_id";
+const ACCEPTANCE_COLUMNS =
+  "id,proposal_id,proposal_version_id,accepted_option_label,accepted_total_cents,ambiguity_reason,accepted_at,accepted_by_name,accepted_by_email";
 const PERSONAL_STATE_COLUMNS =
   "attention_item_id,read_at,last_viewed_at";
 
@@ -59,6 +66,18 @@ type RequestRow = {
   customer_phone: string | null;
   proposal_id: string;
   proposal_version_id: string;
+};
+
+type AcceptanceRow = {
+  id: string;
+  proposal_id: string;
+  proposal_version_id: string;
+  accepted_option_label: string | null;
+  accepted_total_cents: number | null;
+  ambiguity_reason: string | null;
+  accepted_at: string | null;
+  accepted_by_name: string | null;
+  accepted_by_email: string | null;
 };
 
 type PersonalStateRow = {
@@ -205,11 +224,25 @@ export async function listActiveJobAttentionDetailWithClient(
 
   const { data: job, error: jobError } = await supabase
     .from("jobs")
-    .select("id")
+    .select("id,stage,status,archived,active_proposal_id,latest_proposal_id")
     .eq("company_id", input.companyId)
     .eq("id", input.jobId)
     .maybeSingle();
   if (jobError || !job) return { ok: false, error: "not_found" };
+
+  const jobRow = job as {
+    id: string;
+    stage: string | null;
+    status: string | null;
+    archived: boolean | null;
+    active_proposal_id: string | null;
+    latest_proposal_id: string | null;
+  };
+  const canonicalJobStage = resolveCanonicalJobStage(jobRow);
+  const acceptanceAction = resolveProposalAcceptanceAttentionAction({
+    canonicalJobStage,
+    jobDisposition: jobRow.status,
+  });
 
   let queryCount = 1;
   const { data: attentionData, error: attentionError } = await supabase
@@ -232,18 +265,41 @@ export async function listActiveJobAttentionDetailWithClient(
     return { ok: true, items: [], queryCount };
   }
 
-  const sourceIds = [...new Set(attentionRows.map((row) => row.source_id))];
+  const requestIds = [
+    ...new Set(
+      attentionRows
+        .filter((row) => row.source_type === "proposal_customer_requests")
+        .map((row) => row.source_id)
+    ),
+  ];
+  const acceptanceIds = [
+    ...new Set(
+      attentionRows
+        .filter((row) => row.source_type === "proposal_acceptances")
+        .map((row) => row.source_id)
+    ),
+  ];
   const attentionIds = [...new Set(attentionRows.map((row) => row.id))];
 
   const [
     { data: requestData, error: requestError },
+    { data: acceptanceData, error: acceptanceError },
     { data: personalData, error: personalError },
   ] = await Promise.all([
-    supabase
-      .from("proposal_customer_requests")
-      .select(REQUEST_COLUMNS)
-      .eq("company_id", input.companyId)
-      .in("id", sourceIds),
+    requestIds.length > 0
+      ? supabase
+          .from("proposal_customer_requests")
+          .select(REQUEST_COLUMNS)
+          .eq("company_id", input.companyId)
+          .in("id", requestIds)
+      : Promise.resolve({ data: [], error: null }),
+    acceptanceIds.length > 0
+      ? supabase
+          .from("proposal_acceptances")
+          .select(ACCEPTANCE_COLUMNS)
+          .eq("company_id", input.companyId)
+          .in("id", acceptanceIds)
+      : Promise.resolve({ data: [], error: null }),
     supabase
       .from("job_attention_user_state")
       .select(PERSONAL_STATE_COLUMNS)
@@ -251,10 +307,11 @@ export async function listActiveJobAttentionDetailWithClient(
       .eq("user_id", input.userId)
       .in("attention_item_id", attentionIds),
   ]);
-  queryCount += 2;
-  if (requestError || personalError) {
+  queryCount += 2 + (requestIds.length > 0 ? 1 : 0) + (acceptanceIds.length > 0 ? 1 : 0) - 1;
+  if (requestError || acceptanceError || personalError) {
     throw new JobAttentionReadError(
       requestError?.message ??
+        acceptanceError?.message ??
         personalError?.message ??
         "Unable to load attention context."
     );
@@ -262,6 +319,12 @@ export async function listActiveJobAttentionDetailWithClient(
 
   const requests = new Map(
     ((requestData ?? []) as unknown as RequestRow[]).map((row) => [row.id, row])
+  );
+  const acceptances = new Map(
+    ((acceptanceData ?? []) as unknown as AcceptanceRow[]).map((row) => [
+      row.id,
+      row,
+    ])
   );
   const personalStates = new Map(
     ((personalData ?? []) as unknown as PersonalStateRow[]).map((row) => [
@@ -273,15 +336,67 @@ export async function listActiveJobAttentionDetailWithClient(
   const items: JobAttentionSafeItem[] = [];
   for (const row of attentionRows) {
     const priority = parseSummaryRow(row);
-    const request = requests.get(row.source_id);
-    const intent = requestIntent(request?.intent);
-    const sourceStatus = requestStatus(request?.status);
     const destination = parseJobAttentionDestination(
       row.destination_kind,
       row.destination_json
     );
+    if (!priority || !destination || !isUuidLike(row.source_id)) continue;
+
+    const personal = personalStates.get(row.id);
+
+    if (row.source_type === "proposal_acceptances") {
+      const acceptance = acceptances.get(row.source_id);
+      if (
+        !acceptance ||
+        priority.attentionType !== "acceptance_confirmation_required" ||
+        acceptance.proposal_id !== row.proposal_id ||
+        acceptance.proposal_version_id !== row.proposal_version_id ||
+        destination.acceptanceId !== row.source_id
+      ) {
+        continue;
+      }
+      const contractorReason = formatProposalAcceptanceAttentionDetail({
+        ambiguityReason: acceptance.ambiguity_reason,
+        packageLabel: acceptance.accepted_option_label,
+        acceptedTotalCents: acceptance.accepted_total_cents,
+        acceptedAt: acceptance.accepted_at,
+        attentionAction: acceptanceAction,
+      });
+      items.push({
+        ...priority,
+        proposalId: row.proposal_id,
+        proposalVersionId: row.proposal_version_id,
+        sourceType: "proposal_acceptances",
+        sourceId: row.source_id,
+        acknowledgedAt: row.acknowledged_at,
+        destination,
+        request: null,
+        acceptance: {
+          acceptanceId: acceptance.id,
+          packageLabel: normalizeAttentionMessage(acceptance.accepted_option_label),
+          acceptedTotalCents: Number.isInteger(acceptance.accepted_total_cents)
+            ? acceptance.accepted_total_cents
+            : null,
+          ambiguityReason: normalizeAttentionMessage(acceptance.ambiguity_reason),
+          contractorReason,
+          reviewRequired: Boolean(
+            normalizeAttentionMessage(acceptance.ambiguity_reason)
+          ),
+          attentionAction: acceptanceAction,
+          acceptedAt: acceptance.accepted_at,
+          acceptedByName: normalizeAttentionMessage(acceptance.accepted_by_name),
+          acceptedByEmail: normalizeAttentionMessage(acceptance.accepted_by_email),
+        },
+        personalReadAt: personal?.read_at ?? null,
+        personalLastViewedAt: personal?.last_viewed_at ?? null,
+      });
+      continue;
+    }
+
+    const request = requests.get(row.source_id);
+    const intent = requestIntent(request?.intent);
+    const sourceStatus = requestStatus(request?.status);
     if (
-      !priority ||
       !request ||
       !intent ||
       !sourceStatus ||
@@ -293,17 +408,14 @@ export async function listActiveJobAttentionDetailWithClient(
       (intent !== "request_package" &&
         priority.attentionType !== "customer_question") ||
       row.source_type !== "proposal_customer_requests" ||
-      !isUuidLike(row.source_id) ||
       request.id !== row.source_id ||
       request.proposal_id !== row.proposal_id ||
       request.proposal_version_id !== row.proposal_version_id ||
-      !destination ||
       destination.requestId !== row.source_id
     ) {
       continue;
     }
 
-    const personal = personalStates.get(row.id);
     items.push({
       ...priority,
       proposalId: row.proposal_id,
@@ -323,6 +435,7 @@ export async function listActiveJobAttentionDetailWithClient(
         customerEmail: normalizeAttentionMessage(request.customer_email),
         customerPhone: normalizeAttentionMessage(request.customer_phone),
       },
+      acceptance: null,
       personalReadAt: personal?.read_at ?? null,
       personalLastViewedAt: personal?.last_viewed_at ?? null,
     });

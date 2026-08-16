@@ -40,6 +40,7 @@ describe("R3B4A TypeScript contracts", () => {
     assert.deepEqual(JOB_ATTENTION_TYPES, [
       "customer_package_request",
       "customer_question",
+      "acceptance_confirmation_required",
     ]);
     assert.deepEqual(JOB_ATTENTION_STATUSES, [
       "open",

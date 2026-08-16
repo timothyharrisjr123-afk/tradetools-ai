@@ -226,6 +226,7 @@ const ATTENTION_ITEM: JobAttentionSafeItem = {
     proposalId: PROPOSAL,
     proposalVersionId: SENT_A,
     requestId: REQUEST,
+    acceptanceId: null,
     tab: "proposals",
     anchor: "customer_request",
   },
@@ -240,6 +241,7 @@ const ATTENTION_ITEM: JobAttentionSafeItem = {
     customerEmail: "jordan@example.com",
     customerPhone: "918-555-0140",
   },
+  acceptance: null,
   personalReadAt: null,
   personalLastViewedAt: null,
 };

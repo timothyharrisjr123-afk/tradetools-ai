@@ -36,6 +36,7 @@ export type ComposeJobActivityInput = {
   proposals?: readonly ProposalRecordStatusSummary[];
   sentFactsByProposalId?: JobCardProposalSentFactsById;
   customerRequestItems?: readonly JobCardActivityItem[];
+  acceptanceItems?: readonly JobCardActivityItem[];
 };
 
 function parseTs(iso: string | null | undefined): number {
@@ -120,13 +121,16 @@ export function composeJobActivityItems(
       const fromLabel = stageLabelFromPayload(payload, "from_stage") ?? "prior stage";
       const toLabel = stageLabelFromPayload(payload, "to_stage") ?? "next stage";
       const reason = payloadString(payload, "reason");
+      const note =
+        reason === "first_proposal_created"
+          ? "First proposal created"
+          : reason === "contractor_approved"
+            ? "Contractor approved job"
+            : `From ${fromLabel}`;
       push(
         {
           label: `Moved to ${toLabel}`,
-          note:
-            reason === "first_proposal_created"
-              ? "First proposal created"
-              : `From ${fromLabel}`,
+          note,
         },
         event.occurred_at
       );
@@ -194,6 +198,10 @@ export function composeJobActivityItems(
 
   for (const request of input.customerRequestItems ?? []) {
     push(request, null);
+  }
+
+  for (const acceptance of input.acceptanceItems ?? []) {
+    push(acceptance, null);
   }
 
   return items

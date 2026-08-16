@@ -131,6 +131,11 @@ export type ProposalCustomerPacketContactViewModel = {
   address: string | null;
 };
 
+export type ProposalCustomerPacketAcceptanceViewModel = {
+  status: "open" | "accepted";
+  acceptedOnLabel: string | null;
+};
+
 export type ProposalCustomerPacketViewModel = {
   cover: ProposalCustomerPacketCoverViewModel;
   estimate: ProposalCustomerPacketEstimateViewModel | null;
@@ -139,6 +144,7 @@ export type ProposalCustomerPacketViewModel = {
   details: ProposalCustomerPacketDetailsViewModel | null;
   contact: ProposalCustomerPacketContactViewModel | null;
   footerMetadata: ProposalCustomerPacketFooterMetadataViewModel | null;
+  acceptance: ProposalCustomerPacketAcceptanceViewModel;
 };
 
 export const PROPOSAL_CUSTOMER_PACKET_PROPOSAL_LABEL = "Your roofing proposal";
@@ -224,11 +230,45 @@ export const PROPOSAL_CUSTOMER_PACKET_SUPPORT_MESSAGE =
 
 /**
  * Soft customer package interest CTAs.
- * Architecture remains interest-only (not accept / approve / sign / pay).
+ * Request remains interest-only (not accept / approve / sign / pay).
  */
 export const PROPOSAL_CUSTOMER_PACKET_REQUEST_PACKAGE_CTA = "Request this package";
 
 export const PROPOSAL_CUSTOMER_PACKET_ASK_QUESTION_CTA = "Ask a question";
+
+/** R3C — explicit formal acceptance. Distinct from Request this package. */
+export const PROPOSAL_CUSTOMER_PACKET_ACCEPT_PROPOSAL_CTA = "Accept proposal";
+
+export const PROPOSAL_CUSTOMER_PACKET_ACCEPT_MODAL_TITLE = "Accept this proposal?";
+
+export const PROPOSAL_CUSTOMER_PACKET_ACCEPT_MODAL_ACK =
+  "You are accepting this proposal as shown, including the selected package and total.";
+
+export const PROPOSAL_CUSTOMER_PACKET_ACCEPT_SUCCESS_TITLE = "Proposal accepted";
+
+export const PROPOSAL_CUSTOMER_PACKET_ACCEPT_SUCCESS_NEXT =
+  "The contractor has your acceptance.";
+
+export function formatProposalCustomerAcceptedOnLabel(
+  acceptedAt: string | null | undefined
+): string | null {
+  const raw = (acceptedAt ?? "").trim();
+  if (!raw) return null;
+  const ms = Date.parse(raw);
+  if (!Number.isFinite(ms)) return null;
+  return new Date(ms).toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
+
+export function formatProposalCustomerAcceptedOnSentence(
+  acceptedOnLabel: string | null | undefined
+): string {
+  const label = (acceptedOnLabel ?? "").trim();
+  return label ? `Accepted on ${label}` : "Proposal accepted";
+}
 
 export const PROPOSAL_CUSTOMER_PACKET_DISCUSS_OPTIONS_CTA = "Discuss package options";
 
