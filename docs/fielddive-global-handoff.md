@@ -42,12 +42,14 @@
 - Read **§6BM** before any R18 implementation — **R18A public proposal architecture plan** (immutable sent snapshot first; Send/PDF/Sign/Payment remain phased/disabled; **read-only public route exists** at §6BN.11). **R18B4D send-freeze smoke PASS** documented at **§6BM.13**.
 - Read **§6BN** before R18 public proposal work — **R18D3C contractor delivery status/history UI complete + browser smoke PASS** at **`e17eab5`** (§6BN.20); **R18D3B proposal send email template polish complete + Gmail-approved** at **`20a239d`** (§6BN.19); **R18D3B real proposal email send orchestration complete + live-smoked** at **`e7cdc51`** (§6BN.18); **optional-upgrade Builder readiness fix** at **`79e4c4f`** (§6BN.18.8); **R18D3A delivery attempt foundation complete** at **`57786ca`** (§6BN.17); **R18D2 contractor Preview customer send link prep complete** at **`845e8d5`** (§6BN.15); **R18D1 contractor Preview Send gate readiness complete** at **`304ed0f`** (§6BN.13); **R18C4C contractor Preview public review link panel complete** at **`bab25c8`** (§6BN.12); **R18C4B public proposal route + customer shell complete** at **`265d8f6`** (§6BN.11); **R18C4A orchestrator + view model complete** at **`8523812`** (§6BN.10).
 - Read **§6BO** for **completed** public proposal packet + Stage A/B truth-pipeline **remediation side-track** (`4402821`, `99de56b`, `d3e2d13`, `10a1971`, `ee643d0`, §6BO.7 smoke PASS), **§6BO.11** for **approved Stage C token supersession / stale-link policy**, **§6BO.12** for **operating-flow audit sequencing** (complete — outcome recorded in **§6BO.13**), and **§6BO.13** for **approved page-by-page UI flow roadmap + P0 implementation sequence** — **§6BO.13 supersedes** any earlier separate Command Center language; recover next step from **§6BO.13** / **§11 override** (§6BO.0 for R18 letter-phase history only).
-- Read **§6BO.13.4.9 R3** before any customer proposal packet, package-request, contractor request-review, attention, accept/pay/schedule, Jobs Board attention, Builder, Preview, Send, or Public work after R3A0/R3A/R3B/R3B4 / Proposal Flow V2A–V2E6 — customer request is attention-only, not lifecycle. **V2B is frozen at `f339652`.** **V2C is frozen at `521c148`.** **V2D is frozen at `2a2dc69`.** **V2E1 is frozen at `6276cf3`.** **V2E2 is frozen at `58839e4`.** **V2E3–V2E6 Templates completion is frozen at `9d61e41`.** **V2F is partially complete at `5e81a4d`** (derived lifecycle, dirty truth, compact Attention, sent-record Preview) — **remaining V2F + V2G before R3C** (customer package-comparison preference deferred to **V2G**). **Do not skip to R3B4C or R3C–R3F before Proposal Flow V2 completes (V2F remaining + V2G).**
+- Read **§6BO.13.4.9 R3** before any customer proposal packet, package-request, contractor request-review, attention, accept/pay/schedule, Jobs Board attention, Builder, Preview, Send, or Public work after R3A0/R3A/R3B/R3B4 / Proposal Flow V2A–V2E6 — customer request is attention-only, not lifecycle. **V2B is frozen at `f339652`.** **V2C is frozen at `521c148`.** **V2D is frozen at `2a2dc69`.** **V2E1 is frozen at `6276cf3`.** **V2E2 is frozen at `58839e4`.** **V2E3–V2E6 Templates completion is frozen at `9d61e41`.** **V2F is COMPLETE at `c54fc0a`** (revision lifecycle, Stage C4 app cutover, runtime change summary, sent-record/history truth, final visual review) — **V2G next before R3C** (customer package-comparison preference deferred to **V2G**). **Do not skip to R3B4C or R3C–R3F before Proposal Flow V2 completes (V2G).**
 - Read **§6BP** before any Job stage / Jobs Board lane / disposition / lifecycle foundation / `jobs.stage` write / Time in stage / durable Activity architecture work — **approved product/architecture plan only; not implemented**.
 
 **Last updated checkpoint:**
 
-- **Code checkpoint:** **`5e81a4d`** — `feat(proposals): add revision state and sent record review` (Proposal Flow **V2F PARTIALLY COMPLETE** — derived Draft/Sent/Revision in progress, full-draft dirty truth, Job Card lifecycle row, compact Attention, immutable sent-record contractor Preview).
+- **Code checkpoint:** **`c54fc0a`** — `feat(proposals): complete proposal revision lifecycle` (Proposal Flow **V2F COMPLETE** — revision resend, Phase-B C4 dedicated email-send caller, runtime change summary, exact sent-record/history truth, Send revision UX, final visual review).
+- **Previous code checkpoint:** **`8bdb046`** — `feat(proposals): add public link supersession foundation` (Stage C4 migration **`20260815_037`** — token category + combined email-send supersede RPC; live on **`rhquhnujjnzjhweypavd`**).
+- **V2F partial foundation:** **`5e81a4d`** — `feat(proposals): add revision state and sent record review` (derived lifecycle, dirty truth, Job Card lifecycle row, compact Attention, immutable sent-record Preview — superseded by **`c54fc0a`** completion wave).
 - **Previous code checkpoint:** **`9d61e41`** — `feat(proposals): complete reusable proposal templates flow` (Proposal Flow **V2E3–V2E6 COMPLETE / FROZEN**).
 - **V2E2 freeze:** **`58839e4`** — `feat(proposals): add package composition intelligence` (**V2E2** package composition intelligence).
 - **V2E1 freeze:** **`6276cf3`** — `fix(proposals): isolate drafts from template changes`.
@@ -57,19 +59,19 @@
 - **V2A code:** **`589c15c`** — `feat(proposals): simplify job card proposal preparation`.
 - **Prior locked attention code:** **`1d34bad`** (R3B4B); **`246eec4`** (R3B4A).
 - **Prior locked code (R3 request loop):** **`73bfc4a`** (R3B3 history/non-binding copy correction); **`ed50768`** (R3B3 review); **`de61b35`** (R3B1/R3B2); **`4ef778d`** (R3A); **`7eeed34`** (R3A0).
-- **Docs checkpoint:** **Pending this docs commit** — records approved Job lifecycle / stage model (**§6BP**) + V2F partial progress.
-- **Prior docs checkpoint:** **`80ae9ee`** — `docs: checkpoint reusable proposal templates completion`.
-- **Earlier docs checkpoint:** **`88cbc5e`** — `docs: checkpoint proposal flow v2 package composition`.
-- **Working tree:** Code committed at **`5e81a4d`**; this pass is **docs only** (`docs/fielddive-global-handoff.md`). Only `?? tmp/` expected otherwise. No app/test/migration/package changes.
+- **Docs checkpoint:** **Pending this docs commit** — records V2F **COMPLETE** at **`c54fc0a`**, Stage C4 truth, Phase-B app cutover, revision/sent-record architecture, and **V2G** as next.
+- **Prior docs checkpoint:** **`04f5290`** — `docs: lock job lifecycle stage architecture` (**§6BP** — approved plan only; **not implemented**).
+- **Earlier docs checkpoint:** **`80ae9ee`** — `docs: checkpoint reusable proposal templates completion`.
+- **Working tree:** Code committed at **`c54fc0a`**; this pass is **docs only** (`docs/fielddive-global-handoff.md`). Only `?? tmp/` expected otherwise. No app/test/migration/package changes.
 - **Push state:** Local only / not pushed.
-- **Accepted:** **Proposal Flow V2A** (Job Card Prepare proposal) + **Proposal Flow V2B** (Builder frozen at **`f339652`**) + **Proposal Flow V2C** (Preview/Send frozen at **`521c148`**) + **Proposal Flow V2D** (Public frozen at **`2a2dc69`**) + **Proposal Flow V2E1** (Template→draft isolation frozen at **`6276cf3`**) + **Proposal Flow V2E2** (package composition intelligence frozen at **`58839e4`**) + **Proposal Flow V2E3–V2E6** (reusable proposal Templates completion frozen at **`9d61e41`**) on top of accepted **R3A0 / R3A / R3B / R3B4A / R3B4B**. See **§6BO.13.4.9 R3**. Prior **T.9 Visual Polish V1**, **R2B / R2A / R1 / Template Setup Authorship V1 / Optional Upgrade Truth** remain accepted and must not be reopened.
-- **Next:** **Finish V2F remaining** (revision resend / customer-link supersession dependency, change summary, final V2F audit). Then **V2G — final Proposal V2 integration / Public package-comparison preference**. **No `jobs.stage` writes** until Job Lifecycle Foundation (**§6BP**). Customer package-comparison preference (`show_customer_package_comparison`) remains **deferred to V2G**. **Stage C4 is not complete.** Do **not** reopen frozen V2E3–V2E6 Templates freeze, frozen V2E2 composition architecture, frozen V2E1 isolation, frozen Builder V2B, frozen Preview/Send V2C, or frozen Public V2D except a proven correctness regression, security/truth defect, or issue explicitly approved as a cross-surface requirement. Do **not** skip into **R3B4C** Command Center attention queue, **R3B4D** notifications/outbox, **R3B4E** additional producers, or **R3C–R3F** formal acceptance / signatures / deposit / scheduling before Proposal Flow V2 completes (V2F remaining + V2G) and Job Lifecycle Foundation lands (**§6BP**). Do **not** treat attention as a task, stage move, acceptance, package apply, or Jobs Board lifecycle change. Do **not** reopen R3A0/R3A wording ownership, R3B request≠accept semantics, R3B4 attention/lifecycle separation, T.9 Visual Polish V1, Optional Upgrade Truth, package-description SoT, or R1/R2A/R2B. Do **not** invent/hide Premium Public totals — composition truth is V2E2-owned; reusable Templates presentation/packet/create freeze is V2E3–V2E6-owned. Instant Quote and FieldDive Copilot are **not implemented**.
+- **Accepted:** **Proposal Flow V2A** (Job Card Prepare proposal) + **Proposal Flow V2B** (Builder frozen at **`f339652`**) + **Proposal Flow V2C** (Preview/Send frozen at **`521c148`**) + **Proposal Flow V2D** (Public frozen at **`2a2dc69`**) + **Proposal Flow V2E1** (Template→draft isolation frozen at **`6276cf3`**) + **Proposal Flow V2E2** (package composition intelligence frozen at **`58839e4`**) + **Proposal Flow V2E3–V2E6** (reusable proposal Templates completion frozen at **`9d61e41`**) + **Proposal Flow V2F** (revision lifecycle complete at **`c54fc0a`**) on top of accepted **R3A0 / R3A / R3B / R3B4A / R3B4B**. See **§6BO.13.4.9 R3**. Prior **T.9 Visual Polish V1**, **R2B / R2A / R1 / Template Setup Authorship V1 / Optional Upgrade Truth** remain accepted and must not be reopened.
+- **Next:** **V2G — final Proposal V2 integration / Public package-comparison preference** (`show_customer_package_comparison`). Then **Job Lifecycle Foundation** (**§6BP**) before **R3C**. **No `jobs.stage` writes** until Job Lifecycle Foundation. Customer package-comparison preference remains **deferred to V2G**. **Stage C4 DB foundation complete at `8bdb046`; Phase-B app cutover complete at `c54fc0a`.** **Migration 038 is NOT authored or applied** — Phase C generic-mint hardening must wait until new app caller is deployed and old production instances are drained. Do **not** reopen frozen V2E3–V2E6 Templates freeze, frozen V2E2 composition architecture, frozen V2E1 isolation, frozen Builder V2B, frozen Preview/Send V2C, or frozen Public V2D except a proven correctness regression, security/truth defect, or issue explicitly approved as a cross-surface requirement. Do **not** skip into **R3B4C** Command Center attention queue, **R3B4D** notifications/outbox, **R3B4E** additional producers, or **R3C–R3F** formal acceptance / signatures / deposit / scheduling before **V2G** complete and Job Lifecycle Foundation lands (**§6BP**). Do **not** treat attention as a task, stage move, acceptance, package apply, or Jobs Board lifecycle change. Do **not** reopen R3A0/R3A wording ownership, R3B request≠accept semantics, R3B4 attention/lifecycle separation, T.9 Visual Polish V1, Optional Upgrade Truth, package-description SoT, or R1/R2A/R2B. Do **not** invent/hide Premium Public totals — composition truth is V2E2-owned; reusable Templates presentation/packet/create freeze is V2E3–V2E6-owned. Instant Quote and FieldDive Copilot are **not implemented**.
 - **Job lifecycle model (approved plan — not implemented):** See **§6BP**. Canonical six stages: Intake → Proposal → Approved → Scheduled → Production → Complete. Job stage, proposal state, financial state, Attention, Activity, Tasks, disposition, and archived visibility remain **separate concepts**. Foundation before R3C; no competing stage/status systems.
 - **Product model (locked):** **Templates** = FieldDive **prepared-setup command surface** for reusable setups and package options — **not** an admin table, stacked setup console, or bolted-on CRUD panel. Hierarchy: **prepared setup first** → **guided creation when needed** → **contextual adjust second** → **Advanced third**. **+ Template** = 3-step guided create (**Basics → Packages → Review & create**; One / Two / Three / Custom package models). **Templates → Adjust packages** = post-create package-option management (Copy existing default, Start blank shell, reorder, remove from setup, set starting package / R1 `is_default`) — **does not create new templates**. **Templates library lifecycle (R2A)** = archive/restore reusable setups (`proposal_templates.status` + synced `active`); **not** package-option soft-remove. **Preferred setup (R2B)** = which reusable setup FieldDive suggests first for a company workflow (`company_template_preferences`; initial scope `roofing` / `proposal` / `preferred_setup`); **separate from** package-option `is_default` (UI may say **Starting package**). **Templates Proposal packet wording (R3A / V2E5)** = landing **Proposal packet → Edit customer wording** is the normal reusable wording owner; setup-owned defaults copy into proposal pages; Advanced Content tab was removed as a duplicate write path; **Builder** owns proposal-specific wording after create; **Preview** renders **current draft** customer-document truth for contractor review/send; **Public** resolves **frozen sent** version via public token (no template save-back). **Public packet (R3A0)** = FieldDive customer-facing proposal structure with request/ask CTAs (base template accepted, not final design). **Customer package request (R3B)** = non-binding contractor-attention signal (`proposal_customer_requests`); **not** accept / approve / sign / pay / schedule / Jobs Board stage move. **Attention (R3B4)** = durable company operational condition (`job_attention_items`) with separate personal read (`job_attention_user_state`); surfaced on Jobs Board + Job Card next-action; **not** a task, stage, or lifecycle mutation. **Job Card** = select **preferred** eligible setup first when set, else starter / first active eligible; then select one package option only when 2+ active options (R1 default/sort); top next-action surface is canonical for attention actions; **Prepare proposal** is the compact V2A launchpad (Measurement / reusable setup / Starting package → **Create proposal**); Proposals tab is contextual/read-only for requests; Activity retains history. **Builder** = document-first job-specific draft preparation after create (draft `proposal_options` truth, not live template options); **requires `job` + `proposal`**; healthy Builder is quiet; **Customer review** is the primary CTA; compact request banner only when a request is active; job-only setup-preview is retired. **Preview** = contractor review/send surface over **current draft** document; quiet when healthy; primary **Send**; request awareness only (Mark seen/Dismiss stay Job Card). **Public** = customer frozen/sent version. Correct flow: **Job Card → Prepare proposal → Builder → Customer review / Preview → Send → customer frozen/public version**; customer may **Request this package** (non-binding) → attention opens → contractor discovers via Jobs Board / Job Card next-action → **review / mark seen / dismiss**.
 - **Historical note (Preview + Send pre-V2C):** Checkpoint **`8bb19b4`** / docs **`86739d0`** unify the contractor Preview header, readiness, actions, and customer proposal into one surface; elevate the customer packet; and rework Send/sharing into a premium delivery composer. Superseded for current Preview/Send resume by **V2C frozen at `521c148`**.
 - **Historical note (Builder continuity):** Checkpoint **`a49b346`** aligns Builder with that Preview direction as contractor edit/review mode: premium command header; integrated section navigation (not a boxed tray); selected Enhanced package card with Change package vs Edit scope clarified; estimate + totals on one surface; cleaned row actions + preserved inline Edit qty; Edit scope drawer as contractor quantity review with accordion open/switch/collapse; intentional removed-lines collapsible. Protected systems untouched. Superseded for Builder resume by **V2B frozen at `f339652`**.
 
-**Trust order:** Header/current checkpoint → **§6BO.13.4.9 R3** (accepted R3A0/R3A/R3B + **R3B4A/R3B4B attention** + **Proposal Flow V2A complete / V2B frozen at `f339652` / V2C frozen at `521c148` / V2D frozen at `2a2dc69` / V2E1 frozen at `6276cf3` / V2E2 frozen at `58839e4` / V2E3–V2E6 frozen at `9d61e41` / V2F partial at `5e81a4d` / V2F remaining + V2G next**) → **§6BP** (approved Job lifecycle / stage model — plan only, not implemented) → **§6BO.13.4.9 T.9 Visual Polish V1** (accepted Templates prepared-setup command surface polish) → **§6BO.13.4.9 T.9 R2B** (accepted R2B preferred setup workflow) → **§6BO.13.4.9 T.9 R2A** (accepted R2A template archive/restore) → **§6BO.13.4.9 T.9 R1** (accepted R1 package-option structure authorship + soft-remove) → **§6BO.13.4.9 T.9** (accepted Template Setup Authorship V1 + package description SoT through freeze/public + remaining Templates roadmap follow-ups) → **§6BO.13.4.9 T.8** (accepted Optional Upgrade Truth + live repair/freeze/public proof) → **§6BO.13.4.9 T.7** (Template Flow V1 foundation + Job Card selected-template eligibility) → **§6BO.13** (approved page-by-page UI flow roadmap + P0 implementation sequence — **supersedes separate Command Center language**) → **§6BM** / **§6BN** (R18 letter-phase roadmap + R18C–R18D3C implementation history) → **§6BO** / **§6BO.11** / **§6BO.12** (completed remediation side-track + **approved Stage C policy** + **operating-flow audit sequencing — complete; outcome in §6BO.13**) → **§6BL** → **§11 override**. Authorship V1 send/freeze smoke used real **`/api/proposals/send-prep`**; Optional Upgrade Truth freeze/public smoke used local-only **`USE_PROPOSAL_SEND_FREEZE_RPC=1`** in `.env.local` (gitignored, not committed). **Do not proceed** to docs-only or next feature work unless working tree is clean. **Still do not** mutate existing sent/signed/superseded snapshots, move Jobs Board cards from attention, treat request/attention as acceptance, enable PDF/Sign/Payment, or add webhooks unless separately approved. **Do not skip remaining Proposal Flow V2 (V2F–V2G)** to jump into R3B4C or R3C–R3F. **Do not reopen frozen V2E3–V2E6 Templates freeze, frozen V2E2 composition, frozen V2E1 isolation, frozen Builder V2B, frozen Preview/Send V2C, or frozen Public V2D during V2F.**
+**Trust order:** Header/current checkpoint → **§6BO.13.4.9 R3** (accepted R3A0/R3A/R3B + **R3B4A/R3B4B attention** + **Proposal Flow V2A complete / V2B frozen at `f339652` / V2C frozen at `521c148` / V2D frozen at `2a2dc69` / V2E1 frozen at `6276cf3` / V2E2 frozen at `58839e4` / V2E3–V2E6 frozen at `9d61e41` / V2F COMPLETE at `c54fc0a` / V2G next**) → **§6BP** (approved Job lifecycle / stage model — plan only, not implemented) → **§6BO.13.4.9 T.9 Visual Polish V1** (accepted Templates prepared-setup command surface polish) → **§6BO.13.4.9 T.9 R2B** (accepted R2B preferred setup workflow) → **§6BO.13.4.9 T.9 R2A** (accepted R2A template archive/restore) → **§6BO.13.4.9 T.9 R1** (accepted R1 package-option structure authorship + soft-remove) → **§6BO.13.4.9 T.9** (accepted Template Setup Authorship V1 + package description SoT through freeze/public + remaining Templates roadmap follow-ups) → **§6BO.13.4.9 T.8** (accepted Optional Upgrade Truth + live repair/freeze/public proof) → **§6BO.13.4.9 T.7** (Template Flow V1 foundation + Job Card selected-template eligibility) → **§6BO.13** (approved page-by-page UI flow roadmap + P0 implementation sequence — **supersedes separate Command Center language**) → **§6BM** / **§6BN** (R18 letter-phase roadmap + R18C–R18D3C implementation history) → **§6BO** / **§6BO.11** / **§6BO.12** (completed remediation side-track + **approved Stage C policy** + **operating-flow audit sequencing — complete; outcome in §6BO.13**) → **§6BL** → **§11 override**. Authorship V1 send/freeze smoke used real **`/api/proposals/send-prep`**; Optional Upgrade Truth freeze/public smoke used local-only **`USE_PROPOSAL_SEND_FREEZE_RPC=1`** in `.env.local` (gitignored, not committed). **Do not proceed** to docs-only or next feature work unless working tree is clean. **Still do not** mutate existing sent/signed/superseded snapshots, move Jobs Board cards from attention, treat request/attention as acceptance, enable PDF/Sign/Payment, or add webhooks unless separately approved. **Do not skip V2G** to jump into R3B4C or R3C–R3F. **Do not reopen frozen V2E3–V2E6 Templates freeze, frozen V2E2 composition, frozen V2E1 isolation, frozen Builder V2B, frozen Preview/Send V2C, frozen Public V2D, or frozen V2F at `c54fc0a`.**
 
 **DB-first foundation is live** (§6AD). **3J3E option selection persists** (§6AE). **Pricing trust hardening complete** (§6AF). **3J4C document-first Builder complete** (§6AG) — Estimate page renders the actual proposal document inline (package selector, sections, line items, totals); right rail is a contextual **Proposal Helper** inspector; old workspace tabs and Overview panel **removed**. **R16A** (§6AX) removed the amber **Preview-unlock blocker banner** from the Estimate **canvas**; pricing/blocking guidance remains in the rail. **3J4D** refined Estimate line readability (§6AH). **3J4E** refined package/options surface inside Estimate (§6AI). **3J4F** extended Builder to customer-facing text pages — Terms, Warranty, Project Overview, custom_text render persisted `body_markdown` when present (§6AJ). **R14** adds display-time `{{token_name}}` merge on those text pages from frozen `proposalDocumentContext` + R13 resolver (`f359ad4`, §6AW) — stored `body_markdown` unchanged; no write-back. **R4–R6** template content editor on `/tools/roofing/templates` **complete** (`9db2030`–`3c6214c`). **R7** light global IA nav **complete** (`05b9c54`). **R8** light Jobs Board identity **complete** (`1191ddd`). **R9** Job Card create/open draft flow **satisfied** (`1915b2d` + pre-R10 P1 at `d0ba188`). **R10** template structure + estimate settings **complete** (`bc42b1e`–`b3dd904`, §6AQ). **R11** company branding Settings **complete** (`0146dac`–`139e8a3`, §6AR). **R11c** stamps company core + branding into `proposal_versions.context_echo` at new draft create only (`29722a0`, §6AS) — **no Builder cover UI**. **R12** stamps DB-truth customer identity into `proposal_versions.context_echo` at new draft create only (`31059e3`, §6AT) — **no Job Card UI changes, no Builder customer display**. **R13** adds pure frozen document token foundation (`e40db30`, §6AU) — registry, `ProposalDocumentContext`, resolver. **R15** adds read-only branded **Cover** tab in Proposal Builder (`ab5a400`, §6AV) — consumes `proposalDocumentContext` + resolver; **not** Preview/PDF/send/sign/payment. **R14** wires body text pages to the same frozen context at display time (`f359ad4`, §6AW). **R16A** separates contractor workspace chrome from customer document IA (`18cebca`, §6AX) — customer-logical page strip order, workspace header, simplified body shell; **not** Preview/PDF/lifecycle/hub. **R16B** adds per-proposal draft body authoring for text pages (`589f5a0`, §6AY) — raw `body_markdown` persist, R14 display merge only, Estimate line-items-only de-duplication on persisted path; **not** token picker, page visibility, media, Preview, or lifecycle. **R16C1** adds Builder strip overflow page navigation (`967f0de`, §6BA) — More pages menu for persisted overflow pages by `page.id`, dirty-edit guard preserved, portal menu fix; **not** page visibility, Preview, or lifecycle. **R16C2** adds registry-driven document token picker in the R16B editor (`0cf76d2`, §6BB) — Insert field menu inserts raw `{{token_name}}` only; R14 display-time merge unchanged; save persists raw `body_markdown` only; **not** page visibility, Preview, or lifecycle. **R16C3** adds DB-backed proposal page visibility hide-show foundation (`25f1375`, §6BC) — toggles existing `proposal_pages.visible_to_customer` via `updateDraftProposalPageVisibility`; hidden pages remain contractor-visible and editable in Builder; Cover/Estimate required; `getCustomerPreviewPages` R17 contract helper only; **not** Preview, customer route, PDF, or lifecycle. **R17A/R17B** adds authenticated contractor Customer Preview foundation (`8ac2bcb`, §6BE) — pure `proposalCustomerPreviewViewModel` + `/tools/roofing/proposals/preview?job=&proposal=` route; header Preview enabled when persisted draft loads; dirty-edit guard before Preview navigation; **not** public/tokenized customer access, PDF, Send, Sign, Payment, or lifecycle. **R17C1** adds Preview Estimate document presentation layer (`9c2244a`, §6BF) — pure `proposalCustomerEstimatePresenter` + Preview-only estimate UI; shared `proposalPackagePresentation`; Preview Estimate no longer imports Builder workbench table components; **not** R17C2 Builder workbench hierarchy (now complete at `3e65774`, §6BG), R17C3 typography polish, R18, PDF, Send, Sign, Payment, or lifecycle. **R17C2 Phase 1** adds pure Builder workbench estimate presenter (`3c04322`, §6BG) — `proposalBuilderWorkbenchEstimatePresenter` DTO only; no UI. **R17C2 Phase 2** adds zoned Builder Estimate workbench UI + scope review / hard blocker split + gated Edit Option shell (`3e65774`, §6BG) — **not** R17D scope decision backend, R17C3 typography, R18, PDF, Send, Sign, Payment, or lifecycle. **R17D Phase 1** adds persisted scope decision overlay + merge-on-refresh foundation (`43c83a2`, §6BH) — `proposal_option_scope_decisions` migration (`20260618_009`); **`manual_quantity` proven in tests**; zero-decision refresh unchanged; migration **appears applied** on configured project per §6BI. **R17D Phase 2** adds manual quantity UI/API — first real Edit Option action wired in Builder (`f5712ff`, §6BI); **`manual_quantity` only**; other Edit Option actions remain disabled; **full post-Phase-2 audit passed** (§6BI); **not** R17C3 typography, R18, PDF, Send, Sign, Payment, or lifecycle. Main workflow: **Job Board → DB job card (`job=`) → Create proposal / Open proposal → create/reuse DB proposal draft → Builder (`job=` + `proposal=`) → package selection persists to DB; refresh draft pricing when measurement changes**. Legacy `loadSaved=` / `currentSaved` / board-origin paths are **preserved but separated** — they **cannot create DB proposals directly**. **DB proposal math uses the new spine only** (`measurement_records` → `proposalQuantityResolver` → `proposalPricingEngine` → snapshots) — **not** legacy saved-estimate / Core-Enhanced-Premium estimator math. **`createDraftProposal`** runs from Job Card **Create proposal** only when checklist + pricing gates pass; **Builder reads** persisted drafts via **`getDraftGraph`** + **`proposalDraftGraphAdapter`** when `?proposal=` is present — **no Builder create path**, **no silent fallback** on invalid `proposal=`. **Do not** persist placeholder/unconfigured pricing policy. **Catalog custom delete/deactivate** is **not implemented** and remains a **separate later scope**.
 
@@ -77,8 +79,11 @@
 
 | Commit | Summary |
 |--------|---------|
-| *(this docs commit)* | **Docs** — Record approved Job lifecycle / stage model (**§6BP**); V2F partial progress at `5e81a4d`; finish V2F remaining + V2G before R3C; lifecycle foundation before R3C; Stage C4 not complete |
-| `5e81a4d` | **V2F partial** — derived Draft/Sent/Revision in progress; full-draft dirty truth (`updated_at > latest_sent.frozen_at`); Job Card proposal lifecycle row; compact Attention panel; immutable sent-record contractor Preview (`view=sent&version=`); **86/86** focused gates; **no `jobs.stage` writes**; Stage C4 not complete |
+| *(this docs commit)* | **Docs** — Record V2F **COMPLETE** at `c54fc0a`; Stage C4 truth at `8bdb046`; Phase-B app cutover; revision/sent-record/change-summary architecture; **V2G next**; Job Lifecycle Foundation still after V2G; **no migration 038** |
+| `c54fc0a` | **V2F complete** — revision resend end-to-end; Phase-B dedicated C4 email-send caller (`mintAndSupersedeProposalPublicAccessToken`); runtime change summary; exact sent-record/history truth; Send revision title/state; final visual review; **256/256** focused; broad union **471/473** (2 inherited stale UI source assertions); **no `jobs.stage` writes**; **no migration 038** |
+| `8bdb046` | **Stage C4 foundation** — `token_category` + combined RPC `mint_and_supersede_proposal_public_access_token_v1`; migration **`20260815_037`** live-applied on **`rhquhnujjnzjhweypavd`**; older-version email tokens superseded; same-version resend tokens coexist; generic Phase-A mint compatibility preserved |
+| `04f5290` | **Docs** — Lock job lifecycle stage architecture (**§6BP** — approved plan only; not implemented) |
+| `5e81a4d` | **V2F partial** — derived Draft/Sent/Revision in progress; full-draft dirty truth (`updated_at > latest_sent.frozen_at`); Job Card proposal lifecycle row; compact Attention panel; immutable sent-record contractor Preview (`view=sent&version=`); superseded by **`c54fc0a`** |
 | `9d61e41` | **V2E3–V2E6** — complete reusable proposal templates flow: presentation truth, included vs optional, packet ownership, 3-step manual create, Starting package terminology, Advanced Content-tab removal, starter roofing freeze; **293/293** focused + **22/22** Builder/Public regression |
 | `80ae9ee` | **Docs** — Checkpoint reusable proposal templates completion (V2E3–V2E6 frozen at `9d61e41`; next was V2F) |
 | `88cbc5e` | **Docs** — Checkpoint Proposal Flow V2 package composition (V2E2 frozen at `58839e4`; next was V2E3) |
@@ -460,7 +465,7 @@ Future AI is **later-stage operational Copilot** behavior only:
 
 The product term is **FieldDive Copilot** (normal prose: Copilot, future Copilot, Copilot commands/actions).
 
-**AI / FieldDive Copilot is not implemented and is not a current implementation priority.** Do not insert Copilot work ahead of remaining Proposal Flow V2 (**V2F–V2G**), attention queue/notifications, formal acceptance, signatures, deposit/payment, or scheduling readiness. Future Copilot must use the same guarded actions/services as UI for **both** Manual and Instant Quote flows. Instant Quote is also **not implemented**.
+**AI / FieldDive Copilot is not implemented and is not a current implementation priority.** Do not insert Copilot work ahead of remaining Proposal Flow V2 (**V2G**), attention queue/notifications, formal acceptance, signatures, deposit/payment, or scheduling readiness. Future Copilot must use the same guarded actions/services as UI for **both** Manual and Instant Quote flows. Instant Quote is also **not implemented**.
 
 **Two proposal-entry experiences (locked product model — same truth architecture):**
 
@@ -13553,12 +13558,14 @@ These are **non-blockers**. Do **not** reopen Visual Polish V1 for them.
 - Library hygiene if still needed
 - Mobile polish
 
-**Next recommended work (superseded by §6BO.13.4.9 R3):** See **R3** for current resume (**V2A–V2E6 complete/frozen; V2F next**; do not skip to R3B4C or R3C–R3F; do not reopen frozen V2E3–V2E6 Templates freeze, V2E2 composition, V2E1 isolation, Builder V2B, Preview/Send V2C, or Public V2D). Do **not** reopen T.9 Visual Polish V1, Optional Upgrade Truth, package-description SoT, R1 soft-remove / package-option model, R2A archive/restore semantics, or R2B preferred-setup vs package-option-default distinction.
+**Next recommended work (superseded by §6BO.13.4.9 R3):** See **R3** for current resume (**V2A–V2E6 complete/frozen; V2F complete at `c54fc0a`; V2G next**; do not skip to R3B4C or R3C–R3F; do not reopen frozen V2E3–V2E6 Templates freeze, V2E2 composition, V2E1 isolation, Builder V2B, Preview/Send V2C, or Public V2D). Do **not** reopen T.9 Visual Polish V1, Optional Upgrade Truth, package-description SoT, R1 soft-remove / package-option model, R2A archive/restore semantics, or R2B preferred-setup vs package-option-default distinction.
 
-###### R3 — Customer proposal + request + attention system — ACCEPTED through R3B4B (2026-07-23); Proposal Flow V2A–V2E6 recorded 2026-08-15
+###### R3 — Customer proposal + request + attention system — ACCEPTED through R3B4B (2026-07-23); Proposal Flow V2A–V2F recorded 2026-08-15
 
 **Checkpoints:**
-- **Current resume code:** **`5e81a4d`** — `feat(proposals): add revision state and sent record review` (Proposal Flow **V2F PARTIALLY COMPLETE**).
+- **Current resume code:** **`c54fc0a`** — `feat(proposals): complete proposal revision lifecycle` (Proposal Flow **V2F COMPLETE**).
+- **Stage C4 foundation:** **`8bdb046`** — `feat(proposals): add public link supersession foundation`.
+- **V2F partial foundation:** **`5e81a4d`** — `feat(proposals): add revision state and sent record review` (superseded by **`c54fc0a`**).
 - **V2E3–V2E6 freeze:** **`9d61e41`** — `feat(proposals): complete reusable proposal templates flow`.
 - **V2E1 freeze:** **`6276cf3`** — `fix(proposals): isolate drafts from template changes`.
 - **V2D freeze:** **`2a2dc69`** — `feat(proposals): finalize adaptive public proposal comparison`.
@@ -13570,12 +13577,12 @@ These are **non-blockers**. Do **not** reopen Visual Polish V1 for them.
 - **Prior locked code (request loop):** **`73bfc4a`** (R3B3 history/non-binding copy), **`ed50768`** (R3B3), **`de61b35`** (R3B1/R3B2), **`4ef778d`** (R3A), **`7eeed34`** (R3A0).
 - **Prior docs:** **`80ae9ee`** — `docs: checkpoint reusable proposal templates completion`.
 - **Earlier docs:** **`88cbc5e`** — `docs: checkpoint proposal flow v2 package composition`.
-- **Docs:** pending this docs commit (records **§6BP** lifecycle model + V2F partial).
-- **Working tree:** code committed at **`5e81a4d`**; this pass is **docs only**; only `?? tmp/` expected otherwise; no app/test/migration/package changes.
+- **Docs:** pending this docs commit (records V2F **COMPLETE**, Stage C4 truth, **V2G next**).
+- **Working tree:** code committed at **`c54fc0a`**; this pass is **docs only**; only `?? tmp/` expected otherwise; no app/test/migration/package changes.
 - **Push state:** local only / not pushed.
 - **Approved Supabase project:** **`rhquhnujjnzjhweypavd`**.
 
-**Acceptance boundary:** R3A0/R3A/R3B/R3B4A/R3B4B are accepted as the customer proposal presentation + non-binding request/review loop + durable attention foundation + contractor operational surfaces. Proposal Flow **V2A/V2B/V2C/V2D/V2E1/V2E2/V2E3–V2E6** are accepted/frozen. **V2F partial** at **`5e81a4d`** (derived lifecycle, dirty truth, compact Attention, sent-record Preview) — **not complete**. This does **not** include Command Center queue, notifications/outbox, additional attention producers, formal accept, signature, payment, scheduling, Jobs Board stage movement, package apply from request, FieldDive Copilot, Instant Quote, customer package-comparison preference (**V2G**), or Job Lifecycle Foundation (**§6BP** — plan only). **Next: finish V2F remaining, then V2G.**
+**Acceptance boundary:** R3A0/R3A/R3B/R3B4A/R3B4B are accepted as the customer proposal presentation + non-binding request/review loop + durable attention foundation + contractor operational surfaces. Proposal Flow **V2A/V2B/V2C/V2D/V2E1/V2E2/V2E3–V2E6** are accepted/frozen. **V2F complete** at **`c54fc0a`**. This does **not** include Command Center queue, notifications/outbox, additional attention producers, formal accept, signature, payment, scheduling, Jobs Board stage movement, package apply from request, FieldDive Copilot, Instant Quote, customer package-comparison preference (**V2G**), or Job Lifecycle Foundation (**§6BP** — plan only). **Next: V2G.**
 ##### Locked product distinctions (do not combine)
 
 | Concept | Meaning |
@@ -13713,9 +13720,13 @@ Verification: **65** focused tests passed, **0** failed; focused ESLint **0** er
 | Personal read ≠ | Acknowledge / resolve |
 | Jobs Board movement | Deferred until **Job Lifecycle Foundation** (**§6BP**) then R3C–R3F |
 
-##### PROPOSAL FLOW V2 — V2A–V2E6 FROZEN / V2F PARTIAL / V2F REMAINING + V2G NEXT (locked)
+##### PROPOSAL FLOW V2 — V2A–V2E6 FROZEN / V2F COMPLETE / V2G NEXT (locked)
 
-**Code checkpoint (latest):** **`5e81a4d`** — `feat(proposals): add revision state and sent record review` (**V2F PARTIALLY COMPLETE**).
+**Code checkpoint (latest):** **`c54fc0a`** — `feat(proposals): complete proposal revision lifecycle` (**V2F COMPLETE**).
+
+**Stage C4 foundation:** **`8bdb046`** — `feat(proposals): add public link supersession foundation` (migration **`20260815_037`**, live on **`rhquhnujjnzjhweypavd`**).
+
+**V2F partial foundation:** **`5e81a4d`** — superseded by **`c54fc0a`**.
 
 **V2E3–V2E6 freeze:** **`9d61e41`** — `feat(proposals): complete reusable proposal templates flow`.
 
@@ -13739,9 +13750,9 @@ Verification: **65** focused tests passed, **0** failed; focused ESLint **0** er
 
 **V2E3–V2E6 STATUS: COMPLETE / FROZEN.** Reusable proposal Templates completion wave is locked at **`9d61e41`**. Do **not** reopen presentation-truth ownership, included/optional model, packet wording ownership, 3-step manual create, Starting-package terminology, Advanced Content-tab removal, or starter roofing composition except a proven correctness regression.
 
-**V2F STATUS: PARTIALLY COMPLETE at `5e81a4d`.** Shipped: derived Draft/Sent/Revision in progress; full-draft dirty truth; Job Card proposal lifecycle row; compact Attention panel; immutable sent-record contractor Preview. **Remaining:** revision resend / customer-link supersession (Stage C4 dependency); change summary; final V2F audit. **Stage C4 is not complete.** Do **not** write `jobs.stage`.
+**V2F STATUS: COMPLETE at `c54fc0a`.** Shipped and reviewed: contractor lifecycle (Draft / Sent / Revision in progress); signed boundary remains internal/future-safe; one proposal lineage; mutable draft = revision workspace; immutable sent versions = historical records; full-draft dirty truth (`proposals.updated_at > latest_sent.frozen_at`); Job Card lifecycle row; exact sent-record contractor view; sent history (newest-first, CURRENT from `latest_sent_version_id`); revision resend via existing V2C freeze/refreeze engine; runtime change summary (no diff table); public old-link supersession; Phase-B C4 dedicated email-send caller; compact Attention presentation; Send revision drawer title/CTA; graph safety guard preserved. **Do not write `jobs.stage`.** See **§6BO.13.4.9 R3 — V2F completion detail** below.
 
-**Hard gate:** Do **not** build formal acceptance, signatures, payment, or scheduling on top of unfinished V2F/V2G work. Do **not** skip to **R3B4C** or **R3C–R3F** before V2F remaining + V2G complete and **Job Lifecycle Foundation** (**§6BP**).
+**Hard gate:** Do **not** build formal acceptance, signatures, payment, or scheduling on top of unfinished **V2G** work. Do **not** skip to **R3B4C** or **R3C–R3F** before **V2G** complete and **Job Lifecycle Foundation** (**§6BP**).
 
 **Final contractor proposal flow:**
 
@@ -13756,6 +13767,107 @@ review proposal → ask a question OR choose/accept option → formal acceptance
 ```
 
 Current Public **Request this package** remains intermediate interest-only until **R3C–R3E** land. Do **not** treat request-and-wait as the permanent final FieldDive model.
+
+###### V2F — Proposal revision lifecycle COMPLETE (`c54fc0a`) — locked architecture
+
+**V2F COMPLETE means:** revision lifecycle complete; public-link replacement truth complete; contractor sent records complete; runtime revision summary complete. **V2F does NOT mean:** acceptance complete; signatures complete; payments complete; scheduling complete; Job Lifecycle Foundation implemented; Jobs Board remapped; migration 038 complete; **V2G complete**.
+
+**Contractor lifecycle (locked):** Draft · Sent · Revision in progress. Signed boundary remains internal/future-safe. One proposal lineage per job. **+ Proposal** remains separate add-lineage behavior.
+
+**Stage C4 — DB foundation (`8bdb046`):**
+
+| Item | Truth |
+|------|-------|
+| Migration | **`20260815_037_add_token_category_and_email_send_supersede_rpc.sql`** |
+| Live project | **`rhquhnujjnzjhweypavd`** — applied + verified |
+| `token_category` | `contractor_preview_qa` · `contractor_send_prep` · `contractor_email_send` · NULL permitted for unclassified legacy rows |
+| Supersession ownership | `token.status` + `superseded_by_token_id` — **NOT** `proposal_versions.version_kind` |
+| Older sent versions | Remain **`sent`** — versions are never superseded |
+
+**C4 supersession rule (locked):** C4 supersedes customer **email access to OLDER proposal versions**, not merely older token issuance.
+
+| Scenario | Behavior |
+|----------|----------|
+| **Same-version resend** | Old same-version email token stays active; new same-version email token active; both show identical immutable current content; neither says a newer proposal exists |
+| **Newer revision send** | Active older-version `contractor_email_send` tokens become superseded; new token points to latest sent frozen version; old token remains permanently bound to its old version; old token resolves **superseded** — no redirect, no replacement URL, no new-version content leak |
+
+**Authoritative C4 boundary — combined RPC `mint_and_supersede_proposal_public_access_token_v1`:**
+
+- `service_role` only · SECURITY DEFINER · explicit `search_path`
+- Current proposal `latest_sent_version_id` only · sent version only · frozen truth required
+- Token category canonicalized to `contractor_email_send`
+- Proposal row lock · transactional mint + older-version supersession
+- **Authoritative supersession point:** new immutable sent version + new email-send token successfully established — **do NOT wait for Resend provider acceptance**
+- **Delivery failure:** sent version remains current; `latest_sent_version_id` remains new version; current token remains active; old-version tokens remain superseded; delivery attempt = failed; **no freeze rollback; no token rollback**
+
+**Phase-B app cutover (`c54fc0a`):**
+
+| Path | Mint caller |
+|------|-------------|
+| **Email delivery send** | `mintAndSupersedeProposalPublicAccessToken` → combined C4 RPC |
+| **QA public review link** | generic `mintProposalPublicAccessToken` |
+| **Send-prep customer link** | generic `mintProposalPublicAccessToken` |
+| **Generic Phase-A email compatibility** | remains in DB for undeployed/old instances |
+
+**Migration 038 is NOT authored or applied.** Phase C hardening of generic mint must happen **only AFTER** new app caller is deployed and old production instances are drained. Future GPT must **not** harden generic mint before deploy/drain.
+
+**Revision resend flow (locked — reuses V2C send/freeze engine; no second send engine):**
+
+```
+Sent → Revise proposal → mutable draft changes → Revision in progress
+→ Preview revision → Changes since last sent → Send revision
+→ existing V2C freeze/refreeze → new immutable sent version
+→ latest_sent_version_id updates → C4 email token minted
+→ older-version email access superseded → delivery attempt
+→ Job Card returns Sent/clean
+```
+
+**Same-version retry (intentional):** clean retry reuses existing frozen sent version (no fake new proposal version). C4 may mint a new same-version email token. Same-version active tokens may coexist. Old historical-version tokens remain superseded.
+
+**Dirty-truth ownership (locked):** authoritative signal = `proposals.updated_at > latest_sent.frozen_at` via shared helper. Customer-visible mutable draft writes touch `proposal.updated_at` at persistence ownership. **Do NOT add:** dirty boolean · `revision_completed` · revision status field · child MAX timestamp scan. Job Card and send-prep consume the same truth.
+
+**Change-summary architecture (runtime only — no diff table):**
+
+| Mode | Comparison |
+|------|------------|
+| Preview | current mutable draft vs latest sent frozen version |
+| Sent-record | selected current sent version vs immediately previous sent version |
+
+Reuses `comparePackageCompositions`. Facts: starting package change · package/product structural change · quantity/scope change · optional upgrade change · compact customer-visible wording change · presented total change. No internal IDs/codes/JSON. Preview = contractor chrome only. Sent-record = quiet disclosure. Job Card = lifecycle-first — **no full diff dump**.
+
+**Previous sent resolution (locked):** sent lineage ordering = `version_number` desc → `frozen_at` → `created_at`. **Do NOT use `parent_version_id`** for revision comparison (parent points to source draft).
+
+**Sent history (locked):** newest first · collapsed by default · CURRENT from `latest_sent_version_id` · exact frozen-version links · old versions remain immutable sent records. Job Card **Last sent** timestamp must match CURRENT history row for the same `latest_sent_version_id`.
+
+**Sent-record truth owner (locked):** exact frozen `proposal_version_id` owns header package · header total · sent timestamp · delivery state · customer document · change summary. Shared total presenter: `resolveProposalCustomerPreviewSelectedTotalLabel(graph)`. No mutable/latest mixing. Historical sent record stays historical even when newer version exists.
+
+**Send revision UX (locked):**
+
+| Context | Drawer title | CTA |
+|---------|--------------|-----|
+| Initial send | Send proposal | Send proposal |
+| Dirty-after-sent revision | Send revision | Send revision |
+
+Derived from existing revision context (`isRevisionSend`). No new persisted status. **Graph safety guard preserved:** `graph.version.id` must equal `proposal.current_draft_version_id` — mismatch blocks send. **Do not weaken this guard.**
+
+**Attention / request behavior (locked):** customer request remains bound to original `public_access_token_id` + proposal version. Revision resend does **NOT** migrate request or auto-dismiss Attention. Attention remains actionable current condition. Activity remains historical fact.
+
+**Final visual review:** `C:\dev\tradetools-ai\tmp\fielddive-ui-review\v2f-complete` — corrected review confirmed: Sent vs Revision in progress clear; Send revision enabled for valid revision graph; graph mismatch still blocks invalid graph; sent-record totals/packages/timestamps coherent; Job Card Last sent matches CURRENT history row; current public proposal correct; old public proposal superseded page calm; Attention + revision coexist; **desktop pass** · **mobile 390 pass**. Screenshots **not committed**.
+
+**Verification at `c54fc0a`:** focused **256/256** pass; broad union **471/473** pass. Inherited failures only: `proposalPublicReviewLink.server.test.ts` stale UI source assertion `/ProposalCustomerPreviewPublicAccessPanel/`; `proposalSendPrep.server.test.ts` stale UI source assertion `/Copy customer send link/`. No new failures. Lint clean on touched files. Touched-file typecheck: no new errors. `git diff --check` clean.
+
+**V2G — exact next work (NOT complete):**
+
+- `show_customer_package_comparison`
+- Public package-comparison behavior derived from composition
+- Public live-token visual recapture
+- Final Proposal V2 parity/integration audit
+- Final Proposal V2 lock
+
+Do **not** broaden V2G into acceptance · signature · payment · Job lifecycle · scheduling · migration 038.
+
+**Roadmap after V2G (locked):** V2G → Job Lifecycle Foundation (**§6BP**) → R3C formal acceptance → R3D signatures → R3E payments → R3F scheduling → Production/Complete → guarded Jobs Board movement → later Copilot. Do not change **§6BP** lifecycle architecture.
+
 ###### V2A — Job Card Prepare proposal (`589c15c`)
 
 Prepare proposal is one compact preparation step. It resolves Measurement, reusable setup, and **Starting package**, then **Create proposal** creates a job-specific draft and routes to canonical Builder with `job` + `proposal`. No stepper/review-card workflow. Job Card remains the canonical launchpad. V2A creation flow is frozen; do not invent new proposal creation behavior.
@@ -13853,7 +13965,7 @@ Sequence:
 - proposal lifecycle status is separate.
 - delivery failure **must not** erase sent/frozen truth.
 - public customer link resolves the frozen sent version (token/`proposal_version_id` binding).
-- Preview does **not** yet render historical sent versions; draft-vs-sent comparison / sent-version viewing remains **V2F / approved Public-version work**, not V2C.
+- Preview does **not** yet render historical sent versions in default draft mode; sent-version viewing / draft-vs-sent comparison / revision resend / sent-record truth is **V2F complete at `c54fc0a`**, not V2C.
 
 ###### V2C1 — Preview shell (`39282f7`)
 
@@ -14364,7 +14476,7 @@ Copilot must **NOT**:
 - duplicate pricing
 - create its own proposal model
 
-Do **not** insert Copilot implementation ahead of V2F–V2G / R3C–R3F.
+Do **not** insert Copilot implementation ahead of **V2G** / R3C–R3F.
 
 ###### Instant Quote future contract (not implemented)
 
@@ -14584,24 +14696,11 @@ Repo-wide `tsc` debt remains separate follow-up work. Do **not** opportunistical
 
 These do **not** block Templates freeze.
 
-###### Remaining Proposal Flow V2 stages (V2F–V2G)
+###### Remaining Proposal Flow V2 stages (V2G only)
 
-Remaining stages still use the original comparison method during **audit-first** slices:
+V2F is **complete at `c54fc0a`**. Remaining Proposal Flow V2 work is **V2G only** — final Proposal V2 integration / Public package-comparison preference / live-token visual recapture / final parity lock. Do **not** broaden V2G into acceptance · signature · payment · Job lifecycle · scheduling · migration 038.
 
-1. How Roofr handles it
-2. What contractors already understand
-3. What FieldDive currently does
-4. Where FieldDive feels bulkier or more fragmented
-5. What should remain Roofr-aligned
-6. What FieldDive should simplify or improve
-7. Which surface is the canonical home for each action
-8. Which duplicate controls should be demoted or removed
-9. Mobile behavior
-10. Protected truth and lifecycle boundaries
-
-This is **not**: a small Public polish pass; a screen-only redesign; a visual reskin; permission to rewrite pricing/lifecycle truth; permission to reopen frozen Builder V2B, frozen Preview/Send V2C, frozen Public V2D, frozen V2E1 isolation, frozen V2E2 composition, or frozen V2E3–V2E6 Templates freeze.
-
-This **is**: remaining whole-flow product architecture and UX audit on revision/sent-record UX and final parity; Roofr foundation first; deliberate simplification; one approved end-to-end proposal experience before R3C–R3F.
+V2G audit slices may still use the original comparison method when needed, but V2G scope is **integration/parity only** — not another revision-lifecycle pass.
 
 ###### Remaining Proposal Flow V2 slices
 
@@ -14610,8 +14709,8 @@ This **is**: remaining whole-flow product architecture and UX audit on revision/
 - **V2E1** — Template→draft isolation — **complete / frozen** at `6276cf3`
 - **V2E2** — package composition intelligence / authoring / truthful starter ladder — **complete / frozen** at `58839e4`
 - **V2E3–V2E6** — reusable proposal Templates completion / final Templates freeze — **complete / frozen** at `9d61e41`
-- **V2F** — revision / sent-record UX foundation — **partial at `5e81a4d`**; **remaining:** revision resend, Stage C4 customer-link supersession, change summary, final audit
-- **V2G** — final Proposal V2 integration / cleanup / Public package-comparison preference (`show_customer_package_comparison`); Public visual verification; final Proposal V2 parity lock
+- **V2F** — revision / sent-record / change summary / C4 app cutover — **complete at `c54fc0a`**
+- **V2G** — final Proposal V2 integration / cleanup / Public package-comparison preference (`show_customer_package_comparison`); Public visual verification; final Proposal V2 parity lock — **NEXT**
 - **Job Lifecycle Foundation** — **§6BP** — before R3C; **not started**
 
 ##### Revised roadmap (locked — do not reorder)
@@ -14625,8 +14724,8 @@ This **is**: remaining whole-flow product architecture and UX audit on revision/
 7. **Proposal Flow V2E1** — Template→draft isolation — **complete / frozen** (`6276cf3`)
 8. **Proposal Flow V2E2** — package composition intelligence — **complete / frozen** (`58839e4`)
 9. **Proposal Flow V2E3–V2E6** — reusable proposal Templates completion — **complete / frozen** (`9d61e41`)
-10. **Proposal Flow V2F** — revision / sent-record UX foundation — **partial** (`5e81a4d`); **finish remaining**
-11. **Proposal Flow V2G** — final Proposal V2 integration / Public package-comparison preference
+10. **Proposal Flow V2F** — revision lifecycle / sent-record / change summary / C4 app cutover — **complete** (`c54fc0a`)
+11. **Proposal Flow V2G** — final Proposal V2 integration / Public package-comparison preference — **NEXT**
 12. **Job Lifecycle Foundation** — **§6BP** — canonical stages, transition/disposition services, Activity owner, board remap — **before R3C**
 13. **R3B4C** — Command Center attention queue
 14. **R3B4D** — contractor notifications/outbox
@@ -14640,7 +14739,7 @@ This **is**: remaining whole-flow product architecture and UX audit on revision/
 22. Future operational **FieldDive Copilot** **after** durable actions/services exist
 23. Future Instant Quote / automated measurement capabilities (same truth spine; not a second architecture)
 
-Do **not** move R3C–R3F ahead of V2F remaining + V2G or **Job Lifecycle Foundation**. Do **not** reopen frozen Builder V2B, frozen Preview/Send V2C, frozen Public V2D, frozen V2E1 isolation, frozen V2E2 composition, or frozen V2E3–V2E6 Templates freeze during V2F remaining.
+Do **not** move R3C–R3F ahead of **V2G** or **Job Lifecycle Foundation**. Do **not** reopen frozen Builder V2B, frozen Preview/Send V2C, frozen Public V2D, frozen V2E1 isolation, frozen V2E2 composition, frozen V2E3–V2E6 Templates freeze, or frozen **V2F** at `c54fc0a` except proven correctness regression.
 
 ##### Known debt / follow-ups (do not reopen accepted R3A0–R3B4B / V2A–V2E6)
 
@@ -14648,11 +14747,11 @@ Do **not** move R3C–R3F ahead of V2F remaining + V2G or **Job Lifecycle Founda
 - ~~customer wording/highlights / Templates freeze~~ — **solved in V2E3–V2E6** at `9d61e41`
 - V2E2 P2 authoring polish listed above (picker admin details, Quantity 390px, etc.) — do **not** reopen V2E2
 - V2E6 P2 Templates simplicity notes (tall landing, 390px package cards, admin-like Advanced Edit sections) — do **not** reopen Templates freeze
-- ~~Historical frozen sent-version viewing / draft-vs-last-sent comparison / revision UX~~ — **partially shipped at `5e81a4d`**; remaining V2F items above
-- Customer package-comparison preference `show_customer_package_comparison` (**V2G**)
+- ~~Historical frozen sent-version viewing / draft-vs-last-sent comparison / revision UX~~ — **complete at `c54fc0a`**
+- Customer package-comparison preference `show_customer_package_comparison` (**V2G** — **NEXT**)
 - Public comparison still not composition-derived (**V2G**)
 - Public frozen proposal visual recapture when a safe raw token exists (**V2G**)
-- V2F remaining: revision resend, Stage C4 customer-link supersession, change summary, final audit — **Stage C4 not complete**
+- ~~V2F remaining: revision resend, Stage C4 customer-link supersession, change summary, final audit~~ — **complete at `c54fc0a`**
 - No Command Center attention queue (**R3B4C**)
 - No notification outbox/email (**R3B4D**)
 - No additional attention producers (**R3B4E**)
@@ -14669,9 +14768,9 @@ Do **not** move R3C–R3F ahead of V2F remaining + V2G or **Job Lifecycle Founda
 - Remaining T.9 Templates follow-ups (estimate display editor, model conversion, safe section delete, library hygiene, mobile polish) — do **not** reopen frozen Templates create/packet/presentation model
 - Fresh public request may be needed for demos — prior smoke attention was dismissed/resolved during R3B4B verification
 
-##### Protected systems (untouched by R3A0/R3A/R3B/R3B4 / V2A–V2E6 / V2F partial)
+##### Protected systems (untouched by R3A0/R3A/R3B/R3B4 / V2A–V2F)
 
-- `jobs.stage` / Jobs Board lane placement — **V2F at `5e81a4d` did not write stage**
+- `jobs.stage` / Jobs Board lane placement — **V2F at `c54fc0a` did not write stage**
 - `proposals.status` / `proposals.selected_option_id`
 - Package selection / optional upgrades / proposal versions / `proposal_events`
 - Task counts / task records
@@ -14687,7 +14786,7 @@ Do **not** move R3C–R3F ahead of V2F remaining + V2G or **Job Lifecycle Founda
 - V2E2 did **not** rewrite Builder V2B, Preview/Send V2C, Public V2D UX, V2E1 isolation, historical frozen proposal truth, or pricing formulas
 - V2D did **not** rewrite Builder V2B, Preview/Send V2C, Templates production ownership, pricing math, send/freeze APIs, public token/version binding, or migrations/SQL
 
-**Next recommended work:** **Finish V2F remaining** (revision resend, Stage C4 customer-link supersession, change summary, final audit). Then **V2G**. Then **Job Lifecycle Foundation** (**§6BP**) before R3C. Customer package-comparison preference remains deferred to **V2G**. Do **not** write `jobs.stage` until lifecycle foundation. Do **not** reopen frozen V2E3–V2E6 Templates freeze, frozen V2E2 composition, frozen V2E1 isolation, frozen Builder V2B, frozen Preview/Send V2C, or frozen Public V2D. Do **not** jump to **R3B4C**, **R3B4D**, **R3B4E**, or **R3C–R3F**. Do **not** reopen R3A0/R3A wording ownership, R3B request≠accept semantics, R3B4 attention distinctions, T.9 Visual Polish V1, Optional Upgrade Truth, package-description SoT, R1/R2A/R2B. Do **not** invent/hide Premium Public totals. Do **not** implement Instant Quote or FieldDive Copilot. **Stage C4 is not complete.**
+**Next recommended work:** **V2G** — final Proposal V2 integration / Public package-comparison preference. Then **Job Lifecycle Foundation** (**§6BP**) before R3C. Customer package-comparison preference remains deferred to **V2G**. Do **not** write `jobs.stage` until lifecycle foundation. Do **not** reopen frozen V2E3–V2E6 Templates freeze, frozen V2E2 composition, frozen V2E1 isolation, frozen Builder V2B, frozen Preview/Send V2C, frozen Public V2D, or frozen **V2F** at `c54fc0a`. Do **not** jump to **R3B4C**, **R3B4D**, **R3B4E**, or **R3C–R3F**. Do **not** reopen R3A0/R3A wording ownership, R3B request≠accept semantics, R3B4 attention distinctions, T.9 Visual Polish V1, Optional Upgrade Truth, package-description SoT, R1/R2A/R2B. Do **not** invent/hide Premium Public totals. Do **not** implement Instant Quote or FieldDive Copilot. **Do not author migration 038 before deploy/drain of Phase-B caller.**
 #### 13.4.6 Integrated Catalog → Proposal workflow research + FieldDive flow design — COMPLETE (2026-07-17)
 
 **Status:** Docs-only research + design lock. **No app code, migrations, SQL, package, pricing, Preview, send/public/lifecycle, supplier API, material ordering, or proposal import changes in this block.**
@@ -14991,9 +15090,9 @@ Roofr keeps this simple by: forcing Catalog-before-Template, automating qty from
 
 **Status:** **APPROVED PLAN ONLY — NOT IMPLEMENTED.** No schema, migration, `jobs.stage` writes, guarded transition service, Jobs Board remap, or durable Activity primitive exists yet. Future GPTs must **not** recreate competing stage/status systems. Read this section before any lifecycle foundation, Jobs Board lane, disposition, Time in stage, or durable Activity work.
 
-**Code checkpoint at approval:** **`5e81a4d`** — V2F partial (proposal lifecycle UX only; **no job stage writes**).
+**Code checkpoint at approval:** **`c54fc0a`** — V2F complete (proposal lifecycle UX only; **no job stage writes**).
 
-**Sequencing lock:** Finish **V2F remaining + V2G** first → **Job Lifecycle Foundation** (this section) → **R3C** acceptance. Do **not** skip lifecycle foundation before R3C.
+**Sequencing lock:** Finish **V2G** first → **Job Lifecycle Foundation** (this section) → **R3C** acceptance. Do **not** skip lifecycle foundation before R3C.
 
 ### 6BP.1 Core separation (do not collapse)
 
@@ -15105,7 +15204,7 @@ Backfill only after sample verification.
 
 Draft · Sent · Revision in progress · later Accepted · Declined · Expired
 
-V2F contractor state at **`5e81a4d`** remains **derived** from version graph + dirty truth. Do **not** use `proposals.status` as Job Card / Jobs Board truth unless a future approved migration deliberately changes ownership.
+V2F contractor state at **`c54fc0a`** remains **derived** from version graph + dirty truth. Do **not** use `proposals.status` as Job Card / Jobs Board truth unless a future approved migration deliberately changes ownership.
 
 Valid combined example: **Job stage = Proposal**, **Proposal = Revision in progress**.
 
@@ -15288,7 +15387,7 @@ R3F owns appointment/scheduling schema.
 
 | When | What |
 |------|------|
-| **Now** | Finish **V2F remaining** + **V2G**. **No `jobs.stage` writes.** |
+| **Now** | **V2G** — final Proposal V2 integration. **No `jobs.stage` writes.** |
 | **Before R3C** | **Job Lifecycle Foundation** — canonical types/read mapping; `stage_entered_at`; `transitionJobStage`; `changeJobDisposition`; job-native Activity + composed Activity reader; Jobs Board remap; honest Time in stage; won/archived compatibility; write-ban for noncanonical stage/status |
 | **R3C** | Formal acceptance — clean latest → AUTO Approved; ambiguous → Attention + CONFIRM |
 | **R3D** | Signature subordinate |
@@ -15297,9 +15396,9 @@ R3F owns appointment/scheduling schema.
 | **Later** | Production / Complete actions; guarded Jobs Board drag/drop; Copilot via same services |
 | **R3B4C** | Command Center Attention queue — separate from stages |
 
-**Proposal V2 remains immediate priority.** Do **not** let lifecycle planning interrupt V2F/V2G completion.
+**Proposal V2 remains immediate priority.** Do **not** let lifecycle planning interrupt **V2G** completion.
 
-**V2F remaining at `5e81a4d`:** revision resend loop; Stage C4 customer-link supersession dependency; change summary; final V2F audit. **Stage C4 is not complete.**
+**V2F complete at `c54fc0a`:** revision resend loop; Stage C4 customer-link supersession; runtime change summary; exact sent-record/history truth; Phase-B app cutover; final visual review. **V2G is next.**
 
 ---
 
@@ -16490,7 +16589,8 @@ Treat as **drift** if a session:
 
 ## Changelog (handoff doc only)
 
-- **2026-08-15:** **Job lifecycle / stage model approved (plan only)** + **V2F partial progress** — code **`5e81a4d`** `feat(proposals): add revision state and sent record review`; prior docs **`80ae9ee`**. New **§6BP**: canonical six-stage model (Intake→Proposal→Approved→Scheduled→Production→Complete); subordinate proposal/financial/Attention/Activity/Task/disposition/archived separation; stage vs disposition guarded services; won/archived deprecation direction; durable Activity read-composition architecture; Jobs Board contradictions documented; lifecycle foundation sequencing before R3C; Scheduled lane hidden before R3F; Time in stage via `stage_entered_at` with NULL for remapped legacy; synthetic "Job card opened" Activity explicitly non-durable. V2F partial: derived lifecycle, dirty truth, compact Attention, sent-record Preview; **remaining V2F + V2G before R3C**; **Stage C4 not complete**; **no `jobs.stage` writes**. **Not implemented** — no migration, no guarded services. **Next:** finish V2F remaining, V2G, then Job Lifecycle Foundation.
+- **2026-08-15:** **V2F COMPLETE** — code **`c54fc0a`** `feat(proposals): complete proposal revision lifecycle`; Stage C4 foundation **`8bdb046`** / migration **`20260815_037`** live on **`rhquhnujjnzjhweypavd`**; prior docs **`04f5290`**. V2F ships: revision resend via existing V2C freeze engine; Phase-B dedicated C4 email-send caller; runtime change summary (no diff table); exact sent-record/history truth; Send revision title/state; public old-link supersession; same-version retry truth; request/Attention unchanged on resend; **256/256** focused; broad union **471/473** (2 inherited stale UI source assertions); final visual review PASS at `tmp/fielddive-ui-review/v2f-complete` (not committed). **Migration 038 NOT authored.** **V2F does NOT mean** acceptance/signatures/payments/scheduling/Job Lifecycle Foundation/V2G complete. **Next: V2G** — `show_customer_package_comparison`, composition-derived Public comparison, live-token recapture, final Proposal V2 lock. Then Job Lifecycle Foundation (**§6BP**) before R3C.
+- **2026-08-15:** **Job lifecycle / stage model approved (plan only)** + **V2F partial progress** — code **`5e81a4d`** `feat(proposals): add revision state and sent record review`; prior docs **`80ae9ee`**. New **§6BP**: canonical six-stage model (Intake→Proposal→Approved→Scheduled→Production→Complete); subordinate proposal/financial/Attention/Activity/Task/disposition/archived separation; stage vs disposition guarded services; won/archived deprecation direction; durable Activity read-composition architecture; Jobs Board contradictions documented; lifecycle foundation sequencing before R3C; Scheduled lane hidden before R3F; Time in stage via `stage_entered_at` with NULL for remapped legacy; synthetic "Job card opened" Activity explicitly non-durable. V2F partial: derived lifecycle, dirty truth, compact Attention, sent-record Preview; **remaining V2F + V2G before R3C**; **Stage C4 not complete**; **no `jobs.stage` writes**. **Not implemented** — no migration, no guarded services. **Next:** finish V2F remaining, V2G, then Job Lifecycle Foundation — **superseded by V2F complete at `c54fc0a`**.
 - **2026-08-15:** **Proposal Flow V2E3–V2E6 complete / frozen** (**§6BO.13.4.9 R3**) — code **`9d61e41`** `feat(proposals): complete reusable proposal templates flow`; prior docs **`88cbc5e`** / **`80ae9ee`**; V2E2 freeze **`58839e4`**. One completion wave: package presentation truth; customer-safe derived composition facts; included vs optional; landing packet wording owner; example-readable token read mode; 5→3-step manual create with preserved Template truth; Advanced Content-tab removal; Starting package terminology; starter roofing freeze (GOOD WITH SMALL FUTURE ADJUSTMENTS); Instant Quote and FieldDive Copilot not implemented and must share the same truth spine later. Focused **293/293**; Builder/Public **22/22**; eslint/`git diff --check` clean; no schema/migration. Five freeze-touched TypeScript errors inherited from `58839e4`, not wave regressions. **V2E3–V2E6 frozen.** **Next at that time:** V2F revision / sent-record UX foundation — **partially done at `5e81a4d`; superseded by §6BP + V2F remaining**.
 - **2026-08-15:** **Proposal Flow V2E2 complete / frozen** (**§6BO.13.4.9 R3**) — code **`58839e4`**; V2E1 **`6276cf3`**; prior docs **`0ff2695`**; V2D freeze **`2a2dc69`**. Package composition intelligence: role/slot identity, generic step-up engine, Templates authoring, truthful Standard/Enhanced/Premium starter ladder, migration **`20260815_036`** live on **`rhquhnujjnzjhweypavd`**; **168/168** focused tests; eslint/`git diff --check` clean. Customer comparison preference deferred to **V2G**. **V2E2 frozen.** **Next at that time:** V2E3 customer-facing package wording/highlights ownership — **superseded by V2E3–V2E6 frozen / V2F next**.
 - **2026-08-14:** **Proposal Flow V2D complete / frozen** (**§6BO.13.4.9 R3**) — code **`2a2dc69`**; V2D **`6029f45` / V2D2 NO-CODE / `b5b8fd0` / `948cedc` / `2a2dc69`**; prior docs **`42c05f3`**; V2C freeze **`521c148`**; Builder freeze **`f339652`**. Public customer experience: frozen `/p/[token]` truth path; hero/closeout CTA ownership; request interest UX without customer “non-binding”; grouped access-state copy; count-aware adaptive comparison grid (1 omit / 2 / 3 / 2×2 / 5+ wrap); Premium==Standard composition debt deferred to **V2E**; intended finished journey (accept → sign → pay → schedule) recorded as future R3C–R3F. **V2D frozen.** **Next at that time:** V2E Templates ownership/composition cleanup — **superseded by V2E3–V2E6 frozen / V2F next**.
