@@ -15756,12 +15756,120 @@ No job stage, Attention, signature id, acceptance id, version UUID, token id, or
 - Sign Now
 - multiple signers / co-signers
 - contractor countersign
-- **R3E** Payments
+- **R3E** Payments — completed in **6BS**
 - **R3F** Scheduling
 
 ### 6BR.8 Next step
 
-**R3E planning** unless another approved roadmap gate precedes it.
+**Superseded by 6BS.** R3E contractor payments are complete. Next is **R3F** whole-system Scheduling + Calendar architecture.
+
+Do **not** push from this docs pass.
+
+---
+
+## 6BS. R3E CONTRACTOR DEPOSIT PAYMENTS — COMPLETE / LIVE (2026-08-16)
+
+**Status:** **R3E PAYMENTS COMPLETE / LIVE / VERIFIED** on **`rhquhnujjnzjhweypavd`**. TEST/SANDBOX Stripe only.
+
+### 6BS.1 Latest checkpoints
+
+| Kind | Hash | Subject |
+|------|------|---------|
+| R3E code + 044 | **`f6c1301`** | `feat(payments): add contractor deposit payments` |
+| Docs | **Pending this docs commit** | `docs: checkpoint contractor payments` |
+
+### 6BS.2 Architecture (locked)
+
+Payment is **not** Job stage. Sequence: Accepted → Approve job → stage **Approved** → Request deposit/payment → Stripe Checkout → **webhook owns Paid**.
+
+| Rule | Meaning |
+|------|---------|
+| Prerequisites | Matching formal acceptance + `jobs.stage = approved` + active disposition + connected Stripe with `charges_enabled` + integer cents |
+| Signature | **Optional.** `proposal_signature_id` nullable. Payment never inserts/updates `proposal_signatures` |
+| Stripe | Connect + **direct charges** on the contractor connected account. FieldDive is not MoR. **No `application_fee_amount`** |
+| Checkout | Hosted Checkout only. Card always. `us_bank_account` offered when Stripe allows; card-only fallback |
+| Authority | Redirect is never Paid. Webhook / `record_job_payment_provider_event_v1` owns settlement |
+| Stage | Request, pay, refund, fail, and checkout recovery **do not write** `jobs.stage` or `stage_entered_at` |
+| Isolation | Do not reuse legacy estimator spine (`app/lib/paymentsTable.ts`, `/api/payments/*`, `estimate_id`, platform account) |
+
+New webhook: `POST /api/webhooks/stripe/connect`.
+
+### 6BS.3 Stripe TEST — LIVE / VERIFIED
+
+Platform Connect enabled. One TEST connected Standard account on the smoke company. API truth is authoritative:
+
+- `charges_enabled=true`
+- `payouts_enabled=true`
+- `details_submitted=true`
+- `card_payments=active`, `transfers=active`
+- Dashboard visual “In review / paused” does **not** block the gate while API remains charge-enabled
+
+Direct connected-account charges. No FieldDive application fee.
+
+### 6BS.4 Card TEST E2E — PASS
+
+Real hosted Stripe TEST Checkout. $5,000 TEST card succeeded. No application fee. Direct connected-account charge. Real `checkout.session.completed` webhook settled the FieldDive request to **paid**, one capture, `proposal_signature_id` null, job stayed **Approved**. Browser return showed pending before webhook truth (`&payment=` when the contractor return URL already had a query string).
+
+### 6BS.5 ACH
+
+Hosted Checkout **offered US bank account**. Instant Financial Connections Test (Non-OAuth) opened, then **hCaptcha blocked** sandbox completion. Account.capabilities `us_bank_account_ach_payments` is **absent**. Session remained `open` / `unpaid`. Mapper unit proof covers processing → async paid / async failed.
+
+**Provider-capability P2.** Do not fake production ACH success. Card path is the proven production-ready boundary.
+
+### 6BS.6 Checkout session bind-failure recovery — PASS
+
+Real `cs_test_` session created. DB `provider_checkout_session_id` cleared after Stripe session creation. Session metadata still carried FieldDive `payment_request_id`. Webhook resolved the same request, rebound the session id, one capture, no duplicate request, no second charge, stage unchanged.
+
+### 6BS.7 Public `/p/[token]`
+
+| State | Customer sees |
+|-------|----------------|
+| OPEN | **Payment due** + **Pay deposit** / **Pay** as strongest action |
+| PROCESSING | **Payment pending** + “You do not need to pay again.” |
+| PAID | **Payment received** |
+| REFUNDED | **Payment refunded** |
+
+No job stage, Attention, or provider ids (`acct_` / `pi_` / `cs_` / request ids) on Public.
+
+When a payment request is OPEN, **Pay** is the primary banner CTA. **Sign proposal** remains available as continuation — signature is not a payment blocker. On 390×844, Payment due is in the top banner (discoverable without excessive scrolling).
+
+### 6BS.8 Job Card
+
+| State | Contractor sees |
+|-------|-----------------|
+| Unsigned Accepted+Approved | Proposal **Accepted**, Payments **Not requested**, **Request deposit**. No signature-required warning |
+| Open deposit | **Deposit due — $5,000.00** |
+| Card-paid deposit | **Deposit received — $5,000.00** + **Request remaining balance** if remainder |
+| Refund | **Refund recorded** + net collected. No refund button |
+
+Job stage stays **Approved**. No automatic Scheduled.
+
+### 6BS.9 Activity / Attention / Jobs Board
+
+**Activity:** Payment requested / Payment received (and Refund recorded / Payment failed when those fixtures exist). Ordered by real timestamps. No Checkout opened / Pay clicked / Stripe page viewed.
+
+**Attention:** one `payment_failed` on durable failure. Duplicate webhook does not duplicate Attention. Success and normal processing create none.
+
+**Jobs Board:** request / paid / refund / failed do **not** move lanes. Approved stays Approved until R3F scheduling. No legacy `paid` / `deposit_paid` canonical lane.
+
+### 6BS.10 Live migrations
+
+| # | Meaning | File | Git |
+|---|---------|------|-----|
+| **038** | Job Lifecycle Foundation | `20260816_038_job_lifecycle_foundation.sql` | historical |
+| **039** | **absent / reserved** | — | Do **not** author 039 |
+| **040–042** | Acceptance / dirty clock / freeze authority | historical | untouched this gate |
+| **043** | Proposal Signatures | `20260816_043_proposal_signatures.sql` | **untouched** |
+| **044** | Job payments | `20260816_044_job_payments.sql` | **`f6c1301` LIVE / historical** |
+| **045** | not needed | — | Do **not** author 045 unless a genuine post-044 DB defect is found |
+
+**044 is LIVE and historical.** Do **not** edit 044 in place.
+
+Identity: `provider_account_id` is immutable; `company_payment_accounts` rows cannot be deleted.
+
+### 6BS.11 Next step
+
+**R3F whole-system Scheduling + Calendar architecture.**
 
 Do **not** push from this docs pass.
 
