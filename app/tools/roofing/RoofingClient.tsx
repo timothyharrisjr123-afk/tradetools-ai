@@ -204,6 +204,10 @@ import JobCardActivityPanelWithCustomerRequests from "@/app/tools/roofing/jobCar
 import { listJobProposalAcceptances } from "@/app/lib/proposalAcceptanceActivity";
 import { listJobProposalSignatures } from "@/app/lib/proposalSignatureActivity";
 import JobCardOverviewSummary from "@/app/tools/roofing/jobCard/JobCardOverviewSummary";
+import JobCardPaymentsStrip from "@/app/tools/roofing/jobCard/JobCardPaymentsStrip";
+import JobCardRequestPaymentModal from "@/app/tools/roofing/jobCard/JobCardRequestPaymentModal";
+import { useJobPayments } from "@/app/lib/useJobPayments";
+import type { JobPaymentKind } from "@/app/lib/jobPaymentTypes";
 import { resolveJobCardIdentityFromRecord } from "@/app/tools/roofing/jobCard/jobCardIdentityUtils";
 import { loadCompanyVoiceProfile, saveCompanyVoiceProfile, type VoiceTone } from "@/app/lib/companyVoiceProfile";
 
@@ -1133,6 +1137,14 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
     requestedAttentionId,
     enabled: entryMode === "job-card",
   });
+  const jobPayments = useJobPayments(
+    entryMode === "job-card" ? currentJobId : null
+  );
+  const [paymentModalKind, setPaymentModalKind] = useState<JobPaymentKind | null>(
+    null
+  );
+  const [paymentModalBusy, setPaymentModalBusy] = useState(false);
+  const [paymentModalError, setPaymentModalError] = useState<string | null>(null);
   const [isCreatingJob, setIsCreatingJob] = useState(false);
   const [jobCreationError, setJobCreationError] = useState<string | null>(null);
   const [persistedSelectedMeasurement, setPersistedSelectedMeasurement] =
@@ -8107,6 +8119,7 @@ Thanks,`;
     };
 
     return (
+      <>
       <div className="min-h-0 w-full pb-8 pt-1 pl-3 pr-4 sm:pl-4 sm:pr-5 lg:pl-5 lg:pr-6">
         <div className="w-full max-w-[100rem]">
           <div className="overflow-hidden rounded-lg border border-slate-200/80 bg-white shadow-[0_1px_3px_rgba(15,23,42,0.06)]">
@@ -8140,6 +8153,9 @@ Thanks,`;
               }}
               onConfirmAcceptance={confirmAcceptance}
               onAcknowledgeAcceptance={acknowledgeAcceptance}
+              onConnectPayments={() => {
+                router.push("/tools/settings/payments");
+              }}
             />
             <JobCardTabs activeTab={jobCardTab} onTabChange={setJobCardTab} />
 
@@ -8157,6 +8173,19 @@ Thanks,`;
                   catalogReady={catalogReadiness.state === "ready_for_templates"}
                   onNavigateTab={setJobCardTab}
                 />
+                <div className="mt-4">
+                  <JobCardPaymentsStrip
+                    view={jobPayments.view}
+                    onRequestDeposit={() => {
+                      setPaymentModalError(null);
+                      setPaymentModalKind("deposit");
+                    }}
+                    onRequestBalance={() => {
+                      setPaymentModalError(null);
+                      setPaymentModalKind("balance");
+                    }}
+                  />
+                </div>
               </JobCardSectionPanel>
 
               <JobCardSectionPanel
@@ -8821,6 +8850,45 @@ Thanks,`;
           </div>
         </div>
       </div>
+      <JobCardRequestPaymentModal
+        open={paymentModalKind != null}
+        kind={paymentModalKind ?? "deposit"}
+        prefillCents={
+          paymentModalKind === "balance"
+            ? jobPayments.view?.remainingCents ?? null
+            : jobPayments.prefillDepositCents
+        }
+        remainingCents={jobPayments.view?.remainingCents ?? 0}
+        acceptedTotalCents={jobPayments.view?.acceptedTotalCents ?? 0}
+        unsigned={jobPayments.view?.unsignedApprovedEligible === true}
+        submitting={paymentModalBusy}
+        error={paymentModalError}
+        onClose={() => {
+          if (paymentModalBusy) return;
+          setPaymentModalKind(null);
+          setPaymentModalError(null);
+        }}
+        onSubmit={(amountCents) => {
+          if (!paymentModalKind) return;
+          setPaymentModalBusy(true);
+          setPaymentModalError(null);
+          void jobPayments
+            .requestPayment(paymentModalKind, amountCents)
+            .then((result) => {
+              if (result.ok) {
+                setPaymentModalKind(null);
+                return;
+              }
+              setPaymentModalError(
+                result.code === "not_connected"
+                  ? "Connect payments before requesting a deposit."
+                  : "Could not create this payment request."
+              );
+            })
+            .finally(() => setPaymentModalBusy(false));
+        }}
+      />
+      </>
     );
   }
 

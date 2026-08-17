@@ -17,6 +17,14 @@ import {
   listJobProposalSignatures,
   type ProposalSignatureActivityItem,
 } from "@/app/lib/proposalSignatureActivity";
+import {
+  composeJobPaymentActivityItems,
+  type JobPaymentActivityItem,
+} from "@/app/lib/jobPaymentReadModel";
+import {
+  listJobPaymentRequests,
+  listJobPaymentTransactionsForRequests,
+} from "@/app/lib/jobPaymentClientRead";
 import { useJobProposalCustomerRequests } from "@/app/lib/useProposalCustomerRequests";
 import JobCardActivityPanel, {
   type JobCardActivityItem,
@@ -51,6 +59,9 @@ export default function JobCardActivityPanelWithCustomerRequests({
   const [signatureItems, setSignatureItems] = useState<
     ProposalSignatureActivityItem[]
   >([]);
+  const [paymentItems, setPaymentItems] = useState<JobPaymentActivityItem[]>(
+    []
+  );
 
   useEffect(() => {
     const id = (jobId ?? "").trim();
@@ -60,11 +71,22 @@ export default function JobCardActivityPanelWithCustomerRequests({
       listJobActivityEventsForJob(id),
       listJobProposalAcceptances(id),
       listJobProposalSignatures(id),
-    ]).then(([events, acceptances, signatures]) => {
+      listJobPaymentRequests(id),
+    ]).then(async ([events, acceptances, signatures, paymentRequests]) => {
+      if (cancelled) return;
+      const transactions = await listJobPaymentTransactionsForRequests(
+        paymentRequests.map((row) => row.id)
+      );
       if (cancelled) return;
       setJobEvents(events);
       setAcceptanceItems(composeProposalAcceptanceActivityItems(acceptances));
       setSignatureItems(composeProposalSignatureActivityItems(signatures));
+      setPaymentItems(
+        composeJobPaymentActivityItems({
+          requests: paymentRequests,
+          transactions,
+        })
+      );
     });
     return () => {
       cancelled = true;
@@ -90,10 +112,12 @@ export default function JobCardActivityPanelWithCustomerRequests({
       customerRequestItems: [...requestItems, ...baseItems],
       acceptanceItems,
       signatureItems,
+      paymentItems,
     });
   }, [
     acceptanceItems,
     signatureItems,
+    paymentItems,
     baseItems,
     jobCreatedAt,
     jobEvents,

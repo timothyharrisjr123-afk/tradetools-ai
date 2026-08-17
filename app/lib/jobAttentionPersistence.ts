@@ -15,6 +15,8 @@ export const JOB_ATTENTION_TYPES = [
   "customer_package_request",
   "customer_question",
   "acceptance_confirmation_required",
+  "payments_not_connected",
+  "payment_failed",
 ] as const;
 
 export type JobAttentionType = (typeof JOB_ATTENTION_TYPES)[number];

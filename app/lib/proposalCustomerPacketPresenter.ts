@@ -555,6 +555,7 @@ export function buildCustomerPacketFromPublicDto(
       signedOnLabel: null,
       signerDisplayName: null,
     },
+    payment: null,
   };
 }
 

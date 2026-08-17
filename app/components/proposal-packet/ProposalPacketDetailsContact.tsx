@@ -24,6 +24,7 @@ type ProposalPacketDetailsContactProps = {
   signedOnLabel?: string | null;
   signerDisplayName?: string | null;
   onSigned?: (result: ProposalPacketSignedResult) => void;
+  signProminence?: "primary" | "continuation";
 };
 
 export default function ProposalPacketDetailsContact({
@@ -40,6 +41,7 @@ export default function ProposalPacketDetailsContact({
   signedOnLabel = null,
   signerDisplayName = null,
   onSigned,
+  signProminence = "primary",
 }: ProposalPacketDetailsContactProps) {
   const hasDetails = details != null && details.tabs.length > 0;
   const hasContact = contact != null;
@@ -68,6 +70,7 @@ export default function ProposalPacketDetailsContact({
             signedOnLabel={signedOnLabel}
             signerDisplayName={signerDisplayName}
             onSigned={onSigned}
+            signProminence={signProminence}
           />
         </section>
       ) : null}

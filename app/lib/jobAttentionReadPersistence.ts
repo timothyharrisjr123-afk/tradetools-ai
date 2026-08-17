@@ -393,6 +393,42 @@ export async function listActiveJobAttentionDetailWithClient(
       continue;
     }
 
+    if (row.source_type === "jobs") {
+      if (priority.attentionType !== "payments_not_connected") continue;
+      items.push({
+        ...priority,
+        proposalId: row.proposal_id,
+        proposalVersionId: row.proposal_version_id,
+        sourceType: "jobs",
+        sourceId: row.source_id,
+        acknowledgedAt: row.acknowledged_at,
+        destination,
+        request: null,
+        acceptance: null,
+        personalReadAt: personal?.read_at ?? null,
+        personalLastViewedAt: personal?.last_viewed_at ?? null,
+      });
+      continue;
+    }
+
+    if (row.source_type === "job_payment_requests") {
+      if (priority.attentionType !== "payment_failed") continue;
+      items.push({
+        ...priority,
+        proposalId: row.proposal_id,
+        proposalVersionId: row.proposal_version_id,
+        sourceType: "job_payment_requests",
+        sourceId: row.source_id,
+        acknowledgedAt: row.acknowledged_at,
+        destination,
+        request: null,
+        acceptance: null,
+        personalReadAt: personal?.read_at ?? null,
+        personalLastViewedAt: personal?.last_viewed_at ?? null,
+      });
+      continue;
+    }
+
     const request = requests.get(row.source_id);
     const intent = requestIntent(request?.intent);
     const sourceStatus = requestStatus(request?.status);

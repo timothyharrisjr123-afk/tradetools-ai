@@ -38,6 +38,7 @@ type ProposalPacketHeroProps = {
   signedOnLabel?: string | null;
   signerDisplayName?: string | null;
   onSigned?: (result: ProposalPacketSignedResult) => void;
+  signProminence?: "primary" | "continuation";
 };
 
 const HERO_INTRO =
@@ -59,6 +60,7 @@ export default function ProposalPacketHero({
   signedOnLabel = null,
   signerDisplayName = null,
   onSigned,
+  signProminence = "primary",
 }: ProposalPacketHeroProps) {
   const headline =
     (cover.headline ?? "").trim() ||
@@ -153,6 +155,7 @@ export default function ProposalPacketHero({
                     signedOnLabel={signedOnLabel}
                     signerDisplayName={signerDisplayName}
                     onSigned={onSigned}
+                    signProminence={signProminence}
                   />
                 </div>
               </div>

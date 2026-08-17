@@ -14,10 +14,19 @@ export const metadata: Metadata = {
 
 type PublicProposalRoutePageProps = {
   params: Promise<{ token: string }>;
+  searchParams?: Promise<{ payment?: string }>;
 };
 
-export default async function PublicProposalRoutePage({ params }: PublicProposalRoutePageProps) {
+export default async function PublicProposalRoutePage({
+  params,
+  searchParams,
+}: PublicProposalRoutePageProps) {
   const { token } = await params;
+  const query = searchParams ? await searchParams : {};
+  const paymentHint =
+    query.payment === "pending" || query.payment === "cancelled"
+      ? query.payment
+      : null;
 
   const result = await loadPublicProposalByToken(token);
 
@@ -25,6 +34,11 @@ export default async function PublicProposalRoutePage({ params }: PublicProposal
     return <PublicProposalErrorPage error={result.error} />;
   }
 
-  // Server-only view envelope stays on the server; only document is rendered.
-  return <PublicProposalPage document={result.document} publicAccessToken={token} />;
+  return (
+    <PublicProposalPage
+      document={result.document}
+      publicAccessToken={token}
+      paymentReturnHint={paymentHint}
+    />
+  );
 }

@@ -6,6 +6,7 @@ import ProposalPacketComparison from "./ProposalPacketComparison";
 import ProposalPacketDetailsContact from "./ProposalPacketDetailsContact";
 import ProposalPacketFooter from "./ProposalPacketFooter";
 import ProposalPacketHero from "./ProposalPacketHero";
+import ProposalPacketPayment from "./ProposalPacketPayment";
 import ProposalPacketScope from "./ProposalPacketScope";
 import ProposalPacketTopBar from "./ProposalPacketTopBar";
 import ProposalPacketUpgrades from "./ProposalPacketUpgrades";
@@ -44,6 +45,12 @@ export default function ProposalPacket({
     (packet.estimate.scopeGroupSummaries.length > 0 ||
       packet.estimate.includedDetails.length > 0);
   const requestToken = mode === "public" ? publicAccessToken : null;
+  const payment = packet.payment;
+  const paymentNeedsAction =
+    payment?.state === "due" ||
+    payment?.state === "pending" ||
+    payment?.state === "failed";
+  const signProminence = paymentNeedsAction ? "continuation" : "primary";
   const contactPrefill = {
     name: packet.cover.preparedFor.customerName,
     email: packet.cover.preparedFor.customerEmail,
@@ -76,6 +83,13 @@ export default function ProposalPacket({
     <main className={PROPOSAL_PACKET_PAGE} data-proposal-packet-mode={mode}>
       <article className={PROPOSAL_PACKET_SHELL} aria-label="Customer proposal">
         <ProposalPacketTopBar cover={packet.cover} />
+        {paymentNeedsAction && payment ? (
+          <ProposalPacketPayment
+            payment={payment}
+            publicAccessToken={requestToken}
+            variant="banner"
+          />
+        ) : null}
         <ProposalPacketHero
           cover={packet.cover}
           estimate={packet.estimate}
@@ -89,7 +103,15 @@ export default function ProposalPacket({
           signedOnLabel={signedOnLabel}
           signerDisplayName={signerDisplayName}
           onSigned={onSigned}
+          signProminence={signProminence}
         />
+
+        {packet.payment ? (
+          <ProposalPacketPayment
+            payment={packet.payment}
+            publicAccessToken={requestToken}
+          />
+        ) : null}
 
         {showComparison ? (
           <section className={PROPOSAL_PACKET_STORY_SECTION} aria-label="Compare packages">
@@ -126,6 +148,7 @@ export default function ProposalPacket({
           signedOnLabel={signedOnLabel}
           signerDisplayName={signerDisplayName}
           onSigned={onSigned}
+          signProminence={signProminence}
         />
 
         <ProposalPacketFooter contact={packet.contact} footerMetadata={packet.footerMetadata} />

@@ -21,6 +21,7 @@ type JobCardNextActionPanelProps = {
   onReviewProposal: (item: JobAttentionSafeItem) => void;
   onConfirmAcceptance?: (item: JobAttentionSafeItem) => Promise<void>;
   onAcknowledgeAcceptance?: (item: JobAttentionSafeItem) => Promise<void>;
+  onConnectPayments?: (item: JobAttentionSafeItem) => void;
 };
 
 const PRIMARY_BUTTON =
@@ -66,6 +67,7 @@ export default function JobCardNextActionPanel({
   onReviewProposal,
   onConfirmAcceptance,
   onAcknowledgeAcceptance,
+  onConnectPayments,
 }: JobCardNextActionPanelProps) {
   const panelRef = useRef<HTMLElement>(null);
   const focusedAttentionRef = useRef<string | null>(null);
@@ -108,6 +110,9 @@ export default function JobCardNextActionPanel({
     selectedItem.attentionType === "acceptance_confirmation_required" &&
     acceptanceAction === "acknowledge" &&
     Boolean(onAcknowledgeAcceptance);
+  const showConnectPayments =
+    selectedItem.attentionType === "payments_not_connected";
+  const showPaymentFailed = selectedItem.attentionType === "payment_failed";
   const showReviewAcceptedVersion =
     selectedItem.attentionType === "acceptance_confirmation_required" &&
     (showAcknowledge || selectedItem.acceptance?.reviewRequired === true);
@@ -191,6 +196,35 @@ export default function JobCardNextActionPanel({
             >
               Acknowledge
             </button>
+          ) : showConnectPayments ? (
+            <button
+              type="button"
+              className={PRIMARY_BUTTON}
+              data-attention-connect-payments
+              onClick={() => {
+                void settleReadWithoutBlocking(onMarkRead(selectedItem.id))
+                  .then(() => {
+                    if (onConnectPayments) onConnectPayments(selectedItem);
+                    else window.location.href = "/tools/settings/payments";
+                  })
+                  .catch(() => undefined);
+              }}
+            >
+              Connect payments
+            </button>
+          ) : showPaymentFailed ? (
+            <button
+              type="button"
+              className={PRIMARY_BUTTON}
+              data-attention-review-payment
+              onClick={() => {
+                void settleReadWithoutBlocking(onMarkRead(selectedItem.id)).catch(
+                  () => undefined
+                );
+              }}
+            >
+              Review payment
+            </button>
           ) : (
             <button
               type="button"
@@ -251,7 +285,9 @@ export default function JobCardNextActionPanel({
               Contact customer
             </button>
           ) : null}
-          {selectedItem.attentionType === "acceptance_confirmation_required" ? null : (
+          {selectedItem.attentionType === "acceptance_confirmation_required" ||
+          selectedItem.attentionType === "payments_not_connected" ||
+          selectedItem.attentionType === "payment_failed" ? null : (
             <button
               type="button"
               className={QUIET_BUTTON}

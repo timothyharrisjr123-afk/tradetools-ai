@@ -57,7 +57,10 @@ export default function JobCardHeader({ display, isBoardOrigin, phone = "", emai
 
         <div className="flex shrink-0 flex-col items-start gap-2 sm:items-end">
           <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-            <span className="inline-flex items-center rounded-md bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-800">
+            <span
+              className="inline-flex items-center rounded-md bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-800"
+              data-jobcard-stage={display.stageLabel}
+            >
               {display.stageLabel}
             </span>
             {display.dispositionLabel ? (

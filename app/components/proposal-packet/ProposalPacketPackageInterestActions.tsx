@@ -50,6 +50,8 @@ type ProposalPacketPackageInterestActionsProps = {
   signerDisplayName?: string | null;
   onSigned?: (result: ProposalPacketSignedResult) => void;
   showAccept?: boolean;
+  /** When a payment request is open, Sign stays available but must not outrank Pay. */
+  signProminence?: "primary" | "continuation";
 };
 
 /**
@@ -77,6 +79,7 @@ export default function ProposalPacketPackageInterestActions({
   signerDisplayName = null,
   onSigned,
   showAccept = true,
+  signProminence = "primary",
 }: ProposalPacketPackageInterestActionsProps) {
   const [requestOpen, setRequestOpen] = useState(false);
   const [signOpen, setSignOpen] = useState(false);
@@ -85,6 +88,10 @@ export default function ProposalPacketPackageInterestActions({
   const canAcceptAndSign = showAccept && Boolean(token) && !accepted && !signed;
   const canSignOnly = showAccept && Boolean(token) && accepted && !signed;
   const primarySignOpen = canAcceptAndSign || canSignOnly;
+  const signClass =
+    signProminence === "continuation"
+      ? PROPOSAL_PACKET_CTA_CONTINUATION
+      : PROPOSAL_PACKET_CTA_PRIMARY;
 
   const requestHref = buildPackageInterestHref(contact, packageLabel, "request");
   const askHref = buildAskQuestionHref(contact);
@@ -202,8 +209,9 @@ export default function ProposalPacketPackageInterestActions({
         {canSignOnly ? (
           <button
             type="button"
-            className={PROPOSAL_PACKET_CTA_PRIMARY}
+            className={signClass}
             data-proposal-cta="sign-proposal"
+            data-proposal-cta-prominence={signProminence}
             onClick={() => setSignOpen(true)}
           >
             {PROPOSAL_CUSTOMER_PACKET_SIGN_PROPOSAL_CTA}
@@ -222,8 +230,9 @@ export default function ProposalPacketPackageInterestActions({
         {canAcceptAndSign ? (
           <button
             type="button"
-            className={PROPOSAL_PACKET_CTA_PRIMARY}
+            className={signClass}
             data-proposal-cta="accept-and-sign"
+            data-proposal-cta-prominence={signProminence}
             onClick={() => setSignOpen(true)}
           >
             {PROPOSAL_CUSTOMER_PACKET_ACCEPT_AND_SIGN_CTA}

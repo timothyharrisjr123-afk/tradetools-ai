@@ -41,6 +41,8 @@ describe("R3B4A TypeScript contracts", () => {
       "customer_package_request",
       "customer_question",
       "acceptance_confirmation_required",
+      "payments_not_connected",
+      "payment_failed",
     ]);
     assert.deepEqual(JOB_ATTENTION_STATUSES, [
       "open",

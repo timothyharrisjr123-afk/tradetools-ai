@@ -21,6 +21,11 @@ import { buildProposalPublicGraphDto } from "@/app/lib/proposalPublicGraphDto";
 import { buildProposalPublicProposalDocumentViewModel } from "@/app/lib/proposalPublicProposalViewModel";
 import { createAdminClient } from "@/app/lib/supabase/admin";
 import { getPublicProposalVersionGraph } from "@/app/lib/proposalVersionGraphStore.server";
+import {
+  buildPublicPaymentViewModel,
+  type JobPaymentRequestRow,
+  type JobPaymentTransactionRow,
+} from "@/app/lib/jobPaymentReadModel";
 
 async function getAcceptanceForToken(input: {
   companyId: string;
@@ -77,6 +82,42 @@ export type {
   ProposalPublicViewTrackingEnvelope,
 };
 
+async function getPaymentForToken(input: {
+  companyId: string;
+  proposalId: string;
+  proposalVersionId: string;
+}): Promise<{
+  requests: JobPaymentRequestRow[];
+  transactions: JobPaymentTransactionRow[];
+}> {
+  try {
+    const supabase = createAdminClient();
+    const { data, error } = await supabase
+      .from("job_payment_requests")
+      .select(
+        "id,company_id,job_id,proposal_id,proposal_version_id,proposal_option_id,proposal_acceptance_id,proposal_signature_id,amount_cents,currency,kind,accepted_total_cents_snapshot,option_label_snapshot,provider_account_id,provider_checkout_session_id,status,requested_at,paid_at,cancelled_at"
+      )
+      .eq("company_id", input.companyId)
+      .eq("proposal_id", input.proposalId)
+      .eq("proposal_version_id", input.proposalVersionId)
+      .order("requested_at", { ascending: true });
+    if (error || !data) return { requests: [], transactions: [] };
+    const requests = data as JobPaymentRequestRow[];
+    const ids = requests.map((row) => row.id);
+    if (ids.length === 0) return { requests, transactions: [] };
+    const { data: txns } = await supabase
+      .from("job_payment_transactions")
+      .select("id,payment_request_id,kind,status,amount_cents,occurred_at,provider_event_id")
+      .in("payment_request_id", ids);
+    return {
+      requests,
+      transactions: (txns ?? []) as JobPaymentTransactionRow[],
+    };
+  } catch {
+    return { requests: [], transactions: [] };
+  }
+}
+
 export async function loadPublicProposalByToken(
   rawToken: string,
   viewMetadata: ProposalPublicAccessCustomerViewMetadata = {},
@@ -91,5 +132,34 @@ export async function loadPublicProposalByToken(
     getAcceptanceForToken: deps?.getAcceptanceForToken ?? getAcceptanceForToken,
   };
 
-  return loadPublicProposalByTokenCore(rawToken, viewMetadata, mergedDeps);
+  const result = await loadPublicProposalByTokenCore(
+    rawToken,
+    viewMetadata,
+    mergedDeps
+  );
+  if (!result.ok) return result;
+  try {
+    const loaded = await getPaymentForToken({
+      companyId: result.tracking.company_id,
+      proposalId: result.tracking.proposal_id,
+      proposalVersionId: result.tracking.proposal_version_id,
+    });
+    const payment = buildPublicPaymentViewModel({
+      requests: loaded.requests,
+      transactions: loaded.transactions,
+    });
+    if (!payment) return result;
+    return {
+      ...result,
+      document: {
+        ...result.document,
+        packet: {
+          ...result.document.packet,
+          payment,
+        },
+      },
+    };
+  } catch {
+    return result;
+  }
 }

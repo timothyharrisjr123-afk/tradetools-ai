@@ -96,6 +96,7 @@ type ProposalPacketCloseoutAsideProps = {
   signedOnLabel?: string | null;
   signerDisplayName?: string | null;
   onSigned?: (result: ProposalPacketSignedResult) => void;
+  signProminence?: "primary" | "continuation";
 };
 
 /** Closeout: CTA first, then contact + next steps, trust as supportive band. */
@@ -112,6 +113,7 @@ export function ProposalPacketCloseoutAside({
   signedOnLabel = null,
   signerDisplayName = null,
   onSigned,
+  signProminence = "primary",
 }: ProposalPacketCloseoutAsideProps) {
   const companyName = (contact?.companyName ?? "").trim();
   const packageLabel = (recommendedPackageLabel ?? "").trim();
@@ -146,6 +148,7 @@ export function ProposalPacketCloseoutAside({
             signedOnLabel={signedOnLabel}
             signerDisplayName={signerDisplayName}
             onSigned={onSigned}
+            signProminence={signProminence}
           />
         ) : null}
       </div>

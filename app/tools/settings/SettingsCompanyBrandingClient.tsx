@@ -10,6 +10,7 @@ import SettingsBrandingReadinessCard from "@/app/tools/settings/SettingsBranding
 import SettingsCompanyBrandingSection from "@/app/tools/settings/SettingsCompanyBrandingSection";
 import SettingsPageHeader from "@/app/tools/settings/SettingsPageHeader";
 import SettingsPricingLinkCard from "@/app/tools/settings/SettingsPricingLinkCard";
+import SettingsPaymentsLinkCard from "@/app/tools/settings/SettingsPaymentsLinkCard";
 import {
   loadSettingsCompanyBrandingProfile,
   saveSettingsCompanyBrandingProfile,
@@ -245,6 +246,7 @@ export default function SettingsCompanyBrandingClient() {
         <aside className="min-w-0 space-y-4 lg:sticky lg:top-6 lg:self-start">
           <SettingsBrandingReadinessCard viewModel={viewModel} />
           <SettingsPricingLinkCard />
+          <SettingsPaymentsLinkCard />
         </aside>
       </div>
     </div>

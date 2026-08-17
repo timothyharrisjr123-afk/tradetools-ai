@@ -6,6 +6,7 @@
  */
 
 import type { PackageAccent } from "@/app/lib/proposalPackagePresentation";
+import type { PublicPaymentViewModel } from "@/app/lib/jobPaymentReadModel";
 
 export type ProposalCustomerPacketCompanyIdentity = {
   companyName: string | null;
@@ -147,6 +148,7 @@ export type ProposalCustomerPacketViewModel = {
   contact: ProposalCustomerPacketContactViewModel | null;
   footerMetadata: ProposalCustomerPacketFooterMetadataViewModel | null;
   acceptance: ProposalCustomerPacketAcceptanceViewModel;
+  payment?: PublicPaymentViewModel | null;
 };
 
 export const PROPOSAL_CUSTOMER_PACKET_PROPOSAL_LABEL = "Your roofing proposal";

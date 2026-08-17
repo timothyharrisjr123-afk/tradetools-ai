@@ -20,8 +20,9 @@ export type JobAttentionDestination = {
   proposalVersionId: string;
   requestId: string | null;
   acceptanceId: string | null;
-  tab: "proposals";
-  anchor: "customer_request" | "acceptance_confirmation";
+  paymentRequestId?: string | null;
+  tab: "proposals" | "overview";
+  anchor: "customer_request" | "acceptance_confirmation" | "payments";
 };
 
 export type JobAttentionRequestContext = {
@@ -55,7 +56,11 @@ export type JobAttentionSafeItem = {
   proposalId: string | null;
   proposalVersionId: string | null;
   attentionType: JobAttentionType;
-  sourceType: "proposal_customer_requests" | "proposal_acceptances";
+  sourceType:
+    | "proposal_customer_requests"
+    | "proposal_acceptances"
+    | "jobs"
+    | "job_payment_requests";
   sourceId: string;
   status: Extract<JobAttentionStatus, "open" | "acknowledged">;
   severity: JobAttentionSeverity;
@@ -140,6 +145,8 @@ export function attentionTypeLabel(type: JobAttentionType): string {
   if (type === "acceptance_confirmation_required") {
     return "Customer accepted proposal";
   }
+  if (type === "payments_not_connected") return "Connect payments";
+  if (type === "payment_failed") return "Payment failed";
   return "Customer request";
 }
 
@@ -155,6 +162,12 @@ export function attentionHeadline(item: JobAttentionSafeItem): string {
   }
   if (item.attentionType === "customer_question") {
     return "Customer asked a question";
+  }
+  if (item.attentionType === "payments_not_connected") {
+    return "Connect payments to request a deposit";
+  }
+  if (item.attentionType === "payment_failed") {
+    return "Customer payment failed";
   }
   return `Customer requested ${item.request?.packageLabel || "a package"}`;
 }
@@ -220,7 +233,24 @@ export function parseJobAttentionDestination(
   const proposalVersionId = String(record.proposal_version_id ?? "").trim();
   const requestId = String(record.request_id ?? "").trim();
   const acceptanceId = String(record.acceptance_id ?? "").trim();
-  if (!isUuidLike(proposalId) || !isUuidLike(proposalVersionId) || record.tab !== "proposals") {
+  const paymentRequestId = String(record.payment_request_id ?? "").trim();
+  if (!isUuidLike(proposalId) || !isUuidLike(proposalVersionId)) {
+    return null;
+  }
+  if (record.anchor === "payments") {
+    if (record.tab !== "overview" && record.tab !== "proposals") return null;
+    return {
+      kind,
+      proposalId,
+      proposalVersionId,
+      requestId: null,
+      acceptanceId: null,
+      paymentRequestId: isUuidLike(paymentRequestId) ? paymentRequestId : null,
+      tab: record.tab,
+      anchor: "payments",
+    };
+  }
+  if (record.tab !== "proposals") {
     return null;
   }
   if (record.anchor === "customer_request" && isUuidLike(requestId)) {

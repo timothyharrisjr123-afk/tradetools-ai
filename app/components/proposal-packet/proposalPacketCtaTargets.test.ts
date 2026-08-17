@@ -24,6 +24,31 @@ describe("proposal packet V2D1 customer CTA targets", () => {
     assert.match(PROPOSAL_PACKET_CTA_FOCUS, /focus-visible:ring-2/);
   });
 
+  test("open payment request makes Pay the strongest action and demotes Sign", () => {
+    const packet = readFileSync(
+      join(process.cwd(), "app/components/proposal-packet/ProposalPacket.tsx"),
+      "utf8"
+    );
+    const payment = readFileSync(
+      join(process.cwd(), "app/components/proposal-packet/ProposalPacketPayment.tsx"),
+      "utf8"
+    );
+    const interest = readFileSync(
+      join(process.cwd(), "app/components/proposal-packet/ProposalPacketPackageInterestActions.tsx"),
+      "utf8"
+    );
+
+    assert.match(packet, /variant="banner"/);
+    assert.match(packet, /signProminence=\{signProminence\}/);
+    assert.match(packet, /paymentNeedsAction \? "continuation" : "primary"/);
+    assert.match(payment, /data-public-payment-banner/);
+    assert.match(payment, /data-public-pay/);
+    assert.match(payment, /PROPOSAL_PACKET_CTA_PRIMARY/);
+    assert.match(interest, /signProminence === "continuation"/);
+    assert.match(interest, /data-proposal-cta="sign-proposal"/);
+    assert.match(interest, /data-proposal-cta-prominence=\{signProminence\}/);
+  });
+
   test("hero owns Accept & sign primary; request is continuation", () => {
     const hero = readFileSync(
       join(process.cwd(), "app/components/proposal-packet/ProposalPacketHero.tsx"),
