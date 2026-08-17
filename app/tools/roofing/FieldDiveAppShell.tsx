@@ -32,7 +32,7 @@ import {
   type FieldDiveNavSubItemConfig,
 } from "./fieldDiveNavConfig";
 
-export type FieldDiveActiveNav = "jobs" | "newJob" | "catalog" | "templates";
+export type FieldDiveActiveNav = "jobs" | "newJob" | "catalog" | "templates" | "calendar";
 export type FieldDiveActiveSubNav = "packet" | "job-card" | "instant";
 
 type NavIcon = ComponentType<{ className?: string }>;

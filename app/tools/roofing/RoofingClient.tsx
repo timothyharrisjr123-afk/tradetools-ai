@@ -74,6 +74,7 @@ import {
   updateJob,
 } from "@/app/lib/jobStore";
 import {
+  resolveCanonicalJobStage,
   resolveCanonicalJobStageLabel,
   resolveStageEnteredAtIso,
 } from "@/app/lib/jobLifecycleMapper";
@@ -204,6 +205,17 @@ import JobCardActivityPanelWithCustomerRequests from "@/app/tools/roofing/jobCar
 import { listJobProposalAcceptances } from "@/app/lib/proposalAcceptanceActivity";
 import { listJobProposalSignatures } from "@/app/lib/proposalSignatureActivity";
 import JobCardOverviewSummary from "@/app/tools/roofing/jobCard/JobCardOverviewSummary";
+import JobCardScheduleSection from "@/app/tools/roofing/jobCard/JobCardScheduleSection";
+import JobCardScheduleTimeline from "@/app/tools/roofing/jobCard/JobCardScheduleTimeline";
+import ScheduleJobModal, {
+  type ScheduleModalMode,
+} from "@/app/tools/roofing/jobCard/ScheduleJobModal";
+import type { JobSchedule } from "@/app/lib/jobScheduleTypes";
+import {
+  activeWorkSchedule,
+  parseScheduleResumeContext,
+  stripScheduleResumeParams,
+} from "@/app/lib/jobScheduleMapper";
 import JobCardPaymentsStrip from "@/app/tools/roofing/jobCard/JobCardPaymentsStrip";
 import JobCardRequestPaymentModal from "@/app/tools/roofing/jobCard/JobCardRequestPaymentModal";
 import { useJobPayments } from "@/app/lib/useJobPayments";
@@ -1187,6 +1199,16 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
   const [jobCardTab, setJobCardTab] = useState<JobCardTabId>("overview");
   const [jobCardBoardOrigin, setJobCardBoardOrigin] = useState(false);
   const [hydratedJobRecord, setHydratedJobRecord] = useState<JobRecord | null>(null);
+  const [jobScheduleRows, setJobScheduleRows] = useState<JobSchedule[]>([]);
+  const [companyTimezone, setCompanyTimezone] = useState<string | null>(null);
+  const [scheduleModal, setScheduleModal] = useState<{
+    mode: ScheduleModalMode;
+    startsOn?: string;
+    endsOn?: string;
+  } | null>(null);
+  const [scheduleBusy, setScheduleBusy] = useState(false);
+  const [scheduleError, setScheduleError] = useState<string | null>(null);
+  const [scheduleActivityTick, setScheduleActivityTick] = useState(0);
   const [jobAcceptedProposalIds, setJobAcceptedProposalIds] = useState<
     Record<string, boolean>
   >({});
@@ -2189,6 +2211,22 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
     );
   }, [jobAddress1, jobCity, jobState, jobZip]);
 
+  const persistJobScheduleAction = useCallback(
+    async (
+      path: "/api/jobs/schedule" | "/api/jobs/reschedule" | "/api/jobs/unschedule",
+      body: Record<string, unknown>
+    ) => {
+      const res = await fetch(path, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const json = await res.json().catch(() => null);
+      return json;
+    },
+    []
+  );
+
   const refreshHydratedJobRecord = useCallback(async (jobId: string) => {
     const refreshed = await getJobById(jobId);
     if (!refreshed) return null;
@@ -2227,6 +2265,52 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
       cancelled = true;
     };
   }, [entryMode, currentJobId]);
+
+  useEffect(() => {
+    if (entryMode !== "job-card" || !currentJobId || !isUuidLike(currentJobId)) {
+      setJobScheduleRows([]);
+      return;
+    }
+    let cancelled = false;
+    void Promise.all([
+      fetch(`/api/jobs/schedules?jobId=${encodeURIComponent(currentJobId)}`, {
+        cache: "no-store",
+      }).then((res) => res.json()),
+      fetch("/api/company/timezone", { cache: "no-store" }).then((res) => res.json()),
+    ]).then(([schedulesJson, tzJson]) => {
+      if (cancelled) return;
+      setJobScheduleRows(Array.isArray(schedulesJson?.schedules) ? schedulesJson.schedules : []);
+      setCompanyTimezone(typeof tzJson?.timezone === "string" ? tzJson.timezone : null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [entryMode, currentJobId, scheduleActivityTick]);
+
+  useEffect(() => {
+    if (
+      entryMode !== "job-card" ||
+      !currentJobId ||
+      !companyTimezone
+    ) {
+      return;
+    }
+    const resume = parseScheduleResumeContext(window.location.search);
+    if (!resume || resume.jobId !== currentJobId) return;
+    setScheduleError(null);
+    setScheduleModal({
+      mode: "schedule",
+      startsOn: resume.startsOn,
+      endsOn: resume.endsOn,
+    });
+    window.history.replaceState(
+      {},
+      "",
+      stripScheduleResumeParams(
+        `${window.location.pathname}${window.location.search}${window.location.hash}`
+      )
+    );
+  }, [companyTimezone, currentJobId, entryMode]);
 
   const persistJobCardCustomerForJob = useCallback(
     async (job: JobRecord) => {
@@ -8173,6 +8257,26 @@ Thanks,`;
                   catalogReady={catalogReadiness.state === "ready_for_templates"}
                   onNavigateTab={setJobCardTab}
                 />
+                <JobCardScheduleSection
+                  canSchedule={
+                    resolveCanonicalJobStage(hydratedJobRecord ?? { stage: "intake" }) ===
+                      "approved" &&
+                    (hydratedJobRecord?.status ?? "active") === "active"
+                  }
+                  schedule={activeWorkSchedule(jobScheduleRows)}
+                  onSchedule={() => {
+                    setScheduleError(null);
+                    setScheduleModal({ mode: "schedule" });
+                  }}
+                  onReschedule={() => {
+                    setScheduleError(null);
+                    setScheduleModal({ mode: "reschedule" });
+                  }}
+                  onUnschedule={() => {
+                    setScheduleError(null);
+                    setScheduleModal({ mode: "unschedule" });
+                  }}
+                />
                 <div className="mt-4">
                   <JobCardPaymentsStrip
                     view={jobPayments.view}
@@ -8698,7 +8802,15 @@ Thanks,`;
                     <div className="mt-2 grid grid-cols-1 gap-0.5 sm:grid-cols-2">
                       <StatusLine label="Status" value="Not created" muted />
                       <StatusLine label="Crew" value="Not assigned" muted />
-                      <StatusLine label="Schedule" value="Not scheduled" muted />
+                      <StatusLine
+                        label="Schedule"
+                        value={
+                          activeWorkSchedule(jobScheduleRows)
+                            ? "See Job schedule"
+                            : "Not scheduled"
+                        }
+                        muted
+                      />
                       <StatusLine label="Scope" value="Estimate needed" muted />
                       <StatusLine label="Instructions" value="Not added" muted />
                       <StatusLine label="Material order" value="None" muted />
@@ -8791,22 +8903,24 @@ Thanks,`;
                 tabId="calendar"
                 activeTab={jobCardTab}
                 title="Calendar"
-                statusChip={{ label: "No events", className: "bg-slate-100 text-slate-500" }}
+                statusChip={{
+                  label: activeWorkSchedule(jobScheduleRows) ? "Scheduled" : "No events",
+                  className: activeWorkSchedule(jobScheduleRows)
+                    ? "bg-emerald-50 text-emerald-700"
+                    : "bg-slate-100 text-slate-500",
+                }}
               >
-                <div className="space-y-3">
-                  <div className={wsBlock}>
-                    <WorkspaceHeading>Calendar</WorkspaceHeading>
-                    <div className="mt-2 space-y-0.5">
-                      <StatusLine label="Calendar event" value="None" muted />
-                      <StatusLine label="Assigned user" value="Unassigned" muted />
-                      <StatusLine label="Due date" value="Not set" muted />
-                    </div>
-                  </div>
-                  <PlaceholderBox lines={["No calendar events scheduled"]} />
-                  <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-2">
-                    <button type="button" disabled className={passiveAction}>Add calendar event</button>
-                  </div>
-                </div>
+                <JobCardScheduleTimeline
+                  rows={jobScheduleRows}
+                  onReschedule={
+                    activeWorkSchedule(jobScheduleRows)
+                      ? () => {
+                          setScheduleError(null);
+                          setScheduleModal({ mode: "reschedule" });
+                        }
+                      : undefined
+                  }
+                />
               </JobCardSectionPanel>
 
               <JobCardSectionPanel
@@ -8836,6 +8950,7 @@ Thanks,`;
 
               {currentJobId ? (
                 <JobCardActivityPanelWithCustomerRequests
+                  key={`${currentJobId}-${scheduleActivityTick}`}
                   jobId={currentJobId}
                   proposalIds={jobCardProposalRows.map((row) => row.proposalId)}
                   jobCreatedAt={hydratedJobRecord?.created_at ?? null}
@@ -8886,6 +9001,102 @@ Thanks,`;
               );
             })
             .finally(() => setPaymentModalBusy(false));
+        }}
+      />
+      <ScheduleJobModal
+        open={scheduleModal != null}
+        mode={scheduleModal?.mode ?? "schedule"}
+        timezone={companyTimezone}
+        schedule={activeWorkSchedule(jobScheduleRows)}
+        prefillStartsOn={scheduleModal?.startsOn ?? null}
+        prefillEndsOn={scheduleModal?.endsOn ?? null}
+        timezoneReturnPath={
+          currentJobId
+            ? `/tools/roofing?entry=job-card&job=${encodeURIComponent(currentJobId)}`
+            : null
+        }
+        timezoneReturnJobId={currentJobId}
+        depositNotReceived={Boolean(
+          jobPayments.view?.headline?.startsWith("Deposit due")
+        )}
+        busy={scheduleBusy}
+        error={scheduleError}
+        onClose={() => {
+          if (scheduleBusy) return;
+          setScheduleModal(null);
+          setScheduleError(null);
+        }}
+        onSubmitSchedule={(input) => {
+          if (!currentJobId) return;
+          const mode = scheduleModal?.mode ?? "schedule";
+          const active = activeWorkSchedule(jobScheduleRows);
+          setScheduleBusy(true);
+          setScheduleError(null);
+          void persistJobScheduleAction(
+            mode === "reschedule" ? "/api/jobs/reschedule" : "/api/jobs/schedule",
+            {
+              jobId: currentJobId,
+              startsOn: input.startsOn,
+              endsOn: input.endsOn,
+              allDay: input.allDay,
+              startLocalTime: input.startLocalTime,
+              endLocalTime: input.endLocalTime,
+              notes: input.notes,
+              expectedRowVersion: active?.row_version,
+            }
+          )
+            .then(async (json) => {
+              if (!json?.ok) {
+                const code = String(json?.code ?? "");
+                if (code === "company_timezone_required") {
+                  setCompanyTimezone(null);
+                }
+                if (code === "schedule_stale") {
+                  const currentRes = await fetch(
+                    `/api/jobs/schedules?jobId=${encodeURIComponent(currentJobId)}`,
+                    { cache: "no-store" }
+                  );
+                  const currentJson = await currentRes.json().catch(() => null);
+                  setJobScheduleRows(
+                    Array.isArray(currentJson?.schedules)
+                      ? currentJson.schedules
+                      : []
+                  );
+                }
+                setScheduleError(
+                  code === "company_timezone_required"
+                    ? "Set company timezone to schedule work."
+                    : code === "schedule_stale"
+                      ? "This schedule changed in another session. Current schedule reloaded."
+                      : "Could not save the schedule."
+                );
+                return;
+              }
+              setScheduleModal(null);
+              setScheduleActivityTick((n) => n + 1);
+              await refreshHydratedJobRecord(currentJobId);
+            })
+            .finally(() => setScheduleBusy(false));
+        }}
+        onConfirmUnschedule={() => {
+          if (!currentJobId) return;
+          const active = activeWorkSchedule(jobScheduleRows);
+          setScheduleBusy(true);
+          setScheduleError(null);
+          void persistJobScheduleAction("/api/jobs/unschedule", {
+            jobId: currentJobId,
+            expectedRowVersion: active?.row_version,
+          })
+            .then(async (json) => {
+              if (!json?.ok) {
+                setScheduleError("Could not unschedule this job.");
+                return;
+              }
+              setScheduleModal(null);
+              setScheduleActivityTick((n) => n + 1);
+              await refreshHydratedJobRecord(currentJobId);
+            })
+            .finally(() => setScheduleBusy(false));
         }}
       />
       </>

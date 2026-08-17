@@ -32,6 +32,7 @@ describe("fieldDiveNavConfig", () => {
     assert.equal(hasNavHref("/tools/settings"), true);
     assert.equal(hasNavHref("/tools/settings/pricing"), true);
     assert.equal(hasNavHref("/tools/settings/payments"), true);
+    assert.equal(hasNavHref("/tools/roofing/calendar"), true);
   });
 
   test("uses Jobs label for Job Board route", () => {
@@ -58,6 +59,15 @@ describe("fieldDiveNavConfig", () => {
     const primaryLabels = getPrimaryWorkflowNavItems().map((item) => item.label);
     assert.ok(!primaryLabels.includes("Estimates"));
     assert.ok(!primaryLabels.some((label) => label === "Estimates (Legacy)"));
+  });
+
+  test("places Calendar in Operations", () => {
+    const calendar = getPrimaryWorkflowNavItems().find((item) => item.key === "calendar");
+    assert.ok(calendar);
+    assert.equal(calendar.kind, "link");
+    assert.equal(calendar.href, "/tools/roofing/calendar");
+    const advancedCalendar = getLegacyAndFutureNavItems().find((item) => item.label === "Calendar");
+    assert.equal(advancedCalendar, undefined);
   });
 
   test("places Instant Estimate in Advanced section", () => {
@@ -97,7 +107,7 @@ describe("fieldDiveNavConfig", () => {
 
   test("marks future placeholders as soon without href", () => {
     const legacy = getLegacyAndFutureNavItems();
-    for (const label of ["Calendar", "Invoices", "Reports"]) {
+    for (const label of ["Invoices", "Reports"]) {
       const item = legacy.find((row) => row.label === label);
       assert.ok(item, `missing ${label}`);
       assert.equal(item.kind, "soon");

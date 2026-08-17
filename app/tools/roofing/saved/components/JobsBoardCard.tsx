@@ -16,6 +16,7 @@ import { statusMetaTextClass, timeInStageToneClass } from "../jobsBoardUtils";
 type JobsBoardCardProps = {
   model: JobsBoardCardModel;
   onOpen: () => void;
+  onScheduleJob?: () => void;
   /** Muted styling for legacy estimate cards. */
   subdued?: boolean;
 };
@@ -52,7 +53,12 @@ function assigneeDisplay(label: string | null | undefined): string {
   return label;
 }
 
-export default function JobsBoardCard({ model, onOpen, subdued = false }: JobsBoardCardProps) {
+export default function JobsBoardCard({
+  model,
+  onOpen,
+  onScheduleJob,
+  subdued = false,
+}: JobsBoardCardProps) {
   const stageFooter = formatTimeInStageFooter(model.timeInStage);
   const updatedFooter = model.lastUpdatedDisplay ?? null;
   const assignee = assigneeDisplay(model.assigneeLabel);
@@ -117,6 +123,23 @@ export default function JobsBoardCard({ model, onOpen, subdued = false }: JobsBo
             <p className="text-xs text-slate-400">No address on file</p>
           )}
         </div>
+        {model.scheduleLabel ? (
+          <p className="mt-1.5 text-xs font-medium text-slate-600" data-board-schedule-meta>
+            {model.scheduleLabel}
+          </p>
+        ) : null}
+        {model.showScheduleAction && onScheduleJob ? (
+          <button
+            type="button"
+            className="mt-2 text-xs font-semibold text-cyan-700 hover:text-cyan-900"
+            onClick={(event) => {
+              event.stopPropagation();
+              onScheduleJob();
+            }}
+          >
+            Schedule job
+          </button>
+        ) : null}
       </div>
 
       <div className="flex flex-1 flex-col justify-center border-y border-slate-100/90 bg-slate-50/35 px-4 py-3">

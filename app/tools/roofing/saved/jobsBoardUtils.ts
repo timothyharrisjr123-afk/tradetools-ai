@@ -33,7 +33,7 @@ export const JOBS_BOARD_COLUMNS: BoardColumnDef[] = [
   { key: "paid", label: "Complete", listFilter: "paid" },
 ];
 
-/** Hidden until R3F owns production appointments. */
+/** Canonical Scheduled lane — membership is jobs.stage only. */
 export const JOBS_BOARD_SCHEDULED_LANE_KEY: BoardColumnKey = "scheduled";
 
 /** Retired false lane — not a canonical job stage. */
@@ -43,6 +43,7 @@ export const JOBS_BOARD_WORKING_COLUMN_KEYS: BoardColumnKey[] = [
   "estimate",
   "leads",
   "approved",
+  "scheduled",
   "in_progress",
   "paid",
 ];
@@ -57,7 +58,7 @@ export type BoardCategoryGroup = {
 export const JOBS_BOARD_CATEGORY_GROUPS: BoardCategoryGroup[] = [
   { id: "incoming", label: "Incoming", columnKeys: ["estimate"] },
   { id: "qualified", label: "Proposal", columnKeys: ["leads", "approved"] },
-  { id: "won", label: "Work", columnKeys: ["in_progress"] },
+  { id: "won", label: "Work", columnKeys: ["scheduled", "in_progress"] },
   { id: "completed", label: "Complete", columnKeys: ["paid"] },
 ];
 
@@ -436,9 +437,9 @@ export type JobsBoardCommandSummary = {
 export const BOARD_STAGE_EMPTY_HINTS: Partial<Record<BoardColumnKey, string>> = {
   estimate: "New jobs start here in Intake.",
   leads: "Jobs land here when the first proposal is created.",
-  approved: "Accepted jobs appear here. Scheduling is not enabled yet.",
+  approved: "Accepted jobs appear here until they are scheduled.",
   deposit_paid: "Retired lane — not a canonical job stage.",
-  scheduled: "Hidden until production scheduling exists.",
+  scheduled: "Jobs with an active work schedule appear here.",
   in_progress: "Jobs currently in production appear here.",
   paid: "Operationally complete jobs appear here. Payment is separate.",
 };
@@ -641,6 +642,8 @@ export type JobsBoardCardModel = {
   sourceBadge?: string | null;
   /** Operational attention is separate from tasks, activity, and stage. */
   attention?: JobAttentionSummary | null;
+  scheduleLabel?: string | null;
+  showScheduleAction?: boolean;
 };
 
 export function buildJobsBoardCardModel(
@@ -842,6 +845,10 @@ export function loadBoardViewState(): BoardViewState {
             typeof k === "string" && working.includes(k as BoardColumnKey)
         )
       : fallback.visibleColumnKeys;
+    if (!validKeys.includes("scheduled") && working.includes("scheduled")) {
+      const approvedAt = validKeys.indexOf("approved");
+      validKeys.splice(approvedAt >= 0 ? approvedAt + 1 : validKeys.length, 0, "scheduled");
+    }
     const sortKey = BOARD_SORT_OPTIONS.some((o) => o.id === parsed.sortKey)
       ? (parsed.sortKey as BoardSortKey)
       : fallback.sortKey;

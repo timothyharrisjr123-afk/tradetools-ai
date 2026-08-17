@@ -13,6 +13,9 @@ import {
   ArrowRight,
 } from "lucide-react";
 import FieldDiveAppShell from "../FieldDiveAppShell";
+import ScheduleJobModal, {
+  type ScheduleModalMode,
+} from "../jobCard/ScheduleJobModal";
 import JobsBoardHeader from "./components/JobsBoardHeader";
 import JobsBoardColumn from "./components/JobsBoardColumn";
 import JobsBoardListView from "./components/JobsBoardListView";
@@ -50,14 +53,12 @@ import {
   markSavedEstimateApproved,
   markSavedEstimateApprovedByToken,
   markEstimateViewedByToken,
-  markSavedEstimateScheduled,
   markSavedEstimateStatus,
   addPaymentToEstimate,
   setEstimateStoreCompanyScope,
   type RoofingEstimate,
 } from "@/app/lib/estimateStore";
 import {
-  buildDbJobCardHref,
   filterBoardEntriesByLaneStatus,
   getDbJobIdFromBoardEntry,
   isDbBoardJobEntry,
@@ -71,6 +72,15 @@ import {
 } from "@/app/lib/jobBoardAdapter";
 import { getJobsByCompany } from "@/app/lib/jobStore";
 import type { JobSummary } from "@/app/lib/jobTypes";
+import {
+  formatScheduleBoardMeta,
+  parseScheduleResumeContext,
+  stripScheduleResumeParams,
+} from "@/app/lib/jobScheduleMapper";
+import type {
+  JobSchedule,
+  ScheduleCandidateJob,
+} from "@/app/lib/jobScheduleTypes";
 import { buildJobCardAttentionHref } from "@/app/lib/jobAttentionReadModel";
 import { useJobAttentionSummaries } from "@/app/lib/useJobAttention";
 
@@ -95,15 +105,9 @@ const ARRIVAL_WINDOWS = [
   { value: "Anytime", label: "Anytime" },
 ] as const;
 
-const ARRIVAL_CUSTOM = "__custom__";
-
 const ROOFING_SAVED_RETURN_STATUS_FILTER = "roofing_saved_return_status_filter";
 const ROOFING_SAVED_RETURN_SCHEDULED_VIEW = "roofing_saved_return_scheduled_view";
 const ROOFING_SAVED_RETURN_QUERY = "roofing_saved_return_query";
-
-function isStandardArrivalValue(v: string) {
-  return ARRIVAL_WINDOWS.some((x) => x.value === v);
-}
 
 function arrivalLabelFromValue(v: string) {
   const found = ARRIVAL_WINDOWS.find((x) => x.value === v);
@@ -1132,42 +1136,6 @@ const getStage = (e: any) => {
   if (e?.sentAt || e?.sentTo || e?.sentToEmail) return "sent_pending";
   return "estimate";
 };
-
-function hasRecordedPaymentForEstimate(
-  estimateId: string,
-  paymentStates: Record<string, PaymentStateLite | null | undefined>
-): boolean {
-  return collectedCentsFromPaymentState(paymentStates[estimateId] ?? undefined) > 0;
-}
-
-function hasSchedulingOverrideForEstimate(estimate: any): boolean {
-  return normalizePaymentNote(estimate?.paymentNote) != null;
-}
-
-function isAlreadyScheduledPipelineStatus(est: any): boolean {
-  const s = normalizePipelineStatus(getStage(est));
-  return s === "scheduled" || s === "in_progress" || s === "paid";
-}
-
-function hasSavedScheduleDateOnEstimate(est: any): boolean {
-  return !!getScheduledDateKeyFromEstimate(est);
-}
-
-function canFinalizeScheduledForEstimate(
-  est: any,
-  paymentStates: Record<string, PaymentStateLite | null | undefined>,
-  opts?: { pendingScheduleDateIso?: string | null }
-): boolean {
-  if (!est) return false;
-  if (isAlreadyScheduledPipelineStatus(est)) return true;
-  const hasDate =
-    (opts?.pendingScheduleDateIso != null && String(opts.pendingScheduleDateIso).trim() !== "") ||
-    hasSavedScheduleDateOnEstimate(est);
-  if (!hasDate) return false;
-  if (hasRecordedPaymentForEstimate(est.id, paymentStates)) return true;
-  if (hasSchedulingOverrideForEstimate(est)) return true;
-  return false;
-}
 
 const getApprovalLink = (e: any): string | null => {
   if (e?.approvalUrl) return e.approvalUrl;
@@ -2640,7 +2608,7 @@ function SavedEstimateCard({
                   </>
                 )}
 
-                {(status === "approved" || status === "deposit_paid" || status === "scheduled" || status === "in_progress" || status === "paid") && (
+                {onSchedule && (status === "approved" || status === "deposit_paid" || status === "scheduled" || status === "in_progress" || status === "paid") && (
                   <button
                     type="button"
                     className={`${actionBtn} rounded-full border border-emerald-400/20 bg-emerald-500/15 text-emerald-200 hover:bg-emerald-500/20`}
@@ -2855,15 +2823,24 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({
     completed: true,
   });
+  const [r3fSchedulesByJobId, setR3fSchedulesByJobId] = useState<Record<string, JobSchedule>>({});
+  const [r3fDepositDueByJobId, setR3fDepositDueByJobId] = useState<
+    Record<string, boolean>
+  >({});
+  const [r3fTimezone, setR3fTimezone] = useState<string | null>(null);
+  const [r3fScheduleModal, setR3fScheduleModal] = useState<{
+    mode: ScheduleModalMode;
+    jobId: string;
+    schedule: JobSchedule | null;
+    startsOn?: string;
+    endsOn?: string;
+    depositNotReceived?: boolean;
+  } | null>(null);
+  const [r3fScheduleBusy, setR3fScheduleBusy] = useState(false);
+  const [r3fScheduleError, setR3fScheduleError] = useState<string | null>(null);
 
   const [flashId, setFlashId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
-  const [schedulingForId, setSchedulingForId] = useState<string | null>(null);
-  const [schedulingId, setSchedulingId] = useState<string | null>(null);
-  const [scheduleStartDate, setScheduleStartDate] = useState("");
-  const [scheduleArrivalWindow, setScheduleArrivalWindow] = useState("");
-  const [scheduleCustomArrivalWindow, setScheduleCustomArrivalWindow] = useState("");
-  const [scheduleNotes, setScheduleNotes] = useState("");
   const [payingForId, setPayingForId] = useState<string | null>(null);
   const [payingId, setPayingId] = useState<string | null>(null);
   const [paidDate, setPaidDate] = useState("");
@@ -3372,26 +3349,19 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
     }
 
     if (action === "schedule") {
-      // Open the GLOBAL scheduling modal
-      setSchedulingForId(id);
-      const defaultDate =
-        (est?.scheduledStartDate || "").trim() ||
-        new Date().toISOString().slice(0, 10);
-      setScheduleStartDate(defaultDate);
-      const existingArrival = String(est?.scheduledArrivalWindow || "").trim();
-      if (existingArrival) {
-        if (isStandardArrivalValue(existingArrival) || existingArrival === "Anytime") {
-          setScheduleArrivalWindow(existingArrival);
-          setScheduleCustomArrivalWindow("");
-        } else {
-          setScheduleArrivalWindow(ARRIVAL_CUSTOM);
-          setScheduleCustomArrivalWindow(existingArrival);
-        }
-      } else {
-        setScheduleArrivalWindow("");
-        setScheduleCustomArrivalWindow("");
+      const dbJobId = getDbJobIdFromBoardEntry(est);
+      if (dbJobId) {
+        setR3fScheduleError(null);
+        setR3fScheduleModal({
+          mode: r3fSchedulesByJobId[dbJobId] ? "reschedule" : "schedule",
+          jobId: dbJobId,
+          schedule: r3fSchedulesByJobId[dbJobId] ?? null,
+          depositNotReceived: r3fDepositDueByJobId[dbJobId] === true,
+        });
+        return;
       }
-      setScheduleNotes((est?.scheduleNotes || "").trim());
+      setToast("Scheduling is available from canonical Jobs.");
+      setTimeout(() => setToast(null), 2500);
       return;
     }
 
@@ -3458,48 +3428,22 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
       | "paid";
 
     if (statusTyped === "scheduled") {
-      if (!est || !hasSavedScheduleDateOnEstimate(est)) {
-        setToast("Pick a start date to schedule.");
-        setTimeout(() => setToast(null), 2500);
-        setSchedulingForId(id);
-        setScheduleStartDate((est?.scheduledStartDate || "").trim() || new Date().toISOString().slice(0, 10));
-        const existingArrival = String(est?.scheduledArrivalWindow || "").trim();
-        if (existingArrival) {
-          if (isStandardArrivalValue(existingArrival) || existingArrival === "Anytime") {
-            setScheduleArrivalWindow(existingArrival);
-            setScheduleCustomArrivalWindow("");
-          } else {
-            setScheduleArrivalWindow(ARRIVAL_CUSTOM);
-            setScheduleCustomArrivalWindow(existingArrival);
-          }
-        } else {
-          setScheduleArrivalWindow("");
-          setScheduleCustomArrivalWindow("");
+      if (est && isDbBoardJobEntry(est)) {
+        const dbJobId = getDbJobIdFromBoardEntry(est);
+        if (dbJobId) {
+          setR3fScheduleError(null);
+          setR3fScheduleModal({
+            mode: r3fSchedulesByJobId[dbJobId] ? "reschedule" : "schedule",
+            jobId: dbJobId,
+            schedule: r3fSchedulesByJobId[dbJobId] ?? null,
+            depositNotReceived: r3fDepositDueByJobId[dbJobId] === true,
+          });
         }
-        setScheduleNotes((est?.scheduleNotes || "").trim());
         return;
       }
-      if (!canFinalizeScheduledForEstimate(est, paymentStates)) {
-        setToast(
-          "Schedule date is saved. Record payment or add a payment note before moving the job to Scheduled."
-        );
-        setTimeout(() => setToast(null), 2500);
-        return;
-      }
-      const scheduleDateKey =
-        getScheduledDateKeyFromEstimate(est) || String(est?.scheduledStartDate || "").trim() || null;
-      if (scheduleDateKey) {
-        markSavedEstimateScheduled(
-          id,
-          scheduleDateKey,
-          est.scheduleNotes || undefined,
-          est.scheduledArrivalWindow || undefined
-        );
-        setEstimates(getNormalizedEstimates());
-        setToast("Scheduled ✅");
-        setTimeout(() => setToast(null), 2500);
-        return;
-      }
+      setToast("Legacy estimates cannot create a Job schedule.");
+      setTimeout(() => setToast(null), 2500);
+      return;
     }
 
     updateSavedEstimate(id, { status: statusTyped });
@@ -3522,15 +3466,13 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
     setToast(
       statusTyped === "approved"
         ? "Approved ✅"
-        : statusTyped === "scheduled"
-          ? "Scheduled ✅"
-          : statusTyped === "in_progress"
-            ? "Crew on site ✅"
-            : statusTyped === "paid" && updatedRemainingCents > 0
-              ? "Job marked completed. Final payment still due."
-              : statusTyped === "paid"
-                ? "Completed & paid ✅"
-                : `Status updated → ${label}`
+        : statusTyped === "in_progress"
+          ? "Crew on site ✅"
+          : statusTyped === "paid" && updatedRemainingCents > 0
+            ? "Job marked completed. Final payment still due."
+            : statusTyped === "paid"
+              ? "Completed & paid ✅"
+              : `Status updated → ${label}`
     );
     setTimeout(() => setToast(null), 2500);
   }
@@ -3636,6 +3578,62 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
       window.removeEventListener("pageshow", onPageShow);
     };
   }, [hydrated, companyId]);
+
+  useEffect(() => {
+    if (!hydrated || !companyId) return;
+    let cancelled = false;
+    void Promise.all([
+      fetch("/api/jobs/schedules?active=1", { cache: "no-store" }).then((res) => res.json()),
+      fetch("/api/company/timezone", { cache: "no-store" }).then((res) => res.json()),
+      fetch("/api/jobs/schedules?candidates=1", { cache: "no-store" }).then((res) => res.json()),
+    ])
+      .then(([schedulesJson, tzJson, candidatesJson]) => {
+        if (cancelled) return;
+        const rows = Array.isArray(schedulesJson?.schedules) ? schedulesJson.schedules : [];
+        const next: Record<string, JobSchedule> = {};
+        for (const row of rows) {
+          if (row?.job_id) next[row.job_id] = row;
+        }
+        const due: Record<string, boolean> = {};
+        const candidates: ScheduleCandidateJob[] = Array.isArray(
+          candidatesJson?.candidates
+        )
+          ? candidatesJson.candidates
+          : [];
+        for (const candidate of candidates) {
+          due[candidate.jobId] = candidate.depositDue === true;
+        }
+        setR3fSchedulesByJobId(next);
+        setR3fDepositDueByJobId(due);
+        setR3fTimezone(typeof tzJson?.timezone === "string" ? tzJson.timezone : null);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [hydrated, companyId, dbJobsLoaded]);
+
+  useEffect(() => {
+    if (!hydrated || !r3fTimezone) return;
+    const resume = parseScheduleResumeContext(window.location.search);
+    if (!resume) return;
+    setR3fScheduleError(null);
+    setR3fScheduleModal({
+      mode: "schedule",
+      jobId: resume.jobId,
+      schedule: null,
+      startsOn: resume.startsOn,
+      endsOn: resume.endsOn,
+      depositNotReceived: r3fDepositDueByJobId[resume.jobId] === true,
+    });
+    window.history.replaceState(
+      {},
+      "",
+      stripScheduleResumeParams(
+        `${window.location.pathname}${window.location.search}${window.location.hash}`
+      )
+    );
+  }, [hydrated, r3fDepositDueByJobId, r3fTimezone]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -4050,13 +4048,16 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
   const buildBoardCardModel = useCallback(
     (job: RoofingEstimate, columnKey: BoardColumnKey) => {
       const jobId = getDbJobIdFromBoardEntry(job);
+      const schedule = jobId ? r3fSchedulesByJobId[jobId] ?? null : null;
       return {
         ...buildJobsBoardCardModel(job, batchStatuses, { columnKey }),
         sourceBadge: isLegacyBoardEstimateEntry(job) ? "Legacy" : null,
         attention: jobId ? attentionByJobId[jobId] ?? null : null,
+        scheduleLabel: schedule ? formatScheduleBoardMeta(schedule) : null,
+        showScheduleAction: columnKey === "approved" && !schedule && Boolean(jobId),
       };
     },
-    [attentionByJobId, batchStatuses]
+    [attentionByJobId, batchStatuses, r3fSchedulesByJobId]
   );
 
   const boardVisibleJobs = useMemo(
@@ -4374,6 +4375,18 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                                   jobs={columnJobs}
                                   buildCardModel={(job) => buildBoardCardModel(job, column.key)}
                                   onOpenJob={(job) => handleAction(job, "load")}
+                                  onScheduleJob={(job) => {
+                                    const jobId = getDbJobIdFromBoardEntry(job);
+                                    if (!jobId) return;
+                                    setR3fScheduleError(null);
+                                    setR3fScheduleModal({
+                                      mode: "schedule",
+                                      jobId,
+                                      schedule: null,
+                                      depositNotReceived:
+                                        r3fDepositDueByJobId[jobId] === true,
+                                    });
+                                  }}
                                   onOpenLane={() => setStatusFilter(column.listFilter)}
                                   filterActive={boardFilterZeroMatch}
                                   columnTotalLabel={
@@ -5149,7 +5162,6 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                   });
                 }}
                 onSend={(est) => handleAction(est, "send")}
-                onSchedule={(est) => handleAction(est, "schedule")}
                 onRecordPayment={(est) => handleAction(est, "pay")}
                 onMarkApproved={(est) => handleAction(est, "approve")}
                 onView={(est) => handleAction(est, "load")}
@@ -5218,6 +5230,22 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                 key={e.id}
                 model={buildBoardCardModel(e, columnKey)}
                 onOpen={() => handleAction(e, "load")}
+                onScheduleJob={
+                  columnKey === "approved"
+                    ? () => {
+                        const jobId = getDbJobIdFromBoardEntry(e);
+                        if (!jobId) return;
+                        setR3fScheduleError(null);
+                        setR3fScheduleModal({
+                          mode: "schedule",
+                          jobId,
+                          schedule: null,
+                          depositNotReceived:
+                            r3fDepositDueByJobId[jobId] === true,
+                        });
+                      }
+                    : undefined
+                }
               />
             );
           })}
@@ -5225,181 +5253,98 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
               </div>
             )}
           </div>
+      <ScheduleJobModal
+        open={r3fScheduleModal != null}
+        mode={r3fScheduleModal?.mode ?? "schedule"}
+        timezone={r3fTimezone}
+        schedule={r3fScheduleModal?.schedule ?? null}
+        prefillStartsOn={r3fScheduleModal?.startsOn ?? null}
+        prefillEndsOn={r3fScheduleModal?.endsOn ?? null}
+        timezoneReturnPath="/tools/roofing/saved"
+        timezoneReturnJobId={r3fScheduleModal?.jobId ?? null}
+        depositNotReceived={
+          r3fScheduleModal?.depositNotReceived === true
+        }
+        busy={r3fScheduleBusy}
+        error={r3fScheduleError}
+        onClose={() => {
+          setR3fScheduleModal(null);
+          setR3fScheduleError(null);
+        }}
+        onSubmitSchedule={(input) => {
+          if (!r3fScheduleModal) return;
+          setR3fScheduleBusy(true);
+          setR3fScheduleError(null);
+          const path =
+            r3fScheduleModal.mode === "reschedule"
+              ? "/api/jobs/reschedule"
+              : "/api/jobs/schedule";
+          void fetch(path, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              jobId: r3fScheduleModal.jobId,
+              ...input,
+              expectedRowVersion:
+                r3fScheduleModal.schedule?.row_version,
+            }),
+          })
+            .then((res) => res.json())
+            .then(async (json) => {
+              setR3fScheduleBusy(false);
+              if (!json?.ok) {
+                if (json?.code === "company_timezone_required") {
+                  setR3fTimezone(null);
+                }
+                if (json?.code === "schedule_stale") {
+                  const currentRes = await fetch(
+                    `/api/jobs/schedules?jobId=${encodeURIComponent(r3fScheduleModal.jobId)}`,
+                    { cache: "no-store" }
+                  );
+                  const currentJson = await currentRes.json().catch(() => null);
+                  const current = Array.isArray(currentJson?.schedules)
+                    ? currentJson.schedules.find(
+                        (row: JobSchedule) => row.status === "scheduled"
+                      )
+                    : null;
+                  if (current) {
+                    setR3fScheduleModal((previous) =>
+                      previous
+                        ? {
+                            ...previous,
+                            mode: "reschedule",
+                            schedule: current,
+                          }
+                        : previous
+                    );
+                  }
+                }
+                setR3fScheduleError(
+                  json?.code === "company_timezone_required"
+                    ? "Set company timezone to schedule work."
+                    : json?.code === "schedule_stale"
+                      ? "This schedule changed in another session. Current schedule reloaded."
+                    : "Could not schedule this job."
+                );
+                return;
+              }
+              setR3fScheduleModal(null);
+              if (json.schedule?.job_id) {
+                setR3fSchedulesByJobId((prev) => ({
+                  ...prev,
+                  [json.schedule.job_id]: json.schedule,
+                }));
+              }
+              if (companyId) void getJobsByCompany(companyId).then(setDbJobs);
+            })
+            .catch(() => {
+              setR3fScheduleBusy(false);
+              setR3fScheduleError("Could not schedule this job.");
+            });
+        }}
+        onConfirmUnschedule={() => undefined}
+      />
       </FieldDiveAppShell>
-
-      {/* Global scheduling modal */}
-      {schedulingForId && (() => {
-        const e =
-          estimates.find((x) => x.id === schedulingForId) ??
-          filtered.find((x) => x.id === schedulingForId);
-        if (!e) return null;
-        return (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-            onClick={() => {
-              setSchedulingForId(null);
-              setScheduleStartDate("");
-              setScheduleArrivalWindow("");
-              setScheduleCustomArrivalWindow("");
-              setScheduleNotes("");
-            }}
-          >
-            <div
-              className="w-full max-w-md rounded-2xl border border-white/10 bg-zinc-900 p-4 shadow-xl"
-              onClick={(ev) => ev.stopPropagation()}
-            >
-              <div className="text-sm font-semibold text-white">{e.customerName || "Schedule Job"}</div>
-              <div className="mt-3 space-y-2">
-                <label className="block text-xs font-medium text-white/70">Start date</label>
-                <input
-                  type="date"
-                  value={scheduleStartDate}
-                  onChange={(ev) => setScheduleStartDate(ev.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white/90 outline-none focus:border-white/20"
-                />
-                <div className="mt-3 space-y-2">
-                  <label className="block text-xs font-medium text-white/70">
-                    Arrival window (optional)
-                  </label>
-                  <select
-                    value={scheduleArrivalWindow}
-                    onChange={(ev) => {
-                      const next = ev.target.value;
-                      if (next === ARRIVAL_CUSTOM) {
-                        setScheduleArrivalWindow(ARRIVAL_CUSTOM);
-                        if (!scheduleCustomArrivalWindow.trim()) {
-                          setScheduleCustomArrivalWindow("");
-                        }
-                        return;
-                      }
-                      setScheduleArrivalWindow(next);
-                    }}
-                    className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white/90 outline-none focus:border-white/20"
-                  >
-                    <option value="">— Select —</option>
-                    {ARRIVAL_WINDOWS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                    <option value={ARRIVAL_CUSTOM}>Custom time…</option>
-                  </select>
-
-                  {scheduleArrivalWindow === ARRIVAL_CUSTOM ? (
-                    <div className="mt-2">
-                      <label className="block text-xs font-medium text-white/60">
-                        Custom time (shows internally)
-                      </label>
-                      <input
-                        value={scheduleCustomArrivalWindow}
-                        onChange={(ev) => setScheduleCustomArrivalWindow(ev.target.value)}
-                        placeholder='e.g., "9:30–11:00" or "After 3 PM"'
-                        className="mt-2 w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white/90 outline-none placeholder:text-white/35 focus:border-white/20"
-                      />
-                      <div className="mt-1 text-[11px] text-white/45">
-                        Tip: Keep it customer-friendly (avoid "last stop" language).
-                      </div>
-                    </div>
-                  ) : null}
-
-                  <label className="mt-2 block text-xs font-medium text-white/70">
-                    Notes (optional)
-                  </label>
-                  <textarea
-                    value={scheduleNotes}
-                    onChange={(ev) => setScheduleNotes(ev.target.value)}
-                    placeholder="Gate code, HOA rules, material delivery notes, crew instructions..."
-                    rows={3}
-                    className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white/90 outline-none placeholder:text-white/35 focus:border-white/20"
-                  />
-                </div>
-              </div>
-              <div className="mt-4 flex gap-2">
-                <button
-                  onClick={() => {
-                    if (!scheduleStartDate || !String(scheduleStartDate).trim()) {
-                      setToast("Pick a start date to schedule.");
-                      setTimeout(() => setToast(null), 2500);
-                      return;
-                    }
-                    const iso = normalizeScheduleDateISO(scheduleStartDate.trim());
-                    if (!iso) {
-                      setToast("Pick a start date to schedule.");
-                      setTimeout(() => setToast(null), 2500);
-                      return;
-                    }
-                    setSchedulingId(e.id);
-                    const nowIso = new Date().toISOString();
-                    const arrivalWindowRaw = String(scheduleArrivalWindow || "").trim();
-                    const arrivalWindow =
-                      arrivalWindowRaw === ARRIVAL_CUSTOM
-                        ? String(scheduleCustomArrivalWindow || "").trim()
-                        : arrivalWindowRaw;
-                    const notes = String(scheduleNotes || "").trim();
-                    setTimeout(() => {
-                      const scheduleFields = {
-                        scheduledStartDate: iso,
-                        scheduledArrivalWindow: arrivalWindow,
-                        scheduleNotes: notes,
-                        scheduledAt: nowIso,
-                        scheduleInfo: { ...((e as any).scheduleInfo ?? {}), date: iso, time: arrivalWindow || "Time TBD" },
-                        schedule: { ...((e as any).schedule ?? {}), date: iso },
-                      };
-                      const canFinalize = canFinalizeScheduledForEstimate(e, paymentStates, {
-                        pendingScheduleDateIso: iso,
-                      });
-                      if (canFinalize) {
-                        markSavedEstimateScheduled(e.id, iso, notes || undefined, arrivalWindow || undefined);
-                        updateSavedEstimate(e.id, {
-                          ...(e.status !== "paid" ? { status: "scheduled" as const } : {}),
-                          ...scheduleFields,
-                        });
-                        setEstimates(getNormalizedEstimates());
-                        setToast("Scheduled ✅");
-                        setTimeout(() => setToast(null), 2500);
-                        setStatusFilter("scheduled");
-                        setQuery("");
-                        setFlashId(e.id);
-                        setTimeout(() => setFlashId(null), 1200);
-                      } else {
-                        updateSavedEstimate(e.id, scheduleFields);
-                        setEstimates(getNormalizedEstimates());
-                        setToast(
-                          "Schedule date is saved. Record payment or add a payment note before moving the job to Scheduled."
-                        );
-                        setTimeout(() => setToast(null), 3500);
-                      }
-                      setSchedulingForId(null);
-                      setScheduleStartDate("");
-                      setScheduleArrivalWindow("");
-                      setScheduleCustomArrivalWindow("");
-                      setScheduleNotes("");
-                      setSchedulingId(null);
-                    }, 400);
-                  }}
-                  disabled={!scheduleStartDate.trim() || schedulingId === e.id}
-                  className="rounded-xl px-4 py-2 text-xs font-semibold bg-emerald-500 hover:bg-emerald-400 text-black disabled:opacity-50"
-                >
-                  {schedulingId === e.id ? "Scheduling…" : "Save Schedule"}
-                </button>
-                <button
-                  onClick={() => {
-                    setSchedulingForId(null);
-                    setScheduleStartDate("");
-                    setScheduleArrivalWindow("");
-                    setScheduleCustomArrivalWindow("");
-                    setScheduleNotes("");
-                  }}
-                  disabled={schedulingId === e.id}
-                  className="rounded-xl bg-white/5 hover:bg-white/10 px-3 py-2 text-xs text-white/80"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
 
       {/* Deposit picker modal */}
       {depositModal.open && depositModal.estimateId && (() => {

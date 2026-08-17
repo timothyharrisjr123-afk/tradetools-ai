@@ -5,7 +5,7 @@
 
 export type FieldDiveNavSectionId = "operations" | "setup" | "legacyAndFuture";
 
-export type FieldDiveNavItemKey = "jobs" | "newJob" | "catalog" | "templates";
+export type FieldDiveNavItemKey = "jobs" | "newJob" | "catalog" | "templates" | "calendar";
 
 export type FieldDiveNavItemKind = "link" | "group" | "soon" | "legacy";
 
@@ -68,6 +68,13 @@ export const FIELD_DIVE_NAV_SECTIONS: FieldDiveNavSectionConfig[] = [
         href: "/tools/roofing?entry=packet",
         kind: "link",
         icon: "clipboardList",
+      },
+      {
+        key: "calendar",
+        label: "Calendar",
+        href: "/tools/roofing/calendar",
+        kind: "link",
+        icon: "calendar",
       },
     ],
   },
@@ -147,13 +154,6 @@ export const FIELD_DIVE_NAV_SECTIONS: FieldDiveNavSectionConfig[] = [
         icon: "fileText",
         soonTitle:
           "Legacy saved-estimate entry removed from primary nav — use Jobs and New job",
-      },
-      {
-        key: null,
-        label: "Calendar",
-        kind: "soon",
-        icon: "calendar",
-        soonTitle: "Scheduling — coming later",
       },
       {
         key: null,

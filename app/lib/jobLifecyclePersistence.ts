@@ -189,7 +189,14 @@ export function buildRecordJobActivityPayload(
       `Invalid job activity event type: ${eventType}`
     );
   }
-  if (eventType === "job_created" || eventType === "stage_changed" || eventType === "disposition_changed") {
+  if (
+    eventType === "job_created" ||
+    eventType === "stage_changed" ||
+    eventType === "disposition_changed" ||
+    eventType === "job_scheduled" ||
+    eventType === "job_rescheduled" ||
+    eventType === "job_unscheduled"
+  ) {
     throw new JobLifecyclePersistenceError(
       `Job activity event type is reserved for lifecycle writers: ${eventType}`
     );

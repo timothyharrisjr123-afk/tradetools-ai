@@ -266,14 +266,15 @@ describe("board canonical lanes", () => {
     assert.equal((row as { jobHasProposal?: boolean }).jobHasProposal, false);
   });
 
-  test("Scheduled is hidden from the working board before R3F", () => {
+  test("Scheduled lane is visible once R3F owns production scheduling", () => {
     const visible = getDefaultVisibleColumnKeys();
-    assert.equal(visible.includes("scheduled"), false);
+    assert.equal(visible.includes("scheduled"), true);
     assert.equal(visible.includes("deposit_paid"), false);
     assert.deepEqual(visible, [
       "estimate",
       "leads",
       "approved",
+      "scheduled",
       "in_progress",
       "paid",
     ]);
@@ -490,6 +491,9 @@ describe("RPC payload guards", () => {
       "job_created",
       "stage_changed",
       "disposition_changed",
+      "job_scheduled",
+      "job_rescheduled",
+      "job_unscheduled",
     ]);
     assert.deepEqual([...AUTHENTICATED_MANUAL_JOB_ACTIVITY_EVENT_TYPES], []);
     for (const eventType of SYSTEM_RESERVED_JOB_ACTIVITY_EVENT_TYPES) {

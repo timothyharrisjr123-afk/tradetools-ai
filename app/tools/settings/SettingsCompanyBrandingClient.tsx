@@ -11,6 +11,7 @@ import SettingsCompanyBrandingSection from "@/app/tools/settings/SettingsCompany
 import SettingsPageHeader from "@/app/tools/settings/SettingsPageHeader";
 import SettingsPricingLinkCard from "@/app/tools/settings/SettingsPricingLinkCard";
 import SettingsPaymentsLinkCard from "@/app/tools/settings/SettingsPaymentsLinkCard";
+import SettingsCompanyTimezoneSection from "@/app/tools/settings/SettingsCompanyTimezoneSection";
 import {
   loadSettingsCompanyBrandingProfile,
   saveSettingsCompanyBrandingProfile,
@@ -215,6 +216,7 @@ export default function SettingsCompanyBrandingClient() {
             onLogoChange={handleLogoChange}
             disabled={loading || saving || saveBlocked}
           />
+          <SettingsCompanyTimezoneSection />
 
           <section className={`${SETTINGS_CARD} space-y-3`}>
             <div className="flex flex-wrap items-center gap-3">

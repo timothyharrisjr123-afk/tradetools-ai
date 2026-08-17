@@ -26,6 +26,10 @@ import { deriveContractorProposalLifecycle } from "@/app/lib/proposalContractorL
 import type { ProposalAcceptanceActivityItem } from "@/app/lib/proposalAcceptanceActivity";
 import type { ProposalSignatureActivityItem } from "@/app/lib/proposalSignatureActivity";
 import type { JobPaymentActivityItem } from "@/app/lib/jobPaymentReadModel";
+import {
+  composeScheduleActivityItem,
+  isSuppressedScheduleStageChange,
+} from "@/app/lib/jobScheduleActivity";
 
 const FORBIDDEN_ACTIVITY_LABEL =
   /\b(Job card opened|Estimate loaded|autosave|previewed|snapshot_frozen|Builder opened|Preview opened|Acceptance confirmed)\b/i;
@@ -133,6 +137,7 @@ export function composeJobActivityItems(
       continue;
     }
     if (event.event_type === "stage_changed") {
+      if (isSuppressedScheduleStageChange(event)) continue;
       const fromLabel = stageLabelFromPayload(payload, "from_stage") ?? "prior stage";
       const toLabel = stageLabelFromPayload(payload, "to_stage") ?? "next stage";
       const reason = payloadString(payload, "reason");
@@ -149,6 +154,11 @@ export function composeJobActivityItems(
         },
         event.occurred_at
       );
+      continue;
+    }
+    const scheduleItem = composeScheduleActivityItem(event);
+    if (scheduleItem) {
+      push(scheduleItem, event.occurred_at, event.id);
       continue;
     }
     if (event.event_type === "disposition_changed") {
