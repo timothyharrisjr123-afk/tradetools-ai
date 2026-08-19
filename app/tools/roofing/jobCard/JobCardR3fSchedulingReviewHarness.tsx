@@ -36,6 +36,7 @@ export default function JobCardR3fSchedulingReviewHarness() {
         <div data-review="unscheduled">
           <JobCardScheduleSection
             canSchedule
+            stage="approved"
             schedule={null}
             onSchedule={() => undefined}
             onReschedule={() => undefined}
@@ -45,6 +46,7 @@ export default function JobCardR3fSchedulingReviewHarness() {
         <div data-review="scheduled">
           <JobCardScheduleSection
             canSchedule
+            stage="scheduled"
             schedule={SAMPLE}
             onSchedule={() => undefined}
             onReschedule={() => undefined}

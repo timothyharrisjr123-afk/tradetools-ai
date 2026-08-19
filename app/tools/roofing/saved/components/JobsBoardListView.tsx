@@ -19,6 +19,7 @@ type JobsBoardListViewProps = {
     columnKey: BoardColumnKey
   ) => JobsBoardCardModel;
   onOpenJob: (job: RoofingEstimate) => void;
+  onStartWork?: (job: RoofingEstimate) => void;
   /** When set, shown on every row (legacy section). */
   sourceBadge?: string | null;
 };
@@ -35,6 +36,7 @@ export default function JobsBoardListView({
   jobs,
   buildCardModel,
   onOpenJob,
+  onStartWork,
   sourceBadge,
 }: JobsBoardListViewProps) {
   if (jobs.length === 0) {
@@ -58,6 +60,7 @@ export default function JobsBoardListView({
               <th className="px-4 py-2.5 font-medium">Status</th>
               <th className="px-4 py-2.5 font-medium">Updated</th>
               <th className="px-4 py-2.5 font-medium">Time in stage</th>
+              <th className="px-4 py-2.5 font-medium">Action</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -126,6 +129,24 @@ export default function JobsBoardListView({
                   <td className="whitespace-nowrap px-4 py-3 text-xs">
                     {model?.timeInStage ? (
                       <span className={timeInStageToneClass(model.timeInStageTone)}>{model.timeInStage}</span>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-3 text-xs">
+                    {model?.showStartWorkAction && onStartWork ? (
+                      <button
+                        type="button"
+                        disabled={model.startWorkBusy}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          onStartWork(job);
+                        }}
+                        className="font-semibold text-cyan-700 hover:text-cyan-900"
+                        data-board-list-start-work
+                      >
+                        {model.startWorkBusy ? "Starting…" : "Start work"}
+                      </button>
                     ) : (
                       "—"
                     )}

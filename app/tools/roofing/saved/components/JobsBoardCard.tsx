@@ -17,6 +17,7 @@ type JobsBoardCardProps = {
   model: JobsBoardCardModel;
   onOpen: () => void;
   onScheduleJob?: () => void;
+  onStartWork?: () => void;
   /** Muted styling for legacy estimate cards. */
   subdued?: boolean;
 };
@@ -57,6 +58,7 @@ export default function JobsBoardCard({
   model,
   onOpen,
   onScheduleJob,
+  onStartWork,
   subdued = false,
 }: JobsBoardCardProps) {
   const stageFooter = formatTimeInStageFooter(model.timeInStage);
@@ -128,6 +130,14 @@ export default function JobsBoardCard({
             {model.scheduleLabel}
           </p>
         ) : null}
+        {model.productionStartedLabel ? (
+          <p
+            className="mt-1.5 text-xs font-semibold text-emerald-700"
+            data-board-production-started
+          >
+            Work started · {model.productionStartedLabel}
+          </p>
+        ) : null}
         {model.showScheduleAction && onScheduleJob ? (
           <button
             type="button"
@@ -138,6 +148,20 @@ export default function JobsBoardCard({
             }}
           >
             Schedule job
+          </button>
+        ) : null}
+        {model.showStartWorkAction && onStartWork ? (
+          <button
+            type="button"
+            disabled={model.startWorkBusy}
+            className="mt-2 rounded-md bg-cyan-700 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-cyan-800"
+            onClick={(event) => {
+              event.stopPropagation();
+              onStartWork();
+            }}
+            data-board-start-work
+          >
+            {model.startWorkBusy ? "Starting…" : "Start work"}
           </button>
         ) : null}
       </div>

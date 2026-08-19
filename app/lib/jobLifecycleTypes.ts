@@ -52,6 +52,7 @@ export const JOB_ACTIVITY_EVENT_TYPES = [
   "job_scheduled",
   "job_rescheduled",
   "job_unscheduled",
+  "job_work_started",
 ] as const;
 
 export type JobActivityEventType = (typeof JOB_ACTIVITY_EVENT_TYPES)[number];

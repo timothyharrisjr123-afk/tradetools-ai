@@ -30,6 +30,10 @@ import {
   composeScheduleActivityItem,
   isSuppressedScheduleStageChange,
 } from "@/app/lib/jobScheduleActivity";
+import {
+  composeProductionActivityItem,
+  isSuppressedProductionStageChange,
+} from "@/app/lib/jobProductionActivity";
 
 const FORBIDDEN_ACTIVITY_LABEL =
   /\b(Job card opened|Estimate loaded|autosave|previewed|snapshot_frozen|Builder opened|Preview opened|Acceptance confirmed)\b/i;
@@ -137,7 +141,12 @@ export function composeJobActivityItems(
       continue;
     }
     if (event.event_type === "stage_changed") {
-      if (isSuppressedScheduleStageChange(event)) continue;
+      if (
+        isSuppressedScheduleStageChange(event) ||
+        isSuppressedProductionStageChange(event)
+      ) {
+        continue;
+      }
       const fromLabel = stageLabelFromPayload(payload, "from_stage") ?? "prior stage";
       const toLabel = stageLabelFromPayload(payload, "to_stage") ?? "next stage";
       const reason = payloadString(payload, "reason");
@@ -159,6 +168,11 @@ export function composeJobActivityItems(
     const scheduleItem = composeScheduleActivityItem(event);
     if (scheduleItem) {
       push(scheduleItem, event.occurred_at, event.id);
+      continue;
+    }
+    const productionItem = composeProductionActivityItem(event);
+    if (productionItem) {
+      push(productionItem, event.occurred_at, event.id);
       continue;
     }
     if (event.event_type === "disposition_changed") {

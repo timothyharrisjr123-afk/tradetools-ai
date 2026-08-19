@@ -72,6 +72,7 @@ import {
 } from "@/app/lib/jobBoardAdapter";
 import { getJobsByCompany } from "@/app/lib/jobStore";
 import type { JobSummary } from "@/app/lib/jobTypes";
+import { formatProductionStartedAt } from "@/app/lib/jobProductionTypes";
 import {
   formatScheduleBoardMeta,
   parseScheduleResumeContext,
@@ -1067,7 +1068,7 @@ const getDisplayStage = (status: string) => {
   if (status === "approved") return "Approved";
   if (status === "deposit_paid") return "Deposit paid";
   if (status === "scheduled") return "Scheduled";
-  if (status === "in_progress") return "Crew On Site";
+  if (status === "in_progress") return "Production";
   if (status === "paid" || status === "completed") return "Completed";
   if (status === "estimate") return "Estimate";
   return status?.toUpperCase?.() ?? "—";
@@ -1080,7 +1081,6 @@ const STATUS_OPTIONS: Array<{ value: string; label: string }> = [
   { value: "approved", label: "Approved" },
   { value: "deposit_paid", label: "Deposit paid" },
   { value: "scheduled", label: "Scheduled" },
-  { value: "in_progress", label: "On Site" },
   { value: "paid", label: "Completed" },
 ];
 
@@ -1203,7 +1203,7 @@ function statusLabel(status: SavedStatusUI) {
   if (s === "approved") return "Approved";
   if (s === "deposit_paid") return "Deposit paid";
   if (s === "scheduled") return "Scheduled";
-  if (s === "in_progress") return "Crew On Site";
+  if (s === "in_progress") return "Production";
   if (s === "paid" || s === "completed") return "Completed";
 
   return s
@@ -1265,7 +1265,7 @@ function StatusPill({ status }: { status: string }) {
     return (
       <span className={`${base} bg-violet-500/10 text-violet-300 ring-violet-500/20`}>
         <span className={`${dot} bg-violet-400`} />
-        Crew On Site
+        Production
       </span>
     );
   }
@@ -1356,7 +1356,7 @@ function PipelineBar({
     approved: "Approved",
     deposit_paid: "Deposit",
     scheduled: "Scheduled",
-    in_progress: "On Site",
+    in_progress: "Production",
     paid: "Completed",
   };
   const stepStatus =
@@ -2622,16 +2622,6 @@ function SavedEstimateCard({
                   </button>
                 )}
 
-                {status === "scheduled" && (
-                  <button
-                    type="button"
-                    className={`${actionBtn} rounded-full border border-emerald-400/20 bg-emerald-500/15 text-emerald-200 hover:bg-emerald-500/20`}
-                    onClick={() => onStatusChange?.(estimate.id, "in_progress")}
-                  >
-                    Start Job
-                  </button>
-                )}
-
                 {isFullyPaid && (
                   <div className={`${actionBtn} rounded-full border border-emerald-400/20 bg-emerald-500/10 text-emerald-200 font-semibold`}>
                     Paid ✅
@@ -2838,6 +2828,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
   } | null>(null);
   const [r3fScheduleBusy, setR3fScheduleBusy] = useState(false);
   const [r3fScheduleError, setR3fScheduleError] = useState<string | null>(null);
+  const [r3gStartingJobId, setR3gStartingJobId] = useState<string | null>(null);
 
   const [flashId, setFlashId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -3427,6 +3418,12 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
       | "in_progress"
       | "paid";
 
+    if (statusTyped === "in_progress") {
+      setToast("Start work is available from canonical Jobs.");
+      setTimeout(() => setToast(null), 2500);
+      return;
+    }
+
     if (statusTyped === "scheduled") {
       if (est && isDbBoardJobEntry(est)) {
         const dbJobId = getDbJobIdFromBoardEntry(est);
@@ -3466,9 +3463,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
     setToast(
       statusTyped === "approved"
         ? "Approved ✅"
-        : statusTyped === "in_progress"
-          ? "Crew on site ✅"
-          : statusTyped === "paid" && updatedRemainingCents > 0
+        : statusTyped === "paid" && updatedRemainingCents > 0
             ? "Job marked completed. Final payment still due."
             : statusTyped === "paid"
               ? "Completed & paid ✅"
@@ -4045,6 +4040,44 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
     updatedOnOrAfter,
   });
 
+  const startBoardJobWork = useCallback(
+    async (job: RoofingEstimate) => {
+      const jobId = getDbJobIdFromBoardEntry(job);
+      if (!jobId || r3gStartingJobId) return;
+      setR3gStartingJobId(jobId);
+      try {
+        const response = await fetch("/api/jobs/start-work", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ jobId }),
+        });
+        const result = await response.json().catch(() => null);
+        if (!response.ok || result?.ok !== true) {
+          const code = String(result?.code ?? "internal_error");
+          setToast(
+            code === "disposition_blocks_start_work"
+              ? "This Job must be Active before work can start."
+              : code === "start_work_schedule_integrity_error"
+                ? "Work cannot start because the active schedule is inconsistent."
+                : "Work could not be started. Refresh and try again."
+          );
+        } else {
+          setToast("Work started.");
+        }
+      } catch {
+        setToast(
+          "Could not confirm whether work started. Refreshing current Job status."
+        );
+      } finally {
+        if (companyId) {
+          await getJobsByCompany(companyId).then(setDbJobs).catch(() => undefined);
+        }
+        setR3gStartingJobId(null);
+      }
+    },
+    [companyId, r3gStartingJobId]
+  );
+
   const buildBoardCardModel = useCallback(
     (job: RoofingEstimate, columnKey: BoardColumnKey) => {
       const jobId = getDbJobIdFromBoardEntry(job);
@@ -4053,11 +4086,32 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
         ...buildJobsBoardCardModel(job, batchStatuses, { columnKey }),
         sourceBadge: isLegacyBoardEstimateEntry(job) ? "Legacy" : null,
         attention: jobId ? attentionByJobId[jobId] ?? null : null,
-        scheduleLabel: schedule ? formatScheduleBoardMeta(schedule) : null,
+        scheduleLabel: schedule
+          ? columnKey === "in_progress"
+            ? `Planned · ${formatScheduleBoardMeta(schedule)}`
+            : formatScheduleBoardMeta(schedule)
+          : null,
+        productionStartedLabel:
+          columnKey === "in_progress"
+            ? formatProductionStartedAt(
+                (job as { productionStartedAt?: string | null })
+                  .productionStartedAt,
+                schedule?.timezone ?? r3fTimezone
+              )
+            : null,
         showScheduleAction: columnKey === "approved" && !schedule && Boolean(jobId),
+        showStartWorkAction:
+          columnKey === "scheduled" && Boolean(schedule) && Boolean(jobId),
+        startWorkBusy: Boolean(jobId && r3gStartingJobId === jobId),
       };
     },
-    [attentionByJobId, batchStatuses, r3fSchedulesByJobId]
+    [
+      attentionByJobId,
+      batchStatuses,
+      r3fSchedulesByJobId,
+      r3fTimezone,
+      r3gStartingJobId,
+    ]
   );
 
   const boardVisibleJobs = useMemo(
@@ -4122,7 +4176,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
       },
       {
         key: "on_site",
-        label: "On Site",
+        label: "Production",
         items: items.filter((e) => {
           const norm = normalizeStatusValue(e.status || "estimate");
           return norm === "in_progress";
@@ -4348,6 +4402,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                     jobs={boardListJobs}
                     buildCardModel={buildBoardCardModel}
                     onOpenJob={(job) => handleAction(job, "load")}
+                    onStartWork={startBoardJobWork}
                   />
                 ) : (
                   <div className="overflow-x-auto rounded-xl border border-slate-200/80 bg-white pb-2 shadow-sm [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-200/60 [&::-webkit-scrollbar-track]:bg-transparent">
@@ -4387,6 +4442,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                                         r3fDepositDueByJobId[jobId] === true,
                                     });
                                   }}
+                                  onStartWork={startBoardJobWork}
                                   onOpenLane={() => setStatusFilter(column.listFilter)}
                                   filterActive={boardFilterZeroMatch}
                                   columnTotalLabel={
@@ -4454,10 +4510,10 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
               const pageSubtitle: Record<LaneFilter, string> = {
                 estimate: "Jobs in Intake — capture the job and create a proposal.",
                 sent_pending: "Jobs in Proposal — draft, sent, or revision in progress.",
-                approved: "Approved jobs — scheduling is not enabled yet.",
+                approved: "Approved jobs ready for scheduling.",
                 deposit_paid: "Retired lane — not a canonical job stage.",
-                scheduled: "Hidden until production scheduling exists.",
-                in_progress: "Jobs in production.",
+                scheduled: "Planned work ready to start.",
+                in_progress: "Jobs where work has started.",
                 paid: "Operationally complete jobs. Payment is separate.",
               };
               return (
@@ -4506,7 +4562,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                         ["approved", "Signed"],
                         ["deposit_paid", "Ready to schedule"],
                         ["scheduled", "Scheduled"],
-                        ["in_progress", "On site"],
+                        ["in_progress", "Production"],
                         ["paid", "Completed"],
                       ].map(([key, label]) => (
                         <button

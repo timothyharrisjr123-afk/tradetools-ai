@@ -1208,6 +1208,8 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
   } | null>(null);
   const [scheduleBusy, setScheduleBusy] = useState(false);
   const [scheduleError, setScheduleError] = useState<string | null>(null);
+  const [startWorkBusy, setStartWorkBusy] = useState(false);
+  const [startWorkError, setStartWorkError] = useState<string | null>(null);
   const [scheduleActivityTick, setScheduleActivityTick] = useState(0);
   const [jobAcceptedProposalIds, setJobAcceptedProposalIds] = useState<
     Record<string, boolean>
@@ -2291,7 +2293,9 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
     if (
       entryMode !== "job-card" ||
       !currentJobId ||
-      !companyTimezone
+      !companyTimezone ||
+      resolveCanonicalJobStage(hydratedJobRecord ?? { stage: "intake" }) !==
+        "approved"
     ) {
       return;
     }
@@ -2310,7 +2314,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
         `${window.location.pathname}${window.location.search}${window.location.hash}`
       )
     );
-  }, [companyTimezone, currentJobId, entryMode]);
+  }, [companyTimezone, currentJobId, entryMode, hydratedJobRecord]);
 
   const persistJobCardCustomerForJob = useCallback(
     async (job: JobRecord) => {
@@ -4187,7 +4191,7 @@ Thanks,`;
     approved: "Approved",
     deposit_paid: "Deposit ready",
     scheduled: "Scheduled",
-    in_progress: "On site",
+    in_progress: "Production",
     paid: "Completed",
   };
   const workspaceStatusLabel = currentSaved?.status
@@ -8123,6 +8127,9 @@ Thanks,`;
         signedProposalIds: jobSignedProposalIds,
       }),
     };
+    const canonicalJobStage = resolveCanonicalJobStage(
+      hydratedJobRecord ?? { stage: "intake" }
+    );
     const jobCardActivityItems: JobCardActivityItem[] = [];
     const ATTACHMENT_CATEGORIES = [
       "Inspection photos",
@@ -8202,6 +8209,44 @@ Thanks,`;
       }
     };
 
+    const startCurrentJobWork = async () => {
+      if (!currentJobId || startWorkBusy) return;
+      setStartWorkBusy(true);
+      setStartWorkError(null);
+      try {
+        const response = await fetch("/api/jobs/start-work", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ jobId: currentJobId }),
+        });
+        const result = await response.json().catch(() => null);
+        if (!response.ok || result?.ok !== true) {
+          const code = String(result?.code ?? "internal_error");
+          const message =
+            code === "disposition_blocks_start_work"
+              ? "This Job must be Active before work can start."
+              : code === "start_work_schedule_integrity_error"
+                ? "Work cannot start because the active schedule is inconsistent."
+                : code === "illegal_stage"
+                  ? "This Job is no longer ready to start."
+                  : "Work could not be started. Refresh and try again.";
+          setStartWorkError(message);
+          await refreshHydratedJobRecord(currentJobId);
+          return;
+        }
+        await refreshHydratedJobRecord(currentJobId);
+        setScheduleActivityTick((value) => value + 1);
+      } catch {
+        setStartWorkError(
+          "Could not confirm whether work started. Refreshing current Job status."
+        );
+        await refreshHydratedJobRecord(currentJobId);
+        setScheduleActivityTick((value) => value + 1);
+      } finally {
+        setStartWorkBusy(false);
+      }
+    };
+
     return (
       <>
       <div className="min-h-0 w-full pb-8 pt-1 pl-3 pr-4 sm:pl-4 sm:pr-5 lg:pl-5 lg:pr-6">
@@ -8259,11 +8304,25 @@ Thanks,`;
                 />
                 <JobCardScheduleSection
                   canSchedule={
-                    resolveCanonicalJobStage(hydratedJobRecord ?? { stage: "intake" }) ===
-                      "approved" &&
+                    canonicalJobStage === "approved" &&
                     (hydratedJobRecord?.status ?? "active") === "active"
                   }
+                  stage={canonicalJobStage}
                   schedule={activeWorkSchedule(jobScheduleRows)}
+                  productionStartedAt={
+                    hydratedJobRecord?.production_started_at ?? null
+                  }
+                  displayTimezone={companyTimezone}
+                  depositNotReceived={
+                    jobPayments.view?.headline?.startsWith("Deposit due") === true
+                  }
+                  startBusy={startWorkBusy}
+                  startError={startWorkError}
+                  onStartWork={
+                    canonicalJobStage === "scheduled"
+                      ? startCurrentJobWork
+                      : undefined
+                  }
                   onSchedule={() => {
                     setScheduleError(null);
                     setScheduleModal({ mode: "schedule" });
@@ -8904,7 +8963,11 @@ Thanks,`;
                 activeTab={jobCardTab}
                 title="Calendar"
                 statusChip={{
-                  label: activeWorkSchedule(jobScheduleRows) ? "Scheduled" : "No events",
+                  label: activeWorkSchedule(jobScheduleRows)
+                    ? canonicalJobStage === "production"
+                      ? "Production · planned"
+                      : "Scheduled"
+                    : "No events",
                   className: activeWorkSchedule(jobScheduleRows)
                     ? "bg-emerald-50 text-emerald-700"
                     : "bg-slate-100 text-slate-500",
@@ -8913,7 +8976,8 @@ Thanks,`;
                 <JobCardScheduleTimeline
                   rows={jobScheduleRows}
                   onReschedule={
-                    activeWorkSchedule(jobScheduleRows)
+                    activeWorkSchedule(jobScheduleRows) &&
+                    canonicalJobStage === "scheduled"
                       ? () => {
                           setScheduleError(null);
                           setScheduleModal({ mode: "reschedule" });

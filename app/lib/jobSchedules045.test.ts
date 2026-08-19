@@ -179,17 +179,19 @@ describe("045 schema contracts", () => {
   });
 
   test("activity types include schedule facts", () => {
-    assert.deepEqual(
-      [...JOB_ACTIVITY_EVENT_TYPES],
-      [
-        "job_created",
-        "stage_changed",
-        "disposition_changed",
-        "job_scheduled",
-        "job_rescheduled",
-        "job_unscheduled",
-      ]
-    );
+    for (const eventType of [
+      "job_created",
+      "stage_changed",
+      "disposition_changed",
+      "job_scheduled",
+      "job_rescheduled",
+      "job_unscheduled",
+    ]) {
+      assert.equal(
+        (JOB_ACTIVITY_EVENT_TYPES as readonly string[]).includes(eventType),
+        true
+      );
+    }
     assert.match(SQL_045, /'job_scheduled',\s*'job_rescheduled',\s*'job_unscheduled'/);
   });
 });

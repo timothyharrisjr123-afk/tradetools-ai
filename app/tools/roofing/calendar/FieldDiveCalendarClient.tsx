@@ -240,6 +240,18 @@ export default function FieldDiveCalendarClient({
     await load();
   }
 
+  const openScheduleEvent = (event: CalendarScheduleEvent) => {
+    if (event.stage === "production" || event.stage === "complete") {
+      router.push(buildDbJobCardHref(event.jobId));
+      return;
+    }
+    setModal({
+      mode: "reschedule",
+      jobId: event.jobId,
+      schedule: event.schedule,
+    });
+  };
+
   const monthLabel = new Date(cursor.year, cursor.month, 1).toLocaleDateString("en-US", {
     month: "long",
     year: "numeric",
@@ -325,25 +337,29 @@ export default function FieldDiveCalendarClient({
                         tabIndex={0}
                         onClick={(e) => {
                           e.stopPropagation();
-                          setModal({
-                            mode: "reschedule",
-                            jobId: event.jobId,
-                            schedule: event.schedule,
-                          });
+                          openScheduleEvent(event);
                         }}
                         onKeyDown={(e) => {
                           if (e.key === "Enter") {
                             e.stopPropagation();
-                            setModal({
-                              mode: "reschedule",
-                              jobId: event.jobId,
-                              schedule: event.schedule,
-                            });
+                            openScheduleEvent(event);
                           }
                         }}
-                        className="truncate rounded bg-sky-50 px-1.5 py-0.5 text-[11px] font-medium text-sky-900"
+                        className={`truncate rounded px-1.5 py-0.5 text-[11px] font-medium ${
+                          event.stage === "production"
+                            ? "bg-emerald-50 text-emerald-900"
+                            : event.stage === "complete"
+                              ? "bg-slate-100 text-slate-800"
+                            : "bg-sky-50 text-sky-900"
+                        }`}
+                        data-calendar-event-stage={event.stage}
                       >
                         {event.customerName}
+                        {event.stage === "production"
+                          ? " · Production"
+                          : event.stage === "complete"
+                            ? " · Complete"
+                            : ""}
                       </div>
                     ))}
                   </div>
@@ -378,16 +394,28 @@ export default function FieldDiveCalendarClient({
                         <li key={event.schedule.id}>
                           <button
                             type="button"
-                            className="w-full rounded-md bg-slate-50 px-2 py-2 text-left"
-                            onClick={() =>
-                              setModal({
-                                mode: "reschedule",
-                                jobId: event.jobId,
-                                schedule: event.schedule,
-                              })
-                            }
+                            className={`w-full rounded-md px-2 py-2 text-left ${
+                              event.stage === "production"
+                                ? "bg-emerald-50"
+                                : event.stage === "complete"
+                                  ? "bg-slate-100"
+                                : "bg-slate-50"
+                            }`}
+                            onClick={() => openScheduleEvent(event)}
+                            data-calendar-event-stage={event.stage}
                           >
-                            <p className="text-sm font-medium text-slate-800">{event.customerName}</p>
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-sm font-medium text-slate-800">{event.customerName}</p>
+                              {event.stage === "production" ? (
+                                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">
+                                  Production
+                                </span>
+                              ) : event.stage === "complete" ? (
+                                <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-semibold text-slate-700">
+                                  Complete
+                                </span>
+                              ) : null}
+                            </div>
                             <p className="text-xs text-slate-500">
                               {formatScheduleWindowLabel(event.schedule)}
                             </p>

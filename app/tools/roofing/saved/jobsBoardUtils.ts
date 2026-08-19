@@ -643,7 +643,10 @@ export type JobsBoardCardModel = {
   /** Operational attention is separate from tasks, activity, and stage. */
   attention?: JobAttentionSummary | null;
   scheduleLabel?: string | null;
+  productionStartedLabel?: string | null;
   showScheduleAction?: boolean;
+  showStartWorkAction?: boolean;
+  startWorkBusy?: boolean;
 };
 
 export function buildJobsBoardCardModel(
