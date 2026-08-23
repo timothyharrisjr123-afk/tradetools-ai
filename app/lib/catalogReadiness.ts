@@ -95,7 +95,7 @@ export function formatCatalogReadinessLabel(summary: CatalogReadinessSummary): s
     case "needs_pricing":
       return "Needs pricing";
     case "ready_for_templates":
-      return "Ready for templates";
+      return "Catalog ready";
     default:
       return "Not configured";
   }

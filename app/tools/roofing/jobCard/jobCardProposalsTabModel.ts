@@ -45,9 +45,46 @@ export const JOB_CARD_PROPOSALS_EMPTY_TITLE = "No proposals yet" as const;
 export const JOB_CARD_PROPOSALS_EMPTY_BODY =
   "Create a proposal from this job’s completed measurement report." as const;
 
-/** Job Card metadata strip — no visible contractor proposals. */
+/** Job Card metadata strip — truly no proposal (no visible rows, no pointers). */
 export const JOB_CARD_PROPOSAL_STATUS_READY_TO_CREATE =
   "Ready to create proposal" as const;
+
+/**
+ * Proposal exists via canonical job pointer/history, but contractor-visible
+ * summaries are empty (filtered smoke, load gap, etc.). Must not claim
+ * "Ready to create proposal".
+ */
+export const JOB_CARD_PROPOSAL_STATUS_EXISTS = "Proposal" as const;
+
+/** True when jobs.active_proposal_id or jobs.latest_proposal_id is set. */
+export function hasCanonicalJobProposalPointer(input: {
+  activeProposalId?: string | null;
+  latestProposalId?: string | null;
+}): boolean {
+  return Boolean(
+    String(input.activeProposalId ?? "").trim() ||
+      String(input.latestProposalId ?? "").trim()
+  );
+}
+
+/** Board presence label — coarse existence only (acceptance depth is Job Card). */
+export function formatBoardProposalPresenceLabel(
+  hasProposal: boolean
+): "Proposal" | "No Proposal" {
+  return hasProposal ? "Proposal" : "No Proposal";
+}
+
+function canonicalProposalPointerIds(input: {
+  activeProposalId?: string | null;
+  latestProposalId?: string | null;
+}): string[] {
+  const ids: string[] = [];
+  for (const raw of [input.activeProposalId, input.latestProposalId]) {
+    const id = String(raw ?? "").trim();
+    if (id && !ids.includes(id)) ids.push(id);
+  }
+  return ids;
+}
 
 /** Activity rail — setup ready, no visible contractor proposal. */
 export const JOB_CARD_PROPOSAL_ACTIVITY_READY_LABEL = "Ready for proposal" as const;
@@ -252,13 +289,13 @@ export function buildJobCardProposalActions(input: {
 }
 
 /**
- * Contractor-facing Job Card proposal status strip label.
- * Uses visible (non-fixture) proposals only — never hidden smoke drafts.
- */
-/**
  * Shared contractor proposal-state label.
  * Signed/Accepted come from proposal_signatures / proposal_acceptances,
  * not proposals.signed_version_id. Signed is not a Job stage.
+ *
+ * Empty visible summaries alone do not mean "no proposal" — canonical
+ * jobs.active_proposal_id / latest_proposal_id may still exist.
+ * Do not invent Accepted/Sent from job stage.
  */
 export function formatJobCardProposalCustomerStateLabel(input: {
   lifecycle: ContractorProposalLifecycle;
@@ -283,9 +320,40 @@ export function formatJobCardContractorProposalStatusLabel(input: {
   customerSigned?: boolean;
   acceptedProposalIds?: Readonly<Record<string, boolean | undefined>>;
   signedProposalIds?: Readonly<Record<string, boolean | undefined>>;
+  /** Canonical jobs.active_proposal_id — presence truth when summaries empty. */
+  activeProposalId?: string | null;
+  /** Canonical jobs.latest_proposal_id — presence truth when summaries empty. */
+  latestProposalId?: string | null;
 }): string {
   const visible = input.visibleSummaries;
-  if (visible.length === 0) return JOB_CARD_PROPOSAL_STATUS_READY_TO_CREATE;
+  if (visible.length === 0) {
+    const pointerIds = canonicalProposalPointerIds({
+      activeProposalId: input.activeProposalId,
+      latestProposalId: input.latestProposalId,
+    });
+    if (pointerIds.length === 0) {
+      return JOB_CARD_PROPOSAL_STATUS_READY_TO_CREATE;
+    }
+    const signedFromPointer = pointerIds.some(
+      (id) => input.signedProposalIds?.[id] === true
+    );
+    const acceptedFromPointer = pointerIds.some(
+      (id) => input.acceptedProposalIds?.[id] === true
+    );
+    if (
+      signedFromPointer ||
+      (input.signedProposalIds == null && input.customerSigned === true)
+    ) {
+      return "Signed";
+    }
+    if (
+      acceptedFromPointer ||
+      (input.acceptedProposalIds == null && input.customerAccepted === true)
+    ) {
+      return "Accepted";
+    }
+    return JOB_CARD_PROPOSAL_STATUS_EXISTS;
+  }
 
   const derivedRows = visible.map((summary) => {
     const facts = input.sentFactsByProposalId?.[summary.id];

@@ -10,7 +10,9 @@ import {
 } from "@/app/lib/jobScheduleTypes";
 import {
   buildScheduleTimezoneSettingsHref,
+  resolveCompanyTimezoneCanonicalStatus,
   todayCivilIso,
+  type CompanyTimezoneLoadStatus,
 } from "@/app/lib/jobScheduleMapper";
 
 export type ScheduleModalMode = "schedule" | "reschedule" | "unschedule";
@@ -19,6 +21,8 @@ type ScheduleJobModalProps = {
   open: boolean;
   mode: ScheduleModalMode;
   timezone: string | null;
+  /** Distinct from missing timezone — loading/error must not look like "Not set". */
+  timezoneLoadStatus?: CompanyTimezoneLoadStatus;
   schedule?: JobSchedule | null;
   prefillStartsOn?: string | null;
   prefillEndsOn?: string | null;
@@ -54,6 +58,7 @@ export default function ScheduleJobModal(props: ScheduleJobModalProps) {
 function ScheduleJobModalForm({
   mode,
   timezone,
+  timezoneLoadStatus = "ready",
   schedule,
   prefillStartsOn,
   prefillEndsOn,
@@ -66,6 +71,10 @@ function ScheduleJobModalForm({
   onSubmitSchedule,
   onConfirmUnschedule,
 }: ScheduleJobModalProps) {
+  const timezoneStatus = resolveCompanyTimezoneCanonicalStatus({
+    loadStatus: timezoneLoadStatus,
+    savedTimezone: timezone,
+  });
   const defaultStart = prefillStartsOn || schedule?.starts_on || todayCivilIso();
   const [startsOn, setStartsOn] = useState(defaultStart);
   const [endsOn, setEndsOn] = useState(
@@ -107,8 +116,16 @@ function ScheduleJobModalForm({
           {title}
         </h2>
 
-        {!timezone ? (
-          <div className="mt-4 space-y-3">
+        {timezoneStatus.kind === "loading" ? (
+          <div className="mt-4 space-y-3" data-timezone-loading>
+            <p className="text-sm text-slate-600">{timezoneStatus.text}</p>
+          </div>
+        ) : timezoneStatus.kind === "error" ? (
+          <div className="mt-4 space-y-3" data-timezone-error>
+            <p className="text-sm text-slate-600">{timezoneStatus.text}</p>
+          </div>
+        ) : timezoneStatus.kind === "not_set" ? (
+          <div className="mt-4 space-y-3" data-timezone-not-set>
             <p className="text-sm text-slate-600">{COMPANY_TIMEZONE_REQUIRED_COPY}</p>
             <a
               href={timezoneSettingsHref}

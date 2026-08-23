@@ -24,7 +24,9 @@ export const JOB_SCHEDULE_CALENDAR_HREF = "/tools/roofing/calendar";
 export const COMPANY_TIMEZONE_REQUIRED_COPY =
   "Set company timezone to schedule work.";
 export const COMPANY_TIMEZONE_CTA = "Set timezone";
-export const SCHEDULE_DEPOSIT_NOT_RECEIVED = "Deposit not received";
+/** Payment context only — does not gate schedule or Start work. */
+export const SCHEDULE_DEPOSIT_NOT_RECEIVED =
+  "Deposit not received — does not block Start work";
 
 export type JobScheduleWindow = {
   all_day: boolean;

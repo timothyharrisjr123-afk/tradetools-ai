@@ -22,10 +22,18 @@ import {
   calendarCivilRangeUtc,
   civilDateStartUtcIso,
   formatScheduleWindowLabel,
+  isCompanyTimezoneDraftUnsaved,
+  parseCompanyTimezoneGetResult,
   parseScheduleResumeContext,
   parseTimezoneReturnPath,
   parseJobScheduleRow,
+  resolveCompanyTimezoneCanonicalStatus,
+  resolveCompanyTimezoneReadState,
+  companyTimezoneForScheduling,
+  resolveJobCardActiveSchedule,
+  shouldShowTimezoneSuggestion,
   stripScheduleResumeParams,
+  upsertJobScheduleRow,
   validateScheduleWriteInput,
 } from "./jobScheduleMapper";
 import {
@@ -54,6 +62,14 @@ const CALENDAR_CLIENT = readFileSync(
 );
 const TIMEZONE_SETTINGS = readFileSync(
   join(ROOT, "app/tools/settings/SettingsCompanyTimezoneSection.tsx"),
+  "utf8"
+);
+const ROOFING_CLIENT = readFileSync(
+  join(ROOT, "app/tools/roofing/RoofingClient.tsx"),
+  "utf8"
+);
+const SCHEDULE_MODAL = readFileSync(
+  join(ROOT, "app/tools/roofing/jobCard/ScheduleJobModal.tsx"),
   "utf8"
 );
 
@@ -339,6 +355,54 @@ describe("schedule mapper", () => {
     assert.equal(row?.timezone, "America/Chicago");
     assert.equal(row?.all_day, true);
   });
+
+  test("does not treat an unloaded Job Card schedule as Not scheduled", () => {
+    const loaded = parseJobScheduleRow({
+      id: JOB_ID,
+      company_id: COMPANY_ID,
+      job_id: JOB_ID,
+      kind: "work",
+      status: "scheduled",
+      timezone: "America/Chicago",
+      all_day: true,
+      starts_on: "2026-08-25",
+      ends_on: "2026-08-26",
+      start_local_time: null,
+      end_local_time: null,
+      range_start_at: "2026-08-25T05:00:00.000Z",
+      range_end_at: "2026-08-27T05:00:00.000Z",
+      notes: null,
+      created_by_user_id: null,
+      updated_by_user_id: null,
+      created_at: "2026-08-17T00:00:00.000Z",
+      updated_at: "2026-08-17T00:00:00.000Z",
+      cancelled_at: null,
+      row_version: 1,
+    });
+    assert.ok(loaded);
+    const pending = resolveJobCardActiveSchedule({
+      jobId: JOB_ID,
+      rows: [],
+      loadedForJobId: null,
+    });
+    assert.equal(pending.ready, false);
+    assert.equal(pending.active, null);
+    const ready = resolveJobCardActiveSchedule({
+      jobId: JOB_ID,
+      rows: [loaded],
+      loadedForJobId: JOB_ID,
+    });
+    assert.equal(ready.ready, true);
+    assert.equal(ready.active?.id, loaded.id);
+    const otherJob = resolveJobCardActiveSchedule({
+      jobId: JOB_ID,
+      rows: [{ ...loaded, job_id: COMPANY_ID }],
+      loadedForJobId: JOB_ID,
+    });
+    assert.equal(otherJob.active, null);
+    const upserted = upsertJobScheduleRow([], loaded);
+    assert.equal(upserted[0]?.id, loaded.id);
+  });
 });
 
 describe("activity presentation", () => {
@@ -456,7 +520,201 @@ describe("Calendar and timezone continuity", () => {
   test("Settings returns to and resumes the originating schedule flow", () => {
     assert.match(TIMEZONE_SETTINGS, /parseTimezoneReturnPath/);
     assert.match(TIMEZONE_SETTINGS, /router\.push\(returnTo\)/);
+    assert.match(TIMEZONE_SETTINGS, /data-timezone-saved/);
+    assert.match(TIMEZONE_SETTINGS, /data-timezone-suggested/);
+    assert.match(TIMEZONE_SETTINGS, /data-timezone-load=\{loadStatus\}/);
+    assert.match(TIMEZONE_SETTINGS, /data-timezone-loading/);
+    assert.match(TIMEZONE_SETTINGS, /data-timezone-error/);
+    assert.match(TIMEZONE_SETTINGS, /canonical\.kind === "loading"/);
+    assert.match(TIMEZONE_SETTINGS, /canonical\.kind === "error"/);
+    assert.match(TIMEZONE_SETTINGS, /canonical\.kind === "saved"/);
+    assert.match(TIMEZONE_SETTINGS, /canonical\.kind === "not_set"/);
+    assert.match(TIMEZONE_SETTINGS, /Suggested from this browser \(not saved\)/);
+    assert.match(TIMEZONE_SETTINGS, /Use suggestion/);
+    assert.doesNotMatch(TIMEZONE_SETTINGS, /setTimezone\(tz \|\| suggested/);
+    assert.doesNotMatch(TIMEZONE_SETTINGS, /\.catch\(\(\) => undefined\)/);
     assert.match(CALENDAR_CLIENT, /parseScheduleResumeContext/);
     assert.match(CALENDAR_CLIENT, /timezoneReturnPath="\/tools\/roofing\/calendar"/);
+  });
+
+  test("company timezone load/error/saved/not-set are distinct states", () => {
+    assert.deepEqual(
+      parseCompanyTimezoneGetResult(true, { ok: true, timezone: "America/Chicago" }),
+      { status: "ready", timezone: "America/Chicago" }
+    );
+    assert.deepEqual(parseCompanyTimezoneGetResult(true, { ok: true, timezone: null }), {
+      status: "ready",
+      timezone: null,
+    });
+    assert.deepEqual(parseCompanyTimezoneGetResult(false, { ok: true, timezone: "America/Chicago" }), {
+      status: "error",
+      timezone: null,
+    });
+    assert.deepEqual(parseCompanyTimezoneGetResult(true, { ok: false }), {
+      status: "error",
+      timezone: null,
+    });
+
+    assert.equal(
+      resolveCompanyTimezoneCanonicalStatus({
+        loadStatus: "loading",
+        savedTimezone: null,
+      }).kind,
+      "loading"
+    );
+    assert.doesNotMatch(
+      resolveCompanyTimezoneCanonicalStatus({
+        loadStatus: "loading",
+        savedTimezone: null,
+      }).text,
+      /Not set/
+    );
+    assert.equal(
+      resolveCompanyTimezoneCanonicalStatus({
+        loadStatus: "error",
+        savedTimezone: null,
+      }).kind,
+      "error"
+    );
+    assert.doesNotMatch(
+      resolveCompanyTimezoneCanonicalStatus({
+        loadStatus: "error",
+        savedTimezone: null,
+      }).text,
+      /Not set/
+    );
+    assert.deepEqual(
+      resolveCompanyTimezoneCanonicalStatus({
+        loadStatus: "ready",
+        savedTimezone: "America/Chicago",
+      }),
+      {
+        kind: "saved",
+        text: "Saved: America/Chicago",
+        timezone: "America/Chicago",
+      }
+    );
+    assert.equal(
+      resolveCompanyTimezoneCanonicalStatus({
+        loadStatus: "ready",
+        savedTimezone: null,
+      }).kind,
+      "not_set"
+    );
+
+    assert.equal(
+      shouldShowTimezoneSuggestion({
+        loadStatus: "loading",
+        savedTimezone: null,
+        suggestedTimezone: "America/Chicago",
+      }),
+      false
+    );
+    assert.equal(
+      shouldShowTimezoneSuggestion({
+        loadStatus: "ready",
+        savedTimezone: null,
+        suggestedTimezone: "America/Chicago",
+      }),
+      true
+    );
+    assert.equal(
+      shouldShowTimezoneSuggestion({
+        loadStatus: "ready",
+        savedTimezone: "America/Chicago",
+        suggestedTimezone: "America/Chicago",
+      }),
+      false
+    );
+    assert.equal(
+      isCompanyTimezoneDraftUnsaved({
+        loadStatus: "ready",
+        savedTimezone: "America/Chicago",
+        draftTimezone: "America/Denver",
+      }),
+      true
+    );
+    assert.equal(
+      isCompanyTimezoneDraftUnsaved({
+        loadStatus: "ready",
+        savedTimezone: "America/Chicago",
+        draftTimezone: "America/Chicago",
+      }),
+      false
+    );
+  });
+});
+
+describe("shared timezone read-state consumers", () => {
+  test("read-state distinguishes loading / saved / not_set / error", () => {
+    assert.equal(
+      resolveCompanyTimezoneReadState({
+        loadStatus: "loading",
+        savedTimezone: null,
+      }).kind,
+      "loading"
+    );
+    assert.deepEqual(
+      resolveCompanyTimezoneReadState({
+        loadStatus: "ready",
+        savedTimezone: "America/Chicago",
+      }),
+      { kind: "ready_saved", timezone: "America/Chicago" }
+    );
+    assert.equal(
+      resolveCompanyTimezoneReadState({
+        loadStatus: "ready",
+        savedTimezone: null,
+      }).kind,
+      "ready_not_set"
+    );
+    assert.equal(
+      resolveCompanyTimezoneReadState({
+        loadStatus: "error",
+        savedTimezone: null,
+      }).kind,
+      "error"
+    );
+    assert.equal(
+      companyTimezoneForScheduling(
+        resolveCompanyTimezoneReadState({
+          loadStatus: "error",
+          savedTimezone: "America/Chicago",
+        })
+      ),
+      null
+    );
+    assert.equal(
+      companyTimezoneForScheduling(
+        resolveCompanyTimezoneReadState({
+          loadStatus: "ready",
+          savedTimezone: "America/Chicago",
+        })
+      ),
+      "America/Chicago"
+    );
+  });
+
+  test("Job Card / Board / Calendar parse timezone GET with shared helper", () => {
+    for (const src of [ROOFING_CLIENT, SAVED_CLIENT, CALENDAR_CLIENT]) {
+      assert.match(src, /parseCompanyTimezoneGetResult/);
+      assert.match(src, /resolveCompanyTimezoneReadState/);
+      assert.match(src, /companyTimezoneForScheduling/);
+    }
+    assert.match(SCHEDULE_MODAL, /timezoneLoadStatus/);
+    assert.match(SCHEDULE_MODAL, /timezoneStatus\.kind === "loading"/);
+    assert.match(SCHEDULE_MODAL, /timezoneStatus\.kind === "error"/);
+    assert.match(SCHEDULE_MODAL, /timezoneStatus\.kind === "not_set"/);
+    assert.match(CALENDAR_CLIENT, /data-timezone-loading/);
+    assert.match(CALENDAR_CLIENT, /data-timezone-error/);
+    assert.match(CALENDAR_CLIENT, /data-timezone-not-set/);
+    assert.doesNotMatch(
+      ROOFING_CLIENT,
+      /setCompanyTimezone\(typeof tzJson\?\.timezone === "string" \? tzJson\.timezone : null\)/
+    );
+    assert.doesNotMatch(
+      SAVED_CLIENT,
+      /setR3fTimezone\(typeof tzJson\?\.timezone === "string" \? tzJson\.timezone : null\)/
+    );
   });
 });

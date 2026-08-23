@@ -218,6 +218,45 @@ export function activeWorkSchedule(
   );
 }
 
+export function resolveJobCardActiveSchedule(input: {
+  jobId: string | null | undefined;
+  rows: readonly JobSchedule[];
+  loadedForJobId: string | null;
+}): { active: JobSchedule | null; ready: boolean } {
+  const jobId = String(input.jobId ?? "").trim();
+  const ready = Boolean(jobId) && input.loadedForJobId === jobId;
+  if (!jobId || !ready) {
+    return { active: null, ready: false };
+  }
+  return {
+    ready: true,
+    active: activeWorkSchedule(
+      input.rows.filter((row) => row.job_id === jobId)
+    ),
+  };
+}
+
+export function upsertJobScheduleRow(
+  rows: readonly JobSchedule[],
+  next: JobSchedule
+): JobSchedule[] {
+  const withoutSameId = rows.filter((row) => row.id !== next.id);
+  if (next.status !== "scheduled") {
+    return [next, ...withoutSameId];
+  }
+  return [
+    next,
+    ...withoutSameId.filter(
+      (row) =>
+        !(
+          row.job_id === next.job_id &&
+          row.kind === JOB_SCHEDULE_KIND_WORK &&
+          row.status === "scheduled"
+        )
+    ),
+  ];
+}
+
 export function suggestedBrowserTimezone(): string | null {
   try {
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -225,6 +264,107 @@ export function suggestedBrowserTimezone(): string | null {
   } catch {
     return null;
   }
+}
+
+/** Settings company-timezone load lifecycle — never collapse into "Not set". */
+export type CompanyTimezoneLoadStatus = "loading" | "ready" | "error";
+
+export type CompanyTimezoneCanonicalStatus =
+  | { kind: "loading"; text: string }
+  | { kind: "error"; text: string }
+  | { kind: "saved"; text: string; timezone: string }
+  | { kind: "not_set"; text: string };
+
+/**
+ * Parse GET /api/company/timezone. Failed HTTP / non-ok payloads are errors,
+ * not confirmed-null. Confirmed null is only a successful empty timezone.
+ */
+export function parseCompanyTimezoneGetResult(
+  responseOk: boolean,
+  json: unknown
+): { status: "ready" | "error"; timezone: string | null } {
+  if (!responseOk) return { status: "error", timezone: null };
+  if (!json || typeof json !== "object") {
+    return { status: "error", timezone: null };
+  }
+  const row = json as { ok?: unknown; timezone?: unknown };
+  if (row.ok === false) return { status: "error", timezone: null };
+  const raw = typeof row.timezone === "string" ? row.timezone.trim() : "";
+  return { status: "ready", timezone: raw || null };
+}
+
+export function resolveCompanyTimezoneCanonicalStatus(input: {
+  loadStatus: CompanyTimezoneLoadStatus;
+  savedTimezone: string | null;
+}): CompanyTimezoneCanonicalStatus {
+  if (input.loadStatus === "loading") {
+    return { kind: "loading", text: "Loading company timezone…" };
+  }
+  if (input.loadStatus === "error") {
+    return {
+      kind: "error",
+      text: "Could not load company timezone. Try again.",
+    };
+  }
+  const saved = (input.savedTimezone ?? "").trim();
+  if (saved) {
+    return { kind: "saved", text: `Saved: ${saved}`, timezone: saved };
+  }
+  return {
+    kind: "not_set",
+    text: "Not set — required before scheduling work.",
+  };
+}
+
+/**
+ * Shared consumer contract for Settings / Job Card / Board / Calendar.
+ * LOADING | READY_SAVED | READY_NOT_SET | ERROR — never collapse error→not set.
+ */
+export type CompanyTimezoneReadState =
+  | { kind: "loading" }
+  | { kind: "ready_saved"; timezone: string }
+  | { kind: "ready_not_set" }
+  | { kind: "error" };
+
+export function resolveCompanyTimezoneReadState(input: {
+  loadStatus: CompanyTimezoneLoadStatus;
+  savedTimezone: string | null;
+}): CompanyTimezoneReadState {
+  if (input.loadStatus === "loading") return { kind: "loading" };
+  if (input.loadStatus === "error") return { kind: "error" };
+  const saved = (input.savedTimezone ?? "").trim();
+  if (saved) return { kind: "ready_saved", timezone: saved };
+  return { kind: "ready_not_set" };
+}
+
+/** Only READY_SAVED yields a scheduling timezone. Loading/error/not-set → null. */
+export function companyTimezoneForScheduling(
+  state: CompanyTimezoneReadState
+): string | null {
+  return state.kind === "ready_saved" ? state.timezone : null;
+}
+
+export function shouldShowTimezoneSuggestion(input: {
+  loadStatus: CompanyTimezoneLoadStatus;
+  savedTimezone: string | null;
+  suggestedTimezone: string | null;
+}): boolean {
+  return (
+    input.loadStatus === "ready" &&
+    !input.savedTimezone &&
+    Boolean((input.suggestedTimezone ?? "").trim())
+  );
+}
+
+export function isCompanyTimezoneDraftUnsaved(input: {
+  loadStatus: CompanyTimezoneLoadStatus;
+  savedTimezone: string | null;
+  draftTimezone: string;
+}): boolean {
+  if (input.loadStatus !== "ready") return false;
+  const draft = input.draftTimezone.trim();
+  if (!draft) return false;
+  return draft !== (input.savedTimezone ?? "");
 }
 
 export function listIanaTimezones(): string[] {

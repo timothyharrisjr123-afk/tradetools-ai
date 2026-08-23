@@ -44,7 +44,7 @@ function IconStatusRow({
 
 function formatTimeInStageFooter(label: string | null): string | null {
   if (!label) return null;
-  if (label === "• New") return "New in stage";
+  if (label === "• Just entered" || label === "• New") return "Just entered stage";
   if (label.includes("in stage")) return label;
   return `${label} in stage`;
 }

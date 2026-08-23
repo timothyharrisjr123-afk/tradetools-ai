@@ -5,11 +5,13 @@ import { JOB_SCHEDULE_CALENDAR_HREF, type JobSchedule } from "@/app/lib/jobSched
 
 type JobCardScheduleTimelineProps = {
   rows: readonly JobSchedule[];
+  scheduleReady?: boolean;
   onReschedule?: () => void;
 };
 
 export default function JobCardScheduleTimeline({
   rows,
+  scheduleReady = true,
   onReschedule,
 }: JobCardScheduleTimelineProps) {
   const active = rows.find((row) => row.status === "scheduled") ?? null;
@@ -37,7 +39,9 @@ export default function JobCardScheduleTimeline({
             ) : null}
           </div>
         ) : (
-          <p className="mt-2 text-sm text-slate-500">No active work schedule.</p>
+          <p className="mt-2 text-sm text-slate-500">
+            {scheduleReady ? "No active work schedule." : "Loading schedule"}
+          </p>
         )}
       </div>
       <div>

@@ -39,7 +39,7 @@ const BASE_BOARD: JobsBoardCardModel = {
   proposalStatus: { label: "Proposal Accepted", tone: "proposal_signed" },
   assigneeLabel: "Sam Rivera",
   lastUpdatedDisplay: "Updated today",
-  timeInStage: "• New",
+  timeInStage: "• Just entered",
   timeInStageTone: "neutral",
   scheduleLabel: "Aug 18–19 · All day",
 };
@@ -162,7 +162,7 @@ export default function JobCardR3gProductionReviewHarness() {
           <JobsBoardCard
             model={{
               ...BASE_BOARD,
-              scheduleLabel: "Planned · Aug 18–19 · All day",
+              scheduleLabel: "Planned schedule · Aug 18–19 · All day",
               productionStartedLabel: "Aug 17, 4:12 PM CDT",
             }}
             onOpen={() => undefined}

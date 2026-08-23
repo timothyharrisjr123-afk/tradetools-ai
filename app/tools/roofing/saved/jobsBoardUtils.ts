@@ -1,5 +1,6 @@
 import type { RoofingEstimate } from "@/app/lib/estimateStore";
 import type { JobAttentionSummary } from "@/app/lib/jobAttentionReadModel";
+import { formatBoardProposalPresenceLabel } from "@/app/tools/roofing/jobCard/jobCardProposalsTabModel";
 
 export type BoardColumnKey =
   | "estimate"
@@ -262,15 +263,18 @@ function getReportStatusBadge(est: RoofingEstimate): CardStatusBadge {
   if (isJobMeasured(est)) {
     return { label: "Report Complete", tone: "report_ok" };
   }
-  return { label: "Report Missing", tone: "report_missing" };
+  return { label: "No report yet", tone: "report_missing" };
 }
 
 function getProposalStatusBadge(est: RoofingEstimate): CardStatusBadge {
   if ((est as { canonicalBoardLane?: BoardColumnKey }).canonicalBoardLane) {
-    if ((est as { jobHasProposal?: boolean }).jobHasProposal) {
-      return { label: "Proposal", tone: "proposal_draft" };
-    }
-    return { label: "No Proposal", tone: "proposal_none" };
+    const hasProposal = Boolean(
+      (est as { jobHasProposal?: boolean }).jobHasProposal
+    );
+    return {
+      label: formatBoardProposalPresenceLabel(hasProposal),
+      tone: hasProposal ? "proposal_draft" : "proposal_none",
+    };
   }
 
   const norm = normalizeStatusValue(est.status || "estimate");
@@ -331,7 +335,7 @@ function daysInStage(anchorIso: string | null): number | null {
 export function buildTimeInStageLabel(anchorIso: string | null): string | null {
   const days = daysInStage(anchorIso);
   if (days === null) return null;
-  if (days < 1) return "• New";
+  if (days < 1) return "• Just entered";
   if (days === 1) return "1 day";
   if (days < 7) return `${days} days`;
   return `${days}d in stage`;
@@ -519,7 +523,7 @@ export function deriveJobsBoardHeadline(
 }
 
 function compactReportLabel(status: CardStatusBadge): string {
-  return status.tone === "report_ok" ? "Report complete" : "Report missing";
+  return status.tone === "report_ok" ? "Report complete" : "No report yet";
 }
 
 function compactProposalLabel(status: CardStatusBadge): string {
@@ -744,7 +748,7 @@ export function buildJobCardDisplayModel(
     lastUpdatedDisplay: null,
     timeInStage,
     timeInStageTone: timeInStageTone(stageEnteredAt),
-    reportLabel: hasMeasurement ? "Report Complete" : "Report Missing",
+    reportLabel: hasMeasurement ? "Report Complete" : "No report yet",
     proposalLabel: "Proposal Draft",
     tasksLabel: "Tasks 0/0",
   };

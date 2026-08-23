@@ -6,6 +6,9 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
   JOB_CARD_PROPOSAL_STATUS_READY_TO_CREATE,
+  JOB_CARD_PROPOSAL_STATUS_EXISTS,
+  formatBoardProposalPresenceLabel,
+  hasCanonicalJobProposalPointer,
   JOB_CARD_PROPOSALS_ADD_LABEL,
   JOB_CARD_PROPOSALS_CREATE_LABEL,
   JOB_CARD_PROPOSALS_EMPTY_BODY,
@@ -180,6 +183,75 @@ describe("jobCardProposalsTab helpers", () => {
       }),
       "Latest: Enhanced · Draft"
     );
+  });
+
+  test("pointer exists + empty visible summaries is Proposal, not Ready to create", () => {
+    const pointer = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
+    assert.equal(hasCanonicalJobProposalPointer({ activeProposalId: pointer }), true);
+    assert.equal(
+      formatJobCardContractorProposalStatusLabel({
+        visibleSummaries: [],
+        activeProposalId: pointer,
+      }),
+      JOB_CARD_PROPOSAL_STATUS_EXISTS
+    );
+    assert.notEqual(
+      formatJobCardContractorProposalStatusLabel({
+        visibleSummaries: [],
+        activeProposalId: pointer,
+      }),
+      JOB_CARD_PROPOSAL_STATUS_READY_TO_CREATE
+    );
+    assert.equal(
+      formatJobCardContractorProposalStatusLabel({
+        visibleSummaries: [],
+        latestProposalId: pointer,
+        acceptedProposalIds: { [pointer]: true },
+      }),
+      "Accepted"
+    );
+    assert.equal(
+      formatJobCardContractorProposalStatusLabel({
+        visibleSummaries: [],
+        activeProposalId: pointer,
+        acceptedProposalIds: { [pointer]: true },
+        signedProposalIds: { [pointer]: true },
+      }),
+      "Signed"
+    );
+  });
+
+  test("Scheduled/Production real ancestry shows Accepted when summary visible", () => {
+    const id = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
+    const sent = summary({
+      id,
+      title: "Roof replacement",
+      status: "draft",
+      latest_sent_version_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    });
+    const facts = { latestSentFrozenAt: "2026-08-16T12:00:00.000Z", history: [] };
+    assert.equal(
+      formatJobCardContractorProposalStatusLabel({
+        visibleSummaries: [sent],
+        sentFactsByProposalId: { [id]: facts },
+        acceptedProposalIds: { [id]: true },
+        activeProposalId: id,
+      }),
+      "Accepted"
+    );
+  });
+
+  test("invalid advanced fixture with no proposal stays Ready to create / No Proposal", () => {
+    assert.equal(
+      formatJobCardContractorProposalStatusLabel({
+        visibleSummaries: [],
+        activeProposalId: null,
+        latestProposalId: null,
+      }),
+      JOB_CARD_PROPOSAL_STATUS_READY_TO_CREATE
+    );
+    assert.equal(formatBoardProposalPresenceLabel(false), "No Proposal");
+    assert.equal(formatBoardProposalPresenceLabel(true), "Proposal");
   });
 
   test("Accepted and Signed share one status owner for strip and row", () => {

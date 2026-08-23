@@ -74,9 +74,13 @@ import { getJobsByCompany } from "@/app/lib/jobStore";
 import type { JobSummary } from "@/app/lib/jobTypes";
 import { formatProductionStartedAt } from "@/app/lib/jobProductionTypes";
 import {
+  companyTimezoneForScheduling,
   formatScheduleBoardMeta,
+  parseCompanyTimezoneGetResult,
   parseScheduleResumeContext,
+  resolveCompanyTimezoneReadState,
   stripScheduleResumeParams,
+  type CompanyTimezoneLoadStatus,
 } from "@/app/lib/jobScheduleMapper";
 import type {
   JobSchedule,
@@ -2818,6 +2822,8 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
     Record<string, boolean>
   >({});
   const [r3fTimezone, setR3fTimezone] = useState<string | null>(null);
+  const [r3fTimezoneLoadStatus, setR3fTimezoneLoadStatus] =
+    useState<CompanyTimezoneLoadStatus>("loading");
   const [r3fScheduleModal, setR3fScheduleModal] = useState<{
     mode: ScheduleModalMode;
     jobId: string;
@@ -3577,13 +3583,23 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
   useEffect(() => {
     if (!hydrated || !companyId) return;
     let cancelled = false;
+    setR3fTimezoneLoadStatus("loading");
     void Promise.all([
       fetch("/api/jobs/schedules?active=1", { cache: "no-store" }).then((res) => res.json()),
-      fetch("/api/company/timezone", { cache: "no-store" }).then((res) => res.json()),
+      fetch("/api/company/timezone", { cache: "no-store" }).then(async (res) => {
+        const json = await res.json().catch(() => null);
+        return parseCompanyTimezoneGetResult(res.ok, json);
+      }),
       fetch("/api/jobs/schedules?candidates=1", { cache: "no-store" }).then((res) => res.json()),
     ])
-      .then(([schedulesJson, tzJson, candidatesJson]) => {
+      .then(([schedulesJson, tzParsed, candidatesJson]) => {
         if (cancelled) return;
+        if (tzParsed.status === "error") {
+          setR3fTimezoneLoadStatus("error");
+        } else {
+          setR3fTimezoneLoadStatus("ready");
+          setR3fTimezone(tzParsed.timezone);
+        }
         const rows = Array.isArray(schedulesJson?.schedules) ? schedulesJson.schedules : [];
         const next: Record<string, JobSchedule> = {};
         for (const row of rows) {
@@ -3600,16 +3616,24 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
         }
         setR3fSchedulesByJobId(next);
         setR3fDepositDueByJobId(due);
-        setR3fTimezone(typeof tzJson?.timezone === "string" ? tzJson.timezone : null);
       })
-      .catch(() => undefined);
+      .catch(() => {
+        if (cancelled) return;
+        setR3fTimezoneLoadStatus("error");
+      });
     return () => {
       cancelled = true;
     };
   }, [hydrated, companyId, dbJobsLoaded]);
 
   useEffect(() => {
-    if (!hydrated || !r3fTimezone) return;
+    const tzReady = companyTimezoneForScheduling(
+      resolveCompanyTimezoneReadState({
+        loadStatus: r3fTimezoneLoadStatus,
+        savedTimezone: r3fTimezone,
+      })
+    );
+    if (!hydrated || !tzReady) return;
     const resume = parseScheduleResumeContext(window.location.search);
     if (!resume) return;
     setR3fScheduleError(null);
@@ -3628,7 +3652,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
         `${window.location.pathname}${window.location.search}${window.location.hash}`
       )
     );
-  }, [hydrated, r3fDepositDueByJobId, r3fTimezone]);
+  }, [hydrated, r3fDepositDueByJobId, r3fTimezone, r3fTimezoneLoadStatus]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -5312,7 +5336,13 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
       <ScheduleJobModal
         open={r3fScheduleModal != null}
         mode={r3fScheduleModal?.mode ?? "schedule"}
-        timezone={r3fTimezone}
+        timezone={companyTimezoneForScheduling(
+          resolveCompanyTimezoneReadState({
+            loadStatus: r3fTimezoneLoadStatus,
+            savedTimezone: r3fTimezone,
+          })
+        )}
+        timezoneLoadStatus={r3fTimezoneLoadStatus}
         schedule={r3fScheduleModal?.schedule ?? null}
         prefillStartsOn={r3fScheduleModal?.startsOn ?? null}
         prefillEndsOn={r3fScheduleModal?.endsOn ?? null}
@@ -5350,6 +5380,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
               setR3fScheduleBusy(false);
               if (!json?.ok) {
                 if (json?.code === "company_timezone_required") {
+                  setR3fTimezoneLoadStatus("ready");
                   setR3fTimezone(null);
                 }
                 if (json?.code === "schedule_stale") {

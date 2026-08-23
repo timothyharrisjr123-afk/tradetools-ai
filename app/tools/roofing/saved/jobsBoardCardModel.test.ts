@@ -11,7 +11,7 @@ test("buildJobsBoardCardModel uses simple snapshot fields", () => {
   );
 
   assert.equal(model.tasksLabel, "0/0");
-  assert.equal(model.reportStatus.label, "Report Missing");
+  assert.equal(model.reportStatus.label, "No report yet");
   assert.equal(model.proposalStatus.label, "Proposal Draft");
   assert.equal(model.assigneeLabel, "Unassigned");
   assert.equal("valueLabel" in model, false);

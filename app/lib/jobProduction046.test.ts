@@ -29,6 +29,10 @@ const SQL_038 = readFileSync(
   join(ROOT, "supabase/migrations/20260816_038_job_lifecycle_foundation.sql"),
   "utf8"
 );
+const JOB_CARD_TABS = readFileSync(
+  join(ROOT, "app/tools/roofing/jobCard/JobCardTabs.tsx"),
+  "utf8"
+);
 const JOB_CARD = readFileSync(
   join(ROOT, "app/tools/roofing/jobCard/JobCardScheduleSection.tsx"),
   "utf8"
@@ -279,9 +283,18 @@ describe("R3G surface contracts", () => {
     assert.match(JOB_CARD, /isProduction \|\| stage === "complete"/);
     assert.match(JOB_CARD, /hasActualStart = isProduction \|\| stage === "complete"/);
     assert.match(JOB_CARD, /Work started/);
-    assert.match(JOB_CARD, /Planned ·/);
+    assert.match(JOB_CARD, /Planned schedule ·/);
+    assert.doesNotMatch(JOB_CARD, /Production · planned/);
+    assert.match(ROOFING_CLIENT, /Planned schedule/);
+    assert.doesNotMatch(ROOFING_CLIENT, /Production · planned/);
+    assert.match(JOB_CARD, /scheduleReady/);
     assert.doesNotMatch(JOB_CARD, /Complete job|Undo Start/);
     assert.match(ROOFING_CLIENT, /\/api\/jobs\/start-work/);
+    assert.match(ROOFING_CLIENT, /resolveJobCardActiveSchedule/);
+    assert.match(ROOFING_CLIENT, /canonicalJobStage !== "scheduled"/);
+    assert.match(JOB_CARD_TABS, /data-jobcard-tabs/);
+    assert.match(JOB_CARD_TABS, /overflow-x-auto/);
+    assert.match(JOB_CARD_TABS, /min-w-0/);
   });
 
   test("Board uses the same API and truthful Production language", () => {

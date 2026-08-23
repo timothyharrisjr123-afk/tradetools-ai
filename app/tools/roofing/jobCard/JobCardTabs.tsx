@@ -10,11 +10,12 @@ type JobCardTabsProps = {
 export default function JobCardTabs({ activeTab, onTabChange }: JobCardTabsProps) {
   return (
     <div
-      className="border-b border-slate-200/80 bg-white px-5 sm:px-6"
+      className="min-w-0 max-w-full border-b border-slate-200/80 bg-white"
       role="tablist"
       aria-label="Job card sections"
+      data-jobcard-tabs
     >
-      <div className="-mb-px flex gap-0 overflow-x-auto [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-200/60">
+      <div className="-mb-px flex min-w-0 max-w-full touch-pan-x gap-0 overflow-x-auto overscroll-x-contain px-5 sm:px-6 [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-200/60">
         {JOB_CARD_TABS.map((tab) => {
           const isActive = tab.id === activeTab;
           return (

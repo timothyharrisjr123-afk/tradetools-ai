@@ -8,12 +8,17 @@ import ScheduleJobModal, {
 import {
   addDaysIso,
   calendarCivilRangeUtc,
+  companyTimezoneForScheduling,
   formatScheduleWindowLabel,
+  parseCompanyTimezoneGetResult,
   parseScheduleResumeContext,
+  resolveCompanyTimezoneCanonicalStatus,
+  resolveCompanyTimezoneReadState,
   startOfMonthIso,
   startOfWeekMondayIso,
   stripScheduleResumeParams,
   todayCivilIso,
+  type CompanyTimezoneLoadStatus,
 } from "@/app/lib/jobScheduleMapper";
 import type {
   CalendarScheduleEvent,
@@ -63,6 +68,10 @@ export default function FieldDiveCalendarClient({
   }, [anchorIso]);
   const [events, setEvents] = useState<CalendarScheduleEvent[]>([]);
   const [timezone, setTimezone] = useState<string | null>(initialTimezone);
+  const [timezoneLoadStatus, setTimezoneLoadStatus] =
+    useState<CompanyTimezoneLoadStatus>(
+      initialTimezone ? "ready" : "loading"
+    );
   const [candidates, setCandidates] = useState<ScheduleCandidateJob[]>([]);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerDate, setPickerDate] = useState<string | null>(null);
@@ -93,11 +102,19 @@ export default function FieldDiveCalendarClient({
   );
 
   const load = useCallback(async () => {
+    setTimezoneLoadStatus("loading");
     const tzRes = await fetch("/api/company/timezone", { cache: "no-store" });
     const tzJson = await tzRes.json().catch(() => null);
-    const canonicalTimezone =
-      typeof tzJson?.timezone === "string" ? tzJson.timezone : null;
-    setTimezone(canonicalTimezone);
+    const parsed = parseCompanyTimezoneGetResult(tzRes.ok, tzJson);
+    if (parsed.status === "error") {
+      setTimezoneLoadStatus("error");
+      // Do not treat failed GET as confirmed-null / unset.
+      setEvents([]);
+      return;
+    }
+    setTimezoneLoadStatus("ready");
+    setTimezone(parsed.timezone);
+    const canonicalTimezone = parsed.timezone;
     if (!canonicalTimezone) {
       setEvents([]);
       return;
@@ -122,7 +139,13 @@ export default function FieldDiveCalendarClient({
   }, [load]);
 
   useEffect(() => {
-    if (!timezone) return;
+    const tzReady = companyTimezoneForScheduling(
+      resolveCompanyTimezoneReadState({
+        loadStatus: timezoneLoadStatus,
+        savedTimezone: timezone,
+      })
+    );
+    if (!tzReady) return;
     const resume = parseScheduleResumeContext(window.location.search);
     if (!resume) return;
     void fetch("/api/jobs/schedules?candidates=1", { cache: "no-store" })
@@ -150,7 +173,7 @@ export default function FieldDiveCalendarClient({
         );
       })
       .catch(() => undefined);
-  }, [timezone]);
+  }, [timezone, timezoneLoadStatus]);
 
   async function openCreate(isoDate: string) {
     setPickerDate(isoDate);
@@ -190,7 +213,10 @@ export default function FieldDiveCalendarClient({
     const json = await res.json().catch(() => null);
     setBusy(false);
     if (!json?.ok) {
-      if (json?.code === "company_timezone_required") setTimezone(null);
+      if (json?.code === "company_timezone_required") {
+        setTimezoneLoadStatus("ready");
+        setTimezone(null);
+      }
       if (json?.code === "schedule_stale") {
         const currentRes = await fetch(
           `/api/jobs/schedules?jobId=${encodeURIComponent(modal.jobId)}`,
@@ -264,6 +290,34 @@ export default function FieldDiveCalendarClient({
           <div>
             <h1 className="text-xl font-semibold text-slate-900">Calendar</h1>
             <p className="text-sm text-slate-500">{monthLabel}</p>
+            {(() => {
+              const status = resolveCompanyTimezoneCanonicalStatus({
+                loadStatus: timezoneLoadStatus,
+                savedTimezone: timezone,
+              });
+              if (status.kind === "loading") {
+                return (
+                  <p className="mt-1 text-xs text-slate-500" data-timezone-loading>
+                    {status.text}
+                  </p>
+                );
+              }
+              if (status.kind === "error") {
+                return (
+                  <p className="mt-1 text-xs text-amber-700" data-timezone-error>
+                    {status.text}
+                  </p>
+                );
+              }
+              if (status.kind === "not_set") {
+                return (
+                  <p className="mt-1 text-xs text-slate-500" data-timezone-not-set>
+                    {status.text}
+                  </p>
+                );
+              }
+              return null;
+            })()}
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <button
@@ -477,7 +531,13 @@ export default function FieldDiveCalendarClient({
       <ScheduleJobModal
         open={modal != null}
         mode={modal?.mode ?? "schedule"}
-        timezone={timezone}
+        timezone={companyTimezoneForScheduling(
+          resolveCompanyTimezoneReadState({
+            loadStatus: timezoneLoadStatus,
+            savedTimezone: timezone,
+          })
+        )}
+        timezoneLoadStatus={timezoneLoadStatus}
         schedule={modal?.schedule ?? null}
         prefillStartsOn={modal?.startsOn ?? null}
         prefillEndsOn={modal?.endsOn ?? null}

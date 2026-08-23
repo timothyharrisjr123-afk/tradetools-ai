@@ -2,7 +2,10 @@
 
 import { formatProductionStartedAt } from "@/app/lib/jobProductionTypes";
 import { formatScheduleWindowLabel } from "@/app/lib/jobScheduleMapper";
-import type { JobSchedule } from "@/app/lib/jobScheduleTypes";
+import {
+  SCHEDULE_DEPOSIT_NOT_RECEIVED,
+  type JobSchedule,
+} from "@/app/lib/jobScheduleTypes";
 import type { CanonicalJobStage } from "@/app/lib/jobLifecycleTypes";
 
 type JobCardScheduleSectionProps = {
@@ -14,6 +17,7 @@ type JobCardScheduleSectionProps = {
   depositNotReceived?: boolean;
   startBusy?: boolean;
   startError?: string | null;
+  scheduleReady?: boolean;
   onStartWork?: () => void;
   onSchedule: () => void;
   onReschedule: () => void;
@@ -29,6 +33,7 @@ export default function JobCardScheduleSection({
   depositNotReceived = false,
   startBusy = false,
   startError = null,
+  scheduleReady = true,
   onStartWork,
   onSchedule,
   onReschedule,
@@ -39,6 +44,7 @@ export default function JobCardScheduleSection({
   const hasActualStart = isProduction || stage === "complete";
   const isReadOnly = isProduction || stage === "complete";
   const canStart = stage === "scheduled" && Boolean(active) && Boolean(onStartWork);
+  const showNotScheduled = scheduleReady && !active && !hasActualStart;
   const startedLabel = formatProductionStartedAt(
     productionStartedAt,
     active?.timezone ?? displayTimezone
@@ -49,6 +55,7 @@ export default function JobCardScheduleSection({
       className="mt-4 rounded-lg border border-slate-200/80 bg-white p-4"
       data-jobcard-schedule
       data-production-stage={stage}
+      data-jobcard-schedule-ready={scheduleReady ? "true" : "false"}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -69,13 +76,17 @@ export default function JobCardScheduleSection({
               </p>
               {active ? (
                 <p className="mt-1.5 text-xs text-slate-500">
-                  Planned · {formatScheduleWindowLabel(active)}
+                  Planned schedule · {formatScheduleWindowLabel(active)}
                 </p>
               ) : null}
             </>
           ) : (
             <p className="mt-1 text-sm font-medium text-slate-800">
-              {active ? formatScheduleWindowLabel(active) : "Not scheduled"}
+              {active
+                ? formatScheduleWindowLabel(active)
+                : showNotScheduled
+                  ? "Not scheduled"
+                  : "Loading schedule"}
             </p>
           )}
         </div>
@@ -121,7 +132,7 @@ export default function JobCardScheduleSection({
         </div>
       </div>
       {depositNotReceived && stage === "scheduled" ? (
-        <p className="mt-2 text-xs text-amber-700">Deposit not received</p>
+        <p className="mt-2 text-xs text-amber-700">{SCHEDULE_DEPOSIT_NOT_RECEIVED}</p>
       ) : null}
       {startError ? (
         <p className="mt-2 text-xs text-red-600" role="alert">

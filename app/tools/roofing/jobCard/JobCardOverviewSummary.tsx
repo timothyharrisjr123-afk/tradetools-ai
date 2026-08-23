@@ -74,7 +74,7 @@ export default function JobCardOverviewSummary({
           label="Catalog"
           value={
             catalogReady ? (
-              <span className="text-emerald-700">Ready for templates</span>
+              <span className="text-emerald-700">Catalog ready</span>
             ) : (
               <span className="text-slate-600">{catalogStatus}</span>
             )
