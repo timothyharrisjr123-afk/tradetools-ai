@@ -30,6 +30,9 @@ import { useRouter } from "next/navigation";
 
 type CalendarView = "month" | "week";
 
+/** Max events shown per month-grid day before "+N more" overflow affordance. */
+export const MONTH_DAY_EVENT_CAP = 3;
+
 function monthCells(year: number, monthIndex: number): string[] {
   const first = startOfMonthIso(year, monthIndex);
   const gridStart = startOfWeekMondayIso(first);
@@ -86,6 +89,10 @@ export default function FieldDiveCalendarClient({
   } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [monthOverflow, setMonthOverflow] = useState<{
+    iso: string;
+    events: CalendarScheduleEvent[];
+  } | null>(null);
 
   const visibleDays = useMemo(() => {
     if (view === "week") {
@@ -375,16 +382,18 @@ export default function FieldDiveCalendarClient({
             {visibleDays.map((iso) => {
               const inMonth = Number(iso.slice(5, 7)) === cursor.month + 1;
               const dayEvents = events.filter((event) => eventOverlapsDay(event, iso));
+              const visibleEvents = dayEvents.slice(0, MONTH_DAY_EVENT_CAP);
+              const overflowCount = dayEvents.length - visibleEvents.length;
               return (
                 <button
                   key={iso}
                   type="button"
                   onClick={() => void openCreate(iso)}
-                  className={`min-w-0 border-b border-r border-slate-100 p-1.5 text-left ${inMonth ? "bg-white" : "bg-slate-50/70"}`}
+                  className={`relative min-w-0 overflow-hidden border-b border-r border-slate-100 p-1.5 text-left ${inMonth ? "bg-white" : "bg-slate-50/70"}`}
                 >
                   <div className="text-xs font-medium text-slate-500">{iso.slice(8)}</div>
-                  <div className="mt-1 space-y-1">
-                    {dayEvents.slice(0, 3).map((event) => (
+                  <div className="mt-1 space-y-1 overflow-hidden">
+                    {visibleEvents.map((event) => (
                       <div
                         key={event.schedule.id}
                         role="link"
@@ -416,6 +425,23 @@ export default function FieldDiveCalendarClient({
                             : ""}
                       </div>
                     ))}
+                    {overflowCount > 0 ? (
+                      <button
+                        type="button"
+                        className="w-full truncate rounded px-1.5 py-0.5 text-left text-[11px] font-semibold text-cyan-800 hover:bg-cyan-50"
+                        aria-label={`${overflowCount} more scheduled jobs on this day`}
+                        data-calendar-day-overflow-count={overflowCount}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setMonthOverflow({
+                            iso,
+                            events: dayEvents.slice(MONTH_DAY_EVENT_CAP),
+                          });
+                        }}
+                      >
+                        +{overflowCount} more
+                      </button>
+                    ) : null}
                   </div>
                 </button>
               );
@@ -523,6 +549,52 @@ export default function FieldDiveCalendarClient({
               <button type="button" className="text-sm text-slate-600" onClick={() => setPickerOpen(false)}>
                 Cancel
               </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {monthOverflow ? (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center"
+          role="dialog"
+          aria-label={`Additional events on ${monthOverflow.iso}`}
+          data-calendar-month-overflow
+        >
+          <div className="max-h-[70vh] w-full max-w-md overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+              <h2 className="text-sm font-semibold text-slate-800">
+                {monthOverflow.iso}
+              </h2>
+              <button
+                type="button"
+                className="text-sm font-semibold text-slate-600"
+                onClick={() => setMonthOverflow(null)}
+              >
+                Close
+              </button>
+            </div>
+            <div className="max-h-80 space-y-2 overflow-y-auto p-3">
+              {monthOverflow.events.map((event) => (
+                <button
+                  key={event.schedule.id}
+                  type="button"
+                  className="block w-full rounded-md border border-slate-200 px-3 py-2 text-left hover:bg-slate-50"
+                  onClick={() => {
+                    setMonthOverflow(null);
+                    openScheduleEvent(event);
+                  }}
+                >
+                  <span className="text-sm font-medium text-slate-800">
+                    {event.customerName}
+                  </span>
+                  {event.stage === "production"
+                    ? " · Production"
+                    : event.stage === "complete"
+                      ? " · Complete"
+                      : ""}
+                </button>
+              ))}
             </div>
           </div>
         </div>

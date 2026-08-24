@@ -24,6 +24,7 @@ import JobsBoardPipelineGuidance from "./components/JobsBoardPipelineGuidance";
 import JobsBoardEmptyState from "./components/JobsBoardEmptyState";
 import JobsBoardLegacySection from "./components/JobsBoardLegacySection";
 import { useCompanySetupReadiness } from "./useCompanySetupReadiness";
+import { useBoardCanonicalJobs } from "./useBoardCanonicalJobs";
 import {
   applyBoardUpdatedDateFilter,
   buildJobsBoardCardModel,
@@ -71,18 +72,14 @@ import {
   searchBoardEntries,
 } from "@/app/lib/jobBoardAdapter";
 import { resolveDbBoardJobActionEligibility } from "@/app/lib/jobLifecycleActionEligibility";
-import { getJobsByCompany } from "@/app/lib/jobStore";
-import type { JobSummary } from "@/app/lib/jobTypes";
 import { formatJobCompletedAt } from "@/app/lib/jobCompleteTypes";
 import { formatProductionStartedAt } from "@/app/lib/jobProductionTypes";
 import {
   companyTimezoneForScheduling,
   formatScheduleBoardMeta,
-  parseCompanyTimezoneGetResult,
   parseScheduleResumeContext,
   resolveCompanyTimezoneReadState,
   stripScheduleResumeParams,
-  type CompanyTimezoneLoadStatus,
 } from "@/app/lib/jobScheduleMapper";
 import type {
   JobSchedule,
@@ -2827,8 +2824,20 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
   }, [buildSha]);
   const [hydrated, setHydrated] = useState(false);
   const [estimates, setEstimates] = useState<RoofingEstimate[]>([]);
-  const [dbJobs, setDbJobs] = useState<JobSummary[]>([]);
-  const [dbJobsLoaded, setDbJobsLoaded] = useState(false);
+  const {
+    dbJobs,
+    dbJobsLoaded,
+    r3fSchedulesByJobId,
+    r3fTimezone,
+    r3fTimezoneLoadStatus,
+    refreshDbJobs,
+    setR3fSchedulesByJobId,
+    setR3fTimezone,
+    setR3fTimezoneLoadStatus,
+  } = useBoardCanonicalJobs({
+    enabled: hydrated,
+    companyId,
+  });
   const [lastDbJobId, setLastDbJobId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "estimate" | "sent_pending" | "approved" | "deposit_paid" | "scheduled" | "in_progress" | "paid">("all");
@@ -2842,13 +2851,9 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({
     completed: true,
   });
-  const [r3fSchedulesByJobId, setR3fSchedulesByJobId] = useState<Record<string, JobSchedule>>({});
   const [r3fDepositDueByJobId, setR3fDepositDueByJobId] = useState<
     Record<string, boolean>
   >({});
-  const [r3fTimezone, setR3fTimezone] = useState<string | null>(null);
-  const [r3fTimezoneLoadStatus, setR3fTimezoneLoadStatus] =
-    useState<CompanyTimezoneLoadStatus>("loading");
   const [r3fScheduleModal, setR3fScheduleModal] = useState<{
     mode: ScheduleModalMode;
     jobId: string;
@@ -3562,107 +3567,6 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
   }, []);
 
   useEffect(() => {
-    if (!hydrated) return;
-    const cid = (companyId ?? "").trim();
-    if (!cid) {
-      setDbJobs([]);
-      setDbJobsLoaded(true);
-      return;
-    }
-
-    let cancelled = false;
-    setDbJobsLoaded(false);
-
-    const loadDbJobs = () => {
-      void getJobsByCompany(cid)
-        .then((jobs) => {
-          if (!cancelled) {
-            setDbJobs(jobs);
-            setDbJobsLoaded(true);
-          }
-        })
-        .catch((err) => {
-          console.error("[SavedClient] getJobsByCompany failed", err);
-          if (!cancelled) {
-            setDbJobs([]);
-            setDbJobsLoaded(true);
-          }
-        });
-    };
-
-    loadDbJobs();
-
-    const onVisibility = () => {
-      if (document.visibilityState === "visible") loadDbJobs();
-    };
-    const onFocus = () => {
-      loadDbJobs();
-    };
-    const onPageShow = () => {
-      loadDbJobs();
-    };
-
-    document.addEventListener("visibilitychange", onVisibility);
-    window.addEventListener("focus", onFocus);
-    window.addEventListener("pageshow", onPageShow);
-
-    return () => {
-      cancelled = true;
-      document.removeEventListener("visibilitychange", onVisibility);
-      window.removeEventListener("focus", onFocus);
-      window.removeEventListener("pageshow", onPageShow);
-    };
-  }, [hydrated, companyId]);
-
-  useEffect(() => {
-    if (!hydrated || !companyId) return;
-    let cancelled = false;
-    void fetch("/api/jobs/schedules?active=1", { cache: "no-store" })
-      .then((res) => res.json())
-      .then((schedulesJson) => {
-        if (cancelled) return;
-        const rows = Array.isArray(schedulesJson?.schedules) ? schedulesJson.schedules : [];
-        const next: Record<string, JobSchedule> = {};
-        for (const row of rows) {
-          if (row?.job_id) next[row.job_id] = row;
-        }
-        setR3fSchedulesByJobId(next);
-      })
-      .catch(() => {
-        // schedules failure must not block timezone/candidates truth
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [hydrated, companyId, dbJobsLoaded]);
-
-  useEffect(() => {
-    if (!hydrated || !companyId) return;
-    let cancelled = false;
-    setR3fTimezoneLoadStatus("loading");
-    void fetch("/api/company/timezone", { cache: "no-store" })
-      .then(async (res) => {
-        const json = await res.json().catch(() => null);
-        return parseCompanyTimezoneGetResult(res.ok, json);
-      })
-      .then((tzParsed) => {
-        if (cancelled) return;
-        if (tzParsed.status === "error") {
-          setR3fTimezoneLoadStatus("error");
-        } else {
-          setR3fTimezoneLoadStatus("ready");
-          setR3fTimezone(tzParsed.timezone);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setR3fTimezoneLoadStatus("error");
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [hydrated, companyId, dbJobsLoaded]);
-
-  useEffect(() => {
     if (!hydrated || !companyId) return;
     let cancelled = false;
     void fetch("/api/jobs/schedules?candidates=1", { cache: "no-store" })
@@ -4169,13 +4073,11 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
           "Could not confirm whether work started. Refreshing current Job status."
         );
       } finally {
-        if (companyId) {
-          await getJobsByCompany(companyId).then(setDbJobs).catch(() => undefined);
-        }
+        if (companyId) refreshDbJobs();
         setR3gStartingJobId(null);
       }
     },
-    [companyId, r3gStartingJobId]
+    [companyId, r3gStartingJobId, refreshDbJobs]
   );
 
   const completeBoardJobWork = useCallback(
@@ -4207,13 +4109,11 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
           "Could not confirm whether the Job was completed. Refreshing current Job status."
         );
       } finally {
-        if (companyId) {
-          await getJobsByCompany(companyId).then(setDbJobs).catch(() => undefined);
-        }
+        if (companyId) refreshDbJobs();
         setR3hCompletingJobId(null);
       }
     },
-    [companyId, r3hCompletingJobId]
+    [companyId, r3hCompletingJobId, refreshDbJobs]
   );
 
   const buildBoardCardModel = useCallback(
@@ -5548,7 +5448,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                   [json.schedule.job_id]: json.schedule,
                 }));
               }
-              if (companyId) void getJobsByCompany(companyId).then(setDbJobs);
+              if (companyId) refreshDbJobs();
             })
             .catch(() => {
               setR3fScheduleBusy(false);

@@ -1,6 +1,20 @@
 import { isUuidLike } from "@/app/lib/jobStore";
 import type { JobRecord } from "@/app/lib/jobTypes";
 
+/** Authenticated DB Job Card route with a uuid job param (excludes loadSaved legacy). */
+export function isTrustedDbJobCardRoute(input: {
+  entryMode: string;
+  loadSavedId: string | null;
+  jobParam: string | null;
+}): boolean {
+  return (
+    input.entryMode === "job-card" &&
+    !input.loadSavedId &&
+    Boolean(input.jobParam) &&
+    isUuidLike(input.jobParam ?? "")
+  );
+}
+
 export function isCleanDbJobCardDeepLink(input: {
   entryMode: string;
   loadSavedId: string | null;
@@ -32,7 +46,23 @@ export function matchingServerJobRecord(
   return serverJobRecord;
 }
 
-/** Initial trusted seed for a clean authenticated Job Card deep-link (first render). */
+/** Server-authorized Job seed for any trusted DB Job Card route. */
+export function resolveTrustedJobCardSeed(input: {
+  entryMode: string;
+  loadSavedId: string | null;
+  jobParam: string | null;
+  companyId?: string;
+  serverJobRecord?: JobRecord | null;
+}): JobRecord | null {
+  if (!isTrustedDbJobCardRoute(input)) return null;
+  return matchingServerJobRecord(
+    input.serverJobRecord,
+    input.jobParam,
+    input.companyId ?? null
+  );
+}
+
+/** Initial trusted seed for authenticated Job Card display (all origins). */
 export function resolveInitialServerJobSeed(input: {
   entryMode: string;
   loadSavedId: string | null;
@@ -41,22 +71,8 @@ export function resolveInitialServerJobSeed(input: {
   companyId?: string;
   serverJobRecord?: JobRecord | null;
 }): JobRecord | null {
-  if (
-    !isCleanDbJobCardDeepLink({
-      entryMode: input.entryMode,
-      loadSavedId: input.loadSavedId,
-      isBoardOriginParam: input.isBoardOriginParam,
-      jobCardBoardOrigin: false,
-      jobParam: input.jobParam,
-    })
-  ) {
-    return null;
-  }
-  return matchingServerJobRecord(
-    input.serverJobRecord,
-    input.jobParam,
-    input.companyId ?? null
-  );
+  void input.isBoardOriginParam;
+  return resolveTrustedJobCardSeed(input);
 }
 
 export function shouldSkipClientCanonicalJobHydrate(input: {
@@ -68,22 +84,15 @@ export function shouldSkipClientCanonicalJobHydrate(input: {
   companyId?: string;
   serverJobRecord?: JobRecord | null;
 }): boolean {
-  if (
-    !isCleanDbJobCardDeepLink({
+  void input.isBoardOriginParam;
+  void input.jobCardBoardOrigin;
+  return (
+    resolveTrustedJobCardSeed({
       entryMode: input.entryMode,
       loadSavedId: input.loadSavedId,
-      isBoardOriginParam: input.isBoardOriginParam,
-      jobCardBoardOrigin: input.jobCardBoardOrigin,
       jobParam: input.jobParam,
-    })
-  ) {
-    return false;
-  }
-  return (
-    matchingServerJobRecord(
-      input.serverJobRecord,
-      input.jobParam,
-      input.companyId ?? null
-    ) != null
+      companyId: input.companyId,
+      serverJobRecord: input.serverJobRecord,
+    }) != null
   );
 }

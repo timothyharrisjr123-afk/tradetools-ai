@@ -69,28 +69,75 @@ export default function JobCardActivityPanelWithCustomerRequests({
   useEffect(() => {
     const id = (jobId ?? "").trim();
     let cancelled = false;
-    if (!id || !secondaryEffectsEnabled) return;
-    void Promise.all([
-      listJobActivityEventsForJob(id),
-      listJobProposalAcceptances(id),
-      listJobProposalSignatures(id),
-      listJobPaymentRequests(id),
-    ]).then(async ([events, acceptances, signatures, paymentRequests]) => {
-      if (cancelled) return;
-      const transactions = await listJobPaymentTransactionsForRequests(
-        paymentRequests.map((row) => row.id)
-      );
-      if (cancelled) return;
-      setJobEvents(events);
-      setAcceptanceItems(composeProposalAcceptanceActivityItems(acceptances));
-      setSignatureItems(composeProposalSignatureActivityItems(signatures));
-      setPaymentItems(
-        composeJobPaymentActivityItems({
-          requests: paymentRequests,
-          transactions,
-        })
-      );
+    if (!id || !secondaryEffectsEnabled) {
+      setJobEvents([]);
+      return;
+    }
+    void listJobActivityEventsForJob(id).then((events) => {
+      if (!cancelled) setJobEvents(events);
     });
+    return () => {
+      cancelled = true;
+    };
+  }, [jobId, secondaryEffectsEnabled]);
+
+  useEffect(() => {
+    const id = (jobId ?? "").trim();
+    let cancelled = false;
+    if (!id || !secondaryEffectsEnabled) {
+      setAcceptanceItems([]);
+      return;
+    }
+    void listJobProposalAcceptances(id).then((acceptances) => {
+      if (!cancelled) {
+        setAcceptanceItems(composeProposalAcceptanceActivityItems(acceptances));
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [jobId, secondaryEffectsEnabled]);
+
+  useEffect(() => {
+    const id = (jobId ?? "").trim();
+    let cancelled = false;
+    if (!id || !secondaryEffectsEnabled) {
+      setSignatureItems([]);
+      return;
+    }
+    void listJobProposalSignatures(id).then((signatures) => {
+      if (!cancelled) {
+        setSignatureItems(composeProposalSignatureActivityItems(signatures));
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [jobId, secondaryEffectsEnabled]);
+
+  useEffect(() => {
+    const id = (jobId ?? "").trim();
+    let cancelled = false;
+    if (!id || !secondaryEffectsEnabled) {
+      setPaymentItems([]);
+      return;
+    }
+    void listJobPaymentRequests(id)
+      .then(async (paymentRequests) => {
+        const transactions = await listJobPaymentTransactionsForRequests(
+          paymentRequests.map((row) => row.id)
+        );
+        if (cancelled) return;
+        setPaymentItems(
+          composeJobPaymentActivityItems({
+            requests: paymentRequests,
+            transactions,
+          })
+        );
+      })
+      .catch(() => {
+        if (!cancelled) setPaymentItems([]);
+      });
     return () => {
       cancelled = true;
     };

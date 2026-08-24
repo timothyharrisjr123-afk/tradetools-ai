@@ -28,7 +28,7 @@ import { mapDbJobToBoardEstimate } from "./jobBoardAdapter";
 import {
   isCleanDbJobCardDeepLink,
   matchingServerJobRecord,
-  resolveInitialServerJobSeed,
+  resolveTrustedJobCardSeed,
   shouldSkipClientCanonicalJobHydrate,
 } from "./jobCardServerSeed";
 import type { JobRecord } from "./jobTypes";
@@ -56,6 +56,10 @@ const JOB_CARD = readFileSync(
 );
 const ROOFING_CLIENT = readFileSync(
   join(ROOT, "app/tools/roofing/RoofingClient.tsx"),
+  "utf8"
+);
+const CANONICAL_READ = readFileSync(
+  join(ROOT, "app/tools/roofing/jobCard/useJobCardCanonicalRead.ts"),
   "utf8"
 );
 const SAVED_CLIENT = readFileSync(
@@ -358,20 +362,12 @@ describe("R3H surface contracts", () => {
   });
 
   test("Job Card waits for browser session and does not resolve missing hydrate as Intake", () => {
-    assert.match(ROOFING_CLIENT, /ensureBrowserAuthSession/);
-    assert.match(ROOFING_CLIENT, /INITIAL_SESSION/);
-    assert.match(ROOFING_CLIENT, /setJobHydrateStatus\("loading"\)/);
-    assert.match(
-      ROOFING_CLIENT,
-      /jobHydrateStatus !== "unavailable"\s*\?\s*"Loading"/
-    );
-    assert.match(ROOFING_CLIENT, /serverJobRecord/);
-    assert.match(ROOFING_CLIENT, /resolveInitialServerJobSeed/);
-    assert.match(ROOFING_CLIENT, /shouldSkipClientCanonicalJobHydrate/);
-    assert.match(ROOFING_CLIENT, /matchingServerJobRecord/);
+    assert.match(ROOFING_CLIENT, /useJobCardCanonicalRead/);
+    assert.match(CANONICAL_READ, /shouldSkipClientCanonicalJobHydrate/);
+    assert.match(CANONICAL_READ, /matchingServerJobRecord/);
+    assert.match(CANONICAL_READ, /ensureBrowserAuthSession/);
     assert.match(ROOFING_CLIENT, /initialTrustedServerJobSeed/);
-    assert.match(ROOFING_CLIENT, /seedOnTimeout/);
-    assert.match(ROOFING_CLIENT, /shouldSkipClientCanonicalJobHydrate/);
+    assert.match(CANONICAL_READ, /seedOnTimeout/);
     const PAGE = readFileSync(join(ROOT, "app/tools/roofing/page.tsx"), "utf8");
     assert.match(PAGE, /getJobRecordForCompany/);
     assert.match(PAGE, /serverJobRecord=\{serverJobRecord\}/);
@@ -427,7 +423,7 @@ describe("R3H surface contracts", () => {
     };
 
     assert.equal(
-      resolveInitialServerJobSeed({
+      resolveTrustedJobCardSeed({
         ...deepLink,
         companyId,
         serverJobRecord: productionRecord,
@@ -451,7 +447,7 @@ describe("R3H surface contracts", () => {
       null
     );
     assert.equal(
-      resolveInitialServerJobSeed({
+      resolveTrustedJobCardSeed({
         ...deepLink,
         jobParam: jobB,
         companyId,
@@ -460,8 +456,16 @@ describe("R3H surface contracts", () => {
       null
     );
     assert.equal(
-      isCleanDbJobCardDeepLink({ ...deepLink, isBoardOriginParam: true }),
-      false
+      shouldSkipClientCanonicalJobHydrate({
+        entryMode: "job-card",
+        loadSavedId: null,
+        isBoardOriginParam: true,
+        jobCardBoardOrigin: true,
+        jobParam: jobA,
+        companyId,
+        serverJobRecord: productionRecord,
+      }),
+      true
     );
     assert.equal(
       shouldSkipClientCanonicalJobHydrate({

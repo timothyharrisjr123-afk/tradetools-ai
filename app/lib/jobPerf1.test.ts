@@ -32,6 +32,14 @@ const SAVED_CLIENT = readFileSync(
   join(ROOT, "app/tools/roofing/saved/SavedClient.tsx"),
   "utf8"
 );
+const USE_BOARD_JOBS = readFileSync(
+  join(ROOT, "app/tools/roofing/saved/useBoardCanonicalJobs.ts"),
+  "utf8"
+);
+const CANONICAL_READ = readFileSync(
+  join(ROOT, "app/tools/roofing/jobCard/useJobCardCanonicalRead.ts"),
+  "utf8"
+);
 const ROOFING_CLIENT = readFileSync(
   join(ROOT, "app/tools/roofing/RoofingClient.tsx"),
   "utf8"
@@ -56,17 +64,14 @@ describe("R3H-PERF-1 stabilization contracts", () => {
     assert.match(TIMEZONE_ROUTE, /await import\("@\/app\/lib\/jobSchedulePersistence"\)/);
   });
 
-  test("C-E: SavedClient schedules/timezone/candidates hydrate independently", () => {
-    assert.match(SAVED_CLIENT, /fetch\("\/api\/jobs\/schedules\?active=1"/);
-    assert.match(SAVED_CLIENT, /fetch\("\/api\/company\/timezone"/);
+  test("C-E: Board canonical hook schedules/timezone hydrate independently", () => {
+    assert.match(SAVED_CLIENT, /useBoardCanonicalJobs/);
+    assert.match(USE_BOARD_JOBS, /fetch\("\/api\/jobs\/schedules\?active=1"/);
+    assert.match(USE_BOARD_JOBS, /fetch\("\/api\/company\/timezone"/);
     assert.match(SAVED_CLIENT, /fetch\("\/api\/jobs\/schedules\?candidates=1"/);
     assert.doesNotMatch(
-      SAVED_CLIENT,
-      /Promise\.all\([\s\S]*\/api\/jobs\/schedules\?active=1[\s\S]*\/api\/company\/timezone[\s\S]*candidates=1/
-    );
-    assert.match(
-      SAVED_CLIENT,
-      /schedules failure must not block timezone\/candidates truth/
+      USE_BOARD_JOBS,
+      /Promise\.all\([\s\S]*\/api\/jobs\/schedules\?active=1[\s\S]*\/api\/company\/timezone/
     );
     assert.match(
       SAVED_CLIENT,
@@ -87,8 +92,9 @@ describe("R3H-PERF-1 stabilization contracts", () => {
 
   test("H-J: server Job seed + schedule/timezone split + Job A→B protection remain", () => {
     assert.match(ROOFING_CLIENT, /initialTrustedServerJobSeed/);
-    assert.match(ROOFING_CLIENT, /shouldSkipClientCanonicalJobHydrate/);
-    assert.match(ROOFING_CLIENT, /matchingServerJobRecord/);
+    assert.match(ROOFING_CLIENT, /useJobCardCanonicalRead/);
+    assert.match(CANONICAL_READ, /shouldSkipClientCanonicalJobHydrate/);
+    assert.match(CANONICAL_READ, /matchingServerJobRecord/);
     assert.match(
       ROOFING_CLIENT,
       /\/api\/jobs\/schedules\?jobId=\$\{encodeURIComponent\(currentJobId\)\}/

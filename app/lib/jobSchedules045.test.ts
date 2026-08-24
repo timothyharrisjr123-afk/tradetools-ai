@@ -52,6 +52,10 @@ const SQL_038 = readFileSync(
   join(ROOT, "supabase/migrations/20260816_038_job_lifecycle_foundation.sql"),
   "utf8"
 );
+const USE_BOARD_JOBS = readFileSync(
+  join(ROOT, "app/tools/roofing/saved/useBoardCanonicalJobs.ts"),
+  "utf8"
+);
 const SAVED_CLIENT = readFileSync(
   join(ROOT, "app/tools/roofing/saved/SavedClient.tsx"),
   "utf8"
@@ -697,10 +701,12 @@ describe("shared timezone read-state consumers", () => {
 
   test("Job Card / Board / Calendar parse timezone GET with shared helper", () => {
     for (const src of [ROOFING_CLIENT, SAVED_CLIENT, CALENDAR_CLIENT]) {
-      assert.match(src, /parseCompanyTimezoneGetResult/);
       assert.match(src, /resolveCompanyTimezoneReadState/);
       assert.match(src, /companyTimezoneForScheduling/);
     }
+    assert.match(USE_BOARD_JOBS, /parseCompanyTimezoneGetResult/);
+    assert.match(ROOFING_CLIENT, /parseCompanyTimezoneGetResult/);
+    assert.match(CALENDAR_CLIENT, /parseCompanyTimezoneGetResult/);
     assert.match(SCHEDULE_MODAL, /timezoneLoadStatus/);
     assert.match(SCHEDULE_MODAL, /timezoneStatus\.kind === "loading"/);
     assert.match(SCHEDULE_MODAL, /timezoneStatus\.kind === "error"/);

@@ -41,16 +41,9 @@ export default async function Page({
 
   const entry = paramString(params.entry);
   const jobId = paramString(params.job);
-  const fromBoard = paramString(params.from) === "board";
   const loadSaved = paramString(params.loadSaved);
   let serverJobRecord = null;
-  if (
-    entry === "job-card" &&
-    jobId &&
-    isUuidLike(jobId) &&
-    !fromBoard &&
-    !loadSaved
-  ) {
+  if (entry === "job-card" && jobId && isUuidLike(jobId) && !loadSaved) {
     serverJobRecord = await getJobRecordForCompany(supabase, jobId, companyId);
   }
 

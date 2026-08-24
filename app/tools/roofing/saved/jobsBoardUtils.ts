@@ -1,5 +1,8 @@
 import type { RoofingEstimate } from "@/app/lib/estimateStore";
 import type { JobAttentionSummary } from "@/app/lib/jobAttentionReadModel";
+import { isDbBoardJobEntry } from "@/app/lib/jobBoardAdapter";
+import { canonicalJobStageLabel } from "@/app/lib/jobLifecycleMapper";
+import type { CanonicalJobStage } from "@/app/lib/jobLifecycleTypes";
 import { formatBoardProposalPresenceLabel } from "@/app/tools/roofing/jobCard/jobCardProposalsTabModel";
 
 export type BoardColumnKey =
@@ -129,6 +132,13 @@ export function getBoardColumnKeyForJob(job: RoofingEstimate): BoardColumnKey | 
 }
 
 export function getBoardStageLabelForJob(job: RoofingEstimate): string {
+  if (isDbBoardJobEntry(job)) {
+    const canonicalStage = (job as { canonicalJobStage?: CanonicalJobStage })
+      .canonicalJobStage;
+    if (canonicalStage) {
+      return canonicalJobStageLabel(canonicalStage);
+    }
+  }
   const key = getBoardColumnKeyForJob(job);
   if (!key) return "Unknown";
   return getBoardColumnByKey(key).label;
