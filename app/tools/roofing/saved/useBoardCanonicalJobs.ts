@@ -4,6 +4,14 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  applyBoardCanonicalJobsFailure,
+  applyBoardCanonicalJobsSuccess,
+  createInitialBoardCanonicalJobsSnapshot,
+  isBoardCanonicalJobsLoaded,
+  type BoardCanonicalJobsReadStatus,
+  type BoardCanonicalJobsSnapshot,
+} from "@/app/lib/boardCanonicalReadState";
+import {
   beginCoalescedRefresh,
   createInitialCoalescedRefreshState,
   finishCoalescedRefresh,
@@ -22,6 +30,8 @@ import type { CompanyTimezoneLoadStatus } from "@/app/lib/jobScheduleMapper";
 export type UseBoardCanonicalJobsResult = {
   dbJobs: JobSummary[];
   dbJobsLoaded: boolean;
+  dbJobsStatus: BoardCanonicalJobsReadStatus;
+  dbJobsRefreshError: boolean;
   r3fSchedulesByJobId: Record<string, JobSchedule>;
   r3fTimezone: string | null;
   r3fTimezoneLoadStatus: CompanyTimezoneLoadStatus;
@@ -40,8 +50,14 @@ export function useBoardCanonicalJobs(input: {
   enabled: boolean;
   companyId: string | null | undefined;
 }): UseBoardCanonicalJobsResult {
-  const [dbJobs, setDbJobs] = useState<JobSummary[]>([]);
-  const [dbJobsLoaded, setDbJobsLoaded] = useState(false);
+  const [snapshot, setSnapshot] = useState<BoardCanonicalJobsSnapshot<JobSummary>>(
+    () => createInitialBoardCanonicalJobsSnapshot<JobSummary>()
+  );
+  const [snapshotCompanyId, setSnapshotCompanyId] = useState(input.companyId);
+  if (snapshotCompanyId !== input.companyId) {
+    setSnapshotCompanyId(input.companyId);
+    setSnapshot(createInitialBoardCanonicalJobsSnapshot<JobSummary>());
+  }
   const [r3fSchedulesByJobId, setR3fSchedulesByJobId] = useState<
     Record<string, JobSchedule>
   >({});
@@ -53,14 +69,16 @@ export function useBoardCanonicalJobs(input: {
     createInitialCoalescedRefreshState()
   );
   const companyIdRef = useRef(input.companyId);
-  companyIdRef.current = input.companyId;
+
+  useEffect(() => {
+    companyIdRef.current = input.companyId;
+  }, [input.companyId]);
 
   const runDbJobsLoad = useCallback(async (generation: number) => {
     const cid = String(companyIdRef.current ?? "").trim();
     if (!cid) {
       if (isCoalescedRefreshCurrent(refreshStateRef.current, generation)) {
-        setDbJobs([]);
-        setDbJobsLoaded(true);
+        setSnapshot((previous) => applyBoardCanonicalJobsSuccess(previous, []));
       }
       return;
     }
@@ -69,15 +87,13 @@ export function useBoardCanonicalJobs(input: {
       if (!isCoalescedRefreshCurrent(refreshStateRef.current, generation)) {
         return;
       }
-      setDbJobs(jobs);
-      setDbJobsLoaded(true);
+      setSnapshot((previous) => applyBoardCanonicalJobsSuccess(previous, jobs));
     } catch (err) {
       console.error("[useBoardCanonicalJobs] getJobsByCompany failed", err);
       if (!isCoalescedRefreshCurrent(refreshStateRef.current, generation)) {
         return;
       }
-      setDbJobs([]);
-      setDbJobsLoaded(true);
+      setSnapshot((previous) => applyBoardCanonicalJobsFailure(previous));
     }
   }, []);
 
@@ -110,13 +126,18 @@ export function useBoardCanonicalJobs(input: {
   useEffect(() => {
     if (!input.enabled) return;
     const cid = String(input.companyId ?? "").trim();
+    /* eslint-disable react-hooks/set-state-in-effect -- empty company is a known ready snapshot */
     if (!cid) {
-      setDbJobs([]);
-      setDbJobsLoaded(true);
+      setSnapshot((previous) => applyBoardCanonicalJobsSuccess(previous, []));
       return;
     }
+    /* eslint-enable react-hooks/set-state-in-effect */
 
-    setDbJobsLoaded(false);
+    setSnapshot((previous) => ({
+      ...previous,
+      status: previous.everSucceeded ? previous.status : "loading",
+      refreshError: false,
+    }));
     void pumpRefresh();
 
     const onVisibility = () => {
@@ -136,6 +157,8 @@ export function useBoardCanonicalJobs(input: {
       window.removeEventListener("pageshow", onRefreshSignal);
     };
   }, [input.enabled, input.companyId, pumpRefresh, refreshDbJobs]);
+
+  const dbJobsLoaded = isBoardCanonicalJobsLoaded(snapshot);
 
   useEffect(() => {
     if (!input.enabled || !input.companyId || !dbJobsLoaded) return;
@@ -162,7 +185,9 @@ export function useBoardCanonicalJobs(input: {
   useEffect(() => {
     if (!input.enabled || !input.companyId || !dbJobsLoaded) return;
     let cancelled = false;
+    /* eslint-disable react-hooks/set-state-in-effect -- independent timezone hydrate */
     setR3fTimezoneLoadStatus("loading");
+    /* eslint-enable react-hooks/set-state-in-effect */
     void fetch("/api/company/timezone", { cache: "no-store" })
       .then(async (res) => {
         const json = await res.json().catch(() => null);
@@ -186,8 +211,10 @@ export function useBoardCanonicalJobs(input: {
   }, [input.enabled, input.companyId, dbJobsLoaded]);
 
   return {
-    dbJobs,
+    dbJobs: snapshot.jobs,
     dbJobsLoaded,
+    dbJobsStatus: snapshot.status,
+    dbJobsRefreshError: snapshot.refreshError,
     r3fSchedulesByJobId,
     r3fTimezone,
     r3fTimezoneLoadStatus,

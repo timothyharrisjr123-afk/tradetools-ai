@@ -11,27 +11,71 @@ import {
   type JobAttentionSafeItem,
   type JobAttentionSummaryMap,
 } from "@/app/lib/jobAttentionReadModel";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  beginCoalescedRefresh,
+  createInitialCoalescedRefreshState,
+  finishCoalescedRefresh,
+  isCoalescedRefreshCurrent,
+  type CoalescedRefreshState,
+} from "@/app/lib/coalescedRefresh";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 export function useJobAttentionSummaries(enabled = true) {
   const [summaries, setSummaries] = useState<JobAttentionSummaryMap>({});
   const [loading, setLoading] = useState(enabled);
   const [truncated, setTruncated] = useState(false);
+  const refreshStateRef = useRef<CoalescedRefreshState>(
+    createInitialCoalescedRefreshState()
+  );
 
-  const reload = useCallback(async () => {
+  const runLoad = useCallback(
+    async (generation: number) => {
+      if (!enabled) {
+        if (isCoalescedRefreshCurrent(refreshStateRef.current, generation)) {
+          setSummaries({});
+          setLoading(false);
+        }
+        return;
+      }
+      setLoading(true);
+      const result = await fetchJobAttentionSummaries();
+      if (!isCoalescedRefreshCurrent(refreshStateRef.current, generation)) {
+        return;
+      }
+      if (result.ok) {
+        setSummaries(result.summaries);
+        setTruncated(result.truncated);
+      }
+      setLoading(false);
+    },
+    [enabled]
+  );
+
+  const pumpRefresh = useCallback(async () => {
+    while (true) {
+      const begin = beginCoalescedRefresh(refreshStateRef.current);
+      refreshStateRef.current = begin.state;
+      if (!begin.shouldRun) return;
+
+      await runLoad(begin.generation);
+
+      const finish = finishCoalescedRefresh(
+        refreshStateRef.current,
+        begin.generation
+      );
+      refreshStateRef.current = finish.state;
+      if (!finish.runAgain) break;
+    }
+  }, [runLoad]);
+
+  const reload = useCallback(() => {
     if (!enabled) {
       setSummaries({});
       setLoading(false);
       return;
     }
-    setLoading(true);
-    const result = await fetchJobAttentionSummaries();
-    if (result.ok) {
-      setSummaries(result.summaries);
-      setTruncated(result.truncated);
-    }
-    setLoading(false);
-  }, [enabled]);
+    void pumpRefresh();
+  }, [enabled, pumpRefresh]);
 
   useEffect(() => {
     queueMicrotask(() => {

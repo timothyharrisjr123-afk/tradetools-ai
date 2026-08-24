@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import FieldDiveAppShell from "@/app/tools/roofing/FieldDiveAppShell";
 import ScheduleJobModal, {
   type ScheduleModalMode,
@@ -20,6 +20,13 @@ import {
   todayCivilIso,
   type CompanyTimezoneLoadStatus,
 } from "@/app/lib/jobScheduleMapper";
+import {
+  parseCalendarScheduleEventsResult,
+  shouldApplyCalendarLoadResult,
+  timezoneForCalendarRangeRead,
+  type CalendarScheduleReadStatus,
+  type CalendarVisibleRange,
+} from "@/app/lib/calendarScheduleLoadOwnership";
 import type {
   CalendarScheduleEvent,
   JobSchedule,
@@ -89,6 +96,10 @@ export default function FieldDiveCalendarClient({
   } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [scheduleLoadStatus, setScheduleLoadStatus] =
+    useState<CalendarScheduleReadStatus>("loading");
+  const loadGenerationRef = useRef(0);
+  const lastKnownTimezoneRef = useRef<string | null>(initialTimezone);
   const [monthOverflow, setMonthOverflow] = useState<{
     iso: string;
     events: CalendarScheduleEvent[];
@@ -109,35 +120,77 @@ export default function FieldDiveCalendarClient({
   );
 
   const load = useCallback(async () => {
-    setTimezoneLoadStatus("loading");
+    const generation = ++loadGenerationRef.current;
+    const resultRange: CalendarVisibleRange = {
+      view,
+      firstVisibleOn,
+      afterLastVisibleOn,
+    };
+    const isCurrent = () =>
+      shouldApplyCalendarLoadResult({
+        currentGeneration: loadGenerationRef.current,
+        resultGeneration: generation,
+        currentRange: {
+          view,
+          firstVisibleOn,
+          afterLastVisibleOn,
+        },
+        resultRange,
+      });
+
+    setScheduleLoadStatus("loading");
+    if (!lastKnownTimezoneRef.current) {
+      setTimezoneLoadStatus("loading");
+    }
+
     const tzRes = await fetch("/api/company/timezone", { cache: "no-store" });
     const tzJson = await tzRes.json().catch(() => null);
     const parsed = parseCompanyTimezoneGetResult(tzRes.ok, tzJson);
+    if (!isCurrent()) return;
+
     if (parsed.status === "error") {
       setTimezoneLoadStatus("error");
-      // Do not treat failed GET as confirmed-null / unset.
-      setEvents([]);
+    } else {
+      setTimezoneLoadStatus("ready");
+      setTimezone(parsed.timezone);
+      if (parsed.timezone) {
+        lastKnownTimezoneRef.current = parsed.timezone;
+      }
+    }
+
+    const rangeTimezone = timezoneForCalendarRangeRead({
+      currentTimezone: parsed.status === "ready" ? parsed.timezone : null,
+      lastKnownTimezone: lastKnownTimezoneRef.current,
+      timezoneLoadStatus: parsed.status === "error" ? "error" : "ready",
+    });
+
+    if (!rangeTimezone) {
+      setScheduleLoadStatus("blocked");
       return;
     }
-    setTimezoneLoadStatus("ready");
-    setTimezone(parsed.timezone);
-    const canonicalTimezone = parsed.timezone;
-    if (!canonicalTimezone) {
-      setEvents([]);
-      return;
-    }
+
     const range = calendarCivilRangeUtc({
       firstVisibleOn,
       afterLastVisibleOn,
-      timezone: canonicalTimezone,
+      timezone: rangeTimezone,
     });
     const eventsRes = await fetch(
       `/api/jobs/schedules?from=${encodeURIComponent(range.from)}&to=${encodeURIComponent(range.to)}`,
       { cache: "no-store" }
     );
     const eventsJson = await eventsRes.json().catch(() => null);
-    setEvents(Array.isArray(eventsJson?.events) ? eventsJson.events : []);
-  }, [afterLastVisibleOn, firstVisibleOn]);
+    if (!isCurrent()) return;
+    const parsedEvents = parseCalendarScheduleEventsResult(
+      eventsRes.ok,
+      eventsJson
+    );
+    if (parsedEvents.status === "error") {
+      setScheduleLoadStatus("error");
+      return;
+    }
+    setEvents(parsedEvents.events as CalendarScheduleEvent[]);
+    setScheduleLoadStatus("ready");
+  }, [afterLastVisibleOn, firstVisibleOn, view]);
 
   useEffect(() => {
     /* eslint-disable react-hooks/set-state-in-effect -- visible-range calendar read */
@@ -292,7 +345,13 @@ export default function FieldDiveCalendarClient({
 
   return (
     <FieldDiveAppShell activeNav="calendar">
-      <div className="min-h-screen bg-slate-50 px-4 py-6 sm:px-6" data-fielddive-calendar>
+      <div
+        className="min-h-screen bg-slate-50 px-4 py-6 sm:px-6"
+        data-fielddive-calendar
+        data-calendar-schedule-status={scheduleLoadStatus}
+        data-calendar-range-start={firstVisibleOn}
+        data-calendar-view={view}
+      >
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-xl font-semibold text-slate-900">Calendar</h1>
@@ -325,6 +384,31 @@ export default function FieldDiveCalendarClient({
               }
               return null;
             })()}
+            {scheduleLoadStatus === "error" ? (
+              <div className="mt-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2" data-calendar-schedule-error>
+                <p className="text-xs text-amber-800">
+                  Could not load schedules. Existing dates remain until a successful refresh.
+                </p>
+                <button
+                  type="button"
+                  className="mt-1 text-xs font-semibold text-amber-900 underline"
+                  onClick={() => void load()}
+                  data-calendar-schedule-retry
+                >
+                  Retry
+                </button>
+              </div>
+            ) : null}
+            {scheduleLoadStatus === "blocked" ? (
+              <p className="mt-2 text-xs text-slate-600" data-calendar-schedule-blocked>
+                Schedule dates cannot be shown until company timezone is available. This is not an empty calendar.
+              </p>
+            ) : null}
+            {scheduleLoadStatus === "loading" ? (
+              <p className="mt-1 text-xs text-slate-500" data-calendar-schedule-loading>
+                Loading schedules…
+              </p>
+            ) : null}
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <button
@@ -467,7 +551,15 @@ export default function FieldDiveCalendarClient({
                     </button>
                   </div>
                   {dayEvents.length === 0 ? (
-                    <p className="mt-2 text-sm text-slate-500">No scheduled work</p>
+                    <p className="mt-2 text-sm text-slate-500">
+                      {scheduleLoadStatus === "ready"
+                        ? "No scheduled work"
+                        : scheduleLoadStatus === "error"
+                          ? "Schedules could not be loaded."
+                          : scheduleLoadStatus === "blocked"
+                            ? "Timezone required to show this day."
+                            : "Loading schedules…"}
+                    </p>
                   ) : (
                     <ul className="mt-2 space-y-2">
                       {dayEvents.map((event) => (

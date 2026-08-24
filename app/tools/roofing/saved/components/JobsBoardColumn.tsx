@@ -13,8 +13,9 @@ type JobsBoardColumnProps = {
   onScheduleJob?: (job: RoofingEstimate) => void;
   onStartWork?: (job: RoofingEstimate) => void;
   onCompleteJob?: (job: RoofingEstimate) => void;
-  onOpenLane: () => void;
+  onFocusColumn: () => void;
   filterActive?: boolean;
+  columnFocused?: boolean;
   columnTotalLabel?: string | null;
   categoryLabel?: string | null;
 };
@@ -27,19 +28,28 @@ export default function JobsBoardColumn({
   onScheduleJob,
   onStartWork,
   onCompleteJob,
-  onOpenLane,
+  onFocusColumn,
   filterActive = false,
+  columnFocused = false,
   columnTotalLabel,
   categoryLabel,
 }: JobsBoardColumnProps) {
   const stageHint = BOARD_STAGE_EMPTY_HINTS[column.key as BoardColumnKey];
 
   return (
-    <article className="flex h-[calc(100vh-12rem)] min-h-[500px] w-[348px] shrink-0 flex-col border-r border-slate-200/50 last:border-r-0 sm:w-[360px]">
+    <article
+      id={`jobs-board-column-${column.key}`}
+      data-jobs-board-column={column.key}
+      className={`flex h-[calc(100vh-12rem)] min-h-[500px] w-[348px] shrink-0 flex-col border-r border-slate-200/50 last:border-r-0 sm:w-[360px] ${
+        columnFocused ? "ring-1 ring-inset ring-slate-300" : ""
+      }`}
+    >
       <button
         type="button"
-        onClick={onOpenLane}
-        title={`View ${column.label} jobs`}
+        onClick={onFocusColumn}
+        title={`Focus ${column.label} on the Jobs Board`}
+        aria-pressed={columnFocused}
+        data-canonical-column-header={column.key}
         className="w-full shrink-0 border-b border-slate-200/70 bg-gradient-to-b from-slate-100 to-slate-50 px-4 py-3.5 text-left transition hover:from-slate-100 hover:to-slate-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-slate-300/50"
       >
         {categoryLabel ? (

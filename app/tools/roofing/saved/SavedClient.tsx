@@ -22,7 +22,9 @@ import JobsBoardListView from "./components/JobsBoardListView";
 import JobsBoardCard from "./components/JobsBoardCard";
 import JobsBoardPipelineGuidance from "./components/JobsBoardPipelineGuidance";
 import JobsBoardEmptyState from "./components/JobsBoardEmptyState";
+import JobsBoardErrorState from "./components/JobsBoardErrorState";
 import JobsBoardLegacySection from "./components/JobsBoardLegacySection";
+import { restoreCanonicalBoardFromReturnStatus } from "@/app/lib/boardCanonicalSurface";
 import { useCompanySetupReadiness } from "./useCompanySetupReadiness";
 import { useBoardCanonicalJobs } from "./useBoardCanonicalJobs";
 import {
@@ -2827,6 +2829,8 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
   const {
     dbJobs,
     dbJobsLoaded,
+    dbJobsStatus,
+    dbJobsRefreshError,
     r3fSchedulesByJobId,
     r3fTimezone,
     r3fTimezoneLoadStatus,
@@ -2841,6 +2845,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
   const [lastDbJobId, setLastDbJobId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "estimate" | "sent_pending" | "approved" | "deposit_paid" | "scheduled" | "in_progress" | "paid">("all");
+  const [focusedCanonicalColumn, setFocusedCanonicalColumn] = useState<BoardColumnKey | null>(null);
   const [boardSortKey, setBoardSortKey] = useState<BoardSortKey>(BOARD_DEFAULT_SORT_KEY);
   const [visibleColumnKeys, setVisibleColumnKeys] = useState<BoardColumnKey[]>(() =>
     getDefaultVisibleColumnKeys()
@@ -3699,7 +3704,9 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
     const savedScheduled = sessionStorage.getItem(ROOFING_SAVED_RETURN_SCHEDULED_VIEW);
     const savedQuery = sessionStorage.getItem(ROOFING_SAVED_RETURN_QUERY);
     if (savedStatus != null && validStatusFilter.has(savedStatus)) {
-      setStatusFilter(savedStatus as typeof statusFilter);
+      const restored = restoreCanonicalBoardFromReturnStatus(savedStatus);
+      setStatusFilter(restored.statusFilter);
+      setFocusedCanonicalColumn(restored.focusedColumnKey);
     }
     if (savedScheduled != null && validScheduledView.has(savedScheduled)) {
       setScheduledView(savedScheduled as typeof scheduledView);
@@ -3931,7 +3938,9 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
     [legacyBoardEntries, query]
   );
 
-  const boardReady = hydrated && dbJobsLoaded;
+  const boardReady = hydrated && dbJobsStatus === "ready";
+  const boardReadError = hydrated && dbJobsStatus === "error";
+  const canonicalLifecycleActionsEnabled = dbJobsStatus === "ready";
   const hasBoardJobs = dbBoardEntries.length > 0;
   const hasLegacyEstimates = legacyBoardEntries.length > 0;
 
@@ -4116,6 +4125,16 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
     [companyId, r3hCompletingJobId, refreshDbJobs]
   );
 
+  const focusCanonicalColumn = useCallback((columnKey: BoardColumnKey) => {
+    setFocusedCanonicalColumn(columnKey);
+    if (typeof document === "undefined") return;
+    requestAnimationFrame(() => {
+      document
+        .getElementById(`jobs-board-column-${columnKey}`)
+        ?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+    });
+  }, []);
+
   const buildBoardCardModel = useCallback(
     (job: RoofingEstimate, columnKey: BoardColumnKey) => {
       const jobId = getDbJobIdFromBoardEntry(job);
@@ -4168,8 +4187,12 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
   );
 
   const boardListJobs = useMemo(
-    () => sortJobsForBoardColumn(boardVisibleJobs, boardSortKey, batchStatuses),
-    [boardVisibleJobs, boardSortKey, batchStatuses]
+    () => {
+      const sorted = sortJobsForBoardColumn(boardVisibleJobs, boardSortKey, batchStatuses);
+      if (!focusedCanonicalColumn) return sorted;
+      return sorted.filter((job) => getBoardColumnKeyForJob(job) === focusedCanonicalColumn);
+    },
+    [boardVisibleJobs, boardSortKey, batchStatuses, focusedCanonicalColumn]
   );
 
   const boardFilterZeroMatch =
@@ -4402,15 +4425,26 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
               </Link>
             </div>
           ) : null}
-          <div className={statusFilter !== "all" ? "bg-slate-100" : ""}>
+          <div
+            className={statusFilter !== "all" ? "bg-slate-100" : ""}
+            data-canonical-jobs-board={statusFilter === "all" ? "true" : "false"}
+            data-legacy-estimate-lane={statusFilter !== "all" ? "true" : "false"}
+            data-jobs-board-read-status={dbJobsStatus}
+            data-focused-canonical-column={focusedCanonicalColumn ?? ""}
+          >
             {statusFilter === "all" && (
               <div className="sr-only" aria-hidden>
                 <RevenueSummary estimates={searchFiltered} onMetrics={setRevenueMetrics} />
               </div>
             )}
 
-            {statusFilter === "all" && !boardReady && (
+            {statusFilter === "all" && !boardReady && !boardReadError && (
               <div className="py-12 text-center text-sm text-slate-500">Loading jobs…</div>
+            )}
+            {statusFilter === "all" && boardReadError && (
+              <div className="w-full space-y-3">
+                <JobsBoardErrorState onRetry={() => refreshDbJobs()} />
+              </div>
             )}
             {statusFilter === "all" && boardReady && (
               <div className="w-full space-y-3">
@@ -4429,6 +4463,29 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                 />
 
                 <JobsBoardPipelineGuidance readiness={companySetupReadiness} />
+
+                {dbJobsRefreshError ? (
+                  <JobsBoardErrorState
+                    refreshFailed
+                    onRetry={() => refreshDbJobs()}
+                  />
+                ) : null}
+
+                {focusedCanonicalColumn ? (
+                  <div className="flex flex-wrap items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                    <span>
+                      Focusing {getBoardColumnByKey(focusedCanonicalColumn).label} on the Jobs Board
+                    </span>
+                    <button
+                      type="button"
+                      className="font-semibold text-blue-700 hover:text-blue-800"
+                      onClick={() => setFocusedCanonicalColumn(null)}
+                      data-canonical-board-all-stages
+                    >
+                      All stages
+                    </button>
+                  </div>
+                ) : null}
 
                 {!hasBoardJobs ? (
                   <JobsBoardEmptyState
@@ -4450,15 +4507,16 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                     jobs={boardListJobs}
                     buildCardModel={buildBoardCardModel}
                     onOpenJob={(job) => handleAction(job, "load")}
-                    onStartWork={startBoardJobWork}
-                    onCompleteJob={completeBoardJobWork}
+                    onStartWork={canonicalLifecycleActionsEnabled ? startBoardJobWork : undefined}
+                    onCompleteJob={canonicalLifecycleActionsEnabled ? completeBoardJobWork : undefined}
                   />
                 ) : (
                   <div className="overflow-x-auto rounded-xl border border-slate-200/80 bg-white pb-2 shadow-sm [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-200/60 [&::-webkit-scrollbar-track]:bg-transparent">
                     <div className="inline-flex min-w-min items-stretch pr-2">
                       {JOBS_BOARD_CATEGORY_GROUPS.map((group) => {
                         const visibleKeysInGroup = group.columnKeys.filter((k) =>
-                          visibleColumnKeys.includes(k)
+                          visibleColumnKeys.includes(k) &&
+                          (focusedCanonicalColumn == null || k === focusedCanonicalColumn)
                         );
                         if (visibleKeysInGroup.length === 0) return null;
                         return (
@@ -4479,22 +4537,35 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                                   jobs={columnJobs}
                                   buildCardModel={(job) => buildBoardCardModel(job, column.key)}
                                   onOpenJob={(job) => handleAction(job, "load")}
-                                  onScheduleJob={(job) => {
-                                    const jobId = getDbJobIdFromBoardEntry(job);
-                                    if (!jobId) return;
-                                    setR3fScheduleError(null);
-                                    setR3fScheduleModal({
-                                      mode: "schedule",
-                                      jobId,
-                                      schedule: null,
-                                      depositNotReceived:
-                                        r3fDepositDueByJobId[jobId] === true,
-                                    });
-                                  }}
-                                  onStartWork={startBoardJobWork}
-                                  onCompleteJob={completeBoardJobWork}
-                                  onOpenLane={() => setStatusFilter(column.listFilter)}
+                                  onScheduleJob={
+                                    canonicalLifecycleActionsEnabled
+                                      ? (job) => {
+                                          const jobId = getDbJobIdFromBoardEntry(job);
+                                          if (!jobId) return;
+                                          setR3fScheduleError(null);
+                                          setR3fScheduleModal({
+                                            mode: "schedule",
+                                            jobId,
+                                            schedule: null,
+                                            depositNotReceived:
+                                              r3fDepositDueByJobId[jobId] === true,
+                                          });
+                                        }
+                                      : undefined
+                                  }
+                                  onStartWork={
+                                    canonicalLifecycleActionsEnabled
+                                      ? startBoardJobWork
+                                      : undefined
+                                  }
+                                  onCompleteJob={
+                                    canonicalLifecycleActionsEnabled
+                                      ? completeBoardJobWork
+                                      : undefined
+                                  }
+                                  onFocusColumn={() => focusCanonicalColumn(column.key)}
                                   filterActive={boardFilterZeroMatch}
+                                  columnFocused={focusedCanonicalColumn === column.key}
                                   columnTotalLabel={
                                     columnTotalCents > 0 ? formatCentsToCurrency(columnTotalCents) : null
                                   }

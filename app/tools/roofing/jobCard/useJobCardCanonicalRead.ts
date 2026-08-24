@@ -7,6 +7,7 @@ import {
   resolveTrustedJobCardSeed,
   shouldSkipClientCanonicalJobHydrate,
 } from "@/app/lib/jobCardServerSeed";
+import { shouldApplyJobCardRefreshResult } from "@/app/lib/jobCardRefreshGuard";
 import {
   getJobById,
   isUuidLike,
@@ -55,16 +56,25 @@ export function useJobCardCanonicalRead(input: UseJobCardCanonicalReadInput) {
   );
   const jobHydratedRef = useRef<string | null>(initialSeed?.id ?? null);
   const jobHydrateInFlightRef = useRef<string | null>(null);
+  const jobRefreshGenerationRef = useRef(0);
+  const currentJobIdRef = useRef(input.jobParam);
+  const currentCompanyIdRef = useRef(input.companyId);
 
   useEffect(() => {
     const jobId = input.searchParams.get("job");
+    const nextJobId = String(input.jobParam ?? jobId ?? "").trim();
+    if (currentJobIdRef.current && currentJobIdRef.current !== nextJobId) {
+      jobRefreshGenerationRef.current += 1;
+    }
+    currentJobIdRef.current = nextJobId;
+    currentCompanyIdRef.current = input.companyId;
     if (jobHydratedRef.current && jobHydratedRef.current !== jobId) {
       jobHydratedRef.current = null;
     }
     if (jobHydrateInFlightRef.current && jobHydrateInFlightRef.current !== jobId) {
       jobHydrateInFlightRef.current = null;
     }
-  }, [input.searchParams]);
+  }, [input.searchParams, input.jobParam, input.companyId]);
 
   useEffect(() => {
     if (input.entryMode !== "job-card") return;
@@ -266,10 +276,24 @@ export function useJobCardCanonicalRead(input: UseJobCardCanonicalReadInput) {
 
   const refreshHydratedJobRecord = useCallback(
     async (jobId: string) => {
-      const refreshed = await getJobById(jobId);
-      if (!refreshed) return null;
+      const requestedJobId = String(jobId ?? "").trim();
+      const generation = ++jobRefreshGenerationRef.current;
+      const refreshed = await getJobById(requestedJobId);
+      if (
+        !shouldApplyJobCardRefreshResult({
+          requestedJobId,
+          currentJobId: currentJobIdRef.current,
+          currentCompanyId: currentCompanyIdRef.current,
+          refreshGeneration: generation,
+          currentGeneration: jobRefreshGenerationRef.current,
+          record: refreshed,
+        }) ||
+        !refreshed
+      ) {
+        return null;
+      }
       setHydratedJobRecord(refreshed);
-      jobHydratedRef.current = jobId;
+      jobHydratedRef.current = requestedJobId;
       input.hydrateJobDisplayFromRecord(refreshed, { fillEmptyOnly: false });
       return refreshed;
     },
