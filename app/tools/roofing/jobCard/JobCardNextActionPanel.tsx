@@ -4,6 +4,8 @@ import {
   attentionHeadline,
   type JobAttentionSafeItem,
 } from "@/app/lib/jobAttentionReadModel";
+import { resolveCanonicalJobActionEligibilityFromFacts } from "@/app/lib/jobLifecycleActionEligibility";
+import type { CanonicalJobStage } from "@/app/lib/jobLifecycleTypes";
 import { ChevronDown, Mail, Phone } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
@@ -22,6 +24,10 @@ type JobCardNextActionPanelProps = {
   onConfirmAcceptance?: (item: JobAttentionSafeItem) => Promise<void>;
   onAcknowledgeAcceptance?: (item: JobAttentionSafeItem) => Promise<void>;
   onConnectPayments?: (item: JobAttentionSafeItem) => void;
+  /** Canonical Job stage for lifecycle action eligibility (DB jobs only). */
+  canonicalJobStage?: CanonicalJobStage | null;
+  /** jobs.status disposition for lifecycle action eligibility. */
+  jobDisposition?: string | null;
 };
 
 const PRIMARY_BUTTON =
@@ -68,6 +74,8 @@ export default function JobCardNextActionPanel({
   onConfirmAcceptance,
   onAcknowledgeAcceptance,
   onConnectPayments,
+  canonicalJobStage = null,
+  jobDisposition = null,
 }: JobCardNextActionPanelProps) {
   const panelRef = useRef<HTMLElement>(null);
   const focusedAttentionRef = useRef<string | null>(null);
@@ -102,10 +110,19 @@ export default function JobCardNextActionPanel({
   const others = items.filter((item) => item.id !== selectedItem.id);
   const pending = pendingAttentionId === selectedItem.id;
   const acceptanceAction = selectedItem.acceptance?.attentionAction ?? null;
+  const approveLifecycleEligible = resolveCanonicalJobActionEligibilityFromFacts(
+    {
+      stage: canonicalJobStage ?? "intake",
+      disposition: jobDisposition,
+      schedule: null,
+      approvalAcceptancePending: true,
+    }
+  ).canApproveJob;
   const showApproveJob =
     selectedItem.attentionType === "acceptance_confirmation_required" &&
     acceptanceAction === "approve_job" &&
-    Boolean(onConfirmAcceptance);
+    Boolean(onConfirmAcceptance) &&
+    approveLifecycleEligible;
   const showAcknowledge =
     selectedItem.attentionType === "acceptance_confirmation_required" &&
     acceptanceAction === "acknowledge" &&

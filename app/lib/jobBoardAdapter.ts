@@ -200,6 +200,7 @@ export function mapDbJobToBoardEstimate(job: JobSummary): RoofingEstimate {
     assigned_to: job.assigned_to ?? undefined,
     selected_measurement_id: job.selected_measurement_id ?? undefined,
     canonicalBoardLane: canonicalLane,
+    canonicalJobStage: resolveCanonicalJobStage(job),
     stageEnteredAt: job.stage_entered_at ?? null,
     productionStartedAt: job.production_started_at ?? null,
     completedAt: job.completed_at ?? null,
@@ -212,6 +213,7 @@ export function mapDbJobToBoardEstimate(job: JobSummary): RoofingEstimate {
     assigned_to?: string | null;
     selected_measurement_id?: string | null;
     canonicalBoardLane?: BoardColumnKey;
+    canonicalJobStage?: CanonicalJobStage;
     stageEnteredAt?: string | null;
     productionStartedAt?: string | null;
     completedAt?: string | null;

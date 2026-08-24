@@ -353,7 +353,7 @@ describe("R3H surface contracts", () => {
     assert.match(JOB_CARD, /completedAt/);
     assert.doesNotMatch(JOB_CARD, /Are you sure|can.?t be undone|Undo Complete|Reopen/);
     assert.match(ROOFING_CLIENT, /\/api\/jobs\/complete-work/);
-    assert.match(ROOFING_CLIENT, /canonicalJobStage === "production"/);
+    assert.match(ROOFING_CLIENT, /jobCardActionEligibility\.canCompleteJob/);
     assert.match(API_ROUTE, /completeJobWorkViaRpc/);
   });
 

@@ -115,12 +115,9 @@ describe("jobCardPerfBoundary settlement ownership", () => {
     );
     assert.match(
       ROOFING_CLIENT,
-      /onCompleteJob=\{\s*\r?\n\s*canonicalJobStage === "production"/
+      /onCompleteJob=\{\s*\r?\n\s*jobCardActionEligibility\.canCompleteJob/
     );
-    assert.match(
-      ROOFING_CLIENT,
-      /\(hydratedJobRecord\?\.status \?\? "active"\) === "active"/
-    );
+    assert.match(ROOFING_CLIENT, /resolveCanonicalJobActionEligibilityFromFacts/);
     assert.equal(
       isJobCardScheduleSettledForJob(settleJobCardScheduleError(JOB_A), JOB_A),
       true

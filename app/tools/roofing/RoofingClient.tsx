@@ -77,6 +77,7 @@ import {
   resolveCanonicalJobStageLabel,
   resolveStageEnteredAtIso,
 } from "@/app/lib/jobLifecycleMapper";
+import { resolveCanonicalJobActionEligibilityFromFacts } from "@/app/lib/jobLifecycleActionEligibility";
 import { OPERATIONAL_JOB_DISPOSITION_LABELS } from "@/app/lib/jobLifecycleTypes";
 import type { OperationalJobDisposition } from "@/app/lib/jobLifecycleTypes";
 import { findOrCreateCustomer } from "@/app/lib/customerStore";
@@ -8495,6 +8496,13 @@ Thanks,`;
       rows: jobScheduleRows,
       loadedForJobId: jobSchedulesLoadedForJobId,
     });
+    const jobCardActionEligibility = resolveCanonicalJobActionEligibilityFromFacts(
+      {
+        stage: hydratedJobRecord?.stage,
+        disposition: hydratedJobRecord?.status,
+        schedule: jobCardSchedule.active,
+      }
+    );
     const jobCardActivityItems: JobCardActivityItem[] = [];
     const ATTACHMENT_CATEGORIES = [
       "Inspection photos",
@@ -8695,6 +8703,8 @@ Thanks,`;
               onConnectPayments={() => {
                 router.push("/tools/settings/payments");
               }}
+              canonicalJobStage={canonicalJobStage}
+              jobDisposition={hydratedJobRecord?.status ?? null}
             />
             <JobCardTabs activeTab={jobCardTab} onTabChange={setJobCardTab} />
 
@@ -8713,10 +8723,7 @@ Thanks,`;
                   onNavigateTab={setJobCardTab}
                 />
                 <JobCardScheduleSection
-                  canSchedule={
-                    canonicalJobStage === "approved" &&
-                    (hydratedJobRecord?.status ?? "active") === "active"
-                  }
+                  canSchedule={jobCardActionEligibility.canSchedule}
                   stage={canonicalJobStage}
                   schedule={jobCardSchedule.active}
                   scheduleReady={jobCardSchedule.ready}
@@ -8733,13 +8740,12 @@ Thanks,`;
                   completeBusy={completeJobBusy}
                   completeError={completeJobError}
                   onStartWork={
-                    canonicalJobStage === "scheduled"
+                    jobCardActionEligibility.canStartWork
                       ? startCurrentJobWork
                       : undefined
                   }
                   onCompleteJob={
-                    canonicalJobStage === "production" &&
-                    (hydratedJobRecord?.status ?? "active") === "active"
+                    jobCardActionEligibility.canCompleteJob
                       ? completeCurrentJobWork
                       : undefined
                   }
@@ -8747,16 +8753,22 @@ Thanks,`;
                     setScheduleError(null);
                     setScheduleModal({ mode: "schedule" });
                   }}
-                  onReschedule={() => {
-                    if (canonicalJobStage !== "scheduled") return;
-                    setScheduleError(null);
-                    setScheduleModal({ mode: "reschedule" });
-                  }}
-                  onUnschedule={() => {
-                    if (canonicalJobStage !== "scheduled") return;
-                    setScheduleError(null);
-                    setScheduleModal({ mode: "unschedule" });
-                  }}
+                  onReschedule={
+                    jobCardActionEligibility.canReschedule
+                      ? () => {
+                          setScheduleError(null);
+                          setScheduleModal({ mode: "reschedule" });
+                        }
+                      : undefined
+                  }
+                  onUnschedule={
+                    jobCardActionEligibility.canUnschedule
+                      ? () => {
+                          setScheduleError(null);
+                          setScheduleModal({ mode: "unschedule" });
+                        }
+                      : undefined
+                  }
                 />
                 <div className="mt-4">
                   <JobCardPaymentsStrip

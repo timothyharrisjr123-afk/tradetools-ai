@@ -25,8 +25,8 @@ type JobCardScheduleSectionProps = {
   onStartWork?: () => void;
   onCompleteJob?: () => void;
   onSchedule: () => void;
-  onReschedule: () => void;
-  onUnschedule: () => void;
+  onReschedule?: () => void;
+  onUnschedule?: () => void;
 };
 
 export default function JobCardScheduleSection({
@@ -141,7 +141,7 @@ export default function JobCardScheduleSection({
               {completeBusy ? "Completing…" : "Complete job"}
             </button>
           ) : null}
-          {planned && !isReadOnly ? (
+          {planned && !isReadOnly && onReschedule && onUnschedule ? (
             <>
               <button
                 type="button"

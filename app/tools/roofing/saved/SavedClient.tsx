@@ -70,6 +70,7 @@ import {
   resolveLastDbJobRecoveryHref,
   searchBoardEntries,
 } from "@/app/lib/jobBoardAdapter";
+import { resolveDbBoardJobActionEligibility } from "@/app/lib/jobLifecycleActionEligibility";
 import { getJobsByCompany } from "@/app/lib/jobStore";
 import type { JobSummary } from "@/app/lib/jobTypes";
 import { formatJobCompletedAt } from "@/app/lib/jobCompleteTypes";
@@ -4219,6 +4220,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
     (job: RoofingEstimate, columnKey: BoardColumnKey) => {
       const jobId = getDbJobIdFromBoardEntry(job);
       const schedule = jobId ? r3fSchedulesByJobId[jobId] ?? null : null;
+      const canonicalActions = resolveDbBoardJobActionEligibility(job, schedule);
       return {
         ...buildJobsBoardCardModel(job, batchStatuses, { columnKey }),
         sourceBadge: isLegacyBoardEstimateEntry(job) ? "Legacy" : null,
@@ -4243,21 +4245,9 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                 schedule?.timezone ?? r3fTimezone
               )
             : null,
-        showScheduleAction: columnKey === "approved" && !schedule && Boolean(jobId),
-        showStartWorkAction:
-          columnKey === "scheduled" &&
-          Boolean(schedule) &&
-          Boolean(jobId) &&
-          String(
-            (job as { jobDisposition?: string | null }).jobDisposition ?? "active"
-          ) === "active",
-        showCompleteJobAction:
-          columnKey === "in_progress" &&
-          Boolean(schedule) &&
-          Boolean(jobId) &&
-          String(
-            (job as { jobDisposition?: string | null }).jobDisposition ?? "active"
-          ) === "active",
+        showScheduleAction: canonicalActions?.canSchedule ?? false,
+        showStartWorkAction: canonicalActions?.canStartWork ?? false,
+        showCompleteJobAction: canonicalActions?.canCompleteJob ?? false,
         startWorkBusy: Boolean(jobId && r3gStartingJobId === jobId),
         completeJobBusy: Boolean(jobId && r3hCompletingJobId === jobId),
       };
