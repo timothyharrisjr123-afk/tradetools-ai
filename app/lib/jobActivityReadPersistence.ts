@@ -3,7 +3,7 @@
  */
 
 import { getSupabaseClient } from "@/app/lib/supabaseClient";
-import { isUuidLike } from "@/app/lib/jobStore";
+import { isUuidLike } from "@/app/lib/uuid";
 import type { JobActivityEvent, JobActivityEventType } from "@/app/lib/jobLifecycleTypes";
 import { JOB_ACTIVITY_EVENT_TYPES } from "@/app/lib/jobLifecycleTypes";
 

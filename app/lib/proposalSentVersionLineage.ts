@@ -5,7 +5,7 @@
  * parent_version_id points at the source draft, not the prior sent row.
  */
 
-import { isUuidLike } from "@/app/lib/jobStore";
+import { isUuidLike } from "@/app/lib/uuid";
 
 export type SentProposalVersionLineageFact = {
   id: string;

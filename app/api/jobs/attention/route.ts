@@ -5,7 +5,7 @@ import {
   getJobAttentionSummariesForAuthenticatedContractor,
   markDisplayedJobAttentionReadForAuthenticatedContractor,
 } from "@/app/lib/jobAttentionRead.server";
-import { isUuidLike } from "@/app/lib/jobStore";
+import { isUuidLike } from "@/app/lib/uuid";
 import { createClient } from "@/app/lib/supabase/server";
 
 export const runtime = "nodejs";

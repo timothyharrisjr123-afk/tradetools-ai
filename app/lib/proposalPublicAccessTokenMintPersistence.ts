@@ -5,7 +5,7 @@
  * Server entry points live in proposalPublicAccessTokenMintStore.server.ts.
  */
 
-import { isUuidLike } from "@/app/lib/jobStore";
+import { isUuidLike } from "@/app/lib/uuid";
 import {
   deriveProposalPublicAccessTokenPrefix,
   hashRawProposalPublicAccessTokenForMint,

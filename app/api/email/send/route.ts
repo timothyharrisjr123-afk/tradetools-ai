@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { z } from "zod";
+import {
+  contractorDeniedJson,
+  resolveContractorCompanySession,
+} from "@/app/lib/contractorCapabilityAuth";
+import { createClient } from "@/app/lib/supabase/server";
 
 const EmailSchema = z.string().email();
 
@@ -31,6 +36,13 @@ function normalizeEmail(toRaw: string) {
 
 export async function POST(req: Request) {
   try {
+    const supabase = await createClient();
+    const session = await resolveContractorCompanySession(supabase);
+    if (!session.ok) {
+      const denied = contractorDeniedJson(session, "success");
+      return NextResponse.json(denied.body, { status: denied.status });
+    }
+
     const json = await req.json();
     const parsed = BodySchema.safeParse(json);
     if (!parsed.success) {

@@ -5,7 +5,7 @@ import {
   ProposalAcceptancePersistenceError,
   ProposalAcceptanceValidationError,
 } from "@/app/lib/proposalAcceptancePersistence";
-import { isUuidLike } from "@/app/lib/jobStore";
+import { isUuidLike } from "@/app/lib/uuid";
 import { createClient } from "@/app/lib/supabase/server";
 
 export const runtime = "nodejs";

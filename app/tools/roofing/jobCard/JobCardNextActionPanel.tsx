@@ -16,6 +16,8 @@ type JobCardNextActionPanelProps = {
   fallbackPhone?: string | null;
   fallbackEmail?: string | null;
   pendingAttentionId?: string | null;
+  detailStatus?: "loading" | "ready-empty" | "ready-items" | "error";
+  detailError?: string | null;
   onSelect: (attentionId: string) => void;
   onMarkRead: (attentionId: string) => Promise<boolean>;
   onMarkSeen: (item: JobAttentionSafeItem) => Promise<void>;
@@ -66,6 +68,8 @@ export default function JobCardNextActionPanel({
   fallbackPhone = null,
   fallbackEmail = null,
   pendingAttentionId = null,
+  detailStatus = "ready-empty",
+  detailError = null,
   onSelect,
   onMarkRead,
   onMarkSeen,
@@ -94,7 +98,19 @@ export default function JobCardNextActionPanel({
     void onMarkRead(selectedItem.id).catch(() => false);
   }, [focusRequested, onMarkRead, selectedItem]);
 
-  if (!selectedItem) return null;
+  if (!selectedItem) {
+    if (detailStatus === "error") {
+      return (
+        <p
+          className="px-4 py-2 text-xs text-slate-600"
+          data-attention-detail-error
+        >
+          {detailError?.trim() || "Attention could not be loaded."}
+        </p>
+      );
+    }
+    return null;
+  }
 
   const phone =
     selectedItem.request?.customerPhone?.trim() ||
@@ -160,6 +176,11 @@ export default function JobCardNextActionPanel({
       <h2 id="job-card-next-action-heading" className="sr-only">
         Needs attention
       </h2>
+      {detailStatus === "error" ? (
+        <p className="mb-1 text-[11px] text-amber-900/80" data-attention-detail-error>
+          {detailError?.trim() || "Attention could not be refreshed."} Showing last known items.
+        </p>
+      ) : null}
       <div className="mx-auto flex max-w-[96rem] flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-slate-950">

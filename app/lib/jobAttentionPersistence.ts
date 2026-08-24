@@ -5,7 +5,7 @@
  * consumption only and never acknowledges or resolves attention.
  */
 
-import { isUuidLike } from "@/app/lib/jobStore";
+import { isUuidLike } from "@/app/lib/uuid";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export const MARK_JOB_ATTENTION_READ_RPC_V1 =

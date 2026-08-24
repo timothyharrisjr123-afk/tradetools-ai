@@ -1,4 +1,4 @@
-import { isUuidLike } from "@/app/lib/jobStore";
+import { isUuidLike } from "@/app/lib/uuid";
 import type { JobRecord } from "@/app/lib/jobTypes";
 
 /** Authenticated DB Job Card route with a uuid job param (excludes loadSaved legacy). */

@@ -6,7 +6,7 @@
  * falls back to the draft graph.
  */
 
-import { isUuidLike } from "@/app/lib/jobStore";
+import { isUuidLike } from "@/app/lib/uuid";
 import { formatJobCardSentAtLabel } from "@/app/lib/proposalJobCardSentHistory";
 import type {
   ProposalDraftGraph,

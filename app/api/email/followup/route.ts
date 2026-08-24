@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
+import {
+  contractorDeniedJson,
+  resolveContractorCompanySession,
+} from "@/app/lib/contractorCapabilityAuth";
+import { createClient } from "@/app/lib/supabase/server";
 
 const BodySchema = {
   to: (v: unknown) => typeof v === "string" && v.trim().length > 0,
@@ -18,6 +23,13 @@ function normalizeEmail(toRaw: string): string | null {
 
 export async function POST(req: Request) {
   try {
+    const supabase = await createClient();
+    const session = await resolveContractorCompanySession(supabase);
+    if (!session.ok) {
+      const denied = contractorDeniedJson(session, "success");
+      return NextResponse.json(denied.body, { status: denied.status });
+    }
+
     const json = await req.json();
     const to = typeof json?.to === "string" ? json.to.trim() : "";
     const subject = typeof json?.subject === "string" ? json.subject.trim() : "";

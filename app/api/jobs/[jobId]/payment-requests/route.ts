@@ -5,7 +5,7 @@ import {
   type JobPaymentRequestRow,
   type JobPaymentTransactionRow,
 } from "@/app/lib/jobPaymentReadModel";
-import { isUuidLike } from "@/app/lib/jobStore";
+import { isUuidLike } from "@/app/lib/uuid";
 import { resolveCanonicalJobStage } from "@/app/lib/jobLifecycleMapper";
 import { createClient } from "@/app/lib/supabase/server";
 

@@ -5,7 +5,7 @@
  * No DB, React, mint, or lifecycle mutation.
  */
 
-import { isUuidLike } from "@/app/lib/jobStore";
+import { isUuidLike } from "@/app/lib/uuid";
 import type { ProposalRecord } from "@/app/lib/proposalRecordTypes";
 
 export const PUBLIC_REVIEW_PANEL_TITLE = "Customer view";

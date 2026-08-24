@@ -6,7 +6,7 @@
  * 3J3D: createNewProposalDraftEntry — always create a distinct draft (bypass reuse).
  */
 
-import { isUuidLike } from "@/app/lib/jobStore";
+import { isUuidLike } from "@/app/lib/uuid";
 import {
   buildCleanDbJobCardHref,
   evaluateDbProposalLaunchSpine,

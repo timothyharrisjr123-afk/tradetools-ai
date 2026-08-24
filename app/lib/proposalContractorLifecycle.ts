@@ -11,7 +11,7 @@
  * snapshot, which remain send-prep-only freeze reasons).
  */
 
-import { isUuidLike } from "@/app/lib/jobStore";
+import { isUuidLike } from "@/app/lib/uuid";
 
 export const CONTRACTOR_PROPOSAL_LIFECYCLE_KINDS = [
   "draft",

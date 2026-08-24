@@ -3,7 +3,7 @@
  * client. Webhook/checkout binding uses service_role.
  */
 
-import { isUuidLike } from "@/app/lib/jobStore";
+import { isUuidLike } from "@/app/lib/uuid";
 import {
   BIND_JOB_PAYMENT_CHECKOUT_SESSION_RPC_V1,
   CANCEL_JOB_PAYMENT_REQUEST_RPC_V1,

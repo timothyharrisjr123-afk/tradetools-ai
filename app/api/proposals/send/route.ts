@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserCompanyId } from "@/app/lib/ensureUserIdentity";
-import { isUuidLike } from "@/app/lib/jobStore";
+import { isUuidLike } from "@/app/lib/uuid";
 import { PROPOSAL_EMAIL_SEND_ERROR_MESSAGE } from "@/app/lib/proposalEmailDelivery";
 import { sendProposalEmailForContractor } from "@/app/lib/proposalEmailDelivery.server";
 import { createClient } from "@/app/lib/supabase/server";

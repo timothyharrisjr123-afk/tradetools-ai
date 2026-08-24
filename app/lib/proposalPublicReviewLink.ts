@@ -4,7 +4,7 @@
  * Server entry wires default deps in proposalPublicReviewLink.server.ts.
  */
 
-import { isUuidLike } from "@/app/lib/jobStore";
+import { isUuidLike } from "@/app/lib/uuid";
 import type { ProposalPublicAccessMintRequest } from "@/app/lib/proposalPublicAccessTokenMintPersistence";
 import {
   buildPublicProposalReviewUrl,

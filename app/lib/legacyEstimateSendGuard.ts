@@ -3,7 +3,7 @@
  */
 
 import { DB_BOARD_JOB_ID_PREFIX } from "@/app/lib/jobBoardAdapter";
-import { isUuidLike } from "@/app/lib/jobStore";
+import { isUuidLike } from "@/app/lib/uuid";
 
 export const LEGACY_ESTIMATE_SEND_BLOCKED_FOR_DB_MESSAGE =
   "Legacy estimate send is not available for DB proposal drafts.";

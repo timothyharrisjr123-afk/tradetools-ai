@@ -1,8 +1,16 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { z } from "zod";
+import {
+  contractorDeniedJson,
+  contractorNotFoundJson,
+  resolveContractorCompanySession,
+  resolveOwnedJobCompany,
+} from "@/app/lib/contractorCapabilityAuth";
 import { putApprovalRecord } from "@/app/lib/kv";
 import { validateLegacyEstimateSendPayload } from "@/app/lib/legacyEstimateSendGuard";
+import { createClient } from "@/app/lib/supabase/server";
+import { isUuidLike } from "@/app/lib/uuid";
 
 const EmailSchema = z.string().email();
 
@@ -137,6 +145,13 @@ function buildBody(meta: z.infer<typeof MetaSchema>, approvalUrl?: string | null
 
 export async function POST(req: Request) {
   try {
+    const supabase = await createClient();
+    const session = await resolveContractorCompanySession(supabase);
+    if (!session.ok) {
+      const denied = contractorDeniedJson(session, "success");
+      return NextResponse.json(denied.body, { status: denied.status });
+    }
+
     const json = await req.json();
     const parsed = BodySchema.safeParse(json);
     if (!parsed.success) {
@@ -160,6 +175,18 @@ export async function POST(req: Request) {
         { success: false, error: legacySendValidation.error ?? "Send blocked." },
         { status: 422 }
       );
+    }
+
+    if (proposalJobId && isUuidLike(proposalJobId)) {
+      const owned = await resolveOwnedJobCompany(
+        supabase,
+        session.companyId,
+        proposalJobId
+      );
+      if (!owned.ok) {
+        const denied = contractorNotFoundJson("success");
+        return NextResponse.json(denied.body, { status: denied.status });
+      }
     }
 
     const toEmail = normalizeEmail(to);

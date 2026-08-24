@@ -69,22 +69,21 @@ export default function JobsBoardCard({
 
   return (
     <article
-      role="button"
-      tabIndex={0}
-      onClick={onOpen}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          onOpen();
-        }
-      }}
       className={
-        "flex min-h-[176px] w-full cursor-pointer flex-col rounded-lg border bg-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300/50 " +
+        "relative flex min-h-[176px] w-full flex-col rounded-lg border bg-white transition " +
         (subdued
           ? "border-slate-200/70 shadow-none hover:border-slate-300/80 hover:bg-slate-50/40"
           : "border-slate-200/80 shadow-[0_1px_3px_rgba(15,23,42,0.06)] hover:border-slate-300/90 hover:shadow-[0_2px_6px_rgba(15,23,42,0.07)]")
       }
     >
+      <button
+        type="button"
+        className="absolute inset-0 z-0 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300/50"
+        aria-label={`Open job card for ${model.customerName}`}
+        data-board-open-job
+        onClick={onOpen}
+      />
+      <div className="relative z-10 flex min-h-[176px] flex-1 flex-col pointer-events-none">
       <div className="shrink-0 px-4 pb-3 pt-3.5">
         <div className="flex min-w-0 items-start justify-between gap-2">
           <h3
@@ -151,7 +150,7 @@ export default function JobsBoardCard({
         {model.showScheduleAction && onScheduleJob ? (
           <button
             type="button"
-            className="mt-2 text-xs font-semibold text-cyan-700 hover:text-cyan-900"
+            className="pointer-events-auto mt-2 text-xs font-semibold text-cyan-700 hover:text-cyan-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/70"
             onClick={(event) => {
               event.stopPropagation();
               onScheduleJob();
@@ -164,7 +163,7 @@ export default function JobsBoardCard({
           <button
             type="button"
             disabled={model.startWorkBusy}
-            className="mt-2 rounded-md bg-cyan-700 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-cyan-800"
+            className="pointer-events-auto mt-2 rounded-md bg-cyan-700 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-cyan-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/70 disabled:opacity-60"
             onClick={(event) => {
               event.stopPropagation();
               onStartWork();
@@ -178,7 +177,7 @@ export default function JobsBoardCard({
           <button
             type="button"
             disabled={model.completeJobBusy}
-            className="mt-2 rounded-md bg-slate-900 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-slate-800"
+            className="pointer-events-auto mt-2 rounded-md bg-slate-900 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300/70 disabled:opacity-60"
             onClick={(event) => {
               event.stopPropagation();
               onCompleteJob();
@@ -230,6 +229,7 @@ export default function JobsBoardCard({
           </div>
         ) : null}
       </footer>
+      </div>
     </article>
   );
 }

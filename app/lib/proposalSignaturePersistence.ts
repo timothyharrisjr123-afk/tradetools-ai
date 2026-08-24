@@ -6,7 +6,7 @@
  * and never writes proposals.signed_version_id.
  */
 
-import { isUuidLike } from "@/app/lib/jobStore";
+import { isUuidLike } from "@/app/lib/uuid";
 import {
   hashProposalPublicAccessToken,
   ProposalPublicAccessTokenHashError,

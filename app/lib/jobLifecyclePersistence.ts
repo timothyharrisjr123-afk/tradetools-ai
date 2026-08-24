@@ -5,7 +5,7 @@
  * through the RPCs in 20260816_038_job_lifecycle_foundation.sql.
  */
 
-import { isUuidLike } from "@/app/lib/jobStore";
+import { isUuidLike } from "@/app/lib/uuid";
 import {
   assertCanonicalWriteStage,
   assertOperationalDispositionWrite,

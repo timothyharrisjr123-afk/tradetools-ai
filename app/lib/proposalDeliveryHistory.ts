@@ -10,7 +10,7 @@ import {
   buildProposalDeliveryHistoryViewModel,
   type ProposalDeliveryHistoryViewModel,
 } from "@/app/lib/proposalDeliveryAttemptViewModel";
-import { isUuidLike } from "@/app/lib/jobStore";
+import { isUuidLike } from "@/app/lib/uuid";
 import type { ProposalRecord } from "@/app/lib/proposalRecordTypes";
 
 export type GetProposalDeliveryHistoryInput = {

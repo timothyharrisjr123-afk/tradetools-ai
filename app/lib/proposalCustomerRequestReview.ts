@@ -2,7 +2,7 @@
  * R3B3 — Pure contractor customer-request review read path.
  */
 
-import { isUuidLike } from "@/app/lib/jobStore";
+import { isUuidLike } from "@/app/lib/uuid";
 import type {
   ProposalCustomerRequestContractorRow,
   ProposalCustomerRequestReviewStatus,

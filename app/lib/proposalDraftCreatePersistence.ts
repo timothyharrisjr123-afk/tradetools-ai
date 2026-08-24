@@ -8,7 +8,7 @@
  * Sequential Supabase writes remain available only via explicit test/dev escape hatch.
  */
 
-import { isUuidLike } from "@/app/lib/jobStore";
+import { isUuidLike } from "@/app/lib/uuid";
 import { PROPOSAL_LINE_CUSTOMER_FORBIDDEN_KEYS } from "@/app/lib/proposalLineSnapshotTypes";
 import type { PricingPolicy } from "@/app/lib/proposalPricingTypes";
 import {

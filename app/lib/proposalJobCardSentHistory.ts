@@ -6,7 +6,7 @@
  */
 
 import type { ProposalDeliveryAttemptStatus } from "@/app/lib/proposalDeliveryAttemptTypes";
-import { isUuidLike } from "@/app/lib/jobStore";
+import { isUuidLike } from "@/app/lib/uuid";
 
 export type JobCardSentVersionFact = {
   versionId: string;

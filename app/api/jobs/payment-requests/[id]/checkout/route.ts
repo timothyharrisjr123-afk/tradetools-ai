@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getUserCompanyId } from "@/app/lib/ensureUserIdentity";
 import { openHostedCheckoutForRequest } from "@/app/lib/jobPaymentCheckout.server";
 import { appOriginFromRequest, withPaymentReturnHint } from "@/app/lib/jobPaymentStripe.server";
-import { isUuidLike } from "@/app/lib/jobStore";
+import { isUuidLike } from "@/app/lib/uuid";
 import { createClient } from "@/app/lib/supabase/server";
 
 export const runtime = "nodejs";

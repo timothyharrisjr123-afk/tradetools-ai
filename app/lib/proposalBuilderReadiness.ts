@@ -7,7 +7,7 @@
 import type { CatalogReadinessSummary } from "@/app/lib/catalogReadiness";
 import type { MeasurementProposalHandoff } from "@/app/lib/measurementProposalHandoff";
 import type { JobRecord } from "@/app/lib/jobTypes";
-import { isUuidLike } from "@/app/lib/jobStore";
+import { isUuidLike } from "@/app/lib/uuid";
 import { normalizeDbProposalHref } from "@/app/lib/productSpine";
 import type { ProposalTemplateReadiness } from "@/app/lib/proposalTemplateTypes";
 import { formatProposalTemplateNextStepCopy } from "@/app/lib/proposalTemplateReadiness";

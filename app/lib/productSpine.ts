@@ -4,7 +4,7 @@
  * No React, browser APIs, or localStorage. Callers pass explicit route/query hints.
  */
 
-import { isUuidLike } from "@/app/lib/jobStore";
+import { isUuidLike } from "@/app/lib/uuid";
 
 export type ProductSpine =
   | "db_job"

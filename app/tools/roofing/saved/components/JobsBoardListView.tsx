@@ -78,25 +78,27 @@ export default function JobsBoardListView({
               return (
                 <tr
                   key={job.id}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => onOpenJob(job)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      onOpenJob(job);
-                    }
-                  }}
-                  className="cursor-pointer transition hover:bg-slate-50/80 focus-visible:outline-none focus-visible:bg-slate-50"
+                  className="transition hover:bg-slate-50/80"
                 >
                   <td className="px-4 py-3 font-medium text-slate-900">
                     <div className="flex min-w-0 items-center gap-2">
-                      <span className="truncate">
+                      <button
+                        type="button"
+                        className="truncate text-left font-medium text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300/70"
+                        data-board-list-open-job
+                        aria-label={`Open job card for ${
+                          job.customerName ||
+                          (job as { name?: string }).name ||
+                          (job as { customer?: string }).customer ||
+                          "Unnamed customer"
+                        }`}
+                        onClick={() => onOpenJob(job)}
+                      >
                         {job.customerName ||
                           (job as { name?: string }).name ||
                           (job as { customer?: string }).customer ||
                           "Unnamed customer"}
-                      </span>
+                      </button>
                       {sourceBadge ? (
                         <span className="shrink-0 rounded border border-amber-200/90 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800">
                           {sourceBadge}

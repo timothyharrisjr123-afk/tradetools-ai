@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserCompanyId } from "@/app/lib/ensureUserIdentity";
-import { isUuidLike } from "@/app/lib/jobStore";
+import { isUuidLike } from "@/app/lib/uuid";
 import { createPublicProposalReviewLinkForContractor } from "@/app/lib/proposalPublicReviewLink.server";
 import { PUBLIC_REVIEW_MINT_ERROR_MESSAGE } from "@/app/lib/proposalPublicReviewReadiness";
 import { createClient } from "@/app/lib/supabase/server";

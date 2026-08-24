@@ -4,7 +4,7 @@
  */
 
 import { buildJobCardHref, buildSetupRouteHref } from "@/app/lib/proposalBuilderReadiness";
-import { isUuidLike } from "@/app/lib/jobStore";
+import { isUuidLike } from "@/app/lib/uuid";
 
 export type ProposalSetupItemId =
   | "db_job_card"

@@ -1,4 +1,4 @@
-import { isUuidLike } from "@/app/lib/jobStore";
+import { isUuidLike } from "@/app/lib/uuid";
 import {
   JOB_ATTENTION_SEVERITIES,
   JOB_ATTENTION_STATUSES,

@@ -13,6 +13,7 @@ import type { CatalogItem } from "@/app/lib/catalogTypes";
 import { DEFAULT_ROOFING_CATALOG_DEFINITIONS } from "@/app/lib/defaultRoofingCatalog";
 import { getJobById, isUuidLike } from "@/app/lib/jobStore";
 import type { JobRecord } from "@/app/lib/jobTypes";
+import { shouldApplyProposalContextResult } from "@/app/lib/proposalPreviewReadOwnership";
 import {
   buildMeasurementProposalHandoff,
   deriveQuantityMapFromRecord,
@@ -218,18 +219,33 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
   const [upgradeSelectionError, setUpgradeSelectionError] = useState<string | null>(null);
   const upgradeSelectionInFlightRef = useRef(false);
   const pageVisibilityToggleInFlightRef = useRef(false);
+  const jobContextGenerationRef = useRef(0);
+  const catalogLoadGenerationRef = useRef(0);
+  const draftLoadGenerationRef = useRef(0);
 
   const loadJobContext = useCallback(async () => {
+    const generation = ++jobContextGenerationRef.current;
+    const jobId = (jobIdParam ?? "").trim();
+    const proposalId = (proposalIdParam ?? "").trim();
+    const stillCurrent = () =>
+      shouldApplyProposalContextResult({
+        requestGeneration: generation,
+        currentGeneration: jobContextGenerationRef.current,
+        requestJobId: jobId,
+        currentJobId: (jobIdParam ?? "").trim(),
+        requestProposalId: proposalId,
+        currentProposalId: (proposalIdParam ?? "").trim(),
+      });
+
     setJobLoadComplete(false);
     setMeasurementLoadComplete(false);
-    setJob(null);
-    setMeasurementHandoff(null);
-    setMeasurementQuantityMap(null);
-    setSelectedMeasurementId(null);
-    setSelectedMeasurementUpdatedAt(null);
 
-    const jobId = (jobIdParam ?? "").trim();
     if (!jobId || !isUuidLike(jobId)) {
+      setJob(null);
+      setMeasurementHandoff(null);
+      setMeasurementQuantityMap(null);
+      setSelectedMeasurementId(null);
+      setSelectedMeasurementUpdatedAt(null);
       setJobLoadComplete(true);
       setMeasurementLoadComplete(true);
       return;
@@ -237,6 +253,7 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
 
     try {
       const record = await getJobById(jobId);
+      if (!stillCurrent()) return;
       setJob(record);
 
       if (!record) {
@@ -245,6 +262,7 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
       }
 
       const measurement = await getSelectedMeasurementForJob(jobId);
+      if (!stillCurrent()) return;
       if (measurement) {
         const handoff = buildMeasurementHandoffFromPersisted(measurement);
         setMeasurementHandoff(handoff);
@@ -288,30 +306,35 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
       }
     } catch (err) {
       console.warn("[ProposalBuilderClient] job/measurement load error:", err);
-      setJob(null);
+      if (!stillCurrent()) return;
+      setJob((prev) => (prev?.id === jobId ? prev : null));
       setMeasurementHandoff(null);
       setMeasurementQuantityMap(null);
       setSelectedMeasurementId(null);
       setSelectedMeasurementUpdatedAt(null);
     } finally {
+      if (!stillCurrent()) return;
       setJobLoadComplete(true);
       setMeasurementLoadComplete(true);
     }
-  }, [jobIdParam]);
+  }, [jobIdParam, proposalIdParam]);
 
   const loadCatalog = useCallback(async () => {
+    const generation = ++catalogLoadGenerationRef.current;
     setCatalogLoadComplete(false);
     setCatalogError(null);
     try {
       // Full catalog (active + inactive) so draft Catalog-link staleness can
       // distinguish missing vs inactive. Pricing preview still uses active-only.
       const rows = await getCatalogItemsByCompany(companyId);
+      if (catalogLoadGenerationRef.current !== generation) return;
       setCatalogItems(rows);
     } catch (err) {
       console.warn("[ProposalBuilderClient] catalog fetch error:", err);
+      if (catalogLoadGenerationRef.current !== generation) return;
       setCatalogError("Could not load catalog items.");
-      setCatalogItems([]);
     } finally {
+      if (catalogLoadGenerationRef.current !== generation) return;
       setCatalogLoadComplete(true);
     }
   }, [companyId]);
@@ -330,6 +353,19 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
   }, [companyId]);
 
   const loadPersistedDraft = useCallback(async () => {
+    const generation = ++draftLoadGenerationRef.current;
+    const jobId = (jobIdParam ?? "").trim();
+    const proposalId = (proposalIdParam ?? "").trim();
+    const stillCurrent = () =>
+      shouldApplyProposalContextResult({
+        requestGeneration: generation,
+        currentGeneration: draftLoadGenerationRef.current,
+        requestJobId: jobId,
+        currentJobId: (jobIdParam ?? "").trim(),
+        requestProposalId: proposalId,
+        currentProposalId: (proposalIdParam ?? "").trim(),
+      });
+
     if (!hasPersistedProposalParam) {
       setPersistedGraph(null);
       setDraftGraphError(null);
@@ -339,21 +375,23 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
 
     setDraftGraphLoadComplete(false);
     setDraftGraphError(null);
-    setPersistedGraph(null);
 
-    const proposalId = proposalIdParam!.trim();
     try {
       const graph = await getDraftGraph(companyId, proposalId);
+      if (!stillCurrent()) return;
       const validation = validateProposalDraftGraphForJob(graph, jobIdParam);
       if (!validation.valid) {
         setDraftGraphError(validation.message);
+        setPersistedGraph(null);
         return;
       }
       setPersistedGraph(graph);
     } catch (err) {
       console.warn("[ProposalBuilderClient] persisted draft load error:", err);
+      if (!stillCurrent()) return;
       setDraftGraphError("Could not load persisted proposal draft.");
     } finally {
+      if (!stillCurrent()) return;
       setDraftGraphLoadComplete(true);
     }
   }, [companyId, hasPersistedProposalParam, jobIdParam, proposalIdParam]);

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { JobCardPaymentViewModel } from "@/app/lib/jobPaymentReadModel";
-import { isUuidLike } from "@/app/lib/jobStore";
+import { isUuidLike } from "@/app/lib/uuid";
 import { prefillDepositCents } from "@/app/lib/jobPaymentMoney";
 import type { CompanyPaymentDepositMode, JobPaymentKind } from "@/app/lib/jobPaymentTypes";
 

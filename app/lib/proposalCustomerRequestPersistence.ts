@@ -5,7 +5,7 @@
  * Injectable Supabase client for tests. Server entry: proposalCustomerRequestStore.server.ts.
  */
 
-import { isUuidLike } from "@/app/lib/jobStore";
+import { isUuidLike } from "@/app/lib/uuid";
 import {
   hashProposalPublicAccessToken,
   ProposalPublicAccessTokenHashError,

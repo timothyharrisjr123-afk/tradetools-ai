@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { getActiveCatalogItemsByCompany } from "@/app/lib/catalogStore";
 import type { CatalogItem } from "@/app/lib/catalogTypes";
@@ -8,6 +8,15 @@ import { resolveJobIdentityDisplay } from "@/app/lib/jobIdentityDisplay";
 import { getJobById, isUuidLike } from "@/app/lib/jobStore";
 import type { JobRecord } from "@/app/lib/jobTypes";
 import { getSelectedMeasurementForJob } from "@/app/lib/measurementStore";
+import {
+  applyIndependentReadFailure,
+  applyIndependentReadSuccess,
+  createIndependentRead,
+  decidePreviewSurface,
+  previewJobIdentityFallback,
+  shouldApplyProposalContextResult,
+  type IndependentRead,
+} from "@/app/lib/proposalPreviewReadOwnership";
 import {
   buildProposalCustomerPreviewDocument,
   resolveProposalCustomerPreviewSelectedTotalLabel,
@@ -105,11 +114,16 @@ export default function ProposalCustomerPreviewClient({
     [searchParams]
   );
 
-  const [job, setJob] = useState<JobRecord | null>(null);
-  const [persistedGraph, setPersistedGraph] = useState<ProposalDraftGraph | null>(null);
-  const [catalogItems, setCatalogItems] = useState<CatalogItem[]>([]);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [loadComplete, setLoadComplete] = useState(false);
+  const [jobRead, setJobRead] = useState<IndependentRead<JobRecord>>(() =>
+    createIndependentRead()
+  );
+  const [graphRead, setGraphRead] = useState<IndependentRead<ProposalDraftGraph>>(
+    () => createIndependentRead()
+  );
+  const [catalogRead, setCatalogRead] = useState<IndependentRead<CatalogItem[]>>(
+    () => createIndependentRead()
+  );
+  const [routeError, setRouteError] = useState<string | null>(null);
   const [selectedMeasurementId, setSelectedMeasurementId] = useState<string | null>(null);
   const [selectedMeasurementUpdatedAt, setSelectedMeasurementUpdatedAt] = useState<string | null>(
     null
@@ -117,133 +131,208 @@ export default function ProposalCustomerPreviewClient({
   const [sendSharingOpen, setSendSharingOpen] = useState(false);
   const [lastSentFrozenAt, setLastSentFrozenAt] = useState<string | null>(null);
   const [comparisonGraph, setComparisonGraph] = useState<ProposalVersionGraph | null>(null);
+  const loadGenerationRef = useRef(0);
 
   const loadPreview = useCallback(async () => {
-    setLoadComplete(false);
-    setLoadError(null);
-    setPersistedGraph(null);
-    setCatalogItems([]);
-    setJob(null);
+    const generation = ++loadGenerationRef.current;
+    const jobId = normalizedJobId;
+    const proposalId = normalizedProposalId;
+    const stillCurrent = () =>
+      shouldApplyProposalContextResult({
+        requestGeneration: generation,
+        currentGeneration: loadGenerationRef.current,
+        requestJobId: jobId,
+        currentJobId: normalizedJobId,
+        requestProposalId: proposalId,
+        currentProposalId: normalizedProposalId,
+      });
+
+    setRouteError(null);
+    setJobRead(createIndependentRead());
+    setGraphRead(createIndependentRead());
+    setCatalogRead(createIndependentRead());
     setLastSentFrozenAt(null);
     setComparisonGraph(null);
 
     if (!routeSpineLaunch.allowed) {
-      setLoadError(
+      if (!stillCurrent()) return;
+      setRouteError(
         routeSpineLaunch.errorMessage ??
           "A valid DB proposal route is required to preview this draft."
       );
-      setLoadComplete(true);
+      setJobRead(applyIndependentReadFailure(createIndependentRead(), "Route blocked.", false));
+      setGraphRead(applyIndependentReadFailure(createIndependentRead(), "Route blocked.", false));
+      setCatalogRead(applyIndependentReadFailure(createIndependentRead(), "Route blocked.", false));
       return;
     }
 
     if (!hasValidParams) {
-      setLoadError("A valid job and proposal are required to preview this draft.");
-      setLoadComplete(true);
+      if (!stillCurrent()) return;
+      setRouteError("A valid job and proposal are required to preview this draft.");
+      setGraphRead(
+        applyIndependentReadFailure(
+          createIndependentRead(),
+          "A valid job and proposal are required to preview this draft.",
+          false
+        )
+      );
       return;
     }
 
     if (sentRequest.mode === "sent_record_invalid") {
-      setLoadError(sentRequest.reason);
-      setLoadComplete(true);
+      if (!stillCurrent()) return;
+      setRouteError(sentRequest.reason);
+      setGraphRead(
+        applyIndependentReadFailure(createIndependentRead(), sentRequest.reason, false)
+      );
       return;
     }
 
+    void getJobById(jobId).then(
+      (jobRecord) => {
+        if (!stillCurrent()) return;
+        setJobRead(applyIndependentReadSuccess(jobRecord));
+      },
+      (err) => {
+        if (!stillCurrent()) return;
+        const message =
+          err instanceof Error ? err.message : "Could not load job identity.";
+        setJobRead(
+          applyIndependentReadFailure(createIndependentRead(), message, false)
+        );
+      }
+    );
+
+    void getActiveCatalogItemsByCompany(companyId).then(
+      (catalog) => {
+        if (!stillCurrent()) return;
+        setCatalogRead(applyIndependentReadSuccess(catalog));
+      },
+      (err) => {
+        if (!stillCurrent()) return;
+        const message =
+          err instanceof Error ? err.message : "Catalog unavailable.";
+        setCatalogRead(
+          applyIndependentReadFailure(createIndependentRead(), message, true)
+        );
+      }
+    );
+
     try {
       if (sentRequest.mode === "sent_record") {
-        const [jobRecord, versionGraph, catalog] = await Promise.all([
-          getJobById(normalizedJobId),
-          getProposalVersionGraph(
-            companyId,
-            normalizedProposalId,
-            sentRequest.versionId,
-            { requireSentVersion: true }
-          ),
-          getActiveCatalogItemsByCompany(companyId),
-        ]);
-        setJob(jobRecord);
-        setCatalogItems(catalog);
+        const versionGraph = await getProposalVersionGraph(
+          companyId,
+          proposalId,
+          sentRequest.versionId,
+          { requireSentVersion: true }
+        );
+        if (!stillCurrent()) return;
         const validated = validateProposalSentRecordGraph({
           graph: versionGraph,
-          jobId: normalizedJobId,
-          proposalId: normalizedProposalId,
+          jobId,
+          proposalId,
           versionId: sentRequest.versionId,
         });
         if (!validated.ok) {
-          setLoadError(validated.reason);
+          setGraphRead(
+            applyIndependentReadFailure(createIndependentRead(), validated.reason, false)
+          );
           return;
         }
-        setPersistedGraph(asCustomerPreviewGraphFromSentRecord(validated.graph));
-        setLastSentFrozenAt(validated.graph.version.frozen_at ?? null);
-        const lineage = await listSentProposalVersionLineage(
-          companyId,
-          normalizedProposalId
+        setGraphRead(
+          applyIndependentReadSuccess(asCustomerPreviewGraphFromSentRecord(validated.graph))
         );
-        const previousId = resolvePreviousSentVersionId({
-          currentSentVersionId: sentRequest.versionId,
-          sentVersions: lineage.map((row) => ({
-            id: row.id,
-            versionNumber: row.version_number,
-            frozenAt: row.frozen_at,
-            createdAt: row.created_at,
-          })),
-        });
-        if (previousId) {
-          const previousGraph = await getProposalVersionGraph(
-            companyId,
-            normalizedProposalId,
-            previousId,
-            { requireSentVersion: true }
-          );
-          setComparisonGraph(previousGraph);
+        setLastSentFrozenAt(validated.graph.version.frozen_at ?? null);
+        try {
+          const lineage = await listSentProposalVersionLineage(companyId, proposalId);
+          if (!stillCurrent()) return;
+          const previousId = resolvePreviousSentVersionId({
+            currentSentVersionId: sentRequest.versionId,
+            sentVersions: lineage.map((row) => ({
+              id: row.id,
+              versionNumber: row.version_number,
+              frozenAt: row.frozen_at,
+              createdAt: row.created_at,
+            })),
+          });
+          if (previousId) {
+            const previousGraph = await getProposalVersionGraph(
+              companyId,
+              proposalId,
+              previousId,
+              { requireSentVersion: true }
+            );
+            if (!stillCurrent()) return;
+            setComparisonGraph(previousGraph);
+          }
+        } catch (lineageErr) {
+          if (!stillCurrent()) return;
+          console.warn("[ProposalCustomerPreviewClient] sent lineage error:", lineageErr);
         }
         return;
       }
 
-      const [jobRecord, graph, catalog] = await Promise.all([
-        getJobById(normalizedJobId),
-        getDraftGraph(companyId, normalizedProposalId),
-        getActiveCatalogItemsByCompany(companyId),
-      ]);
-
-      setJob(jobRecord);
-      setCatalogItems(catalog);
-
-      const validation = validateProposalDraftGraphForJob(graph, normalizedJobId);
+      const graph = await getDraftGraph(companyId, proposalId);
+      if (!stillCurrent()) return;
+      const validation = validateProposalDraftGraphForJob(graph, jobId);
       if (!validation.valid || !graph) {
-        setLoadError(validation.valid ? "Could not load persisted proposal draft." : validation.message);
+        setGraphRead(
+          applyIndependentReadFailure(
+            createIndependentRead(),
+            validation.valid
+              ? "Could not load persisted proposal draft."
+              : validation.message,
+            false
+          )
+        );
         return;
       }
-
-      setPersistedGraph(graph);
+      setGraphRead(applyIndependentReadSuccess(graph));
 
       if (hasLatestSentProposalVersionId(graph.proposal.latest_sent_version_id)) {
-        const sentGraph = await getLatestSentProposalVersionGraph(
-          companyId,
-          normalizedProposalId
-        );
-        setLastSentFrozenAt(sentGraph?.version.frozen_at ?? null);
-        setComparisonGraph(sentGraph);
+        try {
+          const sentGraph = await getLatestSentProposalVersionGraph(
+            companyId,
+            proposalId
+          );
+          if (!stillCurrent()) return;
+          setLastSentFrozenAt(sentGraph?.version.frozen_at ?? null);
+          setComparisonGraph(sentGraph);
+        } catch (sentErr) {
+          if (!stillCurrent()) return;
+          console.warn("[ProposalCustomerPreviewClient] sent chrome error:", sentErr);
+        }
       } else {
         setLastSentFrozenAt(null);
         setComparisonGraph(null);
       }
 
-      const measurement = await getSelectedMeasurementForJob(normalizedJobId);
-      setSelectedMeasurementId(measurement?.id ?? null);
-      setSelectedMeasurementUpdatedAt(measurement?.updated_at ?? null);
+      try {
+        const measurement = await getSelectedMeasurementForJob(jobId);
+        if (!stillCurrent()) return;
+        setSelectedMeasurementId(measurement?.id ?? null);
+        setSelectedMeasurementUpdatedAt(measurement?.updated_at ?? null);
+      } catch (measurementErr) {
+        if (!stillCurrent()) return;
+        console.warn(
+          "[ProposalCustomerPreviewClient] measurement enrichment error:",
+          measurementErr
+        );
+      }
     } catch (err) {
+      if (!stillCurrent()) return;
       const message =
         err instanceof ProposalRecordStoreError
           ? err.message
           : err instanceof Error
             ? err.message
             : "Could not load proposal preview.";
-      setLoadError(message);
+      setGraphRead(
+        applyIndependentReadFailure(createIndependentRead(), message, false)
+      );
       if (!(err instanceof ProposalRecordStoreError)) {
-        console.warn("[ProposalCustomerPreviewClient] load error:", err);
+        console.warn("[ProposalCustomerPreviewClient] graph load error:", err);
       }
-    } finally {
-      setLoadComplete(true);
     }
   }, [
     companyId,
@@ -257,15 +346,31 @@ export default function ProposalCustomerPreviewClient({
 
   const refreshSentFrozenChrome = useCallback(async () => {
     if (isSentRecord || !hasValidParams) return;
+    const generation = loadGenerationRef.current;
+    const jobId = normalizedJobId;
+    const proposalId = normalizedProposalId;
     try {
-      const graph = await getDraftGraph(companyId, normalizedProposalId);
+      const graph = await getDraftGraph(companyId, proposalId);
+      if (
+        !shouldApplyProposalContextResult({
+          requestGeneration: generation,
+          currentGeneration: loadGenerationRef.current,
+          requestJobId: jobId,
+          currentJobId: normalizedJobId,
+          requestProposalId: proposalId,
+          currentProposalId: normalizedProposalId,
+        })
+      ) {
+        return;
+      }
       if (!graph) return;
-      setPersistedGraph(graph);
+      setGraphRead(applyIndependentReadSuccess(graph));
       if (hasLatestSentProposalVersionId(graph.proposal.latest_sent_version_id)) {
         const sentGraph = await getLatestSentProposalVersionGraph(
           companyId,
-          normalizedProposalId
+          proposalId
         );
+        if (loadGenerationRef.current !== generation) return;
         setLastSentFrozenAt(sentGraph?.version.frozen_at ?? null);
         setComparisonGraph(sentGraph);
       } else {
@@ -275,11 +380,25 @@ export default function ProposalCustomerPreviewClient({
     } catch (err) {
       console.warn("[ProposalCustomerPreviewClient] sent chrome refresh error:", err);
     }
-  }, [companyId, hasValidParams, isSentRecord, normalizedProposalId]);
+  }, [companyId, hasValidParams, isSentRecord, normalizedJobId, normalizedProposalId]);
 
   useEffect(() => {
     void loadPreview();
   }, [loadPreview]);
+
+  const job = jobRead.status === "ready" ? jobRead.value : null;
+  const persistedGraph =
+    graphRead.status === "ready" ? graphRead.value : null;
+  const catalogItems =
+    catalogRead.status === "ready" && Array.isArray(catalogRead.value)
+      ? catalogRead.value
+      : [];
+  const previewSurface = decidePreviewSurface({
+    job: jobRead,
+    graph: graphRead,
+    catalog: catalogRead,
+    routeError,
+  });
 
   const pricingStale = useMemo(() => {
     if (isSentRecord || !persistedGraph) {
@@ -308,7 +427,10 @@ export default function ProposalCustomerPreviewClient({
 
   const builderHref = buildProposalBuilderHref(normalizedJobId, normalizedProposalId);
   const jobCardHref = buildJobCardHref(normalizedJobId, { tab: "proposals" });
-  const jobIdentity = resolveJobIdentityDisplay(job, "Proposal preview");
+  const jobIdentity = resolveJobIdentityDisplay(
+    job,
+    previewJobIdentityFallback(previewSurface.jobIdentityMode)
+  );
   const sentRecordChrome = useMemo(
     () =>
       isSentRecord
@@ -362,17 +484,20 @@ export default function ProposalCustomerPreviewClient({
 
   return (
     <div className={PREVIEW_WORKSPACE_BG} data-preview-contractor-workspace>
-      {!loadComplete ? (
+      {previewSurface.overall === "loading" && !previewSurface.canRenderProposal ? (
         <div className={`${PREVIEW_WORKSPACE_STAGE} pt-6`}>
           <div className="text-sm text-slate-500">Loading preview…</div>
         </div>
-      ) : loadError ? (
+      ) : previewSurface.blockingError && !previewSurface.canRenderProposal ? (
         <div className={`${PREVIEW_WORKSPACE_STAGE} pt-6`}>
-          <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-800 ring-1 ring-red-200/70">
-            {loadError}
+          <div
+            className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-800 ring-1 ring-red-200/70"
+            data-preview-graph-error
+          >
+            {previewSurface.blockingError}
           </div>
         </div>
-      ) : previewDocument && persistedGraph ? (
+      ) : previewDocument && persistedGraph && previewSurface.canRenderProposal ? (
         <div
           className={`${PREVIEW_WORKSPACE_STAGE} space-y-3 pt-3 sm:pt-4`}
           data-preview-workspace-layout
@@ -380,6 +505,23 @@ export default function ProposalCustomerPreviewClient({
           data-preview-shell-v2c1
           data-preview-sent-record={isSentRecord ? "true" : "false"}
         >
+          {previewSurface.catalogError ? (
+            <p
+              className="rounded-md bg-slate-100 px-3 py-2 text-xs text-slate-600"
+              data-preview-catalog-error
+            >
+              Catalog unavailable for display enrichment. Proposal totals remain the frozen proposal truth.
+            </p>
+          ) : null}
+          {previewSurface.jobIdentityMode === "unavailable" ||
+          previewSurface.jobIdentityMode === "not_found" ? (
+            <p
+              className="rounded-md bg-slate-100 px-3 py-2 text-xs text-slate-600"
+              data-preview-job-identity-error
+            >
+              {jobIdentity.primaryLabel}
+            </p>
+          ) : null}
           <div className={PREVIEW_COMMAND_SURFACE} data-preview-command-surface>
             <ProposalPreviewHeader
               builderHref={builderHref}

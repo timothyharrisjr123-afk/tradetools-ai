@@ -26,6 +26,26 @@ export type LegacyReadableJobStage = (typeof LEGACY_READABLE_JOB_STAGES)[number]
 
 export type StoredJobStage = CanonicalJobStage | LegacyReadableJobStage;
 
+/**
+ * Historical DB CHECK-allowed stage tokens that are Intake-compatible for
+ * read/display/eligibility only. They are not current canonical lifecycle
+ * stages. App writes must not mint these tokens. Live rows are not rewritten.
+ */
+export const HISTORICAL_INTAKE_ALIAS_STAGES = [
+  "measurement",
+  "estimating",
+] as const;
+
+export type HistoricalIntakeAliasStage =
+  (typeof HISTORICAL_INTAKE_ALIAS_STAGES)[number];
+
+export function isHistoricalIntakeAliasStage(
+  value: string | null | undefined
+): value is HistoricalIntakeAliasStage {
+  const token = String(value ?? "").trim().toLowerCase();
+  return token === "measurement" || token === "estimating";
+}
+
 export const OPERATIONAL_JOB_DISPOSITIONS = [
   "active",
   "on_hold",

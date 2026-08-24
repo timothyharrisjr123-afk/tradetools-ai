@@ -5,7 +5,7 @@
  * Board-origin gating is the caller's responsibility; this helper does not check it.
  */
 
-import { isUuidLike } from "@/app/lib/jobStore";
+import { isUuidLike } from "@/app/lib/uuid";
 import type { JobRecord } from "@/app/lib/jobTypes";
 
 export type JobCardCustomerPersistReason =

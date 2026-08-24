@@ -4,7 +4,7 @@
  */
 
 import type { RoofingEstimate } from "@/app/lib/estimateStore";
-import { isUuidLike } from "@/app/lib/jobStore";
+import { isUuidLike } from "@/app/lib/uuid";
 import type { JobSummary } from "@/app/lib/jobTypes";
 import {
   resolveCanonicalJobStage,

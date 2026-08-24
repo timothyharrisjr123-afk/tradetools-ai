@@ -28,7 +28,7 @@ import type {
   ProposalOptionRow,
   ProposalVersionGraph,
 } from "@/app/lib/proposalRecordStore";
-import { isUuidLike } from "@/app/lib/jobStore";
+import { isUuidLike } from "@/app/lib/uuid";
 
 export class ProposalDraftGraphAdapterError extends Error {
   constructor(message: string) {

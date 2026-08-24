@@ -6,7 +6,7 @@
  * Contractor Approve job uses authenticated confirm_proposal_acceptance_v1.
  */
 
-import { isUuidLike } from "@/app/lib/jobStore";
+import { isUuidLike } from "@/app/lib/uuid";
 import {
   ACKNOWLEDGE_PROPOSAL_ACCEPTANCE_ATTENTION_RPC_V1,
   CONFIRM_PROPOSAL_ACCEPTANCE_RPC_V1,

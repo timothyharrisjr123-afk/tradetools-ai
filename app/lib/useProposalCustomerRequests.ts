@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   fetchProposalCustomerRequests,
   PROPOSAL_CUSTOMER_REQUESTS_CHANGED_EVENT,
@@ -8,6 +8,7 @@ import {
 } from "@/app/lib/proposalCustomerRequestReviewClient";
 import type { CustomerRequestReviewItemView } from "@/app/lib/proposalCustomerRequestReviewViewModel";
 import type { ProposalCustomerRequestReviewStatus } from "@/app/lib/proposalCustomerRequestPersistence";
+import { applyCustomerRequestFetchFailure } from "@/app/lib/surfaceReadFailureSemantics";
 
 export function useProposalCustomerRequests(input: {
   proposalId: string | null | undefined;
@@ -23,6 +24,7 @@ export function useProposalCustomerRequests(input: {
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [pendingRequestId, setPendingRequestId] = useState<string | null>(null);
+  const requestOwnerRef = useRef("");
 
   const reload = useCallback(async () => {
     if (!enabled) {
@@ -32,13 +34,21 @@ export function useProposalCustomerRequests(input: {
     }
     setLoading(true);
     setError(null);
+    const ownerKey = `${jobId}::${proposalId}`;
     const result = await fetchProposalCustomerRequests(proposalId, jobId);
     if (!result.ok) {
-      setRequests([]);
-      setError(result.error);
+      setRequests((previous) => {
+        const applied = applyCustomerRequestFetchFailure({
+          previousRequests: requestOwnerRef.current === ownerKey ? previous : [],
+          error: result.error,
+        });
+        setError(applied.error);
+        return applied.requests;
+      });
       setLoading(false);
       return;
     }
+    requestOwnerRef.current = ownerKey;
     setRequests(result.requests);
     setLoading(false);
   }, [enabled, jobId, proposalId]);
@@ -111,6 +121,7 @@ export function useJobProposalCustomerRequests(input: {
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [pendingRequestId, setPendingRequestId] = useState<string | null>(null);
+  const requestOwnerRef = useRef("");
 
   const proposalKey = proposalIds.join(",");
 
@@ -122,6 +133,7 @@ export function useJobProposalCustomerRequests(input: {
     }
     setLoading(true);
     setError(null);
+    const ownerKey = `${jobId}::${proposalKey}`;
     const ids = proposalKey.split(",").filter(Boolean);
     const results = await Promise.all(
       ids.map((proposalId) => fetchProposalCustomerRequests(proposalId, jobId))
@@ -129,14 +141,22 @@ export function useJobProposalCustomerRequests(input: {
     const merged: CustomerRequestReviewItemView[] = [];
     for (const result of results) {
       if (!result.ok) {
-        setRequests([]);
-        setError(result.error);
+        setRequests((previous) => {
+          const applied = applyCustomerRequestFetchFailure({
+            previousRequests:
+              requestOwnerRef.current === ownerKey ? previous : [],
+            error: result.error,
+          });
+          setError(applied.error);
+          return applied.requests;
+        });
         setLoading(false);
         return;
       }
       merged.push(...result.requests);
     }
     merged.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+    requestOwnerRef.current = ownerKey;
     setRequests(merged);
     setLoading(false);
   }, [enabled, jobId, proposalKey]);

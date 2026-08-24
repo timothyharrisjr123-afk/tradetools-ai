@@ -6,7 +6,7 @@
  * Delivery attempt status is NOT a proxy for sent/frozen truth.
  */
 
-import { isUuidLike } from "@/app/lib/jobStore";
+import { isUuidLike } from "@/app/lib/uuid";
 import {
   CUSTOMER_PREVIEW_DRAFT_STATUS,
   CUSTOMER_PREVIEW_LAST_SENT_PREFIX,

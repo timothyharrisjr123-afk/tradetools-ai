@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import { z } from "zod";
+import {
+  contractorDeniedJson,
+  resolveContractorCompanySession,
+} from "@/app/lib/contractorCapabilityAuth";
+import { createClient } from "@/app/lib/supabase/server";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -263,6 +268,13 @@ function parseJsonResponse(raw: string): ProposalGenerateResponse | null {
 
 export async function POST(request: Request) {
   try {
+    const supabase = await createClient();
+    const session = await resolveContractorCompanySession(supabase);
+    if (!session.ok) {
+      const denied = contractorDeniedJson(session, "error");
+      return NextResponse.json(denied.body, { status: denied.status });
+    }
+
     const json = await request.json().catch(() => null);
     const parsed = BodySchema.safeParse(json);
     if (!parsed.success) {

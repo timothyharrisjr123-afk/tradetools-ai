@@ -6057,7 +6057,7 @@ Thanks,`;
                   Site visit
                 </div>
                 <span className="rounded-full bg-slate-100/90 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500 shadow-sm ring-1 ring-slate-200/45">
-                  Not scheduled
+                  Not set up
                 </span>
               </div>
               <p className="mt-2 text-xs text-slate-500">Scheduling will connect here when site visits are wired.</p>
@@ -8518,6 +8518,8 @@ Thanks,`;
               fallbackPhone={headerPhone}
               fallbackEmail={headerEmail}
               pendingAttentionId={pendingAttentionId}
+              detailStatus={jobAttention.status}
+              detailError={jobAttention.error}
               onSelect={jobAttention.selectItem}
               onMarkRead={jobAttention.markRead}
               onMarkSeen={(item) =>
@@ -9134,7 +9136,7 @@ Thanks,`;
                         value={
                           jobCardSchedule.active
                             ? "See Job schedule"
-                            : "Not scheduled"
+                            : "Not created"
                         }
                         muted
                       />

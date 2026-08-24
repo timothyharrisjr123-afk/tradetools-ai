@@ -469,65 +469,67 @@ export default function FieldDiveCalendarClient({
               const visibleEvents = dayEvents.slice(0, MONTH_DAY_EVENT_CAP);
               const overflowCount = dayEvents.length - visibleEvents.length;
               return (
-                <button
+                <div
                   key={iso}
-                  type="button"
-                  onClick={() => void openCreate(iso)}
                   className={`relative min-w-0 overflow-hidden border-b border-r border-slate-100 p-1.5 text-left ${inMonth ? "bg-white" : "bg-slate-50/70"}`}
+                  data-calendar-month-day={iso}
                 >
-                  <div className="text-xs font-medium text-slate-500">{iso.slice(8)}</div>
-                  <div className="mt-1 space-y-1 overflow-hidden">
-                    {visibleEvents.map((event) => (
-                      <div
-                        key={event.schedule.id}
-                        role="link"
-                        tabIndex={0}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openScheduleEvent(event);
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
+                  <button
+                    type="button"
+                    className="absolute inset-0 z-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/70"
+                    aria-label={`Schedule work on ${iso}`}
+                    data-calendar-day-open
+                    onClick={() => void openCreate(iso)}
+                  />
+                  <div className="relative z-10 pointer-events-none">
+                    <div className="text-xs font-medium text-slate-500">{iso.slice(8)}</div>
+                    <div className="mt-1 space-y-1 overflow-hidden pointer-events-auto">
+                      {visibleEvents.map((event) => (
+                        <button
+                          key={event.schedule.id}
+                          type="button"
+                          onClick={(e) => {
                             e.stopPropagation();
                             openScheduleEvent(event);
-                          }
-                        }}
-                        className={`truncate rounded px-1.5 py-0.5 text-[11px] font-medium ${
-                          event.stage === "production"
-                            ? "bg-emerald-50 text-emerald-900"
+                          }}
+                          className={`w-full truncate rounded px-1.5 py-0.5 text-left text-[11px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300/80 ${
+                            event.stage === "production"
+                              ? "bg-emerald-50 text-emerald-900"
+                              : event.stage === "complete"
+                                ? "bg-slate-100 text-slate-800"
+                                : "bg-sky-50 text-sky-900"
+                          }`}
+                          data-calendar-event-stage={event.stage}
+                          aria-label={`${event.customerName} on ${iso}`}
+                        >
+                          {event.customerName}
+                          {event.stage === "production"
+                            ? " · Production"
                             : event.stage === "complete"
-                              ? "bg-slate-100 text-slate-800"
-                            : "bg-sky-50 text-sky-900"
-                        }`}
-                        data-calendar-event-stage={event.stage}
-                      >
-                        {event.customerName}
-                        {event.stage === "production"
-                          ? " · Production"
-                          : event.stage === "complete"
-                            ? " · Complete"
-                            : ""}
-                      </div>
-                    ))}
-                    {overflowCount > 0 ? (
-                      <button
-                        type="button"
-                        className="w-full truncate rounded px-1.5 py-0.5 text-left text-[11px] font-semibold text-cyan-800 hover:bg-cyan-50"
-                        aria-label={`${overflowCount} more scheduled jobs on this day`}
-                        data-calendar-day-overflow-count={overflowCount}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setMonthOverflow({
-                            iso,
-                            events: dayEvents.slice(MONTH_DAY_EVENT_CAP),
-                          });
-                        }}
-                      >
-                        +{overflowCount} more
-                      </button>
-                    ) : null}
+                              ? " · Complete"
+                              : ""}
+                        </button>
+                      ))}
+                      {overflowCount > 0 ? (
+                        <button
+                          type="button"
+                          className="w-full truncate rounded px-1.5 py-0.5 text-left text-[11px] font-semibold text-cyan-800 hover:bg-cyan-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/70"
+                          aria-label={`${overflowCount} more scheduled jobs on this day`}
+                          data-calendar-day-overflow-count={overflowCount}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setMonthOverflow({
+                              iso,
+                              events: dayEvents.slice(MONTH_DAY_EVENT_CAP),
+                            });
+                          }}
+                        >
+                          +{overflowCount} more
+                        </button>
+                      ) : null}
+                    </div>
                   </div>
-                </button>
+                </div>
               );
             })}
           </div>

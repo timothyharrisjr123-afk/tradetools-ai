@@ -2,7 +2,7 @@
  * Guarded R3H Complete-job persistence. No raw jobs.stage writes.
  */
 
-import { isUuidLike } from "@/app/lib/jobStore";
+import { isUuidLike } from "@/app/lib/uuid";
 import { parseJobScheduleRow } from "@/app/lib/jobScheduleMapper";
 import {
   COMPLETE_JOB_WORK_RPC_V1,

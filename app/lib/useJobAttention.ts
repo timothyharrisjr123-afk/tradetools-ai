@@ -18,6 +18,10 @@ import {
   isCoalescedRefreshCurrent,
   type CoalescedRefreshState,
 } from "@/app/lib/coalescedRefresh";
+import {
+  applyAttentionDetailFetchResult,
+  type AttentionDetailStatus,
+} from "@/app/lib/surfaceReadFailureSemantics";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 export function useJobAttentionSummaries(enabled = true) {
@@ -113,6 +117,14 @@ export function useJobAttentionDetail(input: {
   );
   const [loading, setLoading] = useState(enabled);
   const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState<AttentionDetailStatus>(
+    enabled ? "loading" : "ready-empty"
+  );
+  const selectedAttentionIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    selectedAttentionIdRef.current = selectedAttentionId;
+  }, [selectedAttentionId]);
 
   const reload = useCallback(async () => {
     const jobId = input.jobId?.trim() ?? "";
@@ -120,6 +132,8 @@ export function useJobAttentionDetail(input: {
       setItems([]);
       setSelectedAttentionId(null);
       setLoading(false);
+      setError(null);
+      setStatus("ready-empty");
       return;
     }
     setLoading(true);
@@ -127,15 +141,17 @@ export function useJobAttentionDetail(input: {
       jobId,
       input.requestedAttentionId
     );
-    if (result.ok) {
-      setItems(result.items);
-      setSelectedAttentionId(result.selectedAttentionId);
-      setError(null);
-    } else {
-      setItems([]);
-      setSelectedAttentionId(null);
-      setError(result.error);
-    }
+    setItems((previousItems) => {
+      const applied = applyAttentionDetailFetchResult({
+        previousItems,
+        previousSelectedId: selectedAttentionIdRef.current,
+        result,
+      });
+      setSelectedAttentionId(applied.selectedAttentionId);
+      setError(applied.error);
+      setStatus(applied.status);
+      return applied.items;
+    });
     setLoading(false);
   }, [enabled, input.jobId, input.requestedAttentionId]);
 
@@ -189,6 +205,7 @@ export function useJobAttentionDetail(input: {
     selectedAttentionId,
     loading,
     error,
+    status,
     reload,
     selectItem,
     markRead,

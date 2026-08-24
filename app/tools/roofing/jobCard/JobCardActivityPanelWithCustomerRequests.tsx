@@ -25,6 +25,7 @@ import {
   listJobPaymentRequests,
   listJobPaymentTransactionsForRequests,
 } from "@/app/lib/jobPaymentClientRead";
+import { applyPaymentEnrichmentFailure } from "@/app/lib/surfaceReadFailureSemantics";
 import { useJobProposalCustomerRequests } from "@/app/lib/useProposalCustomerRequests";
 import JobCardActivityPanel, {
   type JobCardActivityItem,
@@ -65,6 +66,9 @@ export default function JobCardActivityPanelWithCustomerRequests({
   const [paymentItems, setPaymentItems] = useState<JobPaymentActivityItem[]>(
     []
   );
+  const [paymentEnrichmentError, setPaymentEnrichmentError] = useState<
+    string | null
+  >(null);
 
   useEffect(() => {
     const id = (jobId ?? "").trim();
@@ -120,6 +124,7 @@ export default function JobCardActivityPanelWithCustomerRequests({
     let cancelled = false;
     if (!id || !secondaryEffectsEnabled) {
       setPaymentItems([]);
+      setPaymentEnrichmentError(null);
       return;
     }
     void listJobPaymentRequests(id)
@@ -134,9 +139,18 @@ export default function JobCardActivityPanelWithCustomerRequests({
             transactions,
           })
         );
+        setPaymentEnrichmentError(null);
       })
       .catch(() => {
-        if (!cancelled) setPaymentItems([]);
+        if (!cancelled) {
+          setPaymentItems((previous) => {
+            const applied = applyPaymentEnrichmentFailure({
+              previousItems: previous,
+            });
+            return applied.items;
+          });
+          setPaymentEnrichmentError("Payment history unavailable.");
+        }
       });
     return () => {
       cancelled = true;
@@ -181,6 +195,14 @@ export default function JobCardActivityPanelWithCustomerRequests({
       data-jobcard-activity-with-customer-requests
       data-jobcard-secondary-ready={secondaryEffectsEnabled ? "true" : "false"}
     >
+      {paymentEnrichmentError ? (
+        <p
+          className="px-4 pt-2 text-[11px] text-slate-500"
+          data-activity-payment-enrichment-error
+        >
+          {paymentEnrichmentError}
+        </p>
+      ) : null}
       <JobCardActivityPanel items={items} />
     </div>
   );

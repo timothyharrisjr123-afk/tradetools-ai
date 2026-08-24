@@ -5,7 +5,7 @@
  * proposalSendFreezePersistence. No sequential fallback, routes, or lifecycle UI.
  */
 
-import { isUuidLike } from "@/app/lib/jobStore";
+import { isUuidLike } from "@/app/lib/uuid";
 import type { getSupabaseClient } from "@/app/lib/supabaseClient";
 import type { ProposalSendFreezePersistPayload } from "@/app/lib/proposalSendFreezePersistence";
 

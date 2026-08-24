@@ -2,7 +2,7 @@
  * Guarded R3G Start-work persistence. No raw jobs.stage writes.
  */
 
-import { isUuidLike } from "@/app/lib/jobStore";
+import { isUuidLike } from "@/app/lib/uuid";
 import { parseJobScheduleRow } from "@/app/lib/jobScheduleMapper";
 import {
   START_JOB_WORK_RPC_V1,

@@ -3,7 +3,7 @@
  */
 
 import { getSupabaseClient } from "@/app/lib/supabaseClient";
-import { isUuidLike } from "@/app/lib/jobStore";
+import { isUuidLike } from "@/app/lib/uuid";
 import { parseJobScheduleList } from "@/app/lib/jobSchedulePersistence";
 import type { JobSchedule } from "@/app/lib/jobScheduleTypes";
 

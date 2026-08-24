@@ -12,6 +12,7 @@ import {
   JOB_LIFECYCLE_PRODUCTION_TRANSITIONS_ENABLED,
   JOB_LIFECYCLE_SCHEDULED_TRANSITIONS_ENABLED,
   OPERATIONAL_JOB_DISPOSITIONS,
+  isHistoricalIntakeAliasStage,
   type CanonicalJobStage,
   type JobLifecycleMapperInput,
   type OperationalJobDisposition,
@@ -80,15 +81,14 @@ export function resolveCanonicalJobStage(
     }
     if (
       stage === "intake" ||
-      stage === "measurement" ||
-      stage === "estimating" ||
+      isHistoricalIntakeAliasStage(stage) ||
       stage === "proposal"
     ) {
       return "approved";
     }
   }
 
-  if (stage === "measurement" || stage === "estimating") {
+  if (isHistoricalIntakeAliasStage(stage)) {
     return "intake";
   }
 

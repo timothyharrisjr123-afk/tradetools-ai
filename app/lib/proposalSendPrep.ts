@@ -7,7 +7,7 @@
 
 import { createHash } from "node:crypto";
 
-import { isUuidLike } from "@/app/lib/jobStore";
+import { isUuidLike } from "@/app/lib/uuid";
 import type { ProposalPublicAccessMintRequest } from "@/app/lib/proposalPublicAccessTokenMintPersistence";
 import type { ProposalRecord } from "@/app/lib/proposalRecordTypes";
 import type { ProposalDraftGraph } from "@/app/lib/proposalRecordStore";

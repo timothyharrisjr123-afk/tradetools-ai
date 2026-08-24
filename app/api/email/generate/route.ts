@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
+import {
+  contractorDeniedJson,
+  resolveContractorCompanySession,
+} from "@/app/lib/contractorCapabilityAuth";
+import { createClient } from "@/app/lib/supabase/server";
 
 const SYSTEM_INSTRUCTION = `You are writing a short email to a homeowner with a roofing estimate.
 Tone: contractor, short, confident. Plain text only (no markdown).
@@ -16,6 +21,13 @@ export type EmailGenerateBody = {
 
 export async function POST(request: Request) {
   try {
+    const supabase = await createClient();
+    const session = await resolveContractorCompanySession(supabase);
+    if (!session.ok) {
+      const denied = contractorDeniedJson(session, "error");
+      return NextResponse.json(denied.body, { status: denied.status });
+    }
+
     const body = (await request.json()) as EmailGenerateBody;
 
     if (typeof body?.proposalText !== "string" || !body?.proposalData || !body?.companyProfile) {
