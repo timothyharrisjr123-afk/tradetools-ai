@@ -20,6 +20,7 @@ type JobsBoardListViewProps = {
   ) => JobsBoardCardModel;
   onOpenJob: (job: RoofingEstimate) => void;
   onStartWork?: (job: RoofingEstimate) => void;
+  onCompleteJob?: (job: RoofingEstimate) => void;
   /** When set, shown on every row (legacy section). */
   sourceBadge?: string | null;
 };
@@ -37,6 +38,7 @@ export default function JobsBoardListView({
   buildCardModel,
   onOpenJob,
   onStartWork,
+  onCompleteJob,
   sourceBadge,
 }: JobsBoardListViewProps) {
   if (jobs.length === 0) {
@@ -146,6 +148,19 @@ export default function JobsBoardListView({
                         data-board-list-start-work
                       >
                         {model.startWorkBusy ? "Starting…" : "Start work"}
+                      </button>
+                    ) : model?.showCompleteJobAction && onCompleteJob ? (
+                      <button
+                        type="button"
+                        disabled={model.completeJobBusy}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          onCompleteJob(job);
+                        }}
+                        className="font-semibold text-slate-800 hover:text-slate-950"
+                        data-board-list-complete-job
+                      >
+                        {model.completeJobBusy ? "Completing…" : "Complete job"}
                       </button>
                     ) : (
                       "—"

@@ -648,9 +648,12 @@ export type JobsBoardCardModel = {
   attention?: JobAttentionSummary | null;
   scheduleLabel?: string | null;
   productionStartedLabel?: string | null;
+  completedAtLabel?: string | null;
   showScheduleAction?: boolean;
   showStartWorkAction?: boolean;
+  showCompleteJobAction?: boolean;
   startWorkBusy?: boolean;
+  completeJobBusy?: boolean;
 };
 
 export function buildJobsBoardCardModel(

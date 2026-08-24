@@ -18,6 +18,7 @@ type JobsBoardCardProps = {
   onOpen: () => void;
   onScheduleJob?: () => void;
   onStartWork?: () => void;
+  onCompleteJob?: () => void;
   /** Muted styling for legacy estimate cards. */
   subdued?: boolean;
 };
@@ -59,6 +60,7 @@ export default function JobsBoardCard({
   onOpen,
   onScheduleJob,
   onStartWork,
+  onCompleteJob,
   subdued = false,
 }: JobsBoardCardProps) {
   const stageFooter = formatTimeInStageFooter(model.timeInStage);
@@ -138,6 +140,14 @@ export default function JobsBoardCard({
             Work started · {model.productionStartedLabel}
           </p>
         ) : null}
+        {model.completedAtLabel ? (
+          <p
+            className="mt-1.5 text-xs font-semibold text-slate-800"
+            data-board-work-completed
+          >
+            Completed · {model.completedAtLabel}
+          </p>
+        ) : null}
         {model.showScheduleAction && onScheduleJob ? (
           <button
             type="button"
@@ -162,6 +172,20 @@ export default function JobsBoardCard({
             data-board-start-work
           >
             {model.startWorkBusy ? "Starting…" : "Start work"}
+          </button>
+        ) : null}
+        {model.showCompleteJobAction && onCompleteJob ? (
+          <button
+            type="button"
+            disabled={model.completeJobBusy}
+            className="mt-2 rounded-md bg-slate-900 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-slate-800"
+            onClick={(event) => {
+              event.stopPropagation();
+              onCompleteJob();
+            }}
+            data-board-complete-job
+          >
+            {model.completeJobBusy ? "Completing…" : "Complete job"}
           </button>
         ) : null}
       </div>

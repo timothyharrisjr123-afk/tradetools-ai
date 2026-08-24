@@ -23,3 +23,42 @@ export function getSupabaseClient(): SupabaseClient | null {
   }
   return client;
 }
+
+/** Wait for the browser client to finish reading the existing auth session. */
+export async function ensureBrowserAuthSession(
+  timeoutMs = 12000
+): Promise<boolean> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return false;
+
+  return await new Promise((resolve) => {
+    let settled = false;
+    const finish = (value: boolean) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timer);
+      subscription.unsubscribe();
+      resolve(value);
+    };
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) finish(true);
+    });
+
+    const timer = window.setTimeout(() => finish(false), timeoutMs);
+
+    void (async () => {
+      const started = Date.now();
+      while (Date.now() - started < timeoutMs && !settled) {
+        const current = await supabase.auth.getSession();
+        if (current.data.session) {
+          finish(true);
+          return;
+        }
+        await new Promise((wait) => window.setTimeout(wait, 250));
+      }
+    })();
+  });
+}

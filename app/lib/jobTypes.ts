@@ -198,6 +198,8 @@ export type JobRecord = {
   stage_entered_at?: string | null;
   /** Immutable actual work-start instant; DB-authored by start_job_work_v1. */
   production_started_at?: string | null;
+  /** Immutable actual Job-completion instant; DB-authored by complete_job_work_v1. */
+  completed_at?: string | null;
   created_at: string;
   updated_at: string;
 
@@ -253,6 +255,7 @@ export type JobSummary = {
   last_activity_at?: string | null;
   stage_entered_at?: string | null;
   production_started_at?: string | null;
+  completed_at?: string | null;
   created_at: string;
   updated_at: string;
 };

@@ -37,6 +37,8 @@ type JobCardActivityPanelWithCustomerRequestsProps = {
   jobCreatedAt?: string | null;
   proposals?: readonly ProposalRecordStatusSummary[];
   sentFactsByProposalId?: JobCardProposalSentFactsById;
+  /** When false, defer secondary activity/acceptance/signature/payment reads. */
+  secondaryEffectsEnabled?: boolean;
 };
 
 export default function JobCardActivityPanelWithCustomerRequests({
@@ -46,11 +48,12 @@ export default function JobCardActivityPanelWithCustomerRequests({
   jobCreatedAt = null,
   proposals = [],
   sentFactsByProposalId = {},
+  secondaryEffectsEnabled = true,
 }: JobCardActivityPanelWithCustomerRequestsProps) {
   const { requests } = useJobProposalCustomerRequests({
     proposalIds,
     jobId,
-    enabled: proposalIds.length > 0,
+    enabled: secondaryEffectsEnabled && proposalIds.length > 0,
   });
   const [jobEvents, setJobEvents] = useState<JobActivityEvent[]>([]);
   const [acceptanceItems, setAcceptanceItems] = useState<
@@ -66,7 +69,7 @@ export default function JobCardActivityPanelWithCustomerRequests({
   useEffect(() => {
     const id = (jobId ?? "").trim();
     let cancelled = false;
-    if (!id) return;
+    if (!id || !secondaryEffectsEnabled) return;
     void Promise.all([
       listJobActivityEventsForJob(id),
       listJobProposalAcceptances(id),
@@ -91,7 +94,7 @@ export default function JobCardActivityPanelWithCustomerRequests({
     return () => {
       cancelled = true;
     };
-  }, [jobId]);
+  }, [jobId, secondaryEffectsEnabled]);
 
   const items = useMemo(() => {
     const requestItems: JobCardActivityItem[] = requests.map((request) => ({
@@ -127,7 +130,10 @@ export default function JobCardActivityPanelWithCustomerRequests({
   ]);
 
   return (
-    <div data-jobcard-activity-with-customer-requests>
+    <div
+      data-jobcard-activity-with-customer-requests
+      data-jobcard-secondary-ready={secondaryEffectsEnabled ? "true" : "false"}
+    >
       <JobCardActivityPanel items={items} />
     </div>
   );

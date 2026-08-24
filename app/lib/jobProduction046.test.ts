@@ -280,15 +280,15 @@ describe("R3G TypeScript contracts", () => {
 describe("R3G surface contracts", () => {
   test("Job Card has one-click Start work and read-only Production schedule", () => {
     assert.match(JOB_CARD, /data-jobcard-start-work/);
-    assert.match(JOB_CARD, /isProduction \|\| stage === "complete"/);
-    assert.match(JOB_CARD, /hasActualStart = isProduction \|\| stage === "complete"/);
+    assert.match(JOB_CARD, /isProduction \|\| isComplete/);
+    assert.match(JOB_CARD, /hasActualStart = isProduction \|\| isComplete/);
     assert.match(JOB_CARD, /Work started/);
     assert.match(JOB_CARD, /Planned schedule ·/);
     assert.doesNotMatch(JOB_CARD, /Production · planned/);
     assert.match(ROOFING_CLIENT, /Planned schedule/);
     assert.doesNotMatch(ROOFING_CLIENT, /Production · planned/);
     assert.match(JOB_CARD, /scheduleReady/);
-    assert.doesNotMatch(JOB_CARD, /Complete job|Undo Start/);
+    assert.doesNotMatch(JOB_CARD, /Undo Start/);
     assert.match(ROOFING_CLIENT, /\/api\/jobs\/start-work/);
     assert.match(ROOFING_CLIENT, /resolveJobCardActiveSchedule/);
     assert.match(ROOFING_CLIENT, /canonicalJobStage !== "scheduled"/);

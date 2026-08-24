@@ -40,7 +40,6 @@ import {
   Truck,
   Settings,
 } from "lucide-react";
-import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { loadCompanyProfile, getCompanyProfileEmailSafe, type CompanyProfile } from "@/app/lib/companyProfile";
 import {
   saveEstimate as saveToEstimateStore,
@@ -83,9 +82,30 @@ import type { OperationalJobDisposition } from "@/app/lib/jobLifecycleTypes";
 import { findOrCreateCustomer } from "@/app/lib/customerStore";
 import { ensureJobCustomerPersisted } from "@/app/lib/jobCardCustomerPersist";
 import { LAST_DB_JOB_ID_STORAGE_KEY } from "@/app/lib/jobBoardAdapter";
+import {
+  isCleanDbJobCardDeepLink,
+  matchingServerJobRecord,
+  resolveInitialServerJobSeed,
+  shouldSkipClientCanonicalJobHydrate,
+} from "@/app/lib/jobCardServerSeed";
+import {
+  parseJobCardSchedulesApiPayload,
+  shouldRetryJobCardScheduleFetch,
+} from "@/app/lib/jobCardScheduleHydrate";
+import {
+  createIdleJobCardScheduleSettlement,
+  preserveOrBeginJobCardScheduleSettlement,
+  settleJobCardScheduleError,
+  settleJobCardScheduleSuccess,
+  shouldEnableJobCardSecondaryEffects,
+  type JobCardScheduleSettlement,
+} from "@/app/lib/jobCardPerfBoundary";
 import { LEGACY_ESTIMATE_SEND_BLOCKED_FOR_DB_MESSAGE } from "@/app/lib/legacyEstimateSendGuard";
 import { productSpineRouteHintsFromSearchParams } from "@/app/lib/productSpine";
-import { getSupabaseClient } from "@/app/lib/supabaseClient";
+import {
+  ensureBrowserAuthSession,
+  getSupabaseClient,
+} from "@/app/lib/supabaseClient";
 import {
   getSelectedMeasurementForJob,
   getMeasurementsForJob,
@@ -1108,7 +1128,13 @@ function buildManualMeasurementDraftFromJobCardState(
   };
 }
 
-export default function RoofingClient({ companyId }: { companyId?: string }) {
+export default function RoofingClient({
+  companyId,
+  serverJobRecord = null,
+}: {
+  companyId?: string;
+  serverJobRecord?: JobRecord | null;
+}) {
   setEstimateStoreCompanyScope(companyId ?? null);
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -1131,6 +1157,14 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
         : entryParam === "job-card"
           ? "job-card"
           : "packet";
+  const initialTrustedServerJobSeed = resolveInitialServerJobSeed({
+    entryMode,
+    loadSavedId,
+    isBoardOriginParam,
+    jobParam,
+    companyId,
+    serverJobRecord,
+  });
   const [zipPresets, setZipPresets] = useState<ZipPresetsMap | null>(null);
   const [hasMounted, setHasMounted] = useState(false);
   const [restoreTick, setRestoreTick] = useState(0);
@@ -1140,12 +1174,15 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
   const jobLinkAppliedRef = useRef<string | null>(null);
   const jobLinkInFlightRef = useRef<string | null>(null);
   const linkedJobIdByEstimateRef = useRef<Record<string, string>>({});
-  const jobHydratedRef = useRef<string | null>(null);
+  const jobHydratedRef = useRef<string | null>(initialTrustedServerJobSeed?.id ?? null);
   const jobHydrateInFlightRef = useRef<string | null>(null);
   const isRestoringRef = useRef(false);
   const restoreTimerRef = useRef<number | null>(null);
   const autoSendFiredRef = useRef(false);
-  const [currentJobId, setCurrentJobId] = useState<string | null>(null);
+  const [currentJobId, setCurrentJobId] = useState<string | null>(
+    initialTrustedServerJobSeed?.id ??
+      (jobParam && isUuidLike(jobParam) ? jobParam : null)
+  );
   const [pendingAttentionId, setPendingAttentionId] = useState<string | null>(
     null
   );
@@ -1205,11 +1242,20 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
   const measurementFormHydratedRef = useRef<string | null>(null);
   const [jobCardTab, setJobCardTab] = useState<JobCardTabId>("overview");
   const [jobCardBoardOrigin, setJobCardBoardOrigin] = useState(false);
-  const [hydratedJobRecord, setHydratedJobRecord] = useState<JobRecord | null>(null);
+  const [hydratedJobRecord, setHydratedJobRecord] = useState<JobRecord | null>(
+    initialTrustedServerJobSeed
+  );
+  const [jobHydrateStatus, setJobHydrateStatus] = useState<
+    "idle" | "loading" | "ready" | "unavailable"
+  >(initialTrustedServerJobSeed ? "ready" : "idle");
   const [jobScheduleRows, setJobScheduleRows] = useState<JobSchedule[]>([]);
   const [jobSchedulesLoadedForJobId, setJobSchedulesLoadedForJobId] = useState<
     string | null
   >(null);
+  const [jobScheduleSettlement, setJobScheduleSettlement] =
+    useState<JobCardScheduleSettlement>(() =>
+      createIdleJobCardScheduleSettlement()
+    );
   const [companyTimezone, setCompanyTimezone] = useState<string | null>(null);
   const [companyTimezoneLoadStatus, setCompanyTimezoneLoadStatus] =
     useState<CompanyTimezoneLoadStatus>("loading");
@@ -1222,7 +1268,10 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
   const [scheduleError, setScheduleError] = useState<string | null>(null);
   const [startWorkBusy, setStartWorkBusy] = useState(false);
   const [startWorkError, setStartWorkError] = useState<string | null>(null);
+  const [completeJobBusy, setCompleteJobBusy] = useState(false);
+  const [completeJobError, setCompleteJobError] = useState<string | null>(null);
   const [scheduleActivityTick, setScheduleActivityTick] = useState(0);
+  const [scheduleHydrateRetryTick, setScheduleHydrateRetryTick] = useState(0);
   const [jobAcceptedProposalIds, setJobAcceptedProposalIds] = useState<
     Record<string, boolean>
   >({});
@@ -1244,6 +1293,9 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
   >({});
   const [listedJobSentFacts, setListedJobSentFacts] = useState<JobCardProposalSentFactsById>({});
   const listedDraftFetchInFlightRef = useRef<string | null>(null);
+  const [jobCardSecondaryEnabled, setJobCardSecondaryEnabled] = useState(false);
+  const jobCardSecondaryEffectsEnabled =
+    entryMode !== "job-card" || jobCardSecondaryEnabled;
 
   useEffect(() => {
     if (loadSavedId || isBoardOriginParam) {
@@ -1268,6 +1320,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
       setCurrentJobId(null);
       jobHydratedRef.current = null;
       setHydratedJobRecord(null);
+      setJobHydrateStatus("idle");
     }
   }, [jobParam, entryMode]);
 
@@ -1817,8 +1870,61 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
   useEffect(() => {
     if (entryMode !== "job-card") return;
 
-    const jobId = searchParams.get("job");
+    const jobId = (jobParam ?? "").trim();
     if (!jobId || !isUuidLike(jobId)) return;
+
+    const cid = (companyId ?? "").trim();
+    if (!cid) return;
+
+    const routeAllowsSeed = isCleanDbJobCardDeepLink({
+      entryMode,
+      loadSavedId,
+      isBoardOriginParam,
+      jobCardBoardOrigin,
+      jobParam,
+    });
+    const matchedSeed = routeAllowsSeed
+      ? matchingServerJobRecord(serverJobRecord, jobId, cid)
+      : null;
+
+    if (matchedSeed) {
+      if (jobHydratedRef.current !== jobId) {
+        setHydratedJobRecord(matchedSeed);
+        hydrateJobDisplayFromRecord(matchedSeed, { fillEmptyOnly: false });
+        jobHydratedRef.current = jobId;
+        setCurrentJobId(jobId);
+      }
+      setJobHydrateStatus("ready");
+      return;
+    }
+
+    if (jobHydratedRef.current && jobHydratedRef.current !== jobId) {
+      setHydratedJobRecord(null);
+      jobHydratedRef.current = null;
+      setJobHydrateStatus("loading");
+    }
+  }, [
+    entryMode,
+    jobParam,
+    companyId,
+    serverJobRecord,
+    loadSavedId,
+    isBoardOriginParam,
+    jobCardBoardOrigin,
+    hydrateJobDisplayFromRecord,
+  ]);
+
+  useEffect(() => {
+    if (entryMode !== "job-card") {
+      setJobHydrateStatus("idle");
+      return;
+    }
+
+    const jobId = searchParams.get("job");
+    if (!jobId || !isUuidLike(jobId)) {
+      setJobHydrateStatus("idle");
+      return;
+    }
 
     const cid = (companyId ?? "").trim();
     if (!cid) return;
@@ -1826,7 +1932,32 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
     if (isRestoringRef.current) return;
     if (loadSavedId && !loadAppliedRef.current) return;
 
-    if (jobHydratedRef.current === jobId) return;
+    const trustedSeed = matchingServerJobRecord(serverJobRecord, jobId, cid);
+    const skipClientCanonicalHydrate = shouldSkipClientCanonicalJobHydrate({
+      entryMode,
+      loadSavedId,
+      isBoardOriginParam,
+      jobCardBoardOrigin,
+      jobParam: jobId,
+      companyId: cid,
+      serverJobRecord,
+    });
+
+    if (skipClientCanonicalHydrate && trustedSeed) {
+      if (jobHydratedRef.current !== jobId) {
+        setHydratedJobRecord(trustedSeed);
+        hydrateJobDisplayFromRecord(trustedSeed, { fillEmptyOnly: false });
+        jobHydratedRef.current = jobId;
+        setCurrentJobId(jobId);
+      }
+      setJobHydrateStatus("ready");
+      return;
+    }
+
+    if (jobHydratedRef.current === jobId) {
+      setJobHydrateStatus("ready");
+      return;
+    }
     if (jobHydrateInFlightRef.current === jobId) return;
 
     const fillEmptyOnly =
@@ -1835,26 +1966,66 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
         (loadAppliedRef.current && Boolean(getCurrentLoadedSavedId())));
 
     jobHydrateInFlightRef.current = jobId;
+    if (!trustedSeed) {
+      setJobHydrateStatus("loading");
+    }
 
     void (async () => {
       try {
-        const job = await getJobById(jobId);
+        const sessionReady = await ensureBrowserAuthSession();
+        if (jobHydrateInFlightRef.current !== jobId) return;
+        if (!sessionReady) {
+          const seedOnTimeout = matchingServerJobRecord(serverJobRecord, jobId, cid);
+          if (seedOnTimeout) {
+            if (jobHydratedRef.current !== jobId) {
+              setHydratedJobRecord(seedOnTimeout);
+              hydrateJobDisplayFromRecord(seedOnTimeout, { fillEmptyOnly: false });
+              jobHydratedRef.current = jobId;
+              setCurrentJobId(jobId);
+            }
+            setJobHydrateStatus("ready");
+            return;
+          }
+          console.warn("[RoofingClient] job hydrate: browser session not ready", jobId);
+          setJobHydrateStatus("loading");
+          window.setTimeout(() => setRestoreTick((n) => n + 1), 1500);
+          return;
+        }
+
+        let job = await getJobById(jobId);
+        for (let attempt = 0; !job && attempt < 3; attempt += 1) {
+          await new Promise((resolve) => window.setTimeout(resolve, 250));
+          if (jobHydrateInFlightRef.current !== jobId) return;
+          job = await getJobById(jobId);
+        }
+        if (jobHydrateInFlightRef.current !== jobId) return;
         if (!job) {
           console.warn("[RoofingClient] job hydrate: job not found", jobId);
           setHydratedJobRecord(null);
+          setJobHydrateStatus("unavailable");
           return;
         }
         if (String(job.company_id || "").trim() !== cid) {
           console.warn("[RoofingClient] job hydrate: company mismatch", { jobId, companyId: cid });
           setHydratedJobRecord(null);
+          setJobHydrateStatus("unavailable");
           return;
         }
         setHydratedJobRecord(job);
         hydrateJobDisplayFromRecord(job, { fillEmptyOnly });
         jobHydratedRef.current = jobId;
         setCurrentJobId(jobId);
+        setJobHydrateStatus("ready");
       } catch (err) {
         console.warn("[RoofingClient] job hydrate error:", err);
+        const seedOnError = matchingServerJobRecord(serverJobRecord, jobId, cid);
+        if (seedOnError) {
+          setJobHydrateStatus("ready");
+          return;
+        }
+        if (jobHydrateInFlightRef.current === jobId) {
+          setJobHydrateStatus("loading");
+        }
       } finally {
         if (jobHydrateInFlightRef.current === jobId) {
           jobHydrateInFlightRef.current = null;
@@ -1865,10 +2036,68 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
     entryMode,
     searchParams,
     companyId,
+    serverJobRecord,
     loadSavedId,
     restoreTick,
     hydrateJobDisplayFromRecord,
     isJobCardBoardContext,
+    isBoardOriginParam,
+    jobCardBoardOrigin,
+  ]);
+
+  useEffect(() => {
+    if (entryMode !== "job-card") return;
+    const supabase = getSupabaseClient();
+    if (!supabase) return;
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event) => {
+      if (
+        event !== "INITIAL_SESSION" &&
+        event !== "SIGNED_IN" &&
+        event !== "TOKEN_REFRESHED"
+      ) {
+        return;
+      }
+      if (jobHydratedRef.current) return;
+      if (jobHydrateInFlightRef.current) return;
+      setRestoreTick((n) => n + 1);
+    });
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [entryMode]);
+
+  useEffect(() => {
+    if (entryMode !== "job-card") {
+      setJobCardSecondaryEnabled(true);
+      setJobScheduleSettlement(createIdleJobCardScheduleSettlement());
+      return;
+    }
+    setJobCardSecondaryEnabled(false);
+    setJobScheduleSettlement(createIdleJobCardScheduleSettlement());
+  }, [entryMode, currentJobId]);
+
+  useEffect(() => {
+    if (entryMode !== "job-card") return;
+    if (jobCardSecondaryEnabled) return;
+    if (
+      shouldEnableJobCardSecondaryEffects({
+        entryMode,
+        jobHydrateStatus,
+        currentJobId,
+        scheduleSettlement: jobScheduleSettlement,
+        secondaryEnabled: false,
+      })
+    ) {
+      setJobCardSecondaryEnabled(true);
+    }
+  }, [
+    entryMode,
+    jobHydrateStatus,
+    currentJobId,
+    jobScheduleSettlement,
+    jobCardSecondaryEnabled,
   ]);
 
   useEffect(() => {
@@ -1891,6 +2120,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
 
     if (isRestoringRef.current) return;
     if (loadSavedId && !loadAppliedRef.current) return;
+    if (!jobCardSecondaryEffectsEnabled) return;
 
     setPersistedSelectedMeasurement(null);
     measurementFormHydratedRef.current = null;
@@ -1913,7 +2143,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
         }
       }
     })();
-  }, [entryMode, currentJobId, companyId, loadSavedId, restoreTick]);
+  }, [entryMode, currentJobId, companyId, loadSavedId, restoreTick, jobCardSecondaryEffectsEnabled]);
 
   useEffect(() => {
     if (entryMode !== "job-card") {
@@ -1933,6 +2163,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
 
     if (isRestoringRef.current) return;
     if (loadSavedId && !loadAppliedRef.current) return;
+    if (!jobCardSecondaryEffectsEnabled) return;
 
     catalogFetchInFlightRef.current = cid;
 
@@ -1953,7 +2184,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
         }
       }
     })();
-  }, [entryMode, companyId, loadSavedId, restoreTick]);
+  }, [entryMode, companyId, loadSavedId, restoreTick, jobCardSecondaryEffectsEnabled]);
 
   useEffect(() => {
     if (entryMode !== "job-card") {
@@ -1980,6 +2211,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
 
     if (isRestoringRef.current) return;
     if (loadSavedId && !loadAppliedRef.current) return;
+    if (!jobCardSecondaryEffectsEnabled) return;
 
     templateSetupFetchInFlightRef.current = cid;
     setTemplateSetupLoadComplete(false);
@@ -2036,12 +2268,14 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
         }
       }
     })();
-  }, [entryMode, companyId, loadSavedId, restoreTick]);
+  }, [entryMode, companyId, loadSavedId, restoreTick, jobCardSecondaryEffectsEnabled]);
 
   useEffect(() => {
     if (entryMode !== "job-card") {
       return;
     }
+
+    if (!jobCardSecondaryEffectsEnabled) return;
 
     const cid = (companyId ?? "").trim();
     const templateId = (selectedJobTemplateId ?? "").trim();
@@ -2070,7 +2304,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
         setJobCardSelectedPackageOptionId(null);
       }
     })();
-  }, [entryMode, companyId, selectedJobTemplateId, loadSavedId, restoreTick]);
+  }, [entryMode, companyId, selectedJobTemplateId, loadSavedId, restoreTick, jobCardSecondaryEffectsEnabled]);
 
   useEffect(() => {
     if (entryMode !== "job-card") {
@@ -2090,6 +2324,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
 
     if (isRestoringRef.current) return;
     if (loadSavedId && !loadAppliedRef.current) return;
+    if (!jobCardSecondaryEffectsEnabled) return;
 
     pricingPolicyFetchInFlightRef.current = cid;
     setPricingPolicyLoadComplete(false);
@@ -2110,7 +2345,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
         }
       }
     })();
-  }, [entryMode, companyId, loadSavedId, restoreTick]);
+  }, [entryMode, companyId, loadSavedId, restoreTick, jobCardSecondaryEffectsEnabled]);
 
   useEffect(() => {
     if (entryMode !== "job-card") {
@@ -2142,6 +2377,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
 
     if (isRestoringRef.current) return;
     if (loadSavedId && !loadAppliedRef.current) return;
+    if (!jobCardSecondaryEffectsEnabled) return;
 
     const fetchKey = `${cid}:${jid}`;
     listedDraftFetchInFlightRef.current = fetchKey;
@@ -2211,6 +2447,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
     loadSavedId,
     restoreTick,
     hydratedJobRecord?.active_proposal_id,
+    jobCardSecondaryEffectsEnabled,
   ]);
 
   const buildJobCardCustomerAddressLine = useCallback((): string => {
@@ -2246,6 +2483,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
     if (!parsed || parsed.job_id !== jobId) return;
     setJobScheduleRows((prev) => upsertJobScheduleRow(prev, parsed));
     setJobSchedulesLoadedForJobId(jobId);
+    setJobScheduleSettlement(settleJobCardScheduleSuccess(jobId));
   }, []);
 
   const refreshHydratedJobRecord = useCallback(async (jobId: string) => {
@@ -2263,6 +2501,7 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
       setJobSignedProposalIds({});
       return;
     }
+    if (!jobCardSecondaryEffectsEnabled) return;
     let cancelled = false;
     void Promise.all([
       listJobProposalAcceptances(currentJobId),
@@ -2285,48 +2524,106 @@ export default function RoofingClient({ companyId }: { companyId?: string }) {
     return () => {
       cancelled = true;
     };
-  }, [entryMode, currentJobId]);
+  }, [entryMode, currentJobId, jobCardSecondaryEffectsEnabled]);
 
   useEffect(() => {
-    if (entryMode !== "job-card" || !currentJobId || !isUuidLike(currentJobId)) {
-      setJobScheduleRows([]);
-      setJobSchedulesLoadedForJobId(null);
+    if (entryMode !== "job-card") {
       return;
     }
     let cancelled = false;
-    setJobSchedulesLoadedForJobId((current) =>
-      current === currentJobId ? current : null
-    );
     setCompanyTimezoneLoadStatus("loading");
-    void Promise.all([
-      fetch(`/api/jobs/schedules?jobId=${encodeURIComponent(currentJobId)}`, {
-        cache: "no-store",
-      }).then((res) => res.json()),
-      fetch("/api/company/timezone", { cache: "no-store" }).then(async (res) => {
+    void fetch("/api/company/timezone", { cache: "no-store" })
+      .then(async (res) => {
         const json = await res.json().catch(() => null);
-        return parseCompanyTimezoneGetResult(res.ok, json);
-      }),
-    ])
-      .then(([schedulesJson, tzParsed]) => {
         if (cancelled) return;
+        const tzParsed = parseCompanyTimezoneGetResult(res.ok, json);
         if (tzParsed.status === "error") {
           setCompanyTimezoneLoadStatus("error");
         } else {
           setCompanyTimezoneLoadStatus("ready");
           setCompanyTimezone(tzParsed.timezone);
         }
-        if (schedulesJson?.ok !== true) return;
-        setJobScheduleRows(parseJobScheduleList(schedulesJson.schedules));
-        setJobSchedulesLoadedForJobId(currentJobId);
       })
       .catch(() => {
-        if (cancelled) return;
-        setCompanyTimezoneLoadStatus("error");
+        if (!cancelled) setCompanyTimezoneLoadStatus("error");
       });
     return () => {
       cancelled = true;
     };
-  }, [entryMode, currentJobId, scheduleActivityTick]);
+  }, [entryMode]);
+
+  useEffect(() => {
+    if (entryMode !== "job-card" || !currentJobId || !isUuidLike(currentJobId)) {
+      setJobScheduleRows([]);
+      setJobSchedulesLoadedForJobId(null);
+      setJobScheduleSettlement(createIdleJobCardScheduleSettlement());
+      return;
+    }
+    let cancelled = false;
+    setJobSchedulesLoadedForJobId((current) =>
+      current === currentJobId ? current : null
+    );
+    setJobScheduleSettlement((prev) =>
+      preserveOrBeginJobCardScheduleSettlement(prev, currentJobId)
+    );
+
+    const settleScheduleError = () => {
+      setJobScheduleRows([]);
+      // Truthful unavailable load for this Job — Complete still needs planned work.
+      setJobSchedulesLoadedForJobId(currentJobId);
+      setJobScheduleSettlement(settleJobCardScheduleError(currentJobId));
+    };
+
+    const loadSchedules = async (attempt = 0): Promise<void> => {
+      try {
+        const res = await fetch(
+          `/api/jobs/schedules?jobId=${encodeURIComponent(currentJobId)}`,
+          { cache: "no-store", credentials: "same-origin" }
+        );
+        const schedulesJson = await res.json().catch(() => null);
+        if (cancelled) return;
+        const schedules = parseJobCardSchedulesApiPayload(schedulesJson);
+        if (schedules) {
+          setJobScheduleRows(schedules);
+          setJobSchedulesLoadedForJobId(currentJobId);
+          setJobScheduleSettlement(settleJobCardScheduleSuccess(currentJobId));
+          return;
+        }
+        if (
+          shouldRetryJobCardScheduleFetch(res.ok, schedulesJson, attempt)
+        ) {
+          await new Promise((resolve) =>
+            window.setTimeout(resolve, 400 * (attempt + 1))
+          );
+          if (!cancelled) return loadSchedules(attempt + 1);
+          return;
+        }
+        settleScheduleError();
+        if (!cancelled) {
+          window.setTimeout(() => setScheduleHydrateRetryTick((n) => n + 1), 2000);
+        }
+        return;
+      } catch {
+        if (cancelled) return;
+        if (attempt < 4) {
+          await new Promise((resolve) =>
+            window.setTimeout(resolve, 400 * (attempt + 1))
+          );
+          if (!cancelled) return loadSchedules(attempt + 1);
+          return;
+        }
+        settleScheduleError();
+        if (!cancelled) {
+          window.setTimeout(() => setScheduleHydrateRetryTick((n) => n + 1), 2000);
+        }
+      }
+    };
+
+    void loadSchedules();
+    return () => {
+      cancelled = true;
+    };
+  }, [entryMode, currentJobId, scheduleActivityTick, scheduleHydrateRetryTick]);
 
   useEffect(() => {
     const tzReady = companyTimezoneForScheduling(
@@ -3696,6 +3993,7 @@ Thanks,`;
     const margin = 40;
     const contentW = pageW - margin * 2;
 
+    const { PDFDocument, StandardFonts, rgb } = await import("pdf-lib");
     const pdfDoc = await PDFDocument.create();
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
@@ -8157,7 +8455,13 @@ Thanks,`;
         roofAreaSqFt: Number(area || 0),
         canonicalStageLabel: hydratedJobRecord
           ? resolveCanonicalJobStageLabel(hydratedJobRecord)
-          : "Intake",
+          : jobParam &&
+              isUuidLike(jobParam) &&
+              jobHydrateStatus !== "unavailable"
+            ? "Loading"
+            : jobHydrateStatus === "unavailable"
+              ? "Unavailable"
+              : "Intake",
         dispositionLabel:
           hydratedJobRecord &&
           hydratedJobRecord.status !== "active" &&
@@ -8309,11 +8613,55 @@ Thanks,`;
       }
     };
 
+    const completeCurrentJobWork = async () => {
+      if (!currentJobId || completeJobBusy) return;
+      setCompleteJobBusy(true);
+      setCompleteJobError(null);
+      try {
+        const response = await fetch("/api/jobs/complete-work", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ jobId: currentJobId }),
+        });
+        const result = await response.json().catch(() => null);
+        if (!response.ok || result?.ok !== true) {
+          const code = String(result?.code ?? "internal_error");
+          const message =
+            code === "disposition_blocks_complete"
+              ? "This Job must be Active before it can be completed."
+              : code === "complete_work_schedule_integrity_error"
+                ? "This Job cannot be completed because the planned schedule is inconsistent."
+                : code === "illegal_stage"
+                  ? "This Job is no longer in Production."
+                  : "This Job could not be completed. Refresh and try again.";
+          setCompleteJobError(message);
+          await refreshHydratedJobRecord(currentJobId);
+          return;
+        }
+        await refreshHydratedJobRecord(currentJobId);
+        applyReturnedSchedule(result?.schedule, currentJobId);
+        setScheduleActivityTick((value) => value + 1);
+      } catch {
+        setCompleteJobError(
+          "Could not confirm whether the Job was completed. Refreshing current Job status."
+        );
+        await refreshHydratedJobRecord(currentJobId);
+        setScheduleActivityTick((value) => value + 1);
+      } finally {
+        setCompleteJobBusy(false);
+      }
+    };
+
     return (
       <>
       <div className="min-h-0 min-w-0 w-full overflow-x-hidden pb-8 pt-1 pl-3 pr-4 sm:pl-4 sm:pr-5 lg:pl-5 lg:pr-6">
         <div className="w-full min-w-0 max-w-[100rem]">
-          <div className="min-w-0 overflow-x-hidden rounded-lg border border-slate-200/80 bg-white shadow-[0_1px_3px_rgba(15,23,42,0.06)]">
+          <div
+            className="min-w-0 overflow-x-hidden rounded-lg border border-slate-200/80 bg-white shadow-[0_1px_3px_rgba(15,23,42,0.06)]"
+            data-jobcard-secondary-ready={
+              jobCardSecondaryEffectsEnabled ? "true" : "false"
+            }
+          >
             <JobCardHeader
               display={jobCardDisplay}
               isBoardOrigin={isBoardOrigin}
@@ -8375,15 +8723,24 @@ Thanks,`;
                   productionStartedAt={
                     hydratedJobRecord?.production_started_at ?? null
                   }
+                  completedAt={hydratedJobRecord?.completed_at ?? null}
                   displayTimezone={companyTimezone}
                   depositNotReceived={
                     jobPayments.view?.headline?.startsWith("Deposit due") === true
                   }
                   startBusy={startWorkBusy}
                   startError={startWorkError}
+                  completeBusy={completeJobBusy}
+                  completeError={completeJobError}
                   onStartWork={
                     canonicalJobStage === "scheduled"
                       ? startCurrentJobWork
+                      : undefined
+                  }
+                  onCompleteJob={
+                    canonicalJobStage === "production" &&
+                    (hydratedJobRecord?.status ?? "active") === "active"
+                      ? completeCurrentJobWork
                       : undefined
                   }
                   onSchedule={() => {
@@ -9092,6 +9449,7 @@ Thanks,`;
                   jobCreatedAt={hydratedJobRecord?.created_at ?? null}
                   proposals={listedJobDraftSummaries}
                   sentFactsByProposalId={listedJobSentFacts}
+                  secondaryEffectsEnabled={jobCardSecondaryEffectsEnabled}
                 />
               ) : (
                 <JobCardActivityPanel items={jobCardActivityItems} />

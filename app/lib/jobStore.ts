@@ -7,7 +7,12 @@
  * Stage 3D1: foundation only — not wired from RoofingClient or SavedClient yet.
  */
 
-import { getSupabaseClient } from "@/app/lib/supabaseClient";
+import {
+  ensureBrowserAuthSession,
+  getSupabaseClient,
+} from "@/app/lib/supabaseClient";
+import { isUuidLike } from "@/app/lib/uuid";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
   JobAddress,
   JobCardStatus,
@@ -61,6 +66,7 @@ export type JobRow = {
   updated_at: string;
   stage_entered_at?: string | null;
   production_started_at?: string | null;
+  completed_at?: string | null;
 };
 
 /** Minimal estimate shape for lazy job linking — avoids estimateStore import. */
@@ -87,7 +93,7 @@ export type EstimateSnapshotForJob = {
 };
 
 const JOB_SELECT_COLUMNS =
-  "id, company_id, customer_id, job_name, stage, status, source, priority, customer_name, customer_email, customer_phone, address_line1, address_line2, address_city, address_state, address_zip, address_country, address_formatted, assigned_to, created_by, updated_by, notes, summary, last_activity_at, stage_entered_at, production_started_at, archived, deleted_at, selected_measurement_id, active_proposal_id, latest_estimate_id, latest_proposal_id, source_metadata, custom_fields, created_at, updated_at";
+  "id, company_id, customer_id, job_name, stage, status, source, priority, customer_name, customer_email, customer_phone, address_line1, address_line2, address_city, address_state, address_zip, address_country, address_formatted, assigned_to, created_by, updated_by, notes, summary, last_activity_at, stage_entered_at, production_started_at, completed_at, archived, deleted_at, selected_measurement_id, active_proposal_id, latest_estimate_id, latest_proposal_id, source_metadata, custom_fields, created_at, updated_at";
 
 // ---------------------------------------------------------------------------
 // Pure helpers
@@ -99,11 +105,7 @@ export function normalizeNullableString(value: unknown): string | null {
   return s.length > 0 ? s : null;
 }
 
-export function isUuidLike(value: unknown): boolean {
-  if (typeof value !== "string") return false;
-  const s = value.trim();
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(s);
-}
+export { isUuidLike } from "@/app/lib/uuid";
 
 export function buildFormattedAddress(address?: JobAddress | null): string | null {
   if (!address) return null;
@@ -180,6 +182,7 @@ export function rowToJobRecord(row: JobRow): JobRecord {
     last_activity_at: row.last_activity_at ?? null,
     stage_entered_at: row.stage_entered_at ?? null,
     production_started_at: row.production_started_at ?? null,
+    completed_at: row.completed_at ?? null,
     created_at: row.created_at,
     updated_at: row.updated_at,
     archived: row.archived ?? false,
@@ -216,6 +219,7 @@ export function rowToJobSummary(row: JobRow): JobSummary {
     last_activity_at: record.last_activity_at ?? null,
     stage_entered_at: record.stage_entered_at ?? null,
     production_started_at: record.production_started_at ?? null,
+    completed_at: record.completed_at ?? null,
     created_at: record.created_at,
     updated_at: record.updated_at,
   };
@@ -394,6 +398,11 @@ export async function getJobById(jobId: string): Promise<JobRecord | null> {
     console.error("[jobStore] getJobById: Supabase client unavailable");
     return null;
   }
+  const sessionReady = await ensureBrowserAuthSession();
+  if (!sessionReady) {
+    console.error("[jobStore] getJobById: browser auth session not ready");
+    return null;
+  }
   const id = String(jobId || "").trim();
   if (!isUuidLike(id)) {
     console.error("[jobStore] getJobById: invalid job id");
@@ -445,6 +454,7 @@ export async function updateJob(
   delete (row as { status?: string }).status;
   delete (row as { stage_entered_at?: string | null }).stage_entered_at;
   delete (row as { production_started_at?: string | null }).production_started_at;
+  delete (row as { completed_at?: string | null }).completed_at;
 
   if (Object.keys(row).length === 0) {
     return getJobById(id);
@@ -625,6 +635,11 @@ export async function getJobsByCompany(companyId: string): Promise<JobSummary[]>
     console.error("[jobStore] getJobsByCompany: company_id is required");
     return [];
   }
+  const sessionReady = await ensureBrowserAuthSession();
+  if (!sessionReady) {
+    console.error("[jobStore] getJobsByCompany: browser auth session not ready");
+    return [];
+  }
 
   try {
     const { data, error } = await supabase
@@ -644,5 +659,37 @@ export async function getJobsByCompany(companyId: string): Promise<JobSummary[]>
   } catch (err) {
     console.error("[jobStore] getJobsByCompany error:", err);
     return [];
+  }
+}
+
+/** Server-side job lookup for authenticated deep links (RLS + company guard). */
+export async function getJobRecordForCompany(
+  supabase: SupabaseClient,
+  jobId: string,
+  companyId: string
+): Promise<JobRecord | null> {
+  const id = String(jobId || "").trim();
+  const cid = String(companyId || "").trim();
+  if (!isUuidLike(id) || !isUuidLike(cid)) return null;
+
+  try {
+    const { data, error } = await supabase
+      .from("jobs")
+      .select(JOB_SELECT_COLUMNS)
+      .eq("id", id)
+      .maybeSingle();
+
+    if (error) {
+      console.error("[jobStore] getJobRecordForCompany failed:", error.message, {
+        jobId: id,
+      });
+      return null;
+    }
+    if (!data) return null;
+    if (String(data.company_id || "").trim() !== cid) return null;
+    return rowToJobRecord(data as JobRow);
+  } catch (err) {
+    console.error("[jobStore] getJobRecordForCompany error:", err);
+    return null;
   }
 }

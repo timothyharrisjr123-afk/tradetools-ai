@@ -196,7 +196,8 @@ export function buildRecordJobActivityPayload(
     eventType === "job_scheduled" ||
     eventType === "job_rescheduled" ||
     eventType === "job_unscheduled" ||
-    eventType === "job_work_started"
+    eventType === "job_work_started" ||
+    eventType === "job_work_completed"
   ) {
     throw new JobLifecyclePersistenceError(
       `Job activity event type is reserved for lifecycle writers: ${eventType}`

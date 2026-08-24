@@ -2,7 +2,7 @@
  * Guarded schedule RPC persistence. No raw job_schedules writes from the client.
  */
 
-import { isUuidLike } from "@/app/lib/jobStore";
+import { isUuidLike } from "@/app/lib/uuid";
 import {
   parseJobScheduleRow,
   validateScheduleWriteInput,

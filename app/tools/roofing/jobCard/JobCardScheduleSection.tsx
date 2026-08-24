@@ -1,5 +1,6 @@
 "use client";
 
+import { formatJobCompletedAt } from "@/app/lib/jobCompleteTypes";
 import { formatProductionStartedAt } from "@/app/lib/jobProductionTypes";
 import { formatScheduleWindowLabel } from "@/app/lib/jobScheduleMapper";
 import {
@@ -13,12 +14,16 @@ type JobCardScheduleSectionProps = {
   stage: CanonicalJobStage;
   schedule: JobSchedule | null;
   productionStartedAt?: string | null;
+  completedAt?: string | null;
   displayTimezone?: string | null;
   depositNotReceived?: boolean;
   startBusy?: boolean;
   startError?: string | null;
+  completeBusy?: boolean;
+  completeError?: string | null;
   scheduleReady?: boolean;
   onStartWork?: () => void;
+  onCompleteJob?: () => void;
   onSchedule: () => void;
   onReschedule: () => void;
   onUnschedule: () => void;
@@ -29,26 +34,36 @@ export default function JobCardScheduleSection({
   stage,
   schedule,
   productionStartedAt,
+  completedAt,
   displayTimezone,
   depositNotReceived = false,
   startBusy = false,
   startError = null,
+  completeBusy = false,
+  completeError = null,
   scheduleReady = true,
   onStartWork,
+  onCompleteJob,
   onSchedule,
   onReschedule,
   onUnschedule,
 }: JobCardScheduleSectionProps) {
-  const active = schedule?.status === "scheduled" ? schedule : null;
+  const planned =
+    schedule?.kind === "work" && schedule.status === "scheduled"
+      ? schedule
+      : null;
   const isProduction = stage === "production";
-  const hasActualStart = isProduction || stage === "complete";
-  const isReadOnly = isProduction || stage === "complete";
-  const canStart = stage === "scheduled" && Boolean(active) && Boolean(onStartWork);
-  const showNotScheduled = scheduleReady && !active && !hasActualStart;
-  const startedLabel = formatProductionStartedAt(
-    productionStartedAt,
-    active?.timezone ?? displayTimezone
-  );
+  const isComplete = stage === "complete";
+  const hasActualStart = isProduction || isComplete;
+  const isReadOnly = isProduction || isComplete;
+  const canStart =
+    stage === "scheduled" && Boolean(planned) && Boolean(onStartWork);
+  const canComplete =
+    isProduction && Boolean(planned) && Boolean(onCompleteJob);
+  const showNotScheduled = scheduleReady && !planned && !hasActualStart;
+  const timezone = planned?.timezone ?? displayTimezone;
+  const startedLabel = formatProductionStartedAt(productionStartedAt, timezone);
+  const completedLabel = formatJobCompletedAt(completedAt, timezone);
 
   return (
     <div
@@ -62,7 +77,7 @@ export default function JobCardScheduleSection({
           <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
             {isProduction
               ? "Production"
-              : stage === "complete"
+              : isComplete
                 ? "Work history"
                 : "Schedule"}
           </h3>
@@ -74,16 +89,29 @@ export default function JobCardScheduleSection({
               <p className="text-xs text-slate-600">
                 {startedLabel ?? "Start time unavailable"}
               </p>
-              {active ? (
+              {isComplete ? (
+                <>
+                  <p
+                    className="mt-1.5 text-sm font-semibold text-slate-900"
+                    data-jobcard-work-completed
+                  >
+                    Work completed
+                  </p>
+                  <p className="text-xs text-slate-600">
+                    {completedLabel ?? "Completion time unavailable"}
+                  </p>
+                </>
+              ) : null}
+              {planned ? (
                 <p className="mt-1.5 text-xs text-slate-500">
-                  Planned schedule · {formatScheduleWindowLabel(active)}
+                  Planned schedule · {formatScheduleWindowLabel(planned)}
                 </p>
               ) : null}
             </>
           ) : (
             <p className="mt-1 text-sm font-medium text-slate-800">
-              {active
-                ? formatScheduleWindowLabel(active)
+              {planned
+                ? formatScheduleWindowLabel(planned)
                 : showNotScheduled
                   ? "Not scheduled"
                   : "Loading schedule"}
@@ -102,7 +130,18 @@ export default function JobCardScheduleSection({
               {startBusy ? "Starting…" : "Start work"}
             </button>
           ) : null}
-          {active && !isReadOnly ? (
+          {canComplete ? (
+            <button
+              type="button"
+              onClick={onCompleteJob}
+              disabled={completeBusy}
+              className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+              data-jobcard-complete-job
+            >
+              {completeBusy ? "Completing…" : "Complete job"}
+            </button>
+          ) : null}
+          {planned && !isReadOnly ? (
             <>
               <button
                 type="button"
@@ -119,7 +158,7 @@ export default function JobCardScheduleSection({
                 Unschedule
               </button>
             </>
-          ) : !active && canSchedule && !isReadOnly ? (
+          ) : !planned && canSchedule && !isReadOnly ? (
             <button
               type="button"
               onClick={onSchedule}
@@ -137,6 +176,11 @@ export default function JobCardScheduleSection({
       {startError ? (
         <p className="mt-2 text-xs text-red-600" role="alert">
           {startError}
+        </p>
+      ) : null}
+      {completeError ? (
+        <p className="mt-2 text-xs text-red-600" role="alert">
+          {completeError}
         </p>
       ) : null}
     </div>

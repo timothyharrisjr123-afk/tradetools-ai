@@ -72,6 +72,7 @@ import {
 } from "@/app/lib/jobBoardAdapter";
 import { getJobsByCompany } from "@/app/lib/jobStore";
 import type { JobSummary } from "@/app/lib/jobTypes";
+import { formatJobCompletedAt } from "@/app/lib/jobCompleteTypes";
 import { formatProductionStartedAt } from "@/app/lib/jobProductionTypes";
 import {
   companyTimezoneForScheduling,
@@ -563,6 +564,29 @@ async function fetchPaymentState(estimateId: string) {
   if (!res.ok) return null;
   const data = await res.json().catch(() => null);
   return data?.payment ?? null;
+}
+
+type BoardPaymentStatusRow = {
+  status?: string;
+  depositAmountCents?: number;
+  fullAmountCents?: number;
+  offlinePaidCents?: number;
+  offlineTransactions?: Array<{ stage?: string; amountCents?: number }>;
+};
+
+async function fetchPaymentStatesBatch(estimateIds: string[]) {
+  const ids = estimateIds.map((id) => String(id ?? "").trim()).filter(Boolean);
+  if (ids.length === 0) return {} as Record<string, BoardPaymentStatusRow | null>;
+  const res = await fetch(
+    `/api/payments/status-batch?estimateIds=${encodeURIComponent(ids.join(","))}`,
+    { cache: "no-store" }
+  );
+  if (!res.ok) return {} as Record<string, BoardPaymentStatusRow | null>;
+  const data = await res.json().catch(() => null);
+  if (!data?.ok || !data?.payments || typeof data.payments !== "object") {
+    return {} as Record<string, BoardPaymentStatusRow | null>;
+  }
+  return data.payments as Record<string, BoardPaymentStatusRow | null>;
 }
 
 async function startCheckout(
@@ -2835,6 +2859,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
   const [r3fScheduleBusy, setR3fScheduleBusy] = useState(false);
   const [r3fScheduleError, setR3fScheduleError] = useState<string | null>(null);
   const [r3gStartingJobId, setR3gStartingJobId] = useState<string | null>(null);
+  const [r3hCompletingJobId, setR3hCompletingJobId] = useState<string | null>(null);
 
   const [flashId, setFlashId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -3430,6 +3455,14 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
       return;
     }
 
+    if (statusTyped === "paid") {
+      if (est && isDbBoardJobEntry(est)) {
+        setToast("Complete job is available from canonical Jobs.");
+        setTimeout(() => setToast(null), 2500);
+        return;
+      }
+    }
+
     if (statusTyped === "scheduled") {
       if (est && isDbBoardJobEntry(est)) {
         const dbJobId = getDbJobIdFromBoardEntry(est);
@@ -3583,16 +3616,35 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
   useEffect(() => {
     if (!hydrated || !companyId) return;
     let cancelled = false;
+    void fetch("/api/jobs/schedules?active=1", { cache: "no-store" })
+      .then((res) => res.json())
+      .then((schedulesJson) => {
+        if (cancelled) return;
+        const rows = Array.isArray(schedulesJson?.schedules) ? schedulesJson.schedules : [];
+        const next: Record<string, JobSchedule> = {};
+        for (const row of rows) {
+          if (row?.job_id) next[row.job_id] = row;
+        }
+        setR3fSchedulesByJobId(next);
+      })
+      .catch(() => {
+        // schedules failure must not block timezone/candidates truth
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [hydrated, companyId, dbJobsLoaded]);
+
+  useEffect(() => {
+    if (!hydrated || !companyId) return;
+    let cancelled = false;
     setR3fTimezoneLoadStatus("loading");
-    void Promise.all([
-      fetch("/api/jobs/schedules?active=1", { cache: "no-store" }).then((res) => res.json()),
-      fetch("/api/company/timezone", { cache: "no-store" }).then(async (res) => {
+    void fetch("/api/company/timezone", { cache: "no-store" })
+      .then(async (res) => {
         const json = await res.json().catch(() => null);
         return parseCompanyTimezoneGetResult(res.ok, json);
-      }),
-      fetch("/api/jobs/schedules?candidates=1", { cache: "no-store" }).then((res) => res.json()),
-    ])
-      .then(([schedulesJson, tzParsed, candidatesJson]) => {
+      })
+      .then((tzParsed) => {
         if (cancelled) return;
         if (tzParsed.status === "error") {
           setR3fTimezoneLoadStatus("error");
@@ -3600,11 +3652,22 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
           setR3fTimezoneLoadStatus("ready");
           setR3fTimezone(tzParsed.timezone);
         }
-        const rows = Array.isArray(schedulesJson?.schedules) ? schedulesJson.schedules : [];
-        const next: Record<string, JobSchedule> = {};
-        for (const row of rows) {
-          if (row?.job_id) next[row.job_id] = row;
-        }
+      })
+      .catch(() => {
+        if (!cancelled) setR3fTimezoneLoadStatus("error");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [hydrated, companyId, dbJobsLoaded]);
+
+  useEffect(() => {
+    if (!hydrated || !companyId) return;
+    let cancelled = false;
+    void fetch("/api/jobs/schedules?candidates=1", { cache: "no-store" })
+      .then((res) => res.json())
+      .then((candidatesJson) => {
+        if (cancelled) return;
         const due: Record<string, boolean> = {};
         const candidates: ScheduleCandidateJob[] = Array.isArray(
           candidatesJson?.candidates
@@ -3614,12 +3677,10 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
         for (const candidate of candidates) {
           due[candidate.jobId] = candidate.depositDue === true;
         }
-        setR3fSchedulesByJobId(next);
         setR3fDepositDueByJobId(due);
       })
       .catch(() => {
-        if (cancelled) return;
-        setR3fTimezoneLoadStatus("error");
+        // candidate failure must not block schedules/timezone truth
       });
     return () => {
       cancelled = true;
@@ -3830,12 +3891,25 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
     async function syncPaymentStatuses() {
       let didMutate = false;
       const candidates = estimates.filter((e) => e?.status !== "paid");
+      const batchIds: string[] = [];
       for (const est of estimates) {
         if (est?.supabaseBacked !== true) continue;
         const id = String(est?.id ?? "").trim();
         if (!id) continue;
         if (!shouldFetchPaymentStatus(id)) continue;
-        const payment = await fetchPaymentState(id);
+        batchIds.push(id);
+      }
+
+      const batchPayments =
+        batchIds.length > 0 ? await fetchPaymentStatesBatch(batchIds) : {};
+
+      for (const est of estimates) {
+        if (est?.supabaseBacked !== true) continue;
+        const id = String(est?.id ?? "").trim();
+        if (!id) continue;
+        const payment = batchIds.includes(id)
+          ? (batchPayments[id] ?? null)
+          : null;
         if (cancelled) return;
         if (payment) {
           setPaymentStates((prev) => ({
@@ -3843,8 +3917,8 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
             [id]: {
               depositAmountCents: payment.depositAmountCents ?? undefined,
               fullAmountCents: payment.fullAmountCents ?? undefined,
-              offlinePaidCents: (payment as { offlinePaidCents?: number }).offlinePaidCents ?? undefined,
-              offlineTransactions: (payment as { offlineTransactions?: Array<{ stage?: string; amountCents?: number }> }).offlineTransactions ?? undefined,
+              offlinePaidCents: payment.offlinePaidCents ?? undefined,
+              offlineTransactions: payment.offlineTransactions ?? undefined,
             },
           }));
         }
@@ -3896,28 +3970,29 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
     async function preload() {
       const ids = (estimates || []).filter((e) => e?.supabaseBacked === true).map((e) => e?.id).filter(Boolean) as string[];
       const missing = ids.filter((id) => !paymentStates?.[id]);
+      const fetchIds = missing.filter((id) => shouldFetchPaymentStatus(id));
+      if (fetchIds.length === 0) return;
 
-      await Promise.all(
-        missing.map(async (id) => {
-          try {
-            if (!shouldFetchPaymentStatus(id)) return;
-            const ps = await fetchPaymentState(id);
-            if (!cancelled && ps) {
-              setPaymentStates((prev) => ({
-                ...(prev || {}),
-                [id]: {
-                  depositAmountCents: ps.depositAmountCents ?? undefined,
-                  fullAmountCents: ps.fullAmountCents ?? undefined,
-                  offlinePaidCents: (ps as { offlinePaidCents?: number }).offlinePaidCents ?? undefined,
-                  offlineTransactions: (ps as { offlineTransactions?: Array<{ stage?: string; amountCents?: number }> }).offlineTransactions ?? undefined,
-                },
-              }));
-            }
-          } catch {
-            // ignore - badge fallback will cover it
+      try {
+        const batchPayments = await fetchPaymentStatesBatch(fetchIds);
+        if (cancelled) return;
+        setPaymentStates((prev) => {
+          const next = { ...(prev || {}) };
+          for (const id of fetchIds) {
+            const ps = batchPayments[id];
+            if (!ps) continue;
+            next[id] = {
+              depositAmountCents: (ps as BoardPaymentStatusRow).depositAmountCents ?? undefined,
+              fullAmountCents: (ps as BoardPaymentStatusRow).fullAmountCents ?? undefined,
+              offlinePaidCents: (ps as BoardPaymentStatusRow).offlinePaidCents ?? undefined,
+              offlineTransactions: (ps as BoardPaymentStatusRow).offlineTransactions ?? undefined,
+            };
           }
-        })
-      );
+          return next;
+        });
+      } catch {
+        // ignore - badge fallback will cover it
+      }
     }
 
     preload();
@@ -4102,6 +4177,44 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
     [companyId, r3gStartingJobId]
   );
 
+  const completeBoardJobWork = useCallback(
+    async (job: RoofingEstimate) => {
+      const jobId = getDbJobIdFromBoardEntry(job);
+      if (!jobId || r3hCompletingJobId) return;
+      setR3hCompletingJobId(jobId);
+      try {
+        const response = await fetch("/api/jobs/complete-work", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ jobId }),
+        });
+        const result = await response.json().catch(() => null);
+        if (!response.ok || result?.ok !== true) {
+          const code = String(result?.code ?? "internal_error");
+          setToast(
+            code === "disposition_blocks_complete"
+              ? "This Job must be Active before it can be completed."
+              : code === "complete_work_schedule_integrity_error"
+                ? "This Job cannot be completed because the planned schedule is inconsistent."
+                : "This Job could not be completed. Refresh and try again."
+          );
+        } else {
+          setToast("Work completed.");
+        }
+      } catch {
+        setToast(
+          "Could not confirm whether the Job was completed. Refreshing current Job status."
+        );
+      } finally {
+        if (companyId) {
+          await getJobsByCompany(companyId).then(setDbJobs).catch(() => undefined);
+        }
+        setR3hCompletingJobId(null);
+      }
+    },
+    [companyId, r3hCompletingJobId]
+  );
+
   const buildBoardCardModel = useCallback(
     (job: RoofingEstimate, columnKey: BoardColumnKey) => {
       const jobId = getDbJobIdFromBoardEntry(job);
@@ -4111,22 +4224,42 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
         sourceBadge: isLegacyBoardEstimateEntry(job) ? "Legacy" : null,
         attention: jobId ? attentionByJobId[jobId] ?? null : null,
         scheduleLabel: schedule
-          ? columnKey === "in_progress"
+          ? columnKey === "in_progress" || columnKey === "paid"
             ? `Planned · ${formatScheduleBoardMeta(schedule)}`
             : formatScheduleBoardMeta(schedule)
           : null,
         productionStartedLabel:
-          columnKey === "in_progress"
+          columnKey === "in_progress" || columnKey === "paid"
             ? formatProductionStartedAt(
                 (job as { productionStartedAt?: string | null })
                   .productionStartedAt,
                 schedule?.timezone ?? r3fTimezone
               )
             : null,
+        completedAtLabel:
+          columnKey === "paid"
+            ? formatJobCompletedAt(
+                (job as { completedAt?: string | null }).completedAt,
+                schedule?.timezone ?? r3fTimezone
+              )
+            : null,
         showScheduleAction: columnKey === "approved" && !schedule && Boolean(jobId),
         showStartWorkAction:
-          columnKey === "scheduled" && Boolean(schedule) && Boolean(jobId),
+          columnKey === "scheduled" &&
+          Boolean(schedule) &&
+          Boolean(jobId) &&
+          String(
+            (job as { jobDisposition?: string | null }).jobDisposition ?? "active"
+          ) === "active",
+        showCompleteJobAction:
+          columnKey === "in_progress" &&
+          Boolean(schedule) &&
+          Boolean(jobId) &&
+          String(
+            (job as { jobDisposition?: string | null }).jobDisposition ?? "active"
+          ) === "active",
         startWorkBusy: Boolean(jobId && r3gStartingJobId === jobId),
+        completeJobBusy: Boolean(jobId && r3hCompletingJobId === jobId),
       };
     },
     [
@@ -4135,6 +4268,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
       r3fSchedulesByJobId,
       r3fTimezone,
       r3gStartingJobId,
+      r3hCompletingJobId,
     ]
   );
 
@@ -4427,6 +4561,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                     buildCardModel={buildBoardCardModel}
                     onOpenJob={(job) => handleAction(job, "load")}
                     onStartWork={startBoardJobWork}
+                    onCompleteJob={completeBoardJobWork}
                   />
                 ) : (
                   <div className="overflow-x-auto rounded-xl border border-slate-200/80 bg-white pb-2 shadow-sm [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-200/60 [&::-webkit-scrollbar-track]:bg-transparent">
@@ -4467,6 +4602,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                                     });
                                   }}
                                   onStartWork={startBoardJobWork}
+                                  onCompleteJob={completeBoardJobWork}
                                   onOpenLane={() => setStatusFilter(column.listFilter)}
                                   filterActive={boardFilterZeroMatch}
                                   columnTotalLabel={

@@ -12,6 +12,7 @@ type JobsBoardColumnProps = {
   onOpenJob: (job: RoofingEstimate) => void;
   onScheduleJob?: (job: RoofingEstimate) => void;
   onStartWork?: (job: RoofingEstimate) => void;
+  onCompleteJob?: (job: RoofingEstimate) => void;
   onOpenLane: () => void;
   filterActive?: boolean;
   columnTotalLabel?: string | null;
@@ -25,6 +26,7 @@ export default function JobsBoardColumn({
   onOpenJob,
   onScheduleJob,
   onStartWork,
+  onCompleteJob,
   onOpenLane,
   filterActive = false,
   columnTotalLabel,
@@ -82,6 +84,7 @@ export default function JobsBoardColumn({
                 onOpen={() => onOpenJob(job)}
                 onScheduleJob={onScheduleJob ? () => onScheduleJob(job) : undefined}
                 onStartWork={onStartWork ? () => onStartWork(job) : undefined}
+                onCompleteJob={onCompleteJob ? () => onCompleteJob(job) : undefined}
               />
             ))}
           </div>

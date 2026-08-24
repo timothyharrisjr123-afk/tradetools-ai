@@ -1,9 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserCompanyId } from "@/app/lib/ensureUserIdentity";
-import {
-  JobSchedulePersistenceError,
-  setCompanyTimezoneViaRpc,
-} from "@/app/lib/jobSchedulePersistence";
 import { createClient } from "@/app/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -38,6 +34,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
+    const { setCompanyTimezoneViaRpc } = await import("@/app/lib/jobSchedulePersistence");
     const supabase = await createClient();
     const {
       data: { user },
@@ -60,6 +57,7 @@ export async function POST(req: NextRequest) {
     }
     return NextResponse.json(result);
   } catch (error) {
+    const { JobSchedulePersistenceError } = await import("@/app/lib/jobSchedulePersistence");
     if (error instanceof JobSchedulePersistenceError) {
       return NextResponse.json({ ok: false, code: "internal_error" }, { status: 500 });
     }

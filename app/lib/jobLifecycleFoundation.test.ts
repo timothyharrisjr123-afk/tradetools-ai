@@ -495,6 +495,7 @@ describe("RPC payload guards", () => {
       "job_rescheduled",
       "job_unscheduled",
       "job_work_started",
+      "job_work_completed",
     ]);
     assert.deepEqual([...AUTHENTICATED_MANUAL_JOB_ACTIVITY_EVENT_TYPES], []);
     for (const eventType of SYSTEM_RESERVED_JOB_ACTIVITY_EVENT_TYPES) {

@@ -202,6 +202,8 @@ export function mapDbJobToBoardEstimate(job: JobSummary): RoofingEstimate {
     canonicalBoardLane: canonicalLane,
     stageEnteredAt: job.stage_entered_at ?? null,
     productionStartedAt: job.production_started_at ?? null,
+    completedAt: job.completed_at ?? null,
+    jobDisposition: job.status ?? "active",
     jobHasProposal: Boolean(
       String(job.active_proposal_id ?? "").trim() ||
         String(job.latest_proposal_id ?? "").trim()
@@ -212,6 +214,8 @@ export function mapDbJobToBoardEstimate(job: JobSummary): RoofingEstimate {
     canonicalBoardLane?: BoardColumnKey;
     stageEnteredAt?: string | null;
     productionStartedAt?: string | null;
+    completedAt?: string | null;
+    jobDisposition?: string | null;
     jobHasProposal?: boolean;
   };
 }

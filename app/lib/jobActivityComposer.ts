@@ -34,6 +34,10 @@ import {
   composeProductionActivityItem,
   isSuppressedProductionStageChange,
 } from "@/app/lib/jobProductionActivity";
+import {
+  composeCompleteActivityItem,
+  isSuppressedCompleteStageChange,
+} from "@/app/lib/jobCompleteActivity";
 
 const FORBIDDEN_ACTIVITY_LABEL =
   /\b(Job card opened|Estimate loaded|autosave|previewed|snapshot_frozen|Builder opened|Preview opened|Acceptance confirmed)\b/i;
@@ -143,7 +147,8 @@ export function composeJobActivityItems(
     if (event.event_type === "stage_changed") {
       if (
         isSuppressedScheduleStageChange(event) ||
-        isSuppressedProductionStageChange(event)
+        isSuppressedProductionStageChange(event) ||
+        isSuppressedCompleteStageChange(event)
       ) {
         continue;
       }
@@ -173,6 +178,11 @@ export function composeJobActivityItems(
     const productionItem = composeProductionActivityItem(event);
     if (productionItem) {
       push(productionItem, event.occurred_at, event.id);
+      continue;
+    }
+    const completeItem = composeCompleteActivityItem(event);
+    if (completeItem) {
+      push(completeItem, event.occurred_at, event.id);
       continue;
     }
     if (event.event_type === "disposition_changed") {
