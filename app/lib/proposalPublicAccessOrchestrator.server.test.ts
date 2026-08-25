@@ -755,10 +755,11 @@ describe("forbidden exposure guardrails", () => {
       "utf8"
     );
     assert.match(source, /loadPublicProposalByToken/);
-    assert.match(source, /PublicProposalPage document=\{result\.document\}/);
+    assert.match(source, /document=\{result\.document\}/);
     assert.match(source, /publicAccessToken=\{token\}/);
+    assert.match(source, /paymentReturnHint=\{paymentHint\}/);
     assert.doesNotMatch(source, /result\.tracking/);
-    assert.doesNotMatch(source, /searchParams/);
+    assert.doesNotMatch(source, /const \{\s*token\s*\}\s*=\s*await searchParams/);
     assert.doesNotMatch(source, /getDraftGraph\(/);
   });
 });

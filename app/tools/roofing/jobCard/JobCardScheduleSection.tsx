@@ -22,6 +22,8 @@ type JobCardScheduleSectionProps = {
   completeBusy?: boolean;
   completeError?: string | null;
   scheduleReady?: boolean;
+  scheduleLoadStatus?: "loading" | "ready" | "error";
+  scheduleRefreshError?: boolean;
   onStartWork?: () => void;
   onCompleteJob?: () => void;
   onSchedule: () => void;
@@ -42,6 +44,8 @@ export default function JobCardScheduleSection({
   completeBusy = false,
   completeError = null,
   scheduleReady = true,
+  scheduleLoadStatus = scheduleReady ? "ready" : "loading",
+  scheduleRefreshError = false,
   onStartWork,
   onCompleteJob,
   onSchedule,
@@ -60,7 +64,13 @@ export default function JobCardScheduleSection({
     stage === "scheduled" && Boolean(planned) && Boolean(onStartWork);
   const canComplete =
     isProduction && Boolean(planned) && Boolean(onCompleteJob);
-  const showNotScheduled = scheduleReady && !planned && !hasActualStart;
+  const showUnavailable =
+    scheduleLoadStatus === "error" && !planned && !hasActualStart;
+  const showNotScheduled =
+    scheduleReady &&
+    scheduleLoadStatus !== "error" &&
+    !planned &&
+    !hasActualStart;
   const timezone = planned?.timezone ?? displayTimezone;
   const startedLabel = formatProductionStartedAt(productionStartedAt, timezone);
   const completedLabel = formatJobCompletedAt(completedAt, timezone);
@@ -71,6 +81,7 @@ export default function JobCardScheduleSection({
       data-jobcard-schedule
       data-production-stage={stage}
       data-jobcard-schedule-ready={scheduleReady ? "true" : "false"}
+      data-jobcard-schedule-status={scheduleLoadStatus}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -112,9 +123,11 @@ export default function JobCardScheduleSection({
             <p className="mt-1 text-sm font-medium text-slate-800">
               {planned
                 ? formatScheduleWindowLabel(planned)
-                : showNotScheduled
-                  ? "Not scheduled"
-                  : "Loading schedule"}
+                : showUnavailable
+                  ? "Schedule unavailable"
+                  : showNotScheduled
+                    ? "Not scheduled"
+                    : "Loading schedule"}
             </p>
           )}
         </div>
@@ -158,7 +171,7 @@ export default function JobCardScheduleSection({
                 Unschedule
               </button>
             </>
-          ) : !planned && canSchedule && !isReadOnly ? (
+          ) : !planned && canSchedule && !isReadOnly && !showUnavailable ? (
             <button
               type="button"
               onClick={onSchedule}
@@ -170,6 +183,21 @@ export default function JobCardScheduleSection({
           ) : null}
         </div>
       </div>
+      {showUnavailable ? (
+        <p
+          className="mt-2 text-xs text-red-600"
+          role="alert"
+          data-jobcard-schedule-error
+        >
+          Schedule could not be loaded. Start and Complete stay blocked until
+          schedule truth is known.
+        </p>
+      ) : null}
+      {scheduleRefreshError && !showUnavailable ? (
+        <p className="mt-2 text-xs text-amber-700" data-jobcard-schedule-refresh-error>
+          Could not refresh schedule. Showing last known plan.
+        </p>
+      ) : null}
       {depositNotReceived && stage === "scheduled" ? (
         <p className="mt-2 text-xs text-amber-700">{SCHEDULE_DEPOSIT_NOT_RECEIVED}</p>
       ) : null}

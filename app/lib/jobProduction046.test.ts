@@ -290,7 +290,7 @@ describe("R3G surface contracts", () => {
     assert.match(JOB_CARD, /scheduleReady/);
     assert.doesNotMatch(JOB_CARD, /Undo Start/);
     assert.match(ROOFING_CLIENT, /\/api\/jobs\/start-work/);
-    assert.match(ROOFING_CLIENT, /resolveJobCardActiveSchedule/);
+    assert.match(ROOFING_CLIENT, /resolveJobCardScheduleDisplay|resolveJobCardActiveSchedule/);
     assert.match(ROOFING_CLIENT, /canonicalJobStage !== "scheduled"/);
     assert.match(JOB_CARD_TABS, /data-jobcard-tabs/);
     assert.match(JOB_CARD_TABS, /overflow-x-auto/);

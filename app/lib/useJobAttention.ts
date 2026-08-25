@@ -18,6 +18,7 @@ import {
   isCoalescedRefreshCurrent,
   type CoalescedRefreshState,
 } from "@/app/lib/coalescedRefresh";
+import { shouldApplyAttentionDetailResult } from "@/app/lib/jobCardAttentionDetailGuard";
 import {
   applyAttentionDetailFetchResult,
   type AttentionDetailStatus,
@@ -121,6 +122,8 @@ export function useJobAttentionDetail(input: {
     enabled ? "loading" : "ready-empty"
   );
   const selectedAttentionIdRef = useRef<string | null>(null);
+  const currentJobIdRef = useRef<string>(input.jobId?.trim() ?? "");
+  const fetchGenerationRef = useRef(0);
 
   useEffect(() => {
     selectedAttentionIdRef.current = selectedAttentionId;
@@ -128,6 +131,14 @@ export function useJobAttentionDetail(input: {
 
   const reload = useCallback(async () => {
     const jobId = input.jobId?.trim() ?? "";
+    if (currentJobIdRef.current !== jobId) {
+      currentJobIdRef.current = jobId;
+      fetchGenerationRef.current += 1;
+      setItems([]);
+      setSelectedAttentionId(null);
+      setError(null);
+      setStatus(jobId ? "loading" : "ready-empty");
+    }
     if (!enabled || !jobId) {
       setItems([]);
       setSelectedAttentionId(null);
@@ -136,11 +147,23 @@ export function useJobAttentionDetail(input: {
       setStatus("ready-empty");
       return;
     }
+    const generation = ++fetchGenerationRef.current;
+    const requestedJobId = jobId;
     setLoading(true);
     const result = await fetchJobAttentionDetail(
       jobId,
       input.requestedAttentionId
     );
+    if (
+      !shouldApplyAttentionDetailResult({
+        requestedJobId,
+        currentJobId: currentJobIdRef.current,
+        generation,
+        currentGeneration: fetchGenerationRef.current,
+      })
+    ) {
+      return;
+    }
     setItems((previousItems) => {
       const applied = applyAttentionDetailFetchResult({
         previousItems,

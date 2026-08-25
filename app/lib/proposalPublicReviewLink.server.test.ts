@@ -276,7 +276,7 @@ describe("proposalPublicReviewLink server guardrails", () => {
 });
 
 describe("preview panel source guardrails", () => {
-  test("preview panel lives on contractor preview only", () => {
+  test("preview send-prep owns customer review links; orphan public-access panel is gone", () => {
     const previewClient = readFileSync(
       new URL(
         "../tools/roofing/proposals/preview/ProposalCustomerPreviewClient.tsx",
@@ -284,22 +284,18 @@ describe("preview panel source guardrails", () => {
       ),
       "utf8"
     );
-    const panel = readFileSync(
+    const sendGate = readFileSync(
       new URL(
-        "../tools/roofing/proposals/preview/ProposalCustomerPreviewPublicAccessPanel.tsx",
+        "../tools/roofing/proposals/preview/ProposalCustomerPreviewSendGatePanel.tsx",
         import.meta.url
       ),
       "utf8"
     );
 
-    assert.match(previewClient, /ProposalCustomerPreviewPublicAccessPanel/);
-    assert.match(panel, /\/api\/proposals\/public-review-link/);
-    assert.match(panel, /Open customer view/);
-    assert.match(panel, /Copy review link/);
-    assert.match(panel, /window\.open\(sessionLink\.publicUrl/);
-    assert.doesNotMatch(panel, /createAdminClient|mintProposalPublicAccessToken/);
-    assert.doesNotMatch(panel, /token_hash|raw_token|rawToken/);
-    assert.doesNotMatch(panel, /onClick=\{[^}]*send/i);
+    assert.doesNotMatch(previewClient, /ProposalCustomerPreviewPublicAccessPanel/);
+    assert.match(sendGate, /public-review-link|Create secure link|data-preview-create-secure-link/);
+    assert.doesNotMatch(sendGate, /createAdminClient|mintProposalPublicAccessToken/);
+    assert.doesNotMatch(sendGate, /token_hash|raw_token|rawToken/);
   });
 
   test("builder does not include public access panel", () => {

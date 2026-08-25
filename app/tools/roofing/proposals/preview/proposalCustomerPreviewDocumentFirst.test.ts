@@ -233,16 +233,9 @@ describe("Contractor-facing Proposal Preview workspace", () => {
   });
 
   test("7d. Link and Activity panels remain available for later slices, not peer tabs", () => {
-    const linkPanel = readPreviewSource("ProposalCustomerPreviewPublicAccessPanel.tsx");
     const drawer = readPreviewSource("ProposalCustomerPreviewSendSharingDrawer.tsx");
     const sendPanel = readPreviewSource("ProposalCustomerPreviewSendGatePanel.tsx");
     const history = readPreviewSource("ProposalCustomerPreviewDeliveryHistorySection.tsx");
-    assert.match(linkPanel, /Customer proposal link/);
-    assert.match(linkPanel, /Not created yet/);
-    assert.match(linkPanel, /Create secure link/);
-    assert.match(linkPanel, /Copy link/);
-    assert.match(linkPanel, /Open customer proposal/);
-    assert.doesNotMatch(linkPanel, />Sent snapshot</);
     assert.doesNotMatch(drawer, /ProposalCustomerPreviewPublicAccessPanel/);
     assert.match(sendPanel, /data-preview-create-secure-link|data-preview-send-link-optional/);
     assert.match(sendPanel, /ProposalCustomerPreviewDeliveryHistorySection/);

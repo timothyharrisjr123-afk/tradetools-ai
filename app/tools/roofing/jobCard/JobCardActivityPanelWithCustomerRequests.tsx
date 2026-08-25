@@ -40,6 +40,10 @@ type JobCardActivityPanelWithCustomerRequestsProps = {
   sentFactsByProposalId?: JobCardProposalSentFactsById;
   /** When false, defer secondary activity/acceptance/signature/payment reads. */
   secondaryEffectsEnabled?: boolean;
+  ownedAcceptanceItems?: readonly ProposalAcceptanceActivityItem[] | null;
+  ownedSignatureItems?: readonly ProposalSignatureActivityItem[] | null;
+  /** When true, Job Card payment strip API is the payment owner — do not re-read. */
+  skipPaymentEnrichment?: boolean;
 };
 
 export default function JobCardActivityPanelWithCustomerRequests({
@@ -50,6 +54,9 @@ export default function JobCardActivityPanelWithCustomerRequests({
   proposals = [],
   sentFactsByProposalId = {},
   secondaryEffectsEnabled = true,
+  ownedAcceptanceItems = null,
+  ownedSignatureItems = null,
+  skipPaymentEnrichment = false,
 }: JobCardActivityPanelWithCustomerRequestsProps) {
   const { requests } = useJobProposalCustomerRequests({
     proposalIds,
@@ -74,7 +81,6 @@ export default function JobCardActivityPanelWithCustomerRequests({
     const id = (jobId ?? "").trim();
     let cancelled = false;
     if (!id || !secondaryEffectsEnabled) {
-      setJobEvents([]);
       return;
     }
     void listJobActivityEventsForJob(id).then((events) => {
@@ -86,10 +92,10 @@ export default function JobCardActivityPanelWithCustomerRequests({
   }, [jobId, secondaryEffectsEnabled]);
 
   useEffect(() => {
+    if (ownedAcceptanceItems) return;
     const id = (jobId ?? "").trim();
     let cancelled = false;
     if (!id || !secondaryEffectsEnabled) {
-      setAcceptanceItems([]);
       return;
     }
     void listJobProposalAcceptances(id).then((acceptances) => {
@@ -100,13 +106,13 @@ export default function JobCardActivityPanelWithCustomerRequests({
     return () => {
       cancelled = true;
     };
-  }, [jobId, secondaryEffectsEnabled]);
+  }, [jobId, secondaryEffectsEnabled, ownedAcceptanceItems]);
 
   useEffect(() => {
+    if (ownedSignatureItems) return;
     const id = (jobId ?? "").trim();
     let cancelled = false;
     if (!id || !secondaryEffectsEnabled) {
-      setSignatureItems([]);
       return;
     }
     void listJobProposalSignatures(id).then((signatures) => {
@@ -117,14 +123,12 @@ export default function JobCardActivityPanelWithCustomerRequests({
     return () => {
       cancelled = true;
     };
-  }, [jobId, secondaryEffectsEnabled]);
+  }, [jobId, secondaryEffectsEnabled, ownedSignatureItems]);
 
   useEffect(() => {
     const id = (jobId ?? "").trim();
     let cancelled = false;
-    if (!id || !secondaryEffectsEnabled) {
-      setPaymentItems([]);
-      setPaymentEnrichmentError(null);
+    if (!id || !secondaryEffectsEnabled || skipPaymentEnrichment) {
       return;
     }
     void listJobPaymentRequests(id)
@@ -155,7 +159,7 @@ export default function JobCardActivityPanelWithCustomerRequests({
     return () => {
       cancelled = true;
     };
-  }, [jobId, secondaryEffectsEnabled]);
+  }, [jobId, secondaryEffectsEnabled, skipPaymentEnrichment]);
 
   const items = useMemo(() => {
     const requestItems: JobCardActivityItem[] = requests.map((request) => ({
@@ -174,14 +178,21 @@ export default function JobCardActivityPanelWithCustomerRequests({
       proposals,
       sentFactsByProposalId,
       customerRequestItems: [...requestItems, ...baseItems],
-      acceptanceItems,
-      signatureItems,
-      paymentItems,
+      acceptanceItems: ownedAcceptanceItems
+        ? [...ownedAcceptanceItems]
+        : acceptanceItems,
+      signatureItems: ownedSignatureItems
+        ? [...ownedSignatureItems]
+        : signatureItems,
+      paymentItems: skipPaymentEnrichment ? [] : paymentItems,
     });
   }, [
     acceptanceItems,
+    ownedAcceptanceItems,
     signatureItems,
+    ownedSignatureItems,
     paymentItems,
+    skipPaymentEnrichment,
     baseItems,
     jobCreatedAt,
     jobEvents,

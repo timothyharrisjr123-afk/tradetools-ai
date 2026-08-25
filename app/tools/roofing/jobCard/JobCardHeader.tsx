@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Mail, MapPin, Phone, UserCircle } from "lucide-react";
-import type { JobCardDisplayModel } from "../saved/jobsBoardUtils";
+import type { JobCardDisplayModel } from "./jobCardDisplayTypes";
 
 type JobCardHeaderProps = {
   display: JobCardDisplayModel;

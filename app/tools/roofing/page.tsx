@@ -1,9 +1,9 @@
 import { ensureUserIdentity, getUserCompanyId } from "@/app/lib/ensureUserIdentity";
 import { getJobRecordForCompany, isUuidLike } from "@/app/lib/jobStore";
+import { isCleanJobCardRoute } from "@/app/lib/roofingJobCardRoute";
 import { createClient } from "@/app/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import RoofingClient from "./RoofingClient";
 
 function hasRoofingWorkspaceDeepLink(
   params: Record<string, string | string[] | undefined>
@@ -47,6 +47,22 @@ export default async function Page({
     serverJobRecord = await getJobRecordForCompany(supabase, jobId, companyId);
   }
 
+  if (
+    isCleanJobCardRoute({
+      entry,
+      job: jobId,
+      loadSaved,
+    })
+  ) {
+    const { default: JobCardClient } = await import("./jobCard/JobCardClient");
+    return (
+      <Suspense fallback={<div className="p-6 text-white/70">Loading…</div>}>
+        <JobCardClient companyId={companyId} serverJobRecord={serverJobRecord} />
+      </Suspense>
+    );
+  }
+
+  const { default: RoofingClient } = await import("./RoofingClient");
   return (
     <Suspense fallback={<div className="p-6 text-white/70">Loading…</div>}>
       <RoofingClient companyId={companyId} serverJobRecord={serverJobRecord} />

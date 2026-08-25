@@ -24,7 +24,11 @@ import { findStarterProposalTemplate } from "@/app/tools/roofing/templates/templ
 
 const CATALOG_STARTER_DEFINITION_COUNT = DEFAULT_ROOFING_CATALOG_DEFINITIONS.length;
 
-export function useCompanySetupReadiness(companyId: string | undefined): CompanySetupReadinessResult {
+export function useCompanySetupReadiness(
+  companyId: string | undefined,
+  options?: { enabled?: boolean }
+): CompanySetupReadinessResult {
+  const enabled = options?.enabled !== false;
   const [input, setInput] = useState({
     loading: true,
     companyProfileComplete: null as boolean | null,
@@ -34,6 +38,9 @@ export function useCompanySetupReadiness(companyId: string | undefined): Company
   });
 
   const load = useCallback(async () => {
+    if (!enabled) {
+      return;
+    }
     const cid = (companyId ?? "").trim();
     if (!cid) {
       setInput({
@@ -101,10 +108,12 @@ export function useCompanySetupReadiness(companyId: string | undefined): Company
         proposalTemplatesReady: null,
       });
     }
-  }, [companyId]);
+  }, [companyId, enabled]);
 
   useEffect(() => {
-    void load();
+    queueMicrotask(() => {
+      void load();
+    });
   }, [load]);
 
   return deriveCompanySetupReadiness(input);

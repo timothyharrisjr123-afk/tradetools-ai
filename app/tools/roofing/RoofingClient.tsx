@@ -207,7 +207,12 @@ import type { JobDraft, JobAddress, JobRecord } from "@/app/lib/jobTypes";
 import { sendEstimateEmailWithPdf } from "@/app/lib/sendEstimateClient";
 import { getFavorite, setFavorite, setLocked, appendFeedback, getTierFeedbackBias, type TierLabel } from "@/app/lib/aiWordingPrefs";
 import RoofingTabs from "@/app/tools/roofing/RoofingTabs";
-import RoofingClientV2 from "../roofing-v2/RoofingClientV2";
+import dynamic from "next/dynamic";
+import { applyListedProposalFetchResult } from "@/app/lib/jobCardListedProposalState";
+import { applyTemplateSetupFetchResult } from "@/app/lib/jobCardTemplateSetupState";
+import { resolveJobCardScheduleDisplay } from "@/app/lib/jobCardScheduleDisplay";
+import type { ListedProposalReadStatus } from "@/app/lib/jobCardListedProposalState";
+import type { TemplateSetupReadStatus } from "@/app/lib/jobCardTemplateSetupState";
 import FieldDiveAppShell from "@/app/tools/roofing/FieldDiveAppShell";
 import { buildJobCardDisplayModel } from "@/app/tools/roofing/saved/jobsBoardUtils";
 import JobCardHeader from "@/app/tools/roofing/jobCard/JobCardHeader";
@@ -218,8 +223,16 @@ import { JOB_CARD_TABS } from "@/app/tools/roofing/jobCard/jobCardTypes";
 import JobCardSectionPanel from "@/app/tools/roofing/jobCard/JobCardSectionPanel";
 import JobCardActivityPanel, { type JobCardActivityItem } from "@/app/tools/roofing/jobCard/JobCardActivityPanel";
 import JobCardActivityPanelWithCustomerRequests from "@/app/tools/roofing/jobCard/JobCardActivityPanelWithCustomerRequests";
-import { listJobProposalAcceptances } from "@/app/lib/proposalAcceptanceActivity";
-import { listJobProposalSignatures } from "@/app/lib/proposalSignatureActivity";
+import {
+  composeProposalAcceptanceActivityItems,
+  listJobProposalAcceptances,
+  type ProposalAcceptanceActivityItem,
+} from "@/app/lib/proposalAcceptanceActivity";
+import {
+  composeProposalSignatureActivityItems,
+  listJobProposalSignatures,
+  type ProposalSignatureActivityItem,
+} from "@/app/lib/proposalSignatureActivity";
 import JobCardOverviewSummary from "@/app/tools/roofing/jobCard/JobCardOverviewSummary";
 import JobCardScheduleSection from "@/app/tools/roofing/jobCard/JobCardScheduleSection";
 import JobCardScheduleTimeline from "@/app/tools/roofing/jobCard/JobCardScheduleTimeline";
@@ -245,6 +258,10 @@ import { useJobPayments } from "@/app/lib/useJobPayments";
 import type { JobPaymentKind } from "@/app/lib/jobPaymentTypes";
 import { resolveJobCardIdentityFromRecord } from "@/app/tools/roofing/jobCard/jobCardIdentityUtils";
 import { loadCompanyVoiceProfile, saveCompanyVoiceProfile, type VoiceTone } from "@/app/lib/companyVoiceProfile";
+
+const RoofingClientV2 = dynamic(() => import("../roofing-v2/RoofingClientV2"), {
+  ssr: false,
+});
 
 function safeUUID() {
   try {
@@ -1279,6 +1296,22 @@ export default function RoofingClient({
     Record<string, string | null>
   >({});
   const [listedJobSentFacts, setListedJobSentFacts] = useState<JobCardProposalSentFactsById>({});
+  const [listedJobDraftStatus, setListedJobDraftStatus] =
+    useState<ListedProposalReadStatus>("idle");
+  const [listedJobDraftError, setListedJobDraftError] = useState<string | null>(
+    null
+  );
+  const [templateSetupStatus, setTemplateSetupStatus] =
+    useState<TemplateSetupReadStatus>("idle");
+  const [templateSetupError, setTemplateSetupError] = useState<string | null>(
+    null
+  );
+  const [jobAcceptanceActivityItems, setJobAcceptanceActivityItems] = useState<
+    ProposalAcceptanceActivityItem[]
+  >([]);
+  const [jobSignatureActivityItems, setJobSignatureActivityItems] = useState<
+    ProposalSignatureActivityItem[]
+  >([]);
   const listedDraftFetchInFlightRef = useRef<string | null>(null);
   const [jobCardSecondaryEnabled, setJobCardSecondaryEnabled] = useState(false);
   const jobCardSecondaryEffectsEnabled =
@@ -2048,6 +2081,7 @@ export default function RoofingClient({
 
     templateSetupFetchInFlightRef.current = cid;
     setTemplateSetupLoadComplete(false);
+    setTemplateSetupStatus("loading");
 
     void (async () => {
       try {
@@ -2056,6 +2090,8 @@ export default function RoofingClient({
         // Keep full company list in state for draft template-name lookup; Job Card
         // create picker uses contractor-visible filter (Block 1 smoke isolation).
         setCompanyProposalTemplates(templates);
+        setTemplateSetupStatus("ready");
+        setTemplateSetupError(null);
         const visibleTemplates = filterContractorVisibleTemplates(templates);
         const starter = findStarterProposalTemplate(templates);
         // R2B — preferred setup for roofing proposal workflow (separate from
@@ -2090,10 +2126,14 @@ export default function RoofingClient({
       } catch (err) {
         console.warn("[RoofingClient] template setup fetch error:", err);
         if (templateSetupFetchInFlightRef.current !== cid) return;
-        setCompanyProposalTemplates([]);
-        setSelectedJobTemplateId(null);
-        setPreferredSetupTemplateId(null);
-        setStarterTemplateGraph(null);
+        setTemplateSetupStatus((prevStatus) => {
+          const applied = applyTemplateSetupFetchResult({
+            previousTemplates: companyProposalTemplates,
+            result: { ok: false, error: "Templates could not be loaded." },
+          });
+          setTemplateSetupError(applied.error);
+          return applied.status;
+        });
       } finally {
         if (templateSetupFetchInFlightRef.current === cid) {
           setTemplateSetupLoadComplete(true);
@@ -2214,6 +2254,7 @@ export default function RoofingClient({
 
     const fetchKey = `${cid}:${jid}`;
     listedDraftFetchInFlightRef.current = fetchKey;
+    setListedJobDraftStatus((prev) => (prev === "idle" ? "loading" : prev));
 
     void (async () => {
       try {
@@ -2224,7 +2265,14 @@ export default function RoofingClient({
         const contractorRows = filterContractorVisibleProposals(
           summaries.filter((row) => isUuidLike(row.id))
         );
-        setListedJobDraftSummaries(contractorRows);
+        const applied = applyListedProposalFetchResult({
+          previousItems: [],
+          previousStatus: "loading",
+          result: { ok: true, items: contractorRows },
+        });
+        setListedJobDraftStatus(applied.status);
+        setListedJobDraftError(null);
+        setListedJobDraftSummaries(applied.items);
         const draftRows = contractorRows.filter((row) => row.status === "draft");
         const activeId =
           hydratedJobRecord?.active_proposal_id &&
@@ -2265,12 +2313,16 @@ export default function RoofingClient({
       } catch (err) {
         console.warn("[RoofingClient] job draft list fetch error:", err);
         if (listedDraftFetchInFlightRef.current !== fetchKey) return;
-        setListedJobDraftProposalId(null);
-        setListedJobDraftSummary(null);
-        setListedJobDraftSummaries([]);
-        setListedJobDraftPackageLabel(null);
-        setListedJobDraftPackageLabels({});
-        setListedJobSentFacts({});
+        setListedJobDraftStatus((previousStatus) => {
+          const applied = applyListedProposalFetchResult({
+            previousItems: listedJobDraftSummaries,
+            previousStatus,
+            result: { ok: false, error: "Proposals could not be loaded." },
+          });
+          setListedJobDraftError(applied.error);
+          setListedJobDraftSummaries(applied.items);
+          return applied.status;
+        });
       }
     })();
   }, [
@@ -2334,6 +2386,9 @@ export default function RoofingClient({
         if (proposalId) acceptedIds[proposalId] = true;
       }
       setJobAcceptedProposalIds(acceptedIds);
+      setJobAcceptanceActivityItems(
+        composeProposalAcceptanceActivityItems(acceptances)
+      );
     });
     return () => {
       cancelled = true;
@@ -2355,6 +2410,9 @@ export default function RoofingClient({
         if (proposalId) signedIds[proposalId] = true;
       }
       setJobSignedProposalIds(signedIds);
+      setJobSignatureActivityItems(
+        composeProposalSignatureActivityItems(signatures)
+      );
     });
     return () => {
       cancelled = true;
@@ -2403,9 +2461,7 @@ export default function RoofingClient({
     );
 
     const settleScheduleError = () => {
-      setJobScheduleRows([]);
-      // Truthful unavailable load for this Job — Complete still needs planned work.
-      setJobSchedulesLoadedForJobId(currentJobId);
+      // Keep last-known-good rows. Do not mark loaded-empty — that becomes "Not scheduled".
       setJobScheduleSettlement(settleJobCardScheduleError(currentJobId));
     };
 
@@ -8325,10 +8381,11 @@ Thanks,`;
     const canonicalJobStage = resolveCanonicalJobStage(
       hydratedJobRecord ?? { stage: "intake" }
     );
-    const jobCardSchedule = resolveJobCardActiveSchedule({
+    const jobCardSchedule = resolveJobCardScheduleDisplay({
       jobId: currentJobId,
       rows: jobScheduleRows,
       loadedForJobId: jobSchedulesLoadedForJobId,
+      settlement: jobScheduleSettlement,
     });
     const jobCardActionEligibility = resolveCanonicalJobActionEligibilityFromFacts(
       {
@@ -8563,6 +8620,14 @@ Thanks,`;
                   stage={canonicalJobStage}
                   schedule={jobCardSchedule.active}
                   scheduleReady={jobCardSchedule.ready}
+                  scheduleLoadStatus={
+                    jobCardSchedule.loadStatus === "error"
+                      ? "error"
+                      : jobCardSchedule.ready
+                        ? "ready"
+                        : "loading"
+                  }
+                  scheduleRefreshError={jobCardSchedule.refreshError}
                   productionStartedAt={
                     hydratedJobRecord?.production_started_at ?? null
                   }
@@ -9015,10 +9080,21 @@ Thanks,`;
                   />
                 }
               >
+                {templateSetupStatus === "error" ? (
+                  <p
+                    className="mb-2 text-xs text-amber-700"
+                    data-jobcard-template-setup-error
+                  >
+                    {templateSetupError ?? "Templates could not be loaded."} This
+                    is not “no templates configured.”
+                  </p>
+                ) : null}
                 <JobCardProposalsTab
                   rows={jobCardProposalRows}
                   jobId={currentJobId}
                   createReadyForBlock3={createNewDraftEnabled}
+                  listStatus={listedJobDraftStatus}
+                  listError={listedJobDraftError}
                   onAddProposal={openCreateProposalModal}
                   focusedRequestId={focusedRequestParam}
                   onProposalAction={(action, proposalId) => {
@@ -9298,6 +9374,9 @@ Thanks,`;
                   proposals={listedJobDraftSummaries}
                   sentFactsByProposalId={listedJobSentFacts}
                   secondaryEffectsEnabled={jobCardSecondaryEffectsEnabled}
+                  ownedAcceptanceItems={jobAcceptanceActivityItems}
+                  ownedSignatureItems={jobSignatureActivityItems}
+                  skipPaymentEnrichment
                 />
               ) : (
                 <JobCardActivityPanel items={jobCardActivityItems} />

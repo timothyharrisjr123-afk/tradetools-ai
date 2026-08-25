@@ -13,7 +13,6 @@ import {
   isUuidLike,
 } from "@/app/lib/jobStore";
 import { ensureBrowserAuthSession } from "@/app/lib/supabaseClient";
-import { getCurrentLoadedSavedId } from "@/app/lib/estimateStore";
 import type { JobRecord } from "@/app/lib/jobTypes";
 
 export type JobHydrateStatus = "idle" | "loading" | "ready" | "unavailable";
@@ -171,8 +170,7 @@ export function useJobCardCanonicalRead(input: UseJobCardCanonicalReadInput) {
 
     const fillEmptyOnly =
       input.isJobCardBoardContext &&
-      (Boolean(input.loadSavedId) ||
-        (input.loadAppliedRef.current && Boolean(getCurrentLoadedSavedId())));
+      (Boolean(input.loadSavedId) || Boolean(input.loadAppliedRef.current));
 
     jobHydrateInFlightRef.current = jobId;
     if (!trustedSeed) {

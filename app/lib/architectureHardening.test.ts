@@ -167,9 +167,9 @@ describe("architecture hardening — job card read ownership", () => {
 describe("architecture hardening — activity reads", () => {
   test("independent activity/acceptance/signature/payment effects", () => {
     assert.match(ACTIVITY, /listJobActivityEventsForJob/);
-    assert.match(ACTIVITY, /listJobProposalAcceptances/);
-    assert.match(ACTIVITY, /listJobProposalSignatures/);
-    assert.match(ACTIVITY, /listJobPaymentRequests/);
+    assert.match(ACTIVITY, /ownedAcceptanceItems|listJobProposalAcceptances/);
+    assert.match(ACTIVITY, /ownedSignatureItems|listJobProposalSignatures/);
+    assert.match(ACTIVITY, /skipPaymentEnrichment|listJobPaymentRequests/);
     assert.doesNotMatch(
       ACTIVITY,
       /Promise\.all\([\s\S]*listJobActivityEventsForJob[\s\S]*listJobProposalAcceptances/

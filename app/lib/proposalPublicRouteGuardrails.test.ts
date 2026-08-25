@@ -92,15 +92,25 @@ describe("public proposal route source guardrails", () => {
     assert.match(source, /params:\s*Promise<\{\s*token:\s*string\s*\}>/);
     assert.match(source, /loadPublicProposalByToken\(token\)/);
     assert.match(source, /from "@\/app\/lib\/proposalPublicAccessOrchestrator\.server"/);
-    assert.doesNotMatch(source, /searchParams/);
+    assert.match(source, /params:\s*Promise<\{\s*token:\s*string\s*\}>/);
+    assert.doesNotMatch(source, /loadPublicProposalByToken\(\s*(query|searchParams)/);
+    assert.doesNotMatch(
+      source,
+      /const \{\s*token\s*\}\s*=\s*await searchParams/
+    );
+    assert.match(source, /searchParams\?/);
+    assert.match(source, /paymentHint|payment === "pending"/);
     assert.doesNotMatch(source, /getDraftGraph\(/);
   });
 
   test("page passes document or error only — view envelope stays server-side", () => {
     const source = readPublicRouteSource("page.tsx");
-    assert.match(source, /<PublicProposalPage document=\{result\.document\}/);
+    assert.match(source, /PublicProposalPage/);
+    assert.match(source, /document=\{result\.document\}/);
     assert.match(source, /publicAccessToken=\{token\}/);
-    assert.match(source, /<PublicProposalErrorPage error=\{result\.error\}/);
+    assert.match(source, /paymentReturnHint=\{paymentHint\}/);
+    assert.match(source, /PublicProposalErrorPage/);
+    assert.match(source, /error=\{result\.error\}/);
     assert.doesNotMatch(source, /result\.tracking/);
   });
 

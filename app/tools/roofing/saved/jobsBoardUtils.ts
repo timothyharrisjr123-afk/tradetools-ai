@@ -4,6 +4,9 @@ import { isDbBoardJobEntry } from "@/app/lib/jobBoardAdapter";
 import { canonicalJobStageLabel } from "@/app/lib/jobLifecycleMapper";
 import type { CanonicalJobStage } from "@/app/lib/jobLifecycleTypes";
 import { formatBoardProposalPresenceLabel } from "@/app/tools/roofing/jobCard/jobCardProposalsTabModel";
+import type { JobCardDisplayModel } from "@/app/tools/roofing/jobCard/jobCardDisplayTypes";
+
+export type { JobCardDisplayModel } from "@/app/tools/roofing/jobCard/jobCardDisplayTypes";
 
 export type BoardColumnKey =
   | "estimate"
@@ -690,20 +693,6 @@ export function buildJobsBoardCardModel(
     timeInStageTone: timeInStageTone(anchorIso),
   };
 }
-
-export type JobCardDisplayModel = {
-  customerName: string;
-  address: string;
-  stageLabel: string;
-  dispositionLabel: string | null;
-  valueLabel: string | null;
-  lastUpdatedDisplay: string | null;
-  timeInStage: string | null;
-  timeInStageTone: TimeInStageTone;
-  reportLabel: string;
-  proposalLabel: string;
-  tasksLabel: string;
-};
 
 export function buildJobCardDisplayModel(
   estimate: RoofingEstimate | null | undefined,

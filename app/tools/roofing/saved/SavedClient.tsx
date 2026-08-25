@@ -2816,7 +2816,6 @@ function SavedEstimateCard({
 
 export default function SavedClient({ companyId }: { companyId?: string }) {
   setEstimateStoreCompanyScope(companyId ?? null);
-  const companySetupReadiness = useCompanySetupReadiness(companyId);
   const { summaries: attentionByJobId } = useJobAttentionSummaries(
     Boolean(companyId)
   );
@@ -2842,6 +2841,11 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
     enabled: hydrated,
     companyId,
   });
+  const coreBoardReady = hydrated && dbJobsStatus === "ready";
+  const companySetupReadiness = useCompanySetupReadiness(companyId, {
+    enabled: coreBoardReady,
+  });
+  const secondarySetupReady = !companySetupReadiness.loading;
   const [lastDbJobId, setLastDbJobId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "estimate" | "sent_pending" | "approved" | "deposit_paid" | "scheduled" | "in_progress" | "paid">("all");
@@ -4447,7 +4451,13 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
               </div>
             )}
             {statusFilter === "all" && boardReady && (
-              <div className="w-full space-y-3">
+              <div
+                className="w-full space-y-3"
+                data-board-core-ready="true"
+                data-board-secondary-setup-ready={
+                  secondarySetupReady ? "true" : "false"
+                }
+              >
                 <JobsBoardHeader
                   query={query}
                   onQueryChange={setQuery}

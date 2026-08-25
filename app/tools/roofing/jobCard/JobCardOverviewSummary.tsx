@@ -1,7 +1,7 @@
 "use client";
 
 import type { JobCardTabId } from "./jobCardTypes";
-import type { JobCardDisplayModel } from "../saved/jobsBoardUtils";
+import type { JobCardDisplayModel } from "./jobCardDisplayTypes";
 
 type JobCardOverviewSummaryProps = {
   display: JobCardDisplayModel;

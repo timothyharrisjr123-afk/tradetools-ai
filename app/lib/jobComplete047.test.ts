@@ -494,7 +494,7 @@ describe("R3H surface contracts", () => {
       /Promise\.all\([\s\S]*\/api\/jobs\/schedules[\s\S]*\/api\/company\/timezone/
     );
     assert.match(ROOFING_CLIENT, /setJobSchedulesLoadedForJobId\(currentJobId\)/);
-    assert.match(ROOFING_CLIENT, /resolveJobCardActiveSchedule/);
+    assert.match(ROOFING_CLIENT, /resolveJobCardScheduleDisplay|resolveJobCardActiveSchedule/);
     assert.match(JOB_CARD, /isProduction && Boolean\(planned\) && Boolean\(onCompleteJob\)/);
     assert.match(ROOFING_CLIENT, /initialTrustedServerJobSeed/);
     assert.match(ROOFING_CLIENT, /\[entryMode, currentJobId, scheduleActivityTick/);

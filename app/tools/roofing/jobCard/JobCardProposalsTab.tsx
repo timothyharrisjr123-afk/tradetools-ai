@@ -29,6 +29,8 @@ type JobCardProposalsTabProps = {
   onProposalAction: (action: JobCardProposalActionView, proposalId: string) => void;
   focusedRequestId?: string | null;
   sentHistoryDefaultOpen?: boolean;
+  listStatus?: "idle" | "loading" | "ready_empty" | "ready_items" | "error";
+  listError?: string | null;
 };
 
 function AddProposalButton({
@@ -105,8 +107,13 @@ export default function JobCardProposalsTab({
   onProposalAction,
   focusedRequestId = null,
   sentHistoryDefaultOpen = false,
+  listStatus = rows.length > 0 ? "ready_items" : "ready_empty",
+  listError = null,
 }: JobCardProposalsTabProps) {
   const hasRows = rows.length > 0;
+  const showUnavailable = listStatus === "error" && !hasRows;
+  const showEmpty = listStatus === "ready_empty" && !hasRows;
+  const showLoading = (listStatus === "loading" || listStatus === "idle") && !hasRows;
   const proposalIds = rows.map((row) => row.proposalId);
   const { requests } = useJobProposalCustomerRequests({
     proposalIds,
@@ -133,7 +140,16 @@ export default function JobCardProposalsTab({
       data-jobcard-proposals-tab
       data-jobcard-proposals-v1
       data-jobcard-create-ready-for-block3={createReadyForBlock3 ? "true" : "false"}
+      data-jobcard-proposals-status={listStatus}
     >
+      {listStatus === "error" && hasRows ? (
+        <p
+          className="text-[12px] text-amber-700"
+          data-jobcard-proposals-refresh-error
+        >
+          {listError ?? "Could not refresh proposals. Showing last known list."}
+        </p>
+      ) : null}
       {hasRows ? (
         <div className="space-y-2" data-jobcard-proposal-list>
           {rows.map((row) => {
@@ -300,7 +316,29 @@ export default function JobCardProposalsTab({
             );
           })}
         </div>
-      ) : (
+      ) : showUnavailable ? (
+        <div
+          className="rounded-lg border border-dashed border-red-200 bg-red-50/40 px-4 py-8 text-center"
+          data-jobcard-proposals-unavailable
+          role="alert"
+        >
+          <p className="text-[15px] font-semibold text-slate-900">
+            Proposals unavailable
+          </p>
+          <p className="mx-auto mt-1 max-w-md text-[13px] text-slate-600">
+            {listError ?? "Proposals could not be loaded. This is not an empty list."}
+          </p>
+        </div>
+      ) : showLoading ? (
+        <div
+          className="rounded-lg border border-dashed border-slate-200 bg-slate-50/40 px-4 py-8 text-center"
+          data-jobcard-proposals-loading
+        >
+          <p className="text-[15px] font-semibold text-slate-900">
+            Loading proposals
+          </p>
+        </div>
+      ) : showEmpty ? (
         <div
           className="rounded-lg border border-dashed border-slate-200 bg-slate-50/40 px-4 py-8 text-center"
           data-jobcard-proposals-empty
@@ -318,7 +356,7 @@ export default function JobCardProposalsTab({
             />
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

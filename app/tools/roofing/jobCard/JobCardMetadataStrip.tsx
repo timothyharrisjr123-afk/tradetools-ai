@@ -1,8 +1,10 @@
 "use client";
 
 import { Clock, FileSignature, FileText } from "lucide-react";
-import type { JobCardDisplayModel } from "../saved/jobsBoardUtils";
-import { timeInStageToneClass } from "../saved/jobsBoardUtils";
+import {
+  jobCardTimeInStageToneClass,
+  type JobCardDisplayModel,
+} from "./jobCardDisplayTypes";
 
 type JobCardMetadataStripProps = {
   display: JobCardDisplayModel;
@@ -36,7 +38,7 @@ export default function JobCardMetadataStrip({ display }: JobCardMetadataStripPr
             icon={Clock}
             label="Time in stage"
             value={display.timeInStage}
-            valueClassName={timeInStageToneClass(display.timeInStageTone)}
+            valueClassName={jobCardTimeInStageToneClass(display.timeInStageTone)}
           />
         ) : null}
         {display.lastUpdatedDisplay ? (
