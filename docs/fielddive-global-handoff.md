@@ -52,10 +52,12 @@
 - Read **§6BW** before any Job Card / Jobs Board lifecycle action eligibility, disposition guard parity, or legacy Board fence work — **Stage AB lifecycle action guard parity COMPLETE** (shared `jobLifecycleActionEligibility`; no migration).
 - Read **§6BX** before any read-architecture / fan-out / middleware auth ownership / Activity decoupling work — **Post-R3H combined architecture hardening COMPLETE** (Board coalesced refresh; Job Card server/client read ownership; Activity independent reads; middleware `/api` exclusion; targeted extraction; legacy canonical display fence; Calendar dense-day overflow; no migration).
 - Read **§6BY** before any Jobs Board column/header, Board/Calendar failure-state, Job Card refresh, Calendar range-load, or Attention focus-refresh work after the Deep Whole-System Adversarial Audit — **Adversarial Audit Wave 1 COMPLETE** (canonical Board column ownership; truthful Board/Calendar failure states; Job Card A→B stale refresh guard; Calendar stale-range guard; Attention coalescing; no migration).
+- Read **§6CA** before any Job Card compile-graph / Board jobs-first / Job Card schedule-or-proposal error-state / Attention detail stale-guard / public source-regex test work after Wave 2 — **Runtime ownership hardening COMPLETE** (clean Job Card route owns `JobCardClient`; Board canonical jobs paint before company-setup catalog/templates/pricing; schedule/proposal transport failure ≠ empty; Attention A→B discard; orphan public-access panel removed; no migration).
 - Read **§6BZ** before any leftover contractor-capability API auth, server mutation `jobStore` UUID imports, Proposal Preview independent reads, Attention/Activity error-vs-empty semantics, Board/Calendar nested-interactive a11y, historical `measurement`/`estimating` display mapping, Work Orders placeholder copy, or physical `tmp` hygiene after Wave 1 — **Adversarial Audit Wave 2 COMPLETE** (contractor capability API auth; public-by-design routes preserved; Preview independent read ownership + stale guards; error/absence corrections; Board/Calendar a11y; historical stage compatibility; Work Orders placeholder; 390 Builder/Preview/Public proof; no migration).
 
 **Last updated checkpoint:**
 
+- **Runtime ownership hardening code checkpoint:** **`2ae31a0`** — `refactor(app): reduce runtime critical paths` (**Runtime ownership COMPLETE** — clean `entry=job-card&job=` loads `JobCardClient` instead of the estimator `RoofingClient` graph; Board `useCompanySetupReadiness` waits for `coreBoardReady`; Job Card schedule/proposal/template errors are explicit; Attention detail generation guard; Activity acceptances/signatures owned once; payments strip is the payment owner; stale public-regex tests + orphan panel cleaned; no migration). See **§6CA**.
 - **Adversarial Audit Wave 2 code checkpoint:** **`0b6c59b`** — `fix(app): close adversarial architecture findings` (**Wave 2 COMPLETE** — leftover contractor-capability APIs session-gated; mutation API UUID imports thinned off `jobStore`; Preview independent reads + stale A→B discard; Attention/Activity/customer-request error ≠ empty; Calendar/Board nested-interactive removed; historical `measurement`/`estimating` display fenced as Intake aliases; Work Orders schedule placeholder no longer asserts `job_schedules`; 390 Builder/Preview/Public checked; tmp physically reduced; no migration). See **§6BZ**.
 - **Adversarial Audit Wave 1 code checkpoint:** **`d882442`** — `fix(app): harden canonical surface state ownership` (**Wave 1 COMPLETE** — canonical Board column headers stay on Jobs Board; legacy dark lane fenced off implicit header/return paths; Board read error ≠ empty company; Calendar timezone/schedule states independent; Job Card A→B stale refresh discarded; Calendar stale-range discarded; Attention focus/pageshow coalesced; no migration). See **§6BY**.
 - **Post-R3H architecture hardening code checkpoint:** **`41b0d98`** — `refactor(app): harden lifecycle read architecture` (**combined Stage C+D+E hardening COMPLETE** — Board refresh coalescing; Job Card server seed across origins; Activity read decoupling; middleware API auth ownership; `useBoardCanonicalJobs` + `useJobCardCanonicalRead`; legacy canonical display fence; Calendar month overflow; PERF-1 + Stage AB preserved; no migration). See **§6BX**.
@@ -64,7 +66,8 @@
 - **R3G code checkpoint:** **`a175814`** — `feat(jobs): add guarded production start` (**R3G COMPLETE / LIVE / VERIFIED** — explicit Start work; `jobs.production_started_at`; guarded `start_job_work_v1`; Scheduled → Production; generic Production blocked; migration **`20260817_046_job_production_start.sql`** applied on **`rhquhnujjnzjhweypavd`**). See **§6BU**.
 - **R3F code checkpoint:** **`f876ed9`** — `feat(jobs): add unified job scheduling` (**R3F SCHEDULING COMPLETE / LIVE / VERIFIED** — canonical `job_schedules`; company timezone; civil all-day/timed work; Job Card, Calendar Month/Week, Calendar create, Board Scheduled lane, Activity; migration **`20260817_045_job_schedules.sql`** applied on **`rhquhnujjnzjhweypavd`**). See **§6BT**.
 - **R3E code checkpoint:** **`f6c1301`** — `feat(payments): add contractor deposit payments`; docs checkpoint **`040ce63`** — `docs: checkpoint contractor payments` (**R3E COMPLETE / LIVE / VERIFIED**; migration **044 LIVE / historical**). See **§6BS**.
-- **Docs checkpoint:** **Pending this docs commit** — records **Adversarial Audit Wave 2 COMPLETE** (§6BZ); next = **rerun Deep Whole-System Adversarial Audit** (do not start automatically).
+- **Docs checkpoint:** **Pending this docs commit** — records **Runtime ownership hardening COMPLETE** (§6CA); next = **Deep Whole-System Adversarial Audit Rerun #3** (do not start automatically).
+- **Prior docs checkpoint:** **`66b7164`** — `docs: checkpoint adversarial audit wave 2` (§6BZ).
 - **Prior docs checkpoint:** **`d2c2bef`** — `docs: checkpoint adversarial audit wave 1` (§6BY).
 - **Prior docs checkpoint:** **`5829f06`** — `docs: checkpoint post-R3H architecture hardening` (§6BX).
 - **R3D code checkpoint:** **`0d06ad8`** — `feat(proposals): add customer proposal signatures` (**R3D SIGNATURES COMPLETE / LIVE** — immutable `proposal_signatures`; atomic Accept & sign; Sign proposal reuses acceptance; Public Proposal signed; Job Card Accepted/Signed; Activity Proposal signed; migration **`20260816_043_proposal_signatures.sql`** applied on **`rhquhnujjnzjhweypavd`**). See **§6BR**.
@@ -84,6 +87,7 @@
 - **Deep Whole-System Adversarial Audit:** **COMPLETE.**
 - **Adversarial Audit Wave 1:** **COMPLETE.** See **§6BY**.
 - **Adversarial Audit Wave 2:** **COMPLETE.** See **§6BZ**.
+- **Runtime ownership hardening:** **COMPLETE.** See **§6CA**.
 - **Proposal Flow V2:** **COMPLETE / LOCKED** (unchanged; code lock **`dbea772`**).
 - **Previous code checkpoint:** **`dbea772`** — `feat(proposals): complete customer package comparison` (Proposal Flow **V2G COMPLETE** — customer package-comparison flag, frozen composition-derived comparison, frozen option-total pricing display, Preview/Public parity, legacy fallback, final customer presentation integration).
 - **Previous code checkpoint:** **`c54fc0a`** — `feat(proposals): complete proposal revision lifecycle` (Proposal Flow **V2F COMPLETE** — revision resend, Phase-B C4 dedicated email-send caller, runtime change summary, exact sent-record/history truth, Send revision UX, final visual review).
@@ -103,16 +107,16 @@
 - **Earlier docs checkpoint:** **`d4278a7`** — `docs: checkpoint completed proposal revision lifecycle` (V2F COMPLETE at **`c54fc0a`**).
 - **Earlier docs checkpoint:** **`04f5290`** — `docs: lock job lifecycle stage architecture` (**§6BP** — approved plan only at that time; **now implemented** at **`7510abd`**).
 - **Earlier docs checkpoint:** **`80ae9ee`** — `docs: checkpoint reusable proposal templates completion`.
-- **Working tree:** Code committed at Wave 2 (`fix(app): close adversarial architecture findings`); this pass is **docs only** (`docs/fielddive-global-handoff.md`). Only `?? tmp/` expected otherwise. No app/test/migration/package changes in the docs commit. **tmp remains gitignored / unstaged.**
+- **Working tree:** Code committed at runtime ownership (`refactor(app): reduce runtime critical paths`); this pass is **docs only** (`docs/fielddive-global-handoff.md`). Only `?? tmp/` expected otherwise. No app/test/migration/package changes in the docs commit. **tmp remains gitignored / unstaged.**
 - **Push state:** Local only / not pushed. **NO PUSH.**
 - **Accepted:** **R3H Guarded Job Completion COMPLETE / LIVE / VERIFIED / LOCKED** at **`f941259`**. **R3G Guarded Production Start COMPLETE / LIVE / VERIFIED** at **`a175814`**. **R3F Unified Job Scheduling COMPLETE / LIVE / VERIFIED** at **`f876ed9`**. **R3E Contractor Deposit Payments COMPLETE / LIVE / VERIFIED** at **`f6c1301`**. **R3D Customer Proposal Signatures COMPLETE / LIVE** at **`0d06ad8`**. **R3C Formal Customer Acceptance COMPLETE / LIVE** at **`d1514a1`**. **Revision timing COMPLETE / LIVE** at **`ef2559f`**. **Job Lifecycle Foundation COMPLETE / LIVE / VERIFIED** at **`7510abd`**. **Proposal Flow V2 COMPLETE / LOCKED** at **`dbea772`**: **V2A** (Job Card Prepare proposal) + **V2B** (Builder frozen at **`f339652`**) + **V2C** (Preview/Send frozen at **`521c148`**) + **V2D** (Public frozen at **`2a2dc69`**) + **V2E1** (Template→draft isolation frozen at **`6276cf3`**) + **V2E2** (package composition intelligence frozen at **`58839e4`**) + **V2E3–V2E6** (reusable proposal Templates completion frozen at **`9d61e41`**) + **V2F** (revision lifecycle complete at **`c54fc0a`**) + **V2G** (customer package comparison complete at **`dbea772`**) on top of accepted **R3A0 / R3A / R3B / R3B4A / R3B4B**. See **§6BV**, **§6BU**, **§6BT**, **§6BS**, **§6BR**, **§6BQ**, and **§6BO.13.4.9 R3**.
-- **Next:** **Rerun Deep Whole-System Adversarial Audit.** Do **not** start automatically. Preserve R3H + Stage AB eligibility + PERF-1 + Wave 1 + Wave 2. Application lifecycle writes must remain guarded. **Live migrations on `rhquhnujjnzjhweypavd`:** **038** Job Lifecycle Foundation; **039 absent / reserved**; **040–042** acceptance/revision timing; **043** Proposal Signatures; **044** Job Payments; **045** Unified Job Scheduling; **046** Guarded Production Start; **047** Guarded Job Completion (**all listed migrations except absent 039 are LIVE / historical**). Do not modify applied migrations. Do not reopen Proposal Flow V2 casually.
+- **Next:** **Deep Whole-System Adversarial Audit Rerun #3.** Do **not** start automatically. Preserve R3H + Stage AB eligibility + PERF-1 + Wave 1 + Wave 2 + runtime ownership. Application lifecycle writes must remain guarded. **Live migrations on `rhquhnujjnzjhweypavd`:** **038** Job Lifecycle Foundation; **039 absent / reserved**; **040–042** acceptance/revision timing; **043** Proposal Signatures; **044** Job Payments; **045** Unified Job Scheduling; **046** Guarded Production Start; **047** Guarded Job Completion (**all listed migrations except absent 039 are LIVE / historical**). Do not modify applied migrations. Do not reopen Proposal Flow V2 casually.
 - **Job lifecycle model (COMPLETE / LIVE / VERIFIED):** See **§6BP**, **§6BQ**, **§6BT**, **§6BU**, and **§6BV**. Canonical six stages: Intake → Proposal → Approved → Scheduled → Production → Complete. Enabled writes include **Intake → Proposal** (first real proposal AUTO), **Proposal → Approved** (explicit contractor Approve job after customer Accept — not AUTO), **Approved → Scheduled** (schedule RPC only), **Scheduled → Approved** (unschedule RPC only), **Scheduled → Production** (Start work RPC only), and **Production → Complete** (Complete job RPC only). Generic stage transition cannot mint Scheduled, Production, or Complete. Job stage, proposal state, financial state, Attention, Activity, Tasks, disposition, and archived visibility remain separate concepts.
 - **Product model (locked):** **Templates** = FieldDive **prepared-setup command surface** for reusable setups and package options — **not** an admin table, stacked setup console, or bolted-on CRUD panel. Hierarchy: **prepared setup first** → **guided creation when needed** → **contextual adjust second** → **Advanced third**. **+ Template** = 3-step guided create (**Basics → Packages → Review & create**; One / Two / Three / Custom package models). **Templates → Adjust packages** = post-create package-option management (Copy existing default, Start blank shell, reorder, remove from setup, set starting package / R1 `is_default`) — **does not create new templates**. **Templates library lifecycle (R2A)** = archive/restore reusable setups (`proposal_templates.status` + synced `active`); **not** package-option soft-remove. **Preferred setup (R2B)** = which reusable setup FieldDive suggests first for a company workflow (`company_template_preferences`; initial scope `roofing` / `proposal` / `preferred_setup`); **separate from** package-option `is_default` (UI may say **Starting package**). **Templates Proposal packet wording (R3A / V2E5)** = landing **Proposal packet → Edit customer wording** is the normal reusable wording owner; setup-owned defaults copy into proposal pages; Advanced Content tab was removed as a duplicate write path; **Builder** owns proposal-specific wording after create; **Preview** renders **current draft** customer-document truth for contractor review/send; **Public** resolves **frozen sent** version via public token (no template save-back). **Public packet (R3A0)** = FieldDive customer-facing proposal structure with request/ask CTAs (base template accepted, not final design). **Customer package request (R3B)** = non-binding contractor-attention signal (`proposal_customer_requests`); **not** accept / approve / sign / pay / schedule / Jobs Board stage move. **Attention (R3B4)** = durable company operational condition (`job_attention_items`) with separate personal read (`job_attention_user_state`); surfaced on Jobs Board + Job Card next-action; **not** a task, stage, or lifecycle mutation. **Job Card** = select **preferred** eligible setup first when set, else starter / first active eligible; then select one package option only when 2+ active options (R1 default/sort); top next-action surface is canonical for attention actions; **Prepare proposal** is the compact V2A launchpad (Measurement / reusable setup / Starting package → **Create proposal**); Proposals tab is contextual/read-only for requests; Activity retains history. **Builder** = document-first job-specific draft preparation after create (draft `proposal_options` truth, not live template options); **requires `job` + `proposal`**; healthy Builder is quiet; **Customer review** is the primary CTA; compact request banner only when a request is active; job-only setup-preview is retired. **Preview** = contractor review/send surface over **current draft** document; quiet when healthy; primary **Send**; request awareness only (Mark seen/Dismiss stay Job Card). **Public** = customer frozen/sent version. Correct flow: **Job Card → Prepare proposal → Builder → Customer review / Preview → Send → customer frozen/public version**; customer may **Request this package** (non-binding) → attention opens → contractor discovers via Jobs Board / Job Card next-action → **review / mark seen / dismiss**.
 - **Historical note (Preview + Send pre-V2C):** Checkpoint **`8bb19b4`** / docs **`86739d0`** unify the contractor Preview header, readiness, actions, and customer proposal into one surface; elevate the customer packet; and rework Send/sharing into a premium delivery composer. Superseded for current Preview/Send resume by **V2C frozen at `521c148`**.
 - **Historical note (Builder continuity):** Checkpoint **`a49b346`** aligns Builder with that Preview direction as contractor edit/review mode: premium command header; integrated section navigation (not a boxed tray); selected Enhanced package card with Change package vs Edit scope clarified; estimate + totals on one surface; cleaned row actions + preserved inline Edit qty; Edit scope drawer as contractor quantity review with accordion open/switch/collapse; intentional removed-lines collapsible. Protected systems untouched. Superseded for Builder resume by **V2B frozen at `f339652`**.
 
-**Trust order:** Header/current checkpoint → **§6BZ** (Adversarial Audit Wave 2 **COMPLETE** — contractor capability API auth; server mutation UUID import hygiene; Preview independent reads + stale guards; error/absence semantics; Board/Calendar a11y; historical stage aliases; Work Orders placeholder; 390 proof) → **§6BY** (Adversarial Audit Wave 1 **COMPLETE** — canonical Board ownership; truthful Board/Calendar failure; stale Job Card + Calendar guards; Attention coalescing) → **§6BX** (Post-R3H combined architecture hardening **COMPLETE** — read ownership; fan-out coalescing; middleware API auth; Activity decoupling) → **§6BW** (Stage AB lifecycle action guard parity **COMPLETE** — shared eligibility ownership) → **§6BV** (R3H Guarded Job Completion **COMPLETE / LIVE / VERIFIED / LOCKED** at `f941259`; **047 LIVE / historical**) → **§6BU** (R3G Guarded Production Start **COMPLETE / LIVE / VERIFIED** at `a175814`; **046 LIVE / historical**) → **§6BT** (R3F Unified Job Scheduling **COMPLETE / LIVE / VERIFIED** at `f876ed9`; **045 LIVE / historical**) → **§6BS** (R3E Payments COMPLETE / LIVE at `f6c1301`; 044 historical) → **§6BR** (R3D Signatures COMPLETE / LIVE) → **§6BQ** (R3C Acceptance) → **§6BP** (Job Lifecycle Foundation) → **§6BO.13.4.9 R3** / Proposal Flow V2 history → remaining historical sections. **Do not proceed** to the next feature until explicitly approved. Do not mutate existing sent/signed/superseded snapshots or applied migrations. Do not reopen Proposal Flow V2 except for a proven correctness, security, or explicitly approved cross-surface requirement.
+**Trust order:** Header/current checkpoint → **§6CA** (Runtime ownership hardening **COMPLETE** — Job Card compile graph split; Board jobs-first; truthful schedule/proposal errors; Attention stale guard; public test cleanup) → **§6BZ** (Adversarial Audit Wave 2 **COMPLETE** — contractor capability API auth; server mutation UUID import hygiene; Preview independent reads + stale guards; error/absence semantics; Board/Calendar a11y; historical stage aliases; Work Orders placeholder; 390 proof) → **§6BY** (Adversarial Audit Wave 1 **COMPLETE** — canonical Board ownership; truthful Board/Calendar failure; stale Job Card + Calendar guards; Attention coalescing) → **§6BX** (Post-R3H combined architecture hardening **COMPLETE** — read ownership; fan-out coalescing; middleware API auth; Activity decoupling) → **§6BW** (Stage AB lifecycle action guard parity **COMPLETE** — shared eligibility ownership) → **§6BV** (R3H Guarded Job Completion **COMPLETE / LIVE / VERIFIED / LOCKED** at `f941259`; **047 LIVE / historical**) → **§6BU** (R3G Guarded Production Start **COMPLETE / LIVE / VERIFIED** at `a175814`; **046 LIVE / historical**) → **§6BT** (R3F Unified Job Scheduling **COMPLETE / LIVE / VERIFIED** at `f876ed9`; **045 LIVE / historical**) → **§6BS** (R3E Payments COMPLETE / LIVE at `f6c1301`; 044 historical) → **§6BR** (R3D Signatures COMPLETE / LIVE) → **§6BQ** (R3C Acceptance) → **§6BP** (Job Lifecycle Foundation) → **§6BO.13.4.9 R3** / Proposal Flow V2 history → remaining historical sections. **Do not proceed** to the next feature until explicitly approved. Do not mutate existing sent/signed/superseded snapshots or applied migrations. Do not reopen Proposal Flow V2 except for a proven correctness, security, or explicitly approved cross-surface requirement.
 
 **DB-first foundation is live** (§6AD). **3J3E option selection persists** (§6AE). **Pricing trust hardening complete** (§6AF). **3J4C document-first Builder complete** (§6AG) — Estimate page renders the actual proposal document inline (package selector, sections, line items, totals); right rail is a contextual **Proposal Helper** inspector; old workspace tabs and Overview panel **removed**. **R16A** (§6AX) removed the amber **Preview-unlock blocker banner** from the Estimate **canvas**; pricing/blocking guidance remains in the rail. **3J4D** refined Estimate line readability (§6AH). **3J4E** refined package/options surface inside Estimate (§6AI). **3J4F** extended Builder to customer-facing text pages — Terms, Warranty, Project Overview, custom_text render persisted `body_markdown` when present (§6AJ). **R14** adds display-time `{{token_name}}` merge on those text pages from frozen `proposalDocumentContext` + R13 resolver (`f359ad4`, §6AW) — stored `body_markdown` unchanged; no write-back. **R4–R6** template content editor on `/tools/roofing/templates` **complete** (`9db2030`–`3c6214c`). **R7** light global IA nav **complete** (`05b9c54`). **R8** light Jobs Board identity **complete** (`1191ddd`). **R9** Job Card create/open draft flow **satisfied** (`1915b2d` + pre-R10 P1 at `d0ba188`). **R10** template structure + estimate settings **complete** (`bc42b1e`–`b3dd904`, §6AQ). **R11** company branding Settings **complete** (`0146dac`–`139e8a3`, §6AR). **R11c** stamps company core + branding into `proposal_versions.context_echo` at new draft create only (`29722a0`, §6AS) — **no Builder cover UI**. **R12** stamps DB-truth customer identity into `proposal_versions.context_echo` at new draft create only (`31059e3`, §6AT) — **no Job Card UI changes, no Builder customer display**. **R13** adds pure frozen document token foundation (`e40db30`, §6AU) — registry, `ProposalDocumentContext`, resolver. **R15** adds read-only branded **Cover** tab in Proposal Builder (`ab5a400`, §6AV) — consumes `proposalDocumentContext` + resolver; **not** Preview/PDF/send/sign/payment. **R14** wires body text pages to the same frozen context at display time (`f359ad4`, §6AW). **R16A** separates contractor workspace chrome from customer document IA (`18cebca`, §6AX) — customer-logical page strip order, workspace header, simplified body shell; **not** Preview/PDF/lifecycle/hub. **R16B** adds per-proposal draft body authoring for text pages (`589f5a0`, §6AY) — raw `body_markdown` persist, R14 display merge only, Estimate line-items-only de-duplication on persisted path; **not** token picker, page visibility, media, Preview, or lifecycle. **R16C1** adds Builder strip overflow page navigation (`967f0de`, §6BA) — More pages menu for persisted overflow pages by `page.id`, dirty-edit guard preserved, portal menu fix; **not** page visibility, Preview, or lifecycle. **R16C2** adds registry-driven document token picker in the R16B editor (`0cf76d2`, §6BB) — Insert field menu inserts raw `{{token_name}}` only; R14 display-time merge unchanged; save persists raw `body_markdown` only; **not** page visibility, Preview, or lifecycle. **R16C3** adds DB-backed proposal page visibility hide-show foundation (`25f1375`, §6BC) — toggles existing `proposal_pages.visible_to_customer` via `updateDraftProposalPageVisibility`; hidden pages remain contractor-visible and editable in Builder; Cover/Estimate required; `getCustomerPreviewPages` R17 contract helper only; **not** Preview, customer route, PDF, or lifecycle. **R17A/R17B** adds authenticated contractor Customer Preview foundation (`8ac2bcb`, §6BE) — pure `proposalCustomerPreviewViewModel` + `/tools/roofing/proposals/preview?job=&proposal=` route; header Preview enabled when persisted draft loads; dirty-edit guard before Preview navigation; **not** public/tokenized customer access, PDF, Send, Sign, Payment, or lifecycle. **R17C1** adds Preview Estimate document presentation layer (`9c2244a`, §6BF) — pure `proposalCustomerEstimatePresenter` + Preview-only estimate UI; shared `proposalPackagePresentation`; Preview Estimate no longer imports Builder workbench table components; **not** R17C2 Builder workbench hierarchy (now complete at `3e65774`, §6BG), R17C3 typography polish, R18, PDF, Send, Sign, Payment, or lifecycle. **R17C2 Phase 1** adds pure Builder workbench estimate presenter (`3c04322`, §6BG) — `proposalBuilderWorkbenchEstimatePresenter` DTO only; no UI. **R17C2 Phase 2** adds zoned Builder Estimate workbench UI + scope review / hard blocker split + gated Edit Option shell (`3e65774`, §6BG) — **not** R17D scope decision backend, R17C3 typography, R18, PDF, Send, Sign, Payment, or lifecycle. **R17D Phase 1** adds persisted scope decision overlay + merge-on-refresh foundation (`43c83a2`, §6BH) — `proposal_option_scope_decisions` migration (`20260618_009`); **`manual_quantity` proven in tests**; zero-decision refresh unchanged; migration **appears applied** on configured project per §6BI. **R17D Phase 2** adds manual quantity UI/API — first real Edit Option action wired in Builder (`f5712ff`, §6BI); **`manual_quantity` only**; other Edit Option actions remain disabled; **full post-Phase-2 audit passed** (§6BI); **not** R17C3 typography, R18, PDF, Send, Sign, Payment, or lifecycle. Main workflow: **Job Board → DB job card (`job=`) → Create proposal / Open proposal → create/reuse DB proposal draft → Builder (`job=` + `proposal=`) → package selection persists to DB; refresh draft pricing when measurement changes**. Legacy `loadSaved=` / `currentSaved` / board-origin paths are **preserved but separated** — they **cannot create DB proposals directly**. **DB proposal math uses the new spine only** (`measurement_records` → `proposalQuantityResolver` → `proposalPricingEngine` → snapshots) — **not** legacy saved-estimate / Core-Enhanced-Premium estimator math. **`createDraftProposal`** runs from Job Card **Create proposal** only when checklist + pricing gates pass; **Builder reads** persisted drafts via **`getDraftGraph`** + **`proposalDraftGraphAdapter`** when `?proposal=` is present — **no Builder create path**, **no silent fallback** on invalid `proposal=`. **Do not** persist placeholder/unconfigured pricing policy. **Catalog custom delete/deactivate** is **not implemented** and remains a **separate later scope**.
 
@@ -120,7 +124,9 @@
 
 | Commit | Summary |
 |--------|---------|
-| *(this docs commit)* | **Docs** — Record **Adversarial Audit Wave 2 COMPLETE**; no migrations; next = rerun Deep Whole-System Adversarial Audit |
+| *(this docs commit)* | **Docs** — Record **Runtime ownership hardening COMPLETE**; no migrations; next = Adversarial Audit Rerun #3 |
+| `2ae31a0` | **Runtime ownership** — Job Card client graph split; Board jobs-first setup deferral; truthful schedule/proposal/template errors; Attention A→B guard; public stale-test cleanup |
+| `66b7164` | **Docs** — Checkpoint adversarial audit wave 2 |
 | `0b6c59b` | **Wave 2** — Contractor capability API auth; mutation UUID import hygiene; Preview independent reads + stale guards; error/absence semantics; Board/Calendar a11y; historical stage aliases; Work Orders placeholder |
 | `d2c2bef` | **Docs** — Checkpoint adversarial audit wave 1 |
 | `d882442` | **Wave 1** — Canonical Board column ownership; truthful Board/Calendar failure states; Job Card A→B stale refresh guard; Calendar stale-range guard; Attention coalescing |
@@ -16275,9 +16281,142 @@ Migrations **038–047**; **039 reserved**; **047** file/SHA; **048 absent**; Pr
 
 ### 6BZ.12 Remainder / next
 
-Wave 2 closes the currently known adversarial-audit findings listed in the Wave 2 brief. Intentional leftovers: no disposition UI / Board Approve / new Proposal/Calendar/payment/lifecycle capabilities; historical DB alias rows unrewritten; Work Orders remain unwired; live public accept/sign 390 document not minted; Next RSS remains large; pre-existing public-route regex tests.
+Wave 2 closes the currently known adversarial-audit findings listed in the Wave 2 brief. Intentional leftovers after Wave 2: no disposition UI / Board Approve / new Proposal/Calendar/payment/lifecycle capabilities; historical DB alias rows unrewritten; Work Orders remain unwired; live public accept/sign 390 document not minted; Next RSS remains large. The three pre-existing public-route regex tests plus Job Card compile / Board jobs-first leftovers were addressed in **§6CA**.
 
-**Next:** **Rerun Deep Whole-System Adversarial Audit.** Do not start automatically.
+**Next after Wave 2:** Runtime ownership hardening — **COMPLETE.** See **§6CA**.
+
+---
+
+## 6CA. RUNTIME OWNERSHIP HARDENING — JOB CARD GRAPH + BOARD JOBS-FIRST + TRUTHFUL ERRORS (2026-08-24)
+
+**Status:** **Runtime ownership COMPLETE.** Code checkpoint **`2ae31a0`** (`refactor(app): reduce runtime critical paths`). Docs checkpoint pending this commit. **No migration.** **No lifecycle truth change.** **No push.**
+
+Rerun #2 (audit-only, HEAD `66b7164`) found the next infrastructure layer after Wave 2: Job Card cold compile dragged the estimator graph; Board canonical jobs competed with company-setup catalog/templates/pricing; Job Card schedule/proposal transport failure painted as empty; Attention detail A→B race; three stale public source-regex tests; orphan Preview panel. This stage closes that layer in one pass.
+
+### 6CA.1 Job Card critical graph split
+
+**Old eager Job Card path:** `/tools/roofing?entry=job-card&job=` statically imported `RoofingClient`, which evaluated catalog store, pdf-lib / estimate send, templates, measurement, legacy estimator, and `RoofingClientV2` before first usable.
+
+**New ownership:**
+
+```
+Roofing route shell (page.tsx)
+→ isCleanJobCardRoute(entry=job-card + job + no loadSaved)
+→ dynamic import JobCardClient
+→ packet / instant / loadSaved still dynamic-import RoofingClient
+```
+
+`JobCardClient` owns Job identity, canonical stage, disposition, lifecycle eligibility, schedule read/settlement (PERF-1), timezone, payments strip, Attention, Start/Complete, schedule modal, proposals list, Activity. Secondary tabs load via `next/dynamic` → `JobCardSecondaryPanels` (`ssr: false`). Display types live in `jobCardDisplayTypes.ts` so Header/Metadata/Overview do not import `jobsBoardUtils` → `estimateStore`.
+
+`RoofingClient` V2 is now `dynamic(() => import("../roofing-v2/RoofingClientV2"), { ssr: false })` on the estimator path.
+
+### 6CA.2 Eager imports removed from the clean Job Card client
+
+`JobCardClient` does **not** statically import: `pdf-lib`, `catalogStore`, `defaultRoofingCatalog`, `estimateStore`, `sendEstimateClient`, `RoofingClientV2`, `ProposalBuilderClient`, catalog-setup client. Those remain on the RoofingClient / builder / catalog routes. Template setup on the clean card is a secondary dynamic panel.
+
+### 6CA.3 Board jobs-first
+
+**Old:** `useCompanySetupReadiness` ran with canonical jobs and contended Board first paint (branding, pricing, full catalog, all templates, estimates/setup).
+
+**New:**
+
+- `coreBoardReady = hydrated && dbJobsStatus === "ready"`
+- `useCompanySetupReadiness(companyId, { enabled: coreBoardReady })`
+- `data-board-core-ready` / `data-board-secondary-setup-ready`
+
+Canonical jobs and first Kanban paint do not wait for setup. Setup banner remains. Setup failure cannot block jobs. Jobs failure remains a truthful Board error (no fabricated emptiness).
+
+### 6CA.4 Truthful Job Card error states
+
+**Schedule:** `loading | ready_with_schedule | ready_without_schedule | error`. Only a successful empty canonical read may show **Not scheduled**. Transport/read failure shows **Schedule unavailable** (`data-jobcard-schedule-error`). Settlement no longer writes `[]` + loaded-for-job. Start/Complete stay blocked when schedule truth is unknown. No invented schedule. RPC guards unchanged. PERF-1: error still enables secondary; Complete still needs a planned schedule.
+
+**Proposal list:** `loading | ready_empty | ready_items | error`. Failure keeps last-known-good. Empty + error shows **Proposals unavailable** (`data-jobcard-proposals-unavailable`), not **No proposals yet**.
+
+**Template setup (secondary):** `applyTemplateSetupFetchResult` keeps previous templates; does not fabricate “no templates configured.” Quiet `data-jobcard-template-setup-error` chip. Does not block Job Card.
+
+### 6CA.5 Duplicate secondary-read reduction
+
+One owner per Job Card truth:
+
+| Truth | Owner |
+|---|---|
+| Payments | Job Card payments strip (`useJobPayments` / API). Activity `skipPaymentEnrichment`. |
+| Acceptances | Parent fetch once → Activity `ownedAcceptanceItems`. |
+| Signatures | Parent fetch once → Activity `ownedSignatureItems`. |
+| Templates | Secondary panel only. |
+
+No new Promise.all coupling of unrelated truths.
+
+### 6CA.6 Attention detail stale A→B
+
+`shouldApplyAttentionDetailResult` + `fetchGenerationRef` / `currentJobIdRef` in `useJobAttention`. Job switch increments generation and clears before apply. Stale A cannot paint on B. Same generation standard as Job Card / Calendar / Preview.
+
+### 6CA.7 Public stale tests + orphan panel
+
+| Test | Resolution |
+|---|---|
+| `proposalPublicReviewLink.server.test.ts` | Orphan `ProposalCustomerPreviewPublicAccessPanel` had zero product imports → **deleted**. Test no longer expects that panel. Live send-prep remains V2C2 `SendGatePanel`. |
+| `proposalPublicRouteGuardrails.test.ts` | Contract now: access token from `params`; `searchParams` cannot provide/replace token; payment return hint remains allowed. |
+| Multiline JSX / payment hint | Structural source contract accepts current multiline JSX + `paymentReturnHint`. Same-class update in `proposalPublicAccessOrchestrator.server.test.ts`. |
+
+Public-route security contract preserved. Panel was not rewired just to satisfy a regex.
+
+### 6CA.8 Import + DOM failure contracts
+
+`app/lib/runtimeOwnership.test.ts`:
+
+- Page split + `JobCardClient` must not eagerly import pdf-lib / catalog / estimator / builder.
+- Board source must not require setup readiness before jobs.
+- Schedule failure DOM (`renderToStaticMarkup`) does **not** contain “Not scheduled.”
+- Proposal-list failure DOM does **not** contain “No proposals.”
+- Template last-known-good; Attention A→B helper.
+
+### 6CA.9 Runtime + memory (user-owned localhost:3000, Next PID 29976, not restarted)
+
+| Surface | Before (Rerun #2 / Wave 2) | After this stage |
+|---|---|---|
+| Board first usable | ~7434 ms cold (setup contended) | **3082 ms**, `coreReady=true`, `setupReady=false` at first paint |
+| Board warm | ~2086 ms | **1912 ms**, setup still false at first paint |
+| Job Card first compile of **new** `JobCardClient` | ~14–15 s RoofingClient compile | **TTFB 29620 ms** (owned client confirmed; R18D3B Email Smoke) |
+| Job Card warm | ~1101 ms | **910 ms** |
+| Calendar | ~12.8 s class | ~13.1 s (not split this stage) |
+| Builder / Preview | already compiled | ~1.3 s / ~0.8 s TTFB |
+| Login | — | 401 ms |
+
+Honest Job Card cold: first compile of the new module inside this long-lived 22h / 7+ GB process was **worse**, not better. Acceptable because: RSS did not keep growing after idle; warm Job Card stayed ~1 s class; Board jobs-first is proven; future fresh-process graph is smaller by import ownership. **Do not restart Next to manufacture a smaller RSS.**
+
+| Memory | Audit before | After compile | After 2 min idle |
+|---|---|---|---|
+| Node RSS | ~6657 MB | 7476–7646 MB | **7411 MB** (partial recovery) |
+| Private working set | ~12.4 GB | ~13304–13385 MB | **13385 MB** |
+| Idle leak | — | — | **none** |
+
+Growth is compile-cache / new module graph in the existing process, not a per-navigation leak.
+
+Sequential one-pass (no loops): `/login` → Board → Job Card → Calendar → Builder → Preview → Job Card → Board → `/login`. Server remained responsive. Representative job `9cd2c4ac-3e46-4ba9-be58-8558fcd1ba73` (R18D3B Email Smoke), proposal `0bb17a11-06b7-400b-bf56-9fa5a590d598`.
+
+### 6CA.10 Live DB invariants
+
+**Not obtained.** No existing safe read-only invariant script was found. Credentials were not improvised. Report: **transparently unavailable.** Known Missing Schedule negative fixture must still be separated when a safe path exists.
+
+### 6CA.11 Verification
+
+- Locked 038–047 / PERF-1 / Stage AB / architecture hardening / Wave 1 / Wave 2 / Board / Job Card / Attention / Proposal V2 / public / new runtime ownership: **369 passed / 0 failed** (primary combined set).
+- Public + `runtimeOwnership`: **40 passed / 0 failed**. The three previously red public source-regex tests are **resolved**.
+- Touched new ownership modules lint: **exit 0**. `SavedClient.tsx` / `RoofingClient.tsx` retain pre-existing eslint issues (not “fixed” in this stage).
+- Filtered TypeScript on touched ownership files: clean after ScheduleJobModal typing alignment. Repo-wide `tsc` still has pre-existing `jobCardProposalSetup.test.ts:502` fixture error.
+- `git diff --check`: no whitespace errors (CRLF warnings only).
+- **047 SHA unchanged:** `FFE33FDD562742519BB92568CD5C55528537EA756540D1C6C906F8694B974979`. **039 reserved / absent. 048 absent.**
+
+### 6CA.12 Preserved (unchanged)
+
+Migrations **038–047**; **039 reserved**; **047** file/SHA; **048 absent**; Proposal Flow V2 freeze/send/public; acceptance; signatures; payment truth; `job_schedules`; timezone writes; `production_started_at`; `completed_at`; Complete terminal V1; Stage AB eligibility; PERF-1 settlement; Wave 1 Board canonical ownership; Wave 2 API auth / Preview independent reads.
+
+### 6CA.13 Remainder / next
+
+Intentional leftovers: no disposition UI / Board Approve / Work Orders / Material Orders / Invoices / inspection / customer-call / new stages / undo. Calendar/Builder compile graphs were **not** split this stage. Next RSS remains large until a **future fresh process**. Clean Job Card “+ Proposal” currently opens the secondary measurements placeholder; the full create-proposal modal still lives on the RoofingClient `loadSaved` path (behavior thinning, not a lifecycle-truth change). Live DB invariant counts remain unavailable without a safe existing path.
+
+**Next:** **Deep Whole-System Adversarial Audit Rerun #3.** Do not start automatically.
 
 ---
 
