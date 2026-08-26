@@ -43,6 +43,7 @@ import {
   type ProposalVersionGraph,
 } from "@/app/lib/proposalRecordStore";
 import { buildRevisionChangeSummary } from "@/app/lib/proposalRevisionChangeSummary";
+import type { ProposalPaymentTerms } from "@/app/lib/proposalPaymentTerms";
 import { resolvePreviousSentVersionId } from "@/app/lib/proposalSentVersionLineage";
 import {
   buildProposalPreviewSentFrozenChrome,
@@ -131,6 +132,7 @@ export default function ProposalCustomerPreviewClient({
   const [sendSharingOpen, setSendSharingOpen] = useState(false);
   const [lastSentFrozenAt, setLastSentFrozenAt] = useState<string | null>(null);
   const [comparisonGraph, setComparisonGraph] = useState<ProposalVersionGraph | null>(null);
+  const [paymentTerms, setPaymentTerms] = useState<ProposalPaymentTerms | null>(null);
   const loadGenerationRef = useRef(0);
 
   const loadPreview = useCallback(async () => {
@@ -387,6 +389,25 @@ export default function ProposalCustomerPreviewClient({
   }, [loadPreview]);
 
   const job = jobRead.status === "ready" ? jobRead.value : null;
+  useEffect(() => {
+    if (!hasValidParams) return;
+    let cancelled = false;
+    void (async () => {
+      const response = await fetch(
+        `/api/proposals/${encodeURIComponent(normalizedProposalId)}/payment-terms`
+      );
+      const payload = (await response.json()) as {
+        ok?: boolean;
+        terms?: ProposalPaymentTerms;
+      };
+      if (cancelled || !response.ok || payload.ok !== true || !payload.terms) return;
+      setPaymentTerms(payload.terms);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [hasValidParams, normalizedProposalId]);
+
   const persistedGraph =
     graphRead.status === "ready" ? graphRead.value : null;
   const catalogItems =
@@ -560,6 +581,12 @@ export default function ProposalCustomerPreviewClient({
               document={previewDocument}
               draftGraph={persistedGraph}
               catalogItems={catalogItems}
+              paymentTerms={paymentTerms}
+              selectedTotalCents={
+                persistedGraph?.options.find(
+                  (option) => option.id === persistedGraph.proposal.selected_option_id
+                )?.customer_total_cents ?? null
+              }
             />
           </ProposalPreviewReviewSurface>
 

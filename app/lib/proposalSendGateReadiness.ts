@@ -11,6 +11,13 @@ import type { ProposalRecord } from "@/app/lib/proposalRecordTypes";
 import type { JobRecord } from "@/app/lib/jobTypes";
 import type { ProposalDraftGraph } from "@/app/lib/proposalRecordStore";
 import type { ProposalCustomerPreviewReadiness } from "@/app/lib/proposalCustomerPreviewViewModel";
+import {
+  SEND_GATE_CONNECT_PAYMENTS_HREF,
+  SEND_GATE_PAYMENTS_SETUP_BODY,
+  SEND_GATE_PAYMENTS_SETUP_LABEL,
+  type ProposalPaymentTerms,
+} from "@/app/lib/proposalPaymentTerms";
+import { resolveOnlineDepositSendReadiness } from "@/app/lib/proposalPaymentSendReadiness";
 
 export const SEND_GATE_PANEL_TITLE = "Send proposal";
 export const SEND_GATE_SEND_PROPOSAL_LABEL = "Send proposal";
@@ -56,12 +63,10 @@ export const SEND_GATE_SNAPSHOT_PREPARED_LABEL = "Snapshot prepared";
 
 export const SEND_GATE_DEFERRED_SIGNATURE = "Signature — coming later";
 export const SEND_GATE_DEFERRED_PDF = "PDF — coming later";
-export const SEND_GATE_DEFERRED_PAYMENT = "Payment — coming later";
 
 export const SEND_GATE_DEFERRED_ACTIONS = [
   { id: "signature", label: SEND_GATE_DEFERRED_SIGNATURE },
   { id: "pdf", label: SEND_GATE_DEFERRED_PDF },
-  { id: "payment", label: SEND_GATE_DEFERRED_PAYMENT },
 ] as const;
 
 export type SendGateChecklistItemId =
@@ -69,7 +74,8 @@ export type SendGateChecklistItemId =
   | "sent_snapshot"
   | "pricing_scope"
   | "recipient_email"
-  | "branding_identity";
+  | "branding_identity"
+  | "payments";
 
 export type SendGateChecklistStatus =
   | "loading"
@@ -108,6 +114,8 @@ export type ProposalSendGateReadinessViewModel = {
   checklist: SendGateChecklistItem[];
   messagePreview: SendGateMessagePreview;
   deferredActions: readonly { id: string; label: string }[];
+  paymentsSetupRequired: boolean;
+  paymentsSetupHref: string | null;
 };
 
 export type BuildProposalSendGateReadinessInput = {
@@ -124,6 +132,8 @@ export type BuildProposalSendGateReadinessInput = {
   projectAddress: string | null;
   pricingStale?: boolean;
   emailDeliveryConfigured?: boolean;
+  paymentTerms?: ProposalPaymentTerms | null;
+  chargesEnabled?: boolean;
 };
 
 function readContextEchoString(
@@ -203,6 +213,8 @@ export function isSendPrepReadinessBlocking(input: {
     "blockingLineCount" | "pricingComplete"
   > | null;
   recipientEmail: string | null;
+  paymentTerms?: ProposalPaymentTerms | null;
+  chargesEnabled?: boolean;
 }): boolean {
   if (!input.recipientEmail) {
     return true;
@@ -214,6 +226,14 @@ export function isSendPrepReadinessBlocking(input: {
     return true;
   }
   if (input.previewReadiness?.pricingComplete === false) {
+    return true;
+  }
+  if (
+    resolveOnlineDepositSendReadiness({
+      terms: input.paymentTerms ?? null,
+      chargesEnabled: input.chargesEnabled === true,
+    }).blocked
+  ) {
     return true;
   }
   return false;
@@ -228,6 +248,8 @@ export function canPrepareCustomerSendLink(input: {
     "blockingLineCount" | "pricingComplete"
   > | null;
   recipientEmail: string | null;
+  paymentTerms?: ProposalPaymentTerms | null;
+  chargesEnabled?: boolean;
 }): boolean {
   if (input.loading || input.prepPending) {
     return false;
@@ -248,6 +270,8 @@ export function resolveSendGateCanSend(input: {
   > | null;
   recipientEmail: string | null;
   emailDeliveryConfigured?: boolean;
+  paymentTerms?: ProposalPaymentTerms | null;
+  chargesEnabled?: boolean;
 }): boolean {
   if (input.loading) {
     return false;
@@ -267,6 +291,8 @@ function resolveSendGateDisabledReason(input: {
     ProposalCustomerPreviewReadiness,
     "blockingLineCount" | "pricingComplete"
   > | null;
+  paymentTerms?: ProposalPaymentTerms | null;
+  chargesEnabled?: boolean;
 }): string {
   if (!input.deliveryEnabled) {
     return SEND_GATE_DELIVERY_DISABLED_MESSAGE;
@@ -275,6 +301,13 @@ function resolveSendGateDisabledReason(input: {
     return SEND_GATE_MISSING_RECIPIENT_BODY;
   }
   if (!input.canSend) {
+    const payments = resolveOnlineDepositSendReadiness({
+      terms: input.paymentTerms ?? null,
+      chargesEnabled: input.chargesEnabled === true,
+    });
+    if (payments.blocked) {
+      return SEND_GATE_PAYMENTS_SETUP_BODY;
+    }
     if (!input.sendFreezeReadiness?.ready) {
       return input.sendFreezeReadiness?.blockingReasons[0] ?? "Proposal readiness needs review.";
     }
@@ -472,10 +505,48 @@ function buildBrandingChecklist(
   };
 }
 
+function buildPaymentsChecklist(input: {
+  paymentTerms?: ProposalPaymentTerms | null;
+  chargesEnabled?: boolean;
+}): SendGateChecklistItem {
+  const payments = resolveOnlineDepositSendReadiness({
+    terms: input.paymentTerms ?? null,
+    chargesEnabled: input.chargesEnabled === true,
+  });
+  if (!payments.onlineDepositRequired) {
+    return {
+      id: "payments",
+      label: "Payments",
+      status: "ready",
+      detail: "No online deposit",
+    };
+  }
+  if (payments.blocked) {
+    return {
+      id: "payments",
+      label: SEND_GATE_PAYMENTS_SETUP_LABEL,
+      status: "missing",
+      detail: SEND_GATE_PAYMENTS_SETUP_BODY,
+    };
+  }
+  return {
+    id: "payments",
+    label: "Payments",
+    status: "ready",
+    detail: checklistStatusLabel("ready"),
+  };
+}
+
 export function buildProposalSendGateReadinessViewModel(
   input: BuildProposalSendGateReadinessInput
 ): ProposalSendGateReadinessViewModel {
   const deferredActions = SEND_GATE_DEFERRED_ACTIONS;
+  const payments = resolveOnlineDepositSendReadiness({
+    terms: input.paymentTerms ?? null,
+    chargesEnabled: input.chargesEnabled === true,
+  });
+  const paymentsSetupRequired = payments.blocked;
+  const paymentsSetupHref = paymentsSetupRequired ? SEND_GATE_CONNECT_PAYMENTS_HREF : null;
   const deliveryEnabled = resolveSendGateDeliveryEnabled(input.emailDeliveryConfigured);
   const canSend = resolveSendGateCanSend({
     loading: input.loading,
@@ -483,6 +554,8 @@ export function buildProposalSendGateReadinessViewModel(
     previewReadiness: input.previewReadiness,
     recipientEmail: input.recipientEmail,
     emailDeliveryConfigured: input.emailDeliveryConfigured,
+    paymentTerms: input.paymentTerms,
+    chargesEnabled: input.chargesEnabled,
   });
   const disabledReason = resolveSendGateDisabledReason({
     deliveryEnabled,
@@ -490,6 +563,8 @@ export function buildProposalSendGateReadinessViewModel(
     recipientEmail: input.recipientEmail,
     sendFreezeReadiness: input.sendFreezeReadiness,
     previewReadiness: input.previewReadiness,
+    paymentTerms: input.paymentTerms,
+    chargesEnabled: input.chargesEnabled,
   });
   const emailSendDisclaimer = SEND_GATE_EMAIL_SEND_DISCLAIMER;
 
@@ -547,9 +622,17 @@ export function buildProposalSendGateReadinessViewModel(
           status: "loading",
           detail: checklistStatusLabel("loading"),
         },
+        {
+          id: "payments",
+          label: "Payments",
+          status: "loading",
+          detail: checklistStatusLabel("loading"),
+        },
       ],
       messagePreview,
       deferredActions,
+      paymentsSetupRequired: false,
+      paymentsSetupHref: null,
     };
   }
 
@@ -559,6 +642,7 @@ export function buildProposalSendGateReadinessViewModel(
     buildPricingScopeChecklist(input),
     buildRecipientChecklist(input.recipientEmail),
     buildBrandingChecklist(input.sendFreezeReadiness),
+    buildPaymentsChecklist(input),
   ];
 
   const canPrepareCustomerLink = canPrepareCustomerSendLink({
@@ -566,6 +650,8 @@ export function buildProposalSendGateReadinessViewModel(
     sendFreezeReadiness: input.sendFreezeReadiness,
     previewReadiness: input.previewReadiness,
     recipientEmail: input.recipientEmail,
+    paymentTerms: input.paymentTerms,
+    chargesEnabled: input.chargesEnabled,
   });
 
   if (!input.hasSentSnapshot) {
@@ -582,12 +668,17 @@ export function buildProposalSendGateReadinessViewModel(
       checklist,
       messagePreview,
       deferredActions,
+      paymentsSetupRequired,
+      paymentsSetupHref,
     };
   }
 
   const bodyParts: string[] = [];
   if (!input.recipientEmail) {
     bodyParts.push(SEND_GATE_MISSING_RECIPIENT_BODY);
+  }
+  if (paymentsSetupRequired) {
+    bodyParts.push(SEND_GATE_PAYMENTS_SETUP_BODY);
   }
 
   return {
@@ -603,5 +694,7 @@ export function buildProposalSendGateReadinessViewModel(
     checklist,
     messagePreview,
     deferredActions,
+    paymentsSetupRequired,
+    paymentsSetupHref,
   };
 }

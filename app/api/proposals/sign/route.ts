@@ -5,6 +5,7 @@ import {
 } from "@/app/lib/proposalSignaturePersistence";
 import { proposalSignatureMarkError, assertProposalSignatureMark } from "@/app/lib/proposalSignatureMark";
 import { recordProposalSignature } from "@/app/lib/proposalSignatureStore.server";
+import { openJobDepositFromAcceptanceViaAdmin } from "@/app/lib/proposalPaymentTermsPersistence";
 import { formatProposalCustomerAcceptedOnLabel } from "@/app/lib/proposalCustomerPacketViewModel";
 
 export const runtime = "nodejs";
@@ -77,6 +78,11 @@ export async function POST(req: NextRequest) {
         { status: statusForFailure(result.code) }
       );
     }
+
+    await openJobDepositFromAcceptanceViaAdmin({
+      companyId: result.company_id,
+      acceptanceId: result.acceptance_id,
+    });
 
     return NextResponse.json({
       ok: true,

@@ -24,6 +24,7 @@ import ProposalBuilderWorkbenchPackageZone from "./ProposalBuilderWorkbenchPacka
 import ProposalBuilderWorkbenchReadyScopeZone from "./ProposalBuilderWorkbenchReadyScopeZone";
 import ProposalBuilderWorkbenchTotalsZone from "./ProposalBuilderWorkbenchTotalsZone";
 import ProposalBuilderWorkbenchUpgradesZone from "./ProposalBuilderWorkbenchUpgradesZone";
+import ProposalBuilderPaymentTerms from "./ProposalBuilderPaymentTerms";
 
 type ProposalBuilderWorkbenchEstimateDocumentProps = {
   graph: ProposalTemplateGraph;
@@ -43,6 +44,7 @@ type ProposalBuilderWorkbenchEstimateDocumentProps = {
   persistedPages?: ProposalPageRow[] | null;
   estimateVisibilityNotice: string | null;
   persistedDraftEnabled?: boolean;
+  proposalId?: string | null;
   activeScopeDecisionsForOption?: ProposalScopeDecision[];
   manualQuantityInFlight?: boolean;
   manualQuantityError?: string | null;
@@ -94,6 +96,7 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
   persistedPages,
   estimateVisibilityNotice,
   persistedDraftEnabled = false,
+  proposalId = null,
   activeScopeDecisionsForOption = [],
   manualQuantityInFlight = false,
   manualQuantityError = null,
@@ -363,6 +366,13 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
           />
 
           <ProposalBuilderWorkbenchTotalsZone zone={presentation.totalsZone} />
+
+          {proposalId ? (
+            <ProposalBuilderPaymentTerms
+              proposalId={proposalId}
+              selectedTotalCents={optionCustomerView?.customerTotalCents ?? null}
+            />
+          ) : null}
 
           <ProposalBuilderWorkbenchUpgradesZone
             zone={presentation.upgradesZone}

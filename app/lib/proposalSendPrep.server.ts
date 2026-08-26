@@ -15,6 +15,11 @@ import {
 import { mintProposalPublicAccessToken } from "@/app/lib/proposalPublicAccessTokenMintStore.server";
 import { getDraftGraph } from "@/app/lib/proposalRecordStore";
 import { deriveProposalPricingStale } from "@/app/lib/proposalStaleness";
+import { readDraftOnlineDepositSendReadiness } from "@/app/lib/proposalPaymentTermsPersistence";
+import {
+  SEND_GATE_PAYMENTS_SETUP_BODY,
+} from "@/app/lib/proposalPaymentTerms";
+import { SEND_GATE_PAYMENTS_SETUP_CODE } from "@/app/lib/proposalPaymentSendReadiness";
 import { createClient } from "@/app/lib/supabase/server";
 
 export type {
@@ -42,6 +47,18 @@ export async function prepareProposalCustomerSendLinkForContractor(
         measurementUpdatedAt: measurement?.updated_at ?? null,
       }).stale;
     }
+  }
+
+  const payments = await readDraftOnlineDepositSendReadiness(supabase, {
+    companyId: input.companyId,
+    proposalId: input.proposalId,
+  });
+  if (payments.blocked) {
+    return {
+      ok: false,
+      message: SEND_GATE_PAYMENTS_SETUP_BODY,
+      code: SEND_GATE_PAYMENTS_SETUP_CODE,
+    };
   }
 
   return prepareProposalCustomerSendLink(

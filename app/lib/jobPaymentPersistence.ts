@@ -11,6 +11,7 @@ import {
   ENSURE_COMPANY_PAYMENT_SETTINGS_RPC_V1,
   RECORD_JOB_PAYMENT_PROVIDER_EVENT_RPC_V1,
   RESOLVE_PUBLIC_JOB_PAYMENT_CHECKOUT_RPC_V1,
+  SET_JOB_PAYMENT_SETTLED_METHOD_RPC_V1,
   UPSERT_COMPANY_PAYMENT_ACCOUNT_FROM_PROVIDER_RPC_V1,
   UPSERT_COMPANY_PAYMENT_SETTINGS_RPC_V1,
   type CompanyPaymentDepositMode,
@@ -180,7 +181,7 @@ export async function recordJobPaymentProviderEventViaRpc(
   supabase: SupabaseClient,
   command: JobPaymentProviderEventCommand
 ): Promise<Record<string, unknown>> {
-  return rpcJson(supabase, RECORD_JOB_PAYMENT_PROVIDER_EVENT_RPC_V1, {
+  const recorded = await rpcJson(supabase, RECORD_JOB_PAYMENT_PROVIDER_EVENT_RPC_V1, {
     p_payload: {
       provider_event_id: command.provider_event_id,
       raw_type: command.raw_type,
@@ -196,6 +197,19 @@ export async function recordJobPaymentProviderEventViaRpc(
       apply_request_status: command.apply_request_status,
     },
   });
+  if (
+    command.payment_method_label &&
+    command.payment_request_id &&
+    isUuidLike(command.payment_request_id)
+  ) {
+    await rpcJson(supabase, SET_JOB_PAYMENT_SETTLED_METHOD_RPC_V1, {
+      p_payload: {
+        payment_request_id: command.payment_request_id,
+        label: command.payment_method_label,
+      },
+    });
+  }
+  return recorded;
 }
 
 export async function upsertCompanyPaymentAccountFromProviderViaRpc(

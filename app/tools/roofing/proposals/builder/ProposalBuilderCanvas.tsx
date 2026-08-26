@@ -76,6 +76,7 @@ type ProposalBuilderCanvasProps = {
   onTogglePageVisibility?: (pageId: string, visibleToCustomer: boolean) => void;
   pageVisibilityToggleInFlight?: boolean;
   persistedDraftEnabled?: boolean;
+  proposalId?: string | null;
   activeScopeDecisionsForOption?: import("@/app/lib/proposalScopeDecisionTypes").ProposalScopeDecision[];
   manualQuantityInFlight?: boolean;
   manualQuantityError?: string | null;
@@ -216,6 +217,7 @@ export default function ProposalBuilderCanvas({
   onTogglePageVisibility,
   pageVisibilityToggleInFlight = false,
   persistedDraftEnabled = false,
+  proposalId = null,
   activeScopeDecisionsForOption = [],
   manualQuantityInFlight = false,
   manualQuantityError = null,
@@ -389,6 +391,7 @@ export default function ProposalBuilderCanvas({
       persistedPages={persistedPages}
       estimateVisibilityNotice={estimateVisibility.requiredNotice}
       persistedDraftEnabled={persistedDraftEnabled}
+      proposalId={proposalId}
       activeScopeDecisionsForOption={activeScopeDecisionsForOption}
       manualQuantityInFlight={manualQuantityInFlight}
       manualQuantityError={manualQuantityError}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   AlertCircle,
@@ -40,6 +40,10 @@ import {
   SEND_GATE_SEND_REVISION_LABEL,
   resolveSendGateSheetTitle,
 } from "@/app/lib/proposalSendGateReadiness";
+import {
+  SEND_GATE_CONNECT_PAYMENTS_CTA,
+  type ProposalPaymentTerms,
+} from "@/app/lib/proposalPaymentTerms";
 import ProposalCustomerPreviewDeliveryHistorySection from "./ProposalCustomerPreviewDeliveryHistorySection";
 
 type SendPrepSessionLink = {
@@ -136,6 +140,42 @@ export default function ProposalCustomerPreviewSendGatePanel({
   const [sendSuccess, setSendSuccess] = useState<EmailSendSuccess | null>(null);
   const [deliveryHistoryRefreshKey, setDeliveryHistoryRefreshKey] = useState(0);
   const [deliveryActivitySummary, setDeliveryActivitySummary] = useState<string | null>(null);
+  const [paymentTerms, setPaymentTerms] = useState<ProposalPaymentTerms | null>(null);
+  const [chargesEnabled, setChargesEnabled] = useState(false);
+  const [paymentsStatusLoaded, setPaymentsStatusLoaded] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadPayments() {
+      try {
+        const [termsRes, statusRes] = await Promise.all([
+          fetch(`/api/proposals/${encodeURIComponent(proposalId)}/payment-terms`),
+          fetch("/api/company/payments/status"),
+        ]);
+        const termsPayload = (await termsRes.json()) as {
+          ok?: boolean;
+          terms?: ProposalPaymentTerms;
+        };
+        const statusPayload = (await statusRes.json()) as {
+          ok?: boolean;
+          chargesEnabled?: boolean;
+        };
+        if (cancelled) return;
+        if (termsRes.ok && termsPayload.ok === true && termsPayload.terms) {
+          setPaymentTerms(termsPayload.terms);
+        }
+        setChargesEnabled(statusPayload.chargesEnabled === true);
+      } catch {
+        if (!cancelled) setChargesEnabled(false);
+      } finally {
+        if (!cancelled) setPaymentsStatusLoaded(true);
+      }
+    }
+    void loadPayments();
+    return () => {
+      cancelled = true;
+    };
+  }, [proposalId]);
 
   const sendFreezeReadiness = useMemo(() => {
     if (!graph || loading) return null;
@@ -161,7 +201,7 @@ export default function ProposalCustomerPreviewSendGatePanel({
   const readiness = useMemo(
     () =>
       buildProposalSendGateReadinessViewModel({
-        loading,
+        loading: loading || !paymentsStatusLoaded,
         hasSentSnapshot: graph ? hasProposalSendSnapshot(graph.proposal) : false,
         sendFreezeReadiness,
         previewReadiness,
@@ -171,13 +211,18 @@ export default function ProposalCustomerPreviewSendGatePanel({
         projectAddress,
         pricingStale,
         emailDeliveryConfigured,
+        paymentTerms,
+        chargesEnabled,
       }),
     [
+      chargesEnabled,
       companyName,
       customerFirstName,
       emailDeliveryConfigured,
       graph,
       loading,
+      paymentTerms,
+      paymentsStatusLoaded,
       previewReadiness,
       pricingStale,
       recipientEmail,
@@ -494,6 +539,26 @@ export default function ProposalCustomerPreviewSendGatePanel({
         >
           {sendErrorMessage}
         </p>
+      ) : null}
+
+      {readiness.paymentsSetupRequired ? (
+        <div
+          className="rounded-lg border border-amber-200 bg-amber-50 px-3.5 py-3"
+          data-preview-send-payments-setup
+          role="status"
+        >
+          <p className="text-sm font-semibold text-amber-950">Payments setup required</p>
+          <p className="mt-1 text-sm text-amber-900">{readiness.disabledReason}</p>
+          {readiness.paymentsSetupHref ? (
+            <Link
+              href={readiness.paymentsSetupHref}
+              className="mt-2 inline-flex min-h-[44px] items-center text-sm font-semibold text-blue-700 underline-offset-2 hover:underline"
+              data-preview-connect-payments
+            >
+              {SEND_GATE_CONNECT_PAYMENTS_CTA}
+            </Link>
+          ) : null}
+        </div>
       ) : null}
 
       {copyMessage ? <p className="text-sm text-emerald-700">{copyMessage}</p> : null}

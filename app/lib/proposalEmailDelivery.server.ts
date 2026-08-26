@@ -27,6 +27,9 @@ import { buildProposalSendSnapshotServerDeps } from "@/app/lib/proposalIdentityE
 import { mintAndSupersedeProposalPublicAccessToken } from "@/app/lib/proposalPublicAccessTokenMintStore.server";
 import { getDraftGraph } from "@/app/lib/proposalRecordStore";
 import { deriveProposalPricingStale } from "@/app/lib/proposalStaleness";
+import { readDraftOnlineDepositSendReadiness } from "@/app/lib/proposalPaymentTermsPersistence";
+import { SEND_GATE_PAYMENTS_SETUP_BODY } from "@/app/lib/proposalPaymentTerms";
+import { SEND_GATE_PAYMENTS_SETUP_CODE } from "@/app/lib/proposalPaymentSendReadiness";
 import { createClient } from "@/app/lib/supabase/server";
 
 export type {
@@ -127,6 +130,18 @@ export async function sendProposalEmailForContractor(
         measurementUpdatedAt: measurement?.updated_at ?? null,
       }).stale;
     }
+  }
+
+  const payments = await readDraftOnlineDepositSendReadiness(supabase, {
+    companyId: input.companyId,
+    proposalId: input.proposalId,
+  });
+  if (payments.blocked) {
+    return {
+      ok: false,
+      code: SEND_GATE_PAYMENTS_SETUP_CODE,
+      message: SEND_GATE_PAYMENTS_SETUP_BODY,
+    };
   }
 
   const emailConfig = resolveProposalEmailDeliveryConfig(input.origin, input.replyTo);

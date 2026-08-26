@@ -40,13 +40,11 @@ export const PUBLIC_REVIEW_MINT_ERROR_MESSAGE =
 export const PUBLIC_REVIEW_DEFERRED_SEND = "Send proposal — not enabled yet";
 export const PUBLIC_REVIEW_DEFERRED_SIGNATURE = "Signature — coming later";
 export const PUBLIC_REVIEW_DEFERRED_PDF = "PDF — coming later";
-export const PUBLIC_REVIEW_DEFERRED_PAYMENT = "Payment — coming later";
 
 export const PUBLIC_REVIEW_DEFERRED_ACTIONS = [
   { id: "send", label: PUBLIC_REVIEW_DEFERRED_SEND },
   { id: "signature", label: PUBLIC_REVIEW_DEFERRED_SIGNATURE },
   { id: "pdf", label: PUBLIC_REVIEW_DEFERRED_PDF },
-  { id: "payment", label: PUBLIC_REVIEW_DEFERRED_PAYMENT },
 ] as const;
 
 export type PublicReviewSentSnapshotStatus = "loading" | "not_created" | "ready";

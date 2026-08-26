@@ -138,7 +138,6 @@ describe("buildPublicReviewReadinessViewModel", () => {
         PUBLIC_REVIEW_DEFERRED_SEND,
         "Signature — coming later",
         "PDF — coming later",
-        "Payment — coming later",
       ]
     );
   });

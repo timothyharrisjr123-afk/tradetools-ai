@@ -18,6 +18,8 @@ import ProposalCustomerPreviewTrustBridge from "./ProposalCustomerPreviewTrustBr
 import ProposalCustomerPreviewEstimateTable from "./ProposalCustomerPreviewEstimateTable";
 import ProposalCustomerPreviewPacketSection from "./ProposalCustomerPreviewPacketSection";
 import { PACKET_FOOTER } from "./proposalCustomerPacketStyles";
+import ProposalPaymentTermsBlock from "@/app/components/proposal-packet/ProposalPaymentTermsBlock";
+import type { ProposalPaymentTerms } from "@/app/lib/proposalPaymentTerms";
 
 type ProposalCustomerPreviewDocumentProps = {
   document: ProposalCustomerPreviewDocument;
@@ -28,6 +30,8 @@ type ProposalCustomerPreviewDocumentProps = {
    * Never used to import Template presentation.
    */
   catalogItems?: CatalogItem[];
+  paymentTerms?: ProposalPaymentTerms | null;
+  selectedTotalCents?: number | null;
 };
 
 /**
@@ -39,6 +43,8 @@ export default function ProposalCustomerPreviewDocumentView({
   document,
   draftGraph,
   catalogItems = [],
+  paymentTerms = null,
+  selectedTotalCents = null,
 }: ProposalCustomerPreviewDocumentProps) {
   const coverPage = document.pages.find((page) => page.kind === "cover");
   const estimatePage = document.pages.find((page) => page.kind === "estimate");
@@ -141,6 +147,14 @@ export default function ProposalCustomerPreviewDocumentView({
             ]}
             totals={estimatePresentation.totals}
           />
+          {paymentTerms ? (
+            <div className="px-5 py-4 sm:px-7" data-preview-payment-terms>
+              <ProposalPaymentTermsBlock
+                terms={paymentTerms}
+                selectedTotalCents={selectedTotalCents}
+              />
+            </div>
+          ) : null}
         </>
       ) : null}
 

@@ -4,6 +4,7 @@ import {
   ProposalAcceptanceValidationError,
 } from "@/app/lib/proposalAcceptancePersistence";
 import { recordProposalAcceptance } from "@/app/lib/proposalAcceptanceStore.server";
+import { openJobDepositFromAcceptanceViaAdmin } from "@/app/lib/proposalPaymentTermsPersistence";
 
 export const runtime = "nodejs";
 
@@ -57,6 +58,11 @@ export async function POST(req: NextRequest) {
         { status: statusForFailure(result.code) }
       );
     }
+
+    await openJobDepositFromAcceptanceViaAdmin({
+      companyId: result.company_id,
+      acceptanceId: result.acceptance_id,
+    });
 
     return NextResponse.json({
       ok: true,

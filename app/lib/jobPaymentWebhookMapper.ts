@@ -11,6 +11,10 @@ import type {
   JobPaymentTransactionKind,
   JobPaymentTransactionStatus,
 } from "@/app/lib/jobPaymentTypes";
+import {
+  formatStripePaymentMethodDisplay,
+  stripePaymentMethodFromObject,
+} from "@/app/lib/jobPaymentMethodDisplay";
 
 export type StripeConnectEventLike = {
   id: string;
@@ -46,6 +50,7 @@ export type JobPaymentProviderEventCommand = {
     disabled: boolean;
     company_id: string | null;
   } | null;
+  payment_method_label: string | null;
 };
 
 const HANDLED_TYPES = new Set([
@@ -150,6 +155,9 @@ export function mapStripeConnectEventToCommand(
     transaction_status: null as JobPaymentTransactionStatus | null,
     apply_request_status: null as JobPaymentProviderEventCommand["apply_request_status"],
     account_update: null as JobPaymentProviderEventCommand["account_update"],
+    payment_method_label: formatStripePaymentMethodDisplay(
+      stripePaymentMethodFromObject(object)
+    ),
   };
 
   if (type === "account.updated") {

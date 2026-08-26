@@ -284,7 +284,7 @@ describe("buildProposalSendGateReadinessViewModel", () => {
       vm.deferredActions.map((action) => action.label),
       SEND_GATE_DEFERRED_ACTIONS.map((action) => action.label)
     );
-    assert.deepEqual(vm.deferredActions.map((action) => action.id), ["signature", "pdf", "payment"]);
+    assert.deepEqual(vm.deferredActions.map((action) => action.id), ["signature", "pdf"]);
   });
 
   test("copy uses approved send gate language", () => {

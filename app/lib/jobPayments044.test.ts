@@ -434,7 +434,8 @@ describe("legacy isolation and no stage write", () => {
     );
     assert.match(stripe, /stripeAccount: input\.connectedAccountId/);
     assert.match(stripe, /must not set application fees/);
-    assert.match(stripe, /payment_method_types: \["card", "us_bank_account"\]/);
+    assert.match(stripe, /automatic_payment_methods: \{ enabled: true \}/);
+    assert.match(stripe, /payment_method_types: \["card"\]/);
     assert.match(stripe, /R3E refuses live Stripe keys/);
     assert.match(stripe, /findReusableCheckoutSessionForRequest/);
     assert.match(stripe, /timeoutMs \?\? 8000/);

@@ -71,6 +71,7 @@ export type ProposalPublicAccessOrchestratorDeps = {
     proposalId: string;
     proposalVersionId: string;
   }) => Promise<{
+    id?: string;
     acceptedAt: string;
     signedAt?: string | null;
     signerPrintedName?: string | null;

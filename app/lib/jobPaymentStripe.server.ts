@@ -157,8 +157,8 @@ export async function createDirectCheckoutSession(
     return await stripe.checkout.sessions.create(
       {
         ...params,
-        payment_method_types: ["card", "us_bank_account"],
-      },
+        automatic_payment_methods: { enabled: true },
+      } as Stripe.Checkout.SessionCreateParams,
       requestOptions
     );
   } catch {

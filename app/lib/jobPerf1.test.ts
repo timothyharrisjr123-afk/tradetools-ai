@@ -146,12 +146,11 @@ describe("R3H-PERF-1 stabilization contracts", () => {
     assert.match(NEXT_CONFIG, /\*\*\/tmp\/\*\*/);
   });
 
-  test("047 unchanged, 048 absent, 039 absent", () => {
+  test("047 unchanged, 039 absent", () => {
     assert.ok(existsSync(SQL_047));
     const sha = createHash("sha256").update(readFileSync(SQL_047)).digest("hex").toUpperCase();
     assert.equal(sha, SQL_047_SHA);
     const migrations = readdirSync(join(ROOT, "supabase/migrations"));
     assert.ok(!migrations.some((name) => name.includes("_039_")));
-    assert.ok(!migrations.some((name) => name.includes("_048_")));
   });
 });

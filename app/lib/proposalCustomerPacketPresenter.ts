@@ -556,6 +556,8 @@ export function buildCustomerPacketFromPublicDto(
       signerDisplayName: null,
     },
     payment: null,
+    paymentTerms: null,
+    selectedTotalCents: null,
   };
 }
 

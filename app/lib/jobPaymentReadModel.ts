@@ -21,12 +21,14 @@ import {
   PUBLIC_PAYMENT_PARTIAL_REFUND_EXPLANATION,
   PUBLIC_PAYMENT_PENDING_EXPLANATION,
   PUBLIC_PAYMENT_PENDING_TITLE,
+  PUBLIC_PAYMENT_PAY_DEPOSIT_CTA,
   PUBLIC_PAYMENT_RECEIVED_TITLE,
   PUBLIC_PAYMENT_REFUNDED_EXPLANATION,
   PUBLIC_PAYMENT_REFUNDED_TITLE,
   type JobPaymentKind,
   type JobPaymentRequestStatus,
 } from "@/app/lib/jobPaymentTypes";
+import { PUBLIC_PAY_REMAINING_BALANCE_CTA } from "@/app/lib/proposalPaymentTerms";
 import { formatProposalCustomerAcceptedOnLabel } from "@/app/lib/proposalCustomerPacketViewModel";
 
 export type JobPaymentRequestRow = {
@@ -49,6 +51,7 @@ export type JobPaymentRequestRow = {
   requested_at: string;
   paid_at: string | null;
   cancelled_at: string | null;
+  settled_payment_method_label?: string | null;
 };
 
 export type JobPaymentTransactionRow = {
@@ -102,6 +105,7 @@ export type PublicPaymentViewModel = {
   paidOnLabel: string | null;
   explanation: string | null;
   ctaLabel: string | null;
+  methodLabel: string | null;
 };
 
 export function netPaidCents(
@@ -207,7 +211,7 @@ export function buildJobCardPaymentViewModel(input: {
       chargesEnabled,
       headline: JOB_CARD_PAYMENTS_NOT_CONNECTED,
       detail: null,
-      action: approved && input.accepted ? "connect" : null,
+      action: input.accepted ? "connect" : null,
       canRequestDeposit: false,
       canRequestBalance: false,
       remainingCents: remaining,
@@ -216,7 +220,7 @@ export function buildJobCardPaymentViewModel(input: {
     };
   }
 
-  if (!approved || !input.accepted) {
+  if (!input.accepted) {
     return {
       connected: true,
       chargesEnabled: true,
@@ -351,6 +355,10 @@ export function buildJobCardPaymentViewModel(input: {
   };
 }
 
+function obligationCta(kind: JobPaymentKind): string {
+  return kind === "deposit" ? PUBLIC_PAYMENT_PAY_DEPOSIT_CTA : PUBLIC_PAY_REMAINING_BALANCE_CTA;
+}
+
 export function buildPublicPaymentViewModel(input: {
   requests: readonly JobPaymentRequestRow[];
   transactions?: readonly JobPaymentTransactionRow[];
@@ -363,6 +371,7 @@ export function buildPublicPaymentViewModel(input: {
   const refunded = (input.transactions ?? []).some(
     (row) => row.kind === "refund" && row.status === "refunded"
   );
+  const methodLabel = (paid?.settled_payment_method_label ?? "").trim() || null;
 
   if (current?.status === "failed") {
     return {
@@ -375,8 +384,8 @@ export function buildPublicPaymentViewModel(input: {
           : PUBLIC_PAYMENT_BALANCE_LABEL,
       paidOnLabel: null,
       explanation: "This payment did not complete. You can try again.",
-      ctaLabel:
-        current.kind === "deposit" ? "Pay deposit" : "Pay",
+      ctaLabel: obligationCta(current.kind),
+      methodLabel: null,
     };
   }
 
@@ -393,11 +402,8 @@ export function buildPublicPaymentViewModel(input: {
           : PUBLIC_PAYMENT_BALANCE_LABEL,
       paidOnLabel: null,
       explanation: pending ? PUBLIC_PAYMENT_PENDING_EXPLANATION : null,
-      ctaLabel: pending
-        ? null
-        : current.kind === "deposit"
-          ? "Pay deposit"
-          : "Pay",
+      ctaLabel: pending ? null : obligationCta(current.kind),
+      methodLabel: null,
     };
   }
 
@@ -413,6 +419,7 @@ export function buildPublicPaymentViewModel(input: {
       paidOnLabel: formatProposalCustomerAcceptedOnLabel(paid.paid_at),
       explanation: null,
       ctaLabel: null,
+      methodLabel,
     };
   }
 
@@ -435,17 +442,25 @@ export function buildPublicPaymentViewModel(input: {
         ? PUBLIC_PAYMENT_REFUNDED_EXPLANATION
         : `${PUBLIC_PAYMENT_PARTIAL_REFUND_EXPLANATION} ${formatUsdFromCents(net)} remains.`,
       ctaLabel: null,
+      methodLabel,
     };
   }
 
   return null;
 }
 
-export function publicPaymentTitle(state: PublicPaymentViewState): string {
-  if (state === "pending") return PUBLIC_PAYMENT_PENDING_TITLE;
-  if (state === "received") return PUBLIC_PAYMENT_RECEIVED_TITLE;
+export function publicPaymentTitle(
+  state: PublicPaymentViewState,
+  kind?: JobPaymentKind
+): string {
+  if (state === "pending") {
+    return kind === "deposit" ? "Deposit pending" : PUBLIC_PAYMENT_PENDING_TITLE;
+  }
+  if (state === "received") {
+    return kind === "deposit" ? "Deposit received" : PUBLIC_PAYMENT_RECEIVED_TITLE;
+  }
   if (state === "refunded") return PUBLIC_PAYMENT_REFUNDED_TITLE;
-  return PUBLIC_PAYMENT_DUE_TITLE;
+  return kind === "deposit" ? "Deposit due" : PUBLIC_PAYMENT_DUE_TITLE;
 }
 
 export type JobPaymentActivityItem = {

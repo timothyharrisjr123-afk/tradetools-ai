@@ -129,8 +129,9 @@ export default function SettingsPaymentsClient() {
             Payments
           </h1>
           <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-slate-600">
-            Connect your Stripe account to request deposits and remaining balances on accepted,
-            approved jobs. FieldDive does not take a fee and does not hold customer funds.
+            Accept payments securely through Stripe Checkout. FieldDive does not take a fee and does
+            not hold customer funds. Default deposit terms prefill new proposals only; sent and
+            accepted proposals keep the terms they were sent with.
           </p>
         </header>
 
@@ -145,6 +146,10 @@ export default function SettingsPaymentsClient() {
           <h2 className={SETTINGS_SECTION_TITLE}>Stripe connection</h2>
           <p className={SETTINGS_SECTION_DESC}>
             {loading ? "Loading…" : connectionLabel(status)}
+          </p>
+          <p className="text-sm text-slate-600">
+            Available through Stripe Checkout when your account is ready. Stripe presents the
+            payment methods your customer can use.
           </p>
           <button
             type="button"
@@ -168,8 +173,8 @@ export default function SettingsPaymentsClient() {
           <div>
             <h2 className={SETTINGS_SECTION_TITLE}>Default deposit</h2>
             <p className={SETTINGS_SECTION_DESC}>
-              Prefills the request-deposit amount. Contractors can edit before creating a request.
-              Changing this does not change existing payment requests.
+              Prefills Payment terms on new proposal drafts. Changing this never changes sent,
+              accepted, or historical proposal terms.
             </p>
           </div>
           <label className={SETTINGS_LABEL}>

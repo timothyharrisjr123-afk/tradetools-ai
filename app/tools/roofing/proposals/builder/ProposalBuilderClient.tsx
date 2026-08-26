@@ -1870,6 +1870,11 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
               persistedDraftEnabled={Boolean(
                 hasPersistedProposalParam && persistedGraph && !draftGraphError
               )}
+              proposalId={
+                hasPersistedProposalParam && proposalIdParam
+                  ? proposalIdParam.trim()
+                  : null
+              }
               manualQuantityInFlight={manualQuantityInFlight}
               manualQuantityError={manualQuantityError}
               activeScopeDecisionsForOption={activeScopeDecisionsForOption}

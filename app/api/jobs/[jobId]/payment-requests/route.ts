@@ -62,11 +62,10 @@ export async function GET(_req: Request, context: RouteContext) {
           .maybeSingle(),
         supabase
           .from("proposal_acceptances")
-          .select("id,accepted_total_cents,confirmed_at")
+          .select("id,accepted_total_cents,accepted_at,confirmed_at")
           .eq("job_id", jobId)
           .eq("company_id", companyId)
-          .not("confirmed_at", "is", null)
-          .order("confirmed_at", { ascending: false })
+          .order("accepted_at", { ascending: false })
           .limit(1)
           .maybeSingle(),
         supabase

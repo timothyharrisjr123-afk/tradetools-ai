@@ -24,7 +24,7 @@ describe("proposal packet V2D1 customer CTA targets", () => {
     assert.match(PROPOSAL_PACKET_CTA_FOCUS, /focus-visible:ring-2/);
   });
 
-  test("open payment request makes Pay the strongest action and demotes Sign", () => {
+  test("open payment request keeps Sign demoted and uses one Pay surface", () => {
     const packet = readFileSync(
       join(process.cwd(), "app/components/proposal-packet/ProposalPacket.tsx"),
       "utf8"
@@ -38,10 +38,11 @@ describe("proposal packet V2D1 customer CTA targets", () => {
       "utf8"
     );
 
-    assert.match(packet, /variant="banner"/);
+    assert.doesNotMatch(packet, /variant="banner"/);
+    assert.equal((packet.match(/<ProposalPacketPayment/g) ?? []).length, 1);
     assert.match(packet, /signProminence=\{signProminence\}/);
     assert.match(packet, /paymentNeedsAction \? "continuation" : "primary"/);
-    assert.match(payment, /data-public-payment-banner/);
+    assert.doesNotMatch(payment, /data-public-payment-banner/);
     assert.match(payment, /data-public-pay/);
     assert.match(payment, /PROPOSAL_PACKET_CTA_PRIMARY/);
     assert.match(interest, /signProminence === "continuation"/);

@@ -20,6 +20,8 @@ export const ENSURE_COMPANY_PAYMENT_SETTINGS_RPC_V1 =
   "ensure_company_payment_settings_v1";
 export const UPSERT_COMPANY_PAYMENT_ACCOUNT_FROM_PROVIDER_RPC_V1 =
   "upsert_company_payment_account_from_provider_v1";
+export const SET_JOB_PAYMENT_SETTLED_METHOD_RPC_V1 =
+  "set_job_payment_settled_method_v1";
 
 export const JOB_PAYMENT_PROVIDER = "stripe" as const;
 export const JOB_PAYMENT_CURRENCY = "usd" as const;

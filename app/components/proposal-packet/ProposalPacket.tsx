@@ -10,6 +10,7 @@ import ProposalPacketPayment from "./ProposalPacketPayment";
 import ProposalPacketScope from "./ProposalPacketScope";
 import ProposalPacketTopBar from "./ProposalPacketTopBar";
 import ProposalPacketUpgrades from "./ProposalPacketUpgrades";
+import ProposalPaymentTermsBlock from "./ProposalPaymentTermsBlock";
 import type { ProposalPacketSignedResult } from "./ProposalPacketSignModal";
 import {
   PROPOSAL_PACKET_PAGE,
@@ -71,25 +72,25 @@ export default function ProposalPacket({
     packet.acceptance?.signerDisplayName ?? null
   );
 
+  const reloadAfterAgreement = () => {
+    if (typeof window !== "undefined") {
+      window.location.reload();
+    }
+  };
+
   const onSigned = (result: ProposalPacketSignedResult) => {
     setAccepted(true);
     setSigned(true);
     setAcceptedOnLabel(result.acceptedOnLabel);
     setSignedOnLabel(result.signedOnLabel);
     setSignerDisplayName(result.signerPrintedName);
+    reloadAfterAgreement();
   };
 
   return (
     <main className={PROPOSAL_PACKET_PAGE} data-proposal-packet-mode={mode}>
       <article className={PROPOSAL_PACKET_SHELL} aria-label="Customer proposal">
         <ProposalPacketTopBar cover={packet.cover} />
-        {paymentNeedsAction && payment ? (
-          <ProposalPacketPayment
-            payment={payment}
-            publicAccessToken={requestToken}
-            variant="banner"
-          />
-        ) : null}
         <ProposalPacketHero
           cover={packet.cover}
           estimate={packet.estimate}
@@ -105,6 +106,15 @@ export default function ProposalPacket({
           onSigned={onSigned}
           signProminence={signProminence}
         />
+
+        {packet.paymentTerms ? (
+          <section className={PROPOSAL_PACKET_STORY_SECTION} aria-label="Payment terms">
+            <ProposalPaymentTermsBlock
+              terms={packet.paymentTerms}
+              selectedTotalCents={packet.selectedTotalCents}
+            />
+          </section>
+        ) : null}
 
         {packet.payment ? (
           <ProposalPacketPayment

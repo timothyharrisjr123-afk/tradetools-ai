@@ -7,6 +7,7 @@
 
 import type { PackageAccent } from "@/app/lib/proposalPackagePresentation";
 import type { PublicPaymentViewModel } from "@/app/lib/jobPaymentReadModel";
+import type { ProposalPaymentTerms } from "@/app/lib/proposalPaymentTerms";
 
 export type ProposalCustomerPacketCompanyIdentity = {
   companyName: string | null;
@@ -149,6 +150,8 @@ export type ProposalCustomerPacketViewModel = {
   footerMetadata: ProposalCustomerPacketFooterMetadataViewModel | null;
   acceptance: ProposalCustomerPacketAcceptanceViewModel;
   payment?: PublicPaymentViewModel | null;
+  paymentTerms?: ProposalPaymentTerms | null;
+  selectedTotalCents?: number | null;
 };
 
 export const PROPOSAL_CUSTOMER_PACKET_PROPOSAL_LABEL = "Your roofing proposal";
