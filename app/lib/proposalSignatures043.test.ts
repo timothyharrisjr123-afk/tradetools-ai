@@ -167,8 +167,10 @@ describe("R3D public / API / request-vs-sign", () => {
     assert.equal(PROPOSAL_CUSTOMER_PACKET_SIGN_PROPOSAL_CTA, "Sign proposal");
     assert.equal(PROPOSAL_CUSTOMER_PACKET_SIGNED_TITLE, "Proposal signed");
     assert.equal(PROPOSAL_CUSTOMER_PACKET_REQUEST_PACKAGE_CTA, "Request this package");
-    const customerActions = readFileSync(
-      join(ROOT, "app/components/proposal-packet/ProposalPacketCustomerActions.tsx"),
+    // The public path is owned by the purchase action hook. Signature
+    // infrastructure stays available but is never the default customer step.
+    const purchaseAction = readFileSync(
+      join(ROOT, "app/components/proposal-packet/useProposalPurchaseAction.ts"),
       "utf8"
     );
     const legacyActions = readFileSync(
@@ -179,14 +181,22 @@ describe("R3D public / API / request-vs-sign", () => {
       join(ROOT, "app/components/proposal-packet/ProposalPacketSignModal.tsx"),
       "utf8"
     );
-    assert.match(customerActions, /data-proposal-cta="confirm-proposal"/);
-    assert.doesNotMatch(customerActions, /accept-and-sign/);
-    assert.doesNotMatch(customerActions, /sign-proposal/);
-    assert.match(customerActions, /\/api\/proposals\/accept/);
+    assert.match(purchaseAction, /\/api\/proposals\/accept/);
+    assert.match(purchaseAction, /\/api\/public\/payment-requests\/checkout/);
+    assert.doesNotMatch(purchaseAction, /accept-and-sign/);
+    assert.doesNotMatch(purchaseAction, /sign-proposal/);
+    assert.doesNotMatch(purchaseAction, /\/api\/proposals\/sign/);
     assert.match(legacyActions, /data-proposal-cta="accept-and-sign"/);
     assert.match(modal, /\/api\/proposals\/sign/);
     assert.doesNotMatch(modal, /\/api\/proposals\/accept/);
-    assert.doesNotMatch(customerActions, /Approve job|job stage|attention_id|signature_id/i);
+    assert.doesNotMatch(purchaseAction, /Approve job|job stage|attention_id|signature_id/i);
+
+    // No signature control is mounted on the default customer document.
+    const packet = readFileSync(
+      join(ROOT, "app/components/proposal-packet/ProposalPacket.tsx"),
+      "utf8"
+    );
+    assert.doesNotMatch(packet, /ProposalPacketSignModal|SIGN_PROPOSAL_CTA/);
   });
 
   test("sign API hashes token server-side and does not take a package id", () => {

@@ -49,14 +49,11 @@ describe("V2D5 proposal packet compare grid", () => {
     }
   });
 
-  test("packet still gates comparison behind more than one option", () => {
+  test("packet still gates the choice section behind more than one option", () => {
     const packet = readFileSync(
       join(process.cwd(), "app/components/proposal-packet/ProposalPacket.tsx"),
       "utf8"
     );
-    assert.match(
-      packet,
-      /showComparison = packet\.comparison != null && packet\.comparison\.options\.length > 1/
-    );
+    assert.match(packet, /const showChoice = options\.length > 1/);
   });
 });

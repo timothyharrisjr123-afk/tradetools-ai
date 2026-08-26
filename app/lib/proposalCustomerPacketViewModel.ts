@@ -86,6 +86,12 @@ export type ProposalCustomerPacketComparisonOptionViewModel = {
   bullets: string[];
   cells: ProposalCustomerPacketComparisonCellViewModel[];
   totalInvestmentLabel: string | null;
+  /**
+   * Frozen option total. Lets the purchase composition recompute what is due
+   * today when the customer chooses a package other than the default. The
+   * authoritative charge is still derived server-side from frozen truth.
+   */
+  totalCents: number | null;
   accent: PackageAccent;
   isCurrent: boolean;
 };
@@ -214,7 +220,27 @@ export const PROPOSAL_CUSTOMER_PACKET_COMPARE_INTRO =
 
 export const PROPOSAL_CUSTOMER_PACKET_CURRENT_BADGE = "Selected";
 
-export const PROPOSAL_CUSTOMER_PACKET_UPGRADES_HEADING = "Selected upgrades";
+/**
+ * Customer package choice. The homeowner is picking one of the packages the
+ * contractor offered, so the copy is a buying decision, not an app state.
+ */
+export const PROPOSAL_CUSTOMER_PACKET_CHOOSE_HEADING = "Choose your package";
+
+export const PROPOSAL_CUSTOMER_PACKET_CHOOSE_INTRO =
+  "Pick the option you want. You can change it before you pay.";
+
+export const PROPOSAL_CUSTOMER_PACKET_CHOSEN_BADGE = "Chosen";
+
+export function proposalCustomerPacketChooseCta(label: string): string {
+  const trimmed = label.trim();
+  return trimmed ? `Choose ${trimmed}` : "Choose this package";
+}
+
+export const PROPOSAL_CUSTOMER_PACKET_YOUR_PACKAGE_LABEL = "Your package";
+
+export const PROPOSAL_CUSTOMER_PACKET_DUE_TODAY_LABEL = "Due today";
+
+export const PROPOSAL_CUSTOMER_PACKET_UPGRADES_HEADING = "Included upgrades";
 
 export const PROPOSAL_CUSTOMER_PACKET_UPGRADES_INTRO_LINE1 =
   "Included in your investment total.";
@@ -243,6 +269,20 @@ export const PROPOSAL_CUSTOMER_PACKET_REQUEST_PACKAGE_CTA = "Request this packag
 
 export const PROPOSAL_CUSTOMER_PACKET_ASK_QUESTION_CTA = "Ask a question";
 
+export const PROPOSAL_CUSTOMER_PACKET_QUESTIONS_HEADING = "Questions?";
+
+/**
+ * Customer-facing money reads in whole dollars. Trailing cents are noise on a
+ * proposal, so they appear only when the amount actually has them.
+ */
+export function proposalCustomerAmountLabel(
+  label: string | null | undefined
+): string | null {
+  const trimmed = (label ?? "").trim();
+  if (!trimmed) return null;
+  return trimmed.endsWith(".00") ? trimmed.slice(0, -3) : trimmed;
+}
+
 /** R3C — explicit formal acceptance. Distinct from Request this package. */
 export const PROPOSAL_CUSTOMER_PACKET_ACCEPT_PROPOSAL_CTA = "Accept proposal";
 
@@ -254,6 +294,11 @@ export const PROPOSAL_CUSTOMER_PACKET_ACCEPT_MODAL_ACK =
 export const PROPOSAL_CUSTOMER_PACKET_ACCEPT_SUCCESS_TITLE = "Proposal accepted";
 
 export const PROPOSAL_CUSTOMER_PACKET_CONFIRM_PROPOSAL_CTA = "Confirm this proposal";
+
+export const PROPOSAL_CUSTOMER_PACKET_CONFIRM_PROPOSAL_BUSY = "Confirming…";
+
+/** Short form for the sticky mobile bar, where width is scarce. */
+export const PROPOSAL_CUSTOMER_PACKET_CONFIRM_PROPOSAL_SHORT_CTA = "Confirm proposal";
 
 export const PROPOSAL_CUSTOMER_PACKET_CONFIRMED_TITLE = "Proposal confirmed";
 

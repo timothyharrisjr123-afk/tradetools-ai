@@ -356,6 +356,7 @@ export function buildCustomerPacketEstimateFromPublicDto(
               bullets: [...meta.bullets],
               cells: optionComparisonCells(option),
               totalInvestmentLabel: formatTotalInvestment(option, displayPolicy),
+              totalCents: option.customer_total_cents,
               accent: meta.accent,
               isCurrent: option.source_template_option_id === selectedKey,
             };

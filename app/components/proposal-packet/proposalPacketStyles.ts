@@ -27,9 +27,6 @@ export const PROPOSAL_PACKET_HERO_GRID =
 
 export const PROPOSAL_PACKET_HERO_LEFT =
   "relative flex min-w-0 flex-col justify-start border-l-2 border-[#2563eb]/35 pl-4 sm:pl-5";
-export const PROPOSAL_PACKET_HERO_MEDIA_COLUMN = "hidden";
-export const PROPOSAL_PACKET_HERO_MEDIA_CLIP = "hidden";
-export const PROPOSAL_PACKET_HERO_VISUAL = "hidden";
 
 export const PROPOSAL_PACKET_EYEBROW =
   "text-[11px] font-semibold uppercase tracking-[0.18em] text-[#2563eb]";
@@ -39,8 +36,6 @@ export const PROPOSAL_PACKET_HERO_TITLE =
 
 export const PROPOSAL_PACKET_HERO_LEAD =
   "mt-3 max-w-[26.5rem] text-[14px] leading-[1.58] text-[#546274]";
-
-export const PROPOSAL_PACKET_TRUST_BAND = "hidden";
 
 export const PROPOSAL_PACKET_STORY_SECTION =
   "border-t border-[#e6ebf1] px-5 py-5 sm:px-7 lg:px-9 lg:py-6";
@@ -161,14 +156,8 @@ export const PROPOSAL_PACKET_SECTION_INTRO =
 export const PROPOSAL_PACKET_FIELD_LABEL =
   "block text-[10px] font-semibold uppercase tracking-[0.15em] text-[#64748b]";
 
-export const PROPOSAL_PACKET_CURRENT_BADGE =
-  "inline-flex items-center rounded-full bg-[#2563eb] px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-white shadow-[0_1px_0_rgba(255,255,255,0.2)_inset]";
-
 export const PROPOSAL_PACKET_OPTION_CARD =
   "relative flex h-full min-w-0 flex-col rounded-[14px] border border-[#e2e8f0] bg-white px-4 py-4 shadow-[0_1px_0_rgba(255,255,255,0.9)_inset,0_4px_16px_rgba(11,31,51,0.04)]";
-
-export const PROPOSAL_PACKET_OPTION_CARD_CURRENT =
-  "relative flex h-full min-w-0 flex-col rounded-[14px] border-2 border-[#2563eb] bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)] px-4 py-4 shadow-[0_1px_0_rgba(255,255,255,0.95)_inset,0_10px_28px_rgba(37,99,235,0.12)]";
 
 export const PROPOSAL_PACKET_ABOUT_CARD =
   "mt-3 text-[12px] leading-relaxed text-[#64748b]";
@@ -235,6 +224,45 @@ export const PROPOSAL_PACKET_CTA_SECONDARY =
   `inline-flex min-h-[44px] items-center justify-center rounded-[10px] border border-[#d5dee8] bg-white px-3.5 py-2.5 text-[13px] font-semibold text-[#0b1f33] shadow-[0_1px_0_rgba(255,255,255,0.9)_inset] transition-colors hover:border-[#bfdbfe] hover:bg-[#f8fbff] ${PROPOSAL_PACKET_CTA_FOCUS}`;
 
 /**
+ * Customer package choice. A selectable option is a genuine object, so the card
+ * boundary and its button are earned rather than decorative.
+ */
+export const PROPOSAL_PACKET_OPTION_CARD_CHOSEN =
+  "relative flex h-full min-w-0 flex-col rounded-[14px] border-2 border-[#2563eb] bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)] px-4 py-4 shadow-[0_1px_0_rgba(255,255,255,0.95)_inset,0_10px_28px_rgba(37,99,235,0.12)]";
+
+export const PROPOSAL_PACKET_CHOICE_BADGE =
+  "inline-flex items-center rounded-full bg-[#2563eb] px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-white shadow-[0_1px_0_rgba(255,255,255,0.2)_inset]";
+
+export const PROPOSAL_PACKET_CHOICE_BUTTON =
+  `flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-[10px] border border-[#d5dee8] bg-white px-3 py-2.5 text-[13px] font-semibold text-[#0b1f33] transition-colors hover:border-[#93c5fd] hover:bg-[#f8fbff] ${PROPOSAL_PACKET_CTA_FOCUS}`;
+
+export const PROPOSAL_PACKET_CHOICE_BUTTON_CHOSEN =
+  `flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-[10px] border-2 border-[#2563eb] bg-[#eff6ff] px-3 py-2.5 text-[13px] font-semibold text-[#1d4ed8] ${PROPOSAL_PACKET_CTA_FOCUS}`;
+
+/**
+ * The one dominant customer action. Full width so nothing competes with it.
+ */
+export const PROPOSAL_PACKET_CTA_PRIMARY_DOMINANT =
+  `flex min-h-[52px] w-full items-center justify-center rounded-[12px] bg-[#2563eb] px-5 py-3 text-[15px] font-semibold text-white shadow-[0_1px_0_rgba(255,255,255,0.22)_inset,0_10px_24px_rgba(37,99,235,0.30)] transition-colors hover:bg-[#1d4ed8] disabled:cursor-not-allowed disabled:opacity-60 ${PROPOSAL_PACKET_CTA_FOCUS}`;
+
+/** Quiet text-only customer action. Never competes with the primary. */
+export const PROPOSAL_PACKET_CTA_TEXT_LINK =
+  `inline-flex min-h-[44px] items-center gap-1.5 text-[13px] font-semibold text-[#2563eb] underline-offset-4 transition-colors hover:text-[#1d4ed8] hover:underline ${PROPOSAL_PACKET_CTA_FOCUS}`;
+
+/** Purchase composition — one decision surface, no nested cards inside it. */
+export const PROPOSAL_PACKET_PURCHASE =
+  "rounded-[16px] border border-[#dbe4ef] bg-[linear-gradient(180deg,#ffffff_0%,#f7fafd_100%)] px-5 py-5 shadow-[0_1px_0_rgba(255,255,255,0.9)_inset,0_10px_30px_rgba(11,31,51,0.06)] sm:px-6 sm:py-6";
+
+export const PROPOSAL_PACKET_PURCHASE_DIVIDER = "my-4 h-px bg-[#e6ecf3]";
+
+export const PROPOSAL_PACKET_PURCHASE_DUE_AMOUNT =
+  "text-[1.85rem] font-semibold tabular-nums tracking-[-0.04em] text-[#0b1f33] sm:text-[2.05rem]";
+
+/** Sticky mobile purchase bar — presentation of the same primary action. */
+export const PROPOSAL_PACKET_STICKY_BAR =
+  "fixed inset-x-0 bottom-0 z-40 flex items-center gap-3 border-t border-[#dbe4ef] bg-white/95 px-4 py-3 shadow-[0_-6px_24px_rgba(11,31,51,0.10)] backdrop-blur lg:hidden";
+
+/**
  * Quiet continuation request (closeout) — same label semantics as primary request,
  * but not visually equal to the hero primary. Still ≥44px.
  */
@@ -253,7 +281,3 @@ export const PROPOSAL_PACKET_HEADER =
 
 export const PROPOSAL_PACKET_HEADER_ACTION =
   "inline-flex items-center gap-2 text-sm font-semibold text-[#94a3b8]";
-
-/** Decision card shell — main proposal moment. */
-export const PROPOSAL_PACKET_DECISION_CARD =
-  "overflow-hidden rounded-[14px] border border-[#0b1f33]/18 shadow-[0_1px_0_rgba(255,255,255,0.35)_inset,0_14px_36px_rgba(11,31,51,0.14)] ring-1 ring-[#0b1f33]/[0.04]";

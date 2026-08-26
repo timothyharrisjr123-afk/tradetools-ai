@@ -57,7 +57,7 @@ export default function ProposalPacketScope({ estimate }: ProposalPacketScopePro
       <div className="mb-3.5">
         <h2 className={PROPOSAL_PACKET_SECTION_TITLE}>{PROPOSAL_CUSTOMER_PACKET_INCLUDES_LABEL}</h2>
         <p className={PROPOSAL_PACKET_SECTION_INTRO}>
-          Scope included in the selected package.
+          Everything covered by your package.
         </p>
       </div>
 

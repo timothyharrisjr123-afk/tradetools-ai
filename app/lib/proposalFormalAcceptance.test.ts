@@ -365,17 +365,18 @@ describe("R3C request vs acceptance and contractor UX", () => {
   });
 
   test("customer confirmed state does not expose contractor workflow", () => {
-    const actions = readFileSync(
-      join(ROOT, "app/components/proposal-packet/ProposalPacketCustomerActions.tsx"),
+    // The confirmed state now lives in the purchase composition; the old
+    // standalone customer-actions block was retired in Cohesion Cut 1.
+    const purchase = readFileSync(
+      join(ROOT, "app/components/proposal-packet/ProposalPacketPurchase.tsx"),
       "utf8"
     );
     const modal = readFileSync(
       join(ROOT, "app/components/proposal-packet/ProposalPacketAcceptModal.tsx"),
       "utf8"
     );
-    assert.match(actions, /data-proposal-confirmed-state/);
-    assert.match(actions, /PROPOSAL_CUSTOMER_PACKET_CONFIRMED_TITLE/);
-    assert.doesNotMatch(actions, /ambiguous|Waiting for contractor|Pending approval|job stage/i);
+    assert.match(purchase, /PROPOSAL_CUSTOMER_PACKET_CONFIRMED_TITLE/);
+    assert.doesNotMatch(purchase, /ambiguous|Waiting for contractor|Pending approval|job stage/i);
     assert.doesNotMatch(modal, /ambiguous|Waiting for contractor|Review required/i);
     assert.equal(
       formatProposalCustomerAcceptedOnSentence("August 16, 2026"),
@@ -383,11 +384,16 @@ describe("R3C request vs acceptance and contractor UX", () => {
     );
   });
 
-  test("public accept API does not take a customer-chosen package id", () => {
+  test("public accept API takes an option key only, never a runtime id or price", () => {
     const route = readFileSync(join(ROOT, "app/api/proposals/accept/route.ts"), "utf8");
     assert.match(route, /recordProposalAcceptance/);
     assert.doesNotMatch(route, /requestedOptionId|selectedOptionId/);
-    assert.match(route, /Does not accept a customer-chosen package/);
+    // 049: the customer may choose an offered package, but only by stable
+    // option key. The server resolves it against the token's bound frozen
+    // version and reads the total from frozen truth.
+    assert.match(route, /customerOptionKey/);
+    assert.match(route, /reads the total from frozen truth/);
+    assert.match(route, /amount_tamper/);
   });
 
   test("contractor Approve job is explicit operational approval", () => {
