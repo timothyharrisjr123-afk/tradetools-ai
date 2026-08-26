@@ -468,7 +468,7 @@ export default function FieldDiveAppShell({ activeNav, activeSubId, children }: 
             <button
               ref={menuButtonRef}
               type="button"
-              className="flex h-11 w-11 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 lg:hidden"
+              className="flex h-10 w-10 items-center justify-center rounded-md text-slate-600 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 lg:hidden"
               aria-label="Menu"
               aria-expanded={mobileNavOpen}
               aria-controls="fielddive-mobile-nav"
@@ -532,12 +532,12 @@ export default function FieldDiveAppShell({ activeNav, activeSubId, children }: 
               <button
                 ref={sheetCloseRef}
                 type="button"
-                className="flex h-11 w-11 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                className="flex h-9 w-9 items-center justify-center rounded-md text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                 aria-label="Close navigation"
                 onClick={closeMobileNav}
                 data-fielddive-mobile-nav-close
               >
-                <X className="h-5 w-5" aria-hidden />
+                <X className="h-4 w-4" strokeWidth={2} aria-hidden />
               </button>
             </div>
             <nav

@@ -62,14 +62,15 @@ type CompanySettingsClientProps = {
 };
 
 const ROW =
-  "flex w-full items-center gap-4 px-4 py-4 text-left transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500 sm:px-5";
+  "group flex w-full items-start gap-3 px-4 py-3.5 text-left transition-colors hover:bg-slate-50/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500 sm:items-center sm:gap-4 sm:px-5 sm:py-4";
 
 const ROW_ACTION =
-  "flex shrink-0 items-center gap-1 text-sm font-semibold text-blue-600";
+  "flex shrink-0 items-center gap-0.5 self-start pt-0.5 text-sm font-medium text-blue-600 group-hover:text-blue-700 sm:self-center sm:pt-0";
 
 function SummaryRow({
   label,
   title,
+  details,
   detail,
   missing,
   action,
@@ -79,34 +80,52 @@ function SummaryRow({
 }: {
   label: string;
   title?: string | null;
-  detail: string;
+  /** Preferred: separate metadata lines for clean mobile wrapping. */
+  details?: string[];
+  /** Legacy single-line detail fallback. */
+  detail?: string;
   missing?: string | null;
   action: string;
   onClick?: () => void;
   href?: string;
   testId: string;
 }) {
+  const metadata = details ?? (detail ? [detail] : []);
+
   const body = (
     <>
       <span className="min-w-0 flex-1">
         <span className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-          <span className="text-sm font-semibold text-slate-900">{label}</span>
+          <span className="text-[13px] font-semibold uppercase tracking-wide text-slate-500">
+            {label}
+          </span>
           {missing ? (
             <span className="text-xs font-medium text-amber-700" data-company-settings-missing>
-              · {missing}
+              {missing}
             </span>
           ) : null}
         </span>
         {title ? (
-          <span className="mt-0.5 block truncate text-sm font-medium text-slate-800">{title}</span>
+          <span className="mt-1 block text-[15px] font-semibold leading-snug text-slate-900">
+            {title}
+          </span>
         ) : null}
-        <span className="mt-0.5 block text-sm text-slate-500 [overflow-wrap:anywhere] line-clamp-2 sm:truncate">
-          {detail}
-        </span>
+        {metadata.length > 0 ? (
+          <span className="mt-0.5 block space-y-0.5">
+            {metadata.map((line) => (
+              <span
+                key={line}
+                className="block text-sm leading-snug text-slate-500 [overflow-wrap:anywhere]"
+              >
+                {line}
+              </span>
+            ))}
+          </span>
+        ) : null}
       </span>
       <span className={ROW_ACTION}>
         {action}
-        <ChevronRight className="h-4 w-4" aria-hidden />
+        <ChevronRight className="h-4 w-4 opacity-70" aria-hidden />
       </span>
     </>
   );
@@ -332,7 +351,7 @@ export default function CompanySettingsClient({
   const brandingMissing = formatMissingDetailCount(countMissingBrandingDetails(profile));
 
   return (
-    <div className="mx-auto max-w-3xl space-y-5">
+    <div className="mx-auto w-full max-w-2xl space-y-5">
       <header>
         <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Company settings</h1>
         <p className="mt-1 text-sm text-slate-600">
@@ -356,7 +375,7 @@ export default function CompanySettingsClient({
       ) : null}
 
       <div
-        className="overflow-hidden rounded-xl border border-slate-200 bg-white"
+        className="overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm"
         data-company-settings-summary
       >
         {loading ? (
@@ -366,7 +385,9 @@ export default function CompanySettingsClient({
             <SummaryRow
               label="Business"
               title={business.title}
-              detail={business.detail ?? "Add your contact details"}
+              details={
+                business.details.length > 0 ? business.details : ["Add your contact details"]
+              }
               missing={businessMissing}
               action="Edit"
               onClick={() => setEditor("business")}

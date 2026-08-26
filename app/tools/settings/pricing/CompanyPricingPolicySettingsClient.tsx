@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { parseInternalReturnTo } from "@/app/lib/proposalBuilderReadiness";
@@ -23,15 +23,21 @@ import {
 const inputClass =
   "block min-h-[44px] w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30";
 
-const sectionClass = "border-t border-slate-200 px-4 py-5 sm:px-5 first:border-t-0";
+const sectionClass = "border-t border-slate-100 px-4 py-4 sm:px-5 first:border-t-0";
 
 const labelClass = "block text-sm font-medium text-slate-700";
 
-const hintClass = "mt-1 text-xs text-slate-500";
+const hintClass = "mt-1 text-xs leading-relaxed text-slate-500";
 
 const sectionTitleClass = "text-sm font-semibold text-slate-900";
 
 const sectionDescClass = "mt-0.5 text-sm text-slate-500";
+
+const savePrimaryClass =
+  "inline-flex min-h-[44px] w-full items-center justify-center rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 sm:w-auto";
+
+const saveSubduedClass =
+  "inline-flex min-h-[44px] w-full items-center justify-center rounded-lg bg-slate-200 px-4 text-sm font-semibold text-slate-500 transition disabled:cursor-not-allowed sm:w-auto";
 
 /** Contractor-facing wording for the locked engine values. */
 const QUANTITY_ROUNDING_LABELS: Record<string, string> = {
@@ -50,12 +56,24 @@ type SaveStatus =
   | { kind: "saved" }
   | { kind: "error"; message: string };
 
+function formsEqual(a: PricingPolicyFormState | null, b: PricingPolicyFormState | null): boolean {
+  if (!a || !b) return a === b;
+  return (
+    a.profitabilityType === b.profitabilityType &&
+    a.defaultProfitabilityPct === b.defaultProfitabilityPct &&
+    a.minimumProfitabilityPct === b.minimumProfitabilityPct &&
+    a.salesTaxRatePct === b.salesTaxRatePct &&
+    a.materialPurchaseTaxRatePct === b.materialPurchaseTaxRatePct
+  );
+}
+
 export default function CompanyPricingPolicySettingsClient({
   companyId,
 }: {
   companyId: string;
 }) {
   const [form, setForm] = useState<PricingPolicyFormState | null>(null);
+  const [savedForm, setSavedForm] = useState<PricingPolicyFormState | null>(null);
   const [configured, setConfigured] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>({ kind: "idle" });
@@ -72,10 +90,14 @@ export default function CompanyPricingPolicySettingsClient({
     try {
       const resolution = await getResolvedCompanyPricingPolicy(companyId);
       if (resolution.configured && resolution.policy) {
-        setForm(policyToPricingPolicyFormState(resolution.policy));
+        const next = policyToPricingPolicyFormState(resolution.policy);
+        setForm(next);
+        setSavedForm(next);
         setConfigured(true);
       } else {
-        setForm(starterSeedToPricingPolicyFormState(resolveStarterPricingPolicySeed()));
+        const next = starterSeedToPricingPolicyFormState(resolveStarterPricingPolicySeed());
+        setForm(next);
+        setSavedForm(null);
         setConfigured(false);
       }
     } finally {
@@ -86,6 +108,11 @@ export default function CompanyPricingPolicySettingsClient({
   useEffect(() => {
     void load();
   }, [load]);
+
+  const isDirty = useMemo(
+    () => Boolean(form && !formsEqual(form, savedForm)),
+    [form, savedForm]
+  );
 
   const updateField = useCallback(
     <K extends keyof PricingPolicyFormState>(key: K, value: PricingPolicyFormState[K]) => {
@@ -117,17 +144,24 @@ export default function CompanyPricingPolicySettingsClient({
       return;
     }
 
-    // Re-fetch through the resolver so configured state reflects the DB.
     const resolution = await getResolvedCompanyPricingPolicy(companyId);
     if (resolution.configured && resolution.policy) {
-      setForm(policyToPricingPolicyFormState(resolution.policy));
+      const next = policyToPricingPolicyFormState(resolution.policy);
+      setForm(next);
+      setSavedForm(next);
       setConfigured(true);
     }
     setSaveStatus({ kind: "saved" });
   }, [companyId, form]);
 
+  const saveDisabled = saveStatus.kind === "saving" || !isDirty;
+  const showStickyFooter = isDirty || saveStatus.kind === "error" || !configured;
+
   return (
-    <div className="mx-auto max-w-3xl space-y-5 pb-24 sm:pb-6" data-pricing-policy-page>
+    <div
+      className={`mx-auto w-full max-w-2xl space-y-5 ${showStickyFooter ? "pb-36 sm:pb-8" : "pb-6"}`}
+      data-pricing-policy-page
+    >
       {backToJobCardHref ? (
         <Link
           href={backToJobCardHref}
@@ -150,9 +184,9 @@ export default function CompanyPricingPolicySettingsClient({
       </header>
 
       {loading || !form ? (
-        <div className="rounded-xl border border-slate-200 bg-white">
+        <div className="overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm">
           {[0, 1, 2].map((row) => (
-            <div key={row} className="border-t border-slate-200 px-4 py-5 first:border-t-0 sm:px-5">
+            <div key={row} className="border-t border-slate-100 px-4 py-4 first:border-t-0 sm:px-5">
               <div className="h-3.5 w-28 animate-pulse rounded bg-slate-200" />
               <div className="mt-3 h-11 w-full animate-pulse rounded-lg bg-slate-100" />
             </div>
@@ -160,11 +194,11 @@ export default function CompanyPricingPolicySettingsClient({
         </div>
       ) : (
         <>
-          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+          <div className="overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm">
             <div className={sectionClass}>
               <h2 className={sectionTitleClass}>Pricing method</h2>
-              <p className={sectionDescClass}>How profitability is applied to your costs.</p>
-              <div className="mt-3.5">
+              <p className={sectionDescClass}>How profit is applied to your costs.</p>
+              <div className="mt-3">
                 <label htmlFor="profitability-type" className={labelClass}>
                   Profitability type
                 </label>
@@ -174,7 +208,7 @@ export default function CompanyPricingPolicySettingsClient({
                   onChange={(e) =>
                     updateField("profitabilityType", e.target.value as ProfitabilityType)
                   }
-                  className={`${inputClass} mt-1.5`}
+                  className={`${inputClass} mt-1`}
                 >
                   <option value="margin">Margin</option>
                   <option value="markup">Markup</option>
@@ -187,8 +221,10 @@ export default function CompanyPricingPolicySettingsClient({
 
             <div className={sectionClass}>
               <h2 className={sectionTitleClass}>Profitability</h2>
-              <p className={sectionDescClass}>Your default rate and the lowest you will accept.</p>
-              <div className="mt-3.5 grid gap-4 sm:grid-cols-2">
+              <p className={sectionDescClass}>
+                Your default margin and minimum acceptable margin.
+              </p>
+              <div className="mt-3 grid gap-4 sm:grid-cols-2">
                 <div>
                   <label htmlFor="default-pct" className={labelClass}>
                     Default profitability %
@@ -200,7 +236,7 @@ export default function CompanyPricingPolicySettingsClient({
                     value={form.defaultProfitabilityPct}
                     onChange={(e) => updateField("defaultProfitabilityPct", e.target.value)}
                     placeholder="e.g. 50"
-                    className={`${inputClass} mt-1.5`}
+                    className={`${inputClass} mt-1`}
                   />
                 </div>
                 <div>
@@ -214,7 +250,7 @@ export default function CompanyPricingPolicySettingsClient({
                     value={form.minimumProfitabilityPct}
                     onChange={(e) => updateField("minimumProfitabilityPct", e.target.value)}
                     placeholder="e.g. 20"
-                    className={`${inputClass} mt-1.5`}
+                    className={`${inputClass} mt-1`}
                   />
                   <p className={hintClass}>Must be at or below the default.</p>
                 </div>
@@ -224,9 +260,9 @@ export default function CompanyPricingPolicySettingsClient({
             <div className={sectionClass}>
               <h2 className={sectionTitleClass}>Tax</h2>
               <p className={sectionDescClass}>
-                Sales tax charged to customers, and material tax you pay.
+                Sales tax charged to customers and material tax used in costs.
               </p>
-              <div className="mt-3.5 grid gap-4 sm:grid-cols-2">
+              <div className="mt-3 grid gap-4 sm:grid-cols-2">
                 <div>
                   <label htmlFor="sales-tax" className={labelClass}>
                     Sales tax rate %
@@ -238,7 +274,7 @@ export default function CompanyPricingPolicySettingsClient({
                     value={form.salesTaxRatePct}
                     onChange={(e) => updateField("salesTaxRatePct", e.target.value)}
                     placeholder="e.g. 0"
-                    className={`${inputClass} mt-1.5`}
+                    className={`${inputClass} mt-1`}
                   />
                 </div>
                 <div>
@@ -253,7 +289,7 @@ export default function CompanyPricingPolicySettingsClient({
                     value={form.materialPurchaseTaxRatePct}
                     onChange={(e) => updateField("materialPurchaseTaxRatePct", e.target.value)}
                     placeholder="Leave blank for none"
-                    className={`${inputClass} mt-1.5`}
+                    className={`${inputClass} mt-1`}
                   />
                   <p className={hintClass}>Used in your costs, never shown to customers.</p>
                 </div>
@@ -262,7 +298,7 @@ export default function CompanyPricingPolicySettingsClient({
 
             <div className={sectionClass}>
               <h2 className={sectionTitleClass}>Measurement assumptions</h2>
-              <p className={sectionDescClass}>These apply to every proposal.</p>
+              <p className={sectionDescClass}>How proposal quantities are interpreted.</p>
               <dl className="mt-3 space-y-2 text-sm">
                 <div className="flex items-baseline justify-between gap-3">
                   <dt className="text-slate-500">Quantities</dt>
@@ -281,7 +317,15 @@ export default function CompanyPricingPolicySettingsClient({
             </div>
           </div>
 
-          <div className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur sm:static sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:backdrop-blur-none">
+          {/* Desktop: inline save when calm; sticky when dirty or first-time setup */}
+          <div
+            className={`${
+              showStickyFooter
+                ? "fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white px-4 py-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] sm:static sm:border-0 sm:bg-transparent sm:px-0 sm:py-0"
+                : "hidden sm:block"
+            }`}
+            data-pricing-save-footer
+          >
             {validationError ? (
               <p className="mb-2 text-sm text-rose-600" role="alert">
                 {validationError}
@@ -292,12 +336,13 @@ export default function CompanyPricingPolicySettingsClient({
                 {saveStatus.message}
               </p>
             ) : null}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 sm:justify-start">
               <button
                 type="button"
                 onClick={handleSave}
-                disabled={saveStatus.kind === "saving"}
-                className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 sm:flex-none"
+                disabled={saveDisabled}
+                className={saveDisabled && !configured ? saveSubduedClass : savePrimaryClass}
+                data-pricing-save
               >
                 {saveStatus.kind === "saving" ? "Saving…" : "Save pricing rules"}
               </button>
@@ -305,6 +350,9 @@ export default function CompanyPricingPolicySettingsClient({
                 <span className="text-sm font-medium text-emerald-700" role="status">
                   Saved.
                 </span>
+              ) : null}
+              {isDirty && saveStatus.kind === "idle" ? (
+                <span className="hidden text-sm text-slate-500 sm:inline">Unsaved changes</span>
               ) : null}
             </div>
           </div>

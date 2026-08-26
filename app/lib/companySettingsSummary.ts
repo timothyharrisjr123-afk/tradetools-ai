@@ -10,7 +10,7 @@ import {
   normalizeCompanyBrandingProfile,
   type CompanyBrandingProfile,
 } from "@/app/lib/companyBrandingProfile";
-import { formatUsdFromCents } from "@/app/lib/jobPaymentMoney";
+import { formatContractorMoneyFromCents } from "@/app/lib/companySettingsVisualFixture";
 
 export type CompanySettingsSectionId =
   | "business"
@@ -64,17 +64,18 @@ export function countMissingBrandingDetails(
   return countMissing(normalizeCompanyBrandingProfile(input), BRANDING_EXPECTED_FIELDS);
 }
 
-/** Company name plus whatever contact truth exists, on one line. */
+/** Company name plus contact metadata as separate scan lines. */
 export function summarizeBusiness(
   input: Partial<CompanyBrandingProfile>
-): { title: string | null; detail: string | null } {
+): { title: string | null; details: string[] } {
   const profile = normalizeCompanyBrandingProfile(input);
-  const parts = [profile.email, profile.phone, profile.license].filter(
-    (value) => value.trim().length > 0
-  );
+  const details: string[] = [];
+  if (profile.email.trim()) details.push(profile.email.trim());
+  if (profile.phone.trim()) details.push(profile.phone.trim());
+  if (profile.license.trim()) details.push(profile.license.trim());
   return {
     title: profile.companyName.trim() || null,
-    detail: parts.length > 0 ? parts.join(" · ") : null,
+    details,
   };
 }
 
@@ -108,14 +109,14 @@ export function summarizePayments(
       ? "Stripe connected"
       : "Stripe setup incomplete";
 
-  let deposit = "no default deposit";
+  let deposit = "No default deposit";
   if (input.defaultDepositMode === "percent" && input.defaultDepositPercentBps != null) {
     deposit = `${input.defaultDepositPercentBps / 100}% default deposit`;
   } else if (
     input.defaultDepositMode === "fixed" &&
     input.defaultDepositFixedCents != null
   ) {
-    deposit = `${formatUsdFromCents(input.defaultDepositFixedCents)} default deposit`;
+    deposit = `${formatContractorMoneyFromCents(input.defaultDepositFixedCents)} default deposit`;
   }
 
   return `${connection} · ${deposit}`;

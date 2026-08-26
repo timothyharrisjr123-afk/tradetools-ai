@@ -7,15 +7,16 @@ import FocusedEditor, {
   FOCUSED_EDITOR_INPUT,
   FOCUSED_EDITOR_LABEL,
 } from "@/app/components/ui/FocusedEditor";
-import { formatUsdFromCents, parseUsdInputToCents } from "@/app/lib/jobPaymentMoney";
+import { formatContractorMoneyFromCents } from "@/app/lib/companySettingsVisualFixture";
+import { parseUsdInputToCents } from "@/app/lib/jobPaymentMoney";
 import type { CompanyPaymentDepositMode } from "@/app/lib/jobPaymentTypes";
 import type { CompanyPaymentsStatus } from "@/app/tools/settings/companySettingsData";
 
 export const PAYMENTS_CONNECTION_COPY =
-  "Customers pay through Stripe Checkout. Stripe presents the payment methods they can use, and funds go straight to your Stripe account.";
+  "Customers pay securely through Stripe Checkout. Available payment methods are shown by Stripe at checkout.";
 
 export const PAYMENTS_DEPOSIT_COPY =
-  "Prefills payment terms on new proposals. Sent and accepted proposals keep the terms they were sent with.";
+  "Used as the starting payment terms for new proposals. Each proposal can be changed before it is sent.";
 
 export function stripeConnectionLabel(status: CompanyPaymentsStatus | null): string {
   if (!status?.connected) return "Not connected";
@@ -67,8 +68,8 @@ export default function CompanySettingsPaymentsEditor({
     (mode === "percent" && !percentValid) ||
     (mode === "fixed" && (fixedCents == null || fixedCents < 100));
 
-  // Once Stripe can charge there is nothing left to do, so no control appears.
   const ready = status?.chargesEnabled === true;
+  const connection = stripeConnectionLabel(status);
   const connectLabel = connecting
     ? "Opening Stripe…"
     : status?.connected
@@ -95,21 +96,21 @@ export default function CompanySettingsPaymentsEditor({
         })
       }
     >
-      <div data-company-settings-editor="payments" className="space-y-2.5">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-          <span className={FOCUSED_EDITOR_LABEL}>Stripe</span>
+      <div data-company-settings-editor="payments" className="space-y-1">
+        <div className="flex items-baseline justify-between gap-3">
+          <span className="text-sm font-medium text-slate-700">Stripe</span>
           <span
-            className={`text-sm font-medium ${ready ? "text-emerald-700" : "text-slate-600"}`}
-            data-payments-connection={stripeConnectionLabel(status)}
+            className={`text-sm font-semibold ${ready ? "text-emerald-700" : "text-slate-600"}`}
+            data-payments-connection={connection}
           >
-            {stripeConnectionLabel(status)}
+            {connection}
           </span>
         </div>
         <p className="text-sm leading-relaxed text-slate-500">{PAYMENTS_CONNECTION_COPY}</p>
         {ready ? null : (
           <button
             type="button"
-            className={FOCUSED_EDITOR_CANCEL}
+            className={`${FOCUSED_EDITOR_CANCEL} mt-2 border border-slate-200`}
             disabled={connecting}
             onClick={onConnect}
           >
@@ -118,7 +119,7 @@ export default function CompanySettingsPaymentsEditor({
         )}
       </div>
 
-      <div className="border-t border-slate-200 pt-5">
+      <div className="border-t border-slate-100 pt-4">
         <label className={FOCUSED_EDITOR_LABEL}>
           Default deposit
           <select
@@ -130,7 +131,7 @@ export default function CompanySettingsPaymentsEditor({
             }}
           >
             <option value="none">No deposit</option>
-            <option value="percent">Percent of the total</option>
+            <option value="percent">Percentage of the total</option>
             <option value="fixed">Fixed amount</option>
           </select>
         </label>
@@ -179,7 +180,7 @@ export default function CompanySettingsPaymentsEditor({
             }
           >
             {fixedCents != null && fixedCents >= 100
-              ? formatUsdFromCents(fixedCents)
+              ? formatContractorMoneyFromCents(fixedCents)
               : "Enter dollars, minimum $1.00."}
           </p>
         </div>

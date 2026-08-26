@@ -61,7 +61,7 @@ export default function CompanySettingsPreferencesEditor({
     <FocusedEditor
       open
       title="Preferences"
-      description="How FieldDive handles dates and times for your company."
+      description="Scheduling, reminders, and customer-facing dates."
       dirty={touched}
       saving={saving}
       saveDisabled={trimmed.length === 0 || !known || loadStatus === "loading"}
@@ -104,12 +104,12 @@ export default function CompanySettingsPreferencesEditor({
         ) : null}
         {canonical.kind === "saved" ? (
           <p className={FOCUSED_EDITOR_HINT} data-timezone-saved={canonical.timezone}>
-            Scheduling and reminders use this timezone.
+            Used for scheduling, reminders, and customer-facing dates.
           </p>
         ) : null}
         {canonical.kind === "not_set" ? (
           <p className={FOCUSED_EDITOR_HINT} data-timezone-saved="">
-            Scheduling and reminders use this timezone.
+            Used for scheduling, reminders, and customer-facing dates.
           </p>
         ) : null}
         {trimmed.length > 0 && !known ? (

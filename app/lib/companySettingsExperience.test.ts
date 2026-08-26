@@ -70,8 +70,8 @@ describe("Company Settings summary-first model", () => {
   test("each section summarizes real state before offering an edit", () => {
     const business = summarizeBusiness(FILLED_PROFILE);
     assert.equal(business.title, "Anderson Roofing");
-    assert.match(business.detail ?? "", /office@andersonroofing\.com/);
-    assert.match(business.detail ?? "", /OK-114552/);
+    assert.ok(business.details.some((line) => /office@andersonroofing\.com/.test(line)));
+    assert.ok(business.details.some((line) => /OK-114552/.test(line)));
 
     assert.match(summarizeBranding(FILLED_PROFILE), /Logo added/);
     assert.match(summarizeBranding({}), /No logo/);
@@ -305,6 +305,7 @@ describe("Pricing visual normalization", () => {
     assert.doesNotMatch(PRICING_CLIENT, /min-h-screen/);
     assert.doesNotMatch(PRICING_CLIENT, /border-cyan-|text-cyan-|bg-cyan-/);
     assert.match(PRICING_CLIENT, /bg-blue-600/);
+    assert.doesNotMatch(PRICING_CLIENT, /bg-white\/95/);
   });
 
   test("Pricing is one save concept and single column on mobile", () => {
@@ -352,5 +353,34 @@ describe("Pricing visual normalization", () => {
   test("Pricing stays a full page, not a settings drawer", () => {
     assert.doesNotMatch(PRICING_CLIENT, /FocusedEditor/);
     assert.match(SETTINGS_CLIENT, /href="\/tools\/settings\/pricing"/);
+  });
+
+  test("business notification copy reflects current customer flow", () => {
+    assert.match(
+      BUSINESS_EDITOR,
+      /Where FieldDive sends proposal and customer activity notifications/
+    );
+    assert.doesNotMatch(BUSINESS_EDITOR, /customer accepted a proposal/i);
+  });
+
+  test("payments copy is integrated and provider-neutral", () => {
+    assert.match(PAYMENTS_EDITOR, /Customers pay securely through Stripe Checkout/);
+    assert.match(
+      PAYMENTS_EDITOR,
+      /Used as the starting payment terms for new proposals/
+    );
+    assert.doesNotMatch(PAYMENTS_EDITOR, /Prefills payment terms on new proposals/);
+  });
+
+  test("focused editor close control is restrained", () => {
+    assert.match(FOCUSED_EDITOR, /h-4 w-4/);
+    assert.match(FOCUSED_EDITOR, /text-slate-400/);
+    assert.doesNotMatch(FOCUSED_EDITOR, /border border-slate-200.*Close/);
+  });
+
+  test("pricing save stays calm until dirty or first-time setup", () => {
+    assert.match(PRICING_CLIENT, /isDirty/);
+    assert.match(PRICING_CLIENT, /showStickyFooter/);
+    assert.match(PRICING_CLIENT, /saveSubduedClass/);
   });
 });

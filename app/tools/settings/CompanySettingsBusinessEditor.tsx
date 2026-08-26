@@ -123,7 +123,7 @@ export default function CompanySettingsBusinessEditor({
           />
         </label>
         <p className={FOCUSED_EDITOR_HINT}>
-          Where we tell you a customer accepted a proposal.
+          Where FieldDive sends proposal and customer activity notifications.
         </p>
       </div>
     </FocusedEditor>
