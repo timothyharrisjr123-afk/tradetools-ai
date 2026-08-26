@@ -56,11 +56,13 @@
 - Read **§6CB** before any Job Card / Jobs Board disposition / `jobs.status` / `change_job_disposition_v1` contractor management work — **R3I contractor disposition management COMPLETE** (Job actions on Job Card; paired stage + disposition; Board badges + disposition filter; Reactivate = `to_status=active`; no migration).
 - Read **§6CC** before any fixture/screenshot/QA policy, Job Card tab visibility, or stage-aware proposal guidance work — **Canonical fixture + visible surface coherence COMPLETE** (fixture classes; stage-aware proposal labels; Work Orders/Invoices/Material Orders/Job Costing/Instant Estimate hidden with code retained; no migration).
 - Read **§6CD** before any canonical visual fixture preference, Active Intake/Proposal/Production screenshot proof, or Instant Estimate foundation classification — **Canonical visual fixture proof closure COMPLETE** (preferred Active Intake/Proposal/Production fixtures via real RPC path; Instant Estimate classified **PLACEHOLDER**; no product/lifecycle change; no migration).
-- Read **§6CE** before any Board Schedule / Job Card Calendar / Main Calendar create-reschedule / shared scheduling workspace / factual day-count context work — **Stage A shared scheduling workspace COMPLETE** (one `JobScheduleWorkspace`; `job_schedules` sole truth; no recommendations; no drag-and-drop; no migration).
+- Read **§6CE** before any Board Schedule / Job Card Calendar / Main Calendar create-reschedule / shared scheduling workspace / factual day-count context work — **Stage A shared scheduling workspace COMPLETE** (one `JobScheduleWorkspace`; `job_schedules` sole truth; no recommendations; occupancy labels **`1 job` / `N jobs`**; no migration).
+- Read **§6CF** before any Jobs Board drag/drop / guarded Board movement / Board lifecycle intent work — **Stage B guarded Board movement COMPLETE** (native pointer drag; canonical RPCs only; no direct `jobs.stage` writes; payment excluded from Board).
 - Read **§6BZ** before any leftover contractor-capability API auth, server mutation `jobStore` UUID imports, Proposal Preview independent reads, Attention/Activity error-vs-empty semantics, Board/Calendar nested-interactive a11y, historical `measurement`/`estimating` display mapping, Work Orders placeholder copy, or physical `tmp` hygiene after Wave 1 — **Adversarial Audit Wave 2 COMPLETE** (contractor capability API auth; public-by-design routes preserved; Preview independent read ownership + stale guards; error/absence corrections; Board/Calendar a11y; historical stage compatibility; Work Orders placeholder; 390 Builder/Preview/Public proof; no migration).
 
 **Last updated checkpoint:**
 
+- **Stage B guarded Board movement code checkpoint:** **`0c8acc9`** — `feat(jobs): add guarded board movement` (**Stage B COMPLETE / VERIFIED / LOCKED** — native pointer drag; canonical transition matrix; no direct `jobs.stage` writes; occupancy labels **`1 job` / `N jobs`**; payment excluded from Board; no package; no migration). See **§6CF**.
 - **Stage A shared scheduling workspace code checkpoint:** **`daadb09`** — `feat(jobs): add shared scheduling workspace` (**Stage A COMPLETE / VERIFIED / LOCKED** — one shared `JobScheduleWorkspace` for Board Schedule, Job Card Calendar tab, and Main Calendar create/reschedule; factual day-count context; Quick Links removed; no drag-and-drop; no migration; no package). See **§6CE**.
 - **Canonical visual fixture proof closure code checkpoint:** **`a98fbd5`** — `test(jobs): complete canonical lifecycle visual fixtures` (**proof closure COMPLETE / VERIFIED / LOCKED** — preferred Active Intake / Proposal / Approved / Scheduled / Production / Complete IDs; Instant Estimate **PLACEHOLDER** + remains hidden; no product/lifecycle change; no migration). See **§6CD**.
 - **Canonical fixture + visible surface coherence code checkpoint:** **`37e3d0d`** — `fix(app): align fixtures and visible job surfaces` (**coherence COMPLETE / VERIFIED / LOCKED** — fixture policy classes; stage-aware proposal guidance; Work Orders / Invoices / Material Orders / Job Costing / Instant Estimate hidden with code retained; Attachments + Measurements preserved; no migration). See **§6CC**.
@@ -74,7 +76,8 @@
 - **R3G code checkpoint:** **`a175814`** — `feat(jobs): add guarded production start` (**R3G COMPLETE / LIVE / VERIFIED** — explicit Start work; `jobs.production_started_at`; guarded `start_job_work_v1`; Scheduled → Production; generic Production blocked; migration **`20260817_046_job_production_start.sql`** applied on **`rhquhnujjnzjhweypavd`**). See **§6BU**.
 - **R3F code checkpoint:** **`f876ed9`** — `feat(jobs): add unified job scheduling` (**R3F SCHEDULING COMPLETE / LIVE / VERIFIED** — canonical `job_schedules`; company timezone; civil all-day/timed work; Job Card, Calendar Month/Week, Calendar create, Board Scheduled lane, Activity; migration **`20260817_045_job_schedules.sql`** applied on **`rhquhnujjnzjhweypavd`**). See **§6BT**.
 - **R3E code checkpoint:** **`f6c1301`** — `feat(payments): add contractor deposit payments`; docs checkpoint **`040ce63`** — `docs: checkpoint contractor payments` (**R3E COMPLETE / LIVE / VERIFIED**; migration **044 LIVE / historical**). See **§6BS**.
-- **Docs checkpoint:** **Pending this docs commit** — records **Stage A shared scheduling workspace COMPLETE** (§6CE); next = **Board guarded movement / drag-and-drop** (do not start automatically).
+- **Docs checkpoint:** **Pending this docs commit** — records **Stage B guarded Board movement COMPLETE** (§6CF) and Stage A count-label closeout; next = **PAYMENT EXPERIENCE ARCHITECTURE + RESEARCH** (do not start automatically).
+- **Prior docs checkpoint:** **`b5c567b`** — `docs: checkpoint shared scheduling workspace` (§6CE).
 - **Prior docs checkpoint:** **`b9e9e2b`** — `docs: record canonical visual fixture set` (§6CD).
 - **Prior docs checkpoint:** **`c38f504`** — `docs: checkpoint canonical fixture coherence` (§6CC).
 - **Prior docs checkpoint:** **`3488ba1`** — `docs: checkpoint contractor disposition management` (§6CB).
@@ -16637,7 +16640,7 @@ Work Orders / Invoices / Material Orders / Job Costing — still hidden, code re
 
 ### 6CD.5 Remainder / next
 
-**Superseded:** Stage A shared scheduling workspace is **COMPLETE / VERIFIED / LOCKED** at **`daadb09`** / **§6CE**. **Next:** **Board guarded movement / drag-and-drop.** Do not start automatically.
+**Superseded:** Stage A shared scheduling workspace is **COMPLETE / VERIFIED / LOCKED** at **`daadb09`** / **§6CE**. Stage B guarded Board movement is **COMPLETE / VERIFIED / LOCKED** at **§6CF**. **Next:** **PAYMENT EXPERIENCE ARCHITECTURE + RESEARCH.** Do not start automatically.
 
 ---
 
@@ -16662,7 +16665,7 @@ Canonical visual fixture proof closure + R3I + coherence remain **COMPLETE / VER
 Files: `app/lib/jobScheduleWorkspace.ts`, `JobScheduleWorkspace.tsx`, `JobScheduleMonthGrid.tsx`, `ScheduleJobModal.tsx` (dialog wrapper), `JobCardScheduleWorkspacePanel.tsx` (Calendar-tab embed).
 
 - New schedule: empty start/end unless Main Calendar clicked-day prefill.
-- Reschedule: existing window populated; this job’s dates highlighted distinctly; other work as factual counts (`2`, `3` with `2 scheduled` / `3 scheduled jobs` accessible text).
+- Reschedule: existing window populated; this job’s dates highlighted distinctly; other work as factual counts. Visible: **`1 job` / `N jobs`**. Accessible: **`1 scheduled job` / `N scheduled jobs`** with the civil date (e.g. `August 24, 2 scheduled jobs, selected for this job`).
 - Unschedule: compact confirm → RPC → job returns **Approved**; existing **Schedule job** cue; cancelled rows preserved (not deleted).
 - Context read: one bounded `GET /api/jobs/schedules?from=&to=` (coalesced inflight). Job Card context waits until this-job schedule is ready **and** Calendar tab is mounted. Board context only when the dialog opens. Main Calendar reuses loaded events (`contextWindows`).
 - Context failure: **Could not load other scheduled work.** Does **not** render an empty month as zero scheduled jobs. Does **not** block this-job writes.
@@ -16695,19 +16698,81 @@ Job Card month-context does not block first usable (Calendar tab unmounts when i
 
 ### 6CE.6 Remainder / next
 
-**P2 / deferred (not Stage A):** Board guarded drag-and-drop (Stage B); Calendar event drag-reschedule; occupancy result cache beyond inflight coalesce; Job Card Overview schedule snapshot can still race first paint (Loading schedule) before independent schedule hydrate.
+**P2 / deferred:** Calendar event drag-reschedule; occupancy result cache beyond inflight coalesce; Job Card Overview schedule snapshot can still race first paint (Loading schedule) before independent schedule hydrate.
 
-**Stage B design lock — BOARD GUARDED MOVEMENT / DRAG-AND-DROP** (do not start in this checkpoint):
+**Stage B** is **COMPLETE / VERIFIED / LOCKED** — see **§6CF**. Occupancy count-label closeout (`1 job` / `N jobs`) shipped with Stage B.
 
-- Intake → Proposal = proposal-create intent
-- Proposal → Approved = only when `canApproveJob`; confirm
-- Approved → Scheduled = shared scheduling workspace
-- Scheduled → Production = Start Work confirm on drag
-- Production → Complete = Complete Job confirm on drag
-- Scheduled → Approved backward drag = Unschedule confirm
-- all other backward/skip moves blocked
-- mobile does not depend on drag
-- no direct `jobs.stage` writes
+---
+
+## 6CF. STAGE B — GUARDED BOARD MOVEMENT / DRAG-AND-DROP (2026-08-26)
+
+**Status:** **COMPLETE / VERIFIED / LOCKED**. Code **`0c8acc9`** (`feat(jobs): add guarded board movement`). Docs: this section. **No push. No package. No migration. 039 reserved / absent. 047 SHA unchanged (`FFE33FDD562742519BB92568CD5C55528537EA756540D1C6C906F8694B974979`). 048 absent.**
+
+Stage A shared workspace remains **LOCKED**. Canonical fixture policy + R3I remain **LOCKED**. Payment is **intentionally excluded from the Jobs Board**.
+
+### 6CF.1 Stage A count-label closeout
+
+Mini-calendar occupancy is factual scheduled-job counts only:
+
+- zero → no label
+- one → **`1 job`**
+- many → **`N jobs`**
+- date stays primary; count is secondary typography
+- selected/planned range remains distinct (cyan inset ring + sky fill)
+- accessible: `August 24, 2 scheduled jobs, selected for this job` / `August 24, 1 scheduled job`
+- forbidden: busy / available / full / open / recommended / best / capacity / light / heavy
+
+Desktop + true 390 (`innerWidth === 390`) screenshots: `tmp/fielddive-ui-review/scheduling-workspace-count-labels/`.
+
+### 6CF.2 Transition matrix (drag is intent only)
+
+Drag never writes `jobs.stage`. Every successful move uses the same canonical action/RPC as the rest of FieldDive.
+
+| Drag | Means | Owner |
+|------|--------|--------|
+| Intake → Proposal | proposal-create intent | Job Card Proposals tab (`tab=proposals&from=board`) |
+| Proposal → Approved | Approve job (only if `canApproveJob`) | `POST /api/jobs/confirm-acceptance` after **Approve job?** |
+| Approved → Scheduled | open Stage A workspace; **no invented date** | `schedule_job_v1` after contractor picks dates |
+| Scheduled → Production | Start work | `start_job_work_v1` after **Start work?** |
+| Production → Complete | Complete job | `complete_job_work_v1` after **Complete job?** |
+| Scheduled → Approved | Unschedule | `unschedule_job_v1` after **Unschedule job?** — active schedule removed from calendar; job returns to Approved; existing **Schedule job** cue; cancelled history preserved (not deleted) |
+
+All other forward skips and backward moves: **BLOCKED** (no DB write, no Activity write, card stays in source lane). Complete is **TERMINAL**. Non-active (`on_hold` / `lost` / `closed`): **Reactivate to continue.** Missing Schedule negative fixture: Start/Complete blocked.
+
+### 6CF.3 Interaction model
+
+- Desktop Board: native pointer drag (no new package). Mouse-only; threshold distinguishes click (Job Card) from drag (lifecycle intent). Temporary ghost/preview only — destination lane changes only after RPC + coalesced refresh.
+- Valid/invalid drop targets are restrained (no arcade glow).
+- Lightweight confirms; Escape cancels; focus restores; pending announced.
+- Mobile 390: **does not require drag.** Card/list actions: Approve (when eligible), Schedule job, Start work, Complete job. Unschedule via Job Card Calendar workspace.
+- Keyboard: labeled card actions remain independently usable (`pointer-events-auto`).
+- List view: no drag; canonical actions only.
+- Activity: drag writes nothing. RPCs own `job_scheduled` / `job_work_started` / `job_work_completed` / unschedule / approval events.
+- Payment: **not added to Board** (product-direction lock). R3E payment truth unchanged.
+
+### 6CF.4 Proof
+
+Canonical fixtures only for normal proof. Missing Schedule used only for rejection.
+
+Desktop + 390 screenshots: `tmp/fielddive-ui-review/guarded-board-movement/` (plus retained count-label shots).
+
+Curated regression **474/474** pass (038/040/043–047, PERF-1, Stage AB, hardening, Waves 1–2, runtime, R3I, fixture coherence, Attention/Activity, Stage A workspace, Stage B matrix). Touched-file lint clean except inherited SavedClient `any`/unused noise. Filtered typecheck: no errors in Stage B files (repo has inherited catalog/proposal test TS noise). `git diff --check` clean.
+
+### 6CF.5 Remainder / next
+
+**P2 / deferred:** Calendar event drag-reschedule; occupancy result cache beyond inflight coalesce; Job Card Overview first-paint schedule race; Board toast chrome still uses a shared status region for success and rejection.
+
+**Next major roadmap stage:** **PAYMENT EXPERIENCE ARCHITECTURE + RESEARCH**. Do not start automatically.
+
+Payment experience must be:
+
+- streamlined for contractor
+- streamlined for customer
+- meticulously integrated across the appropriate surfaces
+- **not added to Board by default**
+- researched/planned before implementation
+- financially precise in wording/status ownership
+- free from accounting/enterprise bulk unless required
 
 ---
 
@@ -16741,7 +16806,7 @@ Job Card month-context does not block first usable (Calendar tab unmounts when i
 
 ## 8. CURRENT NEXT (SUMMARY)
 
-**Superseded for current resume:** Header + **§6CE** + **§6CD** + **§6CC** + **§6CB**. **Stage A shared scheduling workspace COMPLETE / VERIFIED / LOCKED** at **`daadb09`**. **Proof closure COMPLETE / VERIFIED / LOCKED** at **`a98fbd5`**. **Coherence COMPLETE / VERIFIED / LOCKED** at **`37e3d0d`**. **R3I COMPLETE** at **`6426c6a`**. **Next is Board guarded movement / drag-and-drop.** Do not start automatically. Historical 3I/3F9 text below is not the current next.
+**Superseded for current resume:** Header + **§6CF** + **§6CE** + **§6CD** + **§6CC** + **§6CB**. **Stage B guarded Board movement COMPLETE / VERIFIED / LOCKED** (§6CF). **Stage A shared scheduling workspace COMPLETE / VERIFIED / LOCKED** at **`daadb09`**. **Proof closure COMPLETE / VERIFIED / LOCKED** at **`a98fbd5`**. **Coherence COMPLETE / VERIFIED / LOCKED** at **`37e3d0d`**. **R3I COMPLETE** at **`6426c6a`**. **Next is PAYMENT EXPERIENCE ARCHITECTURE + RESEARCH.** Do not start automatically. Historical 3I/3F9 text below is not the current next.
 
 **Latest checkpoint:** **3I-2 read-only Builder pricing preview complete** (`637b85a`). **3I-2 chain:** `5626c47` (orchestrator) → `f5bbd84` (document UI) → `637b85a` (status surfaces). **3I-1:** `162f9be`–`52b7148`. **3H-3:** `40e6720`. **3H-2:** `00fbf64`. **3H-1:** `feec663`. **Packet session bleed fix:** `c12ea4d`. **Pre-3H-2:** `abd718d`.
 
