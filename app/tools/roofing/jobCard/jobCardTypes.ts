@@ -9,7 +9,7 @@
  * - invoices — DEFERRED / UNCOMMITTED
  * - material_orders — future core, nonfunctional placeholder — hidden for clarity
  * - job_costing — future core, nonfunctional placeholder — hidden for clarity
- * - instant_estimate — deferred placeholder — hidden for clarity
+ * - instant_estimate — PLACEHOLDER (shell only) — hidden for clarity
  *
  * Attachments and Measurements remain visible (core FieldDive capabilities).
  */

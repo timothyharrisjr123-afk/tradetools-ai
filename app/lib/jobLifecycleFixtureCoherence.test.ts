@@ -15,6 +15,7 @@ import {
   isNegativeLifecycleFixture,
   isPreferredCanonicalVisualFixture,
   KNOWN_LIFECYCLE_FIXTURES,
+  PREFERRED_CANONICAL_VISUAL_FIXTURES,
 } from "./jobLifecycleFixturePolicy";
 import {
   allowsJobCardProposalCreateGuidance,
@@ -65,6 +66,43 @@ describe("lifecycle fixture policy", () => {
       "synthetic_partial"
     );
     assert.ok(KNOWN_LIFECYCLE_FIXTURES.length >= 5);
+  });
+
+  test("preferred canonical visual set covers Intake through Complete", () => {
+    assert.equal(
+      PREFERRED_CANONICAL_VISUAL_FIXTURES.intake.id,
+      "a9619d68-6d3f-43d2-8b07-7ed73ae87442"
+    );
+    assert.equal(
+      PREFERRED_CANONICAL_VISUAL_FIXTURES.proposal.id,
+      "d867e1a2-6dc3-4791-ab0f-e45c5f5d24aa"
+    );
+    assert.equal(
+      PREFERRED_CANONICAL_VISUAL_FIXTURES.approved.id,
+      "c34d3539-1dd3-489a-a25e-fb2ada68d827"
+    );
+    assert.equal(
+      PREFERRED_CANONICAL_VISUAL_FIXTURES.scheduled.id,
+      "af6a9dc2-01a5-4e8c-8a8e-c10584713d27"
+    );
+    assert.equal(
+      PREFERRED_CANONICAL_VISUAL_FIXTURES.production.id,
+      "85d41ad7-58d6-437d-95b3-80ac40a3c611"
+    );
+    assert.equal(
+      PREFERRED_CANONICAL_VISUAL_FIXTURES.complete.id,
+      "2b5319f1-54b0-4d23-a85c-096940c78378"
+    );
+    for (const preferred of Object.values(PREFERRED_CANONICAL_VISUAL_FIXTURES)) {
+      assert.equal(classifyKnownLifecycleFixture(preferred), "canonical");
+      assert.equal(isPreferredCanonicalVisualFixture(preferred), true);
+    }
+    assert.equal(
+      isPreferredCanonicalVisualFixture({
+        id: "366afed3-2eee-4558-8630-63e4f0dda99e",
+      }),
+      false
+    );
   });
 });
 

@@ -20,23 +20,82 @@ export type LifecycleFixtureRecord = {
 };
 
 /**
+ * Preferred normal visual / E2E fixtures by lifecycle stage.
+ * IDs are QA ownership only — not product branching keys.
+ */
+export const PREFERRED_CANONICAL_VISUAL_FIXTURES = {
+  intake: {
+    id: "a9619d68-6d3f-43d2-8b07-7ed73ae87442",
+    name: "[R3G-046-VISUAL] Clean Intake",
+  },
+  proposal: {
+    id: "d867e1a2-6dc3-4791-ab0f-e45c5f5d24aa",
+    name: "[R3G-046-VISUAL] Clean Proposal",
+  },
+  approved: {
+    id: "c34d3539-1dd3-489a-a25e-fb2ada68d827",
+    name: "[R3G-046-VISUAL] Clean Approved",
+  },
+  scheduled: {
+    id: "af6a9dc2-01a5-4e8c-8a8e-c10584713d27",
+    name: "[R3G-046-VISUAL] Clean Scheduled",
+  },
+  production: {
+    id: "85d41ad7-58d6-437d-95b3-80ac40a3c611",
+    name: "[R3G-046-VISUAL] Clean Production Active",
+  },
+  complete: {
+    id: "2b5319f1-54b0-4d23-a85c-096940c78378",
+    name: "[R3G-046-VISUAL] Clean Production",
+  },
+} as const;
+
+/**
  * Known controlled fixtures used across 038–047 / R3G / R3H / R3I proofs.
  * Classification is documentation for QA — not product branching.
  */
 export const KNOWN_LIFECYCLE_FIXTURES: readonly LifecycleFixtureRecord[] = [
   {
-    id: "af6a9dc2-01a5-4e8c-8a8e-c10584713d27",
-    name: "[R3G-046-VISUAL] Clean Scheduled",
+    id: PREFERRED_CANONICAL_VISUAL_FIXTURES.intake.id,
+    name: PREFERRED_CANONICAL_VISUAL_FIXTURES.intake.name,
+    class: "canonical",
+    notes:
+      "Manual create → Intake + active. Prefer for normal Active Intake screenshots/E2E.",
+  },
+  {
+    id: PREFERRED_CANONICAL_VISUAL_FIXTURES.proposal.id,
+    name: PREFERRED_CANONICAL_VISUAL_FIXTURES.proposal.name,
+    class: "canonical",
+    notes:
+      "persist_draft_proposal_create_v1 → Proposal + active draft; no accept/approve. Prefer for normal Active Proposal visuals.",
+  },
+  {
+    id: PREFERRED_CANONICAL_VISUAL_FIXTURES.approved.id,
+    name: PREFERRED_CANONICAL_VISUAL_FIXTURES.approved.name,
+    class: "canonical",
+    notes:
+      "Full send/accept/confirm path → Approved + active; no schedule. Prefer for normal Active Approved visuals.",
+  },
+  {
+    id: PREFERRED_CANONICAL_VISUAL_FIXTURES.scheduled.id,
+    name: PREFERRED_CANONICAL_VISUAL_FIXTURES.scheduled.name,
     class: "canonical",
     notes:
       "Full proposal RPC path then schedule. Prefer for normal Scheduled screenshots.",
   },
   {
-    id: "2b5319f1-54b0-4d23-a85c-096940c78378",
-    name: "[R3G-046-VISUAL] Clean Production",
+    id: PREFERRED_CANONICAL_VISUAL_FIXTURES.production.id,
+    name: PREFERRED_CANONICAL_VISUAL_FIXTURES.production.name,
     class: "canonical",
     notes:
-      "Full proposal path + start work. May be Complete after R3H visual proof.",
+      "Full proposal → schedule → start_job_work_v1. Prefer for normal Active Production visuals (not the misnamed Complete job).",
+  },
+  {
+    id: PREFERRED_CANONICAL_VISUAL_FIXTURES.complete.id,
+    name: PREFERRED_CANONICAL_VISUAL_FIXTURES.complete.name,
+    class: "canonical",
+    notes:
+      "Name says Production but stage is Complete after R3H. Prefer for Complete screenshots only — never as Production proof.",
   },
   {
     id: "3338cd5c-6427-4546-9014-9ada70f595a1",
@@ -87,7 +146,8 @@ export const KNOWN_LIFECYCLE_FIXTURES: readonly LifecycleFixtureRecord[] = [
     id: "cc2c7730-ac34-4535-b469-b17a581385c1",
     name: "[R3G-046] Production Hold",
     class: "display_disposition",
-    notes: "Production + on_hold display fixture. Prefer for live Production stage display when Clean Production has Completed.",
+    notes:
+      "Production + on_hold display fixture. Prefer Clean Production Active for normal Active Production visuals.",
   },
 ] as const;
 
@@ -120,6 +180,11 @@ export function isPreferredCanonicalVisualFixture(input: {
   id?: string | null;
   name?: string | null;
 }): boolean {
-  return classifyKnownLifecycleFixture(input) === "canonical";
+  const id = String(input.id ?? "").trim().toLowerCase();
+  const name = String(input.name ?? "").trim().toLowerCase();
+  for (const preferred of Object.values(PREFERRED_CANONICAL_VISUAL_FIXTURES)) {
+    if (id && preferred.id.toLowerCase() === id) return true;
+    if (name && preferred.name.toLowerCase() === name) return true;
+  }
+  return false;
 }
-
